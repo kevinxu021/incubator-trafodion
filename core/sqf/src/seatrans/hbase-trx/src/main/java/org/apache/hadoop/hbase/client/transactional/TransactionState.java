@@ -74,7 +74,7 @@ public class TransactionState {
     public Set<TransactionRegionLocation> regionsToIgnore = Collections.synchronizedSet(new HashSet<TransactionRegionLocation>());
     private Set<TransactionRegionLocation> retryRegions = Collections.synchronizedSet(new HashSet<TransactionRegionLocation>());
 
-    private native void registerRegion(long transid, long startId, int port, byte[] hostname, long startcode, byte[] regionInfo);
+    private native void registerRegion(long transid, long startid, int port, byte[] hostname, long startcode, byte[] regionInfo, int peerId);
 
     public boolean islocalTransaction() {
       return localTransaction;
@@ -253,7 +253,7 @@ public class TransactionState {
         }
     }
 
-      public void registerLocation(final TransactionRegionLocation location) throws IOException {
+    public void registerLocation(final HRegionLocation location, final int pv_peerId) throws IOException {
         byte [] lv_hostname = location.getHostname().getBytes();
         int lv_port = location.getPort();
         long lv_startcode = location.getServerName().getStartcode();
@@ -264,14 +264,15 @@ public class TransactionState {
         lv_dos.flush(); */
         byte [] lv_byte_region_info = location.getRegionInfo().toByteArray();
         if (LOG.isTraceEnabled()) LOG.trace("TransactionState.registerLocation: [" + location.getRegionInfo().getEncodedName() +
-          "], endKey: " + Hex.encodeHexString(location.getRegionInfo().getEndKey()) + " transaction [" + transactionId + "]");
+          "], endKey: " + Hex.encodeHexString(location.getRegionInfo().getEndKey()) + " transaction [" + transactionId + "]"
+					    + "[peerId: " + pv_peerId + "]");
 
         if (islocalTransaction()) {
           if(LOG.isTraceEnabled()) LOG.trace("TransactionState.registerLocation local transaction not sending registerRegion.");
         }
         else {
           if (LOG.isTraceEnabled()) LOG.trace("TransactionState.registerLocation global transaction registering region for ts: " + transactionId + " and startId: " + startId);
-          registerRegion(transactionId, startId, lv_port, lv_hostname, lv_startcode, lv_byte_region_info);
+          registerRegion(transactionId, startId, lv_port, lv_hostname, lv_startcode, lv_byte_region_info, pv_peerId);
         }
       }
 
@@ -282,13 +283,19 @@ public class TransactionState {
         boolean added = participatingRegions.add(trRegion);
 
         if (added) {
-            if (LOG.isTraceEnabled()) LOG.trace("Added new trRegion to participatingRegions [" + trRegion.getRegionInfo().getRegionNameAsString() + "], endKey: "
-                  + Hex.encodeHexString(trRegion.getRegionInfo().getEndKey()) + " and transaction [" + transactionId + "]");
+            if (LOG.isTraceEnabled()) LOG.trace("Added new trRegion to participatingRegions [" 
+						+ trRegion.getRegionInfo().getRegionNameAsString() + "], endKey: "
+						+ Hex.encodeHexString(trRegion.getRegionInfo().getEndKey()) 
+						+ " and transaction [" + transactionId + "]"
+						+ "#regions: " + participatingRegions.size());
 
         }
         else {
-            if (LOG.isTraceEnabled()) LOG.trace("trRegion already present in participatinRegions [" + trRegion.getRegionInfo().getEncodedName() + "], endKey: "
-                  + Hex.encodeHexString(trRegion.getRegionInfo().getEndKey()) + " and transaction [" + transactionId + "]");
+            if (LOG.isTraceEnabled()) LOG.trace("trRegion already present in participatinRegions [" 
+						+ trRegion.getRegionInfo().getEncodedName() + "], endKey: "
+						+ Hex.encodeHexString(trRegion.getRegionInfo().getEndKey()) 
+						+ " and transaction [" + transactionId + "]"
+						+ "#regions: " + participatingRegions.size());
         }
 
         return added;
@@ -299,7 +306,8 @@ public class TransactionState {
         if (LOG.isTraceEnabled()) LOG.trace("Creating new TransactionRegionLocation from HRegionLocation [" + hregion.getRegionInfo().getRegionNameAsString() +
                               " endKey: " + Hex.encodeHexString(hregion.getRegionInfo().getEndKey()) + " for transaction [" + transactionId + "]");
         TransactionRegionLocation trRegion = new TransactionRegionLocation(hregion.getRegionInfo(),
-                                                                             hregion.getServerName());
+									   hregion.getServerName(),
+									   0); //TBD: Revisit
 // Save hregion for now
         boolean added = participatingRegions.add(trRegion);
 

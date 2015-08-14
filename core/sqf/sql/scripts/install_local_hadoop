@@ -401,7 +401,19 @@ else
     MY_START_PORT=`expr 50000 + $MY_START_PORT '*' 100`
   elif [ $MY_START_PORT == "rand" ]; then
     # pick a random number between 9000 and 49000 that is divisible by 200
-    MY_START_PORT=`expr $RANDOM '%' 200 '*' 200 + 9000`
+    lv_number=0   #initialize
+    FLOOR=10000
+    RANGE=31200
+    while [ "$lv_number" -le $FLOOR ]
+    do
+	lv_number=$RANDOM
+	let "lv_number %= $RANGE"  # Scales $lv_number down within $RANGE.
+    done
+    echo "Random lv_number between $FLOOR and $RANGE ---  $lv_number"
+    echo
+    let "lv_remainder=$lv_number % 200"
+    let "MY_START_PORT=$lv_number - $lv_remainder"
+    echo "Start Port ---  $MY_START_PORT"
   fi
   echo "# Using non-standard port range from MY_START_PORT env var: $MY_START_PORT..."
 fi
@@ -683,6 +695,8 @@ export MYSQL_HOME=${MYSQL_HOME}
 export YARN_HOME=${YARN_HOME}
 export HIVE_HOME=${HIVE_HOME}
 export HBASE_HOME=${HBASE_HOME}
+export HADOOP_PID_DIR=${MY_SW_ROOT}/tmp
+export HBASE_PID_DIR=${MY_SW_ROOT}/tmp
 export MY_HADOOP_HDFS_PORT_NUM=${MY_HADOOP_HDFS_PORT_NUM}
 EOF
 
@@ -1418,6 +1432,10 @@ else
     <value>hdfs://${MY_HOST_1}:${MY_HADOOP_HDFS_PORT_NUM}/hbase</value>
   </property>
   <property>
+   <name>hbase.zookeeper.quorum</name>
+   <value>${HOSTNAME}</value>
+ </property>
+ <property>
     <name>hbase.zookeeper.property.dataDir</name>
     <value>hdfs://${MY_HOST_1}:${MY_HADOOP_HDFS_PORT_NUM}/zookeeper</value>
   </property>

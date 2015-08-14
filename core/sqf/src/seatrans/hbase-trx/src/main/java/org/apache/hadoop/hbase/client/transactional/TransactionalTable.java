@@ -21,6 +21,7 @@
 
 package org.apache.hadoop.hbase.client.transactional;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -76,6 +77,7 @@ import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.MutationType;
 import org.apache.hadoop.hbase.regionserver.transactional.SingleVersionDeleteNotSupported;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.fs.Path;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.HBaseZeroCopyByteString;
@@ -116,6 +118,10 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
      */
     public TransactionalTable(final byte[] tableName) throws IOException {
        super(tableName, connection, threadPool);      
+    }
+
+    public TransactionalTable(final byte[] tableName, HConnection pv_connection) throws IOException {
+       super(tableName, pv_connection, threadPool);      
     }
 
     public void resetConnection() throws IOException {

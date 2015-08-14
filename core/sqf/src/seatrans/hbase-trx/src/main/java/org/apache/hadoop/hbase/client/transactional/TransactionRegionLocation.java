@@ -42,8 +42,16 @@ public class TransactionRegionLocation extends HRegionLocation {
    }
    */
 
-  public TransactionRegionLocation(HRegionInfo regionInfo, ServerName servName) {
-    super(regionInfo, servName);
+    public int peerId;
+
+    public TransactionRegionLocation(HRegionInfo regionInfo, ServerName servName) 
+    {
+	this(regionInfo, servName,0);
+    }
+
+    public TransactionRegionLocation(HRegionInfo regionInfo, ServerName servName, int pv_peerId) {
+	super(regionInfo, servName);
+	peerId = pv_peerId;
   }
 
    @Override

@@ -24,17 +24,24 @@ package org.apache.hadoop.hbase.client.transactional;
 import java.io.IOException;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.InterruptedIOException;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.codec.binary.Hex;
+
+import org.apache.hadoop.fs.Path;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
+import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Delete;
@@ -55,7 +62,6 @@ import org.apache.hadoop.hbase.client.transactional.SsccTransactionalTable;
 
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import java.io.InterruptedIOException;
 
 import org.apache.hadoop.hbase.client.transactional.TransState;
 import org.apache.hadoop.hbase.client.transactional.TransReturnCode;
@@ -65,6 +71,7 @@ import org.apache.hadoop.hbase.regionserver.transactional.IdTm;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmException;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmId;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -81,8 +88,52 @@ public class RMInterface {
     public AlgorithmType TRANSACTION_ALGORITHM;
     static Map<Long, Set<RMInterface>> mapRMsPerTransaction = new HashMap<Long,  Set<RMInterface>>();
     private TransactionalTableClient ttable = null;
+    protected Map<Integer, TransactionalTableClient> peer_tables;
     static {
         System.loadLibrary("stmlib");
+    }
+
+    static boolean             sb_replicate = false;
+    static Map<Integer, Configuration> peer_configs;
+    static int sv_peer_count = 0;
+    static {
+	String lv_str_replicate = System.getenv("PEERS");
+	String[] sv_peers;
+	if (lv_str_replicate != null) {
+	    sv_peers = lv_str_replicate.split(",");
+	    sv_peer_count = sv_peers.length;
+	    if (sv_peer_count > 0) {
+		sb_replicate = true;
+	    }
+	
+	    if (LOG.isTraceEnabled()) LOG.trace("Replicate count: " + sv_peer_count);
+
+	    peer_configs = new HashMap<Integer, Configuration>();
+	    for (int i = 0; i < sv_peer_count; i++) {
+		int lv_peer_num = Integer.parseInt(sv_peers[i]);
+		String lv_peer_hbase_site_str = System.getenv("MY_SQROOT") + "/conf/peer" + lv_peer_num  + "/hbase-site.xml";
+		if (LOG.isTraceEnabled()) LOG.trace("lv_peer_hbase_site: " + lv_peer_hbase_site_str);
+
+		File lv_peer_file = new File(lv_peer_hbase_site_str);
+		if (lv_peer_file.exists()) {
+		    Path lv_config_path = new Path(lv_peer_hbase_site_str);
+		    Configuration lv_config = HBaseConfiguration.create();
+		    lv_config.set("hbase.hregion.impl", "org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion");
+		    lv_config.addResource(lv_config_path);
+		    if (LOG.isTraceEnabled()) LOG.trace("Putting peer info in the map for : " + lv_peer_hbase_site_str);
+		    try {
+			peer_configs.put(lv_peer_num,lv_config);
+		    }
+		    catch (Exception e) {
+			LOG.error("Exception while adding peer info to the config: " + e);
+		    }
+	    if (LOG.isTraceEnabled()) LOG.trace("peer#" + lv_peer_num + ":zk forum: " + (peer_configs.get(lv_peer_num)).get("hbase.zookeeper.quorum"));
+		}
+		else {
+		    if (LOG.isTraceEnabled()) LOG.trace("RMInterface static: Peer Path does not exist: " + lv_peer_hbase_site_str);
+		}
+	    }
+	}
     }
 
     private native void registerRegion(int port, byte[] hostname, long startcode, byte[] regionInfo);
@@ -112,13 +163,29 @@ public class RMInterface {
         {
             transactionAlgorithm = (Integer.parseInt(envset) == 1) ? AlgorithmType.SSCC : AlgorithmType.MVCC;
         }
+	peer_tables = new HashMap<Integer, TransactionalTableClient>();
         if( transactionAlgorithm == AlgorithmType.MVCC) //MVCC
         {
             ttable = new TransactionalTable(Bytes.toBytes(tableName));
+	    if (sb_replicate) {
+		for ( Map.Entry<Integer, Configuration> e : peer_configs.entrySet() ) {
+		    Configuration lv_config = e.getValue();
+		    int           lv_peerId = e.getKey();
+		    HConnection lv_connection = HConnectionManager.createConnection(lv_config);
+		    peer_tables.put(lv_peerId, new TransactionalTable(Bytes.toBytes(tableName), lv_connection));
+		}
+	    }
         }
         else if(transactionAlgorithm == AlgorithmType.SSCC)
         {
             ttable = new SsccTransactionalTable( Bytes.toBytes(tableName));
+	    if (sb_replicate) {
+		for ( Map.Entry<Integer, Configuration> e : peer_configs.entrySet() ) {
+		    Configuration lv_config = e.getValue();
+		    int           lv_peerId = e.getKey();
+		    peer_tables.put(lv_peerId, new SsccTransactionalTable(Bytes.toBytes(tableName)));
+		}
+	    }
         }
 
         try {
@@ -134,8 +201,11 @@ public class RMInterface {
 
     }
 
-    public synchronized TransactionState registerTransaction(final long transactionID, final byte[] row) throws IOException {
-        if (LOG.isTraceEnabled()) LOG.trace("Enter registerTransaction, transaction ID: " + transactionID);
+    public synchronized TransactionState registerTransaction(final TransactionalTableClient pv_table, 
+							     final long transactionID, 
+							     final byte[] row,
+							     final int pv_peerId) throws IOException {
+        if (LOG.isTraceEnabled()) LOG.trace("Enter registerTransaction, transaction ID: " + transactionID + " peerId: " + pv_peerId);
         boolean register = false;
         short ret = 0;
 
@@ -185,10 +255,11 @@ public class RMInterface {
         else {
             if (LOG.isTraceEnabled()) LOG.trace("RMInterface:registerTransaction - Found TS in map for tx " + ts);
         }
-        HRegionLocation location = ttable.getRegionLocation(row, false /*reload*/);
+        HRegionLocation location = pv_table.getRegionLocation(row, false /*reload*/);
 
         TransactionRegionLocation trLocation = new TransactionRegionLocation(location.getRegionInfo(),
-                                                                             location.getServerName());
+                                                                             location.getServerName(),
+									     pv_peerId);
         if (LOG.isTraceEnabled()) LOG.trace("RMInterface:registerTransaction, created TransactionRegionLocation [" + trLocation.getRegionInfo().getRegionNameAsString() + "], endKey: "
                   + Hex.encodeHexString(trLocation.getRegionInfo().getEndKey()) + " and transaction [" + transactionID + "]");
 
@@ -201,7 +272,7 @@ public class RMInterface {
 
         // register region with TM.
         if (register) {
-            ts.registerLocation(trLocation);
+            ts.registerLocation(location, pv_peerId);
              if (LOG.isTraceEnabled()) LOG.trace("RMInterface:registerTransaction, called registerLocation TransactionRegionLocation [" + trLocation.getRegionInfo().getRegionNameAsString() +  "\nEncodedName: [" + trLocation.getRegionInfo().getEncodedName() + "], endKey: "
                   + Hex.encodeHexString(trLocation.getRegionInfo().getEndKey()) + " to transaction [" + transactionID + "]");
         }
@@ -216,6 +287,26 @@ public class RMInterface {
 
         if (LOG.isTraceEnabled()) LOG.trace("Exit registerTransaction, transaction ID: " + transactionID + ", startId: " + ts.getStartId());
         return ts;
+    }
+
+    public synchronized TransactionState registerTransaction(final long transactionID,
+							     final byte[] row,
+							     final boolean pv_sendToPeers) throws IOException {
+
+        if (LOG.isTraceEnabled()) LOG.trace("Enter registerTransaction, transaction ID: " + transactionID);
+
+	TransactionState ts = registerTransaction(ttable, transactionID, row, 0);
+
+	if (pv_sendToPeers && sb_replicate) {
+	    for ( Map.Entry<Integer, TransactionalTableClient> e : peer_tables.entrySet() ) {
+		TransactionalTableClient lv_table = e.getValue();
+		int                      lv_peerId = e.getKey();
+		registerTransaction(lv_table, transactionID, row, lv_peerId);
+	    }
+	}
+
+        if (LOG.isTraceEnabled()) LOG.trace("Exit registerTransaction, transaction ID: " + transactionID);
+	return ts;
     }
 
     public void createTable(HTableDescriptor desc, byte[][] keys, int numSplits, int keyLength, long transID) throws IOException {
@@ -310,7 +401,7 @@ public class RMInterface {
 
     public synchronized Result get(final long transactionID, final Get get) throws IOException {
         if (LOG.isTraceEnabled()) LOG.trace("get txid: " + transactionID);
-        TransactionState ts = registerTransaction(transactionID, get.getRow());
+        TransactionState ts = registerTransaction(transactionID, get.getRow(), false);
         Result res = ttable.get(ts, get, false);
         if (LOG.isTraceEnabled()) LOG.trace("EXIT get -- result: " + res.toString());
         return res;	
@@ -318,26 +409,36 @@ public class RMInterface {
 
     public synchronized void delete(final long transactionID, final Delete delete) throws IOException {
         if (LOG.isTraceEnabled()) LOG.trace("delete txid: " + transactionID);
-        TransactionState ts = registerTransaction(transactionID, delete.getRow());
+        TransactionState ts = registerTransaction(transactionID, delete.getRow(), true);
         ttable.delete(ts, delete, false);
+	if (sb_replicate) {
+	    for (TransactionalTableClient lv_table : peer_tables.values()) {
+		lv_table.delete(ts, delete, false);
+	    }
+	}
     }
 
     public synchronized void delete(final long transactionID, final List<Delete> deletes) throws IOException {
         if (LOG.isTraceEnabled()) LOG.trace("Enter delete (list of deletes) txid: " + transactionID);
         TransactionState ts = null;
 	for (Delete delete : deletes) {
-	    ts = registerTransaction(transactionID, delete.getRow());
+	    ts = registerTransaction(transactionID, delete.getRow(), true);
 	}
         if (ts == null){
            ts = mapTransactionStates.get(transactionID);
         }
         ttable.delete(ts, deletes);
+	if (sb_replicate) {
+	    for (TransactionalTableClient lv_table : peer_tables.values()) {
+		lv_table.delete(ts, deletes);
+	    }
+	}
         if (LOG.isTraceEnabled()) LOG.trace("Exit delete (list of deletes) txid: " + transactionID);
     }
 
     public synchronized ResultScanner getScanner(final long transactionID, final Scan scan) throws IOException {
         if (LOG.isTraceEnabled()) LOG.trace("getScanner txid: " + transactionID);
-        TransactionState ts = registerTransaction(transactionID, scan.getStartRow());
+        TransactionState ts = registerTransaction(transactionID, scan.getStartRow(), false);
         ResultScanner res = ttable.getScanner(ts, scan);
         if (LOG.isTraceEnabled()) LOG.trace("EXIT getScanner");
         return res;
@@ -345,7 +446,13 @@ public class RMInterface {
 
     public synchronized void put(final long transactionID, final Put put) throws IOException {
         if (LOG.isTraceEnabled()) LOG.trace("Enter Put txid: " + transactionID);
-        TransactionState ts = registerTransaction(transactionID, put.getRow());
+        TransactionState ts = registerTransaction(transactionID, put.getRow(), true);
+	if (sb_replicate) {
+	    for (TransactionalTableClient lv_table : peer_tables.values()) {
+		lv_table.put(ts, put, false);
+	    }
+	}
+
         ttable.put(ts, put, false);
         if (LOG.isTraceEnabled()) LOG.trace("Exit Put txid: " + transactionID);
     }
@@ -354,11 +461,18 @@ public class RMInterface {
          if (LOG.isTraceEnabled()) LOG.trace("Enter put (list of puts) txid: " + transactionID);
         TransactionState ts = null;
       	for (Put put : puts) {
-      	    ts = registerTransaction(transactionID, put.getRow());
+      	    ts = registerTransaction(transactionID, put.getRow(), true);
       	}
         if (ts == null){
            ts = mapTransactionStates.get(transactionID);
         }
+
+	if (sb_replicate) {
+	    for (TransactionalTableClient lv_table : peer_tables.values()) {
+		lv_table.put(ts, puts);
+	    }
+	}
+
         ttable.put(ts, puts);
          if (LOG.isTraceEnabled()) LOG.trace("Exit put (list of puts) txid: " + transactionID);
     }
@@ -367,7 +481,14 @@ public class RMInterface {
                        byte[] value, Put put) throws IOException {
 
         if (LOG.isTraceEnabled()) LOG.trace("Enter checkAndPut txid: " + transactionID);
-        TransactionState ts = registerTransaction(transactionID, row);
+        TransactionState ts = registerTransaction(transactionID, row, true);
+
+	if (sb_replicate) {
+	    for (TransactionalTableClient lv_table : peer_tables.values()) {
+		lv_table.checkAndPut(ts, row, family, qualifier, value, put);
+	    }
+	}
+
         return ttable.checkAndPut(ts, row, family, qualifier, value, put);
     }
 
@@ -375,7 +496,12 @@ public class RMInterface {
                        byte[] value, Delete delete) throws IOException {
 
         if (LOG.isTraceEnabled()) LOG.trace("Enter checkAndDelete txid: " + transactionID);
-        TransactionState ts = registerTransaction(transactionID, row);
+        TransactionState ts = registerTransaction(transactionID, row, true);
+	if (sb_replicate) {
+	    for (TransactionalTableClient lv_table : peer_tables.values()) {
+		lv_table.checkAndDelete(ts, row, family, qualifier, value, delete);
+	    }
+	}
         return ttable.checkAndDelete(ts, row, family, qualifier, value, delete);
     }
 

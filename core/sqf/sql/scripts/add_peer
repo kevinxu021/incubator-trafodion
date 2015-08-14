@@ -1,0 +1,136 @@
+#!/bin/bash
+# @@@ START COPYRIGHT @@@
+#
+# (C) Copyright 2015 Hewlett-Packard Development Company, L.P.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+# @@@ END COPYRIGHT @@@
+
+function Usage {
+    echo
+    echo "Usage: $0 {-i <nn> | -q <an,.>| -p <nn> | -h}"
+    echo
+    echo "-i ID of the peer (A number greater than 0)"
+    echo
+    echo "-q Zookeeper quorum (comma-separated list of server names/IP addresses)"
+    echo
+    echo "   Value of the property: hbase.zookeeper.quorum from peer's hbase-site.xml"
+    echo "   If this property does not exist in hbase-site.xml then the peer is most likely a standalone HBase server." 
+    echo "   In this case, simply provide the server name or the IP address of the server where HBase is running."
+    if [[ -e $MY_SQROOT/sql/scripts/sw_env.sh ]]; then
+    # we are on a development system where install_local_hadoop has been executed.
+	echo
+	echo "   If install_local_hadoop was used to setup the peer env, then the hbase-site.xml will exist in the dir:"
+	echo "   \$MY_SQROOT/sql/local_hadoop/hbase/conf"
+    fi
+    echo
+    echo "-p Zookeeper port number"
+    echo
+    echo "   Value of the property: hbase.zookeeper.property.clientPort from peer's hbase-site.xml"
+    echo "   (Defaults to 2181)"
+    echo
+    echo "-h Help "
+    echo
+}
+
+if [ -z $MY_SQROOT ]; then
+    echo
+    echo "The MY_SQROOT environment variable does not exist."
+    echo "Please ensure sqenv.sh has been sourced."
+    echo
+    exit 1;
+fi
+
+declare -i lv_peer_id
+declare -i lv_zookeeper_port
+
+let lv_peer_id=0
+let lv_zookeeper_port=2181
+
+while getopts "i:q:p:h" lv_arg $1 $2 $3 $4 $5 $6 $7 $8 $9
+do
+    case $lv_arg in 
+	i)
+	    lv_peer_id=${OPTARG}
+	    ;;
+	
+	q)
+	    lv_zookeeper_quorum=${OPTARG}
+	    ;;
+	
+	p)
+	    lv_zookeeper_port=${OPTARG}
+	    ;;
+	
+	h)
+	    lv_help=1
+	    Usage
+	    exit 0
+            ;;
+    esac
+done
+
+if [ -z "${lv_zookeeper_quorum}" ]; then
+    echo
+    echo "Error: Please specify the peer's zookeeper quorum"
+    Usage
+    exit 1
+fi
+
+if [ $lv_peer_id -lt 1 ]; then
+    echo
+    echo "Error: The Peer ID should be greater than 0"
+    Usage
+    exit 1
+fi
+
+echo "Peer ID ............... : ${lv_peer_id}"
+echo "Peer's Zookeeper Quorum : ${lv_zookeeper_quorum}"
+echo "Peer's Zookeeper Port.. : ${lv_zookeeper_port}"
+
+read -p 'Looks good? Proceed with creating the peer info file? y/n : ' lv_ans
+if [ "$lv_ans" != "y" ]; then
+    echo "Peer info file not created. Exitting..."
+    exit 0
+else
+    echo "Ok...going ahead..."
+fi
+
+
+lv_dir="$MY_SQROOT/conf/peer${lv_peer_id}"
+echo "Creating the directory: ${lv_dir}"
+mkdir -p $lv_dir
+
+lv_hbase_site_xml=${lv_dir}/hbase-site.xml
+echo "Creating the file: ${lv_hbase_site_xml}"
+
+cat <<EOF > ${lv_hbase_site_xml}
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<!-- Put site-specific property overrides in this file. -->
+
+<configuration>
+  <property>
+    <name>hbase.zookeeper.quorum</name>
+    <value>${lv_zookeeper_quorum}</value>
+  </property>
+  <property>
+    <name>hbase.zookeeper.property.clientPort</name>
+    <value>${lv_zookeeper_port}</value>
+  </property>
+</configuration>
+EOF
+
+exit 0

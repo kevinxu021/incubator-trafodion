@@ -798,10 +798,17 @@ public class HBaseTxClient {
                                     int  pv_port,
                                     byte[] pv_hostname,
                                     long pv_startcode,
-                                    byte[] pv_regionInfo) throws Exception {
+                                    byte[] pv_regionInfo,
+                                    int pv_peerId) throws Exception {
        String hostname    = new String(pv_hostname);
-       if (LOG.isTraceEnabled()) LOG.trace("Enter callRegisterRegion, txid: [" + transactionId + "], startId: " + startId + ", port: "
-           + pv_port + ", hostname: " + hostname + ", reg info len: " + pv_regionInfo.length + " " + new String(pv_regionInfo, "UTF-8"));
+       if (LOG.isTraceEnabled()) LOG.trace("Enter callRegisterRegion, "
+					   + "[peerId: " + pv_peerId + "]" 
+					   + "txid: [" + transactionId + "]" 
+					   + ", startId: " + startId 
+					   + ", port: " + pv_port 
+					   + ", hostname: " + hostname 
+					   + ", reg info len: " + pv_regionInfo.length 
+					   + " " + new String(pv_regionInfo, "UTF-8"));
 
        HRegionInfo lv_regionInfo;
        try {
@@ -822,7 +829,7 @@ public class HBaseTxClient {
        String lv_hostname_port_string = hostname + ":" + pv_port;
        String lv_servername_string = ServerName.getServerName(lv_hostname_port_string, pv_startcode);
        ServerName lv_servername = ServerName.parseServerName(lv_servername_string);
-       TransactionRegionLocation regionLocation = new TransactionRegionLocation(lv_regionInfo, lv_servername);
+       TransactionRegionLocation regionLocation = new TransactionRegionLocation(lv_regionInfo, lv_servername, pv_peerId);
        String regionTableName = regionLocation.getRegionInfo().getTable().getNameAsString();
 
        TransactionState ts = mapTransactionStates.get(transactionId);
@@ -1009,7 +1016,9 @@ public class HBaseTxClient {
                  String lv_servername_string = ServerName.getServerName(lv_hostname_port_string, 0);
                  ServerName lv_servername = ServerName.parseServerName(lv_servername_string);
 
-                 TransactionRegionLocation loc = new TransactionRegionLocation(regionInfoLoc, lv_servername);
+                 TransactionRegionLocation loc = new TransactionRegionLocation(regionInfoLoc,
+									       lv_servername,
+									       0);
                  ts.addRegion(loc);
              }
 

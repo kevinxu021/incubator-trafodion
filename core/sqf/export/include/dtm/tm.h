@@ -274,7 +274,7 @@ typedef struct TM_HBASEREGIONINFO {
 // Trafodion start //
 #define TM_MAX_REGIONSERVER_STRING 2048
 #define TM_MAX_DDLREQUEST_STRING 2048
-extern "C" short REGISTERREGION(long transid, long startid, int port, char *hostname, int hostname_length, long startcode, char *regionInfo, int regionInfo_Length);
+extern "C" short REGISTERREGION(long transid, long startid, int port, char *hostname, int hostname_length, long startcode, char *regionInfo, int regionInfo_Length, int peerId);
 extern "C" short CREATETABLE(char *pa_tbldesc, int pv_tbldesc_length, char *pv_tblname, char** pv_keys, int pv_numsplits, int pv_keylen, long transid);
 extern "C" short REGTRUNCATEONABORT(char *pv_tblname, int pv_tblname_len, long pv_transid);
 extern "C" short DROPTABLE(char *pv_tblname, int pv_tblname_len, long transid);

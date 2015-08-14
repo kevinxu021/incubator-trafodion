@@ -205,7 +205,8 @@ public:
             int pv_hostname_Length,
             long pv_startcode,
             const char pa_regionInfo[],
-            int pv_regionInfo_Length);
+	    int pv_regionInfo_Length,
+	    int pv_peerId);
    short addControlPoint();
    int recoverRegion(int64 *pp_count, int64 *pp_transidList[], int64 *pp_flags);
       // pp_count :input Maximum number of transids to be returned in a single reply

@@ -633,15 +633,15 @@ int tmlib_callback2 (MS_Mon_Tmlib_Fun_Type pv_fun,
 }
 
 // TOPL REGISTERTRANSACTION
-short REGISTERREGION(long transid, long startid, int pv_port, char *pa_hostname, int pv_hostname_length, long pv_startcode, char *pa_regionInfo, int pv_regionInfo_length)
+short REGISTERREGION(long transid, long startid, int pv_port, char *pa_hostname, int pv_hostname_length, long pv_startcode, char *pa_regionInfo, int pv_regionInfo_length, int pv_peerId)
 {
    short lv_error = FEOK;
    TM_Transaction *lp_trans = NULL;
    TM_Transid lv_transid((TM_Native_Type) transid);
    TM_Transseq_Type lv_startid((TM_Transseq_Type) startid);
    // instantiate a gp_trans_thr object for this thread if needed.
-   TMlibTrace(("TMLIB_TRACE : REGISTERREGION ENTRY: transid: %ld, txid: (%d,%d), startId: %ld, port: %d, hostname %s, length: %d, startcode: %ld, regionInfo: %s, length: %d.\n",
-            transid, lv_transid.get_node(), lv_transid.get_seq_num(), startid, pv_port, pa_hostname, pv_hostname_length, pv_startcode, pa_regionInfo, pv_regionInfo_length), 2);
+   TMlibTrace(("TMLIB_TRACE : REGISTERREGION ENTRY: transid: %ld, txid: (%d,%d), startId: %ld, port: %d, hostname %s, length: %d, startcode: %ld, regionInfo: %s, length: %d peerId: %d.\n",
+	       transid, lv_transid.get_node(), lv_transid.get_seq_num(), startid, pv_port, pa_hostname, pv_hostname_length, pv_startcode, pa_regionInfo, pv_regionInfo_length, pv_peerId), 2);
 
    if (gp_trans_thr == NULL){
       TMlibTrace(("REGISTERREGION gp_trans_thr is null\n"), 2);
@@ -677,7 +677,7 @@ short REGISTERREGION(long transid, long startid, int pv_port, char *pa_hostname,
    {
       TMlibTrace(("TMLIB_TRACE : REGISTERREGION using current transid (%d,%d) and startId %ld.\n",
                   lv_transid.get_node(), lv_transid.get_seq_num(),lv_savedStartId ), 1);
-      lv_error =  lp_currTrans->register_region(lv_savedStartId, pv_port, pa_hostname, pv_hostname_length, pv_startcode, pa_regionInfo, pv_regionInfo_length);
+      lv_error =  lp_currTrans->register_region(lv_savedStartId, pv_port, pa_hostname, pv_hostname_length, pv_startcode, pa_regionInfo, pv_regionInfo_length, pv_peerId);
    }
    // Create a temp TM_transaction object to pass the trans id to REGION SERVER 
    else {
@@ -686,7 +686,7 @@ short REGISTERREGION(long transid, long startid, int pv_port, char *pa_hostname,
       lp_trans->setTag(gv_tmlib.new_tag());
       TMlibTrace(("TMLIB_TRACE : REGISTERREGION using transid (%d,%d) and startId (%ld) passed to REGISTERREGION.\n",
                      lv_transid.get_node(), lv_transid.get_seq_num(),lv_startid), 1);
-     lv_error =  lp_trans->register_region(lv_startid, pv_port, pa_hostname, pv_hostname_length, pv_startcode, pa_regionInfo, pv_regionInfo_length);
+      lv_error =  lp_trans->register_region(lv_startid, pv_port, pa_hostname, pv_hostname_length, pv_startcode, pa_regionInfo, pv_regionInfo_length, pv_peerId);
       delete lp_trans;
    }
 

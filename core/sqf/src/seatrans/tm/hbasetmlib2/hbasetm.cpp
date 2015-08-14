@@ -234,7 +234,7 @@ int CHbaseTM::initJVM()
   JavaMethods_[JM_COMPLETEREQUEST].jm_name      = "completeRequest";
   JavaMethods_[JM_COMPLETEREQUEST].jm_signature = "(J)S";
   JavaMethods_[JM_REGREGION  ].jm_name      = "callRegisterRegion";
-  JavaMethods_[JM_REGREGION  ].jm_signature = "(JJI[BJ[B)S";
+  JavaMethods_[JM_REGREGION  ].jm_signature = "(JJI[BJ[BI)S";
   JavaMethods_[JM_PARREGION  ].jm_name      = "participatingRegions";
   JavaMethods_[JM_PARREGION  ].jm_signature = "(J)I";
   JavaMethods_[JM_CNTPOINT   ].jm_name      = "addControlPoint";
@@ -631,7 +631,8 @@ int CHbaseTM::registerRegion(int64 pv_transid,
  			     int pv_hostname_Length,
 			     long pv_startcode,
  			     const char *pa_regionInfo,
- 			     int pv_regionInfo_Length)
+ 			     int pv_regionInfo_Length,
+			     int pv_peerId)
 
 {
    int lv_error = FEOK;
@@ -669,7 +670,8 @@ int CHbaseTM::registerRegion(int64 pv_transid,
 					jiv_port,
 					jba_hostname,
 					pv_startcode,
-					jba_regionInfo);
+					jba_regionInfo,
+					pv_peerId);
   exc = _tlp_jenv->ExceptionOccurred();
   if(exc) {
     _tlp_jenv->ExceptionDescribe();

@@ -544,6 +544,7 @@ typedef struct registerregion_req {
     long                iv_startid;
     char ia_regioninfo2[TM_MAX_REGIONSERVER_STRING];
     int                 iv_regioninfo_length;
+    int                 iv_peer_id;
 } Register_Region_Req_Type;
 
 typedef enum {

@@ -92,7 +92,7 @@ TM_Transaction::~TM_Transaction()
 }
 
 // TOPL
-short  TM_Transaction::register_region(long startid, int port, char *hostName, int hostname_Length, long startcode, char *regionInfo, int regionInfo_Length)
+short  TM_Transaction::register_region(long startid, int port, char *hostName, int hostname_Length, long startcode, char *regionInfo, int regionInfo_Length, int pv_peerId)
 {
     Tm_Req_Msg_Type lv_req;
     Tm_Rsp_Msg_Type lv_rsp;
@@ -116,6 +116,8 @@ short  TM_Transaction::register_region(long startid, int port, char *hostName, i
 
     memcpy (lv_req.u.iv_register_region.ia_regioninfo2, regionInfo, regionInfo_Length);
     lv_req.u.iv_register_region.iv_regioninfo_length = regionInfo_Length;
+
+    lv_req.u.iv_register_region.iv_peer_id = pv_peerId;
 
     iv_last_error = gv_tmlib.send_tm(&lv_req, &lv_rsp, iv_transid.get_node());
     if  (iv_last_error)

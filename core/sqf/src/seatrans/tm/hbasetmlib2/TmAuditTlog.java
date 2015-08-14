@@ -1178,7 +1178,7 @@ public class TmAuditTlog {
                   StringTokenizer tok = new StringTokenizer(hostAndPort, ":");
                   String hostName = new String(tok.nextElement().toString());
                   int portNumber = Integer.parseInt(tok.nextElement().toString());
-                  TransactionRegionLocation loc = new TransactionRegionLocation(regionKey, serverValue);
+                  TransactionRegionLocation loc = new TransactionRegionLocation(regionKey, serverValue, 0);
                   ts.addRegion(loc);
               }
             }
