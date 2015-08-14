@@ -1,0 +1,71 @@
+<nav class="navbar navbar-default navbar-static-top" role="navigation"
+	style="margin-bottom: 0">
+	<div class="navbar-header">
+		<button type="button" class="navbar-toggle" data-toggle="collapse"
+			data-target=".navbar-collapse">
+			<span class="sr-only">Toggle navigation</span> <span class="icon-bar"></span>
+			<span class="icon-bar"></span> <span class="icon-bar"></span>
+		</button>
+		<div style="display: inline-flex">
+			<!--<img id="title-img" src="img/DBMgr_Logo.png" alt="logo"/>-->
+			<a class="navbar-brand dbmgr-title" href="index.html"> EsgynDB
+				Manager</a>
+		</div>
+	</div>
+	<!-- /.navbar-header -->
+
+	<ul class="nav navbar-top-links navbar-right">
+		<!-- /.dropdown -->
+		<li class="dropdown"><a class="dropdown-toggle"
+			data-toggle="dropdown" href="#"> <i class="fa fa-user fa-fw"></i>
+				<i class="fa fa-caret-down"></i>
+		</a>
+			<ul class="dropdown-menu dropdown-user">
+				<li><a id="sessionUserName" href="#"><i
+						class="fa fa-user fa-fw"></i> User Profile</a></li>
+				<!-- <li><a href="#"><i class="fa fa-gear fa-fw"></i> Settings</a>
+                </li>-->
+				<li class="divider"></li>
+				<li><a href="#/logout"><i class="fa fa-sign-out fa-fw"></i>
+						Logout</a></li>
+			</ul> <!-- /.dropdown-user --></li>
+		<!-- /.dropdown -->
+	</ul>
+	<!-- /.navbar-top-links -->
+
+	<div class="navbar-default sidebar" role="navigation">
+		<div class="sidebar-nav navbar-collapse">
+			<ul class="nav" id="side-menu">
+				<!--<li class="sidebar-search">
+                    <div class="input-group custom-search-form">
+                        <input type="text" class="form-control" placeholder="Search...">
+                        <span class="input-group-btn">
+                        <button class="btn btn-default" type="button">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </span>
+                    </div>
+                </li> -->
+				<li><a href="#/index"><i class="fa fa-dashboard fa-fw"></i>
+						Dashboard</a></li>
+				<li><a href="#/workloads"><i class="fa fa-tasks fa-fw"></i>
+						Workloads</a></li>
+				<li><a href="#/logs"><i class="fa fa-files-o fa-fw"></i>
+						Logs</a></li>
+				<li><a href="#/database"><i class="fa fa-database fa-fw"></i>
+						Database</a></li>
+				<li><a href="#/dcsservers"><i class="fa fa-link fa-fw"></i>
+						DCS Servers</a></li>
+				<li><a href="#/workbench"><i class="fa fa-desktop fa-fw"></i>
+						Query Workbench</a></li>
+				<li><a href="#/tools"><i class="fa fa-wrench fa-fw"></i>
+						Tools<span class="fa arrow"></span></a>
+					<ul class="nav nav-second-level">
+						<li><a href="#/tools/upload">Upload File(s)</a></li>
+						<li><a href="#/tools/download">Download File(s)</a></li>
+					</ul></li>
+			</ul>
+		</div>
+	</div>
+	<!-- /.navbar-static-side -->
+</nav>

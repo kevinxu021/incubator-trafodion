@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<config>
+	<!-- The Trafodion JDBC URL -->
+	<jdbcUrl>jdbc:t4jdbc://192.168.56.101:37800/:</jdbcUrl>
+	<!-- The Trafodion JDBC Driver Class Name -->
+	<jdbcDriverClass>org.trafodion.jdbc.t4.T4Driver</jdbcDriverClass>
+	<!-- The Trafodion REST server URI -->
+	<trafRestServerUri>192.168.56.101:4200</trafRestServerUri>
+	<!-- The OpenTSDB URI -->
+	<openTSDBUri>192.168.56.101:14580</openTSDBUri>
+	<!--Session Timeout in minutes. Default is 120 minutes and Minimum 10 minutes. 
+		If specified value is < 10 then it defaults to 120. The browser session times 
+		out after this many minutes and the server cache for that user session is 
+		also cleared -->
+	<sessionTimeoutMinutes>120</sessionTimeoutMinutes>
+</config>

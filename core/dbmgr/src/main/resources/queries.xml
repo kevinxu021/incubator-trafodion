@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SystemQueries>
+	<queries>
+		<query>
+			<!-- Get List of DCS servers and their status -->
+			<name>SELECT_DCS_SERVERS</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/servers/dcs/connections", "method":"get"}]]></text>
+		</query>
+		<query>
+			<!-- Fetch list of schemas -->
+			<name>SELECT_SCHEMAS</name>
+			<text><![CDATA[select distinct schema_name as "Name", schema_owner as "Owner", 
+					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime" 
+					from "_MD_".objects 
+					where object_name = '__SCHEMA__'
+					order by schema_name FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>
+		<query>
+			<!-- Fetch details about a specific schema -->
+			<name>SELECT_SCHEMA</name>
+			<text><![CDATA[select distinct schema_name as "Name", user(schema_owner) as "Owner", 
+					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime" 
+					from "_MD_".objects 
+					where schema_name = '%1$s'
+					and object_name = '__SCHEMA__'
+					order by schema_name FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>
+		<query>
+			<!-- Fetch list of schema objects (tables/mvs/views/libraries/procedures) -->
+			<name>SELECT_SCHEMA_OBJECTS</name>
+			<text><![CDATA[select distinct object_name as "Name", user(object_owner) as "Owner", 
+					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime" 
+					from "_MD_".objects 
+					where schema_name = '%1$s'
+					and object_type = '%2$s'
+					order by object_name FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>
+		<query>
+			<!-- Fetch list of historical workloads -->
+			<name>SELECT_WORKLOADS</name>
+			<text><![CDATA[SELECT query_id as "Query ID", query_status AS "Status" ,
+						EXEC_START_UTC_TS AS "Start Time", EXEC_END_UTC_TS AS "End Time", 
+						USER_NAME AS "User Name",  APPLICATION_NAME as "Application",
+						CLIENT_NAME as "Client", query_elapsed_time AS "Elapsed Time", 
+						QUERY_TEXT AS "Query Text"
+					FROM "_REPOS_".metric_query_table 
+					order by exec_start_utc_ts desc
+					for read uncommitted access;
+				]]></text>
+		</query>
+		<query>
+			<!-- Fetch list of log entries -->
+			<name>SELECT_LOGS</name>
+			<text><![CDATA[select [first 1000] log_ts as "Time", process_name as "Process", cast(message as char(1000)) as "Message"
+				from udf(event_log_reader()) 
+				order by log_ts desc
+				]]></text>
+		</query>
+		<query>
+			<name>OPENTSDB_IOWAITS</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=1h-ago&end=1s-ago&m=avg:rate:down-sampler:1m-avg:proc.stat.cpu{type=iowait}", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>OPENTSDB_DISK_READS</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=1h-ago&end=1s-ago&ms=true&m=sum:rate:iostat.disk.read_requests", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>OPENTSDB_DISK_WRITES</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=1h-ago&end=1s-ago&ms=true&m=sum:rate:iostat.disk.write_requests", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>OPENTSDB_GCTIME</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=1h-ago&end=1s-ago&ms=true&m=sum:rate:hbase.regionserver.jvmmetrics.GcTimeMillis", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>OPENTSDB_LOADAVG_1</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=1h-ago&end=1s-ago&ms=true&m=avg:rate:proc.loadavg.1min", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>OPENTSDB_GETOPS</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=1h-ago&end=1s-ago&ms=true&m=avg:rate:hbase.regionserver.server.Get_num_ops", "method":"get"}]]></text>
+		</query>
+	</queries>
+</SystemQueries>
