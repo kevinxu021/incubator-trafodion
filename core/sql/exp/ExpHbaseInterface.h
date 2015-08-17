@@ -164,8 +164,6 @@ class ExpHbaseInterface : public NABasicObject
 
   virtual Lng32 scanClose() = 0;
 
-  virtual Lng32 getHTable(HbaseStr &tblName) = 0;
-
   Lng32 fetchAllRows(
 		     HbaseStr &tblName,
 		     Lng32 numCols,
@@ -185,14 +183,9 @@ class ExpHbaseInterface : public NABasicObject
 		const LIST(HbaseStr) & columns,
 		const int64_t timestamp) = 0;
 
-  // return 1 if row exists, 0 if does not exist. -ve num in case of error.
-  virtual Lng32 rowExists(
-			  HbaseStr &tblName,
-			  HbaseStr &row) = 0;
-
  virtual Lng32 getRowsOpen(
 		HbaseStr &tblName,
-		const LIST(HbaseStr) & rows, 
+		const LIST(HbaseStr) *rows, 
 		const LIST(HbaseStr) & columns,
 		const int64_t timestamp) = 0;
 
@@ -222,8 +215,8 @@ class ExpHbaseInterface : public NABasicObject
   virtual Lng32 getRowID(HbaseStr &rowID) = 0;
  
   virtual Lng32 deleteRow(
-		  HbaseStr &tblName,
-		  HbaseStr& row, 
+		  HbaseStr tblName,
+		  HbaseStr row, 
 		  const LIST(HbaseStr) *columns,
 		  NABoolean noXn,
 		  const int64_t timestamp) = 0;
@@ -231,9 +224,9 @@ class ExpHbaseInterface : public NABasicObject
 
 
   virtual Lng32 deleteRows(
-		  HbaseStr &tblName,
+		  HbaseStr tblName,
                   short rowIDLen,
-		  HbaseStr &rowIDs,
+		  HbaseStr rowIDs,
 		  NABoolean noXn,
 		  const int64_t timestamp) = 0;
 
@@ -244,7 +237,7 @@ class ExpHbaseInterface : public NABasicObject
 				  HbaseStr& columnToCheck,
 				  HbaseStr& colValToCheck,
                                   NABoolean noXn,
-				  const int64_t timestamp);
+				  const int64_t timestamp) = 0;
 
 
 
@@ -253,23 +246,24 @@ class ExpHbaseInterface : public NABasicObject
 		  HbaseStr & column) = 0;
 
   virtual Lng32 insertRow(
-		  HbaseStr &tblName,
-		  HbaseStr& rowID, 
-		  HbaseStr& row,
+		  HbaseStr tblName,
+		  HbaseStr rowID, 
+		  HbaseStr row,
 		  NABoolean noXn,
 		  const int64_t timestamp,
                   NABoolean asyncOperation) = 0;
 
- virtual Lng32 getRows(
+ virtual Lng32 getRowsOpen(
+          HbaseStr tblName,
           short rowIDLen,
-          HbaseStr &rowIDs,
+          HbaseStr rowIDs,
           const LIST(HbaseStr) & columns) = 0;
 
  virtual Lng32 insertRows(
-		  HbaseStr &tblName,
+		  HbaseStr tblName,
                   short rowIDLen,
-                  HbaseStr &rowIDs,
-                  HbaseStr &rows,
+                  HbaseStr rowIDs,
+                  HbaseStr rows,
 		  NABoolean noXn,
 		  const int64_t timestamp,
 		  NABoolean autoFlush = TRUE,
@@ -332,9 +326,8 @@ class ExpHbaseInterface : public NABasicObject
 				  HbaseStr& columnToCheck,
 				  HbaseStr& colValToCheck,
                                   NABoolean noXn,				
-                                 
 				  const int64_t timestamp,
-                                  NABoolean asyncOperation);
+                                  NABoolean asyncOperation) = 0;
 
  
   virtual Lng32 getClose() = 0;
@@ -360,7 +353,9 @@ class ExpHbaseInterface : public NABasicObject
 		      const Text& tblName,
 		      const std::vector<Text> & actionCodes) = 0;
 
-  virtual ByteArrayList* getRegionInfo(const char*) = 0;
+  virtual ByteArrayList* getRegionBeginKeys(const char*) = 0;
+  virtual ByteArrayList* getRegionEndKeys(const char*) = 0;
+
   virtual Lng32 flushTable() = 0;
   static Lng32 flushAllTables();
 
@@ -478,8 +473,6 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 
   virtual Lng32 scanClose();
 
-  virtual Lng32 getHTable(HbaseStr &tblName);
-
   // return 1 if table is empty, 0 if not empty. -ve num in case of error
   virtual Lng32 isEmpty(HbaseStr &tblName);
 
@@ -489,14 +482,9 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 		const LIST(HbaseStr) & columns,
 		const int64_t timestamp);
  
-  // return 1 if row exists, 0 if does not exist. -ve num in case of error.
-  virtual Lng32 rowExists(
-			  HbaseStr &tblName,
-			  HbaseStr &row);
-
  virtual Lng32 getRowsOpen(
 		HbaseStr &tblName,
-		const LIST(HbaseStr) & rows, 
+		const LIST(HbaseStr) *rows, 
 		const LIST(HbaseStr) & columns,
 		const int64_t timestamp);
 
@@ -526,17 +514,17 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
   virtual Lng32 getRowID(HbaseStr &rowID);
 
   virtual Lng32 deleteRow(
-		  HbaseStr &tblName,
-		  HbaseStr &row, 
+		  HbaseStr tblName,
+		  HbaseStr row, 
 		  const LIST(HbaseStr) *columns,
 		  NABoolean noXn,
 		  const int64_t timestamp);
 
 
   virtual Lng32 deleteRows(
-		  HbaseStr &tblName,
+		  HbaseStr tblName,
                   short rowIDLen,
-		  HbaseStr &rowIDs,
+		  HbaseStr rowIDs,
 		  NABoolean noXn,		 		  
 		  const int64_t timestamp);
 
@@ -555,23 +543,24 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 		  HbaseStr & column);
 
   virtual Lng32 insertRow(
-		  HbaseStr &tblName,
-		  HbaseStr& rowID, 
-                  HbaseStr& row,
+		  HbaseStr tblName,
+		  HbaseStr rowID, 
+                  HbaseStr row,
 		  NABoolean noXn,
 		  const int64_t timestamp,
                   NABoolean asyncOperation);
 
- virtual Lng32 getRows(
+ virtual Lng32 getRowsOpen(
+          HbaseStr tblName,
           short rowIDLen,
-          HbaseStr &rowIDs,
+          HbaseStr rowIDs,
           const LIST(HbaseStr) & columns);
 
  virtual Lng32 insertRows(
-		  HbaseStr &tblName,
+		  HbaseStr tblName,
                   short rowIDLen,
-                  HbaseStr &rowIDs,
-                  HbaseStr &rows,
+                  HbaseStr rowIDs,
+                  HbaseStr rows,
 		  NABoolean noXn,
 		  const int64_t timestamp,
 		  NABoolean autoFlush = TRUE,
@@ -663,7 +652,9 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
   		      const std::vector<Text> & actionCodes);
 
 
-  virtual ByteArrayList* getRegionInfo(const char*);
+  virtual ByteArrayList* getRegionBeginKeys(const char*);
+  virtual ByteArrayList* getRegionEndKeys(const char*);
+
   virtual Lng32 flushTable();
   virtual Lng32 estimateRowCount(HbaseStr& tblName,
                                  Int32 partialRowSize,

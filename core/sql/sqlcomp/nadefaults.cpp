@@ -3291,8 +3291,8 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
  
  DDkwd__(TRAF_ENABLE_ORC_FORMAT,                 "OFF"),   
 
+  DDkwd__(TRAF_INDEX_ALIGNED_ROW_FORMAT,        "OFF"),   
   DDkwd__(TRAF_INDEX_CREATE_OPT,          "OFF"),
-
   DDkwd__(TRAF_LOAD_CONTINUE_ON_ERROR,          "OFF"),
   DD_____(TRAF_LOAD_ERROR_COUNT_ID,             "" ),
   DD_____(TRAF_LOAD_ERROR_COUNT_TABLE,          "ERRORCOUNTER" ),
@@ -3317,6 +3317,8 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
 
  // max size in bytes of a char or varchar column.
   DDui2__(TRAF_MAX_CHARACTER_COL_LENGTH,	"200000"),
+
+ DDkwd__(TRAF_MULTI_COL_FAM,     "ON"),
 
   DDkwd__(TRAF_NO_CONSTR_VALIDATION,                   "OFF"),
 

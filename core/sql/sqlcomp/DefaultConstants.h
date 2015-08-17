@@ -3742,10 +3742,14 @@ enum DefaultConstants
   //control lob output size when converting to string/memory 
   LOB_OUTPUT_SIZE,
 
+  TRAF_MULTI_COL_FAM,
+
   // estimated max naheap memory, used as a limit for update stats utility
   USTAT_NAHEAP_ESTIMATED_MAX,
 
   EXE_MEMORY_FOR_PROBE_CACHE_IN_MB,
+  
+  TRAF_INDEX_ALIGNED_ROW_FORMAT,
 
   UDR_JVM_DEBUG_PORT,
   UDR_JVM_DEBUG_TIMEOUT,

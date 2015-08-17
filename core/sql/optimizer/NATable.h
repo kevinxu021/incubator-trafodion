@@ -62,6 +62,8 @@ class NATableDB;
 struct desc_struct;
 class HbaseCreateOption;
 class PrivMgrUserPrivs;
+class ExpHbaseInterface;
+class ByteArrayList;
 
 typedef QualifiedName* QualifiedNamePtr;
 typedef ULng32 (*HashFunctionPtr)(const QualifiedName&);
@@ -563,21 +565,38 @@ public:
   {  return (flags_ & IS_INSERTABLE) != 0; }
 
   void setSQLMXTable( NABoolean value )
-  {  value ? flags_ |= SQLMX_ROW_FORMAT : flags_ &= ~SQLMX_ROW_FORMAT; }
+  {  value ? flags_ |= SQLMX_ROW_TABLE : flags_ &= ~SQLMX_ROW_TABLE; }
 
   NABoolean isSQLMXTable() const
-  {  return (flags_ & SQLMX_ROW_FORMAT) != 0; }
+  {  return (flags_ & SQLMX_ROW_TABLE) != 0; }
 
   void setSQLMXAlignedTable( NABoolean value )
   {
     (value
-     ? flags_ |= SQLMX_ALIGNED_ROW_FORMAT
-     : flags_ &= ~SQLMX_ALIGNED_ROW_FORMAT);
+     ? flags_ |= SQLMX_ALIGNED_ROW_TABLE
+     : flags_ &= ~SQLMX_ALIGNED_ROW_TABLE);
   }
 
   NABoolean isSQLMXAlignedTable() const
-  {  return (flags_ & SQLMX_ALIGNED_ROW_FORMAT) != 0; }
+  {
+    if (getClusteringIndex() != NULL)
+       return getClusteringIndex()->isSqlmxAlignedRowFormat();
+    else
+       return getSQLMXAlignedTable();
+  }
 
+  NABoolean isAlignedFormat(const IndexDesc *indexDesc) const
+  {
+    NABoolean isAlignedFormat;
+
+    if (isHbaseRowTable()||
+      isHbaseCellTable() || (indexDesc == NULL))
+      isAlignedFormat  = isSQLMXAlignedTable();
+    else
+      isAlignedFormat = indexDesc->getNAFileSet()->isSqlmxAlignedRowFormat();
+    return isAlignedFormat;
+  }
+ 
 // LCOV_EXCL_START :cnu
   void setVerticalPartitions( NABoolean value )
   {  value ? flags_ |= IS_VERTICAL_PARTITION : flags_ &= ~IS_VERTICAL_PARTITION;}
@@ -665,6 +684,12 @@ public:
 
   NABoolean hasLobColumn() const
   {  return (flags_ & LOB_COLUMN) != 0; }
+
+  void setHasSerializedEncodedColumn( NABoolean value )
+  {  value ? flags_ |= SERIALIZED_ENCODED_COLUMN : flags_ &= ~SERIALIZED_ENCODED_COLUMN; }
+
+  NABoolean hasSerializedEncodedColumn() const
+  {  return (flags_ & SERIALIZED_ENCODED_COLUMN) != 0; }
 
   void setHasSerializedColumn( NABoolean value )
   {  value ? flags_ |= SERIALIZED_COLUMN : flags_ &= ~SERIALIZED_COLUMN; }
@@ -807,12 +832,23 @@ public:
   NABoolean getHbaseTableInfo(Int32& hbtIndexLevels, Int32& hbtBlockSize) const;
   NABoolean getRegionsNodeName(Int32 partns, ARRAY(const char *)& nodeNames) const;
 
+  static ByteArrayList* getRegionsBeginKey(const char* extHBaseName);
+
+  NAString &defaultColFam() { return defaultColFam_; }
+  NAList<NAString> &allColFams() { return allColFams_; }
+
 private:
+  NABoolean getSQLMXAlignedTable() const
+  {  return (flags_ & SQLMX_ALIGNED_ROW_TABLE) != 0; }
+
   // copy ctor
   NATable (const NATable & orig, NAMemory * h=0) ; //not written
 
   void setRecordLength(Int32 recordLength) { recordLength_ = recordLength; }
   void setupPrivInfo();
+
+  ExpHbaseInterface* getHBaseInterface() const;
+  static ExpHbaseInterface* getHBaseInterfaceRaw();
 
   //size of All NATable related data after construction
   //this is used when NATables are cached and only then
@@ -858,8 +894,8 @@ private:
   // Bitfield flags to be used instead of numerous NABoolean fields
   enum Flags {
     UNUSED                    = 0x00000000,
-    SQLMX_ROW_FORMAT          = 0x00000004,
-    SQLMX_ALIGNED_ROW_FORMAT  = 0x00000008,
+    SQLMX_ROW_TABLE           = 0x00000004,
+    SQLMX_ALIGNED_ROW_TABLE   = 0x00000008,
     IS_INSERTABLE             = 0x00000010,
     IS_UPDATABLE              = 0x00000020,
     IS_VERTICAL_PARTITION     = 0x00000040,
@@ -873,7 +909,8 @@ private:
     DROPPABLE                 = 0x00004000,
     LOB_COLUMN                = 0x00008000,
     REMOVE_FROM_CACHE_BNC     = 0x00010000,  // Remove from NATable Cache Before Next Compilation
-    SERIALIZED_COLUMN    = 0x00020000
+    SERIALIZED_ENCODED_COLUMN  = 0x00020000,
+    SERIALIZED_COLUMN          = 0x00040000
   };
     
   UInt32 flags_;
@@ -1090,6 +1127,9 @@ private:
   // keeps track of these new columnsa allowing us to 
   // destroy them when NATable is destroyed.
   NAColumnArray newColumns_;
+
+  NAString defaultColFam_;
+  NAList<NAString> allColFams_;
 }; // class NATable
 
 #pragma warn(1506)  // warning elimination 
