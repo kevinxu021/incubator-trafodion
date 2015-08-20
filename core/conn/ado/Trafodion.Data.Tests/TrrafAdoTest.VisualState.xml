@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VisualState xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" ShowCheckBoxes="true">
+  <TopNode>[0-1000]C:\Users\xuweiq\Desktop\TrafodionProvider\Trafodion.Data.Tests\TrrafAdoTest.nunit</TopNode>
+  <SelectedNode>[0-1142]TrafAdoTest.FactoryTest.CreateCommandBuilder</SelectedNode>
+  <ExcludeCategories>false</ExcludeCategories>
+  <Nodes>
+    <Node UniqueName="[0-1000]C:\Users\xuweiq\Desktop\TrafodionProvider\Trafodion.Data.Tests\TrrafAdoTest.nunit" Expanded="true" />
+    <Node UniqueName="[0-1178]C:\Users\xuweiq\Desktop\TrafodionProvider\Trafodion.Data.Tests\Trafodion.Data.Tests.dll" Expanded="true" />
+    <Node UniqueName="[0-1167]TrafAdoTest.AdoTestSetup" Expanded="true" />
+    <Node UniqueName="[0-1038]TrafAdoTest.ConnectionPoolingTest" Expanded="true" />
+    <Node UniqueName="[0-1043]TrafAdoTest.ConnectionPoolingTest.ConnectionPoolingTestPool" Checked="true" />
+    <Node UniqueName="[0-1070]TrafAdoTest.DataAdapterTest" Expanded="true" />
+    <Node UniqueName="[0-1135]TrafAdoTest.DoubleBufferingAndCompressionTest" Expanded="true" />
+    <Node UniqueName="[0-1140]TrafAdoTest.FactoryTest" Expanded="true" />
+    <Node UniqueName="[0-1150]TrafAdoTest.ParameterCollectionTest" Expanded="true" />
+    <Node UniqueName="[0-1158]TrafAdoTest.ParameterTest" Expanded="true" />
+    <Node UniqueName="[0-1164]TrafAdoTest.ReaderTest" Expanded="true" />
+    <Node UniqueName="[0-1168]TrafAdoTest.TransactionTest" Expanded="true" />
+  </Nodes>
+</VisualState>

@@ -1,0 +1,15 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="HP.Data.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="NeoviewTraceLevel" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">All</Value>
+    </Setting>
+    <Setting Name="NeoviewTraceFile" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">C:\neoview.log</Value>
+    </Setting>
+    <Setting Name="NeoviewTraceConsole" Type="System.Boolean" Scope="Application">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>
