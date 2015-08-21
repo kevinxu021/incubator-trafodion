@@ -53,7 +53,7 @@ namespace TrafAdoTest
                 //Assert.AreEqual(this.connectionString, conn.ConnectionString);
                 //Assert.AreEqual(120, conn.ConnectionTimeout);
                 //Assert.AreEqual("", conn.Container);
-                Assert.AreEqual("NEO", conn.Database);
+                Assert.AreEqual("TRAFODION", conn.Database);
                 Assert.AreEqual("TDM_Default_DataSource", conn.DataSource);
                 //Assert.AreEqual(1, conn.IsoMapping);
                 Console.WriteLine("Just before GetHostEntry call");
@@ -88,7 +88,7 @@ namespace TrafAdoTest
                 //Assert.AreEqual(this.connectionString, conn.ConnectionString);
                 //Assert.AreEqual(120, conn.ConnectionTimeout);
                 //Assert.AreEqual("", conn.Container);
-                Assert.AreEqual("NEO", conn.Database);
+                Assert.AreEqual("TRAFODION", conn.Database);
                 Assert.AreEqual("TDM_Default_DataSource", conn.DataSource);
                 //Assert.AreEqual(1, conn.IsoMapping);
                 Console.WriteLine("Just before GetHostEntry call");

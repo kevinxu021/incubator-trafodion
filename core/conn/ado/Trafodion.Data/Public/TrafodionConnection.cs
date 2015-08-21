@@ -35,7 +35,7 @@ namespace Trafodion.Data
 
         private long _labelId; // the current label id to be used when creating new statements
         private object _labelLock; // a locking object to ensure that duplicate labels are not generated
-        
+
         //to sycronize Fetch, Execute, Disconnect. Each connection obj has isolated lock.
         internal readonly List<String> dataAccessLock = new List<String>();
 
@@ -129,8 +129,6 @@ namespace Trafodion.Data
 
                     using (TrafDbCommand cmd = this.CreateCommand())
                     {
-                        cmd.CommandText = "control query default showcontrol_unexternalized_attrs 'ON'";
-                        cmd.ExecuteNonQuery();
                         cmd.CommandText = "SHOWCONTROL DEFAULT CATALOG, match full, no header";
                         cat = (string)cmd.ExecuteScalar();
                         index = cat.IndexOf('.');
@@ -151,17 +149,18 @@ namespace Trafodion.Data
         /// <summary>
         /// Gets the HPDb server version.
         /// </summary>
-        public override string ServerVersion 
-        { 
-            get { return this._serverVersion; } 
+        public override string ServerVersion
+        {
+            get { return this._serverVersion; }
         }
 
         /// <summary>
         /// Gets the current <code>ConnectionState</code>.  Currently supports <code>Open</code> and <code>Closed</code>
         /// </summary>
-        public override ConnectionState State 
-        { 
-            get {
+        public override ConnectionState State
+        {
+            get
+            {
                 if (this.Network.isIdleTimeout)
                 {
                     TrafDbException.ThrowException(this, new CommunicationsFailureException("Idle Timeout"));
@@ -174,62 +173,62 @@ namespace Trafodion.Data
         /// Gets the remote segment and process in the form:<code>segment</code>.$<code>process</code>
         /// </summary>
         public string RemoteProcess
-        { 
-            get; 
-            private set; 
+        {
+            get;
+            private set;
         }
 
         /// <summary>
         /// Gets the remote TCP/IP port currently being used
         /// </summary>
-        public int RemotePort 
-        { 
-            get; 
-            private set; 
+        public int RemotePort
+        {
+            get;
+            private set;
         }
 
         /// <summary>
         /// Gets the remote address currently connected to.
         /// </summary>
-        public string RemoteAddress 
-        { 
-            get; 
-            private set; 
+        public string RemoteAddress
+        {
+            get;
+            private set;
         }
 
-        internal TrafDbTransaction Transaction 
-        { 
-            get; 
-            set; 
+        internal TrafDbTransaction Transaction
+        {
+            get;
+            set;
         }
 
         internal List<TrafDbCommand> Commands // a list of the currently allocated commands
-        { 
-            get; 
-            set; 
-        } 
-
-        internal TrafDbNetwork Network 
-        { 
-            get; 
-            set; 
+        {
+            get;
+            set;
         }
 
-        internal TrafDbConnectionStringBuilder ConnectionStringBuilder 
-        { 
-            get; 
-            set; 
+        internal TrafDbNetwork Network
+        {
+            get;
+            set;
+        }
+
+        internal TrafDbConnectionStringBuilder ConnectionStringBuilder
+        {
+            get;
+            set;
         }
 
         internal Version[] ServerVersionList // the raw version information from the server
-        { 
-            get; 
-            set; 
-        } 
-
-        internal ByteOrder ByteOrder 
         {
-            get { return this.Network.ByteOrder; } 
+            get;
+            set;
+        }
+
+        internal ByteOrder ByteOrder
+        {
+            get { return this.Network.ByteOrder; }
         }
 
         internal TrafDbEncoder Encoder
@@ -508,7 +507,7 @@ namespace Trafodion.Data
             {
                 TrafDbTrace.Trace(this, TraceLevel.Public, this.ConnectionStringBuilder.TraceableConnectionString);
             }
-            
+
             if (this._state != ConnectionState.Closed)
             {
                 throw new Exception("bad connection state");
@@ -539,8 +538,8 @@ namespace Trafodion.Data
             }
             Monitor.Exit(TrafDbConnection._connPools);
 
-      
-            if (!initialized) 
+
+            if (!initialized)
             {
                 this.ParseServerString(this.ConnectionStringBuilder.Server);
 
@@ -570,7 +569,7 @@ namespace Trafodion.Data
         /// </summary>
         /// <param name="data">The data to encrypt.</param>
         /// <returns>An encrypted base 64 encoded string.</returns>
-        public string EncryptData(byte [] data)
+        public string EncryptData(byte[] data)
         {
             return this._security.EncryptData(data);
         }
@@ -638,7 +637,7 @@ namespace Trafodion.Data
             {
                 TrafDbTrace.Trace(this, TraceLevel.Internal, cmd);
             }
-            
+
             CloseMessage message;
             CloseReply reply;
 
@@ -772,26 +771,31 @@ namespace Trafodion.Data
                 {
                     retryEx = e;
                     SocketException se = null;
-                    if (typeof(SocketException) == e.GetType())
+                    if (typeof(CommunicationsFailureException) == e.GetType())
+                    {
+                        throw e;
+                    }
+                    else if (typeof(SocketException) == e.GetType())
                     {
                         se = (SocketException)e;
-                    }else if (e.InnerException != null && typeof(SocketException) == e.InnerException.GetType())
+                    }
+                    else if (e.InnerException != null && typeof(SocketException) == e.InnerException.GetType())
                     {
                         se = (SocketException)e.InnerException;
                     }
-                    if (se!=null && se.ErrorCode == 10061 && i < retryCount)
+                    if (se != null && se.ErrorCode == 10061 && i < retryCount)
                     {
                         Thread.Sleep(retryTime);
                         continue;
                     }
                 }
-                
+
             }
 
             // we looped <retryCount> times and still failed
-            if (!success) 
+            if (!success)
             {
-                throw new TrafDbException(TrafDbMessage.TryAgain, retryEx!=null?retryEx.Message:null);
+                throw new TrafDbException(TrafDbMessage.TryAgain, retryEx != null ? retryEx.Message : null);
             }
 
             // backup connection info
@@ -810,7 +814,7 @@ namespace Trafodion.Data
             else
             {
                 //int colonIndex;
-                string[] parts = reply.serverObjRef.Split(new char[] { ',','/' });
+                string[] parts = reply.serverObjRef.Split(new char[] { ',', '/' });
                 this.RemoteProcess = parts[0];
                 this.RemoteAddress = parts[1];
                 this.RemotePort = Int32.Parse(parts[2].Remove(parts[2].IndexOf(':')));
@@ -835,13 +839,13 @@ namespace Trafodion.Data
         private InitDialogueReply InitDiag(bool downloadCertificate)
         {
             InitDialogueMessage message;
-            InitDialogueReply reply=null;
+            InitDialogueReply reply = null;
             TrafDbException e;
             bool success = false;
             short retryCount = this.ConnectionStringBuilder.RetryCount;
 
             string sessionName = this.ConnectionStringBuilder.SessionName;
-            if (sessionName != null && sessionName.Length > 0) 
+            if (sessionName != null && sessionName.Length > 0)
             {
                 this._cc.InContextOptions1 |= ConnectionContextOptions1.SessionName;
             }
@@ -867,7 +871,7 @@ namespace Trafodion.Data
                         string major = (msdbVersion.MajorVersion < 10 ? "0" : "") + msdbVersion.MajorVersion;
                         string minor = (msdbVersion.MinorVersion < 10 ? "0" : "") + msdbVersion.MinorVersion;
                         string buildid = msdbVersion.BuildId + "";
-                        for (int j = buildid.Length; j < 4; j++ )
+                        for (int j = buildid.Length; j < 4; j++)
                         {
                             buildid = "0" + buildid;
                         }
@@ -905,7 +909,7 @@ namespace Trafodion.Data
 
             if (idx == -1)
             {
-                this.RemotePort = 18650;
+                this.RemotePort = 23400;
                 this.RemoteAddress = server;
             }
             else
@@ -1028,12 +1032,12 @@ namespace Trafodion.Data
             try
             {
                 this._security = new TrafDbSecurity(
-                    this, 
-                    null, 
-                    null, 
-                    objRefReply.cluster, 
-                    objRefReply.processId, 
-                    objRefReply.serverNode, 
+                    this,
+                    null,
+                    null,
+                    objRefReply.cluster,
+                    objRefReply.processId,
+                    objRefReply.serverNode,
                     objRefReply.timestamp);
             }
             catch (Exception e)
@@ -1059,10 +1063,10 @@ namespace Trafodion.Data
             initReply = this.InitDiag(false);
 
             // error but no exception means we redownload cert
-            if (initReply.error == InitDialogueError.InvalidUser) 
+            if (initReply.error == InitDialogueError.InvalidUser)
             {
                 if (initReply.outConnectionContext != null || initReply.outConnectionContext.certificate != null)
-                { 
+                {
                     // we got a certificate back, switch to it, continue
                     this._security.SwitchCertificate(initReply.outConnectionContext.certificate);
                 }
@@ -1082,8 +1086,8 @@ namespace Trafodion.Data
             {
                 this.InitDiag(false); // send dummy init diag to clean up server
             }
-            catch 
-            { 
+            catch
+            {
             }
         }
 
