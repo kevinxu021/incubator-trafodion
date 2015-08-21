@@ -9,28 +9,28 @@ namespace Trafodion.Data
     /// </summary>
     /// <param name="sender">The HPDbConnection sending the event.</param>
     /// <param name="e">The event arguments.</param>
-    public delegate void HPDbInfoMessageEventHandler(object sender, TrafDbInfoMessageEventArgs e);
+    public delegate void TrafDbInfoMessageEventHandler(object sender, TrafDbInfoMessageEventArgs e);
 
     /// <summary>
     /// Represents the method that will handle the event of a TrafDbDataAdapter.
     /// </summary>
     /// <param name="sender">The object sending the event.</param>
     /// <param name="e">The event arguments.</param>
-    public delegate void HPDbRowUpdatingEventHandler(object sender, HPDbRowUpdatingEventArgs e);
+    public delegate void TrafDbRowUpdatingEventHandler(object sender, TrafDbRowUpdatingEventArgs e);
 
     /// <summary>
     /// Represents the method that will handle the event of a TrafDbDataAdapter.
     /// </summary>
     /// <param name="sender">The object sending the event.</param>
     /// <param name="e">The event arguments.</param>
-    public delegate void HPDbRowUpdatedEventHandler(object sender, HPDbRowUpdatedEventArgs e);
+    public delegate void TrafDbRowUpdatedEventHandler(object sender, TrafDbRowUpdatedEventArgs e);
 
     /// <summary>
     /// The event arguments for Info and Warning events for a HPDbConnection.
     /// </summary>
     public sealed class TrafDbInfoMessageEventArgs : EventArgs
     {
-        internal TrafDbInfoMessageEventArgs(HPDbErrorCollection errors)
+        internal TrafDbInfoMessageEventArgs(TrafDbErrorCollection errors)
         {
             this.Errors = errors;
             this.ErrorCode = errors[0].ErrorCode;
@@ -62,22 +62,22 @@ namespace Trafodion.Data
         /// <summary>
         /// Gets a collection of all the errors that occured.
         /// </summary>
-        public HPDbErrorCollection Errors { get; private set; }
+        public TrafDbErrorCollection Errors { get; private set; }
     }
 
     /// <summary>
     /// Provides data for the RowUpdating event.
     /// </summary>
-    public sealed class HPDbRowUpdatingEventArgs : RowUpdatingEventArgs
+    public sealed class TrafDbRowUpdatingEventArgs : RowUpdatingEventArgs
     {
         /// <summary>
-        /// Initializes a new instance of the HPDbRowUpdatingEventArgs class.
+        /// Initializes a new instance of the TrafDbRowUpdatingEventArgs class.
         /// </summary>
         /// <param name="row">The DataRow sent through an Update.</param>
         /// <param name="command">The IDbCommand executed when Update is called.</param>
         /// <param name="statementType">One of the StatementType values that specifies the type of query executed.</param>
         /// <param name="tableMapping">The DataTableMapping sent through an Update.</param>
-        public HPDbRowUpdatingEventArgs(DataRow row, IDbCommand command, System.Data.StatementType statementType, DataTableMapping tableMapping)
+        public TrafDbRowUpdatingEventArgs(DataRow row, IDbCommand command, System.Data.StatementType statementType, DataTableMapping tableMapping)
             : base(row, command, statementType, tableMapping)
         {
         }
@@ -95,16 +95,16 @@ namespace Trafodion.Data
     /// <summary>
     /// Provides data for the RowUpdated event.
     /// </summary>
-    public sealed class HPDbRowUpdatedEventArgs : RowUpdatedEventArgs
+    public sealed class TrafDbRowUpdatedEventArgs : RowUpdatedEventArgs
     {
         /// <summary>
-        /// Initializes a new instance of the HPDbRowUpdatedEventArgs class.
+        /// Initializes a new instance of the TrafDbRowUpdatedEventArgs class.
         /// </summary>
         /// <param name="row">The DataRow sent through an Update.</param>
         /// <param name="command">The IDbCommand executed when Update is called.</param>
         /// <param name="statementType">One of the StatementType values that specifies the type of query executed.</param>
         /// <param name="tableMapping">The DataTableMapping sent through an Update.</param>
-        public HPDbRowUpdatedEventArgs(DataRow row, IDbCommand command, System.Data.StatementType statementType, DataTableMapping tableMapping)
+        public TrafDbRowUpdatedEventArgs(DataRow row, IDbCommand command, System.Data.StatementType statementType, DataTableMapping tableMapping)
             : base(row, command, statementType, tableMapping)
         {
         }

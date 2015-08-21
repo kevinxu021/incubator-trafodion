@@ -160,7 +160,7 @@
         public TrafDbDataReader [] Execute()
         {
             // use a single ConnectionStringBuilder for all the connections
-            HPDbConnectionStringBuilder csb = new HPDbConnectionStringBuilder(this.ConnectionString);
+            TrafDbConnectionStringBuilder csb = new TrafDbConnectionStringBuilder(this.ConnectionString);
 
             this._producer = new TrafDbConnection(csb.ConnectionString);
             this._producer.Open();

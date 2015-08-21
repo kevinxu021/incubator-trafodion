@@ -14,7 +14,7 @@ namespace TrafAdoTest
     class ConnectionStringBuilderTest
     {
         //TestObject testInfo = AdoTestSetup.testInfo;
-        public HPDbConnectionStringBuilder connStrBuilder;
+        public TrafDbConnectionStringBuilder connStrBuilder;
         public TrafDbConnection conn;
 
         private string server = ConfigurationManager.AppSettings["HostName"];
@@ -50,9 +50,9 @@ namespace TrafAdoTest
             return D;
         }
 
-        public HPDbConnectionStringBuilder BuildTestString(Dictionary<String, String> D)
+        public TrafDbConnectionStringBuilder BuildTestString(Dictionary<String, String> D)
         {
-            connStrBuilder = new HPDbConnectionStringBuilder();
+            connStrBuilder = new TrafDbConnectionStringBuilder();
 
             foreach (String key in D.Keys)
             {
@@ -271,7 +271,7 @@ namespace TrafAdoTest
         {
             Dictionary<String, String> D = TestDic();
             
-            connStrBuilder = new HPDbConnectionStringBuilder();
+            connStrBuilder = new TrafDbConnectionStringBuilder();
             String expResult = connStrBuilder.ConnectionString;
             Console.WriteLine("Expected: " + expResult);
             
@@ -322,7 +322,7 @@ namespace TrafAdoTest
 
             Console.WriteLine("**************** THIS TEST FAILS IN SQ IF CONNECTION STRING HAS CPUTOUSE *******************");
             Console.WriteLine(connString);
-            connStrBuilder = new HPDbConnectionStringBuilder(connString);
+            connStrBuilder = new TrafDbConnectionStringBuilder(connString);
             conn = new TrafDbConnection(connStrBuilder.ConnectionString);
             conn.Open();
             if (conn.State == ConnectionState.Open)
@@ -351,7 +351,7 @@ namespace TrafAdoTest
         [Test]
         public void HPDbConnectionStringBuilder()
         {
-            connStrBuilder = new HPDbConnectionStringBuilder();
+            connStrBuilder = new TrafDbConnectionStringBuilder();
             Console.WriteLine(connStrBuilder.ConnectionString);
             // SEAQUEST Assert.AreEqual("ApplicationName=nunit.exe", connStrBuilder.ConnectionString);
             

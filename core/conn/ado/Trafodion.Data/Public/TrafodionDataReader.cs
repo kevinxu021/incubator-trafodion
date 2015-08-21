@@ -20,7 +20,7 @@ namespace Trafodion.Data
         private Dictionary<string, Dictionary<string, bool>> _keyInfo;
 
         private TrafDbCommand _cmd;
-        private HPDbNetwork _network;
+        private TrafDbNetwork _network;
         private Descriptor[][] _desc;
 
         private DataStream _ds;
@@ -548,7 +548,7 @@ namespace Trafodion.Data
                 // partial seconds are not always the same units in HPDb
                 // depending on precision, the integer value represents from .1 to .000001 seconds
                 // there are 7 digits for fractional seconds so use that as our base power for conversion
-                long ticks = this._ds.ReadUInt32() * HPDbUtility.PowersOfTen[7 - desc.Precision];
+                long ticks = this._ds.ReadUInt32() * TrafDbUtility.PowersOfTen[7 - desc.Precision];
                 ret = ret.Add(new TimeSpan(ticks));
             }
 
@@ -624,7 +624,7 @@ namespace Trafodion.Data
 
             if (desc.Scale > 0)
             {
-                ret /= HPDbUtility.PowersOfTen[desc.Scale];
+                ret /= TrafDbUtility.PowersOfTen[desc.Scale];
             }
 
             return ret;

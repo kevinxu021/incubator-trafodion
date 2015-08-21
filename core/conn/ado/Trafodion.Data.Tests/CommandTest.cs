@@ -889,7 +889,7 @@ namespace TrafAdoTest
             tstcmd.Parameters[1].Value = "South West";
             tstcmd.ExecuteNonQuery();
 
-            HPDbParameterCollection npc = tstcmd.Parameters;
+            TrafDbParameterCollection npc = tstcmd.Parameters;
 
             Assert.AreEqual(2, npc.Count);
 
@@ -1000,7 +1000,7 @@ namespace TrafAdoTest
             tstcmd.Parameters[1].Value = "South West";
             tstcmd.ExecuteNonQuery();
 
-            HPDbParameterCollection npc = tstcmd.Parameters;
+            TrafDbParameterCollection npc = tstcmd.Parameters;
 
             Assert.AreEqual(2, npc.Count);
 

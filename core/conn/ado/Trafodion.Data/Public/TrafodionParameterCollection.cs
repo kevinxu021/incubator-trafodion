@@ -9,13 +9,13 @@ namespace Trafodion.Data
     /// <summary>
     /// Represents a collection of parameters associated with a HPDbCommand and their respective mappings to columns in a DataSet. This class cannot be inherited.
     /// </summary>
-    public sealed class HPDbParameterCollection : DbParameterCollection, IDataParameterCollection
+    public sealed class TrafDbParameterCollection : DbParameterCollection, IDataParameterCollection
     {
         private TrafDbCommand _cmd;
         private List<TrafDbParameter> _parameters;
         private object _syncObject;
 
-        internal HPDbParameterCollection(TrafDbCommand cmd)
+        internal TrafDbParameterCollection(TrafDbCommand cmd)
         {
             this._parameters = new List<TrafDbParameter>();
             this._syncObject = new object();
@@ -24,7 +24,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Returns an Integer that contains the number of elements in the HPDbParameterCollection. Read-only.
+        /// Returns an Integer that contains the number of elements in the TrafDbParameterCollection. Read-only.
         /// </summary>
         public override int Count
         {
@@ -32,7 +32,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Gets a value that indicates whether the HPDbParameterCollection has a fixed size.
+        /// Gets a value that indicates whether the TrafDbParameterCollection has a fixed size.
         /// </summary>
         public override bool IsFixedSize
         {
@@ -40,7 +40,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Gets a value that indicates whether the HPDbParameterCollection is read-only.
+        /// Gets a value that indicates whether the TrafDbParameterCollection is read-only.
         /// </summary>
         public override bool IsReadOnly
         {
@@ -48,7 +48,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Gets a value that indicates whether the HPDbParameterCollection is synchronized.
+        /// Gets a value that indicates whether the TrafDbParameterCollection is synchronized.
         /// </summary>
         public override bool IsSynchronized
         {
@@ -56,7 +56,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Gets an object that can be used to synchronize access to the HPDbParameterCollection.
+        /// Gets an object that can be used to synchronize access to the TrafDbParameterCollection.
         /// </summary>
         public override object SyncRoot
         {
@@ -109,7 +109,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Adds the specified TrafDbParameter object to the HPDbParameterCollection.
+        /// Adds the specified TrafDbParameter object to the TrafDbParameterCollection.
         /// </summary>
         /// <param name="value">The TrafDbParameter to add to the collection. </param>
         /// <returns>The index of the new TrafDbParameter object.</returns>
@@ -136,7 +136,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Adds an Enumerable Collection of TrafDbParameter objects to the end of the HPDbParameterCollection.
+        /// Adds an Enumerable Collection of TrafDbParameter objects to the end of the TrafDbParameterCollection.
         /// </summary>
         /// <param name="values">The Enumerable Collection of TrafDbParameter objects to add.</param>
         /// <exception cref="InvalidCastException">The parameter passed was not an Enumerable Collection of TrafDbParameter objects.</exception>
@@ -160,7 +160,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Removes all the TrafDbParameter objects from the HPDbParameterCollection.
+        /// Removes all the TrafDbParameter objects from the TrafDbParameterCollection.
         /// </summary>
         public override void Clear()
         {
@@ -174,7 +174,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Gets a value indicating whether a TrafDbParameter in this HPDbParameterCollection has the specified name.
+        /// Gets a value indicating whether a TrafDbParameter in this TrafDbParameterCollection has the specified name.
         /// </summary>
         /// <param name="value">The name of the TrafDbParameter. </param>
         /// <returns>true if the HPDbParameterCollections contains the TrafDbParameter; otherwise false.</returns>
@@ -184,7 +184,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Determines whether the specified TrafDbParameter is in this HPDbParameterCollection.
+        /// Determines whether the specified TrafDbParameter is in this TrafDbParameterCollection.
         /// </summary>
         /// <param name="value">The TrafDbParameter value.</param>
         /// <returns>true if the HPDbParameterCollections contains the TrafDbParameter; otherwise false.</returns>
@@ -195,20 +195,20 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Copies all the elements of the current HPDbParameterCollection to the specified HPDbParameterCollection starting at the specified destination index.
+        /// Copies all the elements of the current TrafDbParameterCollection to the specified TrafDbParameterCollection starting at the specified destination index.
         /// </summary>
-        /// <param name="array">The HPDbParameterCollection that is the destination of the elements copied from the current HPDbParameterCollection.</param>
-        /// <param name="index">A 32-bit integer that represents the index in the HPDbParameterCollection at which copying starts.</param>
-        /// <exception cref="InvalidCastException">The parameter passed was not a HPDbParameterCollection.</exception>
+        /// <param name="array">The TrafDbParameterCollection that is the destination of the elements copied from the current TrafDbParameterCollection.</param>
+        /// <param name="index">A 32-bit integer that represents the index in the TrafDbParameterCollection at which copying starts.</param>
+        /// <exception cref="InvalidCastException">The parameter passed was not a TrafDbParameterCollection.</exception>
         public override void CopyTo(Array array, int index)
         {
             this._parameters.CopyTo((TrafDbParameter[])array, index);
         }
 
         /// <summary>
-        /// Returns an enumerator that iterates through the HPDbParameterCollection.
+        /// Returns an enumerator that iterates through the TrafDbParameterCollection.
         /// </summary>
-        /// <returns>An IEnumerator for the HPDbParameterCollection.</returns>
+        /// <returns>An IEnumerator for the TrafDbParameterCollection.</returns>
         public override IEnumerator GetEnumerator()
         {
             return this._parameters.GetEnumerator();
@@ -218,7 +218,7 @@ namespace Trafodion.Data
         /// Gets the location of the specified TrafDbParameter with the specified name.
         /// </summary>
         /// <param name="parameterName">The case-sensitive name of the TrafDbParameter to find.</param>
-        /// <returns>The zero-based location of the specified TrafDbParameter with the specified case-sensitive name. Returns -1 when the object does not exist in the HPDbParameterCollection.</returns>
+        /// <returns>The zero-based location of the specified TrafDbParameter with the specified case-sensitive name. Returns -1 when the object does not exist in the TrafDbParameterCollection.</returns>
         public override int IndexOf(string parameterName)
         {
             for (int i = 0; i < this._parameters.Count; i++)
@@ -236,7 +236,7 @@ namespace Trafodion.Data
         /// Gets the location of the specified TrafDbParameter within the collection.
         /// </summary>
         /// <param name="value">The TrafDbParameter to find.</param>
-        /// <returns>The zero-based location of the specified TrafDbParameter that is a TrafDbParameter within the collection. Returns -1 when the object does not exist in the HPDbParameterCollection.</returns>
+        /// <returns>The zero-based location of the specified TrafDbParameter that is a TrafDbParameter within the collection. Returns -1 when the object does not exist in the TrafDbParameterCollection.</returns>
         /// <exception cref="InvalidCastException">The parameter passed was not a TrafDbParameter.</exception>
         public override int IndexOf(object value)
         {
@@ -244,10 +244,10 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Inserts a TrafDbParameter object into the HPDbParameterCollection at the specified index.
+        /// Inserts a TrafDbParameter object into the TrafDbParameterCollection at the specified index.
         /// </summary>
         /// <param name="index">The zero-based index at which value should be inserted.</param>
-        /// <param name="value">A TrafDbParameter object to be inserted in the HPDbParameterCollection.</param>
+        /// <param name="value">A TrafDbParameter object to be inserted in the TrafDbParameterCollection.</param>
         /// <exception cref="InvalidCastException">The parameter passed was not a TrafDbParameter.</exception>
         public override void Insert(int index, object value)
         {
@@ -280,7 +280,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Removes the TrafDbParameter from the HPDbParameterCollection at the specified parameter name.
+        /// Removes the TrafDbParameter from the TrafDbParameterCollection at the specified parameter name.
         /// </summary>
         /// <param name="parameterName">The name of the TrafDbParameter to remove.</param>
         /// <exception cref="ArgumentOutOfRangeException">The specified index does not exist.</exception>
@@ -296,7 +296,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Removes the TrafDbParameter from the HPDbParameterCollection at the specified index.
+        /// Removes the TrafDbParameter from the TrafDbParameterCollection at the specified index.
         /// </summary>
         /// <param name="index">The zero-based index of the TrafDbParameter object to remove.</param>
         /// <exception cref="ArgumentOutOfRangeException">The specified index does not exist.</exception>

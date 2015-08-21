@@ -9,8 +9,8 @@
     [Serializable]
     public sealed class TrafDbException : DbException
     {
-        private HPDbErrorCollection _errors;
-        private HPDbErrorCollection _warnings;
+        private TrafDbErrorCollection _errors;
+        private TrafDbErrorCollection _warnings;
 
         //overwrite the base classes since we cant use thier constructor for everything
         private string _message;
@@ -28,8 +28,8 @@
 
         internal TrafDbException(TrafDbMessage msg, params object[] objs)
         {
-            this._errors = new HPDbErrorCollection();
-            this._warnings = new HPDbErrorCollection();
+            this._errors = new TrafDbErrorCollection();
+            this._warnings = new TrafDbErrorCollection();
 
             TrafDbError error = new TrafDbError()
             {
@@ -61,8 +61,8 @@
         {
             TrafDbError error;
 
-            this._errors = new HPDbErrorCollection();
-            this._warnings = new HPDbErrorCollection();
+            this._errors = new TrafDbErrorCollection();
+            this._warnings = new TrafDbErrorCollection();
 
             foreach (ErrorDesc d in list)
             {
@@ -96,8 +96,8 @@
         {
             TrafDbError error;
 
-            this._errors = new HPDbErrorCollection();
-            this._warnings = new HPDbErrorCollection();
+            this._errors = new TrafDbErrorCollection();
+            this._warnings = new TrafDbErrorCollection();
 
             foreach (SqlWarningOrError e in list)
             {
@@ -130,7 +130,7 @@
         /// <summary>
         /// Gets a collection of one or more TrafDbError objects that give detailed information about exceptions generated.
         /// </summary>
-        public HPDbErrorCollection Errors 
+        public TrafDbErrorCollection Errors 
         {
             get { return this._errors; }
         }
@@ -138,7 +138,7 @@
         /// <summary>
         /// Gets a collection of one or more TrafDbError objects that give detailed information about warnings generated.
         /// </summary>
-        public HPDbErrorCollection Warnings 
+        public TrafDbErrorCollection Warnings 
         {
             get { return this._warnings; }
         }

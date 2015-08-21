@@ -43,7 +43,7 @@ namespace Trafodion.Data
             set
             {
                 this._HPDbDbType = value;
-                this._dbType = HPDbUtility.MapHPDbDbType(this._HPDbDbType);
+                this._dbType = TrafDbUtility.MapHPDbDbType(this._HPDbDbType);
             }
         }
 
@@ -57,7 +57,7 @@ namespace Trafodion.Data
             set
             {
                 this._dbType = value;
-                this._HPDbDbType = HPDbUtility.MapDbType(this._dbType);
+                this._HPDbDbType = TrafDbUtility.MapDbType(this._dbType);
             }
         }
 

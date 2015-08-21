@@ -95,12 +95,12 @@
     /// <summary>
     /// A collection of HPDbErrors.
     /// </summary>
-    public sealed class HPDbErrorCollection : ICollection, IEnumerable
+    public sealed class TrafDbErrorCollection : ICollection, IEnumerable
     {
         private List<TrafDbError> _errors;
         private object _syncObject;
 
-        internal HPDbErrorCollection()
+        internal TrafDbErrorCollection()
         {
             this._syncObject = new object();
             this._errors = new List<TrafDbError>();
@@ -115,7 +115,7 @@
         }
 
         /// <summary>
-        /// Gets a value indicating whether access to the HPDbErrorCollection is synchronized (thread safe).
+        /// Gets a value indicating whether access to the TrafDbErrorCollection is synchronized (thread safe).
         /// </summary>
         public bool IsSynchronized
         {
@@ -123,7 +123,7 @@
         }
 
         /// <summary>
-        /// Gets an object that can be used to synchronize access to the HPDbErrorCollection.
+        /// Gets an object that can be used to synchronize access to the TrafDbErrorCollection.
         /// </summary>
         public object SyncRoot
         {
@@ -141,7 +141,7 @@
         }
 
         /// <summary>
-        /// Copies the elements of the HPDbErrorCollection collection into an Array, starting at the specified index.
+        /// Copies the elements of the TrafDbErrorCollection collection into an Array, starting at the specified index.
         /// </summary>
         /// <param name="array">The Array to copy elements into. </param>
         /// <param name="index">The index from which to start copying into the array parameter. </param>
@@ -151,9 +151,9 @@
         }
 
         /// <summary>
-        /// Returns an enumerator that iterates through the HPDbErrorCollection.
+        /// Returns an enumerator that iterates through the TrafDbErrorCollection.
         /// </summary>
-        /// <returns>An enumerator that iterates through the HPDbErrorCollection.</returns>
+        /// <returns>An enumerator that iterates through the TrafDbErrorCollection.</returns>
         public IEnumerator GetEnumerator()
         {
             return this._errors.GetEnumerator();

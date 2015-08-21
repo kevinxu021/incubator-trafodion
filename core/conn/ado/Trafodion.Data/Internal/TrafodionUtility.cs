@@ -9,7 +9,7 @@ namespace Trafodion.Data
     /// <summary>
     /// Collection of static regular expressions, arrays, and methods used through out the provider.
     /// </summary>
-    internal class HPDbUtility
+    internal class TrafDbUtility
     {
         /// <summary>
         /// Regular expression for validating numeric format.  Used in BigNum conversion.
@@ -141,7 +141,7 @@ namespace Trafodion.Data
         private static readonly Dictionary<DbType, TrafDbDbType> DbTypeMapping;
         private static readonly Dictionary<TrafDbDbType, DbType> HPDbDbTypeMapping;
 
-        static HPDbUtility()
+        static TrafDbUtility()
         {
             //DbType to TrafDbDbType
             DbTypeMapping = new Dictionary<DbType, TrafDbDbType>(27);

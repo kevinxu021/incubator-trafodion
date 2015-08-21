@@ -6,10 +6,10 @@ using Microsoft.VisualStudio.Data;
 
 namespace Trafodion.Data.VisualStudio
 {
-    internal class HPDbDataObjectSupport : DataObjectSupport
+    internal class TrafDbDataObjectSupport : DataObjectSupport
     {
-        public HPDbDataObjectSupport()
-            : base("HP.Data.VisualStudio.HPDbDataObjectSupport", typeof(HPDbDataObjectSupport).Assembly)
+        public TrafDbDataObjectSupport()
+            : base("HP.Data.VisualStudio.TrafDbDataObjectSupport", typeof(TrafDbDataObjectSupport).Assembly)
         {
         }
     }

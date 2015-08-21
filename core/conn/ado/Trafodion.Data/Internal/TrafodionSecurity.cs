@@ -12,20 +12,20 @@ namespace Trafodion.Data
 {
     internal class PwdKey 
     {
-        public byte[] id = new byte[HPDbSecurity.PWDID_SIZE];
-        public byte[] rolename = new byte[HPDbSecurity.ROLENAME_SIZE];
-        public byte[] digest = new byte[HPDbSecurity.DIGEST_LENGTH];
-        public byte[]  ts = new byte[HPDbSecurity.TIMESTAMP_SIZE];
+        public byte[] id = new byte[TrafDbSecurity.PWDID_SIZE];
+        public byte[] rolename = new byte[TrafDbSecurity.ROLENAME_SIZE];
+        public byte[] digest = new byte[TrafDbSecurity.DIGEST_LENGTH];
+        public byte[]  ts = new byte[TrafDbSecurity.TIMESTAMP_SIZE];
         public LoginData data;         
     }
 
     internal class LoginData 
     {
-        public byte[] session_key = new byte[HPDbSecurity.SESSION_KEYLEN];
-        public byte[] nonce = new byte[HPDbSecurity.NONCE_SIZE];
+        public byte[] session_key = new byte[TrafDbSecurity.SESSION_KEYLEN];
+        public byte[] nonce = new byte[TrafDbSecurity.NONCE_SIZE];
     }
 
-    internal class HPDbSecurity
+    internal class TrafDbSecurity
     {
         //TODO: clean these up, rename to C# style const
         internal const int NONCE_RANDOM = 24;
@@ -56,7 +56,7 @@ namespace Trafodion.Data
         private byte [] _procInfo;
         private long _nonceSeq;
 
-        public HPDbSecurity(TrafDbConnection conn, string directory, string fileName,
+        public TrafDbSecurity(TrafDbConnection conn, string directory, string fileName,
                 string remoteHost, int remotePin, int remoteCpu, byte [] timestamp)
         {
             DataStream ds;

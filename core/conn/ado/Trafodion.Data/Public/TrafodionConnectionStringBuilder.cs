@@ -14,15 +14,15 @@ namespace Trafodion.Data
     /// <summary>
     /// Provides a simple way to create and manage the contents of connection strings used by the HPDbConnection class.
     /// </summary>
-    public sealed class HPDbConnectionStringBuilder : DbConnectionStringBuilder
+    public sealed class TrafDbConnectionStringBuilder : DbConnectionStringBuilder
     {
         private static Dictionary<string, string> _keywords;
         private static Dictionary<string, string> _defaults;
 
         /// <summary>
-        /// Initializes static members of the HPDbConnectionStringBuilder class.
+        /// Initializes static members of the TrafDbConnectionStringBuilder class.
         /// </summary>
-        static HPDbConnectionStringBuilder()
+        static TrafDbConnectionStringBuilder()
         {
             // define alternate keywords here
             _keywords = new Dictionary<string, string>();
@@ -110,18 +110,18 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Initializes a new instance of the HPDbConnectionStringBuilder class.
+        /// Initializes a new instance of the TrafDbConnectionStringBuilder class.
         /// </summary>
-        public HPDbConnectionStringBuilder()
+        public TrafDbConnectionStringBuilder()
             : this(string.Empty)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the HPDbConnectionStringBuilder class. The provided connection string provides the data for the instance's internal connection information.
+        /// Initializes a new instance of the TrafDbConnectionStringBuilder class. The provided connection string provides the data for the instance's internal connection information.
         /// </summary>
         /// <param name="connectionString">The basis for the object's internal connection information. Parsed into name/value pairs.</param>
-        public HPDbConnectionStringBuilder(string connectionString)
+        public TrafDbConnectionStringBuilder(string connectionString)
         {
             this.ResetDefaultValues();
             this.ConnectionString = connectionString;
@@ -291,7 +291,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Gets a value that indicates whether the HPDbConnectionStringBuilder has a fixed size.
+        /// Gets a value that indicates whether the TrafDbConnectionStringBuilder has a fixed size.
         /// </summary>
         public override bool IsFixedSize
         {
@@ -360,10 +360,10 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Determines whether the HPDbConnectionStringBuilder contains a specific key.
+        /// Determines whether the TrafDbConnectionStringBuilder contains a specific key.
         /// </summary>
-        /// <param name="keyword">The key to locate in the HPDbConnectionStringBuilder.</param>
-        /// <returns>true if the HPDbConnectionStringBuilder contains an element that has the specified key; otherwise, false.</returns>
+        /// <param name="keyword">The key to locate in the TrafDbConnectionStringBuilder.</param>
+        /// <returns>true if the TrafDbConnectionStringBuilder contains an element that has the specified key; otherwise, false.</returns>
         public override bool ContainsKey(string keyword)
         {
             keyword = keyword.ToUpper().Trim();
@@ -394,10 +394,10 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Indicates whether the specified key exists in this HPDbConnectionStringBuilder instance.
+        /// Indicates whether the specified key exists in this TrafDbConnectionStringBuilder instance.
         /// </summary>
-        /// <param name="keyword">The key to locate in the HPDbConnectionStringBuilder.</param>
-        /// <returns>true if the HPDbConnectionStringBuilder contains an entry with the specified key; otherwise, false.</returns>
+        /// <param name="keyword">The key to locate in the TrafDbConnectionStringBuilder.</param>
+        /// <returns>true if the TrafDbConnectionStringBuilder contains an entry with the specified key; otherwise, false.</returns>
         public override bool ShouldSerialize(string keyword)
         {
             if (this.ContainsKey(keyword))

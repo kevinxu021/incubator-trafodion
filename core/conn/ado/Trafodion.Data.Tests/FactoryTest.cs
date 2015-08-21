@@ -82,7 +82,7 @@ namespace TrafAdoTest
         [Test]
         public void CreateConnectionStringBuilder()
         {
-            HPDbConnectionStringBuilder constrbuilder = (HPDbConnectionStringBuilder)factory.CreateConnectionStringBuilder();
+            TrafDbConnectionStringBuilder constrbuilder = (TrafDbConnectionStringBuilder)factory.CreateConnectionStringBuilder();
             constrbuilder.ConnectionString = testinfo.connectionString;
             Assert.AreEqual("True", constrbuilder.ContainsKey("Server").ToString());
         }

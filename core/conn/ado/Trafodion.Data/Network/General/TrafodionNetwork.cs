@@ -10,7 +10,7 @@ namespace Trafodion.Data
     /// <summary>
     /// Network communcations.
     /// </summary>
-    internal class HPDbNetwork : IDisposable
+    internal class TrafDbNetwork : IDisposable
     {
         private TcpClient _tcpClient;
         private NetworkStream _networkStream;
@@ -58,7 +58,7 @@ namespace Trafodion.Data
             get { return this._isClosed; }
         }
 
-        internal HPDbNetwork(TrafDbConnection conn)
+        internal TrafDbNetwork(TrafDbConnection conn)
         {
             if (TrafDbTrace.IsInternalEnabled)
             {

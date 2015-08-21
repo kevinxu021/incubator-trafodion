@@ -153,15 +153,15 @@ namespace Trafodion.Data
             TrafDbDataAdapter dataAdapter = adapter as TrafDbDataAdapter;
             if (adapter != base.DataAdapter)
             {
-                dataAdapter.RowUpdating += new HPDbRowUpdatingEventHandler(this.RowUpdating);
+                dataAdapter.RowUpdating += new TrafDbRowUpdatingEventHandler(this.RowUpdating);
             }
             else
             {
-                dataAdapter.RowUpdating -= new HPDbRowUpdatingEventHandler(this.RowUpdating);
+                dataAdapter.RowUpdating -= new TrafDbRowUpdatingEventHandler(this.RowUpdating);
             }
         }
 
-        private void RowUpdating(object sender, HPDbRowUpdatingEventArgs args)
+        private void RowUpdating(object sender, TrafDbRowUpdatingEventArgs args)
         {
             this.RowUpdatingHandler(args);
             if (args.StatementType != System.Data.StatementType.Insert ||

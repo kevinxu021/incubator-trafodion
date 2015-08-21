@@ -28,24 +28,34 @@ namespace Trafodion.Data
             "cast(trim(ob.SCHEMA_NAME) as varchar(128)) SchemaName " +
             "from trafodion.\"_MD_\".OBJECTS ob";
 
-       private static string ObjectQuery = @"
-select 
-    rtrim(cat.cat_name) as CatalogName, 
-    rtrim(sch.schema_name) as SchemaName, 
-    rtrim(obj.object_name) as TableName 
-from 
-    TRAFODION.""_MD_"".CATSYS as cat inner join
-    TRAFODION.""_MD_"".SCHEMATA as sch on cat.cat_uid = sch.cat_uid inner join 
-    {0}.HP_DEFINITION_SCHEMA.OBJECTS as obj on sch.schema_uid = obj.schema_uid
-where 
-    rtrim(cat.cat_name) = translate('{0}' using UTF8TOUCS2) and 
-    rtrim(sch.schema_name) {1} translate('{2}' using UTF8TOUCS2) and 
-    rtrim(obj.object_name) {3} translate('{4}' using UTF8TOUCS2) and 
-    obj.object_security_class = 'UT'
-";
-        private static string TableQuery = ObjectQuery + "and obj.object_type = 'BT' and obj.object_name_space = 'TA' for read uncommitted access";
-        private static string ViewQuery = ObjectQuery + "and (obj.object_type = 'VI' or obj.object_type = 'MV') for read uncommitted access";
-        private static string IndexQuery = ObjectQuery + "and obj.object_type = 'IX' and obj.object_name_space = 'IX' for read uncommitted access";
+        private static string TableQuery = "select " +
+           "distinct cast('{0}' as varchar(128)) CatalogName, " +
+           "cast(trim(SCHEMA_NAME) as varchar(128)) SchemaName, " +
+           "cast(trim(OBJECT_NAME) as varchar(128)) TableName " +
+           "from TRAFODION.\"_MD_\".OBJECTS " +
+           "where rtrim(SCHEMA_NAME) {1} translate('{2}' using UTF8TOUCS2) and " +
+           "rtrim(OBJECT_NAME) {3} translate('{4}' using UTF8TOUCS2) " +
+           "and ((SCHEMA_NAME <> '_MD_') and OBJECT_TYPE in ('BT')) " +
+           "for read uncommitted access order by 1, 2, 3;";
+        private static string ViewQuery = "select " +
+            "distinct cast('TRAFODION' as varchar(128)) CatalogName, " +
+            "cast(trim(SCHEMA_NAME) as varchar(128)) SchemaName, " +
+            "cast(trim(OBJECT_NAME) as varchar(128)) TableName " +
+            "from TRAFODION.\"_MD_\".OBJECTS " +
+            "where rtrim(SCHEMA_NAME) {1} translate('{2}' using UTF8TOUCS2) and " +
+            "rtrim(OBJECT_NAME) {3} translate('{4}' using UTF8TOUCS2) " +
+            "and ((SCHEMA_NAME <> '_MD_') and OBJECT_TYPE in ('VI')) " +
+            "for read uncommitted access order by 1, 2, 3;";
+        private static string IndexQuery = "select " +
+            "distinct cast('TRAFODION' as varchar(128)) CatalogName, " +
+            "cast(trim(SCHEMA_NAME) as varchar(128)) SchemaName, " +
+            "cast(trim(OBJECT_NAME) as varchar(128)) TableName " +
+            "from TRAFODION.\"_MD_\".OBJECTS " +
+            "where rtrim(SCHEMA_NAME) {1} translate('{2}' using UTF8TOUCS2) and " +
+            "rtrim(OBJECT_NAME) {3} translate('{4}' using UTF8TOUCS2) " +
+            "and ((SCHEMA_NAME <> '_MD_') and OBJECT_TYPE in ('IX')) " +
+            "for read uncommitted access order by 1, 2, 3;";
+
 
         private static string ProcedureQuery = "";
 
@@ -255,7 +265,7 @@ for read uncommitted access";
                 }
                 else
                 {
-                    dest[destOffset++] = HPDbUtility.FindWildCards.IsMatch(source[sourceOffset]) ? "LIKE" : "=";
+                    dest[destOffset++] = TrafDbUtility.FindWildCards.IsMatch(source[sourceOffset]) ? "LIKE" : "=";
                     dest[destOffset++] = source[sourceOffset];
                 }
             }

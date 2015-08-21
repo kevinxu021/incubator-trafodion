@@ -12,7 +12,7 @@ namespace TrafAdoTest
     [TestFixture]
     class ParameterCollectionTest
     {
-        public HPDbParameterCollection ParmCol;
+        public TrafDbParameterCollection ParmCol;
         //public TrafDbParameter[] Array;
         public TrafDbParameter[] Array = new TrafDbParameter[10];
         public TrafDbParameter parm;
@@ -64,7 +64,7 @@ namespace TrafAdoTest
         [Test]
         public void ParameterCollection()
         {
-           ParmCol = new HPDbParameterCollection(cmd);
+           ParmCol = new TrafDbParameterCollection(cmd);
            Console.WriteLine("ParmCol size Is: " + ParmCol.Count);
            Assert.AreEqual(0, ParmCol.Count);
         }
@@ -98,7 +98,7 @@ namespace TrafAdoTest
             TrafDbParameter[] range = new TrafDbParameter[2] {parm1, parm2};
 
             //Console.WriteLine(range);
-            //ParmCol = new HPDbParameterCollection(cmd);
+            //ParmCol = new TrafDbParameterCollection(cmd);
             ParmCol = cmd.Parameters;
             ParmCol.AddRange(range);
             Console.WriteLine("ParmCol's count : {0}", ParmCol.Count);
@@ -132,7 +132,7 @@ namespace TrafAdoTest
             TrafDbParameter[] range = new TrafDbParameter[2] { parm1, parm2 };
 
             //Console.WriteLine(range);
-            //ParmCol = new HPDbParameterCollection(cmd);
+            //ParmCol = new TrafDbParameterCollection(cmd);
             ParmCol = cmd.Parameters;
             ParmCol.AddRange(range);
             Console.WriteLine("ParmCol's count : {0}", ParmCol.Count);
@@ -232,7 +232,7 @@ namespace TrafAdoTest
             GenerateParmData();
             for (int i = 0; i < index.Length; i++)
             {
-                HPDbParameterCollection ParmColTmp = ParmCol;
+                TrafDbParameterCollection ParmColTmp = ParmCol;
                 ParmCount = ParmColTmp.Count;
                 ParmColTmp.CopyTo(Array, index[i]);
                 //Assert.AreEqual(ParmCount + arraynum, ParmColTmp.Count);
@@ -260,8 +260,8 @@ namespace TrafAdoTest
             for (int i = 0; i < index.Length; i++)
             {
                 GenerateParmData();
-                HPDbParameterCollection ParmColTmp = ParmCol;
-                HPDbParameterCollection ParmColBk = ParmCol;
+                TrafDbParameterCollection ParmColTmp = ParmCol;
+                TrafDbParameterCollection ParmColBk = ParmCol;
                 int ParmCount = ParmColTmp.Count;
                 TrafDbParameter parmTmp = new TrafDbParameter("test", "test_ParameterCollection");
                 ParmColTmp.Insert(index[i], parmTmp);

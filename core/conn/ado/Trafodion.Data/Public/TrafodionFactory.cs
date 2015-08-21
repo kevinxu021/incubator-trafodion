@@ -52,12 +52,12 @@
         }
 
         /// <summary>
-        /// Creates a new <c>HPDbConnectionStringBuilder</c> object.
+        /// Creates a new <c>TrafDbConnectionStringBuilder</c> object.
         /// </summary>
-        /// <returns>A new <c>HPDbConnectionStringBuilder</c> object.</returns>
+        /// <returns>A new <c>TrafDbConnectionStringBuilder</c> object.</returns>
         public override DbConnectionStringBuilder CreateConnectionStringBuilder()
         {
-            return new HPDbConnectionStringBuilder();
+            return new TrafDbConnectionStringBuilder();
         }
 
         /// <summary>

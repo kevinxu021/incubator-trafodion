@@ -28,7 +28,7 @@ namespace TrafAdoTest
         }
     }
 
-    public class HpErrorHelper
+    public class TrafErrorHelper
     {
         public void HandleInfoEvents(object sender, TrafDbInfoMessageEventArgs e)
         {
@@ -119,8 +119,8 @@ namespace TrafAdoTest
             this.charset = charset;
 
             this.connection = new TrafDbConnection(connectionString);
-            HpErrorHelper eeh = new HpErrorHelper();
-            this.connection.InfoMessage += new HPDbInfoMessageEventHandler(eeh.HandleInfoEvents);
+            TrafErrorHelper eeh = new TrafErrorHelper();
+            this.connection.InfoMessage += new TrafDbInfoMessageEventHandler(eeh.HandleInfoEvents);
 
             this.tableInfo = new List<List<aColumn>>();
             this.charset_bank = new CharsetData(this.charset);
@@ -507,8 +507,8 @@ namespace TrafAdoTest
                 using (TrafDbConnection conn = new TrafDbConnection(connectionString))
                 {
                     //conn.ConnectionTimeout = 120;
-                    HpErrorHelper eeh = new HpErrorHelper();
-                    conn.InfoMessage += new HPDbInfoMessageEventHandler(eeh.HandleInfoEvents);
+                    TrafErrorHelper eeh = new TrafErrorHelper();
+                    conn.InfoMessage += new TrafDbInfoMessageEventHandler(eeh.HandleInfoEvents);
 
                     conn.Open();
                     TrafDbCommand cmd = conn.CreateCommand();
@@ -549,8 +549,8 @@ namespace TrafAdoTest
             {
                 using (TrafDbConnection conn = new TrafDbConnection(connectionString))
                 {
-                    HpErrorHelper eeh = new HpErrorHelper();
-                    conn.InfoMessage += new HPDbInfoMessageEventHandler(eeh.HandleInfoEvents);
+                    TrafErrorHelper eeh = new TrafErrorHelper();
+                    conn.InfoMessage += new TrafDbInfoMessageEventHandler(eeh.HandleInfoEvents);
 
                     conn.Open();
                     TrafDbCommand cmd = conn.CreateCommand();
@@ -577,8 +577,8 @@ namespace TrafAdoTest
             {
                 using (TrafDbConnection conn = new TrafDbConnection(connectionString))
                 {
-                    HpErrorHelper eeh = new HpErrorHelper();
-                    conn.InfoMessage += new HPDbInfoMessageEventHandler(eeh.HandleInfoEvents);
+                    TrafErrorHelper eeh = new TrafErrorHelper();
+                    conn.InfoMessage += new TrafDbInfoMessageEventHandler(eeh.HandleInfoEvents);
 
                     conn.Open();
                     TrafDbCommand cmd = conn.CreateCommand();

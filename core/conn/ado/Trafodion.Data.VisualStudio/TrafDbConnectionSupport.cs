@@ -24,7 +24,7 @@ namespace Trafodion.Data.VisualStudio
             }
             if (serviceType == typeof(DataObjectSupport))
             {
-                return new HPDbDataObjectSupport();
+                return new TrafDbDataObjectSupport();
             }
             if (serviceType == typeof(DataSourceInformation))
             {

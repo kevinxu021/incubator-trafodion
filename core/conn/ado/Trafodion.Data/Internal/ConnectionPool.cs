@@ -6,9 +6,9 @@
     {
         private Queue<TrafDbConnection> _idlePool;
 
-        private HPDbConnectionStringBuilder _builder;
+        private TrafDbConnectionStringBuilder _builder;
 
-        public ConnectionPool(HPDbConnectionStringBuilder builder)
+        public ConnectionPool(TrafDbConnectionStringBuilder builder)
         {
             this._builder = builder;
 

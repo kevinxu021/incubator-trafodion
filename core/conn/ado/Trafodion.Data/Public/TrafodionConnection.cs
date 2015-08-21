@@ -21,7 +21,7 @@ namespace Trafodion.Data
         // all the private members for the connection are actually stored on the Network object to support connection pooling
 
         private TrafDbMetaData _metaData;
-        private HPDbSecurity _security;
+        private TrafDbSecurity _security;
 
         private ConnectionContext _cc;
         private UserDescription _ud;
@@ -71,8 +71,8 @@ namespace Trafodion.Data
             this._database = null;
             this._state = ConnectionState.Closed;
 
-            this.ConnectionStringBuilder = new HPDbConnectionStringBuilder(connectionString);
-            this.Network = new HPDbNetwork(this);
+            this.ConnectionStringBuilder = new TrafDbConnectionStringBuilder(connectionString);
+            this.Network = new TrafDbNetwork(this);
             this.Commands = new List<TrafDbCommand>();
             this._metaData = new TrafDbMetaData(this);
         }
@@ -80,7 +80,7 @@ namespace Trafodion.Data
         /// <summary>
         /// Event for viewing status and warning messages during operation.
         /// </summary>
-        public event HPDbInfoMessageEventHandler InfoMessage;
+        public event TrafDbInfoMessageEventHandler InfoMessage;
 
         /// <summary>
         /// Gets or sets the string used to open the connection.
@@ -209,13 +209,13 @@ namespace Trafodion.Data
             set; 
         } 
 
-        internal HPDbNetwork Network 
+        internal TrafDbNetwork Network 
         { 
             get; 
             set; 
         }
 
-        internal HPDbConnectionStringBuilder ConnectionStringBuilder 
+        internal TrafDbConnectionStringBuilder ConnectionStringBuilder 
         { 
             get; 
             set; 
@@ -580,7 +580,7 @@ namespace Trafodion.Data
             if (!this.ConnectionStringBuilder.IgnoreCancel)
             {
                 // we need to create a new network object to handle cancel
-                HPDbNetwork net = new HPDbNetwork(this);
+                TrafDbNetwork net = new TrafDbNetwork(this);
                 net.ByteOrder = this.Network.ByteOrder;
                 net.DialogueId = this.Network.DialogueId;
 
@@ -917,7 +917,7 @@ namespace Trafodion.Data
 
         private void CreateConnectionContext()
         {
-            HPDbConnectionStringBuilder b = this.ConnectionStringBuilder;
+            TrafDbConnectionStringBuilder b = this.ConnectionStringBuilder;
 
             this._cc = new ConnectionContext()
             {
@@ -1027,7 +1027,7 @@ namespace Trafodion.Data
 
             try
             {
-                this._security = new HPDbSecurity(
+                this._security = new TrafDbSecurity(
                     this, 
                     null, 
                     null, 

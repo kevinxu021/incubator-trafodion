@@ -14,7 +14,7 @@ namespace Trafodion.Data
     {
         private TrafDbConnection _conn;
         private TrafDbTransaction _trans;
-        private HPDbParameterCollection _parameters;
+        private TrafDbParameterCollection _parameters;
         private CommandType _type;
 
         private PrepareReply _prepareReply; // we want to keep this around for execute
@@ -25,7 +25,7 @@ namespace Trafodion.Data
         private QueryType _queryType;
         private bool _isEmptyInsert; //for rwrs insert empty row
 
-        private HPDbNetwork _network;
+        private TrafDbNetwork _network;
         private TrafDbDataReader _reader;
         private CommandBehavior _behavior;
         private StatementType _statementType;
@@ -58,7 +58,7 @@ namespace Trafodion.Data
                 TrafDbTrace.Trace(null, TraceLevel.Public, cmdText);
             }
 
-            this._parameters = new HPDbParameterCollection(this);
+            this._parameters = new TrafDbParameterCollection(this);
 
             this._type = CommandType.Text;
             this.CommandText = cmdText;
@@ -91,7 +91,7 @@ namespace Trafodion.Data
                 TrafDbTrace.Trace(connection, TraceLevel.Public, cmdText, transaction);
             }
 
-            this._parameters = new HPDbParameterCollection(this);
+            this._parameters = new TrafDbParameterCollection(this);
 
             this.Connection = connection;
             this._type = CommandType.Text;
@@ -125,7 +125,7 @@ namespace Trafodion.Data
                 TrafDbTrace.Trace(connection, TraceLevel.Public, cmdText);
             }
 
-            this._parameters = new HPDbParameterCollection(this);
+            this._parameters = new TrafDbParameterCollection(this);
 
             this.Connection = connection;
             this._type = CommandType.Text;
@@ -245,9 +245,9 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Gets the HPDbParameterCollection.
+        /// Gets the TrafDbParameterCollection.
         /// </summary>
-        public new HPDbParameterCollection Parameters 
+        public new TrafDbParameterCollection Parameters 
         { 
             get 
             { 
@@ -317,7 +317,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Gets the HPDbParameterCollection.
+        /// Gets the TrafDbParameterCollection.
         /// </summary>
         IDataParameterCollection IDbCommand.Parameters
         {
@@ -348,7 +348,7 @@ namespace Trafodion.Data
             }
         }
 
-        internal HPDbNetwork Network
+        internal TrafDbNetwork Network
         {
             get
             {
@@ -440,7 +440,7 @@ namespace Trafodion.Data
             {
                 bool foundParam = false;
 
-                string[] s = HPDbUtility.RemoveStringLiterals.Split(this.CommandText);
+                string[] s = TrafDbUtility.RemoveStringLiterals.Split(this.CommandText);
                 for (int i = 0; i < s.Length; i++)
                 {
                     if (s[i].IndexOf('?') != -1)
@@ -470,7 +470,7 @@ namespace Trafodion.Data
         {
             get 
             {
-                if (HPDbUtility.FindRowwiseUserLoad.Match(this.CommandText.ToLower()).Success) 
+                if (TrafDbUtility.FindRowwiseUserLoad.Match(this.CommandText.ToLower()).Success) 
                 {
                     return true;
                 }
@@ -485,7 +485,7 @@ namespace Trafodion.Data
                 int value = 0;
                 if (this.CommandText.ToLower().IndexOf("max rowset size") != -1)
                 {
-                    //Convert.ToInt32(HPDbUtility.FindRowSize.Match(this.CommandText).Value);
+                    //Convert.ToInt32(TrafDbUtility.FindRowSize.Match(this.CommandText).Value);
                     value = 1;
                 }
 
@@ -770,7 +770,7 @@ namespace Trafodion.Data
             //  http://bugs.mysql.com/bug.php?id=35852
             if (this._conn.ConnectionStringBuilder.SqlServerMode)
             {
-                this.CommandText = HPDbUtility.ConvertBracketIdentifiers(this.CommandText);
+                this.CommandText = TrafDbUtility.ConvertBracketIdentifiers(this.CommandText);
             }
 
             if (this._reader != null)
@@ -1002,13 +1002,13 @@ namespace Trafodion.Data
                     switch (desc.DtCode)
                     {
                         case DateTimeCode.Date:
-                            str = dt.ToString(HPDbUtility.DateFormat);
+                            str = dt.ToString(TrafDbUtility.DateFormat);
                             break;
                         case DateTimeCode.Time:
-                            str = dt.ToString(HPDbUtility.TimeFormat[desc.Precision]);
+                            str = dt.ToString(TrafDbUtility.TimeFormat[desc.Precision]);
                             break;
                         case DateTimeCode.Timestamp:
-                            str = dt.ToString(HPDbUtility.TimestampFormat[desc.Precision]);
+                            str = dt.ToString(TrafDbUtility.TimestampFormat[desc.Precision]);
                             break;
                         default:
                             throw new Exception("internal error: bad datetime");
@@ -1035,7 +1035,7 @@ namespace Trafodion.Data
                     if (desc.Scale > 0)
                     {
                         d = Convert.ToDouble(value);
-                        s = (short)(d * HPDbUtility.PowersOfTen[desc.Scale]);
+                        s = (short)(d * TrafDbUtility.PowersOfTen[desc.Scale]);
                     }
                     else
                     {
@@ -1048,7 +1048,7 @@ namespace Trafodion.Data
                     if (desc.Scale > 0)
                     {
                         d = Convert.ToDouble(value);
-                        us = (ushort)(d * HPDbUtility.PowersOfTen[desc.Scale]);
+                        us = (ushort)(d * TrafDbUtility.PowersOfTen[desc.Scale]);
                     }
                     else
                     {
@@ -1061,7 +1061,7 @@ namespace Trafodion.Data
                     if (desc.Scale > 0)
                     {
                         d = Convert.ToDouble(value);
-                        i = (int)(d * HPDbUtility.PowersOfTen[desc.Scale]);
+                        i = (int)(d * TrafDbUtility.PowersOfTen[desc.Scale]);
                     }
                     else
                     {
@@ -1074,7 +1074,7 @@ namespace Trafodion.Data
                     if (desc.Scale > 0)
                     {
                         d = Convert.ToDouble(value);
-                        ui = (uint)(d * HPDbUtility.PowersOfTen[desc.Scale]);
+                        ui = (uint)(d * TrafDbUtility.PowersOfTen[desc.Scale]);
                     }
                     else
                     {
@@ -1087,7 +1087,7 @@ namespace Trafodion.Data
                     if (desc.Scale > 0)
                     {
                         d = Convert.ToDouble(value);
-                        l = (long)(d * HPDbUtility.PowersOfTen[desc.Scale]);
+                        l = (long)(d * TrafDbUtility.PowersOfTen[desc.Scale]);
                     }
                     else
                     {
@@ -1109,7 +1109,7 @@ namespace Trafodion.Data
                     bool neg;
                     dec = Convert.ToDecimal(value);
 
-                    dec *= HPDbUtility.PowersOfTen[desc.Scale];
+                    dec *= TrafDbUtility.PowersOfTen[desc.Scale];
                     if (dec < 0)
                     {
                         dec *= -1;
@@ -1141,7 +1141,7 @@ namespace Trafodion.Data
                     str = value.ToString();
 
                     // check for valid characters
-                    if (!HPDbUtility.ValidateNumeric.IsMatch(str))
+                    if (!TrafDbUtility.ValidateNumeric.IsMatch(str))
                     {
                         throw new Exception("invalid numeric string: " + str);
                     }
@@ -1244,8 +1244,8 @@ namespace Trafodion.Data
         // TODO: look into optimizing this with string.Compare(,,true) == 0 instead of .ToLower() and Equals
         private void UpdateStatementType()
         {
-            string str = HPDbUtility.RemoveComments.Replace(this.CommandText, string.Empty);
-            string[] tokens = HPDbUtility.Tokenize.Split(str, 3, 0);
+            string str = TrafDbUtility.RemoveComments.Replace(this.CommandText, string.Empty);
+            string[] tokens = TrafDbUtility.Tokenize.Split(str, 3, 0);
 
             StatementType type = StatementType.Unknown;
 
@@ -1370,7 +1370,7 @@ namespace Trafodion.Data
                     temp1 = (temp1 * 10) + sourceData[zeros + i + j];
                 }
 
-                int power = (int)HPDbUtility.PowersOfTen[j]; // get the power of ten based on how many digits we got
+                int power = (int)TrafDbUtility.PowersOfTen[j]; // get the power of ten based on how many digits we got
 
                 temp = (targetInShorts[0] * power) + temp1; // move the current digits over and then add our new value in
                 targetInShorts[0] = temp & 0xFFFF; // we save only up to 16bits -- the rest gets carried over

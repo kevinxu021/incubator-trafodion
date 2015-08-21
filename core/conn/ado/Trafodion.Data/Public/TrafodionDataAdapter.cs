@@ -58,32 +58,32 @@
         /// <summary>
         /// Occurs during Update before a command is executed against the data source. The attempt to update is made, so the event fires.
         /// </summary>
-        public event HPDbRowUpdatingEventHandler RowUpdating;
+        public event TrafDbRowUpdatingEventHandler RowUpdating;
 
         /// <summary>
         /// Occurs during Update after a command is executed against the data source. The attempt to update is made, so the event fires.
         /// </summary>
-        public event HPDbRowUpdatedEventHandler RowUpdated;
+        public event TrafDbRowUpdatedEventHandler RowUpdated;
 
         //these provide strong typing
         protected override RowUpdatedEventArgs CreateRowUpdatedEvent(DataRow dataRow, IDbCommand command, System.Data.StatementType statementType, DataTableMapping tableMapping)
         {
-            return new HPDbRowUpdatedEventArgs(dataRow, command, statementType, tableMapping);
+            return new TrafDbRowUpdatedEventArgs(dataRow, command, statementType, tableMapping);
         }
         protected override RowUpdatingEventArgs CreateRowUpdatingEvent(DataRow dataRow, IDbCommand command, System.Data.StatementType statementType, DataTableMapping tableMapping)
         {
-            return new HPDbRowUpdatingEventArgs(dataRow, command, statementType, tableMapping);
+            return new TrafDbRowUpdatingEventArgs(dataRow, command, statementType, tableMapping);
         }
 
         /// <summary>
         /// Overridden. Raises the RowUpdating event.
         /// </summary>
-        /// <param name="value">A HPDbRowUpdatingEventArgs that contains the event data.</param>
+        /// <param name="value">A TrafDbRowUpdatingEventArgs that contains the event data.</param>
         protected override void OnRowUpdating(RowUpdatingEventArgs value)
         {
             if (RowUpdating != null)
             {
-                RowUpdating(this, (value as HPDbRowUpdatingEventArgs));
+                RowUpdating(this, (value as TrafDbRowUpdatingEventArgs));
             }
             if (value.StatementType == System.Data.StatementType.Insert)
             {
@@ -99,7 +99,7 @@
         {
             if (RowUpdated != null)
             {
-                RowUpdated(this, (value as HPDbRowUpdatedEventArgs));
+                RowUpdated(this, (value as TrafDbRowUpdatedEventArgs));
             }
             this._batchedParams.Clear();
         }
