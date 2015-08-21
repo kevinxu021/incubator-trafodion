@@ -2740,6 +2740,7 @@ ExWorkProcRetcode ExHbaseUMDtrafSubsetTaskTcb::work(short &rc)
 					   tcb_->columns_, -1,
 					   tcb_->hbaseAccessTdb().readUncommittedScan(),
 					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->cacheBlocks(),
+					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->useSmallScanner(),
 					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->numCacheRows(),
 					   FALSE, NULL, NULL, NULL);
 	    if (tcb_->setupError(retcode, "ExpHbaseInterface::scanOpen"))
@@ -3156,6 +3157,7 @@ ExWorkProcRetcode ExHbaseUMDnativeSubsetTaskTcb::work(short &rc)
 					   columns, -1,
 					   tcb_->hbaseAccessTdb().readUncommittedScan(),
 					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->cacheBlocks(),
+					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->useSmallScanner(),
 					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->numCacheRows(),
 					   FALSE, NULL, NULL, NULL);
 	    if (tcb_->setupError(retcode, "ExpHbaseInterface::scanOpen"))
