@@ -2789,9 +2789,11 @@ short HbaseAccess::codeGen(Generator * generator)
   generator->setHBaseCacheBlocks(computedHBaseRowSizeFromMetaData,
                                  getEstRowsAccessed().getValue(),hbpa);
 
-  Lng32 hbaseBlockSize = 65536; //default HBaseValue, should not be useful as the if statement should always pass
+  Lng32 hbaseBlockSize;
   if(getIndexDesc() && getIndexDesc()->getNAFileSet())
 	  hbaseBlockSize = getIndexDesc()->getNAFileSet()->getBlockSize();
+  else
+	  hbaseBlockSize = CmpCommon::getDefaultLong(HBASE_BLOCK_SIZE);
 
   generator->setHBaseSmallScanner(computedHBaseRowSizeFromMetaData,
 		  	  	  	  	  	  	  getEstRowsAccessed().getValue(),
