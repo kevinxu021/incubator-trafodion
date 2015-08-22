@@ -54,8 +54,9 @@
 		<query>
 			<!-- Fetch list of log entries -->
 			<name>SELECT_LOGS</name>
-			<text><![CDATA[select [first 1000] log_ts as "Time", process_name as "Process", cast(message as char(1000)) as "Message"
+			<text><![CDATA[select [first 1000] log_ts as "Time", severity as "Severity", component as "Component", process_name as "Process", sql_code as "Error Code", cast(message as char(1000)) as "Message"
 				from udf(event_log_reader()) 
+				%1$s
 				order by log_ts desc
 				]]></text>
 		</query>

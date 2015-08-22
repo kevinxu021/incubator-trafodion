@@ -19,7 +19,7 @@ define([
 		init: function (){
 			_that = this;
 			wHandler.on(wHandler.FETCHWORKLOADS_SUCCESS, this.displayResults);
-			wHandler.on(wHandler.FETCHWORKLOADS_ERROR, this.showErrorMessage);			
+			wHandler.on(wHandler.FETCHWORKLOADS_ERROR, this.showErrorMessage);
 			$("#refreshAction").on('click', this.fetchWorkloads);
 			this.fetchWorkloads();
 		},
@@ -48,6 +48,7 @@ define([
 
 		displayResults: function (result){
 			_that.hideLoading();
+			$("#errorText").hide();
 			var keys = result.columnNames;
 
 			if(keys != null && keys.length > 0) {

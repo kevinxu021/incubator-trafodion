@@ -39,6 +39,8 @@ require.config({
 		bootstrap:'../bower_components/bootstrap/dist/js/bootstrap.min',
 		jquery: '../bower_components/jquery/dist/jquery.min',
 		jquerycookie: '../bower_components/jquery.cookie/jquery.cookie',
+		jquerylocalize: '../bower_components/jquery-localize-i18n/dist/jquery.localize.min',
+		jqueryvalidate: '../bower_components/jquery-validation/dist/jquery.validate.min',
 		jqueryui: '../bower_components/jquery-ui/jquery-ui',
 		underscore: '../bower_components/underscore/underscore-min',
 		backbone: '../bower_components/backbone/backbone-min',
@@ -52,7 +54,8 @@ require.config({
 		datatablesUI: '../bower_components/datatables-plugins/integration/jqueryui/dataTables.jqueryui',
 		tabletools: '../bower_components/datatables-tabletools/js/dataTables.tableTools',
 		jstree: '../bower_components/jstree/dist/jstree',
-		moment: '../bower_components/momentjs/min/moment.min'
+		moment: '../bower_components/moment/min/moment.min',
+		datetimepicker: '../bower_components/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min'
 	}
 
 });

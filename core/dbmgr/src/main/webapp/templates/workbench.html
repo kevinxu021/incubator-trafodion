@@ -26,7 +26,7 @@
 			<div id="result-panel-title" class="panel-heading">Result</div>
 			<div class="panel-body">
 				<img id="loadingImg" src="img/ajax-loader.gif" />
-				<div id="query-result-container" dtName='' class="table-responsive"></div>
+				<div id="query-result-container" class="table-responsive"></div>
 				<div id="infovis"></div>
 				<label id="errorText" style="color: red"></label>
 			</div>
@@ -39,17 +39,27 @@
 			</div>
 		</div>
 	</div>
-	<div id="dialog-form" title="Control Options"
-		style="display: none; height: 500px; width: 100%">
-		<form onsubmit="return false">
-			<label for="controlStmts">Control Statements : </label>
-			<textarea id="controlStmts" rows="9" cols="450"
-				placeholder="control statements separated by semi-colon"
-				class="textarea" style="width: 450px"></textarea>
-
-			<!-- Allow form submission with keyboard without duplicating the dialog button -->
-			<input type="submit" tabindex="-1"
-				style="position: absolute; top: -1000px">
-		</form>
+	<div class="modal fade" id="controlDialog" tabindex="-1" role="dialog" aria-labelledby="controlDialogLabel">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+	        <h4 class="modal-title" id="controlDialogLabel">Control Options</h4>
+	      </div>
+	      <div class="modal-body">
+	        <form>
+	          <div class="form-group">
+				<label for="controlStmts" class="control-label">Control Statements: </label>
+				<textarea id="controlStmts" rows="9" cols="500" placeholder="control statements separated by semi-colon"
+					class="textarea" style="width: 500px"></textarea>
+	          </div>
+	        </form>
+	      </div>
+	      <div class="modal-footer">
+	        <button id="controlApplyButton" type="button" class="btn btn-primary">Apply</button>
+	        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+	      </div>
+	    </div>
+	  </div>
 	</div>
 </div>

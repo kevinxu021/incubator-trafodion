@@ -13,30 +13,14 @@ define([
     var LOADING_SELECTOR = ".dbmgr-spinner";			
     var st = null;
     var resizeTimer = null;			
-    var formDialogContents;
-    var formStateView;			
     var GRIDCONTAINER = "#dbmgr-1";
     var oDataTable = null;
     var controlStatements = null;
     var previousScrollTop = 0;
-    var controlDialog = null;
     var controlStmts = "";
+    var CONTROL_DIALOG = '#controlDialog',
+    	CONTROL_APPLY_BUTTON = "#controlApplyButton";
     var _that = null;
-    
-    var deselectedButtonStyle = 
-    	{
-    		"color": "#007dba",
-    		"border": "2px solid #BFE5F5",
-    		"border-top-right-radius": "5px",
-    		"border-bottom-left-radius": "5px",
-    		"background-color": "#BFE5F5"
-    	};
-    var selectedButtonStyle = 
-    	{
-    		"background-color": "#0096d6",
-    		"border-color": "#0096d6",
-    		"color": "#fff"
-    	};
     
     $jit.ST.Plot.NodeTypes.implement({
     	'nodeline': {
@@ -366,32 +350,8 @@ define([
         init: function () {
         	_that = this;
         	$('#text-result-container').hide();
-        	controlDialog = $("#dialog-form").dialog({
-              autoOpen: false,
-              height: 300,
-              width: 500,
-              modal: true,
-              buttons: {
-                "OK": function (){
-        			controlStmts = $("#controlStmts").val();
-        			if(controlStmts == null) {
-        				controlStmts = "";
-        			} else {
-        				controlStmts = controlStmts.replace(/(\r\n|\n|\r)/gm,"");
-        			}
-        			controlDialog.dialog( "close" );
-        		},
-                Cancel: function() {
-                  controlDialog.dialog( "close" );
-                }
-              },
-              close: function() {
-                //form[ 0 ].reset();
-                //allFields.removeClass( "ui-state-error" );
-              }
-            });
-        	
         	this.hideLoading();
+        	$(CONTROL_APPLY_BUTTON).on('click', this.controlApplyClicked);
         	//initFilterDialog();
         	$("#explainQuery").on('click', this.explainQuery);
         	$("#executeQuery").on('click', this.executeQuery);
@@ -418,9 +378,17 @@ define([
         },
 
         openFilterDialog: function () {
-        	controlDialog.dialog( "open" );
+        	$(CONTROL_DIALOG).modal('show')
         },
-
+        controlApplyClicked: function(){
+        	controlStmts = $("#controlStmts").val();
+			if(controlStmts == null) {
+				controlStmts = "";
+			} else {
+				controlStmts = controlStmts.replace(/(\r\n|\n|\r)/gm,"");
+			}
+			$(CONTROL_DIALOG).modal('hide')
+        },
         explainQuery: function () {
         	var queryText = $("#query-text").val();
         	if(queryText == null || queryText.length == 0){

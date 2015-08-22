@@ -16,14 +16,15 @@ function(EventDispatcher) {"use strict";
             /**
              * call memory skew
              */
-        	this.fetchLogs = function(){
+        	this.fetchLogs = function(params){
         		var request = $.ajax({
     				url: 'resources/logs/list',
-    				type:'GET',
+    				type:'POST',
+    				data: JSON.stringify(params),
     				dataType:"json",
-    				contentType: "application/json;",
-    				success: function(data){
-    					dispatcher.fire(_this.FETCHLOGS_SUCCESS, data);
+    				contentType: "application/json",
+    				success: function(result){
+    					dispatcher.fire(_this.FETCHLOGS_SUCCESS, result);
     				},
     				error:function(jqXHR, res, error){
     					dispatcher.fire(_this.FETCHLOGS_ERROR, jqXHR, res, error);
