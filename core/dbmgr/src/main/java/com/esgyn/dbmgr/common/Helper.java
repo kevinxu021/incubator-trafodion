@@ -4,6 +4,10 @@ import java.util.ArrayList;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 import com.esgyn.dbmgr.rest.RESTProcessor;
 import com.esgyn.dbmgr.rest.RESTRequest;
@@ -11,7 +15,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Helper {
-
+  static DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
   public static JSONArray convertResultSetToJSON(java.sql.ResultSet rs) throws Exception {
     JSONArray json = new JSONArray();
 
@@ -177,4 +181,44 @@ public class Helper {
     return result;
   }
 
+  public static String formatDateTime(DateTime date) {
+    return date.toString(fmt);
+  }
+
+  public static String getUtcNowString() {
+    return new DateTime(DateTimeZone.UTC).toString(fmt);
+  }
+
+  public static boolean IsNullOrEmpty(String value) {
+    return (value == null || value.length() == 0);
+  }
+
+  public static String generateSQLInClause(String sqlOperator, String columnnName,
+      String[] values) {
+    return generateSQLInClause(sqlOperator, columnnName, values, "string");
+  }
+  public static String generateSQLInClause(String sqlOperator, String columnnName, String[] values,
+      String colType) {
+    StringBuilder sb = new StringBuilder();
+    if (values.length > 0) {
+      for (int i = 0; i < values.length; i++) {
+        if (IsNullOrEmpty(values[i])) continue;
+
+        if (i == 0) {
+          if (colType.equalsIgnoreCase(("string")))
+            sb.append(String.format(" %1$s %2$s in ('%3$s'", sqlOperator, columnnName, values[i]));
+          else sb.append(String.format(" %1$s %2$s in (%3$s", sqlOperator, columnnName, values[i]));
+        } else {
+          if (colType.equalsIgnoreCase(("string"))) sb.append(String.format("'%1$s'", values[i]));
+          else sb.append(String.format("%1$s", values[i]));
+        }
+        if (i < (values.length - 1)) {
+          sb.append(", ");
+        } else {
+          sb.append(String.format(") "));
+        }
+      }
+    }
+    return sb.toString();
+  }
 }

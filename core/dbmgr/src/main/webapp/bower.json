@@ -30,6 +30,9 @@
     "requirejs": "~2.1.18",
     "startbootstrap-sb-admin-2": "~1.0.7",
     "text": "~2.0.14",
-    "jstree": "~3.1.1"
+    "jstree": "~3.1.1",
+	"eonasdan-bootstrap-datetimepicker": "4.15.35",
+	"jquery-validation": "~1.14.0",
+	"jquery-localize-i18n": "latest"
   }
 }

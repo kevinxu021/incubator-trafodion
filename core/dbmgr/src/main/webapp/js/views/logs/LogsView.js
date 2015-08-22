@@ -3,51 +3,214 @@ define([
         'text!templates/logs.html',
         'jquery',
         'handlers/LogsHandler',
+        'model/Localizer',
+        'moment',
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
-        'tabletools'
-        ], function (BaseView, LogsT, $, logsHandler) {
+        'tabletools',
+        'datetimepicker',
+        'jqueryvalidate'
+
+        ], function (BaseView, LogsT, $, logsHandler, localizer, moment) {
 	'use strict';
-    var LOADING_SELECTOR = ".dbmgr-spinner",
+    var LOADING_SELECTOR = "#loadingImg",
     	RESULT_CONTAINER = '#query-result-container',
-    	ERROR_CONTAINER = '#errorText';
+    	ERROR_CONTAINER = '#errorText',
+    	REFRESH_MENU = '#refreshAction';
+    
+    var OPEN_FILTER = '#openFilter',
+    	FILTER_DIALOG = '#filterDialog',
+    	FILTER_FORM = '#filter-form',
+		FILTER_APPLY_BUTTON = "#filterApplyButton",
+		FILTER_START_TIME = '#filter-start-time',
+		FILTER_END_TIME = '#filter-end-time',
+		FILTER_COMPONENT_NAMES = '#filter-component-names',
+		FILTER_PROCESS_NAMES = '#filter-process-names',
+		FILTER_ERROR_CODES = '#filter-error-codes',
+		FILTER_MESSAGE_TEXT = '#filter-message-text',
+		FILTER_ERROR_MSG = '#filter-error-text',
+		FILTER_TIME_RANGE = '#filter-time-range';
     
     var oDataTable = null;
     var _that = null;
+    var validator = null;
 
 	var LogsView = BaseView.extend({
 		template:  _.template(LogsT),
 
 		init: function (){
 			_that = this;
+			
+			validator = $(FILTER_FORM).validate({
+				rules: {
+					"filter-start-time": { required: true },
+					"filter-end-time": { required: true }
+				},
+				highlight: function(element) {
+			        $(element).closest('.form-group').addClass('has-error');
+			    },
+			    unhighlight: function(element) {
+			        $(element).closest('.form-group').removeClass('has-error');
+			    },
+			    errorElement: 'span',
+			    errorClass: 'help-block',
+		        submitHandler: function (form) {
+		        	//_that.filterApplyClicked();
+		        },
+		        errorPlacement: function(error, element) {
+		            if(element.parent('.input-group').length) {
+		                error.insertAfter(element.parent());
+		            } else {
+		                error.insertAfter(element);
+		            }
+		        }
+				/*errorPlacement: function (error, element) {
+		            var name = $(element).attr("name");
+		            $("#" + name + "-validate").html(error.html());
+		        }*/
+			});
+			
+			$(FILTER_FORM).bind('change', function() {
+				if($(this).validate().checkForm()) {
+					$(FILTER_APPLY_BUTTON).attr('disabled', false);
+				} else {
+					$(FILTER_APPLY_BUTTON).attr('disabled', true);
+				}
+			});
+			
+			$('#startdatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
+			$('#enddatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
+			$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'hour'));
+			$('#enddatetimepicker').data("DateTimePicker").date(moment());
+			
+			/*$("#startdatetimepicker").on("dp.change", function (e) {
+				if(e.date){
+		        	//var utcDate = e.date.isUtc()? e.date: e.date.utc();
+		        	//$('#startdatetimepicker').data("DateTimePicker").date(utcDate);
+		        	//$('#enddatetimepicker').data("DateTimePicker").minDate(utcDate);
+				}
+	        });
+			
+	        $("#enddatetimepicker").on("dp.change", function (e) {
+	        	if(e.date){
+		        	//var utcDate = e.date.isUtc()? e.date: e.date.utc();
+		        	//$('#enddatetimepicker').data("DateTimePicker").date(utcDate);
+		            //$('#startdatetimepicker').data("DateTimePicker").maxDate(utcDate);
+	        	}
+	        });*/
+			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
+				  // do something...
+		      	var startTime = $('#startdatetimepicker').data("DateTimePicker").date();
+	        	var endTime = $('#enddatetimepicker').data("DateTimePicker").date();
+	        	if(startTime == null)
+	        		$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'hour'));
+	        	if(endTime == null)
+	        		$('#enddatetimepicker').data("DateTimePicker").date(moment());
+			});
+			
+			$(FILTER_TIME_RANGE).change(function(){
+				var sel = $(this).val();
+				switch(sel){
+				case "1":
+					$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'hour'));
+					$('#enddatetimepicker').data("DateTimePicker").date(moment());
+					$('#filter-start-time').prop("disabled", true);
+					$('#filter-end-time').prop("disabled", true);
+					break;
+				case "6":
+					$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(6, 'hour'));
+					$('#enddatetimepicker').data("DateTimePicker").date(moment());
+					$('#filter-start-time').prop("disabled", true);
+					$('#filter-end-time').prop("disabled", true);
+					break;
+				case "24":
+					$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'day'));
+					$('#enddatetimepicker').data("DateTimePicker").date(moment());
+					$('#filter-start-time').prop("disabled", true);
+					$('#filter-end-time').prop("disabled", true);
+					break;
+				case "0":
+					$('#filter-start-time').prop("disabled", false);
+					$('#filter-end-time').prop("disabled", false);
+				}
+			});
+			
 			logsHandler.on(logsHandler.FETCHLOGS_SUCCESS, this.displayResults);
-			logsHandler.on(logsHandler.FETCHLOGS_ERROR, this.showErrorMessage);			
-			$("#refreshAction").on('click', this.fetchLogs);
+			logsHandler.on(logsHandler.FETCHLOGS_ERROR, this.showErrorMessage);		
+			$(REFRESH_MENU).on('click', this.fetchLogs);
+			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
+			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			this.fetchLogs();
 		},
 		resume: function(){
 			logsHandler.on(logsHandler.FETCHLOGS_SUCCESS, this.displayResults);
 			logsHandler.on(logsHandler.FETCHLOGS_ERROR, this.showErrorMessage);			
-			$("#refreshAction").on('click', this.fetchLogs);
+			$(REFRESH_MENU).on('click', this.fetchLogs);
+			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
+			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			this.fetchLogs();
 		},
 		pause: function(){
 			logsHandler.off(logsHandler.FETCHLOGS_SUCCESS, this.displayResults);
 			logsHandler.off(logsHandler.FETCHLOGS_ERROR, this.showErrorMessage);			
-			$("#refreshAction").off('click', this.fetchLogs);
+			$(REFRESH_MENU).off('click', this.fetchLogs);
+			$(FILTER_APPLY_BUTTON).off('click', this.filterApplyClicked);
+			$(OPEN_FILTER).off('click', this.filterButtonClicked);
 		},
         showLoading: function(){
-        	$('#loadingImg').show();
+        	$(LOADING_SELECTOR).show();
         },
 
         hideLoading: function () {
-        	$('#loadingImg').hide();
+        	$(LOADING_SELECTOR).hide();
+        },
+        filterButtonClicked: function(){
+        	$(FILTER_ERROR_MSG).html('');
+        	$(FILTER_DIALOG).modal('show');
+        },
+        filterApplyClicked: function(){
+        	if($(FILTER_FORM).valid()){
+        		
+        	}else{
+        		return;
+        	}
+        	var startTime = $('#startdatetimepicker').data("DateTimePicker").date();
+        	var endTime = $('#enddatetimepicker').data("DateTimePicker").date();
+        	var severities = [];
+        	var components = [];
+        	var processNames = [];
+        	var errorCodes = [];
+        	
+        	if($('#severity-fatal').is(':checked'))
+        		severities.push($('#severity-fatal').val());
+        	if($('#severity-error').is(':checked'))
+        		severities.push($('#severity-error').val());
+        	if($('#severity-warn').is(':checked'))
+        		severities.push($('#severity-warn').val());
+        	if($('#severity-info').is(':checked'))
+        		severities.push($('#severity-info').val());
+        	if($('#severity-debug').is(':checked'))
+        		severities.push($('#severity-debug').val());
+        	
+        	var param = {};
+        	param.startTime = startTime.format('YYYY-MM-DD HH:mm:ss');
+        	param.endTime = endTime.format('YYYY-MM-DD HH:mm:ss');
+        	param.severities = severities.join(',');
+        	param.components = $(FILTER_COMPONENT_NAMES).val();
+        	param.processNames = $(FILTER_PROCESS_NAMES).val();
+        	param.errorCodes = $(FILTER_ERROR_CODES).val();
+        	param.message = $(FILTER_MESSAGE_TEXT).val();
+        	
+        	$(FILTER_DIALOG).modal('hide');
+        	$(FILTER_ERROR_MSG).html('');
+        	logsHandler.fetchLogs(param);
         },
         fetchLogs: function () {
 			_that.showLoading();
 			$(ERROR_CONTAINER).hide();
-			logsHandler.fetchLogs();
+			//logsHandler.fetchLogs();
+			_that.filterApplyClicked();
 		},
 
 		displayResults: function (result){
@@ -80,7 +243,7 @@ define([
 					dom: 'T<"clear">lfrtip',
 					"bProcessing": true,
 					"bPaginate" : true, 
-					"bAutoWidth": true,
+					//"bAutoWidth": true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "simple_numbers",
 					//"scrollY":        "800px",
@@ -88,13 +251,23 @@ define([
 					//"bJQueryUI": true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
+					"aoColumnDefs": [ {
+					      "aTargets": [ 0 ],
+					      "mData": 0,
+					      "mRender": function ( data, type, full ) {
+					       if (type === 'display') {
+					          return moment(data).format("YYYY-MM-DD HH:mm:ss");
+					        }
+					        else return data;
+					      }
+					    } ],
 					paging: true,
 					"tableTools": {
 						"sSwfPath": "bower_components/datatables-tabletools/swf/copy_csv_xls_pdf.swf"
 					},
 					aaSorting: [[ 0, "desc" ]],
 					fnDrawCallback: function(){
-						$('#query-results td').css("white-space","nowrap");
+						//$('#query-results td').css("white-space","nowrap");
 		             }
 				});
 				

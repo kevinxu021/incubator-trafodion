@@ -81,6 +81,11 @@
 	tr.odd {
 		background-color: rgb(249, 249, 249)
 	}
+	
+	.table>thead>tr>th {
+		vertical-align:top;
+	}
+	
 	table.display td {
 		padding: 3px 10px !important;
 	}
@@ -105,4 +110,7 @@
 	table.dataTable thead .sorting {
 		background: none
 	}
+	table.dataTable thead .sorting:after {
+		content:none;
+	}	
 }

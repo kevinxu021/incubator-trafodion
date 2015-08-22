@@ -11,9 +11,10 @@ define([
         'views/workloads/WorkloadsView',
         'views/logs/LogsView',
         'model/Session',
+        'model/Localizer',
         'metismenu'
         ], function($, _, Backbone, NavbarView, DashboardView, WorkbenchView, DCSServerView, LoginView, DatabaseView, 
-        		WorkloadsView, LogsView, Session) {
+        		WorkloadsView, LogsView, Session, Localizer) {
 	'use strict';
 
 	var currentSelection = null;

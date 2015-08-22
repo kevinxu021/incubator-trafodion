@@ -8,11 +8,16 @@ function(EventDispatcher) {"use strict";
          */
         function DashboardHandler() {
         	var dispatcher = new EventDispatcher();
-        	  
+        	this.DISKREADS_SUCCESS = 'fetchDiskReadsSuccess';
+        	this.DISKREADS_ERROR = 'fetchDiskReadsError';        	  
+        	this.DISKWRITES_SUCCESS = 'fetchDiskWritesSuccess';
+        	this.DISKWRITES_ERROR = 'fetchDiskWritesError';        	  
+        	this.GETOPS_SUCCESS = 'fetchGetOpsSuccess';
+        	this.GETOPS_ERROR = 'fetchGetOpsError';        	  
             /**
              * call memory skew
              */
-        	this.fetchCPUData = function(uri){
+        	this.fetchCPUData = function(){
         		$.ajax({
     				url: 'resources/metrics/cpu',
     				type:'GET',
@@ -27,7 +32,7 @@ function(EventDispatcher) {"use strict";
     			});
             };           
                                   
-        	this.fetchDiskReads = function(uri){
+        	this.fetchDiskReads = function(){
         		$.ajax({
     				url: 'resources/metrics/diskreads',
     				type:'GET',
@@ -42,7 +47,7 @@ function(EventDispatcher) {"use strict";
     			});
             };
             
-        	this.fetchDiskWrites = function(uri){
+        	this.fetchDiskWrites = function(){
         		$.ajax({
     				url: 'resources/metrics/diskwrites',
     				type:'GET',
@@ -57,7 +62,7 @@ function(EventDispatcher) {"use strict";
     			});
             };
             
-        	this.fetchGetOps = function(uri){
+        	this.fetchGetOps = function(){
         		$.ajax({
     				url: 'resources/metrics/getops',
     				type:'GET',
