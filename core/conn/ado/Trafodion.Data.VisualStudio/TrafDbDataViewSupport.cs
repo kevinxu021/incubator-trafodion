@@ -5,7 +5,7 @@ namespace Trafodion.Data.VisualStudio
     internal class TrafDbDataViewSupport : DataViewSupport
     {
         public TrafDbDataViewSupport()
-            : base("HP.Data.VisualStudio.HPDbDataViewSupport", typeof(TrafDbDataViewSupport).Assembly)
+            : base("Trafodion.Data.VisualStudio.TrafDbDataViewSupport", typeof(TrafDbDataViewSupport).Assembly)
         {
 
         }

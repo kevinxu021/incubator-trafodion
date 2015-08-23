@@ -34,7 +34,7 @@ namespace TrafAdoTest
         {
             foreach (TrafDbError oEvent in e.Errors)
             {
-                //if (oEvent.Message.Contains("[HP][HP HPDb Driver] General warning. Connected to the default data source: TDM_Default_DataSource"))
+                //if (oEvent.Message.Contains("[HP][HP TrafDb Driver] General warning. Connected to the default data source: TDM_Default_DataSource"))
                 //    continue;
                 Console.WriteLine("============================================================");
                 Console.WriteLine("Even kicked in:");
@@ -256,8 +256,8 @@ namespace TrafAdoTest
                 aRow.Add(new aColumn(name_bank[9], 0, 9, 6, "123.123456", "123.123456", TrafDbDbType.DecimalUnsigned, "Decimal"));//C10 decimal unsigned
                 aRow.Add(new aColumn(name_bank[10], 0, 18, 6, "-1234567.123456", "-1234567.123456", TrafDbDbType.Numeric, "Decimal"));//C11 numeric signed
                 aRow.Add(new aColumn(name_bank[11], 0, 9, 6, "123.123456", "123.123456", TrafDbDbType.NumericUnsigned, "Decimal"));//C12 numeric unsigned
-                //aRow.Add(new aColumn(name_bank[12], 0, 0, 0, "-123", "-123", TrafDbDbType.SmallInt, "Int16"));//13 tinyint signed  -> HPDb .NET Provider doesn't support tinyint signed
-                aRow.Add(new aColumn(name_bank[12], 0, 0, 0, "123", "123", TrafDbDbType.SmallInt, "Int16"));//13 tinyint signed  -> HPDb .NET Provider doesn't support tinyint signed
+                //aRow.Add(new aColumn(name_bank[12], 0, 0, 0, "-123", "-123", TrafDbDbType.SmallInt, "Int16"));//13 tinyint signed  -> TrafDb .NET Provider doesn't support tinyint signed
+                aRow.Add(new aColumn(name_bank[12], 0, 0, 0, "123", "123", TrafDbDbType.SmallInt, "Int16"));//13 tinyint signed  -> TrafDb .NET Provider doesn't support tinyint signed
                 aRow.Add(new aColumn(name_bank[13], 0, 0, 0, "123", "123", TrafDbDbType.SmallIntUnsigned, "UInt16"));//C14 tinyint unsigned
                 aRow.Add(new aColumn(name_bank[14], 0, 0, 0, "-123", "-123", TrafDbDbType.SmallInt, "Int16"));//C15 smallint signed
                 aRow.Add(new aColumn(name_bank[15], 0, 0, 0, "123", "123", TrafDbDbType.SmallIntUnsigned, "UInt16"));//C16 smallint unsigned
@@ -945,10 +945,10 @@ namespace TrafAdoTest
         //            foreach (int i in rowToModify)
         //            {
         //                aColumn aCol = (aColumn)this.tableInfo[i][0];
-        //                aCol.expectedError = "ERROR [01004] [HP][HP HPDb Driver] Data truncated. Incorrect Format or Data. Row: 1 Column: 1";
+        //                aCol.expectedError = "ERROR [01004] [HP][HP TrafDb Driver] Data truncated. Incorrect Format or Data. Row: 1 Column: 1";
         //                this.tableInfo[i][0] = aCol;
         //                aCol = (aColumn)this.tableInfo[i][1];
-        //                aCol.expectedError = "ERROR [01004] [HP][HP HPDb Driver] Data truncated. Incorrect Format or Data. Row: 1 Column: 2";
+        //                aCol.expectedError = "ERROR [01004] [HP][HP TrafDb Driver] Data truncated. Incorrect Format or Data. Row: 1 Column: 2";
         //                this.tableInfo[i][1] = aCol;
         //            }
         //            break;
@@ -960,7 +960,7 @@ namespace TrafAdoTest
         //            foreach (int i in rowToModify)
         //            {
         //                aColumn aCol = (aColumn)this.tableInfo[i][3];
-        //                aCol.expectedError = "ERROR [23000] [HP][HP HPDb Driver] General error. Null Value in a non nullable column. Row: 1 Column: 4";
+        //                aCol.expectedError = "ERROR [23000] [HP][HP TrafDb Driver] General error. Null Value in a non nullable column. Row: 1 Column: 4";
         //                this.tableInfo[i][3] = aCol;
         //            }
         //            break;

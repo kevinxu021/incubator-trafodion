@@ -10,7 +10,7 @@ namespace Trafodion.Data
     using System.Windows.Forms;
 
     /// <summary>
-    /// Provides a way of reading a forward-only stream of rows from a HPDb database. This class cannot be inherited.
+    /// Provides a way of reading a forward-only stream of rows from a TrafDb database. This class cannot be inherited.
     /// </summary>
     public sealed class TrafDbDataReader : DbDataReader, IDataReader
     {
@@ -376,7 +376,7 @@ namespace Trafodion.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if ((desc.HPDbDataType != TrafDbDbType.Numeric && desc.HPDbDataType != TrafDbDbType.NumericUnsigned) &&
+            if ((desc.TrafDbDataType != TrafDbDbType.Numeric && desc.TrafDbDataType != TrafDbDbType.NumericUnsigned) &&
                 (desc.FsType != FileSystemType.Numeric && desc.FsType != FileSystemType.NumericUnsigned))
             {
                 throw new InvalidCastException();
@@ -459,7 +459,7 @@ namespace Trafodion.Data
         /// <returns>The string representing the data type of the specified column.</returns>
         public override string GetDataTypeName(int ordinal)
         {
-            return this.GetDescriptor(ordinal).HPDbDataType.ToString();
+            return this.GetDescriptor(ordinal).TrafDbDataType.ToString();
         }
 
         /// <summary>
@@ -479,7 +479,7 @@ namespace Trafodion.Data
 
             this._ds.Position = this.GetDataOffset(ordinal);
 
-            if (desc.HPDbDataType == TrafDbDbType.Timestamp)
+            if (desc.TrafDbDataType == TrafDbDbType.Timestamp)
             {
                 year = this._ds.ReadUInt16();
                 month = this._ds.ReadByte();
@@ -494,13 +494,13 @@ namespace Trafodion.Data
 
                 if (desc.Precision > 0)
                 {            
-                    // partial seconds are not always the same units in HPDb
+                    // partial seconds are not always the same units in TrafDb
                     // depending on precision, the integer value represents from .1 to .000001 seconds
                     // there are 7 digits for fractional seconds so use that as our base power for conversion
                     ret = ret.AddTicks(this._ds.ReadUInt32() * ((long)Math.Pow(10, 7 - desc.Precision)));
                 }
             }
-            else if (desc.HPDbDataType == TrafDbDbType.Date)
+            else if (desc.TrafDbDataType == TrafDbDbType.Date)
             {
                 year = this._ds.ReadUInt16();
                 month = this._ds.ReadByte();
@@ -531,7 +531,7 @@ namespace Trafodion.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.HPDbDataType != TrafDbDbType.Time)
+            if (desc.TrafDbDataType != TrafDbDbType.Time)
             {
                 throw new InvalidCastException();
             }
@@ -545,7 +545,7 @@ namespace Trafodion.Data
 
             if (desc.Precision > 0)
             {
-                // partial seconds are not always the same units in HPDb
+                // partial seconds are not always the same units in TrafDb
                 // depending on precision, the integer value represents from .1 to .000001 seconds
                 // there are 7 digits for fractional seconds so use that as our base power for conversion
                 long ticks = this._ds.ReadUInt32() * TrafDbUtility.PowersOfTen[7 - desc.Precision];
@@ -571,8 +571,8 @@ namespace Trafodion.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.HPDbDataType != TrafDbDbType.Decimal && desc.HPDbDataType != TrafDbDbType.DecimalUnsigned &&
-                    desc.HPDbDataType != TrafDbDbType.Numeric && desc.HPDbDataType != TrafDbDbType.NumericUnsigned)
+            if (desc.TrafDbDataType != TrafDbDbType.Decimal && desc.TrafDbDataType != TrafDbDbType.DecimalUnsigned &&
+                    desc.TrafDbDataType != TrafDbDbType.Numeric && desc.TrafDbDataType != TrafDbDbType.NumericUnsigned)
             {
                 throw new InvalidCastException();
             }
@@ -643,7 +643,7 @@ namespace Trafodion.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.HPDbDataType != TrafDbDbType.Double && desc.HPDbDataType != TrafDbDbType.Float)
+            if (desc.TrafDbDataType != TrafDbDbType.Double && desc.TrafDbDataType != TrafDbDbType.Float)
             {
                 throw new InvalidCastException();
             }
@@ -675,7 +675,7 @@ namespace Trafodion.Data
             Type t = null;
 
             // make sure these match GetValue()
-            switch (desc.HPDbDataType)
+            switch (desc.TrafDbDataType)
             {
                 case TrafDbDbType.Char:
                 case TrafDbDbType.Varchar:
@@ -745,7 +745,7 @@ namespace Trafodion.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.HPDbDataType != TrafDbDbType.Real)
+            if (desc.TrafDbDataType != TrafDbDbType.Real)
             {
                 throw new InvalidCastException();
             }
@@ -780,7 +780,7 @@ namespace Trafodion.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.HPDbDataType != TrafDbDbType.SmallInt)
+            if (desc.TrafDbDataType != TrafDbDbType.SmallInt)
             {
                 throw new InvalidCastException();
             }
@@ -802,7 +802,7 @@ namespace Trafodion.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.HPDbDataType != TrafDbDbType.SmallIntUnsigned)
+            if (desc.TrafDbDataType != TrafDbDbType.SmallIntUnsigned)
             {
                 throw new InvalidCastException();
             }
@@ -824,7 +824,7 @@ namespace Trafodion.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.HPDbDataType != TrafDbDbType.Integer)
+            if (desc.TrafDbDataType != TrafDbDbType.Integer)
             {
                 throw new InvalidCastException();
             }
@@ -846,7 +846,7 @@ namespace Trafodion.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.HPDbDataType != TrafDbDbType.IntegerUnsigned)
+            if (desc.TrafDbDataType != TrafDbDbType.IntegerUnsigned)
             {
                 throw new InvalidCastException();
             }
@@ -868,7 +868,7 @@ namespace Trafodion.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.HPDbDataType != TrafDbDbType.LargeInt)
+            if (desc.TrafDbDataType != TrafDbDbType.LargeInt)
             {
                 throw new InvalidCastException();
             }
@@ -1037,8 +1037,8 @@ namespace Trafodion.Data
                         desc[i].Scale,
                         this.GetFieldType(i),
                         this.GetFieldType(i).ToString(),
-                        (int)desc[i].HPDbDataType,
-                        desc[i].HPDbDataType,
+                        (int)desc[i].TrafDbDataType,
+                        desc[i].TrafDbDataType,
                         false,
                         desc[i].Nullable,
                         isKey, // this should really refere to IsUnique
@@ -1073,13 +1073,13 @@ namespace Trafodion.Data
 
             this._ds.Position = dataOffset;
 
-            switch (desc.HPDbDataType)
+            switch (desc.TrafDbDataType)
             {
                 case TrafDbDbType.Interval:
                     ret = System.Text.ASCIIEncoding.ASCII.GetString(this._ds.ReadBytes(desc.MaxLength));
                     break;
                 case TrafDbDbType.Char:
-                    if( desc.SqlEncoding == HPDbEncoding.UTF8)
+                    if( desc.SqlEncoding == TrafDbEncoding.UTF8)
                     {
                         if (desc.Precision != 0)
                         {
@@ -1115,7 +1115,7 @@ namespace Trafodion.Data
 
             if (!this.IsDBNull(ordinal)) 
             {
-                switch (desc.HPDbDataType)
+                switch (desc.TrafDbDataType)
                 {
                     case TrafDbDbType.Char:
                     case TrafDbDbType.Varchar:

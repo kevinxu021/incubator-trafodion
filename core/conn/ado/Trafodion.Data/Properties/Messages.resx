@@ -130,13 +130,13 @@
     <value>An internal error occured.  Operation: {0} Details: {1}</value>
   </data>
   <data name="InvalidConnectionState" xml:space="preserve">
-    <value>The HPDbConnection is not in a valid state for that operation.  Current State: {0}</value>
+    <value>The TrafDbConnection is not in a valid state for that operation.  Current State: {0}</value>
   </data>
-  <data name="InvalidHPDbDbType" xml:space="preserve">
-    <value>Invalid HPDbDbType value: {0}</value>
+  <data name="InvalidTrafDbDbType" xml:space="preserve">
+    <value>Invalid TrafDbDbType value: {0}</value>
   </data>
   <data name="InvalidTransactionState" xml:space="preserve">
-    <value>The HPDbTransaction has already been committed or rolled back.</value>
+    <value>The TrafDbTransaction has already been committed or rolled back.</value>
   </data>
   <data name="NoServerHandle" xml:space="preserve">
     <value>No servers available to handle the request.</value>

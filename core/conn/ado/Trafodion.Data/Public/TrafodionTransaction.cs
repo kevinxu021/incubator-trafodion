@@ -32,7 +32,7 @@
         }
 
         /// <summary>
-        /// Gets the HPDbConnection object associated with the transaction, or null if the transaction is no longer valid.
+        /// Gets the TrafDbConnection object associated with the transaction, or null if the transaction is no longer valid.
         /// </summary>
         public new TrafDbConnection Connection 
         { 

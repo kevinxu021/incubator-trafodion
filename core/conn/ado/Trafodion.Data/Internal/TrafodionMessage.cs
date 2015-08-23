@@ -30,7 +30,7 @@ namespace Trafodion.Data
 
         InvalidTransactionState,
         InvalidConnectionState,
-        InvalidHPDbDbType,
+        InvalidTrafDbDbType,
         UnsupportedIsolationLevel,
         ParameterCountMismatch,
         StmtInvalid

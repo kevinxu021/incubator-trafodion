@@ -9,7 +9,7 @@
 
         public void ReadFromDataStream(DataStream ds, TrafDbEncoder enc)
         {
-            this.Name = enc.GetString(ds.ReadString(), HPDbEncoding.ISO88591);
+            this.Name = enc.GetString(ds.ReadString(), TrafDbEncoding.ISO88591);
             this.Number = ds.ReadInt32();
             this.SystemStatus = ds.ReadInt16();
             this.ProcessorStatus = ds.ReadInt16();

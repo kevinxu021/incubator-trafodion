@@ -12,7 +12,7 @@ namespace Trafodion.Data.VisualStudio
     internal class TrafDbConnectionSupport: AdoDotNetConnectionSupport
 	{
         public TrafDbConnectionSupport(): 
-            base("HP.Data")
+            base("Trafodion.Data")
         {
         }
 

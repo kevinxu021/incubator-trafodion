@@ -1,6 +1,6 @@
-﻿namespace HP.Data.VisualStudio
+﻿namespace Trafodion.Data.VisualStudio
 {
-    partial class HPDbDataConnectionPromptDialog
+    partial class TrafDbDataConnectionPromptDialog
     {
         /// <summary>
         /// Required designer variable.
@@ -30,7 +30,7 @@
         {
             this.components = new System.ComponentModel.Container();
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.Text = "HPDbDataConnectionPromptDialog";
+            this.Text = "TrafDbDataConnectionPromptDialog";
         }
 
         #endregion

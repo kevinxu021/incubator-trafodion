@@ -37,7 +37,7 @@ namespace Trafodion.Data
         private static TraceLevel _level = TraceLevel.Off;
         private static TextWriter _writer = null;
         private static bool _console = false;
-        private static string _log = "HPDb-adonet.log";
+        private static string _log = "TrafDb-adonet.log";
 
         public static bool IsErrorEnabled;
         public static bool IsWarningEnabled;

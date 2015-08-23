@@ -115,7 +115,7 @@ namespace TrafAdoTest
             //update row
             ds.Tables[0].Rows[1]["c2"] = "hi there";
 
-            //send values back to HPDb
+            //send values back to TrafDb
             adp.Update(ds);
 
             //check the final results -- we should have a single row (2,'hi there')
@@ -168,7 +168,7 @@ namespace TrafAdoTest
             
             dataadapter.Fill(dt);
             /*
-            dataadapter.UpdateCommand = new HPDbCommand("UPDATE ProdCat SET Name=? WHERE ProdCatID=?;", conn);
+            dataadapter.UpdateCommand = new TrafDbCommand("UPDATE ProdCat SET Name=? WHERE ProdCatID=?;", conn);
             dataadapter.UpdateCommand.Parameters.Add(new TrafDbParameter("Name",TrafDbDbType.NVarchar, 50));
             dataadapter.UpdateCommand.Parameters.Add(new TrafDbParameter("ProdCatID",TrafDbDbType.Integer));
              * */
@@ -177,7 +177,7 @@ namespace TrafAdoTest
             dataadapter.UpdateCommand.UpdatedRowSource = UpdateRowSource.None;
             Console.WriteLine("value of dataadapter.UpdateCommand.UpdatedRowSource is : " + dataadapter.UpdateCommand.UpdatedRowSource);
             /*
-            dataadapter.InsertCommand = new HPDbCommand("INSERT INTO ProdCat VALUES (?,?);",conn);
+            dataadapter.InsertCommand = new TrafDbCommand("INSERT INTO ProdCat VALUES (?,?);",conn);
             dataadapter.UpdateCommand.Parameters.Add(new TrafDbParameter("ProdCatID", TrafDbDbType.Integer, 4, "ProdcatID"));
             dataadapter.InsertCommand.Parameters.Add(new TrafDbParameter("Name", TrafDbDbType.NVarchar, 50, "Name"));
              * */
@@ -185,7 +185,7 @@ namespace TrafAdoTest
             dataadapter.InsertCommand.UpdatedRowSource = UpdateRowSource.None;
             Console.WriteLine("value of dataadapter.InsertCommand.UpdatedRowSource is : " + dataadapter.InsertCommand.UpdatedRowSource);
             /*
-            dataadapter.DeleteCommand = new HPDbCommand("DELETE FROM ProdCat WHERE ProdCatID=?;", conn);
+            dataadapter.DeleteCommand = new TrafDbCommand("DELETE FROM ProdCat WHERE ProdCatID=?;", conn);
             dataadapter.DeleteCommand.Parameters.Add(new TrafDbParameter("ProdCatID",TrafDbDbType.Integer,4,"ProdCatID"));
              * */
             Console.WriteLine("value of dataadapter.DeleteCommand.UpdatedRowSource is : " + dataadapter.DeleteCommand.UpdatedRowSource);

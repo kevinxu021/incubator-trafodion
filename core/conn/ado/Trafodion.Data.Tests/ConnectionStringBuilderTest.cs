@@ -295,7 +295,7 @@ namespace TrafAdoTest
         //test for Constructor with String argument
         //MAR 9, 2011 - ARUNA - CpuToUse FAILS IN SQ
         [Test]
-        public void HPDbConnectionStringBuilderWithArgument()
+        public void TrafDbConnectionStringBuilderWithArgument()
         {
             //String connString = "Server=wmb0101;Datasource=TFM;Catalog=NEO;Schema=ADOQA_SCHEMA;User=odbcqa;Password=odbcqa;Rolename=user;RetryCount=1000;RetryTime=1000;TcpKeepAlive=True;IdleTimeout=1000;LoginTimeout=1000;FetchBufferSize=1000;CpuToUse=1000;ApplicationName=nunit";
             //create the connString
@@ -349,7 +349,7 @@ namespace TrafAdoTest
         
         //test for Constructor without argument
         [Test]
-        public void HPDbConnectionStringBuilder()
+        public void TrafDbConnectionStringBuilder()
         {
             connStrBuilder = new TrafDbConnectionStringBuilder();
             Console.WriteLine(connStrBuilder.ConnectionString);

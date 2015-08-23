@@ -18,9 +18,9 @@
 
             this.SegmentInfo = SegmentInformation.ReadListFromDataStream(ds, enc);
 
-            this.TrafSchemaVersion = enc.GetString(ds.ReadString(), HPDbEncoding.ISO88591);
-            this.TransporterSchemaVersion = enc.GetString(ds.ReadString(), HPDbEncoding.ISO88591);
-            this.TransporterVersion = enc.GetString(ds.ReadString(), HPDbEncoding.ISO88591);
+            this.TrafSchemaVersion = enc.GetString(ds.ReadString(), TrafDbEncoding.ISO88591);
+            this.TransporterSchemaVersion = enc.GetString(ds.ReadString(), TrafDbEncoding.ISO88591);
+            this.TransporterVersion = enc.GetString(ds.ReadString(), TrafDbEncoding.ISO88591);
         }
     }
 }

@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.Shell;
 
 namespace Trafodion.Data.VisualStudio
 {
-    [ProvideLoadKey("Standard", "3.0.0.0", "HP ADO.NET 3.0 Package", "Hewlett-Packard", 100)]
+    [ProvideLoadKey("Standard", "3.0.0.0", "Trafodion ADO.NET 3.0 Package", "Trafodion", 100)]
     [Guid("F60A05D1-9D3B-42F3-B7E3-3D4924399FAB")]
     [DefaultRegistryRoot(@"Software\Microsoft\VisualStudio\9.0")]
     [PackageRegistration(UseManagedResourcesOnly = true)]

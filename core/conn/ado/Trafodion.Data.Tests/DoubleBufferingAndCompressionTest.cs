@@ -24,7 +24,7 @@ namespace TrafAdoTest
         {
             /*
             connectionString = ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["ConnectionStringName"]].ConnectionString;
-            conn = new HPDbConnection(connectionString);
+            conn = new TrafDbConnection(connectionString);
             conn.Open();
 
             cmd = conn.CreateCommand();
@@ -134,7 +134,7 @@ namespace TrafAdoTest
                 numrows++;
             }
             
-            //send values back to HPDb
+            //send values back to TrafDb
             adpw.Update(dtw);
             sw.Stop();
             long elapsed1 = sw.ElapsedMilliseconds;
@@ -280,7 +280,7 @@ namespace TrafAdoTest
                 numrows++;
             }
 
-            //send values back to HPDb
+            //send values back to TrafDb
             adpw.Update(dtw);
             sw.Stop();
             long elapsed1 = sw.ElapsedMilliseconds;
@@ -425,7 +425,7 @@ namespace TrafAdoTest
                 numrows++;
             }
 
-            //send values back to HPDb
+            //send values back to TrafDb
             adpw.Update(dtw);
             sw.Stop();
             long elapsed1 = sw.ElapsedMilliseconds;
@@ -570,7 +570,7 @@ namespace TrafAdoTest
                 numrows++;
             }
 
-            //send values back to HPDb
+            //send values back to TrafDb
             adpw.Update(dtw);
             sw.Stop();
             long elapsed1 = sw.ElapsedMilliseconds;

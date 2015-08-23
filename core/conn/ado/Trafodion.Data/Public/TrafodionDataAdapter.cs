@@ -6,7 +6,7 @@
     using System.Data.Common;
 
     /// <summary>
-    /// Represents a set of data commands and a database connection that are used to fill the DataSet and update a HPDb database. This class cannot be inherited.
+    /// Represents a set of data commands and a database connection that are used to fill the DataSet and update a TrafDb database. This class cannot be inherited.
     /// </summary>
     public sealed class TrafDbDataAdapter : DbDataAdapter, IDbDataAdapter
     {
@@ -28,9 +28,9 @@
         }
 
         /// <summary>
-        /// Initializes a new instance of the TrafDbDataAdapter class with the specified HPDbCommand as the SelectCommand property.
+        /// Initializes a new instance of the TrafDbDataAdapter class with the specified TrafDbCommand as the SelectCommand property.
         /// </summary>
-        /// <param name="selectCommand">The HPDbCommand to set as the SelectCommand property.</param>
+        /// <param name="selectCommand">The TrafDbCommand to set as the SelectCommand property.</param>
         public TrafDbDataAdapter(TrafDbCommand selectCommand)
         {
             if (TrafDbTrace.IsPublicEnabled)
@@ -49,7 +49,7 @@
             
         }
 
-        public TrafDbDataAdapter(string selectCommandText, HPDbConnection selectConnection)
+        public TrafDbDataAdapter(string selectCommandText, TrafDbConnection selectConnection)
         {
 
         }

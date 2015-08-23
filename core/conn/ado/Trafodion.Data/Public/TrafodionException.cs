@@ -4,7 +4,7 @@
     using System.Data.Common;
 
     /// <summary>
-    /// The exception that is thrown when HPDb returns a warning or error. This class cannot be inherited.
+    /// The exception that is thrown when TrafDb returns a warning or error. This class cannot be inherited.
     /// </summary>
     [Serializable]
     public sealed class TrafDbException : DbException

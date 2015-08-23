@@ -97,7 +97,7 @@ namespace Trafodion.Data.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The HPDbConnection is not in a valid state for that operation.  Current State: {0}.
+        ///   Looks up a localized string similar to The TrafDbConnection is not in a valid state for that operation.  Current State: {0}.
         /// </summary>
         public static string InvalidConnectionState {
             get {
@@ -108,14 +108,14 @@ namespace Trafodion.Data.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Invalid TrafDbDbType value: {0}.
         /// </summary>
-        public static string InvalidHPDbDbType {
+        public static string InvalidTrafDbDbType {
             get {
-                return ResourceManager.GetString("InvalidHPDbDbType", resourceCulture);
+                return ResourceManager.GetString("InvalidTrafDbDbType", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The HPDbTransaction has already been committed or rolled back..
+        ///   Looks up a localized string similar to The TrafDbTransaction has already been committed or rolled back..
         /// </summary>
         public static string InvalidTransactionState {
             get {

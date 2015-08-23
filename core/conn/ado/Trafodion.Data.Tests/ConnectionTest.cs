@@ -161,7 +161,7 @@ namespace TrafAdoTest
         //                                ";catalog=" + catalog +
         //                                ";schema=" + schema + ";";
 
-        //            using (HPDbConnection conn = new HPDbConnection(connString))
+        //            using (TrafDbConnection conn = new TrafDbConnection(connString))
         //            {
         //                Console.WriteLine(conn.ConnectionString);
         //                conn.Open();
@@ -318,9 +318,9 @@ namespace TrafAdoTest
         public void CreateCommand_label()
         {
             /*
-            HPDbConnection conn = new HPDbConnection(connectionString);
+            TrafDbConnection conn = new TrafDbConnection(connectionString);
             conn.Open();
-            HPDbCommand tstcmd = conn.CreateCommand("TSTLBL");
+            TrafDbCommand tstcmd = conn.CreateCommand("TSTLBL");
 
             Console.WriteLine("CommandTimeout : " + tstcmd.CommandTimeout);
             Console.WriteLine("Label : " + tstcmd.Label);

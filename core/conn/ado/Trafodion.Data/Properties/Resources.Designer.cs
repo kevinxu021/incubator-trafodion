@@ -134,7 +134,7 @@ namespace Trafodion.Data.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to HP Database Provider.
+        ///   Looks up a localized string similar to Trafodion Database Provider.
         /// </summary>
         public static string Provider_ShortDisplayName {
             get {

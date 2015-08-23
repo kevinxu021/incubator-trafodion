@@ -1,7 +1,7 @@
 ﻿namespace Trafodion.Data
 {
     /// <summary>
-    /// Version information relating to the HP Database ADO.NET Provider
+    /// Version information relating to the Trafodion Database ADO.NET Provider
     /// </summary>
     public sealed class DisplayVersion
     {
@@ -16,8 +16,8 @@
         public const string FileVersion = "3.4.0.25215";
 
         /// <summary>
-        /// HP Database ADO.NET Provider VPROC.
+        /// Trafodion Database ADO.NET Provider VPROC.
         /// </summary>
-        public const string Vproc = "HP ADO.NET Version 3.4.0 Release 1.4.0 (Build release [25215])";
+        public const string Vproc = "Trafodion ADO.NET Version 3.4.0 Release 1.4.0 (Build release [25215])";
     }
 }

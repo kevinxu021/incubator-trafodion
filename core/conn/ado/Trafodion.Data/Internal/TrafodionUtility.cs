@@ -112,7 +112,7 @@ namespace Trafodion.Data
         /// Parses a SQL string and replaces [ ] delimiters with " " .
         /// </summary>
         /// <param name="str">The SQL string to be parsed.</param>
-        /// <returns>A SQL string with HPDb compatible delimiters.</returns>
+        /// <returns>A SQL string with TrafDb compatible delimiters.</returns>
         public static string ConvertBracketIdentifiers(string str)
         {
             // save the raw characters
@@ -134,12 +134,12 @@ namespace Trafodion.Data
         }
 
         /*
-         * The following section contains all the type mappings between HPDb's custom types and ADO.NET
+         * The following section contains all the type mappings between TrafDb's custom types and ADO.NET
          *  standard types.
          */ 
 
         private static readonly Dictionary<DbType, TrafDbDbType> DbTypeMapping;
-        private static readonly Dictionary<TrafDbDbType, DbType> HPDbDbTypeMapping;
+        private static readonly Dictionary<TrafDbDbType, DbType> TrafDbDbTypeMapping;
 
         static TrafDbUtility()
         {
@@ -174,27 +174,27 @@ namespace Trafodion.Data
             //DbTypeMapping.Add(DbType.Xml, TrafDbDbType.Undefined);
 
             // TrafDbDbType to DbType
-            HPDbDbTypeMapping = new Dictionary<TrafDbDbType,DbType>(100);
-            HPDbDbTypeMapping.Add(TrafDbDbType.Undefined, DbType.Object);
+            TrafDbDbTypeMapping = new Dictionary<TrafDbDbType,DbType>(100);
+            TrafDbDbTypeMapping.Add(TrafDbDbType.Undefined, DbType.Object);
 
-            HPDbDbTypeMapping.Add(TrafDbDbType.Char, DbType.StringFixedLength); //wrong
-            HPDbDbTypeMapping.Add(TrafDbDbType.Date, DbType.Date);
-            HPDbDbTypeMapping.Add(TrafDbDbType.Decimal, DbType.Decimal);
-            HPDbDbTypeMapping.Add(TrafDbDbType.DecimalUnsigned, DbType.Decimal); // wrong
-            HPDbDbTypeMapping.Add(TrafDbDbType.Double, DbType.Double);
-            HPDbDbTypeMapping.Add(TrafDbDbType.Float, DbType.Single);
-            HPDbDbTypeMapping.Add(TrafDbDbType.Integer, DbType.Int32);
-            HPDbDbTypeMapping.Add(TrafDbDbType.IntegerUnsigned, DbType.UInt32);
-            HPDbDbTypeMapping.Add(TrafDbDbType.Interval, DbType.Object); // wrong
-            HPDbDbTypeMapping.Add(TrafDbDbType.LargeInt, DbType.Int64);
-            HPDbDbTypeMapping.Add(TrafDbDbType.Numeric, DbType.VarNumeric);
-            HPDbDbTypeMapping.Add(TrafDbDbType.NumericUnsigned, DbType.VarNumeric); // wrong
-            HPDbDbTypeMapping.Add(TrafDbDbType.Real, DbType.Single);
-            HPDbDbTypeMapping.Add(TrafDbDbType.SmallInt, DbType.Int16);
-            HPDbDbTypeMapping.Add(TrafDbDbType.SmallIntUnsigned, DbType.UInt16);
-            HPDbDbTypeMapping.Add(TrafDbDbType.Time, DbType.Time);
-            HPDbDbTypeMapping.Add(TrafDbDbType.Timestamp, DbType.DateTime);
-            HPDbDbTypeMapping.Add(TrafDbDbType.Varchar, DbType.String); //wrong
+            TrafDbDbTypeMapping.Add(TrafDbDbType.Char, DbType.StringFixedLength); //wrong
+            TrafDbDbTypeMapping.Add(TrafDbDbType.Date, DbType.Date);
+            TrafDbDbTypeMapping.Add(TrafDbDbType.Decimal, DbType.Decimal);
+            TrafDbDbTypeMapping.Add(TrafDbDbType.DecimalUnsigned, DbType.Decimal); // wrong
+            TrafDbDbTypeMapping.Add(TrafDbDbType.Double, DbType.Double);
+            TrafDbDbTypeMapping.Add(TrafDbDbType.Float, DbType.Single);
+            TrafDbDbTypeMapping.Add(TrafDbDbType.Integer, DbType.Int32);
+            TrafDbDbTypeMapping.Add(TrafDbDbType.IntegerUnsigned, DbType.UInt32);
+            TrafDbDbTypeMapping.Add(TrafDbDbType.Interval, DbType.Object); // wrong
+            TrafDbDbTypeMapping.Add(TrafDbDbType.LargeInt, DbType.Int64);
+            TrafDbDbTypeMapping.Add(TrafDbDbType.Numeric, DbType.VarNumeric);
+            TrafDbDbTypeMapping.Add(TrafDbDbType.NumericUnsigned, DbType.VarNumeric); // wrong
+            TrafDbDbTypeMapping.Add(TrafDbDbType.Real, DbType.Single);
+            TrafDbDbTypeMapping.Add(TrafDbDbType.SmallInt, DbType.Int16);
+            TrafDbDbTypeMapping.Add(TrafDbDbType.SmallIntUnsigned, DbType.UInt16);
+            TrafDbDbTypeMapping.Add(TrafDbDbType.Time, DbType.Time);
+            TrafDbDbTypeMapping.Add(TrafDbDbType.Timestamp, DbType.DateTime);
+            TrafDbDbTypeMapping.Add(TrafDbDbType.Varchar, DbType.String); //wrong
         }
 
         public static TrafDbDbType MapDbType(DbType type)
@@ -202,9 +202,9 @@ namespace Trafodion.Data
             return DbTypeMapping.ContainsKey(type) ? DbTypeMapping[type] : TrafDbDbType.Undefined;
         }
 
-        public static DbType MapHPDbDbType(TrafDbDbType type)
+        public static DbType MapTrafDbDbType(TrafDbDbType type)
         {
-            return HPDbDbTypeMapping.ContainsKey(type) ? HPDbDbTypeMapping[type] : DbType.Object;
+            return TrafDbDbTypeMapping.ContainsKey(type) ? TrafDbDbTypeMapping[type] : DbType.Object;
         }
     }
 }

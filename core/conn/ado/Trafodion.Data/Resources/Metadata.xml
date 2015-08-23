@@ -162,7 +162,7 @@
   <!-- *** DataSourceInformation Data *** -->
   <DataSourceInformation>
     <CompositeIdentifierSeparatorPattern>\.</CompositeIdentifierSeparatorPattern>
-    <DataSourceProductName>HPDb</DataSourceProductName>
+    <DataSourceProductName>TrafodionDb</DataSourceProductName>
     <DataSourceProductVersion><!-- dynamically set --></DataSourceProductVersion>
     <DataSourceProductVersionNormalized><!-- dynamically set --></DataSourceProductVersionNormalized>
     <GroupByBehavior>2</GroupByBehavior>

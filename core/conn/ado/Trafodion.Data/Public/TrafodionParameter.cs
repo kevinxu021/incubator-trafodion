@@ -5,7 +5,7 @@ namespace Trafodion.Data
     using System.Data.Common;
 
     /// <summary>
-    /// Represents a parameter to a HPDbCommand and optionally its mapping to DataSet columns. This class cannot be inherited.
+    /// Represents a parameter to a TrafDbCommand and optionally its mapping to DataSet columns. This class cannot be inherited.
     /// </summary>
     public sealed class TrafDbParameter : DbParameter, IDbDataParameter, ICloneable
     {
@@ -51,7 +51,7 @@ namespace Trafodion.Data
 
             if (!Enum.IsDefined(typeof(TrafDbDbType), dataType))
             {
-                string msg = TrafDbResources.FormatMessage(TrafDbMessage.InvalidHPDbDbType, dataType);
+                string msg = TrafDbResources.FormatMessage(TrafDbMessage.InvalidTrafDbDbType, dataType);
                 TrafDbException.ThrowException(null, new ArgumentException(msg));
             }
 
@@ -73,7 +73,7 @@ namespace Trafodion.Data
                 TrafDbTrace.Trace(null, TraceLevel.Public, name, value);
             }
 
-            this._descriptor = new Descriptor() { HPDbDataType = TrafDbDbType.Undefined };
+            this._descriptor = new Descriptor() { TrafDbDataType = TrafDbDbType.Undefined };
             this._dataRowVersion = DataRowVersion.Default;
             this._parameterName = name;
             this._value = value;
@@ -186,7 +186,7 @@ namespace Trafodion.Data
         /// Gets or sets the encoding of the TrafDbParameter.
         /// </summary>
         [DbProviderSpecificTypePropertyAttribute(true)]
-        public HPDbEncoding Encoding
+        public TrafDbEncoding Encoding
         {
             get
             {
@@ -225,13 +225,13 @@ namespace Trafodion.Data
         {
             get
             {
-                return this._descriptor.HPDbDataType;
+                return this._descriptor.TrafDbDataType;
             }
 
             set
             {
                 this._verified = false;
-                this._descriptor.HPDbDataType = value;
+                this._descriptor.TrafDbDataType = value;
             }
         }
 

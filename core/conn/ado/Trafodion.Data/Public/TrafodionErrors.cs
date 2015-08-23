@@ -5,7 +5,7 @@
     using System.Collections.Generic;
 
     /// <summary>
-    /// Collects information relevant to a warning or error returned by HPDb.
+    /// Collects information relevant to a warning or error returned by TrafDb.
     /// </summary>
     public sealed class TrafDbError
     {

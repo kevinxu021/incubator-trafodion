@@ -15,11 +15,11 @@ namespace Trafodion.Data.Installation
     [RunInstaller(true)]
     public class InstallHelper : System.Configuration.Install.Installer
     {
-        private const string Invariant = "HP.Data";
+        private const string Invariant = "Traf.Data";
         private static readonly string FactoryType = typeof(TrafDbFactory).AssemblyQualifiedName;
 
-        private static readonly Assembly HPDataHPDb = Assembly.GetAssembly(typeof(Trafodion.Data.TrafDbFactory));
-        private static readonly Assembly HPDataHPDbVisualStudio = Assembly.GetAssembly(typeof(Trafodion.Data.VisualStudio.AssemblyReference));
+        private static readonly Assembly TrafDataTrafDb = Assembly.GetAssembly(typeof(Trafodion.Data.TrafDbFactory));
+        private static readonly Assembly TrafDataTrafDbVisualStudio = Assembly.GetAssembly(typeof(Trafodion.Data.VisualStudio.AssemblyReference));
 
         private static readonly string[] MachingConfigs = 
         {
@@ -90,9 +90,9 @@ namespace Trafodion.Data.Installation
         {
             try
             {
-                string name = ((AssemblyTitleAttribute)HPDataHPDb.GetCustomAttributes(
+                string name = ((AssemblyTitleAttribute)TrafDataTrafDb.GetCustomAttributes(
                    typeof(AssemblyTitleAttribute), false)[0]).Title;
-                string description = ((AssemblyDescriptionAttribute)HPDataHPDb.GetCustomAttributes(
+                string description = ((AssemblyDescriptionAttribute)TrafDataTrafDb.GetCustomAttributes(
                     typeof(AssemblyDescriptionAttribute), false)[0]).Description;
 
                 //load machine.config
@@ -129,7 +129,7 @@ namespace Trafodion.Data.Installation
                     root = doc.SelectSingleNode("/configuration/configSections") as XmlElement;
                     e = doc.CreateElement("section");
                     a = doc.CreateAttribute("name");
-                    a.Value = "HP.Data";
+                    a.Value = "Traf.Data";
                     e.Attributes.Append(a);
 
                     a = doc.CreateAttribute("type");
@@ -156,7 +156,7 @@ namespace Trafodion.Data.Installation
                 for (int i = 0; i < paths.Length; i++)
                 {
                     string factoryPath = String.Concat("/configuration/system.data/DbProviderFactories/add[@invariant='", Invariant, "']");
-                    string sectionPath = String.Concat("/configuration/configSections/section[@name='HP.Data']");
+                    string sectionPath = String.Concat("/configuration/configSections/section[@name='Traf.Data']");
 
                     XmlDocument doc = new XmlDocument();
                     doc.Load(paths[i]);
@@ -183,22 +183,22 @@ namespace Trafodion.Data.Installation
 
         private void InstallReferenceDialog(IDictionary savedState)
         {
-            string keyPath = @"SOFTWARE\Microsoft\.NETFramework\AssemblyFolders\HP ADO.NET 3.0 Provider";
+            string keyPath = @"SOFTWARE\Microsoft\.NETFramework\AssemblyFolders\Traf ADO.NET 3.0 Provider";
             RegistryKey key = Registry.LocalMachine.CreateSubKey(keyPath);
-            key.SetValue(null, Path.GetDirectoryName(HPDataHPDb.Location));
+            key.SetValue(null, Path.GetDirectoryName(TrafDataTrafDb.Location));
 
-            keyPath = @"SOFTWARE\Microsoft\.NETFramework\v2.0.50727\AssemblyFoldersEx\HP ADO.NET 3.0 Provider";
+            keyPath = @"SOFTWARE\Microsoft\.NETFramework\v2.0.50727\AssemblyFoldersEx\Traf ADO.NET 3.0 Provider";
             key = Registry.LocalMachine.CreateSubKey(keyPath);
-            key.SetValue(null, Path.GetDirectoryName(HPDataHPDb.Location));
+            key.SetValue(null, Path.GetDirectoryName(TrafDataTrafDb.Location));
 
-            keyPath = @"SOFTWARE\Microsoft\.NETFramework\v4.0.30319\AssemblyFoldersEx\HP ADO.NET 3.0 Provider";
+            keyPath = @"SOFTWARE\Microsoft\.NETFramework\v4.0.30319\AssemblyFoldersEx\Traf ADO.NET 3.0 Provider";
             key = Registry.LocalMachine.CreateSubKey(keyPath);
-            key.SetValue(null, Path.GetDirectoryName(HPDataHPDb.Location));
+            key.SetValue(null, Path.GetDirectoryName(TrafDataTrafDb.Location));
         }
 
         private void UninstallReferenceDialog()
         {
-            string keyPath = @"SOFTWARE\Microsoft\.NETFramework\AssemblyFolders\HP ADO.NET 3.0 Provider";
+            string keyPath = @"SOFTWARE\Microsoft\.NETFramework\AssemblyFolders\Traf ADO.NET 3.0 Provider";
             RegistryKey key = Registry.LocalMachine.OpenSubKey(keyPath);
             if (key != null)
             {
@@ -206,7 +206,7 @@ namespace Trafodion.Data.Installation
                 Registry.LocalMachine.DeleteSubKeyTree(keyPath);
             }
 
-            keyPath = @"SOFTWARE\Microsoft\.NETFramework\v2.0.50727\AssemblyFoldersEx\HP ADO.NET 3.0 Provider";
+            keyPath = @"SOFTWARE\Microsoft\.NETFramework\v2.0.50727\AssemblyFoldersEx\Traf ADO.NET 3.0 Provider";
              key = Registry.LocalMachine.OpenSubKey(keyPath);
             if (key != null)
             {
@@ -214,7 +214,7 @@ namespace Trafodion.Data.Installation
                 Registry.LocalMachine.DeleteSubKeyTree(keyPath);
             }
 
-            keyPath = @"SOFTWARE\Microsoft\.NETFramework\v4.0.30319\AssemblyFoldersEx\HP ADO.NET 3.0 Provider";
+            keyPath = @"SOFTWARE\Microsoft\.NETFramework\v4.0.30319\AssemblyFoldersEx\Traf ADO.NET 3.0 Provider";
             key = Registry.LocalMachine.OpenSubKey(keyPath);
             if (key != null)
             {
@@ -244,27 +244,27 @@ namespace Trafodion.Data.Installation
                     version, GuidList.HPDbDatasource);
 
                 key = root.CreateSubKey(keyPath);
-                key.SetValue(null, "HP Database");
+                key.SetValue(null, "Traf Database");
                 key.SetValue("DefaultProvider", GuidList.HPDbProvider);
 
                 key = key.CreateSubKey("SupportingProviders").CreateSubKey(GuidList.HPDbProvider);
-                key.SetValue("Description", "Provider_Description, HP.Data.VisualStudio.Properties.Resources");
-                key.SetValue("DisplayName", "DataSource_DisplayName, HP.Data.VisualStudio.Properties.Resources");
+                key.SetValue("Description", "Provider_Description, Traf.Data.VisualStudio.Properties.Resources");
+                key.SetValue("DisplayName", "DataSource_DisplayName, Traf.Data.VisualStudio.Properties.Resources");
 
                 //***Data Provider***
                 keyPath = String.Format(@"Software\Microsoft\VisualStudio\{0}\DataProviders\{1}",
                     version, GuidList.HPDbProvider);
 
                 key = root.CreateSubKey(keyPath);
-                key.SetValue(null, ".NET Framework Data Provider for HP Database");
-                key.SetValue("Assembly", HPDataHPDb.FullName);
+                key.SetValue(null, ".NET Framework Data Provider for Traf Database");
+                key.SetValue("Assembly", TrafDataTrafDb.FullName);
                 key.SetValue("AssociatedSource", GuidList.HPDbDatasource);
-                key.SetValue("Description", "Provider_Description, HP.Data.VisualStudio.Properties.Resources");
-                key.SetValue("DisplayName", "Provider_DisplayName, HP.Data.VisualStudio.Properties.Resources");
-                //key.SetValue("Codebase", savedState[@"targetdir"].ToString()+ @"HP.Data.dll");
+                key.SetValue("Description", "Provider_Description, Traf.Data.VisualStudio.Properties.Resources");
+                key.SetValue("DisplayName", "Provider_DisplayName, Traf.Data.VisualStudio.Properties.Resources");
+                //key.SetValue("Codebase", savedState[@"targetdir"].ToString()+ @"Traf.Data.dll");
                 key.SetValue("FactoryService", GuidList.HPDbProviderObjectFactory);
-                key.SetValue("InvariantName", "HP.Data");
-                key.SetValue("ShortDisplayName", "Provider_ShortDisplayName, HP.Data.VisualStudio.Properties.Resources");
+                key.SetValue("InvariantName", "Traf.Data");
+                key.SetValue("ShortDisplayName", "Provider_ShortDisplayName, Traf.Data.VisualStudio.Properties.Resources");
                 key.SetValue("Technology", "{77AB9A9D-78B9-4ba7-91AC-873F5338F1D2}");
 
                 key = key.CreateSubKey("SupportedObjects");
@@ -290,20 +290,20 @@ namespace Trafodion.Data.Installation
                     version, GuidList.HPDbDataPackage);
 
                 key = root.CreateSubKey(keyPath);
-                key.SetValue(null, @"HP ADO.NET 3.0 Package");
-                key.SetValue("Assembly", HPDataHPDbVisualStudio.FullName);
-                key.SetValue("Class", "HP.Data.VisualStudio.HPDbDataPackage");
-                //key.SetValue("Codebase", savedState[@"targetdir"].ToString()+ @"HP.Data.VisualStudio.dll");
+                key.SetValue(null, @"Traf ADO.NET 3.0 Package");
+                key.SetValue("Assembly", TrafDataTrafDbVisualStudio.FullName);
+                key.SetValue("Class", "Traf.Data.VisualStudio.HPDbDataPackage");
+                //key.SetValue("Codebase", savedState[@"targetdir"].ToString()+ @"Traf.Data.VisualStudio.dll");
                 key.SetValue("CompanyName", "Hewlett-Packard");
                 key.SetValue("ID", 100, RegistryValueKind.DWord);
                 key.SetValue("InProcServer32", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "mscoree.dll"));
                 key.SetValue("MinEdition", "Standard");
-                key.SetValue("ProductName", "HP ADO.NET 3.0 Package");
+                key.SetValue("ProductName", "Traf ADO.NET 3.0 Package");
                 key.SetValue("ProductVersion", "3.0.0.0");
                 //key.SetValue("ThreadingModel", "Both");
 
                 // Installed products
-                keyPath = String.Format(@"Software\Microsoft\VisualStudio\{0}\InstalledProducts\HP ADO.NET 3.0 Package",
+                keyPath = String.Format(@"Software\Microsoft\VisualStudio\{0}\InstalledProducts\Traf ADO.NET 3.0 Package",
                     version);
                 key = root.CreateSubKey(keyPath);
                 key.SetValue(null, "#101"); //title
@@ -362,7 +362,7 @@ namespace Trafodion.Data.Installation
                 }
 
                 //Installed Products
-                keyPath = String.Format(@"Software\Microsoft\VisualStudio\{0}\InstalledProducts\HP ADO.NET 3.0 Package",
+                keyPath = String.Format(@"Software\Microsoft\VisualStudio\{0}\InstalledProducts\Traf ADO.NET 3.0 Package",
                     version);
                 key = rootKey.OpenSubKey(keyPath);
                 if (key != null)

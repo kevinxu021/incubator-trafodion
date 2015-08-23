@@ -3,7 +3,7 @@
     using System;
 
     /// <summary>
-    /// Specifies HPDb-specific data type.
+    /// Specifies TrafDb-specific data type.
     /// </summary>
     public enum TrafDbDbType
     {
@@ -114,9 +114,9 @@
     }
 
     /// <summary>
-    /// Represents a HPDb-specific string encoding.
+    /// Represents a TrafDb-specific string encoding.
     /// </summary>
-    public enum HPDbEncoding : int
+    public enum TrafDbEncoding : int
     {
         /// <summary>
         /// Pass-through mode.  Current system encoding is used.

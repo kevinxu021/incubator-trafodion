@@ -5,9 +5,9 @@ namespace Trafodion.Data
     using System.Data.Common;
 
     /// <summary>
-    /// The callback for Info and Warning events for a HPDbConnection.
+    /// The callback for Info and Warning events for a TrafDbConnection.
     /// </summary>
-    /// <param name="sender">The HPDbConnection sending the event.</param>
+    /// <param name="sender">The TrafDbConnection sending the event.</param>
     /// <param name="e">The event arguments.</param>
     public delegate void TrafDbInfoMessageEventHandler(object sender, TrafDbInfoMessageEventArgs e);
 
@@ -26,7 +26,7 @@ namespace Trafodion.Data
     public delegate void TrafDbRowUpdatedEventHandler(object sender, TrafDbRowUpdatedEventArgs e);
 
     /// <summary>
-    /// The event arguments for Info and Warning events for a HPDbConnection.
+    /// The event arguments for Info and Warning events for a TrafDbConnection.
     /// </summary>
     public sealed class TrafDbInfoMessageEventArgs : EventArgs
     {
@@ -83,7 +83,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Gets or sets the HPDbCommand executed when Update is called.
+        /// Gets or sets the TrafDbCommand executed when Update is called.
         /// </summary>
         public new TrafDbCommand Command
         {
@@ -110,7 +110,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Gets the HPDbCommand executed when Update is called.
+        /// Gets the TrafDbCommand executed when Update is called.
         /// </summary>
         public new TrafDbCommand Command
         {

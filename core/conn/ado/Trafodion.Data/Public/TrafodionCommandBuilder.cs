@@ -5,7 +5,7 @@ namespace Trafodion.Data
     using System.Data.Common;
 
     /// <summary>
-    /// Automatically generates single-table commands that are used to reconcile changes made to a DataSet with the associated HPDb database. This class cannot be inherited.
+    /// Automatically generates single-table commands that are used to reconcile changes made to a DataSet with the associated TrafDb database. This class cannot be inherited.
     /// </summary>
     public sealed class TrafDbCommandBuilder : DbCommandBuilder
     {
@@ -43,27 +43,27 @@ namespace Trafodion.Data
 
         #region Methods
         /// <summary>
-        /// Gets the automatically generated HPDbCommand object required to perform deletions on the database.
+        /// Gets the automatically generated TrafDbCommand object required to perform deletions on the database.
         /// </summary>
-        /// <returns>The automatically generated HPDbCommand object required to perform deletions.</returns>
+        /// <returns>The automatically generated TrafDbCommand object required to perform deletions.</returns>
         public new TrafDbCommand GetDeleteCommand()
         {
             return (TrafDbCommand)base.GetDeleteCommand();
         }
 
         /// <summary>
-        /// Gets the automatically generated HPDbCommand object required to perform updates on the database.
+        /// Gets the automatically generated TrafDbCommand object required to perform updates on the database.
         /// </summary>
-        /// <returns>The automatically generated HPDbCommand object required to perform updates.</returns>
+        /// <returns>The automatically generated TrafDbCommand object required to perform updates.</returns>
         public new TrafDbCommand GetUpdateCommand()
         {
             return (TrafDbCommand)base.GetUpdateCommand();
         }
 
         /// <summary>
-        /// Gets the automatically generated HPDbCommand object required to perform inserts on the database.
+        /// Gets the automatically generated TrafDbCommand object required to perform inserts on the database.
         /// </summary>
-        /// <returns>The automatically generated HPDbCommand object required to perform inserts.</returns>
+        /// <returns>The automatically generated TrafDbCommand object required to perform inserts.</returns>
         public new TrafDbCommand GetInsertCommand()
         {
             return (TrafDbCommand)base.GetInsertCommand(false);

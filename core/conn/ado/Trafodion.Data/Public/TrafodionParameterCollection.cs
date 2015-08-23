@@ -7,7 +7,7 @@ namespace Trafodion.Data
     using System.Data.Common;
 
     /// <summary>
-    /// Represents a collection of parameters associated with a HPDbCommand and their respective mappings to columns in a DataSet. This class cannot be inherited.
+    /// Represents a collection of parameters associated with a TrafDbCommand and their respective mappings to columns in a DataSet. This class cannot be inherited.
     /// </summary>
     public sealed class TrafDbParameterCollection : DbParameterCollection, IDataParameterCollection
     {

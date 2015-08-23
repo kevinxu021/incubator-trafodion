@@ -20,8 +20,8 @@ namespace Trafodion.Data
         internal bool Signed;
         internal FileSystemType NdcsDataType;
         internal int NdcsPrecision;
-        internal HPDbEncoding SqlEncoding;
-        internal HPDbEncoding NdcsEncoding;
+        internal TrafDbEncoding SqlEncoding;
+        internal TrafDbEncoding NdcsEncoding;
         internal string ColumnName;
         internal string TableName;
         internal string CatalogName;
@@ -30,20 +30,20 @@ namespace Trafodion.Data
         internal int IntLeadPrec;
         internal ParameterDirection Direction;
 
-        private TrafDbDbType _HPDbDbType;
+        private TrafDbDbType _TrafDbDbType;
         private DbType _dbType;
 
-        internal TrafDbDbType HPDbDataType
+        internal TrafDbDbType TrafDbDataType
         {
             get
             {
-                return this._HPDbDbType;
+                return this._TrafDbDbType;
             }
 
             set
             {
-                this._HPDbDbType = value;
-                this._dbType = TrafDbUtility.MapHPDbDbType(this._HPDbDbType);
+                this._TrafDbDbType = value;
+                this._dbType = TrafDbUtility.MapTrafDbDbType(this._TrafDbDbType);
             }
         }
 
@@ -57,7 +57,7 @@ namespace Trafodion.Data
             set
             {
                 this._dbType = value;
-                this._HPDbDbType = TrafDbUtility.MapDbType(this._dbType);
+                this._TrafDbDbType = TrafDbUtility.MapDbType(this._dbType);
             }
         }
 
@@ -80,8 +80,8 @@ namespace Trafodion.Data
             this.Signed = ds.ReadInt32() == 1;
             this.NdcsDataType = (FileSystemType)ds.ReadInt32();
             this.NdcsPrecision = ds.ReadInt32();
-            this.SqlEncoding = (HPDbEncoding)ds.ReadInt32();
-            this.NdcsEncoding = (HPDbEncoding)ds.ReadInt32();
+            this.SqlEncoding = (TrafDbEncoding)ds.ReadInt32();
+            this.NdcsEncoding = (TrafDbEncoding)ds.ReadInt32();
             this.ColumnName = enc.GetString(ds.ReadString(), enc.Transport);
             this.TableName = enc.GetString(ds.ReadString(), enc.Transport);
             this.CatalogName = enc.GetString(ds.ReadString(), enc.Transport);
@@ -131,61 +131,61 @@ namespace Trafodion.Data
                 case FileSystemType.VarcharDblByte:
                 case FileSystemType.VarcharLong:
                 case FileSystemType.VarcharWithLength:
-                    this.HPDbDataType = TrafDbDbType.Varchar;
+                    this.TrafDbDataType = TrafDbDbType.Varchar;
                     break;
                 case FileSystemType.Char:
                 case FileSystemType.CharDblByte:
-                    this.HPDbDataType = TrafDbDbType.Char;
+                    this.TrafDbDataType = TrafDbDbType.Char;
                     break;
                 case FileSystemType.Numeric:
-                    this.HPDbDataType = TrafDbDbType.Numeric;
+                    this.TrafDbDataType = TrafDbDbType.Numeric;
                     break;
                 case FileSystemType.NumericUnsigned:
-                    this.HPDbDataType = TrafDbDbType.NumericUnsigned;
+                    this.TrafDbDataType = TrafDbDbType.NumericUnsigned;
                     break;
                 case FileSystemType.Decimal:
                 case FileSystemType.DecimalLarge:
-                    this.HPDbDataType = TrafDbDbType.Decimal;
+                    this.TrafDbDataType = TrafDbDbType.Decimal;
                     break;
                 case FileSystemType.DecimalUnsigned:
                 case FileSystemType.DecimalLargeUnsigned:
-                    this.HPDbDataType = TrafDbDbType.DecimalUnsigned;
+                    this.TrafDbDataType = TrafDbDbType.DecimalUnsigned;
                     break;
                 case FileSystemType.Integer:
-                    this.HPDbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? TrafDbDbType.Numeric : TrafDbDbType.Integer;
+                    this.TrafDbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? TrafDbDbType.Numeric : TrafDbDbType.Integer;
                     break;
                 case FileSystemType.IntegerUnsigned:
-                    this.HPDbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? TrafDbDbType.NumericUnsigned : TrafDbDbType.IntegerUnsigned;
+                    this.TrafDbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? TrafDbDbType.NumericUnsigned : TrafDbDbType.IntegerUnsigned;
                     break;
                 case FileSystemType.LargeInt:
-                    this.HPDbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? TrafDbDbType.Numeric : TrafDbDbType.LargeInt;
+                    this.TrafDbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? TrafDbDbType.Numeric : TrafDbDbType.LargeInt;
                     break;
                 case FileSystemType.SmallInt:
-                    this.HPDbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? TrafDbDbType.Numeric : TrafDbDbType.SmallInt;
+                    this.TrafDbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? TrafDbDbType.Numeric : TrafDbDbType.SmallInt;
                     break;
                 case FileSystemType.SmallIntUnsigned:
-                    this.HPDbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? TrafDbDbType.NumericUnsigned : TrafDbDbType.SmallIntUnsigned;
+                    this.TrafDbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? TrafDbDbType.NumericUnsigned : TrafDbDbType.SmallIntUnsigned;
                     break;
                 case FileSystemType.Float:
-                    this.HPDbDataType = TrafDbDbType.Float;
+                    this.TrafDbDataType = TrafDbDbType.Float;
                     break;
                 case FileSystemType.Real:
-                    this.HPDbDataType = TrafDbDbType.Real;
+                    this.TrafDbDataType = TrafDbDbType.Real;
                     break;
                 case FileSystemType.Double:
-                    this.HPDbDataType = TrafDbDbType.Double;
+                    this.TrafDbDataType = TrafDbDbType.Double;
                     break;
                 case FileSystemType.DateTime:
                     switch (this.DtCode)
                     {
                         case DateTimeCode.Date:
-                            this.HPDbDataType = TrafDbDbType.Date;
+                            this.TrafDbDataType = TrafDbDbType.Date;
                             break;
                         case DateTimeCode.Time:
-                            this.HPDbDataType = TrafDbDbType.Time;
+                            this.TrafDbDataType = TrafDbDbType.Time;
                             break;
                         case DateTimeCode.Timestamp:
-                            this.HPDbDataType = TrafDbDbType.Timestamp;
+                            this.TrafDbDataType = TrafDbDbType.Timestamp;
                             break;
                         default:
                             throw new Exception("internal error, unknown datetimecode");
@@ -193,7 +193,7 @@ namespace Trafodion.Data
 
                     break;
                 case FileSystemType.Interval:
-                    this.HPDbDataType = TrafDbDbType.Interval;
+                    this.TrafDbDataType = TrafDbDbType.Interval;
                     break;
                 default:
                     throw new Exception("internal error, unknown fstype");

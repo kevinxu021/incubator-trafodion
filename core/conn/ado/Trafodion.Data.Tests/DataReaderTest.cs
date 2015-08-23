@@ -1012,7 +1012,7 @@ namespace TrafAdoTest
         }
 
         [Test]
-        //[Ignore("Implement later. This is HPDb attribute")]
+        //[Ignore("Implement later. This is TrafDb attribute")]
         public void FetchSize()
         {
             Console.WriteLine("Fetchsize : " + reader.FetchSize);

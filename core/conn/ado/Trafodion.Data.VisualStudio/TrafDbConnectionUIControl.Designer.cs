@@ -1,6 +1,6 @@
-﻿namespace HP.Data.VisualStudio
+﻿namespace Trafodion.Data.VisualStudio
 {
-    partial class HPDbConnectionUIControl
+    partial class TrafDbConnectionUIControl
     {
         /// <summary> 
         /// Required designer variable.

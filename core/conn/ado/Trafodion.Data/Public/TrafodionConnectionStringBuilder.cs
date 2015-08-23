@@ -12,7 +12,7 @@ namespace Trafodion.Data
     using System.Text;
 
     /// <summary>
-    /// Provides a simple way to create and manage the contents of connection strings used by the HPDbConnection class.
+    /// Provides a simple way to create and manage the contents of connection strings used by the TrafDbConnection class.
     /// </summary>
     public sealed class TrafDbConnectionStringBuilder : DbConnectionStringBuilder
     {
@@ -99,7 +99,7 @@ namespace Trafodion.Data
             _defaults.Add("FetchBufferSize", "4096");
             _defaults.Add("FetchRowCount", "500");
             _defaults.Add("CpuToUse", "-1");
-            _defaults.Add("ApplicationName", "HPDb .NET Provider");
+            _defaults.Add("ApplicationName", "TrafDb .NET Provider");
             _defaults.Add("SqlServerMode", "False");
             _defaults.Add("SessionName", string.Empty);
             _defaults.Add("Compression", "False");

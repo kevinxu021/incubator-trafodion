@@ -964,12 +964,12 @@ namespace ConsoleApp
                 
             /*try
             {
-                using (HPDbConnection conn = new HPDbConnection())
+                using (TrafDbConnection conn = new TrafDbConnection())
                 {
                     conn.ConnectionString = ConnectionString;
                     conn.Open();
 
-                    using (HPDbCommand cmd = conn.CreateCommand())
+                    using (TrafDbCommand cmd = conn.CreateCommand())
                     {
                         cmd.CommandText = "drop table t1";
                         try { cmd.ExecuteNonQuery(); }
@@ -1699,7 +1699,7 @@ namespace ConsoleApp
             dt.Rows[1]["c2"] = "hi there";
             dt.Rows[3]["c2"] = "dude";
 
-            //send values back to HPDb
+            //send values back to TrafDb
             adp.Update(dt);
 
             //check the final results -- we should have a single row (2,'hi there')
@@ -1757,7 +1757,7 @@ namespace ConsoleApp
             dt.Rows[1]["c2"] = "value1";
             dt.Rows[3]["c2"] = "value2";
 
-            //send values back to HPDb
+            //send values back to TrafDb
             //adp.Update(dt);
 
             //check the final results

@@ -20,10 +20,5 @@ namespace Trafodion.Data
         {
             return TrafDbResources.Messages.GetString(msg.ToString());
         }
-
-        /*internal static string GetMessage(string msg)
-        {
-            return HPDbResources.Messages.GetString(msg);
-        }*/
     }
 }

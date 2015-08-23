@@ -6,7 +6,7 @@ namespace Trafodion.Data.VisualStudio
 	public class TrafDbConnectionProperties : AdoDotNetConnectionProperties
 	{
         public TrafDbConnectionProperties(): 
-            base("HP.Data")
+            base("Trafodion.Data")
         {
         }
 

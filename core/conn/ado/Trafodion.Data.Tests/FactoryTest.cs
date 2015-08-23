@@ -16,7 +16,7 @@ namespace TrafAdoTest
     {
         public TrafDbFactory factory;
         public TestObject testinfo = AdoTestSetup.testInfo;
-        //public HPDbConnection conn;
+        //public TrafDbConnection conn;
 
         [SetUp]
         public void Setup()

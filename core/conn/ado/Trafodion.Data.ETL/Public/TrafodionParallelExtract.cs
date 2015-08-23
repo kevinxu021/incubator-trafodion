@@ -8,7 +8,7 @@
     using System.Threading;
 
     /// <summary>
-    /// Represents a HPDb Transporter parallel extract operation
+    /// Represents a TrafDb Transporter parallel extract operation
     /// </summary>
     public class TrafDbParallelExtract : IDisposable
     {
@@ -154,9 +154,9 @@
         }
 
         /// <summary>
-        /// Creates an array of HPDbDataReaders for the associated CommandText
+        /// Creates an array of TrafDbDataReaders for the associated CommandText
         /// </summary>
-        /// <returns>An array of HPDbDataReaders</returns>
+        /// <returns>An array of TrafDbDataReaders</returns>
         public TrafDbDataReader [] Execute()
         {
             // use a single ConnectionStringBuilder for all the connections

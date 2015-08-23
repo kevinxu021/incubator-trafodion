@@ -70,7 +70,7 @@ namespace Trafodion.Data.VisualStudio.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to HP ADO.NET 3.0 Data Provider.
+        ///   Looks up a localized string similar to Trafodion ADO.NET 3.0 Data Provider.
         /// </summary>
         public static string _101 {
             get {
@@ -79,7 +79,7 @@ namespace Trafodion.Data.VisualStudio.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to HP ADO.NET 3.0 Data Provider.
+        ///   Looks up a localized string similar to Trafodion ADO.NET 3.0 Data Provider.
         /// </summary>
         public static string _102 {
             get {
@@ -107,7 +107,7 @@ namespace Trafodion.Data.VisualStudio.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to HP Database.
+        ///   Looks up a localized string similar to Trafodion Database.
         /// </summary>
         public static string Datasource_DisplayName {
             get {
@@ -116,7 +116,7 @@ namespace Trafodion.Data.VisualStudio.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Use this selection to connect to HP Database using the .NET Framework Data provider for HP Database..
+        ///   Looks up a localized string similar to Use this selection to connect to Trafodion Database using the .NET Framework Data provider for Trafodion Database..
         /// </summary>
         public static string Provider_Description {
             get {
@@ -125,7 +125,7 @@ namespace Trafodion.Data.VisualStudio.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .NET Framework Data Provider for HP Database.
+        ///   Looks up a localized string similar to .NET Framework Data Provider for Trafodion Database.
         /// </summary>
         public static string Provider_DisplayName {
             get {
@@ -134,7 +134,7 @@ namespace Trafodion.Data.VisualStudio.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to HP Database Provider.
+        ///   Looks up a localized string similar to Trafodion Database Provider.
         /// </summary>
         public static string Provider_ShortDisplayName {
             get {

@@ -9,7 +9,7 @@ namespace Trafodion.Data.VisualStudio
     internal class TrafDbDataObjectSupport : DataObjectSupport
     {
         public TrafDbDataObjectSupport()
-            : base("HP.Data.VisualStudio.TrafDbDataObjectSupport", typeof(TrafDbDataObjectSupport).Assembly)
+            : base("Trafodion.Data.VisualStudio.TrafDbDataObjectSupport", typeof(TrafDbDataObjectSupport).Assembly)
         {
         }
     }

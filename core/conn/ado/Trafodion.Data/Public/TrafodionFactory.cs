@@ -25,9 +25,9 @@
         }
 
         /// <summary>
-        /// Creates a new <c>HPDbCommand</c> object.
+        /// Creates a new <c>TrafDbCommand</c> object.
         /// </summary>
-        /// <returns>A new <c>HPDbCommand</c> object.</returns>
+        /// <returns>A new <c>TrafDbCommand</c> object.</returns>
         public override DbCommand CreateCommand()
         {
             return new TrafDbCommand();
@@ -43,9 +43,9 @@
         }
 
         /// <summary>
-        /// Creates a new <c>HPDbConnection</c> object.
+        /// Creates a new <c>TrafDbConnection</c> object.
         /// </summary>
-        /// <returns>A new <c>HPDbConnection</c> object.</returns>
+        /// <returns>A new <c>TrafDbConnection</c> object.</returns>
         public override DbConnection CreateConnection()
         {
             return new TrafDbConnection();

@@ -480,13 +480,13 @@ namespace TrafAdoTest
         [Test]
         public static void TestCancel()
         {
-            HPDbConnection conx = new HPDbConnection();
+            TrafDbConnection conx = new TrafDbConnection();
             //conx.ConnectionString = "server=sqa0101.cup.hp.com;user=SUPERUSER;password=HPNe@v1ew;catalog=NEO;schema=ADOQA_SCHEMA;";
             conx.ConnectionString = ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["ConnectionStringName"]].ConnectionString;
             //conx.ConnectionString = "server=sqa0101.cup.hp.com:48000;cputouse=7;user=super-user;password=Quislin44$/mcK1nley;catalog=NEO;schema=DOERMANN;";
             conx.Open();
 
-            HPDbCommand cmdx = conx.CreateCommand();
+            TrafDbCommand cmdx = conx.CreateCommand();
             cmdx.CommandText = "insert into neo.doermann.testcancel4 (c1) select x.c1 from neo.doermann.testcancel1 x, neo.doermann.testcancel2 y, neo.doermann.testcancel1 z where x.c1 + y.c1 + z.c1 < 70";
 
             Thread t = new Thread(new ParameterizedThreadStart(CancelCommand));
@@ -505,14 +505,14 @@ namespace TrafAdoTest
         //wait 5 seconds, then cancel the command
         public static void CancelCommand(object var)
         {
-            HPDbCommand cmdz = (HPDbCommand)var;
+            TrafDbCommand cmdz = (TrafDbCommand)var;
             Thread.Sleep(5000);
 
             cmdz.Cancel();
         }
 */
         [Test]
-        public void HPDbCommand_string_conn_tran()
+        public void TrafDbCommand_string_conn_tran()
         {
             TrafDbTransaction tsttrn = testInfo.connection.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
             TrafDbCommand tstcmd = new TrafDbCommand("SELECT * FROM ADONET_TABLE", testInfo.connection, tsttrn);
@@ -526,11 +526,11 @@ namespace TrafAdoTest
         }
 
         [Test]
-        public void HPDbCommand_string_conn_tran_label()
+        public void TrafDbCommand_string_conn_tran_label()
         {
             /*
             HPDbTransaction tsttrn = testInfo.connection.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
-            HPDbCommand tstcmd = new HPDbCommand("SELECT * FROM ADONET_TABLE", testInfo.connection, tsttrn, "TSTLBL");
+            TrafDbCommand tstcmd = new TrafDbCommand("SELECT * FROM ADONET_TABLE", testInfo.connection, tsttrn, "TSTLBL");
 
             Console.WriteLine("CommandText : " + tstcmd.CommandText);
             Console.WriteLine("CommandTimeout : " + tstcmd.CommandTimeout);
@@ -543,10 +543,10 @@ namespace TrafAdoTest
         }
 
         [Test]
-        public void HPDbCommand_string_conn_null_label()
+        public void TrafDbCommand_string_conn_null_label()
         {
             /*
-            HPDbCommand tstcmd = new HPDbCommand("SELECT * FROM ADONET_TABLE", testInfo.connection, null, "TSTLBL");
+            TrafDbCommand tstcmd = new TrafDbCommand("SELECT * FROM ADONET_TABLE", testInfo.connection, null, "TSTLBL");
 
             Console.WriteLine("CommandText : " + tstcmd.CommandText);
             Console.WriteLine("CommandTimeout : " + tstcmd.CommandTimeout);
@@ -558,7 +558,7 @@ namespace TrafAdoTest
         }
 
         [Test]
-        public void HPDbCommand_string_conn()
+        public void TrafDbCommand_string_conn()
         {
             TrafDbCommand tstcmd = new TrafDbCommand("SELECT * FROM ADONET_TABLE", testInfo.connection);
 
@@ -569,7 +569,7 @@ namespace TrafAdoTest
         }
 
         [Test]
-        public void HPDbCommand_string()
+        public void TrafDbCommand_string()
         {
             TrafDbCommand tstcmd = new TrafDbCommand("SELECT * FROM ADONET_TABLE");
             tstcmd.Connection = testInfo.connection;
@@ -581,7 +581,7 @@ namespace TrafAdoTest
         }
 
         [Test]
-        public void HPDbCommand()
+        public void TrafDbCommand()
         {
             TrafDbCommand tstcmd = new TrafDbCommand();
             tstcmd.Connection = testInfo.connection;
@@ -705,7 +705,7 @@ namespace TrafAdoTest
         [Test]
         public void CommandTimeout()
         {
-            HPDbCommand tstcmd = new HPDbCommand();
+            TrafDbCommand tstcmd = new TrafDbCommand();
             tstcmd.Connection = testInfo.connection;
             Console.WriteLine("Command Timeout : " + tstcmd.CommandTimeout);
 

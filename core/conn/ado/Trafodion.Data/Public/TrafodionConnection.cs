@@ -12,7 +12,7 @@ namespace Trafodion.Data
     using System.Net.Sockets;
 
     /// <summary>
-    /// Represents an open connection to a HPDb database. This class cannot be inherited.
+    /// Represents an open connection to a TrafDb database. This class cannot be inherited.
     /// </summary>
     public sealed class TrafDbConnection : DbConnection, IDbConnection
     {
@@ -45,7 +45,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Initializes a new instance of the HPDbConnection class.
+        /// Initializes a new instance of the TrafDbConnection class.
         /// </summary>
         public TrafDbConnection()
             : this(string.Empty)
@@ -53,7 +53,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Initializes a new instance of the HPDbConnection class.
+        /// Initializes a new instance of the TrafDbConnection class.
         /// </summary>
         /// <param name="connectionString">The connection string for this connection</param>
         public TrafDbConnection(string connectionString)
@@ -147,7 +147,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Gets the HPDb server version.
+        /// Gets the TrafDb server version.
         /// </summary>
         public override string ServerVersion
         {
@@ -248,7 +248,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Releases the resources used by the HPDbConnection.
+        /// Releases the resources used by the TrafDbConnection.
         /// </summary>
         public new void Dispose()
         {
@@ -420,9 +420,9 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Creates a new <code>HPDbCommand</code> assocaited with this connection.
+        /// Creates a new <code>TrafDbCommand</code> assocaited with this connection.
         /// </summary>
-        /// <returns>The <code>HPDbCommand</code> object created</returns>
+        /// <returns>The <code>TrafDbCommand</code> object created</returns>
         public new TrafDbCommand CreateCommand()
         {
             if (TrafDbTrace.IsPublicEnabled)
@@ -437,10 +437,10 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Creates a new <code>HPDbCommand</code> with the given label assocaited with this connection.
+        /// Creates a new <code>TrafDbCommand</code> with the given label assocaited with this connection.
         /// </summary>
-        /// <param name="cmdLabel">The label to be associated with the newly created HPDbCommand.</param>
-        /// <returns>The <code>HPDbCommand</code> object created</returns>
+        /// <param name="cmdLabel">The label to be associated with the newly created TrafDbCommand.</param>
+        /// <returns>The <code>TrafDbCommand</code> object created</returns>
         public new TrafDbCommand CreateCommand(string cmdLabel)
         {
             if (TrafDbTrace.IsPublicEnabled)
@@ -455,9 +455,9 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Creates and returns a HPDbCommand object associated with the HPDbConnection.
+        /// Creates and returns a TrafDbCommand object associated with the TrafDbConnection.
         /// </summary>
-        /// <returns>A HPDbCommand object.</returns>
+        /// <returns>A TrafDbCommand object.</returns>
         IDbCommand IDbConnection.CreateCommand()
         {
             return this.CreateCommand();
@@ -499,7 +499,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Opens the connection to the HPDb Server.
+        /// Opens the connection to the TrafDb Server.
         /// </summary>
         public override void Open()
         {

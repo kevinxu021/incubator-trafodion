@@ -8,7 +8,7 @@ namespace Trafodion.Data
     using System.Collections.Generic;
 
     /// <summary>
-    /// Represents a SQL statement or stored procedure to execute against a HPDb database. This class cannot be inherited.
+    /// Represents a SQL statement or stored procedure to execute against a TrafDb database. This class cannot be inherited.
     /// </summary>
     public sealed class TrafDbCommand : DbCommand, IDbCommand, ICloneable
     {
@@ -40,7 +40,7 @@ namespace Trafodion.Data
         private bool _commandTimeoutUserDefined = false;
 
         /// <summary>
-        /// Initializes a new instance of the HPDbCommand class.
+        /// Initializes a new instance of the TrafDbCommand class.
         /// </summary>
         public TrafDbCommand()
             : this(string.Empty)
@@ -48,7 +48,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Initializes a new instance of the HPDbCommand class with the text of the query.
+        /// Initializes a new instance of the TrafDbCommand class with the text of the query.
         /// </summary>
         /// <param name="cmdText">The text of the query.</param>
         public TrafDbCommand(string cmdText)
@@ -69,21 +69,21 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Initializes a new instance of the HPDbCommand class with the text of the query and a HPDbConnection.
+        /// Initializes a new instance of the TrafDbCommand class with the text of the query and a TrafDbConnection.
         /// </summary>
         /// <param name="cmdText">The text of the query.</param>
-        /// <param name="connection">A HPDbConnection to associate with this command.</param>
+        /// <param name="connection">A TrafDbConnection to associate with this command.</param>
         public TrafDbCommand(string cmdText, TrafDbConnection connection)
             : this(cmdText, connection, connection.Transaction)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the HPDbCommand class with the text of the query, a HPDbConnection, and the HPDbTransaction.
+        /// Initializes a new instance of the TrafDbCommand class with the text of the query, a TrafDbConnection, and the HPDbTransaction.
         /// </summary>
         /// <param name="cmdText">The text of the query. </param>
-        /// <param name="connection">A HPDbConnection to associate with this command.</param>
-        /// <param name="transaction">Not used.  The HPDbTransaction associated with the Command will always be referenced from the HPDbConnection object.</param>
+        /// <param name="connection">A TrafDbConnection to associate with this command.</param>
+        /// <param name="transaction">Not used.  The HPDbTransaction associated with the Command will always be referenced from the TrafDbConnection object.</param>
         public TrafDbCommand(string cmdText, TrafDbConnection connection, TrafDbTransaction transaction)
         {
             if (TrafDbTrace.IsPublicEnabled)
@@ -112,12 +112,12 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Initializes a new instance of the HPDbCommand class with the text of the query, a HPDbConnection, a HPDbTransaction, and a command label.
+        /// Initializes a new instance of the TrafDbCommand class with the text of the query, a TrafDbConnection, a HPDbTransaction, and a command label.
         /// </summary>
         /// <param name="cmdText">The text of the query. </param>
-        /// <param name="connection">A HPDbConnection to associate with this command.</param>
-        /// <param name="transaction">Not used.  The HPDbTransaction associated with the Command will always be referenced from the HPDbConnection object.</param>
-        /// <param name="label">The label to be associated with the HPDbCommand.</param>
+        /// <param name="connection">A TrafDbConnection to associate with this command.</param>
+        /// <param name="transaction">Not used.  The HPDbTransaction associated with the Command will always be referenced from the TrafDbConnection object.</param>
+        /// <param name="label">The label to be associated with the TrafDbCommand.</param>
         public TrafDbCommand(string cmdText, TrafDbConnection connection, TrafDbTransaction transaction, string label)
         {
             if (TrafDbTrace.IsPublicEnabled)
@@ -206,7 +206,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Gets or sets the HPDbConnection used by this instance of the HPDbCommand.
+        /// Gets or sets the TrafDbConnection used by this instance of the TrafDbCommand.
         /// </summary>
         public new TrafDbConnection Connection
         {
@@ -256,10 +256,10 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Gets or sets the HPDbTransaction associated with this command.
+        /// Gets or sets the TrafDbTransaction associated with this command.
         /// </summary>
         /// <remarks>
-        /// Not used.  The HPDbTransaction associated with the Command will always be referenced from the HPDbConnection object.
+        /// Not used.  The TrafDbTransaction associated with the Command will always be referenced from the TrafDbConnection object.
         /// </remarks>
         public new TrafDbTransaction Transaction
         {
@@ -301,7 +301,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Gets or sets the HPDbConnection used by this instance of the HPDbCommand.
+        /// Gets or sets the TrafDbConnection used by this instance of the TrafDbCommand.
         /// </summary>
         IDbConnection IDbCommand.Connection
         {
@@ -325,7 +325,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Gets or sets the HPDbTransaction within which the HPDbCommand executes.
+        /// Gets or sets the TrafDbTransaction within which the TrafDbCommand executes.
         /// </summary>
         IDbTransaction IDbCommand.Transaction
         {
@@ -493,7 +493,7 @@ namespace Trafodion.Data
             }
         }
         /// <summary>
-        /// Releases all resources used by the HPDbCommand.
+        /// Releases all resources used by the TrafDbCommand.
         /// </summary>
         public new void Dispose()
         {
@@ -513,7 +513,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Tries to cancel the execution of a HPDbCommand. 
+        /// Tries to cancel the execution of a TrafDbCommand. 
         /// </summary>
         public override void Cancel()
         {
@@ -609,7 +609,7 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Creates a prepared version of the command on the HPDb Server.
+        /// Creates a prepared version of the command on the TrafDb Server.
         /// </summary>
         public override void Prepare()
         {
@@ -707,9 +707,9 @@ namespace Trafodion.Data
         }
 
         /// <summary>
-        /// Creates a new HPDbCommand object that is a copy of the current instance.
+        /// Creates a new TrafDbCommand object that is a copy of the current instance.
         /// </summary>
-        /// <returns>A HPDbCommand object.</returns>
+        /// <returns>A TrafDbCommand object.</returns>
         object ICloneable.Clone()
         {
             TrafDbCommand cloneCommand = new TrafDbCommand(this._commandText, this._conn, this._trans);
@@ -963,7 +963,7 @@ namespace Trafodion.Data
 
                     System.Buffer.BlockCopy(temp, 0, buf, 0, i);
 
-                    if (desc.NdcsEncoding == HPDbEncoding.UCS2)
+                    if (desc.NdcsEncoding == TrafDbEncoding.UCS2)
                     {
                         for (int j = i; j < buf.Length; j += 2)
                         {
@@ -1216,8 +1216,8 @@ namespace Trafodion.Data
                     {
                         dataLength = desc.MaxLength;
 
-                        if (desc.HPDbDataType == TrafDbDbType.Varchar || 
-                            desc.HPDbDataType == TrafDbDbType.NVarchar)
+                        if (desc.TrafDbDataType == TrafDbDbType.Varchar || 
+                            desc.TrafDbDataType == TrafDbDbType.NVarchar)
                         {
                             dataLength += 2;
 
@@ -1438,10 +1438,6 @@ namespace Trafodion.Data
                 throw new Exception("can only add batch values when statement is prepared");
             }
             
-            if(this._batchedParams.Count != 0)
-            {
-                return;
-            }
             object[] values = new object[this.Parameters.Count];
             for (int i = 0; i < values.Length; i++)
             {
