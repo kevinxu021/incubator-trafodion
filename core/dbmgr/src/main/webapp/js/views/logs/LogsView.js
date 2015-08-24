@@ -55,9 +55,6 @@ define([
 			    },
 			    errorElement: 'span',
 			    errorClass: 'help-block',
-		        submitHandler: function (form) {
-		        	//_that.filterApplyClicked();
-		        },
 		        errorPlacement: function(error, element) {
 		            if(element.parent('.input-group').length) {
 		                error.insertAfter(element.parent());
@@ -65,10 +62,6 @@ define([
 		                error.insertAfter(element);
 		            }
 		        }
-				/*errorPlacement: function (error, element) {
-		            var name = $(element).attr("name");
-		            $("#" + name + "-validate").html(error.html());
-		        }*/
 			});
 			
 			$(FILTER_FORM).bind('change', function() {
@@ -83,24 +76,8 @@ define([
 			$('#enddatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
 			$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'hour'));
 			$('#enddatetimepicker').data("DateTimePicker").date(moment());
-			
-			/*$("#startdatetimepicker").on("dp.change", function (e) {
-				if(e.date){
-		        	//var utcDate = e.date.isUtc()? e.date: e.date.utc();
-		        	//$('#startdatetimepicker').data("DateTimePicker").date(utcDate);
-		        	//$('#enddatetimepicker').data("DateTimePicker").minDate(utcDate);
-				}
-	        });
-			
-	        $("#enddatetimepicker").on("dp.change", function (e) {
-	        	if(e.date){
-		        	//var utcDate = e.date.isUtc()? e.date: e.date.utc();
-		        	//$('#enddatetimepicker').data("DateTimePicker").date(utcDate);
-		            //$('#startdatetimepicker').data("DateTimePicker").maxDate(utcDate);
-	        	}
-	        });*/
+
 			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
-				  // do something...
 		      	var startTime = $('#startdatetimepicker').data("DateTimePicker").date();
 	        	var endTime = $('#enddatetimepicker').data("DateTimePicker").date();
 	        	if(startTime == null)
@@ -209,7 +186,6 @@ define([
         fetchLogs: function () {
 			_that.showLoading();
 			$(ERROR_CONTAINER).hide();
-			//logsHandler.fetchLogs();
 			_that.filterApplyClicked();
 		},
 
