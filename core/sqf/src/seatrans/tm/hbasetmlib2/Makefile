@@ -19,7 +19,17 @@
 #
 # @@@ END COPYRIGHT @@@
 
-PROGS          = $(LIBEXPDIR)/libshbasetmlib.so $(LIBEXPDIR)/libidtm.so $(TMCLASS_FULL)/HBaseAuditControlPoint.class $(TMCLASS_FULL)/HBaseTmZK.class $(TMCLASS_FULL)/TmAuditTlog.class $(TMCLASS_FULL)/HBaseTxClient.class $(TMCLASS_FULL)/HashMapArray.class $(TMCLASS_FULL)/TrafInfo.class testrun
+PROGS          = $(LIBEXPDIR)/libshbasetmlib.so \
+                 $(LIBEXPDIR)/libidtm.so \
+                 $(TMCLASS_FULL)/HBaseAuditControlPoint.class \
+                 $(TMCLASS_FULL)/HBaseTmZK.class \
+                 $(TMCLASS_FULL)/TmAuditTlog.class \
+                 $(TMCLASS_FULL)/HBaseTxClient.class \
+                 $(TMCLASS_FULL)/HashMapArray.class \
+                 $(TMCLASS_FULL)/TrafInfo.class \
+                 $(TMCLASS_FULL)/hbstatus.class \
+                 testrun
+
 ###########################################################################
 
 include ../../../../macros.gmk
@@ -89,6 +99,9 @@ $(TMCLASS_FULL)/HBaseTmZK.class: HBaseTmZK.java
 
 $(TMCLASS_FULL)/TrafInfo.class: TrafInfo.java
 	$(JAVAC) -Xlint -Xlint:-path  TrafInfo.java -d $(TMCLASS_DIR)
+
+$(TMCLASS_FULL)/hbstatus.class: hbstatus.java
+	$(JAVAC) -Xlint -Xlint:-path  hbstatus.java -d $(TMCLASS_DIR)
 
 $(TMCLASS_FULL)/HashMapArray.class: HashMapArray.java
 	$(JAVAC) -Xlint -Xlint:-path  HashMapArray.java -d $(TMCLASS_DIR)

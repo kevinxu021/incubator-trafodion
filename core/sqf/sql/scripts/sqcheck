@@ -164,6 +164,12 @@ let chk_cnt_result=1
 let cmp_result=0
 let sq_up=0
 
+if [[ -z $MY_SQROOT ]]; then
+    echo "The environment variable MY_SQROOT is not present."
+    echo "Looks like the Trafodion environment has not been configured. Exitting..."
+    exit 1;
+fi
+
 if [[ -z $SQSCRIPTS_DIR ]]; then
     SQSCRIPTS_DIR=$MY_SQROOT/sql/scripts
 fi
@@ -171,6 +177,10 @@ SQSCRIPT_FILE="$SQSCRIPTS_DIR/gomon.cold"
 STARTSSMP_FILE="$SQSCRIPTS_DIR/ssmpstart"
 STARTSSCP_FILE="$SQSCRIPTS_DIR/sscpstart"
 
+if [[ ! -e ${SQSCRIPT_FILE} ]]; then
+    echo "Cannot find one of the Trafodion startup command file ${SQSCRIPT_FILE}"
+    echo "Please execute sqgen to generate that file"
+fi
 
 ### CONFIGURED NODEs
 sq_tmp_node_info=`mktemp -t`
@@ -450,7 +460,7 @@ if [ $json_output '==' 0 ]; then
             fi
         else
             echo
-            echo "The SQ environment is not up all, or partially up and not operational. Check the logs."
+            echo "The SQ environment is not up at all, or partially up and not operational. Check the logs."
         fi
     fi
 fi
@@ -476,8 +486,28 @@ else
     echo -e "Process\t\tConfigured\tActual\t    Down"
     echo -e "-------\t\t----------\t------\t    ----"
     if [[ $sqck_component == "all" ]]; then
-        echo -e "DTM\t\t$cfg_dtm_cnt\t\t$act_dtm_cnt\t    ${down_dtms[*]}"
-        echo -e "RMS\t\t$cfg_rms_cnt\t\t$act_rms_cnt\t    ${down_rms[*]}"
+        echo -n -e "DTM\t\t$cfg_dtm_cnt\t\t$act_dtm_cnt\t    "
+	if [[ ${sqc_verbose} == 1 ]]; then
+	    echo "${down_dtms[*]}"
+	else 
+            let lv_num_dtm_down=($cfg_dtm_cnt-$act_dtm_cnt)
+	    if [[ ${lv_num_dtm_down} -gt 1 ]]; then
+		echo -n ${lv_num_dtm_down}
+	    fi
+	    echo
+	fi
+
+        echo -n -e "RMS\t\t$cfg_rms_cnt\t\t$act_rms_cnt\t    "
+	if [[ ${sqc_verbose} == 1 ]]; then
+	    echo "${down_rms[*]}"
+	else 
+            let lv_num_rms_down=($cfg_rms_cnt-$act_rms_cnt)
+	    if [[ ${lv_num_rms_down} -gt 1 ]]; then
+		echo -n ${lv_num_rms_down}
+	    fi
+	    echo
+	fi
+
         echo -e "MXOSRVR\t\t$cfg_mxo_cnt\t\t$act_mxo_cnt\t    ${act_mxo_down_cnt}\n"
     elif [[ $sqck_component == "dtm" ]]; then
         echo -e "DTM\t\t$cfg_dtm_cnt\t\t$act_dtm_cnt\t    ${down_dtms[*]}\n"
@@ -497,7 +527,7 @@ if [ $sq_up '==' 1 ]; then
 elif ( [ $total_procs_result '==' 0 ] ); then
     if [ $json_output '==' 0 ]; then
         echo
-        echo "The SQ environment is down."]
+        echo "The SQ environment is down."
     fi
     exit -1;
 else

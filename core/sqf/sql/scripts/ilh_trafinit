@@ -1,0 +1,74 @@
+#!/bin/bash
+
+####################################################
+#
+# Executes the following:
+#
+# - Kills the Trafodion Env
+# - Kills the HBase env and the HDFS data directory associated with HBase
+#   (uses ilh_cleanhb)
+# - Restarts HBase
+# - Checks whether HBase is ready (uses ilh_hbcheck)
+# - Deletes the Trafodion env file: $MY_SQROOT/etc/ms.env
+# - Regenerates Config (sqgen)
+# - Starts up Trafodion (sqstart)
+# - Initializes Trafodion (sqlci -> initialize trafodion)
+#
+####################################################
+
+if [ ! -z $MY_SQROOT ]; then
+    cd $MY_SQROOT/sql/scripts
+else
+    echo "The environment variable MY_SQROOT does not exist."
+    echo "Please ensure sqenv.sh has been sourced."
+    echo
+    exit 1;
+fi
+
+echo 'This script will do the following:'
+echo ' - Kill the Trafodion Env (pkillall)'
+echo ' - Kill the HBase env and the HDFS data directory associated with HBase (ilh_cleanhb)'
+echo ' - Restart HBase (swstarthbase)'
+echo ' - Delete the file: $MY_SQROOT/etc/ms.env'
+echo ' - sqgen'
+echo ' - sqstart'
+echo ' - sqlci -> initialize trafodion'
+
+read -p 'Do you want to proceed? y/n : ' lv_ans
+if [ "$lv_ans" != "y" ]; then
+    echo "Not proceeding. Exitting..."
+    exit 0
+else
+    echo "Ok...going ahead..."
+fi
+
+lv_starttime=`date`
+run_util pkillall
+
+run_util ilh_cleanhb
+
+run_util swstarthbase
+
+if [ -e $MY_SQROOT/sql/scripts/hbcheck ]; then
+    run_util hbcheck 4 5
+else
+    run_util ilh_hbcheck
+fi
+
+echo "deleting $MY_SQROOT/etc/ms.env"
+rm $MY_SQROOT/etc/ms.env
+
+run_util sqgen
+
+run_util sqstart
+
+echo "executing: sqlci -> initialize trafodion"
+sqlci <<EOF
+initialize trafodion;
+EOF
+
+echo "done"
+lv_endtime=`date`
+echo "Start time: ${lv_starttime}"
+echo "End   time: ${lv_endtime}"
+exit 0
