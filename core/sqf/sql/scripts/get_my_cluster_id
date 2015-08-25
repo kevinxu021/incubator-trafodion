@@ -1,0 +1,27 @@
+#!/bin/bash
+
+if [ -z $MY_SQROOT ]; then
+    echo
+    echo "The MY_SQROOT environment variable does not exist."
+    echo "Please ensure sqenv.sh has been sourced."
+    echo
+    exit 1;
+fi
+
+if [ ! -e ${MY_SQROOT}/etc/ms.env ] ; then
+    echo "File ${MY_SQROOT}/etc/ms.env does not exist. Perhaps sqgen has not been executed on this cluster."
+    echo "Exitting..."
+    exit 1;
+fi
+echo "Checking for the environment variable MY_CLUSTER_ID=${lv_my_peer_id} (file: $MY_SQROOT/etc/ms.env)"
+
+lv_grep_output=`grep -w MY_CLUSTER_ID=.* $MY_SQROOT/etc/ms.env`
+lv_ret_status=$?
+if [ $lv_ret_status '!=' 0 ]; then
+    echo "Looks like an ID has not been assigned to this cluster. Please run \'add_my_cluster_id <id>\'"
+else 
+    echo "${lv_grep_output}"
+    if [[ ${lv_grep_output:0:1} == '#' ]]; then
+	echo "Looks like the variable has been commented out"
+    fi
+fi

@@ -1,0 +1,57 @@
+#!/bin/bash
+
+if [ -z $1 ]; then
+    echo "Usage: $0 <cluster id (an integer in the range 1-100)"
+    exit 1
+fi
+
+declare -i lv_my_peer_id
+lv_my_peer_id=$1
+if (
+	[ $lv_my_peer_id -lt 1 ] ||
+	[ $lv_my_peer_id -gt 100 ]
+    ); then
+    echo "Please provide a cluster id in the range 1-100"
+    exit 1
+fi
+
+if [ -z $MY_SQROOT ]; then
+    echo
+    echo "The MY_SQROOT environment variable does not exist."
+    echo "Please ensure sqenv.sh has been sourced."
+    echo
+    exit 1;
+fi
+
+if [ ! -e ${MY_SQROOT}/etc/ms.env ] ; then
+    echo "File ${MY_SQROOT}/etc/ms.env does not exist. Perhaps sqgen has not been executed on this cluster."
+    echo "Exitting..."
+    exit 1;
+fi
+
+lv_grep_output=`grep MY_CLUSTER_ID= $MY_SQROOT/etc/ms.env`
+lv_ret_status=$?
+if [ $lv_ret_status '!=' 0 ]; then
+    echo "Adding the environment variable MY_CLUSTER_ID=${lv_my_peer_id} (file: $MY_SQROOT/etc/ms.env)"
+    echo "MY_CLUSTER_ID=${lv_my_peer_id}" >> $MY_SQROOT/etc/ms.env
+else 
+    echo "Updating the environment variable MY_CLUSTER_ID=${lv_my_peer_id} (file: $MY_SQROOT/etc/ms.env)"
+    sed -i -e "s/MY_CLUSTER_ID=.*$/MY_CLUSTER_ID=${lv_my_peer_id}/g" $MY_SQROOT/etc/ms.env     
+fi
+
+lv_ret_status=$?
+if [[ ${lv_ret_status} != 0 ]]; then
+    echo "There was a problem adding/updating - return code: ${lv_ret_status}"
+    echo "Exitting..."
+    exit 1
+fi
+
+echo "Successfully added/updated the environment variable MY_CLUSTER_ID=${lv_my_peer_id} (file: $MY_SQROOT/etc/ms.env)"
+
+if [ -e $SQ_PDCP ]; then
+    echo
+    echo "Copying $MY_SQROOT/etc/ms.env to all the nodes in the Trafodion cluster"
+    $PDCP -p $MY_NODES $MY_SQROOT/etc/ms.env $MY_SQROOT/etc/ms.env
+fi
+
+echo "Please restart the Trafodion cluster for this to take effect."
