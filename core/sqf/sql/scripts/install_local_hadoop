@@ -400,8 +400,20 @@ else
     MY_START_PORT=${MY_START_PORT/.*/}
     MY_START_PORT=`expr 50000 + $MY_START_PORT '*' 100`
   elif [ $MY_START_PORT == "rand" ]; then
-    # pick a random number between 9000 and 49000 that is divisible by 200
-    MY_START_PORT=`expr $RANDOM '%' 200 '*' 200 + 9000`
+    # pick a random number between 10000 and 31200 that is divisible by 200
+    lv_number=0   #initialize
+    FLOOR=10000
+    RANGE=31200
+    while [ "$lv_number" -le $FLOOR ]
+    do
+	lv_number=$RANDOM
+	let "lv_number %= $RANGE"  # Scales $lv_number down within $RANGE.
+    done
+    echo "Random lv_number between $FLOOR and $RANGE ---  $lv_number"
+    echo
+    let "lv_remainder=$lv_number % 200"
+    let "MY_START_PORT=$lv_number - $lv_remainder"
+    echo "Start Port ---  $MY_START_PORT"
   fi
   echo "# Using non-standard port range from MY_START_PORT env var: $MY_START_PORT..."
 fi
