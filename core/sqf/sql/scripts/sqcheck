@@ -167,7 +167,7 @@ let sq_up=0
 if [[ -z $MY_SQROOT ]]; then
     echo "The environment variable MY_SQROOT is not present."
     echo "Looks like the Trafodion environment has not been configured. Exitting..."
-    exit 1;
+    exit 5;
 fi
 
 if [[ -z $SQSCRIPTS_DIR ]]; then
@@ -180,6 +180,7 @@ STARTSSCP_FILE="$SQSCRIPTS_DIR/sscpstart"
 if [[ ! -e ${SQSCRIPT_FILE} ]]; then
     echo "Cannot find one of the Trafodion startup command file ${SQSCRIPT_FILE}"
     echo "Please execute sqgen to generate that file"
+    exit 5;
 fi
 
 ### CONFIGURED NODEs
@@ -491,7 +492,7 @@ else
 	    echo "${down_dtms[*]}"
 	else 
             let lv_num_dtm_down=($cfg_dtm_cnt-$act_dtm_cnt)
-	    if [[ ${lv_num_dtm_down} -gt 1 ]]; then
+	    if [[ ${lv_num_dtm_down} -gt 0 ]]; then
 		echo -n ${lv_num_dtm_down}
 	    fi
 	    echo
@@ -502,7 +503,7 @@ else
 	    echo "${down_rms[*]}"
 	else 
             let lv_num_rms_down=($cfg_rms_cnt-$act_rms_cnt)
-	    if [[ ${lv_num_rms_down} -gt 1 ]]; then
+	    if [[ ${lv_num_rms_down} -gt 0 ]]; then
 		echo -n ${lv_num_rms_down}
 	    fi
 	    echo
