@@ -430,7 +430,7 @@ function sqsavelogs {
     cp -p $MY_SQROOT/logs/pstart*.log ${lv_copy_to_dir}
     cp -p $MY_SQROOT/logs/smstats.*.log ${lv_copy_to_dir}
     cp -p $MY_SQROOT/logs/sqmo*.log ${lv_copy_to_dir}
-    cp -p $MY_SQROOT/logs/trafodion.dtm.log* ${lv_copy_to_dir}
+    cp -p $MY_SQROOT/logs/trafodion.*.log* ${lv_copy_to_dir}
     cp -p $MY_SQROOT/logs/tm*.log ${lv_copy_to_dir}
     cp -p $MY_SQROOT/logs/wdt.*.log ${lv_copy_to_dir}
 
@@ -690,7 +690,7 @@ function sqcollectmonmemlog {
     fi
 }
 
-# Collects pstacks of some programs (dp2, monitor, mxosrvr, arkesp, arkcmp, dtm)
+# Collects pstacks of some programs (monitor, mxosrvr, arkesp, arkcmp, dtm)
 #  the 'sqnpstacks' function
 function sqcollectstacks {
 
@@ -710,9 +710,7 @@ function sqcollectstacks {
     fi
     
     setup_sqpdsh
-    mkdir -p dp2 monitor mxosrvr tdm_arkcmp tdm_arkesp tm
-    echo "Collecting dp2 pstacks"
-    eval '$SQPDSHA "sqnpstack dp2 $PWD/dp2" 2>/dev/null &'
+    mkdir -p monitor mxosrvr tdm_arkcmp tdm_arkesp tm
     echo "Collecting monitor pstacks"
     eval '$SQPDSHA "sqnpstack monitor $PWD/monitor" 2>/dev/null &' 
     echo "Collecting mxosrvr pstacks"
