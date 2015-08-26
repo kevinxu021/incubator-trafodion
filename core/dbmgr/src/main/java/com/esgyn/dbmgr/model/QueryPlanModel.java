@@ -1,5 +1,6 @@
 package com.esgyn.dbmgr.model;
 
+import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -13,7 +14,6 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.trafodion.jdbc.t4.TrafT4Connection;
-import org.trafodion.jdbc.t4.TrafT4PreparedStatement;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
 import com.esgyn.dbmgr.resources.ConfigurationResource;
@@ -130,8 +130,7 @@ public class QueryPlanModel {
       String controlStmts, String queryID) throws EsgynDBMgrException {
 
     ArrayList<QueryPlanData> planArray = new ArrayList<QueryPlanData>();
-    TrafT4Connection connection = null;
-    TrafT4PreparedStatement pStmt;
+    Connection connection = null;
     Statement stmt = null;
 
     ResultSet rs;

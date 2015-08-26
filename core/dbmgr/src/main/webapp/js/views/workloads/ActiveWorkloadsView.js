@@ -1,6 +1,6 @@
 define([
         'views/BaseView',
-        'text!templates/workloads.html',
+        'text!templates/active_workloads.html',
         'jquery',
         'handlers/WorkloadsHandler',
         'jqueryui',
@@ -13,7 +13,7 @@ define([
     var oDataTable = null;
     var _that = null;
 
-	var WorkloadsView = BaseView.extend({
+	var ActiveWorkloadsView = BaseView.extend({
 		template:  _.template(WorkloadsT),
 
 		init: function (){
@@ -107,5 +107,5 @@ define([
 	});
 
 
-	return WorkloadsView;
+	return ActiveWorkloadsView;
 });

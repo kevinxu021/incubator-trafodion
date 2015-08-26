@@ -81,7 +81,7 @@ public class QueryResource {
   public static TabularResult executeSQLQuery(String user, String password, String queryText,
       String sControlStmts) throws EsgynDBMgrException {
 
-    Connection connection;
+    Connection connection = null;
     Statement stmt;
     ResultSet rs;
     TabularResult js = new TabularResult();
@@ -111,12 +111,22 @@ public class QueryResource {
 
       stmt = connection.createStatement();
       rs = stmt.executeQuery(queryText);
+      _LOG.debug(queryText);
       js = Helper.convertResultSetToTabularResult(rs);
       rs.close();
-      connection.close();
+
     } catch (Exception e) {
       _LOG.error("Failed to execute query : " + e.getMessage());
       throw new EsgynDBMgrException(e.getMessage());
+    }
+ finally {
+      if (connection != null) {
+        try {
+          connection.close();
+        } catch (Exception ex) {
+
+        }
+      }
     }
     return js;
   }

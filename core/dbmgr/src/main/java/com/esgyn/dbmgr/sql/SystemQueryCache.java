@@ -7,7 +7,8 @@ public class SystemQueryCache {
   public static final String SELECT_SCHEMAS = "SELECT_SCHEMAS";
   public static final String SELECT_SCHEMA = "SELECT_SCHEMA";
   public static final String SELECT_SCHEMA_OBJECTS = "SELECT_SCHEMA_OBJECTS";
-  public static final String SELECT_WORKLOADS = "SELECT_WORKLOADS";
+  public static final String SELECT_QUERIES_FROM_REPO = "SELECT_QUERIES_FROM_REPO";
+  public static final String SELECT_QUERY_DETAIL = "SELECT_QUERY_DETAIL";
   public static final String SELECT_LOGS = "SELECT_LOGS";
   public static final String OPENTSDB_CPU_USAGE = "OPENTSDB_CPU_USAGE";
   public static final String OPENTSDB_MEMORY_USAGE = "OPENTSDB_MEMORY_USAGE";

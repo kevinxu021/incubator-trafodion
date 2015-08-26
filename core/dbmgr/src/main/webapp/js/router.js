@@ -8,13 +8,15 @@ define([
         'views/dcs/DCSServerView',
         'views/login/LoginView',
         'views/database/DatabaseView',
-        'views/workloads/WorkloadsView',
+        'views/workloads/ActiveWorkloadsView',
+        'views/workloads/HistoricalWorkloadsView',
+        'views/workloads/HistoricalWorkloadDetailView',
         'views/logs/LogsView',
         'model/Session',
         'model/Localizer',
         'metismenu'
         ], function($, _, Backbone, NavbarView, DashboardView, WorkbenchView, DCSServerView, LoginView, DatabaseView, 
-        		WorkloadsView, LogsView, Session, Localizer) {
+        		ActiveWorkloadsView, HistoricalWorkloadsView, HistoricalWorkloadDetailView, LogsView, Session, Localizer) {
 	'use strict';
 
 	var currentSelection = null;
@@ -24,7 +26,9 @@ define([
 	var dcsServerView = null;
 	var loginView = null;
 	var databaseView = null;
-	var workloadsView = null;
+	var historicalWorkloadsView = null;
+	var historicalWorkloadDetailView = null;
+	var activeWorkloadsView = null;
 	var logsView = null;
 	
 	var AppRouter = Backbone.Router.extend({
@@ -50,7 +54,9 @@ define([
 			'database(/*args)' : 'showDatabase',
 			'login': 'showLogin',
 			'logout': 'doLogout',
-			'workloads': 'showWorkloads',
+			'workloads/active': 'showActiveWorkloads',
+			'workloads/history': 'showHistoricalWorkloads',
+			'workloads/history/querydetail(/*args)':'showHistoricalWorkloadDetail',
 			'logs': 'showLogs',
 			'tools/(*args)': 'showTools',
 			// Default
@@ -63,49 +69,13 @@ define([
 		topOffset = 50;
 		$('#side-menu').metisMenu();
 		
-       /* width = (this.innerWidth > 0) ? this.innerWidth : this.screen.width;
-        if (width < 768) {
-            $('div.navbar-collapse').addClass('collapse');
-            topOffset = 100; // 2-row-menu
-        } else {
-            $('div.navbar-collapse').removeClass('collapse');
-        }
-
-        height = ((this.innerHeight > 0) ? this.innerHeight : this.screen.height) - 1;
-        height = height - topOffset;
-        if (height < 1) height = 1;
-        if (height > topOffset) {
-            $("#page-wrapper").css("min-height", (height) + "px");
-        }*/
-		
-		//$('.sidebar-nav ul li a').removeClass("active");
-		//$('#side-menu li a').removeClass("active");
 		if (currentView && currentView != view) {
 			// Detach the old view
 			currentView.remove();
 		}
-
-		// Move the view element into the DOM (replacing the old content)
-		//this.el.html(view.el);
-
 		// Render view after it is in the DOM (styles are applied)
 		view.render(args);
 		currentView = view;
-        
-		/*var url = window.location;
-        var element = $('ul.nav a').filter(function() {
-            //if(this.href == url || url.href.indexOf(this.href) == 0){
-            if(this.href == url || url.href == this.href){
-            	currentSelection = this;
-            	return true;
-            }else{
-            	return false;
-            }
-        }).addClass('active').parent().parent().addClass('in').parent();
-        
-        if (element.is('li')) {
-            element.addClass('active');
-        }*/
 	};
 
 	var logout = function(){
@@ -120,7 +90,9 @@ define([
 		workbenchView = null;
 		dcsServerView = null;
 		databaseView = null;	
-		workloadsView = null;
+		historicalWorkloadsView = null;
+		historicalWorkloadDetailView = null;
+		activeWorkloadsView = nul;
 		logsView = null;		
 	}
 
@@ -176,11 +148,24 @@ define([
 			switchView(databaseView, args);
 		});
 		
-		app_router.on('route:showWorkloads', function (args) {
-			if(workloadsView == null)
-				workloadsView = new WorkloadsView();
-			switchView(workloadsView, args);
+		app_router.on('route:showHistoricalWorkloads', function (args) {
+			if(historicalWorkloadsView == null)
+				historicalWorkloadsView = new HistoricalWorkloadsView();
+			switchView(historicalWorkloadsView, args);
 		});
+		
+		app_router.on('route:showHistoricalWorkloadDetail', function (args) {
+			if(historicalWorkloadDetailView == null)
+				historicalWorkloadDetailView = new HistoricalWorkloadDetailView();
+			switchView(historicalWorkloadDetailView, args);
+		});
+		
+		app_router.on('route:showActiveWorkloads', function (args) {
+			if(activeWorkloadsView == null)
+				activeWorkloadsView = new ActiveWorkloadsView();
+			switchView(activeWorkloadsView, args);
+		});		
+		
 		app_router.on('route:showLogs', function (args) {
 			if(logsView == null)
 				logsView = new LogsView();

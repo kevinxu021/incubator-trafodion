@@ -40,17 +40,78 @@
 		</query>
 		<query>
 			<!-- Fetch list of historical workloads -->
-			<name>SELECT_WORKLOADS</name>
+			<name>SELECT_QUERIES_FROM_REPO</name>
 			<text><![CDATA[SELECT query_id as "Query ID", query_status AS "Status" ,
 						EXEC_START_UTC_TS AS "Start Time", EXEC_END_UTC_TS AS "End Time", 
 						USER_NAME AS "User Name",  APPLICATION_NAME as "Application",
 						CLIENT_NAME as "Client", query_elapsed_time AS "Elapsed Time", 
 						QUERY_TEXT AS "Query Text"
 					FROM "_REPOS_".metric_query_table 
+					%1$s
 					order by exec_start_utc_ts desc
 					for read uncommitted access;
 				]]></text>
 		</query>
+		<query>
+			<name>SELECT_QUERY_DETAIL</name>
+			<text><![CDATA[select user_name,
+						query_status, 
+						exec_start_utc_ts, 
+						exec_end_utc_ts, 
+						query_sub_status,
+						master_process_id,
+						process_name,
+						session_id,
+						application_name,
+						client_name,
+						statement_type,
+						statement_subtype,
+						submit_utc_ts,
+						compile_start_utc_ts,
+						compile_end_utc_ts,
+						compile_elapsed_time,
+						cmp_dop,
+						cmp_missing_stats,
+						cmp_num_joins,
+						cmp_full_scan_on_table,
+						est_accessed_rows,
+						est_used_rows,
+						cmp_cpu_path_length,
+						cmp_stmt_heap_size,
+						cmp_context_heap_size,
+						est_cost,
+						est_cardinality,
+						est_io_time,
+						est_msg_time,
+						est_idle_time,
+						est_cpu_time,
+						est_total_mem,
+						cmp_number_of_bmos,
+						cmp_overflow_size,
+						stats_error_code,
+						query_elapsed_time,
+						sql_process_busy_time,
+						disk_process_busy_time,
+						disk_ios,
+						num_sql_processes,
+						total_mem_alloc,
+						max_mem_used,
+						transaction_id,
+						master_execution_time,
+						master_elapsed_time,
+						error_code,
+						sql_error_code,
+						error_text,
+						query_text,
+						total_num_aqr_retries,
+						msg_bytes_to_disk,
+						msgs_to_disk,
+						num_rows_iud,
+						processes_created,
+						num_nodes
+						from "_REPOS_".metric_query_table
+				 WHERE query_id = '%1$s']]></text>
+		</query>	
 		<query>
 			<!-- Fetch list of log entries -->
 			<name>SELECT_LOGS</name>
