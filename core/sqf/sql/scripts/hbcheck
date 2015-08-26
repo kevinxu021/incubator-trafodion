@@ -1,0 +1,10 @@
+#!/bin/bash
+
+if [ -z $JAVA_HOME ]; then
+    echo "The environment variable $JAVA_HOME has not been set"
+    echo "Please ensure $MY_SQROOT/sqenv.sh has been sourced."
+    echo
+    exit 1;
+fi
+
+$JAVA_HOME/bin/java org.trafodion.dtm.hbstatus 2>$MY_SQROOT/sql/local_hadoop/log/hbstatus.err
