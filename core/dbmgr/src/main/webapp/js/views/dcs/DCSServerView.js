@@ -3,11 +3,12 @@ define([
         'text!templates/dcsservers.html',
         'jquery',
         'handlers/DcsHandler',
+        'moment',
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
         'tabletools'
-        ], function (BaseView, DcsServerT, $, dcsHandler) {
+        ], function (BaseView, DcsServerT, $, dcsHandler, moment) {
 	'use strict';
     var LOADING_SELECTOR = ".dbmgr-spinner",
     	RESULT_CONTAINER = '#query-result-container',
@@ -80,7 +81,7 @@ define([
 					dom: 'T<"clear">lfrtip',
 					"bProcessing": true,
 					"bPaginate" : true, 
-					"bAutoWidth": true,
+					//"bAutoWidth": true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "simple_numbers",
 					//"scrollY":        "800px",
@@ -88,13 +89,23 @@ define([
 					//"bJQueryUI": true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
+					"aoColumnDefs": [ {
+					      "aTargets": [ 2 ],
+					      "mData": 2,
+					      "mRender": function ( data, type, full ) {
+					       if (type === 'display') {
+					          return moment(data).format("YYYY-MM-DD HH:mm:ss");
+					        }
+					        else return data;
+					      }
+					    } ],
 					paging: true,
 					"tableTools": {
 						"sRowSelect": "multi",
 						"sSwfPath": "bower_components/datatables-tabletools/swf/copy_csv_xls_pdf.swf"
 					},
 					fnDrawCallback: function(){
-						$('#query-results td').css("white-space","nowrap");
+						//$('#query-results td').css("white-space","nowrap");
 		             }
 				});
 				

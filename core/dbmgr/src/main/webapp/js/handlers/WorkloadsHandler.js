@@ -9,26 +9,45 @@ function(EventDispatcher) {"use strict";
         function WorkloadsHandler() {
         	var dispatcher = new EventDispatcher();
         	var _this = this;
-        	this.FETCHWORKLOADS_SUCCESS = 'fetchWorkloadsSuccess';
-        	this.FETCHWORKLOADS_ERROR = 'fetchWorkloadsError';
+        	this.FETCHREPOS_SUCCESS = 'fetchResposSuccess';
+        	this.FETCHREPOS_ERROR = 'fetchResposError';
+        	this.FETCH_REPO_QUERY_DETAIL_SUCCESS = 'fetchRepoQDetailSuccess';
+        	this.FETCH_REPO_QUERY_DETAIL_ERROR = 'fetchRepoQDetailError';
         	
             /**
              * call memory skew
              */
-        	this.fetchWorkloads = function(){
+        	this.fetchQueriesInRepository = function(params){
         		$.ajax({
-    				url: 'resources/workloads/list',
+    				url: 'resources/workloads/repo',
+    				type:'POST',
+    				data: JSON.stringify(params),
+    				dataType:"json",
+    				contentType: "application/json;",
+    				success: function(data){
+    					dispatcher.fire(_this.FETCHREPOS_SUCCESS, data);
+    				},
+    				error:function(jqXHR, res, error){
+    					dispatcher.fire(_this.FETCHREPOS_ERROR, jqXHR, res, error);
+    				}
+    			});
+            }; 
+            
+            this.fetchRepositoryQueryDetail = function(queryID){
+
+        		$.ajax({
+    				url: 'resources/workloads/repo/detail?queryID=' + queryID,
     				type:'GET',
     				dataType:"json",
     				contentType: "application/json;",
     				success: function(data){
-    					dispatcher.fire(_this.FETCHWORKLOADS_SUCCESS, data);
+    					dispatcher.fire(_this.FETCH_REPO_QUERY_DETAIL_SUCCESS, data);
     				},
     				error:function(jqXHR, res, error){
-    					dispatcher.fire(_this.FETCHWORKLOADS_ERROR, jqXHR, res, error);
+    					dispatcher.fire(_this.FETCH_REPO_QUERY_DETAIL_ERROR, jqXHR, res, error);
     				}
     			});
-            };           
+            }; 
                                   
             /**
              * @public

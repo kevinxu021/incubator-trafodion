@@ -1,0 +1,88 @@
+<div id="page-wrapper">
+	<div class="row">
+		<div class="col-lg-12">
+			<h1 class="page-header">Query Detail</h1>
+		</div>
+		<!-- /.col-lg-12 -->
+	</div>
+	<div class="row">
+		<div class="col-lg-12">
+			<div class="panel panel-primary">
+				<div class="panel-heading">
+					Summary <img id="loadingImg" src="img/ajax-loader.gif" />
+					<div class="pull-right">
+						<div class="btn-group">
+							<button type="button"
+								class="btn btn-default btn-xs dropdown-toggle"
+								data-toggle="dropdown">
+								Actions <span class="caret"></span>
+							</button>
+							<ul class="dropdown-menu pull-right" role="menu">
+								<li><a id="refreshAction">Refresh</a></li>
+							</ul>
+						</div>
+					</div>
+				</div>
+				<div class="panel-body">
+					<fieldset class="dbmgr-fieldset-table" style="width:90%">
+						<ul style="padding:0px;width:90%">
+							<li class="dbmgr-form-item-row" style="width:90%">
+								<label class="dbmgr-form-item-cell-label" style="vertical-align: top;">Query ID</label>
+								<input class="dbmgr-form-item-cell-label" style="width:600px;border: none;" readonly id="query-id" maxlength="255">
+							</li>
+							<li  class="dbmgr-form-item-row" style="width:90%">
+								<label class="dbmgr-form-item-cell-label" style="vertical-align: top;">Status</label>
+								<input class="dbmgr-form-item-cell-label" style="width:600px;border: none;" readonly id="query-status" maxlength="25">
+							</li>
+							<li  class="dbmgr-form-item-row" style="width:90%">
+								<label class="dbmgr-form-item-cell-label" style="vertical-align: top;">Start Time</label>
+								<input class="dbmgr-form-item-cell-label" style="width:600px;border: none;" readonly id="query-start-time" maxlength="25">
+							</li>							
+							<li  class="dbmgr-form-item-row" style="width:90%">
+								<label class="dbmgr-form-item-cell-label" style="vertical-align: top;">End Time</label>
+								<input class="dbmgr-form-item-cell-label" style="width:600px;border: none;" readonly id="query-end-time" maxlength="25">
+							</li>							
+							<li  class="dbmgr-form-item-row" style="width:90%">
+								<label class="dbmgr-form-item-cell-label" style="vertical-align: top;">Query Text</label>
+								<textarea id="query-text" readonly name="TextMessage" spellcheck="false" rows="5" readonly class="textarea"
+								style="width:800px; margin-bottom:10px"></textarea>
+							</li>						
+						</ul>
+					</fieldset>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-lg-4">
+			<div class="panel panel-primary">
+				<div class="panel-heading">
+					Connection Metrics 
+				</div>
+				<div class="panel-body">
+					<div id="connection-metrics-container" class="table-responsive"></div>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-4">
+			<div class="panel panel-primary">
+				<div class="panel-heading">
+					Compile Time Metrics 
+				</div>
+				<div class="panel-body">
+					<div id="compile-metrics-container" class="table-responsive"></div>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-4">
+			<div class="panel panel-primary">
+				<div class="panel-heading">
+					Run Time Metrics 
+				</div>
+				<div class="panel-body">
+					<div id="runtime-metrics-container" class="table-responsive"></div>
+				</div>
+			</div>
+		</div>				
+	</div>
+</div>

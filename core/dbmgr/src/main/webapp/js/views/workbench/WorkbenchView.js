@@ -167,10 +167,10 @@ define([
         				case 'INDEX_SCAN':
         				case 'FILE_SCAN_UNIQUE':
         				case 'INDEX_SCAN_UNIQUE':
-        					html = "<img src='img/file_scan.gif' />" + nodeName;
+        					html = "<img src='img/file_scan.png' />" + nodeName;
         					break;
         				case 'PARTITION_ACCESS':
-        					html =  "<img src='img/partition_scan.gif' />" + nodeName;
+        					html =  "<img src='img/partition_scan.png' />" + nodeName;
         					break;
         				case 'HASH_GROUPBY':
         					html =  "<img src='img/hash_groupby.png' />" + nodeName;
@@ -210,7 +210,7 @@ define([
         					break;
         				case 'INSERT':
         				case 'INSERT_VSBB':
-        					html =  "<img src='img/insert.gif' />" + nodeName;
+        					html =  "<img src='img/insert.png' />" + nodeName;
         					break;
         				case 'PROBE_CACHE':
         					html =  "<img src='img/probe_cache.png' />" + nodeName;
@@ -239,7 +239,7 @@ define([
         				case 'MERGE_ANTI_SEMI_JOIN':
         				case 'MERGE_JOIN':
         				case 'MERGE_SEMI_JOIN':
-        					html =  "<img src='img/merge_join.gif' />"  + nodeName;
+        					html =  "<img src='img/merge_join.png' />"  + nodeName;
         					break;									
         				case 'NESTED_ANTI_SEMI_JOIN':
         				case 'LEFT_NESTED_JOIN':
@@ -248,13 +248,13 @@ define([
         					html =  "<img src='img/nested_join.png' />"  + nodeName;
         					break;
         				case 'MERGE_UNION':
-        					html =  "<img src='img/merge_union.gif' />" + nodeName;
+        					html =  "<img src='img/merge_union.png' />" + nodeName;
         					break;
         				case 'ESP_EXCHANGE':
         					html =  "<img src='img/esp_exchange.png' />" + nodeName;
         					break;
         				case 'SPLIT_TOP':
-        					html =  "<img src='img/split_top.gif' />" + nodeName;
+        					html =  "<img src='img/split_top.png' />" + nodeName;
         					break;
         				case 'HIVE_INSERT':
         				case 'TRAFODION_':
@@ -265,13 +265,13 @@ define([
         				case 'HIVE_SCAN':
         				case 'TRAFODION_SCAN':
         				case 'SEABASE_SCAN':
-        					html =  "<img src='img/seabase_scan.gif' />" + nodeName;
+        					html =  "<img src='img/seabase_scan.png' />" + nodeName;
         					break;
         				case 'ROOT':
         					html =  "<img src='img/root.png'/> " + nodeName;
         					break;
         				default:
-        					html =  "<img src='img/undefined.gif' />" + nodeName;
+        					html =  "<img src='img/undefined.png' />" + nodeName;
         				break;
         			}
         			label.id = node.id;            

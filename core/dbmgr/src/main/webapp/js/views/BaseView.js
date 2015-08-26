@@ -61,10 +61,11 @@ define([
 		},
 
 		remove: function(){
+			this.pause();
 			var childElement = $(this.$el[0]).find('#page-wrapper');
 			if(childElement && childElement.length > 0)
 				this.pageWrapper = childElement.detach();
-			this.pause();
+
 		},
 	});
 

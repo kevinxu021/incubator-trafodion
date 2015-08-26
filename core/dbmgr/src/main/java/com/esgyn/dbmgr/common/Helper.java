@@ -1,6 +1,10 @@
 package com.esgyn.dbmgr.common;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.TimeZone;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
@@ -220,5 +224,42 @@ public class Helper {
       }
     }
     return sb.toString();
+  }
+
+  public static long getTimeZoneUTCOffset(String timezone) {
+    if (timezone == null || timezone.length() == 0) {
+      timezone = "Etc/UTC";
+    }
+
+    DateTimeZone a = DateTimeZone.forID(timezone);
+    return a.getOffset(null);
+  }
+
+  public static DateTime sqlTimestampToUTCDate(Timestamp ts) {
+    DateTime dateTime = null;
+    try {
+      if (ts != null) {
+        long millis = ts.getTime();
+        long offset = getTimeZoneUTCOffset(TimeZone.getDefault().getID());
+
+        dateTime = new DateTime(millis + offset, DateTimeZone.UTC);
+      }
+    } catch (Exception e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    return dateTime;
+  }
+
+  public static DateTime sqlTimestampToUTCDate(ResultSet rs, int fieldNumber) {
+    DateTime dateTime = null;
+    try {
+      Timestamp ts = rs.getTimestamp(fieldNumber);
+      return sqlTimestampToUTCDate(ts);
+    } catch (SQLException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    return dateTime;
   }
 }
