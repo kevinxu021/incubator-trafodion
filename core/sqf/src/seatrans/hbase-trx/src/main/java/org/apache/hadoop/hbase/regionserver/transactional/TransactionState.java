@@ -51,7 +51,7 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.wal.HLog;
+import org.apache.hadoop.hbase.wal.WAL;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
 import org.apache.hadoop.hbase.regionserver.ScanQueryMatcher;
@@ -107,7 +107,7 @@ public class TransactionState {
 
     protected boolean earlyLogging = false;
     protected boolean commit_TS_CC = false;
-    protected HLog tHLog = null;
+    protected WAL tHLog = null;
     protected Object xaOperation = new Object();;
     protected CommitProgress commitProgress = CommitProgress.NONE; // 0 is no commit yet, 1 is a commit is under way, 2 is committed
     protected List<Tag> tagList = Collections.synchronizedList(new ArrayList<Tag>());
@@ -117,7 +117,7 @@ public class TransactionState {
     public static byte TS_TRAFODION_TXN_TAG_TYPE = 41;
 
     public TransactionState(final long transactionId, final long rLogStartSequenceId, AtomicLong hlogSeqId, final HRegionInfo regionInfo,
-                                                 HTableDescriptor htd, HLog hLog, boolean logging) {
+                                                 HTableDescriptor htd, WAL hLog, boolean logging) {
         Tag transactionalTag = null;
         if (LOG.isTraceEnabled()) LOG.trace("Create TS object for " + transactionId + " early logging " + logging);
         this.transactionId = transactionId;

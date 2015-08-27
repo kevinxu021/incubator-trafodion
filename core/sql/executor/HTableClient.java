@@ -927,7 +927,9 @@ public class HTableClient {
 		final boolean checkAndPut, boolean asyncOperation) throws IOException, InterruptedException, 
                           ExecutionException 
 	{
-		if (logger.isTraceEnabled()) logger.trace("Enter putRow() " + tableName);
+		if (logger.isTraceEnabled()) logger.trace("Enter putRow() " + tableName + 
+							  " transID: " + transID +
+							  " useTRex: " + useTRex);
 
 	 	final Put put;
 		ByteBuffer bb;
@@ -987,16 +989,23 @@ public class HTableClient {
 		} else {
 		 	boolean result = true;
 			if (checkAndPut) {
-		    		if (useTRex && (transID != 0)) 
-					result = table.checkAndPut(transID, rowID, 
-						family1, qualifier1, colValToCheck, put);
+			    if (useTRex && (transID != 0)) {
+				if (logger.isTraceEnabled()) logger.trace("trx check and put ");
+				
+				result = table.checkAndPut(transID, rowID, 
+							   family1, qualifier1, colValToCheck, put);
+			    }
 		   		else 
 					result = table.checkAndPut(rowID, 
 						family1, qualifier1, colValToCheck, put);
 			}
 			else {
 		    		if (useTRex && (transID != 0)) 
+				    {
+					if (logger.isTraceEnabled()) logger.trace("trx put ");
+					
 					table.put(transID, put);
+				    }
 		    		else 
 					table.put(put);
 			}
@@ -1017,7 +1026,9 @@ public class HTableClient {
                        long timestamp, boolean autoFlush, boolean asyncOperation)
 			throws IOException, InterruptedException, ExecutionException  {
 
-		if (logger.isTraceEnabled()) logger.trace("Enter putRows() " + tableName);
+		if (logger.isTraceEnabled()) logger.trace("Enter putRows() " + tableName +
+							  " transID: " + transID + 
+							  " useTRex: " + useTRex);
 
 		Put put;
 		ByteBuffer bbRows, bbRowIDs;

@@ -701,7 +701,8 @@ if (LOG.isTraceEnabled()) LOG.trace("checkAndPut, seting request startid: " + tr
     }
     public void flushCommits()
                   throws InterruptedIOException,
-                RetriesExhaustedWithDetailsException {
+                RetriesExhaustedWithDetailsException,
+                IOException{
          super.flushCommits();
     }
     public HConnection getConnection()
@@ -753,11 +754,11 @@ if (LOG.isTraceEnabled()) LOG.trace("checkAndPut, seting request startid: " + tr
     {
         return super.checkAndPut(row,family,qualifier,value,put);
     }
-    public void put(Put p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException
+    public void put(Put p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException, IOException
     {
         super.put(p);
     }
-    public void put(List<Put> p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException
+    public void put(List<Put> p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException, IOException
     {
         super.put(p);
     }

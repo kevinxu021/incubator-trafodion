@@ -113,10 +113,12 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionObserver;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter;
+import org.apache.hadoop.hbase.filter.Filter.ReturnCode;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HBaseInterfaceAudience;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.Tag;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -134,9 +136,12 @@ import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
-import org.apache.hadoop.hbase.regionserver.wal.HLog;
+//import org.apache.hadoop.hbase.regionserver.wal.HLog;
+import org.apache.hadoop.hbase.wal.WAL;
+import org.apache.hadoop.hbase.wal.WALKey;
 import org.apache.hadoop.hbase.regionserver.wal.HLogKey;
-import org.apache.hadoop.hbase.regionserver.wal.HLogUtil;
+//import org.apache.hadoop.hbase.regionserver.wal.HLogUtil;
+import org.apache.hadoop.hbase.regionserver.wal.WALUtil;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.regionserver.transactional.CleanOldTransactionsChore;
 import org.apache.hadoop.hbase.regionserver.transactional.MemoryUsageChore;
@@ -308,7 +313,7 @@ CoprocessorService, Coprocessor {
   private TransactionalRegion t_Region = null;
   private FileSystem fs = null;
   private RegionCoprocessorHost rch = null;
-  private HLog tHLog = null;
+  private WAL tHLog = null;
   private AtomicBoolean closing = new AtomicBoolean(false);
   private boolean fullEditInCommit = true;
   private boolean configuredEarlyLogging = false;
@@ -2967,7 +2972,8 @@ CoprocessorService, Coprocessor {
 
     this.t_Region = (TransactionalRegion) tmp_env.getRegion();
     this.fs = this.m_Region.getFilesystem();
-    tHLog = this.m_Region.getLog();
+    //tHLog = this.m_Region.getLog();
+    tHLog = this.m_Region.getWAL();
 
     RegionServerServices rss = tmp_env.getRegionServerServices();
     ServerName sn = rss.getServerName();
@@ -3337,11 +3343,11 @@ CoprocessorService, Coprocessor {
       for ( int i = 0; i < num; i++){
          b = editList.get(i);
          if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Writing " + b.size() + " updates for reinstated transaction");
-         for (KeyValue kv : b.getKeyValues()) {
+         for (Cell kv : b.getCells()) {
            synchronized (editReplay) {
              Put put;
              Delete del;
-             if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor:commit - txId " + transactionId + ", Trafodion Recovery: region " + m_Region.getRegionInfo().getRegionNameAsString() + ", Replay commit for transaction with Op " + kv.getType());
+             if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor:commit - txId " + transactionId + ", Trafodion Recovery: region " + m_Region.getRegionInfo().getRegionNameAsString() + ", Replay commit for transaction with Op " + kv.getTypeByte());
              if (kv.getTypeByte() == KeyValue.Type.Put.getCode()) {
 		put = new Put(CellUtil.cloneRow(kv)); // kv.getRow()
                 put.add(CellUtil.cloneFamily(kv), CellUtil.cloneQualifier(kv), kv.getTimestamp(), CellUtil.cloneValue(kv));
@@ -3357,7 +3363,7 @@ CoprocessorService, Coprocessor {
 	   	del = new Delete(CellUtil.cloneRow(kv));
 	       	if (CellUtil.isDeleteFamily(kv)) {
 	 	     del.deleteFamily(CellUtil.cloneFamily(kv));
-	        } else if (kv.isDeleteType()) {
+	        } else if (CellUtil.isDeleteType(kv)) {
 	             del.deleteColumn(CellUtil.cloneFamily(kv), CellUtil.cloneQualifier(kv));
 	        }
                 //state.addDelete(del);  // no need to add since add has been done in constructInDoubtTransactions
@@ -3422,11 +3428,11 @@ CoprocessorService, Coprocessor {
             tagList.add(commitTag);
             WALEdit e1 = state.getEdit();
             WALEdit e = new WALEdit();
-            if (e1.isEmpty() || e1.getKeyValues().size() <= 0) {
+            if (e1.isEmpty() || e1.getCells().size() <= 0) {
                if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV endpoint CP: commit - txId " + transactionId + ", Encountered empty TS WAL Edit list during commit, HLog txid " + txid);
                }
             else {
-                 Cell c = e1.getKeyValues().get(0);
+                 Cell c = e1.getCells().get(0);
                  KeyValue kv = new KeyValue(c.getRowArray(), c.getRowOffset(), (int)c.getRowLength(),
 					c.getFamilyArray(), c.getFamilyOffset(), (int)c.getFamilyLength(),
 					c.getQualifierArray(), c.getQualifierOffset(), (int) c.getQualifierLength(),
@@ -3435,9 +3441,14 @@ CoprocessorService, Coprocessor {
       
                  e.add(kv);
                  try {
-                    txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
-                        e, new ArrayList<UUID>(), EnvironmentEdgeManager.currentTimeMillis(), this.m_Region.getTableDesc(),
-                        nextLogSequenceId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
+                	
+                   // txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
+                   //     e, new ArrayList<UUID>(), EnvironmentEdgeManager.currentTime(), this.m_Region.getTableDesc(),
+                   //     nextLogSequenceId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
+                	 final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(), this.regionInfo.getTable(), EnvironmentEdgeManager.currentTime());;
+                	 txid = this.tHLog.append(this.m_Region.getTableDesc(),this.regionInfo, wk , e,
+                			 nextLogSequenceId, false, null);
+                	
                     if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Write commit HLOG seq " + txid);
                  }
                  catch (IOException exp1) {
@@ -3453,7 +3464,7 @@ CoprocessorService, Coprocessor {
            WALEdit e1 = state.getEdit();
            WALEdit e = new WALEdit();
 
-           for (Cell c : e1.getKeyValues()) {
+           for (Cell c : e1.getCells()) {
               KeyValue kv = new KeyValue(c.getRowArray(), c.getRowOffset(), (int)c.getRowLength(),
 					c.getFamilyArray(), c.getFamilyOffset(), (int)c.getFamilyLength(),
 					c.getQualifierArray(), c.getQualifierOffset(), (int) c.getQualifierLength(),
@@ -3462,9 +3473,13 @@ CoprocessorService, Coprocessor {
               e.add(kv);
             }
             try {
-                txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
-                     e, new ArrayList<UUID>(), EnvironmentEdgeManager.currentTimeMillis(), this.m_Region.getTableDesc(),
-                     nextLogSequenceId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
+                //txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
+                //     e, new ArrayList<UUID>(), EnvironmentEdgeManager.currentTimeMillis(), this.m_Region.getTableDesc(),
+                //     nextLogSequenceId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
+                
+                final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(), this.regionInfo.getTable(), EnvironmentEdgeManager.currentTime());;
+           	 	txid = this.tHLog.append(this.m_Region.getTableDesc(),this.regionInfo, wk , e,
+           			 nextLogSequenceId, false, null);
                 if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Y11 write commit HLOG seq " + txid);
             }
             catch (IOException exp1) {
@@ -3881,6 +3896,12 @@ CoprocessorService, Coprocessor {
       public boolean hasFilterRow() {
         return true;
       }
+      
+      @Override
+      public ReturnCode filterKeyValue(final Cell v){
+    	  return ReturnCode.INCLUDE;
+      }
+      
 
       @Override
       public void filterRowCells(final List<Cell> kvs) {
@@ -3970,12 +3991,12 @@ CoprocessorService, Coprocessor {
                           WALEdit b = editList.get(i);
                           if (LOG.isTraceEnabled()) LOG.trace("TrxRegion endpoint CP: reconstruction transaction " + transactionId + ", region " + regionInfo.getRegionNameAsString() +
                                " with " + b.size() + " kv in WALEdit " + i);
-                          for (KeyValue kv : b.getKeyValues()) {
+                          for (Cell kv : b.getCells()) {
                              Put put;
                              Delete del;
                              synchronized (editReplay) {
                              if (LOG.isTraceEnabled()) LOG.trace("TrxRegion endpoint CP:reconstruction transaction " + transactionId + ", region " + regionInfo.getRegionNameAsString() +
-                               " re-establish write ordering Op Code " + kv.getType());
+                               " re-establish write ordering Op Code " + kv.getTypeByte());
                              if (kv.getTypeByte() == KeyValue.Type.Put.getCode()) {
                                put = new Put(CellUtil.cloneRow(kv)); // kv.getRow()
                                 put.add(CellUtil.cloneFamily(kv), CellUtil.cloneQualifier(kv), kv.getTimestamp(), CellUtil.cloneValue(kv));
@@ -3985,7 +4006,7 @@ CoprocessorService, Coprocessor {
                                del = new Delete(CellUtil.cloneRow(kv));
                                 if (CellUtil.isDeleteFamily(kv)) {
                                    del.deleteFamily(CellUtil.cloneFamily(kv));
-                                } else if (kv.isDeleteType()) {
+                                } else if (CellUtil.isDeleteType(kv)) {
                                    del.deleteColumn(CellUtil.cloneFamily(kv), CellUtil.cloneQualifier(kv));
                                 }
                                  state.addDelete(del);
@@ -4004,9 +4025,14 @@ CoprocessorService, Coprocessor {
 
                      // Rewrite HLOG for prepared edit (this method should be invoked in postOpen Observer ??
                     try {
-                       txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
-                       state.getEdit(), new ArrayList<UUID>(), EnvironmentEdgeManager.currentTimeMillis(), this.m_Region.getTableDesc(),
-                       nextLogSequenceId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
+                       //txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
+                       //state.getEdit(), new ArrayList<UUID>(), EnvironmentEdgeManager.currentTimeMillis(), this.m_Region.getTableDesc(),
+                       //nextLogSequenceId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
+                       
+                       final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(), this.regionInfo.getTable(), EnvironmentEdgeManager.currentTime());;
+                  	 	txid = this.tHLog.append(this.m_Region.getTableDesc(),this.regionInfo, wk , state.getEdit(),
+                  			 nextLogSequenceId, false, null);
+                  	 	
                        if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commitRequest COMMIT_OK -- EXIT txId: " + transactionId + " HLog seq " + txid);
                        this.tHLog.sync(txid);
                     }
@@ -4345,9 +4371,14 @@ CoprocessorService, Coprocessor {
       //  the number of abort is < 0.1% -- we can set this as a configurable property).
 
             if (!state.getEarlyLogging()) {
-                  txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
-                  state.getEdit(), new ArrayList<UUID>(), EnvironmentEdgeManager.currentTimeMillis(), this.m_Region.getTableDesc(),
-                  nextLogSequenceId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
+                  //txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
+                  //state.getEdit(), new ArrayList<UUID>(), EnvironmentEdgeManager.currentTimeMillis(), this.m_Region.getTableDesc(),
+                  //nextLogSequenceId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
+                  
+                  final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(), this.regionInfo.getTable(), EnvironmentEdgeManager.currentTime());;
+            	  txid = this.tHLog.append(this.m_Region.getTableDesc(),this.regionInfo, wk , state.getEdit(),
+            			 nextLogSequenceId, false, null);
+                  
                   if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commitRequest COMMIT_OK -- EXIT txId: " + transactionId + " HLog seq " + txid);
                   if (flushHLOG) this.tHLog.sync(txid);
             }
@@ -4557,9 +4588,9 @@ CoprocessorService, Coprocessor {
       WALEdit e1 = state.getEdit();
       WALEdit e = new WALEdit();
 
-      if (e1.getKeyValues().size() > 0) {
+      if (e1.getCells().size() > 0) {
          // get 1st Cell to associated with the abort record as a workaround through HLOG async append
-         Cell c = e1.getKeyValues().get(0);
+         Cell c = e1.getCells().get(0);
          KeyValue kv = new KeyValue(c.getRowArray(), c.getRowOffset(), (int)c.getRowLength(),
          c.getFamilyArray(), c.getFamilyOffset(), (int)c.getFamilyLength(),
          c.getQualifierArray(), c.getQualifierOffset(), (int) c.getQualifierLength(),
@@ -4568,9 +4599,14 @@ CoprocessorService, Coprocessor {
       
          e.add(kv);
          try {
-             txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
-                  e, new ArrayList<UUID>(), EnvironmentEdgeManager.currentTimeMillis(), this.m_Region.getTableDesc(),
-                  nextLogSequenceId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
+             //txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
+             //     e, new ArrayList<UUID>(), EnvironmentEdgeManager.currentTimeMillis(), this.m_Region.getTableDesc(),
+             //     nextLogSequenceId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
+             
+             final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(), this.regionInfo.getTable(), EnvironmentEdgeManager.currentTime());;
+       	 	 txid = this.tHLog.append(this.m_Region.getTableDesc(),this.regionInfo, wk , e,
+       			 nextLogSequenceId, false, null);
+       	 	
              if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: Y99 write abort HLOG " + transactionId + " HLog seq " + txid);
          }
          catch (IOException exp1) {
