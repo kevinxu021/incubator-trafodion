@@ -2,11 +2,12 @@ define([
     'views/BaseView',
     'text!templates/workbench.html',
     'jquery',
+    'common',
     'jit',
     'datatables',
     'datatablesBootStrap',
     'tabletools'
-], function (BaseView, WorkbenchT, $) {
+], function (BaseView, WorkbenchT, $, common) {
     'use strict';
 
     var setRootNode = false;
@@ -64,7 +65,9 @@ define([
 
         	//init Spacetree
         	//Create a new ST instance
-        	st = new $jit.ST({
+        	st = common.generateExplainTree(jsonData, setRootNode);
+        		
+        	/*new $jit.ST({
         		'injectInto': 'infovis',
         		orientation: "top",
         		constrained: false,
@@ -330,7 +333,8 @@ define([
         				delete adj.data.$lineWidth;
         			}
         		}
-        	});
+        	});*/
+        		
         	//load json data
         	st.loadJSON(jsonData);
         	//compute node positions and layout

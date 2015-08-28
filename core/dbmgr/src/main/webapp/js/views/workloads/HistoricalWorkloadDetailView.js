@@ -25,7 +25,7 @@ define([
 			_that = this;
 			$('#query-id').val(args);
 			queryID = args;
-			
+			$('#explainLink').attr("href", "#/workloads/history/queryplan/"+queryID);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			$(REFRESH_MENU).on('click', this.fetchRepositoryQueryDetail);
@@ -35,6 +35,7 @@ define([
 		resume: function(args){
 			$('#query-id').val(args);
 			queryID = args;
+			$('#explainLink').attr("href", "#/workloads/history/queryplan/"+queryID);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			$(REFRESH_MENU).on('click', this.fetchRepositoryQueryDetail);
@@ -61,6 +62,8 @@ define([
 		displayResults: function (result){
 			_that.hideLoading();
 			$('#query-text').text(result.queryText);
+			sessionStorage.setItem(queryID, result.queryText);	
+			
 			$('#query-status').val(result.status);
 			$('#query-start-time').val(common.toDateFromMilliSeconds(result.startTime));
 			$('#query-end-time').val(common.toDateFromMilliSeconds(result.endTime));

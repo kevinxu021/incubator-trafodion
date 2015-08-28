@@ -29,34 +29,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class QueryResource {
   private static final Logger _LOG = LoggerFactory.getLogger(QueryResource.class);
 
-  /*
-   * @GET
-   * @Path("/stats/")
-   * @Produces("application/json") public JSONArray getQueryStats() throws EsgynDBManagerException {
-   * String queryText =
-   * "select [ FIRST 500] EXEC_START_UTC_TS , QUERY_ID, USER_NAME, CLIENT_NAME, APPLICATION_NAME, STATEMENT_TYPE from \"_REPOS_\".METRIC_QUERY_TABLE ORDER BY EXEC_START_UTC_TS DESC"
-   * ; return executeSQLQuery(queryText); }
-   * @GET
-   * @Path("/aggrstats/")
-   * @Produces("application/json") public JSONArray getAggrQueryStats() throws
-   * EsgynDBManagerException { String queryText =
-   * "SELECT [FIRST 500] SESSION_ID, SESSION_START_UTC_TS, AGGREGATION_LAST_UPDATE_UTC_TS, USER_NAME, CLIENT_NAME, CLIENT_USER_NAME, "
-   * +
-   * "APPLICATION_NAME, TOTAL_EST_ROWS_ACCESSED, TOTAL_EST_ROWS_USED, TOTAL_ROWS_RETRIEVED, TOTAL_NUM_ROWS_IUD, "
-   * +
-   * "TOTAL_SELECTS, TOTAL_INSERTS, TOTAL_UPDATES, TOTAL_DELETES, DELTA_ESTIMATED_ROWS_ACCESSED, DELTA_ESTIMATED_ROWS_USED, "
-   * +
-   * "DELTA_ROWS_ACCESSED, DELTA_ROWS_RETRIEVED, DELTA_NUM_ROWS_UID, DELTA_SELECTS, DELTA_INSERTS, "
-   * + "DELTA_UPDATES, DELTA_DELETES FROM TRAFODION.\"_REPOS_\".METRIC_QUERY_AGGR_TABLE "+
-   * "ORDER BY SESSION_START_UTC_TS DESC"; return executeSQLQuery(queryText); }
-   * @GET
-   * @Path("/sessions/")
-   * @Produces("application/json") public JSONArray getSessionData() throws EsgynDBManagerException
-   * { String queryText =
-   * "select [ FIRST 500] SESSION_START_UTC_TS , SESSION_ID, SESSION_STATUS, USER_NAME, CLIENT_NAME, APPLICATION_NAME, TOTAL_INSERT_STMTS_EXECUTED, TOTAL_DELETE_STMTS_EXECUTED, TOTAL_UPDATE_STMTS_EXECUTED, TOTAL_SELECT_STMTS_EXECUTED from \"_REPOS_\".METRIC_SESSION_TABLE ORDER BY SESSION_START_UTC_TS DESC"
-   * ; return executeSQLQuery(queryText); }
-   */
-
   @POST
   @Path("/execute/")
   @Produces("application/json")
@@ -142,8 +114,13 @@ public class QueryResource {
 
     String queryText = obj.get("sQuery").textValue();
     String sControlStmts = "";
+    String sQueryID = "";
+
     if (obj.has("sControlStmts")) {
       sControlStmts = obj.get("sControlStmts").textValue();
+    }
+    if (obj.has("sQueryID")) {
+      sQueryID = obj.get("sQueryID").textValue();
     }
 
     try {
@@ -157,7 +134,7 @@ public class QueryResource {
       // queryText = "select [first 100] * from manageability.instance_repository.event_text_1";
     }
     QueryPlanModel qe = new QueryPlanModel();
-    qe.GeneratePlan(soc.getUsername(), soc.getPassword(), queryText, sControlStmts, "");
+    qe.GeneratePlan(soc.getUsername(), soc.getPassword(), queryText, sControlStmts, sQueryID);
 
     QueryPlanResponse response = qe.getQueryPlanResponse();
     return response;
