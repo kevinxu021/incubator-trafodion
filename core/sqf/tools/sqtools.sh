@@ -266,6 +266,58 @@ function ndbm {
     eval '$SQPDSHA "df -h | grep database" 2>/dev/null | wc -l'
 }
 
+function chkReturnCodeExit {
+    if [[ $2 != 0 ]]; then
+	echo "$1 returned error $2, exitting..."
+	exit $2;
+    else
+	echo "$1 executed successfully."
+    fi
+}
+
+function chkReturnCode {
+    if [[ $2 != 0 ]]; then
+	echo "$1 returned error $2..."
+	return $2;
+    else
+	echo "$1 executed successfully."
+	return 0
+    fi
+}
+
+# $1: program/utility/script to run
+# $2: (optional): retry count (default 0)
+# $3: (optional): sleep for this many seconds
+# 
+function run_util {
+    echo "--------------------------------------"
+    echo "executing: $1"
+    $1
+    lv_stat=$?
+    if [ ! -z $3 ]; then
+	declare -i lv_retries=0
+	while [ $lv_retries -lt $2 ]; do
+	    let lv_retries=($lv_retries+1)
+	    chkReturnCode $1 ${lv_stat}
+	    if [ $? != 0 ]; then
+		if [ $lv_retries -lt $2 ]; then
+		    echo "retrying in $3 seconds"
+		    sleep $3
+		    $1
+		    lv_stat=$?
+		else
+		    exit ${lv_stat}
+		fi
+	    else
+		return 0
+	    fi
+	done
+    else 
+	chkReturnCodeExit $1 ${lv_stat}
+    fi
+    echo "--------------------------------------"
+}
+
 # check the startup log and sort the interesting even chronologically
 function sqchksl {
     setup_sqpdsh
@@ -378,7 +430,7 @@ function sqsavelogs {
     cp -p $MY_SQROOT/logs/pstart*.log ${lv_copy_to_dir}
     cp -p $MY_SQROOT/logs/smstats.*.log ${lv_copy_to_dir}
     cp -p $MY_SQROOT/logs/sqmo*.log ${lv_copy_to_dir}
-    cp -p $MY_SQROOT/logs/trafodion.dtm.log* ${lv_copy_to_dir}
+    cp -p $MY_SQROOT/logs/trafodion.*.log* ${lv_copy_to_dir}
     cp -p $MY_SQROOT/logs/tm*.log ${lv_copy_to_dir}
     cp -p $MY_SQROOT/logs/wdt.*.log ${lv_copy_to_dir}
 
@@ -638,7 +690,7 @@ function sqcollectmonmemlog {
     fi
 }
 
-# Collects pstacks of some programs (dp2, monitor, mxosrvr, arkesp, arkcmp, dtm)
+# Collects pstacks of some programs (monitor, mxosrvr, arkesp, arkcmp, dtm)
 #  the 'sqnpstacks' function
 function sqcollectstacks {
 
@@ -658,9 +710,7 @@ function sqcollectstacks {
     fi
     
     setup_sqpdsh
-    mkdir -p dp2 monitor mxosrvr tdm_arkcmp tdm_arkesp tm
-    echo "Collecting dp2 pstacks"
-    eval '$SQPDSHA "sqnpstack dp2 $PWD/dp2" 2>/dev/null &'
+    mkdir -p monitor mxosrvr tdm_arkcmp tdm_arkesp tm
     echo "Collecting monitor pstacks"
     eval '$SQPDSHA "sqnpstack monitor $PWD/monitor" 2>/dev/null &' 
     echo "Collecting mxosrvr pstacks"
@@ -905,6 +955,10 @@ export -f sqgetsem
 export -f sqpostsem
 export -f sqgdb_doit
 export -f sq_gdb_main
+
+export -f chkReturnCodeExit
+export -f chkReturnCode
+export -f run_util
 
 # A front end to sq_gdb_main (as sq_gdb_main is a function, this function executes sq_gdb_main in a fresh 
 # bash context and that allows background tasks spawned by sq_gdb_main to be managed).
