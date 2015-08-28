@@ -470,6 +470,9 @@ define([
         		var bPaging = aaData.length > 25;
         		
         		 $('#query-results').dataTable({
+        			 "oLanguage": {
+        				 "sEmptyTable": "0 rows(s)"
+        			},
         			 dom: 'T<"clear">lfrtip',
         			"bProcessing": true,
         			"bPaginate" : true, 

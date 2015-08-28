@@ -3,11 +3,12 @@ define([
         'text!templates/active_workloads.html',
         'jquery',
         'handlers/WorkloadsHandler',
+        'common',
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
         'tabletools'
-        ], function (BaseView, WorkloadsT, $, wHandler) {
+        ], function (BaseView, WorkloadsT, $, wHandler, common) {
 	'use strict';
     var LOADING_SELECTOR = ".dbmgr-spinner";			
     var oDataTable = null;
@@ -18,21 +19,21 @@ define([
 
 		init: function (){
 			_that = this;
-			wHandler.on(wHandler.FETCHWORKLOADS_SUCCESS, this.displayResults);
-			wHandler.on(wHandler.FETCHWORKLOADS_ERROR, this.showErrorMessage);
-			$("#refreshAction").on('click', this.fetchWorkloads);
-			this.fetchWorkloads();
+			wHandler.on(wHandler.FETCH_ACTIVE_SUCCESS, this.displayResults);
+			wHandler.on(wHandler.FETCH_ACTIVE_ERROR, this.showErrorMessage);
+			$("#refreshAction").on('click', this.fetchActiveQueries);
+			this.fetchActiveQueries();
 		},
 		resume: function(){
-			wHandler.on(wHandler.FETCHWORKLOADS_SUCCESS, this.displayResults);
-			wHandler.on(wHandler.FETCHWORKLOADS_ERROR, this.showErrorMessage);			
-			$("#refreshAction").on('click', this.fetchWorkloads);
-			this.fetchWorkloads();
+			wHandler.on(wHandler.FETCH_ACTIVE_SUCCESS, this.displayResults);
+			wHandler.on(wHandler.FETCH_ACTIVE_ERROR, this.showErrorMessage);			
+			$("#refreshAction").on('click', this.fetchActiveQueries);
+			this.fetchActiveQueries();
 		},
 		pause: function(){
-			wHandler.off(wHandler.FETCHWORKLOADS_SUCCESS, this.displayResults);
-			wHandler.off(wHandler.FETCHWORKLOADS_ERROR, this.showErrorMessage);			
-			$("#refreshAction").off('click', this.fetchWorkloads);
+			wHandler.off(wHandler.FETCH_ACTIVE_SUCCESS, this.displayResults);
+			wHandler.off(wHandler.FETCH_ACTIVE_ERROR, this.showErrorMessage);			
+			$("#refreshAction").off('click', this.fetchActiveQueries);
 		},
         showLoading: function(){
         	$('#loadingImg').show();
@@ -41,9 +42,9 @@ define([
         hideLoading: function () {
         	$('#loadingImg').hide();
         },
-        fetchWorkloads: function () {
+        fetchActiveQueries: function () {
 			_that.showLoading();
-			wHandler.fetchWorkloads();
+			wHandler.fetchActiveQueries();
 		},
 
 		displayResults: function (result){
@@ -83,13 +84,36 @@ define([
 					//"bJQueryUI": true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
+					"aoColumnDefs": [
+					    {
+					      "aTargets": [ 0 ],
+					      "mData": 0,
+					      "mRender": function ( data, type, full ) {
+					       if (type === 'display') {
+					          return common.toDateFromMilliSeconds(data);
+					        }
+					        else return data;
+					      }
+					    },
+					    {
+						      "aTargets": [ 2],
+						      "mData": 2,
+						      "mRender": function ( data, type, full ) {
+						       if (type === 'display') {
+						    	   var rowcontent = "<a href=\"#/workloads/active/querydetail/" +
+	                       			data+"\">"+data+"</a>";
+	                       			return rowcontent;
+						        }
+						        else return data;
+						      }
+						    }],
 					paging: true,
 					"tableTools": {
 						"sRowSelect": "multi",
 						"sSwfPath": "bower_components/datatables-tabletools/swf/copy_csv_xls_pdf.swf"
 					},
 					fnDrawCallback: function(){
-						$('#query-results td').css("white-space","nowrap");
+						//$('#query-results td').css("white-space","nowrap");
 		             }
 				});
 				

@@ -4,15 +4,20 @@ public class SystemQueryCache {
   private static SystemQueries systemQueries = new SystemQueries();
 
   public static final String SELECT_DCS_SERVERS = "SELECT_DCS_SERVERS";
+
   public static final String SELECT_SCHEMAS = "SELECT_SCHEMAS";
   public static final String SELECT_SCHEMA = "SELECT_SCHEMA";
   public static final String SELECT_SCHEMA_OBJECTS = "SELECT_SCHEMA_OBJECTS";
-  public static final String SELECT_QUERIES_FROM_REPO = "SELECT_QUERIES_FROM_REPO";
-  public static final String SELECT_QUERY_DETAIL = "SELECT_QUERY_DETAIL";
+
+  public static final String SELECT_REPO_QUERIES = "SELECT_REPO_QUERIES";
+  public static final String SELECT_REPO_QUERY_DETAIL = "SELECT_REPO_QUERY_DETAIL";
+  public static final String SELECT_ACTIVE_QUERIES = "SELECT_ACTIVE_QUERIES";
+  public static final String SELECT_ACTIVE_QUERY_DETAIL = "SELECT_ACTIVE_QUERY_DETAIL";
+
   public static final String SELECT_LOGS = "SELECT_LOGS";
+
   public static final String OPENTSDB_CPU_USAGE = "OPENTSDB_CPU_USAGE";
   public static final String OPENTSDB_MEMORY_USAGE = "OPENTSDB_MEMORY_USAGE";
-
   public static final String OPENTSDB_IOWAITS = "OPENTSDB_IOWAITS";
   public static final String OPENTSDB_DISK_READS = "OPENTSDB_DISK_READS";
   public static final String OPENTSDB_DISK_WRITES = "OPENTSDB_DISK_WRITES";

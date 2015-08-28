@@ -216,6 +216,9 @@ define([
 				var bPaging = aaData.length > 25;
 
 				oDataTable = $('#query-results').dataTable({
+					"oLanguage": {
+       				 "sEmptyTable": "No log entries found."
+					},
 					dom: 'T<"clear">lfrtip',
 					"bProcessing": true,
 					"bPaginate" : true, 

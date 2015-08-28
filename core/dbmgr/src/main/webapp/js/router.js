@@ -9,6 +9,7 @@ define([
         'views/login/LoginView',
         'views/database/DatabaseView',
         'views/workloads/ActiveWorkloadsView',
+        'views/workloads/ActiveQueryDetailView',
         'views/workloads/HistoricalWorkloadsView',
         'views/workloads/HistoricalWorkloadDetailView',
         'views/logs/LogsView',
@@ -16,7 +17,7 @@ define([
         'model/Localizer',
         'metismenu'
         ], function($, _, Backbone, NavbarView, DashboardView, WorkbenchView, DCSServerView, LoginView, DatabaseView, 
-        		ActiveWorkloadsView, HistoricalWorkloadsView, HistoricalWorkloadDetailView, LogsView, Session, Localizer) {
+        		ActiveWorkloadsView, ActiveQueryDetailView, HistoricalWorkloadsView, HistoricalWorkloadDetailView, LogsView, Session, Localizer) {
 	'use strict';
 
 	var currentSelection = null;
@@ -29,6 +30,7 @@ define([
 	var historicalWorkloadsView = null;
 	var historicalWorkloadDetailView = null;
 	var activeWorkloadsView = null;
+	var activeQueryDetailView = null;
 	var logsView = null;
 	
 	var AppRouter = Backbone.Router.extend({
@@ -57,6 +59,7 @@ define([
 			'workloads/active': 'showActiveWorkloads',
 			'workloads/history': 'showHistoricalWorkloads',
 			'workloads/history/querydetail(/*args)':'showHistoricalWorkloadDetail',
+			'workloads/active/querydetail(/*args)':'showActiveQueryDetail',
 			'logs': 'showLogs',
 			'tools/(*args)': 'showTools',
 			// Default
@@ -93,6 +96,7 @@ define([
 		historicalWorkloadsView = null;
 		historicalWorkloadDetailView = null;
 		activeWorkloadsView = nul;
+		activeQueryDetailView = null;
 		logsView = null;		
 	}
 
@@ -165,6 +169,12 @@ define([
 				activeWorkloadsView = new ActiveWorkloadsView();
 			switchView(activeWorkloadsView, args);
 		});		
+		
+		app_router.on('route:showActiveQueryDetail', function (args) {
+			if(activeQueryDetailView == null)
+				activeQueryDetailView = new ActiveQueryDetailView();
+			switchView(activeQueryDetailView, args);
+		});	
 		
 		app_router.on('route:showLogs', function (args) {
 			if(logsView == null)
