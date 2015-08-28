@@ -61,7 +61,8 @@ public:
   //
 
   ElemDDLSaltOptionsClause(ElemDDLNode * pSaltExprTree,
-                           Int32 numPartitions);
+                           Int32 numPartitions,
+                           Int32 numRegions = -1);
 
   ElemDDLSaltOptionsClause( NABoolean likeTable);
 
@@ -78,6 +79,11 @@ public:
   inline Int32 getNumPartitions() const
   {
     return numPartitions_;
+  }
+
+  inline Int32 getNumInitialRegions() const
+  {
+    return numInitialRegions_;
   }
 
   inline ElemDDLColRefArray & getSaltColRefArray()
@@ -121,6 +127,7 @@ private:
   //
 
   Int32 numPartitions_;
+  Int32 numInitialRegions_;
   ElemDDLColRefArray saltColumnArray_;
   NABoolean likeTable_; // salt an index like its base table
 

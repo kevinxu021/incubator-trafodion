@@ -71,6 +71,7 @@ public:
     setChild(INDEX_PARTITION_DEFINITION_BODY, pPartitionDefBody);
     setChild(INDEX_PARTITION_BY_OPTION, pPartitionByOption);
     partitionType_ = partitionType;
+    isForSplit_ = FALSE;
   }
 
   // virtual destructor
@@ -85,9 +86,11 @@ public:
   inline ElemDDLNode * getPartitionDefBody() const;
   inline ElemDDLNode * getPartitionByOption() const;
   inline ComPartitioningScheme getPartitionType() const;
+  inline ComBoolean getIsForSplit() const;
 
   // mutator
   virtual void setChild(Lng32 index, ExprNode * pElemDDLNode);
+  inline void setIsForSplit(ComBoolean split);
  
   // method for tracing
   virtual const NAString getText() const;
@@ -107,7 +110,8 @@ private:
 
   ElemDDLNode * children_[MAX_ELEM_DDL_PARTITION_CLAUSE_ARITY];
 
-  ComPartitioningScheme partitionType_;                         
+  ComPartitioningScheme partitionType_;
+  ComBoolean isForSplit_;
 
 }; // class ElemDDLPartitionClause
 
@@ -132,6 +136,18 @@ inline ComPartitioningScheme
 ElemDDLPartitionClause::getPartitionType() const 
 { 
   return partitionType_; 
-}   
+}
+
+inline ComBoolean
+ElemDDLPartitionClause::getIsForSplit() const
+{
+  return isForSplit_;
+}
+
+inline void
+ElemDDLPartitionClause::setIsForSplit(ComBoolean split)
+{
+  isForSplit_ = split;
+}
 
 #endif // ELEMDDLPARTITIONCLAUSE_H

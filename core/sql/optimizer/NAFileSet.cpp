@@ -79,6 +79,7 @@ NAFileSet::NAFileSet(const QualifiedName & fileSetName,
                      desc_struct *keysDesc,
                      HHDFSTableStats *hHDFSTableStats,
                      Lng32 numSaltPartns,
+                     Lng32 numInitialSaltRegions,
                      NAList<HbaseCreateOption*>* hbaseCreateOptions,
                      CollHeap * h)
          : fileSetName_(fileSetName, h),
@@ -117,6 +118,7 @@ NAFileSet::NAFileSet(const QualifiedName & fileSetName,
            keysDesc_(keysDesc),
            hHDFSTableStats_(hHDFSTableStats),
            numSaltPartns_(numSaltPartns),
+           numInitialSaltRegions_(numInitialSaltRegions),
            hbaseCreateOptions_(hbaseCreateOptions),
            numMaxVersions_(1)
 {

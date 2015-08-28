@@ -703,7 +703,9 @@ void CmpSeabaseDDL::createSeabaseIndex(
   ElemDDLColRefArray & indexColRefArray = createIndexNode->getColRefArray();
   const NAFileSet * nafs = naTable->getClusteringIndex();
   const NAColumnArray &baseTableKeyArr = nafs->getIndexKeyColumns();
-  Int32 numSplits = 0;
+  Int32 numSaltPartns = 0;
+  Int32 numInitialSaltRegions = 1;
+  int numSplits = 0;
   CollIndex numPrefixColumns = 0;
 
   if (createIndexNode->getSaltOptions() && 
@@ -737,7 +739,9 @@ void CmpSeabaseDDL::createSeabaseIndex(
       //SALT column will be the first column in the index
       indexColRefArray.insertAt(numPrefixColumns, saltColRef);
       numPrefixColumns++;
-      numSplits = nafs->numSaltPartns() - 1;
+      numSaltPartns = nafs->numSaltPartns();
+      numInitialSaltRegions = nafs->numInitialSaltRegions();
+      numSplits = numInitialSaltRegions - 1;
     }
     else
     {
@@ -858,7 +862,9 @@ void CmpSeabaseDDL::createSeabaseIndex(
 
   tableInfo->validDef = 0;
   tableInfo->hbaseCreateOptions = NULL;
-  tableInfo->numSaltPartns = (numSplits > 0 ? numSplits+1 : 0);
+  tableInfo->numSaltPartns = numSaltPartns;
+  tableInfo->numInitialSaltRegions = numInitialSaltRegions;
+  tableInfo->hbaseSplitClause = NULL;
   tableInfo->rowFormat = (alignedFormat ? COM_ALIGNED_FORMAT_TYPE : COM_HBASE_FORMAT_TYPE);
 
   ComTdbVirtTableIndexInfo * ii = new(STMTHEAP) ComTdbVirtTableIndexInfo();

@@ -126,7 +126,7 @@
 +>	location  $$partition$$
 +>	partition (add first key (_UCS2'aaa') location  $$partition1$$);
 
-*** ERROR[1240] The character set for a PARTITION KEY column must be ISO88591.
+*** ERROR[3153] The FIRST KEY clause is not allowed with hash or hash2 partitioning.
 
 *** ERROR[8822] The statement was not prepared.
 

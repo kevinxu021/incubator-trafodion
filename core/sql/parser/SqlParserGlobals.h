@@ -158,7 +158,10 @@
   GLOB_ ExprNode		   *TheParseTree		INIT_(NULL);
 
   enum SQLParserStartToken {
-	  NORMAL_TOKEN=0, INTERNALEXPR_TOKEN=1, COLUMNDEF_TOKEN=2 };
+	  NORMAL_TOKEN=0,
+          INTERNALEXPR_TOKEN=1,
+          COLUMNDEF_TOKEN=2,
+          SPLITDEF_TOKEN=3};
 
 
 #endif

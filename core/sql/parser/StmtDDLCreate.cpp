@@ -1422,6 +1422,7 @@ StmtDDLCreateIndex::StmtDDLCreateIndex(NABoolean isUnique,
           guardianLocation_(heap),
           isPartitionClauseSpec_(FALSE),
           isPartitionByClauseSpec_(FALSE),
+          isPartitionClauseForSplit_(FALSE),
           isDivisionClauseSpec_(FALSE),
           pDivisionClauseParseNode_(NULL),
           isHbaseOptionsSpec_(NULL),
@@ -1726,6 +1727,13 @@ StmtDDLCreateIndex::setPartitions(ElemDDLPartitionClause * pPartitionClause)
     *SqlParser_Diags << DgSqlCode(-3103);
   }
   isPartitionClauseSpec_ = TRUE;
+
+  isPartitionClauseForSplit_ = pPartitionClause->getIsForSplit();
+
+  // for now, we don't support SPLIT BY for indexes, need to figure
+  // out a way to store the SPLIT BY clause for each index first
+  if (isPartitionClauseForSplit_)
+    *SqlParser_Diags << DgSqlCode(-1208);
 
   //
   // Initializes pPartitions to point to the parse node representing
@@ -3854,6 +3862,7 @@ StmtDDLCreateTable::StmtDDLCreateTable(const QualifiedName & aTableQualName,
           isPartitionClauseSpec_(FALSE),
           isPartitionByClauseSpec_(FALSE),
           pPrimaryPartition_(NULL),
+          isSplitByClauseSpec_(FALSE),
           columnDefArray_(heap),
           primaryKeyColRefArray_(heap),
           partitionArray_(heap),
@@ -5214,6 +5223,17 @@ void
 StmtDDLCreateTable::setPartitions(ElemDDLPartitionClause * pPartitionClause)
 {
   ComASSERT(pPartitionClause NEQ NULL);
+
+  if (pPartitionClause->getIsForSplit())
+    {
+      if (isSplitByClauseSpec_)
+        *SqlParser_Diags << DgSqlCode(-3103)
+                         << DgString0("SPLIT BY");
+
+      isSplitByClauseSpec_ = TRUE;
+      splitByClause_ = pPartitionClause->getSyntax();
+      return;
+    }
 
   if (  (isPartitionSpecified()) || 
         ((isPOSNumPartnsSpecified()) && (posNumPartns_ == 0)) )

@@ -766,8 +766,9 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_ISOLATE              /* Tandem extension non-reserved word */
 %token <tokval> TOK_INTEGER
 %token <tokval> TOK_INTERNAL // MV REFRESH
-%token <tokval> TOK_INTERNAL_EXPR
+%token <tokval> TOK_INTERNAL_EXPR              /* start symbol for internal expression parser */
 %token <tokval> TOK_INTERNAL_COLUMN_DEFINITION /*called by internal function*/
+%token <tokval> TOK_INTERNAL_SPLIT_DEFINITION  /* start symbol for parsing SPLIT BY from TEXT table */
 %token <tokval> TOK_INTERNALSP  /* Tdm ext., non-res., Internal Stored Procedure "TDMISP" */
 %token <tokval> TOK_INTERSECT
 %token <tokval> TOK_INTERVAL
@@ -1211,6 +1212,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_AUTHTYPE
 %token <tokval> TOK_BLOCKSIZE           /* Tandem extension */
 %token <tokval> TOK_BRIEF               /* Tandem extension */
+%token <tokval> TOK_BUCKETS             /* Trafodion extension */
 %token <tokval> TOK_BUFFER
 %token <tokval> TOK_BUFFERED            /* Tandem extension */
 %token <tokval> TOK_BYTE                /* TD extension that HP maps to CHAR */
@@ -1354,6 +1356,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_RANGELOG			/* MV */
 %token <tokval> TOK_REBUILD
 %token <tokval> TOK_REFERENCES
+%token <tokval> TOK_REGION              /* Trafodion extension */
+%token <tokval> TOK_REGIONS             /* Trafodion extension */
 %token <tokval> TOK_REGISTER            /* Tandem extension */
 %token <tokval> TOK_UNREGISTER          /* Tandem extension */
 %token <tokval> TOK_RENAME              /* Tandem extension */
@@ -1366,6 +1370,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_SCHEMA
 %token <tokval> TOK_SCHEMAS
 %token <tokval> TOK_SECURITY
+%token <tokval> TOK_SPLIT               /* Trafodion extension */
 %token <tokval> TOK_STORE               /* Tandem extension */
 %token <tokval> TOK_STORAGE
 %token <tokval> TOK_STATISTICS          /* Tandem extension non-reserved word */
@@ -2645,6 +2650,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <pElemDDL>  		range_partition_list
 %type <pElemDDL>  		system_partition_list
 %type <pElemDDL>  		system_partition
+%type <pElemDDL>  		split_definition
 %type <pElemDDL>  		load_option
 %type <pElemDDL>  		file_attribute_extent
 %type <pElemDDL>  		file_attribute_maxextent
@@ -2670,6 +2676,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <pElemDDL>  		parallel_execution_spec
 %type <pElemDDL>  		index_division_clause
 %type <pElemDDL>  		salt_by_clause
+%type <longint>                   optional_salt_num_regions
+%type <tokval>                  salt_by_regions
 %type <pElemDDL>  		salt_like_clause
 %type <pElemDDL>                optional_salt_column_list
 %type <pElemDDL>  		division_by_clause
@@ -13692,6 +13700,10 @@ starting_production2:
 		        $$ = (StmtNode *)$2;	// fake out yacc; see caller
 		      }
 	     | TOK_INTERNAL_COLUMN_DEFINITION column_definition
+		      {
+		        $$ = (StmtNode *)$2;	// just to make yacc happy
+		      }
+             | TOK_INTERNAL_SPLIT_DEFINITION split_definition
 		      {
 		        $$ = (StmtNode *)$2;	// just to make yacc happy
 		      }
@@ -25816,6 +25828,7 @@ create_table_attribute_list : create_table_attribute
 create_table_attribute : file_attribute_clause
                       | location_clause
                       | partition_definition
+                      | split_definition
                       | salt_by_clause
                       | division_by_clause
                       | store_by_clause
@@ -26694,12 +26707,15 @@ range_partition_list : range_partition
                                 }
 /* type pElemDDL */
 range_partition : partition_add_drop_option { NonISO88591LiteralEncountered = FALSE; } TOK_FIRST TOK_KEY key_list
-                                location_clause optional_partition_attribute_list
+                                optional_location_clause optional_partition_attribute_list
                                 {
-				  if (NonISO88591LiteralEncountered) {
-				    *SqlParser_Diags << DgSqlCode(-1240);
-				    YYABORT;
-				  }
+                                  // For the SPLIT BY we currently support, we don't
+                                  // enforce that keys must be ISO88591. If in the
+                                  // future we support PARITION BY, need to reconsider.
+				  //if (NonISO88591LiteralEncountered) {
+				  //  *SqlParser_Diags << DgSqlCode(-1240);
+				  //  YYABORT;
+				  //}
                                   $$ = new (PARSERHEAP())
 				    ElemDDLPartitionRange(
                                        $1 /*partition_add_drop_option*/,
@@ -26812,6 +26828,17 @@ key_value_list : key_value
                                        $3 /*key_value*/);
                                 }
 
+/* type pElemDDL */
+split_definition : TOK_RANGE TOK_SPLIT TOK_BY partition_by_column_list partition_definition_body
+                                {
+                                  ElemDDLPartitionClause *res = new (PARSERHEAP())
+				    ElemDDLPartitionClause(
+                                       $5 /*partition_definition_body*/,
+                                       $4 /*partition_by_column_list*/, 
+                                       COM_RANGE_PARTITIONING);
+                                  res->setIsForSplit(TRUE);
+                                  $$ = res;
+                                }
 /* type tokval */
 division_by_clause_starting_tokens : TOK_DIVISION TOK_BY '('
                                {
@@ -26827,14 +26854,28 @@ division_by_clause_starting_tokens : TOK_DIVISION TOK_BY '('
                                   ParSetTextStartPosForDivisionByClause(ParNameDivByLocListPtr);
                                }
 
-/* type pElemDDL */
-salt_by_clause : TOK_SALT TOK_USING NUMERIC_LITERAL_EXACT_NO_SCALE TOK_PARTITIONS optional_salt_column_list
+/* type pElemDDL sorry for the shift-reduce conflict this causes */
+salt_by_clause : TOK_SALT TOK_USING NUMERIC_LITERAL_EXACT_NO_SCALE TOK_PARTITIONS optional_salt_num_regions optional_salt_column_list
                                {
                                  Int32 numParts = (Int32) atoi(*$3);
                                  if (numParts < 0)
                                    YYERROR;
-                                 $$ = new (PARSERHEAP()) ElemDDLSaltOptionsClause($5, numParts);
+                                 $$ = new (PARSERHEAP()) ElemDDLSaltOptionsClause($6, numParts, $5);
                                }
+
+optional_salt_num_regions : empty
+                               {
+                                 $$ = -1;
+                               }
+                   | TOK_IN NUMERIC_LITERAL_EXACT_NO_SCALE salt_by_regions
+                               {
+                                 Int32 numRegions = (Int32) atoi(*$2);
+                                 if (numRegions < 0)
+                                   YYERROR;
+                                 $$ = numRegions;
+                               }
+
+salt_by_regions : TOK_REGION | TOK_REGIONS
 
 optional_salt_column_list : TOK_ON '(' column_reference_list ')'
                                {
@@ -29377,6 +29418,7 @@ index_option_list : index_option_spec
 /* type pElemDDL */
 index_option_spec : location_clause
                       | partition_definition
+                      | split_definition
                       | file_attribute_clause
                       | index_load_option
                       | populate_option
@@ -32524,8 +32566,7 @@ stats_merge_clause : /*empty */
                    
 /* type tokval */
 //
-//   As many tokens as possible should be ADDED to this list, and REMOVED
-//   from common/ReservedWords.h list "TandemReservedWords".
+//   As many tokens as possible should be ADDED to this list.
 //   Criteria for being non-reserved are:
 //
 //     1. token is a single word
@@ -32949,6 +32990,8 @@ nonreserved_word :      TOK_ABORT
                       | TOK_RECOVER
                       | TOK_RECOVERY
                       | TOK_REFRESH // MV
+                      | TOK_REGION
+                      | TOK_REGIONS
                       | TOK_REGISTER
                       | TOK_REINITIALIZE
                       | TOK_RELATED
@@ -33010,6 +33053,7 @@ nonreserved_word :      TOK_ABORT
                       | TOK_SUFFIX
                       | TOK_TARGET
                       | TOK_SOURCE_FILE
+                      | TOK_SPLIT
                       | TOK_SP_RESULT_SET
                       | TOK_SQL_WARNING
                       | TOK_SQLROW
