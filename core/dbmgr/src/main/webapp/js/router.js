@@ -12,12 +12,14 @@ define([
         'views/workloads/ActiveQueryDetailView',
         'views/workloads/HistoricalWorkloadsView',
         'views/workloads/HistoricalWorkloadDetailView',
+        'views/workloads/QueryPlanView',
         'views/logs/LogsView',
         'model/Session',
         'model/Localizer',
         'metismenu'
         ], function($, _, Backbone, NavbarView, DashboardView, WorkbenchView, DCSServerView, LoginView, DatabaseView, 
-        		ActiveWorkloadsView, ActiveQueryDetailView, HistoricalWorkloadsView, HistoricalWorkloadDetailView, LogsView, Session, Localizer) {
+        		ActiveWorkloadsView, ActiveQueryDetailView, HistoricalWorkloadsView, HistoricalWorkloadDetailView, QueryPlanView, 
+        		LogsView, Session, Localizer) {
 	'use strict';
 
 	var currentSelection = null;
@@ -31,6 +33,7 @@ define([
 	var historicalWorkloadDetailView = null;
 	var activeWorkloadsView = null;
 	var activeQueryDetailView = null;
+	var queryPlanView = null;
 	var logsView = null;
 	
 	var AppRouter = Backbone.Router.extend({
@@ -60,6 +63,7 @@ define([
 			'workloads/history': 'showHistoricalWorkloads',
 			'workloads/history/querydetail(/*args)':'showHistoricalWorkloadDetail',
 			'workloads/active/querydetail(/*args)':'showActiveQueryDetail',
+			'workloads/history/queryplan(/*args)':'showQueryPlan',
 			'logs': 'showLogs',
 			'tools/(*args)': 'showTools',
 			// Default
@@ -97,6 +101,7 @@ define([
 		historicalWorkloadDetailView = null;
 		activeWorkloadsView = nul;
 		activeQueryDetailView = null;
+		queryPlanView = null
 		logsView = null;		
 	}
 
@@ -174,6 +179,12 @@ define([
 			if(activeQueryDetailView == null)
 				activeQueryDetailView = new ActiveQueryDetailView();
 			switchView(activeQueryDetailView, args);
+		});	
+		
+		app_router.on('route:showQueryPlan', function (args) {
+			if(queryPlanView == null)
+				queryPlanView = new QueryPlanView();
+			switchView(queryPlanView, args);
 		});	
 		
 		app_router.on('route:showLogs', function (args) {
