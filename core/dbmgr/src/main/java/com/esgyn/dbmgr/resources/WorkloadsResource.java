@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import javax.servlet.http.HttpServletRequest;
@@ -89,8 +90,8 @@ public class WorkloadsResource {
         endTime = Helper.formatDateTime(now);
       }
 
-      sb.append(
-        String.format("where EXEC_START_UTC_TS between timestamp '%1$s' and timestamp '%2$s' ",
+      sb.append(String.format(
+        "where (exec_start_utc_ts between timestamp '%1$s' and timestamp '%2$s' or exec_start_utc_ts is null)",
           startTime, endTime));
 
       String[] values = states.split(",");
@@ -116,7 +117,7 @@ public class WorkloadsResource {
 
       Session soc = SessionModel.getSession(servletRequest, servletResponse);
       String queryText = String
-          .format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_QUERIES_FROM_REPO), predicate);
+          .format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_REPO_QUERIES), predicate);
       _LOG.debug(queryText);
 
       TabularResult result =
@@ -142,7 +143,8 @@ public class WorkloadsResource {
     
     Session soc = SessionModel.getSession(servletRequest, servletResponse);
     String sqlText =
-        String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_QUERY_DETAIL), queryID);
+ String
+        .format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_REPO_QUERY_DETAIL), queryID);
     _LOG.debug(sqlText);
 
     Connection connection = null;
@@ -229,6 +231,75 @@ public class WorkloadsResource {
     }
     return qDetail;
 
+  }
+
+  @GET
+  @Path("/active/detail/")
+  @Produces("application/json")
+  public ArrayList<String> getActiveQueryDetail(@QueryParam("queryID") String queryID,
+      @QueryParam("time") String time, @Context HttpServletRequest servletRequest,
+      @Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+    ArrayList<String> result = new ArrayList<String>();
+    String statsType = "default";
+    Session soc = SessionModel.getSession(servletRequest, servletResponse);
+    String sqlText =
+        String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_ACTIVE_QUERY_DETAIL),
+          queryID, statsType);
+    _LOG.debug(sqlText);
+
+    Connection connection = null;
+    Statement stmt;
+    ResultSet rs = null;
+    ;
+
+    String url = ConfigurationResource.getInstance().getJdbcUrl();
+
+    try {
+      connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
+      stmt = connection.createStatement();
+      rs = stmt.executeQuery(sqlText);
+      while (rs.next()) {
+        result.add(rs.getString(1));
+      }
+
+      rs.close();
+
+    } catch (Exception e) {
+      _LOG.error("Failed to execute query : " + e.getMessage());
+      throw new EsgynDBMgrException(e.getMessage());
+    } finally {
+      if (connection != null) {
+        try {
+          connection.close();
+        } catch (Exception ex) {
+
+        }
+      }
+    }
+    return result;
+  }
+
+  @GET
+  @Path("/active/")
+  @Produces("application/json")
+  public TabularResult getActiveQueriesFromRMS(@QueryParam("probeType") String probeType,
+      @QueryParam("time") String time, @Context HttpServletRequest servletRequest,
+      @Context HttpServletResponse servletResponse)
+          throws EsgynDBMgrException {
+    try {
+      Session soc = SessionModel.getSession(servletRequest, servletResponse);
+      String queryText = String.format(
+        SystemQueryCache.getQueryText(SystemQueryCache.SELECT_ACTIVE_QUERIES), " sqlSrc: ", 30);
+      _LOG.debug(queryText);
+
+      TabularResult result =
+          QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText);
+      return result;
+    } catch (Exception ex) {
+      _LOG.error("Failed to fetch list of active queries : " + ex.getMessage());
+      throw new EsgynDBMgrException(ex.getMessage());
+    }
   }
 
 }

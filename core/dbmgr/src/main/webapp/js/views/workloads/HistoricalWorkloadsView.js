@@ -113,24 +113,24 @@ define([
 			});
 			
 			
-			wHandler.on(wHandler.FETCHREPOS_SUCCESS, this.displayResults);
-			wHandler.on(wHandler.FETCHREPOS_ERROR, this.showErrorMessage);
+			wHandler.on(wHandler.FETCH_REPO_SUCCESS, this.displayResults);
+			wHandler.on(wHandler.FETCH_REPO_ERROR, this.showErrorMessage);
 			$(REFRESH_MENU).on('click', this.fetchQueriesInRepository);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			this.fetchQueriesInRepository();
 		},
 		resume: function(){
-			wHandler.on(wHandler.FETCHREPOS_SUCCESS, this.displayResults);
-			wHandler.on(wHandler.FETCHREPOS_ERROR, this.showErrorMessage);			
+			wHandler.on(wHandler.FETCH_REPO_SUCCESS, this.displayResults);
+			wHandler.on(wHandler.FETCH_REPO_ERROR, this.showErrorMessage);			
 			$(REFRESH_MENU).on('click', this.fetchQueriesInRepository);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			this.fetchQueriesInRepository();
 		},
 		pause: function(){
-			wHandler.off(wHandler.FETCHREPOS_SUCCESS, this.displayResults);
-			wHandler.off(wHandler.FETCHREPOS_ERROR, this.showErrorMessage);			
+			wHandler.off(wHandler.FETCH_REPO_SUCCESS, this.displayResults);
+			wHandler.off(wHandler.FETCH_REPO_ERROR, this.showErrorMessage);			
 			$(REFRESH_MENU).off('click', this.fetchLogs);
 			$(FILTER_APPLY_BUTTON).off('click', this.filterApplyClicked);
 			$(OPEN_FILTER).off('click', this.filterButtonClicked);
@@ -214,6 +214,9 @@ define([
 				var bPaging = aaData.length > 25;
 
 				oDataTable = $('#query-results').dataTable({
+					"oLanguage": {
+       				 "sEmptyTable": "No queries found."
+					},
 					dom: 'T<"clear">lfrtip',
 					"bProcessing": true,
 					"bPaginate" : bPaging, 

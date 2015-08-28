@@ -9,10 +9,14 @@ function(EventDispatcher) {"use strict";
         function WorkloadsHandler() {
         	var dispatcher = new EventDispatcher();
         	var _this = this;
-        	this.FETCHREPOS_SUCCESS = 'fetchResposSuccess';
-        	this.FETCHREPOS_ERROR = 'fetchResposError';
+        	this.FETCH_REPO_SUCCESS = 'fetchRespoSuccess';
+        	this.FETCH_REPO_ERROR = 'fetchRespoError';
+        	this.FETCH_ACTIVE_SUCCESS = 'fetchActiveSuccess';
+        	this.FETCH_ACTIVE_ERROR = 'fetchActiveError';
         	this.FETCH_REPO_QUERY_DETAIL_SUCCESS = 'fetchRepoQDetailSuccess';
         	this.FETCH_REPO_QUERY_DETAIL_ERROR = 'fetchRepoQDetailError';
+        	this.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS = 'fetchActiveQDetailSuccess';
+        	this.FETCH_ACTIVE_QUERY_DETAIL_ERROR = 'fetchActiveQDetailError';
         	
             /**
              * call memory skew
@@ -25,10 +29,10 @@ function(EventDispatcher) {"use strict";
     				dataType:"json",
     				contentType: "application/json;",
     				success: function(data){
-    					dispatcher.fire(_this.FETCHREPOS_SUCCESS, data);
+    					dispatcher.fire(_this.FETCH_REPO_SUCCESS, data);
     				},
     				error:function(jqXHR, res, error){
-    					dispatcher.fire(_this.FETCHREPOS_ERROR, jqXHR, res, error);
+    					dispatcher.fire(_this.FETCH_REPO_ERROR, jqXHR, res, error);
     				}
     			});
             }; 
@@ -47,7 +51,39 @@ function(EventDispatcher) {"use strict";
     					dispatcher.fire(_this.FETCH_REPO_QUERY_DETAIL_ERROR, jqXHR, res, error);
     				}
     			});
-            }; 
+            };
+            
+            this.fetchActiveQueries = function(probeType, time){
+
+        		$.ajax({
+    				url: 'resources/workloads/active/?probeType='+probeType+'&time='+time,
+    				type:'GET',
+    				dataType:"json",
+    				contentType: "application/json;",
+    				success: function(data){
+    					dispatcher.fire(_this.FETCH_ACTIVE_SUCCESS, data);
+    				},
+    				error:function(jqXHR, res, error){
+    					dispatcher.fire(_this.FETCH_ACTIVE_ERROR, jqXHR, res, error);
+    				}
+    			});
+            };
+            
+            this.fetchActiveQueryDetail = function(queryID){
+
+        		$.ajax({
+    				url: 'resources/workloads/active/detail?queryID=' + queryID,
+    				type:'GET',
+    				dataType:"json",
+    				contentType: "application/json;",
+    				success: function(data){
+    					dispatcher.fire(_this.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, data);
+    				},
+    				error:function(jqXHR, res, error){
+    					dispatcher.fire(_this.FETCH_ACTIVE_QUERY_DETAIL_ERROR, jqXHR, res, error);
+    				}
+    			});
+            };
                                   
             /**
              * @public
