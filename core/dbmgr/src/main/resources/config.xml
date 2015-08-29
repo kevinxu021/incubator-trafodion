@@ -5,7 +5,7 @@
 	<!-- The Trafodion JDBC Driver Class Name -->
 	<jdbcDriverClass>org.trafodion.jdbc.t4.T4Driver</jdbcDriverClass>
 	<!-- The Trafodion REST server URI -->
-	<trafRestServerUri>10.1.10.101:4200</trafRestServerUri>
+	<trafRestServerUri>10.1.10.101:14183</trafRestServerUri>
 	<!-- The OpenTSDB URI -->
 	<openTSDBUri>10.1.10.101:14580</openTSDBUri>
 	<!--Session Timeout in minutes. Default is 120 minutes and Minimum 10 minutes. 
