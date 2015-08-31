@@ -119,6 +119,7 @@ public:
             desc_struct *keysDesc,
             HHDFSTableStats *hHDFSTableStats,
             Lng32 numSaltPartns,
+            Lng32 numInitialSaltRegions,
             NAList<HbaseCreateOption*>* hbaseCreateOptions,
             CollHeap * h=0);
 
@@ -174,6 +175,7 @@ public:
   HHDFSTableStats *getHHDFSTableStats()             { return hHDFSTableStats_; }
 
   Lng32 numSaltPartns() const { return numSaltPartns_; } 
+  Lng32 numInitialSaltRegions() const { return numInitialSaltRegions_; } 
   NAList<HbaseCreateOption*> * hbaseCreateOptions() const
     { return hbaseCreateOptions_;}
 
@@ -474,8 +476,10 @@ private:
   // ---------------------------------------------------------------------
   HHDFSTableStats *hHDFSTableStats_;
 
-  // number of salted partitions specified at table create time.
+  // number of salt buckets and initial regions specified at
+  // table create time in the SALT clause
   Lng32 numSaltPartns_;
+  Lng32 numInitialSaltRegions_;
 
   // if table was created with max versions greater than 1 using
   // hbase_options clause.

@@ -194,6 +194,8 @@ struct indexes_desc_struct {
   Int32 colcount;
   Int32 blocksize;
   Lng32 numSaltPartns; // number of salted partns created for a seabase table.
+  Lng32 numInitialSaltRegions; // initial # of regions created for salted table
+  char * hbaseSplitClause;
   char * hbaseCreateOptions;
   desc_struct *files_desc;
   // Clustering keys columns

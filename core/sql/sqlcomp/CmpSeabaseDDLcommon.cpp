@@ -59,6 +59,10 @@
 #include "StmtDDLRegisterComponent.h"
 #include "StmtDDLCreateRole.h"
 #include "StmtDDLRoleGrant.h"
+#include "ElemDDLPartitionClause.h"
+#include "ElemDDLPartitionList.h"
+#include "ElemDDLPartitionRange.h"
+#include "ElemDDLPartitionByOptions.h"
 #include "PrivMgrCommands.h"
 #include "PrivMgrMD.h"
 #include "PrivMgrComponentPrivileges.h"
@@ -4589,7 +4593,9 @@ short CmpSeabaseDDL::updateSeabaseMDTable(
     {
       Lng32 isAudited = 1;
       Lng32 numSaltPartns = 0;
+      Lng32 numInitialSaltRegions = 0;
       const char * hbaseCreateOptions = NULL;
+      const char * hbaseSplitClause = NULL;
       char rowFormat[10];
       strcpy(rowFormat, COM_HBASE_FORMAT_LIT);
       if (tableInfo)
@@ -4598,7 +4604,9 @@ short CmpSeabaseDDL::updateSeabaseMDTable(
           if (tableInfo->rowFormat == COM_ALIGNED_FORMAT_TYPE)
             strcpy(rowFormat, COM_ALIGNED_FORMAT_LIT);
           numSaltPartns = tableInfo->numSaltPartns;
+          numInitialSaltRegions = tableInfo->numInitialSaltRegions;
           hbaseCreateOptions = tableInfo->hbaseCreateOptions;
+          hbaseSplitClause = tableInfo->hbaseSplitClause;
         }
 
       str_sprintf(buf, "upsert into %s.\"%s\".%s values (%Ld, '%s', '%s', %d, %d, %d, %d, 0) ",
@@ -4624,6 +4632,25 @@ short CmpSeabaseDDL::updateSeabaseMDTable(
             {
               return -1;
             }
+        }
+
+      if (hbaseSplitClause && *hbaseSplitClause != '\0')
+        {
+          // remember the SPLIT BY clause in the TEXT table
+          NAString nas(hbaseSplitClause);
+          if (updateTextTable(cliInterface, objUID, COM_HBASE_SPLIT_TEXT, 0, nas))
+            return -1;
+        }
+      else if (numSaltPartns > 1 && numSaltPartns != numInitialSaltRegions)
+        {
+          // remember the IN <n> REGION[S] syntax of the SALT clause in the TEXT table
+          char buf[100];
+
+          snprintf(buf, sizeof(buf), "IN %d REGIONS", numInitialSaltRegions);
+
+          NAString nas(buf);
+          if (updateTextTable(cliInterface, objUID, COM_HBASE_SPLIT_TEXT, 0, nas))
+            return -1;
         }
 
     } // BT
@@ -6151,7 +6178,10 @@ short CmpSeabaseDDL::createEncodedKeysBuffer(char** &encodedKeysBuffer,
   encodedKeysBuffer = NULL;
   numSplits = 0;
 
-  if (numSaltSplits <= 0)
+  NABoolean usesSplitBy = (splitByClause && !splitByClause->isNull());
+  NABoolean usesSaltSplits = (!usesSplitBy && numSaltSplits > 0);
+  
+  if (!usesSplitBy && !usesSaltSplits)
     return 0;
 
   // make a list of NAStrings with the default values for start keys
@@ -6166,12 +6196,84 @@ short CmpSeabaseDDL::createEncodedKeysBuffer(char** &encodedKeysBuffer,
   ElemDDLPartitionList * pPartitionList = NULL;
   ElemDDLPartitionRange *pPartitionRange = NULL;
 
+  // determine the number of splits needed
+  if (usesSplitBy)
+    {
+      // parse the SPLIT BY clause that was supplied by as a string
+      Parser parser(CmpCommon::context());
+
+      ElemDDLPartitionClause *rangeSplits = parser.parseSplitDefinition(
+           splitByClause->data(),
+           splitByClause->length(),
+           CharInfo::UTF8);
+
+      if (!rangeSplits)
+        // parse error, this would be an internal error
+        return -1;
+
+      // make sure that the SPLIT BY column list is a prefix of the key
+      ElemDDLPartitionByColumnList *splitByCols =
+        rangeSplits->getPartitionByOption()->castToElemDDLPartitionByColumnList();
+      CMPASSERT(splitByCols);
+      const ElemDDLColRefArray &splitByColRefs =
+        splitByCols->getPartitionKeyColumnArray();
+      desc_struct *keyColDesc = keyDescs;
+
+      if (numKeys < splitByColRefs.entries())
+        {
+          // more SPLIT BY columns than key columns
+          *CmpCommon::diags() << DgSqlCode(-1209)
+                              << DgInt0(numKeys);
+          return -1;
+        }
+
+      for (CollIndex c=0; c<splitByColRefs.entries(); c++)
+        {
+          desc_struct *cd = colDescs;
+          int tableColNum = keyColDesc->body.keys_desc.tablecolnumber;
+
+          // find the columns_desc for this key column
+          while (cd->body.columns_desc.colnumber != tableColNum &&
+                 cd->header.next)
+            cd = cd->header.next;
+
+          if (splitByColRefs[c]->getColumnName() !=
+              cd->body.columns_desc.colname)
+            {
+              // SPLIT BY column is not the next key column in sequence
+              *CmpCommon::diags() << DgSqlCode(-1210)
+                                  << DgString0(splitByColRefs[c]->getColumnName())
+                                  << DgInt0(c+1)
+                                  << DgString1(cd->body.columns_desc.colname);
+              return -1;
+            }
+          keyColDesc = keyColDesc->header.next;
+        }
+      
+      pPartitionList =
+        rangeSplits->getPartitionDefBody()->castToElemDDLPartitionList();
+      if (!pPartitionList)
+        pPartitionRange = rangeSplits->getPartitionDefBody()->
+          castToElemDDLPartitionRange();
+
+      if (pPartitionList)
+        numSplits = pPartitionList->entries();
+      else
+        numSplits = 1;
+
+      // for SPLIT BY, we allocate numKeys NAString objects
+      for (int k=0; k<numKeys; k++)
+        splitValuesAsText[k] = new(STMTHEAP) NAString(STMTHEAP);
+    }
+  else
+    {
       numSplits = numSaltSplits;
 
       // for salt splits, only the first key column value
       // is variable, the rest use the default values
       for (int k=1; k<numKeys; k++)
         splitValuesAsText[k] = defaultSplits[k];
+    }
 
   // allocate the result buffers, numSplits buffers of length keyLength
   encodedKeysBuffer = new (STMTHEAP) char*[numSplits];
@@ -6185,6 +6287,29 @@ short CmpSeabaseDDL::createEncodedKeysBuffer(char** &encodedKeysBuffer,
   // number of rows in the split array
   for(Int32 i =0; i < numSplits; i++)
     {
+      if (usesSplitBy)
+        {
+          if (pPartitionList)
+            pPartitionRange = (*pPartitionList)[i]->
+              castToElemDDLPartitionRange();
+
+          CMPASSERT(pPartitionRange);
+          const ItemConstValueArray &cva =
+            pPartitionRange->getKeyValueArray();
+
+          CMPASSERT(cva.entries() <= numKeys);
+
+          int v;
+          // copy the values specified in SPLIT BY ... ADD PARTITION
+          for (v=0; v<cva.entries(); v++)
+            *(splitValuesAsText[v]) = cva[v]->getConstStr(FALSE);
+
+          // fill up to numKeys with default values
+          for (; v<numKeys; v++)
+            *(splitValuesAsText[v]) = *(defaultSplits[v]);
+        }
+      else
+        {
           /* We are splitting along salt partitions. In the example below we have a 
              salt column and an integer column as the key. KeyLength is 4 + 4 = 8.
              encodedKeysBuffer will have 4 elements, each of length 8. When this
@@ -6206,6 +6331,7 @@ short CmpSeabaseDDL::createEncodedKeysBuffer(char** &encodedKeysBuffer,
                   ((i+1)*numSaltPartitions)/(numSaltSplits+1));
           splitNumString = splitNumCharStr;
           splitValuesAsText[0] = &splitNumString;
+        }
 
       short retVal = 0;
 
@@ -7889,17 +8015,27 @@ void CmpSeabaseDDL::purgedataHbaseTable(DDLExpr * ddlExpr,
   Lng32 numKeys = naf->getIndexKeyColumns().entries();
   Lng32 keyLength = naf->getKeyLength();
   char ** encodedKeysBuffer = NULL;
+  NAString splitByClause;
 
   const desc_struct * tableDesc = naTable->getTableDesc();
   desc_struct * colDescs = tableDesc->body.table_desc.columns_desc; 
   desc_struct * keyDescs = (desc_struct*)naf->getKeysDesc();
+
+  // get the SPLIT BY clause, if any
+  CmpSeabaseDDL::getTextFromMD(
+       naTable->getTableName().getCatalogName().data(),
+       &cliInterface,
+       naTable->objectUid().get_value(),
+       COM_HBASE_SPLIT_TEXT,
+       0,
+       splitByClause);
 
   if (createEncodedKeysBuffer(encodedKeysBuffer/*out*/,
                               numSplits/*out*/,
                               colDescs, keyDescs,
                               numSaltPartns,
                               numSaltSplits,
-                              NULL,
+                              &splitByClause,
                               numKeys, 
                               keyLength,
                               FALSE))
@@ -9939,7 +10075,7 @@ CmpSeabaseDDL::setupHbaseOptions(ElemDDLHbaseOptions * hbaseOptionsClause,
     numHbaseOptions += hbaseOptionsClause->getHbaseOptions().entries();
   }
 
-  if (numSplits > 0 /* i.e. a salted table */)
+  if (numSplits > 0 /* i.e. a salted table or SPLIT BY used */)
   {
     // set table-specific region split policy and max file
     // size, controllable by CQDs, but only if they are not

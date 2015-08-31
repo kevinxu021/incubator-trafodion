@@ -4370,6 +4370,7 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
                   indexes_desc->body.indexes_desc.keys_desc,
                   NULL, // no Hive stats
                   indexes_desc->body.indexes_desc.numSaltPartns,
+                  indexes_desc->body.indexes_desc.numInitialSaltRegions,
                   hbaseCreateOptions,
                   heap);
 
@@ -4707,6 +4708,7 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
                   NULL, // indexes_desc->body.indexes_desc.keys_desc,
                   hiveHDFSTableStats,
                   0, // saltPartns
+                  0, // initial regions
                   NULL, //hbaseCreateOptions
                   heap);
 

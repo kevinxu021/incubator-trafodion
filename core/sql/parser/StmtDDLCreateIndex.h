@@ -414,6 +414,7 @@ private:
   //
   NABoolean isPartitionClauseSpec_;
   ElemDDLPartitionArray partitionArray_;
+  NABoolean isPartitionClauseForSplit_;
 
   // DIVISION BY clause
 

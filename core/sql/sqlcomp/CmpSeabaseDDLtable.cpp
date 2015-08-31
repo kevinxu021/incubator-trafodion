@@ -44,6 +44,8 @@
 #include "keycolumns.h"
 #include "ElemDDLColRef.h"
 #include "ElemDDLColName.h"
+#include "ElemDDLPartitionClause.h"
+#include "ElemDDLPartitionList.h"
 
 #include "CmpDDLCatErrorCodes.h"
 #include "Globals.h"
@@ -362,6 +364,9 @@ void CmpSeabaseDDL::createSeabaseTableLike(
       // add the keyClause
       query += keyClause;
     }
+
+  if (createTableNode->isSplitBySpecified())
+    query += createTableNode->getSplitByClause();
 
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
   CmpCommon::context()->sqlSession()->getParentQid());
@@ -1228,6 +1233,7 @@ short CmpSeabaseDDL::createSeabaseTable2(
   CollIndex numSysCols = 0;
   CollIndex numSaltCols = 0;
   CollIndex numDivCols = 0;
+  NAString splitByClause;
 
   syskeyColDef.setColumnClass(COM_SYSTEM_COLUMN);
 
@@ -1256,14 +1262,17 @@ short CmpSeabaseDDL::createSeabaseTable2(
     }
 
   int numSaltPartns = 0; // # of "_SALT_" values
-  int numSplits = 0;     // # of initial region splits
+  int numSaltSplits = 0; // # of initial region splits for salted table
+  int numInitialSaltRegions = -1; // # of regions in SALT clause or -1
+  int numSplits = 0;     // # of initial region splits, SALT or SPLIT BY
 
   Lng32 numSaltPartnsFromCQD = 
     CmpCommon::getDefaultNumeric(TRAF_NUM_OF_SALT_PARTNS);
   
   if ((createTableNode->getSaltOptions()) ||
       ((numSaltPartnsFromCQD > 0) &&
-       (NOT (implicitPK || explicitSyskeySpecified))))
+       (NOT (implicitPK || explicitSyskeySpecified)) &&
+       (NOT createTableNode->isSplitBySpecified())))
     {
       // add a system column SALT INTEGER NOT NULL with a computed
       // default value HASH2PARTFUNC(<salting cols> FOR <num salt partitions>)
@@ -1340,8 +1349,24 @@ short CmpSeabaseDDL::createSeabaseTable2(
             }
         }
 
-      numSaltPartns =
-        (saltOptions ? saltOptions->getNumPartitions() : numSaltPartnsFromCQD);
+      if (saltOptions)
+        {
+          // SALT clause takes precedence over CQD
+          numSaltPartns = saltOptions->getNumPartitions();
+          numInitialSaltRegions = saltOptions->getNumInitialRegions();
+        }
+      else
+        {
+          // CQD is another way to salt all tables by default
+          numSaltPartns = numSaltPartnsFromCQD;
+          numInitialSaltRegions =
+            CmpCommon::getDefaultNumeric(TRAF_NUM_OF_SALT_REGIONS);
+        }
+
+      if (numInitialSaltRegions <= 0 || numInitialSaltRegions > numSaltPartns)
+        numInitialSaltRegions = numSaltPartns;
+      numSaltSplits = numInitialSaltRegions - 1;
+
       saltExprText += " FOR ";
       sprintf(numSaltPartnsStr,"%d", numSaltPartns);
       saltExprText += numSaltPartnsStr;
@@ -1378,8 +1403,19 @@ short CmpSeabaseDDL::createSeabaseTable2(
       keyArray.insertAt(0, edcrs);
       numSysCols++;
       numSaltCols++;
-      numSplits = numSaltPartns - 1;
+
+      if (createTableNode->isSplitBySpecified())
+        {
+          // salt and split by are not allowed together - for now
+          *CmpCommon::diags() << DgSqlCode(-1206);
+          deallocEHI(ehi); 
+          processReturn();
+          return -1;
+        }
     }
+
+  if (createTableNode->isSplitBySpecified())
+    splitByClause = createTableNode->getSplitByClause();
 
   // create table in seabase
   ParDDLFileAttrsCreateTable &fileAttribs =
@@ -1586,7 +1622,7 @@ short CmpSeabaseDDL::createSeabaseTable2(
     }
 
   char ** encodedKeysBuffer = NULL;
-  if (numSplits > 0) {
+  if (numSaltSplits > 0 || splitByClause) {
 
     desc_struct * colDescs = 
       convertVirtTableColumnInfoArrayToDescStructs(&tableName,
@@ -1601,8 +1637,8 @@ short CmpSeabaseDDL::createSeabaseTable2(
                                 numSplits /*out*/,
                                 colDescs, keyDescs,
                                 numSaltPartns,
-                                numSplits,
-                                NULL,
+                                numSaltSplits,
+                                &splitByClause,
                                 numKeys, 
                                 keyLength, FALSE))
       {
@@ -1656,7 +1692,9 @@ short CmpSeabaseDDL::createSeabaseTable2(
   tableInfo->objOwnerID = objectOwnerID;
   tableInfo->schemaOwnerID = schemaOwnerID;
 
-  tableInfo->numSaltPartns = (numSplits > 0 ? numSplits+1 : 0);
+  tableInfo->numSaltPartns = numSaltPartns;
+  tableInfo->numInitialSaltRegions = numInitialSaltRegions;
+  tableInfo->hbaseSplitClause = splitByClause;
   tableInfo->rowFormat = (alignedFormat ? COM_ALIGNED_FORMAT_TYPE : COM_HBASE_FORMAT_TYPE);
 
   NAList<HbaseCreateOption*> hbaseCreateOptions;
@@ -7629,6 +7667,9 @@ short CmpSeabaseDDL::getSpecialTableInfo
       tableInfo->objOwnerID = objectOwner;
       tableInfo->schemaOwnerID = schemaOwner;
       tableInfo->hbaseCreateOptions = NULL;
+      tableInfo->numSaltPartns = 0;
+      tableInfo->numInitialSaltRegions = 1;
+      tableInfo->hbaseSplitClause = NULL;
       tableInfo->rowFormat = COM_UNKNOWN_FORMAT_TYPE;
     }
 
@@ -8363,8 +8404,10 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
 
   NABoolean isAudited = TRUE;
   Lng32 numSaltPartns = 0;
+  Int32 numInitialSaltRegions = -1;
   NABoolean alignedFormat = FALSE;
   NAString *  hbaseCreateOptions = new(STMTHEAP) NAString();
+  NAString *  hbaseSplitClause = new(STMTHEAP) NAString();
   NAString colFamStr;
   if (cliRC == 0) // read some rows
     {
@@ -8398,6 +8441,24 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
           processReturn();
           return NULL;
         }
+      if (getTextFromMD(&cliInterface, objUID, COM_HBASE_SPLIT_TEXT, 0,
+                        *hbaseSplitClause))
+        {
+          processReturn();
+          return NULL;
+        }
+      if (!hbaseSplitClause->isNull())
+        {
+          int num = 0;
+
+          if (sscanf(hbaseSplitClause->data(), "IN %d REGIONS", &num) == 1)
+            {
+              numInitialSaltRegions = num;
+              *hbaseSplitClause = "";  // this should only contain SPLIT BY, if anything
+            }
+        }
+      else if (numSaltPartns > 1)
+        numInitialSaltRegions = numSaltPartns;
     }
 
   Lng32 numCols;
@@ -8980,6 +9041,9 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
   tableInfo->objOwnerID = objectOwner;
   tableInfo->schemaOwnerID = schemaOwner;
   tableInfo->numSaltPartns = numSaltPartns;
+  tableInfo->numInitialSaltRegions = numInitialSaltRegions;
+  tableInfo->hbaseSplitClause =
+    (hbaseSplitClause->isNull() ? NULL : hbaseSplitClause->data());
   tableInfo->hbaseCreateOptions = 
     (hbaseCreateOptions->isNull() ? NULL : hbaseCreateOptions->data());
   tableInfo->rowFormat = (alignedFormat ? COM_ALIGNED_FORMAT_TYPE : COM_HBASE_FORMAT_TYPE);

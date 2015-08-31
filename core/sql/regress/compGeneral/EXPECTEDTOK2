@@ -1,4 +1,4 @@
-sqlparser.y: warning: 73 shift/reduce conflicts [-Wconflicts-sr]
+sqlparser.y: warning: 74 shift/reduce conflicts [-Wconflicts-sr]
 sqlparser.y: warning: 12 reduce/reduce conflicts [-Wconflicts-rr]
  
 nnnn conflicts: 1 shift/reduce nnnn olap_sequence_function: set_function_specification . TOK_OVER '(' opt_olap_part_clause opt_olap_order_clause ')'
@@ -43,4 +43,5 @@ nnnn conflicts: 1 shift/reduce nnnn file_attribute_clause: file_attribute_keywor
 nnnn conflicts: 1 shift/reduce nnnn id_group: '(' identifier . ')' TOK_TO identifier
 nnnn conflicts: 1 reduce/reduce nnnn table_reference: '(' Front_Of_Insert . Rest_Of_insert_statement ')' as_clause
 nnnn conflicts: 1 shift/reduce nnnn transpose_list: transpose_set .
+nnnn conflicts: 1 shift/reduce nnnn salt_by_clause: TOK_SALT TOK_USING NUMERIC_LITERAL_EXACT_NO_SCALE TOK_PARTITIONS . optional_salt_num_regions optional_salt_column_list
 nnnn conflicts: 1 shift/reduce nnnn pipeline_clause: TOK_PIPELINE '(' pipeline_mv_name_list ')' . pipeline_def_list

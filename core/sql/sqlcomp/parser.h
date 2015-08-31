@@ -36,6 +36,7 @@
 // forward refs
 class CmpContext;
 class ElemDDLColDef;
+class ElemDDLPartitionClause;
 class StmtNode;
 class QueryText;
 
@@ -164,6 +165,7 @@ ItemExpr *get_w_ItemExprTree(const NAWchar * str,
   // component ( i.e. CmpStoredProc.C )
   
   ElemDDLColDef*  parseColumnDefinition(const char* str, size_t strLen, CharInfo::CharSet strCharSet);
+  ElemDDLPartitionClause* parseSplitDefinition(const char* str, size_t strLen, CharInfo::CharSet strCharSet);
 
   // part of interface to Unicode lexer
   yyULexer *getLexer() { return lexer; }
@@ -206,7 +208,8 @@ ItemExpr *get_w_ItemExprTree(const NAWchar * str,
 
   void reset(NABoolean on_entry_reset_was_needed = FALSE);
 
-  // set to oneof: NORMAL_TOKEN=0, INTERNALEXPR_TOKEN=1, COLUMNDEF_TOKEN=2;
+  // set to oneof: NORMAL_TOKEN=0, INTERNALEXPR_TOKEN=1, COLUMNDEF_TOKEN=2,
+  //               SPLITDEF_TOKEN=3;
   // used by the catalog manager for scanning/parsing odd stuff like:
   // "CAST('<minvalue>' AS CHAR(n))" (tcr)
   Int32 internalExpr_;
