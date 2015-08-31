@@ -2465,6 +2465,9 @@ int16 TMWAIT()
 TMLIB::TMLIB() : JavaObjectInterfaceTM()
 {
     tm_rtsigblock_proc();  
+    int32 lv_cluster_id;
+    ms_getenv_int("MY_CLUSTER_ID", &lv_cluster_id);    
+    iv_my_cluster_id = (short) lv_cluster_id;
     iv_initialized = false;
 //    msg_mon_trans_register_tmlib (tmlib_callback);
     msg_mon_trans_register_tmlib2 (tmlib_callback2);

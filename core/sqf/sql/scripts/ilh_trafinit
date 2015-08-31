@@ -50,7 +50,7 @@ run_util ilh_cleanhb
 run_util swstarthbase
 
 if [ -e $MY_SQROOT/sql/scripts/hbcheck ]; then
-    run_util hbcheck 4 5
+    run_util hbcheck 3 10
 else
     run_util ilh_hbcheck
 fi

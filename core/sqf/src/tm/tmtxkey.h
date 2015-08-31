@@ -34,17 +34,20 @@ private:
        int64 iv_id;
        struct {
           int32 iv_seqnum;
-          int32 iv_node;
+          int16 iv_node;
+	  int16 iv_cluster_id;
        } s;
        struct {
           int32 iv_pid;
-          int32 iv_node;
+          int16 iv_node;
+	  int16 iv_cluster_id;
        } p;
     } iv_key;
 
 public:
     CTmTxKey() {set(0,0);}
-    CTmTxKey(int32 pv_node, int32 pv_seqnum) {set(pv_node, pv_seqnum);}
+    //    CTmTxKey(int32 pv_node, int32 pv_seqnum) {set(pv_node, pv_seqnum);}
+    CTmTxKey(int16 pv_cluster_id, int32 pv_node, int32 pv_seqnum) {set(pv_cluster_id, (int16) pv_node, pv_seqnum);}
     CTmTxKey(int64 pv_id) {set(pv_id);}
     ~CTmTxKey() {}
 
@@ -55,6 +58,12 @@ public:
     {
         iv_key.s.iv_node = pv_node;
         iv_key.s.iv_seqnum = pv_seqnum;
+    }
+    void set(int16 pv_cluster_id, int16 pv_node, int32 pv_seqnum)
+    {
+        iv_key.s.iv_cluster_id = pv_cluster_id;
+        iv_key.s.iv_node       = pv_node;
+        iv_key.s.iv_seqnum     = pv_seqnum;
     }
     int32 node() {
        if (id() == -1)

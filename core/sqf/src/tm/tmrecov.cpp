@@ -297,7 +297,7 @@ int32 TM_Recov::recover_tse_restart(int32 pv_rmid)
 //----------------------------------------------------------------------------
 CTmRmTxRecoveryState *TM_Recov::add_txState(TM_Txid_Internal *pp_transid, TM_TX_STATE pv_state)
 {
-   CTmTxKey lv_txKey(pp_transid->iv_node, pp_transid->iv_seq_num);
+   CTmTxKey lv_txKey(pp_transid->iv_cluster_id, pp_transid->iv_node, pp_transid->iv_seq_num);
    CTmRmTxRecoveryState *lp_indoubtTxn = new CTmRmTxRecoveryState(pp_transid, pv_state);
    TMTrace (2, ("TM_Recov::add_txState ENTRY ID (%d,%d), state %d to be added to "
             "iv_txnStateList. %d entries to be recovered.\n",
@@ -324,7 +324,7 @@ CTmRmTxRecoveryState *TM_Recov::get_txState(TM_Txid_Internal *pp_transid)
    TMTrace (2, ("TM_Recov::get_txState ENTRY Txn ID (%d,%d).\n", 
        pp_transid->iv_node, pp_transid->iv_seq_num));
 
-   CTmTxKey lv_key(pp_transid->iv_node, pp_transid->iv_seq_num);
+   CTmTxKey lv_key(pp_transid->iv_cluster_id, pp_transid->iv_node, pp_transid->iv_seq_num);
    CTmRmTxRecoveryState *lp_indoubtTxn = (CTmRmTxRecoveryState *) txnStateList()->get(lv_key.id());
 
     return lp_indoubtTxn;
@@ -366,7 +366,7 @@ TM_TX_Info * TM_Recov::new_txinfo(TM_Txid_Internal *pp_transid)
             pp_transid->iv_node, pp_transid->iv_seq_num));
 
     // See if this transaction already exists
-    CTmTxKey lv_txKey(pp_transid->iv_node, pp_transid->iv_seq_num);
+    CTmTxKey lv_txKey(pp_transid->iv_cluster_id, pp_transid->iv_node, pp_transid->iv_seq_num);
 
     TM_TX_Info *lp_tx_info = (TM_TX_Info*) ip_tm_info->transactionPool()->get(lv_txKey.id());
 
@@ -430,7 +430,7 @@ void TM_Recov::add_txinfo(TM_TX_Info *pp_txinfo)
                 pp_txinfo->node(), pp_txinfo->seqnum(), iv_total_txs_to_recover));
 
 
-   CTmTxKey lv_txKey(pp_txinfo->transid()->iv_node, pp_txinfo->seqnum());
+   CTmTxKey lv_txKey(pp_txinfo->transid()->iv_cluster_id, pp_txinfo->transid()->iv_node, pp_txinfo->seqnum());
 
    pp_txinfo->in_use(true);
    txnList()->put(lv_txKey.id(), pp_txinfo);
@@ -441,7 +441,7 @@ TM_TX_Info * TM_Recov::get_txinfo(TM_Txid_Internal *pp_transid)
    TMTrace (2, ("TM_Recov::get_txInfo ENTRY txn ID (%d,%d).\n", 
        pp_transid->iv_node, pp_transid->iv_seq_num));
 
-   CTmTxKey k(pp_transid->iv_node, pp_transid->iv_seq_num);
+   CTmTxKey k(pp_transid->iv_cluster_id, pp_transid->iv_node, pp_transid->iv_seq_num);
    return (TM_TX_Info *) txnList()->get(k.id());
 }
 

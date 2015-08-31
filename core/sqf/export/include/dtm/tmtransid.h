@@ -47,7 +47,8 @@ typedef struct _tmtransid_h_as_0 {
 typedef struct _tmtransid_h_as_1 {
     // DO NOT MOVE THE NEXT 3 MEMBERS
     int32 iv_seq_num;
-    int32 iv_node;
+    int16 iv_node;
+    int16 iv_cluster_id;
     int16 iv_incarnation_num;
     // DO NOT MOVE THE ABOVE MEMBERS
 
@@ -91,7 +92,8 @@ class TM_Transid
         TM_Txid_Internal get_txid() {return iv_tx.txid;}
         void set_external_data_type(TM_Transid_Type* external_tx);
 
-        int      get_node();
+        int16    get_clusterid();
+        int16    get_node();
         int      get_seq_num();
         int16    get_incarnation_num();
         int64    get_type_flags();

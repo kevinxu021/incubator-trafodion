@@ -197,10 +197,16 @@ void TM_Transid::set_external_data_type(TM_Transid_Type* external_tx)
 
 // Returns the node from the transid, not the one 
 // stored in node (which should be the same).
-int TM_Transid::get_node()
+int16 TM_Transid::get_node()
 {
-    int *node = (int *)&iv_tx.txid.iv_node;
+    int16 *node = (int16 *)&iv_tx.txid.iv_node;
     return *node;
+}
+
+int16 TM_Transid::get_clusterid()
+{
+    int16 *cluster_id = (int16 *)&iv_tx.txid.iv_cluster_id;
+    return *cluster_id;
 }
 
 int TM_Transid::get_seq_num()

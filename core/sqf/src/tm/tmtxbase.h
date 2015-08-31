@@ -430,6 +430,7 @@ class CTmTxBase :public virtual CTmPoolElement
        }
        int32 seqnum() {return iv_transid.iv_seq_num;}
        int32 node() {return iv_transid.iv_node;}
+       int32 clusterid() {return iv_transid.iv_cluster_id;}
        bool read_only() {return iv_read_only;}
        void read_only(bool pv_value) {iv_read_only=pv_value;}
        bool mark_for_rollback() {return iv_mark_for_rollback;}

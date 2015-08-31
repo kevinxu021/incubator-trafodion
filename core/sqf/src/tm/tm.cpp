@@ -1855,7 +1855,7 @@ void tm_originating_sync_commit (int32 pv_tag)
         case TM_END_SYNC:
         case TM_BEGIN_SYNC:
         {
-            lp_tx = (CTmTxBase *) gv_tm_info.get_tx(lp_data->u.iv_node_to_takeover, lp_data->u.iv_seqnum);
+    	    lp_tx = (CTmTxBase *) gv_tm_info.get_tx(gv_tm_info.clusterid(), lp_data->u.iv_node_to_takeover, lp_data->u.iv_seqnum);
 
             if (lp_tx == NULL)
             {
@@ -1874,7 +1874,7 @@ void tm_originating_sync_commit (int32 pv_tag)
          case TM_FORGET_SYNC:
          {
             // we are done, queue endforget event against txn thread.
-            lp_tx = (CTmTxBase *) gv_tm_info.get_tx(lp_data->u.iv_node_to_takeover, lp_data->u.iv_seqnum);
+ 	    lp_tx = (CTmTxBase *) gv_tm_info.get_tx(gv_tm_info.clusterid(), lp_data->u.iv_node_to_takeover, lp_data->u.iv_seqnum);
 
             // If the transaction object doesn't exist we assume that it's already been
             // cleaned up.  This can happen, for example, when a begin or end sync completion
@@ -2021,7 +2021,7 @@ void tm_originating_sync_abort(int32 pv_tag)
              case TM_END_SYNC:
              case TM_FORGET_SYNC:
              {
-                 lp_tx = (CTmTxBase *) gv_tm_info.get_tx(lp_data->u.iv_node_to_takeover, lp_data->u.iv_seqnum);
+     	         lp_tx = (CTmTxBase *) gv_tm_info.get_tx(gv_tm_info.clusterid(), lp_data->u.iv_node_to_takeover, lp_data->u.iv_seqnum);
 
                  if (lp_tx == NULL)
                  {
