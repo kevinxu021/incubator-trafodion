@@ -24,9 +24,10 @@ namespace Trafodion.Data
             "from trafodion.\"_MD_\".OBJECTS;";
 
         private static string SchemaQuery = "select " +
-            "distinct cast ('trafodion' as varchar(128)) CatalogName, " +
-            "cast(trim(ob.SCHEMA_NAME) as varchar(128)) SchemaName " +
-            "from trafodion.\"_MD_\".OBJECTS ob";
+            "distinct cast('trafodion' as varchar(128)) CatalogName, " +
+            "cast(trim(SCHEMA_NAME) as varchar(128)) SchemaName " +
+            "from trafodion.\"_MD_\".OBJECTS " +
+            "where rtrim(SCHEMA_NAME) {2} translate('{3}' using UTF8TOUCS2);";
 
         private static string TableQuery = "select " +
            "distinct cast('{0}' as varchar(128)) CatalogName, " +
