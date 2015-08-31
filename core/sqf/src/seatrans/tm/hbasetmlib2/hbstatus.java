@@ -100,10 +100,13 @@ public class hbstatus {
 	System.out.println();
 	if (pv_pattern.length() > 0) {
 	    HTableDescriptor[] la_tables = lv_admin.listTables(pv_pattern);
-	    System.out.println("User tables: #: " + la_tables.length);
+	    System.out.println("Number of user tables matching the pattern: "
+			       + pv_pattern
+			       + ":" + la_tables.length);
 
 	    for (HTableDescriptor lv_table: la_tables) {
 		List<HRegionInfo> lv_lhri = lv_admin.getTableRegions(lv_table.getTableName());
+		System.out.println("========================================================");
 		System.out.println("Table:" 
 				   + lv_table 
 				   + ":#regions:" 

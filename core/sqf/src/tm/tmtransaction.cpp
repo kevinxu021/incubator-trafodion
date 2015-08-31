@@ -307,7 +307,7 @@ short TM_Transaction::begin(int abort_timeout, int64 transactiontype_bits)
     
     // Bypass BEGINTRANSACTION call for Trafodion local transactions.
     if (gv_tmlib.localBegin()) {
-       CTmTxKey *lp_txid = new CTmTxKey(gv_tmlib.iv_my_nid, gv_tmlib.seqNum()->nextSeqNum());
+       CTmTxKey *lp_txid = new CTmTxKey(gv_tmlib.iv_my_cluster_id, gv_tmlib.iv_my_nid, gv_tmlib.seqNum()->nextSeqNum());
        iv_transid = lp_txid->id();
        iv_tag = lp_txid->seqnum();
        gp_trans_thr->add_trans(this);

@@ -64,6 +64,10 @@ TM_Info::TM_Info()
    :iv_stats(TM_STATS, TM_STATS_INTERVAL)
 {
 
+  int32 lv_cluster_id;
+   ms_getenv_int("MY_CLUSTER_ID", &lv_cluster_id);    
+   iv_cluster_id = (short) lv_cluster_id;
+   printf("Cluster id: %d\n", iv_cluster_id);
    // Mutex attributes: Recursive = true, ErrorCheck=false
    ip_mutex = new TM_Mutex(true, false);
    iv_trace_level = 0;
@@ -2952,7 +2956,7 @@ int32 TM_Info::broadcast_sync_data (int32 pv_nid)
 void *TM_Info::new_tx(int32 pv_creator_nid, int32 pv_creator_pid, int32 pv_node, int32 pv_seqnum, 
                       void * (*constructPoolElement)(int64))
 {
-   CTmTxKey lv_txKey(0,0);
+   CTmTxKey lv_txKey(0,0,0);
    CTmTxBase *lp_tx = NULL;
    bool lv_reused = false;
    
@@ -2961,10 +2965,11 @@ void *TM_Info::new_tx(int32 pv_creator_nid, int32 pv_creator_pid, int32 pv_node,
 
    lock();
    if (pv_node != -1 && pv_seqnum != -1)
-      lv_txKey.set(pv_node, pv_seqnum);
+     lv_txKey.set(gv_tm_info.clusterid(), pv_node, pv_seqnum);
    else
       // Allocate a new sequence number
-      lv_txKey.set(gv_tm_info.nid(), tm_new_seqNum());
+     //      lv_txKey.set(gv_tm_info.nid(), tm_new_seqNum());
+     lv_txKey.set(gv_tm_info.clusterid(), gv_tm_info.nid(), tm_new_seqNum());
 
    TMTrace (3, ("TM_Info::new_tx : Calling CTmPool<CTmTxBase>::newElement "
          "transid (%d,%d).\n", lv_txKey.node(), lv_txKey.seqnum()));
@@ -3099,9 +3104,9 @@ int32 TM_Info::add_tx(CTmTxBase *pp_tx)
 // get_tx
 // Purpose : find a tx in the TX list and return it
 // ------------------------------------------------------------
-void * TM_Info::get_tx(int32 pv_node, int32 pv_seq)
+void * TM_Info::get_tx(int16 pv_cluster_id, int16 pv_node, int32 pv_seq)
 {
-   CTmTxKey k(pv_node, pv_seq);
+   CTmTxKey k(pv_cluster_id, pv_node, pv_seq);
    return transactionPool()->get(k.id());
 }
 
@@ -3111,7 +3116,7 @@ void * TM_Info::get_tx(int32 pv_node, int32 pv_seq)
 // ------------------------------------------------------------
 void * TM_Info::get_tx(TM_Txid_Internal *pv_transid)
 {
-    CTmTxKey k(pv_transid->iv_node, pv_transid->iv_seq_num);
+  CTmTxKey k(pv_transid->iv_cluster_id, pv_transid->iv_node, pv_transid->iv_seq_num);
 
     return transactionPool()->get(k.id());
 }
@@ -3207,7 +3212,7 @@ void TM_Info::getEnd_tx_byPid()
 void TM_Info::remove_tx (CTmTxBase * pp_tx)
 {
 
-   CTmTxKey k(pp_tx->node(), pp_tx->seqnum());
+   CTmTxKey k(pp_tx->clusterid(), pp_tx->node(), pp_tx->seqnum());
 
    TMTrace (2, ("TM_Info::remove_tx : ENTRY, tx object %p ID (%d,%d).\n", 
             (void *) pp_tx, pp_tx->node(), pp_tx->seqnum()));

@@ -95,6 +95,7 @@ class TMLIB : public JavaObjectInterfaceTM
         // the following members are not covered under mutex
         // they are only modified a single time'
         int iv_tm_pid; // Only used for non-transactional requests
+        int16 iv_my_cluster_id;
         int iv_my_nid;
         int iv_my_pid;
         

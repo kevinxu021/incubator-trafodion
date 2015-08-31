@@ -129,6 +129,7 @@ typedef enum
 class TM_Info
 {
     private:
+       int16            iv_cluster_id;
        int32            iv_run_mode;
        int32            iv_audit_mode; //1:normal, 2:buffer
        bool             iv_use_tlog;
@@ -351,6 +352,7 @@ class TM_Info
        void * import_tx (TM_Txid_Internal *pv_transid, TM_TX_STATE pv_state=TM_TX_STATE_NOTX, TM_TX_TYPE pv_txnType=TM_TX_TYPE_DTM);
        int32        add_tx(CTmTxBase *pp_tx);
        void      ** get_all_txs(int64 *pv_count);
+       void * get_tx(int16 pv_cluster_id, int16 pv_node, int32 pv_seq);
        void * get_tx(int32 pv_node, int32 pv_seq);
        void * get_tx(TM_Txid_Internal *pv_transid);
        void * get_tx(int64 pv_txnId);
@@ -431,6 +433,7 @@ class TM_Info
        void  lead_tm_nid(int32 pv_nid);
        int32 lead_tm_nid();
       
+       int16 clusterid() {return iv_cluster_id;}
        int32 mode() {return iv_run_mode;}
        void  nid (int32 pv_nid);
        int32 nid ();

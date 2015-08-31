@@ -403,7 +403,7 @@ else
     # pick a random number between 9000 and 49000 that is divisible by 200
     lv_number=0   #initialize
     FLOOR=10000
-    RANGE=31200
+    RANGE=31000
     while [ "$lv_number" -le $FLOOR ]
     do
 	lv_number=$RANDOM

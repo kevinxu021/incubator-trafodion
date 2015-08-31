@@ -149,7 +149,7 @@ CTmTxBase * CTmTxBase::constructPoolElement(int64 pv_id)
 //----------------------------------------------------------------------------
 int64 CTmTxBase::cleanPoolElement()
 {
-   CTmTxKey k(node(), seqnum());
+  CTmTxKey k(gv_tm_info.clusterid(), node(), seqnum());
    cleanup();
    return k.id();
 } //CTmTxBase::cleanPoolElement
@@ -195,6 +195,7 @@ void CTmTxBase::initialize(int32 pv_nid, int64 pv_flags, int32 pv_trace_level,
    ip_Thread = NULL;
    iv_threadPending = false;
    iv_transid.iv_tx_flags = (short)pv_flags; //HERE
+   iv_transid.iv_cluster_id = gv_tm_info.clusterid();
    iv_transid.iv_node = pv_nid;
    iv_transid.iv_version = 1;
    iv_transid.iv_check_sum = 403;
@@ -1314,7 +1315,7 @@ void CTmTxBase::reply_to_queuedRequests(short pv_error)
 // ---------------------------------------------------------------------------
 bool CTmTxBase::add_app_partic (int32 pv_pid, int32 pv_nid)
 {
-    CTmTxKey lv_key(pv_nid, pv_pid);
+    CTmTxKey lv_key(gv_tm_info.clusterid(), pv_nid, pv_pid);
 
     CTmTxKey *lp_key = (CTmTxKey *) iv_app_partic_list.get(lv_key.id());
     if (lp_key == NULL)
@@ -1347,7 +1348,7 @@ bool CTmTxBase::add_app_partic (int32 pv_pid, int32 pv_nid)
 
 bool CTmTxBase::remove_app_partic (int32 pv_pid, int32 pv_nid)
 {
-    CTmTxKey lv_key(pv_nid, pv_pid);
+    CTmTxKey lv_key(gv_tm_info.clusterid(), pv_nid, pv_pid);
 
     CTmTxKey *lp_key = (CTmTxKey *) iv_app_partic_list.remove(lv_key.id());
     if (lp_key)
@@ -1379,7 +1380,7 @@ bool CTmTxBase::erase_app_partic(CTmTxKey *pp_key)
 
 bool CTmTxBase::is_app_partic (int32 pv_pid, int32 pv_nid)
 {
-    CTmTxKey lv_key(pv_nid, pv_pid);
+    CTmTxKey lv_key(gv_tm_info.clusterid(), pv_nid, pv_pid);
 
     CTmTxKey *lp_key = (CTmTxKey *)iv_app_partic_list.get(lv_key.id());
     if (lp_key)
