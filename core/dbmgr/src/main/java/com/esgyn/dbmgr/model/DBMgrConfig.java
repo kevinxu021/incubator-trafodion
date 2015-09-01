@@ -1,6 +1,10 @@
 package com.esgyn.dbmgr.model;
 
+
 public class DBMgrConfig {
+  public int httpPort;
+  public int httpsPort;
+  public String securePassword;
   public String jdbcUrl;
   public String jdbcDriverClass;
   public String trafRestServerUri;

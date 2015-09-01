@@ -1,7 +1,11 @@
 package com.esgyn.dbmgr.resources;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
+import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,11 +17,11 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 public class ConfigurationResource {
   private static final Logger _LOG = LoggerFactory.getLogger(ConfigurationResource.class);
-  private static DBMgrConfig config = null;
   private static ConfigurationResource instance = null;
+  private static Properties xmlConfig = new Properties();
 
   static {
-    config = readDBMgrConfig();
+    xmlConfig = readDBMgrXmlConfig();
     readSystemQueries();
   }
 
@@ -33,23 +37,30 @@ public class ConfigurationResource {
   }
 
   public String getJdbcUrl() {
-    return config.jdbcUrl;
+    return xmlConfig.getProperty("jdbcUrl");
   }
 
   public String getJdbcDriverClass() {
-    return config.jdbcDriverClass;
+    return xmlConfig.getProperty("jdbcDriverClass");
   }
 
   public String getTrafRestServerUri() {
-    return config.trafRestServerUri;
+    return xmlConfig.getProperty("trafRestServerUri");
   }
 
   public String getOpenTSDBUri() {
-    return config.openTSDBUri;
+    return xmlConfig.getProperty("openTSDBUri");
   }
 
   public int getSessionTimeoutMinutes() {
-    return config.sessionTimeoutMinutes;
+    int timeOutVal = 120;
+    try {
+      String timeOut = xmlConfig.getProperty("sessionTimeoutMinutes", "120");
+      timeOutVal = Integer.parseInt(timeOut);
+    } catch (Exception ex) {
+
+    }
+    return timeOutVal;
   }
 
   private static DBMgrConfig readDBMgrConfig() {
@@ -58,7 +69,7 @@ public class ConfigurationResource {
     URL path = ConfigurationResource.class.getClassLoader().getResource("config.xml");
 
     try {
-      String configFile = System.getenv("ESGYN_DBMGR_CONFIG_FILE");
+      String configFile = System.getenv("DBMGR_CONFIG_FILE");
       if (configFile != null && configFile.length() > 0) {
         File f = new File(configFile);
         if (f.exists()) {
@@ -78,6 +89,41 @@ public class ConfigurationResource {
     }
 
     return config;
+  }
+
+  private static Properties readDBMgrXmlConfig() {
+    Properties prop = new Properties();
+    InputStream input = null;
+
+    try {
+
+      String DBMGR_HOME = System.getenv("DBMGR_INSTALL_DIR");
+      if (DBMGR_HOME == null || DBMGR_HOME.isEmpty()) {
+        URL path = ConfigurationResource.class.getClassLoader().getResource("config.xml");
+        _LOG.info("Using default configuration file " + path.toURI());
+        File file = new File(path.toURI());
+        input = new FileInputStream(file);
+        prop.loadFromXML(input);
+        input.close();
+      } else {
+        String fileName = DBMGR_HOME + "/conf/config.xml";
+        input = new FileInputStream(fileName);
+        _LOG.info("Reading configuration file {}", fileName);
+        prop.loadFromXML(input);
+        input.close();
+      }
+    } catch (Exception ex) {
+      ex.printStackTrace();
+    } finally {
+      if (input != null) {
+        try {
+          input.close();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+    return prop;
   }
 
   private static void readSystemQueries() {
