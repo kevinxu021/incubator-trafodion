@@ -1000,8 +1000,10 @@ Int32 yyULexer::yylex(YYSTYPE *lvalp)
 
   if (SqlParser_CurrentParser->internalExpr_)
     {
+      // Note: these start symbols are defined in sqlparser.y, they don't need to
+      // be defined anywhere else, since bison will assign then a number in sqlparser.h
       static const Int32 SqlParser_starting_token[] = 
-        { 0, TOK_INTERNAL_EXPR, TOK_INTERNAL_COLUMN_DEFINITION };
+        { 0, TOK_INTERNAL_EXPR, TOK_INTERNAL_COLUMN_DEFINITION, TOK_INTERNAL_SPLIT_DEFINITION };
       Int32 temp = SqlParser_starting_token
         [SqlParser_CurrentParser->internalExpr_];
       SqlParser_CurrentParser->internalExpr_ = NORMAL_TOKEN; // reset it

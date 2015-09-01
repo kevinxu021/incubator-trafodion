@@ -1,16 +1,13 @@
-<?xml version="1.0"?>
-<config>
-	<!-- The Trafodion JDBC URL -->
-	<jdbcUrl>jdbc:t4jdbc://10.1.10.101:12172/:</jdbcUrl>
-	<!-- The Trafodion JDBC Driver Class Name -->
-	<jdbcDriverClass>org.trafodion.jdbc.t4.T4Driver</jdbcDriverClass>
-	<!-- The Trafodion REST server URI -->
-	<trafRestServerUri>10.1.10.101:14183</trafRestServerUri>
-	<!-- The OpenTSDB URI -->
-	<openTSDBUri>10.1.10.101:14580</openTSDBUri>
-	<!--Session Timeout in minutes. Default is 120 minutes and Minimum 10 minutes. 
-		If specified value is < 10 then it defaults to 120. The browser session times 
-		out after this many minutes and the server cache for that user session is 
-		also cleared -->
-	<sessionTimeoutMinutes>120</sessionTimeoutMinutes>
-</config>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+<entry key="httpPort">9080</entry>
+<entry key="httpsPort">9443</entry>
+<entry key="securePassword">esgyndbmgr</entry>
+<entry key="requestHeaderSize">88304</entry>
+<entry key="jdbcUrl">jdbc:t4jdbc://10.1.10.101:12172/:</entry>
+<entry key="jdbcDriverClass">org.trafodion.jdbc.t4.T4Driver</entry>
+<entry key="trafRestServerUri">10.1.10.101:14183</entry>
+<entry key="openTSDBUri">10.1.10.101:14580</entry>
+<entry key="sessionTimeoutMinutes">120</entry>
+</properties>

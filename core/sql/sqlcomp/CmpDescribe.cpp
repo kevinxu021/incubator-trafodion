@@ -2829,15 +2829,26 @@ short CmpDescribeSeabaseTable (
       
       if ((isSalted) && !withoutSalt)
         {
-          Lng32 currPartitions = naf->getCountOfPartitions();
-          Lng32 numPartitions = naf->numSaltPartns();
+          Lng32 currRegions = naf->getCountOfPartitions();
+          Lng32 numSaltPartitions = naf->numSaltPartns();
+          Lng32 numInitialSaltRegions = naf->numInitialSaltRegions();
+          NAString saltString;
 
-          if (numPartitions != currPartitions)
-            sprintf(buf,  "  SALT USING %d PARTITIONS /* ACTUAL PARTITIONS %d */", numPartitions, currPartitions);
+          if (numSaltPartitions == numInitialSaltRegions)
+            sprintf(buf, "  SALT USING %d PARTITIONS",
+                  numSaltPartitions);
           else
-            sprintf(buf,  "  SALT USING %d PARTITIONS", numPartitions);
+            sprintf(buf, "  SALT USING %d PARTITIONS IN %d REGIONS",
+                    numSaltPartitions, numInitialSaltRegions);
+          saltString += buf;
+
+          if (numInitialSaltRegions != currRegions)
+            {
+              sprintf(buf, " /* ACTUAL REGIONS %d */", currRegions);
+              saltString += buf;
+            }
             
-          outputShortLine(space, buf);
+          outputShortLine(space, saltString.data());
 
           ValueIdList saltCols;
 
@@ -2885,10 +2896,24 @@ short CmpDescribeSeabaseTable (
       else if ((NOT isSalted) && (withPartns))
         {
           Lng32 currPartitions = naf->getCountOfPartitions();
+          ExeCliInterface cliInterface(CmpCommon::statementHeap());
+          NAString splitText;
+
+          if (CmpSeabaseDDL::getTextFromMD(
+                   naTable->getTableName().getCatalogName().data(),
+                   &cliInterface,
+                   naTable->objectUid().get_value(),
+                   COM_HBASE_SPLIT_TEXT,
+                   0,
+                   splitText))
+            return -1;
+
+          if (!splitText.isNull())
+            outputShortLine(space, splitText.data());
 
           if (currPartitions > 1)
             {
-              sprintf(buf,  "  /* ACTUAL PARTITIONS %d */", currPartitions);
+              sprintf(buf,  "  /* ACTUAL REGIONS %d */", currPartitions);
               
               outputShortLine(space, buf);
             }

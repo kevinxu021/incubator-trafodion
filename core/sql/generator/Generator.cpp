@@ -1979,10 +1979,20 @@ desc_struct * Generator::createVirtualTableDesc(
   index_desc->body.indexes_desc.isVolatile = table_desc->body.table_desc.isVolatile;
   index_desc->body.indexes_desc.hbaseCreateOptions  = NULL;
   index_desc->body.indexes_desc.numSaltPartns = 0;
+  index_desc->body.indexes_desc.numInitialSaltRegions = -1;
+  index_desc->body.indexes_desc.hbaseSplitClause = NULL;
   index_desc->body.indexes_desc.rowFormat = table_desc->body.table_desc.rowFormat;
   if (tableInfo)
   {
       index_desc->body.indexes_desc.numSaltPartns = tableInfo->numSaltPartns;
+      index_desc->body.indexes_desc.numInitialSaltRegions = tableInfo->numInitialSaltRegions;
+      if (tableInfo->hbaseSplitClause)
+      {
+        index_desc->body.indexes_desc.hbaseSplitClause  = 
+          new HEAP char[strlen(tableInfo->hbaseSplitClause) + 1];
+        strcpy(index_desc->body.indexes_desc.hbaseSplitClause, 
+               tableInfo->hbaseSplitClause);
+      }
       if (tableInfo->hbaseCreateOptions)
       {
         index_desc->body.indexes_desc.hbaseCreateOptions  = 

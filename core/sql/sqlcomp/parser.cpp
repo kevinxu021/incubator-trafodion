@@ -1316,6 +1316,21 @@ ElemDDLColDef* Parser::parseColumnDefinition(const char* str, size_t strLen, Cha
   return (ElemDDLColDef*)node;
 }
 
+ElemDDLPartitionClause* Parser::parseSplitDefinition(const char* str, size_t strLen, CharInfo::CharSet strCharSet)
+{
+  ExprNode* node;
+  // If strLen is passed in, use it so non-null-terminated strings can be passed to parser.
+  Int32 len = (Int32)(strLen > 0 ? strLen : strlen(str)) + 2;
+  char* newStr = new(wHeap()) char[len];
+  sprintf(newStr, "%s;", str);
+  parseDML(newStr, len, strCharSet, &node, SPLITDEF_TOKEN, NULL);
+  // parseDML is expected to always return, should not jump to other places.
+  // so the following delete will always be performed.
+  NADELETEBASIC(newStr, wHeap());
+
+  return (ElemDDLPartitionClause*)node;
+}
+
 NABoolean Parser::parseUtilISPCommand(const char* command, size_t cmdLen, CharInfo::CharSet cmdCharSet, ExprNode** node)
 {
   if (cmdLen == 0)

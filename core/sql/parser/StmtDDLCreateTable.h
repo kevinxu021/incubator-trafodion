@@ -328,6 +328,8 @@ public:
 
   ComPartitioningScheme getPartitioningScheme() const;
 
+  inline const NAString &getSplitByClause() const;
+
   inline const ElemDDLColRefArray & getPrimaryKeyColRefArray() const;
   inline       ElemDDLColRefArray & getPrimaryKeyColRefArray();
 
@@ -385,6 +387,8 @@ public:
 
         // returns TRUE if the PARTITION BY clause appears;
         // returns FALSE otherwise.
+
+  inline NABoolean isSplitBySpecified() const;
 
   inline NABoolean isDivisionClauseSpecified() const;
 
@@ -709,6 +713,9 @@ private:
 
   NABoolean isPartitionClauseSpec_;
   ElemDDLPartitionArray partitionArray_;
+
+  NABoolean isSplitByClauseSpec_;
+  NAString splitByClause_;
 
   // HASH PARTITION 
   NABoolean isHashV1PartitionSpec_;  // Old hash partition scheme
@@ -1169,6 +1176,11 @@ StmtDDLCreateTable::getPartitionArray()
   return partitionArray_;
 }
 
+inline const NAString &StmtDDLCreateTable::getSplitByClause() const
+{
+  return splitByClause_;
+}
+
 // get column name list in primary key clause
 inline const ElemDDLColRefArray &
 StmtDDLCreateTable::getPrimaryKeyColRefArray() const
@@ -1315,6 +1327,12 @@ inline NABoolean
 StmtDDLCreateTable::isPartitionBySpecified() const
 {
   return isPartitionByClauseSpec_;
+}
+
+inline NABoolean
+StmtDDLCreateTable::isSplitBySpecified() const
+{
+  return isSplitByClauseSpec_;
 }
 
 // is the STORE BY clause specified?

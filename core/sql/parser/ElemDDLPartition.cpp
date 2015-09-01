@@ -180,7 +180,10 @@ NAString ElemDDLPartitionClause::getSyntax() const
     ComASSERT(FALSE);
   }
 
-  syntax += "PARTITION ";
+  if (isForSplit_)
+    syntax += "SPLIT ";
+  else
+    syntax += "PARTITION ";
 
 
   ElemDDLNode * pElemDDL = getPartitionByOption();
@@ -1018,9 +1021,11 @@ NAString ElemDDLPartitionRange::getSyntax() const
 
   syntax += ") ";
 
-  syntax += getLocationNode()->getSyntax();
-  syntax += " ";
-
+  if (getLocationNode())
+    {
+      syntax += getLocationNode()->getSyntax();
+      syntax += " ";
+    }
 
   if (NULL != ncThis->getChild(INDEX_PARTITION_ATTR_LIST))
   {
@@ -1230,7 +1235,7 @@ NAString ElemDDLPartitionByColumnList::getSyntax() const
   
   const ElemDDLColRefArray & colRefArray = getPartitionKeyColumnArray();
 
-  NAString syntax = (colRefArray[0])->getColumnName();
+  NAString syntax = ToAnsiIdentifier((colRefArray[0])->getColumnName());
   
   
 //ElemDDLColRef * pGroupByColumnRef =    
@@ -1239,7 +1244,7 @@ NAString ElemDDLPartitionByColumnList::getSyntax() const
   for (CollIndex i = 1; i < colRefArray.entries(); i++)
   {
     syntax += ", ";
-    syntax += (colRefArray[i])->getColumnName();
+    syntax += ToAnsiIdentifier((colRefArray[i])->getColumnName());
     
   }
   return syntax;

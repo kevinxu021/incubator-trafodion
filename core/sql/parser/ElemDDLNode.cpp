@@ -3242,9 +3242,11 @@ NAString ElemDDLDivisionClause::getSyntax() const
 // -----------------------------------------------------------------------
 
 ElemDDLSaltOptionsClause::ElemDDLSaltOptionsClause(ElemDDLNode * pSaltExprTree,
-                                                   Int32 numPartitions)
+                                                   Int32 numPartitions,
+                                                   Int32 numInitialRegions)
   : ElemDDLNode(ELM_SALT_OPTIONS_ELEM),
     numPartitions_(numPartitions),
+    numInitialRegions_(numInitialRegions),
     saltColumnArray_(PARSERHEAP()),
     likeTable_(FALSE)
 {
@@ -3266,6 +3268,7 @@ ElemDDLSaltOptionsClause::ElemDDLSaltOptionsClause(ElemDDLNode * pSaltExprTree,
 ElemDDLSaltOptionsClause::ElemDDLSaltOptionsClause(NABoolean likeTable)
   : ElemDDLNode(ELM_SALT_OPTIONS_ELEM),
     numPartitions_(0),
+    numInitialRegions_(-1),
     saltColumnArray_(PARSERHEAP()),
     likeTable_(likeTable)
 {

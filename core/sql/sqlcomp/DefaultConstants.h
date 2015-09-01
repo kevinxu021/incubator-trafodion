@@ -3565,6 +3565,7 @@ enum DefaultConstants
   // specified with a value > 0, then that value is used to create the number
   // of salted partitions on primary key columns.
   TRAF_NUM_OF_SALT_PARTNS,
+  TRAF_NUM_OF_SALT_REGIONS,
   TRAF_LOAD_PREP_CLEANUP,
 
   // HDFS root location of backing sample tables.

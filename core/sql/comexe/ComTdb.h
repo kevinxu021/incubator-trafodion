@@ -883,6 +883,7 @@ class ComTdbVirtTableTableInfo  : public ComTdbVirtTableBase
     : ComTdbVirtTableBase()
     {
       init();
+      numInitialSaltRegions = -1;
     }
 
   virtual Int32 size(){ return sizeof(ComTdbVirtTableTableInfo); };
@@ -897,6 +898,8 @@ class ComTdbVirtTableTableInfo  : public ComTdbVirtTableBase
   Int32 schemaOwnerID;
   const char * hbaseCreateOptions;
   Lng32 numSaltPartns; // num of salted partitions this table was created with.
+  Lng32 numInitialSaltRegions; // initial number of regions for salted table
+  const char * hbaseSplitClause; // SPLIT BY clause as string
 
   ComRowFormat rowFormat; 
 
