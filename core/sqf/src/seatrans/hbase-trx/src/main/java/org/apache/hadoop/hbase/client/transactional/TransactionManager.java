@@ -124,6 +124,8 @@ import org.apache.hadoop.hbase.coprocessor.transactional.generated.SsccRegionPro
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.SsccRegionProtos.SsccPutTransactionalRequest;
 import org.apache.hadoop.hbase.client.transactional.SsccUpdateConflictException;
 
+import org.apache.hadoop.hbase.client.transactional.STRConfig;
+
 /**
  * Transaction Manager. Responsible for committing transactions.
  */
@@ -186,112 +188,11 @@ public class TransactionManager {
 
   static ExecutorService    cp_tpe;
 
+  private STRConfig pSTRConfig = null;
+
   public enum AlgorithmType{
     MVCC, SSCC
   }
-
-    static boolean             sb_replicate = false;
-    static Map<Integer, Configuration> peer_configs;
-    static Map<Integer, HConnection>   peer_connections;
-    static List<Configuration> cluster_configs;
-    static List<HConnection>    cluster_connections;
-    static int sv_peer_count = 0;
-
-    public static void initClusterConfigs2(Configuration pv_config) throws IOException {
-	peer_configs = new HashMap<Integer, Configuration>();
-	peer_connections = new HashMap<Integer, HConnection>();
-	pv_config.set("hbase.hregion.impl", "org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion");
-	pv_config.setInt("hbase.client.retries.number", 3);
-	peer_configs.put(0, pv_config);
-        HConnection lv_connection = HConnectionManager.createConnection(pv_config);
-	peer_connections.put(0, lv_connection);
-	LOG.info("peer#0 zk forum: " + (peer_configs.get(0)).get("hbase.zookeeper.quorum"));
-
-	String lv_str_replicate = System.getenv("PEERS");
-	String[] sv_peers;
-	if (lv_str_replicate != null) {
-	    sv_peers = lv_str_replicate.split(",");
-	    sv_peer_count = sv_peers.length;
-	    if (sv_peer_count > 0) {
-		sb_replicate = true;
-	    }
-	
-	    if (LOG.isTraceEnabled()) LOG.trace("Replicate count: " + sv_peer_count);
-
-	    for (int i = 0; i < sv_peer_count; i++) {
-		int lv_peer_num = Integer.parseInt(sv_peers[i]);
-		String lv_peer_hbase_site_str = System.getenv("MY_SQROOT") + "/conf/peer" + lv_peer_num  + "/hbase-site.xml";
-		if (LOG.isTraceEnabled()) LOG.trace("lv_peer_hbase_site: " + lv_peer_hbase_site_str);
-
-		File lv_peer_file = new File(lv_peer_hbase_site_str);
-		if (lv_peer_file.exists()) {
-		    Path lv_config_path = new Path(lv_peer_hbase_site_str);
-		    Configuration lv_config = HBaseConfiguration.create();
-		    lv_config.set("hbase.hregion.impl", "org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion");
-		    lv_config.setInt("hbase.client.retries.number", 3);
-		    lv_config.addResource(lv_config_path);
-		    if (LOG.isTraceEnabled()) LOG.trace("Putting peer info in the map for : " + lv_peer_hbase_site_str);
-		    try {
-			peer_configs.put(lv_peer_num,lv_config);
-		    }
-		    catch (Exception e) {
-			LOG.error("Exception while adding peer info to the config: " + e);
-		    }
-	    if (LOG.isTraceEnabled()) LOG.trace("peer#" + lv_peer_num + ":zk forum: " + (peer_configs.get(lv_peer_num)).get("hbase.zookeeper.quorum"));
-		    lv_connection = HConnectionManager.createConnection(lv_config);
-		    peer_connections.put(lv_peer_num, lv_connection);
-
-		}
-		else {
-		    if (LOG.isTraceEnabled()) LOG.trace("RMInterface static: Peer Path does not exist: " + lv_peer_hbase_site_str);
-		}
-	    }
-	}
-    }
-
-    public static void initClusterConfigs(Configuration pv_config) throws IOException {
-
-	cluster_configs = new ArrayList<Configuration>();
-	cluster_connections = new ArrayList<HConnection>();
-	pv_config.set("hbase.hregion.impl", "org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion");
-	pv_config.setInt("hbase.client.retries.number", 3);
-	cluster_configs.add(pv_config);
-        HConnection lv_connection = HConnectionManager.createConnection(pv_config);
-	cluster_connections.add(lv_connection);
-	LOG.info("peer0 zk forum: " + (cluster_configs.get(0)).get("hbase.zookeeper.quorum"));
-
-	String lv_str_replicate = System.getenv("PEER_COUNT");
-	if (lv_str_replicate != null) {
-	    sv_peer_count = (Integer.parseInt(lv_str_replicate));
-	    if (sv_peer_count > 0) {
-		sb_replicate = true;
-	    }
-	}
-	
-	LOG.info("Replicate count: " + sv_peer_count);
-	
-	if (sb_replicate) {
-	    for (int i = 1; i <= sv_peer_count; i++) {
-		String lv_peer_hbase_site_str = System.getenv("MY_SQROOT") + "/conf/peer" + i + "/hbase-site.xml";
-		LOG.info("lv_peer_hbase_site: " + lv_peer_hbase_site_str);
-		File lv_peer_file = new File(lv_peer_hbase_site_str);
-		if (lv_peer_file.exists()) {
-		    Path pv_config_path = new Path(lv_peer_hbase_site_str);
-		    pv_config = HBaseConfiguration.create();
-		    pv_config.set("hbase.hregion.impl", "org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion");
-		    pv_config.setInt("hbase.client.retries.number", 3);
-		    pv_config.addResource(pv_config_path);
-		    cluster_configs.add(pv_config);
-		    LOG.info("peer" + i + " zk forum: " + (cluster_configs.get(i)).get("hbase.zookeeper.quorum"));
-		    lv_connection = HConnectionManager.createConnection(pv_config);
-		    cluster_connections.add(lv_connection);
-		}
-		else {
-		    LOG.error("TransactionManager static: Peer Path does not exist: " + lv_peer_hbase_site_str);
-		}
-	    }
-	}
-    } // end of initClusterConfigs
 
   // getInstance to return the singleton object for TransactionManager
   public synchronized static TransactionManager getInstance(final Configuration conf) throws ZooKeeperConnectionException, IOException {
@@ -300,7 +201,6 @@ public class TransactionManager {
     }
     return g_TransactionManager;
   }
-
 
   /* increment/deincrement for positive value */
   /* This method copied from o.a.h.h.utils.Bytes */
@@ -1502,13 +1402,6 @@ public class TransactionManager {
 
     cp_tpe = Executors.newFixedThreadPool(intCpThreads);
 
-    /* This was in the HTable code - let's use a fixed thread pool instead
-    cp_tpe = new ThreadPoolExecutor(1,
-                    intCpThreads,
-                    30, TimeUnit.SECONDS,
-                    new SynchronousQueue<Runnable>(),
-                    Threads.newDaemonThreadFactory("htable_tmcp"));
-    */
     }
 
     /**
@@ -1519,7 +1412,7 @@ public class TransactionManager {
     protected TransactionManager(final TransactionLogger transactionLogger, final Configuration conf)
             throws ZooKeeperConnectionException, IOException {
         this.transactionLogger = transactionLogger;        
-	initClusterConfigs2(conf);
+	pSTRConfig = STRConfig.getInstance(conf);
     }
 
 
@@ -1611,7 +1504,7 @@ public class TransactionManager {
 		int lv_peerId = entry.getValue().get(0).peerId;
                 compPool.submit(new TransactionManagerCallable(transactionState, 
 							       entry.getValue().iterator().next(),
-							       peer_connections.get(lv_peerId)) {
+							       pSTRConfig.getPeerConnections().get(lv_peerId)) {
 
                     public Integer call() throws CommitUnsuccessfulException, IOException {
                         return doPrepareX(entry.getValue(), transactionState.getTransactionId());
@@ -1650,7 +1543,7 @@ public class TransactionManager {
             if(transactionState.getRegionsRetryCount() > 0) {
                 for (TransactionRegionLocation location : transactionState.getRetryRegions()) {
                     loopCount++;
-                    compPool.submit(new TransactionManagerCallable(transactionState, location, peer_connections.get(location.peerId)) {
+                    compPool.submit(new TransactionManagerCallable(transactionState, location, pSTRConfig.getPeerConnections().get(location.peerId)) {
                         public Integer call() throws CommitUnsuccessfulException, IOException {
 
                             return doPrepareX(location.getRegionInfo().getRegionName(),
@@ -1728,7 +1621,7 @@ public class TransactionManager {
              final TransactionRegionLocation myLocation = location;
              final byte[] regionName = location.getRegionInfo().getRegionName();
 
-             compPool.submit(new TransactionManagerCallable(transactionState, location, peer_connections.get(location.peerId)) {
+             compPool.submit(new TransactionManagerCallable(transactionState, location, pSTRConfig.getPeerConnections().get(location.peerId)) {
                public Integer call() throws IOException, CommitUnsuccessfulException {
                  return doPrepareX(regionName, transactionState.getTransactionId(), myLocation);
                }
@@ -1889,7 +1782,7 @@ public class TransactionManager {
           final long commitIdVal = (TRANSACTION_ALGORITHM == AlgorithmType.SSCC) ? transactionState.getCommitId() : -1;
           for (TransactionRegionLocation location : transactionState.getRetryRegions()) {
             if(LOG.isTraceEnabled()) LOG.trace("retryAbort retrying abort for: " + location.getRegionInfo().getRegionNameAsString());
-            threadPool.submit(new TransactionManagerCallable(transactionState, location, peer_connections.get(location.peerId)) {
+            threadPool.submit(new TransactionManagerCallable(transactionState, location, pSTRConfig.getPeerConnections().get(location.peerId)) {
                 public Integer call() throws CommitUnsuccessfulException, IOException {
 
                     return doCommitX(location.getRegionInfo().getRegionName(),
@@ -1910,7 +1803,8 @@ public class TransactionManager {
           List<TransactionRegionLocation> completedList = new ArrayList<TransactionRegionLocation>();
           for (TransactionRegionLocation location : transactionState.getRetryRegions()) {
             if(LOG.isTraceEnabled()) LOG.trace("retryAbort retrying abort for: " + location.getRegionInfo().getRegionNameAsString());
-              threadPool.submit(new TransactionManagerCallable(transactionState, location, peer_connections.get(0)) {
+	    //TBD : The parameter '0' to getPeerConnections().get() may need to be something else
+	    threadPool.submit(new TransactionManagerCallable(transactionState, location, pSTRConfig.getPeerConnections().get(0)) { 
                   public Integer call() throws CommitUnsuccessfulException, IOException {
 
                       return doAbortX(location.getRegionInfo().getRegionName(),
@@ -1976,9 +1870,10 @@ public class TransactionManager {
                  if (LOG.isTraceEnabled()) LOG.trace("sending commits ... [" + transactionState.getTransactionId() + "]");
                  loopCount++;
 
+		 //TBD : The parameter '0' to getPeerConnections().get() may need to be something else
                  threadPool.submit(new TransactionManagerCallable(transactionState,
 								  entry.getValue().iterator().next(), 
-								  peer_connections.get(entry.getValue().get(0).peerId)) {
+								  pSTRConfig.getPeerConnections().get(entry.getValue().get(0).peerId)) {
                      public Integer call() throws CommitUnsuccessfulException, IOException {
                         if (LOG.isTraceEnabled()) LOG.trace("before doCommit() [" + transactionState.getTransactionId() + "]" +
                                                             " ignoreUnknownTransactionException: " + ignoreUnknownTransactionException);
@@ -2032,7 +1927,7 @@ public class TransactionManager {
               //TransactionalRegionInterface transactionalRegionServer = (TransactionalRegionInterface) connection
               //      .getHRegionConnection(location.getServerName());
 
-              threadPool.submit(new TransactionManagerCallable(transactionState, location, peer_connections.get(location.peerId)) {
+              threadPool.submit(new TransactionManagerCallable(transactionState, location, pSTRConfig.getPeerConnections().get(location.peerId)) {
                  public Integer call() throws CommitUnsuccessfulException, IOException {
                     if (LOG.isTraceEnabled()) LOG.trace("before doCommit() [" + transactionState.getTransactionId() + "]" +
                                                         " ignoreUnknownTransactionException: " + ignoreUnknownTransactionException);
@@ -2258,7 +2153,7 @@ public class TransactionManager {
             loopCount++;
             threadPool.submit(new TransactionManagerCallable(transactionState,
 							     entry.getValue().iterator().next(),
-							     peer_connections.get(entry.getValue().get(0).peerId)) {
+							     pSTRConfig.getPeerConnections().get(entry.getValue().get(0).peerId)) {
                 public Integer call() throws IOException {
                    if (LOG.isTraceEnabled()) LOG.trace("before abort() [" + transactionState.getTransactionId() + "]");
 
@@ -2293,7 +2188,7 @@ public class TransactionManager {
 	    loopCount++;
 	    final byte[] regionName = location.getRegionInfo().getRegionName();
               
-            threadPool.submit(new TransactionManagerCallable(transactionState, location, peer_connections.get(location.peerId)) {
+            threadPool.submit(new TransactionManagerCallable(transactionState, location, pSTRConfig.getPeerConnections().get(location.peerId)) {
               public Integer call() throws IOException {
                 return doAbortX(regionName, transactionState.getTransactionId());
               }
@@ -3096,7 +2991,8 @@ public class TransactionManager {
             if(endKey != HConstants.EMPTY_END_ROW)
             	endKey = TransactionManager.binaryIncrementPos(endKey, -1);
             
-            table = new HTable(regionInfo.getTable(), peer_connections.get(0), cp_tpe);
+	    //TBD : The parameter '0' to getPeerConnections().get() may need to be something else
+            table = new HTable(regionInfo.getTable(), pSTRConfig.getPeerConnections().get(0), cp_tpe);
          
             Map<byte[], RecoveryRequestResponse> rresult = null;   
             try {
