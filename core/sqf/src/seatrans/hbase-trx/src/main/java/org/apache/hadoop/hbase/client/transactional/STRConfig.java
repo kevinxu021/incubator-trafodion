@@ -89,10 +89,10 @@ public class STRConfig {
 
     static final Log LOG = LogFactory.getLog(STRConfig.class);
 
-    public static boolean                     sb_replicate = false;
-    public static Map<Integer, Configuration> peer_configs;
-    public static Map<Integer, HConnection>   peer_connections;
-    static int                                sv_peer_count = 0;
+    private static boolean                     sb_replicate = false;
+    private static Map<Integer, Configuration> peer_configs;
+    private static Map<Integer, HConnection>   peer_connections;
+    private static int                         sv_peer_count = 0;
 
     private static STRConfig s_STRConfig = null; 
 
