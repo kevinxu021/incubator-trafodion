@@ -447,9 +447,84 @@ namespace Trafodion.Data
         /// <param name="length">N/A</param>
         /// <returns>N/A</returns>
         /// <exception cref="InvalidCastException">Always</exception>
-        public override long GetChars(int ordinal, long dataOffset, char[] buffer, int bufferOffset, int length)
+        public override long GetChars(int ordinal, long dataOffset, char[] buffer, int bufferOffset, int targetLen)
         {
-            throw new InvalidCastException("GetChars");
+            Descriptor desc;
+            string srcDataStr;
+            int srcLen;
+            int srcOffset;
+            int actualLen;
+            int bufferLen;
+
+            this.CheckBounds(ordinal);
+            this.CheckDBNull(ordinal);
+
+            if(ordinal < 0 || ordinal > this._fieldCount)
+                throw new IndexOutOfRangeException("index out of bounds");
+
+            if (dataOffset < 0)
+                return 0;
+
+            desc = this.GetDescriptor(ordinal);
+            srcOffset = this.GetDataOffset(ordinal);
+
+            this._ds.Position = srcOffset;
+
+            switch (desc.TrafDbDataType)
+            {
+                case TrafDbDbType.Interval:
+                    srcDataStr = System.Text.ASCIIEncoding.ASCII.GetString(this._ds.ReadBytes(desc.MaxLength));
+                    break;
+                case TrafDbDbType.Char:
+                    if (desc.SqlEncoding == TrafDbEncoding.UTF8)
+                    {
+                        if (desc.Precision != 0)
+                        {
+                            desc.MaxLength = desc.Precision;
+                        }
+                    }
+                    srcDataStr = this._cmd.Connection.Network.Encoder.GetString(this._ds.ReadBytes(desc.MaxLength), desc.NdcsEncoding);
+                    break;
+                case TrafDbDbType.Varchar:
+                    bool shortLength = desc.Precision < Math.Pow(2, 15); // we have 2 byte vs 4 byte length based on precision
+                    int len = shortLength ? this._ds.ReadInt16() : this._ds.ReadInt32();
+
+                    srcDataStr = this._cmd.Connection.Network.Encoder.GetString(this._ds.ReadBytes(len), desc.NdcsEncoding);
+                    break;
+                default:
+                    srcDataStr = this.GetValue(ordinal).ToString();
+                    break;
+            }
+
+            Console.WriteLine("srcDataStr = " + srcDataStr);
+            srcLen = srcDataStr.Length;
+
+            if (dataOffset > srcLen || dataOffset > System.Int32.MaxValue)
+            {
+                throw new ArgumentOutOfRangeException("Specified data offset is out of the length of the column value.");
+            }
+
+            if (targetLen + (Int32)dataOffset > srcLen)
+            {
+                actualLen = srcLen - (Int32)dataOffset;
+            }
+            else
+            {
+                actualLen = targetLen;
+            }
+
+            if (buffer == null)
+            {
+                bufferLen = srcLen;
+                actualLen = bufferLen;
+                buffer = new char[actualLen];
+                dataOffset = 0;
+                bufferOffset = 0;
+            }
+
+            srcDataStr.CopyTo((Int32)dataOffset, buffer, bufferOffset, actualLen);
+
+            return actualLen;
         }
 
         /// <summary>

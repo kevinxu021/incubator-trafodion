@@ -55,7 +55,7 @@ namespace Trafodion.Data
                 TrafDbException.ThrowException(null, new ArgumentException(msg));
             }
 
-            this.HPDbDbType = dataType;
+            this.TrafDbDbType = dataType;
             this._dataRowVersion = DataRowVersion.Default;
             this._parameterName = name;
             this._verified = false;
@@ -221,7 +221,7 @@ namespace Trafodion.Data
         /// Gets or sets the TrafDbDbType of the parameter.
         /// </summary>
         [DbProviderSpecificTypePropertyAttribute(true)]
-        public TrafDbDbType HPDbDbType
+        public TrafDbDbType TrafDbDbType
         {
             get
             {
@@ -498,7 +498,7 @@ namespace Trafodion.Data
         public void ResetHPDbDbType()
         {
             this._verified = false;
-            this.HPDbDbType = TrafDbDbType.Varchar;
+            this.TrafDbDbType = TrafDbDbType.Varchar;
         }
 
         #region ICloneable
@@ -511,7 +511,7 @@ namespace Trafodion.Data
         {
             TrafDbParameter clone = new TrafDbParameter(
                 this._parameterName, 
-                this.HPDbDbType, 
+                this.TrafDbDbType, 
                 this.Size, 
                 this.Direction,
                 this.IsNullable, 

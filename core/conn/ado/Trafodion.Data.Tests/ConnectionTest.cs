@@ -41,6 +41,7 @@ namespace TrafAdoTest
             //        private string connectionString = "DSN=wmb_coast;UID=wm.super;PWD=wmsuper;";
 
             connectionString = ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["ConnectionStringName"]].ConnectionString;
+            Console.WriteLine("connectionString = " + connectionString);
         }
 
         [Test]
