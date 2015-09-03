@@ -23,6 +23,8 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
 import org.apache.hadoop.hbase.client.transactional.TransactionalTable;
 import org.apache.hadoop.hbase.client.transactional.CommitUnsuccessfulException;
+import org.apache.hadoop.hbase.client.transactional.UnsuccessfulDDLException;
+import org.apache.hadoop.hbase.regionserver.transactional.IdTmException;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.HBaseBackedTransactionLogger;
 import org.apache.hadoop.hbase.client.transactional.LocalTransactionLogger;
@@ -75,11 +77,11 @@ public class HBTransPerf{
             System.out.println("Table " + TABLE_NAME + " already exists");
         }
 
-        table = new TransactionalTable(config, desc.getName());
+        table = new TransactionalTable(desc.getName());
 
         try
 	{
-           transactionManager = new TransactionManager(config);
+           transactionManager = TransactionManager.getInstance(config);
         }
 	catch(Exception e)
 	{
@@ -94,7 +96,7 @@ public class HBTransPerf{
 
     }
 	
-    public static void testBegPutDel(int numtx) throws IOException, CommitUnsuccessfulException {
+    public static void testBegPutDel(int numtx) throws IOException, CommitUnsuccessfulException, UnsuccessfulDDLException {
 	PrintWriter bpe = new PrintWriter(new File("HbaseTrxBegPutEnd.csv"));
 
 	int newValue;
@@ -116,7 +118,7 @@ public class HBTransPerf{
 	bpe.close();	
     }
 
-    public static void testBegPutEnd(int numtx) throws IOException, CommitUnsuccessfulException {
+    public static void testBegPutEnd(int numtx) throws IOException, CommitUnsuccessfulException, UnsuccessfulDDLException {
         PrintWriter beg = new PrintWriter(new File("testBegPutEnd_HbaseTrxBeg.csv"));
         PrintWriter put = new PrintWriter(new File("testBegPutEnd_HbaseTrxPut.csv"));
         PrintWriter end = new PrintWriter(new File("testBegPutEnd_HbaseTrxEnd.csv"));
@@ -165,7 +167,7 @@ public class HBTransPerf{
         end.close();
     }
 
-    public static void testBegPutEndSplit(int numtx) throws IOException, CommitUnsuccessfulException {
+    public static void testBegPutEndSplit(int numtx) throws IOException, CommitUnsuccessfulException, UnsuccessfulDDLException {
 
         PrintWriter beg = new PrintWriter(new File("testBegPutEndSplit_HbaseTrxBeg.csv"));
         PrintWriter put = new PrintWriter(new File("testBegPutEndSplit_HbaseTrxPut.csv"));
@@ -238,7 +240,7 @@ public class HBTransPerf{
 
     }
 
-    public static void testGetPutDel(int numtx) throws IOException, CommitUnsuccessfulException {
+    public static void testGetPutDel(int numtx) throws IOException, CommitUnsuccessfulException, UnsuccessfulDDLException {
         PrintWriter get = new PrintWriter(new File("HbaseTrxGet.csv"));
         PrintWriter put = new PrintWriter(new File("HbaseTrxPut.csv"));
         PrintWriter del = new PrintWriter(new File("HbaseTrxDel.csv"));
@@ -333,7 +335,7 @@ public class HBTransPerf{
     }
 
 
-    public static void testGetAfterPut3(int numtx) throws IOException, CommitUnsuccessfulException {
+    public static void testGetAfterPut3(int numtx) throws IOException, CommitUnsuccessfulException, UnsuccessfulDDLException, IdTmException{
         
         int newValue 		= 0;
         for (newValue = 0; newValue < numtx; newValue++)
@@ -380,7 +382,7 @@ public class HBTransPerf{
 
     }
 
-    public static void testGetAfterPut2(int numtx) throws IOException, CommitUnsuccessfulException {
+    public static void testGetAfterPut2(int numtx) throws IOException, CommitUnsuccessfulException, UnsuccessfulDDLException, IdTmException {
         
         PrintWriter out = new PrintWriter(new File("TWorkTest.txt"));
 
@@ -512,7 +514,7 @@ public class HBTransPerf{
     }
 
 
-    public static void testBeginEndEmpty(int numtx) throws IOException, CommitUnsuccessfulException {
+    public static void testBeginEndEmpty(int numtx) throws IOException, CommitUnsuccessfulException, UnsuccessfulDDLException {
         
 	PrintWriter out = new PrintWriter(new File("TEmptyTest.txt"));
 	out.println("\nTransactionEmptyTest ENTRY");
@@ -561,7 +563,60 @@ public class HBTransPerf{
 	out.println("newValue  : " + newValue);
         out.println("\ntestGetAfterPut EXIT");
 	out.close();
-    }    
+    } 
+    
+public static void testPut(int numtx) throws IOException, CommitUnsuccessfulException, UnsuccessfulDDLException, IdTmException{
+        
+        int newValue 		= 0;
+        for (newValue = 0; newValue < numtx; newValue++)
+        {   
+             // Begin
+             TransactionState transactionState = transactionManager.beginTransaction(100);
+
+             // Put 
+	     Put lv_put = new Put(Bytes.toBytes("Alto"));
+	     lv_put.add(FAMILY, QUAL_A, Bytes.toBytes("Palo"));
+	     lv_put.add(FAMILY, QUAL_B, Bytes.toBytes("Alto"));
+             table.put(transactionState, lv_put);
+
+             // End
+             transactionManager.tryCommit(transactionState);
+             try {
+                 transactionState.completeRequest();
+                 System.out.println("Transactional Put Success");
+             } catch (Exception e)
+             {
+                    System.out.println("\nCAUGHT\n");
+             }
+        }
+
+    }
+
+public static void testGet(int numtx) throws IOException, CommitUnsuccessfulException, UnsuccessfulDDLException, IdTmException{
+    
+    int newValue 		= 0;
+    for (newValue = 0; newValue < numtx; newValue++)
+    {   
+         // Begin
+         TransactionState transactionState = transactionManager.beginTransaction(200);
+
+         // Get
+     Result row1_A = table.get( transactionState, new Get(Bytes.toBytes("Alto")).addColumn(FAMILY, QUAL_A));
+     System.out.println("Transactional Get result:" + row1_A.size() + ":" + row1_A);
+
+            // End
+         transactionManager.tryCommit(transactionState);
+         try {
+             transactionState.completeRequest();
+         } catch (Exception e)
+         {
+                System.out.println("\nCAUGHT\n");
+         }
+    }
+
+}
+
+
 
     public static void main(String[] Args) {
 
@@ -574,12 +629,14 @@ public class HBTransPerf{
 
         initialize();
         writeRow();
+        //testPut(numtx);
+        testGet(numtx);
 	//        testGetAfterPut2(numtx);
 	//        testGetAfterPut3(numtx);
         //testBeginEndEmpty(numtx);
         //testGetPutDel(numtx);
         //testBegPut2Get3(numtx);
-	testBegPutEnd(numtx);
+	//testBegPutEnd(numtx);
  	//testBegPutEndSplit(numtx);
         System.out.println("\n Test DONE\n");
       }

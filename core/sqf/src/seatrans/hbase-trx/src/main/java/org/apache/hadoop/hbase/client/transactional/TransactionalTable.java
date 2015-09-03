@@ -658,7 +658,8 @@ public HRegionLocation getRegionLocation(byte[] row, boolean f)
     }
     public void flushCommits()
                   throws InterruptedIOException,
-                RetriesExhaustedWithDetailsException {
+                RetriesExhaustedWithDetailsException,
+                IOException {
          super.flushCommits();
     }
     public HConnection getConnection()
@@ -711,12 +712,14 @@ public HRegionLocation getRegionLocation(byte[] row, boolean f)
     {
         return super.checkAndPut(row,family,qualifier,value,put);
     }
-    public void put(Put p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException
-    {
+    public void put(Put p) throws  InterruptedIOException,
+    								RetriesExhaustedWithDetailsException,
+    								IOException {
         super.put(p);
     }
-    public void put(List<Put> p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException
-    {
+    public void put(List<Put> p) throws  InterruptedIOException,
+    									RetriesExhaustedWithDetailsException,
+    									IOException {
         super.put(p);
     }
     public boolean checkAndDelete(byte[] row, byte[] family, byte[] qualifier, byte[] value,  Delete delete) throws IOException

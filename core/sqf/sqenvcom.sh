@@ -31,7 +31,7 @@
 
 # Trafodion version (also update file ../sql/common/copyright.h)
 export TRAFODION_VER_MAJOR=1
-export TRAFODION_VER_MINOR=2
+export TRAFODION_VER_MINOR=0
 export TRAFODION_VER_UPDATE=0
 export TRAFODION_VER="${TRAFODION_VER_MAJOR}.${TRAFODION_VER_MINOR}.${TRAFODION_VER_UPDATE}"
 
@@ -137,7 +137,7 @@ export MY_SQROOT=$PWD
 export SQ_HOME=$PWD
 
 export HBASE_TRXDIR=$MY_SQROOT/export/lib
-export HBASE_TRX_JAR=hbase-trx-cdh5_3-${TRAFODION_VER}.jar
+export HBASE_TRX_JAR=hbase-trx-cdh5_4-${TRAFODION_VER}.jar
 if [[ "$SQ_HBASE_DISTRO" = "HDP" ]]; then
     export HBASE_TRX_JAR=hbase-trx-hdp2_2-${TRAFODION_VER}.jar
 fi
@@ -247,6 +247,8 @@ if [[ -e $MY_SQROOT/sql/scripts/sw_env.sh ]]; then
     HBASE_JAR_FILES="$HBASE_JAR_FILES $d/*.jar"
   done
 
+  lv_hbase_cp=
+
   export HIVE_JAR_DIRS="$HIVE_HOME/lib"
   export HIVE_JAR_FILES="$HIVE_HOME/share/hadoop/mapreduce/hadoop-mapreduce-client-core-*.jar"
 
@@ -355,6 +357,8 @@ elif [[ -n "$(ls /usr/lib/hadoop/hadoop-*cdh*.jar 2>/dev/null)" ]]; then
   export CURL_INC_DIR=/usr/include
   export CURL_LIB_DIR=/usr/lib64
 
+  lv_hbase_cp=`hbase classpath`
+
   # directories with jar files and list of jar files
   # (could try to reduce the number of jars in the classpath)
   export HADOOP_JAR_DIRS="/usr/lib/hadoop
@@ -373,7 +377,7 @@ elif [[ -n "$(ls /usr/lib/hadoop/hadoop-*cdh*.jar 2>/dev/null)" ]]; then
                          /usr/lib/hbase/lib/high-scale-lib-*.jar
                          /usr/lib/hbase/hbase-hadoop-compat.jar "
   export HIVE_JAR_DIRS="/usr/lib/hive/lib"
-  export HIVE_JAR_FILES="/usr/lib/hadoop-mapreduce/hadoop-mapreduce-client-core.jar"
+  export HIVE_JAR_FILES="/usr/lib/hadoop-mapreduce/hadoop-mapreduce-client-*.jar"
 
   # suffixes to suppress in the classpath (set this to ---none--- to add all files)
   export SUFFIXES_TO_SUPPRESS="-sources.jar -tests.jar"
@@ -399,7 +403,7 @@ elif [[ -n "$(ls /etc/init.d/ambari* 2>/dev/null)" ]]; then
   export THRIFT_INC_DIR=$TOOLSDIR/thrift-0.9.0/include
   export CURL_INC_DIR=/usr/include
   export CURL_LIB_DIR=/usr/lib64
-
+  lv_hbase_cp=`hbase classpath`
   # directories with jar files and list of jar files
   export HADOOP_JAR_DIRS="/usr/hdp/current/hadoop-client
                           /usr/hdp/current/hadoop-client/lib"
@@ -709,6 +713,8 @@ done
 for d in $HIVE_JAR_DIRS; do
   HIVE_JAR_FILES="$HIVE_JAR_FILES $d/*.jar"
 done
+
+SQ_CLASSPATH=$lv_hbase_cp;
 
 # assemble all of them into a classpath
 for j in $HBASE_JAR_FILES $HADOOP_JAR_FILES $HIVE_JAR_FILES; do

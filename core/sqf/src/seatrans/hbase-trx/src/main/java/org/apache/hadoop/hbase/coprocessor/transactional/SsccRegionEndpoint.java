@@ -127,9 +127,9 @@ import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
-import org.apache.hadoop.hbase.regionserver.wal.HLog;
+import org.apache.hadoop.hbase.wal.WAL;
 import org.apache.hadoop.hbase.regionserver.wal.HLogKey;
-import org.apache.hadoop.hbase.regionserver.wal.HLogUtil;
+import org.apache.hadoop.hbase.regionserver.wal.WALUtil;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.regionserver.transactional.CleanOldTransactionsChore;
 import org.apache.hadoop.hbase.regionserver.transactional.SsccTransactionState;
@@ -286,7 +286,7 @@ CoprocessorService, Coprocessor {
   private TransactionalRegion t_Region = null;
   private FileSystem fs = null;
   private RegionCoprocessorHost rch = null;
-  private HLog tHLog = null;
+  private WAL tHLog = null;
   boolean closing = false;
   private boolean fullEditInCommit = true;
   private boolean configuredEarlyLogging = false;
@@ -3520,7 +3520,7 @@ CoprocessorService, Coprocessor {
 
     this.t_Region = (TransactionalRegion) tmp_env.getRegion();
     this.fs = this.m_Region.getFilesystem();
-    tHLog = this.m_Region.getLog();
+    tHLog = this.m_Region.getWAL();
 
     RegionServerServices rss = tmp_env.getRegionServerServices();
     ServerName sn = rss.getServerName();

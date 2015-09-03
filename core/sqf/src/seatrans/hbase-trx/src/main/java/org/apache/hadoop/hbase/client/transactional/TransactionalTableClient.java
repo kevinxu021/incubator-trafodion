@@ -121,7 +121,8 @@ public interface  TransactionalTableClient  {
     org.apache.hadoop.conf.Configuration getConfiguration();
     void flushCommits()
                   throws InterruptedIOException,
-                RetriesExhaustedWithDetailsException ;
+                RetriesExhaustedWithDetailsException,
+                IOException;
     HConnection getConnection();
 
     byte[][] getEndKeys()
@@ -147,7 +148,7 @@ public interface  TransactionalTableClient  {
 
     boolean checkAndPut(byte[] row, byte[] family, byte[] qualifier, byte[] value, Put put) throws IOException;
 
-    void put(Put p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException;
-    public void put(List<Put> p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException;
+    void put(Put p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException, IOException;
+    public void put(List<Put> p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException, IOException;
     public boolean checkAndDelete(byte[] row, byte[] family, byte[] qualifier, byte[] value,  Delete delete) throws IOException;
 }

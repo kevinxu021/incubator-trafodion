@@ -51,7 +51,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.hbase.regionserver.transactional.TrxTransactionState;
-import org.apache.hadoop.hbase.regionserver.wal.HLog;
+import org.apache.hadoop.hbase.wal.WAL;
 import org.apache.hadoop.hbase.regionserver.wal.HLogKey;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -114,7 +114,7 @@ private AtomicBoolean closing = new AtomicBoolean(false);
 
 HRegion my_Region;
 HRegionInfo regionInfo;
-HLog tHLog;
+WAL tHLog;
 ServerName sn;
 String hostName;
 int port;
@@ -171,7 +171,7 @@ public void start(CoprocessorEnvironment e) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP: trxRegionObserver put data structure into CoprocessorEnvironment ");
     }
  
-   tHLog = my_Region.getLog();
+   tHLog = my_Region.getWAL();
    RegionServerServices rss = re.getRegionServerServices();
    sn = rss.getServerName();
    hostName = sn.getHostname();
@@ -258,14 +258,14 @@ static ConcurrentHashMap<String, Object> getRefMap() {
 
      if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP: preWALRestore coprocessor is invoked ... in table "+ logKey.getTablename().getNameAsString());
 
-     ArrayList<KeyValue> kvs = logEdit.getKeyValues();
+     ArrayList<Cell> kvs = logEdit.getCells();
      if (kvs.size() <= 0) {
         if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP:PWR00 No KV inside Edits, skip ... ");
         return;
      }
 
      // Retrieve KV to see if it has the Trafodion Transaction context tag
-     KeyValue kv = kvs.get(0); // get the first KV to check the associated transactional tag (all the KV pairs contain the same tag)
+     Cell kv = kvs.get(0); // get the first KV to check the associated transactional tag (all the KV pairs contain the same tag)
      if (LOG.isTraceEnabled()) LOG.trace("KV hex dump " + Hex.encodeHexString(kv.getValueArray() /*kv.getBuffer()*/));
      byte[] tagArray = Bytes.copy(kv.getTagsArray(), kv.getTagsOffset(), kv.getTagsLength());
      byte tagType = TS_TRAFODION_TXN_TAG_TYPE;
@@ -489,7 +489,7 @@ public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> ed
                                      + transactionId + " with editList size is " + num);
    for ( int i = 0; i < num; i++){
    WALEdit val = editList.get(i);
-   for (KeyValue kv : val.getKeyValues()) {
+   for (Cell kv : val.getCells()) {
          synchronized (editReplay) {
              if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP: " + regionInfo.getRegionNameAsString() + " replay commit for transaction: "
                                      + transactionId + " edit num " + i + " with Op " + kv.getTypeByte());
@@ -502,7 +502,7 @@ public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> ed
 		Delete del = new Delete(CellUtil.cloneRow(kv));
 	       	if (CellUtil.isDeleteFamily(kv)) {
 	 	     del.deleteFamily(CellUtil.cloneFamily(kv));
-	        } else if (kv.isDeleteType()) {
+	        } else if (CellUtil.isDeleteType(kv)) {
 	             del.deleteColumn(CellUtil.cloneFamily(kv), CellUtil.cloneQualifier(kv));
 	        }
                 my_Region.delete(del);

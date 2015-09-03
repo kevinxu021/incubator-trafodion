@@ -47,7 +47,9 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.wal.HLog;
+import org.apache.hadoop.hbase.wal.WAL;
+import org.apache.hadoop.hbase.wal.WALKey;
+import org.apache.hadoop.hbase.KeepDeletedCells;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
 import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
@@ -65,54 +67,31 @@ import org.apache.hadoop.io.DataInputBuffer;
  */
 public class TrxTransactionState  extends TransactionState{
 
-    static boolean sb_sqm_98_1;
-    static boolean sb_sqm_98_4;
-    static java.lang.reflect.Constructor c98_1 = null;
-    static java.lang.reflect.Constructor c98_4 = null;
-
+    static java.lang.reflect.Constructor c1_0 = null;
+    
     static {
-	sb_sqm_98_1 = true;
-	try {
-	    NavigableSet<byte[]> lv_nvg = (NavigableSet<byte[]>) null;
-	    c98_1 = ScanQueryMatcher.class.getConstructor(
-							  new Class [] {
-							      Scan.class,
-							      ScanInfo.class,
-							      java.util.NavigableSet.class,
-							      ScanType.class,
-							      long.class,
-							      long.class,
-							      long.class
-							  });
-	}
-	catch (NoSuchMethodException exc_nsm) {
-	    sb_sqm_98_1 = false;
-	    sb_sqm_98_4 = true;
-	    try {
-		c98_4 = ScanQueryMatcher.class.getConstructor(
-							      new Class [] {
-								  Scan.class,
-								  ScanInfo.class,
-								  java.util.NavigableSet.class,
-								  ScanType.class,
-								  long.class,
-								  long.class,
-								  long.class,
-								  RegionCoprocessorHost.class
-							      });
-	    }
-	    catch (NoSuchMethodException exc_nsm2) {
-		sb_sqm_98_4 = false;
-	    }
-	}
-
-	if (sb_sqm_98_1) {
-	    LOG.info("Got info of Class ScanQueryMatcher for HBase 98.1");
-	}
-	if (sb_sqm_98_4) {
-	    LOG.info("Got info of Class ScanQueryMatcher for HBase 98.4");
-	}
-    }
+		try {
+		    NavigableSet<byte[]> lv_nvg = (NavigableSet<byte[]>) null;
+		    c1_0 = ScanQueryMatcher.class.getConstructor(
+								  new Class [] {
+								      Scan.class,
+								      ScanInfo.class,
+								      java.util.NavigableSet.class,
+								      ScanType.class,
+								      long.class,
+								      long.class,
+								      long.class,
+								      long.class,
+								      RegionCoprocessorHost.class
+								  });
+		    if (c1_0 != null)
+			    LOG.info("Got info of Class ScanQueryMatcher for HBase 1.0");
+			
+			}
+			catch (NoSuchMethodException exc_nsm) {
+				LOG.info("TrxRegionEndpoint coprocessor, No matching ScanQueryMatcher : Threw an exception");
+			}
+		}
 
     /**
      * Simple container of the range of the scanners we've opened. Used to check for conflicting writes.
@@ -156,7 +135,7 @@ public class TrxTransactionState  extends TransactionState{
     private WALEdit e;
     
     public TrxTransactionState(final long transactionId, final long rLogStartSequenceId, AtomicLong hlogSeqId, final HRegionInfo regionInfo,
-                                                 HTableDescriptor htd, HLog hLog, boolean logging) {
+                                                 HTableDescriptor htd, WAL hLog, boolean logging) {
         super(transactionId,rLogStartSequenceId,hlogSeqId,regionInfo,htd,hLog,logging);
         this.e = new WALEdit();
     }
@@ -170,7 +149,7 @@ public class TrxTransactionState  extends TransactionState{
         WriteAction waction;
         KeyValue kv;
         WALEdit e1 = new WALEdit();
-        updateLatestTimestamp(write.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTimeMillis());
+        updateLatestTimestamp(write.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTime());
         // Adding read scan on a write action
 	addRead(new WriteAction(write).getRow());
 
@@ -186,9 +165,12 @@ public class TrxTransactionState  extends TransactionState{
              e.add(kv);
             }
            try {
-           long txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
-                    e1, new ArrayList<UUID>(), EnvironmentEdgeManager.currentTimeMillis(), this.tabledescriptor,
-                    this.logSeqId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
+           //long txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
+           //         e1, new ArrayList<UUID>(), EnvironmentEdgeManager.currentTimeMillis(), this.tabledescriptor,
+           //         this.logSeqId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
+           	final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(), this.regionInfo.getTable(), EnvironmentEdgeManager.currentTime());;
+      	 	long txid = this.tHLog.append(this.tabledescriptor,this.regionInfo, wk , e1,
+      	 			this.logSeqId, false, null);
            //if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery: Y11 write edit to HLOG during put with txid " + txid + " ts flush id " + this.flushTxId);
            if (txid > this.flushTxId) this.flushTxId = txid; // save the log txid into TS object, later sync on largestSeqid during phase 1
            }
@@ -213,7 +195,7 @@ public class TrxTransactionState  extends TransactionState{
     public synchronized void addDelete(final Delete delete) {
         WriteAction waction;
         WALEdit e1  = new WALEdit();
-        long now = EnvironmentEdgeManager.currentTimeMillis();
+        long now = EnvironmentEdgeManager.currentTime();
         updateLatestTimestamp(delete.getFamilyCellMap().values(), now);
         if (delete.getTimeStamp() == HConstants.LATEST_TIMESTAMP) {
             delete.setTimestamp(now);
@@ -230,9 +212,12 @@ public class TrxTransactionState  extends TransactionState{
                e.add(kv);
            }
            try {
-           long txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
-                    e1, new ArrayList<UUID>(), EnvironmentEdgeManager.currentTimeMillis(), this.tabledescriptor,
-                    this.logSeqId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
+           //long txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
+           //         e1, new ArrayList<UUID>(), EnvironmentEdgeManager.currentTimeMillis(), this.tabledescriptor,
+           //         this.logSeqId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
+           final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(), this.regionInfo.getTable(), EnvironmentEdgeManager.currentTime());;
+      	   long txid = this.tHLog.append(this.tabledescriptor,this.regionInfo, wk , e1,
+      			 this.logSeqId, false, null);
                     //if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery: Y00 write edit to HLOG during delete with txid " + txid + " ts flush id " + this.flushTxId);
            if (txid > this.flushTxId) this.flushTxId = txid; // save the log txid into TS object, later sync on largestSeqid during phase 1
            }
@@ -342,7 +327,7 @@ public class TrxTransactionState  extends TransactionState{
         DataInputBuffer in = new DataInputBuffer();
         try {
           e.readFields(in);
-          e.getKeyValues().clear();
+          e.getCells().clear();
         } catch (java.io.EOFException eeof) { 
           // DataInputBuffer was empty, successfully emptied kvs
         } catch (Exception e) { 
@@ -634,59 +619,35 @@ public class TrxTransactionState  extends TransactionState{
             super.setSequenceID(Long.MAX_VALUE);
             
             //Store.ScanInfo scaninfo = new Store.ScanInfo(null, 0, 1, HConstants.FOREVER, false, 0, Cell.COMPARATOR);
-            ScanInfo scaninfo = new ScanInfo(null, 0, 1, HConstants.FOREVER, false, 0, KeyValue.COMPARATOR);
+            ScanInfo scaninfo = new ScanInfo(null, 0, 1, HConstants.FOREVER,KeepDeletedCells.FALSE, 0, KeyValue.COMPARATOR);
             
-            try {
-		if (sb_sqm_98_1) {
-		    try {
-			matcher = (ScanQueryMatcher) c98_1.newInstance(scan,
-								       scaninfo,
-								       null,
-								       ScanType.USER_SCAN,
-								       Long.MAX_VALUE,
-								       HConstants.LATEST_TIMESTAMP,
-								       0);
-			if (LOG.isTraceEnabled()) LOG.trace("Created matcher using reflection for HBase 98.1");
-		    }
-		    catch (InstantiationException exc_ins) {
-			LOG.error("InstantiationException: " + exc_ins);
-		    }
-		    catch (IllegalAccessException exc_ill_acc) {
-			LOG.error("IllegalAccessException: " + exc_ill_acc);
-		    }
-		    catch (InvocationTargetException exc_inv_tgt) {
-			LOG.error("InvocationTargetException: " + exc_inv_tgt);
-		    }
-		    
-		}
-		else {
-		    try {
-		    matcher = (ScanQueryMatcher) c98_4.newInstance(scan,
-								   scaninfo,
-								   null,
-								   ScanType.USER_SCAN,
-								   Long.MAX_VALUE,
-								   HConstants.LATEST_TIMESTAMP,
-								   (long) 0,
-								   null);
-		    if (LOG.isTraceEnabled()) LOG.trace("Created matcher using reflection for HBase 98.4");
-		    }
-		    catch (InstantiationException exc_ins) {
-			LOG.error("InstantiationException: " + exc_ins);
-		    }
-		    catch (IllegalAccessException exc_ill_acc) {
-			LOG.error("IllegalAccessException: " + exc_ill_acc);
-		    }
-		    catch (InvocationTargetException exc_inv_tgt) {
-			LOG.error("InvocationTargetException: " + exc_inv_tgt);
-		    }
-
-		}
-            }
-            catch (Exception e) {
-              LOG.error("error while instantiating the ScanQueryMatcher()" + e);
-            }
-         
+           
+        if(c1_0 != null) {
+        	try {
+    		    matcher = (ScanQueryMatcher) c1_0.newInstance(scan,
+    								   scaninfo,
+    								   null,
+    								   ScanType.USER_SCAN,
+    								   Long.MAX_VALUE,
+    								   HConstants.LATEST_TIMESTAMP,
+    								   (long) 0,
+    								   EnvironmentEdgeManager.currentTime(),
+    								   null);
+    		    if (LOG.isTraceEnabled()) LOG.trace("Created matcher using reflection for HBase 1.0");
+    		    }
+    		    catch (InstantiationException exc_ins) {
+    			LOG.error("InstantiationException: " + exc_ins);
+    		    }
+    		    catch (IllegalAccessException exc_ill_acc) {
+    			LOG.error("IllegalAccessException: " + exc_ill_acc);
+    		    }
+    		    catch (InvocationTargetException exc_inv_tgt) {
+    			LOG.error("InvocationTargetException: " + exc_inv_tgt);
+    		    }
+        	    catch (Exception e) {
+        	    LOG.error("error while instantiating the ScanQueryMatcher()" + e);
+        	    }
+         	}
         }
 
         /**
