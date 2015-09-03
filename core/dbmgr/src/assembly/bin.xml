@@ -26,7 +26,6 @@
 			<directory>src/main/resources</directory>
 			<outputDirectory>conf</outputDirectory>
 			<includes>
-				<include>config.xml</include>
 				<include>config_template.xml</include>
 			</includes>
 			<fileMode>0755</fileMode>
