@@ -901,7 +901,7 @@ namespace TrafAdoTest
                 Console.WriteLine("GetType : " + np.GetType());
                 Console.WriteLine("Heading : " + np.Heading);
                 Console.WriteLine("IsNullable : " + np.IsNullable);
-                Console.WriteLine("TrafDbDbType : " + np.HPDbDbType);
+                Console.WriteLine("TrafDbDbType : " + np.TrafDbDbType);
                 Console.WriteLine("ParameterName : " + np.ParameterName);
                 Console.WriteLine("Precision : " + np.Precision);
                 Console.WriteLine("Scale : " + np.Scale);
@@ -1012,7 +1012,7 @@ namespace TrafAdoTest
                 Console.WriteLine("GetType : " + np.GetType());
                 Console.WriteLine("Heading : " + np.Heading);
                 Console.WriteLine("IsNullable : " + np.IsNullable);
-                Console.WriteLine("TrafDbDbType : " + np.HPDbDbType);
+                Console.WriteLine("TrafDbDbType : " + np.TrafDbDbType);
                 Console.WriteLine("ParameterName : " + np.ParameterName);
                 Console.WriteLine("Precision : " + np.Precision);
                 Console.WriteLine("Scale : " + np.Scale);

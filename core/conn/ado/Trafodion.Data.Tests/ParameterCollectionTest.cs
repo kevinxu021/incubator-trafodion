@@ -79,14 +79,14 @@ namespace TrafAdoTest
             Assert.AreEqual(0, i);
             Assert.AreEqual(1, cmd.Parameters.Count);
             Assert.AreEqual("p1", cmd.Parameters[0].ParameterName);
-            Assert.AreEqual(TrafDbDbType.Char, cmd.Parameters[0].HPDbDbType);
+            Assert.AreEqual(TrafDbDbType.Char, cmd.Parameters[0].TrafDbDbType);
             TrafDbParameter parmTmp = new TrafDbParameter("p2", TrafDbDbType.Date);
             i = cmd.Parameters.Add(parmTmp);
             Console.WriteLine("the Add return number is :{0}, the parmcol count is : {1}", i, cmd.Parameters.Count);
             Assert.AreEqual(1, i);
             Assert.AreEqual(2, cmd.Parameters.Count);
             Assert.AreEqual("p2", cmd.Parameters[1].ParameterName);
-            Assert.AreEqual(TrafDbDbType.Date, cmd.Parameters[1].HPDbDbType);  
+            Assert.AreEqual(TrafDbDbType.Date, cmd.Parameters[1].TrafDbDbType);  
         }
 
         [Test]

@@ -28,7 +28,7 @@ namespace ConsoleApp
         //public static string ConnectionString = "server=ruby-mxoas3.houston.hp.com:18650;user=sqdev3;password=redhat06;catalog=neo;schema=ADOQA_SCHEMA";
         //public static string ConnectionString = "server=sqws23.caclab.cac.cpqcorp.net:20000;user=sqluser_admin;password=sq2010;catalog=NEO;schema=ODBC_SCHEMA";
         //public static string ConnectionString = "server=sqa0101.cup.hp.com;user=qauser_user;password=HPDb2009;catalog=NEO;schema=ODBCQA_SCHEMA;";
-        public static string ConnectionString = "server=16.235.163.136:57967;user=zz;password=zz;schema=ado";
+        public static string ConnectionString = "server=sqws118.houston.hp.com:42972;user=zz;password=zz;schema=ado";
         public static void TestBatch()
         {
             try
@@ -948,7 +948,110 @@ namespace ConsoleApp
             conn.Open();
             //Console.WriteLine(conn.Database);
 
+            String value = "!\"#$%&a()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQR";
+            String strCrtSchm = "create schema tsch";
+            String strDropTbl = "drop table tsch.atest";
+            String strCrtTbl = "create table tsch.atest(c1 char(500) CHARACTER SET UCS2 COLLATE default not null)";
+            String strInst = "Insert into tsch.atest values('" + value + "')";
+            String strSelct = "select * from tsch.atest";
+            String strSelCnt1 = "select count(*) from tsch.atest where c1=?";
+            String strSelCnt2 = "select count(*) from tsch.atest where c1='" + value + "'";
+
+            TrafDbCommand cmd = conn.CreateCommand();
             
+            //cmd.CommandText = strCrtSchm;
+            //cmd.ExecuteNonQuery();
+
+            //cmd.CommandText = strDropTbl;
+            //cmd.ExecuteNonQuery();
+
+            cmd.CommandText = strCrtTbl;
+            Console.WriteLine("Executing: " + strCrtTbl + "...");
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = strInst;
+            Console.WriteLine("Executing: " + strInst + "...");
+            cmd.ExecuteNonQuery();
+
+            Console.WriteLine("Value " + value + "inserted.");            
+            
+            cmd.CommandText = strSelct;
+            Console.WriteLine("Executing: " + strSelct + "...");
+            TrafDbDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                Console.WriteLine("GetString(c1) : " + reader.GetString(0));
+                /*
+                char[] buffer = new char[2048];
+                long retLen = reader.GetChars(0, 0, buffer, 0, buffer.Length);
+
+                Console.WriteLine("GetChars(c1) : " + retLen + " chars returned.");
+                Console.WriteLine("\tValue = " + new String(buffer));
+                 * */
+            }
+
+            cmd.CommandText = strSelCnt2;
+            Console.WriteLine("Executing: " + strSelCnt2 + "...");
+            reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                Console.WriteLine("{0} count of rows found: ", reader.GetInt64(0));
+            }
+            reader.Close();
+
+            cmd.CommandText = strSelCnt1;
+            Console.WriteLine("Executing: " + strSelCnt1 + "...");
+            cmd.Parameters.Clear();
+            TrafDbParameter pam = new TrafDbParameter("C1Value", TrafDbDbType.Char);
+            //pam.DbType = DbType.String;
+            //pam.Value = value;
+            Encoding utf8 = Encoding.GetEncoding("UTF-8");
+            Encoding utf16 = Encoding.GetEncoding("UTF-16");
+            byte[] utf8Bytes = utf8.GetBytes(value);
+            byte[] utf16Bytes = Encoding.Convert(utf8, utf16, utf8Bytes);
+            //pam.Value = utf16.GetString(utf16Bytes);
+            pam.Value = utf8.GetString(utf8Bytes);
+
+            byte[] vBytes = Encoding.Default.GetBytes(value);
+            //byte[] vPamBytes = Encoding.Default.GetBytes((String)pam.Value);
+
+            Console.WriteLine("Default Bytes:");
+            for (int i = 0; i < vBytes.Length; i++)
+            {
+                if (i % 10 != 0)
+                    Console.Write(vBytes[i] + " ");
+                else
+                    Console.WriteLine("");
+            }
+            Console.WriteLine("\n");
+
+            Console.WriteLine("UTF-8 Bytes:");
+            for (int i = 0; i < utf8Bytes.Length; i++)
+            {
+                if (i % 10 != 0)
+                    Console.Write(utf8Bytes[i] + " ");
+                else
+                    Console.WriteLine("");
+            }
+            Console.WriteLine("\n");
+
+            Console.WriteLine("UTF-16 Bytes:");
+            for (int i = 0; i < utf16Bytes.Length; i++)
+            {
+                if (i % 10 != 0)
+                    Console.Write(utf16Bytes[i] + " ");
+                else
+                    Console.WriteLine("");
+            }
+            Console.WriteLine("\n");
+
+            cmd.Parameters.Add(pam);
+
+            Object obj = cmd.ExecuteScalar();
+            Console.WriteLine("{0} count of rows found: ", obj.ToString());
+
+
+            /*
             System.Data.DataTable dt = conn.GetSchema();
             //dt.TableName
             foreach (System.Data.DataRow row in dt.Rows)
@@ -959,7 +1062,7 @@ namespace ConsoleApp
                 }
                 Console.WriteLine("============================");
             }
-            
+            */
             
                 
             /*try
@@ -1002,6 +1105,7 @@ namespace ConsoleApp
             }
              * */
 
+            /*
             Console.WriteLine("\r\n");
             TestDynamicNumeric();
             Console.WriteLine("\r\n");
@@ -1017,6 +1121,7 @@ namespace ConsoleApp
             TestBatch();
             
            TestAdapterBuilder();
+                        * */
 
             //TestPerformance();
 

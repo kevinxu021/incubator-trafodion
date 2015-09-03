@@ -115,6 +115,7 @@ namespace TrafAdoTest
         public TestObject(string charset)
         {
             this.connectionString = ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["ConnectionStringName"]].ConnectionString;
+            Console.WriteLine("connectionString = " + connectionString);
 
             this.charset = charset;
 

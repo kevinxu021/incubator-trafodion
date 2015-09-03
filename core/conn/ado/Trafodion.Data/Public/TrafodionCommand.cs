@@ -1268,7 +1268,7 @@ namespace Trafodion.Data
             {
                 type = StatementType.Delete;
             }
-            else if (str.Equals("INSERT") || str.Equals("INS"))
+            else if (str.Equals("INSERT") || str.Equals("INS") || str.Equals("UPSERT"))
             {
                 if (this.HasParameters)
                 {
