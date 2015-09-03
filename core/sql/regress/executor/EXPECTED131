@@ -62,7 +62,7 @@
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... NOT NAMED
-PLAN_ID .................. 212306092605999312
+PLAN_ID .................. 212307985541174439
 ROWS_OUT ................. 3
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t1311k where uniq >2 and uniq <5;
@@ -92,7 +92,7 @@ DESCRIPTION
   LDAP_USERNAME
   HBASE_SMALL_SCANNER .... SYSTEM
   GENERATE_EXPLAIN ....... ON
-  ObjectUIDs ............. 7237358561276074540
+  ObjectUIDs ............. 5038477936128721937
   select_list ............ TRAFODION.SCH.T1311K.UNIQ,
                              TRAFODION.SCH.T1311K.C1000,
                              TRAFODION.SCH.T1311K.STR1
@@ -113,13 +113,13 @@ DESCRIPTION
   object_type ............ Trafodion
   columns ................ all
   begin_keys(excl) ....... 2
-  end_keys(incl)
+  end_keys(excl) ......... 5
   cache_size ........... 100
   small_scanner .......... ON
   probes ................. 1
   rows_accessed .......... 3
   key_columns ............ UNIQ
-  executor_predicates .... (UNIQ < 5) and (UNIQ > 2) and (UNIQ < 5)
+  executor_predicates .... (UNIQ > 2) and (UNIQ < 5)
 
 --- SQL operation complete.
 >>explain select * from t1311k where uniq >2 and uniq <99;
@@ -127,7 +127,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... NOT NAMED
-PLAN_ID .................. 212306092606177494
+PLAN_ID .................. 212307985541326959
 ROWS_OUT ................ 97
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t1311k where uniq >2 and uniq <99;
@@ -157,7 +157,7 @@ DESCRIPTION
   LDAP_USERNAME
   HBASE_SMALL_SCANNER .... SYSTEM
   GENERATE_EXPLAIN ....... ON
-  ObjectUIDs ............. 7237358561276074540
+  ObjectUIDs ............. 5038477936128721937
   select_list ............ TRAFODION.SCH.T1311K.UNIQ,
                              TRAFODION.SCH.T1311K.C1000,
                              TRAFODION.SCH.T1311K.STR1
@@ -178,12 +178,12 @@ DESCRIPTION
   object_type ............ Trafodion
   columns ................ all
   begin_keys(excl) ....... 2
-  end_keys(incl)
+  end_keys(excl) ........ 99
   cache_size ........... 100
   probes ................. 1
   rows_accessed ......... 97
   key_columns ............ UNIQ
-  executor_predicates .... (UNIQ < 99) and (UNIQ > 2) and (UNIQ < 99)
+  executor_predicates .... (UNIQ > 2) and (UNIQ < 99)
 
 --- SQL operation complete.
 >>select uniq, c1000 from t1311k where uniq >2 and uniq <5;
@@ -304,7 +304,7 @@ UNIQ         C1000
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... NOT NAMED
-PLAN_ID .................. 212306092606492742
+PLAN_ID .................. 212307985541608562
 ROWS_OUT ................ 29
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t1311k where uniq >2 and uniq <30;
@@ -334,7 +334,7 @@ DESCRIPTION
   LDAP_USERNAME
   HBASE_SMALL_SCANNER .... SYSTEM
   GENERATE_EXPLAIN ....... ON
-  ObjectUIDs ............. 7237358561276074540
+  ObjectUIDs ............. 5038477936128721937
   select_list ............ TRAFODION.SCH.T1311K.UNIQ,
                              TRAFODION.SCH.T1311K.C1000,
                              TRAFODION.SCH.T1311K.STR1
@@ -355,12 +355,12 @@ DESCRIPTION
   object_type ............ Trafodion
   columns ................ all
   begin_keys(excl) ....... 2
-  end_keys(incl)
+  end_keys(excl) ........ 30
   cache_size ........... 100
   probes ................. 1
   rows_accessed ......... 29
   key_columns ............ UNIQ
-  executor_predicates .... (UNIQ < 30) and (UNIQ > 2) and (UNIQ < 30)
+  executor_predicates .... (UNIQ > 2) and (UNIQ < 30)
 
 --- SQL operation complete.
 >>-- should get Small scanner on since the scanned rows fit in 128K block
@@ -369,7 +369,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... NOT NAMED
-PLAN_ID .................. 212306092608879312
+PLAN_ID .................. 212307985543829541
 ROWS_OUT ................ 29
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t1311kbis where uniq >2 and uniq <30;
@@ -399,7 +399,7 @@ DESCRIPTION
   LDAP_USERNAME
   HBASE_SMALL_SCANNER .... SYSTEM
   GENERATE_EXPLAIN ....... ON
-  ObjectUIDs ............. 7237358561276077309
+  ObjectUIDs ............. 5038477936128725510
   select_list ............ TRAFODION.SCH.T1311KBIS.UNIQ,
                              TRAFODION.SCH.T1311KBIS.C1000,
                              TRAFODION.SCH.T1311KBIS.STR1
@@ -420,13 +420,13 @@ DESCRIPTION
   object_type ............ Trafodion
   columns ................ all
   begin_keys(excl) ....... 2
-  end_keys(incl)
+  end_keys(excl) ........ 30
   cache_size ........... 100
   small_scanner .......... ON
   probes ................. 1
   rows_accessed ......... 29
   key_columns ............ UNIQ
-  executor_predicates .... (UNIQ < 30) and (UNIQ > 2) and (UNIQ < 30)
+  executor_predicates .... (UNIQ > 2) and (UNIQ < 30)
 
 --- SQL operation complete.
 >>
