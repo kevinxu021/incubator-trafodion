@@ -20,62 +20,48 @@
 # @@@ END COPYRIGHT @@@
 #
 # File:         Makefile
-# Description:  Makefile for building security library 
+# Description:  Makefile for building authentication library 
 #
 
 include $(MY_SQROOT)/macros.gmk #top level
-include ./macros.gmk
+include ../macros.gmk
 
+#OUTDIR	= .
 RM	= /bin/rm
 CP	= /bin/cp
-
+DBG_FLAGS	= $(DBG_FLGS)  
 
 .PHONY: all
-all: verhdr auth cert dist license
+all: $(BINEXPDIR)/decoder encoder
+
+#Source files required to build the library
+
+OBJS	= $(OUTDIR)/encoder.o \
+	  $(OUTDIR)/decoder.o
+
+INCLUDES	= -I. -I./inc -I ../shared/inc \
+	        -I ../../sql/common
 
 
-.PHONY: verhdr
-verhdr:
-	cd $(MY_SQROOT); $(MAKE) genverhdr;
+LINK_OPTIONS	= 
+LINK_OPTIONS   += $(LNK_FLGS) 
 
-.PHONY: auth
-auth: verhdr
-	cd auth; $(MAKE)
+COMMON_LIBS =
 
-.PHONY: cert
-cert: verhdr auth
-	cd cert; $(MAKE)
+$(BINEXPDIR)/decoder:
+	$(CC) -o $@ src/decoder.c
 
-.PHONY: dist
-dist:
-	$(CP) -p scripts/sqcertgen $(MY_SQROOT)/sql/scripts
-	$(CP) -p scripts/update_auth $(MY_SQROOT)/sql/scripts
+encoder:
+	$(CC) -o $@ src/encoder.c
 
-.PHONY: license 
-license:
-	cd license; $(MAKE)
 
-.PHONY: clean
-clean: cleanauth cleancert
-	$(RM) -f $(MY_SQROOT)/sql/scripts/sqcertgen
-	$(RM) -f $(MY_SQROOT)/sql/scripts/update_auth
 
-.PHONY: cleanall
-cleanall: cleanallauth cleanallcert
+clean:
+	$(RM) -f  $(OUTDIR)/*.o
+	$(RM) -rf $(OUTDIR)
+	$(RM) -f  $(BINEXPDIR)/decoder
 
-.PHONY: cleanauth
-cleanauth:
-	cd auth; $(MAKE) clean
+cleanall: clean
+	$(RM) -rf $(BUILD_PLAT)
 
-.PHONY: cleancert
-cleancert:
-	cd cert; $(MAKE) clean
-
-.PHONY: cleanallauth
-cleanallauth:
-	cd auth; $(MAKE) cleanall
-
-.PHONY: cleanallcert
-cleanallcert:
-	cd cert; $(MAKE) cleanall
-
+sinclude depend.mk
