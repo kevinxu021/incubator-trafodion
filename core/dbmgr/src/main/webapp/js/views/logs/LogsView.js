@@ -78,12 +78,7 @@ define([
 			$('#enddatetimepicker').data("DateTimePicker").date(moment());
 
 			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
-		      	var startTime = $('#startdatetimepicker').data("DateTimePicker").date();
-	        	var endTime = $('#enddatetimepicker').data("DateTimePicker").date();
-	        	if(startTime == null)
-	        		$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'hour'));
-	        	if(endTime == null)
-	        		$('#enddatetimepicker').data("DateTimePicker").date(moment());
+				_that.updateFilter();
 			});
 			
 			$(FILTER_TIME_RANGE).change(function(){
@@ -138,7 +133,32 @@ define([
         showLoading: function(){
         	$(LOADING_SELECTOR).show();
         },
-
+        updateFilter: function(){
+        	var selection = $(FILTER_TIME_RANGE).val();
+			switch(selection){
+			case "1":
+				$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'hour'));
+				$('#enddatetimepicker').data("DateTimePicker").date(moment());
+				$('#filter-start-time').prop("disabled", true);
+				$('#filter-end-time').prop("disabled", true);
+				break;
+			case "6":
+				$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(6, 'hour'));
+				$('#enddatetimepicker').data("DateTimePicker").date(moment());
+				$('#filter-start-time').prop("disabled", true);
+				$('#filter-end-time').prop("disabled", true);
+				break;
+			case "24":
+				$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'day'));
+				$('#enddatetimepicker').data("DateTimePicker").date(moment());
+				$('#filter-start-time').prop("disabled", true);
+				$('#filter-end-time').prop("disabled", true);
+				break;
+			case "0":
+				$('#filter-start-time').prop("disabled", false);
+				$('#filter-end-time').prop("disabled", false);
+			}        	
+        },
         hideLoading: function () {
         	$(LOADING_SELECTOR).hide();
         },
@@ -186,6 +206,7 @@ define([
         fetchLogs: function () {
 			_that.showLoading();
 			$(ERROR_CONTAINER).hide();
+			_that.updateFilter();
 			_that.filterApplyClicked();
 		},
 

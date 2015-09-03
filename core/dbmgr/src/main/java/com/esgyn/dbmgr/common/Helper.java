@@ -1,9 +1,12 @@
 package com.esgyn.dbmgr.common;
 
+import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.TimeZone;
 
 import org.codehaus.jettison.json.JSONArray;
@@ -19,247 +22,256 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Helper {
-  static DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
-  public static JSONArray convertResultSetToJSON(java.sql.ResultSet rs) throws Exception {
-    JSONArray json = new JSONArray();
+	static DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
 
-    try {
+	public static JSONArray convertResultSetToJSON(java.sql.ResultSet rs) throws Exception {
+		JSONArray json = new JSONArray();
 
-      java.sql.ResultSetMetaData rsmd = rs.getMetaData();
+		try {
 
-      while (rs.next()) {
-        int numColumns = rsmd.getColumnCount();
-        JSONObject obj = new JSONObject();
+			java.sql.ResultSetMetaData rsmd = rs.getMetaData();
 
-        for (int i = 1; i < numColumns + 1; i++) {
+			while (rs.next()) {
+				int numColumns = rsmd.getColumnCount();
+				JSONObject obj = new JSONObject();
 
-          String column_name = rsmd.getColumnName(i);
+				for (int i = 1; i < numColumns + 1; i++) {
 
-          if (rsmd.getColumnType(i) == java.sql.Types.ARRAY) {
-            obj.put(column_name, rs.getArray(column_name));
-          } else if (rsmd.getColumnType(i) == java.sql.Types.BIGINT) {
-            obj.put(column_name, rs.getLong(column_name));
-          } else if (rsmd.getColumnType(i) == java.sql.Types.BOOLEAN) {
-            obj.put(column_name, rs.getBoolean(column_name));
-          } else if (rsmd.getColumnType(i) == java.sql.Types.BLOB) {
-            obj.put(column_name, rs.getBlob(column_name));
-          } else if (rsmd.getColumnType(i) == java.sql.Types.DOUBLE) {
-            obj.put(column_name, rs.getDouble(column_name));
-          } else if (rsmd.getColumnType(i) == java.sql.Types.FLOAT) {
-            obj.put(column_name, rs.getFloat(column_name));
-          } else if (rsmd.getColumnType(i) == java.sql.Types.INTEGER) {
-            obj.put(column_name, rs.getInt(column_name));
-          } else if (rsmd.getColumnType(i) == java.sql.Types.NVARCHAR) {
-            obj.put(column_name, rs.getNString(column_name));
-          } else if (rsmd.getColumnType(i) == java.sql.Types.VARCHAR) {
-            obj.put(column_name, rs.getString(column_name));
-          } else if (rsmd.getColumnType(i) == java.sql.Types.TINYINT) {
-            obj.put(column_name, rs.getInt(column_name));
-          } else if (rsmd.getColumnType(i) == java.sql.Types.SMALLINT) {
-            obj.put(column_name, rs.getInt(column_name));
-          } else if (rsmd.getColumnType(i) == java.sql.Types.DATE) {
-            obj.put(column_name, rs.getDate(column_name));
-          } else if (rsmd.getColumnType(i) == java.sql.Types.TIMESTAMP) {
-            obj.put(column_name, rs.getTimestamp(column_name));
-          } else {
-            obj.put(column_name, rs.getObject(column_name));
-          }
+					String column_name = rsmd.getColumnName(i);
 
-        } // end foreach
-        json.put(obj);
+					if (rsmd.getColumnType(i) == java.sql.Types.ARRAY) {
+						obj.put(column_name, rs.getArray(column_name));
+					} else if (rsmd.getColumnType(i) == java.sql.Types.BIGINT) {
+						obj.put(column_name, rs.getLong(column_name));
+					} else if (rsmd.getColumnType(i) == java.sql.Types.BOOLEAN) {
+						obj.put(column_name, rs.getBoolean(column_name));
+					} else if (rsmd.getColumnType(i) == java.sql.Types.BLOB) {
+						obj.put(column_name, rs.getBlob(column_name));
+					} else if (rsmd.getColumnType(i) == java.sql.Types.DOUBLE) {
+						obj.put(column_name, rs.getDouble(column_name));
+					} else if (rsmd.getColumnType(i) == java.sql.Types.FLOAT) {
+						obj.put(column_name, rs.getFloat(column_name));
+					} else if (rsmd.getColumnType(i) == java.sql.Types.INTEGER) {
+						obj.put(column_name, rs.getInt(column_name));
+					} else if (rsmd.getColumnType(i) == java.sql.Types.NVARCHAR) {
+						obj.put(column_name, rs.getNString(column_name));
+					} else if (rsmd.getColumnType(i) == java.sql.Types.VARCHAR) {
+						obj.put(column_name, rs.getString(column_name));
+					} else if (rsmd.getColumnType(i) == java.sql.Types.TINYINT) {
+						obj.put(column_name, rs.getInt(column_name));
+					} else if (rsmd.getColumnType(i) == java.sql.Types.SMALLINT) {
+						obj.put(column_name, rs.getInt(column_name));
+					} else if (rsmd.getColumnType(i) == java.sql.Types.DATE) {
+						obj.put(column_name, rs.getDate(column_name));
+					} else if (rsmd.getColumnType(i) == java.sql.Types.TIMESTAMP) {
+						obj.put(column_name, rs.getTimestamp(column_name));
+					} else {
+						obj.put(column_name, rs.getObject(column_name));
+					}
 
-      } // end while
+				} // end foreach
+				json.put(obj);
 
-      if (json.length() == 0) {
+			} // end while
 
-        int numColumns = rsmd.getColumnCount();
-        JSONObject obj = new JSONObject();
+			if (json.length() == 0) {
 
-        for (int i = 1; i < numColumns + 1; i++) {
+				int numColumns = rsmd.getColumnCount();
+				JSONObject obj = new JSONObject();
 
-          String column_name = rsmd.getColumnName(i);
-          obj.put(column_name, "");
-        }
-        json.put(obj);
-      }
+				for (int i = 1; i < numColumns + 1; i++) {
 
-    } finally {
+					String column_name = rsmd.getColumnName(i);
+					obj.put(column_name, "");
+				}
+				json.put(obj);
+			}
 
-    }
+		} finally {
 
-    return json;
-  }
+		}
 
-  public static TabularResult convertResultSetToTabularResult(java.sql.ResultSet rs)
-      throws Exception {
-    TabularResult result = new TabularResult();
+		return json;
+	}
 
-    try {
+	public static TabularResult convertResultSetToTabularResult(java.sql.ResultSet rs) throws Exception {
+		TabularResult result = new TabularResult();
 
-      java.sql.ResultSetMetaData rsmd = rs.getMetaData();
+		try {
 
-      int numColumns = rsmd.getColumnCount();
-      String[] columnNames = new String[numColumns];
-      for (int i = 0; i < numColumns; i++) {
-        columnNames[i] = rsmd.getColumnName(i + 1);
-      }
-      result.columnNames = columnNames;
+			java.sql.ResultSetMetaData rsmd = rs.getMetaData();
 
-      ArrayList<Object[]> resultArray = new ArrayList<Object[]>();
+			int numColumns = rsmd.getColumnCount();
+			String[] columnNames = new String[numColumns];
+			for (int i = 0; i < numColumns; i++) {
+				columnNames[i] = rsmd.getColumnName(i + 1);
+			}
+			result.columnNames = columnNames;
 
-      while (rs.next()) {
+			ArrayList<Object[]> resultArray = new ArrayList<Object[]>();
 
-        Object[] rowData = new Object[numColumns];
+			while (rs.next()) {
 
-        for (int i = 0; i < numColumns; i++) {
+				Object[] rowData = new Object[numColumns];
 
-          Object data = null;
-          int columnType = rsmd.getColumnType(i + 1);
+				for (int i = 0; i < numColumns; i++) {
 
-          if (columnType == java.sql.Types.ARRAY) {
-            data = rs.getArray(columnNames[i]);
-          } else if (columnType == java.sql.Types.BIGINT) {
-            data = rs.getLong(columnNames[i]);
-          } else if (columnType == java.sql.Types.BOOLEAN) {
-            data = rs.getBoolean(columnNames[i]);
-          } else if (columnType == java.sql.Types.BLOB) {
-            data = rs.getBlob(columnNames[i]);
-          } else if (columnType == java.sql.Types.DOUBLE) {
-            data = rs.getDouble(columnNames[i]);
-          } else if (columnType == java.sql.Types.FLOAT) {
-            data = rs.getFloat(columnNames[i]);
-          } else if (columnType == java.sql.Types.INTEGER) {
-            data = rs.getInt(columnNames[i]);
-          } else if (columnType == java.sql.Types.NVARCHAR) {
-            data = rs.getNString(columnNames[i]);
-          } else if (columnType == java.sql.Types.VARCHAR) {
-            data = rs.getString(columnNames[i]);
-          } else if (columnType == java.sql.Types.TINYINT) {
-            data = rs.getInt(columnNames[i]);
-          } else if (columnType == java.sql.Types.SMALLINT) {
-            data = rs.getInt(columnNames[i]);
-          } else if (columnType == java.sql.Types.DATE) {
-            data = rs.getDate(columnNames[i]);
-          } else if (columnType == java.sql.Types.TIMESTAMP) {
-            data = rs.getTimestamp(columnNames[i]);
-          } else {
-            data = rs.getObject(columnNames[i]);
-          }
-          rowData[i] = data;
+					Object data = null;
+					int columnType = rsmd.getColumnType(i + 1);
 
-        } // end for
-        resultArray.add(rowData);
+					if (columnType == java.sql.Types.ARRAY) {
+						data = rs.getArray(columnNames[i]);
+					} else if (columnType == java.sql.Types.BIGINT) {
+						data = rs.getLong(columnNames[i]);
+					} else if (columnType == java.sql.Types.BOOLEAN) {
+						data = rs.getBoolean(columnNames[i]);
+					} else if (columnType == java.sql.Types.BLOB) {
+						data = rs.getBlob(columnNames[i]);
+					} else if (columnType == java.sql.Types.DOUBLE) {
+						data = rs.getDouble(columnNames[i]);
+					} else if (columnType == java.sql.Types.FLOAT) {
+						data = rs.getFloat(columnNames[i]);
+					} else if (columnType == java.sql.Types.INTEGER) {
+						data = rs.getInt(columnNames[i]);
+					} else if (columnType == java.sql.Types.NVARCHAR) {
+						data = rs.getNString(columnNames[i]);
+					} else if (columnType == java.sql.Types.VARCHAR) {
+						data = rs.getString(columnNames[i]);
+					} else if (columnType == java.sql.Types.TINYINT) {
+						data = rs.getInt(columnNames[i]);
+					} else if (columnType == java.sql.Types.SMALLINT) {
+						data = rs.getInt(columnNames[i]);
+					} else if (columnType == java.sql.Types.DATE) {
+						data = rs.getDate(columnNames[i]);
+					} else if (columnType == java.sql.Types.TIMESTAMP) {
+						data = rs.getTimestamp(columnNames[i]);
+					} else {
+						data = rs.getObject(columnNames[i]);
+					}
+					rowData[i] = data;
 
-      } // end while
+				} // end for
+				resultArray.add(rowData);
 
-      result.resultArray = resultArray;
+			} // end while
 
-    } finally {
+			result.resultArray = resultArray;
 
-    }
+		} finally {
 
-    return result;
-  }
+		}
 
-  public static TabularResult executeRESTCommand(String uri, String username, String password)
-      throws Exception {
-    TabularResult result = new TabularResult();
+		return result;
+	}
 
-    try {
-      ArrayList<Object[]> rowData = new ArrayList<Object[]>();
-      JsonFactory factory = new JsonFactory();
-      ObjectMapper objMapper = new ObjectMapper(factory);
-      String jsonString = RESTProcessor.getRestOutput(uri, username, password);
+	public static TabularResult executeRESTCommand(String uri, String username, String password) throws Exception {
+		TabularResult result = new TabularResult();
 
-      jsonString = jsonString.replaceAll("@", "");
+		try {
+			ArrayList<Object[]> rowData = new ArrayList<Object[]>();
+			JsonFactory factory = new JsonFactory();
+			ObjectMapper objMapper = new ObjectMapper(factory);
+			String jsonString = RESTProcessor.getRestOutput(uri, username, password);
 
-      ArrayList<String> columns = new ArrayList<String>();
-      RESTRequest restRequest = objMapper.readValue(uri, RESTRequest.class);
-      RESTProcessor.processResult(restRequest, jsonString, columns, rowData);
+			jsonString = jsonString.replaceAll("@", "");
 
-      result.columnNames = new String[columns.size()];
-      result.resultArray = rowData;
+			ArrayList<String> columns = new ArrayList<String>();
+			RESTRequest restRequest = objMapper.readValue(uri, RESTRequest.class);
+			RESTProcessor.processResult(restRequest, jsonString, columns, rowData);
 
-    } catch (Exception e) {
-    }
-    return result;
-  }
+			result.columnNames = new String[columns.size()];
+			result.resultArray = rowData;
 
-  public static String formatDateTime(DateTime date) {
-    return date.toString(fmt);
-  }
+		} catch (Exception e) {
+		}
+		return result;
+	}
 
-  public static String getUtcNowString() {
-    return new DateTime(DateTimeZone.UTC).toString(fmt);
-  }
+	public static String formatDateTime(DateTime date) {
+		return date.toString(fmt);
+	}
 
-  public static boolean IsNullOrEmpty(String value) {
-    return (value == null || value.length() == 0);
-  }
+	public static String getUtcNowString() {
+		return new DateTime(DateTimeZone.UTC).toString(fmt);
+	}
 
-  public static String generateSQLInClause(String sqlOperator, String columnnName,
-      String[] values) {
-    return generateSQLInClause(sqlOperator, columnnName, values, "string");
-  }
-  public static String generateSQLInClause(String sqlOperator, String columnnName, String[] values,
-      String colType) {
-    StringBuilder sb = new StringBuilder();
-    if (values.length > 0) {
-      for (int i = 0; i < values.length; i++) {
-        if (IsNullOrEmpty(values[i])) continue;
+	public static boolean IsNullOrEmpty(String value) {
+		return (value == null || value.length() == 0);
+	}
 
-        if (i == 0) {
-          if (colType.equalsIgnoreCase(("string")))
-            sb.append(String.format(" %1$s %2$s in ('%3$s'", sqlOperator, columnnName, values[i]));
-          else sb.append(String.format(" %1$s %2$s in (%3$s", sqlOperator, columnnName, values[i]));
-        } else {
-          if (colType.equalsIgnoreCase(("string"))) sb.append(String.format("'%1$s'", values[i]));
-          else sb.append(String.format("%1$s", values[i]));
-        }
-        if (i < (values.length - 1)) {
-          sb.append(", ");
-        } else {
-          sb.append(String.format(") "));
-        }
-      }
-    }
-    return sb.toString();
-  }
+	public static String generateSQLInClause(String sqlOperator, String columnnName, String[] values) {
+		return generateSQLInClause(sqlOperator, columnnName, values, "string");
+	}
 
-  public static long getTimeZoneUTCOffset(String timezone) {
-    if (timezone == null || timezone.length() == 0) {
-      timezone = "Etc/UTC";
-    }
+	public static String generateSQLInClause(String sqlOperator, String columnnName, String[] values, String colType) {
+		StringBuilder sb = new StringBuilder();
+		if (values.length > 0) {
+			for (int i = 0; i < values.length; i++) {
+				if (IsNullOrEmpty(values[i]))
+					continue;
 
-    DateTimeZone a = DateTimeZone.forID(timezone);
-    return a.getOffset(null);
-  }
+				if (i == 0) {
+					if (colType.equalsIgnoreCase(("string")))
+						sb.append(String.format(" %1$s %2$s in ('%3$s'", sqlOperator, columnnName, values[i]));
+					else
+						sb.append(String.format(" %1$s %2$s in (%3$s", sqlOperator, columnnName, values[i]));
+				} else {
+					if (colType.equalsIgnoreCase(("string")))
+						sb.append(String.format("'%1$s'", values[i]));
+					else
+						sb.append(String.format("%1$s", values[i]));
+				}
+				if (i < (values.length - 1)) {
+					sb.append(", ");
+				} else {
+					sb.append(String.format(") "));
+				}
+			}
+		}
+		return sb.toString();
+	}
 
-  public static DateTime sqlTimestampToUTCDate(Timestamp ts) {
-    DateTime dateTime = null;
-    try {
-      if (ts != null) {
-        long millis = ts.getTime();
-        long offset = getTimeZoneUTCOffset(TimeZone.getDefault().getID());
+	public static long getTimeZoneUTCOffset(String timezone) {
+		if (timezone == null || timezone.length() == 0) {
+			timezone = "Etc/UTC";
+		}
 
-        dateTime = new DateTime(millis + offset, DateTimeZone.UTC);
-      }
-    } catch (Exception e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-    return dateTime;
-  }
+		DateTimeZone a = DateTimeZone.forID(timezone);
+		return a.getOffset(null);
+	}
 
-  public static DateTime sqlTimestampToUTCDate(ResultSet rs, int fieldNumber) {
-    DateTime dateTime = null;
-    try {
-      Timestamp ts = rs.getTimestamp(fieldNumber);
-      return sqlTimestampToUTCDate(ts);
-    } catch (SQLException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-    return dateTime;
-  }
+	public static DateTime sqlTimestampToUTCDate(Timestamp ts) {
+		DateTime dateTime = null;
+		try {
+			if (ts != null) {
+				long millis = ts.getTime();
+				long offset = getTimeZoneUTCOffset(TimeZone.getDefault().getID());
+
+				dateTime = new DateTime(millis + offset, DateTimeZone.UTC);
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return dateTime;
+	}
+
+	public static DateTime sqlTimestampToUTCDate(ResultSet rs, int fieldNumber) {
+		DateTime dateTime = null;
+		try {
+			Timestamp ts = rs.getTimestamp(fieldNumber);
+			return sqlTimestampToUTCDate(ts);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return dateTime;
+	}
+
+	public static String sessionKeyGenetator() {
+		Random ranGen = new SecureRandom();
+		byte[] uniqueID = new byte[16]; // 16 bytes = 128 bits
+		ranGen.nextBytes(uniqueID);
+		return (new BigInteger(uniqueID)).toString(16); // Hex
+	}
 }

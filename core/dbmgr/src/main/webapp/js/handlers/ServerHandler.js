@@ -1,25 +1,27 @@
 define(['handlers/EventDispatcher'],
 function(EventDispatcher) {"use strict";
 
-    var DcsHandler = ( function() {
+    var ServerHandler = ( function() {
     	
         /**
          * @constructor
-         * @type {DatabaseHandler}
+         * @type {ServerHandler}
          */
-        function DcsHandler() {
+        function ServerHandler() {
         	var dispatcher = new EventDispatcher();
         	var _this = this;
 
         	this.FETCHDCS_SUCCESS = 'fetchDcsServersSuccess';
         	this.FETCHDCS_ERROR = 'fetchDcsServersError';
+        	this.FETCH_SERVICES_SUCCESS = 'fetchServicesSuccess';
+        	this.FETCH_SERVICES_ERROR = 'fetchServicesError';
+        	this.FETCH_NODES_SUCCESS = 'fetchNodesSuccess';
+        	this.FETCH_NODES_ERROR = 'fetchNodesError';
         	
-            /**
-             * call memory skew
-             */
+  
         	this.fetchDcsServers = function(){
         		$.ajax({
-    				url: 'resources/dcs/connections',
+    				url: 'resources/server/dcsservers',
     				type:'GET',
     				dataType:"json",
     				contentType: "application/json;",
@@ -30,7 +32,37 @@ function(EventDispatcher) {"use strict";
     					dispatcher.fire(_this.FETCHDCS_ERROR, jqXHR, res, error);
     				}
     			});
-            };           
+            };   
+            
+        	this.fetchServices = function(){
+        		$.ajax({
+    				url: 'resources/server/services',
+    				type:'GET',
+    				dataType:"json",
+    				contentType: "application/json;",
+    				success: function(data){
+    					dispatcher.fire(_this.FETCH_SERVICES_SUCCESS, data);
+    				},
+    				error:function(jqXHR, res, error){
+    					dispatcher.fire(_this.FETCH_SERVICES_ERROR, jqXHR, res, error);
+    				}
+    			});
+            };
+            
+        	this.fetchNodes = function(){
+        		$.ajax({
+    				url: 'resources/server/nodes',
+    				type:'GET',
+    				dataType:"json",
+    				contentType: "application/json;",
+    				success: function(data){
+    					dispatcher.fire(_this.FETCH_NODES_SUCCESS, data);
+    				},
+    				error:function(jqXHR, res, error){
+    					dispatcher.fire(_this.FETCH_NODES_ERROR, jqXHR, res, error);
+    				}
+    			});
+            };            
                                   
             /**
              * @public
@@ -57,8 +89,8 @@ function(EventDispatcher) {"use strict";
 			};
         }
 
-        return new DcsHandler();
+        return new ServerHandler();
     }());
 
-    return DcsHandler;
+    return ServerHandler;
 });

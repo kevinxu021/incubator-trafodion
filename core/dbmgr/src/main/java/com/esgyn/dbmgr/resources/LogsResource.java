@@ -102,7 +102,6 @@ public class LogsResource {
 
       String queryText =
           String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LOGS), predicate);
-      _LOG.debug(queryText);
 
       TabularResult result =
           QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText);

@@ -8,12 +8,12 @@
 		<div class="col-lg-12">
 			<div class="panel panel-default">
 				<div class="panel-heading">
-					Result <img id="loadingImg" src="img/ajax-loader.gif" />
+					Logs <img id="loadingImg" src="img/ajax-loader.gif" />
 					<div class="pull-right">
 						<div class="btn-group">
-							<button id="openFilter" type="button" class="btn btn-default btn-xs fa fa-gear" style="height:24px;margin-right:4px">
-								Filters
-							</button>
+							<button id="openFilter" type="button"
+								class="btn btn-default btn-xs fa fa-gear"
+								style="height: 24px; margin-right: 4px">Filters</button>
 						</div>
 						<div class="btn-group">
 							<button type="button"
@@ -34,76 +34,100 @@
 			</div>
 		</div>
 	</div>
-	<div class="modal fade" id="filterDialog" tabindex="-1" role="dialog" aria-labelledby="filterDialogLabel">
-	  <div class="modal-dialog" role="document">
-	    <div class="modal-content">
-	      <div class="modal-header">
-	        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-	        <h4 class="modal-title" id="filterDialogLabel">Filters</h4>
-	      </div>
-	      <div class="modal-body">
-	        <form id="filter-form">
-	          <div class="form-group">
-	           	<label for="filter-time-range" class="control-label">Time Range : </label>
-                 <select class="form-control" id="filter-time-range">
-        			<option value="1">Last 1 hour</option>
-        			<option value="6">Last 6 hours</option>
-        			<option value="24">Last 1 day</option>
-        			<option value="0">Custom</option>
-      			 </select>
-			  </div>	        
-	          <div class="form-group">
-	           	<label for="filter-start-time" class="control-label">Start Time : </label>
-	            <div class='input-group date' id='startdatetimepicker'>
-                    <input type='text' class="form-control" id="filter-start-time" name="filter-start-time" />
-                    <span class="input-group-addon">
-                        <span class="glyphicon glyphicon-calendar"></span>
-                    </span>
-                </div>
-	          </div>
-	          <div class="form-group">
-	          	<label for="filter-end-time" class="control-label">End Time : </label>
-	            <div class='input-group date' id='enddatetimepicker'>
-                    <input type='text' class="form-control" id="filter-end-time" name="filter-end-time" />
-                    <span class="input-group-addon">
-                        <span class="glyphicon glyphicon-calendar"></span>
-                    </span>
-                </div>
-	          </div>
-	          <div class="form-group">
-	          	<label class="control-label">Severity : </label>
-					<input type="checkbox" id="severity-fatal" value="FATAL" style="margin-left:4px;padding-right:4px"> Fatal 
-					<input type="checkbox" id="severity-error" value="ERROR" style="margin-left:4px;padding-right:4px"> Error 
-					<input type="checkbox" id="severity-warn" value="WARN" style="margin-left:4px;padding-right:4px"> Warning
-					<input type="checkbox" id="severity-info" value="INFO" style="margin-left:4px;padding-right:4px"> Information
-					<input type="checkbox" id="severity-debug" value="DEBUG" style="margin-left:4px;padding-right:4px"> Debug
-	          </div>
-	          <div class="form-group">
-				<label for="filter-component-names" class="control-label">Component Name(s) : </label>
-				<input id="filter-component-names" name="filter-component-names" type="text" class="form-control" style="text-transform: uppercase" placeholder="Component names separated by comma">
-	          </div>
-	          <div class="form-group">
-				<label for="filter-process-names" class="control-label">Process Name(s) : </label>
-				<input type="text" class="form-control" id="filter-process-names" name="filter-process-names" style="text-transform: uppercase" placeholder="Process names separated by comma">
-	          </div>
-	          <div class="form-group">
-				<label for="filter-error-codes" class="control-label">Error Code(s) : </label>
-				<input type="text" class="form-control" id="filter-error-codes" name="filter-error-codes" placeholder="Error codes separated by comma">
-	          </div>
-	          <div class="form-group">
-				<label for="filter-message-text" class="control-label">Message : </label>
-				<input type="text" class="form-control" id="filter-message-text" name="filter-message-text" placeholder="Part of message text">
-	          </div>
-	          <div class="form-group">
-				<label id="filter-error-text" class="control-label" style="color:red"></label>
-	          </div>
-	        </form>
-	      </div>
-	      <div class="modal-footer">
-	      	<input id="filterApplyButton" class="submit btn btn-primary" type="submit" value="Apply">
-	        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-	      </div>
-	    </div>
-	  </div>
-	</div>	
+	<div class="modal fade" id="filterDialog" tabindex="-1" role="dialog"
+		aria-labelledby="filterDialogLabel">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="filterDialogLabel">Filters</h4>
+				</div>
+				<div class="modal-body">
+					<form id="filter-form">
+						<div class="form-group">
+							<label for="filter-time-range" class="control-label">Time
+								Range : </label> <select class="form-control" id="filter-time-range">
+								<option value="1">Last 1 hour</option>
+								<option value="6">Last 6 hours</option>
+								<option value="24">Last 1 day</option>
+								<option value="0">Custom</option>
+							</select>
+						</div>
+						<div class="form-group">
+							<label for="filter-start-time" class="control-label">Start
+								Time : </label>
+							<div class='input-group date' id='startdatetimepicker'>
+								<input type='text' class="form-control" id="filter-start-time"
+									name="filter-start-time" /> <span class="input-group-addon">
+									<span class="glyphicon glyphicon-calendar"></span>
+								</span>
+							</div>
+						</div>
+						<div class="form-group">
+							<label for="filter-end-time" class="control-label">End
+								Time : </label>
+							<div class='input-group date' id='enddatetimepicker'>
+								<input type='text' class="form-control" id="filter-end-time"
+									name="filter-end-time" /> <span class="input-group-addon">
+									<span class="glyphicon glyphicon-calendar"></span>
+								</span>
+							</div>
+						</div>
+						<div class="form-group">
+							<label class="control-label">Severity : </label> <input
+								type="checkbox" id="severity-fatal" value="FATAL"
+								style="margin-left: 4px; padding-right: 4px"> Fatal <input
+								type="checkbox" id="severity-error" value="ERROR"
+								style="margin-left: 4px; padding-right: 4px"> Error <input
+								type="checkbox" id="severity-warn" value="WARN"
+								style="margin-left: 4px; padding-right: 4px"> Warning <input
+								type="checkbox" id="severity-info" value="INFO"
+								style="margin-left: 4px; padding-right: 4px">
+							Information <input type="checkbox" id="severity-debug"
+								value="DEBUG" style="margin-left: 4px; padding-right: 4px">
+							Debug
+						</div>
+						<div class="form-group">
+							<label for="filter-component-names" class="control-label">Component
+								Name(s) : </label> <input id="filter-component-names"
+								name="filter-component-names" type="text" class="form-control"
+								style="text-transform: uppercase"
+								placeholder="Component names separated by comma">
+						</div>
+						<div class="form-group">
+							<label for="filter-process-names" class="control-label">Process
+								Name(s) : </label> <input type="text" class="form-control"
+								id="filter-process-names" name="filter-process-names"
+								style="text-transform: uppercase"
+								placeholder="Process names separated by comma">
+						</div>
+						<div class="form-group">
+							<label for="filter-error-codes" class="control-label">Error
+								Code(s) : </label> <input type="text" class="form-control"
+								id="filter-error-codes" name="filter-error-codes"
+								placeholder="Error codes separated by comma">
+						</div>
+						<div class="form-group">
+							<label for="filter-message-text" class="control-label">Message
+								: </label> <input type="text" class="form-control"
+								id="filter-message-text" name="filter-message-text"
+								placeholder="Part of message text">
+						</div>
+						<div class="form-group">
+							<label id="filter-error-text" class="control-label"
+								style="color: red"></label>
+						</div>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<input id="filterApplyButton" class="submit btn btn-primary"
+						type="submit" value="Apply">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+				</div>
+			</div>
+		</div>
+	</div>
 </div>
