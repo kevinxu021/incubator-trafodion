@@ -31,7 +31,7 @@ CP	= /bin/cp
 
 
 .PHONY: all
-all: verhdr auth cert dist
+all: verhdr auth cert dist license
 
 
 .PHONY: verhdr
@@ -51,6 +51,9 @@ dist:
 	$(CP) -p scripts/sqcertgen $(MY_SQROOT)/sql/scripts
 	$(CP) -p scripts/update_auth $(MY_SQROOT)/sql/scripts
 
+.PHONY: license 
+license:
+	cd license; $(MAKE)
 
 .PHONY: clean
 clean: cleanauth cleancert
