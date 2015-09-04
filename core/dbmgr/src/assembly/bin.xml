@@ -12,8 +12,10 @@
 			<directory>bin</directory>
 			<outputDirectory>bin</outputDirectory>
 			<includes>
-				<include>*.*</include>
+				<include>*.sh</include>
 			</includes>
+			<fileMode>0755</fileMode>
+			<lineEnding>unix</lineEnding>
 		</fileSet>
 		<fileSet>
 			<directory>etc</directory>
@@ -27,8 +29,10 @@
 			<outputDirectory>conf</outputDirectory>
 			<includes>
 				<include>config_template.xml</include>
+				<include>logback.xml</include>
 			</includes>
 			<fileMode>0755</fileMode>
+			<lineEnding>unix</lineEnding>
 		</fileSet>
 		<fileSet>
 			<directory>target</directory>
