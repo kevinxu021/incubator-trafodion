@@ -27,37 +27,10 @@ import org.eclipse.jetty.webapp.WebAppContext;
 
 public class DBMgrMain {
 
-	static final String[] sslCipherIncludes = {
-			"TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-			"SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA", "TLS_RSA_WITH_AES_128_CBC_SHA",
-			"SSL_RSA_WITH_3DES_EDE_CBC_SHA", "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
-			"SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA",
-			"TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
-			"TLS_DHE_RSA_WITH_AES_256_CBC_SHA256",
-			"TLS_DHE_DSS_WITH_AES_256_CBC_SHA",
-			"TLS_DHE_DSS_WITH_AES_256_CBC_SHA256",
-			"TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA",
-			"TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA",
-			"TLS_RSA_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_CAMELLIA_256_CBC_SHA",
-			"TLS_PSK_WITH_AES_256_CBC_SHA ", "TLS_RSA_WITH_3DES_EDE_CBC_SHA",
-			"SSL_CK_DES_192_EDE3_CBC_WITH_MD5", "TLS_PSK_WITH_3DES_EDE_CBC_SHA",
-			"TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-			"TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",
-			"TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA",
-			"TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA",
-			"TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_CAMELLIA_128_CBC_SHA",
-			"TLS_PSK_WITH_AES_128_CBC_SHA", "TLS_DHE_RSA_WITH_SEED_CBC_SHA",
-			"TLS_DHE_DSS_WITH_SEED_CBC_SHA", "TLS_RSA_WITH_SEED_CBC_SHA",
-			"TLS_PSK_WITH_RC4_128_SHA"};
-
-	static final String[] sslCipherExcludes = {"SSL_RSA_WITH_DES_CBC_SHA",
-			"SSL_DHE_RSA_WITH_DES_CBC_SHA", "SSL_DHE_DSS_WITH_DES_CBC_SHA",
-			"SSL_RSA_EXPORT_WITH_RC4_40_MD5",
-			"SSL_RSA_EXPORT_WITH_DES40_CBC_SHA",
-			"SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA",
-			"SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA",
-			"SSL_RSA_EXPORT_WITH_DES40_CBC_SHA",
-			"SSL_RSA_EXPORT_WITH_RC4_40_MD5", "SSL_RSA_WITH_DES_CBC_SHA"};
+	static final String[] sslCipherIncludes = { "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+			"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA", "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
+			"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_AES_128_CBC_SHA256", "TLS_RSA_WITH_AES_128_CBC_SHA",
+			"TLS_RSA_WITH_AES_256_CBC_SHA256", "TLS_RSA_WITH_AES_256_CBC_SHA" };
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
@@ -176,8 +149,7 @@ public class DBMgrMain {
 			sslContextFactory.setTrustStorePassword(
 					config.getProperty("securePassword"));
 			sslContextFactory.setIncludeCipherSuites(sslCipherIncludes);
-			sslContextFactory.setExcludeCipherSuites(sslCipherExcludes);
-
+			
 			// SSL HTTP Configuration
 			HttpConfiguration https_config = new HttpConfiguration(http_config);
 			https_config.addCustomizer(new SecureRequestCustomizer());
