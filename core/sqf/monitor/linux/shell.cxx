@@ -187,7 +187,7 @@ bool init_pnode_map( void )
         NodeState_t nodeState = StateUp;
         const char *downNodeName = getenv( TP001_NODE_DOWN );
         if ( downNodeName != NULL && 
-            !strcmp( downNodeName, pnodeConfig->GetName() ) )
+            !CPNodeConfigContainer::hostnamecmp( downNodeName, pnodeConfig->GetName() ) )
         {
             nodeState = StateDown;
         }
@@ -2156,7 +2156,7 @@ int get_pnid_by_node_name( char *node_name )
     pnodeConfig = ClusterConfig.GetFirstPNodeConfig();
     for ( ; pnodeConfig; pnodeConfig = pnodeConfig->GetNext() )
     {
-        if ( strcmp( node_name, pnodeConfig->GetName() ) == 0 )
+        if ( CPNodeConfigContainer::hostnamecmp( node_name, pnodeConfig->GetName() ) == 0 )
         {
             return( pnodeConfig->GetPNid() );
         }
@@ -2298,7 +2298,7 @@ bool get_spare_set_state( char *node_name, STATE &spare_set_state )
                                 , method_name, __LINE__, MyName
                                 , spareNodeConfig->GetName() );
 
-                if ( strcmp( spareNodeConfig->GetName(), node_name ) == 0 )
+                if ( CPNodeConfigContainer::hostnamecmp( spareNodeConfig->GetName(), node_name ) == 0 )
                 {
                     if ( trace_settings & TRACE_SHELL_CMD )
                         trace_printf( "%s@%d [%s] Skipping member node=%s\n"
@@ -2669,7 +2669,7 @@ int get_node_name( char *node_name )
     pnodeConfig = ClusterConfig.GetFirstPNodeConfig();
     for ( ; pnodeConfig; pnodeConfig = pnodeConfig->GetNext() )
     {
-        if ( strcmp( node_name, pnodeConfig->GetName() ) == 0 )
+        if ( CPNodeConfigContainer::hostnamecmp( node_name, pnodeConfig->GetName() ) == 0 )
         {
             return( 0 );
         }
@@ -4572,12 +4572,13 @@ bool start_monitor( char *cmd_tail, bool warmstart, bool reintegrate )
     bool nodeInConfig = false;
     for ( i = 0; i < NumNodes; i++ )
     {
-        if ( strcmp( mynode, PNode[i]) == 0 )
+      if ( CPNodeConfigContainer::hostnamecmp( mynode, PNode[i]) == 0 )
         {
-            nodeInConfig = true;
-            break;
+	  nodeInConfig = true;
+	  break;
         }
     }
+    
     if ( !nodeInConfig )
     {
         printf ("[%s] Cannot start monitor from node '%s' since it is not member of the cluster configuration or 'hostname' string does not match configuration string.\n", MyName, mynode);
