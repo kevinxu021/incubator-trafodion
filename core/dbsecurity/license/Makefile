@@ -32,7 +32,7 @@ CP	= /bin/cp
 DBG_FLAGS	= $(DBG_FLGS)  
 
 .PHONY: all
-all: $(BINEXPDIR)/decoder encoder
+all: $(BINEXPDIR)/decoder encoder copy
 
 #Source files required to build the library
 
@@ -54,7 +54,9 @@ $(BINEXPDIR)/decoder:
 encoder:
 	$(CC) -o $@ src/encoder.c
 
-
+copy:  $(BINEXPDIR)/decoder
+	cp $(BINEXPDIR)/decoder $(BINEXPDIR)/../../../../install/installer
+	cp $(MY_SQROOT)/sql/scripts/licensecheck $(BINEXPDIR)/../../../../install/installer
 
 clean:
 	$(RM) -f  $(OUTDIR)/*.o

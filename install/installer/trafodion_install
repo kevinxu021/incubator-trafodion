@@ -313,6 +313,13 @@ fi
 sed -i '/ACCEPT_LICENSE\=/d' $TRAF_CONFIG
 echo "export ACCEPT_LICENSE=\"$ACCEPT_LICENSE\"" >> $TRAF_CONFIG
 
+#=============================================
+#license checking
+$LOCAL_WORKDIR/licensecheck $LOCAL_WORKDIR
+#if [ $? -eq 1 ]; then
+#  exit 1
+#fi
+
 #==============================================
 # untar package and files into /usr/lib/trafodion (the new TRAF_WORKDIR)
 # This will be a global location that all tar files are untarred into
