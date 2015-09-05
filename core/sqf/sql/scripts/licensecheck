@@ -1,0 +1,59 @@
+#!/bin/bash
+
+#All rights reserved by Esgyn Corporation 2015 
+#this script will check if current installation has a valid license or not
+encstring=""
+
+if [[ -f ./esgyn.el ]]; then
+  encstring=`cat ./esgyn.el`
+elif [[ -f ../esgyn.el ]]; then
+  encstring=`cat ../esgyn.el`
+elif [[ -f $MY_SQROOT/esgyn.el ]]; then
+  encstring=`cat  $MY_SQROOT/esgyn.el`
+fi
+
+if [[ $encstring = "" ]]; then
+  #no license file
+  #print warning and continue
+  echo "***  WARNING  *** "
+  echo "***Your license to use the EsgynDB Enterprise Edition is either unavailable or the file is corrupt."
+  echo -n " Do you want to continue [y/N]:"
+  read answer
+  if [ "$answer" != "y" ] && [ "$answer" != "Y" ] && [ "$answer" != "yes" ]  && [ "$answer" != "YES" ]; then
+    echo "Please contact your Esgyn support representative"
+	exit 1 
+  else
+    echo "Please contact your Esgyn support representative"
+        exit 0
+  fi
+fi
+
+#now we have the enc string 
+#decode the enc string to check
+#for this release, we only check the node number
+if [[ -f $1/traf_sqconfig ]]; then
+  #this is invoked from installer  
+  nodenumber=`$1/decoder -n -s $encstring`
+else
+  nodenumber=`decoder -n -s $encstring`
+fi
+
+#get the real nodenumber from $NODE_LIST
+node_count=$(echo $NODE_LIST | wc -w)
+
+if [ $node_count -gt $nodenumber ]; then
+  echo "***  WARNING  *** "
+  echo "***Your license for use of EsgynDB Enterprise Edition only supports " $nodenumber " hosts."
+  echo -n " Do you want to continue [y/N]:"
+  read answer
+  if [ "$answer" != "y" ] && [ "$answer" != "Y" ] && [ "$answer" != "yes" ]  && [ "$answer" != "YES" ]; then
+    echo "Please contact your Esgyn support representative"
+    exit 1
+  else
+    echo "Please contact your Esgyn support representative"
+    exit 0
+  fi
+fi
+
+exit 0
+
