@@ -2,6 +2,11 @@
 
 #All rights reserved by Esgyn Corporation 2015 
 #this script will check if current installation has a valid license or not
+silent=0
+if [[ $1 = "-s" ]];then
+  silent=1
+fi
+
 encstring=""
 
 if [[ -f ./esgyn.el ]]; then
@@ -17,14 +22,16 @@ if [[ $encstring = "" ]]; then
   #print warning and continue
   echo "***  WARNING  *** "
   echo "***Your license to use the EsgynDB Enterprise Edition is either unavailable or the file is corrupt."
-  echo -n " Do you want to continue [y/N]:"
-  read answer
-  if [ "$answer" != "y" ] && [ "$answer" != "Y" ] && [ "$answer" != "yes" ]  && [ "$answer" != "YES" ]; then
-    echo "Please contact your Esgyn support representative"
+  if [[ silent -eq 0 ]];then
+    echo -n " Do you want to continue [y/N]:"
+    read answer
+    if [ "$answer" != "y" ] && [ "$answer" != "Y" ] && [ "$answer" != "yes" ]  && [ "$answer" != "YES" ]; then
+      echo "Please contact your Esgyn support representative"
 	exit 1 
-  else
-    echo "Please contact your Esgyn support representative"
+    else
+      echo "Please contact your Esgyn support representative"
         exit 0
+    fi
   fi
 fi
 
@@ -41,7 +48,7 @@ fi
 #get the real nodenumber from $NODE_LIST
 node_count=$(echo $NODE_LIST | wc -w)
 
-if [ $node_count -gt $nodenumber ]; then
+if [[ $node_count -gt $nodenumber ]]; then
   echo "***  WARNING  *** "
   echo "***Your license for use of EsgynDB Enterprise Edition only supports " $nodenumber " hosts."
   echo -n " Do you want to continue [y/N]:"
