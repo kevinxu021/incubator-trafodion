@@ -96,7 +96,7 @@ Requires: zlib
 %define _source_payload w9.gzdio
 
 %description
-Transactional SQL-on-Hadoop DBMS
+EsgynDB, based on Apache Trafodion, delivers 100x better price/performance for Operational Big Data combining the power of transactional SQL and Apache HBase with the elastic scalability of Hadoop.
 
 %prep
 %setup -b 0 -b 1 -b 2 -n %{name}-%{version}-%{release} -c %{name}-%{version}-%{release}
