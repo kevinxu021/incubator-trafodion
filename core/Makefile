@@ -145,6 +145,62 @@ find-absolute-dlls:
 check-copyrights:
 	python ./updateCopyrightCheck.py
 
+
+##############
+# RPM defines
+PKG_PROD=trafodion
+
+ifeq ($(SQ_BUILD_TYPE),release)
+  RPMNAME="$(PKG_PROD)"
+else
+  RPMNAME="$(PKG_PROD)-debug"
+endif
+
+ifeq ($(SQ_MTYPE),64)
+  ARCH=x86_64
+else
+  ARCH=i686
+endif
+
+RELEASE ?= $(shell date +%Y%m%d)
+
+SPECFILE = trafodion.spec
+RPMROOT=$(shell cd ..; /bin/pwd)/RPMROOT
+RPMDIR=$(RPMROOT)/RPMS
+SRPMDIR=$(RPMROOT)/SRPMS
+SOURCEDIR=$(RPMROOT)/SOURCES
+BUILDDIR=$(RPMROOT)/BUILD
+BUILDROOTDIR=$(RPMROOT)/BUILDROOT
+
+rpmpackage: all pkg-product dcs 
+	/bin/rm -rf $(RPMROOT)
+	mkdir -p $(RPMDIR)
+	mkdir -p $(SOURCEDIR)
+	mkdir -p $(BUILDDIR)
+	mkdir -p $(BUILDROOTDIR)
+	mkdir -p $(SRPMDIR)
+	cp -f $(PKG_PROD)_server-$(TRAFODION_VER).tgz $(SOURCEDIR)/
+	cp -f rest/target/rest-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
+	cp -f ../dcs/target/dcs-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
+
+rpmbuild: rpmpackage
+	rpmbuild -vv -bb \
+                        --define "name $(RPMNAME)" \
+                        --define "version $(TRAFODION_VER)" \
+                        --define "release $(RELEASE)" \
+                        --define "_builddir $(BUILDDIR)" \
+                        --define "_buildrootdir $(BUILDROOTDIR)" \
+                        --define "_sourcedir $(SOURCEDIR)" \
+                        --define "_rpmdir $(RPMDIR)" \
+                        --define "_arch $(ARCH)" \
+                        --define "_topdir $(RPMROOT)" \
+                        $(SPECFILE)
+
+# only used for rpmbuild
+dcs:
+	cd ../dcs && mvn site package install 2>&1 | sed -e "s/$$/	##(DCS)/";exit $${PIPESTATUS[0]}
+
+
 eclipse: rest/.project sql/.project sqf/src/seatrans/hbase-trx/.project .project
 	@echo
 	@echo
