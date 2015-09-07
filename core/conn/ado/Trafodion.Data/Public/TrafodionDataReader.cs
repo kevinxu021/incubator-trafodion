@@ -496,12 +496,11 @@ namespace Trafodion.Data
                     break;
             }
 
-            Console.WriteLine("srcDataStr = " + srcDataStr);
             srcLen = srcDataStr.Length;
 
-            if (dataOffset > srcLen || dataOffset > System.Int32.MaxValue)
+            if (dataOffset > srcLen - 1 || dataOffset > System.Int32.MaxValue - 1)
             {
-                throw new ArgumentOutOfRangeException("Specified data offset is out of the length of the column value.");
+                throw new ArgumentOutOfRangeException("Specified data offset(arg[2]) is either less than zero or out of the length of the column.");
             }
 
             if (targetLen + (Int32)dataOffset > srcLen)

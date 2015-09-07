@@ -75,8 +75,6 @@ namespace Trafodion.Data
 
                     serverObjRef = String.Format("TCP:{0}:{1}.{2},{3}/{4}:ODBC", serverHostName, serverNodeId, serverProcessName, serverIpAddress, serverPort);
 
-                    Console.WriteLine(serverObjRef);
-
                     if ((serverVersion[0].BuildId & BuildOptions.PasswordSecurity) > 0)
                     {
                         securityEnabled = true;

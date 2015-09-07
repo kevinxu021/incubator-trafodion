@@ -197,6 +197,16 @@ namespace Trafodion.Data
 
         //generic writes
 
+        public void InsertBlank(Int32 numBlank, System.Text.Encoding encoding)
+        {
+            String strBlank = new String(' ', numBlank);
+            byte[] b = encoding.GetBytes(strBlank);
+
+            System.Buffer.BlockCopy(b, 0, _buf, _pos, numBlank);
+
+            _pos += numBlank;
+        }
+
         public void WriteBytes(byte[] b)
         {
             System.Buffer.BlockCopy(b, 0, _buf, _pos, b.Length);

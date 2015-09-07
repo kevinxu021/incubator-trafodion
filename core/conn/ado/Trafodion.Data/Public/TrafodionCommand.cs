@@ -1024,11 +1024,15 @@ namespace Trafodion.Data
                     break;
                 case FileSystemType.Interval:
                     str = Convert.ToString(value);
-                    if (str.Length > desc.MaxLength)
+                    int srcLen = str.Length;
+                    int targetLen = desc.MaxLength;
+
+                    if (srcLen > targetLen)
                     {
                         throw new Exception("interval data too long");
                     }
 
+                    ds.InsertBlank((targetLen - srcLen), System.Text.Encoding.ASCII);
                     ds.WriteBytes(System.Text.ASCIIEncoding.ASCII.GetBytes(str));
                     break;
                 case FileSystemType.SmallInt:
