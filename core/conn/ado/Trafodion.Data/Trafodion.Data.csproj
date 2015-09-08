@@ -27,7 +27,7 @@
     <DebugType>full</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>..\..\..\..\..\Build\TrafAdo\</OutputPath>
-    <BaseIntermediateOutputPath>C:\Build\HPAdo\temp\</BaseIntermediateOutputPath>
+    <BaseIntermediateOutputPath>..\..\..\..\..\Build\TrafAdo\temp\</BaseIntermediateOutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -74,6 +74,11 @@
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
     <Compile Include="Public\DisplayVersion.cs" />
     <Compile Include="Public\ProductVersion.cs" />
@@ -143,6 +148,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Messages.resx</DependentUpon>
     </Compile>
+    <Compile Include="Settings.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Messages.resx">
@@ -163,6 +169,10 @@
     <None Include="Properties\PackageIcon.ico" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
     <None Include="Resources\PLK.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

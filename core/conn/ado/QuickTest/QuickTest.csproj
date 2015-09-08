@@ -39,7 +39,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>..\..\..\..\..\Build\TrafAdo\</OutputPath>
-    <BaseIntermediateOutputPath>C:\Build\HPAdo\temp\</BaseIntermediateOutputPath>
+    <BaseIntermediateOutputPath>..\..\..\..\..\Build\TrafAdo\temp\</BaseIntermediateOutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
