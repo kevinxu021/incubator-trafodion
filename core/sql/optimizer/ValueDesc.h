@@ -460,7 +460,8 @@ public:
   // list with the one in the original provided set - i.e. "complify"
   // it.
   // ---------------------------------------------------------------------
-  Int32 complifyAndCheckPrefixCovered (const ValueIdSet& vidSet);
+  Int32 complifyAndCheckPrefixCovered (const ValueIdSet& vidSet,
+                                       const GroupAttributes *ga);
 
   // ---------------------------------------------------------------------
   // Check whether a prefix of this list is covered by the provided set.
@@ -468,7 +469,8 @@ public:
   // their counterparts in the provided set.
   // For the remaining suffix, remove those items from this list.
   // ---------------------------------------------------------------------
-  void complifyAndRemoveUncoveredSuffix (const ValueIdSet& vidSet);
+  void complifyAndRemoveUncoveredSuffix (const ValueIdSet& vidSet,
+                                         const GroupAttributes *ga);
 
   // ---------------------------------------------------------------------
   // simplifyOrderExpr()
@@ -503,11 +505,15 @@ public:
   // ---------------------------------------------------------------------
   // If a table is ordered by the expressions described in this list,
   // does the ordering satisfy a required order or arrangement of columns
+  // (GroupAttributes and predicates can be provided to allow more matches
+  // by applying some optimizations)
   // ---------------------------------------------------------------------
   OrderComparison satisfiesReqdOrder(const ValueIdList &reqdOrder,
-				     const GroupAttributes *ga = NULL) const;
+				     GroupAttributes *ga = NULL,
+                                     const ValueIdSet *preds = NULL) const;
   NABoolean satisfiesReqdArrangement(const ValueIdSet &reqdArrangement,
-				     const GroupAttributes *ga = NULL) const;
+				     GroupAttributes *ga = NULL,
+                                     const ValueIdSet *preds = NULL) const;
 
   // ---------------------------------------------------------------------
   // Calculate the length of the row containing all the value ids
