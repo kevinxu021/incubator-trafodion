@@ -790,14 +790,16 @@ public class HBaseClient {
     }
 
     public HTableClient getHTableClient(long jniObject, String tblName, 
-                  boolean useTRex) throws IOException 
+					boolean useTRex, boolean bSynchronized) throws IOException 
     {
        if (logger.isDebugEnabled()) logger.debug("HBaseClient.getHTableClient(" + tblName
-                         + (useTRex ? ", use TRX" : ", no TRX") + ") called.");
+						 + (useTRex ? ", use TRX" : ", no TRX") 
+						 + (bSynchronized ? ", use STR" : ", no STR") 
+						 + ") called.");
        HTableClient htable = hTableClientsFree.get(tblName);
        if (htable == null) {
           htable = new HTableClient();
-          if (htable.init(tblName, useTRex) == false) {
+          if (htable.init(tblName, useTRex, bSynchronized) == false) {
              if (logger.isDebugEnabled()) logger.debug("  ==> Error in init(), returning empty.");
              return null;
           }
@@ -1452,34 +1454,34 @@ public class HBaseClient {
     return true;
   }
 
-  public int startGet(long jniObject, String tblName, boolean useTRex, long transID, byte[] rowID,
+    public int startGet(long jniObject, String tblName, boolean useTRex, boolean bSynchronize, long transID, byte[] rowID,
                         Object[] columns, long timestamp)
                         throws IOException {
-      HTableClient htc = getHTableClient(jniObject, tblName, useTRex);
+      HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
       return htc.startGet(transID, rowID, columns, timestamp);
   }
 
-  public int startGet(long jniObject, String tblName, boolean useTRex, long transID, Object[] rowIDs,
+  public int startGet(long jniObject, String tblName, boolean useTRex, boolean bSynchronize, long transID, Object[] rowIDs,
                         Object[] columns, long timestamp)
                         throws IOException {
-      HTableClient htc = getHTableClient(jniObject, tblName, useTRex);
+      HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
       return htc.startGet(transID, rowIDs, columns, timestamp);
   }
 
-  public int startGet(long jniObject, String tblName, boolean useTRex, long transID, short rowIDLen, Object rowIDs,
+  public int startGet(long jniObject, String tblName, boolean useTRex, boolean bSynchronize, long transID, short rowIDLen, Object rowIDs,
                         Object[] columns)
                         throws IOException {
-      HTableClient htc = getHTableClient(jniObject, tblName, useTRex);
+      HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
       return htc.getRows(transID, rowIDLen, rowIDs, columns);
   }
 
-  public boolean insertRow(long jniObject, String tblName, boolean useTRex, long transID, byte[] rowID,
+  public boolean insertRow(long jniObject, String tblName, boolean useTRex, boolean bSynchronize, long transID, byte[] rowID,
                          Object row,
                          long timestamp,
                          boolean checkAndPut,
                          boolean asyncOperation) throws IOException, InterruptedException, ExecutionException {
 
-      HTableClient htc = getHTableClient(jniObject, tblName, useTRex);
+      HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
       boolean ret = htc.putRow(transID, rowID, row, null, null,
                                 checkAndPut, asyncOperation);
       if (asyncOperation == true)
@@ -1489,13 +1491,19 @@ public class HBaseClient {
       return ret;
   }
 
-  public boolean checkAndUpdateRow(long jniObject, String tblName, boolean useTRex, long transID, byte[] rowID,
-                         Object columnsToUpdate,
-                         byte[] columnToCheck, byte[] columnValToCheck,
-                         long timestamp,
-                         boolean asyncOperation) throws IOException, InterruptedException, ExecutionException {
+  public boolean checkAndUpdateRow(long jniObject, 
+				   String tblName, 
+				   boolean useTRex, 
+				   boolean bSynchronize, 
+				   long transID, 
+				   byte[] rowID,
+				   Object columnsToUpdate,
+				   byte[] columnToCheck,
+				   byte[] columnValToCheck,
+				   long timestamp,
+				   boolean asyncOperation) throws IOException, InterruptedException, ExecutionException {
       boolean checkAndPut = true;
-      HTableClient htc = getHTableClient(jniObject, tblName, useTRex);
+      HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
       boolean ret = htc.putRow(transID, rowID, columnsToUpdate, columnToCheck, columnValToCheck,
                                 checkAndPut, asyncOperation);
       if (asyncOperation == true)
@@ -1505,14 +1513,14 @@ public class HBaseClient {
       return ret;
   }
 
-  public boolean insertRows(long jniObject, String tblName, boolean useTRex, long transID, 
+  public boolean insertRows(long jniObject, String tblName, boolean useTRex, boolean bSynchronize, long transID, 
 			 short rowIDLen,
                          Object rowIDs,
                          Object rows,
                          long timestamp,
                          boolean autoFlush,
                          boolean asyncOperation) throws IOException, InterruptedException, ExecutionException {
-      HTableClient htc = getHTableClient(jniObject, tblName, useTRex);
+      HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
       boolean ret = htc.putRows(transID, rowIDLen, rowIDs, rows, timestamp, autoFlush, asyncOperation);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);
@@ -1521,11 +1529,16 @@ public class HBaseClient {
       return ret;
   }
 
-  public boolean deleteRow(long jniObject, String tblName, boolean useTRex, long transID, 
-                                 byte[] rowID,
-                                 Object[] columns,
-                                 long timestamp, boolean asyncOperation) throws IOException {
-      HTableClient htc = getHTableClient(jniObject, tblName, useTRex);
+  public boolean deleteRow(long jniObject, 
+			   String tblName,
+			   boolean useTRex, 
+			   boolean bSynchronize,
+			   long transID, 
+			   byte[] rowID,
+			   Object[] columns,
+			   long timestamp,
+			   boolean asyncOperation) throws IOException {
+      HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
       boolean ret = htc.deleteRow(transID, rowID, columns, timestamp);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);
@@ -1534,10 +1547,16 @@ public class HBaseClient {
       return ret;
   }
 
-  public boolean deleteRows(long jniObject, String tblName, boolean useTRex, long transID, short rowIDLen, Object rowIDs,
-                      long timestamp, 
-                      boolean asyncOperation) throws IOException, InterruptedException, ExecutionException {
-      HTableClient htc = getHTableClient(jniObject, tblName, useTRex);
+  public boolean deleteRows(long jniObject, 
+			    String tblName,
+			    boolean useTRex,
+			    boolean bSynchronize,
+			    long transID, 
+			    short rowIDLen, 
+			    Object rowIDs,
+			    long timestamp, 
+			    boolean asyncOperation) throws IOException, InterruptedException, ExecutionException {
+      HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
       boolean ret = htc.deleteRows(transID, rowIDLen, rowIDs, timestamp);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);
@@ -1546,11 +1565,17 @@ public class HBaseClient {
       return ret;
   }
 
-  public boolean checkAndDeleteRow(long jniObject, String tblName, boolean useTRex, long transID, 
-                                 byte[] rowID,
-                                 byte[] columnToCheck, byte[] colValToCheck,
-                                 long timestamp, boolean asyncOperation) throws IOException {
-      HTableClient htc = getHTableClient(jniObject, tblName, useTRex);
+  public boolean checkAndDeleteRow(long jniObject,
+				   String tblName,
+				   boolean useTRex,
+				   boolean bSynchronize,
+				   long transID, 
+				   byte[] rowID,
+				   byte[] columnToCheck,
+				   byte[] colValToCheck,
+				   long timestamp,
+				   boolean asyncOperation) throws IOException {
+      HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
       boolean ret = htc.checkAndDeleteRow(transID, rowID, columnToCheck, colValToCheck, timestamp);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);

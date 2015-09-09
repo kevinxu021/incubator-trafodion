@@ -61,7 +61,8 @@ public class hbstatus {
 	Configuration lv_config = HBaseConfiguration.create();
 	lv_config.setInt("hbase.client.retries.number", 3);
 	lv_config.set("hbase.root.logger","ERROR,console");
-	System.out.println("ZooKeeper Chorum: " + lv_config.get("hbase.zookeeper.quorum"));
+	System.out.println("ZooKeeper Quorum: " + lv_config.get("hbase.zookeeper.quorum"));
+	System.out.println("ZooKeeper Port  : " + lv_config.get("hbase.zookeeper.property.clientPort"));
 
         System.out.println("Checking if HBase is available...");
         try {

@@ -432,7 +432,7 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_CLEANUP    ].jm_name      = "cleanup";
     JavaMethods_[JM_CLEANUP    ].jm_signature = "()Z";
     JavaMethods_[JM_GET_HTC    ].jm_name      = "getHTableClient";
-    JavaMethods_[JM_GET_HTC    ].jm_signature = "(JLjava/lang/String;Z)Lorg/trafodion/sql/HBaseAccess/HTableClient;";
+    JavaMethods_[JM_GET_HTC    ].jm_signature = "(JLjava/lang/String;ZZ)Lorg/trafodion/sql/HBaseAccess/HTableClient;";
     JavaMethods_[JM_REL_HTC    ].jm_name      = "releaseHTableClient";
     JavaMethods_[JM_REL_HTC    ].jm_signature = "(Lorg/trafodion/sql/HBaseAccess/HTableClient;)V";
     JavaMethods_[JM_CREATE     ].jm_name      = "create";
@@ -474,11 +474,11 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_SET_ARC_PERMS].jm_name      = "setArchivePermissions";
     JavaMethods_[JM_SET_ARC_PERMS].jm_signature = "(Ljava/lang/String;)Z";
     JavaMethods_[JM_START_GET].jm_name      = "startGet";
-    JavaMethods_[JM_START_GET].jm_signature = "(JLjava/lang/String;ZJ[B[Ljava/lang/Object;J)I";
+    JavaMethods_[JM_START_GET].jm_signature = "(JLjava/lang/String;ZZJ[B[Ljava/lang/Object;J)I";
     JavaMethods_[JM_START_GETS].jm_name      = "startGet";
-    JavaMethods_[JM_START_GETS].jm_signature = "(JLjava/lang/String;ZJ[Ljava/lang/Object;[Ljava/lang/Object;J)I";
+    JavaMethods_[JM_START_GETS].jm_signature = "(JLjava/lang/String;ZZJ[Ljava/lang/Object;[Ljava/lang/Object;J)I";
     JavaMethods_[JM_START_DIRECT_GETS].jm_name      = "startGet";
-    JavaMethods_[JM_START_DIRECT_GETS].jm_signature = "(JLjava/lang/String;ZJSLjava/lang/Object;[Ljava/lang/Object;)I";
+    JavaMethods_[JM_START_DIRECT_GETS].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;[Ljava/lang/Object;)I";
     JavaMethods_[JM_GET_HBTI].jm_name      = "getHbaseTableInfo";
     JavaMethods_[JM_GET_HBTI].jm_signature = "(Ljava/lang/String;[I)Z";
     JavaMethods_[JM_CREATE_COUNTER_TABLE ].jm_name      = "createCounterTable";
@@ -488,17 +488,17 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_GET_REGN_NODES].jm_name      = "getRegionsNodeName";
     JavaMethods_[JM_GET_REGN_NODES].jm_signature = "(Ljava/lang/String;[Ljava/lang/String;)Z";
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROW].jm_name      = "insertRow";
-    JavaMethods_[JM_HBC_DIRECT_INSERT_ROW].jm_signature = "(JLjava/lang/String;ZJ[BLjava/lang/Object;JZZ)Z";
+    JavaMethods_[JM_HBC_DIRECT_INSERT_ROW].jm_signature = "(JLjava/lang/String;ZZJ[BLjava/lang/Object;JZZ)Z";
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_name      = "insertRows";
-    JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_signature = "(JLjava/lang/String;ZJSLjava/lang/Object;Ljava/lang/Object;JZZ)Z";
+    JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;Ljava/lang/Object;JZZ)Z";
     JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].jm_name      = "checkAndUpdateRow";
-    JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].jm_signature = "(JLjava/lang/String;ZJ[BLjava/lang/Object;[B[BJZ)Z";
+    JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].jm_signature = "(JLjava/lang/String;ZZJ[BLjava/lang/Object;[B[BJZ)Z";
     JavaMethods_[JM_HBC_DELETE_ROW ].jm_name      = "deleteRow";
-    JavaMethods_[JM_HBC_DELETE_ROW ].jm_signature = "(JLjava/lang/String;ZJ[B[Ljava/lang/Object;JZ)Z";
+    JavaMethods_[JM_HBC_DELETE_ROW ].jm_signature = "(JLjava/lang/String;ZZJ[B[Ljava/lang/Object;JZ)Z";
     JavaMethods_[JM_HBC_DIRECT_DELETE_ROWS ].jm_name      = "deleteRows";
-    JavaMethods_[JM_HBC_DIRECT_DELETE_ROWS ].jm_signature = "(JLjava/lang/String;ZJSLjava/lang/Object;JZ)Z";
+    JavaMethods_[JM_HBC_DIRECT_DELETE_ROWS ].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;JZ)Z";
     JavaMethods_[JM_HBC_CHECKANDDELETE_ROW ].jm_name      = "checkAndDeleteRow";
-    JavaMethods_[JM_HBC_CHECKANDDELETE_ROW ].jm_signature = "(JLjava/lang/String;ZJ[B[B[BJZ)Z";
+    JavaMethods_[JM_HBC_CHECKANDDELETE_ROW ].jm_signature = "(JLjava/lang/String;ZZJ[B[B[BJZ)Z";
     rc = (HBC_RetCode)JavaObjectInterface::init(className, javaClass_, JavaMethods_, (Int32)JM_LAST, javaMethodsInitialized_);
     javaMethodsInitialized_ = TRUE;
     pthread_mutex_unlock(&javaMethodsInitMutex_);
@@ -650,7 +650,7 @@ HTableClient_JNI* HBaseClient_JNI::getHTableClient(NAHeap *heap, const char* tab
 
   tsRecentJMFromJNI = JavaMethods_[JM_GET_HTC].jm_full_name;
   jobject j_htc = jenv_->CallObjectMethod(javaObj_, JavaMethods_[JM_GET_HTC].methodID, 
-	(jlong)htc, js_tblName, (jboolean)useTRex);
+					  (jlong)htc, js_tblName, (jboolean)useTRex, (jboolean) true);  //TBD: Narendra: provide the bSynchronize flag for STR
 
   jenv_->DeleteLocalRef(js_tblName); 
 
@@ -2621,7 +2621,7 @@ HTableClient_JNI *HBaseClient_JNI::startGet(NAHeap *heap, const char* tableName,
   tsRecentJMFromJNI = JavaMethods_[JM_START_GET].jm_full_name;
   jint jresult = jenv_->CallIntMethod(javaObj_, 
             JavaMethods_[JM_START_GET].methodID, 
-	(jlong)htc, js_tblName, (jboolean)useTRex, j_tid, jba_rowID, 
+	(jlong)htc, js_tblName, (jboolean)useTRex, (jboolean) true, j_tid, jba_rowID, //TBD: Narendra: provide the bSynchronize flag for STR
             j_cols, j_ts);
   if (hbs) {
       hbs->incMaxHbaseIOTime(hbs->getTimer().stop());
@@ -2734,13 +2734,13 @@ HTableClient_JNI *HBaseClient_JNI::startGets(NAHeap *heap, const char* tableName
      tsRecentJMFromJNI = JavaMethods_[JM_START_GETS].jm_full_name;
      jresult = jenv_->CallIntMethod(javaObj_, 
             JavaMethods_[JM_START_GETS].methodID, 
-	(jlong)htc, js_tblName, (jboolean)useTRex, j_tid, j_rows, 
+	(jlong)htc, js_tblName, (jboolean)useTRex, (jboolean) true, j_tid, j_rows, //TBD: Narendra: provide the bSynchronize flag for STR
             j_cols, j_ts);
   } else {
      tsRecentJMFromJNI = JavaMethods_[JM_START_DIRECT_GETS].jm_full_name;
      jresult = jenv_->CallIntMethod(javaObj_, 
             JavaMethods_[JM_START_DIRECT_GETS].methodID, 
-	(jlong)htc, js_tblName, (jboolean)useTRex, j_tid, jRowIDLen, jRowIDs, 
+	(jlong)htc, js_tblName, (jboolean)useTRex, (jboolean) true, j_tid, jRowIDLen, jRowIDs, //TBD: Narendra: provide the bSynchronize flag for STR
             j_cols);
   }
   if (hbs) {
@@ -2944,7 +2944,7 @@ HBC_RetCode HBaseClient_JNI::insertRow(NAHeap *heap, const char *tableName,
     hbs->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_HBC_DIRECT_INSERT_ROW].jm_full_name;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_HBC_DIRECT_INSERT_ROW].methodID, 
-               	j_htc, js_tblName, j_useTRex, j_tid, jba_rowID, jRow, j_ts, j_checkAndPut, j_asyncOperation);
+               	j_htc, js_tblName, j_useTRex, (jboolean) true, j_tid, jba_rowID, jRow, j_ts, j_checkAndPut, j_asyncOperation); //TBD: Narendra: provide the bSynchronize flag for STR
   if (hbs) {
       hbs->incHbaseCalls();
       if (!asyncOperation)
@@ -3035,7 +3035,7 @@ HBC_RetCode HBaseClient_JNI::insertRows(NAHeap *heap, const char *tableName,
     hbs->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_full_name;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].methodID, 
-               	j_htc, js_tblName, j_useTRex, j_tid, j_rowIDLen, jRowIDs, jRows, j_ts, j_af, j_asyncOperation);
+               	j_htc, js_tblName, j_useTRex, (jboolean) true, j_tid, j_rowIDLen, jRowIDs, jRows, j_ts, j_af, j_asyncOperation);//TBD: Narendra: provide the bSynchronize flag for STR
   if (hbs) {
       hbs->incHbaseCalls();
       if (!asyncOperation)
@@ -3147,7 +3147,7 @@ HBC_RetCode HBaseClient_JNI::checkAndUpdateRow(NAHeap *heap, const char *tableNa
     hbs->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].jm_full_name;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].methodID, 
-               	j_htc, js_tblName, j_useTRex, j_tid, jba_rowID, jRow,
+               	j_htc, js_tblName, j_useTRex, (jboolean) true, j_tid, jba_rowID, jRow,//TBD: Narendra: provide the bSynchronize flag for STR
                 jba_columnToCheck, jba_columnValToCheck,  j_ts, j_asyncOperation);
   if (hbs) {
       hbs->incHbaseCalls();
@@ -3240,7 +3240,7 @@ HBC_RetCode HBaseClient_JNI::deleteRow(NAHeap *heap, const char *tableName,
     hbs->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_HBC_DELETE_ROW].jm_full_name;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, 
-          JavaMethods_[JM_HBC_DELETE_ROW].methodID, j_htc, js_tblName, j_useTRex, j_tid, jba_rowID, 
+          JavaMethods_[JM_HBC_DELETE_ROW].methodID, j_htc, js_tblName, j_useTRex, (jboolean) true, j_tid, jba_rowID, //TBD: Narendra: provide the bSynchronize flag for STR
           j_cols, j_ts, j_asyncOperation);
   if (hbs) {
       hbs->incHbaseCalls();
@@ -3323,7 +3323,7 @@ HBC_RetCode HBaseClient_JNI::deleteRows(NAHeap *heap, const char *tableName,
     hbs->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_HBC_DIRECT_DELETE_ROWS].jm_full_name;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, 
-          JavaMethods_[JM_HBC_DIRECT_DELETE_ROWS].methodID, j_htc, js_tblName, j_useTRex, j_tid, 
+          JavaMethods_[JM_HBC_DIRECT_DELETE_ROWS].methodID, j_htc, js_tblName, j_useTRex, (jboolean) true, j_tid, //TBD: Narendra: provide the bSynchronize flag for STR
           j_rowIDLen, jRowIDs, j_ts, j_asyncOperation);
   if (hbs) {
       hbs->incHbaseCalls();
@@ -3422,7 +3422,7 @@ HBC_RetCode HBaseClient_JNI::checkAndDeleteRow(NAHeap *heap, const char *tableNa
     hbs->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_HBC_CHECKANDDELETE_ROW].jm_full_name;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, 
-          JavaMethods_[JM_HBC_CHECKANDDELETE_ROW].methodID, j_htc, js_tblName, j_useTRex, j_tid, jba_rowID, 
+          JavaMethods_[JM_HBC_CHECKANDDELETE_ROW].methodID, j_htc, js_tblName, j_useTRex, (jboolean) true, j_tid, jba_rowID, //TBD: Narendra: provide the bSynchronize flag for STR
           jba_columnToCheck, jba_columnValToCheck, j_ts, j_asyncOperation);
   if (hbs) {
       hbs->incHbaseCalls();

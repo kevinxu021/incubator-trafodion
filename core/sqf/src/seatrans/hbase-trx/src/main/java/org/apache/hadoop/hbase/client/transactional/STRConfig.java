@@ -145,7 +145,7 @@ public class STRConfig {
 
 		}
 		else {
-		    if (LOG.isTraceEnabled()) LOG.trace("RMInterface static: Peer Path does not exist: " + lv_peer_hbase_site_str);
+		    if (LOG.isTraceEnabled()) LOG.trace("Peer Path does not exist: " + lv_peer_hbase_site_str);
 		}
 	    }
 	}
