@@ -1220,8 +1220,8 @@ namespace Esgyndb.Data
                     {
                         dataLength = desc.MaxLength;
 
-                        if (desc.EsgyndbDataType == EsgyndbDbType.Varchar || 
-                            desc.EsgyndbDataType == EsgyndbDbType.NVarchar)
+                        if (desc.EsgyndbDataType == EsgyndbType.Varchar || 
+                            desc.EsgyndbDataType == EsgyndbType.NVarchar)
                         {
                             dataLength += 2;
 

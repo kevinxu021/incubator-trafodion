@@ -106,7 +106,7 @@ namespace Esgyndb.Data.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid EsgyndbDbType value: {0}.
+        ///   Looks up a localized string similar to Invalid EsgyndbType value: {0}.
         /// </summary>
         public static string InvalidEsgyndbDbType {
             get {

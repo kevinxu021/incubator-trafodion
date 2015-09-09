@@ -169,8 +169,8 @@ namespace TrafAdoTest
             dataadapter.Fill(dt);
             /*
             dataadapter.UpdateCommand = new EsgyndbCommand("UPDATE ProdCat SET Name=? WHERE ProdCatID=?;", conn);
-            dataadapter.UpdateCommand.Parameters.Add(new EsgyndbParameter("Name",EsgyndbDbType.NVarchar, 50));
-            dataadapter.UpdateCommand.Parameters.Add(new EsgyndbParameter("ProdCatID",EsgyndbDbType.Integer));
+            dataadapter.UpdateCommand.Parameters.Add(new EsgyndbParameter("Name",EsgyndbType.NVarchar, 50));
+            dataadapter.UpdateCommand.Parameters.Add(new EsgyndbParameter("ProdCatID",EsgyndbType.Integer));
              * */
 
             Console.WriteLine("value of dataadapter.UpdateCommand.UpdatedRowSource is : " + dataadapter.UpdateCommand.UpdatedRowSource);
@@ -178,15 +178,15 @@ namespace TrafAdoTest
             Console.WriteLine("value of dataadapter.UpdateCommand.UpdatedRowSource is : " + dataadapter.UpdateCommand.UpdatedRowSource);
             /*
             dataadapter.InsertCommand = new EsgyndbCommand("INSERT INTO ProdCat VALUES (?,?);",conn);
-            dataadapter.UpdateCommand.Parameters.Add(new EsgyndbParameter("ProdCatID", EsgyndbDbType.Integer, 4, "ProdcatID"));
-            dataadapter.InsertCommand.Parameters.Add(new EsgyndbParameter("Name", EsgyndbDbType.NVarchar, 50, "Name"));
+            dataadapter.UpdateCommand.Parameters.Add(new EsgyndbParameter("ProdCatID", EsgyndbType.Integer, 4, "ProdcatID"));
+            dataadapter.InsertCommand.Parameters.Add(new EsgyndbParameter("Name", EsgyndbType.NVarchar, 50, "Name"));
              * */
             Console.WriteLine("value of dataadapter.InsertCommand.UpdatedRowSource is : " + dataadapter.InsertCommand.UpdatedRowSource);
             dataadapter.InsertCommand.UpdatedRowSource = UpdateRowSource.None;
             Console.WriteLine("value of dataadapter.InsertCommand.UpdatedRowSource is : " + dataadapter.InsertCommand.UpdatedRowSource);
             /*
             dataadapter.DeleteCommand = new EsgyndbCommand("DELETE FROM ProdCat WHERE ProdCatID=?;", conn);
-            dataadapter.DeleteCommand.Parameters.Add(new EsgyndbParameter("ProdCatID",EsgyndbDbType.Integer,4,"ProdCatID"));
+            dataadapter.DeleteCommand.Parameters.Add(new EsgyndbParameter("ProdCatID",EsgyndbType.Integer,4,"ProdCatID"));
              * */
             Console.WriteLine("value of dataadapter.DeleteCommand.UpdatedRowSource is : " + dataadapter.DeleteCommand.UpdatedRowSource);
             dataadapter.DeleteCommand.UpdatedRowSource = UpdateRowSource.None;
@@ -223,7 +223,7 @@ namespace TrafAdoTest
             dataadapter = new EsgyndbDataAdapter(cmd);
             EsgyndbCommand selectCmd = conn.CreateCommand();
             selectCmd.CommandText = "select * from test_DataAdapter where A > ?";
-            selectCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbDbType.Integer));
+            selectCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbType.Integer));
             dataadapter.SelectCommand = selectCmd;
 
             DataTable dt1 = new DataTable();
@@ -256,7 +256,7 @@ namespace TrafAdoTest
 
             EsgyndbCommand updateCmd = conn.CreateCommand();
             updateCmd.CommandText = "update test_DataAdapter set A=? where A=20";
-            updateCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbDbType.Integer));
+            updateCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbType.Integer));
             dataadapter.UpdateCommand = updateCmd;
             DataTable dt_update;
             dt_update = new DataTable();
@@ -278,7 +278,7 @@ namespace TrafAdoTest
             dataadapter.Fill(dt_update);
             EsgyndbCommand uCmd = conn.CreateCommand();
             uCmd.CommandText = "update test_DataAdapter set A=? where A=2000";
-            uCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbDbType.Integer));
+            uCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbType.Integer));
             dataadapter.UpdateCommand = uCmd;
             dt_update.Rows[0]["A"] = 200;
             dataadapter.Update(dt_update);
@@ -300,7 +300,7 @@ namespace TrafAdoTest
             EsgyndbCommand delCmd = conn.CreateCommand();
             delCmd.CommandText = "delete from test_DataAdapter where A=?;";
             dataadapter.DeleteCommand = delCmd;
-            delCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbDbType.Integer));
+            delCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbType.Integer));
             dt_update.Rows[0].Delete();
             dataadapter.Update(dt_update);
             cmd.CommandText = "select count(*) from test_DataAdapter";

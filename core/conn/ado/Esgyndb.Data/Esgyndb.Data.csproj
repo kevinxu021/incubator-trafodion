@@ -94,7 +94,7 @@
     <Compile Include="Public\EsgyndbDataAdapter.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Public\EsgyndbDbType.cs" />
+    <Compile Include="Public\EsgyndbType.cs" />
     <Compile Include="Public\EsgyndbEvents.cs" />
     <Compile Include="Public\EsgyndbParameterCollection.cs" />
     <Compile Include="Public\EsgyndbFactory.cs" />

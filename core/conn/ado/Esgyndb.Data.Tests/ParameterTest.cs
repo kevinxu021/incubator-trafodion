@@ -87,7 +87,7 @@ namespace TrafAdoTest
         [Test]
         public void ParameterStringTypeParm()
         {
-            parm = new EsgyndbParameter("testParm", EsgyndbDbType.Integer);
+            parm = new EsgyndbParameter("testParm", EsgyndbType.Integer);
             parm.DbType = DbType.Int32;
 
             cmd.CommandText = "select count(*) from test_parameter where A != ?";
@@ -113,7 +113,7 @@ namespace TrafAdoTest
         public void ParameterFourParm()
        // [Ignore]
         {
-            //parm = new EsgyndbParameter("testParm", EsgyndbDbType.Double, 4, "test_parameter");
+            //parm = new EsgyndbParameter("testParm", EsgyndbType.Double, 4, "test_parameter");
             //cmd.Parameters.Add(parm);
             //Console.WriteLine("parm.parmname:{0},parm.type:{1}", parm.ParameterName, parm.DbType);
             //Console.WriteLine("parm.size:{0}", parm.Size);
@@ -128,7 +128,7 @@ namespace TrafAdoTest
         public void ResetDbType()
         //Ignore, not support now
         {
-            parm = new EsgyndbParameter("testParm", EsgyndbDbType.Integer);
+            parm = new EsgyndbParameter("testParm", EsgyndbType.Integer);
             cmd.Parameters.Add(parm);
             try
             {

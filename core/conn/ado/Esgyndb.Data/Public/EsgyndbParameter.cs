@@ -30,9 +30,9 @@ namespace Esgyndb.Data
         /// Initializes a new instance of the EsgyndbParameter class that uses the parameter name and the data type.
         /// </summary>
         /// <param name="name">The name of the parameter to map.</param>
-        /// <param name="dataType">One of the EsgyndbDbType values.</param>
+        /// <param name="dataType">One of the EsgyndbType values.</param>
         /// <exception cref="ArgumentException">The value supplied in the dataType parameter is an invalid back-end data type.</exception>
-        public EsgyndbParameter(string name, EsgyndbDbType dataType)
+        public EsgyndbParameter(string name, EsgyndbType dataType)
         {
             if (EsgyndbTrace.IsPublicEnabled)
             {
@@ -43,13 +43,13 @@ namespace Esgyndb.Data
 
             // this is to handle that 0 constants as the 2nd param will come to this constructor
             // instead of the (string, object) constructor
-            if (dataType.Equals((EsgyndbDbType)0))
+            if (dataType.Equals((EsgyndbType)0))
             {
                 this._value = 0;
-                dataType = EsgyndbDbType.Undefined; // make sure we dont get the invalid value exception
+                dataType = EsgyndbType.Undefined; // make sure we dont get the invalid value exception
             }
 
-            if (!Enum.IsDefined(typeof(EsgyndbDbType), dataType))
+            if (!Enum.IsDefined(typeof(EsgyndbType), dataType))
             {
                 string msg = EsgyndbResources.FormatMessage(EsgyndbMessage.InvalidEsgyndbDbType, dataType);
                 EsgyndbException.ThrowException(null, new ArgumentException(msg));
@@ -73,7 +73,7 @@ namespace Esgyndb.Data
                 EsgyndbTrace.Trace(null, TraceLevel.Public, name, value);
             }
 
-            this._descriptor = new Descriptor() { EsgyndbDataType = EsgyndbDbType.Undefined };
+            this._descriptor = new Descriptor() { EsgyndbDataType = EsgyndbType.Undefined };
             this._dataRowVersion = DataRowVersion.Default;
             this._parameterName = name;
             this._value = value;
@@ -81,27 +81,27 @@ namespace Esgyndb.Data
         }
 
         /// <summary>
-        /// Initializes a new instance of the EsgyndbParameter class that uses the parameter name, the EsgyndbDbType, and the size.
+        /// Initializes a new instance of the EsgyndbParameter class that uses the parameter name, the EsgyndbType, and the size.
         /// </summary>
         /// <param name="name">The name of the parameter to map.</param>
-        /// <param name="dataType">One of the EsgyndbDbType values. </param>
+        /// <param name="dataType">One of the EsgyndbType values. </param>
         /// <param name="size">The length of the parameter.</param>
         /// <exception cref="ArgumentException">The value supplied in the dataType parameter is an invalid back-end data type.</exception>
-        public EsgyndbParameter(string name, EsgyndbDbType dataType, int size)
+        public EsgyndbParameter(string name, EsgyndbType dataType, int size)
             : this(name, dataType)
         {
             this.Size = size;
         }
 
         /// <summary>
-        /// Initializes a new instance of the EsgyndbParameter class that uses the parameter name, the EsgyndbDbType, the size, and the source column name.
+        /// Initializes a new instance of the EsgyndbParameter class that uses the parameter name, the EsgyndbType, the size, and the source column name.
         /// </summary>
         /// <param name="name">The name of the parameter to map.</param>
-        /// <param name="dataType">One of the EsgyndbDbType values.</param>
+        /// <param name="dataType">One of the EsgyndbType values.</param>
         /// <param name="size">The length of the parameter.</param>
         /// <param name="srcColumn">The name of the source column.</param>
         /// <exception cref="ArgumentException">The value supplied in the dataType parameter is an invalid back-end data type.</exception>
-        public EsgyndbParameter(string name, EsgyndbDbType dataType, int size, string srcColumn)
+        public EsgyndbParameter(string name, EsgyndbType dataType, int size, string srcColumn)
             : this(name, dataType)
         {
             this.Size = size;
@@ -114,7 +114,7 @@ namespace Esgyndb.Data
         /// Initializes a new instance of the EsgyndbParameter class that uses the parameter name, the type of the parameter, the size of the parameter, a ParameterDirection, the precision of the parameter, the scale of the parameter, the source column, a DataRowVersion to use, and the value of the parameter.
         /// </summary>
         /// <param name="name">The name of the parameter to map.</param>
-        /// <param name="dbType">One of the EsgyndbDbType values.</param>
+        /// <param name="dbType">One of the EsgyndbType values.</param>
         /// <param name="size">The length of the parameter. </param>
         /// <param name="direction">One of the ParameterDirection values. </param>
         /// <param name="isNullable">true if the value of the field can be null; otherwise false.</param>
@@ -126,7 +126,7 @@ namespace Esgyndb.Data
         /// <exception cref="ArgumentException">The value supplied in the dataType parameter is an invalid back-end data type.</exception>
         public EsgyndbParameter(
             string name,
-            EsgyndbDbType dbType,
+            EsgyndbType dbType,
             int size,
             ParameterDirection direction,
             bool isNullable, 
@@ -218,10 +218,10 @@ namespace Esgyndb.Data
         }
 
         /// <summary>
-        /// Gets or sets the EsgyndbDbType of the parameter.
+        /// Gets or sets the EsgyndbType of the parameter.
         /// </summary>
         [DbProviderSpecificTypePropertyAttribute(true)]
-        public EsgyndbDbType EsgyndbDbType
+        public EsgyndbType EsgyndbDbType
         {
             get
             {
@@ -498,7 +498,7 @@ namespace Esgyndb.Data
         public void ResetHPDbDbType()
         {
             this._verified = false;
-            this.EsgyndbDbType = EsgyndbDbType.Varchar;
+            this.EsgyndbDbType = EsgyndbType.Varchar;
         }
 
         #region ICloneable

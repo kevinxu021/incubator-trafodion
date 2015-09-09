@@ -138,71 +138,71 @@ namespace Esgyndb.Data
          *  standard types.
          */ 
 
-        private static readonly Dictionary<DbType, EsgyndbDbType> DbTypeMapping;
-        private static readonly Dictionary<EsgyndbDbType, DbType> EsgyndbDbTypeMapping;
+        private static readonly Dictionary<DbType, EsgyndbType> DbTypeMapping;
+        private static readonly Dictionary<EsgyndbType, DbType> EsgyndbDbTypeMapping;
 
         static EsgyndbUtility()
         {
-            //DbType to EsgyndbDbType
-            DbTypeMapping = new Dictionary<DbType, EsgyndbDbType>(27);
-            DbTypeMapping.Add(DbType.AnsiString, EsgyndbDbType.Varchar);
-            DbTypeMapping.Add(DbType.AnsiStringFixedLength, EsgyndbDbType.Char);
-            //DbTypeMapping.Add(DbType.Binary, EsgyndbDbType.Undefined);
-            //DbTypeMapping.Add(DbType.Boolean, EsgyndbDbType.Undefined);
-            //DbTypeMapping.Add(DbType.Byte, EsgyndbDbType.Undefined);
-            //DbTypeMapping.Add(DbType.Currency, EsgyndbDbType.Undefined);
-            DbTypeMapping.Add(DbType.Date, EsgyndbDbType.Date);
-            DbTypeMapping.Add(DbType.DateTime, EsgyndbDbType.Timestamp);
-            //DbTypeMapping.Add(DbType.DateTime2, EsgyndbDbType.Undefined);
-            //DbTypeMapping.Add(DbType.DateTimeOffset, EsgyndbDbType.Undefined);
-            DbTypeMapping.Add(DbType.Decimal, EsgyndbDbType.Decimal);
-            DbTypeMapping.Add(DbType.Double, EsgyndbDbType.Double);
-            //DbTypeMapping.Add(DbType.Guid, EsgyndbDbType.Undefined);
-            DbTypeMapping.Add(DbType.Int16, EsgyndbDbType.SmallInt);
-            DbTypeMapping.Add(DbType.Int32, EsgyndbDbType.Integer);
-            DbTypeMapping.Add(DbType.Int64, EsgyndbDbType.LargeInt);
-            //DbTypeMapping.Add(DbType.Object, EsgyndbDbType.Undefined);
-            //DbTypeMapping.Add(DbType.SByte, EsgyndbDbType.Undefined);
-            DbTypeMapping.Add(DbType.Single, EsgyndbDbType.Float);
-            DbTypeMapping.Add(DbType.String, EsgyndbDbType.Varchar); // wrong
-            DbTypeMapping.Add(DbType.StringFixedLength, EsgyndbDbType.Char); // wrong
-            DbTypeMapping.Add(DbType.Time, EsgyndbDbType.Time);
-            DbTypeMapping.Add(DbType.UInt16, EsgyndbDbType.SmallIntUnsigned);
-            DbTypeMapping.Add(DbType.UInt32, EsgyndbDbType.IntegerUnsigned);
-            //DbTypeMapping.Add(DbType.UInt64, EsgyndbDbType.Undefined);
-            DbTypeMapping.Add(DbType.VarNumeric, EsgyndbDbType.Numeric);
-            //DbTypeMapping.Add(DbType.Xml, EsgyndbDbType.Undefined);
+            //DbType to EsgyndbType
+            DbTypeMapping = new Dictionary<DbType, EsgyndbType>(27);
+            DbTypeMapping.Add(DbType.AnsiString, EsgyndbType.Varchar);
+            DbTypeMapping.Add(DbType.AnsiStringFixedLength, EsgyndbType.Char);
+            //DbTypeMapping.Add(DbType.Binary, EsgyndbType.Undefined);
+            //DbTypeMapping.Add(DbType.Boolean, EsgyndbType.Undefined);
+            //DbTypeMapping.Add(DbType.Byte, EsgyndbType.Undefined);
+            //DbTypeMapping.Add(DbType.Currency, EsgyndbType.Undefined);
+            DbTypeMapping.Add(DbType.Date, EsgyndbType.Date);
+            DbTypeMapping.Add(DbType.DateTime, EsgyndbType.Timestamp);
+            //DbTypeMapping.Add(DbType.DateTime2, EsgyndbType.Undefined);
+            //DbTypeMapping.Add(DbType.DateTimeOffset, EsgyndbType.Undefined);
+            DbTypeMapping.Add(DbType.Decimal, EsgyndbType.Decimal);
+            DbTypeMapping.Add(DbType.Double, EsgyndbType.Double);
+            //DbTypeMapping.Add(DbType.Guid, EsgyndbType.Undefined);
+            DbTypeMapping.Add(DbType.Int16, EsgyndbType.SmallInt);
+            DbTypeMapping.Add(DbType.Int32, EsgyndbType.Integer);
+            DbTypeMapping.Add(DbType.Int64, EsgyndbType.LargeInt);
+            //DbTypeMapping.Add(DbType.Object, EsgyndbType.Undefined);
+            //DbTypeMapping.Add(DbType.SByte, EsgyndbType.Undefined);
+            DbTypeMapping.Add(DbType.Single, EsgyndbType.Float);
+            DbTypeMapping.Add(DbType.String, EsgyndbType.Varchar); // wrong
+            DbTypeMapping.Add(DbType.StringFixedLength, EsgyndbType.Char); // wrong
+            DbTypeMapping.Add(DbType.Time, EsgyndbType.Time);
+            DbTypeMapping.Add(DbType.UInt16, EsgyndbType.SmallIntUnsigned);
+            DbTypeMapping.Add(DbType.UInt32, EsgyndbType.IntegerUnsigned);
+            //DbTypeMapping.Add(DbType.UInt64, EsgyndbType.Undefined);
+            DbTypeMapping.Add(DbType.VarNumeric, EsgyndbType.Numeric);
+            //DbTypeMapping.Add(DbType.Xml, EsgyndbType.Undefined);
 
-            // EsgyndbDbType to DbType
-            EsgyndbDbTypeMapping = new Dictionary<EsgyndbDbType,DbType>(100);
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.Undefined, DbType.Object);
+            // EsgyndbType to DbType
+            EsgyndbDbTypeMapping = new Dictionary<EsgyndbType,DbType>(100);
+            EsgyndbDbTypeMapping.Add(EsgyndbType.Undefined, DbType.Object);
 
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.Char, DbType.StringFixedLength); //wrong
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.Date, DbType.Date);
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.Decimal, DbType.Decimal);
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.DecimalUnsigned, DbType.Decimal); // wrong
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.Double, DbType.Double);
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.Float, DbType.Single);
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.Integer, DbType.Int32);
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.IntegerUnsigned, DbType.UInt32);
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.Interval, DbType.Object); // wrong
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.LargeInt, DbType.Int64);
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.Numeric, DbType.VarNumeric);
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.NumericUnsigned, DbType.VarNumeric); // wrong
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.Real, DbType.Single);
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.SmallInt, DbType.Int16);
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.SmallIntUnsigned, DbType.UInt16);
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.Time, DbType.Time);
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.Timestamp, DbType.DateTime);
-            EsgyndbDbTypeMapping.Add(EsgyndbDbType.Varchar, DbType.String); //wrong
+            EsgyndbDbTypeMapping.Add(EsgyndbType.Char, DbType.StringFixedLength); //wrong
+            EsgyndbDbTypeMapping.Add(EsgyndbType.Date, DbType.Date);
+            EsgyndbDbTypeMapping.Add(EsgyndbType.Decimal, DbType.Decimal);
+            EsgyndbDbTypeMapping.Add(EsgyndbType.DecimalUnsigned, DbType.Decimal); // wrong
+            EsgyndbDbTypeMapping.Add(EsgyndbType.Double, DbType.Double);
+            EsgyndbDbTypeMapping.Add(EsgyndbType.Float, DbType.Single);
+            EsgyndbDbTypeMapping.Add(EsgyndbType.Integer, DbType.Int32);
+            EsgyndbDbTypeMapping.Add(EsgyndbType.IntegerUnsigned, DbType.UInt32);
+            EsgyndbDbTypeMapping.Add(EsgyndbType.Interval, DbType.Object); // wrong
+            EsgyndbDbTypeMapping.Add(EsgyndbType.LargeInt, DbType.Int64);
+            EsgyndbDbTypeMapping.Add(EsgyndbType.Numeric, DbType.VarNumeric);
+            EsgyndbDbTypeMapping.Add(EsgyndbType.NumericUnsigned, DbType.VarNumeric); // wrong
+            EsgyndbDbTypeMapping.Add(EsgyndbType.Real, DbType.Single);
+            EsgyndbDbTypeMapping.Add(EsgyndbType.SmallInt, DbType.Int16);
+            EsgyndbDbTypeMapping.Add(EsgyndbType.SmallIntUnsigned, DbType.UInt16);
+            EsgyndbDbTypeMapping.Add(EsgyndbType.Time, DbType.Time);
+            EsgyndbDbTypeMapping.Add(EsgyndbType.Timestamp, DbType.DateTime);
+            EsgyndbDbTypeMapping.Add(EsgyndbType.Varchar, DbType.String); //wrong
         }
 
-        public static EsgyndbDbType MapDbType(DbType type)
+        public static EsgyndbType MapDbType(DbType type)
         {
-            return DbTypeMapping.ContainsKey(type) ? DbTypeMapping[type] : EsgyndbDbType.Undefined;
+            return DbTypeMapping.ContainsKey(type) ? DbTypeMapping[type] : EsgyndbType.Undefined;
         }
 
-        public static DbType MapEsgyndbDbType(EsgyndbDbType type)
+        public static DbType MapEsgyndbDbType(EsgyndbType type)
         {
             return EsgyndbDbTypeMapping.ContainsKey(type) ? EsgyndbDbTypeMapping[type] : DbType.Object;
         }

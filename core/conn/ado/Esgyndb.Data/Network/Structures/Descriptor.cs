@@ -30,10 +30,10 @@ namespace Esgyndb.Data
         internal int IntLeadPrec;
         internal ParameterDirection Direction;
 
-        private EsgyndbDbType EsgyndbDbType;
+        private EsgyndbType EsgyndbDbType;
         private DbType _dbType;
 
-        internal EsgyndbDbType EsgyndbDataType
+        internal EsgyndbType EsgyndbDataType
         {
             get
             {
@@ -121,7 +121,7 @@ namespace Esgyndb.Data
         }
 
         /// <summary>
-        /// Maps the descriptor to a DbType and EsgyndbDbType
+        /// Maps the descriptor to a DbType and EsgyndbType
         /// </summary>
         private void MapFileSystemType()
         {
@@ -131,61 +131,61 @@ namespace Esgyndb.Data
                 case FileSystemType.VarcharDblByte:
                 case FileSystemType.VarcharLong:
                 case FileSystemType.VarcharWithLength:
-                    this.EsgyndbDataType = EsgyndbDbType.Varchar;
+                    this.EsgyndbDataType = EsgyndbType.Varchar;
                     break;
                 case FileSystemType.Char:
                 case FileSystemType.CharDblByte:
-                    this.EsgyndbDataType = EsgyndbDbType.Char;
+                    this.EsgyndbDataType = EsgyndbType.Char;
                     break;
                 case FileSystemType.Numeric:
-                    this.EsgyndbDataType = EsgyndbDbType.Numeric;
+                    this.EsgyndbDataType = EsgyndbType.Numeric;
                     break;
                 case FileSystemType.NumericUnsigned:
-                    this.EsgyndbDataType = EsgyndbDbType.NumericUnsigned;
+                    this.EsgyndbDataType = EsgyndbType.NumericUnsigned;
                     break;
                 case FileSystemType.Decimal:
                 case FileSystemType.DecimalLarge:
-                    this.EsgyndbDataType = EsgyndbDbType.Decimal;
+                    this.EsgyndbDataType = EsgyndbType.Decimal;
                     break;
                 case FileSystemType.DecimalUnsigned:
                 case FileSystemType.DecimalLargeUnsigned:
-                    this.EsgyndbDataType = EsgyndbDbType.DecimalUnsigned;
+                    this.EsgyndbDataType = EsgyndbType.DecimalUnsigned;
                     break;
                 case FileSystemType.Integer:
-                    this.EsgyndbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? EsgyndbDbType.Numeric : EsgyndbDbType.Integer;
+                    this.EsgyndbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? EsgyndbType.Numeric : EsgyndbType.Integer;
                     break;
                 case FileSystemType.IntegerUnsigned:
-                    this.EsgyndbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? EsgyndbDbType.NumericUnsigned : EsgyndbDbType.IntegerUnsigned;
+                    this.EsgyndbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? EsgyndbType.NumericUnsigned : EsgyndbType.IntegerUnsigned;
                     break;
                 case FileSystemType.LargeInt:
-                    this.EsgyndbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? EsgyndbDbType.Numeric : EsgyndbDbType.LargeInt;
+                    this.EsgyndbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? EsgyndbType.Numeric : EsgyndbType.LargeInt;
                     break;
                 case FileSystemType.SmallInt:
-                    this.EsgyndbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? EsgyndbDbType.Numeric : EsgyndbDbType.SmallInt;
+                    this.EsgyndbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? EsgyndbType.Numeric : EsgyndbType.SmallInt;
                     break;
                 case FileSystemType.SmallIntUnsigned:
-                    this.EsgyndbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? EsgyndbDbType.NumericUnsigned : EsgyndbDbType.SmallIntUnsigned;
+                    this.EsgyndbDataType = (this.NdcsDataType == FileSystemType.Numeric) ? EsgyndbType.NumericUnsigned : EsgyndbType.SmallIntUnsigned;
                     break;
                 case FileSystemType.Float:
-                    this.EsgyndbDataType = EsgyndbDbType.Float;
+                    this.EsgyndbDataType = EsgyndbType.Float;
                     break;
                 case FileSystemType.Real:
-                    this.EsgyndbDataType = EsgyndbDbType.Real;
+                    this.EsgyndbDataType = EsgyndbType.Real;
                     break;
                 case FileSystemType.Double:
-                    this.EsgyndbDataType = EsgyndbDbType.Double;
+                    this.EsgyndbDataType = EsgyndbType.Double;
                     break;
                 case FileSystemType.DateTime:
                     switch (this.DtCode)
                     {
                         case DateTimeCode.Date:
-                            this.EsgyndbDataType = EsgyndbDbType.Date;
+                            this.EsgyndbDataType = EsgyndbType.Date;
                             break;
                         case DateTimeCode.Time:
-                            this.EsgyndbDataType = EsgyndbDbType.Time;
+                            this.EsgyndbDataType = EsgyndbType.Time;
                             break;
                         case DateTimeCode.Timestamp:
-                            this.EsgyndbDataType = EsgyndbDbType.Timestamp;
+                            this.EsgyndbDataType = EsgyndbType.Timestamp;
                             break;
                         default:
                             throw new Exception("internal error, unknown datetimecode");
@@ -193,7 +193,7 @@ namespace Esgyndb.Data
 
                     break;
                 case FileSystemType.Interval:
-                    this.EsgyndbDataType = EsgyndbDbType.Interval;
+                    this.EsgyndbDataType = EsgyndbType.Interval;
                     break;
                 default:
                     throw new Exception("internal error, unknown fstype");

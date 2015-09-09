@@ -52,7 +52,7 @@
 	<summary>
 		<codepage>1252</codepage>
 		<title>Installation Database</title>
-		<subject>Trafodion ADO.NET 1.0 Package</subject>
+		<subject>Esgyndb ADO.NET 1.0 Package</subject>
 		<author>##ID_STRING3##</author>
 		<keywords>Installer,MSI,Database</keywords>
 		<comments>Contact:  Your local administrator</comments>
@@ -341,6 +341,7 @@
 		<col def="S0">ISDotNetInstallerArgsUninstall</col>
 		<col def="S0">ISDotNetInstallerArgsRollback</col>
 		<row><td>Esgyndb.Data.Primary_output</td><td>{65ADB72D-6BB2-48C5-94AD-92D39A545D70}</td><td>GlobalAssemblyCache</td><td>2</td><td/><td>esgyndb.data.primary_output</td><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
+		<row><td>Esgyndb.Data.Primary_output1</td><td>{501DE56A-0AE1-4586-AD6A-5D8E238CE271}</td><td>INSTALLDIR</td><td>2</td><td/><td>esgyndb.data.primary_output1</td><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
 		<row><td>ISX_DEFAULTCOMPONENT</td><td>{9FB6EFD5-5221-4BA9-A72F-6EE1F34F0701}</td><td>GlobalAssemblyCache</td><td>2</td><td/><td/><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
 		<row><td>ISX_DEFAULTCOMPONENT1</td><td>{41DC23DD-73F7-4DCE-BC9A-E8BF690F6228}</td><td>INSTALLDIR</td><td>2</td><td/><td/><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
 		<row><td>ISX_DEFAULTCOMPONENT2</td><td>{1F27185B-5E47-4FAA-ABDC-51736FDFA05C}</td><td>INSTALLDIR</td><td>258</td><td/><td/><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
@@ -1055,6 +1056,7 @@
 		<row><td>GlobalAssemblyCache</td><td>Esgyndb.Data.Primary_output</td></row>
 		<row><td>GlobalAssemblyCache</td><td>ISX_DEFAULTCOMPONENT</td></row>
 		<row><td>INSTALLDIR</td><td>Esgyndb.Data.Primary_output</td></row>
+		<row><td>INSTALLDIR</td><td>Esgyndb.Data.Primary_output1</td></row>
 		<row><td>INSTALLDIR</td><td>ISX_DEFAULTCOMPONENT</td></row>
 		<row><td>INSTALLDIR</td><td>ISX_DEFAULTCOMPONENT1</td></row>
 		<row><td>INSTALLDIR</td><td>ISX_DEFAULTCOMPONENT2</td></row>
@@ -1171,7 +1173,7 @@
 		<row><td>System64Folder</td><td>TARGETDIR</td><td>.:System64</td><td/><td>0</td><td/></row>
 		<row><td>SystemFolder</td><td>TARGETDIR</td><td>.:System32</td><td/><td>0</td><td/></row>
 		<row><td>TARGETDIR</td><td/><td>SourceDir</td><td/><td>0</td><td/></row>
-		<row><td>TRAFODION_ADO.NET_1.0_PACKAGE</td><td>ESGYN</td><td>TRAFOD~1|Trafodion ADO.NET Provider</td><td/><td>0</td><td/></row>
+		<row><td>TRAFODION_ADO.NET_1.0_PACKAGE</td><td>ESGYN</td><td>ESGYND~1|Esgyndb ADO.NET Provider</td><td/><td>0</td><td/></row>
 		<row><td>TempFolder</td><td>TARGETDIR</td><td>.:Temp</td><td/><td>0</td><td/></row>
 		<row><td>TemplateFolder</td><td>TARGETDIR</td><td>.:ShellNew</td><td/><td>0</td><td/></row>
 		<row><td>USERPROFILE</td><td>TARGETDIR</td><td>.:USERPR~1|UserProfile</td><td/><td>0</td><td/></row>
@@ -1869,6 +1871,7 @@
 		<col key="yes" def="s38">Feature_</col>
 		<col key="yes" def="s72">Component_</col>
 		<row><td>AlwaysInstall</td><td>Esgyndb.Data.Primary_output</td></row>
+		<row><td>AlwaysInstall</td><td>Esgyndb.Data.Primary_output1</td></row>
 		<row><td>AlwaysInstall</td><td>ISX_DEFAULTCOMPONENT</td></row>
 		<row><td>AlwaysInstall</td><td>ISX_DEFAULTCOMPONENT1</td></row>
 		<row><td>AlwaysInstall</td><td>ISX_DEFAULTCOMPONENT2</td></row>
@@ -1887,6 +1890,7 @@
 		<col def="I4">ISAttributes</col>
 		<col def="S72">ISComponentSubFolder_</col>
 		<row><td>esgyndb.data.primary_output</td><td>Esgyndb.Data.Primary_output</td><td>Esgyndb.Data.Primary output</td><td>0</td><td/><td/><td/><td>1</td><td>&lt;Esgyndb.Data&gt;|Built</td><td>3</td><td/></row>
+		<row><td>esgyndb.data.primary_output1</td><td>Esgyndb.Data.Primary_output1</td><td>Esgyndb.Data.Primary output</td><td>0</td><td/><td/><td/><td>1</td><td>&lt;Esgyndb.Data&gt;|Built</td><td>3</td><td/></row>
 	</table>
 
 	<table name="FileSFPCatalog">
@@ -2031,6 +2035,7 @@
 		<col def="S0">HTTPLocation</col>
 		<col def="S0">Miscellaneous</col>
 		<row><td>Esgyndb.Data.Primary_output</td><td/><td/><td>_06333807_EE2D_4365_9BAD_80174F31C915_FILTER</td><td/><td/><td/><td/></row>
+		<row><td>Esgyndb.Data.Primary_output1</td><td/><td/><td>_509EB9CF_6815_4F30_AD15_26AF8EED0C6F_FILTER</td><td/><td/><td/><td/></row>
 		<row><td>ISX_DEFAULTCOMPONENT</td><td/><td/><td>_630B5505_4352_4459_9DF7_232A5D88CFEB_FILTER</td><td/><td/><td/><td/></row>
 		<row><td>ISX_DEFAULTCOMPONENT1</td><td/><td/><td>_3B63AD5C_1545_44DB_913D_5D48553F907A_FILTER</td><td/><td/><td/><td/></row>
 		<row><td>ISX_DEFAULTCOMPONENT2</td><td/><td/><td>_B11170C2_CA3E_4933_83FF_E47BBE05BAC6_FILTER</td><td/><td/><td/><td/></row>
@@ -2625,7 +2630,7 @@
 		<col def="I2">Encoded</col>
 		<col def="S0">Comment</col>
 		<col def="I4">TimeStamp</col>
-		<row><td>COMPANY_NAME</td><td>1033</td><td>Esgyn</td><td>0</td><td/><td>748903175</td></row>
+		<row><td>COMPANY_NAME</td><td>1033</td><td>Esgyn</td><td>0</td><td/><td>1285810480</td></row>
 		<row><td>DN_AlwaysInstall</td><td>1033</td><td>Always Install</td><td>0</td><td/><td>748925671</td></row>
 		<row><td>IDPROP_EXPRESS_LAUNCH_CONDITION_COLOR</td><td>1033</td><td>The color settings of your system are not adequate for running [ProductName].</td><td>0</td><td/><td>748925671</td></row>
 		<row><td>IDPROP_EXPRESS_LAUNCH_CONDITION_DOTNETVERSION35</td><td>1033</td><td>Microsoft .NET Framework 3.5 needs to be installed for this installation to continue.</td><td>0</td><td/><td>748899111</td></row>
@@ -3727,8 +3732,8 @@
 		<row><td>IDS__TargetReq_DESC_RAM</td><td>1033</td><td>The amount of RAM is not adequate for running [ProductName].</td><td>0</td><td/><td>748925671</td></row>
 		<row><td>IDS__TargetReq_DESC_RESOLUTION</td><td>1033</td><td>The screen resolution is not adequate for running [ProductName].</td><td>0</td><td/><td>748925671</td></row>
 		<row><td>ID_STRING1</td><td>1033</td><td/><td>0</td><td/><td>748927719</td></row>
-		<row><td>ID_STRING2</td><td>1033</td><td>http://www.esgyn.com</td><td>0</td><td/><td>748889255</td></row>
-		<row><td>ID_STRING3</td><td>1033</td><td>Esgyn</td><td>0</td><td/><td>748903175</td></row>
+		<row><td>ID_STRING2</td><td>1033</td><td>http://www.Esgyn.com</td><td>0</td><td/><td>1285810480</td></row>
+		<row><td>ID_STRING3</td><td>1033</td><td>Esgyn</td><td>0</td><td/><td>1285810480</td></row>
 		<row><td>IIDS_UITEXT_FeatureUninstalled</td><td>1033</td><td>This feature will remain uninstalled.</td><td>0</td><td/><td>748925671</td></row>
 	</table>
 
@@ -3975,7 +3980,7 @@ UwBpAG4AZwBsAGUASQBtAGEAZwBlAAEARQB4AHAAcgBlAHMAcwA=
 		<row><td>ISTheme</td><td>InstallShield Blue.theme</td></row>
 		<row><td>ISUSLock</td><td>{960FAF10-C8D0-443D-AF9E-8AB5E5630C75}</td></row>
 		<row><td>ISUSSignature</td><td>{E546AF34-2882-4170-9CE3-7AAA6E45FDFB}</td></row>
-		<row><td>ISVisitedViews</td><td>viewAssistant,viewISToday,viewProject,viewAppFiles,viewUpgradePaths,viewObjects,viewRegistry,viewTextMessages,viewCustomActions,viewUI,viewEnvironmentVariables,viewFileExtensions,viewIniFiles</td></row>
+		<row><td>ISVisitedViews</td><td>viewAssistant,viewISToday,viewProject,viewAppFiles,viewUpgradePaths,viewObjects,viewRegistry,viewTextMessages,viewCustomActions,viewUI,viewEnvironmentVariables,viewFileExtensions,viewIniFiles,viewRelease</td></row>
 		<row><td>Limited</td><td>1</td></row>
 		<row><td>LockPermissionMode</td><td>1</td></row>
 		<row><td>MsiExecCmdLineOptions</td><td/></row>
@@ -4349,7 +4354,7 @@ UwBpAG4AZwBsAGUASQBtAGEAZwBlAAEARQB4AHAAcgBlAHMAcwA=
 		<row><td>PROGMSG_IIS_ROLLBACKVROOTS</td><td>##IDS_PROGMSG_IIS_ROLLBACKVROOTS##</td><td/></row>
 		<row><td>PROGMSG_IIS_ROLLBACKWEBSERVICEEXTENSIONS</td><td>##IDS_PROGMSG_IIS_ROLLBACKWEBSERVICEEXTENSIONS##</td><td/></row>
 		<row><td>ProductCode</td><td>{F2B3B4BC-3619-439F-B824-C0E6E6C812A9}</td><td/></row>
-		<row><td>ProductName</td><td>Trafodion ADO.NET 1.0 Package</td><td/></row>
+		<row><td>ProductName</td><td>Esgyndb ADO.NET 1.0 Package</td><td/></row>
 		<row><td>ProductVersion</td><td>1.00.0000</td><td/></row>
 		<row><td>ProgressType0</td><td>install</td><td/></row>
 		<row><td>ProgressType1</td><td>Installing</td><td/></row>
@@ -4418,9 +4423,9 @@ UwBpAG4AZwBsAGUASQBtAGEAZwBlAAEARQB4AHAAcgBlAHMAcwA=
 		<col def="S0">Value</col>
 		<col def="s72">Component_</col>
 		<col def="I4">ISAttributes</col>
-		<row><td>Registry1</td><td>2</td><td>SOFTWARE\Microsoft\.NETFramework\AssemblyFolders\Trafodion ADO.NET Provider</td><td/><td>[INSTALLDIR]</td><td>ISX_DEFAULTCOMPONENT2</td><td>0</td></row>
-		<row><td>Registry2</td><td>2</td><td>SOFTWARE\Microsoft\.NETFramework\v4.0.30319\AssemblyFoldersEx\Trafodion ADO.NET Provider</td><td/><td>[INSTALLDIR]</td><td>ISX_DEFAULTCOMPONENT2</td><td>0</td></row>
-		<row><td>Registry3</td><td>2</td><td>SOFTWARE\Microsoft\.NETFramework\v2.0.50727\AssemblyFoldersEx\Trafodion ADO.NET Provider</td><td/><td>[INSTALLDIR]</td><td>ISX_DEFAULTCOMPONENT2</td><td>0</td></row>
+		<row><td>Registry1</td><td>2</td><td>SOFTWARE\Microsoft\.NETFramework\AssemblyFolders\Esgyndb ADO.NET Provider</td><td/><td>[INSTALLDIR]</td><td>ISX_DEFAULTCOMPONENT2</td><td>0</td></row>
+		<row><td>Registry2</td><td>2</td><td>SOFTWARE\Microsoft\.NETFramework\v4.0.30319\AssemblyFoldersEx\Esgyndb ADO.NET Provider</td><td/><td>[INSTALLDIR]</td><td>ISX_DEFAULTCOMPONENT2</td><td>0</td></row>
+		<row><td>Registry3</td><td>2</td><td>SOFTWARE\Microsoft\.NETFramework\v2.0.50727\AssemblyFoldersEx\Esgyndb ADO.NET Provider</td><td/><td>[INSTALLDIR]</td><td>ISX_DEFAULTCOMPONENT2</td><td>0</td></row>
 	</table>
 
 	<table name="RemoveFile">

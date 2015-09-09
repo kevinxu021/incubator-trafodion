@@ -314,13 +314,13 @@ namespace TrafAdoTest
                     dtype = reader.GetValue(i).GetType().Name;
                     if (dtype.Equals("DateTime"))
                     {
-                        if (myCol.dbType == EsgyndbDbType.Date)
+                        if (myCol.dbType == EsgyndbType.Date)
                         {
                             Console.WriteLine(dtype + " " + myCol.expValue + " " + ((DateTime)(reader.GetValue(i))).ToString("yyyy-MM-dd"));
                             //Assert.AreEqual(myCol.expValue, DateTime.Parse(((DateTime)(reader.GetValue(i))).ToString("yyyy-MM-dd HH:mm:ss.ffffff")));
                             Assert.AreEqual(myCol.expValue, ((DateTime)(reader.GetValue(i))).ToString("yyyy-MM-dd"));
                         }
-                        else if (myCol.dbType == EsgyndbDbType.Timestamp)
+                        else if (myCol.dbType == EsgyndbType.Timestamp)
                         {
                             Console.WriteLine(dtype + " " + myCol.expValue + " " + ((DateTime)(reader.GetValue(i))).ToString("yyyy-MM-dd HH:mm:ss.ffffff"));
                             Assert.AreEqual(myCol.expValue, ((DateTime)(reader.GetValue(i))).ToString("yyyy-MM-dd HH:mm:ss.ffffff"));
@@ -624,8 +624,8 @@ namespace TrafAdoTest
 
             tstcmd.CommandText = "insert into Region (RegionID, RegionDescription) values (?, ?)";
 
-            tstcmd.Parameters.Add(new EsgyndbParameter("RegionID", EsgyndbDbType.Integer));
-            tstcmd.Parameters.Add(new EsgyndbParameter("RegionDescription", EsgyndbDbType.Char, 100));
+            tstcmd.Parameters.Add(new EsgyndbParameter("RegionID", EsgyndbType.Integer));
+            tstcmd.Parameters.Add(new EsgyndbParameter("RegionDescription", EsgyndbType.Char, 100));
 
             tstcmd.Parameters[0].Value = 5;
             tstcmd.Parameters[1].Value = "North West";
@@ -671,8 +671,8 @@ namespace TrafAdoTest
 
             tstcmd.CommandText = "insert into Region_U8 (RegionID, RegionDescription) values (?, ?)";
 
-            tstcmd.Parameters.Add(new EsgyndbParameter("RegionID", EsgyndbDbType.Integer));
-            tstcmd.Parameters.Add(new EsgyndbParameter("RegionDescription", EsgyndbDbType.Char, 100));
+            tstcmd.Parameters.Add(new EsgyndbParameter("RegionID", EsgyndbType.Integer));
+            tstcmd.Parameters.Add(new EsgyndbParameter("RegionDescription", EsgyndbType.Char, 100));
 
             tstcmd.Parameters[0].Value = 5;
             tstcmd.Parameters[1].Value = "North West";
@@ -869,8 +869,8 @@ namespace TrafAdoTest
 
             tstcmd.CommandText = "insert into Region (RegionID, RegionDescription) values (?, ?)";
 
-            tstcmd.Parameters.Add(new EsgyndbParameter("RegionID", EsgyndbDbType.Integer));
-            tstcmd.Parameters.Add(new EsgyndbParameter("RegionDescription", EsgyndbDbType.Char, 100));
+            tstcmd.Parameters.Add(new EsgyndbParameter("RegionID", EsgyndbType.Integer));
+            tstcmd.Parameters.Add(new EsgyndbParameter("RegionDescription", EsgyndbType.Char, 100));
             
             tstcmd.Parameters[0].Value = 5;
             tstcmd.Parameters[1].Value = "North West";
@@ -901,7 +901,7 @@ namespace TrafAdoTest
                 Console.WriteLine("GetType : " + np.GetType());
                 Console.WriteLine("Heading : " + np.Heading);
                 Console.WriteLine("IsNullable : " + np.IsNullable);
-                Console.WriteLine("EsgyndbDbType : " + np.EsgyndbDbType);
+                Console.WriteLine("EsgyndbType : " + np.EsgyndbDbType);
                 Console.WriteLine("ParameterName : " + np.ParameterName);
                 Console.WriteLine("Precision : " + np.Precision);
                 Console.WriteLine("Scale : " + np.Scale);
@@ -980,8 +980,8 @@ namespace TrafAdoTest
 
             tstcmd.CommandText = "insert into Region_U8 (RegionID, RegionDescription) values (?, ?)";
 
-            tstcmd.Parameters.Add(new EsgyndbParameter("RegionID", EsgyndbDbType.Integer));
-            tstcmd.Parameters.Add(new EsgyndbParameter("RegionDescription", EsgyndbDbType.Char, 100));
+            tstcmd.Parameters.Add(new EsgyndbParameter("RegionID", EsgyndbType.Integer));
+            tstcmd.Parameters.Add(new EsgyndbParameter("RegionDescription", EsgyndbType.Char, 100));
 
             tstcmd.Parameters[0].Value = 5;
             tstcmd.Parameters[1].Value = "North West";
@@ -1012,7 +1012,7 @@ namespace TrafAdoTest
                 Console.WriteLine("GetType : " + np.GetType());
                 Console.WriteLine("Heading : " + np.Heading);
                 Console.WriteLine("IsNullable : " + np.IsNullable);
-                Console.WriteLine("EsgyndbDbType : " + np.EsgyndbDbType);
+                Console.WriteLine("EsgyndbType : " + np.EsgyndbDbType);
                 Console.WriteLine("ParameterName : " + np.ParameterName);
                 Console.WriteLine("Precision : " + np.Precision);
                 Console.WriteLine("Scale : " + np.Scale);

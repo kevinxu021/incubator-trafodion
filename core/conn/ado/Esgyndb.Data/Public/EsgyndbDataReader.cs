@@ -376,7 +376,7 @@ namespace Esgyndb.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if ((desc.EsgyndbDataType != EsgyndbDbType.Numeric && desc.EsgyndbDataType != EsgyndbDbType.NumericUnsigned) &&
+            if ((desc.EsgyndbDataType != EsgyndbType.Numeric && desc.EsgyndbDataType != EsgyndbType.NumericUnsigned) &&
                 (desc.FsType != FileSystemType.Numeric && desc.FsType != FileSystemType.NumericUnsigned))
             {
                 throw new InvalidCastException();
@@ -472,10 +472,10 @@ namespace Esgyndb.Data
 
             switch (desc.EsgyndbDataType)
             {
-                case EsgyndbDbType.Interval:
+                case EsgyndbType.Interval:
                     srcDataStr = System.Text.ASCIIEncoding.ASCII.GetString(this._ds.ReadBytes(desc.MaxLength));
                     break;
-                case EsgyndbDbType.Char:
+                case EsgyndbType.Char:
                     if (desc.SqlEncoding == EsgyndbEncoding.UTF8)
                     {
                         if (desc.Precision != 0)
@@ -485,7 +485,7 @@ namespace Esgyndb.Data
                     }
                     srcDataStr = this._cmd.Connection.Network.Encoder.GetString(this._ds.ReadBytes(desc.MaxLength), desc.NdcsEncoding);
                     break;
-                case EsgyndbDbType.Varchar:
+                case EsgyndbType.Varchar:
                     bool shortLength = desc.Precision < Math.Pow(2, 15); // we have 2 byte vs 4 byte length based on precision
                     int len = shortLength ? this._ds.ReadInt16() : this._ds.ReadInt32();
 
@@ -553,7 +553,7 @@ namespace Esgyndb.Data
 
             this._ds.Position = this.GetDataOffset(ordinal);
 
-            if (desc.EsgyndbDataType == EsgyndbDbType.Timestamp)
+            if (desc.EsgyndbDataType == EsgyndbType.Timestamp)
             {
                 year = this._ds.ReadUInt16();
                 month = this._ds.ReadByte();
@@ -574,7 +574,7 @@ namespace Esgyndb.Data
                     ret = ret.AddTicks(this._ds.ReadUInt32() * ((long)Math.Pow(10, 7 - desc.Precision)));
                 }
             }
-            else if (desc.EsgyndbDataType == EsgyndbDbType.Date)
+            else if (desc.EsgyndbDataType == EsgyndbType.Date)
             {
                 year = this._ds.ReadUInt16();
                 month = this._ds.ReadByte();
@@ -605,7 +605,7 @@ namespace Esgyndb.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.EsgyndbDataType != EsgyndbDbType.Time)
+            if (desc.EsgyndbDataType != EsgyndbType.Time)
             {
                 throw new InvalidCastException();
             }
@@ -645,8 +645,8 @@ namespace Esgyndb.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.EsgyndbDataType != EsgyndbDbType.Decimal && desc.EsgyndbDataType != EsgyndbDbType.DecimalUnsigned &&
-                    desc.EsgyndbDataType != EsgyndbDbType.Numeric && desc.EsgyndbDataType != EsgyndbDbType.NumericUnsigned)
+            if (desc.EsgyndbDataType != EsgyndbType.Decimal && desc.EsgyndbDataType != EsgyndbType.DecimalUnsigned &&
+                    desc.EsgyndbDataType != EsgyndbType.Numeric && desc.EsgyndbDataType != EsgyndbType.NumericUnsigned)
             {
                 throw new InvalidCastException();
             }
@@ -717,7 +717,7 @@ namespace Esgyndb.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.EsgyndbDataType != EsgyndbDbType.Double && desc.EsgyndbDataType != EsgyndbDbType.Float)
+            if (desc.EsgyndbDataType != EsgyndbType.Double && desc.EsgyndbDataType != EsgyndbType.Float)
             {
                 throw new InvalidCastException();
             }
@@ -751,28 +751,28 @@ namespace Esgyndb.Data
             // make sure these match GetValue()
             switch (desc.EsgyndbDataType)
             {
-                case EsgyndbDbType.Char:
-                case EsgyndbDbType.Varchar:
-                case EsgyndbDbType.Interval:
+                case EsgyndbType.Char:
+                case EsgyndbType.Varchar:
+                case EsgyndbType.Interval:
                     t = typeof(string);
                     break;
-                case EsgyndbDbType.Timestamp:
-                case EsgyndbDbType.Date:
+                case EsgyndbType.Timestamp:
+                case EsgyndbType.Date:
                     t = typeof(DateTime);
                     break;
-                case EsgyndbDbType.Time:
+                case EsgyndbType.Time:
                     t = typeof(TimeSpan);
                     break;
-                case EsgyndbDbType.Integer:
+                case EsgyndbType.Integer:
                     t = typeof(int);
                     break;
-                case EsgyndbDbType.IntegerUnsigned:
+                case EsgyndbType.IntegerUnsigned:
                     t = typeof(uint);
                     break;
-                case EsgyndbDbType.Decimal:
-                case EsgyndbDbType.DecimalUnsigned:
-                case EsgyndbDbType.Numeric:
-                case EsgyndbDbType.NumericUnsigned:
+                case EsgyndbType.Decimal:
+                case EsgyndbType.DecimalUnsigned:
+                case EsgyndbType.Numeric:
+                case EsgyndbType.NumericUnsigned:
                     if (desc.FsType == FileSystemType.Numeric || desc.FsType == FileSystemType.NumericUnsigned)
                     {
                         t = typeof(string);
@@ -783,20 +783,20 @@ namespace Esgyndb.Data
                     }
 
                     break;
-                case EsgyndbDbType.Double:
-                case EsgyndbDbType.Float:
+                case EsgyndbType.Double:
+                case EsgyndbType.Float:
                     t = typeof(double);
                     break;
-                case EsgyndbDbType.Real:
+                case EsgyndbType.Real:
                     t = typeof(float);
                     break;
-                case EsgyndbDbType.LargeInt:
+                case EsgyndbType.LargeInt:
                     t = typeof(long);
                     break;
-                case EsgyndbDbType.SmallInt:
+                case EsgyndbType.SmallInt:
                     t = typeof(short);
                     break;
-                case EsgyndbDbType.SmallIntUnsigned:
+                case EsgyndbType.SmallIntUnsigned:
                     t = typeof(ushort);
                     break;
                 default:
@@ -819,7 +819,7 @@ namespace Esgyndb.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.EsgyndbDataType != EsgyndbDbType.Real)
+            if (desc.EsgyndbDataType != EsgyndbType.Real)
             {
                 throw new InvalidCastException();
             }
@@ -854,7 +854,7 @@ namespace Esgyndb.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.EsgyndbDataType != EsgyndbDbType.SmallInt)
+            if (desc.EsgyndbDataType != EsgyndbType.SmallInt)
             {
                 throw new InvalidCastException();
             }
@@ -876,7 +876,7 @@ namespace Esgyndb.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.EsgyndbDataType != EsgyndbDbType.SmallIntUnsigned)
+            if (desc.EsgyndbDataType != EsgyndbType.SmallIntUnsigned)
             {
                 throw new InvalidCastException();
             }
@@ -898,7 +898,7 @@ namespace Esgyndb.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.EsgyndbDataType != EsgyndbDbType.Integer)
+            if (desc.EsgyndbDataType != EsgyndbType.Integer)
             {
                 throw new InvalidCastException();
             }
@@ -920,7 +920,7 @@ namespace Esgyndb.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.EsgyndbDataType != EsgyndbDbType.IntegerUnsigned)
+            if (desc.EsgyndbDataType != EsgyndbType.IntegerUnsigned)
             {
                 throw new InvalidCastException();
             }
@@ -942,7 +942,7 @@ namespace Esgyndb.Data
             this.CheckBounds(ordinal);
             this.CheckDBNull(ordinal);
 
-            if (desc.EsgyndbDataType != EsgyndbDbType.LargeInt)
+            if (desc.EsgyndbDataType != EsgyndbType.LargeInt)
             {
                 throw new InvalidCastException();
             }
@@ -1149,10 +1149,10 @@ namespace Esgyndb.Data
 
             switch (desc.EsgyndbDataType)
             {
-                case EsgyndbDbType.Interval:
+                case EsgyndbType.Interval:
                     ret = System.Text.ASCIIEncoding.ASCII.GetString(this._ds.ReadBytes(desc.MaxLength));
                     break;
-                case EsgyndbDbType.Char:
+                case EsgyndbType.Char:
                     if( desc.SqlEncoding == EsgyndbEncoding.UTF8)
                     {
                         if (desc.Precision != 0)
@@ -1162,7 +1162,7 @@ namespace Esgyndb.Data
                     }
                     ret = this._cmd.Connection.Network.Encoder.GetString(this._ds.ReadBytes(desc.MaxLength), desc.NdcsEncoding);
                     break;
-                case EsgyndbDbType.Varchar:
+                case EsgyndbType.Varchar:
                     bool shortLength = desc.Precision < Math.Pow(2, 15); // we have 2 byte vs 4 byte length based on precision
                     int length = shortLength ? this._ds.ReadInt16() : this._ds.ReadInt32();
 
@@ -1191,22 +1191,22 @@ namespace Esgyndb.Data
             {
                 switch (desc.EsgyndbDataType)
                 {
-                    case EsgyndbDbType.Char:
-                    case EsgyndbDbType.Varchar:
-                    case EsgyndbDbType.Interval:
+                    case EsgyndbType.Char:
+                    case EsgyndbType.Varchar:
+                    case EsgyndbType.Interval:
                         ret = this.GetString(ordinal);
                         break;
-                    case EsgyndbDbType.Date:
-                    case EsgyndbDbType.Timestamp:
+                    case EsgyndbType.Date:
+                    case EsgyndbType.Timestamp:
                         ret = this.GetDateTime(ordinal);
                         break;
-                    case EsgyndbDbType.Time:
+                    case EsgyndbType.Time:
                         ret = this.GetTimeSpan(ordinal);
                         break;
-                    case EsgyndbDbType.Decimal:
-                    case EsgyndbDbType.DecimalUnsigned:
-                    case EsgyndbDbType.Numeric:
-                    case EsgyndbDbType.NumericUnsigned:
+                    case EsgyndbType.Decimal:
+                    case EsgyndbType.DecimalUnsigned:
+                    case EsgyndbType.Numeric:
+                    case EsgyndbType.NumericUnsigned:
                         if (desc.FsType == FileSystemType.Numeric || desc.FsType == FileSystemType.NumericUnsigned)
                         {
                             ret = this.GetBigNumeric(ordinal);
@@ -1217,26 +1217,26 @@ namespace Esgyndb.Data
                         }
 
                         break;
-                    case EsgyndbDbType.Float:
-                    case EsgyndbDbType.Double:
+                    case EsgyndbType.Float:
+                    case EsgyndbType.Double:
                         ret = this.GetDouble(ordinal);
                         break;
-                    case EsgyndbDbType.Real:
+                    case EsgyndbType.Real:
                         ret = this.GetFloat(ordinal);
                         break;
-                    case EsgyndbDbType.Integer:
+                    case EsgyndbType.Integer:
                         ret = this.GetInt32(ordinal);
                         break;
-                    case EsgyndbDbType.IntegerUnsigned:
+                    case EsgyndbType.IntegerUnsigned:
                         ret = this.GetUInt32(ordinal);
                         break;
-                    case EsgyndbDbType.LargeInt:
+                    case EsgyndbType.LargeInt:
                         ret = this.GetInt64(ordinal);
                         break;
-                    case EsgyndbDbType.SmallInt:
+                    case EsgyndbType.SmallInt:
                         ret = this.GetInt16(ordinal);
                         break;
-                    case EsgyndbDbType.SmallIntUnsigned:
+                    case EsgyndbType.SmallIntUnsigned:
                         ret = this.GetUInt16(ordinal);
                         break;
                     default:

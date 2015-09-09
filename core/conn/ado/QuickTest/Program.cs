@@ -47,8 +47,8 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t0 values(?,?)";
-                        cmd.Parameters.Add(new EsgyndbParameter("c0", EsgyndbDbType.Varchar));
-                        cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbDbType.Varchar));
+                        cmd.Parameters.Add(new EsgyndbParameter("c0", EsgyndbType.Varchar));
+                        cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbType.Varchar));
 
                         cmd.Prepare();
 
@@ -208,8 +208,8 @@ namespace ConsoleApp
 
                         EsgyndbCommand ins = conn.CreateCommand();
                         ins.CommandText = "insert into dude (id, name) VALUES (?,?)";
-                        ins.Parameters.Add(new EsgyndbParameter("id", EsgyndbDbType.Integer));
-                        ins.Parameters.Add(new EsgyndbParameter("name", EsgyndbDbType.Varchar));
+                        ins.Parameters.Add(new EsgyndbParameter("id", EsgyndbType.Integer));
+                        ins.Parameters.Add(new EsgyndbParameter("name", EsgyndbType.Varchar));
 
                         EsgyndbDataAdapter adp = new EsgyndbDataAdapter();
                         adp.SelectCommand = sel;
@@ -299,17 +299,17 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into region values(?,?)";
-                        cmd.Parameters.Add(new EsgyndbParameter("id", EsgyndbDbType.Integer));
-                        cmd.Parameters.Add(new EsgyndbParameter("name", EsgyndbDbType.Varchar));
+                        cmd.Parameters.Add(new EsgyndbParameter("id", EsgyndbType.Integer));
+                        cmd.Parameters.Add(new EsgyndbParameter("name", EsgyndbType.Varchar));
 
                         cmd.Parameters[0].Value = 1;
                         cmd.Parameters[1].Value = "North America";
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into team values(?,?,?)";
-                        cmd.Parameters.Add(new EsgyndbParameter("id", EsgyndbDbType.Integer));
-                        cmd.Parameters.Add(new EsgyndbParameter("region", EsgyndbDbType.Integer));
-                        cmd.Parameters.Add(new EsgyndbParameter("name", EsgyndbDbType.Varchar));
+                        cmd.Parameters.Add(new EsgyndbParameter("id", EsgyndbType.Integer));
+                        cmd.Parameters.Add(new EsgyndbParameter("region", EsgyndbType.Integer));
+                        cmd.Parameters.Add(new EsgyndbParameter("name", EsgyndbType.Varchar));
 
                         cmd.Parameters[0].Value = 1;
                         cmd.Parameters[1].Value = 1;
@@ -325,9 +325,9 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into player values(?,?,?)";
-                        cmd.Parameters.Add(new EsgyndbParameter("id", EsgyndbDbType.Integer));
-                        cmd.Parameters.Add(new EsgyndbParameter("team", EsgyndbDbType.Integer));
-                        cmd.Parameters.Add(new EsgyndbParameter("name", EsgyndbDbType.Varchar));
+                        cmd.Parameters.Add(new EsgyndbParameter("id", EsgyndbType.Integer));
+                        cmd.Parameters.Add(new EsgyndbParameter("team", EsgyndbType.Integer));
+                        cmd.Parameters.Add(new EsgyndbParameter("name", EsgyndbType.Varchar));
 
                         cmd.Parameters[0].Value = 1;
                         cmd.Parameters[1].Value = 1;
@@ -422,7 +422,7 @@ namespace ConsoleApp
                         cmd.Parameters[4].Value = 1.54367;
                         cmd.ExecuteNonQuery();
 
-                        Console.WriteLine(EsgyndbDbType.Integer);
+                        Console.WriteLine(EsgyndbType.Integer);
 
 
                         cmd.CommandText = "select * from t0";
@@ -841,7 +841,7 @@ namespace ConsoleApp
 
             EsgyndbCommand updateCmd = conn.CreateCommand();
             updateCmd.CommandText = "update test_DataAdapter set A=? where A=20";
-            updateCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbDbType.Integer));
+            updateCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbType.Integer));
             dataadapter.UpdateCommand = updateCmd;
             DataTable dt_update;
             dt_update = new DataTable();
@@ -863,7 +863,7 @@ namespace ConsoleApp
             dataadapter.Fill(dt_update);
             EsgyndbCommand uCmd = conn.CreateCommand();
             uCmd.CommandText = "update test_DataAdapter set A=? where A=2000";
-            uCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbDbType.Integer));
+            uCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbType.Integer));
             dataadapter.UpdateCommand = uCmd;
             dt_update.Rows[0]["A"] = 200;
             dataadapter.Update(dt_update);
@@ -885,7 +885,7 @@ namespace ConsoleApp
             EsgyndbCommand delCmd = conn.CreateCommand();
             delCmd.CommandText = "delete from test_DataAdapter where A=?;";
             dataadapter.DeleteCommand = delCmd;
-            delCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbDbType.Integer));
+            delCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbType.Integer));
             dt_update.Rows[0].Delete();
             dataadapter.Update(dt_update);
             cmd.CommandText = "select count(*) from test_DataAdapter";
@@ -996,7 +996,7 @@ namespace ConsoleApp
             cmd.CommandText = strSelCnt1;
             Console.WriteLine("Executing: " + strSelCnt1 + "...");
             cmd.Parameters.Clear();
-            EsgyndbParameter pam = new EsgyndbParameter("C1Value", EsgyndbDbType.Char);
+            EsgyndbParameter pam = new EsgyndbParameter("C1Value", EsgyndbType.Char);
             //pam.DbType = DbType.String;
             //pam.Value = value;
             Encoding utf8 = Encoding.GetEncoding("UTF-8");
@@ -1076,7 +1076,7 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t1 values(?)";
-                        cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbDbType.Timestamp));
+                        cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbType.Timestamp));
                         cmd.Parameters[0].Value = "2008-04-03 19:12:10.123";
                         cmd.ExecuteNonQuery();
 
@@ -1344,9 +1344,9 @@ namespace ConsoleApp
                     cmd.ExecuteNonQuery();
                     
                     cmd.CommandText = "insert into etable values(?,?,?)";
-                    cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbDbType.Integer));
-                    cmd.Parameters.Add(new EsgyndbParameter("c2", EsgyndbDbType.Char));
-                    cmd.Parameters.Add(new EsgyndbParameter("c3", EsgyndbDbType.Char));
+                    cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbType.Integer));
+                    cmd.Parameters.Add(new EsgyndbParameter("c2", EsgyndbType.Char));
+                    cmd.Parameters.Add(new EsgyndbParameter("c3", EsgyndbType.Char));
                     cmd.Prepare();
 
                     cmd.Parameters[1].Value = "value1234567890";
@@ -1357,7 +1357,7 @@ namespace ConsoleApp
 
                     cmd.CommandText = "insert into etable select etable.c1 + ?, etable.c2, etable.c3 from etable";
                     cmd.Parameters.Clear();
-                    cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbDbType.Integer));
+                    cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbType.Integer));
                     cmd.Prepare();
 
                     for (int i = 1; i < 300000; i *= 2)
@@ -1388,8 +1388,8 @@ namespace ConsoleApp
                     cmd.ExecuteNonQuery();
 
                     cmd.CommandText = "insert into etable3 values(?,?)";
-                    cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbDbType.Integer));
-                    cmd.Parameters.Add(new EsgyndbParameter("c2", EsgyndbDbType.Varchar));
+                    cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbType.Integer));
+                    cmd.Parameters.Add(new EsgyndbParameter("c2", EsgyndbType.Varchar));
                    
                     cmd.Prepare();
 
@@ -1764,17 +1764,17 @@ namespace ConsoleApp
 
             EsgyndbCommand insertCmd = conn.CreateCommand();
             insertCmd.CommandText = "insert into t1 values(?,?)";
-            insertCmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbDbType.Integer));
-            insertCmd.Parameters.Add(new EsgyndbParameter("c2", EsgyndbDbType.Varchar));
+            insertCmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbType.Integer));
+            insertCmd.Parameters.Add(new EsgyndbParameter("c2", EsgyndbType.Varchar));
 
             EsgyndbCommand deleteCmd = conn.CreateCommand();
             deleteCmd.CommandText = "delete from t1 where c1=?";
-            deleteCmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbDbType.Integer));
+            deleteCmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbType.Integer));
 
             EsgyndbCommand updateCmd = conn.CreateCommand();
             updateCmd.CommandText = "update t1 set c2=? where c1=?";
-            updateCmd.Parameters.Add(new EsgyndbParameter("c2", EsgyndbDbType.Varchar));
-            updateCmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbDbType.Integer));
+            updateCmd.Parameters.Add(new EsgyndbParameter("c2", EsgyndbType.Varchar));
+            updateCmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbType.Integer));
             
  
             EsgyndbDataAdapter adp = new EsgyndbDataAdapter();
@@ -1885,7 +1885,7 @@ namespace ConsoleApp
 
             EsgyndbCommand selectCmd = conn.CreateCommand();
             selectCmd.CommandText = "select * from t1 where c1>3";
-            //selectCmd.Parameters.Add(new EsgyndbParameter("c1",EsgyndbDbType.Integer));
+            //selectCmd.Parameters.Add(new EsgyndbParameter("c1",EsgyndbType.Integer));
 
             EsgyndbDataAdapter adp = new EsgyndbDataAdapter();
             adp.SelectCommand = selectCmd;

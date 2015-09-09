@@ -741,9 +741,9 @@ namespace TrafAdoTest
                     if (reader.GetValue(i).GetType().Name.Equals("DateTime"))
                     {
                         //Assert.AreEqual(DateTime.Parse(myCol.expValue), DateTime.Parse(reader.GetValue(i).ToString()));
-                        if (myCol.dbType.Equals(EsgyndbDbType.Date))
+                        if (myCol.dbType.Equals(EsgyndbType.Date))
                             Assert.AreEqual(DateTime.Parse(myCol.expValue).ToString("yyyy-MM-dd"), reader.GetDateTime(i).ToString("yyyy-MM-dd"));
-                        else if (myCol.dbType.Equals(EsgyndbDbType.Time))
+                        else if (myCol.dbType.Equals(EsgyndbType.Time))
                             Assert.AreEqual(DateTime.Parse(myCol.expValue).ToString("hh:mm:ss.fff"), reader.GetDateTime(i).ToString("hh:mm:ss.fff"));
                         else
                             Assert.AreEqual(DateTime.Parse(myCol.expValue).ToString("yyyy-MM-dd hh:mm:ss.fff"), reader.GetDateTime(i).ToString("yyyy-MM-dd hh:mm:ss.fff"));
@@ -780,9 +780,9 @@ namespace TrafAdoTest
                     if (reader.GetValue(i).GetType().Name.Equals("DateTime"))
                     {
                         //Assert.AreEqual(DateTime.Parse(myCol.expValue), DateTime.Parse(reader.GetValue(i).ToString()));
-                        if (myCol.dbType.Equals(EsgyndbDbType.Date))
+                        if (myCol.dbType.Equals(EsgyndbType.Date))
                             Assert.AreEqual(DateTime.Parse(myCol.expValue).ToString("yyyy-MM-dd"), reader.GetDateTime(i).ToString("yyyy-MM-dd"));
-                        else if (myCol.dbType.Equals(EsgyndbDbType.Time))
+                        else if (myCol.dbType.Equals(EsgyndbType.Time))
                             Assert.AreEqual(DateTime.Parse(myCol.expValue).ToString("hh:mm:ss.fff"), reader.GetDateTime(i).ToString("hh:mm:ss.fff"));
                         else
                             Assert.AreEqual(DateTime.Parse(myCol.expValue).ToString("yyyy-MM-dd hh:mm:ss.fff"), reader.GetDateTime(i).ToString("yyyy-MM-dd hh:mm:ss.fff"));
@@ -830,9 +830,9 @@ namespace TrafAdoTest
                     if (reader.GetValue(i).GetType().Name.Equals("DateTime"))
                     {
                         //Assert.AreEqual(DateTime.Parse(myCol.expValue), DateTime.Parse(reader.GetValue(i).ToString()));
-                        if (myCol.dbType.Equals(EsgyndbDbType.Date))
+                        if (myCol.dbType.Equals(EsgyndbType.Date))
                             Assert.AreEqual(DateTime.Parse(myCol.expValue).ToString("yyyy-MM-dd"), reader.GetDateTime(i).ToString("yyyy-MM-dd"));
-                        else if (myCol.dbType.Equals(EsgyndbDbType.Time))
+                        else if (myCol.dbType.Equals(EsgyndbType.Time))
                             Assert.AreEqual(DateTime.Parse(myCol.expValue).ToString("hh:mm:ss.fff"), reader.GetDateTime(i).ToString("hh:mm:ss.fff"));
                         else
                             Assert.AreEqual(DateTime.Parse(myCol.expValue).ToString("yyyy-MM-dd hh:mm:ss.fff"), reader.GetDateTime(i).ToString("yyyy-MM-dd hh:mm:ss.fff"));
@@ -856,9 +856,9 @@ namespace TrafAdoTest
                     if (reader.GetValue(i).GetType().Name.Equals("DateTime"))
                     {
                         //Assert.AreEqual(DateTime.Parse(myCol.expValue), DateTime.Parse(reader.GetValue(i).ToString()));
-                        if (myCol.dbType.Equals(EsgyndbDbType.Date))
+                        if (myCol.dbType.Equals(EsgyndbType.Date))
                             Assert.AreEqual(DateTime.Parse(myCol.expValue).ToString("yyyy-MM-dd"), reader.GetDateTime(i).ToString("yyyy-MM-dd"));
-                        else if (myCol.dbType.Equals(EsgyndbDbType.Time))
+                        else if (myCol.dbType.Equals(EsgyndbType.Time))
                             Assert.AreEqual(DateTime.Parse(myCol.expValue).ToString("hh:mm:ss.fff"), reader.GetDateTime(i).ToString("hh:mm:ss.fff"));
                         else
                             Assert.AreEqual(DateTime.Parse(myCol.expValue).ToString("yyyy-MM-dd hh:mm:ss.fff"), reader.GetDateTime(i).ToString("yyyy-MM-dd hh:mm:ss.fff"));
@@ -882,9 +882,9 @@ namespace TrafAdoTest
                     if (reader.GetValue(i).GetType().Name.Equals("DateTime"))
                     {
                         //Assert.AreEqual(DateTime.Parse(myCol.expValue), DateTime.Parse(reader.GetValue(i).ToString()));
-                        if (myCol.dbType.Equals(EsgyndbDbType.Date))
+                        if (myCol.dbType.Equals(EsgyndbType.Date))
                             Assert.AreEqual(DateTime.Parse(myCol.expValue).ToString("yyyy-MM-dd"), reader.GetDateTime(i).ToString("yyyy-MM-dd"));
-                        else if (myCol.dbType.Equals(EsgyndbDbType.Time))
+                        else if (myCol.dbType.Equals(EsgyndbType.Time))
                             Assert.AreEqual(DateTime.Parse(myCol.expValue).ToString("hh:mm:ss.fff"), reader.GetDateTime(i).ToString("hh:mm:ss.fff"));
                         else
                             Assert.AreEqual(DateTime.Parse(myCol.expValue).ToString("yyyy-MM-dd hh:mm:ss.fff"), reader.GetDateTime(i).ToString("yyyy-MM-dd hh:mm:ss.fff"));

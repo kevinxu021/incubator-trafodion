@@ -66,13 +66,13 @@ namespace TrafAdoTest
         public int scale;
         public string inValue;
         public string expValue;
-        public EsgyndbDbType dbType;
+        public EsgyndbType dbType;
         public string systemType;
         public string expectedError;
         public string actutalError;
         public bool errorFound;
 
-        public aColumn(string name, int size, int prec, int scale, string inVal, string expVal, EsgyndbDbType dbType, string systemType)
+        public aColumn(string name, int size, int prec, int scale, string inVal, string expVal, EsgyndbType dbType, string systemType)
         {
             this.columnName = name;
             this.size = size;
@@ -215,81 +215,81 @@ namespace TrafAdoTest
                 aRow.Add(new aColumn(name_bank[0], 500, 0, 0,
                     data_bank_iso[i * 50 - 1],
                     data_bank_iso[i * 50 - 1] + spacePadding(500 - data_bank_iso[i * 50 - 1].Length),
-                    EsgyndbDbType.Char, "String"));//C01 500
+                    EsgyndbType.Char, "String"));//C01 500
 
                 aRow.Add(new aColumn(name_bank[1], 500, 0, 0,
                     data_bank_charset[i * 50 - 1],
                     data_bank_charset[i * 50 - 1] + spacePadding(500 - data_bank_charset[i * 50 - 1].Length),
-                    EsgyndbDbType.Char, "String"));//C02 500
+                    EsgyndbType.Char, "String"));//C02 500
 
                 aRow.Add(new aColumn(name_bank[2], 100, 0, 0,
                     data_bank_iso[i * 10 - 1],
                     data_bank_iso[i * 10 - 1],
-                    EsgyndbDbType.Varchar, "String"));//C03 100
+                    EsgyndbType.Varchar, "String"));//C03 100
 
                 aRow.Add(new aColumn(name_bank[3], 100, 0, 0,
                     data_bank_charset[i * 10 - 1],
                     data_bank_charset[i * 10 - 1],
-                    EsgyndbDbType.Varchar, "String"));//C04 100
+                    EsgyndbType.Varchar, "String"));//C04 100
 
                 aRow.Add(new aColumn(name_bank[4], 2000, 0, 0,
                     data_bank_iso[i * 100 - 1],
                     data_bank_iso[i * 100 - 1],
-                    EsgyndbDbType.Varchar, "String"));//C05 2000
+                    EsgyndbType.Varchar, "String"));//C05 2000
 
                 aRow.Add(new aColumn(name_bank[5], 2000, 0, 0,
                     data_bank_charset[i * 100 - 1],
                     data_bank_charset[i * 100 - 1],
-                    EsgyndbDbType.Varchar, "String"));//C06 2000
+                    EsgyndbType.Varchar, "String"));//C06 2000
 
                 aRow.Add(new aColumn(name_bank[6], 1000, 0, 0,
                    data_bank_charset[i * 100 - 1],
                    data_bank_charset[i * 100 - 1] + spacePadding(1000 - data_bank_charset[i * 100 - 1].Length),
-                   EsgyndbDbType.Char, "String"));//C07 1000
+                   EsgyndbType.Char, "String"));//C07 1000
 
                 aRow.Add(new aColumn(name_bank[7], 1000, 0, 0,
                   data_bank_charset[i * 100 - 1],
                   data_bank_charset[i * 100 - 1],
-                  EsgyndbDbType.Varchar, "String"));//C08 1000
+                  EsgyndbType.Varchar, "String"));//C08 1000
 
-                aRow.Add(new aColumn(name_bank[8], 0, 9, 6, "-123.123456", "-123.123456", EsgyndbDbType.Decimal, "Decimal"));//C09 decimal signed
-                aRow.Add(new aColumn(name_bank[9], 0, 9, 6, "123.123456", "123.123456", EsgyndbDbType.DecimalUnsigned, "Decimal"));//C10 decimal unsigned
-                aRow.Add(new aColumn(name_bank[10], 0, 18, 6, "-1234567.123456", "-1234567.123456", EsgyndbDbType.Numeric, "Decimal"));//C11 numeric signed
-                aRow.Add(new aColumn(name_bank[11], 0, 9, 6, "123.123456", "123.123456", EsgyndbDbType.NumericUnsigned, "Decimal"));//C12 numeric unsigned
-                //aRow.Add(new aColumn(name_bank[12], 0, 0, 0, "-123", "-123", EsgyndbDbType.SmallInt, "Int16"));//13 tinyint signed  -> Esgyndb .NET Provider doesn't support tinyint signed
-                aRow.Add(new aColumn(name_bank[12], 0, 0, 0, "123", "123", EsgyndbDbType.SmallInt, "Int16"));//13 tinyint signed  -> Esgyndb .NET Provider doesn't support tinyint signed
-                aRow.Add(new aColumn(name_bank[13], 0, 0, 0, "123", "123", EsgyndbDbType.SmallIntUnsigned, "UInt16"));//C14 tinyint unsigned
-                aRow.Add(new aColumn(name_bank[14], 0, 0, 0, "-123", "-123", EsgyndbDbType.SmallInt, "Int16"));//C15 smallint signed
-                aRow.Add(new aColumn(name_bank[15], 0, 0, 0, "123", "123", EsgyndbDbType.SmallIntUnsigned, "UInt16"));//C16 smallint unsigned
-                aRow.Add(new aColumn(name_bank[16], 0, 0, 0, "-12345678", "-12345678", EsgyndbDbType.Integer, "Int32"));//C17 integer signed
-                aRow.Add(new aColumn(name_bank[17], 0, 0, 0, "12345678", "12345678", EsgyndbDbType.IntegerUnsigned, "UInt32"));//C18 integer unsigned
-                aRow.Add(new aColumn(name_bank[18], 0, 0, 0, i.ToString(), i.ToString(), EsgyndbDbType.LargeInt, "Int64"));//C19 largeint
-                aRow.Add(new aColumn(name_bank[19], 0, 0, 0, "-0.567", "-0.567", EsgyndbDbType.Real, "Single"));//C20 real
-                aRow.Add(new aColumn(name_bank[20], 0, 54, 0, "-0.1234567", "-0.1234567", EsgyndbDbType.Float, "Double"));//C21 float
-                aRow.Add(new aColumn(name_bank[21], 0, 0, 0, "0.12345678901234499", "0.123456789012345", EsgyndbDbType.Double, "Double"));//C22 double precision
-                aRow.Add(new aColumn(name_bank[22], 0, 0, 0, "2008-04-03", "2008-04-03", EsgyndbDbType.Date, "DateTime"));//C23 date
-                aRow.Add(new aColumn(name_bank[23], 0, 0, 0, "19:12:10", "19:12:10", EsgyndbDbType.Time, "TimeSpan"));//C24 time
-                aRow.Add(new aColumn(name_bank[24], 0, 0, 0, "2008-04-03 19:12:10.123", "2008-04-03 19:12:10.123000", EsgyndbDbType.Timestamp, "DateTime"));//C25 timestamp
-                aRow.Add(new aColumn(name_bank[25], 0, 128, 32, "-1.1234567890123456789012345678901234567890", "-1.12345678901234567890123456789012", EsgyndbDbType.Numeric, "Decimal"));//C26 bignum signed
-                aRow.Add(new aColumn(name_bank[26], 0, 128, 32, "1.1234567890123456789012345678901234567890", "1.12345678901234567890123456789012", EsgyndbDbType.NumericUnsigned, "Decimal"));//C27 bignum unsigned
-                aRow.Add(new aColumn(name_bank[27], 0, 0, 0, "2", "2", EsgyndbDbType.Interval, "String"));//C28 INTERVAL YEAR
-                aRow.Add(new aColumn(name_bank[28], 0, 0, 0, "2", "2", EsgyndbDbType.Interval, "String"));//C29 INTERVAL MONTH
-                aRow.Add(new aColumn(name_bank[29], 0, 0, 0, "2", "2", EsgyndbDbType.Interval, "String"));//C30 INTERVAL DAY
-                aRow.Add(new aColumn(name_bank[30], 0, 0, 0, "2", "2", EsgyndbDbType.Interval, "String"));//C31 INTERVAL HOUR
-                aRow.Add(new aColumn(name_bank[31], 0, 0, 0, "2", "2", EsgyndbDbType.Interval, "String"));//C32 INTERVAL MINUTE
-                aRow.Add(new aColumn(name_bank[32], 0, 0, 0, "2", "2.000000", EsgyndbDbType.Interval, "String"));//C33 INTERVAL SECOND
-                aRow.Add(new aColumn(name_bank[33], 0, 0, 0, "02-07", "2-07", EsgyndbDbType.Interval, "String"));//C34 INTERVAL YEAR TO MONTH
-                aRow.Add(new aColumn(name_bank[34], 0, 0, 0, "63 12", "63 12", EsgyndbDbType.Interval, "String"));//C35 INTERVAL DAY TO HOUR
-                aRow.Add(new aColumn(name_bank[35], 0, 0, 0, "63 12:39", "63 12:39", EsgyndbDbType.Interval, "String"));//C36 DAY TO MINUTE
-                aRow.Add(new aColumn(name_bank[36], 0, 0, 0, "63 12:39:59.163000", "63 12:39:59.163000", EsgyndbDbType.Interval, "String"));//C37 DAY TO SECOND
-                aRow.Add(new aColumn(name_bank[37], 0, 0, 0, "63:39", "63:39", EsgyndbDbType.Interval, "String"));//C38 INTERVAL HOUR TO MINUTE
-                aRow.Add(new aColumn(name_bank[38], 0, 0, 0, "63:39:59.163000", "63:39:59.163000", EsgyndbDbType.Interval, "String"));//C39 INTERVAL HOUR TO SECOND
-                aRow.Add(new aColumn(name_bank[39], 0, 0, 0, "39:59.163000", "39:59.163000", EsgyndbDbType.Interval, "String"));//C40 INTERVAL MINUTE TO SECOND
-                aRow.Add(new aColumn(name_bank[40], 20, 0, 0, "null", string.Empty, EsgyndbDbType.Char, "String"));//C41 CHAR(20)
-                aRow.Add(new aColumn(name_bank[41], 20, 0, 0, "null", string.Empty, EsgyndbDbType.Char, "String"));//C42 NCHAR(20)
-                aRow.Add(new aColumn(name_bank[42], 20, 0, 0, "null", string.Empty, EsgyndbDbType.Varchar, "String"));//C43 VARCHAR(20)
-                aRow.Add(new aColumn(name_bank[43], 20, 0, 0, "null",string.Empty, EsgyndbDbType.Char, "String"));//C44 NVARCHAR(20)
-                aRow.Add(new aColumn(name_bank[44], 0, 0, 0, "null", string.Empty, EsgyndbDbType.Integer, "Int32"));//C45 INTEGER
+                aRow.Add(new aColumn(name_bank[8], 0, 9, 6, "-123.123456", "-123.123456", EsgyndbType.Decimal, "Decimal"));//C09 decimal signed
+                aRow.Add(new aColumn(name_bank[9], 0, 9, 6, "123.123456", "123.123456", EsgyndbType.DecimalUnsigned, "Decimal"));//C10 decimal unsigned
+                aRow.Add(new aColumn(name_bank[10], 0, 18, 6, "-1234567.123456", "-1234567.123456", EsgyndbType.Numeric, "Decimal"));//C11 numeric signed
+                aRow.Add(new aColumn(name_bank[11], 0, 9, 6, "123.123456", "123.123456", EsgyndbType.NumericUnsigned, "Decimal"));//C12 numeric unsigned
+                //aRow.Add(new aColumn(name_bank[12], 0, 0, 0, "-123", "-123", EsgyndbType.SmallInt, "Int16"));//13 tinyint signed  -> Esgyndb .NET Provider doesn't support tinyint signed
+                aRow.Add(new aColumn(name_bank[12], 0, 0, 0, "123", "123", EsgyndbType.SmallInt, "Int16"));//13 tinyint signed  -> Esgyndb .NET Provider doesn't support tinyint signed
+                aRow.Add(new aColumn(name_bank[13], 0, 0, 0, "123", "123", EsgyndbType.SmallIntUnsigned, "UInt16"));//C14 tinyint unsigned
+                aRow.Add(new aColumn(name_bank[14], 0, 0, 0, "-123", "-123", EsgyndbType.SmallInt, "Int16"));//C15 smallint signed
+                aRow.Add(new aColumn(name_bank[15], 0, 0, 0, "123", "123", EsgyndbType.SmallIntUnsigned, "UInt16"));//C16 smallint unsigned
+                aRow.Add(new aColumn(name_bank[16], 0, 0, 0, "-12345678", "-12345678", EsgyndbType.Integer, "Int32"));//C17 integer signed
+                aRow.Add(new aColumn(name_bank[17], 0, 0, 0, "12345678", "12345678", EsgyndbType.IntegerUnsigned, "UInt32"));//C18 integer unsigned
+                aRow.Add(new aColumn(name_bank[18], 0, 0, 0, i.ToString(), i.ToString(), EsgyndbType.LargeInt, "Int64"));//C19 largeint
+                aRow.Add(new aColumn(name_bank[19], 0, 0, 0, "-0.567", "-0.567", EsgyndbType.Real, "Single"));//C20 real
+                aRow.Add(new aColumn(name_bank[20], 0, 54, 0, "-0.1234567", "-0.1234567", EsgyndbType.Float, "Double"));//C21 float
+                aRow.Add(new aColumn(name_bank[21], 0, 0, 0, "0.12345678901234499", "0.123456789012345", EsgyndbType.Double, "Double"));//C22 double precision
+                aRow.Add(new aColumn(name_bank[22], 0, 0, 0, "2008-04-03", "2008-04-03", EsgyndbType.Date, "DateTime"));//C23 date
+                aRow.Add(new aColumn(name_bank[23], 0, 0, 0, "19:12:10", "19:12:10", EsgyndbType.Time, "TimeSpan"));//C24 time
+                aRow.Add(new aColumn(name_bank[24], 0, 0, 0, "2008-04-03 19:12:10.123", "2008-04-03 19:12:10.123000", EsgyndbType.Timestamp, "DateTime"));//C25 timestamp
+                aRow.Add(new aColumn(name_bank[25], 0, 128, 32, "-1.1234567890123456789012345678901234567890", "-1.12345678901234567890123456789012", EsgyndbType.Numeric, "Decimal"));//C26 bignum signed
+                aRow.Add(new aColumn(name_bank[26], 0, 128, 32, "1.1234567890123456789012345678901234567890", "1.12345678901234567890123456789012", EsgyndbType.NumericUnsigned, "Decimal"));//C27 bignum unsigned
+                aRow.Add(new aColumn(name_bank[27], 0, 0, 0, "2", "2", EsgyndbType.Interval, "String"));//C28 INTERVAL YEAR
+                aRow.Add(new aColumn(name_bank[28], 0, 0, 0, "2", "2", EsgyndbType.Interval, "String"));//C29 INTERVAL MONTH
+                aRow.Add(new aColumn(name_bank[29], 0, 0, 0, "2", "2", EsgyndbType.Interval, "String"));//C30 INTERVAL DAY
+                aRow.Add(new aColumn(name_bank[30], 0, 0, 0, "2", "2", EsgyndbType.Interval, "String"));//C31 INTERVAL HOUR
+                aRow.Add(new aColumn(name_bank[31], 0, 0, 0, "2", "2", EsgyndbType.Interval, "String"));//C32 INTERVAL MINUTE
+                aRow.Add(new aColumn(name_bank[32], 0, 0, 0, "2", "2.000000", EsgyndbType.Interval, "String"));//C33 INTERVAL SECOND
+                aRow.Add(new aColumn(name_bank[33], 0, 0, 0, "02-07", "2-07", EsgyndbType.Interval, "String"));//C34 INTERVAL YEAR TO MONTH
+                aRow.Add(new aColumn(name_bank[34], 0, 0, 0, "63 12", "63 12", EsgyndbType.Interval, "String"));//C35 INTERVAL DAY TO HOUR
+                aRow.Add(new aColumn(name_bank[35], 0, 0, 0, "63 12:39", "63 12:39", EsgyndbType.Interval, "String"));//C36 DAY TO MINUTE
+                aRow.Add(new aColumn(name_bank[36], 0, 0, 0, "63 12:39:59.163000", "63 12:39:59.163000", EsgyndbType.Interval, "String"));//C37 DAY TO SECOND
+                aRow.Add(new aColumn(name_bank[37], 0, 0, 0, "63:39", "63:39", EsgyndbType.Interval, "String"));//C38 INTERVAL HOUR TO MINUTE
+                aRow.Add(new aColumn(name_bank[38], 0, 0, 0, "63:39:59.163000", "63:39:59.163000", EsgyndbType.Interval, "String"));//C39 INTERVAL HOUR TO SECOND
+                aRow.Add(new aColumn(name_bank[39], 0, 0, 0, "39:59.163000", "39:59.163000", EsgyndbType.Interval, "String"));//C40 INTERVAL MINUTE TO SECOND
+                aRow.Add(new aColumn(name_bank[40], 20, 0, 0, "null", string.Empty, EsgyndbType.Char, "String"));//C41 CHAR(20)
+                aRow.Add(new aColumn(name_bank[41], 20, 0, 0, "null", string.Empty, EsgyndbType.Char, "String"));//C42 NCHAR(20)
+                aRow.Add(new aColumn(name_bank[42], 20, 0, 0, "null", string.Empty, EsgyndbType.Varchar, "String"));//C43 VARCHAR(20)
+                aRow.Add(new aColumn(name_bank[43], 20, 0, 0, "null",string.Empty, EsgyndbType.Char, "String"));//C44 NVARCHAR(20)
+                aRow.Add(new aColumn(name_bank[44], 0, 0, 0, "null", string.Empty, EsgyndbType.Integer, "Int32"));//C45 INTEGER
                 this.tableInfo.Add(aRow);
             }
         }

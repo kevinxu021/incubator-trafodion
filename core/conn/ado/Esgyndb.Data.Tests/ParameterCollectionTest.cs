@@ -73,27 +73,27 @@ namespace TrafAdoTest
         [Test]
         public void add()
         {
-            parm = new EsgyndbParameter("p1", EsgyndbDbType.Char);
+            parm = new EsgyndbParameter("p1", EsgyndbType.Char);
             int i = cmd.Parameters.Add(parm);
             Console.WriteLine("the Add return number is :{0}, the parmcol count is : {1}", i, cmd.Parameters.Count);
             Assert.AreEqual(0, i);
             Assert.AreEqual(1, cmd.Parameters.Count);
             Assert.AreEqual("p1", cmd.Parameters[0].ParameterName);
-            Assert.AreEqual(EsgyndbDbType.Char, cmd.Parameters[0].EsgyndbDbType);
-            EsgyndbParameter parmTmp = new EsgyndbParameter("p2", EsgyndbDbType.Date);
+            Assert.AreEqual(EsgyndbType.Char, cmd.Parameters[0].EsgyndbDbType);
+            EsgyndbParameter parmTmp = new EsgyndbParameter("p2", EsgyndbType.Date);
             i = cmd.Parameters.Add(parmTmp);
             Console.WriteLine("the Add return number is :{0}, the parmcol count is : {1}", i, cmd.Parameters.Count);
             Assert.AreEqual(1, i);
             Assert.AreEqual(2, cmd.Parameters.Count);
             Assert.AreEqual("p2", cmd.Parameters[1].ParameterName);
-            Assert.AreEqual(EsgyndbDbType.Date, cmd.Parameters[1].EsgyndbDbType);  
+            Assert.AreEqual(EsgyndbType.Date, cmd.Parameters[1].EsgyndbDbType);  
         }
 
         [Test]
         public void AddRange()
         {
-            EsgyndbParameter parm1 = new EsgyndbParameter("p1", EsgyndbDbType.Char);
-            EsgyndbParameter parm2 = new EsgyndbParameter("p2", EsgyndbDbType.Date);
+            EsgyndbParameter parm1 = new EsgyndbParameter("p1", EsgyndbType.Char);
+            EsgyndbParameter parm2 = new EsgyndbParameter("p2", EsgyndbType.Date);
 
             EsgyndbParameter[] range = new EsgyndbParameter[2] {parm1, parm2};
 
@@ -126,8 +126,8 @@ namespace TrafAdoTest
             cmd.ExecuteNonQuery();
             cmd.CommandText = "INSERT INTO Region VALUES (?,?)";
 
-            EsgyndbParameter parm1 = new EsgyndbParameter("p1", EsgyndbDbType.Integer);
-            EsgyndbParameter parm2 = new EsgyndbParameter("p2", EsgyndbDbType.Char, 100);
+            EsgyndbParameter parm1 = new EsgyndbParameter("p1", EsgyndbType.Integer);
+            EsgyndbParameter parm2 = new EsgyndbParameter("p2", EsgyndbType.Char, 100);
 
             EsgyndbParameter[] range = new EsgyndbParameter[2] { parm1, parm2 };
 
