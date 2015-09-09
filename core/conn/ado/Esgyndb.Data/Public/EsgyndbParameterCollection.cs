@@ -177,7 +177,7 @@ namespace Esgyndb.Data
         /// Gets a value indicating whether a EsgyndbParameter in this EsgyndbParameterCollection has the specified name.
         /// </summary>
         /// <param name="value">The name of the EsgyndbParameter. </param>
-        /// <returns>true if the HPDbParameterCollections contains the EsgyndbParameter; otherwise false.</returns>
+        /// <returns>true if the EsygndbbParameterCollections contains the EsgyndbParameter; otherwise false.</returns>
         public override bool Contains(string value)
         {
             return this.IndexOf(value) != -1;
@@ -187,7 +187,7 @@ namespace Esgyndb.Data
         /// Determines whether the specified EsgyndbParameter is in this EsgyndbParameterCollection.
         /// </summary>
         /// <param name="value">The EsgyndbParameter value.</param>
-        /// <returns>true if the HPDbParameterCollections contains the EsgyndbParameter; otherwise false.</returns>
+        /// <returns>true if the EsygndbbParameterCollections contains the EsgyndbParameter; otherwise false.</returns>
         /// <exception cref="InvalidCastException">The parameter passed was not a EsgyndbParameter.</exception>
         public override bool Contains(object value)
         {

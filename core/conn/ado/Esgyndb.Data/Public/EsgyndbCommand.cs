@@ -79,11 +79,11 @@ namespace Esgyndb.Data
         }
 
         /// <summary>
-        /// Initializes a new instance of the EsgyndbCommand class with the text of the query, a EsgyndbConnection, and the HPDbTransaction.
+        /// Initializes a new instance of the EsgyndbCommand class with the text of the query, a EsgyndbConnection, and the EsgyndbTransaction.
         /// </summary>
         /// <param name="cmdText">The text of the query. </param>
         /// <param name="connection">A EsgyndbConnection to associate with this command.</param>
-        /// <param name="transaction">Not used.  The HPDbTransaction associated with the Command will always be referenced from the EsgyndbConnection object.</param>
+        /// <param name="transaction">Not used.  The EsgyndbTransaction associated with the Command will always be referenced from the EsgyndbConnection object.</param>
         public EsgyndbCommand(string cmdText, EsgyndbConnection connection, EsgyndbTransaction transaction)
         {
             if (EsgyndbTrace.IsPublicEnabled)
@@ -112,11 +112,11 @@ namespace Esgyndb.Data
         }
 
         /// <summary>
-        /// Initializes a new instance of the EsgyndbCommand class with the text of the query, a EsgyndbConnection, a HPDbTransaction, and a command label.
+        /// Initializes a new instance of the EsgyndbCommand class with the text of the query, a EsgyndbConnection, a EsgyndbTransaction, and a command label.
         /// </summary>
         /// <param name="cmdText">The text of the query. </param>
         /// <param name="connection">A EsgyndbConnection to associate with this command.</param>
-        /// <param name="transaction">Not used.  The HPDbTransaction associated with the Command will always be referenced from the EsgyndbConnection object.</param>
+        /// <param name="transaction">Not used.  The EsgyndbTransaction associated with the Command will always be referenced from the EsgyndbConnection object.</param>
         /// <param name="label">The label to be associated with the EsgyndbCommand.</param>
         public EsgyndbCommand(string cmdText, EsgyndbConnection connection, EsgyndbTransaction transaction, string label)
         {

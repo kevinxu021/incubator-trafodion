@@ -489,13 +489,13 @@ namespace Esgyndb.Data
         /// </summary>
         public override void ResetDbType()
         {
-            this.ResetHPDbDbType();
+            this.ResetEsgyndbType();
         }
 
         /// <summary>
         /// Resets the type associated with this EsgyndbParameter.
         /// </summary>
-        public void ResetHPDbDbType()
+        public void ResetEsgyndbType()
         {
             this._verified = false;
             this.EsgyndbDbType = EsgyndbType.Varchar;
