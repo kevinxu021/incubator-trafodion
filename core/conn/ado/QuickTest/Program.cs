@@ -3,15 +3,15 @@ using System.Data;
 using System.Data.Common;
 using System.Reflection;
 using System.Resources;
-using Trafodion.Data;
+using Esgyndb.Data;
 using System.Data.SqlClient;
 using System.Collections;
 using Microsoft.Win32;
 using System.IO;
-using Trafodion.Data.VisualStudio;
+using Esgyndb.Data.VisualStudio;
 using System.Threading;
 using System.Diagnostics;
-using Trafodion.Data.ETL;
+using Esgyndb.Data.ETL;
 using System.Data.Odbc;
 using System.Collections.Generic;
 using System.Configuration;
@@ -21,24 +21,17 @@ namespace ConsoleApp
 {
     class Program
     {
-        //sqws02.americas.hpqcorp.net:30000
-        //public static string ConnectionString = "server=arc0101.cup.hp.com;user=SUPERUSER;password=HPNe@v1ew;catalog=NEO;schema=DOERMANN";
-        //public static string ConnectionString = "server=mer0101.cup.hp.com;user=super.super;password=mcK1nley;catalog=NEO;schema=ODBC_SCHEMA";
-        //public static string ConnectionString = "server=sqws18.caclab.cac.cpqcorp.net:61300;user=sql_user;password=redhat06;catalog=NEO;schema=daniel";
-        //public static string ConnectionString = "server=ruby-mxoas3.houston.hp.com:18650;user=sqdev3;password=redhat06;catalog=neo;schema=ADOQA_SCHEMA";
-        //public static string ConnectionString = "server=sqws23.caclab.cac.cpqcorp.net:20000;user=sqluser_admin;password=sq2010;catalog=NEO;schema=ODBC_SCHEMA";
-        //public static string ConnectionString = "server=sqa0101.cup.hp.com;user=qauser_user;password=HPDb2009;catalog=NEO;schema=ODBCQA_SCHEMA;";
-        public static string ConnectionString = "server=sqws118.houston.hp.com:42972;user=zz;password=zz;schema=ado";
+        public static string ConnectionString = "server=192.168.1.104:23400;user=zz;password=zz;schema=ado";
         public static void TestBatch()
         {
             try
             {
-                using (TrafDbConnection conn = new TrafDbConnection())
+                using (EsgyndbConnection conn = new EsgyndbConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString;
                     conn.Open();
 
-                    using (TrafDbCommand cmd = conn.CreateCommand())
+                    using (EsgyndbCommand cmd = conn.CreateCommand())
                     {
                         try
                         {
@@ -54,8 +47,8 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t0 values(?,?)";
-                        cmd.Parameters.Add(new TrafDbParameter("c0", TrafDbDbType.Varchar));
-                        cmd.Parameters.Add(new TrafDbParameter("c1", TrafDbDbType.Varchar));
+                        cmd.Parameters.Add(new EsgyndbParameter("c0", EsgyndbDbType.Varchar));
+                        cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbDbType.Varchar));
 
                         cmd.Prepare();
 
@@ -70,7 +63,7 @@ namespace ConsoleApp
 
                         cmd.Parameters.Clear();
                         cmd.CommandText = "select * from t0";
-                        using (TrafDbDataReader dr = cmd.ExecuteReader())
+                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -92,7 +85,7 @@ namespace ConsoleApp
             }
         }
 
-        public static void DropTable(TrafDbCommand cmd, string name)
+        public static void DropTable(EsgyndbCommand cmd, string name)
         {
             try
             {
@@ -109,12 +102,12 @@ namespace ConsoleApp
         {
             try
             {
-                using (TrafDbConnection conn = new TrafDbConnection())
+                using (EsgyndbConnection conn = new EsgyndbConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString;
                     conn.Open();
 
-                    using (TrafDbCommand cmd = conn.CreateCommand())
+                    using (EsgyndbCommand cmd = conn.CreateCommand())
                     {
                         try
                         {
@@ -129,7 +122,7 @@ namespace ConsoleApp
                         cmd.CommandText = "create table t0 (c0 numeric(19,8), c1 numeric(34,13), c2 numeric(87,45), c3 numeric(104,3), c4 numeric(128,64)) no partition";
                         cmd.ExecuteNonQuery();
 
-                        TrafDbTransaction trans = conn.BeginTransaction(IsolationLevel.ReadCommitted);
+                        EsgyndbTransaction trans = conn.BeginTransaction(IsolationLevel.ReadCommitted);
 
                         cmd.CommandText = "insert into t0 values(12345.6789, -123.67891234123, 123456789.023, 12.34, 123456789.123456)";
                         cmd.ExecuteNonQuery();
@@ -138,11 +131,11 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t0 values(?,?,?,?,?)";
-                        cmd.Parameters.Add(new TrafDbParameter("c0", 12345.6789));
-                        cmd.Parameters.Add(new TrafDbParameter("c1", -123.67891234123));
-                        cmd.Parameters.Add(new TrafDbParameter("c2", 123456789.023));
-                        cmd.Parameters.Add(new TrafDbParameter("c3", 12.34));
-                        cmd.Parameters.Add(new TrafDbParameter("c4", 123456789.123456));
+                        cmd.Parameters.Add(new EsgyndbParameter("c0", 12345.6789));
+                        cmd.Parameters.Add(new EsgyndbParameter("c1", -123.67891234123));
+                        cmd.Parameters.Add(new EsgyndbParameter("c2", 123456789.023));
+                        cmd.Parameters.Add(new EsgyndbParameter("c3", 12.34));
+                        cmd.Parameters.Add(new EsgyndbParameter("c4", 123456789.123456));
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters[0].Value = 45345.1;
@@ -158,7 +151,7 @@ namespace ConsoleApp
 
                         Console.WriteLine("REGULAR");
                         cmd.CommandText = "select * from t0";
-                        using (TrafDbDataReader dr = cmd.ExecuteReader())
+                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -173,7 +166,7 @@ namespace ConsoleApp
 
                         Console.WriteLine("CommandBehavior.SingleRow");
                         cmd.CommandText = "select * from t0";
-                        using (TrafDbDataReader dr = cmd.ExecuteReader(CommandBehavior.SingleRow))
+                        using (EsgyndbDataReader dr = cmd.ExecuteReader(CommandBehavior.SingleRow))
                         {
                             while (dr.Read())
                             {
@@ -198,27 +191,27 @@ namespace ConsoleApp
         {
             try
             {
-                using (TrafDbConnection conn = new TrafDbConnection())
+                using (EsgyndbConnection conn = new EsgyndbConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString;
                     conn.Open();
 
-                    using (TrafDbCommand cmd = conn.CreateCommand())
+                    using (EsgyndbCommand cmd = conn.CreateCommand())
                     {
                         DropTable(cmd, "dude");
 
                         cmd.CommandText = "create table dude (id int not null, name varchar(100), primary key(id))";
                         cmd.ExecuteNonQuery();
 
-                        TrafDbCommand sel = conn.CreateCommand();
+                        EsgyndbCommand sel = conn.CreateCommand();
                         sel.CommandText = "select * from dude";
 
-                        TrafDbCommand ins = conn.CreateCommand();
+                        EsgyndbCommand ins = conn.CreateCommand();
                         ins.CommandText = "insert into dude (id, name) VALUES (?,?)";
-                        ins.Parameters.Add(new TrafDbParameter("id", TrafDbDbType.Integer));
-                        ins.Parameters.Add(new TrafDbParameter("name", TrafDbDbType.Varchar));
+                        ins.Parameters.Add(new EsgyndbParameter("id", EsgyndbDbType.Integer));
+                        ins.Parameters.Add(new EsgyndbParameter("name", EsgyndbDbType.Varchar));
 
-                        TrafDbDataAdapter adp = new TrafDbDataAdapter();
+                        EsgyndbDataAdapter adp = new EsgyndbDataAdapter();
                         adp.SelectCommand = sel;
                         adp.InsertCommand = ins;
 
@@ -285,12 +278,12 @@ namespace ConsoleApp
 
 
                 string [] tables = {"REGION", "TEAM", "PLAYER"};
-                using (TrafDbConnection conn = new TrafDbConnection())
+                using (EsgyndbConnection conn = new EsgyndbConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString;
                     conn.Open();
 
-                    using (TrafDbCommand cmd = conn.CreateCommand())
+                    using (EsgyndbCommand cmd = conn.CreateCommand())
                     {
                         /*DropTable(cmd, "player");
                         DropTable(cmd, "team");
@@ -306,17 +299,17 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into region values(?,?)";
-                        cmd.Parameters.Add(new TrafDbParameter("id", TrafDbDbType.Integer));
-                        cmd.Parameters.Add(new TrafDbParameter("name", TrafDbDbType.Varchar));
+                        cmd.Parameters.Add(new EsgyndbParameter("id", EsgyndbDbType.Integer));
+                        cmd.Parameters.Add(new EsgyndbParameter("name", EsgyndbDbType.Varchar));
 
                         cmd.Parameters[0].Value = 1;
                         cmd.Parameters[1].Value = "North America";
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into team values(?,?,?)";
-                        cmd.Parameters.Add(new TrafDbParameter("id", TrafDbDbType.Integer));
-                        cmd.Parameters.Add(new TrafDbParameter("region", TrafDbDbType.Integer));
-                        cmd.Parameters.Add(new TrafDbParameter("name", TrafDbDbType.Varchar));
+                        cmd.Parameters.Add(new EsgyndbParameter("id", EsgyndbDbType.Integer));
+                        cmd.Parameters.Add(new EsgyndbParameter("region", EsgyndbDbType.Integer));
+                        cmd.Parameters.Add(new EsgyndbParameter("name", EsgyndbDbType.Varchar));
 
                         cmd.Parameters[0].Value = 1;
                         cmd.Parameters[1].Value = 1;
@@ -332,9 +325,9 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into player values(?,?,?)";
-                        cmd.Parameters.Add(new TrafDbParameter("id", TrafDbDbType.Integer));
-                        cmd.Parameters.Add(new TrafDbParameter("team", TrafDbDbType.Integer));
-                        cmd.Parameters.Add(new TrafDbParameter("name", TrafDbDbType.Varchar));
+                        cmd.Parameters.Add(new EsgyndbParameter("id", EsgyndbDbType.Integer));
+                        cmd.Parameters.Add(new EsgyndbParameter("team", EsgyndbDbType.Integer));
+                        cmd.Parameters.Add(new EsgyndbParameter("name", EsgyndbDbType.Varchar));
 
                         cmd.Parameters[0].Value = 1;
                         cmd.Parameters[1].Value = 1;
@@ -358,7 +351,7 @@ namespace ConsoleApp
                             "inner join region as r on t.region_id = r.id " +
                             "order by r.name, t.name, p.name";
 
-                        TrafDbDataReader dr = cmd.ExecuteReader();
+                        EsgyndbDataReader dr = cmd.ExecuteReader();
                         string [] vals = new string[3];
                         while (dr.Read())
                         {
@@ -388,12 +381,12 @@ namespace ConsoleApp
         {
             try
             {
-                using (TrafDbConnection conn = new TrafDbConnection())
+                using (EsgyndbConnection conn = new EsgyndbConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString;
                     conn.Open();
 
-                    using (TrafDbCommand cmd = conn.CreateCommand())
+                    using (EsgyndbCommand cmd = conn.CreateCommand())
                     {
                         try
                         {
@@ -415,11 +408,11 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t0 values(?,?,?,?,?)";
-                        cmd.Parameters.Add(new TrafDbParameter("c0", 12345.6789));
-                        cmd.Parameters.Add(new TrafDbParameter("c1", -123.6789));
-                        cmd.Parameters.Add(new TrafDbParameter("c2", 123456789.023));
-                        cmd.Parameters.Add(new TrafDbParameter("c3", 12.34));
-                        cmd.Parameters.Add(new TrafDbParameter("c4", 123456789.123456));
+                        cmd.Parameters.Add(new EsgyndbParameter("c0", 12345.6789));
+                        cmd.Parameters.Add(new EsgyndbParameter("c1", -123.6789));
+                        cmd.Parameters.Add(new EsgyndbParameter("c2", 123456789.023));
+                        cmd.Parameters.Add(new EsgyndbParameter("c3", 12.34));
+                        cmd.Parameters.Add(new EsgyndbParameter("c4", 123456789.123456));
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters[0].Value = 45345.1;
@@ -429,12 +422,12 @@ namespace ConsoleApp
                         cmd.Parameters[4].Value = 1.54367;
                         cmd.ExecuteNonQuery();
 
-                        Console.WriteLine(TrafDbDbType.Integer);
+                        Console.WriteLine(EsgyndbDbType.Integer);
 
 
                         cmd.CommandText = "select * from t0";
                         cmd.Parameters.Clear();
-                        using (TrafDbDataReader dr = cmd.ExecuteReader())
+                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
                         {
                             PrintDataTable(dr.GetSchemaTable());
                             if (dr.HasRows)
@@ -464,12 +457,12 @@ namespace ConsoleApp
         {
             try
             {
-                using (TrafDbConnection conn = new TrafDbConnection())
+                using (EsgyndbConnection conn = new EsgyndbConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString; 
                     conn.Open();
 
-                    using (TrafDbCommand cmd = conn.CreateCommand())
+                    using (EsgyndbCommand cmd = conn.CreateCommand())
                     {
                         try
                         {
@@ -497,11 +490,11 @@ namespace ConsoleApp
                         45345.1 38423 8457234.43 99.99 1.54367*/
 
                         cmd.CommandText = "insert into t0 values(?,?,?,?,?)";
-                        cmd.Parameters.Add(new TrafDbParameter("c0", 12345.6789));
-                        cmd.Parameters.Add(new TrafDbParameter("c1", -12345.6789));
-                        cmd.Parameters.Add(new TrafDbParameter("c2", 123456789.023));
-                        cmd.Parameters.Add(new TrafDbParameter("c3", 12.34));
-                        cmd.Parameters.Add(new TrafDbParameter("c4", 123456789.123456));
+                        cmd.Parameters.Add(new EsgyndbParameter("c0", 12345.6789));
+                        cmd.Parameters.Add(new EsgyndbParameter("c1", -12345.6789));
+                        cmd.Parameters.Add(new EsgyndbParameter("c2", 123456789.023));
+                        cmd.Parameters.Add(new EsgyndbParameter("c3", 12.34));
+                        cmd.Parameters.Add(new EsgyndbParameter("c4", 123456789.123456));
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters[0].Value = 45345.1;
@@ -513,7 +506,7 @@ namespace ConsoleApp
 
                         cmd.Parameters.Clear();
                         cmd.CommandText = "select * from t0";
-                        using (TrafDbDataReader dr = cmd.ExecuteReader())
+                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -538,12 +531,12 @@ namespace ConsoleApp
         public static void TestStaticNumericUnsigned()
         {
             try {
-                using (TrafDbConnection conn = new TrafDbConnection())
+                using (EsgyndbConnection conn = new EsgyndbConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString;
                     conn.Open();
 
-                    using (TrafDbCommand cmd = conn.CreateCommand())
+                    using (EsgyndbCommand cmd = conn.CreateCommand())
                     {
                         try
                         {
@@ -568,8 +561,8 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t0 values(?,?)";
-                        cmd.Parameters.Add(new TrafDbParameter("c0", 2345));
-                        cmd.Parameters.Add(new TrafDbParameter("c1", 2345));
+                        cmd.Parameters.Add(new EsgyndbParameter("c0", 2345));
+                        cmd.Parameters.Add(new EsgyndbParameter("c1", 2345));
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters[0].Value = UInt16.MaxValue;
@@ -577,13 +570,13 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters.Clear();
-                        cmd.Parameters.Add(new TrafDbParameter("c0", ushort.MinValue));
-                        cmd.Parameters.Add(new TrafDbParameter("c1", uint.MinValue));
+                        cmd.Parameters.Add(new EsgyndbParameter("c0", ushort.MinValue));
+                        cmd.Parameters.Add(new EsgyndbParameter("c1", uint.MinValue));
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters.Clear();
                         cmd.CommandText = "select * from t0";
-                        using (TrafDbDataReader dr = cmd.ExecuteReader())
+                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -609,12 +602,12 @@ namespace ConsoleApp
         {
             try
             {
-                using (TrafDbConnection conn = new TrafDbConnection())
+                using (EsgyndbConnection conn = new EsgyndbConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString; 
                     conn.Open();
 
-                    using (TrafDbCommand cmd = conn.CreateCommand())
+                    using (EsgyndbCommand cmd = conn.CreateCommand())
                     {
                         try
                         {
@@ -644,11 +637,11 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t0 values(?,?,?,?,?)";
-                        cmd.Parameters.Add(new TrafDbParameter("c0", 2345));
-                        cmd.Parameters.Add(new TrafDbParameter("c1", 2345));
-                        cmd.Parameters.Add(new TrafDbParameter("c2", 2345));
-                        cmd.Parameters.Add(new TrafDbParameter("c3", 2345.6789));
-                        cmd.Parameters.Add(new TrafDbParameter("c4", 2345.6789));
+                        cmd.Parameters.Add(new EsgyndbParameter("c0", 2345));
+                        cmd.Parameters.Add(new EsgyndbParameter("c1", 2345));
+                        cmd.Parameters.Add(new EsgyndbParameter("c2", 2345));
+                        cmd.Parameters.Add(new EsgyndbParameter("c3", 2345.6789));
+                        cmd.Parameters.Add(new EsgyndbParameter("c4", 2345.6789));
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters[0].Value = Int16.MaxValue;
@@ -666,16 +659,16 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters.Clear();
-                        cmd.Parameters.Add(new TrafDbParameter("c0", short.MinValue));
-                        cmd.Parameters.Add(new TrafDbParameter("c1", int.MinValue));
-                        cmd.Parameters.Add(new TrafDbParameter("c2", long.MinValue));
-                        cmd.Parameters.Add(new TrafDbParameter("c3", float.MinValue));
-                        cmd.Parameters.Add(new TrafDbParameter("c4", (double.MinValue/10)));
+                        cmd.Parameters.Add(new EsgyndbParameter("c0", short.MinValue));
+                        cmd.Parameters.Add(new EsgyndbParameter("c1", int.MinValue));
+                        cmd.Parameters.Add(new EsgyndbParameter("c2", long.MinValue));
+                        cmd.Parameters.Add(new EsgyndbParameter("c3", float.MinValue));
+                        cmd.Parameters.Add(new EsgyndbParameter("c4", (double.MinValue/10)));
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters.Clear();
                         cmd.CommandText = "select * from t0";
-                        using (TrafDbDataReader dr = cmd.ExecuteReader())
+                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -701,12 +694,12 @@ namespace ConsoleApp
         {
             try
             {
-                using (TrafDbConnection conn = new TrafDbConnection())
+                using (EsgyndbConnection conn = new EsgyndbConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString; 
                     conn.Open();
 
-                    using (TrafDbCommand cmd = conn.CreateCommand())
+                    using (EsgyndbCommand cmd = conn.CreateCommand())
                     {
                         try
                         {
@@ -738,13 +731,13 @@ namespace ConsoleApp
                         cmd.CommandText = "insert into t0 values(?,?,?,?,?,?,?)";
                         for(int i=0;i<7;i++ ) 
                         {
-                            cmd.Parameters.Add(new TrafDbParameter("c" + i, dt));
+                            cmd.Parameters.Add(new EsgyndbParameter("c" + i, dt));
                         }
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters.Clear();
                         cmd.CommandText = "select * from t0";
-                        using (TrafDbDataReader dr = cmd.ExecuteReader())
+                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -777,12 +770,12 @@ namespace ConsoleApp
         {
             try
             {
-                using (TrafDbConnection conn = new TrafDbConnection())
+                using (EsgyndbConnection conn = new EsgyndbConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString; 
                     conn.Open();
 
-                    using (TrafDbCommand cmd = conn.CreateCommand())
+                    using (EsgyndbCommand cmd = conn.CreateCommand())
                     {
                         try
                         {
@@ -801,15 +794,15 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t0 values(?,?,?,?)";
-                        cmd.Parameters.Add(new TrafDbParameter("c0", "test string"));
-                        cmd.Parameters.Add(new TrafDbParameter("c1", "test string"));
-                        cmd.Parameters.Add(new TrafDbParameter("c2", "test string"));
-                        cmd.Parameters.Add(new TrafDbParameter("c3", "test string"));
+                        cmd.Parameters.Add(new EsgyndbParameter("c0", "test string"));
+                        cmd.Parameters.Add(new EsgyndbParameter("c1", "test string"));
+                        cmd.Parameters.Add(new EsgyndbParameter("c2", "test string"));
+                        cmd.Parameters.Add(new EsgyndbParameter("c3", "test string"));
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters.Clear();
                         cmd.CommandText = "select * from t0";
-                        using (TrafDbDataReader dr = cmd.ExecuteReader())
+                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -832,23 +825,23 @@ namespace ConsoleApp
         }
 
 
-        private static readonly Assembly asm = Assembly.GetAssembly(typeof(TrafDbFactory)); //the assembly to register
+        private static readonly Assembly asm = Assembly.GetAssembly(typeof(EsgyndbFactory)); //the assembly to register
 
         public static void DataAdapterWithNoParameter()
         {
-            TrafDbConnection conn = new TrafDbConnection();
+            EsgyndbConnection conn = new EsgyndbConnection();
             conn.ConnectionString = ConnectionString;
             conn.Open();
-            TrafDbCommand cmd = conn.CreateCommand();
+            EsgyndbCommand cmd = conn.CreateCommand();
 
-            TrafDbDataAdapter dataadapter = new TrafDbDataAdapter();
-            TrafDbCommand selectCmd = conn.CreateCommand();
+            EsgyndbDataAdapter dataadapter = new EsgyndbDataAdapter();
+            EsgyndbCommand selectCmd = conn.CreateCommand();
             selectCmd.CommandText = "select * from test_DataAdapter;";
             dataadapter.SelectCommand = selectCmd;
 
-            TrafDbCommand updateCmd = conn.CreateCommand();
+            EsgyndbCommand updateCmd = conn.CreateCommand();
             updateCmd.CommandText = "update test_DataAdapter set A=? where A=20";
-            updateCmd.Parameters.Add(new TrafDbParameter("A", TrafDbDbType.Integer));
+            updateCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbDbType.Integer));
             dataadapter.UpdateCommand = updateCmd;
             DataTable dt_update;
             dt_update = new DataTable();
@@ -863,14 +856,14 @@ namespace ConsoleApp
             dt_update.Clear();
 
             //for update command
-            TrafDbCommand sCmd = conn.CreateCommand();
+            EsgyndbCommand sCmd = conn.CreateCommand();
             sCmd.CommandText = "select * from test_DataAdapter;";
-            dataadapter = new TrafDbDataAdapter();
+            dataadapter = new EsgyndbDataAdapter();
             dataadapter.SelectCommand = sCmd;
             dataadapter.Fill(dt_update);
-            TrafDbCommand uCmd = conn.CreateCommand();
+            EsgyndbCommand uCmd = conn.CreateCommand();
             uCmd.CommandText = "update test_DataAdapter set A=? where A=2000";
-            uCmd.Parameters.Add(new TrafDbParameter("A", TrafDbDbType.Integer));
+            uCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbDbType.Integer));
             dataadapter.UpdateCommand = uCmd;
             dt_update.Rows[0]["A"] = 200;
             dataadapter.Update(dt_update);
@@ -883,16 +876,16 @@ namespace ConsoleApp
             dt_update.Clear();
 
             //for delete command
-            dataadapter = new TrafDbDataAdapter();
-            TrafDbCommand selCmd = conn.CreateCommand();
+            dataadapter = new EsgyndbDataAdapter();
+            EsgyndbCommand selCmd = conn.CreateCommand();
             selCmd.CommandText = "select * from test_DataAdapter;";
             dataadapter.SelectCommand = selCmd;
             dataadapter.Fill(dt_update);
             //displayDatatable(dt_update);
-            TrafDbCommand delCmd = conn.CreateCommand();
+            EsgyndbCommand delCmd = conn.CreateCommand();
             delCmd.CommandText = "delete from test_DataAdapter where A=?;";
             dataadapter.DeleteCommand = delCmd;
-            delCmd.Parameters.Add(new TrafDbParameter("A", TrafDbDbType.Integer));
+            delCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbDbType.Integer));
             dt_update.Rows[0].Delete();
             dataadapter.Update(dt_update);
             cmd.CommandText = "select count(*) from test_DataAdapter";
@@ -941,12 +934,13 @@ namespace ConsoleApp
         static void Main(string[] args)
         {
             
-            TrafDbConnection conn = new TrafDbConnection();
+            EsgyndbConnection conn = new EsgyndbConnection();
 
             conn.ConnectionString = Program.ConnectionString;
 
             conn.Open();
             //Console.WriteLine(conn.Database);
+            /*
 
             String value = "!\"#$%&a()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQR";
             String strCrtSchm = "create schema tsch";
@@ -957,10 +951,10 @@ namespace ConsoleApp
             String strSelCnt1 = "select count(*) from tsch.atest where c1=?";
             String strSelCnt2 = "select count(*) from tsch.atest where c1='" + value + "'";
 
-            TrafDbCommand cmd = conn.CreateCommand();
+            EsgyndbCommand cmd = conn.CreateCommand();
             
-            //cmd.CommandText = strCrtSchm;
-            //cmd.ExecuteNonQuery();
+            cmd.CommandText = strCrtSchm;
+            cmd.ExecuteNonQuery();
 
             //cmd.CommandText = strDropTbl;
             //cmd.ExecuteNonQuery();
@@ -977,17 +971,17 @@ namespace ConsoleApp
             
             cmd.CommandText = strSelct;
             Console.WriteLine("Executing: " + strSelct + "...");
-            TrafDbDataReader reader = cmd.ExecuteReader();
+            EsgyndbDataReader reader = cmd.ExecuteReader();
             while (reader.Read())
             {
                 Console.WriteLine("GetString(c1) : " + reader.GetString(0));
-                /*
+                
                 char[] buffer = new char[2048];
                 long retLen = reader.GetChars(0, 0, buffer, 0, buffer.Length);
 
                 Console.WriteLine("GetChars(c1) : " + retLen + " chars returned.");
                 Console.WriteLine("\tValue = " + new String(buffer));
-                 * */
+                 
             }
 
             cmd.CommandText = strSelCnt2;
@@ -1002,7 +996,7 @@ namespace ConsoleApp
             cmd.CommandText = strSelCnt1;
             Console.WriteLine("Executing: " + strSelCnt1 + "...");
             cmd.Parameters.Clear();
-            TrafDbParameter pam = new TrafDbParameter("C1Value", TrafDbDbType.Char);
+            EsgyndbParameter pam = new EsgyndbParameter("C1Value", EsgyndbDbType.Char);
             //pam.DbType = DbType.String;
             //pam.Value = value;
             Encoding utf8 = Encoding.GetEncoding("UTF-8");
@@ -1049,7 +1043,7 @@ namespace ConsoleApp
 
             Object obj = cmd.ExecuteScalar();
             Console.WriteLine("{0} count of rows found: ", obj.ToString());
-
+            */
 
             /*
             System.Data.DataTable dt = conn.GetSchema();
@@ -1067,12 +1061,12 @@ namespace ConsoleApp
                 
             /*try
             {
-                using (TrafDbConnection conn = new TrafDbConnection())
+                using (EsgyndbConnection conn = new EsgyndbConnection())
                 {
                     conn.ConnectionString = ConnectionString;
                     conn.Open();
 
-                    using (TrafDbCommand cmd = conn.CreateCommand())
+                    using (EsgyndbCommand cmd = conn.CreateCommand())
                     {
                         cmd.CommandText = "drop table t1";
                         try { cmd.ExecuteNonQuery(); }
@@ -1082,13 +1076,13 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t1 values(?)";
-                        cmd.Parameters.Add(new TrafDbParameter("c1", TrafDbDbType.Timestamp));
+                        cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbDbType.Timestamp));
                         cmd.Parameters[0].Value = "2008-04-03 19:12:10.123";
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters.Clear();
                         cmd.CommandText = "select * from t1";
-                        using (TrafDbDataReader dr = cmd.ExecuteReader())
+                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -1125,7 +1119,7 @@ namespace ConsoleApp
 
             //TestPerformance();
 
-            //TestMetaData();
+            TestMetaData();
 
             Console.Read();
         }
@@ -1180,16 +1174,16 @@ namespace ConsoleApp
             Stopwatch sw = new Stopwatch();
             sw.Start();
             
-            using (TrafDbConnection conn = new TrafDbConnection())
+            using (EsgyndbConnection conn = new EsgyndbConnection())
             {
                 conn.ConnectionString = connStr;
                 conn.Open();
 
-                using (TrafDbCommand cmd = conn.CreateCommand())
+                using (EsgyndbCommand cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = query;
 
-                    using (TrafDbDataReader dr = cmd.ExecuteReader())
+                    using (EsgyndbDataReader dr = cmd.ExecuteReader())
                     {
                         int cacheSize = 1024 * 1024;
 
@@ -1242,7 +1236,7 @@ namespace ConsoleApp
                 Stopwatch sw = new Stopwatch();
                 sw.Start();
 
-                TrafDbParallelExtract pe = new TrafDbParallelExtract()
+                EsgyndbParallelExtract pe = new EsgyndbParallelExtract()
                 {
                     ParallelStreams = streams,
                     ConnectionString = connStr + ";application name=TRANSPORTER",
@@ -1253,7 +1247,7 @@ namespace ConsoleApp
                     RowDelimiter = "\r\n",
                 };
 
-                TrafDbDataReader[] readers=pe.Execute();
+                EsgyndbDataReader[] readers=pe.Execute();
 
                 pe.WriteToStream(fs);
                 pe.Close();
@@ -1276,7 +1270,7 @@ namespace ConsoleApp
             {
                 Stopwatch sw = new Stopwatch();
 
-                using (TrafDbConnection conn = new TrafDbConnection())
+                using (EsgyndbConnection conn = new EsgyndbConnection())
                 {
                     conn.ConnectionString = ConnectionString +";Pooling=true;MaxPoolSize=10";
                     sw.Start();
@@ -1286,7 +1280,7 @@ namespace ConsoleApp
 
                     Console.WriteLine(sw.ElapsedMilliseconds);
 
-                    TrafDbCommand cmd = conn.CreateCommand();
+                    EsgyndbCommand cmd = conn.CreateCommand();
                
                         cmd.CommandText = "drop table t1";
                         try { cmd.ExecuteNonQuery(); }
@@ -1335,12 +1329,12 @@ namespace ConsoleApp
 
         private static void SetupExtract(string connStr)
         {
-            using (TrafDbConnection conn = new TrafDbConnection())
+            using (EsgyndbConnection conn = new EsgyndbConnection())
             {
                 conn.ConnectionString = connStr;
                 conn.Open();
 
-                using (TrafDbCommand cmd = conn.CreateCommand())
+                using (EsgyndbCommand cmd = conn.CreateCommand())
                 {
                     /*cmd.CommandText = "drop table etable";
                     try { cmd.ExecuteNonQuery(); }
@@ -1350,9 +1344,9 @@ namespace ConsoleApp
                     cmd.ExecuteNonQuery();
                     
                     cmd.CommandText = "insert into etable values(?,?,?)";
-                    cmd.Parameters.Add(new TrafDbParameter("c1", TrafDbDbType.Integer));
-                    cmd.Parameters.Add(new TrafDbParameter("c2", TrafDbDbType.Char));
-                    cmd.Parameters.Add(new TrafDbParameter("c3", TrafDbDbType.Char));
+                    cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbDbType.Integer));
+                    cmd.Parameters.Add(new EsgyndbParameter("c2", EsgyndbDbType.Char));
+                    cmd.Parameters.Add(new EsgyndbParameter("c3", EsgyndbDbType.Char));
                     cmd.Prepare();
 
                     cmd.Parameters[1].Value = "value1234567890";
@@ -1363,7 +1357,7 @@ namespace ConsoleApp
 
                     cmd.CommandText = "insert into etable select etable.c1 + ?, etable.c2, etable.c3 from etable";
                     cmd.Parameters.Clear();
-                    cmd.Parameters.Add(new TrafDbParameter("c1", TrafDbDbType.Integer));
+                    cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbDbType.Integer));
                     cmd.Prepare();
 
                     for (int i = 1; i < 300000; i *= 2)
@@ -1394,8 +1388,8 @@ namespace ConsoleApp
                     cmd.ExecuteNonQuery();
 
                     cmd.CommandText = "insert into etable3 values(?,?)";
-                    cmd.Parameters.Add(new TrafDbParameter("c1", TrafDbDbType.Integer));
-                    cmd.Parameters.Add(new TrafDbParameter("c2", TrafDbDbType.Varchar));
+                    cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbDbType.Integer));
+                    cmd.Parameters.Add(new EsgyndbParameter("c2", EsgyndbDbType.Varchar));
                    
                     cmd.Prepare();
 
@@ -1461,7 +1455,7 @@ namespace ConsoleApp
             Console.WriteLine(string.Format("Conn String: {0}\n Streams: {1}\nFetchSize: {2}\nQuery: {3}", connStr, 1, fetchsize, query));
                 
             string format = "{0}|\"{1}\"";//|\"{2}\"";
-            using (TrafDbConnection conn = new TrafDbConnection())
+            using (EsgyndbConnection conn = new EsgyndbConnection())
             {
                 conn.ConnectionString = connStr;
                 conn.Open();
@@ -1469,14 +1463,14 @@ namespace ConsoleApp
                 FileStream fs = File.Open(file, FileMode.Create);
                 TextWriter tw = new StreamWriter(fs);
 
-                using (TrafDbCommand cmd = conn.CreateCommand())
+                using (EsgyndbCommand cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = query;
 
                     Stopwatch sw = new Stopwatch();
                     sw.Start();
 
-                    TrafDbDataReader dr = cmd.ExecuteReader();
+                    EsgyndbDataReader dr = cmd.ExecuteReader();
                     object [] v = new object[dr.FieldCount];
 
                     //dr.FetchSize = fetchsize;
@@ -1508,7 +1502,7 @@ namespace ConsoleApp
                 Stopwatch sw = new Stopwatch();
                 sw.Start();
 
-                TrafDbParallelExtract pe = new TrafDbParallelExtract()
+                EsgyndbParallelExtract pe = new EsgyndbParallelExtract()
                 {
                     ParallelStreams = streams,
                     ConnectionString = connStr + ";application name=ADO.NET Parallel Extract",
@@ -1543,11 +1537,11 @@ namespace ConsoleApp
 
         public static void TestCancel()
         {
-            TrafDbConnection conn = new TrafDbConnection();
+            EsgyndbConnection conn = new EsgyndbConnection();
             conn.ConnectionString = Program.ConnectionString; 
             conn.Open();
 
-            TrafDbCommand cmd = conn.CreateCommand();
+            EsgyndbCommand cmd = conn.CreateCommand();
             cmd.CommandText = "insert into neo.doermann.testcancel4 (c1) select x.c1 from neo.doermann.testcancel1 x, neo.doermann.testcancel2 y, neo.doermann.testcancel1 z where x.c1 + y.c1 + z.c1 < 70";
 
             Thread t = new Thread(new ParameterizedThreadStart(CancelCommand));
@@ -1566,7 +1560,7 @@ namespace ConsoleApp
         //wait 5 seconds, then cancel the command
         public static void CancelCommand(object var)
         {
-            TrafDbCommand cmd = (TrafDbCommand)var;
+            EsgyndbCommand cmd = (EsgyndbCommand)var;
             Thread.Sleep(10000);
 
             Console.WriteLine("issuing cancel");
@@ -1575,11 +1569,11 @@ namespace ConsoleApp
 
         public static void TestRowsAffected()
         {
-            TrafDbConnection conn = new TrafDbConnection();
+            EsgyndbConnection conn = new EsgyndbConnection();
             conn.ConnectionString = Program.ConnectionString; 
             conn.Open();
 
-            TrafDbCommand cmd = conn.CreateCommand();
+            EsgyndbCommand cmd = conn.CreateCommand();
             try
             {
                 cmd.CommandText = "drop table t0";
@@ -1596,7 +1590,7 @@ namespace ConsoleApp
             cmd.CommandText = "insert into t0 values(1)";
             Console.WriteLine(cmd.ExecuteNonQuery());
 
-            using (TrafDbDataReader dr = cmd.ExecuteReader())
+            using (EsgyndbDataReader dr = cmd.ExecuteReader())
             {
                 if (dr.HasRows)
                 {
@@ -1610,7 +1604,7 @@ namespace ConsoleApp
             }
 
             cmd.CommandText = "select * from t0";
-            using (TrafDbDataReader dr = cmd.ExecuteReader(CommandBehavior.SchemaOnly))
+            using (EsgyndbDataReader dr = cmd.ExecuteReader(CommandBehavior.SchemaOnly))
             {
                 if (dr.HasRows)
                 {
@@ -1623,7 +1617,7 @@ namespace ConsoleApp
                 Console.WriteLine(dr.RecordsAffected);
             }
 
-            using (TrafDbDataReader dr = cmd.ExecuteReader(CommandBehavior.SingleRow))
+            using (EsgyndbDataReader dr = cmd.ExecuteReader(CommandBehavior.SingleRow))
             {
                 if (dr.HasRows)
                 {
@@ -1656,20 +1650,20 @@ namespace ConsoleApp
             
             try
             {
-                using (TrafDbConnection conn = new TrafDbConnection())
+                using (EsgyndbConnection conn = new EsgyndbConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString; 
                     conn.Open();
 
-                    using (TrafDbCommand cmd = conn.CreateCommand())
+                    using (EsgyndbCommand cmd = conn.CreateCommand())
                     {
                         cmd.CommandType = CommandType.StoredProcedure; //this actually isnt required
                         cmd.CommandText = "call NEO.ODBCSPJ.RS4(?,?)";
                         
                         //try some of the various ways to create parameters
-                        cmd.Parameters.Add(new TrafDbParameter("p1", "NEO.DOERMANN.T1"));
+                        cmd.Parameters.Add(new EsgyndbParameter("p1", "NEO.DOERMANN.T1"));
 
-                        TrafDbParameter parameter = cmd.CreateParameter();
+                        EsgyndbParameter parameter = cmd.CreateParameter();
                         parameter.Direction = ParameterDirection.Output;
                         parameter.DbType = DbType.Int32;
                         parameter.ParameterName = "p2";
@@ -1682,7 +1676,7 @@ namespace ConsoleApp
 
                         parameter.Value = base64;
 
-                        TrafDbDataReader dr = cmd.ExecuteReader();
+                        EsgyndbDataReader dr = cmd.ExecuteReader();
 
                         Console.WriteLine(parameter.Value); //reference the original object
                         Console.WriteLine(cmd.Parameters[1].Value); //by index
@@ -1723,7 +1717,7 @@ namespace ConsoleApp
 
         public static void TestMetaData()
         {
-            TrafDbConnection conn = new TrafDbConnection();
+            EsgyndbConnection conn = new EsgyndbConnection();
             conn.ConnectionString = Program.ConnectionString; 
             conn.Open();
 
@@ -1751,9 +1745,9 @@ namespace ConsoleApp
 
         public static void TestAdapterManual()
         {
-            TrafDbConnection conn = new TrafDbConnection(Program.ConnectionString);
+            EsgyndbConnection conn = new EsgyndbConnection(Program.ConnectionString);
             conn.Open();
-            TrafDbCommand cmd = conn.CreateCommand();
+            EsgyndbCommand cmd = conn.CreateCommand();
             cmd.CommandText = "drop table t1";
             try { cmd.ExecuteNonQuery(); } catch { } //ignore error
             cmd.CommandText = "create table t1 (c1 int not null not droppable primary key, c2 varchar(100)) no partition";
@@ -1765,25 +1759,25 @@ namespace ConsoleApp
 
             Console.WriteLine("Setup Complete");
 
-            TrafDbCommand selectCmd = conn.CreateCommand();
+            EsgyndbCommand selectCmd = conn.CreateCommand();
             selectCmd.CommandText = "select * from t1";
 
-            TrafDbCommand insertCmd = conn.CreateCommand();
+            EsgyndbCommand insertCmd = conn.CreateCommand();
             insertCmd.CommandText = "insert into t1 values(?,?)";
-            insertCmd.Parameters.Add(new TrafDbParameter("c1", TrafDbDbType.Integer));
-            insertCmd.Parameters.Add(new TrafDbParameter("c2", TrafDbDbType.Varchar));
+            insertCmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbDbType.Integer));
+            insertCmd.Parameters.Add(new EsgyndbParameter("c2", EsgyndbDbType.Varchar));
 
-            TrafDbCommand deleteCmd = conn.CreateCommand();
+            EsgyndbCommand deleteCmd = conn.CreateCommand();
             deleteCmd.CommandText = "delete from t1 where c1=?";
-            deleteCmd.Parameters.Add(new TrafDbParameter("c1", TrafDbDbType.Integer));
+            deleteCmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbDbType.Integer));
 
-            TrafDbCommand updateCmd = conn.CreateCommand();
+            EsgyndbCommand updateCmd = conn.CreateCommand();
             updateCmd.CommandText = "update t1 set c2=? where c1=?";
-            updateCmd.Parameters.Add(new TrafDbParameter("c2", TrafDbDbType.Varchar));
-            updateCmd.Parameters.Add(new TrafDbParameter("c1", TrafDbDbType.Integer));
+            updateCmd.Parameters.Add(new EsgyndbParameter("c2", EsgyndbDbType.Varchar));
+            updateCmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbDbType.Integer));
             
  
-            TrafDbDataAdapter adp = new TrafDbDataAdapter();
+            EsgyndbDataAdapter adp = new EsgyndbDataAdapter();
 
             adp.SelectCommand = selectCmd;
             adp.UpdateCommand = updateCmd;
@@ -1804,12 +1798,12 @@ namespace ConsoleApp
             dt.Rows[1]["c2"] = "hi there";
             dt.Rows[3]["c2"] = "dude";
 
-            //send values back to TrafDb
+            //send values back to Esgyndb
             adp.Update(dt);
 
             //check the final results -- we should have a single row (2,'hi there')
             cmd.CommandText = "select * from t1";
-            TrafDbDataReader dr = cmd.ExecuteReader();
+            EsgyndbDataReader dr = cmd.ExecuteReader();
             while (dr.Read())
             {
                 Console.WriteLine("{0} {1}", dr[0], dr[1]);
@@ -1818,9 +1812,9 @@ namespace ConsoleApp
 
         public static void TestAdapterBuilder()
         {
-            TrafDbConnection conn = new TrafDbConnection(Program.ConnectionString);
+            EsgyndbConnection conn = new EsgyndbConnection(Program.ConnectionString);
             conn.Open();
-            TrafDbCommand cmd = conn.CreateCommand();
+            EsgyndbCommand cmd = conn.CreateCommand();
             cmd.CommandText = "drop table t1";
             try { cmd.ExecuteNonQuery(); }
             catch { } //ignore error
@@ -1833,18 +1827,18 @@ namespace ConsoleApp
 
             Console.WriteLine("Setup Complete");
 
-            TrafDbCommand selectCmd = conn.CreateCommand();
+            EsgyndbCommand selectCmd = conn.CreateCommand();
             selectCmd.CommandText = "select * from t1";
 
-            TrafDbDataAdapter adp = new TrafDbDataAdapter();
-            TrafDbCommandBuilder cb = new TrafDbCommandBuilder(adp);
+            EsgyndbDataAdapter adp = new EsgyndbDataAdapter();
+            EsgyndbCommandBuilder cb = new EsgyndbCommandBuilder(adp);
 
             adp.SelectCommand = selectCmd;
 
-            adp.UpdateCommand = (TrafDbCommand)cb.GetUpdateCommand();
+            adp.UpdateCommand = (EsgyndbCommand)cb.GetUpdateCommand();
             Console.WriteLine(adp.UpdateCommand.ToString());
-            adp.DeleteCommand = (TrafDbCommand)cb.GetDeleteCommand();
-            adp.InsertCommand = (TrafDbCommand)cb.GetInsertCommand();
+            adp.DeleteCommand = (EsgyndbCommand)cb.GetDeleteCommand();
+            adp.InsertCommand = (EsgyndbCommand)cb.GetInsertCommand();
 
             adp.UpdateBatchSize = 10;
 
@@ -1862,12 +1856,12 @@ namespace ConsoleApp
             dt.Rows[1]["c2"] = "value1";
             dt.Rows[3]["c2"] = "value2";
 
-            //send values back to TrafDb
+            //send values back to Esgyndb
             //adp.Update(dt);
 
             //check the final results
             cmd.CommandText = "select * from t1";
-            TrafDbDataReader dr = cmd.ExecuteReader();
+            EsgyndbDataReader dr = cmd.ExecuteReader();
             while (dr.Read())
             {
                 Console.WriteLine("{0} {1}", dr[0], dr[1]);
@@ -1876,9 +1870,9 @@ namespace ConsoleApp
 
         public static void TestAdapterFillParams()
         {
-            TrafDbConnection conn = new TrafDbConnection(Program.ConnectionString);
+            EsgyndbConnection conn = new EsgyndbConnection(Program.ConnectionString);
             conn.Open();
-            TrafDbCommand cmd = conn.CreateCommand();
+            EsgyndbCommand cmd = conn.CreateCommand();
             cmd.CommandText = "drop table t1";
             try { cmd.ExecuteNonQuery(); }
             catch { } //ignore error
@@ -1889,18 +1883,18 @@ namespace ConsoleApp
 
             Console.WriteLine("Setup Complete");
 
-            TrafDbCommand selectCmd = conn.CreateCommand();
+            EsgyndbCommand selectCmd = conn.CreateCommand();
             selectCmd.CommandText = "select * from t1 where c1>3";
-            //selectCmd.Parameters.Add(new TrafDbParameter("c1",TrafDbDbType.Integer));
+            //selectCmd.Parameters.Add(new EsgyndbParameter("c1",EsgyndbDbType.Integer));
 
-            TrafDbDataAdapter adp = new TrafDbDataAdapter();
+            EsgyndbDataAdapter adp = new EsgyndbDataAdapter();
             adp.SelectCommand = selectCmd;
 
             DataTable dt = new DataTable();
             DataTable dt1 = new DataTable();
 
             //get all the values with c1 > 2
-            TrafDbParameter [] p = adp.GetFillParameters();
+            EsgyndbParameter [] p = adp.GetFillParameters();
             Console.WriteLine(p.Length);
 
             //display the data side by side or something
@@ -1908,9 +1902,9 @@ namespace ConsoleApp
 
         public static void FetchTest()
         {
-            TrafDbConnection conn;
-            TrafDbCommand cmd;
-            TrafDbDataReader dr;
+            EsgyndbConnection conn;
+            EsgyndbCommand cmd;
+            EsgyndbDataReader dr;
             DateTime start;
             DateTime end;
             long total;
@@ -1920,7 +1914,7 @@ namespace ConsoleApp
             int[] fetchSizes = { 100000 };
             TimeSpan[][] results = new TimeSpan[fetchBufferSizes.Length][];
 
-            conn = new TrafDbConnection();
+            conn = new EsgyndbConnection();
             cmd = conn.CreateCommand();
             cmd.CommandText = "select * from neo.doermann.t2";
 
@@ -1983,11 +1977,11 @@ namespace ConsoleApp
             }
         }
 
-        public static void OnInfoMessage(object sender, TrafDbInfoMessageEventArgs args)
+        public static void OnInfoMessage(object sender, EsgyndbInfoMessageEventArgs args)
         {
             Console.WriteLine("INFO: " + args.Message);
             Console.WriteLine("Errors List: ");
-            foreach (TrafDbError error in args.Errors)
+            foreach (EsgyndbError error in args.Errors)
             {
                 Console.WriteLine(String.Format("\t{0} | {1} | {2} | {3}", error.ErrorCode, error.Message, error.RowId, error.State));
             }
@@ -1998,11 +1992,11 @@ namespace ConsoleApp
             Console.WriteLine("State changed: " + args.OriginalState + " -> " + args.CurrentState);
         }
 
-        public static void PrintErrors(TrafDbException e, bool includeStack) 
+        public static void PrintErrors(EsgyndbException e, bool includeStack) 
         {
             Console.WriteLine(e.Message);
             Console.WriteLine("Errors List: ");
-            foreach (TrafDbError error in e.Errors)
+            foreach (EsgyndbError error in e.Errors)
             {
                 Console.WriteLine(String.Format("\t{0} | {1} | {2} | {3}", error.ErrorCode, error.Message, error.RowId, error.State));
             }

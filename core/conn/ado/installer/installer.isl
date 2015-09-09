@@ -340,11 +340,10 @@
 		<col def="S0">ISDotNetInstallerArgsCommit</col>
 		<col def="S0">ISDotNetInstallerArgsUninstall</col>
 		<col def="S0">ISDotNetInstallerArgsRollback</col>
+		<row><td>Esgyndb.Data.Primary_output</td><td>{65ADB72D-6BB2-48C5-94AD-92D39A545D70}</td><td>GlobalAssemblyCache</td><td>2</td><td/><td>esgyndb.data.primary_output</td><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
+		<row><td>ISX_DEFAULTCOMPONENT</td><td>{9FB6EFD5-5221-4BA9-A72F-6EE1F34F0701}</td><td>GlobalAssemblyCache</td><td>2</td><td/><td/><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
 		<row><td>ISX_DEFAULTCOMPONENT1</td><td>{41DC23DD-73F7-4DCE-BC9A-E8BF690F6228}</td><td>INSTALLDIR</td><td>2</td><td/><td/><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
 		<row><td>ISX_DEFAULTCOMPONENT2</td><td>{1F27185B-5E47-4FAA-ABDC-51736FDFA05C}</td><td>INSTALLDIR</td><td>258</td><td/><td/><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
-		<row><td>Trafodion.Data.ETL.Primary_output</td><td>{F5F06F6B-50FE-423A-83DE-007A1D29A469}</td><td>INSTALLDIR</td><td>2</td><td/><td>trafodion.data.etl.primary_o</td><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
-		<row><td>Trafodion.Data.Primary_output</td><td>{F12BB676-B99B-4BC9-82AA-3BED60C40E43}</td><td>INSTALLDIR</td><td>2</td><td/><td>trafodion.data.primary_outpu</td><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
-		<row><td>Trafodion.Data.VisualStudio.Primary_output</td><td>{63D60973-E5E5-4D49-A339-5182B6F4DF0E}</td><td>INSTALLDIR</td><td>2</td><td/><td>trafodion.data.visualstudio.</td><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
 	</table>
 
 	<table name="Condition">
@@ -555,7 +554,7 @@
 		<row><td>LicenseAgreement</td><td>DlgLine</td><td>Line</td><td>48</td><td>234</td><td>326</td><td>0</td><td>1</td><td/><td/><td/><td/><td>0</td><td/><td/><td/></row>
 		<row><td>LicenseAgreement</td><td>DlgTitle</td><td>Text</td><td>13</td><td>6</td><td>292</td><td>25</td><td>65539</td><td/><td>##IDS__IsLicenseDlg_LicenseAgreement##</td><td/><td/><td>0</td><td/><td/><td/></row>
 		<row><td>LicenseAgreement</td><td>ISPrintButton</td><td>PushButton</td><td>301</td><td>188</td><td>65</td><td>17</td><td>3</td><td/><td>##IDS_PRINT_BUTTON##</td><td>Agree</td><td/><td>0</td><td/><td/><td/></row>
-		<row><td>LicenseAgreement</td><td>Memo</td><td>ScrollableText</td><td>8</td><td>55</td><td>358</td><td>130</td><td>7</td><td/><td/><td/><td/><td>0</td><td/><td>&lt;ISProductFolder&gt;\Redist\0409\Eula.rtf</td><td/></row>
+		<row><td>LicenseAgreement</td><td>Memo</td><td>ScrollableText</td><td>8</td><td>55</td><td>358</td><td>130</td><td>7</td><td/><td/><td/><td/><td>0</td><td/><td>&lt;ISProjectFolder&gt;\Eula.rtf</td><td/></row>
 		<row><td>LicenseAgreement</td><td>Next</td><td>PushButton</td><td>230</td><td>243</td><td>66</td><td>17</td><td>3</td><td/><td>##IDS_NEXT##</td><td>Cancel</td><td/><td>0</td><td/><td/><td/></row>
 		<row><td>MaintenanceType</td><td>Back</td><td>PushButton</td><td>164</td><td>243</td><td>66</td><td>17</td><td>3</td><td/><td>##IDS_BACK##</td><td>Next</td><td/><td>0</td><td/><td/><td/></row>
 		<row><td>MaintenanceType</td><td>Banner</td><td>Bitmap</td><td>0</td><td>0</td><td>374</td><td>44</td><td>1</td><td/><td/><td/><td/><td>0</td><td/><td/><td>NewBinary1</td></row>
@@ -1053,11 +1052,12 @@
 	<table name="CreateFolder">
 		<col key="yes" def="s72">Directory_</col>
 		<col key="yes" def="s72">Component_</col>
+		<row><td>GlobalAssemblyCache</td><td>Esgyndb.Data.Primary_output</td></row>
+		<row><td>GlobalAssemblyCache</td><td>ISX_DEFAULTCOMPONENT</td></row>
+		<row><td>INSTALLDIR</td><td>Esgyndb.Data.Primary_output</td></row>
+		<row><td>INSTALLDIR</td><td>ISX_DEFAULTCOMPONENT</td></row>
 		<row><td>INSTALLDIR</td><td>ISX_DEFAULTCOMPONENT1</td></row>
 		<row><td>INSTALLDIR</td><td>ISX_DEFAULTCOMPONENT2</td></row>
-		<row><td>INSTALLDIR</td><td>Trafodion.Data.ETL.Primary_output</td></row>
-		<row><td>INSTALLDIR</td><td>Trafodion.Data.Primary_output</td></row>
-		<row><td>INSTALLDIR</td><td>Trafodion.Data.VisualStudio.Primary_output</td></row>
 	</table>
 
 	<table name="CustomAction">
@@ -1868,11 +1868,10 @@
 	<table name="FeatureComponents">
 		<col key="yes" def="s38">Feature_</col>
 		<col key="yes" def="s72">Component_</col>
+		<row><td>AlwaysInstall</td><td>Esgyndb.Data.Primary_output</td></row>
+		<row><td>AlwaysInstall</td><td>ISX_DEFAULTCOMPONENT</td></row>
 		<row><td>AlwaysInstall</td><td>ISX_DEFAULTCOMPONENT1</td></row>
 		<row><td>AlwaysInstall</td><td>ISX_DEFAULTCOMPONENT2</td></row>
-		<row><td>AlwaysInstall</td><td>Trafodion.Data.ETL.Primary_output</td></row>
-		<row><td>AlwaysInstall</td><td>Trafodion.Data.Primary_output</td></row>
-		<row><td>AlwaysInstall</td><td>Trafodion.Data.VisualStudio.Primary_output</td></row>
 	</table>
 
 	<table name="File">
@@ -1887,9 +1886,7 @@
 		<col def="S255">ISBuildSourcePath</col>
 		<col def="I4">ISAttributes</col>
 		<col def="S72">ISComponentSubFolder_</col>
-		<row><td>trafodion.data.etl.primary_o</td><td>Trafodion.Data.ETL.Primary_output</td><td>Trafodion.Data.ETL.Primary output</td><td>0</td><td/><td/><td/><td>1</td><td>&lt;Trafodion.Data.ETL&gt;|Built</td><td>3</td><td/></row>
-		<row><td>trafodion.data.primary_outpu</td><td>Trafodion.Data.Primary_output</td><td>Trafodion.Data.Primary output</td><td>0</td><td/><td/><td/><td>1</td><td>&lt;Trafodion.Data&gt;|Built</td><td>3</td><td/></row>
-		<row><td>trafodion.data.visualstudio.</td><td>Trafodion.Data.VisualStudio.Primary_output</td><td>Trafodion.Data.VisualStudio.Primary output</td><td>0</td><td/><td/><td/><td>1</td><td>&lt;Trafodion.Data.VisualStudio&gt;|Built</td><td>3</td><td/></row>
+		<row><td>esgyndb.data.primary_output</td><td>Esgyndb.Data.Primary_output</td><td>Esgyndb.Data.Primary output</td><td>0</td><td/><td/><td/><td>1</td><td>&lt;Esgyndb.Data&gt;|Built</td><td>3</td><td/></row>
 	</table>
 
 	<table name="FileSFPCatalog">
@@ -2033,11 +2030,10 @@
 		<col def="S0">FTPLocation</col>
 		<col def="S0">HTTPLocation</col>
 		<col def="S0">Miscellaneous</col>
+		<row><td>Esgyndb.Data.Primary_output</td><td/><td/><td>_06333807_EE2D_4365_9BAD_80174F31C915_FILTER</td><td/><td/><td/><td/></row>
+		<row><td>ISX_DEFAULTCOMPONENT</td><td/><td/><td>_630B5505_4352_4459_9DF7_232A5D88CFEB_FILTER</td><td/><td/><td/><td/></row>
 		<row><td>ISX_DEFAULTCOMPONENT1</td><td/><td/><td>_3B63AD5C_1545_44DB_913D_5D48553F907A_FILTER</td><td/><td/><td/><td/></row>
 		<row><td>ISX_DEFAULTCOMPONENT2</td><td/><td/><td>_B11170C2_CA3E_4933_83FF_E47BBE05BAC6_FILTER</td><td/><td/><td/><td/></row>
-		<row><td>Trafodion.Data.ETL.Primary_output</td><td/><td/><td>_DB6B1997_D661_447F_AAD2_2085A2031A8A_FILTER</td><td/><td/><td/><td/></row>
-		<row><td>Trafodion.Data.Primary_output</td><td/><td/><td>_A267384C_4C29_4A23_8B0E_42EFB8A96DCA_FILTER</td><td/><td/><td/><td/></row>
-		<row><td>Trafodion.Data.VisualStudio.Primary_output</td><td/><td/><td>_9DBE42E7_C909_4AA5_809F_AC8F9B2D08BE_FILTER</td><td/><td/><td/><td/></row>
 	</table>
 
 	<table name="ISCustomActionReference">
@@ -2316,6 +2312,7 @@
 		<col def="S255">TestValue</col>
 		<col def="i4">Type</col>
 		<row><td>CommonFilesFolder</td><td/><td/><td>1</td></row>
+		<row><td>Esgyndb.Data</td><td>Esgyndb.Data\Esgyndb.Data.csproj</td><td/><td>2</td></row>
 		<row><td>ISPROJECTDIR</td><td/><td/><td>1</td></row>
 		<row><td>ISProductFolder</td><td/><td/><td>1</td></row>
 		<row><td>ISProjectDataFolder</td><td/><td/><td>1</td></row>
@@ -3978,7 +3975,7 @@ UwBpAG4AZwBsAGUASQBtAGEAZwBlAAEARQB4AHAAcgBlAHMAcwA=
 		<row><td>ISTheme</td><td>InstallShield Blue.theme</td></row>
 		<row><td>ISUSLock</td><td>{960FAF10-C8D0-443D-AF9E-8AB5E5630C75}</td></row>
 		<row><td>ISUSSignature</td><td>{E546AF34-2882-4170-9CE3-7AAA6E45FDFB}</td></row>
-		<row><td>ISVisitedViews</td><td>viewAssistant,viewISToday,viewProject,viewAppFiles,viewUpgradePaths</td></row>
+		<row><td>ISVisitedViews</td><td>viewAssistant,viewISToday,viewProject,viewAppFiles,viewUpgradePaths,viewObjects,viewRegistry,viewTextMessages,viewCustomActions,viewUI,viewEnvironmentVariables,viewFileExtensions,viewIniFiles</td></row>
 		<row><td>Limited</td><td>1</td></row>
 		<row><td>LockPermissionMode</td><td>1</td></row>
 		<row><td>MsiExecCmdLineOptions</td><td/></row>
@@ -4422,6 +4419,8 @@ UwBpAG4AZwBsAGUASQBtAGEAZwBlAAEARQB4AHAAcgBlAHMAcwA=
 		<col def="s72">Component_</col>
 		<col def="I4">ISAttributes</col>
 		<row><td>Registry1</td><td>2</td><td>SOFTWARE\Microsoft\.NETFramework\AssemblyFolders\Trafodion ADO.NET Provider</td><td/><td>[INSTALLDIR]</td><td>ISX_DEFAULTCOMPONENT2</td><td>0</td></row>
+		<row><td>Registry2</td><td>2</td><td>SOFTWARE\Microsoft\.NETFramework\v4.0.30319\AssemblyFoldersEx\Trafodion ADO.NET Provider</td><td/><td>[INSTALLDIR]</td><td>ISX_DEFAULTCOMPONENT2</td><td>0</td></row>
+		<row><td>Registry3</td><td>2</td><td>SOFTWARE\Microsoft\.NETFramework\v2.0.50727\AssemblyFoldersEx\Trafodion ADO.NET Provider</td><td/><td>[INSTALLDIR]</td><td>ISX_DEFAULTCOMPONENT2</td><td>0</td></row>
 	</table>
 
 	<table name="RemoveFile">

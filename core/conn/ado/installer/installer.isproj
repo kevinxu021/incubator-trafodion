@@ -29,17 +29,9 @@
 	</ItemGroup>
 	<Import Project="$(MSBuildExtensionsPath32)\InstallShield\2015Limited\InstallShield.targets"/>
 	<ItemGroup>
-		<ProjectReference Include="..\Trafodion.Data\Trafodion.Data.csproj">
-			<Name>Trafodion.Data</Name>
+		<ProjectReference Include="..\Esgyndb.Data\Esgyndb.Data.csproj">
+			<Name>Esgyndb.Data</Name>
 			<Project>{51D6429C-E66A-4EC0-8502-DEAA1C667F1A}</Project>
-		</ProjectReference>
-		<ProjectReference Include="..\Trafodion.Data.ETL\Trafodion.Data.ETL.csproj">
-			<Name>Trafodion.Data.ETL</Name>
-			<Project>{D01A6BE8-6E10-484B-A1EC-93EA0D3174CC}</Project>
-		</ProjectReference>
-		<ProjectReference Include="..\Trafodion.Data.VisualStudio\Trafodion.Data.VisualStudio.csproj">
-			<Name>Trafodion.Data.VisualStudio</Name>
-			<Project>{0BF65755-E115-4B55-905F-EE9AC1097353}</Project>
 		</ProjectReference>
 	</ItemGroup>
 </Project>
