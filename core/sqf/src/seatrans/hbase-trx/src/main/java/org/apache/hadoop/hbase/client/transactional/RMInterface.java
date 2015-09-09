@@ -91,6 +91,7 @@ public class RMInterface {
     public AlgorithmType TRANSACTION_ALGORITHM;
     static Map<Long, Set<RMInterface>> mapRMsPerTransaction = new HashMap<Long,  Set<RMInterface>>();
     private TransactionalTableClient ttable = null;
+    private boolean bSynchronized=false;
     protected Map<Integer, TransactionalTableClient> peer_tables;
     static {
         System.loadLibrary("stmlib");
@@ -129,33 +130,49 @@ public class RMInterface {
 
     private AlgorithmType transactionAlgorithm;
 
-    public RMInterface(final String tableName) throws IOException {
+    public RMInterface(final String tableName, boolean pb_synchronized) throws IOException {
+        if (LOG.isTraceEnabled()) LOG.trace("RMInterface constructor:"
+					    + " tableName: " + tableName
+					    + " synchronized: " + pb_synchronized);
+	bSynchronized = pb_synchronized;
         transactionAlgorithm = AlgorithmType.MVCC;
         String envset = System.getenv("TM_USE_SSCC");
         if( envset != null)
         {
             transactionAlgorithm = (Integer.parseInt(envset) == 1) ? AlgorithmType.SSCC : AlgorithmType.MVCC;
         }
-	peer_tables = new HashMap<Integer, TransactionalTableClient>();
         if( transactionAlgorithm == AlgorithmType.MVCC) //MVCC
         {
+	    if (LOG.isTraceEnabled()) LOG.trace("Algorithm type: MVCC"
+						+ " tableName: " + tableName
+						+ " peerCount: " + pSTRConfig.getPeerCount());
             ttable = new TransactionalTable(Bytes.toBytes(tableName));
-	    if (pSTRConfig.getPeerCount() > 1) {
-		for ( Map.Entry<Integer, HConnection> e : pSTRConfig.getPeerConnections().entrySet() ) {
-		    int           lv_peerId = e.getKey();
-		    if (lv_peerId == 0) continue;
-		    peer_tables.put(lv_peerId, new TransactionalTable(Bytes.toBytes(tableName), e.getValue()));
+	    if (bSynchronized) {
+		if (pSTRConfig.getPeerCount() > 0) {
+		    peer_tables = new HashMap<Integer, TransactionalTableClient>();
+		    for ( Map.Entry<Integer, HConnection> e : pSTRConfig.getPeerConnections().entrySet() ) {
+			int           lv_peerId = e.getKey();
+			if (lv_peerId == 0) continue;
+			if (LOG.isTraceEnabled()) LOG.trace("ctor" 
+							    + " tableName: " + tableName
+							    + " peerId: " + lv_peerId
+							    + " connection: " + e.getValue());
+			peer_tables.put(lv_peerId, new TransactionalTable(Bytes.toBytes(tableName), e.getValue()));
+		    }
 		}
 	    }
         }
         else if(transactionAlgorithm == AlgorithmType.SSCC)
         {
             ttable = new SsccTransactionalTable( Bytes.toBytes(tableName));
-	    if (pSTRConfig.getPeerCount() > 1) {
-		for ( Map.Entry<Integer, HConnection> e : pSTRConfig.getPeerConnections().entrySet() ) {
-		    int           lv_peerId = e.getKey();
-		    if (lv_peerId == 0) continue;
-		    peer_tables.put(lv_peerId, new SsccTransactionalTable(Bytes.toBytes(tableName)));
+	    if (bSynchronized) {
+		if (pSTRConfig.getPeerCount() > 0) {
+		    peer_tables = new HashMap<Integer, TransactionalTableClient>();
+		    for ( Map.Entry<Integer, HConnection> e : pSTRConfig.getPeerConnections().entrySet() ) {
+			int           lv_peerId = e.getKey();
+			if (lv_peerId == 0) continue;
+			peer_tables.put(lv_peerId, new SsccTransactionalTable(Bytes.toBytes(tableName)));
+		    }
 		}
 	    }
         }
@@ -171,6 +188,10 @@ public class RMInterface {
 
     public RMInterface() throws IOException {
 
+    }
+
+    public boolean isSynchronized() {
+	return bSynchronized;
     }
 
     public synchronized TransactionState registerTransaction(final TransactionalTableClient pv_table, 
@@ -265,11 +286,13 @@ public class RMInterface {
 							     final byte[] row,
 							     final boolean pv_sendToPeers) throws IOException {
 
-        if (LOG.isTraceEnabled()) LOG.trace("Enter registerTransaction, transaction ID: " + transactionID);
+        if (LOG.isTraceEnabled()) LOG.trace("Enter registerTransaction," 
+					    + " transaction ID: " + transactionID
+					    + " sendToPeers: " + pv_sendToPeers);
 
 	TransactionState ts = registerTransaction(ttable, transactionID, row, 0);
 
-	if (pv_sendToPeers && (pSTRConfig.getPeerCount() > 1)) {
+	if (bSynchronized && pv_sendToPeers && (pSTRConfig.getPeerCount() > 0)) {
 	    for ( Map.Entry<Integer, TransactionalTableClient> e : peer_tables.entrySet() ) {
 		TransactionalTableClient lv_table = e.getValue();
 		int                      lv_peerId = e.getKey();
@@ -383,7 +406,7 @@ public class RMInterface {
         if (LOG.isTraceEnabled()) LOG.trace("delete txid: " + transactionID);
         TransactionState ts = registerTransaction(transactionID, delete.getRow(), true);
         ttable.delete(ts, delete, false);
-	if (pSTRConfig.getPeerCount() > 1) {
+	if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
 	    for (TransactionalTableClient lv_table : peer_tables.values()) {
 		lv_table.delete(ts, delete, false);
 	    }
@@ -400,7 +423,7 @@ public class RMInterface {
            ts = mapTransactionStates.get(transactionID);
         }
         ttable.delete(ts, deletes);
-	if (pSTRConfig.getPeerCount() > 1) {
+	if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
 	    for (TransactionalTableClient lv_table : peer_tables.values()) {
 		lv_table.delete(ts, deletes);
 	    }
@@ -419,7 +442,7 @@ public class RMInterface {
     public synchronized void put(final long transactionID, final Put put) throws IOException {
         if (LOG.isTraceEnabled()) LOG.trace("Enter Put txid: " + transactionID);
         TransactionState ts = registerTransaction(transactionID, put.getRow(), true);
-	if (pSTRConfig.getPeerCount() > 1) {
+	if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
 	    for (TransactionalTableClient lv_table : peer_tables.values()) {
 		lv_table.put(ts, put, false);
 	    }
@@ -439,7 +462,7 @@ public class RMInterface {
            ts = mapTransactionStates.get(transactionID);
         }
 
-	if (pSTRConfig.getPeerCount() > 1) {
+	if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
 	    for (TransactionalTableClient lv_table : peer_tables.values()) {
 		lv_table.put(ts, puts);
 	    }
@@ -455,8 +478,12 @@ public class RMInterface {
         if (LOG.isTraceEnabled()) LOG.trace("Enter checkAndPut txid: " + transactionID);
         TransactionState ts = registerTransaction(transactionID, row, true);
 
-	if (pSTRConfig.getPeerCount() > 1) {
+	if (LOG.isTraceEnabled()) LOG.trace("checkAndPut"
+					    + " bSynchronized: " + bSynchronized
+					    + " peerCount: " + pSTRConfig.getPeerCount());
+	if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
 	    for (TransactionalTableClient lv_table : peer_tables.values()) {
+		if (LOG.isTraceEnabled()) LOG.trace("Table Info: " + lv_table);
 		lv_table.checkAndPut(ts, row, family, qualifier, value, put);
 	    }
 	}
@@ -469,7 +496,7 @@ public class RMInterface {
 
         if (LOG.isTraceEnabled()) LOG.trace("Enter checkAndDelete txid: " + transactionID);
         TransactionState ts = registerTransaction(transactionID, row, true);
-	if (pSTRConfig.getPeerCount() > 1) {
+	if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
 	    for (TransactionalTableClient lv_table : peer_tables.values()) {
 		lv_table.checkAndDelete(ts, row, family, qualifier, value, delete);
 	    }

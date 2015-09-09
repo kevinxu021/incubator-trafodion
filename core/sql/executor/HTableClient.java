@@ -298,9 +298,13 @@ public class HTableClient {
 	  }
  
 	public boolean init(String tblName,
-              boolean useTRex) throws IOException 
+			    boolean useTRex,
+			    boolean bSynchronize
+			    ) throws IOException 
         {
-	    if (logger.isDebugEnabled()) logger.debug("Enter HTableClient::init, tableName: " + tblName);
+	    if (logger.isDebugEnabled()) logger.debug("Enter HTableClient::init, tableName: " + tblName 
+						      + " useTRex: " + useTRex
+						      + " bSynchronize: " + bSynchronize);
 	    this.useTRex = useTRex;
 	    tableName = tblName;
 	    
@@ -329,7 +333,7 @@ public class HTableClient {
 		}
 	    }
 
-	    table = new RMInterface(tblName);
+	    table = new RMInterface(tblName, bSynchronize);
 	    if (logger.isDebugEnabled()) logger.debug("Exit HTableClient::init, table object: " + table);
 	    return true;
 	}

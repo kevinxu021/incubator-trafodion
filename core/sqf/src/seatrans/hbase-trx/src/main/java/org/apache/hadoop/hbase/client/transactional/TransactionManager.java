@@ -1400,7 +1400,9 @@ public class TransactionManager {
 
         threadPool = Executors.newFixedThreadPool(intThreads);
 
-    cp_tpe = Executors.newFixedThreadPool(intCpThreads);
+	cp_tpe = Executors.newFixedThreadPool(intCpThreads);
+
+	pSTRConfig = STRConfig.getInstance(conf);
 
     }
 
