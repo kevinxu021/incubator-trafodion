@@ -123,7 +123,7 @@ public class ServerResource {
 
 		TabularResult result = new TabularResult();
 		try {
-			String trafRestUri = ConfigurationResource.getInstance().getTrafRestServerUri();
+			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
 			String uri = "";
 			Session soc = SessionModel.getSession(servletRequest, servletResponse);
 
@@ -149,7 +149,7 @@ public class ServerResource {
 
 		TabularResult result = new TabularResult();
 		try {
-			String trafRestUri = ConfigurationResource.getInstance().getTrafRestServerUri();
+			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
 			String uri = "";
 			Session soc = SessionModel.getSession(servletRequest, servletResponse);
 
@@ -174,7 +174,7 @@ public class ServerResource {
 
 		TabularResult result = new TabularResult();
 		try {
-			String trafRestUri = ConfigurationResource.getInstance().getTrafRestServerUri();
+			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
 			String uri = "";
 			Session soc = SessionModel.getSession(servletRequest, servletResponse);
 
