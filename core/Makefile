@@ -162,9 +162,9 @@ else
   ARCH=i686
 endif
 
-RELEASE ?= $(shell date +%Y%m%d)
-
+RELEASE ?= 1
 SPECFILE = trafodion.spec
+
 RPMROOT=$(shell cd ..; /bin/pwd)/RPMROOT
 RPMDIR=$(RPMROOT)/RPMS
 SRPMDIR=$(RPMROOT)/SRPMS
