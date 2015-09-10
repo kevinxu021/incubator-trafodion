@@ -279,7 +279,7 @@ elif [[ $sq_stat == 1 ]]; then
     exit 1
 fi
 
-SQCheckOrphanProcesses
+#SQCheckOrphanProcesses
 
 if [[ $run_chk_dbperms == 1 ]]; then
     chk_dbperms=$MY_SQROOT/sql/scripts/chk_dbperms
