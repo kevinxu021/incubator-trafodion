@@ -61,11 +61,12 @@ select nodeName from pnode;
 EOF
 
 echo 
-echo "Let's check if Trafodion is running on other nodes"
+echo "Let's check if a Trafodion monitor is running on other nodes..."
 
-grep_out=`cstat | grep "monitor COLD" | grep -v mpirun | cut -d: -f1`
+grep_out_mon=`cstat | grep "monitor COLD" `
 lv_ret=$?
 if [[ $lv_ret == 0 ]]; then
+    grep_out=`cstat | grep "monitor COLD" | grep -v mpirun | sort | cut -d: -f1`
     echo
     echo "Trafodion seems to be running on these nodes:"
     echo "$grep_out"
@@ -77,6 +78,7 @@ if [[ $lv_ret == 0 ]]; then
         exit $?
     done
 else
+    echo "None of the Trafodion nodes have a Trafodion monitor running on them."
     echo "Trafodion is currently down."
     exit 1;
 fi
