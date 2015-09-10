@@ -30,7 +30,7 @@
 ##############################################################
 
 #Product version (Trafodion or derivative product)
-export TRAFODION_VER_PROD="Apache Trafodion "
+export TRAFODION_VER_PROD="EsgynDB Enterprise "
 # Trafodion version (also update file ../sql/common/copyright.h)
 export TRAFODION_VER_MAJOR=1
 export TRAFODION_VER_MINOR=0
@@ -38,7 +38,7 @@ export TRAFODION_VER_UPDATE=0
 export TRAFODION_VER="${TRAFODION_VER_MAJOR}.${TRAFODION_VER_MINOR}.${TRAFODION_VER_UPDATE}"
 
 # Product copyright header
-export PRODUCT_COPYRIGHT_HEADER="2015 Apache Software Foundation"
+export PRODUCT_COPYRIGHT_HEADER="2015 Esgyn Corporation"
 ##############################################################
 # Trafodion authentication:
 #    Set TRAFODION_ENABLE_AUTHENTICATION to YES to enable
