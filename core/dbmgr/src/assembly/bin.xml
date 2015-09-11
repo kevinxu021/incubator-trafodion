@@ -12,7 +12,7 @@
 		<file>
 			<source>src/main/resources/config_template.xml</source>
 			<outputDirectory>conf</outputDirectory>
-			<destName>config.xml</destName>
+			<destName>config_template.xml</destName>
 			<fileMode>0755</fileMode>
 			<lineEnding>unix</lineEnding>
 		</file>
