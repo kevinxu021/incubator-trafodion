@@ -119,6 +119,9 @@ public class STRConfig {
 		 + (peer_configs.get(0)).get("hbase.zookeeper.property.clientPort"));
 
 	String lv_str_replicate = System.getenv("PEERS");
+	if (lv_str_replicate == null) {
+	    lv_str_replicate = System.getProperty("PEERS");
+	}
 	if (LOG.isTraceEnabled()) LOG.trace("PEERS env var value: " + lv_str_replicate);
 	String[] sv_peers;
 	if (lv_str_replicate != null) {
