@@ -147,7 +147,7 @@ function(moment, $) {
 				});
 			};
 			
-			this.generateExplainTree = function(jsonData, setRootNode){
+			this.generateExplainTree = function(jsonData, setRootNode, onClickCallback){
 	        	var st = new $jit.ST({
 	        		'injectInto': 'infovis',
 	        		orientation: "top",
@@ -193,10 +193,10 @@ function(moment, $) {
 	        			overridable: true
 	        		},
 	        		Tips: {  
-	        			enable: true,  
+	        			enable: onClickCallback == null,  
 	        			type: 'auto',  
-	        			offsetX: 20,  
-	        			offsetY: 20,  
+	        			//offsetX: 20,  
+	        			//offsetY: 20,  
 	        			onShow: function(tip, node) {  
 	        			  tip.innerHTML = node.data.formattedCostDesc;  
 	        			  tip.style.width = 450 + 'px';
@@ -366,6 +366,9 @@ function(moment, $) {
 	        							offsetY: st.canvas.translateOffsetY 
 	        					}; 
 	        				 st.onClick(node.id, { Move: m }); 
+	        				 if(onClickCallback){
+	        					 onClickCallback(node.name, node.data.formattedCostDesc);
+	        				 }
 	        			};
 	        			//set label styles
 	        			var style = label.style;

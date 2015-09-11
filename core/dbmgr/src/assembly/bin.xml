@@ -7,12 +7,35 @@
 	<formats>
 		<format>tar.gz</format>
 	</formats>
+
+	<files>
+		<file>
+			<source>src/main/resources/config_template.xml</source>
+			<outputDirectory>conf</outputDirectory>
+			<destName>config.xml</destName>
+			<fileMode>0755</fileMode>
+			<lineEnding>unix</lineEnding>
+		</file>
+		<file>
+			<source>target/${project.build.finalName}/WEB-INF/lib/jetty-util-${jettyVersion}.jar</source>
+			<outputDirectory>lib</outputDirectory>
+		</file>
+	</files>
 	<fileSets>
 		<fileSet>
 			<directory>bin</directory>
 			<outputDirectory>bin</outputDirectory>
 			<includes>
 				<include>*.sh</include>
+			</includes>
+			<fileMode>0755</fileMode>
+			<lineEnding>unix</lineEnding>
+		</fileSet>
+			<fileSet>
+			<directory>conf</directory>
+			<outputDirectory>conf</outputDirectory>
+			<includes>
+				<include>logback.xml</include>
 			</includes>
 			<fileMode>0755</fileMode>
 			<lineEnding>unix</lineEnding>
@@ -25,20 +48,11 @@
 			</includes>
 		</fileSet>
 		<fileSet>
-			<directory>src/main/resources</directory>
-			<outputDirectory>conf</outputDirectory>
-			<includes>
-				<include>config_template.xml</include>
-				<include>logback.xml</include>
-			</includes>
-			<fileMode>0755</fileMode>
-			<lineEnding>unix</lineEnding>
-		</fileSet>
-		<fileSet>
 			<directory>target</directory>
 			<outputDirectory>lib</outputDirectory>
 			<includes>
 				<include>${project.build.finalName}.war</include>
+				<include></include>
 			</includes>
 		</fileSet>
 	</fileSets>

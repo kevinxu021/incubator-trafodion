@@ -44,8 +44,8 @@ public class ConfigurationResource {
     return xmlConfig.getProperty("jdbcDriverClass");
   }
 
-  public String getTrafRestServerUri() {
-    return xmlConfig.getProperty("trafRestServerUri");
+  public String getTrafodionRestServerUri() {
+		return xmlConfig.getProperty("trafodionRestServerUri");
   }
 
   public String getOpenTSDBUri() {

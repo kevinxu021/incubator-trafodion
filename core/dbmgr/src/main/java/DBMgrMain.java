@@ -35,8 +35,8 @@ public class DBMgrMain {
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 
-		int httpPort = 8080;
-		int httpsPort = 8443;
+		int httpPort = 4205;
+		int httpsPort = 4206;
 		int requestHeaderSize = 96 * 1024;
 
 		try {
@@ -69,8 +69,7 @@ public class DBMgrMain {
 			}
 
 			try {
-				httpPort = Integer
-						.parseInt(config.getProperty("httpPort", "8080"));
+				httpPort = Integer.parseInt(config.getProperty("httpPort", String.valueOf(httpPort)));
 			} catch (Exception ex) {
 				System.out.println(
 						"Cannot parse the httpPort property value as integer. "
@@ -78,8 +77,7 @@ public class DBMgrMain {
 				System.exit(-1);
 			}
 			try {
-				httpsPort = Integer
-						.parseInt(config.getProperty("httpsPort", "8443"));
+				httpsPort = Integer.parseInt(config.getProperty("httpsPort", String.valueOf(httpsPort)));
 			} catch (Exception ex) {
 				System.out.println(
 						"Cannot parse the httpsPort property value as integer. "
