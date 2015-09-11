@@ -29,8 +29,9 @@
 
 @media ( min-width :768px) {
 	.navbar-default {
-		background-color: #337ab7;
+		/*background-color: #337ab7;*/
 		/*background-color: #cf5300;*/
+		background-color:steelblue;
 	}
 	.navbar-default .sidebar-nav {
 		/*background-color:rgb(94,115,149);*/
@@ -74,7 +75,7 @@
 	}
 	.mytooltip {
 		color: black;
-		width: 139px;
+		width: 150px;
 		background-color: aliceblue;
 		border: 1px solid #ccc;
 		-moz-box-shadow: #555 2px 2px 8px;
