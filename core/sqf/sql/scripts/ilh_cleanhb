@@ -63,14 +63,14 @@ function killMyHMaster {
 }
 
 lv_nnpid=`getMyNameNode`
-if [ -z ${lv_nnpid} ]; then
+if [[ -z ${lv_nnpid} ]]; then
     echo "NameNode is not up - please run swstarthadoop to start it or check the Hadoop logs - exitting..."
     exit 1
 fi
 echo "NameNode pid: ${lv_nnpid}"
 
 lv_dnpid=`getMyDataNode`
-if [ -z ${lv_dnpid} ]; then
+if [[ -z ${lv_dnpid} ]]; then
     echo "DataNode is not up - please run swstarthadoop to start it or check the Hadoop logs - exitting..."
     exit 1
 fi
