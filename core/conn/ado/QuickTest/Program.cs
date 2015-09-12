@@ -3,15 +3,15 @@ using System.Data;
 using System.Data.Common;
 using System.Reflection;
 using System.Resources;
-using Esgyndb.Data;
+using EsgynDB.Data;
 using System.Data.SqlClient;
 using System.Collections;
 using Microsoft.Win32;
 using System.IO;
-using Esgyndb.Data.VisualStudio;
+using EsgynDB.Data.VisualStudio;
 using System.Threading;
 using System.Diagnostics;
-using Esgyndb.Data.ETL;
+using EsgynDB.Data.ETL;
 using System.Data.Odbc;
 using System.Collections.Generic;
 using System.Configuration;
@@ -21,17 +21,17 @@ namespace ConsoleApp
 {
     class Program
     {
-        public static string ConnectionString = "server=192.168.1.104:23400;user=zz;password=zz;schema=ado";
+        public static string ConnectionString = "server=10.0.0.5:23400;user=zz;password=zz;schema=ado";
         public static void TestBatch()
         {
             try
             {
-                using (EsgyndbConnection conn = new EsgyndbConnection())
+                using (EsgynDBConnection conn = new EsgynDBConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString;
                     conn.Open();
 
-                    using (EsgyndbCommand cmd = conn.CreateCommand())
+                    using (EsgynDBCommand cmd = conn.CreateCommand())
                     {
                         try
                         {
@@ -47,8 +47,8 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t0 values(?,?)";
-                        cmd.Parameters.Add(new EsgyndbParameter("c0", EsgyndbType.Varchar));
-                        cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbType.Varchar));
+                        cmd.Parameters.Add(new EsgynDBParameter("c0", EsgynDBType.Varchar));
+                        cmd.Parameters.Add(new EsgynDBParameter("c1", EsgynDBType.Varchar));
 
                         cmd.Prepare();
 
@@ -63,7 +63,7 @@ namespace ConsoleApp
 
                         cmd.Parameters.Clear();
                         cmd.CommandText = "select * from t0";
-                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
+                        using (EsgynDBDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -85,7 +85,7 @@ namespace ConsoleApp
             }
         }
 
-        public static void DropTable(EsgyndbCommand cmd, string name)
+        public static void DropTable(EsgynDBCommand cmd, string name)
         {
             try
             {
@@ -102,12 +102,12 @@ namespace ConsoleApp
         {
             try
             {
-                using (EsgyndbConnection conn = new EsgyndbConnection())
+                using (EsgynDBConnection conn = new EsgynDBConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString;
                     conn.Open();
 
-                    using (EsgyndbCommand cmd = conn.CreateCommand())
+                    using (EsgynDBCommand cmd = conn.CreateCommand())
                     {
                         try
                         {
@@ -122,7 +122,7 @@ namespace ConsoleApp
                         cmd.CommandText = "create table t0 (c0 numeric(19,8), c1 numeric(34,13), c2 numeric(87,45), c3 numeric(104,3), c4 numeric(128,64)) no partition";
                         cmd.ExecuteNonQuery();
 
-                        EsgyndbTransaction trans = conn.BeginTransaction(IsolationLevel.ReadCommitted);
+                        EsgynDBTransaction trans = conn.BeginTransaction(IsolationLevel.ReadCommitted);
 
                         cmd.CommandText = "insert into t0 values(12345.6789, -123.67891234123, 123456789.023, 12.34, 123456789.123456)";
                         cmd.ExecuteNonQuery();
@@ -131,11 +131,11 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t0 values(?,?,?,?,?)";
-                        cmd.Parameters.Add(new EsgyndbParameter("c0", 12345.6789));
-                        cmd.Parameters.Add(new EsgyndbParameter("c1", -123.67891234123));
-                        cmd.Parameters.Add(new EsgyndbParameter("c2", 123456789.023));
-                        cmd.Parameters.Add(new EsgyndbParameter("c3", 12.34));
-                        cmd.Parameters.Add(new EsgyndbParameter("c4", 123456789.123456));
+                        cmd.Parameters.Add(new EsgynDBParameter("c0", 12345.6789));
+                        cmd.Parameters.Add(new EsgynDBParameter("c1", -123.67891234123));
+                        cmd.Parameters.Add(new EsgynDBParameter("c2", 123456789.023));
+                        cmd.Parameters.Add(new EsgynDBParameter("c3", 12.34));
+                        cmd.Parameters.Add(new EsgynDBParameter("c4", 123456789.123456));
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters[0].Value = 45345.1;
@@ -151,7 +151,7 @@ namespace ConsoleApp
 
                         Console.WriteLine("REGULAR");
                         cmd.CommandText = "select * from t0";
-                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
+                        using (EsgynDBDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -166,7 +166,7 @@ namespace ConsoleApp
 
                         Console.WriteLine("CommandBehavior.SingleRow");
                         cmd.CommandText = "select * from t0";
-                        using (EsgyndbDataReader dr = cmd.ExecuteReader(CommandBehavior.SingleRow))
+                        using (EsgynDBDataReader dr = cmd.ExecuteReader(CommandBehavior.SingleRow))
                         {
                             while (dr.Read())
                             {
@@ -191,27 +191,27 @@ namespace ConsoleApp
         {
             try
             {
-                using (EsgyndbConnection conn = new EsgyndbConnection())
+                using (EsgynDBConnection conn = new EsgynDBConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString;
                     conn.Open();
 
-                    using (EsgyndbCommand cmd = conn.CreateCommand())
+                    using (EsgynDBCommand cmd = conn.CreateCommand())
                     {
                         DropTable(cmd, "dude");
 
                         cmd.CommandText = "create table dude (id int not null, name varchar(100), primary key(id))";
                         cmd.ExecuteNonQuery();
 
-                        EsgyndbCommand sel = conn.CreateCommand();
+                        EsgynDBCommand sel = conn.CreateCommand();
                         sel.CommandText = "select * from dude";
 
-                        EsgyndbCommand ins = conn.CreateCommand();
+                        EsgynDBCommand ins = conn.CreateCommand();
                         ins.CommandText = "insert into dude (id, name) VALUES (?,?)";
-                        ins.Parameters.Add(new EsgyndbParameter("id", EsgyndbType.Integer));
-                        ins.Parameters.Add(new EsgyndbParameter("name", EsgyndbType.Varchar));
+                        ins.Parameters.Add(new EsgynDBParameter("id", EsgynDBType.Integer));
+                        ins.Parameters.Add(new EsgynDBParameter("name", EsgynDBType.Varchar));
 
-                        EsgyndbDataAdapter adp = new EsgyndbDataAdapter();
+                        EsgynDBDataAdapter adp = new EsgynDBDataAdapter();
                         adp.SelectCommand = sel;
                         adp.InsertCommand = ins;
 
@@ -278,12 +278,12 @@ namespace ConsoleApp
 
 
                 string [] tables = {"REGION", "TEAM", "PLAYER"};
-                using (EsgyndbConnection conn = new EsgyndbConnection())
+                using (EsgynDBConnection conn = new EsgynDBConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString;
                     conn.Open();
 
-                    using (EsgyndbCommand cmd = conn.CreateCommand())
+                    using (EsgynDBCommand cmd = conn.CreateCommand())
                     {
                         /*DropTable(cmd, "player");
                         DropTable(cmd, "team");
@@ -299,17 +299,17 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into region values(?,?)";
-                        cmd.Parameters.Add(new EsgyndbParameter("id", EsgyndbType.Integer));
-                        cmd.Parameters.Add(new EsgyndbParameter("name", EsgyndbType.Varchar));
+                        cmd.Parameters.Add(new EsgynDBParameter("id", EsgynDBType.Integer));
+                        cmd.Parameters.Add(new EsgynDBParameter("name", EsgynDBType.Varchar));
 
                         cmd.Parameters[0].Value = 1;
                         cmd.Parameters[1].Value = "North America";
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into team values(?,?,?)";
-                        cmd.Parameters.Add(new EsgyndbParameter("id", EsgyndbType.Integer));
-                        cmd.Parameters.Add(new EsgyndbParameter("region", EsgyndbType.Integer));
-                        cmd.Parameters.Add(new EsgyndbParameter("name", EsgyndbType.Varchar));
+                        cmd.Parameters.Add(new EsgynDBParameter("id", EsgynDBType.Integer));
+                        cmd.Parameters.Add(new EsgynDBParameter("region", EsgynDBType.Integer));
+                        cmd.Parameters.Add(new EsgynDBParameter("name", EsgynDBType.Varchar));
 
                         cmd.Parameters[0].Value = 1;
                         cmd.Parameters[1].Value = 1;
@@ -325,9 +325,9 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into player values(?,?,?)";
-                        cmd.Parameters.Add(new EsgyndbParameter("id", EsgyndbType.Integer));
-                        cmd.Parameters.Add(new EsgyndbParameter("team", EsgyndbType.Integer));
-                        cmd.Parameters.Add(new EsgyndbParameter("name", EsgyndbType.Varchar));
+                        cmd.Parameters.Add(new EsgynDBParameter("id", EsgynDBType.Integer));
+                        cmd.Parameters.Add(new EsgynDBParameter("team", EsgynDBType.Integer));
+                        cmd.Parameters.Add(new EsgynDBParameter("name", EsgynDBType.Varchar));
 
                         cmd.Parameters[0].Value = 1;
                         cmd.Parameters[1].Value = 1;
@@ -351,7 +351,7 @@ namespace ConsoleApp
                             "inner join region as r on t.region_id = r.id " +
                             "order by r.name, t.name, p.name";
 
-                        EsgyndbDataReader dr = cmd.ExecuteReader();
+                        EsgynDBDataReader dr = cmd.ExecuteReader();
                         string [] vals = new string[3];
                         while (dr.Read())
                         {
@@ -381,12 +381,12 @@ namespace ConsoleApp
         {
             try
             {
-                using (EsgyndbConnection conn = new EsgyndbConnection())
+                using (EsgynDBConnection conn = new EsgynDBConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString;
                     conn.Open();
 
-                    using (EsgyndbCommand cmd = conn.CreateCommand())
+                    using (EsgynDBCommand cmd = conn.CreateCommand())
                     {
                         try
                         {
@@ -408,11 +408,11 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t0 values(?,?,?,?,?)";
-                        cmd.Parameters.Add(new EsgyndbParameter("c0", 12345.6789));
-                        cmd.Parameters.Add(new EsgyndbParameter("c1", -123.6789));
-                        cmd.Parameters.Add(new EsgyndbParameter("c2", 123456789.023));
-                        cmd.Parameters.Add(new EsgyndbParameter("c3", 12.34));
-                        cmd.Parameters.Add(new EsgyndbParameter("c4", 123456789.123456));
+                        cmd.Parameters.Add(new EsgynDBParameter("c0", 12345.6789));
+                        cmd.Parameters.Add(new EsgynDBParameter("c1", -123.6789));
+                        cmd.Parameters.Add(new EsgynDBParameter("c2", 123456789.023));
+                        cmd.Parameters.Add(new EsgynDBParameter("c3", 12.34));
+                        cmd.Parameters.Add(new EsgynDBParameter("c4", 123456789.123456));
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters[0].Value = 45345.1;
@@ -422,12 +422,12 @@ namespace ConsoleApp
                         cmd.Parameters[4].Value = 1.54367;
                         cmd.ExecuteNonQuery();
 
-                        Console.WriteLine(EsgyndbType.Integer);
+                        Console.WriteLine(EsgynDBType.Integer);
 
 
                         cmd.CommandText = "select * from t0";
                         cmd.Parameters.Clear();
-                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
+                        using (EsgynDBDataReader dr = cmd.ExecuteReader())
                         {
                             PrintDataTable(dr.GetSchemaTable());
                             if (dr.HasRows)
@@ -457,12 +457,12 @@ namespace ConsoleApp
         {
             try
             {
-                using (EsgyndbConnection conn = new EsgyndbConnection())
+                using (EsgynDBConnection conn = new EsgynDBConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString; 
                     conn.Open();
 
-                    using (EsgyndbCommand cmd = conn.CreateCommand())
+                    using (EsgynDBCommand cmd = conn.CreateCommand())
                     {
                         try
                         {
@@ -490,11 +490,11 @@ namespace ConsoleApp
                         45345.1 38423 8457234.43 99.99 1.54367*/
 
                         cmd.CommandText = "insert into t0 values(?,?,?,?,?)";
-                        cmd.Parameters.Add(new EsgyndbParameter("c0", 12345.6789));
-                        cmd.Parameters.Add(new EsgyndbParameter("c1", -12345.6789));
-                        cmd.Parameters.Add(new EsgyndbParameter("c2", 123456789.023));
-                        cmd.Parameters.Add(new EsgyndbParameter("c3", 12.34));
-                        cmd.Parameters.Add(new EsgyndbParameter("c4", 123456789.123456));
+                        cmd.Parameters.Add(new EsgynDBParameter("c0", 12345.6789));
+                        cmd.Parameters.Add(new EsgynDBParameter("c1", -12345.6789));
+                        cmd.Parameters.Add(new EsgynDBParameter("c2", 123456789.023));
+                        cmd.Parameters.Add(new EsgynDBParameter("c3", 12.34));
+                        cmd.Parameters.Add(new EsgynDBParameter("c4", 123456789.123456));
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters[0].Value = 45345.1;
@@ -506,7 +506,7 @@ namespace ConsoleApp
 
                         cmd.Parameters.Clear();
                         cmd.CommandText = "select * from t0";
-                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
+                        using (EsgynDBDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -531,12 +531,12 @@ namespace ConsoleApp
         public static void TestStaticNumericUnsigned()
         {
             try {
-                using (EsgyndbConnection conn = new EsgyndbConnection())
+                using (EsgynDBConnection conn = new EsgynDBConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString;
                     conn.Open();
 
-                    using (EsgyndbCommand cmd = conn.CreateCommand())
+                    using (EsgynDBCommand cmd = conn.CreateCommand())
                     {
                         try
                         {
@@ -561,8 +561,8 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t0 values(?,?)";
-                        cmd.Parameters.Add(new EsgyndbParameter("c0", 2345));
-                        cmd.Parameters.Add(new EsgyndbParameter("c1", 2345));
+                        cmd.Parameters.Add(new EsgynDBParameter("c0", 2345));
+                        cmd.Parameters.Add(new EsgynDBParameter("c1", 2345));
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters[0].Value = UInt16.MaxValue;
@@ -570,13 +570,13 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters.Clear();
-                        cmd.Parameters.Add(new EsgyndbParameter("c0", ushort.MinValue));
-                        cmd.Parameters.Add(new EsgyndbParameter("c1", uint.MinValue));
+                        cmd.Parameters.Add(new EsgynDBParameter("c0", ushort.MinValue));
+                        cmd.Parameters.Add(new EsgynDBParameter("c1", uint.MinValue));
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters.Clear();
                         cmd.CommandText = "select * from t0";
-                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
+                        using (EsgynDBDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -602,12 +602,12 @@ namespace ConsoleApp
         {
             try
             {
-                using (EsgyndbConnection conn = new EsgyndbConnection())
+                using (EsgynDBConnection conn = new EsgynDBConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString; 
                     conn.Open();
 
-                    using (EsgyndbCommand cmd = conn.CreateCommand())
+                    using (EsgynDBCommand cmd = conn.CreateCommand())
                     {
                         try
                         {
@@ -637,11 +637,11 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t0 values(?,?,?,?,?)";
-                        cmd.Parameters.Add(new EsgyndbParameter("c0", 2345));
-                        cmd.Parameters.Add(new EsgyndbParameter("c1", 2345));
-                        cmd.Parameters.Add(new EsgyndbParameter("c2", 2345));
-                        cmd.Parameters.Add(new EsgyndbParameter("c3", 2345.6789));
-                        cmd.Parameters.Add(new EsgyndbParameter("c4", 2345.6789));
+                        cmd.Parameters.Add(new EsgynDBParameter("c0", 2345));
+                        cmd.Parameters.Add(new EsgynDBParameter("c1", 2345));
+                        cmd.Parameters.Add(new EsgynDBParameter("c2", 2345));
+                        cmd.Parameters.Add(new EsgynDBParameter("c3", 2345.6789));
+                        cmd.Parameters.Add(new EsgynDBParameter("c4", 2345.6789));
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters[0].Value = Int16.MaxValue;
@@ -659,16 +659,16 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters.Clear();
-                        cmd.Parameters.Add(new EsgyndbParameter("c0", short.MinValue));
-                        cmd.Parameters.Add(new EsgyndbParameter("c1", int.MinValue));
-                        cmd.Parameters.Add(new EsgyndbParameter("c2", long.MinValue));
-                        cmd.Parameters.Add(new EsgyndbParameter("c3", float.MinValue));
-                        cmd.Parameters.Add(new EsgyndbParameter("c4", (double.MinValue/10)));
+                        cmd.Parameters.Add(new EsgynDBParameter("c0", short.MinValue));
+                        cmd.Parameters.Add(new EsgynDBParameter("c1", int.MinValue));
+                        cmd.Parameters.Add(new EsgynDBParameter("c2", long.MinValue));
+                        cmd.Parameters.Add(new EsgynDBParameter("c3", float.MinValue));
+                        cmd.Parameters.Add(new EsgynDBParameter("c4", (double.MinValue/10)));
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters.Clear();
                         cmd.CommandText = "select * from t0";
-                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
+                        using (EsgynDBDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -694,12 +694,12 @@ namespace ConsoleApp
         {
             try
             {
-                using (EsgyndbConnection conn = new EsgyndbConnection())
+                using (EsgynDBConnection conn = new EsgynDBConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString; 
                     conn.Open();
 
-                    using (EsgyndbCommand cmd = conn.CreateCommand())
+                    using (EsgynDBCommand cmd = conn.CreateCommand())
                     {
                         try
                         {
@@ -731,13 +731,13 @@ namespace ConsoleApp
                         cmd.CommandText = "insert into t0 values(?,?,?,?,?,?,?)";
                         for(int i=0;i<7;i++ ) 
                         {
-                            cmd.Parameters.Add(new EsgyndbParameter("c" + i, dt));
+                            cmd.Parameters.Add(new EsgynDBParameter("c" + i, dt));
                         }
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters.Clear();
                         cmd.CommandText = "select * from t0";
-                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
+                        using (EsgynDBDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -770,12 +770,12 @@ namespace ConsoleApp
         {
             try
             {
-                using (EsgyndbConnection conn = new EsgyndbConnection())
+                using (EsgynDBConnection conn = new EsgynDBConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString; 
                     conn.Open();
 
-                    using (EsgyndbCommand cmd = conn.CreateCommand())
+                    using (EsgynDBCommand cmd = conn.CreateCommand())
                     {
                         try
                         {
@@ -794,15 +794,15 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t0 values(?,?,?,?)";
-                        cmd.Parameters.Add(new EsgyndbParameter("c0", "test string"));
-                        cmd.Parameters.Add(new EsgyndbParameter("c1", "test string"));
-                        cmd.Parameters.Add(new EsgyndbParameter("c2", "test string"));
-                        cmd.Parameters.Add(new EsgyndbParameter("c3", "test string"));
+                        cmd.Parameters.Add(new EsgynDBParameter("c0", "test string"));
+                        cmd.Parameters.Add(new EsgynDBParameter("c1", "test string"));
+                        cmd.Parameters.Add(new EsgynDBParameter("c2", "test string"));
+                        cmd.Parameters.Add(new EsgynDBParameter("c3", "test string"));
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters.Clear();
                         cmd.CommandText = "select * from t0";
-                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
+                        using (EsgynDBDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -825,23 +825,23 @@ namespace ConsoleApp
         }
 
 
-        private static readonly Assembly asm = Assembly.GetAssembly(typeof(EsgyndbFactory)); //the assembly to register
+        private static readonly Assembly asm = Assembly.GetAssembly(typeof(EsgynDBFactory)); //the assembly to register
 
         public static void DataAdapterWithNoParameter()
         {
-            EsgyndbConnection conn = new EsgyndbConnection();
+            EsgynDBConnection conn = new EsgynDBConnection();
             conn.ConnectionString = ConnectionString;
             conn.Open();
-            EsgyndbCommand cmd = conn.CreateCommand();
+            EsgynDBCommand cmd = conn.CreateCommand();
 
-            EsgyndbDataAdapter dataadapter = new EsgyndbDataAdapter();
-            EsgyndbCommand selectCmd = conn.CreateCommand();
+            EsgynDBDataAdapter dataadapter = new EsgynDBDataAdapter();
+            EsgynDBCommand selectCmd = conn.CreateCommand();
             selectCmd.CommandText = "select * from test_DataAdapter;";
             dataadapter.SelectCommand = selectCmd;
 
-            EsgyndbCommand updateCmd = conn.CreateCommand();
+            EsgynDBCommand updateCmd = conn.CreateCommand();
             updateCmd.CommandText = "update test_DataAdapter set A=? where A=20";
-            updateCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbType.Integer));
+            updateCmd.Parameters.Add(new EsgynDBParameter("A", EsgynDBType.Integer));
             dataadapter.UpdateCommand = updateCmd;
             DataTable dt_update;
             dt_update = new DataTable();
@@ -856,14 +856,14 @@ namespace ConsoleApp
             dt_update.Clear();
 
             //for update command
-            EsgyndbCommand sCmd = conn.CreateCommand();
+            EsgynDBCommand sCmd = conn.CreateCommand();
             sCmd.CommandText = "select * from test_DataAdapter;";
-            dataadapter = new EsgyndbDataAdapter();
+            dataadapter = new EsgynDBDataAdapter();
             dataadapter.SelectCommand = sCmd;
             dataadapter.Fill(dt_update);
-            EsgyndbCommand uCmd = conn.CreateCommand();
+            EsgynDBCommand uCmd = conn.CreateCommand();
             uCmd.CommandText = "update test_DataAdapter set A=? where A=2000";
-            uCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbType.Integer));
+            uCmd.Parameters.Add(new EsgynDBParameter("A", EsgynDBType.Integer));
             dataadapter.UpdateCommand = uCmd;
             dt_update.Rows[0]["A"] = 200;
             dataadapter.Update(dt_update);
@@ -876,16 +876,16 @@ namespace ConsoleApp
             dt_update.Clear();
 
             //for delete command
-            dataadapter = new EsgyndbDataAdapter();
-            EsgyndbCommand selCmd = conn.CreateCommand();
+            dataadapter = new EsgynDBDataAdapter();
+            EsgynDBCommand selCmd = conn.CreateCommand();
             selCmd.CommandText = "select * from test_DataAdapter;";
             dataadapter.SelectCommand = selCmd;
             dataadapter.Fill(dt_update);
             //displayDatatable(dt_update);
-            EsgyndbCommand delCmd = conn.CreateCommand();
+            EsgynDBCommand delCmd = conn.CreateCommand();
             delCmd.CommandText = "delete from test_DataAdapter where A=?;";
             dataadapter.DeleteCommand = delCmd;
-            delCmd.Parameters.Add(new EsgyndbParameter("A", EsgyndbType.Integer));
+            delCmd.Parameters.Add(new EsgynDBParameter("A", EsgynDBType.Integer));
             dt_update.Rows[0].Delete();
             dataadapter.Update(dt_update);
             cmd.CommandText = "select count(*) from test_DataAdapter";
@@ -934,7 +934,7 @@ namespace ConsoleApp
         static void Main(string[] args)
         {
             
-            EsgyndbConnection conn = new EsgyndbConnection();
+            EsgynDBConnection conn = new EsgynDBConnection();
 
             conn.ConnectionString = Program.ConnectionString;
 
@@ -971,7 +971,7 @@ namespace ConsoleApp
             
             cmd.CommandText = strSelct;
             Console.WriteLine("Executing: " + strSelct + "...");
-            EsgyndbDataReader reader = cmd.ExecuteReader();
+            EsgynDBDataReader reader = cmd.ExecuteReader();
             while (reader.Read())
             {
                 Console.WriteLine("GetString(c1) : " + reader.GetString(0));
@@ -996,7 +996,7 @@ namespace ConsoleApp
             cmd.CommandText = strSelCnt1;
             Console.WriteLine("Executing: " + strSelCnt1 + "...");
             cmd.Parameters.Clear();
-            EsgyndbParameter pam = new EsgyndbParameter("C1Value", EsgyndbType.Char);
+            EsgynDBParameter pam = new EsgynDBParameter("C1Value", EsgynDBType.Char);
             //pam.DbType = DbType.String;
             //pam.Value = value;
             Encoding utf8 = Encoding.GetEncoding("UTF-8");
@@ -1061,7 +1061,7 @@ namespace ConsoleApp
                 
             /*try
             {
-                using (EsgyndbConnection conn = new EsgyndbConnection())
+                using (EsgynDBConnection conn = new EsgynDBConnection())
                 {
                     conn.ConnectionString = ConnectionString;
                     conn.Open();
@@ -1076,13 +1076,13 @@ namespace ConsoleApp
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t1 values(?)";
-                        cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbType.Timestamp));
+                        cmd.Parameters.Add(new EsgynDBParameter("c1", EsgynDBType.Timestamp));
                         cmd.Parameters[0].Value = "2008-04-03 19:12:10.123";
                         cmd.ExecuteNonQuery();
 
                         cmd.Parameters.Clear();
                         cmd.CommandText = "select * from t1";
-                        using (EsgyndbDataReader dr = cmd.ExecuteReader())
+                        using (EsgynDBDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -1174,16 +1174,16 @@ namespace ConsoleApp
             Stopwatch sw = new Stopwatch();
             sw.Start();
             
-            using (EsgyndbConnection conn = new EsgyndbConnection())
+            using (EsgynDBConnection conn = new EsgynDBConnection())
             {
                 conn.ConnectionString = connStr;
                 conn.Open();
 
-                using (EsgyndbCommand cmd = conn.CreateCommand())
+                using (EsgynDBCommand cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = query;
 
-                    using (EsgyndbDataReader dr = cmd.ExecuteReader())
+                    using (EsgynDBDataReader dr = cmd.ExecuteReader())
                     {
                         int cacheSize = 1024 * 1024;
 
@@ -1247,7 +1247,7 @@ namespace ConsoleApp
                     RowDelimiter = "\r\n",
                 };
 
-                EsgyndbDataReader[] readers=pe.Execute();
+                EsgynDBDataReader[] readers=pe.Execute();
 
                 pe.WriteToStream(fs);
                 pe.Close();
@@ -1270,7 +1270,7 @@ namespace ConsoleApp
             {
                 Stopwatch sw = new Stopwatch();
 
-                using (EsgyndbConnection conn = new EsgyndbConnection())
+                using (EsgynDBConnection conn = new EsgynDBConnection())
                 {
                     conn.ConnectionString = ConnectionString +";Pooling=true;MaxPoolSize=10";
                     sw.Start();
@@ -1280,7 +1280,7 @@ namespace ConsoleApp
 
                     Console.WriteLine(sw.ElapsedMilliseconds);
 
-                    EsgyndbCommand cmd = conn.CreateCommand();
+                    EsgynDBCommand cmd = conn.CreateCommand();
                
                         cmd.CommandText = "drop table t1";
                         try { cmd.ExecuteNonQuery(); }
@@ -1329,12 +1329,12 @@ namespace ConsoleApp
 
         private static void SetupExtract(string connStr)
         {
-            using (EsgyndbConnection conn = new EsgyndbConnection())
+            using (EsgynDBConnection conn = new EsgynDBConnection())
             {
                 conn.ConnectionString = connStr;
                 conn.Open();
 
-                using (EsgyndbCommand cmd = conn.CreateCommand())
+                using (EsgynDBCommand cmd = conn.CreateCommand())
                 {
                     /*cmd.CommandText = "drop table etable";
                     try { cmd.ExecuteNonQuery(); }
@@ -1344,9 +1344,9 @@ namespace ConsoleApp
                     cmd.ExecuteNonQuery();
                     
                     cmd.CommandText = "insert into etable values(?,?,?)";
-                    cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbType.Integer));
-                    cmd.Parameters.Add(new EsgyndbParameter("c2", EsgyndbType.Char));
-                    cmd.Parameters.Add(new EsgyndbParameter("c3", EsgyndbType.Char));
+                    cmd.Parameters.Add(new EsgynDBParameter("c1", EsgynDBType.Integer));
+                    cmd.Parameters.Add(new EsgynDBParameter("c2", EsgynDBType.Char));
+                    cmd.Parameters.Add(new EsgynDBParameter("c3", EsgynDBType.Char));
                     cmd.Prepare();
 
                     cmd.Parameters[1].Value = "value1234567890";
@@ -1357,7 +1357,7 @@ namespace ConsoleApp
 
                     cmd.CommandText = "insert into etable select etable.c1 + ?, etable.c2, etable.c3 from etable";
                     cmd.Parameters.Clear();
-                    cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbType.Integer));
+                    cmd.Parameters.Add(new EsgynDBParameter("c1", EsgynDBType.Integer));
                     cmd.Prepare();
 
                     for (int i = 1; i < 300000; i *= 2)
@@ -1388,8 +1388,8 @@ namespace ConsoleApp
                     cmd.ExecuteNonQuery();
 
                     cmd.CommandText = "insert into etable3 values(?,?)";
-                    cmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbType.Integer));
-                    cmd.Parameters.Add(new EsgyndbParameter("c2", EsgyndbType.Varchar));
+                    cmd.Parameters.Add(new EsgynDBParameter("c1", EsgynDBType.Integer));
+                    cmd.Parameters.Add(new EsgynDBParameter("c2", EsgynDBType.Varchar));
                    
                     cmd.Prepare();
 
@@ -1455,7 +1455,7 @@ namespace ConsoleApp
             Console.WriteLine(string.Format("Conn String: {0}\n Streams: {1}\nFetchSize: {2}\nQuery: {3}", connStr, 1, fetchsize, query));
                 
             string format = "{0}|\"{1}\"";//|\"{2}\"";
-            using (EsgyndbConnection conn = new EsgyndbConnection())
+            using (EsgynDBConnection conn = new EsgynDBConnection())
             {
                 conn.ConnectionString = connStr;
                 conn.Open();
@@ -1463,14 +1463,14 @@ namespace ConsoleApp
                 FileStream fs = File.Open(file, FileMode.Create);
                 TextWriter tw = new StreamWriter(fs);
 
-                using (EsgyndbCommand cmd = conn.CreateCommand())
+                using (EsgynDBCommand cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = query;
 
                     Stopwatch sw = new Stopwatch();
                     sw.Start();
 
-                    EsgyndbDataReader dr = cmd.ExecuteReader();
+                    EsgynDBDataReader dr = cmd.ExecuteReader();
                     object [] v = new object[dr.FieldCount];
 
                     //dr.FetchSize = fetchsize;
@@ -1537,11 +1537,11 @@ namespace ConsoleApp
 
         public static void TestCancel()
         {
-            EsgyndbConnection conn = new EsgyndbConnection();
+            EsgynDBConnection conn = new EsgynDBConnection();
             conn.ConnectionString = Program.ConnectionString; 
             conn.Open();
 
-            EsgyndbCommand cmd = conn.CreateCommand();
+            EsgynDBCommand cmd = conn.CreateCommand();
             cmd.CommandText = "insert into neo.doermann.testcancel4 (c1) select x.c1 from neo.doermann.testcancel1 x, neo.doermann.testcancel2 y, neo.doermann.testcancel1 z where x.c1 + y.c1 + z.c1 < 70";
 
             Thread t = new Thread(new ParameterizedThreadStart(CancelCommand));
@@ -1560,7 +1560,7 @@ namespace ConsoleApp
         //wait 5 seconds, then cancel the command
         public static void CancelCommand(object var)
         {
-            EsgyndbCommand cmd = (EsgyndbCommand)var;
+            EsgynDBCommand cmd = (EsgynDBCommand)var;
             Thread.Sleep(10000);
 
             Console.WriteLine("issuing cancel");
@@ -1569,11 +1569,11 @@ namespace ConsoleApp
 
         public static void TestRowsAffected()
         {
-            EsgyndbConnection conn = new EsgyndbConnection();
+            EsgynDBConnection conn = new EsgynDBConnection();
             conn.ConnectionString = Program.ConnectionString; 
             conn.Open();
 
-            EsgyndbCommand cmd = conn.CreateCommand();
+            EsgynDBCommand cmd = conn.CreateCommand();
             try
             {
                 cmd.CommandText = "drop table t0";
@@ -1590,7 +1590,7 @@ namespace ConsoleApp
             cmd.CommandText = "insert into t0 values(1)";
             Console.WriteLine(cmd.ExecuteNonQuery());
 
-            using (EsgyndbDataReader dr = cmd.ExecuteReader())
+            using (EsgynDBDataReader dr = cmd.ExecuteReader())
             {
                 if (dr.HasRows)
                 {
@@ -1604,7 +1604,7 @@ namespace ConsoleApp
             }
 
             cmd.CommandText = "select * from t0";
-            using (EsgyndbDataReader dr = cmd.ExecuteReader(CommandBehavior.SchemaOnly))
+            using (EsgynDBDataReader dr = cmd.ExecuteReader(CommandBehavior.SchemaOnly))
             {
                 if (dr.HasRows)
                 {
@@ -1617,7 +1617,7 @@ namespace ConsoleApp
                 Console.WriteLine(dr.RecordsAffected);
             }
 
-            using (EsgyndbDataReader dr = cmd.ExecuteReader(CommandBehavior.SingleRow))
+            using (EsgynDBDataReader dr = cmd.ExecuteReader(CommandBehavior.SingleRow))
             {
                 if (dr.HasRows)
                 {
@@ -1650,20 +1650,20 @@ namespace ConsoleApp
             
             try
             {
-                using (EsgyndbConnection conn = new EsgyndbConnection())
+                using (EsgynDBConnection conn = new EsgynDBConnection())
                 {
                     conn.ConnectionString = Program.ConnectionString; 
                     conn.Open();
 
-                    using (EsgyndbCommand cmd = conn.CreateCommand())
+                    using (EsgynDBCommand cmd = conn.CreateCommand())
                     {
                         cmd.CommandType = CommandType.StoredProcedure; //this actually isnt required
                         cmd.CommandText = "call NEO.ODBCSPJ.RS4(?,?)";
                         
                         //try some of the various ways to create parameters
-                        cmd.Parameters.Add(new EsgyndbParameter("p1", "NEO.DOERMANN.T1"));
+                        cmd.Parameters.Add(new EsgynDBParameter("p1", "NEO.DOERMANN.T1"));
 
-                        EsgyndbParameter parameter = cmd.CreateParameter();
+                        EsgynDBParameter parameter = cmd.CreateParameter();
                         parameter.Direction = ParameterDirection.Output;
                         parameter.DbType = DbType.Int32;
                         parameter.ParameterName = "p2";
@@ -1676,7 +1676,7 @@ namespace ConsoleApp
 
                         parameter.Value = base64;
 
-                        EsgyndbDataReader dr = cmd.ExecuteReader();
+                        EsgynDBDataReader dr = cmd.ExecuteReader();
 
                         Console.WriteLine(parameter.Value); //reference the original object
                         Console.WriteLine(cmd.Parameters[1].Value); //by index
@@ -1717,7 +1717,7 @@ namespace ConsoleApp
 
         public static void TestMetaData()
         {
-            EsgyndbConnection conn = new EsgyndbConnection();
+            EsgynDBConnection conn = new EsgynDBConnection();
             conn.ConnectionString = Program.ConnectionString; 
             conn.Open();
 
@@ -1745,9 +1745,9 @@ namespace ConsoleApp
 
         public static void TestAdapterManual()
         {
-            EsgyndbConnection conn = new EsgyndbConnection(Program.ConnectionString);
+            EsgynDBConnection conn = new EsgynDBConnection(Program.ConnectionString);
             conn.Open();
-            EsgyndbCommand cmd = conn.CreateCommand();
+            EsgynDBCommand cmd = conn.CreateCommand();
             cmd.CommandText = "drop table t1";
             try { cmd.ExecuteNonQuery(); } catch { } //ignore error
             cmd.CommandText = "create table t1 (c1 int not null not droppable primary key, c2 varchar(100)) no partition";
@@ -1759,25 +1759,25 @@ namespace ConsoleApp
 
             Console.WriteLine("Setup Complete");
 
-            EsgyndbCommand selectCmd = conn.CreateCommand();
+            EsgynDBCommand selectCmd = conn.CreateCommand();
             selectCmd.CommandText = "select * from t1";
 
-            EsgyndbCommand insertCmd = conn.CreateCommand();
+            EsgynDBCommand insertCmd = conn.CreateCommand();
             insertCmd.CommandText = "insert into t1 values(?,?)";
-            insertCmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbType.Integer));
-            insertCmd.Parameters.Add(new EsgyndbParameter("c2", EsgyndbType.Varchar));
+            insertCmd.Parameters.Add(new EsgynDBParameter("c1", EsgynDBType.Integer));
+            insertCmd.Parameters.Add(new EsgynDBParameter("c2", EsgynDBType.Varchar));
 
-            EsgyndbCommand deleteCmd = conn.CreateCommand();
+            EsgynDBCommand deleteCmd = conn.CreateCommand();
             deleteCmd.CommandText = "delete from t1 where c1=?";
-            deleteCmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbType.Integer));
+            deleteCmd.Parameters.Add(new EsgynDBParameter("c1", EsgynDBType.Integer));
 
-            EsgyndbCommand updateCmd = conn.CreateCommand();
+            EsgynDBCommand updateCmd = conn.CreateCommand();
             updateCmd.CommandText = "update t1 set c2=? where c1=?";
-            updateCmd.Parameters.Add(new EsgyndbParameter("c2", EsgyndbType.Varchar));
-            updateCmd.Parameters.Add(new EsgyndbParameter("c1", EsgyndbType.Integer));
+            updateCmd.Parameters.Add(new EsgynDBParameter("c2", EsgynDBType.Varchar));
+            updateCmd.Parameters.Add(new EsgynDBParameter("c1", EsgynDBType.Integer));
             
  
-            EsgyndbDataAdapter adp = new EsgyndbDataAdapter();
+            EsgynDBDataAdapter adp = new EsgynDBDataAdapter();
 
             adp.SelectCommand = selectCmd;
             adp.UpdateCommand = updateCmd;
@@ -1798,12 +1798,12 @@ namespace ConsoleApp
             dt.Rows[1]["c2"] = "hi there";
             dt.Rows[3]["c2"] = "dude";
 
-            //send values back to Esgyndb
+            //send values back to EsgynDB
             adp.Update(dt);
 
             //check the final results -- we should have a single row (2,'hi there')
             cmd.CommandText = "select * from t1";
-            EsgyndbDataReader dr = cmd.ExecuteReader();
+            EsgynDBDataReader dr = cmd.ExecuteReader();
             while (dr.Read())
             {
                 Console.WriteLine("{0} {1}", dr[0], dr[1]);
@@ -1812,9 +1812,9 @@ namespace ConsoleApp
 
         public static void TestAdapterBuilder()
         {
-            EsgyndbConnection conn = new EsgyndbConnection(Program.ConnectionString);
+            EsgynDBConnection conn = new EsgynDBConnection(Program.ConnectionString);
             conn.Open();
-            EsgyndbCommand cmd = conn.CreateCommand();
+            EsgynDBCommand cmd = conn.CreateCommand();
             cmd.CommandText = "drop table t1";
             try { cmd.ExecuteNonQuery(); }
             catch { } //ignore error
@@ -1827,18 +1827,18 @@ namespace ConsoleApp
 
             Console.WriteLine("Setup Complete");
 
-            EsgyndbCommand selectCmd = conn.CreateCommand();
+            EsgynDBCommand selectCmd = conn.CreateCommand();
             selectCmd.CommandText = "select * from t1";
 
-            EsgyndbDataAdapter adp = new EsgyndbDataAdapter();
-            EsgyndbCommandBuilder cb = new EsgyndbCommandBuilder(adp);
+            EsgynDBDataAdapter adp = new EsgynDBDataAdapter();
+            EsgynDBCommandBuilder cb = new EsgynDBCommandBuilder(adp);
 
             adp.SelectCommand = selectCmd;
 
-            adp.UpdateCommand = (EsgyndbCommand)cb.GetUpdateCommand();
+            adp.UpdateCommand = (EsgynDBCommand)cb.GetUpdateCommand();
             Console.WriteLine(adp.UpdateCommand.ToString());
-            adp.DeleteCommand = (EsgyndbCommand)cb.GetDeleteCommand();
-            adp.InsertCommand = (EsgyndbCommand)cb.GetInsertCommand();
+            adp.DeleteCommand = (EsgynDBCommand)cb.GetDeleteCommand();
+            adp.InsertCommand = (EsgynDBCommand)cb.GetInsertCommand();
 
             adp.UpdateBatchSize = 10;
 
@@ -1856,12 +1856,12 @@ namespace ConsoleApp
             dt.Rows[1]["c2"] = "value1";
             dt.Rows[3]["c2"] = "value2";
 
-            //send values back to Esgyndb
+            //send values back to EsgynDB
             //adp.Update(dt);
 
             //check the final results
             cmd.CommandText = "select * from t1";
-            EsgyndbDataReader dr = cmd.ExecuteReader();
+            EsgynDBDataReader dr = cmd.ExecuteReader();
             while (dr.Read())
             {
                 Console.WriteLine("{0} {1}", dr[0], dr[1]);
@@ -1870,9 +1870,9 @@ namespace ConsoleApp
 
         public static void TestAdapterFillParams()
         {
-            EsgyndbConnection conn = new EsgyndbConnection(Program.ConnectionString);
+            EsgynDBConnection conn = new EsgynDBConnection(Program.ConnectionString);
             conn.Open();
-            EsgyndbCommand cmd = conn.CreateCommand();
+            EsgynDBCommand cmd = conn.CreateCommand();
             cmd.CommandText = "drop table t1";
             try { cmd.ExecuteNonQuery(); }
             catch { } //ignore error
@@ -1883,18 +1883,18 @@ namespace ConsoleApp
 
             Console.WriteLine("Setup Complete");
 
-            EsgyndbCommand selectCmd = conn.CreateCommand();
+            EsgynDBCommand selectCmd = conn.CreateCommand();
             selectCmd.CommandText = "select * from t1 where c1>3";
-            //selectCmd.Parameters.Add(new EsgyndbParameter("c1",EsgyndbType.Integer));
+            //selectCmd.Parameters.Add(new EsgynDBParameter("c1",EsgynDBType.Integer));
 
-            EsgyndbDataAdapter adp = new EsgyndbDataAdapter();
+            EsgynDBDataAdapter adp = new EsgynDBDataAdapter();
             adp.SelectCommand = selectCmd;
 
             DataTable dt = new DataTable();
             DataTable dt1 = new DataTable();
 
             //get all the values with c1 > 2
-            EsgyndbParameter [] p = adp.GetFillParameters();
+            EsgynDBParameter [] p = adp.GetFillParameters();
             Console.WriteLine(p.Length);
 
             //display the data side by side or something
@@ -1902,9 +1902,9 @@ namespace ConsoleApp
 
         public static void FetchTest()
         {
-            EsgyndbConnection conn;
-            EsgyndbCommand cmd;
-            EsgyndbDataReader dr;
+            EsgynDBConnection conn;
+            EsgynDBCommand cmd;
+            EsgynDBDataReader dr;
             DateTime start;
             DateTime end;
             long total;
@@ -1914,7 +1914,7 @@ namespace ConsoleApp
             int[] fetchSizes = { 100000 };
             TimeSpan[][] results = new TimeSpan[fetchBufferSizes.Length][];
 
-            conn = new EsgyndbConnection();
+            conn = new EsgynDBConnection();
             cmd = conn.CreateCommand();
             cmd.CommandText = "select * from neo.doermann.t2";
 
@@ -1977,11 +1977,11 @@ namespace ConsoleApp
             }
         }
 
-        public static void OnInfoMessage(object sender, EsgyndbInfoMessageEventArgs args)
+        public static void OnInfoMessage(object sender, EsgynDBInfoMessageEventArgs args)
         {
             Console.WriteLine("INFO: " + args.Message);
             Console.WriteLine("Errors List: ");
-            foreach (EsgyndbError error in args.Errors)
+            foreach (EsgynDBError error in args.Errors)
             {
                 Console.WriteLine(String.Format("\t{0} | {1} | {2} | {3}", error.ErrorCode, error.Message, error.RowId, error.State));
             }
@@ -1992,11 +1992,11 @@ namespace ConsoleApp
             Console.WriteLine("State changed: " + args.OriginalState + " -> " + args.CurrentState);
         }
 
-        public static void PrintErrors(EsgyndbException e, bool includeStack) 
+        public static void PrintErrors(EsgynDBException e, bool includeStack) 
         {
             Console.WriteLine(e.Message);
             Console.WriteLine("Errors List: ");
-            foreach (EsgyndbError error in e.Errors)
+            foreach (EsgynDBError error in e.Errors)
             {
                 Console.WriteLine(String.Format("\t{0} | {1} | {2} | {3}", error.ErrorCode, error.Message, error.RowId, error.State));
             }

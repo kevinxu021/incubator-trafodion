@@ -1,6 +1,0 @@
-﻿<NUnitProject>
-  <Settings activeconfig="Default" />
-  <Config name="Default" configfile="Traf.AdoTest.dll.config" binpathtype="Auto" runtimeFramework="v2.0.50727">
-    <assembly path="Trafodion.Data.Tests.dll" />
-  </Config>
-</NUnitProject>
