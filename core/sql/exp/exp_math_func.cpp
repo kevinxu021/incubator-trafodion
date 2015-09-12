@@ -679,16 +679,24 @@ ex_expr::exp_return_type ExFunctionBitOper::eval(char *op_data[],
 	  } 
 	else 
 	  {
+            char * srcData = op_data[1];
+
+#if defined (NA_LITTLE_ENDIAN)
+            Int64 temp;
+            if (swapBytes(getOperand(1)->getDatatype(), srcData, (char*)&temp))
+              srcData = (char*)&temp;
+#endif
+            
 	    for (i = 0; i < len1; i++)
 	      {
-		op_data[0][8*i+0] = (0x80 & op_data[1][i] ? '1' : '0');
-		op_data[0][8*i+1] = (0x40 & op_data[1][i] ? '1' : '0');
-		op_data[0][8*i+2] = (0x20 & op_data[1][i] ? '1' : '0');
-		op_data[0][8*i+3] = (0x10 & op_data[1][i] ? '1' : '0');
-		op_data[0][8*i+4] = (0x08 & op_data[1][i] ? '1' : '0');
-		op_data[0][8*i+5] = (0x04 & op_data[1][i] ? '1' : '0');
-		op_data[0][8*i+6] = (0x02 & op_data[1][i] ? '1' : '0');
-		op_data[0][8*i+7] = (0x01 & op_data[1][i] ? '1' : '0');
+		op_data[0][8*i+0] = (0x80 & srcData[i] ? '1' : '0');
+		op_data[0][8*i+1] = (0x40 & srcData[i] ? '1' : '0');
+		op_data[0][8*i+2] = (0x20 & srcData[i] ? '1' : '0');
+		op_data[0][8*i+3] = (0x10 & srcData[i] ? '1' : '0');
+		op_data[0][8*i+4] = (0x08 & srcData[i] ? '1' : '0');
+		op_data[0][8*i+5] = (0x04 & srcData[i] ? '1' : '0');
+		op_data[0][8*i+6] = (0x02 & srcData[i] ? '1' : '0');
+		op_data[0][8*i+7] = (0x01 & srcData[i] ? '1' : '0');
 	      }
 	  }
 	

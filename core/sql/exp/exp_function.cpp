@@ -1921,6 +1921,34 @@ ex_expr::exp_return_type ex_function_char_length::eval(char *op_data[],
   return ex_expr::EXPR_OK;
 };
 
+NABoolean ex_function_clause::swapBytes
+(Int32 datatype, const char * srcData, char * tgtData)
+{
+  NABoolean dataWasSwapped = FALSE;
+  switch (datatype)
+    {
+    case REC_BIN16_SIGNED:
+    case REC_BIN16_UNSIGNED:
+    case REC_BPINT_UNSIGNED:
+      *(unsigned short *)tgtData = bswap_16(*(unsigned short*)srcData);
+      dataWasSwapped = TRUE;
+      break;
+      
+    case REC_BIN32_SIGNED:
+    case REC_BIN32_UNSIGNED:
+      *(ULng32*)tgtData = bswap_32(*(ULng32*)srcData);
+      dataWasSwapped = TRUE;
+      break;
+      
+    case REC_BIN64_SIGNED:
+      *(Int64*)tgtData = bswap_64(*(Int64*)srcData);
+      dataWasSwapped = TRUE;
+      break;
+    } // switch
+  
+  return dataWasSwapped;
+}
+
 ex_expr::exp_return_type ExFunctionConvertHex::eval(char *op_data[],
 						    CollHeap* heap,
 						    ComDiagsArea** diagsArea)
@@ -1951,10 +1979,18 @@ ex_expr::exp_return_type ExFunctionConvertHex::eval(char *op_data[],
          Int32 prec1 = ((SimpleType *)getOperand(1))->getPrecision();
          len1 = Attributes::trimFillerSpaces( op_data[1], prec1, len1, cs );
       }
+
+      char * srcData = op_data[1];
+#if defined (NA_LITTLE_ENDIAN)
+      Int64 temp;
+      if (swapBytes(getOperand(1)->getDatatype(), srcData, (char*)&temp))
+        srcData = (char*)&temp;
+#endif
+      
       for (i = 0; i < len1; i++)
 	{
-	  op_data[0][2 * i]     = HexArray[0x0F & op_data[1][i] >> 4];
-	  op_data[0][2 * i + 1] = HexArray[0x0F & op_data[1][i]];
+	  op_data[0][2 * i]     = HexArray[0x0F & srcData[i] >> 4];
+	  op_data[0][2 * i + 1] = HexArray[0x0F & srcData[i]];
         }
       }
 
@@ -6996,7 +7032,19 @@ ExFunctionCastType::eval(char *op_data[], CollHeap *heap,
       return ex_expr::EXPR_ERROR;
     }
 
-  str_cpy_all(resultData, srcData, resultLen);
+  NABoolean wasSwapped = FALSE;
+
+#if defined( NA_LITTLE_ENDIAN )
+  if (DFS2REC::isAnyCharacter(srcAttr->getDatatype()))
+    {
+      wasSwapped = swapBytes(resultAttr->getDatatype(), srcData, resultData);
+    }
+#endif
+
+  if (NOT wasSwapped)
+    str_cpy_all(resultData, srcData, resultLen);
+  
+  //  str_cpy_all(resultData, srcData, resultLen);
   getOperand(0)->setVarLength(resultLen, op_data[-MAX_OPERANDS]);
 
   return ex_expr::EXPR_OK;
