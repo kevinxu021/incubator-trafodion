@@ -54,7 +54,12 @@ echo ' - sqgen'
 echo ' - sqstart'
 echo ' - sqlci -> initialize trafodion'
 
-read -p 'Do you want to proceed? y/n : ' lv_ans
+if [[ -z $1 ]]; then
+    read -p 'Do you want to proceed? y/n : ' lv_ans
+else 
+    lv_ans=$1
+fi
+
 if [ "$lv_ans" != "y" ]; then
     echo "Not proceeding. Exitting..."
     exit 0
