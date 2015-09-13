@@ -334,6 +334,9 @@ COLD_RECOV_STARTFILE=$SQSCRIPTS_DIR/gomon.cold.recovery
 echo "Checking if HBase is available"
 run_util hbcheck 3 10
 
+echo "Checking if peers are available"
+run_util check_peers
+
 # If -c or -w options are set, start based on the option supplied
 if [[ $sq_start == "w" ]]; then
     gomonWarmStart
