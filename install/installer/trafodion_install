@@ -316,9 +316,9 @@ echo "export ACCEPT_LICENSE=\"$ACCEPT_LICENSE\"" >> $TRAF_CONFIG
 #=============================================
 #license checking
 $LOCAL_WORKDIR/licensecheck $LOCAL_WORKDIR
-#if [ $? -eq 1 ]; then
-#  exit 1
-#fi
+if [ $? -eq 1 ]; then
+  exit 1
+fi
 
 #==============================================
 # untar package and files into /usr/lib/trafodion (the new TRAF_WORKDIR)
