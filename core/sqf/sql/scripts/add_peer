@@ -147,4 +147,6 @@ cat <<EOF > ${lv_hbase_site_xml}
 </configuration>
 EOF
 
+echo "PEERS=${lv_peer_id}" >> ${MY_SQROOT}/etc/ms.env
+
 exit 0
