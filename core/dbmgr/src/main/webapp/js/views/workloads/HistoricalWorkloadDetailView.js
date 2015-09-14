@@ -14,7 +14,8 @@ define([
         ], function (BaseView, WorkloadsT, $, wHandler, moment, common) {
 	'use strict';
     var LOADING_SELECTOR = "#loadingImg",
-  		REFRESH_MENU = '#refreshAction';
+  		REFRESH_MENU = '#refreshAction',
+  		QCANCEL_MENU = '#cancelAction';
 
     var _that = null;
     var queryID = null;
@@ -28,7 +29,10 @@ define([
 			$('#explainLink').attr("href", "#/workloads/history/queryplan/"+queryID);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
+			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
 			$(REFRESH_MENU).on('click', this.fetchRepositoryQueryDetail);
+			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			this.fetchRepositoryQueryDetail();
 			
 		},
@@ -38,13 +42,19 @@ define([
 			$('#explainLink').attr("href", "#/workloads/history/queryplan/"+queryID);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
+			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
 			$(REFRESH_MENU).on('click', this.fetchRepositoryQueryDetail);
+			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			this.fetchRepositoryQueryDetail();
 		},
 		pause: function(){
 			wHandler.off(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.off(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
+			wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
 			$(REFRESH_MENU).off('click', this.fetchRepositoryQueryDetail);
+			$(QCANCEL_MENU).off('click', this.cancelQuery);
 		},
         showLoading: function(){
         	$(LOADING_SELECTOR).show();
@@ -53,6 +63,20 @@ define([
         hideLoading: function () {
         	$(LOADING_SELECTOR).hide();
         },
+        cancelQuery: function(){
+        	var queryStatus = $('#query-status').val();
+        	if(queryStatus == 'EXECUTING'){
+        		wHandler.cancelQuery(queryID);
+        	}else {
+        		alert("The query is not in executing state. Cannot cancel the query.");
+        	}
+        },
+        cancelQuerySuccess:function(){
+        	alert('The cancel query request has been submitted');
+        },
+        cancelQueryError:function(jqXHR){
+        	alert(jqXHR.responseText);
+        },        
         fetchRepositoryQueryDetail: function(){
 			_that.showLoading();
 			//$(ERROR_CONTAINER).hide();
