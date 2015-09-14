@@ -20,7 +20,7 @@
 #
 # @@@ END COPYRIGHT @@@
 
-lv_grep=`grep ^PEERS= $MY_SQROOT/etc/ms.env`
+lv_grep=`grep ^PEERS= $MY_SQROOT/etc/ms.env | tail -1`
 lv_ret=$?
 if [[ ${lv_ret} != 0 ]]; then
    echo "Peers have not been configured"
@@ -28,6 +28,7 @@ if [[ ${lv_ret} != 0 ]]; then
 fi
 
 lv_peerids=`echo $lv_grep | cut -d= -f2 | sed -e 's/,/ /g'`
+lv_ret=$?
 if [[ ${lv_ret} != 0 ]]; then
    echo "Peers have not been configured"
    exit 1;
