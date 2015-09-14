@@ -67,7 +67,7 @@ namespace EsgynDB.Data
             "cast(trim(co.COLUMN_NAME) as varchar(128)) ColumnName," +
             "cast((case when co.FS_DATA_TYPE = 0 and co.character_set = 'UCS2' then -8 " +
             "when co.FS_DATA_TYPE = 64 and co.character_set = 'UCS2' then -9 else dt.DATA_TYPE end) as smallint) DataType, " +
-            "trim(dt.TYPE_NAME) TypeName, " +
+            // "trim(dt.TYPE_NAME) TypeName, " +
             "cast((case when co.FS_DATA_TYPE = 0 and co.character_set = 'UCS2' then co.COLUMN_SIZE/2 " +
             "when co.FS_DATA_TYPE = 64 and co.character_set = 'UCS2' then co.COLUMN_SIZE/2 " +
             "when dt.USEPRECISION = -1 then co.COLUMN_SIZE when dt.USEPRECISION = -2 then co.COLUMN_PRECISION " +
@@ -76,20 +76,20 @@ namespace EsgynDB.Data
             "else dt.USEPRECISION end) as integer) ColumnSize, " +
             "cast ((case when dt.USELENGTH = -1 then co.COLUMN_SIZE when dt.USELENGTH = -2 then co.COLUMN_PRECISION " +
             "when dt.USELENGTH = -3 then co.COLUMN_PRECISION + 2 " +
-            "else dt.USELENGTH end) as integer ) BufferLen, " +
-            "cast(co.COLUMN_SCALE as smallint) DecimalDigits, " +
-            "cast(dt.NUM_PREC_RADIX as smallint) NumPrecRadix, " +
-            "cast((case when co.NULLABLE =0 then 0 when co.NULLABLE = 2 then 1 else 2 end) as smallint) NullAble, " +
-            "cast(NULL as varchar(128)) Remarks, " +
-            "trim(co.DEFAULT_VALUE) ColumnDef, " +
-            "cast((case when co.FS_DATA_TYPE = 0 and co.character_set = 'UCS2' then -8 " +
-            "when co.FS_DATA_TYPE = 64 and co.character_set = 'UCS2' then -9 else dt.SQL_DATA_TYPE end) as smallint) SQL_DATA_TYPE, " +
-            "cast(dt.SQL_DATETIME_SUB as smallint) SQL_DATETIME_SUB, " +
-            "cast((case dt.DATA_TYPE when 1 then co.COLUMN_SIZE " +
-            "when -1 then co.COLUMN_SIZE when 12 then co.COLUMN_SIZE else NULL end) as integer) CHAR_OCTET_LENGTH, " +
-            "cast((case when (trim(co.COLUMN_CLASS) <> 'S') then co.COLUMN_NUMBER + 1 else " +
-            "co.COLUMN_NUMBER end) as integer) ORDINAL_POSITION," +
-            "cast((case when co.NULLABLE = 0 then 'NO' else 'YES' end) as varchar(3)) IS_NULLABLE " +
+            "else dt.USELENGTH end) as integer ) ColumnPrecision, " +
+            "cast(co.COLUMN_SCALE as smallint) ColumnScala, " +
+            // "cast(dt.NUM_PREC_RADIX as smallint) NumPrecRadix, " +
+            // "cast((case when co.NULLABLE =0 then 0 when co.NULLABLE = 2 then 1 else 2 end) as smallint) NullAble, " +
+            // "cast(NULL as varchar(128)) Remarks, " +
+            "trim(co.DEFAULT_VALUE) DefaultValue, " +
+            // "cast((case when co.FS_DATA_TYPE = 0 and co.character_set = 'UCS2' then -8 " +
+            // "when co.FS_DATA_TYPE = 64 and co.character_set = 'UCS2' then -9 else dt.SQL_DATA_TYPE end) as smallint) SQL_DATA_TYPE, " +
+            // "cast(dt.SQL_DATETIME_SUB as smallint) SQL_DATETIME_SUB, " +
+            // "cast((case dt.DATA_TYPE when 1 then co.COLUMN_SIZE " +
+            // "when -1 then co.COLUMN_SIZE when 12 then co.COLUMN_SIZE else NULL end) as integer) CHAR_OCTET_LENGTH, " +
+            // "cast((case when (trim(co.COLUMN_CLASS) <> 'S') then co.COLUMN_NUMBER + 1 else " +
+            // "co.COLUMN_NUMBER end) as integer) ORDINAL_POSITION," +
+            // "cast((case when co.NULLABLE = 0 then 'NO' else 'YES' end) as varchar(3)) IS_NULLABLE " +
             "from " +
             "TRAFODION.\"_MD_\".objects ob, " +
             "TRAFODION.\"_MD_\".columns co, " +
