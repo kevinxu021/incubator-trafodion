@@ -190,6 +190,8 @@ import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProt
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PutMultipleTransactionalResponse;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.RecoveryRequestRequest;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.RecoveryRequestResponse;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogWriteRequest;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogWriteResponse;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionalAggregateRequest;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionalAggregateResponse;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TrxRegionService;
@@ -2074,6 +2076,95 @@ CoprocessorService, Coprocessor {
 
     PerformScanResponse presponse = performResponseBuilder.build();
     done.run(presponse);
+  }
+
+  public void putTlog(RpcController controller, TlogWriteRequest request, RpcCallback<TlogWriteResponse> done) {
+     if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: putTlog - ENTRY ");
+     TlogWriteResponse response = TlogWriteResponse.getDefaultInstance();
+     byte [] row = null;
+     MutationProto proto = request.getPut();
+     MutationType type = proto.getMutateType();
+     Put put = null;
+     Throwable t = null;
+     WrongRegionException wre = null;
+     long transactionId = request.getTransactionId();
+     long commitId = request.getCommitId();
+     boolean result;
+     byte [] family;
+     byte [] qualifier;
+     byte [] value;
+     
+     try {
+        put = ProtobufUtil.toPut(proto);
+     } catch (Throwable e) {
+        if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: putTlog - txId " + transactionId + ", Caught exception " + e.getMessage() + " " + stackTraceToString(e));
+        t = e;
+     }
+
+     // Process in local memory
+     if (put != null){
+        if (t == null) {
+           row = request.getRow().toByteArray();
+           family = request.getFamily().toByteArray();
+           qualifier = request.getQualifier().toByteArray();
+           value = request.getValue().toByteArray();
+           put.add(family, qualifier, value);
+     
+           try {
+              if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: putTlog - putting row " + put);
+              result = putTlog(transactionId, put);
+           }catch (Throwable e) {
+               LOG.warn("TrxRegionEndpoint coprocessor: putTlog - txId " + transactionId + ", Caught exception after internal putTlog call - "
+                         + e.getMessage() + " " + stackTraceToString(e));
+               t = e;
+           }
+           if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: putTlog - txId "  + transactionId + ", regionName " + regionInfo.getRegionNameAsString() + ", type " + type + ", row " + Bytes.toStringBinary(proto.getRow().toByteArray()) + ", row in hex " + Hex.encodeHexString(proto.getRow().toByteArray()));
+
+        }
+     }
+     
+     org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogWriteResponse.Builder TlogWriteResponseBuilder = TlogWriteResponse.newBuilder();
+     TlogWriteResponseBuilder.setHasException(false);
+
+     if (t != null)
+     {
+        TlogWriteResponseBuilder.setHasException(true);
+        TlogWriteResponseBuilder.setException(t.toString());
+     }
+
+     if (wre != null)
+     {
+       TlogWriteResponseBuilder.setHasException(true);
+       TlogWriteResponseBuilder.setException(wre.toString());
+     }
+
+     TlogWriteResponse tlwresponse = TlogWriteResponseBuilder.build();
+     done.run(tlwresponse);
+  }
+
+  /**
+   * Processes a transactional putTlog
+   * @param long transactionId
+   * @param Put put    
+   * @return boolean
+   * @throws IOException 
+   */
+  public boolean putTlog(final long transactionId, Put put) throws IOException {
+
+    if (LOG.isTraceEnabled()) LOG.trace("Enter TrxRegionEndpoint putTlog, txid: "
+                + transactionId + ", on HRegion " + this);
+    boolean result = false;
+
+    try {
+       if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint putTlog putting " + put.getRow().toString());
+       m_Region.put(put);
+       result = true;
+    } catch (Exception e) {
+      if (LOG.isWarnEnabled()) LOG.warn("TrxRegionEndpoint putTlog - txid " + transactionId + ", Caught internal exception " + e.toString() + ", returning false");
+      throw new IOException("TrxRegionEndpoint putTlog - " + e.toString());
+    }
+    if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint putTlog EXIT - returns " + result + ", transId " + transactionId);
+    return result;
   }
 
   @Override

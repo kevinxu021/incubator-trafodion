@@ -28,6 +28,7 @@ import java.io.IOException;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.Logger;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -35,6 +36,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
@@ -53,6 +55,9 @@ import org.apache.hadoop.hbase.client.transactional.UnknownTransactionException;
 import org.apache.hadoop.hbase.client.transactional.HBaseBackedTransactionLogger;
 import org.apache.hadoop.hbase.client.transactional.TransactionRegionLocation;
 import org.apache.hadoop.hbase.client.transactional.TransState;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogWriteRequest;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogWriteResponse;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TrxRegionService;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
@@ -64,7 +69,16 @@ import org.apache.hadoop.hbase.TableExistsException;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
+import org.apache.hadoop.hbase.ipc.ServerRpcController;
+import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto;
+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.MutationType;
+
 import org.apache.hadoop.hbase.regionserver.RegionSplitPolicy;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.HBaseZeroCopyByteString;
 
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -82,9 +96,11 @@ import java.util.StringTokenizer;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -100,6 +116,7 @@ public class TmAuditTlog {
    private static final byte[] ASN_STATE = Bytes.toBytes("as");
    private static final byte[] QUAL_TX_STATE = Bytes.toBytes("tx");
    private static HTable[] table;
+   private static HConnection connection;
    private static HBaseAuditControlPoint tLogControlPoint;
    private static long tLogControlPointNum;
    private static long tLogHashKey;
@@ -168,6 +185,170 @@ public class TmAuditTlog {
    public static final int TM_TX_STATE_TERMINATING = 17;
    public static final int TM_TX_STATE_LAST = 17;
 
+   public static final int TLOG_SLEEP = 1000;      // One second
+   public static final int TLOG_SLEEP_INCR = 5000; // Five seconds
+   public static final int TLOG_RETRY_ATTEMPTS = 5;
+   private int RETRY_ATTEMPTS;
+
+   /**
+    * tlogThreadPool - pool of thread for asynchronous requests
+    */
+   ExecutorService tlogThreadPool;
+
+   /**
+    * TlogCallable  :  inner class for creating asynchronous requests
+    */
+   private abstract class TlogCallable implements Callable<Integer>{
+      TransactionState transactionState;
+      HRegionLocation  location;
+      HTable table;
+      byte[] startKey;
+      byte[] endKey_orig;
+      byte[] endKey;
+
+      TlogCallable(TransactionState txState, HRegionLocation location, HConnection connection) {
+         transactionState = txState;
+         this.location = location;
+         try {
+            table = new HTable(location.getRegionInfo().getTable(), connection, tlogThreadPool);
+         } catch(IOException e) {
+            e.printStackTrace();
+            LOG.error("Error obtaining HTable instance");
+            table = null;
+         }
+         startKey = location.getRegionInfo().getStartKey();
+         endKey_orig = location.getRegionInfo().getEndKey();
+         endKey = TransactionManager.binaryIncrementPos(endKey_orig, -1);
+      }
+
+     /**
+      * Method  : doTlogWriteX
+      * Params  : regionName - name of Region
+      *           transactionId - transaction identifier
+      * Return  : Always 0, can ignore
+      * Purpose : write commit/abort state record for a given transaction
+      */
+      public Integer doTlogWriteX(final byte[] regionName, final long transactionId, final long commitId,
+    		  final byte[] row, final byte[] value, final Put put, final int index) throws IOException {
+         long threadId = Thread.currentThread().getId();
+         if (LOG.isTraceEnabled()) LOG.trace("doTlogWriteX -- ENTRY txid: " + transactionId + ", thread " + threadId
+        		             + ", put: " + put.toString());
+         boolean retry = false;
+         boolean refresh = false;
+
+         int retryCount = 0;
+         int retrySleep = TLOG_SLEEP;
+
+         do {
+            try {
+              if (LOG.isTraceEnabled()) LOG.trace("doTlogWriteX -- try txid: " + transactionId + " in thread " + threadId);
+              Batch.Call<TrxRegionService, TlogWriteResponse> callable =
+                 new Batch.Call<TrxRegionService, TlogWriteResponse>() {
+                    ServerRpcController controller = new ServerRpcController();
+                    BlockingRpcCallback<TlogWriteResponse> rpcCallback = new BlockingRpcCallback<TlogWriteResponse>();
+
+                    @Override
+                    public TlogWriteResponse call(TrxRegionService instance) throws IOException {
+                       org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogWriteRequest.Builder builder = TlogWriteRequest.newBuilder();
+                       builder.setTransactionId(transactionId);
+                       builder.setCommitId(commitId);
+                       builder.setRegionName(ByteString.copyFromUtf8(Bytes.toString(regionName))); //ByteString.copyFromUtf8(Bytes.toString(regionName)));
+
+                       
+                       builder.setRow(HBaseZeroCopyByteString.wrap(row));
+                       builder.setFamily(HBaseZeroCopyByteString.wrap(TLOG_FAMILY));
+                       builder.setQualifier(HBaseZeroCopyByteString.wrap(ASN_STATE));
+                       builder.setValue(HBaseZeroCopyByteString.wrap(value));
+                       MutationProto m1 = ProtobufUtil.toMutation(MutationType.PUT, put);
+                       builder.setPut(m1);
+
+                       instance.putTlog(controller, builder.build(), rpcCallback);
+                       long threadId = Thread.currentThread().getId();
+                       if (LOG.isTraceEnabled()) LOG.trace("TlogWrite -- sent for txid: " + transactionId + " in thread " + threadId);
+                       TlogWriteResponse response = rpcCallback.get();
+                       if (LOG.isTraceEnabled()) LOG.trace("TlogWrite -- response received (" + response + ") for txid: "
+                               + transactionId + " in thread " + threadId );
+                       return response;
+                    }
+                 };
+
+              Map<byte[], TlogWriteResponse> result = null;
+              try {
+                 if (LOG.isTraceEnabled()) LOG.trace("doTlogWriteX -- before coprocessorService txid: " + transactionId + " table: "
+                             + table.toString() + " startKey: " + new String(startKey, "UTF-8") + " endKey: " + new String(endKey, "UTF-8"));
+                 result = table.coprocessorService(TrxRegionService.class, startKey, endKey, callable);
+                 if (LOG.isTraceEnabled()) LOG.trace("doTlogWriteX -- after coprocessorService txid: " + transactionId);
+              } catch (Throwable e) {
+                 String msg = "ERROR occurred while calling doTlogWriteX coprocessor service in doTlogWriteX";
+                 LOG.error(msg + ":" + e);
+                 throw new Exception(msg);
+              }
+              if(result.size() != 1) {
+                 LOG.error("doTlogWriteX, received incorrect result size: " + result.size() + " txid: " + transactionId);
+                 throw new Exception("Wrong result size in doWriteTlogX");
+              }
+              else {
+                 // size is 1
+                 for (TlogWriteResponse tlw_response : result.values()){
+                    if(tlw_response.getHasException()) {
+                       String exceptionString = new String (tlw_response.getException().toString());
+                       if (LOG.isTraceEnabled()) LOG.trace("doTlogWriteX coprocessor exception: " + tlw_response.getException());
+                       throw new Exception(tlw_response.getException());
+                    }
+                 }
+                 retry = false;
+              }
+            }
+            catch (Exception e) {
+              LOG.error("doTlogWriteX retrying due to Exception: " + e);
+              refresh = true;
+              retry = true;
+            }
+            if (refresh) {
+               HRegionLocation lv_hrl = table.getRegionLocation(startKey);
+               HRegionInfo     lv_hri = lv_hrl.getRegionInfo();
+               String          lv_node = lv_hrl.getHostname();
+               int             lv_length = lv_node.indexOf('.');
+
+               if (LOG.isTraceEnabled()) LOG.trace("doTlogWriteX -- location being refreshed : " + location.getRegionInfo().getRegionNameAsString() + " endKey: "
+                       + Hex.encodeHexString(location.getRegionInfo().getEndKey()) + " for transaction: " + transactionId);
+               if(retryCount == RETRY_ATTEMPTS) {
+                  LOG.error("Exceeded retry attempts (" + retryCount + ") in doTlogWriteX for transaction: " + transactionId);
+                  // We have received our reply in the form of an exception,
+                  // so decrement outstanding count and wake up waiters to avoid
+                  // getting hung forever
+                  transactionState.requestPendingCountDec(true);
+                  throw new IOException("Exceeded retry attempts (" + retryCount + ") in doTlogWriteX for transaction: " + transactionId);
+               }
+
+               if (LOG.isWarnEnabled()) LOG.warn("doTlogWriteX -- " + table.toString() + " location being refreshed");
+               if (LOG.isWarnEnabled()) LOG.warn("doTlogWriteX -- lv_hri: " + lv_hri);
+               if (LOG.isWarnEnabled()) LOG.warn("doTlogWriteX -- location.getRegionInfo(): " + location.getRegionInfo());
+               table.getRegionLocation(startKey, true);
+               if (LOG.isTraceEnabled()) LOG.trace("doTlogWriteX -- setting retry, count: " + retryCount);
+               refresh = false;
+            }
+
+            retryCount++;
+            if (retryCount < RETRY_ATTEMPTS && retry == true) {
+               try {
+                  Thread.sleep(retrySleep);
+               } catch(InterruptedException ex) {
+                  Thread.currentThread().interrupt();
+               }
+
+               retrySleep += TLOG_SLEEP_INCR;
+            }
+         } while (retryCount < RETRY_ATTEMPTS && retry == true);
+
+         // We have received our reply so decrement outstanding count
+         transactionState.requestPendingCountDec(false);
+
+         if (LOG.isTraceEnabled()) LOG.trace("doTlogWriteX -- EXIT txid: " + transactionId);
+         return 0;
+      }
+   } // TlogCallable  
+
    private class AuditBuffer{
       private ArrayList<Put> buffer;           // Each Put is an audit record
 
@@ -226,6 +407,45 @@ public class TmAuditTlog {
       }
    }// End of class AuditBuffer
 
+   /**
+   * Method  : doTlogWrite
+   * Params  : regionName - name of Region
+   *           transactionId - transaction identifier
+   *           commitId - commitId for the transaction
+   *           put - record representing the commit/abort record for the transaction
+   * Return  : void
+   * Purpose : write commit/abort for a given transaction
+   */
+   public void doTlogWrite(final TransactionState transactionState, final byte [] rowValue, final int index, final Put put) throws CommitUnsuccessfulException, IOException {
+
+     int loopCount = 0;
+     long threadId = Thread.currentThread().getId();
+     try {
+        if (LOG.isTraceEnabled()) LOG.trace("doTlogWrite [" + transactionState.getTransactionId() + "] in thread " + threadId);
+
+        HRegionLocation location = table[index].getRegionLocation(put.getRow());
+        ServerName servername = location.getServerName();
+        CompletionService<Integer> compPool = new ExecutorCompletionService<Integer>(tlogThreadPool);
+
+        if (LOG.isTraceEnabled()) LOG.trace("doTlogWrite submitting tlog callable in thread " + threadId);
+
+        compPool.submit(new TlogCallable(transactionState, location, connection) {
+           public Integer call() throws CommitUnsuccessfulException, IOException {
+              if (LOG.isTraceEnabled()) LOG.trace("before doTlogWriteX() [" + transactionState.getTransactionId() + "]" );
+              return doTlogWriteX(location.getRegionInfo().getRegionName(), transactionState.getTransactionId(),
+                         transactionState.getCommitId(), put.getRow(), rowValue, put, index);
+           }
+        });
+     } catch (Exception e) {
+        LOG.error("exception in doTlogWrite for transaction: " + transactionState.getTransactionId() + " "  + e);
+        throw new CommitUnsuccessfulException(e);
+     }
+     // all requests sent at this point, can record the count
+     if (LOG.isTraceEnabled()) LOG.trace("doTlogWrite tlog callable setting requests sent to 1 in thread " + threadId);
+     transactionState.completeSendInvoke(1);
+
+   }
+
    public class TmAuditTlogRegionSplitPolicy extends RegionSplitPolicy {
 
       @Override
@@ -241,8 +461,14 @@ public class TmAuditTlog {
       if (LOG.isTraceEnabled()) LOG.trace("Enter TmAuditTlog constructor for dtmid " + dtmid);
       TLOG_TABLE_NAME = config.get("TLOG_TABLE_NAME");
       int fillerSize = 2;
+      int intThreads = 16;
+      String numThreads = System.getenv("TM_JAVA_THREAD_POOL_SIZE");
+      if (numThreads != null){
+         intThreads = Integer.parseInt(numThreads);
+      }
+      tlogThreadPool = Executors.newFixedThreadPool(intThreads);
+      
       controlPointDeferred = false;
-
       forceControlPoint = false;
       try {
          String controlPointFlush = System.getenv("TM_TLOG_FLUSH_CONTROL_POINT");
@@ -293,6 +519,7 @@ public class TmAuditTlog {
          if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_MAX_VERSIONS is not in ms.env");
       }
 
+      connection = HConnectionManager.createConnection(config);
       tlogNumLogs = 1;
       try {
          String numLogs = System.getenv("TM_TLOG_NUM_LOGS");
@@ -419,7 +646,7 @@ public class TmAuditTlog {
          HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(lv_tLogName));
          desc.addFamily(hcol);
 
-          if (lvTlogExists == false) {
+         if (lvTlogExists == false) {
             // Need to prime the asn for future writes
             try {
                if (LOG.isTraceEnabled()) LOG.trace("Creating the table " + lv_tLogName);
@@ -497,7 +724,7 @@ public class TmAuditTlog {
                tableString.append(name);
             }
          }
-         if (LOG.isTraceEnabled()) LOG.trace("table names: " + tableString.toString());
+         if (LOG.isTraceEnabled()) LOG.trace("table names: " + tableString.toString() + " in thread " + threadId);
       }
       //Create the Put as directed by the hashed key boolean
       Put p;
@@ -505,7 +732,8 @@ public class TmAuditTlog {
       //create our own hashed key
       long key = (((lvTransid & tLogHashKey) << tLogHashShiftFactor) + (lvTransid & 0xFFFFFFFF));
       lv_lockIndex = (int)(lvTransid & tLogHashKey);
-      if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hex: " + Long.toHexString(key) + ", transid: " +  lvTransid);
+      if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hex: " + Long.toHexString(key) + ", transid: " +  lvTransid
+    		  + " in thread " + threadId);
       p = new Put(Bytes.toBytes(key));
 
       if (recoveryASN == -1){
@@ -516,7 +744,8 @@ public class TmAuditTlog {
          // This is a recovery audit record so use the ASN passed in
          lvAsn = recoveryASN;
       }
-      if (LOG.isTraceEnabled()) LOG.trace("transid: " + lvTransid + " state: " + lvTxState + " ASN: " + lvAsn);
+      if (LOG.isTraceEnabled()) LOG.trace("transid: " + lvTransid + " state: " + lvTxState + " ASN: " + lvAsn
+    		  + " in thread " + threadId);
       p.add(TLOG_FAMILY, ASN_STATE, Bytes.toBytes(String.valueOf(lvAsn) + ","
                        + transidString + "," + lvTxState
                        + "," + Bytes.toString(filler)
@@ -553,18 +782,18 @@ public class TmAuditTlog {
          }
       }
       else {
-         // THis goes to our local TLOG
+         // This goes to our local TLOG
          if (LOG.isTraceEnabled()) LOG.trace("TLOG putSingleRecord synchronizing tlogAuditLock[" + lv_lockIndex + "] in thread " + threadId );
          startSynch = System.nanoTime();
          try {
             synchronized (tlogAuditLock[lv_lockIndex]) {
                endSynch = System.nanoTime();
                try {
-                  if (LOG.isTraceEnabled()) LOG.trace("try table.put " + p );
+                  if (LOG.isTraceEnabled()) LOG.trace("try table.put in thread " + threadId + ", " + p );
                   startTimes[lv_TimeIndex] = System.nanoTime();
                   table[lv_lockIndex].put(p);
                   if ((forced) && (useAutoFlush == false)) {
-                     if (LOG.isTraceEnabled()) LOG.trace("flushing commits");
+                     if (LOG.isTraceEnabled()) LOG.trace("flushing commits in thread " + threadId);
                      table[lv_lockIndex].flushCommits();
                   }
                   endTimes[lv_TimeIndex] = System.nanoTime();
@@ -647,6 +876,70 @@ public class TmAuditTlog {
          }
       }// End else revoveryASN == -1
       if (LOG.isTraceEnabled()) LOG.trace("putSingleRecord exit");
+   }
+
+   public Put generatePut(final long lvTransid){
+      long threadId = Thread.currentThread().getId();
+      if (LOG.isTraceEnabled()) LOG.trace("generatePut for tx: " + lvTransid + " start in thread " + threadId);
+      //Create the Put as directed by the hashed key boolean
+      //create our own hashed key
+      long key = (((lvTransid & tLogHashKey) << tLogHashShiftFactor) + (lvTransid & 0xFFFFFFFF));
+      if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", transid: " +  lvTransid);
+      Put p = new Put(Bytes.toBytes(key));
+      if (LOG.isTraceEnabled()) LOG.trace("generatePut returning " + p);
+      return p;
+   }
+
+   public int initializePut(final long lvTransid, final long lvCommitId, final String lvTxState, final Set<TransactionRegionLocation> regions, Put p ){
+      long threadId = Thread.currentThread().getId();
+      if (LOG.isTraceEnabled()) LOG.trace("initializePut start in thread " + threadId);
+      StringBuilder tableString = new StringBuilder();
+      String transidString = new String(String.valueOf(lvTransid));
+      String commitIdString = new String(String.valueOf(lvCommitId));
+      long lvAsn;
+      long startSynch = 0;
+      long endSynch = 0;
+      int lv_lockIndex = 0;
+      int lv_TimeIndex = (timeIndex.getAndIncrement() % 50 );
+      long lv_TotalWrites = totalWrites.incrementAndGet();
+      long lv_TotalRecords = totalRecords.incrementAndGet();
+      if (regions != null) {
+         // Regions passed in indicate a state record where recovery might be needed following a crash.
+         // To facilitate branch notification we translate the regions into table names that can then
+         // be translated back into new region names following a restart.  This allows us to ensure all
+         // branches reply prior to cleanup
+         Iterator<TransactionRegionLocation> it = regions.iterator();
+         List<String> tableNameList = new ArrayList<String>();
+         while (it.hasNext()) {
+            String name = new String(it.next().getRegionInfo().getTable().getNameAsString());
+            if ((name.length() > 0) && (tableNameList.contains(name) != true)){
+               // We have a table name not already in the list
+               tableNameList.add(name);
+               tableString.append(",");
+               tableString.append(name);
+            }
+         }
+         if (LOG.isTraceEnabled()) LOG.trace("table names: " + tableString.toString());
+      }
+      //Create the Put as directed by the hashed key boolean
+      //create our own hashed key
+      long key = (((lvTransid & tLogHashKey) << tLogHashShiftFactor) + (lvTransid & 0xFFFFFFFF));
+      lv_lockIndex = (int)(lvTransid & tLogHashKey);
+      if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hex: " + Long.toHexString(key) + ", transid: " +  lvTransid);
+      p = new Put(Bytes.toBytes(key));
+
+//      if (recoveryASN == -1){
+//         // This is a normal audit record so we manage the ASN
+         lvAsn = asn.getAndIncrement();
+//    }
+      if (LOG.isTraceEnabled()) LOG.trace("transid: " + lvTransid + " state: " + lvTxState + " ASN: " + lvAsn);
+      p.add(TLOG_FAMILY, ASN_STATE, Bytes.toBytes(String.valueOf(lvAsn) + ","
+                       + transidString + "," + lvTxState
+                       + "," + Bytes.toString(filler)
+                       + "," + commitIdString
+                       + "," + tableString.toString()));
+      if (LOG.isTraceEnabled()) LOG.trace("initializePut returning " + lv_lockIndex);
+      return lv_lockIndex;
    }
 
    public static int getRecord(final long lvTransid) throws IOException {
@@ -822,6 +1115,7 @@ public class TmAuditTlog {
                         String asnToken = st.nextElement().toString() ;
                         String transidToken = st.nextElement().toString() ;
                         String stateToken = st.nextElement().toString() ;
+                        if (LOG.isTraceEnabled()) LOG.trace("Transid: " + transidToken + " has state: " + stateToken);
                         if ((Long.parseLong(asnToken) < lvAsn) && (stateToken.equals("FORGOTTEN"))) {
                            String rowKey = new String(r.getRow());
                            Delete del = new Delete(r.getRow());
