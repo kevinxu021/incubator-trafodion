@@ -22,7 +22,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Helper {
-	static DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
+	public static final DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
 
 	public static JSONArray convertResultSetToJSON(java.sql.ResultSet rs) throws Exception {
 		JSONArray json = new JSONArray();
@@ -195,6 +195,10 @@ public class Helper {
 
 	public static String formatDateTime(DateTime date) {
 		return date.toString(fmt);
+	}
+
+	public static String formatDateTimeUTC(DateTime date) {
+		return date.toString(fmt.withZoneUTC());
 	}
 
 	public static String getUtcNowString() {
