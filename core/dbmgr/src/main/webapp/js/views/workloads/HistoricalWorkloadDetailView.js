@@ -88,7 +88,7 @@ define([
 			$('#query-text').text(result.queryText);
 			sessionStorage.setItem(queryID, result.queryText);	
 			
-			$('#query-status').val(result.status);
+			$('#query-status').val(result.status.trim());
 			$('#query-start-time').val(common.toDateFromMilliSeconds(result.startTime));
 			$('#query-end-time').val(common.toDateFromMilliSeconds(result.endTime));
 			var colNames = [{"title":"Name"}, {"title":"Value"}];
