@@ -119,6 +119,7 @@ public class Helper {
 					Object data = null;
 					int columnType = rsmd.getColumnType(i + 1);
 
+					try {
 					if (columnType == java.sql.Types.ARRAY) {
 						data = rs.getArray(columnNames[i]);
 					} else if (columnType == java.sql.Types.BIGINT) {
@@ -148,6 +149,10 @@ public class Helper {
 					} else {
 						data = rs.getObject(columnNames[i]);
 					}
+					} catch (Exception ex) {
+						data = "";
+					}
+
 					rowData[i] = data;
 
 				} // end for
@@ -157,6 +162,7 @@ public class Helper {
 
 			result.resultArray = resultArray;
 
+		} catch (Exception ex) {
 		} finally {
 
 		}

@@ -221,7 +221,11 @@ public class QueryPlanModel {
 					qpd.operatorCost = rs.getString(10);
 					qpd.totalCost = rs.getString(11);
 					qpd.detailCost = rs.getString(12);
-					qpd.description = rs.getString(13);
+					try {
+						qpd.description = rs.getString(13);
+					} catch (Exception ex) {
+						qpd.description = "";
+					}
 
 					String tableName = extractTableName(qpd.description);
 					if (tableName != null && tableName.length() > 0) {
@@ -238,7 +242,13 @@ public class QueryPlanModel {
 				StringBuilder sb = new StringBuilder();
 
 				while (rs.next()) {
-					sb.append(rs.getString(1) + System.getProperty("line.separator"));
+					String data = "";
+					try {
+						data = rs.getString(1);
+					} catch (Exception ex) {
+
+					}
+					sb.append(data + System.getProperty("line.separator"));
 
 				}
 

@@ -19,6 +19,8 @@ public class ConfigurationResource {
   private static final Logger _LOG = LoggerFactory.getLogger(ConfigurationResource.class);
   private static ConfigurationResource instance = null;
   private static Properties xmlConfig = new Properties();
+	private static String serverTimeZone = "UTC";
+	private static long serverUTCOffset = 0;
 
   static {
     xmlConfig = readDBMgrXmlConfig();
@@ -35,6 +37,22 @@ public class ConfigurationResource {
     }
     return instance;
   }
+
+	public static String getServerTimeZone() {
+		return serverTimeZone;
+	}
+
+	public static void setServerTimeZone(String serverTimeZone) {
+		ConfigurationResource.serverTimeZone = serverTimeZone;
+	}
+
+	public static long getServerUTCOffset() {
+		return serverUTCOffset;
+	}
+
+	public static void setServerUTCOffset(long serverUTCOffset) {
+		ConfigurationResource.serverUTCOffset = serverUTCOffset;
+	}
 
   public String getJdbcUrl() {
     return xmlConfig.getProperty("jdbcUrl");

@@ -85,14 +85,14 @@ def run():
     if not options.http_port :
         done = None
         while (done==None) :
-            options.http_port = raw_input("Please provide the HTTP port for EsgynDB ManagerManager(default 4205):")
+            options.http_port = raw_input("Please provide the HTTP port for EsgynDB Manager (default 4205):")
             if not options.http_port : options.http_port = "4205"
             if options.http_port and options.http_port.isdigit(): done = True
             
     if not options.https_port :
         done = None
         while (done==None) :
-            options.https_port = raw_input("Please provide the HTTPS port for EsgynDB ManagerManager(default 4206):")
+            options.https_port = raw_input("Please provide the HTTPS port for EsgynDB Manager (default 4206):")
             if not options.https_port : options.https_port = "4206"
             if options.https_port and options.https_port.isdigit(): done = True    
             

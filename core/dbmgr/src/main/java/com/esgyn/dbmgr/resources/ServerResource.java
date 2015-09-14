@@ -2,6 +2,8 @@ package com.esgyn.dbmgr.resources;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 
 import javax.servlet.http.HttpServletRequest;
@@ -64,6 +66,8 @@ public class ServerResource {
 			objNode.put("user", usr);
 			objNode.put("status", "OK");
 			objNode.put("sessionTimeoutMinutes", ConfigurationResource.getInstance().getSessionTimeoutMinutes());
+			objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
+			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
 
 			Session content = new Session(usr, pwd, new DateTime(DateTimeZone.UTC));
 			SessionModel.putSessionObject(key, content);
@@ -81,9 +85,18 @@ public class ServerResource {
 		String resultMessage = "";
 
 		try {
-			String url = ConfigurationResource.getInstance().getJdbcUrl();
-			Class.forName(ConfigurationResource.getInstance().getJdbcDriverClass());
+			ConfigurationResource server = ConfigurationResource.getInstance();
+			String url = server.getJdbcUrl();
+			Class.forName(server.getJdbcDriverClass());
 			connection = DriverManager.getConnection(url, usr, pwd);
+
+			Statement stmt = connection.createStatement();
+			ResultSet rs = stmt.executeQuery("info system");
+			while (rs.next()) {
+				ConfigurationResource.setServerTimeZone(rs.getString("TM_ZONE"));
+				ConfigurationResource.setServerUTCOffset(rs.getLong("TM_GMTOFF_SEC"));
+				break;
+			}
 
 		} catch (Exception e) {
 			_LOG.error(e.getMessage());
