@@ -10,6 +10,7 @@ import java.util.HashMap;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -301,5 +302,37 @@ public class WorkloadsResource {
       throw new EsgynDBMgrException(ex.getMessage());
     }
   }
+
+	@DELETE
+	@Path("/cancel")
+	@Produces("application/json")
+	public boolean cancelQuery(@QueryParam("queryID") String queryID, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		Connection connection = null;
+		Statement stmt;
+		Session soc = SessionModel.getSession(servletRequest, servletResponse);
+		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.CANCEL_QUERY), queryID);
+
+		String url = ConfigurationResource.getInstance().getJdbcUrl();
+
+		try {
+			connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
+			stmt = connection.createStatement();
+			stmt.execute(sqlText);
+		} catch (Exception e) {
+			_LOG.error("Failed to cancel query : " + e.getMessage());
+			throw new EsgynDBMgrException(e.getMessage());
+		} finally {
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (Exception ex) {
+
+				}
+			}
+		}
+		return true;
+	}
 
 }

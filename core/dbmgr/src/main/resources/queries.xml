@@ -148,6 +148,10 @@
 			<text><![CDATA[get statistics for qid %1$s %2$s]]></text>
 		</query>
 		<query>
+			<name>CANCEL_QUERY</name>
+			<text><![CDATA[control query cancel qid %1$s]]></text>
+		</query>
+		<query>
 			<!-- Fetch list of log entries -->
 			<name>SELECT_LOGS</name>
 			<text><![CDATA[select [first 1000] log_ts as "Time", severity as "Severity", component as "Component", process_name as "Process", sql_code as "Error Code", cast(message as char(1000)) as "Message"

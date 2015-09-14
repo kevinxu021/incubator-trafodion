@@ -12,7 +12,8 @@ define([
         ], function (BaseView, WorkloadsT, $, wHandler, moment, common) {
 	'use strict';
     var LOADING_SELECTOR = "#loadingImg",
-  		REFRESH_MENU = '#refreshAction';
+  		REFRESH_MENU = '#refreshAction',
+  		QCANCEL_MENU = '#cancelAction';
 
     var _that = null;
     var queryID = null;
@@ -26,7 +27,11 @@ define([
 			
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
+			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			
 			$(REFRESH_MENU).on('click', this.fetchActiveQueryDetail);
+			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			this.fetchActiveQueryDetail();
 			
 		},
@@ -35,13 +40,19 @@ define([
 			queryID = args;
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
+			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
 			$(REFRESH_MENU).on('click', this.fetchActiveQueryDetail);
+			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			this.fetchActiveQueryDetail();
 		},
 		pause: function(){
 			wHandler.off(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.off(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
+			wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
 			$(REFRESH_MENU).off('click', this.fetchActiveQueryDetail);
+			$(QCANCEL_MENU).off('click', this.cancelQuery);
 		},
         showLoading: function(){
         	$(LOADING_SELECTOR).show();
@@ -50,11 +61,19 @@ define([
         hideLoading: function () {
         	$(LOADING_SELECTOR).hide();
         },
+        cancelQuery: function(){
+        	wHandler.cancelQuery(queryID);
+        },
+        cancelQuerySuccess:function(){
+        	alert('The cancel query request has been submitted');
+        },
+        cancelQueryError:function(jqXHR){
+        	alert(jqXHR.responseText);
+        },
         fetchActiveQueryDetail: function(){
 			_that.showLoading();
 			//$(ERROR_CONTAINER).hide();
 			wHandler.fetchActiveQueryDetail(queryID);
-			
 		},
 
 		displayResults: function (result){
