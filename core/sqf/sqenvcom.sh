@@ -269,35 +269,35 @@ elif [[ -f $MY_SQROOT/Makefile && -d $TOOLSDIR ]]; then
   # ----------------------------------------------------------------
 
   # native library directories and include directories
-  export HADOOP_LIB_DIR=$TOOLSDIR/hadoop-2.4.0/lib/native
-  export HADOOP_INC_DIR=$TOOLSDIR/hadoop-2.4.0/include
+  export HADOOP_LIB_DIR=$TOOLSDIR/hadoop-2.6.0-cdh5.4.4/lib/native
+  export HADOOP_INC_DIR=$TOOLSDIR/hadoop-2.6.0-cdh5.4.4/include
   export THRIFT_LIB_DIR=$TOOLSDIR/thrift-0.9.0/lib
   export THRIFT_INC_DIR=$TOOLSDIR/thrift-0.9.0/include
   export CURL_INC_DIR=/usr/include
   export CURL_LIB_DIR=/usr/lib64
 
   # directories with jar files and list of jar files
-  export HADOOP_JAR_DIRS="$TOOLSDIR/hadoop-2.4.0/share/hadoop/common
-                          $TOOLSDIR/hadoop-2.4.0/share/hadoop/common/lib
-                          $TOOLSDIR/hadoop-2.4.0/share/hadoop/mapreduce
-                          $TOOLSDIR/hadoop-2.4.0/share/hadoop/hdfs"
+  export HADOOP_JAR_DIRS="$TOOLSDIR/hadoop-2.6.0-cdh5.4.4/share/hadoop/common
+                          $TOOLSDIR/hadoop-2.6.0-cdh5.4.4/share/hadoop/common/lib
+                          $TOOLSDIR/hadoop-2.6.0-cdh5.4.4/share/hadoop/mapreduce
+                          $TOOLSDIR/hadoop-2.6.0-cdh5.4.4/share/hadoop/hdfs"
   export HBASE_JAR_FILES=
-  HBASE_JAR_DIRS="$HBASE_HOME/lib"
-  for d in $TOOLSDIR/hbase-0.98.1-cdh5.1.0/lib; do
+  HBASE_JAR_DIRS="$TOOLSDIR/hbase-1.0.0-cdh5.4.4/lib"
+  for d in $HBASE_JAR_DIRS; do
     HBASE_JAR_FILES="$HBASE_JAR_FILES $d/*.jar"
   done
 
-  export HIVE_JAR_DIRS="$TOOLSDIR/apache-hive-0.13.1-bin/lib"
-  export HIVE_JAR_FILES="$TOOLSDIR/hadoop-2.4.0/share/hadoop/mapreduce/hadoop-mapreduce-client-core-*.jar"
+  export HIVE_JAR_DIRS="$TOOLSDIR/hive-1.1.0-cdh5.4.4/lib"
+  export HIVE_JAR_FILES="$TOOLSDIR/hadoop-2.6.0-cdh5.4.4/share/hadoop/mapreduce/hadoop-mapreduce-client-core-*.jar"
 
   # suffixes to suppress in the classpath (set this to ---none--- to add all files)
   export SUFFIXES_TO_SUPPRESS="-sources.jar -tests.jar"
 
-  # Configuration directories
+  # Configuration directories - not needed at build time
 
-  export HADOOP_CNF_DIR=$MY_SQROOT/sql/local_hadoop/hadoop/etc/hadoop
-  export HBASE_CNF_DIR=$MY_SQROOT/sql/local_hadoop/hbase/conf
-  export HIVE_CNF_DIR=$MY_SQROOT/sql/local_hadoop/hive/conf
+  export HADOOP_CNF_DIR=/etc/hadoop/conf
+  export HBASE_CNF_DIR=/etc/hbase/conf
+  export HIVE_CNF_DIR=/etc/hive/conf
 
 elif [[ -d /opt/cloudera/parcels/CDH ]]; then
   # we are on a cluster with Cloudera parcels installed
