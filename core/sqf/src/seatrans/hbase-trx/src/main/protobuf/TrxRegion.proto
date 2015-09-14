@@ -261,6 +261,24 @@ message RecoveryRequestResponse {
   optional bool hasException = 3;
 }
 
+message TlogWriteRequest{
+  required bytes regionName = 1;
+  required int64 transactionId = 2;
+  required bytes row = 3;
+  required bytes family = 4;
+  required bytes qualifier = 5;
+  required bytes value = 6;
+  required MutationProto put = 7;
+  required int64 commitId = 8;
+  optional bool forced = 9;
+}
+
+message TlogWriteResponse {
+  repeated int64 result = 1;
+  optional string exception = 2;
+  optional bool hasException = 3;
+}
+
 message TransactionalAggregateRequest {
   /** The request passed to the TransactionalAggregateService consists of three parts
    *  (1) the (canonical) classname of the ColumnInterpreter implementation
@@ -327,6 +345,8 @@ service TrxRegionService {
     returns(PutMultipleTransactionalResponse);
   rpc recoveryRequest(RecoveryRequestRequest)
     returns(RecoveryRequestResponse);
+ rpc putTlog(TlogWriteRequest)
+    returns(TlogWriteResponse);
   rpc GetMax (TransactionalAggregateRequest)
     returns (TransactionalAggregateResponse);
   rpc GetMin (TransactionalAggregateRequest) 

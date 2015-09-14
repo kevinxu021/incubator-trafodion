@@ -1503,14 +1503,14 @@ public class TransactionManager {
 
             for(final Map.Entry<ServerName, List<TransactionRegionLocation>> entry : locations.entrySet()) {
                 loopCount++;
-		int lv_peerId = entry.getValue().get(0).peerId;
+                int lv_peerId = entry.getValue().get(0).peerId;
                 compPool.submit(new TransactionManagerCallable(transactionState, 
 							       entry.getValue().iterator().next(),
 							       pSTRConfig.getPeerConnections().get(lv_peerId)) {
 
-                    public Integer call() throws CommitUnsuccessfulException, IOException {
-                        return doPrepareX(entry.getValue(), transactionState.getTransactionId());
-                    }
+                   public Integer call() throws CommitUnsuccessfulException, IOException {
+                       return doPrepareX(entry.getValue(), transactionState.getTransactionId());
+                   }
                 });
             }
           } catch (Exception e) {
@@ -1844,7 +1844,7 @@ public class TransactionManager {
         int loopCount = 0;
         if (batchRegionServer && (TRANSACTION_ALGORITHM == AlgorithmType.MVCC)) {
           try {
-        if (LOG.isTraceEnabled()) LOG.trace("Committing [" + transactionState.getTransactionId() +
+             if (LOG.isTraceEnabled()) LOG.trace("Committing [" + transactionState.getTransactionId() +
                       "] ignoreUnknownTransactionException: " + ignoreUnknownTransactionException);
              // Set the commitId
              transactionState.setCommitId(-1); // Dummy for MVCC
@@ -1864,27 +1864,26 @@ public class TransactionManager {
                 }
                 else {
                     regionList = locations.get(servername);
-           }
+                }
                 regionList.add(location);
-        }
+             }
 
              for(final Map.Entry<ServerName, List<TransactionRegionLocation>> entry : locations.entrySet()) {
-                 if (LOG.isTraceEnabled()) LOG.trace("sending commits ... [" + transactionState.getTransactionId() + "]");
-                 loopCount++;
+                if (LOG.isTraceEnabled()) LOG.trace("sending commits ... [" + transactionState.getTransactionId() + "]");
+                loopCount++;
 
 		 //TBD : The parameter '0' to getPeerConnections().get() may need to be something else
-                 threadPool.submit(new TransactionManagerCallable(transactionState,
+                threadPool.submit(new TransactionManagerCallable(transactionState,
 								  entry.getValue().iterator().next(), 
 								  pSTRConfig.getPeerConnections().get(entry.getValue().get(0).peerId)) {
-                     public Integer call() throws CommitUnsuccessfulException, IOException {
+                    public Integer call() throws CommitUnsuccessfulException, IOException {
                         if (LOG.isTraceEnabled()) LOG.trace("before doCommit() [" + transactionState.getTransactionId() + "]" +
                                                             " ignoreUnknownTransactionException: " + ignoreUnknownTransactionException);
                         return doCommitX(entry.getValue(), transactionState.getTransactionId(),
                                       transactionState.getCommitId(), ignoreUnknownTransactionException);
-                     }
-                  });
+                    }
+                });
              }
-
           } catch (Exception e) {
             LOG.error("exception in doCommit for transaction: " + transactionState.getTransactionId() + " "  + e);
               // This happens on a NSRE that is triggered by a split

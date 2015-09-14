@@ -221,6 +221,7 @@ if we can combine these profiles somehow -->
              </dependency>
          </dependencies>
          <build>
+            <pluginManagement>
              <plugins>
                  <plugin>
                      <artifactId>maven-dependency-plugin</artifactId>
@@ -242,6 +243,7 @@ if we can combine these profiles somehow -->
                      </executions>
                  </plugin>
              </plugins>
+            </pluginManagement>
          </build>
      </profile>
      <!--

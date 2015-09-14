@@ -41,14 +41,16 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.transactional.STRConfig;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.CommitUnsuccessfulException;
 import org.apache.hadoop.hbase.client.transactional.UnsuccessfulDDLException;
 import org.apache.hadoop.hbase.client.transactional.UnknownTransactionException;
 import org.apache.hadoop.hbase.client.transactional.HBaseBackedTransactionLogger;
+import org.apache.hadoop.hbase.client.transactional.STRConfig;
 import org.apache.hadoop.hbase.client.transactional.TransactionRegionLocation;
 import org.apache.hadoop.hbase.client.transactional.TransState;
 import org.apache.hadoop.hbase.client.transactional.TransReturnCode;
@@ -65,6 +67,7 @@ import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableNotFoundException;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.trafodion.dtm.HBaseTmZK;
 import org.trafodion.dtm.TmAuditTlog;
 
@@ -88,6 +91,8 @@ public class HBaseTxClient {
    private int stallWhere;
    private IdTm idServer;
    private static final int ID_TM_SERVER_TIMEOUT = 1000;
+   private static boolean bSynchronized=false;
+   protected Map<Integer, TmAuditTlog> peer_tLogs;
 
    public enum AlgorithmType{
      MVCC, SSCC
@@ -106,13 +111,15 @@ public class HBaseTxClient {
    Map<Integer, RecoveryThread> mapRecoveryThreads = new HashMap<Integer, org.trafodion.dtm.HBaseTxClient.RecoveryThread>();
    static final Object mapLock = new Object();
 
+   private static STRConfig pSTRConfig = null;
+
    void setupLog4j() {
         //System.out.println("In setupLog4J");
         System.setProperty("trafodion.root", System.getenv("MY_SQROOT"));
         String confFile = System.getenv("MY_SQROOT")
             + "/conf/log4j.dtm.config";
         PropertyConfigurator.configure(confFile);
-    }
+   }
 
    public boolean init(String hBasePath, String zkServers, String zkPort) throws Exception {
       //System.out.println("In init - hbp");
@@ -202,13 +209,22 @@ public class HBaseTxClient {
       setupLog4j();
       if (LOG.isDebugEnabled()) LOG.debug("Enter init(" + dtmid + ")");
       config = HBaseConfiguration.create();
-      STRConfig pSTRConfig = STRConfig.getInstance(config);
+ 
+      try {
+         pSTRConfig = STRConfig.getInstance(config);
+      }
+      catch (ZooKeeperConnectionException zke) {
+         LOG.error("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
+      }
+      catch (IOException ioe) {
+         LOG.error("IO Exception trying to get STRConfig instance: " + ioe);
+      }
       if (pSTRConfig != null) {
-	  for ( Map.Entry<Integer, Configuration> e : pSTRConfig.getPeerConfigurations().entrySet() ) {
-	      e.getValue().set("dtmid", String.valueOf(dtmid));
-	      e.getValue().set("CONTROL_POINT_TABLE_NAME", "TRAFODION._DTM_.TLOG" + String.valueOf(dtmid) + "_CONTROL_POINT");
-	      e.getValue().set("TLOG_TABLE_NAME", "TRAFODION._DTM_.TLOG" + String.valueOf(dtmid));
-	  }
+         for ( Map.Entry<Integer, Configuration> e : pSTRConfig.getPeerConfigurations().entrySet() ) {
+            e.getValue().set("dtmid", String.valueOf(dtmid));
+            e.getValue().set("CONTROL_POINT_TABLE_NAME", "TRAFODION._DTM_.TLOG" + String.valueOf(dtmid) + "_CONTROL_POINT");
+            e.getValue().set("TLOG_TABLE_NAME", "TRAFODION._DTM_.TLOG" + String.valueOf(dtmid));
+         }
       }
 
       this.dtmID = dtmid;
@@ -226,27 +242,6 @@ public class HBaseTxClient {
       }
       catch (Exception e){
          LOG.error("Exception creating new IdTm: " + e);
-      }
-
-      try {
-         String useDDLTransactions = System.getenv("TM_ENABLE_DDL_TRANS");
-         if (useDDLTransactions != null) {
-             useDDLTrans = (Integer.parseInt(useDDLTransactions) != 0);
-         }
-      }
-      catch (Exception e) {
-         if (LOG.isDebugEnabled()) LOG.debug("TM_ENABLE_DDL_TRANS is not in ms.env");
-      }
-
-      if(useDDLTrans){
-         try {
-            tmDDL = new TmDDL(config);
-         }
-         catch (Exception e) {
-            LOG.error("Unable to create TmDDL, throwing exception " + e);
-            e.printStackTrace();
-            throw new RuntimeException(e);
-         }
       }
 
       useForgotten = true;
@@ -287,13 +282,64 @@ public class HBaseTxClient {
       }
       if (useTlog) {
          try {
-            tLog = new TmAuditTlog(config);
+            tLog = new TmAuditTlog(pSTRConfig.getPeerConfiguration(0)); // connection 0 is the local node
          } catch (Exception e ){
             LOG.error("Unable to create TmAuditTlog, throwing exception " + e);
             e.printStackTrace();
             throw new RuntimeException(e);
          }
+         bSynchronized = (pSTRConfig.getPeerCount() > 0);
+
+         if (bSynchronized) {
+            peer_tLogs = new HashMap<Integer, TmAuditTlog>();
+            for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) {
+               int lv_peerId = entry.getKey();
+               if (lv_peerId == 0) continue;
+               HConnection lv_connection = entry.getValue();
+               Configuration lv_config = pSTRConfig.getPeerConfiguration(lv_peerId);
+               try{
+                  if (LOG.isTraceEnabled()) LOG.trace("Creating peer Tlog for peer " + lv_peerId +
+                                          ", connection: " + lv_connection + ", config: " + lv_config);
+                  TmAuditTlog lv_Tlog = new TmAuditTlog(lv_config);
+                  if (LOG.isTraceEnabled()) LOG.trace("Peer Tlog for peer " + lv_peerId + " created");
+                  peer_tLogs.put(lv_peerId, new TmAuditTlog(lv_config));
+               } catch (Exception e ){
+                  LOG.error("Unable to create peer TmAuditTlog[" + lv_peerId + "], throwing exception " + e);
+                  e.printStackTrace();
+                  throw new RuntimeException(e);
+               }
+            }
+         }
+         else {
+            if (LOG.isTraceEnabled()) LOG.trace("bSynchronized is false ");
+         }
       }
+      else {
+          if (LOG.isTraceEnabled()) LOG.trace("Tlog is not enabled ");
+      }
+
+      try {
+         String useDDLTransactions = System.getenv("TM_ENABLE_DDL_TRANS");
+         if (useDDLTransactions != null) {
+            useDDLTrans = (Integer.parseInt(useDDLTransactions) != 0);
+         }
+      }
+      catch (Exception e) {
+         if (LOG.isDebugEnabled()) LOG.debug("TM_ENABLE_DDL_TRANS is not in ms.env");
+      }
+      if(useDDLTrans){
+         try {
+            tmDDL = new TmDDL(config);
+         }
+         catch (Exception e) {
+            LOG.error("Unable to create TmDDL, throwing exception " + e);
+            e.printStackTrace();
+            throw new RuntimeException(e);
+         }
+      }
+      if(useDDLTrans)
+         trxManager.init(tmDDL);
+
       try {
           trxManager = TransactionManager.getInstance(config);
       } catch (IOException e ){
@@ -422,10 +468,37 @@ public class HBaseTxClient {
       try {
          ts.setStatus(TransState.STATE_ABORTED);
          if (useTlog) {
-            tLog.putSingleRecord(transactionID, -1, "ABORTED", ts.getParticipatingRegions(), false);
+            if (bSynchronized){
+               Put p;
+               if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, generating ABORTED put for transaction: " + transactionID);
+               p = tLog.generatePut(transactionID);
+               if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, initializing put for transaction: " + transactionID);
+               int index = tLog.initializePut(transactionID, -1, "ABORTED-REMOTE", ts.getParticipatingRegions(), p);
+               for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
+                  try {
+                     lv_tLog.doTlogWrite(ts, Bytes.toBytes("ABORTED-REMOTE"), index, p);
+                  }
+                  catch (Exception e) {
+                     LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionID + 
+                                " tLog.doTlogWrite: EXCEPTION " + e);
+                     return TransReturnCode.RET_EXCEPTION.getShort();
+                  }
+               }
+            }
+            tLog.putSingleRecord(transactionID, -1, "ABORTED", ts.getParticipatingRegions(), true); //force flush
+            if (bSynchronized){
+               try{
+                  if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, completing Tlog write for transaction: " + transactionID);
+                  ts.completeRequest();
+               }
+               catch(Exception e){
+                  LOG.error("Exception in abortTransaction completing Tlog write completeRequest. txID: " + transactionID + "Exception: " + e);
+                  //return; //Do not return here?
+               }
+            }
          }
       } catch(Exception e) {
-         LOG.error("Returning from HBaseTxClient:abortTransaction, txid: " + transactionID + " tLog.putRecord: EXCEPTION");
+         LOG.error("Returning from HBaseTxClient:abortTransaction, txid: " + transactionID + " tLog.putRecord: EXCEPTION " + e);
          return TransReturnCode.RET_EXCEPTION.getShort();
       }
 
@@ -440,7 +513,7 @@ public class HBaseTxClient {
           synchronized(mapLock) {
              mapTransactionStates.remove(transactionID);
           }
-          LOG.error("Returning from HBaseTxClient:abortTransaction, txid: " + transactionID + " retval: EXCEPTION");
+          LOG.error("Returning from HBaseTxClient:abortTransaction, txid: " + transactionID + " retval: EXCEPTION " + e);
           return TransReturnCode.RET_EXCEPTION.getShort();
       }
       catch (UnsuccessfulDDLException ddle) {
@@ -461,14 +534,35 @@ public class HBaseTxClient {
           return TransReturnCode.RET_EXCEPTION.getShort();
       }
       if (useTlog && useForgotten) {
-         if (forceForgotten) {
-            tLog.putSingleRecord(transactionID, -1, "FORGOTTEN", null, true);
+         if (bSynchronized){
+            Put p;
+            if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, generating FORGOTTEN put for transaction: " + transactionID);
+            p = tLog.generatePut(transactionID);
+            if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, initializing put for FORGOTTEN transaction: " + transactionID);
+            int index = tLog.initializePut(transactionID, -1, "FORGOTTEN-REMOTE", ts.getParticipatingRegions(), p);
+            for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
+               try {
+                  lv_tLog.doTlogWrite(ts, Bytes.toBytes("FORGOTTEN-REMOTE"), index, p);
+               }
+               catch (Exception e) {
+                  LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionID + 
+                            " tLog.doTlogWrite: EXCEPTION " + e);
+                  return TransReturnCode.RET_EXCEPTION.getShort();
+               }
+            }
          }
-         else {
-            tLog.putSingleRecord(transactionID, -1, "FORGOTTEN", null, false);
+         tLog.putSingleRecord(transactionID, -1, "FORGOTTEN", ts.getParticipatingRegions(), forceForgotten); // forced flush?
+         if (bSynchronized){
+            try{
+               if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, completing Tlog write for FORGOTTEN transaction: " + transactionID);
+               ts.completeRequest();
+            }
+            catch(Exception e){
+               LOG.error("Exception in abortTransaction completing Tlog write completeRequest for FORGOTTEN txID: " + transactionID + "Exception: " + e);
+               //return; //Do not return here?
+            }
          }
       }
- //     mapTransactionStates.remove(transactionID);
 
       if (LOG.isTraceEnabled()) LOG.trace("Exit abortTransaction, retval: OK txid: " + transactionID + " mapsize: " + mapTransactionStates.size());
       return TransReturnCode.RET_OK.getShort();
@@ -549,7 +643,37 @@ public class HBaseTxClient {
        try {
           ts.setStatus(TransState.STATE_COMMITTED);
           if (useTlog) {
+             if (bSynchronized){
+                Put p;
+                if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, generating COMMITTED put for transaction: " + transactionId);
+                p = tLog.generatePut(transactionId);
+                if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, initializing put for transaction: " + transactionId);
+                int index = tLog.initializePut(transactionId, commitIdVal, "COMMITTED-REMOTE", ts.getParticipatingRegions(), p);
+                for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
+                   try {
+                      lv_tLog.doTlogWrite(ts, Bytes.toBytes("COMMITTED-REMOTE"), index, p);
+                   }
+                   catch (Exception e) {
+                      LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionId + 
+                                " tLog.doTlogWrite: EXCEPTION " + e);
+                       return TransReturnCode.RET_EXCEPTION.getShort();
+                   }
+                }
+             }
+             else {
+                 if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, sb_replicate is false");
+             }
              tLog.putSingleRecord(transactionId, commitIdVal, "COMMITTED", ts.getParticipatingRegions(), true);
+             if (bSynchronized){
+                try{
+                  if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, completing Tlog write for transaction: " + transactionId);
+                  ts.completeRequest();
+                }
+                catch(Exception e){
+                   LOG.error("Exception in doCommit completing Tlog write completeRequest. txID: " + transactionId + "Exception: " + e);
+                   //return; //Do not return here?
+                }
+             }
           }
        } catch(Exception e) {
           LOG.error("Returning from HBaseTxClient:doCommit, txid: " + transactionId + " tLog.putRecord: EXCEPTION " + e);
@@ -557,7 +681,7 @@ public class HBaseTxClient {
        }
 
        if ((stallWhere == 2) || (stallWhere == 3)) {
-          LOG.info("Stalling in phase 2 for doCommit");
+    	  if (LOG.isInfoEnabled())LOG.info("Stalling in phase 2 for doCommit");
           Thread.sleep(300000); // Initially set to run every 5 min
        }
 
@@ -585,14 +709,35 @@ public class HBaseTxClient {
           return TransReturnCode.RET_EXCEPTION.getShort();
        }
        if (useTlog && useForgotten) {
-          if (forceForgotten) {
-             tLog.putSingleRecord(transactionId, commitIdVal, "FORGOTTEN", null, true);
+          if (bSynchronized){
+             Put p;
+             if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, generating FORGOTTEN put for transaction: " + transactionId);
+             p = tLog.generatePut(transactionId);
+             if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, initializing put for FORGOTTEN transaction: " + transactionId);
+             int index = tLog.initializePut(transactionId, commitIdVal, "FORGOTTEN-REMOTE", ts.getParticipatingRegions(), p);
+             for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
+                try {
+                	lv_tLog.doTlogWrite(ts, Bytes.toBytes("FORGOTTEN-REMOTE"), index, p);
+                }
+                catch (Exception e) {
+                   LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionId + 
+                		     " tLog.doTlogWrite: EXCEPTION " + e);
+                   return TransReturnCode.RET_EXCEPTION.getShort();                   
+                }
+             }
           }
-          else {
-             tLog.putSingleRecord(transactionId, commitIdVal, "FORGOTTEN", null, false);
+          tLog.putSingleRecord(transactionId, commitIdVal, "FORGOTTEN", ts.getParticipatingRegions(), forceForgotten); // forced flush?
+          if (bSynchronized){
+             try{
+                if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, completing Tlog write for FORGOTTEN transaction: " + transactionId);
+                ts.completeRequest();
+             }
+             catch(Exception e){
+                LOG.error("Exception in doCommit completing Tlog write completeRequest for FORGOTTEN txID: " + transactionId + "Exception: " + e);
+                //return; //Do not return here?
+             }
           }
        }
-//       mapTransactionStates.remove(transactionId);
 
        if (LOG.isTraceEnabled()) LOG.trace("Exit doCommit, retval(ok): " + TransReturnCode.RET_OK.toString() +
                          " txid: " + transactionId + " mapsize: " + mapTransactionStates.size());
@@ -610,9 +755,7 @@ public class HBaseTxClient {
        }
 
        try {
-
-       if (LOG.isTraceEnabled()) LOG.trace("TEMP completeRequest Calling CompleteRequest() Txid :" + transactionId);
-
+          if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:completeRequest Calling ts.completeRequest() Txid :" + transactionId);
           ts.completeRequest();
        } catch(Exception e) {
           LOG.error("Returning from HBaseTxClient:completeRequest, ts.completeRequest: txid: " + transactionId + ", EXCEPTION: " + e);
