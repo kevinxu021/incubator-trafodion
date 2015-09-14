@@ -1,6 +1,6 @@
 ﻿<NUnitProject>
   <Settings activeconfig="Default" />
-  <Config name="Default" configfile="EsgynDB.AdoTest.dll.config" binpathtype="Auto" runtimeFramework="v2.0.50727">
+  <Config name="Default" configfile="EsgynDB.Data.Test.dll.config" binpathtype="Auto" runtimeFramework="v4.5.50727">
     <assembly path="EsgynDB.Data.Tests.dll" />
   </Config>
 </NUnitProject>

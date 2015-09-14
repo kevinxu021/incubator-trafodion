@@ -93,6 +93,7 @@ public class QueryResource {
 				rs.close();
 			} else {
 				int count = pstmt.getUpdateCount();
+				js.isScalarResult = true;
 				js.columnNames = new String[] { "Status" };
 				js.resultArray = new ArrayList<Object[]>();
 				Object[] data = new Object[1];

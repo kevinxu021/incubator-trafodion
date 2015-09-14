@@ -1,0 +1,50 @@
+////
+/**
+  *(C) Copyright 2015 Esgyn Corporation
+  *
+  * Confidential computer software. Valid license from Esgyn required for 
+  * possession, use or copying. Consistent with FAR 12.211 and 12.212, 
+  * Commercial Computer Software, Computer Software Documentation, and 
+  * Technical Data for Commercial Items are licensed to the U.S. Government 
+  * under vendor's standard commercial license.
+  *  
+  */
+////
+
+= EsgynDB Manager User Guide
+:doctype: book
+:numbered:
+:toc: left
+:toclevels: 1
+:toc-title: Table of Contents
+:icons: font
+:iconsdir: icons
+:linkcss:
+:experimental:
+:source-language: java
+
+:leveloffset: 0
+
+// The directory is called _chapters because asciidoctor skips direct
+// processing of files found in directories starting with an _. This
+// prevents each chapter being built as its own book.
+
+Copyright (C) 2015 Esgyn Corporation
+
+The information contained herein is subject to change without notice. 
+This documentation is distributed on an "AS IS" basis, without warranties or conditions of any kind, either express or implied. 
+Nothing herein should be construed as constituting an additional warranty. 
+Esgyn Corporation shall not be liable for technical or editorial errors or omissions contained herein.
+
+
+[cols="2"]
+|===
+2+|*Revision History*
+|{projectVersion} 
+|{buildDate}
+|===
+
+include::_chapters/getting_started.adoc[]
+include::_chapters/architecture.adoc[]
+include::_chapters/configuration.adoc[]
+include::_chapters/usage.adoc[]

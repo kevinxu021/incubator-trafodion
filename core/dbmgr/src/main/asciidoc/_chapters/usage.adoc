@@ -1,0 +1,98 @@
+////
+<!-- 
+/**
+  *(C) Copyright 2015 Esgyn Corporation
+  *
+  * Confidential computer software. Valid license from Esgyn required for 
+  * possession, use or copying. Consistent with FAR 12.211 and 12.212, 
+  * Commercial Computer Software, Computer Software Documentation, and 
+  * Technical Data for Commercial Items are licensed to the U.S. Government 
+  * under vendor's standard commercial license.
+  *  
+  */
+-->
+////
+[[usage]]
+== Using EsgynDB Manager
+:doctype: book
+:numbered:
+:toc: left
+:icons: font
+:experimental:
+
+This chapter describes how to connect to EsgynDB Manager and use its features. 
+
+=== Connecting to EsgynDB Manager
+
+Open a web browser and point to the host name on which EsgynDB Manager is running. You can use either the HTTP port or the HTTPS port number set in the EsgynDB Manager config file. If you use the HTTP port, the request is automatically redirected to the HTTPS port.
+
+----
+http://my.esgyndb.server:4205
+----
+
+Or 
+
+----
+https://my.esgyndb.server:4206
+----
+=== Login
+In the Login page, enter the user name and password and click on the Login button. EsgynDB Manager relies on database authentication and makes a JDBC connection to authenticate the user.
+
+=== Dashboard
+
+The dashboard page displays the status of the EsgynDB services and nodes.
+
+==== Service Status
+
+The service status displays the status of the core EsgynDB services : *Transaction Manager, Connectivity Service and Runtime Management Service*.
+For each service, you can see the number of configured processes, the number of acutal running processes, the number of down processes if any.
+This information is provided by the EsgynDB REST Server by calling sqcheck script.
+
+==== Node Status
+
+The node status displays the *Up* or *Down* status of all the configured logical nodes in the EsgynDB cluster.
+This information is provided by the EsgynDB REST Server by calling sqnodestatus script.
+
+=== Workloads
+
+==== Active Workloads
+The active workloads page displays the list of active EsgynDB queries. This includes queries that are currently executing and queries that completed within the last 30 seconds. The information is obtained from the EsgynDB Runtime Management Service.
+
+Use the *Action -> Refresh* menu to refresh the list of active queries. 
+
+===== Active Query Details
+
+==== Historical Workloads
+The historical workloads page by default fetches the queries that completed in the last 1 hour. This information is fetched from the EsgynDB query statistics tables.
+Use the *Action -> Refresh* action option to refresh the page. 
+
+You can use the *Filters* to specify your search parameters.
+
+===== Historical Query Detail
+<TBD>
+
+===== Historical Query Explain Plan
+<TBD>
+
+==== Cancel Query
+<TBD>
+
+=== Logs
+The Logs page displays the log messages from the EsgynDB processes. The logs are fetched using the logs TMUDF which filters the log entries from the EsgynDB log files and provides a single consolidated view.
+Use the Filters button to specify custom filters for your search.
+
+=== DCS Servers
+The DCS Servers page displays the current active DCS Server sessions. If the DCS server is in a connected state, you will see the user name, the application name and client workstation that is connected.
+
+=== Query Workbench
+The query workbench page allows you to execute adhoc queries and view the results in a tabular form or to generate a visual explain plan.
+
+==== Execute Query
+
+==== Explain Plan
+
+==== Control Options
+
+=== Log Out
+You can click on the user icon at the top right corner of the application and select the *Logout* option.
+

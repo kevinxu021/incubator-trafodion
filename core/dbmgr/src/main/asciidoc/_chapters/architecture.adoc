@@ -1,0 +1,32 @@
+////
+/**
+  *(C) Copyright 2015 Esgyn Corporation
+  *
+  * Confidential computer software. Valid license from Esgyn required for 
+  * possession, use or copying. Consistent with FAR 12.211 and 12.212, 
+  * Commercial Computer Software, Computer Software Documentation, and 
+  * Technical Data for Commercial Items are licensed to the U.S. Government 
+  * under vendor's standard commercial license.
+  *  
+  */
+////
+[[architecture]]
+== Architecture
+:doctype: book
+:numbered:
+:toc: left
+:icons: font
+:experimental:
+
+The EsgynDB Manager is a web application that monitors and manages an EsgynDB instance. The architecture is very flexible and lightweight.
+
+* DB Manager runs as an embedded jetty webserver. No additional packages to install.
+* Communication with EsgynDB core is through JDBC and HTTP requests. 
+* Webserver code is 100% Java.
+* The web client layer uses HTML5/JavaScript/CSS.
+* Client to DB Manager webserver communication uses HTTPS encryption.
+* Uses JDBC Authentication.
+* EsgynDB Manager has been tested with Chrome, IE11, Firefox and Microsoft Edge browsers.
+ 
+[[img-rest]]
+image::architecture.png[caption="Figure 1: ", title="EsgynDB Manager Architecture"]
