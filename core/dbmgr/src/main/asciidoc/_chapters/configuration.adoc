@@ -1,0 +1,139 @@
+////
+<!-- 
+/**
+  *(C) Copyright 2015 Esgyn Corporation
+  *
+  * Confidential computer software. Valid license from Esgyn required for 
+  * possession, use or copying. Consistent with FAR 12.211 and 12.212, 
+  * Commercial Computer Software, Computer Software Documentation, and 
+  * Technical Data for Commercial Items are licensed to the U.S. Government 
+  * under vendor's standard commercial license.
+  *  
+  */
+-->
+////
+[[configuration]]
+== Install and Configuration
+:doctype: book
+:numbered:
+:toc: left
+:icons: font
+:experimental:
+
+This chapter describes how to install EsgynDB Manager and configure its runtime properties. 
+
+=== Install EsgynDB Manager
+
+EsgynDB Manager is available for download as compressed tar file *dbmgr-1.0.0.bin.tar.gz* from the Esgyn.com website.
+
+* Download the EsgynDB Manager binary tar file to your target system.
+* Untar the contents to the target folder. A *dbmgr-1.0.0* sub-folder will be created.
+
+----
+$ tar xfz dbmgr-1.0.0-bin.tar.gz
+----
+
+=== Configure EsgynDB Manager
+EsgynDB Manager communicates with the EsgynDB runtime via ODBC or HTTP.
+DB Manager uses a configuration file that can be customized for your runtime environment.
+
+* Run the configure.py script from the bin folder. 
+----
+$ cd dbmgr-1.0.0/bin
+$ ./configure.py
+----
+* This script will prompt for the runtime properties.
+*HTTP Port*:: 
+This is the port the EsgynDB Manager embedded Jetty server binds to waiting for client HTTP connections. 
+The value may need to be changed if this port number conflicts with other ports in use on your cluster.
+The default value is 4205.
+*HTTPS Port*:: 
+This is the port the EsgynDB Manager embedded Jetty server binds to waiting for client HTTPS connections. 
+The value may need to be changed if this port number conflicts with other ports in use on your cluster.
+The default value is 4206.
+*SSL Keystore Password*:: 
+A self-signed certificate will be generated and stored in a SSL keystore using the provided password. 
+The password is obfuscated and the SSL keystore is saved as *dbmgr-1.0.0/etc/dbmgr.keystore*.
+*DCS Server Host*:: 
+The hostname or ip address for the node on which DCS Master is listening. DB Manager uses this property to make a JDBC connection.
+*DCS Server Port*::
+The listen port number for DCS Master.  DB Manager uses this property to make a JDBC connection. 
+The default value is 23400. 
+*REST Server Host*::
+The hostname or ip address for the node on which EsgynDB REST server is listening.
+*REST Server Port*::
+The listen port number for EsgynDB REST Server. 
+The default value is 4200.
+
+* The generated configuration is saved in *dbgmr-1.0.0./conf/config.xml*. A sample configuration is shown below.
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+
+<properties>
+
+	<!-- The JDBC url for the Trafodion/EsgynDB instance that you are connecting to -->
+	<entry key="jdbcUrl">jdbc:t4jdbc://my.esgyndb.server:23400/:</entry>
+	
+	<!-- The JDBC driver class name for the Trafodion/EsgynDB JDBC driver -->
+	<entry key="jdbcDriverClass">org.trafodion.jdbc.t4.T4Driver</entry>
+	
+	<!-- The Trafodion REST Server URI -->
+	<entry key="trafodionRestServerUri">my.esgyndb.server:4200</entry>
+	
+	<!-- Session Timeout in minutes. Your Esgyndb Mgr browser session to the server will be 
+		timed out after this interval and you will be asked to login again -->
+	<entry key="sessionTimeoutMinutes">120</entry>
+
+	<!-- The following properties are only required and used by the embedded jetty server -->
+	
+	<!-- The HTTP Port for the DB Manager embedded jetty server -->
+	<entry key="httpPort">4205</entry>
+
+	<!-- The HTTPS Port for the DB Manager embedded jetty server -->
+	<entry key="httpsPort">4206</entry>
+
+	<!-- The SSL keystore password for the DB Manager embedded jetty server -->
+	<entry key="securePassword">OBF:1iup1igf1x8a1tvj1x8k1idr1irx</entry>
+
+	<!-- The HTTP request header size for the DB Manager embedded jetty server -->
+	<entry key="requestHeaderSize">98304</entry>
+
+</properties>
+----
+
+=== Log settings
+DB Manager uses logback for its logging. You can edit the *dbmgr-1.0.0/conf/logback.xml* to change rate at which the log files are rolled and to change the level at which the server logs messages.
+
+=== Start EsgynDB Manager
+Start EsgynDB Manager as an embedded jetty server using the dbmgr.sh script.
+----
+$ cd dbmgr-1.0.0/bin
+./dbmgr.sh start
+----
+
+If the EsgynDB Manager starts successfully, you should see a prompt like below:
+----
+EsgynDB Manager service is running. PID is 3391.
+----
+
+If the start fails, you see a message like this. Check the *dbmgr.log* for errors.
+----
+EsgynDB Manager service is NOT running. Check dbmgr.log.
+----
+
+=== Check Status of EsgynDB Manager
+To check the state of EsgynDB Manager, run the following command from the bin folder.
+----
+$ ./dbmgr.sh status
+EsgynDB Manager service is running. PID is 3391.
+----
+
+=== Stop EsgynDB Manager
+To stop EsgynDB Manager, run the following command from the bin folder.
+----
+$ ./dbmgr.sh stop
+EsgynDB Manager service has been stopped.
+----
+ 

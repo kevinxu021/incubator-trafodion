@@ -17,8 +17,13 @@
 			<lineEnding>unix</lineEnding>
 		</file>
 		<file>
-			<source>target/${project.build.finalName}/WEB-INF/lib/jetty-util-${jettyVersion}.jar</source>
+			<source>${project.build.directory}/${project.build.finalName}/WEB-INF/lib/jetty-util-${jettyVersion}.jar</source>
 			<outputDirectory>lib</outputDirectory>
+		</file>
+		<file>
+		<source>${project.build.directory}/generated-docs/index.pdf</source>
+		<outputDirectory>docs</outputDirectory>
+		<destName>EsgynDBMgrUserGuide.${project.version}.pdf</destName>
 		</file>
 	</files>
 	<fileSets>
@@ -55,6 +60,10 @@
 				<include>${project.build.finalName}.war</include>
 				<include></include>
 			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>target/${project.build.finalName}/docs</directory>
+			<outputDirectory>docs</outputDirectory>
 		</fileSet>
 	</fileSets>
 </assembly>

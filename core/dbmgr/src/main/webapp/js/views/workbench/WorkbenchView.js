@@ -419,6 +419,8 @@ define([
         	$("#infovis").hide();
         	$("#errorText").hide();
         	$("#query-result-container").hide();
+        	$('#text-result-container').hide();
+        	$('#scalar-result-container').hide();        	
         	var param = {sQuery : queryText, sControlStmts: controlStmts};
 
         	_that.showLoading();
@@ -469,7 +471,7 @@ define([
         displayResults: function (result){
         	_that.hideLoading();
         	var keys = result.columnNames;
-        	if(keys.length == 1 && result.resultArray.length == 1){
+        	if(result.isScalarResult != null && result.isScalarResult == true){
         		$("#scalar-result-container").show();
         		$("#scalar-result-container").text(result.resultArray[0][0]);
         	}
