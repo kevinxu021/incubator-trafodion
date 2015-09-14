@@ -2,13 +2,13 @@ define([
         'views/BaseView',
         'text!templates/dcsservers.html',
         'jquery',
-        'handlers/DcsHandler',
+        'handlers/ServerHandler',
         'moment',
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
         'tabletools'
-        ], function (BaseView, DcsServerT, $, dcsHandler, moment) {
+        ], function (BaseView, DcsServerT, $, serverHandler, moment) {
 	'use strict';
     var LOADING_SELECTOR = ".dbmgr-spinner",
     	RESULT_CONTAINER = '#query-result-container',
@@ -22,20 +22,20 @@ define([
 
 		init: function (){
 			_that = this;
-			dcsHandler.on(dcsHandler.FETCHDCS_SUCCESS, this.displayResults);
-			dcsHandler.on(dcsHandler.FETCHDCS_ERROR, this.showErrorMessage);			
+			serverHandler.on(serverHandler.FETCHDCS_SUCCESS, this.displayResults);
+			serverHandler.on(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
 			$("#refreshAction").on('click', this.fetchDcsServers);
 			this.fetchDcsServers();
 		},
 		resume: function(){
-			dcsHandler.on(dcsHandler.FETCHDCS_SUCCESS, this.displayResults);
-			dcsHandler.on(dcsHandler.FETCHDCS_ERROR, this.showErrorMessage);			
+			serverHandler.on(serverHandler.FETCHDCS_SUCCESS, this.displayResults);
+			serverHandler.on(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
 			$("#refreshAction").on('click', this.fetchDcsServers);
 			this.fetchDcsServers();
 		},
 		pause: function(){
-			dcsHandler.off(dcsHandler.FETCHDCS_SUCCESS, this.displayResults);
-			dcsHandler.off(dcsHandler.FETCHDCS_ERROR, this.showErrorMessage);			
+			serverHandler.off(serverHandler.FETCHDCS_SUCCESS, this.displayResults);
+			serverHandler.off(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
 			$("#refreshAction").off('click', this.fetchDcsServers);
 		},
         showLoading: function(){
@@ -48,7 +48,7 @@ define([
 		fetchDcsServers: function () {
 			_that.showLoading();
 			$(ERROR_CONTAINER).hide();
-			dcsHandler.fetchDcsServers();
+			serverHandler.fetchDcsServers();
 		},
 
 		displayResults: function (result){

@@ -1,0 +1,2103 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>EsgynDB.Data</name>
+    </assembly>
+    <members>
+        <member name="T:EsgynDB.Data.EsgynDBResources">
+            <summary>
+            Collection of static methods used to interact with bundled resources.
+            </summary>
+        </member>
+        <member name="T:LZF.NET.CLZF">
+            <summary>
+            Summary description for CLZF.
+            </summary>
+        </member>
+        <member name="F:LZF.NET.CLZF.HLOG">
+            <summary>
+            LZF Compressor
+            </summary>
+        </member>
+        <member name="M:LZF.NET.CLZF.lzf_decompress(System.Byte[],System.Int32,System.Byte[],System.Int32)">
+            <summary>
+            LZF Decompressor
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.Properties.Resources">
+            <summary>
+              A strongly-typed resource class, for looking up localized strings, etc.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Resources.ResourceManager">
+            <summary>
+              Returns the cached ResourceManager instance used by this class.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Resources.Culture">
+            <summary>
+              Overrides the current thread's CurrentUICulture property for all
+              resource lookups using this strongly typed resource class.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Resources._100">
+            <summary>
+              Looks up a localized string similar to JKJ1K8IDCEHEZ3APC9ZEE2I9RRMDCIEJD8MEMCCERDHRJZQIRTP3ZAJRA9IPI9E3H8J8ZPDMMQKZJECAZRMTKIDZZQJ1RCA2ATQZIRJRZZRCE2JAR2IHHDZERQQ3DKK1.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Resources._101">
+            <summary>
+              Looks up a localized string similar to EsgynDB ADO.NET 1.0 Data Provider.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Resources._102">
+            <summary>
+              Looks up a localized string similar to EsgynDB ADO.NET 1.0 Data Provider.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Resources._103">
+            <summary>
+              Looks up a localized string similar to 1.0.0.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Resources._200">
+            <summary>
+              Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Resources.Datasource_DisplayName">
+            <summary>
+              Looks up a localized string similar to Esgyn Database.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Resources.Provider_Description">
+            <summary>
+              Looks up a localized string similar to Use this selection to connect to Esgyn Database using the .NET Framework Data provider for Esgyn Database..
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Resources.Provider_DisplayName">
+            <summary>
+              Looks up a localized string similar to .NET Framework Data Provider for Esgyn Database.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Resources.Provider_ShortDisplayName">
+            <summary>
+              Looks up a localized string similar to Esgyn Database Provider.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.DisplayVersion">
+            <summary>
+            Version information relating to the EsgynDB Database ADO.NET Provider
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.DisplayVersion.VersionStr">
+            <summary>
+            Product version string.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.DisplayVersion.FileVersion">
+            <summary>
+            File revision number.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.DisplayVersion.Vproc">
+            <summary>
+            EsgynDB Database ADO.NET Provider VPROC.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.ProductVersion">
+            <summary>
+            Version information relating to the EsgynDB ADO.NET Provider
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.ProductVersion.Major">
+            <summary>
+            Major revision number.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.ProductVersion.Minor">
+            <summary>
+            Minor revision number.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.ProductVersion.VersionStr">
+            <summary>
+            Product version string.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.ProductVersion.FileVersion">
+            <summary>
+            File revision number.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.ProductVersion.Vproc">
+            <summary>
+            EsgynDB ADO.NET Provider VPROC.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBCommand">
+            <summary>
+            Represents a SQL statement or stored procedure to execute against a EsgynDB database. This class cannot be inherited.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.#ctor">
+            <summary>
+            Initializes a new instance of the EsgyndbCommand class.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the EsgyndbCommand class with the text of the query.
+            </summary>
+            <param name="cmdText">The text of the query.</param>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.#ctor(System.String,EsgynDB.Data.EsgynDBConnection)">
+            <summary>
+            Initializes a new instance of the EsgyndbCommand class with the text of the query and a EsgynDBConnection.
+            </summary>
+            <param name="cmdText">The text of the query.</param>
+            <param name="connection">A EsgynDBConnection to associate with this command.</param>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.#ctor(System.String,EsgynDB.Data.EsgynDBConnection,EsgynDB.Data.EsgynDBTransaction)">
+            <summary>
+            Initializes a new instance of the EsgyndbCommand class with the text of the query, a EsgynDBConnection, and the EsgynDBTransaction.
+            </summary>
+            <param name="cmdText">The text of the query. </param>
+            <param name="connection">A EsgynDBConnection to associate with this command.</param>
+            <param name="transaction">Not used.  The EsgynDBTransaction associated with the Command will always be referenced from the EsgynDBConnection object.</param>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.#ctor(System.String,EsgynDB.Data.EsgynDBConnection,EsgynDB.Data.EsgynDBTransaction,System.String)">
+            <summary>
+            Initializes a new instance of the EsgyndbCommand class with the text of the query, a EsgynDBConnection, a EsgynDBTransaction, and a command label.
+            </summary>
+            <param name="cmdText">The text of the query. </param>
+            <param name="connection">A EsgynDBConnection to associate with this command.</param>
+            <param name="transaction">Not used.  The EsgynDBTransaction associated with the Command will always be referenced from the EsgynDBConnection object.</param>
+            <param name="label">The label to be associated with the EsgyndbCommand.</param>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.Dispose">
+            <summary>
+            Releases all resources used by the EsgyndbCommand.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.Cancel">
+            <summary>
+            Tries to cancel the execution of a EsgyndbCommand. 
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.CreateParameter">
+            <summary>
+            Creates a new instance of a EsgynDBParameter object.
+            </summary>
+            <returns>A EsgynDBParameter object.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.ExecuteReader">
+            <summary>
+            Sends the CommandText to the Connection and builds a EsgynDBDataReader.
+            </summary>
+            <returns>A EsgynDBDataReader object.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.ExecuteReader(System.Data.CommandBehavior)">
+            <summary>
+            Sends the CommandText to the Connection, and builds a EsgynDBDataReader using one of the CommandBehavior values.
+            </summary>
+            <param name="behavior">One of the CommandBehavior values.</param>
+            <returns>A EsgynDBDataReader object.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.ExecuteScalar">
+            <summary>
+            Executes the query, and returns the first column of the first row in the result set returned by the query. Additional columns or rows are ignored. 
+            </summary>
+            <returns>The first column of the first row in the result set or a null reference if the result set is empty.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.Prepare">
+            <summary>
+            Creates a prepared version of the command on the EsgynDB Server.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.System#Data#IDbCommand#CreateParameter">
+            <summary>
+            Creates a new instance of a EsgynDBParameter object.
+            </summary>
+            <returns>A EsgynDBParameter object.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.System#Data#IDbCommand#ExecuteReader(System.Data.CommandBehavior)">
+            <summary>
+            Sends the CommandText to the Connection, and builds a EsgynDBDataReader using one of the CommandBehavior values.
+            </summary>
+            <param name="behavior">One of the CommandBehavior values. </param>
+            <returns>A SqlDataReader object.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.System#Data#IDbCommand#ExecuteReader">
+            <summary>
+            Sends the CommandText to the Connection and builds a EsgynDBDataReader.
+            </summary>
+            <returns>EsgynDBDataReader</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.System#ICloneable#Clone">
+            <summary>
+            Creates a new EsgyndbCommand object that is a copy of the current instance.
+            </summary>
+            <returns>A EsgyndbCommand object.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.CreateDbParameter">
+            <summary>
+            Creates a new instance of a DbParameter object. 
+            </summary>
+            <returns>A DbParameter object.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommand.ExecuteDbDataReader(System.Data.CommandBehavior)">
+            <summary>
+            Executes the command text against the connection. 
+            </summary>
+            <param name="behavior">An instance of CommandBehavior.</param>
+            <returns>A DbDataReader.</returns>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommand.CommandText">
+            <summary>
+            Gets or sets the SQL statement to execute.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommand.CommandTimeout">
+            <summary>
+            Gets or sets the wait time before terminating the attempt to execute a command and generating an error.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommand.CommandType">
+            <summary>
+            Gets or sets a value indicating how the CommandText property is to be interpreted.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommand.Connection">
+            <summary>
+            Gets or sets the EsgynDBConnection used by this instance of the EsgyndbCommand.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommand.Parameters">
+            <summary>
+            Gets the EsgynDBParameterCollection.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommand.Transaction">
+            <summary>
+            Gets or sets the EsgynDBTransaction associated with this command.
+            </summary>
+            <remarks>
+            Not used.  The EsgynDBTransaction associated with the Command will always be referenced from the EsgynDBConnection object.
+            </remarks>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommand.UpdatedRowSource">
+            <summary>
+            Gets or sets how command results are applied to the DataRow when used by the Update method of the EsgynDBDataAdapter. 
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommand.DesignTimeVisible">
+            <summary>
+            Gets or sets a value indicating whether the command object should be visible in a Windows Form Designer control.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommand.Label">
+            <summary>
+            Gets the Statement Label associated with this command.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommand.RowsAffected">
+            <summary>
+            Gets the number of rows changed, inserted, or deleted.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommand.System#Data#IDbCommand#Connection">
+            <summary>
+            Gets or sets the EsgynDBConnection used by this instance of the EsgyndbCommand.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommand.System#Data#IDbCommand#Parameters">
+            <summary>
+            Gets the EsgynDBParameterCollection.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommand.System#Data#IDbCommand#Transaction">
+            <summary>
+            Gets or sets the EsgynDBTransaction within which the EsgyndbCommand executes.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommand.DbConnection">
+            <summary>
+            Gets or sets the DbConnection used by this DbCommand. 
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommand.DbParameterCollection">
+            <summary>
+            Gets the collection of DbParameter objects.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommand.DbTransaction">
+            <summary>
+            Gets or sets the DbTransaction within which this DbCommand object executes. 
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBCommandBuilder">
+            <summary>
+            Automatically generates single-table commands that are used to reconcile changes made to a DataSet with the associated EsgynDB database. This class cannot be inherited.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommandBuilder.#ctor">
+            <summary>
+            Initializes a new instance of the EsgynDBCommandBuilder class.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommandBuilder.#ctor(EsgynDB.Data.EsgynDBDataAdapter)">
+            <summary>
+            Initializes a new instance of the EsgynDBCommandBuilder class with the associated EsgynDBDataAdapter object.
+            </summary>
+            <param name="adapter">The EsgynDBDataAdapter to associate with this EsgynDBCommandBuilder</param>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommandBuilder.GetDeleteCommand">
+            <summary>
+            Gets the automatically generated EsgyndbCommand object required to perform deletions on the database.
+            </summary>
+            <returns>The automatically generated EsgyndbCommand object required to perform deletions.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommandBuilder.GetUpdateCommand">
+            <summary>
+            Gets the automatically generated EsgyndbCommand object required to perform updates on the database.
+            </summary>
+            <returns>The automatically generated EsgyndbCommand object required to perform updates.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommandBuilder.GetInsertCommand">
+            <summary>
+            Gets the automatically generated EsgyndbCommand object required to perform inserts on the database.
+            </summary>
+            <returns>The automatically generated EsgyndbCommand object required to perform inserts.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommandBuilder.UnquoteIdentifier(System.String)">
+            <summary>
+            Given a quoted identifier, returns the correct unquoted form of that identifier. This includes correctly unescaping any embedded quotes in the identifier.
+            </summary>
+            <param name="quotedIdentifier">The identifier that will have its embedded quotes removed.</param>
+            <returns>The unquoted identifier, with embedded quotes properly unescaped.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommandBuilder.ApplyParameterInfo(System.Data.Common.DbParameter,System.Data.DataRow,System.Data.StatementType,System.Boolean)">
+            <summary>
+            Allows the provider implementation of the DbCommandBuilder class to handle additional parameter properties.
+            </summary>
+            <param name="parameter">A DbParameter to which the additional modifications are applied. </param>
+            <param name="row">The DataRow from the schema table provided by GetSchemaTable. </param>
+            <param name="statementType">The type of command being generated; INSERT, UPDATE or DELETE.</param>
+            <param name="whereClause">true if the parameter is part of the update or delete WHERE clause, false if it is part of the insert or update values. </param>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommandBuilder.GetParameterName(System.String)">
+            <summary>
+            Returns the full parameter name, given the partial parameter name. 
+            </summary>
+            <param name="parameterName">The partial name of the parameter.</param>
+            <returns>The full parameter name corresponding to the partial parameter name requested.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommandBuilder.GetParameterName(System.Int32)">
+            <summary>
+            Returns the name of the specified parameter.
+            </summary>
+            <param name="parameterOrdinal">The number to be included as part of the parameter's name.</param>
+            <returns>The name of the parameter with the specified number appended as part of the parameter name.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommandBuilder.GetParameterPlaceholder(System.Int32)">
+            <summary>
+            Returns the placeholder for the parameter in the associated SQL statement.
+            </summary>
+            <param name="parameterOrdinal">The number to be included as part of the parameter's name.</param>
+            <returns>The name of the parameter with the specified number appended.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBCommandBuilder.SetRowUpdatingHandler(System.Data.Common.DbDataAdapter)">
+            <summary>
+            Registers the EsgynDBCommandBuilder to handle the RowUpdating event for a DbDataAdapter.
+            </summary>
+            <param name="adapter">The DbDataAdapter to be used for the update.</param>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBCommandBuilder.DataAdapter">
+            <summary>
+            Gets or sets a EsgynDBDataAdapter object for which SQL statements are automatically generated.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBConnection">
+            <summary>
+            Represents an open connection to a EsgynDB database. This class cannot be inherited.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.#ctor">
+            <summary>
+            Initializes a new instance of the EsgynDBConnection class.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the EsgynDBConnection class.
+            </summary>
+            <param name="connectionString">The connection string for this connection</param>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.Dispose">
+            <summary>
+            Releases the resources used by the EsgynDBConnection.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.BeginTransaction">
+            <summary>
+            Starts a database transaction.
+            </summary>
+            <returns>An object representing the new transaction.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.System#Data#IDbConnection#BeginTransaction">
+            <summary>
+            Starts a database transaction.
+            </summary>
+            <returns>An object representing the new transaction.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.BeginTransaction(System.Data.IsolationLevel)">
+            <summary>
+            Starts a database transaction with the specified isolation level.
+            </summary>
+            <param name="isolationLevel">The isolation level under which the transaction should run.</param>
+            <returns>An object representing the new transaction.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.System#Data#IDbConnection#BeginTransaction(System.Data.IsolationLevel)">
+            <summary>
+            Starts a database transaction with the specified isolation level.
+            </summary>
+            <param name="il">The isolation level under which the transaction should run. </param>
+            <returns>An object representing the new transaction.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.ChangeDatabase(System.String)">
+            <summary>
+            Issues a "set catalog" command
+            </summary>
+            <param name="databaseName">Catalog name</param>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.Close">
+            <summary>
+            Closes the connection, freeing all server and client resources.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.CreateCommand">
+            <summary>
+            Creates a new <code>EsgyndbCommand</code> assocaited with this connection.
+            </summary>
+            <returns>The <code>EsgyndbCommand</code> object created</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.CreateCommand(System.String)">
+            <summary>
+            Creates a new <code>EsgyndbCommand</code> with the given label assocaited with this connection.
+            </summary>
+            <param name="cmdLabel">The label to be associated with the newly created EsgyndbCommand.</param>
+            <returns>The <code>EsgyndbCommand</code> object created</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.System#Data#IDbConnection#CreateCommand">
+            <summary>
+            Creates and returns a EsgyndbCommand object associated with the EsgynDBConnection.
+            </summary>
+            <returns>A EsgyndbCommand object.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.GetSchema">
+            <summary>
+            Retrieves a list of valid metadata collections.  This is equivilant to calling <code>GetSchema("MetaDataCollections")</code>
+            </summary>
+            <returns>A DataTable containing information about the metadata collections available.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.GetSchema(System.String)">
+            <summary>
+            Retrieves metadata information without restrictions based on the <code>collectionName</code> provided.  Valid collections can be obtained by using "MetaDataCollections" as the collection name
+            </summary>
+            <param name="collectionName">The metadata collection name.</param>
+            <returns>A <code>DataTable</code> containing the metadata requested.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.GetSchema(System.String,System.String[])">
+            <summary>
+            Retrieves metadata information based on the <code>collectionName</code> and restrictions provided.  Valid collections can be obtained by using "MetaDataCollections" as the collection name
+            </summary>
+            <param name="collectionName">The metadata collection name.</param>
+            <param name="restrictionValues">A list of restriction values.</param>
+            <returns>A <code>DataTable</code> containing the metadata requested.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.Open">
+            <summary>
+            Opens the connection to the EsgynDB Server.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.EncryptData(System.Byte[])">
+            <summary>
+            Returns an encrypted base 64 encoded string of the data provided.
+            </summary>
+            <param name="data">The data to encrypt.</param>
+            <returns>An encrypted base 64 encoded string.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.CreateDbCommand">
+            <summary>
+            Creates and returns a DbCommand object associated with the current connection.
+            </summary>
+            <returns>A DbCommand object.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnection.BeginDbTransaction(System.Data.IsolationLevel)">
+            <summary>
+            Starts a database transaction. 
+            </summary>
+            <param name="isolationLevel">Specifies the isolation level for the transaction.</param>
+            <returns>An object representing the new transaction.</returns>
+        </member>
+        <member name="E:EsgynDB.Data.EsgynDBConnection.InfoMessage">
+            <summary>
+            Event for viewing status and warning messages during operation.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBConnection.ConnectionString">
+            <summary>
+            Gets or sets the string used to open the connection.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBConnection.DataSource">
+            <summary>
+            The current server datasource name.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBConnection.Database">
+            <summary>
+            The current catalog.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBConnection.ServerVersion">
+            <summary>
+            Gets the EsgynDB server version.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBConnection.State">
+            <summary>
+            Gets the current <code>ConnectionState</code>.  Currently supports <code>Open</code> and <code>Closed</code>
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBConnection.RemoteProcess">
+            <summary>
+            Gets the remote segment and process in the form:<code>segment</code>.$<code>process</code>
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBConnection.RemotePort">
+            <summary>
+            Gets the remote TCP/IP port currently being used
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBConnection.RemoteAddress">
+            <summary>
+            Gets the remote address currently connected to.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBConnection.DbProviderFactory">
+            <summary>
+            Provides access to the default EsgynDBFactory instance.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBConnectionStringBuilder">
+            <summary>
+            Provides a simple way to create and manage the contents of connection strings used by the EsgynDBConnection class.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnectionStringBuilder.#cctor">
+            <summary>
+            Initializes static members of the EsgynDBConnectionStringBuilder class.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnectionStringBuilder.#ctor">
+            <summary>
+            Initializes a new instance of the EsgynDBConnectionStringBuilder class.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnectionStringBuilder.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the EsgynDBConnectionStringBuilder class. The provided connection string provides the data for the instance's internal connection information.
+            </summary>
+            <param name="connectionString">The basis for the object's internal connection information. Parsed into name/value pairs.</param>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnectionStringBuilder.Clear">
+            <summary>
+            Resets all properties to default values.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnectionStringBuilder.ContainsKey(System.String)">
+            <summary>
+            Determines whether the EsgynDBConnectionStringBuilder contains a specific key.
+            </summary>
+            <param name="keyword">The key to locate in the EsgynDBConnectionStringBuilder.</param>
+            <returns>true if the EsgynDBConnectionStringBuilder contains an element that has the specified key; otherwise, false.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnectionStringBuilder.Remove(System.String)">
+            <summary>
+            Resets the entry with the specified key to its default.
+            </summary>
+            <param name="keyword">The keyword to reset.</param>
+            <returns>true if the keyword was reset; otherwise, false.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnectionStringBuilder.ShouldSerialize(System.String)">
+            <summary>
+            Indicates whether the specified key exists in this EsgynDBConnectionStringBuilder instance.
+            </summary>
+            <param name="keyword">The key to locate in the EsgynDBConnectionStringBuilder.</param>
+            <returns>true if the EsgynDBConnectionStringBuilder contains an entry with the specified key; otherwise, false.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBConnectionStringBuilder.TryGetValue(System.String,System.Object@)">
+            <summary>
+            Retrieves a value corresponding to the supplied key.  
+            </summary>
+            <param name="keyword">The key of the item to retrieve.</param>
+            <param name="value">The value corresponding to the key.</param>
+            <returns>true if the keyword was found, false otherwise</returns>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBConnectionStringBuilder.IsFixedSize">
+            <summary>
+            Gets a value that indicates whether the EsgynDBConnectionStringBuilder has a fixed size.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBConnectionStringBuilder.Item(System.String)">
+            <summary>
+            Gets or sets the value of the specified property.
+            </summary>
+            <param name="keyword">The keyword.</param>
+            <returns>The value associated with the given keyword.</returns>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBDataAdapter">
+            <summary>
+            Represents a set of data commands and a database connection that are used to fill the DataSet and update a EsgynDB database. This class cannot be inherited.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataAdapter.#ctor">
+            <summary>
+            Initializes a new instance of the EsgynDBDataAdapter class.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataAdapter.#ctor(EsgynDB.Data.EsgynDBCommand)">
+            <summary>
+            Initializes a new instance of the EsgynDBDataAdapter class with the specified EsgyndbCommand as the SelectCommand property.
+            </summary>
+            <param name="selectCommand">The EsgyndbCommand to set as the SelectCommand property.</param>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataAdapter.OnRowUpdating(System.Data.Common.RowUpdatingEventArgs)">
+            <summary>
+            Overridden. Raises the RowUpdating event.
+            </summary>
+            <param name="value">A EsgynDBRowUpdatingEventArgs that contains the event data.</param>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataAdapter.OnRowUpdated(System.Data.Common.RowUpdatedEventArgs)">
+            <summary>
+            Overridden. Raises the RowUpdated event.
+            </summary>
+            <param name="value">A HPDbUpdatedEventArgs that contains the event data. </param>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataAdapter.GetFillParameters">
+            <summary>
+            Gets the parameters set by the user when executing an SQL SELECT statement.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataAdapter.GetBatchedParameter(System.Int32,System.Int32)">
+            <summary>
+            Returns a EsgynDBParameter from one of the commands in the current batch.
+            </summary>
+        </member>
+        <member name="E:EsgynDB.Data.EsgynDBDataAdapter.RowUpdating">
+            <summary>
+            Occurs during Update before a command is executed against the data source. The attempt to update is made, so the event fires.
+            </summary>
+        </member>
+        <member name="E:EsgynDB.Data.EsgynDBDataAdapter.RowUpdated">
+            <summary>
+            Occurs during Update after a command is executed against the data source. The attempt to update is made, so the event fires.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBType">
+            <summary>
+            Specifies EsgynDB-specific data type.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.Undefined">
+            <summary>
+            Unmappable or unknown datatype.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.Char">
+            <summary>
+            Fixed-length character data.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.Varchar">
+            <summary>
+            Variable-length character data.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.Date">
+            <summary>
+            Date in the form yyyy-MM-dd
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.Time">
+            <summary>
+            Time in the form hh:mm:ss[.ffffff]
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.Timestamp">
+            <summary>
+            Timestamp in the form yyyy-MM-dd hh:mm:ss[.ffffff]
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.Interval">
+            <summary>
+            Datetime range.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.Numeric">
+            <summary>
+            Signed numeric stored in binary form.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.NumericUnsigned">
+            <summary>
+            Unsigned numeric stored in binary form.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.SmallInt">
+            <summary>
+            16 bit signed integer.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.SmallIntUnsigned">
+            <summary>
+            16 bit unsigned integer.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.Integer">
+            <summary>
+            32 bit signed integer.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.IntegerUnsigned">
+            <summary>
+            32 bit unsigned integer.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.LargeInt">
+            <summary>
+            64 bit signed integer.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.Decimal">
+            <summary>
+            Signed numeric stored in character form.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.DecimalUnsigned">
+            <summary>
+            Unsigned numeric stored in character form.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.Float">
+            <summary>
+            Approximate numeric stored as an IEEE Float.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.Real">
+            <summary>
+            Approximate numeric stored with 23 bits of precision and 8 bits of exponent.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.Double">
+            <summary>
+            Approximate numeric stored as an IEEE Double Precision
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.NChar">
+            <summary>
+            Fixed-length character data.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBType.NVarchar">
+            <summary>
+            Variable-length character data.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBEncoding">
+            <summary>
+            Represents a EsgynDB-specific string encoding.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBEncoding.Default">
+            <summary>
+            Pass-through mode.  Current system encoding is used.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBEncoding.ISO88591">
+            <summary>
+            ISO8859-1 standard.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBEncoding.MS932">
+            <summary>
+            Microsoft Code Page 932.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBEncoding.UCS2">
+            <summary>
+            2 byte Universal Character Set
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBEncoding.UTF8">
+            <summary>
+            8-bit UCS / Unicode Transformation Format
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBInfoMessageEventHandler">
+            <summary>
+            The callback for Info and Warning events for a EsgynDBConnection.
+            </summary>
+            <param name="sender">The EsgynDBConnection sending the event.</param>
+            <param name="e">The event arguments.</param>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBRowUpdatingEventHandler">
+            <summary>
+            Represents the method that will handle the event of a EsgynDBDataAdapter.
+            </summary>
+            <param name="sender">The object sending the event.</param>
+            <param name="e">The event arguments.</param>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBRowUpdatedEventHandler">
+            <summary>
+            Represents the method that will handle the event of a EsgynDBDataAdapter.
+            </summary>
+            <param name="sender">The object sending the event.</param>
+            <param name="e">The event arguments.</param>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBInfoMessageEventArgs">
+            <summary>
+            The event arguments for Info and Warning events for a EsgynDBConnection.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBInfoMessageEventArgs.Message">
+            <summary>
+            Gets the message text of the error.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBInfoMessageEventArgs.ErrorCode">
+            <summary>
+            Gets the error code of the error.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBInfoMessageEventArgs.State">
+            <summary>
+            Gets the SqlState of the error.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBInfoMessageEventArgs.RowId">
+            <summary>
+            Gets the RowId of the error.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBInfoMessageEventArgs.Errors">
+            <summary>
+            Gets a collection of all the errors that occured.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBRowUpdatingEventArgs">
+            <summary>
+            Provides data for the RowUpdating event.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBRowUpdatingEventArgs.#ctor(System.Data.DataRow,System.Data.IDbCommand,System.Data.StatementType,System.Data.Common.DataTableMapping)">
+            <summary>
+            Initializes a new instance of the EsgynDBRowUpdatingEventArgs class.
+            </summary>
+            <param name="row">The DataRow sent through an Update.</param>
+            <param name="command">The IDbCommand executed when Update is called.</param>
+            <param name="statementType">One of the StatementType values that specifies the type of query executed.</param>
+            <param name="tableMapping">The DataTableMapping sent through an Update.</param>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBRowUpdatingEventArgs.Command">
+            <summary>
+            Gets or sets the EsgyndbCommand executed when Update is called.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBRowUpdatedEventArgs">
+            <summary>
+            Provides data for the RowUpdated event.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBRowUpdatedEventArgs.#ctor(System.Data.DataRow,System.Data.IDbCommand,System.Data.StatementType,System.Data.Common.DataTableMapping)">
+            <summary>
+            Initializes a new instance of the EsgynDBRowUpdatedEventArgs class.
+            </summary>
+            <param name="row">The DataRow sent through an Update.</param>
+            <param name="command">The IDbCommand executed when Update is called.</param>
+            <param name="statementType">One of the StatementType values that specifies the type of query executed.</param>
+            <param name="tableMapping">The DataTableMapping sent through an Update.</param>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBRowUpdatedEventArgs.Command">
+            <summary>
+            Gets the EsgyndbCommand executed when Update is called.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBParameterCollection">
+            <summary>
+            Represents a collection of parameters associated with a EsgyndbCommand and their respective mappings to columns in a DataSet. This class cannot be inherited.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.Add(System.Object)">
+            <summary>
+            Adds the specified EsgynDBParameter object to the EsgynDBParameterCollection.
+            </summary>
+            <param name="value">The EsgynDBParameter to add to the collection. </param>
+            <returns>The index of the new EsgynDBParameter object.</returns>
+            <exception cref="T:System.InvalidCastException">The parameter passed was not a EsgynDBParameter.</exception>
+            <exception cref="T:System.ArgumentNullException">The value parameter is null.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.AddRange(System.Array)">
+            <summary>
+            Adds an Enumerable Collection of EsgynDBParameter objects to the end of the EsgynDBParameterCollection.
+            </summary>
+            <param name="values">The Enumerable Collection of EsgynDBParameter objects to add.</param>
+            <exception cref="T:System.InvalidCastException">The parameter passed was not an Enumerable Collection of EsgynDBParameter objects.</exception>
+            <exception cref="T:System.ArgumentNullException">The values parameter is null.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.Clear">
+            <summary>
+            Removes all the EsgynDBParameter objects from the EsgynDBParameterCollection.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.Contains(System.String)">
+            <summary>
+            Gets a value indicating whether a EsgynDBParameter in this EsgynDBParameterCollection has the specified name.
+            </summary>
+            <param name="value">The name of the EsgynDBParameter. </param>
+            <returns>true if the EsygndbbParameterCollections contains the EsgynDBParameter; otherwise false.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.Contains(System.Object)">
+            <summary>
+            Determines whether the specified EsgynDBParameter is in this EsgynDBParameterCollection.
+            </summary>
+            <param name="value">The EsgynDBParameter value.</param>
+            <returns>true if the EsygndbbParameterCollections contains the EsgynDBParameter; otherwise false.</returns>
+            <exception cref="T:System.InvalidCastException">The parameter passed was not a EsgynDBParameter.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.CopyTo(System.Array,System.Int32)">
+            <summary>
+            Copies all the elements of the current EsgynDBParameterCollection to the specified EsgynDBParameterCollection starting at the specified destination index.
+            </summary>
+            <param name="array">The EsgynDBParameterCollection that is the destination of the elements copied from the current EsgynDBParameterCollection.</param>
+            <param name="index">A 32-bit integer that represents the index in the EsgynDBParameterCollection at which copying starts.</param>
+            <exception cref="T:System.InvalidCastException">The parameter passed was not a EsgynDBParameterCollection.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.GetEnumerator">
+            <summary>
+            Returns an enumerator that iterates through the EsgynDBParameterCollection.
+            </summary>
+            <returns>An IEnumerator for the EsgynDBParameterCollection.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.IndexOf(System.String)">
+            <summary>
+            Gets the location of the specified EsgynDBParameter with the specified name.
+            </summary>
+            <param name="parameterName">The case-sensitive name of the EsgynDBParameter to find.</param>
+            <returns>The zero-based location of the specified EsgynDBParameter with the specified case-sensitive name. Returns -1 when the object does not exist in the EsgynDBParameterCollection.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.IndexOf(System.Object)">
+            <summary>
+            Gets the location of the specified EsgynDBParameter within the collection.
+            </summary>
+            <param name="value">The EsgynDBParameter to find.</param>
+            <returns>The zero-based location of the specified EsgynDBParameter that is a EsgynDBParameter within the collection. Returns -1 when the object does not exist in the EsgynDBParameterCollection.</returns>
+            <exception cref="T:System.InvalidCastException">The parameter passed was not a EsgynDBParameter.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.Insert(System.Int32,System.Object)">
+            <summary>
+            Inserts a EsgynDBParameter object into the EsgynDBParameterCollection at the specified index.
+            </summary>
+            <param name="index">The zero-based index at which value should be inserted.</param>
+            <param name="value">A EsgynDBParameter object to be inserted in the EsgynDBParameterCollection.</param>
+            <exception cref="T:System.InvalidCastException">The parameter passed was not a EsgynDBParameter.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.Remove(System.Object)">
+            <summary>
+            Removes the specified EsgynDBParameter from the collection.
+            </summary>
+            <param name="value">A EsgynDBParameter object to remove from the collection.</param>
+            <exception cref="T:System.InvalidCastException">The parameter passed was not a EsgynDBParameter.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.RemoveAt(System.String)">
+            <summary>
+            Removes the EsgynDBParameter from the EsgynDBParameterCollection at the specified parameter name.
+            </summary>
+            <param name="parameterName">The name of the EsgynDBParameter to remove.</param>
+            <exception cref="T:System.ArgumentOutOfRangeException">The specified index does not exist.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.RemoveAt(System.Int32)">
+            <summary>
+            Removes the EsgynDBParameter from the EsgynDBParameterCollection at the specified index.
+            </summary>
+            <param name="index">The zero-based index of the EsgynDBParameter object to remove.</param>
+            <exception cref="T:System.ArgumentOutOfRangeException">The specified index does not exist.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.GetParameter(System.String)">
+            <summary>
+            Returns DbParameter the object with the specified name.
+            </summary>
+            <param name="parameterName">The name of the DbParameter in the collection.</param>
+            <returns>The DbParameter the object with the specified name.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.GetParameter(System.Int32)">
+            <summary>
+            Returns the DbParameter object at the specified index in the collection.
+            </summary>
+            <param name="index">The index of the DbParameter in the collection.</param>
+            <returns>The DbParameter object at the specified index in the collection.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.SetParameter(System.String,System.Data.Common.DbParameter)">
+            <summary>
+            Sets the DbParameter object with the specified name to a new value.
+            </summary>
+            <param name="parameterName">The name of the DbParameter object in the collection.</param>
+            <param name="value">The new DbParameter value.</param>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameterCollection.SetParameter(System.Int32,System.Data.Common.DbParameter)">
+            <summary>
+            Sets the DbParameter object at the specified index to a new value.
+            </summary>
+            <param name="index">The index where the DbParameter object is located.</param>
+            <param name="value">The new DbParameter value.</param>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameterCollection.Count">
+            <summary>
+            Returns an Integer that contains the number of elements in the EsgynDBParameterCollection. Read-only.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameterCollection.IsFixedSize">
+            <summary>
+            Gets a value that indicates whether the EsgynDBParameterCollection has a fixed size.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameterCollection.IsReadOnly">
+            <summary>
+            Gets a value that indicates whether the EsgynDBParameterCollection is read-only.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameterCollection.IsSynchronized">
+            <summary>
+            Gets a value that indicates whether the EsgynDBParameterCollection is synchronized.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameterCollection.SyncRoot">
+            <summary>
+            Gets an object that can be used to synchronize access to the EsgynDBParameterCollection.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameterCollection.Item(System.String)">
+            <summary>
+            Gets the EsgynDBParameter with the specified name.
+            </summary>
+            <param name="parameterName">The name of the parameter to retrieve. </param>
+            <returns>The EsgynDBParameter with the specified name.</returns>
+            <exception cref="T:System.IndexOutOfRangeException">The specified parameterName is not valid.</exception>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameterCollection.Item(System.Int32)">
+            <summary>
+            Gets the EsgynDBParameter at the specified index.
+            </summary>
+            <param name="index">The zero-based index of the parameter to retrieve.</param>
+            <returns>The EsgynDBParameter at the specified index.</returns>
+            <exception cref="T:System.IndexOutOfRangeException">The specified index does not exist.</exception>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBFactory">
+            <summary>
+            Represents a set of methods for creating instances of the <c>HP.Data</c> provider's implementation of the data source classes.
+            </summary>
+            //[Guid("18E26E64-50F9-4ba3-8530-DBBD117B1DCD")]
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBFactory.Instance">
+            <summary>
+            Gets an instance of the EsgynDBFactory. This can be used to retrieve strongly typed data objects.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBFactory.CreateCommand">
+            <summary>
+            Creates a new <c>EsgyndbCommand</c> object.
+            </summary>
+            <returns>A new <c>EsgyndbCommand</c> object.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBFactory.CreateCommandBuilder">
+            <summary>
+            Creates a new <c>EsgynDBCommandBuilder</c> object.
+            </summary>
+            <returns>A new <c>EsgynDBCommandBuilder</c> object.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBFactory.CreateConnection">
+            <summary>
+            Creates a new <c>EsgynDBConnection</c> object.
+            </summary>
+            <returns>A new <c>EsgynDBConnection</c> object.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBFactory.CreateConnectionStringBuilder">
+            <summary>
+            Creates a new <c>EsgynDBConnectionStringBuilder</c> object.
+            </summary>
+            <returns>A new <c>EsgynDBConnectionStringBuilder</c> object.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBFactory.CreateDataAdapter">
+            <summary>
+            Creates a new <c>EsgynDBDataAdapter</c> object.
+            </summary>
+            <returns>A new <c>EsgynDBDataAdapter</c> object.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBFactory.CreateDataSourceEnumerator">
+            <summary>
+            Not supported.
+            </summary>
+            <returns>Not Applicable</returns>
+            <exception cref="T:System.NotSupportedException">Always thrown.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBFactory.CreateParameter">
+            <summary>
+            Creates a new <c>EsgynDBParameter</c> object.
+            </summary>
+            <returns>A new <c>EsgynDBParameter</c> object.</returns>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBFactory.CanCreateDataSourceEnumerator">
+            <summary>
+            Returns <c>false</c>.  <c>CreateDataSourceEnumerator()</c> is not supported
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBParameter">
+            <summary>
+            Represents a parameter to a EsgyndbCommand and optionally its mapping to DataSet columns. This class cannot be inherited.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameter.#ctor">
+            <summary>
+            Initializes a new instance of the EsgynDBParameter class.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameter.#ctor(System.String,EsgynDB.Data.EsgynDBType)">
+            <summary>
+            Initializes a new instance of the EsgynDBParameter class that uses the parameter name and the data type.
+            </summary>
+            <param name="name">The name of the parameter to map.</param>
+            <param name="dataType">One of the EsgynDBType values.</param>
+            <exception cref="T:System.ArgumentException">The value supplied in the dataType parameter is an invalid back-end data type.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameter.#ctor(System.String,System.Object)">
+            <summary>
+            Initializes a new instance of the EsgynDBParameter class that uses the parameter name and a value of the new EsgynDBParameter.
+            </summary>
+            <param name="name">The name of the parameter to map.</param>
+            <param name="value">An Object that is the value of the EsgynDBParameter.</param>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameter.#ctor(System.String,EsgynDB.Data.EsgynDBType,System.Int32)">
+            <summary>
+            Initializes a new instance of the EsgynDBParameter class that uses the parameter name, the EsgynDBType, and the size.
+            </summary>
+            <param name="name">The name of the parameter to map.</param>
+            <param name="dataType">One of the EsgynDBType values. </param>
+            <param name="size">The length of the parameter.</param>
+            <exception cref="T:System.ArgumentException">The value supplied in the dataType parameter is an invalid back-end data type.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameter.#ctor(System.String,EsgynDB.Data.EsgynDBType,System.Int32,System.String)">
+            <summary>
+            Initializes a new instance of the EsgynDBParameter class that uses the parameter name, the EsgynDBType, the size, and the source column name.
+            </summary>
+            <param name="name">The name of the parameter to map.</param>
+            <param name="dataType">One of the EsgynDBType values.</param>
+            <param name="size">The length of the parameter.</param>
+            <param name="srcColumn">The name of the source column.</param>
+            <exception cref="T:System.ArgumentException">The value supplied in the dataType parameter is an invalid back-end data type.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameter.#ctor(System.String,EsgynDB.Data.EsgynDBType,System.Int32,System.Data.ParameterDirection,System.Boolean,System.Byte,System.Byte,System.String,System.Data.DataRowVersion,System.Object)">
+            <summary>
+            Initializes a new instance of the EsgynDBParameter class that uses the parameter name, the type of the parameter, the size of the parameter, a ParameterDirection, the precision of the parameter, the scale of the parameter, the source column, a DataRowVersion to use, and the value of the parameter.
+            </summary>
+            <param name="name">The name of the parameter to map.</param>
+            <param name="dbType">One of the EsgynDBType values.</param>
+            <param name="size">The length of the parameter. </param>
+            <param name="direction">One of the ParameterDirection values. </param>
+            <param name="isNullable">true if the value of the field can be null; otherwise false.</param>
+            <param name="precision">The total number of digits to the left and right of the decimal point to which Value is resolved.</param>
+            <param name="scale">The total number of decimal places to which Value is resolved.</param>
+            <param name="srcColumn">The name of the source column.</param>
+            <param name="srcVersion">One of the DataRowVersion values. </param>
+            <param name="value">An Object that is the value of the EsgynDBParameter.</param>
+            <exception cref="T:System.ArgumentException">The value supplied in the dataType parameter is an invalid back-end data type.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameter.ResetDbType">
+            <summary>
+            Resets the type associated with this EsgynDBParameter.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameter.ResetEsgynDBType">
+            <summary>
+            Resets the type associated with this EsgynDBParameter.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBParameter.System#ICloneable#Clone">
+            <summary>
+            Makes a copy of the EsgynDBParameter.
+            </summary>
+            <returns>A copy of this EsgynDBParameter object.</returns>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.DbType">
+            <summary>
+            Gets or sets the DbType of the parameter.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.Direction">
+            <summary>
+            Gets or sets a value that indicates whether the parameter is input-only, output-only, or bidirectional parameter.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.Encoding">
+            <summary>
+            Gets or sets the encoding of the EsgynDBParameter.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.IsNullable">
+            <summary>
+            Gets or sets a value that indicates whether the parameter accepts null values.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.EsgyndbDbType">
+            <summary>
+            Gets or sets the EsgynDBType of the parameter.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.ParameterName">
+            <summary>
+            Gets or sets the name of the EsgynDBParameter.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.Precision">
+            <summary>
+            Gets or sets the maximum number of digits used to represent the Value property.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.Scale">
+            <summary>
+            Gets or sets the number of decimal places to which Value is resolved.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.Signed">
+            <summary>
+            Gets or sets a value indicating whether the parameter is signed.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.Size">
+            <summary>
+            Gets or sets the maximum size, in bytes, of the data within the column.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.SourceCatalog">
+            <summary>
+            Gets or sets the name of the source catalog mapped to the DataSet and used for loading or returning the Value
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.SourceColumn">
+            <summary>
+            Gets or sets the name of the source column mapped to the DataSet and used for loading or returning the Value
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.SourceColumnNullMapping">
+            <summary>
+            Always set to false.  SourceColumnNullMapping is disabled for proper CommandBuilder and DataAdapter support.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.Heading">
+            <summary>
+            Gets or sets the name of the source column heading mapped to the DataSet and used for loading or returning the Value
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.SourceSchema">
+            <summary>
+            Gets or sets the name of the source schema mapped to the DataSet and used for loading or returning the Value
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.SourceTable">
+            <summary>
+            Gets or sets the name of the source table mapped to the DataSet and used for loading or returning the Value
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.SourceVersion">
+            <summary>
+            Gets or sets the DataRowVersion to use when you load Value
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBParameter.Value">
+            <summary>
+            Gets or sets the value of the parameter.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBDataReader">
+            <summary>
+            Provides a way of reading a forward-only stream of rows from a EsgynDB database. This class cannot be inherited.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.Dispose">
+            <summary>
+            Releases all resources used by the current instance of the EsgynDBDataReader class.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.Close">
+            <summary>
+            Closes the EsgynDBDataReader object.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetBigNumeric(System.Int32)">
+            <summary>
+            Gets the value of the BigNumeric column as a string object.
+            </summary>
+            <param name="ordinal">The zero-based column ordinal.</param>
+            <returns>The value of the specified column.</returns>
+            <exception cref="T:System.InvalidCastException">The specified cast is not valid.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetBoolean(System.Int32)">
+            <summary>
+            Not supported.
+            </summary>
+            <param name="ordinal">N/A</param>
+            <returns>N/A</returns>
+            <exception cref="T:System.InvalidCastException">Always</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetByte(System.Int32)">
+            <summary>
+            Not supported.
+            </summary>
+            <param name="ordinal">N/A</param>
+            <returns>N/A</returns>
+            <exception cref="T:System.InvalidCastException">Always</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetBytes(System.Int32,System.Int64,System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Not supported.
+            </summary>
+            <param name="ordinal">N/A</param>
+            <param name="dataOffset">N/A</param>
+            <param name="buffer">N/A</param>
+            <param name="bufferOffset">N/A</param>
+            <param name="length">N/A</param>
+            <returns>N/A</returns>
+            <exception cref="T:System.InvalidCastException">Always</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetChar(System.Int32)">
+            <summary>
+            Not supported.
+            </summary>
+            <param name="ordinal">N/A</param>
+            <returns>N/A</returns>
+            <exception cref="T:System.InvalidCastException">Always</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetChars(System.Int32,System.Int64,System.Char[],System.Int32,System.Int32)">
+            <summary>
+            Not supported.
+            </summary>
+            <param name="ordinal">N/A</param>
+            <param name="dataOffset">N/A</param>
+            <param name="buffer">N/A</param>
+            <param name="bufferOffset">N/A</param>
+            <param name="length">N/A</param>
+            <returns>N/A</returns>
+            <exception cref="T:System.InvalidCastException">Always</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetDataTypeName(System.Int32)">
+            <summary>
+            Gets a string representing the data type of the specified column.
+            </summary>
+            <param name="ordinal">The zero-based ordinal position of the column to find.</param>
+            <returns>The string representing the data type of the specified column.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetDateTime(System.Int32)">
+            <summary>
+            Gets the value of the specified column as a DateTime object.
+            </summary>
+            <param name="ordinal">The zero-based column ordinal.</param>
+            <returns>The value of the specified column.</returns>
+            <exception cref="T:System.InvalidCastException">The specified cast is not valid.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetTimeSpan(System.Int32)">
+            <summary>
+            Gets the value of the specified column as a TimeSpan object.
+            </summary>
+            <param name="ordinal">The zero-based column ordinal.</param>
+            <returns>The value of the specified column.</returns>
+            <exception cref="T:System.InvalidCastException">The specified cast is not valid.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetDecimal(System.Int32)">
+            <summary>
+            Gets the value of the specified column as a Decimal object.
+            </summary>
+            <param name="ordinal">The zero-based column ordinal.</param>
+            <returns>The value of the specified column.</returns>
+            <exception cref="T:System.InvalidCastException">The specified cast is not valid.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetDouble(System.Int32)">
+            <summary>
+            Gets the value of the specified column as a Double object.
+            </summary>
+            <param name="ordinal">The zero-based column ordinal.</param>
+            <returns>The value of the specified column.</returns>
+            <exception cref="T:System.InvalidCastException">The specified cast is not valid.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetEnumerator">
+            <summary>
+            Returns an IEnumerator that iterates through the EsgynDBDataReader.
+            </summary>
+            <returns>An IEnumerator for the EsgynDBDataReader.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetFieldType(System.Int32)">
+            <summary>
+            Gets the Type that is the data type of the object
+            </summary>
+            <param name="ordinal">The zero-based column ordinal</param>
+            <returns>The Type that is the data type of the object.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetFloat(System.Int32)">
+            <summary>
+            Gets the value of the specified column as a single-precision floating point number.
+            </summary>
+            <param name="ordinal">The zero-based column ordinal.</param>
+            <returns>The value of the specified column.</returns>
+            <exception cref="T:System.InvalidCastException">The specified cast is not valid.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetGuid(System.Int32)">
+            <summary>
+            Not supported.
+            </summary>
+            <param name="ordinal">N/A</param>
+            <returns>N/A</returns>
+            <exception cref="T:System.InvalidCastException">Always</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetInt16(System.Int32)">
+            <summary>
+            Gets the value of the specified column as a 16-bit signed integer.
+            </summary>
+            <param name="ordinal">The zero-based column ordinal.</param>
+            <returns>The value of the specified column.</returns>
+            <exception cref="T:System.InvalidCastException">The specified cast is not valid.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetUInt16(System.Int32)">
+            <summary>
+            Gets the value of the specified column as a 16-bit unsigned integer.
+            </summary>
+            <param name="ordinal">The zero-based column ordinal.</param>
+            <returns>The value of the specified column.</returns>
+            <exception cref="T:System.InvalidCastException">The specified cast is not valid.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetInt32(System.Int32)">
+            <summary>
+            Gets the value of the specified column as a 32-bit signed integer.
+            </summary>
+            <param name="ordinal">The zero-based column ordinal.</param>
+            <returns>The value of the specified column.</returns>
+            <exception cref="T:System.InvalidCastException">The specified cast is not valid.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetUInt32(System.Int32)">
+            <summary>
+            Gets the value of the specified column as a 32-bit unsigned integer.
+            </summary>
+            <param name="ordinal">The zero-based column ordinal.</param>
+            <returns>The value of the specified column.</returns>
+            <exception cref="T:System.InvalidCastException">The specified cast is not valid.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetInt64(System.Int32)">
+            <summary>
+            Gets the value of the specified column as a 64-bit signed integer.
+            </summary>
+            <param name="ordinal">The zero-based column ordinal.</param>
+            <returns>The value of the specified column.</returns>
+            <exception cref="T:System.InvalidCastException">The specified cast is not valid.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetName(System.Int32)">
+            <summary>
+            Gets the name of the specified column.
+            </summary>
+            <param name="ordinal">The zero-based column ordinal. </param>
+            <returns>The name of the specified column.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetOrdinal(System.String)">
+            <summary>
+            Gets the column ordinal, given the name of the column.
+            </summary>
+            <param name="name">The name of the column. </param>
+            <returns>The zero-based column ordinal.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetSchemaTable">
+            <summary>
+            Returns a DataTable that describes the column metadata of the EsgynDBDataReader.
+            </summary>
+            <returns>A DataTable that describes the column metadata.</returns>
+            <exception cref="T:System.InvalidOperationException">The EsgynDBDataReader is closed.</exception>
+            <remarks>
+            For the GetSchemaTable method returns metadata about each column in the following order:
+            ColumnName
+            ColumnOrdinal
+            ColumnSize
+            NumericPrecision
+            NumericScale
+            DataType
+            DataTypeName
+            ProviderType
+            ProviderSpecificDataType
+            IsLong
+            AllowDBNull
+            IsUnique
+            IsKey
+            BaseCatalogName
+            BaseSchemaName
+            BaseTableName
+            BaseColumnName
+            </remarks>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetString(System.Int32)">
+            <summary>
+            Gets the value of the specified column as a string.
+            </summary>
+            <param name="ordinal">The zero-based column ordinal.</param>
+            <returns>The value of the specified column.</returns>
+            <exception cref="T:System.InvalidCastException">The specified cast is not valid.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetValue(System.Int32)">
+            <summary>
+            Gets the value of the specified column in its native format.
+            </summary>
+            <param name="ordinal">The zero-based column ordinal.</param>
+            <returns>The value of the specified column.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.GetValues(System.Object[])">
+            <summary>
+            Populates an array of objects with the column values of the current row.
+            </summary>
+            <param name="values">An array of Object into which to copy the attribute columns. </param>
+            <returns>The number of instances of Object in the array</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.IsDBNull(System.Int32)">
+            <summary>
+            Gets a value that indicates whether the column contains non-existent or missing values.
+            </summary>
+            <param name="ordinal">The zero-based column ordinal.</param>
+            <returns>true if the specified column value is equivalent to DBNull; otherwise false.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.NextResult">
+            <summary>
+            Advances the data reader to the next result.
+            </summary>
+            <returns>true if there are more result sets; otherwise false.</returns>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBDataReader.Read">
+            <summary>
+            Advances the EsgynDBDataReader to the next record.
+            </summary>
+            <returns>true if there are more rows; otherwise false.</returns>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBDataReader.Depth">
+            <summary>
+            Gets a value that indicates the depth of nesting for the current row.  Always returns 0.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBDataReader.FieldCount">
+            <summary>
+            Gets the number of columns in the current row.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBDataReader.HasRows">
+            <summary>
+            Gets a value that indicates whether the EsgynDBDataReader contains one or more rows.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBDataReader.IsClosed">
+            <summary>
+            Retrieves a Boolean value that indicates whether the specified EsgynDBDataReader instance has been closed. 
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBDataReader.RecordsAffected">
+            <summary>
+            Gets the number of rows changed, inserted, or deleted.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBDataReader.FetchSize">
+            <summary>
+            Gets or sets the number of rows to fetch during each network message.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBDataReader.Item(System.String)">
+            <summary>
+            Gets the value of the specified column in its native format given the column name.
+            </summary>
+            <param name="name">The column name. </param>
+            <returns>The value of the specified column in its native format.</returns>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBDataReader.Item(System.Int32)">
+            <summary>
+            Gets the value of the specified column in its native format given the column ordinal.
+            </summary>
+            <param name="ordinal">The zero-based column ordinal.</param>
+            <returns>The value of the specified column in its native format.</returns>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBTransaction">
+            <summary>
+            Represents a SQL transaction to be made in the database. This class cannot be inherited.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBTransaction.Commit">
+            <summary>
+            Commits the database transaction. 
+            </summary>
+            <exception cref="T:System.InvalidOperationException">
+            The transaction has already been committed or rolled back. 
+            -or- 
+            The connection is broken.
+            </exception>
+            <exception cref="T:EsgynDB.Data.EsgynDBException">An error occurred while trying to commit the transaction.</exception>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBTransaction.Rollback">
+            <summary>
+            Rolls back a transaction from a pending state.
+            </summary>
+            /// <exception cref="T:System.InvalidOperationException">
+            The transaction has already been committed or rolled back. 
+            -or- 
+            The connection is broken.
+            </exception>
+            <exception cref="T:EsgynDB.Data.EsgynDBException">An error occurred while trying to rollback the transaction.</exception>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBTransaction.Connection">
+            <summary>
+            Gets the EsgynDBConnection object associated with the transaction, or null if the transaction is no longer valid.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBTransaction.IsolationLevel">
+            <summary>
+            Specifies the IsolationLevel for this transaction.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBTransaction.DbConnection">
+            <summary>
+            Specifies the DbConnection object associated with the transaction.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBError">
+            <summary>
+            Collects information relevant to a warning or error returned by EsgynDB.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBError.ToString">
+            <summary>
+            Gets the text of the error message. 
+            </summary>
+            <returns>The message text.</returns>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBError.ErrorCode">
+            <summary>
+            Gets a number that identifies the type of error.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBError.Message">
+            <summary>
+            Gets the text describing the error.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBError.RowId">
+            <summary>
+            Gets the row id associated with this error.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBError.State">
+            <summary>
+            Gets the SQL State associated with this error.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBErrorCollection">
+            <summary>
+            A collection of HPDbErrors.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBErrorCollection.CopyTo(System.Array,System.Int32)">
+            <summary>
+            Copies the elements of the EsgynDBErrorCollection collection into an Array, starting at the specified index.
+            </summary>
+            <param name="array">The Array to copy elements into. </param>
+            <param name="index">The index from which to start copying into the array parameter. </param>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBErrorCollection.GetEnumerator">
+            <summary>
+            Returns an enumerator that iterates through the EsgynDBErrorCollection.
+            </summary>
+            <returns>An enumerator that iterates through the EsgynDBErrorCollection.</returns>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBErrorCollection.Count">
+            <summary>
+            Gets the number of errors in the collection.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBErrorCollection.IsSynchronized">
+            <summary>
+            Gets a value indicating whether access to the EsgynDBErrorCollection is synchronized (thread safe).
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBErrorCollection.SyncRoot">
+            <summary>
+            Gets an object that can be used to synchronize access to the EsgynDBErrorCollection.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBErrorCollection.Item(System.Int32)">
+            <summary>
+            Gets the EsgynDBError at the given ordinal.
+            </summary>
+            <param name="ordinal">The zero-based ordinal.</param>
+            <returns>The EsgynDBError at the given ordinal.</returns>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBException">
+            <summary>
+            The exception that is thrown when EsgynDB returns a warning or error. This class cannot be inherited.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBException.ToString">
+            <summary>
+            Creates and returns a string representation of the current exception. 
+            </summary>
+            <returns>A string representation of the current exception.</returns>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBException.Errors">
+            <summary>
+            Gets a collection of one or more EsgynDBError objects that give detailed information about exceptions generated.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.EsgynDBException.Warnings">
+            <summary>
+            Gets a collection of one or more EsgynDBError objects that give detailed information about warnings generated.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.InternalFailureException">
+            <summary>
+            The exception that is thrown when an internal error occurs.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.CommunicationsFailureException">
+            <summary>
+            The exception that is thrown when a communcations failure occurs
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBMetaData">
+            <summary>
+            NOTE: you cannot use pattern matching in catalogs besides in the catalog and schema collections
+            
+            Reference: http://msdn.microsoft.com/en-us/library/ms254501.aspx
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBMetaData.GetSchema(System.String,System.String[])">
+            <summary>
+            This is the generic way users will ask for metadata information
+            </summary>
+            <param name="collectionName"></param>
+            <param name="restrictionValues"></param>
+            <returns></returns>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBUtility">
+            <summary>
+            Collection of static regular expressions, arrays, and methods used through out the provider.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBUtility.DateFormat">
+            <summary>
+            Most commonly used date format.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBUtility.ValidateNumeric">
+            <summary>
+            Regular expression for validating numeric format.  Used in BigNum conversion.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBUtility.TrimNumericString">
+            <summary>
+            Regular expression for trimming leading 0s.  Used in BigNum conversion.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBUtility.FindWildCards">
+            <summary>
+            Regular expression for finding wild char characters in metadata parameters.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBUtility.RemoveComments">
+            <summary>
+            Regular expression for stripping out SQL comments.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBUtility.FindRowSize">
+            <summary>
+            Regular expression for finding out particular num in the sql.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBUtility.FindRowwiseUserLoad">
+            <summary>
+            Regular expression for checking if the sql is RWRS User Load
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBUtility.RemoveStringLiterals">
+            <summary>
+            Regular expression for removing string literals.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBUtility.Tokenize">
+            <summary>
+            Regular expression for tokenizing words.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBUtility.TimeFormat">
+            <summary>
+            Commonly used time formats.   Precision 0 through 6.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBUtility.TimestampFormat">
+            <summary>
+            Commonly used Timestamp formats.  Precision 0 through 6
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBUtility.PowersOfTen">
+            <summary>
+            Array of powers of 10 that can be referenced by using the exponent as the offset
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBUtility.RemoveValidBrackets">
+            <summary>
+            Regular expression for removing valid brackets.
+            </summary>
+        </member>
+        <member name="F:EsgynDB.Data.EsgynDBUtility.FindBrackets">
+            <summary>
+            Regular expression for finding all the brackets.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBUtility.ConvertBracketIdentifiers(System.String)">
+            <summary>
+            Parses a SQL string and replaces [ ] delimiters with " " .
+            </summary>
+            <param name="str">The SQL string to be parsed.</param>
+            <returns>A SQL string with EsgynDB compatible delimiters.</returns>
+        </member>
+        <member name="T:EsgynDB.Data.INetworkMessage">
+            <summary>
+            Common interface for all structures marshalled to the server.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.INetworkMessage.WriteToDataStream(EsgynDB.Data.DataStream)">
+            <summary>
+            Writes structured data into the <code>DataStream</code>
+            </summary>
+            <param name="ds"></param>
+        </member>
+        <member name="M:EsgynDB.Data.INetworkMessage.PrepareMessageParams(EsgynDB.Data.EsgynDBEncoder)">
+            <summary>
+            converts string params to bytes and calculates the total size of the message
+            </summary>
+            <returns>the total size for the message</returns>
+        </member>
+        <member name="T:EsgynDB.Data.INetworkReply">
+            <summary>
+            Common interface for all structures marshalled from the server.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.INetworkReply.ReadFromDataStream(EsgynDB.Data.DataStream,EsgynDB.Data.EsgynDBEncoder)">
+            <summary>
+            Reads structured data out of the DataStream
+            </summary>
+            <param name="ds">The DataStream object.</param>
+            <param name="enc">The EsgynDBEncoder object.</param>
+        </member>
+        <member name="T:EsgynDB.Data.SetConnectionOptMessage">
+            <summary>
+            Updates the value of a connection property on the server.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.TermDialogueMessage">
+            <summary>
+            Closes the connection to the server.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.Descriptor">
+            <summary>
+            Holds the metadata of a parameter or column.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.Descriptor.ReadFromDataStream(EsgynDB.Data.DataStream,EsgynDB.Data.EsgynDBEncoder)">
+            <summary>
+            Reads structured data out of the DataStream
+            </summary>
+            <param name="ds">The DataStream object.</param>
+            <param name="enc">The EsgynDBEncoder object.</param>
+        </member>
+        <member name="M:EsgynDB.Data.Descriptor.MapFileSystemType">
+            <summary>
+            Maps the descriptor to a DbType and EsgynDBType
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.ErrorDesc">
+            <summary>
+            Represents an error returned by NDCS.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.HeaderType">
+            <summary>
+            Represents a header type.  The only one actually required on the client is WriteRequestFirst.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.SwapType">
+            <summary>
+            Specifies if bytes need to be swapped.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.Header">
+            <summary>
+            This is the header structure which all network messages contain.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.EsgynDBNetwork">
+            <summary>
+            Network communcations.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBNetwork.IdleTimerReset">
+            <summary>
+            Reset IdleTimer
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBNetwork.IdleTimerStart">
+            <summary>
+            if idletimeout is not null and connection is open, them start timer
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.EsgynDBNetwork.IdleTimeoutEvent(System.Object)">
+            <summary>
+            Idle timeout event
+            Close connection and Throw out an exception
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.SqlWarningOrError">
+            <summary>
+            Represents a message returned by the SQL engine.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.ConnectionContext">
+            <summary>
+            Represents a collection of connection properties sent to the server during logon.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.OutContextOptions1">
+            <summary>
+            Option flags which indicate server settings or additional information contained in the message
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.OutConnectionContext">
+            <summary>
+            A set of connection properties returned by the server after login.
+            </summary>
+        </member>
+        <member name="M:EsgynDB.Data.OutConnectionContext.DecodeExtraOptions(System.String)">
+            <summary>
+            Helper method to extract extra options which are in string form.
+            </summary>
+            <param name="options"></param>
+        </member>
+        <member name="T:EsgynDB.Data.UserDescType">
+            <summary>
+            Describes how the user will authenticate.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.UserDescription">
+            <summary>
+            A user's authentication information.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.Version">
+            <summary>
+            Represents a component version.
+            </summary>
+        </member>
+        <member name="T:EsgynDB.Data.Properties.Messages">
+            <summary>
+              A strongly-typed resource class, for looking up localized strings, etc.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Messages.ResourceManager">
+            <summary>
+              Returns the cached ResourceManager instance used by this class.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Messages.Culture">
+            <summary>
+              Overrides the current thread's CurrentUICulture property for all
+              resource lookups using this strongly typed resource class.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Messages.CommunicationFailure">
+            <summary>
+              Looks up a localized string similar to Communication failure.  Details: {0}.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Messages.ConnectedToDefaultDS">
+            <summary>
+              Looks up a localized string similar to Connected to the default datasource {0}.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Messages.DSNotAvailable">
+            <summary>
+              Looks up a localized string similar to Requested datasource is not available.  .
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Messages.InternalError">
+            <summary>
+              Looks up a localized string similar to An internal error occured.  Operation: {0} Details: {1}.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Messages.InvalidConnectionState">
+            <summary>
+              Looks up a localized string similar to The EsgynDBConnection is not in a valid state for that operation.  Current State: {0}.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Messages.InvalidEsgyndbDbType">
+            <summary>
+              Looks up a localized string similar to Invalid EsgyndbDbType value: {0}.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Messages.InvalidTransactionState">
+            <summary>
+              Looks up a localized string similar to The EsgynDBTransaction has already been committed or rolled back..
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Messages.NoServerHandle">
+            <summary>
+              Looks up a localized string similar to No servers available to handle the request..
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Messages.ParameterCountMismatch">
+            <summary>
+              Looks up a localized string similar to The provided parameters do not match the prepared statement..
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Messages.PortNotAvailable">
+            <summary>
+              Looks up a localized string similar to No port available to launch additional servers..
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Messages.StmtInvalid">
+            <summary>
+              Looks up a localized string similar to Data cursor is not valid..
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Messages.TryAgain">
+            <summary>
+              Looks up a localized string similar to Retry the connection.  Server resources are busy..
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Messages.UnsupportedCommandType">
+            <summary>
+              Looks up a localized string similar to Unsupported command type: {0}.
+            </summary>
+        </member>
+        <member name="P:EsgynDB.Data.Properties.Messages.UnsupportedIsolationLevel">
+            <summary>
+              Looks up a localized string similar to Isolation level {0} is not supported..
+            </summary>
+        </member>
+    </members>
+</doc>

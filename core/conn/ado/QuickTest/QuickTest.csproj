@@ -39,7 +39,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>..\..\..\..\..\Build\TrafAdo\</OutputPath>
-    <BaseIntermediateOutputPath>C:\Build\HPAdo\temp\</BaseIntermediateOutputPath>
+    <BaseIntermediateOutputPath>..\..\..\..\..\Build\TrafAdo\temp\</BaseIntermediateOutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -71,21 +71,21 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Trafodion.Data.ETL\Trafodion.Data.ETL.csproj">
+    <ProjectReference Include="..\Esgyndb.Data.ETL\Esgyndb.Data.ETL.csproj">
       <Project>{D01A6BE8-6E10-484B-A1EC-93EA0D3174CC}</Project>
-      <Name>Trafodion.Data.ETL</Name>
+      <Name>Esgyndb.Data.ETL</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Trafodion.Data.Tests\Trafodion.Data.Tests.csproj">
+    <ProjectReference Include="..\Esgyndb.Data.Tests\Esgyndb.Data.Tests.csproj">
       <Project>{0A5A6A5C-6976-43EF-95DA-D6CEE93968A6}</Project>
-      <Name>Trafodion.Data.Tests</Name>
+      <Name>Esgyndb.Data.Tests</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Trafodion.Data.VisualStudio\Trafodion.Data.VisualStudio.csproj">
+    <ProjectReference Include="..\Esgyndb.Data.VisualStudio\Esgyndb.Data.VisualStudio.csproj">
       <Project>{0BF65755-E115-4B55-905F-EE9AC1097353}</Project>
-      <Name>Trafodion.Data.VisualStudio</Name>
+      <Name>Esgyndb.Data.VisualStudio</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Trafodion.Data\Trafodion.Data.csproj">
+    <ProjectReference Include="..\Esgyndb.Data\Esgyndb.Data.csproj">
       <Project>{51D6429C-E66A-4EC0-8502-DEAA1C667F1A}</Project>
-      <Name>Trafodion.Data</Name>
+      <Name>Esgyndb.Data</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

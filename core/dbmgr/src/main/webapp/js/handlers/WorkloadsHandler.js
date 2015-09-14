@@ -17,6 +17,8 @@ function(EventDispatcher) {"use strict";
         	this.FETCH_REPO_QUERY_DETAIL_ERROR = 'fetchRepoQDetailError';
         	this.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS = 'fetchActiveQDetailSuccess';
         	this.FETCH_ACTIVE_QUERY_DETAIL_ERROR = 'fetchActiveQDetailError';
+        	this.CANCEL_QUERY_SUCCESS = 'cancelQuerySuccess';
+        	this.CANCEL_QUERY_ERROR = 'cancelQueryError';
         	
             /**
              * call memory skew
@@ -53,6 +55,21 @@ function(EventDispatcher) {"use strict";
     			});
             };
             
+            this.cancelQuery = function(queryID){
+
+        		$.ajax({
+    				url: 'resources/workloads/cancel?queryID=' + queryID,
+    				type:'DELETE',
+    				dataType:"json",
+    				contentType: "application/json;",
+    				success: function(data){
+    					dispatcher.fire(_this.CANCEL_QUERY_SUCCESS, data);
+    				},
+    				error:function(jqXHR, res, error){
+    					dispatcher.fire(_this.CANCEL_QUERY_ERROR, jqXHR, res, error);
+    				}
+    			});
+            };            
             this.fetchActiveQueries = function(probeType, time){
 
         		$.ajax({

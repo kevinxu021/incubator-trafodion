@@ -130,6 +130,7 @@ my $SQ_SEAMONSTER = $ENV{'SQ_SEAMONSTER'};
 my $SQ_TRANS_SOCK = $ENV{'SQ_TRANS_SOCK'};
 my $SQ_DTM_PERSISTENT_PROCESS = $ENV{'SQ_DTM_PERSISTENT_PROCESS'};
 my $SQ_IDTMSRV = $ENV{'SQ_IDTMSRV'};
+my $SQ_TNOTIFY = $ENV{'SQ_TNOTIFY'};
 
 # define the error values that are being returned
 my $CONFIG_ERROR = 5;
@@ -497,6 +498,28 @@ sub genIdTmSrv {
             printScript(1, "set {process \\\$TSID$i } PERSIST_ZONES=$l_pn\n");
             addDbProcData('$TSID'."$i", "PERSIST_ZONES", "$l_pn");
             printScript(1, "exec {nowait, name \\\$TSID$i, nid 0, out stdout_idtmsrv_$i} idtmsrv\n");
+        }
+        printScript(1, "delay 1\n");
+    }
+}
+
+sub genTnotify {
+    if ($SQ_TNOTIFY > 0) {
+        my $l_pn = "";
+        for ($i=0; $i < $gdNumNodes; $i++) {
+            $l_pn = $l_pn . $i;
+            if ($i + 1 < $gdNumNodes) {
+                $l_pn = $l_pn . ",";
+            }
+        }
+        printScript(1, "\n");
+        printScript(1, "\n! Start TNOTIFY\n");
+        for ($i=0; $i < $SQ_TNOTIFY; $i++) {
+            printScript(1, "set {process \\\$TNOTIFY$i } PERSIST_RETRIES=2,30\n");
+            addDbProcData('$TNOTIFY'."$i", "PERSIST_RETRIES", "2,30");
+            printScript(1, "set {process \\\$TNOTIFY$i } PERSIST_ZONES=$l_pn\n");
+            addDbProcData('$TNOTIFY'."$i", "PERSIST_ZONES", "$l_pn");
+            printScript(1, "exec {nowait, name \\\$TNOTIFY$i, nid 0, out stdout_tnotify_$i} traf_notify\n");
         }
         printScript(1, "delay 1\n");
     }
@@ -875,6 +898,44 @@ sub processOverflow {
 	    }
 	}
 	elsif(/^end overflow/) {
+	    return;
+	}
+    }
+}
+
+sub processNotifyEmail {
+
+    open (ETC,">>$msenv")
+	or die("unable to open $msenv");
+
+    my @l_line = ();
+    while (<SRC>) {
+	if(/^enable/) {
+	    @l_line = split(' ', $_);
+	    print ETC "NOTIFY_MAIL_ENABLE=@l_line[1]\n"
+	}
+	elsif(/^severity_level/) {
+	    @l_line = split(' ', $_);
+	    print ETC "NOTIFY_MAIL_SEVERITY_LEVEL=@l_line[1]\n"
+	}
+	elsif(/^subject_prefix/) {
+	    @l_line = split(' ', $_);
+	    print ETC "NOTIFY_MAIL_SUBJECT_PREFIX=";
+	    for ($i = 1; $i <= $#l_line; $i++) {
+		if ($i > 1) {
+		    print ETC " ";
+		}
+		print ETC "@l_line[$i]";
+	    }
+	    print ETC "\n";
+		
+	}
+	elsif(/^receiver_address/) {
+	    @l_line = split(' ', $_);
+	    print ETC "NOTIFY_MAIL_TO=@l_line[1]\n"
+	}
+	elsif(/^end notify_email/) {
+	    close(ETC);
 	    return;
 	}
     }
@@ -1407,6 +1468,10 @@ while (<SRC>) {
 	processOverflow;
 	printOverflowLines;
     }
+    elsif (/^begin notify_email/) {
+	processNotifyEmail;
+	printNotifyEmailLines;
+    }
     elsif (/^begin floating_ip/) {
         processFloatingIp;
     }
@@ -1419,6 +1484,8 @@ while (<SRC>) {
 
 
     genIdTmSrv();
+
+    genTnotify();
 
     genDTM();
 

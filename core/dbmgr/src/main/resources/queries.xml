@@ -3,9 +3,19 @@
 	<queries>
 		<query>
 			<!-- Get List of DCS servers and their status -->
-			<name>SELECT_DCS_SERVERS</name>
+			<name>GET_DCS_SERVERS</name>
 			<text><![CDATA[{"url":"http://%1$s/v1/servers/dcs/connections", "method":"get"}]]></text>
 		</query>
+		<query>
+			<!-- Get status of EsgynDB Services -->
+			<name>GET_SERVICE_STATUS</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/servers", "method":"get"}]]></text>
+		</query>
+		<query>
+			<!-- Get status of EsgynDB nodes -->
+			<name>GET_NODE_STATUS</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/servers/nodes", "method":"get"}]]></text>
+		</query>				
 		<query>
 			<!-- Fetch list of schemas -->
 			<name>SELECT_SCHEMAS</name>
@@ -112,7 +122,7 @@
 						num_nodes
 						from "_REPOS_".metric_query_table
 				 WHERE query_id = '%1$s']]></text>
-		</query>	
+		</query>
 		<query>
 			<!-- Fetch list of active queries visible in RMS -->
 			<name>SELECT_ACTIVE_QUERIES</name>
@@ -136,7 +146,11 @@
 			<!-- Fetch active query detail from rms -->
 			<name>SELECT_ACTIVE_QUERY_DETAIL</name>
 			<text><![CDATA[get statistics for qid %1$s %2$s]]></text>
-		</query>	
+		</query>
+		<query>
+			<name>CANCEL_QUERY</name>
+			<text><![CDATA[control query cancel qid %1$s]]></text>
+		</query>
 		<query>
 			<!-- Fetch list of log entries -->
 			<name>SELECT_LOGS</name>

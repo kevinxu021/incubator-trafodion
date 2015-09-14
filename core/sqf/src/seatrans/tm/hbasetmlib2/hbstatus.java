@@ -18,6 +18,8 @@
 
 package org.trafodion.dtm;
 
+import java.io.IOException;
+
 import java.util.Collection;
 import java.util.List;
 
@@ -31,6 +33,7 @@ import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.transactional.STRConfig;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import org.apache.commons.logging.Log;
@@ -54,18 +57,32 @@ public class hbstatus {
 
     private static final Log LOG = LogFactory.getLog(hbstatus.class);
 
-    public static boolean CheckStatus(String pv_pattern) throws Exception {
+    HBaseAdmin    m_Admin;
+    Configuration m_Config;
+    boolean       m_Verbose;
 
-	boolean lv_metadata_tables_fine = true;
+    public hbstatus(Configuration config) throws Exception {
 
-	Configuration lv_config = HBaseConfiguration.create();
-	lv_config.setInt("hbase.client.retries.number", 3);
-	lv_config.set("hbase.root.logger","ERROR,console");
-	System.out.println("ZooKeeper Chorum: " + lv_config.get("hbase.zookeeper.quorum"));
+	this.m_Config = config;
+	m_Config.setInt("hbase.client.retries.number", 3);
+	m_Config.set("hbase.root.logger","ERROR,console");
+	System.out.println("ZooKeeper Quorum: " + m_Config.get("hbase.zookeeper.quorum"));
+	System.out.println("ZooKeeper Port  : " + m_Config.get("hbase.zookeeper.property.clientPort"));
+
+	m_Admin = new HBaseAdmin(m_Config);
+
+	m_Verbose = false;
+    }
+
+    public void setVerbose(boolean pv_verbose) {
+	m_Verbose = pv_verbose;
+    }
+
+    public boolean CheckStatus() throws Exception {
 
         System.out.println("Checking if HBase is available...");
         try {
-            HBaseAdmin.checkHBaseAvailable(lv_config);
+            HBaseAdmin.checkHBaseAvailable(m_Config);
         }
 	catch (MasterNotRunningException me) {
             System.out.println("HBase Master is not running");
@@ -79,9 +96,8 @@ public class hbstatus {
         }
 
         System.out.println("\nHBase is available!");
-	HBaseAdmin lv_admin = new HBaseAdmin(lv_config);
 
-	ClusterStatus lv_cs = lv_admin.getClusterStatus();
+	ClusterStatus lv_cs = m_Admin.getClusterStatus();
 	System.out.println("HMaster: " + lv_cs.getMaster());
 
 	Collection<ServerName> lv_csn = lv_cs.getServers();
@@ -98,24 +114,36 @@ public class hbstatus {
 	}
 
 	System.out.println();
-	if (pv_pattern.length() > 0) {
-	    HTableDescriptor[] la_tables = lv_admin.listTables(pv_pattern);
-	    System.out.println("Number of user tables matching the pattern: "
-			       + pv_pattern
-			       + ":" + la_tables.length);
 
-	    for (HTableDescriptor lv_table: la_tables) {
-		List<HRegionInfo> lv_lhri = lv_admin.getTableRegions(lv_table.getTableName());
+	return true;
+    }
+
+    public boolean CheckTable(String pv_pattern) throws Exception {
+
+	HTableDescriptor[] la_tables = m_Admin.listTables(pv_pattern);
+	System.out.println("Number of user tables matching the pattern: "
+			   + pv_pattern
+			   + ":" + la_tables.length);
+
+	for (HTableDescriptor lv_table: la_tables) {
+	    List<HRegionInfo> lv_lhri = m_Admin.getTableRegions(lv_table.getTableName());
+	    if (m_Verbose) {
 		System.out.println("========================================================");
-		System.out.println("Table:" 
-				   + lv_table 
-				   + ":#regions:" 
-				   + lv_lhri.size()
-				   + ":" + (lv_admin.isTableAvailable(lv_table.getTableName()) ? "Available":"Not Available")
-				   + ":" + (lv_admin.isTableDisabled(lv_table.getTableName()) ? "Disabled":"Enabled")
-				   );
+	    }
+	    else {
+		System.out.println("----");
+	    }
+	    System.out.println("Table:" 
+			       + lv_table 
+			       + "\n#Regions:" 
+			       + lv_lhri.size()
+			       + ":" + (m_Admin.isTableAvailable(lv_table.getTableName()) ? "Available":"Not Available")
+			       + ":" + (m_Admin.isTableDisabled(lv_table.getTableName()) ? "Disabled":"Enabled")
+			       );
+	    if (m_Verbose) {
 		int lv_region_count=0;
 		for (HRegionInfo lv_hri: lv_lhri) {
+		    System.out.println("----");
 		    System.out.println("Region#" 
 				       + ++lv_region_count 
 				       + ":" + lv_hri 
@@ -123,73 +151,161 @@ public class hbstatus {
 		}
 	    }
 	}
-	else {
-	    System.out.println("Checking the status of Trafodion metadata tables...");
-	    HTableDescriptor[] la_tables = lv_admin.listTables("TRAFODION._MD_.*");
-	    System.out.println("Trafodion metadata tables: #: " + la_tables.length);
 
-	    for (HTableDescriptor lv_table: la_tables) {
-		boolean lv_table_available = lv_admin.isTableAvailable(lv_table.getTableName());
-		boolean lv_table_disabled = lv_admin.isTableDisabled(lv_table.getTableName());
-		if ( (!lv_table_available) || lv_table_disabled) {
+	return true;
+    }
+
+    public boolean CheckMetadata() throws Exception {
+
+	boolean lv_metadata_tables_fine = true;
+
+	System.out.println("Checking the status of Trafodion metadata tables...");
+	HTableDescriptor[] la_tables = m_Admin.listTables("TRAFODION._MD_.*");
+	System.out.println("Number of Trafodion metadata tables: " + la_tables.length);
+
+	for (HTableDescriptor lv_table: la_tables) {
+	    boolean lv_table_available = m_Admin.isTableAvailable(lv_table.getTableName());
+	    boolean lv_table_disabled = m_Admin.isTableDisabled(lv_table.getTableName());
+	    if ( (!lv_table_available) || lv_table_disabled || m_Verbose) {
+		if ( (!lv_table_available) || lv_table_disabled ) {
 		    lv_metadata_tables_fine = false;
-		    System.out.println("Table :" + lv_table 
-				       + ":" + (lv_table_available ? "Available":"Not Available") 
-				       + ":" + (lv_table_disabled ? "Disabled":"Enabled"));
+		}
+		System.out.println("Table :" + lv_table 
+				   + ":" + (lv_table_available ? "Available":"Not Available") 
+				   + ":" + (lv_table_disabled ? "Disabled":"Enabled"));
+		System.out.println("----");
 				       
-		}
-		List<HRegionInfo> lv_lhri = lv_admin.getTableRegions(lv_table.getTableName());
-		for (HRegionInfo lv_hri: lv_lhri) {
-		    if (lv_hri.isOffline()) {
-			lv_metadata_tables_fine = false;
-			System.out.println( "Table :" + lv_table 
-					    + ": Region: " + lv_hri + " is Offline");
-		    }
-		}
 	    }
 
-	    if (la_tables.length > 0) {
-		System.out.print("Trafodion Metadata Table status:");
-		if (!lv_metadata_tables_fine) {
-		    System.out.println("Not Good");
-		    System.out.println("Not all the Trafodion Metadata Tables are online / available / enabled");
-		}
-		else {
-		    System.out.println("Good");
-		    System.out.println("All the Trafodion Metadata Tables are online / available / enabled");
+	    List<HRegionInfo> lv_lhri = m_Admin.getTableRegions(lv_table.getTableName());
+	    for (HRegionInfo lv_hri: lv_lhri) {
+		if (lv_hri.isOffline()) {
+		    lv_metadata_tables_fine = false;
+		    System.out.println( "Table :" + lv_table 
+					+ ": Region: " + lv_hri + " is Offline");
 		}
 	    }
 	}
 
-	return true && lv_metadata_tables_fine;
+	if (la_tables.length > 0) {
+	    System.out.print("Trafodion Metadata Table status:");
+	    if (!lv_metadata_tables_fine) {
+		System.out.println("Not Good");
+		System.out.println("Not all the Trafodion Metadata Tables are online / available / enabled");
+	    }
+	    else {
+		System.out.println("Good");
+		System.out.println("All the Trafodion Metadata Tables are online / available / enabled");
+	    }
+	}
+
+	return lv_metadata_tables_fine;
+    }
+
+    static void Usage() {
+	
+	System.out.println("Usage:");
+	System.out.println("hbstatus [[-h] | [-m] | [-p] <peer id> | [-t] <table name>]");
+	System.out.println("-h              : Help (this output).");
+	System.out.println("-m              : Check the status of Trafodion metadata tables.");
+	System.out.println("-p <peer id>    : Defaults to the local cluster.");
+	System.out.println("-t <table name> : Check the status of the provided table. ");
+	System.out.println("-v              : Verbose output. ");
+
     }
 
     public static void main(String[] Args) {
 
-      String pv_pattern;
-      boolean lv_retcode = true;
+	String  lv_pattern = new String("");
+	boolean lv_retcode = true;
+	boolean lv_verbose = false;
+	boolean lv_checkmetadata = false;
+	boolean lv_checktable = false;
+	hbstatus lv_hbstatus;
+	int     lv_peer_id = 0;
+	int     lv_num_params = Args.length;
 
-      if (Args.length <= 0) {
-	  pv_pattern = new String("");
-      }
-      else {
-	  pv_pattern = Args[0];
-      }
+	int lv_index = 0;
+	for (String lv_arg : Args) {
+	    //	    System.out.println("Arg[" + lv_index + "]=" + lv_arg);
+	    lv_index++;
+	    if (lv_arg.compareTo("-h") == 0) {
+		Usage();
+		System.exit(0);
+	    }
+	    if (lv_arg.compareTo("-v") == 0) {
+		lv_verbose = true;
+	    }
+	    else if (lv_arg.compareTo("-m") == 0) {
+		System.out.println("Check metadata");
+		lv_checkmetadata = true;
+	    }
+	    else if (lv_arg.compareTo("-t") == 0) {
+		lv_checktable = true;
+		if (lv_index >= lv_num_params) {
+		    System.out.println("Table name parameter not provided");
+		    hbstatus.Usage();
+		    System.exit(1);
+		}
+		lv_pattern = Args[lv_index];
+		System.out.println("Check for the table: " + lv_pattern);
+	    }
+	    else if (lv_arg.compareTo("-p") == 0) {
+		lv_peer_id = Integer.parseInt(Args[lv_index]);
+		System.out.println("Check Peer ID: " + lv_peer_id);
+	    }
 
-      try {
-	  lv_retcode = CheckStatus(pv_pattern);
-      }
-      catch (Exception e)
-	  {
-	      System.out.println("exception: " + e);
-	      System.exit(1);
-	  }
+	}
 
-      if (! lv_retcode) {
-	  System.exit(1);
-      }
-      
-      System.exit(0);
-   }
+	STRConfig pSTRConfig = null;
+	Configuration lv_config = HBaseConfiguration.create();
+	if (lv_peer_id > 0) {
+	    try {
+		System.setProperty("PEERS", String.valueOf(lv_peer_id));
+		pSTRConfig = STRConfig.getInstance(lv_config);
+		lv_config = pSTRConfig.getPeerConfiguration(lv_peer_id);
+		if (lv_config == null) {
+		    System.out.println("Peer ID: " + lv_peer_id + " does not exist OR it has not been configured.");
+		    System.exit(1);
+		}
+	    }
+	    catch (ZooKeeperConnectionException zke) {
+		System.out.println("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
+		System.exit(1);
+	    }
+	    catch (IOException ioe) {
+		System.out.println("IO Exception trying to get STRConfig instance: " + ioe);
+		System.exit(1);
+	    }
+	}
+
+	try {
+	    lv_hbstatus = new hbstatus(lv_config);
+	    lv_hbstatus.setVerbose(lv_verbose);
+	    lv_retcode = lv_hbstatus.CheckStatus();
+	    if (! lv_retcode) {
+		System.exit(1);
+	    }
+	    if (lv_checkmetadata) {
+		System.out.println("Checking metadata...");
+		lv_retcode = lv_hbstatus.CheckMetadata();
+	    }
+	    if (lv_checktable) {
+		System.out.println("Checking table(s)...");
+		lv_retcode = lv_hbstatus.CheckTable(lv_pattern);
+	    }
+	}
+	catch (Exception e)
+	    {
+		System.out.println("exception: " + e);
+		System.exit(1);
+	    }
+
+	if (! lv_retcode) {
+	    System.exit(1);
+	}
+
+	System.exit(0);
+    }
 
 }

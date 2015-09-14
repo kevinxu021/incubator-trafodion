@@ -7,13 +7,44 @@
 	<formats>
 		<format>tar.gz</format>
 	</formats>
+
+	<files>
+		<file>
+			<source>src/main/resources/config_template.xml</source>
+			<outputDirectory>conf</outputDirectory>
+			<destName>config_template.xml</destName>
+			<fileMode>0755</fileMode>
+			<lineEnding>unix</lineEnding>
+		</file>
+		<file>
+			<source>${project.build.directory}/${project.build.finalName}/WEB-INF/lib/jetty-util-${jettyVersion}.jar</source>
+			<outputDirectory>lib</outputDirectory>
+		</file>
+		<file>
+		<source>${project.build.directory}/generated-docs/index.pdf</source>
+		<outputDirectory>docs</outputDirectory>
+		<destName>EsgynDBMgrUserGuide.${project.version}.pdf</destName>
+		</file>
+	</files>
 	<fileSets>
 		<fileSet>
 			<directory>bin</directory>
 			<outputDirectory>bin</outputDirectory>
 			<includes>
-				<include>*.*</include>
+				<include>*.sh</include>
+				<include>*.py</include>
 			</includes>
+			<fileMode>0755</fileMode>
+			<lineEnding>unix</lineEnding>
+		</fileSet>
+			<fileSet>
+			<directory>conf</directory>
+			<outputDirectory>conf</outputDirectory>
+			<includes>
+				<include>logback.xml</include>
+			</includes>
+			<fileMode>0755</fileMode>
+			<lineEnding>unix</lineEnding>
 		</fileSet>
 		<fileSet>
 			<directory>etc</directory>
@@ -23,20 +54,16 @@
 			</includes>
 		</fileSet>
 		<fileSet>
-			<directory>src/main/resources</directory>
-			<outputDirectory>conf</outputDirectory>
-			<includes>
-				<include>config.xml</include>
-				<include>config_template.xml</include>
-			</includes>
-			<fileMode>0755</fileMode>
-		</fileSet>
-		<fileSet>
 			<directory>target</directory>
 			<outputDirectory>lib</outputDirectory>
 			<includes>
 				<include>${project.build.finalName}.war</include>
+				<include></include>
 			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>target/${project.build.finalName}/docs</directory>
+			<outputDirectory>docs</outputDirectory>
 		</fileSet>
 	</fileSets>
 </assembly>

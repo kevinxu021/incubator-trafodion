@@ -19,7 +19,7 @@
 #
 # @@@ END COPYRIGHT @@@
 
-PROGS          = $(OUTDIR)/tm $(OUTDIR)/idtmsrv
+PROGS          = $(OUTDIR)/tm $(OUTDIR)/idtmsrv $(OUTDIR)/traf_notify
 ###########################################################################
 
 include ../../macros.gmk
@@ -125,10 +125,14 @@ TMOBJS		= $(OUTDIR)/tmregistry.o \
 		      $(OUTDIR)/CommonLogger.o  
 IDSRVOBJS	= $(OUTDIR)/idtmsrv.o \
 		      $(OUTDIR)/versidtmsrv.o
+TRAFNOTIFYOBJS  = $(OUTDIR)/traf_notify.o \
+                  $(OUTDIR)/verstraf_notify.o
 ALLOBJS	= $(LIBSTMOBJS) \
 		  $(LIBSXATMOBJS) \
 		  $(TMOBJS) \
 		  $(LIBXARMOBJS) \
+		  $(IDSRVOBJS) \
+		  $(TRAFNOTIFYOBJS) \
 
 CFILES		= `ls *.c`
 
@@ -149,6 +153,10 @@ $(OUTDIR)/tm: $(TMOBJS) $(LIBEXPDIR)/libsxatmlib.so $(LIBEXPDIR)/libshbasetmlib.
 	$(CXX) $(LNK_FLGS) $(LIBJVM) -o $@ $(TMOBJS) $(LIBSTM) -L$(LIBEXPDIR) -L$(LOG4CXX_LIB_DIR) -llog4cxx -DTM_BUILD_
 
 	cp -fup $(OUTDIR)/tm $(BINEXPDIR)
+
+$(OUTDIR)/traf_notify: $(TRAFNOTIFYOBJS)
+	$(CXX) $(LNK_FLGS) -o $@ $(TRAFNOTIFYOBJS) -L$(LIBEXPDIR) $(LIBSBMSX) -L$(LOG4CXX_LIB_DIR) -llog4cxx 
+	cp -fup $(OUTDIR)/traf_notify $(BINEXPDIR)
 
 $(OUTDIR)/ra: $(RAOBJS) 
 	$(CXX) $(LNK_FLGS) -o $@ $(RAOBJS) $(LIBSTM) 
@@ -183,7 +191,7 @@ setup:
 
 clean:
 	$(RM) $(LIBEXPDIR)/libsxatmlib.so $(LIBEXPDIR)/libxarm.so $(LIBEXPDIR)/libstmlib.so *.gcda *.gcno *.gcov
-	$(RM)  $(BINEXPDIR)/tm
+	$(RM)  $(BINEXPDIR)/tm $(BINEXPDIR)/idtmsrv $(BINEXPDIR)/traf_notify 
 	$(RM)  $(ALLOBJS)
 	$(RM)  $(CDEPFILES)
 	cd $(HBASE_TRX_LOC); make clean

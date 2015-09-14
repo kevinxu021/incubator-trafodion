@@ -89,10 +89,10 @@ public class STRConfig {
 
     static final Log LOG = LogFactory.getLog(STRConfig.class);
 
-    public static boolean                     sb_replicate = false;
-    public static Map<Integer, Configuration> peer_configs;
-    public static Map<Integer, HConnection>   peer_connections;
-    static int                                sv_peer_count = 0;
+    private static boolean                     sb_replicate = false;
+    private static Map<Integer, Configuration> peer_configs;
+    private static Map<Integer, HConnection>   peer_connections;
+    private static int                         sv_peer_count = 0;
 
     private static STRConfig s_STRConfig = null; 
 
@@ -103,17 +103,31 @@ public class STRConfig {
 
 	pv_config.set("hbase.hregion.impl", "org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion");
 	pv_config.setInt("hbase.client.retries.number", 3);
+
+	String lv_my_cluster_id = System.getenv("MY_CLUSTER_ID");
+	if (lv_my_cluster_id != null) {
+	    if (LOG.isTraceEnabled()) LOG.trace("My cluster id: " + lv_my_cluster_id);
+	    pv_config.setInt("esgyn.cluster.id", Integer.parseInt(lv_my_cluster_id));
+	}
 	peer_configs.put(0, pv_config);
 
         HConnection lv_connection = HConnectionManager.createConnection(pv_config);
 	peer_connections.put(0, lv_connection);
-	LOG.info("peer#0 zk forum: " + (peer_configs.get(0)).get("hbase.zookeeper.quorum"));
+	if (LOG.isInfoEnabled()) LOG.info("peer#0 zk quorum: " 
+		 + (peer_configs.get(0)).get("hbase.zookeeper.quorum"));
+	if (LOG.isInfoEnabled()) LOG.info("peer#0 zk clientPort: " 
+		 + (peer_configs.get(0)).get("hbase.zookeeper.property.clientPort"));
 
 	String lv_str_replicate = System.getenv("PEERS");
+	if (lv_str_replicate == null) {
+	    lv_str_replicate = System.getProperty("PEERS");
+	}
+	if (LOG.isTraceEnabled()) LOG.trace("PEERS env var value: " + lv_str_replicate);
 	String[] sv_peers;
 	if (lv_str_replicate != null) {
 	    sv_peers = lv_str_replicate.split(",");
 	    sv_peer_count = sv_peers.length;
+	    if (LOG.isTraceEnabled()) LOG.trace("sv_peers.length: " + sv_peers.length);
 	    if (sv_peer_count > 0) {
 		sb_replicate = true;
 	    }
@@ -129,8 +143,6 @@ public class STRConfig {
 		if (lv_peer_file.exists()) {
 		    Path lv_config_path = new Path(lv_peer_hbase_site_str);
 		    Configuration lv_config = HBaseConfiguration.create();
-		    lv_config.set("hbase.hregion.impl", "org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion");
-		    lv_config.setInt("hbase.client.retries.number", 3);
 		    lv_config.addResource(lv_config_path);
 		    if (LOG.isTraceEnabled()) LOG.trace("Putting peer info in the map for : " + lv_peer_hbase_site_str);
 		    try {
@@ -139,13 +151,18 @@ public class STRConfig {
 		    catch (Exception e) {
 			LOG.error("Exception while adding peer info to the config: " + e);
 		    }
-		    if (LOG.isTraceEnabled()) LOG.trace("peer#" + lv_peer_num + ":zk forum: " + (peer_configs.get(lv_peer_num)).get("hbase.zookeeper.quorum"));
+		    if (LOG.isInfoEnabled()) LOG.info("peer#" 
+						       + lv_peer_num 
+						       + ":zk quorum: " + (peer_configs.get(lv_peer_num)).get("hbase.zookeeper.quorum"));
+		    if (LOG.isInfoEnabled()) LOG.info("peer#" 
+						       + lv_peer_num 
+						       + ":zk clientPort: " + (peer_configs.get(lv_peer_num)).get("hbase.zookeeper.property.clientPort"));
 		    lv_connection = HConnectionManager.createConnection(lv_config);
 		    peer_connections.put(lv_peer_num, lv_connection);
 
 		}
 		else {
-		    if (LOG.isTraceEnabled()) LOG.trace("RMInterface static: Peer Path does not exist: " + lv_peer_hbase_site_str);
+		    if (LOG.isTraceEnabled()) LOG.trace("Peer Path does not exist: " + lv_peer_hbase_site_str);
 		}
 	    }
 	}
@@ -155,8 +172,16 @@ public class STRConfig {
 	return sv_peer_count;
     }
 
+    public Configuration getPeerConfiguration(int pv_cluster_id) {
+	return peer_configs.get(pv_cluster_id);
+    }
+
     public Map<Integer, Configuration> getPeerConfigurations() {
 	return peer_configs;
+    }
+
+    public HConnection getPeerConnection(int pv_peer_id) {
+	return peer_connections.get(pv_peer_id);
     }
 
     public Map<Integer, HConnection> getPeerConnections() {
@@ -178,6 +203,39 @@ public class STRConfig {
      */
     private STRConfig(final Configuration conf) throws ZooKeeperConnectionException, IOException {
 	initClusterConfigs(conf);
+    }
+
+    public String toString() {
+	StringBuilder lv_sb = new StringBuilder();
+	String lv_str;
+	lv_str = "Number of peers: " + sv_peer_count;
+	lv_sb.append(lv_str);
+	for ( Map.Entry<Integer, Configuration> e : peer_configs.entrySet() ) {
+	    lv_str = "\n======\nID: " + e.getKey() + "\n";
+	    lv_sb.append(lv_str);
+	    lv_str = "  hbase.zookeeper.quorum: " + e.getValue().get("hbase.zookeeper.quorum");
+	    lv_sb.append(lv_str);
+	    lv_str = "  hbase.zookeeper.property.clientPort: " + e.getValue().get("hbase.zookeeper.property.clientPort");
+	    lv_sb.append(lv_str);
+	}
+
+	return lv_sb.toString();
+    }
+
+    public static void main(String[] args) {
+	STRConfig pSTRConfig = null;
+	Configuration lv_config = HBaseConfiguration.create();
+	try {
+	    pSTRConfig = STRConfig.getInstance(lv_config);
+	}
+	catch (ZooKeeperConnectionException zke) {
+	    System.out.println("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
+	}
+	catch (IOException ioe) {
+	    System.out.println("IO Exception trying to get STRConfig instance: " + ioe);
+	}
+	
+	System.out.println(pSTRConfig);
     }
 
 }

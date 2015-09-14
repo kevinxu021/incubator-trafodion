@@ -1,32 +1,37 @@
 #page-wrapper {
-	margin:2px;
+	margin: 2px;
 }
+
 #dbmgr-page-wrapper {
 	padding: 0 15px;
 	min-height: 568px;
 	background-color: #fff;
 }
+
 .dbmgr-fieldset-table {
 	display: table
 }
 
 .dbmgr-form-item-row {
 	display: table-row;
-	margin-bottom:10px;
+	margin-bottom: 10px;
 }
 
 .dbmgr-form-item-cell-label {
 	display: table-cell;
-	padding-right:10px;	
+	padding-right: 10px;
 	margin-bottom: 10px;
 }
-.nav > li {
-    display: inline-block;
+
+.nav>li {
+	display: inline-block;
 }
+
 @media ( min-width :768px) {
 	.navbar-default {
-		background-color: #337ab7;
+		/*background-color: #337ab7;*/
 		/*background-color: #cf5300;*/
+		background-color:steelblue;
 	}
 	.navbar-default .sidebar-nav {
 		/*background-color:rgb(94,115,149);*/
@@ -34,11 +39,11 @@
 		/*background-color:#337ab7;*/
 		border-color: #e7e7e7;
 	}
-	.page-header{
-		margin-top:20px
+	.page-header {
+		margin-top: 20px
 	}
 	.navbar-default .navbar-brand:hover {
-		color:white;
+		color: white;
 	}
 	.navbar-default .dbmgr-title {
 		display: inline-block;
@@ -55,22 +60,23 @@
 		border-left: 1px solid #e7e7e7;
 	}
 	.navbar-default .navbar-nav>li>a {
-		color:white;
+		color: white;
 	}
 	.nav>li>a:hover, .nav>li>a:focus {
-		color:black;
-	}
-	.navbar-default .navbar-nav>li>a:hover, .navbar-default .navbar-nav>li>a:focus {
 		color: black;
-		background-color:#e7e7e7;
+	}
+	.navbar-default .navbar-nav>li>a:hover, .navbar-default .navbar-nav>li>a:focus
+		{
+		color: black;
+		background-color: #e7e7e7;
 	}
 	.nav>li>a {
 		color: white;
 	}
 	.mytooltip {
 		color: black;
-		width: 139px;
-		background-color:aliceblue;
+		width: 150px;
+		background-color: aliceblue;
 		border: 1px solid #ccc;
 		-moz-box-shadow: #555 2px 2px 8px;
 		-webkit-box-shadow: #555 2px 2px 8px;
@@ -113,11 +119,9 @@
 	tr.odd {
 		background-color: rgb(249, 249, 249)
 	}
-	
 	.table>thead>tr>th {
-		vertical-align:top;
+		vertical-align: top;
 	}
-	
 	table.display td {
 		padding: 3px 10px !important;
 	}
@@ -143,6 +147,6 @@
 		background: none
 	}
 	table.dataTable thead .sorting:after {
-		content:none;
-	}	
+		content: none;
+	}
 }

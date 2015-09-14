@@ -20,7 +20,8 @@ define([
     var previousScrollTop = 0;
     var controlStmts = "";
     var CONTROL_DIALOG = '#controlDialog',
-    	CONTROL_APPLY_BUTTON = "#controlApplyButton";
+    	CONTROL_APPLY_BUTTON = "#controlApplyButton",
+    	TOOLTIP_DIALOG = '#tooltipDialog';
     var _that = null;
     
     $jit.ST.Plot.NodeTypes.implement({
@@ -65,7 +66,7 @@ define([
 
         	//init Spacetree
         	//Create a new ST instance
-        	st = common.generateExplainTree(jsonData, setRootNode);
+        	st = common.generateExplainTree(jsonData, setRootNode, _that.showExplainTooltip);
         		
         	/*new $jit.ST({
         		'injectInto': 'infovis',
@@ -345,7 +346,14 @@ define([
         	_that.doResize();
         	//end
         },
-
+        showExplainTooltip: function(nodeName, data){
+        	$(TOOLTIP_DIALOG).modal('show');
+			nodeName = nodeName.replace("_", " ");
+			nodeName = nodeName.replace("SEABASE","TRAFODION");
+			nodeName = common.toProperCase(nodeName);        	
+        	$('#toolTipDialogLabel').text(nodeName);
+        	$('#tooltipContainer').text(data);
+        },
         toProperCase: function (s) {
         	return s.toLowerCase().replace(/^(.)|\s(.)/g, function($1) {
         		return $1.toUpperCase();
@@ -354,6 +362,7 @@ define([
         init: function () {
         	_that = this;
         	$('#text-result-container').hide();
+        	$('#scalar-result-container').hide();
         	this.hideLoading();
         	$(CONTROL_APPLY_BUTTON).on('click', this.controlApplyClicked);
         	//initFilterDialog();
@@ -362,7 +371,14 @@ define([
         	$("#setControlStmts").on('click', this.openFilterDialog);
         	$("#infovis").show();
         	$("#errorText").hide();
-        	
+        	$('#tooltipDialog').on('show.bs.modal', function () {
+		       $(this).find('.modal-body').css({
+		              width:'auto', //probably not needed
+		              height:'auto', //probably not needed 
+		              'max-height':'100%'
+		       });
+        	});
+
         	
         },
         resume: function(){
@@ -382,7 +398,7 @@ define([
         },
 
         openFilterDialog: function () {
-        	$(CONTROL_DIALOG).modal('show')
+        	$(CONTROL_DIALOG).modal('show');
         },
         controlApplyClicked: function(){
         	controlStmts = $("#controlStmts").val();
@@ -393,6 +409,7 @@ define([
 			}
 			$(CONTROL_DIALOG).modal('hide')
         },
+
         explainQuery: function () {
         	var queryText = $("#query-text").val();
         	if(queryText == null || queryText.length == 0){
@@ -402,6 +419,8 @@ define([
         	$("#infovis").hide();
         	$("#errorText").hide();
         	$("#query-result-container").hide();
+        	$('#text-result-container').hide();
+        	$('#scalar-result-container').hide();        	
         	var param = {sQuery : queryText, sControlStmts: controlStmts};
 
         	_that.showLoading();
@@ -431,8 +450,8 @@ define([
         	$("#infovis").hide();
         	$("#errorText").hide();
         	$('#text-result-container').hide();
-
-        	$("#query-result-container").show();
+        	$('#scalar-result-container').hide();
+        	$("#query-result-container").hide();
         	var param = {sQuery : queryText, sControlStmts: controlStmts};
         	
         	$.ajax({
@@ -452,46 +471,52 @@ define([
         displayResults: function (result){
         	_that.hideLoading();
         	var keys = result.columnNames;
-            
-        	if(keys != null && keys.length > 0) {
-        		var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="query-results"></table>';
-        		$('#query-result-container').html( sb );
-        		
-        		var aoColumns = [];
-        		var aaData = [];
-        		
-        		$.each(result.resultArray, function(i, data){
-        		  aaData.push(data);
-        		});
+        	if(result.isScalarResult != null && result.isScalarResult == true){
+        		$("#scalar-result-container").show();
+        		$("#scalar-result-container").text(result.resultArray[0][0]);
+        	}
+        	else{
+            	$("#query-result-container").show();        	
 
-        		// add needed columns
-        		$.each(keys, function(k, v) {
-        			var obj = new Object();
-        			obj.title = v;
-        			aoColumns.push(obj);
-        		});
-        		
-        		var bPaging = aaData.length > 25;
-        		
-        		 $('#query-results').dataTable({
-        			 "oLanguage": {
-        				 "sEmptyTable": "0 rows(s)"
-        			},
-        			 dom: 'T<"clear">lfrtip',
-        			"bProcessing": true,
-        			"bPaginate" : true, 
-        			"iDisplayLength" : 25, 
-        			"sPaginationType": "simple_numbers",
-    		        "scrollCollapse": true,
-        			"aaData": aaData, 
-        			"aoColumns" : aoColumns,
-        			paging: true,
-					"tableTools": {
-						"sSwfPath": "bower_components/datatables-tabletools/swf/copy_csv_xls_pdf.swf"
-					}
-        		 });
-        	 }
+            	if(keys != null && keys.length > 0) {
+            		var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="query-results"></table>';
+            		$('#query-result-container').html( sb );
+            		
+            		var aoColumns = [];
+            		var aaData = [];
+            		
+            		$.each(result.resultArray, function(i, data){
+            		  aaData.push(data);
+            		});
 
+            		// add needed columns
+            		$.each(keys, function(k, v) {
+            			var obj = new Object();
+            			obj.title = v;
+            			aoColumns.push(obj);
+            		});
+            		
+            		var bPaging = aaData.length > 25;
+            		
+            		 $('#query-results').dataTable({
+            			 "oLanguage": {
+            				 "sEmptyTable": "0 rows(s)"
+            			},
+            			 dom: 'T<"clear">lfrtip',
+            			"bProcessing": true,
+            			"bPaginate" : true, 
+            			"iDisplayLength" : 25, 
+            			"sPaginationType": "simple_numbers",
+        		        "scrollCollapse": true,
+            			"aaData": aaData, 
+            			"aoColumns" : aoColumns,
+            			paging: true,
+        				"tableTools": {
+    						"sSwfPath": "bower_components/datatables-tabletools/swf/copy_csv_xls_pdf.swf"
+    					}
+            		 });
+            	}        		
+        	}
         },
         
         displayResultsOld: function (result){
