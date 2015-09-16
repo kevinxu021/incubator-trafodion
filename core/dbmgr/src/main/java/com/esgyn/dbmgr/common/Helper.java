@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Helper {
 	public static final DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
-
 	public static JSONArray convertResultSetToJSON(java.sql.ResultSet rs) throws Exception {
 		JSONArray json = new JSONArray();
 
@@ -197,6 +196,9 @@ public class Helper {
 		return date.toString(fmt);
 	}
 
+	public static String formatDateTimeServerLocalTime(DateTime date, DateTimeZone zone) {
+		return date.toString(fmt.withZone(zone));
+	}
 	public static String formatDateTimeUTC(DateTime date) {
 		return date.toString(fmt.withZoneUTC());
 	}

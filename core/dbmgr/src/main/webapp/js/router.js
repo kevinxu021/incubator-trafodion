@@ -99,7 +99,7 @@ define([
 		databaseView = null;	
 		historicalWorkloadsView = null;
 		historicalWorkloadDetailView = null;
-		activeWorkloadsView = nul;
+		activeWorkloadsView = null;
 		activeQueryDetailView = null;
 		queryPlanView = null
 		logsView = null;		

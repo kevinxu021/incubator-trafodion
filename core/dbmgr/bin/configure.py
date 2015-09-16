@@ -78,6 +78,8 @@ def run():
             help="Hostname for the EsgynDB REST server", metavar="REST_HOST")
     parser.add_option("--restport",  dest="rest_port",   action="store", type="int",                     
             help="Port for the EsgynDB REST server",     metavar="REST_PORT")
+    parser.add_option("--timezone",  dest="time_zone",   action="store",                     
+            help="Local TimeZone of the EsgynDB instance (Format like America/Los_Angeles or Etc/Utc)",     metavar="TIMEZONE_NAME")
 
     (options, args) = parser.parse_args()
     
@@ -128,6 +130,11 @@ def run():
             if not options.rest_port : options.rest_port = "4200"
             if options.rest_port and options.rest_port.isdigit(): done = True
             
+    if not options.time_zone :
+        done = None
+        while (done==None) :
+            options.time_zone = raw_input("Please provide the local TimeZone of the EsgynDB instance (Format like America/Los_Angeles or Etc/Utc):")
+            if options.time_zone: done = True
   
     # sqroot_path = os.getenv("MY_SQROOT")
     # if not sqroot_path: sqroot_path = os.getcwd()
@@ -165,6 +172,7 @@ def run():
     file_str=file_str.replace('REST_PORT', str(options.rest_port))
     file_str=file_str.replace('HTTP_PORT', str(options.http_port))
     file_str=file_str.replace('HTTPS_PORT', str(options.https_port))
+    file_str=file_str.replace('TIMEZONE_NAME', str(options.time_zone))
 
     config_xml = os.path.join(dbmgr_path,"conf/config.xml")
     with open(config_xml, 'w+') as f:

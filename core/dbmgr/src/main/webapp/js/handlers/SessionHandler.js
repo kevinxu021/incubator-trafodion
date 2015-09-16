@@ -1,5 +1,5 @@
-define(['handlers/EventDispatcher'],
-function(EventDispatcher) {"use strict";
+define(['handlers/EventDispatcher', 'common'],
+function(EventDispatcher, common) {"use strict";
 
     var SessionHandler = ( function() {
     	
@@ -24,6 +24,7 @@ function(EventDispatcher) {"use strict";
             	    dataType:"json",
             	    contentType: "application/json;",
             	    success: function(data){
+    					common.setTimeZoneInfo(data.serverTimeZone, data.serverUTCOffset);
     					dispatcher.fire(_this.LOGIN_SUCCESS, data);
     				},
     				error:function(jqXHR, res, error){

@@ -55,6 +55,7 @@ require.config({
 		tabletools: '../bower_components/datatables-tabletools/js/dataTables.tableTools',
 		jstree: '../bower_components/jstree/dist/jstree',
 		moment: '../bower_components/moment/min/moment.min',
+		momenttimezone: '../bower_components/moment-timezone/builds/moment-timezone-with-data.min',
 		datetimepicker: '../bower_components/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min'
 	}
 
