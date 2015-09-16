@@ -39,7 +39,10 @@ all: $(BINEXPDIR)/decoder encoder copy
 OBJS	= $(OUTDIR)/encoder.o \
 	  $(OUTDIR)/decoder.o
 
+OBJS1	= $(OUTDIR)/verdecoder.o
+
 INCLUDES	= -I. -I./inc -I ../shared/inc \
+                -I $(MY_SQROOT)/export/include \
 	        -I ../../sql/common
 
 
@@ -48,8 +51,8 @@ LINK_OPTIONS   += $(LNK_FLGS)
 
 COMMON_LIBS =
 
-$(BINEXPDIR)/decoder:
-	$(CC) -o $@ src/decoder.c
+$(BINEXPDIR)/decoder:  $(OBJS1)
+	$(CXX) -o $@ src/decoder.c $(OBJS1)
 
 encoder:
 	$(CC) -o $@ src/encoder.c
