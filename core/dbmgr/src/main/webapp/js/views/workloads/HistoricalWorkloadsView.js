@@ -73,8 +73,10 @@ define([
 			
 			$('#startdatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
 			$('#enddatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
-			$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'hour'));
-			$('#enddatetimepicker').data("DateTimePicker").date(moment());
+			//$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'hour'));
+			//$('#enddatetimepicker').data("DateTimePicker").date(moment());
+			$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
+			$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 
 			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
 				_that.updateFilter();
@@ -84,20 +86,20 @@ define([
 				var sel = $(this).val();
 				switch(sel){
 				case "1":
-					$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'hour'));
-					$('#enddatetimepicker').data("DateTimePicker").date(moment());
+					$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
+					$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 					$('#filter-start-time').prop("disabled", true);
 					$('#filter-end-time').prop("disabled", true);
 					break;
 				case "6":
-					$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(6, 'hour'));
-					$('#enddatetimepicker').data("DateTimePicker").date(moment());
+					$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(6, 'hour'));
+					$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 					$('#filter-start-time').prop("disabled", true);
 					$('#filter-end-time').prop("disabled", true);
 					break;
 				case "24":
-					$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'day'));
-					$('#enddatetimepicker').data("DateTimePicker").date(moment());
+					$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'day'));
+					$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 					$('#filter-start-time').prop("disabled", true);
 					$('#filter-end-time').prop("disabled", true);
 					break;
@@ -140,20 +142,20 @@ define([
         	var selection = $(FILTER_TIME_RANGE).val();
 			switch(selection){
 			case "1":
-				$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'hour'));
-				$('#enddatetimepicker').data("DateTimePicker").date(moment());
+				$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
+				$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 				$('#filter-start-time').prop("disabled", true);
 				$('#filter-end-time').prop("disabled", true);
 				break;
 			case "6":
-				$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(6, 'hour'));
-				$('#enddatetimepicker').data("DateTimePicker").date(moment());
+				$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(6, 'hour'));
+				$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 				$('#filter-start-time').prop("disabled", true);
 				$('#filter-end-time').prop("disabled", true);
 				break;
 			case "24":
-				$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'day'));
-				$('#enddatetimepicker').data("DateTimePicker").date(moment());
+				$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'day'));
+				$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 				$('#filter-start-time').prop("disabled", true);
 				$('#filter-end-time').prop("disabled", true);
 				break;
@@ -262,22 +264,25 @@ define([
 					      }
 					    },
 					    {
-					      "aTargets": [ 2,3 ],
+					      "aTargets": [ 2],
 					      "mData": 2,
 					      "mRender": function ( data, type, full ) {
 					       if (type === 'display') {
-					          return common.toDateFromMilliSeconds(data);
+					          return common.toServerLocalDateFromUtcMilliSeconds(data);
 					        }
 					        else return data;
-					      },
-					      "mData": 3,
-					      "mRender": function ( data, type, full ) {
-					       if (type === 'display') {
-					          return common.toDateFromMilliSeconds(data);
-					        }
-					        else return data;
-					      },
-					    } ],
+					      }
+					    },
+					    {
+						      "aTargets": [3 ],
+						      "mData": 3,
+						      "mRender": function ( data, type, full ) {
+						       if (type === 'display') {
+						          return common.toServerLocalDateFromUtcMilliSeconds(data);
+						        }
+						        else return data;
+						      }
+						    } ],
 					paging: true,
 					"tableTools": {
 						"sRowSelect": "multi",

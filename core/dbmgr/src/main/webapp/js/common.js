@@ -6,10 +6,11 @@
 //JS used to store some common JS functions and constant
 
 define(['moment',
+        'momenttimezone',
         'jquery',
-        'jit',
+        'jit'
         ],
-function(moment, $) {
+function(moment, momenttimezone, $) {
 	"use strict";
 
 	return (function() {
@@ -19,6 +20,8 @@ function(moment, $) {
 			// var _isoDateFormat='yyyy-MM-dd HH:mm:ss'
 			this.ISODateFormat = 'YYYY-MM-DD HH:mm:ss';
 			var _this = this;
+			this.serverTimeZone = null;
+			this.serverUtcOffset = 0;
 			
 		    $jit.ST.Plot.NodeTypes.implement({
 		    	'nodeline': {
@@ -54,13 +57,19 @@ function(moment, $) {
 				}
 				return "";
 			},
+			
 			this.toDateFromMilliSeconds = function(milliSeconds) {
 				if (milliSeconds != null) {
 					return moment(milliSeconds).format(_this.ISODateFormat);
 				}
 				return "";
 			},
-
+			this.toServerLocalDateFromUtcMilliSeconds = function(utcMilliSeconds) {
+				if (utcMilliSeconds != null) {
+					return moment(utcMilliSeconds + (_this.serverUtcOffset)).local().format('YYYY-MM-DD HH:mm:ss');
+				}
+				return "";
+			},
 			this.getTimeZoneOffset = function(localeTimeZone) {
 				return moment().tz(localeTimeZone).zone() * 60 * 1000;
 			},
@@ -92,6 +101,11 @@ function(moment, $) {
 				if(bytes <=0)
 					return 0;
 				return (bytes/1024/1024).toFixed(2);
+			};
+			
+			this.setTimeZoneInfo = function(timeZone, utcOffset){
+				_this.serverTimeZone = timeZone;
+				_this.serverUtcOffset = utcOffset;
 			};
 			
 			this.convertUnitFromByte = function(bytes) {

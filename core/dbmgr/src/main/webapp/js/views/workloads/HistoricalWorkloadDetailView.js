@@ -89,8 +89,8 @@ define([
 			sessionStorage.setItem(queryID, result.queryText);	
 			
 			$('#query-status').val(result.status.trim());
-			$('#query-start-time').val(common.toDateFromMilliSeconds(result.startTime));
-			$('#query-end-time').val(common.toDateFromMilliSeconds(result.endTime));
+			$('#query-start-time').val(common.toServerLocalDateFromUtcMilliSeconds(result.startTime));
+			$('#query-end-time').val(common.toServerLocalDateFromUtcMilliSeconds(result.endTime));
 			var colNames = [{"title":"Name"}, {"title":"Value"}];
 			
 			var connDataSet = [];
@@ -103,13 +103,13 @@ define([
 			connDataSet.push(["Statement Sub Type", result.metrics.statement_subtype]);
 			connDataSet.push(["Process Name", result.metrics.process_name]);
 			connDataSet.push(["Master Process ID", result.metrics.master_process_id]);
-			connDataSet.push(["Submit Time", common.toDateFromMilliSeconds(result.metrics.submit_utc_ts)]);
+			connDataSet.push(["Submit Time", common.toServerLocalDateFromUtcMilliSeconds(result.metrics.submit_utc_ts)]);
 			connDataSet.push(["Node Count", result.metrics.num_nodes]);
 			connDataSet.push(["Process Count", result.metrics.processes_created]);
 			
 			var compDataSet = [];
-			compDataSet.push(["Compile Start Time", common.toDateFromMilliSeconds(result.metrics.compile_start_utc_ts)]);
-			compDataSet.push(["Compile End Time", common.toDateFromMilliSeconds(result.metrics.compile_end_utc_ts)]);
+			compDataSet.push(["Compile Start Time", common.toServerLocalDateFromUtcMilliSeconds(result.metrics.compile_start_utc_ts)]);
+			compDataSet.push(["Compile End Time", common.toServerLocalDateFromUtcMilliSeconds(result.metrics.compile_end_utc_ts)]);
 			compDataSet.push(["Compile Elapsed Time", result.metrics.compile_elapsed_time]);
 			compDataSet.push(["Degree of Parallelism", result.metrics.cmp_dop]);
 			compDataSet.push(["Number of Joins", result.metrics.cmp_num_joins]);

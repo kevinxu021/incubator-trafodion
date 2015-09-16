@@ -30,4 +30,6 @@
 	<!-- The HTTP request header size for the DB Manager embedded jetty server -->
 	<entry key="requestHeaderSize">98304</entry>
 
+	<!-- The TimeZone name of the EsgynDB server. Enter in java time zone format like Americas/New_York -->
+	<entry key="timeZoneName">TIMEZONE_NAME</entry>
 </properties>

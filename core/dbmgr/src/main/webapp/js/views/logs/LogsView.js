@@ -5,6 +5,7 @@ define([
         'handlers/LogsHandler',
         'model/Localizer',
         'moment',
+        'common',
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
@@ -12,7 +13,7 @@ define([
         'datetimepicker',
         'jqueryvalidate'
 
-        ], function (BaseView, LogsT, $, logsHandler, localizer, moment) {
+        ], function (BaseView, LogsT, $, logsHandler, localizer, moment, common) {
 	'use strict';
     var LOADING_SELECTOR = "#loadingImg",
     	RESULT_CONTAINER = '#query-result-container',
@@ -74,8 +75,8 @@ define([
 			
 			$('#startdatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
 			$('#enddatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
-			$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'hour'));
-			$('#enddatetimepicker').data("DateTimePicker").date(moment());
+			$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
+			$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 
 			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
 				_that.updateFilter();
@@ -85,20 +86,20 @@ define([
 				var sel = $(this).val();
 				switch(sel){
 				case "1":
-					$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'hour'));
-					$('#enddatetimepicker').data("DateTimePicker").date(moment());
+					$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
+					$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 					$('#filter-start-time').prop("disabled", true);
 					$('#filter-end-time').prop("disabled", true);
 					break;
 				case "6":
-					$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(6, 'hour'));
-					$('#enddatetimepicker').data("DateTimePicker").date(moment());
+					$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(6, 'hour'));
+					$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 					$('#filter-start-time').prop("disabled", true);
 					$('#filter-end-time').prop("disabled", true);
 					break;
 				case "24":
-					$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'day'));
-					$('#enddatetimepicker').data("DateTimePicker").date(moment());
+					$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'day'));
+					$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 					$('#filter-start-time').prop("disabled", true);
 					$('#filter-end-time').prop("disabled", true);
 					break;
@@ -137,20 +138,20 @@ define([
         	var selection = $(FILTER_TIME_RANGE).val();
 			switch(selection){
 			case "1":
-				$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'hour'));
-				$('#enddatetimepicker').data("DateTimePicker").date(moment());
+				$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
+				$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 				$('#filter-start-time').prop("disabled", true);
 				$('#filter-end-time').prop("disabled", true);
 				break;
 			case "6":
-				$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(6, 'hour'));
-				$('#enddatetimepicker').data("DateTimePicker").date(moment());
+				$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(6, 'hour'));
+				$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 				$('#filter-start-time').prop("disabled", true);
 				$('#filter-end-time').prop("disabled", true);
 				break;
 			case "24":
-				$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'day'));
-				$('#enddatetimepicker').data("DateTimePicker").date(moment());
+				$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'day'));
+				$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 				$('#filter-start-time').prop("disabled", true);
 				$('#filter-end-time').prop("disabled", true);
 				break;
@@ -194,7 +195,7 @@ define([
         	param.startTime = startTime.format('YYYY-MM-DD HH:mm:ss');
         	param.endTime = endTime.format('YYYY-MM-DD HH:mm:ss');
         	param.severities = severities.join(',');
-        	param.components = $(FILTER_COMPONENT_NAMES).val();
+        	param.componentNames = $(FILTER_COMPONENT_NAMES).val();
         	param.processNames = $(FILTER_PROCESS_NAMES).val();
         	param.errorCodes = $(FILTER_ERROR_CODES).val();
         	param.message = $(FILTER_MESSAGE_TEXT).val();

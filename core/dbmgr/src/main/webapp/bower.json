@@ -2,37 +2,38 @@
   "name": "esgyndbmgr",
   "version": "1.0.0",
   "authors": [
-    "venkat1m <venkat.muthuswamy@esgyn.com>"
+	"venkat1m <venkat.muthuswamy@esgyn.com>"
   ],
   "description": "EsgynDB Manager",
   "main": "index.html",
   "moduleType": [
-    "amd"
+	"amd"
   ],
   "keywords": [
-    "EsgynDB"
+	"EsgynDB"
   ],
   "license": "Apache 2.0",
   "ignore": [
-    "**/.*",
-    "node_modules",
-    "bower_components",
-    "test",
-    "tests"
+	"**/.*",
+	"node_modules",
+	"bower_components",
+	"test",
+	"tests"
   ],
   "dependencies": {
-    "backbone": "~1.2.1",
-    "datatables-tabletools": "~2.2.4",
-    "jquery.cookie": "~1.4.1",
-    "jquery-ui": "1.11.4",
-    "jit": "~2.0.2",
-    "mocha": "~1.17.1",
-    "requirejs": "~2.1.18",
-    "startbootstrap-sb-admin-2": "~1.0.7",
-    "text": "~2.0.14",
-    "jstree": "~3.1.1",
+	"backbone": "~1.2.1",
+	"datatables-tabletools": "~2.2.4",
+	"jquery.cookie": "~1.4.1",
+	"jquery-ui": "1.11.4",
+	"jit": "~2.0.2",
+	"mocha": "~1.17.1",
+	"requirejs": "~2.1.18",
+	"startbootstrap-sb-admin-2": "~1.0.7",
+	"text": "~2.0.14",
+	"jstree": "~3.1.1",
 	"eonasdan-bootstrap-datetimepicker": "4.15.35",
 	"jquery-validation": "~1.14.0",
-	"jquery-localize-i18n": "latest"
+	"jquery-localize-i18n": "latest",
+	"moment-timezone": "0.4.0"
   }
 }

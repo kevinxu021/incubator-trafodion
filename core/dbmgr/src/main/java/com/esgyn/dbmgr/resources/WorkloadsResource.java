@@ -40,7 +40,7 @@ public class WorkloadsResource {
 	@Path("/repo/")
 	@Consumes("application/json")
 	@Produces("application/json")
-	public TabularResult getDcWorkloads(ObjectNode obj, @Context HttpServletRequest servletRequest,
+	public TabularResult getHistoricalWorkloads(ObjectNode obj, @Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 		try {
 
@@ -58,16 +58,16 @@ public class WorkloadsResource {
 			DateTime now = new DateTime(DateTimeZone.UTC);
 			DateTime startDateTime = null;
 			DateTime endDateTime = null;
-
+			DateTimeZone serverTimeZone = DateTimeZone.forID(ConfigurationResource.getServerTimeZone());
 			if (obj != null) {
 				if (obj.get("startTime") != null) {
 					startTime = obj.get("startTime").textValue();
-					startDateTime = Helper.fmt.parseDateTime(startTime);
+					startDateTime = Helper.fmt.withZone(serverTimeZone).parseDateTime(startTime);
 					startTime = Helper.formatDateTimeUTC(startDateTime);
 				}
 				if (obj.get("endTime") != null) {
 					endTime = obj.get("endTime").textValue();
-					endDateTime = Helper.fmt.parseDateTime(endTime);
+					endDateTime = Helper.fmt.withZone(serverTimeZone).parseDateTime(endTime);
 					endTime = Helper.formatDateTimeUTC(endDateTime);
 				}
 				if (obj.get("states") != null) {
@@ -165,8 +165,8 @@ public class WorkloadsResource {
 			while (rs.next()) {
 				qDetail.setUserName(rs.getString("user_name"));
 				qDetail.setStatus(rs.getString("query_status"));
-				qDetail.setStartTime(rs.getTimestamp("exec_start_utc_ts"));
-				qDetail.setEndTime(rs.getTimestamp("exec_end_utc_ts"));
+				qDetail.setStartTime(rs.getTimestamp("exec_start_utc_ts").getTime());
+				qDetail.setEndTime(rs.getTimestamp("exec_end_utc_ts").getTime());
 				qDetail.setQueryText(rs.getString("query_text"));
 				metrics.put("query_sub_status", rs.getString("query_sub_status"));
 				metrics.put("master_process_id", rs.getString("master_process_id"));

@@ -52,7 +52,7 @@
 			<!-- Fetch list of historical workloads -->
 			<name>SELECT_REPO_QUERIES</name>
 			<text><![CDATA[SELECT query_id as "Query ID", query_status AS "Status" ,
-						EXEC_START_UTC_TS AS "Start Time", EXEC_END_UTC_TS AS "End Time", 
+						exec_start_utc_ts as "Start Time", exec_end_utc_ts AS "End Time", 
 						USER_NAME AS "User Name",  APPLICATION_NAME as "Application",
 						CLIENT_NAME as "Client", query_elapsed_time AS "Elapsed Time", 
 						QUERY_TEXT AS "Query Text"

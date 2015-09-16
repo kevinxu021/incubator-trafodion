@@ -31,7 +31,7 @@
 	.navbar-default {
 		/*background-color: #337ab7;*/
 		/*background-color: #cf5300;*/
-		background-color:steelblue;
+		background-color: steelblue;
 	}
 	.navbar-default .sidebar-nav {
 		/*background-color:rgb(94,115,149);*/
@@ -87,12 +87,11 @@
 		padding: 7px;
 	}
 	#title-img {
-		display: inline;
-		width: 48px;
+		display: block;
+		width: 60px;
 		height: 40px;
-		margin-left: 10px;
-		margin-right: 1px;
-		margin-top: 10px;
+		margin-left: auto;
+		margin-right: auto;
 		vertical-align: bottom;
 	}
 	.dbmgr-table {
