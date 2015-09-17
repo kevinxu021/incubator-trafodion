@@ -27,6 +27,8 @@
 	display: inline-block;
 }
 
+.dbmgr-hover { cursor: pointer; cursor: hand; }
+
 @media ( min-width :768px) {
 	.navbar-default {
 		/*background-color: #337ab7;*/
@@ -88,14 +90,14 @@
 	}
 	#title-img {
 		display: block;
-		width: 60px;
+		width: 75px;
 		height: 40px;
 		margin-left: auto;
 		margin-right: auto;
 		vertical-align: bottom;
 	}
 	.dbmgr-table {
-		font-size: 13px !important
+		font-size: 13px !important;
 	}
 	table.display thead th div.DataTables_sort_wrapper {
 		position: relative;
@@ -148,4 +150,6 @@
 	table.dataTable thead .sorting:after {
 		content: none;
 	}
+	li { cursor: pointer; cursor: hand; }
+
 }

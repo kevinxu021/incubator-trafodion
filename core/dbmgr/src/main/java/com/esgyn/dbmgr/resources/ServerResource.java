@@ -68,6 +68,7 @@ public class ServerResource {
 			objNode.put("sessionTimeoutMinutes", ConfigurationResource.getInstance().getSessionTimeoutMinutes());
 			objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
 			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
+			objNode.put("dcsMasterInfoUri", ConfigurationResource.getInstance().getDcsMasterInfoUri());
 
 			Session content = new Session(usr, pwd, new DateTime(DateTimeZone.UTC));
 			SessionModel.putSessionObject(key, content);

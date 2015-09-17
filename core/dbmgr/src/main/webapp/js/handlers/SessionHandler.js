@@ -24,7 +24,7 @@ function(EventDispatcher, common) {"use strict";
             	    dataType:"json",
             	    contentType: "application/json;",
             	    success: function(data){
-    					common.setTimeZoneInfo(data.serverTimeZone, data.serverUTCOffset);
+    					common.storeSessionProperties(data.serverTimeZone, data.serverUTCOffset, data.dcsMasterInfoUri);
     					dispatcher.fire(_this.LOGIN_SUCCESS, data);
     				},
     				error:function(jqXHR, res, error){

@@ -89,12 +89,21 @@ define([
 			sessionStorage.setItem(queryID, result.queryText);	
 			
 			$('#query-status').val(result.status.trim());
-			$('#query-start-time').val(common.toServerLocalDateFromUtcMilliSeconds(result.startTime));
-			$('#query-end-time').val(common.toServerLocalDateFromUtcMilliSeconds(result.endTime));
+			var startTimeVal = "";
+			if(result.startTime != null && result.startTime != -1){
+				startTimeVal = common.toServerLocalDateFromUtcMilliSeconds(result.startTime);
+			}
+			var endTimeVal = "";
+			if(result.endTime != null && result.endTime != -1){
+				endTimeVal = common.toServerLocalDateFromUtcMilliSeconds(result.endTime);
+			}			
+			
+			$('#query-start-time').val(startTimeVal);
+			$('#query-end-time').val(endTimeVal);
 			var colNames = [{"title":"Name"}, {"title":"Value"}];
 			
 			var connDataSet = [];
-			connDataSet.push(["User", result.metrics.user_name]);
+			connDataSet.push(["User", result.userName]);
 			connDataSet.push(["Application", result.metrics.application_name]);
 			connDataSet.push(["Client Name", result.metrics.client_name]);
 			connDataSet.push(["Session ID", result.metrics.session_id]);

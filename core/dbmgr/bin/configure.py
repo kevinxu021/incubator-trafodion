@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from optparse import OptionParser
+import getpass
 import sys
 import os
 import io
@@ -74,6 +75,8 @@ def run():
             help="Hostname for the EsgynDB DCS server",  metavar="DCS_HOST")
     parser.add_option("--dcsport",   dest="dcs_port",    action="store", type="int",                  
             help="Port for the EsgynDB DCS server",      metavar="DCS_PORT")
+    parser.add_option("--dcsinfoport",   dest="dcs_info_port",    action="store", type="int",                  
+            help="Info Port for the EsgynDB DCS Master",      metavar="DCS_PORT")
     parser.add_option("--resthost",  dest="rest_host",   action="store",                    
             help="Hostname for the EsgynDB REST server", metavar="REST_HOST")
     parser.add_option("--restport",  dest="rest_port",   action="store", type="int",                     
@@ -101,7 +104,8 @@ def run():
     if not options.password :
         done = None
         while (done==None) :
-            options.password = raw_input("Please provide the password for the SSL keystore (minimum 6 chars):")
+            options.password = getpass.getpass(prompt='Getpass Please provide the password for the SSL keystore (minimum 6 chars):')
+            #options.password = raw_input("Please provide the password for the SSL keystore (minimum 6 chars):")
             if options.password and len(options.password)>5: done = True
             
     if not options.dcs_host :
@@ -116,6 +120,13 @@ def run():
             options.dcs_port = raw_input("Please provide the EsgynDB DCS server port(default 23400):")
             if not options.dcs_port : options.dcs_port = "23400"
             if options.dcs_port and options.dcs_port.isdigit(): done = True
+            
+    if not options.dcs_info_port :
+        done = None
+        while (done==None) :
+            options.dcs_info_port = raw_input("Please provide the EsgynDB DCS master info port(default 24400):")
+            if not options.dcs_info_port : options.dcs_info_port = "24400"
+            if options.dcs_info_port and options.dcs_info_port.isdigit(): done = True
             
     if not options.rest_host :
         done = None
@@ -133,7 +144,8 @@ def run():
     if not options.time_zone :
         done = None
         while (done==None) :
-            options.time_zone = raw_input("Please provide the local TimeZone of the EsgynDB instance (Format like America/Los_Angeles or Etc/Utc):")
+            options.time_zone = raw_input("Please provide the local TimeZone of the EsgynDB instance(default Etc/Utc):")
+            if not options.time_zone : options.time_zone = "Etc/UTC"
             if options.time_zone: done = True
   
     # sqroot_path = os.getenv("MY_SQROOT")
@@ -168,6 +180,7 @@ def run():
     file_str=file_str.replace('SECURE_PASSWORD', str(obfuscated_pw))
     file_str=file_str.replace('DCS_HOST', str(options.dcs_host))
     file_str=file_str.replace('DCS_PORT', str(options.dcs_port))
+    file_str=file_str.replace('DCS_INFO_PORT', str(options.dcs_info_port))
     file_str=file_str.replace('REST_HOST', str(options.rest_host))
     file_str=file_str.replace('REST_PORT', str(options.rest_port))
     file_str=file_str.replace('HTTP_PORT', str(options.http_port))

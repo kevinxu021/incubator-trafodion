@@ -22,6 +22,7 @@ function(moment, momenttimezone, $) {
 			var _this = this;
 			this.serverTimeZone = null;
 			this.serverUtcOffset = 0;
+			this.dcsMasterInfoUri = "";
 			
 		    $jit.ST.Plot.NodeTypes.implement({
 		    	'nodeline': {
@@ -103,9 +104,10 @@ function(moment, momenttimezone, $) {
 				return (bytes/1024/1024).toFixed(2);
 			};
 			
-			this.setTimeZoneInfo = function(timeZone, utcOffset){
+			this.storeSessionProperties = function(timeZone, utcOffset, dcsMasterUri){
 				_this.serverTimeZone = timeZone;
 				_this.serverUtcOffset = utcOffset;
+				_this.dcsMasterInfoUri = dcsMasterUri;
 			};
 			
 			this.convertUnitFromByte = function(bytes) {

@@ -12,6 +12,9 @@
 	<!-- The Trafodion REST Server URI -->
 	<entry key="trafodionRestServerUri">REST_HOST:REST_PORT</entry>
 	
+	<!-- The EsgynDB DCS Master Info URI -->
+	<entry key="dcsMasterInfoUri">http://DCS_HOST:DCS_INFO_PORT</entry>
+
 	<!-- Session Timeout in minutes. Your Esgyndb Mgr browser session to the server will be 
 		timed out after this interval and you will be asked to login again -->
 	<entry key="sessionTimeoutMinutes">120</entry>
