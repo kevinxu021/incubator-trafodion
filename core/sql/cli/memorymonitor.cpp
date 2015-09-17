@@ -105,14 +105,28 @@ MemoryMonitor::MemoryMonitor(Lng32 windowSize,
   char *currPtr;
   size_t bytesRead;
   fd_meminfo_ = fopen("/proc/meminfo", "r");
-  bytesRead = fread(buffer, 1, 1024, fd_meminfo_);
-  currPtr = strstr(buffer, "MemTotal");
-  sscanf(currPtr, "%*s " PF64 " kB", &memTotal_);
-  physKBytes_ = memTotal_;
-  physKBytesRatio_ = physKBytes_ / (8 * 1024 * 1024);
+  if (fd_meminfo_) {
+    bytesRead = fread(buffer, 1, 1024, fd_meminfo_);
+    currPtr = strstr(buffer, "MemTotal");
+    if (currPtr) {
+      sscanf(currPtr, "%*s " PF64 " kB", &memTotal_);
+      physKBytes_ = memTotal_;
+      physKBytesRatio_ = physKBytes_ / (8 * 1024 * 1024);
+    }
+    else {
+      // 
+      fd_meminfo_ = 0;
+    }
+  }
+
   fd_vmstat_ = fopen("/proc/vmstat", "r");
 
-	ULng32 pageSize = 0;  
+  ULng32 pageSize = 0;  
+
+  char *lv_envVar = getenv("SQL_DISABLE_MEMMONITOR");
+  if (lv_envVar && (strcmp(lv_envVar, "1") == 0)) {
+    return;
+  }
 
   if (!threadIsCreated_)
     {
@@ -134,7 +148,6 @@ MemoryMonitor::~MemoryMonitor() {
     fclose(fd_vmstat_);
   }
 };
-
 
 // Called by main thread only.
 Lng32 MemoryMonitor::memoryPressure() {
@@ -181,6 +194,7 @@ void MemoryMonitor::updatePageFaultRate(Int64 pageFault) {
   if (entryCount_ < 3)
     entryCount_++;
 }
+
 void MemoryMonitor::update(float &scale) {
 	
 	if (fd_meminfo_ == NULL) 
@@ -188,7 +202,7 @@ void MemoryMonitor::update(float &scale) {
         Int32 success = fseek(fd_meminfo_, 0, SEEK_SET);
         if (success != 0)
                 return;
-	char buffer[2048];
+	char buffer[4096];
 	Int64 memFree = -1, memCommitAS = 0;
 	Int64 pgpgout = -1, pgpgin = -1;
 	size_t bytesRead;
@@ -202,9 +216,9 @@ void MemoryMonitor::update(float &scale) {
 		return;
         }
         currPtr = strstr(buffer, "MemFree");
-	sscanf(currPtr, "%*s " PF64 " kB", &memFree);
+	if (currPtr) sscanf(currPtr, "%*s " PF64 " kB", &memFree);
         currPtr = strstr(buffer, "Committed_AS");
-	sscanf(currPtr, "%*s " PF64 " kB", &memCommitAS);
+	if (currPtr) sscanf(currPtr, "%*s " PF64 " kB", &memCommitAS);
 
 	Lng32 prevPressure = pressure_;
 	if (memTotal_ > 0 && memCommitAS > 0 && memFree > -1)
@@ -242,9 +256,9 @@ void MemoryMonitor::update(float &scale) {
 		return;
         }
         currPtr = strstr(buffer, "pgpgin");
-	sscanf(currPtr, "%*s " PF64 " kB", &pgpgin);
+	if (currPtr) sscanf(currPtr, "%*s " PF64 " kB", &pgpgin);
         currPtr = strstr(buffer, "pgpgout");
-	sscanf(currPtr, "%*s " PF64 " kB", &pgpgout);
+	if (currPtr) sscanf(currPtr, "%*s " PF64 " kB", &pgpgout);
 	if (pgpgin > -1 && pgpgout > -1)
 	  updatePageFaultRate(pgpgin + pgpgout);
 	else

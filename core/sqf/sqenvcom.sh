@@ -32,8 +32,8 @@
 #Product version (Trafodion or derivative product)
 export TRAFODION_VER_PROD="EsgynDB Enterprise Advanced"
 # Trafodion version (also update file ../sql/common/copyright.h)
-export TRAFODION_VER_MAJOR=1
-export TRAFODION_VER_MINOR=2
+export TRAFODION_VER_MAJOR=2
+export TRAFODION_VER_MINOR=0
 export TRAFODION_VER_UPDATE=0
 export TRAFODION_VER="${TRAFODION_VER_MAJOR}.${TRAFODION_VER_MINOR}.${TRAFODION_VER_UPDATE}"
 
@@ -140,7 +140,7 @@ export MY_SQROOT=$PWD
 export SQ_HOME=$PWD
 
 export HBASE_TRXDIR=$MY_SQROOT/export/lib
-export HBASE_TRX_JAR=hbase-trx-cdh5_3-${TRAFODION_VER}.jar
+export HBASE_TRX_JAR=hbase-trx-cdh5_4-${TRAFODION_VER}.jar
 if [[ "$SQ_HBASE_DISTRO" = "HDP" ]]; then
     export HBASE_TRX_JAR=hbase-trx-hdp2_2-${TRAFODION_VER}.jar
 fi
@@ -250,6 +250,8 @@ if [[ -e $MY_SQROOT/sql/scripts/sw_env.sh ]]; then
     HBASE_JAR_FILES="$HBASE_JAR_FILES $d/*.jar"
   done
 
+  lv_hbase_cp=
+
   export HIVE_JAR_DIRS="$HIVE_HOME/lib"
   export HIVE_JAR_FILES="$HIVE_HOME/share/hadoop/mapreduce/hadoop-mapreduce-client-core-*.jar"
 
@@ -267,35 +269,35 @@ elif [[ -f $MY_SQROOT/Makefile && -d $TOOLSDIR ]]; then
   # ----------------------------------------------------------------
 
   # native library directories and include directories
-  export HADOOP_LIB_DIR=$TOOLSDIR/hadoop-2.4.0/lib/native
-  export HADOOP_INC_DIR=$TOOLSDIR/hadoop-2.4.0/include
+  export HADOOP_LIB_DIR=$TOOLSDIR/hadoop-2.6.0-cdh5.4.4/lib/native
+  export HADOOP_INC_DIR=$TOOLSDIR/hadoop-2.6.0-cdh5.4.4/include
   export THRIFT_LIB_DIR=$TOOLSDIR/thrift-0.9.0/lib
   export THRIFT_INC_DIR=$TOOLSDIR/thrift-0.9.0/include
   export CURL_INC_DIR=/usr/include
   export CURL_LIB_DIR=/usr/lib64
 
   # directories with jar files and list of jar files
-  export HADOOP_JAR_DIRS="$TOOLSDIR/hadoop-2.4.0/share/hadoop/common
-                          $TOOLSDIR/hadoop-2.4.0/share/hadoop/common/lib
-                          $TOOLSDIR/hadoop-2.4.0/share/hadoop/mapreduce
-                          $TOOLSDIR/hadoop-2.4.0/share/hadoop/hdfs"
+  export HADOOP_JAR_DIRS="$TOOLSDIR/hadoop-2.6.0-cdh5.4.4/share/hadoop/common
+                          $TOOLSDIR/hadoop-2.6.0-cdh5.4.4/share/hadoop/common/lib
+                          $TOOLSDIR/hadoop-2.6.0-cdh5.4.4/share/hadoop/mapreduce
+                          $TOOLSDIR/hadoop-2.6.0-cdh5.4.4/share/hadoop/hdfs"
   export HBASE_JAR_FILES=
-  HBASE_JAR_DIRS="$HBASE_HOME/lib"
-  for d in $TOOLSDIR/hbase-0.98.1-cdh5.1.0/lib; do
+  HBASE_JAR_DIRS="$TOOLSDIR/hbase-1.0.0-cdh5.4.4/lib"
+  for d in $HBASE_JAR_DIRS; do
     HBASE_JAR_FILES="$HBASE_JAR_FILES $d/*.jar"
   done
 
-  export HIVE_JAR_DIRS="$TOOLSDIR/apache-hive-0.13.1-bin/lib"
-  export HIVE_JAR_FILES="$TOOLSDIR/hadoop-2.4.0/share/hadoop/mapreduce/hadoop-mapreduce-client-core-*.jar"
+  export HIVE_JAR_DIRS="$TOOLSDIR/hive-1.1.0-cdh5.4.4/lib"
+  export HIVE_JAR_FILES="$TOOLSDIR/hadoop-2.6.0-cdh5.4.4/share/hadoop/mapreduce/hadoop-mapreduce-client-core-*.jar"
 
   # suffixes to suppress in the classpath (set this to ---none--- to add all files)
   export SUFFIXES_TO_SUPPRESS="-sources.jar -tests.jar"
 
-  # Configuration directories
+  # Configuration directories - not needed at build time
 
-  export HADOOP_CNF_DIR=$MY_SQROOT/sql/local_hadoop/hadoop/etc/hadoop
-  export HBASE_CNF_DIR=$MY_SQROOT/sql/local_hadoop/hbase/conf
-  export HIVE_CNF_DIR=$MY_SQROOT/sql/local_hadoop/hive/conf
+  export HADOOP_CNF_DIR=/etc/hadoop/conf
+  export HBASE_CNF_DIR=/etc/hbase/conf
+  export HIVE_CNF_DIR=/etc/hive/conf
 
 elif [[ -d /opt/cloudera/parcels/CDH ]]; then
   # we are on a cluster with Cloudera parcels installed
@@ -358,6 +360,8 @@ elif [[ -n "$(ls /usr/lib/hadoop/hadoop-*cdh*.jar 2>/dev/null)" ]]; then
   export CURL_INC_DIR=/usr/include
   export CURL_LIB_DIR=/usr/lib64
 
+  lv_hbase_cp=`hbase classpath`
+
   # directories with jar files and list of jar files
   # (could try to reduce the number of jars in the classpath)
   export HADOOP_JAR_DIRS="/usr/lib/hadoop
@@ -376,7 +380,7 @@ elif [[ -n "$(ls /usr/lib/hadoop/hadoop-*cdh*.jar 2>/dev/null)" ]]; then
                          /usr/lib/hbase/lib/high-scale-lib-*.jar
                          /usr/lib/hbase/hbase-hadoop-compat.jar "
   export HIVE_JAR_DIRS="/usr/lib/hive/lib"
-  export HIVE_JAR_FILES="/usr/lib/hadoop-mapreduce/hadoop-mapreduce-client-core.jar"
+  export HIVE_JAR_FILES="/usr/lib/hadoop-mapreduce/hadoop-mapreduce-client-*.jar"
 
   # suffixes to suppress in the classpath (set this to ---none--- to add all files)
   export SUFFIXES_TO_SUPPRESS="-sources.jar -tests.jar"
@@ -402,7 +406,7 @@ elif [[ -n "$(ls /etc/init.d/ambari* 2>/dev/null)" ]]; then
   export THRIFT_INC_DIR=$TOOLSDIR/thrift-0.9.0/include
   export CURL_INC_DIR=/usr/include
   export CURL_LIB_DIR=/usr/lib64
-
+  lv_hbase_cp=`hbase classpath`
   # directories with jar files and list of jar files
   export HADOOP_JAR_DIRS="/usr/hdp/current/hadoop-client
                           /usr/hdp/current/hadoop-client/lib"
@@ -712,6 +716,8 @@ done
 for d in $HIVE_JAR_DIRS; do
   HIVE_JAR_FILES="$HIVE_JAR_FILES $d/*.jar"
 done
+
+SQ_CLASSPATH=$lv_hbase_cp;
 
 # assemble all of them into a classpath
 for j in $HBASE_JAR_FILES $HADOOP_JAR_FILES $HIVE_JAR_FILES; do

@@ -23,6 +23,7 @@ import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
+import org.apache.hadoop.hbase.Cell;
 
 /**
  * A fixture that implements and presents a KeyValueScanner. It takes a list of key/values which is then sorted
@@ -78,7 +79,7 @@ public class KeyValueListScanner implements KeyValueScanner {
     }
 
     @Override
-    public boolean seek(final KeyValue key) {
+    public boolean seek(final Cell key) {
         // start at beginning.
         iter = data.iterator();
         int cmp;
@@ -96,7 +97,7 @@ public class KeyValueListScanner implements KeyValueScanner {
     }
 
     @Override
-    public boolean reseek(final KeyValue key) {
+    public boolean reseek(final Cell key) {
         return seek(key);
     }
 
@@ -135,7 +136,7 @@ public class KeyValueListScanner implements KeyValueScanner {
     	return true;
     }
     // TODO: find real value if necessary
-    public boolean  requestSeek(KeyValue kv, boolean forward, boolean useBloom) {
+    public boolean  requestSeek(Cell kv, boolean forward, boolean useBloom) {
     	return true;
     }
     
@@ -150,12 +151,12 @@ public class KeyValueListScanner implements KeyValueScanner {
   }
 
  @Override
-  public boolean seekToPreviousRow(KeyValue seekKey) throws IOException {
+  public boolean seekToPreviousRow(Cell seekKey) throws IOException {
     throw new NotImplementedException("Not implemented");
   }
 
  @Override
-  public boolean backwardSeek(KeyValue seekKey) throws IOException {
+  public boolean backwardSeek(Cell seekKey) throws IOException {
     throw new NotImplementedException("Not implemented");
   }
 }

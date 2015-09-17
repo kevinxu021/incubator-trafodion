@@ -10115,7 +10115,7 @@ so that we can delete the old version of an updated row from the index.
 NABoolean Insert::isUpsertThatNeedsMerge() const
 {
   if (!isUpsert() || getIsTrafLoadPrep() || 
-      (systemGeneratesIdentityValue() && 
+      (getTableDesc()->isIdentityColumnGeneratedAlways() && 
        getTableDesc()->hasIdentityColumnInClusteringKey()) ||
       getTableDesc()->getClusteringIndex()->getNAFileSet()->hasSyskey() || 
       !(getTableDesc()->hasSecondaryIndexes()))
@@ -10126,22 +10126,23 @@ NABoolean Insert::isUpsertThatNeedsMerge() const
 RelExpr* Insert::xformUpsertToMerge(BindWA *bindWA) 
 {
 
-   if (getTableDesc()->getNATable()->hasSerializedColumn())
-  {
-    *CmpCommon::diags() << DgSqlCode(-3241) 
-                        << DgString0(" upsert on a serialzed table with indexes is not allowed.");
-    bindWA->setErrStatus();
+  NATable *naTable = bindWA->getNATable(getTableName());
+  if (bindWA->errStatus())
     return NULL;
-  } 
+  if ((naTable->getViewText() != NULL) && (naTable->getViewCheck()))		
+  {		
+    *CmpCommon::diags() << DgSqlCode(-3241) 		
+			<< DgString0(" View with check option not allowed.");	    		
+    bindWA->setErrStatus();		
+    return NULL;		
+  }
 
   const ValueIdList &tableCols = updateToSelectMap().getTopValues();
   const ValueIdList &sourceVals = updateToSelectMap().getBottomValues();
-
 		    
   Scan * inputScan =
     new (bindWA->wHeap())
     Scan(CorrName(getTableDesc()->getCorrNameObj(), bindWA->wHeap()));
-
 
   ItemExpr * keyPred = NULL;
   ItemExpr * keyPredPrev = NULL;
@@ -10653,15 +10654,15 @@ RelExpr *MergeUpdate::bindNode(BindWA *bindWA)
   NATable *naTable = bindWA->getNATable(getTableName());
   if (bindWA->errStatus())
     return NULL;
-
-  if (naTable->getViewText() != NULL)
-  {
-    *CmpCommon::diags() << DgSqlCode(-3241) 
-			<< DgString0(" View not allowed.");	    
-    bindWA->setErrStatus();
-    return NULL;
+ 
+  if ((naTable->getViewText() != NULL) && (naTable->getViewCheck()))		
+  {		
+    *CmpCommon::diags() << DgSqlCode(-3241) 		
+			<< DgString0(" View with check option not allowed.");	    		
+    bindWA->setErrStatus();		
+    return NULL;		
   }
-  
+
   if ((naTable->isHbaseCellTable()) ||
       (naTable->isHbaseRowTable()))
     {
@@ -11032,12 +11033,13 @@ RelExpr *MergeDelete::bindNode(BindWA *bindWA)
   NATable *naTable = bindWA->getNATable(getTableName());
   if (bindWA->errStatus())
     return NULL;
-  if (naTable->getViewText() != NULL)
-  {
-    *CmpCommon::diags() << DgSqlCode(-3241) 
-			<< DgString0(" View not allowed.");	    
-    bindWA->setErrStatus();
-    return NULL;
+  
+  if ((naTable->getViewText() != NULL) && (naTable->getViewCheck()))		
+  {		
+    *CmpCommon::diags() << DgSqlCode(-3241) 		
+			<< DgString0(" View with check option not allowed.");	    		
+    bindWA->setErrStatus();		
+    return NULL;		
   }
 
   bindWA->setMergeStatement(TRUE);  
@@ -11303,13 +11305,8 @@ void GenericUpdate::bindUpdateExpr(BindWA        *bindWA,
    // allowing a VEG in this case causes corruption on base table key values because
    // we use the "old" value of key column from fetchReturnedExpr, which can be junk
    // in case there is no row to update/delete, and a brand bew row is being inserted
-
-   NABoolean xformedUpsert = FALSE ;
-   if (isMergeUpdate())
-     xformedUpsert = ((MergeUpdate *)this)->xformedUpsert();
-
-
-   if ((NOT onRollback) && (NOT xformedUpsert)){
+   NABoolean mergeWithIndex = isMerge() && getTableDesc()->hasSecondaryIndexes() ;
+   if ((NOT onRollback) && (NOT mergeWithIndex)){
      for (i = 0;i < totalColCount; i++){
        if (!(holeyArray.used(i))){
          oldToNewMap().addMapEntry(
@@ -12696,14 +12693,16 @@ NABoolean GenericUpdate::checkForMergeRestrictions(BindWA *bindWA)
     return TRUE;
 
   }
-
-  if (getTableDesc()->hasUniqueIndexes())
+  
+  if (getTableDesc()->hasUniqueIndexes() && 
+      (CmpCommon::getDefault(MERGE_WITH_UNIQUE_INDEX) == DF_OFF))
   {
     *CmpCommon::diags() << DgSqlCode(-3241) 
-                        << DgString0(" unique indexes not allowed.");
+			<< DgString0(" unique indexes not allowed.");
     bindWA->setErrStatus();
     return TRUE;
   }
+  
   if ((accessOptions().accessType() == SKIP_CONFLICT_) ||
       (getGroupAttr()->isStream()) ||
       (newRecBeforeExprArray().entries() > 0)) // set on rollback
@@ -12725,11 +12724,10 @@ NABoolean GenericUpdate::checkForMergeRestrictions(BindWA *bindWA)
   if ((getInliningInfo().hasInlinedActions()) ||
       (getInliningInfo().isEffectiveGU()))
   {
-    if ((getInliningInfo().hasTriggers()) ||
-        (getInliningInfo().hasRI()))
+    if (getInliningInfo().hasTriggers()) 
     {
       *CmpCommon::diags() << DgSqlCode(-3241)
-                          << DgString0(" RI or Triggers not allowed.");
+                          << DgString0(" Triggers not allowed.");
       bindWA->setErrStatus();
       return TRUE;
     }
@@ -12757,6 +12755,17 @@ RelExpr *LeafInsert::bindNode(BindWA *bindWA)
   #endif
 
   setInUpdateOrInsert(bindWA, this, REL_INSERT);
+
+  if (getPreconditionTree()) {
+    ValueIdSet pc;
+    
+    getPreconditionTree()->convertToValueIdSet(pc, bindWA, ITM_AND);
+    if (bindWA->errStatus())
+      return this;
+    
+    setPreconditionTree(NULL);
+    setPrecondition(pc);
+  }
 
   RelExpr *boundExpr = GenericUpdate::bindNode(bindWA);
   if (bindWA->errStatus()) return boundExpr;

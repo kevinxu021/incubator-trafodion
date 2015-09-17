@@ -46,6 +46,8 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.transactional.RMInterface;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.util.HFileArchiveUtil;
@@ -832,7 +834,7 @@ public class HBaseClient {
            cleanupCache(htable.getTableName());
         else
         {
-           if (hTableClientsInUse.remove(htable.getTableName(), htable))
+           if (hTableClientsInUse.removeValue(htable.getTableName(), htable))
               hTableClientsFree.put(htable.getTableName(), htable);
            else
               if (logger.isDebugEnabled()) logger.debug("Table not found in inUse Pool");
@@ -910,9 +912,12 @@ public class HBaseClient {
       int kvCount = 0;
       int nonPuts = 0;
       do {
-        KeyValue kv = scanner.getKeyValue();
-        System.out.println(kv.toString());
-        if (kv.getType() == KeyValue.Type.Put.getCode())
+        //KeyValue kv = scanner.getKeyValue();
+          Cell kv = scanner.getKeyValue();
+        //System.out.println(kv.toString());
+          System.out.println(CellUtil.toString(kv, false));
+        //if (kv.getType() == KeyValue.Type.Put.getCode())
+        if (kv.getTypeByte() == KeyValue.Type.Put.getCode())
           qualifiers = qualifiers + kv.getQualifier()[0] + " ";
         else
           nonPuts++;
@@ -1046,8 +1051,10 @@ public class HBaseClient {
             byte currQual = 0;
             byte nextQual;
             do {
-              KeyValue kv = scanner.getKeyValue();
-              if (kv.getType() == KeyValue.Type.Put.getCode()) {
+              //KeyValue kv = scanner.getKeyValue();
+              //if (kv.getType() == KeyValue.Type.Put.getCode()) {
+               Cell kv = scanner.getKeyValue();
+               if (kv.getTypeByte() == KeyValue.Type.Put.getCode()) {
                 nextQual = kv.getQualifier()[0];
                 if (nextQual <= currQual)
                   nullCount += ((numCols - currQual)  // nulls at end of this row
@@ -1539,7 +1546,7 @@ public class HBaseClient {
 			   long timestamp,
 			   boolean asyncOperation) throws IOException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
-      boolean ret = htc.deleteRow(transID, rowID, columns, timestamp);
+      boolean ret = htc.deleteRow(transID, rowID, columns, timestamp, asyncOperation);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);
       else
@@ -1557,7 +1564,7 @@ public class HBaseClient {
 			    long timestamp, 
 			    boolean asyncOperation) throws IOException, InterruptedException, ExecutionException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
-      boolean ret = htc.deleteRows(transID, rowIDLen, rowIDs, timestamp);
+      boolean ret = htc.deleteRows(transID, rowIDLen, rowIDs, timestamp, asyncOperation);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);
       else

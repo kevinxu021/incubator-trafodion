@@ -20,7 +20,7 @@
 --
 -- @@@ END COPYRIGHT @@@
 --
--- Functionality: String functions, BIT functions
+-- Functionality: String functions, BIT functions, HEX operations
 -- Expected files: EXPECTED012, EXPECTED012.MP
 -- Table created: t012t1, t012ut1
 -- Limitations:
@@ -40,6 +40,7 @@
 ?section ddl
 -- CREATE database
 drop table t012t1 cascade;
+drop table t012t2 cascade;
 ?ifMX
 drop table t012ut1 cascade;
 ?ifMX
@@ -49,6 +50,7 @@ drop table t012t3 cascade;
 log LOG012 clear;
 
 create table t012t1(a int, b char(10), c varchar(30));
+create table t012t2 (a int);
 ?ifMX
 create table t012ut1(a int, b nchar(10), c nchar varying(30));
 ?ifMX
@@ -510,10 +512,39 @@ select bitnot(1,1) from (values(1)) x(a);
 -- test moved to TEST038(Core)
 -- * select repeat(b, 2) from t012t1 where b = 'abcdef';
 
+-- hex and some more bit operations
+insert into t012t2 values (typecast(x'14000000', int));
+select converttohex(a) from t012t2;
+select bitand(a, typecast(x'0F000000', int)) from t012t2;
+select converttohex(bitand(a, typecast(x'0F000000', int))) from t012t2;
+select converttohex(bitor(a, typecast(x'0F000000', int))) from t012t2;
+select converttohex(bitxor(a, typecast(x'0F000000', int))) from t012t2;
+select converttohex(bitnot(a)) from t012t2;
+select bitextract(a,4,4) from t012t2;
+select bitextract(a,0,4) from t012t2; 
+select converttobits(a) from t012t2;
+
+select converttobits(x'14000000') from (values(1)) x(a);
+select typecast(x'14000000', int)  from (values(1)) x(a);
+
+select converttohex( typecast(x'1400', smallint)) from (values(1)) x(a);
+select converttohex( typecast(x'14000000', int)) from (values(1)) x(a);
+select converttohex( typecast(x'1400', smallint unsigned)) from (values(1)) x(a);
+select converttohex( typecast(x'14000000', int unsigned)) from (values(1)) x(a);
+
+select converttohex( typecast(x'1400000000000000', largeint)) from (values(1)) x(a);
+
+select converttobits( typecast(x'1400', smallint)) from (values(1)) x(a);
+select converttobits( typecast(x'14000000', int)) from (values(1)) x(a);
+select converttobits( typecast(x'1400', smallint unsigned)) from (values(1)) x(a);
+select converttobits( typecast(x'14000000', int unsigned)) from (values(1)) x(a);
+
+select converttobits( typecast(x'1400000000000000', largeint)) from (values(1)) x(a);
 
 ?section clnup
 -- CLEANUP database;
 drop table t012t1;
+drop table t012t2;
 ?ifMX
 drop table t012ut1;
 ?ifMX

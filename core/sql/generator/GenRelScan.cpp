@@ -1072,7 +1072,11 @@ short FileScan::codeGenForHive(Generator * generator)
     type = (short)ComTdbHdfsScan::SEQUENCE_;
   else if (hTabStats->isOrcFile())
     type = (short)ComTdbHdfsScan::ORC_;
-
+  else {
+    *CmpCommon::diags() << DgSqlCode(-7002);
+      GenExit();
+    return -1;
+  }
   ULng32 buffersize = getDefault(GEN_DPSO_BUFFER_SIZE);
   queue_index upqueuelength = (queue_index)getDefault(GEN_DPSO_SIZE_UP);
   queue_index downqueuelength = (queue_index)getDefault(GEN_DPSO_SIZE_DOWN);
@@ -2788,6 +2792,19 @@ short HbaseAccess::codeGen(Generator * generator)
                                   hbpa, samplePercent()) ;
   generator->setHBaseCacheBlocks(computedHBaseRowSizeFromMetaData,
                                  getEstRowsAccessed().getValue(),hbpa);
+
+  Lng32 hbaseBlockSize;
+  if(getIndexDesc() && getIndexDesc()->getNAFileSet())
+	  hbaseBlockSize = getIndexDesc()->getNAFileSet()->getBlockSize();
+  else
+	  hbaseBlockSize = CmpCommon::getDefaultLong(HBASE_BLOCK_SIZE);
+
+  generator->setHBaseSmallScanner(computedHBaseRowSizeFromMetaData,
+		  	  	  	  	  	  	  getEstRowsAccessed().getValue(),
+								  hbaseBlockSize,
+								  hbpa);
+
+
 
   ComTdbHbaseAccess::HbaseAccessOptions * hbo = NULL;
   if (getHbaseAccessOptions())

@@ -365,7 +365,7 @@ public class HTableClient {
 
 	public boolean startScan(long transID, byte[] startRow, byte[] stopRow,
                                  Object[]  columns, long timestamp,
-                                 boolean cacheBlocks, int numCacheRows,
+                                 boolean cacheBlocks, boolean smallScanner, int numCacheRows,
                                  Object[] colNamesToFilter, 
                                  Object[] compareOpList, 
                                  Object[] colValuesToCompare,
@@ -416,7 +416,7 @@ public class HTableClient {
           }
 	  else
               scan.setCacheBlocks(false);
-          
+      scan.setSmall(smallScanner);    
 	  scan.setCaching(numCacheRows);
 	  numRowsCached = numCacheRows;
 	  if (columns != null) {
@@ -817,41 +817,56 @@ public class HTableClient {
 		return rowsReturned;	
 	}		
 	
-	public boolean deleteRow(long transID, byte[] rowID, 
+	public boolean deleteRow(final long transID, byte[] rowID, 
 				 Object[] columns,
-				 long timestamp) throws IOException {
+				 long timestamp,
+                                 boolean asyncOperation) throws IOException {
 
 		if (logger.isTraceEnabled()) logger.trace("Enter deleteRow(" + new String(rowID) + ", "
 			     + timestamp + ") " + tableName);
 
-			Delete del;
-			if (timestamp == -1)
-				del = new Delete(rowID);
-			else
-				del = new Delete(rowID, timestamp);
+		final Delete del;
+		if (timestamp == -1)
+			del = new Delete(rowID);
+		else
+			del = new Delete(rowID, timestamp);
 
-			if (columns != null) {
-				for (int i = 0; i < columns.length ; i++) {
-					byte[] col = (byte[]) columns[i];
-					del.deleteColumns(getFamily(col), getName(col));
+		if (columns != null) {
+			for (int i = 0; i < columns.length ; i++) {
+				byte[] col = (byte[]) columns[i];
+				del.deleteColumns(getFamily(col), getName(col));
+			}
+		}
+               	if (asyncOperation) {
+			future = executorService.submit(new Callable() {
+ 				public Object call() throws Exception {
+					boolean res = true;
+					if (useTRex && (transID != 0)) 
+				           table.delete(transID, del);
+				        else
+				           table.delete(del);
+				        return new Boolean(res);
 				}
-			}
-
-			if (useTRex && (transID != 0)) {
-			    table.delete(transID, del);
-			} else {
-			    table.delete(del);
-			}
+			});
+			return true;
+		}
+		else {
+	          	if (useTRex && (transID != 0)) 
+				table.delete(transID, del);
+			else
+				table.delete(del);
+		}
 		if (logger.isTraceEnabled()) logger.trace("Exit deleteRow");
 		return true;
 	}
 
-	public boolean deleteRows(long transID, short rowIDLen, Object rowIDs,
-		      long timestamp) throws IOException {
+	public boolean deleteRows(final long transID, short rowIDLen, Object rowIDs,
+		      long timestamp,
+                      boolean asyncOperation) throws IOException {
 
 	        if (logger.isTraceEnabled()) logger.trace("Enter deleteRows() " + tableName);
 
-		List<Delete> listOfDeletes = new ArrayList<Delete>();
+		final List<Delete> listOfDeletes = new ArrayList<Delete>();
 		listOfDeletes.clear();
 		ByteBuffer bbRowIDs = (ByteBuffer)rowIDs;
 		short numRows = bbRowIDs.getShort();
@@ -875,15 +890,28 @@ public class HTableClient {
 			    del = new Delete(rowID, timestamp);
 			listOfDeletes.add(del);
 		}
-
-		if (useTRex && (transID != 0)) 
-		    table.delete(transID, listOfDeletes);
-		else
-		    table.delete(listOfDeletes);
+                if (asyncOperation) {
+                        future = executorService.submit(new Callable() {
+                                public Object call() throws Exception {
+                                    boolean res = true;
+				   if (useTRex && (transID != 0)) 
+				      table.delete(transID, listOfDeletes);
+				   else
+				      table.delete(listOfDeletes);
+				   return new Boolean(res);
+				}
+			});
+			return true;
+		}
+		else {
+			if (useTRex && (transID != 0)) 
+		    	   table.delete(transID, listOfDeletes);
+			else
+		  	   table.delete(listOfDeletes);
+		}
 		if (logger.isTraceEnabled()) logger.trace("Exit deleteRows");
 		return true;
 	}
-
 
          public byte[] intToByteArray(int value) {
 	     return new byte[] {
@@ -931,7 +959,9 @@ public class HTableClient {
 		final boolean checkAndPut, boolean asyncOperation) throws IOException, InterruptedException, 
                           ExecutionException 
 	{
-		if (logger.isTraceEnabled()) logger.trace("Enter putRow() " + tableName);
+		if (logger.isTraceEnabled()) logger.trace("Enter putRow() " + tableName + 
+							  " transID: " + transID +
+							  " useTRex: " + useTRex);
 
 	 	final Put put;
 		ByteBuffer bb;
@@ -991,16 +1021,23 @@ public class HTableClient {
 		} else {
 		 	boolean result = true;
 			if (checkAndPut) {
-		    		if (useTRex && (transID != 0)) 
-					result = table.checkAndPut(transID, rowID, 
-						family1, qualifier1, colValToCheck, put);
+			    if (useTRex && (transID != 0)) {
+				if (logger.isTraceEnabled()) logger.trace("trx check and put ");
+				
+				result = table.checkAndPut(transID, rowID, 
+							   family1, qualifier1, colValToCheck, put);
+			    }
 		   		else 
 					result = table.checkAndPut(rowID, 
 						family1, qualifier1, colValToCheck, put);
 			}
 			else {
 		    		if (useTRex && (transID != 0)) 
+				    {
+					if (logger.isTraceEnabled()) logger.trace("trx put ");
+					
 					table.put(transID, put);
+				    }
 		    		else 
 					table.put(put);
 			}
@@ -1021,7 +1058,9 @@ public class HTableClient {
                        long timestamp, boolean autoFlush, boolean asyncOperation)
 			throws IOException, InterruptedException, ExecutionException  {
 
-		if (logger.isTraceEnabled()) logger.trace("Enter putRows() " + tableName);
+		if (logger.isTraceEnabled()) logger.trace("Enter putRows() " + tableName +
+							  " transID: " + transID + 
+							  " useTRex: " + useTRex);
 
 		Put put;
 		ByteBuffer bbRows, bbRowIDs;

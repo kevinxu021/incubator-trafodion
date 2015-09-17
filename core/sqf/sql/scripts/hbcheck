@@ -30,4 +30,8 @@ if [ -z $JAVA_HOME ]; then
     exit 1;
 fi
 
-$JAVA_HOME/bin/java org.trafodion.dtm.hbstatus $* 2>$MY_SQROOT/sql/local_hadoop/log/hbstatus.err
+mkdir -p $MY_SQROOT/logs
+lv_stderr_file="$MY_SQROOT/logs/hbstatus.err"
+echo "Stderr being written to the file: ${lv_stderr_file}"
+$JAVA_HOME/bin/java org.trafodion.dtm.hbstatus $* 2>${lv_stderr_file}
+

@@ -1734,7 +1734,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   // HBASE_SQL_IUD_SEMANTICS:      Off: Don't check for existing rows for insert/update
 
   DDkwd__(HBASE_ASYNC_DROP_TABLE,		"OFF"),
-  DDkwd__(HBASE_ASYNC_OPERATIONS,		"OFF"),
+  DDkwd__(HBASE_ASYNC_OPERATIONS,		"ON"),
  // HBASE_CACHE_BLOCKS, ON => cache every scan, OFF => cache no scan
  // SYSTEM => cache scans which take less than 1 RS block cache mem.
  DDui___(HBASE_BLOCK_SIZE,                      "65536"),
@@ -1770,13 +1770,14 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
  DDui___(HBASE_REGION_SERVER_MAX_HEAP_SIZE,     "1024"), // in units of MB
 
   DDkwd__(HBASE_ROWSET_VSBB_OPT,		"ON"),
-  DDusht_(HBASE_ROWSET_VSBB_SIZE,        	"1000"),
+  DDusht_(HBASE_ROWSET_VSBB_SIZE,        	"1024"),
   DDflt0_(HBASE_SALTED_TABLE_MAX_FILE_SIZE,	"0"),
   DDkwd__(HBASE_SALTED_TABLE_SET_SPLIT_POLICY,	"ON"),
   DD_____(HBASE_SCHEMA,                         "HBASE"),
- DDkwd__(HBASE_SERIALIZATION,		"OFF"),
+ DDkwd__(HBASE_SERIALIZATION,		"ON"),
  
-  DD_____(HBASE_SERVER,                         ""), 
+  DD_____(HBASE_SERVER,                         ""),
+  DDkwd__(HBASE_SMALL_SCANNER,		"OFF"),
   DDkwd__(HBASE_SQL_IUD_SEMANTICS,		"ON"),
   DDkwd__(HBASE_STATS_PARTITIONING,           	"ON"),
   DDkwd__(HBASE_TRANSFORM_UPDATE_TO_DELETE_INSERT,		"OFF"),
@@ -2213,6 +2214,9 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDkwd__(MERGE_JOIN_ACCEPT_MULTIPLE_NJ_PROBES,	"ON"),
   DDkwd__(MERGE_JOIN_CONTROL,			"OFF"),
   DDkwd__(MERGE_JOIN_WITH_POSSIBLE_DEADLOCK, "OFF"),
+
+  // controls if merge/upsert is supported on table with a unique index
+  DDkwd__(MERGE_WITH_UNIQUE_INDEX,   "ON"),
 
  SDDui___(METADATA_CACHE_SIZE,    "20"),
   DDkwd__(METADATA_STABLE_ACCESS, "OFF"),
@@ -3294,6 +3298,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
 
   DDkwd__(TRAF_INDEX_ALIGNED_ROW_FORMAT,        "OFF"),   
   DDkwd__(TRAF_INDEX_CREATE_OPT,          "OFF"),
+  DDkwd__(TRAF_LOAD_ALLOW_RISKY_INDEX_MAINTENANCE,        "OFF"),
   DDkwd__(TRAF_LOAD_CONTINUE_ON_ERROR,          "OFF"),
   DD_____(TRAF_LOAD_ERROR_COUNT_ID,             "" ),
   DD_____(TRAF_LOAD_ERROR_COUNT_TABLE,          "ERRORCOUNTER" ),
@@ -4013,6 +4018,7 @@ NADefaults::NADefaults(NAMemory * h)
   setFlagOn(ZIG_ZAG_TREES, DEFAULT_ALLOWS_SEPARATE_SYSTEM);
   setFlagOn(COMPRESSED_INTERNAL_FORMAT, DEFAULT_ALLOWS_SEPARATE_SYSTEM);
   setFlagOn(COMPRESSED_INTERNAL_FORMAT_BMO, DEFAULT_ALLOWS_SEPARATE_SYSTEM);
+  setFlagOn(HBASE_SMALL_SCANNER, DEFAULT_ALLOWS_SEPARATE_SYSTEM);
 }
 
 NADefaults::~NADefaults()

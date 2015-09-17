@@ -1926,7 +1926,6 @@ public:
   void setOrigFunctionOperType(OperatorTypeEnum type)
                                   { origFunctionOperType_ = (Int16)type; }
 
-
   
   // Display
   //
@@ -1949,6 +1948,11 @@ public:
 
   NA_EIDPROC virtual short getClassSize() { return (short)sizeof(*this); }
   // ---------------------------------------------------------------------
+
+ protected:
+  // swap bytes in srcData for datatypes and return in tgtData.
+  // Return TRUE, if data was swapped.
+  NABoolean swapBytes (Int32 datatype, const char * srcData, char * tgtData);
 
 private:
   // there are times when a function is represented in terms of other

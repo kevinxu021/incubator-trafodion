@@ -265,11 +265,19 @@ public:
     NABoolean useMinMdamProbeSize() 
     { return (flags_ & USE_MIN_MDAM_PROBE_SIZE) != 0; };
 
+    void setUseSmallScanner(NABoolean v)
+    {(v ? flags_ |= USE_SMALL_SCANNER :
+      flags_ &= ~USE_SMALL_SCANNER); };
+    NABoolean useSmallScanner()
+    { return (flags_ & USE_SMALL_SCANNER) != 0; };
+
+
   private:
     enum
     {
       CACHE_BLOCKS               = 0x0001,
-      USE_MIN_MDAM_PROBE_SIZE    = 0x0002
+      USE_MIN_MDAM_PROBE_SIZE    = 0x0002,
+	  USE_SMALL_SCANNER	         = 0x0004
     };
     
     UInt32 flags_;
@@ -851,8 +859,8 @@ public:
    UInt32 getMaxErrorRows() const{ return maxErrorRows_; }
    void setMaxErrorRows(UInt32 v ) { maxErrorRows_= v; }
   
-   void setDeletePreCondExpr(ExExprPtr exprPtr) {
-        deletePreCondExpr_ = exprPtr;
+   void setInsDelPreCondExpr(ExExprPtr exprPtr) {
+        insDelPreCondExpr_ = exprPtr;
    }
 
  protected:
@@ -953,7 +961,7 @@ public:
   ExExprPtr encodedKeyExpr_;
 
   ExExprPtr keyColValExpr_;
-  ExExprPtr deletePreCondExpr_;
+  ExExprPtr insDelPreCondExpr_;
   ExExprPtr hbaseFilterExpr_;
 
   ExCriDescPtr workCriDesc_;      

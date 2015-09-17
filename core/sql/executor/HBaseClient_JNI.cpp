@@ -3568,9 +3568,9 @@ HTC_RetCode HTableClient_JNI::init()
     JavaMethods_[JM_GET_ERROR  ].jm_name      = "getLastError";
     JavaMethods_[JM_GET_ERROR  ].jm_signature = "()Ljava/lang/String;";
     JavaMethods_[JM_SCAN_OPEN  ].jm_name      = "startScan";
-    JavaMethods_[JM_SCAN_OPEN  ].jm_signature = "(J[B[B[Ljava/lang/Object;JZI[Ljava/lang/Object;[Ljava/lang/Object;[Ljava/lang/Object;FZZILjava/lang/String;Ljava/lang/String;II)Z";
+    JavaMethods_[JM_SCAN_OPEN  ].jm_signature = "(J[B[B[Ljava/lang/Object;JZZI[Ljava/lang/Object;[Ljava/lang/Object;[Ljava/lang/Object;FZZILjava/lang/String;Ljava/lang/String;II)Z";
     JavaMethods_[JM_DELETE     ].jm_name      = "deleteRow";
-    JavaMethods_[JM_DELETE     ].jm_signature = "(J[B[Ljava/lang/Object;J)Z";
+    JavaMethods_[JM_DELETE     ].jm_signature = "(J[B[Ljava/lang/Object;JZ)Z";
     JavaMethods_[JM_COPROC_AGGR     ].jm_name      = "coProcAggr";
     JavaMethods_[JM_COPROC_AGGR     ].jm_signature = "(JI[B[B[B[BZI)[B";
     JavaMethods_[JM_GET_NAME   ].jm_name      = "getTableName";
@@ -3612,7 +3612,7 @@ NAString HTableClient_JNI::getLastJavaError()
 //////////////////////////////////////////////////////////////////////////////
 HTC_RetCode HTableClient_JNI::startScan(Int64 transID, const Text& startRowID, 
    const Text& stopRowID, const LIST(HbaseStr) & cols, Int64 timestamp, 
-   bool cacheBlocks, Lng32 numCacheRows, NABoolean preFetch,
+   bool cacheBlocks, bool smallScanner, Lng32 numCacheRows, NABoolean preFetch,
 					const LIST(NAString) *inColNamesToFilter, 
 					const LIST(NAString) *inCompareOpList,
 					const LIST(NAString) *inColValuesToCompare,
@@ -3673,6 +3673,7 @@ HTC_RetCode HTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
   jlong j_ts = timestamp;
 
   jboolean j_cb = cacheBlocks;
+  jboolean j_smallScanner = smallScanner;
   jboolean j_preFetch = preFetch;
   jint j_ncr = numCacheRows;
   numReqRows_ = numCacheRows;
@@ -3768,7 +3769,7 @@ HTC_RetCode HTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
   jboolean jresult = jenv_->CallBooleanMethod(
                                               javaObj_, 
                                               JavaMethods_[JM_SCAN_OPEN].methodID, 
-                                              j_tid, jba_startRowID, jba_stopRowID, j_cols, j_ts, j_cb, j_ncr,
+                                              j_tid, jba_startRowID, jba_stopRowID, j_cols, j_ts, j_cb, j_smallScanner, j_ncr,
                                               j_colnamestofilter, j_compareoplist, j_colvaluestocompare, 
                                               j_smplPct, j_preFetch, j_useSnapshotScan,
                                               j_snapTimeout, js_snapName, js_tmp_loc, j_espNum,
@@ -3851,8 +3852,9 @@ HTC_RetCode HTableClient_JNI::deleteRow(Int64 transID, HbaseStr &rowID, const LI
   if (hbs_)
     hbs_->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_DELETE].jm_full_name;
+  jboolean j_asyncOperation = FALSE;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, 
-          JavaMethods_[JM_DELETE].methodID, j_tid, jba_rowID, j_cols, j_ts);
+          JavaMethods_[JM_DELETE].methodID, j_tid, jba_rowID, j_cols, j_ts, j_asyncOperation);
   if (hbs_)
     {
       hbs_->incMaxHbaseIOTime(hbs_->getTimer().stop());

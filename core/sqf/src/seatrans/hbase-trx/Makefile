@@ -22,7 +22,7 @@
 # This Makefile is just a thin shell to Maven, which is used to do the real build
 
 BLD_HBASE_APACHE_TRX_JARNAME     =hbase-trx-hbase_98_4-$(TRAFODION_VER).jar
-BLD_HBASE_CDH_TRX_JARNAME        =hbase-trx-cdh5_3-$(TRAFODION_VER).jar
+BLD_HBASE_CDH_TRX_JARNAME        =hbase-trx-cdh5_4-$-$(TRAFODION_VER).jar
 BLD_HBASE_MAPR_TRX_JARNAME       =hbase-trx-mapr4_0-$(TRAFODION_VER).jar
 BLD_HBASE_HDP_TRX_JARNAME        =hbase-trx-hdp2_2-$(TRAFODION_VER).jar
 BLD_HBASE_SSCC_TRX_JARNAME       =hbase-trx-sscc-$(TRAFODION_VER).jar
@@ -60,7 +60,8 @@ jdk_1_7_apache:
 	cp -pf target/$(BLD_HBASE_APACHE_TRX_JARNAME) $(MY_SQROOT)/export/lib
 	$(RM) $(VFILE)
 
-build_all: jdk_1_7_apache jdk_1_7_cdh jdk_1_7_hdp jdk_1_7_mapr
+#build_all: jdk_1_7_apache jdk_1_7_cdh jdk_1_7_hdp jdk_1_7_mapr
+build_all:jdk_1_7_cdh
 #build_all: jdk_1_7_apache jdk_1_7_cdh
 
 build_chk_apache:

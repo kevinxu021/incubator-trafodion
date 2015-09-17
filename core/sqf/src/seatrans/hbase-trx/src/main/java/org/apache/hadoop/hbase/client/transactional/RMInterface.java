@@ -519,7 +519,8 @@ public class RMInterface {
     }
     public void flushCommits()
                   throws InterruptedIOException,
-                RetriesExhaustedWithDetailsException {
+                RetriesExhaustedWithDetailsException,
+                IOException{
          ttable.flushCommits();
     }
     public HConnection getConnection()
@@ -572,11 +573,11 @@ public class RMInterface {
     {
         return ttable.checkAndPut(row,family,qualifier,value,put);
     }
-    public void put(Put p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException
+    public void put(Put p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException, IOException
     {
         ttable.put(p);
     }
-    public void put(List<Put> p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException
+    public void put(List<Put> p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException, IOException
     {
         ttable.put(p);
     }
