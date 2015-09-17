@@ -464,7 +464,6 @@ private:
     // if this index was explicitly created by user and not internally
     // created to implement a unique constraint.
     IS_EXPLICIT_INDEX = 0x00010
-    
       
   };
   ULng32 bitFlags_;
@@ -488,7 +487,6 @@ private:
   NAList<HbaseCreateOption*> * hbaseCreateOptions_;
 
   ComRowFormat rowFormat_; 
-  
 };
 
 class NAFileSetList : public LIST(NAFileSet *)

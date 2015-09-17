@@ -903,6 +903,8 @@ class ComTdbVirtTableTableInfo  : public ComTdbVirtTableBase
 
   ComRowFormat rowFormat; 
 
+  ComReplType xnRepl;
+
   const char * defaultColFam;
   const char * allColFams;
 };

@@ -158,6 +158,10 @@ public:
 
   inline NAString getColFam() const;
 
+  inline NABoolean isXnReplSpecified() const;
+
+  inline ComReplType xnRepl() const;
+
   //
   // mutators
   //
@@ -180,7 +184,6 @@ public:
   NATraceList getDetailInfo() const;
 
 private:
-
   // ---------------------------------------------------------------------
   // private methods
   // ---------------------------------------------------------------------
@@ -245,6 +248,10 @@ private:
   // COLUMN FAMILY
   NABoolean       isColFamSpec_;
   NAString colFam_;
+
+  // transaction replication across multiple clusters
+  NABoolean       isXnReplSpec_;
+  ComReplType     xnRepl_;
 
 //-- MV
 
@@ -435,6 +442,15 @@ inline NAString ParDDLFileAttrsCreateTable::getColFam() const
 {
   return colFam_;
 }
+
+inline NABoolean
+ParDDLFileAttrsCreateTable::isXnReplSpecified() const
+{
+  return isXnReplSpec_;
+}
+
+inline ComReplType ParDDLFileAttrsCreateTable::xnRepl() const 
+{ return xnRepl_; }
 
 //
 // mutator

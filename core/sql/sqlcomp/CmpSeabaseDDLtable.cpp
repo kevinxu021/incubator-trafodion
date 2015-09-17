@@ -1437,6 +1437,8 @@ short CmpSeabaseDDL::createSeabaseTable2(
 
   const NAString &defaultColFam = fileAttribs.getColFam();
 
+  const ComReplType xnRepl = fileAttribs.xnRepl();
+
   // allow nullable clustering key or unique constraints based on the
   // CQD settings. If a volatile table is being created and cqd
   // VOLATILE_TABLE_FIND_SUITABLE_KEY is ON, then allow it.
@@ -1696,6 +1698,7 @@ short CmpSeabaseDDL::createSeabaseTable2(
   tableInfo->numInitialSaltRegions = numInitialSaltRegions;
   tableInfo->hbaseSplitClause = splitByClause;
   tableInfo->rowFormat = (alignedFormat ? COM_ALIGNED_FORMAT_TYPE : COM_HBASE_FORMAT_TYPE);
+  tableInfo->xnRepl = xnRepl;
 
   NAList<HbaseCreateOption*> hbaseCreateOptions;
   NAString hco;
@@ -7671,6 +7674,7 @@ short CmpSeabaseDDL::getSpecialTableInfo
       tableInfo->numInitialSaltRegions = 1;
       tableInfo->hbaseSplitClause = NULL;
       tableInfo->rowFormat = COM_UNKNOWN_FORMAT_TYPE;
+      tableInfo->xnRepl = COM_REPL_NONE;
     }
 
   return 0;
@@ -8386,7 +8390,7 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
     }
   }
 
-  str_sprintf(query, "select is_audited, num_salt_partns, row_format from %s.\"%s\".%s where table_uid = %Ld for read committed access",
+  str_sprintf(query, "select is_audited, num_salt_partns, row_format, flags from %s.\"%s\".%s where table_uid = %Ld for read committed access",
               getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_TABLES,
               objUID);
 
@@ -8406,6 +8410,7 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
   Lng32 numSaltPartns = 0;
   Int32 numInitialSaltRegions = -1;
   NABoolean alignedFormat = FALSE;
+  ComReplType xnRepl = COM_REPL_NONE;
   NAString *  hbaseCreateOptions = new(STMTHEAP) NAString();
   NAString *  hbaseSplitClause = new(STMTHEAP) NAString();
   NAString colFamStr;
@@ -8427,7 +8432,13 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
 
       char * format = vi->get(2);
       alignedFormat = (memcmp(format, COM_ALIGNED_FORMAT_LIT, 2) == 0);
-     
+
+      Int64 flags = *(Int64*)vi->get(3);
+      if (CmpSeabaseDDL::isMDflagsSet(flags, CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG))
+        xnRepl = COM_REPL_SYNC;
+      else if (CmpSeabaseDDL::isMDflagsSet(flags, CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG))
+        xnRepl = COM_REPL_ASYNC;
+      
       if (getTextFromMD(&cliInterface, objUID, COM_HBASE_OPTIONS_TEXT, 0,
                         *hbaseCreateOptions))
         {
@@ -9047,6 +9058,7 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
   tableInfo->hbaseCreateOptions = 
     (hbaseCreateOptions->isNull() ? NULL : hbaseCreateOptions->data());
   tableInfo->rowFormat = (alignedFormat ? COM_ALIGNED_FORMAT_TYPE : COM_HBASE_FORMAT_TYPE);
+  tableInfo->xnRepl = xnRepl;
 
   if (NOT colFamStr.isNull())
     {

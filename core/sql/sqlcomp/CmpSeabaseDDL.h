@@ -397,6 +397,24 @@ class CmpSeabaseDDL
   
   void deallocEHI(ExpHbaseInterface* &ehi);
   void dropLOBHdfsFiles();
+
+  enum 
+    {
+      MD_TABLES_REPL_SYNC_FLG  = 0x0001,
+      MD_TABLES_REPL_ASYNC_FLG = 0x0002
+      
+    };
+  static void setMDflags(Int64 &flags, //INOUT
+                         Int64 bitFlags)
+  {
+    flags |= bitFlags;
+  }
+
+  static NABoolean isMDflagsSet(Int64 flags, Int64 bitFlags)
+  {
+    return (flags &= bitFlags) != 0; 
+  }
+
  protected:
 
   enum {

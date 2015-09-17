@@ -214,4 +214,38 @@ private:
   
 }; // class ElemDDLFileAttrColFam
 
+class ElemDDLFileAttrXnRepl : public ElemDDLFileAttr
+{
+public:
+public:
+
+  ElemDDLFileAttrXnRepl(NABoolean xnRepl)
+       : ElemDDLFileAttr(ELM_FILE_ATTR_XN_REPL_ELEM)
+  {
+    xnRepl_ = xnRepl;
+  }
+
+  // virtual destructor
+  virtual ~ElemDDLFileAttrXnRepl()
+  {
+  };
+
+  // cast
+  virtual ElemDDLFileAttrXnRepl * castToElemDDLFileAttrXnRepl()
+  {
+    return this; 
+  }
+
+  NABoolean xnRepl() { return xnRepl_; }
+
+  // method for building text
+  virtual NAString getSyntax() const
+  {
+    return "";
+  }
+
+private:
+  NABoolean xnRepl_;
+}; // class ElemDDLFileAttrXnRepl
+
 #endif // ELEMDDLFILEATTR_H

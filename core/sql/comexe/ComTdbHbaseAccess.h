@@ -700,6 +700,14 @@ public:
   {(v ? flags_ |= ALIGNED_FORMAT : flags_ &= ~ALIGNED_FORMAT); };
   NABoolean alignedFormat() { return (flags_ & ALIGNED_FORMAT) != 0; };
 
+  void setReplSync(NABoolean v)
+  {(v ? flags_ |= REPL_SYNC : flags_ &= ~REPL_SYNC); };
+  NABoolean replSync() { return (flags_ & REPL_SYNC) != 0; };
+
+  void setReplAsync(NABoolean v)
+  {(v ? flags_ |= REPL_ASYNC : flags_ &= ~REPL_ASYNC); };
+  NABoolean replAsync() { return (flags_ & REPL_ASYNC) != 0; };
+
   void setAsyncOperations(NABoolean v)
   {(v ? flags_ |= ASYNC_OPERATIONS : flags_ &= ~ASYNC_OPERATIONS); };
   NABoolean asyncOperations() { return (flags_ & ASYNC_OPERATIONS) != 0; };
@@ -866,7 +874,10 @@ public:
     USE_HBASE_XN                     = 0x2000,
     ALIGNED_FORMAT                   = 0x4000,
     ASYNC_OPERATIONS                 = 0x8000,
-    USE_CIF                          = 0x10000
+    USE_CIF                          = 0x10000,
+    REPL_SYNC                        = 0x20000,
+    REPL_ASYNC                       = 0x40000
+
   };
 
   enum
