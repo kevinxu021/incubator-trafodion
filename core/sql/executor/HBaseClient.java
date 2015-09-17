@@ -1533,7 +1533,7 @@ public class HBaseClient {
                                  Object[] columns,
                                  long timestamp, boolean asyncOperation) throws IOException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex);
-      boolean ret = htc.deleteRow(transID, rowID, columns, timestamp);
+      boolean ret = htc.deleteRow(transID, rowID, columns, timestamp, asyncOperation);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);
       else
@@ -1545,7 +1545,7 @@ public class HBaseClient {
                       long timestamp, 
                       boolean asyncOperation) throws IOException, InterruptedException, ExecutionException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex);
-      boolean ret = htc.deleteRows(transID, rowIDLen, rowIDs, timestamp);
+      boolean ret = htc.deleteRows(transID, rowIDLen, rowIDs, timestamp, asyncOperation);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);
       else
