@@ -4954,7 +4954,8 @@ NATable::NATable(BindWA *bindWA,
     privInfo_(NULL),
     secKeySet_(heap),
     newColumns_(heap),
-    snapshotName_(NULL)
+    snapshotName_(NULL),
+    xnRepl_(COM_REPL_NONE)
 {
   NAString tblName = qualifiedName_.getQualifiedNameObj().getQualifiedNameAsString();
   NAString mmPhase;
@@ -5061,6 +5062,14 @@ NATable::NATable(BindWA *bindWA,
   {
     setDroppableTable( TRUE );
   }
+
+  if (table_desc->body.table_desc.xn_repl != 0)
+    {
+      if ((ComReplType)table_desc->body.table_desc.xn_repl == COM_REPL_SYNC)
+        setXnRepl(COM_REPL_SYNC);
+      else if ((ComReplType)table_desc->body.table_desc.xn_repl == COM_REPL_ASYNC)
+        setXnRepl(COM_REPL_ASYNC);
+    }
 
   insertMode_ = table_desc->body.table_desc.insertMode;
 
@@ -5651,7 +5660,8 @@ NATable::NATable(BindWA *bindWA,
     secKeySet_(heap),
     privInfo_(NULL),
     newColumns_(heap),
-    snapshotName_(NULL)
+    snapshotName_(NULL),
+    xnRepl_(COM_REPL_NONE)
 {
 
   NAString tblName = qualifiedName_.getQualifiedNameObj().getQualifiedNameAsString();

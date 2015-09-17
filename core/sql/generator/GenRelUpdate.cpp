@@ -1298,6 +1298,12 @@ short HbaseDelete::codeGen(Generator * generator)
       if (getTableDesc()->getNATable()->isEnabledForDDLQI())
         generator->objectUids().insert(
           getTableDesc()->getNATable()->objectUid().get_value());
+
+      if (getTableDesc()->getNATable()->xnRepl() == COM_REPL_SYNC)
+        hbasescan_tdb->setReplSync(TRUE);
+
+      if (getTableDesc()->getNATable()->xnRepl() == COM_REPL_ASYNC)
+        hbasescan_tdb->setReplAsync(TRUE);
     }
 
   if (keyInfo && getSearchKey() && getSearchKey()->isUnique())
@@ -2126,6 +2132,12 @@ short HbaseUpdate::codeGen(Generator * generator)
       if (getTableDesc()->getNATable()->isEnabledForDDLQI())
         generator->objectUids().insert(
           getTableDesc()->getNATable()->objectUid().get_value());
+
+      if (getTableDesc()->getNATable()->xnRepl() == COM_REPL_SYNC)
+        hbasescan_tdb->setReplSync(TRUE);
+
+      if (getTableDesc()->getNATable()->xnRepl() == COM_REPL_ASYNC)
+        hbasescan_tdb->setReplAsync(TRUE);
     }
 
   if (keyInfo && getSearchKey() && getSearchKey()->isUnique())
@@ -2769,6 +2781,12 @@ short HbaseInsert::codeGen(Generator *generator)
 
       if (isAlignedFormat)
         hbasescan_tdb->setAlignedFormat(TRUE);
+
+      if (getTableDesc()->getNATable()->xnRepl() == COM_REPL_SYNC)
+        hbasescan_tdb->setReplSync(TRUE);
+
+      if (getTableDesc()->getNATable()->xnRepl() == COM_REPL_ASYNC)
+        hbasescan_tdb->setReplAsync(TRUE);
 
       if (CmpCommon::getDefault(HBASE_SQL_IUD_SEMANTICS) == DF_ON)
 	hbasescan_tdb->setHbaseSqlIUD(TRUE);

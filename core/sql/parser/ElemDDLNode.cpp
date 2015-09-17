@@ -435,6 +435,12 @@ ElemDDLNode::castToElemDDLFileAttrColFam()
   return NULL;
 }
 
+ElemDDLFileAttrXnRepl *
+ElemDDLNode::castToElemDDLFileAttrXnRepl()
+{
+  return NULL;
+}
+
 //++ MV
 ElemDDLFileAttrRangeLog *
 ElemDDLNode::castToElemDDLFileAttrRangeLog()

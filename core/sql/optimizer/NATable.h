@@ -536,6 +536,8 @@ public:
    
   const HostVar* getPrototype() const           { return prototype_; }
 
+  const ComReplType xnRepl() const { return xnRepl_; }
+
   const char *getViewText() const               { return viewText_; }
   const NAWchar *getViewTextInNAWchars() const
   { return viewTextInNAWchars_.length() > 0 ? viewTextInNAWchars_.data() : NULL; }
@@ -696,6 +698,10 @@ public:
 
   NABoolean hasSerializedColumn() const
   {  return (flags_ & SERIALIZED_COLUMN) != 0; }
+
+  
+  ComReplType xnRepl() { return xnRepl_; }
+  void setXnRepl(ComReplType v) { xnRepl_ = v; }
 
   const CheckConstraintList &getCheckConstraints() const
                                                 { return checkConstraints_; }
@@ -909,7 +915,11 @@ private:
     LOB_COLUMN                = 0x00008000,
     REMOVE_FROM_CACHE_BNC     = 0x00010000,  // Remove from NATable Cache Before Next Compilation
     SERIALIZED_ENCODED_COLUMN  = 0x00020000,
-    SERIALIZED_COLUMN          = 0x00040000
+    SERIALIZED_COLUMN          = 0x00040000,
+    
+    // synchronize transactions across multiple clusters for this table
+    SYNC_XN                    = 0x00080000
+
   };
     
   UInt32 flags_;
@@ -1029,6 +1039,9 @@ private:
   NAWString viewTextInNAWchars_;
   CharInfo::CharSet viewTextCharSet_;
   char *viewCheck_;
+
+  // transaction replication across multiple clusters
+  ComReplType xnRepl_;
 
   // ---------------------------------------------------------------------
   // Flags

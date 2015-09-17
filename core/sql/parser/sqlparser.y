@@ -49,7 +49,7 @@
 
 // shift/reduce case study: DROP GHOST TABLE
 // Before the invention of ghost tables, the second production for drop_table_statement was:
-//   drop_table_statement : TOK_DROP TOK_TABLE ddl_qualified_name optional_cleanup
+//   drop_table_statement : TO_DROP TOK_TABLE ddl_qualified_name optional_cleanup
 //                            optional_drop_invalidate_dependent_behavior optional_validate optional_logfile
 // I wanted to insert an optional TOK_GHOST like this:
 //   drop_table_statement : TOK_DROP optional_ghost TOK_TABLE ddl_qualified_name optional_cleanup
@@ -1050,6 +1050,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_SHOWLABEL           /* Tandem extension     reserved word */
 %token <tokval> TOK_SHOWLEAKS           /* Tandem extension non-reserved word*/
 %token <tokval> TOK_SYSDATE
+%token <tokval> TOK_SYNCHRONOUS
+%token <tokval> TOK_ASYNCHRONOUS
 %token <tokval> TOK_SYSTIMESTAMP
 %token <tokval> TOK_TARGET
 %token <tokval> TOK_SYSTEM
@@ -1362,6 +1364,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_UNREGISTER          /* Tandem extension */
 %token <tokval> TOK_RENAME              /* Tandem extension */
 %token <tokval> TOK_REPLICATE           /* Tandem extension non-reserved word*/
+%token <tokval> TOK_REPLICATION
 %token <tokval> TOK_RESTRICT
 %token <tokval> TOK_REVOKE
 %token <tokval> TOK_ROWS                /* Tandem extension */
@@ -2630,6 +2633,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <pElemDDL>  		file_attribute_uid_clause
 %type <pElemDDL>  		file_attribute_row_format_clause
 %type <pElemDDL>  		file_attribute_default_col_fam
+%type <pElemDDL>                file_attribute_str_clause
 %type <pElemDDL>  		file_attribute_pos_clause
 %type <pElemDDL>                attribute_num_rows_clause
 %type <pElemDDL>                attribute_inmemory_options_clause
@@ -25896,6 +25900,7 @@ file_attribute :        file_attribute_allocate_clause
                       | file_attribute_no_label_update_clause
                       | file_attribute_owner_clause
                       | file_attribute_default_col_fam
+                      | file_attribute_str_clause
 
 /* type pElemDDL */           
 file_attribute_allocate_clause : TOK_ALLOCATE unsigned_smallint
@@ -26328,6 +26333,16 @@ file_attribute_default_col_fam : TOK_DEFAULT TOK_COLUMN TOK_FAMILY QUOTED_STRING
 
                                   $$ = new (PARSERHEAP()) ElemDDLFileAttrColFam(*$4);
                                 }
+
+/* type pElemDDL */
+file_attribute_str_clause : TOK_SYNCHRONOUS TOK_REPLICATION
+                              {
+                                $$ = new (PARSERHEAP()) ElemDDLFileAttrXnRepl(TRUE);
+                              }
+                          | TOK_ASYNCHRONOUS TOK_REPLICATION
+                              {
+                                $$ = new (PARSERHEAP()) ElemDDLFileAttrXnRepl(FALSE);
+                              }
 
 /* type pElemDDL */
 attribute_inmemory_options_clause : 
@@ -33000,6 +33015,7 @@ nonreserved_word :      TOK_ABORT
                       | TOK_REMOTE
                       | TOK_RENAME
                       | TOK_REPOSITORY
+                      | TOK_REPLICATION
                       | TOK_REQUEST // MV
                       | TOK_REQUIRED
                       | TOK_RESET
@@ -33071,6 +33087,8 @@ nonreserved_word :      TOK_ABORT
                       | TOK_SUBCLASS_ORIGIN
                       | TOK_SUBSYSTEM_ID
                       | TOK_SUSPEND
+                      | TOK_SYNCHRONOUS
+                      | TOK_ASYNCHRONOUS
                       | TOK_SYNONYMS
                       | TOK_T                 /* ODBC extension  */
                       | TOK_TABLE_MAPPING

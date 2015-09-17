@@ -4598,6 +4598,8 @@ short CmpSeabaseDDL::updateSeabaseMDTable(
       const char * hbaseSplitClause = NULL;
       char rowFormat[10];
       strcpy(rowFormat, COM_HBASE_FORMAT_LIT);
+
+      Int64 flags = 0;
       if (tableInfo)
         {
           isAudited = tableInfo->isAudited;
@@ -4607,9 +4609,19 @@ short CmpSeabaseDDL::updateSeabaseMDTable(
           numInitialSaltRegions = tableInfo->numInitialSaltRegions;
           hbaseCreateOptions = tableInfo->hbaseCreateOptions;
           hbaseSplitClause = tableInfo->hbaseSplitClause;
+
+          if (tableInfo->xnRepl != COM_REPL_NONE)
+            {
+              if (tableInfo->xnRepl == COM_REPL_SYNC)
+                CmpSeabaseDDL::setMDflags(flags, 
+                                          CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG);
+              else if (tableInfo->xnRepl == COM_REPL_ASYNC)
+                CmpSeabaseDDL::setMDflags(flags, 
+                                          CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG);
+            }
         }
 
-      str_sprintf(buf, "upsert into %s.\"%s\".%s values (%Ld, '%s', '%s', %d, %d, %d, %d, 0) ",
+      str_sprintf(buf, "upsert into %s.\"%s\".%s values (%Ld, '%s', '%s', %d, %d, %d, %d, %Ld) ",
                   getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_TABLES,
                   objUID, 
                   rowFormat,
@@ -4617,7 +4629,8 @@ short CmpSeabaseDDL::updateSeabaseMDTable(
                   rowDataLength,
                   rowTotalLength,
                   keyLength,
-                  numSaltPartns);
+                  numSaltPartns,
+                  flags);
       cliRC = cliInterface->executeImmediate(buf);
       if (cliRC < 0)
         {

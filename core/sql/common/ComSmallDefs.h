@@ -1718,7 +1718,14 @@ enum ComTransformDependent { COM_TR_DROP_DEPENDENT
 enum ComPrivilegeChecks { COM_PRIV_CHECK_PASS = 0,
                           COM_PRIV_NO_CHECK   = 1,
                           COM_PRIV_CHECK_FAIL = 2 };
-                          
+
+// for replication of changes to tables
+enum ComReplType 
+  { COM_REPL_NONE =  0,    // no replication
+    COM_REPL_SYNC =  1,    // synchronized replication during IUD query
+    COM_REPL_ASYNC = 2     // asyn replication at a later time
+  };
+
 // DDL Operation literals
 
 #define COM_OP_NONE_LIT                            "  "

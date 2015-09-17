@@ -1835,9 +1835,15 @@ desc_struct * Generator::createVirtualTableDesc(
   table_desc->body.table_desc.underlyingFileType = SQLMX;
   table_desc->body.table_desc.rowcount = 100;
 
+  table_desc->body.table_desc.xn_repl = (short)COM_REPL_NONE;
   if (tableInfo)
-    table_desc->body.table_desc.rowFormat =
-      tableInfo->rowFormat ;
+    {
+      table_desc->body.table_desc.rowFormat =
+        tableInfo->rowFormat ;
+
+      table_desc->body.table_desc.xn_repl = 
+        (short)tableInfo->xnRepl;
+    }
 
   if (CmpCommon::context()->sqlSession()->validateVolatileName(tableName))
     table_desc->body.table_desc.isVolatile = 1;

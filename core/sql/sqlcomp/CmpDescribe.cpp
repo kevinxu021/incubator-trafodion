@@ -2784,6 +2784,7 @@ short CmpDescribeSeabaseTable (
   NABoolean isAudited = (naf ? naf->isAudited() : TRUE);
 
   NABoolean isAligned = naTable->isSQLMXAlignedTable();
+  ComReplType xnRepl = naTable->xnRepl();
 
   NABoolean closeParan = FALSE;
   if ((type == 3) && (pkeyStr))
@@ -2955,10 +2956,10 @@ short CmpDescribeSeabaseTable (
         }
 
       NABoolean attributesSet = FALSE;
+      char attrs[2000];
       if (((NOT sqlmxRegr) && ((NOT isAudited) || (isAligned))) ||
           (naTable->defaultColFam() != SEABASE_DEFAULT_COL_FAMILY))
         {
-          char attrs[2000];
           strcpy(attrs, " ATTRIBUTES ");
 
           if (NOT isAudited)
@@ -2971,6 +2972,25 @@ short CmpDescribeSeabaseTable (
               strcat(attrs, naTable->defaultColFam());
               strcat(attrs, "'");
             }
+          outputShortLine(space, attrs);
+
+          attributesSet = TRUE;
+        }
+
+      if (xnRepl != COM_REPL_NONE)
+        {
+          strcpy(attrs, "  ");
+          if (NOT attributesSet)
+            {
+              strcpy(attrs, " ATTRIBUTES ");
+              attributesSet = TRUE;
+            }
+
+          if (xnRepl == COM_REPL_SYNC)
+            strcat(attrs, "SYNCHRONOUS REPLICATION ");
+          else if (xnRepl == COM_REPL_ASYNC)
+            strcat(attrs, "ASYNCHRONOUS REPLICATION ");
+
           outputShortLine(space, attrs);
         }
 

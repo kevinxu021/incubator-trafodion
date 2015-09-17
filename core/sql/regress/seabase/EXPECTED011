@@ -7,7 +7,7 @@
 >>invoke T011T1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T011T1
--- Definition current  Wed Jul  8 15:31:57 2015
+-- Definition current  Thu Sep 17 15:50:43 2015
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1180,7 +1180,7 @@ METRIC_TEXT_TABLE
 >>invoke trafodion."_REPOS_".metric_query_table;
 
 -- Definition of Trafodion table TRAFODION."_REPOS_".METRIC_QUERY_TABLE
--- Definition current  Wed Jul  8 15:33:08 2015
+-- Definition current  Thu Sep 17 15:52:11 2015
 
   (
     INSTANCE_ID                      INT UNSIGNED NO DEFAULT NOT NULL NOT
@@ -1362,7 +1362,7 @@ METRIC_TEXT_TABLE
 >>-- get qid for the prepared stmt
 >>get qid for statement explstmt;
 
-MXID11000004060212303129491881703000000000206U3333300_1276_EXPLSTMT
+MXID11000005533212309265019653394000000000206U3333300_1283_EXPLSTMT
 
 --- SQL operation complete.
 >>
@@ -1414,7 +1414,7 @@ SEQ_NUM      OPERATOR
 --- SQL command prepared.
 >>get qid for statement explstmt2;
 
-MXID11000004060212303129491881703000000000206U3333300_1287_EXPLSTMT2
+MXID11000005533212309265019653394000000000206U3333300_1294_EXPLSTMT2
 
 --- SQL operation complete.
 >>set qid MXID123456 for explstmt2;
@@ -1987,7 +1987,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>invoke t011t7;
 
 -- Definition of Trafodion table TRAFODION.SCH.T011T7
--- Definition current  Wed Jul  8 15:33:42 2015
+-- Definition current  Thu Sep 17 15:52:51 2015
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -2004,7 +2004,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>invoke t011t7;
 
 -- Definition of Trafodion table TRAFODION.SCH.T011T7
--- Definition current  Wed Jul  8 15:33:43 2015
+-- Definition current  Thu Sep 17 15:52:52 2015
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -2021,7 +2021,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>invoke t011t7;
 
 -- Definition of Trafodion table TRAFODION.SCH.T011T7
--- Definition current  Wed Jul  8 15:33:44 2015
+-- Definition current  Thu Sep 17 15:52:57 2015
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -2066,6 +2066,33 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 --- SQL operation failed with errors.
 >>
 >>
+>>-- tests for transaction replication options
+>>create table t011t8s(a int) attributes synchronous replication;
+
+--- SQL operation complete.
+>>create table t011t8a(a int) attributes asynchronous replication;
+
+--- SQL operation complete.
+>>showddl t011t8s;
+
+CREATE TABLE TRAFODION.SCH.T011T8S
+  (
+    A                                INT DEFAULT NULL
+  )
+ ATTRIBUTES SYNCHRONOUS REPLICATION
+;
+
+--- SQL operation complete.
+>>showddl t011t8a;
+
+CREATE TABLE TRAFODION.SCH.T011T8A
+  (
+    A                                INT DEFAULT NULL
+  )
+ ATTRIBUTES ASYNCHRONOUS REPLICATION
+;
+
+--- SQL operation complete.
 >>
 >>
 >>obey TEST011(clnup);
@@ -2102,6 +2129,13 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 --- SQL operation failed with errors.
 >>
 >>drop table t011t7;
+
+--- SQL operation complete.
+>>
+>>drop table t011t8s;
+
+--- SQL operation complete.
+>>drop table t011t8a;
 
 --- SQL operation complete.
 >>

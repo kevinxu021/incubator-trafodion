@@ -49,6 +49,9 @@ drop table t011t6b;
 
 drop table t011t7;
 
+drop table t011t8s;
+drop table t011t8a;
+
 -- delete explain for statement explstmt from repository
 set parserflags 131072;
 delete from trafodion."_REPOS_".metric_query_table
@@ -573,5 +576,10 @@ alter table t011t7 alter column b varchar(2);
 alter table t011t7 alter column c varchar(4) character set utf8;
 
 
+-- tests for transaction replication options
+create table t011t8s(a int) attributes synchronous replication;
+create table t011t8a(a int) attributes asynchronous replication;
+showddl t011t8s;
+showddl t011t8a;
 
 

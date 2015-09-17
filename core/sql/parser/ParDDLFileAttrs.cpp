@@ -250,7 +250,6 @@ ParDDLFileAttrsAlterIndex::initializeDataMembers()
 
   // NO LABEL UPDATE
   noLabelUpdate_ = FALSE;
-
 } // ParDDLFileAttrsAlterIndex::initializeDataMembers()
 
 //
@@ -288,7 +287,6 @@ ParDDLFileAttrsAlterIndex::resetAllIsSpecDataMembers()
 
   // NO LABEL UPDATE
   isNoLabelUpdateSpec_          = FALSE;
-
 } // ParDDLFileAttrsAlterIndex::resetAllIsSpecDataMembers()
 
 //
@@ -2008,6 +2006,9 @@ ParDDLFileAttrsCreateTable::copy(const ParDDLFileAttrsCreateTable &rhs)
   isColFamSpec_ = rhs.isColFamSpec_;
   colFam_ = rhs.colFam_;
 
+  isXnReplSpec_ = rhs.isXnReplSpec_;
+  xnRepl_ = rhs.xnRepl_;
+
   // [ NO ] AUDITCOMPRESS      
   //   inherits from class ParDDLFileAttrsCreateIndex
 
@@ -2096,6 +2097,8 @@ ParDDLFileAttrsCreateTable::initializeDataMembers()
   // MAXEXTENT
   //   inherits from class ParDDLFileAttrsCreateIndex
 
+  xnRepl_ = COM_REPL_NONE;
+
 } // ParDDLFileAttrsCreateTable::initializeDataMembers()
 
 //
@@ -2135,6 +2138,8 @@ ParDDLFileAttrsCreateTable::resetAllIsSpecDataMembers()
   isOwnerSpec_ = FALSE;
 
   isColFamSpec_                     = FALSE;
+
+  isXnReplSpec_                     = FALSE;
 
   // [ NO ] AUDITCOMPRESS
   //   inherits from class ParDDLFileAttrsCreateIndex
@@ -2201,6 +2206,25 @@ ParDDLFileAttrsCreateTable::setFileAttr(ElemDDLFileAttr * pFileAttr)
       ElemDDLFileAttrColFam * pColFam =
         pFileAttr->castToElemDDLFileAttrColFam();
       colFam_ = pColFam->getColFam();
+    }
+    break;
+
+  case ELM_FILE_ATTR_XN_REPL_ELEM :
+    if (isXnReplSpec_)
+    {
+      // Duplicate sync xn phrases.
+      *SqlParser_Diags << DgSqlCode(-3183)
+                       << DgString0("replication");
+    }
+    isXnReplSpec_ = TRUE;
+    ComASSERT(pFileAttr->castToElemDDLFileAttrXnRepl() NEQ NULL);
+    {
+      ElemDDLFileAttrXnRepl * pXnRepl =
+        pFileAttr->castToElemDDLFileAttrXnRepl();
+      if (pXnRepl->xnRepl())
+        xnRepl_ = COM_REPL_SYNC;
+      else
+        xnRepl_ = COM_REPL_ASYNC;
     }
     break;
 
