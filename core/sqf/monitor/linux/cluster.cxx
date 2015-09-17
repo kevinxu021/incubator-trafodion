@@ -296,6 +296,8 @@ void CCluster::NodeTmReady( int nid )
         {
             MyNode->ResetSoftNodeDown();
 
+	    MyNode->SetPhase( Phase_Ready );
+
             char la_buf[MON_STRING_BUF_SIZE];
             sprintf( la_buf, "[%s], Soft Node up! pnid=%d, name=(%s)\n"
                    , method_name, MyNode->GetPNid(), MyNode->GetName());
@@ -1541,6 +1543,10 @@ int CCluster::SoftNodeUpPrepare( int pnid )
     }
 
     node->SetKillingNode( false );
+
+    node->ResetSoftNodeDown( );
+
+    node->SetPhase( Phase_Ready );
 
     if ( MyPNID == pnid )
     {
