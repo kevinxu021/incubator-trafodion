@@ -4,11 +4,12 @@ define([
         'jquery',
         'handlers/ServerHandler',
         'moment',
+        'common',
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
         'tabletools'
-        ], function (BaseView, DcsServerT, $, serverHandler, moment) {
+        ], function (BaseView, DcsServerT, $, serverHandler, moment, common) {
 	'use strict';
     var LOADING_SELECTOR = ".dbmgr-spinner",
     	RESULT_CONTAINER = '#query-result-container',
@@ -93,10 +94,10 @@ define([
 					      "aTargets": [ 2 ],
 					      "mData": 2,
 					      "mRender": function ( data, type, full ) {
-					       if (type === 'display') {
-					          return moment(data).format("YYYY-MM-DD HH:mm:ss");
-					        }
-					        else return data;
+					       //if (type === 'display') {
+					          return moment(data).tz(common.serverTimeZone).format('YYYY-MM-DD HH:mm:ss');
+					       // }
+					       /// else return moment(data).tz(common.serverTimeZone).format('YYYY-MM-DD HH:mm:ss');
 					      }
 					    } ],
 					paging: true,
