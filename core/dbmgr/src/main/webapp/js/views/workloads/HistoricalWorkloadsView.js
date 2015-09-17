@@ -267,24 +267,24 @@ define([
 					      "aTargets": [ 2],
 					      "mData": 2,
 					      "mRender": function ( data, type, full ) {
-					       if (type === 'display') {
+					       //if (type === 'display') {
 					    	   if(data != null || data != -1)
 					    		   return common.toServerLocalDateFromUtcMilliSeconds(data);
 					    	   else return "";
-					        }
-					        else return data;
+					        //}
+					        //else return data;
 					      }
 					    },
 					    {
 						      "aTargets": [3 ],
 						      "mData": 3,
 						      "mRender": function ( data, type, full ) {
-						       if (type === 'display') {
+						       //if (type === 'display') {
 						    	   if(data != null || data != -1)
 						    		   return common.toServerLocalDateFromUtcMilliSeconds(data);
-						    	   else return ""
-						        }
-						        else return data;
+						    	   else return "";
+						        //}
+						        //else return data;
 						      }
 						    } ],
 					paging: true,
