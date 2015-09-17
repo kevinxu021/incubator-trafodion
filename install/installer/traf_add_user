@@ -96,8 +96,10 @@ if [ -z "$traf_gid" ]; then
     done
     $TRAF_PDSH sudo /usr/sbin/groupadd --gid $traf_gid $TRAF_GROUP
     if [ $? -ne 0 ]; then
-        echo "***ERROR: unable to create Trafodion group: $TRAF_GROUP"
-        exit -1
+       if [ $? -ne 9]; then
+          echo "***ERROR: unable to create Trafodion group: $TRAF_GROUP"
+          exit -1
+       fi
     fi
 else
     # Make sure Trafodion group exists on all nodes and create it if it is not
@@ -142,7 +144,6 @@ if [ $return_code -ne 0 ]; then
     if [ $return_code -eq 9 ]; then
         echo "***WARNING: username already exists, will use existing userid, $TRAF_USER..."
         echo "***WARNING: ...and assume it was setup properly with passwordless ssh access to all nodes."
-        userid_already_exists="Y"
     else
         echo "***ERROR: unable to create Trafodion userid: $TRAF_USER.$TRAF_GROUP, RC=$return_code"
         exit -1
@@ -151,9 +152,9 @@ fi
 #=================================================
 
 # Setup passwordless ssh for this Trafodion userid
-if [ "$userid_already_exists" == "Y" ]; then
-    echo "***INFO: skipping passwordless ssh setup because userid ($TRAF_USER) already exists"
-else
+#if [ "$userid_already_exists" == "Y" ]; then
+#    echo "***INFO: skipping passwordless ssh setup because userid ($TRAF_USER) already exists"
+#else
     sudo su $TRAF_USER --command "echo -e 'y\n' | ssh-keygen -t rsa -N \"\" -f $TRAF_USER_DIR/.ssh/id_rsa"
     if [[ "$SUSE_LINUX" == "true" ]]; then
        sudo su $TRAF_USER --command "cp $TRAF_USER_DIR/.ssh/id_rsa.pub $TRAF_USER_DIR/.ssh/authorized_keys"
@@ -163,7 +164,7 @@ else
     sudo su $TRAF_USER --command "echo localhost $(cat /etc/ssh/ssh_host_rsa_key.pub) > $TRAF_USER_DIR/.ssh/known_hosts"
     sudo su $TRAF_USER --command "echo \"NoHostAuthenticationForLocalhost=yes\" >> $TRAF_USER_DIR/.ssh/config"
     sudo chmod 600 $TRAF_USER_DIR/.ssh/config
-fi
+#fi
 
 echo "***INFO: creating .qpidports file"
 sudo su $TRAF_USER --command="echo $QPIDPORT > $TRAF_USER_DIR/.qpidports"
@@ -187,12 +188,6 @@ if [[ -f $TRAF_WORKDIR/installer/sqenvcom.sh ]]; then
    sudo cp $TRAF_WORKDIR/installer/sqenvcom.sh $TRAF_USER_DIR
    sudo chown $TRAF_USER.$TRAF_GROUP $TRAF_USER_DIR/sqenvcom.sh
 fi
-
-if [[ -f $TRAF_WORKDIR/installer/esgyn.el ]]; then
-   sudo cp $TRAF_WORKDIR/installer/esgyn.el $TRAF_USER_DIR
-   sudo chown $TRAF_USER.$TRAF_GROUP $TRAF_USER_DIR/esgyn.el
-fi
-
 sudo chown $TRAF_USER.$TRAF_GROUP $TRAF_USER_DIR/.bashrc
 rm $TRAF_WORKDIR/bashrc_${TRAF_USER}_temp1
 rm $TRAF_WORKDIR/bashrc_${TRAF_USER}_temp2
