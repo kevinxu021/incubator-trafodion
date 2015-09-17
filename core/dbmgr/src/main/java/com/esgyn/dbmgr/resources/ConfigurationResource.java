@@ -73,6 +73,9 @@ public class ConfigurationResource {
 		return xmlConfig.getProperty("openTSDBUri");
 	}
 
+	public String getDcsMasterInfoUri() {
+		return xmlConfig.getProperty("dcsMasterInfoUri");
+	}
 	public int getSessionTimeoutMinutes() {
 		int timeOutVal = 120;
 		try {

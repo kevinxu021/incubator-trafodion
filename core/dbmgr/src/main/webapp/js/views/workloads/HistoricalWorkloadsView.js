@@ -268,7 +268,9 @@ define([
 					      "mData": 2,
 					      "mRender": function ( data, type, full ) {
 					       if (type === 'display') {
-					          return common.toServerLocalDateFromUtcMilliSeconds(data);
+					    	   if(data != null || data != -1)
+					    		   return common.toServerLocalDateFromUtcMilliSeconds(data);
+					    	   else return "";
 					        }
 					        else return data;
 					      }
@@ -278,7 +280,9 @@ define([
 						      "mData": 3,
 						      "mRender": function ( data, type, full ) {
 						       if (type === 'display') {
-						          return common.toServerLocalDateFromUtcMilliSeconds(data);
+						    	   if(data != null || data != -1)
+						    		   return common.toServerLocalDateFromUtcMilliSeconds(data);
+						    	   else return ""
 						        }
 						        else return data;
 						      }

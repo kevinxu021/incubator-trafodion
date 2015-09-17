@@ -18,7 +18,8 @@ define([
     var LOADING_SELECTOR = "#loadingImg",
     	RESULT_CONTAINER = '#query-result-container',
     	ERROR_CONTAINER = '#errorText',
-    	REFRESH_MENU = '#refreshAction';
+    	REFRESH_MENU = '#refreshAction',
+    	DCS_LOGS = '#dcsLogs';
     
     var OPEN_FILTER = '#openFilter',
     	FILTER_DIALOG = '#filterDialog',
@@ -108,7 +109,11 @@ define([
 					$('#filter-end-time').prop("disabled", false);
 				}
 			});
-			
+			if(common.dcsMasterInfoUri != null && common.dcsMasterInfoUri.length > 0)
+				$(DCS_LOGS).html('<a href="' + common.dcsMasterInfoUri+'" target="_blank">DCS Logs</a>');
+			else{
+				$(DCS_LOGS).html('');
+			}
 			logsHandler.on(logsHandler.FETCHLOGS_SUCCESS, this.displayResults);
 			logsHandler.on(logsHandler.FETCHLOGS_ERROR, this.showErrorMessage);		
 			$(REFRESH_MENU).on('click', this.fetchLogs);
@@ -130,6 +135,9 @@ define([
 			$(REFRESH_MENU).off('click', this.fetchLogs);
 			$(FILTER_APPLY_BUTTON).off('click', this.filterApplyClicked);
 			$(OPEN_FILTER).off('click', this.filterButtonClicked);
+		},
+		dcsLogsClicked: function(){
+			
 		},
         showLoading: function(){
         	$(LOADING_SELECTOR).show();
@@ -202,6 +210,7 @@ define([
         	
         	$(FILTER_DIALOG).modal('hide');
         	$(FILTER_ERROR_MSG).html('');
+        	_that.showLoading();
         	logsHandler.fetchLogs(param);
         },
         fetchLogs: function () {

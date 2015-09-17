@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -98,7 +99,8 @@ public class WorkloadsResource {
 			}
 
 			sb.append(String.format(
-					"where (exec_start_utc_ts between timestamp '%1$s' and timestamp '%2$s' or exec_start_utc_ts is null)",
+					"where (exec_start_utc_ts between timestamp '%1$s' and timestamp '%2$s' "
+							+ "or exec_end_utc_ts between timestamp '%1$s' and timestamp '%2$s' or exec_end_utc_ts is null)",
 					startTime, endTime));
 
 			String[] values = states.split(",");
@@ -165,8 +167,16 @@ public class WorkloadsResource {
 			while (rs.next()) {
 				qDetail.setUserName(rs.getString("user_name"));
 				qDetail.setStatus(rs.getString("query_status"));
-				qDetail.setStartTime(rs.getTimestamp("exec_start_utc_ts").getTime());
-				qDetail.setEndTime(rs.getTimestamp("exec_end_utc_ts").getTime());
+				Timestamp ts = rs.getTimestamp("exec_start_utc_ts");
+				if (ts != null)
+					qDetail.setStartTime(ts.getTime());
+				else
+					qDetail.setStartTime(-1);
+				ts = rs.getTimestamp("exec_end_utc_ts");
+				if (ts != null)
+					qDetail.setEndTime(ts.getTime());
+				else
+					qDetail.setEndTime(-1);
 				qDetail.setQueryText(rs.getString("query_text"));
 				metrics.put("query_sub_status", rs.getString("query_sub_status"));
 				metrics.put("master_process_id", rs.getString("master_process_id"));
