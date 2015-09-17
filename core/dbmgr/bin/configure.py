@@ -64,7 +64,8 @@ def run():
     
     # step 1: Get the arguments from the user and validate it.
     parser = OptionParser()
-    
+    parser.add_option("--javahome",  dest="java_home",    action="store",
+            help="Java Home path for keytool",    metavar="JAVA_HOME")
     parser.add_option("--httpport",  dest="http_port",   action="store", type="int",                  
             help="HTTP Port for the EsgynDB Manager",    metavar="HTTP_PORT")
     parser.add_option("--httpsport", dest="https_port",  action="store", type="int",                   
@@ -87,6 +88,15 @@ def run():
     (options, args) = parser.parse_args()
     
     # Now ensure all the arguments has an input value
+    env = os.getenv("JAVA_HOME")
+    if env is not None:
+        options.java_home = env
+    else:
+        done = None
+        while(done==None) :
+            options.java_home = raw_input("Please provide the JAVA_HOME path for keytool:")
+            if options.java_home: done = True
+            
     if not options.http_port :
         done = None
         while (done==None) :
@@ -162,6 +172,7 @@ def run():
     keyfile = os.path.join(dbmgr_path,"etc/dbmgr.keystore")
     if (os.path.exists(keyfile)): os.remove(keyfile)
     cmd = 'keytool -genkey -alias dbmgr -keyalg RSA -dname "cn=localhost,ou=dbmgr,o=Esgyn,l=Milpitas,st=CA,c=US" -keypass "%s" -storepass "%s" -keystore %s -validity 36500 -keysize 2048' % (options.password,options.password,keyfile)
+    cmd = options.java_home+'/bin/'+cmd
     returncode = os.system(cmd)
     if (returncode != 0):
         print "Failed to generate the SSL keystore, exit..."
