@@ -15,24 +15,24 @@
 	<!-- The EsgynDB DCS Master Info URI -->
 	<entry key="dcsMasterInfoUri">http://DCS_HOST:DCS_INFO_PORT</entry>
 
-	<!-- Session Timeout in minutes. Your Esgyndb Mgr browser session to the server will be 
+	<!-- Session Timeout in minutes. Your EsgynDB Manager browser session to the server will be 
 		timed out after this interval and you will be asked to login again -->
 	<entry key="sessionTimeoutMinutes">120</entry>
 
 	<!-- The following properties are only required and used by the embedded jetty server -->
 	
-	<!-- The HTTP Port for the DB Manager embedded jetty server -->
+	<!-- The HTTP Port for the EsgynDB Manager embedded jetty server -->
 	<entry key="httpPort">HTTP_PORT</entry>
 
-	<!-- The HTTPS Port for the DB Manager embedded jetty server -->
+	<!-- The HTTPS Port for the EsgynDB Manager embedded jetty server -->
 	<entry key="httpsPort">HTTPS_PORT</entry>
 
-	<!-- The SSL keystore password for the DB Manager embedded jetty server -->
+	<!-- The SSL keystore password for the EsgynDB Manager embedded jetty server -->
 	<entry key="securePassword">SECURE_PASSWORD</entry>
 
-	<!-- The HTTP request header size for the DB Manager embedded jetty server -->
+	<!-- The HTTP request header size for the EsgynDB Manager embedded jetty server -->
 	<entry key="requestHeaderSize">98304</entry>
 
-	<!-- The TimeZone name of the EsgynDB server. Enter in java time zone format like Americas/New_York -->
+	<!-- The TimeZone name of the EsgynDB server. Enter in java time zone format like America/New_York -->
 	<entry key="timeZoneName">TIMEZONE_NAME</entry>
 </properties>

@@ -16,7 +16,7 @@ WARFILE=`echo $DBMGR_INSTALL_DIR/lib/dbmgr*.war`
 usage() {
     prog=`basename $0`
     echo "$prog < start | stop | status >"
-    echo "Start, stop, or check EsgynDB Manager service"
+    echo "Start, stop, or check EsgynDB Manager"
 }
 
 getpid() {
@@ -32,29 +32,29 @@ pid=$(getpid)
 
 if [[ $1 = "start" ]]; then
     if [ -n "$pid" ]; then
-        echo "EsgynDB Manager service is already started."
+        echo "EsgynDB Manager is already started. PID is $pid."
     else
         setsid java -Dlogback.configurationFile=$DBMGR_INSTALL_DIR/conf/logback.xml -jar $WARFILE > dbmgr.log 2>&1  &
         sleep 5s
         pid=$(getpid)
         if [ -n "$pid" ]; then
-            echo "EsgynDB Manager service is running. PID is $pid."
+            echo "EsgynDB Manager is running. PID is $pid."
         else
-            echo "EsgynDB Manager service is NOT running. Check dbmgr.log."
+            echo "EsgynDB Manager is NOT running. Check dbmgr.log."
         fi        
     fi
 elif [[ $1 = "stop" ]]; then
     if [ -n "$pid" ]; then
         kill -9 $pid
-        echo "EsgynDB Manager service has been stopped."
+        echo "EsgynDB Manager has been stopped."
     else
-        echo "No EsgynDB Manager service is running by this account."
+        echo "No EsgynDB Manager is running by this account."
     fi
 elif [[ $1 = "status" ]]; then
     if [ -n "$pid" ]; then
-        echo "EsgynDB Manager service is running. PID is $pid."
+        echo "EsgynDB Manager is running. PID is $pid."
     else
-        echo "EsgynDB Manager service is NOT running."
+        echo "EsgynDB Manager is NOT running."
     fi
 else
     usage

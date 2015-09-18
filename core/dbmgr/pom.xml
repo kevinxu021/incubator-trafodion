@@ -327,7 +327,7 @@
 								<!-- Display anchors on html document -->
 								<sectanchors>true</sectanchors>
 								<!-- enable the TOC with 3 levels -->
-								<toclevels>3</toclevels>
+								<toclevels>5</toclevels>
 								<!-- Parse link attributes such as window="_blank" -->
 								<linkattrs>true</linkattrs>
 							</attributes>
@@ -352,7 +352,7 @@
                                 <icons>font</icons>
                                 <pagenums/>
                                 <toc/>
-                                <toclevels>3</toclevels>
+                                <toclevels>5</toclevels>
                                 <idprefix/>
                                 <idseparator>-</idseparator>
                             </attributes>

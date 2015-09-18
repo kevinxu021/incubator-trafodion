@@ -114,20 +114,20 @@ def run():
     if not options.password :
         done = None
         while (done==None) :
-            options.password = getpass.getpass(prompt='Getpass Please provide the password for the SSL keystore (minimum 6 chars):')
+            options.password = getpass.getpass(prompt='Please provide the password for the SSL keystore (minimum 6 chars):')
             #options.password = raw_input("Please provide the password for the SSL keystore (minimum 6 chars):")
             if options.password and len(options.password)>5: done = True
             
     if not options.dcs_host :
         done = None
         while (done==None) :
-            options.dcs_host = raw_input("Please provide the EsgynDB DCS server hostname:")
+            options.dcs_host = raw_input("Please provide the EsgynDB DCS master hostname:")
             if options.dcs_host: done = True
             
     if not options.dcs_port :
         done = None
         while (done==None) :
-            options.dcs_port = raw_input("Please provide the EsgynDB DCS server port(default 23400):")
+            options.dcs_port = raw_input("Please provide the EsgynDB DCS master listen port(default 23400):")
             if not options.dcs_port : options.dcs_port = "23400"
             if options.dcs_port and options.dcs_port.isdigit(): done = True
             

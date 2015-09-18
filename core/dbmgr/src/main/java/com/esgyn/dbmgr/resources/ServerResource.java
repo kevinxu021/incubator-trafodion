@@ -223,4 +223,25 @@ public class ServerResource {
 		result.resultArray = queries;
 		return result;
 	}
+
+	@GET
+	@Path("/config")
+	@Produces("application/json")
+	public ObjectNode getConfiguration(@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode objNode = mapper.createObjectNode();
+
+		try {
+			objNode.put("sessionTimeoutMinutes", ConfigurationResource.getInstance().getSessionTimeoutMinutes());
+			objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
+			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
+			objNode.put("dcsMasterInfoUri", ConfigurationResource.getInstance().getDcsMasterInfoUri());
+
+		} finally {
+
+		}
+		return objNode;
+	}
 }

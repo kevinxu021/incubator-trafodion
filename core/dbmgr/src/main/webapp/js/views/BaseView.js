@@ -2,8 +2,10 @@ define([
         'jquery',
         'underscore',
         'backbone',
+        'common',
+        'handlers/ServerHandler',
         'jqueryui',
-        ], function ($, _, Backbone) {
+        ], function ($, _, Backbone, common, serverHandler) {
 	'use strict';
 
 	var BaseView = Backbone.View.extend({
@@ -36,6 +38,9 @@ define([
 		render: function (args) {
 			if(this.pageWrapper == null){
 				this.$el.html(this.template);
+				if(common.serverTimeZone == null){
+					serverHandler.loadServerConfig();
+				}
 				this.init(args);
 			}else
 			{
