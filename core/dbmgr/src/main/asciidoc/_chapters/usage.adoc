@@ -45,13 +45,13 @@ The dashboard page displays the status of the EsgynDB services and nodes.
 ==== Service Status
 
 The service status displays the status of the core EsgynDB services : *Transaction Manager, Connectivity Service and Runtime Management Service*.
-For each service, you can see the number of configured processes, the number of acutal running processes, the number of down processes if any.
-This information is provided by the EsgynDB REST Server by calling sqcheck script.
+For each service, you can see the number of configured processes, the number of actual running processes, the number of down processes if any.
+This information is provided by the EsgynDB REST Server which invokes the sqcheck script.
 
 ==== Node Status
 
 The node status displays the *Up* or *Down* status of all the configured logical nodes in the EsgynDB cluster.
-This information is provided by the EsgynDB REST Server by calling sqnodestatus script.
+This information is provided by the EsgynDB REST Server which invokes the sqnodestatus script.
 
 === Workloads
 
@@ -60,22 +60,40 @@ The active workloads page displays the list of active EsgynDB queries. This incl
 
 Use the *Action -> Refresh* menu to refresh the list of active queries. 
 
+You can click on the Query ID hyper-link to drill-down into the details of that specific query.
+
 ===== Active Query Details
+The active query details page displays a summary of the runtime metrics as well the operator level statistics for the query. The metrics are obtained from the EsgynDB Runtime Management Service. 
+
+Use the *Action -> Refresh* menu to refresh the page and reload the latest metrics for the query. 
+
+Use the *Action -> Cancel* menu to cancel the executing query.  
 
 ==== Historical Workloads
 The historical workloads page by default fetches the queries that completed in the last 1 hour. This information is fetched from the EsgynDB query statistics tables.
+
 Use the *Action -> Refresh* action option to refresh the page. 
 
-You can use the *Filters* to specify your search parameters.
+You can use the *Filters* option to specify your search parameters. Using the filter dialog, you can search for queries that ran during a specific time range by specific applications or users.
+
+You can click on the Query ID hyper-link to drill-down into the details of a particular query.
 
 ===== Historical Query Detail
-<TBD>
+The historical query details page displays the details for the query. The details are grouped together as summary, compile time metrics and run time metrics. You can compare the compile time metrics to the run time metrics and analyze the query behavior.
+
+Use the *Explain* hyper-link to view the explain plan for this query.
+
+Use the *Action -> Cancel* menu to cancel the query, if the query is a long running query and is still executing.  
 
 ===== Historical Query Explain Plan
-<TBD>
+The Query Plan page displays the Query ID, the query text, a visual explain plan and a textual explain plan.
+
+If you click on a specific node in the explain tree, you will see the metrics for that specific operator in a pop-up dialog.
+
+You can use the *Action -> Cancel* menu to cancel the query if the query is still executing.  
 
 ==== Cancel Query
-<TBD>
+You can invoke the cancel action from any of the workload pages. If the query is in EXECUTING state, a cancel request will be submitted to EsgynDB engine and provided the user has the necessary privileges to cancel the query, the query will be cancelled by the engine.
 
 === Logs
 The Logs page displays the log messages from the EsgynDB processes. The logs are fetched using the logs TMUDF which filters the log entries from the EsgynDB log files and provides a single consolidated view.
@@ -85,13 +103,19 @@ Use the Filters button to specify custom filters for your search.
 The DCS Servers page displays the current active DCS Server sessions. If the DCS server is in a connected state, you will see the user name, the application name and client workstation that is connected.
 
 === Query Workbench
-The query workbench page allows you to execute adhoc queries and view the results in a tabular form or to generate a visual explain plan.
+The query workbench page allows you to execute ad hoc queries and view the results in a tabular form or to generate a visual explain plan.
+
+Type the SQL query text in the Query text area. This should a valid EsgynDB query syntax. If not the engine will reject and report an error.
 
 ==== Execute Query
+You can use the *Execute* button to execute the query. For a query that returns a result set, the results are displayed in a tabular format. For a query that is not SELECT or returns a scalar results, the results are displayed as normal text.
+If the engine rejects the SQL query, the entire SQL exception is displayed in the screen.
 
 ==== Explain Plan
+You can use the *Explain* button to generate an explain plan for the query. This is helpful for users to analyze the performance cost of the query and allows them to tune it.
 
 ==== Control Options
+The Control options allow you enter SET statements or Control Query statements that can influence the query plan.
 
 === Log Out
 You can click on the user icon at the top right corner of the application and select the *Logout* option.

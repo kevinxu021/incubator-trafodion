@@ -24,20 +24,26 @@ This chapter describes how to install EsgynDB Manager and configure its runtime 
 
 === Install EsgynDB Manager
 
-EsgynDB Manager is available for download as compressed tar file *dbmgr-1.0.0.bin.tar.gz* from the Esgyn.com website.
+EsgynDB Manager is available for download as compressed tar file *dbmgr-1.0.0.tar.gz* from the Esgyn.com website.
 
 * Download the EsgynDB Manager binary tar file to your target system.
-* Untar the contents to the target folder. A *dbmgr-1.0.0* sub-folder will be created.
+* Untar the contents to the target directory. A *dbmgr-1.0.0* sub-directory will be created.
 
 ----
-$ tar xfz dbmgr-1.0.0-bin.tar.gz
+$ tar xfz dbmgr-1.0.0.tar.gz
 ----
 
 === Configure EsgynDB Manager
 EsgynDB Manager communicates with the EsgynDB runtime via ODBC or HTTP.
 DB Manager uses a configuration file that can be customized for your runtime environment.
 
-* Run the configure.py script from the bin folder. 
+* Find the canonical timezone name of the EsgynDB instance. DB Manager displays all date time values in the EsgynDB server local time. You can use the handy script *gettimezone.sh* that is provided in the *dbmgr-1.0.0/bin* directory to find the canonical timezone name like *Etc/UTC* or *America/Los_Angeles*. This script is also available in the *$MY_SQROOT/tools* directory on the EsgynDB nodes.
+----
+$ cd $MY_SQROOT/tools
+$ ./gettimezone.sh
+America/New_York
+----
+* Run the configure.py script from the bin directory. 
 ----
 $ cd dbmgr-1.0.0/bin
 $ ./configure.py
@@ -54,16 +60,22 @@ The default value is 4206.
 *SSL Keystore Password*:: 
 A self-signed certificate will be generated and stored in a SSL keystore using the provided password. 
 The password is obfuscated and the SSL keystore is saved as *dbmgr-1.0.0/etc/dbmgr.keystore*.
-*DCS Server Host*:: 
+*DCS Master Host*:: 
 The hostname or ip address for the node on which DCS Master is listening. DB Manager uses this property to make a JDBC connection.
-*DCS Server Port*::
+*DCS Master Listen Port*::
 The listen port number for DCS Master.  DB Manager uses this property to make a JDBC connection. 
 The default value is 23400. 
+*DCS Master Info Port*::
+The info port number for DCS Master. This DCS Web UI is accessible using this port and we use the DCS Web UI for viewing the DCS logs. 
+The default value is 24400. 
 *REST Server Host*::
 The hostname or ip address for the node on which EsgynDB REST server is listening.
 *REST Server Port*::
 The listen port number for EsgynDB REST Server. 
 The default value is 4200.
+*Server TimeZone Name*::
+The canonical timezone name of the EsgynDB instance. DB Manager displays all date time values in the EsgyDB server local time.
+The timezone name has to be in the canonical format like *Etc/UTC* or *America/Los_Angeles*. You can use the handy script gettimezone.sh to find the canonical timezone of the instance.
 
 * The generated configuration is saved in *dbgmr-1.0.0./conf/config.xml*. A sample configuration is shown below.
 [source,xml]
@@ -82,29 +94,35 @@ The default value is 4200.
 	<!-- The Trafodion REST Server URI -->
 	<entry key="trafodionRestServerUri">my.esgyndb.server:4200</entry>
 	
-	<!-- Session Timeout in minutes. Your Esgyndb Mgr browser session to the server will be 
-		timed out after this interval and you will be asked to login again -->
+	<!-- The EsgynDB DCS Master Info URI -->
+	<entry key="dcsMasterInfoUri">http://my.esgyndb.server:24400</entry>
+	
+	<!-- Session Timeout in minutes. Your EsgynDB Manager browser session to the server 
+		will be timed out after this interval and you will be asked to login again -->
 	<entry key="sessionTimeoutMinutes">120</entry>
 
 	<!-- The following properties are only required and used by the embedded jetty server -->
 	
-	<!-- The HTTP Port for the DB Manager embedded jetty server -->
+	<!-- The HTTP Port for the EsgynDB Manager embedded jetty server -->
 	<entry key="httpPort">4205</entry>
 
-	<!-- The HTTPS Port for the DB Manager embedded jetty server -->
+	<!-- The HTTPS Port for the EsgynDB Manager embedded jetty server -->
 	<entry key="httpsPort">4206</entry>
 
-	<!-- The SSL keystore password for the DB Manager embedded jetty server -->
+	<!-- The SSL keystore password for the EsgynDB Manager embedded jetty server -->
 	<entry key="securePassword">OBF:1iup1igf1x8a1tvj1x8k1idr1irx</entry>
 
-	<!-- The HTTP request header size for the DB Manager embedded jetty server -->
+	<!-- The HTTP request header size for the EsgynDB Manager embedded jetty server -->
 	<entry key="requestHeaderSize">98304</entry>
 
+	<!-- The TimeZone name of the EsgynDB server. Enter in java time zone format 
+		like Etc/UTC or America/New_York -->
+	<entry key="timeZoneName">America/New_York</entry>
 </properties>
 ----
 
 === Log settings
-DB Manager uses logback for its logging. You can edit the *dbmgr-1.0.0/conf/logback.xml* to change rate at which the log files are rolled and to change the level at which the server logs messages.
+DB Manager uses logback for its logging. You can edit the *dbmgr-1.0.0/conf/logback.xml* to change rate at which the log files are rolled and to change the level at which the server logs messages. After a successful start, the EsgynDB Manager runtime logs are written in the *dbmgr-1.0.0/logs* directory.
 
 === Start EsgynDB Manager
 Start EsgynDB Manager as an embedded jetty server using the dbmgr.sh script.
@@ -115,25 +133,25 @@ $ cd dbmgr-1.0.0/bin
 
 If the EsgynDB Manager starts successfully, you should see a prompt like below:
 ----
-EsgynDB Manager service is running. PID is 3391.
+EsgynDB Manager is running. PID is 3391.
 ----
 
 If the start fails, you see a message like this. Check the *dbmgr.log* for errors.
 ----
-EsgynDB Manager service is NOT running. Check dbmgr.log.
+EsgynDB Manager is NOT running. Check dbmgr.log.
 ----
 
 === Check Status of EsgynDB Manager
-To check the state of EsgynDB Manager, run the following command from the bin folder.
+To check the state of EsgynDB Manager, run the following command from the bin directory.
 ----
 $ ./dbmgr.sh status
-EsgynDB Manager service is running. PID is 3391.
+EsgynDB Manager is running. PID is 3391.
 ----
 
 === Stop EsgynDB Manager
-To stop EsgynDB Manager, run the following command from the bin folder.
+To stop EsgynDB Manager, run the following command from the bin directory.
 ----
 $ ./dbmgr.sh stop
-EsgynDB Manager service has been stopped.
+EsgynDB Manager has been stopped.
 ----
  

@@ -1,5 +1,5 @@
-define(['handlers/EventDispatcher'],
-function(EventDispatcher) {"use strict";
+define(['handlers/EventDispatcher', 'common'],
+function(EventDispatcher, common) {"use strict";
 
     var ServerHandler = ( function() {
     	
@@ -62,7 +62,22 @@ function(EventDispatcher) {"use strict";
     					dispatcher.fire(_this.FETCH_NODES_ERROR, jqXHR, res, error);
     				}
     			});
-            };            
+            };    
+            
+        	this.loadServerConfig = function(){
+        		$.ajax({
+    				url: 'resources/server/config',
+    				type:'GET',
+    				dataType:"json",
+    				contentType: "application/json;",
+    				async: false,
+    				success: function(data){
+    					common.storeSessionProperties(data.serverTimeZone, data.serverUTCOffset, data.dcsMasterInfoUri);
+    				},
+    				error:function(jqXHR, res, error){
+    				}
+    			});
+            }; 
                                   
             /**
              * @public

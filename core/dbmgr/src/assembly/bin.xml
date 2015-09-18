@@ -36,7 +36,16 @@
 			<fileMode>0755</fileMode>
 			<lineEnding>unix</lineEnding>
 		</fileSet>
-			<fileSet>
+		<fileSet>
+			<directory>../sqf/tools</directory>
+			<outputDirectory>bin</outputDirectory>
+			<includes>
+				<include>gettimezone.sh</include>
+			</includes>
+			<fileMode>0755</fileMode>
+			<lineEnding>unix</lineEnding>
+		</fileSet>
+		<fileSet>
 			<directory>conf</directory>
 			<outputDirectory>conf</outputDirectory>
 			<includes>
