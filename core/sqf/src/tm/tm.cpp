@@ -2783,7 +2783,7 @@ void tm_process_msg(BMS_SRE *pp_sre)
 {
     short                  lv_ret;
     char                   la_send_buffer[4096];
-    char                  *la_recv_buffer = NULL;
+    char                   la_recv_buffer[MAX_RECEIVE_BUFFER];
     Tm_Broadcast_Req_Type *lp_br_req;
     Tm_Broadcast_Rsp_Type *lp_br_rsp; 
     Tm_Perf_Stats_Req_Type *lp_ps_req;
@@ -2797,14 +2797,6 @@ void tm_process_msg(BMS_SRE *pp_sre)
     CTmTxMessage          *lp_msg;
 
     TMTrace(2, ("tm_process_msg ENTRY\n"));
-
-    lv_ret = 0;
-    la_recv_buffer = (char *) calloc(pp_sre->sre_reqDataSize + 256, sizeof(char));
-    if (la_recv_buffer == 0) {
-      tm_log_event(DTM_TM_READ_MSG_FAIL, SQ_LOG_CRIT, "DTM_TM_READ_MSG_FAIL", lv_ret);
-      TMTrace(1, ("tm_process_msg : Error in allocating %d bytes for la_recv_buffer\n", pp_sre->sre_reqDataSize + 256));
-      abort();
-    }
 
     lv_ret = BMSG_READDATA_(pp_sre->sre_msgId,           // msgid
                             la_recv_buffer,              // reqdata
@@ -2833,7 +2825,7 @@ void tm_process_msg(BMS_SRE *pp_sre)
         return;
     }
 
-    lp_msg_hdr = (MESSAGE_HEADER_SQ *)la_recv_buffer;
+    lp_msg_hdr = (MESSAGE_HEADER_SQ *)&la_recv_buffer;
 
     TMTrace(3, ("tm_process_msg : tm %d, type %d, msgid %d\n",
                     gv_tm_info.nid(), lp_msg_hdr->rr_type.request_type, pp_sre->sre_msgId));
@@ -3065,7 +3057,7 @@ void tm_process_msg(BMS_SRE *pp_sre)
     // TM_TX_Info::process_eventQ method once the request
     // has been processed.
 
-    lp_msg = new CTmTxMessage((Tm_Req_Msg_Type *) la_recv_buffer, pp_sre->sre_msgId, NULL);
+    lp_msg = new CTmTxMessage((Tm_Req_Msg_Type *) &la_recv_buffer, pp_sre->sre_msgId, NULL);
 
     if (lp_msg_hdr->dialect_type == DIALECT_TM_DP2_SQ)
     {
