@@ -17,8 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EsgynDB.Data.ETL", "EsgynDB
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{728F73D6-5290-4420-9CD6-3261170B874F}"
 	ProjectSection(SolutionItems) = preProject
-		Local.testsettings = Local.testsettings
 		EsgynDBProvider.vsmdi = EsgynDBProvider.vsmdi
+		Local.testsettings = Local.testsettings
 		TraceAndTestImpact.testsettings = TraceAndTestImpact.testsettings
 	EndProjectSection
 EndProject
@@ -98,8 +98,8 @@ Global
 		{D01A6BE8-6E10-484B-A1EC-93EA0D3174CC}.SingleImage|Any CPU.Build.0 = Release|Any CPU
 		{15380EE7-5351-49AE-B6EC-C9A469BD2D98}.CD_ROM|Any CPU.ActiveCfg = CD_ROM
 		{15380EE7-5351-49AE-B6EC-C9A469BD2D98}.CD_ROM|Any CPU.Build.0 = CD_ROM
-		{15380EE7-5351-49AE-B6EC-C9A469BD2D98}.Debug|Any CPU.ActiveCfg = DVD-5
-		{15380EE7-5351-49AE-B6EC-C9A469BD2D98}.Debug|Any CPU.Build.0 = DVD-5
+		{15380EE7-5351-49AE-B6EC-C9A469BD2D98}.Debug|Any CPU.ActiveCfg = SingleImage
+		{15380EE7-5351-49AE-B6EC-C9A469BD2D98}.Debug|Any CPU.Build.0 = SingleImage
 		{15380EE7-5351-49AE-B6EC-C9A469BD2D98}.DVD-5|Any CPU.ActiveCfg = DVD-5
 		{15380EE7-5351-49AE-B6EC-C9A469BD2D98}.DVD-5|Any CPU.Build.0 = DVD-5
 		{15380EE7-5351-49AE-B6EC-C9A469BD2D98}.Release|Any CPU.ActiveCfg = SingleImage

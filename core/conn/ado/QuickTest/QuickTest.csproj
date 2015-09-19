@@ -38,8 +38,8 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\..\..\..\Build\TrafAdo\</OutputPath>
-    <BaseIntermediateOutputPath>..\..\..\..\..\Build\TrafAdo\temp\</BaseIntermediateOutputPath>
+    <OutputPath>C:\Build\EsgynDBADO\Debug\</OutputPath>
+    <BaseIntermediateOutputPath>C:\Build\EsgynDBADO\Debug\temp\</BaseIntermediateOutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -47,7 +47,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>C:\Build\EsgynDBADO\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>

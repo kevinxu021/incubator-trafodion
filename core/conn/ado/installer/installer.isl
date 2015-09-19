@@ -339,7 +339,8 @@
 		<col def="S0">ISDotNetInstallerArgsCommit</col>
 		<col def="S0">ISDotNetInstallerArgsUninstall</col>
 		<col def="S0">ISDotNetInstallerArgsRollback</col>
-		<row><td>EsgynDB.Data.Primary_output</td><td>{4AC1A77F-86F8-434F-AA87-00F6A0795366}</td><td>INSTALLDIR</td><td>2</td><td/><td>esgyndb.data.primary_output</td><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
+		<row><td>EsgynDB.Data.dll</td><td>{698AE7B2-9B76-40BF-B70B-02392654FC8A}</td><td>INSTALLDIR</td><td>2</td><td/><td>esgyndb.data.dll</td><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
+		<row><td>EsgynDB.Data.dll2</td><td>{184D2E15-8E2D-4DAB-B084-111CE45EC390}</td><td>GlobalAssemblyCache</td><td>2</td><td/><td>esgyndb.data.dll2</td><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
 		<row><td>ISX_DEFAULTCOMPONENT</td><td>{78C93987-9EA7-49BE-8296-258AB8578D1B}</td><td>GlobalAssemblyCache</td><td>2</td><td/><td/><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
 		<row><td>ISX_DEFAULTCOMPONENT1</td><td>{9C06D850-5829-4E15-BE8C-0BC3D15D1D19}</td><td>INSTALLDIR</td><td>2</td><td/><td/><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
 		<row><td>ISX_DEFAULTCOMPONENT2</td><td>{41E5D487-4BB2-40E6-AA11-FB9647BBB29C}</td><td>INSTALLDIR</td><td>258</td><td/><td/><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
@@ -1051,8 +1052,11 @@
 	<table name="CreateFolder">
 		<col key="yes" def="s72">Directory_</col>
 		<col key="yes" def="s72">Component_</col>
+		<row><td>GlobalAssemblyCache</td><td>EsgynDB.Data.dll2</td></row>
 		<row><td>GlobalAssemblyCache</td><td>ISX_DEFAULTCOMPONENT</td></row>
 		<row><td>INSTALLDIR</td><td>EsgynDB.Data.Primary_output</td></row>
+		<row><td>INSTALLDIR</td><td>EsgynDB.Data.dll</td></row>
+		<row><td>INSTALLDIR</td><td>EsgynDB.Data.dll2</td></row>
 		<row><td>INSTALLDIR</td><td>ISX_DEFAULTCOMPONENT</td></row>
 		<row><td>INSTALLDIR</td><td>ISX_DEFAULTCOMPONENT1</td></row>
 		<row><td>INSTALLDIR</td><td>ISX_DEFAULTCOMPONENT2</td></row>
@@ -1870,6 +1874,8 @@
 		<col key="yes" def="s38">Feature_</col>
 		<col key="yes" def="s72">Component_</col>
 		<row><td>AlwaysInstall</td><td>EsgynDB.Data.Primary_output</td></row>
+		<row><td>AlwaysInstall</td><td>EsgynDB.Data.dll</td></row>
+		<row><td>AlwaysInstall</td><td>EsgynDB.Data.dll2</td></row>
 		<row><td>AlwaysInstall</td><td>ISX_DEFAULTCOMPONENT</td></row>
 		<row><td>AlwaysInstall</td><td>ISX_DEFAULTCOMPONENT1</td></row>
 		<row><td>AlwaysInstall</td><td>ISX_DEFAULTCOMPONENT2</td></row>
@@ -1887,7 +1893,8 @@
 		<col def="S255">ISBuildSourcePath</col>
 		<col def="I4">ISAttributes</col>
 		<col def="S72">ISComponentSubFolder_</col>
-		<row><td>esgyndb.data.primary_output</td><td>EsgynDB.Data.Primary_output</td><td>EsgynDB.Data.Primary output</td><td>0</td><td/><td/><td/><td>1</td><td>&lt;Esgyndb.Data&gt;|Built</td><td>3</td><td/></row>
+		<row><td>esgyndb.data.dll</td><td>EsgynDB.Data.dll</td><td>ESGYND~1.DLL|EsgynDB.Data.dll</td><td>0</td><td/><td/><td/><td>1</td><td>C:\Build\EsgynDBADO\Release\EsgynDB.Data.dll</td><td>1</td><td/></row>
+		<row><td>esgyndb.data.dll2</td><td>EsgynDB.Data.dll2</td><td>ESGYND~1.DLL|EsgynDB.Data.dll</td><td>0</td><td/><td/><td/><td>1</td><td>C:\Build\EsgynDBADO\Release\EsgynDB.Data.dll</td><td>1</td><td/></row>
 	</table>
 
 	<table name="FileSFPCatalog">
@@ -2031,7 +2038,9 @@
 		<col def="S0">FTPLocation</col>
 		<col def="S0">HTTPLocation</col>
 		<col def="S0">Miscellaneous</col>
-		<row><td>EsgynDB.Data.Primary_output</td><td/><td/><td>_E1563E7B_B5B3_4ABE_92EA_FE34B2F28EF8_FILTER</td><td/><td/><td/><td/></row>
+		<row><td>EsgynDB.Data.Primary_output</td><td/><td/><td>_EAF105B3_591A_47C1_B281_E4FD567F348A_FILTER</td><td/><td/><td/><td/></row>
+		<row><td>EsgynDB.Data.dll</td><td/><td/><td>_0B52D86B_5120_4541_BA3D_A3746C445CEB_FILTER</td><td/><td/><td/><td/></row>
+		<row><td>EsgynDB.Data.dll2</td><td/><td/><td>_55FB0099_B735_4889_83FB_7E34787C97B2_FILTER</td><td/><td/><td/><td/></row>
 		<row><td>ISX_DEFAULTCOMPONENT</td><td/><td/><td>_EF530C96_4D0A_4794_B31D_FDCBC2BF9908_FILTER</td><td/><td/><td/><td/></row>
 		<row><td>ISX_DEFAULTCOMPONENT1</td><td/><td/><td>_EBE0E4EB_44D7_4B0C_8982_96CC46C6072F_FILTER</td><td/><td/><td/><td/></row>
 		<row><td>ISX_DEFAULTCOMPONENT2</td><td/><td/><td>_C14D5FA5_38FF_404D_8B8D_6AA68243EA9C_FILTER</td><td/><td/><td/><td/></row>
@@ -3973,7 +3982,7 @@ UwBpAG4AZwBsAGUASQBtAGEAZwBlAAEARQB4AHAAcgBlAHMAcwA=
 		<row><td>ISTheme</td><td>InstallShield Blue.theme</td></row>
 		<row><td>ISUSLock</td><td>{14DDAECE-8BF5-44F1-98A4-29BFAC417EDB}</td></row>
 		<row><td>ISUSSignature</td><td>{1C22C98B-1AB2-4B44-ADCD-4426332675CA}</td></row>
-		<row><td>ISVisitedViews</td><td>viewAssistant,viewISToday,viewUI,viewEnvironmentVariables,viewFileExtensions,viewIniFiles,viewRegistry,viewRelease,viewTextMessages</td></row>
+		<row><td>ISVisitedViews</td><td>viewAssistant,viewISToday,viewUI,viewEnvironmentVariables,viewFileExtensions,viewIniFiles,viewRegistry,viewRelease,viewTextMessages,viewAppFiles,viewObjects,viewUpdateService,viewUpgradePaths,viewProject,viewLearnMore</td></row>
 		<row><td>Limited</td><td>1</td></row>
 		<row><td>LockPermissionMode</td><td>1</td></row>
 		<row><td>MsiExecCmdLineOptions</td><td/></row>
@@ -4317,7 +4326,6 @@ UwBpAG4AZwBsAGUASQBtAGEAZwBlAAEARQB4AHAAcgBlAHMAcwA=
 		<row><td>IS_SQLSERVER_SERVER</td><td/><td/></row>
 		<row><td>IS_SQLSERVER_USERNAME</td><td>sa</td><td/></row>
 		<row><td>InstallChoice</td><td>AR</td><td/></row>
-		<row><td>LAUNCHPROGRAM</td><td>1</td><td/></row>
 		<row><td>Manufacturer</td><td>##COMPANY_NAME##</td><td/></row>
 		<row><td>PIDKEY</td><td/><td/></row>
 		<row><td>PIDTemplate</td><td>12345&lt;###-%%%%%%%&gt;@@@@@</td><td/></row>
@@ -4358,6 +4366,7 @@ UwBpAG4AZwBsAGUASQBtAGEAZwBlAAEARQB4AHAAcgBlAHMAcwA=
 		<row><td>RestartManagerOption</td><td>CloseRestart</td><td/></row>
 		<row><td>SERIALNUMBER</td><td/><td/></row>
 		<row><td>SERIALNUMVALSUCCESSRETVAL</td><td>1</td><td/></row>
+		<row><td>SHOWLAUNCHPROGRAM</td><td>0</td><td/></row>
 		<row><td>SHOWLAUNCHREADME</td><td>0</td><td/></row>
 		<row><td>SecureCustomProperties</td><td>ISFOUNDNEWERPRODUCTVERSION;USERNAME;COMPANYNAME;ISX_SERIALNUM;SUPPORTDIR</td><td/></row>
 		<row><td>SelectedSetupType</td><td>##IDS__DisplayName_Typical##</td><td/></row>
