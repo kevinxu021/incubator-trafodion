@@ -88,6 +88,7 @@ class ExpHbaseInterface : public NABasicObject
   static ExpHbaseInterface* newInstance(CollHeap* heap, 
                                         const char* server = NULL, 
                                         const char *zkPort = NULL, 
+					NABoolean replSync = false,
                                         int debugPort = 0, 
                                         int DebugTimeout = 0);
 
@@ -256,7 +257,8 @@ class ExpHbaseInterface : public NABasicObject
 		  HbaseStr row,
 		  NABoolean noXn,
 		  const int64_t timestamp,
-                  NABoolean asyncOperation) = 0;
+                  NABoolean asyncOperation,
+		  NABoolean replSync) = 0;
 
  virtual Lng32 getRowsOpen(
           HbaseStr tblName,
@@ -411,7 +413,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
  public:
 
   ExpHbaseInterface_JNI(CollHeap* heap,
-                        const char* server, bool useTRex,
+                        const char* server, bool useTRex, NABoolean replSync, 
                         const char *zkPort, int debugPort, int debugTimeout);
   
   virtual ~ExpHbaseInterface_JNI();
@@ -556,7 +558,8 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
                   HbaseStr row,
 		  NABoolean noXn,
 		  const int64_t timestamp,
-                  NABoolean asyncOperation);
+                  NABoolean asyncOperation,
+		  NABoolean replSync);
 
  virtual Lng32 getRowsOpen(
           HbaseStr tblName,
@@ -684,6 +687,7 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
 
 private:
   bool  useTRex_;
+  NABoolean replSync_;;
   HBaseClient_JNI* client_;
   HTableClient_JNI* htc_;
   HBulkLoadClient_JNI* hblc_;

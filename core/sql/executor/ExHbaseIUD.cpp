@@ -167,7 +167,8 @@ ExWorkProcRetcode ExHbaseAccessInsertTcb::work()
 				      row_,
                                       hbaseAccessTdb().useHbaseXn(),
 				      *insColTS_,
-                                      FALSE); // AsyncOperations is always FALSE for native HBase
+                                      FALSE, // AsyncOperations is always FALSE for native HBase
+                                      hbaseAccessTdb().replSync());
 
 	    if (setupError(retcode, "ExpHbaseInterface::insertRow"))
 	      {
@@ -336,7 +337,8 @@ ExWorkProcRetcode ExHbaseAccessInsertRowwiseTcb::work()
 					  row_,
                                           hbaseAccessTdb().useHbaseXn(),
 					  -1,  //*insColTS_
-                                          FALSE); // AsyncOperations is always FALSE for native HBase
+					  FALSE, // AsyncOperations is always FALSE for native HBase
+					  hbaseAccessTdb().replSync());
 
 		if (setupError(retcode, "ExpHbaseInterface::insertRow"))
 		  {
@@ -609,7 +611,8 @@ ExWorkProcRetcode ExHbaseAccessInsertSQTcb::work()
 				      row_,
                                       hbaseAccessTdb().useHbaseXn(),
 				      insColTSval_,
-                                      asyncOperation_);
+                                      asyncOperation_,
+                                      hbaseAccessTdb().replSync());
 
 	    if (setupError(retcode, "ExpHbaseInterface::insertRow")) {
 		step_ = HANDLE_ERROR;
@@ -2067,7 +2070,8 @@ ExWorkProcRetcode ExHbaseUMDtrafUniqueTaskTcb::work(short &rc)
 	                                     tcb_->row_,
 					     (tcb_->hbaseAccessTdb().useHbaseXn() ? TRUE : FALSE),
 					     -1, //colTS_
-                                             tcb_->asyncOperation_);
+                                             tcb_->asyncOperation_,
+					     (tcb_->hbaseAccessTdb().replSync()));
 	    if ( tcb_->setupError(retcode, "ExpHbaseInterface::insertRow"))
 	      {
 		step_ = HANDLE_ERROR;
@@ -2684,7 +2688,8 @@ ExWorkProcRetcode ExHbaseUMDnativeUniqueTaskTcb::work(short &rc)
                                                  tcb_->row_,
                                                  tcb_->hbaseAccessTdb().useHbaseXn(),
                                                  -1, // colTS_
-                                                 tcb_->asyncOperation_);
+                                                 tcb_->asyncOperation_,
+						 tcb_->hbaseAccessTdb().replSync());
 
 		if ( tcb_->setupError(retcode, "ExpHbaseInterface::insertRow"))
 		  {
@@ -2945,7 +2950,8 @@ ExWorkProcRetcode ExHbaseUMDtrafSubsetTaskTcb::work(short &rc)
 					    tcb_->row_,
                                             tcb_->hbaseAccessTdb().useHbaseXn(),
 					    -1, // colTS_
-                                            tcb_->asyncOperation_);
+                                            tcb_->asyncOperation_,
+					    tcb_->hbaseAccessTdb().replSync());
 	    if (tcb_->setupError(retcode, "ExpHbaseInterface::insertRow"))
 	    {
 		step_ = HANDLE_ERROR;
@@ -3343,7 +3349,8 @@ ExWorkProcRetcode ExHbaseUMDnativeSubsetTaskTcb::work(short &rc)
 						tcb_->row_,
                                                 tcb_->hbaseAccessTdb().useHbaseXn(),						
 						-1,// colTS_
-                                                tcb_->asyncOperation_); 
+                                                tcb_->asyncOperation_,
+						tcb_->hbaseAccessTdb().replSync());
 		if (tcb_->setupError(retcode, "ExpHbaseInterface::insertRow"))
 		  {
 		    step_ = HANDLE_ERROR;
