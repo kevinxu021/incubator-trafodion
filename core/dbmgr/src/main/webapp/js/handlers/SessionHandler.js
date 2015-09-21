@@ -23,6 +23,7 @@ function(EventDispatcher, common) {"use strict";
             	    data: JSON.stringify(param),
             	    dataType:"json",
             	    contentType: "application/json;",
+            	    async: false,
             	    success: function(data){
     					common.storeSessionProperties(data.serverTimeZone, data.serverUTCOffset, data.dcsMasterInfoUri);
     					dispatcher.fire(_this.LOGIN_SUCCESS, data);

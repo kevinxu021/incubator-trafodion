@@ -119,7 +119,7 @@ define([
 			var compDataSet = [];
 			compDataSet.push(["Compile Start Time", common.toServerLocalDateFromUtcMilliSeconds(result.metrics.compile_start_utc_ts)]);
 			compDataSet.push(["Compile End Time", common.toServerLocalDateFromUtcMilliSeconds(result.metrics.compile_end_utc_ts)]);
-			compDataSet.push(["Compile Elapsed Time", result.metrics.compile_elapsed_time]);
+			compDataSet.push(["Compile Elapsed Time", common.millisecondsToString(result.metrics.compile_elapsed_time/1000)]);
 			compDataSet.push(["Degree of Parallelism", result.metrics.cmp_dop]);
 			compDataSet.push(["Number of Joins", result.metrics.cmp_num_joins]);
 			compDataSet.push(["Full Scan", result.metrics.cmp_full_scan_on_table]);
@@ -127,24 +127,24 @@ define([
 			compDataSet.push(["Est.Used Rows", result.metrics.est_used_rows]);
 			compDataSet.push(["Est.Cost", result.metrics.est_cost]);
 			compDataSet.push(["Est.Cardinality", result.metrics.est_cardinality]);
-			compDataSet.push(["Est.Memory Use", result.metrics.est_total_mem]);
-			compDataSet.push(["Est.CPU Time", result.metrics.est_cpu_time]);
-			compDataSet.push(["Est.IO Time", result.metrics.est_io_time]);
-			compDataSet.push(["Est.Message Time", result.metrics.est_msg_time]);
-			compDataSet.push(["Est.Idle Time", result.metrics.est_idle_time]);
+			compDataSet.push(["Est.Memory Use", common.bytesToSize(result.metrics.est_total_mem*1024)]);
+			compDataSet.push(["Est.CPU Time", common.millisecondsToString(result.metrics.est_cpu_time*1000)]);
+			compDataSet.push(["Est.IO Time", common.millisecondsToString(result.metrics.est_io_time*1000)]);
+			compDataSet.push(["Est.Message Time", common.millisecondsToString(result.metrics.est_msg_time*1000)]);
+			compDataSet.push(["Est.Idle Time", common.millisecondsToString(result.metrics.est_idle_time*1000)]);
 			compDataSet.push(["CPU Path Length", result.metrics.cmp_cpu_path_length]);
 			compDataSet.push(["Number of BMOs", result.metrics.cmp_number_of_bmos]);
-			compDataSet.push(["Overflow Size", result.metrics.cmp_overflow_size]);
+			compDataSet.push(["Compile Overflow Size", common.bytesToSize(result.metrics.cmp_overflow_size*1024)]);
 
 			var runtimeDataSet = [];
-			runtimeDataSet.push(["Query Elapsed Time", result.metrics.query_elapsed_time]);
-			runtimeDataSet.push(["SQL Process Busy Time", result.metrics.sql_process_busy_time]);
-			runtimeDataSet.push(["Disk Process Busy Time", result.metrics.disk_process_busy_time]);
-			runtimeDataSet.push(["Master Execution Time", result.metrics.master_execution_time]);
+			runtimeDataSet.push(["Query Elapsed Time", common.millisecondsToString(result.metrics.query_elapsed_time/1000)]);
+			runtimeDataSet.push(["SQL Process Busy Time", common.millisecondsToString(result.metrics.sql_process_busy_time/1000)]);
+			runtimeDataSet.push(["Disk Process Busy Time", common.millisecondsToString(result.metrics.disk_process_busy_time/1000)]);
+			runtimeDataSet.push(["Master Execution Time", common.millisecondsToString(result.metrics.master_execution_time/1000)]);
 			runtimeDataSet.push(["Disk IOs", result.metrics.disk_ios]);
 			runtimeDataSet.push(["SQL Process Count", result.metrics.num_sql_processes]);
-			runtimeDataSet.push(["Total Memory Allocated", result.metrics.total_mem_alloc]);
-			runtimeDataSet.push(["Total Memory Used", result.metrics.max_mem_used]);
+			runtimeDataSet.push(["Total Memory Allocated", common.bytesToSize(result.metrics.total_mem_alloc*1024)]);
+			runtimeDataSet.push(["Max. Memory Used", common.bytesToSize(result.metrics.max_mem_used*1024)]);
 			runtimeDataSet.push(["Error Code", result.metrics.error_code]);
 			runtimeDataSet.push(["Stats Error Code", result.metrics.stats_error_code]);
 			runtimeDataSet.push(["SQL Error Code", result.metrics.sql_error_code]);
@@ -152,7 +152,9 @@ define([
 			runtimeDataSet.push(["AQR Retry Count", result.metrics.total_num_aqr_retries]);
 			runtimeDataSet.push(["IUD Row Count", result.metrics.num_rows_iud]);
 			runtimeDataSet.push(["Messages To Disk", result.metrics.msgs_to_disk]);
-			runtimeDataSet.push(["Message Bytes to Disk", result.metrics.msg_bytes_to_disk]);
+			runtimeDataSet.push(["Message Size to Disk", common.bytesToSize(result.metrics.msg_bytes_to_disk)]);
+			runtimeDataSet.push(["Overflow Size Written", common.bytesToSize(result.metrics.ovf_buffer_bytes_written*1024)]);
+			runtimeDataSet.push(["Overflow Size Read", common.bytesToSize(result.metrics.ovf_buffer_bytes_read*1024)]);
 			
 	
 			var connTable = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="conn-metrics-results"></table>';

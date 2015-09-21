@@ -110,7 +110,10 @@ define([
                 //session.saveLoginTime(toISODateString(new Date()));
 				window.location.hash = '/dashboard';
 			}else{
-				_that.showErrorMessage(result.errorMessage);
+		       	_that.hideLoading();
+	        	$("#errorText").text("");
+	        	$("#errorText").show();
+	        	$("#errorText").text(result.errorMessage);
 			}
 		},
 		doLogout: function(){
@@ -135,12 +138,16 @@ define([
 		logoutSuccess: function(){
 			
 		},
-        showErrorMessage: function (message) {
+        showErrorMessage: function (jqXHR, res, error) {
         	_that.hideLoading();
         	$("#errorText").text("");
         	$("#errorText").show();
-        	if (message) {
-        		$("#errorText").text(message);
+        	if (jqXHR) {
+        		if(jqXHR.status != null && jqXHR.status == 0) {
+            		$("#errorText").text("Error : Unable to communicate with the server.");
+        		}else {
+            		$("#errorText").text(jqXHR.statusText);
+        		}
         	}
         }  
 	});
