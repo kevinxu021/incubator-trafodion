@@ -163,6 +163,66 @@ function(moment, momenttimezone, $) {
 				});
 			};
 			
+			this.millisecondsToString = function(milliseconds) {
+				var oneDay = (3600000 * 24);
+				var oneHour = 3600000;
+				var oneMinute = 60000;
+				var oneSecond = 1000;
+				var seconds = 0;
+				var minutes = 0;
+				var hours = 0;
+				var days = 0;
+				var result;
+
+				if (milliseconds >= oneDay) {
+					days = Math.floor(milliseconds / oneDay);
+				}
+
+				if (milliseconds >= oneHour) {
+					hours = Math.floor(milliseconds / oneHour);
+				}
+
+				milliseconds = hours > 0 ? (milliseconds - hours * oneHour) : milliseconds;
+
+				if (milliseconds >= oneMinute) {
+					minutes = Math.floor(milliseconds / oneMinute);
+				}
+
+				milliseconds = minutes > 0 ? (milliseconds - minutes * oneMinute) : milliseconds;
+
+				if (milliseconds >= oneSecond) {
+					seconds = Math.floor(milliseconds / oneSecond);
+				}
+
+				milliseconds = seconds > 0 ? (milliseconds - seconds * oneSecond) : milliseconds;
+
+				if (days > 0) {
+					result = (days > 9 ? days : "0" + days) + " d ";
+				} else {
+					result = "";
+				}
+
+				if (hours > 0) {
+					result = (hours > 9 ? hours : "0" + hours) + ":";
+				} else {
+					result = "00:";
+				}
+
+				if (minutes > 0) {
+					result += (minutes > 9 ? minutes : "0" + minutes) + ":";
+				} else {
+					result += "00:";
+				}
+
+				if (seconds > 0) {
+					result += (seconds > 9 ? seconds : "0" + seconds);
+				} else {
+					result += "00";
+				}
+
+				return result;
+			};
+			
 			this.generateExplainTree = function(jsonData, setRootNode, onClickCallback){
 	        	var st = new $jit.ST({
 	        		'injectInto': 'infovis',

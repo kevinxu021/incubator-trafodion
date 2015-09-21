@@ -105,17 +105,17 @@ The DCS Servers page displays the current active DCS Server sessions. If the DCS
 === Query Workbench
 The query workbench page allows you to execute ad hoc queries and view the results in a tabular form or to generate a visual explain plan.
 
-Type the SQL query text in the Query text area. This should a valid EsgynDB query syntax. If not the engine will reject and report an error.
+Type the SQL query text in the Query text area. The query text should in valid EsgynDB query syntax. If not the engine will reject and report an error.
 
 ==== Execute Query
 You can use the *Execute* button to execute the query. For a query that returns a result set, the results are displayed in a tabular format. For a query that is not SELECT or returns a scalar results, the results are displayed as normal text.
 If the engine rejects the SQL query, the entire SQL exception is displayed in the screen.
 
 ==== Explain Plan
-You can use the *Explain* button to generate an explain plan for the query. This is helpful for users to analyze the performance cost of the query and allows them to tune it.
+You can use the *Explain* button to generate an explain plan for the query. You get a visual explain in a tree graph and also a textual plan. You can right mouse click on the graph and move the graph around or use your mouse scroll key to zoom-in and zoom-out the graph. If you click on a specific node in the tree, you can see the details and cost for that specific operator. 
 
 ==== Control Options
-The Control options allow you enter SET statements or Control Query statements that can influence the query plan.
+The Control options allow you enter SET statements or Control Query statements that can influence the query plan and execution. You can use these options to tune your query performance. Refer to the SQL Reference manual for more details on the SET and Control query commands.
 
 === Log Out
 You can click on the user icon at the top right corner of the application and select the *Logout* option.

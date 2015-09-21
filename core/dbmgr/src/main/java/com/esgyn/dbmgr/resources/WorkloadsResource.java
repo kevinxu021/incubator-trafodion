@@ -227,6 +227,8 @@ public class WorkloadsResource {
 				metrics.put("num_rows_iud", rs.getLong("num_rows_iud"));
 				metrics.put("processes_created", rs.getLong("processes_created"));
 				metrics.put("num_nodes", rs.getLong("num_nodes"));
+				metrics.put("ovf_buffer_bytes_written", rs.getLong("ovf_buffer_bytes_written"));
+				metrics.put("ovf_buffer_bytes_read", rs.getLong("ovf_buffer_bytes_read"));
 				qDetail.setMetrics(metrics);
 			}
 			rs.close();

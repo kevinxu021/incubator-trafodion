@@ -120,7 +120,9 @@
 						msgs_to_disk,
 						num_rows_iud,
 						processes_created,
-						num_nodes
+						num_nodes,
+						ovf_buffer_bytes_written,
+						ovf_buffer_bytes_read
 						from "_REPOS_".metric_query_table
 				 WHERE query_id = '%1$s']]></text>
 		</query>

@@ -199,7 +199,7 @@ define([
         	param.queryText = $(FILTER_QUERY_TEXT).val();
         	
         	$(FILTER_DIALOG).modal('hide');
-
+        	_that.showLoading();
         	wHandler.fetchQueriesInRepository(param);
         },
         fetchQueriesInRepository: function () {
