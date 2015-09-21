@@ -1646,7 +1646,7 @@ void CmpSeabaseDDL::restoreAllControlsAndFlags()
   cliRC = cliInterface.executeImmediate("control query shape restore;");
 
   if (CmpCommon::context()->getCntlCount() > 0 &&
-      CmpCommon::context()->getCntlCount() < CQD_SENT_MAX)
+      CmpCommon::context()->getCntlCount() <= CQD_SENT_MAX)
     {
   cliRC = cliInterface.restoreCQD("volatile_schema_in_use");
 
