@@ -3165,7 +3165,7 @@ SDDflt0_(QUERY_CACHE_SELECTIVITY_TOLERANCE,       "0"),
   DDkwd__(SKIP_VCC, 				"OFF"),
 
   DDui0_5(SOFT_REQ_HASH_TYPE,                   "2"),
-  DDkwd__(SORT_ALGO,                  "QS"),
+  DDkwd__(SORT_ALGO,                  "HEAP"),
   // Calibration
   // 01/23/98: 10000
   // Original: 10.
