@@ -352,6 +352,7 @@ ExHbaseAccessTcb::ExHbaseAccessTcb(
 					(char*)hbaseAccessTdb.server_, 
 					//                                        (char*)"2181", 
 					(char*)hbaseAccessTdb.zkPort_,
+					((ComTdbHbaseAccess &) hbaseAccessTdb).replSync(),
                                         jniDebugPort,
                                         jniDebugTimeout);
 

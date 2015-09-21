@@ -612,7 +612,11 @@ HBC_RetCode HBaseClient_JNI::cleanup()
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-HTableClient_JNI* HBaseClient_JNI::getHTableClient(NAHeap *heap, const char* tableName, bool useTRex, ExHbaseAccessStats *hbs)
+HTableClient_JNI* HBaseClient_JNI::getHTableClient(NAHeap *heap, 
+						   const char* tableName,
+						   bool useTRex,
+						   NABoolean replSync,
+						   ExHbaseAccessStats *hbs)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::getHTableClient(%s) called.", tableName);
 
@@ -649,8 +653,12 @@ HTableClient_JNI* HBaseClient_JNI::getHTableClient(NAHeap *heap, const char* tab
   htc->setHbaseStats(hbs);
 
   tsRecentJMFromJNI = JavaMethods_[JM_GET_HTC].jm_full_name;
-  jobject j_htc = jenv_->CallObjectMethod(javaObj_, JavaMethods_[JM_GET_HTC].methodID, 
-					  (jlong)htc, js_tblName, (jboolean)useTRex, (jboolean) true);  //TBD: Narendra: provide the bSynchronize flag for STR
+  jobject j_htc = jenv_->CallObjectMethod(javaObj_, 
+					  JavaMethods_[JM_GET_HTC].methodID, 
+					  (jlong)htc, 
+					  js_tblName, 
+					  (jboolean)useTRex, 
+					  (jboolean) replSync);
 
   jenv_->DeleteLocalRef(js_tblName); 
 
@@ -2553,9 +2561,14 @@ void HBaseClient_JNI::logIt(const char* str)
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, str);
 }
 
-HTableClient_JNI *HBaseClient_JNI::startGet(NAHeap *heap, const char* tableName, bool useTRex, 
-            ExHbaseAccessStats *hbs, Int64 transID, const HbaseStr& rowID, 
-            const LIST(HbaseStr) & cols, Int64 timestamp) 
+HTableClient_JNI *HBaseClient_JNI::startGet(NAHeap *heap,
+					    const char* tableName,
+					    bool useTRex,
+					    NABoolean replSync,
+					    ExHbaseAccessStats *hbs, 
+					    Int64 transID,
+					    const HbaseStr& rowID, 
+					    const LIST(HbaseStr) & cols, Int64 timestamp) 
 {
   if (javaObj_ == NULL || (!isInitialized())) {
     GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_GET_HTC_EXCEPTION));
@@ -2620,8 +2633,13 @@ HTableClient_JNI *HBaseClient_JNI::startGet(NAHeap *heap, const char* tableName,
 
   tsRecentJMFromJNI = JavaMethods_[JM_START_GET].jm_full_name;
   jint jresult = jenv_->CallIntMethod(javaObj_, 
-            JavaMethods_[JM_START_GET].methodID, 
-	(jlong)htc, js_tblName, (jboolean)useTRex, (jboolean) true, j_tid, jba_rowID, //TBD: Narendra: provide the bSynchronize flag for STR
+				      JavaMethods_[JM_START_GET].methodID, 
+				      (jlong)htc,
+				      js_tblName,
+				      (jboolean)useTRex, 
+				      (jboolean) replSync,
+				      j_tid,
+				      jba_rowID,
             j_cols, j_ts);
   if (hbs) {
       hbs->incMaxHbaseIOTime(hbs->getTimer().stop());
@@ -2645,10 +2663,17 @@ HTableClient_JNI *HBaseClient_JNI::startGet(NAHeap *heap, const char* tableName,
   return htc;
 }
 
-HTableClient_JNI *HBaseClient_JNI::startGets(NAHeap *heap, const char* tableName, bool useTRex,
-            ExHbaseAccessStats *hbs, Int64 transID, const LIST(HbaseStr) *rowIDs, 
-            short rowIDLen, const HbaseStr *rowIDsInDB,
-            const LIST(HbaseStr) & cols, Int64 timestamp)
+HTableClient_JNI *HBaseClient_JNI::startGets(NAHeap *heap,
+					     const char* tableName,
+					     bool useTRex,
+					     NABoolean replSync, 
+					     ExHbaseAccessStats *hbs,
+					     Int64 transID,
+					     const LIST(HbaseStr) *rowIDs, 
+					     short rowIDLen,
+					     const HbaseStr *rowIDsInDB,
+					     const LIST(HbaseStr) & cols,
+					     Int64 timestamp)
 {
   if (javaObj_ == NULL || (!isInitialized())) {
     GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_GET_HTC_EXCEPTION));
@@ -2734,13 +2759,13 @@ HTableClient_JNI *HBaseClient_JNI::startGets(NAHeap *heap, const char* tableName
      tsRecentJMFromJNI = JavaMethods_[JM_START_GETS].jm_full_name;
      jresult = jenv_->CallIntMethod(javaObj_, 
             JavaMethods_[JM_START_GETS].methodID, 
-	(jlong)htc, js_tblName, (jboolean)useTRex, (jboolean) true, j_tid, j_rows, //TBD: Narendra: provide the bSynchronize flag for STR
+	(jlong)htc, js_tblName, (jboolean)useTRex, (jboolean) replSync, j_tid, j_rows,
             j_cols, j_ts);
   } else {
      tsRecentJMFromJNI = JavaMethods_[JM_START_DIRECT_GETS].jm_full_name;
      jresult = jenv_->CallIntMethod(javaObj_, 
             JavaMethods_[JM_START_DIRECT_GETS].methodID, 
-	(jlong)htc, js_tblName, (jboolean)useTRex, (jboolean) true, j_tid, jRowIDLen, jRowIDs, //TBD: Narendra: provide the bSynchronize flag for STR
+	(jlong)htc, js_tblName, (jboolean)useTRex, (jboolean) replSync, j_tid, jRowIDLen, jRowIDs,
             j_cols);
   }
   if (hbs) {
@@ -2885,10 +2910,18 @@ HBC_RetCode HBaseClient_JNI::getHbaseTableInfo(const char* tblName,
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-HBC_RetCode HBaseClient_JNI::insertRow(NAHeap *heap, const char *tableName,
-      ExHbaseAccessStats *hbs, bool useTRex, Int64 transID, HbaseStr rowID,
-      HbaseStr row, Int64 timestamp, bool checkAndPut, bool asyncOperation,
-      HTableClient_JNI **outHtc)
+HBC_RetCode HBaseClient_JNI::insertRow(NAHeap *heap,
+				       const char *tableName,
+				       ExHbaseAccessStats *hbs,
+				       bool useTRex,
+				       NABoolean replSync, 
+				       Int64 transID,
+				       HbaseStr rowID,
+				       HbaseStr row,
+				       Int64 timestamp,
+				       bool checkAndPut,
+				       bool asyncOperation,
+				       HTableClient_JNI **outHtc)
 {
   
   HTableClient_JNI *htc = NULL;
@@ -2943,8 +2976,18 @@ HBC_RetCode HBaseClient_JNI::insertRow(NAHeap *heap, const char *tableName,
   if (hbs)
     hbs->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_HBC_DIRECT_INSERT_ROW].jm_full_name;
-  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_HBC_DIRECT_INSERT_ROW].methodID, 
-               	j_htc, js_tblName, j_useTRex, (jboolean) true, j_tid, jba_rowID, jRow, j_ts, j_checkAndPut, j_asyncOperation); //TBD: Narendra: provide the bSynchronize flag for STR
+  jboolean jresult = jenv_->CallBooleanMethod(javaObj_,
+					      JavaMethods_[JM_HBC_DIRECT_INSERT_ROW].methodID,
+					      j_htc,
+					      js_tblName,
+					      j_useTRex,
+					      (jboolean) replSync,
+					      j_tid,
+					      jba_rowID,
+					      jRow,
+					      j_ts,
+					      j_checkAndPut,
+					      j_asyncOperation); 
   if (hbs) {
       hbs->incHbaseCalls();
       if (!asyncOperation)
@@ -2976,9 +3019,17 @@ HBC_RetCode HBaseClient_JNI::insertRow(NAHeap *heap, const char *tableName,
 // 
 //////////////////////////////////////////////////////////////////////////////
 HBC_RetCode HBaseClient_JNI::insertRows(NAHeap *heap, const char *tableName,
-      ExHbaseAccessStats *hbs, bool useTRex, Int64 transID, short rowIDLen, HbaseStr rowIDs,
-      HbaseStr rows, Int64 timestamp, bool autoFlush, bool asyncOperation,
-      HTableClient_JNI **outHtc)
+					ExHbaseAccessStats *hbs,
+					bool useTRex,
+					NABoolean replSync,
+					Int64 transID,
+					short rowIDLen,
+					HbaseStr rowIDs,
+					HbaseStr rows,
+					Int64 timestamp,
+					bool autoFlush,
+					bool asyncOperation,
+					HTableClient_JNI **outHtc)
 {
   
   HTableClient_JNI *htc = NULL;
@@ -3034,8 +3085,19 @@ HBC_RetCode HBaseClient_JNI::insertRows(NAHeap *heap, const char *tableName,
   if (hbs)
     hbs->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_full_name;
-  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].methodID, 
-               	j_htc, js_tblName, j_useTRex, (jboolean) true, j_tid, j_rowIDLen, jRowIDs, jRows, j_ts, j_af, j_asyncOperation);//TBD: Narendra: provide the bSynchronize flag for STR
+  jboolean jresult = jenv_->CallBooleanMethod(javaObj_,
+					      JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].methodID, 
+					      j_htc,
+					      js_tblName,
+					      j_useTRex,
+					      (jboolean) replSync,
+					      j_tid,
+					      j_rowIDLen,
+					      jRowIDs,
+					      jRows,
+					      j_ts,
+					      j_af,
+					      j_asyncOperation);
   if (hbs) {
       hbs->incHbaseCalls();
       if (!asyncOperation)
@@ -3068,10 +3130,17 @@ HBC_RetCode HBaseClient_JNI::insertRows(NAHeap *heap, const char *tableName,
 // 
 //////////////////////////////////////////////////////////////////////////////
 HBC_RetCode HBaseClient_JNI::checkAndUpdateRow(NAHeap *heap, const char *tableName,
-      ExHbaseAccessStats *hbs, bool useTRex, Int64 transID, HbaseStr rowID,
-      HbaseStr row, HbaseStr columnToCheck, HbaseStr columnValToCheck,
-       Int64 timestamp, bool asyncOperation,
-      HTableClient_JNI **outHtc)
+					       ExHbaseAccessStats *hbs,
+					       bool useTRex,
+					       NABoolean replSync,
+					       Int64 transID,
+					       HbaseStr rowID,
+					       HbaseStr row,
+					       HbaseStr columnToCheck,
+					       HbaseStr columnValToCheck,
+					       Int64 timestamp,
+					       bool asyncOperation,
+					       HTableClient_JNI **outHtc)
 {
   
   HTableClient_JNI *htc = NULL;
@@ -3146,9 +3215,18 @@ HBC_RetCode HBaseClient_JNI::checkAndUpdateRow(NAHeap *heap, const char *tableNa
   if (hbs)
     hbs->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].jm_full_name;
-  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].methodID, 
-               	j_htc, js_tblName, j_useTRex, (jboolean) true, j_tid, jba_rowID, jRow,//TBD: Narendra: provide the bSynchronize flag for STR
-                jba_columnToCheck, jba_columnValToCheck,  j_ts, j_asyncOperation);
+  jboolean jresult = jenv_->CallBooleanMethod(javaObj_,
+					      JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].methodID, 
+					      j_htc,
+					      js_tblName,
+					      j_useTRex,
+					      (jboolean) replSync,
+					      j_tid,
+					      jba_rowID,
+					      jRow,
+					      jba_columnToCheck,
+					      jba_columnValToCheck,
+					      j_ts, j_asyncOperation);
   if (hbs) {
       hbs->incHbaseCalls();
       if (!asyncOperation)
@@ -3181,8 +3259,15 @@ HBC_RetCode HBaseClient_JNI::checkAndUpdateRow(NAHeap *heap, const char *tableNa
 // 
 //////////////////////////////////////////////////////////////////////////////
 HBC_RetCode HBaseClient_JNI::deleteRow(NAHeap *heap, const char *tableName,
-      ExHbaseAccessStats *hbs, bool useTRex, Int64 transID, HbaseStr rowID, const LIST(HbaseStr) *cols, 
-      Int64 timestamp, bool asyncOperation, HTableClient_JNI **outHtc)
+				       ExHbaseAccessStats *hbs,
+				       bool useTRex,
+				       NABoolean replSync,
+				       Int64 transID,
+				       HbaseStr rowID,
+				       const LIST(HbaseStr) *cols, 
+				       Int64 timestamp,
+				       bool asyncOperation,
+				       HTableClient_JNI **outHtc)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::deleteRow(%ld, %s) called.", transID, rowID.val);
 
@@ -3240,8 +3325,16 @@ HBC_RetCode HBaseClient_JNI::deleteRow(NAHeap *heap, const char *tableName,
     hbs->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_HBC_DELETE_ROW].jm_full_name;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, 
-          JavaMethods_[JM_HBC_DELETE_ROW].methodID, j_htc, js_tblName, j_useTRex, (jboolean) true, j_tid, jba_rowID, //TBD: Narendra: provide the bSynchronize flag for STR
-          j_cols, j_ts, j_asyncOperation);
+          JavaMethods_[JM_HBC_DELETE_ROW].methodID,
+					      j_htc,
+					      js_tblName,
+					      j_useTRex,
+					      (jboolean) replSync,
+					      j_tid,
+					      jba_rowID,
+					      j_cols,
+					      j_ts,
+					      j_asyncOperation);
   if (hbs) {
       hbs->incHbaseCalls();
       if (!asyncOperation) 
@@ -3275,9 +3368,17 @@ HBC_RetCode HBaseClient_JNI::deleteRow(NAHeap *heap, const char *tableName,
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-HBC_RetCode HBaseClient_JNI::deleteRows(NAHeap *heap, const char *tableName,
-      ExHbaseAccessStats *hbs, bool useTRex, Int64 transID, short rowIDLen, HbaseStr rowIDs, 
-      Int64 timestamp, bool asyncOperation, HTableClient_JNI **outHtc)
+HBC_RetCode HBaseClient_JNI::deleteRows(NAHeap *heap,
+					const char *tableName,
+					ExHbaseAccessStats *hbs,
+					bool useTRex,
+					NABoolean replSync,
+					Int64 transID,
+					short rowIDLen,
+					HbaseStr rowIDs, 
+					Int64 timestamp,
+					bool asyncOperation,
+					HTableClient_JNI **outHtc)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::deleteRows(%ld, %s) called.", transID, rowIDs.val);
 
@@ -3323,8 +3424,16 @@ HBC_RetCode HBaseClient_JNI::deleteRows(NAHeap *heap, const char *tableName,
     hbs->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_HBC_DIRECT_DELETE_ROWS].jm_full_name;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, 
-          JavaMethods_[JM_HBC_DIRECT_DELETE_ROWS].methodID, j_htc, js_tblName, j_useTRex, (jboolean) true, j_tid, //TBD: Narendra: provide the bSynchronize flag for STR
-          j_rowIDLen, jRowIDs, j_ts, j_asyncOperation);
+					      JavaMethods_[JM_HBC_DIRECT_DELETE_ROWS].methodID,
+					      j_htc,
+					      js_tblName,
+					      j_useTRex,
+					      (jboolean) replSync,
+					      j_tid,
+					      j_rowIDLen,
+					      jRowIDs,
+					      j_ts,
+					      j_asyncOperation);
   if (hbs) {
       hbs->incHbaseCalls();
       if (!asyncOperation) 
@@ -3356,10 +3465,18 @@ HBC_RetCode HBaseClient_JNI::deleteRows(NAHeap *heap, const char *tableName,
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-HBC_RetCode HBaseClient_JNI::checkAndDeleteRow(NAHeap *heap, const char *tableName,
-      ExHbaseAccessStats *hbs, bool useTRex, Int64 transID, HbaseStr rowID, 
-      HbaseStr columnToCheck, HbaseStr columnValToCheck,
-      Int64 timestamp, bool asyncOperation, HTableClient_JNI **outHtc)
+HBC_RetCode HBaseClient_JNI::checkAndDeleteRow(NAHeap *heap,
+					       const char *tableName,
+					       ExHbaseAccessStats *hbs,
+					       bool useTRex,
+					       NABoolean replSync,
+					       Int64 transID,
+					       HbaseStr rowID, 
+					       HbaseStr columnToCheck,
+					       HbaseStr columnValToCheck,
+					       Int64 timestamp,
+					       bool asyncOperation,
+					       HTableClient_JNI **outHtc)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::checkAndDeleteRow(%ld, %s) called.", transID, rowID.val);
 
@@ -3422,8 +3539,17 @@ HBC_RetCode HBaseClient_JNI::checkAndDeleteRow(NAHeap *heap, const char *tableNa
     hbs->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_HBC_CHECKANDDELETE_ROW].jm_full_name;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, 
-          JavaMethods_[JM_HBC_CHECKANDDELETE_ROW].methodID, j_htc, js_tblName, j_useTRex, (jboolean) true, j_tid, jba_rowID, //TBD: Narendra: provide the bSynchronize flag for STR
-          jba_columnToCheck, jba_columnValToCheck, j_ts, j_asyncOperation);
+					      JavaMethods_[JM_HBC_CHECKANDDELETE_ROW].methodID,
+					      j_htc,
+					      js_tblName,
+					      j_useTRex,
+					      (jboolean) replSync, 
+					      j_tid,
+					      jba_rowID, 
+					      jba_columnToCheck,
+					      jba_columnValToCheck,
+					      j_ts,
+					      j_asyncOperation);
   if (hbs) {
       hbs->incHbaseCalls();
       if (!asyncOperation) 
