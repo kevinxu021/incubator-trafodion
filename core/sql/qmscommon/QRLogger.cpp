@@ -166,12 +166,14 @@ void getMyNidSuffix(char stringNidSuffix[])
 
   Int32 myNid = 0;
   
-  do
-  {
-     rc = msg_mon_get_process_info_detail(processName, &procInfo);
-     myNid = procInfo.nid;
-   
-  } while ((rc == XZFIL_ERR_OK) && (procInfo.parent_nid != -1) && (procInfo.parent_pid != -1));
+  rc = msg_mon_get_process_info_detail(processName, &procInfo);
+  if (rc != 0) {
+    // at least let the logging proceed
+    myNid = 9999;
+  }
+  else {
+    myNid = procInfo.nid;
+  }
 
   snprintf (stringNidSuffix, 5+sizeof(Int32), "_%d.log", myNid);
 }
