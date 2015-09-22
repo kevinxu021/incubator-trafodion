@@ -15,12 +15,14 @@ define([
 		el: $('#wrapper'),
 
 		child: null,
+		
+		sessionTimedOut : false,
 
 		initialize: function () {
 			
 		},
 		
-		init: function(router){
+		init: function(){
 			$('#navbar').hide();
 			_that = this;
 			sessionHandler.on(sessionHandler.LOGIN_SUCCESS, this.loginSuccess);
@@ -62,6 +64,11 @@ define([
 				this.$el.empty().append(this.child);
 				this.resume();
 			}
+			if(_that.sessionTimedOut == true){
+				$('#login-error-text').text("Your session timed out due to inactivity. Please login again.");
+				$('#login-error-text').show();
+				_that.sessionTimedOut = false;
+			}
 			return this;        	
 
 		},
@@ -71,8 +78,8 @@ define([
 		},
 		loginClick: function(e){
         	
-			$("#errorText").text("");
-			$('#errorText').hide();
+			$("#login-error-text").text("");
+			$('#login-error-text').hide();
         	
 			var userName = $('#username').val();
 			if(userName == null || userName.length == 0) {
@@ -89,21 +96,10 @@ define([
 			_that.showLoading();
 			var param = {username : userName, password: password};
 			sessionHandler.login(param);
-        	/*$.ajax({
-        	    url:'resources/server/login',
-        	    type:'POST',
-        	    data: JSON.stringify(param),
-        	    dataType:"json",
-        	    contentType: "application/json;",
-        	    success:_that.loginSuccess,
-        	    error:function(jqXHR, res, error){
-        	    	_that.hideLoading();
-        	    	_that.showErrorMessage(jqXHR);
-        	    }
-        	});		*/
         	e.preventDefault();
 		},
 		loginSuccess: function(result){
+			$("#login-error-text").text("");
 			if(result.status == 'OK'){
 				session.saveToken(result.key);
                 session.saveUser(result.user);
@@ -111,42 +107,28 @@ define([
 				window.location.hash = '/dashboard';
 			}else{
 		       	_that.hideLoading();
-	        	$("#errorText").text("");
-	        	$("#errorText").show();
-	        	$("#errorText").text(result.errorMessage);
+	        	$("#login-error-text").show();
+	        	$("#login-error-text").text(result.errorMessage);
 			}
 		},
 		doLogout: function(){
 			var param = {username : session.getUser()};
-			
+			$("#login-error-text").text("");			
 			session.eraseAll();
 			sessionHandler.logout(param);
-			/*
-        	$.ajax({
-        	    url:'resources/server/logout',
-        	    type:'POST',
-        	    data: JSON.stringify(param),
-        	    dataType:"json",
-        	    contentType: "application/json;",
-        	    success:_that.logoutSuccess,
-        	    error:function(jqXHR, res, error){
-        	    	_that.hideLoading();
-        	    	_that.showErrorMessage(jqXHR);
-        	    }
-        	});		*/
 		},
 		logoutSuccess: function(){
 			
 		},
         showErrorMessage: function (jqXHR, res, error) {
         	_that.hideLoading();
-        	$("#errorText").text("");
-        	$("#errorText").show();
+        	$("#login-error-text").text("");
+        	$("#login-error-text").show();
         	if (jqXHR) {
         		if(jqXHR.status != null && jqXHR.status == 0) {
-            		$("#errorText").text("Error : Unable to communicate with the server.");
+            		$("#login-error-text").text("Error : Unable to communicate with the server.");
         		}else {
-            		$("#errorText").text(jqXHR.statusText);
+            		$("#login-error-text").text(jqXHR.statusText);
         		}
         	}
         }  

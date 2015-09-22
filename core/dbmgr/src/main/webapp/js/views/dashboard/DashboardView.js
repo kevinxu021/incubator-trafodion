@@ -416,10 +416,6 @@ define([
 
         showErrorMessage: function (jqXHR) {
         	_that.hideLoading();
-        	$("#errorText").show();
-        	if (jqXHR.responseText) {
-        		$("#errorText").text(jqXHR.responseText);
-        	}
         }  
     });
     

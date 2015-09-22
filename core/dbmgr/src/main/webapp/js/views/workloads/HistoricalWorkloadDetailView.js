@@ -114,7 +114,6 @@ define([
 			connDataSet.push(["Master Process ID", result.metrics.master_process_id]);
 			connDataSet.push(["Submit Time", common.toServerLocalDateFromUtcMilliSeconds(result.metrics.submit_utc_ts)]);
 			connDataSet.push(["Node Count", result.metrics.num_nodes]);
-			connDataSet.push(["Process Count", result.metrics.processes_created]);
 			
 			var compDataSet = [];
 			compDataSet.push(["Compile Start Time", common.toServerLocalDateFromUtcMilliSeconds(result.metrics.compile_start_utc_ts)]);
@@ -138,7 +137,8 @@ define([
 
 			var runtimeDataSet = [];
 			runtimeDataSet.push(["Query Elapsed Time", common.millisecondsToString(result.metrics.query_elapsed_time/1000)]);
-			runtimeDataSet.push(["SQL Process Busy Time", common.millisecondsToString(result.metrics.sql_process_busy_time/1000)]);
+			connDataSet.push(["Process Count", result.metrics.processes_created]);
+			runtimeDataSet.push(["Total SQL Process Busy Time", common.millisecondsToString(result.metrics.sql_process_busy_time/1000)]);
 			runtimeDataSet.push(["Disk Process Busy Time", common.millisecondsToString(result.metrics.disk_process_busy_time/1000)]);
 			runtimeDataSet.push(["Master Execution Time", common.millisecondsToString(result.metrics.master_execution_time/1000)]);
 			runtimeDataSet.push(["Disk IOs", result.metrics.disk_ios]);
