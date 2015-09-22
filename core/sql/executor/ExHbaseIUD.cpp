@@ -533,6 +533,7 @@ ExWorkProcRetcode ExHbaseAccessInsertSQTcb::work()
                                               rowID,
 	                                      row_,
                                               hbaseAccessTdb().useHbaseXn(),
+					      hbaseAccessTdb().replSync(),
                                               insColTSval_,
                                               asyncOperation_);
 
@@ -2104,6 +2105,7 @@ ExWorkProcRetcode ExHbaseUMDtrafUniqueTaskTcb::work(short &rc)
 						     columnToCheck_,
 						     colValToCheck_,
                                                      tcb_->hbaseAccessTdb().useHbaseXn(),
+						     tcb_->hbaseAccessTdb().replSync(),
 						     -1, //colTS_
                                                      tcb_->asyncOperation_);
 
@@ -2163,6 +2165,7 @@ ExWorkProcRetcode ExHbaseUMDtrafUniqueTaskTcb::work(short &rc)
                                                      rowID,
                                                      tcb_->row_,
                                                      tcb_->hbaseAccessTdb().useHbaseXn(),
+						     tcb_->hbaseAccessTdb().replSync(),
 						     -1, // colTS
                                                      tcb_->asyncOperation_); 
 
@@ -2222,6 +2225,7 @@ ExWorkProcRetcode ExHbaseUMDtrafUniqueTaskTcb::work(short &rc)
                                              tcb_->rowIds_[tcb_->currRowidIdx_],
                                              NULL,
                                              tcb_->hbaseAccessTdb().useHbaseXn(),
+					     tcb_->hbaseAccessTdb().replSync(),
                                              latestRowTimestamp_,
                                              tcb_->asyncOperation_);
 	    if ( tcb_->setupError(retcode, "ExpHbaseInterface::deleteRow"))
@@ -2272,6 +2276,7 @@ ExWorkProcRetcode ExHbaseUMDtrafUniqueTaskTcb::work(short &rc)
 						     columnToCheck_, 
 						     colValToCheck_,
                                                      tcb_->hbaseAccessTdb().useHbaseXn(),
+						     tcb_->hbaseAccessTdb().replSync(),
 						     -1 //colTS_
 						     );
 
@@ -2660,6 +2665,7 @@ ExWorkProcRetcode ExHbaseUMDnativeUniqueTaskTcb::work(short &rc)
                                              tcb_->rowIds_[tcb_->currRowidIdx_],
                                              &tcb_->deletedColumns_,
                                              tcb_->hbaseAccessTdb().useHbaseXn(),
+					     tcb_->hbaseAccessTdb().replSync(),
                                              -1 ,
                                              tcb_->asyncOperation_);
 	    if ( tcb_->setupError(retcode, "ExpHbaseInterface::deleteRow"))
@@ -2777,6 +2783,7 @@ ExWorkProcRetcode ExHbaseUMDtrafSubsetTaskTcb::work(short &rc)
 					   tcb_->beginRowId_, tcb_->endRowId_,
 					   tcb_->columns_, -1,
 					   tcb_->hbaseAccessTdb().readUncommittedScan(),
+					   tcb_->hbaseAccessTdb().replSync(),
 					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->cacheBlocks(),
 					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->useSmallScanner(),
 					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->numCacheRows(),
@@ -2985,6 +2992,7 @@ ExWorkProcRetcode ExHbaseUMDtrafSubsetTaskTcb::work(short &rc)
 					     rowID,
 					     NULL,
                                              tcb_->hbaseAccessTdb().useHbaseXn(),
+					     tcb_->hbaseAccessTdb().replSync(),
 					     -1,
 					     tcb_->asyncOperation_);
 	    if ( tcb_->setupError(retcode, "ExpHbaseInterface::deleteRow"))
@@ -3193,6 +3201,7 @@ ExWorkProcRetcode ExHbaseUMDnativeSubsetTaskTcb::work(short &rc)
 					   tcb_->beginRowId_, tcb_->endRowId_,
 					   columns, -1,
 					   tcb_->hbaseAccessTdb().readUncommittedScan(),
+					   tcb_->hbaseAccessTdb().replSync(),
 					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->cacheBlocks(),
 					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->useSmallScanner(),
 					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->numCacheRows(),
@@ -3373,6 +3382,7 @@ ExWorkProcRetcode ExHbaseUMDnativeSubsetTaskTcb::work(short &rc)
 					     tcb_->rowId_,
 					     &tcb_->deletedColumns_,
                                              tcb_->hbaseAccessTdb().useHbaseXn(),
+					     tcb_->hbaseAccessTdb().replSync(),
 					     -1,
 					     tcb_->asyncOperation_);
 	    if ( tcb_->setupError(retcode, "ExpHbaseInterface::deleteRow"))
@@ -4082,6 +4092,7 @@ ExWorkProcRetcode ExHbaseAccessSQRowsetTcb::work()
                                        hbaseAccessTdb().getRowIDLen(),
                                        rowIDs_,
                                        hbaseAccessTdb().useHbaseXn(),
+				       hbaseAccessTdb().replSync(),
 				       -1,
 				       asyncOperation_);
             currRowNum_ = 0;	    

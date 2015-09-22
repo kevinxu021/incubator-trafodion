@@ -151,10 +151,11 @@ class ExpHbaseInterface : public NABasicObject
 			 const LIST(HbaseStr) & columns,
 			 const int64_t timestamp,
 			 const NABoolean readUncommitted,
+			 const NABoolean replSync,
 			 const NABoolean cacheBlocks,
 			 const NABoolean smallScanner,
 			 const Lng32 numCacheRows,
-             const NABoolean preFetch,
+			 const NABoolean preFetch,
 			 const LIST(NAString) *inColNamesToFilter, 
 			 const LIST(NAString) *inCompareOpList,
 			 const LIST(NAString) *inColValuesToCompare,
@@ -223,6 +224,7 @@ class ExpHbaseInterface : public NABasicObject
 		  HbaseStr row, 
 		  const LIST(HbaseStr) *columns,
 		  NABoolean noXn,
+		  const NABoolean replSync,
 		  const int64_t timestamp,
                   NABoolean asyncOperation) = 0;
 
@@ -233,6 +235,7 @@ class ExpHbaseInterface : public NABasicObject
                   short rowIDLen,
 		  HbaseStr rowIDs,
 		  NABoolean noXn,
+		  const NABoolean replSync,
 		  const int64_t timestamp,
                   NABoolean asyncOperation) = 0;
 
@@ -243,6 +246,7 @@ class ExpHbaseInterface : public NABasicObject
 				  HbaseStr& columnToCheck,
 				  HbaseStr& colValToCheck,
                                   NABoolean noXn,
+				  const NABoolean replSync,
 				  const int64_t timestamp) = 0;
 
 
@@ -256,9 +260,9 @@ class ExpHbaseInterface : public NABasicObject
 		  HbaseStr rowID, 
 		  HbaseStr row,
 		  NABoolean noXn,
+		  const NABoolean replSync,
 		  const int64_t timestamp,
-                  NABoolean asyncOperation,
-		  NABoolean replSync) = 0;
+                  NABoolean asyncOperation) = 0;
 
  virtual Lng32 getRowsOpen(
           HbaseStr tblName,
@@ -272,6 +276,7 @@ class ExpHbaseInterface : public NABasicObject
                   HbaseStr rowIDs,
                   HbaseStr rows,
 		  NABoolean noXn,
+		  const NABoolean replSync,
 		  const int64_t timestamp,
 		  NABoolean autoFlush = TRUE,
                   NABoolean asyncOperation = FALSE) = 0; // by default, flush rows after put
@@ -322,6 +327,7 @@ class ExpHbaseInterface : public NABasicObject
 				  HbaseStr& rowID, 
 				  HbaseStr& row,
                                   NABoolean noXn,
+				  const NABoolean replSync,
 				  const int64_t timestamp,
                                   NABoolean asyncOperation) = 0;
 
@@ -333,6 +339,7 @@ class ExpHbaseInterface : public NABasicObject
 				  HbaseStr& columnToCheck,
 				  HbaseStr& colValToCheck,
                                   NABoolean noXn,				
+				  const NABoolean replSync,
 				  const int64_t timestamp,
                                   NABoolean asyncOperation) = 0;
 
@@ -348,6 +355,7 @@ class ExpHbaseInterface : public NABasicObject
 			 const Text &colName,
 			 const NABoolean cacheBlocks,
 			 const Lng32 numCacheRows,
+			 const NABoolean replSync,
 			 Text &aggrVal); // returned value
  
   virtual Lng32 grant(
@@ -464,10 +472,11 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 			 const LIST(HbaseStr) & columns,
 			 const int64_t timestamp,
 			 const NABoolean readUncommitted,
+			 const NABoolean replSync,
 			 const NABoolean cacheBlocks,
 			 const NABoolean smallScanner,
 			 const Lng32 numCacheRows,
-             const NABoolean preFetch,
+			 const NABoolean preFetch,
 			 const LIST(NAString) *inColNamesToFilter, 
 			 const LIST(NAString) *inCompareOpList,
 			 const LIST(NAString) *inColValuesToCompare,
@@ -526,6 +535,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 		  HbaseStr row, 
 		  const LIST(HbaseStr) *columns,
 		  NABoolean noXn,
+		  const NABoolean replSync,
 		  const int64_t timestamp,
                   NABoolean asyncOperation);
 
@@ -535,6 +545,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
                   short rowIDLen,
 		  HbaseStr rowIDs,
 		  NABoolean noXn,		 		  
+		  const NABoolean replSync,
 		  const int64_t timestamp,
                   NABoolean asyncOperation);
 
@@ -545,6 +556,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 				  HbaseStr& columnToCheck,
 				  HbaseStr& colValToCheck,
                                   NABoolean noXn,     
+				  const NABoolean replSync,
 				  const int64_t timestamp);
 
 
@@ -557,9 +569,10 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 		  HbaseStr rowID, 
                   HbaseStr row,
 		  NABoolean noXn,
+		  const NABoolean replSync,
 		  const int64_t timestamp,
-                  NABoolean asyncOperation,
-		  NABoolean replSync);
+                  NABoolean asyncOperation);
+
 
  virtual Lng32 getRowsOpen(
           HbaseStr tblName,
@@ -573,6 +586,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
                   HbaseStr rowIDs,
                   HbaseStr rows,
 		  NABoolean noXn,
+		  const NABoolean replSync,
 		  const int64_t timestamp,
 		  NABoolean autoFlush = TRUE,
                   NABoolean asyncOperation = FALSE); // by default, flush rows after put
@@ -622,10 +636,9 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
 				  HbaseStr& rowID, 
 				  HbaseStr& row,
                                   NABoolean noXn,
+				  const NABoolean replSync,
 				  const int64_t timestamp,
                   		  NABoolean asyncOperation);
-
-
 
   virtual Lng32 checkAndUpdateRow(
 				  HbaseStr &tblName,
@@ -634,6 +647,7 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
 				  HbaseStr& columnToCheck,
 				  HbaseStr& colValToCheck,
                                   NABoolean noXn,			
+				  const NABoolean replSync,
 				  const int64_t timestamp,
                                   NABoolean asyncOperation);
 
@@ -648,6 +662,7 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
 			 const Text &colName,
 			 const NABoolean cacheBlocks,
 			 const Lng32 numCacheRows,
+			 const NABoolean replSync,
 			 Text &aggrVal); // returned value
  
   virtual Lng32 getClose();

@@ -147,35 +147,13 @@ public class RMInterface {
 						+ " tableName: " + tableName
 						+ " peerCount: " + pSTRConfig.getPeerCount());
            ttable = new TransactionalTable(Bytes.toBytes(tableName));
-           if (bSynchronized) {
-              if (pSTRConfig.getPeerCount() > 0) {
-                 peer_tables = new HashMap<Integer, TransactionalTableClient>();
-                 for ( Map.Entry<Integer, HConnection> e : pSTRConfig.getPeerConnections().entrySet() ) {
-                    int           lv_peerId = e.getKey();
-                    if (lv_peerId == 0) continue;
-                    if (LOG.isTraceEnabled()) LOG.trace("ctor" 
-                                + " tableName: " + tableName
-                                + " peerId: " + lv_peerId
-                                + " connection: " + e.getValue());
-                    peer_tables.put(lv_peerId, new TransactionalTable(Bytes.toBytes(tableName), e.getValue()));
-                 }
-              }
-           }
         }
         else if(transactionAlgorithm == AlgorithmType.SSCC)
         {
            ttable = new SsccTransactionalTable( Bytes.toBytes(tableName));
-           if (bSynchronized) {
-              if (pSTRConfig.getPeerCount() > 0) {
-                 peer_tables = new HashMap<Integer, TransactionalTableClient>();
-                 for ( Map.Entry<Integer, HConnection> e : pSTRConfig.getPeerConnections().entrySet() ) {
-                    int           lv_peerId = e.getKey();
-                    if (lv_peerId == 0) continue;
-                    peer_tables.put(lv_peerId, new SsccTransactionalTable(Bytes.toBytes(tableName)));
-                 }
-              }
-           }
         }
+
+	setSynchronized(bSynchronized);
 
         try {
            idServer = new IdTm(false);
@@ -188,6 +166,42 @@ public class RMInterface {
 
     public RMInterface() throws IOException {
 
+    }
+
+    public void setSynchronized(boolean pv_synchronize) {
+        if (LOG.isTraceEnabled()) LOG.trace("RMInterface setSynchronized:"
+					    + " tableName: " + tableName
+					    + " synchronize flag: " + pv_synchronize);
+	
+	bSynchronized = pv_synchronize;
+
+	if (bSyncronized && 
+	    (peer_tables == null) && 
+	    (pSTRConfig.getPeerCount() > 0)) {
+	    if( transactionAlgorithm == AlgorithmType.MVCC) {
+		if (LOG.isTraceEnabled()) LOG.trace("Algorithm type: MVCC"
+						    + " tableName: " + tableName
+						    + " peerCount: " + pSTRConfig.getPeerCount());
+		peer_tables = new HashMap<Integer, TransactionalTableClient>();
+		for ( Map.Entry<Integer, HConnection> e : pSTRConfig.getPeerConnections().entrySet() ) {
+		    int           lv_peerId = e.getKey();
+		    if (lv_peerId == 0) continue;
+		    if (LOG.isTraceEnabled()) LOG.trace("ctor" 
+							+ " tableName: " + tableName
+							+ " peerId: " + lv_peerId
+							+ " connection: " + e.getValue());
+		    peer_tables.put(lv_peerId, new TransactionalTable(Bytes.toBytes(tableName), e.getValue()));
+		}
+	    }
+	    else if(transactionAlgorithm == AlgorithmType.SSCC) {
+		peer_tables = new HashMap<Integer, TransactionalTableClient>();
+		for ( Map.Entry<Integer, HConnection> e : pSTRConfig.getPeerConnections().entrySet() ) {
+		    int           lv_peerId = e.getKey();
+		    if (lv_peerId == 0) continue;
+		    peer_tables.put(lv_peerId, new SsccTransactionalTable(Bytes.toBytes(tableName)));
+		}
+	    }
+	}
     }
 
     public boolean isSynchronized() {

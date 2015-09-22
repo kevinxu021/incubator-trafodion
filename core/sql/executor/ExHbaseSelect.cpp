@@ -79,6 +79,7 @@ ExWorkProcRetcode ExHbaseScanTaskTcb::work(short &rc)
 	    retcode = tcb_->ehi_->scanOpen(tcb_->table_, 
 					   tcb_->beginRowId_, tcb_->endRowId_,
 					   tcb_->columns_, -1,
+					   tcb_->hbaseAccessTdb().replSync(),
 					   tcb_->hbaseAccessTdb().readUncommittedScan(),
 					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->cacheBlocks(),
 					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->useSmallScanner(),
@@ -264,6 +265,7 @@ ExWorkProcRetcode ExHbaseScanRowwiseTaskTcb::work(short &rc)
 	    retcode = tcb_->ehi_->scanOpen(tcb_->table_, 
 					   tcb_->beginRowId_, tcb_->endRowId_,
 					   tcb_->columns_, -1,
+					   tcb_->hbaseAccessTdb().replSync(),
 					   tcb_->hbaseAccessTdb().readUncommittedScan(),
 					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->cacheBlocks(),
 					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->useSmallScanner(),
@@ -471,6 +473,7 @@ ExWorkProcRetcode ExHbaseScanSQTaskTcb::work(short &rc)
 	    retcode = tcb_->ehi_->scanOpen(tcb_->table_, 
 					   tcb_->beginRowId_, tcb_->endRowId_,
 					   tcb_->columns_, -1,
+					   tcb_->hbaseAccessTdb().replSync(),
 					   tcb_->hbaseAccessTdb().readUncommittedScan(),
 					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->cacheBlocks(),
 					   tcb_->hbaseAccessTdb().getHbasePerfAttributes()->useSmallScanner(),
@@ -646,6 +649,7 @@ Lng32 ExHbaseScanSQTaskTcb::getProbeResult(char* &keyData)
   retcode = tcb_->ehi_->scanOpen(tcb_->table_, 
 				 tcb_->beginRowId_, tcb_->endRowId_,
 				 tcb_->columns_, -1,
+				 tcb_->hbaseAccessTdb().replSync(),
 				 tcb_->hbaseAccessTdb().readUncommittedScan(),
 				 tcb_->hbaseAccessTdb().getHbasePerfAttributes()->cacheBlocks(),
 				 tcb_->hbaseAccessTdb().getHbasePerfAttributes()->useSmallScanner(),
@@ -1869,6 +1873,7 @@ ExWorkProcRetcode ExHbaseCoProcAggrTcb::work()
 				       colName, 
 				       FALSE, // cacheBlocks
 				       100, //numCacheRows
+				       hbaseAccessTdb().replSync(),
 				       aggrVal);
 	    if (setupError(retcode, "ExpHbaseInterface::coProcAggr"))
 	      {

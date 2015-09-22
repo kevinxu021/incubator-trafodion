@@ -658,7 +658,7 @@ HTableClient_JNI* HBaseClient_JNI::getHTableClient(NAHeap *heap,
 					  (jlong)htc, 
 					  js_tblName, 
 					  (jboolean)useTRex, 
-					  (jboolean) replSync);
+					  (jboolean) true);
 
   jenv_->DeleteLocalRef(js_tblName); 
 
@@ -2640,7 +2640,7 @@ HTableClient_JNI *HBaseClient_JNI::startGet(NAHeap *heap,
 				      (jboolean) replSync,
 				      j_tid,
 				      jba_rowID,
-            j_cols, j_ts);
+				      j_cols, j_ts);
   if (hbs) {
       hbs->incMaxHbaseIOTime(hbs->getTimer().stop());
       hbs->incHbaseCalls();
