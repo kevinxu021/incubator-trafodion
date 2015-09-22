@@ -431,7 +431,11 @@ define([
         	    data: JSON.stringify(param),
         	    dataType:"json",
         	    contentType: "application/json;",
-        	    success:_that.drawExplain,
+				statusCode : {
+					401 : _that.sessionTimeout,
+					403 : _that.sessionTimeout
+				},
+				success:_that.drawExplain,
         	    error:function(jqXHR, res, error){
         	    	_that.hideLoading();
         	    	_that.showErrorMessage(jqXHR);
@@ -460,15 +464,23 @@ define([
         	    data: JSON.stringify(param),
         	    dataType:"json",
         	    contentType: "application/json;",
-        	    success:_that.displayResults,
+				statusCode : {
+					401 : _that.sessionTimeout,
+					403 : _that.sessionTimeout
+				},
+				success:_that.displayResults,
         	    error:function(jqXHR, res, error){
         	    	_that.hideLoading();
         	    	_that.showErrorMessage(jqXHR);
         	    }
         	});
         },
+        
+    	sessionTimeout: function() {
+    		window.location.hash = '/stimeout';
+    	},
 
-        displayResults: function (result){
+    	displayResults: function (result){
         	_that.hideLoading();
         	var keys = result.columnNames;
         	if(result.isScalarResult != null && result.isScalarResult == true){

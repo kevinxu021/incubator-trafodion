@@ -1,81 +1,68 @@
 define(['handlers/EventDispatcher', 'common'],
-function(EventDispatcher, common) {"use strict";
+		function(EventDispatcher, common) {"use strict";
 
-    var SessionHandler = ( function() {
-    	
-        /**
-         * @constructor
-         * @type {DatabaseHandler}
-         */
-        function SessionHandler() {
-        	var dispatcher = new EventDispatcher();
-        	var _this = this;
+		var SessionHandler = ( function() {
 
-        	this.LOGIN_SUCCESS = 'loginSuccess';
-        	this.LOGIN_ERROR = 'loginError';
-        	this.LOGOUT_SUCCESS = 'logoutSuccess';
-        	this.LOGOUT_ERROR = 'logoutError';        	
+			function SessionHandler() {
+				var dispatcher = new EventDispatcher();
+				var _this = this;
 
-        	this.login = function(param){
-        		$.ajax({
-            	    url:'resources/server/login',
-            	    type:'POST',
-            	    data: JSON.stringify(param),
-            	    dataType:"json",
-            	    contentType: "application/json;",
-            	    async: false,
-            	    success: function(data){
-    					common.storeSessionProperties(data.serverTimeZone, data.serverUTCOffset, data.dcsMasterInfoUri);
-    					dispatcher.fire(_this.LOGIN_SUCCESS, data);
-    				},
-    				error:function(jqXHR, res, error){
-    					dispatcher.fire(_this.LOGIN_ERROR, jqXHR, res, error);
-    				}
-            	});
-            };
-            
-        	this.logout = function(param){
-        		$.ajax({
-            	    url:'resources/server/logout',
-            	    type:'POST',
-            	    data: JSON.stringify(param),
-            	    dataType:"json",
-            	    contentType: "application/json;",
-            	    success: function(data){
-    					dispatcher.fire(_this.LOGOUT_SUCCESS, data);
-    				},
-    				error:function(jqXHR, res, error){
-    					dispatcher.fire(_this.LOGOUT_ERROR, jqXHR, res, error);
-    				}
-            	});
-            };                                 
-            /**
-             * @public
-             */
-            this.init = function() {
-            };
+				this.LOGIN_SUCCESS = 'loginSuccess';
+				this.LOGIN_ERROR = 'loginError';
+				this.LOGOUT_SUCCESS = 'logoutSuccess';
+				this.LOGOUT_ERROR = 'logoutError';        	
 
+				this.login = function(param){
+					$.ajax({
+						url:'resources/server/login',
+						type:'POST',
+						data: JSON.stringify(param),
+						dataType:"json",
+						contentType: "application/json;",
+						async: false,
+						success: function(data){
+							common.storeSessionProperties(data.serverTimeZone, data.serverUTCOffset, data.dcsMasterInfoUri);
+							dispatcher.fire(_this.LOGIN_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.LOGIN_ERROR, jqXHR, res, error);
+						}
+					});
+				};
 
-            /**
-             * @public
-             * Add a listener for a specified event.
-             * @param {string} eventName The name of the event.
-             * @param {function(...)}
-             */
-            this.on = function(eventName, callback) {
-                dispatcher.on(eventName, callback);
-            };
-            this.off = function (eventName, callback) {
-                dispatcher.off(eventName, callback);
-            };
-            
-            this.fire = function(eventName, eventInfo) {
-				dispatcher.fire(eventName, eventInfo);
-			};
-        }
+				this.logout = function(param){
+					$.ajax({
+						url:'resources/server/logout',
+						type:'POST',
+						data: JSON.stringify(param),
+						dataType:"json",
+						contentType: "application/json;",
+						success: function(data){
+							dispatcher.fire(_this.LOGOUT_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.LOGOUT_ERROR, jqXHR, res, error);
+						}
+					});
+				};                                 
 
-        return new SessionHandler();
-    }());
+				this.init = function() {
+				};
 
-    return SessionHandler;
+				this.on = function(eventName, callback) {
+					dispatcher.on(eventName, callback);
+				};
+				this.off = function (eventName, callback) {
+					dispatcher.off(eventName, callback);
+				};
+
+				this.fire = function(eventName, eventInfo) {
+					dispatcher.fire(eventName, eventInfo);
+				};
+			}
+
+			return new SessionHandler();
+		}());
+
+		return SessionHandler;
 });

@@ -59,6 +59,7 @@ define([
 			'database(/*args)' : 'showDatabase',
 			'login': 'showLogin',
 			'logout': 'doLogout',
+			'stimeout': 'doSessionTimeout',
 			'workloads/active': 'showActiveWorkloads',
 			'workloads/history': 'showHistoricalWorkloads',
 			'workloads/history/querydetail(/*args)':'showHistoricalWorkloadDetail',
@@ -87,6 +88,7 @@ define([
 
 	var logout = function(){
 		currentView = null;
+		Session.eraseAll();
 		$('#sessionUserName').html('<i class="fa fa-user fa-fw"></i>');
 		if(loginView != null){
 			loginView.doLogout();
@@ -103,18 +105,19 @@ define([
 		activeQueryDetailView = null;
 		queryPlanView = null
 		logsView = null;		
-	}
+	};
 
+	var sessionTimeOut = function(){
+		logout();
+		if(loginView != null) {
+			loginView.sessionTimedOut = true;
+		}
+	};
+	
 	var initialize = function(){
 
 
-		$.ajaxSetup({
-			statusCode : {
-				401 : logout,
-				403 : logout
-			}
-		});
-
+		
 		var navV = new NavbarView();
 		navV.render();
 
@@ -198,6 +201,13 @@ define([
 		
 		app_router.on('route:doLogout', function () {
 			logout();
+		});
+		
+		app_router.on('route:doSessionTimeout', function(){
+			logout();
+			if(loginView != null) {
+				loginView.sessionTimedOut = true;
+			}
 		});
 
 		app_router.on('route:defaultAction', function (actions) {
