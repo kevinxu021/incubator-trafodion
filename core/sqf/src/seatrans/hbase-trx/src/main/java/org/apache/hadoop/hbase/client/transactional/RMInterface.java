@@ -168,29 +168,25 @@ public class RMInterface {
 
     }
 
-    public void setSynchronized(boolean pv_synchronize) {
+    public void setSynchronized(boolean pv_synchronize) throws IOException {
         if (LOG.isTraceEnabled()) LOG.trace("RMInterface setSynchronized:"
-					    + " tableName: " + tableName
+					    + " table: " + ttable.getTableName()
 					    + " synchronize flag: " + pv_synchronize);
 	
 	bSynchronized = pv_synchronize;
 
-	if (bSyncronized && 
+	if (bSynchronized && 
 	    (peer_tables == null) && 
 	    (pSTRConfig.getPeerCount() > 0)) {
+	    if (LOG.isTraceEnabled()) LOG.trace(" peerCount: " + pSTRConfig.getPeerCount());
 	    if( transactionAlgorithm == AlgorithmType.MVCC) {
-		if (LOG.isTraceEnabled()) LOG.trace("Algorithm type: MVCC"
-						    + " tableName: " + tableName
-						    + " peerCount: " + pSTRConfig.getPeerCount());
 		peer_tables = new HashMap<Integer, TransactionalTableClient>();
 		for ( Map.Entry<Integer, HConnection> e : pSTRConfig.getPeerConnections().entrySet() ) {
 		    int           lv_peerId = e.getKey();
 		    if (lv_peerId == 0) continue;
-		    if (LOG.isTraceEnabled()) LOG.trace("ctor" 
-							+ " tableName: " + tableName
-							+ " peerId: " + lv_peerId
-							+ " connection: " + e.getValue());
-		    peer_tables.put(lv_peerId, new TransactionalTable(Bytes.toBytes(tableName), e.getValue()));
+		    if (LOG.isTraceEnabled()) LOG.trace("setSynchronized" 
+							+ " peerId: " + lv_peerId);
+		    peer_tables.put(lv_peerId, new TransactionalTable(ttable.getTableName(), e.getValue()));
 		}
 	    }
 	    else if(transactionAlgorithm == AlgorithmType.SSCC) {
@@ -198,7 +194,7 @@ public class RMInterface {
 		for ( Map.Entry<Integer, HConnection> e : pSTRConfig.getPeerConnections().entrySet() ) {
 		    int           lv_peerId = e.getKey();
 		    if (lv_peerId == 0) continue;
-		    peer_tables.put(lv_peerId, new SsccTransactionalTable(Bytes.toBytes(tableName)));
+		    peer_tables.put(lv_peerId, new SsccTransactionalTable(ttable.getTableName()));
 		}
 	    }
 	}
