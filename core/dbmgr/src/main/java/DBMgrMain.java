@@ -1,3 +1,8 @@
+// @@@ START COPYRIGHT @@@
+//
+// (C) Copyright 2015 Esgyn Corporation
+//
+// @@@ END COPYRIGHT @@@
 
 import java.io.File;
 import java.io.FileInputStream;

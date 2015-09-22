@@ -1,3 +1,9 @@
+// @@@ START COPYRIGHT @@@
+//
+// (C) Copyright 2015 Esgyn Corporation
+//
+// @@@ END COPYRIGHT @@@
+
 define(['handlers/EventDispatcher', 'common'],
 		function(EventDispatcher, common) {"use strict";
 

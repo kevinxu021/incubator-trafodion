@@ -1,9 +1,8 @@
-//@@@ START COPYRIGHT @@@
-
-//(C) Copyright 2013-2015 Hewlett-Packard Development Company, L.P.
-
-//@@@ END COPYRIGHT @@@
-//JS used to store some common JS functions and constant
+// @@@ START COPYRIGHT @@@
+//
+// (C) Copyright 2015 Esgyn Corporation
+//
+// @@@ END COPYRIGHT @@@
 
 define(['moment',
         'momenttimezone',

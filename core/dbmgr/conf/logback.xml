@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- @@@ START COPYRIGHT @@@
+ 
+     (C) Copyright 2015 Esgyn Corporation
+ 
+     @@@ END COPYRIGHT @@@
+-->
 <configuration>
 	<jmxConfigurator />
 	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">

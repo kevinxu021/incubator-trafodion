@@ -1,3 +1,9 @@
+// @@@ START COPYRIGHT @@@
+//
+// (C) Copyright 2015 Esgyn Corporation
+//
+// @@@ END COPYRIGHT @@@
+
 package com.esgyn.dbmgr.filter;
 
 import javax.servlet.http.HttpSessionEvent;

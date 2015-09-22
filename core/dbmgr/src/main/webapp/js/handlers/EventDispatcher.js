@@ -1,3 +1,9 @@
+// @@@ START COPYRIGHT @@@
+//
+// (C) Copyright 2015 Esgyn Corporation
+//
+// @@@ END COPYRIGHT @@@
+
 define([], function() { //"use strict";
 
 	var EventDispatcher = (function() {
