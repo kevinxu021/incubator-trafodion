@@ -3412,9 +3412,3 @@ int main(int argc, char *argv[])
         } while (lv_ret != BSRETYPE_NOWORK);
     }
 }
-
-
-
-
-
-
