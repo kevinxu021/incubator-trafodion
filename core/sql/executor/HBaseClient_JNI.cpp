@@ -658,7 +658,7 @@ HTableClient_JNI* HBaseClient_JNI::getHTableClient(NAHeap *heap,
 					  (jlong)htc, 
 					  js_tblName, 
 					  (jboolean)useTRex, 
-					  (jboolean) true);
+					  (jboolean) replSync);
 
   jenv_->DeleteLocalRef(js_tblName); 
 

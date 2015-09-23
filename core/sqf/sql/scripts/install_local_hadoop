@@ -1514,6 +1514,10 @@ EOF
 fi
 # end of HBase setup
 
+if [[ ! -z FAST_LOCAL_HADOOP ]]; then
+    exit 0
+fi
+
 cd $MY_SW_ROOT
 
 if [ -d tpcds/tools ]; then

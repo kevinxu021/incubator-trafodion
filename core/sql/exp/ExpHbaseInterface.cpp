@@ -701,7 +701,7 @@ Lng32 ExpHbaseInterface_JNI::getRowOpen(
 	const int64_t timestamp)
 {
   Int64 transID = getTransactionIDFromContext();
-  htc_ = client_->startGet((NAHeap *)heap_, (char *)tblName.val, useTRex_, replSync_, 
+  htc_ = client_->startGet((NAHeap *)heap_, (char *)tblName.val, useTRex_, FALSE, 
 			   hbs_, 
 			   transID,
 			   row,
@@ -723,7 +723,7 @@ Lng32 ExpHbaseInterface_JNI::getRowsOpen(
 	const int64_t timestamp)
 {
   Int64 transID = getTransactionIDFromContext();
-  htc_ = client_->startGets((NAHeap *)heap_, (char *)tblName.val, useTRex_, replSync_, 
+  htc_ = client_->startGets((NAHeap *)heap_, (char *)tblName.val, useTRex_, FALSE, 
 			    hbs_, 
 			    transID, rows, 0, NULL, columns, timestamp);
   if (htc_ == NULL) {
@@ -900,7 +900,7 @@ Lng32 ExpHbaseInterface_JNI::getRowsOpen(
 {
   Int64 transID;
   transID = getTransactionIDFromContext();
-  htc_ = client_->startGets((NAHeap *)heap_, (char *)tblName.val, useTRex_, replSync_, hbs_,
+  htc_ = client_->startGets((NAHeap *)heap_, (char *)tblName.val, useTRex_, FALSE, hbs_,
 			    transID, NULL, rowIDLen, &rowIDs, columns, -1);
   if (htc_ == NULL) {
     retCode_ = HBC_ERROR_GET_HTC_EXCEPTION;
@@ -914,7 +914,7 @@ Lng32 ExpHbaseInterface_JNI::setWriteBufferSize(
                                 Lng32 size)
 {
 
-  HTableClient_JNI* htc = client_->getHTableClient((NAHeap *)heap_,tblName.val, useTRex_, replSync_, hbs_);
+  HTableClient_JNI* htc = client_->getHTableClient((NAHeap *)heap_,tblName.val, useTRex_, FALSE, hbs_);
   if (htc == NULL)
   {
     retCode_ = HBC_ERROR_GET_HTC_EXCEPTION;
@@ -1341,7 +1341,7 @@ Lng32 ExpHbaseInterface_JNI::revoke(
 
 ByteArrayList* ExpHbaseInterface_JNI::getRegionBeginKeys(const char* tblName)
 { 
-  htc_ = client_->getHTableClient((NAHeap *)heap_, tblName, useTRex_, replSync_, hbs_);
+  htc_ = client_->getHTableClient((NAHeap *)heap_, tblName, useTRex_, FALSE, hbs_);
   if (htc_ == NULL)
   {
     retCode_ = HBC_ERROR_GET_HTC_EXCEPTION;
@@ -1354,7 +1354,7 @@ ByteArrayList* ExpHbaseInterface_JNI::getRegionBeginKeys(const char* tblName)
 
 ByteArrayList* ExpHbaseInterface_JNI::getRegionEndKeys(const char* tblName)
 { 
-  htc_ = client_->getHTableClient((NAHeap *)heap_, tblName, useTRex_, replSync_, hbs_);
+  htc_ = client_->getHTableClient((NAHeap *)heap_, tblName, useTRex_, FALSE, hbs_);
   if (htc_ == NULL)
   {
     retCode_ = HBC_ERROR_GET_HTC_EXCEPTION;
