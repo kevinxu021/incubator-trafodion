@@ -253,7 +253,7 @@ public class DBMgrMain {
 				System.out.print(mainAttr.getValue(branchKey) + ", ");
 			}
 			if (mainAttr.containsKey(buildDateKey)) {
-				System.out.println("Date " + mainAttr.getValue(buildDateKey) + ")");
+				System.out.println(mainAttr.getValue(buildDateKey) + ")");
 			}
 		} catch (Exception ex) {
 			System.out.println("Error reading jar file '" + jarFileName + "', error " + ex);
