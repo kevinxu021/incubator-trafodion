@@ -27,14 +27,16 @@ if [[ ${lv_ret} != 0 ]]; then
     exit 0;
 fi
 
-echo $lv_peers
-for lv_peer in $lv_peers; do
-    echo "Checking for the peerid: ${lv_peer}"
-    hbcheck -p ${lv_peer}
-    lv_ret=$?
-    if [[ ${lv_ret} != 0 ]]; then
-	exit 1;
-    fi
-done
+if [[ ${#lv_peers} > 0 ]]; then
+    echo $lv_peers
+    for lv_peer in $lv_peers; do
+	echo "Checking for the peerid: ${lv_peer}"
+	hbcheck -p ${lv_peer}
+	lv_ret=$?
+	if [[ ${lv_ret} != 0 ]]; then
+	    exit 1;
+	fi
+    done
+fi
 
 exit 0

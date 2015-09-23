@@ -1329,6 +1329,12 @@ public class HTableClient {
        jniObject = inJniObject;
     }    
 
+    public void setSynchronized(boolean pv_synchronize) throws IOException {
+	if (table != null) {
+	    table.setSynchronized(pv_synchronize);
+	}
+    }
+
     private native int setResultInfo(long jniObject,
 				int[] kvValLen, int[] kvValOffset,
 				int[] kvQualLen, int[] kvQualOffset,

@@ -170,7 +170,7 @@ public class RMInterface {
 
     public void setSynchronized(boolean pv_synchronize) throws IOException {
         if (LOG.isTraceEnabled()) LOG.trace("RMInterface setSynchronized:"
-					    + " table: " + ttable.getTableName()
+					    + " table: " + new String(ttable.getTableName())
 					    + " synchronize flag: " + pv_synchronize);
 	
 	bSynchronized = pv_synchronize;
