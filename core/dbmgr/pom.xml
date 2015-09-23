@@ -168,6 +168,8 @@
 				<artifactId>mavanagaiata</artifactId>
 				<version>0.7.2</version>
 				<configuration>
+					<dirtyFlag>false</dirtyFlag>
+					<dirtyIgnoreUntracked>false</dirtyIgnoreUntracked>
 					<gitDir>${project.base.dir}/../../../.git</gitDir>
 					<dateFormat>ddMMMyyyy</dateFormat>
 				</configuration>
