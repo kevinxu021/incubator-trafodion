@@ -169,7 +169,6 @@
 				<version>0.7.2</version>
 				<configuration>
 					<gitDir>${project.base.dir}/../../../.git</gitDir>
-					<dirtyFlag>-modified</dirtyFlag>
 					<dateFormat>ddMMMyyyy</dateFormat>
 				</configuration>
 				<executions>
