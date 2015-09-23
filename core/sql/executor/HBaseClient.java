@@ -814,6 +814,7 @@ public class HBaseClient {
             hTableClientsInUse.put(htable.getTableName(), htable);
             htable.resetAutoFlush();
            htable.setJniObject(jniObject);
+	   htable.setSynchronized(bSynchronized);
             return htable;
        }
     }

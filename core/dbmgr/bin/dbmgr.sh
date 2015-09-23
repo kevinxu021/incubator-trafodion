@@ -15,8 +15,8 @@ WARFILE=`echo $DBMGR_INSTALL_DIR/lib/dbmgr*.war`
 
 usage() {
     prog=`basename $0`
-    echo "$prog < start | stop | status >"
-    echo "Start, stop, or check EsgynDB Manager"
+    echo "$prog < start | stop | status | version >"
+    echo "Start, stop, check status, or display version of EsgynDB Manager"
 }
 
 getpid() {
@@ -56,6 +56,8 @@ elif [[ $1 = "status" ]]; then
     else
         echo "EsgynDB Manager is NOT running."
     fi
+elif [[ $1 = "version" ]]; then
+	java -jar $WARFILE -version
 else
     usage
     exit 1

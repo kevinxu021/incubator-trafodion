@@ -1,8 +1,8 @@
-// @@@ START COPYRIGHT @@@
+//@@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2015 Esgyn Corporation
 //
-// @@@ END COPYRIGHT @@@
+//@@@ END COPYRIGHT @@@
 
 define([
         'views/BaseView',
@@ -17,12 +17,12 @@ define([
         'tabletools'
         ], function (BaseView, DcsServerT, $, serverHandler, moment, common) {
 	'use strict';
-    var LOADING_SELECTOR = ".dbmgr-spinner",
-    	RESULT_CONTAINER = '#query-result-container',
-		ERROR_CONTAINER = '#errorText';
-		
-    var oDataTable = null;
-    var _that = null;
+	var LOADING_SELECTOR = ".dbmgr-spinner",
+	RESULT_CONTAINER = '#query-result-container',
+	ERROR_CONTAINER = '#errorText';
+
+	var oDataTable = null;
+	var _that = null;
 
 	var DCSServerView = BaseView.extend({
 		template:  _.template(DcsServerT),
@@ -45,13 +45,13 @@ define([
 			serverHandler.off(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
 			$("#refreshAction").off('click', this.fetchDcsServers);
 		},
-        showLoading: function(){
-        	$('#loadingImg').show();
-        },
+		showLoading: function(){
+			$('#loadingImg').show();
+		},
 
-        hideLoading: function () {
-        	$('#loadingImg').hide();
-        },
+		hideLoading: function () {
+			$('#loadingImg').hide();
+		},
 		fetchDcsServers: function () {
 			_that.showLoading();
 			$(ERROR_CONTAINER).hide();
@@ -97,15 +97,15 @@ define([
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"aoColumnDefs": [ {
-					      "aTargets": [ 2 ],
-					      "mData": 2,
-					      "mRender": function ( data, type, full ) {
-					       //if (type === 'display') {
-					          return moment(data).tz(common.serverTimeZone).format('YYYY-MM-DD HH:mm:ss');
-					       // }
-					       /// else return moment(data).tz(common.serverTimeZone).format('YYYY-MM-DD HH:mm:ss');
-					      }
-					    } ],
+						"aTargets": [ 2 ],
+						"mData": 2,
+						"mRender": function ( data, type, full ) {
+							//if (type === 'display') {
+							return moment(data).tz(common.serverTimeZone).format('YYYY-MM-DD HH:mm:ss');
+							// }
+							/// else return moment(data).tz(common.serverTimeZone).format('YYYY-MM-DD HH:mm:ss');
+						}
+					} ],
 					paging: true,
 					"tableTools": {
 						"sRowSelect": "multi",
@@ -113,22 +113,22 @@ define([
 					},
 					fnDrawCallback: function(){
 						//$('#query-results td').css("white-space","nowrap");
-		             }
+					}
 				});
-				
-				
+
+
 				$('#query-results td').css("white-space","nowrap");
 			}
 
 		},
-        showErrorMessage: function (jqXHR) {
-        	_that.hideLoading();
-        	$(RESULT_CONTAINER).hide();
-        	$(ERROR_CONTAINER).show();
-        	if (jqXHR.responseText) {
-        		$(ERROR_CONTAINER).text(jqXHR.responseText);
-        	}
-        }  
+		showErrorMessage: function (jqXHR) {
+			_that.hideLoading();
+			$(RESULT_CONTAINER).hide();
+			$(ERROR_CONTAINER).show();
+			if (jqXHR.responseText) {
+				$(ERROR_CONTAINER).text(jqXHR.responseText);
+			}
+		}  
 	});
 
 

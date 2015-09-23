@@ -154,4 +154,11 @@ To stop EsgynDB Manager, run the following command from the bin directory.
 $ ./dbmgr.sh stop
 EsgynDB Manager has been stopped.
 ----
+
+=== Display EsgynDB Manager Version
+To display the version of EsgynDB Manager, run the following command from the bin directory.
+----
+$ ./dbmgr.sh version
+EsgynDB Manager Release 1.0.0 (Branch 0e9aa50-Ent1.0, Date 22Sep2015)
+----
  
