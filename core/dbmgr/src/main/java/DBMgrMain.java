@@ -11,6 +11,9 @@ import java.io.InputStream;
 import java.net.URL;
 import java.security.ProtectionDomain;
 import java.util.Properties;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.Handler;
@@ -46,6 +49,17 @@ public class DBMgrMain {
 
 		try {
 			// File webAppFile = findWebAppDir();
+			ProtectionDomain protectionDomain = DBMgrMain.class.getProtectionDomain();
+			URL location = protectionDomain.getCodeSource().getLocation();
+
+			if (args.length > 0) {
+				for (String arg : args) {
+					if (arg.contains("-version")) {
+						printVersion(location.getFile());
+						System.exit(1);
+					}
+				}
+			}
 
 			String DBMGR_HOME = System.getenv("DBMGR_INSTALL_DIR");
 			if (DBMGR_HOME == null || DBMGR_HOME.isEmpty()) {
@@ -102,10 +116,6 @@ public class DBMgrMain {
 			Server server = new Server(threadPool);
 
 			// Server server = new Server(8080);
-
-			ProtectionDomain protectionDomain = DBMgrMain.class
-					.getProtectionDomain();
-			URL location = protectionDomain.getCodeSource().getLocation();
 
 			ServletContextHandler ctx = new ServletContextHandler();
 			ctx.setContextPath("/");
@@ -220,5 +230,41 @@ public class DBMgrMain {
 			}
 		}
 		return prop;
+	}
+
+	private static void printVersion(String jarFileName) {
+		Attributes.Name productNameKey = new Attributes.Name("Product-Name");
+		Attributes.Name versionKey = new Attributes.Name("Implementation-Version-2");
+		Attributes.Name branchKey = new Attributes.Name("Implementation-Version-5");
+		Attributes.Name buildDateKey = new Attributes.Name("Implementation-Version-6");
+		JarFile jarFile = null;
+		try {
+			jarFile = new JarFile(jarFileName);
+			Manifest manifest = jarFile.getManifest();
+			Attributes mainAttr = manifest.getMainAttributes();
+
+			if (mainAttr.containsKey(productNameKey)) {
+				System.out.print(mainAttr.getValue(productNameKey) + " ");
+			}
+			if (mainAttr.containsKey(versionKey)) {
+				System.out.print(mainAttr.getValue(versionKey) + " (");
+			}
+			if (mainAttr.containsKey(branchKey)) {
+				System.out.print(mainAttr.getValue(branchKey) + ", ");
+			}
+			if (mainAttr.containsKey(buildDateKey)) {
+				System.out.println("Date " + mainAttr.getValue(buildDateKey) + ")");
+			}
+		} catch (Exception ex) {
+			System.out.println("Error reading jar file '" + jarFileName + "', error " + ex);
+			System.exit(-1);
+		} finally {
+			if (jarFile != null) {
+				try {
+					jarFile.close();
+				} catch (IOException e) {
+				}
+			}
+		}
 	}
 }

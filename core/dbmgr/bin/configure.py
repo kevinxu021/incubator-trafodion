@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+# @@@ START COPYRIGHT @@@
+#
+# (C) Copyright 2015 Esgyn Corporation
+#
+# @@@ END COPYRIGHT 
 
 from optparse import OptionParser
 import getpass
@@ -100,54 +105,54 @@ def run():
     if not options.http_port :
         done = None
         while (done==None) :
-            options.http_port = raw_input("Please provide the HTTP port for EsgynDB Manager (default 4205):")
+            options.http_port = raw_input("Please provide the HTTP port for EsgynDB Manager (default 4205): ")
             if not options.http_port : options.http_port = "4205"
             if options.http_port and options.http_port.isdigit(): done = True
             
     if not options.https_port :
         done = None
         while (done==None) :
-            options.https_port = raw_input("Please provide the HTTPS port for EsgynDB Manager (default 4206):")
+            options.https_port = raw_input("Please provide the HTTPS port for EsgynDB Manager (default 4206): ")
             if not options.https_port : options.https_port = "4206"
             if options.https_port and options.https_port.isdigit(): done = True    
             
     if not options.password :
         done = None
         while (done==None) :
-            options.password = getpass.getpass(prompt='Please provide the password for the SSL keystore (minimum 6 chars):')
+            options.password = getpass.getpass(prompt='Please provide the password for the SSL keystore (minimum 6 chars): ')
             #options.password = raw_input("Please provide the password for the SSL keystore (minimum 6 chars):")
             if options.password and len(options.password)>5: done = True
             
     if not options.dcs_host :
         done = None
         while (done==None) :
-            options.dcs_host = raw_input("Please provide the EsgynDB DCS master hostname:")
+            options.dcs_host = raw_input("Please provide the EsgynDB DCS master hostname: ")
             if options.dcs_host: done = True
             
     if not options.dcs_port :
         done = None
         while (done==None) :
-            options.dcs_port = raw_input("Please provide the EsgynDB DCS master listen port(default 23400):")
+            options.dcs_port = raw_input("Please provide the EsgynDB DCS master listen port(default 23400): ")
             if not options.dcs_port : options.dcs_port = "23400"
             if options.dcs_port and options.dcs_port.isdigit(): done = True
             
     if not options.dcs_info_port :
         done = None
         while (done==None) :
-            options.dcs_info_port = raw_input("Please provide the EsgynDB DCS master info port(default 24400):")
+            options.dcs_info_port = raw_input("Please provide the EsgynDB DCS master info port(default 24400): ")
             if not options.dcs_info_port : options.dcs_info_port = "24400"
             if options.dcs_info_port and options.dcs_info_port.isdigit(): done = True
             
     if not options.rest_host :
         done = None
         while (done==None) :
-            options.rest_host = raw_input("Please provide the EsgynDB REST server hostname:")
+            options.rest_host = raw_input("Please provide the EsgynDB REST server hostname: ")
             if options.rest_host: done = True
             
     if not options.rest_port :
         done = None
         while (done==None) :
-            options.rest_port = raw_input("Please provide the EsgynDB REST server port(default 4200):")
+            options.rest_port = raw_input("Please provide the EsgynDB REST server port(default 4200): ")
             if not options.rest_port : options.rest_port = "4200"
             if options.rest_port and options.rest_port.isdigit(): done = True
             

@@ -11,7 +11,7 @@
 	<artifactId>dbmgr</artifactId>
 	<packaging>war</packaging>
 	<version>1.0.0</version>
-	<name>EsgynDB Manager Webapp</name>
+	<name>EsgynDB Manager</name>
 	<properties>
 		<jettyVersion>9.2.6.v20141205</jettyVersion>
 		<jersey-version>1.19</jersey-version>
@@ -20,6 +20,7 @@
 		<logback-version>1.0.0</logback-version>
 		<asciidoctor.version>1.5.2.1</asciidoctor.version>
 		<jruby.version>1.7.20.1</jruby.version>
+		<maven.build.timestamp.format>ddMMMyyyy</maven.build.timestamp.format>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -163,6 +164,26 @@
 		<finalName>${project.artifactId}-${project.version}</finalName>
 		<plugins>
 			<plugin>
+				<groupId>com.github.koraktor</groupId>
+				<artifactId>mavanagaiata</artifactId>
+				<version>0.7.2</version>
+				<configuration>
+					<gitDir>${project.base.dir}/../../../.git</gitDir>
+					<dirtyFlag>-modified</dirtyFlag>
+					<dateFormat>ddMMMyyyy</dateFormat>
+				</configuration>
+				<executions>
+					<execution>
+						<id>git-commit</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>commit</goal>
+							<goal>branch</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>2.5.1</version>
@@ -212,6 +233,15 @@
 						<manifest>
 							<mainClass>DBMgrMain</mainClass>
 						</manifest>
+						<manifestEntries>
+							<Implementation-Version-1>Version ${project.version}</Implementation-Version-1>
+							<Implementation-Version-2>Release ${project.version}</Implementation-Version-2>
+							<Implementation-Version-3>Build release</Implementation-Version-3>
+							<Implementation-Version-4>[${user.name}]</Implementation-Version-4>
+							<Implementation-Version-5>Branch ${mvngit.commit.abbrev}-${mvngit.branch}</Implementation-Version-5>
+							<Implementation-Version-6>Date ${maven.build.timestamp}</Implementation-Version-6>
+							<Product-Name>${project.name}</Product-Name>
+						</manifestEntries>
 					</archive>
 					<warName>${project.artifactId}-${project.version}</warName>
 					<packagingExcludes>WEB-INF/lib/javax.servlet*.jar</packagingExcludes>
@@ -299,18 +329,18 @@
 				<groupId>org.asciidoctor</groupId>
 				<artifactId>asciidoctor-maven-plugin</artifactId>
 				<version>${asciidoctor.version}</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.asciidoctor</groupId>
-                        <artifactId>asciidoctorj-pdf</artifactId>
-                        <version>1.5.0-alpha.9</version>
-                    </dependency>
+				<dependencies>
 					<dependency>
-                        <groupId>org.jruby</groupId>
-                        <artifactId>jruby-complete</artifactId>
-                        <version>${jruby.version}</version>
-                    </dependency>                    
-                </dependencies>				
+						<groupId>org.asciidoctor</groupId>
+						<artifactId>asciidoctorj-pdf</artifactId>
+						<version>1.5.0-alpha.9</version>
+					</dependency>
+					<dependency>
+						<groupId>org.jruby</groupId>
+						<artifactId>jruby-complete</artifactId>
+						<version>${jruby.version}</version>
+					</dependency>
+				</dependencies>
 				<executions>
 					<execution>
 						<id>output-html</id>
@@ -340,30 +370,30 @@
 						</configuration>
 					</execution>
 					<execution>
-                        <id>generate-pdf-doc</id>
-                        <phase>generate-resources</phase>
-                        <goals>
-                            <goal>process-asciidoc</goal>
-                        </goals>
-                        <configuration>
-                             <backend>pdf</backend>
-                            <!-- Since 1.5.0-alpha.9 PDF back-end can use 'rouge' as well as 'coderay'
-                            source highlighting -->
-                            <sourceHighlighter>coderay</sourceHighlighter>
-                            <attributes>
-                            	<ouputFileName>demo.pdf</ouputFileName>
+						<id>generate-pdf-doc</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>process-asciidoc</goal>
+						</goals>
+						<configuration>
+							<backend>pdf</backend>
+							<!-- Since 1.5.0-alpha.9 PDF back-end can use 'rouge' as well as 'coderay' 
+								source highlighting -->
+							<sourceHighlighter>coderay</sourceHighlighter>
+							<attributes>
+								<ouputFileName>demo.pdf</ouputFileName>
 								<stylesheet>dbmgr_doc.css</stylesheet>
 								<projectVersion>${project.version}</projectVersion>
-								<buildDate>${maven.build.timestamp}</buildDate>                            
-                                <icons>font</icons>
-                                <pagenums/>
-                                <toc/>
-                                <toclevels>5</toclevels>
-                                <idprefix/>
-                                <idseparator>-</idseparator>
-                            </attributes>
-                        </configuration>
-                    </execution>					
+								<buildDate>${maven.build.timestamp}</buildDate>
+								<icons>font</icons>
+								<pagenums />
+								<toc />
+								<toclevels>5</toclevels>
+								<idprefix />
+								<idseparator>-</idseparator>
+							</attributes>
+						</configuration>
+					</execution>
 				</executions>
 			</plugin>
 		</plugins>
@@ -393,6 +423,24 @@
 											<goal>
 												process-asciidoc
 											</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore></ignore>
+									</action>
+								</pluginExecution>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>
+											com.github.koraktor
+										</groupId>
+										<artifactId>
+											mavanagaiata
+										</artifactId>
+										<versionRange>[0.4.1,)</versionRange>
+										<goals>
+											<goal>commit</goal>
+											<goal>branch</goal>
 										</goals>
 									</pluginExecutionFilter>
 									<action>
