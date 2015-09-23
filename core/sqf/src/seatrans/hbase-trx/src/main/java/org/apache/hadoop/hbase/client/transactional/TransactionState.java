@@ -65,6 +65,7 @@ public class TransactionState {
     private boolean ddlTrans;
     private static boolean useConcurrentHM = false;
     private static boolean getCHMVariable = true;
+    private boolean hasRetried = false;
 
     public Set<String> tableNames = Collections.synchronizedSet(new HashSet<String>());
     public Set<TransactionRegionLocation> participatingRegions;
@@ -433,4 +434,13 @@ public class TransactionState {
     public void setDDLTx(final boolean status) {
         this.ddlTrans = status;
     }
+
+    public void setRetried(boolean val) {
+        this.hasRetried = val;
+    }
+
+    public boolean hasRetried() {
+      return this.hasRetried;
+    }
+
 }
