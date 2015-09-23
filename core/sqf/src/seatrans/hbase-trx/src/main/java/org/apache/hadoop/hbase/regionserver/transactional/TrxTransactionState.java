@@ -193,6 +193,8 @@ public class TrxTransactionState  extends TransactionState{
     }
 
     public synchronized void addDelete(final Delete delete) {
+        if (LOG.isTraceEnabled()) LOG.trace("addDelete -- ENTRY: delete: " + delete.toString());
+
         WriteAction waction;
         WALEdit e1  = new WALEdit();
         long now = EnvironmentEdgeManager.currentTime();
@@ -903,5 +905,9 @@ public class TrxTransactionState  extends TransactionState{
           return edits;
       }
     }
+    public Set<TrxTransactionState> getTransactionsToCheck() {
+      return transactionsToCheck;
+    }
+
    
 }

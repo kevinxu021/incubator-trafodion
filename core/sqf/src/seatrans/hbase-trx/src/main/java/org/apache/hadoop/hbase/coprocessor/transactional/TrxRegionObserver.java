@@ -1,22 +1,23 @@
-/**
- * (C) Copyright 2013-2015 Hewlett-Packard Development Company, L.P.
- *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// @@@ START COPYRIGHT @@@
+//
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+//
+// @@@ END COPYRIGHT @@@
 
 package org.apache.hadoop.hbase.coprocessor.transactional;
 
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -32,11 +34,12 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -49,9 +52,15 @@ import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
+import org.apache.hadoop.hbase.regionserver.ScanType;
+import org.apache.hadoop.hbase.regionserver.Store;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
+import org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegionScannerHolder;
 import org.apache.hadoop.hbase.regionserver.transactional.TrxTransactionState;
 import org.apache.hadoop.hbase.wal.WAL;
+//import org.apache.hadoop.hbase.regionserver.wal.HLog;
 import org.apache.hadoop.hbase.regionserver.wal.HLogKey;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -71,7 +80,6 @@ import org.apache.hadoop.hbase.client.Mutation;
 import java.util.ListIterator;
 import org.apache.hadoop.hbase.Cell;
 
-
 public class TrxRegionObserver extends BaseRegionObserver {
 
 
@@ -83,7 +91,9 @@ public static final String trxkeycommitPendingTransactions = "commitPendingTrans
 public static final String trxkeypendingTransactionsById = "pendingTransactionsById";
 public static final String trxkeyindoubtTransactionsCountByTmid = "indoubtTransactionsCountByTmid";
 public static final String trxkeyClosingVar = "checkClosingVariable";
+public static final String trxkeyScanners = "trxScanners";
 
+public static final String SPLIT_DELAY_NOFLUSH = "hbase.transaction.split.delay.noflush";
 public static final String SPLIT_DELAY_LIMIT = "hbase.transaction.split.delay.limit";
 public static final String EARLY_DRAIN =       "hbase.transaction.split.drain.early";
 public static final String ACTIVE_DELAY_LEN =  "hbase.transaction.split.active.delay";
@@ -108,9 +118,17 @@ private Map<Integer, Integer> indoubtTransactionsCountByTmid = new TreeMap<Integ
 // Map for Transactional Region to exchange data structures between Region Observer coprocessor and Endpoint Coprocessor
 static ConcurrentHashMap<String, Object> transactionsRefMap = new ConcurrentHashMap<String, Object>();
 
+private ConcurrentHashMap<Long,TransactionalRegionScannerHolder> scanners =
+                    new ConcurrentHashMap<Long, TransactionalRegionScannerHolder>();
+
+static ConcurrentHashMap<String, Object> trxRegionMap;
+
 private ConcurrentHashMap<String, TrxTransactionState> transactionsById = new ConcurrentHashMap<String, TrxTransactionState>();
 private Set<TrxTransactionState> commitPendingTransactions = Collections.synchronizedSet(new HashSet<TrxTransactionState>());
 private AtomicBoolean closing = new AtomicBoolean(false);
+private boolean hasClosed = false;
+private boolean hasFlushed = false;
+
 
 HRegion my_Region;
 HRegionInfo regionInfo;
@@ -120,6 +138,7 @@ String hostName;
 int port;
 int splitDelayLimit;
 boolean earlyDrain;
+boolean splitDelayNoFlush;
 int activeDelayLen;
 int pendingDelayLen;
 long activeCount = 0;
@@ -134,15 +153,18 @@ int flushCount = 0;
 int regionState = 0;
 private Object recoveryCheckLock = new Object();
 private Object editReplay = new Object();
-private AtomicInteger nextSequenceId = new AtomicInteger(0);
-
-private static String zNodePath = "/hbase/Trafodion/recovery/";
+public static String zTrafPath = "/hbase/Trafodion/";
+private static String zNodePath = zTrafPath + "recovery/";
 private static ZooKeeperWatcher zkw1 = null;
 private static Object zkRecoveryCheckLock = new Object();
+
+SplitBalanceHelper sbHelper;
 
 // Region Observer Coprocessor START
 @Override
 public void start(CoprocessorEnvironment e) throws IOException {
+    trxRegionMap = TrxRegionEndpoint.getRegionMap();
+
     RegionCoprocessorEnvironment regionCoprEnv = (RegionCoprocessorEnvironment)e;
     RegionCoprocessorEnvironment re = (RegionCoprocessorEnvironment) e;
     my_Region = re.getRegion();
@@ -153,6 +175,7 @@ public void start(CoprocessorEnvironment e) throws IOException {
     this.activeDelayLen = conf.getInt(ACTIVE_DELAY_LEN, ACTIVETXN_DELAY_DEFAULT);
     this.pendingDelayLen = conf.getInt(PENDING_DELAY_LEN, PENDINGTXN_DELAY_DEFAULT);
     this.earlyDrain = conf.getBoolean(EARLY_DRAIN, false);
+    this.splitDelayNoFlush = conf.getBoolean(SPLIT_DELAY_NOFLUSH, false);
 
     if (LOG.isTraceEnabled()) {
         LOG.trace("Properties for -- " + regionInfo.getRegionNameAsString());
@@ -160,6 +183,7 @@ public void start(CoprocessorEnvironment e) throws IOException {
         LOG.trace("Property: activeDelayLen = " + this.activeDelayLen);
         LOG.trace("Property: pendingDelayLen = " + this.pendingDelayLen);
         LOG.trace("Property: earlyDrain = " + this.earlyDrain);
+        LOG.trace("Property: splitDelayNoFlush = " + this.splitDelayNoFlush);
     }
     
     if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP: trxRegionObserver load start ");
@@ -238,7 +262,20 @@ public void start(CoprocessorEnvironment e) throws IOException {
        transactionsRefMap.put(regionName+trxkeyClosingVar, this.closing);
    }
 
-    if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP: trxRegionObserver load start complete");
+   @SuppressWarnings("unchecked")
+   ConcurrentHashMap<Long,TransactionalRegionScannerHolder> scannersCheck =
+       (ConcurrentHashMap<Long,TransactionalRegionScannerHolder>)transactionsRefMap
+           .get(regionName+trxkeyScanners);
+   if(scannersCheck != null) {
+     this.scanners = scannersCheck;
+   }
+   else {
+     transactionsRefMap.put(regionName+trxkeyScanners, this.scanners);
+   }
+
+   sbHelper = new SplitBalanceHelper(my_Region, zkw1);
+
+   if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP: trxRegionObserver load start complete");
 
 } // end of start
 
@@ -257,8 +294,8 @@ static ConcurrentHashMap<String, Object> getRefMap() {
      HLogKey logKey, WALEdit logEdit) throws IOException {
 
      if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP: preWALRestore coprocessor is invoked ... in table "+ logKey.getTablename().getNameAsString());
-
      ArrayList<Cell> kvs = logEdit.getCells();
+     //ArrayList<KeyValue> kvs = logEdit.getKeyValues();
      if (kvs.size() <= 0) {
         if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP:PWR00 No KV inside Edits, skip ... ");
         return;
@@ -266,6 +303,7 @@ static ConcurrentHashMap<String, Object> getRefMap() {
 
      // Retrieve KV to see if it has the Trafodion Transaction context tag
      Cell kv = kvs.get(0); // get the first KV to check the associated transactional tag (all the KV pairs contain the same tag)
+     //KeyValue kv = kvs.get(0); // get the first KV to check the associated transactional tag (all the KV pairs contain the same tag)
      if (LOG.isTraceEnabled()) LOG.trace("KV hex dump " + Hex.encodeHexString(kv.getValueArray() /*kv.getBuffer()*/));
      byte[] tagArray = Bytes.copy(kv.getTagsArray(), kv.getTagsOffset(), kv.getTagsLength());
      byte tagType = TS_TRAFODION_TXN_TAG_TYPE;
@@ -385,6 +423,27 @@ static ConcurrentHashMap<String, Object> getRefMap() {
 
 @Override
 public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
+  @SuppressWarnings("rawtypes")
+  TrxRegionEndpoint tre = (TrxRegionEndpoint)trxRegionMap.get(regionInfo.getRegionNameAsString()+TrxRegionEndpoint.trxkeyEPCPinstance);
+  if(tre == null) {
+      LOG.error("Unable to obtain TrxRegionEndpoint object from shared map for " + regionInfo.getRegionNameAsString());
+  }
+  else {
+	  Path readPath = null;
+	  StringBuilder sbPath = new StringBuilder();
+	  if(sbHelper.getSplit(sbPath)) {
+		  sbHelper.clearSplit();
+	  }
+	  else if(sbHelper.getBalance(sbPath)) {
+	    readPath = new Path(sbPath.toString());
+	    try {
+		  tre.readTxnInfo(readPath);
+	    } catch(IOException ioe) {
+	      if (LOG.isErrorEnabled()) LOG.error("Unable to read Transactional Info for balance coordination: " + ioe);
+	    }
+		  sbHelper.clearBalance();
+	  }
+  }
 
    //        Trafodion Recovery : after Open, we should have alreday constructed all the indoubt transactions in
    //        pendingTransactionsById now process it and construct transaction list by TM id. These two data
@@ -489,6 +548,7 @@ public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> ed
                                      + transactionId + " with editList size is " + num);
    for ( int i = 0; i < num; i++){
    WALEdit val = editList.get(i);
+   // for (KeyValue kv : val.getKeyValues()) {
    for (Cell kv : val.getCells()) {
          synchronized (editReplay) {
              if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP: " + regionInfo.getRegionNameAsString() + " replay commit for transaction: "
@@ -502,7 +562,7 @@ public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> ed
 		Delete del = new Delete(CellUtil.cloneRow(kv));
 	       	if (CellUtil.isDeleteFamily(kv)) {
 	 	     del.deleteFamily(CellUtil.cloneFamily(kv));
-	        } else if (CellUtil.isDeleteType(kv)) {
+                } else if (CellUtil.isDeleteType(kv)) {
 	             del.deleteColumn(CellUtil.cloneFamily(kv), CellUtil.cloneQualifier(kv));
 	        }
                 my_Region.delete(del);
@@ -552,75 +612,105 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
        }
 } // end of createRecoveryzNode
 
-    protected void pendingWait() throws IOException {
-        int count = 1;
-        while(!commitPendingTransactions.isEmpty()) {
-            try {
-                if(LOG.isDebugEnabled()) LOG.debug("pendingWait() delay, count " + count++ + " on: " + regionInfo.getRegionNameAsString());
-                Thread.sleep(this.pendingDelayLen);
-            } catch(InterruptedException e) {
-                String error = "Problem while calling sleep() on pendingWait delay, " + e;
-                if(LOG.isErrorEnabled()) LOG.error("Problem while calling sleep() on preSplit delay, returning. " + e);
-                throw new IOException(error);
-            }
-        }
-    }
 
-    protected void activeWait() throws IOException {
-        int counter = 0;
-        int minutes = 0;
-        int currentMin = 0;
-
-        boolean delayMsg = false;
-        while(!transactionsById.isEmpty()) {
-            try {
-                delayMsg = true;
-                Thread.sleep(this.activeDelayLen);
-                counter++;
-                currentMin = (counter * this.activeDelayLen) / 60000;
-
-                if(currentMin > minutes) {
-                    minutes = currentMin;
-                    if (LOG.isInfoEnabled()) LOG.info("Delaying split due to transactions present. Delayed : " + 
-                                                      minutes + " minute(s) on " + regionInfo.getRegionNameAsString());
-                }
-                if(minutes >= this.splitDelayLimit) {
-                    if(LOG.isWarnEnabled()) LOG.warn("Surpassed split delay limit of " + this.splitDelayLimit
-                                                    + " minutes. Continuing with split");
-                    delayMsg = false;
-                    break;
-                }
-            } catch (InterruptedException e) {
-                String error = "Problem while calling sleep() on preSplit delay - activeWait: " + e;
-                if(LOG.isErrorEnabled()) LOG.error(error);
-                throw new IOException(error);
-            }
-        }
-        if(delayMsg) {
-          if(LOG.isWarnEnabled()) LOG.warn("Continuing with split operation, no active transactions on: " + regionInfo.getRegionNameAsString());
-        }
-    }
 
     @Override
     public void preSplit(ObserverContext<RegionCoprocessorEnvironment> c, byte[] splitRow) throws IOException {
         if(LOG.isTraceEnabled()) LOG.trace("preSplit -- ENTRY region: " + regionInfo.getRegionNameAsString());
 
-        if(!this.earlyDrain) {
-          activeWait();
+        if(splitDelayNoFlush) {
+            if(!this.earlyDrain)
+              sbHelper.activeWait(transactionsById, activeDelayLen, splitDelayLimit);
+            closing.set(true);
+            sbHelper.pendingWait(commitPendingTransactions, pendingDelayLen);
         }
-        closing.set(true);
-        pendingWait();
+        else {
+            sbHelper.pendingAndScannersWait(commitPendingTransactions, scanners, pendingDelayLen);
+            closing.set(true);
+
+            sbHelper.setSplit();
+        }
 
         if(LOG.isTraceEnabled()) LOG.trace("preSplit -- EXIT region: " + regionInfo.getRegionNameAsString());
     }
 
     @Override
+    public void	postSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) {
+
+        if(splitDelayNoFlush)
+          return;
+
+        @SuppressWarnings("rawtypes")
+        TrxRegionEndpoint treL = (TrxRegionEndpoint)trxRegionMap.get(l.getRegionInfo().getRegionNameAsString()+TrxRegionEndpoint.trxkeyEPCPinstance);
+          @SuppressWarnings("rawtypes")
+          TrxRegionEndpoint treR = (TrxRegionEndpoint)trxRegionMap.get(r.getRegionInfo().getRegionNameAsString()+TrxRegionEndpoint.trxkeyEPCPinstance);
+          if(treL == null || treR == null) {
+             LOG.error("Unable to obtain TrxRegionEndpoint object from shared map for " + regionInfo.getRegionNameAsString());
+          }
+          else {
+          try {
+             treL.setClosing(true);
+             treR.setClosing(true);
+             Thread readThread = new Thread(new TxnReadThread(treL, sbHelper.getPath(), true));
+             readThread.start();
+             //treL.readTxnInfo(sbHelper.getPath(), true);
+             treR.readTxnInfo(sbHelper.getPath(), true);
+             readThread.join();
+             treL.setClosing(false);
+             treR.setClosing(false);
+             sbHelper.clearSplit();
+          } catch (IOException ioe) {
+             if(LOG.isErrorEnabled()) LOG.error("Unable to read Transaction Info for transactional split coordination: " + ioe);
+          } catch (InterruptedException ie) {
+             if(LOG.isErrorEnabled()) LOG.error("Thread issue hit while trying to read Transaction Info for transactional split coordination: " + ie);
+          }
+       }
+    }
+
+    @Override
     public void    preClose(ObserverContext<RegionCoprocessorEnvironment> c, boolean abortRequested) {
-        if(LOG.isInfoEnabled()) {
-            HRegion region = c.getEnvironment().getRegion();
-            LOG.info("preClose -- setting close var to true on: " + region.getRegionNameAsString());
+        if (hasFlushed ||
+            hasClosed ||
+            splitDelayNoFlush ||
+            c.getEnvironment().getRegionServerServices().isStopping() ||
+            c.getEnvironment().getRegionServerServices().isStopped())
+            return;
+
+        if (!hasClosed) {
+	        if(LOG.isInfoEnabled()) {
+	            HRegion region = c.getEnvironment().getRegion();
+	            LOG.debug("preClose -- setting close var to true on: " + region.getRegionNameAsString());
+	        }
+	        try {
+	          sbHelper.pendingAndScannersWait(commitPendingTransactions, scanners, pendingDelayLen);
+	        } catch(IOException ioe) {
+	          LOG.error("Encountered exception when calling pendingAndScannersWait(): " + ioe);
+	        }
+	        closing.set(true);
+	        hasClosed = true;
         }
-        closing.set(true);
+
+        if (c.getEnvironment().getRegionServerServices().isStopping() ||
+            c.getEnvironment().getRegionServerServices().isStopped() ||
+            hasFlushed)
+            return;
+
+        @SuppressWarnings("rawtypes")
+        TrxRegionEndpoint tre = (TrxRegionEndpoint)trxRegionMap.get(regionInfo.getRegionNameAsString()+TrxRegionEndpoint.trxkeyEPCPinstance);
+        if(tre == null) {
+            LOG.error("Unable to obtain TrxRegionEndpoint objet from shared map for " + regionInfo.getRegionNameAsString());
+        }
+        else {
+            tre.flushToFS(sbHelper.getPath());
+            if(!sbHelper.getSplit()) {
+              try {
+               sbHelper.setBalance();
+              } catch (IOException ioe) {
+               if(LOG.isErrorEnabled()) LOG.error("Unable to set balance: " + ioe);
+              }
+            }
+            hasFlushed = true;
+        }
     }
 
     @Override
@@ -631,6 +721,7 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
         transactionsRefMap.remove(regionName+trxkeytransactionsById);
         transactionsRefMap.remove(regionName+trxkeycommitPendingTransactions);
         transactionsRefMap.remove(regionName+trxkeyClosingVar);
+        transactionsRefMap.remove(regionName+trxkeyScanners);
     }
 
     protected InternalScanner getWrappedScanner(final long lowStartId, final InternalScanner s) {
@@ -762,4 +853,22 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
         return getWrappedScanner(lowStartId , scanner); 
     }
 
+    private static class TxnReadThread implements Runnable {
+      @SuppressWarnings("rawtypes")
+      private TrxRegionEndpoint tre;
+      private Path path;
+      private boolean isSplit;
+      TxnReadThread(@SuppressWarnings("rawtypes") TrxRegionEndpoint tre, Path path, boolean isSplit) {
+        this.tre = tre;
+        this.path = path;
+        this.isSplit = isSplit;
+      }
+      public void run(){
+        try {
+          tre.readTxnInfo(path, isSplit);
+        } catch (IOException ioe) {
+          if(LOG.isErrorEnabled()) LOG.error("Unable to read Transaction Info for transactional split coordination: " + ioe);
+        }
+      }
+    }
 } // end of TrxRegionObserver Class

@@ -105,6 +105,7 @@ public class TransactionState {
     protected int reInstated = 0;
     protected long flushTxId = 0;
 
+    protected boolean splitRetry = false;
     protected boolean earlyLogging = false;
     protected boolean commit_TS_CC = false;
     protected WAL tHLog = null;
@@ -194,6 +195,18 @@ public class TransactionState {
      */
     public Status getStatus() {
         return status;
+    }
+
+    public long getLogSeqId() {
+      return logSeqId.get();
+    }
+
+    public void setSplitRetry(boolean value) {
+      splitRetry = value;
+    }
+
+    public boolean getSplitRetry() {
+      return splitRetry;
     }
 
     public long getFlushTxId() {
