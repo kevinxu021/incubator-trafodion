@@ -97,7 +97,25 @@ You can invoke the cancel action from any of the workload pages. If the query is
 
 === Logs
 The Logs page displays the log messages from the EsgynDB processes. The logs are fetched using the logs TMUDF which filters the log entries from the EsgynDB log files and provides a single consolidated view.
-Use the Filters button to specify custom filters for your search.
+
+Use the Filters button to specify custom filters for your search. You can filter the log entries using a time range, specific severity levels, component names, process names, error codes or message text.
+
+The components are:
+[options="header"]
+|===========================
+|Component Name |Description
+|MON | Monitor
+|MXOSRVR | Master Executor
+|SQL | SQL 
+|SQL.COMP | Compiler
+|SQL.ESP | Executor Server Process
+|SQL.EXE | Master Executor SQL
+|SQL.LOB | SQL Large Objects
+|SQL.SSCP | Runtime Management Service
+|SQL.SSMP | Runtime Management Service
+|SQL.UDR | User Defined Routines
+|WDG | Watchdog
+|===========================
 
 === DCS Servers
 The DCS Servers page displays the current active DCS Server sessions. If the DCS server is in a connected state, you will see the user name, the application name and client workstation that is connected.
