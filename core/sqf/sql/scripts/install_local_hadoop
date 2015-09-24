@@ -529,6 +529,7 @@ MY_HADOOP_TASK_TRACKER_PORT_NUM=`expr $MY_START_PORT + 60`
 # dfs.backup.http.address (50105)
 # mapred.job.tracker (???)
 
+listports > $MY_SW_SCRIPTS_DIR/sw_ports
 if [[ -n "$VERBOSE" ]]; then
   listports
 fi
@@ -689,6 +690,8 @@ EOF
   cat <<EOF >$MY_SW_SCRIPTS_DIR/sw_env.sh
 # Basic environment variables for Trafodion/Hadoop/Hive/HBase/MySQL setup
 export JAVA_HOME=${JAVA_HOME}
+export MY_SW_SCRIPTS_DIR=${MY_SW_SCRIPTS_DIR}
+export MY_SW_ROOT=${MY_SW_ROOT}
 export MYSQL_HOME=${MYSQL_HOME}
 export YARN_HOME=${YARN_HOME}
 export HIVE_HOME=${HIVE_HOME}
@@ -1515,6 +1518,7 @@ fi
 # end of HBase setup
 
 if [[ ! -z FAST_LOCAL_HADOOP ]]; then
+    echo "FAST_LOCAL_HADOOP is set. Exitting..."
     exit 0
 fi
 

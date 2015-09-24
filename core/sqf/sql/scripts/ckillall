@@ -38,6 +38,9 @@ else
   fi
 fi
 
+dcsstop
+reststop
+
 if [ "$lv_execute_killall" == "1" ]; then
     setup_sqpdsh
     eval '$SQPDSHA "$MY_SQROOT/sql/scripts/pkillall"'

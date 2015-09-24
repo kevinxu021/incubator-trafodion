@@ -32,7 +32,6 @@ import org.apache.hadoop.hbase.TableExistsException;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -57,9 +56,10 @@ public class hbstatus {
 
     private static final Log LOG = LogFactory.getLog(hbstatus.class);
 
-    HBaseAdmin    m_Admin;
+    Admin         m_Admin;
     Configuration m_Config;
     boolean       m_Verbose;
+    Connection    m_Connection;
 
     public hbstatus(Configuration config) throws Exception {
 
@@ -69,7 +69,8 @@ public class hbstatus {
 	System.out.println("ZooKeeper Quorum: " + m_Config.get("hbase.zookeeper.quorum"));
 	System.out.println("ZooKeeper Port  : " + m_Config.get("hbase.zookeeper.property.clientPort"));
 
-	m_Admin = new HBaseAdmin(m_Config);
+	m_Connection = ConnectionFactory.createConnection(m_Config);
+	m_Admin = m_Connection.getAdmin();
 
 	m_Verbose = false;
     }
@@ -81,23 +82,18 @@ public class hbstatus {
     public boolean CheckStatus() throws Exception {
 
         System.out.println("Checking if HBase is available...");
-        try {
-            HBaseAdmin.checkHBaseAvailable(m_Config);
-        }
-	catch (MasterNotRunningException me) {
-            System.out.println("HBase Master is not running");
-	    System.out.println("HBase is not available");
-	    return false;
+	ClusterStatus lv_cs;
+	try {
+	    lv_cs = m_Admin.getClusterStatus();
 	}
         catch (Exception e) {
-            System.out.println("Caught an exception in HBaseAdmin.checkHBaseAvailable: " + e);
+            System.out.println("Caught an exception trying to check the status of the HBase cluster: " + e);
 	    System.out.println("HBase is not available");
             return false;
         }
 
         System.out.println("\nHBase is available!");
 
-	ClusterStatus lv_cs = m_Admin.getClusterStatus();
 	System.out.println("HMaster: " + lv_cs.getMaster());
 
 	Collection<ServerName> lv_csn = lv_cs.getServers();
