@@ -19,6 +19,7 @@ AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={pf}\EsgynDB\ADO.NET-1.0.0
+DefaultGroupName={#MyAppName}
 LicenseFile=Eula.rtf
 Compression=lzma
 SolidCompression=yes

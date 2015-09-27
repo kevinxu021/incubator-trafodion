@@ -19,6 +19,7 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
+DefaultGroupName={#MyAppName}
 DefaultDirName={pf}\Trafodion\TRAF ODBC 1.0
 OutputBaseFilename=TFODBC64-{#MyAppVersion}
 Compression=lzma
@@ -27,6 +28,8 @@ DisableProgramGroupPage=yes
 ArchitecturesInstallIn64BitMode=x64
 UninstallDisplayName={#MyAppName}
 ArchitecturesAllowed=x64
+SetupLogging=yes
+
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -43,7 +46,8 @@ Source: "C:\Build\winodbc64\lib\x64\Release\trfodbc1.dll"; DestDir: "{sys}"
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
-Name: "{group}\{cm:UninstallProgram,{#MyAppName} {#MyAppVersion}}"; Filename: "{uninstallexe}"
+Name: "{group}\MS ODBC Administrator"; Filename: "{sys}\odbcad32.exe";  WorkingDir: "{sys}"
+Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 
 [Registry]
 Root: HKLM; SubKey: Software\ODBC\ODBCINST.INI\ODBC Drivers; ValueType: string; ValueName: {#MyDriverName}; ValueData: Installed ;Flags: uninsdeletekey
