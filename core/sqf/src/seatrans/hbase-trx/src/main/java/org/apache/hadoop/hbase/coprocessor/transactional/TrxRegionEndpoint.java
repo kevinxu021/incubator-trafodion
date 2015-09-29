@@ -5326,82 +5326,73 @@ CoprocessorService, Coprocessor {
       }
     }
   }
-  public void flushToFS(Path flushPath) {
+  public void flushToFS(Path flushPath) throws IOException {
     TransactionPersist.Builder txnPersistBuilder = TransactionPersist.newBuilder();
-    try {
-      fs.delete(flushPath, true);
+    fs.delete(flushPath, true);
 
-      HFileWriterV2 w =
-          (HFileWriterV2)
-          HFile.getWriterFactory(config, new CacheConfig(config))
-          .withPath(fs, flushPath).withFileContext(context).create();
+    HFileWriterV2 w =
+        (HFileWriterV2)
+        HFile.getWriterFactory(config, new CacheConfig(config))
+        .withPath(fs, flushPath).withFileContext(context).create();
 
-      Map<Long, TrxTransactionState> transactionMap = new HashMap<Long, TrxTransactionState>();
+    Map<Long, TrxTransactionState> transactionMap = new HashMap<Long, TrxTransactionState>();
 
-      for(TrxTransactionState ts : transactionsById.values()) {
-        transactionMap.put(ts.getTransactionId(), ts);
-        txnPersistBuilder.addTxById(ts.getTransactionId());
-      }
-      for(Map.Entry<Long, TrxTransactionState> entry :
-          commitedTransactionsBySequenceNumber.entrySet()) {
-        transactionMap.put(entry.getValue().getTransactionId(), entry.getValue());
-        txnPersistBuilder.addSeqNoListSeq(entry.getKey());
-        txnPersistBuilder.addSeqNoListTxn(entry.getValue().getTransactionId());
-      }
-      for(TrxTransactionState ts : transactionMap.values()) {
-        for(TrxTransactionState ts2 : ts.getTransactionsToCheck()) {
-          transactionMap.put(ts.getTransactionId(), ts);
-        }
-      }
-      txnPersistBuilder.setNextSeqId(nextSequenceId.get());
-
-      ByteArrayOutputStream output = new ByteArrayOutputStream();
-
-      for(TrxTransactionState ts : transactionMap.values()) {
-        TransactionStateMsg.Builder tsBuilder =  TransactionStateMsg.newBuilder();
-        tsBuilder.setTxId(ts.getTransactionId());
-        tsBuilder.setStartSeqNum(ts.getStartSequenceNumber());
-        tsBuilder.setSeqNum(ts.getHLogStartSequenceId());
-        tsBuilder.setLogSeqId(ts.getLogSeqId());
-        tsBuilder.setReinstated(ts.isReinstated());
-
-        if(ts.getCommitProgress() == null)
-            tsBuilder.setCommitProgress(-1);
-        else
-            tsBuilder.setCommitProgress(ts.getCommitProgress().ordinal());
-
-        tsBuilder.setStatus(ts.getStatus().ordinal());
-        for (WriteAction wa : ts.getWriteOrdering()) {
-          if(wa.getPut() != null) {
-            tsBuilder.addPutOrDel(true);
-            tsBuilder.addPut(ProtobufUtil.toMutation(MutationType.PUT, wa.getPut()));
-          }
-          else {
-            tsBuilder.addPutOrDel(false);
-
-            tsBuilder.addDelete(ProtobufUtil.toMutation(MutationType.DELETE, wa.getDelete()));
-          }
-        }
-        tsBuilder.build().writeDelimitedTo(output);
-      }
-      byte [] firstByte = output.toByteArray();
-
-      w.append(new KeyValue(Bytes.toBytes(COMMITTED_TXNS_KEY), Bytes.toBytes("cf"), Bytes.toBytes("qual"),
-        firstByte));
-
-      byte [] persistByte = txnPersistBuilder.build().toByteArray();
-      TransactionPersist persistMsg = TransactionPersist.parseFrom(persistByte);
-
-      w.append(new KeyValue(Bytes.toBytes(TXNS_BY_ID_KEY), Bytes.toBytes("cf"), Bytes.toBytes("qual"),
-        persistByte));
-
-      w.close();
-
-    } catch (IOException e) {
-      if(LOG.isErrorEnabled())LOG.error("Exception in Transaction State flush: " + e);
-
+    for(TrxTransactionState ts : transactionsById.values()) {
+      transactionMap.put(ts.getTransactionId(), ts);
+      txnPersistBuilder.addTxById(ts.getTransactionId());
     }
+    for(Map.Entry<Long, TrxTransactionState> entry :
+        commitedTransactionsBySequenceNumber.entrySet()) {
+      transactionMap.put(entry.getValue().getTransactionId(), entry.getValue());
+      txnPersistBuilder.addSeqNoListSeq(entry.getKey());
+      txnPersistBuilder.addSeqNoListTxn(entry.getValue().getTransactionId());
+    }
+    for(TrxTransactionState ts : transactionMap.values()) {
+      for(TrxTransactionState ts2 : ts.getTransactionsToCheck()) {
+        transactionMap.put(ts.getTransactionId(), ts);
+      }
+    }
+    txnPersistBuilder.setNextSeqId(nextSequenceId.get());
 
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+    for(TrxTransactionState ts : transactionMap.values()) {
+      TransactionStateMsg.Builder tsBuilder =  TransactionStateMsg.newBuilder();
+      tsBuilder.setTxId(ts.getTransactionId());
+      tsBuilder.setStartSeqNum(ts.getStartSequenceNumber());
+      tsBuilder.setSeqNum(ts.getHLogStartSequenceId());
+      tsBuilder.setLogSeqId(ts.getLogSeqId());
+      tsBuilder.setReinstated(ts.isReinstated());
+
+      if(ts.getCommitProgress() == null)
+          tsBuilder.setCommitProgress(-1);
+      else
+          tsBuilder.setCommitProgress(ts.getCommitProgress().ordinal());
+
+      tsBuilder.setStatus(ts.getStatus().ordinal());
+      for (WriteAction wa : ts.getWriteOrdering()) {
+        if(wa.getPut() != null) {
+          tsBuilder.addPutOrDel(true);
+          tsBuilder.addPut(ProtobufUtil.toMutation(MutationType.PUT, wa.getPut()));
+        }
+        else {
+          tsBuilder.addPutOrDel(false);
+
+          tsBuilder.addDelete(ProtobufUtil.toMutation(MutationType.DELETE, wa.getDelete()));
+        }
+      }
+      tsBuilder.build().writeDelimitedTo(output);
+    }
+    byte [] firstByte = output.toByteArray();
+
+    w.append(new KeyValue(Bytes.toBytes(COMMITTED_TXNS_KEY), Bytes.toBytes("cf"), Bytes.toBytes("qual"),
+      firstByte));
+
+    byte [] persistByte = txnPersistBuilder.build().toByteArray();
+    TransactionPersist persistMsg = TransactionPersist.parseFrom(persistByte);
+    w.append(new KeyValue(Bytes.toBytes(TXNS_BY_ID_KEY), Bytes.toBytes("cf"), Bytes.toBytes("qual"),
+      persistByte));
+    w.close();
   }
 
   public void readTxnInfo(Path flushPath) throws IOException {
@@ -5495,6 +5486,7 @@ CoprocessorService, Coprocessor {
                     }
                   }
                   transactionsById.put(key, ts);
+                  transactionLeases.createLease(key, transactionLeaseTimeout, new TransactionLeaseListener(txid));
                 }
                 else {
                   TrxTransactionState tsEntry = new TrxTransactionState(txid,
