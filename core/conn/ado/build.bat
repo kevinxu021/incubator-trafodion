@@ -4,16 +4,16 @@
 @set PATH=%INNO_SETUP_PATH%;%PATH%
 
 @devenv EsgynDBProvider.sln /clean
-@devenv EsgynDBProvider.sln /build "Release"
+@devenv EsgynDBProvider.sln /rebuild "Release"
 
 @set PATH=%INNO_SETUP_PATH%;%PATH%
 
+ISCC.exe /Q installer\installer.iss
 if not exist "installer\Output\EsgynDB-ADO.NET-1.0.0.exe" goto failend
 
-ISCC.exe /Q installer\installer.iss
-
 @echo on
-@echo *** build successfully *** goto end
+@echo *** build successfully *** 
+goto end
 
 :failend
 @echo on
