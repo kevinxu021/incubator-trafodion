@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ -z $1 ]; then
-    echo "Usage: $0 <cluster id (an integer in the range 1-100)"
+    echo "Usage: $0 <cluster id (an integer in the range 1-100)>"
     exit 1
 fi
 
@@ -47,6 +47,8 @@ if [[ ${lv_ret_status} != 0 ]]; then
 fi
 
 echo "Successfully added/updated the environment variable MY_CLUSTER_ID=${lv_my_peer_id} (file: $MY_SQROOT/etc/ms.env)"
+
+$JAVA_HOME/bin/java org.apache.hadoop.hbase.client.transactional.HBaseDCZK -setmyid ${lv_my_peer_id} 2>/dev/null
 
 if [ -e $SQ_PDCP ]; then
     echo

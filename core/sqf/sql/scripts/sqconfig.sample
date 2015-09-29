@@ -55,7 +55,11 @@ end node
 
 #
 # Note: You could use '%' as the first character on the line followed by
-#       any SQ shell command. All the text would be passed verbatim.
+#       any SQ shell command. All the text would be passed verbatim to the 
+#       SQ shell (which will be executed when sqstart is executed).
+#
+# Note: You could use '!' as the first character on the line followed by
+#       any 'bash' command. All the text would be passed verbatim to bash.
 #
 
 ################################################################

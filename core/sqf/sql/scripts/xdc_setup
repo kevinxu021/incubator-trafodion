@@ -1,3 +1,5 @@
+#!/bin/bash
+#
 # @@@ START COPYRIGHT @@@
 #
 # Licensed to the Apache Software Foundation (ASF) under one
@@ -18,21 +20,19 @@
 # under the License.
 #
 # @@@ END COPYRIGHT @@@
+#
 
-begin node
-_virtualnodes 2
-end node
 
-# Overflow directories for ssd and hdd. Format: [overflow type] [directory]
-begin overflow
-hdd $MY_SQROOT/tmp
-#ssd /ssd/directory
-end overflow
+if [ -z $JAVA_HOME ]; then
+    echo "The environment variable $JAVA_HOME has not been set"
+    echo "Please ensure $MY_SQROOT/sqenv.sh has been sourced."
+    echo
+    exit 1;
+fi
 
-# execute the followig when sqgen is run
-!add_my_cluster_id 1
-!add_peer -i 1 -q dev02 -p 19770 
-!add_peer -i 2 -q dev01 -p 18370
-!xdc_setup -set -id 1 -status sup
-!xdc_setup -set -id 2 -status sup
+mkdir -p $MY_SQROOT/logs
+lv_stderr_file="$MY_SQROOT/logs/xdcstatus.err"
+echo "Stderr being written to the file: ${lv_stderr_file}"
+$JAVA_HOME/bin/java org.apache.hadoop.hbase.client.transactional.HBaseDCZK $* 2>/dev/null
+
 
