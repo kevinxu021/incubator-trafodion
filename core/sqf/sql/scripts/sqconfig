@@ -28,11 +28,3 @@ begin overflow
 hdd $MY_SQROOT/tmp
 #ssd /ssd/directory
 end overflow
-
-# execute the followig when sqgen is run
-!add_my_cluster_id 1
-!add_peer -i 1 -q dev02 -p 19770 
-!add_peer -i 2 -q dev01 -p 18370
-!xdc_setup -set -id 1 -status sup
-!xdc_setup -set -id 2 -status sup
-
