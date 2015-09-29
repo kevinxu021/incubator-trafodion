@@ -80,10 +80,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Esgyndb.Data.VisualStudio\Esgyndb.Data.VisualStudio.csproj">
-      <Project>{0BF65755-E115-4B55-905F-EE9AC1097353}</Project>
-      <Name>Esgyndb.Data.VisualStudio</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Esgyndb.Data\Esgyndb.Data.csproj">
       <Project>{51D6429C-E66A-4EC0-8502-DEAA1C667F1A}</Project>
       <Name>Esgyndb.Data</Name>
