@@ -279,6 +279,25 @@ message TlogWriteResponse {
   optional bool hasException = 3;
 }
 
+message TlogTransactionStatesFromIntervalRequest{
+  required bytes regionName = 1;
+  required int64 transactionId = 2;
+  required int64 auditSeqNum = 3;
+  required int64 scannerId = 4;
+  required int32 numberOfRows = 5;
+  required bool  closeScanner = 6;
+  required int64 nextCallSeq = 7;
+}
+
+message TlogTransactionStatesFromIntervalResponse {
+  repeated Result result = 1;
+  required int64  count = 2;
+  required int64  nextCallSeq = 3;
+  required bool   hasMore = 4;
+  optional string exception = 5;
+  optional bool hasException = 6;
+}
+
 message TransactionalAggregateRequest {
   /** The request passed to the TransactionalAggregateService consists of three parts
    *  (1) the (canonical) classname of the ColumnInterpreter implementation
@@ -366,8 +385,10 @@ service TrxRegionService {
     returns(PutMultipleTransactionalResponse);
   rpc recoveryRequest(RecoveryRequestRequest)
     returns(RecoveryRequestResponse);
- rpc putTlog(TlogWriteRequest)
+  rpc putTlog(TlogWriteRequest)
     returns(TlogWriteResponse);
+  rpc getTransactionStatesPriorToAsn(TlogTransactionStatesFromIntervalRequest)
+    returns(TlogTransactionStatesFromIntervalResponse);
   rpc GetMax (TransactionalAggregateRequest)
     returns (TransactionalAggregateResponse);
   rpc GetMin (TransactionalAggregateRequest) 
