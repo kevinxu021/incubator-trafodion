@@ -162,7 +162,7 @@ enum CatErrorCode { CAT_FIRST_ERROR = 1000
                   , CAT_WRONG_API_REQUEST                         = 1128
                   , CAT_OPERATION_NOT_ALLOWED_ON_VP_TABLE         = 1129
                   , CAT_DEFAULT_REQUIRED                          = 1130
-                  , CAT_CANNOT_ADD_COL_TO_ENTRY_SEQ_TABLE         = 1131
+                  , CAT_EXTERNAL_TABLE_EXISTS                     = 1131
                   , CAT_CANNOT_BE_DEFAULT_NULL_AND_NOT_NULL       = 1132
                   , CAT_ONLY_SUPER_CAN_DO_THIS                    = 1133
                   , CAT_LIST_OF_LOCKS_EXIST                       = 1134
@@ -214,8 +214,8 @@ enum CatErrorCode { CAT_FIRST_ERROR = 1000
                   //
                   // 1150-1180  Queuing and publish/subscribe errors
                   //
-                  , CAT_SUBVOLUME_MISMATCH                        = 1180
-                  , CAT_DROP_LABEL_ERROR                          = 1181
+                  , CAT_EXTERNAL_NAME_MISMATCH                    = 1180
+                  , CAT_EXTERNAL_SCHEMA_NAME_TOO_LONG             = 1181
                   , CAT_RFORK_SQL_ERROR                           = 1182
                   , CAT_METADATA_SQL_ERROR                        = 1183
                   , CAT_INSUFFICIENT_PRIV_ON_COLUMN               = 1184
