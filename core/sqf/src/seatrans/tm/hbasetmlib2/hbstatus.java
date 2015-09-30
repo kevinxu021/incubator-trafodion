@@ -31,13 +31,14 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableExistsException;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.PropertyConfigurator;
+
+import org.apache.zookeeper.KeeperException;
 
 /* 
 
@@ -257,7 +258,11 @@ public class hbstatus {
 	Configuration lv_config = HBaseConfiguration.create();
 	if (lv_peer_id > 0) {
 	    try {
-		System.setProperty("PEERS", String.valueOf(lv_peer_id));
+		String lv_use_zk = System.getenv("STR_USE_ZK");
+		if (lv_use_zk != null && 
+		    (lv_use_zk.equals("0"))) {
+		    System.setProperty("PEERS", String.valueOf(lv_peer_id));
+		}
 		pSTRConfig = STRConfig.getInstance(lv_config);
 		lv_config = pSTRConfig.getPeerConfiguration(lv_peer_id);
 		if (lv_config == null) {
@@ -265,8 +270,12 @@ public class hbstatus {
 		    System.exit(1);
 		}
 	    }
-	    catch (ZooKeeperConnectionException zke) {
-		System.out.println("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
+	    catch (KeeperException zke) {
+		System.out.println("Zookeeper Exception trying to get STRConfig instance: " + zke);
+		System.exit(1);
+	    }
+	    catch (InterruptedException int_exception) {
+		System.out.println("Interrupted Exception trying to get STRConfig instance: " + int_exception);
 		System.exit(1);
 	    }
 	    catch (IOException ioe) {

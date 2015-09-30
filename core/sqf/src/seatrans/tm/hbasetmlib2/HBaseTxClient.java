@@ -1046,6 +1046,18 @@ public class HBaseTxClient {
    public long addControlPoint() throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("Enter addControlPoint");
       long result = 0L;
+      if (bSynchronized){
+         for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
+            try {
+               lv_tLog.addControlPoint(mapTransactionStates);
+            }
+            catch (Exception e) {
+               LOG.error("addControlPoint, lv_tLog " + lv_tLog + " EXCEPTION: " + e);
+               throw e;
+            }
+         }
+      }
+
       try {
          if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient calling tLog.addControlPoint with mapsize " + mapTransactionStates.size());
          result = tLog.addControlPoint(mapTransactionStates);

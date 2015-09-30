@@ -58,6 +58,7 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -102,6 +103,7 @@ import org.apache.hadoop.hbase.client.transactional.MemoryUsageException;
 import org.apache.hadoop.hbase.client.transactional.OutOfOrderProtocolException;
 import org.apache.hadoop.hbase.client.transactional.UnknownTransactionException;
 import org.apache.hadoop.hbase.client.transactional.BatchException;
+import org.apache.hadoop.hbase.client.transactional.TransState;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -207,6 +209,8 @@ import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProt
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PutMultipleTransactionalResponse;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.RecoveryRequestRequest;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.RecoveryRequestResponse;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogTransactionStatesFromIntervalRequest;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogTransactionStatesFromIntervalResponse;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogWriteRequest;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogWriteResponse;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionalAggregateRequest;
@@ -2102,6 +2106,234 @@ CoprocessorService, Coprocessor {
     done.run(presponse);
   }
 
+  public void getTransactionStatesPriorToAsn(RpcController controller,
+                                             TlogTransactionStatesFromIntervalRequest request,
+                                             RpcCallback<TlogTransactionStatesFromIntervalResponse> done) {
+
+     boolean hasMore = true;
+     RegionScanner scanner = null;
+     Throwable t = null;
+     ScannerTimeoutException ste = null;
+     OutOfOrderProtocolException oop = null;
+     OutOfOrderScannerNextException ooo = null;
+     UnknownScannerException use = null;
+     MemoryUsageException mue = null;
+     WrongRegionException wre = null;
+     Exception ne = null;
+     Scan scan = null;
+     List<Cell> cellResults = new ArrayList<Cell>();
+     List<Result> results = new ArrayList<Result>();
+     org.apache.hadoop.hbase.client.Result result = null;
+     long transId  = request.getTransactionId();
+     long lvAsn = request.getAuditSeqNum();
+     long scannerId = request.getScannerId();
+     int numberOfRows = request.getNumberOfRows();
+     boolean closeScanner = request.getCloseScanner();
+     long nextCallSeq = request.getNextCallSeq();
+     long count = 0L;
+     boolean shouldContinue = true;
+     TransactionalRegionScannerHolder rsh = null;
+
+//     ArrayList<TransactionState> stateList = new ArrayList<TransactionState>();
+
+      //	         Connection scanConnection = ConnectionFactory.createConnection(this.config);
+
+     if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesPriorToAsn entries older than " + lvAsn + " will be returned.  Scanner id "
+          + scannerId + ", numberOfRows " + numberOfRows + ", nextCallSeq " + nextCallSeq + ", closeScanner is "
+          + closeScanner + ", region is " + regionInfo.getRegionNameAsString());
+
+     // There should be a matching key in the transactionsById map
+     // associated with this transaction id.  If there is not
+     // one, then the initial openScanner call for the transaction
+     // id was not called.  This is a protocol error requiring
+     // openScanner, performScan followed by a closeScanner.
+
+     String key = getTransactionalUniqueId(transId);
+     boolean keyFound = transactionsById.containsKey(key);
+
+     if (keyFound != true){
+        if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: getTransactionStatesPriorToAsn - Unknown transaction ["
+           + transId + "] in region [" + m_Region.getRegionInfo().getRegionNameAsString()
+           + "], will create an OutOfOrderProtocol exception ");
+        oop = new OutOfOrderProtocolException("getTransactionStatesPriorToAsn does not have an active transaction with an open scanner, txId: " + transId);
+     }
+
+     if (oop == null) {
+        try {
+           scanner = getScanner(scannerId, nextCallSeq);
+
+           if (scanner != null){
+              if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: getTransactionStatesPriorToAsn - txId " + transId + ", scanner id " + scannerId + ", scanner is not null");
+              while (shouldContinue) {
+                 hasMore = scanner.next(cellResults);
+                 result = Result.create(cellResults);
+                 if (!result.isEmpty()) {
+                    for (Cell cell : result.rawCells()) {
+                       String valueString = new String(CellUtil.cloneValue(cell));
+                       StringTokenizer st = new StringTokenizer(valueString, ",");
+                       if (st.hasMoreElements()) {
+                          String asnToken = st.nextElement().toString() ;
+                          String transidToken = st.nextElement().toString() ;
+                          String stateToken = st.nextElement().toString() ;
+                          if (LOG.isTraceEnabled()) LOG.trace("Transid: " + transidToken + " has state: " + stateToken);
+                          if (Long.parseLong(asnToken) < lvAsn) {
+                             if (LOG.isTraceEnabled()) LOG.trace("adding transid: " + transidToken + " to result list");
+                             results.add(result);
+                             count++;
+                          } else {
+                             if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval skipping asn: " + asnToken + ", transid: "
+                                         + transidToken + ", state: " + stateToken);
+                          }
+                       } // if (st.hasMoreElements()
+                    } // for (Cell cell : result.rawCells()
+                 } // if (!result.isEmpty()
+                 cellResults.clear();
+
+                 if (count == numberOfRows || !hasMore){
+                    shouldContinue = false;
+                 }
+              } // while (shouldContinue)
+              if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: getTransactionStatesPriorToAsn - txId "
+                      + transId + ", scanner id " + scannerId + ", count is " + count + ", hasMore is " + hasMore
+                      + ", result " + result.isEmpty());
+           }
+           else {
+              if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: getTransactionStatesPriorToAsn - txId "
+                      + transId + ", scanner id " + scannerId + transId + ", scanner is null");
+           }
+        } catch(OutOfOrderScannerNextException ooone) {
+           if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: getTransactionStatesPriorToAsn - txId "
+                    + transId + ", scanner id " + scannerId + " Caught OutOfOrderScannerNextException "
+                    + ooone.getMessage() + " " + stackTraceToString(ooone));
+           ooo = ooone;
+        } catch(ScannerTimeoutException cste) {
+           if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: getTransactionStatesPriorToAsn - txId "
+                    + transId + ", scanner id " + scannerId + " Caught ScannerTimeoutException "
+                    + cste.getMessage() + " " + stackTraceToString(cste));
+           ste = cste;
+        } catch(Throwable e) {
+           if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: getTransactionStatesPriorToAsn - txId "
+                    + transId + ", scanner id " + scannerId + " Caught throwable exception "
+                    + e.getMessage() + " " + stackTraceToString(e));
+           t = e;
+        }
+        finally {
+           if (scanner != null) {
+              try {
+                 if (closeScanner) {
+                    if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: getTransactionStatesPriorToAsn - txId "
+                            + transId + ", scanner id " + scannerId + ", close scanner was true, closing the scanner, closeScanner is "
+                            + closeScanner + ", region is " + regionInfo.getRegionNameAsString());
+                    removeScanner(scannerId);
+                    scanner.close();
+                 }
+              } catch(Exception e) {
+                 if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: getTransactionStatesPriorToAsn -  transaction id "
+                         + transId + ", Caught general exception " + e.getMessage() + " " + stackTraceToString(e));
+                 ne = e;
+              }
+           }
+        }
+
+        rsh = scanners.get(scannerId);
+        nextCallSeq++;
+
+        if (rsh == null){
+           if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: getTransactionStatesPriorToAsn rsh is null");
+           use =  new UnknownScannerException("ScannerId: " + scannerId + ", already closed?");
+        }
+        else {
+           rsh.nextCallSeq = nextCallSeq;
+           if (rsh == null){
+              if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: getTransactionStatesPriorToAsn - txId "
+                      + transId + ", performScan rsh is null, UnknownScannerException for scannerId: "
+                      + scannerId + ", nextCallSeq was " + nextCallSeq + ", for region " + regionInfo.getRegionNameAsString());
+              use =  new UnknownScannerException("ScannerId: " + scannerId + ", was scanner already closed?, transaction id "
+                      + transId + ", nextCallSeq was " + nextCallSeq + ", for region " + regionInfo.getRegionNameAsString());
+           }
+           else {
+              rsh.nextCallSeq = nextCallSeq;
+
+              if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: getTransactionStatesPriorToAsn - txId "
+                     + transId + ", scanner id " + scannerId + ", regionName " + regionInfo.getRegionNameAsString() + ", nextCallSeq " + nextCallSeq + ", rsh.nextCallSeq " + rsh.nextCallSeq + ", close scanner is " + closeScanner);
+
+           }
+        }
+     }
+
+     org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogTransactionStatesFromIntervalResponse.Builder statesFromIntervalResponseBuilder = TlogTransactionStatesFromIntervalResponse.newBuilder();
+     statesFromIntervalResponseBuilder.setHasMore(hasMore);
+     statesFromIntervalResponseBuilder.setNextCallSeq(nextCallSeq);
+     statesFromIntervalResponseBuilder.setCount(count);
+     statesFromIntervalResponseBuilder.setHasException(false);
+
+     if (results != null){
+        if (!results.isEmpty()) {
+           for (Result r: results) {
+              statesFromIntervalResponseBuilder.addResult(ProtobufUtil.toResult(r));
+           }
+        }
+     }
+
+     if (t != null){
+        statesFromIntervalResponseBuilder.setHasMore(false);
+        statesFromIntervalResponseBuilder.setHasException(true);
+        statesFromIntervalResponseBuilder.setException(t.toString());
+     }
+
+     if (ste != null){
+        statesFromIntervalResponseBuilder.setHasMore(false);
+        statesFromIntervalResponseBuilder.setHasException(true);
+        statesFromIntervalResponseBuilder.setException(ste.toString());
+     }
+
+     if (wre != null){
+        statesFromIntervalResponseBuilder.setHasMore(false);
+        statesFromIntervalResponseBuilder.setHasException(true);
+        statesFromIntervalResponseBuilder.setException(wre.toString());
+     }
+
+     if (ne != null){
+        statesFromIntervalResponseBuilder.setHasMore(false);
+        statesFromIntervalResponseBuilder.setHasException(true);
+        statesFromIntervalResponseBuilder.setException(ne.toString());
+     }
+
+     if (ooo != null){
+        statesFromIntervalResponseBuilder.setHasMore(false);
+        statesFromIntervalResponseBuilder.setHasException(true);
+        statesFromIntervalResponseBuilder.setException(ooo.toString());
+     }
+
+     if (use != null){
+        statesFromIntervalResponseBuilder.setHasMore(false);
+        statesFromIntervalResponseBuilder.setHasException(true);
+        statesFromIntervalResponseBuilder.setException(use.toString());
+     }
+
+     if (oop != null){
+        statesFromIntervalResponseBuilder.setHasMore(false);
+        if (this.suppressOutOfOrderProtocolException == false){
+           statesFromIntervalResponseBuilder.setHasException(true);
+           statesFromIntervalResponseBuilder.setException(oop.toString());
+           LOG.warn("TrxRegionEndpoint coprocessor: getTransactionStatesPriorToAsn - OutOfOrderProtocolException, transaction was not found, txId: " + transId + ", return exception" + ", regionName " + regionInfo.getRegionNameAsString());
+        }
+        else{
+           LOG.warn("TrxRegionEndpoint coprocessor: getTransactionStatesPriorToAsn - suppressing OutOfOrderProtocolException, transaction was not found, txId: " + transId + ", regionName " + regionInfo.getRegionNameAsString());
+        }
+     }
+
+     if (mue != null){
+        if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: getTransactionStatesPriorToAsn - performing memoryPercentage " + memoryPercentage + ", posting memory usage exceeds indicated percentage");
+        statesFromIntervalResponseBuilder.setHasMore(false);
+        statesFromIntervalResponseBuilder.setHasException(true);
+        statesFromIntervalResponseBuilder.setException(mue.toString());
+     }
+
+     TlogTransactionStatesFromIntervalResponse sfi_response = statesFromIntervalResponseBuilder.build();
+     done.run(sfi_response);
+  }
+
   public void putTlog(RpcController controller, TlogWriteRequest request, RpcCallback<TlogWriteResponse> done) {
      if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: putTlog - ENTRY ");
      TlogWriteResponse response = TlogWriteResponse.getDefaultInstance();
@@ -2324,16 +2556,13 @@ CoprocessorService, Coprocessor {
       }
       else
       {
-         for (org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto proto : results)
-         { 
+         for (org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto proto : results){
            put = null;
 
-           if (proto != null)
-           {
+           if (proto != null){
              type = proto.getMutateType();
 
-             if (type == MutationType.PUT && proto.hasRow())
-             {
+             if (type == MutationType.PUT && proto.hasRow()){
                try {
                    put = ProtobufUtil.toPut(proto);
                } catch (Throwable e) {
@@ -2343,8 +2572,7 @@ CoprocessorService, Coprocessor {
                }
 
                // Process in local memory
-               if (put != null)
-               {
+               if (put != null){
                  try {
                    put(transactionId, put);
                  } catch (Throwable e) {
@@ -2357,9 +2585,8 @@ CoprocessorService, Coprocessor {
                }
              }
            }
-            else
+           else
              if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: putMultiple - txId "  + transactionId + ", regionName " + regionInfo.getRegionNameAsString() + ", put proto was null");
-
           }
        }
     }
@@ -5326,82 +5553,73 @@ CoprocessorService, Coprocessor {
       }
     }
   }
-  public void flushToFS(Path flushPath) {
+  public void flushToFS(Path flushPath) throws IOException {
     TransactionPersist.Builder txnPersistBuilder = TransactionPersist.newBuilder();
-    try {
-      fs.delete(flushPath, true);
+    fs.delete(flushPath, true);
 
-      HFileWriterV2 w =
-          (HFileWriterV2)
-          HFile.getWriterFactory(config, new CacheConfig(config))
-          .withPath(fs, flushPath).withFileContext(context).create();
+    HFileWriterV2 w =
+        (HFileWriterV2)
+        HFile.getWriterFactory(config, new CacheConfig(config))
+        .withPath(fs, flushPath).withFileContext(context).create();
 
-      Map<Long, TrxTransactionState> transactionMap = new HashMap<Long, TrxTransactionState>();
+    Map<Long, TrxTransactionState> transactionMap = new HashMap<Long, TrxTransactionState>();
 
-      for(TrxTransactionState ts : transactionsById.values()) {
-        transactionMap.put(ts.getTransactionId(), ts);
-        txnPersistBuilder.addTxById(ts.getTransactionId());
-      }
-      for(Map.Entry<Long, TrxTransactionState> entry :
-          commitedTransactionsBySequenceNumber.entrySet()) {
-        transactionMap.put(entry.getValue().getTransactionId(), entry.getValue());
-        txnPersistBuilder.addSeqNoListSeq(entry.getKey());
-        txnPersistBuilder.addSeqNoListTxn(entry.getValue().getTransactionId());
-      }
-      for(TrxTransactionState ts : transactionMap.values()) {
-        for(TrxTransactionState ts2 : ts.getTransactionsToCheck()) {
-          transactionMap.put(ts.getTransactionId(), ts);
-        }
-      }
-      txnPersistBuilder.setNextSeqId(nextSequenceId.get());
-
-      ByteArrayOutputStream output = new ByteArrayOutputStream();
-
-      for(TrxTransactionState ts : transactionMap.values()) {
-        TransactionStateMsg.Builder tsBuilder =  TransactionStateMsg.newBuilder();
-        tsBuilder.setTxId(ts.getTransactionId());
-        tsBuilder.setStartSeqNum(ts.getStartSequenceNumber());
-        tsBuilder.setSeqNum(ts.getHLogStartSequenceId());
-        tsBuilder.setLogSeqId(ts.getLogSeqId());
-        tsBuilder.setReinstated(ts.isReinstated());
-
-        if(ts.getCommitProgress() == null)
-            tsBuilder.setCommitProgress(-1);
-        else
-            tsBuilder.setCommitProgress(ts.getCommitProgress().ordinal());
-
-        tsBuilder.setStatus(ts.getStatus().ordinal());
-        for (WriteAction wa : ts.getWriteOrdering()) {
-          if(wa.getPut() != null) {
-            tsBuilder.addPutOrDel(true);
-            tsBuilder.addPut(ProtobufUtil.toMutation(MutationType.PUT, wa.getPut()));
-          }
-          else {
-            tsBuilder.addPutOrDel(false);
-
-            tsBuilder.addDelete(ProtobufUtil.toMutation(MutationType.DELETE, wa.getDelete()));
-          }
-        }
-        tsBuilder.build().writeDelimitedTo(output);
-      }
-      byte [] firstByte = output.toByteArray();
-
-      w.append(new KeyValue(Bytes.toBytes(COMMITTED_TXNS_KEY), Bytes.toBytes("cf"), Bytes.toBytes("qual"),
-        firstByte));
-
-      byte [] persistByte = txnPersistBuilder.build().toByteArray();
-      TransactionPersist persistMsg = TransactionPersist.parseFrom(persistByte);
-
-      w.append(new KeyValue(Bytes.toBytes(TXNS_BY_ID_KEY), Bytes.toBytes("cf"), Bytes.toBytes("qual"),
-        persistByte));
-
-      w.close();
-
-    } catch (IOException e) {
-      if(LOG.isErrorEnabled())LOG.error("Exception in Transaction State flush: " + e);
-
+    for(TrxTransactionState ts : transactionsById.values()) {
+      transactionMap.put(ts.getTransactionId(), ts);
+      txnPersistBuilder.addTxById(ts.getTransactionId());
     }
+    for(Map.Entry<Long, TrxTransactionState> entry :
+        commitedTransactionsBySequenceNumber.entrySet()) {
+      transactionMap.put(entry.getValue().getTransactionId(), entry.getValue());
+      txnPersistBuilder.addSeqNoListSeq(entry.getKey());
+      txnPersistBuilder.addSeqNoListTxn(entry.getValue().getTransactionId());
+    }
+    for(TrxTransactionState ts : transactionMap.values()) {
+      for(TrxTransactionState ts2 : ts.getTransactionsToCheck()) {
+        transactionMap.put(ts.getTransactionId(), ts);
+      }
+    }
+    txnPersistBuilder.setNextSeqId(nextSequenceId.get());
 
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+    for(TrxTransactionState ts : transactionMap.values()) {
+      TransactionStateMsg.Builder tsBuilder =  TransactionStateMsg.newBuilder();
+      tsBuilder.setTxId(ts.getTransactionId());
+      tsBuilder.setStartSeqNum(ts.getStartSequenceNumber());
+      tsBuilder.setSeqNum(ts.getHLogStartSequenceId());
+      tsBuilder.setLogSeqId(ts.getLogSeqId());
+      tsBuilder.setReinstated(ts.isReinstated());
+
+      if(ts.getCommitProgress() == null)
+          tsBuilder.setCommitProgress(-1);
+      else
+          tsBuilder.setCommitProgress(ts.getCommitProgress().ordinal());
+
+      tsBuilder.setStatus(ts.getStatus().ordinal());
+      for (WriteAction wa : ts.getWriteOrdering()) {
+        if(wa.getPut() != null) {
+          tsBuilder.addPutOrDel(true);
+          tsBuilder.addPut(ProtobufUtil.toMutation(MutationType.PUT, wa.getPut()));
+        }
+        else {
+          tsBuilder.addPutOrDel(false);
+
+          tsBuilder.addDelete(ProtobufUtil.toMutation(MutationType.DELETE, wa.getDelete()));
+        }
+      }
+      tsBuilder.build().writeDelimitedTo(output);
+    }
+    byte [] firstByte = output.toByteArray();
+
+    w.append(new KeyValue(Bytes.toBytes(COMMITTED_TXNS_KEY), Bytes.toBytes("cf"), Bytes.toBytes("qual"),
+      firstByte));
+
+    byte [] persistByte = txnPersistBuilder.build().toByteArray();
+    TransactionPersist persistMsg = TransactionPersist.parseFrom(persistByte);
+    w.append(new KeyValue(Bytes.toBytes(TXNS_BY_ID_KEY), Bytes.toBytes("cf"), Bytes.toBytes("qual"),
+      persistByte));
+    w.close();
   }
 
   public void readTxnInfo(Path flushPath) throws IOException {
@@ -5495,6 +5713,7 @@ CoprocessorService, Coprocessor {
                     }
                   }
                   transactionsById.put(key, ts);
+                  transactionLeases.createLease(key, transactionLeaseTimeout, new TransactionLeaseListener(txid));
                 }
                 else {
                   TrxTransactionState tsEntry = new TrxTransactionState(txid,

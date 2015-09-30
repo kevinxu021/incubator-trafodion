@@ -19,6 +19,7 @@ AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={pf}\EsgynDB\ADO.NET-1.0.0
+DefaultGroupName={#MyAppName}
 LicenseFile=Eula.rtf
 Compression=lzma
 SolidCompression=yes
@@ -31,21 +32,23 @@ WizardImageBackColor=$00333333
 WizardImageStretch=False
 UsePreviousGroup=False
 DisableProgramGroupPage=yes
+SetupLogging=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "C:\Build\EsgynDBADO\Release\EsgynDB.Data.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Build\EsgynDBADO\Release\EsgynDB.Data.dll"; DestDir: "{app}"; StrongAssemblyName: "EsgynDB.Data, Version=1.0.0.0, PublicKeyToken=cfb872a824fb4c13, Culture=neutral, ProcessorArchitecture=MSIL";Flags: "gacinstall sharedfile uninsnosharedfileprompt"
+
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
 Name: "{group}\{cm:UninstallProgram,{#MyAppName} {#MyAppVersion}}"; Filename: "{uninstallexe}"
 
 [Registry]
-Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\v2.0.50727\AssemblyFoldersEx\EsgynDB ADO.NET 1.0.0"; ValueData: "{app}"
-Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\AssemblyFolders\EsgynDB ADO.NET 1.0.0"; ValueData: "{app}"
-Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\v4.0.30319\AssemblyFoldersEx\EsgynDB ADO.NET 1.0.0"; ValueData: "{app}"
+Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\v2.0.50727\AssemblyFoldersEx\EsgynDB ADO.NET 1.0.0"; ValueType: string; ValueData: "{app}" ;Flags: uninsdeletekey
+Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\AssemblyFolders\EsgynDB ADO.NET 1.0.0"; ValueType: string; ValueData: "{app}" ;Flags: uninsdeletekey
+Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\v4.0.30319\AssemblyFoldersEx\EsgynDB ADO.NET 1.0.0"; ValueType: string;  ValueData: "{app}" ;Flags: uninsdeletekey
 
 [Code]
 function GetUninstallString: string;

@@ -701,6 +701,7 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
             LOG.error("Unable to obtain TrxRegionEndpoint objet from shared map for " + regionInfo.getRegionNameAsString());
         }
         else {
+          try {
             tre.flushToFS(sbHelper.getPath());
             if(!sbHelper.getSplit()) {
               try {
@@ -710,6 +711,10 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
               }
             }
             hasFlushed = true;
+          } catch (IOException ioe) {
+            if (LOG.isErrorEnabled()) LOG.error("Unable to flush to filesystem");
+            hasFlushed = false;
+          }
         }
     }
 
