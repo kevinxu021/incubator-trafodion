@@ -142,7 +142,7 @@ endif
 
 all:  $(LIBEXPDIR)/libstmlib.so cp_trx_jar
 
-cp_trx_jar:
+cp_trx_jar: 
 	cd $(HBASE_TRX_LOC); make
 
 all:  $(LIBEXPDIR)/libsxatmlib.so $(LIBEXPDIR)/libstmlib.so $(PROGS) $(LIBEXPDIR)/libxarm.so
