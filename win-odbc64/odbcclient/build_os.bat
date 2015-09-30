@@ -5,13 +5,11 @@ REM
 REM @@@ END COPYRIGHT @@@
 
 REM set this to openssl binary directory.
-set OPENSSL_PATH=C:\OpenSSL101e_bin
+set OPENSSL_PATH=C:\openssl-1.0.1e
 REM set ODBCCP32_64_PATH="C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Lib\amd64"
 set MSBUILD_PATH=C:\Windows\Microsoft.NET\Framework64\v4.0.30319
 REM set this to top directory include everything for build
-set BUILDDIR=C:
-REM set this to where git bash was installed.(from git install)
-set GIT_BASH="C:\Program Files (x86)\Git\bin\sh.exe"
+set BUILDDIR=
 
 set ZLIB_SRC=%BUILDDIR%\zlib_official
 set ZLIB_SRC_GIT=%ZLIB_SRC:\=/%
