@@ -74,6 +74,8 @@ import org.apache.hadoop.hbase.regionserver.transactional.IdTm;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmException;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmId;
 
+import org.apache.zookeeper.KeeperException;
+
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
@@ -103,11 +105,14 @@ public class RMInterface {
        try {
           pSTRConfig = STRConfig.getInstance(lv_config);
        }
-       catch (ZooKeeperConnectionException zke) {
-          LOG.error("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
+       catch (InterruptedException int_exception) {
+	   System.out.println("Interrupted Exception trying to get STRConfig instance: " + int_exception);
        }
        catch (IOException ioe) {
           LOG.error("IO Exception trying to get STRConfig instance: " + ioe);
+       }
+       catch (KeeperException zke) {
+          LOG.error("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
        }
     }
 
@@ -171,6 +176,7 @@ public class RMInterface {
     public void setSynchronized(boolean pv_synchronize) throws IOException {
         if (LOG.isTraceEnabled()) LOG.trace("RMInterface setSynchronized:"
 					    + " table: " + new String(ttable.getTableName())
+					    + " peerCount: " + pSTRConfig.getPeerCount()
 					    + " synchronize flag: " + pv_synchronize);
 	
 	bSynchronized = pv_synchronize;
@@ -184,6 +190,11 @@ public class RMInterface {
 		for ( Map.Entry<Integer, HConnection> e : pSTRConfig.getPeerConnections().entrySet() ) {
 		    int           lv_peerId = e.getKey();
 		    if (lv_peerId == 0) continue;
+		    if (pSTRConfig.getPeerStatus(lv_peerId).contains(PeerInfo.STR_DOWN)) {
+			if (LOG.isTraceEnabled()) LOG.trace("setSynchronized, STR is DOWN for "
+							    + " peerId: " + lv_peerId);
+			continue;
+		    }
 		    if (LOG.isTraceEnabled()) LOG.trace("setSynchronized" 
 							+ " peerId: " + lv_peerId);
 		    peer_tables.put(lv_peerId, new TransactionalTable(ttable.getTableName(), e.getValue()));

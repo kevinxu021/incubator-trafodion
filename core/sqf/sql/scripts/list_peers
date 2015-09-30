@@ -20,21 +20,42 @@
 #
 # @@@ END COPYRIGHT @@@
 
-lv_grep=`grep ^PEERS= $MY_SQROOT/etc/ms.env | tail -1`
+function get_peers_ms {
+    lv_grep=`grep ^PEERS= $MY_SQROOT/etc/ms.env | tail -1`
+    lv_ret=$?
+    if [[ ${lv_ret} != 0 ]]; then
+	echo "Peers have not been configured"
+	exit 1;
+    fi
+    
+    lv_peerids=`echo $lv_grep | cut -d= -f2 | sed -e 's/,/ /g'`
+    lv_ret=$?
+    if [[ ${lv_ret} != 0 ]]; then
+	echo "Peers have not been configured"
+	exit 1;
+    fi
+
+    lv_count=`echo ${lv_peerids} | wc -w`
+}
+
+lv_error_log_file=$MY_SQROOT/logs/checkpeers.log
+lv_peerids=`$JAVA_HOME/bin/java org.apache.hadoop.hbase.client.transactional.HBaseDCZK -list 2>${lv_error_log_file} | cut -d: -f1 | sort`
 lv_ret=$?
 if [[ ${lv_ret} != 0 ]]; then
-   echo "Peers have not been configured"
-   exit 1;
+    echo "Error code: ${lv_ret}"
+    echo "Error getting the list of peers. Please check ${lv_error_log_file}"
+    exit 1;
 fi
 
-lv_peerids=`echo $lv_grep | cut -d= -f2 | sed -e 's/,/ /g'`
-lv_ret=$?
+lv_my_id=`$JAVA_HOME/bin/java org.apache.hadoop.hbase.client.transactional.HBaseDCZK -getmyid 2>${lv_error_log_file}`
 if [[ ${lv_ret} != 0 ]]; then
-   echo "Peers have not been configured"
-   exit 1;
+    echo "Error getting my clusterid"
+    exit 1;
 fi
 
-lv_count=`echo ${lv_peerids} | wc -w`
 for lv_peerid in $lv_peerids; do
+    if [[ ${lv_peerid} == ${lv_my_id} ]]; then
+	continue;
+    fi
     echo $lv_peerid
 done

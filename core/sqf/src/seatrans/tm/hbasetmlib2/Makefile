@@ -19,15 +19,18 @@
 #
 # @@@ END COPYRIGHT @@@
 
-PROGS          = $(LIBEXPDIR)/libshbasetmlib.so \
-                 $(LIBEXPDIR)/libidtm.so \
+JAVA_CLASSES   = \
+                 $(TMCLASS_FULL)/HashMapArray.class \
                  $(TMCLASS_FULL)/HBaseAuditControlPoint.class \
                  $(TMCLASS_FULL)/HBaseTmZK.class \
-                 $(TMCLASS_FULL)/TmAuditTlog.class \
                  $(TMCLASS_FULL)/HBaseTxClient.class \
-                 $(TMCLASS_FULL)/HashMapArray.class \
-                 $(TMCLASS_FULL)/TrafInfo.class \
                  $(TMCLASS_FULL)/hbstatus.class \
+                 $(TMCLASS_FULL)/TmAuditTlog.class \
+                 $(TMCLASS_FULL)/TrafInfo.class \
+
+PROGS          = $(LIBEXPDIR)/libshbasetmlib.so \
+                 $(LIBEXPDIR)/libidtm.so \
+                 $(TMJAR) \
                  testrun
 
 ###########################################################################
@@ -39,6 +42,9 @@ include ../macros.gmk
 LIBJVM        = -I. -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -L$(JAVA_HOME)/jre/lib/amd64/server -ljvm
 LIBSTESTRUN   = -L$(LIBEXPDIR) -lsbms -lshbasetmlib $(DEBUG)
 TMCLASS_DIR   = $(MY_SQROOT)/export/lib
+TMARTIFACTID  = dtm-common
+TMVERSION     = $(TRAFODION_VER)
+TMJAR         = $(TMCLASS_DIR)/$(TMARTIFACTID)-$(TMVERSION).jar
 TMCLASS_PKG   = org/trafodion/dtm
 TMCLASS_FULL  = $(TMCLASS_DIR)/$(TMCLASS_PKG)
 JAVAC         = $(JAVA_HOME)/bin/javac
@@ -85,6 +91,12 @@ $(LIBEXPDIR)/libidtm.so: $(LIBIDTMOBJS)
 $(OUTDIR)/idtm.o: idtm.cpp
 	$(CXX) $(CDEPFLAGS) $(CXXFLAGS) $(INCLUDES) -c -o $@ $<
 
+$(TMJAR): $(JAVA_CLASSES)
+	cd $(TMCLASS_DIR) ; jar -cvf $@ org
+	mvn install:install-file -Dfile=$(TMJAR) -DgroupId=org.trafodion.dtm -DartifactId=$(TMARTIFACTID) -Dversion=$(TMVERSION) -Dpackaging=jar -DgeneratePom=true
+	-rm -rf org
+
+
 $(TMCLASS_FULL)/HBaseTxClient.class: HBaseTxClient.java
 	$(JAVAC) -Xlint -Xlint:-path  HBaseTxClient.java TmAuditTlog.java HBaseAuditControlPoint.java HBaseTmZK.java HashMapArray.java -d $(TMCLASS_DIR)
 
@@ -124,6 +136,7 @@ clean:
 	$(RM) $(PROGS)
 	$(RM) *.gcda *.gcno *.gcov
 	$(RM) -f  $(OUTDIR)/*.o
+	$(RM) -f  $(JAVA_CLASSES)
 
 cleanall: clean
 	$(RM) -rf $(BUILD_PLAT)
