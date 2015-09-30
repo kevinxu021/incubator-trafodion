@@ -8,7 +8,6 @@ using System.Data.SqlClient;
 using System.Collections;
 using Microsoft.Win32;
 using System.IO;
-using EsgynDB.Data.VisualStudio;
 using System.Threading;
 using System.Diagnostics;
 using EsgynDB.Data.ETL;

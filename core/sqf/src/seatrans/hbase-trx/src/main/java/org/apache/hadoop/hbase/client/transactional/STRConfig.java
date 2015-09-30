@@ -78,7 +78,10 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 
+import org.apache.hadoop.hbase.client.transactional.PeerInfo;
 import org.apache.hadoop.ipc.RemoteException;
+
+import org.apache.zookeeper.KeeperException;
 
 import com.google.protobuf.ByteString;
 
@@ -89,9 +92,13 @@ public class STRConfig {
 
     static final Log LOG = LogFactory.getLog(STRConfig.class);
 
+    static final String ZK_QUORUM = "hbase.zookeeper.quorum";
+    static final String ZK_PORT   = "hbase.zookeeper.property.clientPort";
+
     private static boolean                     sb_replicate = false;
     private static Map<Integer, Configuration> peer_configs;
     private static Map<Integer, HConnection>   peer_connections;
+    private static Map<Integer, PeerInfo>      peer_info;
     private static int                         sv_peer_count = 0;
 
     private static STRConfig s_STRConfig = null; 
@@ -114,10 +121,10 @@ public class STRConfig {
         HConnection lv_connection = HConnectionManager.createConnection(pv_config);
 	peer_connections.put(0, lv_connection);
 	if (LOG.isInfoEnabled()) LOG.info("peer#0 zk quorum: " 
-		 + (peer_configs.get(0)).get("hbase.zookeeper.quorum"));
+		 + (peer_configs.get(0)).get( ZK_QUORUM));
 	if (LOG.isInfoEnabled()) LOG.info("peer#0 zk clientPort: " 
-		 + (peer_configs.get(0)).get("hbase.zookeeper.property.clientPort"));
-
+					  + (peer_configs.get(0)).get(ZK_PORT));
+	
 	String lv_str_replicate = System.getenv("PEERS");
 	if (lv_str_replicate == null) {
 	    lv_str_replicate = System.getProperty("PEERS");
@@ -153,10 +160,10 @@ public class STRConfig {
 		    }
 		    if (LOG.isInfoEnabled()) LOG.info("peer#" 
 						       + lv_peer_num 
-						       + ":zk quorum: " + (peer_configs.get(lv_peer_num)).get("hbase.zookeeper.quorum"));
+						       + ":zk quorum: " + (peer_configs.get(lv_peer_num)).get(ZK_QUORUM));
 		    if (LOG.isInfoEnabled()) LOG.info("peer#" 
 						       + lv_peer_num 
-						       + ":zk clientPort: " + (peer_configs.get(lv_peer_num)).get("hbase.zookeeper.property.clientPort"));
+						       + ":zk clientPort: " + (peer_configs.get(lv_peer_num)).get(ZK_PORT));
 		    lv_connection = HConnectionManager.createConnection(lv_config);
 		    peer_connections.put(lv_peer_num, lv_connection);
 
@@ -166,6 +173,82 @@ public class STRConfig {
 		}
 	    }
 	}
+    }
+
+    public static void initClusterConfigsZK(Configuration pv_config) throws InterruptedException, KeeperException, IOException {
+
+	if (LOG.isTraceEnabled()) LOG.trace("initClusterConfigsZK ENTRY");
+
+	peer_configs = new HashMap<Integer, Configuration>();
+	peer_connections = new HashMap<Integer, HConnection>();
+	peer_info = new HashMap<Integer, PeerInfo>();
+
+	pv_config.set("hbase.hregion.impl", "org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion");
+	pv_config.setInt("hbase.client.retries.number", 3);
+
+	HBaseDCZK lv_zk = new HBaseDCZK(pv_config);
+	String lv_my_cluster_id = lv_zk.get_my_id();
+
+	if (lv_my_cluster_id != null) {
+	    if (LOG.isTraceEnabled()) LOG.trace("My cluster id: " + lv_my_cluster_id);
+	    pv_config.setInt("esgyn.cluster.id", Integer.parseInt(lv_my_cluster_id));
+	}
+	peer_configs.put(0, pv_config);
+
+        HConnection lv_connection = HConnectionManager.createConnection(pv_config);
+	peer_connections.put(0, lv_connection);
+	if (LOG.isInfoEnabled()) LOG.info("peer#0 zk quorum: " 
+					  + (peer_configs.get(0)).get(ZK_QUORUM));
+	if (LOG.isInfoEnabled()) LOG.info("peer#0 zk clientPort: " 
+					  + (peer_configs.get(0)).get(ZK_PORT));
+	
+	try {
+
+	    List<PeerInfo> lv_pi_list = lv_zk.list_clusters();
+
+	    for (PeerInfo lv_pi : lv_pi_list) {
+		if (LOG.isTraceEnabled()) LOG.trace("initClusterConfigsZK: " + lv_pi);
+
+		if (lv_pi.get_id().equals(lv_my_cluster_id)) {
+		    peer_info.put(0, lv_pi);
+		    continue;
+		}
+
+		int lv_peer_num = Integer.parseInt(lv_pi.get_id());
+		peer_info.put(lv_peer_num, lv_pi);
+
+		Configuration lv_config = HBaseConfiguration.create();
+		lv_config.set(ZK_QUORUM, lv_pi.get_quorum());
+		lv_config.set(ZK_PORT, lv_pi.get_port());
+		if (LOG.isTraceEnabled()) LOG.trace("Putting peer info in the map for cluster id: " + lv_peer_num);
+		peer_configs.put(lv_peer_num,lv_config);
+
+		lv_connection = HConnectionManager.createConnection(lv_config);
+		peer_connections.put(lv_peer_num, lv_connection);
+
+		sv_peer_count++;
+
+		if (LOG.isInfoEnabled()) LOG.info("peer#" 
+						  + lv_peer_num 
+						  + ":zk quorum: " + (peer_configs.get(lv_peer_num)).get(ZK_QUORUM));
+		if (LOG.isInfoEnabled()) LOG.info("peer#" 
+						  + lv_peer_num 
+						  + ":zk clientPort: " + (peer_configs.get(lv_peer_num)).get(ZK_PORT));
+	    }
+	}
+	catch (Exception e) {
+	    LOG.error("Exception while adding peer info to the config: " + e);
+	}
+	
+    }
+
+    public String getPeerStatus(int pv_cluster_id) {
+	PeerInfo lv_pi = peer_info.get(pv_cluster_id);
+	if (lv_pi != null) {
+	    return lv_pi.get_status();
+	}
+
+	return null;
     }
 
     public int getPeerCount() {
@@ -189,7 +272,8 @@ public class STRConfig {
     }
 
     // getInstance to return the singleton object for TransactionManager
-    public synchronized static STRConfig getInstance(final Configuration conf) throws ZooKeeperConnectionException, IOException {
+    public synchronized static STRConfig getInstance(final Configuration conf) 
+	throws 	IOException, InterruptedException, KeeperException, ZooKeeperConnectionException {
 	if (s_STRConfig == null) {
 	
 	    s_STRConfig = new STRConfig(conf);
@@ -201,8 +285,15 @@ public class STRConfig {
      * @param conf
      * @throws ZooKeeperConnectionException
      */
-    private STRConfig(final Configuration conf) throws ZooKeeperConnectionException, IOException {
-	initClusterConfigs(conf);
+    private STRConfig(final Configuration conf) throws InterruptedException, KeeperException, ZooKeeperConnectionException, IOException {
+	String lv_use_zk = System.getenv("STR_USE_ZK");
+	if (lv_use_zk != null && 
+	    (lv_use_zk.equals("0"))) {
+	    initClusterConfigs(conf);
+	}
+	else {
+	    initClusterConfigsZK(conf);
+	}
     }
 
     public String toString() {
@@ -213,9 +304,9 @@ public class STRConfig {
 	for ( Map.Entry<Integer, Configuration> e : peer_configs.entrySet() ) {
 	    lv_str = "\n======\nID: " + e.getKey() + "\n";
 	    lv_sb.append(lv_str);
-	    lv_str = "  hbase.zookeeper.quorum: " + e.getValue().get("hbase.zookeeper.quorum");
+	    lv_str = ZK_QUORUM + ": " + e.getValue().get(ZK_QUORUM);
 	    lv_sb.append(lv_str);
-	    lv_str = "  hbase.zookeeper.property.clientPort: " + e.getValue().get("hbase.zookeeper.property.clientPort");
+	    lv_str = ZK_PORT + ": " + e.getValue().get(ZK_PORT);
 	    lv_sb.append(lv_str);
 	}
 
@@ -228,11 +319,14 @@ public class STRConfig {
 	try {
 	    pSTRConfig = STRConfig.getInstance(lv_config);
 	}
-	catch (ZooKeeperConnectionException zke) {
-	    System.out.println("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
+	catch (InterruptedException int_exception) {
+	    System.out.println("Interrupted Exception trying to get STRConfig instance: " + int_exception);
 	}
 	catch (IOException ioe) {
 	    System.out.println("IO Exception trying to get STRConfig instance: " + ioe);
+	}
+	catch (KeeperException kpe) {
+	    System.out.println("Keeper Exception trying to get STRConfig instance: " + kpe);
 	}
 	
 	System.out.println(pSTRConfig);

@@ -110,14 +110,6 @@ echo "Peer ID ............... : ${lv_peer_id}"
 echo "Peer's Zookeeper Quorum : ${lv_zookeeper_quorum}"
 echo "Peer's Zookeeper Port.. : ${lv_zookeeper_port}"
 
-read -p 'Looks good? Proceed with creating the peer info file? y/n : ' lv_ans
-if [ "$lv_ans" != "y" ]; then
-    echo "Peer info file not created. Exitting..."
-    exit 0
-else
-    echo "Ok...going ahead..."
-fi
-
 lv_dir="$MY_SQROOT/conf/peer${lv_peer_id}"
 echo "Creating the directory: ${lv_dir}"
 mkdir -p $lv_dir
@@ -180,5 +172,6 @@ cat <<EOF > ${lv_hbase_site_xml}
 </configuration>
 EOF
 
+$JAVA_HOME/bin/java org.apache.hadoop.hbase.client.transactional.HBaseDCZK -set -id ${lv_peer_id} -quorum ${lv_zookeeper_quorum} -port ${lv_zookeeper_port} -status Available 2>/dev/null
 
 exit 0

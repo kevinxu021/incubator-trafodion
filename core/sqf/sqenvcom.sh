@@ -144,6 +144,7 @@ export HBASE_TRX_JAR=hbase-trx-cdh5_4-${TRAFODION_VER}.jar
 if [[ "$SQ_HBASE_DISTRO" = "HDP" ]]; then
     export HBASE_TRX_JAR=hbase-trx-hdp2_2-${TRAFODION_VER}.jar
 fi
+export DTM_COMMON_JAR=dtm-common-${TRAFODION_VER}.jar
 
 # check for workstation env
 # want to make sure SQ_VIRTUAL_NODES is set in the shell running sqstart
@@ -500,6 +501,7 @@ elif [[ -d /opt/mapr ]]; then
 elif [[ -e $MY_SQROOT/sql/scripts/install_local_hadoop
      && -e $MY_SQROOT/export/bin${SQ_MBTYPE}/monitor
      && -e ${HBASE_TRXDIR}/${HBASE_TRX_JAR}
+     && -e $MY_SQROOT/export/lib/${DTM_COMMON_JAR}
      && -e $MY_SQROOT/export/lib/trafodion-sql-${TRAFODION_VER}.jar
      && -e $MY_SQROOT/export/lib/trafodion-HBaseAccess-${TRAFODION_VER}.jar
      && -e $MY_SQROOT/export/lib/jdbcT2.jar ]]; then
@@ -749,8 +751,9 @@ if [[ -n "$HADOOP_CNF_DIR" ]]; then SQ_CLASSPATH="$SQ_CLASSPATH:$HADOOP_CNF_DIR"
 if [[ -n "$HIVE_CNF_DIR"   ]]; then SQ_CLASSPATH="$SQ_CLASSPATH:$HBASE_CNF_DIR";  fi
 if [[ -n "$HIVE_CNF_DIR"   ]]; then SQ_CLASSPATH="$SQ_CLASSPATH:$HIVE_CNF_DIR";   fi
 if [[ -n "$SQ_CLASSPATH"   ]]; then SQ_CLASSPATH="$SQ_CLASSPATH:";   fi
-SQ_CLASSPATH=${SQ_CLASSPATH}${HBASE_TRXDIR}:\
+SQ_CLASSPATH=${SQ_CLASSPATH}:\
 ${HBASE_TRXDIR}/${HBASE_TRX_JAR}:\
+$MY_SQROOT/export/lib/${DTM_COMMON_JAR}:\
 $MY_SQROOT/export/lib/trafodion-sql-${TRAFODION_VER}.jar:\
 $MY_SQROOT/export/lib/trafodion-HBaseAccess-${TRAFODION_VER}.jar:\
 $MY_SQROOT/export/lib/jdbcT2.jar

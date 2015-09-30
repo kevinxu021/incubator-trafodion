@@ -81,7 +81,7 @@ namespace EsgynDB.Data
             // "cast(dt.NUM_PREC_RADIX as smallint) NumPrecRadix, " +
             // "cast((case when co.NULLABLE =0 then 0 when co.NULLABLE = 2 then 1 else 2 end) as smallint) NullAble, " +
             // "cast(NULL as varchar(128)) Remarks, " +
-            "trim(co.DEFAULT_VALUE) DefaultValue, " +
+            "trim(co.DEFAULT_VALUE) DefaultValue " +
             // "cast((case when co.FS_DATA_TYPE = 0 and co.character_set = 'UCS2' then -8 " +
             // "when co.FS_DATA_TYPE = 64 and co.character_set = 'UCS2' then -9 else dt.SQL_DATA_TYPE end) as smallint) SQL_DATA_TYPE, " +
             // "cast(dt.SQL_DATETIME_SUB as smallint) SQL_DATETIME_SUB, " +
