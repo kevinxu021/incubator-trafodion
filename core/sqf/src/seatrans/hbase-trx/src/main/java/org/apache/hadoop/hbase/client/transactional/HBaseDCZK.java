@@ -391,26 +391,29 @@ public class HBaseDCZK implements Abortable {
 	
 	System.out.println("usage:");
 	System.out.println("HBaseDCZK [<command> | <options>...]");
-	System.out.println("<command>       : <   -setmyid <id>");
-	System.out.println("                :   | -getmyid");
-	System.out.println("                :   | -set <cluster info>");
-	System.out.println("                :   | -get <id>");
-	System.out.println("                :   | -list");
-	System.out.println("                :   | -delete <id>");
-	System.out.println("                :   | -sync >");
-	System.out.println("<options>       : [ <peer info> | -h | -v ]");
-	System.out.println("<cluster info>  : < <cluster id> [ <quorum info> | <port info> | <status info> ]... >");
-	System.out.println("<cluster id>    : -id <id> ");
-	System.out.println("<quorum info>   : -quorum <zookeeper quorum>");
-	System.out.println("<port info>     : -port <zookeeper client port>");
-	System.out.println("<status info>   : -status <status>");
-	System.out.println("<status>        : Up | Down | Available | Unavailable | Initialized");
-	System.out.println("<peer info>     : -peer <id>");
-	System.out.println("                :   Execute the command at the specified peer.");
-	System.out.println("                :   (Defaults to the local cluster)");
-	System.out.println("<id>            : A number between 1 and 100 (inclusive)");
-	System.out.println("-h              : Help (this output).");
-	System.out.println("-v              : Verbose output. ");
+	System.out.println("<command>         : <   -setmyid <id>");
+	System.out.println("                  :   | -getmyid");
+	System.out.println("                  :   | -set <cluster info>");
+	System.out.println("                  :   | -get <id>");
+	System.out.println("                  :   | -list");
+	System.out.println("                  :   | -delete <id>");
+	System.out.println("                  :   | -sync >");
+	System.out.println("<options>         : [ <peer info> | -h | -v ]");
+	System.out.println("<cluster info>    : < <cluster id> [ <quorum info> | <port info> | <status info> ]... >");
+	System.out.println("<cluster id>      : -id <id> ");
+	System.out.println("<quorum info>     : -quorum <zookeeper quorum>");
+	System.out.println("<port info>       : -port <zookeeper client port>");
+	System.out.println("<status info>     : -status <status>");
+	System.out.println("<status>          : <HBase Status>:<Trafodion Status>:<STR Status>");
+	System.out.println("<HBase Status>    : <HBase Up>    (hup)|<HBase Down>     (hdn)");
+	System.out.println("<Trafodion Status>: <Trafodion Up>(tup)|<Trafodion Down> (tdn)");
+	System.out.println("<STR Status>      : <STR Up>      (sup)|<HBase Down>     (sdn)");
+	System.out.println("<peer info>       : -peer <id>");
+	System.out.println("                  :    Execute the command at the specified peer.");
+	System.out.println("                  :    (Defaults to the local cluster)");
+	System.out.println("<id>              : A number between 1 and 100 (inclusive)");
+	System.out.println("-h                : Help (this output).");
+	System.out.println("-v                : Verbose output. ");
 
     }
 
