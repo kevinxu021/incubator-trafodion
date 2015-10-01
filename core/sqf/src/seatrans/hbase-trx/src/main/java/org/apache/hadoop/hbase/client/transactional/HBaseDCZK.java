@@ -239,12 +239,12 @@ public class HBaseDCZK implements Abortable {
      * @param cluster Id
      * @throws IOException
      */
-    public List<PeerInfo> list_clusters() throws KeeperException, IOException {
+    public Map<Integer, PeerInfo> list_clusters() throws KeeperException, IOException {
 	LOG.info("HBaseDCZK:list_clusters"
 		 );
 
-	List<String> peer_node_strings = new ArrayList<String>();
-	List<PeerInfo> peer_info_list  = new ArrayList<PeerInfo>();
+	List<String> peer_node_strings         = new ArrayList<String>();
+	Map<Integer, PeerInfo> peer_info_list  = new HashMap<Integer, PeerInfo>();
 	
 	peer_node_strings = get_znode_children(m_clusters_node);
 	if (peer_node_strings == null) {
@@ -252,7 +252,9 @@ public class HBaseDCZK implements Abortable {
 	}
 
 	for (String peer_node_string : peer_node_strings) {
-	    peer_info_list.add(get_peer_znode(peer_node_string));
+	    int lv_id = Integer.parseInt(peer_node_string);
+	    PeerInfo lv_pi = get_peer_znode(peer_node_string);
+	    peer_info_list.put(lv_id, lv_pi);
 	}
 
 	return peer_info_list;
@@ -267,7 +269,7 @@ public class HBaseDCZK implements Abortable {
 	LOG.info("HBaseDCZK:sync_cluster"
 		 );
 
-	List<PeerInfo> lv_pi_list = list_clusters();
+	Map<Integer, PeerInfo> lv_pi_list = list_clusters();
 
 	if (lv_pi_list == null) {
 	    return;
@@ -287,7 +289,7 @@ public class HBaseDCZK implements Abortable {
 		
 	    HBaseDCZK lv_zk = new HBaseDCZK(lv_config);
 	    
-	    for (PeerInfo lv_pi : lv_pi_list) {
+	    for (PeerInfo lv_pi : lv_pi_list.values()) {
 		lv_zk.set_peer_znode(lv_pi.get_id(),
 				     lv_pi.get_quorum(), 
 				     lv_pi.get_port(),
@@ -310,7 +312,7 @@ public class HBaseDCZK implements Abortable {
 	LOG.info("HBaseDCZK:sync_clusters"
 		 );
 
-	List<PeerInfo> lv_pi_list = list_clusters();
+	Map<Integer, PeerInfo> lv_pi_list = list_clusters();
 	
 	if (lv_pi_list == null) {
 	    return;
@@ -320,7 +322,7 @@ public class HBaseDCZK implements Abortable {
 	    
 	    String        lv_my_id   = get_my_id();
 	    
-	    for (PeerInfo lv_pi : lv_pi_list) {
+	    for (PeerInfo lv_pi : lv_pi_list.values()) {
 		if (lv_pi.get_id().equals(lv_my_id)) {
 		    continue;
 		}
@@ -591,9 +593,9 @@ public class HBaseDCZK implements Abortable {
 		}		    
 	    }
 	    else if (lv_cmd_list) {
-		List<PeerInfo> lv_pi_list = lv_zk.list_clusters();
+		Map<Integer, PeerInfo> lv_pi_list = lv_zk.list_clusters();
 		if (lv_pi_list != null) {
-		    for (PeerInfo lv_pi : lv_pi_list) {
+		    for (PeerInfo lv_pi : lv_pi_list.values()) {
 			System.out.println(lv_pi);
 		    }
 		}
@@ -602,9 +604,9 @@ public class HBaseDCZK implements Abortable {
 		lv_zk.sync_clusters();
 	    }
 	    else if (lv_cmd_liststatus) {
-		List<PeerInfo> lv_pi_list = lv_zk.list_clusters();
+		Map<Integer, PeerInfo> lv_pi_list = lv_zk.list_clusters();
 		if (lv_pi_list != null) {
-		    for (PeerInfo lv_pi : lv_pi_list) {
+		    for (PeerInfo lv_pi : lv_pi_list.values()) {
 			System.out.println(lv_pi.get_id() + ":" + lv_pi.get_status());
 		    }
 		}
