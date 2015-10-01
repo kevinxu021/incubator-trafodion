@@ -22,6 +22,7 @@ import java.io.IOException;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -32,7 +33,11 @@ import org.apache.hadoop.hbase.TableExistsException;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
+
+import org.apache.hadoop.hbase.master.RegionState;
+
 import org.apache.hadoop.hbase.util.Bytes;
+
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -67,8 +72,8 @@ public class hbstatus {
 	this.m_Config = config;
 	m_Config.setInt("hbase.client.retries.number", 3);
 	m_Config.set("hbase.root.logger","ERROR,console");
-	System.out.println("ZooKeeper Quorum: " + m_Config.get("hbase.zookeeper.quorum"));
-	System.out.println("ZooKeeper Port  : " + m_Config.get("hbase.zookeeper.property.clientPort"));
+	System.out.print("ZooKeeper Quorum: " + m_Config.get("hbase.zookeeper.quorum"));
+	System.out.println(", ZooKeeper Port  : " + m_Config.get("hbase.zookeeper.property.clientPort"));
 
 	m_Connection = ConnectionFactory.createConnection(m_Config);
 	m_Admin = m_Connection.getAdmin();
@@ -82,7 +87,6 @@ public class hbstatus {
 
     public boolean CheckStatus() throws Exception {
 
-        System.out.println("Checking if HBase is available...");
 	ClusterStatus lv_cs;
 	try {
 	    lv_cs = m_Admin.getClusterStatus();
@@ -94,6 +98,7 @@ public class hbstatus {
         }
 
         System.out.println("\nHBase is available!");
+        System.out.println("\nHBase version: " + lv_cs.getHBaseVersion());
 
 	System.out.println("HMaster: " + lv_cs.getMaster());
 
@@ -103,12 +108,26 @@ public class hbstatus {
 	    System.out.println("Not a single RegionServer is available at the moment. Exitting...");
 	    return false;
 	}
-	System.out.println();
-
 	int lv_rs_count=0;
 	for (ServerName lv_sn : lv_csn) {
 	    System.out.println("RegionServer #" + ++lv_rs_count + ": " + lv_sn);
 	}
+
+	Collection<ServerName> lv_dsn = lv_cs.getDeadServerNames();
+	System.out.println("\nNumber of Dead RegionServers:" + lv_dsn.size());
+	lv_rs_count=0;
+	for (ServerName lv_sn : lv_dsn) {
+	    System.out.println("Dead RegionServer #" + ++lv_rs_count + ": " + lv_sn);
+	}
+
+	System.out.println("Number of regions: " + lv_cs.getRegionsCount());
+	Map<String, RegionState> lv_map_rit = lv_cs.getRegionsInTransition();
+	System.out.println("Number of regions in transition: " + lv_map_rit.size());
+	for (Map.Entry<String, RegionState> me: lv_map_rit.entrySet()) {
+	    System.out.println("RegionInTransition: " + me.getKey() + " state: " + me.getValue());
+	}
+
+	System.out.println("Average load: " + lv_cs.getAverageLoad());
 
 	System.out.println();
 
@@ -224,7 +243,6 @@ public class hbstatus {
 
 	int lv_index = 0;
 	for (String lv_arg : Args) {
-	    //	    System.out.println("Arg[" + lv_index + "]=" + lv_arg);
 	    lv_index++;
 	    if (lv_arg.compareTo("-h") == 0) {
 		Usage();
