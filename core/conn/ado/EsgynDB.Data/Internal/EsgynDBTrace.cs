@@ -48,9 +48,10 @@ namespace EsgynDB.Data
 
         static EsgynDBTrace()
         {
+            
             string level;
             string[] split;
-            level = getVariable("HPDbTraceLevel");
+            level = getVariable("EsgynDBTraceLevel");
             if (level != null)
             {
                 try
@@ -68,7 +69,7 @@ namespace EsgynDB.Data
 
                 try
                 {
-                    Boolean.TryParse( getVariable("HPDbTraceConsole"), out _console);
+                    Boolean.TryParse( getVariable("EsgynDBTraceConsole"), out _console);
                 }
                 catch
                 { }
@@ -77,7 +78,7 @@ namespace EsgynDB.Data
                 {
                     try
                     {
-                        string traceFile = getVariable("HPDbTraceFile");
+                        string traceFile = getVariable("EsgynDBTraceFile");
                        
                         if (traceFile != null)
                         {
@@ -89,7 +90,7 @@ namespace EsgynDB.Data
                         }
                         catch (Exception e)
                         {
-                            System.Console.WriteLine(e.ToString());
+                            System.Console.WriteLine(e.StackTrace);
                         }
                     }
                     catch
@@ -106,14 +107,11 @@ namespace EsgynDB.Data
         {
             String msg = "\r\n";
             String value = Environment.GetEnvironmentVariable(key);
- 
-            if (value==null || "".Equals(value.Trim()))
+
+            if (value == null || "".Equals(value.Trim()))
             {
                 value = ConfigurationManager.AppSettings.Get(key);
-                if ("HPDbTraceLevel".Equals(key.Trim()))
-                {
-                    msg += "Program configuration file is " + ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None).FilePath + "\r\n";
-                }
+                
                 if (value == null || "".Equals(value.Trim()))
                 {
                     // Get the machine.config file.
@@ -122,7 +120,7 @@ namespace EsgynDB.Data
                     if (machineConfig.AppSettings.Settings[key]!=null)
                         value = machineConfig.AppSettings.Settings[key].Value;
                     msg += key + "(machine.config)= " + value + "\r\n";
-                    if ( "HPDbTraceFile".Equals(key.Trim()))
+                    if ( "EsgynDBTraceFile".Equals(key.Trim()))
                     {
                         msg += "machine.config file is " + machineConfig.FilePath + "\r\n";
                     }

@@ -423,26 +423,29 @@ static ConcurrentHashMap<String, Object> getRefMap() {
 
 @Override
 public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
-  @SuppressWarnings("rawtypes")
-  TrxRegionEndpoint tre = (TrxRegionEndpoint)trxRegionMap.get(regionInfo.getRegionNameAsString()+TrxRegionEndpoint.trxkeyEPCPinstance);
-  if(tre == null) {
-      LOG.error("Unable to obtain TrxRegionEndpoint object from shared map for " + regionInfo.getRegionNameAsString());
-  }
-  else {
-	  Path readPath = null;
-	  StringBuilder sbPath = new StringBuilder();
-	  if(sbHelper.getSplit(sbPath)) {
-		  sbHelper.clearSplit();
-	  }
-	  else if(sbHelper.getBalance(sbPath)) {
-	    readPath = new Path(sbPath.toString());
-	    try {
-		  tre.readTxnInfo(readPath);
-	    } catch(IOException ioe) {
-	      if (LOG.isErrorEnabled()) LOG.error("Unable to read Transactional Info for balance coordination: " + ioe);
-	    }
-		  sbHelper.clearBalance();
-	  }
+
+  if(!this.splitDelayNoFlush) {
+    @SuppressWarnings("rawtypes")
+    TrxRegionEndpoint tre = (TrxRegionEndpoint)trxRegionMap.get(regionInfo.getRegionNameAsString()+TrxRegionEndpoint.trxkeyEPCPinstance);
+    if(tre == null) {
+        LOG.error("Unable to obtain TrxRegionEndpoint object from shared map for " + regionInfo.getRegionNameAsString());
+    }
+    else {
+  	  Path readPath = null;
+  	  StringBuilder sbPath = new StringBuilder();
+  	  if(sbHelper.getSplit(sbPath)) {
+  		  sbHelper.clearSplit();
+  	  }
+  	  else if(sbHelper.getBalance(sbPath)) {
+  	    readPath = new Path(sbPath.toString());
+  	    try {
+  		  tre.readTxnInfo(readPath);
+  	    } catch(IOException ioe) {
+  	      if (LOG.isErrorEnabled()) LOG.error("Unable to read Transactional Info for balance coordination: " + ioe);
+  	    }
+  		  sbHelper.clearBalance();
+  	  }
+    }
   }
 
    //        Trafodion Recovery : after Open, we should have alreday constructed all the indoubt transactions in
