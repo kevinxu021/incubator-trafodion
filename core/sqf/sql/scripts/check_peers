@@ -47,7 +47,7 @@ fi
 
 if [[ ${#lv_peers} > 0 ]]; then
     for lv_peer in $lv_peers; do
-	hbcheck -p ${lv_peer}
+	hbcheck -p ${lv_peer} $*
 	lv_ret=$?
 	if [[ ${lv_ret} != 0 ]]; then
 	    exit 1;
