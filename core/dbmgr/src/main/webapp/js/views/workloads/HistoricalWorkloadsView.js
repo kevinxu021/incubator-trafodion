@@ -79,8 +79,6 @@ define([
 			
 			$('#startdatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
 			$('#enddatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
-			//$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'hour'));
-			//$('#enddatetimepicker').data("DateTimePicker").date(moment());
 			$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
 			$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 
