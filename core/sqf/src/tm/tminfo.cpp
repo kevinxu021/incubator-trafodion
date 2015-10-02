@@ -64,7 +64,7 @@ TM_Info::TM_Info()
    :iv_stats(TM_STATS, TM_STATS_INTERVAL)
 {
 
-  int32 lv_cluster_id = 0;
+   int32 lv_cluster_id = 0;
    ms_getenv_int("MY_CLUSTER_ID", &lv_cluster_id);    
    iv_cluster_id = (short) lv_cluster_id;
    printf("Cluster id: %d\n", iv_cluster_id);

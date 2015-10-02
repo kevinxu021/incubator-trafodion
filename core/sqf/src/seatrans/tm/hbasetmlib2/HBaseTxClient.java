@@ -1390,7 +1390,7 @@ public class HBaseTxClient {
                                                     " and tolerating UnknownTransactionExceptions");
                                         txnManager.doCommit(ts, true /*ignore UnknownTransactionException*/);
                                         if(useTlog && useForgotten) {
-                                            long nextAsn = tLog.getNextAuditSeqNum((int)(txID >> 32));
+                                            long nextAsn = tLog.getNextAuditSeqNum((int)TransactionState.getNodeId(txID));
                                             tLog.putSingleRecord(txID, ts.getCommitId(), "FORGOTTEN", null, forceForgotten, nextAsn);
                                         }
                                     } else if (ts.getStatus().equals(TransState.STATE_ABORTED.toString())) {
