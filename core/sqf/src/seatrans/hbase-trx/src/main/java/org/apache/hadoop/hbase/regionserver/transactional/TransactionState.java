@@ -189,6 +189,26 @@ public class TransactionState {
     }
 
     /**
+     * Get the originating node of the transaction.
+     *
+     * @return Return the nodeId.
+     */
+    public long getNodeId() {
+
+        return ((transactionId >> 32) & 0xFFFFL);
+    }
+
+    /**
+     * Get the originating node of the passed in transaction.
+     *
+     * @return Return the nodeId.
+     */
+    public static long getNodeId(long transId) {
+
+        return ((transId >> 32) & 0xFFFFL);
+    }
+
+    /**
      * Get the status.
      * 
      * @return Return the status.

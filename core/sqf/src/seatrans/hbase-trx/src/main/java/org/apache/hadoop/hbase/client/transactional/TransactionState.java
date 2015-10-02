@@ -41,6 +41,10 @@ public class TransactionState {
 
     static final Log LOG = LogFactory.getLog(TransactionState.class);
 
+    // Current transactionId has the following composition:
+    //  int   sequenceId
+    //  short nodeId
+    //  short clusterId
     private final long transactionId;
     private TransState status;
     private long startId;
@@ -362,6 +366,68 @@ public class TransactionState {
      */
     public long getTransactionId() {
         return transactionId;
+    }
+
+    /**
+     * Get the sequenceNum portion of the transactionId.
+     *
+     * @return Return the sequenceNum.
+     */
+    public long getTransSeqNum() {
+
+        return transactionId & 0xFFFFFFFFL;
+    }
+
+    /**
+     * Get the sequenceNum portion of the passed in transId.
+     *
+     * @return Return the sequenceNum.
+     */
+    public static long getTransSeqNum(long transId) {
+
+    	return transId & 0xFFFFFFFFL;
+
+    }
+
+    /**
+     * Get the originating node of the transaction.
+     *
+     * @return Return the nodeId.
+     */
+    public long getNodeId() {
+
+        return ((transactionId >> 32) & 0xFFFFL);
+    }
+    
+    /**
+     * Get the originating node of the passed in transaction.
+     *
+     * @return Return the nodeId.
+     */
+    public static long getNodeId(long transId) {
+
+        return ((transId >> 32) & 0xFFFFL);
+    }
+
+    /**
+     * Get the originating clusterId of the transaction.
+     *
+     * @return Return the clusterId.
+     */
+    public long getClusterId() {
+
+    	return transactionId >> 48;
+    }
+
+
+    /**
+     * Get the originating clusterId of the passed in transaction.
+     *
+     * @return Return the clusterId.
+     */
+    public static long getClusterId(long transId) {
+
+        return transId >> 48;
     }
 
     /**

@@ -2660,7 +2660,7 @@ CoprocessorService, Coprocessor {
                     if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV:recoveryRequest in region starting" + regionInfo.getEncodedName() + " has in-doubt transaction " + indoubtTransactionsById.size());
                     for (Entry<Long, List<WALEdit>> entry : indoubtTransactionsById.entrySet()) {
                           long tid = entry.getKey();
-                          if ((int) (tid >> 32) == tmId) {
+                          if ((int) TransactionState.getNodeId(tid) == tmId) {
                               indoubtTransactions.add(tid);
                               if (LOG.isInfoEnabled()) LOG.info("TrxRegionEndpoint coprocessor: recoveryRequest - txId " + transactionId + ", Trafodion Recovery: region " + regionInfo.getEncodedName() + " in-doubt transaction " + tid + " has been added into the recovery reply to TM " + tmId + " during recovery ");
                           }
@@ -2681,7 +2681,7 @@ CoprocessorService, Coprocessor {
                      if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV:recoveryRequest in region started" + regionInfo.getEncodedName() + " has in-doubt transaction " + commitPendingCopy.size());
                      for (TrxTransactionState commitPendingTS : commitPendingCopy) {
                         long tid = commitPendingTS.getTransactionId();
-                          if ((int) (tid >> 32) == tmId) {
+                          if ((int) TransactionState.getNodeId(tid) == tmId) {
                               indoubtTransactions.add(tid);
                               if (LOG.isInfoEnabled()) LOG.info("TrxRegionEndpoint coprocessor: recoveryRequest - Trafodion Recovery: region " + regionInfo.getEncodedName() + " in-doubt transaction " + tid + " has been added into the recovery reply to TM " + tmId + " during start ");
                           }
@@ -3559,7 +3559,7 @@ CoprocessorService, Coprocessor {
                transactionId = entry.getKey();
                if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor:choreThreadDetectStaleTransactionBranch: indoubt branch Txn id "
                        + transactionId + " region info bytes " + new String(lv_byte_region_info));
-               tmid = (int) (transactionId >> 32);
+               tmid = (int) TransactionState.getNodeId(transactionId);
                if (!staleBranchforTMId.contains(tmid)) {staleBranchforTMId.add(tmid);}
          }
       }
@@ -3569,7 +3569,7 @@ CoprocessorService, Coprocessor {
                transactionId = commitPendingTS.getTransactionId();
                if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor:choreThreadDetectStaleTransactionBranch: stale branch Txn id "
                   + transactionId + " region info bytes " + new String(lv_byte_region_info));
-               tmid = (int) (transactionId >> 32);
+               tmid = (int) TransactionState.getNodeId(transactionId);
                if (!staleBranchforTMId.contains(tmid)) {staleBranchforTMId.add(tmid);}
             }
          }
@@ -3865,7 +3865,7 @@ CoprocessorService, Coprocessor {
     if (state.isReinstated()) {
       synchronized(indoubtTransactionsById) {
         indoubtTransactionsById.remove(state.getTransactionId());
-        int tmid = (int) (transactionId >> 32);
+        int tmid = (int) TransactionState.getNodeId(transactionId);
         int count = 0;
         if (indoubtTransactionsCountByTmid.containsKey(tmid)) {
           count =  (int) indoubtTransactionsCountByTmid.get(tmid) - 1;
@@ -4398,7 +4398,7 @@ CoprocessorService, Coprocessor {
                        //throw exp;
                     }   
                     if (LOG.isTraceEnabled()) LOG.trace("TrxRegion endpoint CP: reconstruct transaction: rewrite to HLOG CR edit for transaction " + transactionId);
-                      int tmid = (int) (transactionId >> 32);
+                      int tmid = (int) TransactionState.getNodeId(transactionId);
                     if (LOG.isTraceEnabled()) LOG.trace("TrxRegion endpoint CP " + regionInfo.getRegionNameAsString() + " reconstruct transaction " + transactionId + " for TM " + tmid);
              } // for all txns in indoubt transcation list
              } // not reconstruct indoubtes yet
@@ -4987,7 +4987,7 @@ CoprocessorService, Coprocessor {
       synchronized(indoubtTransactionsById) {
         if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: Trafodion Recovery: abort reinstated indoubt transactions " + transactionId);
         indoubtTransactionsById.remove(state.getTransactionId());
-        int tmid = (int) (transactionId >> 32);
+        int tmid = (int) TransactionState.getNodeId(transactionId);
         int count = 0;
 
         // indoubtTransactionsCountByTmid protected by 
