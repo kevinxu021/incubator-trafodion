@@ -27,13 +27,9 @@ import java.nio.charset.Charset;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.StringTokenizer;
+import java.util.Scanner;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -55,6 +51,7 @@ import org.apache.hadoop.hbase.client.transactional.STRConfig;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.CreateMode;
 
 import org.apache.hadoop.hbase.client.transactional.PeerInfo;
 
@@ -72,6 +69,7 @@ public class HBaseDCZK implements Abortable {
     public static final String m_quorum_string        = "quorum";
     public static final String m_port_string          = "port";
     public static final String m_status_string        = "status";
+    public static final String m_trafodion_up_string  = "trafodion_up";
 
     public static final String m_base_node            = "/hbase/Trafodion/multi_dc";
     public static final String m_clusters_node        = m_base_node + "/" + m_clusters_string;
@@ -79,7 +77,6 @@ public class HBaseDCZK implements Abortable {
 
     ZooKeeperWatcher m_zkw;
     Configuration    m_config;
-    Set<String>      nodeList;	
 	
     /**
      * @param conf
@@ -158,10 +155,49 @@ public class HBaseDCZK implements Abortable {
 		ZKUtil.createSetData(m_zkw, lv_status_node, pv_status.getBytes(CHARSET));
 	    }
 
-	} catch (KeeperException e) {
+	}
+	catch (KeeperException e) {
 	    throw new IOException("HBaseDCZK:set_peer_znode: ZKW Unable to create peer zNode: " 
 				  + m_clusters_node + "/" + pv_cluster_id
-				  + " , throwing IOException " + e);
+				  + " , throwing IOException " + e
+				  );
+	}
+    }
+
+    /**
+     * @param cluster Id
+     * @param quorum
+     * @param port
+     * @param status
+     * @throws IOException
+     */
+    public void set_trafodion_znode(String pv_cluster_id,
+				    String pv_trafodion_status_string
+				    ) throws IOException {
+
+	if (pv_cluster_id == null) {
+	    if (LOG.isTraceEnabled()) LOG.trace("set_trafodion_znode, pv_cluster_id is null");
+	    return;
+	}
+
+	if (LOG.isInfoEnabled()) LOG.info("HBaseDCZK:set_trafodion_znode: "
+					  + " cluster_id : " + pv_cluster_id
+					  );
+	
+	try {
+	    String lv_cluster_id_node = m_clusters_node + "/" + pv_cluster_id;
+	    ZKUtil.createWithParents(m_zkw, lv_cluster_id_node);
+	    
+	    String lv_trafodion_up_node = lv_cluster_id_node + "/" + m_trafodion_up_string;
+	    ZKUtil.createEphemeralNodeAndWatch(m_zkw,
+					       lv_trafodion_up_node,
+					       pv_trafodion_status_string.getBytes(CHARSET));
+	} 
+	catch (KeeperException e) {
+	    throw new IOException("HBaseDCZK:set_trafodion_znode: ZKW Unable to create zNode: " 
+				  + m_clusters_node + "/" + pv_cluster_id
+				  + " , throwing IOException " + e
+				  );
 	}
     }
 
@@ -189,16 +225,26 @@ public class HBaseDCZK implements Abortable {
 	    String lv_status_node = lv_cluster_id_node + "/" + m_status_string;
 	    lv_pi.set_status(get_znode_data(lv_status_node));
 
+	    String lv_trafodion_up_node = lv_cluster_id_node + "/" + m_trafodion_up_string;
+	    byte[] lbb_val = get_znode_data(lv_trafodion_up_node);
+	    if (lbb_val != null) {
+		lv_pi.setTrafodionStatus(true);
+	    }
+	    
 	    return lv_pi;
 
-	} catch (KeeperException e) {
+	} 
+	catch (KeeperException e) {
 	    throw new IOException("HBaseDCZK:get_peer_znode: ZKW Unable to get peer zNode: " 
 				  + lv_cluster_id_node
-				  + " , throwing IOException " + e);
-	} catch (InterruptedException e) {
+				  + " , throwing IOException " + e
+				  );
+	} 
+	catch (InterruptedException e) {
 	    throw new IOException("HBaseDCZK:get_peer_znode: ZKW Unable to get peer zNode: " 
 				  + lv_cluster_id_node
-				  + " , throwing IOException " + e);
+				  + " , throwing IOException " + e
+				  );
 	}
 
     }
@@ -219,16 +265,20 @@ public class HBaseDCZK implements Abortable {
 		return false;
 	    }
 	    
-	    ZKUtil.deleteNodeRecursively(m_zkw, m_clusters_node + "/" + pv_cluster_id);
+	    ZKUtil.deleteNodeRecursively(m_zkw,
+					 m_clusters_node + "/" + pv_cluster_id
+					 );
 
 	} catch (KeeperException e) {
 	    throw new IOException("HBaseDCZK:delete_peer_znode: ZKW, KeeperException trying to delete: " 
 				  + pv_cluster_id
-				  + " , throwing IOException " + e);
+				  + " , throwing IOException " + e
+				  );
 	} catch (InterruptedException e) {
 	    throw new IOException("HBaseDCZK:delete_peer_znode: ZKW, InterruptedException trying to delete: " 
 				  + pv_cluster_id
-				  + " , throwing IOException " + e);
+				  + " , throwing IOException " + e
+				  );
 	}
 
 	return true;
@@ -279,6 +329,7 @@ public class HBaseDCZK implements Abortable {
 	    
 	    STRConfig     pSTRConfig = null;
 	    Configuration lv_config  = null;
+
 	    System.setProperty("PEERS", pv_cluster_id);
 	    pSTRConfig = STRConfig.getInstance(m_config);
 	    lv_config = pSTRConfig.getPeerConfiguration(Integer.parseInt(pv_cluster_id));
@@ -295,13 +346,18 @@ public class HBaseDCZK implements Abortable {
 				     lv_pi.get_port(),
 				     lv_pi.get_status());
 	    }
-	} catch (KeeperException e) {
+	} 
+	catch (KeeperException e) {
 	    throw new IOException("HBaseDCZK:sync_cluster: ZKW, KeeperException trying to get my id: " 
-				  + " , throwing IOException " + e);
-	} catch (InterruptedException e) {
+				  + " , throwing IOException " + e
+				  );
+	} 
+	catch (InterruptedException e) {
 	    throw new IOException("HBaseDCZK:sync_cluster: ZKW, InterruptedException trying to get my id: " 
-				  + " , throwing IOException " + e);
-	} catch (Exception e) {
+				  + " , throwing IOException " + e
+				  );
+	} 
+	catch (Exception e) {
 	    System.out.println("exception: " + e);
 	    System.exit(1);
 	}
@@ -329,12 +385,16 @@ public class HBaseDCZK implements Abortable {
 		
 		sync_cluster(lv_pi.get_id());
 	    }
-	} catch (KeeperException e) {
+	}
+	catch (KeeperException e) {
 	    throw new IOException("HBaseDCZK:sync_clusters: ZKW, KeeperException trying to get my id: " 
-				  + " , throwing IOException " + e);
-	} catch (InterruptedException e) {
+				  + " , throwing IOException " + e
+				  );
+	}
+	catch (InterruptedException e) {
 	    throw new IOException("HBaseDCZK:sync_clusters: ZKW, InterruptedException trying to get my id: " 
-				  + " , throwing IOException " + e);
+				  + " , throwing IOException " + e
+				  );
 	}
 
     }
@@ -348,10 +408,12 @@ public class HBaseDCZK implements Abortable {
 
 	try {
 	    ZKUtil.createSetData(m_zkw, m_my_cluster_id_node, pv_my_cluster_id.getBytes(CHARSET));
-	} catch (KeeperException e) {
+	} 
+	catch (KeeperException e) {
 	    throw new IOException("HBaseDCZK:set_my_id: ZKW Unable to create zNode: " 
 				  + pv_my_cluster_id
-				  + " , throwing IOException " + e);
+				  + " , throwing IOException " + e
+				  );
 	}
     }
 
@@ -423,6 +485,7 @@ public class HBaseDCZK implements Abortable {
 
 	boolean lv_retcode = true;
 	boolean lv_verbose = false;
+	boolean lv_test    = false;
 
 	int     lv_peer_id = 0;
 
@@ -450,6 +513,9 @@ public class HBaseDCZK implements Abortable {
 	    }
 	    if (lv_arg.compareTo("-v") == 0) {
 		lv_verbose = true;
+	    }
+	    if (lv_arg.compareTo("-t") == 0) {
+		lv_test = true;
 	    }
 	    else if (lv_arg.compareTo("-peer") == 0) {
 		lv_peer_id = Integer.parseInt(Args[lv_index]);
@@ -565,6 +631,14 @@ public class HBaseDCZK implements Abortable {
 	    HBaseDCZK lv_zk = new HBaseDCZK(lv_config);
 	    if (lv_cmd_set_my_id) {
 		lv_zk.set_my_id(lv_my_id);
+		if (lv_test) {
+		    String lv_trafodion_status_string = "up";
+		    lv_zk.set_trafodion_znode(lv_my_id,
+					      lv_trafodion_status_string);
+		    Scanner scanner = new Scanner(System.in);
+		    System.out.print("Enter any key when done: ");
+		    String userdata = scanner.next();
+		}					
 	    }
 	    else if (lv_cmd_get_my_id) {
 		System.out.println(lv_zk.get_my_id());
