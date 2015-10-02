@@ -44,6 +44,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.transactional.HBaseDCZK;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.CommitUnsuccessfulException;
@@ -227,6 +228,9 @@ public class HBaseTxClient {
          }
       }
 
+      String lv_ephemeral_node_data = "Up. Nid: " + dtmid;
+      createEphemeralZKNode(lv_ephemeral_node_data.getBytes());
+
       this.dtmID = dtmid;
       this.useRecovThread = false;
       this.stallWhere = 0;
@@ -369,6 +373,25 @@ public class HBaseTxClient {
       }
       if (LOG.isTraceEnabled()) LOG.trace("Exit init()");
       return true;
+   }
+
+   public void createEphemeralZKNode(byte[] pv_data) {
+
+       try {
+
+	   HBaseDCZK lv_zk = new HBaseDCZK(config);
+
+	   String lv_my_cluster_id = lv_zk.get_my_id();
+	   String lv_node_data = new String(pv_data);
+       
+	   lv_zk.set_trafodion_znode(lv_my_cluster_id,
+				     lv_node_data);
+       }
+       catch (Exception e) {
+	   LOG.error("Exception while trying to create the trafodion ephemeral node.");
+	   LOG.error(e);
+       }
+
    }
 
    public TmDDL getTmDDL() {
