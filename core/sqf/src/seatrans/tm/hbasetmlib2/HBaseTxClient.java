@@ -376,12 +376,17 @@ public class HBaseTxClient {
    }
 
    public void createEphemeralZKNode(byte[] pv_data) {
-
+       if (LOG.isDebugEnabled()) LOG.debug("Enter createEphemeralZKNode, data: " + new String(pv_data));
        try {
 
 	   HBaseDCZK lv_zk = new HBaseDCZK(config);
 
 	   String lv_my_cluster_id = lv_zk.get_my_id();
+	   if (lv_my_cluster_id == null) {
+	       if (LOG.isDebugEnabled()) LOG.debug("createEphemeralZKNode, my_cluster_id is null");
+	       return;
+	   }
+
 	   String lv_node_data = new String(pv_data);
        
 	   lv_zk.set_trafodion_znode(lv_my_cluster_id,

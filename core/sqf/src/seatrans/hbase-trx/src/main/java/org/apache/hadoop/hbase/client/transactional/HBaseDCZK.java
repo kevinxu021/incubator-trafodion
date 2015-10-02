@@ -175,10 +175,15 @@ public class HBaseDCZK implements Abortable {
 				    String pv_trafodion_status_string
 				    ) throws IOException {
 
-	LOG.info("HBaseDCZK:set_trafodion_znode: "
-		 + " cluster_id : " + pv_cluster_id
-		 );
-		 
+	if (pv_cluster_id == null) {
+	    if (LOG.isTraceEnabled()) LOG.trace("set_trafodion_znode, pv_cluster_id is null");
+	    return;
+	}
+
+	if (LOG.isInfoEnabled()) LOG.info("HBaseDCZK:set_trafodion_znode: "
+					  + " cluster_id : " + pv_cluster_id
+					  );
+	
 	try {
 	    String lv_cluster_id_node = m_clusters_node + "/" + pv_cluster_id;
 	    ZKUtil.createWithParents(m_zkw, lv_cluster_id_node);

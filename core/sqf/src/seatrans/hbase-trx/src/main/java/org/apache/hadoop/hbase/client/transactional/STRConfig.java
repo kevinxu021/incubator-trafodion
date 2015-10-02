@@ -230,11 +230,12 @@ public class STRConfig {
 	sv_dc_zk = new HBaseDCZK(pv_config);
 	peer_info_list = sv_dc_zk.list_clusters();
 	sv_my_cluster_id = sv_dc_zk.get_my_id();
-
-	if (sv_my_cluster_id != null) {
-	    if (LOG.isTraceEnabled()) LOG.trace("My cluster id: " + sv_my_cluster_id);
-	    pv_config.setInt("esgyn.cluster.id", Integer.parseInt(sv_my_cluster_id));
+	if (sv_my_cluster_id == null) {
+	    sv_my_cluster_id = "0";
 	}
+
+	if (LOG.isTraceEnabled()) LOG.trace("My cluster id: " + sv_my_cluster_id);
+	pv_config.setInt("esgyn.cluster.id", Integer.parseInt(sv_my_cluster_id));
 
     }
 
@@ -252,6 +253,11 @@ public class STRConfig {
 	try {
 
 	    Map<Integer, PeerInfo> lv_pi_list = sv_dc_zk.list_clusters();
+	    
+	    if (lv_pi_list == null) {
+		if (LOG.isTraceEnabled()) LOG.trace("initClusterConfigsZK: list_clusters returned null");
+		return;
+	    }
 
 	    for (PeerInfo lv_pi : lv_pi_list.values()) {
 		if (LOG.isTraceEnabled()) LOG.trace("initClusterConfigsZK: " + lv_pi);
