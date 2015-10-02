@@ -14,10 +14,12 @@ define([
     'jquery',
     'common',
     'moment',
+    'views/RefreshTimerView',
+    'views/TimeRangeView',
     'datatables',
     'datatablesBootStrap',
     'tabletools'
-], function (BaseView, Raphael, Morris, DashboardT, dashboardHandler, serverHandler, $, common, moment) {
+], function (BaseView, Raphael, Morris, DashboardT, dashboardHandler, serverHandler, $, common, moment, refreshTimer, timeRangeView) {
     'use strict';
 
     var _this = null;
@@ -28,87 +30,24 @@ define([
 	    NODES_RESULT_CONTAINER = '#nodes-result-container',
 	    NODES_ERROR_TEXT = '#nodes-error-text',
 	    REFRESH_ACTION = '#refreshAction',
-	    REFRESH_INTERVAL = '#refreshInterval',
-	    TIME_RANGE = '#timeRange';
+	    OPEN_FILTER = '#openFilter';
     
-    var OPEN_FILTER = '#openFilter',
-    	FILTER_DIALOG = '#filterDialog',
-    	FILTER_FORM = '#filter-form',
-		FILTER_APPLY_BUTTON = "#filterApplyButton",
-		FILTER_START_TIME = '#filter-start-time',
-		FILTER_END_TIME = '#filter-end-time';
-    
-    var validator = null;
-	
     var cpuGraph = null, diskReadsGraph = null, diskWritesGraph=null, getOpsGraph = null, canaryGraph = null;
     var servicesTable = null, nodesTable = null;
     
     var DashboardView = BaseView.extend({
     	template:  _.template(DashboardT),
     	
-		init: function (){
+		doInit: function (){
 			
 			_this = this;
-			
-			validator = $(FILTER_FORM).validate({
-				rules: {
-					"filter-start-time": { required: true },
-					"filter-end-time": { required: true }
-				},
-				highlight: function(element) {
-			        $(element).closest('.form-group').addClass('has-error');
-			    },
-			    unhighlight: function(element) {
-			        $(element).closest('.form-group').removeClass('has-error');
-			    },
-			    errorElement: 'span',
-			    errorClass: 'help-block',
-		        errorPlacement: function(error, element) {
-		            if(element.parent('.input-group').length) {
-		                error.insertAfter(element.parent());
-		            } else {
-		                error.insertAfter(element);
-		            }
-		        }
-			});
-			$(TIME_RANGE).val(-1);
-			
-			$(FILTER_FORM).bind('change', function() {
-				if($(this).validate().checkForm()) {
-					$(FILTER_APPLY_BUTTON).attr('disabled', false);
-				} else {
-					$(FILTER_APPLY_BUTTON).attr('disabled', true);
-				}
-			});
-			
-			$('#startdatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
-			$('#enddatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
-			$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
-			$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
-
-			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
-				$('#filter-start-time').prop("disabled", false);
-				$('#filter-end-time').prop("disabled", false);
-			});
-
-			$(TIME_RANGE).focusin(function(){
-				$(this).val(-1);
-			});
+			refreshTimer.init();
+			timeRangeView.init();
 		
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			$(SERVICES_ERROR_TEXT).hide();
 			$(NODES_ERROR_TEXT).hide();
-			
-			/*dashboardHandler.on(dashboardHandler.DISKREADS_SUCCESS, this.fetchDiskReadsSuccess);
-			dashboardHandler.on(dashboardHandler.DISKREADS_ERROR, this.fetchDiskReadsError);        	  
-			dashboardHandler.on(dashboardHandler.DISKWRITES_SUCCESS, this.fetchDiskWritesSuccess);
-			dashboardHandler.on(dashboardHandler.DISKWRITES_ERROR, this.fetchDiskWritesError);        	  
-			dashboardHandler.on(dashboardHandler.GETOPS_SUCCESS, this.fetchGetOpsSuccess);
-			dashboardHandler.on(dashboardHandler.GETOPS_ERROR, this.fetchGetOpsError); 
-			this.fetchDiskReads();
-			this.fetchDiskWrites();
-			this.fetchGetOps();*/
-			
+
 			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
 			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
 			serverHandler.on(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
@@ -116,59 +55,52 @@ define([
 			dashboardHandler.on(dashboardHandler.CANARY_SUCCESS, this.fetchCanarySuccess); 
 			dashboardHandler.on(dashboardHandler.CANARY_ERROR, this.fetchCanaryError);
 			
-			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
-			$(TIME_RANGE).on('change', this.timeRangeChanged);
-			$(REFRESH_INTERVAL).on('change', this.refreshIntervalChanged);
-
-			$(REFRESH_INTERVAL).val('1').trigger('change');
-			$(TIME_RANGE).val(1).trigger('change');
+			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimer.eventAgg.on(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);
+			timeRangeView.eventAgg.on(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
+			refreshTimer.setRefreshInterval(0.5);
+			timeRangeView.setTimeRange(1);
+			this.refreshPage();
 		},
-		resume: function(){
+		doResume: function(){
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			$(SERVICES_ERROR_TEXT).hide();
 			$('#nodes-error-text').hide();
-			/*dashboardHandler.on(dashboardHandler.DISKREADS_SUCCESS, this.fetchDiskReadsSuccess);
-			dashboardHandler.on(dashboardHandler.DISKREADS_ERROR, this.fetchDiskReadsError);        	  
-			dashboardHandler.on(dashboardHandler.DISKWRITES_SUCCESS, this.fetchDiskWritesSuccess);
-			dashboardHandler.on(dashboardHandler.DISKWRITES_ERROR, this.fetchDiskWritesError);        	  
-			dashboardHandler.on(dashboardHandler.GETOPS_SUCCESS, this.fetchGetOpsSuccess);
-			dashboardHandler.on(dashboardHandler.GETOPS_ERROR, this.fetchGetOpsError); 
-			this.fetchDiskReads();
-			this.fetchDiskWrites();
-			this.fetchGetOps();*/
+
 			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
 			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
 			serverHandler.on(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
 			serverHandler.on(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
 			dashboardHandler.on(dashboardHandler.CANARY_SUCCESS, this.fetchCanarySuccess); 
 			dashboardHandler.on(dashboardHandler.CANARY_ERROR, this.fetchCanaryError);
-			
-			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
-			$(TIME_RANGE).on('change', this.timeRangeChanged);
-			$(REFRESH_INTERVAL).on('change', this.refreshIntervalChanged);
+
 			$(REFRESH_ACTION).on('click', this.refreshPage);
+			
+			refreshTimer.resume();
+			timeRangeView.resume();
+			
+			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimer.eventAgg.on(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);	
+			timeRangeView.eventAgg.on(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
 			
 			this.refreshPage();
 		},
-		pause: function(){
-
-			/*dashboardHandler.off(dashboardHandler.DISKREADS_SUCCESS, this.fetchDiskReadsSuccess);
-			dashboardHandler.off(dashboardHandler.DISKREADS_ERROR, this.fetchDiskReadsError);        	  
-			dashboardHandler.off(dashboardHandler.DISKWRITES_SUCCESS, this.fetchDiskWritesSuccess);
-			dashboardHandler.off(dashboardHandler.DISKWRITES_ERROR, this.fetchDiskWritesError);        	  
-			dashboardHandler.off(dashboardHandler.GETOPS_SUCCESS, this.fetchGetOpsSuccess);
-			dashboardHandler.off(dashboardHandler.GETOPS_ERROR, this.fetchGetOpsError); */
+		doPause: function(){
+			refreshTimer.pause();
+			timeRangeView.pause();
+			
 			serverHandler.off(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
 			serverHandler.off(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
 			serverHandler.off(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
 			serverHandler.off(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
 			dashboardHandler.off(dashboardHandler.CANARY_SUCCESS, this.fetchCanarySuccess); 
 			dashboardHandler.off(dashboardHandler.CANARY_ERROR, this.fetchCanaryError);
-			
-			$(FILTER_APPLY_BUTTON).off('click', this.filterApplyClicked);
-			$(TIME_RANGE).off('change', this.timeRangeChanged);
-			$(REFRESH_INTERVAL).off('change', this.refreshIntervalChanged);			
+
 			$(REFRESH_ACTION).off('click', this.refreshPage);
+			
+			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimer.eventAgg.off(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);	
+			timeRangeView.eventAgg.off(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
 		},
         showLoading: function(){
         	$('#cpuLoadingImg').show();
@@ -177,74 +109,18 @@ define([
         hideLoading: function () {
         	$('#cpuLoadingImg').hide();
         },
-
-        updateTimeRangeLabel: function(){
-			$('#timeRangeLabel').text('Time Range : ' +  $('#startdatetimepicker').data("DateTimePicker").date().format('YYYY-MM-DD HH:mm:ss') + ' - ' +  $('#enddatetimepicker').data("DateTimePicker").date().format('YYYY-MM-DD HH:mm:ss'));
-        },
-        openCustomTimeDialog: function(){
-        	$(FILTER_DIALOG).modal('show');
-        },
-        filterApplyClicked: function(){
-        	if(!$(FILTER_FORM).valid()){
-        		return;
-        	}
-        	_this.updateTimeRangeLabel();
-        	
-        	var startTime = $('#startdatetimepicker').data("DateTimePicker").date();
-        	var endTime = $('#enddatetimepicker').data("DateTimePicker").date();
-        	
-        	var param = {};
-        	param.startTime = startTime.format('YYYY-MM-DD HH:mm:ss');
-        	param.endTime = endTime.format('YYYY-MM-DD HH:mm:ss');
-        	
-        	$(FILTER_DIALOG).modal('hide');
-        	//_this.showLoading();
-        	_this.refreshPage();
-        },        
         timeRangeChanged: function(){
-			var sel = $(this).val();
-			$(this).blur();
-			if(sel == '0'){
-				_this.openCustomTimeDialog();
-			}else{
-				_this.refreshPage();
-			}
-        },
-        updateFilter: function() {
-        	var sel = $(TIME_RANGE).val();
-        	switch(sel){
-			case "1":
-				$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
-				$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
-				break;
-			case "6":
-				$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(6, 'hour'));
-				$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
-				break;
-			case "24":
-				$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'day'));
-				$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
-				break;
-			case "128":
-				$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'week'));
-				$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
-				break;			
-			}
-        	_this.updateTimeRangeLabel();
+        	refreshTimer.restart();
+        	_this.refreshPage();
         },
         refreshIntervalChanged: function(){
-        	var interval = $(REFRESH_INTERVAL).val();
-    		_this.refreshTimer.set(interval);
-    		_this.updateFilter();
+
         },
-        onTimerBeeped: function(){
+        timerBeeped: function(){
         	_this.refreshPage();
         },
         refreshPage: function() {
-        	_this.updateFilter();
-			/*this.fetchDiskReads();
-			this.fetchDiskWrites();
-			this.fetchGetOps();*/
+        	timeRangeView.updateFilter();
         	_this.fetchServices();
         	_this.fetchNodes();
         	_this.fetchCanaryResponse();
@@ -295,7 +171,6 @@ define([
 					data.push(status);
 					aaData.push(data);
 				});
-
 
 				servicesTable = $('#services-results').dataTable({
 					dom: '<"clear">rt',

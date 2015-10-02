@@ -47,7 +47,7 @@ define([
 	var LogsView = BaseView.extend({
 		template:  _.template(LogsT),
 
-		init: function (){
+		doInit: function (){
 			_that = this;
 			
 			validator = $(FILTER_FORM).validate({
@@ -127,7 +127,7 @@ define([
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			this.fetchLogs();
 		},
-		resume: function(){
+		doResume: function(){
 			logsHandler.on(logsHandler.FETCHLOGS_SUCCESS, this.displayResults);
 			logsHandler.on(logsHandler.FETCHLOGS_ERROR, this.showErrorMessage);			
 			$(REFRESH_MENU).on('click', this.fetchLogs);
@@ -135,7 +135,7 @@ define([
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			this.fetchLogs();
 		},
-		pause: function(){
+		doPause: function(){
 			logsHandler.off(logsHandler.FETCHLOGS_SUCCESS, this.displayResults);
 			logsHandler.off(logsHandler.FETCHLOGS_ERROR, this.showErrorMessage);			
 			$(REFRESH_MENU).off('click', this.fetchLogs);

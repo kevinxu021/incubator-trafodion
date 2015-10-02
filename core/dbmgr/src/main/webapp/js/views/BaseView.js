@@ -116,14 +116,20 @@ define([
 			console.log('afterRender'); 
 		},
 
-		init: function(){
-
+		init: function(args){
+			if(this.doInit){
+				this.doInit(args);
+			}
 		},
-		resume: function(){
-
+		resume: function(args){
+			if(this.doResume){
+				this.doResume(args);
+			}
 		},
 		pause: function() {
-			_this.refreshTimer.stop();
+			if(this.doPause){
+				this.doPause();
+			}
 		},
 
 		remove: function(){

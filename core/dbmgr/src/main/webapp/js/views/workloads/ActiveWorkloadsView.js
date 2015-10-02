@@ -10,52 +10,73 @@ define([
         'jquery',
         'handlers/WorkloadsHandler',
         'common',
+        'views/RefreshTimerView',
+        'views/TimeRangeView',
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
         'tabletools'
-        ], function (BaseView, WorkloadsT, $, wHandler, common) {
+        ], function (BaseView, WorkloadsT, $, wHandler, common, refreshTimer, timeRangeView) {
 	'use strict';
     var LOADING_SELECTOR = ".dbmgr-spinner";			
     var oDataTable = null;
-    var _that = null;
-
+    var _this = null;
+    var REFRESH_ACTION = '#refreshAction',
+    	REFRESH_INTERVAL = '#refreshInterval',
+    	SPINNER = '#loadingImg',
+    	ERROR_TEXT = '#errorText';
+    
 	var ActiveWorkloadsView = BaseView.extend({
 		template:  _.template(WorkloadsT),
 
-		init: function (){
-			_that = this;
+		doInit: function (){
+			_this = this;
+			refreshTimer.init();
 			wHandler.on(wHandler.FETCH_ACTIVE_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_ERROR, this.showErrorMessage);
-			$("#refreshAction").on('click', this.fetchActiveQueries);
+			$(REFRESH_ACTION).on('click', this.fetchActiveQueries);
+			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEP, this.timerBeeped);
+			refreshTimer.setRefreshInterval(0.5);
+			
 			this.fetchActiveQueries();
 		},
-		resume: function(){
+		doResume: function(){
+			refreshTimer.resume();
 			wHandler.on(wHandler.FETCH_ACTIVE_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_ERROR, this.showErrorMessage);			
-			$("#refreshAction").on('click', this.fetchActiveQueries);
+			$(REFRESH_ACTION).on('click', this.fetchActiveQueries);
+			$(REFRESH_INTERVAL).on('change', this.refreshIntervalChanged);
+			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEP, this.timerBeeped);
 			this.fetchActiveQueries();
 		},
-		pause: function(){
+		doPause: function(){
+			refreshTimer.pause();
 			wHandler.off(wHandler.FETCH_ACTIVE_SUCCESS, this.displayResults);
 			wHandler.off(wHandler.FETCH_ACTIVE_ERROR, this.showErrorMessage);			
-			$("#refreshAction").off('click', this.fetchActiveQueries);
+			$(REFRESH_ACTION).off('click', this.fetchActiveQueries);
+			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEP, this.timerBeeped);
 		},
         showLoading: function(){
-        	$('#loadingImg').show();
+        	$(SPINNER).show();
         },
 
         hideLoading: function () {
-        	$('#loadingImg').hide();
+        	$(SPINNER).hide();
+        },
+        refreshIntervalChanged: function(){
+
+        },
+        timerBeeped: function(){
+        	_this.fetchActiveQueries();
         },
         fetchActiveQueries: function () {
-			_that.showLoading();
+			_this.showLoading();
 			wHandler.fetchActiveQueries();
 		},
 
 		displayResults: function (result){
-			_that.hideLoading();
-			$("#errorText").hide();
+			_this.hideLoading();
+			$(ERROR_TEXT).hide();
 			var keys = result.columnNames;
 
 			if(keys != null && keys.length > 0) {
@@ -128,14 +149,13 @@ define([
 
 		},
         showErrorMessage: function (jqXHR) {
-        	_that.hideLoading();
-        	$("#errorText").show();
+        	_this.hideLoading();
+        	$(ERROR_TEXT).show();
         	if (jqXHR.responseText) {
-        		$("#errorText").text(jqXHR.responseText);
+        		$(ERROR_TEXT).text(jqXHR.responseText);
         	}
         }  
 	});
-
 
 	return ActiveWorkloadsView;
 });
