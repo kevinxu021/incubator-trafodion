@@ -98,7 +98,9 @@ public class STRConfig {
     private static boolean                     sb_replicate = false;
     private static Map<Integer, Configuration> peer_configs;
     private static Map<Integer, HConnection>   peer_connections;
-    private static Map<Integer, PeerInfo>      peer_info;
+    private static Map<Integer, PeerInfo>      peer_info_list;
+    private static HBaseDCZK                   sv_dc_zk;
+    private static String                      sv_my_cluster_id;
     private static int                         sv_peer_count = 0;
 
     private static STRConfig s_STRConfig = null; 
@@ -175,65 +177,101 @@ public class STRConfig {
 	}
     }
 
-    public static void initClusterConfigsZK(Configuration pv_config) throws InterruptedException, KeeperException, IOException {
+    private static void add_peer(Configuration pv_config,
+				 int           pv_peer_num)
+	throws InterruptedException, KeeperException, IOException 
+    {
+	if (LOG.isTraceEnabled()) LOG.trace("Putting peer info in the map for cluster id: " + pv_peer_num);
+	peer_configs.put(pv_peer_num, pv_config);
+	
+	HConnection lv_connection = HConnectionManager.createConnection(pv_config);
+	peer_connections.put(pv_peer_num, lv_connection);
 
-	if (LOG.isTraceEnabled()) LOG.trace("initClusterConfigsZK ENTRY");
+	if (LOG.isInfoEnabled()) LOG.info("peer#" 
+					  + pv_peer_num 
+					  + ":zk quorum: " + (peer_configs.get(pv_peer_num)).get(ZK_QUORUM)
+					  + ":zk clientPort: " + (peer_configs.get(pv_peer_num)).get(ZK_PORT)
+					  );
+    }
 
-	peer_configs = new HashMap<Integer, Configuration>();
-	peer_connections = new HashMap<Integer, HConnection>();
-	peer_info = new HashMap<Integer, PeerInfo>();
+    private static void add_peer(Configuration pv_config,
+				 String pv_peer_num_string,
+				 String pv_quorum,
+				 String pv_port)
+	throws InterruptedException, KeeperException, IOException 
+    {
+	Configuration lv_config = HBaseConfiguration.create(pv_config);
+
+	lv_config.set(ZK_QUORUM, pv_quorum);
+	lv_config.set(ZK_PORT, pv_port);
+
+	int lv_peer_num = Integer.parseInt(pv_peer_num_string);
+	lv_config.setInt("esgyn.cluster.id", lv_peer_num);
+
+	add_peer(lv_config,
+		 lv_peer_num);
+
+    }
+
+    public static void initObjects(Configuration pv_config)
+	throws InterruptedException, KeeperException, IOException 
+    {
+	if (pv_config == null) {
+	    return;
+	}
 
 	pv_config.set("hbase.hregion.impl", "org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion");
 	pv_config.setInt("hbase.client.retries.number", 3);
 
-	HBaseDCZK lv_zk = new HBaseDCZK(pv_config);
-	String lv_my_cluster_id = lv_zk.get_my_id();
+	peer_configs = new HashMap<Integer, Configuration>();
+	peer_connections = new HashMap<Integer, HConnection>();
+	peer_info_list = new HashMap<Integer, PeerInfo>();
 
-	if (lv_my_cluster_id != null) {
-	    if (LOG.isTraceEnabled()) LOG.trace("My cluster id: " + lv_my_cluster_id);
-	    pv_config.setInt("esgyn.cluster.id", Integer.parseInt(lv_my_cluster_id));
+	sv_dc_zk = new HBaseDCZK(pv_config);
+	peer_info_list = sv_dc_zk.list_clusters();
+	sv_my_cluster_id = sv_dc_zk.get_my_id();
+	if (sv_my_cluster_id == null) {
+	    sv_my_cluster_id = "0";
 	}
-	peer_configs.put(0, pv_config);
 
-        HConnection lv_connection = HConnectionManager.createConnection(pv_config);
-	peer_connections.put(0, lv_connection);
-	if (LOG.isInfoEnabled()) LOG.info("peer#0 zk quorum: " 
-					  + (peer_configs.get(0)).get(ZK_QUORUM));
-	if (LOG.isInfoEnabled()) LOG.info("peer#0 zk clientPort: " 
-					  + (peer_configs.get(0)).get(ZK_PORT));
-	
+	if (LOG.isTraceEnabled()) LOG.trace("My cluster id: " + sv_my_cluster_id);
+	pv_config.setInt("esgyn.cluster.id", Integer.parseInt(sv_my_cluster_id));
+
+    }
+
+    public static void initClusterConfigsZK(Configuration pv_config) 
+	throws InterruptedException, KeeperException, IOException 
+    {
+	if (LOG.isTraceEnabled()) LOG.trace("initClusterConfigsZK ENTRY");
+
+	initObjects(pv_config);
+
+	// Put myself in the list of configurations
+	add_peer(pv_config,
+		 0);
+
 	try {
 
-	    List<PeerInfo> lv_pi_list = lv_zk.list_clusters();
+	    Map<Integer, PeerInfo> lv_pi_list = sv_dc_zk.list_clusters();
+	    
+	    if (lv_pi_list == null) {
+		if (LOG.isTraceEnabled()) LOG.trace("initClusterConfigsZK: list_clusters returned null");
+		return;
+	    }
 
-	    for (PeerInfo lv_pi : lv_pi_list) {
+	    for (PeerInfo lv_pi : lv_pi_list.values()) {
 		if (LOG.isTraceEnabled()) LOG.trace("initClusterConfigsZK: " + lv_pi);
 
-		if (lv_pi.get_id().equals(lv_my_cluster_id)) {
-		    peer_info.put(0, lv_pi);
+		if (lv_pi.get_id().equals(sv_my_cluster_id)) {
 		    continue;
 		}
 
-		int lv_peer_num = Integer.parseInt(lv_pi.get_id());
-		peer_info.put(lv_peer_num, lv_pi);
-
-		Configuration lv_config = HBaseConfiguration.create();
-		lv_config.set(ZK_QUORUM, lv_pi.get_quorum());
-		lv_config.set(ZK_PORT, lv_pi.get_port());
-		if (LOG.isTraceEnabled()) LOG.trace("Putting peer info in the map for cluster id: " + lv_peer_num);
-		peer_configs.put(lv_peer_num,lv_config);
-
-		lv_connection = HConnectionManager.createConnection(lv_config);
-		peer_connections.put(lv_peer_num, lv_connection);
+		add_peer(pv_config,
+			 lv_pi.get_id(),
+			 lv_pi.get_quorum(),
+			 lv_pi.get_port());
 
 		sv_peer_count++;
-
-		if (LOG.isInfoEnabled()) LOG.info("peer#" 
-						  + lv_peer_num 
-						  + ":zk quorum: " + (peer_configs.get(lv_peer_num)).get(ZK_QUORUM));
-		if (LOG.isInfoEnabled()) LOG.info("peer#" 
-						  + lv_peer_num 
-						  + ":zk clientPort: " + (peer_configs.get(lv_peer_num)).get(ZK_PORT));
 	    }
 	}
 	catch (Exception e) {
@@ -243,7 +281,7 @@ public class STRConfig {
     }
 
     public String getPeerStatus(int pv_cluster_id) {
-	PeerInfo lv_pi = peer_info.get(pv_cluster_id);
+	PeerInfo lv_pi = peer_info_list.get(pv_cluster_id);
 	if (lv_pi != null) {
 	    return lv_pi.get_status();
 	}
@@ -269,6 +307,10 @@ public class STRConfig {
 
     public Map<Integer, HConnection> getPeerConnections() {
 	return peer_connections;
+    }
+
+    public String getMyClusterId() {
+	return sv_my_cluster_id;
     }
 
     // getInstance to return the singleton object for TransactionManager
