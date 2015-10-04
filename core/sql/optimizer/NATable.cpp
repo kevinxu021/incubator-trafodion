@@ -3588,7 +3588,9 @@ NAType* getSQColTypeForHive(const char* hiveType, NAMemory* heap)
                                    TRUE, // allow NULL
                                    FALSE, // not upshifted
                                    FALSE, // not case-insensitive
-                                   CharInfo::getCharSetEnum(hiveCharset));
+                                   CharInfo::getCharSetEnum(hiveCharset),
+                                   CharInfo::DefaultCollation,
+                                   CharInfo::IMPLICIT);
     }
   
   if ( !strcmp(hiveType, "float"))
@@ -4341,8 +4343,7 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 		  isSystemTable,
 		  numberOfFiles,
 		  MAXOF(table_desc->body.table_desc.rowcount,0),
-		  indexes_desc->body.indexes_desc.record_length,
-		  files_desc ? files_desc->body.files_desc.lockLength : 0,
+                  indexes_desc->body.indexes_desc.record_length,
                   blockSize,
 		  indexLevels,
 		  allColumns,
@@ -4674,9 +4675,7 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
 
                   // HIVE-TBD
 		  Cardinality(estimatedRC),
-		  Lng32(estimatedRecordLength), 
-
-		  0, // lock length
+                  Lng32(estimatedRecordLength),
 
 		  //hvt_desc->getBlockSize(), 
 		  (Lng32)hiveHDFSTableStats->getEstimatedBlockSize(), 
@@ -4846,6 +4845,79 @@ ULng32 hashColPosList(const CollIndexSet &colSet)
 }
 
 
+// ----------------------------------------------------------------------------
+// method: lookupObjectUid
+//
+// Calls DDL manager to get the object UID for the specified object
+//
+// params:
+//    qualName - name of object to lookup
+//    objectType - type of object
+//
+// returns:
+//   -1 -> error found trying to read metadata including object not found
+//   UID of found object
+//
+// the diags area contains details of any error detected
+//
+// *** recent change - move this function up in this file and move resetting
+//     of ComDiagsArea to the caller ***
+// ----------------------------------------------------------------------------      
+Int64 lookupObjectUid( const QualifiedName& qualName
+                     , ComObjectType objectType
+                     )
+{
+  ExeCliInterface cliInterface(STMTHEAP);
+  Int64 objectUID = 0;
+
+  CmpSeabaseDDL cmpSBD(STMTHEAP);
+  if (cmpSBD.switchCompiler(CmpContextInfo::CMPCONTEXT_TYPE_META))
+    {
+      if (CmpCommon::diags()->getNumber(DgSqlCode::ERROR_) == 0)
+        *CmpCommon::diags() << DgSqlCode( -4400 );
+
+      return -1;
+    }
+
+  objectUID = cmpSBD.getObjectUID(&cliInterface,
+                                  qualName.getCatalogName().data(),
+                                  qualName.getSchemaName().data(),
+                                  qualName.getObjectName().data(),
+                                  comObjectTypeLit(objectType));
+
+  cmpSBD.switchBackCompiler();
+
+  return objectUID;
+}
+
+NABoolean NATable::fetchObjectUIDForNativeTable(const CorrName& corrName)
+{
+   NAString adjustedName = ComConvertNativeNameToTrafName
+         (corrName.getQualifiedNameObj().getCatalogName(),
+          corrName.getQualifiedNameObj().getUnqualifiedSchemaNameAsAnsiString(),
+          corrName.getQualifiedNameObj().getUnqualifiedObjectNameAsAnsiString());
+   QualifiedName extObjName (adjustedName, 3, STMTHEAP);
+
+   Lng32 diagsMark = CmpCommon::diags()->mark();
+   objectUID_ = ::lookupObjectUid(extObjName, COM_BASE_TABLE_OBJECT);
+
+   // If the objectUID is not found, then the table is not externally defined
+   // in Trafodion, set the objectUID to 0
+   // If an unexpected error occurs, then return with the error
+   if (objectUID_ <= 0)
+     {
+       if (CmpCommon::diags()->contains(-1389))
+         {
+           CmpCommon::diags()->rewind(diagsMark);
+           objectUID_ = 0;
+         }
+       else
+         return FALSE;
+     }
+
+   return TRUE;
+}
+
 // -----------------------------------------------------------------------
 // NATable::NATable() constructor
 // -----------------------------------------------------------------------
@@ -4952,7 +5024,8 @@ NATable::NATable(BindWA *bindWA,
     privInfo_(NULL),
     secKeySet_(heap),
     newColumns_(heap),
-    snapshotName_(NULL)
+    snapshotName_(NULL),
+    prototype_(NULL)
 {
   NAString tblName = qualifiedName_.getQualifiedNameObj().getQualifiedNameAsString();
   NAString mmPhase;
@@ -5060,6 +5133,17 @@ NATable::NATable(BindWA *bindWA,
     setDroppableTable( TRUE );
   }
 
+  if (corrName.isExternal())
+  {
+    setIsExternalTable(TRUE);
+  }
+ 
+  if (qualifiedName_.getQualifiedNameObj().isHistograms() || 
+      qualifiedName_.getQualifiedNameObj().isHistogramIntervals())
+  {
+    setIsHistogramTable(TRUE);
+  }
+ 
   insertMode_ = table_desc->body.table_desc.insertMode;
 
   setRecordLength(table_desc->body.table_desc.record_length);
@@ -5073,6 +5157,17 @@ NATable::NATable(BindWA *bindWA,
   catalogUID_ = uint32ArrayToInt64(table_desc->body.table_desc.catUID);
   schemaUID_ = uint32ArrayToInt64(table_desc->body.table_desc.schemaUID);
   objectUID_ = uint32ArrayToInt64(table_desc->body.table_desc.objectUID);
+
+  // Set the objectUID_ for hbase Cell and Row tables, if the table has
+  // been defined in Trafodion use this value, otherwise, set to 0
+  if (isHbaseCell_ || isHbaseRow_)
+    {
+      if ( !fetchObjectUIDForNativeTable(corrName) )
+        return;
+
+      if (objectUID_ > 0 )
+        setHasExternalTable(TRUE);
+    }
 
   if (table_desc->body.table_desc.owner)
     {
@@ -5090,6 +5185,10 @@ NATable::NATable(BindWA *bindWA,
 
   if (!(corrName.isSeabaseMD() || corrName.isSpecialTable()))
     setupPrivInfo();
+
+  if ((table_desc->body.table_desc.tableFlags & SEABASE_OBJECT_IS_EXTERNAL_HIVE) != 0 ||
+      (table_desc->body.table_desc.tableFlags & SEABASE_OBJECT_IS_EXTERNAL_HBASE) != 0)
+    setIsExternalTable(TRUE);
 
   rcb_ = table_desc->body.table_desc.rcb;
   rcbLen_ = table_desc->body.table_desc.rcbLen;
@@ -5526,7 +5625,7 @@ NATable::NATable(BindWA *bindWA,
 	 LOB_CLI_SELECT_CURSOR,
 	 lobNumList,
 	 lobTypList,
-	 lobLocList);
+	 lobLocList,0);
       
       if (cliRC == 0)
 	{
@@ -5546,7 +5645,6 @@ NATable::NATable(BindWA *bindWA,
   MonitorMemoryUsage_Exit((char*)mmPhase.data(), heap_, NULL, TRUE);
 } // NATable()
 #pragma warn(770)  // warning elimination
-
 
 
 // Constructor for a Hive table
@@ -5690,39 +5788,42 @@ NATable::NATable(BindWA *bindWA,
   cacheTime_  = longArrayToInt64(table_desc->body.table_desc.cachetime);
 */
 
-  // To get from the qualified name for catalog and schema
-/*
-  catalogUID_ = longArrayToInt64(table_desc->body.table_desc.catUID);
-  schemaUID_ = longArrayToInt64(table_desc->body.table_desc.schemaUID);
-  objectUID_ = longArrayToInt64(table_desc->body.table_desc.objectUID);
-*/
+  // NATable has a schemaUID column, probably should propogate it.
+  // for now, set to 0.
+  schemaUID_ = 0;
 
-/*
+  // Set the objectUID_
+  // If the HIVE table has been registered in Trafodion, get the objectUID
+  // from Trafodion, otherwise, set it to 0.
+  // TBD - does getQualifiedNameObj handle delimited names correctly?
+  if ( !fetchObjectUIDForNativeTable(corrName) )
+     return;
 
-  if (table_desc->body.table_desc.owner)
-    {
-#ifdef NA_WINNT
-      NAUserInfo userInfo;
-      userInfo.setUserId(table_desc->body.table_desc.owner, TRUE);
-#else
-      NAUserInfo userInfo (table_desc->body.table_desc.owner);
-#endif
-      owner_ = userInfo;
-    }
-  if (table_desc->body.table_desc.schemaOwner)
-    {
-#ifdef NA_WINNT
-      NAUserInfo schemaUser;
-      schemaUser.setUserId(table_desc->body.table_desc.schemaOwner, TRUE);
-#else
-      NAUserInfo schemaUser(table_desc->body.table_desc.schemaOwner);
-#endif
-      schemaOwner_ = schemaUser;
-    }
-*/
+  if ( objectUID_ > 0 )
+    setHasExternalTable(TRUE);
 
+  // for HIVE objects, the schema owner and table owner is HIVE_ROLE_ID
+  if (CmpCommon::context()->isAuthorizationEnabled())
+  {
+    owner_ = HIVE_ROLE_ID;
+    schemaOwner_ = HIVE_ROLE_ID;
+  }
+  else
+  {
+     owner_ = SUPER_USER;
+     schemaOwner_ = SUPER_USER;
+  }
 
-// What object type code to use? 
+  if (hasExternalTable())
+    setupPrivInfo();
+
+  // TBD - if authorization is enabled and there is no external table to store
+  // privileges, go get privilege information from HIVE metadata ...
+  
+  // TBD - add a check to verify that the column list coming from HIVE matches
+  // the column list stored in the external table.  Maybe some common method
+  // that can be used to compare other things as well...
+ 
   objectType_ = COM_BASE_TABLE_OBJECT;
 
 // to check
@@ -5838,48 +5939,6 @@ NABoolean NATable::insertMissingStatsWarning(CollIndexSet colsSet) const
 StatsList &
 NATable::getStatistics()
 {
-   // HIVE-TBD
-   if ( isHiveTable() ) {
-
-       NAMemory* heap = CmpCommon::statementHeap();
-
-       if ( colStats_ == NULL ) {
-	  colStats_ = new (heap) StatsList(CmpCommon::statementHeap());
-       }
-
-       return *colStats_;
-
-//       // side-affect NAColumn in colArray on needHistogram() and 
-//       // needFullHistogram()
-//       markColumnsForHistograms();
-//
-//       NAColumnArray& colArray = const_cast<NAColumnArray&>(getNAColumnArray());
-//
-//       for(UInt32 i=0;i<colArray.entries();i++)
-//       {
-//          //get a reference to the column
-//          NAColumn * column = colArray[i];
-//
-//          if ( column->needHistogram() ) {
-//
-//            ComUID id(ColStats::nextFakeHistogramID());
-//
-//            ColStatsSharedPtr colStatsPtr = new (heap)
-//                ColStats (id,
-//                          CostScalar(1000), /*CS uec*/
-//                          CostScalar(2200), /* rowcount in CS */
-//                          CostScalar(-1),  // baseRC
-//                          FALSE, // NABoolean unique 
-//                          0,     // Int32 avgVarcharSize = 0
-//                          heap   // NAMemory* heap=0
-//                         );
-//
-//             colStats_->insertAt(colStats_->entries(), colStatsPtr);
-//          }
-//       }
-//       return *colStats_;
-   }
-
     if (!statsFetched_)
     {
       // mark the kind of histograms needed for this table's columns
@@ -6712,7 +6771,8 @@ void NATable::setupPrivInfo()
     }
 
   privInfo_ = new(heap_) PrivMgrUserPrivs;
-  if (!isSeabaseTable() || 
+
+  if ((!isSeabaseTable() && !isHiveTable()) ||
       !CmpCommon::context()->isAuthorizationEnabled() ||
       isVolatileTable() ||
       ComUser::isRootUserID()||
@@ -6741,8 +6801,8 @@ void NATable::setupPrivInfo()
       return;
     }
   if (testError || (STATUS_GOOD !=
-       privInterface.getPrivileges(objectUid().get_value(), thisUserID,
-                                    *privInfo_, &secKeyVec)))
+       privInterface.getPrivileges(objectUid().get_value(), objectType_,
+                                   thisUserID, *privInfo_, &secKeyVec)))
   {
     if (testError)
 #ifndef NDEBUG
@@ -6774,38 +6834,22 @@ void NATable::setupPrivInfo()
 
 }
 
-Int64 lookupObjectUid( const QualifiedName& qualName
-                     , ComObjectType objectType
-                    )
-{
-  ExeCliInterface cliInterface(STMTHEAP);
-  Int64 objectUID = 0;
-
-  Lng32 diagsMark = CmpCommon::diags()->mark();
-
-  CmpSeabaseDDL cmpSBD(STMTHEAP);
-  objectUID = cmpSBD.getObjectUID(&cliInterface, 
-                                  qualName.getCatalogName().data(),
-                                  qualName.getSchemaName().data(),
-                                  qualName.getObjectName().data(),
-                                  comObjectTypeLit(objectType));
-
-  if (objectUID <= 0)
-    {
-      // remove errors
-      CmpCommon::diags()->rewind(diagsMark);
-    }
-
-  return objectUID;
-}
-
 // Query the metadata to find the object uid of the table. This is used when
 // the uid for a metadata table is requested, since 0 is usually stored for
 // these tables.
+// 
+// On return, the "Object Not Found" error (1389) is filtered out from 
+// CmpCommon::diags().
 Int64 NATable::lookupObjectUid()
 {
+    Lng32 diagsMark = CmpCommon::diags()->mark();
+
     QualifiedName qualName = getExtendedQualName().getQualifiedNameObj();
     objectUID_ = ::lookupObjectUid(qualName, objectType_);
+
+    if (CmpCommon::diags()->contains(-1389))
+      CmpCommon::diags()->rewind(diagsMark);
+
     return objectUID_.get_value();
 }
 
@@ -7889,12 +7933,6 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
   //check cache to see if a cached NATable object exists
   NATable *table = get(&corrName.getExtendedQualNameObj(), bindWA);  
 
-  if (table && corrName.genRcb())
-    {
-      remove(table->getKey());
-      table = NULL;
-    }
-
   if (table && (corrName.isHbase() || corrName.isSeabase()) && inTableDescStruct)
     {
       remove(table->getKey());
@@ -8378,12 +8416,16 @@ void NATableDB::removeNATable(CorrName &corrName, QiScope qiScope,
       // add its objectUID to the set.
       if (0 == objectUIDs.entries())
       {
+        // ignore any errors returned
+        Lng32 diagsMark = CmpCommon::diags()->mark();
         Int64 ouid = lookupObjectUid(
                        toRemove->getQualifiedNameObj(), 
                        ot); 
+        CmpCommon::diags()->rewind(diagsMark);
         if (ouid > 0)
           objectUIDs.insert(ouid);
       }
+
       Int32 numKeys = objectUIDs.entries();
       if (numKeys > 0)
       {                 
