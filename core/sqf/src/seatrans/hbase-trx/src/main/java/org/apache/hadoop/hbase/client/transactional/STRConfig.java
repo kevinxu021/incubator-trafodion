@@ -78,6 +78,10 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 
+import org.apache.hadoop.hbase.zookeeper.ZKUtil;
+import org.apache.hadoop.hbase.zookeeper.ZooKeeperListener;
+import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
+
 import org.apache.hadoop.hbase.client.transactional.PeerInfo;
 import org.apache.hadoop.ipc.RemoteException;
 
@@ -174,6 +178,68 @@ public class STRConfig {
 		    if (LOG.isTraceEnabled()) LOG.trace("Peer Path does not exist: " + lv_peer_hbase_site_str);
 		}
 	    }
+	}
+    }
+
+    /**
+     * Watcher used to follow the creation and deletion of peer clusters.
+     */
+    public class XDCStatusWatcher extends ZooKeeperListener {
+
+	private HBaseDCZK m_zk;
+
+	/**
+	 * Construct a ZooKeeper event listener.
+	 */
+	public XDCStatusWatcher(ZooKeeperWatcher watcher) 
+	{
+	    super(watcher);
+	}
+
+	public void setDCZK(HBaseDCZK pv_zk) 
+	{
+	    m_zk = pv_zk;
+	}
+
+	/**
+	 * Called when a node has been deleted
+	 * @param path full path of the deleted node
+	 */
+	public void nodeDeleted(String path) {
+	    LOG.info(path + " znode deleted");
+	}
+
+	/**
+	 * Called when an existing node has changed data.
+	 * @param path full path of the updated node
+	 */
+	public void nodeDataChanged(String path) {
+	    LOG.info(path + " znode changed");
+	    LOG.info("Number of listeners: " + watcher.getNumberOfListeners());
+	    try {
+		if (m_zk != null) m_zk.watch_status_all_clusters();
+	    }
+	    catch (Exception e)
+		{
+		    LOG.error("Exception raised by watch_status_all_clusters: " + e);
+		}
+	}
+	/**
+	 * Called when an existing node has a child node added or removed.
+	 * @param path full path of the node whose children have changed
+	 */
+	public void nodeChildrenChanged(String path) {
+	    try {
+		if (m_zk != null) m_zk.watch_clusters_znode();
+	    }
+	    catch (Exception e)
+		{
+		    LOG.error("Exception raised by watch_clusters_znode: " + e);
+		}
+
+
+	    LOG.info(path + " znode children changed");
+	    LOG.info("Number of listeners: " + watcher.getNumberOfListeners());
 	}
     }
 
@@ -287,6 +353,25 @@ public class STRConfig {
 	}
 
 	return null;
+    }
+
+    public void setPeerStatus(int    pv_cluster_id,
+			      String pv_status) {
+
+	if (LOG.isTraceEnabled()) LOG.trace("setPeerStatus" 
+					    + " cluster id: " + pv_cluster_id
+					    + " status: " + pv_status);
+
+	if (pv_status == null) {
+	    return;
+	}
+
+	PeerInfo lv_pi = peer_info_list.get(pv_cluster_id);
+	if (lv_pi != null) {
+	    lv_pi.set_status(pv_status);
+	}
+
+	return;
     }
 
     public int getPeerCount() {

@@ -156,11 +156,20 @@ public class PeerInfo {
 	if (pv_status.contains(HBASE_UP)) {
 	    m_HBaseUp = true;
 	}
+	if (pv_status.contains(HBASE_DOWN)) {
+	    m_HBaseUp = false;
+	}
 	if (pv_status.contains(TRAFODION_UP)) {
 	    m_TrafodionUp = true;
 	}
+	if (pv_status.contains(TRAFODION_DOWN)) {
+	    m_TrafodionUp = false;
+	}
 	if (pv_status.contains(STR_UP)) {
 	    m_STRUp = true;
+	}
+	if (pv_status.contains(STR_DOWN)) {
+	    m_STRUp = false;
 	}
     }
 
