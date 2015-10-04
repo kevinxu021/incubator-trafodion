@@ -11,12 +11,11 @@ define([
         'handlers/WorkloadsHandler',
         'common',
         'views/RefreshTimerView',
-        'views/TimeRangeView',
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
         'tabletools'
-        ], function (BaseView, WorkloadsT, $, wHandler, common, refreshTimer, timeRangeView) {
+        ], function (BaseView, WorkloadsT, $, wHandler, common, refreshTimer) {
 	'use strict';
     var LOADING_SELECTOR = ".dbmgr-spinner";			
     var oDataTable = null;
@@ -35,7 +34,7 @@ define([
 			wHandler.on(wHandler.FETCH_ACTIVE_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_ERROR, this.showErrorMessage);
 			$(REFRESH_ACTION).on('click', this.fetchActiveQueries);
-			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEP, this.timerBeeped);
+			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimer.setRefreshInterval(0.5);
 			
 			this.fetchActiveQueries();
@@ -45,8 +44,7 @@ define([
 			wHandler.on(wHandler.FETCH_ACTIVE_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_ERROR, this.showErrorMessage);			
 			$(REFRESH_ACTION).on('click', this.fetchActiveQueries);
-			$(REFRESH_INTERVAL).on('change', this.refreshIntervalChanged);
-			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEP, this.timerBeeped);
+			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			this.fetchActiveQueries();
 		},
 		doPause: function(){
@@ -54,7 +52,7 @@ define([
 			wHandler.off(wHandler.FETCH_ACTIVE_SUCCESS, this.displayResults);
 			wHandler.off(wHandler.FETCH_ACTIVE_ERROR, this.showErrorMessage);			
 			$(REFRESH_ACTION).off('click', this.fetchActiveQueries);
-			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEP, this.timerBeeped);
+			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 		},
         showLoading: function(){
         	$(SPINNER).show();

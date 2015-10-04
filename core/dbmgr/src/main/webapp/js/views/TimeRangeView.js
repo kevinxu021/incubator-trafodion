@@ -187,7 +187,7 @@ define([
 		},
 
 		resume: function(){
-			_timeRangeControl.bindEvents();
+			_timeRangeControl.bindEvent();
 		}
 	});
 	

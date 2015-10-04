@@ -108,20 +108,20 @@ define([
 				
 		initialize: function(options) { 
 			this.eventAgg = _.extend({}, Backbone.Events);
-			_this = this;
-			_refreshTimer = this.refreshTimer;
+			//_this = this;
+			//_refreshTimer = this.refreshTimer;
 		}, 
 
 		init: function(){
-			_refreshTimer.bindEvent();
+			_this.refreshTimer.bindEvent();
 		},
 
 		pause: function(){
-			_refreshTimer.unBindEvent();
+			_this.refreshTimer.unBindEvent();
 		},
 
 		resume: function(){
-			_refreshTimer.bindEvent();
+			_this.refreshTimer.bindEvent();
 		}
 	});
 	
