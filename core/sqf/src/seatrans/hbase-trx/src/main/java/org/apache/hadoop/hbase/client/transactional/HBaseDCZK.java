@@ -49,11 +49,13 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
 
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
+import org.apache.hadoop.hbase.zookeeper.ZooKeeperListener;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.CreateMode;
 
 import org.apache.hadoop.hbase.client.transactional.PeerInfo;
+import org.apache.hadoop.hbase.client.transactional.XDCStatusWatcher;
 
 /**
  * Multi Data Center specific Zookeeper operations
@@ -75,14 +77,16 @@ public class HBaseDCZK implements Abortable {
     public static final String m_clusters_node        = m_base_node + "/" + m_clusters_string;
     public static final String m_my_cluster_id_node   = m_base_node + "/" + m_my_cluster_id_string;
 
-    ZooKeeperWatcher m_zkw;
-    Configuration    m_config;
+    private             ZooKeeperWatcher              m_zkw;
+    private             Configuration                 m_config;
 	
     /**
      * @param conf
      * @throws Exception
      */
-    public HBaseDCZK(final Configuration pv_config) throws InterruptedException, KeeperException, IOException {
+    public HBaseDCZK(final Configuration pv_config) 
+	throws InterruptedException, KeeperException, IOException 
+    {
 	if (LOG.isTraceEnabled()) LOG.trace("HBaseDCZK(conf) -- ENTRY");
 	m_config = pv_config;
 	this.m_zkw = new ZooKeeperWatcher(m_config, "DC", this, false);
@@ -93,7 +97,9 @@ public class HBaseDCZK implements Abortable {
      * @return znode data
      * @throws KeeperException
      */
-    private byte [] get_znode_data (String znode) throws KeeperException, InterruptedException {
+    private byte [] get_znode_data (String znode) 
+	throws KeeperException, InterruptedException 
+    {
 	return ZKUtil.getData(m_zkw, znode);
     }
 	
@@ -102,7 +108,9 @@ public class HBaseDCZK implements Abortable {
      * @return List<String> of children nodes
      * @throws KeeperException
      */
-    private List<String> get_znode_children(String pv_node) throws KeeperException {
+    private List<String> get_znode_children(String pv_node) 
+	throws KeeperException 
+    {
 	return ZKUtil.listChildrenNoWatch(m_zkw, pv_node);
     }
 
@@ -110,10 +118,101 @@ public class HBaseDCZK implements Abortable {
      * @param toDelete
      * @throws KeeperException
      */
-    public void delete_cluster_entry(String pv_cluster_id ) throws KeeperException {
+    public void delete_cluster_entry(String pv_cluster_id ) 
+	throws KeeperException 
+    {
 	LOG.info("delete_cluster_entry -- ENTRY -- key: " + pv_cluster_id);
 	ZKUtil.deleteNodeFailSilent(m_zkw, m_clusters_node + "/" + pv_cluster_id);
 	LOG.info("delete_cluster_entry -- EXIT ");
+    }
+
+    public ZooKeeperWatcher getZKW() 
+    {
+	return m_zkw;
+    }
+
+    public void register_status_listener(ZooKeeperListener pv_zkl) 
+	throws IOException, KeeperException
+    {
+	if (pv_zkl == null) {
+	    return;
+	}
+
+	m_zkw.registerListener(pv_zkl);
+    }
+
+    /**
+     * @param cluster Id
+     * @throws IOException
+     */
+    public void watch_status_znode(String pv_cluster_id)
+	throws IOException, KeeperException 
+    {
+	
+	LOG.info("HBaseDCZK:watch_status_znode"
+		 );
+		 
+	try {
+	    String lv_cluster_id_node = m_clusters_node + "/" + pv_cluster_id;
+	    String lv_status_node = lv_cluster_id_node + "/" + m_status_string;
+	    ZKUtil.setWatchIfNodeExists(m_zkw, lv_status_node);
+	}
+	catch (KeeperException e) {
+	    throw new IOException("HBaseDCZK:watch_status_znode: ZKW. Error in setting watch: " 
+				  + m_clusters_node + "/" + pv_cluster_id
+				  + " , throwing IOException " + e
+				  );
+	}
+    }
+
+    /**
+     * @param cluster Id
+     * @throws IOException
+     */
+    public void watch_clusters_znode()
+	throws IOException, KeeperException 
+    {
+	
+	LOG.info("HBaseDCZK:watch_clusters_znode"
+		 );
+		 
+	try {
+	    ZKUtil.setWatchIfNodeExists(m_zkw, m_clusters_node);
+	}
+	catch (KeeperException e) {
+	    throw new IOException("HBaseDCZK:watch_clusters_znode: ZKW Unable to create watch on: " 
+				  + m_clusters_node 
+				  + " , throwing IOException " + e
+				  );
+	}
+    }
+
+    /**
+     * @throws IOException
+     */
+    public void watch_status_all_clusters()
+	throws IOException, KeeperException 
+    {
+	
+	LOG.info("HBaseDCZK:watch_status_all_clusters"
+		 );
+		 
+	Map<Integer, PeerInfo> lv_pi_list = list_clusters();
+	
+	if (lv_pi_list == null) {
+	    return;
+	}
+
+	for (PeerInfo lv_pi : lv_pi_list.values()) {
+	    watch_status_znode(lv_pi.get_id());
+	}
+    }
+
+    public void watch_all() 
+	throws IOException, KeeperException 
+    {
+	watch_clusters_znode();
+	watch_status_all_clusters();
     }
 
     /**
@@ -127,7 +226,9 @@ public class HBaseDCZK implements Abortable {
 			       String pv_quorum, 
 			       String pv_port,
 			       String pv_status
-			       ) throws IOException {
+			       )
+	throws IOException 
+    {
 
 	LOG.info("HBaseDCZK:set_peer_znode: "
 		 + " cluster_id : " + pv_cluster_id
@@ -173,7 +274,9 @@ public class HBaseDCZK implements Abortable {
      */
     public void set_trafodion_znode(String pv_cluster_id,
 				    String pv_trafodion_status_string
-				    ) throws IOException {
+				    ) 
+	throws IOException 
+    {
 
 	if (pv_cluster_id == null) {
 	    if (LOG.isTraceEnabled()) LOG.trace("set_trafodion_znode, pv_cluster_id is null");
@@ -205,7 +308,9 @@ public class HBaseDCZK implements Abortable {
      * @param cluster Id
      * @throws IOException
      */
-    public PeerInfo get_peer_znode(String pv_cluster_id) throws IOException {
+    public PeerInfo get_peer_znode(String pv_cluster_id) 
+	throws IOException 
+    {
 
 	LOG.info("HBaseDCZK:get_peer_znode: "
 		 + " cluster_id : " + pv_cluster_id
@@ -253,7 +358,9 @@ public class HBaseDCZK implements Abortable {
      * @param cluster Id
      * @throws IOException
      */
-    public boolean delete_peer_znode(String pv_cluster_id) throws IOException {
+    public boolean delete_peer_znode(String pv_cluster_id) 
+	throws IOException 
+    {
 	if (LOG.isTraceEnabled()) LOG.trace("HBaseDCZK:delete_peer_znode: "
 					    + " cluster_id : " + pv_cluster_id
 					    );
@@ -289,7 +396,9 @@ public class HBaseDCZK implements Abortable {
      * @param cluster Id
      * @throws IOException
      */
-    public Map<Integer, PeerInfo> list_clusters() throws KeeperException, IOException {
+    public Map<Integer, PeerInfo> list_clusters() 
+	throws KeeperException, IOException 
+    {
 	LOG.info("HBaseDCZK:list_clusters"
 		 );
 
@@ -315,7 +424,9 @@ public class HBaseDCZK implements Abortable {
      * sync ZK information from this cluster to the provided cluster
      * @throws IOException
      */
-    public void sync_cluster(String pv_cluster_id) throws KeeperException, IOException {
+    public void sync_cluster(String pv_cluster_id) 
+	throws KeeperException, IOException 
+    {
 	LOG.info("HBaseDCZK:sync_cluster"
 		 );
 
@@ -364,7 +475,9 @@ public class HBaseDCZK implements Abortable {
 
     }
 
-    public void sync_clusters() throws KeeperException, IOException {
+    public void sync_clusters() 
+	throws KeeperException, IOException 
+    {
 	LOG.info("HBaseDCZK:sync_clusters"
 		 );
 
@@ -403,7 +516,9 @@ public class HBaseDCZK implements Abortable {
      * @param my_cluster_id
      * @throws IOException
      */
-    public void set_my_id(String pv_my_cluster_id) throws IOException {
+    public void set_my_id(String pv_my_cluster_id) 
+	throws IOException 
+    {
 	LOG.info("HBaseDCZK:set_my_id: cluster ID: " + pv_my_cluster_id);
 
 	try {
@@ -420,7 +535,9 @@ public class HBaseDCZK implements Abortable {
     /**
      * @return
      */
-    public String get_my_id() throws KeeperException, InterruptedException {
+    public String get_my_id() 
+	throws KeeperException, InterruptedException 
+    {
 	if (LOG.isTraceEnabled()) LOG.trace("HBaseDCZK:get_my_id");
 
 	byte[] b_my_cluster_id = get_znode_data(m_my_cluster_id_node);
@@ -471,7 +588,7 @@ public class HBaseDCZK implements Abortable {
 	System.out.println("<status>          : <HBase Status>:<Trafodion Status>:<STR Status>");
 	System.out.println("<HBase Status>    : <HBase Up>    (hup)|<HBase Down>     (hdn)");
 	System.out.println("<Trafodion Status>: <Trafodion Up>(tup)|<Trafodion Down> (tdn)");
-	System.out.println("<STR Status>      : <STR Up>      (sup)|<HBase Down>     (sdn)");
+	System.out.println("<STR Status>      : <STR Up>      (sup)|<STR Down>     (sdn)");
 	System.out.println("<peer info>       : -peer <id>");
 	System.out.println("                  :    Execute the command at the specified peer.");
 	System.out.println("                  :    (Defaults to the local cluster)");
@@ -632,9 +749,12 @@ public class HBaseDCZK implements Abortable {
 	    if (lv_cmd_set_my_id) {
 		lv_zk.set_my_id(lv_my_id);
 		if (lv_test) {
-		    String lv_trafodion_status_string = "up";
-		    lv_zk.set_trafodion_znode(lv_my_id,
-					      lv_trafodion_status_string);
+		    lv_zk.watch_all();
+		    XDCStatusWatcher lv_pw = new XDCStatusWatcher(lv_zk.getZKW());
+		    lv_pw.setDCZK(lv_zk);
+		    lv_zk.register_status_listener(lv_pw);
+
+		    System.out.println("Number of listeners: " + lv_zk.getZKW().getNumberOfListeners());
 		    Scanner scanner = new Scanner(System.in);
 		    System.out.print("Enter any key when done: ");
 		    String userdata = scanner.next();
@@ -644,9 +764,6 @@ public class HBaseDCZK implements Abortable {
 		System.out.println(lv_zk.get_my_id());
 	    }
 	    else if (lv_cmd_set) {
-		if ((lv_status == null) || (lv_status.length() == 0)) {
-		    lv_status = PeerInfo.STR_UP;
-		}
 		lv_zk.set_peer_znode(lv_id, lv_quorum, lv_port, lv_status);
 	    }
 	    else if (lv_cmd_get) {

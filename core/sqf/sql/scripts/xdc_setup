@@ -33,4 +33,4 @@ fi
 mkdir -p $MY_SQROOT/logs
 lv_stderr_file="$MY_SQROOT/logs/xdcstatus.log"
 echo "Stderr being written to the file: ${lv_stderr_file}"
-$JAVA_HOME/bin/java org.apache.hadoop.hbase.client.transactional.HBaseDCZK $* 2>/dev/null
+$JAVA_HOME/bin/java org.apache.hadoop.hbase.client.transactional.HBaseDCZK $* 2>${lv_stderr_file}
