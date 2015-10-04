@@ -17,7 +17,8 @@ define(['handlers/EventDispatcher'],
 				this.DISKWRITES_ERROR = 'fetchDiskWritesError';        	  
 				this.GETOPS_SUCCESS = 'fetchGetOpsSuccess';
 				this.GETOPS_ERROR = 'fetchGetOpsError';        	  
-
+				this.CANARY_SUCCESS = 'canarySuccess';
+				this.CANARY_FAILURE = 'canaryFailure';
 
 				var _this = this;
 				this.sessionTimeout = function() {
@@ -98,7 +99,26 @@ define(['handlers/EventDispatcher'],
 							dispatcher.fire("fetchGetOpsError", jqXHR, res, error);
 						}
 					});
-				};            
+				};   
+				
+				this.fetchCanaryResponse = function(){
+					$.ajax({
+						url: 'resources/metrics/canary',
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.CANARY_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.CANARY_ERROR, jqXHR, res, error);
+						}
+					});
+				};           
 
 
 				this.init = function() {

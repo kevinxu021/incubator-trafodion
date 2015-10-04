@@ -12,84 +12,95 @@ define([
     'handlers/DashboardHandler',
     'handlers/ServerHandler',
     'jquery',
+    'common',
+    'moment',
+    'views/RefreshTimerView',
+    'views/TimeRangeView',
     'datatables',
     'datatablesBootStrap',
     'tabletools'
-], function (BaseView, Raphael, Morris, DashboardT, dashboardHandler, serverHandler, $) {
+], function (BaseView, Raphael, Morris, DashboardT, dashboardHandler, serverHandler, $, common, moment, refreshTimer, timeRangeView) {
     'use strict';
 
-    var _that = null;
+    var _this = null;
     var SERVICES_SPINNER = '#services-spinner',
 	    SERVICES_RESULT_CONTAINER = '#services-result-container',
 	    SERVICES_ERROR_TEXT = '#services-error-text',
 	    NODES_SPINNER = '#nodes-spinner',
 	    NODES_RESULT_CONTAINER = '#nodes-result-container',
 	    NODES_ERROR_TEXT = '#nodes-error-text',
-	    REFRESH_ACTION = '#refreshAction';
+	    REFRESH_ACTION = '#refreshAction',
+	    OPEN_FILTER = '#openFilter';
     
-    var cpuGraph = null, diskReadsGraph = null, diskWritesGraph=null, getOpsGraph = null;
+    var cpuGraph = null, diskReadsGraph = null, diskWritesGraph=null, getOpsGraph = null, canaryGraph = null;
     var servicesTable = null, nodesTable = null;
     
     var DashboardView = BaseView.extend({
     	template:  _.template(DashboardT),
-
-		init: function (){
-			_that = this;
+    	
+		doInit: function (){
 			
+			_this = this;
+			refreshTimer.init();
+			timeRangeView.init();
+		
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			$(SERVICES_ERROR_TEXT).hide();
 			$(NODES_ERROR_TEXT).hide();
-			
-			/*dashboardHandler.on(dashboardHandler.DISKREADS_SUCCESS, this.fetchDiskReadsSuccess);
-			dashboardHandler.on(dashboardHandler.DISKREADS_ERROR, this.fetchDiskReadsError);        	  
-			dashboardHandler.on(dashboardHandler.DISKWRITES_SUCCESS, this.fetchDiskWritesSuccess);
-			dashboardHandler.on(dashboardHandler.DISKWRITES_ERROR, this.fetchDiskWritesError);        	  
-			dashboardHandler.on(dashboardHandler.GETOPS_SUCCESS, this.fetchGetOpsSuccess);
-			dashboardHandler.on(dashboardHandler.GETOPS_ERROR, this.fetchGetOpsError); 
-			this.fetchDiskReads();
-			this.fetchDiskWrites();
-			this.fetchGetOps();*/
-			
+
 			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
 			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
 			serverHandler.on(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
 			serverHandler.on(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
-			this.fetchServices();
-			this.fetchNodes();
+			dashboardHandler.on(dashboardHandler.CANARY_SUCCESS, this.fetchCanarySuccess); 
+			dashboardHandler.on(dashboardHandler.CANARY_ERROR, this.fetchCanaryError);
+			
+			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimer.eventAgg.on(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);
+			timeRangeView.eventAgg.on(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
+			refreshTimer.setRefreshInterval(0.5);
+			timeRangeView.setTimeRange(1);
+			this.refreshPage();
 		},
-		resume: function(){
+		doResume: function(){
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			$(SERVICES_ERROR_TEXT).hide();
 			$('#nodes-error-text').hide();
-			/*dashboardHandler.on(dashboardHandler.DISKREADS_SUCCESS, this.fetchDiskReadsSuccess);
-			dashboardHandler.on(dashboardHandler.DISKREADS_ERROR, this.fetchDiskReadsError);        	  
-			dashboardHandler.on(dashboardHandler.DISKWRITES_SUCCESS, this.fetchDiskWritesSuccess);
-			dashboardHandler.on(dashboardHandler.DISKWRITES_ERROR, this.fetchDiskWritesError);        	  
-			dashboardHandler.on(dashboardHandler.GETOPS_SUCCESS, this.fetchGetOpsSuccess);
-			dashboardHandler.on(dashboardHandler.GETOPS_ERROR, this.fetchGetOpsError); 
-			this.fetchDiskReads();
-			this.fetchDiskWrites();
-			this.fetchGetOps();*/
+
 			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
 			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
 			serverHandler.on(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
 			serverHandler.on(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
-			this.fetchServices();
-			this.fetchNodes();
+			dashboardHandler.on(dashboardHandler.CANARY_SUCCESS, this.fetchCanarySuccess); 
+			dashboardHandler.on(dashboardHandler.CANARY_ERROR, this.fetchCanaryError);
+
+			$(REFRESH_ACTION).on('click', this.refreshPage);
+			
+			refreshTimer.resume();
+			timeRangeView.resume();
+			
+			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimer.eventAgg.on(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);	
+			timeRangeView.eventAgg.on(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
+			
+			this.refreshPage();
 		},
-		pause: function(){
-			/*dashboardHandler.off(dashboardHandler.DISKREADS_SUCCESS, this.fetchDiskReadsSuccess);
-			dashboardHandler.off(dashboardHandler.DISKREADS_ERROR, this.fetchDiskReadsError);        	  
-			dashboardHandler.off(dashboardHandler.DISKWRITES_SUCCESS, this.fetchDiskWritesSuccess);
-			dashboardHandler.off(dashboardHandler.DISKWRITES_ERROR, this.fetchDiskWritesError);        	  
-			dashboardHandler.off(dashboardHandler.GETOPS_SUCCESS, this.fetchGetOpsSuccess);
-			dashboardHandler.off(dashboardHandler.GETOPS_ERROR, this.fetchGetOpsError); */
+		doPause: function(){
+			refreshTimer.pause();
+			timeRangeView.pause();
+			
 			serverHandler.off(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
 			serverHandler.off(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
 			serverHandler.off(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
 			serverHandler.off(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
+			dashboardHandler.off(dashboardHandler.CANARY_SUCCESS, this.fetchCanarySuccess); 
+			dashboardHandler.off(dashboardHandler.CANARY_ERROR, this.fetchCanaryError);
 
 			$(REFRESH_ACTION).off('click', this.refreshPage);
+			
+			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimer.eventAgg.off(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);	
+			timeRangeView.eventAgg.off(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
 		},
         showLoading: function(){
         	$('#cpuLoadingImg').show();
@@ -98,12 +109,21 @@ define([
         hideLoading: function () {
         	$('#cpuLoadingImg').hide();
         },
+        timeRangeChanged: function(){
+        	refreshTimer.restart();
+        	_this.refreshPage();
+        },
+        refreshIntervalChanged: function(){
+
+        },
+        timerBeeped: function(){
+        	_this.refreshPage();
+        },
         refreshPage: function() {
-			/*this.fetchDiskReads();
-			this.fetchDiskWrites();
-			this.fetchGetOps();*/
-        	_that.fetchServices();
-        	_that.fetchNodes();
+        	timeRangeView.updateFilter();
+        	_this.fetchServices();
+        	_this.fetchNodes();
+        	_this.fetchCanaryResponse();
         },
         fetchServices: function () {
 			$(SERVICES_SPINNER).show();
@@ -151,7 +171,6 @@ define([
 					data.push(status);
 					aaData.push(data);
 				});
-
 
 				servicesTable = $('#services-results').dataTable({
 					dom: '<"clear">rt',
@@ -298,13 +317,44 @@ define([
         			$(NODES_ERROR_TEXT).text(jqXHR.responseText);     
         	}
         },
+        fetchCanaryResponse: function () {
+			$('#canarySpinner').show();
+			dashboardHandler.fetchCanaryResponse();       	
+        },
+        fetchCanarySuccess: function(result){
+			$('#canarySpinner').hide();
+			var keys = Object.keys(result);
+			var seriesData = [];
+			$.each(keys, function(index, value){
+				seriesData.push({x: value*1000, y: result[value]});
+			});
+			if(canaryGraph == null) {
+				canaryGraph = Morris.Line({
+					element: 'canary-response-chart',
+					data: seriesData,
+					xkey:'x',
+					ykeys:['y'],
+					labels: [],
+					hideHover: 'auto',
+					hoverCallback: function (index, options, content, row) {
+						  return "Canary Response Time : " + row.y + " msec <br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
+						}
+				});
+			}else{
+				canaryGraph.setData(seriesData);
+			}			
+		},
+		fetchCanaryError: function(){
+			$('#canarySpinner').hide();
+		},
+	        
 		fetchCPUData: function () {
-			_that.showLoading();
+			_this.showLoading();
 			dashboardHandler.fetchCPUData();
 		},
 
 		displayCPUGraph: function (result){
-			_that.hideLoading();
+			_this.hideLoading();
 			var keys = Object.keys(result);
 			var seriesData = [];
 			$.each(keys, function(index, value){
@@ -347,7 +397,7 @@ define([
 					labels: [],
 					hideHover: 'auto',
 					hoverCallback: function (index, options, content, row) {
-						  return "Disk Reads : " + row.y + "<br/>Time : " + row.x;
+						  return "Disk Reads : " + row.y + "<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
 						}
 				});
 			}else{
@@ -421,7 +471,7 @@ define([
 		},
 
         showErrorMessage: function (jqXHR) {
-        	_that.hideLoading();
+        	_this.hideLoading();
         }  
     });
     

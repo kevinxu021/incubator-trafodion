@@ -36,7 +36,7 @@ define([
 	var DatabaseView = BaseView.extend({
 		template:  _.template(DatabaseT),
 
-		init: function (urlFragment){
+		doInit: function (urlFragment){
 			_that = this;
 			currentUrlFragment = urlFragment;
 			$(dataTableContainer).hide();
@@ -52,7 +52,7 @@ define([
 			dbHandler.on('fetchSchemasSuccess', this.displaySchemas);
 			dbHandler.on('fetchSchemasError', this.showErrorMessage);
 		},
-		resume: function(urlFragment){
+		doResume: function(urlFragment){
 			currentUrlFragment = urlFragment;
 			$(dataTableContainer).hide();
 			$(errorTextContainer).hide();
@@ -66,7 +66,7 @@ define([
 			dbHandler.on('fetchSchemasError', this.showErrorMessage);
 			_that.processRequest();
 		},
-		pause: function(){
+		doPause: function(){
 			$("#refreshAction").off('click', this.doRefresh);
 			dbHandler.off('fetchSchemasSuccess', this.displaySchemas);
 			dbHandler.off('fetchSchemasError', this.showErrorMessage);

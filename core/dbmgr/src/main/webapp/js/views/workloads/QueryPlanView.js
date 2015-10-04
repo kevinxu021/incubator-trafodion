@@ -34,7 +34,7 @@ define([
 	var QuerPlanView = BaseView.extend({
 		template:  _.template(QueryPlanT),
 
-		init: function (args){
+		doInit: function (args){
 			_that = this;
 			
 			this.processArgs(args);
@@ -43,13 +43,13 @@ define([
 			this.fetchExplainPlan();
 			
 		},
-		resume: function(args){
+		doResume: function(args){
 			this.processArgs(args);
 
 			$(REFRESH_MENU).on('click', this.fetchExplainPlan);
 			this.fetchExplainPlan();
 		},
-		pause: function(){
+		doPause: function(){
 			$(REFRESH_MENU).off('click', this.fetchExplainPlan);
 		},
         showLoading: function(){
