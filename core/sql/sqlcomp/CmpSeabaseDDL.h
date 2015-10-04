@@ -410,6 +410,12 @@ class CmpSeabaseDDL
     flags |= bitFlags;
   }
 
+  static void resetMDflags(Int64 &flags, //INOUT
+                           Int64 bitFlags)
+  {
+    flags &= ~bitFlags;
+  }
+
   static NABoolean isMDflagsSet(Int64 flags, Int64 bitFlags)
   {
     return (flags &= bitFlags) != 0; 
@@ -951,8 +957,13 @@ class CmpSeabaseDDL
   void alterSeabaseTableHBaseOptions(
 			  StmtDDLAlterTableHBaseOptions * hbaseOptionsNode,
 			  NAString &currCatName, NAString &currSchName);
+
   void alterSeabaseIndexHBaseOptions(
 			  StmtDDLAlterIndexHBaseOptions * hbaseOptionsNode,
+			  NAString &currCatName, NAString &currSchName);
+
+  void alterSeabaseTableAttribute(
+			  StmtDDLAlterTableAttribute * alterTabAttr,
 			  NAString &currCatName, NAString &currSchName);
 
   void addConstraints(

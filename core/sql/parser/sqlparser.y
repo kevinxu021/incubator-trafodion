@@ -26337,11 +26337,18 @@ file_attribute_default_col_fam : TOK_DEFAULT TOK_COLUMN TOK_FAMILY QUOTED_STRING
 /* type pElemDDL */
 file_attribute_str_clause : TOK_SYNCHRONOUS TOK_REPLICATION
                               {
-                                $$ = new (PARSERHEAP()) ElemDDLFileAttrXnRepl(TRUE);
+                                $$ = new (PARSERHEAP()) 
+                                  ElemDDLFileAttrXnRepl(COM_REPL_SYNC);
                               }
                           | TOK_ASYNCHRONOUS TOK_REPLICATION
                               {
-                                $$ = new (PARSERHEAP()) ElemDDLFileAttrXnRepl(FALSE);
+                                $$ = new (PARSERHEAP()) 
+                                  ElemDDLFileAttrXnRepl(COM_REPL_ASYNC);
+                              }
+                          | TOK_NO TOK_REPLICATION
+                              {
+                                $$ = new (PARSERHEAP()) 
+                                  ElemDDLFileAttrXnRepl(COM_REPL_NONE);
                               }
 
 /* type pElemDDL */
