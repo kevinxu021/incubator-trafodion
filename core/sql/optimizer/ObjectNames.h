@@ -45,6 +45,7 @@
 #include "NAString.h"
 #include "NAStringDef.h"
 #include "charinfo.h"
+#include "ComMisc.h"
 
 // -----------------------------------------------------------------------
 // forward declarations
@@ -275,6 +276,9 @@ public:
 		     size_t *lenArray /* array[5] */) const;
   const NAString  getQualifiedNameAsAnsiNTFilenameString() const;
   const NAString& getObjectName() const		{ return objectName_; }
+  const NAString  getUnqualifiedObjectNameAsAnsiString() const
+                                { return ToAnsiIdentifier(objectName_); }
+
   ComAnsiNameSpace getObjectNameSpace() const { return objectNameSpace_; }
 
 
@@ -317,6 +321,9 @@ public:
   NABoolean isHbase() const;
   NABoolean isSeabaseMD() const;
   NABoolean isSeabasePrivMgrMD() const;
+
+  NABoolean isHistograms() const;
+  NABoolean isHistogramIntervals() const;
 
   void setObjectName(const NAString &objName)   { objectName_ = objName; }
   void setObjectNameSpace(ComAnsiNameSpace objNameSpace)   { objectNameSpace_ = objNameSpace; }
@@ -664,11 +671,7 @@ private:
     OFF           = 0, 
     ISFABRICATED = 0x1, 
     IS_VOLATILE  = 0x2,
-    
-    // this bit is set to indicate that RCB needs to be generated during 
-    // readtabledef processing. 
-    // Set by callers before calling getNATable() method.
-    GEN_RCB      = 0x4
+    IS_EXTERNAL  = 0x4
   };
 
 public:
@@ -692,6 +695,7 @@ public:
     defaultMatchCount_(-1),
     flagbits_(0)
   {
+    setIsExternal(ComIsTrafodionExternalSchemaName(schemaName));
     setLocationName (locName) ;
   }
 
@@ -710,6 +714,7 @@ public:
     defaultMatchCount_(-1),
     flagbits_(0)
   {
+    setIsExternal(ComIsTrafodionExternalSchemaName(qualName.getSchemaName()));
     setLocationName (locName) ;
   }
 
@@ -772,10 +777,6 @@ public:
 
   NABoolean isVolatile() const      { return (qualName_.getQualifiedNameObj().isVolatile()); }
   void setIsVolatile(NABoolean v)   { qualName_.getQualifiedNameObj().setIsVolatile(v);      }
-
-  NABoolean genRcb() const      { return (flagbits_ & GEN_RCB) != 0; }
-  void setGenRcb(NABoolean v)
-  { (v ? flagbits_ |= GEN_RCB : flagbits_ &= ~GEN_RCB);}
 
   NABoolean nodeIsBound() const				{ return bound_; }
   void markAsBound()					{ bound_ = TRUE; }
@@ -875,6 +876,10 @@ public:
   NABoolean isSeabasePrivMgrMD() const;
   NABoolean isHbaseCell() const;
   NABoolean isHbaseRow() const;
+
+  NABoolean isExternal() const { return (flagbits_ & IS_EXTERNAL) != 0; }
+  void setIsExternal(NABoolean v) 
+   { (v ? flagbits_ |= IS_EXTERNAL : flagbits_ &= ~IS_EXTERNAL); }
 
   // Display/print, for debugging.
   const NAString getTextWithSpecialType() const 
