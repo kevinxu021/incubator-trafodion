@@ -228,9 +228,6 @@ public class HBaseTxClient {
          }
       }
 
-      String lv_ephemeral_node_data = "Up. Nid: " + dtmid;
-      createEphemeralZKNode(lv_ephemeral_node_data.getBytes());
-
       this.dtmID = dtmid;
       this.useRecovThread = false;
       this.stallWhere = 0;
@@ -375,8 +372,9 @@ public class HBaseTxClient {
       return true;
    }
 
-   public void createEphemeralZKNode(byte[] pv_data) {
-       if (LOG.isDebugEnabled()) LOG.debug("Enter createEphemeralZKNode, data: " + new String(pv_data));
+   public short createEphemeralZKNode(byte[] pv_data) {
+       if (LOG.isInfoEnabled()) LOG.info("Enter createEphemeralZKNode, data: " + new String(pv_data));
+
        try {
 
 	   HBaseDCZK lv_zk = new HBaseDCZK(config);
@@ -384,19 +382,23 @@ public class HBaseTxClient {
 	   String lv_my_cluster_id = lv_zk.get_my_id();
 	   if (lv_my_cluster_id == null) {
 	       if (LOG.isDebugEnabled()) LOG.debug("createEphemeralZKNode, my_cluster_id is null");
-	       return;
+	       return 1;
 	   }
 
+	   String lv_node_id = new String(String.valueOf(dtmID));
 	   String lv_node_data = new String(pv_data);
        
 	   lv_zk.set_trafodion_znode(lv_my_cluster_id,
+				     lv_node_id,
 				     lv_node_data);
        }
        catch (Exception e) {
 	   LOG.error("Exception while trying to create the trafodion ephemeral node.");
 	   LOG.error(e);
+	   return 1;
        }
 
+       return 0;
    }
 
    public TmDDL getTmDDL() {

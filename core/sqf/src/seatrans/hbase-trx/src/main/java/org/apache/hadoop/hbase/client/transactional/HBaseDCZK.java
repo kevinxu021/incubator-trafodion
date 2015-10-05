@@ -273,6 +273,7 @@ public class HBaseDCZK implements Abortable {
      * @throws IOException
      */
     public void set_trafodion_znode(String pv_cluster_id,
+				    String pv_node_id,
 				    String pv_trafodion_status_string
 				    ) 
 	throws IOException 
@@ -283,22 +284,35 @@ public class HBaseDCZK implements Abortable {
 	    return;
 	}
 
+	if (pv_node_id == null) {
+	    if (LOG.isTraceEnabled()) LOG.trace("set_trafodion_znode, pv_node_id is null");
+	    return;
+	}
+
 	if (LOG.isInfoEnabled()) LOG.info("HBaseDCZK:set_trafodion_znode: "
 					  + " cluster_id : " + pv_cluster_id
+					  + " node_id : "    + pv_node_id
+					  + " node_data : "  + pv_trafodion_status_string
 					  );
 	
 	try {
-	    String lv_cluster_id_node = m_clusters_node + "/" + pv_cluster_id;
-	    ZKUtil.createWithParents(m_zkw, lv_cluster_id_node);
+	    String lv_trafodion_up_node = m_clusters_node 
+		+ "/" + pv_cluster_id
+		+ "/" + m_trafodion_up_string;
+
+	    ZKUtil.createWithParents(m_zkw, lv_trafodion_up_node);
 	    
-	    String lv_trafodion_up_node = lv_cluster_id_node + "/" + m_trafodion_up_string;
+	    String lv_ephemeral_node_id_node = lv_trafodion_up_node
+		+ "/" + pv_node_id;
 	    ZKUtil.createEphemeralNodeAndWatch(m_zkw,
-					       lv_trafodion_up_node,
+					       lv_ephemeral_node_id_node,
 					       pv_trafodion_status_string.getBytes(CHARSET));
 	} 
 	catch (KeeperException e) {
 	    throw new IOException("HBaseDCZK:set_trafodion_znode: ZKW Unable to create zNode: " 
-				  + m_clusters_node + "/" + pv_cluster_id
+				  + m_clusters_node 
+				  + "/" + pv_cluster_id
+				  + "/" + pv_node_id
 				  + " , throwing IOException " + e
 				  );
 	}
@@ -331,8 +345,9 @@ public class HBaseDCZK implements Abortable {
 	    lv_pi.set_status(get_znode_data(lv_status_node));
 
 	    String lv_trafodion_up_node = lv_cluster_id_node + "/" + m_trafodion_up_string;
-	    byte[] lbb_val = get_znode_data(lv_trafodion_up_node);
-	    if (lbb_val != null) {
+	    List<String> lv_list_nodes = get_znode_children(lv_trafodion_up_node);
+	    if ((lv_list_nodes != null) && 
+		(lv_list_nodes.size() > 0)) {
 		lv_pi.setTrafodionStatus(true);
 	    }
 	    
