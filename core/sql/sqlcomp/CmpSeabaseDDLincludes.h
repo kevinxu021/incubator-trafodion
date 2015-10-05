@@ -67,6 +67,7 @@
 #include "StmtDDLRevokeComponentPrivilege.h"
 #include "StmtDDLRegisterComponent.h"
 #include "StmtDDLCleanupObjects.h"
+#include "StmtDDLAlterTableAttribute.h"
 
 #include "ElemDDLHbaseOptions.h"
 #include "ElemDDLParamDefArray.h"

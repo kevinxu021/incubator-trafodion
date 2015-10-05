@@ -4613,11 +4613,11 @@ short CmpSeabaseDDL::updateSeabaseMDTable(
           if (tableInfo->xnRepl != COM_REPL_NONE)
             {
               if (tableInfo->xnRepl == COM_REPL_SYNC)
-                CmpSeabaseDDL::setMDflags(flags, 
-                                          CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG);
+                CmpSeabaseDDL::setMDflags
+                  (flags, CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG);
               else if (tableInfo->xnRepl == COM_REPL_ASYNC)
-                CmpSeabaseDDL::setMDflags(flags, 
-                                          CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG);
+                CmpSeabaseDDL::setMDflags
+                  (flags,CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG);
             }
         }
 
@@ -8528,6 +8528,13 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
             ddlNode->castToStmtDDLNode()->castToStmtDDLAlterIndexHBaseOptions();
 
           alterSeabaseIndexHBaseOptions(aihbo, currCatName, currSchName);
+        }
+      else if (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ATTRIBUTE)
+        {
+          StmtDDLAlterTableAttribute * ata =
+            ddlNode->castToStmtDDLNode()->castToStmtDDLAlterTableAttribute();
+
+          alterSeabaseTableAttribute(ata, currCatName, currSchName);
         }
       else if (ddlNode->getOperatorType() == DDL_CREATE_VIEW)
         {
