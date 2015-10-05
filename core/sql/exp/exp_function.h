@@ -3804,14 +3804,14 @@ enum
   // ---------------------------------------------------------------------
 };
 
-class ExFunctionHbaseTag : public ex_function_clause {
+class ExFunctionHbaseLabel : public ex_function_clause {
 public:
-  ExFunctionHbaseTag(OperatorTypeEnum oper_type,
+  ExFunctionHbaseLabel(OperatorTypeEnum oper_type,
                      Attributes ** attr,
                      Lng32 tagType,
                      Lng32 colIndex,
                      Space * space);
-  ExFunctionHbaseTag();
+  ExFunctionHbaseLabel();
 
  void displayContents(Space * space, const char * displayStr, 
                       Int32 clauseNum, char * constsArea);
@@ -3829,13 +3829,13 @@ public:
   // ---------------------------------------------------------------------
 };
 
-class ExFunctionHbaseTagSet : public ex_function_clause {
+class ExFunctionHbaseLabelSet : public ex_function_clause {
 public:
   enum {
     MAX_TAG_VAL_LEN = 1024
   };
 
-  ExFunctionHbaseTagSet(OperatorTypeEnum oper_type,
+  ExFunctionHbaseLabelSet(OperatorTypeEnum oper_type,
                         Attributes ** attr,
                         Lng32 tagType,
                         short colIDlen,
@@ -3843,7 +3843,7 @@ public:
                         Lng32 tagValLen,
                         const char * tagVal,
                         Space * space);
-  ExFunctionHbaseTagSet();
+  ExFunctionHbaseLabelSet();
   
   void displayContents(Space * space, const char * displayStr, 
                        Int32 clauseNum, char * constsArea);

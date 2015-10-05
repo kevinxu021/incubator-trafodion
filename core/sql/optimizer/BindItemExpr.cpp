@@ -12847,8 +12847,8 @@ ItemExpr *HbaseAttribute::bindNode(BindWA *bindWA)
   if ((getOperatorType() == ITM_HBASE_TIMESTAMP)||
       (getOperatorType() == ITM_HBASE_VERSION))
     tsValsType = new (bindWA->wHeap()) SQLVarChar(sizeof(Int64), FALSE);
-  else if (getOperatorType() == ITM_HBASE_TAG)
-    tsValsType = new (bindWA->wHeap()) SQLVarChar(HbaseTag::HBASE_TAG_MAXLEN, FALSE);
+  else if (getOperatorType() == ITM_HBASE_LABEL)
+    tsValsType = new (bindWA->wHeap()) SQLVarChar(HbaseLabel::HBASE_LABEL_MAXLEN, FALSE);
   else
     return NULL;
 
@@ -12876,8 +12876,8 @@ ItemExpr *HbaseAttributeRef::bindNode(BindWA *bindWA)
 
   CMPASSERT(col_);
 
-  if (NOT ((getOperatorType() == ITM_HBASE_TAG_REF) ||
-           (getOperatorType() == ITM_HBASE_TAG_SET) ||
+  if (NOT ((getOperatorType() == ITM_HBASE_LABEL_REF) ||
+           (getOperatorType() == ITM_HBASE_LABEL_SET) ||
            (getOperatorType() == ITM_HBASE_TIMESTAMP_REF) ||
            (getOperatorType() == ITM_HBASE_VERSION_REF)))
     CMPASSERT(0);
@@ -12904,14 +12904,14 @@ ItemExpr *HbaseAttributeRef::bindNode(BindWA *bindWA)
       return NULL;
     }
 
-  if (getOperatorType() == ITM_HBASE_TAG_SET)
+  if (getOperatorType() == ITM_HBASE_LABEL_SET)
     {
       return BuiltinFunction::bindNode(bindWA);
       //      return getValueId().getItemExpr();
     }
 
   ValueIdList &attrList =
-    (getOperatorType() == ITM_HBASE_TAG_REF 
+    (getOperatorType() == ITM_HBASE_LABEL_REF 
      ? bc->getTableDesc()->hbaseTagList()
      : (getOperatorType() == ITM_HBASE_TIMESTAMP_REF
         ? bc->getTableDesc()->hbaseTSList() 
@@ -12923,8 +12923,8 @@ ItemExpr *HbaseAttributeRef::bindNode(BindWA *bindWA)
         {
           ItemExpr *baseCol = bc->getTableDesc()->getColumnList()[i].getItemExpr();
           HbaseAttribute * hbaCol = NULL;
-          if (getOperatorType() == ITM_HBASE_TAG_REF)
-            hbaCol = new (bindWA->wHeap()) HbaseTag(baseCol);
+          if (getOperatorType() == ITM_HBASE_LABEL_REF)
+            hbaCol = new (bindWA->wHeap()) HbaseLabel(baseCol);
           else if (getOperatorType() == ITM_HBASE_TIMESTAMP_REF)
             hbaCol = new (bindWA->wHeap()) HbaseTimestamp(baseCol);
           else if (getOperatorType() == ITM_HBASE_VERSION_REF)
@@ -12950,7 +12950,7 @@ ItemExpr *HbaseAttributeRef::bindNode(BindWA *bindWA)
   return valId.getItemExpr();
 }
 
-ItemExpr *HbaseTagSet::bindNode(BindWA *bindWA)
+ItemExpr *HbaseLabelSet::bindNode(BindWA *bindWA)
 {
   ItemExpr * boundExpr = NULL;
 
@@ -12973,7 +12973,7 @@ ItemExpr *HbaseTagSet::bindNode(BindWA *bindWA)
 }
 
 #ifdef __ignore
-ItemExpr *HbaseTag::bindNode(BindWA *bindWA)
+ItemExpr *HbaseLabel::bindNode(BindWA *bindWA)
 {
   ItemExpr * boundExpr = NULL;
 
@@ -12984,7 +12984,7 @@ ItemExpr *HbaseTag::bindNode(BindWA *bindWA)
   return boundExpr;
 }
 
-ItemExpr *HbaseTagRef::bindNode(BindWA *bindWA)
+ItemExpr *HbaseLabelRef::bindNode(BindWA *bindWA)
 {
   ItemExpr * boundExpr = NULL;
 

@@ -5387,13 +5387,13 @@ public:
   ItemExpr * col_;
 }; // class HbaseAttributeRef
 
-class HbaseTag : public HbaseAttribute
+class HbaseLabel : public HbaseAttribute
 {
 public:
-  enum { HBASE_TAG_MAXLEN = 1000};
+  enum { HBASE_LABEL_MAXLEN = 1000};
 
-  HbaseTag(ItemExpr * col)
-       : HbaseAttribute(ITM_HBASE_TAG, col)
+  HbaseLabel(ItemExpr * col)
+       : HbaseAttribute(ITM_HBASE_LABEL, col)
   {}
   
   virtual const NAType * synthesizeType();
@@ -5404,16 +5404,16 @@ public:
   // get a printable string that identifies the operator
   virtual const NAString getText() const
   {
-    return "HBASE_TAG";
+    return "HBASE_LABEL";
   };
   
-}; // class HbaseTag
+}; // class HbaseLabel
 
-class HbaseTagRef : public HbaseAttributeRef
+class HbaseLabelRef : public HbaseAttributeRef
 {
 public:
-  HbaseTagRef(ItemExpr * col)
-       : HbaseAttributeRef(ITM_HBASE_TAG_REF, col)
+  HbaseLabelRef(ItemExpr * col)
+       : HbaseAttributeRef(ITM_HBASE_LABEL_REF, col)
   {}
   
   virtual ItemExpr * copyTopNode(ItemExpr *derivedNode = NULL,
@@ -5422,17 +5422,22 @@ public:
   // get a printable string that identifies the operator
   virtual const NAString getText() const
   {
-    return "HBASE_TAG_REF";
+    return "HBASE_LABEL_REF";
   };
   
 private:
-}; // class HbaseTagRef
+}; // class HbaseLabelRef
 
-class HbaseTagSet : public HbaseAttributeRef
+class HbaseLabelSet : public HbaseAttributeRef
 {
 public:
-  HbaseTagSet(ItemExpr * col, Lng32 type, NAString &tagVal)
-       : HbaseAttributeRef(ITM_HBASE_TAG_SET, col),
+  enum
+    {
+      VISIBILITY = 1
+    };
+
+  HbaseLabelSet(ItemExpr * col, Lng32 type, NAString &tagVal)
+       : HbaseAttributeRef(ITM_HBASE_LABEL_SET, col),
          type_(type), tagVal_(tagVal)
   {}
   
@@ -5448,7 +5453,7 @@ public:
   // get a printable string that identifies the operator
   virtual const NAString getText() const
   {
-    return "HBASE_TAG_SET";
+    return "HBASE_LABEL_SET";
   };
   
   Lng32 type() { return type_; }
@@ -5459,7 +5464,7 @@ private:
   Lng32 type_;
   NAString tagVal_; // tag value to be set in an hbase cell
 
-}; // class HbaseTagSet
+}; // class HbaseLabelSet
 
 class HbaseTimestamp : public HbaseAttribute
 {

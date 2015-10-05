@@ -3054,7 +3054,7 @@ short SequenceValue::codeGen(Generator * generator)
 }
 
 #ifdef __ignore
-short HbaseTag::codeGen(Generator * generator)
+short HbaseLabel::codeGen(Generator * generator)
 {
   Attributes ** attr;
   
@@ -3072,8 +3072,8 @@ short HbaseTag::codeGen(Generator * generator)
   if (generator->getExpGenerator()->genItemExpr(this, &attr, (1 + getArity()), -1) == 1)
     return 0;
 
-  ExFunctionHbaseTag * hbt =
-    new(generator->getSpace()) ExFunctionHbaseTag
+  ExFunctionHbaseLabel * hbt =
+    new(generator->getSpace()) ExFunctionHbaseLabel
     (getOperatorType(), 
      attr, 
      colIndex_,
@@ -3089,9 +3089,9 @@ short HbaseTag::codeGen(Generator * generator)
   return 0;
 }
 
-short HbaseTagRef::codeGen(Generator * generator)
+short HbaseLabelRef::codeGen(Generator * generator)
 {
-  GenAssert(0, "HbaseTagRef::codeGen. Should not reach here.");
+  GenAssert(0, "HbaseLabelRef::codeGen. Should not reach here.");
 
   return 0;
 }
@@ -3194,8 +3194,8 @@ short HbaseAttribute::codeGen(Generator * generator)
 
   switch (getOperatorType())
     {
-    case ITM_HBASE_TAG:
-      hbf = new(generator->getSpace()) ExFunctionHbaseTag
+    case ITM_HBASE_LABEL:
+      hbf = new(generator->getSpace()) ExFunctionHbaseLabel
         (getOperatorType(), 
          attr, 
          0, // tagType
@@ -3230,7 +3230,7 @@ short HbaseAttribute::codeGen(Generator * generator)
   return 0;
 }
 
-short HbaseTagSet::codeGen(Generator * generator)
+short HbaseLabelSet::codeGen(Generator * generator)
 {
   Attributes ** attr;
   
@@ -3245,7 +3245,7 @@ short HbaseTagSet::codeGen(Generator * generator)
 
   ex_function_clause * hbf = NULL;
 
-  hbf = new(generator->getSpace()) ExFunctionHbaseTagSet
+  hbf = new(generator->getSpace()) ExFunctionHbaseLabelSet
     (getOperatorType(), 
      attr, 
      type_,

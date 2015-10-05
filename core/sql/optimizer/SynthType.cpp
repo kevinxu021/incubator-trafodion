@@ -6399,17 +6399,17 @@ const NAType * SequenceValue::synthesizeType()
   return type;
 }
 
-const NAType * HbaseTag::synthesizeType()
+const NAType * HbaseLabel::synthesizeType()
 {
   NAType * type = NULL;
 
-  type = new HEAP SQLVarChar(HBASE_TAG_MAXLEN,  
+  type = new HEAP SQLVarChar(HBASE_LABEL_MAXLEN,  
                              col()->getValueId().getType().supportsSQLnull());
 
   return type;
 }
 
-const NAType * HbaseTagSet::synthesizeType()
+const NAType * HbaseLabelSet::synthesizeType()
 {
   NAType * type = NULL;
 

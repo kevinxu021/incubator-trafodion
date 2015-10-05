@@ -501,11 +501,11 @@ ex_clause::ex_clause(clause_type type,
 	case ITM_HEADER:
 	  setClassID(FUNC_HEADER);
 	  break;
-	case ITM_HBASE_TAG:
-	  setClassID(FUNC_HBASE_TAG);
+	case ITM_HBASE_LABEL:
+	  setClassID(FUNC_HBASE_LABEL);
 	  break;
-	case ITM_HBASE_TAG_SET:
-	  setClassID(FUNC_HBASE_TAG_SET);
+	case ITM_HBASE_LABEL_SET:
+	  setClassID(FUNC_HBASE_LABEL_SET);
 	  break;
 	case ITM_HBASE_TIMESTAMP:
 	  setClassID(FUNC_HBASE_TIMESTAMP);
@@ -974,11 +974,11 @@ NA_EIDPROC char *ex_clause::findVTblPtr(short classID)
     case ex_clause::FUNC_HBASE_TIMESTAMP:
       GetVTblPtr(vtblPtr, ExFunctionHbaseTimestamp);
       break;
-    case ex_clause::FUNC_HBASE_TAG:
-      GetVTblPtr(vtblPtr, ExFunctionHbaseTag);
+    case ex_clause::FUNC_HBASE_LABEL:
+      GetVTblPtr(vtblPtr, ExFunctionHbaseLabel);
       break;
-    case ex_clause::FUNC_HBASE_TAG_SET:
-      GetVTblPtr(vtblPtr, ExFunctionHbaseTagSet);
+    case ex_clause::FUNC_HBASE_LABEL_SET:
+      GetVTblPtr(vtblPtr, ExFunctionHbaseLabelSet);
       break;
     case ex_clause::FUNC_HBASE_VERSION:
       GetVTblPtr(vtblPtr, ExFunctionHbaseVersion);
@@ -1471,8 +1471,8 @@ NA_EIDPROC const char * getOperTypeEnumAsString(Int16 /*OperatorTypeEnum*/ ote)
     case ITM_HBASE_COLUMN_LOOKUP: return "ITM_HBASE_COLUMN_LOOKUP";
     case ITM_HBASE_COLUMNS_DISPLAY: return "ITM_HBASE_COLUMNS_DISPLAY";
     case ITM_HBASE_COLUMN_CREATE: return "ITM_HBASE_COLUMN_CREATE";
-    case ITM_HBASE_TAG: return "ITM_HBASE_TAG";
-    case ITM_HBASE_TAG_SET: return "ITM_HBASE_TAG_SET";
+    case ITM_HBASE_LABEL: return "ITM_HBASE_LABEL";
+    case ITM_HBASE_LABEL_SET: return "ITM_HBASE_LABEL_SET";
     case ITM_HBASE_TIMESTAMP: return "ITM_HBASE_TIMESTAMP";
     case ITM_HBASE_VERSION: return "ITM_HBASE_VERSION";
 
@@ -1995,10 +1995,10 @@ void ExAuditImage::displayContents(Space * space, const char * /*displayStr*/, I
 #endif 
 }
 
-void ExFunctionHbaseTag::displayContents(Space * space, const char * /*displayStr*/, Int32 clauseNum, char * constsArea)
+void ExFunctionHbaseLabel::displayContents(Space * space, const char * /*displayStr*/, Int32 clauseNum, char * constsArea)
 {
   char buf[100];
-  str_sprintf(buf, "  Clause #%d: ExFunctionHbaseTag", clauseNum);
+  str_sprintf(buf, "  Clause #%d: ExFunctionHbaseLabel", clauseNum);
   space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
 
   str_sprintf(buf, "    colIndex_ = %d", colIndex_);
@@ -2007,10 +2007,10 @@ void ExFunctionHbaseTag::displayContents(Space * space, const char * /*displaySt
   ex_clause::displayContents(space, (const char *)NULL, clauseNum, constsArea);
 }
 
-void ExFunctionHbaseTagSet::displayContents(Space * space, const char * /*displayStr*/, Int32 clauseNum, char * constsArea)
+void ExFunctionHbaseLabelSet::displayContents(Space * space, const char * /*displayStr*/, Int32 clauseNum, char * constsArea)
 {
   char buf[100];
-  str_sprintf(buf, "  Clause #%d: ExFunctionHbaseTagSet", clauseNum);
+  str_sprintf(buf, "  Clause #%d: ExFunctionHbaseLabelSet", clauseNum);
   space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
 
   str_sprintf(buf, "    colID_ = %s", colID_);

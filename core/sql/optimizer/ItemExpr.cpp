@@ -13578,43 +13578,43 @@ HbaseAttributeRef::~HbaseAttributeRef()
 {
 }
 
-ItemExpr * HbaseTag::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
+ItemExpr * HbaseLabel::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 {
-  HbaseTag *result;
+  HbaseLabel *result;
 
   if (derivedNode == NULL)
-    result = new (outHeap) HbaseTag(col());
+    result = new (outHeap) HbaseLabel(col());
   else
-    result = (HbaseTag*)derivedNode;
+    result = (HbaseLabel*)derivedNode;
 
   return HbaseAttribute::copyTopNode(result, outHeap);
-} // HbaseTag::copyTopNode()
+} // HbaseLabel::copyTopNode()
 
-ItemExpr * HbaseTagRef::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
+ItemExpr * HbaseLabelRef::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 {
-  HbaseTagRef *result;
+  HbaseLabelRef *result;
 
   if (derivedNode == NULL)
-    result = new (outHeap) HbaseTagRef(col());
+    result = new (outHeap) HbaseLabelRef(col());
   else
-    result = (HbaseTagRef*)derivedNode;
+    result = (HbaseLabelRef*)derivedNode;
 
   return HbaseAttributeRef::copyTopNode(result, outHeap);
-} // HbaseTagRef::copyTopNode()
+} // HbaseLabelRef::copyTopNode()
  
-ItemExpr * HbaseTagSet::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
+ItemExpr * HbaseLabelSet::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 {
-  HbaseTagSet *result;
+  HbaseLabelSet *result;
 
   if (derivedNode == NULL)
-    result = new (outHeap) HbaseTagSet(col(), type(), tagVal());
+    result = new (outHeap) HbaseLabelSet(col(), type(), tagVal());
   else
-    result = (HbaseTagSet*)derivedNode;
+    result = (HbaseLabelSet*)derivedNode;
 
   result->colId_ = colId_;
 
   return HbaseAttributeRef::copyTopNode(result, outHeap);
-} // HbaseTagSet::copyTopNode()
+} // HbaseLabelSet::copyTopNode()
  
 ItemExpr * HbaseTimestamp::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 {

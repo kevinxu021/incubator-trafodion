@@ -184,8 +184,8 @@ ExFunctionHbaseColumnsDisplay::ExFunctionHbaseColumnsDisplay() {};
 ExFunctionHbaseColumnCreate::ExFunctionHbaseColumnCreate() {};
 ExFunctionCastType::ExFunctionCastType() {};
 ExFunctionSequenceValue::ExFunctionSequenceValue() {};
-ExFunctionHbaseTag::ExFunctionHbaseTag() {};
-ExFunctionHbaseTagSet::ExFunctionHbaseTagSet() {};
+ExFunctionHbaseLabel::ExFunctionHbaseLabel() {};
+ExFunctionHbaseLabelSet::ExFunctionHbaseLabelSet() {};
 ExFunctionHbaseTimestamp::ExFunctionHbaseTimestamp() {};
 ExFunctionHbaseVersion::ExFunctionHbaseVersion() {};
 ExFunctionSVariance::ExFunctionSVariance(){};
@@ -617,7 +617,7 @@ ExFunctionSequenceValue::ExFunctionSequenceValue(OperatorTypeEnum oper_type,
 {
 };
 
-ExFunctionHbaseTag::ExFunctionHbaseTag(
+ExFunctionHbaseLabel::ExFunctionHbaseLabel(
      OperatorTypeEnum oper_type,
      Attributes ** attr, 
      Lng32 tagType,
@@ -630,7 +630,7 @@ ExFunctionHbaseTag::ExFunctionHbaseTag(
 {
 };
 
-ExFunctionHbaseTagSet::ExFunctionHbaseTagSet(
+ExFunctionHbaseLabelSet::ExFunctionHbaseLabelSet(
      OperatorTypeEnum oper_type,
      Attributes ** attr, 
      Lng32 tagType,
@@ -7114,7 +7114,7 @@ ExFunctionSequenceValue::eval(char *op_data[], CollHeap *heap,
 }
 
 ex_expr::exp_return_type 
-ExFunctionHbaseTag::eval(char *op_data[], CollHeap *heap, 
+ExFunctionHbaseLabel::eval(char *op_data[], CollHeap *heap, 
                          ComDiagsArea **diagsArea)
 {
   short rc = 0;
@@ -7131,7 +7131,7 @@ ExFunctionHbaseTag::eval(char *op_data[], CollHeap *heap,
 }
 
 ex_expr::exp_return_type 
-ExFunctionHbaseTagSet::eval(char *op_data[], CollHeap *heap, 
+ExFunctionHbaseLabelSet::eval(char *op_data[], CollHeap *heap, 
                          ComDiagsArea **diagsArea)
 {
   short rc = 0;

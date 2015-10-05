@@ -12754,13 +12754,13 @@ Update::Update(const CorrName &name,
 
   if ((newRecExpr) &&
       (((newRecExpr->getOperatorType() == ITM_ASSIGN) &&
-        (newRecExpr->child(1)->getOperatorType() == ITM_HBASE_TAG_SET)) ||
+        (newRecExpr->child(1)->getOperatorType() == ITM_HBASE_LABEL_SET)) ||
        ((newRecExpr->getOperatorType() == ITM_ITEM_LIST) &&
-        (((ItemList*)newRecExpr)->containsHbaseTagExpr()))))
+        (((ItemList*)newRecExpr)->containsHbaseLabelExpr()))))
     {
       ItemExpr * newIE = NULL;
       if ((newRecExpr->getOperatorType() == ITM_ASSIGN) &&
-          (newRecExpr->child(1)->getOperatorType() == ITM_HBASE_TAG_SET))
+          (newRecExpr->child(1)->getOperatorType() == ITM_HBASE_LABEL_SET))
         {
           hbaseTagExprList_.addMember(newRecExpr->child(1));
           newIE = NULL;
@@ -12774,7 +12774,7 @@ Update::Update(const CorrName &name,
               ItemExpr * ie = iel[i];
               
               if ((ie->getOperatorType() == ITM_ASSIGN) &&
-                  (ie->child(1)->getOperatorType() == ITM_HBASE_TAG_SET))
+                  (ie->child(1)->getOperatorType() == ITM_HBASE_LABEL_SET))
                 {
                   hbaseTagExprList_.addMember(ie->child(1));
                 }

@@ -2121,12 +2121,12 @@ static short HbaseAccess_updateHbaseInfoNode(
       ItemExpr * ie = vid.getItemExpr();
       
       const ItemExpr * col_node = NULL;
-      HbaseTag * hbtg = NULL;
+      HbaseLabel * hbtg = NULL;
       HbaseTimestamp * hbt = NULL;
       HbaseVersion * hbv = NULL;
-      if (ie->getOperatorType() == ITM_HBASE_TAG)
+      if (ie->getOperatorType() == ITM_HBASE_LABEL)
         {
-          hbtg = (HbaseTag*)ie;
+          hbtg = (HbaseLabel*)ie;
       
           col_node = hbtg->col();
         }
@@ -2151,7 +2151,7 @@ static short HbaseAccess_updateHbaseInfoNode(
       
       if (nac && (nac->getColName() == colName))
         {
-          if (ie->getOperatorType() == ITM_HBASE_TAG)
+          if (ie->getOperatorType() == ITM_HBASE_LABEL)
             hbtg->setColIndex(colIndex);
           else if (ie->getOperatorType() == ITM_HBASE_TIMESTAMP)
             hbt->setColIndex(colIndex);
@@ -2297,16 +2297,16 @@ short HbaseAccess::codeGen(Generator * generator)
     {
       ValueId vid = retColumnList[hi];
       
-      if ((vid.getItemExpr()->getOperatorType() != ITM_HBASE_TAG) &&
+      if ((vid.getItemExpr()->getOperatorType() != ITM_HBASE_LABEL) &&
           (vid.getItemExpr()->getOperatorType() != ITM_HBASE_TIMESTAMP) &&
           (vid.getItemExpr()->getOperatorType() != ITM_HBASE_VERSION))
         continue;
       
       ValueId tsValsVID;
-      if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_TAG)
+      if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_LABEL)
         {
           hbTagVIDlist.insert(vid);
-          tsValsVID = ((HbaseTag*)vid.getItemExpr())->tsVals()->getValueId();
+          tsValsVID = ((HbaseLabel*)vid.getItemExpr())->tsVals()->getValueId();
         }
       else if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP)
         {
@@ -2321,7 +2321,7 @@ short HbaseAccess::codeGen(Generator * generator)
 
       Attributes * attr  = generator->addMapInfo(tsValsVID, 0)->getAttr();
       attr->setAtp(work_atp);
-      if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_TAG)
+      if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_LABEL)
         attr->setAtpIndex(hbaseTagTuppIndex);
       else if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP)
         attr->setAtpIndex(hbaseTimestampTuppIndex);

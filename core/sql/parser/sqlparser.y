@@ -533,7 +533,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_COLUMN_CREATE
 %token <tokval> TOK_COLUMN_LOOKUP
 %token <tokval> TOK_COLUMN_DISPLAY
-%token <tokval> TOK_HBASE_TAG
+%token <tokval> TOK_HBASE_LABEL
 %token <tokval> TOK_HBASE_TIMESTAMP
 %token <tokval> TOK_HBASE_VERSION
 %token <tokval> TOK_COMMANDS
@@ -9894,9 +9894,9 @@ misc_function :
                                   $$ = new (PARSERHEAP()) RowNumFunc();
                                 }
 
-       | TOK_HBASE_TAG '(' dml_column_reference  ')'
+       | TOK_HBASE_LABEL '(' dml_column_reference  ')'
                               {
-                                $$ = new (PARSERHEAP()) HbaseTagRef($3);
+                                $$ = new (PARSERHEAP()) HbaseLabelRef($3);
 			      }
 
        | TOK_HBASE_TIMESTAMP '(' dml_column_reference  ')'
@@ -19673,14 +19673,14 @@ set_update_commit_list : set_clause
 				  $$ = new (PARSERHEAP()) ItemList($1, $3);
 
                                   if ((($1->getOperatorType() == ITM_ASSIGN) &&
-                                       ($1->child(1)->getOperatorType() == ITM_HBASE_TAG_SET)) ||
+                                       ($1->child(1)->getOperatorType() == ITM_HBASE_LABEL_SET)) ||
                                       (($3->getOperatorType() == ITM_ASSIGN) &&
-                                       ($3->child(1)->getOperatorType() == ITM_HBASE_TAG_SET)) ||
+                                       ($3->child(1)->getOperatorType() == ITM_HBASE_LABEL_SET)) ||
                                       (($3->getOperatorType() == ITM_ITEM_LIST) &&
-                                       (((ItemList*)$3)->containsHbaseTagExpr())))
+                                       (((ItemList*)$3)->containsHbaseLabelExpr())))
                                       
                                     {
-                                      ((ItemList*)$$)->setContainsHbaseTagExpr(TRUE);
+                                      ((ItemList*)$$)->setContainsHbaseLabelExpr(TRUE);
                                     }
 				}
 	      | set_clause TOK_SET TOK_ON TOK_ROLLBACK set_update_rollback_list
@@ -19758,17 +19758,19 @@ set_clause : identifier '=' value_expression
 					   rc);
 				  delete $1;
 				}
-                              | identifier '=' TOK_HBASE_TAG '(' NUMERIC_LITERAL_EXACT_NO_SCALE ',' QUOTED_STRING ')'
+                              | identifier '=' TOK_HBASE_LABEL '(' IDENTIFIER ',' QUOTED_STRING ')'
 				{
-                                  Int64 tagType = atoInt64($5->data());
-                                  //                                  if (tagType != TagType::VISIBILITY_TAG_TYPE)
-                                  //                                    YYERROR;
+                                  NAString lab = *$5;
+                                  lab.toUpper();
+                                  if (lab != "VISIBILITY")
+                                    YYERROR;
 
+                                  Int64 labelType = HbaseLabelSet::VISIBILITY;
                                   ColReference * colRef = new (PARSERHEAP())
                                     ColReference(
                                          new (PARSERHEAP()) ColRefName(*$1, PARSERHEAP()));
 
-                                  ItemExpr * rc = new (PARSERHEAP()) HbaseTagSet(colRef, tagType, *$7);
+                                  ItemExpr * rc = new (PARSERHEAP()) HbaseLabelSet(colRef, labelType, *$7);
 				  $$ = new (PARSERHEAP())
 				    Assign(colRef, rc);
 				  delete $1;
@@ -33352,7 +33354,7 @@ nonreserved_func_word:  TOK_ABS
                       | TOK_GREATEST
                       | TOK_HASHPARTFUNC
                       | TOK_HASH2PARTFUNC
-                      | TOK_HBASE_TAG
+                      | TOK_HBASE_LABEL
                       | TOK_HBASE_TIMESTAMP
                       | TOK_HBASE_VERSION
                       | TOK_HIVEMD
