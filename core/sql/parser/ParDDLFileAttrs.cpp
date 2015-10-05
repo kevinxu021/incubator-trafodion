@@ -762,6 +762,8 @@ ParDDLFileAttrsAlterTable::copy(const ParDDLFileAttrsAlterTable &rhs)
   isMvsAllowedSpec_		= rhs.isMvsAllowedSpec_;
   mvsAllowedType_		= rhs.mvsAllowedType_;
 
+  isXnReplSpec_                 = rhs.isXnReplSpec_;
+  xnRepl_                       = rhs.xnRepl_;
   
 } // ParDDLFileAttrsAlterTable::copy()
 
@@ -868,6 +870,8 @@ ParDDLFileAttrsAlterTable::initializeDataMembers()
 
   mvsAllowedType_ = COM_NO_MVS_ALLOWED;
 
+  xnRepl_ = COM_REPL_NONE;
+
 } // ParDDLFileAttrsAlterTable::initializeDataMembers()
 
 //
@@ -923,6 +927,8 @@ ParDDLFileAttrsAlterTable::resetAllIsSpecDataMembers()
 
   // NO LABEL UPDATE
   isNoLabelUpdateSpec_          = FALSE;
+
+  isXnReplSpec_                 = FALSE;
 
 } // ParDDLFileAttrsAlterTable::resetAllIsSpecDataMembers()
 
@@ -1125,59 +1131,76 @@ ParDDLFileAttrsAlterTable::setFileAttr(ElemDDLFileAttr * pFileAttr)
     isNoLabelUpdateSpec_ = TRUE;
     break;
 
-	case ELM_FILE_ATTR_RANGE_LOG_ELEM:
-		if (isRangeLogSpec_)
-		{
-		  // Duplicate RANGELOG phrases.
-		  *SqlParser_Diags << DgSqlCode(-12056);
-		}
-		ComASSERT(pFileAttr->castToElemDDLFileAttrRangeLog() NEQ NULL);
-		rangelogType_ = 
-			pFileAttr->castToElemDDLFileAttrRangeLog()->getRangelogType();
-		isRangeLogSpec_ = TRUE;
-		break;
-
-	case ELM_FILE_ATTR_LOCK_ON_REFRESH_ELEM:
-		if (isLockOnRefreshSpec_)
-		{
-		  // Duplicate [NO]LOCKONREFRESH  phrases.
-		  *SqlParser_Diags << DgSqlCode(-12055);
-		}
-		ComASSERT(pFileAttr->castToElemDDLFileAttrLockOnRefresh() NEQ NULL);
-		isLockOnRefresh_ = 
-			pFileAttr->castToElemDDLFileAttrLockOnRefresh()->isLockOnRefresh();
-		isLockOnRefreshSpec_ = TRUE;
-		break;
-
-
-	case ELM_FILE_ATTR_INSERT_LOG_ELEM:
-		if (isInsertLogSpec_)
-		{
-		  // Duplicate [NO]LOCKONREFRESH  phrases.
-		  *SqlParser_Diags << DgSqlCode(-12057);
-		}
-		ComASSERT(pFileAttr->castToElemDDLFileAttrInsertLog() NEQ NULL);
-		isInsertLog_ = 
-			pFileAttr->castToElemDDLFileAttrInsertLog()->isInsertLog();
-		isInsertLogSpec_ = TRUE;
-		break;
-
-	case ELM_FILE_ATTR_MVS_ALLOWED_ELEM:
-		if (isMvsAllowedSpec_)
-		{
-		  // Duplicate RANGELOG phrases.
-		  *SqlParser_Diags << DgSqlCode(-12058);
-		}
-		ComASSERT(pFileAttr->castToElemDDLFileAttrMvsAllowed() NEQ NULL);
-		mvsAllowedType_ = 
-			pFileAttr->castToElemDDLFileAttrMvsAllowed()->getMvsAllowedType();
-		isMvsAllowedSpec_ = TRUE;
-		break;
-
-
-	default :
-		NAAbort("ParDDLFileAttrs.C", __LINE__, "internal logic error");
-		break;
+  case ELM_FILE_ATTR_RANGE_LOG_ELEM:
+    if (isRangeLogSpec_)
+      {
+        // Duplicate RANGELOG phrases.
+        *SqlParser_Diags << DgSqlCode(-12056);
+      }
+    ComASSERT(pFileAttr->castToElemDDLFileAttrRangeLog() NEQ NULL);
+    rangelogType_ = 
+      pFileAttr->castToElemDDLFileAttrRangeLog()->getRangelogType();
+    isRangeLogSpec_ = TRUE;
+    break;
+    
+  case ELM_FILE_ATTR_LOCK_ON_REFRESH_ELEM:
+    if (isLockOnRefreshSpec_)
+      {
+        // Duplicate [NO]LOCKONREFRESH  phrases.
+        *SqlParser_Diags << DgSqlCode(-12055);
+      }
+    ComASSERT(pFileAttr->castToElemDDLFileAttrLockOnRefresh() NEQ NULL);
+    isLockOnRefresh_ = 
+      pFileAttr->castToElemDDLFileAttrLockOnRefresh()->isLockOnRefresh();
+    isLockOnRefreshSpec_ = TRUE;
+    break;
+    
+    
+  case ELM_FILE_ATTR_INSERT_LOG_ELEM:
+    if (isInsertLogSpec_)
+      {
+        // Duplicate [NO]LOCKONREFRESH  phrases.
+        *SqlParser_Diags << DgSqlCode(-12057);
+      }
+    ComASSERT(pFileAttr->castToElemDDLFileAttrInsertLog() NEQ NULL);
+    isInsertLog_ = 
+      pFileAttr->castToElemDDLFileAttrInsertLog()->isInsertLog();
+    isInsertLogSpec_ = TRUE;
+    break;
+    
+  case ELM_FILE_ATTR_MVS_ALLOWED_ELEM:
+    if (isMvsAllowedSpec_)
+      {
+        // Duplicate RANGELOG phrases.
+        *SqlParser_Diags << DgSqlCode(-12058);
+      }
+    ComASSERT(pFileAttr->castToElemDDLFileAttrMvsAllowed() NEQ NULL);
+    mvsAllowedType_ = 
+      pFileAttr->castToElemDDLFileAttrMvsAllowed()->getMvsAllowedType();
+    isMvsAllowedSpec_ = TRUE;
+    break;
+    
+    
+  case ELM_FILE_ATTR_XN_REPL_ELEM :
+    if (isXnReplSpec_)
+      {
+        // Duplicate sync xn phrases.
+        *SqlParser_Diags << DgSqlCode(-3183)
+                         << DgString0("replication");
+      }
+    isXnReplSpec_ = TRUE;
+    ComASSERT(pFileAttr->castToElemDDLFileAttrXnRepl() NEQ NULL);
+    {
+      ElemDDLFileAttrXnRepl * pXnRepl =
+        pFileAttr->castToElemDDLFileAttrXnRepl();
+      xnRepl_ = pXnRepl->xnRepl();
+    }
+    break;
+    
+    
+  default :
+    NAAbort("ParDDLFileAttrs.C", __LINE__, "internal logic error");
+    break;
   }
 } // ParDDLFileAttrsAlterTable::setFileAttr()
 
@@ -2221,10 +2244,7 @@ ParDDLFileAttrsCreateTable::setFileAttr(ElemDDLFileAttr * pFileAttr)
     {
       ElemDDLFileAttrXnRepl * pXnRepl =
         pFileAttr->castToElemDDLFileAttrXnRepl();
-      if (pXnRepl->xnRepl())
-        xnRepl_ = COM_REPL_SYNC;
-      else
-        xnRepl_ = COM_REPL_ASYNC;
+      xnRepl_ = pXnRepl->xnRepl();
     }
     break;
 

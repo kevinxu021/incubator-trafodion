@@ -44,6 +44,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.transactional.HBaseDCZK;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.CommitUnsuccessfulException;
@@ -227,6 +228,9 @@ public class HBaseTxClient {
          }
       }
 
+      String lv_ephemeral_node_data = "Up. Nid: " + dtmid;
+      createEphemeralZKNode(lv_ephemeral_node_data.getBytes());
+
       this.dtmID = dtmid;
       this.useRecovThread = false;
       this.stallWhere = 0;
@@ -369,6 +373,30 @@ public class HBaseTxClient {
       }
       if (LOG.isTraceEnabled()) LOG.trace("Exit init()");
       return true;
+   }
+
+   public void createEphemeralZKNode(byte[] pv_data) {
+       if (LOG.isDebugEnabled()) LOG.debug("Enter createEphemeralZKNode, data: " + new String(pv_data));
+       try {
+
+	   HBaseDCZK lv_zk = new HBaseDCZK(config);
+
+	   String lv_my_cluster_id = lv_zk.get_my_id();
+	   if (lv_my_cluster_id == null) {
+	       if (LOG.isDebugEnabled()) LOG.debug("createEphemeralZKNode, my_cluster_id is null");
+	       return;
+	   }
+
+	   String lv_node_data = new String(pv_data);
+       
+	   lv_zk.set_trafodion_znode(lv_my_cluster_id,
+				     lv_node_data);
+       }
+       catch (Exception e) {
+	   LOG.error("Exception while trying to create the trafodion ephemeral node.");
+	   LOG.error(e);
+       }
+
    }
 
    public TmDDL getTmDDL() {
@@ -1362,7 +1390,7 @@ public class HBaseTxClient {
                                                     " and tolerating UnknownTransactionExceptions");
                                         txnManager.doCommit(ts, true /*ignore UnknownTransactionException*/);
                                         if(useTlog && useForgotten) {
-                                            long nextAsn = tLog.getNextAuditSeqNum((int)(txID >> 32));
+                                            long nextAsn = tLog.getNextAuditSeqNum((int)TransactionState.getNodeId(txID));
                                             tLog.putSingleRecord(txID, ts.getCommitId(), "FORGOTTEN", null, forceForgotten, nextAsn);
                                         }
                                     } else if (ts.getStatus().equals(TransState.STATE_ABORTED.toString())) {

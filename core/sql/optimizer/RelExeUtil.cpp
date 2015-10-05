@@ -80,6 +80,8 @@
 #include "StmtDDLCreateRoutine.h"
 #include "StmtDDLDropRoutine.h"
 #include "StmtDDLCleanupObjects.h"
+#include "StmtDDLAlterTableAttribute.h"
+#include "ParDDLFileAttrsAlterTable.h"
 
 #include <cextdecs/cextdecs.h>
 #include "wstr.h"
@@ -3668,6 +3670,7 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
   NABoolean alterRenameTable = FALSE;
   NABoolean alterIdentityCol = FALSE;
   NABoolean alterColDatatype = FALSE;
+  NABoolean alterAttr = FALSE;
 
   returnStatus_ = FALSE;
 
@@ -3842,6 +3845,17 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
          alterColDatatype = TRUE;
       else if (getExprNode()->castToElemDDLNode()->castToStmtDDLAlterTableHBaseOptions())
          alterHBaseOptions = TRUE;
+      else if (getExprNode()->castToElemDDLNode()->castToStmtDDLAlterTableAttribute())
+        {
+          StmtDDLAlterTableAttribute * ata = 
+            getExprNode()->castToElemDDLNode()->castToStmtDDLAlterTableAttribute();
+
+          ParDDLFileAttrsAlterTable &fileAttrs = ata->getFileAttributes();
+
+          // currently only xn repl option supported
+          if (fileAttrs.isXnReplSpecified()) 
+            alterAttr = TRUE;
+        }
        else
         otherAlters = TRUE;
 
@@ -4039,7 +4053,7 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
           (isAlter_ && (alterAddCol || alterDropCol || alterDisableIndex || alterEnableIndex || 
 			alterAddConstr || alterDropConstr || alterRenameTable ||
                         alterIdentityCol || alterColDatatype ||
-                        alterHBaseOptions || otherAlters)))))
+                        alterHBaseOptions || alterAttr | otherAlters)))))
       {
 	if (NOT isNative_)
 	  {

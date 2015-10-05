@@ -3772,6 +3772,233 @@ void CmpSeabaseDDL::alterSeabaseTableHBaseOptions(
   return;
 }
 
+void CmpSeabaseDDL::alterSeabaseTableAttribute(
+     StmtDDLAlterTableAttribute * alterTableNode,
+     NAString &currCatName, NAString &currSchName)
+{
+  Lng32 retcode = 0;
+  Lng32 cliRC = 0;
+
+  ComObjectName tableName(alterTableNode->getTableName());
+  ComAnsiNamePart currCatAnsiName(currCatName);
+  ComAnsiNamePart currSchAnsiName(currSchName);
+  tableName.applyDefaults(currCatAnsiName, currSchAnsiName);
+  const NAString catalogNamePart = tableName.getCatalogNamePartAsAnsiString();
+  const NAString schemaNamePart = tableName.getSchemaNamePartAsAnsiString(TRUE);
+  const NAString objectNamePart = tableName.getObjectNamePartAsAnsiString(TRUE);
+  const NAString extTableName = tableName.getExternalName(TRUE);
+  const NAString extNameForHbase = catalogNamePart + "." + schemaNamePart + "." + objectNamePart;
+
+  ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
+  CmpCommon::context()->sqlSession()->getParentQid());
+  
+  ExpHbaseInterface * ehi = allocEHI();
+  if (ehi == NULL)
+    {
+      processReturn();
+
+      return;
+    }
+
+  if ((isSeabaseReservedSchema(tableName)) &&
+      (!Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL)))
+    {
+      *CmpCommon::diags() << DgSqlCode(-CAT_CREATE_TABLE_NOT_ALLOWED_IN_SMD)
+                          << DgTableName(extTableName);
+      deallocEHI(ehi); 
+
+      processReturn();
+
+      return;
+    }
+  
+  if (CmpCommon::context()->sqlSession()->volatileSchemaInUse())
+    {
+      QualifiedName *qn =
+        CmpCommon::context()->sqlSession()->
+        updateVolatileQualifiedName
+        (alterTableNode->getTableNameAsQualifiedName().getObjectName());
+      
+      if (qn == NULL)
+        {
+          *CmpCommon::diags()
+            << DgSqlCode(-1427);
+          
+          processReturn();
+          
+          return;
+        }
+      
+      ComObjectName volTabName (qn->getQualifiedNameAsAnsiString());
+      volTabName.applyDefaults(currCatAnsiName, currSchAnsiName);
+      
+      NAString vtCatNamePart = volTabName.getCatalogNamePartAsAnsiString();
+      NAString vtSchNamePart = volTabName.getSchemaNamePartAsAnsiString(TRUE);
+      NAString vtObjNamePart = volTabName.getObjectNamePartAsAnsiString(TRUE);
+      
+      retcode = existsInSeabaseMDTable(&cliInterface, 
+                                       vtCatNamePart, vtSchNamePart, vtObjNamePart,
+                                       COM_BASE_TABLE_OBJECT);
+      
+      if (retcode < 0)
+        {
+          processReturn();
+          
+          return;
+        }
+      
+      if (retcode == 1)
+        {
+          // table found in volatile schema. cannot rename it.
+          *CmpCommon::diags()
+            << DgSqlCode(-1427)
+            << DgString0("Reason: Operation not allowed on volatile tables.");
+          
+          processReturn();
+          return;
+        }
+    }
+  
+  retcode = existsInSeabaseMDTable(&cliInterface, 
+                                   catalogNamePart, schemaNamePart, objectNamePart,
+                                   COM_BASE_TABLE_OBJECT,
+                                   (Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL) 
+                                    ? FALSE : TRUE),
+                                   TRUE, TRUE);
+  if (retcode < 0)
+    {
+      processReturn();
+
+      return;
+    }
+
+  BindWA bindWA(ActiveSchemaDB(), CmpCommon::context(), FALSE/*inDDL*/);
+  
+  CorrName cn(objectNamePart,
+              STMTHEAP,
+              schemaNamePart,
+              catalogNamePart);
+  
+  NATable *naTable = bindWA.getNATable(cn); 
+  if (naTable == NULL || bindWA.errStatus())
+    {
+      CmpCommon::diags()->clear();
+      
+      *CmpCommon::diags() << DgSqlCode(-CAT_OBJECT_DOES_NOT_EXIST_IN_TRAFODION)
+                          << DgString0(extTableName);
+  
+      processReturn();
+      
+      return;
+    }
+ 
+  // Make sure user has the privilege to perform the rename
+  if (!isDDLOperationAuthorized(SQLOperation::ALTER_TABLE,
+                                naTable->getOwner(),naTable->getSchemaOwner()))
+  {
+     *CmpCommon::diags() << DgSqlCode(-CAT_NOT_AUTHORIZED);
+
+     processReturn ();
+
+     return;
+  }
+
+  CmpCommon::diags()->clear();
+  
+  // cannot alter attributes of a view
+  if (naTable->getViewText())
+    {
+      *CmpCommon::diags()
+        << DgSqlCode(-1427)
+        << DgString0("Reason: Operation not allowed on a view.");
+      
+      processReturn();
+      
+      return;
+    }
+
+  Int64 objUID = getObjectUID(&cliInterface,
+                              catalogNamePart.data(), schemaNamePart.data(), 
+                              objectNamePart.data(),
+                              COM_BASE_TABLE_OBJECT_LIT);
+  if (objUID < 0)
+    {
+
+      processReturn();
+
+      return;
+    }
+
+  ParDDLFileAttrsAlterTable &fileAttrs = alterTableNode->getFileAttributes();
+  if (NOT fileAttrs.isXnReplSpecified())
+    {
+      *CmpCommon::diags()
+        << DgSqlCode(-1425)
+        << DgString0(extTableName)
+        << DgString0("Reason: Only replication attribute can be altered.");
+      
+      processReturn();
+      
+      return;
+    }
+
+  // update flags with new repl options in TABLES metadata.
+  char queryBuf[1000];
+
+  // get current table flags
+  str_sprintf(queryBuf, "select flags from %s.\"%s\".%s where table_uid = %Ld",
+              getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_TABLES,
+              objUID);
+  Int64 flags = 0;
+  Lng32 flagsLen = sizeof(Int64);
+  Int64 rowsAffected = 0;
+  cliRC = cliInterface.executeImmediateCEFC
+    (queryBuf, NULL, 0, (char*)&flags, &flagsLen, &rowsAffected);
+  if (cliRC < 0)
+    {
+      cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
+      processReturn();
+      return;
+    }
+
+  if (cliRC == 100) // did not find the row
+    {
+      *CmpCommon::diags() << DgSqlCode(-1389) << DgString0(extTableName);
+      processReturn();
+      return;
+    }
+               
+  // update flags with new repl options in TABLES metadata.
+  Int64 newFlags = flags;
+
+  // clear replication bits
+  CmpSeabaseDDL::resetMDflags(newFlags, CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG);
+  CmpSeabaseDDL::resetMDflags(newFlags, CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG);
+
+  Int64 replFlags;
+  if (fileAttrs.xnRepl() == COM_REPL_SYNC)
+    CmpSeabaseDDL::setMDflags(newFlags, CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG);
+  else if (fileAttrs.xnRepl() == COM_REPL_ASYNC)
+    CmpSeabaseDDL::setMDflags(newFlags, CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG);
+
+  str_sprintf(queryBuf, "update %s.\"%s\".%s set flags = %Ld where table_uid = %Ld ",
+              getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_TABLES,
+              newFlags, objUID);
+  
+  cliRC = cliInterface.executeImmediate(queryBuf);
+  if (cliRC < 0)
+    {
+      cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
+      processReturn();
+      return;
+    }
+  
+  ActiveSchemaDB()->getNATableDB()->removeNATable(cn,
+    NATableDB::REMOVE_FROM_ALL_USERS, COM_BASE_TABLE_OBJECT);
+
+  return;
+}
+
 /////////////////////////////////////////////////////////////////////
 // currTab:          table on which column is being added to or dropped from
 // newTempTab:  temporary table with new definition

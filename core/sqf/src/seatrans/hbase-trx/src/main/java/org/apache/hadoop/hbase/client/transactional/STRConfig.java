@@ -78,6 +78,10 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 
+import org.apache.hadoop.hbase.zookeeper.ZKUtil;
+import org.apache.hadoop.hbase.zookeeper.ZooKeeperListener;
+import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
+
 import org.apache.hadoop.hbase.client.transactional.PeerInfo;
 import org.apache.hadoop.ipc.RemoteException;
 
@@ -105,7 +109,9 @@ public class STRConfig {
 
     private static STRConfig s_STRConfig = null; 
 
-    public static void initClusterConfigs(Configuration pv_config) throws IOException {
+    public static void initClusterConfigs(Configuration pv_config) 
+	throws IOException 
+    {
 
 	peer_configs = new HashMap<Integer, Configuration>();
 	peer_connections = new HashMap<Integer, HConnection>();
@@ -225,16 +231,16 @@ public class STRConfig {
 
 	peer_configs = new HashMap<Integer, Configuration>();
 	peer_connections = new HashMap<Integer, HConnection>();
-	peer_info_list = new HashMap<Integer, PeerInfo>();
 
 	sv_dc_zk = new HBaseDCZK(pv_config);
 	peer_info_list = sv_dc_zk.list_clusters();
 	sv_my_cluster_id = sv_dc_zk.get_my_id();
-
-	if (sv_my_cluster_id != null) {
-	    if (LOG.isTraceEnabled()) LOG.trace("My cluster id: " + sv_my_cluster_id);
-	    pv_config.setInt("esgyn.cluster.id", Integer.parseInt(sv_my_cluster_id));
+	if (sv_my_cluster_id == null) {
+	    sv_my_cluster_id = "0";
 	}
+
+	if (LOG.isTraceEnabled()) LOG.trace("My cluster id: " + sv_my_cluster_id);
+	pv_config.setInt("esgyn.cluster.id", Integer.parseInt(sv_my_cluster_id));
 
     }
 
@@ -251,9 +257,12 @@ public class STRConfig {
 
 	try {
 
-	    Map<Integer, PeerInfo> lv_pi_list = sv_dc_zk.list_clusters();
+	    if (peer_info_list == null) {
+		if (LOG.isTraceEnabled()) LOG.trace("initClusterConfigsZK: list_clusters returned null");
+		return;
+	    }
 
-	    for (PeerInfo lv_pi : lv_pi_list.values()) {
+	    for (PeerInfo lv_pi : peer_info_list.values()) {
 		if (LOG.isTraceEnabled()) LOG.trace("initClusterConfigsZK: " + lv_pi);
 
 		if (lv_pi.get_id().equals(sv_my_cluster_id)) {
@@ -274,42 +283,78 @@ public class STRConfig {
 	
     }
 
-    public String getPeerStatus(int pv_cluster_id) {
+    public PeerInfo getPeerInfo(int pv_cluster_id) {
 	PeerInfo lv_pi = peer_info_list.get(pv_cluster_id);
-	if (lv_pi != null) {
-	    return lv_pi.get_status();
-	}
 
-	return null;
+	return lv_pi;
     }
 
-    public int getPeerCount() {
+    public synchronized void setPeerStatus(int    pv_cluster_id,
+					   String pv_status) 
+    {
+
+	if (LOG.isTraceEnabled()) LOG.trace("setPeerStatus" 
+					    + " cluster id: " + pv_cluster_id
+					    + " status: " + pv_status
+					    );
+
+	if (pv_status == null) {
+	    return;
+	}
+
+	PeerInfo lv_pi = peer_info_list.get(pv_cluster_id);
+	if (lv_pi != null) {
+	    boolean previouslySTRUp = lv_pi.isSTRUp();
+	    lv_pi.set_status(pv_status);
+	    boolean nowSTRUp = lv_pi.isSTRUp();
+	    if (previouslySTRUp && ! nowSTRUp) {
+		--sv_peer_count;
+	    }
+	    else if (! previouslySTRUp && nowSTRUp) {
+		++sv_peer_count;
+	    }
+	}
+
+	if (LOG.isTraceEnabled()) LOG.trace("setPeerStatus" 
+					    + " peer count: " + sv_peer_count
+					    );
+	return;
+    }
+
+    public int getPeerCount() 
+    {
 	return sv_peer_count;
     }
 
-    public Configuration getPeerConfiguration(int pv_cluster_id) {
+    public Configuration getPeerConfiguration(int pv_cluster_id) 
+    {
 	return peer_configs.get(pv_cluster_id);
     }
 
-    public Map<Integer, Configuration> getPeerConfigurations() {
+    public Map<Integer, Configuration> getPeerConfigurations() 
+    {
 	return peer_configs;
     }
 
-    public HConnection getPeerConnection(int pv_peer_id) {
+    public HConnection getPeerConnection(int pv_peer_id) 
+    {
 	return peer_connections.get(pv_peer_id);
     }
 
-    public Map<Integer, HConnection> getPeerConnections() {
+    public Map<Integer, HConnection> getPeerConnections() 
+    {
 	return peer_connections;
     }
 
-    public String getMyClusterId() {
+    public String getMyClusterId() 
+    {
 	return sv_my_cluster_id;
     }
 
     // getInstance to return the singleton object for TransactionManager
     public synchronized static STRConfig getInstance(final Configuration conf) 
-	throws 	IOException, InterruptedException, KeeperException, ZooKeeperConnectionException {
+	throws 	IOException, InterruptedException, KeeperException, ZooKeeperConnectionException 
+    {
 	if (s_STRConfig == null) {
 	
 	    s_STRConfig = new STRConfig(conf);
@@ -321,7 +366,10 @@ public class STRConfig {
      * @param conf
      * @throws ZooKeeperConnectionException
      */
-    private STRConfig(final Configuration conf) throws InterruptedException, KeeperException, ZooKeeperConnectionException, IOException {
+    private STRConfig(final Configuration conf) 
+	throws InterruptedException, KeeperException, ZooKeeperConnectionException, IOException 
+    
+    {
 	String lv_use_zk = System.getenv("STR_USE_ZK");
 	if (lv_use_zk != null && 
 	    (lv_use_zk.equals("0"))) {
@@ -330,9 +378,18 @@ public class STRConfig {
 	else {
 	    initClusterConfigsZK(conf);
 	}
+
+	if (sv_dc_zk != null) {
+	    sv_dc_zk.watch_all();
+	    XDCStatusWatcher lv_pw = new XDCStatusWatcher(sv_dc_zk.getZKW());
+	    lv_pw.setDCZK(sv_dc_zk);
+	    lv_pw.setSTRConfig(this);
+	    sv_dc_zk.register_status_listener(lv_pw);
+	}
     }
 
-    public String toString() {
+    public String toString() 
+    {
 	StringBuilder lv_sb = new StringBuilder();
 	String lv_str;
 	lv_str = "Number of peers: " + sv_peer_count;
