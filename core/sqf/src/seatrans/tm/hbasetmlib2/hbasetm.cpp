@@ -255,6 +255,8 @@ int CHbaseTM::initJVM()
   JavaMethods_[JM_DROPTABLE ].jm_signature = "(J[B)S";
   JavaMethods_[JM_RQREGINFO  ].jm_name      = "callRequestRegionInfo";
   JavaMethods_[JM_RQREGINFO  ].jm_signature = "()Lorg/trafodion/dtm/HashMapArray;";
+  JavaMethods_[JM_CREATE_EPH_NODE ].jm_name = "createEphemeralZKNode";
+  JavaMethods_[JM_CREATE_EPH_NODE ].jm_signature = "([B)S";
 
   char className[]="org/trafodion/dtm/HBaseTxClient";
   return (HBTM_RetCode)JavaObjectInterfaceTM::init(className, javaClass_, (JavaMethodInit*)&JavaMethods_, (int)JM_LAST, false);
@@ -619,6 +621,53 @@ void CHbaseTM::setTrace(HBASETM_TraceMask pv_traceMask)
          trace_printf(HDR ": Tracing on, Mask=0x%x.\n", iv_traceMask);
 } //Trace
 
+
+//----------------------------------------------------------------------------
+// CHbaseTM::createEphemeralZKNode
+// Purpose  : Lead DTM to create an ephemeral ZK node to signify that the 
+//            Trafodion env is up.
+//----------------------------------------------------------------------------
+int CHbaseTM::createEphemeralZKNode(const char *pa_data)
+{
+   int lv_error = FEOK;
+
+   HBASETrace(HBASETM_TraceAPI, (HDR "CHbaseTM::createEphemeralZKNode : data: %s.\n",
+				 pa_data)
+	      );
+
+  jthrowable exc;
+
+  JOI_RetCode lv_joi_retcode = JOI_OK;
+  lv_joi_retcode = JavaObjectInterfaceTM::initJVM();
+  if (lv_joi_retcode != JOI_OK) {
+    printf("JavaObjectInterfaceTM::initJVM returned: %d\n", lv_joi_retcode);
+    fflush(stdout);
+    abort();
+  }
+
+  jbyteArray jba_data = _tlp_jenv->NewByteArray(strlen(pa_data));
+  if (jba_data == NULL)
+    return RET_ADD_PARAM;
+  _tlp_jenv->SetByteArrayRegion(jba_data, 0, strlen(pa_data), (const jbyte*) pa_data);
+
+  lv_error = _tlp_jenv->CallShortMethod(javaObj_,
+					JavaMethods_[JM_CREATE_EPH_NODE].methodID,
+					jba_data
+					);
+  exc = _tlp_jenv->ExceptionOccurred();
+  if(exc) {
+    _tlp_jenv->ExceptionDescribe();
+    _tlp_jenv->ExceptionClear();
+    lv_error = RET_EXCEPTION;
+  }
+
+  _tlp_jenv->DeleteLocalRef(jba_data);
+
+  HBASETrace(HBASETM_TraceExit, (HDR "CHbaseTM::createEphemeralZKNode : Error %d, data %s.\n", 
+                lv_error, pa_data));
+
+  return lv_error;
+} //CHbaseTM::createEphemeralZKNode
 
 //----------------------------------------------------------------------------
 // CHbaseTM::registerRegion
