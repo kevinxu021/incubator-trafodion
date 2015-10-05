@@ -219,7 +219,7 @@ class ElemDDLFileAttrXnRepl : public ElemDDLFileAttr
 public:
 public:
 
-  ElemDDLFileAttrXnRepl(NABoolean xnRepl)
+  ElemDDLFileAttrXnRepl(ComReplType xnRepl)
        : ElemDDLFileAttr(ELM_FILE_ATTR_XN_REPL_ELEM)
   {
     xnRepl_ = xnRepl;
@@ -236,7 +236,7 @@ public:
     return this; 
   }
 
-  NABoolean xnRepl() { return xnRepl_; }
+  ComReplType xnRepl() { return xnRepl_; }
 
   // method for building text
   virtual NAString getSyntax() const
@@ -245,7 +245,7 @@ public:
   }
 
 private:
-  NABoolean xnRepl_;
+  ComReplType xnRepl_;
 }; // class ElemDDLFileAttrXnRepl
 
 #endif // ELEMDDLFILEATTR_H

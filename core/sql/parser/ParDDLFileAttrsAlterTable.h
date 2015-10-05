@@ -236,6 +236,10 @@ public:
        // returns FALSE otherwise.  The return value does not
        // any meaning when the MaxSize phrase does not appear.
 
+  inline NABoolean isXnReplSpecified() const;
+
+  inline ComReplType xnRepl() const;
+
 
 //++ MV
   
@@ -376,8 +380,10 @@ private:
   // COMPRESSION TYPE { SOFTWARE | HARDWARE | NONE }
   ComCompressionType  compressionType_;
   NABoolean           isCompressionTypeSpec_;
-//-- MV
 
+  // transaction replication across multiple clusters
+  NABoolean       isXnReplSpec_;
+  ComReplType     xnRepl_;
 
 
 }; // class ParDDLFileAttrsAlterTable
@@ -543,6 +549,15 @@ ParDDLFileAttrsAlterTable::isCompressionTypeSpecified() const
 {
   return isCompressionTypeSpec_;
 }
+
+inline NABoolean
+ParDDLFileAttrsAlterTable::isXnReplSpecified() const
+{
+  return isXnReplSpec_;
+}
+
+inline ComReplType ParDDLFileAttrsAlterTable::xnRepl() const 
+{ return xnRepl_; }
 
 //----------------------------------------------------------------------------
 //++ MV

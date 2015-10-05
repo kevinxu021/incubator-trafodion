@@ -7,7 +7,7 @@
 >>invoke T011T1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T011T1
--- Definition current  Thu Sep 17 15:50:43 2015
+-- Definition current  Sun Oct  4 13:57:45 2015
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1180,7 +1180,7 @@ METRIC_TEXT_TABLE
 >>invoke trafodion."_REPOS_".metric_query_table;
 
 -- Definition of Trafodion table TRAFODION."_REPOS_".METRIC_QUERY_TABLE
--- Definition current  Thu Sep 17 15:52:11 2015
+-- Definition current  Sun Oct  4 13:59:07 2015
 
   (
     INSTANCE_ID                      INT UNSIGNED NO DEFAULT NOT NULL NOT
@@ -1362,7 +1362,7 @@ METRIC_TEXT_TABLE
 >>-- get qid for the prepared stmt
 >>get qid for statement explstmt;
 
-MXID11000005533212309265019653394000000000206U3333300_1283_EXPLSTMT
+MXID11000026129212310727045799227000000000206U3333300_1297_EXPLSTMT
 
 --- SQL operation complete.
 >>
@@ -1414,7 +1414,7 @@ SEQ_NUM      OPERATOR
 --- SQL command prepared.
 >>get qid for statement explstmt2;
 
-MXID11000005533212309265019653394000000000206U3333300_1294_EXPLSTMT2
+MXID11000026129212310727045799227000000000206U3333300_1308_EXPLSTMT2
 
 --- SQL operation complete.
 >>set qid MXID123456 for explstmt2;
@@ -1987,7 +1987,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>invoke t011t7;
 
 -- Definition of Trafodion table TRAFODION.SCH.T011T7
--- Definition current  Thu Sep 17 15:52:51 2015
+-- Definition current  Sun Oct  4 13:59:41 2015
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -2004,7 +2004,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>invoke t011t7;
 
 -- Definition of Trafodion table TRAFODION.SCH.T011T7
--- Definition current  Thu Sep 17 15:52:52 2015
+-- Definition current  Sun Oct  4 13:59:42 2015
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -2021,7 +2021,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>invoke t011t7;
 
 -- Definition of Trafodion table TRAFODION.SCH.T011T7
--- Definition current  Thu Sep 17 15:52:57 2015
+-- Definition current  Sun Oct  4 13:59:42 2015
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -2073,6 +2073,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>create table t011t8a(a int) attributes asynchronous replication;
 
 --- SQL operation complete.
+>>create table t011t8n(a int) attributes no replication;
+
+--- SQL operation complete.
 >>showddl t011t8s;
 
 CREATE TABLE TRAFODION.SCH.T011T8S
@@ -2093,6 +2096,68 @@ CREATE TABLE TRAFODION.SCH.T011T8A
 ;
 
 --- SQL operation complete.
+>>showddl t011t8n;
+
+CREATE TABLE TRAFODION.SCH.T011T8N
+  (
+    A                                INT DEFAULT NULL
+  )
+;
+
+--- SQL operation complete.
+>>alter table t011t8s attribute no replication;
+
+--- SQL operation complete.
+>>showddl t011t8s;
+
+CREATE TABLE TRAFODION.SCH.T011T8S
+  (
+    A                                INT DEFAULT NULL
+  )
+;
+
+--- SQL operation complete.
+>>alter table t011t8s attribute synchronous replication;
+
+--- SQL operation complete.
+>>showddl t011t8s;
+
+CREATE TABLE TRAFODION.SCH.T011T8S
+  (
+    A                                INT DEFAULT NULL
+  )
+ ATTRIBUTES SYNCHRONOUS REPLICATION
+;
+
+--- SQL operation complete.
+>>alter table t011t8s attribute asynchronous replication;
+
+--- SQL operation complete.
+>>showddl t011t8s;
+
+CREATE TABLE TRAFODION.SCH.T011T8S
+  (
+    A                                INT DEFAULT NULL
+  )
+ ATTRIBUTES ASYNCHRONOUS REPLICATION
+;
+
+--- SQL operation complete.
+>>alter table t011t8n attribute synchronous replication;
+
+--- SQL operation complete.
+>>showddl t011t8n;
+
+CREATE TABLE TRAFODION.SCH.T011T8N
+  (
+    A                                INT DEFAULT NULL
+  )
+ ATTRIBUTES SYNCHRONOUS REPLICATION
+;
+
+--- SQL operation complete.
+>>
+>>
 >>
 >>
 >>obey TEST011(clnup);
@@ -2136,6 +2201,9 @@ CREATE TABLE TRAFODION.SCH.T011T8A
 
 --- SQL operation complete.
 >>drop table t011t8a;
+
+--- SQL operation complete.
+>>drop table t011t8n;
 
 --- SQL operation complete.
 >>
