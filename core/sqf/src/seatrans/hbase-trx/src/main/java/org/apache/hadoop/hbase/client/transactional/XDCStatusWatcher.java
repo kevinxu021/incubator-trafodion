@@ -90,7 +90,7 @@ public class XDCStatusWatcher extends ZooKeeperListener {
      * @param path full path of the deleted node
      */
     public void nodeDeleted(String path) {
-	LOG.info(path + " znode deleted");
+	if (LOG.isInfoEnabled()) LOG.info(path + " znode deleted");
 	try {
 	    if (m_zk != null) m_zk.watch_all();
 	}
@@ -111,7 +111,7 @@ public class XDCStatusWatcher extends ZooKeeperListener {
 
 	String[] lv_elements = path.split("/");
 	int lv_length = lv_elements.length;
-	LOG.info("Number of elements:" + lv_length);
+	if (LOG.isTraceEnabled()) LOG.trace("Number of elements:" + lv_length);
 
 	if (lv_length <= 1) {
 	    return null;
@@ -119,11 +119,11 @@ public class XDCStatusWatcher extends ZooKeeperListener {
 
 	int lv_id_index = lv_length - 2;
 	String lv_id = lv_elements[lv_id_index];
-	LOG.info("Node element[" + lv_id_index + "]: " + lv_id);
+	if (LOG.isTraceEnabled()) LOG.trace("Node element[" + lv_id_index + "]: " + lv_id);
 	try {
 	    PeerInfo lv_pi = m_zk.get_peer_znode(lv_id);
 	    if (lv_pi != null) {
-		LOG.info(lv_pi);
+		if (LOG.isInfoEnabled()) LOG.info("Peer info: " + lv_pi);
 		return lv_pi;
 	    }
 	}
@@ -137,11 +137,11 @@ public class XDCStatusWatcher extends ZooKeeperListener {
 
     void updateSTRConfig(PeerInfo pv_pi)
     {
-	if (LOG.isTraceEnabled()) LOG.trace("updateSTRConfig: PeerInfo: "
-					    + ((pv_pi != null) ? pv_pi :"")
-					    );
+	if (LOG.isInfoEnabled()) LOG.info("updateSTRConfig: PeerInfo: "
+					  + ((pv_pi != null) ? pv_pi :"")
+					  );
 	if (m_str == null) {
-	    if (LOG.isTraceEnabled()) LOG.trace("updateSTRConfig: STRConfig is null");
+	    if (LOG.isInfoEnabled()) LOG.info("updateSTRConfig: STRConfig is null");
 	    return;
 	}
 
@@ -151,8 +151,9 @@ public class XDCStatusWatcher extends ZooKeeperListener {
 
 	String lv_id = pv_pi.get_id();
 	if (lv_id == null) {
-		return;
+	    return;
 	}
+
 	int lv_integer_id = Integer.parseInt(lv_id);
 	m_str.setPeerStatus(lv_integer_id,
 			    pv_pi.get_status());
@@ -191,6 +192,7 @@ public class XDCStatusWatcher extends ZooKeeperListener {
      * @param path full path of the node whose children have changed
      */
     public void nodeChildrenChanged(String path) {
+
 	try {
 	    if (m_zk != null) m_zk.watch_all();
 	}
@@ -198,7 +200,8 @@ public class XDCStatusWatcher extends ZooKeeperListener {
 	    {
 		LOG.error("Exception raised by watch_all: " + e);
 	    }
-	LOG.info(path + " znode children changed");
-	LOG.info("Number of listeners: " + watcher.getNumberOfListeners());
+
+	if (LOG.isInfoEnabled()) LOG.info(path + " znode children changed");
+	
     }
 }

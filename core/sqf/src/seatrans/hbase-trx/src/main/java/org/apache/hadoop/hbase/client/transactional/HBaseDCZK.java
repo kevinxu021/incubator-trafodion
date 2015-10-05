@@ -438,12 +438,12 @@ public class HBaseDCZK implements Abortable {
 
 	try {
 	    
-	    STRConfig     pSTRConfig = null;
+	    STRConfig     lv_STRConfig = null;
 	    Configuration lv_config  = null;
 
 	    System.setProperty("PEERS", pv_cluster_id);
-	    pSTRConfig = STRConfig.getInstance(m_config);
-	    lv_config = pSTRConfig.getPeerConfiguration(Integer.parseInt(pv_cluster_id));
+	    lv_STRConfig = STRConfig.getInstance(m_config);
+	    lv_config = lv_STRConfig.getPeerConfiguration(Integer.parseInt(pv_cluster_id));
 	    if (lv_config == null) {
 		System.out.println("Peer ID: " + pv_cluster_id + " does not exist OR it has not been configured.");
 		return;
@@ -722,13 +722,13 @@ public class HBaseDCZK implements Abortable {
 	    }
 	}
 	    
-	STRConfig pSTRConfig = null;
+	STRConfig lv_STRConfig = null;
 	Configuration lv_config = HBaseConfiguration.create();
 	if (lv_peer_id > 0) {
 	    try {
 		System.setProperty("PEERS", String.valueOf(lv_peer_id));
-		pSTRConfig = STRConfig.getInstance(lv_config);
-		lv_config = pSTRConfig.getPeerConfiguration(lv_peer_id);
+		lv_STRConfig = STRConfig.getInstance(lv_config);
+		lv_config = lv_STRConfig.getPeerConfiguration(lv_peer_id);
 		if (lv_config == null) {
 		    System.out.println("Peer ID: " + lv_peer_id + " does not exist OR it has not been configured.");
 		    System.exit(1);
@@ -752,6 +752,7 @@ public class HBaseDCZK implements Abortable {
 		    lv_zk.watch_all();
 		    XDCStatusWatcher lv_pw = new XDCStatusWatcher(lv_zk.getZKW());
 		    lv_pw.setDCZK(lv_zk);
+		    lv_pw.setSTRConfig(lv_STRConfig);
 		    lv_zk.register_status_listener(lv_pw);
 
 		    System.out.println("Number of listeners: " + lv_zk.getZKW().getNumberOfListeners());
