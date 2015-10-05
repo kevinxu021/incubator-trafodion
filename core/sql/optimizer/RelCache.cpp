@@ -1191,13 +1191,32 @@ void Scan::generateCacheKey(CacheWA &cwa) const
     cwa += AM_AN_MPALIAS_QUERY;
   }
 
-  if (getHbaseAccessOptions())
+  if (getOptHbaseAccessOptions())
     {
-      cwa += " hbaseVersions: ";
-      char numVersions[20];
-      sprintf(numVersions, " %d", getHbaseAccessOptions()->getHbaseVersions());
-      cwa += numVersions ;
-    }
+      if (getOptHbaseAccessOptions()->getNumVersions() != 0)
+        {
+          cwa += " hbaseVersions: ";
+          char numVersions[20];
+          sprintf(numVersions, " %d", getOptHbaseAccessOptions()->getNumVersions());
+          cwa += numVersions ;
+        }
+
+      if (getOptHbaseAccessOptions()->hbaseMinTS() != -1)
+        {
+          cwa += " hbaseMinTS: ";
+          char minTS[25];
+          str_sprintf(minTS, " %Ld", getOptHbaseAccessOptions()->hbaseMinTS());
+          cwa += minTS ;
+        }
+      
+      if (getOptHbaseAccessOptions()->hbaseMaxTS() != -1)
+        {
+          cwa += " hbaseMaxTS: ";
+          char maxTS[25];
+          str_sprintf(maxTS, " %Ld", getOptHbaseAccessOptions()->hbaseMaxTS());
+          cwa += maxTS ;
+        }
+     }
 }
 
 // is this entire expression cacheable after this phase?

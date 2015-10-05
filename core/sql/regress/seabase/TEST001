@@ -33,6 +33,9 @@ exit;
 create table t001t1(a int not null primary key, b int, c int default 10 not null)
    hbase_options (max_versions = '3');
 
+create table t001t2 (name char(10) not null primary key,
+                     "position" char(10)) hbase_options (max_versions = '4');
+
 ?section dml
 select * from t001t1 {versions max};
 insert into t001t1 values (1,1,1);
@@ -46,9 +49,26 @@ select * from t001t1 {versions max};
 cqd traf_num_hbase_versions '-1';
 select * from t001t1;
 
-select hbase_version(a), hbase_timestamp(a),  hbase_version(b), hbase_timestamp(b),
-   hbase_version(c), hbase_timestamp(c) from t001t1;
-
+cqd traf_num_hbase_versions reset;
+cqd hbase_timestamp_set '2000-01-02 10:10:10';
+insert into t001t2 values ('Jill', 'Manager');
+cqd hbase_timestamp_set '2001-01-02 09:09:09';
+insert into t001t2 values ('Jack', 'Programmer');
+cqd hbase_timestamp_set '2002-01-02 09:09:09';
+update t001t2 set "position" = 'Architect' where name = 'Jack';
+select * from t001t2;
+select * from t001t2 {versions max};
+select name, "position", hbase_timestamp("position", localtime) from t001t2
+  {versions max};
+select hbase_version("position"), hbase_timestamp("position", localtime),* 
+        from t001t2 {timestamp as of '1999-09-10 17:54:16', versions max};
+select hbase_version("position"), hbase_timestamp("position", localtime),* 
+        from t001t2 {timestamp as of '2000-09-10 17:54:16', versions max};
+select hbase_version("position"), hbase_timestamp("position", localtime),* 
+        from t001t2 {timestamp as of '2001-09-10 17:54:16', versions max};
+select hbase_version("position"), hbase_timestamp("position", localtime),* 
+        from t001t2 {timestamp as of '2015-09-10 17:54:16', versions max};
 
 ?section clean_up
 drop table t001t1;
+drop table t001t2;

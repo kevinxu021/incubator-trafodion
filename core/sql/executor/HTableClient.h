@@ -16,10 +16,10 @@ extern "C" {
 /*
  * Class:     org_trafodion_sql_HBaseAccess_HTableClient
  * Method:    setResultInfo
- * Signature: (J[I[I[I[I[I[I[J[[B[[B[II)I
+ * Signature: (J[I[I[I[I[I[I[J[[B[[B[[B[II)I
  */
 JNIEXPORT jint JNICALL Java_org_trafodion_sql_HBaseAccess_HTableClient_setResultInfo
-  (JNIEnv *, jobject, jlong, jintArray, jintArray, jintArray, jintArray, jintArray, jintArray, jlongArray, jobjectArray, jobjectArray, jintArray, jint, jint);
+(JNIEnv *, jobject, jlong, jintArray, jintArray, jintArray, jintArray, jintArray, jintArray, jlongArray, jobjectArray, jobjectArray, jobjectArray, jintArray, jint, jint);
 
 /*
  * Class:     org_trafodion_sql_HBaseAccess_HTableClient

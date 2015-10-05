@@ -4613,6 +4613,16 @@ void HbaseAccess::addReferenceFromItemExprTree(ItemExpr * ie,
       return;
     }
 
+  if (ie->getOperatorType() == ITM_HBASE_TAG)
+    {
+      if (addHBF)
+        {
+          colRefVIDset.insert(ie->getValueId());
+        }
+
+      return;
+    }
+
   if (ie->getOperatorType() == ITM_HBASE_TIMESTAMP)
     {
       if (addHBF)
@@ -4888,7 +4898,8 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
           ValueId dummyValId;
           if (NOT getGroupAttr()->getCharacteristicInputs().referencesTheGivenValue(valId, dummyValId))
             {
-              if ((valId.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP) ||
+              if ((valId.getItemExpr()->getOperatorType() == ITM_HBASE_TAG) ||
+                  (valId.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP) ||
                   (valId.getItemExpr()->getOperatorType() == ITM_HBASE_VERSION))
                 {
                   *CmpCommon::diags() << DgSqlCode(-3242)
@@ -5029,8 +5040,6 @@ RelExpr * HbaseUpdate::preCodeGen(Generator * generator,
            listOfUpdSubsetRows_))
     return NULL;
 
-  //  if (! GenericUpdate::preCodeGen(generator, externalInputs, pulledNewInputs))
-  //    return NULL;
   if (! UpdateCursor::preCodeGen(generator, externalInputs, pulledNewInputs))
     return NULL;
 
@@ -5095,6 +5104,32 @@ RelExpr * HbaseUpdate::preCodeGen(Generator * generator,
       GenExit();
     }
 
+  if (hbaseTagExpr().entries() > 0)
+    {
+      if ((getTableDesc()->getNATable()->isHbaseRowTable()) ||
+          (getTableDesc()->getNATable()->isHbaseCellTable()) ||
+          (getTableDesc()->getNATable()->isSQLMXAlignedTable()))
+        {
+          *CmpCommon::diags() << DgSqlCode(-4223)
+                              << DgString0("Setting hbase tag on hbase native or aligned format table is");
+          GenExit();
+        }
+
+      if (isMerge())
+        {
+	  *CmpCommon::diags() << DgSqlCode(-3241) 
+			      << DgString0(" Cannot set hbase tag.");
+	  GenExit();
+        }
+
+      for (CollIndex i = 0;i < hbaseTagExpr().entries(); i++)
+        {
+          if (! hbaseTagExpr()[i].getItemExpr()->preCodeGen(generator))
+            GenExit();
+        }
+
+    }
+
   NABoolean canDoRowsetOper = TRUE;
   NABoolean canDoCheckAndUpdate = TRUE;
   NABoolean needToGetCols = FALSE;
@@ -5149,7 +5184,8 @@ RelExpr * HbaseUpdate::preCodeGen(Generator * generator,
 	      ValueId dummyValId;
 	      if (NOT getGroupAttr()->getCharacteristicInputs().referencesTheGivenValue(valId, dummyValId))
                 {
-                  if ((valId.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP) ||
+                  if ((valId.getItemExpr()->getOperatorType() == ITM_HBASE_TAG) ||
+                      (valId.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP) ||
                       (valId.getItemExpr()->getOperatorType() == ITM_HBASE_VERSION))
                     {
                       *CmpCommon::diags() << DgSqlCode(-3242)
@@ -5194,6 +5230,13 @@ RelExpr * HbaseUpdate::preCodeGen(Generator * generator,
 	       (listOfUpdUniqueRows_[0].rowIds_.entries() == 1))
 	isUnique = TRUE;
     }
+
+  if (hbaseTagExpr().entries() > 0)
+    {
+      isUnique = FALSE;
+      canDoCheckAndUpdel() = FALSE;
+    }
+  
   if (getInliningInfo().isIMGU()) {
      // There is no need to checkAndPut for IM
      canDoCheckAndUpdel() = FALSE;
@@ -9526,32 +9569,6 @@ ItemExpr * Generator::addCompDecodeForDerialization(ItemExpr * ie)
   return ie;
 }
 
-ItemExpr * HbaseTimestamp::preCodeGen(Generator * generator)
-{
-  if (nodeIsPreCodeGenned())
-    return getReplacementExpr();
-
-  if (! ItemExpr::preCodeGen(generator))
-    return NULL;
-
-  markAsPreCodeGenned();
-
-  return this;
-}
-
-ItemExpr * HbaseVersion::preCodeGen(Generator * generator)
-{
-  if (nodeIsPreCodeGenned())
-    return getReplacementExpr();
-
-  if (! ItemExpr::preCodeGen(generator))
-    return NULL;
-
-  markAsPreCodeGenned();
-
-  return this;
-}
-
 ItemExpr * LOBoper::preCodeGen(Generator * generator)
 {
   generator->setProcessLOB(TRUE);
@@ -11372,14 +11389,21 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
             {
               retColRefSet_.insert(valId);
 
-              if (valId.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP)
+              if (valId.getItemExpr()->getOperatorType() == ITM_HBASE_TAG)
+                {
+                  Lng32 colNumber = ((BaseColumn*)((HbaseTag*)valId.getItemExpr())->col())->getColNumber();
+                  ValueId colVID = getIndexDesc()->getIndexColumns()[colNumber];
+                  retColRefSet_.insert(colVID);
+                }
+
+               if (valId.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP)
                 {
                   Lng32 colNumber = ((BaseColumn*)((HbaseTimestamp*)valId.getItemExpr())->col())->getColNumber();
                   ValueId colVID = getIndexDesc()->getIndexColumns()[colNumber];
                   retColRefSet_.insert(colVID);
                 }
 
-              if (valId.getItemExpr()->getOperatorType() == ITM_HBASE_VERSION)
+             if (valId.getItemExpr()->getOperatorType() == ITM_HBASE_VERSION)
                 {
                   Lng32 colNumber = ((BaseColumn*)((HbaseVersion*)valId.getItemExpr())->col())->getColNumber();
                   ValueId colVID = getIndexDesc()->getIndexColumns()[colNumber];

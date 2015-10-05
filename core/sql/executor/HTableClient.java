@@ -91,6 +91,12 @@ import org.apache.hadoop.fs.FileUtil;
 import java.util.UUID;
 import java.security.InvalidParameterException;
 
+// for tags
+import org.apache.hadoop.hbase.Tag;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.security.visibility.CellVisibility;
+import org.apache.hadoop.hbase.TagType;
+
 public class HTableClient {
 	private static final int GET_ROW = 1;
 	private static final int BATCH_GET = 2;
@@ -116,6 +122,7 @@ public class HTableClient {
 	int[] kvFamOffset = null;
 	long[] kvTimestamp = null;
 	byte[][] kvBuffer = null;
+        byte[][] kvTag = null;
 	byte[][] rowIDs = null;
 	int[] kvsPerRow = null;
         static ExecutorService executorService = null;
@@ -376,7 +383,9 @@ public class HTableClient {
                                  String snapName,
                                  String tmpLoc,
                                  int espNum,
-                                 int versions)
+                                 int versions,
+                                 long minTS,
+                                 long maxTS)
 	        throws IOException, Exception {
 	  if (logger.isTraceEnabled()) logger.trace("Enter startScan() " + tableName + " txid: " + transID+ " CacheBlocks: " + cacheBlocks + " numCacheRows: " + numCacheRows + " Bulkread: " + useSnapshotScan);
 
@@ -407,6 +416,13 @@ public class HTableClient {
                  scan.setMaxVersions(versions);
                }
            }
+
+          if ((minTS != -1) && (maxTS != -1))
+              {
+                  //                  System.out.println("min = " + minTS);
+                  //                  System.out.println("max = " + maxTS);
+                  scan.setTimeRange(minTS, maxTS);
+              }
 
           if (cacheBlocks == true) {
               scan.setCacheBlocks(true);
@@ -673,6 +689,30 @@ public class HTableClient {
 		}
 	}
 
+        protected int getTag(Cell cell, byte tagType, int tagsLen, byte[] tagValue) {
+            if (tagsLen <= 0)
+                return 0;
+
+            Iterator<Tag> tagI
+                = CellUtil.tagsIterator(CellUtil.getTagArray(cell), 
+                                        cell.getTagsOffset(), tagsLen);
+            while (tagI.hasNext())
+                {
+                    Tag tag = tagI.next();
+                    if (tag.getType() == tagType)
+                        {
+                            System.arraycopy(tag.getBuffer(), tag.getTagOffset(), 
+                                             tagValue, 0, tag.getTagLength());
+
+                        }
+                            System.out.println(tagType);
+                            System.out.println(tagValue);
+
+                }
+
+            return 0;
+        }
+
 	protected int pushRowsToJni(Result[] result) 
 			throws IOException {
 		if (result == null || result.length == 0)
@@ -705,6 +745,7 @@ public class HTableClient {
 			kvFamOffset = new int[numTotalCells];
 			kvTimestamp = new long[numTotalCells];
 			kvBuffer = new byte[numTotalCells][];
+                        kvTag = new byte[numTotalCells][];
 		}
                
 		if (rowIDs == null || (rowIDs != null &&
@@ -734,6 +775,15 @@ public class HTableClient {
 				kvFamOffset[cellNum] = kv.getFamilyOffset();
 				kvTimestamp[cellNum] = kv.getTimestamp();
 				kvBuffer[cellNum] = kv.getValueArray();
+
+                                int tagsLen = kv.getTagsLength();
+                                //                                System.out.println(tagsLen);
+                                if (tagsLen > 0)
+                                    {
+                                        byte tagType = 0; 
+                                        getTag(kv, tagType, tagsLen, kvTag[cellNum]); 
+                                    }
+
 				colFound = true;
 			}
 		}
@@ -744,12 +794,12 @@ public class HTableClient {
 			cellsReturned = 0;
 		if (cellsReturned == 0)
 			setResultInfo(jniObject, null, null,
-				null, null, null, null,
-				null, null, rowIDs, kvsPerRow, cellsReturned, rowsReturned);
+                                      null, null, null, null,
+                                      null, null, null, rowIDs, kvsPerRow, cellsReturned, rowsReturned);
 		else 
 			setResultInfo(jniObject, kvValLen, kvValOffset,
-				kvQualLen, kvQualOffset, kvFamLen, kvFamOffset,
-				kvTimestamp, kvBuffer, rowIDs, kvsPerRow, cellsReturned, rowsReturned);
+                                      kvQualLen, kvQualOffset, kvFamLen, kvFamOffset,
+                                      kvTimestamp, kvBuffer, kvTag, rowIDs, kvsPerRow, cellsReturned, rowsReturned);
 		return rowsReturned;	
 	}		
 	
@@ -779,6 +829,7 @@ public class HTableClient {
 			kvFamOffset = new int[numTotalCells];
 			kvTimestamp = new long[numTotalCells];
 			kvBuffer = new byte[numTotalCells][];
+                        kvTag = new byte[numTotalCells][];
 		}
 		if (rowIDs == null)
 		{
@@ -805,15 +856,23 @@ public class HTableClient {
 			kvFamOffset[colNum] = kv.getFamilyOffset();
 			kvTimestamp[colNum] = kv.getTimestamp();
 			kvBuffer[colNum] = kv.getValueArray();
+
+                        int tagsLen = kv.getTagsLength();
+                        //                        System.out.println(tagsLen);
+                        if (tagsLen > 0)
+                            {
+                                byte tagType = 0; 
+                                getTag(kv, tagType, tagsLen, kvTag[colNum]); 
+                            }
 		}
 		if (numColsReturned == 0)
 			setResultInfo(jniObject, null, null,
-				null, null, null, null,
-				null, null, rowIDs, kvsPerRow, numColsReturned, rowsReturned);
+                                      null, null, null, null,
+                                      null, null, null,rowIDs, kvsPerRow, numColsReturned, rowsReturned);
 		else
 			setResultInfo(jniObject, kvValLen, kvValOffset,
-				kvQualLen, kvQualOffset, kvFamLen, kvFamOffset,
-				kvTimestamp, kvBuffer, rowIDs, kvsPerRow, numColsReturned, rowsReturned);
+                                      kvQualLen, kvQualOffset, kvFamLen, kvFamOffset,
+                                      kvTimestamp, kvBuffer, kvTag, rowIDs, kvsPerRow, numColsReturned, rowsReturned);
 		return rowsReturned;	
 	}		
 	
@@ -955,9 +1014,10 @@ public class HTableClient {
 	}
 
 	public boolean putRow(final long transID, final byte[] rowID, Object row,
-		byte[] columnToCheck, final byte[] colValToCheck,
-		final boolean checkAndPut, boolean asyncOperation) throws IOException, InterruptedException, 
-                          ExecutionException 
+                              byte[] columnToCheck, final byte[] colValToCheck,
+                              long timestamp,
+                              final boolean checkAndPut, boolean asyncOperation) throws IOException, InterruptedException, 
+                                                                                        ExecutionException 
 	{
 		if (logger.isTraceEnabled()) logger.trace("Enter putRow() " + tableName + 
 							  " transID: " + transID +
@@ -973,7 +1033,14 @@ public class HTableClient {
 		byte[] colName, colValue;
 
 		bb = (ByteBuffer)row;
-		put = new Put(rowID);
+                if (timestamp > 0)
+                    {
+                        put = new Put(rowID, timestamp);
+
+                        System.out.println("here " + timestamp);
+                    }
+                else
+                    put = new Put(rowID);
 		numCols = bb.getShort();
 		for (short colIndex = 0; colIndex < numCols; colIndex++)
 		{
@@ -1050,7 +1117,7 @@ public class HTableClient {
 			 long timestamp,
                          boolean asyncOperation) throws IOException, InterruptedException, ExecutionException {
 		return putRow(transID, rowID, row, null, null, 
-				false, asyncOperation);
+                              timestamp, false, asyncOperation);
 	}
 
 	public boolean putRows(final long transID, short rowIDLen, Object rowIDs, 
@@ -1123,6 +1190,127 @@ public class HTableClient {
 		return true;
 	} 
 
+	public boolean updateTags(final long transID, final byte[] rowID, Object row) throws IOException, InterruptedException, 
+                          ExecutionException 
+	{
+		if (logger.isTraceEnabled()) logger.trace("Enter updateTags() " + tableName);
+
+	 	final Put put;
+		ByteBuffer bb;
+                int numTags;
+		short numCols;
+		short colNameLen;
+                int tagType;
+                int tagValLen;
+		byte[] family = null;
+		byte[] qualifier = null;
+		byte[] colName, tagVal;
+
+                put = new Put(rowID);
+
+                ///////////////////////////////////////////////////////
+                // layout of row
+                //
+                //   numTags(int)
+                //    (for each tag)
+                //     colIDlen(short)
+                //     colID(colIDlen bytes)
+                //     tagType(short)
+                //     tagValLen(int)
+                //     tagVal(tagValLen bytes)
+                //
+                ///////////////////////////////////////////////////////
+		bb = (ByteBuffer)row;
+                bb.order(ByteOrder.LITTLE_ENDIAN);
+
+                //                System.out.println(bb);
+                //                System.out.println(rowID);
+
+                for (int ii=0; ii < 20; ii++)
+                    {
+                        //                        System.out.println(bb.get());
+                    }
+                System.out.println("here1");
+ 
+                Result getResult;
+		numTags = bb.getInt();
+                //                System.out.println(numTags);
+		for (short tagIndex = 0; tagIndex < numTags; tagIndex++)
+		{
+			colNameLen = bb.getShort();
+                        System.out.println("colNameLen = " + colNameLen);
+			colName = new byte[colNameLen];
+			bb.get(colName, 0, colNameLen);
+                        tagType = bb.getInt();
+                        System.out.println("tagType = " + tagType);
+			tagValLen = bb.getInt();	
+                        System.out.println("tagValLen = " + tagValLen);
+			tagVal = new byte[tagValLen];
+			bb.get(tagVal, 0, tagValLen-1);
+
+                        String s = new String(colName);
+                        System.out.println("colName = " + s);
+ 
+			family = getFamily(colName);
+			qualifier = getName(colName);
+
+                        s = new String(family);
+                        System.out.println("family = " + s);
+
+                        s = new String(qualifier);
+                        System.out.println("qualifier = " + s);
+
+                        System.out.println("here2");
+                        Get get = new Get(rowID);
+
+                        System.out.println("rowID = " + rowID);
+                        s = new String(rowID);
+                        System.out.println("rowIDstr = " + s);
+
+                        get.addColumn(family, qualifier);
+                        if (transID != 0) {
+                            getResult = table.get(transID, get);
+                        } else {
+                            getResult = table.get(get);
+                        }
+
+                        System.out.println("here0");
+                        System.out.println(getResult);
+                        if (getResult == null
+                            || getResult.isEmpty()) {
+                            //                            setJavaObject(jniObject);
+                            System.out.println("here error");
+                            return false;
+                        }
+
+                        System.out.println("here");
+
+                        //                        Cell[] kvList = getResult.rawCells();
+                        //                        Cell kv = kvList[0];
+                        //                        byte[] valArr = kv.getValueArray();
+                        byte[] valArr = getResult.value();
+
+                        s = new String(valArr);
+                        System.out.println("valArr = " + s);
+
+                        String strTagVal = new String(tagVal);
+                        CellVisibility cv = new CellVisibility(strTagVal);
+
+                        put.add(family, qualifier, valArr);
+                        // after hbase 1.0, change to addColumn
+                        //   put.addColumn(family, qualifier, valArr);
+                        put.setCellVisibility(cv);
+		}
+
+                boolean result = true;
+                if (useTRex && (transID != 0)) 
+                    table.put(transID, put);
+                else 
+                    table.put(put);
+
+                return result;
+        }	
+
 	public boolean completeAsyncOperation(int timeout, boolean resultArray[]) 
 			throws InterruptedException, ExecutionException
 	{
@@ -1148,7 +1336,7 @@ public class HTableClient {
 			 long timestamp,
                          boolean asyncOperation) throws IOException, InterruptedException, ExecutionException  {
 		return putRow(transID, rowID, row, null, null, 
-				true, asyncOperation);
+                              timestamp, true, asyncOperation);
 	}
 
 	public boolean checkAndUpdateRow(long transID, byte[] rowID, 
@@ -1156,7 +1344,7 @@ public class HTableClient {
              long timestamp, boolean asyncOperation) throws IOException, InterruptedException, 
                                     ExecutionException, Throwable  {
 		return putRow(transID, rowID, columns, columnToCheck, 
-			colValToCheck, 
+                              colValToCheck, timestamp,
 				true, asyncOperation);
 	}
 
@@ -1336,14 +1524,16 @@ public class HTableClient {
     }
 
     private native int setResultInfo(long jniObject,
-				int[] kvValLen, int[] kvValOffset,
-				int[] kvQualLen, int[] kvQualOffset,
-				int[] kvFamLen, int[] kvFamOffset,
-  				long[] timestamp, 
-				byte[][] kvBuffer, byte[][] rowIDs,
-				int[] kvsPerRow, int numCellsReturned,
-				int rowsReturned);
-
+                                     int[] kvValLen, int[] kvValOffset,
+                                     int[] kvQualLen, int[] kvQualOffset,
+                                     int[] kvFamLen, int[] kvFamOffset,
+                                     long[] timestamp, 
+                                     byte[][] kvBuffer, 
+                                     byte[][] kvTag,
+                                     byte[][] rowIDs,
+                                     int[] kvsPerRow, int numCellsReturned,
+                                     int rowsReturned);
+    
    private native void cleanup(long jniObject);
 
    protected native int setJavaObject(long jniObject);

@@ -501,7 +501,7 @@ ExWorkProcRetcode ExHbaseAccessInsertSQTcb::work()
 		break;
 	      }
 
-	    insColTSval_ = -1;
+	    insColTSval_ = hbaseAccessTdb().hbaseCellTS_;
 
 	    step_ = EVAL_ROWID_EXPR;
 	  }
@@ -2072,7 +2072,8 @@ ExWorkProcRetcode ExHbaseUMDtrafUniqueTaskTcb::work(short &rc)
 	                                     tcb_->row_,
 					     (tcb_->hbaseAccessTdb().useHbaseXn() ? TRUE : FALSE),
 					     tcb_->hbaseAccessTdb().replSync(),
-					     -1, //colTS_
+                                             tcb_->hbaseAccessTdb().hbaseCellTS_,
+					     //-1, //colTS_
 					      tcb_->asyncOperation_);
 	    if ( tcb_->setupError(retcode, "ExpHbaseInterface::insertRow"))
 	      {
@@ -2107,7 +2108,7 @@ ExWorkProcRetcode ExHbaseUMDtrafUniqueTaskTcb::work(short &rc)
 						     colValToCheck_,
                                                      tcb_->hbaseAccessTdb().useHbaseXn(),
 						     tcb_->hbaseAccessTdb().replSync(),
-						     -1, //colTS_
+						     tcb_->hbaseAccessTdb().hbaseCellTS_, //-1, //colTS_
                                                      tcb_->asyncOperation_);
 
 	    if (retcode == HBASE_ROW_NOTFOUND_ERROR)
@@ -2167,7 +2168,7 @@ ExWorkProcRetcode ExHbaseUMDtrafUniqueTaskTcb::work(short &rc)
                                                      tcb_->row_,
                                                      tcb_->hbaseAccessTdb().useHbaseXn(),
 						     tcb_->hbaseAccessTdb().replSync(),
-						     -1, // colTS
+						     tcb_->hbaseAccessTdb().hbaseCellTS_, //-1, // colTS
                                                      tcb_->asyncOperation_); 
 
 	    if (retcode == HBASE_DUP_ROW_ERROR)
@@ -2278,7 +2279,7 @@ ExWorkProcRetcode ExHbaseUMDtrafUniqueTaskTcb::work(short &rc)
 						     colValToCheck_,
                                                      tcb_->hbaseAccessTdb().useHbaseXn(),
 						     tcb_->hbaseAccessTdb().replSync(),
-						     -1 //colTS_
+						     tcb_->hbaseAccessTdb().hbaseCellTS_ //-1 //colTS_
 						     );
 
 	    if (retcode == HBASE_ROW_NOTFOUND_ERROR)
@@ -2873,8 +2874,9 @@ ExWorkProcRetcode ExHbaseUMDtrafSubsetTaskTcb::work(short &rc)
 
 	case CREATE_UPDATED_ROW:
 	  {
-	    tcb_->workAtp_->getTupp(tcb_->hbaseAccessTdb().updateTuppIndex_)
-	      .setDataPointer(tcb_->updateRow_);
+            if (tcb_->hbaseAccessTdb().updateTuppIndex_ > 0)
+              tcb_->workAtp_->getTupp(tcb_->hbaseAccessTdb().updateTuppIndex_)
+                .setDataPointer(tcb_->updateRow_);
 	    
 	    if (tcb_->updateExpr())
 	      {
@@ -2895,8 +2897,11 @@ ExWorkProcRetcode ExHbaseUMDtrafSubsetTaskTcb::work(short &rc)
 
 	case EVAL_CONSTRAINT:
 	  {
-	    rc = tcb_->applyPred(tcb_->mergeUpdScanExpr(), 
-				 tcb_->hbaseAccessTdb().updateTuppIndex_, tcb_->updateRow_);
+            rc = 1;
+            if (tcb_->updateRow_)
+              rc = tcb_->applyPred(tcb_->mergeUpdScanExpr(), 
+                                   tcb_->hbaseAccessTdb().updateTuppIndex_, 
+                                   tcb_->updateRow_);
 	    if (rc == 1) // expr is true or no expr
 	      step_ = CREATE_MUTATIONS;
 	    else if (rc == 0) // expr is false
@@ -2930,11 +2935,14 @@ ExWorkProcRetcode ExHbaseUMDtrafSubsetTaskTcb::work(short &rc)
                   tcb_->allocateDirectRowBufferForJNI(rowTD->numAttrs());
             } 
 
-	    retcode = tcb_->createDirectRowBuffer(
-				 tcb_->hbaseAccessTdb().updateTuppIndex_,
-				 tcb_->updateRow_,
-				 tcb_->hbaseAccessTdb().listOfUpdatedColNames(),
-				 TRUE);
+            retcode = 0;
+            if ((tcb_->hbaseAccessTdb().updateTuppIndex_ > 0) &&
+                (tcb_->updateRow_))
+              retcode = tcb_->createDirectRowBuffer(
+                   tcb_->hbaseAccessTdb().updateTuppIndex_,
+                   tcb_->updateRow_,
+                   tcb_->hbaseAccessTdb().listOfUpdatedColNames(),
+                   TRUE);
 	    if (retcode == -1)
 	      {
 		step_ = HANDLE_ERROR;
@@ -2953,12 +2961,20 @@ ExWorkProcRetcode ExHbaseUMDtrafSubsetTaskTcb::work(short &rc)
 		step_ = HANDLE_ERROR;
 		break;
 	    }
+
+            if (tcb_->row_.len == 0)
+              {
+                step_ = UPDATE_TAG;
+                break;
+              }
+
 	    retcode = tcb_->ehi_->insertRow(tcb_->table_,
 					    rowID,
 					    tcb_->row_,
                                             tcb_->hbaseAccessTdb().useHbaseXn(),
 					    tcb_->hbaseAccessTdb().replSync(),
-					    -1, // colTS_
+                                            tcb_->hbaseAccessTdb().hbaseCellTS_,
+                                            //					    -1, // colTS_
                                             tcb_->asyncOperation_);
 	    if (tcb_->setupError(retcode, "ExpHbaseInterface::insertRow"))
 	    {
@@ -2977,9 +2993,51 @@ ExWorkProcRetcode ExHbaseUMDtrafSubsetTaskTcb::work(short &rc)
 
 	    tcb_->matches_++;
 
-	    step_ = NEXT_ROW;
+	    step_ = UPDATE_TAG_AFTER_ROW_UPDATE;
 	  }
 	  break;
+
+        case UPDATE_TAG:
+        case UPDATE_TAG_AFTER_ROW_UPDATE:
+          {
+            if (tcb_->hbTagExpr() == NULL)
+              {
+                step_ = NEXT_ROW;
+                break;
+              }
+
+            if (tcb_->hbaseAccessTdb().hbTagTuppIndex_ > 0)
+              tcb_->workAtp_->getTupp(tcb_->hbaseAccessTdb().hbTagTuppIndex_)
+                .setDataPointer(tcb_->hbTagRow_);
+	    
+            ex_expr::exp_return_type evalRetCode =
+              tcb_->hbTagExpr()->eval(pentry_down->getAtp(), tcb_->workAtp_);
+            if (evalRetCode == ex_expr::EXPR_ERROR)
+              {
+                step_ = HANDLE_ERROR;
+                break;
+              }
+
+            HbaseStr tagRow;
+            tagRow.val = tcb_->hbTagRow_;
+            tagRow.len = tcb_->hbaseAccessTdb().hbTagRowLen_;
+	    retcode =  tcb_->ehi_->updateTags(tcb_->table_,
+                                              rowID,
+                                              tagRow,
+                                              tcb_->hbaseAccessTdb().useHbaseXn());
+
+	    if ( tcb_->setupError(retcode, "ExpHbaseInterface::updateTags"))
+	      {
+		step_ = HANDLE_ERROR;
+		break;
+	      }
+
+            if (step_ == UPDATE_TAG)
+              tcb_->matches_++;
+
+            step_ = NEXT_ROW;
+          }
+          break;
 
 	case DELETE_ROW:
 	  {

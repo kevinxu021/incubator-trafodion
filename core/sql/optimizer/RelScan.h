@@ -234,7 +234,7 @@ public:
           // QSTUFF
          isRewrittenMV_(FALSE)
          ,matchingMVs_(oHeap)
-           , hbaseAccessOptions_(NULL)
+           , optHbaseAccessOptions_(NULL)
      {} 
 
   Scan(const CorrName& name,
@@ -262,7 +262,7 @@ public:
           // QSTUFF
          isRewrittenMV_(FALSE)
          ,matchingMVs_(CmpCommon::statementHeap())
-           , hbaseAccessOptions_(NULL)
+           , optHbaseAccessOptions_(NULL)
      {} 
 
   Scan(const CorrName& name,
@@ -293,7 +293,7 @@ public:
           // QSTUFF
          isRewrittenMV_(FALSE)
          ,matchingMVs_(oHeap)
-           ,hbaseAccessOptions_(NULL)
+           ,optHbaseAccessOptions_(NULL)
      {} 
 
   Scan(OperatorTypeEnum otype,
@@ -321,7 +321,7 @@ public:
          baseCardinality_(0),
           // QSTUFF
            isRewrittenMV_(FALSE),
-           hbaseAccessOptions_(NULL)
+           optHbaseAccessOptions_(NULL)
      {} 
 
   // virtual destructor
@@ -368,8 +368,8 @@ public:
   Lng32 getNumIndexJoins()                       { return numIndexJoins_; }
   void setNumIndexJoins(Lng32 n)                 { numIndexJoins_ = n; }
 
-  void setHbaseAccessOptions(HbaseAccessOptions *v) { hbaseAccessOptions_ = v; }
-  HbaseAccessOptions *getHbaseAccessOptions() const { return hbaseAccessOptions_; }
+  void setOptHbaseAccessOptions(OptHbaseAccessOptions *v) { optHbaseAccessOptions_ = v; }
+  OptHbaseAccessOptions *getOptHbaseAccessOptions() const { return optHbaseAccessOptions_; }
 
   // the maximal number of index joins that a scan node will be
   // transformed into
@@ -757,7 +757,7 @@ private:
   CostScalar cardinalityHint_;
 
   // hbase options. Like: number of trafodion row versions to retrieve from hbase.
-  HbaseAccessOptions *hbaseAccessOptions_;
+  OptHbaseAccessOptions *optHbaseAccessOptions_;
 
   // List of MV matches that can be substituted for the SCAN using query rewrite.
   NAList<MVMatch*> matchingMVs_;

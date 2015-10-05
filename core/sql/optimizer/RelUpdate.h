@@ -1347,6 +1347,8 @@ public:
   inline const CostScalar getEstRowsAccessed() const
   { return estRowsAccessed_; }
 
+  ValueIdList &hbaseTagExpr() { return hbaseTagExpr_; }
+
 private:
 
   typedef enum {
@@ -1382,6 +1384,8 @@ private:
   // Estimated number of rows accessed by Update operator.
   CostScalar estRowsAccessed_;
 
+  ItemExprList    hbaseTagExprList_;
+  ValueIdList     hbaseTagExpr_;
 };
 
 // -----------------------------------------------------------------------

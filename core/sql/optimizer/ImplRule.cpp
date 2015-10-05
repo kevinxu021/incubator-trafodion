@@ -711,6 +711,8 @@ void copyCommonUpdateFields(Update *result,
   result->mergeInsertRecExpr()          = bef->mergeInsertRecExpr();
   result->mergeInsertRecExprArray()     = bef->mergeInsertRecExprArray();
   result->mergeUpdatePred()             = bef->mergeUpdatePred();
+
+  result->hbaseTagExpr()                = bef->hbaseTagExpr();
 }
 
 void copyCommonDeleteFields(Delete *result,

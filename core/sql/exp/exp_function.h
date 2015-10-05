@@ -3804,6 +3804,72 @@ enum
   // ---------------------------------------------------------------------
 };
 
+class ExFunctionHbaseTag : public ex_function_clause {
+public:
+  ExFunctionHbaseTag(OperatorTypeEnum oper_type,
+                     Attributes ** attr,
+                     Lng32 tagType,
+                     Lng32 colIndex,
+                     Space * space);
+  ExFunctionHbaseTag();
+
+ void displayContents(Space * space, const char * displayStr, 
+                      Int32 clauseNum, char * constsArea);
+ 
+  ex_expr::exp_return_type eval(char *op_data[], CollHeap*, 
+                                ComDiagsArea** = 0);  
+  
+  virtual short getClassSize() { return (short)sizeof(*this); }
+
+ private:
+  Lng32 colIndex_;
+  Lng32 tagType_;
+  ULng32 flags_;
+  ULng32 filler_;
+  // ---------------------------------------------------------------------
+};
+
+class ExFunctionHbaseTagSet : public ex_function_clause {
+public:
+  enum {
+    MAX_TAG_VAL_LEN = 1024
+  };
+
+  ExFunctionHbaseTagSet(OperatorTypeEnum oper_type,
+                        Attributes ** attr,
+                        Lng32 tagType,
+                        short colIDlen,
+                        const char * colID,
+                        Lng32 tagValLen,
+                        const char * tagVal,
+                        Space * space);
+  ExFunctionHbaseTagSet();
+  
+  void displayContents(Space * space, const char * displayStr, 
+                       Int32 clauseNum, char * constsArea);
+  
+  ex_expr::exp_return_type eval(char *op_data[], CollHeap*, 
+                                ComDiagsArea** = 0);  
+  
+  virtual short getClassSize() { return (short)sizeof(*this); }
+
+  char * tagVal() { return tagVal_; }
+private:
+  short colIDlen_;
+  char colID_[6];
+
+  Lng32 tagType_;
+  UInt32 flags_;
+
+  char filler1_[4];
+
+  Lng32 tagValLen_;
+
+  char tagVal_[MAX_TAG_VAL_LEN];
+
+  // ---------------------------------------------------------------------
+};
+
 class ExFunctionHbaseTimestamp : public ex_function_clause {
 public:
   ExFunctionHbaseTimestamp(OperatorTypeEnum oper_type,
@@ -3812,7 +3878,7 @@ public:
                            Space * space);
   ExFunctionHbaseTimestamp();
 
- void displayContents(Space * space, const char * displayStr, 
+  void displayContents(Space * space, const char * displayStr, 
                       Int32 clauseNum, char * constsArea);
  
   ex_expr::exp_return_type eval(char *op_data[], CollHeap*, 

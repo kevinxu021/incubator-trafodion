@@ -3758,6 +3758,14 @@ enum DefaultConstants
   HBASE_SMALL_SCANNER,
 
   HBASE_RANGE_PARTITIONING_PARTIAL_COLS,
+
+  // get version of tables as of the specified time
+  HBASE_TIMESTAMP_GET,
+
+  // set timestamp cells to this value during upsert/insert.
+  // For internal testing only.
+  HBASE_TIMESTAMP_SET,
+
   MERGE_WITH_UNIQUE_INDEX,
 
   TRAF_LOAD_ALLOW_RISKY_INDEX_MAINTENANCE,

@@ -7524,7 +7524,7 @@ RelExpr *Scan::bindNode(BindWA *bindWA)
   // as the output values that can be produced by this scan.
   //
   getGroupAttr()->addCharacteristicOutputs(getTableDesc()->getColumnList());
-  getGroupAttr()->addCharacteristicOutputs(getTableDesc()->hbaseTSList());
+  getGroupAttr()->addCharacteristicOutputs(getTableDesc()->hbaseAttrList());
 
    // MV --
   if (getInliningInfo().isMVLoggingInlined())
@@ -7664,11 +7664,11 @@ RelExpr *Scan::bindNode(BindWA *bindWA)
     }
   }
 
-   if (hbaseAccessOptions_)
+   if (optHbaseAccessOptions_)
      {
-       if (hbaseAccessOptions_->isMaxVersions())
+       if (optHbaseAccessOptions_->isMaxVersions())
          {
-           hbaseAccessOptions_->setHbaseVersions
+           optHbaseAccessOptions_->setNumVersions
              (
               getTableDesc()->getClusteringIndex()->getNAFileSet()->numMaxVersions()
               );
@@ -10491,6 +10491,23 @@ RelExpr *Update::bindNode(BindWA *bindWA)
       *CmpCommon::diags() << DgSqlCode(-30021) ;
       bindWA->setErrStatus();
       return this;
+    }
+
+  if (hbaseTagExprList_.entries() > 0)
+    {
+      ItemExpr *numEnt = new(bindWA->wHeap()) 
+        ConstValue(hbaseTagExprList_.entries());
+      numEnt->bindNode(bindWA);
+      hbaseTagExpr_.insert(numEnt->getValueId());
+
+      for (CollIndex i = 0;i < hbaseTagExprList_.entries(); i++)
+        {
+          ItemExpr * ie = hbaseTagExprList_[i]->bindNode(bindWA);
+          if (bindWA->errStatus())
+            return this;
+
+          hbaseTagExpr_.insert(ie->getValueId());
+        }
     }
 
   NABoolean transformUpdateKey = updatesClusteringKeyOrUniqueIndexKey(bindWA);

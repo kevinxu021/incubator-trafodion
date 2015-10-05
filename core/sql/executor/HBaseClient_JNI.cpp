@@ -491,6 +491,8 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROW].jm_signature = "(JLjava/lang/String;ZZJ[BLjava/lang/Object;JZZ)Z";
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_name      = "insertRows";
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;Ljava/lang/Object;JZZ)Z";
+    JavaMethods_[JM_HBC_DIRECT_UPDATE_TAGS].jm_name      = "updateTags";
+    JavaMethods_[JM_HBC_DIRECT_UPDATE_TAGS].jm_signature = "(JLjava/lang/String;ZJ[BLjava/lang/Object;)Z";
     JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].jm_name      = "checkAndUpdateRow";
     JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].jm_signature = "(JLjava/lang/String;ZZJ[BLjava/lang/Object;[B[BJZ)Z";
     JavaMethods_[JM_HBC_DELETE_ROW ].jm_name      = "deleteRow";
@@ -3125,6 +3127,86 @@ HBC_RetCode HBaseClient_JNI::insertRows(NAHeap *heap, const char *tableName,
   jenv_->PopLocalFrame(NULL);
   return HBC_OK;
 }
+//////////////////////////////////////////////////////////////////////////////
+// 
+//////////////////////////////////////////////////////////////////////////////
+HBC_RetCode HBaseClient_JNI::updateTags(NAHeap *heap, const char *tableName,
+                                        ExHbaseAccessStats *hbs, 
+                                        bool useTRex, Int64 transID, 
+                                        HbaseStr rowID,
+                                        HbaseStr tagsRow, 
+                                        HTableClient_JNI **outHtc)
+{
+  
+  HTableClient_JNI *htc = NULL;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+    getExceptionDetails();
+    if (htc != NULL) 
+       NADELETE(htc, HTableClient_JNI, heap);
+    return HBC_ERROR_UPDATETAGS_PARAM;
+  }
+  jstring js_tblName = jenv_->NewStringUTF(tableName);
+  if (js_tblName == NULL) {
+    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_UPDATETAGS_PARAM));
+    if (htc != NULL)
+        NADELETE(htc, HTableClient_JNI, heap);
+    jenv_->PopLocalFrame(NULL);
+    return HBC_ERROR_UPDATETAGS_PARAM;
+  }
+  jbyteArray jba_rowID = jenv_->NewByteArray(rowID.len);
+  if (jba_rowID == NULL) {
+    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_INSERTROW_PARAM));
+    if (htc != NULL)
+        NADELETE(htc, HTableClient_JNI, heap);
+    jenv_->PopLocalFrame(NULL);
+    return HBC_ERROR_UPDATETAGS_PARAM;
+  }
+  jenv_->SetByteArrayRegion(jba_rowID, 0, rowID.len, (const jbyte*)rowID.val);
+
+  jobject jTagsRow = jenv_->NewDirectByteBuffer(tagsRow.val, tagsRow.len);
+  if (jTagsRow == NULL) {
+    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_UPDATETAGS_PARAM));
+    if (htc != NULL)
+        NADELETE(htc, HTableClient_JNI, heap);
+    jenv_->PopLocalFrame(NULL);
+    return HBC_ERROR_UPDATETAGS_PARAM;
+  }
+  jboolean j_useTRex = useTRex;
+  jlong j_tid = transID;  
+  jlong j_htc = (long)htc;
+ 
+  if (hbs)
+    hbs->getTimer().start();
+  tsRecentJMFromJNI = JavaMethods_[JM_HBC_DIRECT_UPDATE_TAGS].jm_full_name;
+  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_HBC_DIRECT_UPDATE_TAGS].methodID, 
+               	j_htc, js_tblName, j_useTRex, j_tid, jba_rowID, jTagsRow);
+  if (hbs) {
+      hbs->incHbaseCalls();
+      hbs->incMaxHbaseIOTime(hbs->getTimer().stop());
+  }
+  if (jenv_->ExceptionCheck()) {
+    getExceptionDetails();
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "HBaseClient_JNI::updateTags()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    if (htc != NULL)
+        NADELETE(htc, HTableClient_JNI, heap);
+    return HBC_ERROR_UPDATETAGS_EXCEPTION;
+  }
+  if (jresult == false) {
+    logError(CAT_SQL_HBASE, "HBaseClient_JNI::updateTags()", getLastError());
+    if (htc != NULL)
+        NADELETE(htc, HTableClient_JNI, heap);
+    jenv_->PopLocalFrame(NULL);
+    return HBC_ERROR_UPDATETAGS_EXCEPTION;
+  }
+  //  if (hbs)
+  //    hbs->incBytesRead(rowIDs.len + rows.len);
+  *outHtc = htc;
+  jenv_->PopLocalFrame(NULL);
+  return HBC_OK;
+}
 //
 //////////////////////////////////////////////////////////////////////////////
 // 
@@ -3694,7 +3776,7 @@ HTC_RetCode HTableClient_JNI::init()
     JavaMethods_[JM_GET_ERROR  ].jm_name      = "getLastError";
     JavaMethods_[JM_GET_ERROR  ].jm_signature = "()Ljava/lang/String;";
     JavaMethods_[JM_SCAN_OPEN  ].jm_name      = "startScan";
-    JavaMethods_[JM_SCAN_OPEN  ].jm_signature = "(J[B[B[Ljava/lang/Object;JZZI[Ljava/lang/Object;[Ljava/lang/Object;[Ljava/lang/Object;FZZILjava/lang/String;Ljava/lang/String;II)Z";
+    JavaMethods_[JM_SCAN_OPEN  ].jm_signature = "(J[B[B[Ljava/lang/Object;JZZI[Ljava/lang/Object;[Ljava/lang/Object;[Ljava/lang/Object;FZZILjava/lang/String;Ljava/lang/String;IIJJ)Z";
     JavaMethods_[JM_DELETE     ].jm_name      = "deleteRow";
     JavaMethods_[JM_DELETE     ].jm_signature = "(J[B[Ljava/lang/Object;JZ)Z";
     JavaMethods_[JM_COPROC_AGGR     ].jm_name      = "coProcAggr";
@@ -3748,7 +3830,9 @@ HTC_RetCode HTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
 					char * snapName ,
 					char * tmpLoc,
 					Lng32 espNum,
-                                        Lng32 versions)
+                                        Lng32 versions,
+                                        Int64 minTS,
+                                        Int64 maxTS)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HTableClient_JNI::startScan() called.");
 
@@ -3871,6 +3955,9 @@ HTC_RetCode HTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
   jint j_espNum = espNum;
   jint j_versions = versions;
 
+  jlong j_minTS = minTS;  
+  jlong j_maxTS = maxTS;  
+
   jstring js_snapName = jenv_->NewStringUTF(snapName != NULL ? snapName : "Dummy");
    if (js_snapName == NULL)
    {
@@ -3899,7 +3986,7 @@ HTC_RetCode HTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
                                               j_colnamestofilter, j_compareoplist, j_colvaluestocompare, 
                                               j_smplPct, j_preFetch, j_useSnapshotScan,
                                               j_snapTimeout, js_snapName, js_tmp_loc, j_espNum,
-                                              j_versions);
+                                              j_versions, j_minTS, j_maxTS);
 
   if (hbs_)
   {
@@ -4881,20 +4968,21 @@ extern "C" {
 
 JNIEXPORT jint JNICALL Java_org_trafodion_sql_HBaseAccess_HTableClient_setResultInfo
   (JNIEnv *jenv, jobject jobj, jlong jniObject, 
-	jintArray jKvValLen, jintArray jKvValOffset, 
-        jintArray jKvQualLen, jintArray jKvQualOffset,
-        jintArray jKvFamLen, jintArray jKvFamOffset, 
-        jlongArray jTimestamp, 
-        jobjectArray jKvBuffer, jobjectArray jRowIDs,
-        jintArray jKvsPerRow, jint numCellsReturned, jint numRowsReturned)
+   jintArray jKvValLen, jintArray jKvValOffset, 
+   jintArray jKvQualLen, jintArray jKvQualOffset,
+   jintArray jKvFamLen, jintArray jKvFamOffset, 
+   jlongArray jTimestamp, 
+   jobjectArray jKvBuffer, jobjectArray jKvTag, jobjectArray jRowIDs,
+   jintArray jKvsPerRow, jint numCellsReturned, jint numRowsReturned)
 {
    HTableClient_JNI *htc = (HTableClient_JNI *)jniObject;
    if (htc->getFetchMode() == HTableClient_JNI::GET_ROW ||
           htc->getFetchMode() == HTableClient_JNI::BATCH_GET)
       htc->setJavaObject(jobj);
    htc->setResultInfo(jKvValLen, jKvValOffset,
-                jKvQualLen, jKvQualOffset, jKvFamLen, jKvFamOffset,
-                jTimestamp, jKvBuffer, jRowIDs, jKvsPerRow, numCellsReturned, numRowsReturned);  
+                      jKvQualLen, jKvQualOffset, jKvFamLen, jKvFamOffset,
+                      jTimestamp, jKvBuffer, jKvTag,
+                      jRowIDs, jKvsPerRow, numCellsReturned, numRowsReturned);  
    return 0;
 }
 
@@ -4918,11 +5006,11 @@ JNIEXPORT void JNICALL Java_org_trafodion_sql_HBaseAccess_HTableClient_cleanup
 #endif
 
 void HTableClient_JNI::setResultInfo( jintArray jKvValLen, jintArray jKvValOffset,
-        jintArray jKvQualLen, jintArray jKvQualOffset,
-        jintArray jKvFamLen, jintArray jKvFamOffset,
-        jlongArray jTimestamp, 
-        jobjectArray jKvBuffer, jobjectArray jRowIDs,
-        jintArray jKvsPerRow, jint numCellsReturned, jint numRowsReturned)
+                                      jintArray jKvQualLen, jintArray jKvQualOffset,
+                                      jintArray jKvFamLen, jintArray jKvFamOffset,
+                                      jlongArray jTimestamp, 
+                                      jobjectArray jKvBuffer, jobjectArray jKvTag, jobjectArray jRowIDs,
+                                      jintArray jKvsPerRow, jint numCellsReturned, jint numRowsReturned)
 {
    if (numRowsReturned_ > 0)
       cleanupResultInfo();
@@ -4963,6 +5051,11 @@ void HTableClient_JNI::setResultInfo( jintArray jKvValLen, jintArray jKvValOffse
       }
       if (! exceptionFound) {
          jKvBuffer_ = (jobjectArray)jenv_->NewGlobalRef(jKvBuffer);
+         if (jenv_->ExceptionCheck())
+            exceptionFound = TRUE;
+      }
+      if (! exceptionFound) {
+         jKvTag_ = (jobjectArray)jenv_->NewGlobalRef(jKvTag);
          if (jenv_->ExceptionCheck())
             exceptionFound = TRUE;
       }
@@ -5246,7 +5339,9 @@ HTC_RetCode HTableClient_JNI::getColName(int colNo,
 }
 
 HTC_RetCode HTableClient_JNI::getColVal(int colNo, BYTE *colVal, 
-          Lng32 &colValLen, NABoolean nullable, BYTE &nullVal)
+                                        Lng32 &colValLen, 
+                                        NABoolean nullable, BYTE &nullVal,
+                                        BYTE *tag, Lng32 &tagLen)
 {
     jint kvsPerRow = p_kvsPerRow_[currentRowNum_];
     if (kvsPerRow == 0 || colNo >= kvsPerRow)

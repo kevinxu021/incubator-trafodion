@@ -6399,12 +6399,36 @@ const NAType * SequenceValue::synthesizeType()
   return type;
 }
 
+const NAType * HbaseTag::synthesizeType()
+{
+  NAType * type = NULL;
+
+  type = new HEAP SQLVarChar(HBASE_TAG_MAXLEN,  
+                             col()->getValueId().getType().supportsSQLnull());
+
+  return type;
+}
+
+const NAType * HbaseTagSet::synthesizeType()
+{
+  NAType * type = NULL;
+
+  ///////////////////////////////////////////////////////////////////////////
+  // colIdLen(short)   colId     type(short)  tagValLen(Lng32)   tagVal
+  ///////////////////////////////////////////////////////////////////////////
+  Lng32 maxLen = ROUND2(colId_.length()) + sizeof(short) + sizeof(Lng32) + tagVal_.length();
+  maxLen = ROUND2(maxLen);
+  type = new HEAP SQLChar(maxLen, FALSE);
+
+  return type;
+}
+
 const NAType * HbaseTimestamp::synthesizeType()
 {
   NAType * type = NULL;
 
   type = new HEAP SQLLargeInt(TRUE,  
-                              col_->getValueId().getType().supportsSQLnull());
+                              col()->getValueId().getType().supportsSQLnull());
 
   return type;
 }

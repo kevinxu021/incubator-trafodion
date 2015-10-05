@@ -172,8 +172,10 @@ public:
   void setCardinalityHint(CardinalityHint *hint)      {cardinalityHint_ = hint; }
   void setPrimaryKeyColumns();
 
+  ValueIdList &hbaseTagList() { return hbaseTagList_; }
   ValueIdList &hbaseTSList() { return hbaseTSList_; }
   ValueIdList &hbaseVersionList() { return hbaseVersionList_; }
+  ValueIdList &hbaseAttrList() { return hbaseAttrList_; }
 
   // ---------------------------------------------------------------------
   // Needed by Collections classes
@@ -322,6 +324,18 @@ private:
   // ---------------------------------------------------------------------
 
   // ---------------------------------------------------------------------
+  // A List of ValueIds for hbase attributes for each of the column
+  // in colList_. Attributes are: timestamp, version, tag
+  // ---------------------------------------------------------------------
+  ValueIdList  hbaseAttrList_;
+
+  // ---------------------------------------------------------------------
+  // A List of ValueIds for hbase tags for each of the column
+  // in colList_.
+  // ---------------------------------------------------------------------
+  ValueIdList  hbaseTagList_;
+
+  // ---------------------------------------------------------------------
   // A List of ValueIds for hbase timestamp values for each of the column
   // in colList_.
   // ---------------------------------------------------------------------
@@ -332,7 +346,6 @@ private:
   // in colList_.
   // ---------------------------------------------------------------------
   ValueIdList  hbaseVersionList_;
-
 
 }; // class TableDesc
 

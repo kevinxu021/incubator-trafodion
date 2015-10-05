@@ -496,6 +496,7 @@ static char * FCString (const char *idString, int isFC)
 %token SHOWPLAN
 %token SHOWSHAPE
 %token SHOWSET
+%token SLEEPtoken
 %token SQL
 %token SQLINFO
 %token SQLNAMES
@@ -1367,6 +1368,12 @@ sqlci_cmd :	MODE REPORT
         |       WAITtoken
                   {
                     $$ = new Wait(NULL, 0);
+                  }
+
+        |       SLEEPtoken NUMBER
+                  {
+                    Lng32 v = atoi($2);
+                    $$ = new SleepVal(v);
                   }
 
 ;

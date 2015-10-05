@@ -4955,6 +4955,11 @@ Scan::synthLogProp(NormWA * normWAPtr)
     {
       IndexDesc *idesc = ixlist[indexNo];
 
+      if ((idesc->isClusteringIndex()) &&
+          (getOptHbaseAccessOptions() &&
+           getOptHbaseAccessOptions()->tsSpecified()))
+        continue;
+
       // Determining uniqueness constraints from indexes is not quite
       // straightforward, since no information is available whether
       // this index was created as a "unique" index. The method used

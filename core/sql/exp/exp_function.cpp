@@ -184,6 +184,8 @@ ExFunctionHbaseColumnsDisplay::ExFunctionHbaseColumnsDisplay() {};
 ExFunctionHbaseColumnCreate::ExFunctionHbaseColumnCreate() {};
 ExFunctionCastType::ExFunctionCastType() {};
 ExFunctionSequenceValue::ExFunctionSequenceValue() {};
+ExFunctionHbaseTag::ExFunctionHbaseTag() {};
+ExFunctionHbaseTagSet::ExFunctionHbaseTagSet() {};
 ExFunctionHbaseTimestamp::ExFunctionHbaseTimestamp() {};
 ExFunctionHbaseVersion::ExFunctionHbaseVersion() {};
 ExFunctionSVariance::ExFunctionSVariance(){};
@@ -613,6 +615,40 @@ ExFunctionSequenceValue::ExFunctionSequenceValue(OperatorTypeEnum oper_type,
     sga_(sga),
     flags_(0)
 {
+};
+
+ExFunctionHbaseTag::ExFunctionHbaseTag(
+     OperatorTypeEnum oper_type,
+     Attributes ** attr, 
+     Lng32 tagType,
+     Lng32 colIndex,
+     Space * space)
+     : ex_function_clause(oper_type, 2, attr, space),
+       tagType_(tagType),
+       colIndex_(colIndex),
+       flags_(0)
+{
+};
+
+ExFunctionHbaseTagSet::ExFunctionHbaseTagSet(
+     OperatorTypeEnum oper_type,
+     Attributes ** attr, 
+     Lng32 tagType,
+     short colIDlen,
+     const char * colID,
+     Lng32 tagValLen,
+     const char * tagVal,
+     Space * space)
+     : ex_function_clause(oper_type, 1, attr, space),
+       colIDlen_(colIDlen), 
+       tagType_(tagType),
+       tagValLen_(tagValLen),
+       flags_(0)
+{
+  memcpy(tagVal_, tagVal, tagValLen);
+  tagVal_[tagValLen] = 0;
+
+  strcpy(colID_, colID);
 };
 
 ExFunctionHbaseTimestamp::ExFunctionHbaseTimestamp(
@@ -7073,6 +7109,55 @@ ExFunctionSequenceValue::eval(char *op_data[], CollHeap *heap,
     }
 
   *(Int64*)result = seqVal;
+
+  return ex_expr::EXPR_OK;
+}
+
+ex_expr::exp_return_type 
+ExFunctionHbaseTag::eval(char *op_data[], CollHeap *heap, 
+                         ComDiagsArea **diagsArea)
+{
+  short rc = 0;
+  
+  // op_data[0] points to result. 
+  Attributes *resultAttr   = getOperand(0);
+  char * result =  op_data[0];
+  
+  Int64 * hbaseTS = (Int64*)op_data[1];
+  
+  *(Int64*)result = hbaseTS[colIndex_];
+  
+  return ex_expr::EXPR_OK;
+}
+
+ex_expr::exp_return_type 
+ExFunctionHbaseTagSet::eval(char *op_data[], CollHeap *heap, 
+                         ComDiagsArea **diagsArea)
+{
+  short rc = 0;
+  
+  // op_data[0] points to result. 
+  Attributes *resultAttr   = getOperand(0);
+  char * result =  op_data[0];
+  
+  char * currPos = result;
+
+  *(short*)currPos = colIDlen_;
+  currPos += sizeof(short);
+
+  memcpy(currPos, colID_, colIDlen_);
+  currPos += colIDlen_;
+
+  *(Lng32*)currPos = tagType_;
+  currPos += sizeof(Lng32);
+
+  *(Lng32*)currPos = tagValLen_;
+  currPos += sizeof(Lng32);
+
+  memcpy(currPos, tagVal(), tagValLen_);
+  currPos += tagValLen_;
+
+  //  resultAttr->setVarLength((currPos - result), op_data[-MAX_OPERANDS]);
 
   return ex_expr::EXPR_OK;
 }
