@@ -100,7 +100,14 @@ public class HBaseDCZK implements Abortable {
     private byte [] get_znode_data (String znode) 
 	throws KeeperException, InterruptedException 
     {
-	return ZKUtil.getData(m_zkw, znode);
+	try {
+	    return ZKUtil.getData(m_zkw, znode);
+	}
+	catch(KeeperException.NoNodeException ke) {
+	    LOG.debug(m_zkw.prefix("Unable to list children of znode " 
+				   + znode + " because node does not exist (not an error)"));
+	    return null;
+	} 
     }
 	
     /**
@@ -331,7 +338,14 @@ public class HBaseDCZK implements Abortable {
 		 );
 
 	String lv_cluster_id_node = m_clusters_node + "/" + pv_cluster_id;
+
 	try {
+
+	    byte[] znode_data = get_znode_data(lv_cluster_id_node);
+	    if (znode_data == null) {
+		return null;
+	    }
+
 	    PeerInfo lv_pi = new PeerInfo();
 	    lv_pi.set_id(pv_cluster_id);
 
@@ -538,6 +552,13 @@ public class HBaseDCZK implements Abortable {
 
 	try {
 	    ZKUtil.createSetData(m_zkw, m_my_cluster_id_node, pv_my_cluster_id.getBytes(CHARSET));
+	    PeerInfo lv_pi = get_peer_znode(pv_my_cluster_id);
+	    if (lv_pi == null) {
+		set_peer_znode(pv_my_cluster_id,
+			       new String(m_config.get( STRConfig.ZK_QUORUM )),
+			       new String(m_config.get( STRConfig.ZK_PORT )),
+			       new String("sup"));
+	    }
 	} 
 	catch (KeeperException e) {
 	    throw new IOException("HBaseDCZK:set_my_id: ZKW Unable to create zNode: " 
