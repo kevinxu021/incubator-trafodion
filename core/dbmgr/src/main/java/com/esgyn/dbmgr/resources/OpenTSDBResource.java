@@ -6,6 +6,10 @@
 
 package com.esgyn.dbmgr.resources;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeMap;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
@@ -30,11 +34,23 @@ public class OpenTSDBResource {
 	private static final Logger _LOG = LoggerFactory.getLogger(OpenTSDBResource.class);
 
 	@GET
+	@Path("/iowaits/")
+	@Produces("application/json")
+	public String getIOWaits(@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
+			throws EsgynDBMgrException {
+		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
+		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_IOWAITS), openTSDBUri);
+		return getMetric(servletRequest, servletResponse, url);
+	}
+
+	@GET
 	@Path("/cpu/")
 	@Produces("application/json")
 	public String getCPUUsage(@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
 			throws EsgynDBMgrException {
-		return getMetric(servletRequest, servletResponse, "cpu");
+		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
+		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_CPU_USAGE), openTSDBUri);
+		return getMetric(servletRequest, servletResponse, url);
 	}
 
 	@GET
@@ -42,7 +58,21 @@ public class OpenTSDBResource {
 	@Produces("application/json")
 	public String getMemoryUsage(@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
-		return getMetric(servletRequest, servletResponse, "cpu");
+		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
+		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_MEMORY_USAGE), openTSDBUri);
+		return getMetric(servletRequest, servletResponse, url);
+	}
+
+	@GET
+	@Path("/useddiskspace/")
+	@Produces("application/json")
+	public String getUsedDiskSpace(@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse)
+			throws EsgynDBMgrException {
+		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
+		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_DISK_SPACE_USED),
+				openTSDBUri);
+		return getMetric(servletRequest, servletResponse, url);
 	}
 
 	@GET
@@ -50,7 +80,9 @@ public class OpenTSDBResource {
 	@Produces("application/json")
 	public String getDiskReads(@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
 			throws EsgynDBMgrException {
-		return getMetric(servletRequest, servletResponse, "diskreads");
+		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
+		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_DISK_READS), openTSDBUri);
+		return getMetric(servletRequest, servletResponse, url);
 	}
 
 	@GET
@@ -58,7 +90,9 @@ public class OpenTSDBResource {
 	@Produces("application/json")
 	public String getDiskWrites(@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
-		return getMetric(servletRequest, servletResponse, "diskwrites");
+		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
+		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_DISK_WRITES), openTSDBUri);
+		return getMetric(servletRequest, servletResponse, url);
 	}
 
 	@GET
@@ -66,7 +100,9 @@ public class OpenTSDBResource {
 	@Produces("application/json")
 	public String getOperationsPerSecond(@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
-		return getMetric(servletRequest, servletResponse, "getops");
+		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
+		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_GETOPS), openTSDBUri);
+		return getMetric(servletRequest, servletResponse, url);
 	}
 
 	@GET
@@ -74,37 +110,32 @@ public class OpenTSDBResource {
 	@Produces("application/json")
 	public String getCanaryResponse(@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
-		return getMetric(servletRequest, servletResponse, "canary");
+		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
+		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_CANARY_RESPONSE),
+				openTSDBUri);
+		return getMetric(servletRequest, servletResponse, url);
 	}
 
-	private String getMetric(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String metricName)
+	@GET
+	@Path("/transactions/")
+	@Produces("application/json")
+	public TreeMap<String, Object> getTransactionStatistics(@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+		try {
+			String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
+			String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_TRANSACTION_STATS),
+					openTSDBUri);
+			return getMetrics(servletRequest, servletResponse, url);
+		} catch (Exception ex) {
+			_LOG.error("Failed to fetch transaction statistics : " + ex.getMessage());
+			throw new EsgynDBMgrException(ex.getMessage());
+		}
+	}
+	private String getMetric(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String url)
 			throws EsgynDBMgrException {
 		JsonFactory factory = new JsonFactory();
 		ObjectMapper mapper = new ObjectMapper(factory);
-		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
 		Session soc = SessionModel.getSession(servletRequest, servletResponse);
-
-		String url = "";
-		switch (metricName) {
-		case "cpu":
-			url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_CPU_USAGE), openTSDBUri);
-			break;
-		case "memory":
-			url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_MEMORY_USAGE), openTSDBUri);
-			break;
-		case "diskreads":
-			url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_DISK_READS), openTSDBUri);
-			break;
-		case "diskwrites":
-			url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_DISK_WRITES), openTSDBUri);
-			break;
-		case "getops":
-			url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_GETOPS), openTSDBUri);
-			break;
-		case "canary":
-			url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_CANARY_RESPONSE), openTSDBUri);
-			break;
-		}
 
 		try {
 			RESTRequest request = mapper.readValue(url, RESTRequest.class);
@@ -112,11 +143,72 @@ public class OpenTSDBResource {
 			String jsonOutputString = RESTProcessor.getRestOutput(jsonRequest, soc.getUsername(), soc.getPassword());
 
 			String nodeValue = RESTProcessor.GetNodeValue(jsonOutputString, "dps");
-			return nodeValue;
+			if (nodeValue == null || nodeValue.length() == 0)
+				return "{}";
+			else
+				return nodeValue;
 
 		} catch (Exception ex) {
-			_LOG.error("Failed to fetch metric " + metricName + " : " + ex.getMessage());
+			_LOG.error("Failed to fetch metric : " + ex.getMessage());
+			throw new EsgynDBMgrException(ex.getMessage());
+		}
+	}
+
+	/*
+	 * This method gets multiple timeseries metrics for the same time range. The
+	 * result is parsed and formatted into a treemap with the time as the key
+	 * and an array of datapoints for each of the metric
+	 */
+	private TreeMap<String, Object> getMetrics(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
+			String url)
+			throws EsgynDBMgrException {
+		JsonFactory factory = new JsonFactory();
+		ObjectMapper mapper = new ObjectMapper(factory);
+		Session soc = SessionModel.getSession(servletRequest, servletResponse);
+
+		try {
+			RESTRequest request = mapper.readValue(url, RESTRequest.class);
+			String jsonRequest = mapper.writeValueAsString(request);
+			String jsonOutputString = RESTProcessor.getRestOutput(jsonRequest, soc.getUsername(), soc.getPassword());
+
+			List<String> nodeValues = RESTProcessor.GetNodeValues(jsonOutputString, "dps");
+
+			String[] timePoints = null;
+			TreeMap<String, Object> resultMetrics = new TreeMap<String, Object>();
+
+			ArrayList<TreeMap<String, Object>> parsedMetrics = new ArrayList<TreeMap<String, Object>>();
+
+			for (String nodeValue : nodeValues) {
+				TreeMap<String, Object> metricValues = new TreeMap<String, Object>();
+				metricValues = mapper.readValue(nodeValue, metricValues.getClass());
+				// Get the list of time keys once
+				if (timePoints == null) {
+					timePoints = metricValues.keySet().toArray(new String[0]);
+				}
+				parsedMetrics.add(metricValues);
+			}
+
+			// Parse through the list of timepoints and construct an arrayof
+			// datavalues for each metric
+			if (timePoints != null) {
+				for (String timeVal : timePoints) {
+					ArrayList<Object> values = new ArrayList<Object>();
+					for (TreeMap<String, Object> metricValues : parsedMetrics) {
+						if (metricValues.containsKey(timeVal))
+							values.add(metricValues.get(timeVal));
+						else
+							values.add(0);
+					}
+					resultMetrics.put(timeVal, values);
+				}
+			}
+			return resultMetrics;
+
+		} catch (Exception ex) {
+			_LOG.error("Failed to fetch metric : " + ex.getMessage());
 			throw new EsgynDBMgrException(ex.getMessage());
 		}
 	}
 }
+
+

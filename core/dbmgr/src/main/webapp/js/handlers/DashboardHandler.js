@@ -19,7 +19,13 @@ define(['handlers/EventDispatcher'],
 				this.GETOPS_ERROR = 'fetchGetOpsError';        	  
 				this.CANARY_SUCCESS = 'canarySuccess';
 				this.CANARY_FAILURE = 'canaryFailure';
-
+				this.TRANSACTION_STATS_SUCCESS = 'transactionsSucccess';
+				this.TRANSACTION_STATS_ERROR = 'transactionsError';
+				this.DISKSPACEUSED_SUCCESS = 'diskSpaceUsedSuccess';
+				this.DISKSPACEUSED_ERROR = 'diskSpaceUsedError';
+				this.IOWAIT_SUCCESS = 'iowaitSuccess';
+				this.IOWAIT_ERROR = 'iowaitError';
+				
 				var _this = this;
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
@@ -121,6 +127,63 @@ define(['handlers/EventDispatcher'],
 				};           
 
 
+				this.fetchTransactionStats = function(){
+					$.ajax({
+						url: 'resources/metrics/transactions',
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.TRANSACTION_STATS_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.TRANSACTION_STATS_ERROR, jqXHR, res, error);
+						}
+					});
+				};           
+
+				this.fetchUsedDiskSpace = function(){
+					$.ajax({
+						url: 'resources/metrics/useddiskspace',
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.DISKSPACEUSED_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.DISKSPACEUSED_ERROR, jqXHR, res, error);
+						}
+					});
+				};   
+				
+				this.fetchIOWaits = function(){
+					$.ajax({
+						url: 'resources/metrics/iowaits',
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.IOWAIT_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.IOWAIT_ERROR, jqXHR, res, error);
+						}
+					});
+				};   
+				
 				this.init = function() {
 
 				};

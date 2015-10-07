@@ -18,7 +18,8 @@ define([
     'views/TimeRangeView',
     'datatables',
     'datatablesBootStrap',
-    'tabletools'
+    'tabletools',
+    'responsivetable'
 ], function (BaseView, Raphael, Morris, DashboardT, dashboardHandler, serverHandler, $, common, moment, refreshTimer, timeRangeView) {
     'use strict';
 
@@ -26,13 +27,39 @@ define([
     var SERVICES_SPINNER = '#services-spinner',
 	    SERVICES_RESULT_CONTAINER = '#services-result-container',
 	    SERVICES_ERROR_TEXT = '#services-error-text',
+	    
 	    NODES_SPINNER = '#nodes-spinner',
 	    NODES_RESULT_CONTAINER = '#nodes-result-container',
 	    NODES_ERROR_TEXT = '#nodes-error-text',
+	    
+	    CANARY_SPINNER = '#canarySpinner',
+	    CANARY_RESULT_CONTAINER = '#canary-response-chart',
+	    CANARY_ERROR_TEXT = '#canary-error-text',
+	    
+	    TRANSACTIONS_SPINNER = '#transactionsSpinner',
+	    TRANSACTIONS_RESULT_CONTAINER = '#transactions-response-chart',
+	    TRANSACTIONS_ERROR_TEXT = '#transactions-error-text',
+	    
+	    DISKSPACEUSED_SPINNER = '#spaceusedSpinner',
+	    DISKSPACEUSED_CONTAINER = '#spaceused-response-chart',
+	    DISKSPACEUSED_ERROR_TEXT = '#spaceused-error-text',
+	    
+	    IOWAIT_SPINNER = '#iowaitSpinner',
+	    IOWAIT_CONTAINER = '#iowait-chart',
+	    IOWAIT_ERROR_TEXT = '#iowait-error-text',
+	    
 	    REFRESH_ACTION = '#refreshAction',
 	    OPEN_FILTER = '#openFilter';
     
-    var cpuGraph = null, diskReadsGraph = null, diskWritesGraph=null, getOpsGraph = null, canaryGraph = null;
+    var cpuGraph = null, 
+	    diskReadsGraph = null, 
+	    diskWritesGraph=null, 
+	    getOpsGraph = null, 
+	    canaryGraph = null,
+	    transactionsGraph = null,
+	    iowaitsGraph = null,
+	    diskSpaceUsedGraph = null;
+    
     var servicesTable = null, nodesTable = null;
     
     var DashboardView = BaseView.extend({
@@ -54,6 +81,12 @@ define([
 			serverHandler.on(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
 			dashboardHandler.on(dashboardHandler.CANARY_SUCCESS, this.fetchCanarySuccess); 
 			dashboardHandler.on(dashboardHandler.CANARY_ERROR, this.fetchCanaryError);
+			dashboardHandler.on(dashboardHandler.TRANSACTION_STATS_SUCCESS, this.fetchTransactionStatsSuccess); 
+			dashboardHandler.on(dashboardHandler.TRANSACTION_STATS_ERROR, this.fetchTransactionStatsError);
+			dashboardHandler.on(dashboardHandler.DISKSPACEUSED_SUCCESS, this.fetchUsedDiskSpaceSuccess); 
+			dashboardHandler.on(dashboardHandler.DISKSPACEUSED_ERROR, this.fetchUsedDiskSpaceError);
+			dashboardHandler.on(dashboardHandler.IOWAIT_SUCCESS, this.fetchIOWaitsSuccess); 
+			dashboardHandler.on(dashboardHandler.IOWAIT_ERROR, this.fetchIOWaitsError);
 			
 			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimer.eventAgg.on(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);
@@ -73,6 +106,12 @@ define([
 			serverHandler.on(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
 			dashboardHandler.on(dashboardHandler.CANARY_SUCCESS, this.fetchCanarySuccess); 
 			dashboardHandler.on(dashboardHandler.CANARY_ERROR, this.fetchCanaryError);
+			dashboardHandler.on(dashboardHandler.TRANSACTION_STATS_SUCCESS, this.fetchTransactionStatsSuccess); 
+			dashboardHandler.on(dashboardHandler.TRANSACTION_STATS_ERROR, this.fetchTransactionStatsError);
+			dashboardHandler.on(dashboardHandler.DISKSPACEUSED_SUCCESS, this.fetchUsedDiskSpaceSuccess); 
+			dashboardHandler.on(dashboardHandler.DISKSPACEUSED_ERROR, this.fetchUsedDiskSpaceError);
+			dashboardHandler.on(dashboardHandler.IOWAIT_SUCCESS, this.fetchIOWaitsSuccess); 
+			dashboardHandler.on(dashboardHandler.IOWAIT_ERROR, this.fetchIOWaitsError);
 
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			
@@ -95,6 +134,12 @@ define([
 			serverHandler.off(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
 			dashboardHandler.off(dashboardHandler.CANARY_SUCCESS, this.fetchCanarySuccess); 
 			dashboardHandler.off(dashboardHandler.CANARY_ERROR, this.fetchCanaryError);
+			dashboardHandler.off(dashboardHandler.TRANSACTION_STATS_SUCCESS, this.fetchTransactionStatsSuccess); 
+			dashboardHandler.off(dashboardHandler.TRANSACTION_STATS_ERROR, this.fetchTransactionStatsError);
+			dashboardHandler.off(dashboardHandler.DISKSPACEUSED_SUCCESS, this.fetchUsedDiskSpaceSuccess); 
+			dashboardHandler.off(dashboardHandler.DISKSPACEUSED_ERROR, this.fetchUsedDiskSpaceError);
+			dashboardHandler.off(dashboardHandler.IOWAIT_SUCCESS, this.fetchIOWaitsSuccess); 
+			dashboardHandler.off(dashboardHandler.IOWAIT_ERROR, this.fetchIOWaitsError);
 
 			$(REFRESH_ACTION).off('click', this.refreshPage);
 			
@@ -124,6 +169,9 @@ define([
         	_this.fetchServices();
         	_this.fetchNodes();
         	_this.fetchCanaryResponse();
+        	_this.fetchTransactionStats();
+        	_this.fetchUsedDiskSpace();
+        	_this.fetchIOWaits();
         },
         fetchServices: function () {
 			$(SERVICES_SPINNER).show();
@@ -136,7 +184,7 @@ define([
 			var keys = result.columnNames;
 
 			if(keys != null && keys.length > 0) {
-				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="services-results"></table>';
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table dt-responsive" id="services-results"></table>';
 				$(SERVICES_RESULT_CONTAINER).html( sb );
 
 				var aoColumns = [];
@@ -180,24 +228,8 @@ define([
 					"scrollCollapse": true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
-					"aoColumnDefs": [ {
-					      "aTargets": [ 4 ],
-					      "mData": 4,
-					      "sWidth":"50px",
-					      "mRender": function ( data, type, full ) {
-					       if (type === 'display') {
-					    	   if(data == 'ERROR'){
-					    		   return '<button type="button" class="btn btn-danger btn-circle btn-small"><i class="fa fa-times"></i></button>';
-					    	   }
-					    	   if(data == 'ERROR'){
-					    		   return '<button type="button" class="btn btn-warning btn-circle btn-small"><i class="fa fa-warning"></i></button>';
-					    	   }
-				    		   return '<button type="button" class="btn btn-success btn-circle btn-small"><i class="fa fa-check"></i></button>';
-					        }
-					        else return data;
-					      }
-					    },
-					    { "aTargets": [ 0 ], sTitle: "SERVICE", "mData": 0, "sWidth":"60px",
+					"aoColumnDefs": [ 
+					    { "aTargets": [ 0 ], sTitle: "SERVICE", "mData": 0, "sWidth":"40px",
 					    	"mRender": function ( data, type, full ) {
 							       if (type === 'display') {
 							    	   if(data == 'DTM'){
@@ -214,7 +246,29 @@ define([
 							        else return data;
 							      }
 					    },
-					    {"aTargets": [1,2,3], "sWidth": "50px"}
+					    {"aTargets": [ 1 ], "sClass":"never", "bVisible":false},
+					    {"aTargets": [ 2 ], "sClass":"never", "bVisible":false},
+					    {"aTargets": [ 3 ], "sClass":"never", "bVisible":false},
+					    {
+						      "aTargets": [ 4 ],
+						      "mData": 4,
+						      "sWidth":"50px",
+						      "mRender": function ( data, type, full ) {
+						       if (type === 'display') {
+						    	   if(data == 'ERROR'){
+						    		   return '<button type="button" class="btn btn-danger btn-circle btn-small" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
+						    		   'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+full[3]+'"><i class="fa fa-times"></i></button>';
+						    	   }
+						    	   if(data == 'ERROR'){
+						    		   return '<button type="button" class="btn btn-warning btn-circle btn-small" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
+						    		   'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+full[3]+'"><i class="fa fa-warning"></i></button>';
+						    	   }
+					    		   return '<button type="button" class="btn btn-success btn-circle btn-small" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
+					    		   'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+full[3]+'"><i class="fa fa-check"></i></button>';
+						        }
+						        else return data;
+						      }
+						    }					    
 					    ],
 					paging: true,
 					/*"tableTools": {
@@ -223,7 +277,16 @@ define([
 					},*/
 					fnDrawCallback: function(){
 						//$('#query-results td').css("white-space","nowrap");
-		             }
+		             },
+		             initComplete: function ( settings, json ) {
+		     			//activate the bootstrap toggle js
+		     			//must be done within initcomplete (ie after table data is loaded)
+		     			$('[data-toggle="tooltip"]').tooltip({
+		     				trigger: 'hover',
+		     				html: true
+		     				});
+		     					
+		     			}// end of initcomplete*/
 				});
 				
 				
@@ -250,7 +313,7 @@ define([
 			var keys = result.columnNames;
 
 			if(keys != null && keys.length > 0) {
-				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="nodes-results"></table>';
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table dt-responsive" id="nodes-results"></table>';
 				$(NODES_RESULT_CONTAINER).html( sb );
 
 				var aoColumns = [];
@@ -318,36 +381,205 @@ define([
         	}
         },
         fetchCanaryResponse: function () {
-			$('#canarySpinner').show();
+			$(CANARY_SPINNER).show();
 			dashboardHandler.fetchCanaryResponse();       	
         },
         fetchCanarySuccess: function(result){
-			$('#canarySpinner').hide();
+			$(CANARY_SPINNER).hide();
 			var keys = Object.keys(result);
-			var seriesData = [];
-			$.each(keys, function(index, value){
-				seriesData.push({x: value*1000, y: result[value]});
-			});
-			if(canaryGraph == null) {
-				canaryGraph = Morris.Line({
-					element: 'canary-response-chart',
-					data: seriesData,
-					xkey:'x',
-					ykeys:['y'],
-					labels: [],
-					hideHover: 'auto',
-					hoverCallback: function (index, options, content, row) {
-						  return "Canary Response Time : " + row.y + " msec <br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
-						}
-				});
+			
+			if(keys.length == 0){
+				$(CANARY_RESULT_CONTAINER).hide();
+				$(CANARY_ERROR_TEXT).text("No data available");
+				$(CANARY_ERROR_TEXT).show();				
 			}else{
-				canaryGraph.setData(seriesData);
-			}			
+				$(CANARY_RESULT_CONTAINER).show();
+				$(CANARY_ERROR_TEXT).hide();
+
+				var seriesData = [];
+				$.each(keys, function(index, value){
+					seriesData.push({x: value*1000, y: result[value]});
+				});
+				if(canaryGraph == null) {
+					canaryGraph = Morris.Line({
+						element: 'canary-response-chart',
+						data: seriesData,
+						xkey:'x',
+						ykeys:['y'],
+						labels: [],
+						pointSize: '0.0',
+						hideHover: 'auto',
+						resize:true,
+						xLabelFormat: function(x){
+							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
+						},
+						hoverCallback: function (index, options, content, row) {
+							  return "Canary Response Time : " + row.y + " msec <br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
+							}
+					});
+				}else{
+					canaryGraph.setData(seriesData);
+				}
+			}
 		},
-		fetchCanaryError: function(){
-			$('#canarySpinner').hide();
+		fetchCanaryError: function(jqXHR, res, error){
+			$(CANARY_SPINNER).hide();
+        	$(CANARY_RESULT_CONTAINER).hide();
+        	$(CANARY_ERROR_TEXT).show();
+        	if (jqXHR.responseText) {
+    			$(CANARY_ERROR_TEXT).text(jqXHR.responseText);     
+        	}
 		},
-	        
+		fetchTransactionStats: function () {
+			$(TRANSACTIONS_SPINNER).show();
+			dashboardHandler.fetchTransactionStats();       	
+        },
+        fetchTransactionStatsSuccess: function(result){
+			$(TRANSACTIONS_SPINNER).hide();
+			var keys = Object.keys(result);
+			
+			if(keys.length == 0){
+				$(TRANSACTIONS_RESULT_CONTAINER).hide();
+				$(TRANSACTIONS_ERROR_TEXT).text("No data available");
+				$(TRANSACTIONS_ERROR_TEXT).show();				
+			}else{
+				$(TRANSACTIONS_RESULT_CONTAINER).show();
+				$(TRANSACTIONS_ERROR_TEXT).hide();   	
+
+				var seriesData = [];
+				$.each(keys, function(index, value){
+					seriesData.push({x: value*1, a: parseInt(result[value][0]*30),b: parseInt(result[value][1]*30),c: parseInt(result[value][2]*30)});
+				});
+				if(transactionsGraph == null) {
+					transactionsGraph = Morris.Line({
+						element: 'transactions-response-chart',
+						data: seriesData,
+						xkey:'x',
+						ykeys:['a','b','c'],
+						labels: [],
+						hideHover: 'auto',
+						pointSize: '0.0',
+						resize:true,
+						xLabelFormat: function(x){
+							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
+						},
+						hoverCallback: function (index, options, content, row) {
+							  return "#Aborts : " + row.a + " <br/>#Begins : " + row.b +" <br/>#Commits : " + row.c +"<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
+							}
+					});
+				}else{
+					transactionsGraph.setData(seriesData);
+				}
+			}
+		},
+		fetchTransactionStatsError: function(jqXHR, res, error){
+			$(TRANSACTIONS_SPINNER).hide();
+        	$(TRANSACTIONS_RESULT_CONTAINER).hide();
+        	$(TRANSACTIONS_ERROR_TEXT).show();
+        	if (jqXHR.responseText) {
+    			$(TRANSACTIONS_ERROR_TEXT).text(jqXHR.responseText);     
+        	}
+		},	        
+		fetchIOWaits: function () {
+			$(IOWAIT_SPINNER).show();
+			dashboardHandler.fetchIOWaits();       	
+        },
+        fetchIOWaitsSuccess: function(result){
+			$(IOWAIT_SPINNER).hide();
+			var keys = Object.keys(result);
+			
+			if(keys.length == 0){
+				$(IOWAIT_CONTAINER).hide();
+				$(IOWAIT_ERROR_TEXT).text("No data available");
+				$(IOWAIT_ERROR_TEXT).show();				
+			}else{
+				$(IOWAIT_CONTAINER).show();
+				$(IOWAIT_ERROR_TEXT).hide();
+
+				var seriesData = [];
+				$.each(keys, function(index, value){
+					seriesData.push({x: value*1000, y: result[value]});
+				});
+				if(iowaitsGraph == null) {
+					iowaitsGraph = Morris.Line({
+						element: 'iowait-chart',
+						data: seriesData,
+						xkey:'x',
+						ykeys:['y'],
+						labels: [],
+						pointSize: '0.0',
+						hideHover: 'auto',
+						resize:true,
+						xLabelFormat: function(x){
+							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
+						},
+						hoverCallback: function (index, options, content, row) {
+							  return "IO Waits : " + row.y + "<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
+							}
+					});
+				}else{
+					iowaitsGraph.setData(seriesData);
+				}
+			}
+		},
+		fetchIOWaitsError: function(jqXHR, res, error){
+			$(DISKSPACEUSED_SPINNER).hide();
+        	$(DISKSPACEUSED_CONTAINER).hide();
+        	$(DISKSPACEUSED_ERROR_TEXT).show();
+        	if (jqXHR.responseText) {
+    			$(IOWAIT_ERROR_TEXT).text(jqXHR.responseText);     
+        	}
+		},
+		fetchUsedDiskSpace: function () {
+			$(DISKSPACEUSED_SPINNER).show();
+			dashboardHandler.fetchUsedDiskSpace();       	
+        },
+        fetchUsedDiskSpaceSuccess: function(result){
+			$(DISKSPACEUSED_SPINNER).hide();
+			var keys = Object.keys(result);
+			
+			if(keys.length == 0){
+				$(DISKSPACEUSED_CONTAINER).hide();
+				$(DISKSPACEUSED_ERROR_TEXT).text("No data available");
+				$(DISKSPACEUSED_ERROR_TEXT).show();				
+			}else{
+				$(DISKSPACEUSED_CONTAINER).show();
+				$(DISKSPACEUSED_ERROR_TEXT).hide();
+
+				var seriesData = [];
+				$.each(keys, function(index, value){
+					seriesData.push({x: value*1, y: result[value]});
+				});
+				if(diskSpaceUsedGraph == null) {
+					diskSpaceUsedGraph = Morris.Line({
+						element: 'spaceused-chart',
+						data: seriesData,
+						xkey:'x',
+						ykeys:['y'],
+						labels: [],
+						pointSize: '0.0',
+						hideHover: 'auto',
+						resize:true,
+						xLabelFormat: function(x){
+							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
+						},
+						hoverCallback: function (index, options, content, row) {
+							  return "% Disk Space Used : " + row.y + "<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
+							}
+					});
+				}else{
+					diskSpaceUsedGraph.setData(seriesData);
+				}
+			}
+		},
+		fetchUsedDiskSpaceError: function(jqXHR, res, error){
+			$(DISKSPACEUSED_SPINNER).hide();
+        	$(DISKSPACEUSED_CONTAINER).hide();
+        	$(DISKSPACEUSED_ERROR_TEXT).show();
+        	if (jqXHR.responseText) {
+    			$(DISKSPACEUSED_ERROR_TEXT).text(jqXHR.responseText);     
+        	}
+		},
 		fetchCPUData: function () {
 			_this.showLoading();
 			dashboardHandler.fetchCPUData();
@@ -396,6 +628,7 @@ define([
 					ykeys:['y'],
 					labels: [],
 					hideHover: 'auto',
+					resize:true,
 					hoverCallback: function (index, options, content, row) {
 						  return "Disk Reads : " + row.y + "<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
 						}

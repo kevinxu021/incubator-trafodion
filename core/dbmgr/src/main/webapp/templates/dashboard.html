@@ -45,8 +45,8 @@
 			<h2 class="page-header">Dashboard</h2>
 		</div>
 	</div>
-	<div class="row">
-		<div class="col-lg-6">
+	<div class="row row-eq-height">
+		<div class="col-lg-4">
 			<div class="panel panel-default">
 				<div class="panel-heading">
 					<i class="fa fa-bar-chart-o fa-fw"></i> Services <img
@@ -57,6 +57,34 @@
 					<label id="services-error-text" style="color: red"></label>
 				</div>
 			</div>
+		</div>
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<i class="fa fa-bar-chart-o fa-fw"></i> Transaction Counts<img
+						id="transactionsSpinner" src="img/ajax-loader.gif" />
+				</div>
+				<div class="panel-body">
+					<div id="transactions-response-chart" style="height: 200px;"></div>
+					<label id="transactions-error-text" style="color: red"></label>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<i class="fa fa-bar-chart-o fa-fw"></i> Canary Response<img
+						id="canarySpinner" src="img/ajax-loader.gif" />
+				</div>
+				<div class="panel-body">
+					<div id="canary-response-chart" style="height: 200px;"></div>
+					<label id="canary-error-text" style="color: red"></label>
+				</div>
+			</div>		
+		</div>
+	</div>
+	<div class="row row-eq-height">
+		<div class="col-lg-4">
 			<div class="panel panel-default">
 				<div class="panel-heading">
 					<i class="fa fa-bar-chart-o fa-fw"></i> Nodes <img
@@ -68,16 +96,29 @@
 				</div>
 			</div>
 		</div>
-		<div class="col-lg-6">
+		<div class="col-lg-4">
 			<div class="panel panel-default">
 				<div class="panel-heading">
-					<i class="fa fa-bar-chart-o fa-fw"></i> Canary Response<img
-						id="canarySpinner" src="img/ajax-loader.gif" />
+					<i class="fa fa-bar-chart-o fa-fw"></i> IO Waits<img
+						id="iowaitSpinner" src="img/ajax-loader.gif" />
 				</div>
 				<div class="panel-body">
-					<div id="canary-response-chart"></div>
+					<div id="iowait-chart" style="height: 200px;"></div>
+					<label id="iowait-error-text" style="color: red"></label>
 				</div>
-			</div>
+			</div>		
+		</div>
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<i class="fa fa-bar-chart-o fa-fw"></i>Disk Space Used %<img
+						id="spaceusedSpinner" src="img/ajax-loader.gif" />
+				</div>
+				<div class="panel-body">
+					<div id="spaceused-chart" style="height: 200px;"></div>
+					<label id="spaceused-error-text" style="color: red"></label>
+				</div>
+			</div>		
 		</div>
 	</div>
 	<div class="modal fade" id="filterDialog" tabindex="-1" role="dialog"
