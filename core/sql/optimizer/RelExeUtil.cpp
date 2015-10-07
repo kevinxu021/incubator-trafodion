@@ -80,6 +80,8 @@
 #include "StmtDDLCreateRoutine.h"
 #include "StmtDDLDropRoutine.h"
 #include "StmtDDLCleanupObjects.h"
+#include "StmtDDLAlterTableAttribute.h"
+#include "ParDDLFileAttrsAlterTable.h"
 
 #include <cextdecs/cextdecs.h>
 #include "wstr.h"
@@ -3668,7 +3670,9 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
   NABoolean alterRenameTable = FALSE;
   NABoolean alterIdentityCol = FALSE;
   NABoolean alterColDatatype = FALSE;
-
+  NABoolean alterAttr = FALSE;
+  NABoolean externalTable = FALSE;
+  
   returnStatus_ = FALSE;
 
   NABoolean specialType = FALSE;
@@ -3733,6 +3737,23 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
         return NULL;
       }
 
+      // Hive tables can only be specified as external and must be created
+      // with the FOR clause
+      if (qualObjName_.isHive()) 
+      {
+        if (createTableNode->isExternal())
+        {
+          externalTable = TRUE;
+          isHbase_ = TRUE;
+        }
+        else
+        {
+          *CmpCommon::diags() << DgSqlCode(-4222) << DgString0("DDL");
+          bindWA->setErrStatus();
+          return NULL;
+        }
+      }
+ 
       // if unique, ref or check constrs are specified, then dont start a transaction.
       // ddl with these clauses is executed as a compound create.
       // A compound create cannot run under a user transaction.
@@ -3791,9 +3812,26 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
       isDrop_ = TRUE;
       isTable_ = TRUE;
 
-      qualObjName_ =
-        getDDLNode()->castToStmtDDLNode()->castToStmtDDLDropTable()->
-        getTableNameAsQualifiedName();
+      StmtDDLDropTable * dropTableNode =
+        getExprNode()->castToElemDDLNode()->castToStmtDDLDropTable();
+
+      qualObjName_ = dropTableNode->getTableNameAsQualifiedName();
+
+      // Drops of Hive and HBase external tables are allowed 
+      if (qualObjName_.isHive() || (qualObjName_.isHbase()))
+        {
+          if (dropTableNode->isExternal())
+            {
+              isHbase_ = TRUE;
+              externalTable = TRUE;
+            }
+          else
+            {
+              *CmpCommon::diags() << DgSqlCode(-4222) << DgString0("DDL");
+              bindWA->setErrStatus();
+              return NULL;
+            }
+        }
     }
     else if (getExprNode()->castToElemDDLNode()->castToStmtDDLDropHbaseTable())
     {
@@ -3842,6 +3880,17 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
          alterColDatatype = TRUE;
       else if (getExprNode()->castToElemDDLNode()->castToStmtDDLAlterTableHBaseOptions())
          alterHBaseOptions = TRUE;
+      else if (getExprNode()->castToElemDDLNode()->castToStmtDDLAlterTableAttribute())
+        {
+          StmtDDLAlterTableAttribute * ata = 
+            getExprNode()->castToElemDDLNode()->castToStmtDDLAlterTableAttribute();
+
+          ParDDLFileAttrsAlterTable &fileAttrs = ata->getFileAttributes();
+
+          // currently only xn repl option supported
+          if (fileAttrs.isXnReplSpecified()) 
+            alterAttr = TRUE;
+        }
        else
         otherAlters = TRUE;
 
@@ -4039,7 +4088,7 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
           (isAlter_ && (alterAddCol || alterDropCol || alterDisableIndex || alterEnableIndex || 
 			alterAddConstr || alterDropConstr || alterRenameTable ||
                         alterIdentityCol || alterColDatatype ||
-                        alterHBaseOptions || otherAlters)))))
+                        alterHBaseOptions || alterAttr | otherAlters)))))
       {
 	if (NOT isNative_)
 	  {
@@ -4090,7 +4139,7 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
   if (bindWA->errStatus())
     return NULL;
 
-  if (isHbase_)
+  if (isHbase_ || externalTable)
     return boundExpr;
 
   *CmpCommon::diags() << DgSqlCode(-4222) << DgString0("DDL");

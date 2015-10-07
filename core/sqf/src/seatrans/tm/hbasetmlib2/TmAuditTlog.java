@@ -55,6 +55,8 @@ import org.apache.hadoop.hbase.client.transactional.UnknownTransactionException;
 import org.apache.hadoop.hbase.client.transactional.HBaseBackedTransactionLogger;
 import org.apache.hadoop.hbase.client.transactional.TransactionRegionLocation;
 import org.apache.hadoop.hbase.client.transactional.TransState;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogTransactionStatesFromIntervalRequest;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogTransactionStatesFromIntervalResponse;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogWriteRequest;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogWriteResponse;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TrxRegionService;
@@ -196,9 +198,9 @@ public class TmAuditTlog {
    ExecutorService tlogThreadPool;
 
    /**
-    * TlogCallable  :  inner class for creating asynchronous requests
+    * TlogCallable1  :  inner class for creating asynchronous requests
     */
-   private abstract class TlogCallable implements Callable<Integer>{
+   private abstract class TlogCallable1 implements Callable<Integer>{
       TransactionState transactionState;
       HRegionLocation  location;
       HTable table;
@@ -206,7 +208,7 @@ public class TmAuditTlog {
       byte[] endKey_orig;
       byte[] endKey;
 
-      TlogCallable(TransactionState txState, HRegionLocation location, HConnection connection) {
+      TlogCallable1(TransactionState txState, HRegionLocation location, HConnection connection) {
          transactionState = txState;
          this.location = location;
          try {
@@ -347,6 +349,226 @@ public class TmAuditTlog {
          if (LOG.isTraceEnabled()) LOG.trace("doTlogWriteX -- EXIT txid: " + transactionId);
          return 0;
       }
+   }
+
+   private abstract class TlogCallable2 implements Callable<ArrayList<TransactionState>>{
+      TransactionState transactionState;
+      HRegionLocation  location;
+      HTable table;
+      byte[] startKey;
+      byte[] endKey_orig;
+      byte[] endKey;
+
+      TlogCallable2(TransactionState txState, HRegionLocation location, HConnection connection) {
+         transactionState = txState;
+         this.location = location;
+         try {
+            table = new HTable(location.getRegionInfo().getTable(), connection, tlogThreadPool);
+         } catch(IOException e) {
+            e.printStackTrace();
+            LOG.error("Error obtaining HTable instance");
+            table = null;
+         }
+         startKey = location.getRegionInfo().getStartKey();
+         endKey_orig = location.getRegionInfo().getEndKey();
+         endKey = TransactionManager.binaryIncrementPos(endKey_orig, -1);
+      }
+
+      public ArrayList<TransactionState> getTransactionStatesFromIntervalX(final byte[] regionName, final long auditSeqNum) throws IOException {
+         boolean retry = false;
+         boolean refresh = false;
+
+         int retryCount = 0;
+         int retrySleep = TLOG_SLEEP;
+         ArrayList<TransactionState> transList = new ArrayList<TransactionState>();
+         do {
+           try {
+              if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromIntervalX -- ENTRY ASN: " + auditSeqNum);
+              Batch.Call<TrxRegionService, TlogTransactionStatesFromIntervalResponse> callable =
+                 new Batch.Call<TrxRegionService, TlogTransactionStatesFromIntervalResponse>() {
+                   ServerRpcController controller = new ServerRpcController();
+                   BlockingRpcCallback<TlogTransactionStatesFromIntervalResponse> rpcCallback =
+                      new BlockingRpcCallback<TlogTransactionStatesFromIntervalResponse>();
+
+                      @Override
+                      public TlogTransactionStatesFromIntervalResponse call(TrxRegionService instance) throws IOException {
+                        org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogTransactionStatesFromIntervalRequest.Builder builder =
+                                TlogTransactionStatesFromIntervalRequest.newBuilder();
+                        builder.setAuditSeqNum(auditSeqNum);
+                        builder.setRegionName(ByteString.copyFromUtf8(Bytes.toString(regionName))); //ByteString.copyFromUtf8(Bytes.toString(regionName)));
+
+                        instance.getTransactionStatesPriorToAsn(controller, builder.build(), rpcCallback);
+                        return rpcCallback.get();
+                    }
+                 };
+
+                 Map<byte[], TlogTransactionStatesFromIntervalResponse> result = null;
+                 try {
+                   if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromIntervalX -- before coprocessorService ASN: " + auditSeqNum
+                                       + " startKey: " + new String(startKey, "UTF-8") + " endKey: " + new String(endKey, "UTF-8"));
+                   result = table.coprocessorService(TrxRegionService.class, startKey, endKey, callable);
+                 } catch (Throwable e) {
+                    String msg = "ERROR occurred while calling getTransactionStatesFromIntervalX coprocessor service in getTransactionStatesFromIntervalX";
+                    LOG.error(msg + ":" + e);
+                    throw new Exception(msg);
+                 }
+                 if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromIntervalX -- after coprocessorService ASN: " + auditSeqNum
+                         + " startKey: " + new String(startKey, "UTF-8") + " result size: " + result.size());
+
+                 if(result.size() >= 1) {
+                    org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Result row = null;
+                    for (TlogTransactionStatesFromIntervalResponse TSFI_response : result.values()){
+
+                       if(TSFI_response.getHasException()) {
+                          if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromIntervalX coprocessor exception: "
+                               + TSFI_response.getException());
+                          throw new Exception(TSFI_response.getException());
+                       }
+
+                       long count = TSFI_response.getCount();
+//                       rows = new org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Result[count];
+
+                       for (int i = 0; i < count; i++){
+
+                          // Here we get the transaction records returned and create new TransactionState objects
+                          row = TSFI_response.getResult(i);
+                          Result rowResult = ProtobufUtil.toResult(row);
+                          boolean hasMore = TSFI_response.getHasMore();
+//                          results[i] = result;
+//                          result = null;
+//                          Result r = TSFI_response.getResult();
+                          if (!rowResult.isEmpty()) {
+                             byte [] value = rowResult.getValue(TLOG_FAMILY, ASN_STATE);
+                             if (value == null) {
+                                if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval: tLog value is null, continuing");
+                                continue;
+                             }
+                             if (value.length == 0) {
+                                if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval: tLog value.length is 0, continuing");
+                                continue;
+                             }
+                             TransactionState ts;
+                             TransState lvTxState = TransState.STATE_NOTX;
+                             String recordString =  new String (Bytes.toString(value));
+                             StringTokenizer st = new StringTokenizer(recordString, ",");
+                             String stateString = new String("NOTX");
+                             String transidToken;
+                             if (! st.hasMoreElements()) {
+                                continue;
+                             }
+                             String asnToken = st.nextElement().toString();
+                             transidToken = st.nextElement().toString();
+                             stateString = st.nextElement().toString();
+                             long lvTransid = Long.parseLong(transidToken, 10);
+                             ts =  new TransactionState(lvTransid);
+                             ts.clearParticipatingRegions();
+
+                             if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval: transaction: "
+                                                 + transidToken + " stateString is: " + stateString);
+
+                             if (stateString.compareTo("COMMITTED") == 0){
+                                lvTxState = TransState.STATE_COMMITTED;
+                             }
+                             else if (stateString.compareTo("ABORTED") == 0){
+                                lvTxState = TransState.STATE_ABORTED;
+                             }
+                             else if (stateString.compareTo("ACTIVE") == 0){
+                                lvTxState = TransState.STATE_ACTIVE;
+                             }
+                             else if (stateString.compareTo("PREPARED") == 0){
+                                lvTxState = TransState.STATE_PREPARED;
+                             }
+                             else if (stateString.compareTo("FORGOTTEN") == 0){
+                                lvTxState = TransState.STATE_COMMITTED;
+                             }
+                             else {
+                                lvTxState = TransState.STATE_BAD;
+                             }
+
+                             // get past the filler
+                             st.nextElement();
+
+                             String commitIdToken = st.nextElement().toString();
+                             ts.setCommitId(Long.parseLong(commitIdToken));
+
+                             // Load the TransactionState object up with regions
+                             while (st.hasMoreElements()) {
+                                String tableNameToken = st.nextToken();
+                                HTable table = new HTable(config, tableNameToken);
+                                NavigableMap<HRegionInfo, ServerName> regions = table.getRegionLocations();
+                                Iterator<Map.Entry<HRegionInfo, ServerName>> it =  regions.entrySet().iterator();
+                                while(it.hasNext()) { // iterate entries.
+                                   NavigableMap.Entry<HRegionInfo, ServerName> pairs = it.next();
+                                   HRegionInfo regionKey = pairs.getKey();
+                                   if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval: transaction: " + transidToken + " adding region: " + regionKey.getRegionNameAsString());
+                                   ServerName serverValue = regions.get(regionKey);
+                                   String hostAndPort = new String(serverValue.getHostAndPort());
+                                   StringTokenizer tok = new StringTokenizer(hostAndPort, ":");
+                                   String hostName = new String(tok.nextElement().toString());
+                                   int portNumber = Integer.parseInt(tok.nextElement().toString());
+                                   TransactionRegionLocation loc = new TransactionRegionLocation(regionKey, serverValue, 0);
+                                   ts.addRegion(loc);
+                                }
+                             }
+                             ts.setStatus(lvTxState);
+
+                             if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval: adding transid: "
+                                            + ts.getTransactionId() + " state: " + lvTxState + " to transList");
+                             transList.add(ts);
+                          } // if (! rowResult,isEmpty()))
+                       } // for (int i = 0; i < count
+                    } // TlogTransactionStatesFromIntervalResponse TSFI_response : result.values()
+                 } // if(result.size() >= 1)
+                 retry = false;
+              } catch (Exception e) {
+                 LOG.error("getTransactionStatesFromIntervalX retrying due to Exception: " + e);
+                 refresh = true;
+                 retry = true;
+              }
+              if (refresh) {
+
+               HRegionLocation lv_hrl = table.getRegionLocation(startKey);
+               HRegionInfo     lv_hri = lv_hrl.getRegionInfo();
+               String          lv_node = lv_hrl.getHostname();
+               int             lv_length = lv_node.indexOf('.');
+
+               if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromIntervalX -- location being refreshed : " + location.getRegionInfo().getRegionNameAsString() + "endKey: "
+                          + Hex.encodeHexString(location.getRegionInfo().getEndKey()) + " for ASN: " + auditSeqNum);
+               if(retryCount == RETRY_ATTEMPTS) {
+                  LOG.error("Exceeded retry attempts (" + retryCount + ") in getTransactionStatesFromIntervalX for ASN: " + auditSeqNum);
+                     // We have received our reply in the form of an exception,
+                     // so decrement outstanding count and wake up waiters to avoid
+                     // getting hung forever
+                  transactionState.requestPendingCountDec(true);
+                  throw new IOException("Exceeded retry attempts (" + retryCount + ") in getTransactionStatesFromIntervalX for ASN: " + auditSeqNum);
+               }
+
+               if (LOG.isWarnEnabled()) LOG.warn("getTransactionStatesFromIntervalX -- " + table.toString() + " location being refreshed");
+               if (LOG.isWarnEnabled()) LOG.warn("getTransactionStatesFromIntervalX -- lv_hri: " + lv_hri);
+               if (LOG.isWarnEnabled()) LOG.warn("getTransactionStatesFromIntervalX -- location.getRegionInfo(): " + location.getRegionInfo());
+               table.getRegionLocation(startKey, true);
+
+               if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromIntervalX -- setting retry, count: " + retryCount);
+               refresh = false;
+            }
+            retryCount++;
+
+            if (retryCount < RETRY_ATTEMPTS && retry == true) {
+               try {
+                  Thread.sleep(retrySleep);
+               } catch(InterruptedException ex) {
+                  Thread.currentThread().interrupt();
+               }
+
+               retrySleep += TLOG_SLEEP_INCR;
+            }
+          } while (retryCount < RETRY_ATTEMPTS && retry == true);
+          // We have received our reply so decrement outstanding count
+          transactionState.requestPendingCountDec(false);
+
+          if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromIntervalX -- EXIT ASN: " + auditSeqNum);
+          return transList;
+      } //getTransactionStatesFromIntervalX
    } // TlogCallable  
 
    private class AuditBuffer{
@@ -408,6 +630,48 @@ public class TmAuditTlog {
    }// End of class AuditBuffer
 
    /**
+   * Method  : getTransactionStatesFromInterval
+   * Params  : regionName - name of Region
+   *           cpInterval - Control Point Interval to search
+   * Return  : void
+   * Purpose : Retrieve list of transactions from an interval
+   */
+   public void getTransactionStatesFromInterval(final long cpInterval) throws IOException {
+
+     int loopCount = 0;
+     long threadId = Thread.currentThread().getId();
+     TransactionState transactionState = new TransactionState(0);
+     try {
+        if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval [" + cpInterval + "] in thread " + threadId);
+
+        final long lvAsn = tLogControlPoint.getRecord(String.valueOf(cpInterval));
+        List<HRegionLocation> regionList;
+        Map<ServerName, List<HRegionLocation>> locations = new HashMap<ServerName, List<HRegionLocation>>();
+        ServerName servername;
+        for (int index = 0; index < tlogNumLogs; index++) {
+           NavigableMap<HRegionInfo,ServerName> regionMap = table[index].getRegionLocations();
+           for(NavigableMap.Entry<HRegionInfo, ServerName> entry : regionMap.entrySet()){
+              HRegionLocation location = table[index].getRegionLocation(entry.getKey().getStartKey());
+              final byte[] regionName = location.getRegionInfo().getRegionName();
+              tlogThreadPool.submit(new TlogCallable2(transactionState, location, connection) {
+                 public ArrayList<TransactionState> call() throws IOException {
+                    if (LOG.isTraceEnabled()) LOG.trace("before getTransactionStatesFromIntervalX() [" + lvAsn + "]");
+                    return getTransactionStatesFromIntervalX(regionName, lvAsn);
+                 }
+              });
+           }
+        }
+     } catch (Exception e) {
+        LOG.error("exception in getTransactionStatesFromInterval for interval: " + cpInterval + " " + e);
+        throw new IOException(e);
+     }
+     // all requests sent at this point, can record the count
+     if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval tlog callable requests sent to " + loopCount + " tlogs in thread " + threadId);
+     transactionState.completeSendInvoke(loopCount);
+     if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval tlog callable requests completed in thread " + threadId);
+   }
+
+   /**
    * Method  : doTlogWrite
    * Params  : regionName - name of Region
    *           transactionId - transaction identifier
@@ -429,7 +693,7 @@ public class TmAuditTlog {
 
         if (LOG.isTraceEnabled()) LOG.trace("doTlogWrite submitting tlog callable in thread " + threadId);
 
-        compPool.submit(new TlogCallable(transactionState, location, connection) {
+        compPool.submit(new TlogCallable1(transactionState, location, connection) {
            public Integer call() throws CommitUnsuccessfulException, IOException {
               if (LOG.isTraceEnabled()) LOG.trace("before doTlogWriteX() [" + transactionState.getTransactionId() + "]" );
               return doTlogWriteX(location.getRegionInfo().getRegionName(), transactionState.getTransactionId(),
@@ -730,8 +994,9 @@ public class TmAuditTlog {
       Put p;
 
       //create our own hashed key
-      long key = (((lvTransid & tLogHashKey) << tLogHashShiftFactor) + (lvTransid & 0xFFFFFFFF));
-      lv_lockIndex = (int)(lvTransid & tLogHashKey);
+      long lv_seq = TransactionState.getTransSeqNum(lvTransid); 
+      lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
+      long key = ((lv_lockIndex << tLogHashShiftFactor) + lv_seq);
       if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hex: " + Long.toHexString(key) + ", transid: " +  lvTransid
     		  + " in thread " + threadId);
       p = new Put(Bytes.toBytes(key));
@@ -756,7 +1021,7 @@ public class TmAuditTlog {
       if (recoveryASN != -1){
          // We need to send this to a remote Tlog, not our local one, so open the appropriate table
          HTableInterface recoveryTable;
-         int lv_ownerNid = (int)(lvTransid >> 32);
+         int lv_ownerNid = (int)TransactionState.getNodeId(lvTransid);
          String lv_tLogName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(lv_ownerNid) + "_LOG_" + Integer.toHexString(lv_lockIndex));
          HConnection recoveryTableConnection = HConnectionManager.createConnection(this.config);
          recoveryTable = recoveryTableConnection.getTable(TableName.valueOf(lv_tLogName));
@@ -883,7 +1148,8 @@ public class TmAuditTlog {
       if (LOG.isTraceEnabled()) LOG.trace("generatePut for tx: " + lvTransid + " start in thread " + threadId);
       //Create the Put as directed by the hashed key boolean
       //create our own hashed key
-      long key = (((lvTransid & tLogHashKey) << tLogHashShiftFactor) + (lvTransid & 0xFFFFFFFF));
+      long lv_seq = TransactionState.getTransSeqNum(lvTransid); 
+      long key = (((lv_seq & tLogHashKey) << tLogHashShiftFactor) + lv_seq);
       if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", transid: " +  lvTransid);
       Put p = new Put(Bytes.toBytes(key));
       if (LOG.isTraceEnabled()) LOG.trace("generatePut returning " + p);
@@ -923,8 +1189,9 @@ public class TmAuditTlog {
       }
       //Create the Put as directed by the hashed key boolean
       //create our own hashed key
-      long key = (((lvTransid & tLogHashKey) << tLogHashShiftFactor) + (lvTransid & 0xFFFFFFFF));
-      lv_lockIndex = (int)(lvTransid & tLogHashKey);
+      long lv_seq = TransactionState.getTransSeqNum(lvTransid); 
+      lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
+      long key = ((lv_lockIndex << tLogHashShiftFactor) + lv_seq);
       if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hex: " + Long.toHexString(key) + ", transid: " +  lvTransid);
       p = new Put(Bytes.toBytes(key));
 
@@ -946,12 +1213,13 @@ public class TmAuditTlog {
       if (LOG.isTraceEnabled()) LOG.trace("getRecord start");
       TransState lvTxState = TransState.STATE_NOTX;
       String stateString;
-      int lv_lockIndex = (int)(lvTransid & tLogHashKey);
+      int lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
       try {
          String transidString = new String(String.valueOf(lvTransid));
          Get g;
          //create our own hashed key
-         long key = (((lvTransid & tLogHashKey) << tLogHashShiftFactor) + (lvTransid & 0xFFFFFFFF));
+         long lv_seq = TransactionState.getTransSeqNum(lvTransid); 
+         long key = ((lv_lockIndex << tLogHashShiftFactor) + lv_seq);
          if (LOG.isTraceEnabled()) LOG.trace("key: " + key + " hex: " + Long.toHexString(key));
          g = new Get(Bytes.toBytes(key));
          try {
@@ -1040,12 +1308,13 @@ public class TmAuditTlog {
    public static String getRecord(final String transidString) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("getRecord start");
       long lvTransid = Long.parseLong(transidString, 10);
-      int lv_lockIndex = (int)(lvTransid & tLogHashKey);
+      int lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
       String lvTxState = new String("NO RECORD");
       try {
          Get g;
          //create our own hashed key
-         long key = (((lvTransid & tLogHashKey) << tLogHashShiftFactor) + (lvTransid & 0xFFFFFFFF));
+         long lv_seq = TransactionState.getTransSeqNum(lvTransid); 
+         long key = ((lv_lockIndex << tLogHashShiftFactor) + lv_seq);
          if (LOG.isTraceEnabled()) LOG.trace("key: " + key + " hex: " + Long.toHexString(key));
          g = new Get(Bytes.toBytes(key));
          try {
@@ -1072,11 +1341,12 @@ public class TmAuditTlog {
    public static boolean deleteRecord(final long lvTransid) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("deleteRecord start " + lvTransid);
       String transidString = new String(String.valueOf(lvTransid));
-      int lv_lockIndex = (int)(lvTransid & tLogHashKey);
+      int lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
       try {
          Delete d;
          //create our own hashed key
-         long key = (((lvTransid & tLogHashKey) << tLogHashShiftFactor) + (lvTransid & 0xFFFFFFFF));
+         long lv_seq = TransactionState.getTransSeqNum(lvTransid); 
+         long key = ((lv_lockIndex << tLogHashShiftFactor) + lv_seq);
          if (LOG.isTraceEnabled()) LOG.trace("key: " + key + " hex: " + Long.toHexString(key));
          d = new Delete(Bytes.toBytes(key));
          if (LOG.isTraceEnabled()) LOG.trace("deleteRecord  (" + lvTransid + ") ");
@@ -1116,6 +1386,9 @@ public class TmAuditTlog {
                         String transidToken = st.nextElement().toString() ;
                         String stateToken = st.nextElement().toString() ;
                         if (LOG.isTraceEnabled()) LOG.trace("Transid: " + transidToken + " has state: " + stateToken);
+                        long tmp_trans = Long.parseLong(transidToken);
+                        if (LOG.isTraceEnabled()) LOG.trace("Transid: " + transidToken + " has sequence: " + TransactionState.getTransSeqNum(tmp_trans)
+                             + ", node: " + TransactionState.getNodeId(tmp_trans) + ", clusterId: " + TransactionState.getClusterId(tmp_trans));
                         if ((Long.parseLong(asnToken) < lvAsn) && (stateToken.equals("FORGOTTEN"))) {
                            String rowKey = new String(r.getRow());
                            Delete del = new Delete(r.getRow());
@@ -1213,7 +1486,7 @@ public class TmAuditTlog {
         for (Map.Entry<Long, TransactionState> e : map.entrySet()) {
          try {
             Long transid = e.getKey();
-            lv_lockIndex = (int)(transid & tLogHashKey);
+            lv_lockIndex = (int)(TransactionState.getTransSeqNum(transid) & tLogHashKey);
             TransactionState value = e.getValue();
             if (value.getStatus().equals("COMMITTED")){
                if (LOG.isTraceEnabled()) LOG.trace("writeControlPointRecords adding record for trans (" + transid + ") : state is " + value.getStatus());
@@ -1323,8 +1596,8 @@ public class TmAuditTlog {
       // the appropriate Tlog
       HTableInterface unknownTransactionTable;
       long lvTransid = ts.getTransactionId();
-      int lv_ownerNid = (int)(lvTransid >> 32);
-      int lv_lockIndex = (int)(lvTransid & tLogHashKey);
+      int lv_ownerNid = (int)TransactionState.getNodeId(lvTransid);
+      int lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
       String lv_tLogName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(lv_ownerNid) + "_LOG_" + Integer.toHexString(lv_lockIndex));
       HConnection unknownTableConnection = HConnectionManager.createConnection(this.config);
       unknownTransactionTable = unknownTableConnection.getTable(TableName.valueOf(lv_tLogName));
@@ -1332,7 +1605,7 @@ public class TmAuditTlog {
       try {
          String transidString = new String(String.valueOf(lvTransid));
          Get g;
-         long key = (((lvTransid & tLogHashKey) << tLogHashShiftFactor) + (lvTransid & 0xFFFFFFFF));
+         long key = ((lv_lockIndex << tLogHashShiftFactor) + TransactionState.getTransSeqNum(lvTransid));
          if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hexkey: " + Long.toHexString(key) + ", transid: " +  lvTransid);
          g = new Get(Bytes.toBytes(key));
          TransState lvTxState = TransState.STATE_NOTX;
@@ -1490,6 +1763,6 @@ public class TmAuditTlog {
       }
       if (LOG.isTraceEnabled()) LOG.trace("getTransactionState end transid: " + ts.getTransactionId());
       return;
-   } 
+   }
 }
 

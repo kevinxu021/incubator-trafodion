@@ -44,7 +44,7 @@ define([
 	var WorkloadsView = BaseView.extend({
 		template:  _.template(WorkloadsT),
 
-		init: function (){
+		doInit: function (){
 			_that = this;
 			
 			validator = $(FILTER_FORM).validate({
@@ -79,8 +79,6 @@ define([
 			
 			$('#startdatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
 			$('#enddatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
-			//$('#startdatetimepicker').data("DateTimePicker").date(moment().subtract(1, 'hour'));
-			//$('#enddatetimepicker').data("DateTimePicker").date(moment());
 			$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
 			$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 
@@ -123,7 +121,7 @@ define([
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			this.fetchQueriesInRepository();
 		},
-		resume: function(){
+		doResume: function(){
 			wHandler.on(wHandler.FETCH_REPO_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_ERROR, this.showErrorMessage);			
 			$(REFRESH_MENU).on('click', this.fetchQueriesInRepository);
@@ -131,7 +129,7 @@ define([
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			this.fetchQueriesInRepository();
 		},
-		pause: function(){
+		doPause: function(){
 			wHandler.off(wHandler.FETCH_REPO_SUCCESS, this.displayResults);
 			wHandler.off(wHandler.FETCH_REPO_ERROR, this.showErrorMessage);			
 			$(REFRESH_MENU).off('click', this.fetchLogs);

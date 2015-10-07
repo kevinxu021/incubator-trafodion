@@ -29,3 +29,6 @@ hdd $MY_SQROOT/tmp
 #ssd /ssd/directory
 end overflow
 
+!add_my_cluster_id 1
+#!add_peer -i 2 -q dev01 -p 26770
+

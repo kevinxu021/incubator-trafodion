@@ -28,7 +28,7 @@ define([
 	var HistoricalWorkloadDetailView = BaseView.extend({
 		template:  _.template(WorkloadsT),
 
-		init: function (args){
+		doInit: function (args){
 			_that = this;
 			$('#query-id').val(args);
 			queryID = args;
@@ -42,7 +42,7 @@ define([
 			this.fetchRepositoryQueryDetail();
 			
 		},
-		resume: function(args){
+		doResume: function(args){
 			$('#query-id').val(args);
 			queryID = args;
 			$('#explainLink').attr("href", "#/workloads/history/queryplan/"+queryID);
@@ -54,7 +54,7 @@ define([
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			this.fetchRepositoryQueryDetail();
 		},
-		pause: function(){
+		doPause: function(){
 			wHandler.off(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.off(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);

@@ -737,6 +737,14 @@ sub printSQShellCommand {
     printScript(1, substr($_,1));
 }
 
+sub executeShellCommand {
+    $lv_cmd=substr($_,1);
+    print "Command: $lv_cmd";
+    $lv_cmd_output=`$lv_cmd` ;
+    print $lv_cmd_output;
+	
+}
+
 
 sub processNodes {
     my $bNodeSpecified = 0;
@@ -1477,6 +1485,9 @@ while (<SRC>) {
     }
     elsif (/^%/) {
 	printSQShellCommand;
+    }
+    elsif (/^!/) {
+	executeShellCommand;
     }
 }
 

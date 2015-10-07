@@ -55,7 +55,7 @@ namespace EsgynDB.Data
                 EsgynDBException.ThrowException(null, new ArgumentException(msg));
             }
 
-            this.EsgyndbDbType = dataType;
+            this.EsgynDBDbType = dataType;
             this._dataRowVersion = DataRowVersion.Default;
             this._parameterName = name;
             this._verified = false;
@@ -221,7 +221,7 @@ namespace EsgynDB.Data
         /// Gets or sets the EsgynDBType of the parameter.
         /// </summary>
         [DbProviderSpecificTypePropertyAttribute(true)]
-        public EsgynDBType EsgyndbDbType
+        public EsgynDBType EsgynDBDbType
         {
             get
             {
@@ -498,7 +498,7 @@ namespace EsgynDB.Data
         public void ResetEsgynDBType()
         {
             this._verified = false;
-            this.EsgyndbDbType = EsgynDBType.Varchar;
+            this.EsgynDBDbType = EsgynDBType.Varchar;
         }
 
         #region ICloneable
@@ -511,7 +511,7 @@ namespace EsgynDB.Data
         {
             EsgynDBParameter clone = new EsgynDBParameter(
                 this._parameterName, 
-                this.EsgyndbDbType, 
+                this.EsgynDBDbType, 
                 this.Size, 
                 this.Direction,
                 this.IsNullable, 

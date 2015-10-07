@@ -1016,6 +1016,23 @@ NABoolean CmpSeabaseDDL::isSeabaseReservedSchema(
   return isSeabaseReservedSchema(catName, schName);
 }
 
+NABoolean CmpSeabaseDDL::isSeabaseExternalSchema(
+                                  const NAString &catName,
+                                  const NAString &schName)
+{
+  if (catName.isNull())
+    return FALSE;
+
+  NAString seabaseDefCatName = "";
+  CmpCommon::getDefault(SEABASE_CATALOG, seabaseDefCatName, FALSE);
+  seabaseDefCatName.toUpper();
+
+  if (catName != seabaseDefCatName)
+    return FALSE;
+
+  return ComIsTrafodionExternalSchemaName(schName);
+}
+ 
 // ----------------------------------------------------------------------------
 // Method:  isUserUpdatableSeabaseMD
 //
@@ -1650,7 +1667,7 @@ void CmpSeabaseDDL::restoreAllControlsAndFlags()
   cliRC = cliInterface.executeImmediate("control query shape restore;");
 
   if (CmpCommon::context()->getCntlCount() > 0 &&
-      CmpCommon::context()->getCntlCount() < CQD_SENT_MAX)
+      CmpCommon::context()->getCntlCount() <= CQD_SENT_MAX)
     {
   cliRC = cliInterface.restoreCQD("volatile_schema_in_use");
 
@@ -3398,7 +3415,7 @@ Int64 CmpSeabaseDDL::getObjectUID(
   return objUID;
 }
 
-Int64 CmpSeabaseDDL::getObjectUIDandOwners(
+Int64 CmpSeabaseDDL::getObjectInfo(
                                    ExeCliInterface *cliInterface,
                                    const char * catName,
                                    const char * schName,
@@ -3406,6 +3423,7 @@ Int64 CmpSeabaseDDL::getObjectUIDandOwners(
                                    const ComObjectType objectType,
                                    Int32 & objectOwner,
                                    Int32 & schemaOwner,
+                                   Int64 & objectFlags,
                                    bool reportErrorNow,
                                    NABoolean checkForValidDef)
 {
@@ -3426,7 +3444,7 @@ Int64 CmpSeabaseDDL::getObjectUIDandOwners(
     strcpy(cfvd, " and valid_def = 'Y' ");
 
   char buf[4000];
-  str_sprintf(buf, "select object_uid, object_owner, schema_owner from %s.\"%s\".%s where catalog_name = '%s' and schema_name = '%s' and object_name = '%s'  and object_type = '%s' %s ",
+  str_sprintf(buf, "select object_uid, object_owner, schema_owner, flags from %s.\"%s\".%s where catalog_name = '%s' and schema_name = '%s' and object_name = '%s'  and object_type = '%s' %s ",
               getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS,
               catName, quotedSchName.data(), quotedObjName.data(),
               objectTypeLit, cfvd);
@@ -3455,14 +3473,22 @@ Int64 CmpSeabaseDDL::getObjectUIDandOwners(
 
   char * ptr = NULL;
   Lng32 len = 0;
+
+  // return object_uid
   cliInterface->getPtrAndLen(1, ptr, len);
   Int64 objUID = *(Int64*)ptr;
 
+  // return object_owner
   cliInterface->getPtrAndLen(2, ptr, len);
   objectOwner = *(Int32*)ptr;
 
+  // return schema_owner
   cliInterface->getPtrAndLen(3, ptr, len);
   schemaOwner = *(Int32*)ptr;
+
+  // return flags
+  cliInterface->getPtrAndLen(4, ptr, len);
+  objectFlags = *(Int64*)ptr;
 
   cliInterface->fetchRowsEpilogue(NULL, TRUE);
 
@@ -4187,6 +4213,7 @@ short CmpSeabaseDDL::updateSeabaseMDObjectsTable(
                                          const char * validDef, 
                                          Int32 objOwnerID,
                                          Int32 schemaOwnerID,
+                                         Int64 objectFlags,
                                          Int64 &inUID)
 {
 
@@ -4219,7 +4246,7 @@ short CmpSeabaseDDL::updateSeabaseMDObjectsTable(
   NAString quotedObjName;
   ToQuotedString(quotedObjName, NAString(objName), FALSE);
 
-  str_sprintf(buf, "insert into %s.\"%s\".%s values ('%s', '%s', '%s', '%s', %Ld, %Ld, %Ld, '%s', '%s', %d, %d, 0 )",
+  str_sprintf(buf, "insert into %s.\"%s\".%s values ('%s', '%s', '%s', '%s', %Ld, %Ld, %Ld, '%s', '%s', %d, %d, %Ld )",
               getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS,
               catName, quotedSchName.data(), quotedObjName.data(),
               objectTypeLit,
@@ -4229,7 +4256,8 @@ short CmpSeabaseDDL::updateSeabaseMDObjectsTable(
               validDef,
               COM_NO_LIT,
               objOwnerID,
-              schemaOwnerID);
+              schemaOwnerID,
+              objectFlags);
   cliRC = cliInterface->executeImmediate(buf);
   
   if (cliRC < 0)
@@ -4306,8 +4334,6 @@ short CmpSeabaseDDL::updateSeabaseMDTable(
                                          const ComTdbVirtTableKeyInfo * keyInfo,
                                          Lng32 numIndexes,
                                          const ComTdbVirtTableIndexInfo * indexInfo,
-                                         Int32 objOwnerID,
-                                         Int32 schemaOwnerID,
                                          Int64 &inUID)
 {
   NABoolean useRWRS = FALSE;
@@ -4316,8 +4342,12 @@ short CmpSeabaseDDL::updateSeabaseMDTable(
       useRWRS = TRUE;
     }
 
+  Int32 objOwnerID = (tableInfo) ? tableInfo->objOwnerID : SUPER_USER;
+  Int32 schemaOwnerID = (tableInfo) ? tableInfo->schemaOwnerID : SUPER_USER;
+  Int64 objectFlags = (tableInfo) ? tableInfo->objectFlags : 0;
+  
   if (updateSeabaseMDObjectsTable(cliInterface,catName,schName,objName,objectType,
-                                  validDef,objOwnerID,schemaOwnerID,inUID))
+                                  validDef,objOwnerID, schemaOwnerID, objectFlags, inUID))
     return -1;
     
   Int64 objUID = inUID;
@@ -4613,11 +4643,11 @@ short CmpSeabaseDDL::updateSeabaseMDTable(
           if (tableInfo->xnRepl != COM_REPL_NONE)
             {
               if (tableInfo->xnRepl == COM_REPL_SYNC)
-                CmpSeabaseDDL::setMDflags(flags, 
-                                          CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG);
+                CmpSeabaseDDL::setMDflags
+                  (flags, CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG);
               else if (tableInfo->xnRepl == COM_REPL_ASYNC)
-                CmpSeabaseDDL::setMDflags(flags, 
-                                          CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG);
+                CmpSeabaseDDL::setMDflags
+                  (flags,CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG);
             }
         }
 
@@ -4713,8 +4743,8 @@ short CmpSeabaseDDL::updateSeabaseMDTable(
       if (!insertPrivMgrInfo(objUID,
                              fullName,
                              objectType,
-                             objOwnerID,
-                             schemaOwnerID,
+                             tableInfo->objOwnerID,
+                             tableInfo->schemaOwnerID,
                              ComUser::getCurrentUser()))
         {
           *CmpCommon::diags()
@@ -4791,17 +4821,30 @@ short CmpSeabaseDDL::updateSeabaseMDSPJ(
   NAString quotedSpjObjName;
   ToQuotedString(quotedSpjObjName, NAString(routineInfo->routine_name), FALSE);
   Int64 objUID = -1;
+
+  ComTdbVirtTableTableInfo * tableInfo = new(STMTHEAP) ComTdbVirtTableTableInfo[1];
+  tableInfo->tableName = NULL,
+  tableInfo->createTime = 0;
+  tableInfo->redefTime = 0;
+  tableInfo->objUID = 0;
+  tableInfo->objOwnerID = ownerID;
+  tableInfo->schemaOwnerID = schemaOwnerID;
+  tableInfo->isAudited = 1;
+  tableInfo->validDef = 1;
+  tableInfo->hbaseCreateOptions = NULL;
+  tableInfo->numSaltPartns = 0;
+  tableInfo->rowFormat = COM_UNKNOWN_FORMAT_TYPE;
+  tableInfo->objectFlags = 0;
+
   if (updateSeabaseMDTable(cliInterface, 
                            catalogNamePart, schemaNamePart, quotedSpjObjName,
                            COM_USER_DEFINED_ROUTINE_OBJECT,
                            "Y",
-                           NULL,
+                           tableInfo,
                            numCols,
                            colInfo,
                            0, NULL,
                            0, NULL, 
-                           ownerID,
-                           schemaOwnerID,
                            objUID))
     {
       return -1;
@@ -6409,10 +6452,11 @@ short CmpSeabaseDDL::dropSeabaseObject(ExpHbaseInterface * ehi,
         //   than to do an extra I/O.
         Int32 objOwnerID = 0;
         Int32 schemaOwnerID = 0;
-        Int64 objUID = getObjectUIDandOwners(&cliInterface,
-                                             catalogNamePart.data(), schemaNamePart.data(),
-                                             objectNamePart.data(), objType,
-                                             objOwnerID,schemaOwnerID);
+        Int64 objectFlags = 0;
+        Int64 objUID = getObjectInfo(&cliInterface,
+                                     catalogNamePart.data(), schemaNamePart.data(),
+                                     objectNamePart.data(), objType,
+                                     objOwnerID,schemaOwnerID,objectFlags);
 
         if (objUID < 0 || objOwnerID == 0)
           { //TODO: Internal error?
@@ -6560,6 +6604,7 @@ void CmpSeabaseDDL::initSeabaseMD()
   Lng32 cliRC = 0;
   NABoolean xnWasStartedHere = FALSE;
   Int64 schemaUID = -1;  
+  Int64 objectFlags = 0;
 
   Lng32 numTables = sizeof(allMDtablesInfo) / sizeof(MDTableInfo);
 
@@ -6575,6 +6620,8 @@ void CmpSeabaseDDL::initSeabaseMD()
 
   const char* sysCat = ActiveSchemaDB()->getDefaults().getValue(SEABASE_CATALOG);
 
+  ComTdbVirtTableTableInfo * tableInfo = new(STMTHEAP) ComTdbVirtTableTableInfo[1];
+ 
   Lng32 hbaseErrNum = 0;
   NAString hbaseErrStr;
   Lng32 errNum = validateVersions(&ActiveSchemaDB()->getDefaults(), ehi,
@@ -6652,11 +6699,12 @@ void CmpSeabaseDDL::initSeabaseMD()
       goto label_error;
     }
 
+
   // Create Seabase system schema
   if (updateSeabaseMDObjectsTable(&cliInterface,sysCat,SEABASE_SYSTEM_SCHEMA,
                                   SEABASE_SCHEMA_OBJECTNAME,
                                   COM_SHARED_SCHEMA_OBJECT,"Y",SUPER_USER,
-                                  SUPER_USER,schemaUID))
+                                  SUPER_USER,objectFlags,schemaUID))
   {
     goto label_error;
   }
@@ -6666,7 +6714,7 @@ void CmpSeabaseDDL::initSeabaseMD()
   if (updateSeabaseMDObjectsTable(&cliInterface,sysCat,SEABASE_MD_SCHEMA,
                                   SEABASE_SCHEMA_OBJECTNAME,
                                   COM_PRIVATE_SCHEMA_OBJECT,"Y",SUPER_USER,
-                                  SUPER_USER,schemaUID))
+                                  SUPER_USER,objectFlags, schemaUID))
   {
     goto label_error;
   }
@@ -6692,8 +6740,6 @@ void CmpSeabaseDDL::initSeabaseMD()
                                mddi.newKeyInfo,
                                mddi.numIndexes,
                                mddi.indexInfo,
-                               SUPER_USER,
-                               SUPER_USER,
                                objUID))
         {
           goto label_error;
@@ -6710,19 +6756,30 @@ void CmpSeabaseDDL::initSeabaseMD()
       if (NOT mdti.isIndex)
         continue;
 
+      tableInfo->tableName = NULL,
+      tableInfo->createTime = 0;
+      tableInfo->redefTime = 0;
+      tableInfo->objUID = 0;
+      tableInfo->objOwnerID = SUPER_USER;
+      tableInfo->schemaOwnerID = SUPER_USER;
+      tableInfo->isAudited = 1;
+      tableInfo->validDef = 1;
+      tableInfo->hbaseCreateOptions = NULL;
+      tableInfo->numSaltPartns = 0;
+      tableInfo->rowFormat = COM_UNKNOWN_FORMAT_TYPE;
+      tableInfo->objectFlags = 0;
+
       Int64 objUID = -1;
       if (updateSeabaseMDTable(&cliInterface, 
                                sysCat, SEABASE_MD_SCHEMA, mdti.newName,
                                COM_INDEX_OBJECT,
                                "Y",
-                               NULL,
+                               tableInfo,
                                mddi.numNewCols,
                                mddi.newColInfo,
                                mddi.numNewKeys,
                                mddi.newKeyInfo,
                                0, NULL,
-                               SUPER_USER,
-                               SUPER_USER,
                                objUID))
         {
           goto label_error;
@@ -7252,10 +7309,11 @@ void  CmpSeabaseDDL::alterSeabaseSequence(StmtDDLCreateSequence  * alterSequence
 
   Int32 objectOwnerID = 0;
   Int32 schemaOwnerID = 0;
-  Int64 seqUID = getObjectUIDandOwners(&cliInterface,
-                                       catalogNamePart.data(), schemaNamePart.data(),
-                                       seqNamePart.data(), COM_SEQUENCE_GENERATOR_OBJECT,
-                                       objectOwnerID,schemaOwnerID);
+  Int64 objectFlags = 0;
+  Int64 seqUID = getObjectInfo(&cliInterface,
+                               catalogNamePart.data(), schemaNamePart.data(),
+                               seqNamePart.data(), COM_SEQUENCE_GENERATOR_OBJECT,
+                               objectOwnerID,schemaOwnerID,objectFlags);
   
   // Check for error getting metadata information
   if (seqUID == -1 || objectOwnerID == 0)
@@ -7400,10 +7458,11 @@ void  CmpSeabaseDDL::dropSeabaseSequence(StmtDDLDropSequence  * dropSequenceNode
     {
       Int32 objectOwnerID = 0;
       Int32 schemaOwnerID = 0;
-      Int64 seqUID = getObjectUIDandOwners(&cliInterface,
-                                           catalogNamePart.data(), schemaNamePart.data(),
-                                           objectNamePart.data(), COM_SEQUENCE_GENERATOR_OBJECT,
-                                           objectOwnerID,schemaOwnerID);
+      Int64 objectFlags = 0;
+      Int64 seqUID = getObjectInfo(&cliInterface,
+                                   catalogNamePart.data(), schemaNamePart.data(),
+                                   objectNamePart.data(), COM_SEQUENCE_GENERATOR_OBJECT,
+                                   objectOwnerID,schemaOwnerID,objectFlags);
   
       // Check for error getting metadata information
       if (seqUID == -1 || objectOwnerID == 0)
@@ -8529,6 +8588,13 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
 
           alterSeabaseIndexHBaseOptions(aihbo, currCatName, currSchName);
         }
+      else if (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ATTRIBUTE)
+        {
+          StmtDDLAlterTableAttribute * ata =
+            ddlNode->castToStmtDDLNode()->castToStmtDDLAlterTableAttribute();
+
+          alterSeabaseTableAttribute(ata, currCatName, currSchName);
+        }
       else if (ddlNode->getOperatorType() == DDL_CREATE_VIEW)
         {
           // create seabase view
@@ -9131,9 +9197,10 @@ ComObjectType objectType;
       return CAT_INTERNAL_EXCEPTION_ERROR;
    }
 
-// For private schemas, the objects are always owned by the schema owner.   
-   schemaClass = COM_SCHEMA_CLASS_PRIVATE;
+   // For private schemas, the objects are always owned by the schema owner.
+   schemaClass = COM_SCHEMA_CLASS_PRIVATE; 
    objectOwner = schemaOwner;
+
 
 // Root user is authorized for all create operations in private schemas.  For 
 // installations with no authentication, all users are mapped to root database  

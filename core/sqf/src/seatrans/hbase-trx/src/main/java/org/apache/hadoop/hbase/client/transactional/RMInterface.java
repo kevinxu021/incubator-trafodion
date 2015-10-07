@@ -64,6 +64,7 @@ import org.apache.hadoop.hbase.client.transactional.SsccTransactionalTable;
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 
+import org.apache.hadoop.hbase.client.transactional.PeerInfo;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
 
 import org.apache.hadoop.hbase.client.transactional.TransState;
@@ -73,6 +74,8 @@ import org.apache.hadoop.hbase.client.transactional.TransactionMap;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTm;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmException;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmId;
+
+import org.apache.zookeeper.KeeperException;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -103,11 +106,14 @@ public class RMInterface {
        try {
           pSTRConfig = STRConfig.getInstance(lv_config);
        }
-       catch (ZooKeeperConnectionException zke) {
-          LOG.error("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
+       catch (InterruptedException int_exception) {
+	   System.out.println("Interrupted Exception trying to get STRConfig instance: " + int_exception);
        }
        catch (IOException ioe) {
           LOG.error("IO Exception trying to get STRConfig instance: " + ioe);
+       }
+       catch (KeeperException zke) {
+          LOG.error("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
        }
     }
 
@@ -168,9 +174,27 @@ public class RMInterface {
 
     }
 
+    public boolean isSTRUp(int pv_peer_id) 
+    {
+
+	PeerInfo lv_pi = pSTRConfig.getPeerInfo(pv_peer_id);
+
+	if (lv_pi == null) {
+	    if (LOG.isTraceEnabled()) LOG.trace("Peer id: " 
+						+ pv_peer_id
+						+ " does not seem to exist"
+						);
+	    return false;
+	}
+
+	return lv_pi.isSTRUp();
+
+    }
+
     public void setSynchronized(boolean pv_synchronize) throws IOException {
         if (LOG.isTraceEnabled()) LOG.trace("RMInterface setSynchronized:"
 					    + " table: " + new String(ttable.getTableName())
+					    + " peerCount: " + pSTRConfig.getPeerCount()
 					    + " synchronize flag: " + pv_synchronize);
 	
 	bSynchronized = pv_synchronize;
@@ -184,6 +208,12 @@ public class RMInterface {
 		for ( Map.Entry<Integer, HConnection> e : pSTRConfig.getPeerConnections().entrySet() ) {
 		    int           lv_peerId = e.getKey();
 		    if (lv_peerId == 0) continue;
+		    if (! isSTRUp(lv_peerId)) {
+			if (LOG.isTraceEnabled()) LOG.trace("setSynchronized, STR is DOWN for "
+							    + " peerId: " + lv_peerId);
+			continue;
+		    }
+
 		    if (LOG.isTraceEnabled()) LOG.trace("setSynchronized" 
 							+ " peerId: " + lv_peerId);
 		    peer_tables.put(lv_peerId, new TransactionalTable(ttable.getTableName(), e.getValue()));
@@ -304,8 +334,11 @@ public class RMInterface {
 
        if (bSynchronized && pv_sendToPeers && (pSTRConfig.getPeerCount() > 0)) {
           for ( Map.Entry<Integer, TransactionalTableClient> e : peer_tables.entrySet() ) {
-             TransactionalTableClient lv_table = e.getValue();
              int                      lv_peerId = e.getKey();
+	     if (! isSTRUp(lv_peerId)) {
+		 continue;
+	     }
+             TransactionalTableClient lv_table = e.getValue();
              registerTransaction(lv_table, transactionID, row, lv_peerId);
           }
        }
@@ -418,7 +451,7 @@ public class RMInterface {
         ttable.delete(ts, delete, false);
         if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
            for (TransactionalTableClient lv_table : peer_tables.values()) {
-              lv_table.delete(ts, delete, false);
+	       lv_table.delete(ts, delete, false);
            }
         }
     }

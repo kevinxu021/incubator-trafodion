@@ -125,6 +125,8 @@ import org.apache.hadoop.hbase.coprocessor.transactional.generated.SsccRegionPro
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.SsccRegionProtos.SsccPutTransactionalRequest;
 import org.apache.hadoop.hbase.client.transactional.SsccUpdateConflictException;
 
+import org.apache.zookeeper.KeeperException;
+
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
 
 /**
@@ -196,7 +198,8 @@ public class TransactionManager {
   }
 
   // getInstance to return the singleton object for TransactionManager
-  public synchronized static TransactionManager getInstance(final Configuration conf) throws ZooKeeperConnectionException, IOException {
+    public synchronized static TransactionManager getInstance(final Configuration conf) 
+	throws KeeperException, InterruptedException, IOException {
     if (g_TransactionManager == null) {
       g_TransactionManager = new TransactionManager(conf);
     }
@@ -1429,7 +1432,7 @@ public class TransactionManager {
      * @param conf
      * @throws ZooKeeperConnectionException
      */
-    private TransactionManager(final Configuration conf) throws ZooKeeperConnectionException, IOException {
+    private TransactionManager(final Configuration conf) throws KeeperException, IOException, InterruptedException {
         this(LocalTransactionLogger.getInstance(), conf);
 
         int intThreads = 16;
@@ -1483,7 +1486,7 @@ public class TransactionManager {
      * @throws ZooKeeperConnectionException
      */
     protected TransactionManager(final TransactionLogger transactionLogger, final Configuration conf)
-            throws ZooKeeperConnectionException, IOException {
+	throws KeeperException, IOException, InterruptedException {
         this.transactionLogger = transactionLogger;        
 	pSTRConfig = STRConfig.getInstance(conf);
     }

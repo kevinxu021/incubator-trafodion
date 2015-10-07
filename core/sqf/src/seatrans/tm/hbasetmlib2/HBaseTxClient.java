@@ -44,6 +44,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.transactional.HBaseDCZK;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.CommitUnsuccessfulException;
@@ -369,6 +370,35 @@ public class HBaseTxClient {
       }
       if (LOG.isTraceEnabled()) LOG.trace("Exit init()");
       return true;
+   }
+
+   public short createEphemeralZKNode(byte[] pv_data) {
+       if (LOG.isInfoEnabled()) LOG.info("Enter createEphemeralZKNode, data: " + new String(pv_data));
+
+       try {
+
+	   HBaseDCZK lv_zk = new HBaseDCZK(config);
+
+	   String lv_my_cluster_id = lv_zk.get_my_id();
+	   if (lv_my_cluster_id == null) {
+	       if (LOG.isDebugEnabled()) LOG.debug("createEphemeralZKNode, my_cluster_id is null");
+	       return 1;
+	   }
+
+	   String lv_node_id = new String(String.valueOf(dtmID));
+	   String lv_node_data = new String(pv_data);
+       
+	   lv_zk.set_trafodion_znode(lv_my_cluster_id,
+				     lv_node_id,
+				     lv_node_data);
+       }
+       catch (Exception e) {
+	   LOG.error("Exception while trying to create the trafodion ephemeral node.");
+	   LOG.error(e);
+	   return 1;
+       }
+
+       return 0;
    }
 
    public TmDDL getTmDDL() {
@@ -1046,6 +1076,18 @@ public class HBaseTxClient {
    public long addControlPoint() throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("Enter addControlPoint");
       long result = 0L;
+      if (bSynchronized){
+         for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
+            try {
+               lv_tLog.addControlPoint(mapTransactionStates);
+            }
+            catch (Exception e) {
+               LOG.error("addControlPoint, lv_tLog " + lv_tLog + " EXCEPTION: " + e);
+               throw e;
+            }
+         }
+      }
+
       try {
          if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient calling tLog.addControlPoint with mapsize " + mapTransactionStates.size());
          result = tLog.addControlPoint(mapTransactionStates);
@@ -1350,7 +1392,7 @@ public class HBaseTxClient {
                                                     " and tolerating UnknownTransactionExceptions");
                                         txnManager.doCommit(ts, true /*ignore UnknownTransactionException*/);
                                         if(useTlog && useForgotten) {
-                                            long nextAsn = tLog.getNextAuditSeqNum((int)(txID >> 32));
+                                            long nextAsn = tLog.getNextAuditSeqNum((int)TransactionState.getNodeId(txID));
                                             tLog.putSingleRecord(txID, ts.getCommitId(), "FORGOTTEN", null, forceForgotten, nextAsn);
                                         }
                                     } else if (ts.getStatus().equals(TransState.STATE_ABORTED.toString())) {

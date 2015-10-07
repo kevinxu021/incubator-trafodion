@@ -22,6 +22,7 @@ import java.io.IOException;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -31,13 +32,18 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableExistsException;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
+
+import org.apache.hadoop.hbase.master.RegionState;
+
 import org.apache.hadoop.hbase.util.Bytes;
+
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.PropertyConfigurator;
+
+import org.apache.zookeeper.KeeperException;
 
 /* 
 
@@ -66,8 +72,8 @@ public class hbstatus {
 	this.m_Config = config;
 	m_Config.setInt("hbase.client.retries.number", 3);
 	m_Config.set("hbase.root.logger","ERROR,console");
-	System.out.println("ZooKeeper Quorum: " + m_Config.get("hbase.zookeeper.quorum"));
-	System.out.println("ZooKeeper Port  : " + m_Config.get("hbase.zookeeper.property.clientPort"));
+	System.out.print("ZooKeeper Quorum: " + m_Config.get("hbase.zookeeper.quorum"));
+	System.out.println(", ZooKeeper Port  : " + m_Config.get("hbase.zookeeper.property.clientPort"));
 
 	m_Connection = ConnectionFactory.createConnection(m_Config);
 	m_Admin = m_Connection.getAdmin();
@@ -81,7 +87,6 @@ public class hbstatus {
 
     public boolean CheckStatus() throws Exception {
 
-        System.out.println("Checking if HBase is available...");
 	ClusterStatus lv_cs;
 	try {
 	    lv_cs = m_Admin.getClusterStatus();
@@ -93,6 +98,7 @@ public class hbstatus {
         }
 
         System.out.println("\nHBase is available!");
+        System.out.println("\nHBase version: " + lv_cs.getHBaseVersion());
 
 	System.out.println("HMaster: " + lv_cs.getMaster());
 
@@ -102,12 +108,26 @@ public class hbstatus {
 	    System.out.println("Not a single RegionServer is available at the moment. Exitting...");
 	    return false;
 	}
-	System.out.println();
-
 	int lv_rs_count=0;
 	for (ServerName lv_sn : lv_csn) {
 	    System.out.println("RegionServer #" + ++lv_rs_count + ": " + lv_sn);
 	}
+
+	Collection<ServerName> lv_dsn = lv_cs.getDeadServerNames();
+	System.out.println("\nNumber of Dead RegionServers:" + lv_dsn.size());
+	lv_rs_count=0;
+	for (ServerName lv_sn : lv_dsn) {
+	    System.out.println("Dead RegionServer #" + ++lv_rs_count + ": " + lv_sn);
+	}
+
+	System.out.println("Number of regions: " + lv_cs.getRegionsCount());
+	Map<String, RegionState> lv_map_rit = lv_cs.getRegionsInTransition();
+	System.out.println("Number of regions in transition: " + lv_map_rit.size());
+	for (Map.Entry<String, RegionState> me: lv_map_rit.entrySet()) {
+	    System.out.println("RegionInTransition: " + me.getKey() + " state: " + me.getValue());
+	}
+
+	System.out.println("Average load: " + lv_cs.getAverageLoad());
 
 	System.out.println();
 
@@ -223,7 +243,6 @@ public class hbstatus {
 
 	int lv_index = 0;
 	for (String lv_arg : Args) {
-	    //	    System.out.println("Arg[" + lv_index + "]=" + lv_arg);
 	    lv_index++;
 	    if (lv_arg.compareTo("-h") == 0) {
 		Usage();
@@ -257,7 +276,11 @@ public class hbstatus {
 	Configuration lv_config = HBaseConfiguration.create();
 	if (lv_peer_id > 0) {
 	    try {
-		System.setProperty("PEERS", String.valueOf(lv_peer_id));
+		String lv_use_zk = System.getenv("STR_USE_ZK");
+		if (lv_use_zk != null && 
+		    (lv_use_zk.equals("0"))) {
+		    System.setProperty("PEERS", String.valueOf(lv_peer_id));
+		}
 		pSTRConfig = STRConfig.getInstance(lv_config);
 		lv_config = pSTRConfig.getPeerConfiguration(lv_peer_id);
 		if (lv_config == null) {
@@ -265,8 +288,12 @@ public class hbstatus {
 		    System.exit(1);
 		}
 	    }
-	    catch (ZooKeeperConnectionException zke) {
-		System.out.println("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
+	    catch (KeeperException zke) {
+		System.out.println("Zookeeper Exception trying to get STRConfig instance: " + zke);
+		System.exit(1);
+	    }
+	    catch (InterruptedException int_exception) {
+		System.out.println("Interrupted Exception trying to get STRConfig instance: " + int_exception);
 		System.exit(1);
 	    }
 	    catch (IOException ioe) {

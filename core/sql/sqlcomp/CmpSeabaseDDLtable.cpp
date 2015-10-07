@@ -359,11 +359,11 @@ void CmpSeabaseDDL::createSeabaseTableLike(
         done = TRUE;
     }
 
-  if (NOT keyClause.isNull())
-    {
-      // add the keyClause
-      query += keyClause;
-    }
+    if (NOT keyClause.isNull())
+      {
+        // add the keyClause
+        query += keyClause;
+      }
 
   if (createTableNode->isSplitBySpecified())
     query += createTableNode->getSplitByClause();
@@ -381,6 +381,214 @@ void CmpSeabaseDDL::createSeabaseTableLike(
     }
   
   return;
+}
+
+// ----------------------------------------------------------------------------
+// Method: createSeabaseTableExternal
+//
+// This method creates a Trafodion table that represents a Hive or HBase table 
+//
+// in:
+//   cliInterface - references to the cli execution structure
+//   createTableNode - representation of the CREATE TABLE statement
+//   tgtTableName - the Trafodion external table name to create
+//   srcTableName - the native source table
+//
+// returns:  0 - successful, -1 error
+//
+// any error detected is added to the diags area
+// ---------------------------------------------------------------------------- 
+short CmpSeabaseDDL::createSeabaseTableExternal(
+  ExeCliInterface &cliInterface,
+  StmtDDLCreateTable * createTableNode,
+  const ComObjectName &tgtTableName,
+  const ComObjectName &srcTableName) 
+{
+  Int32 retcode = 0;
+
+  NABoolean isHive = tgtTableName.isExternalHive(); 
+
+  // go create the schema - if it does not already exist.
+  NAString createSchemaStmt ("CREATE SCHEMA IF NOT EXISTS ");
+  createSchemaStmt += tgtTableName.getSchemaNamePartAsAnsiString();
+  if (isAuthorizationEnabled())
+    {
+      createSchemaStmt += " AUTHORIZATION ";
+      createSchemaStmt += (isHive) ? DB__HIVEROLE : DB__HBASEROLE; 
+    }
+
+  Lng32 cliRC = cliInterface.executeImmediate((char*)createSchemaStmt.data());
+  if (cliRC < 0)
+    {
+      cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
+      return -1;
+    }
+
+  const NAString catalogNamePart = tgtTableName.getCatalogNamePartAsAnsiString();
+  const NAString schemaNamePart = tgtTableName.getSchemaNamePartAsAnsiString(TRUE);
+  const NAString objectNamePart = tgtTableName.getObjectNamePartAsAnsiString(TRUE);
+
+  // Make sure current user has privileges
+  Int32 objectOwnerID = SUPER_USER;
+  Int32 schemaOwnerID = SUPER_USER;
+  ComSchemaClass schemaClass;
+  retcode = verifyDDLCreateOperationAuthorized(&cliInterface,
+                                               SQLOperation::CREATE_TABLE,
+                                               catalogNamePart,
+                                               schemaNamePart,
+                                               schemaClass,
+                                               objectOwnerID,
+                                               schemaOwnerID);
+  if (retcode != 0)
+  {
+     handleDDLCreateAuthorizationError(retcode,catalogNamePart,schemaNamePart);
+     return -1;
+  }
+
+  const NAString extTgtTableName = tgtTableName.getExternalName(TRUE);
+
+  CorrName cnSrc(srcTableName.getObjectNamePart().getInternalName(),
+              STMTHEAP,
+              srcTableName.getSchemaNamePart().getInternalName(),
+              srcTableName.getCatalogNamePart().getInternalName());
+
+  // build the structures needed to create the table
+  // tableInfo contains data inserted into OBJECTS and TABLES
+  ComTdbVirtTableTableInfo * tableInfo = new(STMTHEAP) ComTdbVirtTableTableInfo[1];
+  tableInfo->tableName = NULL;
+  tableInfo->createTime = 0;
+  tableInfo->redefTime = 0;
+  tableInfo->objUID = 0;
+  tableInfo->isAudited = 0;
+  tableInfo->validDef = 1;
+  tableInfo->hbaseCreateOptions = NULL;
+  tableInfo->numSaltPartns = 0;
+  tableInfo->rowFormat = (isHive) ?  COM_HIVE_EXTERNAL_FORMAT_TYPE : 
+                                     COM_HBASE_EXTERNAL_FORMAT_TYPE;
+  tableInfo->objectFlags = (isHive) ?  SEABASE_OBJECT_IS_EXTERNAL_HIVE : 
+                                       SEABASE_OBJECT_IS_EXTERNAL_HBASE;
+
+  if (isAuthorizationEnabled())
+    {
+      if (srcTableName.isExternalHive())
+        {
+          tableInfo->objOwnerID = HIVE_ROLE_ID;
+          tableInfo->schemaOwnerID = HIVE_ROLE_ID;
+        }
+      else
+        {
+          tableInfo->objOwnerID = HBASE_ROLE_ID;
+          tableInfo->schemaOwnerID = HBASE_ROLE_ID;
+        }
+    }
+  else
+    {
+      tableInfo->objOwnerID = SUPER_USER;
+      tableInfo->schemaOwnerID = SUPER_USER;
+    }
+
+  // Column information
+  Lng32 datatype, length, precision, scale, dtStart, dtEnd, nullable, upshifted;
+  NAString charset;
+  CharInfo::Collation collationSequence = CharInfo::DefaultCollation;
+  ULng32 hbaseColFlags;
+
+  NABoolean alignedFormat = FALSE;
+  Lng32 serializedOption = -1;
+
+  Int32 numCols = 0;
+  ComTdbVirtTableColumnInfo * colInfoArray = NULL;
+        
+  // Get a description of the source table
+  BindWA bindWA(ActiveSchemaDB(), CmpCommon::context(), FALSE/*inDDL*/);
+  NATable *naTable = bindWA.getNATable(cnSrc);
+  if (naTable == NULL || bindWA.errStatus())
+    {
+      *CmpCommon::diags()
+        << DgSqlCode(-4082)
+        << DgTableName(cnSrc.getExposedNameAsAnsiString());
+      return -1;
+    }
+
+  // convert column array from NATable into a ComTdbVirtTableColumnInfo struct
+  const NAColumnArray &naColArray = naTable->getNAColumnArray();
+  numCols = naColArray.entries();
+  colInfoArray = new(STMTHEAP) ComTdbVirtTableColumnInfo[numCols];
+  for (CollIndex index = 0; index < numCols; index++)
+    {
+      const NAColumn *naCol = naColArray[index];
+
+      // call:  CmpSeabaseDDL::getTypeInfo to get column details
+      retcode = getTypeInfo(naCol->getType(), alignedFormat, serializedOption,
+                   datatype, length, precision, scale, dtStart, dtEnd, upshifted, nullable,
+                   charset, collationSequence, hbaseColFlags);
+
+      if (retcode)
+        return -1;
+
+      colInfoArray[index].colName = naCol->getColName().data(); 
+      colInfoArray[index].colNumber = index;
+      colInfoArray[index].columnClass = COM_USER_COLUMN;
+      colInfoArray[index].datatype = datatype;
+      colInfoArray[index].length = length;
+      colInfoArray[index].nullable = nullable;
+      colInfoArray[index].charset = (SQLCHARSET_CODE)CharInfo::getCharSetEnum(charset);
+      colInfoArray[index].precision = precision;
+      colInfoArray[index].scale = scale;
+      colInfoArray[index].dtStart = dtStart;
+      colInfoArray[index].dtEnd = dtEnd;
+      colInfoArray[index].upshifted = upshifted;
+      colInfoArray[index].colHeading = NULL;
+      colInfoArray[index].hbaseColFlags = naCol->getHbaseColFlags();
+      colInfoArray[index].defaultClass = COM_NULL_DEFAULT;
+      colInfoArray[index].defVal = NULL;
+      colInfoArray[index].hbaseColFam = naCol->getHbaseColFam();
+      colInfoArray[index].hbaseColQual = naCol->getHbaseColQual();
+      strcpy(colInfoArray[index].paramDirection, COM_UNKNOWN_PARAM_DIRECTION_LIT);
+      colInfoArray[index].isOptional = FALSE;
+      colInfoArray[index].colFlags = 0;
+    }
+
+  Int64 objUID = -1;
+  cliRC = 0;
+  if (updateSeabaseMDTable(&cliInterface,
+                           catalogNamePart, schemaNamePart, objectNamePart,
+                           COM_BASE_TABLE_OBJECT,
+                           COM_NO_LIT,
+                           tableInfo,
+                           numCols,
+                           colInfoArray,
+                           0 /*numKeys*/,
+                           NULL /*keyInfoArray*/,
+                           0, NULL,
+                           objUID /*returns generated UID*/))
+    {
+      *CmpCommon::diags()
+        << DgSqlCode(-CAT_UNABLE_TO_CREATE_OBJECT)
+        << DgTableName(extTgtTableName);
+      return -1;
+    }
+
+  cliRC = updateObjectValidDef(&cliInterface,
+                               catalogNamePart, schemaNamePart, objectNamePart,
+                               COM_BASE_TABLE_OBJECT_LIT, COM_YES_LIT);
+
+  if (cliRC < 0)
+    {
+      *CmpCommon::diags()
+        << DgSqlCode(-CAT_UNABLE_TO_CREATE_OBJECT)
+        << DgTableName(extTgtTableName);
+      return -1;
+    }
+
+  // remove cached definition - this code exists in other create stmte,
+  // is it required?
+  CorrName cnTgt(objectNamePart, STMTHEAP, schemaNamePart, catalogNamePart);
+  ActiveSchemaDB()->getNATableDB()->removeNATable(cnTgt,
+                                                  NATableDB::REMOVE_MINE_ONLY,
+                                                  COM_BASE_TABLE_OBJECT);
+
+  return 0;
 }
 
 short CmpSeabaseDDL::genPKeyName(StmtDDLAddConstraintPK *addPKNode,
@@ -1113,27 +1321,73 @@ short CmpSeabaseDDL::createSeabaseTable2(
   ComAnsiNamePart currCatAnsiName(currCatName);
   ComAnsiNamePart currSchAnsiName(currSchName);
   tableName.applyDefaults(currCatAnsiName, currSchAnsiName);
+
+  // Make some additional checks if creating an external table
+  ComObjectName *srcTableName = NULL;
+  if (createTableNode->isExternal())
+    {
+      // The schema name of the target table, if specified,  must match the 
+      // schema name of the source table
+      NAString origSchemaName = 
+        createTableNode->getOrigTableNameAsQualifiedName().getSchemaName();
+
+      srcTableName = new(STMTHEAP) ComObjectName
+          (createTableNode->getLikeSourceTableName(), COM_TABLE_NAME);
+      srcTableName->applyDefaults(currCatAnsiName, currSchAnsiName);
+
+      // Convert the native table name to its trafodion name
+      NAString tabName = ComConvertNativeNameToTrafName 
+        (srcTableName->getCatalogNamePartAsAnsiString(),
+         srcTableName->getSchemaNamePartAsAnsiString(),
+         tableName.getObjectNamePartAsAnsiString());
+                               
+      ComObjectName adjustedName(tabName, COM_TABLE_NAME);
+      NAString type = adjustedName.isExternalHive() ? "HIVE" : "HBASE";
+      tableName = adjustedName;
+
+      // Verify that the name with prepending is not too long
+      if (tableName.getSchemaNamePartAsAnsiString(TRUE).length() >
+          ComMAX_ANSI_IDENTIFIER_INTERNAL_LEN)
+        {
+          *CmpCommon::diags()
+            << DgSqlCode(-CAT_EXTERNAL_SCHEMA_NAME_TOO_LONG)
+            << DgString0(type.data())
+            << DgTableName(tableName.getSchemaNamePartAsAnsiString(FALSE))
+            << DgInt0(ComMAX_ANSI_IDENTIFIER_INTERNAL_LEN - sizeof(HIVE_EXT_SCHEMA_PREFIX));
+          return -1;
+        }
+
+      if ((origSchemaName.length() > 0)&&
+          (origSchemaName != srcTableName->getSchemaNamePart().getExternalName()))
+      {
+        *CmpCommon::diags()
+          << DgSqlCode(-CAT_EXTERNAL_NAME_MISMATCH)
+          << DgString0 (type.data())
+          << DgTableName(origSchemaName)
+          << DgString1((srcTableName->getSchemaNamePart().getExternalName()));
+        return -1;
+      }
+              
+      // For now the object name of the target table must match the
+      // object name of the source table
+      if (tableName.getObjectNamePart().getExternalName() !=
+          srcTableName->getObjectNamePart().getExternalName())
+        {
+          *CmpCommon::diags()
+            << DgSqlCode(-CAT_EXTERNAL_NAME_MISMATCH)
+            << DgString0 (type.data())
+            << DgTableName(tableName.getObjectNamePart().getExternalName())
+            << DgString1((srcTableName->getObjectNamePart().getExternalName()));
+          return -1;
+        }
+    }
+
   const NAString catalogNamePart = tableName.getCatalogNamePartAsAnsiString();
   const NAString schemaNamePart = tableName.getSchemaNamePartAsAnsiString(TRUE);
   const NAString objectNamePart = tableName.getObjectNamePartAsAnsiString(TRUE);
   const NAString extTableName = tableName.getExternalName(TRUE);
   const NAString extNameForHbase = catalogNamePart + "." + schemaNamePart + "." + objectNamePart;
   
-  
-  ElemDDLColDefArray &colArray = createTableNode->getColDefArray();
-  ElemDDLColRefArray &keyArray = 
-    (createTableNode->getIsConstraintPKSpecified() ?
-     createTableNode->getPrimaryKeyColRefArray() :
-     (createTableNode->getStoreOption() == COM_KEY_COLUMN_LIST_STORE_OPTION ?
-      createTableNode->getKeyColumnArray() :
-      createTableNode->getPrimaryKeyColRefArray()));
-
-  //  ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
-  //  CmpCommon::context()->sqlSession()->getParentQid());
-  Int32 objectOwnerID = SUPER_USER;
-  Int32 schemaOwnerID = SUPER_USER;
-  ComSchemaClass schemaClass;
-
   ExpHbaseInterface * ehi = allocEHI();
   if (ehi == NULL)
     {
@@ -1186,6 +1440,31 @@ short CmpSeabaseDDL::createSeabaseTable2(
       return -1;
     }
 
+  // If creating an external table, go perform operation
+  if (createTableNode->isExternal())
+    {
+      retcode = createSeabaseTableExternal
+        (cliInterface, createTableNode, tableName, *srcTableName);
+      if (retcode != 0 && CmpCommon::diags()->getNumber(DgSqlCode::ERROR_) == 0)
+        SEABASEDDL_INTERNAL_ERROR("creating external HIVE table");
+
+      deallocEHI(ehi);
+      processReturn();
+      return retcode;
+    }
+
+  ElemDDLColDefArray &colArray = createTableNode->getColDefArray();
+  ElemDDLColRefArray &keyArray =
+    (createTableNode->getIsConstraintPKSpecified() ?
+     createTableNode->getPrimaryKeyColRefArray() :
+     (createTableNode->getStoreOption() == COM_KEY_COLUMN_LIST_STORE_OPTION ?
+      createTableNode->getKeyColumnArray() :
+      createTableNode->getPrimaryKeyColRefArray()));
+
+  Int32 objectOwnerID = SUPER_USER;
+  Int32 schemaOwnerID = SUPER_USER;
+  ComSchemaClass schemaClass;
+
   retcode = verifyDDLCreateOperationAuthorized(&cliInterface,
                                                SQLOperation::CREATE_TABLE,
                                                catalogNamePart, 
@@ -1201,12 +1480,22 @@ short CmpSeabaseDDL::createSeabaseTable2(
      return -1;
   }
 
+  // If the schema name specified is external HIVE or HBase name, users cannot 
+  // create them.
+  if (ComIsTrafodionExternalSchemaName(schemaNamePart) &&
+      (!Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL)))
+    {
+      // error.
+      *SqlParser_Diags << DgSqlCode(-CAT_CREATE_TABLE_NOT_ALLOWED_IN_SMD)
+                       << DgTableName(extTableName.data());
+      return -1;
+    }
+
   if (createTableNode->getIsLikeOptionSpecified())
     {
       createSeabaseTableLike(createTableNode, currCatName, currSchName);
-
+      deallocEHI(ehi);
       processReturn();
-
       return -1;
     }
 
@@ -1658,6 +1947,7 @@ short CmpSeabaseDDL::createSeabaseTable2(
   tableInfo->isAudited = (fileAttribs.getIsAudit() ? 1 : 0);
   tableInfo->validDef = 1;
   tableInfo->hbaseCreateOptions = NULL;
+  tableInfo->objectFlags = 0;
   
   if (fileAttribs.isOwnerSpecified())
     {
@@ -1744,8 +2034,6 @@ short CmpSeabaseDDL::createSeabaseTable2(
                            numKeys,
                            keyInfoArray,
                            0, NULL,
-                           objectOwnerID,
-                           schemaOwnerID,
                            objUID))
     {
       *CmpCommon::diags()
@@ -1881,85 +2169,87 @@ short CmpSeabaseDDL::createSeabaseTable2(
         }
     }
 
-  HbaseStr hbaseTable;
-  hbaseTable.val = (char*)extNameForHbase.data();
-  hbaseTable.len = extNameForHbase.length();
-  if (createHbaseTable(ehi, &hbaseTable, trafColFamVec,
-                       &hbaseCreateOptions, 
-                       numSplits, keyLength,
-                       encodedKeysBuffer) == -1)
-    {
-      deallocEHI(ehi); 
+    HbaseStr hbaseTable;
+    hbaseTable.val = (char*)extNameForHbase.data();
+    hbaseTable.len = extNameForHbase.length();
+    if (createHbaseTable(ehi, &hbaseTable, trafColFamVec,
+                         &hbaseCreateOptions, 
+                         numSplits, keyLength,
+                         encodedKeysBuffer) == -1)
+      {
+        deallocEHI(ehi); 
 
-      processReturn();
+        processReturn();
 
-      return -2;
-    }
+        return -2;
+      }
 
-  // if this table has lob columns, create the lob files
-  short *lobNumList = new (STMTHEAP) short[numCols];
-  short *lobTypList = new (STMTHEAP) short[numCols];
-  char  **lobLocList = new (STMTHEAP) char*[numCols];
-  Lng32 j = 0;
-  for (Int32 i = 0; i < colArray.entries(); i++)
-    {
-      ElemDDLColDef *column = colArray[i];
+    // if this table has lob columns, create the lob files
+    short *lobNumList = new (STMTHEAP) short[numCols];
+    short *lobTypList = new (STMTHEAP) short[numCols];
+    char  **lobLocList = new (STMTHEAP) char*[numCols];
+    Lng32 j = 0;
+    for (Int32 i = 0; i < colArray.entries(); i++)
+      {
+          ElemDDLColDef *column = colArray[i];
       
-      Lng32 datatype = column->getColumnDataType()->getFSDatatype();
-      if ((datatype == REC_BLOB) ||
-	  (datatype == REC_CLOB))
-	{
-	  lobNumList[j] = i; //column->getColumnNumber();
-	  lobTypList[j] = 
-	    (short)(column->getLobStorage() == Lob_Invalid_Storage
-		    ? Lob_HDFS_File : column->getLobStorage());
+          Lng32 datatype = column->getColumnDataType()->getFSDatatype();
+          if ((datatype == REC_BLOB) ||
+	      (datatype == REC_CLOB))
+	    {
+	      lobNumList[j] = i; //column->getColumnNumber();
+	      lobTypList[j] = 
+	        (short)(column->getLobStorage() == Lob_Invalid_Storage
+	    	    ? Lob_HDFS_File : column->getLobStorage());
 	  
-	  //	   lobTypList[j] = (short)
-	  //	     CmpCommon::getDefaultNumeric(LOB_STORAGE_TYPE); 
-	  char * loc = new (STMTHEAP) char[1024];
+	      //	   lobTypList[j] = (short)
+	      //	     CmpCommon::getDefaultNumeric(LOB_STORAGE_TYPE); 
+	      char * loc = new (STMTHEAP) char[1024];
 	  
-	  const char* f = ActiveSchemaDB()->getDefaults().
-	    getValue(LOB_STORAGE_FILE_DIR);
+	      const char* f = ActiveSchemaDB()->getDefaults().
+	        getValue(LOB_STORAGE_FILE_DIR);
 	  
-	  strcpy(loc, f);
+	      strcpy(loc, f);
 	  
-	  lobLocList[j] = loc;
-	  j++;
-	}
+	      lobLocList[j] = loc;
+	      j++;
+	    }
     }
-  
-  if (j > 0)
-     {
-       Int64 objUID = getObjectUID(&cliInterface,
-				   catalogNamePart.data(), schemaNamePart.data(), 
-				   objectNamePart.data(),
-				   COM_BASE_TABLE_OBJECT_LIT);
-       
-       ComString newSchName = "\"";
-       newSchName += catalogNamePart;
-       newSchName.append("\".\"");
-       newSchName.append(schemaNamePart);
-       newSchName += "\"";
-       Lng32 rc = SQL_EXEC_LOBddlInterface((char*)newSchName.data(),
-					   newSchName.length(),
+
+  Int64 lobMaxSize =  CmpCommon::getDefaultNumeric(LOB_MAX_SIZE)*1024*1024;
+    if (j > 0)
+      {
+        Int64 objUID = getObjectUID(&cliInterface,
+   			   catalogNamePart.data(), schemaNamePart.data(), 
+   			   objectNamePart.data(),
+   			   COM_BASE_TABLE_OBJECT_LIT);
+     
+        ComString newSchName = "\"";
+        newSchName += catalogNamePart;
+        newSchName.append("\".\"");
+        newSchName.append(schemaNamePart);
+        newSchName += "\"";
+        Lng32 rc = SQL_EXEC_LOBddlInterface((char*)newSchName.data(),
+	    				   newSchName.length(),
 					   objUID,
 					   j,
 					   LOB_CLI_CREATE,
 					   lobNumList,
 					   lobTypList,
-					   lobLocList);
-       if (rc < 0)
-	 {
-	   //sss TBD need to retrive the cli diags here.
-	   *CmpCommon::diags() << DgSqlCode(-CAT_CREATE_OBJECT_ERROR)
-			       << DgTableName(extTableName);
-	   deallocEHI(ehi); 
+					   lobLocList,
+					   lobMaxSize);
+       
+        if (rc < 0)
+	   {
+	    //sss TBD need to retrive the cli diags here.
+	    *CmpCommon::diags() << DgSqlCode(-CAT_CREATE_OBJECT_ERROR)
+	      		       << DgTableName(extTableName);
+	    deallocEHI(ehi); 	   
+	    processReturn();
 	   
-	   processReturn();
-	   
-	   return -2;
-	 }
-     }
+	    return -2;
+	  }
+      }
 
   // if not a compound create, update valid def to true.
   if (NOT ((createTableNode->getAddConstraintUniqueArray().entries() > 0) ||
@@ -2441,13 +2731,27 @@ short CmpSeabaseDDL::dropSeabaseTable2(
   ComAnsiNamePart currSchAnsiName(currSchName);
   tableName.applyDefaults(currCatAnsiName, currSchAnsiName);
 
+  if (dropTableNode->isExternal())
+    {
+      // Convert the native name to its Trafodion form
+      tabName = ComConvertNativeNameToTrafName
+        (tableName.getCatalogNamePartAsAnsiString(),
+         tableName.getSchemaNamePartAsAnsiString(),
+         tableName.getObjectNamePartAsAnsiString());
+                               
+      ComObjectName adjustedName(tabName, COM_TABLE_NAME);
+      tableName = adjustedName;
+    }
+
   NAString catalogNamePart = tableName.getCatalogNamePartAsAnsiString();
   NAString schemaNamePart = tableName.getSchemaNamePartAsAnsiString(TRUE);
   NAString objectNamePart = tableName.getObjectNamePartAsAnsiString(TRUE);
   const NAString extTableName = tableName.getExternalName(TRUE);
   const NAString extNameForHbase = catalogNamePart + "." + schemaNamePart + "." + objectNamePart;
 
+  // allowExternalTables: true to allow an NATable entry to be created for an external table
   BindWA bindWA(ActiveSchemaDB(), CmpCommon::context(), FALSE/*inDDL*/);
+  bindWA.setAllowExternalTables(TRUE);
  
   ExpHbaseInterface * ehi = allocEHI();
   if (ehi == NULL)
@@ -2589,19 +2893,24 @@ short CmpSeabaseDDL::dropSeabaseTable2(
     }
 
   // if this table does not exist in hbase but exists in metadata, return error.
-  // This is an internal inconsitency and need to be fixed by running cleanup.
-  HbaseStr hbaseTable;
-  hbaseTable.val = (char*)extNameForHbase.data();
-  hbaseTable.len = extNameForHbase.length();
-  if ((NOT isVolatile)&& (ehi->exists(hbaseTable) == 0)) // does not exist in hbase
-    {
-      *CmpCommon::diags() << DgSqlCode(-4254)
-                          << DgString0(extTableName);
-      
-      deallocEHI(ehi); 
-      processReturn();
+  // This is an internal inconsistency which needs to be fixed by running cleanup.
 
-      return -1;
+  // If this is an external (native HIVE or HBASE) table, then skip
+  if (!isSeabaseExternalSchema(catalogNamePart, schemaNamePart))
+    {
+      HbaseStr hbaseTable;
+      hbaseTable.val = (char*)extNameForHbase.data();
+      hbaseTable.len = extNameForHbase.length();
+      if ((NOT isVolatile)&& (ehi->exists(hbaseTable) == 0)) // does not exist in hbase
+        {
+          *CmpCommon::diags() << DgSqlCode(-4254)
+                              << DgString0(extTableName);
+      
+          deallocEHI(ehi); 
+          processReturn();
+
+          return -1;
+        }
     }
 
   // Check to see if the user has the authority to drop the table
@@ -3163,17 +3472,22 @@ short CmpSeabaseDDL::dropSeabaseTable2(
 
   // drop SB_HISTOGRAMS and SB_HISTOGRAM_INTERVALS entries, if any
   // if the table that we are dropping itself is not a SB_HISTOGRAMS or SB_HISTOGRAM_INTERVALS table
-  if (objectNamePart != "SB_HISTOGRAMS" && 
-      objectNamePart != "SB_HISTOGRAM_INTERVALS")
-  {
-    if (dropSeabaseStats(cliInterface,
-                         catalogNamePart.data(),
-                         schemaNamePart.data(),
-                         objUID))
+  // TBD: need to change once we start updating statistics for external
+  // tables
+  if (! (tableName.isExternalHive() || tableName.isExternalHbase()) )
     {
-      deallocEHI(ehi); 
-      processReturn();
-      return -1;
+      if (objectNamePart != "SB_HISTOGRAMS" && 
+          objectNamePart != "SB_HISTOGRAM_INTERVALS")
+      {
+        if (dropSeabaseStats(cliInterface,
+                             catalogNamePart.data(),
+                             schemaNamePart.data(),
+                             objUID))
+        {
+          deallocEHI(ehi); 
+          processReturn();
+          return -1;
+        }
     }
   }
 
@@ -3267,7 +3581,7 @@ short CmpSeabaseDDL::dropSeabaseTable2(
 					  LOB_CLI_DROP,
 					  lobNumList,
 					  lobTypList,
-					  lobLocList);
+					  lobLocList,0);
       if (rc < 0)
 	{
 	  *CmpCommon::diags() << DgSqlCode(-CAT_UNABLE_TO_DROP_OBJECT)
@@ -3768,6 +4082,233 @@ void CmpSeabaseDDL::alterSeabaseTableHBaseOptions(
     NATableDB::REMOVE_FROM_ALL_USERS, COM_BASE_TABLE_OBJECT);
 
   deallocEHI(ehi);
+
+  return;
+}
+
+void CmpSeabaseDDL::alterSeabaseTableAttribute(
+     StmtDDLAlterTableAttribute * alterTableNode,
+     NAString &currCatName, NAString &currSchName)
+{
+  Lng32 retcode = 0;
+  Lng32 cliRC = 0;
+
+  ComObjectName tableName(alterTableNode->getTableName());
+  ComAnsiNamePart currCatAnsiName(currCatName);
+  ComAnsiNamePart currSchAnsiName(currSchName);
+  tableName.applyDefaults(currCatAnsiName, currSchAnsiName);
+  const NAString catalogNamePart = tableName.getCatalogNamePartAsAnsiString();
+  const NAString schemaNamePart = tableName.getSchemaNamePartAsAnsiString(TRUE);
+  const NAString objectNamePart = tableName.getObjectNamePartAsAnsiString(TRUE);
+  const NAString extTableName = tableName.getExternalName(TRUE);
+  const NAString extNameForHbase = catalogNamePart + "." + schemaNamePart + "." + objectNamePart;
+
+  ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
+  CmpCommon::context()->sqlSession()->getParentQid());
+  
+  ExpHbaseInterface * ehi = allocEHI();
+  if (ehi == NULL)
+    {
+      processReturn();
+
+      return;
+    }
+
+  if ((isSeabaseReservedSchema(tableName)) &&
+      (!Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL)))
+    {
+      *CmpCommon::diags() << DgSqlCode(-CAT_CREATE_TABLE_NOT_ALLOWED_IN_SMD)
+                          << DgTableName(extTableName);
+      deallocEHI(ehi); 
+
+      processReturn();
+
+      return;
+    }
+  
+  if (CmpCommon::context()->sqlSession()->volatileSchemaInUse())
+    {
+      QualifiedName *qn =
+        CmpCommon::context()->sqlSession()->
+        updateVolatileQualifiedName
+        (alterTableNode->getTableNameAsQualifiedName().getObjectName());
+      
+      if (qn == NULL)
+        {
+          *CmpCommon::diags()
+            << DgSqlCode(-1427);
+          
+          processReturn();
+          
+          return;
+        }
+      
+      ComObjectName volTabName (qn->getQualifiedNameAsAnsiString());
+      volTabName.applyDefaults(currCatAnsiName, currSchAnsiName);
+      
+      NAString vtCatNamePart = volTabName.getCatalogNamePartAsAnsiString();
+      NAString vtSchNamePart = volTabName.getSchemaNamePartAsAnsiString(TRUE);
+      NAString vtObjNamePart = volTabName.getObjectNamePartAsAnsiString(TRUE);
+      
+      retcode = existsInSeabaseMDTable(&cliInterface, 
+                                       vtCatNamePart, vtSchNamePart, vtObjNamePart,
+                                       COM_BASE_TABLE_OBJECT);
+      
+      if (retcode < 0)
+        {
+          processReturn();
+          
+          return;
+        }
+      
+      if (retcode == 1)
+        {
+          // table found in volatile schema. cannot rename it.
+          *CmpCommon::diags()
+            << DgSqlCode(-1427)
+            << DgString0("Reason: Operation not allowed on volatile tables.");
+          
+          processReturn();
+          return;
+        }
+    }
+  
+  retcode = existsInSeabaseMDTable(&cliInterface, 
+                                   catalogNamePart, schemaNamePart, objectNamePart,
+                                   COM_BASE_TABLE_OBJECT,
+                                   (Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL) 
+                                    ? FALSE : TRUE),
+                                   TRUE, TRUE);
+  if (retcode < 0)
+    {
+      processReturn();
+
+      return;
+    }
+
+  BindWA bindWA(ActiveSchemaDB(), CmpCommon::context(), FALSE/*inDDL*/);
+  
+  CorrName cn(objectNamePart,
+              STMTHEAP,
+              schemaNamePart,
+              catalogNamePart);
+  
+  NATable *naTable = bindWA.getNATable(cn); 
+  if (naTable == NULL || bindWA.errStatus())
+    {
+      CmpCommon::diags()->clear();
+      
+      *CmpCommon::diags() << DgSqlCode(-CAT_OBJECT_DOES_NOT_EXIST_IN_TRAFODION)
+                          << DgString0(extTableName);
+  
+      processReturn();
+      
+      return;
+    }
+ 
+  // Make sure user has the privilege to perform the rename
+  if (!isDDLOperationAuthorized(SQLOperation::ALTER_TABLE,
+                                naTable->getOwner(),naTable->getSchemaOwner()))
+  {
+     *CmpCommon::diags() << DgSqlCode(-CAT_NOT_AUTHORIZED);
+
+     processReturn ();
+
+     return;
+  }
+
+  CmpCommon::diags()->clear();
+  
+  // cannot alter attributes of a view
+  if (naTable->getViewText())
+    {
+      *CmpCommon::diags()
+        << DgSqlCode(-1427)
+        << DgString0("Reason: Operation not allowed on a view.");
+      
+      processReturn();
+      
+      return;
+    }
+
+  Int64 objUID = getObjectUID(&cliInterface,
+                              catalogNamePart.data(), schemaNamePart.data(), 
+                              objectNamePart.data(),
+                              COM_BASE_TABLE_OBJECT_LIT);
+  if (objUID < 0)
+    {
+
+      processReturn();
+
+      return;
+    }
+
+  ParDDLFileAttrsAlterTable &fileAttrs = alterTableNode->getFileAttributes();
+  if (NOT fileAttrs.isXnReplSpecified())
+    {
+      *CmpCommon::diags()
+        << DgSqlCode(-1425)
+        << DgString0(extTableName)
+        << DgString0("Reason: Only replication attribute can be altered.");
+      
+      processReturn();
+      
+      return;
+    }
+
+  // update flags with new repl options in TABLES metadata.
+  char queryBuf[1000];
+
+  // get current table flags
+  str_sprintf(queryBuf, "select flags from %s.\"%s\".%s where table_uid = %Ld",
+              getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_TABLES,
+              objUID);
+  Int64 flags = 0;
+  Lng32 flagsLen = sizeof(Int64);
+  Int64 rowsAffected = 0;
+  cliRC = cliInterface.executeImmediateCEFC
+    (queryBuf, NULL, 0, (char*)&flags, &flagsLen, &rowsAffected);
+  if (cliRC < 0)
+    {
+      cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
+      processReturn();
+      return;
+    }
+
+  if (cliRC == 100) // did not find the row
+    {
+      *CmpCommon::diags() << DgSqlCode(-1389) << DgString0(extTableName);
+      processReturn();
+      return;
+    }
+               
+  // update flags with new repl options in TABLES metadata.
+  Int64 newFlags = flags;
+
+  // clear replication bits
+  CmpSeabaseDDL::resetMDflags(newFlags, CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG);
+  CmpSeabaseDDL::resetMDflags(newFlags, CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG);
+
+  Int64 replFlags;
+  if (fileAttrs.xnRepl() == COM_REPL_SYNC)
+    CmpSeabaseDDL::setMDflags(newFlags, CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG);
+  else if (fileAttrs.xnRepl() == COM_REPL_ASYNC)
+    CmpSeabaseDDL::setMDflags(newFlags, CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG);
+
+  str_sprintf(queryBuf, "update %s.\"%s\".%s set flags = %Ld where table_uid = %Ld ",
+              getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_TABLES,
+              newFlags, objUID);
+  
+  cliRC = cliInterface.executeImmediate(queryBuf);
+  if (cliRC < 0)
+    {
+      cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
+      processReturn();
+      return;
+    }
+  
+  ActiveSchemaDB()->getNATableDB()->removeNATable(cn,
+    NATableDB::REMOVE_FROM_ALL_USERS, COM_BASE_TABLE_OBJECT);
 
   return;
 }
@@ -7111,6 +7652,7 @@ void CmpSeabaseDDL::seabaseGrantRevoke(
   Int64 objectUID = 0;
   Int32 objectOwnerID = 0;
   Int32 schemaOwnerID = 0;
+  Int64 objectFlags =  0 ;
   NATable *naTable = NULL;
   if (objectType == COM_BASE_TABLE_OBJECT)
     {
@@ -7200,10 +7742,10 @@ void CmpSeabaseDDL::seabaseGrantRevoke(
     {
       ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
   CmpCommon::context()->sqlSession()->getParentQid());
-      objectUID = getObjectUIDandOwners(&cliInterface,
-                                       catalogNamePart.data(), schemaNamePart.data(),
-                                       objectNamePart.data(), objectType,
-                                       objectOwnerID,schemaOwnerID);
+      objectUID = getObjectInfo(&cliInterface,
+                               catalogNamePart.data(), schemaNamePart.data(),
+                               objectNamePart.data(), objectType,
+                               objectOwnerID,schemaOwnerID,objectFlags);
 
       if (objectUID == -1 || objectOwnerID == 0)
         {
@@ -7563,6 +8105,9 @@ void CmpSeabaseDDL::dropNativeHbaseTable(
   const NAString schemaNamePart = tableName.getSchemaNamePartAsAnsiString(TRUE);
   const NAString objectNamePart = tableName.getObjectNamePartAsAnsiString(TRUE);
   
+  // TDB - add a check to see if there is an external HBASE table that should be
+  // removed
+
   ExpHbaseInterface * ehi = allocEHI();
   if (ehi == NULL)
     {
@@ -7615,6 +8160,7 @@ short CmpSeabaseDDL::getSpecialTableInfo
   Int32 objectOwner = NA_UserIdDefault;
   Int32 schemaOwner = NA_UserIdDefault;
   Int64 objUID = 1; // dummy value
+  Int64 objectFlags =  0 ;
 
   NABoolean createTableInfo = FALSE;
   NABoolean isUninit = FALSE;
@@ -7645,9 +8191,9 @@ short CmpSeabaseDDL::getSpecialTableInfo
           goto label_error_return;
         }
 
-      objUID = getObjectUIDandOwners(&cliInterface, 
-                                     catName.data(), schName.data(), objName.data(), 
-                                     objType, objectOwner, schemaOwner);
+      objUID = getObjectInfo(&cliInterface, 
+                             catName.data(), schName.data(), objName.data(), 
+                             objType, objectOwner, schemaOwner,objectFlags);
       cliRC = cliInterface.restoreCQD("traf_bootstrap_md_mode");
       if (objUID <= 0)
         goto label_error_return;
@@ -7673,6 +8219,7 @@ short CmpSeabaseDDL::getSpecialTableInfo
       tableInfo->numSaltPartns = 0;
       tableInfo->numInitialSaltRegions = 1;
       tableInfo->hbaseSplitClause = NULL;
+      tableInfo->objectFlags = objectFlags;
       tableInfo->rowFormat = COM_UNKNOWN_FORMAT_TYPE;
       tableInfo->xnRepl = COM_REPL_NONE;
     }
@@ -8088,10 +8635,11 @@ ComTdbVirtTableSequenceInfo * CmpSeabaseDDL::getSeabaseSequenceInfo(
   objectOwner = NA_UserIdDefault;
   seqUID = -1;
   schemaOwner = NA_UserIdDefault;
-  seqUID = getObjectUIDandOwners(&cliInterface,
-                                 catName.data(), schName.data(), seqName.data(),
-                                 COM_SEQUENCE_GENERATOR_OBJECT,  
-                                 objectOwner,schemaOwner,TRUE/*report error*/);
+  Int64 objectFlags =  0 ;
+  seqUID = getObjectInfo(&cliInterface,
+                         catName.data(), schName.data(), seqName.data(),
+                         COM_SEQUENCE_GENERATOR_OBJECT,  
+                         objectOwner,schemaOwner,objectFlags,TRUE/*report error*/);
   if (seqUID == -1 || objectOwner == 0)
   {
     // There may not be an error in the diags area, if not, add an error
@@ -8156,6 +8704,7 @@ desc_struct * CmpSeabaseDDL::getSeabaseLibraryDesc(
   NAString extLibName;
   Int32 objectOwner = 0;
   Int32 schemaOwner = 0;
+  Int64 objectFlags =  0 ;
   
   
   
@@ -8167,11 +8716,11 @@ desc_struct * CmpSeabaseDDL::getSeabaseLibraryDesc(
 
    if (switchCompiler(CmpContextInfo::CMPCONTEXT_TYPE_META))
      return NULL;
-  Int64 libUID = getObjectUIDandOwners(&cliInterface, 
-                                       catName.data(), schName.data(),
-                                       libraryName.data(),
-                                       COM_LIBRARY_OBJECT,
-                                       objectOwner, schemaOwner);
+  Int64 libUID = getObjectInfo(&cliInterface, 
+                               catName.data(), schName.data(),
+                               libraryName.data(),
+                               COM_LIBRARY_OBJECT,
+                               objectOwner, schemaOwner,objectFlags);
   if (libUID == -1)
     {
       switchBackCompiler();
@@ -8267,6 +8816,7 @@ desc_struct * CmpSeabaseDDL::getSeabaseSequenceDesc(const NAString &catName,
   tableInfo->objOwnerID = objectOwner;
   tableInfo->schemaOwnerID = schemaOwner;
   tableInfo->hbaseCreateOptions = NULL;
+  tableInfo->objectFlags = 0;
 
   tableDesc =
     Generator::createVirtualTableDesc
@@ -8322,6 +8872,8 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
   Int32 objectOwner =  0 ;
   Int32 schemaOwner =  0 ;
   Int64 objUID      = -1 ;
+  Int64 objectFlags =  0 ;
+
 
   //
   // For performance reasons, whenever possible, we want to issue only one
@@ -8336,14 +8888,14 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
   //
   if ( objType ) // Must have objType
   {
-    objUID = getObjectUIDandOwners(&cliInterface,
-                                   catName.data(), schName.data(), objName.data(),
-                                   objType, objectOwner, schemaOwner, FALSE /*no error now */,
-                                   (Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL) ? FALSE
-                                    : (objType != COM_INDEX_OBJECT ? TRUE : FALSE)));
+    objUID = getObjectInfo(&cliInterface,
+                           catName.data(), schName.data(), objName.data(),
+                           objType, objectOwner, schemaOwner,objectFlags, FALSE /*no error now */,
+                           (Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL) ? FALSE
+                            : (objType != COM_INDEX_OBJECT ? TRUE : FALSE)));
   }
 
-  // If we didn't call getObjectUIDandOwner() above OR if it gave an error, then:
+  // If we didn't call getObjectInfo() above OR if it gave an error, then:
   if ( objUID < 0 )
   {
     cliRC = existsInSeabaseMDTable(&cliInterface, 
@@ -8379,9 +8931,9 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
        // object type passed in was for a table. Could not find it but.
        // this could be a view. Look for that.
        CmpCommon::diags()->clear();
-       objUID = getObjectUIDandOwners(&cliInterface,
-                                      catName.data(), schName.data(), objName.data(), COM_VIEW_OBJECT,  
-                                      objectOwner,schemaOwner);
+       objUID = getObjectInfo(&cliInterface,
+                              catName.data(), schName.data(), objName.data(), COM_VIEW_OBJECT,  
+                              objectOwner,schemaOwner,objectFlags);
        if (objUID < 0)
          {
           processReturn();
@@ -9074,6 +9626,7 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
       tableInfo->defaultColFam = SEABASE_DEFAULT_COL_FAMILY;
       tableInfo->allColFams = NULL;
     }
+  tableInfo->objectFlags = objectFlags;
 
   tableDesc =
     Generator::createVirtualTableDesc
@@ -9114,15 +9667,19 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
 
       // if this is base table or index and hbase object doesn't exist, then this object
       // is corrupted.
-      if ((tableDesc->body.table_desc.objectType == COM_BASE_TABLE_OBJECT) &&
-          (existsInHbase(extNameForHbase, ehi) == 0))
+      if (!objectFlags & SEABASE_OBJECT_IS_EXTERNAL_HIVE &&
+          !objectFlags & SEABASE_OBJECT_IS_EXTERNAL_HBASE)
         {
-          *CmpCommon::diags() << DgSqlCode(-4254)
-                              << DgString0(*extTableName);
+          if ((tableDesc->body.table_desc.objectType == COM_BASE_TABLE_OBJECT) &&
+              (existsInHbase(extNameForHbase, ehi) == 0))
+            {
+              *CmpCommon::diags() << DgSqlCode(-4254)
+                                  << DgString0(*extTableName);
           
-          tableDesc = NULL;
+              tableDesc = NULL;
           
-          return NULL;
+              return NULL;
+            }
         }
 
       if (ctlFlags & GET_SNAPSHOTS)
@@ -9337,12 +9894,13 @@ desc_struct *CmpSeabaseDDL::getSeabaseRoutineDescInternal(const NAString &catNam
   Int64 objectUID = 0;
   Int32 objectOwnerID = 0;
   Int32 schemaOwnerID = 0;
+  Int64 objectFlags =  0 ;
   ComObjectType objectType = COM_USER_DEFINED_ROUTINE_OBJECT;
 
-  objectUID = getObjectUIDandOwners(&cliInterface,
-                                    catName.data(), schName.data(),
-                                    objName.data(), objectType,
-                                    objectOwnerID,schemaOwnerID);
+  objectUID = getObjectInfo(&cliInterface,
+                            catName.data(), schName.data(),
+                            objName.data(), objectType,
+                            objectOwnerID,schemaOwnerID,objectFlags);
 
   if (objectUID == -1 || objectOwnerID == 0)
     {
