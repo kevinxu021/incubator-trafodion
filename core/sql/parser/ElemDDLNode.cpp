@@ -381,12 +381,6 @@ ElemDDLNode::castToElemDDLPartnAttrList()
   return NULL;
 }
 
-ElemDDLFileAttrLockLength *
-ElemDDLNode::castToElemDDLFileAttrLockLength()
-{
-  return NULL;
-}
-
 ElemDDLFileAttrMaxSize *
 ElemDDLNode::castToElemDDLFileAttrMaxSize()
 {
@@ -577,24 +571,6 @@ ElemDDLLikeOptWithoutDivision * ElemDDLNode::castToElemDDLLikeOptWithoutDivision
 
 ElemDDLList *
 ElemDDLNode::castToElemDDLList()
-{
-  return NULL;
-}
-
-ElemDDLLoadOpt *
-ElemDDLNode::castToElemDDLLoadOpt()
-{
-  return NULL;
-}
-
-ElemDDLLoadOptDSlack *
-ElemDDLNode::castToElemDDLLoadOptDSlack()
-{
-  return NULL;
-}
-
-ElemDDLLoadOptISlack *
-ElemDDLNode::castToElemDDLLoadOptISlack()
 {
   return NULL;
 }

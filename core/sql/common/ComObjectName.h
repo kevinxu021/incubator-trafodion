@@ -61,6 +61,7 @@ using namespace std;
 #include "ComAnsiNamePart.h"
 #include "ComRoutineActionNamePart.h"
 #include "ComSchemaName.h"
+#include "ComMisc.h"
 
 // -----------------------------------------------------------------------
 // forward declarations
@@ -279,6 +280,9 @@ class ComObjectName : public NABasicObject
     NABoolean isVolatile() const      { return (flags_ & IS_VOLATILE) != 0; }
     void setIsVolatile(NABoolean v)
     { (v ? flags_ |= IS_VOLATILE : flags_ &= ~IS_VOLATILE);}
+
+    inline NABoolean isExternalHive() const;  
+    inline NABoolean isExternalHbase() const;
 
   protected:
 
@@ -589,6 +593,42 @@ NABoolean
 ComObjectName::isValid() const
 {
   return (NOT objectNamePart_.isEmpty());
+}
+
+// ----------------------------------------------------------------------------
+// Method: isExternalHive
+//
+// Looks at the prefix and suffix of the schema name to see the schema contains
+// external (native) hive table information.
+//
+// returns TRUE if it is a HIVE schema
+// ----------------------------------------------------------------------------
+NABoolean
+ComObjectName::isExternalHive() const
+{
+  NAString schemaName(schemaNamePart_.getInternalName());
+
+  if (ComIsTrafodionExternalSchemaName(schemaName))
+    return (schemaName(0,sizeof(HIVE_EXT_SCHEMA_PREFIX)-1) == HIVE_EXT_SCHEMA_PREFIX); 
+  return FALSE;
+}
+  
+// ----------------------------------------------------------------------------
+// Method: isExternalHbase
+//
+// Looks at the prefix and suffix of the schema name to see the schema contains
+// external (native) hbase table information.
+//
+// returns TRUE if it is a hbase schema
+// ----------------------------------------------------------------------------
+NABoolean
+ComObjectName::isExternalHbase() const
+{
+  NAString schemaName(schemaNamePart_.getInternalName());
+
+  if (ComIsTrafodionExternalSchemaName(schemaName))
+    return (schemaName(0,sizeof(HBASE_EXT_SCHEMA_PREFIX)-1) == HBASE_EXT_SCHEMA_PREFIX); 
+  return FALSE;
 }
 
 void

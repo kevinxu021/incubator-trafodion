@@ -50,4 +50,19 @@ NABoolean ComIsTrafodionReservedSchema(
                                        const NAString &catName,
                                        const NAString &schName);
 
+// schema names of pattern "_HV_ ... _" and "_HB_ ... _" are reserved to store
+// external hive and hbase tables
+NABoolean ComIsTrafodionExternalSchemaName (
+                                            const NAString &schName);
+
+NAString ComConvertNativeNameToTrafName ( 
+                                         const NAString &catalogName,
+                                         const NAString &schemaName,
+                                         const NAString &objectName);
+
+NAString ComConvertTrafNameToNativeName(
+                                         const NAString &catalogName,
+                                         const NAString &schemaName,
+                                         const NAString &objectName);
+
 #endif // COMMISC_H

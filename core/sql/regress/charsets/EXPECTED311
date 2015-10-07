@@ -106,8 +106,8 @@ u1u1
 U1                A1      
 ----------------  --------
 
-a1a1              a1a1    
 a1a1              u1u1    
+a1a1              a1a1    
 u1u1              a1a1    
 u1u1              u1u1    
 
@@ -413,8 +413,8 @@ A1        U1
 
 a1a1      a1a1            
 a1a1      u1u1            
-u1u1      a1a1            
 u1u1      u1u1            
+u1u1      a1a1            
 
 --- 4 row(s) selected.
 >>select * from cs311t3, cs311t4 where a1 = case when a1 > 'a1a' then u1 else 'a100' end order by 1,2;

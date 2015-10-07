@@ -20,7 +20,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Thu Aug 27 22:24:34 2015
+-- Definition current  Fri Sep 18 21:54:29 2015
 
   (
     S_STORE_SK                       INT
