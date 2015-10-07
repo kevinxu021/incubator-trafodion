@@ -907,6 +907,7 @@ class ComTdbVirtTableTableInfo  : public ComTdbVirtTableBase
 
   const char * defaultColFam;
   const char * allColFams;
+  Int64 objectFlags; 
 };
 
 class ComTdbVirtTableColumnInfo : public ComTdbVirtTableBase
