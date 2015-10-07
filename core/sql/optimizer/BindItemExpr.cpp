@@ -12847,8 +12847,8 @@ ItemExpr *HbaseAttribute::bindNode(BindWA *bindWA)
   if ((getOperatorType() == ITM_HBASE_TIMESTAMP)||
       (getOperatorType() == ITM_HBASE_VERSION))
     tsValsType = new (bindWA->wHeap()) SQLVarChar(sizeof(Int64), FALSE);
-  else if (getOperatorType() == ITM_HBASE_LABEL)
-    tsValsType = new (bindWA->wHeap()) SQLVarChar(HbaseLabel::HBASE_LABEL_MAXLEN, FALSE);
+  else if (getOperatorType() == ITM_HBASE_VISIBILITY)
+    tsValsType = new (bindWA->wHeap()) SQLVarChar(HbaseVisibility::HBASE_VISIBILITY_MAXLEN, FALSE);
   else
     return NULL;
 
@@ -12876,8 +12876,8 @@ ItemExpr *HbaseAttributeRef::bindNode(BindWA *bindWA)
 
   CMPASSERT(col_);
 
-  if (NOT ((getOperatorType() == ITM_HBASE_LABEL_REF) ||
-           (getOperatorType() == ITM_HBASE_LABEL_SET) ||
+  if (NOT ((getOperatorType() == ITM_HBASE_VISIBILITY_REF) ||
+           (getOperatorType() == ITM_HBASE_VISIBILITY_SET) ||
            (getOperatorType() == ITM_HBASE_TIMESTAMP_REF) ||
            (getOperatorType() == ITM_HBASE_VERSION_REF)))
     CMPASSERT(0);
@@ -12904,14 +12904,14 @@ ItemExpr *HbaseAttributeRef::bindNode(BindWA *bindWA)
       return NULL;
     }
 
-  if (getOperatorType() == ITM_HBASE_LABEL_SET)
+  if (getOperatorType() == ITM_HBASE_VISIBILITY_SET)
     {
       return BuiltinFunction::bindNode(bindWA);
       //      return getValueId().getItemExpr();
     }
 
   ValueIdList &attrList =
-    (getOperatorType() == ITM_HBASE_LABEL_REF 
+    (getOperatorType() == ITM_HBASE_VISIBILITY_REF 
      ? bc->getTableDesc()->hbaseTagList()
      : (getOperatorType() == ITM_HBASE_TIMESTAMP_REF
         ? bc->getTableDesc()->hbaseTSList() 
@@ -12923,8 +12923,8 @@ ItemExpr *HbaseAttributeRef::bindNode(BindWA *bindWA)
         {
           ItemExpr *baseCol = bc->getTableDesc()->getColumnList()[i].getItemExpr();
           HbaseAttribute * hbaCol = NULL;
-          if (getOperatorType() == ITM_HBASE_LABEL_REF)
-            hbaCol = new (bindWA->wHeap()) HbaseLabel(baseCol);
+          if (getOperatorType() == ITM_HBASE_VISIBILITY_REF)
+            hbaCol = new (bindWA->wHeap()) HbaseVisibility(baseCol);
           else if (getOperatorType() == ITM_HBASE_TIMESTAMP_REF)
             hbaCol = new (bindWA->wHeap()) HbaseTimestamp(baseCol);
           else if (getOperatorType() == ITM_HBASE_VERSION_REF)
@@ -12941,16 +12941,10 @@ ItemExpr *HbaseAttributeRef::bindNode(BindWA *bindWA)
   ValueId valId = attrList[bc->getColNumber()];
   setValueId(valId);
   
-#ifdef __ignore
-  bindSelf(bindWA);
-  if (bindWA->errStatus()) 
-    return NULL;
-#endif
-  
   return valId.getItemExpr();
 }
 
-ItemExpr *HbaseLabelSet::bindNode(BindWA *bindWA)
+ItemExpr *HbaseVisibilitySet::bindNode(BindWA *bindWA)
 {
   ItemExpr * boundExpr = NULL;
 
@@ -12971,74 +12965,6 @@ ItemExpr *HbaseLabelSet::bindNode(BindWA *bindWA)
 
   return boundExpr;
 }
-
-#ifdef __ignore
-ItemExpr *HbaseLabel::bindNode(BindWA *bindWA)
-{
-  ItemExpr * boundExpr = NULL;
-
-  boundExpr = HbaseAttribute::bindNode(bindWA);
-  if (bindWA->errStatus()) 
-    return NULL;
-  
-  return boundExpr;
-}
-
-ItemExpr *HbaseLabelRef::bindNode(BindWA *bindWA)
-{
-  ItemExpr * boundExpr = NULL;
-
-  boundExpr = HbaseAttributeRef::bindNode(bindWA);
-  if (bindWA->errStatus()) 
-    return NULL;
-
-  return boundExpr;
-}
-
-ItemExpr *HbaseTimestamp::bindNode(BindWA *bindWA)
-{
-  ItemExpr * boundExpr = NULL;
-
-  boundExpr = HbaseAttribute::bindNode(bindWA);
-  if (bindWA->errStatus()) 
-    return NULL;
-  
-  return boundExpr;
-}
-
-ItemExpr *HbaseTimestampRef::bindNode(BindWA *bindWA)
-{
-  ItemExpr * boundExpr = NULL;
-
-  boundExpr = HbaseAttributeRef::bindNode(bindWA);
-  if (bindWA->errStatus()) 
-    return NULL;
-
-  return boundExpr;
-}
-
-ItemExpr *HbaseVersion::bindNode(BindWA *bindWA)
-{
-  ItemExpr * boundExpr = NULL;
-
-  boundExpr = HbaseAttribute::bindNode(bindWA);
-  if (bindWA->errStatus()) 
-    return NULL;
-  
-  return boundExpr;
-}
-
-ItemExpr *HbaseVersionRef::bindNode(BindWA *bindWA)
-{
-  ItemExpr * boundExpr = NULL;
-
-  boundExpr = HbaseAttributeRef::bindNode(bindWA);
-  if (bindWA->errStatus()) 
-    return NULL;
-
-  return boundExpr;
-}
-#endif
 
 ItemExpr *RowNumFunc::bindNode(BindWA *bindWA)
 {

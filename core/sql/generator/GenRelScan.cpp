@@ -2121,12 +2121,12 @@ static short HbaseAccess_updateHbaseInfoNode(
       ItemExpr * ie = vid.getItemExpr();
       
       const ItemExpr * col_node = NULL;
-      HbaseLabel * hbtg = NULL;
+      HbaseVisibility * hbtg = NULL;
       HbaseTimestamp * hbt = NULL;
       HbaseVersion * hbv = NULL;
-      if (ie->getOperatorType() == ITM_HBASE_LABEL)
+      if (ie->getOperatorType() == ITM_HBASE_VISIBILITY)
         {
-          hbtg = (HbaseLabel*)ie;
+          hbtg = (HbaseVisibility*)ie;
       
           col_node = hbtg->col();
         }
@@ -2151,7 +2151,7 @@ static short HbaseAccess_updateHbaseInfoNode(
       
       if (nac && (nac->getColName() == colName))
         {
-          if (ie->getOperatorType() == ITM_HBASE_LABEL)
+          if (ie->getOperatorType() == ITM_HBASE_VISIBILITY)
             hbtg->setColIndex(colIndex);
           else if (ie->getOperatorType() == ITM_HBASE_TIMESTAMP)
             hbt->setColIndex(colIndex);
@@ -2297,16 +2297,16 @@ short HbaseAccess::codeGen(Generator * generator)
     {
       ValueId vid = retColumnList[hi];
       
-      if ((vid.getItemExpr()->getOperatorType() != ITM_HBASE_LABEL) &&
+      if ((vid.getItemExpr()->getOperatorType() != ITM_HBASE_VISIBILITY) &&
           (vid.getItemExpr()->getOperatorType() != ITM_HBASE_TIMESTAMP) &&
           (vid.getItemExpr()->getOperatorType() != ITM_HBASE_VERSION))
         continue;
       
       ValueId tsValsVID;
-      if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_LABEL)
+      if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_VISIBILITY)
         {
           hbTagVIDlist.insert(vid);
-          tsValsVID = ((HbaseLabel*)vid.getItemExpr())->tsVals()->getValueId();
+          tsValsVID = ((HbaseVisibility*)vid.getItemExpr())->tsVals()->getValueId();
         }
       else if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP)
         {
@@ -2321,7 +2321,7 @@ short HbaseAccess::codeGen(Generator * generator)
 
       Attributes * attr  = generator->addMapInfo(tsValsVID, 0)->getAttr();
       attr->setAtp(work_atp);
-      if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_LABEL)
+      if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_VISIBILITY)
         attr->setAtpIndex(hbaseTagTuppIndex);
       else if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP)
         attr->setAtpIndex(hbaseTimestampTuppIndex);
@@ -2853,7 +2853,23 @@ short HbaseAccess::codeGen(Generator * generator)
       if (getOptHbaseAccessOptions()->hbaseMaxTS() >= 0)
         hbo->hbaseAccessOptions().setHbaseMaxTS(getOptHbaseAccessOptions()->hbaseMaxTS());
     }
-  
+
+
+  NAString haStrNAS =
+    ActiveSchemaDB()->getDefaults().getValue(HBASE_AUTHORIZATIONS);
+  char * haStr = NULL;
+  if ((NOT haStrNAS.isNull()) &&
+      (getTableDesc()->getNATable()->isSeabaseTable()) &&
+      (NOT getTableDesc()->getNATable()->isSeabaseMDTable()) &&
+      (NOT getTableDesc()->getNATable()->isSeabasePrivSchemaTable()) &&
+      (NOT CmpSeabaseDDL::isSeabaseReservedSchema
+       (getTableName().getQualifiedNameObj().getCatalogName(),
+        getTableName().getQualifiedNameObj().getSchemaName()))) 
+    {
+      haStr = space->allocateAlignedSpace(haStrNAS.length() + 1);
+      strcpy(haStr, haStrNAS.data());
+    }
+
   // create hbasescan_tdb
   ComTdbHbaseAccess *hbasescan_tdb = new(space) 
     ComTdbHbaseAccess(
@@ -2933,7 +2949,8 @@ short HbaseAccess::codeGen(Generator * generator)
 		      samplePercent(),
 		      snapAttrs,
 
-                      hbo
+                      hbo,
+                      haStr
 		      );
 
   generator->initTdbFields(hbasescan_tdb);

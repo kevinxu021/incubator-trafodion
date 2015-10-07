@@ -646,7 +646,8 @@ Lng32 ExpHbaseInterface_JNI::scanOpen(
 				      char * snapName,
 				      char * tmpLoc,
 				      Lng32 espNum,
-                                      HbaseAccessOptions *hao)
+                                      HbaseAccessOptions *hao,
+                                      const char * hbaseAuths)
 {
   htc_ = client_->getHTableClient((NAHeap *)heap_, tblName.val, useTRex_, replSync, hbs_);
   if (htc_ == NULL)
@@ -682,7 +683,8 @@ Lng32 ExpHbaseInterface_JNI::scanOpen(
                              (hao && hao->multiVersions()) 
                              ? hao->getNumVersions() : 0,
                              hao ? hao->hbaseMinTS() : -1,
-                             hao ? hao->hbaseMaxTS() : -1);
+                             hao ? hao->hbaseMaxTS() : -1,
+                             hbaseAuths);
   if (retCode_ == HBC_OK)
     return HBASE_ACCESS_SUCCESS;
   else
@@ -901,7 +903,7 @@ Lng32 ExpHbaseInterface_JNI::insertRows(
 
 //
 //----------------------------------------------------------------------------
-Lng32 ExpHbaseInterface_JNI::updateTags(
+Lng32 ExpHbaseInterface_JNI::updateVisibility(
 	  HbaseStr tblName,
 	  HbaseStr rowID, 
           HbaseStr tagsRow,
@@ -915,8 +917,8 @@ Lng32 ExpHbaseInterface_JNI::updateTags(
     transID = 0;
   else
     transID = getTransactionIDFromContext();
-  retCode_ = client_->updateTags((NAHeap *)heap_, tblName.val, hbs_,
-                      useTRex_, transID, rowID, tagsRow, &htc);
+  retCode_ = client_->updateVisibility((NAHeap *)heap_, tblName.val, hbs_,
+                                       useTRex_, transID, rowID, tagsRow, &htc);
   if (retCode_ != HBC_OK) {
     asyncHtc_ = NULL;
     return -HBASE_ACCESS_ERROR;

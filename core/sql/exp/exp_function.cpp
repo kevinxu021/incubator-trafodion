@@ -184,8 +184,8 @@ ExFunctionHbaseColumnsDisplay::ExFunctionHbaseColumnsDisplay() {};
 ExFunctionHbaseColumnCreate::ExFunctionHbaseColumnCreate() {};
 ExFunctionCastType::ExFunctionCastType() {};
 ExFunctionSequenceValue::ExFunctionSequenceValue() {};
-ExFunctionHbaseLabel::ExFunctionHbaseLabel() {};
-ExFunctionHbaseLabelSet::ExFunctionHbaseLabelSet() {};
+ExFunctionHbaseVisibility::ExFunctionHbaseVisibility() {};
+ExFunctionHbaseVisibilitySet::ExFunctionHbaseVisibilitySet() {};
 ExFunctionHbaseTimestamp::ExFunctionHbaseTimestamp() {};
 ExFunctionHbaseVersion::ExFunctionHbaseVersion() {};
 ExFunctionSVariance::ExFunctionSVariance(){};
@@ -617,7 +617,7 @@ ExFunctionSequenceValue::ExFunctionSequenceValue(OperatorTypeEnum oper_type,
 {
 };
 
-ExFunctionHbaseLabel::ExFunctionHbaseLabel(
+ExFunctionHbaseVisibility::ExFunctionHbaseVisibility(
      OperatorTypeEnum oper_type,
      Attributes ** attr, 
      Lng32 tagType,
@@ -630,23 +630,21 @@ ExFunctionHbaseLabel::ExFunctionHbaseLabel(
 {
 };
 
-ExFunctionHbaseLabelSet::ExFunctionHbaseLabelSet(
+ExFunctionHbaseVisibilitySet::ExFunctionHbaseVisibilitySet(
      OperatorTypeEnum oper_type,
      Attributes ** attr, 
-     Lng32 tagType,
      short colIDlen,
      const char * colID,
-     Lng32 tagValLen,
-     const char * tagVal,
+     Lng32 visExprLen,
+     const char * visExpr,
      Space * space)
      : ex_function_clause(oper_type, 1, attr, space),
        colIDlen_(colIDlen), 
-       tagType_(tagType),
-       tagValLen_(tagValLen),
+       visExprLen_(visExprLen),
        flags_(0)
 {
-  memcpy(tagVal_, tagVal, tagValLen);
-  tagVal_[tagValLen] = 0;
+  memcpy(visExpr_, visExpr, visExprLen);
+  visExpr_[visExprLen] = 0;
 
   strcpy(colID_, colID);
 };
@@ -7114,7 +7112,7 @@ ExFunctionSequenceValue::eval(char *op_data[], CollHeap *heap,
 }
 
 ex_expr::exp_return_type 
-ExFunctionHbaseLabel::eval(char *op_data[], CollHeap *heap, 
+ExFunctionHbaseVisibility::eval(char *op_data[], CollHeap *heap, 
                          ComDiagsArea **diagsArea)
 {
   short rc = 0;
@@ -7131,7 +7129,7 @@ ExFunctionHbaseLabel::eval(char *op_data[], CollHeap *heap,
 }
 
 ex_expr::exp_return_type 
-ExFunctionHbaseLabelSet::eval(char *op_data[], CollHeap *heap, 
+ExFunctionHbaseVisibilitySet::eval(char *op_data[], CollHeap *heap, 
                          ComDiagsArea **diagsArea)
 {
   short rc = 0;
@@ -7148,14 +7146,11 @@ ExFunctionHbaseLabelSet::eval(char *op_data[], CollHeap *heap,
   memcpy(currPos, colID_, colIDlen_);
   currPos += colIDlen_;
 
-  *(Lng32*)currPos = tagType_;
+  *(Lng32*)currPos = visExprLen_;
   currPos += sizeof(Lng32);
 
-  *(Lng32*)currPos = tagValLen_;
-  currPos += sizeof(Lng32);
-
-  memcpy(currPos, tagVal(), tagValLen_);
-  currPos += tagValLen_;
+  memcpy(currPos, visExpr(), visExprLen_);
+  currPos += visExprLen_;
 
   //  resultAttr->setVarLength((currPos - result), op_data[-MAX_OPERANDS]);
 

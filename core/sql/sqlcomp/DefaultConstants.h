@@ -3770,6 +3770,9 @@ enum DefaultConstants
 
   TRAF_LOAD_ALLOW_RISKY_INDEX_MAINTENANCE,
 
+  // authorization to be passed to scan/get requests
+  HBASE_AUTHORIZATIONS,
+
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES

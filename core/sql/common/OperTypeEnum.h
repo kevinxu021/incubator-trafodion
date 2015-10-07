@@ -737,9 +737,9 @@ enum OperatorTypeEnum {
                         ITM_HBASE_TIMESTAMP_REF = 2515,
                         ITM_HBASE_VERSION = 2516,
                         ITM_HBASE_VERSION_REF = 2517,
-                        ITM_HBASE_LABEL = 2518,
-                        ITM_HBASE_LABEL_REF = 2519,
-                        ITM_HBASE_LABEL_SET = 2520,
+                        ITM_HBASE_VISIBILITY = 2518,
+                        ITM_HBASE_VISIBILITY_REF = 2519,
+                        ITM_HBASE_VISIBILITY_SET = 2520,
                         ITM_HBASE_TIMESTAMP_TO_LCT = 2521,
 
                         // list of item expressions

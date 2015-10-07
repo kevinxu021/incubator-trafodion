@@ -259,7 +259,8 @@ public:
 			Lng32 espNum = 0,
                         Lng32 versions = 0,
                         Int64 minTS = -1,
-                        Int64 maxTS = -1);
+                        Int64 maxTS = -1,
+                        const char * hbaseAuths = NULL);
   HTC_RetCode deleteRow(Int64 transID, HbaseStr &rowID, const LIST(HbaseStr) *columns, Int64 timestamp);
   HTC_RetCode setWriteBufferSize(Int64 size);
   HTC_RetCode setWriteToWAL(bool vWAL);
@@ -471,8 +472,8 @@ typedef enum {
  ,HBC_ERROR_INSERTROW_DUP_ROWID
  ,HBC_ERROR_INSERTROWS_PARAM
  ,HBC_ERROR_INSERTROWS_EXCEPTION
- ,HBC_ERROR_UPDATETAGS_PARAM
- ,HBC_ERROR_UPDATETAGS_EXCEPTION
+ ,HBC_ERROR_UPDATEVISIBILITY_PARAM
+ ,HBC_ERROR_UPDATEVISIBILITY_EXCEPTION
  ,HBC_ERROR_CHECKANDUPDATEROW_PARAM
  ,HBC_ERROR_CHECKANDUPDATEROW_EXCEPTION
  ,HBC_ERROR_CHECKANDUPDATEROW_NOTFOUND
@@ -567,7 +568,7 @@ public:
 			 ExHbaseAccessStats *hbs, bool useTRex, NABoolean replSync, Int64 transID, short rowIDLen, HbaseStr rowIDs,
 			 HbaseStr rows, Int64 timestamp, bool autoFlush, bool asyncOperation,
 			 HTableClient_JNI **outHtc);
-  HBC_RetCode updateTags(NAHeap *heap, const char *tableName,
+  HBC_RetCode updateVisibility(NAHeap *heap, const char *tableName,
                          ExHbaseAccessStats *hbs, bool useTRex, Int64 transID, 
                          HbaseStr rowID,
                          HbaseStr row,

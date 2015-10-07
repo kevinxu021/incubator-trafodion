@@ -121,78 +121,12 @@ short OptHbaseAccessOptions::setHbaseTS
       return -1;
     }
 
-#ifdef __ignore
-  if (minTSstr)
-    {
-      DatetimeValue minDTval(minTSstr, REC_DATE_YEAR, REC_DATE_SECOND, fracPrec);
-      if (! minDTval.isValid())
-        {
-          isValid_ = FALSE;
-          return -1;
-        }
-      
-      minJTS = DatetimeType::julianTimestampValue
-        ((char*)minDTval.getValue(), minDTval.getValueLen(), fracPrec);
-      if (minJTS == 0)
-        {
-          isValid_ = FALSE;
-          return -1;
-        }
-
-      if (minJTS < epochJTS)
-        {
-          isValid_ = FALSE;
-          return -1;
-        }
-
-      if (CmpCommon::context()->gmtDiff() != 0)
-        minJTS += CmpCommon::context()->gmtDiff() * 60 * 1000000;
-    }
-  else
-    minJTS = epochJTS;
-#endif
-
   maxJTS = computeHbaseTS(maxTSstr);
   if (maxJTS < 0)
     {
       isValid_ = FALSE;
       return -1;
     }
-
-#ifdef __ignore
-  if (maxTSstr)
-    {
-      DatetimeValue maxDTval(maxTSstr, REC_DATE_YEAR, REC_DATE_SECOND, fracPrec);
-      if (! maxDTval.isValid())
-        {
-          isValid_ = FALSE;
-          return -1;
-        }
-      
-      maxJTS = DatetimeType::julianTimestampValue
-        ((char*)maxDTval.getValue(), maxDTval.getValueLen(), fracPrec);
-      if (maxJTS == 0)
-        {
-          isValid_ = FALSE;
-          return -1;
-        }
-
-      if (maxJTS < epochJTS)
-        {
-          isValid_ = FALSE;
-          return -1;
-        }
-
-      if (CmpCommon::context()->gmtDiff() != 0)
-        maxJTS += CmpCommon::context()->gmtDiff() * 60 * 1000000;
-     }
-  else
-    maxJTS = highestJTS;
-
-  setHbaseMinTS((minJTS - epochJTS)/1000);
-
-  setHbaseMaxTS((maxJTS - epochJTS)/1000);
-#endif
 
   setHbaseMinTS(minJTS);
   setHbaseMaxTS(maxJTS);

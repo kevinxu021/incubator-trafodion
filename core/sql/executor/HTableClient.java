@@ -91,11 +91,10 @@ import org.apache.hadoop.fs.FileUtil;
 import java.util.UUID;
 import java.security.InvalidParameterException;
 
-// for tags
-import org.apache.hadoop.hbase.Tag;
+// for visibility exprs
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.security.visibility.CellVisibility;
-import org.apache.hadoop.hbase.TagType;
+import org.apache.hadoop.hbase.security.visibility.Authorizations;
 
 public class HTableClient {
 	private static final int GET_ROW = 1;
@@ -385,7 +384,8 @@ public class HTableClient {
                                  int espNum,
                                  int versions,
                                  long minTS,
-                                 long maxTS)
+                                 long maxTS,
+                                 String hbaseAuths)
 	        throws IOException, Exception {
 	  if (logger.isTraceEnabled()) logger.trace("Enter startScan() " + tableName + " txid: " + transID+ " CacheBlocks: " + cacheBlocks + " numCacheRows: " + numCacheRows + " Bulkread: " + useSnapshotScan);
 
@@ -419,9 +419,7 @@ public class HTableClient {
 
           if ((minTS != -1) && (maxTS != -1))
               {
-                  //                  System.out.println("min = " + minTS);
-                  //                  System.out.println("max = " + maxTS);
-                  scan.setTimeRange(minTS, maxTS);
+                scan.setTimeRange(minTS, maxTS);
               }
 
           if (cacheBlocks == true) {
@@ -432,7 +430,8 @@ public class HTableClient {
           }
 	  else
               scan.setCacheBlocks(false);
-      scan.setSmall(smallScanner);    
+
+          scan.setSmall(smallScanner);    
 	  scan.setCaching(numCacheRows);
 	  numRowsCached = numCacheRows;
 	  if (columns != null) {
@@ -471,6 +470,16 @@ public class HTableClient {
 	  } else if (samplePercent > 0.0f) {
 	    scan.setFilter(new RandomRowFilter(samplePercent));
 	  }
+
+          if (hbaseAuths != null) {
+            List<String> listOfHA = Arrays.asList(hbaseAuths);
+            
+            Authorizations auths = new Authorizations(listOfHA);
+            
+            scan.setAuthorizations(auths);
+
+            System.out.println("hbaseAuths " + hbaseAuths);
+          }
 
 	  if (!useSnapshotScan || transID != 0)
 	  {
@@ -1037,7 +1046,7 @@ public class HTableClient {
                     {
                         put = new Put(rowID, timestamp);
 
-                        System.out.println("here " + timestamp);
+                        //                        System.out.println("here " + timestamp);
                     }
                 else
                     put = new Put(rowID);
@@ -1190,10 +1199,92 @@ public class HTableClient {
 		return true;
 	} 
 
-	public boolean updateTags(final long transID, final byte[] rowID, Object row) throws IOException, InterruptedException, 
+	public boolean updateVisibility(final long transID, final byte[] rowID, Object row) throws IOException, InterruptedException, 
                           ExecutionException 
 	{
-		if (logger.isTraceEnabled()) logger.trace("Enter updateTags() " + tableName);
+		if (logger.isTraceEnabled()) logger.trace("Enter updateVisibility() " + tableName);
+
+	 	final Put put;
+		ByteBuffer bb;
+                int numVisExprs;
+		short numCols;
+		short colNameLen;
+                int visExprLen;
+		byte[] family = null;
+		byte[] qualifier = null;
+		byte[] colName, visExpr;
+
+                put = new Put(rowID);
+
+                ///////////////////////////////////////////////////////
+                // layout of row
+                //
+                //   numVisExprs(int)
+                //    (for each visibility expr)
+                //     colIDlen(short)
+                //     colID(colIDlen bytes)
+                //     visExprLen(int)
+                //     visExpr(visExprLen bytes)
+                //
+                ///////////////////////////////////////////////////////
+		bb = (ByteBuffer)row;
+                bb.order(ByteOrder.LITTLE_ENDIAN);
+
+                Result getResult;
+		numVisExprs = bb.getInt();
+		for (short visExprIndex = 0; visExprIndex < numVisExprs; visExprIndex++)
+		{
+			colNameLen = bb.getShort();
+			colName = new byte[colNameLen];
+			bb.get(colName, 0, colNameLen);
+			visExprLen = bb.getInt();	
+			visExpr = new byte[visExprLen];
+			bb.get(visExpr, 0, visExprLen);
+
+			family = getFamily(colName);
+			qualifier = getName(colName);
+
+                        Get get = new Get(rowID);
+
+                        get.addColumn(family, qualifier);
+                        if (transID != 0) {
+                            getResult = table.get(transID, get);
+                        } else {
+                            getResult = table.get(get);
+                        }
+
+                        //                        System.out.println(getResult);
+                        if (getResult == null
+                            || getResult.isEmpty()) {
+                            //                            setJavaObject(jniObject);
+                            return false;
+                        }
+
+                        String strVisExpr = new String(visExpr);
+                         CellVisibility cv = new CellVisibility(strVisExpr);
+                        
+                        for (Cell cell : getResult.listCells()) {
+                            put.add(cell);
+                            put.setCellVisibility(cv);
+                            
+                            //                            System.out.println("strVisExpr = " + strVisExpr);
+                        }
+		}
+
+                boolean result = true;
+                if (useTRex && (transID != 0)) 
+                    table.put(transID, put);
+                else 
+                    table.put(put);
+
+                return result;
+        }	
+
+    /*
+	public boolean updateVisibility(final long transID, final byte[] rowID, Object row) throws IOException, InterruptedException, 
+                          ExecutionException 
+	{
+		if (logger.isTraceEnabled()) logger.trace("Enter updateVisibility() " + tableName);
 
 	 	final Put put;
 		ByteBuffer bb;
@@ -1310,6 +1401,7 @@ public class HTableClient {
 
                 return result;
         }	
+    */
 
 	public boolean completeAsyncOperation(int timeout, boolean resultArray[]) 
 			throws InterruptedException, ExecutionException

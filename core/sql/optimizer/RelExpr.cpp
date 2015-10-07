@@ -8373,7 +8373,8 @@ void Scan::addIndexInfo()
   if ((ixlist.entries() == 1)||
       (tableDesc->isPartitionNameSpecified()) ||
       (getOptHbaseAccessOptions() &&
-       getOptHbaseAccessOptions()->tsSpecified()))
+       getOptHbaseAccessOptions()->tsSpecified()) ||
+      (tableDesc->hbaseTSList().entries() > 0))
     {
       // that's easy, there is only one index (the base table)
       // and that index better have everything we need
@@ -12754,13 +12755,13 @@ Update::Update(const CorrName &name,
 
   if ((newRecExpr) &&
       (((newRecExpr->getOperatorType() == ITM_ASSIGN) &&
-        (newRecExpr->child(1)->getOperatorType() == ITM_HBASE_LABEL_SET)) ||
+        (newRecExpr->child(1)->getOperatorType() == ITM_HBASE_VISIBILITY_SET)) ||
        ((newRecExpr->getOperatorType() == ITM_ITEM_LIST) &&
-        (((ItemList*)newRecExpr)->containsHbaseLabelExpr()))))
+        (((ItemList*)newRecExpr)->containsHbaseVisibilityExpr()))))
     {
       ItemExpr * newIE = NULL;
       if ((newRecExpr->getOperatorType() == ITM_ASSIGN) &&
-          (newRecExpr->child(1)->getOperatorType() == ITM_HBASE_LABEL_SET))
+          (newRecExpr->child(1)->getOperatorType() == ITM_HBASE_VISIBILITY_SET))
         {
           hbaseTagExprList_.addMember(newRecExpr->child(1));
           newIE = NULL;
@@ -12774,7 +12775,7 @@ Update::Update(const CorrName &name,
               ItemExpr * ie = iel[i];
               
               if ((ie->getOperatorType() == ITM_ASSIGN) &&
-                  (ie->child(1)->getOperatorType() == ITM_HBASE_LABEL_SET))
+                  (ie->child(1)->getOperatorType() == ITM_HBASE_VISIBILITY_SET))
                 {
                   hbaseTagExprList_.addMember(ie->child(1));
                 }

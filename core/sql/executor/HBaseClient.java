@@ -1539,12 +1539,12 @@ public class HBaseClient {
       return ret;
   }
 
-  public boolean updateTags(long jniObject, String tblName, boolean useTRex, 
+  public boolean updateVisibility(long jniObject, String tblName, boolean useTRex, 
                             long transID, byte[] rowID,
                             Object row) throws IOException, InterruptedException, ExecutionException {
 
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, true);
-      boolean ret = htc.updateTags(transID, rowID, row);
+      boolean ret = htc.updateVisibility(transID, rowID, row);
       releaseHTableClient(htc);
       return ret;
   }

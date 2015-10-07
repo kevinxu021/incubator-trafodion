@@ -3804,14 +3804,14 @@ enum
   // ---------------------------------------------------------------------
 };
 
-class ExFunctionHbaseLabel : public ex_function_clause {
+class ExFunctionHbaseVisibility : public ex_function_clause {
 public:
-  ExFunctionHbaseLabel(OperatorTypeEnum oper_type,
+  ExFunctionHbaseVisibility(OperatorTypeEnum oper_type,
                      Attributes ** attr,
                      Lng32 tagType,
                      Lng32 colIndex,
                      Space * space);
-  ExFunctionHbaseLabel();
+  ExFunctionHbaseVisibility();
 
  void displayContents(Space * space, const char * displayStr, 
                       Int32 clauseNum, char * constsArea);
@@ -3829,21 +3829,20 @@ public:
   // ---------------------------------------------------------------------
 };
 
-class ExFunctionHbaseLabelSet : public ex_function_clause {
+class ExFunctionHbaseVisibilitySet : public ex_function_clause {
 public:
   enum {
-    MAX_TAG_VAL_LEN = 1024
+    MAX_VIS_EXPR_LEN = 1024
   };
 
-  ExFunctionHbaseLabelSet(OperatorTypeEnum oper_type,
+  ExFunctionHbaseVisibilitySet(OperatorTypeEnum oper_type,
                         Attributes ** attr,
-                        Lng32 tagType,
                         short colIDlen,
                         const char * colID,
-                        Lng32 tagValLen,
-                        const char * tagVal,
+                        Lng32 visExprLen,
+                        const char * visExpr,
                         Space * space);
-  ExFunctionHbaseLabelSet();
+  ExFunctionHbaseVisibilitySet();
   
   void displayContents(Space * space, const char * displayStr, 
                        Int32 clauseNum, char * constsArea);
@@ -3853,19 +3852,16 @@ public:
   
   virtual short getClassSize() { return (short)sizeof(*this); }
 
-  char * tagVal() { return tagVal_; }
+  char * visExpr() { return visExpr_; }
 private:
   short colIDlen_;
   char colID_[6];
 
-  Lng32 tagType_;
   UInt32 flags_;
 
-  char filler1_[4];
+  Lng32 visExprLen_;
 
-  Lng32 tagValLen_;
-
-  char tagVal_[MAX_TAG_VAL_LEN];
+  char visExpr_[MAX_VIS_EXPR_LEN];
 
   // ---------------------------------------------------------------------
 };

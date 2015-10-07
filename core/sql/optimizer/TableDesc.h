@@ -173,6 +173,7 @@ public:
   void setPrimaryKeyColumns();
 
   ValueIdList &hbaseTagList() { return hbaseTagList_; }
+  const ValueIdList &hbaseTSList() const { return hbaseTSList_; }
   ValueIdList &hbaseTSList() { return hbaseTSList_; }
   ValueIdList &hbaseVersionList() { return hbaseVersionList_; }
   ValueIdList &hbaseAttrList() { return hbaseAttrList_; }

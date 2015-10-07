@@ -366,59 +366,10 @@ public:
 
     virtual short getClassSize() { return (short)sizeof(ComHbaseAccessOptions); }
 
-    //    Lng32 getNumVersions() { return hbo_.getNumVersions(); }
-
-    //    NABoolean multiVersions() { return (getNumVersions() != 0);}
-
-
     HbaseAccessOptions &hbaseAccessOptions() { return hbo_; }
   private:
     HbaseAccessOptions hbo_;
   };
-
-#ifdef __ignore
-  class HbaseAccessOptions : public NAVersionedObject
-  {
-  public:
-  HbaseAccessOptions(Lng32 v = 0) :
-       versions_(v), minTS_(-1), maxTS_(-1)
-    {
-    }
-    
-    virtual unsigned char getClassVersionID()
-    {
-      return 1;
-    }
-
-    virtual void populateImageVersionIDArray()
-    {
-      setImageVersionID(0,getClassVersionID());
-    }
-
-    virtual short getClassSize() { return (short)sizeof(HbaseAccessOptions); }
-
-    Lng32 getNumVersions() { return versions_; }
-
-    NABoolean multiVersions() { return (versions_ != 0);}
-
-    void setHbaseMinTS(Int64 minTS) { minTS_ = minTS; }
-    void setHbaseMaxTS(Int64 maxTS) { maxTS_ = maxTS; }
-    
-    Int64 hbaseMinTS() { return minTS_; }
-    Int64 hbaseMaxTS() { return maxTS_; }
-  private:
-    // 0, version not specified, return default of 1.
-    // -1, return max versions
-    // -2, return all versions.
-    // N, return N versions.
-    Lng32 versions_; 
-    char filler_[4];
-
-    // min/max values of timestamp range to be returned
-    Int64 minTS_;
-    Int64 maxTS_;
-  };
-#endif
 
  // ---------------------------------------------------------------------
   // Template instantiation to produce a 64-bit pointer emulator class
@@ -510,7 +461,9 @@ public:
 		    Float32 samplingRate = -1,
 		    HbaseSnapshotScanAttributes * hbaseSnapshotScanAttributes = NULL,
 
-                    ComHbaseAccessOptions * comHbaseAccessOptions = NULL
+                    ComHbaseAccessOptions * comHbaseAccessOptions = NULL,
+
+                    char * hbaseAuths = NULL
 	       );
   
   ComTdbHbaseAccess(
@@ -671,6 +624,8 @@ public:
 
   const char * server() { return server_; }
   const char * zkPort() { return zkPort_;}
+
+  const char * hbaseAuths() { return hbaseAuths_; }
 
   HbasePerfAttributes * getHbasePerfAttributes() 
   { return (HbasePerfAttributes*)hbasePerfAttributes_.getPointer();}
@@ -1057,7 +1012,10 @@ public:
   UInt32 maxErrorRows_;
   UInt16 hbaseRowsetVsbbSize_; 
   ComHbaseAccessOptionsPtr comHbaseAccessOptions_;
+
   char fillers[2];
+
+  NABasicPtr hbaseAuths_;
 };
 
 class ComTdbHbaseCoProcAccess : public ComTdbHbaseAccess

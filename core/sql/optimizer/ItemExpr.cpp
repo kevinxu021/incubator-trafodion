@@ -13578,43 +13578,43 @@ HbaseAttributeRef::~HbaseAttributeRef()
 {
 }
 
-ItemExpr * HbaseLabel::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
+ItemExpr * HbaseVisibility::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 {
-  HbaseLabel *result;
+  HbaseVisibility *result;
 
   if (derivedNode == NULL)
-    result = new (outHeap) HbaseLabel(col());
+    result = new (outHeap) HbaseVisibility(col());
   else
-    result = (HbaseLabel*)derivedNode;
+    result = (HbaseVisibility*)derivedNode;
 
   return HbaseAttribute::copyTopNode(result, outHeap);
-} // HbaseLabel::copyTopNode()
+} // HbaseVisibility::copyTopNode()
 
-ItemExpr * HbaseLabelRef::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
+ItemExpr * HbaseVisibilityRef::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 {
-  HbaseLabelRef *result;
+  HbaseVisibilityRef *result;
 
   if (derivedNode == NULL)
-    result = new (outHeap) HbaseLabelRef(col());
+    result = new (outHeap) HbaseVisibilityRef(col());
   else
-    result = (HbaseLabelRef*)derivedNode;
+    result = (HbaseVisibilityRef*)derivedNode;
 
   return HbaseAttributeRef::copyTopNode(result, outHeap);
-} // HbaseLabelRef::copyTopNode()
+} // HbaseVisibilityRef::copyTopNode()
  
-ItemExpr * HbaseLabelSet::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
+ItemExpr * HbaseVisibilitySet::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 {
-  HbaseLabelSet *result;
+  HbaseVisibilitySet *result;
 
   if (derivedNode == NULL)
-    result = new (outHeap) HbaseLabelSet(col(), type(), tagVal());
+    result = new (outHeap) HbaseVisibilitySet(col(), visExpr());
   else
-    result = (HbaseLabelSet*)derivedNode;
+    result = (HbaseVisibilitySet*)derivedNode;
 
   result->colId_ = colId_;
 
   return HbaseAttributeRef::copyTopNode(result, outHeap);
-} // HbaseLabelSet::copyTopNode()
+} // HbaseVisibilitySet::copyTopNode()
  
 ItemExpr * HbaseTimestamp::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 {

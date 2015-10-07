@@ -165,7 +165,8 @@ class ExpHbaseInterface : public NABasicObject
 			 char * snapName = NULL,
 			 char * tmpLoc = NULL,
 			 Lng32 espNum=0,
-                         HbaseAccessOptions * hao = NULL) = 0;
+                         HbaseAccessOptions * hao = NULL,
+                         const char * hbaseAuths = NULL) = 0;
 
   virtual Lng32 scanClose() = 0;
 
@@ -282,7 +283,7 @@ class ExpHbaseInterface : public NABasicObject
 		  NABoolean autoFlush = TRUE,
                   NABoolean asyncOperation = FALSE) = 0; // by default, flush rows after put
 
- virtual Lng32 updateTags(
+ virtual Lng32 updateVisibility(
       HbaseStr tblName,
       HbaseStr rowID, 
       HbaseStr row,
@@ -493,7 +494,8 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 			 char * snapName = NULL,
 			 char * tmpLoc = NULL,
 			 Lng32 espNum = 0,
-                         HbaseAccessOptions * hao = NULL);
+                         HbaseAccessOptions * hao = NULL,
+                         const char * hbaseAuthos = NULL);
 
   virtual Lng32 scanClose();
 
@@ -599,7 +601,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 		  NABoolean autoFlush = TRUE,
                   NABoolean asyncOperation = FALSE); // by default, flush rows after put
   
-  virtual Lng32 updateTags(
+  virtual Lng32 updateVisibility(
        HbaseStr tblName,
        HbaseStr rowID, 
        HbaseStr row,

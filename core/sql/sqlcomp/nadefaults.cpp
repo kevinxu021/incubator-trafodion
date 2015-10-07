@@ -1735,6 +1735,9 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
 
   DDkwd__(HBASE_ASYNC_DROP_TABLE,		"OFF"),
   DDkwd__(HBASE_ASYNC_OPERATIONS,		"ON"),
+
+ DDansi_(HBASE_AUTHORIZATIONS,                    ""),
+
  // HBASE_CACHE_BLOCKS, ON => cache every scan, OFF => cache no scan
  // SYSTEM => cache scans which take less than 1 RS block cache mem.
  DDui___(HBASE_BLOCK_SIZE,                      "65536"),
@@ -1785,6 +1788,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDkwd__(HBASE_TRANSFORM_UPDATE_TO_DELETE_INSERT,		"OFF"),
   DDkwd__(HBASE_UPDEL_CURSOR_OPT,		"ON"),
   DDui___(HBASE_USE_FAKED_REGIONS,		"0"),
+
   DD_____(HBASE_ZOOKEEPER_PORT,                 ""),
 
   DDui1__(HDFS_IO_BUFFERSIZE,                            "65536"),

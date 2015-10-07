@@ -5387,13 +5387,13 @@ public:
   ItemExpr * col_;
 }; // class HbaseAttributeRef
 
-class HbaseLabel : public HbaseAttribute
+class HbaseVisibility : public HbaseAttribute
 {
 public:
-  enum { HBASE_LABEL_MAXLEN = 1000};
+  enum { HBASE_VISIBILITY_MAXLEN = 1000};
 
-  HbaseLabel(ItemExpr * col)
-       : HbaseAttribute(ITM_HBASE_LABEL, col)
+  HbaseVisibility(ItemExpr * col)
+       : HbaseAttribute(ITM_HBASE_VISIBILITY, col)
   {}
   
   virtual const NAType * synthesizeType();
@@ -5404,16 +5404,16 @@ public:
   // get a printable string that identifies the operator
   virtual const NAString getText() const
   {
-    return "HBASE_LABEL";
+    return "HBASE_VISIBILITY";
   };
   
-}; // class HbaseLabel
+}; // class HbaseVisibility
 
-class HbaseLabelRef : public HbaseAttributeRef
+class HbaseVisibilityRef : public HbaseAttributeRef
 {
 public:
-  HbaseLabelRef(ItemExpr * col)
-       : HbaseAttributeRef(ITM_HBASE_LABEL_REF, col)
+  HbaseVisibilityRef(ItemExpr * col)
+       : HbaseAttributeRef(ITM_HBASE_VISIBILITY_REF, col)
   {}
   
   virtual ItemExpr * copyTopNode(ItemExpr *derivedNode = NULL,
@@ -5422,23 +5422,18 @@ public:
   // get a printable string that identifies the operator
   virtual const NAString getText() const
   {
-    return "HBASE_LABEL_REF";
+    return "HBASE_VISIBILITY_REF";
   };
   
 private:
-}; // class HbaseLabelRef
+}; // class HbaseVisibilityRef
 
-class HbaseLabelSet : public HbaseAttributeRef
+class HbaseVisibilitySet : public HbaseAttributeRef
 {
 public:
-  enum
-    {
-      VISIBILITY = 1
-    };
-
-  HbaseLabelSet(ItemExpr * col, Lng32 type, NAString &tagVal)
-       : HbaseAttributeRef(ITM_HBASE_LABEL_SET, col),
-         type_(type), tagVal_(tagVal)
+  HbaseVisibilitySet(ItemExpr * col, NAString &visExpr)
+       : HbaseAttributeRef(ITM_HBASE_VISIBILITY_SET, col),
+         visExpr_(visExpr)
   {}
   
   virtual ItemExpr * copyTopNode(ItemExpr *derivedNode = NULL,
@@ -5453,18 +5448,16 @@ public:
   // get a printable string that identifies the operator
   virtual const NAString getText() const
   {
-    return "HBASE_LABEL_SET";
+    return "HBASE_VISIBILITY_SET";
   };
   
-  Lng32 type() { return type_; }
-  NAString &tagVal() { return tagVal_; }
+  NAString &visExpr() { return visExpr_; }
 
 private:
   NAString colId_;
-  Lng32 type_;
-  NAString tagVal_; // tag value to be set in an hbase cell
+  NAString visExpr_; // visibility expr to be set in an hbase cell
 
-}; // class HbaseLabelSet
+}; // class HbaseVisibilitySet
 
 class HbaseTimestamp : public HbaseAttribute
 {

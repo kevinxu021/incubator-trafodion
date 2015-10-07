@@ -494,7 +494,8 @@ ExWorkProcRetcode ExHbaseScanSQTaskTcb::work(short &rc)
                                            tcb_->hbaseAccessTdb().getHbaseSnapshotScanAttributes()->getSnapScanTmpLocation(),
                                            tcb_->getGlobals()->castToExExeStmtGlobals()->getMyInstanceNumber(),
                                            (tcb_->hbaseAccessTdb().getComHbaseAccessOptions() 
-                                            ? &(tcb_->hbaseAccessTdb().getComHbaseAccessOptions()->hbaseAccessOptions()) : NULL)
+                                            ? &(tcb_->hbaseAccessTdb().getComHbaseAccessOptions()->hbaseAccessOptions()) : NULL),
+                                           tcb_->hbaseAccessTdb().hbaseAuths()
                                            );
 
 	    if (tcb_->setupError(retcode, "ExpHbaseInterface::scanOpen"))

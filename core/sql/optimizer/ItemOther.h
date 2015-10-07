@@ -279,17 +279,17 @@ public:
 
   virtual NABoolean hasEquivalentProperties(ItemExpr * other); 
 
-  NABoolean containsHbaseLabelExpr()
-  { return (myFlags_ & HBASE_LABEL_EXPR) != 0; }
-  void setContainsHbaseLabelExpr(NABoolean v)
-  { (v ? myFlags_ |= HBASE_LABEL_EXPR : myFlags_ &= ~HBASE_LABEL_EXPR); };
+  NABoolean containsHbaseVisibilityExpr()
+  { return (myFlags_ & HBASE_VISIBILITY_EXPR) != 0; }
+  void setContainsHbaseVisibilityExpr(NABoolean v)
+  { (v ? myFlags_ |= HBASE_VISIBILITY_EXPR : myFlags_ &= ~HBASE_VISIBILITY_EXPR); };
 
 protected:
 
 private:
   enum
   {
-    HBASE_LABEL_EXPR = 0x0001
+    HBASE_VISIBILITY_EXPR = 0x0001
   };
 
   // helper to change literals of a cacheable query into input parameters

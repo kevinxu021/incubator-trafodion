@@ -5,7 +5,8 @@
 --- SQL operation complete.
 >>
 >>create table t001t2 (name char(10) not null primary key,
-+>                     "position" char(10)) hbase_options (max_versions = '4');
++>                     "position" char(10),
++>                     empid int not null) hbase_options (max_versions = '4');
 
 --- SQL operation complete.
 >>
@@ -80,84 +81,156 @@ A            B            C
 >>cqd hbase_timestamp_set '2000-01-02 10:10:10';
 
 --- SQL operation complete.
->>insert into t001t2 values ('Jill', 'Manager');
+>>insert into t001t2 values ('Deepika', 'Manager', 1);
 
 --- 1 row(s) inserted.
 >>cqd hbase_timestamp_set '2001-01-02 09:09:09';
 
 --- SQL operation complete.
->>insert into t001t2 values ('Jack', 'Programmer');
+>>insert into t001t2 values ('Jack', 'Programmer', 2);
+
+--- 1 row(s) inserted.
+>>insert into t001t2 values ('Jill', 'Programmer', 3);
 
 --- 1 row(s) inserted.
 >>cqd hbase_timestamp_set '2002-01-02 09:09:09';
 
 --- SQL operation complete.
->>update t001t2 set "position" = 'Architect' where name = 'Jack';
+>>update t001t2 set "position" = 'Architect' where name = 'Jill';
 
 --- 1 row(s) updated.
->>select * from t001t2;
+>>cqd hbase_timestamp_set reset;
 
-NAME        position  
-----------  ----------
+--- SQL operation complete.
+>>select * from t001t2 order by empid;
 
-Jack        Architect 
-Jill        Manager   
+NAME        position    EMPID      
+----------  ----------  -----------
 
---- 2 row(s) selected.
->>select * from t001t2 {versions max};
-
-NAME        position  
-----------  ----------
-
-Jack        Architect 
-Jack        Programmer
-Jill        Manager   
+Deepika     Manager               1
+Jack        Programmer            2
+Jill        Architect             3
 
 --- 3 row(s) selected.
->>select name, "position", hbase_timestamp("position", localtime) from t001t2
-+>  {versions max};
+>>select * from t001t2 {versions max} order by empid;
 
-NAME        position    (EXPR)                 
-----------  ----------  -----------------------
+NAME        position    EMPID      
+----------  ----------  -----------
 
-Jack        Architect   2002-01-02 09:09:09.000
-Jack        Programmer  2001-01-02 09:09:09.000
-Jill        Manager     2000-01-02 10:10:10.000
+Deepika     Manager               1
+Jack        Programmer            2
+Jill        Architect             3
+Jill        Programmer            3
 
---- 3 row(s) selected.
->>select hbase_version("position"), hbase_timestamp("position", localtime),* 
-+>        from t001t2 {timestamp as of '1999-09-10 17:54:16', versions max};
+--- 4 row(s) selected.
+>>select empid, name, "position", hbase_timestamp("position", localtime) from t001t2
++>  {versions max} order by 1;
+
+EMPID        NAME        position    (EXPR)                 
+-----------  ----------  ----------  -----------------------
+
+          1  Deepika     Manager     2000-01-02 10:10:10.000
+          2  Jack        Programmer  2001-01-02 09:09:09.000
+          3  Jill        Architect   2002-01-02 09:09:09.000
+          3  Jill        Programmer  2001-01-02 09:09:09.000
+
+--- 4 row(s) selected.
+>>select empid, hbase_version("position"), hbase_timestamp("position", localtime),* 
++>        from t001t2 {timestamp as of '1999-09-10 17:54:16', versions max}
++>        order by 1;
 
 --- 0 row(s) selected.
->>select hbase_version("position"), hbase_timestamp("position", localtime),* 
-+>        from t001t2 {timestamp as of '2000-09-10 17:54:16', versions max};
+>>select empid, hbase_version("position"), hbase_timestamp("position", localtime),* 
++>        from t001t2 {timestamp as of '2000-09-10 17:54:16', versions max}
++>        order by 1;
 
-(EXPR)                (EXPR)                   NAME        position  
---------------------  -----------------------  ----------  ----------
+EMPID        (EXPR)                (EXPR)                   NAME        position    EMPID
+-----------  --------------------  -----------------------  ----------  ----------  -----------
 
-                   1  2000-01-02 10:10:10.000  Jill        Manager   
+          1                     1  2000-01-02 10:10:10.000  Deepika     Manager               1
 
 --- 1 row(s) selected.
->>select hbase_version("position"), hbase_timestamp("position", localtime),* 
-+>        from t001t2 {timestamp as of '2001-09-10 17:54:16', versions max};
+>>select empid, hbase_version("position"), hbase_timestamp("position", localtime),* 
++>        from t001t2 {timestamp as of '2001-09-10 17:54:16', versions max}
++>        order by 1;
 
-(EXPR)                (EXPR)                   NAME        position  
---------------------  -----------------------  ----------  ----------
+EMPID        (EXPR)                (EXPR)                   NAME        position    EMPID
+-----------  --------------------  -----------------------  ----------  ----------  -----------
 
-                   1  2001-01-02 09:09:09.000  Jack        Programmer
-                   1  2000-01-02 10:10:10.000  Jill        Manager   
-
---- 2 row(s) selected.
->>select hbase_version("position"), hbase_timestamp("position", localtime),* 
-+>        from t001t2 {timestamp as of '2015-09-10 17:54:16', versions max};
-
-(EXPR)                (EXPR)                   NAME        position  
---------------------  -----------------------  ----------  ----------
-
-                   1  2002-01-02 09:09:09.000  Jack        Architect 
-                   2  2001-01-02 09:09:09.000  Jack        Programmer
-                   1  2000-01-02 10:10:10.000  Jill        Manager   
+          1                     1  2000-01-02 10:10:10.000  Deepika     Manager               1
+          2                     1  2001-01-02 09:09:09.000  Jack        Programmer            2
+          3                     1  2001-01-02 09:09:09.000  Jill        Programmer            3
 
 --- 3 row(s) selected.
+>>select empid, hbase_version("position"), hbase_timestamp("position", localtime),* 
++>        from t001t2 {timestamp as of '2015-09-10 17:54:16', versions max}
++>        order by 1;
+
+EMPID        (EXPR)                (EXPR)                   NAME        position    EMPID
+-----------  --------------------  -----------------------  ----------  ----------  -----------
+
+          1                     1  2000-01-02 10:10:10.000  Deepika     Manager               1
+          2                     1  2001-01-02 09:09:09.000  Jack        Programmer            2
+          3                     1  2002-01-02 09:09:09.000  Jill        Architect             3
+          3                     2  2001-01-02 09:09:09.000  Jill        Programmer            3
+
+--- 4 row(s) selected.
+>>
+>>create index t001t2i1 on t001t2(empid);
+
+--- SQL operation complete.
+>>update statistics for table t001t2 on every column;
+
+--- SQL operation complete.
+>>
+>>-- should not choose index access
+>>explain options 'f' select empid 
++>        from t001t2 {timestamp as of '2000-09-10 17:54:16'};
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+1    .    2    root                                                  1.00E+002
+.    .    1    trafodion_scan                  T001T2                1.00E+002
+
+--- SQL operation complete.
+>>explain options 'f' select hbase_timestamp(empid) from t001t2;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+1    .    2    root                                                  1.00E+002
+.    .    1    trafodion_scan                  T001T2                1.00E+002
+
+--- SQL operation complete.
+>>explain options 'f' select empid from t001t2 where hbase_timestamp(empid) > 0;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+1    .    2    root                                                  3.40E+001
+.    .    1    trafodion_scan                  T001T2                3.40E+001
+
+--- SQL operation complete.
+>>
+>>-- should choose index access
+>>explain options 'f' select empid from t001t2;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+1    .    2    root                                                  1.00E+002
+.    .    1    trafodion_index_scan            T001T2I1              1.00E+002
+
+--- SQL operation complete.
+>>explain options 'f' select empid from t001t2 where abs(empid) > 0;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+1    .    2    root                                                  3.40E+001
+.    .    1    trafodion_index_scan            T001T2I1              3.40E+001
+
+--- SQL operation complete.
 >>
 >>log;

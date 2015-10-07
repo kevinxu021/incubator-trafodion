@@ -105,7 +105,9 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
 				     Float32 samplingRate,
 				     HbaseSnapshotScanAttributes * hbaseSnapshotScanAttributes,
 
-                                     ComHbaseAccessOptions * comHbaseAccessOptions
+                                     ComHbaseAccessOptions * comHbaseAccessOptions,
+
+                                     char * hbaseAuths
 
 				     )
 : ComTdb( ComTdb::ex_HBASE_ACCESS,
@@ -200,7 +202,9 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   
   hbaseCellTS_(-1),
 
-  comHbaseAccessOptions_(comHbaseAccessOptions)
+  comHbaseAccessOptions_(comHbaseAccessOptions),
+
+  hbaseAuths_(hbaseAuths)
 {};
 
 ComTdbHbaseAccess::ComTdbHbaseAccess(
@@ -312,7 +316,9 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
 
   hbaseCellTS_(-1),
 
-  comHbaseAccessOptions_(NULL)
+  comHbaseAccessOptions_(NULL),
+
+  hbaseAuths_(NULL)
 {
 }
 
@@ -452,6 +458,7 @@ Long ComTdbHbaseAccess::pack(void * space)
   LoadPrepLocation_.pack(space);
   hbaseSnapshotScanAttributes_.pack(space);
   comHbaseAccessOptions_.pack(space);
+  hbaseAuths_.pack(space);
 
   // pack elements in listOfScanRows_
   if (listOfScanRows() && listOfScanRows()->numEntries() > 0)
@@ -519,8 +526,9 @@ Lng32 ComTdbHbaseAccess::unpack(void * base, void * reallocator)
   if(hbasePerfAttributes_.unpack(base, reallocator)) return -1;
   if(sampleLocation_.unpack(base)) return -1;
   if(LoadPrepLocation_.unpack(base)) return -1;
-  if (hbaseSnapshotScanAttributes_.unpack(base,reallocator)) return -1;
-  if (comHbaseAccessOptions_.unpack(base, reallocator)) return -1;
+  if(hbaseSnapshotScanAttributes_.unpack(base,reallocator)) return -1;
+  if(comHbaseAccessOptions_.unpack(base, reallocator)) return -1;
+  if(hbaseAuths_.unpack(base)) return -1;
 
   // unpack elements in listOfScanRows_
   if(listOfScanRows_.unpack(base, reallocator)) return -1;
@@ -979,6 +987,12 @@ void ComTdbHbaseAccess::displayContents(Space * space,ULng32 flag)
       if ((getComHbaseAccessOptions()) && (getComHbaseAccessOptions()->hbaseAccessOptions().multiVersions()))
         {
           str_sprintf(buf, "numVersions = %d", getComHbaseAccessOptions()->hbaseAccessOptions().getNumVersions());
+          space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+        }
+
+      if (hbaseAuths())
+        {
+          str_sprintf(buf, "hbaseAuths_ = %s", hbaseAuths());
           space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
         }
 

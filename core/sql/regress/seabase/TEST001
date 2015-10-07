@@ -34,7 +34,8 @@ create table t001t1(a int not null primary key, b int, c int default 10 not null
    hbase_options (max_versions = '3');
 
 create table t001t2 (name char(10) not null primary key,
-                     "position" char(10)) hbase_options (max_versions = '4');
+                     "position" char(10),
+                     empid int not null) hbase_options (max_versions = '4');
 
 ?section dml
 select * from t001t1 {versions max};
@@ -51,23 +52,42 @@ select * from t001t1;
 
 cqd traf_num_hbase_versions reset;
 cqd hbase_timestamp_set '2000-01-02 10:10:10';
-insert into t001t2 values ('Jill', 'Manager');
+insert into t001t2 values ('Deepika', 'Manager', 1);
 cqd hbase_timestamp_set '2001-01-02 09:09:09';
-insert into t001t2 values ('Jack', 'Programmer');
+insert into t001t2 values ('Jack', 'Programmer', 2);
+insert into t001t2 values ('Jill', 'Programmer', 3);
 cqd hbase_timestamp_set '2002-01-02 09:09:09';
-update t001t2 set "position" = 'Architect' where name = 'Jack';
-select * from t001t2;
-select * from t001t2 {versions max};
-select name, "position", hbase_timestamp("position", localtime) from t001t2
-  {versions max};
-select hbase_version("position"), hbase_timestamp("position", localtime),* 
-        from t001t2 {timestamp as of '1999-09-10 17:54:16', versions max};
-select hbase_version("position"), hbase_timestamp("position", localtime),* 
-        from t001t2 {timestamp as of '2000-09-10 17:54:16', versions max};
-select hbase_version("position"), hbase_timestamp("position", localtime),* 
-        from t001t2 {timestamp as of '2001-09-10 17:54:16', versions max};
-select hbase_version("position"), hbase_timestamp("position", localtime),* 
-        from t001t2 {timestamp as of '2015-09-10 17:54:16', versions max};
+update t001t2 set "position" = 'Architect' where name = 'Jill';
+cqd hbase_timestamp_set reset;
+select * from t001t2 order by empid;
+select * from t001t2 {versions max} order by empid;
+select empid, name, "position", hbase_timestamp("position", localtime) from t001t2
+  {versions max} order by 1;
+select empid, hbase_version("position"), hbase_timestamp("position", localtime),* 
+        from t001t2 {timestamp as of '1999-09-10 17:54:16', versions max}
+        order by 1;
+select empid, hbase_version("position"), hbase_timestamp("position", localtime),* 
+        from t001t2 {timestamp as of '2000-09-10 17:54:16', versions max}
+        order by 1;
+select empid, hbase_version("position"), hbase_timestamp("position", localtime),* 
+        from t001t2 {timestamp as of '2001-09-10 17:54:16', versions max}
+        order by 1;
+select empid, hbase_version("position"), hbase_timestamp("position", localtime),* 
+        from t001t2 {timestamp as of '2015-09-10 17:54:16', versions max}
+        order by 1;
+
+create index t001t2i1 on t001t2(empid);
+update statistics for table t001t2 on every column;
+
+-- should not choose index access
+explain options 'f' select empid 
+        from t001t2 {timestamp as of '2000-09-10 17:54:16'};
+explain options 'f' select hbase_timestamp(empid) from t001t2;
+explain options 'f' select empid from t001t2 where hbase_timestamp(empid) > 0;
+
+-- should choose index access
+explain options 'f' select empid from t001t2;
+explain options 'f' select empid from t001t2 where abs(empid) > 0;
 
 ?section clean_up
 drop table t001t1;

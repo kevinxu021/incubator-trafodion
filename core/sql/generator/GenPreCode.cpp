@@ -4613,7 +4613,7 @@ void HbaseAccess::addReferenceFromItemExprTree(ItemExpr * ie,
       return;
     }
 
-  if (ie->getOperatorType() == ITM_HBASE_LABEL)
+  if (ie->getOperatorType() == ITM_HBASE_VISIBILITY)
     {
       if (addHBF)
         {
@@ -4898,7 +4898,7 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
           ValueId dummyValId;
           if (NOT getGroupAttr()->getCharacteristicInputs().referencesTheGivenValue(valId, dummyValId))
             {
-              if ((valId.getItemExpr()->getOperatorType() == ITM_HBASE_LABEL) ||
+              if ((valId.getItemExpr()->getOperatorType() == ITM_HBASE_VISIBILITY) ||
                   (valId.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP) ||
                   (valId.getItemExpr()->getOperatorType() == ITM_HBASE_VERSION))
                 {
@@ -5184,7 +5184,7 @@ RelExpr * HbaseUpdate::preCodeGen(Generator * generator,
 	      ValueId dummyValId;
 	      if (NOT getGroupAttr()->getCharacteristicInputs().referencesTheGivenValue(valId, dummyValId))
                 {
-                  if ((valId.getItemExpr()->getOperatorType() == ITM_HBASE_LABEL) ||
+                  if ((valId.getItemExpr()->getOperatorType() == ITM_HBASE_VISIBILITY) ||
                       (valId.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP) ||
                       (valId.getItemExpr()->getOperatorType() == ITM_HBASE_VERSION))
                     {
@@ -11389,9 +11389,9 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
             {
               retColRefSet_.insert(valId);
 
-              if (valId.getItemExpr()->getOperatorType() == ITM_HBASE_LABEL)
+              if (valId.getItemExpr()->getOperatorType() == ITM_HBASE_VISIBILITY)
                 {
-                  Lng32 colNumber = ((BaseColumn*)((HbaseLabel*)valId.getItemExpr())->col())->getColNumber();
+                  Lng32 colNumber = ((BaseColumn*)((HbaseVisibility*)valId.getItemExpr())->col())->getColNumber();
                   ValueId colVID = getIndexDesc()->getIndexColumns()[colNumber];
                   retColRefSet_.insert(colVID);
                 }

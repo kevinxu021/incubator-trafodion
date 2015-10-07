@@ -3021,12 +3021,12 @@ ExWorkProcRetcode ExHbaseUMDtrafSubsetTaskTcb::work(short &rc)
             HbaseStr tagRow;
             tagRow.val = tcb_->hbTagRow_;
             tagRow.len = tcb_->hbaseAccessTdb().hbTagRowLen_;
-	    retcode =  tcb_->ehi_->updateTags(tcb_->table_,
+	    retcode =  tcb_->ehi_->updateVisibility(tcb_->table_,
                                               rowID,
                                               tagRow,
                                               tcb_->hbaseAccessTdb().useHbaseXn());
 
-	    if ( tcb_->setupError(retcode, "ExpHbaseInterface::updateTags"))
+	    if ( tcb_->setupError(retcode, "ExpHbaseInterface::updateVisibility"))
 	      {
 		step_ = HANDLE_ERROR;
 		break;

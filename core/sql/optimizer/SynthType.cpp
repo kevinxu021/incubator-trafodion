@@ -6399,24 +6399,24 @@ const NAType * SequenceValue::synthesizeType()
   return type;
 }
 
-const NAType * HbaseLabel::synthesizeType()
+const NAType * HbaseVisibility::synthesizeType()
 {
   NAType * type = NULL;
 
-  type = new HEAP SQLVarChar(HBASE_LABEL_MAXLEN,  
+  type = new HEAP SQLVarChar(HBASE_VISIBILITY_MAXLEN,  
                              col()->getValueId().getType().supportsSQLnull());
 
   return type;
 }
 
-const NAType * HbaseLabelSet::synthesizeType()
+const NAType * HbaseVisibilitySet::synthesizeType()
 {
   NAType * type = NULL;
 
   ///////////////////////////////////////////////////////////////////////////
-  // colIdLen(short)   colId     type(short)  tagValLen(Lng32)   tagVal
+  // colIdLen(short)   colId     type(short)  visExprLen(Lng32)   visExpr
   ///////////////////////////////////////////////////////////////////////////
-  Lng32 maxLen = ROUND2(colId_.length()) + sizeof(short) + sizeof(Lng32) + tagVal_.length();
+  Lng32 maxLen = ROUND2(colId_.length()) + sizeof(short) + sizeof(Lng32) + visExpr_.length();
   maxLen = ROUND2(maxLen);
   type = new HEAP SQLChar(maxLen, FALSE);
 

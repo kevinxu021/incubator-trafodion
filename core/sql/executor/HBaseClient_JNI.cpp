@@ -491,7 +491,7 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROW].jm_signature = "(JLjava/lang/String;ZZJ[BLjava/lang/Object;JZZ)Z";
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_name      = "insertRows";
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;Ljava/lang/Object;JZZ)Z";
-    JavaMethods_[JM_HBC_DIRECT_UPDATE_TAGS].jm_name      = "updateTags";
+    JavaMethods_[JM_HBC_DIRECT_UPDATE_TAGS].jm_name      = "updateVisibility";
     JavaMethods_[JM_HBC_DIRECT_UPDATE_TAGS].jm_signature = "(JLjava/lang/String;ZJ[BLjava/lang/Object;)Z";
     JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].jm_name      = "checkAndUpdateRow";
     JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].jm_signature = "(JLjava/lang/String;ZZJ[BLjava/lang/Object;[B[BJZ)Z";
@@ -3130,7 +3130,7 @@ HBC_RetCode HBaseClient_JNI::insertRows(NAHeap *heap, const char *tableName,
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-HBC_RetCode HBaseClient_JNI::updateTags(NAHeap *heap, const char *tableName,
+HBC_RetCode HBaseClient_JNI::updateVisibility(NAHeap *heap, const char *tableName,
                                         ExHbaseAccessStats *hbs, 
                                         bool useTRex, Int64 transID, 
                                         HbaseStr rowID,
@@ -3144,15 +3144,15 @@ HBC_RetCode HBaseClient_JNI::updateTags(NAHeap *heap, const char *tableName,
     getExceptionDetails();
     if (htc != NULL) 
        NADELETE(htc, HTableClient_JNI, heap);
-    return HBC_ERROR_UPDATETAGS_PARAM;
+    return HBC_ERROR_UPDATEVISIBILITY_PARAM;
   }
   jstring js_tblName = jenv_->NewStringUTF(tableName);
   if (js_tblName == NULL) {
-    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_UPDATETAGS_PARAM));
+    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_UPDATEVISIBILITY_PARAM));
     if (htc != NULL)
         NADELETE(htc, HTableClient_JNI, heap);
     jenv_->PopLocalFrame(NULL);
-    return HBC_ERROR_UPDATETAGS_PARAM;
+    return HBC_ERROR_UPDATEVISIBILITY_PARAM;
   }
   jbyteArray jba_rowID = jenv_->NewByteArray(rowID.len);
   if (jba_rowID == NULL) {
@@ -3160,17 +3160,17 @@ HBC_RetCode HBaseClient_JNI::updateTags(NAHeap *heap, const char *tableName,
     if (htc != NULL)
         NADELETE(htc, HTableClient_JNI, heap);
     jenv_->PopLocalFrame(NULL);
-    return HBC_ERROR_UPDATETAGS_PARAM;
+    return HBC_ERROR_UPDATEVISIBILITY_PARAM;
   }
   jenv_->SetByteArrayRegion(jba_rowID, 0, rowID.len, (const jbyte*)rowID.val);
 
   jobject jTagsRow = jenv_->NewDirectByteBuffer(tagsRow.val, tagsRow.len);
   if (jTagsRow == NULL) {
-    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_UPDATETAGS_PARAM));
+    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_UPDATEVISIBILITY_PARAM));
     if (htc != NULL)
         NADELETE(htc, HTableClient_JNI, heap);
     jenv_->PopLocalFrame(NULL);
-    return HBC_ERROR_UPDATETAGS_PARAM;
+    return HBC_ERROR_UPDATEVISIBILITY_PARAM;
   }
   jboolean j_useTRex = useTRex;
   jlong j_tid = transID;  
@@ -3188,18 +3188,18 @@ HBC_RetCode HBaseClient_JNI::updateTags(NAHeap *heap, const char *tableName,
   if (jenv_->ExceptionCheck()) {
     getExceptionDetails();
     logError(CAT_SQL_HBASE, __FILE__, __LINE__);
-    logError(CAT_SQL_HBASE, "HBaseClient_JNI::updateTags()", getLastError());
+    logError(CAT_SQL_HBASE, "HBaseClient_JNI::updateVisibility()", getLastError());
     jenv_->PopLocalFrame(NULL);
     if (htc != NULL)
         NADELETE(htc, HTableClient_JNI, heap);
-    return HBC_ERROR_UPDATETAGS_EXCEPTION;
+    return HBC_ERROR_UPDATEVISIBILITY_EXCEPTION;
   }
   if (jresult == false) {
-    logError(CAT_SQL_HBASE, "HBaseClient_JNI::updateTags()", getLastError());
+    logError(CAT_SQL_HBASE, "HBaseClient_JNI::updateVisibility()", getLastError());
     if (htc != NULL)
         NADELETE(htc, HTableClient_JNI, heap);
     jenv_->PopLocalFrame(NULL);
-    return HBC_ERROR_UPDATETAGS_EXCEPTION;
+    return HBC_ERROR_UPDATEVISIBILITY_EXCEPTION;
   }
   //  if (hbs)
   //    hbs->incBytesRead(rowIDs.len + rows.len);
@@ -3776,7 +3776,7 @@ HTC_RetCode HTableClient_JNI::init()
     JavaMethods_[JM_GET_ERROR  ].jm_name      = "getLastError";
     JavaMethods_[JM_GET_ERROR  ].jm_signature = "()Ljava/lang/String;";
     JavaMethods_[JM_SCAN_OPEN  ].jm_name      = "startScan";
-    JavaMethods_[JM_SCAN_OPEN  ].jm_signature = "(J[B[B[Ljava/lang/Object;JZZI[Ljava/lang/Object;[Ljava/lang/Object;[Ljava/lang/Object;FZZILjava/lang/String;Ljava/lang/String;IIJJ)Z";
+    JavaMethods_[JM_SCAN_OPEN  ].jm_signature = "(J[B[B[Ljava/lang/Object;JZZI[Ljava/lang/Object;[Ljava/lang/Object;[Ljava/lang/Object;FZZILjava/lang/String;Ljava/lang/String;IIJJLjava/lang/String;)Z";
     JavaMethods_[JM_DELETE     ].jm_name      = "deleteRow";
     JavaMethods_[JM_DELETE     ].jm_signature = "(J[B[Ljava/lang/Object;JZ)Z";
     JavaMethods_[JM_COPROC_AGGR     ].jm_name      = "coProcAggr";
@@ -3832,7 +3832,8 @@ HTC_RetCode HTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
 					Lng32 espNum,
                                         Lng32 versions,
                                         Int64 minTS,
-                                        Int64 maxTS)
+                                        Int64 maxTS,
+                                        const char * hbaseAuths)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HTableClient_JNI::startScan() called.");
 
@@ -3975,6 +3976,18 @@ HTC_RetCode HTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
      return HTC_ERROR_SCANOPEN_PARAM;
    }
 
+   jstring js_hbaseAuths = NULL;
+   if (hbaseAuths)
+     {
+       js_hbaseAuths = jenv_->NewStringUTF(hbaseAuths);
+       if (js_hbaseAuths == NULL)
+         {
+           GetCliGlobals()->setJniErrorStr(getErrorText(HTC_ERROR_SCANOPEN_PARAM));
+           jenv_->PopLocalFrame(NULL);
+           return HTC_ERROR_SCANOPEN_PARAM;
+         }
+     }
+
   if (hbs_)
       hbs_->getTimer().start();
 
@@ -3986,7 +3999,8 @@ HTC_RetCode HTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
                                               j_colnamestofilter, j_compareoplist, j_colvaluestocompare, 
                                               j_smplPct, j_preFetch, j_useSnapshotScan,
                                               j_snapTimeout, js_snapName, js_tmp_loc, j_espNum,
-                                              j_versions, j_minTS, j_maxTS);
+                                              j_versions, j_minTS, j_maxTS,
+                                              js_hbaseAuths);
 
   if (hbs_)
   {

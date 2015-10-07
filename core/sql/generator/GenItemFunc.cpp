@@ -3053,128 +3053,6 @@ short SequenceValue::codeGen(Generator * generator)
   return 0;
 }
 
-#ifdef __ignore
-short HbaseLabel::codeGen(Generator * generator)
-{
-  Attributes ** attr;
-  
-  MapInfo * hbtMapInfo = generator->getMapInfoAsIs(getValueId());
-  if (hbtMapInfo && hbtMapInfo->isCodeGenerated())
-    return 0;
-
-  if (! hbtMapInfo)
-    GenAssert(0, "hbtMapInfo cannot be null");
-
-  Space * space = generator->getSpace();
-  
-  setChild(0, tsVals_);
-
-  if (generator->getExpGenerator()->genItemExpr(this, &attr, (1 + getArity()), -1) == 1)
-    return 0;
-
-  ExFunctionHbaseLabel * hbt =
-    new(generator->getSpace()) ExFunctionHbaseLabel
-    (getOperatorType(), 
-     attr, 
-     colIndex_,
-     space);
-
-  if (hbt)
-    generator->getExpGenerator()->linkClause(this, hbt);
-
-  setChild(0, NULL);
-
-  hbtMapInfo->codeGenerated();
-
-  return 0;
-}
-
-short HbaseLabelRef::codeGen(Generator * generator)
-{
-  GenAssert(0, "HbaseLabelRef::codeGen. Should not reach here.");
-
-  return 0;
-}
-
-short HbaseTimestamp::codeGen(Generator * generator)
-{
-  Attributes ** attr;
-  
-  MapInfo * hbtMapInfo = generator->getMapInfoAsIs(getValueId());
-  if (hbtMapInfo && hbtMapInfo->isCodeGenerated())
-    return 0;
-
-  Space * space = generator->getSpace();
-  
-  setChild(0, tsVals_);
-
-  if (generator->getExpGenerator()->genItemExpr(this, &attr, (1 + getArity()), -1) == 1)
-    return 0;
-
-  ExFunctionHbaseTimestamp * hbt =
-    new(generator->getSpace()) ExFunctionHbaseTimestamp
-    (getOperatorType(), 
-     attr, 
-     colIndex_,
-     space);
-
-  if (hbt)
-    generator->getExpGenerator()->linkClause(this, hbt);
-
-  setChild(0, NULL);
-
-  hbtMapInfo->codeGenerated();
-
-  return 0;
-}
-
-short HbaseTimestampRef::codeGen(Generator * generator)
-{
-  GenAssert(0, "HbaseTimestampRef::codeGen. Should not reach here.");
-
-  return 0;
-}
-
-short HbaseVersion::codeGen(Generator * generator)
-{
-  Attributes ** attr;
-  
-  MapInfo * hbtMapInfo = generator->getMapInfoAsIs(getValueId());
-  if (hbtMapInfo && hbtMapInfo->isCodeGenerated())
-    return 0;
-
-  Space * space = generator->getSpace();
-  
-  setChild(0, tsVals_);
-
-  if (generator->getExpGenerator()->genItemExpr(this, &attr, (1 + getArity()), -1) == 1)
-    return 0;
-
-  ExFunctionHbaseVersion * hbt =
-    new(generator->getSpace()) ExFunctionHbaseVersion
-    (getOperatorType(), 
-     attr, 
-     colIndex_,
-     space);
-
-  if (hbt)
-    generator->getExpGenerator()->linkClause(this, hbt);
-
-  setChild(0, NULL);
-
-  hbtMapInfo->codeGenerated();
-
-  return 0;
-}
-
-short HbaseVersionRef::codeGen(Generator * generator)
-{
-  GenAssert(0, "HbaseVersionRef::codeGen. Should not reach here.");
-
-  return 0;
-}
-#endif
-
 short HbaseAttribute::codeGen(Generator * generator)
 {
   Attributes ** attr;
@@ -3194,8 +3072,8 @@ short HbaseAttribute::codeGen(Generator * generator)
 
   switch (getOperatorType())
     {
-    case ITM_HBASE_LABEL:
-      hbf = new(generator->getSpace()) ExFunctionHbaseLabel
+    case ITM_HBASE_VISIBILITY:
+      hbf = new(generator->getSpace()) ExFunctionHbaseVisibility
         (getOperatorType(), 
          attr, 
          0, // tagType
@@ -3230,7 +3108,7 @@ short HbaseAttribute::codeGen(Generator * generator)
   return 0;
 }
 
-short HbaseLabelSet::codeGen(Generator * generator)
+short HbaseVisibilitySet::codeGen(Generator * generator)
 {
   Attributes ** attr;
   
@@ -3245,14 +3123,13 @@ short HbaseLabelSet::codeGen(Generator * generator)
 
   ex_function_clause * hbf = NULL;
 
-  hbf = new(generator->getSpace()) ExFunctionHbaseLabelSet
+  hbf = new(generator->getSpace()) ExFunctionHbaseVisibilitySet
     (getOperatorType(), 
      attr, 
-     type_,
      colId_.length()-sizeof(short),
      colId_.data() + sizeof(short),
-     tagVal_.length(),
-     tagVal_.data(),
+     visExpr_.length(),
+     visExpr_.data(),
      space);
 
   if (hbf)
