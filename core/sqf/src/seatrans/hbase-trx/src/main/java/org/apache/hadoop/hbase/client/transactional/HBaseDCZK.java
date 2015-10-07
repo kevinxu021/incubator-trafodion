@@ -100,7 +100,14 @@ public class HBaseDCZK implements Abortable {
     private byte [] get_znode_data (String znode) 
 	throws KeeperException, InterruptedException 
     {
-	return ZKUtil.getData(m_zkw, znode);
+	try {
+	    return ZKUtil.getData(m_zkw, znode);
+	}
+	catch(KeeperException.NoNodeException ke) {
+	    LOG.debug(m_zkw.prefix("Unable to list children of znode " 
+				   + znode + " because node does not exist (not an error)"));
+	    return null;
+	} 
     }
 	
     /**
@@ -331,7 +338,14 @@ public class HBaseDCZK implements Abortable {
 		 );
 
 	String lv_cluster_id_node = m_clusters_node + "/" + pv_cluster_id;
+
 	try {
+
+	    byte[] znode_data = get_znode_data(lv_cluster_id_node);
+	    if (znode_data == null) {
+		return null;
+	    }
+
 	    PeerInfo lv_pi = new PeerInfo();
 	    lv_pi.set_id(pv_cluster_id);
 
@@ -436,27 +450,23 @@ public class HBaseDCZK implements Abortable {
 
     /**
      * @param cluster Id
-     * sync ZK information from this cluster to the provided cluster
+     * push_to ZK information from this cluster to the provided cluster
      * @throws IOException
      */
-    public void sync_cluster(String pv_cluster_id) 
+    public void push_to_cluster(String   pv_cluster_id,
+				PeerInfo pv_pi) 
 	throws KeeperException, IOException 
     {
-	LOG.info("HBaseDCZK:sync_cluster"
+	LOG.info("HBaseDCZK:push_to_cluster"
+		 + " cluster id: " + pv_cluster_id
+		 + " data: " + pv_pi
 		 );
-
-	Map<Integer, PeerInfo> lv_pi_list = list_clusters();
-
-	if (lv_pi_list == null) {
-	    return;
-	}
 
 	try {
 	    
 	    STRConfig     lv_STRConfig = null;
 	    Configuration lv_config  = null;
 
-	    System.setProperty("PEERS", pv_cluster_id);
 	    lv_STRConfig = STRConfig.getInstance(m_config);
 	    lv_config = lv_STRConfig.getPeerConfiguration(Integer.parseInt(pv_cluster_id));
 	    if (lv_config == null) {
@@ -466,20 +476,19 @@ public class HBaseDCZK implements Abortable {
 		
 	    HBaseDCZK lv_zk = new HBaseDCZK(lv_config);
 	    
-	    for (PeerInfo lv_pi : lv_pi_list.values()) {
-		lv_zk.set_peer_znode(lv_pi.get_id(),
-				     lv_pi.get_quorum(), 
-				     lv_pi.get_port(),
-				     lv_pi.get_status());
-	    }
+	    lv_zk.set_peer_znode(pv_pi.get_id(),
+				 pv_pi.get_quorum(), 
+				 pv_pi.get_port(),
+				 pv_pi.get_status()
+				 );
 	} 
 	catch (KeeperException e) {
-	    throw new IOException("HBaseDCZK:sync_cluster: ZKW, KeeperException trying to get my id: " 
+	    throw new IOException("HBaseDCZK:push_to_cluster: ZKW, KeeperException: " 
 				  + " , throwing IOException " + e
 				  );
 	} 
 	catch (InterruptedException e) {
-	    throw new IOException("HBaseDCZK:sync_cluster: ZKW, InterruptedException trying to get my id: " 
+	    throw new IOException("HBaseDCZK:push_to_cluster: ZKW, InterruptedException: " 
 				  + " , throwing IOException " + e
 				  );
 	} 
@@ -490,10 +499,99 @@ public class HBaseDCZK implements Abortable {
 
     }
 
-    public void sync_clusters() 
+    public void push_to_clusters() 
 	throws KeeperException, IOException 
     {
-	LOG.info("HBaseDCZK:sync_clusters"
+	LOG.info("HBaseDCZK:push_to_clusters"
+		 );
+
+	Map<Integer, PeerInfo> lv_pi_list = list_clusters();
+	
+	if (lv_pi_list == null) {
+	    return;
+	}
+
+	try {
+	    
+	    String        lv_my_id   = get_my_id();
+	    PeerInfo      lv_my_pi   = lv_pi_list.get(Integer.parseInt(lv_my_id));
+	    
+	    for (PeerInfo lv_pi : lv_pi_list.values()) {
+		if (lv_pi.get_id().equals(lv_my_id)) {
+		    continue;
+		}
+		
+		push_to_cluster(lv_pi.get_id(), lv_my_pi);
+	    }
+	}
+	catch (KeeperException e) {
+	    throw new IOException("HBaseDCZK:push_to_clusters: ZKW, KeeperException: " 
+				  + " , throwing IOException " + e
+				  );
+	}
+	catch (InterruptedException e) {
+	    throw new IOException("HBaseDCZK:push_to_clusters: ZKW, InterruptedException: " 
+				  + " , throwing IOException " + e
+				  );
+	}
+
+    }
+
+    /**
+     * @param cluster Id
+     * pulls ZK information from the cluster to the provided cluster
+     * @throws IOException
+     */
+    public void pull_cluster(String pv_cluster_id)
+	throws KeeperException, IOException 
+    {
+	LOG.info("HBaseDCZK:pull_cluster"
+		 + " cluster id: " + pv_cluster_id
+		 );
+
+	try {
+	    
+	    STRConfig     lv_STRConfig = null;
+	    Configuration lv_config  = null;
+
+	    lv_STRConfig = STRConfig.getInstance(m_config);
+	    lv_config = lv_STRConfig.getPeerConfiguration(Integer.parseInt(pv_cluster_id));
+	    if (lv_config == null) {
+		System.out.println("Peer ID: " + pv_cluster_id + " does not exist OR it has not been configured.");
+		return;
+	    }
+		
+	    HBaseDCZK lv_zk = new HBaseDCZK(lv_config);
+
+	    PeerInfo lv_pi = lv_zk.get_peer_znode(pv_cluster_id);
+
+	    this.set_peer_znode(lv_pi.get_id(),
+				lv_pi.get_quorum(), 
+				lv_pi.get_port(),
+				lv_pi.get_status());
+	} 
+	catch (KeeperException e) {
+	    throw new IOException("HBaseDCZK:pull_cluster: ZKW, KeeperException: " 
+				  + " , throwing IOException " + e
+				  );
+	} 
+	catch (InterruptedException e) {
+	    throw new IOException("HBaseDCZK:pull_cluster: ZKW, InterruptedException: " 
+				  + " , throwing IOException " + e
+				  );
+	} 
+	catch (Exception e) {
+	    System.out.println("exception: " + e);
+	    System.exit(1);
+	}
+
+    }
+    
+    // Communicates with each cluster and gets that cluster's config information
+    public void pull_clusters() 
+	throws KeeperException, IOException 
+    {
+	LOG.info("HBaseDCZK:pull_clusters"
 		 );
 
 	Map<Integer, PeerInfo> lv_pi_list = list_clusters();
@@ -511,20 +609,19 @@ public class HBaseDCZK implements Abortable {
 		    continue;
 		}
 		
-		sync_cluster(lv_pi.get_id());
+		pull_cluster(lv_pi.get_id());
 	    }
 	}
 	catch (KeeperException e) {
-	    throw new IOException("HBaseDCZK:sync_clusters: ZKW, KeeperException trying to get my id: " 
+	    throw new IOException("HBaseDCZK:pull_clusters: ZKW, KeeperException: " 
 				  + " , throwing IOException " + e
 				  );
 	}
 	catch (InterruptedException e) {
-	    throw new IOException("HBaseDCZK:sync_clusters: ZKW, InterruptedException trying to get my id: " 
+	    throw new IOException("HBaseDCZK:pull_clusters: ZKW, InterruptedException: " 
 				  + " , throwing IOException " + e
 				  );
 	}
-
     }
 
     /**
@@ -538,6 +635,13 @@ public class HBaseDCZK implements Abortable {
 
 	try {
 	    ZKUtil.createSetData(m_zkw, m_my_cluster_id_node, pv_my_cluster_id.getBytes(CHARSET));
+	    PeerInfo lv_pi = get_peer_znode(pv_my_cluster_id);
+	    if (lv_pi == null) {
+		set_peer_znode(pv_my_cluster_id,
+			       new String(m_config.get( STRConfig.ZK_QUORUM )),
+			       new String(m_config.get( STRConfig.ZK_PORT )),
+			       new String("hupsup"));
+	    }
 	} 
 	catch (KeeperException e) {
 	    throw new IOException("HBaseDCZK:set_my_id: ZKW Unable to create zNode: " 
@@ -593,7 +697,8 @@ public class HBaseDCZK implements Abortable {
 	System.out.println("                  :   | -get <id>");
 	System.out.println("                  :   | -list");
 	System.out.println("                  :   | -delete <id>");
-	System.out.println("                  :   | -sync >");
+	System.out.println("                  :   | -push");
+	System.out.println("                  :   | -pull >");
 	System.out.println("<options>         : [ <peer info> | -h | -v ]");
 	System.out.println("<cluster info>    : < <cluster id> [ <quorum info> | <port info> | <status info> ]... >");
 	System.out.println("<cluster id>      : -id <id> ");
@@ -633,7 +738,8 @@ public class HBaseDCZK implements Abortable {
 	boolean lv_cmd_get        = false;
 	boolean lv_cmd_delete     = false;
 	boolean lv_cmd_list       = false;
-	boolean lv_cmd_sync       = false;
+	boolean lv_cmd_push       = false;
+	boolean lv_cmd_pull       = false;
 	boolean lv_cmd_liststatus = false;
 
 	int lv_index = 0;
@@ -731,9 +837,13 @@ public class HBaseDCZK implements Abortable {
 		if (lv_verbose) System.out.println("Command: list");
 		lv_cmd_list = true;
 	    }
-	    else if (lv_arg.compareTo("-sync") == 0) {
-		if (lv_verbose) System.out.println("Command: sync");
-		lv_cmd_sync = true;
+	    else if (lv_arg.compareTo("-push") == 0) {
+		if (lv_verbose) System.out.println("Command: push");
+		lv_cmd_push = true;
+	    }
+	    else if (lv_arg.compareTo("-pull") == 0) {
+		if (lv_verbose) System.out.println("Command: pull");
+		lv_cmd_pull = true;
 	    }
 	}
 	    
@@ -807,8 +917,11 @@ public class HBaseDCZK implements Abortable {
 		    }
 		}
 	    }
-	    else if (lv_cmd_sync) {
-		lv_zk.sync_clusters();
+	    else if (lv_cmd_push) {
+		lv_zk.push_to_clusters();
+	    }
+	    else if (lv_cmd_pull) {
+		lv_zk.pull_clusters();
 	    }
 	    else if (lv_cmd_liststatus) {
 		Map<Integer, PeerInfo> lv_pi_list = lv_zk.list_clusters();

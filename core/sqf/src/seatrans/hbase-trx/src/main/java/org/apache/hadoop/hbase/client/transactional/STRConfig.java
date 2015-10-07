@@ -109,80 +109,6 @@ public class STRConfig {
 
     private static STRConfig s_STRConfig = null; 
 
-    public static void initClusterConfigs(Configuration pv_config) 
-	throws IOException 
-    {
-
-	peer_configs = new HashMap<Integer, Configuration>();
-	peer_connections = new HashMap<Integer, HConnection>();
-
-	pv_config.set("hbase.hregion.impl", "org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion");
-	pv_config.setInt("hbase.client.retries.number", 3);
-
-	String lv_my_cluster_id = System.getenv("MY_CLUSTER_ID");
-	if (lv_my_cluster_id != null) {
-	    if (LOG.isTraceEnabled()) LOG.trace("My cluster id: " + lv_my_cluster_id);
-	    pv_config.setInt("esgyn.cluster.id", Integer.parseInt(lv_my_cluster_id));
-	}
-	peer_configs.put(0, pv_config);
-
-        HConnection lv_connection = HConnectionManager.createConnection(pv_config);
-	peer_connections.put(0, lv_connection);
-	if (LOG.isInfoEnabled()) LOG.info("peer#0 zk quorum: " 
-		 + (peer_configs.get(0)).get( ZK_QUORUM));
-	if (LOG.isInfoEnabled()) LOG.info("peer#0 zk clientPort: " 
-					  + (peer_configs.get(0)).get(ZK_PORT));
-	
-	String lv_str_replicate = System.getenv("PEERS");
-	if (lv_str_replicate == null) {
-	    lv_str_replicate = System.getProperty("PEERS");
-	}
-	if (LOG.isTraceEnabled()) LOG.trace("PEERS env var value: " + lv_str_replicate);
-	String[] sv_peers;
-	if (lv_str_replicate != null) {
-	    sv_peers = lv_str_replicate.split(",");
-	    sv_peer_count = sv_peers.length;
-	    if (LOG.isTraceEnabled()) LOG.trace("sv_peers.length: " + sv_peers.length);
-	    if (sv_peer_count > 0) {
-		sb_replicate = true;
-	    }
-	
-	    if (LOG.isTraceEnabled()) LOG.trace("Replicate count: " + sv_peer_count);
-
-	    for (int i = 0; i < sv_peer_count; i++) {
-		int lv_peer_num = Integer.parseInt(sv_peers[i]);
-		String lv_peer_hbase_site_str = System.getenv("MY_SQROOT") + "/conf/peer" + lv_peer_num  + "/hbase-site.xml";
-		if (LOG.isTraceEnabled()) LOG.trace("lv_peer_hbase_site: " + lv_peer_hbase_site_str);
-
-		File lv_peer_file = new File(lv_peer_hbase_site_str);
-		if (lv_peer_file.exists()) {
-		    Path lv_config_path = new Path(lv_peer_hbase_site_str);
-		    Configuration lv_config = HBaseConfiguration.create();
-		    lv_config.addResource(lv_config_path);
-		    if (LOG.isTraceEnabled()) LOG.trace("Putting peer info in the map for : " + lv_peer_hbase_site_str);
-		    try {
-			peer_configs.put(lv_peer_num,lv_config);
-		    }
-		    catch (Exception e) {
-			LOG.error("Exception while adding peer info to the config: " + e);
-		    }
-		    if (LOG.isInfoEnabled()) LOG.info("peer#" 
-						       + lv_peer_num 
-						       + ":zk quorum: " + (peer_configs.get(lv_peer_num)).get(ZK_QUORUM));
-		    if (LOG.isInfoEnabled()) LOG.info("peer#" 
-						       + lv_peer_num 
-						       + ":zk clientPort: " + (peer_configs.get(lv_peer_num)).get(ZK_PORT));
-		    lv_connection = HConnectionManager.createConnection(lv_config);
-		    peer_connections.put(lv_peer_num, lv_connection);
-
-		}
-		else {
-		    if (LOG.isTraceEnabled()) LOG.trace("Peer Path does not exist: " + lv_peer_hbase_site_str);
-		}
-	    }
-	}
-    }
-
     private static void add_peer(Configuration pv_config,
 				 int           pv_peer_num)
 	throws InterruptedException, KeeperException, IOException 
@@ -370,14 +296,7 @@ public class STRConfig {
 	throws InterruptedException, KeeperException, ZooKeeperConnectionException, IOException 
     
     {
-	String lv_use_zk = System.getenv("STR_USE_ZK");
-	if (lv_use_zk != null && 
-	    (lv_use_zk.equals("0"))) {
-	    initClusterConfigs(conf);
-	}
-	else {
-	    initClusterConfigsZK(conf);
-	}
+	initClusterConfigsZK(conf);
 
 	if (sv_dc_zk != null) {
 	    sv_dc_zk.watch_all();

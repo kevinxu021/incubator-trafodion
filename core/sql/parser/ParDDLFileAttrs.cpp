@@ -421,19 +421,6 @@ ParDDLFileAttrsAlterIndex::setFileAttr(ElemDDLFileAttr * pFileAttr)
     *SqlParser_Diags << DgSqlCode(-3077);
     break;
 
-  case ELM_FILE_ATTR_LOCK_LENGTH_ELEM :
-    //
-    // The grammar productions allow the locklength phrase
-    // to appear within an Alter Index ... Attribute(s)
-    // statement (syntactically).  Enforces the restriction
-    // by using semantic actions.
-    //
-
-    // LOCKLENGTH phrase not allowed in an Alter Index ... Attribute(s) 
-    // statement.
-    *SqlParser_Diags << DgSqlCode(-3078);
-    break;
-
   case ELM_FILE_ATTR_EXTENT_ELEM :
 	// DOnt allow EXTENT in ALTER statements
     *SqlParser_Diags << DgSqlCode(-3194);
@@ -727,10 +714,6 @@ ParDDLFileAttrsAlterTable::copy(const ParDDLFileAttrsAlterTable &rhs)
   // DEALLOCATE
   isDeallocateSpec_     = rhs.isDeallocateSpec_;
 
-  // LOCKLENGTH
-  isLockLengthSpec_     = rhs.isLockLengthSpec_;
-  lockLength_           = rhs.lockLength_;
-
   // MAXSIZE
   isMaxSizeSpec_        = rhs.isMaxSizeSpec_;
   isMaxSizeUnbounded_   = rhs.isMaxSizeUnbounded_;
@@ -820,13 +803,6 @@ ParDDLFileAttrsAlterTable::initializeDataMembers()
   //   no other data members besides isDeallocateSpec_
   //
 
-  // LOCKLENGTH
-  //
-  //   The following data member has no meaning when the
-  //   LockLength phrase does not appear.
-  //
-  lockLength_           = 0;
-
   // MAXSIZE
   //
   //   The following data members have no meanings when the
@@ -900,9 +876,6 @@ ParDDLFileAttrsAlterTable::resetAllIsSpecDataMembers()
 
   // DEALLOCATE
   isDeallocateSpec_             = FALSE;
-
-  // LOCKLENGTH
-  isLockLengthSpec_             = FALSE;
 
   // MAXSIZE
   isMaxSizeSpec_                = FALSE;
@@ -1062,18 +1035,6 @@ ParDDLFileAttrsAlterTable::setFileAttr(ElemDDLFileAttr * pFileAttr)
     // [NO]ICOMPRESS phrase not allowed in an Alter Table ... Attribute(s) 
     // statement.
     *SqlParser_Diags << DgSqlCode(-3089);
-    break;
-
-  case ELM_FILE_ATTR_LOCK_LENGTH_ELEM :
-    if (isLockLengthSpec_)
-    {
-      // Duplicate LOCKLENGTH phrases.
-      *SqlParser_Diags << DgSqlCode(-3090);
-    }
-    ComASSERT(pFileAttr->castToElemDDLFileAttrLockLength() NEQ NULL);
-    lockLength_ = pFileAttr->castToElemDDLFileAttrLockLength()->
-      getLockLength();
-    isLockLengthSpec_ = TRUE;
     break;
 
   case ELM_FILE_ATTR_EXTENT_ELEM :
@@ -1291,19 +1252,6 @@ ParDDLFileAttrsAlterTable::getDetailInfo() const
     detailTextList.append("deallocate not spec");
   }
 
-  // LOCKLENGTH
-
-  if (isLockLengthSpecified())
-  {
-    detailText = "locklen:       ";
-    detailText += LongToNAString((Lng32)getLockLength());
-    detailTextList.append(detailText);
-  }
-  else
-  {
-    detailTextList.append("locklength not spec");
-  }
-
   // MAXSIZE
 
   if (isMaxSizeSpecified())
@@ -1435,10 +1383,6 @@ ParDDLFileAttrsCreateIndex::copy(const ParDDLFileAttrsCreateIndex &rhs)
   isICompressSpec_      = rhs.isICompressSpec_;
   isICompress_          = rhs.isICompress_;
 
-  // LOCKLENGTH
-  isLockLengthSpec_     = rhs.isLockLengthSpec_;
-  lockLength_           = rhs.lockLength_;
-
   // MAXSIZE
   isMaxSizeSpec_        = rhs.isMaxSizeSpec_;
   isMaxSizeUnbounded_   = rhs.isMaxSizeUnbounded_;
@@ -1539,14 +1483,6 @@ ParDDLFileAttrsCreateIndex::initializeDataMembers()
   //
   isICompress_          = FALSE;
 
-  // LOCKLENGTH
-  //
-  //   Sets number of bytes in key to use for
-  //   generic locks.  Default is 0 which means
-  //   using the entire key.
-  //
-  lockLength_           = 0;
-
   // MAXSIZE
   isMaxSizeUnbounded_   = FALSE;
   ParSetDefaultMaxSize(maxSize_, maxSizeUnit_);
@@ -1603,9 +1539,6 @@ ParDDLFileAttrsCreateIndex::resetAllIsSpecDataMembers()
 
   // [ NO ] ICOMPRESS
   isICompressSpec_              = FALSE;
-
-  // LOCKLENGTH
-  isLockLengthSpec_             = FALSE;
 
   // MAXSIZE
   isMaxSizeSpec_                = FALSE;
@@ -1751,18 +1684,6 @@ ParDDLFileAttrsCreateIndex::setFileAttr(ElemDDLFileAttr * pFileAttr)
     isICompressSpec_ = TRUE;
     break;
 
-  case ELM_FILE_ATTR_LOCK_LENGTH_ELEM :
-    if (isLockLengthSpec_)
-    {
-      // Duplicate LOCKLENGTH phrases.
-      *SqlParser_Diags << DgSqlCode(-3090);
-    }
-    ComASSERT(pFileAttr->castToElemDDLFileAttrLockLength() NEQ NULL);
-    lockLength_ = pFileAttr->castToElemDDLFileAttrLockLength()->
-      getLockLength();
-    isLockLengthSpec_ = TRUE;
-    break;
-
   case ELM_FILE_ATTR_EXTENT_ELEM :
     if (isExtentSpec_)
     {
@@ -1901,10 +1822,6 @@ ParDDLFileAttrsCreateIndex::getDetailInfo() const
 
   detailText = "ixcompr?       ";
   detailText += YesNo(getIsICompress());
-  detailTextList.append(detailText);
-
-  detailText = "locklen:       ";
-  detailText += LongToNAString((Lng32)getLockLength());
   detailTextList.append(detailText);
 
   detailText = "maxsizunbound? ";
@@ -2208,7 +2125,6 @@ ParDDLFileAttrsCreateTable::setFileAttr(ElemDDLFileAttr * pFileAttr)
   case ELM_FILE_ATTR_CLEAR_ON_PURGE_ELEM :
   case ELM_FILE_ATTR_D_COMPRESS_ELEM     :
   case ELM_FILE_ATTR_I_COMPRESS_ELEM     :
-  case ELM_FILE_ATTR_LOCK_LENGTH_ELEM    :
   case ELM_FILE_ATTR_EXTENT_ELEM         :
   case ELM_FILE_ATTR_MAXEXTENTS_ELEM     :
   case ELM_FILE_ATTR_UID_ELEM  :
