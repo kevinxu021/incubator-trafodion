@@ -127,14 +127,6 @@ public class PeerInfo {
 	    return;
 	}
 
-	if (m_HBaseUp) {
-	    pv_sb.append(HBASE_UP);
-	}
-	else {
-	    pv_sb.append(HBASE_DOWN);
-	}
-	pv_sb.append("-");
-
 	if (m_TrafodionUp) {
 	    pv_sb.append(TRAFODION_UP);
 	}

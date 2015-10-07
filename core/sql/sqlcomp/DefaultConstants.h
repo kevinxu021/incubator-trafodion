@@ -3290,7 +3290,8 @@ enum DefaultConstants
   // size is for all rows for a particular column.
   // Size is expressed in Mbs
   LOB_MAX_SIZE,
-
+  //Max memory used to tranfer data/perform I/O to lob data file. 
+  LOB_MAX_CHUNK_MEM_SIZE,
   LOB_STORAGE_TYPE,
   LOB_STORAGE_FILE_DIR,
 
@@ -3757,6 +3758,7 @@ enum DefaultConstants
   //enable HBASE Small Scanner, optimizing scans of size below HFile block size
   HBASE_SMALL_SCANNER,
 
+  TRAF_LOAD_ALLOW_RISKY_INDEX_MAINTENANCE,
   HBASE_RANGE_PARTITIONING_PARTIAL_COLS,
 
   // get version of tables as of the specified time
@@ -3768,7 +3770,7 @@ enum DefaultConstants
 
   MERGE_WITH_UNIQUE_INDEX,
 
-  TRAF_LOAD_ALLOW_RISKY_INDEX_MAINTENANCE,
+  USTAT_MAX_CHAR_DATASIZE_FOR_IS,
 
   // authorization to be passed to scan/get requests
   HBASE_AUTHORIZATIONS,

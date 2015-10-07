@@ -509,6 +509,7 @@ public:
 
   const ComUID &getCatalogUid() const           { return catalogUID_; }
   const ComUID &getSchemaUid() const            { return schemaUID_; }
+
   const ComUID &objectUid() const
   {
     if (objectUID_.get_value() == 0)
@@ -516,7 +517,17 @@ public:
     return objectUID_;
   }
 
-  Int64 lookupObjectUid();  // Used to look up uid on demand for metadata tables
+  // fetch the object UID that is associated with the external 
+  // table object (if any) for a native table.
+  // Set objectUID_ to 0 if no such external table exists;
+  // set objectUID_ to -1 if there is error during the fetch operation;
+  NABoolean fetchObjectUIDForNativeTable(const CorrName& corrName);
+
+
+  Int64 lookupObjectUid();  // Used to look up uid on demand for metadata tables.
+                            // On return, the "Object Not Found" error (-1389) 
+                            // is filtered out from CmpCommon::diags().
+
   bool isEnabledForDDLQI() const;
 
   const ComObjectType &getObjectType() const { return objectType_; }
@@ -702,6 +713,25 @@ public:
   
   ComReplType xnRepl() { return xnRepl_; }
   void setXnRepl(ComReplType v) { xnRepl_ = v; }
+
+
+  void setIsExternalTable( NABoolean value )
+  {  value ? flags_ |= IS_EXTERNAL_TABLE : flags_ &= ~IS_EXTERNAL_TABLE; }
+
+  NABoolean isExternalTable() const
+  {  return (flags_ & IS_EXTERNAL_TABLE) != 0; }
+
+  void setHasExternalTable( NABoolean value )
+  {  value ? flags_ |= HAS_EXTERNAL_TABLE : flags_ &= ~HAS_EXTERNAL_TABLE; }
+
+  NABoolean hasExternalTable() const
+  {  return (flags_ & HAS_EXTERNAL_TABLE) != 0; }
+
+  void setIsHistogramTable( NABoolean value )
+  {  value ? flags_ |= IS_HISTOGRAM_TABLE : flags_ &= ~IS_HISTOGRAM_TABLE; }
+
+  NABoolean isHistogramTable() const
+  {  return (flags_ & IS_HISTOGRAM_TABLE) != 0; }
 
   const CheckConstraintList &getCheckConstraints() const
                                                 { return checkConstraints_; }
@@ -914,11 +944,14 @@ private:
     DROPPABLE                 = 0x00004000,
     LOB_COLUMN                = 0x00008000,
     REMOVE_FROM_CACHE_BNC     = 0x00010000,  // Remove from NATable Cache Before Next Compilation
-    SERIALIZED_ENCODED_COLUMN  = 0x00020000,
-    SERIALIZED_COLUMN          = 0x00040000,
+    SERIALIZED_ENCODED_COLUMN = 0x00020000,
+    SERIALIZED_COLUMN         = 0x00040000,
+    IS_EXTERNAL_TABLE         = 0x00080000,
+    HAS_EXTERNAL_TABLE        = 0x00100000,
+    IS_HISTOGRAM_TABLE        = 0x00200000,
     
     // synchronize transactions across multiple clusters for this table
-    SYNC_XN                    = 0x00080000
+    SYNC_XN                   = 0x00080000
 
   };
     
