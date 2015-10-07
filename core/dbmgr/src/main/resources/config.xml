@@ -10,16 +10,16 @@
 <properties>
 
 	<!-- The JDBC url for the Trafodion/EsgynDB instance that you are connecting to -->
-	<entry key="jdbcUrl">jdbc:t4jdbc://10.1.10.101:23400/:</entry>
+	<entry key="jdbcUrl">jdbc:t4jdbc://192.168.1.5:23400/:</entry>
 	
 	<!-- The JDBC driver class name for the Trafodion/EsgynDB JDBC driver -->
 	<entry key="jdbcDriverClass">org.trafodion.jdbc.t4.T4Driver</entry>
 	
 	<!-- The Trafodion REST Server URI -->
-	<entry key="trafodionRestServerUri">10.1.10.101:4200</entry>
+	<entry key="trafodionRestServerUri">192.168.1.5:4200</entry>
 
 	<!-- The EsgynDB DCS Master Info URI -->
-	<entry key="dcsMasterInfoUri">http://10.1.10.101:24400</entry>
+	<entry key="dcsMasterInfoUri">http://192.168.1.5:24400</entry>
 	
 	<!-- Session Timeout in minutes. Your EsgynDB Manager browser session to the server will be 
 		timed out after this interval and you will be asked to login again -->
@@ -40,5 +40,9 @@
 	<entry key="requestHeaderSize">98304</entry>
 
 	<!-- The TimeZone name of the EsgynDB server. Enter in java time zone format like America/New_York -->
-	<entry key="timeZoneName">America/New_York</entry>
+	<entry key="timeZoneName">Etc/UTC</entry>
+	
+	<!-- The openTSDB HTTP URI-->
+	<entry key="openTSDBUri">10.1.30.9:4242</entry>
+	
 </properties>

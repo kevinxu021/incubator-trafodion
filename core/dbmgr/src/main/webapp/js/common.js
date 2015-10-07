@@ -64,9 +64,13 @@ function(moment, momenttimezone, $) {
 				}
 				return "";
 			},
-			this.toServerLocalDateFromUtcMilliSeconds = function(utcMilliSeconds) {
+			this.toServerLocalDateFromUtcMilliSeconds = function(utcMilliSeconds, formatString) {
 				if (utcMilliSeconds != null) {
-					return moment(utcMilliSeconds + (_this.serverUtcOffset)).local().format('YYYY-MM-DD HH:mm:ss');
+					//return moment(utcMilliSeconds + (_this.serverUtcOffset)).local().format('YYYY-MM-DD HH:mm:ss');
+					if(formatString == null){
+						formatString = 'YYYY-MM-DD HH:mm:ss z';
+					}
+					return moment(utcMilliSeconds + (_this.serverUtcOffset)).tz(_this.serverTimeZone).format(formatString);
 				}
 				return "";
 			},

@@ -130,13 +130,14 @@ private:
       JM_PARREGION,
       JM_CNTPOINT,
       JM_STALL,
-	  JM_NODEDOWN,
+      JM_NODEDOWN,
       JM_NODEUP,
       JM_CREATETABLE,
       JM_ALTERTABLE,
       JM_REGTRUNCABORT,
       JM_DROPTABLE,
       JM_RQREGINFO,
+      JM_CREATE_EPH_NODE,
       JM_LAST
    };
    JavaMethodInit JavaMethods_[JM_LAST];
@@ -197,6 +198,7 @@ public:
                         int pv_tbloptslen);
    jobjectArray convertToByteArrayObjectArray(char **array, int numElements, int elementLen);
    jobjectArray convertToStringObjectArray(const char **textArray, int arrayLen);
+   int createEphemeralZKNode(const char *pv_data);
    int registerRegion(int64 pv_transid, const char pa_region[], const char pa_regionInfo[], int pv_regionInfo_Length);
    int registerRegion(int64 pv_transid,
             int64 pv_startid,

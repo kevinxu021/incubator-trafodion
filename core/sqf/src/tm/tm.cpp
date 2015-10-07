@@ -79,6 +79,22 @@ CTmThreadExample  *gp_tmExampleThread;
 // ---------------------------------------------------------------
 // misc helper routines
 // ---------------------------------------------------------------
+
+void setEphemeralZKNodeIfLead()
+{
+  if (! gv_tm_info.lead_tm()) {
+    return;
+  }
+
+  int lv_ret_code = 0;
+  char lv_msg[100];
+  memset(lv_msg, 0, 100);
+  sprintf(lv_msg, "Lead DTM: %d", gv_tm_info.nid());
+
+  lv_ret_code = gv_HbaseTM.createEphemeralZKNode(lv_msg);
+
+}
+
 void tm_fill_perf_stats_buffer (Tm_Perf_Stats_Rsp_Type *pp_buffer)
 {
 
@@ -2538,6 +2554,8 @@ void tm_process_monitor_msg(BMS_SRE *pp_sre, char *pp_buf)
          // If we're the lead TM, attempt to recover the TM.
          if (gv_tm_info.lead_tm() == true)
             gv_tm_info.addTMRestartRetry(lv_msg.u.death.nid, 0);
+
+	 setEphemeralZKNodeIfLead();
          break;
     }
     case MS_MsgType_NodeUp:
@@ -2578,6 +2596,9 @@ void tm_process_monitor_msg(BMS_SRE *pp_sre, char *pp_buf)
         if (gv_tm_info.lead_tm()) {
            gv_tm_info.open_restarted_tm(lv_msg.u.tmrestarted.nid);
         }
+
+	setEphemeralZKNodeIfLead();
+
         break;
     }
     case MS_MsgType_ProcessDeath:
@@ -3278,7 +3299,7 @@ void tm_main_initialize()
                     NULL, /*string2*/
                     gv_tm_info.nid() /*node*/);
         gv_tm_info.lead_tm(true);
-        
+	
         //This must be system startup time. Wait for the events
         // before performing system recovery.
         //The AM and TSE events will be implemented in the future.
@@ -3324,7 +3345,6 @@ void tm_main_initialize()
                      gv_tm_info.pid(), gv_tm_info.nid(), (gv_tm_info.cp_interval()/60000))); 
 
 } 
-
 
 // ----------------------------------------------------------------
 // main method
@@ -3379,6 +3399,8 @@ int main(int argc, char *argv[])
     XCONTROLMESSAGESYSTEM(XCTLMSGSYS_SETSENDLIMIT,SEABED_MAX_SETTABLE_SENDLIMIT_TM);
     tm_main_initialize();
 
+    setEphemeralZKNodeIfLead();
+    
     for(;;) 
     {
         int lv_msg_count = 0;

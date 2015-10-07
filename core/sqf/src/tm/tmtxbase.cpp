@@ -185,7 +185,7 @@ void CTmTxBase::initialize(int32 pv_nid, int64 pv_flags, int32 pv_trace_level,
                             int32 pv_seq, int32 pv_creator_nid, int32 pv_creator_pid, 
                             int32 pv_rm_wait_time)
 {
-   TMTrace(2, ("CTmTxBase::initialize : ENTRY ID (%d,%d).\n",pv_nid, pv_seq));
+   TMTrace(2, ("CTmTxBase::initialize : ENTRY ID (%d,%d,%d).\n",gv_tm_info.clusterid(), pv_nid, pv_seq));
 
    // transid setup
    lock();

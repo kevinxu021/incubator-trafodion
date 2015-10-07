@@ -12,6 +12,7 @@ define([
         'model/Localizer',
         'moment',
         'common',
+        'views/RefreshTimerView',
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
@@ -19,13 +20,14 @@ define([
         'datetimepicker',
         'jqueryvalidate'
 
-        ], function (BaseView, LogsT, $, logsHandler, localizer, moment, common) {
+        ], function (BaseView, LogsT, $, logsHandler, localizer, moment, common, refreshTimerView) {
 	'use strict';
     var LOADING_SELECTOR = "#loadingImg",
     	RESULT_CONTAINER = '#query-result-container',
     	ERROR_CONTAINER = '#errorText',
     	REFRESH_MENU = '#refreshAction',
-    	DCS_LOGS = '#dcsLogs';
+    	DCS_LOGS = '#dcsLogs',
+    	REFRESH_INTERVAL = '#refreshInterval';
     
     var OPEN_FILTER = '#openFilter',
     	FILTER_DIALOG = '#filterDialog',
@@ -41,14 +43,14 @@ define([
 		FILTER_TIME_RANGE = '#filter-time-range';
     
     var oDataTable = null;
-    var _that = null;
+    var _this = null;
     var validator = null;
 
 	var LogsView = BaseView.extend({
 		template:  _.template(LogsT),
 
-		init: function (){
-			_that = this;
+		doInit: function (){
+			_this = this;
 			
 			validator = $(FILTER_FORM).validate({
 				rules: {
@@ -86,7 +88,7 @@ define([
 			$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 
 			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
-				_that.updateFilter();
+				_this.updateFilter();
 			});
 			
 			$(FILTER_TIME_RANGE).change(function(){
@@ -125,22 +127,33 @@ define([
 			$(REFRESH_MENU).on('click', this.fetchLogs);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
+			
+			refreshTimerView.init();
+			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
+			refreshTimerView.setRefreshInterval(0.5);
+			
 			this.fetchLogs();
 		},
-		resume: function(){
+		doResume: function(){
 			logsHandler.on(logsHandler.FETCHLOGS_SUCCESS, this.displayResults);
 			logsHandler.on(logsHandler.FETCHLOGS_ERROR, this.showErrorMessage);			
 			$(REFRESH_MENU).on('click', this.fetchLogs);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
+			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
 			this.fetchLogs();
 		},
-		pause: function(){
+		doPause: function(){
+			refreshTimerView.pause();
 			logsHandler.off(logsHandler.FETCHLOGS_SUCCESS, this.displayResults);
 			logsHandler.off(logsHandler.FETCHLOGS_ERROR, this.showErrorMessage);			
 			$(REFRESH_MENU).off('click', this.fetchLogs);
 			$(FILTER_APPLY_BUTTON).off('click', this.filterApplyClicked);
 			$(OPEN_FILTER).off('click', this.filterButtonClicked);
+			refreshTimerView.eventAgg.off(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimerView.eventAgg.off(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
 		},
 		dcsLogsClicked: function(){
 			
@@ -216,18 +229,24 @@ define([
         	
         	$(FILTER_DIALOG).modal('hide');
         	$(FILTER_ERROR_MSG).html('');
-        	_that.showLoading();
+        	_this.showLoading();
         	logsHandler.fetchLogs(param);
         },
+        refreshIntervalChanged: function(){
+
+        },
+        timerBeeped: function(){
+        	_this.fetchLogs();
+        },
         fetchLogs: function () {
-			_that.showLoading();
+			_this.showLoading();
 			$(ERROR_CONTAINER).hide();
-			_that.updateFilter();
-			_that.filterApplyClicked();
+			_this.updateFilter();
+			_this.filterApplyClicked();
 		},
 
 		displayResults: function (result){
-			_that.hideLoading();
+			_this.hideLoading();
 			$(ERROR_CONTAINER).hide();
 			$(RESULT_CONTAINER).show();
 			var keys = result.columnNames;
@@ -293,7 +312,7 @@ define([
 
 		},
         showErrorMessage: function (jqXHR) {
-        	_that.hideLoading();
+        	_this.hideLoading();
         	$(RESULT_CONTAINER).hide();
         	$(ERROR_CONTAINER).show();
         	if (jqXHR.responseText) {

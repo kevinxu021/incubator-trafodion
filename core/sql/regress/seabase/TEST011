@@ -51,6 +51,7 @@ drop table t011t7;
 
 drop table t011t8s;
 drop table t011t8a;
+drop table t011t8n;
 
 -- delete explain for statement explstmt from repository
 set parserflags 131072;
@@ -84,6 +85,8 @@ select * from t011t1 where a > 1 and a < 3;
 select * from t011t1 where a >= 2 and a < 4;
 select * from t011t1 where a >= 2 and a <= 3;
 select * from t011t1 where a >= 3 and a < 5;
+
+explain select * from t011t1 where a >= 3 and a < 5;
 
 select * from t011t1 where a > 4 and a < 2;
 
@@ -579,7 +582,19 @@ alter table t011t7 alter column c varchar(4) character set utf8;
 -- tests for transaction replication options
 create table t011t8s(a int) attributes synchronous replication;
 create table t011t8a(a int) attributes asynchronous replication;
+create table t011t8n(a int) attributes no replication;
 showddl t011t8s;
 showddl t011t8a;
+showddl t011t8n;
+alter table t011t8s attribute no replication;
+showddl t011t8s;
+alter table t011t8s attribute synchronous replication;
+showddl t011t8s;
+alter table t011t8s attribute asynchronous replication;
+showddl t011t8s;
+alter table t011t8n attribute synchronous replication;
+showddl t011t8n;
+
+
 
 

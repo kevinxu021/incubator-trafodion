@@ -27,20 +27,20 @@ define([
 	var DCSServerView = BaseView.extend({
 		template:  _.template(DcsServerT),
 
-		init: function (){
+		doInit: function (){
 			_that = this;
 			serverHandler.on(serverHandler.FETCHDCS_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
 			$("#refreshAction").on('click', this.fetchDcsServers);
 			this.fetchDcsServers();
 		},
-		resume: function(){
+		doResume: function(){
 			serverHandler.on(serverHandler.FETCHDCS_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
 			$("#refreshAction").on('click', this.fetchDcsServers);
 			this.fetchDcsServers();
 		},
-		pause: function(){
+		doPause: function(){
 			serverHandler.off(serverHandler.FETCHDCS_SUCCESS, this.displayResults);
 			serverHandler.off(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
 			$("#refreshAction").off('click', this.fetchDcsServers);
