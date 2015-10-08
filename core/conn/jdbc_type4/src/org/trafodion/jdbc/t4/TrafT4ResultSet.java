@@ -4299,11 +4299,11 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			return insertRow_;
 		} else {
 			if (isBeforeFirst_) {
-				String cursorExpt = "The cursor is before the first row, therefore no data can be retrieved.";
+				String cursorExpt = "cursor_is_before_first_row";
 				throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), cursorExpt, null);
 			}
 			if (isAfterLast_) {
-				String cursorExpt = "The cursor is after last row, which could be due to the result set containing no rows, or all rows have been retrieved.";
+				String cursorExpt = "cursor_after_last_row";
 				throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), cursorExpt, null);
 			}
 			return (BaseRow) cachedRows_.get(currentRow_ - 1);
