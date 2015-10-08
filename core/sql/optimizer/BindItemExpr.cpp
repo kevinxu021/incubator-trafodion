@@ -12957,6 +12957,17 @@ ItemExpr *HbaseVisibilitySet::bindNode(BindWA *bindWA)
   CMPASSERT(c->getOperatorType() == ITM_BASECOLUMN);
 
   BaseColumn * bc = (BaseColumn*)c;
+
+  if (bc->getNAColumn()->getDefaultClass() == COM_NO_DEFAULT)
+    {
+      // column with visibility expressions must have a default.
+      // Otherwise if no value is returned due to visibility check
+      // failure, it will cause an issue as we wont know what to return back.
+      *CmpCommon::diags() << DgSqlCode(-1130);
+      bindWA->setErrStatus();
+      return NULL;
+    }
+
   HbaseAccess::createHbaseColId(bc->getNAColumn(), colId_);
 
   boundExpr = HbaseAttributeRef::bindNode(bindWA);
