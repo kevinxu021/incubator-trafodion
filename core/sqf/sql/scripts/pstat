@@ -48,7 +48,7 @@ lx_physnode_metrics,measurestats,memory_metrics,monitor_check_status_m5,\
 mpid,mpirun,mxbdrdrc,mxbdrsrv,mxlobsrvr,mxoas,mxocfg,mxosrvr,mxsscp,mxssmp,\
 network_metrics,nsa,ntp_peer_check,ntp_peer_flow,problem_management,\
 process_metrics,pstartd,qpidd,qscom,qsmgr,qsmgr2,qsoffndr,qsrecev,\
-qsrule,qssend,qsstats,qssync,se_metrics_aaa_delta,serevive,shell,\
+qsrule,qssend,qsstats,qssync,se_metrics_aaa_delta,serevive,service_monitor,shell,\
 snmp_protocol_adapter,sp_proxy,sp_wrapper,spqpid_p,sqcheck,sqlci,sqregck,\
 sqstart,ssd_lun_metric_publish,ssd_lun_state_publish,ssd_metric_publish,\
 ssd_state_publish,tdm_arkcmp,tdm_arkesp,tdm_sqlc,tdm_udrserv,\
