@@ -912,8 +912,17 @@ public class HBaseDCZK implements Abortable {
 	    else if (lv_cmd_list) {
 		Map<Integer, PeerInfo> lv_pi_list = lv_zk.list_clusters();
 		if (lv_pi_list != null) {
+		    lv_my_id = lv_zk.get_my_id();
 		    for (PeerInfo lv_pi : lv_pi_list.values()) {
-			System.out.println(lv_pi);
+			System.out.print(lv_pi);
+			if ((lv_my_id != null) && 
+			    (lv_pi.get_id() != null) && 
+			    (lv_pi.get_id().equals(lv_my_id))) {
+			    System.out.println("*");
+			}
+			else {
+			    System.out.println("");
+			}
 		    }
 		}
 	    }
