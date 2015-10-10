@@ -533,6 +533,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_COLUMN_CREATE
 %token <tokval> TOK_COLUMN_LOOKUP
 %token <tokval> TOK_COLUMN_DISPLAY
+%token <tokval> TOK_HBASE_AUTHS
 %token <tokval> TOK_HBASE_VISIBILITY
 %token <tokval> TOK_HBASE_TIMESTAMP
 %token <tokval> TOK_HBASE_VERSION
@@ -6247,6 +6248,10 @@ hbase_access_options : empty
           }
 
         $$->setNumVersions($7);
+      }
+    | '{' TOK_HBASE_AUTHS QUOTED_STRING '}'
+      {
+        $$ = new (PARSERHEAP()) OptHbaseAccessOptions($3->data());
       }
      | '{' TOK_TIMESTAMP TOK_FROM QUOTED_STRING TOK_TO QUOTED_STRING '}'
       {
@@ -33233,6 +33238,7 @@ nonreserved_func_word:  TOK_ABS
                       | TOK_GREATEST
                       | TOK_HASHPARTFUNC
                       | TOK_HASH2PARTFUNC
+                      | TOK_HBASE_AUTHS
                       | TOK_HBASE_VISIBILITY
                       | TOK_HBASE_TIMESTAMP
                       | TOK_HBASE_VERSION

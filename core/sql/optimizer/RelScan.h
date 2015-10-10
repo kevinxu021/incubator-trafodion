@@ -559,6 +559,8 @@ public:
 
   // QSTUFF VV
 
+  NAString &hbaseAuths() {return hbaseAuths_;}
+
   // --------------------------------------------------------------------
   // This routine checks whether a table is both read and updated
   // --------------------------------------------------------------------
@@ -761,6 +763,10 @@ private:
 
   // List of MV matches that can be substituted for the SCAN using query rewrite.
   NAList<MVMatch*> matchingMVs_;
+
+  // authorizations that need to be passed to hbase during scan/get requests.
+  // These are specified through 'control table hbase_authorizations'.
+  NAString hbaseAuths_;
 };
 
 // -----------------------------------------------------------------------
@@ -1407,7 +1413,8 @@ public:
 
   static short createHbaseColId(const NAColumn * nac,
 				NAString &cid,
-				NABoolean isSecondaryIndex = FALSE);
+				NABoolean isSecondaryIndex = FALSE,
+                                NABoolean noLenPrefix = FALSE);
 
   static short returnDups(std::vector<SortValue> &myvector,
                           ValueIdList &srcVIDlist, ValueIdList &dupVIDlist);

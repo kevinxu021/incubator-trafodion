@@ -86,7 +86,12 @@ class OptHbaseAccessOptions : public HbaseAccessOptions
   
   OptHbaseAccessOptions(const char * minTSstr, const char * maxTSstr);
 
+  OptHbaseAccessOptions(const char * auths);
+
   OptHbaseAccessOptions();
+
+  NAString &hbaseAuths() { return hbaseAuths_; }
+  const NAString &hbaseAuths() const { return hbaseAuths_; }
 
   NABoolean isValid() { return isValid_; }
 
@@ -99,6 +104,8 @@ private:
   short setHbaseTS(const char * minTSstr, const char * maxTSstr);
 
   NABoolean isValid_;
+
+  NAString hbaseAuths_;
 };
 
 // -----------------------------------------------------------------------

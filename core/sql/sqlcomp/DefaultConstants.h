@@ -3772,8 +3772,8 @@ enum DefaultConstants
 
   USTAT_MAX_CHAR_DATASIZE_FOR_IS,
 
-  // authorization to be passed to scan/get requests
-  HBASE_AUTHORIZATIONS,
+  // turn off or on hbase visibility support.
+  HBASE_VISIBILITY,
 
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!

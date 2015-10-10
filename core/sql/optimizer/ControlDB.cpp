@@ -691,6 +691,7 @@ void ControlDB::setMVQRCQDs()
 //
 ////////////////////////////////////////////////////////////////////////////
 static const ControlTableOptions::CTTokens controlTableTokens[] = {
+  {"HBASE_AUTHS",        ControlTableOptions::HBASE_AUTHS},
   {"IF_LOCKED",		 ControlTableOptions::IF_LOCKED},
   {"MDAM",		 ControlTableOptions::MDAM},
   {"NOWAIT",		 ControlTableOptions::NOWAIT},
@@ -799,6 +800,12 @@ NABoolean ControlDB::validate(ControlTable *ct)
 
     switch (controlTableTokens[index].const_)
       {
+      case ControlTableOptions::HBASE_AUTHS:
+        {
+          valid = TRUE;
+        }
+        break;
+
       case ControlTableOptions::IF_LOCKED:
 	{
 	  if ((value == "RETURN") || (value == "WAIT"))
@@ -835,8 +842,7 @@ NABoolean ControlDB::validate(ControlTable *ct)
 
 	      // priority must be between 1 and 199.
 	      if (priority < 1 || priority > 199)
-          valid = FALSE;
-
+                valid = FALSE;
 	    }
 	}
       break;
@@ -930,7 +936,8 @@ NABoolean ControlDB::setControlTableValue(ControlTable *ct)
      tableName = "*";
   else
     //ct-bug-10-030102-3803 -Begin
-    tableName = ct->getTableName().getUgivenName();
+    //    tableName = ct->getTableName().getUgivenName();
+    tableName = ct->getTableName().getQualifiedNameAsString();
    //ct-bug-10-030102-3803 -End
 
   if (ct->reset())

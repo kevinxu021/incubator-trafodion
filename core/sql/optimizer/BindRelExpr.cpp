@@ -7685,34 +7685,57 @@ RelExpr *Scan::bindNode(BindWA *bindWA)
   // CQD ATTEMPT_ASYNCHRONOUS_ACCESS is set to OFF.If we find 
   // that all access paths are partitioned we give an error.
 
-   if (getGroupAttr()->isStream() &&
+  if (getGroupAttr()->isStream() &&
       (CmpCommon::getDefault(ATTEMPT_ASYNCHRONOUS_ACCESS) == DF_OFF)) {
     NABoolean atleastonenonpartitionedaccess = FALSE;
     NAFileSetList idescList = naTable->getIndexList();
- 
+    
     for(CollIndex i = 0; 
         i < idescList.entries() && !atleastonenonpartitionedaccess; i++)
-       if(!(idescList[i]->isPartitioned()) )
+      if(!(idescList[i]->isPartitioned()) )
         atleastonenonpartitionedaccess = TRUE;
- 
+    
     if (!atleastonenonpartitionedaccess) {
-     *CmpCommon::diags() << DgSqlCode(-4320)
-       << DgTableName(naTable->getTableName().getQualifiedNameAsAnsiString());
-     bindWA->setErrStatus();
-     return NULL;
+      *CmpCommon::diags() << DgSqlCode(-4320)
+                          << DgTableName(naTable->getTableName().getQualifiedNameAsAnsiString());
+      bindWA->setErrStatus();
+      return NULL;
     }
   }
+  
+  if (optHbaseAccessOptions_)
+    {
+      if (optHbaseAccessOptions_->isMaxVersions())
+        {
+          optHbaseAccessOptions_->setNumVersions
+            (
+                 getTableDesc()->getClusteringIndex()->getNAFileSet()->numMaxVersions()
+             );
+        }
 
-   if (optHbaseAccessOptions_)
-     {
-       if (optHbaseAccessOptions_->isMaxVersions())
-         {
-           optHbaseAccessOptions_->setNumVersions
-             (
-              getTableDesc()->getClusteringIndex()->getNAFileSet()->numMaxVersions()
-              );
-         }
-     }
+      if (NOT optHbaseAccessOptions_->hbaseAuths().isNull())
+        {
+          hbaseAuths() = optHbaseAccessOptions_->hbaseAuths();
+        }
+    }
+  
+  if (hbaseAuths().isNull())
+    {
+      const NAString * haStrNAS =
+        ActiveControlDB()->getControlTableValue(getTableName().getQualifiedNameAsString(), 
+                                                "HBASE_AUTHS");
+      
+      if ((haStrNAS && (NOT haStrNAS->isNull())) &&
+          (getTableDesc()->getNATable()->isSeabaseTable()) &&
+          (NOT getTableDesc()->getNATable()->isSeabaseMDTable()) &&
+          (NOT getTableDesc()->getNATable()->isSeabasePrivSchemaTable()) &&
+          (NOT CmpSeabaseDDL::isSeabaseReservedSchema
+           (getTableName().getQualifiedNameObj().getCatalogName(),
+            getTableName().getQualifiedNameObj().getSchemaName()))) 
+        {
+          hbaseAuths() = *haStrNAS;
+        }
+    }
 
   return boundExpr;
 } // Scan::bindNode()
@@ -11001,6 +11024,21 @@ RelExpr *Delete::bindNode(BindWA *bindWA)
 	   bindWA->hbaseColUsageInfo()->insert
 	     ((QualifiedName*)&getTableDesc()->getNATable()->getTableName(), nas);
 	 }
+     }
+   else if (CmpCommon::getDefault(HBASE_VISIBILITY) == DF_ON)
+     {
+       csl() = new(bindWA->wHeap()) ConstStringList();
+
+       const NAColumnArray &colArray =
+         getTableDesc()->getNATable()->getNAColumnArray();
+       for (CollIndex i = 0; i < colArray.entries(); i++)
+         {
+           const NAColumn *nac = colArray[i];
+           NAString *cidInCsl = new(bindWA->wHeap()) NAString();
+           HbaseAccess::createHbaseColId(nac, *cidInCsl, FALSE, TRUE);
+
+           csl()->insert(cidInCsl);
+         }
      }
 
   return boundExpr;

@@ -65,7 +65,17 @@ class ControlTableOptions : public NABasicObject
 {
 public:
   enum TokenConsts {
-    IF_LOCKED, MDAM, NOWAIT, PRIORITY, PRIORITY_DELTA, SIMILARITY_CHECK, TABLELOCK, TIMEOUT
+    // authorization to be passed to hbase in scan/get requests
+    HBASE_AUTHS, 
+
+    IF_LOCKED, 
+    MDAM, 
+    NOWAIT, 
+    PRIORITY, 
+    PRIORITY_DELTA, 
+    SIMILARITY_CHECK, 
+    TABLELOCK, 
+    TIMEOUT
   };
 
   struct CTTokens {

@@ -1216,6 +1216,12 @@ void Scan::generateCacheKey(CacheWA &cwa) const
           str_sprintf(maxTS, " %Ld", getOptHbaseAccessOptions()->hbaseMaxTS());
           cwa += maxTS ;
         }
+
+      if (NOT getOptHbaseAccessOptions()->hbaseAuths().isNull())
+        {
+          cwa += getOptHbaseAccessOptions()->hbaseAuths();
+        }
+
      }
 }
 

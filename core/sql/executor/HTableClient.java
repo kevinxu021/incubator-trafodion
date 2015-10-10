@@ -479,6 +479,7 @@ public class HTableClient {
             scan.setAuthorizations(auths);
 
             System.out.println("hbaseAuths " + hbaseAuths);
+            System.out.println("listOfHA " + listOfHA);
           }
 
 	  if (!useSnapshotScan || transID != 0)
@@ -902,9 +903,12 @@ public class HTableClient {
 		if (columns != null) {
 			for (int i = 0; i < columns.length ; i++) {
 				byte[] col = (byte[]) columns[i];
-				del.deleteColumns(getFamily(col), getName(col));
+				del.addColumns(getFamily(col), getName(col));
+
+                                //System.out.println("colFam = " + getFamily(col) + " colName = " + getName(col));
 			}
 		}
+
                	if (asyncOperation) {
 			future = executorService.submit(new Callable() {
  				public Object call() throws Exception {
@@ -1267,7 +1271,7 @@ public class HTableClient {
                             put.add(cell);
                             put.setCellVisibility(cv);
                             
-                            //                            System.out.println("strVisExpr = " + strVisExpr);
+                            System.out.println("strVisExpr = " + strVisExpr);
                         }
 		}
 

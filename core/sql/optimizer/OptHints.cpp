@@ -143,6 +143,13 @@ OptHbaseAccessOptions::OptHbaseAccessOptions(Lng32 v, NAMemory *h)
   setHbaseTsFromDef();
 }
 
+OptHbaseAccessOptions::OptHbaseAccessOptions(const char * hbase_auths)
+     : HbaseAccessOptions(),
+       isValid_(TRUE)
+{
+  hbaseAuths_ = hbase_auths;
+}
+
 OptHbaseAccessOptions::OptHbaseAccessOptions
 (const char * minTSstr, const char * maxTSstr)
      : HbaseAccessOptions(),

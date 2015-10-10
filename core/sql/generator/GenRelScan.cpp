@@ -1847,7 +1847,8 @@ short HbaseAccess::genListOfColNames(Generator * generator,
 //
 short HbaseAccess::createHbaseColId(const NAColumn * nac,
 				    NAString &cid, 
-				    NABoolean isSecondaryIndex)
+				    NABoolean isSecondaryIndex,
+                                    NABoolean noLenPrefix)
 {
   if (nac)
     cid = nac->getHbaseColFam();
@@ -1889,8 +1890,11 @@ short HbaseAccess::createHbaseColId(const NAColumn * nac,
 	cid.append((char*)&colQval, 8);
     }
 
-  short len = cid.length();
-  cid.prepend((char*)&len, sizeof(short));
+  if (NOT noLenPrefix)
+    {
+      short len = cid.length();
+      cid.prepend((char*)&len, sizeof(short));
+    }
 
   return 0;
 }
@@ -2854,20 +2858,11 @@ short HbaseAccess::codeGen(Generator * generator)
         hbo->hbaseAccessOptions().setHbaseMaxTS(getOptHbaseAccessOptions()->hbaseMaxTS());
     }
 
-
-  NAString haStrNAS =
-    ActiveSchemaDB()->getDefaults().getValue(HBASE_AUTHORIZATIONS);
   char * haStr = NULL;
-  if ((NOT haStrNAS.isNull()) &&
-      (getTableDesc()->getNATable()->isSeabaseTable()) &&
-      (NOT getTableDesc()->getNATable()->isSeabaseMDTable()) &&
-      (NOT getTableDesc()->getNATable()->isSeabasePrivSchemaTable()) &&
-      (NOT CmpSeabaseDDL::isSeabaseReservedSchema
-       (getTableName().getQualifiedNameObj().getCatalogName(),
-        getTableName().getQualifiedNameObj().getSchemaName()))) 
+  if (NOT hbaseAuths().isNull())
     {
-      haStr = space->allocateAlignedSpace(haStrNAS.length() + 1);
-      strcpy(haStr, haStrNAS.data());
+      haStr = space->allocateAlignedSpace(hbaseAuths().length() + 1);
+      strcpy(haStr, hbaseAuths().data());
     }
 
   // create hbasescan_tdb

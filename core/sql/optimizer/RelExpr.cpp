@@ -8221,6 +8221,7 @@ RelExpr * Scan::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
   result->matchingMVs_ = matchingMVs_;
 
   result->optHbaseAccessOptions_ = optHbaseAccessOptions_;
+  result->hbaseAuths_ = hbaseAuths_;
 
   // don't copy values that can be calculated by addIndexInfo()
   // (could be done, but we are lazy and just call addIndexInfo() again)
@@ -8374,7 +8375,8 @@ void Scan::addIndexInfo()
       (tableDesc->isPartitionNameSpecified()) ||
       (getOptHbaseAccessOptions() &&
        getOptHbaseAccessOptions()->tsSpecified()) ||
-      (tableDesc->hbaseTSList().entries() > 0))
+      (tableDesc->hbaseTSList().entries() > 0) ||
+      (NOT hbaseAuths().isNull()))
     {
       // that's easy, there is only one index (the base table)
       // and that index better have everything we need
@@ -9449,14 +9451,14 @@ NABoolean Scan::isMdamEnabled(const Context *context)
     // Table command.
     // -----------------------------------------------------------------------
     if (mdamIsEnabled)
-	  {
+      {
         const NAString * val =
-	    ActiveControlDB()->getControlTableValue(getTableName().getUgivenName(), "MDAM");
+          ActiveControlDB()->getControlTableValue(getTableName().getUgivenName(), "MDAM");
         if ((val) && (*val == "OFF")) // CT in effect
-		{
-	       mdamIsEnabled = FALSE;
-		}
-	  }
+          {
+            mdamIsEnabled = FALSE;
+          }
+      }
     return mdamIsEnabled;
 }
 // 10-040128-2749 -end
