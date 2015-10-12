@@ -59,6 +59,7 @@ require.config({
 		datatablesBootStrap: '../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap',
 		datatablesUI: '../bower_components/datatables-plugins/integration/jqueryui/dataTables.jqueryui',
 		tabletools: '../bower_components/datatables-tabletools/js/dataTables.tableTools',
+		responsivetable: '../bower_components/datatables-responsive/js/dataTables.responsive',
 		jstree: '../bower_components/jstree/dist/jstree',
 		moment: '../bower_components/moment/min/moment.min',
 		momenttimezone: '../bower_components/moment-timezone/builds/moment-timezone-with-data.min',

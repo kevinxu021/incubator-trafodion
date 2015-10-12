@@ -10,7 +10,7 @@
 	<groupId>com.esgyn</groupId>
 	<artifactId>dbmgr</artifactId>
 	<packaging>war</packaging>
-	<version>1.0.0</version>
+	<version>2.0.0</version>
 	<name>EsgynDB Manager</name>
 	<properties>
 		<jettyVersion>9.2.6.v20141205</jettyVersion>
