@@ -117,6 +117,39 @@ public class OpenTSDBResource {
 	}
 
 	@GET
+	@Path("/memstoresize/")
+	@Produces("application/json")
+	public String getRegionMemstoreSize(@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
+		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_REGION_MEMSTORE_SIZE),
+				openTSDBUri);
+		return getMetric(servletRequest, servletResponse, url);
+	}
+
+	@GET
+	@Path("/jvmgctime/")
+	@Produces("application/json")
+	public String getJvmGCTime(@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
+			throws EsgynDBMgrException {
+		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
+		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_GCTIME), openTSDBUri);
+		return getMetric(servletRequest, servletResponse, url);
+	}
+
+	@GET
+	@Path("/regionservermemory/")
+	@Produces("application/json")
+	public String getRegionserverMemoryUse(@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse)
+			throws EsgynDBMgrException {
+		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
+		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_REGIONSERVER_MEMORY_USE),
+				openTSDBUri);
+		return getMetric(servletRequest, servletResponse, url);
+	}
+
+	@GET
 	@Path("/transactions/")
 	@Produces("application/json")
 	public TreeMap<String, Object> getTransactionStatistics(@Context HttpServletRequest servletRequest,

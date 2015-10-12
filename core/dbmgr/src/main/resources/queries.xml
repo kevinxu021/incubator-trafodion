@@ -205,5 +205,21 @@
 			<name>OPENTSDB_DISK_SPACE_USED</name>
 			<text><![CDATA[{"url":"http://%1$s/api/query?start=1h-ago&end=1s-ago&&ms=true&m=sum:df.bytes.percentused", "method":"get"}]]></text>
 		</query>		
+		<query>
+			<name>OPENTSDB_STOREFILE_COUNT</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=1h-ago&end=1s-ago&ms=true&m=sum:hbase.regionserver.server.storeFileCount", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>OPENTSDB_STOREFILE_SIZE</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=1h-ago&end=1s-ago&ms=true&m=sum:hbase.regionserver.server.storeFileSize", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>OPENTSDB_REGIONSERVER_MEMORY_USE</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=1h-ago&end=1s-ago&ms=true&m=sum:hbase.regionserver.jvmmetrics.MemHeapUsedM", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>OPENTSDB_REGION_MEMSTORE_SIZE</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=1h-ago&end=1s-ago&ms=true&m=sum:hbase.regionserver.regions.memStoreSize", "method":"get"}]]></text>
+		</query>
 	</queries>
 </SystemQueries>

@@ -53,8 +53,8 @@
 						id="services-spinner" src="img/ajax-loader.gif" />
 				</div>
 				<div class="panel-body">
-					<div id="services-result-container" class="table-responsive"></div>
-					<label id="services-error-text" style="color: red"></label>
+					<div id="services-result-container" class="table-responsive" style="overflow:auto"></div>
+					<label id="services-error-text" style="color: red;height: 120px;overflow: auto;"></label>
 				</div>
 			</div>
 		</div>
@@ -65,8 +65,8 @@
 						id="transactionsSpinner" src="img/ajax-loader.gif" />
 				</div>
 				<div class="panel-body">
-					<div id="transactions-response-chart" style="height: 200px;"></div>
-					<label id="transactions-error-text" style="color: red"></label>
+					<div id="transactions-response-chart"  class="dbmgr-graph"></div>
+					<label id="transactions-error-text" style="color: red;height: 120px;overflow: auto;"></label>
 				</div>
 			</div>
 		</div>
@@ -77,8 +77,8 @@
 						id="canarySpinner" src="img/ajax-loader.gif" />
 				</div>
 				<div class="panel-body">
-					<div id="canary-response-chart" style="height: 200px;"></div>
-					<label id="canary-error-text" style="color: red"></label>
+					<div id="canary-response-chart" class="dbmgr-graph"></div>
+					<label id="canary-error-text" style="color: red;height: 120px;overflow: auto;"></label>
 				</div>
 			</div>		
 		</div>
@@ -91,8 +91,8 @@
 						id="nodes-spinner" src="img/ajax-loader.gif" />
 				</div>
 				<div class="panel-body">
-					<div id="nodes-result-container" class="table-responsive"></div>
-					<label id="nodes-error-text" style="color: red"></label>
+					<div id="nodes-result-container" class="table-responsive" style="height:150px;overflow:auto"></div>
+					<label id="nodes-error-text" style="color: red;height: 120px;overflow: auto;"></label>
 				</div>
 			</div>
 		</div>
@@ -103,20 +103,58 @@
 						id="iowaitSpinner" src="img/ajax-loader.gif" />
 				</div>
 				<div class="panel-body">
-					<div id="iowait-chart" style="height: 200px;"></div>
-					<label id="iowait-error-text" style="color: red"></label>
+					<div id="iowait-chart" class="dbmgr-graph"></div>
+					<label id="iowait-error-text" style="color: red;height: 120px;overflow: auto;"></label>
 				</div>
 			</div>		
 		</div>
 		<div class="col-lg-4">
 			<div class="panel panel-default">
 				<div class="panel-heading">
-					<i class="fa fa-bar-chart-o fa-fw"></i>Disk Space Used %<img
+					<i class="fa fa-bar-chart-o fa-fw"></i> Disk Space Used %<img
 						id="spaceusedSpinner" src="img/ajax-loader.gif" />
 				</div>
 				<div class="panel-body">
-					<div id="spaceused-chart" style="height: 200px;"></div>
-					<label id="spaceused-error-text" style="color: red"></label>
+					<div id="spaceused-chart" class="dbmgr-graph"></div>
+					<label id="spaceused-error-text" style="color: red;height: 120px;overflow: auto;"></label>
+				</div>
+			</div>		
+		</div>
+	</div>
+	<div class="row row-eq-height">
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<i class="fa fa-bar-chart-o fa-fw"></i> GC Time<img
+						id="gctimeSpinner" src="img/ajax-loader.gif" />
+				</div>
+				<div class="panel-body">
+					<div id="gctime-chart" class="dbmgr-graph"></div>
+					<label id="gctime-error-text" style="color: red;height: 120px;overflow: auto;"></label>
+				</div>
+			</div>		
+		</div>
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<i class="fa fa-bar-chart-o fa-fw"></i> Regionserver Memory Use<img
+						id="regionserverMemSpinner" src="img/ajax-loader.gif" />
+				</div>
+				<div class="panel-body">
+					<div id="regionserverMem-chart" class="dbmgr-graph"></div>
+					<label id="regionserverMem-error-text" style="color: red;height: 120px;overflow: auto;"></label>
+				</div>
+			</div>		
+		</div>
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<i class="fa fa-bar-chart-o fa-fw"></i> Memstore Size<img
+						id="memStoreSpinner" src="img/ajax-loader.gif" />
+				</div>
+				<div class="panel-body">
+					<div id="memStore-chart" class="dbmgr-graph"></div>
+					<label id="memStore-error-text" style="color: red;height: 120px;overflow: auto;"></label>
 				</div>
 			</div>		
 		</div>

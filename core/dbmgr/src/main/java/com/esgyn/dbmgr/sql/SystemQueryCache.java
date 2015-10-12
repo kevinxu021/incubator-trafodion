@@ -35,6 +35,8 @@ public class SystemQueryCache {
 	public static final String OPENTSDB_CANARY_RESPONSE = "OPENTSDB_CANARY_RESPONSE";
 	public static final String OPENTSDB_TRANSACTION_STATS = "OPENTSDB_TRANSACTION_STATS";
 	public static final String OPENTSDB_DISK_SPACE_USED = "OPENTSDB_DISK_SPACE_USED";
+	public static final String OPENTSDB_REGION_MEMSTORE_SIZE = "OPENTSDB_REGION_MEMSTORE_SIZE";
+	public static final String OPENTSDB_REGIONSERVER_MEMORY_USE = "OPENTSDB_REGIONSERVER_MEMORY_USE";
 
 	public static void setSystemQueryies(SystemQueries sQueries) {
 		systemQueries = sQueries;

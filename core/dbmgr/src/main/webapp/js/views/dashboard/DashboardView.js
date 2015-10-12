@@ -41,12 +41,24 @@ define([
 	    TRANSACTIONS_ERROR_TEXT = '#transactions-error-text',
 	    
 	    DISKSPACEUSED_SPINNER = '#spaceusedSpinner',
-	    DISKSPACEUSED_CONTAINER = '#spaceused-response-chart',
+	    DISKSPACEUSED_CONTAINER = '#spaceused-chart',
 	    DISKSPACEUSED_ERROR_TEXT = '#spaceused-error-text',
 	    
 	    IOWAIT_SPINNER = '#iowaitSpinner',
 	    IOWAIT_CONTAINER = '#iowait-chart',
 	    IOWAIT_ERROR_TEXT = '#iowait-error-text',
+	    
+	    GCTIME_SPINNER = '#gctimeSpinner',
+	    GCTIME_CONTAINER = '#gctime-chart',
+	    GCTIME_ERROR_TEXT = '#gctime-error-text',
+	    
+	    MEMSTORE_SPINNER = '#memStoreSpinner',
+	    MEMSTORE_CONTAINER = '#memStore-chart',
+	    MEMSTORE_ERROR_TEXT = '#memStore-error-text',
+	    
+	    RSRVR_MEMORY_SPINNER = '#regionserverMemSpinner',
+	    RSRVR_MEMORY_CONTAINER = '#regionserverMem-chart',
+	    RSRVR_MEMORY_ERROR_TEXT = '#regionserverMem-error-text',
 	    
 	    REFRESH_ACTION = '#refreshAction',
 	    OPEN_FILTER = '#openFilter';
@@ -58,7 +70,10 @@ define([
 	    canaryGraph = null,
 	    transactionsGraph = null,
 	    iowaitsGraph = null,
-	    diskSpaceUsedGraph = null;
+	    diskSpaceUsedGraph = null,
+	    memStoreGraph = null,
+	    regionserverMemGraph = null,
+	    gctimeGraph = null;
     
     var servicesTable = null, nodesTable = null;
     
@@ -87,6 +102,13 @@ define([
 			dashboardHandler.on(dashboardHandler.DISKSPACEUSED_ERROR, this.fetchUsedDiskSpaceError);
 			dashboardHandler.on(dashboardHandler.IOWAIT_SUCCESS, this.fetchIOWaitsSuccess); 
 			dashboardHandler.on(dashboardHandler.IOWAIT_ERROR, this.fetchIOWaitsError);
+			dashboardHandler.on(dashboardHandler.GCTIME_SUCCESS, this.fetchGCTimeSuccess); 
+			dashboardHandler.on(dashboardHandler.GCTIME_ERROR, this.fetchGCTimeError);
+			dashboardHandler.on(dashboardHandler.RSRVR_MEMORY_SUCCESS, this.fetchRegionServerMemoryUsageSuccess); 
+			dashboardHandler.on(dashboardHandler.RSRVR_MEMORY_ERROR, this.fetchRegionServerMemoryUsageError);
+			dashboardHandler.on(dashboardHandler.MEMSTORE_SUCCESS, this.fetchMemStoreSizeSuccess); 
+			dashboardHandler.on(dashboardHandler.MEMSTORE_ERROR, this.fetchMemStoreSizeError);
+			
 			
 			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimer.eventAgg.on(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);
@@ -112,7 +134,12 @@ define([
 			dashboardHandler.on(dashboardHandler.DISKSPACEUSED_ERROR, this.fetchUsedDiskSpaceError);
 			dashboardHandler.on(dashboardHandler.IOWAIT_SUCCESS, this.fetchIOWaitsSuccess); 
 			dashboardHandler.on(dashboardHandler.IOWAIT_ERROR, this.fetchIOWaitsError);
-
+			dashboardHandler.on(dashboardHandler.GCTIME_SUCCESS, this.fetchGCTimeSuccess); 
+			dashboardHandler.on(dashboardHandler.GCTIME_ERROR, this.fetchGCTimeError);
+			dashboardHandler.on(dashboardHandler.RSRVR_MEMORY_SUCCESS, this.fetchRegionServerMemoryUsageSuccess); 
+			dashboardHandler.on(dashboardHandler.RSRVR_MEMORY_ERROR, this.fetchRegionServerMemoryUsageError);
+			dashboardHandler.on(dashboardHandler.MEMSTORE_SUCCESS, this.fetchMemStoreSizeSuccess); 
+			dashboardHandler.on(dashboardHandler.MEMSTORE_ERROR, this.fetchMemStoreSizeError);
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			
 			refreshTimer.resume();
@@ -140,7 +167,12 @@ define([
 			dashboardHandler.off(dashboardHandler.DISKSPACEUSED_ERROR, this.fetchUsedDiskSpaceError);
 			dashboardHandler.off(dashboardHandler.IOWAIT_SUCCESS, this.fetchIOWaitsSuccess); 
 			dashboardHandler.off(dashboardHandler.IOWAIT_ERROR, this.fetchIOWaitsError);
-
+			dashboardHandler.off(dashboardHandler.GCTIME_SUCCESS, this.fetchGCTimeSuccess); 
+			dashboardHandler.off(dashboardHandler.GCTIME_ERROR, this.fetchGCTimeError);
+			dashboardHandler.off(dashboardHandler.RSRVR_MEMORY_SUCCESS, this.fetchRegionServerMemoryUsageSuccess); 
+			dashboardHandler.off(dashboardHandler.RSRVR_MEMORY_ERROR, this.fetchRegionServerMemoryUsageError);
+			dashboardHandler.off(dashboardHandler.MEMSTORE_SUCCESS, this.fetchMemStoreSizeSuccess); 
+			dashboardHandler.off(dashboardHandler.MEMSTORE_ERROR, this.fetchMemStoreSizeError);
 			$(REFRESH_ACTION).off('click', this.refreshPage);
 			
 			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
@@ -172,6 +204,9 @@ define([
         	_this.fetchTransactionStats();
         	_this.fetchUsedDiskSpace();
         	_this.fetchIOWaits();
+        	_this.fetchMemStoreSize();
+        	_this.fetchRegionServerMemoryUsage();
+        	_this.fetchGCTime();
         },
         fetchServices: function () {
 			$(SERVICES_SPINNER).show();
@@ -257,14 +292,14 @@ define([
 						       if (type === 'display') {
 						    	   if(data == 'ERROR'){
 						    		   return '<button type="button" class="btn btn-danger btn-circle btn-small" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
-						    		   'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+full[3]+'"><i class="fa fa-times"></i></button>';
+						    		   'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0")+'"><i class="fa fa-times"></i></button>';
 						    	   }
-						    	   if(data == 'ERROR'){
+						    	   if(data == 'WARN'){
 						    		   return '<button type="button" class="btn btn-warning btn-circle btn-small" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
-						    		   'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+full[3]+'"><i class="fa fa-warning"></i></button>';
+						    		   'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0")+'"><i class="fa fa-warning"></i></button>';
 						    	   }
 					    		   return '<button type="button" class="btn btn-success btn-circle btn-small" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
-					    		   'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+full[3]+'"><i class="fa fa-check"></i></button>';
+					    		   'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0") +'"><i class="fa fa-check"></i></button>';
 						        }
 						        else return data;
 						      }
@@ -414,7 +449,7 @@ define([
 							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
 						},
 						hoverCallback: function (index, options, content, row) {
-							  return "Canary Response Time : " + row.y + " msec <br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
+							  return "Canary Response Time : " + common.formatNumberWithCommas(row.y) + " msec <br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
 							}
 					});
 				}else{
@@ -464,7 +499,10 @@ define([
 							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
 						},
 						hoverCallback: function (index, options, content, row) {
-							  return "#Aborts : " + row.a + " <br/>#Begins : " + row.b +" <br/>#Commits : " + row.c +"<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
+							  return "#Aborts : " + common.formatNumberWithCommas(row.a) + 
+							  	" <br/>#Begins : " + common.formatNumberWithCommas(row.b) + 
+							  	" <br/>#Commits : " + common.formatNumberWithCommas(row.c) + 
+							  	"<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
 							}
 					});
 				}else{
@@ -514,7 +552,7 @@ define([
 							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
 						},
 						hoverCallback: function (index, options, content, row) {
-							  return "IO Waits : " + row.y + "<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
+							  return "IO Waits : " + row.y.toFixed(2) + "<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
 							}
 					});
 				}else{
@@ -523,9 +561,9 @@ define([
 			}
 		},
 		fetchIOWaitsError: function(jqXHR, res, error){
-			$(DISKSPACEUSED_SPINNER).hide();
-        	$(DISKSPACEUSED_CONTAINER).hide();
-        	$(DISKSPACEUSED_ERROR_TEXT).show();
+			$(IOWAIT_SPINNER).hide();
+        	$(IOWAIT_CONTAINER).hide();
+        	$(IOWAIT_ERROR_TEXT).show();
         	if (jqXHR.responseText) {
     			$(IOWAIT_ERROR_TEXT).text(jqXHR.responseText);     
         	}
@@ -564,7 +602,7 @@ define([
 							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
 						},
 						hoverCallback: function (index, options, content, row) {
-							  return "% Disk Space Used : " + row.y + "<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
+							  return "Disk Space Used : " + row.y.toFixed(2) + "%<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
 							}
 					});
 				}else{
@@ -579,6 +617,159 @@ define([
         	if (jqXHR.responseText) {
     			$(DISKSPACEUSED_ERROR_TEXT).text(jqXHR.responseText);     
         	}
+		},
+		fetchGCTime: function(){
+			$(GCTIME_SPINNER).show();
+			dashboardHandler.fetchGCTime(); 			
+		},
+		fetchGCTimeSuccess: function(result){
+			$(GCTIME_SPINNER).hide();
+			var keys = Object.keys(result);
+			
+			if(keys.length == 0){
+				$(GCTIME_CONTAINER).hide();
+				$(GCTIME_ERROR_TEXT).text("No data available");
+				$(GCTIME_ERROR_TEXT).show();				
+			}else{
+				$(GCTIME_CONTAINER).show();
+				$(GCTIME_ERROR_TEXT).hide();
+
+				var seriesData = [];
+				$.each(keys, function(index, value){
+					seriesData.push({x: value*1, y: result[value]});
+				});
+				if(gctimeGraph == null) {
+					gctimeGraph = Morris.Line({
+						element: 'gctime-chart',
+						data: seriesData,
+						xkey:'x',
+						ykeys:['y'],
+						labels: [],
+						pointSize: '0.0',
+						hideHover: 'auto',
+						resize:true,
+						xLabelFormat: function(x){
+							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
+						},
+						hoverCallback: function (index, options, content, row) {
+							  return "GC Time : " + row.y.toFixed(2) + "msec<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
+							}
+					});
+				}else{
+					gctimeGraph.setData(seriesData);
+				}
+			}
+		},
+		fetchGCTimeError: function(jqXHR, res, error){
+			$(GCTIME_SPINNER).hide();
+        	$(GCTIME_CONTAINER).hide();
+        	$(GCTIME_ERROR_TEXT).show();
+        	if (jqXHR.responseText) {
+    			$(GCTIME_ERROR_TEXT).text(jqXHR.responseText);     
+        	}			
+		},
+		fetchRegionServerMemoryUsage: function(){
+			$(RSRVR_MEMORY_SPINNER).show();
+			dashboardHandler.fetchRegionServerMemoryUsage(); 				
+		},
+		fetchRegionServerMemoryUsageSuccess: function(result){
+			$(RSRVR_MEMORY_SPINNER).hide();
+			var keys = Object.keys(result);
+			
+			if(keys.length == 0){
+				$(RSRVR_MEMORY_CONTAINER).hide();
+				$(RSRVR_MEMORY_ERROR_TEXT).text("No data available");
+				$(RSRVR_MEMORY_ERROR_TEXT).show();				
+			}else{
+				$(RSRVR_MEMORY_CONTAINER).show();
+				$(RSRVR_MEMORY_ERROR_TEXT).hide();
+
+				var seriesData = [];
+				$.each(keys, function(index, value){
+					seriesData.push({x: value*1, y: result[value]});
+				});
+				if(regionserverMemGraph == null) {
+					regionserverMemGraph = Morris.Line({
+						element: 'regionserverMem-chart',
+						data: seriesData,
+						xkey:'x',
+						ykeys:['y'],
+						labels: [],
+						pointSize: '0.0',
+						hideHover: 'auto',
+						resize:true,
+						xLabelFormat: function(x){
+							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
+						},
+						hoverCallback: function (index, options, content, row) {
+							  return "Memory Usage : " + row.y.toFixed(2) + "MB<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
+							}
+					});
+				}else{
+					regionserverMemGraph.setData(seriesData);
+				}
+			}
+		},
+		fetchRegionServerMemoryUsageError: function(jqXHR, res, error){
+			$(RSRVR_MEMORY_SPINNER).hide();
+        	$(RSRVR_MEMORY_CONTAINER).hide();
+        	$(RSRVR_MEMORY_ERROR_TEXT).show();
+        	if (jqXHR.responseText) {
+    			$(RSRVR_MEMORY_ERROR_TEXT).text(jqXHR.responseText);     
+        	}			
+		},		
+		fetchMemStoreSize: function(){
+			$(MEMSTORE_SPINNER).show();
+			dashboardHandler.fetchMemStoreSize(); 				
+		},
+		fetchMemStoreSizeSuccess: function(result){
+			$(MEMSTORE_SPINNER).hide();
+			var keys = Object.keys(result);
+			
+			if(keys.length == 0){
+				$(MEMSTORE_CONTAINER).hide();
+				$(MEMSTORE_ERROR_TEXT).text("No data available");
+				$(MEMSTORE_ERROR_TEXT).show();				
+			}else{
+				$(MEMSTORE_CONTAINER).show();
+				$(MEMSTORE_ERROR_TEXT).hide();
+
+				var seriesData = [];
+				$.each(keys, function(index, value){
+					seriesData.push({x: value*1, y: result[value]});
+				});
+				if(memStoreGraph == null) {
+					memStoreGraph = Morris.Line({
+						element: 'memStore-chart',
+						data: seriesData,
+						xkey:'x',
+						ykeys:['y'],
+						labels: [],
+						pointSize: '0.0',
+						hideHover: 'auto',
+						resize:true,
+						yLabelFormat: function(y){
+							return common.convertToMB(y);
+						},
+						xLabelFormat: function(x){
+							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
+						},
+						hoverCallback: function (index, options, content, row) {
+							  return "Memstore Size : " + common.convertToMB(row.y) + "MB<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
+							}
+					});
+				}else{
+					memStoreGraph.setData(seriesData);
+				}
+			}
+		},
+		fetchMemStoreSizeError: function(jqXHR, res, error){
+			$(MEMSTORE_SPINNER).hide();
+        	$(MEMSTORE_CONTAINER).hide();
+        	$(MEMSTORE_ERROR_TEXT).show();
+        	if (jqXHR.responseText) {
+    			$(MEMSTORE_ERROR_TEXT).text(jqXHR.responseText);     
+        	}			
 		},
 		fetchCPUData: function () {
 			_this.showLoading();
@@ -661,7 +852,7 @@ define([
 					labels: [],
 					hideHover: 'auto',
 					hoverCallback: function (index, options, content, row) {
-						  return "Disk Writes : " + row.y + "<br/>Time : " + row.x;
+						  return "Disk Writes : " + row.y.toFixed(2) + "<br/>Time : " + row.x;
 						}
 				});
 			}else{
@@ -692,7 +883,7 @@ define([
 					labels: [],
 					hideHover: 'auto',
 					hoverCallback: function (index, options, content, row) {
-						  return "Throughput : " + row.y + "<br/>Time : " + row.x;
+						  return "Throughput : " + row.y.toFixed(2) + "<br/>Time : " + row.x;
 						}
 				});
 			}else{
