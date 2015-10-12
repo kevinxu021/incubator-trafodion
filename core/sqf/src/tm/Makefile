@@ -19,7 +19,7 @@
 #
 # @@@ END COPYRIGHT @@@
 
-PROGS          = $(OUTDIR)/tm $(OUTDIR)/idtmsrv $(OUTDIR)/traf_notify
+PROGS          = $(OUTDIR)/tm $(OUTDIR)/idtmsrv $(OUTDIR)/traf_notify $(OUTDIR)/service_monitor
 ###########################################################################
 
 include ../../macros.gmk
@@ -125,6 +125,8 @@ TMOBJS		= $(OUTDIR)/tmregistry.o \
 		      $(OUTDIR)/CommonLogger.o  
 IDSRVOBJS	= $(OUTDIR)/idtmsrv.o \
 		      $(OUTDIR)/versidtmsrv.o
+SERVICE_MONITOROBJS	= $(OUTDIR)/service_monitor.o \
+		      $(OUTDIR)/versservice_monitor.o
 TRAFNOTIFYOBJS  = $(OUTDIR)/traf_notify.o \
                   $(OUTDIR)/verstraf_notify.o
 ALLOBJS	= $(LIBSTMOBJS) \
@@ -133,6 +135,7 @@ ALLOBJS	= $(LIBSTMOBJS) \
 		  $(LIBXARMOBJS) \
 		  $(IDSRVOBJS) \
 		  $(TRAFNOTIFYOBJS) \
+		  $(SERVICE_MONITOROBJS) \
 
 CFILES		= `ls *.c`
 
@@ -165,6 +168,10 @@ $(OUTDIR)/idtmsrv: $(IDSRVOBJS)
 	$(CXX) $(LNK_FLGS) -o $@ $(IDSRVOBJS) $(LIBSBMSX)
 	cp -fup $(OUTDIR)/idtmsrv $(BINEXPDIR)
 
+$(OUTDIR)/service_monitor: $(SERVICE_MONITOROBJS)
+	$(CXX) $(LNK_FLGS) -o $@ $(SERVICE_MONITOROBJS) $(LIBSBMSX)
+	cp -fup $(OUTDIR)/service_monitor $(BINEXPDIR)
+
 $(LIBEXPDIR)/libstmlib.so: $(LIBSTMOBJS) 
 	$(CXX) $(DTMOBJS) $(LNK_FLGS) $(LIBSBMSX) $(LIBJVM) -L$(LIBEXPDIR) -L$(LOG4CXX_LIB_DIR) -llog4cxx -shared -o $@ $(LIBSTMOBJS)  
 
@@ -191,7 +198,7 @@ setup:
 
 clean:
 	$(RM) $(LIBEXPDIR)/libsxatmlib.so $(LIBEXPDIR)/libxarm.so $(LIBEXPDIR)/libstmlib.so *.gcda *.gcno *.gcov
-	$(RM)  $(BINEXPDIR)/tm $(BINEXPDIR)/idtmsrv $(BINEXPDIR)/traf_notify 
+	$(RM)  $(BINEXPDIR)/tm $(BINEXPDIR)/idtmsrv $(BINEXPDIR)/traf_notify $(BINEXPDIR)/service_monitor
 	$(RM)  $(ALLOBJS)
 	$(RM)  $(CDEPFILES)
 	cd $(HBASE_TRX_LOC); make clean

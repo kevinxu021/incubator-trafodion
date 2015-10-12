@@ -38,8 +38,11 @@ REM set this to openssl header files directory
 set OPENSSL_INCLUDE_PATH=C:\openssl-1.0.1e\include
 REM set this to openssl library files directory
 set OPENSSL_LIB_PATH=C:\openssl-1.0.1e\lib
+
+set PACKDIR=C:\Build\winodbc64
+
 set SRCDIR=%BUILDDIR%\win-odbc64
-set LIBDIR=%BUILDDIR%\lib 
+set LIBDIR=%BUILDDIR%\lib
 set PATH=%MSBUILD_PATH%\;%PATH%
 
 set ALL_SUCCESS=0
@@ -68,18 +71,18 @@ msbuild.exe /t:rebuild Drvr35_os.vcxproj /p:Platform=x64 /p:Configuration=Releas
 set BUILD_STATUS=%ERRORLEVEL%
 if %BUILD_STATUS%==0 (
 	echo Build Drvr35 success
-) else ( 
+) else (
 	echo Build Drvr35 failed
 	goto Exit
 )
-  
+
 echo Building Drvr35Adm - Win64 Release...
 cd %SRCDIR%\odbcclient\Drvr35Adm
 msbuild.exe /t:rebuild Drvr35Adm_os.vcxproj /p:Platform=x64 /p:Configuration=Release
 set BUILD_STATUS=%ERRORLEVEL%
 if %BUILD_STATUS%==0 (
 	echo Build Drvr35Adm success
-) else ( 
+) else (
 	echo Build Drvr35Adm failed
 	goto Exit
 )
@@ -90,7 +93,7 @@ REM msbuild.exe /t:rebuild Drvr35Trace_os.vcxproj /p:Platform=x64 /p:Configurati
 REM set BUILD_STATUS=%ERRORLEVEL%
 REM if %BUILD_STATUS%==0 (
 REM	echo Build Drvr35Trace success
-REM ) else ( 
+REM ) else (
 REM	echo Build Drvr35Trace failed
 REM	goto Exit
 REM )
@@ -101,7 +104,7 @@ msbuild.exe /t:rebuild TCPIPV4_os.vcxproj /p:Platform=x64 /p:Configuration=Relea
 set BUILD_STATUS=%ERRORLEVEL%
 if %BUILD_STATUS%==0 (
 	echo Build TCPIPV4 success
-) else ( 
+) else (
 	echo Build TCPIPV4 failed
 	goto Exit
 )
@@ -112,29 +115,29 @@ msbuild.exe /t:rebuild TCPIPV6_os.vcxproj /p:Platform=x64 /p:Configuration=Relea
 set BUILD_STATUS=%ERRORLEVEL%
 if %BUILD_STATUS%==0 (
 	echo Build TCPIPV6 success
-) else ( 
+) else (
 	echo Build TCPIPV6 failed
 	goto Exit
 )
 
 echo Building TranslationDll - Win64 Release...
 cd %SRCDIR%\odbcclient\TranslationDll
-msbuild.exe /t:rebuild TranslationDll_os.vcxproj /p:Platform=x64 /p:Configuration=Release	
+msbuild.exe /t:rebuild TranslationDll_os.vcxproj /p:Platform=x64 /p:Configuration=Release
 set BUILD_STATUS=%ERRORLEVEL%
 if %BUILD_STATUS%==0 (
 	echo Build TranslationDll success
-) else ( 
+) else (
 	echo Build TranslationDll failed
 	goto Exit
 )
 
 echo Building Drvr35Res - Win64 Release...
-cd %SRCDIR%\odbcclient\Drvr35Res 
-msbuild.exe /t:rebuild Drvr35Res_os.vcxproj /p:Platform=x64 /p:Configuration=Release	
+cd %SRCDIR%\odbcclient\Drvr35Res
+msbuild.exe /t:rebuild Drvr35Res_os.vcxproj /p:Platform=x64 /p:Configuration=Release
 set BUILD_STATUS=%ERRORLEVEL%
 if %BUILD_STATUS%==0 (
 	echo Build Drvr35Res success
-) else ( 
+) else (
 	echo Build Drvr35Res failed
 	goto Exit
 )
@@ -150,5 +153,12 @@ if %ALL_SUCCESS%==1 (
 	echo=
 )
 cd %SRCDIR%\odbcclient
+copy /Y %BUILDDIR%\win-odbc64\odbcclient\inc\trafsqlext.h C:\Build\winodbc64\inc
+if not exist C:\Build\winodbc64\lib\x64\Release (
+	mkdir C:\Build\winodbc64\lib\x64\Release
+)
+copy /Y %BUILDDIR%\lib\x64\Release C:\Build\winodbc64\lib\x64\Release
 
+ISCC.exe /Q %BUILDDIR%\win-odbc64\Install\win64_installer\installer.iss
+move /Y %BUILDDIR%\win-odbc64\Install\win64_installer\Output\TFODBC64-1.0.0.exe %PACKDIR%
 @echo on
