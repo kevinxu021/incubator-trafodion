@@ -1818,6 +1818,18 @@ ElemDDLNode::castToStmtDDLRoleGrant()
   return NULL;
 }
 
+StmtDDLAlterTableHDFSCache *
+ElemDDLNode::castToStmtDDLAlterTableHDFSCache()
+{
+  return NULL;
+}
+
+StmtDDLAlterSchemaHDFSCache *
+ElemDDLNode::castToStmtDDLAlterSchemaHDFSCache()
+{
+  return NULL;
+}
+
 //
 // accessors
 //

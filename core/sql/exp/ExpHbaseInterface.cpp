@@ -1597,3 +1597,38 @@ Lng32 ExpHbaseInterface_JNI::getBlockCacheFraction(float& frac)
   retCode_ = client_->getBlockCacheFraction(frac);
   return retCode_;
 }
+
+ByteArrayList* ExpHbaseInterface_JNI::showTablesHDFSCache(const std::vector<Text>& tables)
+{
+  if (client_ == NULL)
+  {
+    if (init(hbs_) != HBASE_ACCESS_SUCCESS)
+      return NULL;
+  }
+    
+  ByteArrayList* stats = client_->showTablesHDFSCache(tables);
+  if (stats == NULL)
+    return NULL;
+
+  return stats;
+
+}
+
+Lng32 ExpHbaseInterface_JNI::addTablesToHDFSCache(const std::vector<Text>& tables, const char* poolName)
+{
+    if (client_ == NULL)
+      return -HBASE_ACCESS_ERROR ;
+    
+    retCode_ = client_->addTablesToHDFSCache(tables, poolName);
+    return retCode_;
+}
+
+Lng32 ExpHbaseInterface_JNI::removeTablesFromHDFSCache(const std::vector<Text>& tables, const char* poolName)
+{
+    if (client_ == NULL)
+      return -HBASE_ACCESS_ERROR ;
+    
+    retCode_ = client_->removeTablesFromHDFSCache(tables, poolName);
+    return retCode_;
+}
+

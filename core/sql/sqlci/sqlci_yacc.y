@@ -67,6 +67,10 @@
   extern char **environ;
   #define ENVIRON environ
   #define PUTENV putenv
+  
+#define YYDEBUG 1			// Turn on debugging, if needed.
+#define YY_LOG_FILE "sqlci.yylog"
+#define YYFPRINTF(stderr, format, args...) {FILE* fp=fopen(YY_LOG_FILE, "a+");fprintf(fp, format, ##args);fclose(fp);}
 
 extern NAHeap sqlci_Heap;
 
@@ -85,7 +89,6 @@ static int pos_internal3;
 static char *get_stats_str;
 
 //extern "C" { void yyerror(const char *sb); };
-
 
 static void sqlcierror(const char *)		// (const char *errtext)
 {
@@ -382,6 +385,7 @@ static char * FCString (const char *idString, int isFC)
 %token BACKSLASH
 %token BRIEF
 %token DETAIL
+%token CACHE
 %token CANCEL
 %token CLASStoken
 %token CLEANUP
@@ -2211,6 +2215,7 @@ dml_type :
 	|	SHOWSTATS               {$$ = DML_DESCRIBE_TYPE;}
         |	SHOWTRANSACTION         {$$ = DML_DESCRIBE_TYPE;}
 	|	INVOKE  		{$$ = DML_DESCRIBE_TYPE;}
+        |       SHOW CACHE {$$ = DML_DESCRIBE_TYPE;}
 	|	SHOWPLAN  		{$$ = DML_DESCRIBE_TYPE;}
         |       SHOWSHAPE               {$$ = DML_DESCRIBE_TYPE;}
         |       SHOWSET                 {$$ = DML_DESCRIBE_TYPE;}
