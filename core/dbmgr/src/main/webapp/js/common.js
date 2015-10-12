@@ -58,6 +58,10 @@ function(moment, momenttimezone, $) {
 				return "";
 			},
 			
+			this.toServerLocalFromUTCMilliSeconds = function(utcMsec){
+				return utcMsec + _this.serverUtcOffset;
+			},
+			
 			this.toDateFromMilliSeconds = function(milliSeconds) {
 				if (milliSeconds != null) {
 					return moment(milliSeconds).format(_this.ISODateFormat);

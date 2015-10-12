@@ -84,12 +84,8 @@ const
   INSTALLSTATE_ABSENT = 2;       // The product is installed for a different user.
   INSTALLSTATE_DEFAULT = 5;      // The product is installed for the current user.
 
-  VC_2010_REDIST_X86 = '{196BB40D-1578-3D01-B289-BEFC77A11A1E}';
-  VC_2010_REDIST_X64 = '{DA5E371C-6333-3D8A-93A4-6FD5B20BCC6E}';
-  VC_2010_REDIST_IA64 = '{C1A35166-4301-38E9-BA67-02823AD72A1B}';
-  VC_2010_SP1_REDIST_X86 = '{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}';
-  VC_2010_SP1_REDIST_X64 = '{1D8E6291-B0D5-35EC-8441-6616F567A0F7}';
-  VC_2010_SP1_REDIST_IA64 = '{88C73C1C-2DE5-3B01-AFB8-B46EF4AB41CD}';
+  VC_2013_REDIST_X64_MIN = '{A749D8E6-B613-3BE3-8F5F-045C84EBA29B}';
+  VC_2013_REDIST_X64_ADD = '{929FBD26-9020-399B-9A7A-751D61F0B942}';
 
 function MsiQueryProductState(szProduct: string): INSTALLSTATE; 
   external 'MsiQueryProductState{#AW}@msi.dll stdcall';
@@ -106,8 +102,8 @@ begin
   // this statement, the following won't install your VC redist only when
   // the Visual C++ 2010 Redist (x64) and Visual C++ 2010 SP1 Redist(x64)
   // are installed for the current user
-  Result := not (VCVersionInstalled(VC_2010_REDIST_X64) or 
-    VCVersionInstalled(VC_2010_SP1_REDIST_X64));
+  Result := not (VCVersionInstalled(VC_2013_REDIST_X64_MIN) or
+    VCVersionInstalled(VC_2013_REDIST_X64_ADD));
 end;
 
 function GetUninstallString(): string;
