@@ -111,6 +111,12 @@ function(moment, momenttimezone, $) {
 				return (bytes/1024/1024).toFixed(2);
 			};
 			
+			this.convertToKB = function(bytes){
+				if(bytes <=0)
+					return 0;
+				return (bytes/1024).toFixed(2);
+			};
+
 			this.storeSessionProperties = function(timeZone, utcOffset, dcsMasterUri){
 				_this.serverTimeZone = timeZone;
 				_this.serverUtcOffset = utcOffset;
