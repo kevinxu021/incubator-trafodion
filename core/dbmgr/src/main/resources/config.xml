@@ -43,6 +43,6 @@
 	<entry key="timeZoneName">Etc/UTC</entry>
 	
 	<!-- The openTSDB HTTP URI-->
-	<entry key="openTSDBUri">192.168.1.5:5242</entry>
+	<entry key="openTSDBUri">192.168.1.5:4242</entry>
 	
 </properties>
