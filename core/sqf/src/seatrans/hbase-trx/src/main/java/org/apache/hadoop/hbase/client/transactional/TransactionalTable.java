@@ -104,6 +104,8 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
     static int                 retries = 15;
     static int                 delay = 1000;
 
+    private String retryErrMsg = "Coprocessor result is null, retries exhausted";
+
     //this scanner implement fixes and improvements over the regular client
     //scanner, and will be deprecated or modified as HBase implements these fixes
     // in future releases.
@@ -266,7 +268,9 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
       //if(resultArray.length == 0) 
     	//  throw new IOException("Problem with calling coprocessor, no regions returned result");
       
-      if(result.hasException())
+      if(result == null)
+        throw new IOException(retryErrMsg);
+      else if(result.hasException())
         throw new IOException(result.getException());
       return ProtobufUtil.toResult(result.getResult());      
     }
@@ -336,7 +340,9 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
           throw new IOException();
         } 
 
-        if(result.hasException())
+        if(result == null)
+          throw new IOException(retryErrMsg);
+        else if(result.hasException())
           throw new IOException(result.getException());
     }
 
@@ -408,8 +414,9 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
       e.printStackTrace();
       throw new IOException("ERROR while calling coprocessor");
     }    
-    
-    if(result.hasException())
+    if(result == null)
+      throw new IOException(retryErrMsg);
+    else if(result.hasException())
       throw new IOException(result.getException());
     
     // put is void, may not need to check result
@@ -499,9 +506,10 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
         e.printStackTrace();
         throw new IOException("ERROR while calling coprocessor");
       }
-
-      if(result.hasException())
-          throw new IOException(result.getException());
+      if(result == null)
+        throw new IOException(retryErrMsg);
+      else if(result.hasException())
+        throw new IOException(result.getException());
       return result.getResult();
    }
     
@@ -583,8 +591,11 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
         throw new IOException("ERROR while calling coprocessor " + sw.toString());       
       }
 
-      if(result.hasException())
-          throw new IOException(result.getException());
+      if(result == null)
+        throw new IOException(retryErrMsg);
+      else if(result.hasException())
+        throw new IOException(result.getException());
+
       return result.getResult();          
     }
 
@@ -678,8 +689,10 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
 	        throw new IOException("ERROR while calling coprocessor");
  	      }
 
-          if (result.hasException())
-             throw new IOException(result.getException());
+             if(result == null)
+               throw new IOException(retryErrMsg);
+             else if (result.hasException())
+               throw new IOException(result.getException());
 	   }
    	}
 
@@ -770,7 +783,9 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
         e.printStackTrace();
         throw new IOException("ERROR while calling coprocessor");
       }
-      if (result.hasException()) 
+      if(result == null)
+        throw new IOException(retryErrMsg);
+      else if (result.hasException()) 
         throw new IOException(result.getException());
      }
 		}
