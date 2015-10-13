@@ -31,49 +31,19 @@ define([
 	    NODES_SPINNER = '#nodes-spinner',
 	    NODES_RESULT_CONTAINER = '#nodes-result-container',
 	    NODES_ERROR_TEXT = '#nodes-error-text',
-	    
-	    CANARY_SPINNER = '#canarySpinner',
-	    CANARY_RESULT_CONTAINER = '#canary-response-chart',
-	    CANARY_ERROR_TEXT = '#canary-error-text',
-	    
-	    TRANSACTIONS_SPINNER = '#transactionsSpinner',
-	    TRANSACTIONS_RESULT_CONTAINER = '#transactions-response-chart',
+
+	    TRANSACTIONS_SPINNER = '#transactions-spinner',
+	    TRANSACTIONS_RESULT_CONTAINER = '#transactions-chart',
 	    TRANSACTIONS_ERROR_TEXT = '#transactions-error-text',
-	    
-	    DISKSPACEUSED_SPINNER = '#spaceusedSpinner',
-	    DISKSPACEUSED_CONTAINER = '#spaceused-chart',
-	    DISKSPACEUSED_ERROR_TEXT = '#spaceused-error-text',
-	    
-	    IOWAIT_SPINNER = '#iowaitSpinner',
-	    IOWAIT_CONTAINER = '#iowait-chart',
-	    IOWAIT_ERROR_TEXT = '#iowait-error-text',
-	    
-	    GCTIME_SPINNER = '#gctimeSpinner',
-	    GCTIME_CONTAINER = '#gctime-chart',
-	    GCTIME_ERROR_TEXT = '#gctime-error-text',
-	    
-	    MEMSTORE_SPINNER = '#memStoreSpinner',
-	    MEMSTORE_CONTAINER = '#memStore-chart',
-	    MEMSTORE_ERROR_TEXT = '#memStore-error-text',
-	    
-	    RSRVR_MEMORY_SPINNER = '#regionserverMemSpinner',
-	    RSRVR_MEMORY_CONTAINER = '#regionserverMem-chart',
-	    RSRVR_MEMORY_ERROR_TEXT = '#regionserverMem-error-text',
-	    
+
 	    REFRESH_ACTION = '#refreshAction',
 	    OPEN_FILTER = '#openFilter';
     
-    var cpuGraph = null, 
-	    diskReadsGraph = null, 
-	    diskWritesGraph=null, 
-	    getOpsGraph = null, 
-	    canaryGraph = null,
-	    transactionsGraph = null,
-	    iowaitsGraph = null,
-	    diskSpaceUsedGraph = null,
-	    memStoreGraph = null,
-	    regionserverMemGraph = null,
-	    gctimeGraph = null;
+    var transactionsGraph = null;
+    
+    var renderedCharts = {};
+    
+    var chartConfig = null;
     
     var servicesTable = null, nodesTable = null;
     
@@ -85,7 +55,54 @@ define([
 			_this = this;
 			refreshTimer.init();
 			timeRangeView.init();
-		
+			chartConfig =  {
+        		canary:{
+        			xtimemultiplier: 1000,
+        			ylabel: "Canary Response Time",
+        			ylabelunit: "msec",
+        			yvalformatter: common.formatNumberWithComma,
+        			spinner:"#canary-spinner", 
+        			graphcontainer:"canary-chart", 
+        			errorcontainer:"#canary-error-text",
+        			},
+        		iowaits:{
+        			xtimemultiplier: 1000,
+        			ylabel: "IO Waits",
+        			ylabelunit: "",
+        			spinner:"#iowaits-spinner",
+        			graphcontainer:"iowaits-chart",
+        			errorcontainer:"#iowaits-error-text"},
+        		useddiskspace:{
+        			xtimemultiplier: 1,
+        			ylabel: "Disk Space Used",
+        			ylabelunit: "%",
+        			spinner:"#useddiskspace-spinner",
+        			graphcontainer:"useddiskspace-chart",
+        			errorcontainer:"#useddiskspace-error-text"},
+        		memstoresize:{
+        			xtimemultiplier: 1,
+        			ylabel: "Memstore Size",
+        			ylabelunit: "MB",
+        			yLabelFormat: common.convertToMB,
+        			yvalformatter: common.convertToMB,
+        			spinner:"#memstoresize-spinner",
+        			graphcontainer:"memstoresize-chart",
+        			errorcontainer:"#memstoresize-error-text"},
+        		jvmgctime:{
+        			xtimemultiplier: 1,
+        			ylabel: "GC Time",
+        			ylabelunit: "msec",
+        			spinner:"#jvmgctime-spinner",
+        			graphcontainer:"jvmgctime-chart",
+        			errorcontainer:"#jvmgctime-error-text"},
+        		regionservermemory:{
+        			xtimemultiplier: 1,
+        			ylabel: "Avg. Memory Usage",
+        			ylabelunit: "MB",
+        			spinner:"#regionservermemory-spinner",
+        			graphcontainer:"regionservermemory-chart",
+        			errorcontainer:"#regionservermemory-error-text"}
+			};
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			$(SERVICES_ERROR_TEXT).hide();
 			$(NODES_ERROR_TEXT).hide();
@@ -94,20 +111,11 @@ define([
 			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
 			serverHandler.on(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
 			serverHandler.on(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
-			dashboardHandler.on(dashboardHandler.CANARY_SUCCESS, this.fetchCanarySuccess); 
-			dashboardHandler.on(dashboardHandler.CANARY_ERROR, this.fetchCanaryError);
 			dashboardHandler.on(dashboardHandler.TRANSACTION_STATS_SUCCESS, this.fetchTransactionStatsSuccess); 
 			dashboardHandler.on(dashboardHandler.TRANSACTION_STATS_ERROR, this.fetchTransactionStatsError);
-			dashboardHandler.on(dashboardHandler.DISKSPACEUSED_SUCCESS, this.fetchUsedDiskSpaceSuccess); 
-			dashboardHandler.on(dashboardHandler.DISKSPACEUSED_ERROR, this.fetchUsedDiskSpaceError);
-			dashboardHandler.on(dashboardHandler.IOWAIT_SUCCESS, this.fetchIOWaitsSuccess); 
-			dashboardHandler.on(dashboardHandler.IOWAIT_ERROR, this.fetchIOWaitsError);
-			dashboardHandler.on(dashboardHandler.GCTIME_SUCCESS, this.fetchGCTimeSuccess); 
-			dashboardHandler.on(dashboardHandler.GCTIME_ERROR, this.fetchGCTimeError);
-			dashboardHandler.on(dashboardHandler.RSRVR_MEMORY_SUCCESS, this.fetchRegionServerMemoryUsageSuccess); 
-			dashboardHandler.on(dashboardHandler.RSRVR_MEMORY_ERROR, this.fetchRegionServerMemoryUsageError);
-			dashboardHandler.on(dashboardHandler.MEMSTORE_SUCCESS, this.fetchMemStoreSizeSuccess); 
-			dashboardHandler.on(dashboardHandler.MEMSTORE_ERROR, this.fetchMemStoreSizeError);
+
+			dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
+			dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
 			
 			
 			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
@@ -126,20 +134,12 @@ define([
 			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
 			serverHandler.on(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
 			serverHandler.on(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
-			dashboardHandler.on(dashboardHandler.CANARY_SUCCESS, this.fetchCanarySuccess); 
-			dashboardHandler.on(dashboardHandler.CANARY_ERROR, this.fetchCanaryError);
 			dashboardHandler.on(dashboardHandler.TRANSACTION_STATS_SUCCESS, this.fetchTransactionStatsSuccess); 
 			dashboardHandler.on(dashboardHandler.TRANSACTION_STATS_ERROR, this.fetchTransactionStatsError);
-			dashboardHandler.on(dashboardHandler.DISKSPACEUSED_SUCCESS, this.fetchUsedDiskSpaceSuccess); 
-			dashboardHandler.on(dashboardHandler.DISKSPACEUSED_ERROR, this.fetchUsedDiskSpaceError);
-			dashboardHandler.on(dashboardHandler.IOWAIT_SUCCESS, this.fetchIOWaitsSuccess); 
-			dashboardHandler.on(dashboardHandler.IOWAIT_ERROR, this.fetchIOWaitsError);
-			dashboardHandler.on(dashboardHandler.GCTIME_SUCCESS, this.fetchGCTimeSuccess); 
-			dashboardHandler.on(dashboardHandler.GCTIME_ERROR, this.fetchGCTimeError);
-			dashboardHandler.on(dashboardHandler.RSRVR_MEMORY_SUCCESS, this.fetchRegionServerMemoryUsageSuccess); 
-			dashboardHandler.on(dashboardHandler.RSRVR_MEMORY_ERROR, this.fetchRegionServerMemoryUsageError);
-			dashboardHandler.on(dashboardHandler.MEMSTORE_SUCCESS, this.fetchMemStoreSizeSuccess); 
-			dashboardHandler.on(dashboardHandler.MEMSTORE_ERROR, this.fetchMemStoreSizeError);
+			
+			dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
+			dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
+
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			
 			refreshTimer.resume();
@@ -159,20 +159,12 @@ define([
 			serverHandler.off(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
 			serverHandler.off(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
 			serverHandler.off(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
-			dashboardHandler.off(dashboardHandler.CANARY_SUCCESS, this.fetchCanarySuccess); 
-			dashboardHandler.off(dashboardHandler.CANARY_ERROR, this.fetchCanaryError);
 			dashboardHandler.off(dashboardHandler.TRANSACTION_STATS_SUCCESS, this.fetchTransactionStatsSuccess); 
 			dashboardHandler.off(dashboardHandler.TRANSACTION_STATS_ERROR, this.fetchTransactionStatsError);
-			dashboardHandler.off(dashboardHandler.DISKSPACEUSED_SUCCESS, this.fetchUsedDiskSpaceSuccess); 
-			dashboardHandler.off(dashboardHandler.DISKSPACEUSED_ERROR, this.fetchUsedDiskSpaceError);
-			dashboardHandler.off(dashboardHandler.IOWAIT_SUCCESS, this.fetchIOWaitsSuccess); 
-			dashboardHandler.off(dashboardHandler.IOWAIT_ERROR, this.fetchIOWaitsError);
-			dashboardHandler.off(dashboardHandler.GCTIME_SUCCESS, this.fetchGCTimeSuccess); 
-			dashboardHandler.off(dashboardHandler.GCTIME_ERROR, this.fetchGCTimeError);
-			dashboardHandler.off(dashboardHandler.RSRVR_MEMORY_SUCCESS, this.fetchRegionServerMemoryUsageSuccess); 
-			dashboardHandler.off(dashboardHandler.RSRVR_MEMORY_ERROR, this.fetchRegionServerMemoryUsageError);
-			dashboardHandler.off(dashboardHandler.MEMSTORE_SUCCESS, this.fetchMemStoreSizeSuccess); 
-			dashboardHandler.off(dashboardHandler.MEMSTORE_ERROR, this.fetchMemStoreSizeError);
+
+			dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
+			dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
+
 			$(REFRESH_ACTION).off('click', this.refreshPage);
 			
 			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
@@ -196,17 +188,25 @@ define([
         timerBeeped: function(){
         	_this.refreshPage();
         },
+        generateParams: function(metricName){
+        	var startTime = $('#startdatetimepicker').data("DateTimePicker").date();
+        	var endTime = $('#enddatetimepicker').data("DateTimePicker").date();
+
+        	var params = {};
+        	params.startTime = startTime.format('YYYY/MM/DD-HH:mm:ss');
+        	params.endTime = endTime.format('YYYY/MM/DD-HH:mm:ss');
+        	params.metricName = metricName;
+        	return params;
+        },
         refreshPage: function() {
         	timeRangeView.updateFilter();
         	_this.fetchServices();
         	_this.fetchNodes();
-        	_this.fetchCanaryResponse();
-        	_this.fetchTransactionStats();
-        	_this.fetchUsedDiskSpace();
-        	_this.fetchIOWaits();
-        	_this.fetchMemStoreSize();
-        	_this.fetchRegionServerMemoryUsage();
-        	_this.fetchGCTime();
+        	_this.fetchTransactionStats(_this.generateParams('transactions'));
+
+        	$.each(Object.getOwnPropertyNames(chartConfig), function(k, v){
+        		dashboardHandler.fetchSummaryMetric(_this.generateParams(v));
+        	});
         },
         fetchServices: function () {
 			$(SERVICES_SPINNER).show();
@@ -415,59 +415,9 @@ define([
         			$(NODES_ERROR_TEXT).text(jqXHR.responseText);     
         	}
         },
-        fetchCanaryResponse: function () {
-			$(CANARY_SPINNER).show();
-			dashboardHandler.fetchCanaryResponse();       	
-        },
-        fetchCanarySuccess: function(result){
-			$(CANARY_SPINNER).hide();
-			var keys = Object.keys(result);
-			
-			if(keys.length == 0){
-				$(CANARY_RESULT_CONTAINER).hide();
-				$(CANARY_ERROR_TEXT).text("No data available");
-				$(CANARY_ERROR_TEXT).show();				
-			}else{
-				$(CANARY_RESULT_CONTAINER).show();
-				$(CANARY_ERROR_TEXT).hide();
-
-				var seriesData = [];
-				$.each(keys, function(index, value){
-					seriesData.push({x: value*1000, y: result[value]});
-				});
-				if(canaryGraph == null) {
-					canaryGraph = Morris.Line({
-						element: 'canary-response-chart',
-						data: seriesData,
-						xkey:'x',
-						ykeys:['y'],
-						labels: [],
-						pointSize: '0.0',
-						hideHover: 'auto',
-						resize:true,
-						xLabelFormat: function(x){
-							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
-						},
-						hoverCallback: function (index, options, content, row) {
-							  return "Canary Response Time : " + common.formatNumberWithCommas(row.y) + " msec <br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
-							}
-					});
-				}else{
-					canaryGraph.setData(seriesData);
-				}
-			}
-		},
-		fetchCanaryError: function(jqXHR, res, error){
-			$(CANARY_SPINNER).hide();
-        	$(CANARY_RESULT_CONTAINER).hide();
-        	$(CANARY_ERROR_TEXT).show();
-        	if (jqXHR.responseText) {
-    			$(CANARY_ERROR_TEXT).text(jqXHR.responseText);     
-        	}
-		},
 		fetchTransactionStats: function () {
 			$(TRANSACTIONS_SPINNER).show();
-			dashboardHandler.fetchTransactionStats();       	
+			dashboardHandler.fetchTransactionStats(_this.generateParams('transactions'));       	
         },
         fetchTransactionStatsSuccess: function(result){
 			$(TRANSACTIONS_SPINNER).hide();
@@ -487,7 +437,7 @@ define([
 				});
 				if(transactionsGraph == null) {
 					transactionsGraph = Morris.Line({
-						element: 'transactions-response-chart',
+						element: 'transactions-chart',
 						data: seriesData,
 						xkey:'x',
 						ykeys:['a','b','c'],
@@ -495,8 +445,11 @@ define([
 						hideHover: 'auto',
 						pointSize: '0.0',
 						resize:true,
+						yLabelFormat: function(y){
+							return y;
+						},
 						xLabelFormat: function(x){
-							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
+							return common.toServerLocalDateFromUtcMilliSeconds(x.getTime(),'HH:mm');
 						},
 						hoverCallback: function (index, options, content, row) {
 							  return "#Aborts : " + common.formatNumberWithCommas(row.a) + 
@@ -518,229 +471,28 @@ define([
     			$(TRANSACTIONS_ERROR_TEXT).text(jqXHR.responseText);     
         	}
 		},	        
-		fetchIOWaits: function () {
-			$(IOWAIT_SPINNER).show();
-			dashboardHandler.fetchIOWaits();       	
-        },
-        fetchIOWaitsSuccess: function(result){
-			$(IOWAIT_SPINNER).hide();
-			var keys = Object.keys(result);
+		fetchSummaryMetricSuccess: function(result){
+			var keys = Object.keys(result.data);
+			var metricConfig = chartConfig[result.metricName];
+			$(metricConfig.spinner).hide();
 			
 			if(keys.length == 0){
-				$(IOWAIT_CONTAINER).hide();
-				$(IOWAIT_ERROR_TEXT).text("No data available");
-				$(IOWAIT_ERROR_TEXT).show();				
+				$('#'+metricConfig.graphcontainer).hide();
+				$(metricConfig.errorcontainer).text("No data available");
+				$(metricConfig.errorcontainer).show();				
 			}else{
-				$(IOWAIT_CONTAINER).show();
-				$(IOWAIT_ERROR_TEXT).hide();
+				$('#'+metricConfig.graphcontainer).show();
+				$(metricConfig.errorcontainer).hide();
 
 				var seriesData = [];
 				$.each(keys, function(index, value){
-					seriesData.push({x: value*1000, y: result[value]});
+					seriesData.push({x: value*metricConfig.xtimemultiplier, y: result.data[value]});
 				});
-				if(iowaitsGraph == null) {
-					iowaitsGraph = Morris.Line({
-						element: 'iowait-chart',
-						data: seriesData,
-						xkey:'x',
-						ykeys:['y'],
-						labels: [],
-						pointSize: '0.0',
-						hideHover: 'auto',
-						resize:true,
-						xLabelFormat: function(x){
-							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
-						},
-						hoverCallback: function (index, options, content, row) {
-							  return "IO Waits : " + row.y.toFixed(2) + "<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
-							}
-					});
-				}else{
-					iowaitsGraph.setData(seriesData);
-				}
-			}
-		},
-		fetchIOWaitsError: function(jqXHR, res, error){
-			$(IOWAIT_SPINNER).hide();
-        	$(IOWAIT_CONTAINER).hide();
-        	$(IOWAIT_ERROR_TEXT).show();
-        	if (jqXHR.responseText) {
-    			$(IOWAIT_ERROR_TEXT).text(jqXHR.responseText);     
-        	}
-		},
-		fetchUsedDiskSpace: function () {
-			$(DISKSPACEUSED_SPINNER).show();
-			dashboardHandler.fetchUsedDiskSpace();       	
-        },
-        fetchUsedDiskSpaceSuccess: function(result){
-			$(DISKSPACEUSED_SPINNER).hide();
-			var keys = Object.keys(result);
-			
-			if(keys.length == 0){
-				$(DISKSPACEUSED_CONTAINER).hide();
-				$(DISKSPACEUSED_ERROR_TEXT).text("No data available");
-				$(DISKSPACEUSED_ERROR_TEXT).show();				
-			}else{
-				$(DISKSPACEUSED_CONTAINER).show();
-				$(DISKSPACEUSED_ERROR_TEXT).hide();
-
-				var seriesData = [];
-				$.each(keys, function(index, value){
-					seriesData.push({x: value*1, y: result[value]});
-				});
-				if(diskSpaceUsedGraph == null) {
-					diskSpaceUsedGraph = Morris.Line({
-						element: 'spaceused-chart',
-						data: seriesData,
-						xkey:'x',
-						ykeys:['y'],
-						labels: [],
-						pointSize: '0.0',
-						hideHover: 'auto',
-						resize:true,
-						xLabelFormat: function(x){
-							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
-						},
-						hoverCallback: function (index, options, content, row) {
-							  return "Disk Space Used : " + row.y.toFixed(2) + "%<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
-							}
-					});
-				}else{
-					diskSpaceUsedGraph.setData(seriesData);
-				}
-			}
-		},
-		fetchUsedDiskSpaceError: function(jqXHR, res, error){
-			$(DISKSPACEUSED_SPINNER).hide();
-        	$(DISKSPACEUSED_CONTAINER).hide();
-        	$(DISKSPACEUSED_ERROR_TEXT).show();
-        	if (jqXHR.responseText) {
-    			$(DISKSPACEUSED_ERROR_TEXT).text(jqXHR.responseText);     
-        	}
-		},
-		fetchGCTime: function(){
-			$(GCTIME_SPINNER).show();
-			dashboardHandler.fetchGCTime(); 			
-		},
-		fetchGCTimeSuccess: function(result){
-			$(GCTIME_SPINNER).hide();
-			var keys = Object.keys(result);
-			
-			if(keys.length == 0){
-				$(GCTIME_CONTAINER).hide();
-				$(GCTIME_ERROR_TEXT).text("No data available");
-				$(GCTIME_ERROR_TEXT).show();				
-			}else{
-				$(GCTIME_CONTAINER).show();
-				$(GCTIME_ERROR_TEXT).hide();
-
-				var seriesData = [];
-				$.each(keys, function(index, value){
-					seriesData.push({x: value*1, y: result[value]});
-				});
-				if(gctimeGraph == null) {
-					gctimeGraph = Morris.Line({
-						element: 'gctime-chart',
-						data: seriesData,
-						xkey:'x',
-						ykeys:['y'],
-						labels: [],
-						pointSize: '0.0',
-						hideHover: 'auto',
-						resize:true,
-						xLabelFormat: function(x){
-							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
-						},
-						hoverCallback: function (index, options, content, row) {
-							  return "GC Time : " + row.y.toFixed(2) + "msec<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
-							}
-					});
-				}else{
-					gctimeGraph.setData(seriesData);
-				}
-			}
-		},
-		fetchGCTimeError: function(jqXHR, res, error){
-			$(GCTIME_SPINNER).hide();
-        	$(GCTIME_CONTAINER).hide();
-        	$(GCTIME_ERROR_TEXT).show();
-        	if (jqXHR.responseText) {
-    			$(GCTIME_ERROR_TEXT).text(jqXHR.responseText);     
-        	}			
-		},
-		fetchRegionServerMemoryUsage: function(){
-			$(RSRVR_MEMORY_SPINNER).show();
-			dashboardHandler.fetchRegionServerMemoryUsage(); 				
-		},
-		fetchRegionServerMemoryUsageSuccess: function(result){
-			$(RSRVR_MEMORY_SPINNER).hide();
-			var keys = Object.keys(result);
-			
-			if(keys.length == 0){
-				$(RSRVR_MEMORY_CONTAINER).hide();
-				$(RSRVR_MEMORY_ERROR_TEXT).text("No data available");
-				$(RSRVR_MEMORY_ERROR_TEXT).show();				
-			}else{
-				$(RSRVR_MEMORY_CONTAINER).show();
-				$(RSRVR_MEMORY_ERROR_TEXT).hide();
-
-				var seriesData = [];
-				$.each(keys, function(index, value){
-					seriesData.push({x: value*1, y: result[value]});
-				});
-				if(regionserverMemGraph == null) {
-					regionserverMemGraph = Morris.Line({
-						element: 'regionserverMem-chart',
-						data: seriesData,
-						xkey:'x',
-						ykeys:['y'],
-						labels: [],
-						pointSize: '0.0',
-						hideHover: 'auto',
-						resize:true,
-						xLabelFormat: function(x){
-							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
-						},
-						hoverCallback: function (index, options, content, row) {
-							  return "Memory Usage : " + row.y.toFixed(2) + "MB<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
-							}
-					});
-				}else{
-					regionserverMemGraph.setData(seriesData);
-				}
-			}
-		},
-		fetchRegionServerMemoryUsageError: function(jqXHR, res, error){
-			$(RSRVR_MEMORY_SPINNER).hide();
-        	$(RSRVR_MEMORY_CONTAINER).hide();
-        	$(RSRVR_MEMORY_ERROR_TEXT).show();
-        	if (jqXHR.responseText) {
-    			$(RSRVR_MEMORY_ERROR_TEXT).text(jqXHR.responseText);     
-        	}			
-		},		
-		fetchMemStoreSize: function(){
-			$(MEMSTORE_SPINNER).show();
-			dashboardHandler.fetchMemStoreSize(); 				
-		},
-		fetchMemStoreSizeSuccess: function(result){
-			$(MEMSTORE_SPINNER).hide();
-			var keys = Object.keys(result);
-			
-			if(keys.length == 0){
-				$(MEMSTORE_CONTAINER).hide();
-				$(MEMSTORE_ERROR_TEXT).text("No data available");
-				$(MEMSTORE_ERROR_TEXT).show();				
-			}else{
-				$(MEMSTORE_CONTAINER).show();
-				$(MEMSTORE_ERROR_TEXT).hide();
-
-				var seriesData = [];
-				$.each(keys, function(index, value){
-					seriesData.push({x: value*1, y: result[value]});
-				});
-				if(memStoreGraph == null) {
-					memStoreGraph = Morris.Line({
-						element: 'memStore-chart',
+				var graph = renderedCharts[result.metricName];
+				
+				if(graph == null) {
+					graph = Morris.Line({
+						element: metricConfig.graphcontainer,
 						data: seriesData,
 						xkey:'x',
 						ykeys:['y'],
@@ -749,150 +501,48 @@ define([
 						hideHover: 'auto',
 						resize:true,
 						yLabelFormat: function(y){
-							return common.convertToMB(y);
-						},
+							if(metricConfig.yLabelFormat){
+								return metricConfig.yLabelFormat(y);
+							}
+							return y;
+						},						
 						xLabelFormat: function(x){
-							return common.toServerLocalDateFromUtcMilliSeconds(x,'HH:mm');
+							return common.toServerLocalDateFromUtcMilliSeconds(x.getTime(),'HH:mm');
 						},
 						hoverCallback: function (index, options, content, row) {
-							  return "Memstore Size : " + common.convertToMB(row.y) + "MB<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
+		        			var toolTipText = "";
+							if(metricConfig.ylabel){
+								toolTipText += metricConfig.ylabel + " : ";
+							}
+							if(metricConfig.yvalformatter){
+								toolTipText += metricConfig.yvalformatter(row.y.toFixed(2));
+							}else{
+								toolTipText += row.y.toFixed(2);
+							}
+							if(metricConfig.ylabelunit){
+								toolTipText += metricConfig.ylabelunit;
+							}
+							toolTipText += "<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
+							  return toolTipText
 							}
 					});
+					renderedCharts[result.metricName] = graph;
 				}else{
-					memStoreGraph.setData(seriesData);
+					graph.setData(seriesData);
 				}
 			}
 		},
-		fetchMemStoreSizeError: function(jqXHR, res, error){
-			$(MEMSTORE_SPINNER).hide();
-        	$(MEMSTORE_CONTAINER).hide();
-        	$(MEMSTORE_ERROR_TEXT).show();
-        	if (jqXHR.responseText) {
-    			$(MEMSTORE_ERROR_TEXT).text(jqXHR.responseText);     
-        	}			
-		},
-		fetchCPUData: function () {
-			_this.showLoading();
-			dashboardHandler.fetchCPUData();
-		},
-
-		displayCPUGraph: function (result){
-			_this.hideLoading();
-			var keys = Object.keys(result);
-			var seriesData = [];
-			$.each(keys, function(index, value){
-				seriesData.push({x: value*1000, y: result[value]});
-			});
-			if(cpuGraph == null) {
-				cpuGraph = Morris.Line({
-					element: 'cpu-area-chart',
-					data: seriesData,
-					xkey:'x',
-					ykeys:['y'],
-					labels: [],
-					hideHover: 'auto',
-					hoverCallback: function (index, options, content, row) {
-						  return "CPU Usage : " + row.y + "<br/>Time : " + row.x;
-						}
-				});
-			}else{
-				cpuGraph.setData(seriesData);
+		fetchSummaryMetricError: function(jqXHR, res, error){
+			if(jqXHR.metricName){
+				var metricConfig = chartConfig[result.metricName];
+				$(metricConfig.spinner).hide();
+	        	$('#'+metricConfig.graphcontainer).hide();
+	        	$(metricConfig.errorcontainer).show();
+	        	if (jqXHR.responseText) {
+	    			$(metricConfig.errorcontainer).text(jqXHR.responseText);     
+	        	}				
 			}
-		},
-		
-		fetchDiskReads: function () {
-			$('#readLoadingImg').show();
-			dashboardHandler.fetchDiskReads();
-		},
-		fetchDiskReadsSuccess: function(result){
-			$('#readLoadingImg').hide();
-			var keys = Object.keys(result);
-			var seriesData = [];
-			$.each(keys, function(index, value){
-				seriesData.push({x: value*1000, y: result[value]});
-			});
-			if(diskReadsGraph == null) {
-				diskReadsGraph = Morris.Line({
-					element: 'read-requests-chart',
-					data: seriesData,
-					xkey:'x',
-					ykeys:['y'],
-					labels: [],
-					hideHover: 'auto',
-					resize:true,
-					hoverCallback: function (index, options, content, row) {
-						  return "Disk Reads : " + row.y + "<br/>Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x);
-						}
-				});
-			}else{
-				diskReadsGraph.setData(seriesData);
-			}			
-		},
-		fetchDiskReadsError: function(){
-			$('#readLoadingImg').hide();
-		},
-		
-		fetchDiskWrites: function () {
-			$('#writesLoadingImg').hide();
-			dashboardHandler.fetchDiskWrites();
-		},
-		fetchDiskWritesSuccess: function(result){
-			$('#writesLoadingImg').hide();
-			var keys = Object.keys(result);
-			var seriesData = [];
-			$.each(keys, function(index, value){
-				seriesData.push({x: value*1000, y: result[value]});
-			});
-			if(diskWritesGraph == null) {
-				diskWritesGraph = Morris.Line({
-					element: 'write-requests-chart',
-					data: seriesData,
-					xkey:'x',
-					ykeys:['y'],
-					labels: [],
-					hideHover: 'auto',
-					hoverCallback: function (index, options, content, row) {
-						  return "Disk Writes : " + row.y.toFixed(2) + "<br/>Time : " + row.x;
-						}
-				});
-			}else{
-				diskWritesGraph.setData(seriesData);
-			}
-		},
-		fetchDiskWritesError: function(){
-			$('#writesLoadingImg').hide();
-		},
-	
-		fetchGetOps: function () {
-			$('#thruputLoadingImg').hide();
-			dashboardHandler.fetchGetOps();
-		},
-		fetchGetOpsSuccess: function(result){
-			$('#thruputLoadingImg').hide();
-			var keys = Object.keys(result);
-			var seriesData = [];
-			$.each(keys, function(index, value){
-				seriesData.push({x: value*1000, y: result[value]});
-			});
-			if(getOpsGraph == null) {
-				getOpsGraph = Morris.Line({
-					element: 'throughput-chart',
-					data: seriesData,
-					xkey:'x',
-					ykeys:['y'],
-					labels: [],
-					hideHover: 'auto',
-					hoverCallback: function (index, options, content, row) {
-						  return "Throughput : " + row.y.toFixed(2) + "<br/>Time : " + row.x;
-						}
-				});
-			}else{
-				getOpsGraph.setData(seriesData);
-			}
-		},
-		fetchGetOpsError: function(jqXHR, res, error){
-			$('#thruputLoadingImg').hide();
-		},
+		},		
 
         showErrorMessage: function (jqXHR) {
         	_this.hideLoading();
