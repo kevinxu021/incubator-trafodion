@@ -132,6 +132,8 @@ public class RESTProcessor {
 						+ javax.xml.bind.DatatypeConverter.printBase64Binary(a.authorization.getBytes());
 				conn.setRequestProperty("Authorization", basicAuth);
 			}
+			conn.setConnectTimeout(10000); // 10secs
+			conn.setReadTimeout(15000); // 10secs
 
 			if (a.method != null && a.method.equalsIgnoreCase("delete")) {
 				conn.setDoOutput(true);
