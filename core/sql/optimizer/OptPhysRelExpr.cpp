@@ -16547,6 +16547,20 @@ RelInternalSP::costMethod() const
 } // RelInternalSP::costMethod()
 //<pb>
 
+CostMethod *
+HbaseDelete::costMethod() const
+{
+  if (CmpCommon::getDefault(HBASE_DELETE_COSTING) == DF_OFF)
+    // RelExpr::costMethod() costin returns a cost 1 cost object. This
+    // is the old behavior before the new costing code was written.
+    return RelExpr::costMethod();
+
+  static THREAD_P CostMethodHbaseDelete *m = NULL;
+  if (m == NULL)
+    m = new (GetCliGlobals()->exCollHeap()) CostMethodHbaseDelete();
+  return m;
+} // HbaseDelete::costMethod()
+
 PhysicalProperty*
 HbaseDelete::synthPhysicalProperty(const Context* myContext,
                                    const Lng32     planNumber,
@@ -16580,6 +16594,20 @@ HbaseDelete::synthPhysicalProperty(const Context* myContext,
   return sppForMe ;
 
 } // HbaseDelete::synthPhysicalProperty()
+
+CostMethod *
+HbaseUpdate::costMethod() const
+{
+  if (CmpCommon::getDefault(HBASE_UPDATE_COSTING) == DF_OFF)
+    // RelExpr::costMethod() costing returns a cost 1 cost object. This
+    // is the old behavior before the new costing code was written.
+    return RelExpr::costMethod();
+
+  static THREAD_P CostMethodHbaseUpdate *m = NULL;
+  if (m == NULL)
+    m = new (GetCliGlobals()->exCollHeap()) CostMethodHbaseUpdate();
+  return m;
+} // HbaseUpdate::costMethod()
 
 PhysicalProperty*
 HbaseUpdate::synthPhysicalProperty(const Context* myContext,
