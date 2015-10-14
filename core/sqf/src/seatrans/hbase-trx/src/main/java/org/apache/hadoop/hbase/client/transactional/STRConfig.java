@@ -113,11 +113,23 @@ public class STRConfig {
 				 int           pv_peer_num)
 	throws InterruptedException, KeeperException, IOException 
     {
-	if (LOG.isTraceEnabled()) LOG.trace("Putting peer info in the map for cluster id: " + pv_peer_num);
+	if (LOG.isTraceEnabled()) LOG.trace("Adding config info in the map for cluster id: " + pv_peer_num
+					    + " peer config: " + pv_config.get(ZK_QUORUM));
 	peer_configs.put(pv_peer_num, pv_config);
-	
-	HConnection lv_connection = HConnectionManager.createConnection(pv_config);
-	peer_connections.put(pv_peer_num, lv_connection);
+	if (LOG.isTraceEnabled()) LOG.trace("Added config info in the peer_configs map for cluster id: " + pv_peer_num);
+
+	try {
+	    HConnection lv_connection = HConnectionManager.createConnection(pv_config);
+	    if (LOG.isTraceEnabled()) LOG.trace("Created connection for peer: " + pv_peer_num
+						+ " connection: " + lv_connection);
+	    peer_connections.put(pv_peer_num, lv_connection);
+	    if (LOG.isTraceEnabled()) LOG.trace("Added connection in the peer_connections map for cluster id: " + pv_peer_num);
+	}
+	catch (Exception e) {
+	    LOG.error("Exception while creating the connection: " + e);
+	    e.printStackTrace();
+	    LOG.error("cause: " + e.getCause());
+	}
 
 	if (LOG.isInfoEnabled()) LOG.info("peer#" 
 					  + pv_peer_num 

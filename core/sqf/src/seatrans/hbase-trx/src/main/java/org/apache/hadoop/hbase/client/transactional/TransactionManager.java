@@ -60,6 +60,7 @@ import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HTable;
@@ -260,7 +261,7 @@ public class TransactionManager {
         transactionState = txState;
         this.location = location;
         try {
-        table = new HTable(location.getRegionInfo().getTable(), connection, cp_tpe);
+	    table = new HTable(location.getRegionInfo().getTable(), (Connection) connection, cp_tpe);
         } catch(IOException e) {
           e.printStackTrace();
           LOG.error("Error obtaining HTable instance");
@@ -3067,7 +3068,7 @@ public class TransactionManager {
             	endKey = TransactionManager.binaryIncrementPos(endKey, -1);
             
 	    //TBD : The parameter '0' to getPeerConnections().get() may need to be something else
-            table = new HTable(regionInfo.getTable(), pSTRConfig.getPeerConnections().get(0), cp_tpe);
+            table = new HTable(regionInfo.getTable(), (Connection) pSTRConfig.getPeerConnections().get(0), cp_tpe);
          
             Map<byte[], RecoveryRequestResponse> rresult = null;   
             try {

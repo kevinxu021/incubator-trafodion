@@ -311,4 +311,12 @@ public class TransactionalScanner extends AbstractClientScanner {
             return null;
         }
     }
+
+    /**                                                                                                                                        * Allow the client to renew the scanner's lease on the server.                                                                            * @return true if the lease was successfully renewed, false otherwise.                                                                    */
+    // Note that this method should be on ResultScanner, but that is marked stable.                                                           // Callers have to cast their instance of ResultScanner to AbstractClientScanner to use this.                                             @Override
+    public boolean renewLease()
+    {
+	return true;
+    }
+
 }

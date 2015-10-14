@@ -21,7 +21,7 @@
 
 # This Makefile is just a thin shell to Maven, which is used to do the real build
 
-BLD_HBASE_APACHE_TRX_JARNAME     =hbase-trx-hbase_98_4-$(TRAFODION_VER).jar
+BLD_HBASE_APACHE_TRX_JARNAME     =hbase-trx-apache1_0_2-$(TRAFODION_VER).jar
 BLD_HBASE_CDH_TRX_JARNAME        =hbase-trx-cdh5_4-$-$(TRAFODION_VER).jar
 BLD_HBASE_MAPR_TRX_JARNAME       =hbase-trx-mapr4_0-$(TRAFODION_VER).jar
 BLD_HBASE_HDP_TRX_JARNAME        =hbase-trx-hdp2_2-$(TRAFODION_VER).jar
@@ -29,12 +29,15 @@ BLD_HBASE_SSCC_TRX_JARNAME       =hbase-trx-sscc-$(TRAFODION_VER).jar
 
 VFILE			    =hbase-trx.jar.versions
 GENVERS			    =./genvers
+UNCOMMENT_STRING	    =./uncomment_string
+REINSTATE_ORIG   	    =./reinstate_orig
 
 .NOTPARALLEL: all
 
 all: build_all
 
 jdk_1_7_cdh:
+	$(REINSTATE_ORIG)
 	$(MAKE) build_chk_cdh
 	set -o pipefail && $(MAVEN) -f pom.xml.cdh package -DskipTests | tee -a build_trx.log
 	cp -pf target/$(BLD_HBASE_CDH_TRX_JARNAME) $(MY_SQROOT)/export/lib
@@ -53,16 +56,19 @@ jdk_1_7_hdp:
 	$(RM) $(VFILE)
 
 jdk_1_7_apache:
+	$(REINSTATE_ORIG)
+	$(UNCOMMENT_STRING) FOR_APACHE
 	$(MAKE) build_chk_apache
 	echo "$(MAVEN) package -DskipTests"
 	echo "### For full Maven output, see file build_trx.log"
 	set -o pipefail && $(MAVEN) -f pom.xml.apache package -DskipTests | tee build_trx.log
 	cp -pf target/$(BLD_HBASE_APACHE_TRX_JARNAME) $(MY_SQROOT)/export/lib
 	$(RM) $(VFILE)
+	$(REINSTATE_ORIG)
 
 #build_all: jdk_1_7_apache jdk_1_7_cdh jdk_1_7_hdp jdk_1_7_mapr
-build_all:jdk_1_7_cdh
-#build_all: jdk_1_7_apache jdk_1_7_cdh
+#build_all:jdk_1_7_cdh
+build_all: jdk_1_7_apache jdk_1_7_cdh
 
 build_chk_apache:
 	$(GENVERS) > $(VFILE)
@@ -89,6 +95,7 @@ clean:
 	$(RM) $(MY_SQROOT)/export/lib/$(BLD_HBASE_CDH_TRX_JARNAME)
 	$(RM) $(MY_SQROOT)/export/lib/$(BLD_HBASE_MAPR_TRX_JARNAME)
 	$(RM) $(MY_SQROOT)/export/lib/$(BLD_HBASE_HDP_TRX_JARNAME)
+	$(REINSTATE_ORIG)
 	-$(MAVEN) -f pom.xml.apache clean | grep ERROR
 	-$(MAVEN) -f pom.xml.cdh clean | grep ERROR
 	-$(MAVEN) -f pom.xml.mapr clean | grep ERROR

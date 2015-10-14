@@ -69,11 +69,10 @@ export MALLOC_ARENA_MAX=1
 export SQ_USE_INTC=0
 
 if [[ "$SQ_BUILD_TYPE" = "release" ]]; then
-  SQ_BTYPE=
+  export SQ_BTYPE=
 else
-  SQ_BTYPE=d
+  export SQ_BTYPE=d
 fi
-export SQ_BTYPE
 export SQ_MBTYPE=$SQ_MTYPE$SQ_BTYPE
 
 # To enable code coverage, set this to 1
@@ -141,8 +140,11 @@ export SQ_HOME=$PWD
 
 export HBASE_TRXDIR=$MY_SQROOT/export/lib
 export HBASE_TRX_JAR=hbase-trx-cdh5_4-${TRAFODION_VER}.jar
-if [[ "$SQ_HBASE_DISTRO" = "HDP" ]]; then
+if [[ "$HBASE_DISTRO" = "HDP" ]]; then
     export HBASE_TRX_JAR=hbase-trx-hdp2_2-${TRAFODION_VER}.jar
+fi
+if [[ "$HBASE_DISTRO" = "APACHE" ]]; then
+    export HBASE_TRX_JAR=hbase-trx-apache1_0_2-${TRAFODION_VER}.jar
 fi
 export DTM_COMMON_JAR=dtm-common-${TRAFODION_VER}.jar
 
