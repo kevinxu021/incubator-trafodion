@@ -292,4 +292,29 @@ public class Helper {
 		ranGen.nextBytes(uniqueID);
 		return (new BigInteger(uniqueID)).toString(16); // Hex
 	}
+
+	public static String getDownSampleOffsetString(long startTime, long endTime) {
+		long timeDiff = endTime - startTime;
+
+		if (timeDiff <= (1 * 60 * 60 * 1000)) {
+			return "30s"; // For 1 hour use all data, which is by default every
+							// 30 seconds
+		} else if (timeDiff <= (6 * 60 * 60 * 1000)) {
+			return "2m"; // For 6 hours, use every 2 min
+		} else if (timeDiff <= (1 * 24 * 60 * 60 * 1000)) {
+			return "15m"; // For 1 day, use every 15 min
+		} else if (timeDiff <= (3 * 24 * 60 * 60 * 1000)) {
+			return "1h"; // For 3 days, use every 1 hour
+		} else if (timeDiff <= (1 * 7 * 24 * 60 * 60 * 1000)) {
+			return "2h"; // For 1 week, use every 2 hours
+		} else if (timeDiff <= (2 * 7 * 24 * 60 * 60 * 1000)) {
+			return "4h"; // For 2 weeks, use every 4 hours
+		} else if (timeDiff <= (long) 1 * 31 * 24 * 60 * 60 * 1000) {
+			return "12h"; // For 1 month use every 12 hours
+		} else if (timeDiff <= (long) 3 * 31 * 24 * 60 * 60 * 1000) {
+			return "1d"; // For 3 months use every 1 day
+		} else {
+			return "1w"; // For longer than 3 months, use every 1 week
+		}
+	}
 }

@@ -171,55 +171,54 @@
 		</query>
 		<query>
 			<name>OPENTSDB_IOWAITS</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:proc.stat.cpu{type=iowait}", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:%4$s-avg-none:proc.stat.cpu{type=iowait}", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_CANARY_RESPONSE</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:esgyndb.mxosrvr.query.rst", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg-none:esgyndb.mxosrvr.query.rst", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_DISK_READS</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:rate:iostat.disk.read_requests", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:rate:%4$s-avg-none:iostat.disk.read_requests", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_DISK_WRITES</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:rate:iostat.disk.write_requests", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:rate:%4$s-avg-none:iostat.disk.write_requests", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_GCTIME</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:rate:hbase.regionserver.jvmmetrics.GcTimeMillis", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:rate:%4$s-avg-none:hbase.regionserver.jvmmetrics.GcTimeMillis", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_LOADAVG_1</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:rate:proc.loadavg.1min", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:rate:%4$s-avg-none:proc.loadavg.1min", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_GETOPS</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:rate:hbase.regionserver.server.Get_num_ops", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:rate:%4$s-avg-none:hbase.regionserver.server.Get_num_ops", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_TRANSACTION_STATS</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&&ms=true&m=sum:rate:esgyndb.dtm.txnaborts&m=sum:rate:esgyndb.dtm.txnbegins&m=sum:rate:esgyndb.dtm.txncommits", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&&ms=true&m=sum:rate:%4$s-avg-none:esgyndb.dtm.txnaborts&m=sum:rate:%4$s-avg-none:esgyndb.dtm.txnbegins&m=sum:rate:%4$s-avg-none:esgyndb.dtm.txncommits", "method":"get"}]]></text>
 		</query>		
 		<query>
 			<name>OPENTSDB_DISK_SPACE_USED</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&&ms=true&m=sum:df.bytes.percentused", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&&ms=true&m=max:%4$s-avg-none:df.bytes.percentused&m=avg:%4$s-avg-none:df.bytes.percentused&m=min:%4$s-avg-none:df.bytes.percentused", "method":"get"}]]></text>
 		</query>		
 		<query>
 			<name>OPENTSDB_STOREFILE_COUNT</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:hbase.regionserver.server.storeFileCount", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:%4$s-avg-none:hbase.regionserver.server.storeFileCount", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_STOREFILE_SIZE</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:hbase.regionserver.server.storeFileSize", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:%4$s-avg-none:hbase.regionserver.server.storeFileSize", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_REGIONSERVER_MEMORY_USE</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:hbase.regionserver.jvmmetrics.MemHeapUsedM", "method":"get"}]]></text>
-		</query>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=max:%4$s-avg-none:hbase.regionserver.jvmmetrics.MemHeapUsedM&m=avg:%4$s-avg-none:hbase.regionserver.jvmmetrics.MemHeapUsedM&m=min:%4$s-avg-none:hbase.regionserver.jvmmetrics.MemHeapUsedM", "method":"get"}]]></text>		</query>
 		<query>
 			<name>OPENTSDB_REGION_MEMSTORE_SIZE</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:hbase.regionserver.regions.memStoreSize", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:%4$s-avg-none:hbase.regionserver.regions.memStoreSize", "method":"get"}]]></text>
 		</query>
 	</queries>
 </SystemQueries>

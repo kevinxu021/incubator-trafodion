@@ -12,7 +12,6 @@ import java.util.TreeMap;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -20,6 +19,8 @@ import javax.ws.rs.core.Context;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,235 +38,95 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 @Path("/metrics")
 public class OpenTSDBResource {
 	private static final Logger _LOG = LoggerFactory.getLogger(OpenTSDBResource.class);
-
-	@GET
-	@Path("/iowaits/")
-	@Produces("application/json")
-	public String getIOWaits(@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
-			throws EsgynDBMgrException {
-		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
-		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_IOWAITS), openTSDBUri);
-		return getMetric(servletRequest, servletResponse, url);
-	}
-
-	@GET
-	@Path("/cpu/")
-	@Produces("application/json")
-	public String getCPUUsage(@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
-			throws EsgynDBMgrException {
-		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
-		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_CPU_USAGE), openTSDBUri);
-		return getMetric(servletRequest, servletResponse, url);
-	}
-
-	@GET
-	@Path("/memory/")
-	@Produces("application/json")
-	public String getMemoryUsage(@Context HttpServletRequest servletRequest,
-			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
-		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
-		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_MEMORY_USAGE), openTSDBUri);
-		return getMetric(servletRequest, servletResponse, url);
-	}
-
-	@GET
-	@Path("/useddiskspace/")
-	@Produces("application/json")
-	public String getUsedDiskSpace(@Context HttpServletRequest servletRequest,
-			@Context HttpServletResponse servletResponse)
- throws EsgynDBMgrException {
-		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
-		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_DISK_SPACE_USED),
-				openTSDBUri);
-		return getMetric(servletRequest, servletResponse, url);
-	}
-
-	@GET
-	@Path("/diskreads/")
-	@Produces("application/json")
-	public String getDiskReads(@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
-			throws EsgynDBMgrException {
-		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
-		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_DISK_READS), openTSDBUri);
-		return getMetric(servletRequest, servletResponse, url);
-	}
-
-	@GET
-	@Path("/diskwrites/")
-	@Produces("application/json")
-	public String getDiskWrites(@Context HttpServletRequest servletRequest,
-			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
-		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
-		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_DISK_WRITES), openTSDBUri);
-		return getMetric(servletRequest, servletResponse, url);
-	}
-
-	@GET
-	@Path("/getops/")
-	@Produces("application/json")
-	public String getOperationsPerSecond(@Context HttpServletRequest servletRequest,
-			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
-		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
-		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_GETOPS), openTSDBUri);
-		return getMetric(servletRequest, servletResponse, url);
-	}
-
-	@GET
-	@Path("/canary/")
-	@Produces("application/json")
-	public String getCanaryResponse(@Context HttpServletRequest servletRequest,
-			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
-		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
-		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_CANARY_RESPONSE),
-				openTSDBUri);
-		return getMetric(servletRequest, servletResponse, url);
-	}
-
-	@GET
-	@Path("/memstoresize/")
-	@Produces("application/json")
-	public String getRegionMemstoreSize(@Context HttpServletRequest servletRequest,
-			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
-		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
-		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_REGION_MEMSTORE_SIZE),
-				openTSDBUri);
-		return getMetric(servletRequest, servletResponse, url);
-	}
-
-	@GET
-	@Path("/jvmgctime/")
-	@Produces("application/json")
-	public String getJvmGCTime(@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
-			throws EsgynDBMgrException {
-		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
-		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_GCTIME), openTSDBUri);
-		return getMetric(servletRequest, servletResponse, url);
-	}
-
-	@GET
-	@Path("/regionservermemory/")
-	@Produces("application/json")
-	public String getRegionserverMemoryUse(@Context HttpServletRequest servletRequest,
-			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
-		String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
-		String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_REGIONSERVER_MEMORY_USE),
-				openTSDBUri);
-		return getMetric(servletRequest, servletResponse, url);
-	}
-
-	@POST
-	@Path("/transactions/")
-	@Produces("application/json")
-	public TreeMap<String, Object> getTransactionStatistics(ObjectNode obj, @Context HttpServletRequest servletRequest,
-			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
-		String startTime = "";
-		String endTime = "";
-
-		try {
-			if (obj != null) {
-				if (obj.get("startTime") != null) {
-					startTime = obj.get("startTime").textValue();
-				}
-				if (obj.get("endTime") != null) {
-					endTime = obj.get("endTime").textValue();
-				}
-			}
-			DateTime now = new DateTime(DateTimeZone.UTC);
-			if (Helper.IsNullOrEmpty(startTime)) {
-				startTime = Helper.formatDateTime(now.plusHours(-1));
-			}
-			if (Helper.IsNullOrEmpty(endTime)) {
-				endTime = Helper.formatDateTime(now);
-			}
-			String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
-			String url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_TRANSACTION_STATS),
-					openTSDBUri, startTime, endTime);
-			return getMetrics(servletRequest, servletResponse, url);
-		} catch (Exception ex) {
-			_LOG.error("Failed to fetch transaction statistics : " + ex.getMessage());
-			throw new EsgynDBMgrException(ex.getMessage());
-		}
-	}
+	public static final DateTimeFormatter utcFmt = DateTimeFormat.forPattern("yyyy/MM/dd-HH:mm:ss").withZoneUTC();
 
 	@POST
 	@Path("/summary/")
 	@Produces("application/json")
-	public String getSummaryMetrics(ObjectNode obj, @Context HttpServletRequest servletRequest,
+	public TreeMap<String, Object> getSummaryMetrics(ObjectNode obj, @Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 		String metricName = "";
-		String startTime = "";
-		String endTime = "";
+		String startTimeStr = "";
+		String endTimeStr = "";
 
 		try {
 			if (obj != null) {
 				if (obj.get("startTime") != null) {
-					startTime = obj.get("startTime").textValue();
+					startTimeStr = obj.get("startTime").textValue();
 				}
 				if (obj.get("endTime") != null) {
-					endTime = obj.get("endTime").textValue();
+					endTimeStr = obj.get("endTime").textValue();
 				}
 				if (obj.get("metricName") != null) {
 					metricName = obj.get("metricName").textValue();
 				}
 			}
 			DateTime now = new DateTime(DateTimeZone.UTC);
-			if (Helper.IsNullOrEmpty(startTime)) {
-				startTime = Helper.formatDateTime(now.plusHours(-1));
+			if (Helper.IsNullOrEmpty(startTimeStr)) {
+				startTimeStr = Helper.formatDateTime(now.plusHours(-1));
 			}
-			if (Helper.IsNullOrEmpty(endTime)) {
-				endTime = Helper.formatDateTime(now);
+			if (Helper.IsNullOrEmpty(endTimeStr)) {
+				endTimeStr = Helper.formatDateTime(now);
 			}
-			String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
+			DateTime startTime = utcFmt.parseDateTime(startTimeStr);
+			DateTime endTime = utcFmt.parseDateTime(endTimeStr);
+			String downSampleOffset = Helper.getDownSampleOffsetString(startTime.getMillis(), endTime.getMillis());
 
+			String openTSDBUri = ConfigurationResource.getInstance().getOpenTSDBUri();
 			String url = "";
 			switch (metricName) {
 			case "iowaits":
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_IOWAITS), openTSDBUri,
-						startTime, endTime);
+						startTimeStr, endTimeStr, downSampleOffset);
+				break;
+			case "transactions":
+				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_TRANSACTION_STATS),
+						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "cpu":
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_CPU_USAGE), openTSDBUri,
-						startTime, endTime);
+						startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "memory":
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_MEMORY_USAGE), openTSDBUri,
-						startTime, endTime);
+						startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "useddiskspace":
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_DISK_SPACE_USED),
-						openTSDBUri, startTime, endTime);
+						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "diskreads":
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_DISK_READS), openTSDBUri,
-						startTime, endTime);
+						startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "diskwrites":
-				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_DISK_WRITES),
-						openTSDBUri);
+				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_DISK_WRITES), openTSDBUri,
+						startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "getops":
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_GETOPS), openTSDBUri,
-						startTime, endTime);
+						startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "memstoresize":
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_REGION_MEMSTORE_SIZE),
-						openTSDBUri, startTime, endTime);
+						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "canary":
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_CANARY_RESPONSE),
-						openTSDBUri, startTime, endTime);
+						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "jvmgctime":
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_GCTIME), openTSDBUri,
-						startTime, endTime);
+						startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "regionservermemory":
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_REGIONSERVER_MEMORY_USE),
-						openTSDBUri, startTime, endTime);
+						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			}
 
-			return getMetric(servletRequest, servletResponse, url);
+			return getMetrics(servletRequest, servletResponse, url);
+
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch metric " + metricName + " : " + ex.getMessage());
 			throw new EsgynDBMgrException(ex.getMessage());
@@ -301,8 +162,7 @@ public class OpenTSDBResource {
 	 * and an array of datapoints for each of the metric
 	 */
 	private TreeMap<String, Object> getMetrics(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
-			String url)
-			throws EsgynDBMgrException {
+			String url) throws EsgynDBMgrException {
 		JsonFactory factory = new JsonFactory();
 		ObjectMapper mapper = new ObjectMapper(factory);
 		Session soc = SessionModel.getSession(servletRequest, servletResponse);
