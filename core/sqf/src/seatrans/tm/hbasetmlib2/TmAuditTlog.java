@@ -192,6 +192,8 @@ public class TmAuditTlog {
    public static final int TLOG_RETRY_ATTEMPTS = 5;
    private int RETRY_ATTEMPTS;
 
+   private static int myClusterId;
+
    /**
     * tlogThreadPool - pool of thread for asynchronous requests
     */
@@ -644,7 +646,7 @@ public class TmAuditTlog {
      try {
         if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval [" + cpInterval + "] in thread " + threadId);
 
-        final long lvAsn = tLogControlPoint.getRecord(String.valueOf(cpInterval));
+        final long lvAsn = tLogControlPoint.getRecord(myClusterId, String.valueOf(cpInterval));
         List<HRegionLocation> regionList;
         Map<ServerName, List<HRegionLocation>> locations = new HashMap<ServerName, List<HRegionLocation>>();
         ServerName servername;
@@ -731,7 +733,7 @@ public class TmAuditTlog {
          intThreads = Integer.parseInt(numThreads);
       }
       tlogThreadPool = Executors.newFixedThreadPool(intThreads);
-      
+
       controlPointDeferred = false;
       forceControlPoint = false;
       try {
@@ -873,6 +875,13 @@ public class TmAuditTlog {
       avgBufferSize   =    0;
       timeIndex       =    new AtomicInteger(1);
 
+      String clusterIdS = System.getenv("MY_CLUSTER_ID");
+      int lv_clusterId = 0;
+      if (clusterIdS != null){
+         lv_clusterId = Integer.parseInt(clusterIdS);
+      }
+      myClusterId = lv_clusterId;
+
       asn = new AtomicLong();  // Monotonically increasing count of write operations
 
       long lvAsn = 0;
@@ -894,7 +903,7 @@ public class TmAuditTlog {
          // write and a system crash and could result in asn numbers
          // being reused.  However this would just mean that some old 
          // records are held onto a bit longer before cleanup and is safe.
-         asn.set(tLogControlPoint.getStartingAuditSeqNum());
+         asn.set(tLogControlPoint.getStartingAuditSeqNum(myClusterId));
       }
       catch (Exception e2){
          if (LOG.isDebugEnabled()) LOG.debug("Exception setting the ASN " + e2);
@@ -938,10 +947,24 @@ public class TmAuditTlog {
       // This control point write needs to be delayed until after recovery completes, 
       // but is here as a placeholder
       if (LOG.isTraceEnabled()) LOG.trace("Starting a control point with asn value " + lvAsn);
-      tLogControlPointNum = tLogControlPoint.doControlPoint(lvAsn);
+      tLogControlPointNum = tLogControlPoint.doControlPoint(myClusterId, lvAsn);
 
       if (LOG.isTraceEnabled()) LOG.trace("Exit constructor()");
       return;
+   }
+
+   public long bumpControlPoint(final int clusterId, final int count) throws IOException {
+      if (LOG.isTraceEnabled()) LOG.trace("bumpControlPoint clusterId: " + clusterId + " count: " + count);
+      // Bump the bump the control point as requested, but make sure our asn is still set properly 
+      // reflecting what is stored in the table.  This ignores 
+      // any asn increments between the last control point
+      // write and a system crash and could result in asn numbers
+      // being reused.  However this would just mean that some old 
+      // records are held onto a bit longer before cleanup and is safe.
+      long lvReturn = tLogControlPoint.bumpControlPoint(clusterId, count);
+      asn.set(lvReturn);
+      if (LOG.isTraceEnabled()) LOG.trace("bumpControlPoint resetting asn to: " + lvReturn);
+      return lvReturn;
    }
 
    public long getNextAuditSeqNum(int nid) throws IOException{
@@ -1370,6 +1393,7 @@ public class TmAuditTlog {
 
          deleteTable = deleteConnection.getTable(TableName.valueOf(lv_tLogName));
          try {
+            boolean scanComplete = false;
             Scan s = new Scan();
             s.setCaching(100);
             s.setCacheBlocks(false);
@@ -1378,13 +1402,23 @@ public class TmAuditTlog {
 
             try {
                for (Result r : ss) {
+                  if (scanComplete){
+                     if (LOG.isTraceEnabled()) LOG.trace("scanComplete");
+                     break;
+                  }
                   for (Cell cell : r.rawCells()) {
                      String valueString = new String(CellUtil.cloneValue(cell));
                      StringTokenizer st = new StringTokenizer(valueString, ",");
                      if (st.hasMoreElements()) {
-                        String asnToken = st.nextElement().toString() ;
-                        String transidToken = st.nextElement().toString() ;
-                        String stateToken = st.nextElement().toString() ;
+                        String asnToken = st.nextElement().toString();
+                        if (Long.parseLong(asnToken) > lvAsn){
+                           if (LOG.isTraceEnabled()) LOG.trace("RawCells asnToken: " + asnToken
+                            		+ " is greater than: " + lvAsn + ".  Scan complete");
+                           scanComplete = true;
+                           break;
+                        }
+                        String transidToken = st.nextElement().toString();
+                        String stateToken = st.nextElement().toString();
                         if (LOG.isTraceEnabled()) LOG.trace("Transid: " + transidToken + " has state: " + stateToken);
                         long tmp_trans = Long.parseLong(transidToken);
                         if (LOG.isTraceEnabled()) LOG.trace("Transid: " + transidToken + " has sequence: " + TransactionState.getTransSeqNum(tmp_trans)
@@ -1444,9 +1478,10 @@ public class TmAuditTlog {
               throw new RuntimeException(e);
            }
            finally {
+              if (LOG.isTraceEnabled()) LOG.trace("deleteAgedEntries closing ResultScanner");
               ss.close();
            }
-           if (LOG.isTraceEnabled()) LOG.trace("attempting to delete list with " + deleteList.size() + " elements");
+           if (LOG.isTraceEnabled()) LOG.trace("attempting to delete list with " + deleteList.size() + " elements from table " + lv_tLogName);
            try {
               deleteTable.delete(deleteList);
            }
@@ -1461,6 +1496,7 @@ public class TmAuditTlog {
         }
         finally {
            try {
+              if (LOG.isTraceEnabled()) LOG.trace("deleteAgedEntries closing table and connection for " + lv_tLogName); 
               deleteTable.close();
               deleteConnection.close();
            }
@@ -1474,13 +1510,13 @@ public class TmAuditTlog {
      return true;
    }
 
-   public long writeControlPointRecords (final Map<Long, TransactionState> map) throws IOException, Exception {
+   public long writeControlPointRecords (final int clusterId, final Map<Long, TransactionState> map) throws IOException, Exception {
       int lv_lockIndex;
       int cpWrites = 0;
       long startTime = System.nanoTime();
       long endTime;
 
-      if (LOG.isTraceEnabled()) LOG.trace("writeControlPointRecords start with map size " + map.size());
+      if (LOG.isTraceEnabled()) LOG.trace("writeControlPointRecords for clusterId " + clusterId + " start with map size " + map.size());
 
       try {
         for (Map.Entry<Long, TransactionState> e : map.entrySet()) {
@@ -1509,7 +1545,7 @@ public class TmAuditTlog {
           LOG.info("writeControlPointRecords ConcurrentModificationException;  delaying control point ");
           // Return the current value rather than incrementing this interval.
           controlPointDeferred = true;
-          return tLogControlPoint.getCurrControlPt() - 1;
+          return tLogControlPoint.getCurrControlPt(clusterId) - 1;
       } 
 
       endTime = System.nanoTime();
@@ -1523,9 +1559,8 @@ public class TmAuditTlog {
 
    }
 
-
-   public long addControlPoint (final Map<Long, TransactionState> map) throws IOException, Exception {
-      if (LOG.isTraceEnabled()) LOG.trace("addControlPoint start with map size " + map.size());
+   public long addControlPoint (final int clusterId, final Map<Long, TransactionState> map) throws IOException, Exception {
+      if (LOG.isInfoEnabled()) LOG.info("addControlPoint start with map size " + map.size());
       long lvCtrlPt = 0L;
       long agedAsn;  // Writes older than this audit seq num will be deleted
       long lvAsn;    // local copy of the asn
@@ -1535,29 +1570,32 @@ public class TmAuditTlog {
       if (controlPointDeferred) {
          // We deferred the control point once already due to concurrency.  We'll synchronize this timeIndex
          synchronized (map) {
-            if (LOG.isTraceEnabled()) LOG.trace("Writing synchronized control point records");
-            lvAsn = writeControlPointRecords(map);
+            if (LOG.isTraceEnabled()) LOG.trace("Control point was deferred.  Writing synchronized control point records");
+            lvCtrlPt = writeControlPointRecords(clusterId, map);
          }
 
          controlPointDeferred = false;
       }
       else {
-         lvAsn = writeControlPointRecords(map);
-         if (lvAsn != -1L){
-            return lvAsn;
+         if (LOG.isTraceEnabled()) LOG.trace("Writing asynch control point records");
+         lvCtrlPt = writeControlPointRecords(clusterId, map);
+         if (controlPointDeferred){
+            if (LOG.isTraceEnabled()) LOG.trace("Write asynch control point records did not complete successfully; control point deferred");
+            return lvCtrlPt;  // should return -1 indicating the control point didn't complete successfully
          }
       }
 
       try {
          lvAsn = asn.getAndIncrement();
+         if (LOG.isTraceEnabled()) LOG.trace("lvAsn reset to: " + lvAsn);
 
          // Write the control point interval and the ASN to the control point table
-         lvCtrlPt = tLogControlPoint.doControlPoint(lvAsn); 
+         lvCtrlPt = tLogControlPoint.doControlPoint(clusterId, lvAsn);
 
          if ((lvCtrlPt - 5) > 0){  // We'll keep 5 control points of audit
             try {
-               agedAsn = tLogControlPoint.getRecord(String.valueOf(lvCtrlPt - 5));
-               if ((agedAsn > 0) && (lvCtrlPt % 5 == 0)){
+               agedAsn = tLogControlPoint.getRecord(clusterId, String.valueOf(lvCtrlPt - 5));
+               if (agedAsn > 0){
                   try {
                      if (LOG.isTraceEnabled()) LOG.trace("Attempting to remove TLOG writes older than asn " + agedAsn);
                      deleteAgedEntries(agedAsn);
@@ -1568,7 +1606,7 @@ public class TmAuditTlog {
                   }
                }
                try {
-                  tLogControlPoint.deleteAgedRecords(lvCtrlPt - 5);
+                  tLogControlPoint.deleteAgedRecords(clusterId, lvCtrlPt - 5);
                }
                catch (Exception e){
                   if (LOG.isDebugEnabled()) LOG.debug("addControlPoint - control point record not found ");
@@ -1585,7 +1623,7 @@ public class TmAuditTlog {
           e.printStackTrace();
           throw e;
       }
-      if (LOG.isTraceEnabled()) LOG.trace("addControlPoint returning " + lvCtrlPt);
+      if (LOG.isInfoEnabled()) LOG.info("addControlPoint returning " + lvCtrlPt);
       return lvCtrlPt;
    } 
 
