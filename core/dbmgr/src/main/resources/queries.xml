@@ -203,7 +203,7 @@
 		</query>		
 		<query>
 			<name>OPENTSDB_DISK_SPACE_USED</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&&ms=true&m=sum:%4$s-avg-none:df.bytes.percentused", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&&ms=true&m=max:%4$s-avg-none:df.bytes.percentused&m=avg:%4$s-avg-none:df.bytes.percentused&m=min:%4$s-avg-none:df.bytes.percentused", "method":"get"}]]></text>
 		</query>		
 		<query>
 			<name>OPENTSDB_STOREFILE_COUNT</name>

@@ -85,9 +85,9 @@ define([
 						errorcontainer:"#iowaits-error-text"
 					},
 					useddiskspace:{
-						chartType: "Line",
+						chartType: "Area",
 						xtimemultiplier: 1,
-						ylabels: "Disk Space Used",
+						ylabels: ["Max. Usage", "Avg. Usage", "Min. Usage"],
 						yunit: "%",
 						spinner:"#useddiskspace-spinner",
 						graphcontainer:"useddiskspace-chart",
@@ -460,14 +460,21 @@ define([
 				});
 
 				var graph = renderedCharts[result.metricName];
-				
+				var yLabelArray = [];
+				if(metricConfig.ylabels){
+					if($.isArray(metricConfig.ylabels)){
+						yLabelArray = metricConfig.ylabels;
+					}else{
+						yLabelArray.push(metricConfig.ylabels);
+					}
+				}				
 				var options = {
 						element: metricConfig.graphcontainer,
 						data: seriesData,
 						lineWidth:2,
 						xkey:'x',
 						ykeys:ykeys,
-						labels: [],
+						labels: yLabelArray,
 						pointSize: '0.0',
 						hideHover: 'auto',
 						resize:true,
@@ -478,33 +485,36 @@ define([
 							return y;
 						},						
 						hoverCallback: function (index, options, content, row) {
-							var toolTipText = "";
+							var newContent = [];
+							
 							var nDecimals = 2;
 							if(metricConfig.ydecimals != null){
 								nDecimals = metricConfig.ydecimals;
 							}
-							if(metricConfig.ylabels){
-								var yLabelArray = [];
-								if($.isArray(metricConfig.ylabels)){
-									yLabelArray = metricConfig.ylabels;
-								}else{
-									yLabelArray.push(metricConfig.ylabels);
+							var yPoint = 0;
+							$.each($(content), function(i, v){
+								var aa = 5;
+								if($(v).hasClass('morris-hover-row-label')){
+									$(v).text("Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x));
+									newContent.push($(v));
 								}
-								$.each(yLabelArray, function(i, v){
-									toolTipText += yLabelArray[i] + " : ";
+								if($(v).hasClass('morris-hover-point')){
+									var text = options.labels[yPoint] + " : ";
 									if(metricConfig.yvalformatter){
 
-										toolTipText += metricConfig.yvalformatter(row['y'+i].toFixed(nDecimals));
+										text += metricConfig.yvalformatter(row['y'+yPoint].toFixed(nDecimals));
 									}else{
-										toolTipText += row['y'+i].toFixed(nDecimals);
+										text += row['y'+yPoint].toFixed(nDecimals);
 									}
 									if(metricConfig.yunit){
-										toolTipText += metricConfig.yunit;
+										text += metricConfig.yunit;
 									}
-									toolTipText += '<br>';
-								});
-							}
-							return toolTipText;
+									yPoint++;
+									$(v).text(text);
+									newContent.push($(v));
+								}
+							});
+							return newContent;
 						}
 					};
 
