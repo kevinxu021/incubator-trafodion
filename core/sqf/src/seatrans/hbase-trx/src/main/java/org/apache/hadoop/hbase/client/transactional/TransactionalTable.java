@@ -55,6 +55,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.io.InterruptedIOException;
@@ -64,9 +65,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.KeyValueUtil;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HConnection;
@@ -815,19 +818,19 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
 	
 	// validate for well-formedness
 	public void validatePut(final Put put) throws IllegalArgumentException {
-		if (put.isEmpty()) {
-			throw new IllegalArgumentException("No columns to insert");
-		}
-		if (maxKeyValueSize > 0) {
-			for (List<KeyValue> list : put.getFamilyMap().values()) {		  
-				for (KeyValue kv : list) {
-					if (kv.getLength() > maxKeyValueSize) {
-						throw new IllegalArgumentException(
-								"KeyValue size too large");
-					}
-				}
-			}
-		}
+       if (put.isEmpty()) {
+          throw new IllegalArgumentException("No columns to insert");
+       }
+       if (maxKeyValueSize > 0) {
+          for (List<Cell> list : put.getFamilyCellMap().values()) {		  
+             for (Cell cell : list) {
+                if (KeyValueUtil.length(cell) > maxKeyValueSize){
+                   throw new IllegalArgumentException("Cell size too large: "
+                           + KeyValueUtil.length(cell));
+                }
+             }
+          }
+       }
 	}
 	
 	private int maxKeyValueSize;
