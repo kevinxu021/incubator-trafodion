@@ -169,8 +169,8 @@ def run():
     if not options.tsd_port :
         done = None
         while (done==None) :
-            options.tsd_port = raw_input("Please provide the TSD port(default 4242): ")
-            if not options.tsd_port : options.tsd_port = "4242"
+            options.tsd_port = raw_input("Please provide the TSD port(default 5242): ")
+            if not options.tsd_port : options.tsd_port = "5242"
             if options.tsd_port and options.tsd_port.isdigit(): done = True
             
     if not options.time_zone :

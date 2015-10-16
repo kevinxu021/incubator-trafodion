@@ -187,7 +187,7 @@
 		</query>
 		<query>
 			<name>OPENTSDB_GCTIME</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:rate:%4$s-avg-none:hbase.regionserver.jvmmetrics.GcTimeMillis", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg-none:hbase.regionserver.jvmmetrics.GcTimeMillis", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_LOADAVG_1</name>
@@ -199,11 +199,15 @@
 		</query>
 		<query>
 			<name>OPENTSDB_TRANSACTION_STATS</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&&ms=true&m=sum:rate:%4$s-avg-none:esgyndb.dtm.txnaborts&m=sum:rate:%4$s-avg-none:esgyndb.dtm.txnbegins&m=sum:rate:%4$s-avg-none:esgyndb.dtm.txncommits", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:rate:%4$s-avg-none:esgyndb.dtm.txnaborts&m=sum:rate:%4$s-avg-none:esgyndb.dtm.txnbegins&m=sum:rate:%4$s-avg-none:esgyndb.dtm.txncommits", "method":"get"}]]></text>
 		</query>		
 		<query>
 			<name>OPENTSDB_DISK_SPACE_USED</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&&ms=true&m=max:%4$s-avg-none:df.bytes.percentused&m=avg:%4$s-avg-none:df.bytes.percentused&m=min:%4$s-avg-none:df.bytes.percentused", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg-none:df.bytes.percentused", "method":"get"}]]></text>
+		</query>		
+		<query>
+			<name>OPENTSDB_DISK_SPACE_USED_DRILLDOWN</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg-none:df.bytes.percentused{host=*}", "method":"get"}]]></text>
 		</query>		
 		<query>
 			<name>OPENTSDB_STOREFILE_COUNT</name>
@@ -215,10 +219,10 @@
 		</query>
 		<query>
 			<name>OPENTSDB_REGIONSERVER_MEMORY_USE</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=max:%4$s-avg-none:hbase.regionserver.jvmmetrics.MemHeapUsedM&m=avg:%4$s-avg-none:hbase.regionserver.jvmmetrics.MemHeapUsedM&m=min:%4$s-avg-none:hbase.regionserver.jvmmetrics.MemHeapUsedM", "method":"get"}]]></text>		</query>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg-none:hbase.regionserver.jvmmetrics.MemHeapUsedM", "method":"get"}]]></text>		</query>
 		<query>
 			<name>OPENTSDB_REGION_MEMSTORE_SIZE</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:%4$s-avg-none:hbase.regionserver.regions.memStoreSize", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg-none:hbase.regionserver.regions.memStoreSize", "method":"get"}]]></text>
 		</query>
 	</queries>
 </SystemQueries>
