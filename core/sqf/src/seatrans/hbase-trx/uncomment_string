@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+  return;
+fi
+
+echo "String to uncomment: $1"
+
+lv_fnames=`find -name "*.java" | xargs grep -l $1`
+
+for lv_fname in $lv_fnames; do
+    echo "Uncommenting the string $1 in the file ${lv_fname}"
+    cp -p $lv_fname ${lv_fname}.orig
+    sed -e "s/\/\/$1//" < ${lv_fname}.orig > ${lv_fname}
+done
