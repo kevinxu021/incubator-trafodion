@@ -468,7 +468,7 @@ public class HBaseDCZK implements Abortable {
 	    Configuration lv_config  = null;
 
 	    lv_STRConfig = STRConfig.getInstance(m_config);
-	    lv_config = lv_STRConfig.getPeerConfiguration(Integer.parseInt(pv_cluster_id));
+	    lv_config = lv_STRConfig.getPeerConfiguration(Integer.parseInt(pv_cluster_id), false);
 	    if (lv_config == null) {
 		System.out.println("Peer ID: " + pv_cluster_id + " does not exist OR it has not been configured.");
 		return;
@@ -555,7 +555,7 @@ public class HBaseDCZK implements Abortable {
 	    Configuration lv_config  = null;
 
 	    lv_STRConfig = STRConfig.getInstance(m_config);
-	    lv_config = lv_STRConfig.getPeerConfiguration(Integer.parseInt(pv_cluster_id));
+	    lv_config = lv_STRConfig.getPeerConfiguration(Integer.parseInt(pv_cluster_id), false);
 	    if (lv_config == null) {
 		System.out.println("Peer ID: " + pv_cluster_id + " does not exist OR it has not been configured.");
 		return;
@@ -853,7 +853,7 @@ public class HBaseDCZK implements Abortable {
 	    try {
 		System.setProperty("PEERS", String.valueOf(lv_peer_id));
 		lv_STRConfig = STRConfig.getInstance(lv_config);
-		lv_config = lv_STRConfig.getPeerConfiguration(lv_peer_id);
+		lv_config = lv_STRConfig.getPeerConfiguration(lv_peer_id, false);
 		if (lv_config == null) {
 		    System.out.println("Peer ID: " + lv_peer_id + " does not exist OR it has not been configured.");
 		    System.exit(1);

@@ -207,10 +207,6 @@ public class STRConfig {
 		    continue;
 		}
 
-		if ( ! lv_pi.isSTRUp() ) {
-		    continue;
-		}
-
 		add_peer(pv_config,
 			 lv_pi.get_id(),
 			 lv_pi.get_quorum(),
@@ -244,7 +240,7 @@ public class STRConfig {
 	    return;
 	}
 
-	PeerInfo lv_pi = peer_info_list.get(pv_cluster_id);
+	PeerInfo lv_pi = getPeerInfo(pv_cluster_id);
 	if (lv_pi != null) {
 	    boolean previouslySTRUp = lv_pi.isSTRUp();
 	    lv_pi.set_status(pv_status);
@@ -268,9 +264,31 @@ public class STRConfig {
 	return sv_peer_count;
     }
 
+    public Configuration getPeerConfiguration(int pv_cluster_id, boolean pv_STR_should_be_up) 
+    {
+	if (pv_STR_should_be_up) {
+	    PeerInfo lv_pi = getPeerInfo(pv_cluster_id);
+	    if (lv_pi == null) {
+		return null;
+	    }
+	    if (! lv_pi.isSTRUp()) {
+		return null;
+	    }
+	} 
+
+	return peer_configs.get(pv_cluster_id);
+    }
+
     public Configuration getPeerConfiguration(int pv_cluster_id) 
     {
-	return peer_configs.get(pv_cluster_id);
+	boolean lv_STR_should_be_up_flag;
+	
+	lv_STR_should_be_up_flag = true;
+	if (pv_cluster_id == 0) {
+	    lv_STR_should_be_up_flag = false;
+	}
+	
+	return getPeerConfiguration(pv_cluster_id, lv_STR_should_be_up_flag);
     }
 
     public Map<Integer, Configuration> getPeerConfigurations() 
