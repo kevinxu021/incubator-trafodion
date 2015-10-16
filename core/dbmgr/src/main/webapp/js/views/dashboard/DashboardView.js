@@ -32,6 +32,8 @@ define([
 	NODES_RESULT_CONTAINER = '#nodes-result-container',
 	NODES_ERROR_TEXT = '#nodes-error-text',
 
+	SPACE_DETAILS_BTN = '#spaceDetailsBtn',
+
 	REFRESH_ACTION = '#refreshAction',
 	OPEN_FILTER = '#openFilter';
 
@@ -43,6 +45,7 @@ define([
 	var transConfig = null;
 
 	var servicesTable = null, nodesTable = null;
+	var timeinterval = 0;
 
 	var DashboardView = BaseView.extend({
 		template:  _.template(DashboardT),
@@ -85,10 +88,11 @@ define([
 						errorcontainer:"#iowaits-error-text"
 					},
 					useddiskspace:{
-						chartType: "Area",
+						chartType: "Line",
 						xtimemultiplier: 1,
-						ylabels: ["Max. Usage", "Avg. Usage", "Min. Usage"],
+						ylabels: ["Avg. Memory Usage"],
 						yunit: "%",
+						ymax: 100,
 						spinner:"#useddiskspace-spinner",
 						graphcontainer:"useddiskspace-chart",
 						errorcontainer:"#useddiskspace-error-text"
@@ -98,7 +102,7 @@ define([
 						xtimemultiplier: 1,
 						ylabels: "Memstore Size",
 						yunit: "MB",
-						ylabelsFormat: common.convertToMB,
+						yLabelFormat: common.convertToMB,
 						yvalformatter: common.convertToMB,
 						spinner:"#memstoresize-spinner",
 						graphcontainer:"memstoresize-chart",
@@ -114,9 +118,9 @@ define([
 						errorcontainer:"#jvmgctime-error-text"
 					},
 					regionservermemory:{
-						chartType: "Area",
+						chartType: "Line",
 						xtimemultiplier: 1,
-						ylabels: ["Max. Memory", "Avg. Memory", "Min. Memory"],
+						ylabels: ["Avg. Memory"],
 						yunit: "MB",
 						spinner:"#regionservermemory-spinner",
 						graphcontainer:"regionservermemory-chart",
@@ -127,6 +131,12 @@ define([
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			$(SERVICES_ERROR_TEXT).hide();
 			$(NODES_ERROR_TEXT).hide();
+			$(SPACE_DETAILS_BTN).on('click',this.spaceDetailsClicked);
+			$('#metricsDialog').on('show.bs.modal', function(event, ab){
+				$('#metrics-chart').empty();
+				$('#metrics-spinner').show();
+				dashboardHandler.fetchMetricDrilldown(_this.generateParams("useddiskspace", true));
+			});
 
 			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
 			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
@@ -135,6 +145,8 @@ define([
 
 			dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
 			dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
+			dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
+			dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
 
 			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimer.eventAgg.on(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);
@@ -147,6 +159,7 @@ define([
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			$(SERVICES_ERROR_TEXT).hide();
 			$('#nodes-error-text').hide();
+			$(SPACE_DETAILS_BTN).on('click',this.spaceDetailsClicked);
 
 			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
 			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
@@ -155,6 +168,8 @@ define([
 
 			dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
 			dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
+			dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
+			dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
 
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 
@@ -178,8 +193,11 @@ define([
 
 			dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
 			dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
+			dashboardHandler.off(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
+			dashboardHandler.off(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
 
 			$(REFRESH_ACTION).off('click', this.refreshPage);
+			$(SPACE_DETAILS_BTN).off('click',this.spaceDetailsClicked);
 
 			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimer.eventAgg.off(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);	
@@ -195,7 +213,7 @@ define([
 		timerBeeped: function(){
 			_this.refreshPage();
 		},
-		generateParams: function(metricName){
+		generateParams: function(metricName, isDrilldown){
 			var startTime = $('#startdatetimepicker').data("DateTimePicker").date();
 			var endTime = $('#enddatetimepicker').data("DateTimePicker").date();
 
@@ -203,6 +221,9 @@ define([
 			params.startTime = startTime.format('YYYY/MM/DD-HH:mm:ss');
 			params.endTime = endTime.format('YYYY/MM/DD-HH:mm:ss');
 			params.metricName = metricName;
+			params.isDrilldown = isDrilldown ? isDrilldown : false;
+			params.timeinterval = endTime - startTime;
+			timeinterval = params.timeinterval;
 			return params;
 		},
 		refreshPage: function() {
@@ -429,9 +450,10 @@ define([
 		fetchSummaryMetricSuccess: function(result){
 			var keys = Object.keys(result.data);
 			var metricConfig = chartConfig[result.metricName];
-			$(metricConfig.spinner).hide();
+
 
 			if(keys.length == 0){
+				$(metricConfig.spinner).hide();
 				$('#'+metricConfig.graphcontainer).hide();
 				$(metricConfig.errorcontainer).text("No data available");
 				$(metricConfig.errorcontainer).show();				
@@ -474,62 +496,69 @@ define([
 						lineWidth:2,
 						xkey:'x',
 						ykeys:ykeys,
-						labels: yLabelArray,
-						pointSize: '0.0',
-						hideHover: 'auto',
-						resize:true,
-						ylabelsFormat: function(y){
-							if(metricConfig.ylabelsFormat){
-								return metricConfig.ylabelsFormat(y);
-							}
-							return y;
-						},						
-						hoverCallback: function (index, options, content, row) {
-							var newContent = [];
-							
-							var nDecimals = 2;
-							if(metricConfig.ydecimals != null){
-								nDecimals = metricConfig.ydecimals;
-							}
-							var yPoint = 0;
-							$.each($(content), function(i, v){
-								var aa = 5;
-								if($(v).hasClass('morris-hover-row-label')){
-									$(v).text("Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x));
-									newContent.push($(v));
-								}
-								if($(v).hasClass('morris-hover-point')){
-									var text = options.labels[yPoint] + " : ";
-									if(metricConfig.yvalformatter){
+						ymin:0,
+						ymax: metricConfig.ymax ? metricConfig.ymax: 'auto',
+								labels: yLabelArray,
+								pointSize: '0.0',
+								hideHover: 'auto',
+								resize:true,
+								yLabelFormat: function(y){
+									if(metricConfig.yLabelFormat){
+										return metricConfig.yLabelFormat(y);
+									}
+									return y.toFixed(0);
+								},
+								xLabelFormat:function(x){
+									return common.formatGraphDateLabels(x.getTime(), timeinterval);
+								},
+								hoverCallback: function (index, options, content, row) {
+									var newContent = [];
 
-										text += metricConfig.yvalformatter(row['y'+yPoint].toFixed(nDecimals));
-									}else{
-										text += row['y'+yPoint].toFixed(nDecimals);
+									var nDecimals = 2;
+									if(metricConfig.ydecimals != null){
+										nDecimals = metricConfig.ydecimals;
 									}
-									if(metricConfig.yunit){
-										text += metricConfig.yunit;
-									}
-									yPoint++;
-									$(v).text(text);
-									newContent.push($(v));
+									var yPoint = 0;
+									$.each($(content), function(i, v){
+										var aa = 5;
+										if($(v).hasClass('morris-hover-row-label')){
+											$(v).text("Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x));
+											newContent.push($(v));
+										}
+										if($(v).hasClass('morris-hover-point')){
+											var text = options.labels[yPoint] + " : ";
+											if(metricConfig.yvalformatter){
+
+												text += metricConfig.yvalformatter(row['y'+yPoint].toFixed(nDecimals));
+											}else{
+												text += row['y'+yPoint].toFixed(nDecimals);
+											}
+											if(metricConfig.yunit){
+												text += metricConfig.yunit;
+											}
+											yPoint++;
+											$(v).text(text);
+											newContent.push($(v));
+										}
+									});
+									return newContent;
 								}
-							});
-							return newContent;
+				};
+				setTimeout(function(){
+					$(metricConfig.spinner).hide();
+					if(graph == null) {
+						if(metricConfig.chartType == 'Area'){
+							options.behaveLikeLine = true;
+							graph = Morris.Area(options);
+						}else{
+							graph = Morris.Line(options);
 						}
-					};
 
-				if(graph == null) {
-					if(metricConfig.chartType == 'Area'){
-						options.behaveLikeLine = true;
-						graph = Morris.Area(options);
+						renderedCharts[result.metricName] = graph;
 					}else{
-						graph = Morris.Line(options);
+						graph.setData(seriesData);
 					}
-					
-					renderedCharts[result.metricName] = graph;
-				}else{
-					graph.setData(seriesData);
-				}
+				},1200);
 			}
 		},
 		fetchSummaryMetricError: function(jqXHR, res, error){
@@ -546,7 +575,121 @@ define([
 
 		showErrorMessage: function (jqXHR) {
 			_this.hideLoading();
-		}  
+		},
+		spaceDetailsClicked: function(){
+			_this.displayDetails('useddiskspace');
+		},
+		displayDetails: function(metricName){
+			//dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
+			$('#metricsDialog').modal('show');
+			//$('#metrics-chart').empty();
+		},
+		fetchDrilldownMetricSuccess:function(result){
+			var metricsData = JSON.parse(result.data.metrics);
+			var metricConfig = chartConfig[result.metricName];
+
+			var keys = Object.keys(metricsData);
+
+			if(keys.length == 0){
+				$('#metrics-spinner').hide();
+				$('#metrics-chart').hide();
+				$('#metrics-error-text').text("No data available");
+				$('#metrics-error-text').show();				
+			}else{
+				$('#metrics-chart').show();
+				$('#metrics-error-text').hide();
+
+				var seriesData = [];
+				var ykeys = [];
+
+				var ykeys = [];
+				$.each(metricsData[keys[0]], function(i, v){
+					ykeys.push('y'+i);
+				});
+				$.each(keys, function(index, value){
+					var rowData = {x: metricConfig.xtimemultiplier? value*1000: value};
+					$.each(metricsData[value], function(i, v){
+						if(metricConfig.deltamultiplier){
+							rowData[ykeys[i]] = v * metricConfig.deltamultiplier;	
+						}else{
+							rowData[ykeys[i]] = v;
+						}
+					});
+					//seriesData.push({x: value*1, a: parseInt(result[value][0]*30),b: parseInt(result[value][1]*30),c: parseInt(result[value][2]*30)});
+					seriesData.push(rowData);
+				});
+
+				var graph = null;
+				var yLabelArray = [];
+
+				var options = {
+						element: 'metrics-chart',
+						data: seriesData,
+						lineWidth:2,
+						xkey:'x',
+						ykeys:ykeys,
+						labels: ["Space Used"],
+						pointSize: '0.0',
+						hideHover: 'auto',
+						//resize:true,
+						ymax: metricConfig.ymax ? metricConfig.ymax: 'auto',
+								yLabelFormat: function(y){
+									if(metricConfig.yLabelFormat){
+										return metricConfig.yLabelFormat(y);
+									}
+									return y.toFixed(0);
+								},	
+								xLabelFormat:function(x){
+									return common.formatGraphDateLabels(x.getTime(), timeinterval);
+								},
+								hoverCallback: function (index, options, content, row) {
+									var newContent = [];
+
+									var nDecimals = 2;
+									if(metricConfig.ydecimals != null){
+										nDecimals = metricConfig.ydecimals;
+									}
+									var yPoint = 0;
+									$.each($(content), function(i, v){
+										var aa = 5;
+										if($(v).hasClass('morris-hover-row-label')){
+											$(v).text("Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x));
+											newContent.push($(v));
+										}
+										if($(v).hasClass('morris-hover-point')){
+											var text = options.labels[yPoint] + " : ";
+											if(metricConfig.yvalformatter){
+
+												text += metricConfig.yvalformatter(row['y'+yPoint].toFixed(nDecimals));
+											}else{
+												text += row['y'+yPoint].toFixed(nDecimals);
+											}
+											if(metricConfig.yunit){
+												text += metricConfig.yunit;
+											}
+											yPoint++;
+											$(v).text(text);
+											newContent.push($(v));
+										}
+									});
+									return newContent;
+								}
+				};
+
+				setTimeout(function(){
+					$('#metrics-spinner').hide();
+					if(graph == null) {
+						graph = Morris.Line(options);
+					}else{
+						graph.setData(seriesData);
+					}
+				},1200);
+
+			}			
+		},
+		fetchDrilldownMetricError:function(jqXHR, res, error){
+			var aa =5;
+		}
 	});
 
 
