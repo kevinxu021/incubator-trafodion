@@ -8,7 +8,8 @@ define(['handlers/EventDispatcher'],
 		function(EventDispatcher) {"use strict";
 
 		var DashboardHandler = ( function() {
-
+			var xhrs = [];
+			
 			function DashboardHandler() {
 				var dispatcher = new EventDispatcher();
 				this.TRANSACTION_STATS_SUCCESS = 'transactionsSucccess';
@@ -22,28 +23,12 @@ define(['handlers/EventDispatcher'],
 					window.location.hash = '/stimeout';
 				};
 
-				this.fetchTransactionStats = function(params){
-					$.ajax({
-						url: 'resources/metrics/transactions',
-						type:'POSt',
-						dataType:"json",
-						data: JSON.stringify(params),
-						contentType: "application/json;",
-						statusCode : {
-							401 : _this.sessionTimeout,
-							403 : _this.sessionTimeout
-						},
-						success: function(data){
-							dispatcher.fire(_this.TRANSACTION_STATS_SUCCESS, data);
-						},
-						error:function(jqXHR, res, error){
-							dispatcher.fire(_this.TRANSACTION_STATS_ERROR, jqXHR, res, error);
-						}
-					});
-				};           
-
 				this.fetchSummaryMetric = function(params){
-					$.ajax({
+					var xhr = xhrs[params.metricName];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs[params.metricName] = $.ajax({
 						url: 'resources/metrics/summary',
 						type:'POST',
 						dataType:"json",
