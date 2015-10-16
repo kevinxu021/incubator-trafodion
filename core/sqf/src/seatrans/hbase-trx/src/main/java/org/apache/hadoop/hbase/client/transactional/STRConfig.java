@@ -207,6 +207,10 @@ public class STRConfig {
 		    continue;
 		}
 
+		if ( ! lv_pi.isSTRUp() ) {
+		    continue;
+		}
+
 		add_peer(pv_config,
 			 lv_pi.get_id(),
 			 lv_pi.get_quorum(),

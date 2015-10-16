@@ -759,9 +759,9 @@ EOF
   cat <<EOF >$MY_SW_SCRIPTS_DIR/swstarthbase
 #!/bin/sh
 echo "Starting HBase..."
-cd ${MY_SW_ROOT}/hbase
+cd ${MY_SW_ROOT}
 . $MY_SW_SCRIPTS_DIR/sw_env.sh
-bin/start-hbase.sh
+./hbase/bin/start-hbase.sh
 EOF
 
   cat <<EOF >$MY_SW_SCRIPTS_DIR/swstophbase
