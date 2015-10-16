@@ -28,6 +28,10 @@ all:
 	@echo "Building all Trafodion components"
 	cd core && $(MAKE) all 
 
+rpmbuild: 
+	@echo "Building RPM package for all Trafodion components"
+	cd core && $(MAKE) rpmbuild
+
 package: 
 	@echo "Packaging Trafodion components"
 	cd core && $(MAKE) package 
