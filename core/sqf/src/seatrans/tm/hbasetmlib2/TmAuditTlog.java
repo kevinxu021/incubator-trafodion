@@ -451,14 +451,14 @@ public class TmAuditTlog {
                              }
                              TransactionState ts;
                              TransState lvTxState = TransState.STATE_NOTX;
-                             String recordString =  new String (Bytes.toString(value));
-                             StringTokenizer st = new StringTokenizer(recordString, ",");
+                             StringTokenizer st = new StringTokenizer(Bytes.toString(value), ",");
                              String stateString = new String("NOTX");
                              String transidToken;
                              if (! st.hasMoreElements()) {
                                 continue;
                              }
-                             String asnToken = st.nextElement().toString();
+                             //String asnToken = st.nextElement().toString();
+                             st.nextElement();
                              transidToken = st.nextElement().toString();
                              stateString = st.nextElement().toString();
                              long lvTransid = Long.parseLong(transidToken, 10);
@@ -985,10 +985,7 @@ public class TmAuditTlog {
       long threadId = Thread.currentThread().getId();
       if (LOG.isTraceEnabled()) LOG.trace("putSingleRecord start in thread " + threadId);
       StringBuilder tableString = new StringBuilder();
-      String transidString = new String(String.valueOf(lvTransid));
-      String commitIdString = new String(String.valueOf(lvCommitId));
       boolean lvResult = true;
-      long lvAsn;
       long startSynch = 0;
       long endSynch = 0;
       int lv_lockIndex = 0;
@@ -1024,6 +1021,7 @@ public class TmAuditTlog {
     		  + " in thread " + threadId);
       p = new Put(Bytes.toBytes(key));
 
+      long lvAsn;
       if (recoveryASN == -1){
          // This is a normal audit record so we manage the ASN
          lvAsn = asn.getAndIncrement();
@@ -1035,9 +1033,9 @@ public class TmAuditTlog {
       if (LOG.isTraceEnabled()) LOG.trace("transid: " + lvTransid + " state: " + lvTxState + " ASN: " + lvAsn
     		  + " in thread " + threadId);
       p.add(TLOG_FAMILY, ASN_STATE, Bytes.toBytes(String.valueOf(lvAsn) + ","
-                       + transidString + "," + lvTxState
+                       + String.valueOf(lvTransid) + "," + lvTxState
                        + "," + Bytes.toString(filler)
-                       + "," + commitIdString
+                       + "," + String.valueOf(lvCommitId)
                        + "," + tableString.toString()));
 
 
@@ -1183,15 +1181,8 @@ public class TmAuditTlog {
       long threadId = Thread.currentThread().getId();
       if (LOG.isTraceEnabled()) LOG.trace("initializePut start in thread " + threadId);
       StringBuilder tableString = new StringBuilder();
-      String transidString = new String(String.valueOf(lvTransid));
-      String commitIdString = new String(String.valueOf(lvCommitId));
       long lvAsn;
-      long startSynch = 0;
-      long endSynch = 0;
       int lv_lockIndex = 0;
-      int lv_TimeIndex = (timeIndex.getAndIncrement() % 50 );
-      long lv_TotalWrites = totalWrites.incrementAndGet();
-      long lv_TotalRecords = totalRecords.incrementAndGet();
       if (regions != null) {
          // Regions passed in indicate a state record where recovery might be needed following a crash.
          // To facilitate branch notification we translate the regions into table names that can then
@@ -1218,15 +1209,12 @@ public class TmAuditTlog {
       if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hex: " + Long.toHexString(key) + ", transid: " +  lvTransid);
       p = new Put(Bytes.toBytes(key));
 
-//      if (recoveryASN == -1){
-//         // This is a normal audit record so we manage the ASN
-         lvAsn = asn.getAndIncrement();
-//    }
+      lvAsn = asn.getAndIncrement();
       if (LOG.isTraceEnabled()) LOG.trace("transid: " + lvTransid + " state: " + lvTxState + " ASN: " + lvAsn);
       p.add(TLOG_FAMILY, ASN_STATE, Bytes.toBytes(String.valueOf(lvAsn) + ","
-                       + transidString + "," + lvTxState
+                       + String.valueOf(lvTransid) + "," + lvTxState
                        + "," + Bytes.toString(filler)
-                       + "," + commitIdString
+                       + "," + String.valueOf(lvCommitId)
                        + "," + tableString.toString()));
       if (LOG.isTraceEnabled()) LOG.trace("initializePut returning " + lv_lockIndex);
       return lv_lockIndex;
@@ -1238,7 +1226,6 @@ public class TmAuditTlog {
       String stateString;
       int lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
       try {
-         String transidString = new String(String.valueOf(lvTransid));
          Get g;
          //create our own hashed key
          long lv_seq = TransactionState.getTransSeqNum(lvTransid); 
@@ -1342,8 +1329,8 @@ public class TmAuditTlog {
          g = new Get(Bytes.toBytes(key));
          try {
             Result r = table[lv_lockIndex].get(g);
-            byte [] value = r.getValue(TLOG_FAMILY, ASN_STATE);
-            StringTokenizer st = new StringTokenizer(value.toString(), ",");
+            StringTokenizer st = 
+                 new StringTokenizer(Bytes.toString(r.getValue(TLOG_FAMILY, ASN_STATE)), ",");
             String asnToken = st.nextElement().toString();
             String transidToken = st.nextElement().toString();
             lvTxState = st.nextElement().toString();
@@ -1363,7 +1350,6 @@ public class TmAuditTlog {
 
    public static boolean deleteRecord(final long lvTransid) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("deleteRecord start " + lvTransid);
-      String transidString = new String(String.valueOf(lvTransid));
       int lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
       try {
          Delete d;
@@ -1392,6 +1378,7 @@ public class TmAuditTlog {
          HConnection deleteConnection = HConnectionManager.createConnection(this.config);
 
          deleteTable = deleteConnection.getTable(TableName.valueOf(lv_tLogName));
+         if (LOG.isTraceEnabled()) LOG.trace("delete table is: " + lv_tLogName);
          try {
             boolean scanComplete = false;
             Scan s = new Scan();
@@ -1407,10 +1394,11 @@ public class TmAuditTlog {
                      break;
                   }
                   for (Cell cell : r.rawCells()) {
-                     String valueString = new String(CellUtil.cloneValue(cell));
-                     StringTokenizer st = new StringTokenizer(valueString, ",");
+                     StringTokenizer st = 
+                            new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                      if (st.hasMoreElements()) {
                         String asnToken = st.nextElement().toString();
+                        if (LOG.isTraceEnabled()) LOG.trace("asnToken: " + asnToken);
                         if (Long.parseLong(asnToken) > lvAsn){
                            if (LOG.isTraceEnabled()) LOG.trace("RawCells asnToken: " + asnToken
                             		+ " is greater than: " + lvAsn + ".  Scan complete");
@@ -1420,11 +1408,14 @@ public class TmAuditTlog {
                         String transidToken = st.nextElement().toString();
                         String stateToken = st.nextElement().toString();
                         if (LOG.isTraceEnabled()) LOG.trace("Transid: " + transidToken + " has state: " + stateToken);
-                        long tmp_trans = Long.parseLong(transidToken);
-                        if (LOG.isTraceEnabled()) LOG.trace("Transid: " + transidToken + " has sequence: " + TransactionState.getTransSeqNum(tmp_trans)
-                             + ", node: " + TransactionState.getNodeId(tmp_trans) + ", clusterId: " + TransactionState.getClusterId(tmp_trans));
+                        if (LOG.isTraceEnabled()){
+                           long tmp_trans = Long.parseLong(transidToken);
+                           LOG.trace("Transid: " + transidToken + " has sequence: "
+                                     + TransactionState.getTransSeqNum(tmp_trans)
+                                     + ", node: " + TransactionState.getNodeId(tmp_trans)
+                                     + ", clusterId: " + TransactionState.getClusterId(tmp_trans));
+                        }
                         if ((Long.parseLong(asnToken) < lvAsn) && (stateToken.equals("FORGOTTEN"))) {
-                           String rowKey = new String(r.getRow());
                            Delete del = new Delete(r.getRow());
                            if (LOG.isTraceEnabled()) LOG.trace("adding transid: " + transidToken + " to delete list");
                            deleteList.add(del);
@@ -1432,21 +1423,19 @@ public class TmAuditTlog {
                         else if ((Long.parseLong(asnToken) < lvAsn) &&
                                 (stateToken.equals("COMMITTED") || stateToken.equals("ABORTED"))) {
                            if (ageCommitted) {
-                              String rowKey = new String(r.getRow());
                               Delete del = new Delete(r.getRow());
                               if (LOG.isTraceEnabled()) LOG.trace("adding transid: " + transidToken + " to delete list");
                               deleteList.add(del);
                            }
                            else {
-                              String key = new String(r.getRow());
                               Get get = new Get(r.getRow());
                               get.setMaxVersions(versions);  // will return last n versions of row
                               Result lvResult = deleteTable.get(get);
                              // byte[] b = lvResult.getValue(TLOG_FAMILY, ASN_STATE);  // returns current version of value
                               List<Cell> list = lvResult.getColumnCells(TLOG_FAMILY, ASN_STATE);  // returns all versions of this column
                               for (Cell element : list) {
-                                 String value = new String(CellUtil.cloneValue(element));
-                                 StringTokenizer stok = new StringTokenizer(value, ",");
+                                 StringTokenizer stok =
+                                       new StringTokenizer(Bytes.toString(CellUtil.cloneValue(element)), ",");
                                  if (stok.hasMoreElements()) {
                                     if (LOG.isTraceEnabled()) LOG.trace("Performing secondary search on (" + transidToken + ")");
                                     asnToken = stok.nextElement().toString() ;
@@ -1670,8 +1659,7 @@ public class TmAuditTlog {
                return;
             }
             ts.clearParticipatingRegions();
-            String recordString =  new String (Bytes.toString(value));
-            StringTokenizer st = new StringTokenizer(recordString, ",");
+            StringTokenizer st = new StringTokenizer(Bytes.toString(value), ",");
             if (st.hasMoreElements()) {
                String asnToken = st.nextElement().toString();
                transidToken = st.nextElement().toString();
@@ -1702,15 +1690,13 @@ public class TmAuditTlog {
                // byte[] b = lvResult.getValue(TLOG_FAMILY, ASN_STATE);  // returns current version of value
                List<Cell> list = lvResult.getColumnCells(TLOG_FAMILY, ASN_STATE);  // returns all versions of this column
                for (Cell element : list) {
-                  String stringValue = new String(CellUtil.cloneValue(element));
-                  st = new StringTokenizer(stringValue, ",");
+                  st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(element)), ",");
                   if (st.hasMoreElements()) {
                      if (LOG.isTraceEnabled()) LOG.trace("Performing secondary search on (" + transidToken + ")");
                      String asnToken = st.nextElement().toString() ;
                      transidToken = st.nextElement().toString() ;
                      String stateToken = st.nextElement().toString() ;
                      if ((stateToken.compareTo("COMMITTED") == 0) || (stateToken.compareTo("ABORTED") == 0)) {
-                         String rowKey = new String(r.getRow());
                          if (LOG.isTraceEnabled()) LOG.trace("Secondary search found record for (" + transidToken + ") with state: " + stateToken);
                          lvTxState = (stateToken.compareTo("COMMITTED") == 0 ) ? TransState.STATE_COMMITTED : TransState.STATE_ABORTED;
                          break;

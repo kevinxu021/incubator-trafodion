@@ -179,8 +179,6 @@ public class HBaseAuditControlPoint {
        long lvCpNum = 1;
 
        Get g = new Get(Bytes.toBytes(clusterId));
-       String recordString;
-       String ctrlPtToken;
        if (LOG.isDebugEnabled()) LOG.debug("getCurrControlPt attempting table.get");
        try {
           Result r = table.get(g);
@@ -191,7 +189,7 @@ public class HBaseAuditControlPoint {
           StringTokenizer stok = new StringTokenizer(value, ",");
           if (stok.hasMoreElements()) {
              if (LOG.isTraceEnabled()) LOG.trace("Parsing record in getCurrControlPt");
-             ctrlPtToken = stok.nextElement().toString();
+             String ctrlPtToken = stok.nextElement().toString();
              lvCpNum = Long.parseLong(ctrlPtToken, 10);
              if (LOG.isTraceEnabled()) LOG.trace("Value for getCurrControlPt and clusterId: "
                                + clusterId + " is: " + lvCpNum);
@@ -205,14 +203,10 @@ public class HBaseAuditControlPoint {
 
    public long putRecord(final int clusterId, final long ControlPt, final long startingSequenceNumber) throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("putRecord clusterId: " + clusterId + ", startingSequenceNumber (" + startingSequenceNumber + ")");
-      String controlPtString = new String(String.valueOf(ControlPt));
-      String clusterIdString = new String(String.valueOf(clusterId));
       Put p = new Put(Bytes.toBytes(clusterId));
-      StringBuilder recordString = new StringBuilder();
-      recordString.append(controlPtString);
-      recordString.append(",");
-      recordString.append(String.valueOf(startingSequenceNumber));
-      p.add(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM, Bytes.toBytes(recordString.toString()));
+      p.add(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM, 
+    		  Bytes.toBytes(String.valueOf(ControlPt) + ","
+    	               + String.valueOf(startingSequenceNumber)));
       try {
          if (LOG.isTraceEnabled()) LOG.trace("try table.put with cluster Id: " + clusterId + " and startingSequenceNumber " + startingSequenceNumber);
          table.put(p);
@@ -236,15 +230,13 @@ public class HBaseAuditControlPoint {
       Get g = new Get(Bytes.toBytes(clusterId));
       g.setMaxVersions(versions);  // will return last n versions of row
       g.addColumn(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM);
-      String recordString;
       String ctrlPtToken;
       String asnToken;
       try {
          Result r = table.get(g);
          List<Cell> list = r.getColumnCells(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM);  // returns all versions of this column
          for (Cell element : list) {
-            String value = new String(CellUtil.cloneValue(element));
-            StringTokenizer stok = new StringTokenizer(value, ",");
+            StringTokenizer stok = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(element)), ",");
             if (stok.hasMoreElements()) {
                ctrlPtToken = stok.nextElement().toString();
                if (LOG.isTraceEnabled()) LOG.trace("Parsing record for controlPt (" + ctrlPtToken + ")");
@@ -278,8 +270,6 @@ public class HBaseAuditControlPoint {
       long lvAsn = -1;
 
       Get g = new Get(Bytes.toBytes(clusterId));
-      String recordString;
-      String ctrlPtToken;
       String asnToken;
       if (LOG.isDebugEnabled()) LOG.debug("getStartingAuditSeqNum attempting table.get");
       try {
@@ -291,7 +281,7 @@ public class HBaseAuditControlPoint {
          StringTokenizer stok = new StringTokenizer(value, ",");
          if (stok.hasMoreElements()) {
             if (LOG.isTraceEnabled()) LOG.trace("Parsing record in getStartingAuditSeqNum");
-            ctrlPtToken = stok.nextElement().toString();
+            stok.nextElement();  // skip the control point token
             asnToken = stok.nextElement().toString();
             lvAsn = Long.parseLong(asnToken, 10);
             if (LOG.isTraceEnabled()) LOG.trace("Value for getStartingAuditSeqNum and clusterId: "
@@ -422,14 +412,13 @@ public class HBaseAuditControlPoint {
       Get g = new Get(Bytes.toBytes(clusterId));
       g.setMaxVersions(versions);  // will return last n versions of row
       g.addColumn(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM);
-      String recordString;
       String ctrlPtToken;
       try {
          Result r = table.get(g);
          List<Cell> list = r.getColumnCells(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM);  // returns all versions of this column
          for (Cell cell : list) {
-            String value = new String(CellUtil.cloneValue(cell));
-            StringTokenizer stok = new StringTokenizer(value, ",");
+            StringTokenizer stok = 
+                    new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
             if (stok.hasMoreElements()) {
                ctrlPtToken = stok.nextElement().toString();
                if (LOG.isTraceEnabled()) LOG.trace("Parsing record for controlPoint (" + ctrlPtToken + ")");
