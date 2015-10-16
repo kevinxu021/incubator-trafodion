@@ -69,11 +69,10 @@ export MALLOC_ARENA_MAX=1
 export SQ_USE_INTC=0
 
 if [[ "$SQ_BUILD_TYPE" = "release" ]]; then
-  SQ_BTYPE=
+  export SQ_BTYPE=
 else
-  SQ_BTYPE=d
+  export SQ_BTYPE=d
 fi
-export SQ_BTYPE
 export SQ_MBTYPE=$SQ_MTYPE$SQ_BTYPE
 
 # To enable code coverage, set this to 1
@@ -142,8 +141,14 @@ export SQ_HOME=$PWD
 
 export HBASE_TRXDIR=$MY_SQROOT/export/lib
 export HBASE_TRX_JAR=hbase-trx-cdh5_4-${TRAFODION_VER}.jar
-if [[ "$SQ_HBASE_DISTRO" = "HDP" ]]; then
+export SQL_JAR=trafodion-sql-${TRAFODION_VER}.jar
+if [[ "$HBASE_DISTRO" = "HDP" ]]; then
     export HBASE_TRX_JAR=hbase-trx-hdp2_2-${TRAFODION_VER}.jar
+fi
+if [[ "$HBASE_DISTRO" = "APACHE" ]]; then
+    export HBASE_VERSION_ID=apache1_0_2
+    export HBASE_TRX_JAR=hbase-trx-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
+    export SQL_JAR=trafodion-sql-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
 fi
 export DTM_COMMON_JAR=dtm-common-${TRAFODION_VER}.jar
 
@@ -505,7 +510,7 @@ elif [[ -e $MY_SQROOT/sql/scripts/install_local_hadoop
      && -e $MY_SQROOT/export/bin${SQ_MBTYPE}/monitor
      && -e ${HBASE_TRXDIR}/${HBASE_TRX_JAR}
      && -e $MY_SQROOT/export/lib/${DTM_COMMON_JAR}
-     && -e $MY_SQROOT/export/lib/trafodion-sql-${TRAFODION_VER}.jar
+     && -e $MY_SQROOT/export/lib/${SQL_JAR}
      && -e $MY_SQROOT/export/lib/trafodion-HBaseAccess-${TRAFODION_VER}.jar
      && -e $MY_SQROOT/export/lib/jdbcT2.jar ]]; then
 
@@ -890,7 +895,7 @@ if [[ -n "$SQ_CLASSPATH"   ]]; then SQ_CLASSPATH="$SQ_CLASSPATH:";   fi
 SQ_CLASSPATH=${SQ_CLASSPATH}:\
 ${HBASE_TRXDIR}/${HBASE_TRX_JAR}:\
 $MY_SQROOT/export/lib/${DTM_COMMON_JAR}:\
-$MY_SQROOT/export/lib/trafodion-sql-${TRAFODION_VER}.jar:\
+$MY_SQROOT/export/lib/${SQL_JAR}:\
 $MY_SQROOT/export/lib/jdbcT4.jar:\
 $MY_SQROOT/export/lib/jdbcT2.jar
 

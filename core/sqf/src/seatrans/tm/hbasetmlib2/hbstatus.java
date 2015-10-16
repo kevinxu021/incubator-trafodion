@@ -284,8 +284,8 @@ public class hbstatus {
 		pSTRConfig = STRConfig.getInstance(lv_config);
 		lv_config = pSTRConfig.getPeerConfiguration(lv_peer_id);
 		if (lv_config == null) {
-		    System.out.println("Peer ID: " + lv_peer_id + " does not exist OR it has not been configured.");
-		    System.exit(1);
+		    System.out.println("Peer ID: " + lv_peer_id + " does not exist OR it has not been configured for synchronization.");
+		    System.exit(0);
 		}
 	    }
 	    catch (KeeperException zke) {
