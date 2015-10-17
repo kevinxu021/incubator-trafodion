@@ -72,6 +72,9 @@
 	.dbmgr-graph {
 		min-height:125px;
 	}
+	.dbmgr-drilldown-graph {
+		min-height:400px;
+	}
 	.navbar-default .navbar-nav>li>a {
 		color: white;
 	}

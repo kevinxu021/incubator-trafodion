@@ -32,6 +32,16 @@ define([
 	NODES_RESULT_CONTAINER = '#nodes-result-container',
 	NODES_ERROR_TEXT = '#nodes-error-text',
 
+	IOWAITS_DRILLDOWN_BTN = '#iowaits-drilldown-btn',
+	DISK_SPACE_DRILLDOWN_BTN = '#useddiskspace-drilldown-btn',
+	JVMGC_DRILLDOWN_BTN = '#jvmgctime-drilldown-btn',
+	RSERVER_MEMORY_DRILLDOWN_BTN = '#regionservermemory-drilldown-btn',
+	MEMSTORE_DRILLDOWN_BTN = '#memstoresize-drilldown-btn',
+
+	DRILLDOWN_SPINNER = '#metrics-drilldown-spinner',
+	DRILLDOWN_CHART_CONTAINER = '#metrics-drilldown-chart',
+	DRILLDOWN_ERROR_CONTAINER= '#metrics-drilldown-error-text',
+	
 	REFRESH_ACTION = '#refreshAction',
 	OPEN_FILTER = '#openFilter';
 
@@ -43,6 +53,7 @@ define([
 	var transConfig = null;
 
 	var servicesTable = null, nodesTable = null;
+	var timeinterval = 0;
 
 	var DashboardView = BaseView.extend({
 		template:  _.template(DashboardT),
@@ -54,6 +65,7 @@ define([
 			timeRangeView.init();
 			chartConfig =  {
 					canary:{
+						chartTitle: "Canary Response Time",
 						chartType: "Line",
 						xtimemultiplier: 1000, //sometimes time don't comeback as msecs. so we need a multiplier
 						ylabels: "Canary Response Time", //Used in tooltip
@@ -64,6 +76,7 @@ define([
 						errorcontainer:"#canary-error-text", //element for error text container
 					},
 					transactions:{
+						chartTitle: "Transaction Counts",
 						chartType: "Line",
 						xtimemultiplier: 1,
 						deltamultiplier: 300, //For delta rate/sec counters, multiply by seconds interval to get real delta
@@ -76,6 +89,7 @@ define([
 						errorcontainer:"#transactions-error-text",						
 					},
 					iowaits:{
+						chartTitle: "IO Waits",
 						chartType: "Line",
 						xtimemultiplier: 1000,
 						ylabels: "IO Waits",
@@ -85,26 +99,30 @@ define([
 						errorcontainer:"#iowaits-error-text"
 					},
 					useddiskspace:{
-						chartType: "Area",
+						chartTitle: "Disk Space Usage",
+						chartType: "Line",
 						xtimemultiplier: 1,
-						ylabels: ["Max. Usage", "Avg. Usage", "Min. Usage"],
+						ylabels: ["Avg. Memory Usage"],
 						yunit: "%",
+						ymax: 100,
 						spinner:"#useddiskspace-spinner",
 						graphcontainer:"useddiskspace-chart",
 						errorcontainer:"#useddiskspace-error-text"
 					},
 					memstoresize:{
+						chartTitle: "Memstore Size",
 						chartType: "Line",
 						xtimemultiplier: 1,
 						ylabels: "Memstore Size",
 						yunit: "MB",
-						ylabelsFormat: common.convertToMB,
+						yLabelFormat: common.convertToMB,
 						yvalformatter: common.convertToMB,
 						spinner:"#memstoresize-spinner",
 						graphcontainer:"memstoresize-chart",
 						errorcontainer:"#memstoresize-error-text"
 					},
 					jvmgctime:{
+						chartTitle: "Regionserver JVM GC Time",
 						chartType: "Line",
 						xtimemultiplier: 1,
 						ylabels: "GC Time",
@@ -114,9 +132,10 @@ define([
 						errorcontainer:"#jvmgctime-error-text"
 					},
 					regionservermemory:{
-						chartType: "Area",
+						chartTitle: "Regionserver Memory Usage",
+						chartType: "Line",
 						xtimemultiplier: 1,
-						ylabels: ["Max. Memory", "Avg. Memory", "Min. Memory"],
+						ylabels: ["Avg. Memory"],
 						yunit: "MB",
 						spinner:"#regionservermemory-spinner",
 						graphcontainer:"regionservermemory-chart",
@@ -127,6 +146,17 @@ define([
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			$(SERVICES_ERROR_TEXT).hide();
 			$(NODES_ERROR_TEXT).hide();
+			
+			$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
+			$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
+			$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
+			$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
+			$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
+			
+			$('#metricsDialog').on('show.bs.modal', function(event, ab){
+				$(DRILLDOWN_CHART_CONTAINER).empty();
+				$(DRILLDOWN_SPINNER).show();
+			});
 
 			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
 			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
@@ -135,6 +165,8 @@ define([
 
 			dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
 			dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
+			dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
+			dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
 
 			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimer.eventAgg.on(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);
@@ -148,6 +180,12 @@ define([
 			$(SERVICES_ERROR_TEXT).hide();
 			$('#nodes-error-text').hide();
 
+			$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
+			$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
+			$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
+			$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
+			$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
+
 			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
 			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
 			serverHandler.on(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
@@ -155,6 +193,8 @@ define([
 
 			dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
 			dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
+			dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
+			dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
 
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 
@@ -178,8 +218,15 @@ define([
 
 			dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
 			dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
+			dashboardHandler.off(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
+			dashboardHandler.off(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
 
 			$(REFRESH_ACTION).off('click', this.refreshPage);
+			$(IOWAITS_DRILLDOWN_BTN).off('click',this.iowaitsDrillDown);
+			$(DISK_SPACE_DRILLDOWN_BTN).off('click',this.diskspaceDrillDown);
+			$(JVMGC_DRILLDOWN_BTN).off('click',this.jvmGCDrillDown);
+			$(RSERVER_MEMORY_DRILLDOWN_BTN).off('click',this.rserverMemoryDrillDown);
+			$(MEMSTORE_DRILLDOWN_BTN).off('click',this.memStoreDrillDown);
 
 			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimer.eventAgg.off(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);	
@@ -195,7 +242,7 @@ define([
 		timerBeeped: function(){
 			_this.refreshPage();
 		},
-		generateParams: function(metricName){
+		generateParams: function(metricName, isDrilldown){
 			var startTime = $('#startdatetimepicker').data("DateTimePicker").date();
 			var endTime = $('#enddatetimepicker').data("DateTimePicker").date();
 
@@ -203,6 +250,9 @@ define([
 			params.startTime = startTime.format('YYYY/MM/DD-HH:mm:ss');
 			params.endTime = endTime.format('YYYY/MM/DD-HH:mm:ss');
 			params.metricName = metricName;
+			params.isDrilldown = isDrilldown ? isDrilldown : false;
+			params.timeinterval = endTime - startTime;
+			timeinterval = params.timeinterval;
 			return params;
 		},
 		refreshPage: function() {
@@ -429,9 +479,10 @@ define([
 		fetchSummaryMetricSuccess: function(result){
 			var keys = Object.keys(result.data);
 			var metricConfig = chartConfig[result.metricName];
-			$(metricConfig.spinner).hide();
+
 
 			if(keys.length == 0){
+				$(metricConfig.spinner).hide();
 				$('#'+metricConfig.graphcontainer).hide();
 				$(metricConfig.errorcontainer).text("No data available");
 				$(metricConfig.errorcontainer).show();				
@@ -474,62 +525,69 @@ define([
 						lineWidth:2,
 						xkey:'x',
 						ykeys:ykeys,
-						labels: yLabelArray,
-						pointSize: '0.0',
-						hideHover: 'auto',
-						resize:true,
-						ylabelsFormat: function(y){
-							if(metricConfig.ylabelsFormat){
-								return metricConfig.ylabelsFormat(y);
-							}
-							return y;
-						},						
-						hoverCallback: function (index, options, content, row) {
-							var newContent = [];
-							
-							var nDecimals = 2;
-							if(metricConfig.ydecimals != null){
-								nDecimals = metricConfig.ydecimals;
-							}
-							var yPoint = 0;
-							$.each($(content), function(i, v){
-								var aa = 5;
-								if($(v).hasClass('morris-hover-row-label')){
-									$(v).text("Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x));
-									newContent.push($(v));
-								}
-								if($(v).hasClass('morris-hover-point')){
-									var text = options.labels[yPoint] + " : ";
-									if(metricConfig.yvalformatter){
+						ymin:0,
+						ymax: metricConfig.ymax ? metricConfig.ymax: 'auto',
+								labels: yLabelArray,
+								pointSize: '0.0',
+								hideHover: 'auto',
+								resize:true,
+								yLabelFormat: function(y){
+									if(metricConfig.yLabelFormat){
+										return metricConfig.yLabelFormat(y);
+									}
+									return y.toFixed(0);
+								},
+								xLabelFormat:function(x){
+									return common.formatGraphDateLabels(x.getTime(), timeinterval);
+								},
+								hoverCallback: function (index, options, content, row) {
+									var newContent = [];
 
-										text += metricConfig.yvalformatter(row['y'+yPoint].toFixed(nDecimals));
-									}else{
-										text += row['y'+yPoint].toFixed(nDecimals);
+									var nDecimals = 2;
+									if(metricConfig.ydecimals != null){
+										nDecimals = metricConfig.ydecimals;
 									}
-									if(metricConfig.yunit){
-										text += metricConfig.yunit;
-									}
-									yPoint++;
-									$(v).text(text);
-									newContent.push($(v));
+									var yPoint = 0;
+									$.each($(content), function(i, v){
+										var aa = 5;
+										if($(v).hasClass('morris-hover-row-label')){
+											$(v).text("Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x));
+											newContent.push($(v));
+										}
+										if($(v).hasClass('morris-hover-point')){
+											var text = options.labels[yPoint] + " : ";
+											if(metricConfig.yvalformatter){
+
+												text += metricConfig.yvalformatter(row['y'+yPoint].toFixed(nDecimals));
+											}else{
+												text += row['y'+yPoint].toFixed(nDecimals);
+											}
+											if(metricConfig.yunit){
+												text += metricConfig.yunit;
+											}
+											yPoint++;
+											$(v).text(text);
+											newContent.push($(v));
+										}
+									});
+									return newContent;
 								}
-							});
-							return newContent;
+				};
+				setTimeout(function(){
+					$(metricConfig.spinner).hide();
+					if(graph == null) {
+						if(metricConfig.chartType == 'Area'){
+							options.behaveLikeLine = true;
+							graph = Morris.Area(options);
+						}else{
+							graph = Morris.Line(options);
 						}
-					};
 
-				if(graph == null) {
-					if(metricConfig.chartType == 'Area'){
-						options.behaveLikeLine = true;
-						graph = Morris.Area(options);
+						renderedCharts[result.metricName] = graph;
 					}else{
-						graph = Morris.Line(options);
+						graph.setData(seriesData);
 					}
-					
-					renderedCharts[result.metricName] = graph;
-				}else{
-					graph.setData(seriesData);
-				}
+				},1200);
 			}
 		},
 		fetchSummaryMetricError: function(jqXHR, res, error){
@@ -546,7 +604,150 @@ define([
 
 		showErrorMessage: function (jqXHR) {
 			_this.hideLoading();
-		}  
+			$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
+			$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
+			$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
+			$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
+			$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
+
+		},
+		iowaitsDrillDown: function(){
+			_this.displayDetails('iowaits');
+		},
+		diskspaceDrillDown: function(){
+			_this.displayDetails('useddiskspace');
+		},
+		jvmGCDrillDown: function(){
+			_this.displayDetails('jvmgctime');
+		},
+		rserverMemoryDrillDown: function(){
+			_this.displayDetails('regionservermemory');
+		},
+		memStoreDrillDown: function(){
+			_this.displayDetails('memstoresize');
+		},
+		displayDetails: function(metricName){
+			$('#metricsDialog').modal('show');
+			dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
+		},
+		fetchDrilldownMetricSuccess:function(result){
+			var metricsData = JSON.parse(result.data.metrics);
+			var metricConfig = chartConfig[result.metricName];
+			var tags = result.data.tags;
+			var keys = Object.keys(metricsData);
+			
+			$('#metricsDialogLabel').text(metricConfig.chartTitle);
+			
+			if(keys.length == 0){
+				$(DRILLDOWN_SPINNER).hide();
+				$(DRILLDOWN_CHART_CONTAINER).hide();
+				$(DRILLDOWN_ERROR_CONTAINER).text("No data available");
+				$(DRILLDOWN_ERROR_CONTAINER).show();				
+			}else{
+				$(DRILLDOWN_ERROR_CONTAINER).text("");
+				$(DRILLDOWN_CHART_CONTAINER).show();
+				$(DRILLDOWN_ERROR_CONTAINER).hide();
+
+				var seriesData = [];
+				var ykeys = [];
+
+				var ykeys = [];
+				$.each(metricsData[keys[0]], function(i, v){
+					ykeys.push('y'+i);
+				});
+				$.each(keys, function(index, value){
+					var rowData = {x: metricConfig.xtimemultiplier? value*metricConfig.xtimemultiplier: value};
+					$.each(metricsData[value], function(i, v){
+						if(metricConfig.deltamultiplier){
+							rowData[ykeys[i]] = v * metricConfig.deltamultiplier;	
+						}else{
+							rowData[ykeys[i]] = v;
+						}
+					});
+					//seriesData.push({x: value*1, a: parseInt(result[value][0]*30),b: parseInt(result[value][1]*30),c: parseInt(result[value][2]*30)});
+					seriesData.push(rowData);
+				});
+
+				var graph = null;
+				var yLabelArray = [];
+
+				var options = {
+						element: 'metrics-drilldown-chart',
+						data: seriesData,
+						lineWidth:2,
+						xkey:'x',
+						ykeys:ykeys,
+						labels: tags,
+						pointSize: '2.5',
+						hideHover: 'auto',
+						//resize:true,
+						ymax: metricConfig.ymax ? metricConfig.ymax: 'auto',
+								yLabelFormat: function(y){
+									if(metricConfig.yLabelFormat){
+										return metricConfig.yLabelFormat(y);
+									}
+									return y.toFixed(0);
+								},	
+								xLabelFormat:function(x){
+									return common.formatGraphDateLabels(x.getTime(), timeinterval);
+								},
+								hoverCallback: function (index, options, content, row) {
+									var newContent = [];
+
+									var nDecimals = 2;
+									if(metricConfig.ydecimals != null){
+										nDecimals = metricConfig.ydecimals;
+									}
+									var yPoint = 0;
+									$.each($(content), function(i, v){
+										var aa = 5;
+										if($(v).hasClass('morris-hover-row-label')){
+											$(v).text("Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x));
+											newContent.push($(v));
+										}
+										if($(v).hasClass('morris-hover-point')){
+											var text = options.labels[yPoint] + " : ";
+											if(metricConfig.yvalformatter){
+
+												text += metricConfig.yvalformatter(row['y'+yPoint].toFixed(nDecimals));
+											}else{
+												text += row['y'+yPoint].toFixed(nDecimals);
+											}
+											if(metricConfig.yunit){
+												text += metricConfig.yunit;
+											}
+											yPoint++;
+											$(v).text(text);
+											newContent.push($(v));
+										}
+									});
+									return newContent;
+								}
+				};
+
+				setTimeout(function(){
+					$(DRILLDOWN_SPINNER).hide();
+					if(graph == null) {
+						graph = Morris.Line(options);
+					}else{
+						graph.setData(seriesData);
+					}
+				},1200);
+
+			}			
+		},
+		fetchDrilldownMetricError:function(jqXHR, res, error){
+			var metricConfig = chartConfig[jqXHR.metricName];
+			$('#metricsDialogLabel').text(metricConfig.chartTitle);
+			
+			$(DRILLDOWN_SPINNER).hide();
+			$(DRILLDOWN_CHART_CONTAINER).hide();
+			
+			if (jqXHR.responseText) {
+				$(DRILLDOWN_ERROR_CONTAINER).text(jqXHR.responseText);     
+				$(DRILLDOWN_ERROR_CONTAINER).show();
+			}				
+		}
 	});
 
 

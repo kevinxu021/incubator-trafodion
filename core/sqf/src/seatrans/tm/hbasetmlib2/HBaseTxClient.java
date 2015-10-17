@@ -94,6 +94,7 @@ public class HBaseTxClient {
    private static final int ID_TM_SERVER_TIMEOUT = 1000;
    private static boolean bSynchronized=false;
    protected Map<Integer, TmAuditTlog> peer_tLogs;
+   private static int myClusterId;
 
    public enum AlgorithmType{
      MVCC, SSCC
@@ -220,6 +221,13 @@ public class HBaseTxClient {
       catch (IOException ioe) {
          LOG.error("IO Exception trying to get STRConfig instance: " + ioe);
       }
+      String clusterIdS = System.getenv("MY_CLUSTER_ID");
+      int lv_clusterId = 0;
+      if (clusterIdS != null){
+         lv_clusterId = Integer.parseInt(clusterIdS);
+      }
+      myClusterId = lv_clusterId;
+
       if (pSTRConfig != null) {
          for ( Map.Entry<Integer, Configuration> e : pSTRConfig.getPeerConfigurations().entrySet() ) {
             e.getValue().set("dtmid", String.valueOf(dtmid));
@@ -232,7 +240,6 @@ public class HBaseTxClient {
       this.useRecovThread = false;
       this.stallWhere = 0;
       this.useDDLTrans = false;
-
       String useSSCC = System.getenv("TM_USE_SSCC");
       TRANSACTION_ALGORITHM = AlgorithmType.MVCC;
       if (useSSCC != null)
@@ -1079,7 +1086,7 @@ public class HBaseTxClient {
       if (bSynchronized){
          for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
             try {
-               lv_tLog.addControlPoint(mapTransactionStates);
+               lv_tLog.addControlPoint(myClusterId, mapTransactionStates);
             }
             catch (Exception e) {
                LOG.error("addControlPoint, lv_tLog " + lv_tLog + " EXCEPTION: " + e);
@@ -1090,7 +1097,7 @@ public class HBaseTxClient {
 
       try {
          if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient calling tLog.addControlPoint with mapsize " + mapTransactionStates.size());
-         result = tLog.addControlPoint(mapTransactionStates);
+         result = tLog.addControlPoint(myClusterId, mapTransactionStates);
       }
       catch(IOException e){
           LOG.error("addControlPoint IOException " + e);
