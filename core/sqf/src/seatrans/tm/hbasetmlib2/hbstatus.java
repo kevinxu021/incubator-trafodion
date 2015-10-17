@@ -282,10 +282,10 @@ public class hbstatus {
 		    System.setProperty("PEERS", String.valueOf(lv_peer_id));
 		}
 		pSTRConfig = STRConfig.getInstance(lv_config);
-		lv_config = pSTRConfig.getPeerConfiguration(lv_peer_id);
+		lv_config = pSTRConfig.getPeerConfiguration(lv_peer_id, false);
 		if (lv_config == null) {
 		    System.out.println("Peer ID: " + lv_peer_id + " does not exist OR it has not been configured for synchronization.");
-		    System.exit(0);
+		    System.exit(1);
 		}
 	    }
 	    catch (KeeperException zke) {

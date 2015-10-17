@@ -164,6 +164,9 @@ fi
 
 export SQ_IDTMSRV=1
 
+# Turn on/off generation of Service Monitor
+export SQ_SRVMON=1
+
 export MY_MPI_ROOT="$MY_SQROOT"
 export MPI_ROOT="$MY_SQROOT/opt/hpmpi"
 
