@@ -49,7 +49,7 @@
 		<div class="col-lg-4">
 			<div class="panel panel-default">
 				<div class="panel-heading">
-					<i class="fa fa-bar-chart-o fa-fw"></i> Services <img
+					<i></i> Services <img
 						id="services-spinner" src="img/ajax-loader.gif" />
 				</div>
 				<div class="panel-body">
@@ -92,7 +92,7 @@
 		<div class="col-lg-4">
 			<div class="panel panel-default">
 				<div class="panel-heading">
-					<i class="fa fa-bar-chart-o fa-fw"></i> Nodes <img
+					<i class=""></i> Nodes <img
 						id="nodes-spinner" src="img/ajax-loader.gif" />
 				</div>
 				<div class="panel-body">
@@ -106,8 +106,16 @@
 		<div class="col-lg-4">
 			<div class="panel panel-default">
 				<div class="panel-heading">
-					<i class="fa fa-bar-chart-o fa-fw"></i> IO Waits<img
-						id="iowaits-spinner" src="img/ajax-loader.gif" />
+					<div class="btn-toolbar">
+						<i class="fa fa-bar-chart-o fa-fw"></i> IO Waits<img
+							id="iowaits-spinner" src="img/ajax-loader.gif" />
+						<div class="btn-group pull-right" style="margin-right: 5px">
+							<button id="iowaits-drilldown-btn" type="button"
+								class="btn btn-default btn-xs fa fa-search-plus fa-fw"
+								data-toggle="tooltip" data-placement="left" title="IO Waits per Node"
+								style="height: 30px; width: 30px"></button>
+						</div>
+					</div>
 				</div>
 				<div class="panel-body">
 					<div id="iowaits-chart" class="dbmgr-graph"></div>
@@ -123,8 +131,9 @@
 						<i class="fa fa-bar-chart-o fa-fw"></i> Disk Space Used %<img
 							id="useddiskspace-spinner" src="img/ajax-loader.gif" />
 						<div class="btn-group pull-right" style="margin-right: 5px">
-							<button id="spaceDetailsBtn" type="button"
+							<button id="useddiskspace-drilldown-btn" type="button"
 								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								data-toggle="tooltip" data-placement="left" title="Space usage by Node"
 								style="height: 30px; width: 30px"></button>
 						</div>
 					</div>
@@ -141,8 +150,15 @@
 		<div class="col-lg-4">
 			<div class="panel panel-default">
 				<div class="panel-heading">
-					<i class="fa fa-bar-chart-o fa-fw"></i> GC Time<img
-						id="jvmgctime-spinner" src="img/ajax-loader.gif" />
+					<div class="btn-toolbar">
+						<i class="fa fa-bar-chart-o fa-fw"></i> GC Time<img
+							id="jvmgctime-spinner" src="img/ajax-loader.gif" />
+						<div class="btn-group pull-right" style="margin-right: 5px">
+							<button id="jvmgctime-drilldown-btn" type="button"
+								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								style="height: 30px; width: 30px"></button>
+						</div>	
+					</div>					
 				</div>
 				<div class="panel-body">
 					<div id="jvmgctime-chart" class="dbmgr-graph"></div>
@@ -154,8 +170,15 @@
 		<div class="col-lg-4">
 			<div class="panel panel-default">
 				<div class="panel-heading">
-					<i class="fa fa-bar-chart-o fa-fw"></i> Regionserver Memory Use<img
-						id="regionservermemory-spinner" src="img/ajax-loader.gif" />
+					<div class="btn-toolbar">
+						<i class="fa fa-bar-chart-o fa-fw"></i> Regionserver Memory Use<img
+							id="regionservermemory-spinner" src="img/ajax-loader.gif" />
+						<div class="btn-group pull-right" style="margin-right: 5px">
+							<button id="regionservermemory-drilldown-btn" type="button"
+								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								style="height: 30px; width: 30px"></button>
+						</div>
+					</div>
 				</div>
 				<div class="panel-body">
 					<div id="regionservermemory-chart" class="dbmgr-graph"></div>
@@ -167,8 +190,15 @@
 		<div class="col-lg-4">
 			<div class="panel panel-default">
 				<div class="panel-heading">
-					<i class="fa fa-bar-chart-o fa-fw"></i> Memstore Size <img
-						id="memstoresize-spinner" src="img/ajax-loader.gif" />
+					<div class="btn-toolbar">
+						<i class="fa fa-bar-chart-o fa-fw"></i> Memstore Size <img
+							id="memstoresize-spinner" src="img/ajax-loader.gif" />
+						<div class="btn-group pull-right" style="margin-right: 5px">
+							<button id="memstoresize-drilldown-btn" type="button"
+								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								style="height: 30px; width: 30px"></button>
+						</div>
+					</div>
 				</div>
 				<div class="panel-body">
 					<div id="memstoresize-chart" class="dbmgr-graph"></div>
@@ -189,12 +219,12 @@
 						<span aria-hidden="true">&times;</span>
 					</button>
 					<h4 class="modal-title" id="metricsDialogLabel">Metric Details</h4>
-					<img id="metrics-spinner" src="img/ajax-loader.gif" />
+					<img id="metrics-drilldown-spinner" src="img/ajax-loader.gif" />
 				</div>
 				<div class="modal-body">
 					<form id="filter-form">
-						<div id="metrics-chart" class="dbmgr-drilldown-graph"></div>
-						<label id="metrics-error-text"
+						<div id="metrics-drilldown-chart" class="dbmgr-drilldown-graph"></div>
+						<label id="metrics-drilldown-error-text"
 							style="color: red; height: 120px; overflow: auto;"></label>
 					</form>
 				</div>
