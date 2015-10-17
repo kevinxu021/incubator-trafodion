@@ -85,7 +85,8 @@ public class OpenTSDBResource {
 			String url = "";
 			switch (metricName) {
 			case "iowaits":
-				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_IOWAITS), openTSDBUri,
+				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_IOWAITS_DRILLDOWN),
+						openTSDBUri,
 						startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "transactions":
@@ -117,7 +118,8 @@ public class OpenTSDBResource {
 						startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "memstoresize":
-				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_REGION_MEMSTORE_SIZE),
+				url = String.format(
+						SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_REGION_MEMSTORE_SIZE_DRILLDOWN),
 						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "canary":
@@ -125,11 +127,13 @@ public class OpenTSDBResource {
 						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "jvmgctime":
-				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_GCTIME), openTSDBUri,
+				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_GCTIME_DRILLDOWN),
+						openTSDBUri,
 						startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "regionservermemory":
-				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_REGIONSERVER_MEMORY_USE),
+				url = String.format(
+						SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_REGIONSERVER_MEMORY_USE_DRILLDOWN),
 						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			}
@@ -339,7 +343,7 @@ public class OpenTSDBResource {
 				JsonNode tagNode = mapper.readTree(tagValue);
 				aNode.add(tagNode.get(tagName).textValue());
 			}
-			resultObject.set(tagName, aNode);
+			resultObject.set("tags", aNode);
 
 			List<String> nodeValues = RESTProcessor.GetNodeValues(jsonOutputString, "dps");
 
