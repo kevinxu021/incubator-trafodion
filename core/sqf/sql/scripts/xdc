@@ -22,15 +22,16 @@
 # @@@ END COPYRIGHT @@@
 #
 
-
 if [ -z $JAVA_HOME ]; then
-    echo "The environment variable $JAVA_HOME has not been set"
-    echo "Please ensure $MY_SQROOT/sqenv.sh has been sourced."
+    echo "The environment variable \$JAVA_HOME has not been set"
+    echo "Please ensure \$MY_SQROOT/sqenv.sh has been sourced."
     echo
     exit 1;
 fi
 
 mkdir -p $MY_SQROOT/logs
-lv_stderr_file="$MY_SQROOT/logs/xdcstatus.log"
-echo "Stderr being written to the file: ${lv_stderr_file}"
+lv_stderr_file="$MY_SQROOT/logs/xdc.log"
+if [[ $SQ_VERBOSE == "1" ]]; then
+    echo "Stderr being written to the file: ${lv_stderr_file}"
+fi
 $JAVA_HOME/bin/java org.apache.hadoop.hbase.client.transactional.HBaseDCZK $* 2>${lv_stderr_file}
