@@ -5450,6 +5450,12 @@ public:
 
   virtual short codeGen(Generator*);
 
+  virtual NABoolean isCacheableExpr(CacheWA& cwa)
+  { return TRUE; }
+
+  // append an ascii-version of ItemExpr into cachewa.qryText_
+  virtual void generateCacheKey(CacheWA& cwa) const;
+
   // get a printable string that identifies the operator
   virtual const NAString getText() const
   {

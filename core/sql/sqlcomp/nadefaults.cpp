@@ -1781,8 +1781,6 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDkwd__(HBASE_SMALL_SCANNER,		"OFF"),
   DDkwd__(HBASE_SQL_IUD_SEMANTICS,		"ON"),
   DDkwd__(HBASE_STATS_PARTITIONING,           	"ON"),
- DDansi_(HBASE_TIMESTAMP_GET,                    ""),
- DDansi_(HBASE_TIMESTAMP_SET,                    ""),
   DDkwd__(HBASE_TRANSFORM_UPDATE_TO_DELETE_INSERT,		"OFF"),
   DDkwd__(HBASE_UPDEL_CURSOR_OPT,		"ON"),
   DDui___(HBASE_USE_FAKED_REGIONS,		"0"),
@@ -3338,8 +3336,6 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDkwd__(TRAF_NO_CONSTR_VALIDATION,                   "OFF"),
 
   DDkwd__(TRAF_NO_DTM_XN,      "OFF"),
-
-  DDint__(TRAF_NUM_HBASE_VERSIONS,                     "0"),
 
   DDint__(TRAF_NUM_OF_SALT_PARTNS,                     "-1"),
   DDint__(TRAF_NUM_OF_SALT_REGIONS,                    "-1"),

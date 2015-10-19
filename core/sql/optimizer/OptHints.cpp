@@ -25,6 +25,7 @@
 #include "OptHints.h"
 #include "DatetimeType.h"
 #include "CmpContext.h"
+#include "ControlDB.h"
 
 Hint::Hint(const NAString &indexName, NAMemory *h) 
   : indexes_(h,1), selectivity_(-1.0), cardinality_(-1.0)
@@ -139,8 +140,6 @@ OptHbaseAccessOptions::OptHbaseAccessOptions(Lng32 v, NAMemory *h)
        isValid_(TRUE)
 {
   setNumVersions(v);
-  
-  setHbaseTsFromDef();
 }
 
 OptHbaseAccessOptions::OptHbaseAccessOptions(const char * hbase_auths)
@@ -158,26 +157,37 @@ OptHbaseAccessOptions::OptHbaseAccessOptions
   if (setHbaseTS(minTSstr, maxTSstr))
     return;
 
-  setVersionsFromDef();
-
   return;
 }
 
-short OptHbaseAccessOptions::setVersionsFromDef()
+const NAString * OptHbaseAccessOptions::getControlTableValue(
+     const QualifiedName &tableName, const char * ct)
 {
-  Lng32 n = CmpCommon::getDefaultNumeric(TRAF_NUM_HBASE_VERSIONS);
-  if ((n == -1) || (n == -2) || (n > 1))
-    setNumVersions(n);
-  
-  return 0;
+  const NAString * haStrNAS =
+    ActiveControlDB()->getControlTableValue(
+         tableName.getQualifiedNameAsString(), ct);
+  if ((haStrNAS && (NOT haStrNAS->isNull())) &&
+      (tableName.isSeabase()) &&
+      (NOT tableName.isSeabaseMD()) &&
+      (NOT tableName.isSeabasePrivMgrMD()) &&
+      (NOT tableName.isSeabaseReservedSchema()))
+    {
+      return haStrNAS;
+    }
+
+  return NULL;
 }
 
-short OptHbaseAccessOptions::setHbaseTsFromDef()
+short OptHbaseAccessOptions::setVersionsFromDef(QualifiedName &tableName)
 {
-  const char *ts = CmpCommon::getDefaultString(HBASE_TIMESTAMP_GET);
-  if (strlen(ts) > 0)
+  const NAString * haStrNAS = 
+    getControlTableValue(tableName, "HBASE_VERSIONS");
+  if (haStrNAS)
     {
-      if (setHbaseTS(NULL, ts))
+      Int64 n = atoi(haStrNAS->data());
+      if ((n == -1) || (n == -2) || (n > 1))
+        setNumVersions(n);
+      else
         {
           isValid_ = FALSE;
           return -1;
@@ -187,11 +197,63 @@ short OptHbaseAccessOptions::setHbaseTsFromDef()
   return 0;
 }
 
+short OptHbaseAccessOptions::setHbaseTsFromDef(QualifiedName &tableName)
+{
+  const NAString * haStrNAS = 
+    getControlTableValue(tableName, "HBASE_TIMESTAMP_AS_OF");
+  if (haStrNAS)
+    {
+      if (setHbaseTS(NULL, haStrNAS->data()))
+        {
+          isValid_ = FALSE;
+          return -1;
+        }
+    }
+
+  return 0;
+}
+
+short OptHbaseAccessOptions::setHbaseAuthsFromDef(QualifiedName &tableName)
+{
+  const NAString * haStrNAS = 
+    getControlTableValue(tableName, "HBASE_AUTHS");
+  if (haStrNAS)
+    {
+      hbaseAuths_ = *haStrNAS;
+    }
+
+  return 0;
+}
+
+short OptHbaseAccessOptions::setOptionsFromDefs(
+     QualifiedName &tableName)
+{
+  isValid_ = FALSE;
+  if (NOT versionSpecified())
+    {
+      if (setVersionsFromDef(tableName))
+        return -1;
+    }
+
+  if (NOT tsSpecified())
+    {
+      if (setHbaseTsFromDef(tableName))
+        return -1;
+    }
+
+  if (NOT authsSpecified())
+    {
+      if (setHbaseAuthsFromDef(tableName))
+        return -1;
+    }
+
+  isValid_ = TRUE;
+
+  return 0;
+}
+
 OptHbaseAccessOptions::OptHbaseAccessOptions()
      : HbaseAccessOptions(),
        isValid_(TRUE)
 {
-  setVersionsFromDef();
-
-  setHbaseTsFromDef();
 }

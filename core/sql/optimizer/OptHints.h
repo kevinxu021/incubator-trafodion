@@ -93,13 +93,20 @@ class OptHbaseAccessOptions : public HbaseAccessOptions
   NAString &hbaseAuths() { return hbaseAuths_; }
   const NAString &hbaseAuths() const { return hbaseAuths_; }
 
+  NABoolean authsSpecified() { return (NOT hbaseAuths_.isNull()); }
   NABoolean isValid() { return isValid_; }
 
   static Int64 computeHbaseTS(const char * tsStr);
 
+  short setOptionsFromDefs(QualifiedName &tableName);
+
+  static const NAString * getControlTableValue(
+       const QualifiedName &tableName, const char * ct);
+  
 private:
-  short setVersionsFromDef();
-  short setHbaseTsFromDef();
+  short setVersionsFromDef(QualifiedName &tableName);
+  short setHbaseTsFromDef(QualifiedName &tableName);
+  short setHbaseAuthsFromDef(QualifiedName &tableName);
 
   short setHbaseTS(const char * minTSstr, const char * maxTSstr);
 

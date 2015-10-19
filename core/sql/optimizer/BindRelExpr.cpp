@@ -7705,11 +7705,13 @@ RelExpr *Scan::bindNode(BindWA *bindWA)
   
   if (optHbaseAccessOptions_)
     {
+      optHbaseAccessOptions_->setOptionsFromDefs(naTable->getTableName());
+
       if (optHbaseAccessOptions_->isMaxVersions())
         {
           optHbaseAccessOptions_->setNumVersions
             (
-                 getTableDesc()->getClusteringIndex()->getNAFileSet()->numMaxVersions()
+              getTableDesc()->getClusteringIndex()->getNAFileSet()->numMaxVersions()
              );
         }
 
@@ -7719,24 +7721,6 @@ RelExpr *Scan::bindNode(BindWA *bindWA)
         }
     }
   
-  if (hbaseAuths().isNull())
-    {
-      const NAString * haStrNAS =
-        ActiveControlDB()->getControlTableValue(getTableName().getQualifiedNameAsString(), 
-                                                "HBASE_AUTHS");
-      
-      if ((haStrNAS && (NOT haStrNAS->isNull())) &&
-          (getTableDesc()->getNATable()->isSeabaseTable()) &&
-          (NOT getTableDesc()->getNATable()->isSeabaseMDTable()) &&
-          (NOT getTableDesc()->getNATable()->isSeabasePrivSchemaTable()) &&
-          (NOT CmpSeabaseDDL::isSeabaseReservedSchema
-           (getTableName().getQualifiedNameObj().getCatalogName(),
-            getTableName().getQualifiedNameObj().getSchemaName()))) 
-        {
-          hbaseAuths() = *haStrNAS;
-        }
-    }
-
   return boundExpr;
 } // Scan::bindNode()
 

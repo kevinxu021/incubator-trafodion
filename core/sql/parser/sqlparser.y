@@ -6205,22 +6205,7 @@ global_hint : empty { $$ = FALSE; }
 /* type hbaseAccessOptions */
 hbase_access_options : empty 
        {
-         Lng32 n = CmpCommon::getDefaultNumeric(TRAF_NUM_HBASE_VERSIONS);
-         const char *ts =
-           ActiveSchemaDB()->getDefaults().getValue(HBASE_TIMESTAMP_GET);
-         if (((n == -1) || (n == -2) || (n > 1)) ||
-             (strlen(ts) > 0))
-           {
-             $$ = new (PARSERHEAP()) OptHbaseAccessOptions();
-             if (NOT $$->isValid())
-               {
-                 *SqlParser_Diags << DgSqlCode(-3047) 
-                                  << DgString0(NAString(ts));
-                 YYERROR;
-               }
-           }
-         else
-           $$ = NULL;
+         $$ = new (PARSERHEAP()) OptHbaseAccessOptions();
        }
     | '{' num_versions '}'
       {
@@ -6229,7 +6214,72 @@ hbase_access_options : empty
         else
           $$ = NULL;
       }
-    | '{' TOK_TIMESTAMP TOK_AS TOK_OF QUOTED_STRING '}'
+    | '{' TOK_HBASE TOK_TIMESTAMP TOK_AS TOK_OF QUOTED_STRING '}'
+      {
+        $$ = new (PARSERHEAP()) OptHbaseAccessOptions(NULL, $6->data());
+        if (NOT $$->isValid())
+          {
+            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$6);
+            YYERROR;
+          }
+      }
+    | '{' TOK_HBASE TOK_TIMESTAMP TOK_AS TOK_OF QUOTED_STRING ',' num_versions '}'
+      {
+        $$ = new (PARSERHEAP()) OptHbaseAccessOptions(NULL, $6->data());
+        if (NOT $$->isValid())
+          {
+            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$6);
+            YYERROR;
+          }
+
+        $$->setNumVersions($8);
+      }
+    | '{' TOK_HBASE TOK_AUTHORIZATION QUOTED_STRING '}'
+      {
+        $$ = new (PARSERHEAP()) OptHbaseAccessOptions($4->data());
+      }
+    | '{' TOK_HBASE TOK_TIMESTAMP TOK_AS TOK_OF QUOTED_STRING ',' TOK_HBASE TOK_AUTHORIZATION QUOTED_STRING '}'
+      {
+        $$ = new (PARSERHEAP()) OptHbaseAccessOptions(NULL, $6->data());
+        if (NOT $$->isValid())
+          {
+            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$6);
+            YYERROR;
+          }
+
+        $$->hbaseAuths() = *$10;
+      }
+   | '{' TOK_HBASE TOK_TIMESTAMP TOK_AS TOK_OF QUOTED_STRING ',' TOK_HBASE TOK_AUTHORIZATION QUOTED_STRING ',' num_versions '}'
+      {
+        $$ = new (PARSERHEAP()) OptHbaseAccessOptions(NULL, $6->data());
+        if (NOT $$->isValid())
+          {
+            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$6);
+            YYERROR;
+          }
+
+        $$->hbaseAuths() = *$10;
+        $$->setNumVersions($12);
+      }
+     | '{' TOK_HBASE TOK_TIMESTAMP TOK_FROM QUOTED_STRING TOK_TO QUOTED_STRING '}'
+      {
+        $$ = new (PARSERHEAP()) OptHbaseAccessOptions($5->data(), $7->data());
+        if (NOT $$->isValid())
+          {
+            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$5);
+            YYERROR;
+          }
+      }
+    | '{' TOK_HBASE TOK_TIMESTAMP TOK_FROM QUOTED_STRING '}'
+      {
+        $$ = new (PARSERHEAP()) OptHbaseAccessOptions($5->data(), NULL);
+        if (NOT $$->isValid())
+          {
+            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$5);
+            YYERROR;
+          }
+      }
+    | '{' TOK_HBASE TOK_TIMESTAMP TOK_TO QUOTED_STRING '}'
       {
         $$ = new (PARSERHEAP()) OptHbaseAccessOptions(NULL, $5->data());
         if (NOT $$->isValid())
@@ -6238,62 +6288,20 @@ hbase_access_options : empty
             YYERROR;
           }
       }
-    | '{' TOK_TIMESTAMP TOK_AS TOK_OF QUOTED_STRING ',' num_versions '}'
-      {
-        $$ = new (PARSERHEAP()) OptHbaseAccessOptions(NULL, $5->data());
-        if (NOT $$->isValid())
-          {
-            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$5);
-            YYERROR;
-          }
 
-        $$->setNumVersions($7);
-      }
-    | '{' TOK_HBASE_AUTHS QUOTED_STRING '}'
-      {
-        $$ = new (PARSERHEAP()) OptHbaseAccessOptions($3->data());
-      }
-     | '{' TOK_TIMESTAMP TOK_FROM QUOTED_STRING TOK_TO QUOTED_STRING '}'
-      {
-        $$ = new (PARSERHEAP()) OptHbaseAccessOptions($4->data(), $6->data());
-        if (NOT $$->isValid())
-          {
-            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$4);
-            YYERROR;
-          }
-      }
-    | '{' TOK_TIMESTAMP TOK_FROM QUOTED_STRING '}'
-      {
-        $$ = new (PARSERHEAP()) OptHbaseAccessOptions($4->data(), NULL);
-        if (NOT $$->isValid())
-          {
-            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$4);
-            YYERROR;
-          }
-      }
-    | '{' TOK_TIMESTAMP TOK_TO QUOTED_STRING '}'
-      {
-        $$ = new (PARSERHEAP()) OptHbaseAccessOptions(NULL, $4->data());
-        if (NOT $$->isValid())
-          {
-            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$4);
-            YYERROR;
-          }
-      }
-
-num_versions : TOK_VERSIONS NUMERIC_LITERAL_EXACT_NO_SCALE
+num_versions : TOK_HBASE TOK_VERSIONS NUMERIC_LITERAL_EXACT_NO_SCALE
                {
-                 Int64 value = atoInt64($2->data()); 
+                 Int64 value = atoInt64($3->data()); 
                  if (value <= 0)
                    YYERROR;
                  
                  $$ = value;
                }
-               | TOK_VERSIONS TOK_MAX
+               | TOK_HBASE TOK_VERSIONS TOK_MAX
                {
                  $$ = -1;
                }
-               | TOK_VERSIONS TOK_ALL
+               | TOK_HBASE TOK_VERSIONS TOK_ALL
                {
                  $$ = -2;
                }

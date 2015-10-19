@@ -692,6 +692,9 @@ void ControlDB::setMVQRCQDs()
 ////////////////////////////////////////////////////////////////////////////
 static const ControlTableOptions::CTTokens controlTableTokens[] = {
   {"HBASE_AUTHS",        ControlTableOptions::HBASE_AUTHS},
+  {"HBASE_TIMESTAMP_AS_OF", ControlTableOptions::HBASE_TIMESTAMP_AS_OF},
+  {"HBASE_TIMESTAMP_SET",ControlTableOptions::HBASE_TIMESTAMP_SET},
+  {"HBASE_VERSIONS",     ControlTableOptions::HBASE_VERSIONS},
   {"IF_LOCKED",		 ControlTableOptions::IF_LOCKED},
   {"MDAM",		 ControlTableOptions::MDAM},
   {"NOWAIT",		 ControlTableOptions::NOWAIT},
@@ -796,8 +799,10 @@ NABoolean ControlDB::validate(ControlTable *ct)
 
   if (valid) {
 
-    if (ct->reset()) return TRUE;
+    if (ct->reset()) 
+      return TRUE;
 
+    valid = FALSE;
     switch (controlTableTokens[index].const_)
       {
       case ControlTableOptions::HBASE_AUTHS:
@@ -806,10 +811,36 @@ NABoolean ControlDB::validate(ControlTable *ct)
         }
         break;
 
+      case ControlTableOptions::HBASE_TIMESTAMP_AS_OF:
+        {
+          Int64 ts = OptHbaseAccessOptions::computeHbaseTS(value.data());
+          if (ts > 0)
+            valid = TRUE;
+        }
+        break;
+
+      case ControlTableOptions::HBASE_TIMESTAMP_SET:
+        {
+          Int64 ts = OptHbaseAccessOptions::computeHbaseTS(value.data());
+          if (ts > 0)
+            valid = TRUE;
+        }
+        break;
+
+      case ControlTableOptions::HBASE_VERSIONS:
+        {
+          Int64 n = atoi(value.data());
+          if ((n == -1) || (n == -2) || (n > 1))
+            valid = TRUE;
+        }
+        break;
+
       case ControlTableOptions::IF_LOCKED:
 	{
 	  if ((value == "RETURN") || (value == "WAIT"))
 	    valid = TRUE;
+
+          valid = FALSE; // IF_LOCKED not supported
 	}
       break;
 
@@ -824,6 +855,8 @@ NABoolean ControlDB::validate(ControlTable *ct)
 	{
 	  if ((value == "ON") || (value == "OFF"))
 	    valid = TRUE;
+
+          valid = FALSE; // NOWAIT not supported
 	}
       break;
 
@@ -844,6 +877,8 @@ NABoolean ControlDB::validate(ControlTable *ct)
 	      if (priority < 1 || priority > 199)
                 valid = FALSE;
 	    }
+
+          valid = FALSE; // PRIORITY not supported
 	}
       break;
 
@@ -871,6 +906,8 @@ NABoolean ControlDB::validate(ControlTable *ct)
 	      if (priority < -199 || priority > 199)
 		valid = FALSE;
 	    }
+
+          valid = FALSE; // PRIORITY_DELTA not supported
 	}
       break;
 
@@ -878,6 +915,8 @@ NABoolean ControlDB::validate(ControlTable *ct)
 	{
 	  if ((value == "ON") || (value == "OFF"))
 	    valid = TRUE;
+
+          valid = FALSE; // SIMILARITY_CHECK not supported
 	}
       break;
 
@@ -885,6 +924,8 @@ NABoolean ControlDB::validate(ControlTable *ct)
 	{
 	  if ((value == "ON") || (value == "OFF") || (value == "ENABLE"))
 	    valid = TRUE;
+
+          valid = FALSE; // TABLELOCK not yet supported
 	}
       break;
 
@@ -898,6 +939,8 @@ NABoolean ControlDB::validate(ControlTable *ct)
 		  value.data()[i] > '9')
 		valid = FALSE;
 	    }
+
+          valid = FALSE; // TIMEOUT not supported
 	}
       break;
 

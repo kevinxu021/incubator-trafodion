@@ -744,6 +744,15 @@ void HbaseAttribute::generateCacheKey(CacheWA& cwa) const
   col()->generateCacheKey(cwa);
 }
 
+void HbaseVisibilitySet::generateCacheKey(CacheWA& cwa) const
+{
+  BuiltinFunction::generateCacheKey(cwa); 
+
+  cwa += " ";
+  cwa += visExpr_;
+  cwa += " ";
+}
+
 // does this entire ItemExpr qualify query to be cacheable after this phase?
 NABoolean HostVar::isCacheableExpr(CacheWA& cwa)
 {

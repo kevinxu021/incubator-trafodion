@@ -670,6 +670,11 @@ NABoolean QualifiedName::isSeabasePrivMgrMD() const
     (getCatalogName(), getSchemaName());
 }
 
+NABoolean QualifiedName::isSeabaseReservedSchema() const
+{
+  return CmpSeabaseDDL::isSeabaseReservedSchema(
+       getCatalogName(), getSchemaName());
+}
 
 // -----------------------------------------------------------------------
 // Methods for class CorrName

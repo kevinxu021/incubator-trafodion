@@ -2170,18 +2170,18 @@ short HbaseUpdate::codeGen(Generator * generator)
       if (getTableDesc()->getNATable()->xnRepl() == COM_REPL_ASYNC)
         hbasescan_tdb->setReplAsync(TRUE);
 
-      const char *tsStr =
-        ActiveSchemaDB()->getDefaults().getValue(HBASE_TIMESTAMP_SET);
-      if ((strlen(tsStr) > 0) &&
+      const NAString * tsStr = OptHbaseAccessOptions::getControlTableValue(
+           getTableName().getQualifiedNameObj(), "HBASE_TIMESTAMP_SET");
+      if ((tsStr && (NOT tsStr->isNull())) &&
           (uniqueHbaseOper()))
         {
-          Int64 ts = OptHbaseAccessOptions::computeHbaseTS(tsStr);
+          Int64 ts = OptHbaseAccessOptions::computeHbaseTS(tsStr->data());
           if (ts < 0)
             {
               GenAssert(ts > 0, "invalid value for hbsae ts");
             }
-          
-          hbasescan_tdb->setHbaseCellTS(ts);          
+
+          hbasescan_tdb->setHbaseCellTS(ts);
         }
     }
 
@@ -2966,19 +2966,19 @@ short HbaseInsert::codeGen(Generator *generator)
         generator->objectUids().insert(
           getTableDesc()->getNATable()->objectUid().get_value());
 
-      const char *tsStr =
-        ActiveSchemaDB()->getDefaults().getValue(HBASE_TIMESTAMP_SET);
-      if ((strlen(tsStr) > 0) &&
+      const NAString * tsStr = OptHbaseAccessOptions::getControlTableValue(
+           getTableName().getQualifiedNameObj(), "HBASE_TIMESTAMP_SET");
+      if ((tsStr && (NOT tsStr->isNull())) &&
           (getInsertType() == Insert::SIMPLE_INSERT) &&
           (uniqueHbaseOper()))
         {
-          Int64 ts = OptHbaseAccessOptions::computeHbaseTS(tsStr);
+          Int64 ts = OptHbaseAccessOptions::computeHbaseTS(tsStr->data());
           if (ts < 0)
             {
               GenAssert(ts > 0, "invalid value for hbsae ts");
             }
 
-          hbasescan_tdb->setHbaseCellTS(ts);          
+          hbasescan_tdb->setHbaseCellTS(ts);
         }
     }
   else

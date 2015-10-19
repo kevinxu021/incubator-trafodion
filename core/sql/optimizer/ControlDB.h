@@ -68,6 +68,18 @@ public:
     // authorization to be passed to hbase in scan/get requests
     HBASE_AUTHS, 
 
+    // get version of tables as of the specified time
+    HBASE_TIMESTAMP_AS_OF,
+
+    // set specified cell timestamp during insert/update. Internal use only.
+    HBASE_TIMESTAMP_SET,
+
+    // number of hbase versions of rows to be retrieved.
+    // -1, get max number of versions.
+    // -2, get all versions including those marked for deletion.
+    //  N, get N versions. N > 0
+    HBASE_VERSIONS,
+
     IF_LOCKED, 
     MDAM, 
     NOWAIT, 
