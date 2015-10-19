@@ -32,8 +32,16 @@ define([
 	NODES_RESULT_CONTAINER = '#nodes-result-container',
 	NODES_ERROR_TEXT = '#nodes-error-text',
 
-	SPACE_DETAILS_BTN = '#spaceDetailsBtn',
+	IOWAITS_DRILLDOWN_BTN = '#iowaits-drilldown-btn',
+	DISK_SPACE_DRILLDOWN_BTN = '#useddiskspace-drilldown-btn',
+	JVMGC_DRILLDOWN_BTN = '#jvmgctime-drilldown-btn',
+	RSERVER_MEMORY_DRILLDOWN_BTN = '#regionservermemory-drilldown-btn',
+	MEMSTORE_DRILLDOWN_BTN = '#memstoresize-drilldown-btn',
 
+	DRILLDOWN_SPINNER = '#metrics-drilldown-spinner',
+	DRILLDOWN_CHART_CONTAINER = '#metrics-drilldown-chart',
+	DRILLDOWN_ERROR_CONTAINER= '#metrics-drilldown-error-text',
+	
 	REFRESH_ACTION = '#refreshAction',
 	OPEN_FILTER = '#openFilter';
 
@@ -57,6 +65,7 @@ define([
 			timeRangeView.init();
 			chartConfig =  {
 					canary:{
+						chartTitle: "Canary Response Time",
 						chartType: "Line",
 						xtimemultiplier: 1000, //sometimes time don't comeback as msecs. so we need a multiplier
 						ylabels: "Canary Response Time", //Used in tooltip
@@ -67,6 +76,7 @@ define([
 						errorcontainer:"#canary-error-text", //element for error text container
 					},
 					transactions:{
+						chartTitle: "Transaction Counts",
 						chartType: "Line",
 						xtimemultiplier: 1,
 						deltamultiplier: 300, //For delta rate/sec counters, multiply by seconds interval to get real delta
@@ -79,6 +89,7 @@ define([
 						errorcontainer:"#transactions-error-text",						
 					},
 					iowaits:{
+						chartTitle: "IO Waits",
 						chartType: "Line",
 						xtimemultiplier: 1000,
 						ylabels: "IO Waits",
@@ -88,6 +99,7 @@ define([
 						errorcontainer:"#iowaits-error-text"
 					},
 					useddiskspace:{
+						chartTitle: "Disk Space Usage",
 						chartType: "Line",
 						xtimemultiplier: 1,
 						ylabels: ["Avg. Memory Usage"],
@@ -98,6 +110,7 @@ define([
 						errorcontainer:"#useddiskspace-error-text"
 					},
 					memstoresize:{
+						chartTitle: "Memstore Size",
 						chartType: "Line",
 						xtimemultiplier: 1,
 						ylabels: "Memstore Size",
@@ -109,6 +122,7 @@ define([
 						errorcontainer:"#memstoresize-error-text"
 					},
 					jvmgctime:{
+						chartTitle: "Regionserver JVM GC Time",
 						chartType: "Line",
 						xtimemultiplier: 1,
 						ylabels: "GC Time",
@@ -118,6 +132,7 @@ define([
 						errorcontainer:"#jvmgctime-error-text"
 					},
 					regionservermemory:{
+						chartTitle: "Regionserver Memory Usage",
 						chartType: "Line",
 						xtimemultiplier: 1,
 						ylabels: ["Avg. Memory"],
@@ -131,11 +146,16 @@ define([
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			$(SERVICES_ERROR_TEXT).hide();
 			$(NODES_ERROR_TEXT).hide();
-			$(SPACE_DETAILS_BTN).on('click',this.spaceDetailsClicked);
+			
+			$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
+			$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
+			$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
+			$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
+			$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
+			
 			$('#metricsDialog').on('show.bs.modal', function(event, ab){
-				$('#metrics-chart').empty();
-				$('#metrics-spinner').show();
-				dashboardHandler.fetchMetricDrilldown(_this.generateParams("useddiskspace", true));
+				$(DRILLDOWN_CHART_CONTAINER).empty();
+				$(DRILLDOWN_SPINNER).show();
 			});
 
 			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
@@ -159,7 +179,12 @@ define([
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			$(SERVICES_ERROR_TEXT).hide();
 			$('#nodes-error-text').hide();
-			$(SPACE_DETAILS_BTN).on('click',this.spaceDetailsClicked);
+
+			$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
+			$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
+			$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
+			$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
+			$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
 
 			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
 			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
@@ -197,7 +222,11 @@ define([
 			dashboardHandler.off(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
 
 			$(REFRESH_ACTION).off('click', this.refreshPage);
-			$(SPACE_DETAILS_BTN).off('click',this.spaceDetailsClicked);
+			$(IOWAITS_DRILLDOWN_BTN).off('click',this.iowaitsDrillDown);
+			$(DISK_SPACE_DRILLDOWN_BTN).off('click',this.diskspaceDrillDown);
+			$(JVMGC_DRILLDOWN_BTN).off('click',this.jvmGCDrillDown);
+			$(RSERVER_MEMORY_DRILLDOWN_BTN).off('click',this.rserverMemoryDrillDown);
+			$(MEMSTORE_DRILLDOWN_BTN).off('click',this.memStoreDrillDown);
 
 			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimer.eventAgg.off(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);	
@@ -575,29 +604,49 @@ define([
 
 		showErrorMessage: function (jqXHR) {
 			_this.hideLoading();
+			$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
+			$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
+			$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
+			$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
+			$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
+
 		},
-		spaceDetailsClicked: function(){
+		iowaitsDrillDown: function(){
+			_this.displayDetails('iowaits');
+		},
+		diskspaceDrillDown: function(){
 			_this.displayDetails('useddiskspace');
 		},
+		jvmGCDrillDown: function(){
+			_this.displayDetails('jvmgctime');
+		},
+		rserverMemoryDrillDown: function(){
+			_this.displayDetails('regionservermemory');
+		},
+		memStoreDrillDown: function(){
+			_this.displayDetails('memstoresize');
+		},
 		displayDetails: function(metricName){
-			//dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
 			$('#metricsDialog').modal('show');
-			//$('#metrics-chart').empty();
+			dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
 		},
 		fetchDrilldownMetricSuccess:function(result){
 			var metricsData = JSON.parse(result.data.metrics);
 			var metricConfig = chartConfig[result.metricName];
-
+			var tags = result.data.tags;
 			var keys = Object.keys(metricsData);
-
+			
+			$('#metricsDialogLabel').text(metricConfig.chartTitle);
+			
 			if(keys.length == 0){
-				$('#metrics-spinner').hide();
-				$('#metrics-chart').hide();
-				$('#metrics-error-text').text("No data available");
-				$('#metrics-error-text').show();				
+				$(DRILLDOWN_SPINNER).hide();
+				$(DRILLDOWN_CHART_CONTAINER).hide();
+				$(DRILLDOWN_ERROR_CONTAINER).text("No data available");
+				$(DRILLDOWN_ERROR_CONTAINER).show();				
 			}else{
-				$('#metrics-chart').show();
-				$('#metrics-error-text').hide();
+				$(DRILLDOWN_ERROR_CONTAINER).text("");
+				$(DRILLDOWN_CHART_CONTAINER).show();
+				$(DRILLDOWN_ERROR_CONTAINER).hide();
 
 				var seriesData = [];
 				var ykeys = [];
@@ -607,7 +656,7 @@ define([
 					ykeys.push('y'+i);
 				});
 				$.each(keys, function(index, value){
-					var rowData = {x: metricConfig.xtimemultiplier? value*1000: value};
+					var rowData = {x: metricConfig.xtimemultiplier? value*metricConfig.xtimemultiplier: value};
 					$.each(metricsData[value], function(i, v){
 						if(metricConfig.deltamultiplier){
 							rowData[ykeys[i]] = v * metricConfig.deltamultiplier;	
@@ -623,13 +672,13 @@ define([
 				var yLabelArray = [];
 
 				var options = {
-						element: 'metrics-chart',
+						element: 'metrics-drilldown-chart',
 						data: seriesData,
 						lineWidth:2,
 						xkey:'x',
 						ykeys:ykeys,
-						labels: ["Space Used"],
-						pointSize: '0.0',
+						labels: tags,
+						pointSize: '2.5',
 						hideHover: 'auto',
 						//resize:true,
 						ymax: metricConfig.ymax ? metricConfig.ymax: 'auto',
@@ -677,7 +726,7 @@ define([
 				};
 
 				setTimeout(function(){
-					$('#metrics-spinner').hide();
+					$(DRILLDOWN_SPINNER).hide();
 					if(graph == null) {
 						graph = Morris.Line(options);
 					}else{
@@ -688,7 +737,16 @@ define([
 			}			
 		},
 		fetchDrilldownMetricError:function(jqXHR, res, error){
-			var aa =5;
+			var metricConfig = chartConfig[jqXHR.metricName];
+			$('#metricsDialogLabel').text(metricConfig.chartTitle);
+			
+			$(DRILLDOWN_SPINNER).hide();
+			$(DRILLDOWN_CHART_CONTAINER).hide();
+			
+			if (jqXHR.responseText) {
+				$(DRILLDOWN_ERROR_CONTAINER).text(jqXHR.responseText);     
+				$(DRILLDOWN_ERROR_CONTAINER).show();
+			}				
 		}
 	});
 

@@ -191,16 +191,16 @@ SOURCEDIR=$(RPMROOT)/SOURCES
 BUILDDIR=$(RPMROOT)/BUILD
 BUILDROOTDIR=$(RPMROOT)/BUILDROOT
 
-rpmpackage: all pkg-product dcs 
+rpmpackage: all pkg-product
 	/bin/rm -rf $(RPMROOT)
 	mkdir -p $(RPMDIR)
 	mkdir -p $(SOURCEDIR)
 	mkdir -p $(BUILDDIR)
 	mkdir -p $(BUILDROOTDIR)
 	mkdir -p $(SRPMDIR)
-	cp -f $(PKG_PROD)_server-$(TRAFODION_VER).tgz $(SOURCEDIR)/
-	cp -f rest/target/rest-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
-	cp -f ../dcs/target/dcs-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
+	cp -f ../distribution/$(PKG_PROD)_server-$(TRAFODION_VER).tgz $(SOURCEDIR)/
+	cp -f ../distribution/rest-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
+	cp -f ../distribution/dcs-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
 
 rpmbuild: rpmpackage
 	rpmbuild -vv -bb \
@@ -214,10 +214,6 @@ rpmbuild: rpmpackage
                         --define "_arch $(ARCH)" \
                         --define "_topdir $(RPMROOT)" \
                         $(SPECFILE)
-
-# only used for rpmbuild
-dcs:
-	cd ../dcs && mvn site package install 2>&1 | sed -e "s/$$/	##(DCS)/";exit $${PIPESTATUS[0]}
 
 
 eclipse: rest/.project dcs/.project sql/.project sqf/src/seatrans/hbase-trx/.project .project

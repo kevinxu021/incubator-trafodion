@@ -1,5 +1,4 @@
 #!/bin/bash
-#
 # @@@ START COPYRIGHT @@@
 #
 # Licensed to the Apache Software Foundation (ASF) under one
@@ -20,17 +19,13 @@
 # under the License.
 #
 # @@@ END COPYRIGHT @@@
-#
 
-if [ -z $JAVA_HOME ]; then
-    echo "The environment variable \$JAVA_HOME has not been set"
-    echo "Please ensure \$MY_SQROOT/sqenv.sh has been sourced."
-    echo
-    exit 1;
-fi
+# Add code to monitor processes/services at a node level
 
-mkdir -p $MY_SQROOT/logs
-lv_stderr_file="$MY_SQROOT/logs/hbcheck.log"
-echo "Stderr being written to the file: ${lv_stderr_file}"
-$JAVA_HOME/bin/java org.trafodion.dtm.hbstatus $* 2>${lv_stderr_file}
+# The stdout is the file $MY_SQROOT/sql/scripts/stdout_nmon
 
+#---- Begin: Setup the env to run any script
+cd $MY_SQROOT
+. $MY_SQROOT/sqenv.sh
+cd - >/dev/null
+#----  End : Setup the env to run any script

@@ -83,6 +83,7 @@ import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HTable;
@@ -283,7 +284,7 @@ public class TransactionManager {
         transactionState = txState;
         this.location = location;
         try {
-        table = new HTable(location.getRegionInfo().getTable(), connection, cp_tpe);
+	    table = new HTable(location.getRegionInfo().getTable(), (Connection) connection, cp_tpe);
         } catch(IOException e) {
           e.printStackTrace();
           LOG.error("Error obtaining HTable instance");
@@ -304,7 +305,7 @@ public class TransactionManager {
      * Return  : Always 0, can ignore
      * Purpose : Call commit for a given regionserver
      */
-  public Integer doCommitX(final byte[] regionName, final long transactionId, final long commitId, final boolean ignoreUnknownTransactionException) throws CommitUnsuccessfulException, IOException {
+  public Integer doCommitX(final byte[] regionName, final long transactionId, final long commitId, final boolean ignoreUnknownTransaction) throws CommitUnsuccessfulException, IOException {
         boolean retry = false;
         boolean refresh = false;
 
@@ -316,7 +317,7 @@ public class TransactionManager {
           try {
 
             if (LOG.isTraceEnabled()) LOG.trace("doCommitX -- ENTRY txid: " + transactionId +
-                                                  " ignoreUnknownTransactionException: " + ignoreUnknownTransactionException);
+                                                  " ignoreUnknownTransaction: " + ignoreUnknownTransaction);
             Batch.Call<TrxRegionService, CommitResponse> callable =
                new Batch.Call<TrxRegionService, CommitResponse>() {
                  ServerRpcController controller = new ServerRpcController();
@@ -328,7 +329,7 @@ public class TransactionManager {
                       org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CommitRequest.Builder builder = CommitRequest.newBuilder();
                       builder.setTransactionId(transactionId);
                       builder.setRegionName(ByteString.copyFromUtf8(Bytes.toString(regionName))); //ByteString.copyFromUtf8(Bytes.toString(regionName)));
-                      builder.setIgnoreUnknownTransactionException(ignoreUnknownTransactionException);
+                      builder.setIgnoreUnknownTransactionException(ignoreUnknownTransaction);
 
                       instance.commit(controller, builder.build(), rpcCallback);
                       return rpcCallback.get();
@@ -338,7 +339,7 @@ public class TransactionManager {
                Map<byte[], CommitResponse> result = null;
                try {
                  if (LOG.isTraceEnabled()) LOG.trace("doCommitX -- before coprocessorService txid: " + transactionId +
-                        " ignoreUnknownTransactionException: " + ignoreUnknownTransactionException + " table: " +
+                        " ignoreUnknownTransaction: " + ignoreUnknownTransaction + " table: " +
                         table.toString() + " startKey: " + new String(startKey, "UTF-8") + " endKey: " + new String(endKey, "UTF-8"));
                  result = table.coprocessorService(TrxRegionService.class, startKey, endKey, callable);
                } catch (Throwable e) {
@@ -357,7 +358,7 @@ public class TransactionManager {
                     if(cresponse.getHasException()) {
                       String exceptionString = new String (cresponse.getException().toString());
                       if (exceptionString.contains("UnknownTransactionException")) {
-                        if (ignoreUnknownTransactionException == true) {
+                        if (ignoreUnknownTransaction == true) {
                           if (LOG.isTraceEnabled()) LOG.trace("doCommitX, ignoring UnknownTransactionException in cresponse");
                         }
                         else {
@@ -378,7 +379,7 @@ public class TransactionManager {
                     if(cresponse.getHasException()) {
                       String exceptionString = new String (cresponse.getException().toString());
                       if (exceptionString.contains("UnknownTransactionException")) {
-                        if (ignoreUnknownTransactionException == true) {
+                        if (ignoreUnknownTransaction == true) {
                           if (LOG.isTraceEnabled()) LOG.trace("doCommitX, ignoring UnknownTransactionException in cresponse");
                         }
                         else {
@@ -465,7 +466,7 @@ public class TransactionManager {
           try {
 
             if (LOG.isTraceEnabled()) LOG.trace("doCommitX -- ENTRY txid: " + transactionId +
-                                                  " ignoreUnknownTransactionException: " + ignoreUnknownTransactionException);
+                                                  " ignoreUnknownTransaction: " + ignoreUnknownTransaction);
             Batch.Call<SsccRegionService, SsccCommitResponse> callable =
                new Batch.Call<SsccRegionService, SsccCommitResponse>() {
                  ServerRpcController controller = new ServerRpcController();
@@ -478,7 +479,7 @@ public class TransactionManager {
                       builder.setTransactionId(transactionId);
                       builder.setRegionName(ByteString.copyFromUtf8(Bytes.toString(regionName))); //ByteString.copyFromUtf8(Bytes.toString(regionName)));
                       builder.setCommitId(commitId);
-                      builder.setIgnoreUnknownTransactionException(ignoreUnknownTransactionException);
+                      builder.setIgnoreUnknownTransactionException(ignoreUnknownTransaction);
 
                       instance.commit(controller, builder.build(), rpcCallback);
                       return rpcCallback.get();
@@ -488,7 +489,7 @@ public class TransactionManager {
                Map<byte[], SsccCommitResponse> result = null;
                try {
                  if (LOG.isTraceEnabled()) LOG.trace("doCommitX -- before coprocessorService txid: " + transactionId +
-                        " ignoreUnknownTransactionException: " + ignoreUnknownTransactionException + " table: " +
+                        " ignoreUnknownTransaction: " + ignoreUnknownTransaction + " table: " +
                         table.toString() + " startKey: " + new String(startKey, "UTF-8") + " endKey: " + new String(endKey, "UTF-8"));
                  result = table.coprocessorService(SsccRegionService.class, startKey, endKey, callable);
                } catch (Throwable e) {
@@ -507,7 +508,7 @@ public class TransactionManager {
                     if(cresponse.getHasException()) {
                       String exceptionString = new String (cresponse.getException().toString());
                       if (exceptionString.contains("UnknownTransactionException")) {
-                        if (ignoreUnknownTransactionException == true) {
+                        if (ignoreUnknownTransaction == true) {
                           if (LOG.isTraceEnabled()) LOG.trace("doCommitX, ignoring UnknownTransactionException in cresponse");
                         }
                         else {
@@ -1129,7 +1130,7 @@ public class TransactionManager {
       return 0;
     }
 
-    public Integer doCommitX(final List<TransactionRegionLocation> locations, final long transactionId, final long commitId, final boolean ignoreUnknownTransactionException) throws CommitUnsuccessfulException, IOException {
+    public Integer doCommitX(final List<TransactionRegionLocation> locations, final long transactionId, final long commitId, final boolean ignoreUnknownTransaction) throws CommitUnsuccessfulException, IOException {
         boolean retry = false;
         boolean refresh = false;
 
@@ -1138,14 +1139,14 @@ public class TransactionManager {
           try {
 
             if (LOG.isTraceEnabled()) LOG.trace("doCommitX - Batch -- ENTRY txid: " + transactionId +
-                                                  " ignoreUnknownTransactionException: " + ignoreUnknownTransactionException);
+                                                  " ignoreUnknownTransaction: " + ignoreUnknownTransaction);
 
             TrxRegionProtos.CommitMultipleRequest.Builder builder = CommitMultipleRequest.newBuilder();
             builder.setTransactionId(transactionId);
             for(TransactionRegionLocation location : locations) {
                builder.addRegionName(ByteString.copyFrom(location.getRegionInfo().getRegionName()));
             }
-            builder.setIgnoreUnknownTransactionException(ignoreUnknownTransactionException);
+            builder.setIgnoreUnknownTransactionException(ignoreUnknownTransaction);
             CommitMultipleRequest commitMultipleRequest = builder.build();
             CommitMultipleResponse commitMultipleResponse = null;
 
@@ -1874,7 +1875,7 @@ public class TransactionManager {
                 + ((EnvironmentEdgeManager.currentTime() - startTime)) + "]ms");
     }
 
-    public void retryCommit(final TransactionState transactionState, final boolean ignoreUnknownTransactionException) {
+    public void retryCommit(final TransactionState transactionState, final boolean ignoreUnknownTransaction) {
       if(LOG.isTraceEnabled()) LOG.trace("retryCommit -- ENTRY -- txid: " + transactionState.getTransactionId());
       synchronized(transactionState.getRetryRegions()) {
           List<TransactionRegionLocation> completedList = new ArrayList<TransactionRegionLocation>();
@@ -1886,7 +1887,7 @@ public class TransactionManager {
 
                     return doCommitX(location.getRegionInfo().getRegionName(),
                             transactionState.getTransactionId(), commitIdVal,
-                            ignoreUnknownTransactionException);
+                            ignoreUnknownTransaction);
                 }
               });
               completedList.add(location);
@@ -1925,7 +1926,7 @@ public class TransactionManager {
     public void doCommit(final TransactionState transactionState)
         throws CommitUnsuccessfulException, UnsuccessfulDDLException {
        if (LOG.isTraceEnabled()) LOG.trace("doCommit [" + transactionState.getTransactionId() +
-                      "] ignoreUnknownTransactionException not supplied");
+                      "] ignoreUnknownTransaction not supplied");
        doCommit(transactionState, false);
     }
 
@@ -1933,16 +1934,16 @@ public class TransactionManager {
      * Do the commit. This is the 2nd phase of the 2-phase protocol.
      *
      * @param transactionState
-     * @param ignoreUnknownTransactionException
+     * @param ignoreUnknownTransaction
      * @throws CommitUnsuccessfulException
      */
-    public void doCommit(final TransactionState transactionState, final boolean ignoreUnknownTransactionException)
+    public void doCommit(final TransactionState transactionState, final boolean ignoreUnknownTransaction)
                     throws CommitUnsuccessfulException, UnsuccessfulDDLException {
         int loopCount = 0;
         if (batchRegionServer && (TRANSACTION_ALGORITHM == AlgorithmType.MVCC)) {
           try {
              if (LOG.isTraceEnabled()) LOG.trace("Committing [" + transactionState.getTransactionId() +
-                      "] ignoreUnknownTransactionException: " + ignoreUnknownTransactionException);
+                      "] ignoreUnknownTransaction: " + ignoreUnknownTransaction);
              // Set the commitId
              transactionState.setCommitId(-1); // Dummy for MVCC
 
@@ -1975,9 +1976,9 @@ public class TransactionManager {
 								  pSTRConfig.getPeerConnections().get(entry.getValue().get(0).peerId)) {
                     public Integer call() throws CommitUnsuccessfulException, IOException {
                         if (LOG.isTraceEnabled()) LOG.trace("before doCommit() [" + transactionState.getTransactionId() + "]" +
-                                                            " ignoreUnknownTransactionException: " + ignoreUnknownTransactionException);
+                                                            " ignoreUnknownTransaction: " + ignoreUnknownTransaction);
                         return doCommitX(entry.getValue(), transactionState.getTransactionId(),
-                                      transactionState.getCommitId(), ignoreUnknownTransactionException);
+                                      transactionState.getCommitId(), ignoreUnknownTransaction);
                     }
                 });
              }
@@ -2006,7 +2007,7 @@ public class TransactionManager {
           // non batch-rs
 
         if (LOG.isTraceEnabled()) LOG.trace("Committing [" + transactionState.getTransactionId() +
-                      "] ignoreUnknownTransactionException: " + ignoreUnknownTransactionException);
+                      "] ignoreUnknownTransactionn: " + ignoreUnknownTransaction);
 
         if (LOG.isTraceEnabled()) LOG.trace("sending commits for ts: " + transactionState);
         try {
@@ -2028,8 +2029,8 @@ public class TransactionManager {
               threadPool.submit(new TransactionManagerCallable(transactionState, location, pSTRConfig.getPeerConnections().get(location.peerId)) {
                  public Integer call() throws CommitUnsuccessfulException, IOException {
                     if (LOG.isTraceEnabled()) LOG.trace("before doCommit() [" + transactionState.getTransactionId() + "]" +
-                                                        " ignoreUnknownTransactionException: " + ignoreUnknownTransactionException);
-                    return doCommitX(regionName, transactionState.getTransactionId(), transactionState.getCommitId(), ignoreUnknownTransactionException);
+                                                        " ignoreUnknownTransaction: " + ignoreUnknownTransaction);
+                    return doCommitX(regionName, transactionState.getTransactionId(), transactionState.getCommitId(), ignoreUnknownTransaction);
                  }
               });
            }
@@ -3090,7 +3091,7 @@ public class TransactionManager {
             	endKey = TransactionManager.binaryIncrementPos(endKey, -1);
             
 	    //TBD : The parameter '0' to getPeerConnections().get() may need to be something else
-            table = new HTable(regionInfo.getTable(), pSTRConfig.getPeerConnections().get(0), cp_tpe);
+            table = new HTable(regionInfo.getTable(), (Connection) pSTRConfig.getPeerConnections().get(0), cp_tpe);
          
             Map<byte[], RecoveryRequestResponse> rresult = null;   
             try {

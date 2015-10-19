@@ -22,6 +22,13 @@
 # @@@ END COPYRIGHT @@@
 #
 
+if [ -z $JAVA_HOME ]; then
+    echo "The environment variable \$JAVA_HOME has not been set"
+    echo "Please ensure \$MY_SQROOT/sqenv.sh has been sourced."
+    echo
+    exit 1;
+fi
+
 cd $MY_SQROOT/tools/check_hbase_available
 echo "Building some utility Java programs."
 . ./build 2>/dev/null

@@ -56,6 +56,13 @@ if [ -z $MY_SQROOT ]; then
     exit 1;
 fi
 
+if [ -z $JAVA_HOME ]; then
+    echo "The environment variable \$JAVA_HOME has not been set"
+    echo "Please ensure \$MY_SQROOT/sqenv.sh has been sourced."
+    echo
+    exit 1;
+fi
+
 declare -i lv_peer_id
 declare -i lv_zookeeper_port
 

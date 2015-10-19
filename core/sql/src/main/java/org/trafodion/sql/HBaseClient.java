@@ -916,7 +916,7 @@ public class HBaseClient {
         //KeyValue kv = scanner.getKeyValue();
           Cell kv = scanner.getKeyValue();
         //System.out.println(kv.toString());
-          System.out.println(CellUtil.toString(kv, false));
+          System.out.println(kv);
         //if (kv.getType() == KeyValue.Type.Put.getCode())
         if (kv.getTypeByte() == KeyValue.Type.Put.getCode())
           qualifiers = qualifiers + kv.getQualifier()[0] + " ";
