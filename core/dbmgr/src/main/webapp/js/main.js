@@ -5,6 +5,27 @@
 // @@@ END COPYRIGHT @@@
 
 require.config({
+	packages: [{
+		name: "codemirror",
+		location: "../bower_components/codemirror/lib",
+		main: "codemirror"
+	},
+	{
+		name: "codesqljs",
+		location: "../bower_components/codemirror/mode/sql",
+		main: "sql"
+	},
+	{
+		name: "codeshowhint",
+		location: "../bower_components/codemirror/addon/hint",
+		main: "show-hint"
+	},
+	{
+		name: "codesqlhint",
+		location: "../bower_components/codemirror/addon/hint",
+		main: "sql-hint"
+	}
+	],
 	shim: {
 		bootstrap: {
 			deps: ['jquery'],
