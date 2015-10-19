@@ -1544,7 +1544,7 @@ EOF
 fi
 # end of HBase setup
 
-if [[ ! -z FAST_LOCAL_HADOOP ]]; then
+if [[ ! -z $FAST_LOCAL_HADOOP ]]; then
     echo "FAST_LOCAL_HADOOP is set. Exitting..."
     exit 0
 fi
