@@ -13,6 +13,9 @@ import io
 import re
 import fnmatch
 import textwrap
+import socket
+import commands
+
 from subprocess import Popen, PIPE
 from sys import stderr
 
@@ -68,6 +71,8 @@ def encode_pswd(plain_text,dbmgr_path):
 def run():
     
     # step 1: Get the arguments from the user and validate it.
+    time_zone = commands.getoutput("./gettimezone.sh | awk '{print $1}'")
+    host_fqdnh = socket.gethostbyname(socket.getfqdn())
     parser = OptionParser()
     parser.add_option("--javahome",  dest="java_home",    action="store",
             help="Java Home path for keytool",    metavar="JAVA_HOME")
@@ -130,40 +135,43 @@ def run():
     if not options.dcs_host :
         done = None
         while (done==None) :
-            options.dcs_host = raw_input("Please provide the EsgynDB DCS master hostname: ")
+            options.dcs_host = raw_input("Please provide the EsgynDB DCS master hostname (default "+ host_fqdnh + "): ")
+            if not options.dcs_host: options.dcs_host = host_fqdnh
             if options.dcs_host: done = True
             
     if not options.dcs_port :
         done = None
         while (done==None) :
-            options.dcs_port = raw_input("Please provide the EsgynDB DCS master listen port(default 23400): ")
+            options.dcs_port = raw_input("Please provide the EsgynDB DCS master listen port (default 23400): ")
             if not options.dcs_port : options.dcs_port = "23400"
             if options.dcs_port and options.dcs_port.isdigit(): done = True
             
     if not options.dcs_info_port :
         done = None
         while (done==None) :
-            options.dcs_info_port = raw_input("Please provide the EsgynDB DCS master info port(default 24400): ")
+            options.dcs_info_port = raw_input("Please provide the EsgynDB DCS master info port (default 24400): ")
             if not options.dcs_info_port : options.dcs_info_port = "24400"
             if options.dcs_info_port and options.dcs_info_port.isdigit(): done = True
             
     if not options.rest_host :
         done = None
         while (done==None) :
-            options.rest_host = raw_input("Please provide the EsgynDB REST server hostname: ")
+            options.rest_host = raw_input("Please provide the EsgynDB REST server hostname (default "+ host_fqdnh + "): ")
+            if not options.rest_host: options.rest_host = host_fqdnh
             if options.rest_host: done = True
             
     if not options.rest_port :
         done = None
         while (done==None) :
-            options.rest_port = raw_input("Please provide the EsgynDB REST server port(default 4200): ")
+            options.rest_port = raw_input("Please provide the EsgynDB REST server port (default 4200): ")
             if not options.rest_port : options.rest_port = "4200"
             if options.rest_port and options.rest_port.isdigit(): done = True
             
     if not options.tsd_host :
         done = None
         while (done==None) :
-            options.tsd_host = raw_input("Please provide the TSD hostname: ")
+            options.tsd_host = raw_input("Please provide the TSD hostname (default "+ host_fqdnh + "): ")
+            if not options.tsd_host: options.tsd_host = host_fqdnh
             if options.tsd_host: done = True
             
     if not options.tsd_port :
@@ -176,8 +184,8 @@ def run():
     if not options.time_zone :
         done = None
         while (done==None) :
-            options.time_zone = raw_input("Please provide the local TimeZone of the EsgynDB instance(default Etc/Utc):")
-            if not options.time_zone : options.time_zone = "Etc/UTC"
+            options.time_zone = raw_input("Please provide the local TimeZone of the EsgynDB instance(default "+ time_zone + "): ")
+            if not options.time_zone : options.time_zone = time_zone
             if options.time_zone: done = True
   
     # sqroot_path = os.getenv("MY_SQROOT")
@@ -193,7 +201,7 @@ def run():
     print "Generating self-signed certificate and SSL keystore..."
     keyfile = os.path.join(dbmgr_path,"etc/dbmgr.keystore")
     if (os.path.exists(keyfile)): os.remove(keyfile)
-    cmd = 'keytool -genkey -alias dbmgr -keyalg RSA -dname "cn=localhost,ou=dbmgr,o=Esgyn,l=Milpitas,st=CA,c=US" -keypass "%s" -storepass "%s" -keystore %s -validity 36500 -keysize 2048' % (options.password,options.password,keyfile)
+    cmd = 'keytool -genkey -alias dbmgr -keyalg RSA -dname "cn='+host_fqdnh+',ou=dbmgr,o=Esgyn,l=Milpitas,st=CA,c=US" -keypass "%s" -storepass "%s" -keystore %s -validity 36500 -keysize 2048' % (options.password,options.password,keyfile)
     cmd = options.java_home+'/bin/'+cmd
     returncode = os.system(cmd)
     if (returncode != 0):
