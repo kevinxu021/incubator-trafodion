@@ -55,6 +55,11 @@
 	.navbar-default .navbar-brand:hover {
 		color: white;
 	}
+	.CodeMirror pre {
+	  padding: 0 4px; /* Horizontal padding of content */
+	  padding-left:30px;
+	}
+	
 	.navbar-default .dbmgr-title {
 		display: inline-block;
 		font-family: 'Open Sans', Arial, Helvetica, sans-serif;
