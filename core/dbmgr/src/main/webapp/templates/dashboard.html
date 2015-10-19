@@ -4,10 +4,10 @@
 			<div class="pull-right">
 				<div class="btn-toolbar">
 
-					<div class="btn-group" style="margin-right:5px">
+					<div class="btn-group" style="margin-right: 5px">
 						<label id="timeRangeLabel" for="timeRange"
-							style="display: inline-block; margin-top: 5px; font-size: 14px; font-weight: normal">Time Range</label>
-						<select class="form-control" id="timeRange"
+							style="display: inline-block; margin-top: 5px; font-size: 14px; font-weight: normal">Time
+							Range</label> <select class="form-control" id="timeRange"
 							style="display: inline-block; width: 110px; font-size: 12px; height: 30px; margin-top: 10px; padding: 2px">
 							<option value="1">Last 1 hour</option>
 							<option value="6">Last 6 hours</option>
@@ -16,7 +16,7 @@
 							<option value="0">Custom</option>
 						</select>
 					</div>
-					<div class="btn-group" style="margin-right:5px">
+					<div class="btn-group" style="margin-right: 5px">
 						<label for="refreshInterval"
 							style="display: inline-block; margin-top: 5px; font-size: 14px; font-weight: normal">Auto-Refresh</label>
 						<select class="form-control" id="refreshInterval"
@@ -45,51 +45,207 @@
 			<h2 class="page-header">Dashboard</h2>
 		</div>
 	</div>
-	<div class="row">
-		<div class="col-lg-6">
+	<div class="row row-eq-height">
+		<div class="col-lg-4">
 			<div class="panel panel-default">
 				<div class="panel-heading">
-					<i class="fa fa-bar-chart-o fa-fw"></i> Services <img
+					<i></i> Services <img
 						id="services-spinner" src="img/ajax-loader.gif" />
 				</div>
 				<div class="panel-body">
-					<div id="services-result-container" class="table-responsive"></div>
-					<label id="services-error-text" style="color: red"></label>
-				</div>
-			</div>
-			<div class="panel panel-default">
-				<div class="panel-heading">
-					<i class="fa fa-bar-chart-o fa-fw"></i> Nodes <img
-						id="nodes-spinner" src="img/ajax-loader.gif" />
-				</div>
-				<div class="panel-body">
-					<div id="nodes-result-container" class="table-responsive"></div>
-					<label id="nodes-error-text" style="color: red"></label>
+					<div id="services-result-container"
+						class="dbmgr-dashboard-table table-responsive"
+						style="overflow: auto"></div>
+					<label id="services-error-text"
+						style="color: red; height: 120px; overflow: auto;"></label>
 				</div>
 			</div>
 		</div>
-		<div class="col-lg-6">
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<i class="fa fa-bar-chart-o fa-fw"></i> Transaction Counts<img
+						id="transactions-spinner" src="img/ajax-loader.gif" />
+				</div>
+				<div class="panel-body">
+					<div id="transactions-chart" class="dbmgr-graph"></div>
+					<label id="transactions-error-text"
+						style="color: red; height: 120px; overflow: auto;"></label>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-4">
 			<div class="panel panel-default">
 				<div class="panel-heading">
 					<i class="fa fa-bar-chart-o fa-fw"></i> Canary Response<img
-						id="canarySpinner" src="img/ajax-loader.gif" />
+						id="canary-spinner" src="img/ajax-loader.gif" />
 				</div>
 				<div class="panel-body">
-					<div id="canary-response-chart"></div>
+					<div id="canary-chart" class="dbmgr-graph"></div>
+					<label id="canary-error-text"
+						style="color: red; height: 120px; overflow: auto;"></label>
 				</div>
 			</div>
 		</div>
 	</div>
-	<div class="modal fade" id="filterDialog" tabindex="-1" role="dialog"
-		aria-labelledby="filterDialogLabel">
-		<div class="modal-dialog" role="document" style="overflow:auto;height:700px">
+	<div class="row row-eq-height">
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<i class=""></i> Nodes <img
+						id="nodes-spinner" src="img/ajax-loader.gif" />
+				</div>
+				<div class="panel-body">
+					<div id="nodes-result-container" class="table-responsive"
+						style="height: 150px; overflow: auto"></div>
+					<label id="nodes-error-text"
+						style="color: red; height: 120px; overflow: auto;"></label>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<div class="btn-toolbar">
+						<i class="fa fa-bar-chart-o fa-fw"></i> IO Waits<img
+							id="iowaits-spinner" src="img/ajax-loader.gif" />
+						<div class="btn-group pull-right" style="margin-right: 5px">
+							<button id="iowaits-drilldown-btn" type="button"
+								class="btn btn-default btn-xs fa fa-search-plus fa-fw"
+								data-toggle="tooltip" data-placement="left" title="IO Waits per Node"
+								style="height: 30px; width: 30px"></button>
+						</div>
+					</div>
+				</div>
+				<div class="panel-body">
+					<div id="iowaits-chart" class="dbmgr-graph"></div>
+					<label id="iowaits-error-text"
+						style="color: red; height: 120px; overflow: auto;"></label>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<div class="btn-toolbar">
+						<i class="fa fa-bar-chart-o fa-fw"></i> Disk Space Used %<img
+							id="useddiskspace-spinner" src="img/ajax-loader.gif" />
+						<div class="btn-group pull-right" style="margin-right: 5px">
+							<button id="useddiskspace-drilldown-btn" type="button"
+								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								data-toggle="tooltip" data-placement="left" title="Space usage by Node"
+								style="height: 30px; width: 30px"></button>
+						</div>
+					</div>
+				</div>
+				<div class="panel-body">
+					<div id="useddiskspace-chart" class="dbmgr-graph"></div>
+					<label id="useddiskspace-error-text"
+						style="color: red; height: 120px; overflow: auto;"></label>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row row-eq-height">
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<div class="btn-toolbar">
+						<i class="fa fa-bar-chart-o fa-fw"></i> GC Time<img
+							id="jvmgctime-spinner" src="img/ajax-loader.gif" />
+						<div class="btn-group pull-right" style="margin-right: 5px">
+							<button id="jvmgctime-drilldown-btn" type="button"
+								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								style="height: 30px; width: 30px"></button>
+						</div>	
+					</div>					
+				</div>
+				<div class="panel-body">
+					<div id="jvmgctime-chart" class="dbmgr-graph"></div>
+					<label id="jvmgctime-error-text"
+						style="color: red; height: 120px; overflow: auto;"></label>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<div class="btn-toolbar">
+						<i class="fa fa-bar-chart-o fa-fw"></i> Regionserver Memory Use<img
+							id="regionservermemory-spinner" src="img/ajax-loader.gif" />
+						<div class="btn-group pull-right" style="margin-right: 5px">
+							<button id="regionservermemory-drilldown-btn" type="button"
+								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								style="height: 30px; width: 30px"></button>
+						</div>
+					</div>
+				</div>
+				<div class="panel-body">
+					<div id="regionservermemory-chart" class="dbmgr-graph"></div>
+					<label id="regionservermemory-error-text"
+						style="color: red; height: 120px; overflow: auto;"></label>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<div class="btn-toolbar">
+						<i class="fa fa-bar-chart-o fa-fw"></i> Memstore Size <img
+							id="memstoresize-spinner" src="img/ajax-loader.gif" />
+						<div class="btn-group pull-right" style="margin-right: 5px">
+							<button id="memstoresize-drilldown-btn" type="button"
+								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								style="height: 30px; width: 30px"></button>
+						</div>
+					</div>
+				</div>
+				<div class="panel-body">
+					<div id="memstoresize-chart" class="dbmgr-graph"></div>
+					<label id="memstoresize-error-text"
+						style="color: red; height: 120px; overflow: auto;"></label>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="metricsDialog" role="dialog"
+		aria-labelledby="metricsDialogLabel">
+		<div class="modal-dialog" role="document"
+			style="height: 1200px; width: 1200px">
 			<div class="modal-content">
 				<div class="modal-header">
 					<button type="button" class="close" data-dismiss="modal"
 						aria-label="Close">
 						<span aria-hidden="true">&times;</span>
 					</button>
-					<h4 class="modal-title" id="filterDialogLabel">Custom Time Range</h4>
+					<h4 class="modal-title" id="metricsDialogLabel">Metric Details</h4>
+					<img id="metrics-drilldown-spinner" src="img/ajax-loader.gif" />
+				</div>
+				<div class="modal-body">
+					<form id="filter-form">
+						<div id="metrics-drilldown-chart" class="dbmgr-drilldown-graph"></div>
+						<label id="metrics-drilldown-error-text"
+							style="color: red; height: 120px; overflow: auto;"></label>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="filterDialog" tabindex="-1" role="dialog"
+		aria-labelledby="filterDialogLabel">
+		<div class="modal-dialog" role="document"
+			style="overflow: auto; height: 800px">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="filterDialogLabel">Custom Time
+						Range</h4>
 				</div>
 				<div class="modal-body">
 					<form id="filter-form">

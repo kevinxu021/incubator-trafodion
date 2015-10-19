@@ -1,0 +1,8 @@
+#!/bin/sh
+
+lv_fnames=`find -name "*.java.orig" | sed -e "s/\.orig$//" `
+
+for lv_fname in $lv_fnames; do
+    echo "Reinstating ${lv_fname}.orig"
+    cp -p ${lv_fname}.orig ${lv_fname}
+done

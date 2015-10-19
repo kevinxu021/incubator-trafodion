@@ -131,7 +131,7 @@ define([
 			refreshTimerView.init();
 			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
-			refreshTimerView.setRefreshInterval(0.5);
+			refreshTimerView.setRefreshInterval(1);
 			
 			this.fetchLogs();
 		},

@@ -130,6 +130,7 @@ my $SQ_SEAMONSTER = $ENV{'SQ_SEAMONSTER'};
 my $SQ_TRANS_SOCK = $ENV{'SQ_TRANS_SOCK'};
 my $SQ_DTM_PERSISTENT_PROCESS = $ENV{'SQ_DTM_PERSISTENT_PROCESS'};
 my $SQ_IDTMSRV = $ENV{'SQ_IDTMSRV'};
+my $SQ_SRVMON = $ENV{'SQ_SRVMON'};
 my $SQ_TNOTIFY = $ENV{'SQ_TNOTIFY'};
 
 # define the error values that are being returned
@@ -480,6 +481,38 @@ sub genComponentWait {
     printScript(1, "fi\n");
 }
 
+
+sub genServiceMonitor {
+    if ($SQ_SRVMON > 0) {
+        my $l_pn = "";
+        for ($i=0; $i < $gdNumNodes; $i++) {
+            $l_pn = $l_pn . $i;
+            if ($i + 1 < $gdNumNodes) {
+                $l_pn = $l_pn . ",";
+            }
+        }
+        printScript(1, "\n");
+        printScript(1, "\n! Start Node Monitors\n");
+	# Generate Node Monitors
+        for ($i=0; $i < $gdNumNodes; $i++) {
+            printScript(1, "set {process \\\$NMON$i } PERSIST_RETRIES=2,30\n");
+            addDbProcData('$NMON'."$i", "PERSIST_RETRIES", "2,30");
+            printScript(1, "set {process \\\$NMON$i } PERSIST_ZONES=$l_pn\n");
+            addDbProcData('$NMON'."$i", "PERSIST_ZONES", "$i");
+            printScript(1, "exec {nowait, name \\\$NMON$i, nid 0, out stdout_nmon_$i} service_monitor -t 60 -f node_monitor.cmd\n");
+        }
+
+	# Cluster Monitor
+        printScript(1, "\n! Start Cluster Monitor\n");
+	printScript(1, "set {process \\\$CMON } PERSIST_RETRIES=2,30\n");
+	addDbProcData('$CMON', "PERSIST_RETRIES", "2,30");
+	printScript(1, "set {process \\\$CMON } PERSIST_ZONES=$l_pn\n");
+	addDbProcData('$CMON', "PERSIST_ZONES", "$l_pn");
+	printScript(1, "exec {nowait, name \\\$CMON, nid 0, out stdout_cmon} service_monitor -t 60 -f cluster_monitor.cmd\n");
+	
+        printScript(1, "delay 1\n");
+    }
+}
 
 sub genIdTmSrv {
     if ($SQ_IDTMSRV > 0) {
@@ -1495,6 +1528,8 @@ while (<SRC>) {
 
 
     genIdTmSrv();
+
+    genServiceMonitor();
 
     genTnotify();
 

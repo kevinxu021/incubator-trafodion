@@ -58,12 +58,42 @@ function(moment, momenttimezone, $) {
 				return "";
 			},
 			
+			this.toServerLocalFromUTCMilliSeconds = function(utcMsec){
+				return utcMsec + _this.serverUtcOffset;
+			},
+			
 			this.toDateFromMilliSeconds = function(milliSeconds) {
 				if (milliSeconds != null) {
 					return moment(milliSeconds).format(_this.ISODateFormat);
 				}
 				return "";
 			},
+			
+			this.formatGraphDateLabels = function(utcMilliseconds, interval){
+				var offSetString = 'HH:mm';
+				
+				if (interval <= (1 * 60 * 60 * 1000)) {
+					offSetString = 'HH:mm'; // For 1 hour use all data, which is by default every 30 seconds
+				} else if (interval <= (6 * 60 * 60 * 1000)) {
+					offSetString = 'HH:mm'; // For 6 hours, use every 2 min
+				} else if (interval <= (1 * 24 * 60 * 60 * 1000)) {
+					offSetString = 'HH:mm'; // For 1 day, use every 15 min
+				} else if (interval <= (3 * 24 * 60 * 60 * 1000)) {
+					offSetString = 'HH:mm'; // For 3 days, use every 1 hour
+				} else if (interval <= (1 * 7 * 24 * 60 * 60 * 1000)) {
+					offSetString = 'ddd HH:mm'; // For 1 week, use every 2 hours
+				} else if (interval <= (2 * 7 * 24 * 60 * 60 * 1000)) {
+					offSetString = 'ddd HH:mm'; // For 2 weeks, use every 4 hours
+				} else if (interval <= 1 * 31 * 24 * 60 * 60 * 1000) {
+					offSetString = 'ddd HH:mm'; // For 1 month use every 12 hours
+				} else if (interval <=  3 * 31 * 24 * 60 * 60 * 1000) {
+					offSetString = 'MM-DD HH:mm'; // For 3 months use every 1 day
+				} else {
+					offSetString =  'MM-DD HH:mm'; // For longer than 3 months, use every 1 week
+				}
+				return _this.toServerLocalDateFromUtcMilliSeconds(utcMilliseconds, offSetString);
+			},
+			
 			this.toServerLocalDateFromUtcMilliSeconds = function(utcMilliSeconds, formatString) {
 				if (utcMilliSeconds != null) {
 					//return moment(utcMilliSeconds + (_this.serverUtcOffset)).local().format('YYYY-MM-DD HH:mm:ss');
@@ -107,6 +137,12 @@ function(moment, momenttimezone, $) {
 				return (bytes/1024/1024).toFixed(2);
 			};
 			
+			this.convertToKB = function(bytes){
+				if(bytes <=0)
+					return 0;
+				return (bytes/1024).toFixed(2);
+			};
+
 			this.storeSessionProperties = function(timeZone, utcOffset, dcsMasterUri){
 				_this.serverTimeZone = timeZone;
 				_this.serverUtcOffset = utcOffset;

@@ -87,6 +87,10 @@ def run():
             help="Hostname for the EsgynDB REST server", metavar="REST_HOST")
     parser.add_option("--restport",  dest="rest_port",   action="store", type="int",                     
             help="Port for the EsgynDB REST server",     metavar="REST_PORT")
+    parser.add_option("--tsdhost",  dest="tsd_host",   action="store",                    
+            help="Hostname for the OpenTSDB TSD", metavar="TSD_HOST")
+    parser.add_option("--tsdport",  dest="tsd_port",   action="store", type="int",                     
+            help="Port for the OpenTSDB TSD",     metavar="TSD_PORT")            
     parser.add_option("--timezone",  dest="time_zone",   action="store",                     
             help="Local TimeZone of the EsgynDB instance (Format like America/Los_Angeles or Etc/Utc)",     metavar="TIMEZONE_NAME")
 
@@ -156,6 +160,19 @@ def run():
             if not options.rest_port : options.rest_port = "4200"
             if options.rest_port and options.rest_port.isdigit(): done = True
             
+    if not options.tsd_host :
+        done = None
+        while (done==None) :
+            options.tsd_host = raw_input("Please provide the TSD hostname: ")
+            if options.tsd_host: done = True
+            
+    if not options.tsd_port :
+        done = None
+        while (done==None) :
+            options.tsd_port = raw_input("Please provide the TSD port(default 5242): ")
+            if not options.tsd_port : options.tsd_port = "5242"
+            if options.tsd_port and options.tsd_port.isdigit(): done = True
+            
     if not options.time_zone :
         done = None
         while (done==None) :
@@ -202,6 +219,8 @@ def run():
     file_str=file_str.replace('HTTP_PORT', str(options.http_port))
     file_str=file_str.replace('HTTPS_PORT', str(options.https_port))
     file_str=file_str.replace('TIMEZONE_NAME', str(options.time_zone))
+    file_str=file_str.replace('TSD_HOST', str(options.tsd_host))
+    file_str=file_str.replace('TSD_PORT', str(options.tsd_port))
 
     config_xml = os.path.join(dbmgr_path,"conf/config.xml")
     with open(config_xml, 'w+') as f:

@@ -1,3 +1,26 @@
+/**
+* @@@ START COPYRIGHT @@@
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*
+* @@@ END COPYRIGHT @@@
+**/
+
 // @@@ START COPYRIGHT @@@
 //
 // Licensed to the Apache Software Foundation (ASF) under one
@@ -32,6 +55,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.io.InterruptedIOException;
@@ -41,9 +65,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.KeyValueUtil;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HConnection;
@@ -103,6 +129,8 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
     static ExecutorService     threadPool;
     static int                 retries = 15;
     static int                 delay = 1000;
+
+    private String retryErrMsg = "Coprocessor result is null, retries exhausted";
 
     //this scanner implement fixes and improvements over the regular client
     //scanner, and will be deprecated or modified as HBase implements these fixes
@@ -266,7 +294,9 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
       //if(resultArray.length == 0) 
     	//  throw new IOException("Problem with calling coprocessor, no regions returned result");
       
-      if(result.hasException())
+      if(result == null)
+        throw new IOException(retryErrMsg);
+      else if(result.hasException())
         throw new IOException(result.getException());
       return ProtobufUtil.toResult(result.getResult());      
     }
@@ -336,7 +366,9 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
           throw new IOException();
         } 
 
-        if(result.hasException())
+        if(result == null)
+          throw new IOException(retryErrMsg);
+        else if(result.hasException())
           throw new IOException(result.getException());
     }
 
@@ -408,8 +440,9 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
       e.printStackTrace();
       throw new IOException("ERROR while calling coprocessor");
     }    
-    
-    if(result.hasException())
+    if(result == null)
+      throw new IOException(retryErrMsg);
+    else if(result.hasException())
       throw new IOException(result.getException());
     
     // put is void, may not need to check result
@@ -499,9 +532,10 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
         e.printStackTrace();
         throw new IOException("ERROR while calling coprocessor");
       }
-
-      if(result.hasException())
-          throw new IOException(result.getException());
+      if(result == null)
+        throw new IOException(retryErrMsg);
+      else if(result.hasException())
+        throw new IOException(result.getException());
       return result.getResult();
    }
     
@@ -583,8 +617,11 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
         throw new IOException("ERROR while calling coprocessor " + sw.toString());       
       }
 
-      if(result.hasException())
-          throw new IOException(result.getException());
+      if(result == null)
+        throw new IOException(retryErrMsg);
+      else if(result.hasException())
+        throw new IOException(result.getException());
+
       return result.getResult();          
     }
 
@@ -678,8 +715,10 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
 	        throw new IOException("ERROR while calling coprocessor");
  	      }
 
-          if (result.hasException())
-             throw new IOException(result.getException());
+             if(result == null)
+               throw new IOException(retryErrMsg);
+             else if (result.hasException())
+               throw new IOException(result.getException());
 	   }
    	}
 
@@ -770,26 +809,28 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
         e.printStackTrace();
         throw new IOException("ERROR while calling coprocessor");
       }
-      if (result.hasException()) 
+      if(result == null)
+        throw new IOException(retryErrMsg);
+      else if (result.hasException()) 
         throw new IOException(result.getException());
      }
 		}
 	
 	// validate for well-formedness
 	public void validatePut(final Put put) throws IllegalArgumentException {
-		if (put.isEmpty()) {
-			throw new IllegalArgumentException("No columns to insert");
-		}
-		if (maxKeyValueSize > 0) {
-			for (List<KeyValue> list : put.getFamilyMap().values()) {		  
-				for (KeyValue kv : list) {
-					if (kv.getLength() > maxKeyValueSize) {
-						throw new IllegalArgumentException(
-								"KeyValue size too large");
-					}
-				}
-			}
-		}
+       if (put.isEmpty()) {
+          throw new IllegalArgumentException("No columns to insert");
+       }
+       if (maxKeyValueSize > 0) {
+          for (List<Cell> list : put.getFamilyCellMap().values()) {		  
+             for (Cell cell : list) {
+                if (KeyValueUtil.length(cell) > maxKeyValueSize){
+                   throw new IllegalArgumentException("Cell size too large: "
+                           + KeyValueUtil.length(cell));
+                }
+             }
+          }
+       }
 	}
 	
 	private int maxKeyValueSize;
