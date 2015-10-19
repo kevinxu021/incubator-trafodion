@@ -540,6 +540,8 @@ GenericUpdate(const CorrName &name,
   inline void setPrecondition(const ValueIdSet pc)
            { precondition_ = pc; exprsInDerivedClasses_ += precondition_; }
 
+  virtual ItemExpr * insertValues() { return NULL;}
+
 protected:
 
   // Here, derived classes can register expressions that are used by
@@ -1442,7 +1444,7 @@ public:
   virtual const NAString getText() const;
 
   ItemExpr * insertCols() {return insertCols_;}
-  ItemExpr * insertValues() { return insertValues_;}
+  virtual ItemExpr * insertValues() { return insertValues_;}
   NABoolean xformedUpsert() {return xformedUpsert_;}
   void setXformedUpsert() {xformedUpsert_ = TRUE;}
 private:
@@ -1593,7 +1595,7 @@ public:
   virtual const NAString getText() const;
 
   ItemExpr * insertCols() {return insertCols_;}
-  ItemExpr * insertValues() { return insertValues_;}
+  virtual ItemExpr * insertValues() { return insertValues_;}
 private:
   ItemExpr *insertCols_;
   ItemExpr *insertValues_;
@@ -1702,6 +1704,8 @@ public:
   virtual PhysicalProperty *synthPhysicalProperty(const Context *context,
                                                   const Lng32     planNumber,
                                                   PlanWorkSpace  *pws);
+
+  virtual CostMethod * costMethod() const;
 
   //! getText method
   //  used to display the name of the node.
@@ -2008,6 +2012,8 @@ public:
   virtual PhysicalProperty *synthPhysicalProperty(const Context *context,
                                                   const Lng32     planNumber,
                                                   PlanWorkSpace  *pws);
+
+  virtual CostMethod * costMethod() const;
 
   //! getText method
   //  used to display the name of the node.

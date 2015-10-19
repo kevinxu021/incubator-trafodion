@@ -113,11 +113,23 @@ public class STRConfig {
 				 int           pv_peer_num)
 	throws InterruptedException, KeeperException, IOException 
     {
-	if (LOG.isTraceEnabled()) LOG.trace("Putting peer info in the map for cluster id: " + pv_peer_num);
+	if (LOG.isTraceEnabled()) LOG.trace("Adding config info in the map for cluster id: " + pv_peer_num
+					    + " peer config: " + pv_config.get(ZK_QUORUM));
 	peer_configs.put(pv_peer_num, pv_config);
-	
-	HConnection lv_connection = HConnectionManager.createConnection(pv_config);
-	peer_connections.put(pv_peer_num, lv_connection);
+	if (LOG.isTraceEnabled()) LOG.trace("Added config info in the peer_configs map for cluster id: " + pv_peer_num);
+
+	try {
+	    HConnection lv_connection = HConnectionManager.createConnection(pv_config);
+	    if (LOG.isTraceEnabled()) LOG.trace("Created connection for peer: " + pv_peer_num
+						+ " connection: " + lv_connection);
+	    peer_connections.put(pv_peer_num, lv_connection);
+	    if (LOG.isTraceEnabled()) LOG.trace("Added connection in the peer_connections map for cluster id: " + pv_peer_num);
+	}
+	catch (Exception e) {
+	    LOG.error("Exception while creating the connection: " + e);
+	    e.printStackTrace();
+	    LOG.error("cause: " + e.getCause());
+	}
 
 	if (LOG.isInfoEnabled()) LOG.info("peer#" 
 					  + pv_peer_num 
@@ -228,7 +240,7 @@ public class STRConfig {
 	    return;
 	}
 
-	PeerInfo lv_pi = peer_info_list.get(pv_cluster_id);
+	PeerInfo lv_pi = getPeerInfo(pv_cluster_id);
 	if (lv_pi != null) {
 	    boolean previouslySTRUp = lv_pi.isSTRUp();
 	    lv_pi.set_status(pv_status);
@@ -252,9 +264,31 @@ public class STRConfig {
 	return sv_peer_count;
     }
 
+    public Configuration getPeerConfiguration(int pv_cluster_id, boolean pv_STR_should_be_up) 
+    {
+	if (pv_STR_should_be_up) {
+	    PeerInfo lv_pi = getPeerInfo(pv_cluster_id);
+	    if (lv_pi == null) {
+		return null;
+	    }
+	    if (! lv_pi.isSTRUp()) {
+		return null;
+	    }
+	} 
+
+	return peer_configs.get(pv_cluster_id);
+    }
+
     public Configuration getPeerConfiguration(int pv_cluster_id) 
     {
-	return peer_configs.get(pv_cluster_id);
+	boolean lv_STR_should_be_up_flag;
+	
+	lv_STR_should_be_up_flag = true;
+	if (pv_cluster_id == 0) {
+	    lv_STR_should_be_up_flag = false;
+	}
+	
+	return getPeerConfiguration(pv_cluster_id, lv_STR_should_be_up_flag);
     }
 
     public Map<Integer, Configuration> getPeerConfigurations() 

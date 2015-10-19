@@ -5,6 +5,27 @@
 // @@@ END COPYRIGHT @@@
 
 require.config({
+	packages: [{
+		name: "codemirror",
+		location: "../bower_components/codemirror/lib",
+		main: "codemirror"
+	},
+	{
+		name: "codesqljs",
+		location: "../bower_components/codemirror/mode/sql",
+		main: "sql"
+	},
+	{
+		name: "codeshowhint",
+		location: "../bower_components/codemirror/addon/hint",
+		main: "show-hint"
+	},
+	{
+		name: "codesqlhint",
+		location: "../bower_components/codemirror/addon/hint",
+		main: "sql-hint"
+	}
+	],
 	shim: {
 		bootstrap: {
 			deps: ['jquery'],
@@ -59,6 +80,7 @@ require.config({
 		datatablesBootStrap: '../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap',
 		datatablesUI: '../bower_components/datatables-plugins/integration/jqueryui/dataTables.jqueryui',
 		tabletools: '../bower_components/datatables-tabletools/js/dataTables.tableTools',
+		responsivetable: '../bower_components/datatables-responsive/js/dataTables.responsive',
 		jstree: '../bower_components/jstree/dist/jstree',
 		moment: '../bower_components/moment/min/moment.min',
 		momenttimezone: '../bower_components/moment-timezone/builds/moment-timezone-with-data.min',

@@ -8,119 +8,80 @@ define(['handlers/EventDispatcher'],
 		function(EventDispatcher) {"use strict";
 
 		var DashboardHandler = ( function() {
-
+			var xhrs = [];
+			
 			function DashboardHandler() {
 				var dispatcher = new EventDispatcher();
-				this.DISKREADS_SUCCESS = 'fetchDiskReadsSuccess';
-				this.DISKREADS_ERROR = 'fetchDiskReadsError';        	  
-				this.DISKWRITES_SUCCESS = 'fetchDiskWritesSuccess';
-				this.DISKWRITES_ERROR = 'fetchDiskWritesError';        	  
-				this.GETOPS_SUCCESS = 'fetchGetOpsSuccess';
-				this.GETOPS_ERROR = 'fetchGetOpsError';        	  
-				this.CANARY_SUCCESS = 'canarySuccess';
-				this.CANARY_FAILURE = 'canaryFailure';
-
+				this.TRANSACTION_STATS_SUCCESS = 'transactionsSucccess';
+				this.TRANSACTION_STATS_ERROR = 'transactionsError';
+				this.SUMMARY_METRIC_SUCCESS = 'SUMMARY_METRIC_SUCCESS';
+				this.SUMMARY_METRIC_ERROR = 'SUMMARY_METRIC_ERROR';
+				this.DRILLDOWN_METRIC_ERROR = 'DRILLDOWN_METRIC_ERROR';
+				this.DRILLDOWN_METRIC_SUCCESS = 'DRILLDOWN_METRIC_SUCCESS';
+				
 				var _this = this;
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
 				};
 
-				this.fetchCPUData = function(){
-					$.ajax({
-						url: 'resources/metrics/cpu',
-						type:'GET',
+				this.fetchSummaryMetric = function(params){
+					var xhr = xhrs[params.metricName];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs[params.metricName] = $.ajax({
+						url: 'resources/metrics/summary',
+						type:'POST',
 						dataType:"json",
+						data: JSON.stringify(params),						
 						contentType: "application/json;",
 						statusCode : {
 							401 : _this.sessionTimeout,
 							403 : _this.sessionTimeout
 						},
 						success: function(data){
-							dispatcher.fire("fetchCPUDataSuccess", data);
+							var result = {};
+							result.metricName = params.metricName;
+							result.timeinterval = params.timeinterval;
+							result.data = data;
+							dispatcher.fire(_this.SUMMARY_METRIC_SUCCESS, result);
 						},
 						error:function(jqXHR, res, error){
-							dispatcher.fire("fetchCPUDataError", jqXHR, res, error);
-						}
-					});
-				};           
-
-				this.fetchDiskReads = function(){
-					$.ajax({
-						url: 'resources/metrics/diskreads',
-						type:'GET',
-						dataType:"json",
-						contentType: "application/json;",
-						statusCode : {
-							401 : _this.sessionTimeout,
-							403 : _this.sessionTimeout
-						},
-						success: function(data){
-							dispatcher.fire("fetchDiskReadsSuccess", data);
-						},
-						error:function(jqXHR, res, error){
-							dispatcher.fire("fetchDiskReadsError", jqXHR, res, error);
+							jqXHR.metricName = params.metricName;
+							dispatcher.fire(_this.SUMMARY_METRIC_ERROR, jqXHR, res, error);
 						}
 					});
 				};
-
-				this.fetchDiskWrites = function(){
-					$.ajax({
-						url: 'resources/metrics/diskwrites',
-						type:'GET',
-						dataType:"json",
-						contentType: "application/json;",
-						statusCode : {
-							401 : _this.sessionTimeout,
-							403 : _this.sessionTimeout
-						},
-						success: function(data){
-							dispatcher.fire("fetchDiskWritesSuccess", data);
-						},
-						error:function(jqXHR, res, error){
-							dispatcher.fire("fetchDiskWritesError", jqXHR, res, error);
-						}
-					});
-				};
-
-				this.fetchGetOps = function(){
-					$.ajax({
-						url: 'resources/metrics/getops',
-						type:'GET',
-						dataType:"json",
-						contentType: "application/json;",
-						statusCode : {
-							401 : _this.sessionTimeout,
-							403 : _this.sessionTimeout
-						},
-						success: function(data){
-							dispatcher.fire("fetchGetOpsSuccess", data);
-						},
-						error:function(jqXHR, res, error){
-							dispatcher.fire("fetchGetOpsError", jqXHR, res, error);
-						}
-					});
-				};   
 				
-				this.fetchCanaryResponse = function(){
-					$.ajax({
-						url: 'resources/metrics/canary',
-						type:'GET',
+				this.fetchMetricDrilldown = function(params){
+					var xhr = xhrs[params.metricName];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs[params.metricName] = $.ajax({
+						url: 'resources/metrics/drilldown',
+						type:'POST',
 						dataType:"json",
+						data: JSON.stringify(params),						
 						contentType: "application/json;",
 						statusCode : {
 							401 : _this.sessionTimeout,
 							403 : _this.sessionTimeout
 						},
 						success: function(data){
-							dispatcher.fire(_this.CANARY_SUCCESS, data);
+							var result = {};
+							result.metricName = params.metricName;
+							result.timeinterval = params.timeinterval;
+							result.data = data;
+							dispatcher.fire(_this.DRILLDOWN_METRIC_SUCCESS, result);
 						},
 						error:function(jqXHR, res, error){
-							dispatcher.fire(_this.CANARY_ERROR, jqXHR, res, error);
+							jqXHR.metricName = params.metricName;
+							dispatcher.fire(_this.DRILLDOWN_METRIC_ERROR, jqXHR, res, error);
 						}
 					});
-				};           
-
-
+				};
+				
 				this.init = function() {
 
 				};

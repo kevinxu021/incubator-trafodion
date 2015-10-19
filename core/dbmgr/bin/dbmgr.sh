@@ -34,7 +34,7 @@ if [[ $1 = "start" ]]; then
     if [ -n "$pid" ]; then
         echo "EsgynDB Manager is already started. PID is $pid."
     else
-        setsid java -Dlogback.configurationFile=$DBMGR_INSTALL_DIR/conf/logback.xml -jar $WARFILE > dbmgr.log 2>&1  &
+        setsid java -Dlogback.configurationFile=$DBMGR_INSTALL_DIR/conf/logback.xml -jar $WARFILE > $BINDIR/dbmgr.log 2>&1  &
         sleep 5s
         pid=$(getpid)
         if [ -n "$pid" ]; then

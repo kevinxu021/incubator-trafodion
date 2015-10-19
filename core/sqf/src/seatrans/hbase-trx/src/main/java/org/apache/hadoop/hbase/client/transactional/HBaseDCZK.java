@@ -468,7 +468,7 @@ public class HBaseDCZK implements Abortable {
 	    Configuration lv_config  = null;
 
 	    lv_STRConfig = STRConfig.getInstance(m_config);
-	    lv_config = lv_STRConfig.getPeerConfiguration(Integer.parseInt(pv_cluster_id));
+	    lv_config = lv_STRConfig.getPeerConfiguration(Integer.parseInt(pv_cluster_id), false);
 	    if (lv_config == null) {
 		System.out.println("Peer ID: " + pv_cluster_id + " does not exist OR it has not been configured.");
 		return;
@@ -555,7 +555,7 @@ public class HBaseDCZK implements Abortable {
 	    Configuration lv_config  = null;
 
 	    lv_STRConfig = STRConfig.getInstance(m_config);
-	    lv_config = lv_STRConfig.getPeerConfiguration(Integer.parseInt(pv_cluster_id));
+	    lv_config = lv_STRConfig.getPeerConfiguration(Integer.parseInt(pv_cluster_id), false);
 	    if (lv_config == null) {
 		System.out.println("Peer ID: " + pv_cluster_id + " does not exist OR it has not been configured.");
 		return;
@@ -697,7 +697,7 @@ public class HBaseDCZK implements Abortable {
 	System.out.println("                  :   | -get <id>");
 	System.out.println("                  :   | -list");
 	System.out.println("                  :   | -delete <id>");
-	System.out.println("                  :   | -push");
+	System.out.println("                  :   | -push ");
 	System.out.println("                  :   | -pull >");
 	System.out.println("<options>         : [ <peer info> | -h | -v ]");
 	System.out.println("<cluster info>    : < <cluster id> [ <quorum info> | <port info> | <status info> ]... >");
@@ -705,12 +705,11 @@ public class HBaseDCZK implements Abortable {
 	System.out.println("<quorum info>     : -quorum <zookeeper quorum>");
 	System.out.println("<port info>       : -port <zookeeper client port>");
 	System.out.println("<status info>     : -status <status>");
-	System.out.println("<status>          : <HBase Status>:<Trafodion Status>:<STR Status>");
-	System.out.println("<HBase Status>    : <HBase Up>    (hup)|<HBase Down>     (hdn)");
-	System.out.println("<Trafodion Status>: <Trafodion Up>(tup)|<Trafodion Down> (tdn)");
-	System.out.println("<STR Status>      : <STR Up>      (sup)|<STR Down>     (sdn)");
+	System.out.println("<status>          : <Trafodion Status>:<STR Status>");
+	System.out.println("<Trafodion Status>: <Trafodion Up>(tup)| <Trafodion Down> (tdn)");
+	System.out.println("<STR Status>      : <STR Up>      (sup)| <STR Down>       (sdn)");
 	System.out.println("<peer info>       : -peer <id>");
-	System.out.println("                  :    Execute the command at the specified peer.");
+	System.out.println("                  :    With this option the command is executed at the specified peer.");
 	System.out.println("                  :    (Defaults to the local cluster)");
 	System.out.println("<id>              : A number between 1 and 100 (inclusive)");
 	System.out.println("-h                : Help (this output).");
@@ -809,18 +808,24 @@ public class HBaseDCZK implements Abortable {
 	    }
 	    else if (lv_arg.compareTo("-get") == 0) {
 		if (lv_verbose) System.out.println("Command: get");
-		lv_id =Args[lv_index];
+		lv_cmd_get = true;
+		if (Args.length > lv_index) {
+		    if (lv_verbose) System.out.println("Args.length: " + Args.length
+						       + " lv_index: " + lv_index);
+		    lv_id = Args[lv_index];
+		}
 		if ((lv_id != null) && (lv_id.length() > 0)) {
-		    lv_cmd_get = true;
+		    if (lv_verbose) System.out.println("Provided id: " + lv_id);
 		}
 		else {
-		    System.out.println("Id not provided. Exitting...");
-		    System.exit(1);
+		    System.out.println("Id not provided. Getting this cluster's info...");
 		}
 	    }
 	    else if (lv_arg.compareTo("-delete") == 0) {
 		if (lv_verbose) System.out.println("Command: delete");
-		lv_id =Args[lv_index];
+		if (Args.length > lv_index) {
+		    lv_id =Args[lv_index];
+		}
 		if ((lv_id != null) && (lv_id.length() > 0)) {
 		    lv_cmd_delete = true;
 		}
@@ -853,7 +858,7 @@ public class HBaseDCZK implements Abortable {
 	    try {
 		System.setProperty("PEERS", String.valueOf(lv_peer_id));
 		lv_STRConfig = STRConfig.getInstance(lv_config);
-		lv_config = lv_STRConfig.getPeerConfiguration(lv_peer_id);
+		lv_config = lv_STRConfig.getPeerConfiguration(lv_peer_id, false);
 		if (lv_config == null) {
 		    System.out.println("Peer ID: " + lv_peer_id + " does not exist OR it has not been configured.");
 		    System.exit(1);
@@ -871,6 +876,10 @@ public class HBaseDCZK implements Abortable {
 
 	try {
 	    HBaseDCZK lv_zk = new HBaseDCZK(lv_config);
+	    if (lv_id.length() <= 0) {
+		lv_id = lv_zk.get_my_id();
+		if (lv_verbose) System.out.println("my id: " + lv_id);
+	    }
 	    if (lv_cmd_set_my_id) {
 		lv_zk.set_my_id(lv_my_id);
 		if (lv_test) {

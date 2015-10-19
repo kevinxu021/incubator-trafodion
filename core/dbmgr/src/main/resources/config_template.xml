@@ -43,5 +43,5 @@
 	<entry key="timeZoneName">TIMEZONE_NAME</entry>
 	
 		<!-- The openTSDB HTTP URI-->
-	<entry key="openTSDBUri">OPENTSDB_HOST:OPENTSDB_PORT</entry>
+	<entry key="openTSDBUri">TSD_HOST:TSD_PORT</entry>
 </properties>
