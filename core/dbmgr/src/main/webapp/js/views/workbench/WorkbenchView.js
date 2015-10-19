@@ -9,11 +9,13 @@ define([
     'text!templates/workbench.html',
     'jquery',
     'common',
+    '../../../bower_components/codemirror/lib/codemirror',
+    '../../../bower_components/codemirror/mode/sql/sql',
     'jit',
     'datatables',
     'datatablesBootStrap',
     'tabletools'
-], function (BaseView, WorkbenchT, $, common) {
+], function (BaseView, WorkbenchT, $, common, CodeMirror) {
     'use strict';
 
     var setRootNode = false;
@@ -29,6 +31,8 @@ define([
     	CONTROL_APPLY_BUTTON = "#controlApplyButton",
     	TOOLTIP_DIALOG = '#tooltipDialog';
     var _that = null;
+    var queryTextEditor = null,
+    	controlStmtEditor = null;
     
     $jit.ST.Plot.NodeTypes.implement({
     	'nodeline': {
@@ -116,6 +120,38 @@ define([
 		              'max-height':'100%'
 		       });
         	});
+        	
+        	if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
+        		common.defineEsgynSQLMime(CodeMirror);
+        	}
+        	
+        	queryTextEditor = CodeMirror.fromTextArea(document.getElementById("query-text"), {
+        	    mode: 'text/x-esgyndb',
+        	    indentWithTabs: true,
+        	    smartIndent: true,
+        	    lineNumbers: true,
+        	    matchBrackets : true,
+        	    autofocus: true,
+        	    extraKeys: {"Ctrl-Space": "autocomplete"},
+        	    hintOptions: {tables: {
+        	      users: {name: null, score: null, birthDate: null},
+        	      countries: {name: null, population: null, size: null}
+        	    }}
+        	});
+        	
+        	controlStmtEditor = CodeMirror.fromTextArea(document.getElementById("controlStmts"), {
+        	    mode: 'text/x-esgyndb',
+        	    indentWithTabs: true,
+        	    smartIndent: true,
+        	    lineNumbers: true,
+        	    matchBrackets : true,
+        	    autofocus: true,
+        	    extraKeys: {"Ctrl-Space": "autocomplete"},
+        	    hintOptions: {tables: {
+        	      users: {name: null, score: null, birthDate: null},
+        	      countries: {name: null, population: null, size: null}
+        	    }}
+        	});
         },
         doResume: function(){
         	
@@ -137,7 +173,12 @@ define([
         	$(CONTROL_DIALOG).modal('show');
         },
         controlApplyClicked: function(){
-        	controlStmts = $("#controlStmts").val();
+        	//controlStmts = $("#controlStmts").val();
+        	if(controlStmtEditor)
+        		controlStmts = controlStmtEditor.getValue();
+        	else
+        		controlStmts = $("#controlStmts").val();
+        	
 			if(controlStmts == null) {
 				controlStmts = "";
 			} else {
@@ -148,6 +189,9 @@ define([
 
         explainQuery: function () {
         	var queryText = $("#query-text").val();
+        	if(queryTextEditor)
+        	 queryText = queryTextEditor.getValue();
+        	
         	if(queryText == null || queryText.length == 0){
         		alert('Query text cannot be empty.');
         		return;
@@ -182,6 +226,9 @@ define([
 
         executeQuery: function () {
         	var queryText = $("#query-text").val();
+        	if(queryTextEditor)
+        	 queryText = queryTextEditor.getValue();
+        	
         	if(queryText == null || queryText.length == 0){
         		alert('Query text cannot be empty.');
         		return;
