@@ -474,13 +474,7 @@ elif [[ -d /opt/mapr ]]; then
   # HBase-trx jar with some modifications to work with MapR HBase 0.94.13
   export HBASE_TRX_JAR=hbase-trx-mapr4_0-trx-${TRAFODION_VER}.jar
 
-elif [[ -e $MY_SQROOT/sql/scripts/install_local_hadoop
-     && -e $MY_SQROOT/export/bin${SQ_MBTYPE}/monitor
-     && -e ${HBASE_TRXDIR}/${HBASE_TRX_JAR}
-     && -e $MY_SQROOT/export/lib/${DTM_COMMON_JAR}
-     && -e $MY_SQROOT/export/lib/${SQL_JAR}
-     && -e $MY_SQROOT/export/lib/trafodion-HBaseAccess-${TRAFODION_VER}.jar
-     && -e $MY_SQROOT/export/lib/jdbcT2.jar ]]; then
+else
 
   # try some other options
 
