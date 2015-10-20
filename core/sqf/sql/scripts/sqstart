@@ -346,11 +346,11 @@ run_util hbcheck 3 10
 
 echo "-------------"
 echo "My cluster id"
-xdc_setup -getmyid
+xdc -getmyid
 echo "-------------"
 
 echo "Listing my info and my peer(s) info"
-xdc_setup -list
+xdc -list
 echo "-------------"
 
 echo "Checking if peers are available"

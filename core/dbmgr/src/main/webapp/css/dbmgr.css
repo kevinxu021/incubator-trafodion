@@ -55,6 +55,11 @@
 	.navbar-default .navbar-brand:hover {
 		color: white;
 	}
+	.CodeMirror pre {
+	  padding: 0 4px; /* Horizontal padding of content */
+	  padding-left:30px;
+	}
+	
 	.navbar-default .dbmgr-title {
 		display: inline-block;
 		font-family: 'Open Sans', Arial, Helvetica, sans-serif;
@@ -68,6 +73,12 @@
 		/*margin: 0 0 0 250px;*/
 		padding: 0 30px;
 		border-left: 1px solid #e7e7e7;
+	}
+	.dbmgr-graph {
+		min-height:125px;
+	}
+	.dbmgr-drilldown-graph {
+		min-height:400px;
 	}
 	.navbar-default .navbar-nav>li>a {
 		color: white;
@@ -105,6 +116,21 @@
 	}
 	.dbmgr-table {
 		font-size: 13px !important;
+	}
+	.dbmgr-status-btn {
+	    width: 24px;
+	    height: 24px;
+	    padding: 6px 0;
+	    border-radius: 12px;
+	    text-align: center;
+	    font-size: 10px;
+	}
+	table.dbmgr-dashboard-table tbody tr td{
+		white-space: nowrap;
+	    padding-left: 8px;
+	    padding-bottom: 2px;
+	    padding-top: 2px;
+	    vertical-align: middle;
 	}
 	table.display thead th div.DataTables_sort_wrapper {
 		position: relative;

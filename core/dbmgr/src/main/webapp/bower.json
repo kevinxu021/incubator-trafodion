@@ -34,6 +34,7 @@
 	"eonasdan-bootstrap-datetimepicker": "4.15.35",
 	"jquery-validation": "~1.14.0",
 	"jquery-localize-i18n": "latest",
-	"moment-timezone": "0.4.0"
+	"moment-timezone": "0.4.0",
+	"codemirror":"latest"
   }
 }
