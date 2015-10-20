@@ -221,14 +221,11 @@ public class HBaseTxClient {
       catch (IOException ioe) {
          LOG.error("IO Exception trying to get STRConfig instance: " + ioe);
       }
-      String clusterIdS = System.getenv("MY_CLUSTER_ID");
-      int lv_clusterId = 0;
-      if (clusterIdS != null){
-         lv_clusterId = Integer.parseInt(clusterIdS);
-      }
-      myClusterId = lv_clusterId;
 
+      myClusterId = 0;
       if (pSTRConfig != null) {
+         myClusterId = pSTRConfig.getMyClusterIdInt();
+
          for ( Map.Entry<Integer, Configuration> e : pSTRConfig.getPeerConfigurations().entrySet() ) {
             e.getValue().set("dtmid", String.valueOf(dtmid));
             e.getValue().set("CONTROL_POINT_TABLE_NAME", "TRAFODION._DTM_.TLOG" + String.valueOf(dtmid) + "_CONTROL_POINT");
