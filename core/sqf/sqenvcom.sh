@@ -150,7 +150,7 @@ if [[ "$HBASE_DISTRO" = "APACHE" ]]; then
     export HBASE_TRX_JAR=hbase-trx-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
     export SQL_JAR=trafodion-sql-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
 fi
-export DTM_COMMON_JAR=dtm-common-${TRAFODION_VER}.jar
+export DTM_COMMON_JAR=trafodion-dtm-${TRAFODION_VER}.jar
 
 # check for workstation env
 # want to make sure SQ_VIRTUAL_NODES is set in the shell running sqstart
@@ -273,41 +273,6 @@ if [[ -e $MY_SQROOT/sql/scripts/sw_env.sh ]]; then
   export HADOOP_CNF_DIR=$MY_SQROOT/sql/local_hadoop/hadoop/etc/hadoop
   export HBASE_CNF_DIR=$MY_SQROOT/sql/local_hadoop/hbase/conf
   export HIVE_CNF_DIR=$MY_SQROOT/sql/local_hadoop/hive/conf
-
-elif [[ -f $MY_SQROOT/Makefile && -d $TOOLSDIR ]]; then
-  # we are are in a source tree - use build-time dependencies in TOOLSDIR
-  # ----------------------------------------------------------------
-
-  # Trafodion needs native libs and include file for C++ code to build
-  export HADOOP_LIB_DIR=$TOOLSDIR/hadoop-2.6.0-cdh5.4.4/lib/native
-  export HADOOP_INC_DIR=$TOOLSDIR/hadoop-2.6.0-cdh5.4.4/include
-  export THRIFT_LIB_DIR=$TOOLSDIR/thrift-0.9.0/lib
-  export THRIFT_INC_DIR=$TOOLSDIR/thrift-0.9.0/include
-  export CURL_INC_DIR=/usr/include
-  export CURL_LIB_DIR=/usr/lib64
-
-  # directories with jar files and list of jar files
-  export HADOOP_JAR_DIRS="$TOOLSDIR/hadoop-2.6.0-cdh5.4.4/share/hadoop/common
-                          $TOOLSDIR/hadoop-2.6.0-cdh5.4.4/share/hadoop/common/lib
-                          $TOOLSDIR/hadoop-2.6.0-cdh5.4.4/share/hadoop/mapreduce
-                          $TOOLSDIR/hadoop-2.6.0-cdh5.4.4/share/hadoop/hdfs"
-  export HBASE_JAR_FILES=
-  HBASE_JAR_DIRS="$TOOLSDIR/hbase-1.0.0-cdh5.4.4/lib"
-  for d in $HBASE_JAR_DIRS; do
-    HBASE_JAR_FILES="$HBASE_JAR_FILES $d/*.jar"
-  done
-
-  export HIVE_JAR_DIRS="$TOOLSDIR/hive-1.1.0-cdh5.4.4/lib"
-  export HIVE_JAR_FILES="$TOOLSDIR/hadoop-2.6.0-cdh5.4.4/share/hadoop/mapreduce/hadoop-mapreduce-client-core-*.jar"
-
-  # suffixes to suppress in the classpath (set this to ---none--- to add all files)
-  export SUFFIXES_TO_SUPPRESS="-sources.jar -tests.jar"
-
-  # Configuration directories - not needed at build time
-
-  export HADOOP_CNF_DIR=/etc/hadoop/conf
-  export HBASE_CNF_DIR=/etc/hbase/conf
-  export HIVE_CNF_DIR=/etc/hive/conf
 
 elif [[ -d /opt/cloudera/parcels/CDH ]]; then
   # we are on a cluster with Cloudera parcels installed
@@ -539,6 +504,9 @@ elif [[ -e $MY_SQROOT/sql/scripts/install_local_hadoop
     Yet another option is to use the install_local_hadoop script on a
     single node for evaluation or development.
 
+    If you just checked out or copied a Trafodion source tree and want to build,
+    then you can ignore the above and continue with your build.
+
 EOF
   }
 
@@ -598,6 +566,13 @@ EOF
     echo "**** ERROR: Unable to determine location of HBase lib directory"
   fi
 
+  if [[ -d $TOOLSDIR/thrift-0.9.0 ]]; then
+    # this is mostly for a build environment, where we need
+    # thrift from TOOLSDIR
+    export THRIFT_LIB_DIR=$TOOLSDIR/thrift-0.9.0/lib
+    export THRIFT_INC_DIR=$TOOLSDIR/thrift-0.9.0/include
+  fi
+
   if [ -n "$HBASE_CNF_DIR" -a -n "$HADOOP_CNF_DIR" -a \
        -d $APACHE_HADOOP_HOME/lib -a -d $APACHE_HBASE_HOME/lib ]; then
     # We are on a system with Apache HBase, probably without a distro
@@ -619,11 +594,6 @@ EOF
       export HADOOP_INC_DIR=/usr/include
     elif [ -f $APACHE_HADOOP_HOME/include/hdfs.h ]; then
       export HADOOP_INC_DIR=$APACHE_HADOOP_HOME/include
-    else
-      # ok for running Trafodion, not ok for building it
-      if [ "$SQ_VERBOSE" == 1 ]; then
-        echo '*** WARNING: Could not find hdfs.h include file'
-      fi
     fi
 
     # directories with jar files and list of jar files
@@ -649,6 +619,7 @@ EOF
     export HIVE_JAR_DIRS="$APACHE_HIVE_HOME/lib"
 
     export HBASE_TRX_JAR=hbase-trx-hbase_98_4-${TRAFODION_VER}.jar
+
     # end of code for Apache Hadoop/HBase installation w/o distro
   else
     # print usage information, not enough information about Hadoop/HBase
@@ -679,8 +650,10 @@ fi
 
 # For now, set the QT_TOOLKIT envvar if the required version exists in the
 # download location
-if [[ -d $TOOLSDIR/Qt-4.8.5-64 ]]; 
+if [[ -z "$QT_TOOLKIT" && -d $TOOLSDIR/Qt-4.8.5-64 ]]; 
 then
+   # QT_TOOLKIT is optional, if the directory doesn't exist
+   # then we won't build the compiler GUI
    export QT_TOOLKIT="$TOOLSDIR/Qt-4.8.5-64"
 fi
 
@@ -840,7 +813,9 @@ export PROTOBUFS_INC=$PROTOBUFS/include
 
 ######################
 # Library Path may include local over-rides
-export LD_LIBRARY_PATH=$CC_LIB_RUNTIME:$MPI_ROOT/lib/$MPILIB:$MY_SQROOT/export/lib"$SQ_MBTYPE":$HADOOP_LIB_DIR:$LOC_JVMLIBS:$LOG4CXX_LIB_DIR:.
+# Put Hadoop native dir before Trafodion, so that an available libhdfs will
+# be picked up there, otherwise use the libhdfs distributed with Trafodion.
+export LD_LIBRARY_PATH=$CC_LIB_RUNTIME:$MPI_ROOT/lib/$MPILIB:$HADOOP_LIB_DIR:$MY_SQROOT/export/lib"$SQ_MBTYPE":$LOC_JVMLIBS:$LOG4CXX_LIB_DIR:.
 
 ######################
 # classpath calculation may include local over-rides

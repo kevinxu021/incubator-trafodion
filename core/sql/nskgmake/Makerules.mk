@@ -273,8 +273,12 @@ endif
 
 # Java files get built through Maven
 mavenbuild:
-	set -o pipefail && cd ..; $(MAVEN) -f pom.xml package -DskipTests | tee maven_build.log | grep -e '\[INFO\] Building' -e '\[INFO\] BUILD SUCCESS' -e 'ERROR'
-	cp -pf ../target/*.jar $(MY_SQROOT)/export/lib
+        # create a jar manifest file with the correct version information
+	mkdir -p ../src/main/resources
+	$(MY_SQROOT)/export/include/SCMBuildJava.sh 1.0.1 >../src/main/resources/trafodion-sql.jar.mf
+        # run maven
+	set -o pipefail && cd ..; $(MAVEN) package -DskipTests | tee maven_build.log | grep -e '\[INFO\] Building' -e '\[INFO\] BUILD SUCCESS' -e 'ERROR'
+	cp -pf ../target/trafodion-sql-*.jar $(MY_SQROOT)/export/lib
 
 # Java files get built through Maven
 mavenbuild_apache:
@@ -296,5 +300,4 @@ clean:
 	@echo "Removing coverage files"
 	@-find $(TOPDIR) -maxdepth 1 -name '*.gcov' -print | xargs rm -f
 	@cd ..; $(MAVEN) clean
-
-
+	@rm -rf $(MY_SQROOT)/export/lib/trafodion-sql-*.jar
