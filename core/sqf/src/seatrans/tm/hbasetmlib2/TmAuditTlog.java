@@ -1640,6 +1640,13 @@ public class TmAuditTlog {
       return lvCtrlPt;
    } 
 
+   public long getStartingAuditSeqNum(final int clusterId) throws IOException {
+      if (LOG.isTraceEnabled()) LOG.trace("getStartingAuditSeqNum for clusterId: " + clusterId);
+      long lvAsn = tLogControlPoint.getStartingAuditSeqNum(clusterId);
+      if (LOG.isTraceEnabled()) LOG.trace("getStartingAuditSeqNum returning: " + lvAsn);
+      return lvAsn;
+   }
+
    public void getTransactionState (TransactionState ts) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("getTransactionState start; transid: " + ts.getTransactionId());
 
