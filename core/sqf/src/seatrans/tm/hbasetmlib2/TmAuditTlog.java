@@ -49,6 +49,7 @@ import org.apache.hadoop.hbase.client.RegionLocator;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.transactional.STRConfig;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.CommitUnsuccessfulException;
@@ -71,6 +72,7 @@ import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableExistsException;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
@@ -125,6 +127,7 @@ public class TmAuditTlog {
    private static long tLogHashKey;
    private static int  tLogHashShiftFactor;
    private int dtmid;
+   private static STRConfig pSTRConfig = null;
 
    // For performance metrics
    private static long[] startTimes;
@@ -733,7 +736,7 @@ public class TmAuditTlog {
       }
    }
 
-   public TmAuditTlog (Configuration config) throws IOException, RuntimeException {
+   public TmAuditTlog (Configuration config) throws Exception  {
 
       this.config = config;
       this.dtmid = Integer.parseInt(config.get("dtmid"));
@@ -888,12 +891,20 @@ public class TmAuditTlog {
       avgBufferSize   =    0;
       timeIndex       =    new AtomicInteger(1);
 
-      String clusterIdS = System.getenv("MY_CLUSTER_ID");
-      int lv_clusterId = 0;
-      if (clusterIdS != null){
-         lv_clusterId = Integer.parseInt(clusterIdS);
+      try {
+         pSTRConfig = STRConfig.getInstance(config);
       }
-      myClusterId = lv_clusterId;
+      catch (ZooKeeperConnectionException zke) {
+         LOG.error("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
+      }
+      catch (IOException ioe) {
+         LOG.error("IO Exception trying to get STRConfig instance: " + ioe);
+      }
+
+      myClusterId = 0;
+      if (pSTRConfig != null) {
+         myClusterId = pSTRConfig.getMyClusterIdInt();
+      }
 
       asn = new AtomicLong();  // Monotonically increasing count of write operations
 
