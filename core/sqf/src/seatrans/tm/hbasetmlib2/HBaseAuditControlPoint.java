@@ -369,9 +369,10 @@ public class HBaseAuditControlPoint {
 
    public long bumpControlPoint(final int clusterId, final int count) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("bumpControlPoint start, count: " + count);
+      long currASN = -1;
       try {
          currControlPt = getCurrControlPt(clusterId);
-         long currASN = getStartingAuditSeqNum(clusterId);
+         currASN = getStartingAuditSeqNum(clusterId);
          for ( int i = 0; i < count; i++ ) {
             currControlPt++;
             if (LOG.isTraceEnabled()) LOG.trace("bumpControlPoint putting new record " + (i + 1) + " for control point ("
