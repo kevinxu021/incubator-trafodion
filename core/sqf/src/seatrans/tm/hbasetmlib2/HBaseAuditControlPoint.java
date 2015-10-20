@@ -383,7 +383,7 @@ public class HBaseAuditControlPoint {
          LOG.error("bumpControlPoint Exception" + e);
       }
       if (LOG.isTraceEnabled()) LOG.trace("bumpControlPoint - exit");
-      return currControlPt;
+      return currASN;
    }
 
    public boolean deleteRecord(final long controlPoint) throws IOException {
