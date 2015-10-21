@@ -130,6 +130,7 @@ define([
         	    indentWithTabs: true,
         	    smartIndent: true,
         	    lineNumbers: true,
+        	    lineWrapping: true,
         	    matchBrackets : true,
         	    autofocus: true,
         	    extraKeys: {"Ctrl-Space": "autocomplete"},
@@ -146,6 +147,7 @@ define([
         	    lineNumbers: true,
         	    matchBrackets : true,
         	    autofocus: true,
+        	    lineWrapping: true,
         	    extraKeys: {"Ctrl-Space": "autocomplete"},
         	    hintOptions: {tables: {
         	      users: {name: null, score: null, birthDate: null},
