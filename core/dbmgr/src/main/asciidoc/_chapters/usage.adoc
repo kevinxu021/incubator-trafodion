@@ -44,7 +44,7 @@ The dashboard page displays the status of the EsgynDB services and nodes.
 
 ==== Service Status
 
-The service status displays the status of the core EsgynDB services : *Transaction Manager, Connectivity Service and Runtime Management Service*.
+The service status displays the status of the core EsgynDB services : *Transaction Manager, Connectivity Service and Runtime Manageability Service*.
 For each service, you can see the number of configured processes, the number of actual running processes, the number of down processes if any.
 This information is provided by the EsgynDB REST Server which invokes the sqcheck script.
 
@@ -111,8 +111,8 @@ The components are:
 |SQL.ESP | Executor Server Process
 |SQL.EXE | Master Executor SQL
 |SQL.LOB | SQL Large Objects
-|SQL.SSCP | Runtime Management Service
-|SQL.SSMP | Runtime Management Service
+|SQL.SSCP | Runtime Manageability Service
+|SQL.SSMP | Runtime Manageability Service
 |SQL.UDR | User Defined Routines
 |WDG | Watchdog
 |===========================

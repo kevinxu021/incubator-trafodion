@@ -68,7 +68,7 @@ define([
 						chartTitle: "Canary Response Time",
 						chartType: "Line",
 						xtimemultiplier: 1000, //sometimes time don't comeback as msecs. so we need a multiplier
-						ylabels: "Canary Response Time", //Used in tooltip
+						ylabels: ["Connect Time","DDL Time","Write Time", "Read Time"], //Used in tooltip
 						yunit: "msec", //Units displayed in tooltip
 						yvalformatter: common.formatNumberWithComma, //callback to format Y value
 						spinner:"#canary-spinner",  //div element for spinner
@@ -331,7 +331,7 @@ define([
 					                				 return 'Transaction Manager';
 					                			 }
 					                			 if(data == 'RMS'){
-					                				 return 'Runtime Management Service';
+					                				 return 'Runtime Manageability Service';
 					                			 }
 					                			 if(data == 'MXOSRVR'){
 					                				 return 'Connectivity Service';
