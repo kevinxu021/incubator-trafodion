@@ -311,6 +311,11 @@ public class STRConfig {
 	return sv_my_cluster_id;
     }
 
+    public int getMyClusterIdInt() 
+    {
+	return Integer.parseInt(sv_my_cluster_id);
+    }
+
     // getInstance to return the singleton object for TransactionManager
     public synchronized static STRConfig getInstance(final Configuration conf) 
 	throws 	IOException, InterruptedException, KeeperException, ZooKeeperConnectionException 
