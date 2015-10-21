@@ -62,6 +62,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -83,6 +84,8 @@ import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegionScannerHolder;
 import org.apache.hadoop.hbase.regionserver.transactional.TrxTransactionState;
+import org.apache.hadoop.hbase.regionserver.transactional.TransactionState;
+import org.apache.hadoop.hbase.client.transactional.STRConfig;
 import org.apache.hadoop.hbase.wal.WAL;
 //import org.apache.hadoop.hbase.regionserver.wal.HLog;
 import org.apache.hadoop.hbase.regionserver.wal.HLogKey;
@@ -153,7 +156,7 @@ private AtomicBoolean closing = new AtomicBoolean(false);
 private boolean hasClosed = false;
 private boolean hasFlushed = false;
 
-
+Configuration my_config;
 HRegion my_Region;
 HRegionInfo regionInfo;
 WAL tHLog;
@@ -183,6 +186,7 @@ private static ZooKeeperWatcher zkw1 = null;
 private static Object zkRecoveryCheckLock = new Object();
 
 SplitBalanceHelper sbHelper;
+STRConfig pSTRConfig;
 
 // Region Observer Coprocessor START
 @Override
@@ -193,6 +197,7 @@ public void start(CoprocessorEnvironment e) throws IOException {
     RegionCoprocessorEnvironment re = (RegionCoprocessorEnvironment) e;
     my_Region = re.getRegion();
     regionInfo = my_Region.getRegionInfo();
+    this.my_config = regionCoprEnv.getConfiguration();
 
     org.apache.hadoop.conf.Configuration conf = regionCoprEnv.getConfiguration();
     this.splitDelayLimit = conf.getInt(SPLIT_DELAY_LIMIT, SPLIT_DELAY_DEFAULT);
@@ -472,7 +477,7 @@ public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
     }
   }
 
-   //        Trafodion Recovery : after Open, we should have alreday constructed all the indoubt transactions in
+   //        Trafodion Recovery : after Open, we should have already constructed all the indoubt transactions in
    //        pendingTransactionsById now process it and construct transaction list by TM id. These two data
    //        structures are put in the reference map which is shared with TrxRegionEndpoint coprocessor class per region 
 
@@ -505,6 +510,13 @@ public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
                          " in-doubt transaction during edit replay, now reconstruct transaction state ");
 
     //for each indoubt transaction from pendingTransactionsById, build related transaction state object and add it into required lists for endPoint
+    //build a list of TMs for in-doubt transactions, -2 is used for all peer's transactions
+    
+    try {
+         pSTRConfig = STRConfig.getInstance(my_config);
+    } catch (Exception xe) {
+            LOG.error("An ERROR occurred while getting the STR Configuration");
+    }
 
     for (Entry<Long, List<WALEdit>> entry : pendingTransactionsById.entrySet()) {
         synchronized (recoveryCheckLock) {
@@ -512,15 +524,24 @@ public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
 		      String key = String.valueOf(transactionId);
                       if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP: Region " + regionInfo.getRegionNameAsString() + " process in-doubt transaction " + transactionId);
 
-                      int tmid = (int) (transactionId >> 32);
+                      int clusterid = (int) TransactionState.getClusterId(transactionId);
+                      int tmid = (int) TransactionState.getNodeId(transactionId);
                       int count = 1;
-                      if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP: Region " + regionInfo.getRegionNameAsString() + " add prepared " + transactionId + " to TM " + tmid);
+                      if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP: Region " + regionInfo.getRegionNameAsString() + " add prepared " + transactionId + " to Cluster " + clusterid + " TM " + tmid);
+                      if ((clusterid == 0) || (clusterid == pSTRConfig.getMyClusterIdInt())) {
+                           if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP: Region " + regionInfo.getRegionNameAsString() + " add local prepared " + transactionId);
+                      }
+                      else {
+                           tmid = -2; // peer transactions is always sent to -1 ZK, which LDTM peer recovery thread will pick up
+                           if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP: Region " + regionInfo.getRegionNameAsString() + " add peer prepared " + transactionId);
+                      }
+
                       if (indoubtTransactionsCountByTmid.containsKey(tmid))
                             count =  (int) indoubtTransactionsCountByTmid.get(tmid) + 1;
 
                       indoubtTransactionsCountByTmid.put(tmid, count);
                       if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP: Region " + regionInfo.getRegionNameAsString() + " has " + count +
-                                                    " in-doubt-transaction from TM " + tmid);
+                                                    " in-doubt-transaction from Cluster " + clusterid + " TM " + tmid);
 
                       //TBD may need to write the LOG again for reinstated txn (redo does not generate edits)
                       //since after open, HBase may toss out split-log while there are indoubt list in memory
