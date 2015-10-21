@@ -45,6 +45,7 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.RegionLocator;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
@@ -633,38 +634,50 @@ public class TmAuditTlog {
 
    /**
    * Method  : getTransactionStatesFromInterval
-   * Params  : regionName - name of Region
-   *           cpInterval - Control Point Interval to search
+   * Params  : nodeId  - Trafodion nodeId of the Tlog set that is to be read.  Typically this
+   *           id is mapped to the Tlog set as follows Tlog<nodeId>
+   *           pvASN   - ASN after which all audit records will be returned
    * Return  : void
    * Purpose : Retrieve list of transactions from an interval
    */
-   public void getTransactionStatesFromInterval(final long cpInterval) throws IOException {
+   public void getTransactionStatesFromInterval(final long pv_nodeId, final long pv_ASN) throws IOException {
 
      int loopCount = 0;
      long threadId = Thread.currentThread().getId();
+     // This TransactionState object is just a mechanism to keep track of the asynch rpc calls
+     // send to regions in order to retrience the desired set of transactions
      TransactionState transactionState = new TransactionState(0);
      try {
-        if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval [" + cpInterval + "] in thread " + threadId);
+        if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval node: " + pv_nodeId
+                      + ", asn: " + pv_ASN + " in thread " + threadId);
 
-        final long lvAsn = tLogControlPoint.getRecord(myClusterId, String.valueOf(cpInterval));
+        HTableInterface targetTable;
         List<HRegionLocation> regionList;
-        Map<ServerName, List<HRegionLocation>> locations = new HashMap<ServerName, List<HRegionLocation>>();
-        ServerName servername;
+
+        // For every Tlog table for this node
         for (int index = 0; index < tlogNumLogs; index++) {
-           NavigableMap<HRegionInfo,ServerName> regionMap = table[index].getRegionLocations();
-           for(NavigableMap.Entry<HRegionInfo, ServerName> entry : regionMap.entrySet()){
-              HRegionLocation location = table[index].getRegionLocation(entry.getKey().getStartKey());
+           String lv_tLogName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(pv_nodeId) + "_LOG_" + Integer.toHexString(index));
+           HConnection targetTableConnection = HConnectionManager.createConnection(this.config);
+           targetTable = targetTableConnection.getTable(TableName.valueOf(lv_tLogName));
+           RegionLocator rl = targetTableConnection.getRegionLocator(TableName.valueOf(lv_tLogName));
+           regionList = rl.getAllRegionLocations();
+
+           // For every region in this table
+           for (HRegionLocation location : regionList) {
+
               final byte[] regionName = location.getRegionInfo().getRegionName();
               tlogThreadPool.submit(new TlogCallable2(transactionState, location, connection) {
                  public ArrayList<TransactionState> call() throws IOException {
-                    if (LOG.isTraceEnabled()) LOG.trace("before getTransactionStatesFromIntervalX() [" + lvAsn + "]");
-                    return getTransactionStatesFromIntervalX(regionName, lvAsn);
+                    if (LOG.isTraceEnabled()) LOG.trace("before getTransactionStatesFromIntervalX() ASN: "
+                           + pv_ASN + ", and node: " + pv_nodeId);
+                    return getTransactionStatesFromIntervalX(regionName, pv_ASN);
                  }
               });
            }
         }
      } catch (Exception e) {
-        LOG.error("exception in getTransactionStatesFromInterval for interval: " + cpInterval + " " + e);
+        LOG.error("exception in getTransactionStatesFromInterval for interval ASN: " + pv_ASN
+                    + ", node: " + pv_nodeId + " " + e);
         throw new IOException(e);
      }
      // all requests sent at this point, can record the count

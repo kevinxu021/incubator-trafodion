@@ -1433,14 +1433,18 @@ else
   fi
 
   if [[ "$HBASE_DISTRO" = "APACHE" ]]; then
-    MASTER_VISBILITY_COPROC="<property>
+    MASTER_VISIBILITY_COPROC="<property>
     <name>hbase.coprocessor.master.classes</name>
     <value>org.apache.hadoop.hbase.security.access.AccessController,
            org.apache.hadoop.hbase.security.visibility.VisibilityController
     </value>
    </property>"
-      VISIBILITY_COPROC=", 
+    VISIBILITY_COPROC=", 
            org.apache.hadoop.hbase.security.visibility.VisibilityController"
+    HFILE_FORMAT="<property>
+     <name>hfile.format.version</name>
+     <value>3</value>
+   </property>"
   fi
 
   cat <<EOF >$HBASE_CONFIG_FILE
@@ -1518,7 +1522,7 @@ else
      <name>hbase.hregion.impl</name>
      <value>org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion</value>
    </property>
-   ${MASTER_VISBILITY_COPROC}
+   ${MASTER_VISIBILITY_COPROC}
    <property>
     <name>hbase.coprocessor.region.classes</name>
       <value>
@@ -1528,6 +1532,7 @@ else
            org.apache.hadoop.hbase.coprocessor.AggregateImplementation ${VISIBILITY_COPROC}
       </value>
    </property>
+   ${HFILE_FORMAT}
    <property>
      <name>zookeeper.session.timeout.localHBaseCluster</name>
      <value>600000</value>
@@ -1544,7 +1549,7 @@ EOF
 fi
 # end of HBase setup
 
-if [[ ! -z FAST_LOCAL_HADOOP ]]; then
+if [[ ! -z $FAST_LOCAL_HADOOP ]]; then
     echo "FAST_LOCAL_HADOOP is set. Exitting..."
     exit 0
 fi
