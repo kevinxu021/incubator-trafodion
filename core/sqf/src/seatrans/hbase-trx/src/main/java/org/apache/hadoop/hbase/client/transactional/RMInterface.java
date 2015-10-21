@@ -1,26 +1,3 @@
-/**
-* @@@ START COPYRIGHT @@@
-*
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing,
-* software distributed under the License is distributed on an
-* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-* KIND, either express or implied.  See the License for the
-* specific language governing permissions and limitations
-* under the License.
-*
-* @@@ END COPYRIGHT @@@
-**/
-
 // @@@ START COPYRIGHT @@@
 //
 // Licensed to the Apache Software Foundation (ASF) under one
@@ -108,6 +85,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
 
 public class RMInterface {
     static final Log LOG = LogFactory.getLog(RMInterface.class);
@@ -118,6 +101,10 @@ public class RMInterface {
     static Map<Long, Set<RMInterface>> mapRMsPerTransaction = new HashMap<Long,  Set<RMInterface>>();
     private TransactionalTableClient ttable = null;
     private boolean bSynchronized=false;
+    private boolean asyncCalls = false;
+    private ExecutorService threadPool;
+    private CompletionService<Integer> compPool;
+    private int intThreads = 16;
     protected Map<Integer, TransactionalTableClient> peer_tables;
     static {
         System.loadLibrary("stmlib");
@@ -190,6 +177,16 @@ public class RMInterface {
         catch (Exception e){
            LOG.error("RMInterface: Exception creating new IdTm: " + e);
         }
+
+        String asyncSet = System.getenv("TM_ASYNC_RMI");
+        if(asyncSet != null) {
+          asyncCalls = (Integer.parseInt(asyncSet) == 1) ? true : false;
+        }
+        if(asyncCalls) {
+          if (LOG.isTraceEnabled()) LOG.trace("Asynchronous RMInterface calls set");
+          threadPool = Executors.newFixedThreadPool(intThreads);
+          compPool = new ExecutorCompletionService<Integer>(threadPool);
+        }
         if (LOG.isTraceEnabled()) LOG.trace("RMInterface constructor exit");
     }
 
@@ -255,6 +252,63 @@ public class RMInterface {
 
     public boolean isSynchronized() {
        return bSynchronized;
+    }
+
+    private abstract class RMCallable implements Callable<Integer>{
+      TransactionalTableClient tableClient;
+      TransactionState transactionState;
+
+      RMCallable(TransactionalTableClient tableClient,
+                 TransactionState txState) {
+        this.tableClient = tableClient;
+        this.transactionState = txState;
+      }
+
+      public Integer checkAndDeleteX(
+          final byte[] row, final byte[] family, final byte[] qualifier, final byte[] value,
+          final Delete delete) throws IOException {
+          boolean returnCode = tableClient.checkAndDelete(transactionState,
+                                                          row,
+                                                          family,
+                                                          qualifier,
+                                                          value,
+                                                          delete);
+          return returnCode ? new Integer(1) : new Integer(0);
+      }
+
+      public Integer checkAndPutX(
+          final byte[] row, final byte[] family, final byte[] qualifier,
+          final byte[] value, final Put put) throws IOException {
+          boolean returnCode = tableClient.checkAndPut(transactionState,
+                                                       row,
+                                                       family,
+                                                       qualifier,
+                                                       value,
+                                                       put);
+        return returnCode ? new Integer(1) : new Integer(0);
+      }
+
+      public Integer deleteX(final Delete delete,
+                             final boolean bool_addLocation) throws IOException
+      {
+        tableClient.delete(transactionState, delete, bool_addLocation);
+        return new Integer(0);
+      }
+
+      public Integer deleteX(List<Delete> deletes) throws IOException{
+        tableClient.delete(transactionState, deletes);
+        return new Integer(0);
+      }
+
+      public Integer putX(final Put put,
+                          final boolean bool_addLocation) throws IOException {
+        tableClient.put(transactionState, put, bool_addLocation);
+        return new Integer(0);
+      }
+      public Integer putX(final List<Put> puts) throws IOException {
+        tableClient.put(transactionState, puts);
+        return new Integer(0);
+      }
     }
 
     public synchronized TransactionState registerTransaction(final TransactionalTableClient pv_table, 
@@ -471,11 +525,42 @@ public class RMInterface {
     public synchronized void delete(final long transactionID, final Delete delete) throws IOException {
         if (LOG.isTraceEnabled()) LOG.trace("delete txid: " + transactionID);
         TransactionState ts = registerTransaction(transactionID, delete.getRow(), true);
-        ttable.delete(ts, delete, false);
-        if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
-           for (TransactionalTableClient lv_table : peer_tables.values()) {
-	       lv_table.delete(ts, delete, false);
-           }
+        if(asyncCalls) {
+          if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
+            int loopCount = 1;
+            compPool.submit(new RMCallable(ttable, ts ) {
+              public Integer call() throws IOException {
+                return deleteX(delete, false);
+              }
+            });
+
+            for (TransactionalTableClient lv_table : peer_tables.values()) {
+              loopCount++;
+              compPool.submit(new RMCallable(lv_table, ts) {
+                public Integer call() throws IOException {
+                  return deleteX(delete, false);
+                }
+              });
+            }
+            try {
+              for(int loopIndex = 0; loopIndex < loopCount; loopIndex++) {
+                compPool.take().get();
+              }
+            } catch(Exception ex) {
+              throw new IOException(ex);
+            }
+          }
+          else {
+            ttable.delete(ts, delete, false);
+          }
+        }
+        else {
+          ttable.delete(ts, delete, false);
+          if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
+             for (TransactionalTableClient lv_table : peer_tables.values()) {
+               lv_table.delete(ts, delete, false);
+             }
+          }
         }
     }
 
@@ -488,11 +573,42 @@ public class RMInterface {
         if (ts == null){
            ts = mapTransactionStates.get(transactionID);
         }
-        ttable.delete(ts, deletes);
-        if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
-           for (TransactionalTableClient lv_table : peer_tables.values()) {
-              lv_table.delete(ts, deletes);
-           }
+        if(asyncCalls) {
+          if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
+            int loopCount = 1;
+            compPool.submit(new RMCallable(ttable, ts ) {
+              public Integer call() throws IOException {
+                return deleteX(deletes);
+              }
+            });
+
+            for (TransactionalTableClient lv_table : peer_tables.values()) {
+              loopCount++;
+              compPool.submit(new RMCallable(lv_table, ts) {
+                public Integer call() throws IOException {
+                  return deleteX(deletes);
+                }
+              });
+            }
+            try {
+              for(int loopIndex = 0; loopIndex < loopCount; loopIndex++) {
+                compPool.take().get();
+              }
+            } catch(Exception ex) {
+              throw new IOException(ex);
+            }
+          }
+          else {
+            ttable.delete(ts, deletes);
+          }
+        }
+        else {
+          ttable.delete(ts, deletes);
+          if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
+             for (TransactionalTableClient lv_table : peer_tables.values()) {
+                lv_table.delete(ts, deletes);
+             }
+          }
         }
         if (LOG.isTraceEnabled()) LOG.trace("Exit delete (list of deletes) txid: " + transactionID);
     }
@@ -508,13 +624,45 @@ public class RMInterface {
     public synchronized void put(final long transactionID, final Put put) throws IOException {
         if (LOG.isTraceEnabled()) LOG.trace("Enter Put txid: " + transactionID);
         TransactionState ts = registerTransaction(transactionID, put.getRow(), true);
-        if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
-           for (TransactionalTableClient lv_table : peer_tables.values()) {
-              lv_table.put(ts, put, false);
-           }
-        }
 
-        ttable.put(ts, put, false);
+        if(asyncCalls) {
+          if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
+            int loopCount = 1;
+            compPool.submit(new RMCallable(ttable, ts ) {
+              public Integer call() throws IOException {
+                return putX(put, false);
+              }
+            });
+
+            for (TransactionalTableClient lv_table : peer_tables.values()) {
+              loopCount++;
+              compPool.submit(new RMCallable(lv_table, ts) {
+                public Integer call() throws IOException {
+                  return putX(put, false);
+                }
+              });
+            }
+            try {
+              for(int loopIndex = 0; loopIndex < loopCount; loopIndex++) {
+                compPool.take().get();
+              }
+            } catch(Exception ex) {
+              throw new IOException(ex);
+            }
+          }
+          else {
+            ttable.put(ts, put, false);
+          }
+        }
+        else {
+          if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
+             for (TransactionalTableClient lv_table : peer_tables.values()) {
+                lv_table.put(ts, put, false);
+             }
+          }
+
+          ttable.put(ts, put, false);
+        }
         if (LOG.isTraceEnabled()) LOG.trace("Exit Put txid: " + transactionID);
     }
 
@@ -528,18 +676,52 @@ public class RMInterface {
            ts = mapTransactionStates.get(transactionID);
         }
 
-        if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
-           for (TransactionalTableClient lv_table : peer_tables.values()) {
-              lv_table.put(ts, puts);
-           }
-        }
+        if(asyncCalls) {
+          if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
+            int loopCount = 1;
+            compPool.submit(new RMCallable(ttable, ts ) {
+              public Integer call() throws IOException {
+                return putX(puts);
+              }
+            });
 
-        ttable.put(ts, puts);
+            for (TransactionalTableClient lv_table : peer_tables.values()) {
+              loopCount++;
+              compPool.submit(new RMCallable(lv_table, ts) {
+                public Integer call() throws IOException {
+                  return putX(puts);
+                }
+              });
+            }
+            try {
+              for(int loopIndex = 0; loopIndex < loopCount; loopIndex++) {
+                compPool.take().get();
+              }
+            } catch(Exception ex) {
+              throw new IOException(ex);
+            }
+          }
+          else {
+            ttable.put(ts, puts);
+          }
+        }
+        else {
+          if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
+             for (TransactionalTableClient lv_table : peer_tables.values()) {
+                lv_table.put(ts, puts);
+             }
+          }
+          ttable.put(ts, puts);
+        }
         if (LOG.isTraceEnabled()) LOG.trace("Exit put (list of puts) txid: " + transactionID);
     }
 
-    public synchronized boolean checkAndPut(final long transactionID, byte[] row, byte[] family, byte[] qualifier,
-                       byte[] value, Put put) throws IOException {
+    public synchronized boolean checkAndPut(final long transactionID,
+                                            final byte[] row,
+                                            final byte[] family,
+                                            final byte[] qualifier,
+                                            final byte[] value,
+                                            final Put put) throws IOException {
 
         if (LOG.isTraceEnabled()) LOG.trace("Enter checkAndPut txid: " + transactionID);
         TransactionState ts = registerTransaction(transactionID, row, true);
@@ -547,27 +729,100 @@ public class RMInterface {
         if (LOG.isTraceEnabled()) LOG.trace("checkAndPut"
 					    + " bSynchronized: " + bSynchronized
 					    + " peerCount: " + pSTRConfig.getPeerCount());
-        if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
-           for (TransactionalTableClient lv_table : peer_tables.values()) {
-              if (LOG.isTraceEnabled()) LOG.trace("Table Info: " + lv_table);
-              lv_table.checkAndPut(ts, row, family, qualifier, value, put);
-           }
-        }
+        if(asyncCalls) {
+          if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
+            int loopCount = 1;
+            compPool.submit(new RMCallable(ttable, ts ) {
+              public Integer call() throws IOException {
+                return checkAndPutX(row, family, qualifier, value, put);
+              }
+            });
 
-        return ttable.checkAndPut(ts, row, family, qualifier, value, put);
+            for (TransactionalTableClient lv_table : peer_tables.values()) {
+              loopCount++;
+              compPool.submit(new RMCallable(lv_table, ts) {
+                public Integer call() throws IOException {
+                  return checkAndPutX(row, family, qualifier, value, put);
+                }
+              });
+            }
+            boolean returnCode = true;
+            try {
+              for(int loopIndex = 0; loopIndex < loopCount; loopIndex++) {
+                Integer result = compPool.take().get();
+                if(result == 0) {
+                  returnCode = false;
+                }
+              }
+            } catch(Exception ex) {
+              throw new IOException(ex);
+            }
+            return returnCode;
+          }
+          else {
+            return ttable.checkAndPut(ts, row, family, qualifier, value, put);
+          }
+        }
+        else {
+          if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
+             for (TransactionalTableClient lv_table : peer_tables.values()) {
+                if (LOG.isTraceEnabled()) LOG.trace("Table Info: " + lv_table);
+                lv_table.checkAndPut(ts, row, family, qualifier, value, put);
+             }
+          }
+
+          return ttable.checkAndPut(ts, row, family, qualifier, value, put);
+        }
     }
 
-    public synchronized boolean checkAndDelete(final long transactionID, byte[] row, byte[] family, byte[] qualifier,
-                       byte[] value, Delete delete) throws IOException {
+    public synchronized boolean checkAndDelete(final long transactionID,
+                                               final byte[] row,
+                                               final byte[] family,
+                                               final byte[] qualifier,
+                                               final byte[] value,
+                                               final Delete delete) throws IOException {
 
         if (LOG.isTraceEnabled()) LOG.trace("Enter checkAndDelete txid: " + transactionID);
         TransactionState ts = registerTransaction(transactionID, row, true);
-        if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
-           for (TransactionalTableClient lv_table : peer_tables.values()) {
-              lv_table.checkAndDelete(ts, row, family, qualifier, value, delete);
-           }
+
+        if (asyncCalls) {
+          if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
+              int loopCount = 1;
+              compPool.submit(new RMCallable(ttable, ts ) {
+                public Integer call() throws IOException {
+                  return checkAndDeleteX(row, family, qualifier, value, delete);
+                }
+              });
+
+              for (TransactionalTableClient lv_table : peer_tables.values()) {
+                loopCount++;
+                compPool.submit(new RMCallable(lv_table, ts) {
+                  public Integer call() throws IOException {
+                    return checkAndDeleteX(row, family, qualifier, value, delete);
+                  }
+                });
+              }
+              try {
+                for(int loopIndex = 0; loopIndex < loopCount; loopIndex++) {
+                  compPool.take().get();
+                }
+                return true;
+              } catch(Exception ex) {
+                throw new IOException(ex);
+              }
+          }
+          else {
+            return ttable.checkAndDelete(ts, row, family, qualifier, value, delete);
+          }
         }
-        return ttable.checkAndDelete(ts, row, family, qualifier, value, delete);
+        else {
+          if (bSynchronized && pSTRConfig.getPeerCount() > 0) {
+             for (TransactionalTableClient lv_table : peer_tables.values()) {
+                lv_table.checkAndDelete(ts, row, family, qualifier, value, delete);
+             }
+          }
+          return ttable.checkAndDelete(ts, row, family, qualifier, value, delete);
+        }
     }
 
     public void close()  throws IOException
