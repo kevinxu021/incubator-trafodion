@@ -2333,7 +2333,7 @@ void ExHbaseAccessTcb::allocateDirectBufferForJNI(UInt32 rowLen)
 
 
 void ExHbaseAccessTcb::allocateDirectRowBufferForJNI(
-                      short numCols, short maxRows)
+                      short numCols, UInt16 maxRows)
 {
   UInt32 directBufferOverhead;
   UInt32 maxRowLen;
@@ -2389,7 +2389,7 @@ short ExHbaseAccessTcb::patchDirectRowIDBuffers()
   return numRowsInBuffer;
 }
 
-void ExHbaseAccessTcb::allocateDirectRowIDBufferForJNI(short maxRows)
+void ExHbaseAccessTcb::allocateDirectRowIDBufferForJNI(UInt16 maxRows)
 {
    UInt32 rowIDLen;
    UInt32 maxRowIDLen;
