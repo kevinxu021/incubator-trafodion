@@ -353,6 +353,7 @@ if [[ $lv_stat == 0 ]]; then
 else
     export MY_CLUSTER_ID=0
 fi
+echo "env variable MY_CLUSTER_ID set to ${MY_CLUSTER_ID}"
 echo "-------------"
 
 echo "Listing my info and my peer(s) info"

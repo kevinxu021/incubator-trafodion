@@ -224,6 +224,8 @@ public class HBaseTxClient {
 
       myClusterId = 0;
       if (pSTRConfig != null) {
+         LOG.info("Number of Trafodion Nodes: " + pSTRConfig.getTrafodionNodeCount());
+
          myClusterId = pSTRConfig.getMyClusterIdInt();
 
          for ( Map.Entry<Integer, Configuration> e : pSTRConfig.getPeerConfigurations().entrySet() ) {
