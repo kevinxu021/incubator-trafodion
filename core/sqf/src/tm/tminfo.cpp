@@ -219,6 +219,25 @@ void TM_Info::initialize()
     int32 lv_tm_stats_interval = TM_STATS_INTERVAL;
 
     sprintf(la_tm_name, "$tm%d", iv_nid);
+    
+    int32 lv_node_count = 0;
+    int32 lv_lnode_count = 0;
+    lv_error = msg_mon_get_node_info2(&lv_node_count,
+				      MAX_NODES,
+                                      NULL,
+				      &lv_lnode_count, 
+				      NULL,
+				      NULL,
+				      NULL);
+    if ((lv_error == 0) && 
+	(lv_lnode_count > 0)) {
+      char lv_node_count_str[256];
+      memset(lv_node_count_str, 0, sizeof(lv_node_count_str));
+      sprintf(lv_node_count_str, "%d", lv_lnode_count);
+      setenv("TRAFODION_NODE_COUNT", lv_node_count_str, 1);
+      char *lv_ptr = getenv("TRAFODION_NODE_COUNT");
+      printf("TRAFODION_NODE_COUNT set to %s\n", lv_ptr);
+    }
 
     lock();
     // intialize the tm info
