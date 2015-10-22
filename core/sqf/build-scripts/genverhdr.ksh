@@ -238,7 +238,7 @@ fi
 [ -z "$major" ]  && major="$( grep TRAFODION_VER_MAJOR=  $VERFILE | cut -f2 -d=)"
 [ -z "$minor" ]  && minor="$( grep TRAFODION_VER_MINOR=  $VERFILE | cut -f2 -d=)"
 [ -z "$update" ] && update="$(grep TRAFODION_VER_UPDATE= $VERFILE | cut -f2 -d=)"
-[ -z "$prodver" ] && prodver="$(grep TRAFODION_VER_PROD= $VERFILE | cut -f2 -d=|sed 's/\"//g'|sed s'/.$//'| sed 's/ /_/g'  )"
+[ -z "$prodver" ] && prodver="$(grep TRAFODION_VER_PROD= $VERFILE | cut -f2 -d=|sed 's/ /_/' | sed 's/\"//g')"
 [ -z "$copyright" ] && copyright=" Copyright (c) $(grep PRODUCT_COPYRIGHT_HEADER= $VERFILE | cut -f2 -d=)"
 
 writeVerHdr
