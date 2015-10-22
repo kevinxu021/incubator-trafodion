@@ -1,14 +1,14 @@
 <div id="page-wrapper">
 	<div class="row">
 		<div class="col-lg-12">
-			<h2 class="page-header">Historical Workloads</h2>
+			<h2 class="page-header">Alerts</h2>
 		</div>
 	</div>
 	<div class="row">
 		<div class="col-lg-12">
 			<div class="panel panel-default">
 				<div class="panel-heading">
-					Trafodion Queries <img id="loadingImg" src="img/ajax-loader.gif" />
+					Alerts <img id="loadingImg" src="img/ajax-loader.gif" />
 					<div class="pull-right">
 						<div class="btn-group">
 							<button id="openFilter" type="button"
@@ -28,7 +28,7 @@
 					</div>
 				</div>
 				<div class="panel-body">
-					<div id="query-result-container" class="table-responsive"></div>
+					<div id="alerts-result-container" class="table-responsive"></div>
 					<label id="errorText" class="dbmgr-error-text"></label>
 				</div>
 			</div>
@@ -76,50 +76,37 @@
 								</span>
 							</div>
 						</div>
+						
 						<div class="form-group">
-							<label class="control-label">Status : </label> <input
-								type="checkbox" id="state-completed" value="COMPLETED"
-								style="margin-left: 4px; padding-right: 4px"> Completed
-							<input type="checkbox" id="state-executing" value="EXECUTING"
-								style="margin-left: 4px; padding-right: 4px"> Executing
-							<input type="checkbox" id="state-init" value="INIT"
-								style="margin-left: 4px; padding-right: 4px">
-							Initialized
+							<label class="control-label">Status : </label>
+							<input type="checkbox" id="state-ack" value="true"
+								style="margin-left: 4px; padding-right: 4px"> Acknowledged
+							<input type="checkbox" id="state-unack" value="false"
+								style="margin-left: 4px; padding-right: 4px"> Un-Acknowledged
 						</div>
+						
 						<div class="form-group">
-							<label for="filter-query-ids" class="control-label">Query
-								ID (s) : </label> <input id="filter-query-ids" name="filter-query-ids"
-								type="text" class="form-control"
-								style="text-transform: uppercase"
-								placeholder="Query IDs separated by comma">
+							<label class="control-label">Severity : </label>
+							<input type="checkbox" id="state-crit" value="critical"
+								style="margin-left: 4px; padding-right: 4px"> Critical
+							<input type="checkbox" id="state-error" value="error"
+								style="margin-left: 4px; padding-right: 4px"> Error
+							<input type="checkbox" id="state-warn" value="warning"
+								style="margin-left: 4px; padding-right: 4px"> Warning
+							<input type="checkbox" id="state-normal" value="normal"
+								style="margin-left: 4px; padding-right: 4px"> Normal
+							<input type="checkbox" id="state-unknown" value="unknown"
+								style="margin-left: 4px; padding-right: 4px"> Unknown
 						</div>
+
 						<div class="form-group">
-							<label for="filter-user-names" class="control-label">User
-								Name(s) : </label> <input type="text" class="form-control"
-								id="filter-user-names" name="filter-user-names"
-								style="text-transform: uppercase"
-								placeholder="User names separated by comma">
-						</div>
-						<div class="form-group">
-							<label for="filter-app-names" class="control-label">Application
-								Name (s) : </label> <input type="text" class="form-control"
-								id="filter-app-names" name="filter-app-names"
-								placeholder="Application Names separated by comma">
-						</div>
-						<div class="form-group">
-							<label for="filter-client-names" class="control-label">Client
-								Name (s) : </label> <input type="text" class="form-control"
-								id="filter-client-names" name="filter-client-names"
-								placeholder="Client Names separated by comma">
-						</div>
-						<div class="form-group">
-							<label for="filter-query-text" class="control-label">Query
+							<label for="filter-alert-text" class="control-label">Alert
 								Text : </label> <input type="text" class="form-control"
-								id="filter-query-text" name="filter-query-text"
-								placeholder="Part of query text">
+								id="filter-alert-text" name="filter-alert-text"
+								placeholder="Part of alert text">
 						</div>
 						<div class="form-group">
-							<label id="filter-error-text" class="control-label" class="dbmgr-error-text"></label>
+							<label id="filter-error-text" class="control-label dbmgr-error-text"></label>
 						</div>
 					</form>
 				</div>

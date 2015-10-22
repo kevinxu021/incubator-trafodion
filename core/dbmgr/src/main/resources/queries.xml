@@ -248,5 +248,9 @@
 			<name>OPENTSDB_REGION_MEMSTORE_SIZE_DRILLDOWN</name>
 			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg-none:hbase.regionserver.regions.memStoreSize{host=*}", "method":"get"}]]></text>
 		</query>
+		<query>
+			<name>FETCH_ALERTS_LIST</name>
+			<text><![CDATA[{"url":"http://%1$s/api/alerts", "method":"get"}]]></text>
+		</query>		
 	</queries>
 </SystemQueries>

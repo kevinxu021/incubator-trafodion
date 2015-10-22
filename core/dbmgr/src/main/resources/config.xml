@@ -44,5 +44,8 @@
 	
 	<!-- The openTSDB HTTP URI-->
 	<entry key="openTSDBUri">192.168.1.5:5242</entry>
+
+	<!-- The Alerts HTTP URI-->
+	<entry key="alertsUri">192.168.1.5:8070</entry>
 	
 </properties>

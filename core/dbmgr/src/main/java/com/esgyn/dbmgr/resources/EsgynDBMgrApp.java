@@ -28,6 +28,7 @@ public class EsgynDBMgrApp extends Application {
 		classes.add(LogsResource.class);
 		classes.add(EsgynDBMgrExceptionMapper.class);
 		classes.add(OpenTSDBResource.class);
+		classes.add(AlertsResource.class);
 		return classes;
 	}
 }
