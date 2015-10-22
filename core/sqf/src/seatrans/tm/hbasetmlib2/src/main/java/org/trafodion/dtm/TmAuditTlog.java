@@ -111,6 +111,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 
+import org.trafodion.dtm.HBaseAuditControlPoint;
+
 public class TmAuditTlog {
 
    static final Log LOG = LogFactory.getLog(TmAuditTlog.class);
@@ -1640,6 +1642,13 @@ public class TmAuditTlog {
       return lvCtrlPt;
    } 
 
+   public long getStartingAuditSeqNum(final int clusterId) throws IOException {
+      if (LOG.isTraceEnabled()) LOG.trace("getStartingAuditSeqNum for clusterId: " + clusterId);
+      long lvAsn = tLogControlPoint.getStartingAuditSeqNum(clusterId);
+      if (LOG.isTraceEnabled()) LOG.trace("getStartingAuditSeqNum returning: " + lvAsn);
+      return lvAsn;
+   }
+
    public void getTransactionState (TransactionState ts) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("getTransactionState start; transid: " + ts.getTransactionId());
 
@@ -1812,5 +1821,16 @@ public class TmAuditTlog {
       if (LOG.isTraceEnabled()) LOG.trace("getTransactionState end transid: " + ts.getTransactionId());
       return;
    }
+
+public long getAuditCP(int clustertoRetrieve) throws Exception {
+       long cp = 0;
+       try {
+          cp = tLogControlPoint.getCurrControlPt(clustertoRetrieve);
+       } catch (Exception e) {
+             LOG.error("Get Control Point Exception " + Arrays.toString(e.getStackTrace()));
+             throw e;
+       }
+       return cp;
 }
 
+}

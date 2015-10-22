@@ -45,6 +45,7 @@ import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.transactional.HBaseDCZK;
+import org.apache.hadoop.hbase.client.transactional.PeerInfo;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.CommitUnsuccessfulException;
@@ -77,6 +78,7 @@ import org.apache.hadoop.hbase.regionserver.transactional.IdTmException;
 import org.apache.hadoop.hbase.regionserver.transactional.IdTmId;
 
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.HashMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -87,14 +89,16 @@ public class HBaseTxClient {
    private static TmAuditTlog tLog;
    private static HBaseTmZK tmZK;
    private static RecoveryThread recovThread;
+   private static RecoveryThread peerRecovThread = null;
    private static TmDDL tmDDL;
    private short dtmID;
    private int stallWhere;
    private IdTm idServer;
    private static final int ID_TM_SERVER_TIMEOUT = 1000;
    private static boolean bSynchronized=false;
-   protected Map<Integer, TmAuditTlog> peer_tLogs;
+   protected static Map<Integer, TmAuditTlog> peer_tLogs;
    private static int myClusterId;
+   private static Map<Integer, Integer> commit_migration_clusters = new HashMap<Integer,Integer>();
 
    public enum AlgorithmType{
      MVCC, SSCC
@@ -369,15 +373,39 @@ public class HBaseTxClient {
                                            this,
                                            useForgotten,
                                            forceForgotten,
-                                           useTlog);
+                                           useTlog,
+                                           false);
           recovThread.start();
       }
+
       if (LOG.isTraceEnabled()) LOG.trace("Exit init()");
       return true;
    }
 
    public short createEphemeralZKNode(byte[] pv_data) {
        if (LOG.isInfoEnabled()) LOG.info("Enter createEphemeralZKNode, data: " + new String(pv_data));
+
+          //LDTM will start a new peer recovery thread to drive tlog sync if no been created
+             if (LOG.isInfoEnabled()) LOG.info("Try to create LDTM peer recover thread at node " + dtmID);
+             if (peerRecovThread == null) {
+
+                  try {
+                      tmZK = new HBaseTmZK(config, dtmID);
+                  }catch (Exception e ){
+                      LOG.error("Unable to create HBaseTmZK TM-zookeeper class, throwing exception");
+                      throw new RuntimeException(e);
+                  }
+                 if (LOG.isInfoEnabled()) LOG.info("Create LDTM peer recover thread at node " + dtmID);
+                  peerRecovThread = new RecoveryThread(tLog,
+                                           tmZK,
+                                           trxManager,
+                                           this,
+                                           useForgotten,
+                                           forceForgotten,
+                                           useTlog,
+                                           true);
+                  peerRecovThread.start();
+             }
 
        try {
 
@@ -416,6 +444,24 @@ public class HBaseTxClient {
        if(dtmID == nodeID)
            throw new IOException("Down node ID is the same as current dtmID, Incorrect parameter");
 
+       if (peerRecovThread == null){ //this is new LDTM, so start a new peer recovery thread to drive tlog sync
+          try {
+              tmZK = new HBaseTmZK(config, dtmID);
+          }catch (Exception e ){
+              LOG.error("Unable to create HBaseTmZK TM-zookeeper class, throwing exception");
+              throw new RuntimeException(e);
+          }
+          peerRecovThread = new RecoveryThread(tLog,
+                                        tmZK,
+                                        trxManager,
+                                        this,
+                                        useForgotten,
+                                        forceForgotten,
+                                        useTlog,
+                                        true);
+          peerRecovThread.start();
+       }
+
        try {
            if(mapRecoveryThreads.containsKey(nodeID)) {
                if(LOG.isDebugEnabled()) LOG.debug("nodeDown called on a node that already has RecoveryThread running node ID: " + nodeID);
@@ -427,7 +473,8 @@ public class HBaseTxClient {
                                                    this,
                                                    useForgotten,
                                                    forceForgotten,
-                                                   useTlog);
+                                                   useTlog,
+                                                   false);
                newRecovThread.start();
                mapRecoveryThreads.put(nodeID, recovThread);
                if(LOG.isTraceEnabled()) LOG.trace("nodeDown -- mapRecoveryThreads size: " + mapRecoveryThreads.size());
@@ -1133,7 +1180,9 @@ public class HBaseTxClient {
              private boolean useForgotten;
              private boolean forceForgotten;
              private boolean useTlog;
+             private boolean leadtm;
              HBaseTxClient hbtx;
+             private int my_local_clusterid = 0;
 
          public RecoveryThread(TmAuditTlog audit,
                                HBaseTmZK zookeeper,
@@ -1141,12 +1190,25 @@ public class HBaseTxClient {
                                HBaseTxClient hbtx,
                                boolean useForgotten,
                                boolean forceForgotten,
-                               boolean useTlog) {
+                               boolean useTlog,
+                               boolean leadtm) {
              this(audit, zookeeper, txnManager);
              this.hbtx = hbtx;
              this.useForgotten = useForgotten;
              this.forceForgotten = forceForgotten;
              this.useTlog= useTlog;
+             this.leadtm = leadtm;
+             if (leadtm) this.tmID = -2; // for peer recovery thread
+
+             try {
+                   pSTRConfig = STRConfig.getInstance(config);
+              }
+              catch (Exception zke) {
+                   LOG.error("Traf Recover Thread hits exception when trying  to get STRConfig instance during init " + zke);
+              }
+
+             this.my_local_clusterid = pSTRConfig.getMyClusterIdInt();
+             LOG.info("Traf Recovery Thread starts for DTM " + tmID + " at cluster " + my_local_clusterid + " LDTM property " + leadtm);
          }
              /**
               *
@@ -1215,8 +1277,379 @@ public class HBaseTxClient {
                  ts.addRegion(loc);
              }
 
+             private TmAuditTlog getTlog(int clusterToConnect) {
+                  TmAuditTlog target = peer_tLogs.get(clusterToConnect);
+                   if (target == null) {
+                      LOG.error("Tlog object for clusterId: " + clusterToConnect + " is not in the peer_tLogs");
+                   }                      
+                   return target;
+             }
+             
+             private long getClusterCP(int clusterToConnect, int clustertoRetrieve) throws IOException {
+                  long cp = 0;
+                  TmAuditTlog target;
+                  
+                  if (clusterToConnect == my_local_clusterid) target = audit;
+                  else target = getTlog(clusterToConnect);
+                  try {
+                       cp = target.getAuditCP(clustertoRetrieve);
+                  }
+                 catch (Exception e) {
+                       LOG.error("Control point for clusterId: " + clustertoRetrieve + " is not in the table");
+                       throw new IOException("Control point for clusterId: " + clustertoRetrieve + " is not in the table, throwing IOException " + e);
+                  }
+                  return cp;
+             }
+
+             private int tlogSync() throws IOException {
+
+                 int error = 0;
+                 long localCluster_peerCP, localCluster_localCP, peerCluster_peerCP, peerCluster_localCP = 0;
+                 int peer_leader = -2;
+                 int peer_count = 0;;
+                 boolean tlog_sync_local_needed = false;
+                 boolean msenv_no_tlog_sync = false;
+                 int synced = 0;
+                 
+                 // NOTE. R 2.0, doing commmit log reload/sync would require an off-line ENV (at least updated transactions are drained and then stopped)
+
+                 // skip tlog sync if ms_env says so
+
+                     msenv_no_tlog_sync = false;
+                     try {
+                          String noTlogSync = System.getenv("TM_NO_TLOG_SYNC");
+                          if (noTlogSync != null) {
+                             msenv_no_tlog_sync = (Integer.parseInt(noTlogSync) != 0);
+                          }
+                      }
+                      catch (Exception e) {
+                          if (LOG.isDebugEnabled()) LOG.debug("TM_NO_TLOG_SYNC is not in ms.env");
+                      }
+                      LOG.info("TM_NO_TLOG_SYNC is " + msenv_no_tlog_sync);
+
+                     if (msenv_no_tlog_sync) { // no tlog sync 
+                         LOG.info("Traf Peer Thread at cluster " + my_local_clusterid + " does not perform tlog sync during startup as ms_env indicates");
+                         synced = 2;
+                         return synced;
+                     }
+
+                 // a) check which peer is up from STRConfig and select the most updated as the commmit log leader
+                 //     (will it be better to have PeerInfo status STR_UP with timestamp, therefore easier to find the oldest cluster)
+                 //     At R 2.0, the survival one must be up, and we only support 2 clusters
+                 //     Get the other peer's cluster id as the leader, if peer is DOWN, cannot proceed
+                 //     Proceed by manually setting ENV variable (TLOG_SYNC = 0)
+                 //     For convenience, we use A and B for the two clusters, and A is down and restart while B takes over from A
+                 //     for commiting reponsibility
+
+                     peer_count = pSTRConfig.getPeerCount();
+                     peer_leader = my_local_clusterid;
+ 
+                     if (peer_count == 0) { // no peer is configures, skip TLOG sync as configuration indicates
+                         LOG.info("Traf Peer Thread at cluster " + my_local_clusterid + " has no peer configured from PSTRConfig " + peer_count);
+                         synced = 1;
+                         return synced;
+                     }
+
+                     // R2.0 only works for 1 peer, later the join/reload of a region/table will be extended to peer_count > 1
+                     // The peer serves the last term of leader will be used
+                     LOG.info("Traf Peer Thread at cluster " + my_local_clusterid + " detect " + peer_count + " peers from STRConfig during startup");
+                     for ( Map.Entry<Integer, PeerInfo> entry : pSTRConfig.getPeerInfos().entrySet()) {
+                         int peerId = entry.getKey();
+                         PeerInfo peerInfo= entry.getValue();
+                         if ((peerId != 0) && (peerId != pSTRConfig.getMyClusterIdInt())) { // peer
+                        	 if (peerInfo.isTrafodionUp()) { // at least peer HBase must be up to check TLOG + CP tables
+                        	     peer_leader = peerId;
+                        	     LOG.info("Traf Peer Thread at cluster " + my_local_clusterid + " choose cluster id " + peerId + " as the TLOG leader during startup");
+                        	 }
+                                 else {
+                                     LOG.info("Traf Peer Thread at cluster " + my_local_clusterid + " detect cluster id " + peerId + " but its Trafodion is DOWN during startup");
+                                 }
+                         }
+                     }
+
+                     if (peer_leader == my_local_clusterid) { // no peer is up to sync_comlpete
+                         // proceed w/o consulting with peer (this may cause inconsistency, ~ disk mirror, current down peer may have "commit-takeover"
+                         // this is how to recover from consecutive site failures (A down, B takes over, B down, and bring up A ?)
+                         // to ensure consistency, once a takeover happens (B), B must be bring up first before A
+                         // and both A and B must be up (Trafodion UP) to allow TLOG sync first
+                         LOG.info("Traf Peer Thread at cluster " + my_local_clusterid + " can not find any peer available for TLOG sync during startup");
+                         synced = 0;
+                         return synced;
+                     }
+                     
+                     try { // steps b, c, d
+
+                 // b) if peer is up, read peer GCP-A' (HBase client get)
+                 //    if there is no peer, move ahead
+                 //    if peer is configured but down, then hold since peer may have more up-to-update commit LOG (~ mirror startup)
+                 //    any exception here ? --> down the LDTM initially ??
+                 //    probably use static method for the following API?
+
+                     localCluster_peerCP = getClusterCP(my_local_clusterid, peer_leader); 
+                     peerCluster_peerCP = getClusterCP(peer_leader, peer_leader);
+                     localCluster_localCP = getClusterCP(my_local_clusterid, my_local_clusterid);  // CP-A
+                     peerCluster_localCP = getClusterCP(peer_leader, my_local_clusterid); // CP-A'
+
+                 // c) determine role (from A's point of view)
+                 //    if CP-A' > CP-A + 2 && GCP-B' >= GCP-B --> peer is the leader
+                 //    otherwise there is no commit take ovver by B for A, move on
+                 //    Also need to bring txn state records orginiated from B to A (due to active active mode)
+                 // *) for later release, this process will become a "consensus join" and a "replay from current leader to reload commit log"
+
+                     if (localCluster_localCP + 2 < peerCluster_localCP) {
+                         tlog_sync_local_needed = true;
+                     }
+                     
+                 // choose a peer is the leader on commit log (TLOG), try to do a reload/sync
+                 // R 2.0 does TLOG reload/sync (while transaction processing will be held on B to reload TLOG and data tables)
+                 // later an online reload will be supported 
+
+                 // Below example is used to reload A from B after A is restarted
+                 // call B_Tlog.getRecordInterval( CP-A) for transactions started at A before crash
+                 // when B takes over, it will bump CP-A at B by 5
+                 // so if B makes commit decision for transactions A for local regions, the
+                 // transcation state in TLOG at B will have asn positioned by updated original CP-A  + 5
+
+                 // In active-active mode, there maybe in-doubt remote branches at A started by B, therefore either
+                 //    a) bring all TLOG state records started at B for all transactions with asn larger then Cp-B at A's CP table pointed
+                 //    b) ignore this and instead ask B's TLOG (? can this handle consecutive failures)
+                 // since A could be down for a while and there may be many transactions started and completed at B while
+                 // A is down, it may easier to just ask TLOG at B, only after all the in-doubt branches get resolved (how to
+                 // ensure this?, all regions at A must be onlint and started), the active-active is back. In R2.0, the database will get
+                 // reloaded offline at A from B, and then the TLOGs will get reset (~ cleanAT), so there is no hurry for R 2.0
+
+                 // API needed:
+                 // CP --> getCP value for a particular cluster
+                 // CP --> bump CP and write into CP table for a particular TLOG (called after tlog sync completes and before commit takeover)
+                 // TLOG --> for a TLOG (implying a particular cluster) get state records started at A with asn < asn from local old CP-A + 2
+                 // TLOG --> put record into a TLOG only 
+
+                 // For all the above operations, it should be applied to all the TM nodes (the second dimension) in additon to peers (the first 
+                 // dimension) either explicitly call at TxClient, or inside API of TmAuditTlog
+                 // TBD
+/*
+                    if (tlog_sync_local_needed) { // for transcations started at A, but taken over by B
+                       TmAuditTlog leader_Tlog = getTlog(peer_leader);
+                       // Assume we get txn state records from all the DTM (16 TLOGs scan inside) --> caller needs to loop # of node times
+                       // get the ASN from local CP, and then retrieve all state records > ASN from leader
+                       long starting_asn = audit.getAsn(nodeId)
+                       list of ts = leader_Tlog.getTransactionStatesFromInterval(nodeid, starting _asn);
+                       for all the commit migrated transaction of ts
+                           audit.putSingleRecord(tid, ts)
+                    }
+
+                    // Do we want to bump again ?
+                    audit.bumpControlPoint(downPeerClusterId, 5);
+*/
+                   // Is this needed if we need to copy all txn state records started at B after crash from previous step
+                   // or to get the lowest asn between (local A-CP and B-CP) and conservatively reload from that lowest position in TLOG
+                   // speifically, we may not need to get all the txn state records started at B after A is declared down (so could be bound
+                   // by 1-2 CP at most, or by the idServer current sequence number)
+                   // in-doubt remote branches at A should ask B (consecutive failures requires both clusters to be up -- no commit
+                   // takeover during restart), in R 2.0 since database requires reload offine (active-active), it's better not to do this sync
+                   /*
+                    if (sync for B is needed) { 
+                        list of commit migrated trans state record = getStateRecords(peer_leader, local_localCP);
+                        for all the commit migrated transaction,
+                            putLocalTLOGStateRecords with with local_localCP // this will be between old GCP and failover GCP
+                        
+                    }
+                    */
+
+                 // d) bump CP-A at all instances after all sync complete, is this needed in R 2.0
+                 
+                    synced = 1;
+                        		
+                     } catch (Exception e) { // try block for all the sequential processing on TLOG reload (idempotent if any exception)
+                        LOG.error("An ERROR occurred while LDTM " + tmID + " does TLOG sync during startup");
+                        StringWriter sw = new StringWriter();
+                        PrintWriter pw = new PrintWriter(sw);
+                        e.printStackTrace(pw);
+                        LOG.error(sw.toString());
+                        synced = 0;
+                     }
+
+                 // f) if sync completes without issues, return 1 
+                 //     if peer access fails or any exception then should retry later and returns 0
+
+                 return synced;
+              }
+
+             public void commit_takeover(int downPeerClusterId) {
+
+                 // if takeover has been perfomed at this instance, don't do the bump again (how to ensure this if LDTM restarts)
+
+                if (commit_migration_clusters.containsKey(downPeerClusterId)) { // this cluster has taken commit migration for the down cluster
+                     LOG.info("LDTM peer recovery thread has taken commit migration from STR down cluster " + downPeerClusterId + " skip CP bump");
+                     return;
+                }
+
+                // add STR down cluster into commit taken-over cluster map of local cluster
+                 commit_migration_clusters.put(downPeerClusterId, 0);
+                 LOG.info("LDTM peer recovery thread starts to take commit migration from STR down cluster " + downPeerClusterId + " and bump CP");
+
+                 // get the number of nodes from the downed cluster in order to get the number of TLOG configured (from pSTRConfig is better)
+
+                 // for each node, get the TmAuditTlog from peer_tlogs
+                 // bump control point by 5 for downPeerClusterId CP record in local CP tableName
+                 // so any committing decision made later for transcation reginiated from the down instance will carry > 5 CP in TLOG
+                 // Assume bumpControlPoint will bump all the CP tables for all the nodes, 16 as default (each node has a TLOG and has a CP table) 
+
+                 // First bump local Tlog, and then go through the peer_tLogs
+                  try {
+                            audit.bumpControlPoint(downPeerClusterId, 5);
+                            LOG.info("LDTM bumps CP at local cluster for STR down cluster " + downPeerClusterId);
+                       }
+                       catch (Exception e) {
+                            LOG.error("LDTM encounters errors while tries to bump CP at local cluster for STR down cluster " + downPeerClusterId +
+                                " audit.commit_takeover_bumpCP: EXCEPTION " + e);
+                        }
+
+                  for (Entry<Integer, TmAuditTlog> lv_tLog_entry : peer_tLogs.entrySet()) {
+                      Integer clusterid = lv_tLog_entry.getKey();
+                      TmAuditTlog lv_tLog = lv_tLog_entry.getValue();
+                      try {
+                            if (clusterid != downPeerClusterId) {
+                                lv_tLog.bumpControlPoint(downPeerClusterId, 5);
+                                LOG.info("LDTM bumps CP at cluster " + clusterid + " for STR down cluster " + downPeerClusterId);
+                            }
+                            else {
+                                LOG.info("LDTM skips to bump CP at downed cluster " + clusterid + " for STR down cluster " + downPeerClusterId);
+                            }
+                       }
+                       catch (Exception e) {
+                            LOG.error("LDTM encounters errors while tries to bump CP at cluster " + clusterid + " for STR down cluster " + downPeerClusterId +
+                                " tLog.commit_takeover_bumpCP: EXCEPTION " + e);
+                        }
+                  }
+                  return;
+              }
+
+             public void put_single_tlog_record_during_commit_takeover(int downPeerClusterId, long tid, TransactionState ts) {
+
+                   if (LOG.isDebugEnabled()) LOG.debug("LDTM write txn state record for txid " + tid + " during recovery after commit takeover ");
+
+                   try {
+                         audit.putSingleRecord(tid, -1, "ABORTED", ts.getParticipatingRegions(), true);
+                         if (LOG.isDebugEnabled()) LOG.debug("LDTM write txn state record for txid " + tid + " at local cluster during recovery after commit takeover ");
+                   }
+                   catch (Exception e) {
+                            LOG.error("LDTM encounters errors while tries to put single tlog record at local cluster for tid " + tid + " for STR down cluster " + downPeerClusterId +
+                                " audit.put_single_tlog_record_during_commit_takeover: EXCEPTION " + e);
+                   }
+
+                  for (Entry<Integer, TmAuditTlog> lv_tLog_entry : peer_tLogs.entrySet()) {
+                      Integer clusterid = lv_tLog_entry.getKey();
+                      TmAuditTlog lv_tLog = lv_tLog_entry.getValue();
+                      try {
+                            if (clusterid != downPeerClusterId) {
+                                lv_tLog.putSingleRecord(tid, -1, "ABORTED", ts.getParticipatingRegions(), true);
+                                if (LOG.isDebugEnabled()) LOG.debug("LDTM write txn state record for txid " + tid + " to cluster " + clusterid + " during recovery after commit takeover ");
+                            }
+                            else {
+                                if (LOG.isDebugEnabled()) LOG.debug("LDTM skip txn state record for txid " + tid + " to STR down cluster " + clusterid + " during recovery after commit takeover ");
+                            }
+                       }
+                       catch (Exception e) {
+                            LOG.error("LDTM encounters errors while tries to put single tlog record for tid " + tid + " for STR down cluster " + downPeerClusterId +
+                                " tLog.put_single_tlog_record_during_commit_takeover: EXCEPTION " + e);
+                        }
+                  }
+                  return;
+              }
+
             @Override
              public void run() {
+
+             int sync_complete = 0;
+             boolean LDTM_ready = false;
+             boolean takeover = false;
+             boolean answerFromPeer = false;
+
+                if (this.leadtm) { // this is LDTM peer recovery thread, first if this is a startup, drive a TLOG sync
+                   try {
+                        if (LOG.isDebugEnabled()) LOG.debug("LDTM " + tmID + " peer recovery thread tries to delete TLOG sync node during startup");
+                        zookeeper.deleteTLOGSyncNode();
+                   } catch (Exception e) {
+                          LOG.error("An ERROR occurred while LDTM " + tmID + " peer recovery thread tries to reset TLOG sync 0 during startup");
+                          StringWriter sw = new StringWriter();
+                          PrintWriter pw = new PrintWriter(sw);
+                          e.printStackTrace(pw);
+                          LOG.error(sw.toString());
+                   }
+                   
+                   try {
+                        String data = "LDTM";
+                        if (LOG.isDebugEnabled()) LOG.debug("LDTM " + tmID + " peer recovery thread tries to create LDTM ezNode during startup");
+                        zookeeper.createLDTMezNode(data.getBytes());
+                   } catch (Exception e) {
+                       LOG.error("An ERROR occurred while LDTM " + tmID + " peer recovery thread create LDTM ezNode during startup");
+                       StringWriter sw = new StringWriter();
+                       PrintWriter pw = new PrintWriter(sw);
+                       e.printStackTrace(pw);
+                       LOG.error(sw.toString());
+                   }
+                   
+                   while (sync_complete <= 0) {
+                	   try {
+                               if (LOG.isDebugEnabled()) LOG.debug("LDTM " + tmID + " peer recovery thread tries to do TLOG sync during startup");
+                               sync_complete = tlogSync();
+                               if (sync_complete <= 0) Thread.sleep(1000); // wait for 1 seconds to retry
+                       } catch (Exception e) {
+                           LOG.error("An ERROR occurred while LDTM " + tmID + " peer recovery thread tries to do TLOG sync during startup" + sync_complete);
+                           StringWriter sw = new StringWriter();
+                           PrintWriter pw = new PrintWriter(sw);
+                           e.printStackTrace(pw);
+                           LOG.error(sw.toString());
+                       }
+                   }
+                   
+                   try {
+                        String data = "1";
+                        if (LOG.isDebugEnabled()) LOG.debug("LDTM " + tmID + " peer recovery thread tries to create TLOG sync node during startup");
+                        zookeeper.createTLOGSyncNode(data.getBytes());
+                   } catch (Exception e) {
+                       LOG.error("An ERROR occurred while LDTM " + tmID + " peer recovery thread tries to set TLOG sync 1 during startup");
+                       StringWriter sw = new StringWriter();
+                       PrintWriter pw = new PrintWriter(sw);
+                       e.printStackTrace(pw);
+                       LOG.error(sw.toString());
+                   }
+                }
+                else { //regular recovery thread will wait for the creation for LDTM ezNode
+                       while (! LDTM_ready) {
+                	    try {
+                                if (LOG.isDebugEnabled()) LOG.debug("DTM " + tmID + " standard recovery thread tries to check if LDTM ready during startup");
+                                LDTM_ready = zookeeper.isLDTMezNodeCreated();
+                                if (!LDTM_ready) Thread.sleep(2000); // wait for 1 seconds to retry
+                            } catch (Exception e) {
+                                LOG.info("An Info occurred while DTM " + tmID + " recovery thread is waiting for LDTM ezNode during startup" + LDTM_ready);
+                                StringWriter sw = new StringWriter();
+                                PrintWriter pw = new PrintWriter(sw);
+                                e.printStackTrace(pw);
+                                LOG.error(sw.toString());
+                            }
+                       } // wait for LDTM ready
+                }
+
+                // All recovery threads has to wait until commit log (TLOG) sync completes
+                
+                boolean tlogReady = false;
+                while (! tlogReady) {
+                	try {
+                             if (LOG.isDebugEnabled()) LOG.debug("DTM " + tmID + " recovery thread tries to check if local TLOG ready during startup");
+                	     tlogReady = zookeeper.isTLOGReady();
+                             if (!tlogReady) Thread.sleep(5000); // wait for 5 seconds to retry
+                    } catch (Exception e) {
+                        LOG.error("An ERROR occurred while local recovery thread tmID " + tmID + " tries to check if TLOG is ready during startup ");
+                        StringWriter sw = new StringWriter();
+                        PrintWriter pw = new PrintWriter(sw);
+                        e.printStackTrace(pw);
+                        LOG.error(sw.toString());
+                    }               	
+                }
+
+                LOG.info("Traf Recovery Thread at DTM " + tmID + " starts after TLOG synced");
 
                 while (this.continueThread) {
                     try {
@@ -1387,29 +1820,89 @@ public class HBaseTxClient {
                             for (Map.Entry<Long, TransactionState> tsEntry : transactionStates.entrySet()) {
                                 TransactionState ts = tsEntry.getValue();
                                 Long txID = ts.getTransactionId();
+                                int clusterid = (int) TransactionState.getClusterId(txID);
                                 // TransactionState ts = new TransactionState(txID);
                                 try {
-                                    audit.getTransactionState(ts);
-                                    if (ts.getStatus().equals(TransState.STATE_COMMITTED.toString())) {
-                                        if (LOG.isDebugEnabled())
-                                            LOG.debug("TRAF RCOV THREAD:Redriving commit for " + txID + " number of regions " + ts.getParticipatingRegions().size() +
-                                                    " and tolerating UnknownTransactionExceptions");
-                                        txnManager.doCommit(ts, true /*ignore UnknownTransactionException*/);
-                                        if(useTlog && useForgotten) {
-                                            long nextAsn = tLog.getNextAuditSeqNum((int)TransactionState.getNodeId(txID));
-                                            tLog.putSingleRecord(txID, ts.getCommitId(), "FORGOTTEN", null, forceForgotten, nextAsn);
-                                        }
-                                    } else if (ts.getStatus().equals(TransState.STATE_ABORTED.toString())) {
-                                        if (LOG.isDebugEnabled())
-                                            LOG.debug("TRAF RCOV THREAD:Redriving abort for " + txID);
-                                        txnManager.abort(ts);
-                                    } else {
-                                        if (LOG.isDebugEnabled())
-                                            LOG.debug("TRAF RCOV THREAD:Redriving abort for " + txID);
-                                        LOG.warn("Recovering transaction " + txID + ", status is not set to COMMITTED or ABORTED. Aborting.");
-                                        txnManager.abort(ts);
-                                    }
+                                	// For transactions started by local cluster, commit processing has to wait if it can't get enough quorum during commit log write
+                                	// In a 2-cluster xDC, that implies the local cluster must own the quorum (or authority) before move into phase 2 (i.e. do the commit
+                                	// decision without peer's vote)
+                                	if ((clusterid == 0) || (clusterid == my_local_clusterid)) { // transactions started by local cluster
+                                            if (LOG.isDebugEnabled())
+                                                { LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " commit authority is handled by local owner " + clusterid); }
+                                            audit.getTransactionState(ts);
+                                            if (ts.getStatus().equals(TransState.STATE_COMMITTED.toString())) {
+                                               if (LOG.isDebugEnabled())
+                                                  LOG.debug("TRAF RCOV THREAD:Redriving commit for " + txID + " number of regions " + ts.getParticipatingRegions().size() +
+                                                       " and tolerating UnknownTransactionExceptions");
+                                               txnManager.doCommit(ts, true /*ignore UnknownTransactionException*/);
+                                               if(useTlog && useForgotten) {
+                                                  long nextAsn = tLog.getNextAuditSeqNum((int)TransactionState.getNodeId(txID));
+                                                  tLog.putSingleRecord(txID, ts.getCommitId(), "FORGOTTEN", null, forceForgotten, nextAsn);
+                                               }
+                                            } 
+                                            else if (ts.getStatus().equals(TransState.STATE_ABORTED.toString())) {
+                                               if (LOG.isDebugEnabled())
+                                                  LOG.debug("TRAF RCOV THREAD:Redriving abort for " + txID);
+                                               txnManager.abort(ts);
+                                            } 
+                                            else {
+                                               if (LOG.isDebugEnabled())
+                                                  LOG.debug("TRAF RCOV THREAD:Redriving abort for " + txID);
+                                               LOG.warn("Recovering transaction " + txID + ", status is not set to COMMITTED or ABORTED. Aborting.");
+                                               txnManager.abort(ts);
+                                            }
+                                	} // indoubt transaction started at local node
+                                	else { // transcations started by peers, here we do similar commit decision like regular commit processing if take over
+                                		   // if peer is DOWN, then uses local TLOG to make commit decision (commit takeover from peer)
+                                		   // if peer is UP, then directly ask peer (holding commit processing)
+                                                takeover = false;
+                                                answerFromPeer = false;
+                                                if (LOG.isDebugEnabled()) { LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " started at  " + clusterid + " is indoubt "); }
+                                		if (pSTRConfig.getPeerStatus(clusterid).contains(PeerInfo.STR_DOWN)) {
+                                			// STR is down, do commit takeover based on local TLOG
+                                                       if (LOG.isDebugEnabled())
+                                                            LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " commit authority is taken over due to STR_DOWN at peer " + clusterid);
+                                                       commit_takeover(clusterid); // perform takeover preprocessing before starts to resolve transactions
+                                		       audit.getTransactionState(ts); // ask local TLOG after take over
+                                                       takeover = true;
+                                	        }
+                                		else if (pSTRConfig.getPeerStatus(clusterid).contains(PeerInfo.STR_UP)) {
+                                			// STR is up, ask peer
+                                		       if (LOG.isDebugEnabled())
+                                			    LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " commit authority is sent to Peer due to STR_UP at peer " + clusterid);
+                                		       TmAuditTlog peerTlog = getTlog(clusterid);
+                                                       peerTlog.getTransactionState(ts);
+                                                       answerFromPeer = true;
+                                		}
+                                             
+                                                // TBD we probably do not want to post all the regions in R2.0 for the takeover case since remote peer could be down and this could cause 
+                                                // transaction manager to be stuck, only send decision to indoubt regions --> use a new parameter noPostAll in getTransactionState
+                                                // if it can't take over but skip the decsion and defer
 
+                                                if (takeover || answerFromPeer) {
+                                                     if (LOG.isDebugEnabled())
+                                                          LOG.debug("TRAF RCOV THREAD makes commit decision for " + txID + " from sources " + takeover + " and " + answerFromPeer);
+                                                    if (ts.getStatus().equals(TransState.STATE_COMMITTED.toString())) {
+                                                         if (LOG.isDebugEnabled())
+                                                          LOG.debug("TRAF RCOV THREAD:Redriving commit for " + txID + " number of regions " + ts.getParticipatingRegions().size() +
+                                                              " and tolerating UnknownTransactionExceptions");
+                                                          txnManager.doCommit(ts, true /*ignore UnknownTransactionException*/);
+                                                    }  // committed
+                                                    else if (ts.getStatus().equals(TransState.STATE_ABORTED.toString())) {
+                                                          if (LOG.isDebugEnabled())
+                                                             LOG.debug("TRAF RCOV THREAD:Redriving abort for " + txID);
+                                                          txnManager.abort(ts);
+                                                    } // aborted
+                                                    else {
+                                                          if (LOG.isDebugEnabled())
+                                                             LOG.debug("TRAF RCOV THREAD:Redriving abort for " + txID);
+                                                          LOG.warn("Recovering transaction " + txID + ", status is not set to COMMITTED or ABORTED. Aborting.");
+                                                          // here write abort txn state recordfs into local TLOG and any alive peer
+                                                          put_single_tlog_record_during_commit_takeover(clusterid, txID, ts);
+                                                          txnManager.abort(ts);
+                                                    } // else
+                                                } // do commit takeover                        		
+                                	} // indoubt transaction started at peer
                                 }catch (UnsuccessfulDDLException ddle) {
                                     LOG.error("UnsuccessfulDDLException encountered by Recovery Thread. Registering for retry. txID: " + txID + "Exception " + ddle);
                                     ddle.printStackTrace();

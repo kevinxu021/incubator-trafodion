@@ -259,6 +259,20 @@ public class STRConfig {
 	return;
     }
 
+
+    public String getPeerStatus(int    pv_cluster_id)
+    {
+
+	if (LOG.isTraceEnabled()) LOG.trace("getPeerStatus" 
+					    + " cluster id: " + pv_cluster_id
+					    );
+
+	PeerInfo lv_pi = getPeerInfo(pv_cluster_id);
+	if (lv_pi != null) {
+	    return lv_pi.get_status();
+	}
+	return "";
+    }
     public int getPeerCount() 
     {
 	return sv_peer_count;
@@ -304,6 +318,11 @@ public class STRConfig {
     public Map<Integer, HConnection> getPeerConnections() 
     {
 	return peer_connections;
+    }
+
+    public Map<Integer, PeerInfo> getPeerInfos() 
+    {
+	return peer_info_list;
     }
 
     public String getMyClusterId() 
