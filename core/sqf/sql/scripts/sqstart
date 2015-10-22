@@ -346,7 +346,13 @@ run_util hbcheck 3 10
 
 echo "-------------"
 echo "My cluster id"
-xdc -getmyid
+lv_myclusterid=`xdc -getmyid`
+lv_stat=$?
+if [[ $lv_stat == 0 ]]; then
+    export MY_CLUSTER_ID=${lv_myclusterid}
+else
+    export MY_CLUSTER_ID=0
+fi
 echo "-------------"
 
 echo "Listing my info and my peer(s) info"
