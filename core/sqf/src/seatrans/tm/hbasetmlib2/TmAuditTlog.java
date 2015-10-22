@@ -45,9 +45,11 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.RegionLocator;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.transactional.STRConfig;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.CommitUnsuccessfulException;
@@ -70,6 +72,7 @@ import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableExistsException;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
@@ -108,6 +111,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 
+import org.trafodion.dtm.HBaseAuditControlPoint;
+
 public class TmAuditTlog {
 
    static final Log LOG = LogFactory.getLog(TmAuditTlog.class);
@@ -124,6 +129,7 @@ public class TmAuditTlog {
    private static long tLogHashKey;
    private static int  tLogHashShiftFactor;
    private int dtmid;
+   private static STRConfig pSTRConfig = null;
 
    // For performance metrics
    private static long[] startTimes;
@@ -633,38 +639,50 @@ public class TmAuditTlog {
 
    /**
    * Method  : getTransactionStatesFromInterval
-   * Params  : regionName - name of Region
-   *           cpInterval - Control Point Interval to search
+   * Params  : nodeId  - Trafodion nodeId of the Tlog set that is to be read.  Typically this
+   *           id is mapped to the Tlog set as follows Tlog<nodeId>
+   *           pvASN   - ASN after which all audit records will be returned
    * Return  : void
    * Purpose : Retrieve list of transactions from an interval
    */
-   public void getTransactionStatesFromInterval(final long cpInterval) throws IOException {
+   public void getTransactionStatesFromInterval(final long pv_nodeId, final long pv_ASN) throws IOException {
 
      int loopCount = 0;
      long threadId = Thread.currentThread().getId();
+     // This TransactionState object is just a mechanism to keep track of the asynch rpc calls
+     // send to regions in order to retrience the desired set of transactions
      TransactionState transactionState = new TransactionState(0);
      try {
-        if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval [" + cpInterval + "] in thread " + threadId);
+        if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval node: " + pv_nodeId
+                      + ", asn: " + pv_ASN + " in thread " + threadId);
 
-        final long lvAsn = tLogControlPoint.getRecord(myClusterId, String.valueOf(cpInterval));
+        HTableInterface targetTable;
         List<HRegionLocation> regionList;
-        Map<ServerName, List<HRegionLocation>> locations = new HashMap<ServerName, List<HRegionLocation>>();
-        ServerName servername;
+
+        // For every Tlog table for this node
         for (int index = 0; index < tlogNumLogs; index++) {
-           NavigableMap<HRegionInfo,ServerName> regionMap = table[index].getRegionLocations();
-           for(NavigableMap.Entry<HRegionInfo, ServerName> entry : regionMap.entrySet()){
-              HRegionLocation location = table[index].getRegionLocation(entry.getKey().getStartKey());
+           String lv_tLogName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(pv_nodeId) + "_LOG_" + Integer.toHexString(index));
+           HConnection targetTableConnection = HConnectionManager.createConnection(this.config);
+           targetTable = targetTableConnection.getTable(TableName.valueOf(lv_tLogName));
+           RegionLocator rl = targetTableConnection.getRegionLocator(TableName.valueOf(lv_tLogName));
+           regionList = rl.getAllRegionLocations();
+
+           // For every region in this table
+           for (HRegionLocation location : regionList) {
+
               final byte[] regionName = location.getRegionInfo().getRegionName();
               tlogThreadPool.submit(new TlogCallable2(transactionState, location, connection) {
                  public ArrayList<TransactionState> call() throws IOException {
-                    if (LOG.isTraceEnabled()) LOG.trace("before getTransactionStatesFromIntervalX() [" + lvAsn + "]");
-                    return getTransactionStatesFromIntervalX(regionName, lvAsn);
+                    if (LOG.isTraceEnabled()) LOG.trace("before getTransactionStatesFromIntervalX() ASN: "
+                           + pv_ASN + ", and node: " + pv_nodeId);
+                    return getTransactionStatesFromIntervalX(regionName, pv_ASN);
                  }
               });
            }
         }
      } catch (Exception e) {
-        LOG.error("exception in getTransactionStatesFromInterval for interval: " + cpInterval + " " + e);
+        LOG.error("exception in getTransactionStatesFromInterval for interval ASN: " + pv_ASN
+                    + ", node: " + pv_nodeId + " " + e);
         throw new IOException(e);
      }
      // all requests sent at this point, can record the count
@@ -720,7 +738,7 @@ public class TmAuditTlog {
       }
    }
 
-   public TmAuditTlog (Configuration config) throws IOException, RuntimeException {
+   public TmAuditTlog (Configuration config) throws Exception  {
 
       this.config = config;
       this.dtmid = Integer.parseInt(config.get("dtmid"));
@@ -875,12 +893,20 @@ public class TmAuditTlog {
       avgBufferSize   =    0;
       timeIndex       =    new AtomicInteger(1);
 
-      String clusterIdS = System.getenv("MY_CLUSTER_ID");
-      int lv_clusterId = 0;
-      if (clusterIdS != null){
-         lv_clusterId = Integer.parseInt(clusterIdS);
+      try {
+         pSTRConfig = STRConfig.getInstance(config);
       }
-      myClusterId = lv_clusterId;
+      catch (ZooKeeperConnectionException zke) {
+         LOG.error("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
+      }
+      catch (IOException ioe) {
+         LOG.error("IO Exception trying to get STRConfig instance: " + ioe);
+      }
+
+      myClusterId = 0;
+      if (pSTRConfig != null) {
+         myClusterId = pSTRConfig.getMyClusterIdInt();
+      }
 
       asn = new AtomicLong();  // Monotonically increasing count of write operations
 
@@ -1616,6 +1642,13 @@ public class TmAuditTlog {
       return lvCtrlPt;
    } 
 
+   public long getStartingAuditSeqNum(final int clusterId) throws IOException {
+      if (LOG.isTraceEnabled()) LOG.trace("getStartingAuditSeqNum for clusterId: " + clusterId);
+      long lvAsn = tLogControlPoint.getStartingAuditSeqNum(clusterId);
+      if (LOG.isTraceEnabled()) LOG.trace("getStartingAuditSeqNum returning: " + lvAsn);
+      return lvAsn;
+   }
+
    public void getTransactionState (TransactionState ts) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("getTransactionState start; transid: " + ts.getTransactionId());
 
@@ -1788,5 +1821,16 @@ public class TmAuditTlog {
       if (LOG.isTraceEnabled()) LOG.trace("getTransactionState end transid: " + ts.getTransactionId());
       return;
    }
+
+public long getAuditCP(int clustertoRetrieve) throws Exception {
+       long cp = 0;
+       try {
+          cp = tLogControlPoint.getCurrControlPt(clustertoRetrieve);
+       } catch (Exception e) {
+             LOG.error("Get Control Point Exception " + Arrays.toString(e.getStackTrace()));
+             throw e;
+       }
+       return cp;
 }
 
+}

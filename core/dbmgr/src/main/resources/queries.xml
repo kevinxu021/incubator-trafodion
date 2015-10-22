@@ -179,8 +179,7 @@
 		</query>
 		<query>
 			<name>OPENTSDB_CANARY_RESPONSE</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg-none:esgyndb.mxosrvr.query.rst", "method":"get"}]]></text>
-		</query>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg-none:esgyndb.canary.sqlconnect.time&m=avg:%4$s-avg-none:esgyndb.canary.sqlddl.time&m=avg:%4$s-avg-none:esgyndb.canary.sqlwrite.time&m=avg:%4$s-avg-none:esgyndb.canary.sqlread.time", "method":"get"}]]></text>		</query>
 		<query>
 			<name>OPENTSDB_DISK_READS</name>
 			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:rate:%4$s-avg-none:iostat.disk.read_requests", "method":"get"}]]></text>
@@ -249,5 +248,9 @@
 			<name>OPENTSDB_REGION_MEMSTORE_SIZE_DRILLDOWN</name>
 			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg-none:hbase.regionserver.regions.memStoreSize{host=*}", "method":"get"}]]></text>
 		</query>
+		<query>
+			<name>FETCH_ALERTS_LIST</name>
+			<text><![CDATA[{"url":"http://%1$s/api/alerts", "method":"get"}]]></text>
+		</query>		
 	</queries>
 </SystemQueries>

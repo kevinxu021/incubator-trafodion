@@ -56,8 +56,7 @@
 					<div id="services-result-container"
 						class="dbmgr-dashboard-table table-responsive"
 						style="overflow: auto"></div>
-					<label id="services-error-text"
-						style="color: red; height: 120px; overflow: auto;"></label>
+					<label id="services-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 		</div>
@@ -69,8 +68,7 @@
 				</div>
 				<div class="panel-body">
 					<div id="transactions-chart" class="dbmgr-graph"></div>
-					<label id="transactions-error-text"
-						style="color: red; height: 120px; overflow: auto;"></label>
+					<label id="transactions-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 		</div>
@@ -82,8 +80,7 @@
 				</div>
 				<div class="panel-body">
 					<div id="canary-chart" class="dbmgr-graph"></div>
-					<label id="canary-error-text"
-						style="color: red; height: 120px; overflow: auto;"></label>
+					<label id="canary-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 		</div>
@@ -98,8 +95,7 @@
 				<div class="panel-body">
 					<div id="nodes-result-container" class="table-responsive"
 						style="height: 150px; overflow: auto"></div>
-					<label id="nodes-error-text"
-						style="color: red; height: 120px; overflow: auto;"></label>
+					<label id="nodes-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 		</div>
@@ -119,8 +115,7 @@
 				</div>
 				<div class="panel-body">
 					<div id="iowaits-chart" class="dbmgr-graph"></div>
-					<label id="iowaits-error-text"
-						style="color: red; height: 120px; overflow: auto;"></label>
+					<label id="iowaits-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 		</div>
@@ -140,8 +135,7 @@
 				</div>
 				<div class="panel-body">
 					<div id="useddiskspace-chart" class="dbmgr-graph"></div>
-					<label id="useddiskspace-error-text"
-						style="color: red; height: 120px; overflow: auto;"></label>
+					<label id="useddiskspace-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 		</div>
@@ -156,14 +150,14 @@
 						<div class="btn-group pull-right" style="margin-right: 5px">
 							<button id="jvmgctime-drilldown-btn" type="button"
 								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								data-toggle="tooltip" data-placement="left" title="GC Time per Node"
 								style="height: 30px; width: 30px"></button>
 						</div>	
 					</div>					
 				</div>
 				<div class="panel-body">
 					<div id="jvmgctime-chart" class="dbmgr-graph"></div>
-					<label id="jvmgctime-error-text"
-						style="color: red; height: 120px; overflow: auto;"></label>
+					<label id="jvmgctime-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 		</div>
@@ -176,14 +170,14 @@
 						<div class="btn-group pull-right" style="margin-right: 5px">
 							<button id="regionservermemory-drilldown-btn" type="button"
 								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								data-toggle="tooltip" data-placement="left" title="Regionserver Memory Use per Node"
 								style="height: 30px; width: 30px"></button>
 						</div>
 					</div>
 				</div>
 				<div class="panel-body">
 					<div id="regionservermemory-chart" class="dbmgr-graph"></div>
-					<label id="regionservermemory-error-text"
-						style="color: red; height: 120px; overflow: auto;"></label>
+					<label id="regionservermemory-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 		</div>
@@ -196,14 +190,14 @@
 						<div class="btn-group pull-right" style="margin-right: 5px">
 							<button id="memstoresize-drilldown-btn" type="button"
 								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								data-toggle="tooltip" data-placement="left" title="Memstore Size by Node"
 								style="height: 30px; width: 30px"></button>
 						</div>
 					</div>
 				</div>
 				<div class="panel-body">
 					<div id="memstoresize-chart" class="dbmgr-graph"></div>
-					<label id="memstoresize-error-text"
-						style="color: red; height: 120px; overflow: auto;"></label>
+					<label id="memstoresize-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 		</div>
@@ -224,8 +218,7 @@
 				<div class="modal-body">
 					<form id="filter-form">
 						<div id="metrics-drilldown-chart" class="dbmgr-drilldown-graph"></div>
-						<label id="metrics-drilldown-error-text"
-							style="color: red; height: 120px; overflow: auto;"></label>
+						<label id="metrics-drilldown-error-text" class="dbmgr-error-text"></label>
 					</form>
 				</div>
 				<div class="modal-footer">
@@ -270,8 +263,7 @@
 							</div>
 						</div>
 						<div class="form-group">
-							<label id="filter-error-text" class="control-label"
-								style="color: red"></label>
+							<label id="filter-error-text" class="control-label" class="dbmgr-error-text"></label>
 						</div>
 					</form>
 				</div>

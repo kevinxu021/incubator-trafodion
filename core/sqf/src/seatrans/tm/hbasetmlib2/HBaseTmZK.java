@@ -59,6 +59,8 @@ import org.apache.zookeeper.KeeperException;
  */
 public class HBaseTmZK implements Abortable{
 	private final String baseNode = "/hbase/Trafodion/recovery/TM";
+    private final String zNodeLDTMPath = "/hbase/Trafodion/recovery/TM/LDTM";
+    private final String zNodeTLOGPath = "/hbase/Trafodion/recovery/TM/TLOG";
 	static final Log LOG = LogFactory.getLog(HBaseTmZK.class);
 	
 	ZooKeeperWatcher zooKeeper;
@@ -196,7 +198,95 @@ public class HBaseTmZK implements Abortable{
                 throw new IOException("HBaseTmZK:createGCzNode: ZKW Unable to create GC zNode: " + zNodeGCPath +"  , throwing IOException " + e);
             }
         }
+        
+        /**
+         ** @param data
+         ** #throws IOException
+         **/
+        public void createLDTMezNode(byte [] data) throws IOException {
+            try {
+                if (ZKUtil.checkExists(zooKeeper, zNodeLDTMPath) == -1) {
+                   if (LOG.isTraceEnabled()) LOG.trace("Trafodion table data clean up no znode path created " + zNodeLDTMPath);
+                    ZKUtil.createWithParents(zooKeeper, zNodeLDTMPath);
+                }
+                ZKUtil.createEphemeralNodeAndWatch(zooKeeper, zNodeLDTMPath + "/EZ", data);
+            } catch (KeeperException e) {
+                throw new IOException("HBasePeerTmZK:createGCzNode: ZKW Unable to create LDTM zNode: " + zNodeLDTMPath + "  , throwing IOException " + e);
+            }
+        }
 
+        /**
+         ** @param data
+         ** #throws IOException
+         **/
+        public boolean isLDTMezNodeCreated() throws IOException {
+            try {
+                if (ZKUtil.checkExists(zooKeeper, zNodeLDTMPath+"/EZ") == -1) {
+                   if (LOG.isTraceEnabled()) LOG.trace("Trafodion table data clean up no znode path created " + zNodeLDTMPath);
+                   LOG.info("LDTM is not ready");
+                   return false;
+                }
+            } catch (KeeperException e) {
+                throw new IOException("HBasePeerTmZK:createGCzNode: ZKW Unable to check LDTM zNode: " + zNodeLDTMPath + "  , throwing IOException " + e);
+            }
+            LOG.info("LDTM is ready");
+            return true;
+        }
+
+        /**
+         ** @param dataString zNodeKey = basePath + "/LDTM;
+         ** #throws IOException
+         **/
+        public void deleteTLOGSyncNode() throws IOException {
+            String zNodeTLOGPathKey = zNodeTLOGPath + "/SYNC";
+            try {
+                if (ZKUtil.checkExists(zooKeeper, zNodeTLOGPathKey) == -1) {
+                   if (LOG.isTraceEnabled()) LOG.trace("Trafodion znode path cleared (no deletion) " + zNodeTLOGPathKey);
+                   return;
+                }
+                if (LOG.isTraceEnabled()) LOG.trace("Trafodion znode path cleared (deletion) " + zNodeTLOGPathKey);
+                ZKUtil.deleteNode(zooKeeper, zNodeTLOGPathKey);
+            } catch (KeeperException e) {
+                throw new IOException("HBasePeerTmZK:setTLOGSyncNode: ZKW Unable to set TLOG-SYNC zNode: " + zNodeTLOGPathKey +"  , throwing IOException " + e);
+            }
+        }
+
+        /**
+         ** @param data
+         ** #throws IOException
+         **/
+        public void createTLOGSyncNode(byte [] data) throws IOException {
+            String zNodeTLOGPathKey = zNodeTLOGPath + "/SYNC";
+            try {
+                if (ZKUtil.checkExists(zooKeeper, zNodeTLOGPathKey) == -1) {
+                   if (LOG.isTraceEnabled()) LOG.trace("Trafodion TLOG Sync node does not exist " + zNodeTLOGPathKey);
+                    ZKUtil.createWithParents(zooKeeper, zNodeTLOGPath);
+                }
+                ZKUtil.createAndWatch(zooKeeper, zNodeTLOGPathKey, data);
+            } catch (KeeperException e) {
+                throw new IOException("HBasePeerTmZK: ZKW Unable to create TLOG Sync zNode: " + zNodeTLOGPathKey + "  , throwing IOException " + e);
+            }
+        }
+
+    	/**
+    	 * @param znode
+    	 * @return
+    	 * @throws KeeperException
+    	 */
+    	public boolean isTLOGReady() throws IOException {
+            String zNodeTLOGPathKey = zNodeTLOGPath + "/SYNC";
+            try {
+                if (ZKUtil.checkExists(zooKeeper, zNodeTLOGPathKey) == -1) {
+                   if (LOG.isTraceEnabled()) LOG.trace("Trafodion znode path does not exist " + zNodeTLOGPathKey);
+                   return false;
+                }
+                if (LOG.isTraceEnabled()) LOG.trace("Trafodion znode path exists " + zNodeTLOGPathKey);
+            } catch (KeeperException e) {
+                throw new IOException("HBasePeerTmZK:setTLOGSyncNode: ZKW Unable to set TLOG-SYNC zNode: " + zNodeTLOGPathKey +"  , throwing IOException " + e);
+            }
+            return true;
+    	}
+        
 	/**
 	 * @param node
 	 * @param recovTable
