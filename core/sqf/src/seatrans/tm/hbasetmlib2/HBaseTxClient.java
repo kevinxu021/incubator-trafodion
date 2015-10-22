@@ -120,7 +120,6 @@ public class HBaseTxClient {
    private static STRConfig pSTRConfig = null;
 
    void setupLog4j() {
-        //System.out.println("In setupLog4J");
         System.setProperty("trafodion.root", System.getenv("MY_SQROOT"));
         String confFile = System.getenv("MY_SQROOT")
             + "/conf/log4j.dtm.config";
@@ -128,7 +127,6 @@ public class HBaseTxClient {
    }
 
    public boolean init(String hBasePath, String zkServers, String zkPort) throws Exception {
-      //System.out.println("In init - hbp");
       setupLog4j();
       if (LOG.isDebugEnabled()) LOG.debug("Enter init, hBasePath:" + hBasePath);
       if (LOG.isTraceEnabled()) LOG.trace("mapTransactionStates " + mapTransactionStates + " entries " + mapTransactionStates.size());
@@ -210,8 +208,6 @@ public class HBaseTxClient {
    }
 
    public boolean init(short dtmid) throws Exception {
-      //System.out.println("In init - dtmId" + dtmid);
-
       setupLog4j();
       if (LOG.isDebugEnabled()) LOG.debug("Enter init(" + dtmid + ")");
       config = HBaseConfiguration.create();
@@ -1053,7 +1049,6 @@ public class HBaseTxClient {
           throw new Exception("DeserializationException in lv_regionInfo parseFrom, unable to register region");
        }
 
-       // TODO Not in CDH 5.1       ServerName lv_servername = ServerName.valueOf(hostname, pv_port, pv_startcode);
        String lv_hostname_port_string = hostname + ":" + pv_port;
        String lv_servername_string = ServerName.getServerName(lv_hostname_port_string, pv_startcode);
        ServerName lv_servername = ServerName.parseServerName(lv_servername_string);
@@ -1103,9 +1098,6 @@ public class HBaseTxClient {
 
        if (LOG.isDebugEnabled()) LOG.debug("RegisterRegion adding table name " + regionTableName);
        ts.addTableName(regionTableName);
-
-       // Removing unnecessary put back into the map
-       // mapTransactionStates.put(ts.getTransactionId(), ts);
 
        if (LOG.isTraceEnabled()) LOG.trace("Exit callRegisterRegion, txid: [" + transactionId + "] with mapsize: "
                   + mapTransactionStates.size());
@@ -1255,17 +1247,6 @@ public class HBaseTxClient {
                                  LOG.error("Unable to parse region byte array, " + e);
                                  throw e;
                  }
-                 /*
-                 ByteArrayInputStream lv_bis = new ByteArrayInputStream(regionInfo);
-                 DataInputStream lv_dis = new DataInputStream(lv_bis);
-                 try {
-                         regionInfoLoc.readFields(lv_dis);
-                 } catch (Exception e) {
-                         throw new Exception();
-                 }
-                 */
-                 //HBase98 TODO: need to set the value of startcode correctly
-                 //HBase98 TODO: Not in CDH 5.1:  ServerName lv_servername = ServerName.valueOf(hostname, port, 0);
 
                  String lv_hostname_port_string = hostname + ":" + port;
                  String lv_servername_string = ServerName.getServerName(lv_hostname_port_string, 0);
