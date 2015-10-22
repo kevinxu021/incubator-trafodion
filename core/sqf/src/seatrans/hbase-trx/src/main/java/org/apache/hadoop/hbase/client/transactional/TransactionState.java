@@ -418,7 +418,7 @@ public class TransactionState {
      */
     public long getNodeId() {
 
-        return ((transactionId >> 32) & 0xFFFFL);
+        return ((transactionId >> 32) & 0xFFL);
     }
     
     /**
@@ -428,7 +428,7 @@ public class TransactionState {
      */
     public static long getNodeId(long transId) {
 
-        return ((transId >> 32) & 0xFFFFL);
+        return ((transId >> 32) & 0xFFL);
     }
 
     /**
@@ -438,7 +438,8 @@ public class TransactionState {
      */
     public long getClusterId() {
 
-    	return transactionId >> 48;
+        return ((transactionId >> 48) & 0xFFL);
+
     }
 
 
@@ -449,7 +450,8 @@ public class TransactionState {
      */
     public static long getClusterId(long transId) {
 
-        return transId >> 48;
+        return ((transId >> 48) & 0xFFL);
+
     }
 
     /**

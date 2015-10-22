@@ -8,6 +8,7 @@ define(['handlers/EventDispatcher', 'common'],
 		function(EventDispatcher, common) {"use strict";
 
 		var ServerHandler = ( function() {
+			var xhrs = [];
 
 			function ServerHandler() {
 				var dispatcher = new EventDispatcher();
@@ -19,7 +20,9 @@ define(['handlers/EventDispatcher', 'common'],
 				this.FETCH_SERVICES_ERROR = 'fetchServicesError';
 				this.FETCH_NODES_SUCCESS = 'fetchNodesSuccess';
 				this.FETCH_NODES_ERROR = 'fetchNodesError';
-
+				this.FETCH_ALERTS_LIST_SUCCESS = 'FETCH_ALERTS_LIST_SUCCESS';
+				this.FETCH_ALERTS_LIST_ERROR = 'FETCH_ALERTS_LIST_ERROR';
+				
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
 				};
@@ -95,6 +98,30 @@ define(['handlers/EventDispatcher', 'common'],
 						}
 					});
 				}; 
+				
+				this.fetchAlertsList = function(params){
+					var xhr = xhrs["alerts_list"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["alerts_list"] = $.ajax({
+						url: 'resources/alerts/list',
+						type:'POST',
+						dataType:"json",
+						data: JSON.stringify(params),						
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.FETCH_ALERTS_LIST_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.FETCH_ALERTS_LIST_ERROR, jqXHR, res, error);
+						}
+					});
+				};					
 
 				this.init = function() {
 				};
