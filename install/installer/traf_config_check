@@ -761,6 +761,8 @@ checkHomeDir
 
 checkEPEL
 
+checkHadoopSupport
+
 checkHadoopUserPass
 
 checkHadoopURL
@@ -776,7 +778,5 @@ checkStart
 checkDCS
 
 checkLDAP
-
-checkHadoopSupport
 
 majorErrorFound
