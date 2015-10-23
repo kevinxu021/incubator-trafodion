@@ -121,39 +121,6 @@ lv_dir="$MY_SQROOT/conf/peer${lv_peer_id}"
 echo "Creating the directory: ${lv_dir}"
 mkdir -p $lv_dir
 
-lv_peer_string="PEERS="
-let lv_this_peer_exists=0
-let lv_other_peers_exist=0
-
-lv_existing_peers=`list_peers`
-lv_ret=$?
-if [[ ${lv_ret} == 0 ]]; then
-    for lv_peer in $lv_existing_peers; do
-	let lv_other_peers_exist=1
-	if [[ ${lv_peer} == ${lv_peer_id} ]]; then
-	    echo "The peer already exists. Will update its info."
-	    let lv_this_peer_exists=1
-	fi
-    done
-
-    if [[ ${lv_this_peer_exists} == 0 ]]; then
-	for lv_peer in $lv_existing_peers; do
-	    lv_peer_string="${lv_peer_string}${lv_peer},"
-	done
-    fi
-fi
-
-if [[ ${lv_this_peer_exists} == 0 ]]; then
-    lv_peer_string=${lv_peer_string}${lv_peer_id}
-    if [[ ${lv_other_peers_exist} == 0 ]]; then
-	echo "Adding the environment variable ${lv_peer_string} (file: $MY_SQROOT/etc/ms.env)"
-	echo ${lv_peer_string} >> ${MY_SQROOT}/etc/ms.env
-    else
-	echo "Updating the environment variable ${lv_peer_string} (file: $MY_SQROOT/etc/ms.env)"
-	sed -i -e "s/^PEERS=.*$/${lv_peer_string}/g" $MY_SQROOT/etc/ms.env     
-    fi
-fi
-
 lv_hbase_site_xml=${lv_dir}/hbase-site.xml
 echo "Creating the file: ${lv_hbase_site_xml}"
 
