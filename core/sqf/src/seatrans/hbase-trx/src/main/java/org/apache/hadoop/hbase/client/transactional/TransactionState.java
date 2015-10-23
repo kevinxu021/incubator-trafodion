@@ -72,6 +72,7 @@ public class TransactionState {
     private TransState status;
     private long startId;
     private long commitId;
+    private long recoveryASN;
 
     private boolean m_HasRemotePeers;
     /**
@@ -119,7 +120,8 @@ public class TransactionState {
         commitSendDone = false;
         hasError = false;
         ddlTrans = false;
-	m_HasRemotePeers = false;
+        m_HasRemotePeers = false;
+        recoveryASN = -1;
 
         if(getCHMVariable) {
           String concurrentHM = System.getenv("DTM_USE_CONCURRENTHM");
@@ -486,6 +488,23 @@ public class TransactionState {
      */
     public long getCommitId() {
         return commitId;
+    }
+
+    /**
+     * Set the recoveryASN.
+     *
+     */
+    public void setRecoveryASN(final long value) {
+        this.recoveryASN = value;
+    }
+
+    /**
+     * Get the recoveryASN.
+     *
+     * @return Return the recoveryASN.
+     */
+    public long getRecoveryASN() {
+        return recoveryASN;
     }
 
     /**
