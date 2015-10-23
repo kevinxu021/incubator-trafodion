@@ -547,7 +547,7 @@ public class HBaseTxClient {
       try {
          ts.setStatus(TransState.STATE_ABORTED);
          if (useTlog) {
-            if (bSynchronized){
+            if (bSynchronized && ts.hasRemotePeers()){
                Put p;
                if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, generating ABORTED put for transaction: " + transactionID);
                p = tLog.generatePut(transactionID);
@@ -565,7 +565,7 @@ public class HBaseTxClient {
                }
             }
             tLog.putSingleRecord(transactionID, -1, "ABORTED", ts.getParticipatingRegions(), true); //force flush
-            if (bSynchronized){
+            if (bSynchronized && ts.hasRemotePeers()){
                try{
                   if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, completing Tlog write for transaction: " + transactionID);
                   ts.completeRequest();
@@ -613,7 +613,7 @@ public class HBaseTxClient {
           return TransReturnCode.RET_EXCEPTION.getShort();
       }
       if (useTlog && useForgotten) {
-         if (bSynchronized){
+         if (bSynchronized && ts.hasRemotePeers()){
             Put p;
             if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, generating FORGOTTEN put for transaction: " + transactionID);
             p = tLog.generatePut(transactionID);
@@ -631,7 +631,7 @@ public class HBaseTxClient {
             }
          }
          tLog.putSingleRecord(transactionID, -1, "FORGOTTEN", ts.getParticipatingRegions(), forceForgotten); // forced flush?
-         if (bSynchronized){
+         if (bSynchronized && ts.hasRemotePeers()){
             try{
                if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, completing Tlog write for FORGOTTEN transaction: " + transactionID);
                ts.completeRequest();
@@ -722,7 +722,7 @@ public class HBaseTxClient {
        try {
           ts.setStatus(TransState.STATE_COMMITTED);
           if (useTlog) {
-             if (bSynchronized){
+             if (bSynchronized && ts.hasRemotePeers()){
                 Put p;
                 if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, generating COMMITTED put for transaction: " + transactionId);
                 p = tLog.generatePut(transactionId);
@@ -743,7 +743,7 @@ public class HBaseTxClient {
                  if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, sb_replicate is false");
              }
              tLog.putSingleRecord(transactionId, commitIdVal, "COMMITTED", ts.getParticipatingRegions(), true);
-             if (bSynchronized){
+             if (bSynchronized && ts.hasRemotePeers()){
                 try{
                   if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, completing Tlog write for transaction: " + transactionId);
                   ts.completeRequest();
@@ -788,7 +788,7 @@ public class HBaseTxClient {
           return TransReturnCode.RET_EXCEPTION.getShort();
        }
        if (useTlog && useForgotten) {
-          if (bSynchronized){
+          if (bSynchronized && ts.hasRemotePeers()){
              Put p;
              if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, generating FORGOTTEN put for transaction: " + transactionId);
              p = tLog.generatePut(transactionId);
@@ -806,7 +806,7 @@ public class HBaseTxClient {
              }
           }
           tLog.putSingleRecord(transactionId, commitIdVal, "FORGOTTEN", ts.getParticipatingRegions(), forceForgotten); // forced flush?
-          if (bSynchronized){
+          if (bSynchronized && ts.hasRemotePeers()){
              try{
                 if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, completing Tlog write for FORGOTTEN transaction: " + transactionId);
                 ts.completeRequest();

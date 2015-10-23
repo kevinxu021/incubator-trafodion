@@ -27832,15 +27832,15 @@ public final class TrxRegionProtos {
      */
     com.google.protobuf.ByteString getRegionName();
 
-    // required int64 transactionId = 2;
+    // required int64 clusterId = 2;
     /**
-     * <code>required int64 transactionId = 2;</code>
+     * <code>required int64 clusterId = 2;</code>
      */
-    boolean hasTransactionId();
+    boolean hasClusterId();
     /**
-     * <code>required int64 transactionId = 2;</code>
+     * <code>required int64 clusterId = 2;</code>
      */
-    long getTransactionId();
+    long getClusterId();
 
     // required int64 auditSeqNum = 3;
     /**
@@ -27862,33 +27862,13 @@ public final class TrxRegionProtos {
      */
     long getScannerId();
 
-    // required int32 numberOfRows = 5;
+    // required int64 nextCallSeq = 5;
     /**
-     * <code>required int32 numberOfRows = 5;</code>
-     */
-    boolean hasNumberOfRows();
-    /**
-     * <code>required int32 numberOfRows = 5;</code>
-     */
-    int getNumberOfRows();
-
-    // required bool closeScanner = 6;
-    /**
-     * <code>required bool closeScanner = 6;</code>
-     */
-    boolean hasCloseScanner();
-    /**
-     * <code>required bool closeScanner = 6;</code>
-     */
-    boolean getCloseScanner();
-
-    // required int64 nextCallSeq = 7;
-    /**
-     * <code>required int64 nextCallSeq = 7;</code>
+     * <code>required int64 nextCallSeq = 5;</code>
      */
     boolean hasNextCallSeq();
     /**
-     * <code>required int64 nextCallSeq = 7;</code>
+     * <code>required int64 nextCallSeq = 5;</code>
      */
     long getNextCallSeq();
   }
@@ -27950,7 +27930,7 @@ public final class TrxRegionProtos {
             }
             case 16: {
               bitField0_ |= 0x00000002;
-              transactionId_ = input.readInt64();
+              clusterId_ = input.readInt64();
               break;
             }
             case 24: {
@@ -27965,16 +27945,6 @@ public final class TrxRegionProtos {
             }
             case 40: {
               bitField0_ |= 0x00000010;
-              numberOfRows_ = input.readInt32();
-              break;
-            }
-            case 48: {
-              bitField0_ |= 0x00000020;
-              closeScanner_ = input.readBool();
-              break;
-            }
-            case 56: {
-              bitField0_ |= 0x00000040;
               nextCallSeq_ = input.readInt64();
               break;
             }
@@ -28034,20 +28004,20 @@ public final class TrxRegionProtos {
       return regionName_;
     }
 
-    // required int64 transactionId = 2;
-    public static final int TRANSACTIONID_FIELD_NUMBER = 2;
-    private long transactionId_;
+    // required int64 clusterId = 2;
+    public static final int CLUSTERID_FIELD_NUMBER = 2;
+    private long clusterId_;
     /**
-     * <code>required int64 transactionId = 2;</code>
+     * <code>required int64 clusterId = 2;</code>
      */
-    public boolean hasTransactionId() {
+    public boolean hasClusterId() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required int64 transactionId = 2;</code>
+     * <code>required int64 clusterId = 2;</code>
      */
-    public long getTransactionId() {
-      return transactionId_;
+    public long getClusterId() {
+      return clusterId_;
     }
 
     // required int64 auditSeqNum = 3;
@@ -28082,49 +28052,17 @@ public final class TrxRegionProtos {
       return scannerId_;
     }
 
-    // required int32 numberOfRows = 5;
-    public static final int NUMBEROFROWS_FIELD_NUMBER = 5;
-    private int numberOfRows_;
+    // required int64 nextCallSeq = 5;
+    public static final int NEXTCALLSEQ_FIELD_NUMBER = 5;
+    private long nextCallSeq_;
     /**
-     * <code>required int32 numberOfRows = 5;</code>
+     * <code>required int64 nextCallSeq = 5;</code>
      */
-    public boolean hasNumberOfRows() {
+    public boolean hasNextCallSeq() {
       return ((bitField0_ & 0x00000010) == 0x00000010);
     }
     /**
-     * <code>required int32 numberOfRows = 5;</code>
-     */
-    public int getNumberOfRows() {
-      return numberOfRows_;
-    }
-
-    // required bool closeScanner = 6;
-    public static final int CLOSESCANNER_FIELD_NUMBER = 6;
-    private boolean closeScanner_;
-    /**
-     * <code>required bool closeScanner = 6;</code>
-     */
-    public boolean hasCloseScanner() {
-      return ((bitField0_ & 0x00000020) == 0x00000020);
-    }
-    /**
-     * <code>required bool closeScanner = 6;</code>
-     */
-    public boolean getCloseScanner() {
-      return closeScanner_;
-    }
-
-    // required int64 nextCallSeq = 7;
-    public static final int NEXTCALLSEQ_FIELD_NUMBER = 7;
-    private long nextCallSeq_;
-    /**
-     * <code>required int64 nextCallSeq = 7;</code>
-     */
-    public boolean hasNextCallSeq() {
-      return ((bitField0_ & 0x00000040) == 0x00000040);
-    }
-    /**
-     * <code>required int64 nextCallSeq = 7;</code>
+     * <code>required int64 nextCallSeq = 5;</code>
      */
     public long getNextCallSeq() {
       return nextCallSeq_;
@@ -28132,11 +28070,9 @@ public final class TrxRegionProtos {
 
     private void initFields() {
       regionName_ = com.google.protobuf.ByteString.EMPTY;
-      transactionId_ = 0L;
+      clusterId_ = 0L;
       auditSeqNum_ = 0L;
       scannerId_ = 0L;
-      numberOfRows_ = 0;
-      closeScanner_ = false;
       nextCallSeq_ = 0L;
     }
     private byte memoizedIsInitialized = -1;
@@ -28148,7 +28084,7 @@ public final class TrxRegionProtos {
         memoizedIsInitialized = 0;
         return false;
       }
-      if (!hasTransactionId()) {
+      if (!hasClusterId()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -28157,14 +28093,6 @@ public final class TrxRegionProtos {
         return false;
       }
       if (!hasScannerId()) {
-        memoizedIsInitialized = 0;
-        return false;
-      }
-      if (!hasNumberOfRows()) {
-        memoizedIsInitialized = 0;
-        return false;
-      }
-      if (!hasCloseScanner()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -28183,7 +28111,7 @@ public final class TrxRegionProtos {
         output.writeBytes(1, regionName_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeInt64(2, transactionId_);
+        output.writeInt64(2, clusterId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         output.writeInt64(3, auditSeqNum_);
@@ -28192,13 +28120,7 @@ public final class TrxRegionProtos {
         output.writeInt64(4, scannerId_);
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        output.writeInt32(5, numberOfRows_);
-      }
-      if (((bitField0_ & 0x00000020) == 0x00000020)) {
-        output.writeBool(6, closeScanner_);
-      }
-      if (((bitField0_ & 0x00000040) == 0x00000040)) {
-        output.writeInt64(7, nextCallSeq_);
+        output.writeInt64(5, nextCallSeq_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -28215,7 +28137,7 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt64Size(2, transactionId_);
+          .computeInt64Size(2, clusterId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
@@ -28227,15 +28149,7 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(5, numberOfRows_);
-      }
-      if (((bitField0_ & 0x00000020) == 0x00000020)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(6, closeScanner_);
-      }
-      if (((bitField0_ & 0x00000040) == 0x00000040)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeInt64Size(7, nextCallSeq_);
+          .computeInt64Size(5, nextCallSeq_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -28355,18 +28269,14 @@ public final class TrxRegionProtos {
         super.clear();
         regionName_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000001);
-        transactionId_ = 0L;
+        clusterId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
         auditSeqNum_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000004);
         scannerId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000008);
-        numberOfRows_ = 0;
-        bitField0_ = (bitField0_ & ~0x00000010);
-        closeScanner_ = false;
-        bitField0_ = (bitField0_ & ~0x00000020);
         nextCallSeq_ = 0L;
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000010);
         return this;
       }
 
@@ -28402,7 +28312,7 @@ public final class TrxRegionProtos {
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
-        result.transactionId_ = transactionId_;
+        result.clusterId_ = clusterId_;
         if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
           to_bitField0_ |= 0x00000004;
         }
@@ -28413,14 +28323,6 @@ public final class TrxRegionProtos {
         result.scannerId_ = scannerId_;
         if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
           to_bitField0_ |= 0x00000010;
-        }
-        result.numberOfRows_ = numberOfRows_;
-        if (((from_bitField0_ & 0x00000020) == 0x00000020)) {
-          to_bitField0_ |= 0x00000020;
-        }
-        result.closeScanner_ = closeScanner_;
-        if (((from_bitField0_ & 0x00000040) == 0x00000040)) {
-          to_bitField0_ |= 0x00000040;
         }
         result.nextCallSeq_ = nextCallSeq_;
         result.bitField0_ = to_bitField0_;
@@ -28442,20 +28344,14 @@ public final class TrxRegionProtos {
         if (other.hasRegionName()) {
           setRegionName(other.getRegionName());
         }
-        if (other.hasTransactionId()) {
-          setTransactionId(other.getTransactionId());
+        if (other.hasClusterId()) {
+          setClusterId(other.getClusterId());
         }
         if (other.hasAuditSeqNum()) {
           setAuditSeqNum(other.getAuditSeqNum());
         }
         if (other.hasScannerId()) {
           setScannerId(other.getScannerId());
-        }
-        if (other.hasNumberOfRows()) {
-          setNumberOfRows(other.getNumberOfRows());
-        }
-        if (other.hasCloseScanner()) {
-          setCloseScanner(other.getCloseScanner());
         }
         if (other.hasNextCallSeq()) {
           setNextCallSeq(other.getNextCallSeq());
@@ -28469,7 +28365,7 @@ public final class TrxRegionProtos {
           
           return false;
         }
-        if (!hasTransactionId()) {
+        if (!hasClusterId()) {
           
           return false;
         }
@@ -28478,14 +28374,6 @@ public final class TrxRegionProtos {
           return false;
         }
         if (!hasScannerId()) {
-          
-          return false;
-        }
-        if (!hasNumberOfRows()) {
-          
-          return false;
-        }
-        if (!hasCloseScanner()) {
           
           return false;
         }
@@ -28551,35 +28439,35 @@ public final class TrxRegionProtos {
         return this;
       }
 
-      // required int64 transactionId = 2;
-      private long transactionId_ ;
+      // required int64 clusterId = 2;
+      private long clusterId_ ;
       /**
-       * <code>required int64 transactionId = 2;</code>
+       * <code>required int64 clusterId = 2;</code>
        */
-      public boolean hasTransactionId() {
+      public boolean hasClusterId() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required int64 transactionId = 2;</code>
+       * <code>required int64 clusterId = 2;</code>
        */
-      public long getTransactionId() {
-        return transactionId_;
+      public long getClusterId() {
+        return clusterId_;
       }
       /**
-       * <code>required int64 transactionId = 2;</code>
+       * <code>required int64 clusterId = 2;</code>
        */
-      public Builder setTransactionId(long value) {
+      public Builder setClusterId(long value) {
         bitField0_ |= 0x00000002;
-        transactionId_ = value;
+        clusterId_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required int64 transactionId = 2;</code>
+       * <code>required int64 clusterId = 2;</code>
        */
-      public Builder clearTransactionId() {
+      public Builder clearClusterId() {
         bitField0_ = (bitField0_ & ~0x00000002);
-        transactionId_ = 0L;
+        clusterId_ = 0L;
         onChanged();
         return this;
       }
@@ -28650,100 +28538,34 @@ public final class TrxRegionProtos {
         return this;
       }
 
-      // required int32 numberOfRows = 5;
-      private int numberOfRows_ ;
+      // required int64 nextCallSeq = 5;
+      private long nextCallSeq_ ;
       /**
-       * <code>required int32 numberOfRows = 5;</code>
+       * <code>required int64 nextCallSeq = 5;</code>
        */
-      public boolean hasNumberOfRows() {
+      public boolean hasNextCallSeq() {
         return ((bitField0_ & 0x00000010) == 0x00000010);
       }
       /**
-       * <code>required int32 numberOfRows = 5;</code>
-       */
-      public int getNumberOfRows() {
-        return numberOfRows_;
-      }
-      /**
-       * <code>required int32 numberOfRows = 5;</code>
-       */
-      public Builder setNumberOfRows(int value) {
-        bitField0_ |= 0x00000010;
-        numberOfRows_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>required int32 numberOfRows = 5;</code>
-       */
-      public Builder clearNumberOfRows() {
-        bitField0_ = (bitField0_ & ~0x00000010);
-        numberOfRows_ = 0;
-        onChanged();
-        return this;
-      }
-
-      // required bool closeScanner = 6;
-      private boolean closeScanner_ ;
-      /**
-       * <code>required bool closeScanner = 6;</code>
-       */
-      public boolean hasCloseScanner() {
-        return ((bitField0_ & 0x00000020) == 0x00000020);
-      }
-      /**
-       * <code>required bool closeScanner = 6;</code>
-       */
-      public boolean getCloseScanner() {
-        return closeScanner_;
-      }
-      /**
-       * <code>required bool closeScanner = 6;</code>
-       */
-      public Builder setCloseScanner(boolean value) {
-        bitField0_ |= 0x00000020;
-        closeScanner_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>required bool closeScanner = 6;</code>
-       */
-      public Builder clearCloseScanner() {
-        bitField0_ = (bitField0_ & ~0x00000020);
-        closeScanner_ = false;
-        onChanged();
-        return this;
-      }
-
-      // required int64 nextCallSeq = 7;
-      private long nextCallSeq_ ;
-      /**
-       * <code>required int64 nextCallSeq = 7;</code>
-       */
-      public boolean hasNextCallSeq() {
-        return ((bitField0_ & 0x00000040) == 0x00000040);
-      }
-      /**
-       * <code>required int64 nextCallSeq = 7;</code>
+       * <code>required int64 nextCallSeq = 5;</code>
        */
       public long getNextCallSeq() {
         return nextCallSeq_;
       }
       /**
-       * <code>required int64 nextCallSeq = 7;</code>
+       * <code>required int64 nextCallSeq = 5;</code>
        */
       public Builder setNextCallSeq(long value) {
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000010;
         nextCallSeq_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required int64 nextCallSeq = 7;</code>
+       * <code>required int64 nextCallSeq = 5;</code>
        */
       public Builder clearNextCallSeq() {
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000010);
         nextCallSeq_ = 0L;
         onChanged();
         return this;
@@ -36978,84 +36800,83 @@ public final class TrxRegionProtos {
       "e\030\006 \002(\014\022\033\n\003put\030\007 \002(\0132\016.MutationProto\022\020\n\010" +
       "commitId\030\010 \002(\003\022\016\n\006forced\030\t \001(\010\"L\n\021TlogWr" +
       "iteResponse\022\016\n\006result\030\001 \003(\003\022\021\n\texception" +
-      "\030\002 \001(\t\022\024\n\014hasException\030\003 \001(\010\"\276\001\n(TlogTra" +
+      "\030\002 \001(\t\022\024\n\014hasException\030\003 \001(\010\"\216\001\n(TlogTra" +
       "nsactionStatesFromIntervalRequest\022\022\n\nreg" +
-      "ionName\030\001 \002(\014\022\025\n\rtransactionId\030\002 \002(\003\022\023\n\013" +
-      "auditSeqNum\030\003 \002(\003\022\021\n\tscannerId\030\004 \002(\003\022\024\n\014" +
-      "numberOfRows\030\005 \002(\005\022\024\n\014closeScanner\030\006 \002(\010",
-      "\022\023\n\013nextCallSeq\030\007 \002(\003\"\242\001\n)TlogTransactio" +
-      "nStatesFromIntervalResponse\022\027\n\006result\030\001 " +
-      "\003(\0132\007.Result\022\r\n\005count\030\002 \002(\003\022\023\n\013nextCallS" +
-      "eq\030\003 \002(\003\022\017\n\007hasMore\030\004 \002(\010\022\021\n\texception\030\005" +
-      " \001(\t\022\024\n\014hasException\030\006 \001(\010\"\243\001\n\035Transacti" +
-      "onalAggregateRequest\022\022\n\nregionName\030\001 \002(\014" +
-      "\022\025\n\rtransactionId\030\002 \002(\003\022\036\n\026interpreter_c" +
-      "lass_name\030\003 \002(\t\022\023\n\004scan\030\004 \002(\0132\005.Scan\022\"\n\032" +
-      "interpreter_specific_bytes\030\005 \001(\014\"I\n\036Tran" +
-      "sactionalAggregateResponse\022\022\n\nfirst_part",
-      "\030\003 \003(\014\022\023\n\013second_part\030\004 \001(\014\"c\n\022Transacti" +
-      "onPersist\022\016\n\006txById\030\001 \003(\003\022\024\n\014seqNoListSe" +
-      "q\030\002 \003(\003\022\024\n\014seqNoListTxn\030\003 \003(\003\022\021\n\tnextSeq" +
-      "Id\030\004 \002(\003\"\372\001\n\023TransactionStateMsg\022\014\n\004txId" +
-      "\030\001 \002(\003\022\033\n\003put\030\002 \003(\0132\016.MutationProto\022\036\n\006d" +
-      "elete\030\003 \003(\0132\016.MutationProto\022\020\n\010putOrDel\030" +
-      "\004 \003(\010\022\023\n\013txnsToCheck\030\005 \003(\003\022\023\n\013startSeqNu" +
-      "m\030\006 \002(\003\022\016\n\006seqNum\030\007 \002(\003\022\020\n\010logSeqId\030\010 \002(" +
-      "\003\022\022\n\nreinstated\030\t \002(\010\022\016\n\006status\030\n \002(\005\022\026\n" +
-      "\016commitProgress\030\013 \002(\0052\364\017\n\020TrxRegionServi",
-      "ce\022G\n\020abortTransaction\022\030.AbortTransactio" +
-      "nRequest\032\031.AbortTransactionResponse\022_\n\030a" +
-      "bortTransactionMultiple\022 .AbortTransacti" +
-      "onMultipleRequest\032!.AbortTransactionMult" +
-      "ipleResponse\022G\n\020beginTransaction\022\030.Begin" +
-      "TransactionRequest\032\031.BeginTransactionRes" +
-      "ponse\022A\n\016checkAndDelete\022\026.CheckAndDelete" +
-      "Request\032\027.CheckAndDeleteResponse\0228\n\013chec" +
-      "kAndPut\022\023.CheckAndPutRequest\032\024.CheckAndP" +
-      "utResponse\022;\n\014closeScanner\022\024.CloseScanne",
-      "rRequest\032\025.CloseScannerResponse\022)\n\006commi" +
-      "t\022\016.CommitRequest\032\017.CommitResponse\022G\n\020co" +
-      "mmitIfPossible\022\030.CommitIfPossibleRequest" +
-      "\032\031.CommitIfPossibleResponse\022V\n\025commitReq" +
-      "uestMultiple\022\035.CommitRequestMultipleRequ" +
-      "est\032\036.CommitRequestMultipleResponse\022A\n\016c" +
-      "ommitMultiple\022\026.CommitMultipleRequest\032\027." +
-      "CommitMultipleResponse\022>\n\rcommitRequest\022" +
-      "\025.CommitRequestRequest\032\026.CommitRequestRe" +
-      "sponse\022C\n\006delete\022\033.DeleteTransactionalRe",
-      "quest\032\034.DeleteTransactionalResponse\022[\n\016d" +
-      "eleteMultiple\022#.DeleteMultipleTransactio" +
-      "nalRequest\032$.DeleteMultipleTransactional" +
-      "Response\022:\n\003get\022\030.GetTransactionalReques" +
-      "t\032\031.GetTransactionalResponse\0228\n\013performS" +
-      "can\022\023.PerformScanRequest\032\024.PerformScanRe" +
-      "sponse\0228\n\013openScanner\022\023.OpenScannerReque" +
-      "st\032\024.OpenScannerResponse\022:\n\003put\022\030.PutTra" +
-      "nsactionalRequest\032\031.PutTransactionalResp" +
-      "onse\022R\n\013putMultiple\022 .PutMultipleTransac",
-      "tionalRequest\032!.PutMultipleTransactional" +
-      "Response\022D\n\017recoveryRequest\022\027.RecoveryRe" +
-      "questRequest\032\030.RecoveryRequestResponse\0220" +
-      "\n\007putTlog\022\021.TlogWriteRequest\032\022.TlogWrite" +
-      "Response\022w\n\036getTransactionStatesPriorToA" +
-      "sn\022).TlogTransactionStatesFromIntervalRe" +
-      "quest\032*.TlogTransactionStatesFromInterva" +
-      "lResponse\022I\n\006GetMax\022\036.TransactionalAggre" +
-      "gateRequest\032\037.TransactionalAggregateResp" +
-      "onse\022I\n\006GetMin\022\036.TransactionalAggregateR",
-      "equest\032\037.TransactionalAggregateResponse\022" +
-      "I\n\006GetSum\022\036.TransactionalAggregateReques" +
-      "t\032\037.TransactionalAggregateResponse\022L\n\tGe" +
-      "tRowNum\022\036.TransactionalAggregateRequest\032" +
-      "\037.TransactionalAggregateResponse\022I\n\006GetA" +
-      "vg\022\036.TransactionalAggregateRequest\032\037.Tra" +
-      "nsactionalAggregateResponse\022I\n\006GetStd\022\036." +
-      "TransactionalAggregateRequest\032\037.Transact" +
-      "ionalAggregateResponse\022L\n\tGetMedian\022\036.Tr" +
-      "ansactionalAggregateRequest\032\037.Transactio",
-      "nalAggregateResponseBS\n;org.apache.hadoo" +
-      "p.hbase.coprocessor.transactional.genera" +
-      "tedB\017TrxRegionProtosH\001\210\001\001"
+      "ionName\030\001 \002(\014\022\021\n\tclusterId\030\002 \002(\003\022\023\n\013audi" +
+      "tSeqNum\030\003 \002(\003\022\021\n\tscannerId\030\004 \002(\003\022\023\n\013next" +
+      "CallSeq\030\005 \002(\003\"\242\001\n)TlogTransactionStatesF",
+      "romIntervalResponse\022\027\n\006result\030\001 \003(\0132\007.Re" +
+      "sult\022\r\n\005count\030\002 \002(\003\022\023\n\013nextCallSeq\030\003 \002(\003" +
+      "\022\017\n\007hasMore\030\004 \002(\010\022\021\n\texception\030\005 \001(\t\022\024\n\014" +
+      "hasException\030\006 \001(\010\"\243\001\n\035TransactionalAggr" +
+      "egateRequest\022\022\n\nregionName\030\001 \002(\014\022\025\n\rtran" +
+      "sactionId\030\002 \002(\003\022\036\n\026interpreter_class_nam" +
+      "e\030\003 \002(\t\022\023\n\004scan\030\004 \002(\0132\005.Scan\022\"\n\032interpre" +
+      "ter_specific_bytes\030\005 \001(\014\"I\n\036Transactiona" +
+      "lAggregateResponse\022\022\n\nfirst_part\030\003 \003(\014\022\023" +
+      "\n\013second_part\030\004 \001(\014\"c\n\022TransactionPersis",
+      "t\022\016\n\006txById\030\001 \003(\003\022\024\n\014seqNoListSeq\030\002 \003(\003\022" +
+      "\024\n\014seqNoListTxn\030\003 \003(\003\022\021\n\tnextSeqId\030\004 \002(\003" +
+      "\"\372\001\n\023TransactionStateMsg\022\014\n\004txId\030\001 \002(\003\022\033" +
+      "\n\003put\030\002 \003(\0132\016.MutationProto\022\036\n\006delete\030\003 " +
+      "\003(\0132\016.MutationProto\022\020\n\010putOrDel\030\004 \003(\010\022\023\n" +
+      "\013txnsToCheck\030\005 \003(\003\022\023\n\013startSeqNum\030\006 \002(\003\022" +
+      "\016\n\006seqNum\030\007 \002(\003\022\020\n\010logSeqId\030\010 \002(\003\022\022\n\nrei" +
+      "nstated\030\t \002(\010\022\016\n\006status\030\n \002(\005\022\026\n\016commitP" +
+      "rogress\030\013 \002(\0052\364\017\n\020TrxRegionService\022G\n\020ab" +
+      "ortTransaction\022\030.AbortTransactionRequest",
+      "\032\031.AbortTransactionResponse\022_\n\030abortTran" +
+      "sactionMultiple\022 .AbortTransactionMultip" +
+      "leRequest\032!.AbortTransactionMultipleResp" +
+      "onse\022G\n\020beginTransaction\022\030.BeginTransact" +
+      "ionRequest\032\031.BeginTransactionResponse\022A\n" +
+      "\016checkAndDelete\022\026.CheckAndDeleteRequest\032" +
+      "\027.CheckAndDeleteResponse\0228\n\013checkAndPut\022" +
+      "\023.CheckAndPutRequest\032\024.CheckAndPutRespon" +
+      "se\022;\n\014closeScanner\022\024.CloseScannerRequest" +
+      "\032\025.CloseScannerResponse\022)\n\006commit\022\016.Comm",
+      "itRequest\032\017.CommitResponse\022G\n\020commitIfPo" +
+      "ssible\022\030.CommitIfPossibleRequest\032\031.Commi" +
+      "tIfPossibleResponse\022V\n\025commitRequestMult" +
+      "iple\022\035.CommitRequestMultipleRequest\032\036.Co" +
+      "mmitRequestMultipleResponse\022A\n\016commitMul" +
+      "tiple\022\026.CommitMultipleRequest\032\027.CommitMu" +
+      "ltipleResponse\022>\n\rcommitRequest\022\025.Commit" +
+      "RequestRequest\032\026.CommitRequestResponse\022C" +
+      "\n\006delete\022\033.DeleteTransactionalRequest\032\034." +
+      "DeleteTransactionalResponse\022[\n\016deleteMul",
+      "tiple\022#.DeleteMultipleTransactionalReque" +
+      "st\032$.DeleteMultipleTransactionalResponse" +
+      "\022:\n\003get\022\030.GetTransactionalRequest\032\031.GetT" +
+      "ransactionalResponse\0228\n\013performScan\022\023.Pe" +
+      "rformScanRequest\032\024.PerformScanResponse\0228" +
+      "\n\013openScanner\022\023.OpenScannerRequest\032\024.Ope" +
+      "nScannerResponse\022:\n\003put\022\030.PutTransaction" +
+      "alRequest\032\031.PutTransactionalResponse\022R\n\013" +
+      "putMultiple\022 .PutMultipleTransactionalRe" +
+      "quest\032!.PutMultipleTransactionalResponse",
+      "\022D\n\017recoveryRequest\022\027.RecoveryRequestReq" +
+      "uest\032\030.RecoveryRequestResponse\0220\n\007putTlo" +
+      "g\022\021.TlogWriteRequest\032\022.TlogWriteResponse" +
+      "\022w\n\036getTransactionStatesPriorToAsn\022).Tlo" +
+      "gTransactionStatesFromIntervalRequest\032*." +
+      "TlogTransactionStatesFromIntervalRespons" +
+      "e\022I\n\006GetMax\022\036.TransactionalAggregateRequ" +
+      "est\032\037.TransactionalAggregateResponse\022I\n\006" +
+      "GetMin\022\036.TransactionalAggregateRequest\032\037" +
+      ".TransactionalAggregateResponse\022I\n\006GetSu",
+      "m\022\036.TransactionalAggregateRequest\032\037.Tran" +
+      "sactionalAggregateResponse\022L\n\tGetRowNum\022" +
+      "\036.TransactionalAggregateRequest\032\037.Transa" +
+      "ctionalAggregateResponse\022I\n\006GetAvg\022\036.Tra" +
+      "nsactionalAggregateRequest\032\037.Transaction" +
+      "alAggregateResponse\022I\n\006GetStd\022\036.Transact" +
+      "ionalAggregateRequest\032\037.TransactionalAgg" +
+      "regateResponse\022L\n\tGetMedian\022\036.Transactio" +
+      "nalAggregateRequest\032\037.TransactionalAggre" +
+      "gateResponseBS\n;org.apache.hadoop.hbase.",
+      "coprocessor.transactional.generatedB\017Trx" +
+      "RegionProtosH\001\210\001\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -37307,7 +37128,7 @@ public final class TrxRegionProtos {
           internal_static_TlogTransactionStatesFromIntervalRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_TlogTransactionStatesFromIntervalRequest_descriptor,
-              new java.lang.String[] { "RegionName", "TransactionId", "AuditSeqNum", "ScannerId", "NumberOfRows", "CloseScanner", "NextCallSeq", });
+              new java.lang.String[] { "RegionName", "ClusterId", "AuditSeqNum", "ScannerId", "NextCallSeq", });
           internal_static_TlogTransactionStatesFromIntervalResponse_descriptor =
             getDescriptor().getMessageTypes().get(41);
           internal_static_TlogTransactionStatesFromIntervalResponse_fieldAccessorTable = new
