@@ -6414,9 +6414,10 @@ const NAType * HbaseVisibilitySet::synthesizeType()
   NAType * type = NULL;
 
   ///////////////////////////////////////////////////////////////////////////
-  // colIdLen(short)   colId     type(short)  visExprLen(Lng32)   visExpr
+  // colIdLen(short)   colId   visExprLen(Lng32)   visExpr
   ///////////////////////////////////////////////////////////////////////////
-  Lng32 maxLen = ROUND2(colId_.length()) + sizeof(short) + sizeof(Lng32) + visExpr_.length();
+  Lng32 maxLen = sizeof(short) + ROUND2(colId_.length() - sizeof(short)) 
+    + sizeof(Lng32) + visExpr_.length();
   maxLen = ROUND2(maxLen);
   type = new HEAP SQLChar(maxLen, FALSE);
 

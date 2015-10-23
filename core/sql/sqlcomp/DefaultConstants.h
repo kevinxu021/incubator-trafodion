@@ -3758,9 +3758,6 @@ enum DefaultConstants
 
   USTAT_MAX_CHAR_DATASIZE_FOR_IS,
 
-  // turn off or on hbase visibility support.
-  HBASE_VISIBILITY,
-
   // If the next two are 'ON' we use the HBase costing code; if they
   // are 'OFF' we use a stub cost of 1 for Updates and Deletes to
   // Trafodion or HBase tables instead. We'll remove these once the

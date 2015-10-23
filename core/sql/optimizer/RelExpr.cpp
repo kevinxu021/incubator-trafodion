@@ -12789,6 +12789,11 @@ Update::Update(const CorrName &name,
           
           if (newIEL.entries() > 0)
             {
+              *CmpCommon::diags()
+                << DgSqlCode(-3242)
+                << DgString0("Cannot mix column update and visibility expression clauses.");
+              CMPASSERT(0);
+
               newIE = newIEL.convertToItemExpr();
             }
         } // else

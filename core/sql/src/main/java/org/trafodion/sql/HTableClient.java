@@ -1199,6 +1199,11 @@ public class HTableClient {
 		return true;
 	} 
 
+    int ROUND2(int v)
+    {
+        return (v+1) & (~1);
+    }
+
 	public boolean updateVisibility(final long transID, final byte[] rowID, Object row) throws IOException, InterruptedException, 
                           ExecutionException 
 	{
@@ -1221,15 +1226,20 @@ public class HTableClient {
                 //
                 //   numVisExprs(int)
                 //    (for each visibility expr)
-                //     colIDlen(short)
-                //     colID(colIDlen bytes)
+                //     colNameLen(short)
+                //     colName(colNameLen bytes)
+                //     1 byte filler, if needed to round to 2.
+                // 
                 //     visExprLen(int)
                 //     visExpr(visExprLen bytes)
+                //     1 byte filler, if needed.
                 //
                 ///////////////////////////////////////////////////////
 		bb = (ByteBuffer)row;
                 bb.order(ByteOrder.LITTLE_ENDIAN);
 
+                int fillerLen = 0;
+                byte[] filler = new byte[2];
                 Result getResult;
 		numVisExprs = bb.getInt();
 		for (short visExprIndex = 0; visExprIndex < numVisExprs; visExprIndex++)
@@ -1237,9 +1247,14 @@ public class HTableClient {
 			colNameLen = bb.getShort();
 			colName = new byte[colNameLen];
 			bb.get(colName, 0, colNameLen);
-			visExprLen = bb.getInt();	
+                        fillerLen = ROUND2(colNameLen) - colNameLen;
+                        bb.get(filler, 0, fillerLen);
+
+			visExprLen = bb.getInt();
 			visExpr = new byte[visExprLen];
 			bb.get(visExpr, 0, visExprLen);
+                        fillerLen = ROUND2(visExprLen) - visExprLen;
+                        bb.get(filler, 0, fillerLen);
 
 			family = getFamily(colName);
 			qualifier = getName(colName);
@@ -1253,7 +1268,6 @@ public class HTableClient {
                             getResult = table.get(get);
                         }
 
-                        //                        System.out.println(getResult);
                         if (getResult == null
                             || getResult.isEmpty()) {
                             //                            setJavaObject(jniObject);
@@ -1261,13 +1275,11 @@ public class HTableClient {
                         }
 
                         String strVisExpr = new String(visExpr);
-                         CellVisibility cv = new CellVisibility(strVisExpr);
+                        CellVisibility cv = new CellVisibility(strVisExpr);
                         
                         for (Cell cell : getResult.listCells()) {
                             put.add(cell);
                             put.setCellVisibility(cv);
-                            
-                            System.out.println("strVisExpr = " + strVisExpr);
                         }
 		}
 
@@ -1279,129 +1291,6 @@ public class HTableClient {
 
                 return result;
         }	
-
-    /*
-	public boolean updateVisibility(final long transID, final byte[] rowID, Object row) throws IOException, InterruptedException, 
-                          ExecutionException 
-	{
-		if (logger.isTraceEnabled()) logger.trace("Enter updateVisibility() " + tableName);
-
-	 	final Put put;
-		ByteBuffer bb;
-                int numTags;
-		short numCols;
-		short colNameLen;
-                int tagType;
-                int tagValLen;
-		byte[] family = null;
-		byte[] qualifier = null;
-		byte[] colName, tagVal;
-
-                put = new Put(rowID);
-
-                ///////////////////////////////////////////////////////
-                // layout of row
-                //
-                //   numTags(int)
-                //    (for each tag)
-                //     colIDlen(short)
-                //     colID(colIDlen bytes)
-                //     tagType(short)
-                //     tagValLen(int)
-                //     tagVal(tagValLen bytes)
-                //
-                ///////////////////////////////////////////////////////
-		bb = (ByteBuffer)row;
-                bb.order(ByteOrder.LITTLE_ENDIAN);
-
-                //                System.out.println(bb);
-                //                System.out.println(rowID);
-
-                for (int ii=0; ii < 20; ii++)
-                    {
-                        //                        System.out.println(bb.get());
-                    }
-                System.out.println("here1");
- 
-                Result getResult;
-		numTags = bb.getInt();
-                //                System.out.println(numTags);
-		for (short tagIndex = 0; tagIndex < numTags; tagIndex++)
-		{
-			colNameLen = bb.getShort();
-                        System.out.println("colNameLen = " + colNameLen);
-			colName = new byte[colNameLen];
-			bb.get(colName, 0, colNameLen);
-                        tagType = bb.getInt();
-                        System.out.println("tagType = " + tagType);
-			tagValLen = bb.getInt();	
-                        System.out.println("tagValLen = " + tagValLen);
-			tagVal = new byte[tagValLen];
-			bb.get(tagVal, 0, tagValLen-1);
-
-                        String s = new String(colName);
-                        System.out.println("colName = " + s);
- 
-			family = getFamily(colName);
-			qualifier = getName(colName);
-
-                        s = new String(family);
-                        System.out.println("family = " + s);
-
-                        s = new String(qualifier);
-                        System.out.println("qualifier = " + s);
-
-                        System.out.println("here2");
-                        Get get = new Get(rowID);
-
-                        System.out.println("rowID = " + rowID);
-                        s = new String(rowID);
-                        System.out.println("rowIDstr = " + s);
-
-                        get.addColumn(family, qualifier);
-                        if (transID != 0) {
-                            getResult = table.get(transID, get);
-                        } else {
-                            getResult = table.get(get);
-                        }
-
-                        System.out.println("here0");
-                        System.out.println(getResult);
-                        if (getResult == null
-                            || getResult.isEmpty()) {
-                            //                            setJavaObject(jniObject);
-                            System.out.println("here error");
-                            return false;
-                        }
-
-                        System.out.println("here");
-
-                        //                        Cell[] kvList = getResult.rawCells();
-                        //                        Cell kv = kvList[0];
-                        //                        byte[] valArr = kv.getValueArray();
-                        byte[] valArr = getResult.value();
-
-                        s = new String(valArr);
-                        System.out.println("valArr = " + s);
-
-                        String strTagVal = new String(tagVal);
-                        CellVisibility cv = new CellVisibility(strTagVal);
-
-                        put.add(family, qualifier, valArr);
-                        // after hbase 1.0, change to addColumn
-                        //   put.addColumn(family, qualifier, valArr);
-                        put.setCellVisibility(cv);
-		}
-
-                boolean result = true;
-                if (useTRex && (transID != 0)) 
-                    table.put(transID, put);
-                else 
-                    table.put(put);
-
-                return result;
-        }	
-    */
 
 	public boolean completeAsyncOperation(int timeout, boolean resultArray[]) 
 			throws InterruptedException, ExecutionException

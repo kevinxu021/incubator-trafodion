@@ -9908,6 +9908,12 @@ misc_function :
 
        | TOK_HBASE_VISIBILITY '(' dml_column_reference  ')'
                               {
+                                if (! Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL))
+                                  {
+                                    yyerror("");
+                                    YYERROR;     /*internal syntax only!*/
+                                  }
+                                
                                 $$ = new (PARSERHEAP()) HbaseVisibilityRef($3);
 			      }
 

@@ -11009,21 +11009,6 @@ RelExpr *Delete::bindNode(BindWA *bindWA)
 	     ((QualifiedName*)&getTableDesc()->getNATable()->getTableName(), nas);
 	 }
      }
-   else if (CmpCommon::getDefault(HBASE_VISIBILITY) == DF_ON)
-     {
-       csl() = new(bindWA->wHeap()) ConstStringList();
-
-       const NAColumnArray &colArray =
-         getTableDesc()->getNATable()->getNAColumnArray();
-       for (CollIndex i = 0; i < colArray.entries(); i++)
-         {
-           const NAColumn *nac = colArray[i];
-           NAString *cidInCsl = new(bindWA->wHeap()) NAString();
-           HbaseAccess::createHbaseColId(nac, *cidInCsl, FALSE, TRUE);
-
-           csl()->insert(cidInCsl);
-         }
-     }
 
   return boundExpr;
 } // Delete::bindNode()

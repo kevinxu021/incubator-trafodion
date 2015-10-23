@@ -939,8 +939,6 @@ NABoolean ControlDB::validate(ControlTable *ct)
 		  value.data()[i] > '9')
 		valid = FALSE;
 	    }
-
-          valid = FALSE; // TIMEOUT not supported
 	}
       break;
 

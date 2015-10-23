@@ -413,7 +413,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
 		      break;
 		    }
 		  
-		  str_sprintf(msgBuf, "  Current Version %Ld.%Ld.%Ld. Expected Version %Ld.%Ld.%Ld.",
+		  str_sprintf(msgBuf, "  Current Version: %Ld.%Ld.%Ld Expected Version: %Ld.%Ld.%Ld",
 			      mdCurrMajorVersion, 
                               mdCurrMinorVersion,
                               mdCurrUpdateVersion,
@@ -554,12 +554,31 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
                   Int64 expSWMajorVersion = SOFTWARE_MAJOR_VERSION;
                   Int64 expSWMinorVersion = SOFTWARE_MINOR_VERSION;
                   Int64 expSWUpdVersion = SOFTWARE_UPDATE_VERSION;
-		  str_sprintf(msgBuf, "  System Version %Ld.%Ld.%Ld. Expected Version %Ld.%Ld.%Ld.",
+
+                  char expProdStr[100];
+                  const char * s = xstr(SOFTWARE_PROD_NAME);
+                  if (strstr(s, "Apache"))
+                    strcpy(expProdStr, "Apache ");
+                  else if (strstr(s, "Enterprise"))
+                    strcpy(expProdStr, "Enterprise ");
+                  else
+                    expProdStr[0] = 0;
+                  /*
+		  str_sprintf(msgBuf, "  System Version: %Ld.%Ld.%Ld. Expected Version: %s%Ld.%Ld.%Ld.",
 			      sysSWMajorVersion, sysSWMinorVersion, sysSWUpdVersion,
+                              expProdStr,
 			      expSWMajorVersion, expSWMinorVersion, expSWUpdVersion);
+                  */
+		  str_sprintf(msgBuf, "  Software Version: %s%Ld.%Ld.%Ld",
+                              expProdStr,
+			      expSWMajorVersion, expSWMinorVersion, expSWUpdVersion);
+ 
 		  mdui->setMsg(msgBuf);
 		  mdui->setEndStep(FALSE);
 		  
+		  mdui->setStep(DONE_RETURN);
+		  mdui->setSubstep(0);
+
 		  return 0;
 		} // case 0
 		break;

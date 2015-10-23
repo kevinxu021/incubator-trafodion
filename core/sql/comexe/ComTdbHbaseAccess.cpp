@@ -968,8 +968,8 @@ void ComTdbHbaseAccess::displayContents(Space * space,ULng32 flag)
 		  updateRowLen_, returnFetchedRowLen_, returnUpdatedRowLen_);
       space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
 
-      str_sprintf(buf, "mergeInsertRowLen_ = %d, keyLen_ = %d", 
-		  mergeInsertRowLen_, keyLen_);
+      str_sprintf(buf, "mergeInsertRowLen_ = %d, keyLen_ = %d, hbTagRowLen_ = %d", 
+		  mergeInsertRowLen_, keyLen_, hbTagRowLen_);
       space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
 
       if (hbaseCellTS_ > 0)

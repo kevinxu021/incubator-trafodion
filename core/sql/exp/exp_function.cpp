@@ -7144,7 +7144,7 @@ ExFunctionHbaseVisibilitySet::eval(char *op_data[], CollHeap *heap,
   currPos += sizeof(short);
 
   memcpy(currPos, colID_, colIDlen_);
-  currPos += colIDlen_;
+  currPos += ROUND2(colIDlen_);
 
   *(Lng32*)currPos = visExprLen_;
   currPos += sizeof(Lng32);
