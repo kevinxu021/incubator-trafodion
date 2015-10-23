@@ -281,10 +281,13 @@ message TlogWriteResponse {
 
 message TlogTransactionStatesFromIntervalRequest{
   required bytes regionName = 1;
-  required int64 clusterId = 2;
-  required int64 auditSeqNum = 3;
-  required int64 scannerId = 4;
-  required int64 nextCallSeq = 5;
+  required int64 transactionId = 2;
+  required int64 clusterId = 3;
+  required int64 auditSeqNum =4;
+  required int64 scannerId = 5;
+  required int32 numberOfRows = 6;
+  required int64 nextCallSeq = 7;
+  required bool  closeScanner = 8;
 }
 
 message TlogTransactionStatesFromIntervalResponse {
