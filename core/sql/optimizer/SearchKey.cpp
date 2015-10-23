@@ -573,6 +573,9 @@ SearchKey::SearchKey(const ValueIdList & keyColumns,
     keyPredicates_.getVEGesWithMultipleConsts(keyPredsToBeEvaluated);
     setOfPredicates += keyPredsToBeEvaluated;
 
+    // all the unused predicates become executor predicates
+    setExecutorPredicates(setOfPredicates);
+
     endKeyExclusionExpr_ = pivs[2*numPartKeyCols];
   }
   else
@@ -654,6 +657,8 @@ SearchKey::SearchKey(const ValueIdList & keyColumns,
     valuesArePartitionRange_ = TRUE;
     beginKeyValues_.insert(pivs[0]);
     endKeyValues_.insert(pivs[1]);
+    // all the unused predicates become executor predicates
+    setExecutorPredicates(setOfPredicates);
 
     // TableHashPartitioningFunction has no key predicates.
     //
@@ -746,6 +751,9 @@ SearchKey::SearchKey(const ValueIdList & keyColumns,
     valuesArePartitionRange_ = TRUE;
     beginKeyValues_.insert(pivs[0]);
     endKeyValues_.insert(pivs[1]);
+
+    // all the unused predicates become executor predicates
+    setExecutorPredicates(setOfPredicates);
 
     // RRPartitioningFunction has no key predicates.
     //
