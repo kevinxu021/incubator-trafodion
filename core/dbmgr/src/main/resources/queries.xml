@@ -159,7 +159,7 @@
 		<query>
 			<!-- Fetch active query detail from rms -->
 			<name>SELECT_ACTIVE_QUERY_DETAIL_NEW</name>
-			<text><![CDATA[select tdb_id, frag_num, parent_tdb_id,lc_tdb_id, rc_tdb_id, trim(tdb_name), est_rows, act_rows, val1_txt, val1, 
+			<text><![CDATA[select tdb_id, frag_num, parent_tdb_id,lc_tdb_id, rc_tdb_id, trim(tdb_name) as tdb_name, est_rows, act_rows, val1_txt, val1, 
 				variable_info from table(statistics(null, 'QID=%1$s')) order by tdb_id desc]]></text>
 		</query>
 		<query>
