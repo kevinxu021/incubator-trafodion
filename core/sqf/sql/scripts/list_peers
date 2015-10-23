@@ -20,24 +20,6 @@
 #
 # @@@ END COPYRIGHT @@@
 
-function get_peers_ms {
-    lv_grep=`grep ^PEERS= $MY_SQROOT/etc/ms.env | tail -1`
-    lv_ret=$?
-    if [[ ${lv_ret} != 0 ]]; then
-	echo "Peers have not been configured"
-	exit 1;
-    fi
-    
-    lv_peerids=`echo $lv_grep | cut -d= -f2 | sed -e 's/,/ /g'`
-    lv_ret=$?
-    if [[ ${lv_ret} != 0 ]]; then
-	echo "Peers have not been configured"
-	exit 1;
-    fi
-
-    lv_count=`echo ${lv_peerids} | wc -w`
-}
-
 if [ -z $JAVA_HOME ]; then
     echo "The environment variable \$JAVA_HOME has not been set"
     echo "Please ensure \$MY_SQROOT/sqenv.sh has been sourced."
