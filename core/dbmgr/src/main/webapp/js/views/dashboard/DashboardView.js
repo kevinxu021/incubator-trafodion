@@ -140,7 +140,17 @@ define([
 						spinner:"#regionservermemory-spinner",
 						graphcontainer:"regionservermemory-chart",
 						errorcontainer:"#regionservermemory-error-text"
-					}
+					}/*,
+					cpubusy:{
+						chartTitle: "CPU Busy",
+						chartType: "Line",
+						xtimemultiplier: 1,
+						ylabels: ["Avg. CPU Busy"],
+						yunit: "%",
+						spinner:"#cpubusy-spinner",
+						graphcontainer:"cpubusy-chart",
+						errorcontainer:"#cpubusy-error-text"
+					}*/
 			};
 
 			$(REFRESH_ACTION).on('click', this.refreshPage);
