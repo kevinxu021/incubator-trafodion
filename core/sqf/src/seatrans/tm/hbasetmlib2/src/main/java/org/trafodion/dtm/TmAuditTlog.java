@@ -1671,6 +1671,10 @@ public class TmAuditTlog {
    }
 
    public void getTransactionState (TransactionState ts) throws IOException {
+      getTransactionState (ts, true);
+   }
+
+   public void getTransactionState (TransactionState ts, boolean postAllRegions) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("getTransactionState start; transid: " + ts.getTransactionId());
 
       // This request might be for a transaction not originating on this node, so we need to open
@@ -1712,7 +1716,9 @@ public class TmAuditTlog {
                if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: tLog transaction not found: " + transidString);
                return;
             }
-            ts.clearParticipatingRegions();
+
+            if (postAllRegions) ts.clearParticipatingRegions();
+
             StringTokenizer st = new StringTokenizer(Bytes.toString(value), ",");
             if (st.hasMoreElements()) {
                String asnToken = st.nextElement().toString();
@@ -1824,7 +1830,7 @@ public class TmAuditTlog {
                   String hostName = new String(tok.nextElement().toString());
                   int portNumber = Integer.parseInt(tok.nextElement().toString());
                   TransactionRegionLocation loc = new TransactionRegionLocation(regionKey, serverValue, 0);
-                  ts.addRegion(loc);
+                  if (postAllRegions) ts.addRegion(loc); // TBD quick workaround, skip put if noPostAllRegions
               }
             }
             ts.setStatus(lvTxState);
