@@ -290,6 +290,8 @@ elif [[ -d /opt/cloudera/parcels/CDH ]]; then
   export CURL_INC_DIR=/usr/include
   export CURL_LIB_DIR=/usr/lib64
 
+  lv_hbase_cp=`hbase classpath`
+
   # directories with jar files and list of jar files
   # (could try to reduce the number of jars in the classpath)
   export HADOOP_JAR_DIRS="/opt/cloudera/parcels/CDH/lib/hadoop
