@@ -157,6 +157,12 @@
 			<text><![CDATA[get statistics for qid %1$s %2$s]]></text>
 		</query>
 		<query>
+			<!-- Fetch active query detail from rms -->
+			<name>SELECT_ACTIVE_QUERY_DETAIL_NEW</name>
+			<text><![CDATA[select tdb_id, frag_num, parent_tdb_id,lc_tdb_id, rc_tdb_id, trim(tdb_name), est_rows, act_rows, val1_txt, val1, 
+				variable_info from table(statistics(null, 'QID=%1$s')) order by tdb_id desc]]></text>
+		</query>
+		<query>
 			<name>CANCEL_QUERY</name>
 			<text><![CDATA[control query cancel qid %1$s]]></text>
 		</query>
@@ -177,6 +183,15 @@
 			<name>OPENTSDB_IOWAITS_DRILLDOWN</name>
 			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:%4$s-avg-none:proc.stat.cpu{type=iowait,host=*}", "method":"get"}]]></text>
 		</query>
+		<query>
+			<name>OPENTSDB_CPU_BUSY</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:%4$s-avg-none:proc.stat.cpu{type=idle}", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>OPENTSDB_CPU_BUSY_DRILLDOWN</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:%4$s-avg-none:proc.stat.cpu{type=idle,host=*}", "method":"get"}]]></text>
+		</query>
+		
 		<query>
 			<name>OPENTSDB_CANARY_RESPONSE</name>
 			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg-none:esgyndb.canary.sqlconnect.time&m=avg:%4$s-avg-none:esgyndb.canary.sqlddl.time&m=avg:%4$s-avg-none:esgyndb.canary.sqlwrite.time&m=avg:%4$s-avg-none:esgyndb.canary.sqlread.time", "method":"get"}]]></text>		</query>
