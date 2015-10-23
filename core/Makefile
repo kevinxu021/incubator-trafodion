@@ -64,7 +64,7 @@ verhdr:
 dbsecurity: $(MPI_TARGET)
 	cd dbsecurity && $(MAKE) all 2>&1 | sed -e "s/$$/	##(Security)/";exit $${PIPESTATUS[0]}
 
-foundation: dbsecurity $(MPI_TARGET) $(SEAMONSTER_TARGET)
+foundation: sqroot dbsecurity $(MPI_TARGET) $(SEAMONSTER_TARGET)
 	cd sqf && $(MAKE) all
 
 jdbc_jar: verhdr
@@ -100,6 +100,7 @@ odb: ndcs
 cleantests:
 	cd ../dcs/src/test/pytests && $(RM) -r odbc* tox.ini config.ini .tox .testrep* env.sh test_p2.pyc 
 	cd ../dcs/src/test/jdbc_test && $(RM) -r jdbcprop pom.xml  target
+	cd ../tests/phx && $(RM) -r jdbcprop *.log pom.xml target
 	
 clean: sqroot
 	cd $(MPI_TARGET) &&		$(MAKE) clean-local
@@ -153,9 +154,11 @@ pkg-dcs-tests: all
 version:
 	@cd sqf; unset SQ_VERBOSE; source sqenv.sh ; echo "$${TRAFODION_VER}"
 
-# Check that Environment variables are set correctly
+# Check that Environment variables are set correctly and
+# create links and files needed as prerequisite for the build
 sqroot:
 	./bldenvchk.sh;
+	cd sqf && $(MAKE) setupdir
 
 # Check for absolute filenames used as dynamic linked libraries
 find-absolute-dlls:
@@ -250,3 +253,6 @@ eclipseclean:
 	$(RM) sql/.classpath sql/.project
 	$(RM) sqf/src/seatrans/hbase-trx/.classpath sqf/src/seatrans/hbase-trx/.project
 	$(RM) .cproject .project
+
+trafinstall:
+	cd $(MY_SQROOT)/sql/scripts && install_traf_components

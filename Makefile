@@ -56,3 +56,7 @@ clean:
 cleanall:
 	@echo "Removing all Trafodion objects"
 	cd core && $(MAKE) cleanall 
+
+trafinstall:
+	@echo "Installing Trafodion components"
+	cd core && $(MAKE) trafinstall
