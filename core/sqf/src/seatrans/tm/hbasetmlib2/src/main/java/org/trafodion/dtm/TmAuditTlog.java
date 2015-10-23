@@ -382,7 +382,7 @@ public class TmAuditTlog {
          endKey = TransactionManager.binaryIncrementPos(endKey_orig, -1);
       }
 
-      public ArrayList<TransactionState> getTransactionStatesFromIntervalX(final byte[] regionName, final long auditSeqNum) throws IOException {
+      public ArrayList<TransactionState> getTransactionStatesFromIntervalX(final byte[] regionName, final long clusterId, final long auditSeqNum) throws IOException {
          boolean retry = false;
          boolean refresh = false;
 
@@ -402,6 +402,7 @@ public class TmAuditTlog {
                       public TlogTransactionStatesFromIntervalResponse call(TrxRegionService instance) throws IOException {
                         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogTransactionStatesFromIntervalRequest.Builder builder =
                                 TlogTransactionStatesFromIntervalRequest.newBuilder();
+                        builder.setClusterId(clusterId);
                         builder.setAuditSeqNum(auditSeqNum);
                         builder.setRegionName(ByteString.copyFromUtf8(Bytes.toString(regionName))); //ByteString.copyFromUtf8(Bytes.toString(regionName)));
 
@@ -463,12 +464,12 @@ public class TmAuditTlog {
                              if (! st.hasMoreElements()) {
                                 continue;
                              }
-                             //String asnToken = st.nextElement().toString();
-                             st.nextElement();
+                             String asnToken = st.nextElement().toString();
                              transidToken = st.nextElement().toString();
                              stateString = st.nextElement().toString();
                              long lvTransid = Long.parseLong(transidToken, 10);
                              ts =  new TransactionState(lvTransid);
+                             ts.setRecoveryASN(Long.parseLong(asnToken, 10));
                              ts.clearParticipatingRegions();
 
                              if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval: transaction: "
@@ -639,19 +640,23 @@ public class TmAuditTlog {
 
    /**
    * Method  : getTransactionStatesFromInterval
-   * Params  : nodeId  - Trafodion nodeId of the Tlog set that is to be read.  Typically this
-   *           id is mapped to the Tlog set as follows Tlog<nodeId>
-   *           pvASN   - ASN after which all audit records will be returned
-   * Return  : void
+   * Params  : ClusterId - Trafodion clusterId that was assigned to the beginner of the transaction.
+   *                       Transactions that originate from other clsters will be filtered out from the response.
+   *           nodeId    - Trafodion nodeId of the Tlog set that is to be read.  Typically this
+   *                       id is mapped to the Tlog set as follows Tlog<nodeId>
+   *           pvASN     - ASN after which all audit records will be returned
+   * Return  : ArrayList<TransactionState> 
    * Purpose : Retrieve list of transactions from an interval
    */
-   public void getTransactionStatesFromInterval(final long pv_nodeId, final long pv_ASN) throws IOException {
+   public ArrayList<TransactionState>  getTransactionStatesFromInterval(final long pv_clusterId, final long pv_nodeId, final long pv_ASN) throws IOException {
 
      int loopCount = 0;
      long threadId = Thread.currentThread().getId();
      // This TransactionState object is just a mechanism to keep track of the asynch rpc calls
      // send to regions in order to retrience the desired set of transactions
      TransactionState transactionState = new TransactionState(0);
+     CompletionService<ArrayList<TransactionState>> compPool = new ExecutorCompletionService<ArrayList<TransactionState>>(tlogThreadPool);
+
      try {
         if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval node: " + pv_nodeId
                       + ", asn: " + pv_ASN + " in thread " + threadId);
@@ -666,16 +671,17 @@ public class TmAuditTlog {
            targetTable = targetTableConnection.getTable(TableName.valueOf(lv_tLogName));
            RegionLocator rl = targetTableConnection.getRegionLocator(TableName.valueOf(lv_tLogName));
            regionList = rl.getAllRegionLocations();
-
+           loopCount++;
+           
            // For every region in this table
            for (HRegionLocation location : regionList) {
 
               final byte[] regionName = location.getRegionInfo().getRegionName();
-              tlogThreadPool.submit(new TlogCallable2(transactionState, location, connection) {
+              compPool.submit(new TlogCallable2(transactionState, location, connection) {
                  public ArrayList<TransactionState> call() throws IOException {
                     if (LOG.isTraceEnabled()) LOG.trace("before getTransactionStatesFromIntervalX() ASN: "
-                           + pv_ASN + ", and node: " + pv_nodeId);
-                    return getTransactionStatesFromIntervalX(regionName, pv_ASN);
+                           + pv_ASN + ", clusterId: " + pv_clusterId + " and node: " + pv_nodeId);
+                    return getTransactionStatesFromIntervalX(regionName, pv_clusterId, pv_ASN);
                  }
               });
            }
@@ -687,8 +693,23 @@ public class TmAuditTlog {
      }
      // all requests sent at this point, can record the count
      if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval tlog callable requests sent to " + loopCount + " tlogs in thread " + threadId);
-     transactionState.completeSendInvoke(loopCount);
-     if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval tlog callable requests completed in thread " + threadId);
+     ArrayList<TransactionState> results = new ArrayList<TransactionState>();
+     try {
+        for (int loopIndex = 0; loopIndex < loopCount; loopIndex ++) {
+           ArrayList<TransactionState> partialResult = compPool.take().get();
+           for (TransactionState ts : partialResult) {
+              results.add(ts);
+           }
+        }
+     }
+     catch (Exception e2) {
+       LOG.error("exception retieving reulys in getTransactionStatesFromInterval for interval ASN: " + pv_ASN
+                   + ", node: " + pv_nodeId + " " + e2);
+       throw new IOException(e2);
+     }
+     if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval tlog callable requests completed in thread "
+         + threadId + ".  " + results.size() + " results returned.");
+     return results;
    }
 
    /**

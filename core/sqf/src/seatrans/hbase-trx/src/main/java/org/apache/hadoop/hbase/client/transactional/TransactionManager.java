@@ -215,7 +215,8 @@ public class TransactionManager {
 
   static ExecutorService    cp_tpe;
 
-  private STRConfig pSTRConfig = null;
+  private STRConfig pSTRConfig        = null;
+  private int       my_cluster_id     = 0;
 
   public enum AlgorithmType{
     MVCC, SSCC
@@ -1501,6 +1502,11 @@ public class TransactionManager {
 	cp_tpe = Executors.newFixedThreadPool(intCpThreads);
 
 	pSTRConfig = STRConfig.getInstance(conf);
+	
+	
+	if (pSTRConfig != null) {
+	    my_cluster_id = pSTRConfig.getMyClusterIdInt();
+	}
 
     }
 
@@ -1512,7 +1518,6 @@ public class TransactionManager {
     protected TransactionManager(final TransactionLogger transactionLogger, final Configuration conf)
 	throws KeeperException, IOException, InterruptedException {
         this.transactionLogger = transactionLogger;        
-	pSTRConfig = STRConfig.getInstance(conf);
     }
 
 
@@ -2573,8 +2578,17 @@ public class TransactionManager {
     }
 
     public void registerRegion(final TransactionState transactionState, TransactionRegionLocation location)throws IOException{
+
         if (LOG.isTraceEnabled()) LOG.trace("registerRegion ENTRY, transactioState:" + transactionState);
+
         if(transactionState.addRegion(location)){
+	    if ((location.peerId != 0) &&
+		(location.peerId != this.my_cluster_id)) {
+		transactionState.setHasRemotePeers(true);
+		if (LOG.isTraceEnabled()) LOG.trace("registerRegion: txn has RemotePeer" 
+						    + ", this cluster ID: " + this.my_cluster_id
+						    + ", participant cluster ID: " + location.peerId);
+	    }
            if (LOG.isTraceEnabled()) LOG.trace("registerRegion -- added region: " + location.getRegionInfo().getRegionNameAsString() + " with endKey: "
 					       + Hex.encodeHexString(location.getRegionInfo().getEndKey()) + " to tx " + transactionState.getTransactionId()
 					       + "[peer id: " + location.peerId + "]"

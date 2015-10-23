@@ -30,7 +30,7 @@
 ##############################################################
 
 #Product version (Trafodion or derivative product)
-export TRAFODION_VER_PROD="EsgynDB Enterprise Advanced"
+export TRAFODION_VER_PROD="EsgynDB Enterprise"
 # Trafodion version (also update file ../sql/common/copyright.h)
 export TRAFODION_VER_MAJOR=2
 export TRAFODION_VER_MINOR=0
