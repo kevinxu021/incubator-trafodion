@@ -1,0 +1,121 @@
+<div id="page-wrapper">
+	<div class="row">
+		<div class="col-lg-12">
+			<h2 class="page-header">Alerts</h2>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-lg-12">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					Alerts <img id="loadingImg" src="img/ajax-loader.gif" />
+					<div class="pull-right">
+						<div class="btn-group">
+							<button id="openFilter" type="button"
+								class="btn btn-default btn-xs fa fa-gear"
+								style="height: 24px; margin-right: 4px"> Filters</button>
+						</div>
+						<div class="btn-group">
+							<button type="button"
+								class="btn btn-default btn-xs dropdown-toggle"
+								data-toggle="dropdown">
+								Actions <span class="caret"></span>
+							</button>
+							<ul class="dropdown-menu pull-right" role="menu">
+								<li><a id="refreshAction"> Refresh</a></li>
+							</ul>
+						</div>
+					</div>
+				</div>
+				<div class="panel-body">
+					<div id="alerts-result-container" class="table-responsive"></div>
+					<label id="errorText" class="dbmgr-error-text"></label>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="filterDialog" tabindex="-1" role="dialog"
+		aria-labelledby="filterDialogLabel">
+		<div class="modal-dialog" role="document" style="overflow:auto;height:700px">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="filterDialogLabel"> Filters</h4>
+				</div>
+				<div class="modal-body">
+					<form id="filter-form">
+						<div class="form-group">
+							<label for="filter-time-range" class="control-label">Time
+								Range : </label> <select class="form-control" id="filter-time-range">
+								<option value="1">Last 1 hour</option>
+								<option value="6">Last 6 hours</option>
+								<option value="24">Last 1 day</option>
+								<option value="0">Custom</option>
+							</select>
+						</div>
+						<div class="form-group">
+							<label for="filter-start-time" class="control-label">Start
+								Time : </label>
+							<div class='input-group date' id='startdatetimepicker'>
+								<input type='text' class="form-control" id="filter-start-time"
+									name="filter-start-time" /> <span class="input-group-addon">
+									<span class="glyphicon glyphicon-calendar"></span>
+								</span>
+							</div>
+						</div>
+						<div class="form-group">
+							<label for="filter-end-time" class="control-label">End
+								Time : </label>
+							<div class='input-group date' id='enddatetimepicker'>
+								<input type='text' class="form-control" id="filter-end-time"
+									name="filter-end-time" /> <span class="input-group-addon">
+									<span class="glyphicon glyphicon-calendar"></span>
+								</span>
+							</div>
+						</div>
+						
+						<div class="form-group">
+							<label class="control-label">Status : </label>
+							<input type="checkbox" id="state-ack" value="true"
+								style="margin-left: 4px; padding-right: 4px"> Acknowledged
+							<input type="checkbox" id="state-unack" value="false"
+								style="margin-left: 4px; padding-right: 4px"> Un-Acknowledged
+						</div>
+						
+						<div class="form-group">
+							<label class="control-label">Severity : </label>
+							<input type="checkbox" id="state-crit" value="critical"
+								style="margin-left: 4px; padding-right: 4px"> Critical
+							<input type="checkbox" id="state-error" value="error"
+								style="margin-left: 4px; padding-right: 4px"> Error
+							<input type="checkbox" id="state-warn" value="warning"
+								style="margin-left: 4px; padding-right: 4px"> Warning
+							<input type="checkbox" id="state-normal" value="normal"
+								style="margin-left: 4px; padding-right: 4px"> Normal
+							<input type="checkbox" id="state-unknown" value="unknown"
+								style="margin-left: 4px; padding-right: 4px"> Unknown
+						</div>
+
+						<div class="form-group">
+							<label for="filter-alert-text" class="control-label">Alert
+								Text : </label> <input type="text" class="form-control"
+								id="filter-alert-text" name="filter-alert-text"
+								placeholder="Part of alert text">
+						</div>
+						<div class="form-group">
+							<label id="filter-error-text" class="control-label dbmgr-error-text"></label>
+						</div>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<input id="filterApplyButton" class="submit btn btn-primary"
+						type="submit" value="Apply">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

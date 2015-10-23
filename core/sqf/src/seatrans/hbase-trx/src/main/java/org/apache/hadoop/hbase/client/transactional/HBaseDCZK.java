@@ -896,7 +896,13 @@ public class HBaseDCZK implements Abortable {
 		}					
 	    }
 	    else if (lv_cmd_get_my_id) {
-		System.out.println(lv_zk.get_my_id());
+		lv_my_id = lv_zk.get_my_id();
+		if (lv_my_id != null) {
+		    System.out.println(lv_my_id);
+		}
+		else {
+		    System.out.println("0");
+		}
 	    }
 	    else if (lv_cmd_set) {
 		lv_zk.set_peer_znode(lv_id, lv_quorum, lv_port, lv_status);

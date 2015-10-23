@@ -109,7 +109,7 @@
 <col />
 <col style="width: 20%;"/>
 <tr><th>Attribute Name</th><th>Value</th><th>Description</th></tr>
-<tr><td>Version</td><td><%= version %>, r<%= revision %></td><td> The version and revision</td></tr>
+<tr><td>Version</td><td><%= version %>, <%= revision %></td><td> The version and revision</td></tr>
 <tr><td>Compiled</td><td><%= buildDate %>, <%= user %></td><td>When this version was compiled and by whom</td></tr>
 <tr><td>Start Time</td><td><%= startTime %></td><td>When this server was started</td></tr>
 <tr><td>Listener</td><td><%= port %>:<%= portRange %></td><td>Listener starting port and range</td></tr>
@@ -199,5 +199,22 @@ entries
     <%
     }  
     %>
+<br>
+<h2> List all configurations</h2>
+<table>
+<tr><th>Properties Name</th><th>Value</th></tr>
+<%
+TreeMap<String, String> sm = new TreeMap<String, String>();
+for(Map.Entry<String, String> obj: conf){
+	sm.put(obj.getKey(), obj.getValue());
+}
+
+for(Map.Entry<String, String> entry: sm.entrySet()){
+%>
+	<tr><td><%=entry.getKey()%></td> <td> <%=entry.getValue()%></td></tr>	
+<%
+}
+%>
+</table>
 </body>
 </html>        

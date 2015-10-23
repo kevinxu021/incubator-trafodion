@@ -72,7 +72,9 @@ public class TransactionState {
     private TransState status;
     private long startId;
     private long commitId;
+    private long recoveryASN;
 
+    private boolean m_HasRemotePeers;
     /**
      * 
      * requestPendingCount - how many requests send
@@ -118,6 +120,8 @@ public class TransactionState {
         commitSendDone = false;
         hasError = false;
         ddlTrans = false;
+        m_HasRemotePeers = false;
+        recoveryASN = -1;
 
         if(getCHMVariable) {
           String concurrentHM = System.getenv("DTM_USE_CONCURRENTHM");
@@ -281,15 +285,12 @@ public class TransactionState {
         }
     }
 
+    // Used at the client end - the one performing the mutation - e.g. the SQL process
     public void registerLocation(final HRegionLocation location, final int pv_peerId) throws IOException {
         byte [] lv_hostname = location.getHostname().getBytes();
         int lv_port = location.getPort();
         long lv_startcode = location.getServerName().getStartcode();
 
-        /*        ByteArrayOutputStream lv_bos = new ByteArrayOutputStream();
-        DataOutputStream lv_dos = new DataOutputStream(lv_bos);
-        location.getRegionInfo().write(lv_dos);
-        lv_dos.flush(); */
         byte [] lv_byte_region_info = location.getRegionInfo().toByteArray();
         if (LOG.isTraceEnabled()) LOG.trace("TransactionState.registerLocation: [" + location.getRegionInfo().getEncodedName() +
           "], endKey: " + Hex.encodeHexString(location.getRegionInfo().getEndKey()) + " transaction [" + transactionId + "]"
@@ -419,7 +420,7 @@ public class TransactionState {
      */
     public long getNodeId() {
 
-        return ((transactionId >> 32) & 0xFFFFL);
+        return ((transactionId >> 32) & 0xFFL);
     }
     
     /**
@@ -429,7 +430,7 @@ public class TransactionState {
      */
     public static long getNodeId(long transId) {
 
-        return ((transId >> 32) & 0xFFFFL);
+        return ((transId >> 32) & 0xFFL);
     }
 
     /**
@@ -439,7 +440,8 @@ public class TransactionState {
      */
     public long getClusterId() {
 
-    	return transactionId >> 48;
+        return ((transactionId >> 48) & 0xFFL);
+
     }
 
 
@@ -450,7 +452,8 @@ public class TransactionState {
      */
     public static long getClusterId(long transId) {
 
-        return transId >> 48;
+        return ((transId >> 48) & 0xFFL);
+
     }
 
     /**
@@ -485,6 +488,23 @@ public class TransactionState {
      */
     public long getCommitId() {
         return commitId;
+    }
+
+    /**
+     * Set the recoveryASN.
+     *
+     */
+    public void setRecoveryASN(final long value) {
+        this.recoveryASN = value;
+    }
+
+    /**
+     * Get the recoveryASN.
+     *
+     * @return Return the recoveryASN.
+     */
+    public long getRecoveryASN() {
+        return recoveryASN;
     }
 
     /**
@@ -530,6 +550,14 @@ public class TransactionState {
 
     public boolean hasRetried() {
       return this.hasRetried;
+    }
+
+    public void setHasRemotePeers(boolean pv_HasRemotePeers) {
+	this.m_HasRemotePeers = pv_HasRemotePeers;
+    }
+
+    public boolean hasRemotePeers() {
+	return this.m_HasRemotePeers;
     }
 
 }

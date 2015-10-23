@@ -388,9 +388,13 @@ sub printInitialLines {
     }
     printScript(1, "\nset SQ_MBTYPE=$ENV{'SQ_MBTYPE'}\n");
     printScript(0, "\nset MY_NODES=\$MY_NODES\n");
+    printScript(0, "\nset JAVA_HOME=\$JAVA_HOME\n");
+    printScript(0, "\nset MY_CLUSTER_ID=\$MY_CLUSTER_ID\n");
 
     addDbClusterData( "SQ_MBTYPE", $ENV{'SQ_MBTYPE'});
     addDbClusterData( "MY_SQROOT", "$SQ_ROOT"); # comes out null
+    addDbClusterData( "JAVA_HOME", "$JAVA_HOME"); 
+    addDbClusterData( "MY_CLUSTER_ID", "$MY_CLUSTER_ID"); 
 
     $gbInitialLinesPrinted = 1;
 }
@@ -499,7 +503,7 @@ sub genServiceMonitor {
             addDbProcData('$NMON'."$i", "PERSIST_RETRIES", "2,30");
             printScript(1, "set {process \\\$NMON$i } PERSIST_ZONES=$l_pn\n");
             addDbProcData('$NMON'."$i", "PERSIST_ZONES", "$i");
-            printScript(1, "exec {nowait, name \\\$NMON$i, nid 0, out stdout_nmon_$i} service_monitor -t 60 -f node_monitor.cmd\n");
+            printScript(1, "exec {nowait, name \\\$NMON$i, nid $i, out stdout_nmon_$i} service_monitor -t 60 -f node_monitor.cmd\n");
         }
 
 	# Cluster Monitor

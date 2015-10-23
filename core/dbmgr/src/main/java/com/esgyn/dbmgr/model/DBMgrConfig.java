@@ -15,4 +15,5 @@ public class DBMgrConfig {
 	public String trafodionRestServerUri;
 	public String openTSDBUri;
 	public int sessionTimeoutMinutes;
+	public String alertsUri;
 }

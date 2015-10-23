@@ -127,6 +127,7 @@ import org.apache.hadoop.hbase.client.transactional.OutOfOrderProtocolException;
 import org.apache.hadoop.hbase.client.transactional.UnknownTransactionException;
 import org.apache.hadoop.hbase.client.transactional.BatchException;
 import org.apache.hadoop.hbase.client.transactional.TransState;
+import org.apache.hadoop.hbase.client.transactional.STRConfig;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -383,6 +384,7 @@ CoprocessorService, Coprocessor {
   private static final String MEMORY_CONF = "hbase.transaction.memory.sleep";
   private static final String MEMORY_PERFORM_GC = "hbase.transaction.memory.perform.GC";
   private static final String SUPPRESS_OOP = "hbase.transaction.suppress.OOP.exception";
+  private static final String CHECK_ROW = "hbase.transaction.check.row";
   protected static int transactionLeaseTimeout = 0;
   private static int scannerLeaseTimeoutPeriod = 0;
   private static int scannerThreadWakeFrequency = 0;
@@ -394,6 +396,7 @@ CoprocessorService, Coprocessor {
   private static boolean memoryThrottle = false;
   private static boolean suppressOutOfOrderProtocolException = DEFAULT_SUPPRESS_OOP;
   private Configuration config;
+  private static boolean checkRowBelongs = true;
 
   // Transaction state defines
   private static final int COMMIT_OK = 1;
@@ -421,6 +424,8 @@ CoprocessorService, Coprocessor {
   public static final String trxkeyEPCPinstance = "EPCPinstance";
   // TBD Maybe we should just use HashMap to improve the performance, ConcurrentHashMap could be too strict
   static ConcurrentHashMap<String, Object> transactionsEPCPMap;
+  STRConfig pSTRConfig;
+  // boolean skip = true;
 
   // TrxRegionService methods
     
@@ -667,7 +672,7 @@ CoprocessorService, Coprocessor {
 
     if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId "  + transactionId + ", regionName " + regionInfo.getRegionNameAsString());
 
-    /*  commenting out for the time being
+        /*  commenting out for the time being
     java.lang.String name = ((com.google.protobuf.ByteString) request.getRegionName()).toStringUtf8();
     // First test if this region matches our region name
     if (!name.equals(regionInfo.getRegionNameAsString())) {
@@ -2675,6 +2680,12 @@ CoprocessorService, Coprocessor {
 
       org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.RecoveryRequestResponse.Builder recoveryResponseBuilder = RecoveryRequestResponse.newBuilder();
 
+      try {
+          pSTRConfig = STRConfig.getInstance(config);
+     } catch (Exception xe) {
+             LOG.error("An ERROR occurred while getting the STR Configuration");
+     }
+
       List<Long> indoubtTransactions = new ArrayList<Long>();
       if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: recoveryRequest Trafodion Recovery: region " + regionInfo.getEncodedName() + " receives recovery request from TM " + tmId  + " with region state " + regionState);
       switch(regionState) {
@@ -2683,9 +2694,16 @@ CoprocessorService, Coprocessor {
                     if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV:recoveryRequest in region starting" + regionInfo.getEncodedName() + " has in-doubt transaction " + indoubtTransactionsById.size());
                     for (Entry<Long, List<WALEdit>> entry : indoubtTransactionsById.entrySet()) {
                           long tid = entry.getKey();
-                          if ((int) TransactionState.getNodeId(tid) == tmId) {
+                          int clusterid = (int) TransactionState.getClusterId(tid);
+                          int nodeid = (int) TransactionState.getNodeId(tid);
+
+                          boolean add = false;
+                          if ((clusterid == 0 || (clusterid == pSTRConfig.getMyClusterIdInt())) && nodeid == tmId) add = true; // match local TM
+                          else if (((clusterid != pSTRConfig.getMyClusterIdInt()) && clusterid != 0) && tmId == -2) add = true; // for any peer
+                        
+                          if (add) {
                               indoubtTransactions.add(tid);
-                              if (LOG.isInfoEnabled()) LOG.info("TrxRegionEndpoint coprocessor: recoveryRequest - txId " + transactionId + ", Trafodion Recovery: region " + regionInfo.getEncodedName() + " in-doubt transaction " + tid + " has been added into the recovery reply to TM " + tmId + " during recovery ");
+                              if (LOG.isInfoEnabled()) LOG.info("TrxRegionEndpoint coprocessor: recoveryRequest - txId " + transactionId + ", Trafodion Recovery: region " + regionInfo.getEncodedName() + " in-doubt transaction " + tid + " has been added into the recovery reply to Cluster " + clusterid + " Node " + nodeid + " TM " + tmId + " during recovery ");
                           }
                      }
                      if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: recoveryRequest " + indoubtTransactions.size());
@@ -2703,10 +2721,20 @@ CoprocessorService, Coprocessor {
                      List<TrxTransactionState> commitPendingCopy = new ArrayList<TrxTransactionState>(commitPendingTransactions);
                      if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV:recoveryRequest in region started" + regionInfo.getEncodedName() + " has in-doubt transaction " + commitPendingCopy.size());
                      for (TrxTransactionState commitPendingTS : commitPendingCopy) {
-                        long tid = commitPendingTS.getTransactionId();
-                          if ((int) TransactionState.getNodeId(tid) == tmId) {
+                          long tid = commitPendingTS.getTransactionId();
+                          int clusterid = (int) TransactionState.getClusterId(tid);
+                          int nodeid = (int) TransactionState.getNodeId(tid);
+
+                          boolean add = false;
+                          if (((clusterid == pSTRConfig.getMyClusterIdInt()) || clusterid == 0) && nodeid == tmId) add = true; // match local TM
+                          if (((clusterid != pSTRConfig.getMyClusterIdInt()) && clusterid != 0) && tmId == -2) add = true; // for any peer
+                        
+                          if (add) {
                               indoubtTransactions.add(tid);
-                              if (LOG.isInfoEnabled()) LOG.info("TrxRegionEndpoint coprocessor: recoveryRequest - Trafodion Recovery: region " + regionInfo.getEncodedName() + " in-doubt transaction " + tid + " has been added into the recovery reply to TM " + tmId + " during start ");
+                              if (LOG.isInfoEnabled()) {
+                                   LOG.info("Traf Reco Thread detect stale branch tid " + transactionId + " cluster id " + clusterid + " node " + nodeid + " PSTRConfig " + pSTRConfig.getMyClusterId());
+                                   LOG.info("TrxRegionEndpoint coprocessor: recoveryRequest - Trafodion Recovery: region " + regionInfo.getEncodedName() + " in-doubt transaction " + tid + " has been added into the recovery reply to Cluster " + clusterid + " Node " + nodeid + " TM " + tmId + " during start ");
+                              }
                           }
                      }
                      // now remove the ZK node after TM has initiated the ecovery request   
@@ -3231,6 +3259,12 @@ CoprocessorService, Coprocessor {
     this.fs = this.m_Region.getFilesystem();
 
     this.config = tmp_env.getConfiguration();
+
+      try {
+          pSTRConfig = STRConfig.getInstance(config);
+     } catch (Exception xe) {
+             LOG.error("An ERROR occurred while getting the STR Configuration");
+     }
     
     synchronized (stoppableLock) {
       try {
@@ -3251,7 +3285,7 @@ CoprocessorService, Coprocessor {
         this.memoryUsagePerformGC = config.getBoolean(MEMORY_PERFORM_GC, DEFAULT_MEMORY_PERFORM_GC);
         this.memoryUsageWarnOnly = config.getBoolean(MEMORY_WARN_ONLY, DEFAULT_MEMORY_WARN_ONLY);
         this.memoryUsageTimer = config.getInt(MEMORY_CONF, DEFAULT_MEMORY_SLEEP);
-        this.memoryUsageTimer = config.getInt(MEMORY_CONF, DEFAULT_MEMORY_SLEEP);
+        this.checkRowBelongs = config.getBoolean(CHECK_ROW, true);
 
         this.suppressOutOfOrderProtocolException = config.getBoolean(SUPPRESS_OOP, DEFAULT_SUPPRESS_OOP);
 	if (this.transactionLeases == null)  
@@ -3564,7 +3598,7 @@ CoprocessorService, Coprocessor {
       List<Integer> staleBranchforTMId = new ArrayList<Integer>();
       List<TrxTransactionState> commitPendingCopy = new ArrayList<TrxTransactionState>(commitPendingTransactions);
       Map<Long, List<WALEdit>> indoubtTransactionsMap = new TreeMap<Long, List<WALEdit>>(indoubtTransactionsById);
-      int tmid, tm;
+      int tmid, clusterid, tm;
 
       // selected printout for CP
       long currentEpoch = controlPointEpoch.get();
@@ -3582,7 +3616,10 @@ CoprocessorService, Coprocessor {
                transactionId = entry.getKey();
                if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor:choreThreadDetectStaleTransactionBranch: indoubt branch Txn id "
                        + transactionId + " region info bytes " + new String(lv_byte_region_info));
+               clusterid = (int) TransactionState.getClusterId(transactionId);
                tmid = (int) TransactionState.getNodeId(transactionId);
+               LOG.info("Traf Reco Thread detect stale branch tid " + transactionId + " cluster id " + clusterid + " node " + tmid + " PSTRConfig " + pSTRConfig.getMyClusterId());
+               if ((clusterid != pSTRConfig.getMyClusterIdInt()) && clusterid != 0) tmid = -2; // for any peer
                if (!staleBranchforTMId.contains(tmid)) {staleBranchforTMId.add(tmid);}
          }
       }
@@ -3592,7 +3629,10 @@ CoprocessorService, Coprocessor {
                transactionId = commitPendingTS.getTransactionId();
                if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor:choreThreadDetectStaleTransactionBranch: stale branch Txn id "
                   + transactionId + " region info bytes " + new String(lv_byte_region_info));
+               clusterid = (int) TransactionState.getClusterId(transactionId);
                tmid = (int) TransactionState.getNodeId(transactionId);
+               LOG.info("Traf Reco Thread detect stale branch tid " + transactionId + " cluster id " + clusterid + " node " + tmid + " PSTRConfig " + pSTRConfig.getMyClusterId());
+               if ((clusterid != pSTRConfig.getMyClusterIdInt()) && clusterid != 0) tmid = -2; // for any peer
                if (!staleBranchforTMId.contains(tmid)) {staleBranchforTMId.add(tmid);}
             }
          }
@@ -3709,7 +3749,7 @@ CoprocessorService, Coprocessor {
     ArrayList<WALEdit> editList;
     long transactionId = state.getTransactionId();
 
-    if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor:commit - txId " + transactionId + ", region " + m_Region.getRegionInfo().getRegionNameAsString() + ", transactionsById " + transactionsById.size() + ", commitedTransactionsBySequenceNumber " + commitedTransactionsBySequenceNumber.size() + ", commitPendingTransactions " + commitPendingTransactions.size());
+     if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor:commit - txId " + transactionId + ", region " + m_Region.getRegionInfo().getRegionNameAsString() + ", transactionsById " + transactionsById.size() + ", commitedTransactionsBySequenceNumber " + commitedTransactionsBySequenceNumber.size() + ", commitPendingTransactions " + commitPendingTransactions.size());
 
     if (state.isReinstated() && !this.configuredConflictReinstate) {
       if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit Trafodion Recovery: commit reinstated indoubt transactions " + transactionId + 
@@ -3888,7 +3928,9 @@ CoprocessorService, Coprocessor {
     if (state.isReinstated()) {
       synchronized(indoubtTransactionsById) {
         indoubtTransactionsById.remove(state.getTransactionId());
+        int clusterid = (int) TransactionState.getClusterId(transactionId);
         int tmid = (int) TransactionState.getNodeId(transactionId);
+        if ((clusterid != pSTRConfig.getMyClusterIdInt()) && (clusterid != 0)) tmid = -2; // for any peer
         int count = 0;
         if (indoubtTransactionsCountByTmid.containsKey(tmid)) {
           count =  (int) indoubtTransactionsCountByTmid.get(tmid) - 1;
@@ -4007,6 +4049,8 @@ CoprocessorService, Coprocessor {
   public void delete(final long transactionId, final Delete delete)
     throws IOException {
     if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: delete -- ENTRY txId: " + transactionId);
+    if(this.checkRowBelongs)
+      checkRow(delete.getRow(), "Delete");
     TrxTransactionState state = this.beginTransIfNotExist(transactionId);
     state.addDelete(delete);
   }
@@ -4025,6 +4069,8 @@ CoprocessorService, Coprocessor {
     TrxTransactionState state = this.beginTransIfNotExist(transactionId);
 
     for (Delete del : deletes) {
+      if(this.checkRowBelongs)
+        checkRow(del.getRow(), "Delete");
       state.addDelete(del);
     }
   }
@@ -4054,17 +4100,8 @@ CoprocessorService, Coprocessor {
     byte[] startKey = null;
     byte[] endKey = null;
 
-    if (!this.m_Region.rowIsInRange(this.regionInfo, row)) {
-      startKey = this.regionInfo.getStartKey();
-      endKey = this.regionInfo.getEndKey();
-      LOG.error("Requested row out of range for " +
-       "checkAndDelete for txid " + transactionId + ", on HRegion " +
-       this + ", startKey=[" + Bytes.toStringBinary(startKey) +
-       "], startKey in hex[" + Hex.encodeHexString(startKey) +
-       "], endKey [" + Bytes.toStringBinary(endKey) +
-       "], endKey in hex[" + Hex.encodeHexString(endKey) + "]" +
-       "], row=[" + Bytes.toStringBinary(row) + "]");
-     }
+    if(this.checkRowBelongs)
+      checkRow(row, "checkAndDelete");
 
     try {
 
@@ -4128,17 +4165,8 @@ CoprocessorService, Coprocessor {
     byte[] startKey = null;
     byte[] endKey = null;
 
-    if (!this.m_Region.rowIsInRange(this.regionInfo, row)) {
-      startKey = this.regionInfo.getStartKey();
-      endKey = this.regionInfo.getEndKey();
-      LOG.error("Requested row out of range for " +
-       "checkAndPut for txid " + transactionId + ", on HRegion " +
-       this + ", startKey=[" + Bytes.toStringBinary(startKey) +
-       "], startKey in hex[" + Hex.encodeHexString(startKey) +
-       "], endKey [" + Bytes.toStringBinary(endKey) +
-       "], endKey in hex[" + Hex.encodeHexString(endKey) + "]" +
-       "], row=[" + Bytes.toStringBinary(row) + "]");
-     }
+    if(this.checkRowBelongs)
+      checkRow(row, "checkAndPut");
 
     try {
       Get get = new Get(row);
@@ -4321,6 +4349,8 @@ CoprocessorService, Coprocessor {
   public void put(final long transactionId, final Put put)
     throws IOException {
     if (LOG.isTraceEnabled()) LOG.trace("Enter TrxRegionEndpoint coprocessor: put, txid: " + transactionId);
+    if(this.checkRowBelongs)
+      checkRow(put.getRow(),"Put");
     TrxTransactionState state = this.beginTransIfNotExist(transactionId);
 
     state.addWrite(put);
@@ -4421,8 +4451,9 @@ CoprocessorService, Coprocessor {
                        //throw exp;
                     }   
                     if (LOG.isTraceEnabled()) LOG.trace("TrxRegion endpoint CP: reconstruct transaction: rewrite to HLOG CR edit for transaction " + transactionId);
+                      int clusterid = (int) TransactionState.getClusterId(transactionId);
                       int tmid = (int) TransactionState.getNodeId(transactionId);
-                    if (LOG.isTraceEnabled()) LOG.trace("TrxRegion endpoint CP " + regionInfo.getRegionNameAsString() + " reconstruct transaction " + transactionId + " for TM " + tmid);
+                    if (LOG.isTraceEnabled()) LOG.trace("TrxRegion endpoint CP " + regionInfo.getRegionNameAsString() + " reconstruct transaction " + transactionId + " for Cluster " + clusterid + " TM " + tmid);
              } // for all txns in indoubt transcation list
              } // not reconstruct indoubtes yet
              reconstructIndoubts = 1;
@@ -5010,7 +5041,9 @@ CoprocessorService, Coprocessor {
       synchronized(indoubtTransactionsById) {
         if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: Trafodion Recovery: abort reinstated indoubt transactions " + transactionId);
         indoubtTransactionsById.remove(state.getTransactionId());
+        int clusterid = (int) TransactionState.getClusterId(transactionId);
         int tmid = (int) TransactionState.getNodeId(transactionId);
+        if ((clusterid != pSTRConfig.getMyClusterIdInt()) && (clusterid != 0)) tmid = -2; // for any peer
         int count = 0;
 
         // indoubtTransactionsCountByTmid protected by 

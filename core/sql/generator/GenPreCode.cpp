@@ -10196,7 +10196,7 @@ RelExpr * PhysTranspose::preCodeGen(Generator * generator,
   getGroupAttr()->resolveCharacteristicOutputs
     (availableValues,
      getGroupAttr()->getCharacteristicInputs());
-
+  generator->oltOptInfo()->setMultipleRowsReturned(TRUE);
   markAsPreCodeGenned();
 
   return this;

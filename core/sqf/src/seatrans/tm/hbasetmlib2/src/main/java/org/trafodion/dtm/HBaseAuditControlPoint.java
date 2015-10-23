@@ -47,6 +47,7 @@ import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.transactional.STRConfig;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.CommitUnsuccessfulException;
@@ -89,20 +90,29 @@ public class HBaseAuditControlPoint {
     private boolean disableBlockCache;
     private static final int versions = 6;
     private static int myClusterId;
+    private static STRConfig pSTRConfig = null;
 
-    public HBaseAuditControlPoint(Configuration config) throws IOException {
+    public HBaseAuditControlPoint(Configuration config) throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("Enter HBaseAuditControlPoint constructor()");
       this.config = config;
       CONTROL_POINT_TABLE_NAME = config.get("CONTROL_POINT_TABLE_NAME");
       HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(CONTROL_POINT_TABLE_NAME));
       HColumnDescriptor hcol = new HColumnDescriptor(CONTROL_POINT_FAMILY);
 
-      String clusterIdS = System.getenv("MY_CLUSTER_ID");
-      int lv_clusterId = 0;
-      if (clusterIdS != null){
-         lv_clusterId = Integer.parseInt(clusterIdS);
+      try {
+         pSTRConfig = STRConfig.getInstance(config);
       }
-      myClusterId = lv_clusterId;
+      catch (ZooKeeperConnectionException zke) {
+         LOG.error("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
+      }
+      catch (IOException ioe) {
+         LOG.error("IO Exception trying to get STRConfig instance: " + ioe);
+      }
+
+      myClusterId = 0;
+      if (pSTRConfig != null) {
+         myClusterId = pSTRConfig.getMyClusterIdInt();
+      }
 
       disableBlockCache = false;
       try {

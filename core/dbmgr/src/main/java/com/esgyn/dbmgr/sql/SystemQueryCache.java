@@ -21,6 +21,7 @@ public class SystemQueryCache {
 	public static final String SELECT_REPO_QUERY_DETAIL = "SELECT_REPO_QUERY_DETAIL";
 	public static final String SELECT_ACTIVE_QUERIES = "SELECT_ACTIVE_QUERIES";
 	public static final String SELECT_ACTIVE_QUERY_DETAIL = "SELECT_ACTIVE_QUERY_DETAIL";
+	public static final String SELECT_ACTIVE_QUERY_DETAIL_NEW = "SELECT_ACTIVE_QUERY_DETAIL_NEW";
 	public static final String CANCEL_QUERY = "CANCEL_QUERY";
 	public static final String SELECT_LOGS = "SELECT_LOGS";
 
@@ -43,6 +44,8 @@ public class SystemQueryCache {
 	public static final String OPENTSDB_GCTIME_DRILLDOWN = "OPENTSDB_GCTIME_DRILLDOWN";
 	public static final String OPENTSDB_REGION_MEMSTORE_SIZE_DRILLDOWN = "OPENTSDB_REGION_MEMSTORE_SIZE_DRILLDOWN";
 	public static final String OPENTSDB_REGIONSERVER_MEMORY_USE_DRILLDOWN = "OPENTSDB_REGIONSERVER_MEMORY_USE_DRILLDOWN";
+
+	public static final String FETCH_ALERTS_LIST = "FETCH_ALERTS_LIST";
 
 	public static void setSystemQueryies(SystemQueries sQueries) {
 		systemQueries = sQueries;

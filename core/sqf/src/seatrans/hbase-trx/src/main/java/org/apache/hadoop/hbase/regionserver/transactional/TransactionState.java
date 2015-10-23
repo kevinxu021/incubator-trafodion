@@ -218,7 +218,7 @@ public class TransactionState {
      */
     public long getNodeId() {
 
-        return ((transactionId >> 32) & 0xFFFFL);
+        return ((transactionId >> 32) & 0xFFL);
     }
 
     /**
@@ -228,7 +228,17 @@ public class TransactionState {
      */
     public static long getNodeId(long transId) {
 
-        return ((transId >> 32) & 0xFFFFL);
+        return ((transId >> 32) & 0xFFL);
+    }
+
+    /**
+     * Get the originating cluster of the passed in transaction.
+     *
+     * @return Return the clusterId.
+     */
+    public static long getClusterId(long transId) {
+
+        return ((transId >> 48) & 0xFFL);
     }
 
     /**
