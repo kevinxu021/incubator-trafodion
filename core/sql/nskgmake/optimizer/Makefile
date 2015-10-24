@@ -33,9 +33,9 @@ ifeq ($(FLAVOR),debug)
 endif
 
 #GUI Debugger
-  ifeq ($(FLAVOR),debug)
-  CXXFLAGS += -DNA_DEBUG_GUI
-  endif
+# Like in sqlcomp, enable this unconditionally, to be able to display in release mode
+# if the necessary DLL is present
+CXXFLAGS += -DNA_DEBUG_GUI
 
 SRCPATH += common
 CPPSRC := \
