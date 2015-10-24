@@ -9,7 +9,10 @@ define([
         'underscore',
         'backbone',
         'common',
-        'moment'
+        'moment',
+        'datetimepicker',
+        'jqueryvalidate'
+
         ], function ($, _, Backbone, common, moment) {
 	'use strict';
 	var _this = null;
@@ -131,13 +134,18 @@ define([
 			this.eventAgg = _.extend({}, Backbone.Events);
 			_this = this;
 			_timeRangeControl = this.timeRangeControl;
+			$.validator.addMethod("validateStartAndEndTimes", function(value, element) {
+				var startTime = new Date($(START_TIME_PICKER).data("DateTimePicker").date()).getTime();
+				var endTime = new Date($(END_TIME_PICKER).data("DateTimePicker").date()).getTime();
+				return (startTime < endTime);
+			}, "* Start Time has to be less than End Time");
 		}, 
 
 		init: function(){
 			validator = $(FILTER_FORM).validate({
 				rules: {
-					"filter-start-time": { required: true },
-					"filter-end-time": { required: true }
+					"filter-start-time": { required: true, validateStartAndEndTimes: true },
+					"filter-end-time": { required: true, validateStartAndEndTimes: true }
 				},
 				highlight: function(element) {
 					$(element).closest('.form-group').addClass('has-error');

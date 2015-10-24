@@ -22,7 +22,6 @@
   ],
   "dependencies": {
 	"backbone": "~1.2.1",
-	"datatables-tabletools": "~2.2.4",
 	"jquery.cookie": "~1.4.1",
 	"jquery-ui": "1.11.4",
 	"jit": "~2.0.2",
@@ -35,6 +34,7 @@
 	"jquery-validation": "~1.14.0",
 	"jquery-localize-i18n": "latest",
 	"moment-timezone": "0.4.0",
-	"codemirror":"latest"
+	"codemirror":"latest",
+	"datatables-buttons":"1.0.3"
   }
 }

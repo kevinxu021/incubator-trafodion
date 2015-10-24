@@ -12,7 +12,6 @@ define([
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
-        'tabletools',
         'jstree'
         ], function (BaseView, DatabaseT, $, dbHandler) {
 	'use strict';
@@ -196,7 +195,7 @@ define([
 					}
 				}
 				oDataTable = $('#query-results').dataTable({
-					dom: 'T<"clear">lfrtip',
+					dom: '<"clear">lfrtip',
 					"bProcessing": true,
 					"bPaginate" : true, 
 					"bAutoWidth": true,
@@ -239,9 +238,6 @@ define([
 					             }
 					             ],
 					             paging: true,
-					             "tableTools": {
-					            	 "sSwfPath": "bower_components/datatables-tabletools/swf/copy_csv_xls_pdf.swf"
-					             },
 					             fnDrawCallback: function(){
 					            	 $('#query-results td').css("white-space","nowrap");
 					             }

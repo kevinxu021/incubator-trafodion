@@ -16,7 +16,10 @@ define([
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
-        'tabletools',
+        'tablebuttons',
+        'buttonsflash',
+        'buttonsprint',
+        'buttonshtml',     
         'datetimepicker',
         'jqueryvalidate'
 
@@ -275,7 +278,7 @@ define([
 					"oLanguage": {
        				 "sEmptyTable": "No log entries found."
 					},
-					dom: 'T<"clear">lfrtip',
+					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
 					"bPaginate" : true, 
 					//"bAutoWidth": true,
@@ -297,9 +300,9 @@ define([
 					      }
 					    } ],
 					paging: true,
-					"tableTools": {
-						"sSwfPath": "bower_components/datatables-tabletools/swf/copy_csv_xls_pdf.swf"
-					},
+					buttons: [
+					          'copy','csv','excel','pdf','print'
+				          ],
 					aaSorting: [[ 0, "desc" ]],
 					fnDrawCallback: function(){
 						//$('#query-results td').css("white-space","nowrap");
