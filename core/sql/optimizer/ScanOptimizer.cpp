@@ -89,6 +89,9 @@ THREAD_P NABoolean MdamTrace::okToRedirectStdOut_ = FALSE;
 THREAD_P FILE* MdamTrace::console_ = NULL;
 THREAD_P enum MdamTraceLevel MdamTrace::level_ = MDAM_TRACE_LEVEL_NONE;
 
+// use MTL3 to debug MDAM issues
+//THREAD_P enum MdamTraceLevel MdamTrace::level_ = MTL3;
+
 void MdamTrace::setHeader(const char *override)
 {
   overrideHeader_ = override;
@@ -8455,6 +8458,7 @@ void MDAMCostWA::compute()
       if(NOT disjunctMdamOK_)
 	{
 	  mdamWon_ = FALSE;
+           MDAM_DEBUG0(MTL2, "Mdam scan lost because disjunctMdamOK_ is false");
 // 	  // invalidate the cache
 // 	  disjunctsFR_.reset();
 // 	  disjunctsLR_.reset();
@@ -8546,6 +8550,7 @@ void MDAMCostWA::compute()
 	    costBoundPtr_->scmCompareCosts(*scmCost_) == LESS)
         {
 	  mdamWon_ = FALSE;
+          MDAM_DEBUG0(MTL2, "Mdam scan lost due to higher cost determined by scmCompareCosts()");
           return;
 	}
       }
@@ -8581,6 +8586,7 @@ void MDAMCostWA::compute()
 	if ( optimizer_.exceedsBound(costBoundPtr_, disjunctsFR_, disjunctsLR_) )
         {
 	  mdamWon_ = FALSE;
+          MDAM_DEBUG0(MTL2, "Mdam scan lost due to exceeding cost bound");
 // 	  // invalidate the cache
 // 	  disjunctsFR_.reset();
 // 	  disjunctsLR_.reset();
@@ -8697,6 +8703,7 @@ void MDAMCostWA::computeDisjunct()
   if(CURRSTMT_OPTDEFAULTS->indexEliminationLevel() != OptDefaults::MINIMUM
      && (!mdamForced_)
 	 && (CmpCommon::getDefault(RANGESPEC_TRANSFORMATION) == DF_ON )
+         && (CmpCommon::getDefault(MDAM_APPLY_RESTRICTION_CHECK) == DF_ON )
 	 &&
    (!checkMDAMadditionalRestriction(keyPredsByCol,optimizer_.computeLastKeyColumnOfDisjunct(keyPredsByCol),noOfmissingKeyColumnsTot,presentKeyColumnsTot))
    )
