@@ -388,7 +388,7 @@ public class HBaseTxClient {
              if (peerRecovThread == null) {
 
                   try {
-                      tmZK = new HBaseTmZK(config, dtmID);
+                      tmZK = new HBaseTmZK(config, (short) -2);
                   }catch (Exception e ){
                       LOG.error("Unable to create HBaseTmZK TM-zookeeper class, throwing exception");
                       throw new RuntimeException(e);
@@ -444,7 +444,7 @@ public class HBaseTxClient {
 
        if (peerRecovThread == null){ //this is new LDTM, so start a new peer recovery thread to drive tlog sync
           try {
-              tmZK = new HBaseTmZK(config, dtmID);
+              tmZK = new HBaseTmZK(config, (short) -2);
           }catch (Exception e ){
               LOG.error("Unable to create HBaseTmZK TM-zookeeper class, throwing exception");
               throw new RuntimeException(e);
@@ -1293,26 +1293,26 @@ public class HBaseTxClient {
                  int peer_leader = -2;
                  int peer_count = 0;;
                  boolean tlog_sync_local_needed = false;
-                 boolean msenv_no_tlog_sync = false;
+                 boolean msenv_tlog_sync;
                  int synced = 0;
                  
                  // NOTE. R 2.0, doing commmit log reload/sync would require an off-line ENV (at least updated transactions are drained and then stopped)
 
                  // skip tlog sync if ms_env says so
 
-                     msenv_no_tlog_sync = false;
+                     msenv_tlog_sync = false;
                      try {
-                          String noTlogSync = System.getenv("TM_NO_TLOG_SYNC");
-                          if (noTlogSync != null) {
-                             msenv_no_tlog_sync = (Integer.parseInt(noTlogSync) != 0);
+                          String TlogSync = System.getenv("TM_TLOG_SYNC");
+                          if (TlogSync != null) {
+                             msenv_tlog_sync = (Integer.parseInt(TlogSync) != 0);
                           }
                       }
                       catch (Exception e) {
-                          if (LOG.isDebugEnabled()) LOG.debug("TM_NO_TLOG_SYNC is not in ms.env");
+                          if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_SYNC is not in ms.env");
                       }
-                      LOG.info("TM_NO_TLOG_SYNC is " + msenv_no_tlog_sync);
+                      LOG.info("TM_TLOG_SYNC is " + msenv_tlog_sync);
 
-                     if (msenv_no_tlog_sync) { // no tlog sync 
+                     if (!msenv_tlog_sync) { // no tlog sync 
                          LOG.info("Traf Peer Thread at cluster " + my_local_clusterid + " does not perform tlog sync during startup as ms_env indicates");
                          synced = 2;
                          return synced;
