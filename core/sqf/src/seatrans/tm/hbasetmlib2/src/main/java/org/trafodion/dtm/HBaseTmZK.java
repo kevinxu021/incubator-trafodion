@@ -88,6 +88,7 @@ public class HBaseTmZK implements Abortable{
         if (LOG.isTraceEnabled()) LOG.trace("HBaseTmZK(conf, dtmID) -- ENTRY");
 		this.dtmID = dtmID;
 		this.zkNode = baseNode + String.format("%d", dtmID);
+        if (LOG.isTraceEnabled()) LOG.trace("HBaseTmZK(conf, dtmID) -- zkNode" + this.zkNode);
 		this.zooKeeper = new ZooKeeperWatcher(conf, "TM Recovery", this, true);
 	}
 
