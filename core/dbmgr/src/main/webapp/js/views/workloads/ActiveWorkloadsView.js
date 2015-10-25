@@ -14,7 +14,10 @@ define([
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
-        'tabletools'
+        'tablebuttons',
+        'buttonsflash',
+        'buttonsprint',
+        'buttonshtml'
         ], function (BaseView, WorkloadsT, $, wHandler, common, refreshTimer) {
 	'use strict';
     var LOADING_SELECTOR = ".dbmgr-spinner";			
@@ -98,7 +101,7 @@ define([
 				var bPaging = aaData.length > 25;
 
 				oDataTable = $('#query-results').dataTable({
-					dom: 'T<"clear">lfrtip',
+					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
 					"bPaginate" : bPaging, 
 					"bAutoWidth": true,
@@ -133,10 +136,10 @@ define([
 						      }
 						    }],
 					paging: true,
-					"tableTools": {
-						"sRowSelect": "multi",
-						"sSwfPath": "bower_components/datatables-tabletools/swf/copy_csv_xls_pdf.swf"
-					},
+					buttons: [
+					          'copy','csv','excel','pdf','print'
+				          ],					                 
+
 					fnDrawCallback: function(){
 						//$('#query-results td').css("white-space","nowrap");
 		             }

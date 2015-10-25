@@ -54,8 +54,20 @@ require.config({
 			deps:['jquery','metismenu']
 		},
 		dataTablesBootStrap: {
-			deps: ['dataTables']
+			deps: ['datatables']
 		},
+		buttonsbootstrap: {
+			deps:['datatables']
+		},
+		buttonsflash: {
+			deps:['datatables']
+		},
+		buttonsprint: {
+			deps:['datatables']
+		},
+		buttonshtml: {
+			deps:['datatables']
+		},		
 		morrisdata: {
 			deps: ['morris']
 		}
@@ -79,7 +91,11 @@ require.config({
 		datatables: '../bower_components/datatables/media/js/jquery.dataTables.min',
 		datatablesBootStrap: '../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap',
 		datatablesUI: '../bower_components/datatables-plugins/integration/jqueryui/dataTables.jqueryui',
-		tabletools: '../bower_components/datatables-tabletools/js/dataTables.tableTools',
+		tablebuttons: '../bower_components/datatables-buttons/js/dataTables.buttons',
+		buttonsbootstrap: '../bower_components/datatables-buttons/js/buttons.bootstrap',
+		buttonsflash: '../bower_components/datatables-buttons/js/buttons.flash',
+		buttonsprint: '../bower_components/datatables-buttons/js/buttons.print',
+		buttonshtml: '../bower_components/datatables-buttons/js/buttons.html5',
 		responsivetable: '../bower_components/datatables-responsive/js/dataTables.responsive',
 		jstree: '../bower_components/jstree/dist/jstree',
 		moment: '../bower_components/moment/min/moment.min',

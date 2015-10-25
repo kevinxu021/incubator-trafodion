@@ -14,7 +14,10 @@ define([
     'jit',
     'datatables',
     'datatablesBootStrap',
-    'tabletools'
+    'tablebuttons',
+    'buttonsflash',
+    'buttonsprint',
+    'buttonshtml'
 ], function (BaseView, WorkbenchT, $, common, CodeMirror) {
     'use strict';
 
@@ -299,7 +302,7 @@ define([
             			 "oLanguage": {
             				 "sEmptyTable": "0 rows(s)"
             			},
-            			 dom: 'T<"clear">lfrtip',
+            			dom:'lBftrip',
             			"bProcessing": true,
             			"bPaginate" : true, 
             			"iDisplayLength" : 25, 
@@ -308,9 +311,9 @@ define([
             			"aaData": aaData, 
             			"aoColumns" : aoColumns,
             			paging: true,
-        				"tableTools": {
-    						"sSwfPath": "bower_components/datatables-tabletools/swf/copy_csv_xls_pdf.swf"
-    					}
+            			buttons: [
+    					          'copy','csv','excel','pdf','print'
+    				          ]
             		 });
             	}        		
         	}

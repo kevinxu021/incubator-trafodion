@@ -42,7 +42,7 @@
 	<!-- The TimeZone name of the EsgynDB server. Enter in java time zone format like America/New_York -->
 	<entry key="timeZoneName">TIMEZONE_NAME</entry>
 	
-		<!-- The openTSDB HTTP URI-->
+	<!-- The openTSDB HTTP URI-->
 	<entry key="openTSDBUri">TSD_HOST:TSD_PORT</entry>
 
 	<!-- The Alerts HTTP URI-->
