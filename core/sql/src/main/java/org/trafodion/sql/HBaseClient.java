@@ -78,6 +78,8 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ClusterStatus;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
 
 import java.util.concurrent.ExecutionException;
 import java.util.Set;
@@ -1490,7 +1492,7 @@ public class HBaseClient {
                          boolean asyncOperation) throws IOException, InterruptedException, ExecutionException {
 
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
-      boolean ret = htc.putRow(transID, rowID, row, null, null,
+      boolean ret = htc.putRow(transID, rowID, row, null, null, timestamp,
                                 checkAndPut, asyncOperation);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);
@@ -1513,7 +1515,7 @@ public class HBaseClient {
       boolean checkAndPut = true;
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
       boolean ret = htc.putRow(transID, rowID, columnsToUpdate, columnToCheck, columnValToCheck,
-                                checkAndPut, asyncOperation);
+                               timestamp, checkAndPut, asyncOperation);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);
       else
@@ -1534,6 +1536,16 @@ public class HBaseClient {
          htc.setJavaObject(jniObject);
       else
          releaseHTableClient(htc);
+      return ret;
+  }
+
+  public boolean updateVisibility(long jniObject, String tblName, boolean useTRex, 
+                            long transID, byte[] rowID,
+                            Object row) throws IOException, InterruptedException, ExecutionException {
+
+      HTableClient htc = getHTableClient(jniObject, tblName, useTRex, true);
+      boolean ret = htc.updateVisibility(transID, rowID, row);
+      releaseHTableClient(htc);
       return ret;
   }
 

@@ -467,6 +467,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_APPEND
 %token <tokval> TOK_ARE
 %token <tokval> TOK_AS
+%token <tokval> TOK_AT
 %token <tokval> TOK_ASC
 %token <tokval> TOK_ASCII
 %token <tokval> TOK_ATOMIC
@@ -532,6 +533,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_COLUMN_CREATE
 %token <tokval> TOK_COLUMN_LOOKUP
 %token <tokval> TOK_COLUMN_DISPLAY
+%token <tokval> TOK_HBASE_AUTHS
+%token <tokval> TOK_HBASE_VISIBILITY
 %token <tokval> TOK_HBASE_TIMESTAMP
 %token <tokval> TOK_HBASE_VERSION
 %token <tokval> TOK_COMMANDS
@@ -1649,7 +1652,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
   RelExpr              		*relx;
   double              		     doubleVal;
   Hint              		    *hint;
-  HbaseAccessOptions          *hbaseAccessOptions;
+  OptHbaseAccessOptions          *hbaseAccessOptions;
   RelExpr::AtomicityType        atomicityType;
   SchemaName                    *pSchemaName;
   SequenceOfLong                *longSeq;
@@ -1938,7 +1941,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <hint>      		hints
 %type <hint>      		index_hints
 %type <hint>      		ignore_ms4_hints
-%type <hbaseAccessOptions>     hbase_access_options
+%type <hbaseAccessOptions>      hbase_access_options
+%type <longint>                 num_versions
 %type <stringval>    	index_hint
 %type <doubleVal>       number
 %type <doubleVal>       selectivity_number
@@ -6201,35 +6205,106 @@ global_hint : empty { $$ = FALSE; }
 /* type hbaseAccessOptions */
 hbase_access_options : empty 
        {
-         Lng32 n = CmpCommon::getDefaultNumeric(TRAF_NUM_HBASE_VERSIONS);
-         if (n == -1)
-           $$ = new (PARSERHEAP()) HbaseAccessOptions(-1, PARSERHEAP());
-         else if (n == -2)
-           $$ = new (PARSERHEAP()) HbaseAccessOptions(-2, PARSERHEAP());
-         else if (n > 1)
-           $$ = new (PARSERHEAP()) HbaseAccessOptions(n, PARSERHEAP());
-         else
-           $$ = NULL; 
+         $$ = new (PARSERHEAP()) OptHbaseAccessOptions();
        }
-    | '{' TOK_VERSIONS NUMERIC_LITERAL_EXACT_NO_SCALE '}'
+    | '{' num_versions '}'
       {
-        Int64 value = atoInt64($3->data()); 
-        if (value <= 0)
-          YYERROR;
-
-        if (value > 1)
-          $$ = new (PARSERHEAP()) HbaseAccessOptions(value, PARSERHEAP());
+        if (($2 == -1) || ($2 == -2) || ($2 > 1))
+          $$ = new (PARSERHEAP()) OptHbaseAccessOptions($2, PARSERHEAP());
         else
           $$ = NULL;
       }
-    | '{' TOK_VERSIONS TOK_MAX '}'
+    | '{' TOK_HBASE TOK_TIMESTAMP TOK_AS TOK_OF QUOTED_STRING '}'
       {
-        $$ = new (PARSERHEAP()) HbaseAccessOptions(-1, PARSERHEAP());
+        $$ = new (PARSERHEAP()) OptHbaseAccessOptions(NULL, $6->data());
+        if (NOT $$->isValid())
+          {
+            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$6);
+            YYERROR;
+          }
       }
-    | '{' TOK_VERSIONS TOK_ALL '}'
+    | '{' TOK_HBASE TOK_TIMESTAMP TOK_AS TOK_OF QUOTED_STRING ',' num_versions '}'
       {
-        $$ = new (PARSERHEAP()) HbaseAccessOptions(-2, PARSERHEAP());
+        $$ = new (PARSERHEAP()) OptHbaseAccessOptions(NULL, $6->data());
+        if (NOT $$->isValid())
+          {
+            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$6);
+            YYERROR;
+          }
+
+        $$->setNumVersions($8);
       }
+    | '{' TOK_HBASE TOK_AUTHORIZATION QUOTED_STRING '}'
+      {
+        $$ = new (PARSERHEAP()) OptHbaseAccessOptions($4->data());
+      }
+    | '{' TOK_HBASE TOK_TIMESTAMP TOK_AS TOK_OF QUOTED_STRING ',' TOK_HBASE TOK_AUTHORIZATION QUOTED_STRING '}'
+      {
+        $$ = new (PARSERHEAP()) OptHbaseAccessOptions(NULL, $6->data());
+        if (NOT $$->isValid())
+          {
+            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$6);
+            YYERROR;
+          }
+
+        $$->hbaseAuths() = *$10;
+      }
+   | '{' TOK_HBASE TOK_TIMESTAMP TOK_AS TOK_OF QUOTED_STRING ',' TOK_HBASE TOK_AUTHORIZATION QUOTED_STRING ',' num_versions '}'
+      {
+        $$ = new (PARSERHEAP()) OptHbaseAccessOptions(NULL, $6->data());
+        if (NOT $$->isValid())
+          {
+            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$6);
+            YYERROR;
+          }
+
+        $$->hbaseAuths() = *$10;
+        $$->setNumVersions($12);
+      }
+     | '{' TOK_HBASE TOK_TIMESTAMP TOK_FROM QUOTED_STRING TOK_TO QUOTED_STRING '}'
+      {
+        $$ = new (PARSERHEAP()) OptHbaseAccessOptions($5->data(), $7->data());
+        if (NOT $$->isValid())
+          {
+            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$5);
+            YYERROR;
+          }
+      }
+    | '{' TOK_HBASE TOK_TIMESTAMP TOK_FROM QUOTED_STRING '}'
+      {
+        $$ = new (PARSERHEAP()) OptHbaseAccessOptions($5->data(), NULL);
+        if (NOT $$->isValid())
+          {
+            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$5);
+            YYERROR;
+          }
+      }
+    | '{' TOK_HBASE TOK_TIMESTAMP TOK_TO QUOTED_STRING '}'
+      {
+        $$ = new (PARSERHEAP()) OptHbaseAccessOptions(NULL, $5->data());
+        if (NOT $$->isValid())
+          {
+            *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$5);
+            YYERROR;
+          }
+      }
+
+num_versions : TOK_HBASE TOK_VERSIONS NUMERIC_LITERAL_EXACT_NO_SCALE
+               {
+                 Int64 value = atoInt64($3->data()); 
+                 if (value <= 0)
+                   YYERROR;
+                 
+                 $$ = value;
+               }
+               | TOK_HBASE TOK_VERSIONS TOK_MAX
+               {
+                 $$ = -1;
+               }
+               | TOK_HBASE TOK_VERSIONS TOK_ALL
+               {
+                 $$ = -2;
+               }
 
 /* type hint */
 optimizer_hint : empty { $$ = NULL; }
@@ -6619,7 +6694,7 @@ table_name_and_hint : table_name optimizer_hint hbase_access_options
                           $$->setHint($2);
 
                         if ($3)
-                          ((Scan*)$$)->setHbaseAccessOptions($3);
+                          ((Scan*)$$)->setOptHbaseAccessOptions($3);
                         
                         delete $1;
                       }
@@ -6925,7 +7000,7 @@ table_name_as_clause_and_hint : table_name as_clause optimizer_hint hbase_access
                                   if ($3) 
                                     $$->setHint($3);
                                   if ($4)
-                                    ((Scan*)$$)->setHbaseAccessOptions($4);
+                                    ((Scan*)$$)->setOptHbaseAccessOptions($4);
                                    
                                   delete $1;
                                   delete $2;
@@ -6946,7 +7021,7 @@ table_name_as_clause_hint_and_col_list : table_name as_clause optimizer_hint hba
                                              $$->setHint($3);
 
                                            if ($4)
-                                             sc->setHbaseAccessOptions($4);
+                                             sc->setOptHbaseAccessOptions($4);
                                            
                                            delete $1;
                                            delete $2;
@@ -9831,14 +9906,31 @@ misc_function :
                                   $$ = new (PARSERHEAP()) RowNumFunc();
                                 }
 
-       | TOK_HBASE_VERSION '(' dml_column_reference  ')'
+       | TOK_HBASE_VISIBILITY '(' dml_column_reference  ')'
                               {
-                                $$ = new (PARSERHEAP()) HbaseVersionRef($3);
+                                if (! Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL))
+                                  {
+                                    yyerror("");
+                                    YYERROR;     /*internal syntax only!*/
+                                  }
+                                
+                                $$ = new (PARSERHEAP()) HbaseVisibilityRef($3);
 			      }
 
        | TOK_HBASE_TIMESTAMP '(' dml_column_reference  ')'
                               {
                                 $$ = new (PARSERHEAP()) HbaseTimestampRef($3);
+			      }
+
+       | TOK_HBASE_TIMESTAMP '(' dml_column_reference ',' TOK_LOCALTIME  ')'
+                              {
+                                $$ = new (PARSERHEAP()) ZZZBinderFunction
+                                  (ITM_HBASE_TIMESTAMP_TO_LCT, $3);
+			      }
+
+       | TOK_HBASE_VERSION '(' dml_column_reference  ')'
+                              {
+                                $$ = new (PARSERHEAP()) HbaseVersionRef($3);
 			      }
 
 hbase_column_create_list : '(' hbase_column_create_value ')'
@@ -19570,7 +19662,7 @@ set_delete_rollback_list : set_clause
 
 /* type item */
 set_update_list : TOK_SET  set_update_commit_list
-                 {
+                                 {
 				   $$ = $2;
 				 }
 
@@ -19586,6 +19678,17 @@ set_update_commit_list : set_clause
 	      | set_clause ',' set_update_commit_list
 				{
 				  $$ = new (PARSERHEAP()) ItemList($1, $3);
+
+                                  if ((($1->getOperatorType() == ITM_ASSIGN) &&
+                                       ($1->child(1)->getOperatorType() == ITM_HBASE_VISIBILITY_SET)) ||
+                                      (($3->getOperatorType() == ITM_ASSIGN) &&
+                                       ($3->child(1)->getOperatorType() == ITM_HBASE_VISIBILITY_SET)) ||
+                                      (($3->getOperatorType() == ITM_ITEM_LIST) &&
+                                       (((ItemList*)$3)->containsHbaseVisibilityExpr())))
+                                      
+                                    {
+                                      ((ItemList*)$$)->setContainsHbaseVisibilityExpr(TRUE);
+                                    }
 				}
 	      | set_clause TOK_SET TOK_ON TOK_ROLLBACK set_update_rollback_list
 		     {
@@ -19639,7 +19742,7 @@ set_clause : identifier '=' value_expression
 				}
                               | identifier '=' update_obj_to_lob_function
 				{
-				    ItemExpr * rc = $3;
+                                  ItemExpr * rc = $3;
 				  if (rc->getOperatorType() == ITM_LOBUPDATE)
 				    {
 				      LOBupdate * lu = (LOBupdate*)rc;
@@ -19660,6 +19763,16 @@ set_clause : identifier '=' value_expression
 					   ColReference(
 					     new (PARSERHEAP()) ColRefName(*$1, PARSERHEAP())),
 					   rc);
+				  delete $1;
+				}
+                              | identifier '=' TOK_HBASE_VISIBILITY '(' QUOTED_STRING ')'
+				{
+                                  ColReference * colRef = new (PARSERHEAP())
+                                    ColReference(
+                                         new (PARSERHEAP()) ColRefName(*$1, PARSERHEAP()));
+
+                                  ItemExpr * rc = new (PARSERHEAP()) HbaseVisibilitySet(colRef, *$5);
+				  $$ = new (PARSERHEAP()) Assign(colRef, rc);
 				  delete $1;
 				}
 
@@ -32503,6 +32616,7 @@ nonreserved_word :      TOK_ABORT
                       | TOK_ALLOWED // MV
                       | TOK_APPEND
                       | TOK_AREA
+                      | TOK_AT
 		      | TOK_AUTOABORT
                       | TOK_AUTOMATIC // MV
                       | TOK_BROWSE
@@ -32778,7 +32892,7 @@ nonreserved_word :      TOK_ABORT
                       | TOK_M
                       | TOK_MASTER
                       | TOK_MATERIALIZED  
-		      | TOK_MAXEXTENTS // Extent Changes : Swati Ambulkar
+		      | TOK_MAXEXTENTS // Extent Changes
                       | TOK_MAXRUNTIME
      //               | TOK_MAXSIZE
                       | TOK_MAXVALUE
@@ -33138,6 +33252,8 @@ nonreserved_func_word:  TOK_ABS
                       | TOK_GREATEST
                       | TOK_HASHPARTFUNC
                       | TOK_HASH2PARTFUNC
+                      | TOK_HBASE_AUTHS
+                      | TOK_HBASE_VISIBILITY
                       | TOK_HBASE_TIMESTAMP
                       | TOK_HBASE_VERSION
                       | TOK_HIVEMD

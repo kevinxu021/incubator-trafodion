@@ -7134,7 +7134,7 @@ NABoolean PCodeCfg::canPCodeBeOptimized( PCodeBinary * pCode
 
     else if (clause->getClassID() == ex_clause::FUNC_HBASE_COLUMNS_DISPLAY)
       return FALSE;
-  }
+   }
 
   // Don't optimize if graph contains specific PCODE instructions.  This is
   // to help developers stage the introduction of new PCODE instructions - i.e.,

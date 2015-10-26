@@ -57,7 +57,7 @@ public:
     SETDEFINE_TYPE, SETENVVAR_TYPE, SETPARAM_TYPE, SETPATTERN_TYPE,
     SET_TERMINAL_CHARSET_TYPE,
     SHOW_TYPE, STATISTICS_TYPE,
-    SHAPE_TYPE, WAIT_TYPE,
+    SHAPE_TYPE, WAIT_TYPE, SLEEP_TYPE,
     MODE_TYPE, QUERYID_TYPE,
     SET_ISO_MAPPING_TYPE,
     SET_DEFAULT_CHARSET_TYPE,
@@ -422,11 +422,21 @@ public:
   short process(SqlciEnv * sqlci_env);
 };
 
+class SleepVal : public SqlciCmd {
+public:
+  SleepVal(Lng32);
+  ~SleepVal(){};
+  short process(SqlciEnv * sqlci_env);
+private:
+  Lng32 val_;
+};
+
 class Wait : public SqlciCmd {
 public:
   Wait(char *, Lng32);
   ~Wait(){};
   short process(SqlciEnv * sqlci_env);
 };
+
 
 #endif

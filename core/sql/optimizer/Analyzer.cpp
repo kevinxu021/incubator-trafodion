@@ -3648,6 +3648,16 @@ void TableAnalysis::print (FILE *f,
 
 void TableAnalysis::initAccessPaths()
 {
+  // Base table column cell timestamp and corresponding index cell
+  // timestamp will be different depending on when data was inserted.
+  // If hbase access options are specified to get versions at a particular 
+  // time, then do not use index access.
+  Scan *scanExpr = (Scan *)getNodeAnalysis()->getOriginalExpr();
+  if ((scanExpr->getOperatorType() == REL_SCAN) &&
+      (scanExpr->getOptHbaseAccessOptions() &&
+       scanExpr->getOptHbaseAccessOptions()->tsSpecified()))
+    return;
+
   const LIST(IndexDesc *) &indexes = tableDesc_->getIndexes();
   for (CollIndex i = 0; i < indexes.entries(); i++)
   {
@@ -3676,6 +3686,16 @@ void TableAnalysis::initIndexOnlyAccessPaths()
   // Only do this if the operator is REL_SCAN.
   if (scanExpr->getOperatorType() != REL_SCAN)
     return;
+
+  // Base table column cell timestamp and corresponding index cell
+  // timestamp will be different depending on when data was inserted.
+  // If hbase access options are specified to get versions at a particular 
+  // time, then do not use index access.
+  if ((scanExpr->getOperatorType() == REL_SCAN) &&
+      (scanExpr->getOptHbaseAccessOptions() &&
+       scanExpr->getOptHbaseAccessOptions()->tsSpecified()))
+    return;
+
   GroupAttributes *groupAttr = scanExpr->getGroupAttr();
 
   // All the value ids that are required by the scan.

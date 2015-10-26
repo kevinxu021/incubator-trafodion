@@ -646,7 +646,8 @@ Lng32 ExpHbaseInterface_JNI::scanOpen(
 				      char * snapName,
 				      char * tmpLoc,
 				      Lng32 espNum,
-                                      Lng32 versions)
+                                      HbaseAccessOptions *hao,
+                                      const char * hbaseAuths)
 {
   htc_ = client_->getHTableClient((NAHeap *)heap_, tblName.val, useTRex_, replSync, hbs_);
   if (htc_ == NULL)
@@ -654,6 +655,11 @@ Lng32 ExpHbaseInterface_JNI::scanOpen(
     retCode_ = HBC_ERROR_GET_HTC_EXCEPTION;
     return HBASE_OPEN_ERROR;
   }
+
+  if (hao)
+    {
+      Lng32 kk = 0;
+    }
 
   Int64 transID;
   if (noXn)
@@ -674,7 +680,11 @@ Lng32 ExpHbaseInterface_JNI::scanOpen(
                              snapName,
                              tmpLoc,
                              espNum,
-                             versions);
+                             (hao && hao->multiVersions()) 
+                             ? hao->getNumVersions() : 0,
+                             hao ? hao->hbaseMinTS() : -1,
+                             hao ? hao->hbaseMaxTS() : -1,
+                             hbaseAuths);
   if (retCode_ == HBC_OK)
     return HBASE_ACCESS_SUCCESS;
   else
@@ -889,6 +899,34 @@ Lng32 ExpHbaseInterface_JNI::insertRows(
     asyncHtc_ = htc;
     return HBASE_ACCESS_SUCCESS;
   } 
+}
+
+//
+//----------------------------------------------------------------------------
+Lng32 ExpHbaseInterface_JNI::updateVisibility(
+	  HbaseStr tblName,
+	  HbaseStr rowID, 
+          HbaseStr tagsRow,
+	  NABoolean noXn)
+{
+  HTableClient_JNI *htc;
+  Int64 transID; 
+  NABoolean checkAndPut = FALSE;
+
+  if (noXn)
+    transID = 0;
+  else
+    transID = getTransactionIDFromContext();
+  retCode_ = client_->updateVisibility((NAHeap *)heap_, tblName.val, hbs_,
+                                       useTRex_, transID, rowID, tagsRow, &htc);
+  if (retCode_ != HBC_OK) {
+    asyncHtc_ = NULL;
+    return -HBASE_ACCESS_ERROR;
+  }
+  else {
+    asyncHtc_ = htc;
+    return HBASE_ACCESS_SUCCESS;
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -1366,12 +1404,14 @@ ByteArrayList* ExpHbaseInterface_JNI::getRegionEndKeys(const char* tblName)
 }
 
 Lng32 ExpHbaseInterface_JNI::getColVal(int colNo, BYTE *colVal,
-          Lng32 &colValLen, NABoolean nullable, BYTE &nullVal)
+                                       Lng32 &colValLen, 
+                                       NABoolean nullable, BYTE &nullVal,
+                                       BYTE *tag, Lng32 &tagLen)
 {
   HTC_RetCode retCode = HTC_OK;
   if (htc_ != NULL)
      retCode = htc_->getColVal(colNo, colVal, colValLen, nullable,
-                    nullVal);
+                               nullVal, tag, tagLen);
   else {
      retCode_ = HBC_ERROR_GET_HTC_EXCEPTION;     
      return HBASE_OPEN_ERROR;
