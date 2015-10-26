@@ -46,6 +46,7 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
 				     ex_expr *encodedKeyExpr,
 				     ex_expr *keyColValExpr,
 				     ex_expr *hbaseFilterExpr,
+                                     ex_expr *hbTagExpr,
 
 				     UInt32 asciiRowLen,
 				     UInt32 convertRowLen,
@@ -60,7 +61,8 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
 				     UInt32 keyLen,
 				     UInt32 keyColValLen,
 				     UInt32 hbaseFilterValRowLen,
-				     
+				     UInt32 hbTagRowLen,
+
 				     const UInt16 asciiTuppIndex,
 				     const UInt16 convertTuppIndex,
 				     const UInt16 updateTuppIndex,
@@ -78,7 +80,8 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
 
                                      const UInt16 hbaseTimestampTuppIndex,
                                      const UInt16 hbaseVersionTuppIndex,
- 
+                                     const UInt16 hbTagTuppIndex,
+
 				     Queue * listOfScanRows,
 				     Queue * listOfGetRows,
 				     Queue * listOfFetchedColNames,
@@ -102,7 +105,9 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
 				     Float32 samplingRate,
 				     HbaseSnapshotScanAttributes * hbaseSnapshotScanAttributes,
 
-                                     HbaseAccessOptions * hbaseAccessOptions
+                                     ComHbaseAccessOptions * comHbaseAccessOptions,
+
+                                     char * hbaseAuths
 
 				     )
 : ComTdb( ComTdb::ex_HBASE_ACCESS,
@@ -132,6 +137,7 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   keyColValExpr_(keyColValExpr),
   insDelPreCondExpr_(NULL),
   hbaseFilterExpr_(hbaseFilterExpr),
+  hbTagExpr_(hbTagExpr),
 
   asciiRowLen_(asciiRowLen),
   convertRowLen_(convertRowLen),
@@ -146,6 +152,7 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   keyLen_(keyLen),
   keyColValLen_(keyColValLen),
   hbaseFilterValRowLen_(hbaseFilterValRowLen),
+  hbTagRowLen_(hbTagRowLen),
 
   asciiTuppIndex_(asciiTuppIndex),
   convertTuppIndex_(convertTuppIndex),
@@ -164,6 +171,7 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
 
   hbaseTimestampTuppIndex_(hbaseTimestampTuppIndex),
   hbaseVersionTuppIndex_(hbaseVersionTuppIndex),
+  hbTagTuppIndex_(hbTagTuppIndex),
 
   listOfScanRows_(listOfScanRows),
   listOfGetRows_(listOfGetRows),
@@ -191,8 +199,12 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   samplingRate_(samplingRate),
   sampleLocation_(NULL),
   hbaseRowsetVsbbSize_(0),
+  
+  hbaseCellTS_(-1),
 
-  hbaseAccessOptions_(hbaseAccessOptions)
+  comHbaseAccessOptions_(comHbaseAccessOptions),
+
+  hbaseAuths_(hbaseAuths)
 {};
 
 ComTdbHbaseAccess::ComTdbHbaseAccess(
@@ -240,6 +252,7 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   keyColValExpr_(NULL),
   insDelPreCondExpr_(NULL),
   hbaseFilterExpr_(NULL),
+  hbTagExpr_(NULL),
 
   asciiRowLen_(0),
   convertRowLen_(0),
@@ -254,6 +267,7 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   keyLen_(0),
   keyColValLen_(0),
   hbaseFilterValRowLen_(0),
+  hbTagRowLen_(0),
 
   asciiTuppIndex_(0),
   convertTuppIndex_(0),
@@ -271,6 +285,7 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
 
   hbaseTimestampTuppIndex_(0),
   hbaseVersionTuppIndex_(0),
+  hbTagTuppIndex_(0),
 
   listOfScanRows_(NULL),
   listOfGetRows_(NULL),
@@ -299,7 +314,11 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   sampleLocation_(NULL),
   hbaseRowsetVsbbSize_(0),
 
-  hbaseAccessOptions_(NULL)
+  hbaseCellTS_(-1),
+
+  comHbaseAccessOptions_(NULL),
+
+  hbaseAuths_(NULL)
 {
 }
 
@@ -311,7 +330,7 @@ ComTdbHbaseAccess::~ComTdbHbaseAccess()
 Int32
 ComTdbHbaseAccess::numExpressions() const
 {
-  return(16);
+  return(17);
 }
  
 // Return the expression names of the explain TDB based on some 
@@ -353,6 +372,8 @@ ComTdbHbaseAccess::getExpressionName(Int32 expNum) const
       return "hbaseFilterExpr";
     case 15:
       return "preCondExpr";
+    case 16:
+      return "hbTagExpr";
     default:
       return 0;
     }  
@@ -397,6 +418,8 @@ ComTdbHbaseAccess::getExpressionNode(Int32 expNum)
       return hbaseFilterExpr_;
     case 15:
       return insDelPreCondExpr_;
+    case 16:
+      return hbTagExpr_;
     default:
       return NULL;
     }  
@@ -419,6 +442,7 @@ Long ComTdbHbaseAccess::pack(void * space)
   keyColValExpr_.pack(space);
   insDelPreCondExpr_.pack(space);
   hbaseFilterExpr_.pack(space);
+  hbTagExpr_.pack(space);
   colFamNameList_.pack(space);
   workCriDesc_.pack(space);
   listOfFetchedColNames_.pack(space);
@@ -433,7 +457,8 @@ Long ComTdbHbaseAccess::pack(void * space)
   sampleLocation_.pack(space);
   LoadPrepLocation_.pack(space);
   hbaseSnapshotScanAttributes_.pack(space);
-  hbaseAccessOptions_.pack(space);
+  comHbaseAccessOptions_.pack(space);
+  hbaseAuths_.pack(space);
 
   // pack elements in listOfScanRows_
   if (listOfScanRows() && listOfScanRows()->numEntries() > 0)
@@ -487,6 +512,7 @@ Lng32 ComTdbHbaseAccess::unpack(void * base, void * reallocator)
   if(keyColValExpr_.unpack(base, reallocator)) return -1;
   if(insDelPreCondExpr_.unpack(base, reallocator)) return -1;
   if(hbaseFilterExpr_.unpack(base, reallocator)) return -1;
+  if(hbTagExpr_.unpack(base, reallocator)) return -1;
   if(colFamNameList_.unpack(base, reallocator)) return -1;
   if(workCriDesc_.unpack(base, reallocator)) return -1;
   if(listOfFetchedColNames_.unpack(base, reallocator)) return -1;
@@ -500,8 +526,9 @@ Lng32 ComTdbHbaseAccess::unpack(void * base, void * reallocator)
   if(hbasePerfAttributes_.unpack(base, reallocator)) return -1;
   if(sampleLocation_.unpack(base)) return -1;
   if(LoadPrepLocation_.unpack(base)) return -1;
-  if (hbaseSnapshotScanAttributes_.unpack(base,reallocator)) return -1;
-  if (hbaseAccessOptions_.unpack(base, reallocator)) return -1;
+  if(hbaseSnapshotScanAttributes_.unpack(base,reallocator)) return -1;
+  if(comHbaseAccessOptions_.unpack(base, reallocator)) return -1;
+  if(hbaseAuths_.unpack(base)) return -1;
 
   // unpack elements in listOfScanRows_
   if(listOfScanRows_.unpack(base, reallocator)) return -1;
@@ -941,9 +968,15 @@ void ComTdbHbaseAccess::displayContents(Space * space,ULng32 flag)
 		  updateRowLen_, returnFetchedRowLen_, returnUpdatedRowLen_);
       space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
 
-      str_sprintf(buf, "mergeInsertRowLen_ = %d, keyLen_ = %d", 
-		  mergeInsertRowLen_, keyLen_);
+      str_sprintf(buf, "mergeInsertRowLen_ = %d, keyLen_ = %d, hbTagRowLen_ = %d", 
+		  mergeInsertRowLen_, keyLen_, hbTagRowLen_);
       space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+
+      if (hbaseCellTS_ > 0)
+        {
+          str_sprintf(buf, "hbaseCellTS_ = %Ld", hbaseCellTS_);
+          space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+        }
 
       str_sprintf(buf, "Flag = %b",flags_);
       space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
@@ -951,9 +984,15 @@ void ComTdbHbaseAccess::displayContents(Space * space,ULng32 flag)
       str_sprintf(buf, "server_ = %s, zkPort_ = %s", server(), zkPort());
       space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
 
-      if ((getHbaseAccessOptions()) && (getHbaseAccessOptions()->multiVersions()))
+      if ((getComHbaseAccessOptions()) && (getComHbaseAccessOptions()->hbaseAccessOptions().multiVersions()))
         {
-          str_sprintf(buf, "numVersions = %d", getHbaseAccessOptions()->getNumVersions());
+          str_sprintf(buf, "numVersions = %d", getComHbaseAccessOptions()->hbaseAccessOptions().getNumVersions());
+          space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+        }
+
+      if (hbaseAuths())
+        {
+          str_sprintf(buf, "hbaseAuths_ = %s", hbaseAuths());
           space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
         }
 
@@ -1164,9 +1203,9 @@ ComTdbHbaseCoProcAccess::ComTdbHbaseCoProcAccess(
   : ComTdbHbaseAccess(COPROC_,
 		      tableName,
 		      projExpr,
-		      NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-		      0, projRowLen, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		      0, projTuppIndex, 0, 0, 0, 0, 0, 0, returnedTuppIndex, 0, 0, 0, 0, 0, 0,
+		      NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+		      0, projRowLen, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		      0, projTuppIndex, 0, 0, 0, 0, 0, 0, returnedTuppIndex, 0, 0, 0, 0, 0, 0, 0,
 		      NULL, NULL, listOfColNames, NULL, NULL, 
 		      NULL, NULL,
 		      workCriDesc,

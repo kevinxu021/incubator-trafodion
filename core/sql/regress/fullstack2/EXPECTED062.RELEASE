@@ -662,13 +662,13 @@ No externalized DEFAULTS attribute READONLY_CURSOR exists.
 --- SQL operation complete.
 >>showcontrol table;
 
-CONTROL TABLE A
+CONTROL TABLE TRAFODION.SCH.A
   TIMEOUT                       	123
-CONTROL TABLE B
+CONTROL TABLE TRAFODION.SCH.B
   MDAM                          	OFF
-CONTROL TABLE C
+CONTROL TABLE TRAFODION.SCH.C
   TIMEOUT                       	567
-CONTROL TABLE "*"
+CONTROL TABLE TRAFODION.SCH.*
   TIMEOUT                       	789
 
 --- SQL operation complete.
@@ -698,11 +698,11 @@ No CONTROL TABLE settings are in effect.
 --- SQL operation complete.
 >>showcontrol table;
 
-CONTROL TABLE B
+CONTROL TABLE TRAFODION.SCH.B
   MDAM                          	OFF
 CONTROL TABLE *
   TIMEOUT                       	777
-CONTROL TABLE C
+CONTROL TABLE TRAFODION.SCH.C
   TIMEOUT                       	567
 
 --- SQL operation complete.
@@ -718,7 +718,7 @@ CONTROL TABLE C
 --- SQL operation complete.
 >>showcontrol table;
 
-CONTROL TABLE B
+CONTROL TABLE TRAFODION.SCH.B
   MDAM                          	OFF
 
 --- SQL operation complete.
@@ -760,9 +760,9 @@ No CONTROL TABLE settings are in effect.
 --- SQL operation complete.
 >>showcontrol table;
 
-CONTROL TABLE A
+CONTROL TABLE TRAFODION.SCH.A
   MDAM                          	ON
-CONTROL TABLE B
+CONTROL TABLE TRAFODION.SCH.B
   TIMEOUT                       	3
 
 --- SQL operation complete.

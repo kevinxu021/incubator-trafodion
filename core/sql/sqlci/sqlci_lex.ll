@@ -360,6 +360,7 @@ B			[ \t\n]+
 [Ss][Hh][Oo][Ww][Ss][Hh][Aa][Pp][Ee]   return_IDENT_or_TOKEN(SHOWSHAPE, 0);
 [Ss][Hh][Oo][Ww][Ss][Ee][Tt]           return_IDENT_or_TOKEN(SHOWSET, 0);
 [Ss][Ee][Ss][Ss][Ii][Oo][Nn]           return_IDENT_or_TOKEN(SESSIONtoken, 0);
+[Ss][Ll][Ee][Ee][Pp]                   return_IDENT_or_TOKEN(SLEEPtoken, 0);
 [Ss][Tt][Oo][Rr][Ee]                   return_IDENT_or_TOKEN(STOREtoken, 0);
 [Ss][Yy][Nn][Tt][Aa][Xx]               return_IDENT_or_TOKEN(SYNTAX, 0);
 [Ss][Yy][Ss][Tt][Ee][Mm]               return_IDENT_or_TOKEN(SYSTEMtoken, 0);

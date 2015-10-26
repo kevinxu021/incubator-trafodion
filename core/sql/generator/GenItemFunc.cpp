@@ -3055,7 +3055,7 @@ short SequenceValue::codeGen(Generator * generator)
   return 0;
 }
 
-short HbaseTimestamp::codeGen(Generator * generator)
+short HbaseAttribute::codeGen(Generator * generator)
 {
   Attributes ** attr;
   
@@ -3070,15 +3070,38 @@ short HbaseTimestamp::codeGen(Generator * generator)
   if (generator->getExpGenerator()->genItemExpr(this, &attr, (1 + getArity()), -1) == 1)
     return 0;
 
-  ExFunctionHbaseTimestamp * hbt =
-    new(generator->getSpace()) ExFunctionHbaseTimestamp
-    (getOperatorType(), 
-     attr, 
-     colIndex_,
-     space);
+  ex_function_clause * hbf = NULL;
 
-  if (hbt)
-    generator->getExpGenerator()->linkClause(this, hbt);
+  switch (getOperatorType())
+    {
+    case ITM_HBASE_VISIBILITY:
+      hbf = new(generator->getSpace()) ExFunctionHbaseVisibility
+        (getOperatorType(), 
+         attr, 
+         0, // tagType
+         colIndex_,
+         space);
+      break;
+
+    case ITM_HBASE_TIMESTAMP:
+      hbf = new(generator->getSpace()) ExFunctionHbaseTimestamp
+        (getOperatorType(), 
+         attr, 
+         colIndex_,
+         space);
+      break;
+
+    case ITM_HBASE_VERSION:
+      hbf = new(generator->getSpace()) ExFunctionHbaseVersion
+        (getOperatorType(), 
+         attr, 
+         colIndex_,
+         space);
+      break;
+    }
+      
+  if (hbf)
+    generator->getExpGenerator()->linkClause(this, hbf);
 
   setChild(0, NULL);
 
@@ -3087,14 +3110,7 @@ short HbaseTimestamp::codeGen(Generator * generator)
   return 0;
 }
 
-short HbaseTimestampRef::codeGen(Generator * generator)
-{
-  GenAssert(0, "HbaseTimestampRef::codeGen. Should not reach here.");
-
-  return 0;
-}
-
-short HbaseVersion::codeGen(Generator * generator)
+short HbaseVisibilitySet::codeGen(Generator * generator)
 {
   Attributes ** attr;
   
@@ -3104,31 +3120,31 @@ short HbaseVersion::codeGen(Generator * generator)
 
   Space * space = generator->getSpace();
   
-  setChild(0, tsVals_);
-
   if (generator->getExpGenerator()->genItemExpr(this, &attr, (1 + getArity()), -1) == 1)
     return 0;
 
-  ExFunctionHbaseVersion * hbt =
-    new(generator->getSpace()) ExFunctionHbaseVersion
+  ex_function_clause * hbf = NULL;
+
+  hbf = new(generator->getSpace()) ExFunctionHbaseVisibilitySet
     (getOperatorType(), 
      attr, 
-     colIndex_,
+     colId_.length()-sizeof(short),
+     colId_.data() + sizeof(short),
+     visExpr_.length(),
+     visExpr_.data(),
      space);
 
-  if (hbt)
-    generator->getExpGenerator()->linkClause(this, hbt);
+  if (hbf)
+    generator->getExpGenerator()->linkClause(this, hbf);
 
-  setChild(0, NULL);
-
-  hbtMapInfo->codeGenerated();
+  //  hbtMapInfo->codeGenerated();
 
   return 0;
 }
 
-short HbaseVersionRef::codeGen(Generator * generator)
+short HbaseAttributeRef::codeGen(Generator * generator)
 {
-  GenAssert(0, "HbaseVersionRef::codeGen. Should not reach here.");
+  GenAssert(0, "HbaseAttributeRef::codeGen. Should not reach here.");
 
   return 0;
 }

@@ -496,6 +496,7 @@ static char * FCString (const char *idString, int isFC)
 %token SHOWPLAN
 %token SHOWSHAPE
 %token SHOWSET
+%token SLEEPtoken
 %token SQL
 %token SQLINFO
 %token SQLNAMES
@@ -1369,6 +1370,12 @@ sqlci_cmd :	MODE REPORT
                     $$ = new Wait(NULL, 0);
                   }
 
+        |       SLEEPtoken NUMBER
+                  {
+                    Lng32 v = atoi($2);
+                    $$ = new SleepVal(v);
+                  }
+
 ;
 
 commands_only :
@@ -2176,7 +2183,7 @@ cursor_info : dml_simple_table_type
 dml_type :
 	 	dml_simple_table_type	{}
 	|	CONTROL 		{$$ = DML_CONTROL_TYPE;}
-	|    OSIM               {$$ = DML_OSIM_TYPE;}
+	|       OSIM                    {$$ = DML_OSIM_TYPE;}
 	|	SETtoken CATALOG	{$$ = DML_CONTROL_TYPE;}
 	|	SETtoken SCHEMA		{$$ = DML_CONTROL_TYPE;}
 	|	SETtoken HIVEtoken		{$$ = DML_CONTROL_TYPE;}
@@ -2185,7 +2192,7 @@ dml_type :
         |       SETtoken SESSIONtoken   {$$ = DML_CONTROL_TYPE;}
 	|	UPDATEtoken  		{$$ = DML_UPDATE_TYPE;}
 	|	INSERTtoken  		{$$ = DML_INSERT_TYPE;}
-        |      UPSERTtoken            {$$ = DML_INSERT_TYPE;}
+        |       UPSERTtoken             {$$ = DML_INSERT_TYPE;}
 	|	ROWSETtoken  		{$$ = DML_INSERT_TYPE;}
 	|	DELETEtoken  		{$$ = DML_DELETE_TYPE;}
 	|	MERGEtoken  		{$$ = DML_UPDATE_TYPE;}

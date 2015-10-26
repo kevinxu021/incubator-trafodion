@@ -90,6 +90,11 @@ import org.apache.hadoop.fs.FileUtil;
 import java.util.UUID;
 import java.security.InvalidParameterException;
 
+// for visibility exprs
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.security.visibility.CellVisibility;
+import org.apache.hadoop.hbase.security.visibility.Authorizations;
+
 public class HTableClient {
 	private static final int GET_ROW = 1;
 	private static final int BATCH_GET = 2;
@@ -115,6 +120,7 @@ public class HTableClient {
 	int[] kvFamOffset = null;
 	long[] kvTimestamp = null;
 	byte[][] kvBuffer = null;
+        byte[][] kvTag = null;
 	byte[][] rowIDs = null;
 	int[] kvsPerRow = null;
         static ExecutorService executorService = null;
@@ -375,7 +381,10 @@ public class HTableClient {
                                  String snapName,
                                  String tmpLoc,
                                  int espNum,
-                                 int versions)
+                                 int versions,
+                                 long minTS,
+                                 long maxTS,
+                                 String hbaseAuths)
 	        throws IOException, Exception {
 	  if (logger.isTraceEnabled()) logger.trace("Enter startScan() " + tableName + " txid: " + transID+ " CacheBlocks: " + cacheBlocks + " numCacheRows: " + numCacheRows + " Bulkread: " + useSnapshotScan);
 
@@ -407,12 +416,18 @@ public class HTableClient {
                }
            }
 
+          if ((minTS != -1) && (maxTS != -1))
+              {
+                scan.setTimeRange(minTS, maxTS);
+              }
+
           if (cacheBlocks == true) {
               scan.setCacheBlocks(true);
           }
 	  else
               scan.setCacheBlocks(false);
-      scan.setSmall(smallScanner);    
+
+          scan.setSmall(smallScanner);    
 	  scan.setCaching(numCacheRows);
 	  numRowsCached = numCacheRows;
 	  if (columns != null) {
@@ -451,6 +466,17 @@ public class HTableClient {
 	  } else if (samplePercent > 0.0f) {
 	    scan.setFilter(new RandomRowFilter(samplePercent));
 	  }
+
+          if (hbaseAuths != null) {
+            List<String> listOfHA = Arrays.asList(hbaseAuths);
+            
+            Authorizations auths = new Authorizations(listOfHA);
+            
+            scan.setAuthorizations(auths);
+
+            //            System.out.println("hbaseAuths " + hbaseAuths);
+            //            System.out.println("listOfHA " + listOfHA);
+          }
 
 	  if (!useSnapshotScan || transID != 0)
 	  {
@@ -669,6 +695,30 @@ public class HTableClient {
 		}
 	}
 
+        protected int getTag(Cell cell, byte tagType, int tagsLen, byte[] tagValue) {
+            if (tagsLen <= 0)
+                return 0;
+
+            Iterator<Tag> tagI
+                = CellUtil.tagsIterator(CellUtil.getTagArray(cell), 
+                                        cell.getTagsOffset(), tagsLen);
+            while (tagI.hasNext())
+                {
+                    Tag tag = tagI.next();
+                    if (tag.getType() == tagType)
+                        {
+                            System.arraycopy(tag.getBuffer(), tag.getTagOffset(), 
+                                             tagValue, 0, tag.getTagLength());
+
+                        }
+                            System.out.println(tagType);
+                            System.out.println(tagValue);
+
+                }
+
+            return 0;
+        }
+
 	protected int pushRowsToJni(Result[] result) 
 			throws IOException {
 		if (result == null || result.length == 0)
@@ -701,6 +751,7 @@ public class HTableClient {
 			kvFamOffset = new int[numTotalCells];
 			kvTimestamp = new long[numTotalCells];
 			kvBuffer = new byte[numTotalCells][];
+                        kvTag = new byte[numTotalCells][];
 		}
                
 		if (rowIDs == null || (rowIDs != null &&
@@ -730,6 +781,15 @@ public class HTableClient {
 				kvFamOffset[cellNum] = kv.getFamilyOffset();
 				kvTimestamp[cellNum] = kv.getTimestamp();
 				kvBuffer[cellNum] = kv.getValueArray();
+
+                                int tagsLen = kv.getTagsLength();
+                                //                                System.out.println(tagsLen);
+                                if (tagsLen > 0)
+                                    {
+                                        byte tagType = 0; 
+                                        getTag(kv, tagType, tagsLen, kvTag[cellNum]); 
+                                    }
+
 				colFound = true;
 			}
 		}
@@ -740,12 +800,12 @@ public class HTableClient {
 			cellsReturned = 0;
 		if (cellsReturned == 0)
 			setResultInfo(jniObject, null, null,
-				null, null, null, null,
-				null, null, rowIDs, kvsPerRow, cellsReturned, rowsReturned);
+                                      null, null, null, null,
+                                      null, null, null, rowIDs, kvsPerRow, cellsReturned, rowsReturned);
 		else 
 			setResultInfo(jniObject, kvValLen, kvValOffset,
-				kvQualLen, kvQualOffset, kvFamLen, kvFamOffset,
-				kvTimestamp, kvBuffer, rowIDs, kvsPerRow, cellsReturned, rowsReturned);
+                                      kvQualLen, kvQualOffset, kvFamLen, kvFamOffset,
+                                      kvTimestamp, kvBuffer, kvTag, rowIDs, kvsPerRow, cellsReturned, rowsReturned);
 		return rowsReturned;	
 	}		
 	
@@ -775,6 +835,7 @@ public class HTableClient {
 			kvFamOffset = new int[numTotalCells];
 			kvTimestamp = new long[numTotalCells];
 			kvBuffer = new byte[numTotalCells][];
+                        kvTag = new byte[numTotalCells][];
 		}
 		if (rowIDs == null)
 		{
@@ -801,15 +862,23 @@ public class HTableClient {
 			kvFamOffset[colNum] = kv.getFamilyOffset();
 			kvTimestamp[colNum] = kv.getTimestamp();
 			kvBuffer[colNum] = kv.getValueArray();
+
+                        int tagsLen = kv.getTagsLength();
+                        //                        System.out.println(tagsLen);
+                        if (tagsLen > 0)
+                            {
+                                byte tagType = 0; 
+                                getTag(kv, tagType, tagsLen, kvTag[colNum]); 
+                            }
 		}
 		if (numColsReturned == 0)
 			setResultInfo(jniObject, null, null,
-				null, null, null, null,
-				null, null, rowIDs, kvsPerRow, numColsReturned, rowsReturned);
+                                      null, null, null, null,
+                                      null, null, null,rowIDs, kvsPerRow, numColsReturned, rowsReturned);
 		else
 			setResultInfo(jniObject, kvValLen, kvValOffset,
-				kvQualLen, kvQualOffset, kvFamLen, kvFamOffset,
-				kvTimestamp, kvBuffer, rowIDs, kvsPerRow, numColsReturned, rowsReturned);
+                                      kvQualLen, kvQualOffset, kvFamLen, kvFamOffset,
+                                      kvTimestamp, kvBuffer, kvTag, rowIDs, kvsPerRow, numColsReturned, rowsReturned);
 		return rowsReturned;	
 	}		
 	
@@ -827,12 +896,22 @@ public class HTableClient {
 		else
 			del = new Delete(rowID, timestamp);
 
+                /*
+                byte[] visExpr = Bytes.toBytes("MANAGER");
+                String strVisExpr = new String(visExpr);
+                CellVisibility cv = new CellVisibility(strVisExpr);
+                del.setCellVisibility(cv);
+                */
+
 		if (columns != null) {
 			for (int i = 0; i < columns.length ; i++) {
 				byte[] col = (byte[]) columns[i];
-				del.deleteColumns(getFamily(col), getName(col));
+				del.addColumns(getFamily(col), getName(col));
+
+                                //System.out.println("colFam = " + getFamily(col) + " colName = " + getName(col));
 			}
 		}
+
                	if (asyncOperation) {
 			future = executorService.submit(new Callable() {
  				public Object call() throws Exception {
@@ -951,9 +1030,10 @@ public class HTableClient {
 	}
 
 	public boolean putRow(final long transID, final byte[] rowID, Object row,
-		byte[] columnToCheck, final byte[] colValToCheck,
-		final boolean checkAndPut, boolean asyncOperation) throws IOException, InterruptedException, 
-                          ExecutionException 
+                              byte[] columnToCheck, final byte[] colValToCheck,
+                              long timestamp,
+                              final boolean checkAndPut, boolean asyncOperation) throws IOException, InterruptedException, 
+                                                                                        ExecutionException 
 	{
 		if (logger.isTraceEnabled()) logger.trace("Enter putRow() " + tableName + 
 							  " transID: " + transID +
@@ -969,7 +1049,14 @@ public class HTableClient {
 		byte[] colName, colValue;
 
 		bb = (ByteBuffer)row;
-		put = new Put(rowID);
+                if (timestamp > 0)
+                    {
+                        put = new Put(rowID, timestamp);
+
+                        //                        System.out.println("here " + timestamp);
+                    }
+                else
+                    put = new Put(rowID);
 		numCols = bb.getShort();
 		for (short colIndex = 0; colIndex < numCols; colIndex++)
 		{
@@ -1046,7 +1133,7 @@ public class HTableClient {
 			 long timestamp,
                          boolean asyncOperation) throws IOException, InterruptedException, ExecutionException {
 		return putRow(transID, rowID, row, null, null, 
-				false, asyncOperation);
+                              timestamp, false, asyncOperation);
 	}
 
 	public boolean putRows(final long transID, short rowIDLen, Object rowIDs, 
@@ -1119,6 +1206,94 @@ public class HTableClient {
 		return true;
 	} 
 
+        int ROUND2(int v)
+        {
+            return (v+1) & (~1);
+        }
+
+	public boolean updateVisibility(final long transID, final byte[] rowID, Object row) throws IOException, InterruptedException, 
+                          ExecutionException 
+	{
+		if (logger.isTraceEnabled()) logger.trace("Enter updateVisibility() " + tableName);
+
+                final Put put = new Put(rowID);
+
+		short numCols;
+		short colNameLen;
+                int visExprLen;
+		byte[] family = null;
+		byte[] qualifier = null;
+		byte[] colName, visExpr;
+
+                ///////////////////////////////////////////////////////
+                // layout of row
+                //
+                //   numVisExprs(int)
+                //    (for each visibility expr)
+                //     colNameLen(short)
+                //     colName(colNameLen bytes)
+                //     1 byte filler, if needed to round to 2.
+                // 
+                //     visExprLen(int)
+                //     visExpr(visExprLen bytes)
+                //     1 byte filler, if needed.
+                //
+                ///////////////////////////////////////////////////////
+		ByteBuffer bb = (ByteBuffer)row;
+                bb.order(ByteOrder.LITTLE_ENDIAN);
+
+                int fillerLen = 0;
+                byte[] filler = new byte[2];
+                Result getResult;
+		int numVisExprs = bb.getInt();
+		for (short visExprIndex = 0; visExprIndex < numVisExprs; visExprIndex++)
+		{
+			colNameLen = bb.getShort();
+			colName = new byte[colNameLen];
+			bb.get(colName, 0, colNameLen);
+                        fillerLen = ROUND2(colNameLen) - colNameLen;
+                        bb.get(filler, 0, fillerLen);
+
+			visExprLen = bb.getInt();
+			visExpr = new byte[visExprLen];
+			bb.get(visExpr, 0, visExprLen);
+                        fillerLen = ROUND2(visExprLen) - visExprLen;
+                        bb.get(filler, 0, fillerLen);
+
+			family = getFamily(colName);
+			qualifier = getName(colName);
+
+                        Get get = new Get(rowID);
+                        get.addColumn(family, qualifier);
+                        if (transID != 0) {
+                            getResult = table.get(transID, get);
+                        } else {
+                            getResult = table.get(get);
+                        }
+
+                        if (getResult == null
+                            || getResult.isEmpty()) {
+                            //                            setJavaObject(jniObject);
+                            return false;
+                        }
+
+                        String strVisExpr = new String(visExpr);
+                        CellVisibility cv = new CellVisibility(strVisExpr);
+                        
+                        //                        put = new Put(rowID);
+                        for (Cell cell : getResult.listCells()) {
+                            put.add(cell);
+                        }
+                        put.setCellVisibility(cv);
+
+                        if (useTRex && (transID != 0)) 
+                            table.put(transID, put);
+                        else 
+                            table.put(put);
+                }
+                return true;
+        }	
+
 	public boolean completeAsyncOperation(int timeout, boolean resultArray[]) 
 			throws InterruptedException, ExecutionException
 	{
@@ -1144,7 +1319,7 @@ public class HTableClient {
 			 long timestamp,
                          boolean asyncOperation) throws IOException, InterruptedException, ExecutionException  {
 		return putRow(transID, rowID, row, null, null, 
-				true, asyncOperation);
+                              timestamp, true, asyncOperation);
 	}
 
 	public boolean checkAndUpdateRow(long transID, byte[] rowID, 
@@ -1152,7 +1327,7 @@ public class HTableClient {
              long timestamp, boolean asyncOperation) throws IOException, InterruptedException, 
                                     ExecutionException, Throwable  {
 		return putRow(transID, rowID, columns, columnToCheck, 
-			colValToCheck, 
+                              colValToCheck, timestamp,
 				true, asyncOperation);
 	}
 
@@ -1336,14 +1511,16 @@ public class HTableClient {
     }
 
     private native int setResultInfo(long jniObject,
-				int[] kvValLen, int[] kvValOffset,
-				int[] kvQualLen, int[] kvQualOffset,
-				int[] kvFamLen, int[] kvFamOffset,
-  				long[] timestamp, 
-				byte[][] kvBuffer, byte[][] rowIDs,
-				int[] kvsPerRow, int numCellsReturned,
-				int rowsReturned);
-
+                                     int[] kvValLen, int[] kvValOffset,
+                                     int[] kvQualLen, int[] kvQualOffset,
+                                     int[] kvFamLen, int[] kvFamOffset,
+                                     long[] timestamp, 
+                                     byte[][] kvBuffer, 
+                                     byte[][] kvTag,
+                                     byte[][] rowIDs,
+                                     int[] kvsPerRow, int numCellsReturned,
+                                     int rowsReturned);
+    
    private native void cleanup(long jniObject);
 
    protected native int setJavaObject(long jniObject);

@@ -238,6 +238,9 @@ protected:
   inline ex_expr *hbaseFilterValExpr() const 
     { return hbaseAccessTdb().hbaseFilterExpr_; }
 
+  inline ex_expr *hbTagExpr() const 
+    { return hbaseAccessTdb().hbTagExpr_; }
+
   ex_expr * beginKeyExpr() const
   { 
     return (keySubsetExeExpr() ? keySubsetExeExpr()->bkPred() : NULL);
@@ -409,6 +412,7 @@ protected:
   char * encodedKeyRow_;
   char * keyColValRow_;
   char * hbaseFilterValRow_;
+  char * hbTagRow_;
 
   char * rowwiseRow_;
   Lng32 rowwiseRowLen_;
@@ -963,6 +967,8 @@ public:
     , SCAN_CLOSE_AND_INIT
     , UPDATE_ROW
     , DELETE_ROW
+    , UPDATE_TAG
+    , UPDATE_TAG_AFTER_ROW_UPDATE
     , EVAL_RETURN_ROW_EXPRS
     , RETURN_UPDATED_ROWS
     , HANDLE_ERROR
@@ -1033,6 +1039,8 @@ public:
     , DELETE_ROW
     , CHECK_AND_DELETE_ROW
     , CHECK_AND_UPDATE_ROW
+    , UPDATE_TAG
+    , UPDATE_TAG_AFTER_ROW_UPDATE
     , EVAL_RETURN_ROW_EXPRS
     , RETURN_UPDATED_ROWS
     , HANDLE_ERROR

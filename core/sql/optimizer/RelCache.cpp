@@ -1191,13 +1191,38 @@ void Scan::generateCacheKey(CacheWA &cwa) const
     cwa += AM_AN_MPALIAS_QUERY;
   }
 
-  if (getHbaseAccessOptions())
+  if (getOptHbaseAccessOptions())
     {
-      cwa += " hbaseVersions: ";
-      char numVersions[20];
-      sprintf(numVersions, " %d", getHbaseAccessOptions()->getHbaseVersions());
-      cwa += numVersions ;
-    }
+      if (getOptHbaseAccessOptions()->getNumVersions() != 0)
+        {
+          cwa += " hbaseVersions: ";
+          char numVersions[20];
+          sprintf(numVersions, " %d", getOptHbaseAccessOptions()->getNumVersions());
+          cwa += numVersions ;
+        }
+
+      if (getOptHbaseAccessOptions()->hbaseMinTS() != -1)
+        {
+          cwa += " hbaseMinTS: ";
+          char minTS[25];
+          str_sprintf(minTS, " %Ld", getOptHbaseAccessOptions()->hbaseMinTS());
+          cwa += minTS ;
+        }
+      
+      if (getOptHbaseAccessOptions()->hbaseMaxTS() != -1)
+        {
+          cwa += " hbaseMaxTS: ";
+          char maxTS[25];
+          str_sprintf(maxTS, " %Ld", getOptHbaseAccessOptions()->hbaseMaxTS());
+          cwa += maxTS ;
+        }
+
+      if (NOT getOptHbaseAccessOptions()->hbaseAuths().isNull())
+        {
+          cwa += getOptHbaseAccessOptions()->hbaseAuths();
+        }
+
+     }
 }
 
 // is this entire expression cacheable after this phase?
@@ -1311,6 +1336,35 @@ NABoolean Update::isCacheableExpr(CacheWA& cwa)
 {
   cwa.setIsUpdate(TRUE);
   return GenericUpdate::isCacheableExpr(cwa);
+}
+
+// change literals of a cacheable query into ConstantParameters 
+RelExpr* Update::normalizeForCache(CacheWA& cwa, BindWA& bindWA)
+{
+  if (nodeIsNormalizedForCache()) { 
+    return this; 
+  }
+
+  if (hbaseTagExprList_.entries() > 0) {
+    ItemExpr * ie = hbaseTagExprList_.convertToItemExpr();
+    ie = ie->normalizeForCache(cwa, bindWA);
+    hbaseTagExprList_.clear();
+    hbaseTagExprList_.insertTree(ie);
+  }
+
+  // replace descendants' literals into ConstantParameters
+  return GenericUpdate::normalizeForCache(cwa, bindWA);
+}
+
+// append an ascii-version of Merge into cachewa.qryText_
+void Update::generateCacheKey(CacheWA &cwa) const
+{
+  GenericUpdate::generateCacheKey(cwa);
+
+  if (hbaseTagExprList_.entries() > 0) {
+    ItemExpr * ie = hbaseTagExprList_.convertToItemExpr();
+    ie->generateCacheKey(cwa);
+  }
 }
 
 // append an ascii-version of FastExtract into cachewa.qryText_
