@@ -9,8 +9,7 @@
 							style="height: 24px; margin-right: 4px; cursor: pointer; cursor: hand;">DCS
 							Logs</a>
 					</div>
-					<div class="btn-group" 
-						style="margin-bottom: 8px; margin-top: 9px;">
+					<div class="btn-group" style="margin-bottom: 8px; margin-top: 9px;">
 						<label id="timeRangeLabel"
 							style="display: inline-block; margin-top: 5px; margin-right: 5px; font-size: 14px; font-weight: normal">Time
 							Range</label>
@@ -64,7 +63,8 @@
 		</div>
 	</div>
 	<div class="modal fade" id="filterDialog" tabindex="-1" role="dialog"
-		aria-labelledby="filterDialogLabel" data-backdrop="static" data-keyboard="false">
+		aria-labelledby="filterDialogLabel" data-backdrop="static"
+		data-keyboard="false">
 		<div class="modal-dialog" role="document"
 			style="overflow: auto; height: 700px">
 			<div class="modal-content">
@@ -123,30 +123,27 @@
 						<div class="form-group">
 							<label for="filter-component-names" class="control-label">Component
 								Name(s) : </label> <input type="checkbox" id="component-mon" value="MON"
-								style="margin-left: 4px; padding-right: 4px"> MON <input
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Monitor"> MON <input
 								type="checkbox" id="component-mxosrvr" value="MXOSRVR"
-								style="margin-left: 4px; padding-right: 4px"> MXOSRVR <input
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Master Executor"> MXOSRVR <input
 								type="checkbox" id="component-sql" value="SQL"
-								style="margin-left: 4px; padding-right: 4px"> SQL <input
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="SQL"> SQL <input
 								type="checkbox" id="component-sql-comp" value="SQL.COMP"
-								style="margin-left: 4px; padding-right: 4px"> SQL.COMP <input
-								type="checkbox" id="component-sql-comp-descgen"
-								value="SQL.Comp.DescGen"
-								style="margin-left: 4px; padding-right: 4px">
-							SQL.Comp.DescGen <input type="checkbox" id="component-sql-esp"
-								value="SQL.ESP" style="margin-left: 4px; padding-right: 4px">
-							SQL.ESP <input type="checkbox" id="component-sql-exe"
-								value="SQL.EXE" style="margin-left: 4px; padding-right: 4px">
-							SQL.EXE <input type="checkbox" id="component-sql-lob"
-								value="SQL.LOB" style="margin-left: 4px; padding-right: 4px">
-							SQL.LOB <input type="checkbox" id="component-sql-sscp"
-								value="SQL.SSCP" style="margin-left: 4px; padding-right: 4px">
-							SQL.SSCP <input type="checkbox" id="component-sql-ssmp"
-								value="SQL.SSMP" style="margin-left: 4px; padding-right: 4px">
-							SQL.SSMP <input type="checkbox" id="component-sql-udr"
-								value="SQL.UDR" style="margin-left: 4px; padding-right: 4px">
-							SQL.UDR<input type="checkbox" id="component-wdg" value="WDG"
-								style="margin-left: 4px; padding-right: 4px"> WDG
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Compiler"> SQL.COMP <input
+								type="checkbox" id="component-sql-esp" value="SQL.ESP"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Executor Server Process"> SQL.ESP <input
+								type="checkbox" id="component-sql-exe" value="SQL.EXE"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Master Executor SQL"> SQL.EXE <input
+								type="checkbox" id="component-sql-lob" value="SQL.LOB"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="SQL Large Objects"> SQL.LOB <input
+								type="checkbox" id="component-sql-sscp" value="SQL.SSCP"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Runtime Manageability Service"> SQL.SSCP <input
+								type="checkbox" id="component-sql-ssmp" value="SQL.SSMP"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Runtime Manageability Service"> SQL.SSMP <input
+								type="checkbox" id="component-sql-udr" value="SQL.UDR"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="User Defined Routines"> SQL.UDR <input
+								type="checkbox" id="component-wdg" value="WDG"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Watchdog"> WDG
 						</div>
 						<div class="form-group">
 							<label for="filter-process-names" class="control-label">Process
