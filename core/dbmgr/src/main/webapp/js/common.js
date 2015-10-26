@@ -144,7 +144,7 @@ define(['moment',
 				return "";
 			},
 
-			this.formatGraphDateLabels = function(utcMilliseconds, interval){
+			this.formatGraphDateLabels = function(milliSeconds, interval, isUtc){
 				var offSetString = 'HH:mm';
 
 				if (interval <= (1 * 60 * 60 * 1000)) {
@@ -166,16 +166,29 @@ define(['moment',
 				} else {
 					offSetString =  'MM-DD HH:mm'; // For longer than 3 months, use every 1 week
 				}
-				return _this.toServerLocalDateFromUtcMilliSeconds(utcMilliseconds, offSetString);
+				if(isUtc !=null && isUtc == true)
+					return _this.toServerLocalDateFromUtcMilliSeconds(milliSeconds, offSetString);
+				return _this.toServerLocalDateFromMilliSeconds(milliSeconds, offSetString);
 			},
 
-			this.toServerLocalDateFromUtcMilliSeconds = function(utcMilliSeconds, formatString) {
-				if (utcMilliSeconds != null) {
+			this.toServerLocalDateFromMilliSeconds = function(milliSeconds, formatString) {
+				if (milliSeconds != null) {
 					//return moment(utcMilliSeconds + (_this.serverUtcOffset)).local().format('YYYY-MM-DD HH:mm:ss');
 					if(formatString == null){
 						formatString = 'YYYY-MM-DD HH:mm:ss z';
 					}
-					return moment(utcMilliSeconds + (_this.serverUtcOffset)).tz(_this.serverTimeZone).format(formatString);
+					return moment(milliSeconds).tz(_this.serverTimeZone).format(formatString);
+				}
+				return "";
+			},
+			
+			this.toServerLocalDateFromUtcMilliSeconds = function(utcMilliSeconds, formatString) {
+				if (utcMilliSeconds != null) {
+					return moment(utcMilliSeconds + (_this.serverUtcOffset)).local().format('YYYY-MM-DD HH:mm:ss');
+					/*if(formatString == null){
+						formatString = 'YYYY-MM-DD HH:mm:ss z';
+					}
+					return moment(utcMilliSeconds + _this.serverUtcOffset).tz(_this.serverTimeZone).format(formatString);*/
 				}
 				return "";
 			},
@@ -277,6 +290,9 @@ define(['moment',
 				});
 			};
 
+			this.microsecondsToString = function(microseconds){
+				return _this.millisecondsToString(microseconds/1000);
+			};
 			this.millisecondsToString = function(milliseconds) {
 				var oneDay = (3600000 * 24);
 				var oneHour = 3600000;

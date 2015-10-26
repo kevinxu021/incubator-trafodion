@@ -593,7 +593,7 @@ define([
 									$.each($(content), function(i, v){
 										var aa = 5;
 										if($(v).hasClass('morris-hover-row-label')){
-											$(v).text("Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x));
+											$(v).text("Time : " + common.toServerLocalDateFromMilliSeconds(row.x));
 											newContent.push($(v));
 										}
 										if($(v).hasClass('morris-hover-point')){
@@ -751,7 +751,7 @@ define([
 									$.each($(content), function(i, v){
 										var aa = 5;
 										if($(v).hasClass('morris-hover-row-label')){
-											$(v).text("Time : " + common.toServerLocalDateFromUtcMilliSeconds(row.x));
+											$(v).text("Time : " + common.toServerLocalDateFromMilliSeconds(row.x));
 											newContent.push($(v));
 										}
 										if($(v).hasClass('morris-hover-point')){

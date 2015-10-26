@@ -22,6 +22,8 @@ define(['handlers/EventDispatcher', 'common'],
 				this.FETCH_NODES_ERROR = 'fetchNodesError';
 				this.FETCH_ALERTS_LIST_SUCCESS = 'FETCH_ALERTS_LIST_SUCCESS';
 				this.FETCH_ALERTS_LIST_ERROR = 'FETCH_ALERTS_LIST_ERROR';
+				this.FETCH_VERSION_SUCCESS = 'FETCH_VERSION_SUCCESS';
+				this.FETCH_VERSION_ERROR = 'FETCH_VERSION_ERROR';
 				
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
@@ -121,7 +123,31 @@ define(['handlers/EventDispatcher', 'common'],
 							dispatcher.fire(_this.FETCH_ALERTS_LIST_ERROR, jqXHR, res, error);
 						}
 					});
-				};					
+				};
+				
+				this.fetchServerInfo = function(){
+					var xhr = xhrs["server_version"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["server_version"] = $.ajax({
+						url: 'resources/server/about',
+						type:'POST',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.FETCH_VERSION_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.FETCH_VERSION_ERROR, jqXHR, res, error);
+						}
+					});
+				};	
+				
 
 				this.init = function() {
 				};
