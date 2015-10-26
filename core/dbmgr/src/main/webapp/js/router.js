@@ -21,12 +21,13 @@ define([
         'views/workloads/QueryPlanView',
         'views/logs/LogsView',
         'views/alerts/AlertsSummaryView',
+        'views/help/AboutView',
         'model/Session',
         'model/Localizer',
         'metismenu'
         ], function($, _, Backbone, NavbarView, DashboardView, WorkbenchView, DCSServerView, LoginView, DatabaseView, 
         		ActiveWorkloadsView, ActiveQueryDetailView, HistoricalWorkloadsView, HistoricalWorkloadDetailView, QueryPlanView, 
-        		LogsView, AlertsSummaryView, Session, Localizer) {
+        		LogsView, AlertsSummaryView, AboutView, Session, Localizer) {
 	'use strict';
 
 	var currentSelection = null;
@@ -43,6 +44,7 @@ define([
 	var queryPlanView = null;
 	var logsView = null;
 	var alertsSummaryView = null;
+	var aboutView = null;
 	
 	var AppRouter = Backbone.Router.extend({
 		execute: function(callback, args, name) {
@@ -74,6 +76,7 @@ define([
 			'workloads/active/querydetail(/*args)':'showActiveQueryDetail',
 			'workloads/history/queryplan(/*args)':'showQueryPlan',
 			'alerts': 'showAlertsSummary',
+			'help/about': 'showAbout',
 			'logs': 'showLogs',
 			'tools/(*args)': 'showTools',
 			// Default
@@ -115,6 +118,7 @@ define([
 		queryPlanView = null
 		logsView = null;		
 		alertsSummaryView = null;
+		logsView = null;
 	};
 
 	var sessionTimeOut = function(){
@@ -211,6 +215,12 @@ define([
 				alertsSummaryView = new AlertsSummaryView();
 			switchView(alertsSummaryView, args);
 		});
+		
+		app_router.on('route:showAbout', function (args) {
+			if(aboutView == null)
+				aboutView = new AboutView();
+			switchView(aboutView, args);
+		});	
 
 		app_router.on('route:showTools', function (args) {
 		});	
