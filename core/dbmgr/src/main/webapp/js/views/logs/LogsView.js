@@ -16,7 +16,10 @@ define([
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
-        'tabletools',
+        'tablebuttons',
+        'buttonsflash',
+        'buttonsprint',
+        'buttonshtml',     
         'datetimepicker',
         'jqueryvalidate'
 
@@ -218,11 +221,36 @@ define([
         	if($('#severity-debug').is(':checked'))
         		severities.push($('#severity-debug').val());
         	
+        	if($('#component-mon').is(':checked'))
+        		components.push($('#component-mon').val());
+        	if($('#component-mxosrvr').is(':checked'))
+        		components.push($('#component-mxosrvr').val());
+        	if($('#component-sql').is(':checked'))
+        		components.push($('#component-sql').val());
+        	if($('#component-sql-comp').is(':checked'))
+        		components.push($('#component-sql-comp').val());
+        	if($('#component-sql-descgen').is(':checked'))
+        		components.push($('#component-sql-descgen').val());
+        	if($('#component-sql-esp').is(':checked'))
+        		components.push($('#component-sql-esp').val());
+        	if($('#component-sql-exe').is(':checked'))
+        		components.push($('#component-sql-exe').val());
+        	if($('#component-sql-lob').is(':checked'))
+        		components.push($('#component-sql-lob').val());
+        	if($('#component-sql-sscp').is(':checked'))
+        		components.push($('#component-sql-sscp').val());
+        	if($('#component-sql-ssmp').is(':checked'))
+        		components.push($('#component-sql-ssmp').val());
+        	if($('#component-sql-udr').is(':checked'))
+        		components.push($('#component-sql-udr').val());
+        	if($('#component-wdg').is(':checked'))
+        		components.push($('#component-wdg').val());
+        	
         	var param = {};
         	param.startTime = startTime.format('YYYY-MM-DD HH:mm:ss');
         	param.endTime = endTime.format('YYYY-MM-DD HH:mm:ss');
         	param.severities = severities.join(',');
-        	param.componentNames = $(FILTER_COMPONENT_NAMES).val();
+        	param.componentNames = components.join(',');
         	param.processNames = $(FILTER_PROCESS_NAMES).val();
         	param.errorCodes = $(FILTER_ERROR_CODES).val();
         	param.message = $(FILTER_MESSAGE_TEXT).val();
@@ -275,7 +303,7 @@ define([
 					"oLanguage": {
        				 "sEmptyTable": "No log entries found."
 					},
-					dom: 'T<"clear">lfrtip',
+					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
 					"bPaginate" : true, 
 					//"bAutoWidth": true,
@@ -297,9 +325,9 @@ define([
 					      }
 					    } ],
 					paging: true,
-					"tableTools": {
-						"sSwfPath": "bower_components/datatables-tabletools/swf/copy_csv_xls_pdf.swf"
-					},
+					buttons: [
+					          'copy','csv','excel','pdf','print'
+				          ],
 					aaSorting: [[ 0, "desc" ]],
 					fnDrawCallback: function(){
 						//$('#query-results td').css("white-space","nowrap");

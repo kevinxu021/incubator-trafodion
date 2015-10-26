@@ -14,9 +14,12 @@ define([
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
-        'tabletools',
         'datetimepicker',
-        'jqueryvalidate'
+        'jqueryvalidate',
+        'tablebuttons',
+        'buttonsflash',
+        'buttonsprint',
+        'buttonshtml'        
         ], function (BaseView, WorkloadsT, $, wHandler, moment, common) {
 	'use strict';
     var LOADING_SELECTOR = "#loadingImg",
@@ -244,7 +247,7 @@ define([
 					"oLanguage": {
        				 "sEmptyTable": "No queries found."
 					},
-					dom: 'T<"clear">lfrtip',
+					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
 					"bPaginate" : bPaging, 
 					"bAutoWidth": true,
@@ -292,10 +295,9 @@ define([
 						      }
 						    } ],
 					paging: true,
-					"tableTools": {
-						"sRowSelect": "multi",
-						"sSwfPath": "bower_components/datatables-tabletools/swf/copy_csv_xls_pdf.swf"
-					},
+					buttons: [
+					          'copy','csv','excel','pdf','print'
+				          ],					                 
 					fnDrawCallback: function(){
 						//$('#query-results td').css("white-space","nowrap");
 		             }

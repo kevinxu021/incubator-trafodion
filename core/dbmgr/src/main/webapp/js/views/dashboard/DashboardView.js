@@ -18,8 +18,10 @@ define([
         'views/TimeRangeView',
         'datatables',
         'datatablesBootStrap',
-        'tabletools',
-        'responsivetable'
+        'responsivetable',
+        'tablebuttons',
+        'buttonsprint',
+        'buttonshtml'
         ], function (BaseView, Raphael, Morris, DashboardT, dashboardHandler, serverHandler, $, common, moment, refreshTimer, timeRangeView) {
 	'use strict';
 
@@ -41,13 +43,14 @@ define([
 	DRILLDOWN_SPINNER = '#metrics-drilldown-spinner',
 	DRILLDOWN_CHART_CONTAINER = '#metrics-drilldown-chart',
 	DRILLDOWN_ERROR_CONTAINER= '#metrics-drilldown-error-text',
-	
+
 	REFRESH_ACTION = '#refreshAction',
 	OPEN_FILTER = '#openFilter';
 
 	var transactionsGraph = null;
 
 	var renderedCharts = {};
+	var chartsData = {};
 
 	var chartConfig = null;
 	var transConfig = null;
@@ -58,9 +61,19 @@ define([
 	var DashboardView = BaseView.extend({
 		template:  _.template(DashboardT),
 
+		initVariables: function (){
+			renderedCharts = {};
+			chartsData = {};
+			chartConfig = null;
+			transConfig = null;
+			servicesTable = null;
+			nodesTable = null;
+			timeinterval = 0;
+		},
 		doInit: function (){
 
 			_this = this;
+			_this.initVariables();
 			refreshTimer.init();
 			timeRangeView.init();
 			chartConfig =  {
@@ -156,13 +169,13 @@ define([
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			$(SERVICES_ERROR_TEXT).hide();
 			$(NODES_ERROR_TEXT).hide();
-			
+
 			$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
 			$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
 			$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
 			$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
 			$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
-			
+
 			$('#metricsDialog').on('show.bs.modal', function(event, ab){
 				$(DRILLDOWN_CHART_CONTAINER).empty();
 				$(DRILLDOWN_SPINNER).show();
@@ -326,7 +339,7 @@ define([
 				});
 
 				servicesTable = $('#services-results').dataTable({
-					dom: '<"clear">rt',
+					dom: 'rtB',
 					"bProcessing": true,
 					"bPaginate" : false, 
 					"bAutoWidth": false,
@@ -375,24 +388,27 @@ define([
 					                	 }
 					                 }					    
 					                 ],
-					                 paging: true,
-					                 /*"tableTools": {
-						"sRowSelect": "none",
-						"sSwfPath": "bower_components/datatables-tabletools/swf/copy_csv_xls_pdf.swf"
-					},*/
-					                 fnDrawCallback: function(){
-					                	 //$('#query-results td').css("white-space","nowrap");
-					                 },
-					                 initComplete: function ( settings, json ) {
-					                	 //activate the bootstrap toggle js
-					                	 //must be done within initcomplete (ie after table data is loaded)
-					                	 $('[data-toggle="tooltip"]').tooltip({
-					                		 trigger: 'hover',
-					                		 container: "body",
-					                		 html: true
-					                	 }).css('overflow','auto');
+					                 buttons: [
+					                           { extend : 'copy', exportOptions: { columns: [0, 1, 2, 3] } },
+					                           { extend : 'csv', exportOptions: { columns: [0, 1, 2, 3] } },
+					                           { extend : 'excelHtml5', exportOptions: { columns: [0, 1, 2, 3] } },
+					                           { extend : 'pdf', exportOptions: { columns: [0, 1, 2, 3] } },
+					                           { extend : 'print', exportOptions: { columns: [0, 1, 2, 3] } }
+					                           ],					                 
+					                           paging: true,
+					                           fnDrawCallback: function(){
+					                        	   //$('#query-results td').css("white-space","nowrap");
+					                           },
+					                           initComplete: function ( settings, json ) {
+					                        	   //activate the bootstrap toggle js
+					                        	   //must be done within initcomplete (ie after table data is loaded)
+					                        	   $('[data-toggle="tooltip"]').tooltip({
+					                        		   trigger: 'hover',
+					                        		   container: "body",
+					                        		   html: true
+					                        	   }).css('overflow','auto');
 
-					                 }// end of initcomplete*/
+					                           }// end of initcomplete*/
 				});
 
 
@@ -431,14 +447,22 @@ define([
 					obj.title = v;
 					aoColumns.push(obj);
 				});
+
+				var obj = new Object();
+				obj.title = "Status";
+				aoColumns.push(obj);
+
+				var aaData = [];
 				$.each(result.resultArray, function(i, data){
+					var status = data[1];
+					data.push(status);
 					aaData.push(data);
 				});
 
 				var bPaging = aaData.length > 10;
 
-				nodesTable = $('#nodes-results').dataTable({
-					dom: 't<"clear">iTf',
+				nodesTable = $('#nodes-results').DataTable({
+					dom: 'tifB',
 					"bProcessing": true,
 					"bPaginate" : bPaging, 
 					"iDisplayLength" : 10, 
@@ -448,9 +472,10 @@ define([
 					"aoColumns" : aoColumns,
 					"aoColumnDefs": [
 					                 {"aTargets": [0], "sWidth": "100px"},
+					                 {"aTargets": [1], "sClass":"never", "bVisible":false},
 					                 {
-					                	 "aTargets": [ 1 ],
-					                	 "mData": 1,
+					                	 "aTargets": [ 2 ],
+					                	 "mData": 2,
 					                	 "sWidth":"50px",
 					                	 "mRender": function ( data, type, full ) {
 					                		 if (type === 'display') {
@@ -462,15 +487,20 @@ define([
 					                		 else return data;
 					                	 }
 					                 }],
-					                 paging: true,
-					                 "tableTools": {
-					                	 "sRowSelect": "multi",
-					                	 "sSwfPath": "bower_components/datatables-tabletools/swf/copy_csv_xls_pdf.swf"
-					                 },
-					                 fnDrawCallback: function(){
-					                	 //$('#query-results td').css("white-space","nowrap");
-					                 }
+					                 buttons: [
+					                           { extend : 'copy', exportOptions: { columns: [0, 1] } },
+					                           { extend : 'csv', exportOptions: { columns: [0, 1] } },
+					                           { extend : 'excel', exportOptions: { columns: [0, 1] } },
+					                           { extend : 'pdf', exportOptions: { columns: [0, 1] } },
+					                           { extend : 'print', exportOptions: { columns: [0, 1] } }
+					                           ],					                 
+					                           paging: true,
+					                           fnDrawCallback: function(){
+					                        	   //$('#query-results td').css("white-space","nowrap");
+					                           }
+
 				});
+				//nodesTable.buttons().container().appendTo($('#nodes-export-buttons') );
 				$('#nodes-results td').css("white-space","nowrap");
 			}
 
@@ -515,12 +545,14 @@ define([
 						}else{
 							rowData[ykeys[i]] = v;
 						}
+						if(rowData[ykeys[i]] < 0){
+							rowData[ykeys[i]] = 0;
+						}
 					});
 					//seriesData.push({x: value*1, a: parseInt(result[value][0]*30),b: parseInt(result[value][1]*30),c: parseInt(result[value][2]*30)});
 					seriesData.push(rowData);
 				});
 
-				var graph = renderedCharts[result.metricName];
 				var yLabelArray = [];
 				if(metricConfig.ylabels){
 					if($.isArray(metricConfig.ylabels)){
@@ -535,7 +567,7 @@ define([
 						lineWidth:2,
 						xkey:'x',
 						ykeys:ykeys,
-						ymin:0,
+						ymin: 0,
 						ymax: metricConfig.ymax ? metricConfig.ymax: 'auto',
 								labels: yLabelArray,
 								pointSize: '0.0',
@@ -583,21 +615,28 @@ define([
 									return newContent;
 								}
 				};
+				chartsData[result.metricName] = options;
+				
 				setTimeout(function(){
-					$(metricConfig.spinner).hide();
-					if(graph == null) {
-						if(metricConfig.chartType == 'Area'){
-							options.behaveLikeLine = true;
-							graph = Morris.Area(options);
-						}else{
-							graph = Morris.Line(options);
-						}
-
-						renderedCharts[result.metricName] = graph;
-					}else{
-						graph.setData(seriesData);
-					}
+					_this.renderGraph(result.metricName, metricConfig);
 				},1200);
+			}
+		},
+		renderGraph: function(metricName, metricConfig){
+			$(metricConfig.spinner).hide();
+			var graph = renderedCharts[metricName];
+
+			if(graph == null) {
+				if(metricConfig.chartType == 'Area'){
+					chartsData[metricName].behaveLikeLine = true;
+					graph = Morris.Area(chartsData[metricName]);
+				}else{
+					graph = Morris.Line(chartsData[metricName]);
+				}
+
+				renderedCharts[metricName] = graph;
+			}else{
+				graph.setData(chartsData[metricName].data);
 			}
 		},
 		fetchSummaryMetricError: function(jqXHR, res, error){
@@ -645,9 +684,9 @@ define([
 			var metricConfig = chartConfig[result.metricName];
 			var tags = result.data.tags;
 			var keys = Object.keys(metricsData);
-			
+
 			$('#metricsDialogLabel').text(metricConfig.chartTitle);
-			
+
 			if(keys.length == 0){
 				$(DRILLDOWN_SPINNER).hide();
 				$(DRILLDOWN_CHART_CONTAINER).hide();
@@ -749,10 +788,10 @@ define([
 		fetchDrilldownMetricError:function(jqXHR, res, error){
 			var metricConfig = chartConfig[jqXHR.metricName];
 			$('#metricsDialogLabel').text(metricConfig.chartTitle);
-			
+
 			$(DRILLDOWN_SPINNER).hide();
 			$(DRILLDOWN_CHART_CONTAINER).hide();
-			
+
 			if (jqXHR.responseText) {
 				$(DRILLDOWN_ERROR_CONTAINER).text(jqXHR.responseText);     
 				$(DRILLDOWN_ERROR_CONTAINER).show();

@@ -71,7 +71,7 @@ def encode_pswd(plain_text,dbmgr_path):
 def run():
     
     # step 1: Get the arguments from the user and validate it.
-    time_zone = commands.getoutput("./gettimezone.sh | awk '{print $1}'")
+    time_zone = commands.getoutput("./gettimezone.sh | awk '{print $1}'| head -1")
     host_fqdnh = socket.gethostbyname(socket.getfqdn())
     parser = OptionParser()
     parser.add_option("--javahome",  dest="java_home",    action="store",
@@ -87,7 +87,7 @@ def run():
     parser.add_option("--dcsport",   dest="dcs_port",    action="store", type="int",                  
             help="Port for the EsgynDB DCS server",      metavar="DCS_PORT")
     parser.add_option("--dcsinfoport",   dest="dcs_info_port",    action="store", type="int",                  
-            help="Info Port for the EsgynDB DCS Master",      metavar="DCS_PORT")
+            help="Info Port for the EsgynDB DCS Master",      metavar="DCS_INFO_PORT")
     parser.add_option("--resthost",  dest="rest_host",   action="store",                    
             help="Hostname for the EsgynDB REST server", metavar="REST_HOST")
     parser.add_option("--restport",  dest="rest_port",   action="store", type="int",                     
@@ -98,6 +98,10 @@ def run():
             help="Port for the OpenTSDB TSD",     metavar="TSD_PORT")            
     parser.add_option("--timezone",  dest="time_zone",   action="store",                     
             help="Local TimeZone of the EsgynDB instance (Format like America/Los_Angeles or Etc/Utc)",     metavar="TIMEZONE_NAME")
+    parser.add_option("--bosunhost",  dest="bosun_host",   action="store",                    
+            help="Hostname for the Bosun server", metavar="BOSUN_HOST")
+    parser.add_option("--bosunport",  dest="bosun_port",   action="store", type="int",                     
+            help="Port for the Bosun server",     metavar="BOSUN_PORT")            
 
     (options, args) = parser.parse_args()
     
@@ -181,6 +185,20 @@ def run():
             if not options.tsd_port : options.tsd_port = "5242"
             if options.tsd_port and options.tsd_port.isdigit(): done = True
             
+    if not options.bosun_host :
+        done = None
+        while (done==None) :
+            options.bosun_host = raw_input("Please provide the Bosun hostname (default "+ host_fqdnh + "): ")
+            if not options.bosun_host: options.bosun_host = host_fqdnh
+            if options.bosun_host: done = True
+            
+    if not options.bosun_port :
+        done = None
+        while (done==None) :
+            options.bosun_port = raw_input("Please provide the Bosun port(default 5242): ")
+            if not options.bosun_port : options.bosun_port = "5242"
+            if options.bosun_port and options.bosun_port.isdigit(): done = True
+
     if not options.time_zone :
         done = None
         while (done==None) :
@@ -229,6 +247,8 @@ def run():
     file_str=file_str.replace('TIMEZONE_NAME', str(options.time_zone))
     file_str=file_str.replace('TSD_HOST', str(options.tsd_host))
     file_str=file_str.replace('TSD_PORT', str(options.tsd_port))
+    file_str=file_str.replace('BOSUN_HOST', str(options.bosun_host))
+    file_str=file_str.replace('BOSUN_PORT', str(options.bosun_port))
 
     config_xml = os.path.join(dbmgr_path,"conf/config.xml")
     with open(config_xml, 'w+') as f:
