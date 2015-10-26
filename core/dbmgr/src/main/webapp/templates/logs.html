@@ -6,15 +6,16 @@
 					<div class="btn-group"
 						style="margin-bottom: 10px; margin-top: 15px;">
 						<a id="dcsLogs"
-						style="height: 24px; margin-right: 4px; cursor: pointer; cursor: hand;">DCS
-						Logs</a>
+							style="height: 24px; margin-right: 4px; cursor: pointer; cursor: hand;">DCS
+							Logs</a>
 					</div>
-					<div class="btn-group"
-						style="margin-bottom: 10px; margin-top: 10px;">
-						<button id="openFilter" type="button"
-							class="btn btn-default btn-xs fa fa-gear"
-							style="height: 30px; margin-right: 4px"> Filters</button>
+					<div class="btn-group" 
+						style="margin-bottom: 8px; margin-top: 9px;">
+						<label id="timeRangeLabel"
+							style="display: inline-block; margin-top: 5px; margin-right: 5px; font-size: 14px; font-weight: normal">Time
+							Range</label>
 					</div>
+
 					<div class="btn-group" style="margin-right: 5px">
 						<label for="refreshInterval"
 							style="display: inline-block; margin-top: 5px; font-size: 14px; font-weight: normal">Auto-Refresh</label>
@@ -26,6 +27,12 @@
 							<option value="10">Every 10 min</option>
 							<option id="customTimeRange" value="">OFF</option>
 						</select>
+					</div>
+					<div class="btn-group"
+						style="margin-bottom: 10px; margin-top: 10px;">
+						<button id="openFilter" type="button"
+							class="btn btn-default btn-xs fa fa-gear"
+							style="height: 30px; margin-right: 4px">Filters</button>
 					</div>
 					<div class="btn-group"
 						style="margin-bottom: 10px; margin-top: 10px;">
@@ -57,7 +64,7 @@
 		</div>
 	</div>
 	<div class="modal fade" id="filterDialog" tabindex="-1" role="dialog"
-		aria-labelledby="filterDialogLabel">
+		aria-labelledby="filterDialogLabel" data-backdrop="static" data-keyboard="false">
 		<div class="modal-dialog" role="document"
 			style="overflow: auto; height: 700px">
 			<div class="modal-content">
@@ -140,7 +147,8 @@
 								placeholder="Part of message text">
 						</div>
 						<div class="form-group">
-							<label id="filter-error-text" class="control-label" class="dbmgr-error-text"></label>
+							<label id="filter-error-text" class="control-label"
+								class="dbmgr-error-text"></label>
 						</div>
 					</form>
 				</div>
