@@ -5227,8 +5227,8 @@ RelExpr * HbaseUpdate::preCodeGen(Generator * generator,
 
   if (hbaseTagExpr().entries() > 0)
     {
-      isUnique = FALSE;
-      canDoCheckAndUpdel() = FALSE;
+      //      isUnique = FALSE;
+      //      canDoCheckAndUpdel() = FALSE;
     }
   
   if (getInliningInfo().isIMGU()) {
@@ -5253,7 +5253,8 @@ RelExpr * HbaseUpdate::preCodeGen(Generator * generator,
 	  (NOT producesOutputs()) &&
 	  (executorPred().isEmpty()) &&
 	  (NOT needToGetCols) &&
-	  (NOT inlinedActions))
+	  (NOT inlinedActions) &&
+          (hbaseTagExpr().entries() == 0))
 	{
 	  if ((generator->oltOptInfo()->multipleRowsReturned()) &&
 	      (CmpCommon::getDefault(HBASE_ROWSET_VSBB_OPT) == DF_ON) &&

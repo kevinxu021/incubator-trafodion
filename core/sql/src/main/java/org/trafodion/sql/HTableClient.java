@@ -474,8 +474,8 @@ public class HTableClient {
             
             scan.setAuthorizations(auths);
 
-            System.out.println("hbaseAuths " + hbaseAuths);
-            System.out.println("listOfHA " + listOfHA);
+            //            System.out.println("hbaseAuths " + hbaseAuths);
+            //            System.out.println("listOfHA " + listOfHA);
           }
 
 	  if (!useSnapshotScan || transID != 0)
@@ -896,6 +896,13 @@ public class HTableClient {
 		else
 			del = new Delete(rowID, timestamp);
 
+                /*
+                byte[] visExpr = Bytes.toBytes("MANAGER");
+                String strVisExpr = new String(visExpr);
+                CellVisibility cv = new CellVisibility(strVisExpr);
+                del.setCellVisibility(cv);
+                */
+
 		if (columns != null) {
 			for (int i = 0; i < columns.length ; i++) {
 				byte[] col = (byte[]) columns[i];
@@ -1199,27 +1206,24 @@ public class HTableClient {
 		return true;
 	} 
 
-    int ROUND2(int v)
-    {
-        return (v+1) & (~1);
-    }
+        int ROUND2(int v)
+        {
+            return (v+1) & (~1);
+        }
 
 	public boolean updateVisibility(final long transID, final byte[] rowID, Object row) throws IOException, InterruptedException, 
                           ExecutionException 
 	{
 		if (logger.isTraceEnabled()) logger.trace("Enter updateVisibility() " + tableName);
 
-	 	final Put put;
-		ByteBuffer bb;
-                int numVisExprs;
+                final Put put = new Put(rowID);
+
 		short numCols;
 		short colNameLen;
                 int visExprLen;
 		byte[] family = null;
 		byte[] qualifier = null;
 		byte[] colName, visExpr;
-
-                put = new Put(rowID);
 
                 ///////////////////////////////////////////////////////
                 // layout of row
@@ -1235,13 +1239,13 @@ public class HTableClient {
                 //     1 byte filler, if needed.
                 //
                 ///////////////////////////////////////////////////////
-		bb = (ByteBuffer)row;
+		ByteBuffer bb = (ByteBuffer)row;
                 bb.order(ByteOrder.LITTLE_ENDIAN);
 
                 int fillerLen = 0;
                 byte[] filler = new byte[2];
                 Result getResult;
-		numVisExprs = bb.getInt();
+		int numVisExprs = bb.getInt();
 		for (short visExprIndex = 0; visExprIndex < numVisExprs; visExprIndex++)
 		{
 			colNameLen = bb.getShort();
@@ -1260,7 +1264,6 @@ public class HTableClient {
 			qualifier = getName(colName);
 
                         Get get = new Get(rowID);
-
                         get.addColumn(family, qualifier);
                         if (transID != 0) {
                             getResult = table.get(transID, get);
@@ -1277,19 +1280,18 @@ public class HTableClient {
                         String strVisExpr = new String(visExpr);
                         CellVisibility cv = new CellVisibility(strVisExpr);
                         
+                        //                        put = new Put(rowID);
                         for (Cell cell : getResult.listCells()) {
                             put.add(cell);
-                            put.setCellVisibility(cv);
                         }
-		}
+                        put.setCellVisibility(cv);
 
-                boolean result = true;
-                if (useTRex && (transID != 0)) 
-                    table.put(transID, put);
-                else 
-                    table.put(put);
-
-                return result;
+                        if (useTRex && (transID != 0)) 
+                            table.put(transID, put);
+                        else 
+                            table.put(put);
+                }
+                return true;
         }	
 
 	public boolean completeAsyncOperation(int timeout, boolean resultArray[]) 

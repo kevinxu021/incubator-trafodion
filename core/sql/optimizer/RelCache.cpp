@@ -1338,6 +1338,35 @@ NABoolean Update::isCacheableExpr(CacheWA& cwa)
   return GenericUpdate::isCacheableExpr(cwa);
 }
 
+// change literals of a cacheable query into ConstantParameters 
+RelExpr* Update::normalizeForCache(CacheWA& cwa, BindWA& bindWA)
+{
+  if (nodeIsNormalizedForCache()) { 
+    return this; 
+  }
+
+  if (hbaseTagExprList_.entries() > 0) {
+    ItemExpr * ie = hbaseTagExprList_.convertToItemExpr();
+    ie = ie->normalizeForCache(cwa, bindWA);
+    hbaseTagExprList_.clear();
+    hbaseTagExprList_.insertTree(ie);
+  }
+
+  // replace descendants' literals into ConstantParameters
+  return GenericUpdate::normalizeForCache(cwa, bindWA);
+}
+
+// append an ascii-version of Merge into cachewa.qryText_
+void Update::generateCacheKey(CacheWA &cwa) const
+{
+  GenericUpdate::generateCacheKey(cwa);
+
+  if (hbaseTagExprList_.entries() > 0) {
+    ItemExpr * ie = hbaseTagExprList_.convertToItemExpr();
+    ie->generateCacheKey(cwa);
+  }
+}
+
 // append an ascii-version of FastExtract into cachewa.qryText_
 void FastExtract::generateCacheKey(CacheWA &cwa) const
 {

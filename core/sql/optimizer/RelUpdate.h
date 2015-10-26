@@ -1346,6 +1346,12 @@ public:
 
   virtual NABoolean isCacheableExpr(CacheWA& cwa);
 
+  // change literals of a cacheable query into ConstantParameters
+  virtual RelExpr* normalizeForCache(CacheWA& cwa, BindWA& bindWA);
+
+  // append an ascii-version of Insert into cachewa.qryText_
+  virtual void generateCacheKey(CacheWA& cwa) const;
+
   inline const CostScalar getEstRowsAccessed() const
   { return estRowsAccessed_; }
 
