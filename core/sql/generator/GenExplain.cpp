@@ -1736,6 +1736,15 @@ GenericUpdate::addSpecificExplainInfo(ExplainTupleMaster *explainTuple,
       description += " ";
     }
 
+  if (getTableDesc()->getNATable()->xnRepl() == COM_REPL_SYNC)
+    {
+      description += "replication: synchronous ";
+    }
+  else if (getTableDesc()->getNATable()->xnRepl() == COM_REPL_ASYNC)
+    {
+      description += "replication: asynchronous ";
+    }
+
   return 0;
 }
 

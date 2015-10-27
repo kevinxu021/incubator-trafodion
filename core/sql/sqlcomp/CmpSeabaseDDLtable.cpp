@@ -9088,6 +9088,33 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
       populateKeyInfo(keyInfoArray[idx], vi);
     }
 
+  // get replication type for the base table of this index.
+  // That will be the replication type for this index as well.
+  if (objType == COM_INDEX_OBJECT)
+    {
+      str_sprintf(query, "select t.flags from %s.\"%s\".%s I, %s.\"%s\".%s T where I.index_uid = %Ld and I.base_table_uid = T.table_uid for read committed access",
+                  getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_INDEXES,
+                  getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_TABLES,
+                  objUID);
+
+      Int64 flags = 0;
+      Lng32 flagsLen = sizeof(Int64);
+      Int64 rowsAffected = 0;
+      cliRC = cliInterface.executeImmediateCEFC
+        (query, NULL, 0, (char*)&flags, &flagsLen, &rowsAffected);
+      if (cliRC < 0)
+        {
+          cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
+          processReturn();
+          return NULL;
+        }
+      
+      if (CmpSeabaseDDL::isMDflagsSet(flags, CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG))
+        xnRepl = COM_REPL_SYNC;
+      else if (CmpSeabaseDDL::isMDflagsSet(flags, CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG))
+        xnRepl = COM_REPL_ASYNC;
+    }
+
   str_sprintf(query, "select O.catalog_name, O.schema_name, O.object_name, I.keytag, I.is_unique, I.is_explicit, I.key_colcount, I.nonkey_colcount, T.num_salt_partns, T.row_format from %s.\"%s\".%s I, %s.\"%s\".%s O ,  %s.\"%s\".%s T where I.base_table_uid = %Ld and I.index_uid = O.object_uid %s and I.index_uid = T.table_uid for read committed access order by 1,2,3",
               getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_INDEXES,
               getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS,
