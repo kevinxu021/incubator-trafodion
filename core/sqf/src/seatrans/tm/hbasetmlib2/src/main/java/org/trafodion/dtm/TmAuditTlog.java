@@ -1670,11 +1670,11 @@ public class TmAuditTlog {
       return lvAsn;
    }
 
-   public void getTransactionState (TransactionState ts) throws IOException {
+   public void getTransactionState (TransactionState ts) throws Exception {
       getTransactionState (ts, true);
    }
 
-   public void getTransactionState (TransactionState ts, boolean postAllRegions) throws IOException {
+   public void getTransactionState (TransactionState ts, boolean postAllRegions) throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("getTransactionState start; transid: " + ts.getTransactionId());
 
       // This request might be for a transaction not originating on this node, so we need to open
@@ -1844,6 +1844,7 @@ public class TmAuditTlog {
       catch (Exception e2) {
             LOG.error("getTransactionState Exception2 " + e2);
             e2.printStackTrace();
+            throw e2;
       }
       if (LOG.isTraceEnabled()) LOG.trace("getTransactionState end transid: " + ts.getTransactionId());
       return;
