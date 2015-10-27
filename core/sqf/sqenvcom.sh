@@ -143,6 +143,7 @@ export HBASE_TRXDIR=$MY_SQROOT/export/lib
 export HBASE_TRX_JAR=hbase-trx-cdh5_4-${TRAFODION_VER}.jar
 export DTM_COMMON_JAR=trafodion-dtm-${TRAFODION_VER}.jar
 export SQL_JAR=trafodion-sql-${TRAFODION_VER}.jar
+export UTIL_JAR=trafodion-utility-${TRAFODION_VER}.jar
 if [[ "$HBASE_DISTRO" = "HDP" ]]; then
     export HBASE_TRX_JAR=hbase-trx-hdp2_2-${TRAFODION_VER}.jar
 fi
@@ -520,7 +521,7 @@ EOF
   if [ -f $HBASE_HOME/conf/hbase-site.xml ]; then
     [[ $SQ_VERBOSE == 1 ]] && echo "HBASE_HOME is set to $HBASE_HOME, this is vanilla Apache"
     APACHE_HBASE_HOME=$HBASE_HOME
-    export HBASE_CNF_DIR=$HBASE_HOME/conf
+    export HBASE_CNF_DIR=$
   fi
 
   APACHE_HIVE_HOME=$HIVE_HOME
@@ -871,6 +872,7 @@ SQ_CLASSPATH=${SQ_CLASSPATH}:\
 ${HBASE_TRXDIR}/${HBASE_TRX_JAR}:\
 $MY_SQROOT/export/lib/${DTM_COMMON_JAR}:\
 $MY_SQROOT/export/lib/${SQL_JAR}:\
+$MY_SQROOT/export/lib/${UTIL_JAR}:\
 $MY_SQROOT/export/lib/jdbcT4.jar:\
 $MY_SQROOT/export/lib/jdbcT2.jar
 
