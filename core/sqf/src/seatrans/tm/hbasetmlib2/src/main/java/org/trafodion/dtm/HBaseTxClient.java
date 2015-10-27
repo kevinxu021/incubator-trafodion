@@ -1178,6 +1178,7 @@ public class HBaseTxClient {
              HBaseTxClient hbtx;
              private int my_local_clusterid = 0;
              private int my_local_nodecount = 1; // min node number in a cluster
+             private boolean msenv_tlog_sync = false;
 
             public RecoveryThread(TmAuditTlog audit,
                                HBaseTmZK zookeeper,
@@ -1205,6 +1206,22 @@ public class HBaseTxClient {
              this.my_local_clusterid = pSTRConfig.getMyClusterIdInt();
              this.my_local_nodecount = pSTRConfig.getTrafodionNodeCount();
              LOG.info("Traf Recovery Thread starts for DTM " + tmID + " at cluster " + my_local_clusterid + "Node Count " + my_local_nodecount + " LDTM property " + leadtm);
+
+             // NOTE. R 2.0, doing commmit log reload/sync or commit-takeover-write/cump-CP would require an off-line ENV (at least updated transactions are drained and then stopped)
+             // skip tlog sync if ms_env says so
+
+             msenv_tlog_sync = false;
+             try {
+                     String TlogSync = System.getenv("TM_TLOG_SYNC");
+                     if (TlogSync != null) {
+                        msenv_tlog_sync = (Integer.parseInt(TlogSync) != 0);
+                     }
+                 }
+                 catch (Exception e) {
+                     if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_SYNC is not in ms.env");
+                 }
+             LOG.info("DTM Recovery Thread for TM " + tmID + " detects TM_TLOG_SYNC in ms.env is " + msenv_tlog_sync);
+
             }
              /**
               *
@@ -1293,29 +1310,18 @@ public class HBaseTxClient {
                  int peer_leader = -2;
                  int peer_count = 0;;
                  boolean tlog_sync_local_needed = false;
-                 boolean msenv_tlog_sync;
                  int synced = 0;
                  
                  // NOTE. R 2.0, doing commmit log reload/sync would require an off-line ENV (at least updated transactions are drained and then stopped)
-
                  // skip tlog sync if ms_env says so
-
-                     msenv_tlog_sync = false;
-                     try {
-                          String TlogSync = System.getenv("TM_TLOG_SYNC");
-                          if (TlogSync != null) {
-                             msenv_tlog_sync = (Integer.parseInt(TlogSync) != 0);
-                          }
-                      }
-                      catch (Exception e) {
-                          if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_SYNC is not in ms.env");
-                      }
-                      LOG.info("TM_TLOG_SYNC is " + msenv_tlog_sync);
 
                      if (!msenv_tlog_sync) { // no tlog sync 
                          LOG.info("Traf Peer Thread at cluster " + my_local_clusterid + " does not perform tlog sync during startup as ms_env indicates");
                          synced = 2;
                          return synced;
+                     }
+                     else {
+                         LOG.info("Traf Peer Thread at cluster " + my_local_clusterid + " starts to perform tlog sync during startup as ms_env indicates");
                      }
 
                  // a) check which peer is up from STRConfig and select the most updated as the commmit log leader
@@ -1499,6 +1505,12 @@ public class HBaseTxClient {
                  commit_migration_clusters.put(downPeerClusterId, 0);
                  LOG.info("LDTM peer recovery thread starts to take commit migration from STR down cluster " + downPeerClusterId + " and bump CP");
 
+                 if (!msenv_tlog_sync) { // no tlog sync, do not need to put single TLOG
+                       LOG.info("LDTM peer recovery thread does not bump CP during STR down cluster " + downPeerClusterId +
+                                   " based on msenv value " + msenv_tlog_sync);
+                       return;
+                 }
+
                  // get the number of nodes from the downed cluster in order to get the number of TLOG configured (from pSTRConfig is better)
 
                  // TBD Need to loop on every TM-TLOG for each peer bump
@@ -1538,6 +1550,11 @@ public class HBaseTxClient {
             public void put_single_tlog_record_during_commit_takeover(int downPeerClusterId, long tid, TransactionState ts) {
 
                    if (LOG.isDebugEnabled()) LOG.debug("LDTM write txn state record for txid " + tid + " during recovery after commit takeover ");
+                   if (!msenv_tlog_sync) { // no tlog sync, do not need to put single TLOG
+                       if (LOG.isDebugEnabled()) LOG.debug("LDTM does not write txn state record for txid " + tid +
+                                    " during recovery after commit takeover based on msenv value" + msenv_tlog_sync);
+                       return;
+                   }
 
                    try { // TBD temporarily put 0 (for ABORTED)  in asn to force the Audit modeule picking the nodeid from tid to address which TLOG
                          audit.putSingleRecord(tid, -1, "ABORTED", ts.getParticipatingRegions(), true, 0); 
@@ -1936,9 +1953,9 @@ public class HBaseTxClient {
                                     LOG.error("Unable to get audit record for tx: " + txID + ", audit is throwing exception.");
                                     e.printStackTrace();
                                 }
-                            }
+                            } // for
 
-                        }
+                        } // region not null
                         else {
                             if (recoveryIterations > 0) {
                                 if(LOG.isInfoEnabled()) LOG.info("Recovery completed for TM" + tmID);
