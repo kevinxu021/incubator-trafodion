@@ -1897,9 +1897,14 @@ public class HBaseTxClient {
                                 			// STR is up, ask peer
                                 		       if (LOG.isDebugEnabled())
                                 			    LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " commit authority is sent to Peer due to STR_UP at peer " + clusterid);
-                                		       TmAuditTlog peerTlog = getTlog(clusterid);
-                                                       peerTlog.getTransactionState(ts);
-                                                       answerFromPeer = true;
+                                		       answerFromPeer = true;
+                                                       try {
+                                                             TmAuditTlog peerTlog = getTlog(clusterid);
+                                                             peerTlog.getTransactionState(ts);
+                                                       } catch (Exception e2) {
+                                                             LOG.error("getTransactionState from Peer " + clusterid + " for tid " + ts.getTransactionId() + "  hit Exception2 " + e2);
+                                		             answerFromPeer = false;
+                                                       }
                                 		}
                                                 else {
                                		               if (LOG.isDebugEnabled())
