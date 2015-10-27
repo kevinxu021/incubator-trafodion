@@ -1757,6 +1757,13 @@ ParDDLFileAttrsCreateIndex::setFileAttr(ElemDDLFileAttr * pFileAttr)
     }
     break;
 
+  case ELM_FILE_ATTR_XN_REPL_ELEM :
+    // this option on an index is not yet supported.
+    *SqlParser_Diags << DgSqlCode(-3242)
+                     << DgString0("Cannot specify replication attribute in create index.");
+     
+    break;
+
   default :
     NAAbort("ParDDLFileAttrs.C", __LINE__, "internal logic error");
     break;
