@@ -230,12 +230,12 @@ public class Helper {
 
 				if (i == 0) {
 					if (colType.equalsIgnoreCase(("string")))
-						sb.append(String.format(" %1$s %2$s in ('%3$s'", sqlOperator, columnnName, values[i]));
+						sb.append(String.format(" %1$s %2$s in ('%3$s'", sqlOperator, columnnName, values[i].trim()));
 					else
 						sb.append(String.format(" %1$s %2$s in (%3$s", sqlOperator, columnnName, values[i]));
 				} else {
 					if (colType.equalsIgnoreCase(("string")))
-						sb.append(String.format("'%1$s'", values[i]));
+						sb.append(String.format("'%1$s'", values[i].trim()));
 					else
 						sb.append(String.format("%1$s", values[i]));
 				}

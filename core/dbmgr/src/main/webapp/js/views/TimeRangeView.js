@@ -37,6 +37,8 @@ define([
 
 		eventAgg: null,
 		
+		currentSelection: null,
+		
 		events: {
 			TIME_RANGE_CHANGED: 'time_range_changed'
 		},
@@ -184,7 +186,15 @@ define([
 			});
 
 			$(TIME_RANGE).focusin(function(){
+				_this.currentSelection = $(this).val();
 				$(this).val(-1);
+			});
+			
+			$(TIME_RANGE).focusout(function(){
+				var aa = $(this).val();
+				if(aa == null){
+					$(this).val(_this.currentSelection);	
+				}
 			});
 
 			_timeRangeControl.bindEvent();

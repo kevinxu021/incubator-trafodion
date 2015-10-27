@@ -210,6 +210,7 @@ public:
      jKvFamOffset_ = NULL;
      jTimestamp_ = NULL;
      jKvBuffer_ = NULL;
+     jKvTag_ = NULL;
      jRowIDs_ = NULL;
      jKvsPerRow_ = NULL;
      currentRowNum_ = -1;
@@ -256,7 +257,10 @@ public:
 			char * snapName = NULL,
 			char * tmpLoc = NULL,
 			Lng32 espNum = 0,
-                        Lng32 versions = 0);
+                        Lng32 versions = 0,
+                        Int64 minTS = -1,
+                        Int64 maxTS = -1,
+                        const char * hbaseAuths = NULL);
   HTC_RetCode deleteRow(Int64 transID, HbaseStr &rowID, const LIST(HbaseStr) *columns, Int64 timestamp);
   HTC_RetCode setWriteBufferSize(Int64 size);
   HTC_RetCode setWriteToWAL(bool vWAL);
@@ -270,11 +274,11 @@ public:
 			 const Lng32 numCacheRows,
 			 Text &aggrVal); // returned value
   void setResultInfo( jintArray jKvValLen, jintArray jKvValOffset,
-        jintArray jKvQualLen, jintArray jKvQualOffset,
-        jintArray jKvFamLen, jintArray jKvFamOffset,
-        jlongArray jTimestamp, 
-        jobjectArray jKvBuffer, jobjectArray jRowIDs,
-        jintArray jKvsPerRow, jint numCellsReturned, jint numRowsReturned);
+                      jintArray jKvQualLen, jintArray jKvQualOffset,
+                      jintArray jKvFamLen, jintArray jKvFamOffset,
+                      jlongArray jTimestamp, 
+                      jobjectArray jKvBuffer, jobjectArray jKvTag, jobjectArray jRowIDs,
+                      jintArray jKvsPerRow, jint numCellsReturned, jint numRowsReturned);
   void getResultInfo();
   void cleanupResultInfo();
   HTC_RetCode fetchRows();
@@ -284,10 +288,12 @@ public:
               short &colNameLen,
               Int64 &timestamp);
   HTC_RetCode getColVal(int colNo,
-              BYTE *colVal,
-              Lng32 &colValLen,
-              NABoolean nullable,
-              BYTE &nullVal);
+                        BYTE *colVal,
+                        Lng32 &colValLen,
+                        NABoolean nullable,
+                        BYTE &nullVal,
+                        BYTE *tag,
+                        Lng32 &tagLen);
   HTC_RetCode getColVal(NAHeap *heap,
               int colNo,
               BYTE **colVal,
@@ -371,6 +377,7 @@ private:
   jintArray jKvFamOffset_;
   jlongArray jTimestamp_;
   jobjectArray jKvBuffer_;
+  jobjectArray jKvTag_;
   jobjectArray jRowIDs_;
   jintArray jKvsPerRow_;
   jint *p_kvValLen_;
@@ -465,6 +472,8 @@ typedef enum {
  ,HBC_ERROR_INSERTROW_DUP_ROWID
  ,HBC_ERROR_INSERTROWS_PARAM
  ,HBC_ERROR_INSERTROWS_EXCEPTION
+ ,HBC_ERROR_UPDATEVISIBILITY_PARAM
+ ,HBC_ERROR_UPDATEVISIBILITY_EXCEPTION
  ,HBC_ERROR_CHECKANDUPDATEROW_PARAM
  ,HBC_ERROR_CHECKANDUPDATEROW_EXCEPTION
  ,HBC_ERROR_CHECKANDUPDATEROW_NOTFOUND
@@ -559,6 +568,11 @@ public:
 			 ExHbaseAccessStats *hbs, bool useTRex, NABoolean replSync, Int64 transID, short rowIDLen, HbaseStr rowIDs,
 			 HbaseStr rows, Int64 timestamp, bool autoFlush, bool asyncOperation,
 			 HTableClient_JNI **outHtc);
+  HBC_RetCode updateVisibility(NAHeap *heap, const char *tableName,
+                         ExHbaseAccessStats *hbs, bool useTRex, Int64 transID, 
+                         HbaseStr rowID,
+                         HbaseStr row,
+                         HTableClient_JNI **outHtc);
   HBC_RetCode checkAndUpdateRow(NAHeap *heap, const char *tableName,
 				ExHbaseAccessStats *hbs, bool useTRex, NABoolean replSync, Int64 transID, HbaseStr rowID,
 				HbaseStr row, HbaseStr columnToCheck, HbaseStr columnValToCheck,
@@ -621,6 +635,7 @@ private:
    ,JM_GET_REGN_NODES
    ,JM_HBC_DIRECT_INSERT_ROW
    ,JM_HBC_DIRECT_INSERT_ROWS
+   ,JM_HBC_DIRECT_UPDATE_TAGS
    ,JM_HBC_DIRECT_CHECKANDUPDATE_ROW
    ,JM_HBC_DELETE_ROW
    ,JM_HBC_DIRECT_DELETE_ROWS

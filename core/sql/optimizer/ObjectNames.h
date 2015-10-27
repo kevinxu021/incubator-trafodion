@@ -321,6 +321,7 @@ public:
   NABoolean isHbase() const;
   NABoolean isSeabaseMD() const;
   NABoolean isSeabasePrivMgrMD() const;
+  NABoolean isSeabaseReservedSchema() const;
 
   NABoolean isHistograms() const;
   NABoolean isHistogramIntervals() const;

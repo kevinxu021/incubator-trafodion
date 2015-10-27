@@ -6,11 +6,14 @@
 
 package com.esgyn.dbmgr.resources;
 
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -104,6 +107,11 @@ public class ServerResource {
 				ConfigurationResource.setServerUTCOffset(rs.getLong("TM_GMTOFF_SEC"));
 				break;
 			}
+			rs = stmt.executeQuery("get version of software");
+			if (rs.next()) {
+				String version = rs.getString(1);
+				ConfigurationResource.setSystemVersion(version.trim());
+			}
 
 		} catch (Exception e) {
 			_LOG.error(e.getMessage());
@@ -117,7 +125,6 @@ public class ServerResource {
 			} catch (Exception ex) {
 
 			}
-
 		}
 		return resultMessage;
 	}
@@ -132,6 +139,49 @@ public class ServerResource {
 		SessionModel.doLogout(request);
 
 		objNode.put("status", "OK");
+		return objNode;
+	}
+
+	@POST
+	@Path("/about/")
+	@Produces(MediaType.APPLICATION_JSON)
+	public ObjectNode getSoftwareInfo(@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode objNode = mapper.createObjectNode();
+
+		objNode.put("SYSTEM_VERSION", ConfigurationResource.getSystemVersion());
+
+		StringBuilder sb = new StringBuilder();
+		try {
+			InputStream inputStream = servletRequest.getServletContext().getResourceAsStream("/META-INF/MANIFEST.MF");
+			if (inputStream != null) {
+				Manifest manifest = new Manifest(inputStream);
+				Attributes mainAttr = manifest.getMainAttributes();
+
+				Attributes.Name versionKey = new Attributes.Name("Implementation-Version-2");
+				Attributes.Name branchKey = new Attributes.Name("Implementation-Version-5");
+				Attributes.Name buildDateKey = new Attributes.Name("Implementation-Version-6");
+
+				if (mainAttr.containsKey(versionKey)) {
+					sb.append(mainAttr.getValue(versionKey) + " (");
+				}
+				if (mainAttr.containsKey(branchKey)) {
+					sb.append(mainAttr.getValue(branchKey) + ", ");
+				}
+				if (mainAttr.containsKey(buildDateKey)) {
+					sb.append(mainAttr.getValue(buildDateKey) + ")");
+				}
+				objNode.put("DBMGR_VERSION", sb.toString());
+			} else {
+				objNode.put("DBMGR_VERSION", "Release 2.0.0");
+			}
+		} catch (Exception ex) {
+			_LOG.error("Failed to fetch server version : " + ex.getMessage());
+			throw new EsgynDBMgrException(ex.getMessage());
+		}
+
 		return objNode;
 	}
 

@@ -103,10 +103,7 @@ define([
 						"aTargets": [ 2 ],
 						"mData": 2,
 						"mRender": function ( data, type, full ) {
-							//if (type === 'display') {
-							return moment(data).tz(common.serverTimeZone).format('YYYY-MM-DD HH:mm:ss');
-							// }
-							/// else return moment(data).tz(common.serverTimeZone).format('YYYY-MM-DD HH:mm:ss');
+							return moment(data , 'ddd MMM DD HH:mm:ss Z YYYY').format('YYYY-MM-DD HH:mm:ss');
 						}
 					} ],
 					paging: true,

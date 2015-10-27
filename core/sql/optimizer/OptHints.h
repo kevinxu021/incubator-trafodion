@@ -26,6 +26,7 @@
 
 #include "CmpCommon.h"
 #include "NAStringDef.h"
+#include "ExpHbaseDefs.h"
 
 // -----------------------------------------------------------------------
 // forward declarations
@@ -78,23 +79,40 @@ protected:
   double         cardinality_; // table's hinted cardinality or -1
 }; // Hint
 
-class HbaseAccessOptions : public NABasicObject
+class OptHbaseAccessOptions : public HbaseAccessOptions
 {
  public:
-  HbaseAccessOptions(Lng32 v, NAMemory *h=HEAP)
-    : hbaseVersions_(v)
-  {}
+  OptHbaseAccessOptions(Lng32 v, NAMemory *h=HEAP);
+  
+  OptHbaseAccessOptions(const char * minTSstr, const char * maxTSstr);
 
-  Lng32 getHbaseVersions() { return hbaseVersions_; }
-  void setHbaseVersions(Lng32 v){ hbaseVersions_ = v;}
+  OptHbaseAccessOptions(const char * auths);
 
-  NABoolean isMaxVersions() { return (hbaseVersions_ == -1); }
-  NABoolean isAllVersions() { return (hbaseVersions_ == -2); }
- private:
-  // -1, get max versions allowed. 
-  // -2, get all versions including ones marked for delete (RAW in hbase)
-  //  N,  get max N versions.
-  Lng32 hbaseVersions_;
+  OptHbaseAccessOptions();
+
+  NAString &hbaseAuths() { return hbaseAuths_; }
+  const NAString &hbaseAuths() const { return hbaseAuths_; }
+
+  NABoolean authsSpecified() { return (NOT hbaseAuths_.isNull()); }
+  NABoolean isValid() { return isValid_; }
+
+  static Int64 computeHbaseTS(const char * tsStr);
+
+  short setOptionsFromDefs(QualifiedName &tableName);
+
+  static const NAString * getControlTableValue(
+       const QualifiedName &tableName, const char * ct);
+  
+private:
+  short setVersionsFromDef(QualifiedName &tableName);
+  short setHbaseTsFromDef(QualifiedName &tableName);
+  short setHbaseAuthsFromDef(QualifiedName &tableName);
+
+  short setHbaseTS(const char * minTSstr, const char * maxTSstr);
+
+  NABoolean isValid_;
+
+  NAString hbaseAuths_;
 };
 
 // -----------------------------------------------------------------------

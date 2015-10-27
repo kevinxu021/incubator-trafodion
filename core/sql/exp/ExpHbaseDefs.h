@@ -106,6 +106,43 @@ class HbaseCreateOption : public NABasicObject
   NAText val_;
 };
 
+  class HbaseAccessOptions : public NABasicObject
+  {
+  public:
+  HbaseAccessOptions() :
+       versions_(0), minTS_(-1), maxTS_(-1)
+    {
+    }
+    
+    Lng32 getNumVersions() { return versions_; }
+    void setNumVersions(Lng32 v) { versions_ = v; }
+
+    NABoolean multiVersions() { return (versions_ != 0);}
+
+    NABoolean isMaxVersions() { return (versions_ == -1); }
+    NABoolean isAllVersions() { return (versions_ == -2); }
+
+    void setHbaseMinTS(Int64 minTS) { minTS_ = minTS; }
+    void setHbaseMaxTS(Int64 maxTS) { maxTS_ = maxTS; }
+    
+    Int64 hbaseMinTS() { return minTS_; }
+    Int64 hbaseMaxTS() { return maxTS_; }
+
+    NABoolean versionSpecified() { return (versions_ != 0); }
+    NABoolean tsSpecified() { return ((minTS_ != -1) || (maxTS_ != -1)); }
+  private:
+    // 0, version not specified, return default of 1.
+    // -1, return max versions
+    // -2, return all versions.
+    // N, return N versions.
+    Lng32 versions_; 
+    char filler_[4];
+
+    // min/max values of timestamp range to be returned
+    Int64 minTS_;
+    Int64 maxTS_;
+  };
+
 typedef NAList<HbaseStr> HBASE_NAMELIST;
 
 typedef enum 

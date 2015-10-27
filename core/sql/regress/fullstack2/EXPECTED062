@@ -67,19 +67,19 @@ Current Environment
 ----------------------------------
 AUTHENTICATION     disabled
 AUTHORIZATION      enabled
-CURRENT DIRECTORY  /opt/home/xxxx/xxxx/rundir/fullstack2
+CURRENT DIRECTORY  /home/centos/ansharma_tag/traf-plus/core/sqf/rundir/fullstack2
 LIST_COUNT         4294967295
 LOG FILE           LOG062
-MESSAGEFILE        /opt/home/xxxx/xxxx/export/bin64d/mxcierr ...
+MESSAGEFILE        /home/centos/ansharma_tag/traf-plus/core/sqf/export/bin ...
 MESSAGEFILE LANG   US English
-MESSAGEFILE VRSN   {2015-03-19 10:15}
+MESSAGEFILE VRSN   {2015-10-21 13:13 LINUX:ANSHARMA-3/centos} 
 SQL CATALOG        TRAFODION
 SQL SCHEMA         SCH
 SQL USER CONNECTED user not connected
 SQL USER DB NAME   DB__ROOT
 SQL USER ID        33333
 TERMINAL CHARSET   ISO88591
-TRANSACTION ID
+TRANSACTION ID     
 TRANSACTION STATE  not in progress
 WARNINGS           on
 >>
@@ -662,13 +662,13 @@ No externalized DEFAULTS attribute READONLY_CURSOR exists.
 --- SQL operation complete.
 >>showcontrol table;
 
-CONTROL TABLE A
+CONTROL TABLE TRAFODION.SCH.A
   TIMEOUT                       	123
-CONTROL TABLE B
+CONTROL TABLE TRAFODION.SCH.B
   MDAM                          	OFF
-CONTROL TABLE C
+CONTROL TABLE TRAFODION.SCH.C
   TIMEOUT                       	567
-CONTROL TABLE "*"
+CONTROL TABLE TRAFODION.SCH.*
   TIMEOUT                       	789
 
 --- SQL operation complete.
@@ -698,11 +698,11 @@ No CONTROL TABLE settings are in effect.
 --- SQL operation complete.
 >>showcontrol table;
 
-CONTROL TABLE B
+CONTROL TABLE TRAFODION.SCH.B
   MDAM                          	OFF
 CONTROL TABLE *
   TIMEOUT                       	777
-CONTROL TABLE C
+CONTROL TABLE TRAFODION.SCH.C
   TIMEOUT                       	567
 
 --- SQL operation complete.
@@ -718,7 +718,7 @@ CONTROL TABLE C
 --- SQL operation complete.
 >>showcontrol table;
 
-CONTROL TABLE B
+CONTROL TABLE TRAFODION.SCH.B
   MDAM                          	OFF
 
 --- SQL operation complete.
@@ -760,9 +760,9 @@ No CONTROL TABLE settings are in effect.
 --- SQL operation complete.
 >>showcontrol table;
 
-CONTROL TABLE A
+CONTROL TABLE TRAFODION.SCH.A
   MDAM                          	ON
-CONTROL TABLE B
+CONTROL TABLE TRAFODION.SCH.B
   TIMEOUT                       	3
 
 --- SQL operation complete.
@@ -931,19 +931,19 @@ Current Environment
 ----------------------------------
 AUTHENTICATION     disabled
 AUTHORIZATION      enabled
-CURRENT DIRECTORY  /opt/home/xxxx/xxxx/rundir/fullstack2
+CURRENT DIRECTORY  /home/centos/ansharma_tag/traf-plus/core/sqf/rundir/fullstack2
 LIST_COUNT         4294967295
 LOG FILE           LOG062
-MESSAGEFILE        /opt/home/xxxx/xxxx/export/bin64d/mxcierr ...
+MESSAGEFILE        /home/centos/ansharma_tag/traf-plus/core/sqf/export/bin ...
 MESSAGEFILE LANG   US English
-MESSAGEFILE VRSN   {2015-03-19 10:15}
+MESSAGEFILE VRSN   {2015-10-21 13:13 LINUX:ANSHARMA-3/centos} 
 SQL CATALOG        TRAFODION
 SQL SCHEMA         SCH
 SQL USER CONNECTED user not connected
 SQL USER DB NAME   DB__ROOT
 SQL USER ID        33333
 TERMINAL CHARSET   ISO88591
-TRANSACTION ID
+TRANSACTION ID     
 TRANSACTION STATE  not in progress
 WARNINGS           on
 >>							-- *not* $$TEST_SCHEMA$$
@@ -995,19 +995,19 @@ Current Environment
 ----------------------------------
 AUTHENTICATION     disabled
 AUTHORIZATION      enabled
-CURRENT DIRECTORY  /opt/home/xxxx/xxxx/rundir/fullstack2
+CURRENT DIRECTORY  /home/centos/ansharma_tag/traf-plus/core/sqf/rundir/fullstack2
 LIST_COUNT         4294967295
 LOG FILE           LOG062
-MESSAGEFILE        /opt/home/xxxx/xxxx/export/bin64d/mxcierr ...
+MESSAGEFILE        /home/centos/ansharma_tag/traf-plus/core/sqf/export/bin ...
 MESSAGEFILE LANG   US English
-MESSAGEFILE VRSN   {2015-03-19 10:15}
+MESSAGEFILE VRSN   {2015-10-21 13:13 LINUX:ANSHARMA-3/centos} 
 SQL CATALOG        TRAFODION
 SQL SCHEMA         SCH
 SQL USER CONNECTED user not connected
 SQL USER DB NAME   DB__ROOT
 SQL USER ID        33333
 TERMINAL CHARSET   ISO88591
-TRANSACTION ID
+TRANSACTION ID     
 TRANSACTION STATE  not in progress
 WARNINGS           on
 >>						-- still not $$TEST_SCHEMA$$
@@ -1055,19 +1055,19 @@ Current Environment
 ----------------------------------
 AUTHENTICATION     disabled
 AUTHORIZATION      enabled
-CURRENT DIRECTORY  /opt/home/xxxx/xxxx/rundir/fullstack2
+CURRENT DIRECTORY  /home/centos/ansharma_tag/traf-plus/core/sqf/rundir/fullstack2
 LIST_COUNT         4294967295
 LOG FILE           LOG062
-MESSAGEFILE        /opt/home/xxxx/xxxx/export/bin64d/mxcierr ...
+MESSAGEFILE        /home/centos/ansharma_tag/traf-plus/core/sqf/export/bin ...
 MESSAGEFILE LANG   US English
-MESSAGEFILE VRSN   {2015-03-19 10:15}
+MESSAGEFILE VRSN   {2015-10-21 13:13 LINUX:ANSHARMA-3/centos} 
 SQL CATALOG        TRAFODION
 SQL SCHEMA         SCH
 SQL USER CONNECTED user not connected
 SQL USER DB NAME   DB__ROOT
 SQL USER ID        33333
 TERMINAL CHARSET   ISO88591
-TRANSACTION ID
+TRANSACTION ID     
 TRANSACTION STATE  not in progress
 WARNINGS           on
 >>                                                    -- back to $$TEST_SCHEMA$$

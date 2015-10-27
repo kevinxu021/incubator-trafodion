@@ -13557,104 +13557,115 @@ ItemExpr * SequenceValue::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 
 } // SequenceValue::copyTopNode()
         
-// HbaseTimestamp                                          
-HbaseTimestamp::~HbaseTimestamp()
+// HbaseAttribute                                    
+HbaseAttribute::~HbaseAttribute()
 {
 }
 
+NABoolean HbaseAttribute::isCovered
+(const ValueIdSet& newExternalInputs,
+ const GroupAttributes& coveringGA,
+ ValueIdSet& referencedInputs,
+ ValueIdSet& coveredSubExpr,
+ ValueIdSet& unCoveredExpr) const
+{
+  //return TRUE;
+  return FALSE;
+}
+
+// HbaseAttributeRef                                          
+HbaseAttributeRef::~HbaseAttributeRef()
+{
+}
+
+ItemExpr * HbaseVisibility::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
+{
+  HbaseVisibility *result;
+
+  if (derivedNode == NULL)
+    result = new (outHeap) HbaseVisibility(col());
+  else
+    result = (HbaseVisibility*)derivedNode;
+
+  return HbaseAttribute::copyTopNode(result, outHeap);
+} // HbaseVisibility::copyTopNode()
+
+ItemExpr * HbaseVisibilityRef::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
+{
+  HbaseVisibilityRef *result;
+
+  if (derivedNode == NULL)
+    result = new (outHeap) HbaseVisibilityRef(col());
+  else
+    result = (HbaseVisibilityRef*)derivedNode;
+
+  return HbaseAttributeRef::copyTopNode(result, outHeap);
+} // HbaseVisibilityRef::copyTopNode()
+ 
+ItemExpr * HbaseVisibilitySet::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
+{
+  HbaseVisibilitySet *result;
+
+  if (derivedNode == NULL)
+    result = new (outHeap) HbaseVisibilitySet(col(), visExpr());
+  else
+    result = (HbaseVisibilitySet*)derivedNode;
+
+  result->colId_ = colId_;
+
+  return HbaseAttributeRef::copyTopNode(result, outHeap);
+} // HbaseVisibilitySet::copyTopNode()
+ 
 ItemExpr * HbaseTimestamp::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 {
   HbaseTimestamp *result;
 
   if (derivedNode == NULL)
-    result = new (outHeap) HbaseTimestamp(col_);
+    result = new (outHeap) HbaseTimestamp(col());
   else
     result = (HbaseTimestamp*)derivedNode;
 
-  result->colIndex_ = colIndex_;
-  result->colName_ = colName_;
-  result->tsVals_ = tsVals_;
-
-  return BuiltinFunction::copyTopNode(result, outHeap);
+  return HbaseAttribute::copyTopNode(result, outHeap);
 } // HbaseTimestamp::copyTopNode()
   
-// HbaseTimestampRef                                          
-HbaseTimestampRef::~HbaseTimestampRef()
-{
-}
 
 ItemExpr * HbaseTimestampRef::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 {
   HbaseTimestampRef *result;
 
   if (derivedNode == NULL)
-    result = new (outHeap) HbaseTimestampRef(col_);
+    result = new (outHeap) HbaseTimestampRef(col());
   else
     result = (HbaseTimestampRef*)derivedNode;
 
-  return BuiltinFunction::copyTopNode(result, outHeap);
-} // HbaseTimestamp::copyTopNode()
+  return HbaseAttributeRef::copyTopNode(result, outHeap);
+} // HbaseTimestampRef::copyTopNode()
   
-NABoolean HbaseTimestamp::isCovered
-(const ValueIdSet& newExternalInputs,
- const GroupAttributes& coveringGA,
- ValueIdSet& referencedInputs,
- ValueIdSet& coveredSubExpr,
- ValueIdSet& unCoveredExpr) const
-{
-  //return TRUE;
-  return FALSE;
-}
-
-// HbaseVersion                                          
-HbaseVersion::~HbaseVersion()
-{
-}
-
 ItemExpr * HbaseVersion::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 {
   HbaseVersion *result;
 
   if (derivedNode == NULL)
-    result = new (outHeap) HbaseVersion(col_);
+    result = new (outHeap) HbaseVersion(col());
   else
     result = (HbaseVersion*)derivedNode;
 
-  result->colIndex_ = colIndex_;
-  result->colName_ = colName_;
-  result->tsVals_ = tsVals_;
-
-  return BuiltinFunction::copyTopNode(result, outHeap);
+  return HbaseAttribute::copyTopNode(result, outHeap);
 } // HbaseVersion::copyTopNode()
   
 // HbaseVersionRef                                          
-HbaseVersionRef::~HbaseVersionRef()
-{
-}
-
 ItemExpr * HbaseVersionRef::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 {
   HbaseVersionRef *result;
 
   if (derivedNode == NULL)
-    result = new (outHeap) HbaseVersionRef(col_);
+    result = new (outHeap) HbaseVersionRef(col());
   else
     result = (HbaseVersionRef*)derivedNode;
 
-  return BuiltinFunction::copyTopNode(result, outHeap);
+  return HbaseAttributeRef::copyTopNode(result, outHeap);
 } // HbaseVersion::copyTopNode()
   
-NABoolean HbaseVersion::isCovered
-(const ValueIdSet& newExternalInputs,
- const GroupAttributes& coveringGA,
- ValueIdSet& referencedInputs,
- ValueIdSet& coveredSubExpr,
- ValueIdSet& unCoveredExpr) const
-{
-  //return TRUE;
-  return FALSE;
-}
-
 // RowNumFunc                        
 RowNumFunc::~RowNumFunc()
 {
