@@ -552,10 +552,10 @@ public class HBaseTxClient {
                if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, generating ABORTED put for transaction: " + transactionID);
                p = tLog.generatePut(transactionID);
                if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, initializing put for transaction: " + transactionID);
-               int index = tLog.initializePut(transactionID, -1, "ABORTED-REMOTE", ts.getParticipatingRegions(), p);
+               int index = tLog.initializePut(transactionID, -1, "ABORTED", ts.getParticipatingRegions(), p);
                for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                   try {
-                     lv_tLog.doTlogWrite(ts, Bytes.toBytes("ABORTED-REMOTE"), index, p);
+                     lv_tLog.doTlogWrite(ts, Bytes.toBytes("ABORTED"), index, p);
                   }
                   catch (Exception e) {
                      LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionID + 
@@ -618,10 +618,10 @@ public class HBaseTxClient {
             if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, generating FORGOTTEN put for transaction: " + transactionID);
             p = tLog.generatePut(transactionID);
             if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, initializing put for FORGOTTEN transaction: " + transactionID);
-            int index = tLog.initializePut(transactionID, -1, "FORGOTTEN-REMOTE", ts.getParticipatingRegions(), p);
+            int index = tLog.initializePut(transactionID, -1, "FORGOTTEN", ts.getParticipatingRegions(), p);
             for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                try {
-                  lv_tLog.doTlogWrite(ts, Bytes.toBytes("FORGOTTEN-REMOTE"), index, p);
+                  lv_tLog.doTlogWrite(ts, Bytes.toBytes("FORGOTTEN"), index, p);
                }
                catch (Exception e) {
                   LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionID + 
@@ -727,10 +727,10 @@ public class HBaseTxClient {
                 if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, generating COMMITTED put for transaction: " + transactionId);
                 p = tLog.generatePut(transactionId);
                 if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, initializing put for transaction: " + transactionId);
-                int index = tLog.initializePut(transactionId, commitIdVal, "COMMITTED-REMOTE", ts.getParticipatingRegions(), p);
+                int index = tLog.initializePut(transactionId, commitIdVal, "COMMITTED", ts.getParticipatingRegions(), p);
                 for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                    try {
-                      lv_tLog.doTlogWrite(ts, Bytes.toBytes("COMMITTED-REMOTE"), index, p);
+                      lv_tLog.doTlogWrite(ts, Bytes.toBytes("COMMITTED"), index, p);
                    }
                    catch (Exception e) {
                       LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionId + 
@@ -793,10 +793,10 @@ public class HBaseTxClient {
              if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, generating FORGOTTEN put for transaction: " + transactionId);
              p = tLog.generatePut(transactionId);
              if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, initializing put for FORGOTTEN transaction: " + transactionId);
-             int index = tLog.initializePut(transactionId, commitIdVal, "FORGOTTEN-REMOTE", ts.getParticipatingRegions(), p);
+             int index = tLog.initializePut(transactionId, commitIdVal, "FORGOTTEN", ts.getParticipatingRegions(), p);
              for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                 try {
-                	lv_tLog.doTlogWrite(ts, Bytes.toBytes("FORGOTTEN-REMOTE"), index, p);
+                	lv_tLog.doTlogWrite(ts, Bytes.toBytes("FORGOTTEN"), index, p);
                 }
                 catch (Exception e) {
                    LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionId + 
