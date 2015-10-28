@@ -569,51 +569,52 @@ define([
 						ykeys:ykeys,
 						ymin: 0,
 						ymax: metricConfig.ymax ? metricConfig.ymax: 'auto',
-								labels: yLabelArray,
-								pointSize: '0.0',
-								hideHover: 'auto',
-								resize:true,
-								yLabelFormat: function(y){
-									if(metricConfig.yLabelFormat){
-										return metricConfig.yLabelFormat(y);
-									}
-									return y.toFixed(0);
-								},
-								xLabelFormat:function(x){
-									return common.formatGraphDateLabels(x.getTime(), timeinterval);
-								},
-								hoverCallback: function (index, options, content, row) {
-									var newContent = [];
+						labels: yLabelArray,
+						pointSize: seriesData.length == 1 ? '2.5' : '0.0',
+						hideHover: 'auto',
+						resize:true,
+						yLabelFormat: function(y){
+							if(metricConfig.yLabelFormat){
+								return metricConfig.yLabelFormat(y);
+							}
+							return y.toFixed(0);
+						},
+						parseTime: false,
+						xLabelFormat:function(data){
+							return common.formatGraphDateLabels(data.src.x, timeinterval);
+						},
+						hoverCallback: function (index, options, content, row) {
+							var newContent = [];
 
-									var nDecimals = 2;
-									if(metricConfig.ydecimals != null){
-										nDecimals = metricConfig.ydecimals;
-									}
-									var yPoint = 0;
-									$.each($(content), function(i, v){
-										var aa = 5;
-										if($(v).hasClass('morris-hover-row-label')){
-											$(v).text("Time : " + common.toServerLocalDateFromMilliSeconds(row.x));
-											newContent.push($(v));
-										}
-										if($(v).hasClass('morris-hover-point')){
-											var text = options.labels[yPoint] + " : ";
-											if(metricConfig.yvalformatter){
-
-												text += metricConfig.yvalformatter(row['y'+yPoint].toFixed(nDecimals));
-											}else{
-												text += row['y'+yPoint].toFixed(nDecimals);
-											}
-											if(metricConfig.yunit){
-												text += metricConfig.yunit;
-											}
-											yPoint++;
-											$(v).text(text);
-											newContent.push($(v));
-										}
-									});
-									return newContent;
+							var nDecimals = 2;
+							if(metricConfig.ydecimals != null){
+								nDecimals = metricConfig.ydecimals;
+							}
+							var yPoint = 0;
+							$.each($(content), function(i, v){
+								var aa = 5;
+								if($(v).hasClass('morris-hover-row-label')){
+									$(v).text("Time : " + common.toServerLocalDateFromMilliSeconds(row.x));
+									newContent.push($(v));
 								}
+								if($(v).hasClass('morris-hover-point')){
+									var text = options.labels[yPoint] + " : ";
+									if(metricConfig.yvalformatter){
+
+										text += metricConfig.yvalformatter(row['y'+yPoint].toFixed(nDecimals));
+									}else{
+										text += row['y'+yPoint].toFixed(nDecimals);
+									}
+									if(metricConfig.yunit){
+										text += metricConfig.yunit;
+									}
+									yPoint++;
+									$(v).text(text);
+									newContent.push($(v));
+								}
+							});
+							return newContent;
+						}
 				};
 				chartsData[result.metricName] = options;
 				
@@ -727,51 +728,52 @@ define([
 						xkey:'x',
 						ykeys:ykeys,
 						labels: tags,
-						pointSize: '2.5',
+						pointSize: seriesData.length == 1 ? '2.5' : '0.0',
 						hideHover: 'auto',
 						//resize:true,
 						ymax: metricConfig.ymax ? metricConfig.ymax: 'auto',
-								yLabelFormat: function(y){
-									if(metricConfig.yLabelFormat){
-										return metricConfig.yLabelFormat(y);
-									}
-									return y.toFixed(0);
-								},	
-								xLabelFormat:function(x){
-									return common.formatGraphDateLabels(x.getTime(), timeinterval);
-								},
-								hoverCallback: function (index, options, content, row) {
-									var newContent = [];
+						yLabelFormat: function(y){
+							if(metricConfig.yLabelFormat){
+								return metricConfig.yLabelFormat(y);
+							}
+							return y.toFixed(0);
+						},	
+						parseTime: false,
+						xLabelFormat:function(data){
+							return common.formatGraphDateLabels(data.src.x, timeinterval);
+						},
+						hoverCallback: function (index, options, content, row) {
+							var newContent = [];
 
-									var nDecimals = 2;
-									if(metricConfig.ydecimals != null){
-										nDecimals = metricConfig.ydecimals;
-									}
-									var yPoint = 0;
-									$.each($(content), function(i, v){
-										var aa = 5;
-										if($(v).hasClass('morris-hover-row-label')){
-											$(v).text("Time : " + common.toServerLocalDateFromMilliSeconds(row.x));
-											newContent.push($(v));
-										}
-										if($(v).hasClass('morris-hover-point')){
-											var text = options.labels[yPoint] + " : ";
-											if(metricConfig.yvalformatter){
-
-												text += metricConfig.yvalformatter(row['y'+yPoint].toFixed(nDecimals));
-											}else{
-												text += row['y'+yPoint].toFixed(nDecimals);
-											}
-											if(metricConfig.yunit){
-												text += metricConfig.yunit;
-											}
-											yPoint++;
-											$(v).text(text);
-											newContent.push($(v));
-										}
-									});
-									return newContent;
+							var nDecimals = 2;
+							if(metricConfig.ydecimals != null){
+								nDecimals = metricConfig.ydecimals;
+							}
+							var yPoint = 0;
+							$.each($(content), function(i, v){
+								var aa = 5;
+								if($(v).hasClass('morris-hover-row-label')){
+									$(v).text("Time : " + common.toServerLocalDateFromMilliSeconds(row.x));
+									newContent.push($(v));
 								}
+								if($(v).hasClass('morris-hover-point')){
+									var text = options.labels[yPoint] + " : ";
+									if(metricConfig.yvalformatter){
+
+										text += metricConfig.yvalformatter(row['y'+yPoint].toFixed(nDecimals));
+									}else{
+										text += row['y'+yPoint].toFixed(nDecimals);
+									}
+									if(metricConfig.yunit){
+										text += metricConfig.yunit;
+									}
+									yPoint++;
+									$(v).text(text);
+									newContent.push($(v));
+								}
+							});
+							return newContent;
+						}
 				};
 
 				setTimeout(function(){
