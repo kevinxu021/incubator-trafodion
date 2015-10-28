@@ -671,26 +671,36 @@ echo "******************************"
 echo
 
 hbase_trx_jar=hbase-trx-hbase*.jar
+traf_util_jar=trafodion-utility*.jar
 
 echo "***INFO: copying $hbase_trx_jar to HBase lib"
 if [ $node_count -ne 1 ]; then
     # if more than one node then copy to all nodes
     $TRAF_PDSH sudo rm -rf $HBASE_HOME/lib/hbase-trx* 2>/dev/null
+    $TRAF_PDSH sudo rm -rf $HBASE_HOME/lib/trafodion-utility* 2>/dev/null
     $TRAF_PDSH sudo chmod 777 $UNTAR_DIR/export/lib
     $TRAF_PDSH sudo cp $UNTAR_DIR/export/lib/$hbase_trx_jar $LOCAL_WORKDIR
+    $TRAF_PDSH sudo cp $UNTAR_DIR/export/lib/$traf_util_jar $LOCAL_WORKDIR
     $TRAF_PDSH sudo cp $LOCAL_WORKDIR/$hbase_trx_jar $LOCAL_WORKDIR
+    $TRAF_PDSH sudo cp $LOCAL_WORKDIR/$traf_util_jar $LOCAL_WORKDIR
     $TRAF_PDSH sudo cp $LOCAL_WORKDIR/$hbase_trx_jar $HBASE_HOME/lib
+    $TRAF_PDSH sudo cp $LOCAL_WORKDIR/$traf_util_jar $HBASE_HOME/lib
     $TRAF_PDSH sudo chmod 644 $HBASE_HOME/lib/$hbase_trx_jar
+    $TRAF_PDSH sudo chmod 644 $HBASE_HOME/lib/$traf_util_jar
     $TRAF_PDSH sudo rm $LOCAL_WORKDIR/$hbase_trx_jar 2>/dev/null
+    $TRAF_PDSH sudo rm $LOCAL_WORKDIR/$traf_util_jar 2>/dev/null
 else
     sudo rm -rf $HBASE_HOME/lib/hbase-trx* 2>/dev/null
+    sudo rm -rf $HBASE_HOME/lib/trafodion-utility* 2>/dev/null
     sudo mkdir -p $TRAF_WORKDIR 2>/dev/null 
     sudo chmod 777 $TRAF_WORKDIR
     sudo chmod 777 $UNTAR_DIR/export/lib
     sudo cp $UNTAR_DIR/export/lib/$hbase_trx_jar $TRAF_WORKDIR
+    sudo cp $UNTAR_DIR/export/lib/$traf_util_jar $TRAF_WORKDIR
     sudo cp $TRAF_WORKDIR/$hbase_trx_jar $HBASE_HOME/lib
+    sudo cp $TRAF_WORKDIR/$traf_util_jar $HBASE_HOME/lib
     sudo chmod 644 $HBASE_HOME/lib/$hbase_trx_jar
-
+    sudo chmod 644 $HBASE_HOME/lib/$traf_util_jar
 fi
 
 
