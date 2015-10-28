@@ -497,6 +497,10 @@ public class TmAuditTlog {
                              // get past the filler
                              st.nextElement();
 
+                             String hasPeerS = st.nextElement().toString();
+                             if (hasPeerS.compareTo("1") == 0) {
+                                ts.setHasRemotePeers(true);
+                             }
                              String commitIdToken = st.nextElement().toString();
                              ts.setCommitId(Long.parseLong(commitIdToken));
 
@@ -1024,11 +1028,11 @@ public class TmAuditTlog {
       return asn.getAndIncrement();
    }
 
-   public void putSingleRecord(final long lvTransid, final long lvCommitId, final String lvTxState, final Set<TransactionRegionLocation> regions, boolean forced) throws Exception {
-      putSingleRecord(lvTransid, lvCommitId, lvTxState, regions, forced, -1);
+   public void putSingleRecord(final long lvTransid, final long lvCommitId, final String lvTxState, final Set<TransactionRegionLocation> regions, final boolean hasPeer, boolean forced) throws Exception {
+      putSingleRecord(lvTransid, lvCommitId, lvTxState, regions, hasPeer,forced, -1);
    }
 
-   public void putSingleRecord(final long lvTransid, final long lvCommitId, final String lvTxState, final Set<TransactionRegionLocation> regions, boolean forced, long recoveryASN) throws Exception {
+   public void putSingleRecord(final long lvTransid, final long lvCommitId, final String lvTxState, final Set<TransactionRegionLocation> regions, final boolean hasPeer, boolean forced, long recoveryASN) throws Exception {
       long threadId = Thread.currentThread().getId();
       if (LOG.isTraceEnabled()) LOG.trace("putSingleRecord start in thread " + threadId);
       StringBuilder tableString = new StringBuilder();
@@ -1067,7 +1071,13 @@ public class TmAuditTlog {
       if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hex: " + Long.toHexString(key) + ", transid: " +  lvTransid
     		  + " in thread " + threadId);
       p = new Put(Bytes.toBytes(key));
-
+      String hasPeerS;
+      if (hasPeer) {
+         hasPeerS = new String ("1");
+      }
+      else {
+         hasPeerS = new String ("0");
+      }
       long lvAsn;
       if (recoveryASN == -1){
          // This is a normal audit record so we manage the ASN
@@ -1082,6 +1092,7 @@ public class TmAuditTlog {
       p.add(TLOG_FAMILY, ASN_STATE, Bytes.toBytes(String.valueOf(lvAsn) + ","
                        + String.valueOf(lvTransid) + "," + lvTxState
                        + "," + Bytes.toString(filler)
+                       + "," + hasPeerS
                        + "," + String.valueOf(lvCommitId)
                        + "," + tableString.toString()));
 
@@ -1224,12 +1235,19 @@ public class TmAuditTlog {
       return p;
    }
 
-   public int initializePut(final long lvTransid, final long lvCommitId, final String lvTxState, final Set<TransactionRegionLocation> regions, Put p ){
+   public int initializePut(final long lvTransid, final long lvCommitId, final String lvTxState, final Set<TransactionRegionLocation> regions, final boolean hasPeer, Put p ){
       long threadId = Thread.currentThread().getId();
       if (LOG.isTraceEnabled()) LOG.trace("initializePut start in thread " + threadId);
       StringBuilder tableString = new StringBuilder();
       long lvAsn;
       int lv_lockIndex = 0;
+      String hasPeerS;
+      if (hasPeer) {
+         hasPeerS = new String ("1");
+      }
+      else {
+         hasPeerS = new String ("0");
+      }
       if (regions != null) {
          // Regions passed in indicate a state record where recovery might be needed following a crash.
          // To facilitate branch notification we translate the regions into table names that can then
@@ -1261,6 +1279,7 @@ public class TmAuditTlog {
       p.add(TLOG_FAMILY, ASN_STATE, Bytes.toBytes(String.valueOf(lvAsn) + ","
                        + String.valueOf(lvTransid) + "," + lvTxState
                        + "," + Bytes.toString(filler)
+                       + "," + hasPeerS
                        + "," + String.valueOf(lvCommitId)
                        + "," + tableString.toString()));
       if (LOG.isTraceEnabled()) LOG.trace("initializePut returning " + lv_lockIndex);
@@ -1564,10 +1583,10 @@ public class TmAuditTlog {
                if (LOG.isTraceEnabled()) LOG.trace("writeControlPointRecords adding record for trans (" + transid + ") : state is " + value.getStatus());
                cpWrites++;
                if (forceControlPoint) {
-                  putSingleRecord(transid, value.getCommitId(), value.getStatus(), value.getParticipatingRegions(), true);
+                  putSingleRecord(transid, value.getCommitId(), value.getStatus(), value.getParticipatingRegions(), value.hasRemotePeers(), true);
                }
                else {
-                  putSingleRecord(transid, value.getCommitId(), value.getStatus(), value.getParticipatingRegions(), false);
+                  putSingleRecord(transid, value.getCommitId(), value.getStatus(), value.getParticipatingRegions(), value.hasRemotePeers(), false);
                }
             }
          }
@@ -1810,6 +1829,10 @@ public class TmAuditTlog {
 
             // get past the filler
             st.nextElement();
+            String hasPeerS = st.nextElement().toString();
+            if (hasPeerS.compareTo("1") == 0) {
+               ts.setHasRemotePeers(true);
+            }
 
             commitIdToken = st.nextElement().toString();
             ts.setCommitId(Long.parseLong(commitIdToken));
