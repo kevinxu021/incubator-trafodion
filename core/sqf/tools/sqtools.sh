@@ -413,6 +413,13 @@ function collect_sqchkvm {
     sqchkvm >> $lv_file_name
 }
 
+function collect_xdc {
+    lv_file_name='xdc.out'
+    
+    LogHeader "xdc -list"
+    xdc -list >> $lv_file_name
+}
+
 # Works on a per node basis. 
 function sqsavelogs {
 
@@ -589,6 +596,8 @@ function sqcollectlogs {
     collect_cmaph
     
     collect_sqchkvm
+
+    collect_xdc
     
     collect_cfindcore
 
@@ -943,6 +952,7 @@ export -f LogPstack
 export -f collect_cstat
 export -f collect_cmapt
 export -f collect_sqchkvm
+export -f collect_xdc
 export -f sqsavelogs
 export -f sqsavelogs_compress
 export -f sqcollectlogs
