@@ -217,31 +217,6 @@ ItemExpr * buildEncodeTree(desc_struct * column,
   if (boundItemExpr == NULL)
     return NULL;
 
-  // make sure that the source and target values have compatible type.
-  // Do this only if source is not a null value.
-  NAString srcval;
-  srcval = "";
-  srcval += *dataBuffer;
-  srcval += ";";
-  ItemExpr * srcNode = expGen->createExprTree(srcval, CharInfo::UTF8, srcval.length());
-  CMPASSERT(srcNode != NULL);
-  srcNode->synthTypeAndValueId();
-  if ((NOT nullValue) &&
-      (NOT srcNode->getValueId().getType().isCompatible(itemExpr->getValueId().getType())))
-    {
-      if (diagsArea)
-	{
-	  emitDyadicTypeSQLnameMsg(-4039, 
-				   itemExpr->getValueId().getType(),
-				   srcNode->getValueId().getType(),
-				   column->body.columns_desc.colname,
-				   NULL,
-				   diagsArea);
-	}
-
-      return NULL;
-    }
-
   if (column->body.columns_desc.null_flag)
     ((NAType *)&(itemExpr->getValueId().getType()))->setNullable(TRUE);
   else

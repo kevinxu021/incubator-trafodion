@@ -212,6 +212,8 @@
 1210 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU Column $0~String0 is not allowed at position $1~Int0 in the SPLIT BY clause, because SPLIT BY must specify a prefix of the clustering key columns and the next clustering key column is $2~String1.
 1211 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU The column values of the SPLIT BY first key in position $0~Int0 (one-based) are not greater (for ascending columns) or less (for descending columns) than its predecessor.
 1212 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU An HBase region start key provided only part of the value for Trafodion key column $0~Int0. This could in some unusual situations cause errors.
+1213 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU The start key at position $0~int0 in the SPLIT BY clause does not have the correct number of entries or the correct data type(s).
+1214 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU The sort direction (ASC/DESC) of the columns in the SPLIT BY clause must match that of the clustering key (PRIMARY KEY or STORE BY clause).
 1220 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Code must contain two non-blank characters.
 1221 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Only system components may contain system operations.
 1222 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Command not supported when authorization is not enabled.

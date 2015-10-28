@@ -6305,6 +6305,18 @@ short CmpSeabaseDDL::createEncodedKeysBuffer(char** &encodedKeysBuffer,
                                   << DgString1(cd->body.columns_desc.colname);
               return -1;
             }
+
+          NABoolean keyColIsAscending =
+            (keyColDesc->body.keys_desc.ordering == 0);
+          NABoolean splitByColIsAscending =
+            (splitByColRefs[c]->getColumnOrdering() != COM_DESCENDING_ORDER);
+
+          if (keyColIsAscending != splitByColIsAscending)
+            {
+              *CmpCommon::diags() << DgSqlCode(-1214);
+              return -1;
+            }
+
           keyColDesc = keyColDesc->header.next;
         }
       
@@ -6355,7 +6367,12 @@ short CmpSeabaseDDL::createEncodedKeysBuffer(char** &encodedKeysBuffer,
           const ItemConstValueArray &cva =
             pPartitionRange->getKeyValueArray();
 
-          CMPASSERT(cva.entries() <= numKeys);
+          if (cva.entries() > numKeys)
+            {
+              *CmpCommon::diags() << DgSqlCode(-1213)
+                                  << DgInt0(i+1);
+              return -1;
+            }
 
           int v;
           // copy the values specified in SPLIT BY ... ADD PARTITION
@@ -6404,7 +6421,11 @@ short CmpSeabaseDDL::createEncodedKeysBuffer(char** &encodedKeysBuffer,
                                CmpCommon::diags());
 
       if (retVal)
-        return -1;
+        {
+          *CmpCommon::diags() << DgSqlCode(-1213)
+                              << DgInt0(i+1);
+          return -1;
+        }
 
       // check whether the encoded keys are ascending
       if (i > 0 &&
