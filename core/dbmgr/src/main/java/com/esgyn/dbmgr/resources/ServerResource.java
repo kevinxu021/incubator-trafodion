@@ -110,7 +110,9 @@ public class ServerResource {
 			rs = stmt.executeQuery("get version of software");
 			if (rs.next()) {
 				String version = rs.getString(1);
-				ConfigurationResource.setSystemVersion(version.trim());
+				String[] versionparts = version.split(":");
+				ConfigurationResource
+						.setSystemVersion(versionparts.length > 1 ? versionparts[1].trim() : versionparts[0]);
 			}
 
 		} catch (Exception e) {
