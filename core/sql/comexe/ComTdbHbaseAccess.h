@@ -26,6 +26,7 @@
 #include "ComTdb.h"
 #include "ComQueue.h"
 #include "ComKeyRange.h" // keyInfo_ dereferenced in some inline methods.
+#include "ExpHbaseDefs.h"
 
 static const ComTdbVirtTableColumnInfo hbaseTableColumnInfo[] =
 {                                                                                     
@@ -345,12 +346,11 @@ public:
     UInt32     flags_;
   };
   typedef NAVersionedObjectPtrTempl<HbaseSnapshotScanAttributes> HbaseSnapshotScanAttributesPtr;
-	
-  class HbaseAccessOptions : public NAVersionedObject
+
+  class ComHbaseAccessOptions : public NAVersionedObject
   {
   public:
-  HbaseAccessOptions(Lng32 v = 0) :
-    versions_(v)
+    ComHbaseAccessOptions()
     {
     }
     
@@ -364,25 +364,18 @@ public:
       setImageVersionID(0,getClassVersionID());
     }
 
-    virtual short getClassSize() { return (short)sizeof(HbaseAccessOptions); }
+    virtual short getClassSize() { return (short)sizeof(ComHbaseAccessOptions); }
 
-    Lng32 getNumVersions() { return versions_; }
-
-    NABoolean multiVersions() { return (versions_ != 0);}
+    HbaseAccessOptions &hbaseAccessOptions() { return hbo_; }
   private:
-    // 0, version not specified, return default of 1.
-    // -1, return max versions
-    // -2, return all versions.
-    // N, return N versions.
-    Lng32 versions_; 
-    char filler_[4];
+    HbaseAccessOptions hbo_;
   };
 
  // ---------------------------------------------------------------------
   // Template instantiation to produce a 64-bit pointer emulator class
   // for HbaseAccessOptions
   // ---------------------------------------------------------------------
-  typedef NAVersionedObjectPtrTempl<HbaseAccessOptions> HbaseAccessOptionsPtr;
+  typedef NAVersionedObjectPtrTempl<ComHbaseAccessOptions> ComHbaseAccessOptionsPtr;
   	
   // Constructors
 
@@ -409,6 +402,7 @@ public:
 		    ex_expr *encodedKeyExpr,
 		    ex_expr *keyColValExpr,
 		    ex_expr *hbaseFilterExpr,
+                    ex_expr *hbTagExpr,
 
 		    UInt32 asciiRowLen,
 		    UInt32 convertRowLen,
@@ -423,6 +417,7 @@ public:
 		    UInt32 keyLen,
 		    UInt32 keyColValLen,
 		    UInt32 hbaseFilterValRowLen,
+                    UInt32 hbTagRowLen,
 
 		    const UInt16 asciiTuppIndex,
 		    const UInt16 convertTuppIndex,
@@ -441,7 +436,8 @@ public:
 
                     const UInt16 hbaseTimestampTuppIndex,
                     const UInt16 hbaseVersionTuppIndex,
-                    
+                    const UInt16 hbTagTuppIndex,
+
 		    Queue * listOfScanRows,
 		    Queue * listOfGetRows,
 		    Queue * listOfFetchedColNames,
@@ -465,7 +461,9 @@ public:
 		    Float32 samplingRate = -1,
 		    HbaseSnapshotScanAttributes * hbaseSnapshotScanAttributes = NULL,
 
-                    HbaseAccessOptions * hbaseAccessOptions = NULL
+                    ComHbaseAccessOptions * comHbaseAccessOptions = NULL,
+
+                    char * hbaseAuths = NULL
 	       );
   
   ComTdbHbaseAccess(
@@ -627,17 +625,19 @@ public:
   const char * server() { return server_; }
   const char * zkPort() { return zkPort_;}
 
+  const char * hbaseAuths() { return hbaseAuths_; }
+
   HbasePerfAttributes * getHbasePerfAttributes() 
   { return (HbasePerfAttributes*)hbasePerfAttributes_.getPointer();}
   HbasePerfAttributesPtr getHbasePerfAttributesPtr() { return hbasePerfAttributes_; }
 
-  HbaseAccessOptions * getHbaseAccessOptions() 
-  { return (HbaseAccessOptions*)hbaseAccessOptions_.getPointer(); }
+  ComHbaseAccessOptions * getComHbaseAccessOptions() 
+  { return (ComHbaseAccessOptions*)comHbaseAccessOptions_.getPointer(); }
 
   NABoolean multiVersions() 
   {
     return 
-      (getHbaseAccessOptions() ? getHbaseAccessOptions()->multiVersions() : FALSE);
+      (getComHbaseAccessOptions() ? getComHbaseAccessOptions()->hbaseAccessOptions().multiVersions() : FALSE);
   }
       
   UInt32 rowIdLen() { return rowIdLen_;}
@@ -806,6 +806,9 @@ public:
         return rowIdLen_;
   } 
 
+  void setHbaseCellTS(Int64 ts) { hbaseCellTS_ = ts; }
+  Int64 getHbaseCellTS() { return hbaseCellTS_;}
+
   void setIsTrafLoadCleanup(NABoolean v)
    {(v ? flags2_ |= TRAF_LOAD_CLEANUP : flags2_ &= ~TRAF_LOAD_CLEANUP); };
   NABoolean getIsTrafLoadCleanup() { return (flags2_ & TRAF_LOAD_CLEANUP) != 0; };
@@ -924,6 +927,8 @@ public:
 
   UInt16 hbaseTimestampTuppIndex_;
   UInt16 hbaseVersionTuppIndex_;
+  UInt16 hbTagTuppIndex_;
+  char   fillers0_[2];
 
   UInt32 asciiRowLen_;
   UInt32 convertRowLen_;
@@ -938,6 +943,7 @@ public:
   UInt32 keyLen_;
   UInt32 keyColValLen_;
   UInt32 hbaseFilterValRowLen_;
+  UInt32 hbTagRowLen_;
 
   // expr to create the hbase row
   ExExprPtr convertExpr_;
@@ -963,6 +969,7 @@ public:
   ExExprPtr keyColValExpr_;
   ExExprPtr insDelPreCondExpr_;
   ExExprPtr hbaseFilterExpr_;
+  ExExprPtr hbTagExpr_;
 
   ExCriDescPtr workCriDesc_;      
 
@@ -988,6 +995,9 @@ public:
   NABasicPtr server_;
   NABasicPtr zkPort_;
 
+  // user specified hbase cell timestamp value to be used during ins/ups/upd 
+  Int64 hbaseCellTS_;
+
   HbasePerfAttributesPtr hbasePerfAttributes_;
   Float32 samplingRate_;
   NABasicPtr sampleLocation_;
@@ -1001,8 +1011,11 @@ public:
   HbaseSnapshotScanAttributesPtr hbaseSnapshotScanAttributes_;
   UInt32 maxErrorRows_;
   UInt16 hbaseRowsetVsbbSize_; 
-  HbaseAccessOptionsPtr hbaseAccessOptions_;
+  ComHbaseAccessOptionsPtr comHbaseAccessOptions_;
+
   char fillers[2];
+
+  NABasicPtr hbaseAuths_;
 };
 
 class ComTdbHbaseCoProcAccess : public ComTdbHbaseAccess

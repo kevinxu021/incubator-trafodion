@@ -184,6 +184,8 @@ ExFunctionHbaseColumnsDisplay::ExFunctionHbaseColumnsDisplay() {};
 ExFunctionHbaseColumnCreate::ExFunctionHbaseColumnCreate() {};
 ExFunctionCastType::ExFunctionCastType() {};
 ExFunctionSequenceValue::ExFunctionSequenceValue() {};
+ExFunctionHbaseVisibility::ExFunctionHbaseVisibility() {};
+ExFunctionHbaseVisibilitySet::ExFunctionHbaseVisibilitySet() {};
 ExFunctionHbaseTimestamp::ExFunctionHbaseTimestamp() {};
 ExFunctionHbaseVersion::ExFunctionHbaseVersion() {};
 ExFunctionSVariance::ExFunctionSVariance(){};
@@ -613,6 +615,38 @@ ExFunctionSequenceValue::ExFunctionSequenceValue(OperatorTypeEnum oper_type,
     sga_(sga),
     flags_(0)
 {
+};
+
+ExFunctionHbaseVisibility::ExFunctionHbaseVisibility(
+     OperatorTypeEnum oper_type,
+     Attributes ** attr, 
+     Lng32 tagType,
+     Lng32 colIndex,
+     Space * space)
+     : ex_function_clause(oper_type, 2, attr, space),
+       tagType_(tagType),
+       colIndex_(colIndex),
+       flags_(0)
+{
+};
+
+ExFunctionHbaseVisibilitySet::ExFunctionHbaseVisibilitySet(
+     OperatorTypeEnum oper_type,
+     Attributes ** attr, 
+     short colIDlen,
+     const char * colID,
+     Lng32 visExprLen,
+     const char * visExpr,
+     Space * space)
+     : ex_function_clause(oper_type, 1, attr, space),
+       colIDlen_(colIDlen), 
+       visExprLen_(visExprLen),
+       flags_(0)
+{
+  memcpy(visExpr_, visExpr, visExprLen);
+  visExpr_[visExprLen] = 0;
+
+  strcpy(colID_, colID);
 };
 
 ExFunctionHbaseTimestamp::ExFunctionHbaseTimestamp(
@@ -7073,6 +7107,52 @@ ExFunctionSequenceValue::eval(char *op_data[], CollHeap *heap,
     }
 
   *(Int64*)result = seqVal;
+
+  return ex_expr::EXPR_OK;
+}
+
+ex_expr::exp_return_type 
+ExFunctionHbaseVisibility::eval(char *op_data[], CollHeap *heap, 
+                         ComDiagsArea **diagsArea)
+{
+  short rc = 0;
+  
+  // op_data[0] points to result. 
+  Attributes *resultAttr   = getOperand(0);
+  char * result =  op_data[0];
+  
+  Int64 * hbaseTS = (Int64*)op_data[1];
+  
+  *(Int64*)result = hbaseTS[colIndex_];
+  
+  return ex_expr::EXPR_OK;
+}
+
+ex_expr::exp_return_type 
+ExFunctionHbaseVisibilitySet::eval(char *op_data[], CollHeap *heap, 
+                         ComDiagsArea **diagsArea)
+{
+  short rc = 0;
+  
+  // op_data[0] points to result. 
+  Attributes *resultAttr   = getOperand(0);
+  char * result =  op_data[0];
+  
+  char * currPos = result;
+
+  *(short*)currPos = colIDlen_;
+  currPos += sizeof(short);
+
+  memcpy(currPos, colID_, colIDlen_);
+  currPos += ROUND2(colIDlen_);
+
+  *(Lng32*)currPos = visExprLen_;
+  currPos += sizeof(Lng32);
+
+  memcpy(currPos, visExpr(), visExprLen_);
+  currPos += visExprLen_;
+
+  //  resultAttr->setVarLength((currPos - result), op_data[-MAX_OPERANDS]);
 
   return ex_expr::EXPR_OK;
 }

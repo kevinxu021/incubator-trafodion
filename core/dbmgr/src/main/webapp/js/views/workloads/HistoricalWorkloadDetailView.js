@@ -14,7 +14,6 @@ define([
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
-        'tabletools',
         'datetimepicker',
         'jqueryvalidate'
         ], function (BaseView, WorkloadsT, $, wHandler, moment, common) {

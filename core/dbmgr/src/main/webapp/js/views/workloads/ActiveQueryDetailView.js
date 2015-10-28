@@ -14,7 +14,6 @@ define([
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
-        'tabletools'
         ], function (BaseView, WorkloadsT, $, wHandler, moment, common) {
 	'use strict';
     var LOADING_SELECTOR = "#loadingImg",

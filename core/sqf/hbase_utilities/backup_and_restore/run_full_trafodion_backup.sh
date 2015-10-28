@@ -33,7 +33,7 @@ usage()
   echo "The $0 script performs full offline backup of all Trafodion tables"
   echo "and copies the backup files to an HDFS location"
   echo "The command to use the script is as follows:"
-  echo "$0 -b backup_folder -b backup_dir -u trafodion_user -h hbase_user -d hdfs_user -m mappers -n"
+  echo "$0 -b backup_folder -b backup_dir -u trafodion_user -h hbase_user -d hdfs_user -m mappers -n -o -j"
   echo "where"
   echo "-b backup_folder"
   echo "     (Optional) HDFS path where all the Trafodion object are exported and saved"
@@ -63,6 +63,11 @@ usage()
   echo "     (Optional) Non interactive mode. With this option the script does not prompt"
   echo "     the user to confirm the use of computed or default values when a parameter"
   echo "     like trafodion user, hbase user, hdfs user or backup path is not provided."
+  echo "-o"
+  echo "     (Optional) offline. With this option trafodion will not be restarted after"
+  echo "     snapshots are taken."
+  echo "-j"
+  echo "     (Optional) use HBase java class for snapshot export. This could be slower."
   echo " Example: $0  -b hdfs://<host>:<port>/<hdfs-path>  -m 4"
   exit 1
 }
@@ -96,8 +101,10 @@ trafodion_user=
 hbase_user=
 hdfs_user=
 confirm=1
+stay_offline=0
+use_hbase_export=0
 
-while getopts :b:u:m:h:d:n arguments
+while getopts :b:u:m:h:dnoj arguments
 do
   case $arguments in
   b)  hdfs_backup_location=$OPTARG;;
@@ -105,6 +112,8 @@ do
   u)  trafodion_user=$OPTARG;;
   h)  hbase_user=$OPTARG;;
   d)  hdfs_user=$OPTARG;;
+  o)  stay_offline=1;;
+  j)  use_hbase_export=1;;
   n)  confirm=0;;
   *)  usage;;
   esac
@@ -229,14 +238,23 @@ if  [[ $? -eq 0 ]]; then
     exit 1;
 fi
 
+## Restart Trafodion
+if [[ ${stay_offline} -ne 1 ]]; then
+ start_trafodion $trafodion_user 
+else
+ echo "Trafodion can now be restarted at your convinience. Backup script does not need for it to be offline anymore."
+fi
 
 while read line
 do
   snapshot_name=$line
   echo "********************************************************************"
   echo "Exporting ${snapshot_name} ..."
-  #export--
-  hbase_cmd="$(get_hbase_cmd)  org.apache.hadoop.hbase.snapshot.ExportSnapshot"
+  if [[ ${use_hbase_export} -eq 1 ]]; then
+     hbase_cmd="$(get_hbase_cmd) ExportSnapshot"
+  else 
+     hbase_cmd="$(get_hbase_cmd)  org.trafodion.utility.backuprestore.TrafExportSnapshot"
+  fi
   hbase_cmd+=" -snapshot ${snapshot_name}"
   hbase_cmd+=" -copy-to ${hdfs_backup_location}/${snapshot_name}"
   hbase_cmd+=" -mappers $mappers"

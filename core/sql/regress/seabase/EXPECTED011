@@ -7,7 +7,7 @@
 >>invoke T011T1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T011T1
--- Definition current  Fri Oct  2 02:48:09 2015
+-- Definition current  Mon Oct 26 22:35:03 2015
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -142,7 +142,7 @@ A            B
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... NOT NAMED
-PLAN_ID .................. 212310514090586565
+PLAN_ID .................. 212312658904829015
 ROWS_OUT ................. 7
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t011t1 where a >= 3 and a < 5;
@@ -181,7 +181,7 @@ DESCRIPTION
   SCHEMA ................. TRAFODION.SCH
   QUERY_CACHE ............ 0
   GENERATE_EXPLAIN ....... ON
-  ObjectUIDs ............. 645219028244664647
+  ObjectUIDs ............. 7753027284965340325
   select_list ............ TRAFODION.SCH.T011T1.A, TRAFODION.SCH.T011T1.B
 
 
@@ -1266,7 +1266,7 @@ METRIC_TEXT_TABLE
 >>invoke trafodion."_REPOS_".metric_query_table;
 
 -- Definition of Trafodion table TRAFODION."_REPOS_".METRIC_QUERY_TABLE
--- Definition current  Fri Oct  2 02:50:03 2015
+-- Definition current  Mon Oct 26 22:36:47 2015
 
   (
     INSTANCE_ID                      INT UNSIGNED NO DEFAULT NOT NULL NOT
@@ -1448,7 +1448,7 @@ METRIC_TEXT_TABLE
 >>-- get qid for the prepared stmt
 >>get qid for statement explstmt;
 
-MXID11000001146212310514063700975000000000206U3333300_1922_EXPLSTMT
+MXID11000013772212312658886527000000000000206U3333300_2049_EXPLSTMT
 
 --- SQL operation complete.
 >>
@@ -1500,7 +1500,7 @@ SEQ_NUM      OPERATOR
 --- SQL command prepared.
 >>get qid for statement explstmt2;
 
-MXID11000001146212310514063700975000000000206U3333300_1933_EXPLSTMT2
+MXID11000013772212312658886527000000000000206U3333300_2060_EXPLSTMT2
 
 --- SQL operation complete.
 >>set qid MXID123456 for explstmt2;
@@ -2073,7 +2073,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>invoke t011t7;
 
 -- Definition of Trafodion table TRAFODION.SCH.T011T7
--- Definition current  Fri Oct  2 02:50:45 2015
+-- Definition current  Mon Oct 26 22:37:20 2015
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -2090,7 +2090,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>invoke t011t7;
 
 -- Definition of Trafodion table TRAFODION.SCH.T011T7
--- Definition current  Fri Oct  2 02:50:46 2015
+-- Definition current  Mon Oct 26 22:37:21 2015
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -2107,7 +2107,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>invoke t011t7;
 
 -- Definition of Trafodion table TRAFODION.SCH.T011T7
--- Definition current  Fri Oct  2 02:50:47 2015
+-- Definition current  Mon Oct 26 22:37:21 2015
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -2156,7 +2156,19 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>create table t011t8s(a int) attributes synchronous replication;
 
 --- SQL operation complete.
+>>create index t011t8si on t011t8s(a) attribute synchronous replication;
+
+*** ERROR[3242] This statement is not supported. Reason: Cannot specify replication attribute in create index.
+
+*** ERROR[8822] The statement was not prepared.
+
+>>create index t011t8si on t011t8s(a);
+
+--- SQL operation complete.
 >>create table t011t8a(a int) attributes asynchronous replication;
+
+--- SQL operation complete.
+>>create index t011t8ai on t011t8a(a);
 
 --- SQL operation complete.
 >>create table t011t8n(a int) attributes no replication;
@@ -2171,6 +2183,12 @@ CREATE TABLE TRAFODION.SCH.T011T8S
  ATTRIBUTES SYNCHRONOUS REPLICATION
 ;
 
+CREATE INDEX T011T8SI ON TRAFODION.SCH.T011T8S
+  (
+    A ASC
+  )
+;
+
 --- SQL operation complete.
 >>showddl t011t8a;
 
@@ -2179,6 +2197,12 @@ CREATE TABLE TRAFODION.SCH.T011T8A
     A                                INT DEFAULT NULL
   )
  ATTRIBUTES ASYNCHRONOUS REPLICATION
+;
+
+CREATE INDEX T011T8AI ON TRAFODION.SCH.T011T8A
+  (
+    A ASC
+  )
 ;
 
 --- SQL operation complete.
@@ -2191,6 +2215,208 @@ CREATE TABLE TRAFODION.SCH.T011T8N
 ;
 
 --- SQL operation complete.
+>>prepare s from insert into t011t8s values (1);
+
+--- SQL command prepared.
+>>explain s;
+
+------------------------------------------------------------------ PLAN SUMMARY
+MODULE_NAME .............. DYNAMICALLY COMPILED
+STATEMENT_NAME ........... S
+PLAN_ID .................. 212312659052841789
+ROWS_OUT ................. 1
+EST_TOTAL_COST ........... 0.01
+STATEMENT ................ insert into t011t8s values (1);
+
+
+------------------------------------------------------------------ NODE LISTING
+ROOT ======================================  SEQ_NO 4        ONLY CHILD 3
+REQUESTS_IN .............. 1
+ROWS_OUT ................. 1
+EST_OPER_COST ............ 0
+EST_TOTAL_COST ........... 0.01
+DESCRIPTION
+  olt_optimization ....... used
+  max_card_est ........... 1
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  statement_index ........ 0
+  affinity_value ......... 0
+  max_max_cardinality .... 1
+  total_overflow_size .... 0.00 KB
+  upd_action_on_error .... xn_rollback
+  xn_access_mode ......... read_only
+  xn_autoabort_interval    0
+  auto_query_retry ....... enabled
+  plan_version ....... 2,600
+  embedded_arkcmp ........ used
+  IS_SQLCI ............... ON
+  LDAP_USERNAME
+  MODE_SEABASE ........... ON
+  SEABASE_VOLATILE_TABLES  ON
+  HBASE_ASYNC_DROP_TABLE   OFF
+  HBASE_SERIALIZATION .... ON
+  HBASE_SMALL_SCANNER .... SYSTEM
+  HBASE_FILTER_PREDS ..... ON
+  TRAF_ALIGNED_ROW_FORMAT  OFF
+  TRAF_INDEX_CREATE_OPT    ON
+  SCHEMA ................. TRAFODION.SCH
+  QUERY_CACHE ............ 0
+  READONLY_CURSOR ........ TRUE
+  SHOWCONTROL_SHOW_ALL ... OFF
+  GENERATE_EXPLAIN ....... ON
+  ObjectUIDs ............. 7753027284965354367, 7753027284965354474
+
+
+NESTED_JOIN ===============================  SEQ_NO 3        CHILDREN 1, 2
+REQUESTS_IN .............. 1
+ROWS_OUT ................. 1
+EST_OPER_COST ............ 0.01
+EST_TOTAL_COST ........... 0.01
+DESCRIPTION
+  max_card_est ........... 1
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  join_type .............. inner
+  join_method ............ nested
+
+
+TRAFODION_INSERT ==========================  SEQ_NO 2        NO CHILDREN
+TABLE_NAME ............... TRAFODION.SCH.T011T8SI
+REQUESTS_IN .............. 1
+ROWS_OUT ................. 1
+EST_OPER_COST ............ 0.01
+EST_TOTAL_COST ........... 0.01
+DESCRIPTION
+  max_card_est ........... -1
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  iud_type ............... index_trafodion_insert TRAFODION.SCH.T011T8SI
+  replication ............ synchronous
+  new_rec_expr ........... ("A@" assign TRAFODION.SCH.T011T8S.A),
+                             (SYSKEY assign TRAFODION.SCH.T011T8S.SYSKEY)
+
+
+TRAFODION_INSERT ==========================  SEQ_NO 1        NO CHILDREN
+TABLE_NAME ............... TRAFODION.SCH.T011T8S
+REQUESTS_IN .............. 1
+ROWS_OUT ................. 1
+EST_OPER_COST ............ 0.01
+EST_TOTAL_COST ........... 0.01
+DESCRIPTION
+  max_card_est ........... -1
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  iud_type ............... trafodion_insert TRAFODION.SCH.T011T8S
+  replication ............ synchronous
+  new_rec_expr ........... (A assign 1), (SYSKEY assign 0)
+
+--- SQL operation complete.
+>>prepare s from insert into t011t8a values (1);
+
+--- SQL command prepared.
+>>explain s;
+
+------------------------------------------------------------------ PLAN SUMMARY
+MODULE_NAME .............. DYNAMICALLY COMPILED
+STATEMENT_NAME ........... S
+PLAN_ID .................. 212312659053669201
+ROWS_OUT ................. 1
+EST_TOTAL_COST ........... 0.01
+STATEMENT ................ insert into t011t8a values (1);
+
+
+------------------------------------------------------------------ NODE LISTING
+ROOT ======================================  SEQ_NO 4        ONLY CHILD 3
+REQUESTS_IN .............. 1
+ROWS_OUT ................. 1
+EST_OPER_COST ............ 0
+EST_TOTAL_COST ........... 0.01
+DESCRIPTION
+  olt_optimization ....... used
+  max_card_est ........... 1
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  statement_index ........ 0
+  affinity_value ......... 0
+  max_max_cardinality .... 1
+  total_overflow_size .... 0.00 KB
+  upd_action_on_error .... xn_rollback
+  xn_access_mode ......... read_only
+  xn_autoabort_interval    0
+  auto_query_retry ....... enabled
+  plan_version ....... 2,600
+  embedded_arkcmp ........ used
+  IS_SQLCI ............... ON
+  LDAP_USERNAME
+  MODE_SEABASE ........... ON
+  SEABASE_VOLATILE_TABLES  ON
+  HBASE_ASYNC_DROP_TABLE   OFF
+  HBASE_SERIALIZATION .... ON
+  HBASE_SMALL_SCANNER .... SYSTEM
+  HBASE_FILTER_PREDS ..... ON
+  TRAF_ALIGNED_ROW_FORMAT  OFF
+  TRAF_INDEX_CREATE_OPT    ON
+  SCHEMA ................. TRAFODION.SCH
+  QUERY_CACHE ............ 0
+  READONLY_CURSOR ........ TRUE
+  SHOWCONTROL_SHOW_ALL ... OFF
+  GENERATE_EXPLAIN ....... ON
+  ObjectUIDs ............. 7753027284965354863, 7753027284965355031
+
+
+NESTED_JOIN ===============================  SEQ_NO 3        CHILDREN 1, 2
+REQUESTS_IN .............. 1
+ROWS_OUT ................. 1
+EST_OPER_COST ............ 0.01
+EST_TOTAL_COST ........... 0.01
+DESCRIPTION
+  max_card_est ........... 1
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  join_type .............. inner
+  join_method ............ nested
+
+
+TRAFODION_INSERT ==========================  SEQ_NO 2        NO CHILDREN
+TABLE_NAME ............... TRAFODION.SCH.T011T8AI
+REQUESTS_IN .............. 1
+ROWS_OUT ................. 1
+EST_OPER_COST ............ 0.01
+EST_TOTAL_COST ........... 0.01
+DESCRIPTION
+  max_card_est ........... -1
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  iud_type ............... index_trafodion_insert TRAFODION.SCH.T011T8AI
+  replication ............ asynchronous
+  new_rec_expr ........... ("A@" assign TRAFODION.SCH.T011T8A.A),
+                             (SYSKEY assign TRAFODION.SCH.T011T8A.SYSKEY)
+
+
+TRAFODION_INSERT ==========================  SEQ_NO 1        NO CHILDREN
+TABLE_NAME ............... TRAFODION.SCH.T011T8A
+REQUESTS_IN .............. 1
+ROWS_OUT ................. 1
+EST_OPER_COST ............ 0.01
+EST_TOTAL_COST ........... 0.01
+DESCRIPTION
+  max_card_est ........... -1
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  iud_type ............... trafodion_insert TRAFODION.SCH.T011T8A
+  replication ............ asynchronous
+  new_rec_expr ........... (A assign 1), (SYSKEY assign 0)
+
+--- SQL operation complete.
 >>alter table t011t8s attribute no replication;
 
 --- SQL operation complete.
@@ -2199,6 +2425,12 @@ CREATE TABLE TRAFODION.SCH.T011T8N
 CREATE TABLE TRAFODION.SCH.T011T8S
   (
     A                                INT DEFAULT NULL
+  )
+;
+
+CREATE INDEX T011T8SI ON TRAFODION.SCH.T011T8S
+  (
+    A ASC
   )
 ;
 
@@ -2215,6 +2447,12 @@ CREATE TABLE TRAFODION.SCH.T011T8S
  ATTRIBUTES SYNCHRONOUS REPLICATION
 ;
 
+CREATE INDEX T011T8SI ON TRAFODION.SCH.T011T8S
+  (
+    A ASC
+  )
+;
+
 --- SQL operation complete.
 >>alter table t011t8s attribute asynchronous replication;
 
@@ -2226,6 +2464,12 @@ CREATE TABLE TRAFODION.SCH.T011T8S
     A                                INT DEFAULT NULL
   )
  ATTRIBUTES ASYNCHRONOUS REPLICATION
+;
+
+CREATE INDEX T011T8SI ON TRAFODION.SCH.T011T8S
+  (
+    A ASC
+  )
 ;
 
 --- SQL operation complete.
@@ -2242,7 +2486,6 @@ CREATE TABLE TRAFODION.SCH.T011T8N
 ;
 
 --- SQL operation complete.
->>
 >>
 >>
 >>
@@ -2283,13 +2526,13 @@ CREATE TABLE TRAFODION.SCH.T011T8N
 
 --- SQL operation complete.
 >>
->>drop table t011t8s;
+>>drop table t011t8s cascade;
 
 --- SQL operation complete.
->>drop table t011t8a;
+>>drop table t011t8a cascade;
 
 --- SQL operation complete.
->>drop table t011t8n;
+>>drop table t011t8n cascade;
 
 --- SQL operation complete.
 >>

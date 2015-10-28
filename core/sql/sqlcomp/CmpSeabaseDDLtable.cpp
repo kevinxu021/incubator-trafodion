@@ -55,6 +55,8 @@
 #include "PrivMgrRoles.h"
 #include "PrivMgrComponentPrivileges.h"
 
+#include "StmtDDLAlterTableHDFSCache.h"
+
 // defined in CmpDescribe.cpp
 extern short CmpDescribeSeabaseTable ( 
                              const CorrName  &dtName,
@@ -3593,7 +3595,14 @@ short CmpSeabaseDDL::dropSeabaseTable2(
 	  return -2;
 	}
     }
-     
+
+  //delete HDFS cache entries for this table, if any
+  //this need to be done before hbase side dropping
+  TextVec tableList;
+  tableList.push_back(extNameForHbase.data());
+  //pass empty string as pool name indicating delete table of all pools.
+  ehi->removeTablesFromHDFSCache(tableList, "");
+
   //Finally drop the table
 
   if (dropSeabaseObject(ehi, tabName,
@@ -4649,6 +4658,112 @@ short CmpSeabaseDDL::recreateViews(ExeCliInterface &cliInterface,
     }
 
   return 0;
+}
+
+void CmpSeabaseDDL::alterSeabaseTableHDFSCache(StmtDDLAlterTableHDFSCache * alterTableHdfsCache,
+                                               NAString &currCatName, NAString &currSchName)
+{
+    Lng32 cliRC = 0;
+    Lng32 retcode = 0;
+
+    const NAString &tabName = alterTableHdfsCache->getTableName();
+
+    ComObjectName tableName(tabName, COM_TABLE_NAME);
+    ComAnsiNamePart currCatAnsiName(currCatName);
+    ComAnsiNamePart currSchAnsiName(currSchName);
+    tableName.applyDefaults(currCatAnsiName, currSchAnsiName);
+
+    const NAString catalogNamePart = tableName.getCatalogNamePartAsAnsiString();
+    const NAString schemaNamePart = tableName.getSchemaNamePartAsAnsiString(TRUE);
+    const NAString objectNamePart = tableName.getObjectNamePartAsAnsiString(TRUE);
+    const NAString extTableName = tableName.getExternalName(TRUE);
+    const NAString extNameForHbase = catalogNamePart + "." + schemaNamePart + "." + objectNamePart;
+
+    ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
+                               CmpCommon::context()->sqlSession()->getParentQid());
+
+    if ((isSeabaseReservedSchema(tableName)) &&
+      (!Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL)))
+    {
+       *CmpCommon::diags() << DgSqlCode(-CAT_CANNOT_ALTER_DEFINITION_METADATA_SCHEMA);
+       processReturn();
+       return;
+    }
+
+    ExpHbaseInterface * ehi = allocEHI();
+    if (ehi == NULL)
+    {
+       processReturn();
+       return;
+    }
+
+    retcode = existsInSeabaseMDTable(&cliInterface, 
+                                   catalogNamePart, schemaNamePart, objectNamePart,
+                                   COM_BASE_TABLE_OBJECT,
+                                   (Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL) 
+                                    ? FALSE : TRUE),
+                                   TRUE, TRUE);
+    if (retcode < 0)
+    {
+      processReturn();
+      return;
+    }
+
+    ActiveSchemaDB()->getNATableDB()->useCache();
+
+    BindWA bindWA(ActiveSchemaDB(), CmpCommon::context(), FALSE/*inDDL*/);
+    CorrName cn(tableName.getObjectNamePart().getInternalName(),
+                STMTHEAP,
+                tableName.getSchemaNamePart().getInternalName(),
+                tableName.getCatalogNamePart().getInternalName());
+
+    NATable *naTable = bindWA.getNATable(cn); 
+    if (naTable == NULL || bindWA.errStatus())
+    {
+        CmpCommon::diags()->clear();
+        *CmpCommon::diags()
+          << DgSqlCode(-4082)
+          << DgTableName(cn.getExposedNameAsAnsiString());
+
+        processReturn();
+        return;
+    }
+
+    // Make sure user has the privilege to perform the alter table hdfs cache
+    if (!isDDLOperationAuthorized(SQLOperation::ALTER_TABLE,
+                                  naTable->getOwner(),naTable->getSchemaOwner()))
+    {
+       *CmpCommon::diags() << DgSqlCode(-CAT_NOT_AUTHORIZED);
+       processReturn ();
+       return;
+    }
+
+    //does pool exist ?
+    Lng32 retCode = 0;
+    TextVec tableList;
+    tableList.push_back(extNameForHbase.data());
+    if(alterTableHdfsCache->isAddToCache())
+    {
+       retCode = ehi->addTablesToHDFSCache(tableList ,alterTableHdfsCache->poolName());
+    }
+    else
+    {
+       retCode = ehi->removeTablesFromHDFSCache(tableList ,alterTableHdfsCache->poolName());
+    }
+
+    if (retCode == HBC_ERROR_POOL_NOT_EXIST_EXCEPTION)
+    {
+        *CmpCommon::diags() << DgSqlCode(-4081)
+                                               << DgString0(alterTableHdfsCache->poolName());
+        processReturn();
+        return;
+    }
+
+    label_return:
+       processReturn();
+
+    return;
+    //////////////////////////////////////////////////////////////////
 }
 
 void CmpSeabaseDDL::alterSeabaseTableAddColumn(
@@ -9086,6 +9201,33 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
       OutputInfo * vi = (OutputInfo*)tableKeyInfo->getNext(); 
 
       populateKeyInfo(keyInfoArray[idx], vi);
+    }
+
+  // get replication type for the base table of this index.
+  // That will be the replication type for this index as well.
+  if (objType == COM_INDEX_OBJECT)
+    {
+      str_sprintf(query, "select t.flags from %s.\"%s\".%s I, %s.\"%s\".%s T where I.index_uid = %Ld and I.base_table_uid = T.table_uid for read committed access",
+                  getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_INDEXES,
+                  getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_TABLES,
+                  objUID);
+
+      Int64 flags = 0;
+      Lng32 flagsLen = sizeof(Int64);
+      Int64 rowsAffected = 0;
+      cliRC = cliInterface.executeImmediateCEFC
+        (query, NULL, 0, (char*)&flags, &flagsLen, &rowsAffected);
+      if (cliRC < 0)
+        {
+          cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
+          processReturn();
+          return NULL;
+        }
+      
+      if (CmpSeabaseDDL::isMDflagsSet(flags, CmpSeabaseDDL::MD_TABLES_REPL_SYNC_FLG))
+        xnRepl = COM_REPL_SYNC;
+      else if (CmpSeabaseDDL::isMDflagsSet(flags, CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG))
+        xnRepl = COM_REPL_ASYNC;
     }
 
   str_sprintf(query, "select O.catalog_name, O.schema_name, O.object_name, I.keytag, I.is_unique, I.is_explicit, I.key_colcount, I.nonkey_colcount, T.num_salt_partns, T.row_format from %s.\"%s\".%s I, %s.\"%s\".%s O ,  %s.\"%s\".%s T where I.base_table_uid = %Ld and I.index_uid = O.object_uid %s and I.index_uid = T.table_uid for read committed access order by 1,2,3",

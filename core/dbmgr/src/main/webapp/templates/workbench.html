@@ -10,13 +10,18 @@
 				<div class="panel-heading">Query</div>
 				<div class="panel-body">
 					<div id="workbench-query">
+						<label>Query Text</label>
 						<textarea id="query-text" name="TextMessage" spellcheck="false"
-							placeholder="Enter a SQL query..." rows="5" class="textarea"
+							placeholder="Enter a SQL query..." rows="3" class="textarea"
 							style="width: 95%; margin-bottom: 10px"></textarea>
 						<br>
-						<button id="executeQuery" class="btn btn-primary">Execute</button>
-						<button id="explainQuery" class="btn btn-info">Explain</button>
-						<button id="setControlStmts" class="btn btn-default fa-gear"
+						<button id="executeQuery" class="btn btn-primary fa fa-play"
+							style="font-family: FontAwesome;"> Execute</button>
+						<button id="explainQuery" class="btn btn-info fa fa-sitemap"
+							style="font-family: FontAwesome;"> Explain</button>
+						<button id="clearAction" class="btn btn-default fa fa-eraser"
+							style="font-family: FontAwesome;"> Clear</button>
+						<button id="setControlStmts" class="btn btn-default fa fa-gear"
 							style="font-family: FontAwesome;"> Options</button>
 					</div>
 				</div>
@@ -44,7 +49,7 @@
 		</div>
 	</div>
 	<div class="modal fade" id="controlDialog" tabindex="-1" role="dialog"
-		aria-labelledby="controlDialogLabel">
+		aria-labelledby="controlDialogLabel" data-backdrop="static" data-keyboard="false">
 		<div class="modal-dialog" role="document" style="width:800px">
 			<div class="modal-content">
 				<div class="modal-header">
@@ -58,9 +63,9 @@
 				<div class="modal-body">
 					<form>
 						<div class="form-group">
-							<label for="controlStmts" class="control-label">Control
+							<label for="query-control-stmts" class="control-label">Control
 								Statements: </label>
-							<textarea id="controlStmts" rows="9" cols="500" spellcheck="false"
+							<textarea id="query-control-stmts" rows="9" cols="500" spellcheck="false"
 								placeholder="control statements separated by semi-colon"
 								class="textarea" style="width: 500px"></textarea>
 						</div>
@@ -75,7 +80,7 @@
 		</div>
 	</div>
 	<div class="modal fade" id="tooltipDialog" tabindex="-1" role="dialog"
-		aria-labelledby="tooltipDialogLabel" >
+		aria-labelledby="tooltipDialogLabel">
 		<div class="modal-dialog" role="document" style="width:700px">
 			<div class="modal-content">
 				<div class="modal-header">

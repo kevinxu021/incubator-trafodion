@@ -3061,7 +3061,24 @@ StmtDDLAlterUser::getText() const
   return "StmtDDLAlterUser";
 }
 
+StmtDDLAlterTableHDFSCache::StmtDDLAlterTableHDFSCache( 
+                         const NAString &     pool,
+                         NABoolean            atc, 
+                         NAMemory *           heap
+                       )
+                     :StmtDDLAlterTable(DDL_ALTER_TABLE_HDFS_CACHE)
+                     ,poolName_(pool, heap)
+                     ,isAddToCache_(atc)                 
+{}
 
+StmtDDLAlterTableHDFSCache::~StmtDDLAlterTableHDFSCache()
+{}
+
+StmtDDLAlterTableHDFSCache *
+StmtDDLAlterTableHDFSCache::castToStmtDDLAlterTableHDFSCache()
+{
+  return this;
+}
 
 //
 // End of File

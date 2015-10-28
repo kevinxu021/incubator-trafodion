@@ -4,5 +4,9 @@
 # (C) Copyright 2015 Esgyn Corportation
 #
 # @@@ END COPYRIGHT @@@
+pushd . > /dev/null
+
 cd /usr/share/zoneinfo
-find * -type f -exec sh -c "diff -q /etc/localtime '{}' > /dev/null && echo {}" \; | awk 'NR==1{print$1}'
+find * -type f -exec sh -c "diff -q /etc/localtime '{}' > /dev/null && echo {}" \;| awk '{print$1}'
+
+popd > /dev/null

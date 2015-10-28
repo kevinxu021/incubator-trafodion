@@ -6399,12 +6399,37 @@ const NAType * SequenceValue::synthesizeType()
   return type;
 }
 
+const NAType * HbaseVisibility::synthesizeType()
+{
+  NAType * type = NULL;
+
+  type = new HEAP SQLVarChar(HBASE_VISIBILITY_MAXLEN,  
+                             col()->getValueId().getType().supportsSQLnull());
+
+  return type;
+}
+
+const NAType * HbaseVisibilitySet::synthesizeType()
+{
+  NAType * type = NULL;
+
+  ///////////////////////////////////////////////////////////////////////////
+  // colIdLen(short)   colId   visExprLen(Lng32)   visExpr
+  ///////////////////////////////////////////////////////////////////////////
+  Lng32 maxLen = sizeof(short) + ROUND2(colId_.length() - sizeof(short)) 
+    + sizeof(Lng32) + visExpr_.length();
+  maxLen = ROUND2(maxLen);
+  type = new HEAP SQLChar(maxLen, FALSE);
+
+  return type;
+}
+
 const NAType * HbaseTimestamp::synthesizeType()
 {
   NAType * type = NULL;
 
   type = new HEAP SQLLargeInt(TRUE,  
-                              col_->getValueId().getType().supportsSQLnull());
+                              col()->getValueId().getType().supportsSQLnull());
 
   return type;
 }

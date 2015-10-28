@@ -12,7 +12,12 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -37,6 +42,9 @@ import com.esgyn.dbmgr.model.QueryDetail;
 import com.esgyn.dbmgr.model.Session;
 import com.esgyn.dbmgr.model.SessionModel;
 import com.esgyn.dbmgr.sql.SystemQueryCache;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Path("/workloads")
@@ -272,7 +280,6 @@ public class WorkloadsResource {
 		Connection connection = null;
 		Statement stmt;
 		ResultSet rs = null;
-		;
 
 		String url = ConfigurationResource.getInstance().getJdbcUrl();
 
@@ -299,6 +306,66 @@ public class WorkloadsResource {
 			}
 		}
 		return result;
+	}
+
+	@GET
+	@Path("/active/detailnew/")
+	@Produces("application/json")
+	public ObjectNode getActiveQueryDetailsNew(@QueryParam("queryID") String queryID,
+			@QueryParam("time") String time, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		Session soc = SessionModel.getSession(servletRequest, servletResponse);
+		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_ACTIVE_QUERY_DETAIL_NEW),
+				queryID);
+		_LOG.debug(sqlText);
+		JsonFactory factory = new JsonFactory();
+		ObjectMapper mapper = new ObjectMapper(factory);
+		ObjectNode resultObject = mapper.createObjectNode();
+
+		try {
+
+			TabularResult result1 = QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), sqlText);
+			List<String> columnNames = Arrays.asList(result1.columnNames);
+			int vIndex = columnNames.indexOf("VARIABLE_INFO");
+			int tIndex = columnNames.indexOf("TDB_ID");
+			ObjectNode summaryNode = resultObject.putObject("summary");
+			ArrayNode operatorNodes = mapper.createArrayNode();
+			resultObject.set("operators", operatorNodes);
+
+			resultObject.putPOJO("opGridColNames", columnNames);
+
+			for (Object[] rowData : result1.resultArray) {
+				Map<String, String> parsedMap = parseVariableInfo((String) rowData[vIndex]);
+				String tdbID = String.valueOf(rowData[tIndex]);
+
+				String statsRowType = (String) parsedMap.get("statsRowType");
+				parsedMap.remove("statsRowType");
+				if (statsRowType.trim().equals("15")) {
+					for (String key : parsedMap.keySet()) {
+						summaryNode.put(key, parsedMap.get(key));
+					}
+				} else {
+					ObjectNode operatorNode = mapper.createObjectNode();
+					for (String colName : columnNames) {
+						if (colName.equals("VARIABLE_INFO"))
+							continue;
+						operatorNode.putPOJO(colName, rowData[columnNames.indexOf(colName)]);
+					}
+					ObjectNode detailsNode = operatorNode.putObject("details");
+					for (String key : parsedMap.keySet()) {
+						detailsNode.put(key, parsedMap.get(key));
+					}
+					operatorNodes.add(operatorNode);
+				}
+			}
+
+		} catch (Exception e) {
+			_LOG.error("Failed to execute query : " + e.getMessage());
+			throw new EsgynDBMgrException(e.getMessage());
+		} finally {
+		}
+		return resultObject;
 	}
 
 	@GET
@@ -351,6 +418,18 @@ public class WorkloadsResource {
 			}
 		}
 		return true;
+	}
+
+	private Map<String, String> parseVariableInfo(String varInfo) {
+		String patternStr = "(\\w+):((?: \"[^\"]*\"| [^: ]*))";
+
+		Map<String, String> map = new HashMap<String, String>();
+		Pattern regex = Pattern.compile(patternStr);
+		Matcher regexMatcher = regex.matcher(varInfo);
+		while (regexMatcher.find()) {
+			map.put(regexMatcher.group(1), regexMatcher.group(2).trim());
+		}
+		return map;
 	}
 
 }

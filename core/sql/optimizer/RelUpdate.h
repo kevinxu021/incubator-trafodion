@@ -1346,8 +1346,16 @@ public:
 
   virtual NABoolean isCacheableExpr(CacheWA& cwa);
 
+  // change literals of a cacheable query into ConstantParameters
+  virtual RelExpr* normalizeForCache(CacheWA& cwa, BindWA& bindWA);
+
+  // append an ascii-version of Insert into cachewa.qryText_
+  virtual void generateCacheKey(CacheWA& cwa) const;
+
   inline const CostScalar getEstRowsAccessed() const
   { return estRowsAccessed_; }
+
+  ValueIdList &hbaseTagExpr() { return hbaseTagExpr_; }
 
 private:
 
@@ -1384,6 +1392,8 @@ private:
   // Estimated number of rows accessed by Update operator.
   CostScalar estRowsAccessed_;
 
+  ItemExprList    hbaseTagExprList_;
+  ValueIdList     hbaseTagExpr_;
 };
 
 // -----------------------------------------------------------------------
@@ -1830,7 +1840,8 @@ public:
                CollHeap *oHeap = CmpCommon::statementHeap(),
                InsertType insertType = SIMPLE_INSERT)
        : Insert(name,tabId,otype,child,NULL,NULL,oHeap, insertType),
-         returnRow_(FALSE)
+         returnRow_(FALSE),
+         vsbbInsert_(FALSE)
        {};
 
   // copy ctor
@@ -1859,6 +1870,9 @@ public:
   void setReturnRow(NABoolean val) {returnRow_ = val;}
   NABoolean isReturnRow() {return returnRow_;}
 
+  void setVsbbInsert(NABoolean val) { vsbbInsert_ = val; }
+  NABoolean vsbbInsert() const { return vsbbInsert_; } 
+
   // method to do code generation
   virtual RelExpr *preCodeGen(Generator * generator,
                               const ValueIdSet & externalInputs,
@@ -1872,7 +1886,7 @@ private:
   // used when lob colums are being loaded. Set in GenPreCode.
   ValueIdList lobLoadExpr_;
   NABoolean returnRow_ ; // currently used only for bulk load incremental IM
-
+  NABoolean vsbbInsert_ ;
 
 };
 

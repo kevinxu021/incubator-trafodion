@@ -276,11 +276,6 @@ public class hbstatus {
 	Configuration lv_config = HBaseConfiguration.create();
 	if (lv_peer_id > 0) {
 	    try {
-		String lv_use_zk = System.getenv("STR_USE_ZK");
-		if (lv_use_zk != null && 
-		    (lv_use_zk.equals("0"))) {
-		    System.setProperty("PEERS", String.valueOf(lv_peer_id));
-		}
 		pSTRConfig = STRConfig.getInstance(lv_config);
 		lv_config = pSTRConfig.getPeerConfiguration(lv_peer_id, false);
 		if (lv_config == null) {

@@ -3804,6 +3804,68 @@ enum
   // ---------------------------------------------------------------------
 };
 
+class ExFunctionHbaseVisibility : public ex_function_clause {
+public:
+  ExFunctionHbaseVisibility(OperatorTypeEnum oper_type,
+                     Attributes ** attr,
+                     Lng32 tagType,
+                     Lng32 colIndex,
+                     Space * space);
+  ExFunctionHbaseVisibility();
+
+ void displayContents(Space * space, const char * displayStr, 
+                      Int32 clauseNum, char * constsArea);
+ 
+  ex_expr::exp_return_type eval(char *op_data[], CollHeap*, 
+                                ComDiagsArea** = 0);  
+  
+  virtual short getClassSize() { return (short)sizeof(*this); }
+
+ private:
+  Lng32 colIndex_;
+  Lng32 tagType_;
+  ULng32 flags_;
+  ULng32 filler_;
+  // ---------------------------------------------------------------------
+};
+
+class ExFunctionHbaseVisibilitySet : public ex_function_clause {
+public:
+  enum {
+    MAX_VIS_EXPR_LEN = 1024
+  };
+
+  ExFunctionHbaseVisibilitySet(OperatorTypeEnum oper_type,
+                        Attributes ** attr,
+                        short colIDlen,
+                        const char * colID,
+                        Lng32 visExprLen,
+                        const char * visExpr,
+                        Space * space);
+  ExFunctionHbaseVisibilitySet();
+  
+  void displayContents(Space * space, const char * displayStr, 
+                       Int32 clauseNum, char * constsArea);
+  
+  ex_expr::exp_return_type eval(char *op_data[], CollHeap*, 
+                                ComDiagsArea** = 0);  
+  
+  virtual short getClassSize() { return (short)sizeof(*this); }
+
+  char * visExpr() { return visExpr_; }
+private:
+  short colIDlen_;
+  char colID_[6];
+
+  UInt32 flags_;
+
+  Lng32 visExprLen_;
+
+  char visExpr_[MAX_VIS_EXPR_LEN];
+
+  // ---------------------------------------------------------------------
+};
+
 class ExFunctionHbaseTimestamp : public ex_function_clause {
 public:
   ExFunctionHbaseTimestamp(OperatorTypeEnum oper_type,
@@ -3812,7 +3874,7 @@ public:
                            Space * space);
   ExFunctionHbaseTimestamp();
 
- void displayContents(Space * space, const char * displayStr, 
+  void displayContents(Space * space, const char * displayStr, 
                       Int32 clauseNum, char * constsArea);
  
   ex_expr::exp_return_type eval(char *op_data[], CollHeap*, 

@@ -148,7 +148,14 @@ public class HBaseAuditControlPoint {
       }
       LOG.info("useAutoFlush is " + useAutoFlush);
 
-      boolean lvControlPointExists = admin.tableExists(CONTROL_POINT_TABLE_NAME);
+      boolean lvControlPointExists = false;
+      try {
+    	  lvControlPointExists = admin.tableExists(CONTROL_POINT_TABLE_NAME);
+      }
+      catch (Exception te) {
+          if (LOG.isDebugEnabled()) LOG.debug("HBaseAuditControlPoint lvControlPointExists exception: " + te);
+    	  throw te;
+      }
       if (LOG.isDebugEnabled()) LOG.debug("HBaseAuditControlPoint lvControlPointExists " + lvControlPointExists);
       currControlPt = -1;
       if (lvControlPointExists == false) {

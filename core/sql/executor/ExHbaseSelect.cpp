@@ -93,8 +93,10 @@ ExWorkProcRetcode ExHbaseScanTaskTcb::work(short &rc)
 					    &tcb_->hbaseFilterValues_ : NULL),
 					   tcb_->getSamplePercentage(),
                                            FALSE, 0, NULL, NULL, 0,
-                                           (tcb_->hbaseAccessTdb().getHbaseAccessOptions() 
-                                            ? tcb_->hbaseAccessTdb().getHbaseAccessOptions()->getNumVersions() : 0));
+                                           tcb_->hbaseAccessTdb().getComHbaseAccessOptions()
+                                           ? &(tcb_->hbaseAccessTdb().getComHbaseAccessOptions()->hbaseAccessOptions()) : NULL);
+                                           //                                           (tcb_->hbaseAccessTdb().getComHbaseAccessOptions() 
+                                           //                                            ? tcb_->hbaseAccessTdb().getComHbaseAccessOptions()->hbaseAccessOptions().getNumVersions() : 0));
                                            
 	    if (tcb_->setupError(retcode, "ExpHbaseInterface::scanOpen"))
 	      step_ = HANDLE_ERROR;
@@ -279,8 +281,8 @@ ExWorkProcRetcode ExHbaseScanRowwiseTaskTcb::work(short &rc)
 					    &tcb_->hbaseFilterValues_ : NULL),
 					   tcb_->getSamplePercentage(),
                                            FALSE, 0, NULL, NULL, 0,
-                                           (tcb_->hbaseAccessTdb().getHbaseAccessOptions() 
-                                            ? tcb_->hbaseAccessTdb().getHbaseAccessOptions()->getNumVersions() : 0));
+                                           (tcb_->hbaseAccessTdb().getComHbaseAccessOptions() 
+                                            ? &(tcb_->hbaseAccessTdb().getComHbaseAccessOptions()->hbaseAccessOptions()) : NULL));
                                            
 	    if (tcb_->setupError(retcode, "ExpHbaseInterface::scanOpen"))
 	      step_ = HANDLE_ERROR;
@@ -491,8 +493,9 @@ ExWorkProcRetcode ExHbaseScanSQTaskTcb::work(short &rc)
                                            tcb_->hbaseAccessTdb().getHbaseSnapshotScanAttributes()->getSnapshotName(),
                                            tcb_->hbaseAccessTdb().getHbaseSnapshotScanAttributes()->getSnapScanTmpLocation(),
                                            tcb_->getGlobals()->castToExExeStmtGlobals()->getMyInstanceNumber(),
-                                           (tcb_->hbaseAccessTdb().multiVersions()
-                                            ? tcb_->hbaseAccessTdb().getHbaseAccessOptions()->getNumVersions() : 0)
+                                           (tcb_->hbaseAccessTdb().getComHbaseAccessOptions() 
+                                            ? &(tcb_->hbaseAccessTdb().getComHbaseAccessOptions()->hbaseAccessOptions()) : NULL),
+                                           tcb_->hbaseAccessTdb().hbaseAuths()
                                            );
 
 	    if (tcb_->setupError(retcode, "ExpHbaseInterface::scanOpen"))

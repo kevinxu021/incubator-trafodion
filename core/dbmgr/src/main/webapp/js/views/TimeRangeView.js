@@ -9,7 +9,10 @@ define([
         'underscore',
         'backbone',
         'common',
-        'moment'
+        'moment',
+        'datetimepicker',
+        'jqueryvalidate'
+
         ], function ($, _, Backbone, common, moment) {
 	'use strict';
 	var _this = null;
@@ -33,6 +36,8 @@ define([
 	var TimeRangeView = Backbone.View.extend({
 
 		eventAgg: null,
+		
+		currentSelection: null,
 		
 		events: {
 			TIME_RANGE_CHANGED: 'time_range_changed'
@@ -131,13 +136,29 @@ define([
 			this.eventAgg = _.extend({}, Backbone.Events);
 			_this = this;
 			_timeRangeControl = this.timeRangeControl;
+			
+			$.validator.addMethod("validateStartTime", function(value, element) {
+				var startTime = new Date($(START_TIME_PICKER).data("DateTimePicker").date()).getTime();
+				var endTime = new Date($(END_TIME_PICKER).data("DateTimePicker").date()).getTime();
+				if($(START_TIME_PICKER).data("DateTimePicker").date() != null && $(END_TIME_PICKER).data("DateTimePicker").date() != null)
+					return (startTime < endTime);
+				else return true;
+			}, "* Start Time has to be less than End Time");
+			
+			$.validator.addMethod("validateEndTime", function(value, element) {
+				var startTime = new Date($(START_TIME_PICKER).data("DateTimePicker").date()).getTime();
+				var endTime = new Date($(END_TIME_PICKER).data("DateTimePicker").date()).getTime();
+				if($(START_TIME_PICKER).data("DateTimePicker").date() != null && $(END_TIME_PICKER).data("DateTimePicker").date() != null)
+					return (startTime < endTime);
+				else return true;
+			}, "* End Time has to be greater than Start Time");			
 		}, 
 
 		init: function(){
 			validator = $(FILTER_FORM).validate({
 				rules: {
-					"filter-start-time": { required: true },
-					"filter-end-time": { required: true }
+					"filter-start-time": { required: true, validateStartTime: true },
+					"filter-end-time": { required: true, validateEndTime: true }
 				},
 				highlight: function(element) {
 					$(element).closest('.form-group').addClass('has-error');
@@ -165,8 +186,9 @@ define([
 				}
 			});
 
-			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE});
-			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE});
+			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			
 			$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
 			$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 
@@ -176,7 +198,15 @@ define([
 			});
 
 			$(TIME_RANGE).focusin(function(){
+				_this.currentSelection = $(this).val();
 				$(this).val(-1);
+			});
+			
+			$(TIME_RANGE).focusout(function(){
+				var aa = $(this).val();
+				if(aa == null){
+					$(this).val(_this.currentSelection);	
+				}
 			});
 
 			_timeRangeControl.bindEvent();
@@ -188,6 +218,9 @@ define([
 
 		resume: function(){
 			_timeRangeControl.bindEvent();
+		},
+		parseInputDate:function(date){
+			return moment(date).tz(common.serverTimeZone);
 		}
 	});
 	

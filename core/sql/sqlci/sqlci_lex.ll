@@ -218,6 +218,7 @@ B			[ \t\n]+
 [Cc][Oo][Nn][Tt][Rr][Oo][Ll][Ss]       return_IDENT_or_TOKEN(CONTROL, 0);
 [Cc][Qq][Dd]	                       return_IDENT_or_TOKEN(CONTROL, 0);
 [Oo][Ss][Ii][Mm]                       return_IDENT_or_TOKEN(OSIM, 0);
+[Cc][Aa][Cc][Hh][Ee]                       return_IDENT_or_TOKEN(CACHE, 0);
 [Cc][Uu][Rr][Ss][Oo][Rr]               return_IDENT_or_TOKEN(CURSORtoken, 0);
 [Cc][Uu][Rr][Ss][Oo][Rr][ ]+[Ww][Ii][Tt][Hh] return_IDENT_or_TOKEN(CURSORWITH, 0);
 [Dd][Ee][Ff][Aa][Uu][Ll][Tt]           return_IDENT_or_TOKEN(DEFAULTtoken, 0);
@@ -360,6 +361,7 @@ B			[ \t\n]+
 [Ss][Hh][Oo][Ww][Ss][Hh][Aa][Pp][Ee]   return_IDENT_or_TOKEN(SHOWSHAPE, 0);
 [Ss][Hh][Oo][Ww][Ss][Ee][Tt]           return_IDENT_or_TOKEN(SHOWSET, 0);
 [Ss][Ee][Ss][Ss][Ii][Oo][Nn]           return_IDENT_or_TOKEN(SESSIONtoken, 0);
+[Ss][Ll][Ee][Ee][Pp]                   return_IDENT_or_TOKEN(SLEEPtoken, 0);
 [Ss][Tt][Oo][Rr][Ee]                   return_IDENT_or_TOKEN(STOREtoken, 0);
 [Ss][Yy][Nn][Tt][Aa][Xx]               return_IDENT_or_TOKEN(SYNTAX, 0);
 [Ss][Yy][Ss][Tt][Ee][Mm]               return_IDENT_or_TOKEN(SYSTEMtoken, 0);

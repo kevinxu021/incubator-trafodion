@@ -21,6 +21,7 @@ public class SystemQueryCache {
 	public static final String SELECT_REPO_QUERY_DETAIL = "SELECT_REPO_QUERY_DETAIL";
 	public static final String SELECT_ACTIVE_QUERIES = "SELECT_ACTIVE_QUERIES";
 	public static final String SELECT_ACTIVE_QUERY_DETAIL = "SELECT_ACTIVE_QUERY_DETAIL";
+	public static final String SELECT_ACTIVE_QUERY_DETAIL_NEW = "SELECT_ACTIVE_QUERY_DETAIL_NEW";
 	public static final String CANCEL_QUERY = "CANCEL_QUERY";
 	public static final String SELECT_LOGS = "SELECT_LOGS";
 

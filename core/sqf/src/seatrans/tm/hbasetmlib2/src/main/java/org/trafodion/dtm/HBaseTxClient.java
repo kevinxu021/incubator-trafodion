@@ -224,6 +224,8 @@ public class HBaseTxClient {
 
       myClusterId = 0;
       if (pSTRConfig != null) {
+         LOG.info("Number of Trafodion Nodes: " + pSTRConfig.getTrafodionNodeCount());
+
          myClusterId = pSTRConfig.getMyClusterIdInt();
 
          for ( Map.Entry<Integer, Configuration> e : pSTRConfig.getPeerConfigurations().entrySet() ) {
@@ -386,7 +388,7 @@ public class HBaseTxClient {
              if (peerRecovThread == null) {
 
                   try {
-                      tmZK = new HBaseTmZK(config, dtmID);
+                      tmZK = new HBaseTmZK(config, (short) -2);
                   }catch (Exception e ){
                       LOG.error("Unable to create HBaseTmZK TM-zookeeper class, throwing exception");
                       throw new RuntimeException(e);
@@ -442,7 +444,7 @@ public class HBaseTxClient {
 
        if (peerRecovThread == null){ //this is new LDTM, so start a new peer recovery thread to drive tlog sync
           try {
-              tmZK = new HBaseTmZK(config, dtmID);
+              tmZK = new HBaseTmZK(config, (short) -2);
           }catch (Exception e ){
               LOG.error("Unable to create HBaseTmZK TM-zookeeper class, throwing exception");
               throw new RuntimeException(e);
@@ -545,15 +547,15 @@ public class HBaseTxClient {
       try {
          ts.setStatus(TransState.STATE_ABORTED);
          if (useTlog) {
-            if (bSynchronized){
+            if (bSynchronized && ts.hasRemotePeers()){
                Put p;
                if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, generating ABORTED put for transaction: " + transactionID);
                p = tLog.generatePut(transactionID);
                if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, initializing put for transaction: " + transactionID);
-               int index = tLog.initializePut(transactionID, -1, "ABORTED-REMOTE", ts.getParticipatingRegions(), p);
+               int index = tLog.initializePut(transactionID, -1, "ABORTED", ts.getParticipatingRegions(), ts.hasRemotePeers(), p);
                for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                   try {
-                     lv_tLog.doTlogWrite(ts, Bytes.toBytes("ABORTED-REMOTE"), index, p);
+                     lv_tLog.doTlogWrite(ts, Bytes.toBytes("ABORTED"), index, p);
                   }
                   catch (Exception e) {
                      LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionID + 
@@ -562,8 +564,8 @@ public class HBaseTxClient {
                   }
                }
             }
-            tLog.putSingleRecord(transactionID, -1, "ABORTED", ts.getParticipatingRegions(), true); //force flush
-            if (bSynchronized){
+            tLog.putSingleRecord(transactionID, -1, "ABORTED", ts.getParticipatingRegions(), ts.hasRemotePeers(), true); //force flush
+            if (bSynchronized && ts.hasRemotePeers()){
                try{
                   if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, completing Tlog write for transaction: " + transactionID);
                   ts.completeRequest();
@@ -611,15 +613,15 @@ public class HBaseTxClient {
           return TransReturnCode.RET_EXCEPTION.getShort();
       }
       if (useTlog && useForgotten) {
-         if (bSynchronized){
+         if (bSynchronized && ts.hasRemotePeers()){
             Put p;
             if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, generating FORGOTTEN put for transaction: " + transactionID);
             p = tLog.generatePut(transactionID);
             if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, initializing put for FORGOTTEN transaction: " + transactionID);
-            int index = tLog.initializePut(transactionID, -1, "FORGOTTEN-REMOTE", ts.getParticipatingRegions(), p);
+            int index = tLog.initializePut(transactionID, -1, "FORGOTTEN", ts.getParticipatingRegions(), ts.hasRemotePeers(), p);
             for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                try {
-                  lv_tLog.doTlogWrite(ts, Bytes.toBytes("FORGOTTEN-REMOTE"), index, p);
+                  lv_tLog.doTlogWrite(ts, Bytes.toBytes("FORGOTTEN"), index, p);
                }
                catch (Exception e) {
                   LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionID + 
@@ -628,8 +630,8 @@ public class HBaseTxClient {
                }
             }
          }
-         tLog.putSingleRecord(transactionID, -1, "FORGOTTEN", ts.getParticipatingRegions(), forceForgotten); // forced flush?
-         if (bSynchronized){
+         tLog.putSingleRecord(transactionID, -1, "FORGOTTEN", ts.getParticipatingRegions(), ts.hasRemotePeers(), forceForgotten); // forced flush?
+         if (bSynchronized && ts.hasRemotePeers()){
             try{
                if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, completing Tlog write for FORGOTTEN transaction: " + transactionID);
                ts.completeRequest();
@@ -720,15 +722,15 @@ public class HBaseTxClient {
        try {
           ts.setStatus(TransState.STATE_COMMITTED);
           if (useTlog) {
-             if (bSynchronized){
+             if (bSynchronized && ts.hasRemotePeers()){
                 Put p;
                 if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, generating COMMITTED put for transaction: " + transactionId);
                 p = tLog.generatePut(transactionId);
                 if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, initializing put for transaction: " + transactionId);
-                int index = tLog.initializePut(transactionId, commitIdVal, "COMMITTED-REMOTE", ts.getParticipatingRegions(), p);
+                int index = tLog.initializePut(transactionId, commitIdVal, "COMMITTED", ts.getParticipatingRegions(), ts.hasRemotePeers(), p);
                 for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                    try {
-                      lv_tLog.doTlogWrite(ts, Bytes.toBytes("COMMITTED-REMOTE"), index, p);
+                      lv_tLog.doTlogWrite(ts, Bytes.toBytes("COMMITTED"), index, p);
                    }
                    catch (Exception e) {
                       LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionId + 
@@ -740,15 +742,19 @@ public class HBaseTxClient {
              else {
                  if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, sb_replicate is false");
              }
-             tLog.putSingleRecord(transactionId, commitIdVal, "COMMITTED", ts.getParticipatingRegions(), true);
-             if (bSynchronized){
+             tLog.putSingleRecord(transactionId, commitIdVal, "COMMITTED", ts.getParticipatingRegions(), ts.hasRemotePeers(), true);
+             if (bSynchronized && ts.hasRemotePeers()){
                 try{
                   if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, completing Tlog write for transaction: " + transactionId);
                   ts.completeRequest();
                 }
                 catch(Exception e){
                    LOG.error("Exception in doCommit completing Tlog write completeRequest. txID: " + transactionId + "Exception: " + e);
-                   //return; //Do not return here?
+                   // Careful here:  We had an exception writing a commi to the remote peer.  So we can't leave the
+                   // records in an inconsistent state.  Will change to abort on local side as well since
+                   // we haven't replied yet.
+                   ts.setStatus(TransState.STATE_ABORTED);
+                   tLog.putSingleRecord(transactionId, commitIdVal, "ABORTED", ts.getParticipatingRegions(), ts.hasRemotePeers(), true);
                 }
              }
           }
@@ -786,15 +792,15 @@ public class HBaseTxClient {
           return TransReturnCode.RET_EXCEPTION.getShort();
        }
        if (useTlog && useForgotten) {
-          if (bSynchronized){
+          if (bSynchronized && ts.hasRemotePeers()){
              Put p;
              if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, generating FORGOTTEN put for transaction: " + transactionId);
              p = tLog.generatePut(transactionId);
              if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, initializing put for FORGOTTEN transaction: " + transactionId);
-             int index = tLog.initializePut(transactionId, commitIdVal, "FORGOTTEN-REMOTE", ts.getParticipatingRegions(), p);
+             int index = tLog.initializePut(transactionId, commitIdVal, "FORGOTTEN", ts.getParticipatingRegions(), ts.hasRemotePeers(), p);
              for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                 try {
-                	lv_tLog.doTlogWrite(ts, Bytes.toBytes("FORGOTTEN-REMOTE"), index, p);
+                	lv_tLog.doTlogWrite(ts, Bytes.toBytes("FORGOTTEN"), index, p);
                 }
                 catch (Exception e) {
                    LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionId + 
@@ -803,15 +809,16 @@ public class HBaseTxClient {
                 }
              }
           }
-          tLog.putSingleRecord(transactionId, commitIdVal, "FORGOTTEN", ts.getParticipatingRegions(), forceForgotten); // forced flush?
-          if (bSynchronized){
+          tLog.putSingleRecord(transactionId, commitIdVal, "FORGOTTEN", ts.getParticipatingRegions(), ts.hasRemotePeers(), forceForgotten); // forced flush?
+          if (bSynchronized && ts.hasRemotePeers()){
              try{
                 if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, completing Tlog write for FORGOTTEN transaction: " + transactionId);
                 ts.completeRequest();
              }
              catch(Exception e){
                 LOG.error("Exception in doCommit completing Tlog write completeRequest for FORGOTTEN txID: " + transactionId + "Exception: " + e);
-                //return; //Do not return here?
+                //  Forgotten not written to remote side.  Return an error
+                return TransReturnCode.RET_EXCEPTION.getShort();
              }
           }
        }
@@ -1175,8 +1182,10 @@ public class HBaseTxClient {
              private boolean leadtm;
              HBaseTxClient hbtx;
              private int my_local_clusterid = 0;
+             private int my_local_nodecount = 1; // min node number in a cluster
+             private boolean msenv_tlog_sync = false;
 
-         public RecoveryThread(TmAuditTlog audit,
+            public RecoveryThread(TmAuditTlog audit,
                                HBaseTmZK zookeeper,
                                TransactionManager txnManager,
                                HBaseTxClient hbtx,
@@ -1200,18 +1209,35 @@ public class HBaseTxClient {
               }
 
              this.my_local_clusterid = pSTRConfig.getMyClusterIdInt();
-             LOG.info("Traf Recovery Thread starts for DTM " + tmID + " at cluster " + my_local_clusterid + " LDTM property " + leadtm);
-         }
+             this.my_local_nodecount = pSTRConfig.getTrafodionNodeCount();
+             LOG.info("Traf Recovery Thread starts for DTM " + tmID + " at cluster " + my_local_clusterid + "Node Count " + my_local_nodecount + " LDTM property " + leadtm);
+
+             // NOTE. R 2.0, doing commmit log reload/sync or commit-takeover-write/cump-CP would require an off-line ENV (at least updated transactions are drained and then stopped)
+             // skip tlog sync if ms_env says so
+
+             msenv_tlog_sync = false;
+             try {
+                     String TlogSync = System.getenv("TM_TLOG_SYNC");
+                     if (TlogSync != null) {
+                        msenv_tlog_sync = (Integer.parseInt(TlogSync) != 0);
+                     }
+                 }
+                 catch (Exception e) {
+                     if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_SYNC is not in ms.env");
+                 }
+             LOG.info("DTM Recovery Thread for TM " + tmID + " detects TM_TLOG_SYNC in ms.env is " + msenv_tlog_sync);
+
+            }
              /**
               *
               * @param audit
               * @param zookeeper
               * @param txnManager
               */
-             public RecoveryThread(TmAuditTlog audit,
+            public RecoveryThread(TmAuditTlog audit,
                                    HBaseTmZK zookeeper,
                                    TransactionManager txnManager)
-             {
+            {
                           this.audit = audit;
                           this.zookeeper = zookeeper;
                           this.txnManager = txnManager;
@@ -1224,13 +1250,13 @@ public class HBaseTxClient {
                                 if(LOG.isDebugEnabled()) LOG.debug("Recovery thread sleep set to: " +
                                                                    this.sleepTimeInt + "ms");
                           }
-             }
+            }
 
-             public void stopThread() {
+            public void stopThread() {
                  this.continueThread = false;
-             }
+            }
 
-             private void addRegionToTS(String hostnamePort, byte[] regionInfo, TransactionState ts) throws Exception{
+            private void addRegionToTS(String hostnamePort, byte[] regionInfo, TransactionState ts) throws Exception{
                  HRegionInfo regionInfoLoc; // = new HRegionInfo();
                  final byte [] delimiter = ",".getBytes();
                  String[] result = hostnamePort.split(new String(delimiter), 3);
@@ -1256,17 +1282,17 @@ public class HBaseTxClient {
 									       lv_servername,
 									       0);
                  ts.addRegion(loc);
-             }
+            }
 
-             private TmAuditTlog getTlog(int clusterToConnect) {
+            private TmAuditTlog getTlog(int clusterToConnect) {
                   TmAuditTlog target = peer_tLogs.get(clusterToConnect);
                    if (target == null) {
                       LOG.error("Tlog object for clusterId: " + clusterToConnect + " is not in the peer_tLogs");
                    }                      
                    return target;
-             }
+            }
              
-             private long getClusterCP(int clusterToConnect, int clustertoRetrieve) throws IOException {
+            private long getClusterCP(int clusterToConnect, int clustertoRetrieve) throws IOException {
                   long cp = 0;
                   TmAuditTlog target;
                   
@@ -1280,38 +1306,27 @@ public class HBaseTxClient {
                        throw new IOException("Control point for clusterId: " + clustertoRetrieve + " is not in the table, throwing IOException " + e);
                   }
                   return cp;
-             }
+            }
 
-             private int tlogSync() throws IOException {
+            private int tlogSync() throws IOException {
 
                  int error = 0;
                  long localCluster_peerCP, localCluster_localCP, peerCluster_peerCP, peerCluster_localCP = 0;
                  int peer_leader = -2;
                  int peer_count = 0;;
                  boolean tlog_sync_local_needed = false;
-                 boolean msenv_no_tlog_sync = false;
                  int synced = 0;
                  
                  // NOTE. R 2.0, doing commmit log reload/sync would require an off-line ENV (at least updated transactions are drained and then stopped)
-
                  // skip tlog sync if ms_env says so
 
-                     msenv_no_tlog_sync = false;
-                     try {
-                          String noTlogSync = System.getenv("TM_NO_TLOG_SYNC");
-                          if (noTlogSync != null) {
-                             msenv_no_tlog_sync = (Integer.parseInt(noTlogSync) != 0);
-                          }
-                      }
-                      catch (Exception e) {
-                          if (LOG.isDebugEnabled()) LOG.debug("TM_NO_TLOG_SYNC is not in ms.env");
-                      }
-                      LOG.info("TM_NO_TLOG_SYNC is " + msenv_no_tlog_sync);
-
-                     if (msenv_no_tlog_sync) { // no tlog sync 
+                     if (!msenv_tlog_sync) { // no tlog sync 
                          LOG.info("Traf Peer Thread at cluster " + my_local_clusterid + " does not perform tlog sync during startup as ms_env indicates");
                          synced = 2;
                          return synced;
+                     }
+                     else {
+                         LOG.info("Traf Peer Thread at cluster " + my_local_clusterid + " starts to perform tlog sync during startup as ms_env indicates");
                      }
 
                  // a) check which peer is up from STRConfig and select the most updated as the commmit log leader
@@ -1371,6 +1386,12 @@ public class HBaseTxClient {
                      localCluster_localCP = getClusterCP(my_local_clusterid, my_local_clusterid);  // CP-A
                      peerCluster_localCP = getClusterCP(peer_leader, my_local_clusterid); // CP-A'
 
+                     LOG.info("Traf Peer Thread at cluster " + my_local_clusterid + " read initial CP during startup for R2.0 ");
+                     LOG.info("Local cluster " + my_local_clusterid + " CP table has cluster " + my_local_clusterid + " record for CP " + localCluster_localCP);
+                     LOG.info("Local cluster " + my_local_clusterid + " CP table has cluster " + peer_leader + " record for CP " + localCluster_peerCP);
+                     LOG.info("Peer cluster " + peer_leader + " CP table has cluster " + my_local_clusterid + " record for CP " + peerCluster_localCP);
+                     LOG.info("Peer cluster " + peer_leader + " CP table has cluster " + peer_leader + " record for CP " + peerCluster_peerCP);
+
                  // c) determine role (from A's point of view)
                  //    if CP-A' > CP-A + 2 && GCP-B' >= GCP-B --> peer is the leader
                  //    otherwise there is no commit take ovver by B for A, move on
@@ -1379,6 +1400,11 @@ public class HBaseTxClient {
 
                      if (localCluster_localCP + 2 < peerCluster_localCP) {
                          tlog_sync_local_needed = true;
+                         LOG.info("Traf Peer Thread at cluster " + my_local_clusterid + " determine to perform tlog sync from peer " + peer_leader + " with sync flag " + tlog_sync_local_needed);
+                     }
+                     else {
+                         tlog_sync_local_needed = false;
+                         LOG.info("Traf Peer Thread at cluster " + my_local_clusterid + " determine not to perform tlog sync from peer " + peer_leader + " with sync flag " + tlog_sync_local_needed);
                      }
                      
                  // choose a peer is the leader on commit log (TLOG), try to do a reload/sync
@@ -1405,23 +1431,37 @@ public class HBaseTxClient {
                  // TLOG --> for a TLOG (implying a particular cluster) get state records started at A with asn < asn from local old CP-A + 2
                  // TLOG --> put record into a TLOG only 
 
-                 // For all the above operations, it should be applied to all the TM nodes (the second dimension) in additon to peers (the first 
-                 // dimension) either explicitly call at TxClient, or inside API of TmAuditTlog
-                 // TBD
-/*
-                    if (tlog_sync_local_needed) { // for transcations started at A, but taken over by B
+                    if (tlog_sync_local_needed) {      // for transcations started at A, but taken over by B
+
                        TmAuditTlog leader_Tlog = getTlog(peer_leader);
-                       // Assume we get txn state records from all the DTM (16 TLOGs scan inside) --> caller needs to loop # of node times
+                       if (LOG.isDebugEnabled()) LOG.debug("LDTM starts TLOG sync from peer leader " + peer_leader);
+
+                       // Since LDTM peer thread will sync all the TLOGs in the cluster, so it has to 
+                       // 1) on behalf of all the other TMs (each TM has a TM-TLOG object)
+                       // 2) each TM-TLOG will has tlogNumLogs sub-TLOG tables, which each table could contain multiple regionserver
+                       // 3) the Audit API will return the commit-migrated txn state records for step 2
+                       // 4) The caller has to loop on step 1 to collect all the txn state records from all the TM-TLOGs
                        // get the ASN from local CP, and then retrieve all state records > ASN from leader
-                       long starting_asn = audit.getAsn(nodeId)
-                       list of ts = leader_Tlog.getTransactionStatesFromInterval(nodeid, starting _asn);
-                       for all the commit migrated transaction of ts
-                           audit.putSingleRecord(tid, ts)
-                    }
+
+                       for (int nodeId = 0; nodeId < my_local_nodecount; nodeId++) { // node number from pSTRConfig for local cluster
+                            ArrayList<TransactionState> commit_migrated_txn_list;
+                            long starting_asn = audit.getStartingAuditSeqNum(my_local_clusterid); // TBD need nodeId too in order to access other TM-TLOGs
+                            if (LOG.isDebugEnabled()) LOG.debug("LDTM starts TLOG sync from peer leader " + peer_leader + " for node " + nodeId + " ASN " + starting_asn);
+
+                            commit_migrated_txn_list = leader_Tlog.getTransactionStatesFromInterval(my_local_clusterid, nodeId, starting_asn);
+                            for (int i = 0; i < commit_migrated_txn_list.size(); i++) {
+                                TransactionState ts = commit_migrated_txn_list.get(i);
+                                if (LOG.isDebugEnabled()) LOG.debug("LDTM sync TLOG record for tid " + ts.getTransactionId() + " node " + nodeId + 
+                                          " status " + ts.getStatus() + " ASN " + ts.getRecoveryASN() + " from peer leader " + peer_leader);
+                                audit.putSingleRecord(ts.getTransactionId(), -1, ts.getStatus(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, ts.getRecoveryASN());
+                            }
+                       } // loop on TM-TLOG (i.e. node count)
+
+                    } // sync is needed
 
                     // Do we want to bump again ?
-                    audit.bumpControlPoint(downPeerClusterId, 5);
-*/
+                    // audit.bumpControlPoint(downPeerClusterId, 5);
+
                    // Is this needed if we need to copy all txn state records started at B after crash from previous step
                    // or to get the lowest asn between (local A-CP and B-CP) and conservatively reload from that lowest position in TLOG
                    // speifically, we may not need to get all the txn state records started at B after A is declared down (so could be bound
@@ -1454,11 +1494,12 @@ public class HBaseTxClient {
                  //     if peer access fails or any exception then should retry later and returns 0
 
                  return synced;
-              }
+            }
 
-             public void commit_takeover(int downPeerClusterId) {
+            public void commit_takeover(int downPeerClusterId) {
 
-                 // if takeover has been perfomed at this instance, don't do the bump again (how to ensure this if LDTM restarts)
+                 // if takeover has been perfomed at this instance, don't bump again (how to ensure this if LDTM restarts, it's probably fine to bump CP
+                 // even a few times)
 
                 if (commit_migration_clusters.containsKey(downPeerClusterId)) { // this cluster has taken commit migration for the down cluster
                      LOG.info("LDTM peer recovery thread has taken commit migration from STR down cluster " + downPeerClusterId + " skip CP bump");
@@ -1469,16 +1510,21 @@ public class HBaseTxClient {
                  commit_migration_clusters.put(downPeerClusterId, 0);
                  LOG.info("LDTM peer recovery thread starts to take commit migration from STR down cluster " + downPeerClusterId + " and bump CP");
 
+                 if (!msenv_tlog_sync) { // no tlog sync, do not need to put single TLOG
+                       LOG.info("LDTM peer recovery thread does not bump CP during STR down cluster " + downPeerClusterId +
+                                   " based on msenv value " + msenv_tlog_sync);
+                       return;
+                 }
+
                  // get the number of nodes from the downed cluster in order to get the number of TLOG configured (from pSTRConfig is better)
 
-                 // for each node, get the TmAuditTlog from peer_tlogs
-                 // bump control point by 5 for downPeerClusterId CP record in local CP tableName
-                 // so any committing decision made later for transcation reginiated from the down instance will carry > 5 CP in TLOG
-                 // Assume bumpControlPoint will bump all the CP tables for all the nodes, 16 as default (each node has a TLOG and has a CP table) 
-
-                 // First bump local Tlog, and then go through the peer_tLogs
+                 // TBD Need to loop on every TM-TLOG for each peer bump
+                 // bump control point by 5 for downPeerClusterId CP record to recognize a commit takeover happened
+                 // by committing decision made later for transcations reginiated from the down instance could be detected
+ 
+                 // First bump local cluster (for number of TLOGs), and then go through the peer_tLogs
                   try {
-                            audit.bumpControlPoint(downPeerClusterId, 5);
+                            audit.bumpControlPoint(downPeerClusterId, 5); // TBD need to pass nodeId
                             LOG.info("LDTM bumps CP at local cluster for STR down cluster " + downPeerClusterId);
                        }
                        catch (Exception e) {
@@ -1491,7 +1537,7 @@ public class HBaseTxClient {
                       TmAuditTlog lv_tLog = lv_tLog_entry.getValue();
                       try {
                             if (clusterid != downPeerClusterId) {
-                                lv_tLog.bumpControlPoint(downPeerClusterId, 5);
+                                lv_tLog.bumpControlPoint(downPeerClusterId, 5); // TBD need to pass nodeId
                                 LOG.info("LDTM bumps CP at cluster " + clusterid + " for STR down cluster " + downPeerClusterId);
                             }
                             else {
@@ -1504,14 +1550,19 @@ public class HBaseTxClient {
                         }
                   }
                   return;
-              }
+            }
 
-             public void put_single_tlog_record_during_commit_takeover(int downPeerClusterId, long tid, TransactionState ts) {
+            public void put_single_tlog_record_during_commit_takeover(int downPeerClusterId, long tid, TransactionState ts) {
 
                    if (LOG.isDebugEnabled()) LOG.debug("LDTM write txn state record for txid " + tid + " during recovery after commit takeover ");
+                   if (!msenv_tlog_sync) { // no tlog sync, do not need to put single TLOG
+                       if (LOG.isDebugEnabled()) LOG.debug("LDTM does not write txn state record for txid " + tid +
+                                    " during recovery after commit takeover based on msenv value" + msenv_tlog_sync);
+                       return;
+                   }
 
-                   try {
-                         audit.putSingleRecord(tid, -1, "ABORTED", ts.getParticipatingRegions(), true);
+                   try { // TBD temporarily put 0 (for ABORTED)  in asn to force the Audit modeule picking the nodeid from tid to address which TLOG
+                         audit.putSingleRecord(tid, -1, "ABORTED", ts.getParticipatingRegions(), ts.hasRemotePeers(), true, 0); 
                          if (LOG.isDebugEnabled()) LOG.debug("LDTM write txn state record for txid " + tid + " at local cluster during recovery after commit takeover ");
                    }
                    catch (Exception e) {
@@ -1524,7 +1575,7 @@ public class HBaseTxClient {
                       TmAuditTlog lv_tLog = lv_tLog_entry.getValue();
                       try {
                             if (clusterid != downPeerClusterId) {
-                                lv_tLog.putSingleRecord(tid, -1, "ABORTED", ts.getParticipatingRegions(), true);
+                                lv_tLog.putSingleRecord(tid, -1, "ABORTED", ts.getParticipatingRegions(), ts.hasRemotePeers(), true, 0);
                                 if (LOG.isDebugEnabled()) LOG.debug("LDTM write txn state record for txid " + tid + " to cluster " + clusterid + " during recovery after commit takeover ");
                             }
                             else {
@@ -1537,7 +1588,7 @@ public class HBaseTxClient {
                         }
                   }
                   return;
-              }
+            }
 
             @Override
              public void run() {
@@ -1818,7 +1869,7 @@ public class HBaseTxClient {
                                                txnManager.doCommit(ts, true /*ignore UnknownTransactionException*/);
                                                if(useTlog && useForgotten) {
                                                   long nextAsn = tLog.getNextAuditSeqNum((int)TransactionState.getNodeId(txID));
-                                                  tLog.putSingleRecord(txID, ts.getCommitId(), "FORGOTTEN", null, forceForgotten, nextAsn);
+                                                  tLog.putSingleRecord(txID, ts.getCommitId(), "FORGOTTEN", null, ts.hasRemotePeers(), forceForgotten, nextAsn);
                                                }
                                             } 
                                             else if (ts.getStatus().equals(TransState.STATE_ABORTED.toString())) {
@@ -1851,14 +1902,23 @@ public class HBaseTxClient {
                                 			// STR is up, ask peer
                                 		       if (LOG.isDebugEnabled())
                                 			    LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " commit authority is sent to Peer due to STR_UP at peer " + clusterid);
-                                		       TmAuditTlog peerTlog = getTlog(clusterid);
-                                                       peerTlog.getTransactionState(ts);
-                                                       answerFromPeer = true;
+                                		       answerFromPeer = true;
+                                                       try {
+                                                             TmAuditTlog peerTlog = getTlog(clusterid);
+                                                             peerTlog.getTransactionState(ts);
+                                                       } catch (Exception e2) {
+                                                             LOG.error("getTransactionState from Peer " + clusterid + " for tid " + ts.getTransactionId() + "  hit Exception2 " + e2);
+                                		             answerFromPeer = false;
+                                                       }
                                 		}
+                                                else {
+                               		               if (LOG.isDebugEnabled())
+                                			   LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " commit originator status is unknown, neither STR_UP or STR_DOWN " + clusterid);
+                                                }
                                              
-                                                // TBD we probably do not want to post all the regions in R2.0 for the takeover case since remote peer could be down and this could cause 
-                                                // transaction manager to be stuck, only send decision to indoubt regions --> use a new parameter noPostAll in getTransactionState
-                                                // if it can't take over but skip the decsion and defer
+                                                // No need to post all the regions in R2.0 for the takeover case since remote peer could be down and this could cause 
+                                                // transaction manager to be stuck, only send decision to indoubt regions
+                                                // pass "false" in the second parameter for getTransactionState postAllRegions
 
                                                 if (takeover || answerFromPeer) {
                                                      if (LOG.isDebugEnabled())
@@ -1903,9 +1963,9 @@ public class HBaseTxClient {
                                     LOG.error("Unable to get audit record for tx: " + txID + ", audit is throwing exception.");
                                     e.printStackTrace();
                                 }
-                            }
+                            } // for
 
-                        }
+                        } // region not null
                         else {
                             if (recoveryIterations > 0) {
                                 if(LOG.isInfoEnabled()) LOG.info("Recovery completed for TM" + tmID);

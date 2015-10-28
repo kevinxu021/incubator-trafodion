@@ -454,6 +454,9 @@ public:
 
   void          resize(size_t N);                       // Truncate or add blanks as necessary.
 
+  //fill n chars with c, starting at pos, if pos + n > length, string will be extended.
+  void        fill(size_t pos, const char c, size_t n);
+  
   NASubString   strip(stripType s=trailing, char c=' ');
   
   void          toLower();                              // Change self to lower-case

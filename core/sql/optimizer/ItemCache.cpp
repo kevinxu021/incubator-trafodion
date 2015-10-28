@@ -736,20 +736,21 @@ void Extract::generateCacheKey(CacheWA& cwa) const
   cwa += fieldFunction_ ? "1" : "0";
 }
 
-// append an ascii-version of HbaseTimestamp into cachewa.qryText_
-void HbaseTimestamp::generateCacheKey(CacheWA& cwa) const
+// append an ascii-version of Hbase Attribute into cachewa.qryText_
+void HbaseAttribute::generateCacheKey(CacheWA& cwa) const
 {
   BuiltinFunction::generateCacheKey(cwa); 
 
   col()->generateCacheKey(cwa);
 }
 
-// append an ascii-version of HbaseVersion into cachewa.qryText_
-void HbaseVersion::generateCacheKey(CacheWA& cwa) const
+void HbaseVisibilitySet::generateCacheKey(CacheWA& cwa) const
 {
   BuiltinFunction::generateCacheKey(cwa); 
 
-  col()->generateCacheKey(cwa);
+  cwa += " ";
+  cwa += visExpr_;
+  cwa += " ";
 }
 
 // does this entire ItemExpr qualify query to be cacheable after this phase?

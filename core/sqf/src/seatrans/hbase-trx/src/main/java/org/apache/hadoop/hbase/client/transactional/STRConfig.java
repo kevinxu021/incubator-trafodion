@@ -106,6 +106,7 @@ public class STRConfig {
     private static HBaseDCZK                   sv_dc_zk;
     private static String                      sv_my_cluster_id;
     private static int                         sv_peer_count = 0;
+    private static int                         sv_trafodion_node_count = -1;
 
     private static STRConfig s_STRConfig = null; 
 
@@ -335,6 +336,23 @@ public class STRConfig {
 	return Integer.parseInt(sv_my_cluster_id);
     }
 
+    public static void setTrafodionNodeCount() 
+    {
+	String lv_trafodion_node_count_string = System.getenv("TRAFODION_NODE_COUNT");
+	if (lv_trafodion_node_count_string != null) {
+	    sv_trafodion_node_count = Integer.parseInt(lv_trafodion_node_count_string);
+	}
+	else {
+	    sv_trafodion_node_count = 0;
+	}
+	LOG.info("TRAFODION_NODE_COUNT = " + sv_trafodion_node_count);
+    }
+
+    public int getTrafodionNodeCount() 
+    {
+	return sv_trafodion_node_count;
+    }
+
     // getInstance to return the singleton object for TransactionManager
     public synchronized static STRConfig getInstance(final Configuration conf) 
 	throws 	IOException, InterruptedException, KeeperException, ZooKeeperConnectionException 
@@ -354,6 +372,8 @@ public class STRConfig {
 	throws InterruptedException, KeeperException, ZooKeeperConnectionException, IOException 
     
     {
+	setTrafodionNodeCount();
+	
 	initClusterConfigsZK(conf);
 
 	if (sv_dc_zk != null) {
