@@ -1754,7 +1754,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
  // If set to 'OFF' we get a stub cost of 1 for delete operations.
  // We can remove this once the delete costing code has broader
  // exposure.
- DDkwd__(HBASE_DELETE_COSTING,		             "ON"),
+ DDkwd__(HBASE_DELETE_COSTING,		             "OFF"),
 
  DDkwd__(HBASE_FILTER_PREDS,		             "OFF"),
  DDkwd__(HBASE_HASH2_PARTITIONING,                   "ON"),

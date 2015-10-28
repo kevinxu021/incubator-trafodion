@@ -154,7 +154,6 @@ S_STORE_SK   (EXPR)
 --- SQL command prepared.
 >>execute explainIt;
 
-
 S   OPERATOR          LC  RC  TAB_NAME  
 --  ----------------  --  --  ----------
 
