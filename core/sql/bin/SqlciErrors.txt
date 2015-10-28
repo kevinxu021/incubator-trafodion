@@ -1142,7 +1142,7 @@ $1~String1 --------------------------------
 4078 42000 99999 BEGINNER MAJOR DBADMIN Function $0~String0 does not accept a weight operand.
 4079 42000 99999 BEGINNER MAJOR DBADMIN The operands of function $0~String0 must be numeric.
 4080 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU --- unused as of 5/7/12 ---
-4081 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU --- unused as of 5/7/12 ---
+4081 42000 99999 BEGINNER MAJOR DBADMIN Pool $0~String0 does not exist or is inaccessible.
 4082 42000 99999 BEGINNER MAJOR DBADMIN Object $0~TableName does not exist or is inaccessible.
 4083 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU --- unused as of 5/7/12 ---
 4084 42000 99999 ADVANCED MAJOR DBADMIN SQL object $0~TableName is corrupt.

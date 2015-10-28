@@ -127,6 +127,9 @@ struct MDDescsInfo;
 
 class CmpDDLwithStatusInfo;
 
+class StmtDDLAlterTableHDFSCache;
+class StmtDDLAlterSchemaHDFSCache;
+
 #include "CmpSeabaseDDLmd.h"
 
 #define SEABASEDDL_INTERNAL_ERROR(text)                                   \
@@ -1131,7 +1134,11 @@ class CmpSeabaseDDL
  void dropNativeHbaseTable(
 			     StmtDDLDropHbaseTable                  * createTableNode,
 			     NAString &currCatName, NAString &currSchName);
-  
+ 
+  void alterSeabaseTableHDFSCache(StmtDDLAlterTableHDFSCache * alterTableHdfsCache,
+                                  NAString &currCatName, NAString &currSchName);
+
+  void alterSeabaseSchemaHDFSCache(StmtDDLAlterSchemaHDFSCache * alterSchemaHdfsCache);
   void initSeabaseMD();
   void dropSeabaseMD();
   void createSeabaseMDviews();

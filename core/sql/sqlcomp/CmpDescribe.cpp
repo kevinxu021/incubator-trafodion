@@ -96,6 +96,8 @@
 #include "Analyzer.h"
 #include "ComSqlId.h"
 #include "ExExeUtilCli.h"
+#include "HBaseClient_JNI.h"
+#include "ExpHbaseInterface.h"
 
 #define CM_SIM_NAME_LEN 32
 
@@ -217,6 +219,18 @@ bool CmpDescribeIsAuthorized(
    SQLOperation operation = SQLOperation::UNKNOWN,
    PrivMgrUserPrivs *privs = NULL,
    ComObjectType objectType = COM_UNKNOWN_OBJECT);
+
+static short CmpDescribeTableHDFSCache(
+    const CorrName  &dtName,
+    char         *&outbuf,
+    ULng32 &outbuflen,
+    NAMemory      *h);
+
+static short CmpDescribeSchemaHDFSCache(
+       const NAString  & schemaText, 
+       char *&outbuf, 
+       ULng32 &outbuflen, 
+       NAMemory *heap);
 
 // The real Ark catalog manager returns all object names as three-part
 // identifiers, properly delimited where necessary.
@@ -614,8 +628,12 @@ short CmpDescribe(const char *query, const RelExpr *queryExpr,
   Describe *d = (Describe *)(queryExpr->child(0)->castToRelExpr());
   CMPASSERT(d->getOperatorType() == REL_DESCRIBE);   
 
-  if (d->getIsSchema())
-    {
+  if(d->getIsSchema() && d->getFormat() == Describe::SHOWSCHEMAHDFSCACHE_)
+  {
+      return CmpDescribeSchemaHDFSCache(d->getSchemaName(), outbuf, outbuflen, heap);
+  }
+  else if (d->getIsSchema())
+  {
       if (!CmpDescribeIsAuthorized())
         return -1;
       NAString schemaText;
@@ -632,7 +650,7 @@ short CmpDescribe(const char *query, const RelExpr *queryExpr,
       space.makeContiguous(outbuf, outbuflen);
 
       return 0;
-    }
+  }
   
   // If SHOWDDL USER, go get description and return
   if (d->getIsUser())
@@ -845,6 +863,12 @@ short CmpDescribe(const char *query, const RelExpr *queryExpr,
                                 outbuf, outbuflen, heap, NULL, TRUE);
       return rc;
     }
+	
+  //Show cache for HDFS cache
+  if (d->getFormat() == Describe::SHOWTABLEHDFSCACHE_)
+  {
+      return CmpDescribeTableHDFSCache(d->getDescribedTableName(), outbuf, outbuflen, heap);
+  }
 
   desc_struct *tabledesc = NULL;
   if ( ExtendedQualName::isDescribableTableType(tType) )
@@ -4199,3 +4223,229 @@ short CmpDescribeRoutine (const CorrName   & cn,
   NADELETEBASIC(buf, CmpCommon::statementHeap());  
   return 1;
 } // CmpDescribeShowddlProcedure
+
+//SHOW CACHE FOR TABLE table_name
+//Display centralized HDFS cache information for a table.
+static short CmpDescribeTableHDFSCache(const CorrName  &dtName, char *&outbuf, ULng32 &outbuflen, NAMemory *heap)
+{
+    //test if this table is exist
+    BindWA bindWA(ActiveSchemaDB(), CmpCommon::context(), FALSE/*inDDL*/);
+    NATable *naTable = bindWA.getNATable((CorrName&)dtName);
+    if (naTable == NULL || bindWA.errStatus())
+      return -1;
+
+    TextVec tableList;
+    tableList.push_back(naTable->getTableName().getQualifiedNameAsAnsiString().data());
+    //Call Java method to get hdfs cache information for this table.
+    CmpSeabaseDDL cmpSBD(STMTHEAP);
+    ExpHbaseInterface * ehi = cmpSBD.allocEHI();
+    ByteArrayList* rows = ehi->showTablesHDFSCache(tableList);
+    if(rows == NULL)
+        return -1;
+    int rowNum = rows->getSize();
+    Space space;
+    if(rowNum > 1) 
+    {
+        NAString total;
+        total.format("%d directives.", rowNum -1);
+        outputShortLine(space, total.data());
+        //calculate column width
+        //currently, we have 9 columns
+        const int COLNUM = 9;
+        const char* headerFields[COLNUM] = {"ID", "POOL", "REPL", "EXPIRY", "PATH", 
+                      "BYTES_NEEDED", "BYTES_CACHED", "FILES_NEEDED", "FILES_CACHED"};
+        int columnWidths[COLNUM];
+        int headerlen = 0; 
+        //extract max width of each field
+        std::string * lastRow = rows->get(rowNum-1);
+        NAString nsRow(lastRow->c_str(), heap);
+        NAList<NAString> fields(heap);
+        nsRow.split('|', fields);
+        //initialize width of each column.
+        for(int i = 0; i < COLNUM; i++){
+            int fieldWidth = atoi(fields[i].data());
+            int headerFieldWidth = strlen(headerFields[i]);
+            columnWidths[i] = fieldWidth > headerFieldWidth ? fieldWidth : headerFieldWidth;
+            columnWidths[i] += 2;
+            //calculate total length of header line. 
+            headerlen += columnWidths[i];
+        }
+
+        //write header, same output as hdfs cacheadmin -listDirectives -stats.
+        NAString line(' ', headerlen, heap);
+        for(int i = 0, pos = 0; i < COLNUM; i++) {
+            line.replace(pos, strlen(headerFields[i]), headerFields[i]);
+            pos += columnWidths[i];
+        }
+        outputShortLine(space, line.data());
+
+        //write each row.
+        for(int i = 0; i < rowNum - 1; i++)
+        {
+            line.fill(0, ' ', line.length());
+            std::string * oneRow = rows->get(i);
+            NAString nsRow(oneRow->c_str(), heap);
+            NAList<NAString> fields(heap);
+            nsRow.split('|', fields);
+            CMPASSERT(fields.entries() == 9);
+            for(int j = 0, pos = 0; j < fields.entries(); j++){
+                line.replace(pos, fields[j].length(), fields[j]);
+                pos += columnWidths[j];
+            }
+            outputShortLine(space, line.data());
+        }
+
+    }
+    else
+    {//this table has no entry in hdfs cache.
+        std::string msg;
+        msg += "Table ";
+        msg += naTable->getTableName().getQualifiedNameAsAnsiString();
+        msg += " is not in HDFS cache.";
+        outputShortLine(space, "");
+        outputShortLine(space, msg.c_str());
+    }
+    outbuflen = space.getAllocatedSpaceSize();
+    outbuf = new (heap) char[outbuflen];
+    space.makeContiguous(outbuf, outbuflen);
+    return 0;
+}
+
+//SHOW CACHE FOR SCHEMA schema_name
+//Display centralized HDFS cache information for a table.
+static short CmpDescribeSchemaHDFSCache(const NAString  & schemaText, char *&outbuf, ULng32 &outbuflen, NAMemory *heap)
+{
+    Lng32 cliRC = 0;
+    Lng32 retCode = 0;
+    char buf[4000];
+
+    ComSchemaName schemaName(schemaText);
+    NAString catName = schemaName.getCatalogNamePartAsAnsiString();
+    ComAnsiNamePart schNameAsComAnsi = schemaName.getSchemaNamePart();
+    NAString schName = schNameAsComAnsi.getInternalName();
+    
+    ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
+    CmpCommon::context()->sqlSession()->getParentQid());
+    Int32 objectOwnerID = 0;
+    Int32 schemaOwnerID = 0;
+    ComObjectType objectType;
+
+    Int64 schemaUID = CmpSeabaseDDL::getObjectTypeandOwner(&cliInterface,catName.data(),schName.data(),
+                                 SEABASE_SCHEMA_OBJECTNAME,objectType,schemaOwnerID);
+       
+     // if schemaUID == -1, then either the schema does not exist or an unexpected error occurred
+     if (schemaUID == -1)
+     {
+          // If an error occurred, return
+          if (CmpCommon::diags()->getNumber(DgSqlCode::ERROR_) > 0)
+            return -1;
+    
+          // A Trafodion schema does not exist if the schema object row is not
+          // present: CATALOG-NAME.SCHEMA-NAME.__SCHEMA__.
+          *CmpCommon::diags() << DgSqlCode(-CAT_SCHEMA_DOES_NOT_EXIST_ERROR)
+                              << DgSchemaName(schemaName.getExternalName().data());
+          return -1;
+     }
+    
+      //get all tables in the schema.
+     Queue * objectsQueue = NULL;
+     sprintf(buf, " select object_name  from   %s.\"%s\".%s "
+                        "  where catalog_name = '%s' and "
+                        "        schema_name = '%s'  and "
+                        "        object_type = 'BT'  "
+                        "  for read uncommitted access "
+                        "  order by 1 "
+                        "  ; ", CmpSeabaseDDL::getSystemCatalogStatic().data(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS,
+                                (char*)catName.data(), (char*)schName.data());
+
+     cliRC = cliInterface.fetchAllRows(objectsQueue,  buf, 0, FALSE, FALSE, TRUE);
+     if (cliRC < 0)
+     {
+          cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
+          return -1;
+     }
+
+    objectsQueue->position();
+
+    TextVec tableList;
+    for (int i = 0; i < objectsQueue->numEntries(); i++) {
+        OutputInfo * vi = (OutputInfo*)objectsQueue->getNext();
+        char * ptr = vi->get(0);
+        sprintf(buf, "%s.%s.%s", (char*)catName.data(), (char*)schName.data(), ptr);
+        tableList.push_back(buf);
+    }
+    CmpSeabaseDDL cmpSBD(STMTHEAP);
+    //Call Java method to get hdfs cache information for this table.
+    ExpHbaseInterface * ehi = cmpSBD.allocEHI();
+    if (ehi == NULL) 
+        return -1; 
+    ByteArrayList* rows = ehi->showTablesHDFSCache(tableList);
+    if(rows == NULL)
+        return -1;
+    int rowNum = rows->getSize();
+    Space space;
+    if(rowNum > 1) 
+    {
+        NAString total;
+        total.format("%d directives.", rowNum -1);
+        outputShortLine(space, total.data());
+        //calculate column width
+        //currently, we have 9 columns
+        const int COLNUM = 9;
+        const char* headerFields[COLNUM] = {"ID", "POOL", "REPL", "EXPIRY", "PATH", 
+                      "BYTES_NEEDED", "BYTES_CACHED", "FILES_NEEDED", "FILES_CACHED"};
+        int columnWidths[COLNUM];
+        int headerlen = 0; 
+        //extract max width of each field
+        std::string * lastRow = rows->get(rowNum-1);
+        NAString nsRow(lastRow->c_str(), heap);
+        NAList<NAString> fields(heap);
+        nsRow.split('|', fields);
+        //initialize width of each column.
+        for(int i = 0; i < COLNUM; i++){
+            int fieldWidth = atoi(fields[i].data());
+            int headerFieldWidth = strlen(headerFields[i]);
+            columnWidths[i] = fieldWidth > headerFieldWidth ? fieldWidth : headerFieldWidth;
+            columnWidths[i] += 2;
+            //calculate total length of header line. 
+            headerlen += columnWidths[i];
+        }
+        //write header, same output as hdfs cacheadmin -listDirectives -stats.
+        NAString line(' ', headerlen, heap);
+        for(int i = 0, pos = 0; i < COLNUM; i++) {
+            line.replace(pos, strlen(headerFields[i]), headerFields[i]);
+            pos += columnWidths[i];
+        }
+        outputShortLine(space, line.data());
+
+        //write each row.
+        for(int i = 0; i < rowNum - 1; i++)
+        {
+            line.fill(0, ' ', line.length());
+            std::string * oneRow = rows->get(i);
+            NAString nsRow(oneRow->c_str(), heap);
+            NAList<NAString> fields(heap);
+            nsRow.split('|', fields);
+            CMPASSERT(fields.entries() == 9);
+            for(int j = 0, pos = 0; j < fields.entries(); j++){
+                line.replace(pos, fields[j].length(), fields[j]);
+                pos += columnWidths[j];
+            }
+            outputShortLine(space, line.data());
+        }
+    }
+    else
+    {//this table has no entry in hdfs cache.
+        std::string msg;
+        msg += "Schema ";
+        msg += schemaText.data();
+        msg += " is not in HDFS cache.";
+        outputShortLine(space, "");
+        outputShortLine(space, msg.c_str());
+    }
+    outbuflen = space.getAllocatedSpaceSize();
+    outbuf = new (heap) char[outbuflen];
+    space.makeContiguous(outbuf, outbuflen);
+    return 0;
+}
+

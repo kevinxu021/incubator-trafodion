@@ -317,6 +317,10 @@ static const char* const hbcErrorEnumStr[] =
  ,"Preparing parameters for checkAndDeleteRow()."
  ,"Java exception in checkAndDeleteRow()."
  ,"Row not found in checkAndDeleteRow()."
+ ,"Java exception in addTablesToHdfsCache()."
+ ,"Java exception in removeTablesFromHdfsCache()."
+ ,"Java exception in showTablesHdfsCache()."
+ ,"Pool does not exist."
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -501,6 +505,13 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_HBC_DIRECT_DELETE_ROWS ].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;JZ)Z";
     JavaMethods_[JM_HBC_CHECKANDDELETE_ROW ].jm_name      = "checkAndDeleteRow";
     JavaMethods_[JM_HBC_CHECKANDDELETE_ROW ].jm_signature = "(JLjava/lang/String;ZZJ[B[B[BJZ)Z";
+    JavaMethods_[JM_SHOW_TABLES_HDFS_CACHE].jm_name = "showTablesHDFSCache";
+    JavaMethods_[JM_SHOW_TABLES_HDFS_CACHE].jm_signature = "([Ljava/lang/Object;)Lorg/trafodion/sql/ByteArrayList;";
+    JavaMethods_[JM_ADD_TABLES_TO_HDFS_CACHE].jm_name = "addTablesToHDFSCache";
+    JavaMethods_[JM_ADD_TABLES_TO_HDFS_CACHE].jm_signature = "([Ljava/lang/Object;Ljava/lang/String;)I";
+    JavaMethods_[JM_REMOVE_TABLES_FROM_HDFS_CACHE].jm_name = "removeTablesFromHDFSCache";
+    JavaMethods_[JM_REMOVE_TABLES_FROM_HDFS_CACHE].jm_signature = "([Ljava/lang/Object;Ljava/lang/String;)I";
+
     rc = (HBC_RetCode)JavaObjectInterface::init(className, javaClass_, JavaMethods_, (Int32)JM_LAST, javaMethodsInitialized_);
     javaMethodsInitialized_ = TRUE;
     pthread_mutex_unlock(&javaMethodsInitMutex_);
@@ -3662,6 +3673,173 @@ HBC_RetCode HBaseClient_JNI::checkAndDeleteRow(NAHeap *heap,
   return HBC_OK;
 }
 
+HBC_RetCode HBaseClient_JNI::addTablesToHDFSCache(const TextVec& tables, const char* poolName)
+{
+  if (jenv_ == NULL)
+     if (initJVM() != JOI_OK)
+         return HBC_ERROR_INIT_PARAM;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+    getExceptionDetails();
+    return HBC_ERROR_ADDHDFSCACHE_EXCEPTION;
+  }
+
+  jobjectArray j_tables = NULL;
+  if (!tables.empty())
+  {
+    QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "  Adding %d tables.", tables.size());
+    j_tables = convertToStringObjectArray(tables);
+    if (j_tables == NULL)
+    {
+       getExceptionDetails();
+       logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+       logError(CAT_SQL_HBASE, "HBaseClient_JNI::addTablesToHDFSCache()", getLastError());
+       jenv_->PopLocalFrame(NULL);
+       return HBC_ERROR_ADDHDFSCACHE_EXCEPTION;
+    }
+  }
+
+  jstring js_poolName = jenv_->NewStringUTF(poolName);
+  if (js_poolName == NULL) 
+  {
+    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_ADDHDFSCACHE_EXCEPTION));
+    jenv_->PopLocalFrame(NULL);
+    return HBC_ERROR_ADDHDFSCACHE_EXCEPTION;
+  }
+
+  tsRecentJMFromJNI = JavaMethods_[JM_ADD_TABLES_TO_HDFS_CACHE].jm_full_name;
+  jint jresult = jenv_->CallIntMethod(javaObj_, JavaMethods_[JM_ADD_TABLES_TO_HDFS_CACHE].methodID, j_tables, js_poolName);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "HBaseClient_JNI::addTablesToHDFSCache()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return HBC_ERROR_ADDHDFSCACHE_EXCEPTION;
+  }
+
+  jenv_->DeleteLocalRef(js_poolName);
+  if (j_tables != NULL) 
+    jenv_->DeleteLocalRef(j_tables);  
+
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, 
+       "Exit HBaseClient_JNI::addTablesToHDFSCache() called.");
+  jenv_->PopLocalFrame(NULL);
+  return jresult==0 ? HBC_OK : HBC_ERROR_POOL_NOT_EXIST_EXCEPTION;
+}
+
+HBC_RetCode HBaseClient_JNI::removeTablesFromHDFSCache(const TextVec& tables, const char* poolName)
+{
+  if (jenv_ == NULL)
+     if (initJVM() != JOI_OK)
+         return HBC_ERROR_INIT_PARAM;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+    getExceptionDetails();
+    return HBC_ERROR_ADDHDFSCACHE_EXCEPTION;
+  }
+
+  jobjectArray j_tables = NULL;
+  if (!tables.empty())
+  {
+    QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "  removing %d tables.", tables.size());
+    j_tables = convertToStringObjectArray(tables);
+    if (j_tables == NULL)
+    {
+       getExceptionDetails();
+       logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+       logError(CAT_SQL_HBASE, "HBaseClient_JNI::removeTablesFromHDFSCache()", getLastError());
+       jenv_->PopLocalFrame(NULL);
+       return HBC_ERROR_ADDHDFSCACHE_EXCEPTION;
+    }
+  }
+
+  jstring js_poolName = jenv_->NewStringUTF(poolName);
+  if (js_poolName == NULL) 
+  {
+    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_ADDHDFSCACHE_EXCEPTION));
+    jenv_->PopLocalFrame(NULL);
+    return HBC_ERROR_ADDHDFSCACHE_EXCEPTION;
+  }
+
+  tsRecentJMFromJNI = JavaMethods_[JM_REMOVE_TABLES_FROM_HDFS_CACHE].jm_full_name;
+  jint jresult = jenv_->CallIntMethod(javaObj_, JavaMethods_[JM_REMOVE_TABLES_FROM_HDFS_CACHE].methodID, j_tables, js_poolName);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "HBaseClient_JNI::removeTablesFromHDFSCache()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return HBC_ERROR_ADDHDFSCACHE_EXCEPTION;
+  }
+
+  jenv_->DeleteLocalRef(js_poolName);
+  if (j_tables != NULL) 
+    jenv_->DeleteLocalRef(j_tables);  
+
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, 
+       "Exit HBaseClient_JNI::addTablesToHDFSCache() called.");
+  jenv_->PopLocalFrame(NULL);
+  return jresult==0 ? HBC_OK : HBC_ERROR_POOL_NOT_EXIST_EXCEPTION;
+}
+
+ByteArrayList* HBaseClient_JNI::showTablesHDFSCache(const TextVec& tables)
+{
+  if (jenv_ == NULL)
+     if (initJVM() != JOI_OK)
+         return NULL;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+    getExceptionDetails();
+    return NULL;
+  }
+
+  jobjectArray j_tables = NULL;
+  if (!tables.empty())
+  {
+    QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "  showing %d tables.", tables.size());
+    j_tables = convertToStringObjectArray(tables);
+    if (j_tables == NULL)
+    {
+       getExceptionDetails();
+       logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+       logError(CAT_SQL_HBASE, "HBaseClient_JNI::showTablesHDFSCache()", getLastError());
+       jenv_->PopLocalFrame(NULL);
+       return NULL;
+    }
+  }
+
+  tsRecentJMFromJNI = JavaMethods_[JM_SHOW_TABLES_HDFS_CACHE].jm_full_name;
+  jobject jByteArrayList = jenv_->CallObjectMethod(javaObj_, JavaMethods_[JM_SHOW_TABLES_HDFS_CACHE].methodID, j_tables);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "HBaseClient_JNI::showTableHDFSCache()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return NULL;
+  }
+
+  ByteArrayList* tableHdfsCacheStats = new (heap_) ByteArrayList(heap_, jByteArrayList);
+  jenv_->DeleteLocalRef(jByteArrayList);
+  if (tableHdfsCacheStats->init() != BAL_OK)
+    {
+      NADELETE(tableHdfsCacheStats, ByteArrayList, heap_);
+      jenv_->PopLocalFrame(NULL);
+      return NULL;
+    }
+
+  if (j_tables != NULL) 
+    jenv_->DeleteLocalRef(j_tables);  
+
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, 
+       "Exit HBaseClient_JNI::showTableHDFSCachecalled.");
+  jenv_->PopLocalFrame(NULL);
+  return tableHdfsCacheStats;
+}
 
 // ===========================================================================
 // ===== Class HTableClient
@@ -4448,6 +4626,7 @@ static const char* const hvcErrorEnumStr[] =
  ,"preparing parameters for hdfsWrite()."
  ,"java exception in hdfsWrite()."
  ,"java exception in hdfsclose()."
+ ,"java exception in executeHiveSQL()."
 };
 
 
@@ -4889,15 +5068,15 @@ HVC_RetCode HiveClient_JNI::executeHiveSQL(const char* hiveSQL)
 
   if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
     getExceptionDetails();
-    return HVC_ERROR_GET_ALLSCH_EXCEPTION;
+    return HVC_ERROR_EXECHIVESQL_EXCEPTION;
   }
 
   jstring js_hiveSQL = jenv_->NewStringUTF(hiveSQL);
   if (js_hiveSQL == NULL) 
   {
-    GetCliGlobals()->setJniErrorStr(getErrorText(HVC_ERROR_GET_ALLTBL_PARAM));
+    GetCliGlobals()->setJniErrorStr(getErrorText(HVC_ERROR_EXECHIVESQL_EXCEPTION));
     jenv_->PopLocalFrame(NULL);
-    return HVC_ERROR_GET_ALLTBL_PARAM;
+    return HVC_ERROR_EXECHIVESQL_EXCEPTION;
   }
   
   tsRecentJMFromJNI = JavaMethods_[JM_EXEC_HIVE_SQL].jm_full_name;
@@ -4909,7 +5088,7 @@ HVC_RetCode HiveClient_JNI::executeHiveSQL(const char* hiveSQL)
     logError(CAT_SQL_HBASE, __FILE__, __LINE__);
     logError(CAT_SQL_HBASE, "HiveClient_JNI::executeHiveSQL()", getLastError());
     jenv_->PopLocalFrame(NULL);
-    return HVC_ERROR_GET_ALLSCH_EXCEPTION;
+    return HVC_ERROR_EXECHIVESQL_EXCEPTION;
   }
 
   jenv_->DeleteLocalRef(js_hiveSQL);
