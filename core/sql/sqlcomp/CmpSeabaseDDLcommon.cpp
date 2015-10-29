@@ -71,6 +71,8 @@
 #include "ComUser.h"
 #include "ComMisc.h"
 #include "hdfs.h"
+#include "StmtDDLAlterTableHDFSCache.h"
+
 void cleanupLOBDataDescFiles(const char*, int, const char *);
 
 class QualifiedSchema
@@ -8795,6 +8797,23 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
            
            alterSeabaseTableAlterColumnDatatype(alterColNode, 
                                                 currCatName, currSchName);
+        }
+       else if (ddlNode->getOperatorType() == DDL_ALTER_TABLE_HDFS_CACHE)
+        {
+           StmtDDLAlterTableHDFSCache * alterTableHdfsCache =
+             ddlNode->castToStmtDDLNode()->castToStmtDDLAlterTableHDFSCache();
+           
+           alterSeabaseTableHDFSCache(alterTableHdfsCache,
+                                                currCatName, currSchName);
+
+        }
+       else if (ddlNode->getOperatorType() == DDL_ALTER_SCHEMA_HDFS_CACHE)
+        {
+           StmtDDLAlterSchemaHDFSCache* alterSchemaHdfsCache =
+             ddlNode->castToStmtDDLNode()->castToStmtDDLAlterSchemaHDFSCache();
+           
+           alterSeabaseSchemaHDFSCache(alterSchemaHdfsCache);
+
         }
        else if (ddlNode->getOperatorType() ==  DDL_CLEANUP_OBJECTS)
          {

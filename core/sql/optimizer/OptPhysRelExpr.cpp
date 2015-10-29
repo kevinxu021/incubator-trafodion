@@ -14851,7 +14851,7 @@ PhysicalProperty * FileScan::synthHbaseScanPhysicalProperty(
   Lng32 numESPs = 1;
   PartitioningFunction * ixDescPartFunc = NULL;
    
-  // Nothing we can do if the requirment is a single partition func
+  // Nothing we can do if the requirement is a single partition func
   if ( partReq && partReq->castToRequireExactlyOnePartition() ) {
     myPartFunc = new (CmpCommon::statementHeap())
               SinglePartitionPartitioningFunction();

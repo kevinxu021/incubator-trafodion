@@ -46,7 +46,7 @@
 #include "keycolumns.h"
 #include "ElemDDLColRef.h"
 #include "ElemDDLColName.h"
-
+#include "StmtDDLAlterSchemaHDFSCache.h"
 #include "CmpDDLCatErrorCodes.h"
 #include "Globals.h"
 #include "CmpMain.h"
@@ -959,11 +959,91 @@ int32_t rowCount = 0;
 }
 //****************** End of CmpSeabaseDDL::giveSeabaseSchema *******************
 
+void CmpSeabaseDDL::alterSeabaseSchemaHDFSCache(StmtDDLAlterSchemaHDFSCache * alterSchemaHdfsCache)
+{
+    
+    Lng32 cliRC = 0;
+    Lng32 retCode = 0;
+    char buf[4000];
 
+    ComSchemaName schemaName(alterSchemaHdfsCache->schemaName().getSchemaNameAsAnsiString());
+    NAString catName = schemaName.getCatalogNamePartAsAnsiString();
+    ComAnsiNamePart schNameAsComAnsi = schemaName.getSchemaNamePart();
+    NAString schName = schNameAsComAnsi.getInternalName();
+    
+    ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
+    CmpCommon::context()->sqlSession()->getParentQid());
+    Int32 objectOwnerID = 0;
+    Int32 schemaOwnerID = 0;
+    ComObjectType objectType;
+    
+    Int64 schemaUID = getObjectTypeandOwner(&cliInterface,catName.data(),schName.data(),
+                                 SEABASE_SCHEMA_OBJECTNAME,objectType,schemaOwnerID);
+       
+     // if schemaUID == -1, then either the schema does not exist or an unexpected error occurred
+     if (schemaUID == -1)
+     {
+          // If an error occurred, return
+          if (CmpCommon::diags()->getNumber(DgSqlCode::ERROR_) > 0)
+            return;
+    
+          // A Trafodion schema does not exist if the schema object row is not
+          // present: CATALOG-NAME.SCHEMA-NAME.__SCHEMA__.
+          *CmpCommon::diags() << DgSqlCode(-CAT_SCHEMA_DOES_NOT_EXIST_ERROR)
+                              << DgSchemaName(schemaName.getExternalName().data());
+          return;
+     }
+    
+     if (!isDDLOperationAuthorized(SQLOperation::ALTER_SCHEMA,
+                                     schemaOwnerID,schemaOwnerID))
+     {
+          *CmpCommon::diags() << DgSqlCode(-CAT_NOT_AUTHORIZED);
+          return;
+     }
+      //get all tables in the schema.
+     Queue * objectsQueue = NULL;
+     sprintf(buf, " select object_name  from   %s.\"%s\".%s "
+                        "  where catalog_name = '%s' and "
+                        "        schema_name = '%s'  and "
+                        "        object_type = 'BT'  "
+                        "  for read uncommitted access "
+                        "  order by 1 "
+                        "  ; ", getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS,
+                                (char*)catName.data(), (char*)schName.data());
 
-// *****************************************************************************
-//    Private/static functions
-// *****************************************************************************
+     cliRC = cliInterface.fetchAllRows(objectsQueue,  buf, 0, FALSE, FALSE, TRUE);
+     if (cliRC < 0)
+     {
+          cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
+          return;
+     }
+
+    objectsQueue->position();
+    
+    TextVec tableList;
+    for (int i = 0; i < objectsQueue->numEntries(); i++) {
+        OutputInfo * vi = (OutputInfo*)objectsQueue->getNext();
+        char * ptr = vi->get(0);
+        sprintf(buf, "%s.%s.%s", (char*)catName.data(), (char*)schName.data(), ptr);
+        tableList.push_back(buf);
+    }
+
+    ExpHbaseInterface * ehi = allocEHI();
+    if (ehi == NULL)
+       return;
+    if(alterSchemaHdfsCache->isAddToCache()) {
+       retCode = ehi->addTablesToHDFSCache(tableList ,alterSchemaHdfsCache->poolName());
+    }
+    else {
+       retCode = ehi->removeTablesFromHDFSCache(tableList ,alterSchemaHdfsCache->poolName());
+    }
+    
+    if (retCode == HBC_ERROR_POOL_NOT_EXIST_EXCEPTION) {
+        *CmpCommon::diags() << DgSqlCode(-4081)
+                                               << DgString0(alterSchemaHdfsCache->poolName());
+    }
+}
+
 
 
 // *****************************************************************************
@@ -1050,7 +1130,7 @@ ULng32 savedParserFlags = Get_SqlParser_Flags(0xFFFFFFFF);
    }
    
 // Restore parser flags settings to what they originally were
-   Set_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL);
+   Assign_SqlParser_Flags(savedParserFlags);
    
    if (cliRC < 0 && cliRC != -CAT_OBJECT_DOES_NOT_EXIST_IN_TRAFODION)
       someObjectsCouldNotBeDropped = true;

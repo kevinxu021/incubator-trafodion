@@ -7563,7 +7563,7 @@ RelExpr *Scan::bindNode(BindWA *bindWA)
   // as the output values that can be produced by this scan.
   //
   getGroupAttr()->addCharacteristicOutputs(getTableDesc()->getColumnList());
-  getGroupAttr()->addCharacteristicOutputs(getTableDesc()->hbaseTSList());
+  getGroupAttr()->addCharacteristicOutputs(getTableDesc()->hbaseAttrList());
 
    // MV --
   if (getInliningInfo().isMVLoggingInlined())
@@ -7685,35 +7685,42 @@ RelExpr *Scan::bindNode(BindWA *bindWA)
   // CQD ATTEMPT_ASYNCHRONOUS_ACCESS is set to OFF.If we find 
   // that all access paths are partitioned we give an error.
 
-   if (getGroupAttr()->isStream() &&
+  if (getGroupAttr()->isStream() &&
       (CmpCommon::getDefault(ATTEMPT_ASYNCHRONOUS_ACCESS) == DF_OFF)) {
     NABoolean atleastonenonpartitionedaccess = FALSE;
     NAFileSetList idescList = naTable->getIndexList();
- 
+    
     for(CollIndex i = 0; 
         i < idescList.entries() && !atleastonenonpartitionedaccess; i++)
-       if(!(idescList[i]->isPartitioned()) )
+      if(!(idescList[i]->isPartitioned()) )
         atleastonenonpartitionedaccess = TRUE;
- 
+    
     if (!atleastonenonpartitionedaccess) {
-     *CmpCommon::diags() << DgSqlCode(-4320)
-       << DgTableName(naTable->getTableName().getQualifiedNameAsAnsiString());
-     bindWA->setErrStatus();
-     return NULL;
+      *CmpCommon::diags() << DgSqlCode(-4320)
+                          << DgTableName(naTable->getTableName().getQualifiedNameAsAnsiString());
+      bindWA->setErrStatus();
+      return NULL;
     }
   }
+  
+  if (optHbaseAccessOptions_)
+    {
+      optHbaseAccessOptions_->setOptionsFromDefs(naTable->getTableName());
 
-   if (hbaseAccessOptions_)
-     {
-       if (hbaseAccessOptions_->isMaxVersions())
-         {
-           hbaseAccessOptions_->setHbaseVersions
-             (
+      if (optHbaseAccessOptions_->isMaxVersions())
+        {
+          optHbaseAccessOptions_->setNumVersions
+            (
               getTableDesc()->getClusteringIndex()->getNAFileSet()->numMaxVersions()
-              );
-         }
-     }
+             );
+        }
 
+      if (NOT optHbaseAccessOptions_->hbaseAuths().isNull())
+        {
+          hbaseAuths() = optHbaseAccessOptions_->hbaseAuths();
+        }
+    }
+  
   return boundExpr;
 } // Scan::bindNode()
 
@@ -10530,6 +10537,23 @@ RelExpr *Update::bindNode(BindWA *bindWA)
       *CmpCommon::diags() << DgSqlCode(-30021) ;
       bindWA->setErrStatus();
       return this;
+    }
+
+  if (hbaseTagExprList_.entries() > 0)
+    {
+      ItemExpr *numEnt = new(bindWA->wHeap()) 
+        ConstValue(hbaseTagExprList_.entries());
+      numEnt->bindNode(bindWA);
+      hbaseTagExpr_.insert(numEnt->getValueId());
+
+      for (CollIndex i = 0;i < hbaseTagExprList_.entries(); i++)
+        {
+          ItemExpr * ie = hbaseTagExprList_[i]->bindNode(bindWA);
+          if (bindWA->errStatus())
+            return this;
+
+          hbaseTagExpr_.insert(ie->getValueId());
+        }
     }
 
   NABoolean transformUpdateKey = updatesClusteringKeyOrUniqueIndexKey(bindWA);

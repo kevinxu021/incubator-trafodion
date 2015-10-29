@@ -8100,6 +8100,10 @@ void Scan::getPotentialOutputValues(ValueIdSet & outputValues) const
   if (potentialOutputs_.isEmpty())
     {
       outputValues.insertList( getTableDesc()->getColumnList() );
+
+      //      outputValues.insertList( getTableDesc()->hbaseAttrList() );
+
+      outputValues.insertList( getTableDesc()->hbaseTagList() );
       outputValues.insertList( getTableDesc()->hbaseTSList() );
       outputValues.insertList( getTableDesc()->hbaseVersionList() );
     }
@@ -8216,7 +8220,8 @@ RelExpr * Scan::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
   result->isRewrittenMV_ = isRewrittenMV_;
   result->matchingMVs_ = matchingMVs_;
 
-  result->hbaseAccessOptions_ = hbaseAccessOptions_;
+  result->optHbaseAccessOptions_ = optHbaseAccessOptions_;
+  result->hbaseAuths_ = hbaseAuths_;
 
   // don't copy values that can be calculated by addIndexInfo()
   // (could be done, but we are lazy and just call addIndexInfo() again)
@@ -8365,8 +8370,13 @@ void Scan::addIndexInfo()
     }
 
   // a shortcut for tables with no indexes
+  // or snapshot timestamp is specified.
   if ((ixlist.entries() == 1)||
-      (tableDesc->isPartitionNameSpecified()))
+      (tableDesc->isPartitionNameSpecified()) ||
+      (getOptHbaseAccessOptions() &&
+       getOptHbaseAccessOptions()->tsSpecified()) ||
+      (tableDesc->hbaseTSList().entries() > 0) ||
+      (NOT hbaseAuths().isNull()))
     {
       // that's easy, there is only one index (the base table)
       // and that index better have everything we need
@@ -9441,14 +9451,14 @@ NABoolean Scan::isMdamEnabled(const Context *context)
     // Table command.
     // -----------------------------------------------------------------------
     if (mdamIsEnabled)
-	  {
+      {
         const NAString * val =
-	    ActiveControlDB()->getControlTableValue(getTableName().getUgivenName(), "MDAM");
+          ActiveControlDB()->getControlTableValue(getTableName().getUgivenName(), "MDAM");
         if ((val) && (*val == "OFF")) // CT in effect
-		{
-	       mdamIsEnabled = FALSE;
-		}
-	  }
+          {
+            mdamIsEnabled = FALSE;
+          }
+      }
     return mdamIsEnabled;
 }
 // 10-040128-2749 -end
@@ -10178,8 +10188,11 @@ void HbaseAccess::getPotentialOutputValues(
 
   // since this is a physical operator, it only generates the index columns
   outputValues.insertList( getIndexDesc()->getIndexColumns() );
+
+  outputValues.insertList( getTableDesc()->hbaseTagList() );
   outputValues.insertList( getTableDesc()->hbaseTSList() );
   outputValues.insertList( getTableDesc()->hbaseVersionList() );
+  //  outputValues.insertList( getTableDesc()->hbaseAttrList() );
   
 } // HbaseAccess::getPotentialOutputValues()
 
@@ -12737,9 +12750,57 @@ Update::Update(const CorrName &name,
                ItemExpr *currOfCursorName,
                CollHeap *oHeap)
      : GenericUpdate(name,tabId,otype,child,newRecExpr,currOfCursorName,oHeap),
+       hbaseTagExprList_(NULL),
        estRowsAccessed_(0)
 {
   setCacheableNode(CmpMain::BIND);
+
+  if ((newRecExpr) &&
+      (((newRecExpr->getOperatorType() == ITM_ASSIGN) &&
+        (newRecExpr->child(1)->getOperatorType() == ITM_HBASE_VISIBILITY_SET)) ||
+       ((newRecExpr->getOperatorType() == ITM_ITEM_LIST) &&
+        (((ItemList*)newRecExpr)->containsHbaseVisibilityExpr()))))
+    {
+      ItemExpr * newIE = NULL;
+      if ((newRecExpr->getOperatorType() == ITM_ASSIGN) &&
+          (newRecExpr->child(1)->getOperatorType() == ITM_HBASE_VISIBILITY_SET))
+        {
+          hbaseTagExprList_.addMember(newRecExpr->child(1));
+          newIE = NULL;
+        }
+      else
+        {
+          ItemExprList iel(newRecExpr, oHeap);
+          ItemExprList newIEL(oHeap);
+          for (int i = 0; i < iel.entries(); i++)
+            {
+              ItemExpr * ie = iel[i];
+              
+              if ((ie->getOperatorType() == ITM_ASSIGN) &&
+                  (ie->child(1)->getOperatorType() == ITM_HBASE_VISIBILITY_SET))
+                {
+                  hbaseTagExprList_.addMember(ie->child(1));
+                }
+              else
+                {
+                  newIEL.addMember(ie);
+                }
+            } // for
+          
+          if (newIEL.entries() > 0)
+            {
+              *CmpCommon::diags()
+                << DgSqlCode(-3242)
+                << DgString0("Cannot mix column update and visibility expression clauses.");
+              CMPASSERT(0);
+
+              newIE = newIEL.convertToItemExpr();
+            }
+        } // else
+  
+      removeNewRecExprTree();
+      addNewRecExprTree(newIE);
+    } // newRecExpr
 }
 
 Update::~Update() {}
@@ -12766,6 +12827,8 @@ RelExpr * Update::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
     result = (Update *) derivedNode;
 
   result->setEstRowsAccessed(getEstRowsAccessed());
+  result->hbaseTagExprList_ = hbaseTagExprList_;
+  result->hbaseTagExpr_ = hbaseTagExpr_;
 
   return GenericUpdate::copyTopNode(result, outHeap);
 }

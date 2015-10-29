@@ -2298,7 +2298,8 @@ public class TransactionManager {
               }
             });
           } catch (Exception e) {
-            LOG.error("exception in abort: " + e);
+            LOG.error("exception in abort: " + e + "  Trans: "
+                + transactionState + "  Region: " + location.getRegionInfo().getRegionName());
           }
             /*
             } catch (UnknownTransactionException e) {

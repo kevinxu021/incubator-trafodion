@@ -553,11 +553,11 @@ public class TransactionState {
     }
 
     public void setHasRemotePeers(boolean pv_HasRemotePeers) {
-	this.m_HasRemotePeers = pv_HasRemotePeers;
+       this.m_HasRemotePeers = pv_HasRemotePeers;
     }
 
     public boolean hasRemotePeers() {
-	return this.m_HasRemotePeers;
+       return this.m_HasRemotePeers;
     }
 
 }

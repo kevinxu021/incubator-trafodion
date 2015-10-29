@@ -501,6 +501,12 @@ ex_clause::ex_clause(clause_type type,
 	case ITM_HEADER:
 	  setClassID(FUNC_HEADER);
 	  break;
+	case ITM_HBASE_VISIBILITY:
+	  setClassID(FUNC_HBASE_VISIBILITY);
+	  break;
+	case ITM_HBASE_VISIBILITY_SET:
+	  setClassID(FUNC_HBASE_VISIBILITY_SET);
+	  break;
 	case ITM_HBASE_TIMESTAMP:
 	  setClassID(FUNC_HBASE_TIMESTAMP);
 	  break;
@@ -967,6 +973,12 @@ NA_EIDPROC char *ex_clause::findVTblPtr(short classID)
       break;
     case ex_clause::FUNC_HBASE_TIMESTAMP:
       GetVTblPtr(vtblPtr, ExFunctionHbaseTimestamp);
+      break;
+    case ex_clause::FUNC_HBASE_VISIBILITY:
+      GetVTblPtr(vtblPtr, ExFunctionHbaseVisibility);
+      break;
+    case ex_clause::FUNC_HBASE_VISIBILITY_SET:
+      GetVTblPtr(vtblPtr, ExFunctionHbaseVisibilitySet);
       break;
     case ex_clause::FUNC_HBASE_VERSION:
       GetVTblPtr(vtblPtr, ExFunctionHbaseVersion);
@@ -1459,6 +1471,8 @@ NA_EIDPROC const char * getOperTypeEnumAsString(Int16 /*OperatorTypeEnum*/ ote)
     case ITM_HBASE_COLUMN_LOOKUP: return "ITM_HBASE_COLUMN_LOOKUP";
     case ITM_HBASE_COLUMNS_DISPLAY: return "ITM_HBASE_COLUMNS_DISPLAY";
     case ITM_HBASE_COLUMN_CREATE: return "ITM_HBASE_COLUMN_CREATE";
+    case ITM_HBASE_VISIBILITY: return "ITM_HBASE_VISIBILITY";
+    case ITM_HBASE_VISIBILITY_SET: return "ITM_HBASE_VISIBILITY_SET";
     case ITM_HBASE_TIMESTAMP: return "ITM_HBASE_TIMESTAMP";
     case ITM_HBASE_VERSION: return "ITM_HBASE_VERSION";
 
@@ -1979,6 +1993,30 @@ void ExAuditImage::displayContents(Space * space, const char * /*displayStr*/, I
     str_sprintf(buf, "End of %s (Clause #%d: %s) \n", "ExAuditRowImageExpr", clauseNum, "ExAuditImage"); 
   space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));  
 #endif 
+}
+
+void ExFunctionHbaseVisibility::displayContents(Space * space, const char * /*displayStr*/, Int32 clauseNum, char * constsArea)
+{
+  char buf[100];
+  str_sprintf(buf, "  Clause #%d: ExFunctionHbaseVisibility", clauseNum);
+  space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+
+  str_sprintf(buf, "    colIndex_ = %d", colIndex_);
+  space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+
+  ex_clause::displayContents(space, (const char *)NULL, clauseNum, constsArea);
+}
+
+void ExFunctionHbaseVisibilitySet::displayContents(Space * space, const char * /*displayStr*/, Int32 clauseNum, char * constsArea)
+{
+  char buf[100];
+  str_sprintf(buf, "  Clause #%d: ExFunctionHbaseVisibilitySet", clauseNum);
+  space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+
+  str_sprintf(buf, "    colID_ = %s", colID_);
+  space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+
+  ex_clause::displayContents(space, (const char *)NULL, clauseNum, constsArea);
 }
 
 void ExFunctionHbaseTimestamp::displayContents(Space * space, const char * /*displayStr*/, Int32 clauseNum, char * constsArea)

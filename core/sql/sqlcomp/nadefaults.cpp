@@ -1735,6 +1735,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
 
   DDkwd__(HBASE_ASYNC_DROP_TABLE,		"OFF"),
   DDkwd__(HBASE_ASYNC_OPERATIONS,		"ON"),
+
  // HBASE_CACHE_BLOCKS, ON => cache every scan, OFF => cache no scan
  // SYSTEM => cache scans which take less than 1 RS block cache mem.
  DDui___(HBASE_BLOCK_SIZE,                      "65536"),
@@ -1753,7 +1754,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
  // If set to 'OFF' we get a stub cost of 1 for delete operations.
  // We can remove this once the delete costing code has broader
  // exposure.
- DDkwd__(HBASE_DELETE_COSTING,		             "ON"),
+ DDkwd__(HBASE_DELETE_COSTING,		             "OFF"),
 
  DDkwd__(HBASE_FILTER_PREDS,		             "OFF"),
  DDkwd__(HBASE_HASH2_PARTITIONING,                   "ON"),
@@ -1795,6 +1796,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
 
   DDkwd__(HBASE_UPDEL_CURSOR_OPT,		"ON"),
   DDui___(HBASE_USE_FAKED_REGIONS,		"0"),
+
   DD_____(HBASE_ZOOKEEPER_PORT,                 ""),
 
   DDui1__(HDFS_IO_BUFFERSIZE,                            "65536"),
@@ -3318,6 +3320,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DD_____(TRAF_LOAD_ERROR_COUNT_ID,             "" ),
   DD_____(TRAF_LOAD_ERROR_COUNT_TABLE,          "ERRORCOUNTER" ),
   DD_____(TRAF_LOAD_ERROR_LOGGING_LOCATION,     "/bulkload/logs/" ),
+  DDint__(TRAF_LOAD_FLUSH_SIZE_IN_KB,           "1024"),
   DDkwd__(TRAF_LOAD_FORCE_CIF,                  "ON"),
   DDkwd__(TRAF_LOAD_LOG_ERROR_ROWS,             "OFF"),
   DDint__(TRAF_LOAD_MAX_ERROR_ROWS,             "0"),
@@ -3344,8 +3347,6 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDkwd__(TRAF_NO_CONSTR_VALIDATION,                   "OFF"),
 
   DDkwd__(TRAF_NO_DTM_XN,      "OFF"),
-
-  DDint__(TRAF_NUM_HBASE_VERSIONS,                     "0"),
 
   DDint__(TRAF_NUM_OF_SALT_PARTNS,                     "-1"),
   DDint__(TRAF_NUM_OF_SALT_REGIONS,                    "-1"),

@@ -93,9 +93,12 @@
 
 // get software major and minor versions from -D defs defined in sqlcomp/Makefile.
 // These defs pick up values from export vars defined in sqf/sqenvcom.sh.
-#define SOFTWARE_MAJOR_VERSION TRAF_SOFTWARE_VERS_MAJOR
-#define SOFTWARE_MINOR_VERSION TRAF_SOFTWARE_VERS_MINOR
+#define SOFTWARE_MAJOR_VERSION  TRAF_SOFTWARE_VERS_MAJOR
+#define SOFTWARE_MINOR_VERSION  TRAF_SOFTWARE_VERS_MINOR
 #define SOFTWARE_UPDATE_VERSION TRAF_SOFTWARE_VERS_UPDATE
+#define SOFTWARE_PROD_NAME      TRAF_SOFTWARE_VERS_PROD
+#define xstr(SOFTWARE_PROD_NAME) str(SOFTWARE_PROD_NAME)
+#define str(SOFTWARE_PROD_NAME) #SOFTWARE_PROD_NAME
 #define HBASE_OPTIONS_MAX_LENGTH 6000
 
 // new metadata version 1.1.0 changed for release 1.1.0.

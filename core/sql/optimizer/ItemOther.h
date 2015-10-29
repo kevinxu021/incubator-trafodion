@@ -224,7 +224,8 @@ public:
 
   ItemList(ItemExpr *commaExpr, ItemExpr *otherExpr)
        : ItemExpr(ITM_ITEM_LIST, commaExpr, otherExpr),
-	 numOfItems_(0), constChild_(FALSE)
+	 numOfItems_(0), constChild_(FALSE),
+         myFlags_(0)
   {}
 
   // virtual destructor
@@ -277,9 +278,20 @@ public:
   NABoolean &constChild() {return constChild_;}
 
   virtual NABoolean hasEquivalentProperties(ItemExpr * other); 
+
+  NABoolean containsHbaseVisibilityExpr()
+  { return (myFlags_ & HBASE_VISIBILITY_EXPR) != 0; }
+  void setContainsHbaseVisibilityExpr(NABoolean v)
+  { (v ? myFlags_ |= HBASE_VISIBILITY_EXPR : myFlags_ &= ~HBASE_VISIBILITY_EXPR); };
+
 protected:
 
 private:
+  enum
+  {
+    HBASE_VISIBILITY_EXPR = 0x0001
+  };
+
   // helper to change literals of a cacheable query into input parameters
   void parameterizeMe(CacheWA& cachewa, BindWA& bindWA, ExprValueId& child,
                       BaseColumn *base, ConstValue *val);
@@ -293,6 +305,8 @@ private:
   // All parent ItemLists will have this set to -1.
   Int64 numOfItems_;
   NABoolean constChild_;
+
+  UInt32 myFlags_;
 }; // class ItemList
 
 // -----------------------------------------------------------------------

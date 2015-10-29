@@ -715,28 +715,32 @@ enum OperatorTypeEnum {
                         ITM_REF_CONSTRAINT = 2503,
                         ITM_UNIQUE_OPT_CONSTRAINT = 2504,
                         ITM_FUNC_DEPEND_CONSTRAINT = 2505,
-                        ITM_CHECK_OPT_CONSTRAINT,
-                        ITM_REF_OPT_CONSTRAINT,
-                        ITM_COMP_REF_OPT_CONSTRAINT,
+                        ITM_CHECK_OPT_CONSTRAINT = 2506,
+                        ITM_REF_OPT_CONSTRAINT = 2507,
+                        ITM_COMP_REF_OPT_CONSTRAINT = 2508,
 
                         // lookup a column in a native hbase table being accessed in row format
-                        ITM_HBASE_COLUMN_LOOKUP,
+                        ITM_HBASE_COLUMN_LOOKUP = 2509,
 
                         // display hbase columns being accessed in row format
-                        ITM_HBASE_COLUMNS_DISPLAY,
+                        ITM_HBASE_COLUMNS_DISPLAY = 2510,
 
-                        ITM_HBASE_COLUMN_CREATE,
+                        ITM_HBASE_COLUMN_CREATE = 2511,
 
                         // generate sequence numbers
-                        ITM_SEQUENCE_VALUE,
+                        ITM_SEQUENCE_VALUE = 2512,
 
                         // return number of the row being returned. Starts at 1
-                        ITM_ROWNUM,
+                        ITM_ROWNUM = 2513,
 
-                        ITM_HBASE_TIMESTAMP,
-                        ITM_HBASE_TIMESTAMP_REF,
-                        ITM_HBASE_VERSION,
-                        ITM_HBASE_VERSION_REF,
+                        ITM_HBASE_TIMESTAMP = 2514,
+                        ITM_HBASE_TIMESTAMP_REF = 2515,
+                        ITM_HBASE_VERSION = 2516,
+                        ITM_HBASE_VERSION_REF = 2517,
+                        ITM_HBASE_VISIBILITY = 2518,
+                        ITM_HBASE_VISIBILITY_REF = 2519,
+                        ITM_HBASE_VISIBILITY_SET = 2520,
+                        ITM_HBASE_TIMESTAMP_TO_LCT = 2521,
 
                         // list of item expressions
                         ITM_ITEM_LIST = 2550,
@@ -833,6 +837,7 @@ enum OperatorTypeEnum {
                         DDL_ALTER_MV,  // MV
                         DDL_ALTER_ROUTINE,
                         DDL_ALTER_SYNONYM,
+                        DDL_ALTER_SCHEMA_HDFS_CACHE,
                         DDL_ALTER_TABLE_ADD_COLUMN,
                         DDL_ALTER_TABLE_ADD_CONSTRAINT_CHECK,
                         DDL_ALTER_TABLE_ADD_CONSTRAINT_PRIMARY_KEY,
@@ -859,6 +864,7 @@ enum OperatorTypeEnum {
                         DDL_ALTER_TABLE_ALTER_COLUMN_DEFAULT_VALUE,
                         DDL_ALTER_TABLE_ALTER_COLUMN_SET_SG_OPTION,
                         DDL_ALTER_TABLE_ALTER_HBASE_OPTIONS,
+                        DDL_ALTER_TABLE_HDFS_CACHE,
                         DDL_ALTER_MV_RENAME,
                         DDL_ALTER_MV_REFRESH_GROUP, // MV
                         DDL_ALTER_TRIGGER,

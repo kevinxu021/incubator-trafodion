@@ -1847,7 +1847,8 @@ short HbaseAccess::genListOfColNames(Generator * generator,
 //
 short HbaseAccess::createHbaseColId(const NAColumn * nac,
 				    NAString &cid, 
-				    NABoolean isSecondaryIndex)
+				    NABoolean isSecondaryIndex,
+                                    NABoolean noLenPrefix)
 {
   if (nac)
     cid = nac->getHbaseColFam();
@@ -1889,11 +1890,15 @@ short HbaseAccess::createHbaseColId(const NAColumn * nac,
 	cid.append((char*)&colQval, 8);
     }
 
-  short len = cid.length();
-  cid.prepend((char*)&len, sizeof(short));
+  if (NOT noLenPrefix)
+    {
+      short len = cid.length();
+      cid.prepend((char*)&len, sizeof(short));
+    }
 
   return 0;
 }
+
 NABoolean HbaseAccess::isSnapshotScanFeasible(
     LatestSnpSupportEnum snpSupport, char * tabName)
 {
@@ -2120,9 +2125,16 @@ static short HbaseAccess_updateHbaseInfoNode(
       ItemExpr * ie = vid.getItemExpr();
       
       const ItemExpr * col_node = NULL;
+      HbaseVisibility * hbtg = NULL;
       HbaseTimestamp * hbt = NULL;
       HbaseVersion * hbv = NULL;
-      if (ie->getOperatorType() == ITM_HBASE_TIMESTAMP)
+      if (ie->getOperatorType() == ITM_HBASE_VISIBILITY)
+        {
+          hbtg = (HbaseVisibility*)ie;
+      
+          col_node = hbtg->col();
+        }
+      else if (ie->getOperatorType() == ITM_HBASE_TIMESTAMP)
         {
           hbt = (HbaseTimestamp*)ie;
       
@@ -2143,7 +2155,9 @@ static short HbaseAccess_updateHbaseInfoNode(
       
       if (nac && (nac->getColName() == colName))
         {
-          if (ie->getOperatorType() == ITM_HBASE_TIMESTAMP)
+          if (ie->getOperatorType() == ITM_HBASE_VISIBILITY)
+            hbtg->setColIndex(colIndex);
+          else if (ie->getOperatorType() == ITM_HBASE_TIMESTAMP)
             hbt->setColIndex(colIndex);
           else
             hbv->setColIndex(colIndex);
@@ -2181,6 +2195,7 @@ short HbaseAccess::codeGen(Generator * generator)
   const Int32 hbaseFilterValTuppIndex = 7;
   const Int32 hbaseTimestampTuppIndex = 8;
   const Int32 hbaseVersionTuppIndex = 9;
+  const Int32 hbaseTagTuppIndex = 10;
 
   ULng32 asciiRowLen; 
   ExpTupleDesc * asciiTupleDesc = 0;
@@ -2190,7 +2205,7 @@ short HbaseAccess::codeGen(Generator * generator)
   ULng32 hbaseFilterValRowLen = 0;
 
   ex_cri_desc * work_cri_desc = NULL;
-  work_cri_desc = new(space) ex_cri_desc(10, space);
+  work_cri_desc = new(space) ex_cri_desc(11, space);
 
   returnedDesc = new(space) ex_cri_desc(givenDesc->noTuples() + 1, space);
 
@@ -2279,29 +2294,40 @@ short HbaseAccess::codeGen(Generator * generator)
 	}
      }
 
+  ValueIdList hbTagVIDlist;
   ValueIdList hbTsVIDlist;
   ValueIdList hbVersVIDlist;
   for (CollIndex hi = 0; hi < retColumnList.entries(); hi++)
     {
       ValueId vid = retColumnList[hi];
       
-      if ((vid.getItemExpr()->getOperatorType() != ITM_HBASE_TIMESTAMP) &&
+      if ((vid.getItemExpr()->getOperatorType() != ITM_HBASE_VISIBILITY) &&
+          (vid.getItemExpr()->getOperatorType() != ITM_HBASE_TIMESTAMP) &&
           (vid.getItemExpr()->getOperatorType() != ITM_HBASE_VERSION))
         continue;
       
-      if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP)
-        hbTsVIDlist.insert(vid);
+      ValueId tsValsVID;
+      if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_VISIBILITY)
+        {
+          hbTagVIDlist.insert(vid);
+          tsValsVID = ((HbaseVisibility*)vid.getItemExpr())->tsVals()->getValueId();
+        }
+      else if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP)
+        {
+          hbTsVIDlist.insert(vid);
+          tsValsVID = ((HbaseTimestamp*)vid.getItemExpr())->tsVals()->getValueId();
+        }
       else
-        hbVersVIDlist.insert(vid);
-
-      ValueId tsValsVID = 
-        (vid.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP 
-         ? ((HbaseTimestamp*)vid.getItemExpr())->tsVals()->getValueId()
-         : ((HbaseVersion*)vid.getItemExpr())->tsVals()->getValueId());
+        {
+          hbVersVIDlist.insert(vid);
+          tsValsVID = ((HbaseVersion*)vid.getItemExpr())->tsVals()->getValueId();
+        }
 
       Attributes * attr  = generator->addMapInfo(tsValsVID, 0)->getAttr();
       attr->setAtp(work_atp);
-      if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP)
+      if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_VISIBILITY)
+        attr->setAtpIndex(hbaseTagTuppIndex);
+      else if (vid.getItemExpr()->getOperatorType() == ITM_HBASE_TIMESTAMP)
         attr->setAtpIndex(hbaseTimestampTuppIndex);
       else
          attr->setAtpIndex(hbaseVersionTuppIndex);
@@ -2369,6 +2395,7 @@ short HbaseAccess::codeGen(Generator * generator)
      // At runtime, ts and version values are populated in a ts/vers array that has
      // one entry for each column. The index values updated here is used to access
      // that info at runtime.
+     HbaseAccess_updateHbaseInfoNode(hbTagVIDlist, nac->getColName(), ii);
      HbaseAccess_updateHbaseInfoNode(hbTsVIDlist, nac->getColName(), ii);
      HbaseAccess_updateHbaseInfoNode(hbVersVIDlist, nac->getColName(), ii);
 
@@ -2408,6 +2435,7 @@ short HbaseAccess::codeGen(Generator * generator)
   work_cri_desc->setTupleDescriptor(asciiTuppIndex, asciiTupleDesc);
 
   // add hbase info nodes to convert list.
+  convertExprCastVids.insert(hbTagVIDlist);
   convertExprCastVids.insert(hbTsVIDlist);
   convertExprCastVids.insert(hbVersVIDlist);
   for (CollIndex i = 0; i < columnList.entries(); i++) 
@@ -2463,6 +2491,13 @@ short HbaseAccess::codeGen(Generator * generator)
   for (CollIndex i = 0; i < hbTsVIDlist.entries(); i++) 
     {
       ValueId vid = hbTsVIDlist[i];
+      
+      generator->getMapInfo(vid)->codeGenerated();
+    } // for
+
+  for (CollIndex i = 0; i < hbTagVIDlist.entries(); i++) 
+    {
+      ValueId vid = hbTagVIDlist[i];
       
       generator->getMapInfo(vid)->codeGenerated();
     } // for
@@ -2700,6 +2735,10 @@ short HbaseAccess::codeGen(Generator * generator)
     expGen->assignAtpAndAtpIndex(hbTsVIDlist,
                                  0, returnedDesc->noTuples()-1);
 
+  if (NOT hbTagVIDlist.isEmpty())
+    expGen->assignAtpAndAtpIndex(hbTagVIDlist,
+                                 0, returnedDesc->noTuples()-1);
+
   if (NOT hbVersVIDlist.isEmpty())
     expGen->assignAtpAndAtpIndex(hbVersVIDlist,
                                  0, returnedDesc->noTuples()-1);
@@ -2804,13 +2843,26 @@ short HbaseAccess::codeGen(Generator * generator)
 								  hbaseBlockSize,
 								  hbpa);
 
-
-
-  ComTdbHbaseAccess::HbaseAccessOptions * hbo = NULL;
-  if (getHbaseAccessOptions())
+  ComTdbHbaseAccess::ComHbaseAccessOptions * hbo = NULL;
+  if (getOptHbaseAccessOptions())
     {
-      hbo = new(space) ComTdbHbaseAccess::HbaseAccessOptions
-        (getHbaseAccessOptions()->getHbaseVersions());
+      hbo = new(space) ComTdbHbaseAccess::ComHbaseAccessOptions();
+      
+      if (getOptHbaseAccessOptions()->getNumVersions() != 0)
+        hbo->hbaseAccessOptions().setNumVersions(getOptHbaseAccessOptions()->getNumVersions());
+      
+      if (getOptHbaseAccessOptions()->hbaseMinTS() >= 0)
+        hbo->hbaseAccessOptions().setHbaseMinTS(getOptHbaseAccessOptions()->hbaseMinTS());
+      
+      if (getOptHbaseAccessOptions()->hbaseMaxTS() >= 0)
+        hbo->hbaseAccessOptions().setHbaseMaxTS(getOptHbaseAccessOptions()->hbaseMaxTS());
+    }
+
+  char * haStr = NULL;
+  if (NOT hbaseAuths().isNull())
+    {
+      haStr = space->allocateAlignedSpace(hbaseAuths().length() + 1);
+      strcpy(haStr, hbaseAuths().data());
     }
 
   // create hbasescan_tdb
@@ -2832,6 +2884,7 @@ short HbaseAccess::codeGen(Generator * generator)
 		      encodedKeyExpr, 
 		      NULL, // keyColValExpr
 		      hbaseFilterValExpr,
+                      NULL, // hbTagExpr
 
 		      asciiRowLen,
 		      convertRowLen,
@@ -2846,6 +2899,7 @@ short HbaseAccess::codeGen(Generator * generator)
 		      (keyInfo ? keyInfo->getKeyLength() : 0),
 		      0, // keyColValLen
 		      hbaseFilterValRowLen,
+                      0, // hbTagRowLen
 
 		      asciiTuppIndex,
 		      convertTuppIndex,
@@ -2864,6 +2918,7 @@ short HbaseAccess::codeGen(Generator * generator)
 
 		      (hbTsVIDlist.entries() > 0 ? hbaseTimestampTuppIndex : 0),
 		      (hbVersVIDlist.entries() > 0 ? hbaseVersionTuppIndex : 0),
+                      0, // hbTagTuppIndex
 
 		      tdbListOfRangeRows,
 		      tdbListOfUniqueRows,
@@ -2889,7 +2944,8 @@ short HbaseAccess::codeGen(Generator * generator)
 		      samplePercent(),
 		      snapAttrs,
 
-                      hbo
+                      hbo,
+                      haStr
 		      );
 
   generator->initTdbFields(hbasescan_tdb);
@@ -3083,6 +3139,7 @@ short HbaseAccessCoProcAggr::codeGen(Generator * generator)
 		      NULL, // encodedKeyExpr, 
 		      NULL, // keyColValExpr
 		      NULL, // hbaseFilterExpr
+                      NULL, // hbTagExpr
 
 		      0, // asciiRowLen,
 		      0, // convertRowLen,
@@ -3097,6 +3154,7 @@ short HbaseAccessCoProcAggr::codeGen(Generator * generator)
 		      0, 
 		      0, // keyColValLen
 		      0, // hbaseFilterValLen
+                      0, // hbTagRowLen
 
 		      0, // asciiTuppIndex,
 		      0, // convertTuppIndex,
@@ -3115,6 +3173,7 @@ short HbaseAccessCoProcAggr::codeGen(Generator * generator)
 
                       0, // hbaseTimestampTuppIndex
                       0, // hbaseVersionTuppIndex
+                      0, // hbTagTuppIndex
 
 		      NULL, // tdbListOfRangeRows,
 		      NULL, // tdbListOfUniqueRows,

@@ -6,15 +6,15 @@
 					<div class="btn-group"
 						style="margin-bottom: 10px; margin-top: 15px;">
 						<a id="dcsLogs"
-						style="height: 24px; margin-right: 4px; cursor: pointer; cursor: hand;">DCS
-						Logs</a>
+							style="height: 24px; margin-right: 4px; cursor: pointer; cursor: hand;">DCS
+							Logs</a>
 					</div>
-					<div class="btn-group"
-						style="margin-bottom: 10px; margin-top: 10px;">
-						<button id="openFilter" type="button"
-							class="btn btn-default btn-xs fa fa-gear"
-							style="height: 30px; margin-right: 4px"> Filters</button>
+					<div class="btn-group" style="margin-bottom: 8px; margin-top: 9px;">
+						<label id="timeRangeLabel"
+							style="display: inline-block; margin-top: 5px; margin-right: 5px; font-size: 14px; font-weight: normal">Time
+							Range</label>
 					</div>
+
 					<div class="btn-group" style="margin-right: 5px">
 						<label for="refreshInterval"
 							style="display: inline-block; margin-top: 5px; font-size: 14px; font-weight: normal">Auto-Refresh</label>
@@ -26,6 +26,12 @@
 							<option value="10">Every 10 min</option>
 							<option id="customTimeRange" value="">OFF</option>
 						</select>
+					</div>
+					<div class="btn-group"
+						style="margin-bottom: 10px; margin-top: 10px;">
+						<button id="openFilter" type="button"
+							class="btn btn-default btn-xs fa fa-gear"
+							style="height: 30px; margin-right: 4px">Filters</button>
 					</div>
 					<div class="btn-group"
 						style="margin-bottom: 10px; margin-top: 10px;">
@@ -57,7 +63,8 @@
 		</div>
 	</div>
 	<div class="modal fade" id="filterDialog" tabindex="-1" role="dialog"
-		aria-labelledby="filterDialogLabel">
+		aria-labelledby="filterDialogLabel" data-backdrop="static"
+		data-keyboard="false">
 		<div class="modal-dialog" role="document"
 			style="overflow: auto; height: 700px">
 			<div class="modal-content">
@@ -115,10 +122,28 @@
 						</div>
 						<div class="form-group">
 							<label for="filter-component-names" class="control-label">Component
-								Name(s) : </label> <input id="filter-component-names"
-								name="filter-component-names" type="text" class="form-control"
-								style="text-transform: uppercase"
-								placeholder="Component names separated by comma">
+								Name(s) : </label> <input type="checkbox" id="component-mon" value="MON"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Monitor"> MON <input
+								type="checkbox" id="component-mxosrvr" value="MXOSRVR"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Master Executor"> MXOSRVR <input
+								type="checkbox" id="component-sql" value="SQL"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="SQL"> SQL <input
+								type="checkbox" id="component-sql-comp" value="SQL.COMP"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Compiler"> SQL.COMP <input
+								type="checkbox" id="component-sql-esp" value="SQL.ESP"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Executor Server Process"> SQL.ESP <input
+								type="checkbox" id="component-sql-exe" value="SQL.EXE"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Master Executor SQL"> SQL.EXE <input
+								type="checkbox" id="component-sql-lob" value="SQL.LOB"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="SQL Large Objects"> SQL.LOB <input
+								type="checkbox" id="component-sql-sscp" value="SQL.SSCP"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Runtime Manageability Service"> SQL.SSCP <input
+								type="checkbox" id="component-sql-ssmp" value="SQL.SSMP"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Runtime Manageability Service"> SQL.SSMP <input
+								type="checkbox" id="component-sql-udr" value="SQL.UDR"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="User Defined Routines"> SQL.UDR <input
+								type="checkbox" id="component-wdg" value="WDG"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Watchdog"> WDG
 						</div>
 						<div class="form-group">
 							<label for="filter-process-names" class="control-label">Process
@@ -140,7 +165,8 @@
 								placeholder="Part of message text">
 						</div>
 						<div class="form-group">
-							<label id="filter-error-text" class="control-label" class="dbmgr-error-text"></label>
+							<label id="filter-error-text" class="control-label"
+								class="dbmgr-error-text"></label>
 						</div>
 					</form>
 				</div>

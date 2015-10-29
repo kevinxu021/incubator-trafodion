@@ -1223,6 +1223,7 @@ short HbaseDelete::codeGen(Generator * generator)
 		      NULL, // encodedKeyExpr
 		      keyColValExpr,
 		      NULL, // hbaseFilterValExpr
+                      NULL, // hbTagExpr
 
 		      asciiRowLen,
 		      convertRowLen,
@@ -1237,6 +1238,7 @@ short HbaseDelete::codeGen(Generator * generator)
 		      (keyInfo ? keyInfo->getKeyLength() : 0),
 		      keyColValLen,
 		      0, // hbaseFilterValRowLen
+                      0, // hbTagRowLen
 
 		      asciiTuppIndex,
 		      convertTuppIndex,
@@ -1255,6 +1257,7 @@ short HbaseDelete::codeGen(Generator * generator)
 
                       0, // hbaseTimestamp
                       0, // hbaseVersion
+                      0, // hbTagTuppIndex
 
 		      tdbListOfRangeRows,
 		      tdbListOfUniqueRows,
@@ -1387,6 +1390,7 @@ short HbaseUpdate::codeGen(Generator * generator)
   ex_expr *mergeInsertExpr = NULL;
   ex_expr *returnUpdateExpr = NULL;
   ex_expr * keyColValExpr = NULL;
+  ex_expr * hbTagExpr = NULL;
 
   ex_cri_desc * givenDesc 
     = generator->getCriDesc(Generator::DOWN);
@@ -1398,17 +1402,17 @@ short HbaseUpdate::codeGen(Generator * generator)
   const Int32 rowIdTuppIndex = 3;
   const Int32 asciiTuppIndex = 4;
   const Int32 rowIdAsciiTuppIndex = 5;
-  //  const Int32 keyTuppIndex = 6;
   const Int32 updateTuppIndex = 6;
   const Int32 mergeInsertTuppIndex = 7;
   const Int32 mergeInsertRowIdTuppIndex = 8;
   const Int32 keyColValTuppIndex = 9;
+  const Int32 hbTagTuppIndex = 10;
 
   ULng32 asciiRowLen = 0; 
   ExpTupleDesc * asciiTupleDesc = 0;
 
   ex_cri_desc * work_cri_desc = NULL;
-  work_cri_desc = new(space) ex_cri_desc(10, space);
+  work_cri_desc = new(space) ex_cri_desc(11, space);
 
   NABoolean returnRow = getReturnRow(this, getIndexDesc());
 
@@ -1656,8 +1660,6 @@ short HbaseUpdate::codeGen(Generator * generator)
     }
 
   // generate explain selection expression, if present
-  //  if ((NOT (getTableDesc()->getNATable()->getExtendedQualName().getSpecialType() == ExtendedQualName::INDEX_TABLE)) &&
-  //      (! executorPred().isEmpty()))
   if (! executorPred().isEmpty())
     {
       ItemExpr * newPredTree = executorPred().rebuildExprTree(ITM_AND,TRUE,TRUE);
@@ -1680,7 +1682,25 @@ short HbaseUpdate::codeGen(Generator * generator)
 			  getIndexDesc());
 
   work_cri_desc->setTupleDescriptor(updateTuppIndex, updatedRowTupleDesc);
-  
+
+  // if hbase tags are to be set, gen expr to create the row containing tags
+  ExpTupleDesc *hbTagRowTupleDesc   = 0;
+  ULng32 hbTagRowLen = 0;
+  if (hbaseTagExpr().entries() > 0)
+    {
+      expGen->generateContiguousMoveExpr(
+           hbaseTagExpr(),
+           TRUE,
+           work_atp,
+           hbTagTuppIndex,
+           hbaseRowFormat,
+           hbTagRowLen,
+           &hbTagExpr,
+           &hbTagRowTupleDesc);
+
+      work_cri_desc->setTupleDescriptor(hbTagTuppIndex, hbTagRowTupleDesc);
+    }
+
   ExpTupleDesc *mergedRowTupleDesc   = 0;
   ULng32 mergeInsertRowLen = 0;
   Queue * listOfMergedColNames = NULL;
@@ -2066,6 +2086,7 @@ short HbaseUpdate::codeGen(Generator * generator)
 		      NULL, // encodedKeyExpr
 		      keyColValExpr,
 		      NULL, // hbaseFilterValExpr
+                      hbTagExpr,
 
 		      asciiRowLen,
 		      convertRowLen,
@@ -2080,10 +2101,11 @@ short HbaseUpdate::codeGen(Generator * generator)
 		      (keyInfo ? keyInfo->getKeyLength() : 0),
 		      keyColValLen,
 		      0, // hbaseFilterValRowLen
+                      hbTagRowLen,
 
 		      asciiTuppIndex,
 		      convertTuppIndex,
-		      updateTuppIndex,
+		      (updateExpr ? updateTuppIndex : 0),
 		      mergeInsertTuppIndex,
 		      mergeInsertRowIdTuppIndex,
 		      returnedFetchedTuppIndex,
@@ -2098,6 +2120,7 @@ short HbaseUpdate::codeGen(Generator * generator)
 
                       0, // hbaseTimestamp
                       0, // hbaseVersion
+                      hbTagTuppIndex,
 
 		      tdbListOfRangeRows,
 		      tdbListOfUniqueRows,
@@ -2146,6 +2169,20 @@ short HbaseUpdate::codeGen(Generator * generator)
 
       if (getTableDesc()->getNATable()->xnRepl() == COM_REPL_ASYNC)
         hbasescan_tdb->setReplAsync(TRUE);
+
+      const NAString * tsStr = OptHbaseAccessOptions::getControlTableValue(
+           getTableName().getQualifiedNameObj(), "HBASE_TIMESTAMP_SET");
+      if ((tsStr && (NOT tsStr->isNull())) &&
+          (uniqueHbaseOper()))
+        {
+          Int64 ts = OptHbaseAccessOptions::computeHbaseTS(tsStr->data());
+          if (ts < 0)
+            {
+              GenAssert(ts > 0, "invalid value for hbsae ts");
+            }
+
+          hbasescan_tdb->setHbaseCellTS(ts);
+        }
     }
 
   if (keyInfo && getSearchKey() && getSearchKey()->isUnique())
@@ -2740,6 +2777,7 @@ short HbaseInsert::codeGen(Generator *generator)
 		      NULL, // encodedKeyExpr, 
 		      NULL, // keyColValExpr
 		      NULL, // hbaseFilterValExpr
+                      NULL, // hbTagExpr
 
 		      0, //asciiRowLen,
 		      insertRowLen,
@@ -2754,6 +2792,7 @@ short HbaseInsert::codeGen(Generator *generator)
 		      0, // keyLen
 		      0, // keyColValLen
 		      0, // hbaseFilterValRowLen
+                      0, // hbTagRowLen
 
 		      0, //asciiTuppIndex,
 		      insertTuppIndex,
@@ -2772,6 +2811,7 @@ short HbaseInsert::codeGen(Generator *generator)
 
                       0, // hbaseTimestamp
                       0, // hbaseVersion
+                      0, // hbTagTuppIndex
 
 		      NULL,
 		      NULL, //tdbListOfDelRows,
@@ -2856,6 +2896,15 @@ short HbaseInsert::codeGen(Generator *generator)
         hbasescan_tdb->setNoDuplicates(CmpCommon::getDefault(TRAF_LOAD_PREP_SKIP_DUPLICATES) == DF_OFF);
         hbasescan_tdb->setMaxHFileSize(CmpCommon::getDefaultLong(TRAF_LOAD_MAX_HFILE_SIZE));
 
+	ULng32 loadFlushSizeinKB = getDefault(TRAF_LOAD_FLUSH_SIZE_IN_KB);
+	ULng32 loadFlushSizeinRows = 0;
+	loadFlushSizeinRows = (loadFlushSizeinKB*1024)/hbasescan_tdb->getRowLen() ;
+	// largest flush size, runtime cannot handle higher values 
+	// without code change
+	if (loadFlushSizeinRows >= USHRT_MAX/2)
+	  loadFlushSizeinRows = ((USHRT_MAX/2)-1);
+	hbasescan_tdb->setTrafLoadFlushSize(loadFlushSizeinRows);
+
         // For sample file, set the sample location in HDFS and the sampling rate.
         // Move later, when sampling not limited to bulk loads.
         if (getCreateUstatSample())
@@ -2923,12 +2972,26 @@ short HbaseInsert::codeGen(Generator *generator)
 
         hbasescan_tdb->setWBSize(wbSize);
         hbasescan_tdb->setIsTrafAutoFlush(traf_auto_flush);
-
-
       }
+
       if (getTableDesc()->getNATable()->isEnabledForDDLQI())
         generator->objectUids().insert(
           getTableDesc()->getNATable()->objectUid().get_value());
+
+      const NAString * tsStr = OptHbaseAccessOptions::getControlTableValue(
+           getTableName().getQualifiedNameObj(), "HBASE_TIMESTAMP_SET");
+      if ((tsStr && (NOT tsStr->isNull())) &&
+          (getInsertType() == Insert::SIMPLE_INSERT) &&
+          (uniqueHbaseOper()))
+        {
+          Int64 ts = OptHbaseAccessOptions::computeHbaseTS(tsStr->data());
+          if (ts < 0)
+            {
+              GenAssert(ts > 0, "invalid value for hbsae ts");
+            }
+
+          hbasescan_tdb->setHbaseCellTS(ts);
+        }
     }
   else
     {

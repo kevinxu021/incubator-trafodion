@@ -67,6 +67,10 @@
   extern char **environ;
   #define ENVIRON environ
   #define PUTENV putenv
+  
+#define YYDEBUG 1			// Turn on debugging, if needed.
+#define YY_LOG_FILE "sqlci.yylog"
+#define YYFPRINTF(stderr, format, args...) {FILE* fp=fopen(YY_LOG_FILE, "a+");fprintf(fp, format, ##args);fclose(fp);}
 
 extern NAHeap sqlci_Heap;
 
@@ -85,7 +89,6 @@ static int pos_internal3;
 static char *get_stats_str;
 
 //extern "C" { void yyerror(const char *sb); };
-
 
 static void sqlcierror(const char *)		// (const char *errtext)
 {
@@ -382,6 +385,7 @@ static char * FCString (const char *idString, int isFC)
 %token BACKSLASH
 %token BRIEF
 %token DETAIL
+%token CACHE
 %token CANCEL
 %token CLASStoken
 %token CLEANUP
@@ -496,6 +500,7 @@ static char * FCString (const char *idString, int isFC)
 %token SHOWPLAN
 %token SHOWSHAPE
 %token SHOWSET
+%token SLEEPtoken
 %token SQL
 %token SQLINFO
 %token SQLNAMES
@@ -1369,6 +1374,12 @@ sqlci_cmd :	MODE REPORT
                     $$ = new Wait(NULL, 0);
                   }
 
+        |       SLEEPtoken NUMBER
+                  {
+                    Lng32 v = atoi($2);
+                    $$ = new SleepVal(v);
+                  }
+
 ;
 
 commands_only :
@@ -2176,7 +2187,7 @@ cursor_info : dml_simple_table_type
 dml_type :
 	 	dml_simple_table_type	{}
 	|	CONTROL 		{$$ = DML_CONTROL_TYPE;}
-	|    OSIM               {$$ = DML_OSIM_TYPE;}
+	|       OSIM                    {$$ = DML_OSIM_TYPE;}
 	|	SETtoken CATALOG	{$$ = DML_CONTROL_TYPE;}
 	|	SETtoken SCHEMA		{$$ = DML_CONTROL_TYPE;}
 	|	SETtoken HIVEtoken		{$$ = DML_CONTROL_TYPE;}
@@ -2185,7 +2196,7 @@ dml_type :
         |       SETtoken SESSIONtoken   {$$ = DML_CONTROL_TYPE;}
 	|	UPDATEtoken  		{$$ = DML_UPDATE_TYPE;}
 	|	INSERTtoken  		{$$ = DML_INSERT_TYPE;}
-        |      UPSERTtoken            {$$ = DML_INSERT_TYPE;}
+        |       UPSERTtoken             {$$ = DML_INSERT_TYPE;}
 	|	ROWSETtoken  		{$$ = DML_INSERT_TYPE;}
 	|	DELETEtoken  		{$$ = DML_DELETE_TYPE;}
 	|	MERGEtoken  		{$$ = DML_UPDATE_TYPE;}
@@ -2211,6 +2222,7 @@ dml_type :
 	|	SHOWSTATS               {$$ = DML_DESCRIBE_TYPE;}
         |	SHOWTRANSACTION         {$$ = DML_DESCRIBE_TYPE;}
 	|	INVOKE  		{$$ = DML_DESCRIBE_TYPE;}
+        |       SHOW CACHE {$$ = DML_DESCRIBE_TYPE;}
 	|	SHOWPLAN  		{$$ = DML_DESCRIBE_TYPE;}
         |       SHOWSHAPE               {$$ = DML_DESCRIBE_TYPE;}
         |       SHOWSET                 {$$ = DML_DESCRIBE_TYPE;}

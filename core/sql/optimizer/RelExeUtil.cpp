@@ -82,6 +82,7 @@
 #include "StmtDDLCleanupObjects.h"
 #include "StmtDDLAlterTableAttribute.h"
 #include "ParDDLFileAttrsAlterTable.h"
+#include "StmtDDLAlterSchemaHDFSCache.h"
 
 #include <cextdecs/cextdecs.h>
 #include "wstr.h"
@@ -3672,7 +3673,8 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
   NABoolean alterColDatatype = FALSE;
   NABoolean alterAttr = FALSE;
   NABoolean externalTable = FALSE;
-  
+  NABoolean alterHdfsCache = FALSE;  
+  NABoolean isAlterSchemaHDFSCache = FALSE;  
   returnStatus_ = FALSE;
 
   NABoolean specialType = FALSE;
@@ -3891,6 +3893,8 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
           if (fileAttrs.isXnReplSpecified()) 
             alterAttr = TRUE;
         }
+      else if (getExprNode()->castToElemDDLNode()->castToStmtDDLAlterTableHDFSCache())
+         alterHdfsCache = TRUE;
        else
         otherAlters = TRUE;
 
@@ -4044,6 +4048,15 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
                       getExprNode()->castToElemDDLNode()->castToStmtDDLCreateSchema()->getSchemaNameAsQualifiedName().getSchemaName(),
                       getExprNode()->castToElemDDLNode()->castToStmtDDLCreateSchema()->getSchemaNameAsQualifiedName().getCatalogName());
     }
+    else if(getExprNode()->castToElemDDLNode()->castToStmtDDLAlterSchemaHDFSCache())
+    {
+        isAlterSchemaHDFSCache = TRUE;
+        SchemaName & schemaName = getExprNode()->castToElemDDLNode()->castToStmtDDLAlterSchemaHDFSCache()->schemaName();
+        qualObjName_ =
+          QualifiedName(NAString("dummy"), 
+                                                      schemaName.getSchemaName(),
+                                                      schemaName.getCatalogName());
+    }
     else if (getExprNode()->castToElemDDLNode()->castToStmtDDLCreateLibrary())
     {
       isCreate_ = TRUE;
@@ -4082,12 +4095,13 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
         getExprNode()->castToElemDDLNode()->castToStmtDDLCleanupObjects()->getStatus();
     }
 
-    if ((isCreateSchema || isDropSchema) ||
+    if ((isCreateSchema || isDropSchema||isAlterSchemaHDFSCache) ||
         ((isTable_ || isIndex_ || isView_ || isRoutine_ || isLibrary_ || isSeq) &&
          (isCreate_ || isDrop_ || purgedataHbase_ ||
           (isAlter_ && (alterAddCol || alterDropCol || alterDisableIndex || alterEnableIndex || 
 			alterAddConstr || alterDropConstr || alterRenameTable ||
                         alterIdentityCol || alterColDatatype ||
+                        alterHdfsCache ||
                         alterHBaseOptions || alterAttr | otherAlters)))))
       {
 	if (NOT isNative_)

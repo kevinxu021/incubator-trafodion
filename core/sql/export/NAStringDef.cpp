@@ -350,6 +350,13 @@ NAString::resize(size_t N)
   fbstring_.resize(N, ' ');			// Shrank; truncate the string
 }
 
+void NAString::fill(size_t pos, const char c, size_t n)
+{
+    assert(c!='\0'&&pos>=0&&n>=0);
+    if(pos + n > fbstring_.size()) fbstring_.resize(pos + n);
+    for(int i = pos; i < pos+n; i++) fbstring_[i] = c;
+}
+
 NAList<NAString> & NAString::split(char delim, NAList<NAString> & elems)
 {
   int begin = 0;

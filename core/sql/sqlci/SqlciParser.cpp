@@ -54,8 +54,7 @@
 
 // Globals from SqlciEnv.C
 extern ComDiagsArea sqlci_DA;
-
-extern int yydebug;
+extern int sqlcidebug;
 
 static Int32 sqlci_parser_subproc(char *instr, char *origstr, SqlciNode ** node, SqlciEnv *sqlci_env)
 {
@@ -85,7 +84,8 @@ static Int32 sqlci_parser_subproc(char *instr, char *origstr, SqlciNode ** node,
 #ifdef NA_FLEXBUILD
 	  SqlciLexReinit(); // NT_PORT ( bd 10/11/96 )
 #endif
-	  
+ 
+          //sqlcidebug = 1;//uncomment it to turn on debug
 	  retval = sqlciparse();
 	  
 	  // success in parsing 

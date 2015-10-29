@@ -165,7 +165,8 @@ class ExpHbaseInterface : public NABasicObject
 			 char * snapName = NULL,
 			 char * tmpLoc = NULL,
 			 Lng32 espNum=0,
-                         Lng32 versions = 0) = 0;
+                         HbaseAccessOptions * hao = NULL,
+                         const char * hbaseAuths = NULL) = 0;
 
   virtual Lng32 scanClose() = 0;
 
@@ -205,7 +206,8 @@ class ExpHbaseInterface : public NABasicObject
   virtual Lng32 completeAsyncOperation(Int32 timeout, NABoolean *resultArray, Int16 resultArrayLen) = 0;
 
   virtual Lng32 getColVal(int colNo, BYTE *colVal,
-          Lng32 &colValLen, NABoolean nullable, BYTE &nullVal) = 0;
+                          Lng32 &colValLen, NABoolean nullable, BYTE &nullVal,
+                          BYTE *tag, Lng32 &tagLen) = 0;
 
   virtual Lng32 getColVal(NAHeap *heap, int colNo, BYTE **colVal,
           Lng32 &colValLen) = 0;
@@ -280,6 +282,12 @@ class ExpHbaseInterface : public NABasicObject
 		  const int64_t timestamp,
 		  NABoolean autoFlush = TRUE,
                   NABoolean asyncOperation = FALSE) = 0; // by default, flush rows after put
+
+ virtual Lng32 updateVisibility(
+      HbaseStr tblName,
+      HbaseStr rowID, 
+      HbaseStr row,
+      NABoolean noXn) = 0;
  
  virtual Lng32 setWriteBufferSize(
                  HbaseStr &tblName,
@@ -390,7 +398,11 @@ class ExpHbaseInterface : public NABasicObject
   virtual Lng32 getRegionsNodeName(const HbaseStr& tblName,
                                    Int32 partns,
                                    ARRAY(const char *)& nodeNames) = 0;
+ 
+  virtual ByteArrayList* showTablesHDFSCache(const std::vector<Text>& tables) = 0;
 
+  virtual Lng32 addTablesToHDFSCache(const std::vector<Text>& tables, const char* poolName) = 0;
+  virtual Lng32 removeTablesFromHDFSCache(const std::vector<Text>& tables, const char* poolName) = 0;
 
 protected:
   enum 
@@ -486,7 +498,8 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 			 char * snapName = NULL,
 			 char * tmpLoc = NULL,
 			 Lng32 espNum = 0,
-                         Lng32 versions = 0);
+                         HbaseAccessOptions * hao = NULL,
+                         const char * hbaseAuthos = NULL);
 
   virtual Lng32 scanClose();
 
@@ -516,7 +529,8 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
   virtual Lng32 completeAsyncOperation(Int32 timeout, NABoolean *resultArray, Int16 resultArrayLen);
 
   virtual Lng32 getColVal(int colNo, BYTE *colVal,
-          Lng32 &colValLen, NABoolean nullable, BYTE &nullVal);
+                          Lng32 &colValLen, NABoolean nullable, BYTE &nullVal,
+                          BYTE *tag, Lng32 &tagLen);
 
   virtual Lng32 getColVal(NAHeap *heap, int colNo, BYTE **colVal,
           Lng32 &colValLen);
@@ -590,6 +604,12 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 		  const int64_t timestamp,
 		  NABoolean autoFlush = TRUE,
                   NABoolean asyncOperation = FALSE); // by default, flush rows after put
+  
+  virtual Lng32 updateVisibility(
+       HbaseStr tblName,
+       HbaseStr rowID, 
+       HbaseStr row,
+       NABoolean noXn);
   
   virtual Lng32 setWriteBufferSize(
                   HbaseStr &tblName,
@@ -699,6 +719,10 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
                                    Int32 partns,
                                    ARRAY(const char *)& nodeNames) ;
 
+  virtual ByteArrayList* showTablesHDFSCache(const std::vector<Text>& tables);
+  
+  virtual Lng32 addTablesToHDFSCache(const std::vector<Text> & tables, const char* poolName);
+  virtual Lng32 removeTablesFromHDFSCache(const std::vector<Text> & tables, const char* poolName);
 
 private:
   bool  useTRex_;

@@ -286,6 +286,9 @@ ExHbaseAccessTcb::ExHbaseAccessTcb(
       if (hbaseAccessTdb.hbaseVersionTuppIndex_ > 0)      
 	pool_->get_free_tuple(workAtp_->getTupp(hbaseAccessTdb.hbaseVersionTuppIndex_), 0);
 
+      if (hbaseAccessTdb.hbTagTuppIndex_ > 0)      
+	pool_->get_free_tuple(workAtp_->getTupp(hbaseAccessTdb.hbTagTuppIndex_), 0);
+
     }
 
   keySubsetExeExpr_ = NULL;
@@ -340,6 +343,8 @@ ExHbaseAccessTcb::ExHbaseAccessTcb(
     insDelPreCondExpr()->fixup(0, getExpressionMode(), this,  space, heap, FALSE, glob);
   if (hbaseFilterValExpr())
     hbaseFilterValExpr()->fixup(0, getExpressionMode(), this,  space, heap, FALSE, glob);
+  if (hbTagExpr())
+    hbTagExpr()->fixup(0, getExpressionMode(), this,  space, heap, FALSE, glob);
   
   // Register subtasks with the scheduler
   registerSubtasks();
@@ -373,6 +378,7 @@ ExHbaseAccessTcb::ExHbaseAccessTcb(
   encodedKeyRow_ = NULL;
   keyColValRow_ = NULL;
   hbaseFilterValRow_ = NULL;
+  hbTagRow_ = NULL;
 
   if (hbaseAccessTdb.asciiRowLen_ > 0)
     {
@@ -426,6 +432,11 @@ ExHbaseAccessTcb::ExHbaseAccessTcb(
   if (hbaseAccessTdb.hbaseFilterValRowLen_ > 0)
     {
       hbaseFilterValRow_ = new(glob->getDefaultHeap()) char[hbaseAccessTdb.hbaseFilterValRowLen_];
+    }
+
+ if (hbaseAccessTdb.hbTagRowLen_ > 0)
+    {
+      hbTagRow_ = new(glob->getDefaultHeap()) char[hbaseAccessTdb.hbTagRowLen_];
     }
 
   prevRowIdMaxLen_ = 0;
@@ -1071,6 +1082,8 @@ Lng32 ExHbaseAccessTcb::createSQRowFromHbaseFormat(Int64 *latestRowTimestamp)
   char *colName;
   short colNameLen;
   BYTE nullVal;
+  BYTE *tag;
+  Lng32 tagLen;
   Lng32 retcode;
   int numCells; 
   retcode = ehi_->getNumCellsPerRow(numCells);
@@ -1118,7 +1131,7 @@ Lng32 ExHbaseAccessTcb::createSQRowFromHbaseFormat(Int64 *latestRowTimestamp)
          BYTE nullVal;
 
          retcode = ehi_->getColVal(colNo, colVal, colValLen, 
-                     attr->getNullFlag(), nullVal);
+                                   attr->getNullFlag(), nullVal, tag, tagLen);
          if (retcode != HBASE_ACCESS_SUCCESS)
          {
             setupError(retcode, "", "getColVal()");
@@ -1270,6 +1283,8 @@ Lng32 ExHbaseAccessTcb::setupSQMultiVersionRow()
   char *colName;
   short colNameLen;
   BYTE nullVal;
+  BYTE *tag;
+  Lng32 tagLen;
   Lng32 retcode;
   int numCells; 
   retcode = ehi_->getNumCellsPerRow(numCells);
@@ -1288,7 +1303,7 @@ Lng32 ExHbaseAccessTcb::setupSQMultiVersionRow()
         
       for (int i = 0; i < numFetchedCols; i++)
         {
-          Lng32 numVers = hbaseAccessTdb().getHbaseAccessOptions()->getNumVersions();
+          Lng32 numVers = hbaseAccessTdb().getComHbaseAccessOptions()->hbaseAccessOptions().getNumVersions();
           if (numVers == -2)
             numVers = 100;
           char ** v = new(getHeap()) char*[numVers];
@@ -1390,7 +1405,7 @@ Lng32 ExHbaseAccessTcb::setupSQMultiVersionRow()
       char * colData = vcLen + sizeof(Lng32);
       colValLen = attr->getLength();
       retcode = ehi_->getColVal(colNo, (BYTE*)colData, colValLen, 
-                                attr->getNullFlag(), nullVal);
+                                attr->getNullFlag(), nullVal, tag, tagLen);
 
       if (retcode != HBASE_ACCESS_SUCCESS)
         {
@@ -1590,6 +1605,8 @@ Lng32 ExHbaseAccessTcb::createSQRowFromAlignedFormat(Int64 *latestRowTimestamp)
 
   BYTE *colVal; 
   Lng32 colValLen;
+  BYTE *tag;
+  Lng32 tagLen;
   long timestamp;
   char *colName;
   short colNameLen;
@@ -1641,7 +1658,7 @@ Lng32 ExHbaseAccessTcb::createSQRowFromAlignedFormat(Int64 *latestRowTimestamp)
       {
         colVal = (BYTE*)asciiRow_;
         retcode = ehi_->getColVal(colNo, colVal, asciiRowLen,
-                                  FALSE, nullVal);
+                                  FALSE, nullVal, tag, tagLen);
         if (retcode != HBASE_ACCESS_SUCCESS)
           {
             setupError(retcode, "", "getColVal()");

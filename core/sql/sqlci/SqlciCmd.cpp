@@ -581,6 +581,12 @@ Show::Show(show_type type_, NABoolean allValues)
   type = type_;
 };
 
+SleepVal::SleepVal(Lng32 v)
+     : SqlciCmd(SqlciCmd::SLEEP_TYPE),
+       val_(v)
+{
+};
+
 Wait::Wait(char * argument_, Lng32 arglen_)
                  : SqlciCmd(SqlciCmd::WAIT_TYPE, argument_, arglen_)
 {
@@ -986,6 +992,14 @@ short Wait::process(SqlciEnv * sqlci_env)
 
   cout << "Enter a character + RETURN to continue: ";
   cin >> buf;
+
+  return 0;
+}
+
+//////////////////////////////////////////////////
+short SleepVal::process(SqlciEnv * sqlci_env)
+{
+  DELAY(val_ * 100);
 
   return 0;
 }

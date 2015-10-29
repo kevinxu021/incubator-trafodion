@@ -704,12 +704,12 @@ void PartitioningFunction::print(FILE* ofd, const char* indent,
   if (NOT partitionInputValues_.isEmpty())
     partitionInputValues_.print(ofd, NEW_INDENT,
 				"Partition Input Values");
-  if (NOT getPartitionInputValuesLayout().isEmpty())
-    getPartitionInputValuesLayout().print(ofd, NEW_INDENT,
-				"Partition Input Values Layout");
+  if (NOT partitionInputValuesLayout_.isEmpty())
+    partitionInputValuesLayout_.print(ofd, NEW_INDENT,
+                                      "Partition Input Values Layout");
 
   if (getPartitioningExpression()) {
-    NAString partExpr("Partitionin Expression\n",  CmpCommon::statementHeap());
+    NAString partExpr("Partitioning Expression\n",  CmpCommon::statementHeap());
 
     getPartitioningExpression()->
       unparse(partExpr, DEFAULT_PHASE, EXPLAIN_FORMAT);
@@ -3981,20 +3981,32 @@ void RangePartitionBoundaries::print(FILE* ofd, const char* indent,
 #pragma nowarn(1506)   // warning elimination
   BUMP_INDENT(indent);
 #pragma warn(1506)  // warning elimination
-  char  btitle[50];
-  char* S = btitle;
-  Lng32 index;
+  char S[500];
+  int index;
 
   fprintf(ofd,"%s %s\n",NEW_INDENT,title);
   for (index = 0; index < partitionCount_; index++)
     {
       const ItemExprList* iel = boundaryValues_[index];
-      sprintf(S,"boundary[%d] :",index);
+      snprintf(S, sizeof(S), "boundary[%d]: ", index);
       if (iel)
 	iel->print(ofd, indent, S);
       else
 	fprintf(ofd,"%s %s is empty\n",NEW_INDENT,S);
     }
+  for (int index2 = 0; index2 < partitionCount_; index2++)
+    if (binaryBoundaryValues_.used(index2) &&
+        binaryBoundaryValues_[index2])
+      {
+        const char *binaryVal = binaryBoundaryValues_[index2];
+
+        fprintf(ofd, "binary boundary[%d]: 0x", // %#0*",
+                index2);
+
+        for (int b=0; b<encodedBoundaryKeyLength_; b++)
+          fprintf(ofd, "%02hhx", binaryVal[b]);
+        fprintf(ofd, "\n");
+      }
 } // RangePartitionBoundaries::print()
 // LCOV_EXCL_STOP
 
@@ -4980,6 +4992,30 @@ const NAString RangePartitioningFunction::getText() const
     }
 
     result += ")";
+    /* enable this for debugging of binary key problems
+    result += " binary (";
+    Lng32 encodedBoundaryKeyLength = partitionBoundaries_->getEncodedBoundaryKeyLength();
+    char hexDigits[4];
+
+    for (Int32 index2 = 0; index2 < partitionBoundaries_->getCountOfPartitions(); index2++)
+    {
+      const char * binaryVal = partitionBoundaries_->getBinaryBoundaryValue(index2);
+
+      if (binaryVal)
+        {
+          if (index2 > 0)
+            result += ", ";
+          result += "b(0x";
+          for (int b=0; b<encodedBoundaryKeyLength; b++)
+            {
+              snprintf(hexDigits, sizeof(hexDigits), "%02hhx", binaryVal[b]);
+              result += hexDigits;
+            }
+          result += ")";
+        }
+    }
+    result += ")";
+    end of code for binary keys */
   }
 
   return result;
