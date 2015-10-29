@@ -5308,6 +5308,10 @@ void HTableClient_JNI::cleanupResultInfo()
       jenv_->DeleteGlobalRef(jKvBuffer_);
       jKvBuffer_ = NULL;
    }
+   if (jKvTag_ != NULL) {
+      jenv_->DeleteGlobalRef(jKvTag_);
+      jKvTag_ = NULL;
+   }
    if (jRowIDs_ != NULL) {
       jenv_->DeleteGlobalRef(jRowIDs_);
       jRowIDs_ = NULL;
