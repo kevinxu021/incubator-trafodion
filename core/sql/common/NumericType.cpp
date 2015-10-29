@@ -1453,7 +1453,11 @@ void SQLNumeric::minRepresentableValue(void* bufPtr, Lng32* bufLen,
 	{
 	  ((char *)bufPtr)[i] = 0;
 	}
-      str_pad(nameBuf, MINOF(getScale(), 1), '0');
+      // produce enough zeroes so that we can put a
+      // decimal point for a value with scale > 0
+      int padLen = MAXOF(getScale(), 1);
+      str_pad(nameBuf, padLen, '0');
+      nameBuf[padLen] = 0;
     }
   else
     {
