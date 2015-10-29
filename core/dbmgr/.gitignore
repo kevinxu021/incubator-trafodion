@@ -1,0 +1,7 @@
+.classpath
+.project
+.settings
+target/*
+/target/
+/src/main/webapp/bower_components/
+*.log
