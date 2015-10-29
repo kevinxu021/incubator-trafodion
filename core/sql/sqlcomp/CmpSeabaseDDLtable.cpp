@@ -368,7 +368,10 @@ void CmpSeabaseDDL::createSeabaseTableLike(
       }
 
   if (createTableNode->isSplitBySpecified())
-    query += createTableNode->getSplitByClause();
+    {
+      query += " ";
+      query += createTableNode->getSplitByClause();
+    }
 
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
   CmpCommon::context()->sqlSession()->getParentQid());

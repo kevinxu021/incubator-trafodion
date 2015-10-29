@@ -63,14 +63,14 @@ create table t015presp2(a integer not null,
                         "b" date not null,
                         c integer,
                         primary key (a,"b" desc))
-range split by (a, "b")
+range split by (a, "b" desc)
   (add first key (1000, date '2000-01-01'),
    add first key 2000);
 
 create table t015presp3 like t015presp2 with partitions;
 
 create table t015presp4 like t015presp2
-range split by (a, "b")
+range split by (a, "b" desc)
   (add first key (4000, date '2015-01-01'),
    add first key (5000),
    add first key (6000, date '2000-12-31'),
