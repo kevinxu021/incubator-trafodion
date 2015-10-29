@@ -45,7 +45,7 @@ fi
 
 echo
 #Check if Trafodion is up and running
-sqcheck -f > $tmp_chk 2>&1
+trafcheck -f > $tmp_chk 2>&1
 sq_stat=$?
 if [[ $sq_stat == 0 ]]; then
 
@@ -129,8 +129,8 @@ if [[ $sq_stat == 0 ]]; then
    echo "DCS is not installed. Please install and configure DCS..."
    exit 1
  fi
-else
- echo "Trafodion is not started..."
- echo
+else 
+  echo "Trafodion is partially up or not started..."
+  echo
 fi
 exit 0

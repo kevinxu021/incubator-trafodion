@@ -27,7 +27,7 @@ if [[ $1 = "start" ]]; then
     if [ -n "$pid" ]; then
         echo "Bosun is already started. PID is $pid."
     else
-        setsid $BIN_DIR/bosun -c="$BIN_DIR/../conf/bosun.conf" > $BIN_DIR/bosun.log 2>&1  &
+        setsid $BIN_DIR/bosun-linux-amd64 -c="$BIN_DIR/../conf/bosun.conf" > $BIN_DIR/bosun.log 2>&1  &
         sleep 5s
         pid=$(getpid)
         if [ -n "$pid" ]; then

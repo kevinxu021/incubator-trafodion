@@ -64,3 +64,5 @@ Linux-x86_64/
 /hbase_utilities/src/main/resources/
 /hbase_utilities/target/
 
+# mgblty
+/sql/scripts/mgblty_download/
