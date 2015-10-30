@@ -31,7 +31,7 @@ all: dbmgr
 dbmgr:package-tools
 	bower install --config.cwd=src/main/webapp
 	$(MAVEN) install
-	mkdir -p ../../${DISTRIBUTION_DIR}
+	-mkdir -p ../../${DISTRIBUTION_DIR}
 	mv target/$(DBMGR_TARNAME) ../../${DISTRIBUTION_DIR}
 
 install-tools:
@@ -39,6 +39,7 @@ install-tools:
 	cd $(MY_SQROOT)/sql/scripts && install_mgblty 
 
 package-tools: install-tools
+	-mkdir -p ../../${DISTRIBUTION_DIR}
 	${CP} -r scripts/bosun/* $(MY_SQROOT)/../../mgblty/bosun
 	${CP} -r scripts/tcollector/* $(MY_SQROOT)/../../mgblty/tcollector
 	${CP} -r scripts/opentsdb/bin/tsd.sh $(MY_SQROOT)/../../mgblty/opentsdb/bin

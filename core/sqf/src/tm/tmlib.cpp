@@ -942,6 +942,10 @@ short BEGINTX(int *pp_tag, int pv_timeout, int64 pv_type_flags)
     lv_error = lp_trans->get_error();
     if (!lv_error)
         *pp_tag = (int) lp_trans->getTag();
+    else {
+      TMlibTrace(("TMLIB_TRACE : BEGINTX returning with error %d\n",
+                     lv_error), 1);
+    }
 
     return lv_error;
 } //BEGINTX
@@ -970,7 +974,7 @@ short ENDTRANSACTION()
 
     TMlibTrace(("TMLIB_TRACE : ENDTRANSACTION ENTRY: txid: %d\n", lp_trans->getTransid()->get_seq_num()), 1);
     lv_error =  lp_trans->end();
-    TMlibTrace(("TMLIB_TRACE : ENDTRANSACTION EXIT: txid: %d\n", lp_trans->getTransid()->get_seq_num()), 1);
+    TMlibTrace(("TMLIB_TRACE : ENDTRANSACTION EXIT: txid: %d, retcode: %d\n", lp_trans->getTransid()->get_seq_num(), lv_error), 1);
 
      // cleanup for legacy API
      if  ((lv_error == FEINVTRANSID) ||
