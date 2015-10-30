@@ -569,6 +569,8 @@ fi
 
 # End setup of Database Manager
 
+source $HOME/.trafodion
+
 cds
 
 echo | tee -a ${MY_LOG_FILE}
