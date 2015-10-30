@@ -122,9 +122,9 @@ public class TmAuditTlog {
    private static final byte[] TLOG_FAMILY = Bytes.toBytes("tf");
    private static final byte[] ASN_STATE = Bytes.toBytes("as");
    private static final byte[] QUAL_TX_STATE = Bytes.toBytes("tx");
-   private static HTable[] table;
-   private static HConnection connection;
-   private static HBaseAuditControlPoint tLogControlPoint;
+   private HTable[] table;
+   private HConnection connection;
+   private HBaseAuditControlPoint tLogControlPoint;
    private static long tLogControlPointNum;
    private static long tLogHashKey;
    private static int  tLogHashShiftFactor;
@@ -435,17 +435,12 @@ public class TmAuditTlog {
                        }
 
                        long count = TSFI_response.getCount();
-//                       rows = new org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Result[count];
-
                        for (int i = 0; i < count; i++){
 
                           // Here we get the transaction records returned and create new TransactionState objects
                           row = TSFI_response.getResult(i);
                           Result rowResult = ProtobufUtil.toResult(row);
                           boolean hasMore = TSFI_response.getHasMore();
-//                          results[i] = result;
-//                          result = null;
-//                          Result r = TSFI_response.getResult();
                           if (!rowResult.isEmpty()) {
                              byte [] value = rowResult.getValue(TLOG_FAMILY, ASN_STATE);
                              if (value == null) {
@@ -1062,15 +1057,13 @@ public class TmAuditTlog {
          if (LOG.isTraceEnabled()) LOG.trace("table names: " + tableString.toString() + " in thread " + threadId);
       }
       //Create the Put as directed by the hashed key boolean
-      Put p;
-
       //create our own hashed key
       long lv_seq = TransactionState.getTransSeqNum(lvTransid); 
       lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
-      long key = ((lv_lockIndex << tLogHashShiftFactor) + lv_seq);
+      long key = ((((long)lv_lockIndex) << tLogHashShiftFactor) + lv_seq);
       if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hex: " + Long.toHexString(key) + ", transid: " +  lvTransid
     		  + " in thread " + threadId);
-      p = new Put(Bytes.toBytes(key));
+      Put p = new Put(Bytes.toBytes(key));
       String hasPeerS;
       if (hasPeer) {
          hasPeerS = new String ("1");
@@ -1102,6 +1095,7 @@ public class TmAuditTlog {
          HTableInterface recoveryTable;
          int lv_ownerNid = (int)TransactionState.getNodeId(lvTransid);
          String lv_tLogName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(lv_ownerNid) + "_LOG_" + Integer.toHexString(lv_lockIndex));
+         if (LOG.isTraceEnabled()) LOG.trace("TLOG putSingleRecord with recoveryASN != 0 on table " + lv_tLogName);
          HConnection recoveryTableConnection = HConnectionManager.createConnection(this.config);
          recoveryTable = recoveryTableConnection.getTable(TableName.valueOf(lv_tLogName));
 
@@ -1227,8 +1221,9 @@ public class TmAuditTlog {
       if (LOG.isTraceEnabled()) LOG.trace("generatePut for tx: " + lvTransid + " start in thread " + threadId);
       //Create the Put as directed by the hashed key boolean
       //create our own hashed key
+      int lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
       long lv_seq = TransactionState.getTransSeqNum(lvTransid); 
-      long key = (((lv_seq & tLogHashKey) << tLogHashShiftFactor) + lv_seq);
+      long key = ((lv_lockIndex << tLogHashShiftFactor) + lv_seq);
       if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", transid: " +  lvTransid);
       Put p = new Put(Bytes.toBytes(key));
       if (LOG.isTraceEnabled()) LOG.trace("generatePut returning " + p);
@@ -1268,11 +1263,11 @@ public class TmAuditTlog {
       }
       //Create the Put as directed by the hashed key boolean
       //create our own hashed key
-      long lv_seq = TransactionState.getTransSeqNum(lvTransid); 
+//      long lv_seq = TransactionState.getTransSeqNum(lvTransid); 
       lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
-      long key = ((lv_lockIndex << tLogHashShiftFactor) + lv_seq);
-      if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hex: " + Long.toHexString(key) + ", transid: " +  lvTransid);
-      p = new Put(Bytes.toBytes(key));
+//      long key = ((lv_lockIndex << tLogHashShiftFactor) + lv_seq);
+//      if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hex: " + Long.toHexString(key) + ", transid: " +  lvTransid);
+//      p = new Put(Bytes.toBytes(key));
 
       lvAsn = asn.getAndIncrement();
       if (LOG.isTraceEnabled()) LOG.trace("transid: " + lvTransid + " state: " + lvTxState + " ASN: " + lvAsn);
@@ -1286,7 +1281,7 @@ public class TmAuditTlog {
       return lv_lockIndex;
    }
 
-   public static int getRecord(final long lvTransid) throws IOException {
+   public int getRecord(final long lvTransid) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("getRecord start");
       TransState lvTxState = TransState.STATE_NOTX;
       String stateString;
@@ -1381,7 +1376,7 @@ public class TmAuditTlog {
       return lvTxState.getValue();
    }
 
-    public static String getRecord(final String transidString) throws IOException, Exception {
+    public String getRecord(final String transidString) throws IOException, Exception {
       if (LOG.isTraceEnabled()) LOG.trace("getRecord start");
       long lvTransid = Long.parseLong(transidString, 10);
       int lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
@@ -1414,7 +1409,7 @@ public class TmAuditTlog {
    }
       
 
-   public static boolean deleteRecord(final long lvTransid) throws IOException {
+   public boolean deleteRecord(final long lvTransid) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("deleteRecord start " + lvTransid);
       int lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
       try {
@@ -1462,6 +1457,7 @@ public class TmAuditTlog {
                   for (Cell cell : r.rawCells()) {
                      StringTokenizer st = 
                             new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
+                     if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
                      if (st.hasMoreElements()) {
                         String asnToken = st.nextElement().toString();
                         if (LOG.isTraceEnabled()) LOG.trace("asnToken: " + asnToken);
@@ -1703,6 +1699,7 @@ public class TmAuditTlog {
       int lv_ownerNid = (int)TransactionState.getNodeId(lvTransid);
       int lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
       String lv_tLogName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(lv_ownerNid) + "_LOG_" + Integer.toHexString(lv_lockIndex));
+      if (LOG.isTraceEnabled()) LOG.trace("getTransactionState reading from: " + lv_tLogName);
       HConnection unknownTableConnection = HConnectionManager.createConnection(this.config);
       unknownTransactionTable = unknownTableConnection.getTable(TableName.valueOf(lv_tLogName));
 

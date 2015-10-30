@@ -555,6 +555,7 @@ public class HBaseTxClient {
                int index = tLog.initializePut(transactionID, -1, "ABORTED", ts.getParticipatingRegions(), ts.hasRemotePeers(), p);
                for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                   try {
+                     if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:calling doTlogWrite ABORTED for put: " + p);
                      lv_tLog.doTlogWrite(ts, Bytes.toBytes("ABORTED"), index, p);
                   }
                   catch (Exception e) {
@@ -621,6 +622,7 @@ public class HBaseTxClient {
             int index = tLog.initializePut(transactionID, -1, "FORGOTTEN", ts.getParticipatingRegions(), ts.hasRemotePeers(), p);
             for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                try {
+                  if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:calling doTlogWrite FORGOTTEN for put: " + p);
                   lv_tLog.doTlogWrite(ts, Bytes.toBytes("FORGOTTEN"), index, p);
                }
                catch (Exception e) {
@@ -730,6 +732,7 @@ public class HBaseTxClient {
                 int index = tLog.initializePut(transactionId, commitIdVal, "COMMITTED", ts.getParticipatingRegions(), ts.hasRemotePeers(), p);
                 for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                    try {
+                      if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:calling doTlogWrite COMMITTED for put: " + p);
                       lv_tLog.doTlogWrite(ts, Bytes.toBytes("COMMITTED"), index, p);
                    }
                    catch (Exception e) {
@@ -764,7 +767,7 @@ public class HBaseTxClient {
        }
 
        if ((stallWhere == 2) || (stallWhere == 3)) {
-    	  if (LOG.isInfoEnabled())LOG.info("Stalling in phase 2 for doCommit");
+    	  if (LOG.isInfoEnabled())LOG.info("Stalling in phase 2 for doCommit for transaction: " + transactionId);
           Thread.sleep(300000); // Initially set to run every 5 min
        }
 
@@ -800,6 +803,7 @@ public class HBaseTxClient {
              int index = tLog.initializePut(transactionId, commitIdVal, "FORGOTTEN", ts.getParticipatingRegions(), ts.hasRemotePeers(), p);
              for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                 try {
+                    if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:calling doTlogWrite FORGOTTEN for put: " + p);
                 	lv_tLog.doTlogWrite(ts, Bytes.toBytes("FORGOTTEN"), index, p);
                 }
                 catch (Exception e) {
