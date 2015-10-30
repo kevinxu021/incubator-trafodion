@@ -495,7 +495,8 @@ ExWorkProcRetcode ExHbaseScanSQTaskTcb::work(short &rc)
                                            tcb_->getGlobals()->castToExExeStmtGlobals()->getMyInstanceNumber(),
                                            (tcb_->hbaseAccessTdb().getComHbaseAccessOptions() 
                                             ? &(tcb_->hbaseAccessTdb().getComHbaseAccessOptions()->hbaseAccessOptions()) : NULL),
-                                           tcb_->hbaseAccessTdb().hbaseAuths()
+                                           (tcb_->hbaseAccessTdb().getComHbaseAccessOptions() 
+                                            ? tcb_->hbaseAccessTdb().getComHbaseAccessOptions()->hbaseAuths() : NULL)                                          
                                            );
 
 	    if (tcb_->setupError(retcode, "ExpHbaseInterface::scanOpen"))
@@ -1117,7 +1118,11 @@ ExWorkProcRetcode ExHbaseGetSQTaskTcb::work(short &rc)
 	    if (tcb_->rowIds_.entries() == 1)
 	      {
 		retcode = tcb_->ehi_->getRowOpen(tcb_->table_, tcb_->rowIds_[0],
-					     tcb_->columns_, -1);
+                                                 tcb_->columns_, -1,
+                                                 (tcb_->hbaseAccessTdb().getComHbaseAccessOptions() 
+                                                  ? &(tcb_->hbaseAccessTdb().getComHbaseAccessOptions()->hbaseAccessOptions()) : NULL),
+                                                 (tcb_->hbaseAccessTdb().getComHbaseAccessOptions() 
+                                                  ? tcb_->hbaseAccessTdb().getComHbaseAccessOptions()->hbaseAuths() : NULL));
 		if (tcb_->setupError(retcode, "ExpHbaseInterface::getRowOpen"))
 		  step_ = HANDLE_ERROR;
 		else
@@ -1126,7 +1131,11 @@ ExWorkProcRetcode ExHbaseGetSQTaskTcb::work(short &rc)
 	    else
 	      {
 		retcode = tcb_->ehi_->getRowsOpen(tcb_->table_, &tcb_->rowIds_,
-					     tcb_->columns_, -1);
+                                                  tcb_->columns_, -1,
+                                                  (tcb_->hbaseAccessTdb().getComHbaseAccessOptions() 
+                                                   ? &(tcb_->hbaseAccessTdb().getComHbaseAccessOptions()->hbaseAccessOptions()) : NULL),
+                                                  (tcb_->hbaseAccessTdb().getComHbaseAccessOptions() 
+                                                   ? tcb_->hbaseAccessTdb().getComHbaseAccessOptions()->hbaseAuths() : NULL));
 		if (tcb_->setupError(retcode, "ExpHbaseInterface::getRowsOpen"))
 		  step_ = HANDLE_ERROR;
 		else

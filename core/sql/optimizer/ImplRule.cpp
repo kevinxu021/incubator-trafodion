@@ -701,6 +701,7 @@ void copyCommonGenericUpdateFields(GenericUpdate *result,
   result->setNoCheck(bef->noCheck());
   result->setPrecondition(bef->getPrecondition());
 
+  result->setOptHbaseAccessOptions(bef->getOptHbaseAccessOptions());
 }
 
 void copyCommonUpdateFields(Update *result,
