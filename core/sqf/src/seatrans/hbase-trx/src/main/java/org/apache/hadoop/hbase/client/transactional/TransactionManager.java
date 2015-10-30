@@ -358,6 +358,7 @@ public class TransactionManager {
                   for (CommitResponse cresponse : result.values()){
                     if(cresponse.getHasException()) {
                       String exceptionString = new String (cresponse.getException().toString());
+		      LOG.error("doCommitX - exceptionString: " + exceptionString);
                       if (exceptionString.contains("UnknownTransactionException")) {
                         if (ignoreUnknownTransaction == true) {
                           if (LOG.isTraceEnabled()) LOG.trace("doCommitX, ignoring UnknownTransactionException in cresponse");
@@ -367,6 +368,9 @@ public class TransactionManager {
                           throw new UnknownTransactionException();
                         }
                       }
+		      else if (exceptionString.contains("org.apache.hadoop.hbase.exceptions.FailedSanityCheckException")) {
+			  throw new org.apache.hadoop.hbase.exceptions.FailedSanityCheckException(cresponse.getException());
+		      }
                       else {
                         if (LOG.isTraceEnabled()) LOG.trace("doCommitX coprocessor exception: " + cresponse.getException());
                         throw new Exception(cresponse.getException());
@@ -379,6 +383,7 @@ public class TransactionManager {
                   for (CommitResponse cresponse : result.values()){
                     if(cresponse.getHasException()) {
                       String exceptionString = new String (cresponse.getException().toString());
+		      LOG.error("doCommitX - exceptionString: " + exceptionString);
                       if (exceptionString.contains("UnknownTransactionException")) {
                         if (ignoreUnknownTransaction == true) {
                           if (LOG.isTraceEnabled()) LOG.trace("doCommitX, ignoring UnknownTransactionException in cresponse");
@@ -388,6 +393,9 @@ public class TransactionManager {
                           throw new UnknownTransactionException();
                         }
                       }
+		      else if (exceptionString.contains("org.apache.hadoop.hbase.exceptions.FailedSanityCheckException")) {
+			  throw new org.apache.hadoop.hbase.exceptions.FailedSanityCheckException(cresponse.getException());
+		      }
                       else if(exceptionString.contains("Asked to commit a non-pending transaction")) {
                         if (LOG.isTraceEnabled()) LOG.trace("doCommitX, ignoring 'commit non-pending transaction' in cresponse");
                       }
@@ -406,6 +414,12 @@ public class TransactionManager {
               transactionState.requestPendingCountDec(true);
               throw new UnknownTransactionException();
           }
+	  catch (org.apache.hadoop.hbase.exceptions.FailedSanityCheckException fsce) {
+	      LOG.error("doCommitX non-retriable error: " + fsce);
+	      refresh = false;
+	      retry = false;
+	      throw fsce;
+	  }
           catch (Exception e) {
              if(e.toString().contains("Asked to commit a non-pending transaction")) {
                if (LOG.isDebugEnabled()) LOG.debug("doCommitX will not retry: " + e);

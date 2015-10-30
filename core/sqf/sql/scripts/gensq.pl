@@ -495,26 +495,39 @@ sub genServiceMonitor {
                 $l_pn = $l_pn . ",";
             }
         }
+
+	# Cluster Monitor
+	my $l_progname="service_monitor";
+	my $l_procargs="-t 60 -f cluster_monitor.cmd";
+	my $l_procname="\$CMON";
+	my $l_stdout="stdout_cmon";
+        printScript(1, "\n! Start Cluster Monitor\n");
+	printScript(1, "set {process \\$l_procname } PERSIST_RETRIES=2,30\n");
+	addDbProcData('$CMON', "PERSIST_RETRIES", "4,30");
+	printScript(1, "set {process \\$l_procname } PERSIST_ZONES=$l_pn\n");
+	addDbProcData('$CMON', "PERSIST_ZONES", "$l_pn");
+	printScript(1, "exec {nowait, name \\$l_procname, nid 0, out $l_stdout} $l_progname $l_procargs \n");
+	
+        printScript(1, "delay 1\n");
+
         printScript(1, "\n");
         printScript(1, "\n! Start Node Monitors\n");
 	# Generate Node Monitors
         for ($i=0; $i < $gdNumNodes; $i++) {
-            printScript(1, "set {process \\\$NMON$i } PERSIST_RETRIES=2,30\n");
-            addDbProcData('$NMON'."$i", "PERSIST_RETRIES", "2,30");
-            printScript(1, "set {process \\\$NMON$i } PERSIST_ZONES=$l_pn\n");
-            addDbProcData('$NMON'."$i", "PERSIST_ZONES", "$i");
-            printScript(1, "exec {nowait, name \\\$NMON$i, nid $i, out stdout_nmon_$i} service_monitor -t 60 -f node_monitor.cmd\n");
+	    my $l_progname="service_monitor";
+	    my $l_procargs="-t 60 -f node_monitor.cmd";
+            my $l_procname="\$NMON$i";
+	    my $l_procname_config = sprintf('$NMON%d', $i);
+            my $l_stdout="stdout_nmon_$i";
+            printScript(1, "set {process \\$l_procname } PERSIST_RETRIES=2,30\n");
+            addDbProcData($l_procname_config, "PERSIST_RETRIES", "2,30");
+            printScript(1, "set {process \\$l_procname } PERSIST_ZONES=$i\n");
+            addDbProcData($l_procname_config, "PERSIST_ZONES", $i);
+            printScript(1, "exec {nowait, name \\$l_procname, nid $i, out $l_stdout} $l_progname $l_procargs\n");
+	    addDbPersistProc($l_procname_config, $i, 1);
+	    addDbProcDef( $ProcessType_Generic, $l_procname_config, $i, $l_progname, $l_stdout, $l_procargs);
         }
 
-	# Cluster Monitor
-        printScript(1, "\n! Start Cluster Monitor\n");
-	printScript(1, "set {process \\\$CMON } PERSIST_RETRIES=2,30\n");
-	addDbProcData('$CMON', "PERSIST_RETRIES", "2,30");
-	printScript(1, "set {process \\\$CMON } PERSIST_ZONES=$l_pn\n");
-	addDbProcData('$CMON', "PERSIST_ZONES", "$l_pn");
-	printScript(1, "exec {nowait, name \\\$CMON, nid 0, out stdout_cmon} service_monitor -t 60 -f cluster_monitor.cmd\n");
-	
-        printScript(1, "delay 1\n");
     }
 }
 
