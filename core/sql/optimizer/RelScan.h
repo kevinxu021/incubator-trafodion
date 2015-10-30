@@ -1584,7 +1584,9 @@ public:
     LEAKS_,    // For SHOWLEAKS.
     STATIC_PLAN_,// same as PLAN_ but from static pre-compiled programs.
                  // Not externalized.
-    SHOWQRYSTATS_ // display histograms for specified query
+    SHOWQRYSTATS_, // display histograms for specified query
+    SHOWTABLEHDFSCACHE_,
+    SHOWSCHEMAHDFSCACHE_
   };
   enum ShowcontrolOption
   {

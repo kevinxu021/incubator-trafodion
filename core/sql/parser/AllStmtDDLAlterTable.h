@@ -51,6 +51,7 @@
 #include "StmtDDLAddConstraintUniqueArray.h"
 #include "StmtDDLDropConstraint.h"
 #include "StmtDDLAlterTableAddColumn.h"
+#include "StmtDDLAlterTableHDFSCache.h"
 #include "StmtDDLAlterTableDropColumn.h"
 #include "StmtDDLAlterTableAlterColumnLoggable.h" //++ MV
 #include "StmtDDLAlterTableDisableIndex.h"

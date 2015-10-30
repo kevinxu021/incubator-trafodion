@@ -855,6 +855,11 @@ public:
    UInt16 getHbaseRowsetVsbbSize()
    { return hbaseRowsetVsbbSize_; } 
 
+   void setTrafLoadFlushSize(UInt16 size)
+   {  trafLoadFlushSize_ = size; }
+   UInt16 getTrafLoadFlushSize()
+   { return trafLoadFlushSize_; } 
+
    void setLogErrorRows(NABoolean v)
      {(v ? flags2_ |= TRAF_LOAD_LOG_ERROR_ROWS : flags2_ &= ~TRAF_LOAD_LOG_ERROR_ROWS); };
    NABoolean getLogErrorRows() { return (flags2_ & TRAF_LOAD_LOG_ERROR_ROWS) != 0; };
@@ -1015,8 +1020,8 @@ public:
   HbaseSnapshotScanAttributesPtr hbaseSnapshotScanAttributes_;
   UInt32 maxErrorRows_;
   UInt16 hbaseRowsetVsbbSize_; 
-  ComHbaseAccessOptionsPtr comHbaseAccessOptions_;
-
+  UInt16 trafLoadFlushSize_;
+  ComHbaseAccessOptionsPtr comHbaseAccessOptions_; 
   char fillers[2];
 };
 

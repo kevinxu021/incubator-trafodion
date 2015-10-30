@@ -5082,6 +5082,13 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
 	generator->setUpdAbortOnError(TRUE);
     }
 
+  if ((getTableDesc()->getNATable()->xnRepl() == COM_REPL_SYNC) ||
+      (getTableDesc()->getNATable()->xnRepl() == COM_REPL_ASYNC))
+    {
+      generator->setTransactionFlag(TRUE);
+      generator->setUpdAbortOnError(TRUE);
+    }
+
   // flag for hbase tables
   generator->setHdfsAccess(TRUE);
 
@@ -5393,7 +5400,14 @@ RelExpr * HbaseUpdate::preCodeGen(Generator * generator,
 	generator->setUpdAbortOnError(TRUE);
     }
 
-  // flag for hbase tables
+  if ((getTableDesc()->getNATable()->xnRepl() == COM_REPL_SYNC) ||
+      (getTableDesc()->getNATable()->xnRepl() == COM_REPL_ASYNC))
+    {
+      generator->setTransactionFlag(TRUE);
+      generator->setUpdAbortOnError(TRUE);
+    }
+
+   // flag for hbase tables
   generator->setHdfsAccess(TRUE);
   if (getTableDesc()->getNATable()->hasLobColumn())
     {
@@ -5659,6 +5673,13 @@ RelExpr * HbaseInsert::preCodeGen(Generator * generator,
 	  (inlinedActions) ||
 	  (generator->oltOptInfo()->multipleRowsReturned()))
 	generator->setUpdAbortOnError(TRUE);
+    }
+
+  if ((getTableDesc()->getNATable()->xnRepl() == COM_REPL_SYNC) ||
+      (getTableDesc()->getNATable()->xnRepl() == COM_REPL_ASYNC))
+    {
+      generator->setTransactionFlag(TRUE);
+      generator->setUpdAbortOnError(TRUE);
     }
 
   return this;

@@ -320,6 +320,7 @@ ParKeyWord ParKeyWords::keyWords_[] = {
   ParKeyWord("DEALLOCATE",         TOK_DEALLOCATE,  ANS_|RESWORD_),
   ParKeyWord("DEBUG",              TOK_DEBUG,       NONRESTOKEN_),
   ParKeyWord("DEC",                TOK_DECIMAL,     ANS_|RESWORD_|MPWORD_),
+  ParKeyWord("DECACHE",            TOK_DECACHE,     NONRESTOKEN_),
   ParKeyWord("DECIMAL",            TOK_DECIMAL,     ANS_|RESWORD_|MPWORD_),
   ParKeyWord("DECODE",             TOK_DECODE,      NONRESTOKEN_),
   ParKeyWord("DECLARE",            TOK_DECLARE,     ANS_|RESWORD_|MPWORD_),

@@ -197,10 +197,9 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   samplingRate_(samplingRate),
   sampleLocation_(NULL),
   hbaseRowsetVsbbSize_(0),
-  
   hbaseCellTS_(-1),
-
-  comHbaseAccessOptions_(comHbaseAccessOptions)
+  comHbaseAccessOptions_(comHbaseAccessOptions),
+  trafLoadFlushSize_(0)
 {};
 
 ComTdbHbaseAccess::ComTdbHbaseAccess(
@@ -309,10 +308,9 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   samplingRate_(-1),
   sampleLocation_(NULL),
   hbaseRowsetVsbbSize_(0),
-
   hbaseCellTS_(-1),
-
-  comHbaseAccessOptions_(NULL)
+  comHbaseAccessOptions_(NULL),
+  trafLoadFlushSize_(0)
 {
 }
 

@@ -71,6 +71,8 @@
 #include "ComUser.h"
 #include "ComMisc.h"
 #include "hdfs.h"
+#include "StmtDDLAlterTableHDFSCache.h"
+
 void cleanupLOBDataDescFiles(const char*, int, const char *);
 
 class QualifiedSchema
@@ -6303,6 +6305,18 @@ short CmpSeabaseDDL::createEncodedKeysBuffer(char** &encodedKeysBuffer,
                                   << DgString1(cd->body.columns_desc.colname);
               return -1;
             }
+
+          NABoolean keyColIsAscending =
+            (keyColDesc->body.keys_desc.ordering == 0);
+          NABoolean splitByColIsAscending =
+            (splitByColRefs[c]->getColumnOrdering() != COM_DESCENDING_ORDER);
+
+          if (keyColIsAscending != splitByColIsAscending)
+            {
+              *CmpCommon::diags() << DgSqlCode(-1214);
+              return -1;
+            }
+
           keyColDesc = keyColDesc->header.next;
         }
       
@@ -6353,7 +6367,12 @@ short CmpSeabaseDDL::createEncodedKeysBuffer(char** &encodedKeysBuffer,
           const ItemConstValueArray &cva =
             pPartitionRange->getKeyValueArray();
 
-          CMPASSERT(cva.entries() <= numKeys);
+          if (cva.entries() > numKeys)
+            {
+              *CmpCommon::diags() << DgSqlCode(-1213)
+                                  << DgInt0(i+1);
+              return -1;
+            }
 
           int v;
           // copy the values specified in SPLIT BY ... ADD PARTITION
@@ -6402,7 +6421,11 @@ short CmpSeabaseDDL::createEncodedKeysBuffer(char** &encodedKeysBuffer,
                                CmpCommon::diags());
 
       if (retVal)
-        return -1;
+        {
+          *CmpCommon::diags() << DgSqlCode(-1213)
+                              << DgInt0(i+1);
+          return -1;
+        }
 
       // check whether the encoded keys are ascending
       if (i > 0 &&
@@ -8795,6 +8818,23 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
            
            alterSeabaseTableAlterColumnDatatype(alterColNode, 
                                                 currCatName, currSchName);
+        }
+       else if (ddlNode->getOperatorType() == DDL_ALTER_TABLE_HDFS_CACHE)
+        {
+           StmtDDLAlterTableHDFSCache * alterTableHdfsCache =
+             ddlNode->castToStmtDDLNode()->castToStmtDDLAlterTableHDFSCache();
+           
+           alterSeabaseTableHDFSCache(alterTableHdfsCache,
+                                                currCatName, currSchName);
+
+        }
+       else if (ddlNode->getOperatorType() == DDL_ALTER_SCHEMA_HDFS_CACHE)
+        {
+           StmtDDLAlterSchemaHDFSCache* alterSchemaHdfsCache =
+             ddlNode->castToStmtDDLNode()->castToStmtDDLAlterSchemaHDFSCache();
+           
+           alterSeabaseSchemaHDFSCache(alterSchemaHdfsCache);
+
         }
        else if (ddlNode->getOperatorType() ==  DDL_CLEANUP_OBJECTS)
          {

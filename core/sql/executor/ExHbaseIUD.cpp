@@ -1390,8 +1390,8 @@ ExWorkProcRetcode ExHbaseAccessBulkLoadPrepSQTcb::work()
         }
         allocateDirectRowBufferForJNI(
                  numCols,
-                 hbaseAccessTdb().getHbaseRowsetVsbbSize());
-        allocateDirectRowIDBufferForJNI(hbaseAccessTdb().getHbaseRowsetVsbbSize());
+                 hbaseAccessTdb().getTrafLoadFlushSize());
+        allocateDirectRowIDBufferForJNI(hbaseAccessTdb().getTrafLoadFlushSize());
         step_ = SETUP_INSERT;
        }
        break;
@@ -1519,7 +1519,7 @@ ExWorkProcRetcode ExHbaseAccessBulkLoadPrepSQTcb::work()
             break ;
         }
 
-        if (currRowNum_ < hbaseAccessTdb().getHbaseRowsetVsbbSize())
+        if (currRowNum_ < hbaseAccessTdb().getTrafLoadFlushSize())
         {
           step_ = DONE;
           break;

@@ -93,7 +93,6 @@ define([
 		}, 
 
 		beforeRender: function() { 
-			console.log('beforeRender'); 
 		}, 
 
 		render: function (args) {
@@ -113,7 +112,6 @@ define([
 		},
 		
 		afterRender: function() { 
-			console.log('afterRender'); 
 		},
 
 		init: function(args){

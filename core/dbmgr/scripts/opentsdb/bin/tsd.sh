@@ -4,10 +4,8 @@
 # (C) Copyright 2015 Esgyn Corportation
 #
 # @@@ END COPYRIGHT @@@
-TSDB_DIR=$(dirname $0)/..
-
-if [ ! -d "$TSDB_DIR/cache" ]; then
-    mkdir -p $TSDB_DIR/cache
+if [ ! -d "$MGBLTY_INSTALL_DIR/opentsdb/cache" ]; then
+    mkdir -p $MGBLTY_INSTALL_DIR/opentsdb/cache
 fi
 
 #reset classpath, else we cannot grep for the running process
@@ -34,7 +32,7 @@ if [[ $1 = "start" ]]; then
     if [ -n "$pid" ]; then
         echo "TSD is already started. PID is $pid."
     else
-        setsid $TSDB_DIR/bin/tsdb tsd --auto-metric --config=$TSDB_DIR/bin/opentsdb.conf --staticroot=$TSDB_DIR/static --cachedir=$TSDB_DIR/cache > $TSDB_DIR/bin/tsd.log 2>&1  &
+        setsid $MGBLTY_INSTALL_DIR/opentsdb/bin/tsdb tsd --auto-metric --config=$MGBLTY_INSTALL_DIR/opentsdb/etc/opentsdb/opentsdb.conf --staticroot=$MGBLTY_INSTALL_DIR/opentsdb/static --cachedir=$MGBLTY_INSTALL_DIR/opentsdb/cache > $MGBLTY_INSTALL_DIR/opentsdb/log/tsd.log 2>&1  &
         sleep 5s
         pid=$(getpid)
         if [ -n "$pid" ]; then
@@ -48,7 +46,7 @@ elif [[ $1 = "stop" ]]; then
         kill -9 $pid
         echo "TSD has been stopped."
     else
-        echo "No TSD is running by this account."
+        echo "No TSD is running by this user."
     fi
 elif [[ $1 = "status" ]]; then
     if [ -n "$pid" ]; then

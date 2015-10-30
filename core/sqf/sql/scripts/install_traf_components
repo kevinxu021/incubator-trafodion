@@ -37,6 +37,12 @@ MY_REST_SERVER_SECURE_PORT=`expr $MY_START_PORT + 194`
 MY_DB_MGR_PORT=`expr $MY_START_PORT + 195`
 MY_DB_MGR_SECURE_PORT=`expr $MY_START_PORT + 196`
 
+# Custom ports for opentsdb & bosun
+if [ -f $MY_SQROOT/sql/scripts/sw_env.sh ]; then
+   export MY_OPEN_TSDB_PORT=`expr $MY_HADOOP_HDFS_PORT_NUM + 197`
+   export MY_BOSUN_PORT=`expr $MY_HADOOP_HDFS_PORT_NUM + 198`
+fi
+
 # Default location of Trafodion, DCS, REST and Phoenix src folders
 TRAF_SRC=$MY_SQROOT/../../
 DCS_SRC=$MY_SQROOT/../../dcs
@@ -61,7 +67,15 @@ if [ -z "$DCSTEST_TAR" ]; then
 fi
 
 if [ -z "$CLIENT_TAR" ]; then
-    CLIENT_TAR=$(ls $TRAF_TARS/*clients*.tgz 2>/dev/null)
+    CLIENT_TAR=$(ls $TRAF_TARS/trafodion_clients-*.tgz 2>/dev/null)
+fi
+
+if [ -z "$DBMGR_TAR" ]; then
+    DBMGR_TAR=$(ls $TRAF_TARS/dbmgr*.gz 2>/dev/null)
+fi
+
+if [ -z "$MGBLTY_TAR" ]; then
+    MGBLTY_TAR=$(ls $TRAF_TARS/mgblty*.gz 2>/dev/null)
 fi
 
 if [[ -f $CLIENT_TAR ]]; then
@@ -91,6 +105,8 @@ fi
 echo "   For local hadoop... $MY_SW_ROOT" | tee -a ${MY_LOG_FILE}
 echo "   For DCS_TAR... $DCS_TAR" | tee -a ${MY_LOG_FILE}
 echo "   For REST_TAR... $REST_TAR" | tee -a ${MY_LOG_FILE}
+echo "   For MGBLTY_TAR... $MGBLTY_TAR" | tee -a ${MY_LOG_FILE}
+echo "   For DBMGR_TAR... $DBMGR_TAR" | tee -a ${MY_LOG_FILE}
 
 if [[ -f $PHX_TAR ]]; then
   echo "   For PHX_TAR... $PHX_TAR" | tee -a ${MY_LOG_FILE}
@@ -458,10 +474,102 @@ fi
 
 # End setup of PyODBC test
 
-cds
-
 echo | tee -a ${MY_LOG_FILE}
 echo "Configuration scripts for DCS, REST, TRAFCI and Phoenix test are set up " | tee -a ${MY_LOG_FILE}
+
+echo | tee -a ${MY_LOG_FILE}
+echo "Installing manageability components " | tee -a ${MY_LOG_FILE}
+
+cd $MY_SW_ROOT
+
+echo | tee -a ${MY_LOG_FILE}
+# Begin setup of manageability tools
+
+if [ -d mgblty* ]; then
+  echo "Manageability tools already exist, skipping manageability tools setup" | tee -a ${MY_LOG_FILE}
+else
+  if [[ -f $MGBLTY_TAR ]]; then
+      echo "Using Managebility Tar: $MGBLTY_TAR" | tee -a ${MY_LOG_FILE}
+      # Install Mgblty Tools
+      echo "Installing Manageability Tools from: $MGBLTY_TAR"  | tee -a ${MY_LOG_FILE}
+      tar xzf $MGBLTY_TAR | tee -a ${MY_LOG_FILE}
+      MGBLTY_HOME=$(/bin/ls -d $MY_SW_ROOT/mgblty*)
+      if [[ -f ~/.trafodion ]]
+      then
+        mv -f ~/.trafodion ~/.trafodion.orig
+        grep -v 'MGBLTY_INSTALL_DIR=' ~/.trafodion.orig >> ~/.trafodion
+      fi
+      MGBLTYDIR=${MGBLTY_HOME##*/}
+      echo "export MGBLTY_INSTALL_DIR=\${MY_SQROOT}/sql/local_hadoop/$MGBLTYDIR" >> ~/.trafodion | tee -a ${MY_LOG_FILE}
+
+      mkdir -p $MGBLTY_HOME/opentsdb/log
+      mkdir -p $MGBLTY_HOME/opentsdb/plugins
+      mkdir -p $MGBLTY_HOME/opentsdb/tmp
+
+      # Customize openTSD scripts
+      cd $MGBLTY_HOME/opentsdb/etc/opentsdb
+      mv opentsdb.conf opentsdb.conf.orig | tee -a ${MY_LOG_FILE}
+      sed -e "s@5242@$MY_OPEN_TSDB_PORT@" -e "s@/usr/share@$MGBLTY_HOME@" -e "s@/tmp@$MGBLTY_HOME@" opentsdb.conf.orig > opentsdb.conf | tee -a ${MY_LOG_FILE}
+
+      mv logback.xml logback.xml.orig | tee -a ${MY_LOG_FILE}
+      sed -e "s@<file>/var/log/opentsdb@<file>$MGBLTY_HOME/opentsdb/log@" -e "s@<fileNamePattern>/var/log/opentsdb@<fileNamePattern>$MGBLTY_HOME/opentsdb/log@" logback.xml.orig > logback.xml | tee -a ${MY_LOG_FILE}
+
+      #Customize Tcollector scripts
+      cd $MGBLTY_HOME/tcollector
+      mv startstop startstop-orig
+      sed -e "s@5242@$MY_OPEN_TSDB_PORT@" startstop-orig > startstop | tee -a ${MY_LOG_FILE}
+      chmod +x startstop
+ 
+      #Customize Bosun scripts
+      cd $MGBLTY_HOME/bosun/conf
+      mv bosun.conf bosun.conf-orig
+      sed -e "s@8070@$MY_BOSUN_PORT@" -e "s@5242@$MY_OPEN_TSDB_PORT@" bosun.conf-orig > bosun.conf | tee -a ${MY_LOG_FILE}
+
+      export COMPRESSION=NONE
+      $MGBLTY_HOME/opentsdb/tools/create_table.sh 
+  else
+      echo "Manageability Tar file does not exist" | tee -a ${MY_LOG_FILE}
+  fi
+fi
+
+# End setup of manageability tools
+
+cd $MY_SW_ROOT
+
+echo | tee -a ${MY_LOG_FILE}
+# Begin setup of DBMgr 
+
+if [ -d dbmgr-* ]; then
+  echo "DBMGR files already exist, skipping DBMGR setup" | tee -a ${MY_LOG_FILE}
+else
+  if [[ -f $DBMGR_TAR ]]; then
+      echo "Using Database Manageability Tar: $DBMGR_TAR" | tee -a ${MY_LOG_FILE}
+      # Install DBMGR
+      echo "Installing DBMGR from: $DBMGR_TAR"  | tee -a ${MY_LOG_FILE}
+      tar xzf $DBMGR_TAR | tee -a ${MY_LOG_FILE}
+      DBMGR_HOME=$(/bin/ls -d $MY_SW_ROOT/dbmgr-*)
+      if [[ -f ~/.trafodion ]]
+      then
+        mv -f ~/.trafodion ~/.trafodion.orig
+        grep -v 'DBMGR_INSTALL_DIR=' ~/.trafodion.orig >> ~/.trafodion
+      fi
+      DBMGR_DIR=${DBMGR_HOME##*/}
+      echo "export DBMGR_INSTALL_DIR=\${MY_SQROOT}/sql/local_hadoop/$DBMGR_DIR" >> ~/.trafodion | tee -a ${MY_LOG_FILE}
+      echo "Generating xml file for DBMGR with custom ports"  | tee -a ${MY_LOG_FILE}
+      cd $DBMGR_HOME/conf
+      mv logback.xml logback.xml.orig | tee -a ${MY_LOG_FILE}
+      sed -e "s@<fileNamePattern>\${DBMGR_INSTALL_DIR}@<file>$DBMGR_HOME@" logback.xml.orig > logback.xml | tee -a ${MY_LOG_FILE}
+
+      cd $DBMGR_HOME/bin
+      ./configure.py --httpport $MY_DB_MGR_PORT --httpsport $MY_DB_MGR_SECURE_PORT --dcshost localhost --dcsport $MY_DCS_MASTER_PORT --password traf123 --dcsinfoport $MY_DCS_MASTER_INFO_PORT --resthost localhost --restport $MY_REST_SERVER_PORT --tsdhost localhost --tsdport $MY_OPEN_TSDB_PORT --bosunhost localhost --bosunport $MY_BOSUN_PORT --timezone Etc/UTC 
+  else
+      echo "DBMGR Tar file does not exist" | tee -a ${MY_LOG_FILE}
+  fi
+fi
+
+# End setup of Database Manager
+
+cds
 
 echo | tee -a ${MY_LOG_FILE}
 echo "   Open a new session and start Trafodion by executing sqgen and sqstart scripts" | tee -a ${MY_LOG_FILE}

@@ -11,6 +11,12 @@
 					Trafodion Queries <img id="loadingImg" src="img/ajax-loader.gif" />
 					<div class="pull-right">
 						<div class="btn-group">
+							<label id="timeRangeLabel"
+									style="display: inline-block; margin-top: 5px; margin-right:5px;font-size: 14px; font-weight: normal">Time
+									Range</label> 
+						</div>
+						<div class="btn-group">
+							
 							<button id="openFilter" type="button"
 								class="btn btn-default btn-xs fa fa-gear"
 								style="height: 24px; margin-right: 4px"> Filters</button>
@@ -35,7 +41,7 @@
 		</div>
 	</div>
 	<div class="modal fade" id="filterDialog" tabindex="-1" role="dialog"
-		aria-labelledby="filterDialogLabel">
+		aria-labelledby="filterDialogLabel" data-backdrop="static" data-keyboard="false">
 		<div class="modal-dialog" role="document" style="overflow:auto;height:700px">
 			<div class="modal-content">
 				<div class="modal-header">

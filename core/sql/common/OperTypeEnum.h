@@ -837,6 +837,7 @@ enum OperatorTypeEnum {
                         DDL_ALTER_MV,  // MV
                         DDL_ALTER_ROUTINE,
                         DDL_ALTER_SYNONYM,
+                        DDL_ALTER_SCHEMA_HDFS_CACHE,
                         DDL_ALTER_TABLE_ADD_COLUMN,
                         DDL_ALTER_TABLE_ADD_CONSTRAINT_CHECK,
                         DDL_ALTER_TABLE_ADD_CONSTRAINT_PRIMARY_KEY,
@@ -863,6 +864,7 @@ enum OperatorTypeEnum {
                         DDL_ALTER_TABLE_ALTER_COLUMN_DEFAULT_VALUE,
                         DDL_ALTER_TABLE_ALTER_COLUMN_SET_SG_OPTION,
                         DDL_ALTER_TABLE_ALTER_HBASE_OPTIONS,
+                        DDL_ALTER_TABLE_HDFS_CACHE,
                         DDL_ALTER_MV_RENAME,
                         DDL_ALTER_MV_REFRESH_GROUP, // MV
                         DDL_ALTER_TRIGGER,

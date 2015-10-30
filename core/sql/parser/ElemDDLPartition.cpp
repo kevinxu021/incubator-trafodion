@@ -1181,17 +1181,16 @@ NAString ElemDDLPartitionByColumnList::getSyntax() const
   
   const ElemDDLColRefArray & colRefArray = getPartitionKeyColumnArray();
 
-  NAString syntax = ToAnsiIdentifier((colRefArray[0])->getColumnName());
+  NAString syntax;
   
-  
-//ElemDDLColRef * pGroupByColumnRef =    
-    
-  // if you didn't notice - we start with i=1  
-  for (CollIndex i = 1; i < colRefArray.entries(); i++)
+  for (CollIndex i = 0; i < colRefArray.entries(); i++)
   {
-    syntax += ", ";
+    if (i > 0)
+      syntax += ", ";
     syntax += ToAnsiIdentifier((colRefArray[i])->getColumnName());
-    
+
+    if (colRefArray[i]->getColumnOrdering() == COM_DESCENDING_ORDER)
+      syntax += " DESC";
   }
   return syntax;
 

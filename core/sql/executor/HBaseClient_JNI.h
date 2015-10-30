@@ -484,6 +484,10 @@ typedef enum {
  ,HBC_ERROR_CHECKANDDELETEROW_PARAM
  ,HBC_ERROR_CHECKANDDELETEROW_EXCEPTION
  ,HBC_ERROR_CHECKANDDELETEROW_NOTFOUND
+ ,HBC_ERROR_ADDHDFSCACHE_EXCEPTION
+ ,HBC_ERROR_REMOVEHDFSCACHE_EXCEPTION
+ ,HBC_ERROR_SHOWHDFSCACHE_EXCEPTION
+ ,HBC_ERROR_POOL_NOT_EXIST_EXCEPTION
  ,HBC_LAST
 } HBC_RetCode;
 
@@ -603,6 +607,11 @@ public:
                                 const char * hbaseAuths,
                                 HTableClient_JNI **outHtc);
   
+  ByteArrayList* showTablesHDFSCache(const TextVec& tables);
+
+  HBC_RetCode addTablesToHDFSCache(const TextVec& tables, const char* poolName);
+  HBC_RetCode removeTablesFromHDFSCache(const TextVec& tables, const char* poolName);
+
 private:   
   // private default constructor
   HBaseClient_JNI(NAHeap *heap, int debugPort, int debugTimeout);
@@ -651,6 +660,9 @@ private:
    ,JM_HBC_DELETE_ROW
    ,JM_HBC_DIRECT_DELETE_ROWS
    ,JM_HBC_CHECKANDDELETE_ROW
+   ,JM_SHOW_TABLES_HDFS_CACHE
+   ,JM_ADD_TABLES_TO_HDFS_CACHE
+   ,JM_REMOVE_TABLES_FROM_HDFS_CACHE
    ,JM_LAST
   };
   static jclass          javaClass_; 
@@ -693,6 +705,7 @@ typedef enum {
  ,HVC_ERROR_HDFS_WRITE_PARAM
  ,HVC_ERROR_HDFS_WRITE_EXCEPTION
  ,HVC_ERROR_HDFS_CLOSE_EXCEPTION
+ ,HVC_ERROR_EXECHIVESQL_EXCEPTION
  ,HVC_LAST
 } HVC_RetCode;
 

@@ -28,6 +28,7 @@ public class ConfigurationResource {
 	private static Properties xmlConfig = new Properties();
 	private static String serverTimeZone = "UTC";
 	private static long serverUTCOffset = 0;
+	private static String systemVersion = "";
 
 	static {
 		xmlConfig = readDBMgrXmlConfig();
@@ -61,6 +62,14 @@ public class ConfigurationResource {
 
 	public static void setServerUTCOffset(long serverUTCOffset) {
 		ConfigurationResource.serverUTCOffset = serverUTCOffset;
+	}
+
+	public static void setSystemVersion(String systemVersion) {
+		ConfigurationResource.systemVersion = systemVersion;
+	};
+
+	public static String getSystemVersion() {
+		return ConfigurationResource.systemVersion;
 	}
 
 	public String getJdbcUrl() {
