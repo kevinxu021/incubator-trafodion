@@ -4,9 +4,11 @@
 # (C) Copyright 2015 Esgyn Corportation
 #
 # @@@ END COPYRIGHT @@@
-if [ ! -d "$MGBLTY_INSTALL_DIR/opentsdb/cache" ]; then
-    mkdir -p $MGBLTY_INSTALL_DIR/opentsdb/cache
-fi
+#
+mkdir -p $MGBLTY_INSTALL_DIR/opentsdb/cache
+mkdir -p $MGBLTY_INSTALL_DIR/opentsdb/plugins
+mkdir -p $MGBLTY_INSTALL_DIR/opentsdb/log
+mkdir -p $MGBLTY_INSTALL_DIR/opentsdb/tmp
 
 #reset classpath, else we cannot grep for the running process
 CLASSPATH=
