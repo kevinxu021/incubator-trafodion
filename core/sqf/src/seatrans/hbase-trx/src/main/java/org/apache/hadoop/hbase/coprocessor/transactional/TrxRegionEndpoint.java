@@ -2381,7 +2381,7 @@ CoprocessorService, Coprocessor {
      try {
         put = ProtobufUtil.toPut(proto);
      } catch (Throwable e) {
-        if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: putTlog - txId " + transactionId + ", Caught exception " + e.getMessage() + " " + stackTraceToString(e));
+        if (LOG.isWarnEnabled()) LOG.warn("TrxRegionEndpoint coprocessor: putTlog - txId " + transactionId + ", Caught exception " + e.getMessage() + " " + stackTraceToString(e));
         t = e;
      }
 

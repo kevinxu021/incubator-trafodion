@@ -241,7 +241,7 @@ public class TmAuditTlog {
       public Integer doTlogWriteX(final byte[] regionName, final long transactionId, final long commitId,
     		  final byte[] row, final byte[] value, final Put put, final int index) throws IOException {
          long threadId = Thread.currentThread().getId();
-         if (LOG.isTraceEnabled()) LOG.trace("doTlogWriteX -- ENTRY txid: " + transactionId + ", thread " + threadId
+         if (LOG.isTraceEnabled()) LOG.trace("doTlogWriteX -- ENTRY txid: " + transactionId + ", clusterId: " + myClusterId + ", thread " + threadId
         		             + ", put: " + put.toString());
          boolean retry = false;
          boolean refresh = false;
@@ -720,28 +720,92 @@ public class TmAuditTlog {
    * Return  : void
    * Purpose : write commit/abort for a given transaction
    */
-   public void doTlogWrite(final TransactionState transactionState, final byte [] rowValue, final int index, final Put put) throws CommitUnsuccessfulException, IOException {
-
+//   public void doTlogWrite(final TransactionState transactionState, final byte [] rowValue, final int index, final Put put) throws CommitUnsuccessfulException, IOException {
+   public void doTlogWrite(final TransactionState transactionState, final String lvTxState, final Set<TransactionRegionLocation> regions, final boolean hasPeer, boolean forced, long recoveryASN) throws CommitUnsuccessfulException, IOException {
+	   
      int loopCount = 0;
      long threadId = Thread.currentThread().getId();
-     try {
-        if (LOG.isTraceEnabled()) LOG.trace("doTlogWrite [" + transactionState.getTransactionId() + "] in thread " + threadId);
+     final long lvTransid = transactionState.getTransactionId();
+     if (LOG.isTraceEnabled()) LOG.trace("doTlogWrite for " + transactionState.getTransactionId() + " in thread " + threadId);
+     StringBuilder tableString = new StringBuilder();
+     final long lvCommitId = transactionState.getCommitId();
+     if (regions != null) {
+        // Regions passed in indicate a state record where recovery might be needed following a crash.
+        // To facilitate branch notification we translate the regions into table names that can then
+        // be translated back into new region names following a restart.  THis allows us to ensure all
+        // branches reply prior to cleanup
+        Iterator<TransactionRegionLocation> it = regions.iterator();
+        List<String> tableNameList = new ArrayList<String>();
+        while (it.hasNext()) {
+           String name = new String(it.next().getRegionInfo().getTable().getNameAsString());
+           if ((name.length() > 0) && (tableNameList.contains(name) != true)){
+              // We have a table name not already in the list
+              tableNameList.add(name);
+              tableString.append(",");
+              tableString.append(name);
+           }
+        }
+        if (LOG.isTraceEnabled()) LOG.trace("table names: " + tableString.toString() + " in thread " + threadId);
+     }
+     //Create the Put as directed by the hashed key boolean
+     //create our own hashed key
+     long lv_seq = transactionState.getTransSeqNum(); 
+     final int index = (int)(transactionState.getTransSeqNum() & tLogHashKey);
+     long key = ((((long)index) << tLogHashShiftFactor) + lv_seq);
+     if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hex: " + Long.toHexString(key) + ", transid: " +  lvTransid
+   		  + " in thread " + threadId);
+     Put p = new Put(Bytes.toBytes(key));
+     String hasPeerS;
+     if (hasPeer) {
+        hasPeerS = new String ("1");
+     }
+     else {
+        hasPeerS = new String ("0");
+     }
+     long lvAsn;
+     if (recoveryASN == -1){
+        // This is a normal audit record so we manage the ASN
+        lvAsn = asn.get();
+     }
+     else {
+        // This is a recovery audit record so use the ASN passed in
+        lvAsn = recoveryASN;
+     }
+     if (LOG.isTraceEnabled()) LOG.trace("transid: " + lvTransid + " state: " + lvTxState + " ASN: " + lvAsn
+    		  + " in thread " + threadId);
+     p.add(TLOG_FAMILY, ASN_STATE, Bytes.toBytes(String.valueOf(lvAsn) + ","
+                       + String.valueOf(lvTransid) + "," + lvTxState
+                       + "," + Bytes.toString(filler)
+                       + "," + hasPeerS
+                       + "," + String.valueOf(lvCommitId)
+                       + "," + tableString.toString()));
 
-        HRegionLocation location = table[index].getRegionLocation(put.getRow());
+     try {
+        if (LOG.isTraceEnabled()) LOG.trace("doTlogWrite [" + lvTransid + "] in thread " + threadId);
+
+        HRegionLocation location = table[index].getRegionLocation(p.getRow());
         ServerName servername = location.getServerName();
         CompletionService<Integer> compPool = new ExecutorCompletionService<Integer>(tlogThreadPool);
 
         if (LOG.isTraceEnabled()) LOG.trace("doTlogWrite submitting tlog callable in thread " + threadId);
+        final Put p2 = new Put(p);
+        final byte[] row = p.getRow();
+        final byte[] value = Bytes.toBytes(String.valueOf(lvAsn) + ","
+                + String.valueOf(lvTransid) + "," + lvTxState
+                + "," + Bytes.toString(filler)
+                + "," + hasPeerS
+                + "," + String.valueOf(lvCommitId)
+                + "," + tableString.toString());
 
         compPool.submit(new TlogCallable1(transactionState, location, connection) {
            public Integer call() throws CommitUnsuccessfulException, IOException {
               if (LOG.isTraceEnabled()) LOG.trace("before doTlogWriteX() [" + transactionState.getTransactionId() + "]" );
-              return doTlogWriteX(location.getRegionInfo().getRegionName(), transactionState.getTransactionId(),
-                         transactionState.getCommitId(), put.getRow(), rowValue, put, index);
+              return doTlogWriteX(location.getRegionInfo().getRegionName(), lvTransid,
+                         transactionState.getCommitId(), row, value, p2, index);
            }
         });
      } catch (Exception e) {
-        LOG.error("exception in doTlogWrite for transaction: " + transactionState.getTransactionId() + " "  + e);
+        LOG.error("exception in doTlogWrite for transaction: " + lvTransid + " "  + e);
         throw new CommitUnsuccessfulException(e);
      }
      // all requests sent at this point, can record the count
