@@ -708,7 +708,9 @@ Lng32 ExpHbaseInterface_JNI::getRowOpen(
 	HbaseStr &tblName,
 	const HbaseStr &row, 
 	const LIST(HbaseStr) & columns,
-	const int64_t timestamp)
+	const int64_t timestamp,
+        HbaseAccessOptions *hao,
+        const char * hbaseAuths)
 {
   Int64 transID = getTransactionIDFromContext();
   htc_ = client_->startGet((NAHeap *)heap_, (char *)tblName.val, useTRex_, FALSE, 
@@ -716,7 +718,8 @@ Lng32 ExpHbaseInterface_JNI::getRowOpen(
 			   transID,
 			   row,
 			   columns,
-			   timestamp);
+			   timestamp,
+                           hbaseAuths);
   if (htc_ == NULL) {
     retCode_ = HBC_ERROR_GET_HTC_EXCEPTION;
     return HBASE_OPEN_ERROR;
@@ -730,12 +733,14 @@ Lng32 ExpHbaseInterface_JNI::getRowsOpen(
 	HbaseStr &tblName,
 	const LIST(HbaseStr) *rows, 
 	const LIST(HbaseStr) & columns,
-	const int64_t timestamp)
+	const int64_t timestamp,
+        HbaseAccessOptions *hao,
+        const char * hbaseAuths)
 {
   Int64 transID = getTransactionIDFromContext();
   htc_ = client_->startGets((NAHeap *)heap_, (char *)tblName.val, useTRex_, FALSE, 
 			    hbs_, 
-			    transID, rows, 0, NULL, columns, timestamp);
+			    transID, rows, 0, NULL, columns, timestamp, hbaseAuths);
   if (htc_ == NULL) {
     retCode_ = HBC_ERROR_GET_HTC_EXCEPTION;
     return HBASE_OPEN_ERROR;
@@ -750,8 +755,8 @@ Lng32 ExpHbaseInterface_JNI::deleteRow(
 	  NABoolean noXn,
 	  const NABoolean replSync,
 	  const int64_t timestamp,
-          NABoolean asyncOperation)
-
+          NABoolean asyncOperation,
+          const char * hbaseAuths)
 {
   HTableClient_JNI *htc;
   Int64 transID;
@@ -760,8 +765,10 @@ Lng32 ExpHbaseInterface_JNI::deleteRow(
     transID = 0;
   else
     transID = getTransactionIDFromContext();
-  retCode_ = client_->deleteRow((NAHeap *)heap_, tblName.val, hbs_, useTRex_, replSync, 
-				transID, row, columns, timestamp, asyncOperation, &htc);
+  retCode_ = 
+    client_->deleteRow((NAHeap *)heap_, tblName.val, hbs_, useTRex_, replSync, 
+                       transID, row, columns, timestamp, asyncOperation, 
+                       hbaseAuths, &htc);
   if (retCode_ != HBC_OK) {
     asyncHtc_ = NULL;
     return -HBASE_ACCESS_ERROR;
@@ -777,10 +784,12 @@ Lng32 ExpHbaseInterface_JNI::deleteRows(
 	  HbaseStr tblName,
           short rowIDLen,
 	  HbaseStr rowIDs,
+          const LIST(HbaseStr) *columns,
 	  NABoolean noXn,
 	  const NABoolean replSync,
 	  const int64_t timestamp,
-          NABoolean asyncOperation)
+          NABoolean asyncOperation,
+          const char * hbaseAuths)
 {
   HTableClient_JNI *htc;
   Int64 transID;
@@ -792,7 +801,9 @@ Lng32 ExpHbaseInterface_JNI::deleteRows(
 
   retCode_ = client_->deleteRows((NAHeap *)heap_, tblName.val, hbs_, 
 				 useTRex_, replSync, 
-				 transID, rowIDLen, rowIDs,timestamp, asyncOperation, &htc);
+				 transID, rowIDLen, rowIDs,
+                                 columns, timestamp, 
+                                 asyncOperation, hbaseAuths, &htc);
   if (retCode_ != HBC_OK) {
     asyncHtc_ = NULL;
     return -HBASE_ACCESS_ERROR;
@@ -807,11 +818,13 @@ Lng32 ExpHbaseInterface_JNI::deleteRows(
 Lng32 ExpHbaseInterface_JNI::checkAndDeleteRow(
 	  HbaseStr &tblName,
 	  HbaseStr& rowID, 
+          const LIST(HbaseStr) *columns,
 	  HbaseStr& columnToCheck,
 	  HbaseStr& columnValToCheck,
 	  NABoolean noXn,
 	  const NABoolean replSync,
-	  const int64_t timestamp)
+	  const int64_t timestamp,
+          const char * hbaseAuths)
 
 {
   HTableClient_JNI *htc;
@@ -822,8 +835,9 @@ Lng32 ExpHbaseInterface_JNI::checkAndDeleteRow(
   else
     transID = getTransactionIDFromContext();
   retCode_ = client_->checkAndDeleteRow((NAHeap *)heap_, tblName.val, hbs_, useTRex_, replSync, 
-					transID, rowID, columnToCheck, 
-                     columnValToCheck,timestamp, asyncOperation, &htc);
+					transID, rowID, columns, columnToCheck, 
+                                        columnValToCheck,timestamp, 
+                                        asyncOperation, hbaseAuths, &htc);
   if (retCode_ == HBC_ERROR_CHECKANDDELETEROW_NOTFOUND) {
     asyncHtc_ = NULL;
     return HBASE_ROW_NOTFOUND_ERROR;

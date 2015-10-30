@@ -1204,6 +1204,23 @@ short HbaseDelete::codeGen(Generator * generator)
   // estrowsaccessed is 0 for now, so cache size will be set to minimum
   generator->setHBaseNumCacheRows(getEstRowsAccessed().getValue(), hbpa) ;
 
+  ComTdbHbaseAccess::ComHbaseAccessOptions * hbo = NULL;
+  if (getOptHbaseAccessOptions())
+    {
+      hbo = new(space) ComTdbHbaseAccess::ComHbaseAccessOptions();
+
+      char * haStr = NULL;
+      if (NOT getOptHbaseAccessOptions()->hbaseAuths().isNull())
+        {
+          haStr = 
+            space->allocateAlignedSpace(
+                 getOptHbaseAccessOptions()->hbaseAuths().length() + 1);
+          strcpy(haStr, getOptHbaseAccessOptions()->hbaseAuths().data());
+
+          hbo->setHbaseAuths(haStr);
+        }
+    }
+
   // create hdfsscan_tdb
   ComTdbHbaseAccess *hbasescan_tdb = new(space) 
     ComTdbHbaseAccess(
@@ -1279,7 +1296,11 @@ short HbaseDelete::codeGen(Generator * generator)
 
 		      server,
                       zkPort,
-		      hbpa
+		      hbpa,
+
+                      -1, NULL,
+
+                      hbo
 		      );
 
   generator->initTdbFields(hbasescan_tdb);

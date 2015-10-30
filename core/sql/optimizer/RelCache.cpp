@@ -513,6 +513,20 @@ NABoolean Delete::isCacheableExpr(CacheWA& cwa)
 }
 
 // append an ascii-version of Merge into cachewa.qryText_
+void Delete::generateCacheKey(CacheWA &cwa) const
+{
+  GenericUpdate::generateCacheKey(cwa);
+
+  if (getOptHbaseAccessOptions())
+    {
+      if (NOT getOptHbaseAccessOptions()->hbaseAuths().isNull())
+        {
+          cwa += getOptHbaseAccessOptions()->hbaseAuths();
+        }
+    }
+}
+
+// append an ascii-version of Merge into cachewa.qryText_
 void MergeUpdate::generateCacheKey(CacheWA &cwa) const
 {
   Update::generateCacheKey(cwa);

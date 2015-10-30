@@ -1845,6 +1845,32 @@ short HbaseAccess::genListOfColNames(Generator * generator,
 //
 //                colQual is 1,2,4 bytes
 //
+short HbaseAccess::convNumToId(const char * colQualPtr, Lng32 colQualLen,
+                               NAString &cid)
+{
+  Int64 colQval = str_atoi(colQualPtr, colQualLen);
+  
+  if (colQval <= UCHAR_MAX)
+    {
+      unsigned char c = (unsigned char)colQval;
+      cid.append((char*)&c, 1);
+    }
+  else if (colQval <= USHRT_MAX)
+    {
+      unsigned short s = (unsigned short)colQval;
+      cid.append((char*)&s, 2);
+    }
+  else if (colQval <= ULONG_MAX)
+    {
+      Lng32 l = (Lng32)colQval;
+      cid.append((char*)&l, 4);
+    }
+  else
+    cid.append((char*)&colQval, 8);
+
+  return 0;
+}
+
 short HbaseAccess::createHbaseColId(const NAColumn * nac,
 				    NAString &cid, 
 				    NABoolean isSecondaryIndex,
@@ -1868,26 +1894,8 @@ short HbaseAccess::createHbaseColId(const NAColumn * nac,
 	}
       else if (isSecondaryIndex)
 	cid += "@"; 
-      
-      Int64 colQval = str_atoi(colQualPtr, colQualLen);
-      
-      if (colQval <= UCHAR_MAX)
-	{
-	  unsigned char c = (unsigned char)colQval;
-	  cid.append((char*)&c, 1);
-	}
-      else if (colQval <= USHRT_MAX)
-	{
-	  unsigned short s = (unsigned short)colQval;
-	  cid.append((char*)&s, 2);
-	}
-      else if (colQval <= ULONG_MAX)
-	{
-	  Lng32 l = (Lng32)colQval;
-	  cid.append((char*)&l, 4);
-	}
-      else
-	cid.append((char*)&colQval, 8);
+
+      convNumToId(colQualPtr, colQualLen, cid);
     }
 
   if (NOT noLenPrefix)
@@ -2856,13 +2864,17 @@ short HbaseAccess::codeGen(Generator * generator)
       
       if (getOptHbaseAccessOptions()->hbaseMaxTS() >= 0)
         hbo->hbaseAccessOptions().setHbaseMaxTS(getOptHbaseAccessOptions()->hbaseMaxTS());
-    }
 
-  char * haStr = NULL;
-  if (NOT hbaseAuths().isNull())
-    {
-      haStr = space->allocateAlignedSpace(hbaseAuths().length() + 1);
-      strcpy(haStr, hbaseAuths().data());
+      char * haStr = NULL;
+      if (NOT getOptHbaseAccessOptions()->hbaseAuths().isNull())
+        {
+          haStr = 
+            space->allocateAlignedSpace(
+                 getOptHbaseAccessOptions()->hbaseAuths().length() + 1);
+          strcpy(haStr, getOptHbaseAccessOptions()->hbaseAuths().data());
+
+          hbo->setHbaseAuths(haStr);
+        }
     }
 
   // create hbasescan_tdb
@@ -2944,8 +2956,7 @@ short HbaseAccess::codeGen(Generator * generator)
 		      samplePercent(),
 		      snapAttrs,
 
-                      hbo,
-                      haStr
+                      hbo
 		      );
 
   generator->initTdbFields(hbasescan_tdb);

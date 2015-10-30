@@ -7703,21 +7703,16 @@ RelExpr *Scan::bindNode(BindWA *bindWA)
     }
   }
   
-  if (optHbaseAccessOptions_)
+  if (getOptHbaseAccessOptions())
     {
-      optHbaseAccessOptions_->setOptionsFromDefs(naTable->getTableName());
+      getOptHbaseAccessOptions()->setOptionsFromDefs(naTable->getTableName());
 
-      if (optHbaseAccessOptions_->isMaxVersions())
+      if (getOptHbaseAccessOptions()->isMaxVersions())
         {
-          optHbaseAccessOptions_->setNumVersions
+          getOptHbaseAccessOptions()->setNumVersions
             (
               getTableDesc()->getClusteringIndex()->getNAFileSet()->numMaxVersions()
              );
-        }
-
-      if (NOT optHbaseAccessOptions_->hbaseAuths().isNull())
-        {
-          hbaseAuths() = optHbaseAccessOptions_->hbaseAuths();
         }
     }
   
@@ -10792,15 +10787,21 @@ RelExpr *Delete::bindNode(BindWA *bindWA)
   RelExpr * boundExpr = GenericUpdate::bindNode(bindWA);
   if (bindWA->errStatus()) return boundExpr;
 
-  if ((csl_) &&
-      (NOT getTableDesc()->getNATable()->isHbaseRowTable()))
+  if (csl_)
     {
-      *CmpCommon::diags() << DgSqlCode(-1425)
-			  << DgTableName(getTableDesc()->getNATable()->getTableName().
-					 getQualifiedNameAsAnsiString());
-    
-      bindWA->setErrStatus();
-      return this;
+      if ((getTableDesc()->getNATable()->isSeabaseTable()) &&
+          (Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL)))
+        {
+        }
+      else if (NOT getTableDesc()->getNATable()->isHbaseRowTable())
+        {
+          *CmpCommon::diags() << DgSqlCode(-1425)
+                              << DgTableName(getTableDesc()->getNATable()->getTableName().
+                                             getQualifiedNameAsAnsiString());
+          
+          bindWA->setErrStatus();
+          return this;
+        }
     }
 
   if (getTableDesc()->getNATable()->isHbaseCellTable())
@@ -10999,7 +11000,17 @@ RelExpr *Delete::bindNode(BindWA *bindWA)
       boundExpr = firstn;
     }
 
-   if (csl())
+   if ((csl()) && (getTableDesc()->getNATable()->isSeabaseTable()) &&
+       (NOT (Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL))))
+     {
+       *CmpCommon::diags() << DgSqlCode(-3242)
+                           << DgString0("Cannot specify column name in a delete statement.");
+
+       bindWA->setErrStatus();
+       return this;
+     }
+
+   if ((csl()) && (NOT getTableDesc()->getNATable()->isSeabaseTable()))
      {
        for (Lng32 i = 0; i < csl()->entries(); i++)
 	 {
@@ -11009,7 +11020,7 @@ RelExpr *Delete::bindNode(BindWA *bindWA)
 	     ((QualifiedName*)&getTableDesc()->getNATable()->getTableName(), nas);
 	 }
      }
-
+ 
   return boundExpr;
 } // Delete::bindNode()
 

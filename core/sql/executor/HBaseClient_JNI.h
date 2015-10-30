@@ -552,11 +552,13 @@ public:
 
   HTableClient_JNI *startGet(NAHeap *heap, const char* tableName, bool useTRex, NABoolean replSync, 
             ExHbaseAccessStats *hbs, Int64 transID, const HbaseStr& rowID, 
-            const LIST(HbaseStr) & cols, Int64 timestamp);
+                             const LIST(HbaseStr) & cols, Int64 timestamp,
+                             const char * hbaseAuths = NULL);
   HTableClient_JNI *startGets(NAHeap *heap, const char* tableName, bool useTRex, NABoolean replSync, 
             ExHbaseAccessStats *hbs, Int64 transID, const LIST(HbaseStr) *rowIDs, 
             short rowIDLen, const HbaseStr *rowIDsInDB, 
-            const LIST(HbaseStr) & cols, Int64 timestamp);
+                              const LIST(HbaseStr) & cols, Int64 timestamp,
+                              const char * hbaseAuths = NULL);
   HBC_RetCode incrCounter( const char * tabName, const char * rowId, const char * famName, 
                  const char * qualName , Int64 incr, Int64 & count);
   HBC_RetCode createCounterTable( const char * tabName,  const char * famName);
@@ -580,17 +582,26 @@ public:
 				HTableClient_JNI **outHtc);
   HBC_RetCode deleteRow(NAHeap *heap, const char *tableName,
 			ExHbaseAccessStats *hbs, bool useTRex, NABoolean replSync,
-			Int64 transID, HbaseStr rowID, const LIST(HbaseStr) *cols, 
-			Int64 timestamp, bool asyncOperation, HTableClient_JNI **outHtc);
+			Int64 transID, HbaseStr rowID, 
+                        const LIST(HbaseStr) *cols, 
+			Int64 timestamp, bool asyncOperation, 
+                        const char * hbaseAuths,
+                        HTableClient_JNI **outHtc);
   HBC_RetCode deleteRows(NAHeap *heap, const char *tableName,
 			 ExHbaseAccessStats *hbs, bool useTRex, NABoolean replSync,
 			 Int64 transID, short rowIDLen, HbaseStr rowIDs, 
-			 Int64 timestamp, bool asyncOperation, HTableClient_JNI **outHtc);
+                         const LIST(HbaseStr) *cols, 
+			 Int64 timestamp, bool asyncOperation, 
+                         const char * hbaseAuths,
+                         HTableClient_JNI **outHtc);
   HBC_RetCode checkAndDeleteRow(NAHeap *heap, const char *tableName,
 				ExHbaseAccessStats *hbs, bool useTRex, NABoolean replSync,
 				Int64 transID, HbaseStr rowID, 
+                                const LIST(HbaseStr) *cols, 
 				HbaseStr columnToCheck, HbaseStr columnValToCheck,
-				Int64 timestamp, bool asyncOperation, HTableClient_JNI **outHtc);
+				Int64 timestamp, bool asyncOperation, 
+                                const char * hbaseAuths,
+                                HTableClient_JNI **outHtc);
   
 private:   
   // private default constructor

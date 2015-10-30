@@ -6236,6 +6236,13 @@ hbase_access_options : empty
       }
     | '{' TOK_HBASE TOK_AUTHORIZATION QUOTED_STRING '}'
       {
+        if (CmpCommon::getDefault(HBASE_VISIBILITY) == DF_OFF)
+          {
+            *SqlParser_Diags << DgSqlCode(-1229) 
+                             << DgString0("HBASE AUTHORIZATION");
+            YYERROR;
+          }
+
         $$ = new (PARSERHEAP()) OptHbaseAccessOptions($4->data());
       }
     | '{' TOK_HBASE TOK_TIMESTAMP TOK_AS TOK_OF QUOTED_STRING ',' TOK_HBASE TOK_AUTHORIZATION QUOTED_STRING '}'
@@ -6247,6 +6254,13 @@ hbase_access_options : empty
             YYERROR;
           }
 
+        if (CmpCommon::getDefault(HBASE_VISIBILITY) == DF_OFF)
+          {
+            *SqlParser_Diags << DgSqlCode(-1229) 
+                             << DgString0("HBASE AUTHORIZATION");
+            YYERROR;
+          }
+
         $$->hbaseAuths() = *$10;
       }
    | '{' TOK_HBASE TOK_TIMESTAMP TOK_AS TOK_OF QUOTED_STRING ',' TOK_HBASE TOK_AUTHORIZATION QUOTED_STRING ',' num_versions '}'
@@ -6255,6 +6269,13 @@ hbase_access_options : empty
         if (NOT $$->isValid())
           {
             *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$6);
+            YYERROR;
+          }
+
+        if (CmpCommon::getDefault(HBASE_VISIBILITY) == DF_OFF)
+          {
+            *SqlParser_Diags << DgSqlCode(-1229) 
+                             << DgString0("HBASE AUTHORIZATION");
             YYERROR;
           }
 
@@ -19767,6 +19788,13 @@ set_clause : identifier '=' value_expression
 				}
                               | identifier '=' TOK_HBASE_VISIBILITY '(' QUOTED_STRING ')'
 				{
+                                  if (CmpCommon::getDefault(HBASE_VISIBILITY) == DF_OFF)
+                                    {
+                                      *SqlParser_Diags << DgSqlCode(-1229) 
+                                                       << DgString0("HBASE_VISIBILITY");
+                                      YYERROR;
+                                    }
+
                                   ColReference * colRef = new (PARSERHEAP())
                                     ColReference(
                                          new (PARSERHEAP()) ColRefName(*$1, PARSERHEAP()));
@@ -19777,8 +19805,17 @@ set_clause : identifier '=' value_expression
 				}
 
 /* type relx */
-delete_start_tokens : TOK_DELETE no_check_log TOK_FROM table_name 
+delete_start_tokens : TOK_DELETE no_check_log TOK_FROM table_name hbase_access_options
                {
+                 if ($5)
+                   {
+                     if (($5->versionSpecified()) ||
+                         ($5->tsSpecified()))
+                       {
+                         YYERROR;
+                       }
+                   }
+
                  TransMode *transMode = CmpCommon::transMode();
 
                  // Multi Commit must extract the where clause part
@@ -19801,8 +19838,7 @@ delete_start_tokens : TOK_DELETE no_check_log TOK_FROM table_name
                    Delete(CorrName(*$4, PARSERHEAP()),
                           NULL,
                           REL_UNARY_DELETE,
-                          inputScan,
-                          NULL);
+                          inputScan);
    
                  if (($2 == 1) || ($2 == 3))
                    {
@@ -19813,7 +19849,12 @@ delete_start_tokens : TOK_DELETE no_check_log TOK_FROM table_name
                    {
                      ((Delete*)$$)->setNoCheck(TRUE);
                    }
-   
+
+                  if ($5)
+                    {
+                      $$->setOptHbaseAccessOptions($5);
+                    }
+
                  delete $4;
                }
           | TOK_DELETE no_check_log TOK_FROM table_name TOK_AS correlation_name
@@ -19858,13 +19899,13 @@ delete_start_tokens : TOK_DELETE no_check_log TOK_FROM table_name
                  delete $6;
                }
 
-delete_statement : TOK_DELETE TOK_COLUMNS '(' quoted_string_list ')' TOK_FROM table_name  where_clause
+delete_statement : TOK_DELETE TOK_COLUMNS '(' quoted_string_list ')' TOK_FROM table_name  hbase_access_options where_clause
                {
                  Scan * inputScan =
                    new (PARSERHEAP()) Scan(CorrName(*$7, PARSERHEAP()));
 
 		 // attach the WHERE clause to the input scan
-		 inputScan->addSelPredTree($8);
+		 inputScan->addSelPredTree($9);
     
                  $$ = new (PARSERHEAP())
                    Delete(CorrName(*$7, PARSERHEAP()),
@@ -19873,6 +19914,11 @@ delete_statement : TOK_DELETE TOK_COLUMNS '(' quoted_string_list ')' TOK_FROM ta
                           inputScan,
                           NULL, NULL,
 			  $4);
+                 
+                 if ($8)
+                   {
+                     $$->setOptHbaseAccessOptions($8);
+                   }
    
                  delete $7;
                }
@@ -19964,7 +20010,7 @@ delete_statement : delete_start_tokens where_clause
                                      delete del;
 
                                      $$ = eue;
-                                  }
+                                  } // multi-commit
                                   else
                                   {
 

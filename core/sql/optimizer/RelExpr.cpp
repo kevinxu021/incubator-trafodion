@@ -287,6 +287,7 @@ RelExpr::RelExpr(OperatorTypeEnum otype,
   ,cachedTupleFormat_(ExpTupleDesc::UNINITIALIZED_FORMAT)
   ,cachedResizeCIFRecord_(FALSE)
   ,dopReduced_(FALSE)
+  ,optHbaseAccessOptions_(NULL)
 {
 
   child_[0] = leftChild;
@@ -852,6 +853,8 @@ RelExpr * RelExpr::copyTopNode(RelExpr *derivedNode,CollHeap* outHeap)
   result->sourceMemoExprId_ = sourceMemoExprId_;
   result->sourceGroupId_ = sourceGroupId_;
   result->costLimit_ = costLimit_;
+
+  result->optHbaseAccessOptions_ = optHbaseAccessOptions_;
 
   return result;
 }
@@ -8220,9 +8223,6 @@ RelExpr * Scan::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
   result->isRewrittenMV_ = isRewrittenMV_;
   result->matchingMVs_ = matchingMVs_;
 
-  result->optHbaseAccessOptions_ = optHbaseAccessOptions_;
-  result->hbaseAuths_ = hbaseAuths_;
-
   // don't copy values that can be calculated by addIndexInfo()
   // (could be done, but we are lazy and just call addIndexInfo() again)
 
@@ -8376,7 +8376,8 @@ void Scan::addIndexInfo()
       (getOptHbaseAccessOptions() &&
        getOptHbaseAccessOptions()->tsSpecified()) ||
       (tableDesc->hbaseTSList().entries() > 0) ||
-      (NOT hbaseAuths().isNull()))
+      (getOptHbaseAccessOptions() && 
+       (NOT getOptHbaseAccessOptions()->hbaseAuths().isNull())))
     {
       // that's easy, there is only one index (the base table)
       // and that index better have everything we need
