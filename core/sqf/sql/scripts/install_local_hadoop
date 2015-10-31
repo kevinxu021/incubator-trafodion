@@ -1464,7 +1464,7 @@ else
  </property>
  <property>
     <name>hbase.zookeeper.property.dataDir</name>
-    <value>hdfs://${MY_HOST_1}:${MY_HADOOP_HDFS_PORT_NUM}/zookeeper</value>
+    <value>${MY_SW_ROOT}/hdfs://${MY_HOST_1}:${MY_HADOOP_HDFS_PORT_NUM}/zookeeper</value>
   </property>
   <property>
     <name>hbase.master.port</name>

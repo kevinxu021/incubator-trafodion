@@ -37,7 +37,6 @@
 # - initialize trafodion
 #
 
- 
 function getMyNameNode {
     jps | grep -w NameNode | cut -d' ' -f1
 }
@@ -62,6 +61,11 @@ function killMyHMaster {
 
 }
 
+lv_clean_hb_data=0
+if [[ ! -z "$1" ]]; then
+    lv_clean_hb_data=$1
+fi
+
 lv_nnpid=`getMyNameNode`
 if [[ -z ${lv_nnpid} ]]; then
     echo "NameNode is not up - please run swstarthadoop to start it or check the Hadoop logs - exitting..."
@@ -80,9 +84,11 @@ echo "DataNode pid: ${lv_dnpid}"
 killMyHMaster
 
 # delete the zookeeper info
-lv_zk_dir="${MY_SQROOT}/sql/local_hadoop/hdfs:"
-echo "Deleting the zookeeper directory: ${lv_zk_dir}"
-rm -rf ${lv_zk_dir}
+if [[ ${lv_clean_hb_data} -gt 0 ]]; then
+    lv_zk_dir="${MY_SW_ROOT}/hdfs:"
+    echo "Deleting the zookeeper directory: ${lv_zk_dir}"
+    rm -rf ${lv_zk_dir}
+fi
 
 #delete the logs
 echo "Deleting HBase logs in: ${MY_SQROOT}/sql/local_hadoop/hbase/logs"
@@ -93,7 +99,8 @@ if [ ! -z ${MY_SQROOT} ]; then
     rm -rf ${MY_SQROOT}/sql/local_hadoop/hbase/logs/*.out.[0-9]*
 fi
 
+if [[ ${lv_clean_hb_data} -gt 2 ]]; then
 # delete the HBase table data from HDFS
-echo "Deleting the HBase data directory (hdfs) /hbase"
-swhdfs dfs -rm -f -r -skipTrash /hbase
-
+    echo "Deleting the HBase data directory (hdfs) /hbase"
+    swhdfs dfs -rm -f -r -skipTrash /hbase
+fi
