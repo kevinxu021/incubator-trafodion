@@ -1797,6 +1797,8 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDkwd__(HBASE_UPDEL_CURSOR_OPT,		"ON"),
   DDui___(HBASE_USE_FAKED_REGIONS,		"0"),
 
+  DDkwd__(HBASE_VISIBILITY,		        "OFF"),
+
   DD_____(HBASE_ZOOKEEPER_PORT,                 ""),
 
   DDui1__(HDFS_IO_BUFFERSIZE,                            "65536"),

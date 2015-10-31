@@ -1472,24 +1472,27 @@ public class HBaseClient {
   }
 
     public int startGet(long jniObject, String tblName, boolean useTRex, boolean bSynchronize, long transID, byte[] rowID,
-                        Object[] columns, long timestamp)
+                        Object[] columns, long timestamp,
+                        String hbaseAuths)
                         throws IOException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
-      return htc.startGet(transID, rowID, columns, timestamp);
+      return htc.startGet(transID, rowID, columns, timestamp, hbaseAuths);
   }
 
   public int startGet(long jniObject, String tblName, boolean useTRex, boolean bSynchronize, long transID, Object[] rowIDs,
-                        Object[] columns, long timestamp)
+                      Object[] columns, long timestamp,
+                      String hbaseAuths)
                         throws IOException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
-      return htc.startGet(transID, rowIDs, columns, timestamp);
+      return htc.startGet(transID, rowIDs, columns, timestamp, hbaseAuths);
   }
 
   public int startGet(long jniObject, String tblName, boolean useTRex, boolean bSynchronize, long transID, short rowIDLen, Object rowIDs,
-                        Object[] columns)
+                      Object[] columns,
+                      String hbaseAuths)
                         throws IOException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
-      return htc.getRows(transID, rowIDLen, rowIDs, columns);
+      return htc.getRows(transID, rowIDLen, rowIDs, columns, hbaseAuths);
   }
 
   public boolean insertRow(long jniObject, String tblName, boolean useTRex, boolean bSynchronize, long transID, byte[] rowID,
@@ -1564,9 +1567,11 @@ public class HBaseClient {
 			   byte[] rowID,
 			   Object[] columns,
 			   long timestamp,
-			   boolean asyncOperation) throws IOException {
+			   boolean asyncOperation,
+                           String hbaseAuths) throws IOException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
-      boolean ret = htc.deleteRow(transID, rowID, columns, timestamp, asyncOperation);
+      boolean ret = htc.deleteRow(transID, rowID, columns, timestamp, 
+                                  asyncOperation, hbaseAuths);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);
       else
@@ -1581,10 +1586,14 @@ public class HBaseClient {
 			    long transID, 
 			    short rowIDLen, 
 			    Object rowIDs,
+                            Object[] columns,
 			    long timestamp, 
-			    boolean asyncOperation) throws IOException, InterruptedException, ExecutionException {
+			    boolean asyncOperation,
+                            String hbaseAuths) throws IOException, InterruptedException, ExecutionException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
-      boolean ret = htc.deleteRows(transID, rowIDLen, rowIDs, timestamp, asyncOperation);
+      boolean ret = htc.deleteRowsInt(transID, rowIDLen, rowIDs, 
+                                   columns, timestamp, 
+                                   asyncOperation, hbaseAuths);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);
       else
@@ -1598,12 +1607,16 @@ public class HBaseClient {
 				   boolean bSynchronize,
 				   long transID, 
 				   byte[] rowID,
+                                   Object[] columns,
 				   byte[] columnToCheck,
 				   byte[] colValToCheck,
 				   long timestamp,
-				   boolean asyncOperation) throws IOException {
+				   boolean asyncOperation,
+                                   String hbaseAuths) throws IOException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
-      boolean ret = htc.checkAndDeleteRow(transID, rowID, columnToCheck, colValToCheck, timestamp);
+      boolean ret = htc.checkAndDeleteRow(transID, rowID, columns, 
+                                          columnToCheck, colValToCheck, 
+                                          timestamp, hbaseAuths);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);
       else

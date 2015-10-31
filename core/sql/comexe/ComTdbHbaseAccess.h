@@ -366,9 +366,17 @@ public:
 
     virtual short getClassSize() { return (short)sizeof(ComHbaseAccessOptions); }
 
+    // Pack and Unpack routines
+    Long pack(void *);
+    Lng32 unpack(void *, void * reallocator);
+    
     HbaseAccessOptions &hbaseAccessOptions() { return hbo_; }
+
+    void setHbaseAuths(char * hba) { hbaseAuths_ = hba; }
+    char * hbaseAuths() { return hbaseAuths_; }
   private:
     HbaseAccessOptions hbo_;
+    NABasicPtr hbaseAuths_;
   };
 
  // ---------------------------------------------------------------------
@@ -461,9 +469,7 @@ public:
 		    Float32 samplingRate = -1,
 		    HbaseSnapshotScanAttributes * hbaseSnapshotScanAttributes = NULL,
 
-                    ComHbaseAccessOptions * comHbaseAccessOptions = NULL,
-
-                    char * hbaseAuths = NULL
+                    ComHbaseAccessOptions * comHbaseAccessOptions = NULL
 	       );
   
   ComTdbHbaseAccess(
@@ -624,8 +630,6 @@ public:
 
   const char * server() { return server_; }
   const char * zkPort() { return zkPort_;}
-
-  const char * hbaseAuths() { return hbaseAuths_; }
 
   HbasePerfAttributes * getHbasePerfAttributes() 
   { return (HbasePerfAttributes*)hbasePerfAttributes_.getPointer();}
@@ -1018,7 +1022,6 @@ public:
   UInt16 hbaseRowsetVsbbSize_; 
   UInt16 trafLoadFlushSize_;
   ComHbaseAccessOptionsPtr comHbaseAccessOptions_; 
-  NABasicPtr hbaseAuths_;
   char fillers[2];
 };
 
