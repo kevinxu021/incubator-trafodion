@@ -86,7 +86,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class HBaseTxClient {
 
    static final Log LOG = LogFactory.getLog(HBaseTxClient.class);
-   private static TmAuditTlog tLog;
+   private TmAuditTlog tLog;
    private static HBaseTmZK tmZK;
    private static RecoveryThread recovThread;
    private static RecoveryThread peerRecovThread = null;
@@ -1139,10 +1139,12 @@ public class HBaseTxClient {
       if (bSynchronized){
          for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) {
             int lv_peerId = entry.getKey();
+            if (lv_peerId == 0) // no peer for ourselves
+               continue;
             TmAuditTlog lv_tLog = peer_tLogs.get(lv_peerId);
             if (lv_tLog == null){
-                LOG.error("Error during control point processing for tlog for peer: " + lv_peerId);
-            	continue;
+               LOG.error("Error during control point processing for tlog for peer: " + lv_peerId);
+               continue;
             }
             try {
                if (pSTRConfig.getPeerStatus(lv_peerId).contains(PeerInfo.STR_UP)) {
@@ -1150,7 +1152,7 @@ public class HBaseTxClient {
                   lv_tLog.addControlPoint(myClusterId, mapTransactionStates);
                }
                else {
-                   if (LOG.isWarnEnabled()) LOG.warn("PEER " + lv_peerId + " STATUS is DOWN; skipping control point");            	   
+                  if (LOG.isWarnEnabled()) LOG.warn("PEER " + lv_peerId + " STATUS is DOWN; skipping control point");            	   
                }
             }
             catch (Exception e) {
