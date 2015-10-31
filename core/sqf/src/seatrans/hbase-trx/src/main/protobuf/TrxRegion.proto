@@ -264,13 +264,9 @@ message RecoveryRequestResponse {
 message TlogWriteRequest{
   required bytes regionName = 1;
   required int64 transactionId = 2;
-  required bytes row = 3;
-  required bytes family = 4;
-  required bytes qualifier = 5;
-  required bytes value = 6;
-  required MutationProto put = 7;
-  required int64 commitId = 8;
-  optional bool forced = 9;
+  required MutationProto put = 3;
+  required int64 commitId = 4;
+  optional bool forced = 5;
 }
 
 message TlogWriteResponse {
