@@ -86,7 +86,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class HBaseTxClient {
 
    static final Log LOG = LogFactory.getLog(HBaseTxClient.class);
-   private TmAuditTlog tLog;
+   private static TmAuditTlog tLog;
    private static HBaseTmZK tmZK;
    private static RecoveryThread recovThread;
    private static RecoveryThread peerRecovThread = null;
