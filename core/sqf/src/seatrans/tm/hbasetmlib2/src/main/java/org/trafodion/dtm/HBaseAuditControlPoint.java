@@ -85,7 +85,7 @@ public class HBaseAuditControlPoint {
     private static String CONTROL_POINT_TABLE_NAME;
     private static final byte[] CONTROL_POINT_FAMILY = Bytes.toBytes("cpf");
     private static final byte[] CP_NUM_AND_ASN_HWM = Bytes.toBytes("hwm");
-    private static HTable table;
+    private HTable table;
     private boolean useAutoFlush;
     private boolean disableBlockCache;
     private static final int versions = 6;
