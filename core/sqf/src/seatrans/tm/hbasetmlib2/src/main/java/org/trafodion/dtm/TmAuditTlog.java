@@ -167,9 +167,9 @@ public class TmAuditTlog {
  
    private static AtomicLong asn;  // Audit sequence number is the monotonic increasing value of the tLog write
 
-   private static Object tlogAuditLock[];        // Lock for synchronizing access via regions.
+   private Object tlogAuditLock[];        // Lock for synchronizing access via regions.
 
-   private static Object tablePutLock;            // Lock for synchronizing table.put operations
+   private Object tablePutLock;            // Lock for synchronizing table.put operations
                                                   // to avoid ArrayIndexOutOfBoundsException
    private static byte filler[];
 
@@ -239,7 +239,9 @@ public class TmAuditTlog {
       * Purpose : write commit/abort state record for a given transaction
       */
       public Integer doTlogWriteX(final byte[] regionName, final long transactionId, final long commitId,
-    		  final byte[] row, final byte[] value, final Put put, final int index) throws IOException {
+         final Put put, final int index) throws IOException {
+//          public Integer doTlogWriteX(final byte[] regionName, final long transactionId, final long commitId,
+//        		  final byte[] row, final byte[] value, final Put put, final int index) throws IOException {
          long threadId = Thread.currentThread().getId();
          if (LOG.isTraceEnabled()) LOG.trace("doTlogWriteX -- ENTRY txid: " + transactionId + ", clusterId: " + myClusterId + ", thread " + threadId
         		             + ", put: " + put.toString());
@@ -265,10 +267,12 @@ public class TmAuditTlog {
                        builder.setRegionName(ByteString.copyFromUtf8(Bytes.toString(regionName))); //ByteString.copyFromUtf8(Bytes.toString(regionName)));
 
                        
-                       builder.setRow(HBaseZeroCopyByteString.wrap(row));
+//                       builder.setRow(HBaseZeroCopyByteString.wrap(row));
+                       builder.setRow(HBaseZeroCopyByteString.wrap(Bytes.toBytes(" ")));
                        builder.setFamily(HBaseZeroCopyByteString.wrap(TLOG_FAMILY));
                        builder.setQualifier(HBaseZeroCopyByteString.wrap(ASN_STATE));
-                       builder.setValue(HBaseZeroCopyByteString.wrap(value));
+                       builder.setValue(HBaseZeroCopyByteString.wrap(Bytes.toBytes(" ")));
+//                       builder.setValue(HBaseZeroCopyByteString.wrap(value));
                        MutationProto m1 = ProtobufUtil.toMutation(MutationType.PUT, put);
                        builder.setPut(m1);
 
@@ -789,19 +793,19 @@ public class TmAuditTlog {
 
         if (LOG.isTraceEnabled()) LOG.trace("doTlogWrite submitting tlog callable in thread " + threadId);
         final Put p2 = new Put(p);
-        final byte[] row = p.getRow();
-        final byte[] value = Bytes.toBytes(String.valueOf(lvAsn) + ","
-                + String.valueOf(lvTransid) + "," + lvTxState
-                + "," + Bytes.toString(filler)
-                + "," + hasPeerS
-                + "," + String.valueOf(lvCommitId)
-                + "," + tableString.toString());
+//        final byte[] row = p.getRow();
+//        final byte[] value = Bytes.toBytes(String.valueOf(lvAsn) + ","
+//                + String.valueOf(lvTransid) + "," + lvTxState
+//                + "," + Bytes.toString(filler)
+//                + "," + hasPeerS
+//                + "," + String.valueOf(lvCommitId)
+//                + "," + tableString.toString());
 
         compPool.submit(new TlogCallable1(transactionState, location, connection) {
            public Integer call() throws CommitUnsuccessfulException, IOException {
               if (LOG.isTraceEnabled()) LOG.trace("before doTlogWriteX() [" + transactionState.getTransactionId() + "]" );
               return doTlogWriteX(location.getRegionInfo().getRegionName(), lvTransid,
-                         transactionState.getCommitId(), row, value, p2, index);
+                         transactionState.getCommitId(), p2, index);
            }
         });
      } catch (Exception e) {

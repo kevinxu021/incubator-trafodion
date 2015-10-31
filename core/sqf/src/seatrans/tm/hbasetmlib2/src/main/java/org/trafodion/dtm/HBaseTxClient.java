@@ -548,16 +548,16 @@ public class HBaseTxClient {
          ts.setStatus(TransState.STATE_ABORTED);
          if (useTlog) {
             if (bSynchronized && ts.hasRemotePeers()){
-               Put p;
-               if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, generating ABORTED put for transaction: " + transactionID);
-               p = tLog.generatePut(transactionID);
-               if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, initializing put for transaction: " + transactionID);
-               int index = tLog.initializePut(transactionID, -1, "ABORTED", ts.getParticipatingRegions(), ts.hasRemotePeers(), p);
+//               Put p;
+//               if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, generating ABORTED put for transaction: " + transactionID);
+//               p = tLog.generatePut(transactionID);
+//               if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, initializing put for transaction: " + transactionID);
+//               int index = tLog.initializePut(transactionID, -1, "ABORTED", ts.getParticipatingRegions(), ts.hasRemotePeers(), p);
                for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                   try {
                      if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:calling doTlogWrite ABORTED for : " + ts.getTransactionId());
 //                     lv_tLog.doTlogWrite(ts, Bytes.toBytes("ABORTED"), index, p);
-                     lv_tLog.doTlogWrite(ts, "ABORTED", ts.getParticipatingRegions(), ts.hasRemotePeers(), false, -1);
+                     lv_tLog.doTlogWrite(ts, "ABORTED", ts.getParticipatingRegions(), ts.hasRemotePeers(), true, -1);
 
                   }
                   catch (Exception e) {
@@ -617,16 +617,16 @@ public class HBaseTxClient {
       }
       if (useTlog && useForgotten) {
          if (bSynchronized && ts.hasRemotePeers()){
-            Put p;
-            if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, generating FORGOTTEN put for transaction: " + transactionID);
-            p = tLog.generatePut(transactionID);
-            if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, initializing put for FORGOTTEN transaction: " + transactionID);
-            int index = tLog.initializePut(transactionID, -1, "FORGOTTEN", ts.getParticipatingRegions(), ts.hasRemotePeers(), p);
+//            Put p;
+//            if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, generating FORGOTTEN put for transaction: " + transactionID);
+//            p = tLog.generatePut(transactionID);
+//            if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, initializing put for FORGOTTEN transaction: " + transactionID);
+//            int index = tLog.initializePut(transactionID, -1, "FORGOTTEN", ts.getParticipatingRegions(), ts.hasRemotePeers(), p);
             for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                try {
                   if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:calling doTlogWrite FORGOTTEN for : " + ts.getTransactionId());
 //                  lv_tLog.doTlogWrite(ts, Bytes.toBytes("FORGOTTEN"), index, p);
-                  lv_tLog.doTlogWrite(ts, "FORGOTTEN", ts.getParticipatingRegions(), ts.hasRemotePeers(), false, -1);
+                  lv_tLog.doTlogWrite(ts, "FORGOTTEN", ts.getParticipatingRegions(), ts.hasRemotePeers(), true, -1);
 
                }
                catch (Exception e) {
@@ -801,16 +801,16 @@ public class HBaseTxClient {
        }
        if (useTlog && useForgotten) {
           if (bSynchronized && ts.hasRemotePeers()){
-             Put p;
-             if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, generating FORGOTTEN put for transaction: " + transactionId);
-             p = tLog.generatePut(transactionId);
-             if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, initializing put for FORGOTTEN transaction: " + transactionId);
-             int index = tLog.initializePut(transactionId, commitIdVal, "FORGOTTEN", ts.getParticipatingRegions(), ts.hasRemotePeers(), p);
+//             Put p;
+//             if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, generating FORGOTTEN put for transaction: " + transactionId);
+//             p = tLog.generatePut(transactionId);
+//             if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, initializing put for FORGOTTEN transaction: " + transactionId);
+//             int index = tLog.initializePut(transactionId, commitIdVal, "FORGOTTEN", ts.getParticipatingRegions(), ts.hasRemotePeers(), p);
              for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                 try {
                     if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:calling doTlogWrite FORGOTTEN for : " + ts.getTransactionId());
 //                	lv_tLog.doTlogWrite(ts, Bytes.toBytes("FORGOTTEN"), index, p);
-                    lv_tLog.doTlogWrite(ts, "FORGOTTEN", ts.getParticipatingRegions(), ts.hasRemotePeers(), false, -1);
+                    lv_tLog.doTlogWrite(ts, "FORGOTTEN", ts.getParticipatingRegions(), ts.hasRemotePeers(), true, -1);
                 }
                 catch (Exception e) {
                    LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionId + 
@@ -1137,9 +1137,21 @@ public class HBaseTxClient {
       if (LOG.isTraceEnabled()) LOG.trace("Enter addControlPoint");
       long result = 0L;
       if (bSynchronized){
-         for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
+         for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) {
+            int lv_peerId = entry.getKey();
+            TmAuditTlog lv_tLog = peer_tLogs.get(lv_peerId);
+            if (lv_tLog == null){
+                LOG.error("Error during control point processing for tlog for peer: " + lv_peerId);
+            	continue;
+            }
             try {
-               lv_tLog.addControlPoint(myClusterId, mapTransactionStates);
+               if (pSTRConfig.getPeerStatus(lv_peerId).contains(PeerInfo.STR_UP)) {
+                  if (LOG.isTraceEnabled()) LOG.trace("PEER " + lv_peerId + " STATUS is UP; issuing control point");
+                  lv_tLog.addControlPoint(myClusterId, mapTransactionStates);
+               }
+               else {
+                   if (LOG.isWarnEnabled()) LOG.warn("PEER " + lv_peerId + " STATUS is DOWN; skipping control point");            	   
+               }
             }
             catch (Exception e) {
                LOG.error("addControlPoint, lv_tLog " + lv_tLog + " EXCEPTION: " + e);
