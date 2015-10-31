@@ -25,14 +25,13 @@
 # Executes the following:
 #
 # - Kills the Trafodion Env
-# - Kills the HBase env and the HDFS data directory associated with HBase
-#   (uses ilh_cleanhb)
+# - Kills the HBase Master process and the zookeeper data
+#   (uses ilh_cleanhb 1)
 # - Restarts HBase
 # - Checks whether HBase is ready (uses ilh_hbcheck)
 # - Deletes the Trafodion env file: $MY_SQROOT/etc/ms.env
 # - Regenerates Config (sqgen)
 # - Starts up Trafodion (sqstart)
-# - Initializes Trafodion (sqlci -> initialize trafodion)
 #
 ####################################################
 
@@ -45,14 +44,15 @@ else
     exit 1;
 fi
 
+lv_ilh_cleanhb_mode=1
+
 echo 'This script will do the following:'
 echo ' - Kill the Trafodion env (pkillall)'
-echo ' - Kill the HBase env and Delete the HDFS data directory associated with HBase (ilh_cleanhb 2)'
+echo " - Kill the HBase env and delete the zookeeper data directory (ilh_cleanhb ${lv_ilh_cleanhb_mode})"
 echo ' - Restart HBase (swstarthbase)'
 echo ' - Delete the env file: $MY_SQROOT/etc/ms.env'
 echo ' - sqgen'
 echo ' - sqstart'
-echo ' - sqlci -> initialize trafodion'
 
 if [[ -z $1 ]]; then
     read -p 'Do you want to proceed? y/n : ' lv_ans
@@ -68,19 +68,22 @@ else
 fi
 
 lv_starttime=`date`
+
 run_util pkillall
 
-run_util 'ilh_cleanhb 2'
+run_util 'ilh_cleanhb 1'
 
 run_util swstarthbase
 
-echo "Sleeping for 10 seconds before checking the status of HBase"
-sleep 10
-if [ -e $MY_SQROOT/sql/scripts/hbcheck ]; then
-    run_util hbcheck 4 10
-else
-    run_util ilh_hbcheck
-fi
+echo "Sleeping for 15 seconds before checking the status of HBase"
+sleep 15
+
+echo "--------------------------------------"
+run_util hbcheck 4 10
+echo "--------------------------------------"
+
+echo "Repairing HBase (hbase hbck -repair)"
+ilh_hbase_repair y
 
 echo "deleting $MY_SQROOT/etc/ms.env"
 rm $MY_SQROOT/etc/ms.env
@@ -88,11 +91,6 @@ rm $MY_SQROOT/etc/ms.env
 run_util sqgen
 
 run_util sqstart
-
-echo "executing: sqlci -> initialize trafodion"
-sqlci <<EOF
-initialize trafodion;
-EOF
 
 echo "done"
 lv_endtime=`date`

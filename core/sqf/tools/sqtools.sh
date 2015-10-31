@@ -267,20 +267,20 @@ function ndbm {
 }
 
 function chkReturnCodeExit {
-    if [[ $2 != 0 ]]; then
-	echo "$1 returned error $2, exitting..."
-	exit $2;
+    if [[ $1 != 0 ]]; then
+	echo "$2 returned error $1, exitting..."
+	exit $1;
     else
-	echo "$1 executed successfully."
+	echo "$2 executed successfully."
     fi
 }
 
 function chkReturnCode {
-    if [[ $2 != 0 ]]; then
-	echo "$1 returned error $2..."
-	return $2;
+    if [[ $1 != 0 ]]; then
+	echo "$2 returned error $1..."
+	return $1;
     else
-	echo "$1 executed successfully."
+	echo "$2 executed successfully."
 	return 0
     fi
 }
@@ -291,6 +291,7 @@ function chkReturnCode {
 # 
 function run_util {
     echo "--------------------------------------"
+    lv_cmd=$*
     echo "executing: $1"
     $1
     lv_stat=$?
@@ -298,7 +299,7 @@ function run_util {
 	declare -i lv_retries=0
 	while [ $lv_retries -lt $2 ]; do
 	    let lv_retries=($lv_retries+1)
-	    chkReturnCode $1 ${lv_stat}
+	    chkReturnCode ${lv_stat} $1
 	    if [ $? != 0 ]; then
 		if [ $lv_retries -lt $2 ]; then
 		    echo "retrying in $3 seconds"
@@ -313,7 +314,7 @@ function run_util {
 	    fi
 	done
     else 
-	chkReturnCodeExit $1 ${lv_stat}
+	chkReturnCodeExit ${lv_stat} $1
     fi
     echo "--------------------------------------"
 }
