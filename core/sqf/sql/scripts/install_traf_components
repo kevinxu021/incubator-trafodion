@@ -510,7 +510,7 @@ else
       # Customize openTSD scripts
       cd $MGBLTY_HOME/opentsdb/etc/opentsdb
       mv opentsdb.conf opentsdb.conf.orig | tee -a ${MY_LOG_FILE}
-      sed -e "s@5242@$MY_OPEN_TSDB_PORT@" -e "s@/usr/share@$MGBLTY_HOME@" -e "s@/tmp@$MGBLTY_HOME@" opentsdb.conf.orig > opentsdb.conf | tee -a ${MY_LOG_FILE}
+      sed -e "s@5242@$MY_OPEN_TSDB_PORT@" -e "s@/usr/share@$MGBLTY_HOME@" -e "s@/tmp@$MGBLTY_HOME@" -e "s@2181@$MY_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT_NUM@" opentsdb.conf.orig > opentsdb.conf | tee -a ${MY_LOG_FILE}
 
       mv logback.xml logback.xml.orig | tee -a ${MY_LOG_FILE}
       sed -e "s@<file>/var/log/opentsdb@<file>$MGBLTY_HOME/opentsdb/log@" -e "s@<fileNamePattern>/var/log/opentsdb@<fileNamePattern>$MGBLTY_HOME/opentsdb/log@" logback.xml.orig > logback.xml | tee -a ${MY_LOG_FILE}
