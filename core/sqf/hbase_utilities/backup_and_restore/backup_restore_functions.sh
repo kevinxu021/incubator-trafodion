@@ -24,7 +24,7 @@
 default_trafodion_user="trafodion"
 default_hbase_user="hbase"
 default_hdfs_user="hdfs"
-mappers=2
+mappers=0
 date_str="$(date '+%Y%m%d-%H%M')"
 
 ###############################################################################
@@ -424,6 +424,9 @@ start_trafodion()
   which_environment
   local env1=$?
   local sqstart_rc=1
+  if [[ "$USER" -eq "$traf_user" ]]; then
+    env1=1
+  fi
   if [[ $env1 -eq 1 ]]; then
     $MY_SQROOT/sql/scripts/sqstart
     sqstart_rc=$?
@@ -435,9 +438,9 @@ start_trafodion()
   fi
 
   if [[ $sqstart_rc -eq 0 ]]; then
-   echo "Trafodion started successfully. Continuing ..."
+   echo "Trafodion started successfully. Continuing ..." | tee -a $log_file
   else
-   echo "Trafodion not started. Please start Trafodion at your convinience."
+   echo "Trafodion not started. Please start Trafodion at your convinience." | tee -a $log_file
   fi
   return 0
 }
