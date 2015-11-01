@@ -1291,7 +1291,7 @@ public class TmAuditTlog {
       //create our own hashed key
       int lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
       long lv_seq = TransactionState.getTransSeqNum(lvTransid); 
-      long key = ((lv_lockIndex << tLogHashShiftFactor) + lv_seq);
+      long key = ((((long)lv_lockIndex) << tLogHashShiftFactor) + lv_seq);
       if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", transid: " +  lvTransid);
       Put p = new Put(Bytes.toBytes(key));
       if (LOG.isTraceEnabled()) LOG.trace("generatePut returning " + p);
@@ -1333,7 +1333,7 @@ public class TmAuditTlog {
       //create our own hashed key
 //      long lv_seq = TransactionState.getTransSeqNum(lvTransid); 
       lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
-//      long key = ((lv_lockIndex << tLogHashShiftFactor) + lv_seq);
+//      long key = (((long)lv_lockIndex << tLogHashShiftFactor) + lv_seq);
 //      if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hex: " + Long.toHexString(key) + ", transid: " +  lvTransid);
 //      p = new Put(Bytes.toBytes(key));
 
@@ -1358,7 +1358,7 @@ public class TmAuditTlog {
          Get g;
          //create our own hashed key
          long lv_seq = TransactionState.getTransSeqNum(lvTransid); 
-         long key = ((lv_lockIndex << tLogHashShiftFactor) + lv_seq);
+         long key = ((((long)lv_lockIndex) << tLogHashShiftFactor) + lv_seq);
          if (LOG.isTraceEnabled()) LOG.trace("key: " + key + " hex: " + Long.toHexString(key));
          g = new Get(Bytes.toBytes(key));
          try {
@@ -1453,7 +1453,7 @@ public class TmAuditTlog {
          Get g;
          //create our own hashed key
          long lv_seq = TransactionState.getTransSeqNum(lvTransid); 
-         long key = ((lv_lockIndex << tLogHashShiftFactor) + lv_seq);
+         long key = ((((long)lv_lockIndex) << tLogHashShiftFactor) + lv_seq);
          if (LOG.isTraceEnabled()) LOG.trace("key: " + key + " hex: " + Long.toHexString(key));
          g = new Get(Bytes.toBytes(key));
          try {
@@ -1484,7 +1484,7 @@ public class TmAuditTlog {
          Delete d;
          //create our own hashed key
          long lv_seq = TransactionState.getTransSeqNum(lvTransid); 
-         long key = ((lv_lockIndex << tLogHashShiftFactor) + lv_seq);
+         long key = ((((long)lv_lockIndex) << tLogHashShiftFactor) + lv_seq);
          if (LOG.isTraceEnabled()) LOG.trace("key: " + key + " hex: " + Long.toHexString(key));
          d = new Delete(Bytes.toBytes(key));
          if (LOG.isTraceEnabled()) LOG.trace("deleteRecord  (" + lvTransid + ") ");
@@ -1774,7 +1774,7 @@ public class TmAuditTlog {
       try {
          String transidString = new String(String.valueOf(lvTransid));
          Get g;
-         long key = ((lv_lockIndex << tLogHashShiftFactor) + TransactionState.getTransSeqNum(lvTransid));
+         long key = ((((long)lv_lockIndex) << tLogHashShiftFactor) + TransactionState.getTransSeqNum(lvTransid));
          if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hexkey: " + Long.toHexString(key) + ", transid: " +  lvTransid);
          g = new Get(Bytes.toBytes(key));
          TransState lvTxState = TransState.STATE_NOTX;
