@@ -99,7 +99,7 @@ if [ ! -z ${MY_SQROOT} ]; then
     rm -rf ${MY_SQROOT}/sql/local_hadoop/hbase/logs/*.out.[0-9]*
 fi
 
-if [[ ${lv_clean_hb_data} -gt 2 ]]; then
+if [[ ${lv_clean_hb_data} -gt 1 ]]; then
 # delete the HBase table data from HDFS
     echo "Deleting the HBase data directory (hdfs) /hbase"
     swhdfs dfs -rm -f -r -skipTrash /hbase

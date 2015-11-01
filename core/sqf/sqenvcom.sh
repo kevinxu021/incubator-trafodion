@@ -176,7 +176,7 @@ unset MPI_CC
 export MPI_CXX=/usr/bin/g++
 export MPICH_CXX=$MPI_CXX
 
-export PATH=$MPI_ROOT/bin:$MY_SQROOT/export/bin"$SQ_MBTYPE":$MY_SQROOT/sql/scripts:$MY_SQROOT/tools:$MY_SQROOT/trafci/bin:$PATH
+export PATH=$MPI_ROOT/bin:$MY_SQROOT/export/bin"$SQ_MBTYPE":$MY_SQROOT/sql/scripts:$MY_SQROOT/tools:$MY_SQROOT/trafci/bin:$JAVA_HOME/bin:$PATH
 # The guiding principle is that the user's own software is preferred over anything else;
 # system customizations are likewise preferred over default software.
 
