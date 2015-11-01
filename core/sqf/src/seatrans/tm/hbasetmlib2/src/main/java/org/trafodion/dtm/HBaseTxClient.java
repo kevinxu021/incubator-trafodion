@@ -1920,7 +1920,7 @@ public class HBaseTxClient {
                                 			    LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " check Peer due to STR_UP at peer " + clusterid);
                                                        commitLocally = true;;
                                                        try {
-                                                             TmAuditTlog peerTlog = getTlog(clusterid);
+                                                             TmAuditTlog peerTlog = getTlog(peerid);
                                                              peerTlog.getTransactionState(ts, false);
                                                        } catch (Exception e2) {
                                                              LOG.error("getTransactionState from Peer " + clusterid + " for tid " + ts.getTransactionId() + "  hit Exception2 " + e2);
