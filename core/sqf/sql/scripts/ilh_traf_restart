@@ -28,6 +28,7 @@
 # - Kills the HBase Master process and the zookeeper data
 #   (uses ilh_cleanhb 1)
 # - Restarts HBase
+# - Repairs HBase (ilh_hbase_repair)
 # - Checks whether HBase is ready (uses ilh_hbcheck)
 # - Deletes the Trafodion env file: $MY_SQROOT/etc/ms.env
 # - Regenerates Config (sqgen)
