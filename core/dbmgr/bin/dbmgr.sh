@@ -48,7 +48,7 @@ elif [[ $1 = "stop" ]]; then
         kill -9 $pid
         echo "EsgynDB Manager has been stopped."
     else
-        echo "No EsgynDB Manager is running by this account."
+        echo "EsgynDB Manager is not started"
     fi
 elif [[ $1 = "status" ]]; then
     if [ -n "$pid" ]; then

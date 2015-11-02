@@ -1500,6 +1500,9 @@ public:
   // is this entire expression cacheable after this phase?
   virtual NABoolean isCacheableExpr(CacheWA& cwa);
 
+  // append an ascii-version of Insert into cachewa.qryText_
+  virtual void generateCacheKey(CacheWA& cwa) const;
+
   // get a printable string that identifies the operator
   virtual const NAString getText() const;
 

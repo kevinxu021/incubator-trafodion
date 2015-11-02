@@ -212,6 +212,8 @@
 1210 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU Column $0~String0 is not allowed at position $1~Int0 in the SPLIT BY clause, because SPLIT BY must specify a prefix of the clustering key columns and the next clustering key column is $2~String1.
 1211 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU The column values of the SPLIT BY first key in position $0~Int0 (one-based) are not greater (for ascending columns) or less (for descending columns) than its predecessor.
 1212 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU An HBase region start key provided only part of the value for Trafodion key column $0~Int0. This could in some unusual situations cause errors.
+1213 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU The start key at position $0~int0 in the SPLIT BY clause does not have the correct number of entries or the correct data type(s).
+1214 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU The sort direction (ASC/DESC) of the columns in the SPLIT BY clause must match that of the clustering key (PRIMARY KEY or STORE BY clause).
 1220 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Code must contain two non-blank characters.
 1221 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Only system components may contain system operations.
 1222 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Command not supported when authorization is not enabled.
@@ -1142,7 +1144,7 @@ $1~String1 --------------------------------
 4078 42000 99999 BEGINNER MAJOR DBADMIN Function $0~String0 does not accept a weight operand.
 4079 42000 99999 BEGINNER MAJOR DBADMIN The operands of function $0~String0 must be numeric.
 4080 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU --- unused as of 5/7/12 ---
-4081 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU --- unused as of 5/7/12 ---
+4081 42000 99999 BEGINNER MAJOR DBADMIN Pool $0~String0 does not exist or is inaccessible.
 4082 42000 99999 BEGINNER MAJOR DBADMIN Object $0~TableName does not exist or is inaccessible.
 4083 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU --- unused as of 5/7/12 ---
 4084 42000 99999 ADVANCED MAJOR DBADMIN SQL object $0~TableName is corrupt.
@@ -1488,6 +1490,7 @@ $1~String1 --------------------------------
 8031 HY018 99999 BEGINNER INFRM LOGONLY Server declined cancel request for query ID $0~String0. $1~String1.
 8032 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Explain information for the provided query id is not available in repository.
 8033 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Explain information is too large to be stored in repository.
+8034 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Column $0~String0 does not have a default clause but it is missing in database. This indicates inconsistent data.
 8100 ZZZZZ 99999 BEGINNER MINOR LOGONLY Define $1~string0 does not exist
 8101 23000 99999 BEGINNER MAJOR DBADMIN The operation is prevented by check constraint $0~ConstraintName on table $1~TableName.
 8102 23000 99999 BEGINNER MAJOR DBADMIN The operation is prevented by a unique constraint.

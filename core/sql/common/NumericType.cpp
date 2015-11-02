@@ -100,7 +100,10 @@ static void signedLongToAscii(Lng32 number, char * asciiString)
 static void insertScaleIndicator(NAString * str, Int32 scale)
 {
   if (scale > 0)
-    str->insert(str->length() - scale, ".");
+    {
+      assert(str->length() >= scale);
+      str->insert(str->length() - scale, ".");
+    }
 }
 
 // -----------------------------------------------------------------------
@@ -1450,13 +1453,11 @@ void SQLNumeric::minRepresentableValue(void* bufPtr, Lng32* bufLen,
 	{
 	  ((char *)bufPtr)[i] = 0;
 	}
-      Lng32 temp = 0;
-      unsignedLongToAscii(temp, nameBuf);
-
-      if (stringLiteral != NULL)
-	{
-	  *stringLiteral = new (h) NAString(nameBuf, h);
-	}
+      // produce enough zeroes so that we can put a
+      // decimal point for a value with scale > 0
+      int padLen = MAXOF(getScale(), 1);
+      str_pad(nameBuf, padLen, '0');
+      nameBuf[padLen] = 0;
     }
   else
     {
@@ -1479,12 +1480,7 @@ void SQLNumeric::minRepresentableValue(void* bufPtr, Lng32* bufLen,
           }
           break;
           
-#ifdef NA_64BIT
-          // dg64 - a bit of a guess
         case sizeof(Int32):
-#else
-        case sizeof(Lng32):
-#endif
           {
             Lng32 temp = 0;
             Lng32 i=0;

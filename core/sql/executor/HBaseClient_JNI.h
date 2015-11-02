@@ -484,6 +484,10 @@ typedef enum {
  ,HBC_ERROR_CHECKANDDELETEROW_PARAM
  ,HBC_ERROR_CHECKANDDELETEROW_EXCEPTION
  ,HBC_ERROR_CHECKANDDELETEROW_NOTFOUND
+ ,HBC_ERROR_ADDHDFSCACHE_EXCEPTION
+ ,HBC_ERROR_REMOVEHDFSCACHE_EXCEPTION
+ ,HBC_ERROR_SHOWHDFSCACHE_EXCEPTION
+ ,HBC_ERROR_POOL_NOT_EXIST_EXCEPTION
  ,HBC_LAST
 } HBC_RetCode;
 
@@ -552,11 +556,13 @@ public:
 
   HTableClient_JNI *startGet(NAHeap *heap, const char* tableName, bool useTRex, NABoolean replSync, 
             ExHbaseAccessStats *hbs, Int64 transID, const HbaseStr& rowID, 
-            const LIST(HbaseStr) & cols, Int64 timestamp);
+                             const LIST(HbaseStr) & cols, Int64 timestamp,
+                             const char * hbaseAuths = NULL);
   HTableClient_JNI *startGets(NAHeap *heap, const char* tableName, bool useTRex, NABoolean replSync, 
             ExHbaseAccessStats *hbs, Int64 transID, const LIST(HbaseStr) *rowIDs, 
             short rowIDLen, const HbaseStr *rowIDsInDB, 
-            const LIST(HbaseStr) & cols, Int64 timestamp);
+                              const LIST(HbaseStr) & cols, Int64 timestamp,
+                              const char * hbaseAuths = NULL);
   HBC_RetCode incrCounter( const char * tabName, const char * rowId, const char * famName, 
                  const char * qualName , Int64 incr, Int64 & count);
   HBC_RetCode createCounterTable( const char * tabName,  const char * famName);
@@ -580,18 +586,32 @@ public:
 				HTableClient_JNI **outHtc);
   HBC_RetCode deleteRow(NAHeap *heap, const char *tableName,
 			ExHbaseAccessStats *hbs, bool useTRex, NABoolean replSync,
-			Int64 transID, HbaseStr rowID, const LIST(HbaseStr) *cols, 
-			Int64 timestamp, bool asyncOperation, HTableClient_JNI **outHtc);
+			Int64 transID, HbaseStr rowID, 
+                        const LIST(HbaseStr) *cols, 
+			Int64 timestamp, bool asyncOperation, 
+                        const char * hbaseAuths,
+                        HTableClient_JNI **outHtc);
   HBC_RetCode deleteRows(NAHeap *heap, const char *tableName,
 			 ExHbaseAccessStats *hbs, bool useTRex, NABoolean replSync,
 			 Int64 transID, short rowIDLen, HbaseStr rowIDs, 
-			 Int64 timestamp, bool asyncOperation, HTableClient_JNI **outHtc);
+                         const LIST(HbaseStr) *cols, 
+			 Int64 timestamp, bool asyncOperation, 
+                         const char * hbaseAuths,
+                         HTableClient_JNI **outHtc);
   HBC_RetCode checkAndDeleteRow(NAHeap *heap, const char *tableName,
 				ExHbaseAccessStats *hbs, bool useTRex, NABoolean replSync,
 				Int64 transID, HbaseStr rowID, 
+                                const LIST(HbaseStr) *cols, 
 				HbaseStr columnToCheck, HbaseStr columnValToCheck,
-				Int64 timestamp, bool asyncOperation, HTableClient_JNI **outHtc);
+				Int64 timestamp, bool asyncOperation, 
+                                const char * hbaseAuths,
+                                HTableClient_JNI **outHtc);
   
+  ByteArrayList* showTablesHDFSCache(const TextVec& tables);
+
+  HBC_RetCode addTablesToHDFSCache(const TextVec& tables, const char* poolName);
+  HBC_RetCode removeTablesFromHDFSCache(const TextVec& tables, const char* poolName);
+
 private:   
   // private default constructor
   HBaseClient_JNI(NAHeap *heap, int debugPort, int debugTimeout);
@@ -640,6 +660,9 @@ private:
    ,JM_HBC_DELETE_ROW
    ,JM_HBC_DIRECT_DELETE_ROWS
    ,JM_HBC_CHECKANDDELETE_ROW
+   ,JM_SHOW_TABLES_HDFS_CACHE
+   ,JM_ADD_TABLES_TO_HDFS_CACHE
+   ,JM_REMOVE_TABLES_FROM_HDFS_CACHE
    ,JM_LAST
   };
   static jclass          javaClass_; 
@@ -682,6 +705,7 @@ typedef enum {
  ,HVC_ERROR_HDFS_WRITE_PARAM
  ,HVC_ERROR_HDFS_WRITE_EXCEPTION
  ,HVC_ERROR_HDFS_CLOSE_EXCEPTION
+ ,HVC_ERROR_EXECHIVESQL_EXCEPTION
  ,HVC_LAST
 } HVC_RetCode;
 

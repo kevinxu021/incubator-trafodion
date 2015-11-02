@@ -67,6 +67,7 @@ public class HBaseDCZK implements Abortable {
     private static final Charset CHARSET        = Charset.forName("UTF-8");
 
     public static final String m_my_cluster_id_string = "my_cluster_id";
+    public static final String m_lock_string          = "lock";
     public static final String m_clusters_string      = "clusters";
     public static final String m_quorum_string        = "quorum";
     public static final String m_port_string          = "port";
@@ -76,6 +77,7 @@ public class HBaseDCZK implements Abortable {
     public static final String m_base_node            = "/hbase/Trafodion/multi_dc";
     public static final String m_clusters_node        = m_base_node + "/" + m_clusters_string;
     public static final String m_my_cluster_id_node   = m_base_node + "/" + m_my_cluster_id_string;
+    public static final String m_lock_node            = m_base_node + "/" + m_lock_string;
 
     private             ZooKeeperWatcher              m_zkw;
     private             Configuration                 m_config;
@@ -245,6 +247,14 @@ public class HBaseDCZK implements Abortable {
 		 );
 		 
 	try {
+
+	    if (this.is_locked(pv_cluster_id)) {
+		System.out.println("Could not update info of cluster id: " + pv_cluster_id
+				   + " as it is locked.");
+		
+		return;
+	    }
+
 	    String lv_cluster_id_node = m_clusters_node + "/" + pv_cluster_id;
 	    ZKUtil.createWithParents(m_zkw, lv_cluster_id_node);
 	    
@@ -398,6 +408,7 @@ public class HBaseDCZK implements Abortable {
 	    String lv_myid = get_my_id();
 	    
 	    if (pv_cluster_id.equals(lv_myid)) {
+		System.err.println("Cannot delete your own info");
 		return false;
 	    }
 	    
@@ -476,11 +487,18 @@ public class HBaseDCZK implements Abortable {
 		
 	    HBaseDCZK lv_zk = new HBaseDCZK(lv_config);
 	    
-	    lv_zk.set_peer_znode(pv_pi.get_id(),
-				 pv_pi.get_quorum(), 
-				 pv_pi.get_port(),
-				 pv_pi.get_status()
-				 );
+	    if (lv_zk.is_locked(pv_cluster_id)) {
+		System.out.println("Could not push info of cluster id: " + pv_pi.get_id()
+				   + " to cluster id: " + pv_cluster_id
+				   + " as it is locked.");
+	    }
+	    else {
+		lv_zk.set_peer_znode(pv_pi.get_id(),
+				     pv_pi.get_quorum(), 
+				     pv_pi.get_port(),
+				     pv_pi.get_status()
+				     );
+	    }
 	} 
 	catch (KeeperException e) {
 	    throw new IOException("HBaseDCZK:push_to_cluster: ZKW, KeeperException: " 
@@ -594,16 +612,23 @@ public class HBaseDCZK implements Abortable {
 	LOG.info("HBaseDCZK:pull_clusters"
 		 );
 
-	Map<Integer, PeerInfo> lv_pi_list = list_clusters();
-	
-	if (lv_pi_list == null) {
-	    return;
-	}
-
 	try {
-	    
+
 	    String        lv_my_id   = get_my_id();
-	    
+
+	    if (this.is_locked(lv_my_id)) {
+		System.out.println("Could not pull info for cluster id: " + lv_my_id
+				   + " as it is locked.");
+
+		return;
+	    }
+
+	    Map<Integer, PeerInfo> lv_pi_list = list_clusters();
+	
+	    if (lv_pi_list == null) {
+		return;
+	    }
+
 	    for (PeerInfo lv_pi : lv_pi_list.values()) {
 		if (lv_pi.get_id().equals(lv_my_id)) {
 		    continue;
@@ -624,6 +649,76 @@ public class HBaseDCZK implements Abortable {
 	}
     }
 
+    /**
+     * @param my_cluster_id
+     * @throws IOException
+     */
+    public boolean is_locked(String pv_my_cluster_id) 
+	throws IOException 
+    {
+	LOG.info("HBaseDCZK:is_locked: cluster ID: " + pv_my_cluster_id);
+	int lv_exists = 0;
+
+	try {
+	    lv_exists = ZKUtil.checkExists(m_zkw, m_lock_node);
+	}
+	catch (KeeperException e) {
+	    throw new IOException("HBaseDCZK:is_locked: ZKW Unable to check existence of znode: " 
+				  + m_lock_node
+				  + " , throwing IOException " + e
+				  );
+	}
+
+	if (lv_exists != -1) {
+	    return true;
+	}
+
+	return false;
+    }
+    
+
+    /**
+     * @param my_cluster_id
+     * @throws IOException
+     */
+    public void lock_db(String pv_my_cluster_id) 
+	throws IOException 
+    {
+	LOG.info("HBaseDCZK:lock_db: cluster ID: " + pv_my_cluster_id);
+
+	try {
+	    ZKUtil.createSetData(m_zkw, m_lock_node, pv_my_cluster_id.getBytes(CHARSET));
+	}
+	catch (KeeperException e) {
+	    throw new IOException("HBaseDCZK:lock_db: ZKW Unable to create zNode: " 
+				  + m_lock_node
+				  + " for " + pv_my_cluster_id
+				  + " , throwing IOException " + e
+				  );
+	}
+    }
+    
+    /**
+     * @param my_cluster_id
+     * @throws IOException
+     */
+    public void unlock_db(String pv_my_cluster_id) 
+	throws IOException 
+    {
+	LOG.info("HBaseDCZK:unlock_db: cluster ID: " + pv_my_cluster_id);
+
+	try {
+	    ZKUtil.deleteNodeFailSilent(m_zkw, m_lock_node);
+	}
+	catch (KeeperException e) {
+	    throw new IOException("HBaseDCZK:unlock_db: ZKW Unable to delete zNode: " 
+				  + m_lock_node 
+				  + " for " + pv_my_cluster_id
+				  + " , throwing IOException " + e
+				  );
+	}
+    }
+    
     /**
      * @param my_cluster_id
      * @throws IOException
@@ -698,7 +793,9 @@ public class HBaseDCZK implements Abortable {
 	System.out.println("                  :   | -list");
 	System.out.println("                  :   | -delete <id>");
 	System.out.println("                  :   | -push ");
-	System.out.println("                  :   | -pull >");
+	System.out.println("                  :   | -pull ");
+	System.out.println("                  :   | -lock ");
+	System.out.println("                  :   | -unlock >");
 	System.out.println("<options>         : [ <peer info> | -h | -v ]");
 	System.out.println("<cluster info>    : < <cluster id> [ <quorum info> | <port info> | <status info> ]... >");
 	System.out.println("<cluster id>      : -id <id> ");
@@ -720,9 +817,9 @@ public class HBaseDCZK implements Abortable {
     public static void main(String [] Args) throws Exception {
 
 	boolean lv_retcode = true;
+
 	boolean lv_verbose = false;
 	boolean lv_test    = false;
-
 	int     lv_peer_id = 0;
 
 	String  lv_my_id  = new String();
@@ -736,10 +833,11 @@ public class HBaseDCZK implements Abortable {
 	boolean lv_cmd_set        = false;
 	boolean lv_cmd_get        = false;
 	boolean lv_cmd_delete     = false;
+	boolean lv_cmd_lock       = false;
+	boolean lv_cmd_unlock     = false;
 	boolean lv_cmd_list       = false;
 	boolean lv_cmd_push       = false;
 	boolean lv_cmd_pull       = false;
-	boolean lv_cmd_liststatus = false;
 
 	int lv_index = 0;
 	for (String lv_arg : Args) {
@@ -834,13 +932,17 @@ public class HBaseDCZK implements Abortable {
 		    System.exit(1);
 		}
 	    }
-	    else if (lv_arg.compareTo("-liststatus") == 0) {
-		if (lv_verbose) System.out.println("Command: list");
-		lv_cmd_liststatus = true;
-	    }
 	    else if (lv_arg.compareTo("-list") == 0) {
 		if (lv_verbose) System.out.println("Command: list");
 		lv_cmd_list = true;
+	    }
+	    else if (lv_arg.compareTo("-lock") == 0) {
+		if (lv_verbose) System.out.println("Command: lock");
+		lv_cmd_lock = true;
+	    }
+	    else if (lv_arg.compareTo("-unlock") == 0) {
+		if (lv_verbose) System.out.println("Command: unlock");
+		lv_cmd_unlock = true;
 	    }
 	    else if (lv_arg.compareTo("-push") == 0) {
 		if (lv_verbose) System.out.println("Command: push");
@@ -933,7 +1035,8 @@ public class HBaseDCZK implements Abortable {
 			if ((lv_my_id != null) && 
 			    (lv_pi.get_id() != null) && 
 			    (lv_pi.get_id().equals(lv_my_id))) {
-			    System.out.println("*");
+			    System.out.print("*");
+			    if (lv_zk.is_locked(lv_my_id)) System.out.println(":L"); else System.out.println("");
 			}
 			else {
 			    System.out.println("");
@@ -941,19 +1044,31 @@ public class HBaseDCZK implements Abortable {
 		    }
 		}
 	    }
+	    else if (lv_cmd_lock) {
+		lv_my_id = lv_zk.get_my_id();
+		if (lv_my_id != null) {
+		    if (lv_verbose) System.out.println(lv_my_id);
+		}
+		else {
+		    if (lv_verbose) System.out.println("0");
+		}
+		lv_zk.lock_db(lv_my_id);
+	    }
+	    else if (lv_cmd_unlock) {
+		lv_my_id = lv_zk.get_my_id();
+		if (lv_my_id != null) {
+		    if (lv_verbose) System.out.println(lv_my_id);
+		}
+		else {
+		    if (lv_verbose) System.out.println("0");
+		}
+		lv_zk.unlock_db(lv_my_id);
+	    }
 	    else if (lv_cmd_push) {
 		lv_zk.push_to_clusters();
 	    }
 	    else if (lv_cmd_pull) {
 		lv_zk.pull_clusters();
-	    }
-	    else if (lv_cmd_liststatus) {
-		Map<Integer, PeerInfo> lv_pi_list = lv_zk.list_clusters();
-		if (lv_pi_list != null) {
-		    for (PeerInfo lv_pi : lv_pi_list.values()) {
-			System.out.println(lv_pi.get_id() + ":" + lv_pi.get_status());
-		    }
-		}
 	    }
 	    else {
 		usage();

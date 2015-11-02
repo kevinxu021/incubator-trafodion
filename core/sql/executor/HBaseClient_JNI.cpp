@@ -317,6 +317,10 @@ static const char* const hbcErrorEnumStr[] =
  ,"Preparing parameters for checkAndDeleteRow()."
  ,"Java exception in checkAndDeleteRow()."
  ,"Row not found in checkAndDeleteRow()."
+ ,"Java exception in addTablesToHdfsCache()."
+ ,"Java exception in removeTablesFromHdfsCache()."
+ ,"Java exception in showTablesHdfsCache()."
+ ,"Pool does not exist."
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -474,11 +478,11 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_SET_ARC_PERMS].jm_name      = "setArchivePermissions";
     JavaMethods_[JM_SET_ARC_PERMS].jm_signature = "(Ljava/lang/String;)Z";
     JavaMethods_[JM_START_GET].jm_name      = "startGet";
-    JavaMethods_[JM_START_GET].jm_signature = "(JLjava/lang/String;ZZJ[B[Ljava/lang/Object;J)I";
+    JavaMethods_[JM_START_GET].jm_signature = "(JLjava/lang/String;ZZJ[B[Ljava/lang/Object;JLjava/lang/String;)I";
     JavaMethods_[JM_START_GETS].jm_name      = "startGet";
-    JavaMethods_[JM_START_GETS].jm_signature = "(JLjava/lang/String;ZZJ[Ljava/lang/Object;[Ljava/lang/Object;J)I";
+    JavaMethods_[JM_START_GETS].jm_signature = "(JLjava/lang/String;ZZJ[Ljava/lang/Object;[Ljava/lang/Object;JLjava/lang/String;)I";
     JavaMethods_[JM_START_DIRECT_GETS].jm_name      = "startGet";
-    JavaMethods_[JM_START_DIRECT_GETS].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;[Ljava/lang/Object;)I";
+    JavaMethods_[JM_START_DIRECT_GETS].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;[Ljava/lang/Object;Ljava/lang/String;)I";
     JavaMethods_[JM_GET_HBTI].jm_name      = "getHbaseTableInfo";
     JavaMethods_[JM_GET_HBTI].jm_signature = "(Ljava/lang/String;[I)Z";
     JavaMethods_[JM_CREATE_COUNTER_TABLE ].jm_name      = "createCounterTable";
@@ -496,11 +500,17 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].jm_name      = "checkAndUpdateRow";
     JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].jm_signature = "(JLjava/lang/String;ZZJ[BLjava/lang/Object;[B[BJZ)Z";
     JavaMethods_[JM_HBC_DELETE_ROW ].jm_name      = "deleteRow";
-    JavaMethods_[JM_HBC_DELETE_ROW ].jm_signature = "(JLjava/lang/String;ZZJ[B[Ljava/lang/Object;JZ)Z";
+    JavaMethods_[JM_HBC_DELETE_ROW ].jm_signature = "(JLjava/lang/String;ZZJ[B[Ljava/lang/Object;JZLjava/lang/String;)Z";
     JavaMethods_[JM_HBC_DIRECT_DELETE_ROWS ].jm_name      = "deleteRows";
-    JavaMethods_[JM_HBC_DIRECT_DELETE_ROWS ].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;JZ)Z";
+    JavaMethods_[JM_HBC_DIRECT_DELETE_ROWS ].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;[Ljava/lang/Object;JZLjava/lang/String;)Z";
     JavaMethods_[JM_HBC_CHECKANDDELETE_ROW ].jm_name      = "checkAndDeleteRow";
-    JavaMethods_[JM_HBC_CHECKANDDELETE_ROW ].jm_signature = "(JLjava/lang/String;ZZJ[B[B[BJZ)Z";
+    JavaMethods_[JM_HBC_CHECKANDDELETE_ROW ].jm_signature = "(JLjava/lang/String;ZZJ[B[Ljava/lang/Object;[B[BJZLjava/lang/String;)Z";
+    JavaMethods_[JM_SHOW_TABLES_HDFS_CACHE].jm_name = "showTablesHDFSCache";
+    JavaMethods_[JM_SHOW_TABLES_HDFS_CACHE].jm_signature = "([Ljava/lang/Object;)Lorg/trafodion/sql/ByteArrayList;";
+    JavaMethods_[JM_ADD_TABLES_TO_HDFS_CACHE].jm_name = "addTablesToHDFSCache";
+    JavaMethods_[JM_ADD_TABLES_TO_HDFS_CACHE].jm_signature = "([Ljava/lang/Object;Ljava/lang/String;)I";
+    JavaMethods_[JM_REMOVE_TABLES_FROM_HDFS_CACHE].jm_name = "removeTablesFromHDFSCache";
+    JavaMethods_[JM_REMOVE_TABLES_FROM_HDFS_CACHE].jm_signature = "([Ljava/lang/Object;Ljava/lang/String;)I";
     rc = (HBC_RetCode)JavaObjectInterface::init(className, javaClass_, JavaMethods_, (Int32)JM_LAST, javaMethodsInitialized_);
     javaMethodsInitialized_ = TRUE;
     pthread_mutex_unlock(&javaMethodsInitMutex_);
@@ -2570,7 +2580,9 @@ HTableClient_JNI *HBaseClient_JNI::startGet(NAHeap *heap,
 					    ExHbaseAccessStats *hbs, 
 					    Int64 transID,
 					    const HbaseStr& rowID, 
-					    const LIST(HbaseStr) & cols, Int64 timestamp) 
+					    const LIST(HbaseStr) & cols, 
+                                            Int64 timestamp,
+                                            const char * hbaseAuths)
 {
   if (javaObj_ == NULL || (!isInitialized())) {
     GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_GET_HTC_EXCEPTION));
@@ -2630,6 +2642,21 @@ HTableClient_JNI *HBaseClient_JNI::startGet(NAHeap *heap,
   jlong j_tid = transID;  
   jlong j_ts = timestamp;
   
+  jstring js_hbaseAuths = NULL;
+  if (hbaseAuths)
+    {
+      js_hbaseAuths = jenv_->NewStringUTF(hbaseAuths);
+      if (js_hbaseAuths == NULL)
+        {
+          getExceptionDetails();
+          logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+          logError(CAT_SQL_HBASE, "HBaseClient_JNI::startGet()", getLastError());
+          NADELETE(htc, HTableClient_JNI, heap);
+          jenv_->PopLocalFrame(NULL);
+          return NULL;
+        }
+    }
+  
   if (hbs)
     hbs->getTimer().start();
 
@@ -2642,7 +2669,8 @@ HTableClient_JNI *HBaseClient_JNI::startGet(NAHeap *heap,
 				      (jboolean) replSync,
 				      j_tid,
 				      jba_rowID,
-				      j_cols, j_ts);
+				      j_cols, j_ts,
+                                      js_hbaseAuths);
   if (hbs) {
       hbs->incMaxHbaseIOTime(hbs->getTimer().stop());
       hbs->incHbaseCalls();
@@ -2675,7 +2703,8 @@ HTableClient_JNI *HBaseClient_JNI::startGets(NAHeap *heap,
 					     short rowIDLen,
 					     const HbaseStr *rowIDsInDB,
 					     const LIST(HbaseStr) & cols,
-					     Int64 timestamp)
+					     Int64 timestamp,
+                                             const char * hbaseAuths)
 {
   if (javaObj_ == NULL || (!isInitialized())) {
     GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_GET_HTC_EXCEPTION));
@@ -2753,6 +2782,22 @@ HTableClient_JNI *HBaseClient_JNI::startGets(NAHeap *heap,
   jlong j_tid = transID;  
   jlong j_ts = timestamp;
   jshort jRowIDLen = rowIDLen; 
+
+  jstring js_hbaseAuths = NULL;
+  if (hbaseAuths)
+    {
+      js_hbaseAuths = jenv_->NewStringUTF(hbaseAuths);
+      if (js_hbaseAuths == NULL)
+        {
+          getExceptionDetails();
+          logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+          logError(CAT_SQL_HBASE, "HBaseClient_JNI::startGets()", getLastError());
+          NADELETE(htc, HTableClient_JNI, heap);
+          jenv_->PopLocalFrame(NULL);
+          return NULL;
+        }
+    }
+
   if (hbs)
     hbs->getTimer().start();
 
@@ -2762,13 +2807,13 @@ HTableClient_JNI *HBaseClient_JNI::startGets(NAHeap *heap,
      jresult = jenv_->CallIntMethod(javaObj_, 
             JavaMethods_[JM_START_GETS].methodID, 
 	(jlong)htc, js_tblName, (jboolean)useTRex, (jboolean) replSync, j_tid, j_rows,
-            j_cols, j_ts);
+                                    j_cols, j_ts, js_hbaseAuths);
   } else {
-     tsRecentJMFromJNI = JavaMethods_[JM_START_DIRECT_GETS].jm_full_name;
-     jresult = jenv_->CallIntMethod(javaObj_, 
-            JavaMethods_[JM_START_DIRECT_GETS].methodID, 
-	(jlong)htc, js_tblName, (jboolean)useTRex, (jboolean) replSync, j_tid, jRowIDLen, jRowIDs,
-            j_cols);
+    tsRecentJMFromJNI = JavaMethods_[JM_START_DIRECT_GETS].jm_full_name;
+    jresult = jenv_->CallIntMethod(javaObj_, 
+                                   JavaMethods_[JM_START_DIRECT_GETS].methodID, 
+                                   (jlong)htc, js_tblName, (jboolean)useTRex, (jboolean) replSync, j_tid, jRowIDLen, jRowIDs,
+                                   j_cols, js_hbaseAuths);
   }
   if (hbs) {
       hbs->incMaxHbaseIOTime(hbs->getTimer().stop());
@@ -3349,6 +3394,7 @@ HBC_RetCode HBaseClient_JNI::deleteRow(NAHeap *heap, const char *tableName,
 				       const LIST(HbaseStr) *cols, 
 				       Int64 timestamp,
 				       bool asyncOperation,
+                                       const char * hbaseAuths,
 				       HTableClient_JNI **outHtc)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::deleteRow(%ld, %s) called.", transID, rowID.val);
@@ -3403,6 +3449,22 @@ HBC_RetCode HBaseClient_JNI::deleteRow(NAHeap *heap, const char *tableName,
   jlong j_tid = transID;  
   jlong j_ts = timestamp;
   jboolean j_asyncOperation = asyncOperation;
+
+  jstring js_hbaseAuths = NULL;
+  if (hbaseAuths)
+    {
+      js_hbaseAuths = jenv_->NewStringUTF(hbaseAuths);
+      if (js_hbaseAuths == NULL)
+        {
+          getExceptionDetails();
+          logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+          logError(CAT_SQL_HBASE, "HBaseClient_JNI::deleteRow()", getLastError());
+          NADELETE(htc, HTableClient_JNI, heap);
+          jenv_->PopLocalFrame(NULL);
+          return HBC_ERROR_DELETEROW_PARAM;
+        }
+    }
+ 
   if (hbs)
     hbs->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_HBC_DELETE_ROW].jm_full_name;
@@ -3416,7 +3478,8 @@ HBC_RetCode HBaseClient_JNI::deleteRow(NAHeap *heap, const char *tableName,
 					      jba_rowID,
 					      j_cols,
 					      j_ts,
-					      j_asyncOperation);
+					      j_asyncOperation,
+                                              js_hbaseAuths);
   if (hbs) {
       hbs->incHbaseCalls();
       if (!asyncOperation) 
@@ -3458,8 +3521,10 @@ HBC_RetCode HBaseClient_JNI::deleteRows(NAHeap *heap,
 					Int64 transID,
 					short rowIDLen,
 					HbaseStr rowIDs, 
+                                        const LIST(HbaseStr) *cols, 
 					Int64 timestamp,
 					bool asyncOperation,
+                                        const char * hbaseAuths,
 					HTableClient_JNI **outHtc)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::deleteRows(%ld, %s) called.", transID, rowIDs.val);
@@ -3496,12 +3561,43 @@ HBC_RetCode HBaseClient_JNI::deleteRows(NAHeap *heap,
     jenv_->PopLocalFrame(NULL);
     return HBC_ERROR_DELETEROWS_PARAM;
   }
+
+  jobjectArray j_cols = NULL;
+  if (cols != NULL && !cols->isEmpty()) {
+     j_cols = convertToByteArrayObjectArray(*cols);
+     if (j_cols == NULL) {
+        getExceptionDetails();
+        logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+        logError(CAT_SQL_HBASE, "HBaseClient_JNI::deleteRows()", getLastError());
+        if (htc != NULL)
+           NADELETE(htc, HTableClient_JNI, heap);
+        jenv_->PopLocalFrame(NULL);
+        return HBC_ERROR_DELETEROW_PARAM;
+     }
+  }  
+
   jlong j_htc = (jlong)htc;
   jboolean j_useTRex = useTRex;
   jlong j_tid = transID;  
   jshort j_rowIDLen = rowIDLen;
   jlong j_ts = timestamp;
   jboolean j_asyncOperation = asyncOperation;
+
+  jstring js_hbaseAuths = NULL;
+  if (hbaseAuths)
+    {
+      js_hbaseAuths = jenv_->NewStringUTF(hbaseAuths);
+      if (js_hbaseAuths == NULL)
+        {
+          getExceptionDetails();
+          logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+          logError(CAT_SQL_HBASE, "HBaseClient_JNI::deleteRows()", getLastError());
+          NADELETE(htc, HTableClient_JNI, heap);
+          jenv_->PopLocalFrame(NULL);
+          return HBC_ERROR_DELETEROWS_PARAM;
+        }
+    }
+
   if (hbs)
     hbs->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_HBC_DIRECT_DELETE_ROWS].jm_full_name;
@@ -3514,8 +3610,10 @@ HBC_RetCode HBaseClient_JNI::deleteRows(NAHeap *heap,
 					      j_tid,
 					      j_rowIDLen,
 					      jRowIDs,
+                                              j_cols,
 					      j_ts,
-					      j_asyncOperation);
+					      j_asyncOperation,
+                                              js_hbaseAuths);
   if (hbs) {
       hbs->incHbaseCalls();
       if (!asyncOperation) 
@@ -3554,10 +3652,12 @@ HBC_RetCode HBaseClient_JNI::checkAndDeleteRow(NAHeap *heap,
 					       NABoolean replSync,
 					       Int64 transID,
 					       HbaseStr rowID, 
+                                               const LIST(HbaseStr) *cols, 
 					       HbaseStr columnToCheck,
 					       HbaseStr columnValToCheck,
 					       Int64 timestamp,
 					       bool asyncOperation,
+                                               const char * hbaseAuths,
 					       HTableClient_JNI **outHtc)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::checkAndDeleteRow(%ld, %s) called.", transID, rowID.val);
@@ -3594,6 +3694,19 @@ HBC_RetCode HBaseClient_JNI::checkAndDeleteRow(NAHeap *heap,
      return HBC_ERROR_CHECKANDDELETEROW_PARAM;
   }
   jenv_->SetByteArrayRegion(jba_rowID, 0, rowID.len, (const jbyte*)rowID.val);
+  jobjectArray j_cols = NULL;
+  if (cols != NULL && !cols->isEmpty()) {
+     j_cols = convertToByteArrayObjectArray(*cols);
+     if (j_cols == NULL) {
+        getExceptionDetails();
+        logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+        logError(CAT_SQL_HBASE, "HBaseClient_JNI::checkAndDeleteRow()", getLastError());
+        if (htc != NULL)
+           NADELETE(htc, HTableClient_JNI, heap);
+        jenv_->PopLocalFrame(NULL);
+        return HBC_ERROR_DELETEROW_PARAM;
+     }
+  }  
   jbyteArray jba_columnToCheck = jenv_->NewByteArray(columnToCheck.len);
   if (jba_columnToCheck == NULL) {
      GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_CHECKANDDELETEROW_PARAM));
@@ -3617,6 +3730,21 @@ HBC_RetCode HBaseClient_JNI::checkAndDeleteRow(NAHeap *heap,
   jlong j_tid = transID;  
   jlong j_ts = timestamp;
   jboolean j_asyncOperation = asyncOperation;
+
+  jstring js_hbaseAuths = NULL;
+  if (hbaseAuths)
+    {
+      js_hbaseAuths = jenv_->NewStringUTF(hbaseAuths);
+      if (js_hbaseAuths == NULL)
+        {
+          GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_CHECKANDDELETEROW_PARAM));
+          if (htc != NULL)
+            NADELETE(htc, HTableClient_JNI, heap);
+          jenv_->PopLocalFrame(NULL);
+          return HBC_ERROR_CHECKANDDELETEROW_PARAM;
+        }
+    }
+
   if (hbs)
     hbs->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_HBC_CHECKANDDELETE_ROW].jm_full_name;
@@ -3628,10 +3756,12 @@ HBC_RetCode HBaseClient_JNI::checkAndDeleteRow(NAHeap *heap,
 					      (jboolean) replSync, 
 					      j_tid,
 					      jba_rowID, 
+                                              j_cols,
 					      jba_columnToCheck,
 					      jba_columnValToCheck,
 					      j_ts,
-					      j_asyncOperation);
+					      j_asyncOperation,
+                                              js_hbaseAuths);
   if (hbs) {
       hbs->incHbaseCalls();
       if (!asyncOperation) 
@@ -3662,6 +3792,173 @@ HBC_RetCode HBaseClient_JNI::checkAndDeleteRow(NAHeap *heap,
   return HBC_OK;
 }
 
+HBC_RetCode HBaseClient_JNI::addTablesToHDFSCache(const TextVec& tables, const char* poolName)
+{
+  if (jenv_ == NULL)
+     if (initJVM() != JOI_OK)
+         return HBC_ERROR_INIT_PARAM;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+    getExceptionDetails();
+    return HBC_ERROR_ADDHDFSCACHE_EXCEPTION;
+  }
+
+  jobjectArray j_tables = NULL;
+  if (!tables.empty())
+  {
+    QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "  Adding %d tables.", tables.size());
+    j_tables = convertToStringObjectArray(tables);
+    if (j_tables == NULL)
+    {
+       getExceptionDetails();
+       logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+       logError(CAT_SQL_HBASE, "HBaseClient_JNI::addTablesToHDFSCache()", getLastError());
+       jenv_->PopLocalFrame(NULL);
+       return HBC_ERROR_ADDHDFSCACHE_EXCEPTION;
+    }
+  }
+
+  jstring js_poolName = jenv_->NewStringUTF(poolName);
+  if (js_poolName == NULL) 
+  {
+    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_ADDHDFSCACHE_EXCEPTION));
+    jenv_->PopLocalFrame(NULL);
+    return HBC_ERROR_ADDHDFSCACHE_EXCEPTION;
+  }
+
+  tsRecentJMFromJNI = JavaMethods_[JM_ADD_TABLES_TO_HDFS_CACHE].jm_full_name;
+  jint jresult = jenv_->CallIntMethod(javaObj_, JavaMethods_[JM_ADD_TABLES_TO_HDFS_CACHE].methodID, j_tables, js_poolName);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "HBaseClient_JNI::addTablesToHDFSCache()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return HBC_ERROR_ADDHDFSCACHE_EXCEPTION;
+  }
+
+  jenv_->DeleteLocalRef(js_poolName);
+  if (j_tables != NULL) 
+    jenv_->DeleteLocalRef(j_tables);  
+
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, 
+       "Exit HBaseClient_JNI::addTablesToHDFSCache() called.");
+  jenv_->PopLocalFrame(NULL);
+  return jresult==0 ? HBC_OK : HBC_ERROR_POOL_NOT_EXIST_EXCEPTION;
+}
+
+HBC_RetCode HBaseClient_JNI::removeTablesFromHDFSCache(const TextVec& tables, const char* poolName)
+{
+  if (jenv_ == NULL)
+     if (initJVM() != JOI_OK)
+         return HBC_ERROR_INIT_PARAM;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+    getExceptionDetails();
+    return HBC_ERROR_ADDHDFSCACHE_EXCEPTION;
+  }
+
+  jobjectArray j_tables = NULL;
+  if (!tables.empty())
+  {
+    QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "  removing %d tables.", tables.size());
+    j_tables = convertToStringObjectArray(tables);
+    if (j_tables == NULL)
+    {
+       getExceptionDetails();
+       logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+       logError(CAT_SQL_HBASE, "HBaseClient_JNI::removeTablesFromHDFSCache()", getLastError());
+       jenv_->PopLocalFrame(NULL);
+       return HBC_ERROR_ADDHDFSCACHE_EXCEPTION;
+    }
+  }
+
+  jstring js_poolName = jenv_->NewStringUTF(poolName);
+  if (js_poolName == NULL) 
+  {
+    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_ADDHDFSCACHE_EXCEPTION));
+    jenv_->PopLocalFrame(NULL);
+    return HBC_ERROR_ADDHDFSCACHE_EXCEPTION;
+  }
+
+  tsRecentJMFromJNI = JavaMethods_[JM_REMOVE_TABLES_FROM_HDFS_CACHE].jm_full_name;
+  jint jresult = jenv_->CallIntMethod(javaObj_, JavaMethods_[JM_REMOVE_TABLES_FROM_HDFS_CACHE].methodID, j_tables, js_poolName);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "HBaseClient_JNI::removeTablesFromHDFSCache()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return HBC_ERROR_ADDHDFSCACHE_EXCEPTION;
+  }
+
+  jenv_->DeleteLocalRef(js_poolName);
+  if (j_tables != NULL) 
+    jenv_->DeleteLocalRef(j_tables);  
+
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, 
+       "Exit HBaseClient_JNI::addTablesToHDFSCache() called.");
+  jenv_->PopLocalFrame(NULL);
+  return jresult==0 ? HBC_OK : HBC_ERROR_POOL_NOT_EXIST_EXCEPTION;
+}
+
+ByteArrayList* HBaseClient_JNI::showTablesHDFSCache(const TextVec& tables)
+{
+  if (jenv_ == NULL)
+     if (initJVM() != JOI_OK)
+         return NULL;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+    getExceptionDetails();
+    return NULL;
+  }
+
+  jobjectArray j_tables = NULL;
+  if (!tables.empty())
+  {
+    QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "  showing %d tables.", tables.size());
+    j_tables = convertToStringObjectArray(tables);
+    if (j_tables == NULL)
+    {
+       getExceptionDetails();
+       logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+       logError(CAT_SQL_HBASE, "HBaseClient_JNI::showTablesHDFSCache()", getLastError());
+       jenv_->PopLocalFrame(NULL);
+       return NULL;
+    }
+  }
+
+  tsRecentJMFromJNI = JavaMethods_[JM_SHOW_TABLES_HDFS_CACHE].jm_full_name;
+  jobject jByteArrayList = jenv_->CallObjectMethod(javaObj_, JavaMethods_[JM_SHOW_TABLES_HDFS_CACHE].methodID, j_tables);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "HBaseClient_JNI::showTableHDFSCache()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return NULL;
+  }
+
+  ByteArrayList* tableHdfsCacheStats = new (heap_) ByteArrayList(heap_, jByteArrayList);
+  jenv_->DeleteLocalRef(jByteArrayList);
+  if (tableHdfsCacheStats->init() != BAL_OK)
+    {
+      NADELETE(tableHdfsCacheStats, ByteArrayList, heap_);
+      jenv_->PopLocalFrame(NULL);
+      return NULL;
+    }
+
+  if (j_tables != NULL) 
+    jenv_->DeleteLocalRef(j_tables);  
+
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, 
+       "Exit HBaseClient_JNI::showTableHDFSCachecalled.");
+  jenv_->PopLocalFrame(NULL);
+  return tableHdfsCacheStats;
+}
 
 // ===========================================================================
 // ===== Class HTableClient
@@ -3778,7 +4075,7 @@ HTC_RetCode HTableClient_JNI::init()
     JavaMethods_[JM_SCAN_OPEN  ].jm_name      = "startScan";
     JavaMethods_[JM_SCAN_OPEN  ].jm_signature = "(J[B[B[Ljava/lang/Object;JZZI[Ljava/lang/Object;[Ljava/lang/Object;[Ljava/lang/Object;FZZILjava/lang/String;Ljava/lang/String;IIJJLjava/lang/String;)Z";
     JavaMethods_[JM_DELETE     ].jm_name      = "deleteRow";
-    JavaMethods_[JM_DELETE     ].jm_signature = "(J[B[Ljava/lang/Object;JZ)Z";
+    JavaMethods_[JM_DELETE     ].jm_signature = "(J[B[Ljava/lang/Object;JZLjava/lang/String;)Z";
     JavaMethods_[JM_COPROC_AGGR     ].jm_name      = "coProcAggr";
     JavaMethods_[JM_COPROC_AGGR     ].jm_signature = "(JI[B[B[B[BZI)[B";
     JavaMethods_[JM_GET_NAME   ].jm_name      = "getTableName";
@@ -4448,6 +4745,7 @@ static const char* const hvcErrorEnumStr[] =
  ,"preparing parameters for hdfsWrite()."
  ,"java exception in hdfsWrite()."
  ,"java exception in hdfsclose()."
+ ,"java exception in executeHiveSQL()."
 };
 
 
@@ -4889,15 +5187,15 @@ HVC_RetCode HiveClient_JNI::executeHiveSQL(const char* hiveSQL)
 
   if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
     getExceptionDetails();
-    return HVC_ERROR_GET_ALLSCH_EXCEPTION;
+    return HVC_ERROR_EXECHIVESQL_EXCEPTION;
   }
 
   jstring js_hiveSQL = jenv_->NewStringUTF(hiveSQL);
   if (js_hiveSQL == NULL) 
   {
-    GetCliGlobals()->setJniErrorStr(getErrorText(HVC_ERROR_GET_ALLTBL_PARAM));
+    GetCliGlobals()->setJniErrorStr(getErrorText(HVC_ERROR_EXECHIVESQL_EXCEPTION));
     jenv_->PopLocalFrame(NULL);
-    return HVC_ERROR_GET_ALLTBL_PARAM;
+    return HVC_ERROR_EXECHIVESQL_EXCEPTION;
   }
   
   tsRecentJMFromJNI = JavaMethods_[JM_EXEC_HIVE_SQL].jm_full_name;
@@ -4909,7 +5207,7 @@ HVC_RetCode HiveClient_JNI::executeHiveSQL(const char* hiveSQL)
     logError(CAT_SQL_HBASE, __FILE__, __LINE__);
     logError(CAT_SQL_HBASE, "HiveClient_JNI::executeHiveSQL()", getLastError());
     jenv_->PopLocalFrame(NULL);
-    return HVC_ERROR_GET_ALLSCH_EXCEPTION;
+    return HVC_ERROR_EXECHIVESQL_EXCEPTION;
   }
 
   jenv_->DeleteLocalRef(js_hiveSQL);
@@ -5128,6 +5426,10 @@ void HTableClient_JNI::cleanupResultInfo()
    if (jKvBuffer_ != NULL) {
       jenv_->DeleteGlobalRef(jKvBuffer_);
       jKvBuffer_ = NULL;
+   }
+   if (jKvTag_ != NULL) {
+      jenv_->DeleteGlobalRef(jKvTag_);
+      jKvTag_ = NULL;
    }
    if (jRowIDs_ != NULL) {
       jenv_->DeleteGlobalRef(jRowIDs_);

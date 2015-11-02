@@ -271,6 +271,7 @@ class StmtDDLAlterTableAlterColumnLoggable;
 class StmtDDLAlterTableDisableIndex;
 class StmtDDLAlterTableEnableIndex;
 class StmtDDLAlterTableColumn;
+class StmtDDLAlterTableHDFSCache;
 class StmtDDLAlterTableMove;
 class StmtDDLAlterTablePartition;
 class StmtDDLAlterTableRename;
@@ -344,7 +345,7 @@ class StmtDDLRegisterUser;
 class StmtDDLCreateRole;
 class StmtDDLRoleGrant;
 class StmtDDLCleanupObjects;
-
+class StmtDDLAlterSchemaHDFSCache;
 class QualifiedName;
 
 // -----------------------------------------------------------------------
@@ -600,6 +601,8 @@ public:
 
   virtual StmtDDLAlterTableColumn       * castToStmtDDLAlterTableColumn();
   virtual StmtDDLAlterTableMove         * castToStmtDDLAlterTableMove();
+  virtual StmtDDLAlterTableHDFSCache    * castToStmtDDLAlterTableHDFSCache();
+  virtual StmtDDLAlterSchemaHDFSCache * castToStmtDDLAlterSchemaHDFSCache();
   virtual StmtDDLAlterTableHBaseOptions * castToStmtDDLAlterTableHBaseOptions();
   virtual StmtDDLAlterTablePartition    * castToStmtDDLAlterTablePartition();
   virtual StmtDDLAlterTableRename       * castToStmtDDLAlterTableRename();

@@ -187,13 +187,17 @@ class ExpHbaseInterface : public NABasicObject
 		HbaseStr &tblName,
 		const HbaseStr &row, 
 		const LIST(HbaseStr) & columns,
-		const int64_t timestamp) = 0;
+		const int64_t timestamp,
+                HbaseAccessOptions * hao = NULL,
+                const char * hbaseAuths = NULL) = 0;
 
  virtual Lng32 getRowsOpen(
 		HbaseStr &tblName,
 		const LIST(HbaseStr) *rows, 
 		const LIST(HbaseStr) & columns,
-		const int64_t timestamp) = 0;
+		const int64_t timestamp,
+                HbaseAccessOptions * hao = NULL,
+                const char * hbaseAuths = NULL) = 0;
 
   virtual Lng32 nextRow() = 0;
   
@@ -222,34 +226,37 @@ class ExpHbaseInterface : public NABasicObject
   virtual Lng32 getRowID(HbaseStr &rowID) = 0;
  
   virtual Lng32 deleteRow(
-		  HbaseStr tblName,
-		  HbaseStr row, 
-		  const LIST(HbaseStr) *columns,
-		  NABoolean noXn,
-		  const NABoolean replSync,
-		  const int64_t timestamp,
-                  NABoolean asyncOperation) = 0;
-
-
-
+       HbaseStr tblName,
+       HbaseStr row, 
+       const LIST(HbaseStr) *columns,
+       NABoolean noXn,
+       const NABoolean replSync,
+       const int64_t timestamp,
+       NABoolean asyncOperation,
+       const char * hbaseAuths) = 0;
+  
   virtual Lng32 deleteRows(
-		  HbaseStr tblName,
-                  short rowIDLen,
-		  HbaseStr rowIDs,
-		  NABoolean noXn,
-		  const NABoolean replSync,
-		  const int64_t timestamp,
-                  NABoolean asyncOperation) = 0;
-
+       HbaseStr tblName,
+       short rowIDLen,
+       HbaseStr rowIDs,
+       const LIST(HbaseStr) *columns,
+       NABoolean noXn,
+       const NABoolean replSync,
+       const int64_t timestamp,
+       NABoolean asyncOperation,
+       const char * hbaseAuths) = 0;
+  
 
   virtual Lng32 checkAndDeleteRow(
 				  HbaseStr &tblName,
 				  HbaseStr& row, 
+                                  const LIST(HbaseStr) *columns,
 				  HbaseStr& columnToCheck,
 				  HbaseStr& colValToCheck,
                                   NABoolean noXn,
 				  const NABoolean replSync,
-				  const int64_t timestamp) = 0;
+				  const int64_t timestamp,
+                                  const char * hbaseAuths) = 0;
 
 
 
@@ -398,7 +405,11 @@ class ExpHbaseInterface : public NABasicObject
   virtual Lng32 getRegionsNodeName(const HbaseStr& tblName,
                                    Int32 partns,
                                    ARRAY(const char *)& nodeNames) = 0;
+ 
+  virtual ByteArrayList* showTablesHDFSCache(const std::vector<Text>& tables) = 0;
 
+  virtual Lng32 addTablesToHDFSCache(const std::vector<Text>& tables, const char* poolName) = 0;
+  virtual Lng32 removeTablesFromHDFSCache(const std::vector<Text>& tables, const char* poolName) = 0;
 
 protected:
   enum 
@@ -506,13 +517,17 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 		HbaseStr &tblName,
 		const HbaseStr &row, 
 		const LIST(HbaseStr) & columns,
-		const int64_t timestamp);
+		const int64_t timestamp,
+                HbaseAccessOptions * hao = NULL,
+                const char * hbaseAuths = NULL);
  
  virtual Lng32 getRowsOpen(
 		HbaseStr &tblName,
 		const LIST(HbaseStr) *rows, 
 		const LIST(HbaseStr) & columns,
-		const int64_t timestamp);
+		const int64_t timestamp,
+                HbaseAccessOptions * hao = NULL,
+                const char * hbaseAuths = NULL);
 
   virtual Lng32 nextRow();
 
@@ -541,34 +556,39 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
   virtual Lng32 getRowID(HbaseStr &rowID);
 
   virtual Lng32 deleteRow(
-		  HbaseStr tblName,
-		  HbaseStr row, 
-		  const LIST(HbaseStr) *columns,
-		  NABoolean noXn,
-		  const NABoolean replSync,
-		  const int64_t timestamp,
-                  NABoolean asyncOperation);
+       HbaseStr tblName,
+       HbaseStr row, 
+       const LIST(HbaseStr) *columns,
+       NABoolean noXn,
+       const NABoolean replSync,
+       const int64_t timestamp,
+       NABoolean asyncOperation,
+       const char * hbaseAuths);
 
 
   virtual Lng32 deleteRows(
-		  HbaseStr tblName,
-                  short rowIDLen,
-		  HbaseStr rowIDs,
-		  NABoolean noXn,		 		  
-		  const NABoolean replSync,
-		  const int64_t timestamp,
-                  NABoolean asyncOperation);
-
+       HbaseStr tblName,
+       short rowIDLen,
+       HbaseStr rowIDs,
+       const LIST(HbaseStr) *columns,
+       NABoolean noXn,		 		  
+       const NABoolean replSync,
+       const int64_t timestamp,
+       NABoolean asyncOperation,
+       const char * hbaseAuths);
+  
 
   virtual Lng32 checkAndDeleteRow(
-				  HbaseStr &tblName,
-				  HbaseStr& row, 
-				  HbaseStr& columnToCheck,
-				  HbaseStr& colValToCheck,
-                                  NABoolean noXn,     
-				  const NABoolean replSync,
-				  const int64_t timestamp);
-
+       HbaseStr &tblName,
+       HbaseStr& row, 
+       const LIST(HbaseStr) *columns,
+       HbaseStr& columnToCheck,
+       HbaseStr& colValToCheck,
+       NABoolean noXn,     
+       const NABoolean replSync,
+       const int64_t timestamp,
+       const char * hbaseAuths);
+  
 
   virtual Lng32 deleteColumns(
 		  HbaseStr &tblName,
@@ -715,6 +735,10 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
                                    Int32 partns,
                                    ARRAY(const char *)& nodeNames) ;
 
+  virtual ByteArrayList* showTablesHDFSCache(const std::vector<Text>& tables);
+  
+  virtual Lng32 addTablesToHDFSCache(const std::vector<Text> & tables, const char* poolName);
+  virtual Lng32 removeTablesFromHDFSCache(const std::vector<Text> & tables, const char* poolName);
 
 private:
   bool  useTRex_;

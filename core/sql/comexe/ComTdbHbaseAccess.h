@@ -366,9 +366,17 @@ public:
 
     virtual short getClassSize() { return (short)sizeof(ComHbaseAccessOptions); }
 
+    // Pack and Unpack routines
+    Long pack(void *);
+    Lng32 unpack(void *, void * reallocator);
+    
     HbaseAccessOptions &hbaseAccessOptions() { return hbo_; }
+
+    void setHbaseAuths(char * hba) { hbaseAuths_ = hba; }
+    char * hbaseAuths() { return hbaseAuths_; }
   private:
     HbaseAccessOptions hbo_;
+    NABasicPtr hbaseAuths_;
   };
 
  // ---------------------------------------------------------------------
@@ -461,9 +469,7 @@ public:
 		    Float32 samplingRate = -1,
 		    HbaseSnapshotScanAttributes * hbaseSnapshotScanAttributes = NULL,
 
-                    ComHbaseAccessOptions * comHbaseAccessOptions = NULL,
-
-                    char * hbaseAuths = NULL
+                    ComHbaseAccessOptions * comHbaseAccessOptions = NULL
 	       );
   
   ComTdbHbaseAccess(
@@ -624,8 +630,6 @@ public:
 
   const char * server() { return server_; }
   const char * zkPort() { return zkPort_;}
-
-  const char * hbaseAuths() { return hbaseAuths_; }
 
   HbasePerfAttributes * getHbasePerfAttributes() 
   { return (HbasePerfAttributes*)hbasePerfAttributes_.getPointer();}
@@ -851,6 +855,11 @@ public:
    UInt16 getHbaseRowsetVsbbSize()
    { return hbaseRowsetVsbbSize_; } 
 
+   void setTrafLoadFlushSize(UInt16 size)
+   {  trafLoadFlushSize_ = size; }
+   UInt16 getTrafLoadFlushSize()
+   { return trafLoadFlushSize_; } 
+
    void setLogErrorRows(NABoolean v)
      {(v ? flags2_ |= TRAF_LOAD_LOG_ERROR_ROWS : flags2_ &= ~TRAF_LOAD_LOG_ERROR_ROWS); };
    NABoolean getLogErrorRows() { return (flags2_ & TRAF_LOAD_LOG_ERROR_ROWS) != 0; };
@@ -1011,11 +1020,9 @@ public:
   HbaseSnapshotScanAttributesPtr hbaseSnapshotScanAttributes_;
   UInt32 maxErrorRows_;
   UInt16 hbaseRowsetVsbbSize_; 
-  ComHbaseAccessOptionsPtr comHbaseAccessOptions_;
-
+  UInt16 trafLoadFlushSize_;
+  ComHbaseAccessOptionsPtr comHbaseAccessOptions_; 
   char fillers[2];
-
-  NABasicPtr hbaseAuths_;
 };
 
 class ComTdbHbaseCoProcAccess : public ComTdbHbaseAccess

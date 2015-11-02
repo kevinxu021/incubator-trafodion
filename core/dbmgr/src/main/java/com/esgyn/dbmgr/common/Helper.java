@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Random;
 import java.util.TimeZone;
 
@@ -29,6 +30,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Helper {
 	public static final DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
+
 	public static JSONArray convertResultSetToJSON(java.sql.ResultSet rs) throws Exception {
 		JSONArray json = new JSONArray();
 
@@ -40,38 +42,45 @@ public class Helper {
 				int numColumns = rsmd.getColumnCount();
 				JSONObject obj = new JSONObject();
 
+				ArrayList<String> tempColNames = new ArrayList<String>();
 				for (int i = 1; i < numColumns + 1; i++) {
 
 					String column_name = rsmd.getColumnName(i);
-
+					int sameNameColCount = Collections.frequency(tempColNames, column_name);
+					tempColNames.add(column_name); // to keep count of columns
+													// with same name
+					if (sameNameColCount > 0) {
+						column_name += "_" + sameNameColCount;
+					}
+					//
 					if (rsmd.getColumnType(i) == java.sql.Types.ARRAY) {
-						obj.put(column_name, rs.getArray(column_name));
+						obj.put(column_name, rs.getArray(i));
 					} else if (rsmd.getColumnType(i) == java.sql.Types.BIGINT) {
-						obj.put(column_name, rs.getLong(column_name));
+						obj.put(column_name, rs.getLong(i));
 					} else if (rsmd.getColumnType(i) == java.sql.Types.BOOLEAN) {
-						obj.put(column_name, rs.getBoolean(column_name));
+						obj.put(column_name, rs.getBoolean(i));
 					} else if (rsmd.getColumnType(i) == java.sql.Types.BLOB) {
-						obj.put(column_name, rs.getBlob(column_name));
+						obj.put(column_name, rs.getBlob(i));
 					} else if (rsmd.getColumnType(i) == java.sql.Types.DOUBLE) {
-						obj.put(column_name, rs.getDouble(column_name));
+						obj.put(column_name, rs.getDouble(i));
 					} else if (rsmd.getColumnType(i) == java.sql.Types.FLOAT) {
-						obj.put(column_name, rs.getFloat(column_name));
+						obj.put(column_name, rs.getFloat(i));
 					} else if (rsmd.getColumnType(i) == java.sql.Types.INTEGER) {
-						obj.put(column_name, rs.getInt(column_name));
+						obj.put(column_name, rs.getInt(i));
 					} else if (rsmd.getColumnType(i) == java.sql.Types.NVARCHAR) {
-						obj.put(column_name, rs.getNString(column_name));
+						obj.put(column_name, rs.getNString(i));
 					} else if (rsmd.getColumnType(i) == java.sql.Types.VARCHAR) {
-						obj.put(column_name, rs.getString(column_name));
+						obj.put(column_name, rs.getString(i));
 					} else if (rsmd.getColumnType(i) == java.sql.Types.TINYINT) {
-						obj.put(column_name, rs.getInt(column_name));
+						obj.put(column_name, rs.getInt(i));
 					} else if (rsmd.getColumnType(i) == java.sql.Types.SMALLINT) {
-						obj.put(column_name, rs.getInt(column_name));
+						obj.put(column_name, rs.getInt(i));
 					} else if (rsmd.getColumnType(i) == java.sql.Types.DATE) {
-						obj.put(column_name, rs.getDate(column_name));
+						obj.put(column_name, rs.getDate(i));
 					} else if (rsmd.getColumnType(i) == java.sql.Types.TIMESTAMP) {
-						obj.put(column_name, rs.getTimestamp(column_name));
+						obj.put(column_name, rs.getTimestamp(i));
 					} else {
-						obj.put(column_name, rs.getObject(column_name));
+						obj.put(column_name, rs.getObject(i));
 					}
 
 				} // end foreach
@@ -80,6 +89,7 @@ public class Helper {
 			} // end while
 
 			if (json.length() == 0) {
+				ArrayList<String> tempColNames = new ArrayList<String>();
 
 				int numColumns = rsmd.getColumnCount();
 				JSONObject obj = new JSONObject();
@@ -87,6 +97,12 @@ public class Helper {
 				for (int i = 1; i < numColumns + 1; i++) {
 
 					String column_name = rsmd.getColumnName(i);
+					int sameNameColCount = Collections.frequency(tempColNames, column_name);
+					tempColNames.add(column_name); // to keep count of columns
+													// with same name
+					if (sameNameColCount > 0) {
+						column_name += "_" + sameNameColCount;
+					}
 					obj.put(column_name, "");
 				}
 				json.put(obj);
@@ -107,9 +123,16 @@ public class Helper {
 			java.sql.ResultSetMetaData rsmd = rs.getMetaData();
 
 			int numColumns = rsmd.getColumnCount();
+			ArrayList<String> tempColNames = new ArrayList<String>();
 			String[] columnNames = new String[numColumns];
-			for (int i = 0; i < numColumns; i++) {
-				columnNames[i] = rsmd.getColumnName(i + 1);
+			for (int j = 0; j < numColumns; j++) {
+				columnNames[j] = rsmd.getColumnName(j + 1);
+				int sameNameColCount = Collections.frequency(tempColNames, columnNames[j]);
+				tempColNames.add(columnNames[j]); // to keep count of columns
+												// with same name
+				if (sameNameColCount > 0) {
+					columnNames[j] += "_" + sameNameColCount;
+				}
 			}
 			result.columnNames = columnNames;
 
@@ -119,46 +142,46 @@ public class Helper {
 
 				Object[] rowData = new Object[numColumns];
 
-				for (int i = 0; i < numColumns; i++) {
+				for (int i = 1; i < numColumns + 1; i++) {
 
 					Object data = null;
-					int columnType = rsmd.getColumnType(i + 1);
+					int columnType = rsmd.getColumnType(i);
 
 					try {
 					if (columnType == java.sql.Types.ARRAY) {
-						data = rs.getArray(columnNames[i]);
+						data = rs.getArray(i);
 					} else if (columnType == java.sql.Types.BIGINT) {
-						data = rs.getLong(columnNames[i]);
+						data = rs.getLong(i);
 					} else if (columnType == java.sql.Types.BOOLEAN) {
-						data = rs.getBoolean(columnNames[i]);
+						data = rs.getBoolean(i);
 					} else if (columnType == java.sql.Types.BLOB) {
-						data = rs.getBlob(columnNames[i]);
+						data = rs.getBlob(i);
 					} else if (columnType == java.sql.Types.DOUBLE) {
-						data = rs.getDouble(columnNames[i]);
+						data = rs.getDouble(i);
 					} else if (columnType == java.sql.Types.FLOAT) {
-						data = rs.getFloat(columnNames[i]);
+						data = rs.getFloat(i);
 					} else if (columnType == java.sql.Types.INTEGER) {
-						data = rs.getInt(columnNames[i]);
+						data = rs.getInt(i);
 					} else if (columnType == java.sql.Types.NVARCHAR) {
-						data = rs.getNString(columnNames[i]);
+						data = rs.getNString(i);
 					} else if (columnType == java.sql.Types.VARCHAR) {
-						data = rs.getString(columnNames[i]);
+						data = rs.getString(i);
 					} else if (columnType == java.sql.Types.TINYINT) {
-						data = rs.getInt(columnNames[i]);
+						data = rs.getInt(i);
 					} else if (columnType == java.sql.Types.SMALLINT) {
-						data = rs.getInt(columnNames[i]);
+						data = rs.getInt(i);
 					} else if (columnType == java.sql.Types.DATE) {
-						data = rs.getDate(columnNames[i]);
+						data = rs.getDate(i);
 					} else if (columnType == java.sql.Types.TIMESTAMP) {
-						data = rs.getTimestamp(columnNames[i]);
+						data = rs.getTimestamp(i);
 					} else {
-						data = rs.getObject(columnNames[i]);
+						data = rs.getObject(i);
 					}
 					} catch (Exception ex) {
 						data = "";
 					}
 
-					rowData[i] = data;
+					rowData[i - 1] = data;
 
 				} // end for
 				resultArray.add(rowData);
@@ -168,6 +191,8 @@ public class Helper {
 			result.resultArray = resultArray;
 
 		} catch (Exception ex) {
+
+			throw new EsgynDBMgrException(ex.getMessage());
 		} finally {
 
 		}

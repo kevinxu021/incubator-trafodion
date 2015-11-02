@@ -27,7 +27,7 @@
 include macros.gmk
 
 # Make Targets
-.PHONY: all dbsecurity foundation $(MPI_TARGET) ndcs ci jdbc_jar jdbc_type2_jar sqroot $(SEAMONSTER_TARGET) verhdr dcs rest odb
+.PHONY: all dbsecurity foundation $(MPI_TARGET) ndcs ci jdbc_jar jdbc_type2_jar sqroot $(SEAMONSTER_TARGET) verhdr dcs rest odb dbmgr
 .PHONY: package package-all pkg-product pkg-sql-regress pkg-phx-tests pkg-dcs-tests check-copyrights
 
 ################
@@ -35,9 +35,9 @@ include macros.gmk
 # Server-side only
 
 # Default target (all components)
-all: $(MPI_TARGET) dbsecurity foundation jdbc_jar $(SEAMONSTER_TARGET) ndcs ci jdbc_type2_jar dcs rest odb
+all: $(MPI_TARGET) dbsecurity foundation jdbc_jar $(SEAMONSTER_TARGET) ndcs ci jdbc_type2_jar dcs rest odb dbmgr
 
-package: pkg-product pkg-client
+package: pkg-product pkg-client 
 
 #############
 # Components
@@ -97,6 +97,9 @@ rest: verhdr jdbc_jar
 odb: ndcs
 	cd conn/odb && $(MAKE) 2>&1 | sed -e "s/$$/	##(ODB)/" ; exit $${PIPESTATUS[0]}
 
+dbmgr: 
+	cd dbmgr && $(MAKE) 2>&1 | sed -e "s/$$/	##(DBMGR)/" ; exit $${PIPESTATUS[0]}
+
 cleantests:
 	cd ../dcs/src/test/pytests && $(RM) -r odbc* tox.ini config.ini .tox .testrep* env.sh test_p2.pyc 
 	cd ../dcs/src/test/jdbc_test && $(RM) -r jdbcprop pom.xml  target
@@ -115,6 +118,7 @@ clean: sqroot
 	cd rest &&			$(MAKE) clean
 	cd conn/odb &&			$(MAKE) clean
 	cd ../dcs &&			$(MAKE) clean 
+	cd dbmgr &&			$(MAKE) clean 
 	$(RM) -r ../${DISTRIBUTION_DIR}
 
 cleanall: sqroot eclipseclean cleantests
@@ -129,6 +133,7 @@ cleanall: sqroot eclipseclean cleantests
 	cd rest &&			$(MAKE) clean
 	cd conn/odb &&			$(MAKE) clean
 	cd ../dcs &&			$(MAKE) clean
+	cd dbmgr &&			$(MAKE) cleanall
 	$(RM) -r ../${DISTRIBUTION_DIR}
 
 package-all: package pkg-sql-regress pkg-phx-tests pkg-dcs-tests

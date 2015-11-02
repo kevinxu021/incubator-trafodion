@@ -47,7 +47,7 @@ fi
 
 echo 'This script will do the following:'
 echo ' - Kill the Trafodion env (pkillall)'
-echo ' - Kill the HBase env and Delete the HDFS data directory associated with HBase (ilh_cleanhb)'
+echo ' - Kill the HBase env and Delete the HDFS data directory associated with HBase (ilh_cleanhb 2)'
 echo ' - Restart HBase (swstarthbase)'
 echo ' - Delete the env file: $MY_SQROOT/etc/ms.env'
 echo ' - sqgen'
@@ -70,7 +70,7 @@ fi
 lv_starttime=`date`
 run_util pkillall
 
-run_util ilh_cleanhb
+run_util 'ilh_cleanhb 2'
 
 run_util swstarthbase
 

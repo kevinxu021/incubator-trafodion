@@ -2374,26 +2374,17 @@ CoprocessorService, Coprocessor {
      long transactionId = request.getTransactionId();
      long commitId = request.getCommitId();
      boolean result;
-     byte [] family;
-     byte [] qualifier;
-     byte [] value;
      
      try {
         put = ProtobufUtil.toPut(proto);
      } catch (Throwable e) {
-        if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: putTlog - txId " + transactionId + ", Caught exception " + e.getMessage() + " " + stackTraceToString(e));
+        if (LOG.isWarnEnabled()) LOG.warn("TrxRegionEndpoint coprocessor: putTlog - txId " + transactionId + ", Caught exception " + e.getMessage() + " " + stackTraceToString(e));
         t = e;
      }
 
      // Process in local memory
      if (put != null){
         if (t == null) {
-           row = request.getRow().toByteArray();
-           family = request.getFamily().toByteArray();
-           qualifier = request.getQualifier().toByteArray();
-           value = request.getValue().toByteArray();
-           put.add(family, qualifier, value);
-     
            try {
               if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: putTlog - putting row " + put);
               result = putTlog(transactionId, put);

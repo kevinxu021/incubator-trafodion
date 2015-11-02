@@ -3764,6 +3764,10 @@ enum DefaultConstants
   // costing code has broader exposure.
   HBASE_DELETE_COSTING,
   HBASE_UPDATE_COSTING,
+  TRAF_LOAD_FLUSH_SIZE_IN_KB,
+
+  // turn hbase visibility feature on or off.
+  HBASE_VISIBILITY,
 
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!

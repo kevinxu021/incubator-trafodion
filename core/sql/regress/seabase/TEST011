@@ -49,9 +49,9 @@ drop table t011t6b;
 
 drop table t011t7;
 
-drop table t011t8s;
-drop table t011t8a;
-drop table t011t8n;
+drop table t011t8s cascade;
+drop table t011t8a cascade;
+drop table t011t8n cascade;
 
 -- delete explain for statement explstmt from repository
 set parserflags 131072;
@@ -581,11 +581,18 @@ alter table t011t7 alter column c varchar(4) character set utf8;
 
 -- tests for transaction replication options
 create table t011t8s(a int) attributes synchronous replication;
+create index t011t8si on t011t8s(a) attribute synchronous replication;
+create index t011t8si on t011t8s(a);
 create table t011t8a(a int) attributes asynchronous replication;
+create index t011t8ai on t011t8a(a);
 create table t011t8n(a int) attributes no replication;
 showddl t011t8s;
 showddl t011t8a;
 showddl t011t8n;
+prepare s from insert into t011t8s values (1);
+explain s;
+prepare s from insert into t011t8a values (1);
+explain s;
 alter table t011t8s attribute no replication;
 showddl t011t8s;
 alter table t011t8s attribute synchronous replication;
@@ -594,7 +601,6 @@ alter table t011t8s attribute asynchronous replication;
 showddl t011t8s;
 alter table t011t8n attribute synchronous replication;
 showddl t011t8n;
-
 
 
 

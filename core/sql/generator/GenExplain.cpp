@@ -1736,6 +1736,22 @@ GenericUpdate::addSpecificExplainInfo(ExplainTupleMaster *explainTuple,
       description += " ";
     }
 
+  if (getTableDesc()->getNATable()->xnRepl() == COM_REPL_SYNC)
+    {
+      description += "replication: synchronous ";
+    }
+  else if (getTableDesc()->getNATable()->xnRepl() == COM_REPL_ASYNC)
+    {
+      description += "replication: asynchronous ";
+    }
+  if (natable->isSeabaseTable() && 
+      (((ComTdbHbaseAccess *)tdb)->getTrafLoadFlushSize() > 0)) {
+    char lbuf[20];
+    description += "load_flush_size: " ;
+    sprintf(lbuf, "%d ", ((ComTdbHbaseAccess *)tdb)->getTrafLoadFlushSize());
+    description += lbuf;
+  }
+
   return 0;
 }
 

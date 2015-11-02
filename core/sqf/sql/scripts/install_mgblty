@@ -1,0 +1,106 @@
+#!/bin/bash
+
+# @@@ START COPYRIGHT @@@ 
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+# 
+#   http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+# @@@ END COPYRIGHT @@@
+
+#### Script to install and configure Manageability tools
+#### OpenTSDB, TCollector and Bosun...
+
+# Location of manageability folder
+export MGBLTY_TOOLSDIR=$MY_SQROOT/../../mgblty
+if [[ ! -d $MGBLTY_TOOLSDIR ]]; then
+    mkdir -p $MGBLTY_TOOLSDIR
+fi
+
+# Default location of OpenTSDB, TCollector, Bosun folders 
+OPENTSDB_DIR=$MGBLTY_TOOLSDIR/opentsdb
+TCOLLECTOR_DIR=$MGBLTY_TOOLSDIR/tcollector
+BOSUN_DIR=$MGBLTY_TOOLSDIR/bosun
+
+# Location of manageability log file
+MY_SW_ROOT=$MY_SQROOT/sql/local_hadoop
+MGBLTY_LOG=$MY_SW_ROOT/log/install_mgblty_$(date +%F_%T).log
+
+# Location of temporary download folder
+MGBLTY_DOWNLOAD_DIR=$MY_SQROOT/sql/scripts/mgblty_download
+
+if [ -d $MGBLTY_TOOLSDIR/opentsdb ] && [ -d $MGBLTY_TOOLSDIR/tcollector ] &&
+        [ -d $MGBLTY_TOOLSDIR/bosun ]; then
+    echo "Manageability tools (tcollector, opentsdb and bosun) already exists.." | tee -a ${MGBLTY_LOG}
+else
+    mkdir -p $MGBLTY_DOWNLOAD_DIR
+    cd $MGBLTY_DOWNLOAD_DIR
+    echo
+    if [[ -f $MGBLTY_DOWNLOAD_DIR/bosun-linux-amd64 ]]; then
+   	echo "Bosun directory already exists, skipping bosun setup" | tee -a ${MGBLTY_LOG}
+    else
+        echo "Downloading and installing bosun"| tee -a ${MGBLTY_LOG}
+        wget https://github.com/bosun-monitor/bosun/releases/tag/0.4.0/bosun-linux-amd64
+        wget https://github.com/bosun-monitor/bosun/releases/tag/0.4.0/scollector-linux-amd64
+    fi
+    echo "Copying bosun files..."
+    mkdir -p $BOSUN_DIR/bin
+    cp -p bosun-linux-amd64 $BOSUN_DIR/bin
+    cp -p scollector-linux-amd64 $BOSUN_DIR/bin
+    echo "Completed setup of Bosun" | tee -a ${MGBLTY_LOG}
+    echo
+    if [[ -d $MGBLTY_DOWNLOAD_DIR/tcollector ]]; then
+      echo "Tcollector directory already exists, skipping tcollector setup" | tee -a ${MGBLTY_LOG}
+    else
+       echo "Downloading and installing tcollector"| tee -a ${MGBLTY_LOG}
+       git clone git://github.com/OpenTSDB/tcollector.git
+    fi
+    echo "Copying tcollector files..."
+    mkdir -p $TCOLLECTOR_DIR
+    cp -p tcollector/*.py $TCOLLECTOR_DIR
+    cp -p tcollector/startstop $TCOLLECTOR_DIR
+    cp -rp tcollector/collectors $TCOLLECTOR_DIR
+    cp -rp tcollector/stumbleupon $TCOLLECTOR_DIR
+    echo "Completed set up of Tcollector" | tee -a ${MGBLTY_LOG}
+    echo
+    if [[ -d $MGBLTY_DOWNLOAD_DIR/opentsdb ]]; then
+       echo "opentsdb directory already exists, skipping opentsdb setup" | tee -a ${MGBLTY_LOG}
+    else
+       echo "Downloading and installing openTSDB"| tee -a ${MGBLTY_LOG}
+       git clone git://github.com/OpenTSDB/opentsdb.git
+       cd opentsdb && ./bootstrap
+       mkdir build
+       cd build
+       ../configure --prefix=/tmp/myinst-${USER} "$@"  
+       /bin/sh $PWD
+       unset CLASSPATH
+       make 
+       cd ../../
+    fi
+    cd opentsdb/build
+    make install
+    cp -rp /tmp/myinst-$USER/bin/tsdb /tmp/myinst-$USER/share/opentsdb/bin
+    cd /tmp/myinst-$USER/share/opentsdb/bin
+    mv -f tsdb tsdb-orig 
+    sed -e "s@pkgdatadir='/tmp/myinst-$USER/share/opentsdb'@pkgdatadir=\$MGBLTY_INSTALL_DIR/opentsdb@" -e "s@configdir='/tmp/myinst-$USER/share/opentsdb/etc/opentsdb'@configdir=\$MGBLTY_INSTALL_DIR/opentsdb/etc/opentsdb@" tsdb-orig > tsdb
+    chmod +x tsdb
+    rm -f tsdb-orig
+    cd $MY_SQROOT/sql/scripts
+    cp -rp /tmp/myinst-$USER/share/opentsdb $MGBLTY_TOOLSDIR
+    echo "Completed set up of OpenTSDB " | tee -a ${MGBLTY_LOG}
+    rm -rf /tmp/myinst-$USER
+    echo "Successfully installed manageability tools" | tee -a ${MGBLTY_LOG}
+    echo
+    exit 0
+fi

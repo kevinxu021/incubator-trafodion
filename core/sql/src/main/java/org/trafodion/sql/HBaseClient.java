@@ -88,6 +88,12 @@ import java.util.TreeSet;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.permission.AclEntry;
+import org.apache.hadoop.fs.RemoteIterator;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
+import org.apache.hadoop.hdfs.protocol.CacheDirectiveEntry;
+import org.apache.hadoop.hdfs.protocol.CacheDirectiveInfo;
+import org.apache.hadoop.hdfs.protocol.CachePoolEntry;
+import org.apache.hadoop.hdfs.protocol.CachePoolInfo;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.hbase.io.hfile.HFileScanner;
@@ -98,6 +104,7 @@ import org.apache.hadoop.hbase.client.DtmConst;
 import org.apache.commons.codec.binary.Hex;
 
 import com.google.protobuf.ServiceException;
+import org.apache.hadoop.hdfs.protocol.CacheDirectiveStats;
 
 public class HBaseClient {
 
@@ -1465,24 +1472,27 @@ public class HBaseClient {
   }
 
     public int startGet(long jniObject, String tblName, boolean useTRex, boolean bSynchronize, long transID, byte[] rowID,
-                        Object[] columns, long timestamp)
+                        Object[] columns, long timestamp,
+                        String hbaseAuths)
                         throws IOException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
-      return htc.startGet(transID, rowID, columns, timestamp);
+      return htc.startGet(transID, rowID, columns, timestamp, hbaseAuths);
   }
 
   public int startGet(long jniObject, String tblName, boolean useTRex, boolean bSynchronize, long transID, Object[] rowIDs,
-                        Object[] columns, long timestamp)
+                      Object[] columns, long timestamp,
+                      String hbaseAuths)
                         throws IOException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
-      return htc.startGet(transID, rowIDs, columns, timestamp);
+      return htc.startGet(transID, rowIDs, columns, timestamp, hbaseAuths);
   }
 
   public int startGet(long jniObject, String tblName, boolean useTRex, boolean bSynchronize, long transID, short rowIDLen, Object rowIDs,
-                        Object[] columns)
+                      Object[] columns,
+                      String hbaseAuths)
                         throws IOException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
-      return htc.getRows(transID, rowIDLen, rowIDs, columns);
+      return htc.getRows(transID, rowIDLen, rowIDs, columns, hbaseAuths);
   }
 
   public boolean insertRow(long jniObject, String tblName, boolean useTRex, boolean bSynchronize, long transID, byte[] rowID,
@@ -1557,9 +1567,11 @@ public class HBaseClient {
 			   byte[] rowID,
 			   Object[] columns,
 			   long timestamp,
-			   boolean asyncOperation) throws IOException {
+			   boolean asyncOperation,
+                           String hbaseAuths) throws IOException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
-      boolean ret = htc.deleteRow(transID, rowID, columns, timestamp, asyncOperation);
+      boolean ret = htc.deleteRow(transID, rowID, columns, timestamp, 
+                                  asyncOperation, hbaseAuths);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);
       else
@@ -1574,10 +1586,14 @@ public class HBaseClient {
 			    long transID, 
 			    short rowIDLen, 
 			    Object rowIDs,
+                            Object[] columns,
 			    long timestamp, 
-			    boolean asyncOperation) throws IOException, InterruptedException, ExecutionException {
+			    boolean asyncOperation,
+                            String hbaseAuths) throws IOException, InterruptedException, ExecutionException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
-      boolean ret = htc.deleteRows(transID, rowIDLen, rowIDs, timestamp, asyncOperation);
+      boolean ret = htc.deleteRowsInt(transID, rowIDLen, rowIDs, 
+                                   columns, timestamp, 
+                                   asyncOperation, hbaseAuths);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);
       else
@@ -1591,12 +1607,16 @@ public class HBaseClient {
 				   boolean bSynchronize,
 				   long transID, 
 				   byte[] rowID,
+                                   Object[] columns,
 				   byte[] columnToCheck,
 				   byte[] colValToCheck,
 				   long timestamp,
-				   boolean asyncOperation) throws IOException {
+				   boolean asyncOperation,
+                                   String hbaseAuths) throws IOException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
-      boolean ret = htc.checkAndDeleteRow(transID, rowID, columnToCheck, colValToCheck, timestamp);
+      boolean ret = htc.checkAndDeleteRow(transID, rowID, columns, 
+                                          columnToCheck, colValToCheck, 
+                                          timestamp, hbaseAuths);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);
       else
@@ -1633,6 +1653,228 @@ public class HBaseClient {
     long count = myHTable.incrementColumnValue(Bytes.toBytes(rowId), Bytes.toBytes(famName), Bytes.toBytes(qualName), incrVal);
     myHTable.close();
     return count;
+  }
+
+  //add directive path to a hdfs cache pool, a table may composed of multiple directives.
+  public void addDirectiveToHDFSCache(DistributedFileSystem dfs, String directivePath, String poolName) throws Exception
+  {
+     CacheDirectiveInfo directive = new CacheDirectiveInfo.Builder().
+                                        setPath(new Path(directivePath)).
+                                        setReplication((short)1).
+                                        setPool(poolName).build();     
+     dfs.addCacheDirective(directive);
+     if (logger.isDebugEnabled()) logger.debug("[Hdfs Cache]Add " + directivePath + 
+                                               "to pool " + poolName);
+  }
+  
+  //remove a directive from a hdfs cache pool, return number of directives removed.
+  public int removeDirectiveFromHDFSCache(DistributedFileSystem dfs, String directivePath, String poolName) throws Exception
+  {
+     int directiveCounter = 0;
+     CacheDirectiveInfo directive = new CacheDirectiveInfo.Builder().
+                                        setPath(new Path(directivePath)).
+                                        setPool(poolName).build();
+
+     RemoteIterator<CacheDirectiveEntry> iter = 
+          dfs.listCacheDirectives(directive);
+
+    //get id of the directive and remove by id.
+    //a directive can be cached multiple times,
+    //so there could be multiple entries for a directive,
+    //they have different ids.
+     while(iter.hasNext())
+     {
+       long id = iter.next().getInfo().getId();
+       dfs.removeCacheDirective(id);
+       directiveCounter++;
+       if (logger.isDebugEnabled()) logger.debug("[Hdfs Cache]Remove " + directivePath + 
+                                                 "from pool " + poolName);
+     }
+     return directiveCounter;
+  }
+
+  //get all cached paths from a pool, specified by poolName,
+  //return false if the pool doesn't exist in hdfs,
+  //outPathsInPool should be allocated by caller.
+  boolean getPathsFromPool(DistributedFileSystem dfs, String poolName, 
+                                                                  Set<String> outPathsInPool //out,all paths in a pool 
+                                                                  ) throws Exception
+  {
+       RemoteIterator<CachePoolEntry> poolIter = dfs.listCachePools();
+       boolean isPoolExist = false;
+       while (poolIter.hasNext()) {
+            CachePoolEntry entry = poolIter.next();
+            CachePoolInfo info = entry.getInfo();    
+            if(info.getPoolName().compareTo(poolName) == 0){
+                isPoolExist = true;
+		break;
+            }
+       }
+	
+       if(isPoolExist)
+       {
+           CacheDirectiveInfo directive = new CacheDirectiveInfo.Builder().setPool(poolName).build();
+           RemoteIterator<CacheDirectiveEntry> dirIter = dfs.listCacheDirectives(directive);
+           while(dirIter.hasNext()) {
+               CacheDirectiveEntry en = dirIter.next();
+               CacheDirectiveInfo cdInfo = en.getInfo();
+               outPathsInPool.add(cdInfo.getPath().toUri().getPath().toString());
+           }
+           return true;
+      }
+      else
+           return false;//pool does not exist
+  }
+  
+  //find all directives belonging to a table and add them to hdfs cache pool.
+  //same directives are not added twice.
+  //return -1 if pool doesn't exist
+  public int addTablesToHDFSCache(Object[] qualifiedTableNames, String poolName) throws Exception
+  {
+      Set<String> cachedDirectives = new TreeSet<String>();
+      FileSystem fs = FileSystem.get(config);
+      if(!getPathsFromPool((DistributedFileSystem)fs, poolName, cachedDirectives))
+          return -1;
+
+      for (int i = 0 ; i < qualifiedTableNames.length; i++) {
+          String hbaseTableName = (String)qualifiedTableNames[i];
+		  
+          HTable table = new HTable(config, hbaseTableName);
+		  
+          Path tableDir = FSUtils.getTableDir(FSUtils.getRootDir(config), table.getName());
+		  
+          NavigableMap<HRegionInfo, ServerName> locations = table.getRegionLocations();
+          for (Map.Entry<HRegionInfo, ServerName> entry: locations.entrySet()) {
+              FileStatus[] fds = FSUtils.listStatus(fs, new Path(tableDir, entry.getKey().getEncodedName()), 
+                                                                            new FSUtils.FamilyDirFilter(fs));
+              if(fds == null) 
+                  continue;
+              for (FileStatus status: fds) {
+                  if(!cachedDirectives.contains(status.getPath().toUri().getPath().toString()))
+          		 addDirectiveToHDFSCache((DistributedFileSystem)fs, status.getPath().toUri().getPath().toString(), poolName);
+              }
+          }
+          //add next table in list to hdfs cache.
+      }
+      return 0;
+  }
+  //remove all directives belonging to a table in hdfs cache pool
+  //return -1 if pool doesn't exist
+  public int removeTablesFromHDFSCache(Object[] qualifiedTableNames, String poolName) throws Exception
+  {
+      Set<String> cachedDirectives = new TreeSet<String>();
+      Set<String> poolNames = new TreeSet<String>();
+      FileSystem fs = FileSystem.get(config);
+      if(poolName.length() == 0)
+      {//if the pool name is not specified remove from all pool
+          RemoteIterator<CachePoolEntry> poolIter = ((DistributedFileSystem)fs).listCachePools();
+          while (poolIter.hasNext()) {
+              CachePoolEntry entry = poolIter.next();
+              CachePoolInfo info = entry.getInfo();	
+              poolNames.add(info.getPoolName());
+         }
+      }
+      else if(getPathsFromPool((DistributedFileSystem)fs, poolName, cachedDirectives)) {
+          poolNames.add(poolName);
+     }
+     else
+         return -1;
+
+      if(poolNames.size()==0)
+          return -1;
+
+      for (int i = 0 ; i < qualifiedTableNames.length; i++) {
+          String hbaseTableName = (String)qualifiedTableNames[i];
+          HTable table = new HTable(config, hbaseTableName);
+		  
+          Path tableDir = FSUtils.getTableDir(FSUtils.getRootDir(config), table.getName());
+		  
+          NavigableMap<HRegionInfo, ServerName> locations = table.getRegionLocations();
+          for (Map.Entry<HRegionInfo, ServerName> entry: locations.entrySet()) {
+              FileStatus[] fds = FSUtils.listStatus(fs, new Path(tableDir, entry.getKey().getEncodedName()), 
+                                                                            new FSUtils.FamilyDirFilter(fs));
+              if(fds == null) 
+                  continue;
+              for (FileStatus status: fds) {
+                  for(String pool: poolNames)
+                      removeDirectiveFromHDFSCache((DistributedFileSystem)fs, status.getPath().toUri().getPath().toString(), pool);
+              }
+          }
+          //remove next table in list to hdfs cache.
+      }
+      return 0;
+  }
+  
+  public ByteArrayList showTablesHDFSCache(Object[] qualifiedTableNames) throws Exception
+  {
+    FileSystem fs = FileSystem.get(config);
+    ByteArrayList Rows = new ByteArrayList();
+    int COLNUM = 9;
+    int [] colWidth = new int[COLNUM] ;
+    for(int i = 0; i < COLNUM; i++) colWidth[i] = 0;
+	
+    for (int i = 0 ; i < qualifiedTableNames.length; i++) {
+    	String hbaseTableName = (String)qualifiedTableNames[i];
+    	HTable table = new HTable(config, hbaseTableName);
+    	Path tableDir = FSUtils.getTableDir(FSUtils.getRootDir(config), table.getName());
+    	
+    	NavigableMap<HRegionInfo, ServerName> locations = table.getRegionLocations();
+    	
+    	for (Map.Entry<HRegionInfo, ServerName> entry: locations.entrySet()) {
+    		FileStatus[] fds = FSUtils.listStatus(fs, new Path(tableDir, (entry.getKey()).getEncodedName()), 
+    									new FSUtils.FamilyDirFilter(fs));
+    		if(fds == null)  continue;
+    		for (FileStatus fstatus: fds) {
+    			CacheDirectiveInfo directive = new CacheDirectiveInfo
+    										  .Builder()
+    										  .setPath(new Path(fstatus.getPath().toUri().getPath().toString()))
+    										  .build();
+    			RemoteIterator<CacheDirectiveEntry> iter = ((DistributedFileSystem)fs).listCacheDirectives(directive);
+    			while(iter.hasNext()) {
+    				CacheDirectiveEntry en = iter.next();
+    				CacheDirectiveInfo cdInfo = en.getInfo();
+    				CacheDirectiveStats stats = en.getStats();
+    	
+    				String oneRow;
+    				oneRow = cdInfo.getId().toString() + "|";
+    				oneRow += cdInfo.getPool() + "|";
+    				oneRow += cdInfo.getReplication().toString() + "|";
+    				// This is effectively never, round for nice printing
+    				String expire;
+    				if (cdInfo.getExpiration().getMillis() >
+    					CacheDirectiveInfo.Expiration.MAX_RELATIVE_EXPIRY_MS / 2) {
+    					expire = "never";
+    				} else {
+    					expire = cdInfo.getExpiration().toString();
+    				}
+				oneRow += expire + "|";
+    				oneRow += cdInfo.getPath().toUri().getPath() + "|";
+    				oneRow += String.valueOf(stats.getBytesNeeded()) + "|";
+    				oneRow += String.valueOf(stats.getBytesCached()) + "|";
+    				oneRow += String.valueOf(stats.getFilesNeeded()) + "|";
+    				oneRow += String.valueOf(stats.getFilesCached());
+    				Rows.add(oneRow.getBytes());	
+			        colWidth[0]=cdInfo.getId().toString().length() > colWidth[0]?cdInfo.getId().toString().length():colWidth[0];
+				colWidth[1]=cdInfo.getPool().length() > colWidth[1]?cdInfo.getPool().length():colWidth[1];
+			        colWidth[2]=cdInfo.getReplication().toString().length() > colWidth[2]?cdInfo.getReplication().toString().length():colWidth[2];
+				colWidth[3]=expire.length() > colWidth[3]?expire.length():colWidth[3];
+			        colWidth[4]=cdInfo.getPath().toUri().getPath().toString().length() > colWidth[4]?cdInfo.getPath().toUri().getPath().toString().length():colWidth[4];
+				colWidth[5]=String.valueOf(stats.getBytesNeeded()).length() > colWidth[5]?String.valueOf(stats.getBytesNeeded()).length():colWidth[5];
+			        colWidth[6]=String.valueOf(stats.getBytesCached()).length() > colWidth[6]?String.valueOf(stats.getBytesCached()).length():colWidth[6];
+				colWidth[7]=String.valueOf(stats.getFilesNeeded()).length() > colWidth[7]?String.valueOf(stats.getFilesNeeded()).length():colWidth[7];	
+				colWidth[8]=String.valueOf(stats.getFilesCached()).length() > colWidth[8]?String.valueOf(stats.getFilesCached()).length():colWidth[8];
+    			}//while			   
+    		}//for
+    	}
+    }
+	
+    String widthInfo = "";
+    for(int i = 0; i < COLNUM; i++) { 
+        widthInfo += String.valueOf(colWidth[i]) + "|"; 
+    }
+    Rows.add(widthInfo.getBytes());
+
+    return Rows;
   }
 
 }

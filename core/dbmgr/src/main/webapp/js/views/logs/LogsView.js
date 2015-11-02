@@ -97,8 +97,9 @@ define([
 				}
 			});
 			
-			$(START_TIME_PICKER).datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
-			$(END_TIME_PICKER).datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
+			$(START_TIME_PICKER).datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z', sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			$(END_TIME_PICKER).datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z', sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			
 			$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
 			$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 
@@ -364,7 +365,10 @@ define([
         	if (jqXHR.responseText) {
         		$(ERROR_CONTAINER).text(jqXHR.responseText);
         	}
-        }  
+        },
+		parseInputDate:function(date){
+			return moment(date).tz(common.serverTimeZone);
+		}  
 
 	});
 

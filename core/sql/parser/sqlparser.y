@@ -1555,7 +1555,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_CASESPECIFIC
 %token <tokval> TOK_NOT_CASESPECIFIC
 %token <tokval> TOK_FIXED
-
+%token <tokval> TOK_DECACHE
 //
 // Any tokens appended to the foregoing list likely need to be added to
 // the "nonreserved_word" or "nonreserved_func_word" production at the 
@@ -2180,7 +2180,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <relx>      		delete_statement
 %type <relx>      		delete_start_tokens
 %type <relx>      		control_statement
-%type <relx>            osim_statement
+%type <relx>                    osim_statement
+%type <relx>                    show_hdfs_cache_statement
 %type <boolean>   		optional_osim_force
 %type <relx>      		set_statement  
 %type <relx>      		set_table_statement  
@@ -2501,7 +2502,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <pStmtDDL>  		alter_table_alter_column_clause //++ MV
 %type <pStmtDDL>  		alter_table_alter_column_default_value 
 %type <pStmtDDL>  		alter_table_alter_column_datatype
-%type <pStmtDDL>  		alter_table_alter_column_set_sg_option 
+%type <pStmtDDL>  		alter_table_alter_column_set_sg_option
+%type <pStmtDDL>                alter_table_hdfs_cache
 %type <boolean>   		alter_column_type //++ MV
 %type <pStmtDDL>  		alter_table_set_constraint_clause
 %type <pStmtDDL>                alter_table_disable_constraint_clause
@@ -2509,6 +2511,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <pStmtDDL>  		alter_table_action
 %type <pStmtDDL>  		alter_table_statement
 %type <pStmtDDL>                alter_database_statement
+%type <pStmtDDL>              alter_schema_statement
 %type <boolean>                 optional_ghost
 %type <pStmtDDL>  		revoke_schema_statement
 %type <pStmtDDL>                revoke_component_privilege_stmt
@@ -6236,6 +6239,13 @@ hbase_access_options : empty
       }
     | '{' TOK_HBASE TOK_AUTHORIZATION QUOTED_STRING '}'
       {
+        if (CmpCommon::getDefault(HBASE_VISIBILITY) == DF_OFF)
+          {
+            *SqlParser_Diags << DgSqlCode(-1229) 
+                             << DgString0("HBASE AUTHORIZATION");
+            YYERROR;
+          }
+
         $$ = new (PARSERHEAP()) OptHbaseAccessOptions($4->data());
       }
     | '{' TOK_HBASE TOK_TIMESTAMP TOK_AS TOK_OF QUOTED_STRING ',' TOK_HBASE TOK_AUTHORIZATION QUOTED_STRING '}'
@@ -6247,6 +6257,13 @@ hbase_access_options : empty
             YYERROR;
           }
 
+        if (CmpCommon::getDefault(HBASE_VISIBILITY) == DF_OFF)
+          {
+            *SqlParser_Diags << DgSqlCode(-1229) 
+                             << DgString0("HBASE AUTHORIZATION");
+            YYERROR;
+          }
+
         $$->hbaseAuths() = *$10;
       }
    | '{' TOK_HBASE TOK_TIMESTAMP TOK_AS TOK_OF QUOTED_STRING ',' TOK_HBASE TOK_AUTHORIZATION QUOTED_STRING ',' num_versions '}'
@@ -6255,6 +6272,13 @@ hbase_access_options : empty
         if (NOT $$->isValid())
           {
             *SqlParser_Diags << DgSqlCode(-3047) << DgString0(*$6);
+            YYERROR;
+          }
+
+        if (CmpCommon::getDefault(HBASE_VISIBILITY) == DF_OFF)
+          {
+            *SqlParser_Diags << DgSqlCode(-1229) 
+                             << DgString0("HBASE AUTHORIZATION");
             YYERROR;
           }
 
@@ -14243,6 +14267,9 @@ sql_schema_manipulation_statement :
               | alter_view_statement
 				{
 				}
+              |alter_schema_statement
+                                {
+                                }
               | alter_database_statement
                                 {
                                 }
@@ -14421,6 +14448,10 @@ interactive_query_expression:
 				  $$ = finalize($1);
 				}
            |  osim_statement
+              {
+                  $$ = finalize($1);
+              }
+            | show_hdfs_cache_statement
               {
                   $$ = finalize($1);
               }
@@ -19767,6 +19798,13 @@ set_clause : identifier '=' value_expression
 				}
                               | identifier '=' TOK_HBASE_VISIBILITY '(' QUOTED_STRING ')'
 				{
+                                  if (CmpCommon::getDefault(HBASE_VISIBILITY) == DF_OFF)
+                                    {
+                                      *SqlParser_Diags << DgSqlCode(-1229) 
+                                                       << DgString0("HBASE_VISIBILITY");
+                                      YYERROR;
+                                    }
+
                                   ColReference * colRef = new (PARSERHEAP())
                                     ColReference(
                                          new (PARSERHEAP()) ColRefName(*$1, PARSERHEAP()));
@@ -19777,8 +19815,17 @@ set_clause : identifier '=' value_expression
 				}
 
 /* type relx */
-delete_start_tokens : TOK_DELETE no_check_log TOK_FROM table_name 
+delete_start_tokens : TOK_DELETE no_check_log TOK_FROM table_name hbase_access_options
                {
+                 if ($5)
+                   {
+                     if (($5->versionSpecified()) ||
+                         ($5->tsSpecified()))
+                       {
+                         YYERROR;
+                       }
+                   }
+
                  TransMode *transMode = CmpCommon::transMode();
 
                  // Multi Commit must extract the where clause part
@@ -19801,8 +19848,7 @@ delete_start_tokens : TOK_DELETE no_check_log TOK_FROM table_name
                    Delete(CorrName(*$4, PARSERHEAP()),
                           NULL,
                           REL_UNARY_DELETE,
-                          inputScan,
-                          NULL);
+                          inputScan);
    
                  if (($2 == 1) || ($2 == 3))
                    {
@@ -19813,7 +19859,12 @@ delete_start_tokens : TOK_DELETE no_check_log TOK_FROM table_name
                    {
                      ((Delete*)$$)->setNoCheck(TRUE);
                    }
-   
+
+                  if ($5)
+                    {
+                      $$->setOptHbaseAccessOptions($5);
+                    }
+
                  delete $4;
                }
           | TOK_DELETE no_check_log TOK_FROM table_name TOK_AS correlation_name
@@ -19858,13 +19909,13 @@ delete_start_tokens : TOK_DELETE no_check_log TOK_FROM table_name
                  delete $6;
                }
 
-delete_statement : TOK_DELETE TOK_COLUMNS '(' quoted_string_list ')' TOK_FROM table_name  where_clause
+delete_statement : TOK_DELETE TOK_COLUMNS '(' quoted_string_list ')' TOK_FROM table_name  hbase_access_options where_clause
                {
                  Scan * inputScan =
                    new (PARSERHEAP()) Scan(CorrName(*$7, PARSERHEAP()));
 
 		 // attach the WHERE clause to the input scan
-		 inputScan->addSelPredTree($8);
+		 inputScan->addSelPredTree($9);
     
                  $$ = new (PARSERHEAP())
                    Delete(CorrName(*$7, PARSERHEAP()),
@@ -19873,6 +19924,11 @@ delete_statement : TOK_DELETE TOK_COLUMNS '(' quoted_string_list ')' TOK_FROM ta
                           inputScan,
                           NULL, NULL,
 			  $4);
+                 
+                 if ($8)
+                   {
+                     $$->setOptHbaseAccessOptions($8);
+                   }
    
                  delete $7;
                }
@@ -19964,7 +20020,7 @@ delete_statement : delete_start_tokens where_clause
                                      delete del;
 
                                      $$ = eue;
-                                  }
+                                  } // multi-commit
                                   else
                                   {
 
@@ -20847,6 +20903,25 @@ control_statement : TOK_CONTROL TOK_QUERY TOK_SHAPE query_shape_options query_sh
 				}
                   | declare_or_set_cqd
                   | set_session_default_statement
+
+show_hdfs_cache_statement: 
+                  TOK_SHOW TOK_CACHE TOK_FOR TOK_TABLE table_name
+                  {
+                      $$ = new (PARSERHEAP())RelRoot(
+                                          new (PARSERHEAP()) Describe(SQLTEXT(), *$5, Describe::SHOWTABLEHDFSCACHE_, COM_TABLE_NAME),
+					  REL_ROOT,  
+					  new (PARSERHEAP()) ColReference(new (PARSERHEAP()) 
+                                                                                                         ColRefName(TRUE, PARSERHEAP())));
+
+                  }
+                  |TOK_SHOW TOK_CACHE TOK_FOR TOK_SCHEMA schema_name
+                  {
+                      $$ = new (PARSERHEAP())RelRoot(
+                                          new (PARSERHEAP()) Describe(SQLTEXT(), *$5, Describe::SHOWSCHEMAHDFSCACHE_),
+					  REL_ROOT,  
+					  new (PARSERHEAP()) ColReference(new (PARSERHEAP()) 
+                                                                                                         ColRefName(TRUE, PARSERHEAP())));
+                  }
 
 osim_statement : 
                     //control osim capture location '<osim directory path>';
@@ -31207,7 +31282,24 @@ alter_table_action : add_table_constraint_definition
                                 $$ = new (PARSERHEAP())
 				  StmtDDLAlterTableHBaseOptions($2->castToElemDDLHbaseOptions());
                         }
-			
+                      | alter_table_hdfs_cache
+                        {
+                               $$ = $1;
+                        }
+
+/* type pStmtDDL */
+alter_table_hdfs_cache : TOK_CACHE TOK_IN regular_identifier
+                        {
+                             $$ = new (PARSERHEAP()) 
+                                      StmtDDLAlterTableHDFSCache(*$3, TRUE, PARSERHEAP());
+                             delete $3;
+                        }
+                      | TOK_DECACHE TOK_FROM regular_identifier
+                        {
+                             $$ = new (PARSERHEAP()) 
+                                      StmtDDLAlterTableHDFSCache(*$3, FALSE, PARSERHEAP());
+                             delete $3;
+                        }
 
 /* type pStmtDDL */
 alter_synonym_statement : TOK_ALTER TOK_SYNONYM ddl_qualified_name 
@@ -32315,6 +32407,29 @@ alter_database_statement: TOK_ALTER TOK_DATABASE enable_status TOK_AUTHORIZATION
                      , $3 );
                  }
 
+/* type pStmtDDL : ALTER SCHEMA */
+alter_schema_statement: 
+                  TOK_ALTER TOK_SCHEMA schema_name TOK_CACHE TOK_IN regular_identifier 
+                  {
+                        NAString tmpSchema($3->getSchemaNameAsAnsiString());
+                        if (! validateVolatileSchemaName(tmpSchema))
+                        {
+                            YYERROR;
+                        }
+                        //NAString* regular_identifier
+                        $$ = new (PARSERHEAP()) StmtDDLAlterSchemaHDFSCache (*$3, *$6, TRUE, PARSERHEAP());
+                        delete $6;
+                  }
+                  |TOK_ALTER TOK_SCHEMA schema_name TOK_DECACHE TOK_FROM regular_identifier
+                  {
+                      NAString tmpSchema($3->getSchemaNameAsAnsiString());
+                      if (! validateVolatileSchemaName(tmpSchema))
+                      {
+                          YYERROR;
+                      }
+                      $$ = new (PARSERHEAP()) StmtDDLAlterSchemaHDFSCache (*$3, *$6, FALSE, PARSERHEAP());
+                      delete $6;
+                  }
 
 /* type pStmtDDL */
 create_component_privilege_stmt : TOK_CREATE TOK_COMPONENT TOK_PRIVILEGE 

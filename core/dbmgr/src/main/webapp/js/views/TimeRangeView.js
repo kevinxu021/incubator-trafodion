@@ -136,18 +136,29 @@ define([
 			this.eventAgg = _.extend({}, Backbone.Events);
 			_this = this;
 			_timeRangeControl = this.timeRangeControl;
-			$.validator.addMethod("validateStartAndEndTimes", function(value, element) {
+			
+			$.validator.addMethod("validateStartTime", function(value, element) {
 				var startTime = new Date($(START_TIME_PICKER).data("DateTimePicker").date()).getTime();
 				var endTime = new Date($(END_TIME_PICKER).data("DateTimePicker").date()).getTime();
-				return (startTime < endTime);
+				if($(START_TIME_PICKER).data("DateTimePicker").date() != null && $(END_TIME_PICKER).data("DateTimePicker").date() != null)
+					return (startTime < endTime);
+				else return true;
 			}, "* Start Time has to be less than End Time");
+			
+			$.validator.addMethod("validateEndTime", function(value, element) {
+				var startTime = new Date($(START_TIME_PICKER).data("DateTimePicker").date()).getTime();
+				var endTime = new Date($(END_TIME_PICKER).data("DateTimePicker").date()).getTime();
+				if($(START_TIME_PICKER).data("DateTimePicker").date() != null && $(END_TIME_PICKER).data("DateTimePicker").date() != null)
+					return (startTime < endTime);
+				else return true;
+			}, "* End Time has to be greater than Start Time");			
 		}, 
 
 		init: function(){
 			validator = $(FILTER_FORM).validate({
 				rules: {
-					"filter-start-time": { required: true, validateStartAndEndTimes: true },
-					"filter-end-time": { required: true, validateStartAndEndTimes: true }
+					"filter-start-time": { required: true, validateStartTime: true },
+					"filter-end-time": { required: true, validateEndTime: true }
 				},
 				highlight: function(element) {
 					$(element).closest('.form-group').addClass('has-error');
@@ -175,8 +186,9 @@ define([
 				}
 			});
 
-			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE});
-			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE});
+			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			
 			$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
 			$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 
@@ -206,6 +218,9 @@ define([
 
 		resume: function(){
 			_timeRangeControl.bindEvent();
+		},
+		parseInputDate:function(date){
+			return moment(date).tz(common.serverTimeZone);
 		}
 	});
 	

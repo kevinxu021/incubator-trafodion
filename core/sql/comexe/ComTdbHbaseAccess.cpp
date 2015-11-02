@@ -105,9 +105,7 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
 				     Float32 samplingRate,
 				     HbaseSnapshotScanAttributes * hbaseSnapshotScanAttributes,
 
-                                     ComHbaseAccessOptions * comHbaseAccessOptions,
-
-                                     char * hbaseAuths
+                                     ComHbaseAccessOptions * comHbaseAccessOptions
 
 				     )
 : ComTdb( ComTdb::ex_HBASE_ACCESS,
@@ -199,12 +197,9 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   samplingRate_(samplingRate),
   sampleLocation_(NULL),
   hbaseRowsetVsbbSize_(0),
-  
   hbaseCellTS_(-1),
-
   comHbaseAccessOptions_(comHbaseAccessOptions),
-
-  hbaseAuths_(hbaseAuths)
+  trafLoadFlushSize_(0)
 {};
 
 ComTdbHbaseAccess::ComTdbHbaseAccess(
@@ -313,12 +308,9 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   samplingRate_(-1),
   sampleLocation_(NULL),
   hbaseRowsetVsbbSize_(0),
-
   hbaseCellTS_(-1),
-
   comHbaseAccessOptions_(NULL),
-
-  hbaseAuths_(NULL)
+  trafLoadFlushSize_(0)
 {
 }
 
@@ -458,7 +450,6 @@ Long ComTdbHbaseAccess::pack(void * space)
   LoadPrepLocation_.pack(space);
   hbaseSnapshotScanAttributes_.pack(space);
   comHbaseAccessOptions_.pack(space);
-  hbaseAuths_.pack(space);
 
   // pack elements in listOfScanRows_
   if (listOfScanRows() && listOfScanRows()->numEntries() > 0)
@@ -528,7 +519,6 @@ Lng32 ComTdbHbaseAccess::unpack(void * base, void * reallocator)
   if(LoadPrepLocation_.unpack(base)) return -1;
   if(hbaseSnapshotScanAttributes_.unpack(base,reallocator)) return -1;
   if(comHbaseAccessOptions_.unpack(base, reallocator)) return -1;
-  if(hbaseAuths_.unpack(base)) return -1;
 
   // unpack elements in listOfScanRows_
   if(listOfScanRows_.unpack(base, reallocator)) return -1;
@@ -631,6 +621,20 @@ void ComTdbHbaseAccess::displayRowId(Space * space, char * inputRowIdBuf)
 	  currPos += inputRowIdValLen;
 	}
     }
+}
+
+Long ComTdbHbaseAccess::ComHbaseAccessOptions::pack(void * space)
+{
+  hbaseAuths_.pack(space);
+
+  return NAVersionedObject::pack(space);
+}
+
+Lng32 ComTdbHbaseAccess::ComHbaseAccessOptions::unpack(void * base, void * reallocator)
+{
+  if (hbaseAuths_.unpack(base)) return -1;
+
+  return NAVersionedObject::unpack(base, reallocator);
 }
 
 static void showColNames(Queue * listOfColNames, Space * space)
@@ -990,9 +994,9 @@ void ComTdbHbaseAccess::displayContents(Space * space,ULng32 flag)
           space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
         }
 
-      if (hbaseAuths())
+      if (getComHbaseAccessOptions() && getComHbaseAccessOptions()->hbaseAuths())
         {
-          str_sprintf(buf, "hbaseAuths_ = %s", hbaseAuths());
+          str_sprintf(buf, "hbaseAuths = %s", getComHbaseAccessOptions()->hbaseAuths());
           space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
         }
 

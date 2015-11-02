@@ -19,13 +19,16 @@
 # under the License.
 #
 # @@@ END COPYRIGHT @@@
-
+#
 # Add code to monitor processes/services at a node level
-
+#
 # The stdout is the file $MY_SQROOT/sql/scripts/stdout_nmon
-
-#---- Begin: Setup the env to run any script
+#
+#---- Begin: Setup the env to run any script - please do not edit this block
 cd $MY_SQROOT
 . $MY_SQROOT/sqenv.sh
 cd - >/dev/null
-#----  End : Setup the env to run any script
+
+# Setting this variable so that downstream scripts executed here are aware of the context
+export NODE_MONITOR_MODE=1
+#----  End : Setup the env to run any script - please do not edit this block
