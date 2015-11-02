@@ -828,7 +828,7 @@ public class TrafExportSnapshot extends Configured implements Tool {
     int bandwidthMB = Integer.MAX_VALUE;
     int filesMode = 0;
     int mappers = 0;
-    int mrLowLimitMB = 10;
+    int mrLowLimitMB = 100;
 
     Configuration conf = getConf();
     Path inputRoot = FSUtils.getRootDir(conf);
@@ -979,9 +979,7 @@ public class TrafExportSnapshot extends Configured implements Tool {
     	     	for (Pair<SnapshotFileInfo, Long> fileInfo: snapshotFiles) {
     	     		inputInfo = fileInfo.getFirst();
     	     		Path outputPath = getCopyOutputPath(conf, inputInfo);
-    	     		Path inputPath = getCopyInputPath(conf, inputInfo);
-    	     		//System.out.println("Input Path = " + inputPath.toString());
-    	     		//System.out.println("Output Path = " + outputPath.toString());
+    	     		Path inputPath = getCopyInputPath(conf, inputInfo, inputFs);
     	     		FileUtil.copy(inputFs, inputPath, outputFs, outputPath, false, false, conf);
     	     	}	
     	}	
@@ -1033,46 +1031,41 @@ public class TrafExportSnapshot extends Configured implements Tool {
           path = new Path(FSUtils.getTableDir(new Path("./"), table),
               new Path(region, new Path(family, hfile)));
           break;
-        case WAL:
-          Path oldLogsDir = new Path(outputRoot, HConstants.HREGION_OLDLOGDIR_NAME);
-          path = new Path(oldLogsDir, inputInfo.getWalName());
-          break;
         default:
           throw new IOException("Invalid File Type: " + inputInfo.getType().toString());
       }
       return new Path(outputArchive, path);
     }
 
-   private Path getCopyInputPath(final Configuration conf, final SnapshotFileInfo inputInfo)
-   throws IOException {
-	   Path path = null;
-	   Path inputRoot = new Path(conf.get(CONF_INPUT_ROOT));
-	   try {
-			switch (inputInfo.getType()) {
-			 case HFILE:
-			 	Path inputPath = new Path(inputInfo.getHfile());
-          		String family = inputPath.getParent().getName();
-          		TableName table =HFileLink.getReferencedTableName(inputPath.getName());
-          		String region = HFileLink.getReferencedRegionName(inputPath.getName());
-          		String hfile = HFileLink.getReferencedHFileName(inputPath.getName());
-          		path = new Path(FSUtils.getTableDir(new Path("./"), table),
-	              new Path(region, new Path(family, hfile)));
-	          	break;
-			 case WAL:
-			   String serverName = inputInfo.getWalServer();
-			   String logName = inputInfo.getWalName();
-			   path = new Path(serverName, logName);
-			   break;
-			 default:
-				 throw new IOException("Invalid File Type: " + inputInfo.getType().toString());
-			}
-			return new Path(inputRoot, path);
-			} catch (IOException e) {
-				LOG.error("Unable to open source file=" + inputInfo.toString(), e);
-				throw e;
-			}
-   }
-   
+    private Path getCopyInputPath(final Configuration conf, final SnapshotFileInfo inputInfo, final FileSystem inputFs)
+    throws IOException {
+       FileLink link = null;
+       Path inputRoot = new Path(conf.get(CONF_INPUT_ROOT));
+       Path inputArchive = new Path(inputRoot, HConstants.HFILE_ARCHIVE_DIRECTORY);
+       try {
+	   switch (inputInfo.getType()) {
+	   case HFILE:
+	       Path inputPath = new Path(inputInfo.getHfile());
+	       String regionName = HFileLink.getReferencedRegionName(inputPath.getName());
+	       TableName tableName = HFileLink.getReferencedTableName(inputPath.getName());
+	       if(MobUtils.getMobRegionInfo(tableName).getEncodedName().equals(regionName)) 
+	       {
+		   throw new IOException("Mob not supported. Use HBase ExportSnapshot");
+	       }
+	       link = HFileLink.buildFromHFileLinkPattern(inputRoot, inputArchive, inputPath);
+	       break;
+	   default:
+	       throw new IOException("Invalid File Type: " + inputInfo.getType().toString());
+	   }
+       } 
+       catch (IOException e) 
+       {
+	   LOG.error("Unable to open source file=" + inputInfo.toString(), e);
+	   throw e;
+       }
+       return link.getAvailablePath(inputFs);
+    }
+    
   // ExportSnapshot
   private void printUsageAndExit() {
     System.err.printf("Usage: bin/hbase %s [options]%n", getClass().getName());
