@@ -8,8 +8,9 @@ define([
         'views/BaseView',
         'text!templates/login.html',
         'model/Session',
-        'handlers/SessionHandler'
-        ], function (BaseView, LoginT, session, sessionHandler) {
+        'handlers/SessionHandler',
+        'common'
+        ], function (BaseView, LoginT, session, sessionHandler, common) {
 	'use strict';
     var _that = null;
     var _router = null;
@@ -119,7 +120,8 @@ define([
 		},
 		doLogout: function(){
 			var param = {username : session.getUser()};
-			$("#login-error-text").text("");			
+			$("#login-error-text").text("");
+			common.resetSessionProperties();
 			session.eraseAll();
 			sessionHandler.logout(param);
 		},

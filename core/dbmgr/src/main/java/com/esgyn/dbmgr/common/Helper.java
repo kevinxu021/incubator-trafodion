@@ -23,6 +23,7 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+import com.esgyn.dbmgr.resources.ConfigurationResource;
 import com.esgyn.dbmgr.rest.RESTProcessor;
 import com.esgyn.dbmgr.rest.RESTRequest;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -341,5 +342,13 @@ public class Helper {
 		} else {
 			return "1w"; // For longer than 3 months, use every 1 week
 		}
+	}
+
+	public static boolean isEnterpriseEdition() {
+		if (ConfigurationResource.getSystemVersion() != null
+				&& ConfigurationResource.getSystemVersion().toLowerCase().contains("enterprise"))
+			return true;
+
+		return false;
 	}
 }

@@ -119,6 +119,7 @@ define([
 		logsView = null;		
 		alertsSummaryView = null;
 		logsView = null;
+		aboutView = null;
 	};
 
 	var sessionTimeOut = function(){

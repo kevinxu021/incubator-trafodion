@@ -9,6 +9,7 @@ define([
     'text!templates/workbench.html',
     'jquery',
     'common',
+    'handlers/ServerHandler',
     '../../../bower_components/codemirror/lib/codemirror',
     '../../../bower_components/codemirror/mode/sql/sql',
     'jit',
@@ -18,7 +19,7 @@ define([
     'buttonsflash',
     'buttonsprint',
     'buttonshtml'
-], function (BaseView, WorkbenchT, $, common, CodeMirror) {
+], function (BaseView, WorkbenchT, $, common, serverHandler, CodeMirror) {
     'use strict';
 
     var setRootNode = false;
@@ -42,7 +43,7 @@ define([
     	TEXT_RESULT = '#text-result',
     	EXPLAIN_TREE = '#infovis',
     	QUERY_RESULT_CONTAINER = '#query-result-container',
-    	ERROR_TEXT = '#errorText',
+    	ERROR_TEXT = '#query-error-text',
     	SCALAR_RESULT_CONTAINER = '#scalar-result-container',
     	EXPLAIN_BTN = '#explainQuery',
     	EXECUTE_BTN = '#executeQuery',
@@ -205,9 +206,23 @@ define([
        			
         		}
     		});
+			serverHandler.on(serverHandler.WRKBNCH_EXECUTE_SUCCESS, this.displayResults);
+			serverHandler.on(serverHandler.WRKBNCH_EXECUTE_ERROR, this.showErrorMessage);
+			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
+			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
         },
         doResume: function(){
-        	
+			serverHandler.on(serverHandler.WRKBNCH_EXECUTE_SUCCESS, this.displayResults);
+			serverHandler.on(serverHandler.WRKBNCH_EXECUTE_ERROR, this.showErrorMessage);
+			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
+			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
+        },
+        doPause:  function(){
+        	this.hideLoading();
+			serverHandler.off(serverHandler.WRKBNCH_EXECUTE_SUCCESS, this.displayResults);
+			serverHandler.off(serverHandler.WRKBNCH_EXECUTE_ERROR, this.showErrorMessage);
+			serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
+			serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
         },
         onRelayout: function () {
         	this.onResize();
@@ -301,8 +316,9 @@ define([
         	var param = {sQuery : queryText, sControlStmts: controlStmts};
 
         	_that.showLoading();
+        	serverHandler.explainQuery(param);
         	
-        	$.ajax({
+        	/*$.ajax({
         	    url:'resources/queries/explain',
         	    type:'POST',
         	    data: JSON.stringify(param),
@@ -317,7 +333,8 @@ define([
         	    	_that.hideLoading();
         	    	_that.showErrorMessage(jqXHR);
         	    }
-        	});
+        	});*/
+        	
             
         },
 
@@ -339,8 +356,9 @@ define([
         	$(SCALAR_RESULT_CONTAINER).hide();
         	$(QUERY_RESULT_CONTAINER).hide();
         	var param = {sQuery : queryText, sControlStmts: controlStmts};
+        	serverHandler.executeQuery(param);
         	
-        	$.ajax({
+        	/*$.ajax({
         	    url:'resources/queries/execute',
         	    type:'POST',
         	    data: JSON.stringify(param),
@@ -355,7 +373,7 @@ define([
         	    	_that.hideLoading();
         	    	_that.showErrorMessage(jqXHR);
         	    }
-        	});
+        	});*/
         },
         
     	sessionTimeout: function() {
@@ -373,7 +391,7 @@ define([
             	$(QUERY_RESULT_CONTAINER).show();        	
 
             	if(keys != null && keys.length > 0) {
-            		var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="query-results"></table>';
+            		var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="wrkbnch-query-results"></table>';
             		$(QUERY_RESULT_CONTAINER).html( sb );
             		
             		var aoColumns = [];
@@ -392,7 +410,7 @@ define([
             		
             		var bPaging = aaData.length > 25;
             		
-            		 $('#query-results').dataTable({
+            		 $('#wrkbnch-query-results').dataTable({
             			 "oLanguage": {
             				 "sEmptyTable": "0 rows(s)"
             			},

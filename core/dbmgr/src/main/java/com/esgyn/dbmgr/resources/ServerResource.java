@@ -79,6 +79,13 @@ public class ServerResource {
 			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
 			objNode.put("dcsMasterInfoUri", ConfigurationResource.getInstance().getDcsMasterInfoUri());
 
+			if (ConfigurationResource.getSystemVersion() != null
+					&& ConfigurationResource.getSystemVersion().toLowerCase().contains("enterprise")) {
+				objNode.put("systemType", 1);
+			}
+
+			objNode.put("systemVersion", ConfigurationResource.getSystemVersion());
+
 			Session content = new Session(usr, pwd, new DateTime(DateTimeZone.UTC));
 			SessionModel.putSessionObject(key, content);
 		} else {
@@ -141,6 +148,26 @@ public class ServerResource {
 		SessionModel.doLogout(request);
 
 		objNode.put("status", "OK");
+		return objNode;
+	}
+
+	@GET
+	@Path("/config")
+	@Produces(MediaType.APPLICATION_JSON)
+	public ObjectNode getServerConfig(@Context HttpServletRequest request) {
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode objNode = mapper.createObjectNode();
+		objNode.put("sessionTimeoutMinutes", ConfigurationResource.getInstance().getSessionTimeoutMinutes());
+		objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
+		objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
+		objNode.put("dcsMasterInfoUri", ConfigurationResource.getInstance().getDcsMasterInfoUri());
+
+		if (ConfigurationResource.getSystemVersion() != null
+				&& ConfigurationResource.getSystemVersion().toLowerCase().contains("enterprise")) {
+			objNode.put("systemType", 1);
+		}
+
+		objNode.put("systemVersion", ConfigurationResource.getSystemVersion());
 		return objNode;
 	}
 
@@ -280,26 +307,5 @@ public class ServerResource {
 		result.columnNames = columns.toArray(result.columnNames);
 		result.resultArray = queries;
 		return result;
-	}
-
-	@GET
-	@Path("/config")
-	@Produces("application/json")
-	public ObjectNode getConfiguration(@Context HttpServletRequest servletRequest,
-			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
-
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode objNode = mapper.createObjectNode();
-
-		try {
-			objNode.put("sessionTimeoutMinutes", ConfigurationResource.getInstance().getSessionTimeoutMinutes());
-			objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
-			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
-			objNode.put("dcsMasterInfoUri", ConfigurationResource.getInstance().getDcsMasterInfoUri());
-
-		} finally {
-
-		}
-		return objNode;
 	}
 }
