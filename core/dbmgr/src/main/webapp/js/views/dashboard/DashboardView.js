@@ -169,55 +169,44 @@ define([
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			$(SERVICES_ERROR_TEXT).hide();
 			$(NODES_ERROR_TEXT).hide();
-
-			$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
-			$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
-			$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
-			$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
-			$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
-
-			$('#metricsDialog').on('show.bs.modal', function(event, ab){
-				$(DRILLDOWN_CHART_CONTAINER).empty();
-				$(DRILLDOWN_SPINNER).show();
-			});
-
+			
 			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
 			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
 			serverHandler.on(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
 			serverHandler.on(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
-
-			dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
-			dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
-			dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
-			dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
 
 			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimer.eventAgg.on(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);
 			timeRangeView.eventAgg.on(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
 			refreshTimer.setRefreshInterval(0.5);
 			timeRangeView.setTimeRange(1);
+
+			if(common.isEnterprise()){
+				$('.dbmgr-ent').show();
+				$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
+				$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
+				$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
+				$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
+				$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
+
+				$('#metricsDialog').on('show.bs.modal', function(event, ab){
+					$(DRILLDOWN_CHART_CONTAINER).empty();
+					$(DRILLDOWN_SPINNER).show();
+				});
+
+				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
+				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
+				dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
+				dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
+			}else{
+				$('.dbmgr-ent').hide();
+			}
 			this.refreshPage();
 		},
 		doResume: function(){
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			$(SERVICES_ERROR_TEXT).hide();
 			$('#nodes-error-text').hide();
-
-			$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
-			$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
-			$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
-			$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
-			$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
-
-			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
-			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
-			serverHandler.on(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
-			serverHandler.on(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
-
-			dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
-			dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
-			dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
-			dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
 
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 
@@ -228,32 +217,53 @@ define([
 			refreshTimer.eventAgg.on(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);	
 			timeRangeView.eventAgg.on(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
 
+			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
+			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
+			serverHandler.on(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
+			serverHandler.on(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
+
+			if(common.isEnterprise()){
+				$('.dbmgr-ent').show();
+				$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
+				$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
+				$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
+				$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
+				$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
+				
+				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
+				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
+				dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
+				dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
+			}else{
+				$('.dbmgr-ent').hide();
+			}
 			this.refreshPage();
 		},
 		doPause: function(){
 			refreshTimer.pause();
 			timeRangeView.pause();
+			$(REFRESH_ACTION).off('click', this.refreshPage);
+			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimer.eventAgg.off(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);	
+			timeRangeView.eventAgg.off(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
 
 			serverHandler.off(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
 			serverHandler.off(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
 			serverHandler.off(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
 			serverHandler.off(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
 
-			dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
-			dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
-			dashboardHandler.off(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
-			dashboardHandler.off(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
-
-			$(REFRESH_ACTION).off('click', this.refreshPage);
-			$(IOWAITS_DRILLDOWN_BTN).off('click',this.iowaitsDrillDown);
-			$(DISK_SPACE_DRILLDOWN_BTN).off('click',this.diskspaceDrillDown);
-			$(JVMGC_DRILLDOWN_BTN).off('click',this.jvmGCDrillDown);
-			$(RSERVER_MEMORY_DRILLDOWN_BTN).off('click',this.rserverMemoryDrillDown);
-			$(MEMSTORE_DRILLDOWN_BTN).off('click',this.memStoreDrillDown);
-
-			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
-			refreshTimer.eventAgg.off(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);	
-			timeRangeView.eventAgg.off(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
+			if(common.isEnterprise()){
+				$(IOWAITS_DRILLDOWN_BTN).off('click',this.iowaitsDrillDown);
+				$(DISK_SPACE_DRILLDOWN_BTN).off('click',this.diskspaceDrillDown);
+				$(JVMGC_DRILLDOWN_BTN).off('click',this.jvmGCDrillDown);
+				$(RSERVER_MEMORY_DRILLDOWN_BTN).off('click',this.rserverMemoryDrillDown);
+				$(MEMSTORE_DRILLDOWN_BTN).off('click',this.memStoreDrillDown);
+				dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
+				dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
+				dashboardHandler.off(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
+				dashboardHandler.off(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
+			}
+			
 		},
 		timeRangeChanged: function(){
 			refreshTimer.restart();
@@ -283,10 +293,12 @@ define([
 			_this.fetchServices();
 			_this.fetchNodes();
 
-			$.each(Object.getOwnPropertyNames(chartConfig), function(k, v){
-				$(chartConfig[v].spinner).show();
-				dashboardHandler.fetchSummaryMetric(_this.generateParams(v));
-			});
+			if(common.isEnterprise()){
+				$.each(Object.getOwnPropertyNames(chartConfig), function(k, v){
+					$(chartConfig[v].spinner).show();
+					dashboardHandler.fetchSummaryMetric(_this.generateParams(v));
+				});
+			}
 		},
 		fetchServices: function () {
 			$(SERVICES_SPINNER).show();

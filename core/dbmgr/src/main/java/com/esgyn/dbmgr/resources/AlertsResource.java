@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
+import com.esgyn.dbmgr.common.Helper;
 import com.esgyn.dbmgr.common.TabularResult;
 import com.esgyn.dbmgr.model.Session;
 import com.esgyn.dbmgr.model.SessionModel;
@@ -31,6 +32,10 @@ public class AlertsResource {
 	@Produces("application/json")
 	public TabularResult getAlertsList(@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		if(!Helper.isEnterpriseEdition()){
+			throw new EsgynDBMgrException("This feature is only supported in EsgynDB Enterprise Edition");
+		}
 
 		TabularResult result = new TabularResult();
 		try {

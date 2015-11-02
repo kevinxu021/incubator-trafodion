@@ -24,7 +24,11 @@ define(['handlers/EventDispatcher', 'common'],
 				this.FETCH_ALERTS_LIST_ERROR = 'FETCH_ALERTS_LIST_ERROR';
 				this.FETCH_VERSION_SUCCESS = 'FETCH_VERSION_SUCCESS';
 				this.FETCH_VERSION_ERROR = 'FETCH_VERSION_ERROR';
-				
+				this.WRKBNCH_EXECUTE_SUCCESS = 'WRKBNCH_EXECUTE_SUCCESS';
+				this.WRKBNCH_EXECUTE_ERROR = 'WRKBNCH_EXECUTE_ERROR';
+				this.WRKBNCH_EXPLAIN_SUCCESS = 'WRKBNCH_EXPLAIN_SUCCESS';
+				this.WRKBNCH_EXPLAIN_ERROR = 'WRKBNCH_EXPLAIN_ERROR';
+								
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
 				};
@@ -94,12 +98,52 @@ define(['handlers/EventDispatcher', 'common'],
 						contentType: "application/json;",
 						async: false,
 						success: function(data){
-							common.storeSessionProperties(data.serverTimeZone, data.serverUTCOffset, data.dcsMasterInfoUri);
+							common.storeSessionProperties(data);
 						},
 						error:function(jqXHR, res, error){
 						}
 					});
 				}; 
+				
+				this.explainQuery = function(param){
+					$.ajax({
+		        	    url:'resources/queries/explain',
+		        	    type:'POST',
+		        	    data: JSON.stringify(param),
+		        	    dataType:"json",
+		        	    contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success:  function(data){
+							dispatcher.fire(_this.WRKBNCH_EXPLAIN_SUCCESS, data);
+						},
+		        	    error:function(jqXHR, res, error){
+		        	    	dispatcher.fire(_this.WRKBNCH_EXPLAIN_ERROR, jqXHR, res, error);
+		        	    }
+		        	});
+				};
+				
+				this.executeQuery = function(param){
+					$.ajax({
+		        	    url:'resources/queries/execute',
+		        	    type:'POST',
+		        	    data: JSON.stringify(param),
+		        	    dataType:"json",
+		        	    contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success:  function(data){
+							dispatcher.fire(_this.WRKBNCH_EXECUTE_SUCCESS, data);
+						},
+		        	    error:function(jqXHR, res, error){
+		        	    	dispatcher.fire(_this.WRKBNCH_EXECUTE_ERROR, jqXHR, res, error);
+		        	    }
+		        	});	
+				};
 				
 				this.fetchAlertsList = function(params){
 					var xhr = xhrs["alerts_list"];
