@@ -29,7 +29,7 @@ CP :=/bin/cp -fp
 all: dbmgr 
 
 dbmgr:package-tools
-	bower install --config.cwd=src/main/webapp
+	bower install --config.cwd=src/main/webapp --config.interactive=false
 	$(MAVEN) install
 	-mkdir -p ../../${DISTRIBUTION_DIR}
 	mv target/$(DBMGR_TARNAME) ../../${DISTRIBUTION_DIR}
