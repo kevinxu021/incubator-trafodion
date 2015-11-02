@@ -26,8 +26,8 @@ define([
         ], function (BaseView, LogsT, $, logsHandler, localizer, moment, common, refreshTimerView) {
 	'use strict';
     var LOADING_SELECTOR = "#loadingImg",
-    	RESULT_CONTAINER = '#query-result-container',
-    	ERROR_CONTAINER = '#errorText',
+    	RESULT_CONTAINER = '#logs-result-container',
+    	ERROR_CONTAINER = '#logs-error-text',
     	REFRESH_MENU = '#refreshAction',
     	DCS_LOGS = '#dcsLogs',
     	REFRESH_INTERVAL = '#refreshInterval';
@@ -97,8 +97,8 @@ define([
 				}
 			});
 			
-			$(START_TIME_PICKER).datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z', sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
-			$(END_TIME_PICKER).datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z', sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
 			
 			$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
 			$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
@@ -113,24 +113,24 @@ define([
 				case "1":
 					$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
 					$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
-					$('#filter-start-time').prop("disabled", true);
-					$('#filter-end-time').prop("disabled", true);
+					$(FILTER_START_TIME).prop("disabled", true);
+					$(FILTER_END_TIME).prop("disabled", true);
 					break;
 				case "6":
 					$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(6, 'hour'));
 					$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
-					$('#filter-start-time').prop("disabled", true);
-					$('#filter-end-time').prop("disabled", true);
+					$(FILTER_START_TIME).prop("disabled", true);
+					$(FILTER_END_TIME).prop("disabled", true);
 					break;
 				case "24":
 					$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'day'));
 					$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
-					$('#filter-start-time').prop("disabled", true);
-					$('#filter-end-time').prop("disabled", true);
+					$(FILTER_START_TIME).prop("disabled", true);
+					$(FILTER_END_TIME).prop("disabled", true);
 					break;
 				case "0":
-					$('#filter-start-time').prop("disabled", false);
-					$('#filter-end-time').prop("disabled", false);
+					$(FILTER_START_TIME).prop("disabled", false);
+					$(FILTER_END_TIME).prop("disabled", false);
 				}
 			});
 			if(common.dcsMasterInfoUri != null && common.dcsMasterInfoUri.length > 0)
@@ -265,8 +265,8 @@ define([
         		components.push($('#component-wdg').val());
         	
         	var param = {};
-        	param.startTime = startTime.format('YYYY-MM-DD HH:mm:ss');
-        	param.endTime = endTime.format('YYYY-MM-DD HH:mm:ss');
+        	param.startTime = startTime.format(DATE_FORMAT);
+        	param.endTime = endTime.format(DATE_FORMAT);
         	param.severities = severities.join(',');
         	param.componentNames = components.join(',');
         	param.processNames = $(FILTER_PROCESS_NAMES).val();
@@ -298,7 +298,7 @@ define([
 			var keys = result.columnNames;
 
 			if(keys != null && keys.length > 0) {
-				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="query-results"></table>';
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="logs-query-results"></table>';
 				$(RESULT_CONTAINER).html( sb );
 
 				var aoColumns = [];
@@ -317,7 +317,7 @@ define([
 
 				var bPaging = aaData.length > 25;
 
-				oDataTable = $('#query-results').dataTable({
+				oDataTable = $('#logs-query-results').dataTable({
 					"oLanguage": {
        				 "sEmptyTable": "No log entries found."
 					},
@@ -349,12 +349,12 @@ define([
 				          ],
 					aaSorting: [[ 0, "desc" ]],
 					fnDrawCallback: function(){
-						//$('#query-results td').css("white-space","nowrap");
+						//$('#logs-query-results td').css("white-space","nowrap");
 		             }
 				});
 				
 				
-				$('#query-results td').css("white-space","nowrap");
+				$('#logs-query-results td').css("white-space","nowrap");
 			}
 
 		},
@@ -367,7 +367,7 @@ define([
         	}
         },
 		parseInputDate:function(date){
-			return moment(date).tz(common.serverTimeZone);
+			return moment.tz(date, DATE_FORMAT_ZONE, common.serverTimeZone);
 		}  
 
 	});

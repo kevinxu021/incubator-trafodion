@@ -47,6 +47,11 @@ public class OpenTSDBResource {
 	@Produces("application/json")
 	public String getGroupedByMetrics(ObjectNode obj, @Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		if (!Helper.isEnterpriseEdition()) {
+			throw new EsgynDBMgrException("This feature is only supported in EsgynDB Enterprise Edition");
+		}
+
 		String metricName = "";
 		String startTimeStr = "";
 		String endTimeStr = "";
@@ -151,6 +156,11 @@ public class OpenTSDBResource {
 	@Produces("application/json")
 	public TreeMap<String, Object> getSummaryMetrics(ObjectNode obj, @Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		if (!Helper.isEnterpriseEdition()) {
+			throw new EsgynDBMgrException("This feature is only supported in EsgynDB Enterprise Edition");
+		}
+
 		String metricName = "";
 		String startTimeStr = "";
 		String endTimeStr = "";

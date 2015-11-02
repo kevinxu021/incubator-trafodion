@@ -19,7 +19,7 @@ define([
         ], function (BaseView, QueryPlanT, $, wHandler, moment, common) {
 	'use strict';
 	var LOADING_SELECTOR = "#loadingImg",
-	ERROR_CONTAINER = '#errorText',
+	ERROR_CONTAINER = '#visual-plan-error',
 	TEXT_PLAN_CONTAINER = '#text-result-container',
 	GRIDCONTAINER = "#dbmgr-1",
 	REFRESH_MENU = '#refreshAction',

@@ -27,7 +27,7 @@ define(['handlers/EventDispatcher', 'common'],
 						contentType: "application/json;",
 						async: false,
 						success: function(data){
-							common.storeSessionProperties(data.serverTimeZone, data.serverUTCOffset, data.dcsMasterInfoUri);
+							common.storeSessionProperties(data);
 							dispatcher.fire(_this.LOGIN_SUCCESS, data);
 						},
 						error:function(jqXHR, res, error){
