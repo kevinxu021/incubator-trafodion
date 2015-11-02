@@ -322,18 +322,18 @@ public class WorkloadsResource {
 		JsonFactory factory = new JsonFactory();
 		ObjectMapper mapper = new ObjectMapper(factory);
 		ObjectNode resultObject = mapper.createObjectNode();
-
+		String[] dateFields = new String[] { "CompStartTime", "CompEndTime", "ExeStartTime", "ExeEndTime",
+				"CanceledTime", "lastSuspendTime" };
+		List<String> dateTimeColumns = Arrays.asList(dateFields);
 		try {
 
 			TabularResult result1 = QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), sqlText);
 			List<String> columnNames = Arrays.asList(result1.columnNames);
 			int vIndex = columnNames.indexOf("VARIABLE_INFO");
-			int tIndex = columnNames.indexOf("TDB_ID");
+			int tIndex = columnNames.indexOf("ID");
 			ObjectNode summaryNode = resultObject.putObject("summary");
 			ArrayNode operatorNodes = mapper.createArrayNode();
 			resultObject.set("operators", operatorNodes);
-
-			resultObject.putPOJO("opGridColNames", columnNames);
 
 			for (Object[] rowData : result1.resultArray) {
 				Map<String, String> parsedMap = parseVariableInfo((String) rowData[vIndex]);
@@ -343,7 +343,15 @@ public class WorkloadsResource {
 				parsedMap.remove("statsRowType");
 				if (statsRowType.trim().equals("15")) {
 					for (String key : parsedMap.keySet()) {
-						summaryNode.put(key, parsedMap.get(key));
+						String value = parsedMap.get(key);
+						if (dateTimeColumns.contains(key)) {
+							try {
+								value = Helper.julianTimestampToString(Long.parseLong(value));
+							} catch (Exception ex) {
+								value = "";
+							}
+						}
+						summaryNode.put(key, value);
 					}
 				} else {
 					ObjectNode operatorNode = mapper.createObjectNode();
@@ -352,14 +360,27 @@ public class WorkloadsResource {
 							continue;
 						operatorNode.putPOJO(colName, rowData[columnNames.indexOf(colName)]);
 					}
-					ObjectNode detailsNode = operatorNode.putObject("details");
+					operatorNode.putPOJO("DOP", "");
+					ObjectNode detailsNode = operatorNode.putObject("Details");
 					for (String key : parsedMap.keySet()) {
-						detailsNode.put(key, parsedMap.get(key));
+						if (key.equalsIgnoreCase("OperCpuTime"))
+							continue;
+
+						if (key.equalsIgnoreCase("dop")) {
+							operatorNode.putPOJO("DOP", parsedMap.get(key));
+						} else {
+							detailsNode.put(key, parsedMap.get(key));
+						}
 					}
 					operatorNodes.add(operatorNode);
 				}
 			}
-
+			ArrayList<String> gridColNames = new ArrayList<String>(columnNames);
+			if (vIndex >= 0) {
+				gridColNames.set(vIndex, "DOP");
+			}
+			gridColNames.add("Details");
+			resultObject.putPOJO("opGridColNames", gridColNames);
 		} catch (Exception e) {
 			_LOG.error("Failed to execute query : " + e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
