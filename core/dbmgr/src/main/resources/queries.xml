@@ -159,8 +159,9 @@
 		<query>
 			<!-- Fetch active query detail from rms -->
 			<name>SELECT_ACTIVE_QUERY_DETAIL_NEW</name>
-			<text><![CDATA[select tdb_id, frag_num, parent_tdb_id,lc_tdb_id, rc_tdb_id, trim(tdb_name) as tdb_name, est_rows, act_rows, val1_txt, val1, 
-				variable_info from table(statistics(null, 'QID=%1$s')) order by tdb_id desc]]></text>
+			<text><![CDATA[select lc_tdb_id as "LC", rc_tdb_id as "RC", tdb_id as "ID",  parent_tdb_id as "PID", seq_num as "Seq_Num", 
+					frag_num as "Frag_Num", trim(tdb_name) as "TDB_Name", est_rows as "Est_Rows", act_rows as "Act_Rows", val1 as "Oper_CPU_Time", 
+					variable_info from table(statistics(null, 'QID=%1$s')) order by tdb_id desc]]></text>
 		</query>
 		<query>
 			<name>CANCEL_QUERY</name>
