@@ -351,4 +351,18 @@ public class Helper {
 
 		return false;
 	}
+
+	public static String julianTimestampToString(long juliantimestamp) {
+		DateTimeZone serverTimeZone = DateTimeZone.forID(ConfigurationResource.getServerTimeZone());
+		if (juliantimestamp < 0)
+			return "";
+		long millis_till_1970 = 210866760000009L;
+		long msSinceEpoch = (juliantimestamp / 1000) - millis_till_1970;
+
+		if (msSinceEpoch < 0)
+			return "";
+
+		DateTime dateTime = new DateTime(msSinceEpoch, serverTimeZone);
+		return dateTime.toString(fmt);
+	}
 }
