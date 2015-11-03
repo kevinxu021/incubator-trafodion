@@ -8,16 +8,16 @@
         /// <summary>
         /// Product version string.
         /// </summary>
-        public const string VersionStr = "1.0.0.00000";
+        public const string VersionStr = "2.0.0.00000";
 
         /// <summary>
         /// File revision number.
         /// </summary>
-        public const string FileVersion = "1.0.0.00000";
+        public const string FileVersion = "2.0.0.00000";
 
         /// <summary>
         /// EsgynDB Database ADO.NET Provider VPROC.
         /// </summary>
-        public const string Vproc = "EsgynDB ADO.NET Version 1.0.0 Release 1.0.0 (Build release [25215])";
+        public const string Vproc = "EsgynDB ADO.NET Version 2.0.0 Release 2.0.0 (Build release [25215])";
     }
 }
