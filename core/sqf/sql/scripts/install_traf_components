@@ -526,6 +526,8 @@ else
       mv bosun.conf bosun.conf-orig
       sed -e "s@8070@$MY_BOSUN_PORT@" -e "s@5242@$MY_OPEN_TSDB_PORT@" bosun.conf-orig > bosun.conf | tee -a ${MY_LOG_FILE}
 
+      chmod +x $MGBLTY_HOME/bosun/bin/*
+
       export COMPRESSION=NONE
       $MGBLTY_HOME/opentsdb/tools/create_table.sh 
   else
@@ -559,7 +561,7 @@ else
       echo "Generating xml file for DBMGR with custom ports"  | tee -a ${MY_LOG_FILE}
       cd $DBMGR_HOME/conf
       mv logback.xml logback.xml.orig | tee -a ${MY_LOG_FILE}
-      sed -e "s@<fileNamePattern>\${DBMGR_INSTALL_DIR}@<file>$DBMGR_HOME@" logback.xml.orig > logback.xml | tee -a ${MY_LOG_FILE}
+      sed -e "s@<fileNamePattern>\${DBMGR_INSTALL_DIR}@<fileNamePattern>$DBMGR_HOME@" logback.xml.orig > logback.xml | tee -a ${MY_LOG_FILE}
 
       cd $DBMGR_HOME/bin
       ./configure.py --httpport $MY_DB_MGR_PORT --httpsport $MY_DB_MGR_SECURE_PORT --dcshost localhost --dcsport $MY_DCS_MASTER_PORT --password traf123 --dcsinfoport $MY_DCS_MASTER_INFO_PORT --resthost localhost --restport $MY_REST_SERVER_PORT --tsdhost localhost --tsdport $MY_OPEN_TSDB_PORT --bosunhost localhost --bosunport $MY_BOSUN_PORT --timezone Etc/UTC 

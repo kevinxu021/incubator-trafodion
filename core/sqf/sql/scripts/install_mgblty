@@ -51,8 +51,8 @@ else
    	echo "Bosun directory already exists, skipping bosun setup" | tee -a ${MGBLTY_LOG}
     else
         echo "Downloading and installing bosun"| tee -a ${MGBLTY_LOG}
-        wget https://github.com/bosun-monitor/bosun/releases/tag/0.4.0/bosun-linux-amd64
-        wget https://github.com/bosun-monitor/bosun/releases/tag/0.4.0/scollector-linux-amd64
+        wget https://github.com/bosun-monitor/bosun/releases/download/0.4.0/bosun-linux-amd64
+        wget https://github.com/bosun-monitor/bosun/releases/download/0.4.0/scollector-linux-amd64
     fi
     echo "Copying bosun files..."
     mkdir -p $BOSUN_DIR/bin

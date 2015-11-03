@@ -6,6 +6,7 @@
 # @@@ END COPYRIGHT @@@
 
 BINDIR=$(dirname $0)
+mkdir -p $DBMGR_INSTALL_DIR/log
 
 if [ -z "$DBMGR_INSTALL_DIR" ];then
     export DBMGR_INSTALL_DIR=$BINDIR/..
@@ -15,50 +16,75 @@ WARFILE=`echo $DBMGR_INSTALL_DIR/lib/dbmgr*.war`
 
 usage() {
     prog=`basename $0`
-    echo "$prog < start | stop | status | version >"
-    echo "Start, stop, check status, or display version of EsgynDB Manager"
+    echo "$prog  { start | stop | status | version |watch }"
+    echo "    start  -- start dbmgr"
+    echo "    stop   -- stop dbmgr"
+    echo "    status -- display the status of dbmgr"
+    echo "    watch  -- monitor dbmgr process and if not running start the process"
+    echo "    version -- display version of dbmgr"
 }
 
 getpid() {
     echo `ps -u $USER -o pid,cmd | grep " -jar $WARFILE" | grep -v grep | awk '{print \$1}'`
 }
 
-if [ $# -ne 1 ]; then
-    usage
-    exit 1
-fi
-
-pid=$(getpid)
-
-if [[ $1 = "start" ]]; then
-    if [ -n "$pid" ]; then
-        echo "EsgynDB Manager is already started. PID is $pid."
-    else
-        setsid java -Dlogback.configurationFile=$DBMGR_INSTALL_DIR/conf/logback.xml -jar $WARFILE > $BINDIR/dbmgr.log 2>&1  &
+dbmgr_start() {
+        setsid java -Dlogback.configurationFile=$DBMGR_INSTALL_DIR/conf/logback.xml -jar $WARFILE > $DBMGR_INSTALL_DIR/log/dbmgr.log 2>&1  &
         sleep 5s
         pid=$(getpid)
         if [ -n "$pid" ]; then
-            echo "EsgynDB Manager is running. PID is $pid."
+            echo "$(date +%F_%T): EsgynDB Manager is up and running with pid ($pid)"
         else
-            echo "EsgynDB Manager is NOT running. Check dbmgr.log."
+            echo "$(date +%F_%T): Failed to start EsgynDB Manager. Please check the logs"
         fi        
-    fi
-elif [[ $1 = "stop" ]]; then
+}
+
+dbmgr_stop() {
+    pid=$(getpid)
     if [ -n "$pid" ]; then
-        kill -9 $pid
-        echo "EsgynDB Manager has been stopped."
+       echo "$(date +%F_%T): Stopping EsgynDB Manager pid ($pid)"
+       kill -9 $pid
+       sleep 3
+       echo "$(date +%F_%T): Stopped EsgynDB Manager"
     else
-        echo "EsgynDB Manager is not started"
+       echo "$(date +%F_%T): EsgynDB Manager process is not started"
     fi
-elif [[ $1 = "status" ]]; then
-    if [ -n "$pid" ]; then
-        echo "EsgynDB Manager is running. PID is $pid."
-    else
-        echo "EsgynDB Manager is NOT running."
-    fi
-elif [[ $1 = "version" ]]; then
-	java -jar $WARFILE -version
-else
-    usage
-    exit 1
-fi
+}
+
+dbmgr_status() {
+    pid=$(getpid)
+}
+
+case "$1" in 
+   start)
+      dbmgr_start
+      ;;
+   stop)
+      dbmgr_stop
+      ;;
+   restart)
+      dbmgr_stop
+      dbmgr_start
+      ;;
+   status)
+      dbmgr_status
+      if [ -n "$pid" ]; then
+         echo "$(date +%F_%T): EsgynDB Manager process is running with pid ($pid)"
+      else
+         echo "$(date +%F_%T): EsgynDB Manager process is not started"
+      fi
+      ;;
+   watch)
+      dbmgr_status
+      if [ ! -n "$pid" ]; then
+         dbmgr_start
+      fi
+      ;;
+   version)
+      java -jar $WARFILE -version
+      ;;
+   *)
+      usage
+      exit 1
+esac
+exit 0
