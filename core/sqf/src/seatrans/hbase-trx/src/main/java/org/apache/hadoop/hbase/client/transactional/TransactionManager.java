@@ -2591,17 +2591,15 @@ public class TransactionManager {
         if (LOG.isTraceEnabled()) LOG.trace("registerRegion ENTRY, transactioState:" + transactionState);
 
         if(transactionState.addRegion(location)){
-	    if ((location.peerId != 0) &&
-		(location.peerId != this.my_cluster_id)) {
-		transactionState.setHasRemotePeers(true);
-		if (LOG.isTraceEnabled()) LOG.trace("registerRegion: txn has RemotePeer" 
-						    + ", this cluster ID: " + this.my_cluster_id
-						    + ", participant cluster ID: " + location.peerId);
-	    }
-           if (LOG.isTraceEnabled()) LOG.trace("registerRegion -- added region: " + location.getRegionInfo().getRegionNameAsString() + " with endKey: "
-					       + Hex.encodeHexString(location.getRegionInfo().getEndKey()) + " to tx " + transactionState.getTransactionId()
-					       + "[peer id: " + location.peerId + "]"
-					       );
+	    if ((location.peerId != 0) && (location.peerId != this.my_cluster_id)) {
+           transactionState.setHasRemotePeers(true);
+           if (LOG.isTraceEnabled()) LOG.trace("registerRegion: txn has RemotePeer" 
+                            + ", this cluster ID: " + this.my_cluster_id
+                            + ", participant cluster ID: " + location.peerId);
+        }
+        if (LOG.isTraceEnabled()) LOG.trace("registerRegion -- added region: " + location.getRegionInfo().getRegionNameAsString() + " with endKey: "
+                  + Hex.encodeHexString(location.getRegionInfo().getEndKey()) + " to tx " + transactionState.getTransactionId()
+                  + "[peer id: " + location.peerId + "]");
         }
         else {
            if (LOG.isTraceEnabled()) LOG.trace("registerRegion -- region previously added: " + location.getRegionInfo().getRegionNameAsString() + " with endKey: "
