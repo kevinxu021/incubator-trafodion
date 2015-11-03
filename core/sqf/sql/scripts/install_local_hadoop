@@ -247,7 +247,9 @@ function listports {
 	MY_YARN_SCHED_PORT_NUM
 	MY_YARN_TRACKER_PORT_NUM
         MY_DB_MGR_PORT
-        MY_DB_MGR_SECURE_PORT"
+        MY_DB_MGR_SECURE_PORT
+        MY_OPEN_TSDB_PORT
+        MY_BOSUN_PORT"
 
   for AVAR in $VARS_FOR_PORTS; do
     AVALUE="$(eval "echo \$$AVAR")"
@@ -457,6 +459,10 @@ if [ $USE_DEFAULT_PORTS == 'yes' ]; then
   MY_DB_MGR_PORT=4205
   # database.mgr.secure.port
   MY_DB_MGR_SECURE_PORT=4206
+  # opentsdb.port
+  MY_OPEN_TSDB_PORT=5242
+  # bosun.port
+  MY_BOSUN_PORT=8070
 else
   # fs.default.name
   MY_HADOOP_HDFS_PORT_NUM=$MY_START_PORT
@@ -487,6 +493,8 @@ else
   MY_REST_SERVER_SECURE_PORT=`expr $MY_START_PORT + 194`
   MY_DB_MGR_PORT=`expr $MY_START_PORT + 195`
   MY_DB_MGR_SECURE_PORT=`expr $MY_START_PORT + 196`
+  MY_OPEN_TSDB_PORT=`expr $MY_START_PORT + 197`
+  MY_BOSUN_PORT=`expr $MY_START_PORT + 198`
 fi
 
 # handle ports in the range of 50000 to 50199
@@ -696,6 +704,18 @@ export HBASE_HOME=${HBASE_HOME}
 export HADOOP_PID_DIR=${MY_SW_ROOT}/tmp
 export HBASE_PID_DIR=${MY_SW_ROOT}/tmp
 export MY_HADOOP_HDFS_PORT_NUM=${MY_HADOOP_HDFS_PORT_NUM}
+export MY_HBASE_ZOOKEEPER_PEERPORT_NUM=${MY_HBASE_ZOOKEEPER_PEERPORT_NUM}
+export MY_HBASE_ZOOKEEPER_LEADERPORT_NUM=${MY_HBASE_ZOOKEEPER_LEADERPORT_NUM}
+export MY_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT_NUM=${MY_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT_NUM}
+export MY_DCS_MASTER_PORT=${MY_DCS_MASTER_PORT}
+export MY_DCS_MASTER_INFO_PORT=${MY_DCS_MASTER_INFO_PORT}
+export MY_DCS_SERVER_INFO_PORT=${MY_DCS_SERVER_INFO_PORT}
+export MY_REST_SERVER_PORT=${MY_REST_SERVER_PORT}
+export MY_REST_SERVER_SECURE_PORT=${MY_REST_SERVER_SECURE_PORT}
+export MY_DB_MGR_PORT=${MY_DB_MGR_PORT}
+export MY_DB_MGR_SECURE_PORT=${MY_DB_MGR_SECURE_PORT}
+export MY_OPEN_TSDB_PORT=${MY_OPEN_TSDB_PORT}
+export MY_BOSUN_PORT=${MY_BOSUN_PORT}
 EOF
 
   # now source in this script
@@ -1582,11 +1602,6 @@ if [ ! -r $YARN_HOME/lib/native/libhdfs.so ]; then
   echo "--          build it, otherwise Trafodion will not compile."
   echo "------------------------------------------------------------"
 fi
-
-#For clients
-cat >$HOME/.traf-clports-$USER <<EOF
-HADOOP_START_PORT=$MY_START_PORT
-EOF
 
 echo
 echo "Installed directory size and name = $(du -sh $MY_SW_ROOT)" | tee -a ${MY_LOG_FILE}
