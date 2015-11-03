@@ -500,6 +500,8 @@ public class TmAuditTlog {
                              if (hasPeerS.compareTo("1") == 0) {
                                 ts.setHasRemotePeers(true);
                              }
+                             String startIdToken = st.nextElement().toString();
+                             ts.setStartId(Long.parseLong(startIdToken));
                              String commitIdToken = st.nextElement().toString();
                              ts.setCommitId(Long.parseLong(commitIdToken));
 
@@ -1091,12 +1093,12 @@ public class TmAuditTlog {
       return asn.getAndIncrement();
    }
 
-   public void putSingleRecord(final long lvTransid, final long lvCommitId, final String lvTxState, 
+   public void putSingleRecord(final long lvTransid, final long lvStartId, final long lvCommitId, final String lvTxState, 
          final Set<TransactionRegionLocation> regions, final boolean hasPeer, boolean forced) throws Exception {
-      putSingleRecord(lvTransid, lvCommitId, lvTxState, regions, hasPeer,forced, -1);
+      putSingleRecord(lvTransid, lvStartId, lvCommitId, lvTxState, regions, hasPeer,forced, -1);
    }
 
-   public void putSingleRecord(final long lvTransid, final long lvCommitId, final String lvTxState, 
+   public void putSingleRecord(final long lvTransid, final long lvStartId, final long lvCommitId, final String lvTxState, 
          final Set<TransactionRegionLocation> regions, final boolean hasPeer, boolean forced, long recoveryASN) throws Exception {
 
       long threadId = Thread.currentThread().getId();
@@ -1157,6 +1159,7 @@ public class TmAuditTlog {
                        + String.valueOf(lvTransid) + "," + lvTxState
                        + "," + Bytes.toString(filler)
                        + "," + hasPeerS
+                       + "," + String.valueOf(lvStartId)
                        + "," + String.valueOf(lvCommitId)
                        + "," + tableString.toString()));
 
@@ -1651,10 +1654,10 @@ public class TmAuditTlog {
                if (LOG.isTraceEnabled()) LOG.trace("writeControlPointRecords adding record for trans (" + transid + ") : state is " + value.getStatus());
                cpWrites++;
                if (forceControlPoint) {
-                  putSingleRecord(transid, value.getCommitId(), value.getStatus(), value.getParticipatingRegions(), value.hasRemotePeers(), true);
+                  putSingleRecord(transid, value.getStartId(), value.getCommitId(), value.getStatus(), value.getParticipatingRegions(), value.hasRemotePeers(), true);
                }
                else {
-                  putSingleRecord(transid, value.getCommitId(), value.getStatus(), value.getParticipatingRegions(), value.hasRemotePeers(), false);
+                  putSingleRecord(transid, value.getStartId(), value.getCommitId(), value.getStatus(), value.getParticipatingRegions(), value.hasRemotePeers(), false);
                }
             }
          }
@@ -1784,6 +1787,7 @@ public class TmAuditTlog {
          TransState lvTxState = TransState.STATE_NOTX;
          String stateString = "";
          String transidToken = "";
+         String startIdToken = "";
          String commitIdToken = "";
          try {
             Result r = unknownTransactionTable.get(g);
@@ -1903,6 +1907,8 @@ public class TmAuditTlog {
                ts.setHasRemotePeers(true);
             }
 
+            startIdToken = st.nextElement().toString();
+            ts.setStartId(Long.parseLong(startIdToken));
             commitIdToken = st.nextElement().toString();
             ts.setCommitId(Long.parseLong(commitIdToken));
 
