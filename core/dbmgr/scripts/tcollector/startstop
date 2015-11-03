@@ -70,25 +70,30 @@ which_python () {
 PYTHON=$(which_python)
 
 start () {
-    echo "Starting $PROG"
+    echo "$(date +%F_%T): Starting $PROG"
     # eval is neccesary for zsh support as multiple-word variables are not 
     # split into words by default, see zsh help for SH_WORD_SPLIT.
     eval "$PYTHON $PROG $ARGS" >> $LOG 2>&1 &
+    echo "$(date +%F_%T): Started collectors"
 }
 
 # stop_program [signum]
 stop_program () {
     echo "Stopping $PROG"
+    echo "$(date +%F_%T): Stopping program $PROG "
     pkill $1 -f "/usr/bin/python.* $PROG -c"
+    sleep 5
+    echo "$(date +%F_%T): Stopped all collectors "
 }
 
 status () {
     if pgrep -f "/usr/bin/python.* $PROG -c" >/dev/null; then
-        echo "$PROG" running
+        echo "$(date +%F_%T): tcollectors are running "
         return 0
     fi
     return 1
 }
+
 
 forcerestart () {
     stop_program
@@ -131,14 +136,18 @@ case $COMMAND in
             start
         fi
         ;;
-    'stop') 
-        # stop is an alias in ksh93 for 'kill -s STOP'
+    stop) 
         stop_program
         ;;
     status) status
             exit $?
         ;;
-    *)  echo >&2 "usage: $0 <start [args]|stop|restart|status|force-restart>"
+    watch)
+        if ! pgrep -f "/usr/bin/python.* $PROG -c" >/dev/null; then
+           start 
+        fi
+        ;;
+    *)  echo >&2 "usage: $0 {start|stop|restart|status|force-restart|watch}"
         exit 1
         ;;
 esac

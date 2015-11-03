@@ -57,3 +57,4 @@ tools/sqlcount
 tst.*
 var/hp/seaquest/sonar/*dummy
 var/hp/seaquest/sonar/*lock
+sql/scripts/mgblty_download/*
