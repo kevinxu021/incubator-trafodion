@@ -520,6 +520,7 @@ else
 
       export COMPRESSION=NONE
       $MGBLTY_HOME/opentsdb/tools/create_table.sh 
+      $MGBLTY_HOME/opentsdb/tools/register_metrics.sh
   else
       echo "Manageability Tar file does not exist" | tee -a ${MY_LOG_FILE}
   fi

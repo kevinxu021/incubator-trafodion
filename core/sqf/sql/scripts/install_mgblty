@@ -38,7 +38,7 @@ MY_SW_ROOT=$MY_SQROOT/sql/local_hadoop
 MGBLTY_LOG=$MY_SW_ROOT/log/install_mgblty_$(date +%F_%T).log
 
 # Location of temporary download folder
-MGBLTY_DOWNLOAD_DIR=$MY_SQROOT/sql/scripts/mgblty_download
+MGBLTY_DOWNLOAD_DIR=$MY_SQROOT/../dbmgr/mgblty_download
 
 if [ -d $MGBLTY_TOOLSDIR/opentsdb ] && [ -d $MGBLTY_TOOLSDIR/tcollector ] &&
         [ -d $MGBLTY_TOOLSDIR/bosun ]; then
