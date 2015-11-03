@@ -2238,12 +2238,6 @@ public class TransactionManager {
     public void abort(final TransactionState transactionState) throws IOException, UnsuccessfulDDLException {
       if(LOG.isTraceEnabled()) LOG.trace("Abort -- ENTRY txID: " + transactionState.getTransactionId());
         int loopCount = 0;
-      /*
-      if(transactionState.getStatus().equals("ABORTED")) {
-          if(LOG.isTraceEnabled()) LOG.trace("Abort --EXIT already called, ignoring");
-          return;
-      }
-      */
 
       transactionState.setStatus(TransState.STATE_ABORTED);
       // (Asynchronously send aborts
