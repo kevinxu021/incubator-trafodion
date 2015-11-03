@@ -71,6 +71,12 @@ fi
 lv_starttime=`date`
 
 run_util pkillall
+run_util pkillall
+
+echo "Stopping HBase"
+swstophbase &
+sleep 45
+kill %1
 
 run_util 'ilh_cleanhb 1'
 
@@ -86,12 +92,18 @@ echo "--------------------------------------"
 echo "Repairing HBase (hbase hbck -repair)"
 ilh_hbase_repair y
 
+echo "--------------------------------------"
 echo "deleting $MY_SQROOT/etc/ms.env"
 rm $MY_SQROOT/etc/ms.env
 
 run_util sqgen
 
 run_util sqstart
+
+echo "executing: sqlci -> get schemas"
+sqlci <<EOF
+get schemas;
+EOF
 
 echo "done"
 lv_endtime=`date`
