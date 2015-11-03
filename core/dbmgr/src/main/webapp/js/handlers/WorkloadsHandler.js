@@ -8,6 +8,7 @@ define(['handlers/EventDispatcher'],
 		function(EventDispatcher) {"use strict";
 
 		var WorkloadsHandler = ( function() {
+			var xhrs = [];
 
 			function WorkloadsHandler() {
 				var dispatcher = new EventDispatcher();
@@ -28,7 +29,11 @@ define(['handlers/EventDispatcher'],
 				};
 
 				this.fetchQueriesInRepository = function(params){
-					$.ajax({
+					var xhr = xhrs["repo_list"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["repo_list"] = $.ajax({
 						url: 'resources/workloads/repo',
 						type:'POST',
 						data: JSON.stringify(params),
@@ -49,7 +54,11 @@ define(['handlers/EventDispatcher'],
 
 				this.fetchRepositoryQueryDetail = function(queryID){
 
-					$.ajax({
+					var xhr = xhrs["repo_detail"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["repo_detail"] = $.ajax({
 						url: 'resources/workloads/repo/detail?queryID=' + queryID,
 						type:'GET',
 						dataType:"json",
@@ -69,7 +78,11 @@ define(['handlers/EventDispatcher'],
 
 				this.cancelQuery = function(queryID){
 
-					$.ajax({
+					var xhr = xhrs["cancel_query"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["cancel_query"] = $.ajax({
 						url: 'resources/workloads/cancel?queryID=' + queryID,
 						type:'DELETE',
 						dataType:"json",
@@ -88,7 +101,11 @@ define(['handlers/EventDispatcher'],
 				};            
 				this.fetchActiveQueries = function(probeType, time){
 
-					$.ajax({
+					var xhr = xhrs["active_list"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["active_list"] = $.ajax({
 						url: 'resources/workloads/active/?probeType='+probeType+'&time='+time,
 						type:'GET',
 						dataType:"json",
@@ -108,7 +125,11 @@ define(['handlers/EventDispatcher'],
 
 				this.fetchActiveQueryDetail = function(queryID){
 
-					$.ajax({
+					var xhr = xhrs["active_detail"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["active_detail"] = $.ajax({
 						url: 'resources/workloads/active/detail?queryID=' + queryID,
 						type:'GET',
 						dataType:"json",
