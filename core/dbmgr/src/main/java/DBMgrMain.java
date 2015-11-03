@@ -192,6 +192,7 @@ public class DBMgrMain {
 
 		} catch (Exception ex) {
 			System.out.println(ex.getMessage());
+			System.exit(-1);
 		}
 	}
 
