@@ -332,7 +332,7 @@ define([
 					//"bJQueryUI": true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
-					//stateSave: true,
+					stateSave: true,
 					"aoColumnDefs": [ {
 					      "aTargets": [ 0 ],
 					      "mData": 0,

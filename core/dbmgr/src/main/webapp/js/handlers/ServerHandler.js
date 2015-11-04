@@ -91,7 +91,11 @@ define(['handlers/EventDispatcher', 'common'],
 				};    
 
 				this.loadServerConfig = function(){
-					$.ajax({
+					var xhr = xhrs["server_config"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["server_config"] = $.ajax({
 						url: 'resources/server/config',
 						type:'GET',
 						dataType:"json",
@@ -106,7 +110,11 @@ define(['handlers/EventDispatcher', 'common'],
 				}; 
 				
 				this.explainQuery = function(param){
-					$.ajax({
+					var xhr = xhrs["explain_query"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["explain_query"] = $.ajax({
 		        	    url:'resources/queries/explain',
 		        	    type:'POST',
 		        	    data: JSON.stringify(param),
@@ -126,7 +134,11 @@ define(['handlers/EventDispatcher', 'common'],
 				};
 				
 				this.executeQuery = function(param){
-					$.ajax({
+					var xhr = xhrs["execute_query"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["execute_query"] = $.ajax({
 		        	    url:'resources/queries/execute',
 		        	    type:'POST',
 		        	    data: JSON.stringify(param),
