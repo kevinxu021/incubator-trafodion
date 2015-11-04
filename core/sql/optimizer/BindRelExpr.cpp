@@ -10265,7 +10265,7 @@ RelExpr* Insert::xformUpsertToMerge(BindWA *bindWA)
   RelExpr * mu = re;
     
   re = new(bindWA->wHeap()) Join
-    (child(0), re, REL_TSJ_FLOW, NULL);
+    (child(0), mu, REL_TSJ_FLOW, NULL);
   ((Join*)re)->doNotTransformToTSJ();
   ((Join*)re)->setTSJForMerge(TRUE);	
   ((Join*)re)->setTSJForMergeWithInsert(TRUE);
