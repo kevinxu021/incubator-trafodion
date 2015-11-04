@@ -22,6 +22,7 @@ AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultGroupName={#MyAppName}
+LicenseFile=LICENSE.rtf
 DefaultDirName={pf}\Trafodion\{#MyDriverName}
 OutputBaseFilename=TFODBC64-{#MyAppVersion}
 Compression=lzma
@@ -151,7 +152,7 @@ begin
   sUnInstallString := GetUninstallString();
   if (sUnInstallString <> '') then  //Your App GUID/ID
   begin
-    V := MsgBox(ExpandConstant('An existing install of '+ sAppName + ' was detected.' + #13#10#13#10 +'The installer will now uninstall the old version and install the new version.' + #13#10#13#10 +'Do you want to continue?'), mbInformation, MB_YESNO); //Custom Message if App installed
+    V := MsgBox(ExpandConstant('An existing install of Trafodion ODBC64 was detected.' + #13#10#13#10 +'The installer will now uninstall the old version and install the new version.' + #13#10#13#10 +'Do you want to continue?'), mbInformation, MB_YESNO); //Custom Message if App installed
     if V = IDYES then
     begin
       sUnInstallString :=  RemoveQuotes(sUnInstallString);
