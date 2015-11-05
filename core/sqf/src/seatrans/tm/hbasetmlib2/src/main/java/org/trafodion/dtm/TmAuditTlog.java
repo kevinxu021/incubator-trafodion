@@ -1642,7 +1642,7 @@ public class TmAuditTlog {
       long startTime = System.nanoTime();
       long endTime;
 
-      if (LOG.isTraceEnabled()) LOG.trace("writeControlPointRecords for clusterId " + clusterId + " start with map size " + map.size());
+      if (LOG.isTraceEnabled()) LOG.trace("Tlog " + getTlogTableNameBase() + " writeControlPointRecords for clusterId " + clusterId + " start with map size " + map.size());
 
       try {
         for (Map.Entry<Long, TransactionState> e : map.entrySet()) {
@@ -1717,14 +1717,21 @@ public class TmAuditTlog {
 
          // Write the control point interval and the ASN to the control point table
          lvCtrlPt = tLogControlPoint.doControlPoint(clusterId, lvAsn);
+         if (LOG.isTraceEnabled()) LOG.trace("Control point record " + lvCtrlPt +
+        		 " returned for table " + tLogControlPoint.getTableName());
 
-         if ((lvCtrlPt - 5) > 0){  // We'll keep 5 control points of audit
+         long deleteCP = tLogControlPoint.getNthRecord(clusterId, 5);
+         if ((deleteCP) > 0){  // We'll keep 5 control points of audit
             try {
-               agedAsn = tLogControlPoint.getRecord(clusterId, String.valueOf(lvCtrlPt - 5));
+               if (LOG.isTraceEnabled()) LOG.trace("Attempting to get control point record from " + 
+                         tLogControlPoint.getTableName() + " for control point " + (deleteCP));
+               agedAsn = tLogControlPoint.getRecord(clusterId, String.valueOf(deleteCP));
+               if (LOG.isTraceEnabled()) LOG.trace("AgedASN from " + 
+                       tLogControlPoint.getTableName() + " is " + agedAsn);
                if (agedAsn > 0){
                   try {
                      if (LOG.isTraceEnabled()) LOG.trace("Attempting to remove TLOG writes older than asn " + agedAsn);
-                     deleteAgedEntries(agedAsn);
+							deleteAgedEntries(agedAsn);
                   }
                   catch (Exception e){
                      LOG.error("deleteAgedEntries Exception " + e);
@@ -1948,15 +1955,18 @@ public class TmAuditTlog {
       return;
    }
 
-public long getAuditCP(int clustertoRetrieve) throws Exception {
-       long cp = 0;
-       try {
-          cp = tLogControlPoint.getCurrControlPt(clustertoRetrieve);
-       } catch (Exception e) {
-             LOG.error("Get Control Point Exception " + Arrays.toString(e.getStackTrace()));
-             throw e;
-       }
-       return cp;
-}
-
+   public long getAuditCP(int clustertoRetrieve) throws Exception {
+      long cp = 0;
+      try {
+         cp = tLogControlPoint.getCurrControlPt(clustertoRetrieve);
+      } catch (Exception e) {
+          LOG.error("Get Control Point Exception " + Arrays.toString(e.getStackTrace()));
+          throw e;
+      }
+      return cp;
+   }
+   
+   public String getTlogTableNameBase(){
+      return TLOG_TABLE_NAME;
+   }   
 }

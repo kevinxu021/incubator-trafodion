@@ -463,5 +463,51 @@ public class HBaseAuditControlPoint {
       if (LOG.isTraceEnabled()) LOG.trace("deleteAgedRecords - exit");
       return true;
    }
+   
+   public String getTableName(){
+      return CONTROL_POINT_TABLE_NAME;
+   }
+   
+   public long getNthRecord(int clusterId, int n) throws IOException{
+      if (LOG.isTraceEnabled()) LOG.trace("getNthRecord start - clusterId " + clusterId + " n" + n);
+
+      Get g = new Get(Bytes.toBytes(clusterId));
+      g.setMaxVersions(n + 1);  // will return last n+1 versions of row just in case
+      g.addColumn(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM);
+      String ctrlPtToken;
+      try {
+         Result r = table.get(g);
+         List<Cell> list = r.getColumnCells(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM);  // returns all versions of this column
+         int i = 1;
+         for (Cell cell : list) {
+            i++;
+            StringTokenizer stok = 
+                    new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
+            if (stok.hasMoreElements()) {
+               ctrlPtToken = stok.nextElement().toString();
+               if (LOG.isTraceEnabled()) LOG.trace("Parsing record for controlPoint (" + ctrlPtToken + ")");
+               if ( i < n ){
+                  if (LOG.isTraceEnabled()) LOG.trace("Skipping record " + i + " of " + n + " for controlPoint" );
+                  continue;
+               }
+               long lvReturn = Long.parseLong(ctrlPtToken);;
+               if (LOG.isTraceEnabled()) LOG.trace("getNthRecord exit - returning " + lvReturn);
+               return lvReturn;
+            }
+            else {
+               if (LOG.isTraceEnabled()) LOG.trace("No tokens to parse for " + i);
+            }
+         }
+      } 
+      catch (NullPointerException e){
+	         if (LOG.isTraceEnabled()) LOG.trace("control point record for clusterId: " + clusterId + " is not in the table");
+      }
+      catch (Exception e1){
+         if (LOG.isTraceEnabled()) LOG.trace("control point record for clusterId: " + clusterId + " threw exception " + e1);
+	  }
+      if (LOG.isTraceEnabled()) LOG.trace("getNthRecord - exit returning 1");
+      return 1;
+   }
 }
 
+      
