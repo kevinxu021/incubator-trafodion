@@ -766,26 +766,45 @@ public class HBaseTxClient {
           ts.setStatus(TransState.STATE_COMMITTED);
           if (useTlog) {
              if (bSynchronized && ts.hasRemotePeers()){
-                for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
-                   if (synchronousWrites){
-                       lv_tLog.putSingleRecord(transactionId, ts.getStartId(), commitIdVal, TransState.STATE_COMMITTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true);
+                for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) {
+                   int lv_peerId = entry.getKey();
+                   if (lv_peerId == 0) // no peer for ourselves
+                      continue;
+                   TmAuditTlog lv_tLog = peer_tLogs.get(lv_peerId);
+                   if (lv_tLog == null){
+                      LOG.error("Error during doCommit processing for tlog COMMIT for peer: " + lv_peerId);
+                      continue;
                    }
-                   else{
-                      try {
-                         if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:calling doTlogWrite COMMITTED for trans: " + ts.getTransactionId());
-                         lv_tLog.doTlogWrite(ts, TransState.STATE_COMMITTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, -1);
+                   try {
+                      if (pSTRConfig.getPeerStatus(lv_peerId).contains(PeerInfo.STR_UP)) {
+                         if (LOG.isTraceEnabled()) LOG.trace("PEER " + lv_peerId + " STATUS is UP; writing COMMIT state record");
+                         if (synchronousWrites){
+                             lv_tLog.putSingleRecord(transactionId, ts.getStartId(), commitIdVal, TransState.STATE_COMMITTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true);
+                         }
+                         else{
+                            try {
+                               if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:calling doTlogWrite COMMITTED for trans: " + ts.getTransactionId());
+                               lv_tLog.doTlogWrite(ts, TransState.STATE_COMMITTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, -1);
+                            }
+                            catch (Exception e) {
+                               LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionId + 
+                                         " tLog.doTlogWrite: EXCEPTION " + e);
+                               return TransReturnCode.RET_EXCEPTION.getShort();
+                            }
+                         }
                       }
-                      catch (Exception e) {
-                         LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionId + 
-                                   " tLog.doTlogWrite: EXCEPTION " + e);
-                         return TransReturnCode.RET_EXCEPTION.getShort();
+                      else {
+                         if (LOG.isWarnEnabled()) LOG.warn("PEER " + lv_peerId + " STATUS is DOWN; skipping COMMITTED state record");            	   
                       }
                    }
-                }
-             }
-             else {
-                 if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, sb_replicate is false");
-             }
+                   catch (Exception e) {
+                      LOG.error("doCommit, lv_tLog " + lv_tLog + " EXCEPTION: " + e);
+                      throw e;
+                   }
+                } // for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) 
+             } // if (bSynchronized && ts.hasRemotePeers()){
+
+             // Write the local Tlog State record
              tLog.putSingleRecord(transactionId, ts.getStartId(), commitIdVal, TransState.STATE_COMMITTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true);
              if (bSynchronized && ts.hasRemotePeers() && (! synchronousWrites)){
                 try{
@@ -837,23 +856,45 @@ public class HBaseTxClient {
        }
        if (useTlog && useForgotten) {
           if (bSynchronized && ts.hasRemotePeers()){
-             for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
-                if (synchronousWrites){
-                   lv_tLog.putSingleRecord(transactionId, ts.getStartId(), commitIdVal, TransState.STATE_FORGOTTEN.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), forceForgotten); // forced flush?
+             for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) {
+                int lv_peerId = entry.getKey();
+                if (lv_peerId == 0) // no peer for ourselves
+                   continue;
+                TmAuditTlog lv_tLog = peer_tLogs.get(lv_peerId);
+                if (lv_tLog == null){
+                   LOG.error("Error during doCommit processing for tlog FORGOTTEN for peer: " + lv_peerId);
+                   continue;
                 }
-                else{
-                   try {
-                      if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:calling doTlogWrite FORGOTTEN for : " + ts.getTransactionId());
-                      lv_tLog.doTlogWrite(ts, TransState.STATE_FORGOTTEN.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, -1);
+                try {
+                   if (pSTRConfig.getPeerStatus(lv_peerId).contains(PeerInfo.STR_UP)) {
+                      if (LOG.isTraceEnabled()) LOG.trace("PEER " + lv_peerId + " STATUS is UP; writing COMMIT-FORGOTTEN state record");
+                      if (synchronousWrites){
+                         lv_tLog.putSingleRecord(transactionId, ts.getStartId(), commitIdVal, TransState.STATE_FORGOTTEN.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true);
+                      }
+                      else{
+                         try {
+                            if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:calling doTlogWrite COMMITTED-FORGOTTEN for trans: " + ts.getTransactionId());
+                            lv_tLog.doTlogWrite(ts, TransState.STATE_FORGOTTEN.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, -1);
+                         }
+                         catch (Exception e) {
+                            LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionId + 
+                                           " tLog.doTlogWrite: EXCEPTION " + e);
+                            return TransReturnCode.RET_EXCEPTION.getShort();
+                         }
+                      }
                    }
-                   catch (Exception e) {
-                      LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionId + 
-                                " tLog.doTlogWrite: EXCEPTION " + e);
-                      return TransReturnCode.RET_EXCEPTION.getShort();                   
+                   else {
+                      if (LOG.isWarnEnabled()) LOG.warn("PEER " + lv_peerId + " STATUS is DOWN; skipping COMMIT-FORGOTTEN state record");            	   
                    }
                 }
-             }
-          }
+                catch (Exception e) {
+                   LOG.error("doCommit, lv_tLog writing commit forgotten " + lv_tLog + " EXCEPTION: " + e);
+                   throw e;
+                }
+             } // for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) 
+          } // if (bSynchronized && ts.hasRemotePeers()){
+        	  
+          // Write the local record
           tLog.putSingleRecord(transactionId, ts.getStartId(), commitIdVal, TransState.STATE_FORGOTTEN.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), forceForgotten); // forced flush?
           if (bSynchronized && ts.hasRemotePeers() && (! synchronousWrites)){
              try{
@@ -1197,7 +1238,8 @@ public class HBaseTxClient {
       }
 
       try {
-         if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient calling tLog.addControlPoint with mapsize " + mapTransactionStates.size());
+         if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient calling tLog.addControlPoint for the " +
+                 tLog.getTlogTableNameBase() + " set with mapsize " + mapTransactionStates.size());
          result = tLog.addControlPoint(myClusterId, mapTransactionStates);
       }
       catch(IOException e){
@@ -1927,8 +1969,9 @@ public class HBaseTxClient {
                                 	// decision without peer's vote)
                                 	if ((clusterid == 0) || (clusterid == my_local_clusterid)) { // transactions started by local cluster
 
-                                       audit.getTransactionState(ts);
+                                       audit.getTransactionState(ts, false);
                                        if (!ts.hasRemotePeers()) { // only local participant (no STR peer region or peer STR id downed
+                                          audit.getTransactionState(ts, true);
                                           if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV PEER THREAD: TID " + txID +
                                         		  " has no remote participants, commit authority is handled by local owner " + clusterid);
                                           commitLocally = true;
