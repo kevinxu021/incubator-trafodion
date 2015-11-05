@@ -75,6 +75,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
+import org.apache.hadoop.hbase.ipc.FailedServerException;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto;
@@ -1201,27 +1202,41 @@ public class TmAuditTlog {
          try {
             synchronized (tlogAuditLock[lv_lockIndex]) {
                endSynch = System.nanoTime();
-               try {
-                  if (LOG.isTraceEnabled()) LOG.trace("try table.put in thread " + threadId + ", " + p );
-                  startTimes[lv_TimeIndex] = System.nanoTime();
-                  table[lv_lockIndex].put(p);
-                  if ((forced) && (useAutoFlush == false)) {
-                     if (LOG.isTraceEnabled()) LOG.trace("flushing commits in thread " + threadId);
-                     table[lv_lockIndex].flushCommits();
+               boolean complete = false;
+               int retries = 0;
+               do {
+                  try {
+                	 retries++;
+                     if (LOG.isTraceEnabled()) LOG.trace("try table.put in thread " + threadId + ", " + p );
+                     startTimes[lv_TimeIndex] = System.nanoTime();
+                     table[lv_lockIndex].put(p);
+                     if ((forced) && (useAutoFlush == false)) {
+                        if (LOG.isTraceEnabled()) LOG.trace("flushing commits in thread " + threadId);
+                        table[lv_lockIndex].flushCommits();
+                     }
+                     endTimes[lv_TimeIndex] = System.nanoTime();
+                     complete = true;
                   }
-                  endTimes[lv_TimeIndex] = System.nanoTime();
-               }
-               catch (Exception e2){
-                  // create record of the exception
-                  LOG.error("putSingleRecord Exception " + e2);
-                  e2.printStackTrace();
-                  throw e2;
-               }
+                  catch (FailedServerException sfe) {
+                      LOG.error("Retrying putSingleRecord for transaction: " + lvTransid + " on table "
+                              + table[lv_lockIndex].getTableName().toString() + " due to ServerFailedException " + sfe);
+               	      table[lv_lockIndex].getRegionLocations();
+                      Thread.sleep(1000); // 1 second
+               	      continue;
+                  }
+                  catch (Exception e2){
+                     // create record of the exception
+                     LOG.error("putSingleRecord for transaction: " + lvTransid + " on table "
+                                + table[lv_lockIndex].getTableName().toString() + " Exception " + e2);
+                     e2.printStackTrace();
+                     throw e2;
+                  }
+               } while (! complete && retries < 5);
             } // End global synchronization
          }
          catch (Exception e) {
             // create record of the exception
-            LOG.error("Synchronizing on tlogAuditLock[" + lv_lockIndex + "] Exception " + e);
+            LOG.error("Synchronizing on tlogAuditLock[" + lv_lockIndex + "] for transaction:" + lvTransid + " Exception " + e);
             e.printStackTrace();
             throw e;
          }
