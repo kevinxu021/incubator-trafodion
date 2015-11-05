@@ -187,7 +187,8 @@ public class AlertsResource {
 				uri = String.format(queryText, alertsUri, alertID, updateMessage, notify,
 						actionType, soc.getUsername());
 				String jsonOutputString = RESTProcessor.getRestOutput(uri, soc.getUsername(), soc.getPassword());
-				return jsonOutputString;
+				if (jsonOutputString != null && jsonOutputString.length() > 0)
+					return jsonOutputString;
 			}
 		} catch (Exception ex) {
 			_LOG.error("Failed to update alert : " + ex.getMessage());
@@ -213,8 +214,9 @@ public class AlertsResource {
 						if (groupNode.has("Children")) {
 							ArrayNode childrenNodes = (ArrayNode) groupNode.get("Children");
 							for (JsonNode alertNode : childrenNodes) {
-								DateTime dateTime = new DateTime(alertNode.get("Ago").textValue(),
-										DateTimeZone.forID(ConfigurationResource.getServerTimeZone()));
+								DateTime dateTime = new DateTime(alertNode.get("Ago").textValue(), DateTimeZone.UTC);
+								dateTime = dateTime
+										.withZone(DateTimeZone.forID(ConfigurationResource.getServerTimeZone()));
 								if ((startTime == null || endTime == null)
 										|| ((dateTime.isAfter(startTime) || dateTime.isEqual(startTime))
 												&& (dateTime.isEqual(endTime) || dateTime.isBefore(endTime)))) {
@@ -225,8 +227,8 @@ public class AlertsResource {
 										aNode.put("Time", dateTime.toString("yyyy-MM-dd HH:mm:ss"));
 										aNode.put("AlertKey", alertNode.get("AlertKey").textValue());
 										aNode.put("Alert", alertName);
-										aNode.put("State", "Acknowledged");
-										aNode.put("Status", alertNode.get("Status").textValue());
+										aNode.put("Status", "Acknowledged");
+										aNode.put("Severity", alertNode.get("Status").textValue());
 										aNode.put("Active", alertNode.get("Active").booleanValue());
 										aNode.put("Silenced", alertNode.get("Silenced").booleanValue());
 
@@ -246,8 +248,9 @@ public class AlertsResource {
 						if (groupNode.has("Children")) {
 							ArrayNode childrenNodes = (ArrayNode) groupNode.get("Children");
 							for (JsonNode alertNode : childrenNodes) {
-								DateTime dateTime = new DateTime(alertNode.get("Ago").textValue(),
-										DateTimeZone.forID(ConfigurationResource.getServerTimeZone()));
+								DateTime dateTime = new DateTime(alertNode.get("Ago").textValue(), DateTimeZone.UTC);
+								dateTime = dateTime
+										.withZone(DateTimeZone.forID(ConfigurationResource.getServerTimeZone()));
 								if ((startTime == null || endTime == null)
 										|| ((dateTime.isAfter(startTime) || dateTime.isEqual(startTime))
 												&& (dateTime.isEqual(endTime) || dateTime.isBefore(endTime)))) {
@@ -258,8 +261,8 @@ public class AlertsResource {
 										aNode.put("Time", dateTime.toString("yyyy-MM-dd HH:mm:ss"));
 										aNode.put("AlertKey", alertNode.get("AlertKey").textValue());
 										aNode.put("Alert", alertName);
-										aNode.put("State", "Un-Acknowledged");
-										aNode.put("Status", alertNode.get("Status").textValue());
+										aNode.put("Status", "Un-Acknowledged");
+										aNode.put("Severity", alertNode.get("Status").textValue());
 										aNode.put("Active", alertNode.get("Active").booleanValue());
 										aNode.put("Silenced", alertNode.get("Silenced").booleanValue());
 

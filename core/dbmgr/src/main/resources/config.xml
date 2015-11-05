@@ -43,7 +43,7 @@
 	<entry key="timeZoneName">Etc/UTC</entry>
 	
 	<!-- The openTSDB HTTP URI-->
-	<entry key="openTSDBUri">10.1.30.9:9197</entry>
+	<entry key="openTSDBUri">10.1.30.9:5242</entry>
 
 	<!-- Enable/disable alerts feature -->
 	<entry key="enableAlerts">true</entry>

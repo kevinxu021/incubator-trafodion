@@ -32,7 +32,7 @@ define([
 	DIALOG_APPLY_BUTTON = "#updateAlertApplyButton",
 	DIALOG_ALERT_ID = '#action-alert-id';
 
-	var _that = null;
+	var _this = null;
 	var alertID = null;
 	var validator = null;
 
@@ -40,7 +40,7 @@ define([
 		template:  _.template(AlertDetailT),
 
 		doInit: function (args){
-			_that = this;
+			_this = this;
 			$(ALERT_ID).val(args);
 			alertID = args;
 			$(DIALOG_ALERT_ID).val(args);
@@ -98,7 +98,7 @@ define([
 					$('#update-close').prop("disabled", true);
 				}
 				$('#alert-update-notify').prop('checked', true);
-
+				$('#alert-update-message').val("");
 			});
 
 			this.fetchAlertDetail();
@@ -162,14 +162,14 @@ define([
 			alert(jqXHR.responseText);
 		},
 		fetchAlertDetail: function(){
-			_that.showLoading();
+			_this.showLoading();
 			var params = {};
 			params.alertID = alertID;
 			serverHandler.fetchAlertDetail(params);
 		},
 
 		displayResults: function (result){
-			_that.hideLoading();
+			_this.hideLoading();
 			var alertDetail = result[alertID];
 			var state = 'UnKnown';
 			if(alertDetail && alertDetail.NeedAck == true){
@@ -193,7 +193,7 @@ define([
 		},
 
 		showErrorMessage: function (jqXHR) {
-			_that.hideLoading();
+			_this.hideLoading();
 			$(RESULT_CONTAINER).hide();
 			$(ERROR_CONTAINER).show();
 			if (jqXHR.responseText) {
