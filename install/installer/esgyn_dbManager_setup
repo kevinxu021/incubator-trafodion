@@ -85,7 +85,9 @@ $TRAF_PDSH sudo chmod -R 777 $SQ_ROOT/mgblty
 function unTarDMPackage {
 
 tar -xf $DBM_PACKAGE
-dbmgr_dir=$(sudo ls | grep dbmgr | grep -v dbmgr*.tgz)
+
+dbmgr_dir_temp=$(sudo ls | grep --max-count=1 "dbmgr")
+dbmgr_dir=${dbmgr_dir_temp%".tar.gz"}
 
 sudo chmod -R 777 $dbmgr_dir
 
