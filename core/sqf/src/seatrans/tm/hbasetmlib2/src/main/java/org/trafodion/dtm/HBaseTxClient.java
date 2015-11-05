@@ -1956,9 +1956,9 @@ public class HBaseTxClient {
                                       transactionStates.put(txid, ts);
                                    }
                                 }
-                                else if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV THREAD:size od TxRecoverList is NULL ");
+                                else if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD:size of TxRecoverList is NULL ");
                             }
-                            if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV THREAD: in-doubt transaction size " + transactionStates.size());
+                            if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD: in-doubt transaction size " + transactionStates.size());
                             for (Map.Entry<Long, TransactionState> tsEntry : transactionStates.entrySet()) {
                                 TransactionState ts = tsEntry.getValue();
                                 Long txID = ts.getTransactionId();
@@ -1973,7 +1973,7 @@ public class HBaseTxClient {
                                        audit.getTransactionState(ts, false);
                                        if (!ts.hasRemotePeers()) { // only local participant (no STR peer region or peer STR id downed
                                           audit.getTransactionState(ts, true);
-                                          if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV PEER THREAD: TID " + txID +
+                                          if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID +
                                         		  " has no remote participants, commit authority is handled by local owner " + clusterid);
                                           commitLocally = true;
                                        }
@@ -1981,13 +1981,13 @@ public class HBaseTxClient {
                                           if (peerid != -1) { // has peer configured from peer_tLogs
                                              if (pSTRConfig.getPeerStatus(peerid).contains(PeerInfo.STR_DOWN)) {
                                                 // STR is down, do commit takeover based on local TLOG
-                                                if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV PEER THREAD: TID " + txID +
+                                            	 if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID +
                                                       " commit authority is handled locally" + clusterid + " due to STR_DOWN at peer " + peerid);
                                                 commitLocally = true;
                                 	         }
                                              else if (pSTRConfig.getPeerStatus(peerid).contains(PeerInfo.STR_UP)) {
                                                 // STR is up, check if peer is alive
-                                		        if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV PEER THREAD: TID " + txID +
+                                            	 if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID +
                                 		        		" check Peer due to STR_UP at peer " + clusterid);
                                                 commitLocally = true;;
                                                 try {
@@ -2007,11 +2007,11 @@ public class HBaseTxClient {
                                              commitLocally = true;
                                           }
                                        } // has peer participant
-                                       if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV THREAD:TID " + txID +
+                                       if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD:TID " + txID +
                                                " commmit decision can be handled locally " + commitLocally);
                                        if (commitLocally) {
                                           if (ts.getStatus().equals(TransState.STATE_COMMITTED.toString())) {
-                                             if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV THREAD:Redriving commit for " + txID +
+                                        	  if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD:Redriving commit for " + txID +
                                                            " number of regions " + ts.getParticipatingRegions().size() +
                                                            " and tolerating UnknownTransactionExceptions");
                                              txnManager.doCommit(ts, true /*ignore UnknownTransactionException*/);
@@ -2021,11 +2021,11 @@ public class HBaseTxClient {
                                              }
                                           }
                                           else if (ts.getStatus().equals(TransState.STATE_ABORTED.toString())) {
-                                             if (LOG.isDebugEnabled())LOG.debug("TRAF RCOV THREAD:Redriving abort for " + txID);
+                                        	  if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD:Redriving abort for " + txID);
                                              txnManager.abort(ts);
                                           } 
                                           else {
-                                             if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV THREAD:Redriving abort for " + txID);
+                                        	  if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD:Redriving abort for " + txID);
                                              LOG.warn("Recovering transaction " + txID + ", status is not set to COMMITTED or ABORTED. Aborting.");
                                              txnManager.abort(ts);
                                           }
@@ -2036,11 +2036,11 @@ public class HBaseTxClient {
                                        // if peer is UP, then directly ask peer (holding commit processing)
                                        takeover = false;
                                        answerFromPeer = false;
-                                       if (LOG.isDebugEnabled()) { LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " started at  " + clusterid +
-                                    		   " is indoubt "); }
+                                       if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID + " started at  " + clusterid +
+                                    		   " is indoubt ");
                                        if (pSTRConfig.getPeerStatus(clusterid).contains(PeerInfo.STR_DOWN)) {
                                           // STR is down, do commit takeover based on local TLOG
-                                          if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV PEER THREAD: TID " + txID +
+                                    	   if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID +
                                         		  " commit authority is taken over due to STR_DOWN at peer " + clusterid);
                                           commit_takeover(clusterid); // perform takeover preprocessing before starts to resolve transactions
                                 		  audit.getTransactionState(ts, false); // ask local TLOG after take over
@@ -2048,7 +2048,7 @@ public class HBaseTxClient {
                                 	   }
                                        else if (pSTRConfig.getPeerStatus(clusterid).contains(PeerInfo.STR_UP)) {
                                           // STR is up, ask peer
-                                		  if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV PEER THREAD: TID " + txID +
+                                    	   if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID +
                                 				  " commit authority is sent to Peer due to STR_UP at peer " + clusterid);
                                 		  answerFromPeer = true;
                                           try {
@@ -2060,8 +2060,7 @@ public class HBaseTxClient {
                                           }
                                 		}
                                                 else {
-                               		               if (LOG.isDebugEnabled())
-                                			   LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " commit originator status is unknown, neither STR_UP or STR_DOWN " + clusterid);
+                                                	if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID + " commit originator status is unknown, neither STR_UP or STR_DOWN " + clusterid);
                                                 }
                                              
                                                 // No need to post all the regions in R2.0 for the takeover case since remote peer could be down and this could cause 
@@ -2069,22 +2068,18 @@ public class HBaseTxClient {
                                                 // pass "false" in the second parameter for getTransactionState postAllRegions
 
                                                 if (takeover || answerFromPeer) {
-                                                     if (LOG.isDebugEnabled())
-                                                          LOG.debug("TRAF RCOV THREAD makes commit decision for " + txID + " from sources " + takeover + " and " + answerFromPeer);
+                                                	if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD makes commit decision for " + txID + " from sources " + takeover + " and " + answerFromPeer);
                                                     if (ts.getStatus().equals(TransState.STATE_COMMITTED.toString())) {
-                                                         if (LOG.isDebugEnabled())
-                                                          LOG.debug("TRAF RCOV THREAD:Redriving commit for " + txID + " number of regions " + ts.getParticipatingRegions().size() +
+                                                    	if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD:Redriving commit for " + txID + " number of regions " + ts.getParticipatingRegions().size() +
                                                               " and tolerating UnknownTransactionExceptions");
                                                           txnManager.doCommit(ts, true /*ignore UnknownTransactionException*/);
                                                     }  // committed
                                                     else if (ts.getStatus().equals(TransState.STATE_ABORTED.toString())) {
-                                                          if (LOG.isDebugEnabled())
-                                                             LOG.debug("TRAF RCOV THREAD:Redriving abort for " + txID);
+                                                    	if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD:Redriving abort for " + txID);
                                                           txnManager.abort(ts);
                                                     } // aborted
                                                     else {
-                                                          if (LOG.isDebugEnabled())
-                                                             LOG.debug("TRAF RCOV THREAD:Redriving abort for " + txID);
+                                                    	if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD:Redriving abort for " + txID);
                                                           LOG.warn("Recovering transaction " + txID + ", status is not set to COMMITTED or ABORTED. Aborting.");
                                                           // here write abort txn state recordfs into local TLOG and any alive peer
                                                           put_single_tlog_record_during_commit_takeover(clusterid, txID, ts);
