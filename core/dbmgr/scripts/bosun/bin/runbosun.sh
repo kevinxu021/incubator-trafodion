@@ -5,7 +5,13 @@
 #
 # @@@ END COPYRIGHT @@@
 
-mkdir -p $DBMGR_INSTALL_DIR/bosun/log
+BINDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+if [ -z "$MGBLTY_INSTALL_DIR" ];then
+    export MGBLTY_INSTALL_DIR=$BINDIR/../..
+fi
+
+mkdir -p $MGBLTY_INSTALL_DIR/bosun/log
 
 usage() {
     prog=`basename $0`
@@ -21,7 +27,7 @@ getpid() {
 }
 
 bosun_start() {
-    setsid $DBMGR_INSTALL_DIR/bosun/bin/bosun-linux-amd64 -c="$DBMG_INSTALL_DIR/bosun/conf/bosun.conf" > $DBMGR_INSTALL_DIR/bosun/log/bosun.log 2>&1  &
+    setsid $MGBLTY_INSTALL_DIR/bosun/bin/bosun-linux-amd64 -c="$MGBLTY_INSTALL_DIR/bosun/conf/bosun.conf" > $MGBLTY_INSTALL_DIR/bosun/log/bosun.log 2>&1  &
     sleep 5s
     pid=$(getpid)
     if [ -n "$pid" ]; then

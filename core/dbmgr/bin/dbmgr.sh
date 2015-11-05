@@ -5,12 +5,13 @@
 #
 # @@@ END COPYRIGHT @@@
 
-BINDIR=$(dirname $0)
-mkdir -p $DBMGR_INSTALL_DIR/log
+BINDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [ -z "$DBMGR_INSTALL_DIR" ];then
     export DBMGR_INSTALL_DIR=$BINDIR/..
 fi
+
+mkdir -p $DBMGR_INSTALL_DIR/logs
 
 WARFILE=`echo $DBMGR_INSTALL_DIR/lib/dbmgr*.war`
 
@@ -29,7 +30,7 @@ getpid() {
 }
 
 dbmgr_start() {
-        setsid java -Dlogback.configurationFile=$DBMGR_INSTALL_DIR/conf/logback.xml -jar $WARFILE > $DBMGR_INSTALL_DIR/log/dbmgr.log 2>&1  &
+        setsid java -Dlogback.configurationFile=$DBMGR_INSTALL_DIR/conf/logback.xml -jar $WARFILE > $DBMGR_INSTALL_DIR/logs/dbmgr.log 2>&1  &
         sleep 5s
         pid=$(getpid)
         if [ -n "$pid" ]; then

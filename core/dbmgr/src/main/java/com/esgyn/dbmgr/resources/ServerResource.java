@@ -79,8 +79,7 @@ public class ServerResource {
 			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
 			objNode.put("dcsMasterInfoUri", configResource.getDcsMasterInfoUri());
 			objNode.put("enableAlerts", configResource.isAlertsEnabled());
-			if (ConfigurationResource.getSystemVersion() != null
-					&& ConfigurationResource.getSystemVersion().toLowerCase().contains("enterprise")) {
+			if (Helper.isEnterpriseEdition()) {
 				objNode.put("systemType", 1);
 			}
 

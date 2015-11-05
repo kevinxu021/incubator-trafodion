@@ -5,6 +5,12 @@
 #
 # @@@ END COPYRIGHT @@@
 #
+BINDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+if [ -z "$MGBLTY_INSTALL_DIR" ];then
+    export MGBLTY_INSTALL_DIR=$BINDIR/../..
+fi
+
 mkdir -p $MGBLTY_INSTALL_DIR/opentsdb/cache
 mkdir -p $MGBLTY_INSTALL_DIR/opentsdb/plugins
 mkdir -p $MGBLTY_INSTALL_DIR/opentsdb/log

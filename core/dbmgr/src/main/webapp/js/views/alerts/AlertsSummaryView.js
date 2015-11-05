@@ -11,7 +11,8 @@ define([
         'handlers/ServerHandler',
         'moment',
         'common',
-        'jqueryui',
+        'views/RefreshTimerView',
+       'jqueryui',
         'datatables',
         'datatablesBootStrap',
         'tablebuttons',
@@ -20,12 +21,19 @@ define([
         'buttonshtml',        
         'datetimepicker',
         'jqueryvalidate'
-        ], function (BaseView, AlertsT, $, serverHandler, moment, common) {
+        ], function (BaseView, AlertsT, $, serverHandler, moment, common, refreshTimerView) {
 	'use strict';
 	var LOADING_SELECTOR = "#loadingImg",
 	RESULT_CONTAINER = '#alerts-result-container',
 	ERROR_CONTAINER = '#alerts-list-error',
-	REFRESH_MENU = '#refreshAction';
+	REFRESH_MENU = '#refreshAction',
+	REFRESH_INTERVAL = '#refreshInterval';
+	 
+	var DATE_FORMAT = 'YYYY-MM-DD HH:mm:ss',
+	DATE_FORMAT_ZONE = DATE_FORMAT + ' z',
+	TIME_RANGE_LABEL = '#timeRangeLabel',
+	START_TIME_PICKER = '#startdatetimepicker',
+	END_TIME_PICKER = '#enddatetimepicker';
 
 	var OPEN_FILTER = '#openFilter',
 	FILTER_DIALOG = '#filterDialog',
@@ -37,19 +45,55 @@ define([
 	FILTER_TIME_RANGE = '#filter-time-range';
 
 	var oDataTable = null;
-	var _that = null;
+	var _this = null;
 	var validator = null;
 
 	var AlertsSummaryView = BaseView.extend({
 		template:  _.template(AlertsT),
 
 		doInit: function (){
-			_that = this;
+			_this = this;
+
+			$.validator.addMethod("validateCustomStartTime", function(value, element) {
+				var timeRange = $(FILTER_TIME_RANGE).val();
+				if(timeRange == '0'){
+					var sDate = $(START_TIME_PICKER).data("DateTimePicker").date();
+					return sDate != null;
+				}
+				return true;
+
+			}, "* Start Time is required for custom time range.");
+			
+			$.validator.addMethod("validateCustomEndTime", function(value, element) {
+				var timeRange = $(FILTER_TIME_RANGE).val();
+				if(timeRange == '0'){
+					var eDate = $(END_TIME_PICKER).data("DateTimePicker").date();
+					return eDate != null;
+				}
+				return true;
+
+			}, "* End Time is required for custom time range.");
+
+			$.validator.addMethod("validateStartAndEndTimes", function(value, element) {
+				var timeRange = $(FILTER_TIME_RANGE).val();
+				if(timeRange == '0'){
+					var sDate = $(START_TIME_PICKER).data("DateTimePicker").date();
+					var eDate = $(END_TIME_PICKER).data("DateTimePicker").date();
+					if(sDate != null && eDate != null){
+						var startTime = new Date(sDate).getTime();
+						var endTime = new Date(eDate).getTime();
+						return (startTime < endTime);					
+					}
+					return false;
+				}
+				return true;
+
+			}, "* Start Time has to be less than End Time");
 
 			validator = $(FILTER_FORM).validate({
 				rules: {
-					"filter-start-time": { required: true },
-					"filter-end-time": { required: true }
+					"filter-start-time": { required: false, validateCustomStartTime: true, validateStartAndEndTimes: true },
+					"filter-end-time": { required: false, validateCustomEndTime: true, validateStartAndEndTimes: true }
 				},
 				highlight: function(element) {
 					$(element).closest('.form-group').addClass('has-error');
@@ -76,13 +120,13 @@ define([
 				}
 			});
 
-			$('#startdatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
-			$('#enddatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
+			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
 			$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
 			$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 
 			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
-				_that.updateFilter();
+				_this.updateFilter();
 			});
 
 			$(FILTER_TIME_RANGE).change(function(){
@@ -124,6 +168,10 @@ define([
 			$(REFRESH_MENU).on('click', this.fetchAlertsSummary);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
+			refreshTimerView.init();
+			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
+			refreshTimerView.setRefreshInterval(1);
 			this.fetchAlertsSummary();
 		},
 		doResume: function(){
@@ -132,6 +180,8 @@ define([
 			$(REFRESH_MENU).on('click', this.fetchAlertsSummary);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
+			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
 			this.fetchAlertsSummary();
 		},
 		doPause: function(){
@@ -140,6 +190,8 @@ define([
 			$(REFRESH_MENU).off('click', this.fetchLogs);
 			$(FILTER_APPLY_BUTTON).off('click', this.filterApplyClicked);
 			$(OPEN_FILTER).off('click', this.filterButtonClicked);
+			refreshTimerView.eventAgg.off(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimerView.eventAgg.off(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
@@ -178,6 +230,16 @@ define([
 				$('#filter-start-time').prop("disabled", false);
 				$('#filter-end-time').prop("disabled", false);
 			}        	
+			_this.updateTimeRangeLabel();
+		},
+		updateTimeRangeLabel: function(){
+			var timeRange = $(FILTER_TIME_RANGE).val();
+			if(timeRange != '-1'){
+				$(TIME_RANGE_LABEL).show();
+				$(TIME_RANGE_LABEL).text('Time Range : ' +  $(START_TIME_PICKER).data("DateTimePicker").date().format(DATE_FORMAT_ZONE) + ' - ' +  $(END_TIME_PICKER).data("DateTimePicker").date().format(DATE_FORMAT_ZONE));
+			}else{
+				$(TIME_RANGE_LABEL).hide();
+			}
 		},
 		filterButtonClicked: function(){
 			$(FILTER_DIALOG).modal('show');
@@ -188,7 +250,9 @@ define([
 			}else{
 				return;
 			}
-			var startTime = $('#startdatetimepicker').data("DateTimePicker").date();
+        	_this.updateTimeRangeLabel();
+
+        	var startTime = $('#startdatetimepicker').data("DateTimePicker").date();
 			var endTime = $('#enddatetimepicker').data("DateTimePicker").date();
 			var filter = [];
 
@@ -218,18 +282,24 @@ define([
 			param.alertText = $(FILTER_ALERT_TEXT).val();
 
 			$(FILTER_DIALOG).modal('hide');
-			_that.showLoading();
+			_this.showLoading();
 			serverHandler.fetchAlertsList(param);
 		},
+        refreshIntervalChanged: function(){
+
+        },
+        timerBeeped: function(){
+        	_this.fetchAlertsSummary();
+        },
 		fetchAlertsSummary: function () {
-			_that.showLoading();
+			_this.showLoading();
 			$(ERROR_CONTAINER).hide();
-			_that.updateFilter();
-			_that.filterApplyClicked();
+			_this.updateFilter();
+			_this.filterApplyClicked();
 		},
 
 		displayResults: function (result){
-			_that.hideLoading();
+			_this.hideLoading();
 			$(ERROR_CONTAINER).hide();
 			$(RESULT_CONTAINER).show();
 
@@ -308,12 +378,15 @@ define([
 
 		},
 		showErrorMessage: function (jqXHR) {
-			_that.hideLoading();
+			_this.hideLoading();
 			$(RESULT_CONTAINER).hide();
 			$(ERROR_CONTAINER).show();
 			if (jqXHR.responseText) {
 				$(ERROR_CONTAINER).text(jqXHR.responseText);
 			}
+		},  
+		parseInputDate:function(date){
+			return moment.tz(date, DATE_FORMAT_ZONE, common.serverTimeZone);
 		}  
 	});
 

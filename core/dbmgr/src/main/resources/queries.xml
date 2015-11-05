@@ -275,7 +275,7 @@
 		</query>		
 		<query>
 			<name>UPDATE_ALERT</name>
-			<text><![CDATA[{"url":"http://%1$s/api/action", "method":"post", "jsonParameter":{"Keys":["%2$s"], "Message":"%3$s", "Notify":%4$s,  "Type":"%5$s", "mser":"%6$s" }}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/action", "method":"post", "jsonParameter":{"Keys":["%2$s"], "Message":"%3$s", "Notify":%4$s,  "Type":"%5$s", "User":"%6$s" }}]]></text>
 		</query>		
 	</queries>
 </SystemQueries>
