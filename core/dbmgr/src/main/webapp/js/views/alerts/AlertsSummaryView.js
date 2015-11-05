@@ -1,8 +1,8 @@
-// @@@ START COPYRIGHT @@@
-//
-// (C) Copyright 2015 Esgyn Corporation
-//
-// @@@ END COPYRIGHT @@@
+//@@@ START COPYRIGHT @@@
+
+//(C) Copyright 2015 Esgyn Corporation
+
+//@@@ END COPYRIGHT @@@
 
 define([
         'views/BaseView',
@@ -14,60 +14,60 @@ define([
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
+        'tablebuttons',
+        'buttonsflash',
+        'buttonsprint',
+        'buttonshtml',        
         'datetimepicker',
         'jqueryvalidate'
         ], function (BaseView, AlertsT, $, serverHandler, moment, common) {
 	'use strict';
-    var LOADING_SELECTOR = "#loadingImg",
-		RESULT_CONTAINER = '#alerts-result-container',
-		ERROR_CONTAINER = '#errorText',
-  		REFRESH_MENU = '#refreshAction';
-    
-    var OPEN_FILTER = '#openFilter',
-		FILTER_DIALOG = '#filterDialog',
-		FILTER_FORM = '#filter-form',
-		FILTER_APPLY_BUTTON = "#filterApplyButton",
-		FILTER_START_TIME = '#filter-start-time',
-		FILTER_END_TIME = '#filter-end-time',
-		FILTER_QUERY_IDS = '#filter-query-ids',
-		FILTER_USER_NAMES = '#filter-user-names',
-		FILTER_APP_NAMES = '#filter-app-names',
-		FILTER_CLIENT_NAMES = '#filter-client-names',
-		FILTER_QUERY_TEXT = '#filter-query-text',
-		FILTER_TIME_RANGE = '#filter-time-range';
-    
-    var oDataTable = null;
-    var _that = null;
-    var validator = null;
-    
+	var LOADING_SELECTOR = "#loadingImg",
+	RESULT_CONTAINER = '#alerts-result-container',
+	ERROR_CONTAINER = '#alerts-list-error',
+	REFRESH_MENU = '#refreshAction';
+
+	var OPEN_FILTER = '#openFilter',
+	FILTER_DIALOG = '#filterDialog',
+	FILTER_FORM = '#filter-form',
+	FILTER_APPLY_BUTTON = "#filterApplyButton",
+	FILTER_START_TIME = '#filter-start-time',
+	FILTER_END_TIME = '#filter-end-time',
+	FILTER_ALERT_TEXT = '#filter-alert-text',
+	FILTER_TIME_RANGE = '#filter-time-range';
+
+	var oDataTable = null;
+	var _that = null;
+	var validator = null;
+
 	var AlertsSummaryView = BaseView.extend({
 		template:  _.template(AlertsT),
 
 		doInit: function (){
 			_that = this;
-			
+
 			validator = $(FILTER_FORM).validate({
 				rules: {
 					"filter-start-time": { required: true },
 					"filter-end-time": { required: true }
 				},
 				highlight: function(element) {
-			        $(element).closest('.form-group').addClass('has-error');
-			    },
-			    unhighlight: function(element) {
-			        $(element).closest('.form-group').removeClass('has-error');
-			    },
-			    errorElement: 'span',
-			    errorClass: 'help-block',
-		        errorPlacement: function(error, element) {
-		            if(element.parent('.input-group').length) {
-		                error.insertAfter(element.parent());
-		            } else {
-		                error.insertAfter(element);
-		            }
-		        }
+					$(element).closest('.form-group').addClass('has-error');
+				},
+				unhighlight: function(element) {
+					$(element).closest('.form-group').removeClass('has-error');
+				},
+				errorElement: 'span',
+				errorClass: 'help-block',
+				errorPlacement: function(error, element) {
+					if(element.parent('.input-group').length) {
+						error.insertAfter(element.parent());
+					} else {
+						error.insertAfter(element);
+					}
+				}
 			});
-			
+
 			$(FILTER_FORM).bind('change', function() {
 				if($(this).validate().checkForm()) {
 					$(FILTER_APPLY_BUTTON).attr('disabled', false);
@@ -75,7 +75,7 @@ define([
 					$(FILTER_APPLY_BUTTON).attr('disabled', true);
 				}
 			});
-			
+
 			$('#startdatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
 			$('#enddatetimepicker').datetimepicker({format: 'YYYY-MM-DD HH:mm:ss z'});
 			$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
@@ -84,10 +84,16 @@ define([
 			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
 				_that.updateFilter();
 			});
-			
+
 			$(FILTER_TIME_RANGE).change(function(){
 				var sel = $(this).val();
 				switch(sel){
+				case "-1":
+					$('#startdatetimepicker').data("DateTimePicker").clear();
+					$('#enddatetimepicker').data("DateTimePicker").clear();
+					$('#filter-start-time').prop("disabled", true);
+					$('#filter-end-time').prop("disabled", true);
+					break;
 				case "1":
 					$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
 					$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
@@ -111,8 +117,8 @@ define([
 					$('#filter-end-time').prop("disabled", false);
 				}
 			});
-			
-			
+
+
 			serverHandler.on(serverHandler.FETCH_ALERTS_LIST_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.FETCH_ALERTS_LIST_ERROR, this.showErrorMessage);
 			$(REFRESH_MENU).on('click', this.fetchAlertsSummary);
@@ -135,15 +141,21 @@ define([
 			$(FILTER_APPLY_BUTTON).off('click', this.filterApplyClicked);
 			$(OPEN_FILTER).off('click', this.filterButtonClicked);
 		},
-        showLoading: function(){
-        	$(LOADING_SELECTOR).show();
-        },
-        hideLoading: function () {
-        	$(LOADING_SELECTOR).hide();
-        },
-        updateFilter: function(){
-        	var selection = $(FILTER_TIME_RANGE).val();
+		showLoading: function(){
+			$(LOADING_SELECTOR).show();
+		},
+		hideLoading: function () {
+			$(LOADING_SELECTOR).hide();
+		},
+		updateFilter: function(){
+			var selection = $(FILTER_TIME_RANGE).val();
 			switch(selection){
+			case "-1":
+				$('#startdatetimepicker').data("DateTimePicker").clear();
+				$('#enddatetimepicker').data("DateTimePicker").clear();
+				$('#filter-start-time').prop("disabled", true);
+				$('#filter-end-time').prop("disabled", true);
+				break;
 			case "1":
 				$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
 				$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
@@ -166,46 +178,50 @@ define([
 				$('#filter-start-time').prop("disabled", false);
 				$('#filter-end-time').prop("disabled", false);
 			}        	
-        },
-        filterButtonClicked: function(){
-        	$(FILTER_DIALOG).modal('show');
-        },
-        filterApplyClicked: function(){
-        	if($(FILTER_FORM).valid()){
-        		
-        	}else{
-        		return;
-        	}
-        	var startTime = $('#startdatetimepicker').data("DateTimePicker").date();
-        	var endTime = $('#enddatetimepicker').data("DateTimePicker").date();
-        	var states = [];
-        	var userNames = [];
-        	var appNames = [];
-        	var clientNames = [];
-        	
-        	if($('#state-completed').is(':checked'))
-        		states.push($('#state-completed').val());
-        	if($('#state-executing').is(':checked'))
-        		states.push($('#state-executing').val());
-        	if($('#state-init').is(':checked'))
-        		states.push($('#state-init').val());
+		},
+		filterButtonClicked: function(){
+			$(FILTER_DIALOG).modal('show');
+		},
+		filterApplyClicked: function(){
+			if($(FILTER_FORM).valid()){
 
-        	
-        	var param = {};
-        	param.startTime = startTime.format('YYYY-MM-DD HH:mm:ss');
-        	param.endTime = endTime.format('YYYY-MM-DD HH:mm:ss');
-        	param.states = states.join(',');
-        	param.queryIDs = $(FILTER_QUERY_IDS).val();
-        	param.userNames = $(FILTER_USER_NAMES).val();
-        	param.appNames = $(FILTER_APP_NAMES).val();
-        	param.clientNames = $(FILTER_CLIENT_NAMES).val();
-        	param.queryText = $(FILTER_QUERY_TEXT).val();
-        	
-        	$(FILTER_DIALOG).modal('hide');
-        	_that.showLoading();
-        	serverHandler.fetchAlertsList(param);
-        },
-        fetchAlertsSummary: function () {
+			}else{
+				return;
+			}
+			var startTime = $('#startdatetimepicker').data("DateTimePicker").date();
+			var endTime = $('#enddatetimepicker').data("DateTimePicker").date();
+			var filter = [];
+
+			if($('#state-ack').is(':checked'))
+				filter.push('ack:true');
+			if($('#state-unack').is(':checked'))
+				filter.push('ack:false');
+
+			if($('#severity-crit').is(':checked'))
+				filter.push('status:'+$('#severity-crit').val());
+			if($('#sfilterverity-warn').is(':checked'))
+				filter.push('status:'+$('#severity-warn').val());
+			if($('#severity-normal').is(':checked'))
+				filter.push('status:'+$('#severity-normal').val());
+			if($('#severity-unknown').is(':checked'))
+				filter.push('status:'+$('#severity-unknown').val());
+
+
+			var param = {};
+			if(startTime){
+				param.startTime = startTime.format('YYYY-MM-DD HH:mm:ss');
+			}
+			if(endTime){
+				param.endTime = endTime.format('YYYY-MM-DD HH:mm:ss');
+			}
+			param.filter = filter.join(' ');
+			param.alertText = $(FILTER_ALERT_TEXT).val();
+
+			$(FILTER_DIALOG).modal('hide');
+			_that.showLoading();
+			serverHandler.fetchAlertsList(param);
+		},
+		fetchAlertsSummary: function () {
 			_that.showLoading();
 			$(ERROR_CONTAINER).hide();
 			_that.updateFilter();
@@ -216,12 +232,12 @@ define([
 			_that.hideLoading();
 			$(ERROR_CONTAINER).hide();
 			$(RESULT_CONTAINER).show();
-			
+
 			var keys = result.columnNames;
 
 			if(keys != null && keys.length > 0) {
 				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="alerts-results"></table>';
-				$('#alert-result-container').html( sb );
+				$(RESULT_CONTAINER).html( sb );
 
 				var aoColumns = [];
 				var aaData = [];
@@ -241,9 +257,9 @@ define([
 
 				oDataTable = $('#alerts-results').dataTable({
 					"oLanguage": {
-       				 "sEmptyTable": "No queries found."
+						"sEmptyTable": "No queries found."
 					},
-					dom: 'T<"clear">lfrtip',
+					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
 					"bPaginate" : bPaging, 
 					"bAutoWidth": true,
@@ -255,63 +271,50 @@ define([
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"aoColumnDefs": [{
-					      "aTargets": [ 0],
-					      "mData": 0,
-					      "mRender": function ( data, type, full ) {
-					       if (type === 'display') {
-					    	   var rowcontent = "<a href=\"#/workloads/history/querydetail/" +
-                       			data+"\">"+data+"</a>";
-                       			return rowcontent;
-					        }
-					        else return data;
-					      }
-					    },
-					    {
-					      "aTargets": [ 2],
-					      "mData": 2,
-					      "mRender": function ( data, type, full ) {
-					       //if (type === 'display') {
-					    	   if(data != null || data != -1)
-					    		   return common.toServerLocalDateFromUtcMilliSeconds(data);
-					    	   else return "";
-					        //}
-					        //else return data;
-					      }
-					    },
-					    {
-						      "aTargets": [3 ],
-						      "mData": 3,
-						      "mRender": function ( data, type, full ) {
-						       //if (type === 'display') {
-						    	   if(data != null || data != -1)
-						    		   return common.toServerLocalDateFromUtcMilliSeconds(data);
-						    	   else return "";
-						        //}
-						        //else return data;
-						      }
-						    } ],
-					paging: true,
-					"tableTools": {
-						"sRowSelect": "multi",
-						"sSwfPath": "bower_components/datatables-tabletools/swf/copy_csv_xls_pdf.swf"
+						"aTargets": [ 0],
+						"mData": 0,
+						"mRender": function ( data, type, full ) {
+							//if (type === 'display') {
+							//if(data != null || data != -1)
+							//return common.toServerLocalDateFromUtcMilliSeconds(data);
+							//else return "";
+							//}
+							return data;
+						}
 					},
-					fnDrawCallback: function(){
-						//$('#alerts-results td').css("white-space","nowrap");
-		             }
+					{
+						"aTargets": [ 1],
+						"mData": 1,
+						"mRender": function ( data, type, full ) {
+							if (type === 'display') {
+								var rowcontent = "<a href=\"#/alert/detail/" +
+								data+"\">"+data+"</a>";
+								return rowcontent;
+							}
+							else return data;
+						}
+					} ],
+					paging: true,
+					buttons: [
+					          'copy','csv','excel','pdf','print'
+					          ],
+					          fnDrawCallback: function(){
+					        	  //$('#alerts-results td').css("white-space","nowrap");
+					          }
 				});
-				
+
 				$('#alerts-results td').css("white-space","nowrap");
 			}
 
 		},
-        showErrorMessage: function (jqXHR) {
-        	_that.hideLoading();
-        	$(RESULT_CONTAINER).hide();
-        	$(ERROR_CONTAINER).show();
-        	if (jqXHR.responseText) {
-        		$(ERROR_CONTAINER).text(jqXHR.responseText);
-        	}
-        }  
+		showErrorMessage: function (jqXHR) {
+			_that.hideLoading();
+			$(RESULT_CONTAINER).hide();
+			$(ERROR_CONTAINER).show();
+			if (jqXHR.responseText) {
+				$(ERROR_CONTAINER).text(jqXHR.responseText);
+			}
+		}  
 	});
 
 

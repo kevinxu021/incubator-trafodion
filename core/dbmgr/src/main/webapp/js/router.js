@@ -21,13 +21,14 @@ define([
         'views/workloads/QueryPlanView',
         'views/logs/LogsView',
         'views/alerts/AlertsSummaryView',
+        'views/alerts/AlertDetailView',
         'views/help/AboutView',
         'model/Session',
         'model/Localizer',
         'metismenu'
         ], function($, _, Backbone, NavbarView, DashboardView, WorkbenchView, DCSServerView, LoginView, DatabaseView, 
         		ActiveWorkloadsView, ActiveQueryDetailView, HistoricalWorkloadsView, HistoricalWorkloadDetailView, QueryPlanView, 
-        		LogsView, AlertsSummaryView, AboutView, Session, Localizer) {
+        		LogsView, AlertsSummaryView, AlertDetailView, AboutView, Session, Localizer) {
 	'use strict';
 
 	var currentSelection = null;
@@ -44,6 +45,7 @@ define([
 	var queryPlanView = null;
 	var logsView = null;
 	var alertsSummaryView = null;
+	var alertDetailView = null;
 	var aboutView = null;
 	
 	var AppRouter = Backbone.Router.extend({
@@ -76,6 +78,7 @@ define([
 			'workloads/active/querydetail(/*args)':'showActiveQueryDetail',
 			'workloads/history/queryplan(/*args)':'showQueryPlan',
 			'alerts': 'showAlertsSummary',
+			'alert/detail(/*args)': 'showAlertDetail',
 			'help/about': 'showAbout',
 			'logs': 'showLogs',
 			'tools/(*args)': 'showTools',
@@ -99,6 +102,9 @@ define([
 	};
 
 	var logout = function(){
+		if(currentView != null){
+			currentView.pause();
+		}
 		currentView = null;
 		Session.eraseAll();
 		$('#sessionUserName').html('<i class="fa fa-user fa-fw"></i>');
@@ -118,7 +124,7 @@ define([
 		queryPlanView = null
 		logsView = null;		
 		alertsSummaryView = null;
-		logsView = null;
+		alertDetailView = null;
 		aboutView = null;
 	};
 
@@ -131,8 +137,6 @@ define([
 	
 	var initialize = function(){
 
-
-		
 		var navV = new NavbarView();
 		navV.render();
 
@@ -215,6 +219,12 @@ define([
 			if(alertsSummaryView == null)
 				alertsSummaryView = new AlertsSummaryView();
 			switchView(alertsSummaryView, args);
+		});
+		
+		app_router.on('route:showAlertDetail', function(args){
+			if(alertDetailView == null)
+				alertDetailView = new AlertDetailView();
+			switchView(alertDetailView, args);
 		});
 		
 		app_router.on('route:showAbout', function (args) {
