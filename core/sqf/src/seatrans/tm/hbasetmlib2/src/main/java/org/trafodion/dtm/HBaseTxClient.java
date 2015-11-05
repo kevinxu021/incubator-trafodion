@@ -1224,7 +1224,8 @@ public class HBaseTxClient {
             try {
                if (pSTRConfig.getPeerStatus(lv_peerId).contains(PeerInfo.STR_UP)) {
                   if (LOG.isTraceEnabled()) LOG.trace("PEER " + lv_peerId + " STATUS is UP; issuing control point");
-                  lv_tLog.addControlPoint(myClusterId, mapTransactionStates);
+                  // only increment the CP number on the local connection
+                  lv_tLog.addControlPoint(myClusterId, mapTransactionStates, false);
                }
                else {
                   if (LOG.isWarnEnabled()) LOG.warn("PEER " + lv_peerId + " STATUS is DOWN; skipping control point");            	   
@@ -1240,7 +1241,7 @@ public class HBaseTxClient {
       try {
          if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient calling tLog.addControlPoint for the " +
                  tLog.getTlogTableNameBase() + " set with mapsize " + mapTransactionStates.size());
-         result = tLog.addControlPoint(myClusterId, mapTransactionStates);
+         result = tLog.addControlPoint(myClusterId, mapTransactionStates, true);
       }
       catch(IOException e){
           LOG.error("addControlPoint IOException " + e);

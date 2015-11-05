@@ -1063,7 +1063,7 @@ public class TmAuditTlog {
       // This control point write needs to be delayed until after recovery completes, 
       // but is here as a placeholder
       if (LOG.isTraceEnabled()) LOG.trace("Starting a control point with asn value " + lvAsn);
-      tLogControlPointNum = tLogControlPoint.doControlPoint(myClusterId, lvAsn);
+      tLogControlPointNum = tLogControlPoint.doControlPoint(myClusterId, lvAsn, true);
 
       if (LOG.isTraceEnabled()) LOG.trace("Exit constructor()");
       return;
@@ -1685,7 +1685,7 @@ public class TmAuditTlog {
 
    }
 
-   public long addControlPoint (final int clusterId, final Map<Long, TransactionState> map) throws IOException, Exception {
+   public long addControlPoint (final int clusterId, final Map<Long, TransactionState> map, final boolean incrementCP) throws IOException, Exception {
       if (LOG.isInfoEnabled()) LOG.info("addControlPoint start with map size " + map.size());
       long lvCtrlPt = 0L;
       long agedAsn;  // Writes older than this audit seq num will be deleted
@@ -1716,7 +1716,7 @@ public class TmAuditTlog {
          if (LOG.isTraceEnabled()) LOG.trace("lvAsn reset to: " + lvAsn);
 
          // Write the control point interval and the ASN to the control point table
-         lvCtrlPt = tLogControlPoint.doControlPoint(clusterId, lvAsn);
+         lvCtrlPt = tLogControlPoint.doControlPoint(clusterId, lvAsn, incrementCP);
          if (LOG.isTraceEnabled()) LOG.trace("Control point record " + lvCtrlPt +
         		 " returned for table " + tLogControlPoint.getTableName());
 
