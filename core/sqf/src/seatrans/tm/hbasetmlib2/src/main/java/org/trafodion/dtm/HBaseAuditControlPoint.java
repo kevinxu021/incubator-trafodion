@@ -368,11 +368,13 @@ public class HBaseAuditControlPoint {
     }
 
 
-   public long doControlPoint(final int clusterId, final long sequenceNumber) throws IOException {
+   public long doControlPoint(final int clusterId, final long sequenceNumber, final boolean incrementCP) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("doControlPoint start");
       try {
 
-         currControlPt++;
+         if (incrementCP) {
+           currControlPt++;
+         }
          if (LOG.isTraceEnabled()) LOG.trace("doControlPoint interval (" + currControlPt + "), clusterId: " + clusterId + ", sequenceNumber (" + sequenceNumber+ ") try putRecord");
          putRecord(clusterId, currControlPt, sequenceNumber);
       }
@@ -478,7 +480,7 @@ public class HBaseAuditControlPoint {
       try {
          Result r = table.get(g);
          List<Cell> list = r.getColumnCells(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM);  // returns all versions of this column
-         int i = 1;
+         int i = 0;
          for (Cell cell : list) {
             i++;
             StringTokenizer stok = 
