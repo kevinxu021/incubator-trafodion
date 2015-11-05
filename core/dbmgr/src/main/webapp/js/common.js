@@ -33,6 +33,11 @@ define(['moment',
 				_this.dcsMasterInfoUri = data.dcsMasterInfoUri;
 				_this.systemType = data.systemType;
 				_this.serverConfigLoaded = true;
+				if(data.enableAlerts != null && data.enableAlerts == false){
+					$('#alerts-feature').hide();
+				}else{
+					$('#alerts-feature').show();
+				}
 			};
 
 			this.isEnterprise = function(){
@@ -41,7 +46,7 @@ define(['moment',
 				}
 				return false;
 			};
-			
+
 			this.resetSessionProperties = function(){
 				_this.serverTimeZone = null;
 				_this.serverUtcOffset = 0;
@@ -49,7 +54,7 @@ define(['moment',
 				_this.systemType = 0;
 				_this.serverConfigLoaded = false;
 			};
-			
+
 			$jit.ST.Plot.NodeTypes.implement({
 				'nodeline': {
 					'render': function(node, canvas, animating) {

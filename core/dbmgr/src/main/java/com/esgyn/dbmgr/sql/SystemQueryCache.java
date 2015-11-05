@@ -46,6 +46,8 @@ public class SystemQueryCache {
 	public static final String OPENTSDB_REGIONSERVER_MEMORY_USE_DRILLDOWN = "OPENTSDB_REGIONSERVER_MEMORY_USE_DRILLDOWN";
 
 	public static final String FETCH_ALERTS_LIST = "FETCH_ALERTS_LIST";
+	public static final String FETCH_ALERT_DETAIL = "FETCH_ALERT_DETAIL";
+	public static final String UPDATE_ALERT = "UPDATE_ALERT";
 
 	public static void setSystemQueryies(SystemQueries sQueries) {
 		systemQueries = sQueries;

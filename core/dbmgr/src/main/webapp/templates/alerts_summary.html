@@ -29,7 +29,7 @@
 				</div>
 				<div class="panel-body">
 					<div id="alerts-result-container" class="table-responsive"></div>
-					<label id="errorText" class="dbmgr-error-text"></label>
+					<label id="alerts-list-error" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 		</div>
@@ -50,6 +50,7 @@
 						<div class="form-group">
 							<label for="filter-time-range" class="control-label">Time
 								Range : </label> <select class="form-control" id="filter-time-range">
+								<option value="-1"></option>
 								<option value="1">Last 1 hour</option>
 								<option value="6">Last 6 hours</option>
 								<option value="24">Last 1 day</option>
@@ -87,23 +88,21 @@
 						
 						<div class="form-group">
 							<label class="control-label">Severity : </label>
-							<input type="checkbox" id="state-crit" value="critical"
+							<input type="checkbox" id="severity-crit" value="critical"
 								style="margin-left: 4px; padding-right: 4px"> Critical
-							<input type="checkbox" id="state-error" value="error"
-								style="margin-left: 4px; padding-right: 4px"> Error
-							<input type="checkbox" id="state-warn" value="warning"
+							<input type="checkbox" id="severity-warn" value="warning"
 								style="margin-left: 4px; padding-right: 4px"> Warning
-							<input type="checkbox" id="state-normal" value="normal"
+							<input type="checkbox" id="severity-normal" value="normal"
 								style="margin-left: 4px; padding-right: 4px"> Normal
-							<input type="checkbox" id="state-unknown" value="unknown"
+							<input type="checkbox" id="severity-unknown" value="unknown"
 								style="margin-left: 4px; padding-right: 4px"> Unknown
 						</div>
 
 						<div class="form-group">
 							<label for="filter-alert-text" class="control-label">Alert
-								Text : </label> <input type="text" class="form-control"
+								Subject : </label> <input type="text" class="form-control"
 								id="filter-alert-text" name="filter-alert-text"
-								placeholder="Part of alert text">
+								placeholder="Part of alert subject text">
 						</div>
 						<div class="form-group">
 							<label id="filter-error-text" class="control-label dbmgr-error-text"></label>

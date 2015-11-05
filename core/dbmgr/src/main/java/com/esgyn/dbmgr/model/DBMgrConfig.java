@@ -16,4 +16,5 @@ public class DBMgrConfig {
 	public String openTSDBUri;
 	public int sessionTimeoutMinutes;
 	public String alertsUri;
+	public boolean enableAlerts;
 }

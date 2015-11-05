@@ -267,7 +267,15 @@
 		</query>
 		<query>
 			<name>FETCH_ALERTS_LIST</name>
-			<text><![CDATA[{"url":"http://%1$s/api/alerts", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/alerts?filter=%2$s", "method":"get"}]]></text>
+		</query>		
+		<query>
+			<name>FETCH_ALERT_DETAIL</name>
+			<text><![CDATA[{"url":"http://%1$s/api/status?ak=%2$s", "method":"get"}]]></text>
+		</query>		
+		<query>
+			<name>UPDATE_ALERT</name>
+			<text><![CDATA[{"url":"http://%1$s/api/action", "method":"post", "jsonParameter":{"Keys":["%2$s"], "Message":"%3$s", "Notify":%4$s,  "Type":"%5$s", "mser":"%6$s" }}]]></text>
 		</query>		
 	</queries>
 </SystemQueries>
