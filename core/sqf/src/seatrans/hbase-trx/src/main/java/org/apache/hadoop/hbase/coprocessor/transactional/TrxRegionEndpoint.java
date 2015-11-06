@@ -2374,26 +2374,17 @@ CoprocessorService, Coprocessor {
      long transactionId = request.getTransactionId();
      long commitId = request.getCommitId();
      boolean result;
-     byte [] family;
-     byte [] qualifier;
-     byte [] value;
      
      try {
         put = ProtobufUtil.toPut(proto);
      } catch (Throwable e) {
-        if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: putTlog - txId " + transactionId + ", Caught exception " + e.getMessage() + " " + stackTraceToString(e));
+        if (LOG.isWarnEnabled()) LOG.warn("TrxRegionEndpoint coprocessor: putTlog - txId " + transactionId + ", Caught exception " + e.getMessage() + " " + stackTraceToString(e));
         t = e;
      }
 
      // Process in local memory
      if (put != null){
         if (t == null) {
-           row = request.getRow().toByteArray();
-           family = request.getFamily().toByteArray();
-           qualifier = request.getQualifier().toByteArray();
-           value = request.getValue().toByteArray();
-           put.add(family, qualifier, value);
-     
            try {
               if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: putTlog - putting row " + put);
               result = putTlog(transactionId, put);
@@ -2732,18 +2723,21 @@ CoprocessorService, Coprocessor {
                           if (add) {
                               indoubtTransactions.add(tid);
                               if (LOG.isInfoEnabled()) {
-                                   LOG.info("Traf Reco Thread detect stale branch tid " + transactionId + " cluster id " + clusterid + " node " + nodeid + " PSTRConfig " + pSTRConfig.getMyClusterId());
-                                   LOG.info("TrxRegionEndpoint coprocessor: recoveryRequest - Trafodion Recovery: region " + regionInfo.getEncodedName() + " in-doubt transaction " + tid + " has been added into the recovery reply to Cluster " + clusterid + " Node " + nodeid + " TM " + tmId + " during start ");
+                                 LOG.info("TrxRegionEndpoint coprocessor: recoveryRequest - Trafodion Recovery: region "
+                                    + regionInfo.getEncodedName() + " in-doubt transaction " + tid
+                                    + " has been added into the recovery reply to Cluster " + clusterid + " Node "
+                                    + nodeid + " TM " + tmId + " during start ");
                               }
                           }
                      }
                      // now remove the ZK node after TM has initiated the ecovery request   
                     String lv_encoded = m_Region.getRegionInfo().getEncodedName();
                     try {
-                         if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: recoveryRequest - Trafodion Recovery: delete recovery zNode TM " + tmId + " region encoded name " + lv_encoded + " for 0 in-doubt transaction");
-                        deleteRecoveryzNode(tmId, lv_encoded);
+                       if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: recoveryRequest - Trafodion Recovery: delete recovery zNode TM "
+                              + tmId + " region encoded name " + lv_encoded + " for 0 in-doubt transaction");
+                       deleteRecoveryzNode(tmId, lv_encoded);
                     } catch (IOException e) {
-                        LOG.error("TrxRegionEndpoint coprocessor: recoveryRequest - Trafodion Recovery: delete recovery zNode failed");
+                       LOG.error("TrxRegionEndpoint coprocessor: recoveryRequest - Trafodion Recovery: delete recovery zNode failed");
                     }
                     break;
                 default:

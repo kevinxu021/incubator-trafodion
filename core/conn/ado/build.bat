@@ -9,7 +9,7 @@
 @set PATH=%INNO_SETUP_PATH%;%PATH%
 
 ISCC.exe /Q installer\installer.iss
-if not exist "installer\Output\EsgynDB-ADO.NET-1.0.0.exe" goto failend
+if not exist "installer\Output\EsgynDB-ADO.NET-2.0.0.exe" goto failend
 
 @echo on
 @echo *** build successfully *** 

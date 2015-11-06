@@ -22,7 +22,38 @@ define(['moment',
 			this.serverTimeZone = null;
 			this.serverUtcOffset = 0;
 			this.dcsMasterInfoUri = "";
+			this.systemType = 0;
+			this.serverConfigLoaded = false;
+
 			this.sqlKeywords = "alter and as asc between by count create cqd delete desc distinct drop from group having in insert into is join like not on or order select set table union update values where ";
+
+			this.storeSessionProperties = function(data){
+				_this.serverTimeZone = data.serverTimeZone;
+				_this.serverUtcOffset = data.serverUTCOffset;
+				_this.dcsMasterInfoUri = data.dcsMasterInfoUri;
+				_this.systemType = data.systemType;
+				_this.serverConfigLoaded = true;
+				if(data.enableAlerts != null && data.enableAlerts == false){
+					$('#alerts-feature').hide();
+				}else{
+					$('#alerts-feature').show();
+				}
+			};
+
+			this.isEnterprise = function(){
+				if(_this.systemType != null && _this.systemType == 1){
+					return true;
+				}
+				return false;
+			};
+
+			this.resetSessionProperties = function(){
+				_this.serverTimeZone = null;
+				_this.serverUtcOffset = 0;
+				_this.dcsMasterInfoUri = "";
+				_this.systemType = 0;
+				_this.serverConfigLoaded = false;
+			};
 
 			$jit.ST.Plot.NodeTypes.implement({
 				'nodeline': {
@@ -181,7 +212,7 @@ define(['moment',
 				}
 				return "";
 			},
-			
+
 			this.toServerLocalDateFromUtcMilliSeconds = function(utcMilliSeconds, formatString) {
 				if (utcMilliSeconds != null) {
 					return moment(utcMilliSeconds + (_this.serverUtcOffset)).local().format('YYYY-MM-DD HH:mm:ss');
@@ -229,12 +260,6 @@ define(['moment',
 				if(bytes <=0)
 					return 0;
 				return (bytes/1024).toFixed(2);
-			};
-
-			this.storeSessionProperties = function(timeZone, utcOffset, dcsMasterUri){
-				_this.serverTimeZone = timeZone;
-				_this.serverUtcOffset = utcOffset;
-				_this.dcsMasterInfoUri = dcsMasterUri;
 			};
 
 			this.convertUnitFromByte = function(bytes) {

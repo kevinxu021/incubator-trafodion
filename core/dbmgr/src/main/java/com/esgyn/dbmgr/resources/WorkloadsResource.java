@@ -50,6 +50,71 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 @Path("/workloads")
 public class WorkloadsResource {
 	private static final Logger _LOG = LoggerFactory.getLogger(WorkloadsResource.class);
+	private static final Map<String, String> queryTypeMap;
+	private static final Map<String, String> subQueryTypeMap;
+	private static final Map<String, String> statsTypeMap;
+
+	static {
+		queryTypeMap = new HashMap<String, String>();
+		queryTypeMap.put("-1", "SQL_OTHER");
+		queryTypeMap.put("0", "SQL_UNKNOWN");
+		queryTypeMap.put("1", "SQL_SELECT_UNIQUE");
+		queryTypeMap.put("2", "SQL_SELECT_NON_UNIQUE");
+		queryTypeMap.put("3", "SQL_INSERT_UNIQUE");
+		queryTypeMap.put("4", "SQL_INSERT_NON_UNIQUE");
+		queryTypeMap.put("5", "SQL_UPDATE_UNIQUE");
+		queryTypeMap.put("6", "SQL_UPDATE_NON_UNIQUE");
+		queryTypeMap.put("7", "SQL_DELETE_UNIQUE");
+		queryTypeMap.put("8", "SQL_DELETE_NON_UNIQUE");
+		queryTypeMap.put("9", "SQL_CONTROL");
+		queryTypeMap.put("10", "SQL_SET_TRANSACTION");
+		queryTypeMap.put("11", "SQL_SET_CATALOG");
+		queryTypeMap.put("12", "SQL_SET_SCHEMA");
+		queryTypeMap.put("13", "SQL_CALL_NO_RESULT_SETS");
+		queryTypeMap.put("14", "SQL_CALL_WITH_RESULT_SETS");
+		queryTypeMap.put("15", "SQL_SP_RESULT_SET");
+		queryTypeMap.put("16", "SQL_INSERT_ROWSET_SIDETREE");
+		queryTypeMap.put("17", "SQL_CAT_UTIL");
+		queryTypeMap.put("18", "SQL_EXE_UTIL");
+		queryTypeMap.put("19", "SQL_SELECT_UNLOAD");
+
+		subQueryTypeMap = new HashMap<String, String>();
+		subQueryTypeMap.put("0", "SQL_STMT_NA");
+		subQueryTypeMap.put("1", "SQL_STMT_CTAS");
+		subQueryTypeMap.put("3", "SQL_STMT_GET_STATISTICS");
+		subQueryTypeMap.put("4", "SQL_DESCRIBE_QUERY");
+		subQueryTypeMap.put("5", "SQL_DISPLAY_EXPLAIN");
+		subQueryTypeMap.put("6", "SQL_STMT_HBASE_LOAD");
+		subQueryTypeMap.put("7", "SQL_STMT_HBASE_UNLOAD");
+
+		statsTypeMap = new HashMap<String, String>();
+		statsTypeMap.put("0", "SQLSTATS_DESC_OPER_STATS");
+		statsTypeMap.put("1", "SQLSTATS_DESC_ROOT_OPER_STATS");
+		statsTypeMap.put("2", "SQLSTATS_DESC_DP2_LEAF_STATS");
+		statsTypeMap.put("3", "SQLSTATS_DESC_DP2_INSERT_STATS");
+		statsTypeMap.put("4", "SQLSTATS_DESC_PARTITION_ACCESS_STATS");
+		statsTypeMap.put("5", "SQLSTATS_DESC_GROUP_BY_STATS");
+		statsTypeMap.put("6", "SQLSTATS_DESC_HASH_JOIN_STATS");
+		statsTypeMap.put("7", "SQLSTATS_DESC_PROBE_CACHE_STATS");
+		statsTypeMap.put("8", "SQLSTATS_DESC_ESP_STATS");
+		statsTypeMap.put("9", "SQLSTATS_DESC_SPLIT_TOP_STATS");
+		statsTypeMap.put("10", "SQLSTATS_DESC_MEAS_STATS");
+		statsTypeMap.put("11", "SQLSTATS_DESC_PERTABLE_STATS");
+		statsTypeMap.put("12", "SQLSTATS_DESC_SORT_STATS");
+		statsTypeMap.put("13", "SQLSTATS_DESC_UDR_STATS");
+		statsTypeMap.put("14", "SQLSTATS_DESC_NO_OP");
+		statsTypeMap.put("15", "SQLSTATS_DESC_MASTER_STATS");
+		statsTypeMap.put("16", "SQLSTATS_DESC_RMS_STATS");
+		statsTypeMap.put("17", "SQLSTATS_DESC_BMO_STATS");
+		statsTypeMap.put("18", "SQLSTATS_DESC_UDR_BASE_STATS");
+		statsTypeMap.put("19", "SQLSTATS_DESC_REPLICATE_STATS");
+		statsTypeMap.put("20", "SQLSTATS_DESC_REPLICATOR_STATS");
+		statsTypeMap.put("21", "SQLSTATS_DESC_FAST_EXTRACT_STATS");
+		statsTypeMap.put("22", "SQLSTATS_DESC_REORG_STATS");
+		statsTypeMap.put("23", "SQLSTATS_DESC_HDFSSCAN_STATS");
+		statsTypeMap.put("24", "SQLSTATS_DESC_HBASE_ACCESS_STATS");
+		statsTypeMap.put("25", "SQLSTATS_DESC_PROCESS_STATS");
+	}
 
 	@POST
 	@Path("/repo/")
@@ -322,7 +387,9 @@ public class WorkloadsResource {
 		JsonFactory factory = new JsonFactory();
 		ObjectMapper mapper = new ObjectMapper(factory);
 		ObjectNode resultObject = mapper.createObjectNode();
-
+		String[] dateFields = new String[] { "CompStartTime", "CompEndTime", "ExeStartTime", "ExeEndTime",
+				"CanceledTime", "lastSuspendTime" };
+		List<String> dateTimeColumns = Arrays.asList(dateFields);
 		try {
 
 			TabularResult result1 = QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), sqlText);
@@ -333,33 +400,128 @@ public class WorkloadsResource {
 			ArrayNode operatorNodes = mapper.createArrayNode();
 			resultObject.set("operators", operatorNodes);
 
-			resultObject.putPOJO("opGridColNames", columnNames);
-
 			for (Object[] rowData : result1.resultArray) {
 				Map<String, String> parsedMap = parseVariableInfo((String) rowData[vIndex]);
 				String tdbID = String.valueOf(rowData[tIndex]);
 
 				String statsRowType = (String) parsedMap.get("statsRowType");
-				parsedMap.remove("statsRowType");
-				if (statsRowType.trim().equals("15")) {
+				// parsedMap.remove("statsRowType");
+				String statsRowTypeStr = statsTypeMap.get(statsRowType);
+				if (statsRowTypeStr.trim().equals("SQLSTATS_DESC_MASTER_STATS")) {
+					// If the statsRow type is the master stats, use all the
+					// metrics as summary information.
 					for (String key : parsedMap.keySet()) {
-						summaryNode.put(key, parsedMap.get(key));
+						String value = parsedMap.get(key);
+						if (dateTimeColumns.contains(key)) {
+							try {
+								value = Helper.julianTimestampToString(Long.parseLong(value));
+							} catch (Exception ex) {
+								value = "";
+							}
+						}
+						if (key.equalsIgnoreCase("queryType")) {
+							summaryNode.put(key, queryTypeMap.get(value));
+						} else
+						if (key.equalsIgnoreCase("subqueryType")) {
+							summaryNode.put(key, subQueryTypeMap.get(value));
+						} else
+						summaryNode.put(key, value);
 					}
 				} else {
+					// Non master operators
 					ObjectNode operatorNode = mapper.createObjectNode();
 					for (String colName : columnNames) {
+
+						// Variable info is already parsed into the parsedMap
+						// object and is used to populate the "Details" node
+						// below.
+						// So skip
 						if (colName.equals("VARIABLE_INFO"))
 							continue;
 						operatorNode.putPOJO(colName, rowData[columnNames.indexOf(colName)]);
 					}
-					ObjectNode detailsNode = operatorNode.putObject("details");
-					for (String key : parsedMap.keySet()) {
-						detailsNode.put(key, parsedMap.get(key));
+					// We need DOP as an explicit column in the grid. So add a
+					// placeholder.
+					operatorNode.putPOJO("DOP", "");
+					
+					//Parse VAL1_TXT and VAL1 as OperCPUTime
+					String cpuKey = operatorNode.get("VAL1_TXT").asText();
+					if (cpuKey != null && cpuKey.length() > 0 && !cpuKey.trim().equalsIgnoreCase("null")) {
+						String cpuVal = operatorNode.get("VAL1").asText();
+						if (cpuVal != null && cpuVal.length() > 0) {
+							if (cpuKey.trim().equalsIgnoreCase("OperCpuTime")) {
+								operatorNode.putPOJO("Oper_CPU_Time", cpuVal.trim());
+							}
+						}
 					}
+
+					// Process the variable info and add it into the Details.
+					ObjectNode detailsNode = operatorNode.putObject("Details");
+
+					// For Operator and root operator stats, use the val1, val2,
+					// val3, val4. Ignore the metrics in variableinfo
+					if (statsRowTypeStr.equals("SQLSTATS_DESC_OPER_STATS")
+							|| statsRowTypeStr.equals("SQLSTATS_DESC_ROOT_OPER_STATS")) {
+
+						for (int i = 2; i <= 4; i++) {
+							String vkey = operatorNode.get("VAL" + i + "_TXT").asText();
+							if (vkey != null && vkey.length() > 0 && !vkey.trim().equalsIgnoreCase("null")
+									&& !vkey.trim().equalsIgnoreCase("timestamp")) {
+								String val = operatorNode.get("VAL" + i).asText();
+								if (val != null && val.length() > 0) {
+										detailsNode.put(vkey.trim(), val.trim());
+									}
+								}
+							}
+						}
+
+					// Loop through the variableinfo and populate the necessary
+					// fields.
+					for (String key : parsedMap.keySet()) {
+						if (key.trim().equalsIgnoreCase("OperCPUTime")) {
+							continue; // already added to the operator node. not
+										// required in detail node.
+						}
+						if (key.equalsIgnoreCase("dop")) {
+							operatorNode.putPOJO("DOP", parsedMap.get(key));
+						} else {
+							// We are interested in the variable info for BMO
+							// and HBASE operators only
+							if (statsRowTypeStr.equals("SQLSTATS_DESC_BMO_STATS")
+									|| statsRowTypeStr.equals("SQLSTATS_DESC_HBASE_ACCESS_STATS")) {
+								if (key.equalsIgnoreCase("timestamp"))
+									continue;
+								detailsNode.put(key, parsedMap.get(key));
+							}
+						}
+					}
+
+					// Val1, val2, val3, val4 is only used for operator and root
+					// operator stats.
+					// For other stats type, these values are also in the
+					// variableinfo.
+					for (int i = 1; i <= 4; i++) {
+						operatorNode.remove("VAL" + i + "_TXT");
+						operatorNode.remove("VAL" + i);
+					}
+
 					operatorNodes.add(operatorNode);
 				}
 			}
 
+			// Manipulate the list of columns for the grid in the UI display
+			ArrayList<String> gridColNames = new ArrayList<String>(columnNames);
+			if (vIndex >= 0) {
+				gridColNames.set(vIndex, "DOP");
+			}
+			for (int i = 1; i <= 4; i++) {
+				gridColNames.remove("VAL" + i + "_TXT");
+				gridColNames.remove("VAL" + i);
+			}
+			gridColNames.add("Oper_CPU_Time");
+			gridColNames.add("Details");
+
+			resultObject.putPOJO("opGridColNames", gridColNames);
 		} catch (Exception e) {
 			_LOG.error("Failed to execute query : " + e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());

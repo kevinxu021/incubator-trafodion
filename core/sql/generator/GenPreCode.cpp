@@ -4794,7 +4794,82 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
 {
   if (nodeIsPreCodeGenned())
     return this;
+  
+  NABoolean isAlignedFormat = 
+    getTableDesc()->getNATable()->isAlignedFormat(getIndexDesc());
+  
+  if ((csl()) && (getTableDesc()->getNATable()->isSeabaseTable()))
+    {
+      const NAColumnArray & naColArray =
+        getTableDesc()->getNATable()->getNAColumnArray();
+      
+      ConstStringList * newCSL = new(generator->wHeap()) ConstStringList();
 
+      // convert user specified columns to hbase ColFam:ColQual.
+      for (int i = 0; i < csl()->entries(); i++)
+        {
+          const NAString * userColName = (*csl())[i];
+
+          const NAColumn * nac = naColArray.getColumn(userColName->data());
+          if (! nac)
+            {
+	      *CmpCommon::diags() << DgSqlCode(-4001)
+                                  << DgColumnName(userColName->data())
+                                  << DgString0(getTableDesc()->getNATable()->getTableName().
+                                               getQualifiedNameAsAnsiString())
+                                  << DgString1(getTableDesc()->getNATable()->
+                                               getTableName().getSchemaName());
+
+	      GenExit();
+            }
+
+          const NAString &hbColFam = nac->getHbaseColFam();
+          const NAString &hbColQual = nac->getHbaseColQual();
+
+          NAString * colName = new(generator->wHeap()) NAString();
+          *colName += hbColFam;
+          *colName += ":";
+
+          HbaseAccess::convNumToId(hbColQual.data(), hbColQual.length(), *colName);
+          newCSL->insert(colName);
+        }
+
+      if (newCSL->entries() > 0)
+        {
+          delete csl();
+          csl() = newCSL;
+        }
+    }
+      
+  if ((getOptHbaseAccessOptions()) &&
+      (NOT getOptHbaseAccessOptions()->hbaseAuths().isNull()) &&
+      (! csl()) &&
+      (getTableDesc()->getNATable()->isSeabaseTable()) &&
+      (NOT isAlignedFormat))
+    {
+      csl() = new ConstStringList();
+
+      // add all columns from this table to deleted columns list.
+      const NAColumnArray & naColArray =
+        getTableDesc()->getNATable()->getNAColumnArray();
+      
+      NAColumn * nac = NULL;
+      for (Lng32 i = 0; i < naColArray.entries(); i++)
+        {
+          nac = naColArray[i];
+      
+          const NAString &hbColFam = nac->getHbaseColFam();
+          const NAString &hbColQual = nac->getHbaseColQual();
+
+          NAString * colName = new(generator->wHeap()) NAString();
+          *colName += hbColFam;
+          *colName += ":";
+
+          HbaseAccess::convNumToId(hbColQual.data(), hbColQual.length(), *colName);
+          csl()->insert(colName);
+        }
+    }
+   
   // if a column list is specified, make sure all column names are of valid hbase
   // column name format ("ColFam:ColNam")
   if (csl())
@@ -4808,7 +4883,7 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
 	  if (nas)
 	    {
 	      ExFunctionHbaseColumnLookup::extractColFamilyAndName(
-								   nas->data(), -1, FALSE, colFam, colName);
+                   nas->data(), nas->length(), FALSE, colFam, colName);
 	    }
 	  
 	  if (colFam.empty())
@@ -4845,7 +4920,6 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
                           << DgString0("Reason: Cannot return values from an hbase insert, update or delete.");
       GenExit();
     }
-   NABoolean isAlignedFormat = getTableDesc()->getNATable()->isAlignedFormat(getIndexDesc());
 
   if  (producesOutputs())
     {

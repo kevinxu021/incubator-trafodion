@@ -68,6 +68,15 @@ public class ConfigurationResource {
 		ConfigurationResource.systemVersion = systemVersion;
 	};
 
+	public boolean isAlertsEnabled() {
+		boolean alertsEnabled = false;
+		try {
+			alertsEnabled = Boolean.parseBoolean(xmlConfig.getProperty("enableAlerts"));
+		} catch (Exception ex) {
+
+		}
+		return alertsEnabled;
+	}
 	public static String getSystemVersion() {
 		return ConfigurationResource.systemVersion;
 	}

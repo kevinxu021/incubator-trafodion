@@ -474,6 +474,9 @@ public class HTableClient {
             
             scan.setAuthorizations(auths);
 
+            System.out.println("scan hbaseAuths " + hbaseAuths);
+            System.out.println("listOfHA " + listOfHA);
+
             //            System.out.println("hbaseAuths " + hbaseAuths);
             //            System.out.println("listOfHA " + listOfHA);
           }
@@ -520,8 +523,9 @@ public class HTableClient {
 	}
 
 	public int  startGet(long transID, byte[] rowID, 
-                     Object[] columns,
-		     long timestamp) throws IOException {
+                             Object[] columns,
+                             long timestamp, 
+                             String hbaseAuths) throws IOException {
 
 	    if (logger.isTraceEnabled()) logger.trace("Enter startGet(" + tableName + 
 			     " #cols: " + ((columns == null) ? 0:columns.length ) +
@@ -539,6 +543,17 @@ public class HTableClient {
 		else
 			numColsInScan = 0;
 			
+                if (hbaseAuths != null) {
+                    List<String> listOfHA = Arrays.asList(hbaseAuths);
+                    
+                    Authorizations auths = new Authorizations(listOfHA);
+                    
+                    System.out.println("startGet1 hbaseAuths " + hbaseAuths);
+                    System.out.println("listOfHA " + listOfHA);
+
+                    get.setAuthorizations(auths);
+                }
+
 		Result getResult;
 		if (useTRex && (transID != 0)) {
 			getResult = table.get(transID, get);
@@ -571,7 +586,8 @@ public class HTableClient {
 	}
 
 	public int startGet(long transID, Object[] rows,
-			Object[] columns, long timestamp)
+                            Object[] columns, long timestamp,
+                            String hbaseAuths)
                         throws IOException {
 
 		if (logger.isTraceEnabled()) logger.trace("Enter startGet(multi-row) " + tableName);
@@ -588,6 +604,18 @@ public class HTableClient {
 					get.addColumn(getFamily(col), getName(col));
 				}
 			}
+
+                        if (hbaseAuths != null) {
+                            List<String> listOfHA = Arrays.asList(hbaseAuths);
+                            
+                            Authorizations auths = new Authorizations(listOfHA);
+                            
+                            System.out.println("startGets hbaseAuths " + hbaseAuths);
+                            System.out.println("listOfHA " + listOfHA);
+
+                            get.setAuthorizations(auths);
+                        }
+
 		}
 		if (columns != null)
 			numColsInScan = columns.length;
@@ -611,7 +639,8 @@ public class HTableClient {
 	}
 
 	public int getRows(long transID, short rowIDLen, Object rowIDs,
-			Object[] columns)
+                           Object[] columns,
+                           String hbaseAuths)
                         throws IOException {
             
 		if (logger.isTraceEnabled()) logger.trace("Enter getRows " + tableName);
@@ -639,6 +668,18 @@ public class HTableClient {
 					get.addColumn(getFamily(col), getName(col));
 				}
 			}
+
+                        if (hbaseAuths != null) {
+                            List<String> listOfHA = Arrays.asList(hbaseAuths);
+                            
+                            Authorizations auths = new Authorizations(listOfHA);
+                            
+                            System.out.println("getRows hbaseAuths " + hbaseAuths);
+                            System.out.println("listOfHA " + listOfHA);
+
+                            get.setAuthorizations(auths);
+                        }
+
 		}
 		if (columns != null)
 			numColsInScan = columns.length;
@@ -783,7 +824,6 @@ public class HTableClient {
 				kvBuffer[cellNum] = kv.getValueArray();
 
                                 int tagsLen = kv.getTagsLength();
-                                //                                System.out.println(tagsLen);
                                 if (tagsLen > 0)
                                     {
                                         byte tagType = 0; 
@@ -864,7 +904,6 @@ public class HTableClient {
 			kvBuffer[colNum] = kv.getValueArray();
 
                         int tagsLen = kv.getTagsLength();
-                        //                        System.out.println(tagsLen);
                         if (tagsLen > 0)
                             {
                                 byte tagType = 0; 
@@ -885,7 +924,8 @@ public class HTableClient {
 	public boolean deleteRow(final long transID, byte[] rowID, 
 				 Object[] columns,
 				 long timestamp,
-                                 boolean asyncOperation) throws IOException {
+                                 boolean asyncOperation,
+                                 String hbaseAuths) throws IOException {
 
 		if (logger.isTraceEnabled()) logger.trace("Enter deleteRow(" + new String(rowID) + ", "
 			     + timestamp + ") " + tableName);
@@ -896,22 +936,28 @@ public class HTableClient {
 		else
 			del = new Delete(rowID, timestamp);
 
-                /*
-                byte[] visExpr = Bytes.toBytes("MANAGER");
-                String strVisExpr = new String(visExpr);
-                CellVisibility cv = new CellVisibility(strVisExpr);
-                del.setCellVisibility(cv);
-                */
+                if (hbaseAuths != null) {
+                    
+                    CellVisibility cv = new CellVisibility(hbaseAuths);
+                    del.setCellVisibility(cv);
+                    
+                    //                    System.out.println("del hbaseAuths " + hbaseAuths);
+                }
 
 		if (columns != null) {
-			for (int i = 0; i < columns.length ; i++) {
-				byte[] col = (byte[]) columns[i];
-				del.addColumns(getFamily(col), getName(col));
+                    byte[] family = null;
+                    byte[] qualifier = null;
+                    for (int i = 0; i < columns.length ; i++) {
+                        byte[] col = (byte[]) columns[i];
 
-                                //System.out.println("colFam = " + getFamily(col) + " colName = " + getName(col));
-			}
+                        family = getFamily(col);
+                        qualifier = getName(col);
+                        del.addColumns(family, qualifier);
+                        
+                        //                        System.out.println("colFam = " + Bytes.toString(family) + " colName = " + Bytes.toString(qualifier));
+                    }
 		}
-
+                
                	if (asyncOperation) {
 			future = executorService.submit(new Callable() {
  				public Object call() throws Exception {
@@ -935,11 +981,12 @@ public class HTableClient {
 		return true;
 	}
 
-	public boolean deleteRows(final long transID, short rowIDLen, Object rowIDs,
-		      long timestamp,
-                      boolean asyncOperation) throws IOException {
+	public boolean deleteRowsInt(final long transID, short rowIDLen, Object rowIDs,
+                                  Object[] columns, long timestamp,
+                                  boolean asyncOperation,
+                                  String hbaseAuths) throws IOException {
 
-	        if (logger.isTraceEnabled()) logger.trace("Enter deleteRows() " + tableName);
+	        if (logger.isTraceEnabled()) logger.trace("Enter deleteRowsInt() " + tableName);
 
 		final List<Delete> listOfDeletes = new ArrayList<Delete>();
 		listOfDeletes.clear();
@@ -963,6 +1010,30 @@ public class HTableClient {
 			    del = new Delete(rowID);
 			else
 			    del = new Delete(rowID, timestamp);
+
+                        if (hbaseAuths != null) {
+                            
+                            CellVisibility cv = new CellVisibility(hbaseAuths);
+                            del.setCellVisibility(cv);
+                            
+                            //                            System.out.println("delRows hbaseAuths " + hbaseAuths);
+                        }
+
+                        if (columns != null) {
+                            byte[] family = null;
+                            byte[] qualifier = null;
+                            for (int i = 0; i < columns.length ; i++) {
+                                byte[] col = (byte[]) columns[i];
+
+                                family = getFamily(col);
+                                qualifier = getName(col);
+                                del.addColumns(family, qualifier);
+                                //                                del.addFamily(family);
+                                
+                                //                                System.out.println("colFam = " + Bytes.toString(family) + " colName = " + Bytes.toString(qualifier));
+                            }
+                        }
+                        
 			listOfDeletes.add(del);
 		}
                 if (asyncOperation) {
@@ -984,7 +1055,7 @@ public class HTableClient {
 			else
 		  	   table.delete(listOfDeletes);
 		}
-		if (logger.isTraceEnabled()) logger.trace("Exit deleteRows");
+		if (logger.isTraceEnabled()) logger.trace("Exit deleteRowsInt");
 		return true;
 	}
 
@@ -997,8 +1068,10 @@ public class HTableClient {
 	 }
     
 	public boolean checkAndDeleteRow(long transID, byte[] rowID, 
+                                         Object[] columns,
 					 byte[] columnToCheck, byte[] colValToCheck,
-					 long timestamp) throws IOException {
+					 long timestamp,
+                                         String hbaseAuths) throws IOException {
 
 		if (logger.isTraceEnabled()) logger.trace("Enter checkAndDeleteRow(" + new String(rowID) + ", "
 			     + new String(columnToCheck) + ", " + new String(colValToCheck) + ", " + timestamp + ") " + tableName);
@@ -1017,6 +1090,27 @@ public class HTableClient {
 				qualifier = getName(columnToCheck);
 			}
 			
+                        if (hbaseAuths != null) {
+                            
+                            CellVisibility cv = new CellVisibility(hbaseAuths);
+                            del.setCellVisibility(cv);
+                            
+                            //                            System.out.println("checkAndDel hbaseAuths " + hbaseAuths);
+                        }
+                        
+                        if (columns != null) {
+                            for (int i = 0; i < columns.length ; i++) {
+                                byte[] col = (byte[]) columns[i];
+                                
+                                family = getFamily(col);
+                                qualifier = getName(col);
+                                del.addColumns(family, qualifier);
+                                //                                del.addFamily(family);
+                                
+                                //                                System.out.println("colFam = " + Bytes.toString(family) + " colName = " + Bytes.toString(qualifier));
+                            }
+                        }
+                        
 			boolean res;
 			if (useTRex && (transID != 0)) {
 			    res = table.checkAndDelete(transID, rowID, family, qualifier, colValToCheck, del);

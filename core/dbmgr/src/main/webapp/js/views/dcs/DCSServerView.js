@@ -20,9 +20,10 @@ define([
         'buttonshtml'
         ], function (BaseView, DcsServerT, $, serverHandler, moment, common) {
 	'use strict';
-	var LOADING_SELECTOR = ".dbmgr-spinner",
-	RESULT_CONTAINER = '#query-result-container',
-	ERROR_CONTAINER = '#errorText';
+	var LOADING_SELECTOR = '#loadingImg',
+	RESULT_CONTAINER = '#dcs-result-container',
+	ERROR_CONTAINER = '#dcs-error-text',
+	REFRESH_ACTION = '#refreshAction';
 
 	var oDataTable = null;
 	var _that = null;
@@ -34,26 +35,26 @@ define([
 			_that = this;
 			serverHandler.on(serverHandler.FETCHDCS_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
-			$("#refreshAction").on('click', this.fetchDcsServers);
+			$(REFRESH_ACTION).on('click', this.fetchDcsServers);
 			this.fetchDcsServers();
 		},
 		doResume: function(){
 			serverHandler.on(serverHandler.FETCHDCS_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
-			$("#refreshAction").on('click', this.fetchDcsServers);
+			$(REFRESH_ACTION).on('click', this.fetchDcsServers);
 			this.fetchDcsServers();
 		},
 		doPause: function(){
 			serverHandler.off(serverHandler.FETCHDCS_SUCCESS, this.displayResults);
 			serverHandler.off(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
-			$("#refreshAction").off('click', this.fetchDcsServers);
+			$(REFRESH_ACTION).off('click', this.fetchDcsServers);
 		},
 		showLoading: function(){
-			$('#loadingImg').show();
+			$(LOADING_SELECTOR).show();
 		},
 
 		hideLoading: function () {
-			$('#loadingImg').hide();
+			$(LOADING_SELECTOR).hide();
 		},
 		fetchDcsServers: function () {
 			_that.showLoading();
@@ -68,7 +69,7 @@ define([
 			var keys = result.columnNames;
 
 			if(keys != null && keys.length > 0) {
-				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="query-results"></table>';
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="dcs-query-results"></table>';
 				$(RESULT_CONTAINER).html( sb );
 
 				var aoColumns = [];
@@ -87,7 +88,7 @@ define([
 
 				var bPaging = aaData.length > 25;
 
-				oDataTable = $('#query-results').dataTable({
+				oDataTable = $('#dcs-query-results').dataTable({
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
 					"bPaginate" : true, 
@@ -111,12 +112,12 @@ define([
 					          'copy','csv','excel','pdf','print'
 				          ],
 					fnDrawCallback: function(){
-						//$('#query-results td').css("white-space","nowrap");
+						//$('#dcs-query-results td').css("white-space","nowrap");
 					}
 				});
 
 
-				$('#query-results td').css("white-space","nowrap");
+				$('#dcs-query-results td').css("white-space","nowrap");
 			}
 
 		},

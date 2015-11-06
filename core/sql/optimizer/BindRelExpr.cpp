@@ -7703,21 +7703,16 @@ RelExpr *Scan::bindNode(BindWA *bindWA)
     }
   }
   
-  if (optHbaseAccessOptions_)
+  if (getOptHbaseAccessOptions())
     {
-      optHbaseAccessOptions_->setOptionsFromDefs(naTable->getTableName());
+      getOptHbaseAccessOptions()->setOptionsFromDefs(naTable->getTableName());
 
-      if (optHbaseAccessOptions_->isMaxVersions())
+      if (getOptHbaseAccessOptions()->isMaxVersions())
         {
-          optHbaseAccessOptions_->setNumVersions
+          getOptHbaseAccessOptions()->setNumVersions
             (
               getTableDesc()->getClusteringIndex()->getNAFileSet()->numMaxVersions()
              );
-        }
-
-      if (NOT optHbaseAccessOptions_->hbaseAuths().isNull())
-        {
-          hbaseAuths() = optHbaseAccessOptions_->hbaseAuths();
         }
     }
   
@@ -10267,22 +10262,18 @@ RelExpr* Insert::xformUpsertToMerge(BindWA *bindWA)
                 NULL);
 
   ((MergeUpdate *)re)->setXformedUpsert();
-  ValueIdSet debugSet;
-  if (child(0) && (child(0)->getOperatorType() != REL_TUPLE))
-  {
-    RelExpr * mu = re;
+  RelExpr * mu = re;
     
-    re = new(bindWA->wHeap()) Join
-      (child(0), re, REL_TSJ_FLOW, NULL);
-    ((Join*)re)->doNotTransformToTSJ();
-    ((Join*)re)->setTSJForMerge(TRUE);	
-    ((Join*)re)->setTSJForMergeWithInsert(TRUE);
-    ((Join*)re)->setTSJForWrite(TRUE);
-    if (bindWA->hasDynamicRowsetsInQuery())
-      mu->getGroupAttr()->addCharacteristicInputs(myOuterRefs);
-    else
-      re->getGroupAttr()->addCharacteristicInputs(myOuterRefs);
-  } 
+  re = new(bindWA->wHeap()) Join
+    (child(0), mu, REL_TSJ_FLOW, NULL);
+  ((Join*)re)->doNotTransformToTSJ();
+  ((Join*)re)->setTSJForMerge(TRUE);	
+  ((Join*)re)->setTSJForMergeWithInsert(TRUE);
+  ((Join*)re)->setTSJForWrite(TRUE);
+  if (bindWA->hasDynamicRowsetsInQuery())
+    mu->getGroupAttr()->addCharacteristicInputs(myOuterRefs);
+  else
+    re->getGroupAttr()->addCharacteristicInputs(myOuterRefs);
   
   re = re->bindNode(bindWA);
   if (bindWA->errStatus())
@@ -10613,8 +10604,14 @@ RelExpr *MergeUpdate::bindNode(BindWA *bindWA)
   
   bindWA->initNewScope();
 
-  if ((isMerge()) && 
-      (child(0)))
+  // For an xformaed upsert any UDF or subquery is guaranteed to be 
+  // in the using clause. Upsert will not generate a merge without using 
+  // clause. ON clause, when matched SET clause and when not matched INSERT
+  // clauses all use expressions from the using clause. (same vid).
+  // Therefore any subquery or UDF in the using clause will flow to the
+  // rest of he tree through the TSJ and will be available. Each subquery
+  // will be evaluated only once, and will be evaluated prior to the merge
+  if (isMerge() && child(0) && !xformedUpsert())
   {
     ItemExpr *selPred = child(0)->castToRelExpr()->selPredTree();
     if (selPred || where_)
@@ -10650,8 +10647,7 @@ RelExpr *MergeUpdate::bindNode(BindWA *bindWA)
     }
   }
 
-  if ((isMerge()) &&
-      (recExprTree()))
+  if (isMerge() && recExprTree() && !xformedUpsert())
   {
     if (recExprTree()->containsSubquery())
     {
@@ -10673,14 +10669,14 @@ RelExpr *MergeUpdate::bindNode(BindWA *bindWA)
   // if insertValues, then this is an upsert stmt.
   if (insertValues())
     {
-      if (insertValues()->containsSubquery())
+      if (insertValues()->containsSubquery() && !xformedUpsert())
         {
           *CmpCommon::diags() << DgSqlCode(-3241) 
                               << DgString0(" Subquery in INSERT clause not allowed.");
           bindWA->setErrStatus();
           return this;
         }
-      if (insertValues()->containsUDF())
+      if (insertValues()->containsUDF() && !xformedUpsert())
         {
           *CmpCommon::diags() << DgSqlCode(-4471) 
                               << DgString0(((UDFunction *)insertValues()->containsUDF())->
@@ -10792,15 +10788,21 @@ RelExpr *Delete::bindNode(BindWA *bindWA)
   RelExpr * boundExpr = GenericUpdate::bindNode(bindWA);
   if (bindWA->errStatus()) return boundExpr;
 
-  if ((csl_) &&
-      (NOT getTableDesc()->getNATable()->isHbaseRowTable()))
+  if (csl_)
     {
-      *CmpCommon::diags() << DgSqlCode(-1425)
-			  << DgTableName(getTableDesc()->getNATable()->getTableName().
-					 getQualifiedNameAsAnsiString());
-    
-      bindWA->setErrStatus();
-      return this;
+      if ((getTableDesc()->getNATable()->isSeabaseTable()) &&
+          (Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL)))
+        {
+        }
+      else if (NOT getTableDesc()->getNATable()->isHbaseRowTable())
+        {
+          *CmpCommon::diags() << DgSqlCode(-1425)
+                              << DgTableName(getTableDesc()->getNATable()->getTableName().
+                                             getQualifiedNameAsAnsiString());
+          
+          bindWA->setErrStatus();
+          return this;
+        }
     }
 
   if (getTableDesc()->getNATable()->isHbaseCellTable())
@@ -10999,7 +11001,17 @@ RelExpr *Delete::bindNode(BindWA *bindWA)
       boundExpr = firstn;
     }
 
-   if (csl())
+   if ((csl()) && (getTableDesc()->getNATable()->isSeabaseTable()) &&
+       (NOT (Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL))))
+     {
+       *CmpCommon::diags() << DgSqlCode(-3242)
+                           << DgString0("Cannot specify column name in a delete statement.");
+
+       bindWA->setErrStatus();
+       return this;
+     }
+
+   if ((csl()) && (NOT getTableDesc()->getNATable()->isSeabaseTable()))
      {
        for (Lng32 i = 0; i < csl()->entries(); i++)
 	 {
@@ -11009,7 +11021,7 @@ RelExpr *Delete::bindNode(BindWA *bindWA)
 	     ((QualifiedName*)&getTableDesc()->getNATable()->getTableName(), nas);
 	 }
      }
-
+ 
   return boundExpr;
 } // Delete::bindNode()
 

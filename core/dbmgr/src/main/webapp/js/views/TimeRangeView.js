@@ -193,8 +193,8 @@ define([
 			$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 
 			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
-				$('#filter-start-time').prop("disabled", false);
-				$('#filter-end-time').prop("disabled", false);
+				$(FILTER_START_TIME).prop("disabled", false);
+				$(FILTER_END_TIME).prop("disabled", false);
 			});
 
 			$(TIME_RANGE).focusin(function(){
@@ -220,7 +220,7 @@ define([
 			_timeRangeControl.bindEvent();
 		},
 		parseInputDate:function(date){
-			return moment(date).tz(common.serverTimeZone);
+			return moment.tz(date, DATE_FORMAT_ZONE, common.serverTimeZone);
 		}
 	});
 	

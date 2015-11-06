@@ -68,16 +68,22 @@ public class ServerResource {
 		}
 
 		String resultMessage = createConnection(usr, pwd);
-
+		ConfigurationResource configResource = ConfigurationResource.getInstance();
 		if (Helper.IsNullOrEmpty(resultMessage)) {
 			String key = Helper.sessionKeyGenetator();
 			objNode.put("key", key);
 			objNode.put("user", usr);
 			objNode.put("status", "OK");
-			objNode.put("sessionTimeoutMinutes", ConfigurationResource.getInstance().getSessionTimeoutMinutes());
+			objNode.put("sessionTimeoutMinutes", configResource.getSessionTimeoutMinutes());
 			objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
 			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
-			objNode.put("dcsMasterInfoUri", ConfigurationResource.getInstance().getDcsMasterInfoUri());
+			objNode.put("dcsMasterInfoUri", configResource.getDcsMasterInfoUri());
+			objNode.put("enableAlerts", configResource.isAlertsEnabled());
+			if (Helper.isEnterpriseEdition()) {
+				objNode.put("systemType", 1);
+			}
+
+			objNode.put("systemVersion", ConfigurationResource.getSystemVersion());
 
 			Session content = new Session(usr, pwd, new DateTime(DateTimeZone.UTC));
 			SessionModel.putSessionObject(key, content);
@@ -85,7 +91,8 @@ public class ServerResource {
 			objNode.put("status", "FAIL");
 			objNode.put("user", usr);
 			objNode.put("errorMessage", resultMessage);
-			objNode.put("sessionTimeoutMinutes", ConfigurationResource.getInstance().getSessionTimeoutMinutes());
+			objNode.put("sessionTimeoutMinutes", configResource.getSessionTimeoutMinutes());
+			objNode.put("enableAlerts", configResource.isAlertsEnabled());
 		}
 		return objNode;
 	}
@@ -141,6 +148,28 @@ public class ServerResource {
 		SessionModel.doLogout(request);
 
 		objNode.put("status", "OK");
+		return objNode;
+	}
+
+	@GET
+	@Path("/config")
+	@Produces(MediaType.APPLICATION_JSON)
+	public ObjectNode getServerConfig(@Context HttpServletRequest request) {
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode objNode = mapper.createObjectNode();
+		ConfigurationResource server = ConfigurationResource.getInstance();
+		objNode.put("sessionTimeoutMinutes", server.getSessionTimeoutMinutes());
+		objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
+		objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
+		objNode.put("dcsMasterInfoUri", server.getDcsMasterInfoUri());
+		objNode.put("enableAlerts", server.isAlertsEnabled());
+
+		if (ConfigurationResource.getSystemVersion() != null
+				&& ConfigurationResource.getSystemVersion().toLowerCase().contains("enterprise")) {
+			objNode.put("systemType", 1);
+		}
+
+		objNode.put("systemVersion", ConfigurationResource.getSystemVersion());
 		return objNode;
 	}
 
@@ -280,26 +309,5 @@ public class ServerResource {
 		result.columnNames = columns.toArray(result.columnNames);
 		result.resultArray = queries;
 		return result;
-	}
-
-	@GET
-	@Path("/config")
-	@Produces("application/json")
-	public ObjectNode getConfiguration(@Context HttpServletRequest servletRequest,
-			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
-
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode objNode = mapper.createObjectNode();
-
-		try {
-			objNode.put("sessionTimeoutMinutes", ConfigurationResource.getInstance().getSessionTimeoutMinutes());
-			objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
-			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
-			objNode.put("dcsMasterInfoUri", ConfigurationResource.getInstance().getDcsMasterInfoUri());
-
-		} finally {
-
-		}
-		return objNode;
 	}
 }

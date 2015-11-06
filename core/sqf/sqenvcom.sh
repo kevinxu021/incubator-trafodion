@@ -176,7 +176,7 @@ unset MPI_CC
 export MPI_CXX=/usr/bin/g++
 export MPICH_CXX=$MPI_CXX
 
-export PATH=$MPI_ROOT/bin:$MY_SQROOT/export/bin"$SQ_MBTYPE":$MY_SQROOT/sql/scripts:$MY_SQROOT/tools:$MY_SQROOT/trafci/bin:$PATH
+export PATH=$MPI_ROOT/bin:$MY_SQROOT/export/bin"$SQ_MBTYPE":$MY_SQROOT/sql/scripts:$MY_SQROOT/tools:$MY_SQROOT/trafci/bin:$JAVA_HOME/bin:$PATH
 # The guiding principle is that the user's own software is preferred over anything else;
 # system customizations are likewise preferred over default software.
 
@@ -690,6 +690,15 @@ export SQ_MON_ALTLOG=0
 # Monitor sync thread responsiveness timeout
 # default 15 mins
 export SQ_MON_SYNC_TIMEOUT=900
+export SQ_MON_KEEPALIVE=1
+export SQ_MON_KEEPIDLE=60
+export SQ_MON_KEEPINTVL=6
+export SQ_MON_KEEPCNT=5
+
+# The wait timeout is in seconds
+export SQ_MON_EPOLL_WAIT_TIMEOUT=12
+export SQ_MON_EPOLL_RETRY_COUNT=15
+
 
 # set to 0 to disable phandle verifier
 export SQ_PHANDLE_VERIFIER=1

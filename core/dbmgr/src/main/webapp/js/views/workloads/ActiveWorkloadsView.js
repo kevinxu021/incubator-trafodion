@@ -1,8 +1,8 @@
-// @@@ START COPYRIGHT @@@
-//
-// (C) Copyright 2015 Esgyn Corporation
-//
-// @@@ END COPYRIGHT @@@
+//@@@ START COPYRIGHT @@@
+
+//(C) Copyright 2015 Esgyn Corporation
+
+//@@@ END COPYRIGHT @@@
 
 define([
         'views/BaseView',
@@ -20,14 +20,15 @@ define([
         'buttonshtml'
         ], function (BaseView, WorkloadsT, $, wHandler, common, refreshTimer) {
 	'use strict';
-    var LOADING_SELECTOR = ".dbmgr-spinner";			
-    var oDataTable = null;
-    var _this = null;
-    var REFRESH_ACTION = '#refreshAction',
-    	REFRESH_INTERVAL = '#refreshInterval',
-    	SPINNER = '#loadingImg',
-    	ERROR_TEXT = '#errorText';
-    
+	var LOADING_SELECTOR = ".dbmgr-spinner";			
+	var oDataTable = null;
+	var _this = null;
+	var REFRESH_ACTION = '#refreshAction',
+	REFRESH_INTERVAL = '#refreshInterval',
+	SPINNER = '#loadingImg',
+	RESULT_CONTAINER = '#active-result-container',
+	ERROR_TEXT = '#active-error-text';
+
 	var ActiveWorkloadsView = BaseView.extend({
 		template:  _.template(WorkloadsT),
 
@@ -39,7 +40,7 @@ define([
 			$(REFRESH_ACTION).on('click', this.fetchActiveQueries);
 			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimer.setRefreshInterval(0.5);
-			
+
 			this.fetchActiveQueries();
 		},
 		doResume: function(){
@@ -57,20 +58,20 @@ define([
 			$(REFRESH_ACTION).off('click', this.fetchActiveQueries);
 			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 		},
-        showLoading: function(){
-        	$(SPINNER).show();
-        },
+		showLoading: function(){
+			$(SPINNER).show();
+		},
 
-        hideLoading: function () {
-        	$(SPINNER).hide();
-        },
-        refreshIntervalChanged: function(){
+		hideLoading: function () {
+			$(SPINNER).hide();
+		},
+		refreshIntervalChanged: function(){
 
-        },
-        timerBeeped: function(){
-        	_this.fetchActiveQueries();
-        },
-        fetchActiveQueries: function () {
+		},
+		timerBeeped: function(){
+			_this.fetchActiveQueries();
+		},
+		fetchActiveQueries: function () {
 			_this.showLoading();
 			wHandler.fetchActiveQueries();
 		},
@@ -78,11 +79,12 @@ define([
 		displayResults: function (result){
 			_this.hideLoading();
 			$(ERROR_TEXT).hide();
+			$(RESULT_CONTAINER).show();
 			var keys = result.columnNames;
 
 			if(keys != null && keys.length > 0) {
-				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="query-results"></table>';
-				$('#query-result-container').html( sb );
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="active-query-results"></table>';
+				$('#active-result-container').html( sb );
 
 				var aoColumns = [];
 				var aaData = [];
@@ -100,7 +102,7 @@ define([
 
 				var bPaging = aaData.length > 25;
 
-				oDataTable = $('#query-results').dataTable({
+				oDataTable = $('#active-query-results').dataTable({
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
 					"bPaginate" : bPaging, 
@@ -113,49 +115,50 @@ define([
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"aoColumnDefs": [
-					    {
-					      "aTargets": [ 0 ],
-					      "mData": 0,
-					      "mRender": function ( data, type, full ) {
-					       if (type === 'display') {
-					          return common.toDateFromMilliSeconds(data);
-					        }
-					        else return data;
-					      }
-					    },
-					    {
-						      "aTargets": [ 2],
-						      "mData": 2,
-						      "mRender": function ( data, type, full ) {
-						       if (type === 'display') {
-						    	   var rowcontent = "<a href=\"#/workloads/active/querydetail/" +
-	                       			data+"\">"+data+"</a>";
-	                       			return rowcontent;
-						        }
-						        else return data;
-						      }
-						    }],
-					paging: true,
-					buttons: [
-					          'copy','csv','excel','pdf','print'
-				          ],					                 
+					                 {
+					                	 "aTargets": [ 0 ],
+					                	 "mData": 0,
+					                	 "mRender": function ( data, type, full ) {
+					                		 if (type === 'display') {
+					                			 return common.toDateFromMilliSeconds(data);
+					                		 }
+					                		 else return data;
+					                	 }
+					                 },
+					                 {
+					                	 "aTargets": [ 2],
+					                	 "mData": 2,
+					                	 "mRender": function ( data, type, full ) {
+					                		 if (type === 'display') {
+					                			 var rowcontent = "<a href=\"#/workloads/active/querydetail/" +
+					                			 data+"\">"+data+"</a>";
+					                			 return rowcontent;
+					                		 }
+					                		 else return data;
+					                	 }
+					                 }],
+					                 paging: true,
+					                 buttons: [
+					                           'copy','csv','excel','pdf','print'
+					                           ],					                 
 
-					fnDrawCallback: function(){
-						//$('#query-results td').css("white-space","nowrap");
-		             }
+					                           fnDrawCallback: function(){
+					                        	   //$('#query-results td').css("white-space","nowrap");
+					                           }
 				});
-				
-				$('#query-results td').css("white-space","nowrap");
+
+				$('#active-query-results td').css("white-space","nowrap");
 			}
 
 		},
-        showErrorMessage: function (jqXHR) {
-        	_this.hideLoading();
-        	$(ERROR_TEXT).show();
-        	if (jqXHR.responseText) {
-        		$(ERROR_TEXT).text(jqXHR.responseText);
-        	}
-        }  
+		showErrorMessage: function (jqXHR) {
+			_this.hideLoading();
+			$(ERROR_TEXT).show();
+			$(RESULT_CONTAINER).hide();
+			if (jqXHR.responseText) {
+				$(ERROR_TEXT).text(jqXHR.responseText);
+			}
+		}  
 	});
 
 	return ActiveWorkloadsView;

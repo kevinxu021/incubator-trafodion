@@ -18,10 +18,11 @@
 # under the License.
 # @@@ END COPYRIGHT @@@
 
+export PATH=$MGBLTY_INSTALL_DIR/jython-2.7.0/bin:$PATH
 #Check if Trafodion is up and running
 trafcheck
 tf_stat=$?
-if [[ $tf_stat == 0 ]]; then
+if ( [ $tf_stat == 0 ]  || [ $tf_stat == 1 ] ); then
 	echo
 	echo "Starting OpenTSD..."
 	$MGBLTY_INSTALL_DIR/opentsdb/bin/tsd.sh start

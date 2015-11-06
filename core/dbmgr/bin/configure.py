@@ -195,8 +195,8 @@ def run():
     if not options.bosun_port :
         done = None
         while (done==None) :
-            options.bosun_port = raw_input("Please provide the Bosun port(default 5242): ")
-            if not options.bosun_port : options.bosun_port = "5242"
+            options.bosun_port = raw_input("Please provide the Bosun port(default 8070): ")
+            if not options.bosun_port : options.bosun_port = "8070"
             if options.bosun_port and options.bosun_port.isdigit(): done = True
 
     if not options.time_zone :

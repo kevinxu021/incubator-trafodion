@@ -85,7 +85,7 @@ public class HBaseAuditControlPoint {
     private static String CONTROL_POINT_TABLE_NAME;
     private static final byte[] CONTROL_POINT_FAMILY = Bytes.toBytes("cpf");
     private static final byte[] CP_NUM_AND_ASN_HWM = Bytes.toBytes("hwm");
-    private static HTable table;
+    private HTable table;
     private boolean useAutoFlush;
     private boolean disableBlockCache;
     private static final int versions = 6;
@@ -368,11 +368,13 @@ public class HBaseAuditControlPoint {
     }
 
 
-   public long doControlPoint(final int clusterId, final long sequenceNumber) throws IOException {
+   public long doControlPoint(final int clusterId, final long sequenceNumber, final boolean incrementCP) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("doControlPoint start");
       try {
 
-         currControlPt++;
+         if (incrementCP) {
+           currControlPt++;
+         }
          if (LOG.isTraceEnabled()) LOG.trace("doControlPoint interval (" + currControlPt + "), clusterId: " + clusterId + ", sequenceNumber (" + sequenceNumber+ ") try putRecord");
          putRecord(clusterId, currControlPt, sequenceNumber);
       }
@@ -463,5 +465,51 @@ public class HBaseAuditControlPoint {
       if (LOG.isTraceEnabled()) LOG.trace("deleteAgedRecords - exit");
       return true;
    }
+   
+   public String getTableName(){
+      return CONTROL_POINT_TABLE_NAME;
+   }
+   
+   public long getNthRecord(int clusterId, int n) throws IOException{
+      if (LOG.isTraceEnabled()) LOG.trace("getNthRecord start - clusterId " + clusterId + " n" + n);
+
+      Get g = new Get(Bytes.toBytes(clusterId));
+      g.setMaxVersions(n + 1);  // will return last n+1 versions of row just in case
+      g.addColumn(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM);
+      String ctrlPtToken;
+      try {
+         Result r = table.get(g);
+         List<Cell> list = r.getColumnCells(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM);  // returns all versions of this column
+         int i = 0;
+         for (Cell cell : list) {
+            i++;
+            StringTokenizer stok = 
+                    new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
+            if (stok.hasMoreElements()) {
+               ctrlPtToken = stok.nextElement().toString();
+               if (LOG.isTraceEnabled()) LOG.trace("Parsing record for controlPoint (" + ctrlPtToken + ")");
+               if ( i < n ){
+                  if (LOG.isTraceEnabled()) LOG.trace("Skipping record " + i + " of " + n + " for controlPoint" );
+                  continue;
+               }
+               long lvReturn = Long.parseLong(ctrlPtToken);;
+               if (LOG.isTraceEnabled()) LOG.trace("getNthRecord exit - returning " + lvReturn);
+               return lvReturn;
+            }
+            else {
+               if (LOG.isTraceEnabled()) LOG.trace("No tokens to parse for " + i);
+            }
+         }
+      } 
+      catch (NullPointerException e){
+	         if (LOG.isTraceEnabled()) LOG.trace("control point record for clusterId: " + clusterId + " is not in the table");
+      }
+      catch (Exception e1){
+         if (LOG.isTraceEnabled()) LOG.trace("control point record for clusterId: " + clusterId + " threw exception " + e1);
+	  }
+      if (LOG.isTraceEnabled()) LOG.trace("getNthRecord - exit returning 1");
+      return 1;
+   }
 }
 
+      

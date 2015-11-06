@@ -807,7 +807,10 @@ NABoolean ControlDB::validate(ControlTable *ct)
       {
       case ControlTableOptions::HBASE_AUTHS:
         {
-          valid = TRUE;
+          if (CmpCommon::getDefault(HBASE_VISIBILITY) == DF_OFF)
+            valid = FALSE;
+          else
+            valid = TRUE;
         }
         break;
 

@@ -50,6 +50,7 @@
 #include "NADefaults.h"
 #include "OptUtilIncludes.h"
 #include "ExplainTupleMaster.h"
+#include "OptHints.h"
 
 // -----------------------------------------------------------------------
 // contents of this file
@@ -1188,6 +1189,10 @@ public:
   inline void setMaxCardEst(CostScalar r)       { maxCardEst_ = r; }
 
   static short bmoGrowthPercent(CostScalar e, CostScalar m);
+
+  void setOptHbaseAccessOptions(OptHbaseAccessOptions *v) { optHbaseAccessOptions_ = v; }
+  OptHbaseAccessOptions *getOptHbaseAccessOptions() const { return optHbaseAccessOptions_; }
+
   // ---------------------------------------------------------------------
   // for debugging
   // ---------------------------------------------------------------------
@@ -1542,6 +1547,11 @@ private:
   // Record the status whether my dop has been reduced. That is, whether
   // the partfunc pointed by my spp has a dop reduction.
   NABoolean dopReduced_;
+
+  // hbase options. 
+  // Like: number of trafodion row versions to retrieve from hbase,
+  // timestamp range, hbase authorizations, etc.
+  OptHbaseAccessOptions *optHbaseAccessOptions_;
 
 public:
 

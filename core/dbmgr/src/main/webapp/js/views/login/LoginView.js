@@ -1,33 +1,34 @@
-// @@@ START COPYRIGHT @@@
-//
-// (C) Copyright 2015 Esgyn Corporation
-//
-// @@@ END COPYRIGHT @@@
+//@@@ START COPYRIGHT @@@
+
+//(C) Copyright 2015 Esgyn Corporation
+
+//@@@ END COPYRIGHT @@@
 
 define([
         'views/BaseView',
         'text!templates/login.html',
         'model/Session',
-        'handlers/SessionHandler'
-        ], function (BaseView, LoginT, session, sessionHandler) {
+        'handlers/SessionHandler',
+        'common'
+        ], function (BaseView, LoginT, session, sessionHandler, common) {
 	'use strict';
-    var _that = null;
-    var _router = null;
-    
+	var _that = null;
+	var _router = null;
+
 	var LoginView = Backbone.View.extend({
-		
+
 		template:  _.template(LoginT),
-		
+
 		el: $('#wrapper'),
 
 		child: null,
-		
+
 		sessionTimedOut : false,
 
 		initialize: function () {
-			
+
 		},
-		
+
 		init: function(){
 			$('#navbar').hide();
 			_that = this;
@@ -36,7 +37,7 @@ define([
 			$('#loginBtn').on('click', this.loginClick);
 			$('#password').on('keypress', this.passwordEnterKeyPressed);
 		},
-		
+
 		resume: function(){
 			sessionHandler.on(sessionHandler.LOGIN_SUCCESS, this.loginSuccess);
 			sessionHandler.on(sessionHandler.LOGIN_ERROR, this.showErrorMessage);			
@@ -49,18 +50,18 @@ define([
 			$('#loginBtn').off('click', this.loginClick);
 			$('#password').off('keypress', this.passwordEnterKeyPressed);
 		},
-        showLoading: function(){
-        	$('#loadingImg').show();
-        },
-        passwordEnterKeyPressed: function (ev){
-        	 var keycode = (ev.keyCode ? ev.keyCode : ev.which);
-	            if (keycode == '13') {
-	            	_that.loginClick(ev);
-	            }
-        },
-        hideLoading: function () {
-        	$('#loadingImg').hide();
-        },		
+		showLoading: function(){
+			$('#loadingImg').show();
+		},
+		passwordEnterKeyPressed: function (ev){
+			var keycode = (ev.keyCode ? ev.keyCode : ev.which);
+			if (keycode == '13') {
+				_that.loginClick(ev);
+			}
+		},
+		hideLoading: function () {
+			$('#loadingImg').hide();
+		},		
 		render: function () {
 			if(this.child == null){
 				this.$el.html(this.template);
@@ -83,10 +84,10 @@ define([
 			this.pause();
 		},
 		loginClick: function(e){
-        	
+
 			$("#login-error-text").text("");
 			$('#login-error-text').hide();
-        	
+
 			var userName = $('#username').val();
 			if(userName == null || userName.length == 0) {
 				alert("User Name cannot be empty");
@@ -102,42 +103,48 @@ define([
 			_that.showLoading();
 			var param = {username : userName, password: password};
 			sessionHandler.login(param);
-        	e.preventDefault();
+			e.preventDefault();
 		},
 		loginSuccess: function(result){
 			$("#login-error-text").text("");
 			if(result.status == 'OK'){
 				session.saveToken(result.key);
-                session.saveUser(result.user);
-                //session.saveLoginTime(toISODateString(new Date()));
+				session.saveUser(result.user);
+				if(result.enableAlerts != null && result.enableAlerts == false){
+					$('#alerts-feature').hide();
+				}else{
+					$('#alerts-feature').show();
+				}
+				//session.saveLoginTime(toISODateString(new Date()));
 				window.location.hash = '/dashboard';
 			}else{
-		       	_that.hideLoading();
-	        	$("#login-error-text").show();
-	        	$("#login-error-text").text(result.errorMessage);
+				_that.hideLoading();
+				$("#login-error-text").show();
+				$("#login-error-text").text(result.errorMessage);
 			}
 		},
 		doLogout: function(){
 			var param = {username : session.getUser()};
-			$("#login-error-text").text("");			
+			$("#login-error-text").text("");
+			common.resetSessionProperties();
 			session.eraseAll();
 			sessionHandler.logout(param);
 		},
 		logoutSuccess: function(){
-			
+
 		},
-        showErrorMessage: function (jqXHR, res, error) {
-        	_that.hideLoading();
-        	$("#login-error-text").text("");
-        	$("#login-error-text").show();
-        	if (jqXHR) {
-        		if(jqXHR.status != null && jqXHR.status == 0) {
-            		$("#login-error-text").text("Error : Unable to communicate with the server.");
-        		}else {
-            		$("#login-error-text").text(jqXHR.statusText);
-        		}
-        	}
-        }  
+		showErrorMessage: function (jqXHR, res, error) {
+			_that.hideLoading();
+			$("#login-error-text").text("");
+			$("#login-error-text").show();
+			if (jqXHR) {
+				if(jqXHR.status != null && jqXHR.status == 0) {
+					$("#login-error-text").text("Error : Unable to communicate with the server.");
+				}else {
+					$("#login-error-text").text(jqXHR.statusText);
+				}
+			}
+		}  
 	});
 
 

@@ -5,3 +5,4 @@ target/*
 /target/
 /src/main/webapp/bower_components/
 *.log
+/mgblty_download/

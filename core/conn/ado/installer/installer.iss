@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "EsgynDB ADO.NET"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "2.0.0"
 #define MyAppPublisher "Esgyn Corporation"
 #define MyAppURL "http://www.esgyn.com/"
 
@@ -18,7 +18,7 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={pf}\EsgynDB\ADO.NET-1.0.0
+DefaultDirName={pf}\EsgynDB\ADO.NET-2.0.0
 DefaultGroupName={#MyAppName}
 LicenseFile=Eula.rtf
 Compression=lzma
@@ -46,9 +46,9 @@ Source: "C:\Build\EsgynDBADO\Release\EsgynDB.Data.dll"; DestDir: "{app}"; Strong
 Name: "{group}\{cm:UninstallProgram,{#MyAppName} {#MyAppVersion}}"; Filename: "{uninstallexe}"
 
 [Registry]
-Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\v2.0.50727\AssemblyFoldersEx\EsgynDB ADO.NET 1.0.0"; ValueType: string; ValueData: "{app}" ;Flags: uninsdeletekey
-Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\AssemblyFolders\EsgynDB ADO.NET 1.0.0"; ValueType: string; ValueData: "{app}" ;Flags: uninsdeletekey
-Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\v4.0.30319\AssemblyFoldersEx\EsgynDB ADO.NET 1.0.0"; ValueType: string;  ValueData: "{app}" ;Flags: uninsdeletekey
+Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\v2.0.50727\AssemblyFoldersEx\EsgynDB ADO.NET 2.0.0"; ValueType: string; ValueData: "{app}" ;Flags: uninsdeletekey
+Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\AssemblyFolders\EsgynDB ADO.NET 2.0.0"; ValueType: string; ValueData: "{app}" ;Flags: uninsdeletekey
+Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\v4.0.30319\AssemblyFoldersEx\EsgynDB ADO.NET 2.0.0"; ValueType: string;  ValueData: "{app}" ;Flags: uninsdeletekey
 
 [Code]
 function GetUninstallString: string;

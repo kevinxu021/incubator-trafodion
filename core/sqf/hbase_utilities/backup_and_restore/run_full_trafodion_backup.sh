@@ -33,7 +33,7 @@ usage()
   echo "The $0 script performs full offline backup of all Trafodion tables"
   echo "and copies the backup files to an HDFS location"
   echo "The command to use the script is as follows:"
-  echo "$0 -b backup_folder -b backup_dir -u trafodion_user -h hbase_user -d hdfs_user -m mappers -n -o -j"
+  echo "$0 -b backup_folder -b backup_dir -u trafodion_user -h hbase_user -d hdfs_user -m mappers -l 10 -n -o"
   echo "where"
   echo "-b backup_folder"
   echo "     (Optional) HDFS path where all the Trafodion object are exported and saved"
@@ -58,7 +58,7 @@ usage()
   echo "     HDFS user 'hdfs'. Unless the -n option is specified, the user is asked to"
   echo "     confirm the selection afterwards."
   echo "-m mappers"
-  echo "     (Optional) Number of mappers. The default value is 2."
+  echo "     (Optional) Number of mappers. If unspecified each snapshot will use a number suitable for its size."
   echo "-n"
   echo "     (Optional) Non interactive mode. With this option the script does not prompt"
   echo "     the user to confirm the use of computed or default values when a parameter"
@@ -66,8 +66,8 @@ usage()
   echo "-o"
   echo "     (Optional) offline. With this option trafodion will not be restarted after"
   echo "     snapshots are taken."
-  echo "-j"
-  echo "     (Optional) use HBase java class for snapshot export. This could be slower."
+  echo "-l"
+  echo "     (Optional) Snapshot size limit in MB above which map reduce is used for copy. Snapshots with size below this value will be copied using HDFS FileUtil.copy. Default value is 100 MB. FileUtil.copy is invoked through a class provided by Trafodion. Use 0 for this option to use HBase' ExportSnaphot class instead."
   echo " Example: $0  -b hdfs://<host>:<port>/<hdfs-path>  -m 4"
   exit 1
 }
@@ -102,9 +102,9 @@ hbase_user=
 hdfs_user=
 confirm=1
 stay_offline=0
-use_hbase_export=0
+mr_limit=100
 
-while getopts :b:u:m:h:dnoj arguments
+while getopts b:u:m:h:d:l:no arguments
 do
   case $arguments in
   b)  hdfs_backup_location=$OPTARG;;
@@ -112,8 +112,8 @@ do
   u)  trafodion_user=$OPTARG;;
   h)  hbase_user=$OPTARG;;
   d)  hdfs_user=$OPTARG;;
+  l)  mr_limit=$OPTARG;;
   o)  stay_offline=1;;
-  j)  use_hbase_export=1;;
   n)  confirm=0;;
   *)  usage;;
   esac
@@ -250,14 +250,17 @@ do
   snapshot_name=$line
   echo "********************************************************************"
   echo "Exporting ${snapshot_name} ..."
-  if [[ ${use_hbase_export} -eq 1 ]]; then
-     hbase_cmd="$(get_hbase_cmd) ExportSnapshot"
+  if [[ ${mr_limit} -eq 0 ]]; then
+     hbase_cmd="$(get_hbase_cmd) org.apache.hadoop.hbase.snapshot.ExportSnapshot"
   else 
-     hbase_cmd="$(get_hbase_cmd)  org.trafodion.utility.backuprestore.TrafExportSnapshot"
+     hbase_cmd="$(get_hbase_cmd) org.trafodion.utility.backuprestore.TrafExportSnapshot"
   fi
   hbase_cmd+=" -snapshot ${snapshot_name}"
   hbase_cmd+=" -copy-to ${hdfs_backup_location}/${snapshot_name}"
   hbase_cmd+=" -mappers $mappers"
+  if [[ ${mr_limit} -ne 0 ]]; then
+     hbase_cmd+=" -mr-lowlimit-mb ${mr_limit}"
+  fi
   echo "${hbase_cmd}" | tee -a ${log_file}
 
   do_sudo ${hbase_user} "${hbase_cmd}" 2>&1 | tee -a  ${log_file}
