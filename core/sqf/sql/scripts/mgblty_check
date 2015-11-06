@@ -37,11 +37,11 @@ echo "Status of Tcollector..."
 $MGBLTY_INSTALL_DIR/tcollector/startstop status
 #Check for the number of Tcollector process
 if [ -e $SQ_PDSH ]; then
-   actual_tcollector_cnt=`$SQ_PDSH $MY_NODES ps -ef |grep tcollector.py |grep $USER |wc -l`
+   actual_tcollector_cnt=`$SQ_PDSH $MY_NODES ps -ef |grep [t]collector.py |grep $USER |wc -l`
 else
-   actual_tcollector_cnt=`ps -ef |grep tcollector.py |grep $USER |wc -l`
+   actual_tcollector_cnt=`ps -ef |grep [t]collector.py |grep $USER |wc -l`
 fi
-echo "Total count of Tcollectors: " `expr $actual_tcollector_cnt - 1`
+echo "Total count of Tcollectors: " $actual_tcollector_cnt
 echo 
 
 echo "Status of DBMgr..."
