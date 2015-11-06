@@ -85,7 +85,9 @@ $TRAF_PDSH sudo chmod -R 777 $SQ_ROOT/mgblty
 function unTarDMPackage {
 
 tar -xf $DBM_PACKAGE
-dbmgr_dir=$(sudo ls | grep dbmgr | grep -v dbmgr*.tgz)
+
+dbmgr_dir_temp=$(sudo ls | grep --max-count=1 "dbmgr")
+dbmgr_dir=${dbmgr_dir_temp%".tar.gz"}
 
 sudo chmod -R 777 $dbmgr_dir
 
@@ -144,7 +146,7 @@ ZOO_NODES=$(echo $ZOOKEEPER_NODES | tr "," "\n")
 newNodes=""
 for node in $ZOO_NODES
 do
-   tempList="$tempList $node:2180"
+   tempList="$tempList $node:2181"
 
 done
 
