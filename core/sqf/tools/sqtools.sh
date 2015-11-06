@@ -322,7 +322,7 @@ function run_util {
 # check the startup log and sort the interesting even chronologically
 function sqchksl {
     setup_sqpdsh
-    eval '$SQPDSHA "cd $MY_SQROOT/sql/scripts; grep Executing startup.log 2>/dev/null" 2>/dev/null | sort -k4 -k5'
+    eval '$SQPDSHA "cd $MY_SQROOT/sql/scripts; grep Executing startup.log 2>/dev/null" 2>/dev/null | sort -M -k3 -k4 -k5'
 }
 
 function sqchkopt {

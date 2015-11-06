@@ -71,6 +71,7 @@ fi
 lv_starttime=`date`
 
 run_util pkillall
+sleep 5
 run_util pkillall
 
 echo "Stopping HBase"
