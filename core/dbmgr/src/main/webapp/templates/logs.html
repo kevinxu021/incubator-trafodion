@@ -17,7 +17,7 @@
 
 					<div class="btn-group" style="margin-right: 5px">
 						<label for="refreshInterval"
-							style="display: inline-block; margin-top: 5px; font-size: 14px; font-weight: normal">Auto-Refresh</label>
+							style="display: inline-block; margin-top: 5px; font-size: 14px; font-weight: normal">Auto-Refresh: </label>
 						<select class="form-control" id="refreshInterval"
 							style="display: inline-block; width: 110px; font-size: 12px; height: 30px; margin-top: 10px; padding: 2px">
 							<option value="0.5">Every 30 sec</option>
@@ -66,7 +66,7 @@
 		aria-labelledby="filterDialogLabel" data-backdrop="static"
 		data-keyboard="false">
 		<div class="modal-dialog" role="document"
-			style="overflow: auto; height: 700px">
+			style="overflow: auto; height: 780px">
 			<div class="modal-content">
 				<div class="modal-header">
 					<button type="button" class="close" data-dismiss="modal"
@@ -107,7 +107,7 @@
 							</div>
 						</div>
 						<div class="form-group">
-							<label class="control-label">Severity : </label> <input
+							<label class="control-label">Severity : </label> <br/> <input
 								type="checkbox" id="severity-fatal" value="FATAL"
 								style="margin-left: 4px; padding-right: 4px"> Fatal <input
 								type="checkbox" id="severity-error" value="ERROR"
@@ -122,7 +122,7 @@
 						</div>
 						<div class="form-group">
 							<label for="filter-component-names" class="control-label">Component
-								Name(s) : </label> <input type="checkbox" id="component-mon" value="MON"
+								Name(s) : </label> <br/> <input type="checkbox" id="component-mon" value="MON"
 								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Monitor"> MON <input
 								type="checkbox" id="component-mxosrvr" value="MXOSRVR"
 								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Master Executor"> MXOSRVR <input
@@ -133,7 +133,7 @@
 								type="checkbox" id="component-sql-esp" value="SQL.ESP"
 								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Executor Server Process"> SQL.ESP <input
 								type="checkbox" id="component-sql-exe" value="SQL.EXE"
-								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Master Executor SQL"> SQL.EXE <input
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Master Executor SQL"> SQL.EXE <br/> <input
 								type="checkbox" id="component-sql-lob" value="SQL.LOB"
 								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="SQL Large Objects"> SQL.LOB <input
 								type="checkbox" id="component-sql-sscp" value="SQL.SSCP"
@@ -143,7 +143,9 @@
 								type="checkbox" id="component-sql-udr" value="SQL.UDR"
 								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="User Defined Routines"> SQL.UDR <input
 								type="checkbox" id="component-wdg" value="WDG"
-								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Watchdog"> WDG
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Watchdog"> WDG <input
+								type="checkbox" id="component-dcs" value="DCS"
+								style="margin-left: 4px; padding-right: 4px" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="Connectivity Servers"> DCS
 						</div>
 						<div class="form-group">
 							<label for="filter-process-names" class="control-label">Process

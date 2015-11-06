@@ -272,7 +272,9 @@ define([
         	param.processNames = $(FILTER_PROCESS_NAMES).val();
         	param.errorCodes = $(FILTER_ERROR_CODES).val();
         	param.message = $(FILTER_MESSAGE_TEXT).val();
-        	
+        	if($('#component-dcs').is(':checked'))
+        		param.dcs = true;
+       	
         	$(FILTER_DIALOG).modal('hide');
         	$(FILTER_ERROR_MSG).html('');
         	_this.showLoading();

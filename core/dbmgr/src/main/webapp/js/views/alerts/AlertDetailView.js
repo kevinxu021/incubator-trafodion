@@ -30,8 +30,13 @@ define([
 	UPDATE_ACTION = '#updateAction',
 	UPDATE_DIALOG = '#alertUpdateDialog',
 	DIALOG_APPLY_BUTTON = "#updateAlertApplyButton",
-	DIALOG_ALERT_ID = '#action-alert-id';
-
+	DIALOG_ALERT_ID = '#action-alert-id',
+	ACTION_TYPE = '#action-type',
+	ACTION_MESSAGE = '#action-message',
+	ACTION_TIME = '#action-time',
+	ACTION_USER = '#action-user',
+	ACTION_CONTAINER = '.dbmgr-alert-action';
+	
 	var _this = null;
 	var alertID = null;
 	var validator = null;
@@ -185,10 +190,22 @@ define([
 			$(RESULT_CONTAINER).html(result[alertID].Body);
 
 			var alertHistory = alertDetail.History;
-			if(alertHistory && alertHistory.length > 0){
+			if(alertHistory !=null && alertHistory.length > 0){
 				$(ALERT_SEVERITY).val(alertHistory[alertHistory.length -1].Status);
 				var time = moment(alertHistory[alertHistory.length -1].Time);
 				$(ALERT_TIME).val(time.tz(common.serverTimeZone).format('YYYY-MM-DD HH:mm:ss'));
+			}
+			
+			var alertActions = alertDetail.Actions;
+			if(alertActions != null && alertHistory.length > 0){
+				$(ACTION_CONTAINER).show();
+				$(ACTION_TYPE).val(alertActions[alertActions.length -1].Type);
+				$(ACTION_MESSAGE).val(alertActions[alertActions.length -1].Message);
+				$(ACTION_USER).val(alertActions[alertActions.length -1].User);
+				var time = moment(alertHistory[alertActions.length -1].Time);
+				$(ACTION_TIME).val(time.tz(common.serverTimeZone).format('YYYY-MM-DD HH:mm:ss'));
+			}else{
+				$(ACTION_CONTAINER).hide();
 			}
 		},
 
