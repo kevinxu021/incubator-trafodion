@@ -26,27 +26,51 @@
 				<div class="panel-body">
 					<fieldset class="dbmgr-fieldset-table" style="width: 90%">
 						<ul style="padding: 0px; width: 90%">
-							<li class="dbmgr-form-item-row" style="width: 90%">
-								<label class="dbmgr-form-item-cell-label" style="vertical-align: top;">Alert ID</label> 
-								<input class="dbmgr-form-item-cell-label" style="width: 600px; border: none;" readonly id="alert-id" maxlength="255">
-							</li>
-							<li class="dbmgr-form-item-row" style="width: 90%">
-								<label class="dbmgr-form-item-cell-label" style="vertical-align: top;">Alert Name</label> 
-								<input class="dbmgr-form-item-cell-label" style="width: 600px; border: none;" readonly id="alert-name" maxlength="255">
-							</li>
-							<li class="dbmgr-form-item-row" style="width: 90%">
-								<label class="dbmgr-form-item-cell-label" style="vertical-align: top;">Status</label> 
-								<input class="dbmgr-form-item-cell-label" style="width: 600px; border: none;" readonly id="alert-status" maxlength="255">
-							</li>
-							<li class="dbmgr-form-item-row" style="width: 90%">
-								<label class="dbmgr-form-item-cell-label" style="vertical-align: top;">Severity</label> 
-								<input class="dbmgr-form-item-cell-label" style="width: 600px; border: none;" readonly id="alert-severity" maxlength="255">
-							</li>
-							<li class="dbmgr-form-item-row" style="width: 90%">
-								<label class="dbmgr-form-item-cell-label" style="vertical-align: top;">Time</label> 
-								<input class="dbmgr-form-item-cell-label" style="width: 600px; border: none;" readonly id="alert-time" maxlength="255">
-							</li>
-
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-item-cell-label" style="vertical-align: top;">Alert
+									ID</label> <input class="dbmgr-form-item-cell-label"
+								style="width: 600px; border: none;" readonly id="alert-id"
+								maxlength="255"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-item-cell-label" style="vertical-align: top;">Alert
+									Name</label> <input class="dbmgr-form-item-cell-label"
+								style="width: 600px; border: none;" readonly id="alert-name"
+								maxlength="255"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-item-cell-label" style="vertical-align: top;">Status</label>
+								<input class="dbmgr-form-item-cell-label"
+								style="width: 600px; border: none;" readonly id="alert-status"
+								maxlength="255"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-item-cell-label" style="vertical-align: top;">Severity</label>
+								<input class="dbmgr-form-item-cell-label"
+								style="width: 600px; border: none;" readonly id="alert-severity"
+								maxlength="255"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-item-cell-label" style="vertical-align: top;">Time</label>
+								<input class="dbmgr-form-item-cell-label"
+								style="width: 600px; border: none;" readonly id="alert-time"
+								maxlength="255"></li>
+							<li class="dbmgr-form-item-row dbmgr-alert-action" style="width: 90%"><label
+								class="dbmgr-form-item-cell-label" style="vertical-align: top;">Last Action</label>
+								<input class="dbmgr-form-item-cell-label"
+								style="width: 600px; border: none;" readonly id="action-type"
+								maxlength="255"></li>
+							<li class="dbmgr-form-item-row dbmgr-alert-action" style="width: 90%"><label
+								class="dbmgr-form-item-cell-label" style="vertical-align: top;">Comments</label>
+								<input class="dbmgr-form-item-cell-label"
+								style="width: 600px; border: none;" readonly id="action-message"
+								maxlength="1000"></li>
+							<li class="dbmgr-form-item-row dbmgr-alert-action" style="width: 90%"><label
+								class="dbmgr-form-item-cell-label" style="vertical-align: top;">Update Time</label>
+								<input class="dbmgr-form-item-cell-label"
+								style="width: 600px; border: none;" readonly id="action-time"
+								maxlength="255"></li>
+							<li class="dbmgr-form-item-row dbmgr-alert-action" style="width: 90%"><label
+								class="dbmgr-form-item-cell-label" style="vertical-align: top;">Update By</label>
+								<input class="dbmgr-form-item-cell-label"
+								style="width: 600px; border: none;" readonly id="action-user"
+								maxlength="255"></li>
 						</ul>
 					</fieldset>
 				</div>
@@ -64,9 +88,10 @@
 			</div>
 		</div>
 	</div>
-	<div class="modal fade" id="alertUpdateDialog" tabindex="-1" role="dialog"
-		aria-labelledby="alertUpdateLabel" data-backdrop="static" data-keyboard="false">
-		<div class="modal-dialog" role="document" style="width:800px">
+	<div class="modal fade" id="alertUpdateDialog" tabindex="-1"
+		role="dialog" aria-labelledby="alertUpdateLabel"
+		data-backdrop="static" data-keyboard="false">
+		<div class="modal-dialog" role="document" style="width: 800px">
 			<div class="modal-content">
 				<div class="modal-header">
 					<button type="button" class="close" data-dismiss="modal"
@@ -79,26 +104,29 @@
 
 					<form id="alert-action-form">
 						<div class="form-group">
-								<label for="action-alert-id" class="control-label">Alert ID</label> 
-								<input class="dbmgr-form-item-cell-label" style="width: 600px; border: none;" readonly id="action-alert-id" maxlength="255">
+							<label for="action-alert-id" class="control-label">Alert
+								ID</label> <input class="dbmgr-form-item-cell-label"
+								style="width: 600px; border: none;" readonly
+								id="action-alert-id" maxlength="255">
 						</div>
 						<div class="form-group">
 							<label class="control-label">Action : </label> <input
 								type="radio" id="update-ack" value="ack"
-								style="margin-left: 4px; padding-right: 4px"> Acknowledge <input
-								type="radio" id="update-close" value="close"
-								style="margin-left: 4px; padding-right: 4px"> Close 
+								style="margin-left: 4px; padding-right: 4px">
+							Acknowledge <input type="radio" id="update-close" value="close"
+								style="margin-left: 4px; padding-right: 4px"> Close
 						</div>
 						<div class="form-group">
-							<label for="alert-update-message" class="control-label">Message :
-								 </label><br>
-							<textarea id="alert-update-message" name="alert-update-message" rows="9" cols="600" spellcheck="false"
-								placeholder="Enter a message"
-								class="textarea" style="width: 600px"></textarea>
+							<label for="alert-update-message" class="control-label">Comments
+								: </label><br>
+							<textarea id="alert-update-message" name="alert-update-message"
+								rows="9" cols="600" spellcheck="false"
+								placeholder="Enter comments" class="textarea"
+								style="width: 600px"></textarea>
 						</div>
 						<div class="form-group">
 							<input type="checkbox" id="alert-update-notify" value="ack"
-								style="margin-left: 4px; padding-right: 4px"> Notify
+								style="margin-left: 4px; padding-right: 4px"> Notify Action
 						</div>
 					</form>
 				</div>
@@ -109,5 +137,5 @@
 				</div>
 			</div>
 		</div>
-	</div>	
+	</div>
 </div>
