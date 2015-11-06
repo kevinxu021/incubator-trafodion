@@ -32,6 +32,7 @@ fi
 OPENTSDB_DIR=$MGBLTY_TOOLSDIR/opentsdb
 TCOLLECTOR_DIR=$MGBLTY_TOOLSDIR/tcollector
 BOSUN_DIR=$MGBLTY_TOOLSDIR/bosun
+JYTHON_DIR=$MGBLTY_TOOLSDIR/jython2.7.0
 
 # Location of manageability log file
 MY_SW_ROOT=$MY_SQROOT/sql/local_hadoop
@@ -40,9 +41,9 @@ MGBLTY_LOG=$MY_SW_ROOT/log/install_mgblty_$(date +%F_%T).log
 # Location of temporary download folder
 MGBLTY_DOWNLOAD_DIR=$MY_SQROOT/../dbmgr/mgblty_download
 
-if [ -d $MGBLTY_TOOLSDIR/opentsdb ] && [ -d $MGBLTY_TOOLSDIR/tcollector ] &&
-        [ -d $MGBLTY_TOOLSDIR/bosun ]; then
-    echo "Manageability tools (tcollector, opentsdb and bosun) already exists.." | tee -a ${MGBLTY_LOG}
+if [ -d $OPENTSDB_DIR ] && [ -d $TCOLLECTOR_DIR ] &&
+        [ -d $BOSUN_DIR ] && [ -d $JYTHON_DIR ]; then
+    echo "Manageability tools (tcollector, opentsdb, bosun and jython) already exists.." | tee -a ${MGBLTY_LOG}
 else
     mkdir -p $MGBLTY_DOWNLOAD_DIR
     cd $MGBLTY_DOWNLOAD_DIR
@@ -60,6 +61,7 @@ else
     cp -p scollector-linux-amd64 $BOSUN_DIR/bin
     echo "Completed setup of Bosun" | tee -a ${MGBLTY_LOG}
     echo
+    cd $MGBLTY_DOWNLOAD_DIR
     if [[ -d $MGBLTY_DOWNLOAD_DIR/tcollector ]]; then
       echo "Tcollector directory already exists, skipping tcollector setup" | tee -a ${MGBLTY_LOG}
     else
@@ -72,8 +74,10 @@ else
     cp -p tcollector/startstop $TCOLLECTOR_DIR
     cp -rp tcollector/collectors $TCOLLECTOR_DIR
     cp -rp tcollector/stumbleupon $TCOLLECTOR_DIR
+    cp -rp tcollector/COPYING $TCOLLECTOR_DIR
     echo "Completed set up of Tcollector" | tee -a ${MGBLTY_LOG}
     echo
+    cd $MGBLTY_DOWNLOAD_DIR
     if [[ -d $MGBLTY_DOWNLOAD_DIR/opentsdb ]]; then
        echo "opentsdb directory already exists, skipping opentsdb setup" | tee -a ${MGBLTY_LOG}
     else
@@ -98,8 +102,25 @@ else
     rm -f tsdb-orig
     cd $MY_SQROOT/sql/scripts
     cp -rp /tmp/myinst-$USER/share/opentsdb $MGBLTY_TOOLSDIR
+    cd $MGBLTY_DOWNLOAD_DIR/opentsdb
+    cp -rp COPYING $OPENTSDB_DIR
     echo "Completed set up of OpenTSDB " | tee -a ${MGBLTY_LOG}
     rm -rf /tmp/myinst-$USER
+    echo
+
+    cd $MGBLTY_DOWNLOAD_DIR
+    if [[ -f $MGBLTY_DOWNLOAD_DIR/jython_installer.jar ]]; then
+       echo "Jython installer jar already exists, skipping jython download step" | tee -a ${MGBLTY_LOG}
+    else
+       echo "Downloading and installing Jython"| tee -a ${MGBLTY_LOG}
+       wget http://search.maven.org/remotecontent?filepath=org/python/jython-installer/2.7.0/jython-installer-2.7.0.jar -O jython_installer.jar
+    fi
+    echo "Installing jython files..."
+    mkdir -p $JYTHON_DIR
+    $JAVA_HOME/bin/java -jar jython_installer.jar -s -d $JYTHON_DIR -t minimum 2>/dev/null
+    echo "Completed setup of Jython" | tee -a ${MGBLTY_LOG}
+    echo
+
     echo "Successfully installed manageability tools" | tee -a ${MGBLTY_LOG}
     echo
     exit 0
