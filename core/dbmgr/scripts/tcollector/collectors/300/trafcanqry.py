@@ -1,4 +1,4 @@
-#!/home/centos/jython2.7.0/bin/jython
+#! /usr/bin/env jython
 
 import sys
 import time
