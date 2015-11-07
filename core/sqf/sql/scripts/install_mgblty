@@ -94,6 +94,7 @@ else
     fi
     cd opentsdb/build
     make install
+    cp -rp gwt/queryui/*  /tmp/myinst-$USER/share/opentsdb/static
     cp -rp /tmp/myinst-$USER/bin/tsdb /tmp/myinst-$USER/share/opentsdb/bin
     cd /tmp/myinst-$USER/share/opentsdb/bin
     mv -f tsdb tsdb-orig 
