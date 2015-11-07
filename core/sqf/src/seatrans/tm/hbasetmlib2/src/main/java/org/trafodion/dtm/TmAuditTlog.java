@@ -48,6 +48,7 @@ import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.RegionLocator;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
@@ -165,6 +166,8 @@ public class TmAuditTlog {
    private static boolean forceControlPoint;
    private boolean disableBlockCache;
    private boolean controlPointDeferred;
+   private int TlogRetryDelay;
+   private int TlogRetryCount;
  
    private static AtomicLong asn;  // Audit sequence number is the monotonic increasing value of the tLog write
 
@@ -894,6 +897,28 @@ public class TmAuditTlog {
          if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_MAX_VERSIONS is not in ms.env");
       }
 
+      TlogRetryDelay = 3000; // 3 seconds
+      try {
+          String retryDelayS = System.getenv("TM_TLOG_RETRY_DELAY");
+          if (retryDelayS != null){
+        	  TlogRetryDelay = (Integer.parseInt(retryDelayS) > TlogRetryDelay ? Integer.parseInt(retryDelayS) : TlogRetryDelay);
+          }
+       }
+       catch (Exception e) {
+          if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_RETRY_DELAY is not in ms.env");
+       }
+
+      TlogRetryCount = 40;
+      try {
+          String retryCountS = System.getenv("TM_TLOG_RETRY_COUNT");
+          if (retryCountS != null){
+        	  TlogRetryCount = (Integer.parseInt(retryCountS) > TlogRetryCount ? Integer.parseInt(retryCountS) : TlogRetryCount);
+          }
+       }
+       catch (Exception e) {
+          if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_RETRY_COUNT is not in ms.env");
+       }
+
       connection = HConnectionManager.createConnection(config);
       tlogNumLogs = 1;
       try {
@@ -1217,12 +1242,13 @@ public class TmAuditTlog {
                      endTimes[lv_TimeIndex] = System.nanoTime();
                      complete = true;
                   }
-                  catch (FailedServerException sfe) {
+                  catch (RetriesExhaustedWithDetailsException rewde){
                       LOG.error("Retrying putSingleRecord for transaction: " + lvTransid + " on table "
-                              + table[lv_lockIndex].getTableName().toString() + " due to ServerFailedException " + sfe);
+                              + table[lv_lockIndex].getTableName().toString() + " due to RetriesExhaustedWithDetailsException " + rewde);
                	      table[lv_lockIndex].getRegionLocations();
-                      Thread.sleep(1000); // 1 second
+                      Thread.sleep(TlogRetryDelay); // 3 second default
                	      continue;
+                	  
                   }
                   catch (Exception e2){
                      // create record of the exception
@@ -1231,7 +1257,7 @@ public class TmAuditTlog {
                      e2.printStackTrace();
                      throw e2;
                   }
-               } while (! complete && retries < 5);
+               } while (! complete && retries < TlogRetryCount);  // default give up after 5 minutes
             } // End global synchronization
          }
          catch (Exception e) {
