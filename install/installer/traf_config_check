@@ -415,9 +415,10 @@ else
    source $TRAF_CONFIG
 
    if [[ $node_count -ne 1 ]]; then
+      nameOfInstallNode=$(hostname -s)
       sudo chmod 777 $TRAF_CONFIG
       sed -i '/CLUSTERNAME\=/d' $TRAF_CONFIG
-      echo "export CLUSTERNAME=\"$CLUSTER_NAME\"" >> $TRAF_CONFIG
+      echo "export CLUSTERNAME=\"$nameOfInstallNode\"" >> $TRAF_CONFIG
       sudo chmod 777 $TRAF_CONFIG
       source $TRAF_CONFIG
    fi

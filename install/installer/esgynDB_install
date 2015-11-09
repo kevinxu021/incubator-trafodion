@@ -123,9 +123,8 @@ else
    ./trafodion_install --no_start
 fi
 
-setModsToY
-
 if [[ $? -eq 0 ]]; then
+   setModsToY
    source /etc/trafodion/trafodion_config
    ./esgyn_dbManager_setup | tee -a $INSTALL_LOG
    sudo su $TRAF_USER --command "$TRAF_WORKDIR/installer/traf_start" 2>&1 | tee -a $INSTALL_LOG
