@@ -55,7 +55,7 @@ define([
 					}else{
 						_interval = newInterval * 60 * 1000;
 					}
-
+					$(REFRESH_INTERVAL).val(newInterval);
 					if(_interval != 0){
 						_refreshTimer.start();
 					}

@@ -240,7 +240,7 @@ public class Helper {
 	}
 
 	public static boolean IsNullOrEmpty(String value) {
-		return (value == null || value.length() == 0);
+		return (value == null || value.trim().length() == 0);
 	}
 
 	public static String generateSQLInClause(String sqlOperator, String columnnName, String[] values) {
@@ -248,24 +248,28 @@ public class Helper {
 	}
 
 	public static String generateSQLInClause(String sqlOperator, String columnnName, String[] values, String colType) {
-		StringBuilder sb = new StringBuilder();
+		ArrayList<String> validValues = new ArrayList<String>();
 		if (values.length > 0) {
 			for (int i = 0; i < values.length; i++) {
 				if (IsNullOrEmpty(values[i]))
 					continue;
+				if (colType.equalsIgnoreCase(("string"))) {
+					validValues.add("'" + values[i].trim() + "'");
+				} else {
+					validValues.add(values[i].trim());
+				}
+			}
+		}
+		StringBuilder sb = new StringBuilder();
+		if (validValues.size() > 0) {
+			for (int i = 0; i < validValues.size(); i++) {
 
 				if (i == 0) {
-					if (colType.equalsIgnoreCase(("string")))
-						sb.append(String.format(" %1$s %2$s in ('%3$s'", sqlOperator, columnnName, values[i].trim()));
-					else
-						sb.append(String.format(" %1$s %2$s in (%3$s", sqlOperator, columnnName, values[i]));
+					sb.append(String.format(" %1$s %2$s in (%3$s", sqlOperator, columnnName, validValues.get(i)));
 				} else {
-					if (colType.equalsIgnoreCase(("string")))
-						sb.append(String.format("'%1$s'", values[i].trim()));
-					else
-						sb.append(String.format("%1$s", values[i]));
+					sb.append(String.format("%1$s", validValues.get(i)));
 				}
-				if (i < (values.length - 1)) {
+				if (i < (validValues.size() - 1)) {
 					sb.append(", ");
 				} else {
 					sb.append(String.format(") "));

@@ -61,7 +61,7 @@ The default value is 4206.
 A self-signed certificate will be generated and stored in a SSL keystore using the provided password. 
 The password is obfuscated and the SSL keystore is saved as *dbmgr-{projectVersion}/etc/dbmgr.keystore*.
 *DCS Master Host*:: 
-The hostname or ip address for the node on which DCS Master is listening. DB Manager uses this property to make a JDBC connection.
+The hostname or IP address for the node on which DCS Master is listening. DB Manager uses this property to make a JDBC connection.
 *DCS Master Listen Port*::
 The listen port number for DCS Master.  DB Manager uses this property to make a JDBC connection. 
 The default value is 23400. 
@@ -69,12 +69,12 @@ The default value is 23400.
 The info port number for DCS Master. This DCS Web UI is accessible using this port and we use the DCS Web UI for viewing the DCS logs. 
 The default value is 24400. 
 *REST Server Host*::
-The hostname or ip address for the node on which EsgynDB REST server is listening.
+The hostname or IP address for the node on which EsgynDB REST server is listening.
 *REST Server Port*::
 The listen port number for EsgynDB REST Server. 
 The default value is 4200.
 *TSD Host*::
-The hostname or ip address for the node on which TSD is listening.
+The hostname or IP address for the node on which TSD is listening.
 *TSD Port*::
 The listen port number for TSD. 
 The default value is 4242.

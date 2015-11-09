@@ -138,11 +138,17 @@ define([
 		},
 
 		showErrorMessage: function (jqXHR) {
-			_this.hideLoading();
-			$(ERROR_CONTAINER).show();
-			$(TEXT_PLAN_CONTAINER).hide();
-			if (jqXHR.responseText) {
-				$(ERROR_CONTAINER).text(jqXHR.responseText);
+			if(jqXHR.statusText != 'abort'){
+				_this.hideLoading();
+				$(ERROR_CONTAINER).show();
+				$(TEXT_PLAN_CONTAINER).hide();
+				if (jqXHR.responseText) {
+					$(ERROR_CONTAINER).text(jqXHR.responseText);
+				}else{
+	        		if(jqXHR.status != null && jqXHR.status == 0) {
+	        			$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+	        		}
+	        	}
 			}
 		} , 
 		cancelQuery: function(){

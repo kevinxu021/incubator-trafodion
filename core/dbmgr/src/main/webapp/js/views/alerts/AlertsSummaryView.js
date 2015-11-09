@@ -377,12 +377,18 @@ define([
 			}
 
 		},
-		showErrorMessage: function (jqXHR) {
-			_this.hideLoading();
-			$(RESULT_CONTAINER).hide();
-			$(ERROR_CONTAINER).show();
-			if (jqXHR.responseText) {
-				$(ERROR_CONTAINER).text(jqXHR.responseText);
+		showErrorMessage: function (jqXHR) {        	
+			if(jqXHR.statusText != 'abort'){
+				_this.hideLoading();
+				$(RESULT_CONTAINER).hide();
+				$(ERROR_CONTAINER).show();
+				if (jqXHR.responseText) {
+					$(ERROR_CONTAINER).text(jqXHR.responseText);
+				}else{
+	        		if(jqXHR.status != null && jqXHR.status == 0) {
+	        			$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+	        		}
+	        	}
 			}
 		},  
 		parseInputDate:function(date){

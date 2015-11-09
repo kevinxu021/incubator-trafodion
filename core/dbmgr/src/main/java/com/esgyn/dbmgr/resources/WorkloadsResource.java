@@ -132,6 +132,7 @@ public class WorkloadsResource {
 			String appNames = "";
 			String clientNames = "";
 			String textFilter = "";
+			String maxRows = "5000";
 			StringBuilder sb = new StringBuilder();
 
 			String predicate = "";
@@ -167,6 +168,9 @@ public class WorkloadsResource {
 				}
 				if (obj.get("textFilter") != null) {
 					textFilter = obj.get("textFilter").textValue();
+				}
+				if (obj.get("maxRows") != null) {
+					maxRows = obj.get("maxRows").textValue();
 				}
 			}
 
@@ -205,7 +209,7 @@ public class WorkloadsResource {
 
 			Session soc = SessionModel.getSession(servletRequest, servletResponse);
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_REPO_QUERIES),
-					predicate);
+					maxRows, predicate);
 			_LOG.debug(queryText);
 
 			TabularResult result = QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText);

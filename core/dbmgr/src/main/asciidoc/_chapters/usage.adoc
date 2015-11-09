@@ -56,14 +56,14 @@ This information is provided by the EsgynDB REST Server which invokes the sqnode
 === Workloads
 
 ==== Active Workloads
-The active workloads page displays the list of active EsgynDB queries. This includes queries that are currently executing and queries that completed within the last 30 seconds. The information is obtained from the EsgynDB Runtime Management Service.
+The active workloads page displays the list of active EsgynDB queries. This includes queries that are currently executing and queries that completed within the last 30 seconds. The information is obtained from the EsgynDB Runtime Manageability Service.
 
 Use the *Action -> Refresh* menu to refresh the list of active queries. 
 
 You can click on the Query ID hyper-link to drill-down into the details of that specific query.
 
 ===== Active Query Details
-The active query details page displays a summary of the runtime metrics as well the operator level statistics for the query. The metrics are obtained from the EsgynDB Runtime Management Service. 
+The active query details page displays a summary of the runtime metrics as well the operator level statistics for the query. The metrics are obtained from the EsgynDB Runtime Manageability Service. 
 
 Use the *Action -> Refresh* menu to refresh the page and reload the latest metrics for the query. 
 
