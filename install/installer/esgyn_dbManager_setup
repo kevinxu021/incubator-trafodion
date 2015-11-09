@@ -244,7 +244,7 @@ if [[ ! -z $openPort ]]; then
    if [[ $node_count -ne "1" ]]; then
       sudo su $TRAF_USER --command "$TRAF_PDCP $BOSUN_CONFIG $BOSUN_CONFIG" 
    fi
-   TSD_PORT="$openPort"
+   TSD_PORT="$port"
 fi
 
 
