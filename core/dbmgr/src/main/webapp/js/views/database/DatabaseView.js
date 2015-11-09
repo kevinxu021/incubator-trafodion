@@ -253,7 +253,11 @@ define([
 			$(errorTextContainer).show();
 			if (jqXHR.responseText) {
 				$("#errorText").text(jqXHR.responseText);
-			}
+			}else{
+        		if(jqXHR.status != null && jqXHR.status == 0) {
+        			$("#errorText").text("Error : Unable to communicate with the server.");
+        		}
+        	}
 		}  
 	});
 

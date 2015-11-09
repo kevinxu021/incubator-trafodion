@@ -15,10 +15,14 @@ import fnmatch
 import textwrap
 import socket
 import commands
+import subprocess
 
 from subprocess import Popen, PIPE
 from sys import stderr
 
+def cmd_exists(cmd):
+    return subprocess.call("type " + cmd, shell=True, 
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
 
 def findfile(librarypath, pattern):
     ''' Locate the indicated file starting at the path given '''
@@ -69,6 +73,10 @@ def encode_pswd(plain_text,dbmgr_path):
     return (encoded)
 
 def run():
+    java_exists = cmd_exists('java')
+    if not java_exists: 
+        print 'Cannot find the java executable in PATH. Aborting operation. Please add java to PATH and try again.'
+        return
     
     # step 1: Get the arguments from the user and validate it.
     time_zone = commands.getoutput("./gettimezone.sh | awk '{print $1}'| head -1")

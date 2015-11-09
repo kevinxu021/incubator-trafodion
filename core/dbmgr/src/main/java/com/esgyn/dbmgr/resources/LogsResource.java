@@ -45,6 +45,7 @@ public class LogsResource {
 			String processNames = "";
 			String errorCodes = "";
 			String message = "";
+			String maxRows = "5000";
 			boolean dcsFilter = false;
 
 			StringBuilder sb = new StringBuilder();
@@ -75,6 +76,9 @@ public class LogsResource {
 				}
 				if (obj.get("message") != null) {
 					message = obj.get("message").textValue();
+				}
+				if (obj.get("maxRows") != null) {
+					maxRows = obj.get("maxRows").textValue();
 				}
 				if (obj.get("dcs") != null) {
 					dcsFilter = obj.get("dcs").booleanValue();
@@ -124,7 +128,8 @@ public class LogsResource {
 
 			Session soc = SessionModel.getSession(servletRequest, servletResponse);
 
-			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LOGS), predicate);
+			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LOGS), maxRows,
+					predicate);
 
 			TabularResult result = QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText);
 

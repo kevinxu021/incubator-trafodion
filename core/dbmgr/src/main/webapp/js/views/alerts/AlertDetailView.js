@@ -36,7 +36,7 @@ define([
 	ACTION_TIME = '#action-time',
 	ACTION_USER = '#action-user',
 	ACTION_CONTAINER = '.dbmgr-alert-action';
-	
+
 	var _this = null;
 	var alertID = null;
 	var validator = null;
@@ -195,7 +195,7 @@ define([
 				var time = moment(alertHistory[alertHistory.length -1].Time);
 				$(ALERT_TIME).val(time.tz(common.serverTimeZone).format('YYYY-MM-DD HH:mm:ss'));
 			}
-			
+
 			var alertActions = alertDetail.Actions;
 			if(alertActions != null && alertHistory.length > 0){
 				$(ACTION_CONTAINER).show();
@@ -210,11 +210,17 @@ define([
 		},
 
 		showErrorMessage: function (jqXHR) {
-			_this.hideLoading();
-			$(RESULT_CONTAINER).hide();
-			$(ERROR_CONTAINER).show();
-			if (jqXHR.responseText) {
-				$(ERROR_CONTAINER).text(jqXHR.responseText);
+			if(jqXHR.statusText != 'abort'){
+				_this.hideLoading();
+				$(RESULT_CONTAINER).hide();
+				$(ERROR_CONTAINER).show();
+				if (jqXHR.responseText) {
+					$(ERROR_CONTAINER).text(jqXHR.responseText);
+				}else{
+	        		if(jqXHR.status != null && jqXHR.status == 0) {
+	        			$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+	        		}
+	        	}
 			}
 		}  
 	});

@@ -36,7 +36,7 @@ define([
     	CONTROL_APPLY_BUTTON = "#controlApplyButton",
     	TOOLTIP_DIALOG = '#tooltipDialog',
     	TOOLTIP_DAILOG_LABEL = '#toolTipDialogLabel',
-    	TOOLTIP_CONTAINER = '#toolTipContainer';
+    	TOOLTIP_CONTAINER = '#tooltipContainer';
     
     var SPINNER = '#loadingImg',
     	TEXT_RESULT_CONTAINER = '#text-result-container',
@@ -440,6 +440,10 @@ define([
         	$(ERROR_TEXT).show();
         	if (jqXHR.responseText) {
         		$(ERROR_TEXT).text(jqXHR.responseText);
+        	}else{
+        		if(jqXHR.status != null && jqXHR.status == 0) {
+        			$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+        		}
         	}
         }        
     });
