@@ -360,7 +360,6 @@ logLocation="$SQ_ROOT/mgblty/opentsdb/etc/opentsdb/logback.xml"
 
 formerName="\/var\/log\/opentsdb"
 newName="..\/..\/log"
-logName="<file>../../log/opentsdb.log</file>"
 
 sudo sed -i "s/$formerName/$newName/g" $logLocation
 
