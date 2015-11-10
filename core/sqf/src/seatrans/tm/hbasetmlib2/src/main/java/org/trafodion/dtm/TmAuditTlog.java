@@ -48,6 +48,7 @@ import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.RegionLocator;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
@@ -75,6 +76,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
+import org.apache.hadoop.hbase.ipc.FailedServerException;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto;
@@ -164,6 +166,8 @@ public class TmAuditTlog {
    private static boolean forceControlPoint;
    private boolean disableBlockCache;
    private boolean controlPointDeferred;
+   private int TlogRetryDelay;
+   private int TlogRetryCount;
  
    private static AtomicLong asn;  // Audit sequence number is the monotonic increasing value of the tLog write
 
@@ -500,6 +504,8 @@ public class TmAuditTlog {
                              if (hasPeerS.compareTo("1") == 0) {
                                 ts.setHasRemotePeers(true);
                              }
+                             String startIdToken = st.nextElement().toString();
+                             ts.setStartId(Long.parseLong(startIdToken));
                              String commitIdToken = st.nextElement().toString();
                              ts.setCommitId(Long.parseLong(commitIdToken));
 
@@ -891,6 +897,28 @@ public class TmAuditTlog {
          if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_MAX_VERSIONS is not in ms.env");
       }
 
+      TlogRetryDelay = 3000; // 3 seconds
+      try {
+          String retryDelayS = System.getenv("TM_TLOG_RETRY_DELAY");
+          if (retryDelayS != null){
+        	  TlogRetryDelay = (Integer.parseInt(retryDelayS) > TlogRetryDelay ? Integer.parseInt(retryDelayS) : TlogRetryDelay);
+          }
+       }
+       catch (Exception e) {
+          if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_RETRY_DELAY is not in ms.env");
+       }
+
+      TlogRetryCount = 40;
+      try {
+          String retryCountS = System.getenv("TM_TLOG_RETRY_COUNT");
+          if (retryCountS != null){
+        	  TlogRetryCount = (Integer.parseInt(retryCountS) > TlogRetryCount ? Integer.parseInt(retryCountS) : TlogRetryCount);
+          }
+       }
+       catch (Exception e) {
+          if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_RETRY_COUNT is not in ms.env");
+       }
+
       connection = HConnectionManager.createConnection(config);
       tlogNumLogs = 1;
       try {
@@ -1061,7 +1089,7 @@ public class TmAuditTlog {
       // This control point write needs to be delayed until after recovery completes, 
       // but is here as a placeholder
       if (LOG.isTraceEnabled()) LOG.trace("Starting a control point with asn value " + lvAsn);
-      tLogControlPointNum = tLogControlPoint.doControlPoint(myClusterId, lvAsn);
+      tLogControlPointNum = tLogControlPoint.doControlPoint(myClusterId, lvAsn, true);
 
       if (LOG.isTraceEnabled()) LOG.trace("Exit constructor()");
       return;
@@ -1091,12 +1119,12 @@ public class TmAuditTlog {
       return asn.getAndIncrement();
    }
 
-   public void putSingleRecord(final long lvTransid, final long lvCommitId, final String lvTxState, 
+   public void putSingleRecord(final long lvTransid, final long lvStartId, final long lvCommitId, final String lvTxState, 
          final Set<TransactionRegionLocation> regions, final boolean hasPeer, boolean forced) throws Exception {
-      putSingleRecord(lvTransid, lvCommitId, lvTxState, regions, hasPeer,forced, -1);
+      putSingleRecord(lvTransid, lvStartId, lvCommitId, lvTxState, regions, hasPeer,forced, -1);
    }
 
-   public void putSingleRecord(final long lvTransid, final long lvCommitId, final String lvTxState, 
+   public void putSingleRecord(final long lvTransid, final long lvStartId, final long lvCommitId, final String lvTxState, 
          final Set<TransactionRegionLocation> regions, final boolean hasPeer, boolean forced, long recoveryASN) throws Exception {
 
       long threadId = Thread.currentThread().getId();
@@ -1157,6 +1185,7 @@ public class TmAuditTlog {
                        + String.valueOf(lvTransid) + "," + lvTxState
                        + "," + Bytes.toString(filler)
                        + "," + hasPeerS
+                       + "," + String.valueOf(lvStartId)
                        + "," + String.valueOf(lvCommitId)
                        + "," + tableString.toString()));
 
@@ -1198,27 +1227,42 @@ public class TmAuditTlog {
          try {
             synchronized (tlogAuditLock[lv_lockIndex]) {
                endSynch = System.nanoTime();
-               try {
-                  if (LOG.isTraceEnabled()) LOG.trace("try table.put in thread " + threadId + ", " + p );
-                  startTimes[lv_TimeIndex] = System.nanoTime();
-                  table[lv_lockIndex].put(p);
-                  if ((forced) && (useAutoFlush == false)) {
-                     if (LOG.isTraceEnabled()) LOG.trace("flushing commits in thread " + threadId);
-                     table[lv_lockIndex].flushCommits();
+               boolean complete = false;
+               int retries = 0;
+               do {
+                  try {
+                	 retries++;
+                     if (LOG.isTraceEnabled()) LOG.trace("try table.put in thread " + threadId + ", " + p );
+                     startTimes[lv_TimeIndex] = System.nanoTime();
+                     table[lv_lockIndex].put(p);
+                     if ((forced) && (useAutoFlush == false)) {
+                        if (LOG.isTraceEnabled()) LOG.trace("flushing commits in thread " + threadId);
+                        table[lv_lockIndex].flushCommits();
+                     }
+                     endTimes[lv_TimeIndex] = System.nanoTime();
+                     complete = true;
                   }
-                  endTimes[lv_TimeIndex] = System.nanoTime();
-               }
-               catch (Exception e2){
-                  // create record of the exception
-                  LOG.error("putSingleRecord Exception " + e2);
-                  e2.printStackTrace();
-                  throw e2;
-               }
+                  catch (RetriesExhaustedWithDetailsException rewde){
+                      LOG.error("Retrying putSingleRecord for transaction: " + lvTransid + " on table "
+                              + table[lv_lockIndex].getTableName().toString() + " due to RetriesExhaustedWithDetailsException " + rewde);
+               	      table[lv_lockIndex].getRegionLocations();
+                      Thread.sleep(TlogRetryDelay); // 3 second default
+               	      continue;
+                	  
+                  }
+                  catch (Exception e2){
+                     // create record of the exception
+                     LOG.error("putSingleRecord for transaction: " + lvTransid + " on table "
+                                + table[lv_lockIndex].getTableName().toString() + " Exception " + e2);
+                     e2.printStackTrace();
+                     throw e2;
+                  }
+               } while (! complete && retries < TlogRetryCount);  // default give up after 5 minutes
             } // End global synchronization
          }
          catch (Exception e) {
             // create record of the exception
-            LOG.error("Synchronizing on tlogAuditLock[" + lv_lockIndex + "] Exception " + e);
+            LOG.error("Synchronizing on tlogAuditLock[" + lv_lockIndex + "] for transaction:" + lvTransid + " Exception " + e);
             e.printStackTrace();
             throw e;
          }
@@ -1639,7 +1683,7 @@ public class TmAuditTlog {
       long startTime = System.nanoTime();
       long endTime;
 
-      if (LOG.isTraceEnabled()) LOG.trace("writeControlPointRecords for clusterId " + clusterId + " start with map size " + map.size());
+      if (LOG.isTraceEnabled()) LOG.trace("Tlog " + getTlogTableNameBase() + " writeControlPointRecords for clusterId " + clusterId + " start with map size " + map.size());
 
       try {
         for (Map.Entry<Long, TransactionState> e : map.entrySet()) {
@@ -1651,10 +1695,10 @@ public class TmAuditTlog {
                if (LOG.isTraceEnabled()) LOG.trace("writeControlPointRecords adding record for trans (" + transid + ") : state is " + value.getStatus());
                cpWrites++;
                if (forceControlPoint) {
-                  putSingleRecord(transid, value.getCommitId(), value.getStatus(), value.getParticipatingRegions(), value.hasRemotePeers(), true);
+                  putSingleRecord(transid, value.getStartId(), value.getCommitId(), value.getStatus(), value.getParticipatingRegions(), value.hasRemotePeers(), true);
                }
                else {
-                  putSingleRecord(transid, value.getCommitId(), value.getStatus(), value.getParticipatingRegions(), value.hasRemotePeers(), false);
+                  putSingleRecord(transid, value.getStartId(), value.getCommitId(), value.getStatus(), value.getParticipatingRegions(), value.hasRemotePeers(), false);
                }
             }
          }
@@ -1682,7 +1726,7 @@ public class TmAuditTlog {
 
    }
 
-   public long addControlPoint (final int clusterId, final Map<Long, TransactionState> map) throws IOException, Exception {
+   public long addControlPoint (final int clusterId, final Map<Long, TransactionState> map, final boolean incrementCP) throws IOException, Exception {
       if (LOG.isInfoEnabled()) LOG.info("addControlPoint start with map size " + map.size());
       long lvCtrlPt = 0L;
       long agedAsn;  // Writes older than this audit seq num will be deleted
@@ -1713,15 +1757,22 @@ public class TmAuditTlog {
          if (LOG.isTraceEnabled()) LOG.trace("lvAsn reset to: " + lvAsn);
 
          // Write the control point interval and the ASN to the control point table
-         lvCtrlPt = tLogControlPoint.doControlPoint(clusterId, lvAsn);
+         lvCtrlPt = tLogControlPoint.doControlPoint(clusterId, lvAsn, incrementCP);
+         if (LOG.isTraceEnabled()) LOG.trace("Control point record " + lvCtrlPt +
+        		 " returned for table " + tLogControlPoint.getTableName());
 
-         if ((lvCtrlPt - 5) > 0){  // We'll keep 5 control points of audit
+         long deleteCP = tLogControlPoint.getNthRecord(clusterId, 5);
+         if ((deleteCP) > 0){  // We'll keep 5 control points of audit
             try {
-               agedAsn = tLogControlPoint.getRecord(clusterId, String.valueOf(lvCtrlPt - 5));
+               if (LOG.isTraceEnabled()) LOG.trace("Attempting to get control point record from " + 
+                         tLogControlPoint.getTableName() + " for control point " + (deleteCP));
+               agedAsn = tLogControlPoint.getRecord(clusterId, String.valueOf(deleteCP));
+               if (LOG.isTraceEnabled()) LOG.trace("AgedASN from " + 
+                       tLogControlPoint.getTableName() + " is " + agedAsn);
                if (agedAsn > 0){
                   try {
                      if (LOG.isTraceEnabled()) LOG.trace("Attempting to remove TLOG writes older than asn " + agedAsn);
-                     deleteAgedEntries(agedAsn);
+							deleteAgedEntries(agedAsn);
                   }
                   catch (Exception e){
                      LOG.error("deleteAgedEntries Exception " + e);
@@ -1784,6 +1835,7 @@ public class TmAuditTlog {
          TransState lvTxState = TransState.STATE_NOTX;
          String stateString = "";
          String transidToken = "";
+         String startIdToken = "";
          String commitIdToken = "";
          try {
             Result r = unknownTransactionTable.get(g);
@@ -1903,6 +1955,8 @@ public class TmAuditTlog {
                ts.setHasRemotePeers(true);
             }
 
+            startIdToken = st.nextElement().toString();
+            ts.setStartId(Long.parseLong(startIdToken));
             commitIdToken = st.nextElement().toString();
             ts.setCommitId(Long.parseLong(commitIdToken));
 
@@ -1942,15 +1996,18 @@ public class TmAuditTlog {
       return;
    }
 
-public long getAuditCP(int clustertoRetrieve) throws Exception {
-       long cp = 0;
-       try {
-          cp = tLogControlPoint.getCurrControlPt(clustertoRetrieve);
-       } catch (Exception e) {
-             LOG.error("Get Control Point Exception " + Arrays.toString(e.getStackTrace()));
-             throw e;
-       }
-       return cp;
-}
-
+   public long getAuditCP(int clustertoRetrieve) throws Exception {
+      long cp = 0;
+      try {
+         cp = tLogControlPoint.getCurrControlPt(clustertoRetrieve);
+      } catch (Exception e) {
+          LOG.error("Get Control Point Exception " + Arrays.toString(e.getStackTrace()));
+          throw e;
+      }
+      return cp;
+   }
+   
+   public String getTlogTableNameBase(){
+      return TLOG_TABLE_NAME;
+   }   
 }

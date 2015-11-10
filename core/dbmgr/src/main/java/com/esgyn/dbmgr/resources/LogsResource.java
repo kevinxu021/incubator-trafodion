@@ -45,6 +45,9 @@ public class LogsResource {
 			String processNames = "";
 			String errorCodes = "";
 			String message = "";
+			String maxRows = "5000";
+			boolean dcsFilter = false;
+
 			StringBuilder sb = new StringBuilder();
 
 			String predicate = "";
@@ -74,6 +77,12 @@ public class LogsResource {
 				if (obj.get("message") != null) {
 					message = obj.get("message").textValue();
 				}
+				if (obj.get("maxRows") != null) {
+					maxRows = obj.get("maxRows").textValue();
+				}
+				if (obj.get("dcs") != null) {
+					dcsFilter = obj.get("dcs").booleanValue();
+				}
 			}
 
 			if (Helper.IsNullOrEmpty(startTime)) {
@@ -89,7 +98,20 @@ public class LogsResource {
 			sb.append(Helper.generateSQLInClause("and", "severity", values));
 
 			values = componentNames.split(",");
-			sb.append(Helper.generateSQLInClause("and", "component", values));
+			String componentFilter = Helper.generateSQLInClause("", "component", values);
+			if (dcsFilter) {
+				if(componentFilter != null && componentFilter.length() >0){
+					componentFilter = String.format(" and ( %1$s or %2$s ) ", componentFilter,
+							"component like '%org.trafodion.dcs%'");
+				} else {
+					componentFilter = String.format(" and %1$s  ", "component like '%org.trafodion.dcs%'");
+				}
+			} else {
+				if (componentFilter != null && componentFilter.length() > 0) {
+					componentFilter = " and " + componentFilter;
+				}
+			}
+			sb.append(componentFilter);
 
 			values = processNames.split(",");
 			sb.append(Helper.generateSQLInClause("and", "process_name", values));
@@ -101,11 +123,13 @@ public class LogsResource {
 				sb.append(" and message like '%" + message + "%'");
 			}
 
+
 			predicate = sb.toString();
 
 			Session soc = SessionModel.getSession(servletRequest, servletResponse);
 
-			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LOGS), predicate);
+			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LOGS), maxRows,
+					predicate);
 
 			TabularResult result = QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText);
 

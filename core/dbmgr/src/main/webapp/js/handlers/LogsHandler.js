@@ -8,6 +8,7 @@ define(['handlers/EventDispatcher'],
 		function(EventDispatcher) {"use strict";
 
 		var LogsHandler = ( function() {
+			var xhrs = [];
 
 			function LogsHandler() {
 				var dispatcher = new EventDispatcher();
@@ -21,7 +22,11 @@ define(['handlers/EventDispatcher'],
 				};
 
 				this.fetchLogs = function(params){
-					var request = $.ajax({
+					var xhr = xhrs["logs_list"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["logs_list"] = $.ajax({
 						url: 'resources/logs/list',
 						type:'POST',
 						data: JSON.stringify(params),

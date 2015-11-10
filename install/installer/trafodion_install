@@ -44,7 +44,21 @@ Options:
                        the Trafodion license.
     --config_file      If provided, all install prompts will be
                        taken from this file and not prompted for.
+    --no_start         Will not start trafodion. Useful if other configurations 
+                       need to be done before a start.
 EOF
+}
+
+function copyConfig  {
+
+if [ $node_count -ne 1 ]; then
+   cp $TRAF_CONFIG $LOCAL_WORKDIR
+   $TRAF_PDCP $LOCAL_WORKDIR/$TRAF_CONFIG_FILE $LOCAL_WORKDIR
+   $TRAF_PDSH sudo mkdir -p $TRAF_CONFIG_DIR
+   $TRAF_PDSH sudo cp $LOCAL_WORKDIR/$TRAF_CONFIG_FILE $TRAF_CONFIG_DIR
+   $TRAF_PDSH sudo chmod 777 $TRAF_CONFIG
+fi
+
 }
 
 function checkHBaseVersion {
@@ -134,6 +148,7 @@ echo "***INFO: Trafodion version = $trafodionVersion"
 USER_CONFIG=""
 ACCEPT_LICENSE="N"
 RUN_SCANNER="N"
+NO_START="Y"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -175,6 +190,9 @@ while [[ $# -gt 0 ]]; do
                exit -1 
             fi
             ;;
+        --no_start)
+            NO_START="N"
+            ;;            
         *)
             echo "***ERROR: unknown parameter '$1'"
             print_usage
@@ -195,6 +213,7 @@ echo
 export timestamp=$(date +%F-%H-%M-%S)
 export TRAF_LOGDIR="/var/log/trafodion"
 export INSTALL_LOG="$TRAF_LOGDIR/trafodion_install_$timestamp.log"
+export INSTALL_LOG_CP="$INSTALL_LOG"
 export SCANNER_LOG="$TRAF_LOGDIR/trafodion_scanner_$timestamp.log"
 #export TRAF_WORKDIR="$( cd "$( dirname "$0" )" && pwd )/.."
 export TRAF_WORKDIR="/usr/lib/trafodion"
@@ -250,6 +269,7 @@ sudo chmod -R 777 $TRAF_WORKDIR
 userForTrafodion=`grep "$TRAF_USER:" /etc/passwd | wc -l`
 
 if [[ "$userForTrafodion" != "0" ]]; then
+
    isTrafUp=$(sudo su $TRAF_USER --login --command "sqcheck" 2>/dev/null)
 
    trafodionRunning=$(echo $isTrafUp | grep "The SQ environment is up" | wc -l)
@@ -329,7 +349,13 @@ fi
 
 sudo chmod 777 $TRAF_CONFIG
 sed -i '/INSTALL_LOG\=/d' $TRAF_CONFIG
-echo "export INSTALL_LOG=\"$INSTALL_LOG\"" >> $TRAF_CONFIG
+echo "export INSTALL_LOG=\"$INSTALL_LOG_CP\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+source $TRAF_CONFIG
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/START_ALL\=/d' $TRAF_CONFIG
+echo "export START_ALL=\"$NO_START\"" >> $TRAF_CONFIG
 sudo chmod 777 $TRAF_CONFIG
 source $TRAF_CONFIG
 
@@ -626,13 +652,8 @@ $TRAF_PDSH sudo mkdir -p $LOCAL_WORKDIR
 $TRAF_PDSH sudo chmod 777 $LOCAL_WORKDIR
 
 # copy config file to all nodes
-if [ $node_count -ne 1 ]; then
-   cp $TRAF_CONFIG $LOCAL_WORKDIR
-   $TRAF_PDCP $LOCAL_WORKDIR/$TRAF_CONFIG_FILE $LOCAL_WORKDIR
-   $TRAF_PDSH sudo mkdir -p $TRAF_CONFIG_DIR
-   $TRAF_PDSH sudo cp $LOCAL_WORKDIR/$TRAF_CONFIG_FILE $TRAF_CONFIG_DIR
-   $TRAF_PDSH sudo chmod 777 $TRAF_CONFIG
-fi
+
+copyConfig
 
 
 $LOCAL_WORKDIR/traf_sqconfig
@@ -667,6 +688,18 @@ do
       exit -1
    fi
 done
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/DCS_PORT\=/d' $TRAF_CONFIG
+echo "export DCS_PORT=\"23400\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/DCS_INFO_PORT\=/d' $TRAF_CONFIG
+echo "export DCS_INFO_PORT=\"24400\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+source $TRAF_CONFIG
+copyConfig
 
 #Set Max kernel pid 
 
@@ -747,20 +780,31 @@ echo "***INFO: Trafodion Mods ran successfully."
 #Install Trafodion
 echo
 echo "******************************"
-echo " TRAFODION START"
+echo " TRAFODION CONFIGURATION"
 echo "******************************"
 echo
 sudo mkdir -p $SQ_ROOT
 sudo chown $TRAF_USER.trafodion $SQ_ROOT
-/bin/cp -rf $LOCAL_WORKDIR/traf_start $TRAF_WORKDIR/installer/traf_start
+/bin/cp -rf $LOCAL_WORKDIR/traf_config $TRAF_WORKDIR/installer/traf_config
 
-sudo su $TRAF_USER --command "$TRAF_WORKDIR/installer/traf_start" 2>&1 | tee -a $INSTALL_LOG
+sudo su $TRAF_USER --command "$TRAF_WORKDIR/installer/traf_config" 2>&1 | tee -a $INSTALL_LOG
 
 if [ ${PIPESTATUS[0]} != "0" ]; then
-   echo "***ERROR: Error while running traf_start." | tee -a $INSTALL_LOG
+   echo "***ERROR: Error while running traf_config." | tee -a $INSTALL_LOG
    echo "***ERROR: Setup not complete, review logs." | tee -a $INSTALL_LOG
    echo "***ERROR: Exiting...." | tee -a $INSTALL_LOG
    exit -1
+fi
+
+if [[ $START_ALL == "Y" ]]; then
+   sudo su $TRAF_USER --command "$TRAF_WORKDIR/installer/traf_start" 2>&1 | tee -a $INSTALL_LOG
+
+   if [ ${PIPESTATUS[0]} != "0" ]; then
+      echo "***ERROR: Error while running traf_start." | tee -a $INSTALL_LOG
+      echo "***ERROR: Setup not complete, review logs." | tee -a $INSTALL_LOG
+      echo "***ERROR: Exiting...." | tee -a $INSTALL_LOG
+     exit -1
+  fi
 fi
 
 #==============================================
@@ -770,6 +814,7 @@ sed -i '/MODS_COMPLETE\=/d' $TRAF_CONFIG
 echo "export MODS_COMPLETE=\"$MODS_COMPLETE\"" >> $TRAF_CONFIG
 sudo chmod 777 $TRAF_CONFIG
 source $TRAF_CONFIG
+copyConfig
 echo
 echo "*********************************"
 echo " TRAFODION INSTALLATION COMPLETE"

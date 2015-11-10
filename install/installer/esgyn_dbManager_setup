@@ -1,0 +1,412 @@
+#!/bin/bash
+
+export timestamp=$(date +%F-%H-%M-%S)
+export YUM_LOG=/var/log/trafodion/trafodion_yum_$timestamp.log
+export ZYPP_LOG=/var/log/trafodion/trafodion_zypp_$timestamp.log
+
+TRAF_CONFIG="/etc/trafodion/trafodion_config"
+source $TRAF_CONFIG
+
+#Setting up pdsh variables
+if [ $node_count -eq 1 ]; then
+    TRAF_PDSH=""
+    TRAF_PDCP=""
+else
+    TRAF_PDSH="pdsh -R exec $MY_NODES ssh -q -n %h"
+    TRAF_PDCP="pdcp -R ssh $MY_NODES"
+fi
+
+function setPackageNames {
+
+source $TRAF_CONFIG
+
+build_file=$(ls $UNTAR_DIR | grep "mgblty")
+DBM_SETUP_PACKAGE=$UNTAR_DIR/$build_file
+
+MGBLTY_INSTALL_DIR="$SQ_ROOT/mgblty"
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/DBM_SETUP_PACKAGE\=/d' $TRAF_CONFIG
+echo "export DBM_SETUP_PACKAGE=\"$DBM_SETUP_PACKAGE\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/MGBLTY_INSTALL_DIR\=/d' $TRAF_CONFIG
+echo "export MGBLTY_INSTALL_DIR=\"$MGBLTY_INSTALL_DIR\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+source $TRAF_CONFIG
+
+build_file=$(ls $UNTAR_DIR | grep "dbmgr")
+DBM_PACKAGE=$UNTAR_DIR/$build_file
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/DBM_PACKAGE\=/d' $TRAF_CONFIG
+echo "export DBM_PACKAGE=\"$DBM_PACKAGE\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+source $TRAF_CONFIG
+
+}
+
+function installPackages  {
+echo "***INFO: Installing packages gnuplot and lsof"
+echo 
+if [[ $SUSE_LINUX == "false" ]]; then
+   for node in $NODE_LIST
+   do
+      ssh -q -n $node sudo yum install -y gnuplot >> $YUM_LOG
+      ssh -q -n $node sudo yum install -y lsof >> $YUM_LOG
+   done
+else
+   for node in $NODE_LIST
+   do
+      ssh -q -n $node sudo zypper -y install gnuplot >> $ZYPP_LOG
+      ssh -q -n $node sudo zypper -y install lsof >> $ZYPP_LOG
+   done
+fi
+
+}
+
+function unTarPackage {
+echo "***INFO: Un taring DBM Setup Package"
+echo
+
+tar -xf $DBM_SETUP_PACKAGE
+sudo chmod -R 777 mgblty
+
+if [[ "$node_count" -eq "1" ]]; then
+   cp -r mgblty $HOME
+else
+   $TRAF_PDCP -r mgblty $HOME
+fi
+
+$TRAF_PDSH sudo cp -r $HOME/mgblty $SQ_ROOT
+$TRAF_PDSH sudo chown -R $TRAF_USER.trafodion $SQ_ROOT/mgblty
+$TRAF_PDSH sudo chmod -R 777 $SQ_ROOT/mgblty
+}
+
+function unTarDMPackage {
+
+tar -xf $DBM_PACKAGE
+
+dbmgr_dir_temp=$(sudo ls | grep --max-count=1 "dbmgr")
+dbmgr_dir=${dbmgr_dir_temp%".tar.gz"}
+
+sudo chmod -R 777 $dbmgr_dir
+
+if [[ "$node_count" -eq "1" ]]; then
+   cp -r $dbmgr_dir $HOME
+else
+   $TRAF_PDCP -r $dbmgr_dir $HOME
+fi
+
+$TRAF_PDSH sudo cp -r $HOME/$dbmgr_dir $SQ_ROOT
+$TRAF_PDSH sudo chown -R $TRAF_USER.trafodion $SQ_ROOT/$dbmgr_dir
+$TRAF_PDSH sudo chmod -R 777 $SQ_ROOT/$dbmgr_dir
+
+
+DBMGR_INSTALL_DIR="$SQ_ROOT/$dbmgr_dir"
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/DBMGR_INSTALL_DIR\=/d' $TRAF_CONFIG
+echo "export DBMGR_INSTALL_DIR=\"$DBMGR_INSTALL_DIR\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+source $TRAF_CONFIG
+
+}
+
+function setFlags {
+
+export HBASE_HOME="/usr"
+export COMPRESSION="NONE"
+export PATH=$PATH:$JAVA_HOME/bin
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/HBASE_HOME\=/d' $TRAF_CONFIG
+echo "export HBASE_HOME=\"$HBASE_HOME\"" >> $TRAF_CONFIG
+sed -i '/COMPRESSION\=/d' $TRAF_CONFIG
+echo "export COMPRESSION=\"$COMPRESSION\"" >> $TRAF_CONFIG
+sed -i '/PATH\=/d' $TRAF_CONFIG
+echo "export PATH=\"$PATH\"" >>$TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+source $TRAF_CONFIG
+
+
+if [[ "$node_count" -ne "1" ]]; then
+   $TRAF_PDCP $TRAF_CONFIG $TRAF_CONFIG
+fi
+}
+
+function getZookeeperNodes {
+
+lineNumber=$(grep -n "zookeeper\.quorum" $TRAF_WORKDIR/hbase-site.xml | sed 's/\:.*//')
+lineNumber=$((lineNumber+1))
+
+ZOOKEEPER_NODES=$(sed "$lineNumber!d" $TRAF_WORKDIR/hbase-site.xml | sed 's/\/value.*//' | sed 's/.*>//' | sed 's/.$//')
+
+ZOO_NODES=$(echo $ZOOKEEPER_NODES | tr "," "\n")
+
+newNodes=""
+for node in $ZOO_NODES
+do
+   tempList="$tempList $node:2181"
+
+done
+
+
+for node in $tempList
+do
+   tempNodes="$node,$tempNodes"
+
+done
+
+zookeeperNodes="${tempNodes%?}"
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/ZOOKEEPER_NODES\=/d' $TRAF_CONFIG
+echo "export ZOOKEEPER_NODES=\"$zookeeperNodes\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+source $TRAF_CONFIG
+
+
+}
+
+function createOpenTSDBTables {
+CREATE_TABLE="$SQ_ROOT/mgblty/opentsdb/tools/create_table.sh"
+
+echo "***INFO: Createing OpenTSDB tables"
+echo
+sudo su $TRAF_USER --command "echo 'source /etc/trafodion/trafodion_config' | cat - $CREATE_TABLE > temp && mv temp $CREATE_TABLE"
+
+sudo su $TRAF_USER --command "chmod 777 $CREATE_TABLE"
+
+sudo su $TRAF_USER --command "$TRAF_PDSH $CREATE_TABLE"
+
+}
+
+function registerMetrics {
+CREATE_METRICS="$SQ_ROOT/mgblty/opentsdb/tools/register_metrics.sh"
+
+echo "***INFO: Registering Metrics"
+echo
+sudo su $TRAF_USER --command "echo 'source /etc/trafodion/trafodion_config' | cat - $CREATE_METRICS > temp && mv temp $CREATE_METRICS"
+
+sudo su $TRAF_USER --command "chmod 777 $CREATE_METRICS"
+
+sudo su $TRAF_USER --command "$TRAF_PDSH $CREATE_METRICS"
+
+}
+
+
+function unSetFlag {
+
+export HBASE_HOME=""
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/HBASE_HOME\=/d' $TRAF_CONFIG
+echo "export HBASE_HOME=\"$HBASE_HOME\"" >> $TRAF_CONFIG
+sed -i '/COMPRESSION\=/d' $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+source $TRAF_CONFIG
+
+if [[ "$node_count" -ne "1" ]]; then
+   $TRAF_PDCP $TRAF_CONFIG $TRAF_CONFIG
+fi
+
+}
+
+function checkPorts {
+echo "***INFO: Checking Ports for opentsdb"
+
+OPENTSDB_CONFIG="$SQ_ROOT/mgblty/opentsdb/etc/opentsdb/opentsdb.conf"
+BOSUN_CONFIG="$SQ_ROOT/mgblty/bosun/conf/bosun.conf"
+
+TSD_PORT="5242"
+
+openPort=$(sudo lsof -wni tcp:$TSD_PORT)
+
+if [[ ! -z $openPort ]]; then
+   echo "***ERROR: Port 5242 is being used by another process"
+   echo -n "Please select another port, that is open: "
+   read port
+
+   openPort=$(sudo lsof -wni tcp:$port)
+   if [[ ! -z $openPort ]]; then
+      echo "***ERROR: Port $port is being used by another process"
+      echo "***ERROR: Exiting...."
+      exit -1
+   fi
+   newPort="tsd.network.port = $port"
+   sudo sed -i -e "s/tsd.network.port = 5242/$newPort/g" $OPENTSDB_CONFIG
+   if [[ $node_count -ne "1" ]]; then
+      sudo su $TRAF_USER --command "$TRAF_PDCP $OPENTSDB_CONFIG $OPENTSDB_CONFIG"
+   fi
+
+   newPort="tsdbHost = $(hostname -f):$port"
+   sudo sed -i -e "s/tsdbHost = localhost:5242/$newPort/g" $BOSUN_CONFIG
+   if [[ $node_count -ne "1" ]]; then
+      sudo su $TRAF_USER --command "$TRAF_PDCP $BOSUN_CONFIG $BOSUN_CONFIG" 
+   fi
+   TSD_PORT="$port"
+fi
+
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/TSD_PORT\=/d' $TRAF_CONFIG
+echo "export TSD_PORT=\"$TSD_PORT\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+source $TRAF_CONFIG
+
+if [[ $node_count -ne "1" ]]; then
+   $TRAF_PDCP $TRAF_CONFIG $TRAF_CONFIG
+fi
+
+
+echo "***INFO: Checking port for http"
+
+HTTP_PORT="8070"
+
+openPort=$(sudo lsof -wni tcp:$HTTP_PORT)
+
+if [[ ! -z $openPort ]]; then
+   echo "***ERROR: Port 8070 is being used by another process"
+   echo -n "Please select another port, that is open: "
+   read port
+
+   openPort=$(sudo lsof -wni tcp:$port)
+   if [[ ! -z $openPort ]]; then
+      echo "***ERROR: Port $port is being used by another process"
+      echo "***ERROR: Exiting...."
+      exit -1
+   fi
+   newPort="httpListen = :$port"
+   sudo sed -i -e "s/httpListen = :8070/$newPort/g" $BOSUN_CONFIG
+   if [[ $node_count -ne "1" ]]; then
+      sudo su $TRAF_USER --command "$TRAF_PDCP $BOSUN_CONFIG $BOSUN_CONFIG"
+   fi
+   HTTP_PORT=$port
+fi
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/HTTP_PORT\=/d' $TRAF_CONFIG
+echo "export HTTP_PORT=\"$HTTP_PORT\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+source $TRAF_CONFIG
+
+if [[ $node_count -ne "1" ]]; then
+   $TRAF_PDCP $TRAF_CONFIG $TRAF_CONFIG
+fi
+
+}
+
+function editOPENTSDB_CONF {
+echo "***INFO: Editing opentsdb.conf file with Zookeeper Nodes"
+
+OPENTSDB_CONFIG="$SQ_ROOT/mgblty/opentsdb/etc/opentsdb/opentsdb.conf"
+
+zooKeeperNodes="tsd.storage.hbase.zk_quorum = $ZOOKEEPER_NODES"
+sudo sed -i -e "s/tsd.storage.hbase.zk.quorum = localhost:2181/$zooKeeperNodes/g" $OPENTSDB_CONFIG
+if [[ $node_count -ne "1" ]]; then
+   sudo su $TRAF_USER --command "$TRAF_PDCP $OPENTSDB_CONFIG $OPENTSDB_CONFIG"
+fi
+
+}
+
+function editStartStop {
+
+START_STOP="$SQ_ROOT/mgblty/tcollector/startstop"
+
+echo "***INFO: Editing TCollector startstop script with TSD_HOST and TSD_PORT"
+
+TSD_PORT="TSD_PORT=$TSD_PORT"
+
+for node in $NODE_LIST
+do
+   hostName=$(ssh -q -n $node hostname -f)
+   TSD_HOST="TSD_HOST=$hostName"
+
+   ssh -q -n $node sudo sed -i -e "s/TSD_HOST=localhost/$TSD_HOST/g" $START_STOP
+   
+   ssh -q -n $node sudo sed -i -e "s/TSD_PORT=5242/$TSD_PORT/g" $START_STOP
+done
+
+}
+
+function getTimeZone {
+
+echo "***INFO: Getting time zone information for DB Manager"
+
+sudo chmod +x $SQ_ROOT/tools/gettimezone.sh
+timeZones=$(sudo $SQ_ROOT/tools/gettimezone.sh)
+
+for zone in $timeZones
+do
+    timeZone=$zone
+    break;
+done
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/TIME_ZONE\=/d' $TRAF_CONFIG
+echo "export TIME_ZONE=\"$timeZone\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+source $TRAF_CONFIG
+
+if [[ $node_count -ne "1" ]]; then
+   $TRAF_PDCP $TRAF_CONFIG $TRAF_CONFIG
+fi
+
+}
+
+function editLogBack {
+
+logLocation="$SQ_ROOT/mgblty/opentsdb/etc/opentsdb/logback.xml"
+
+formerName="\/var\/log\/opentsdb"
+newName="..\/..\/log"
+
+sudo sed -i "s/$formerName/$newName/g" $logLocation
+
+}
+
+function configureDBM {
+
+export DM_HTTP_PORT="4205"
+export DM_HTTPS_PORT="4206"
+export REST_PORT="4200"
+
+echo "***INFO: Configuring DB Manager"
+
+sudo su $TRAF_USER --login --command "$DBMGR_INSTALL_DIR/bin/configure.py --httpport $DM_HTTP_PORT --httpsport $DM_HTTPS_PORT --dcshost $(hostname -f) --dcsport $DCS_PORT --password dbmgr23400 --dcsinfoport $DCS_INFO_PORT --resthost $(hostname -f) --restport $REST_PORT --tsdhost $(hostname -f) --tsdport $TSD_PORT --bosunhost $(hostname -f) --bosunport $HTTP_PORT --timezone $TIME_ZONE"
+
+}
+
+#================================================
+
+#Main
+
+setPackageNames
+
+installPackages
+
+unTarPackage
+
+unTarDMPackage
+
+getZookeeperNodes
+
+setFlags
+
+createOpenTSDBTables
+
+registerMetrics
+
+unSetFlag
+
+checkPorts
+
+editOPENTSDB_CONF
+
+editStartStop
+
+editLogBack
+
+getTimeZone
+
+configureDBM

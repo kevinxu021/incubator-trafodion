@@ -47,11 +47,34 @@ Options:
 EOF
 }
 
+function setModsToY {
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/MODS_COMPLETE\=/d' $TRAF_CONFIG
+echo "export MODS_COMPLETE=\"Y\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+source $TRAF_CONFIG
+
+}
+
+function setModsToN {
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/MODS_COMPLETE\=/d' $TRAF_CONFIG
+echo "export MODS_COMPLETE=\"N\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+source $TRAF_CONFIG
+
+}
+
+
+
 #==============================================
 #Parse input
 USER_CONFIG=""
 ACCEPT_LICENSE="N"
 RUN_SCANNER="N"
+export TRAF_CONFIG="/etc/trafodion/trafodion_config"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -87,13 +110,25 @@ done
 
 
 #==============================================
+#Set start all flag to N
 echo
 echo "******************************"
 echo " EsgynDB INSTALLATION START"
 echo "******************************"
 
+
 if [[ -f $USER_CONFIG ]]; then
-   ./trafodion_install --accept_license --config_file $USER_CONFIG
+   ./trafodion_install --accept_license --config_file $USER_CONFIG --no_start
 else
-   ./trafodion_install
+   ./trafodion_install --no_start
 fi
+
+if [[ $? -eq 0 ]]; then
+   setModsToY
+   source /etc/trafodion/trafodion_config
+   ./esgyn_dbManager_setup | tee -a $INSTALL_LOG
+   sudo su $TRAF_USER --command "$TRAF_WORKDIR/installer/traf_start" 2>&1 | tee -a $INSTALL_LOG
+   ./esgyn_dbManager_start | tee -a $INSTALL_LOG
+fi
+
+setModsToN

@@ -57,13 +57,13 @@
 		<query>
 			<!-- Fetch list of historical workloads -->
 			<name>SELECT_REPO_QUERIES</name>
-			<text><![CDATA[SELECT query_id as "Query ID", query_status AS "Status" ,
+			<text><![CDATA[SELECT [first %1$s] query_id as "Query ID", query_status AS "Status" ,
 						exec_start_utc_ts as "Start Time", exec_end_utc_ts AS "End Time", 
 						USER_NAME AS "User Name",  APPLICATION_NAME as "Application",
 						CLIENT_NAME as "Client", query_elapsed_time AS "Elapsed Time", 
 						QUERY_TEXT AS "Query Text"
 					FROM "_REPOS_".metric_query_table 
-					%1$s
+					%2$s
 					order by exec_start_utc_ts desc
 					for read uncommitted access;
 				]]></text>
@@ -171,9 +171,9 @@
 		<query>
 			<!-- Fetch list of log entries -->
 			<name>SELECT_LOGS</name>
-			<text><![CDATA[select [first 100000] log_ts as "Time", severity as "Severity", component as "Component", process_name as "Process", sql_code as "Error Code", cast(message as char(1000)) as "Message"
+			<text><![CDATA[select [first %1$s] log_ts as "Time", severity as "Severity", component as "Component", process_name as "Process", sql_code as "Error Code", cast(message as char(1000)) as "Message"
 				from udf(event_log_reader()) 
-				%1$s
+				%2$s
 				order by log_ts desc
 				]]></text>
 		</query>
@@ -267,7 +267,15 @@
 		</query>
 		<query>
 			<name>FETCH_ALERTS_LIST</name>
-			<text><![CDATA[{"url":"http://%1$s/api/alerts", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/alerts?filter=%2$s", "method":"get"}]]></text>
+		</query>		
+		<query>
+			<name>FETCH_ALERT_DETAIL</name>
+			<text><![CDATA[{"url":"http://%1$s/api/status?ak=%2$s", "method":"get"}]]></text>
+		</query>		
+		<query>
+			<name>UPDATE_ALERT</name>
+			<text><![CDATA[{"url":"http://%1$s/api/action", "method":"post", "jsonParameter":{"Keys":["%2$s"], "Message":"%3$s", "Notify":%4$s,  "Type":"%5$s", "User":"%6$s" }}]]></text>
 		</query>		
 	</queries>
 </SystemQueries>

@@ -132,6 +132,7 @@ public class WorkloadsResource {
 			String appNames = "";
 			String clientNames = "";
 			String textFilter = "";
+			String maxRows = "5000";
 			StringBuilder sb = new StringBuilder();
 
 			String predicate = "";
@@ -167,6 +168,9 @@ public class WorkloadsResource {
 				}
 				if (obj.get("textFilter") != null) {
 					textFilter = obj.get("textFilter").textValue();
+				}
+				if (obj.get("maxRows") != null) {
+					maxRows = obj.get("maxRows").textValue();
 				}
 			}
 
@@ -205,7 +209,7 @@ public class WorkloadsResource {
 
 			Session soc = SessionModel.getSession(servletRequest, servletResponse);
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_REPO_QUERIES),
-					predicate);
+					maxRows, predicate);
 			_LOG.debug(queryText);
 
 			TabularResult result = QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText);
@@ -443,6 +447,17 @@ public class WorkloadsResource {
 					// We need DOP as an explicit column in the grid. So add a
 					// placeholder.
 					operatorNode.putPOJO("DOP", "");
+					
+					//Parse VAL1_TXT and VAL1 as OperCPUTime
+					String cpuKey = operatorNode.get("VAL1_TXT").asText();
+					if (cpuKey != null && cpuKey.length() > 0 && !cpuKey.trim().equalsIgnoreCase("null")) {
+						String cpuVal = operatorNode.get("VAL1").asText();
+						if (cpuVal != null && cpuVal.length() > 0) {
+							if (cpuKey.trim().equalsIgnoreCase("OperCpuTime")) {
+								operatorNode.putPOJO("Oper_CPU_Time", cpuVal.trim());
+							}
+						}
+					}
 
 					// Process the variable info and add it into the Details.
 					ObjectNode detailsNode = operatorNode.putObject("Details");
@@ -451,30 +466,26 @@ public class WorkloadsResource {
 					// val3, val4. Ignore the metrics in variableinfo
 					if (statsRowTypeStr.equals("SQLSTATS_DESC_OPER_STATS")
 							|| statsRowTypeStr.equals("SQLSTATS_DESC_ROOT_OPER_STATS")) {
-						for (int i = 1; i <= 4; i++) {
+
+						for (int i = 2; i <= 4; i++) {
 							String vkey = operatorNode.get("VAL" + i + "_TXT").asText();
 							if (vkey != null && vkey.length() > 0 && !vkey.trim().equalsIgnoreCase("null")
 									&& !vkey.trim().equalsIgnoreCase("timestamp")) {
 								String val = operatorNode.get("VAL" + i).asText();
 								if (val != null && val.length() > 0) {
-									detailsNode.put(vkey.trim(), val.trim());
+										detailsNode.put(vkey.trim(), val.trim());
+									}
 								}
 							}
 						}
-					}
-
-					// Val1, val2, val3, val4 is only used for operator and root
-					// operator stats.
-					// For other stats type, these values are also in the
-					// variableinfo.
-					for (int i = 1; i <= 4; i++) {
-						operatorNode.remove("VAL" + i + "_TXT");
-						operatorNode.remove("VAL" + i);
-					}
 
 					// Loop through the variableinfo and populate the necessary
 					// fields.
 					for (String key : parsedMap.keySet()) {
+						if (key.trim().equalsIgnoreCase("OperCPUTime")) {
+							continue; // already added to the operator node. not
+										// required in detail node.
+						}
 						if (key.equalsIgnoreCase("dop")) {
 							operatorNode.putPOJO("DOP", parsedMap.get(key));
 						} else {
@@ -488,6 +499,16 @@ public class WorkloadsResource {
 							}
 						}
 					}
+
+					// Val1, val2, val3, val4 is only used for operator and root
+					// operator stats.
+					// For other stats type, these values are also in the
+					// variableinfo.
+					for (int i = 1; i <= 4; i++) {
+						operatorNode.remove("VAL" + i + "_TXT");
+						operatorNode.remove("VAL" + i);
+					}
+
 					operatorNodes.add(operatorNode);
 				}
 			}
@@ -501,6 +522,7 @@ public class WorkloadsResource {
 				gridColNames.remove("VAL" + i + "_TXT");
 				gridColNames.remove("VAL" + i);
 			}
+			gridColNames.add("Oper_CPU_Time");
 			gridColNames.add("Details");
 
 			resultObject.putPOJO("opGridColNames", gridColNames);

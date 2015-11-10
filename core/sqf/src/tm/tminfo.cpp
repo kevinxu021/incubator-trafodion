@@ -5089,6 +5089,9 @@ int32 TM_Info::disableTrans(CTmTxMessage * pp_msg)
                       TMTrace(1, ("TM_Info::disableTrans - Error %d returned by sendAllTMs.\n", lv_error));
                    }
                 }
+                // non lead DTMs need to reply back to lead
+                else
+                   pp_msg->reply(lv_error);
             }
     }
 

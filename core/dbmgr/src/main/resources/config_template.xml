@@ -44,6 +44,9 @@
 	
 	<!-- The openTSDB HTTP URI-->
 	<entry key="openTSDBUri">TSD_HOST:TSD_PORT</entry>
+	
+	<!-- Enable/disable alerts feature -->
+	<entry key="enableAlerts">true</entry>
 
 	<!-- The Alerts HTTP URI-->
 	<entry key="alertsUri">BOSUN_HOST:BOSUN_PORT</entry>

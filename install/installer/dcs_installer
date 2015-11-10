@@ -25,6 +25,8 @@
 #  Install DCS on a Trafodion cluster
 #==========================================
 
+export TRAF_CONFIG="/etc/trafodion/trafodion_config"
+
 function print_usage {
 cat << EOF
 This script will install/configure the specified DCS build.

@@ -68,19 +68,18 @@ public class ServerResource {
 		}
 
 		String resultMessage = createConnection(usr, pwd);
-
+		ConfigurationResource configResource = ConfigurationResource.getInstance();
 		if (Helper.IsNullOrEmpty(resultMessage)) {
 			String key = Helper.sessionKeyGenetator();
 			objNode.put("key", key);
 			objNode.put("user", usr);
 			objNode.put("status", "OK");
-			objNode.put("sessionTimeoutMinutes", ConfigurationResource.getInstance().getSessionTimeoutMinutes());
+			objNode.put("sessionTimeoutMinutes", configResource.getSessionTimeoutMinutes());
 			objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
 			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
-			objNode.put("dcsMasterInfoUri", ConfigurationResource.getInstance().getDcsMasterInfoUri());
-
-			if (ConfigurationResource.getSystemVersion() != null
-					&& ConfigurationResource.getSystemVersion().toLowerCase().contains("enterprise")) {
+			objNode.put("dcsMasterInfoUri", configResource.getDcsMasterInfoUri());
+			objNode.put("enableAlerts", configResource.isAlertsEnabled());
+			if (Helper.isEnterpriseEdition()) {
 				objNode.put("systemType", 1);
 			}
 
@@ -92,7 +91,8 @@ public class ServerResource {
 			objNode.put("status", "FAIL");
 			objNode.put("user", usr);
 			objNode.put("errorMessage", resultMessage);
-			objNode.put("sessionTimeoutMinutes", ConfigurationResource.getInstance().getSessionTimeoutMinutes());
+			objNode.put("sessionTimeoutMinutes", configResource.getSessionTimeoutMinutes());
+			objNode.put("enableAlerts", configResource.isAlertsEnabled());
 		}
 		return objNode;
 	}
@@ -157,10 +157,12 @@ public class ServerResource {
 	public ObjectNode getServerConfig(@Context HttpServletRequest request) {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode objNode = mapper.createObjectNode();
-		objNode.put("sessionTimeoutMinutes", ConfigurationResource.getInstance().getSessionTimeoutMinutes());
+		ConfigurationResource server = ConfigurationResource.getInstance();
+		objNode.put("sessionTimeoutMinutes", server.getSessionTimeoutMinutes());
 		objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
 		objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
-		objNode.put("dcsMasterInfoUri", ConfigurationResource.getInstance().getDcsMasterInfoUri());
+		objNode.put("dcsMasterInfoUri", server.getDcsMasterInfoUri());
+		objNode.put("enableAlerts", server.isAlertsEnabled());
 
 		if (ConfigurationResource.getSystemVersion() != null
 				&& ConfigurationResource.getSystemVersion().toLowerCase().contains("enterprise")) {

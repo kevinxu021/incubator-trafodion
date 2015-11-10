@@ -112,6 +112,7 @@ define([
 					//"scrollY":        "800px",
 					"scrollCollapse": true,
 					//"bJQueryUI": true,
+					stateSave: true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"aoColumnDefs": [
@@ -152,11 +153,17 @@ define([
 
 		},
 		showErrorMessage: function (jqXHR) {
-			_this.hideLoading();
-			$(ERROR_TEXT).show();
-			$(RESULT_CONTAINER).hide();
-			if (jqXHR.responseText) {
-				$(ERROR_TEXT).text(jqXHR.responseText);
+			if(jqXHR.statusText != 'abort'){
+				_this.hideLoading();
+				$(ERROR_TEXT).show();
+				$(RESULT_CONTAINER).hide();
+				if (jqXHR.responseText) {
+					$(ERROR_TEXT).text(jqXHR.responseText);
+				}else{
+	        		if(jqXHR.status != null && jqXHR.status == 0) {
+	        			$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+	        		}
+	        	}
 			}
 		}  
 	});

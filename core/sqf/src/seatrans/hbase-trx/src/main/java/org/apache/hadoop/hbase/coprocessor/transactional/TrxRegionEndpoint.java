@@ -2723,18 +2723,21 @@ CoprocessorService, Coprocessor {
                           if (add) {
                               indoubtTransactions.add(tid);
                               if (LOG.isInfoEnabled()) {
-                                   LOG.info("Traf Reco Thread detect stale branch tid " + transactionId + " cluster id " + clusterid + " node " + nodeid + " PSTRConfig " + pSTRConfig.getMyClusterId());
-                                   LOG.info("TrxRegionEndpoint coprocessor: recoveryRequest - Trafodion Recovery: region " + regionInfo.getEncodedName() + " in-doubt transaction " + tid + " has been added into the recovery reply to Cluster " + clusterid + " Node " + nodeid + " TM " + tmId + " during start ");
+                                 LOG.info("TrxRegionEndpoint coprocessor: recoveryRequest - Trafodion Recovery: region "
+                                    + regionInfo.getEncodedName() + " in-doubt transaction " + tid
+                                    + " has been added into the recovery reply to Cluster " + clusterid + " Node "
+                                    + nodeid + " TM " + tmId + " during start ");
                               }
                           }
                      }
                      // now remove the ZK node after TM has initiated the ecovery request   
                     String lv_encoded = m_Region.getRegionInfo().getEncodedName();
                     try {
-                         if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: recoveryRequest - Trafodion Recovery: delete recovery zNode TM " + tmId + " region encoded name " + lv_encoded + " for 0 in-doubt transaction");
-                        deleteRecoveryzNode(tmId, lv_encoded);
+                       if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: recoveryRequest - Trafodion Recovery: delete recovery zNode TM "
+                              + tmId + " region encoded name " + lv_encoded + " for 0 in-doubt transaction");
+                       deleteRecoveryzNode(tmId, lv_encoded);
                     } catch (IOException e) {
-                        LOG.error("TrxRegionEndpoint coprocessor: recoveryRequest - Trafodion Recovery: delete recovery zNode failed");
+                       LOG.error("TrxRegionEndpoint coprocessor: recoveryRequest - Trafodion Recovery: delete recovery zNode failed");
                     }
                     break;
                 default:

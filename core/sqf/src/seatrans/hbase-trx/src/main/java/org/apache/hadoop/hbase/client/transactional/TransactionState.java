@@ -513,7 +513,8 @@ public class TransactionState {
     @Override
     public String toString() {
         return "transactionId: " + transactionId + ", startId: " + startId + ", commitId: " + commitId +
-               ", participants: " + participatingRegions.size() + ", ignoring: " + regionsToIgnore.size();
+               ", participants: " + participatingRegions.size() + ", ignoring: " + regionsToIgnore.size() +
+               ", hasDDL: " + hasDDLTx() + ", recoveryASN: " + getRecoveryASN() + ", remotePeers: " + hasRemotePeers();
     }
 
     public int getParticipantCount() {

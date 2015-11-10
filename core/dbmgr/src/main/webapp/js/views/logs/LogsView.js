@@ -49,7 +49,9 @@ define([
 		FILTER_ERROR_CODES = '#filter-error-codes',
 		FILTER_MESSAGE_TEXT = '#filter-message-text',
 		FILTER_ERROR_MSG = '#filter-error-text',
-		FILTER_TIME_RANGE = '#filter-time-range';
+		FILTER_TIME_RANGE = '#filter-time-range',
+		FILTER_MAX_FETCH_ROWS = '#max-fetch-rows';
+
     
     var oDataTable = null;
     var _this = null;
@@ -67,10 +69,38 @@ define([
 				return (startTime < endTime);
 			}, "* Start Time has to be less than End Time");
 			
+			$.validator.addMethod("validateErrorCodes", function(value, element) {
+				var errorCodes = $(FILTER_ERROR_CODES).val();
+				var isValid = true;
+				if(errorCodes != null && errorCodes.length > 0){
+					var codes = errorCodes.split(",");
+					$.each(codes, function(index, value){
+						value = value.trim();
+						if(value.trim().length  < 1)
+							return;
+						
+						var pattern = /^\d+$/;
+						if(!pattern.test(value)){
+							isValid = false;
+							return;
+						}
+						   
+						var i = parseInt(value, 10);
+						if(i == null || isNaN(i) || i == 0){
+							isValid = false;
+							return;
+						}
+					});
+				}
+				return isValid;
+			}, "* Error codes have to non-zero numbers");
+			
+			
 			validator = $(FILTER_FORM).validate({
 				rules: {
 					"filter-start-time": { required: true, validateStartAndEndTimes: true },
-					"filter-end-time": { required: true, validateStartAndEndTimes: true }
+					"filter-end-time": { required: true, validateStartAndEndTimes: true },
+					"filter-error-codes": { required: false, validateErrorCodes: true}
 				},
 				highlight: function(element) {
 			        $(element).closest('.form-group').addClass('has-error');
@@ -147,7 +177,7 @@ define([
 			refreshTimerView.init();
 			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
-			refreshTimerView.setRefreshInterval(1);
+			refreshTimerView.setRefreshInterval('1');
 			
 			this.fetchLogs();
 		},
@@ -265,6 +295,7 @@ define([
         		components.push($('#component-wdg').val());
         	
         	var param = {};
+        	param.maxRows = $(FILTER_MAX_FETCH_ROWS).val();
         	param.startTime = startTime.format(DATE_FORMAT);
         	param.endTime = endTime.format(DATE_FORMAT);
         	param.severities = severities.join(',');
@@ -272,7 +303,9 @@ define([
         	param.processNames = $(FILTER_PROCESS_NAMES).val();
         	param.errorCodes = $(FILTER_ERROR_CODES).val();
         	param.message = $(FILTER_MESSAGE_TEXT).val();
-        	
+        	if($('#component-dcs').is(':checked'))
+        		param.dcs = true;
+       	
         	$(FILTER_DIALOG).modal('hide');
         	$(FILTER_ERROR_MSG).html('');
         	_this.showLoading();
@@ -332,7 +365,7 @@ define([
 					//"bJQueryUI": true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
-					//stateSave: true,
+					stateSave: true,
 					"aoColumnDefs": [ {
 					      "aTargets": [ 0 ],
 					      "mData": 0,
@@ -342,7 +375,17 @@ define([
 					        }
 					        else return data;
 					      }
-					    } ],
+					    },
+					    {
+						      "aTargets": [ 4 ],
+						      "mData": 4,
+						      "mRender": function ( data, type, full ) {
+						          if(data == 0)
+						        	  return "";
+						          else return data;
+						      }
+						    }
+					    ],
 					paging: true,
 					buttons: [
 					          'copy','csv','excel','pdf','print'
@@ -359,11 +402,17 @@ define([
 
 		},
         showErrorMessage: function (jqXHR) {
-        	_this.hideLoading();
-        	$(RESULT_CONTAINER).hide();
-        	$(ERROR_CONTAINER).show();
-        	if (jqXHR.responseText) {
-        		$(ERROR_CONTAINER).text(jqXHR.responseText);
+        	if(jqXHR.statusText != 'abort'){
+	        	_this.hideLoading();
+	        	$(RESULT_CONTAINER).hide();
+	        	$(ERROR_CONTAINER).show();
+	        	if (jqXHR.responseText) {
+	        		$(ERROR_CONTAINER).text(jqXHR.responseText);
+	        	}else{
+	        		if(jqXHR.status != null && jqXHR.status == 0) {
+	        			$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+	        		}
+	        	}
         	}
         },
 		parseInputDate:function(date){

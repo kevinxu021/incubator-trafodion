@@ -690,6 +690,15 @@ export SQ_MON_ALTLOG=0
 # Monitor sync thread responsiveness timeout
 # default 15 mins
 export SQ_MON_SYNC_TIMEOUT=900
+export SQ_MON_KEEPALIVE=1
+export SQ_MON_KEEPIDLE=60
+export SQ_MON_KEEPINTVL=6
+export SQ_MON_KEEPCNT=5
+
+# The wait timeout is in seconds
+export SQ_MON_EPOLL_WAIT_TIMEOUT=12
+export SQ_MON_EPOLL_RETRY_COUNT=15
+
 
 # set to 0 to disable phandle verifier
 export SQ_PHANDLE_VERIFIER=1

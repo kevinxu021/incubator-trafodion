@@ -589,7 +589,7 @@ public class HBaseTxClient {
             if (bSynchronized && ts.hasRemotePeers()){
                for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                   if (synchronousWrites){
-                     lv_tLog.putSingleRecord(transactionID, -1, TransState.STATE_ABORTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), false); //force flush
+                     lv_tLog.putSingleRecord(transactionID, ts.getStartId(), -1, TransState.STATE_ABORTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), false); //force flush
                   }
                   else{
                      try {
@@ -605,7 +605,7 @@ public class HBaseTxClient {
                   }
                }   
             }
-            tLog.putSingleRecord(transactionID, -1, TransState.STATE_ABORTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), false); //force flush
+            tLog.putSingleRecord(transactionID, ts.getStartId(), -1, TransState.STATE_ABORTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), false); //force flush
             if (bSynchronized && ts.hasRemotePeers() && (! synchronousWrites)){
                try{
                   if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, completing Tlog write for transaction: " + transactionID);
@@ -657,7 +657,7 @@ public class HBaseTxClient {
          if (bSynchronized && ts.hasRemotePeers()){
             for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
                if (synchronousWrites){
-                  lv_tLog.putSingleRecord(transactionID, -1, TransState.STATE_FORGOTTEN.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), forceForgotten); // forced flush?
+                  lv_tLog.putSingleRecord(transactionID, ts.getStartId(), -1, TransState.STATE_FORGOTTEN.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), forceForgotten); // forced flush?
                }
                else{
                   try {
@@ -673,7 +673,7 @@ public class HBaseTxClient {
             }
          }
 
-         tLog.putSingleRecord(transactionID, -1, TransState.STATE_FORGOTTEN.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), forceForgotten); // forced flush?
+         tLog.putSingleRecord(transactionID, ts.getStartId(), -1, TransState.STATE_FORGOTTEN.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), forceForgotten); // forced flush?
          if (bSynchronized && ts.hasRemotePeers() && (! synchronousWrites)){
             try{
                if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:abortTransaction, completing Tlog write for FORGOTTEN transaction: " + transactionID);
@@ -766,27 +766,46 @@ public class HBaseTxClient {
           ts.setStatus(TransState.STATE_COMMITTED);
           if (useTlog) {
              if (bSynchronized && ts.hasRemotePeers()){
-                for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
-                   if (synchronousWrites){
-                       lv_tLog.putSingleRecord(transactionId, commitIdVal, TransState.STATE_COMMITTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true);
+                for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) {
+                   int lv_peerId = entry.getKey();
+                   if (lv_peerId == 0) // no peer for ourselves
+                      continue;
+                   TmAuditTlog lv_tLog = peer_tLogs.get(lv_peerId);
+                   if (lv_tLog == null){
+                      LOG.error("Error during doCommit processing for tlog COMMIT for peer: " + lv_peerId);
+                      continue;
                    }
-                   else{
-                      try {
-                         if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:calling doTlogWrite COMMITTED for trans: " + ts.getTransactionId());
-                         lv_tLog.doTlogWrite(ts, TransState.STATE_COMMITTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, -1);
+                   try {
+                      if (pSTRConfig.getPeerStatus(lv_peerId).contains(PeerInfo.STR_UP)) {
+                         if (LOG.isTraceEnabled()) LOG.trace("PEER " + lv_peerId + " STATUS is UP; writing COMMIT state record");
+                         if (synchronousWrites){
+                             lv_tLog.putSingleRecord(transactionId, ts.getStartId(), commitIdVal, TransState.STATE_COMMITTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true);
+                         }
+                         else{
+                            try {
+                               if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:calling doTlogWrite COMMITTED for trans: " + ts.getTransactionId());
+                               lv_tLog.doTlogWrite(ts, TransState.STATE_COMMITTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, -1);
+                            }
+                            catch (Exception e) {
+                               LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionId + 
+                                         " tLog.doTlogWrite: EXCEPTION " + e);
+                               return TransReturnCode.RET_EXCEPTION.getShort();
+                            }
+                         }
                       }
-                      catch (Exception e) {
-                         LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionId + 
-                                   " tLog.doTlogWrite: EXCEPTION " + e);
-                         return TransReturnCode.RET_EXCEPTION.getShort();
+                      else {
+                         if (LOG.isWarnEnabled()) LOG.warn("PEER " + lv_peerId + " STATUS is DOWN; skipping COMMITTED state record");            	   
                       }
                    }
-                }
-             }
-             else {
-                 if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, sb_replicate is false");
-             }
-             tLog.putSingleRecord(transactionId, commitIdVal, TransState.STATE_COMMITTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true);
+                   catch (Exception e) {
+                      LOG.error("doCommit, lv_tLog " + lv_tLog + " EXCEPTION: " + e);
+                      throw e;
+                   }
+                } // for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) 
+             } // if (bSynchronized && ts.hasRemotePeers()){
+
+             // Write the local Tlog State record
+             tLog.putSingleRecord(transactionId, ts.getStartId(), commitIdVal, TransState.STATE_COMMITTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true);
              if (bSynchronized && ts.hasRemotePeers() && (! synchronousWrites)){
                 try{
                   if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, completing Tlog write for transaction: " + transactionId);
@@ -798,7 +817,7 @@ public class HBaseTxClient {
                    // records in an inconsistent state.  Will change to abort on local side as well since
                    // we haven't replied yet.
                    ts.setStatus(TransState.STATE_ABORTED);
-                   tLog.putSingleRecord(transactionId, commitIdVal, TransState.STATE_ABORTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true);
+                   tLog.putSingleRecord(transactionId, ts.getStartId(), commitIdVal, TransState.STATE_ABORTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true);
                 }
              }
           }
@@ -837,24 +856,46 @@ public class HBaseTxClient {
        }
        if (useTlog && useForgotten) {
           if (bSynchronized && ts.hasRemotePeers()){
-             for (TmAuditTlog lv_tLog : peer_tLogs.values()) {
-                if (synchronousWrites){
-                   lv_tLog.putSingleRecord(transactionId, commitIdVal, TransState.STATE_FORGOTTEN.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), forceForgotten); // forced flush?
+             for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) {
+                int lv_peerId = entry.getKey();
+                if (lv_peerId == 0) // no peer for ourselves
+                   continue;
+                TmAuditTlog lv_tLog = peer_tLogs.get(lv_peerId);
+                if (lv_tLog == null){
+                   LOG.error("Error during doCommit processing for tlog FORGOTTEN for peer: " + lv_peerId);
+                   continue;
                 }
-                else{
-                   try {
-                      if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:calling doTlogWrite FORGOTTEN for : " + ts.getTransactionId());
-                      lv_tLog.doTlogWrite(ts, TransState.STATE_FORGOTTEN.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, -1);
+                try {
+                   if (pSTRConfig.getPeerStatus(lv_peerId).contains(PeerInfo.STR_UP)) {
+                      if (LOG.isTraceEnabled()) LOG.trace("PEER " + lv_peerId + " STATUS is UP; writing COMMIT-FORGOTTEN state record");
+                      if (synchronousWrites){
+                         lv_tLog.putSingleRecord(transactionId, ts.getStartId(), commitIdVal, TransState.STATE_FORGOTTEN.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true);
+                      }
+                      else{
+                         try {
+                            if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:calling doTlogWrite COMMITTED-FORGOTTEN for trans: " + ts.getTransactionId());
+                            lv_tLog.doTlogWrite(ts, TransState.STATE_FORGOTTEN.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, -1);
+                         }
+                         catch (Exception e) {
+                            LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionId + 
+                                           " tLog.doTlogWrite: EXCEPTION " + e);
+                            return TransReturnCode.RET_EXCEPTION.getShort();
+                         }
+                      }
                    }
-                   catch (Exception e) {
-                      LOG.error("Returning from HBaseTxClient:doTlogWrite, txid: " + transactionId + 
-                                " tLog.doTlogWrite: EXCEPTION " + e);
-                      return TransReturnCode.RET_EXCEPTION.getShort();                   
+                   else {
+                      if (LOG.isWarnEnabled()) LOG.warn("PEER " + lv_peerId + " STATUS is DOWN; skipping COMMIT-FORGOTTEN state record");            	   
                    }
                 }
-             }
-          }
-          tLog.putSingleRecord(transactionId, commitIdVal, TransState.STATE_FORGOTTEN.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), forceForgotten); // forced flush?
+                catch (Exception e) {
+                   LOG.error("doCommit, lv_tLog writing commit forgotten " + lv_tLog + " EXCEPTION: " + e);
+                   throw e;
+                }
+             } // for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) 
+          } // if (bSynchronized && ts.hasRemotePeers()){
+        	  
+          // Write the local record
+          tLog.putSingleRecord(transactionId, ts.getStartId(), commitIdVal, TransState.STATE_FORGOTTEN.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), forceForgotten); // forced flush?
           if (bSynchronized && ts.hasRemotePeers() && (! synchronousWrites)){
              try{
                 if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, completing Tlog write for FORGOTTEN transaction: " + transactionId);
@@ -867,7 +908,6 @@ public class HBaseTxClient {
              }
           }
        }
-
        if (LOG.isTraceEnabled()) LOG.trace("Exit doCommit, retval(ok): " + TransReturnCode.RET_OK.toString() +
                          " txid: " + transactionId + " mapsize: " + mapTransactionStates.size());
 
@@ -1184,7 +1224,8 @@ public class HBaseTxClient {
             try {
                if (pSTRConfig.getPeerStatus(lv_peerId).contains(PeerInfo.STR_UP)) {
                   if (LOG.isTraceEnabled()) LOG.trace("PEER " + lv_peerId + " STATUS is UP; issuing control point");
-                  lv_tLog.addControlPoint(myClusterId, mapTransactionStates);
+                  // only increment the CP number on the local connection
+                  lv_tLog.addControlPoint(myClusterId, mapTransactionStates, false);
                }
                else {
                   if (LOG.isWarnEnabled()) LOG.warn("PEER " + lv_peerId + " STATUS is DOWN; skipping control point");            	   
@@ -1198,8 +1239,9 @@ public class HBaseTxClient {
       }
 
       try {
-         if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient calling tLog.addControlPoint with mapsize " + mapTransactionStates.size());
-         result = tLog.addControlPoint(myClusterId, mapTransactionStates);
+         if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient calling tLog.addControlPoint for the " +
+                 tLog.getTlogTableNameBase() + " set with mapsize " + mapTransactionStates.size());
+         result = tLog.addControlPoint(myClusterId, mapTransactionStates, true);
       }
       catch(IOException e){
           LOG.error("addControlPoint IOException " + e);
@@ -1512,7 +1554,7 @@ public class HBaseTxClient {
                                 TransactionState ts = commit_migrated_txn_list.get(i);
                                 if (LOG.isDebugEnabled()) LOG.debug("LDTM sync TLOG record for tid " + ts.getTransactionId() + " node " + nodeId + 
                                           " status " + ts.getStatus() + " ASN " + ts.getRecoveryASN() + " from peer leader " + peer_leader);
-                                audit.putSingleRecord(ts.getTransactionId(), -1, ts.getStatus(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, ts.getRecoveryASN());
+                                audit.putSingleRecord(ts.getTransactionId(), ts.getStartId(), -1, ts.getStatus(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, ts.getRecoveryASN());
                             }
                        } // loop on TM-TLOG (i.e. node count)
 
@@ -1621,7 +1663,7 @@ public class HBaseTxClient {
                    }
 
                    try { // TBD temporarily put 0 (for ABORTED)  in asn to force the Audit modeule picking the nodeid from tid to address which TLOG
-                         audit.putSingleRecord(tid, -1, TransState.STATE_ABORTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, 0); 
+                         audit.putSingleRecord(tid, ts.getStartId(), -1, TransState.STATE_ABORTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, 0); 
                          if (LOG.isDebugEnabled()) LOG.debug("LDTM write txn state record for txid " + tid + " at local cluster during recovery after commit takeover ");
                    }
                    catch (Exception e) {
@@ -1634,7 +1676,7 @@ public class HBaseTxClient {
                       TmAuditTlog lv_tLog = lv_tLog_entry.getValue();
                       try {
                             if (clusterid != downPeerClusterId) {
-                                lv_tLog.putSingleRecord(tid, -1, TransState.STATE_ABORTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, 0);
+                                lv_tLog.putSingleRecord(tid, ts.getStartId(), -1, TransState.STATE_ABORTED.toString(), ts.getParticipatingRegions(), ts.hasRemotePeers(), true, 0);
                                 if (LOG.isDebugEnabled()) LOG.debug("LDTM write txn state record for txid " + tid + " to cluster " + clusterid + " during recovery after commit takeover ");
                             }
                             else {
@@ -1914,9 +1956,9 @@ public class HBaseTxClient {
                                       transactionStates.put(txid, ts);
                                    }
                                 }
-                                else if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV THREAD:size od TxRecoverList is NULL ");
+                                else if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD:size of TxRecoverList is NULL ");
                             }
-                            if (LOG.isDebugEnabled()) LOG.debug("TRAF RCOV THREAD: in-doubt transaction size " + transactionStates.size());
+                            if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD: in-doubt transaction size " + transactionStates.size());
                             for (Map.Entry<Long, TransactionState> tsEntry : transactionStates.entrySet()) {
                                 TransactionState ts = tsEntry.getValue();
                                 Long txID = ts.getTransactionId();
@@ -1928,101 +1970,97 @@ public class HBaseTxClient {
                                 	// decision without peer's vote)
                                 	if ((clusterid == 0) || (clusterid == my_local_clusterid)) { // transactions started by local cluster
 
-                                            if (!ts.hasRemotePeers()) { // only local participant (no STR peer region or peer STR id downed
-                                                if (LOG.isDebugEnabled())
-                                                    { LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " has no remote participants, commit authority is handled by local owner " + clusterid); }
-                                                audit.getTransactionState(ts);
+                                       audit.getTransactionState(ts, false);
+                                       if (!ts.hasRemotePeers()) { // only local participant (no STR peer region or peer STR id downed
+                                          audit.getTransactionState(ts, true);
+                                          if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID +
+                                        		  " has no remote participants, commit authority is handled by local owner " + clusterid);
+                                          commitLocally = true;
+                                       }
+                                       else { // has peer participant
+                                          if (peerid != -1) { // has peer configured from peer_tLogs
+                                             if (pSTRConfig.getPeerStatus(peerid).contains(PeerInfo.STR_DOWN)) {
+                                                // STR is down, do commit takeover based on local TLOG
+                                            	 if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID +
+                                                      " commit authority is handled locally" + clusterid + " due to STR_DOWN at peer " + peerid);
                                                 commitLocally = true;
-                                            }
-                                            else { // has peer participant
-                                              if (peerid != -1) { // has peer configured from peer_tLogs
-                                		 if (pSTRConfig.getPeerStatus(peerid).contains(PeerInfo.STR_DOWN)) {
-                                			// STR is down, do commit takeover based on local TLOG
-                                                       if (LOG.isDebugEnabled())
-                                                            LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " commit authority is handled locally" + clusterid + " due to STR_DOWN at peer " + peerid);
-                                		       audit.getTransactionState(ts, false);
-                                                       commitLocally = true;
                                 	         }
-                                		 else if (pSTRConfig.getPeerStatus(peerid).contains(PeerInfo.STR_UP)) {
-                                			// STR is up, check if peer is alive
-                                		       if (LOG.isDebugEnabled())
-                                			    LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " check Peer due to STR_UP at peer " + clusterid);
-                                                       commitLocally = true;;
-                                                       try {
-                                                             TmAuditTlog peerTlog = getTlog(peerid);
-                                                             peerTlog.getTransactionState(ts, false);
-                                                       } catch (Exception e2) {
-                                                             LOG.error("getTransactionState from Peer " + clusterid + " for tid " + ts.getTransactionId() + "  hit Exception2 " + e2);
-                                		             commitLocally = false;
-                                                       }
-                                		       audit.getTransactionState(ts, false); // ask locally since txn is started locally
-                                		 }
-                                                 else {
-                                			LOG.error("TRAF RCOV PEER THREAD: TID " + txID + " commit originator status is unknown, neither STR_UP or STR_DOWN " + clusterid);
-                                                } // peer status
-                                              } // has legit peer configured
-                                              else { // ts indicates has peer but there is no peer config -- internal error
-                                                LOG.error("TRAF RCOV PEER THREAD: TID " + txID + " ts has peer participants, but no peer configured " + peerid + ", commit authority is handled by local owner " + clusterid);
-                                                audit.getTransactionState(ts, false);
-                                                commitLocally = true;
-                                              }
-                                            } // has peer participant
-                                            if (LOG.isDebugEnabled())
-                                                LOG.debug("TRAF RCOV THREAD:TID " + txID + " commmit decision can be handled locally " + commitLocally);
-                                            if (commitLocally) {
-                                                if (ts.getStatus().equals(TransState.STATE_COMMITTED.toString())) {
-                                                   if (LOG.isDebugEnabled())
-                                                      LOG.debug("TRAF RCOV THREAD:Redriving commit for " + txID + " number of regions " + ts.getParticipatingRegions().size() +
-                                                           " and tolerating UnknownTransactionExceptions");
-                                                   txnManager.doCommit(ts, true /*ignore UnknownTransactionException*/);
-                                                   if(useTlog && useForgotten) {
-                                                      long nextAsn = tLog.getNextAuditSeqNum((int)TransactionState.getNodeId(txID));
-                                                      tLog.putSingleRecord(txID, ts.getCommitId(), TransState.STATE_FORGOTTEN.toString(), null, ts.hasRemotePeers(), forceForgotten, nextAsn);
-                                                   }
-                                                } 
-                                                else if (ts.getStatus().equals(TransState.STATE_ABORTED.toString())) {
-                                                   if (LOG.isDebugEnabled())
-                                                      LOG.debug("TRAF RCOV THREAD:Redriving abort for " + txID);
-                                                   txnManager.abort(ts);
-                                                } 
-                                                else {
-                                                   if (LOG.isDebugEnabled())
-                                                      LOG.debug("TRAF RCOV THREAD:Redriving abort for " + txID);
-                                                   LOG.warn("Recovering transaction " + txID + ", status is not set to COMMITTED or ABORTED. Aborting.");
-                                                   txnManager.abort(ts);
+                                             else if (pSTRConfig.getPeerStatus(peerid).contains(PeerInfo.STR_UP)) {
+                                                // STR is up, check if peer is alive
+                                            	 if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID +
+                                		        		" check Peer due to STR_UP at peer " + clusterid);
+                                                commitLocally = true;;
+                                                try {
+                                                   TmAuditTlog peerTlog = getTlog(peerid);
+                                                   peerTlog.getTransactionState(ts, false);
+                                                } catch (Exception e2) {
+                                                   LOG.error("getTransactionState from Peer " + clusterid + " for tid " + ts.getTransactionId() + "  hit Exception2 " + e2);
+                                		           commitLocally = false;
                                                 }
-                                            } // no need of peer quorum, commit decision for txn started locally ca be determined soley by local TLOG
+                                             }
+                                             else {
+                                                LOG.error("TRAF RCOV PEER THREAD: TID " + txID + " commit originator status is unknown, neither STR_UP or STR_DOWN " + clusterid);
+                                             } // peer status
+                                          } // has legit peer configured
+                                          else { // ts indicates has peer but there is no peer config -- internal error
+                                             LOG.error("TRAF RCOV PEER THREAD: TID " + txID + " ts has peer participants, but no peer configured " + peerid + ", commit authority is handled by local owner " + clusterid);
+                                             commitLocally = true;
+                                          }
+                                       } // has peer participant
+                                       if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD:TID " + txID +
+                                               " commmit decision can be handled locally " + commitLocally);
+                                       if (commitLocally) {
+                                          if (ts.getStatus().equals(TransState.STATE_COMMITTED.toString())) {
+                                        	  if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD:Redriving commit for " + txID +
+                                                           " number of regions " + ts.getParticipatingRegions().size() +
+                                                           " and tolerating UnknownTransactionExceptions");
+                                             txnManager.doCommit(ts, true /*ignore UnknownTransactionException*/);
+                                             if(useTlog && useForgotten) {
+                                                long nextAsn = tLog.getNextAuditSeqNum((int)TransactionState.getNodeId(txID));
+                                               tLog.putSingleRecord(txID, ts.getStartId(), ts.getCommitId(), TransState.STATE_FORGOTTEN.toString(), null, ts.hasRemotePeers(), forceForgotten, nextAsn);
+                                             }
+                                          }
+                                          else if (ts.getStatus().equals(TransState.STATE_ABORTED.toString())) {
+                                        	  if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD:Redriving abort for " + txID);
+                                             txnManager.abort(ts);
+                                          } 
+                                          else {
+                                        	  if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD:Redriving abort for " + txID);
+                                             LOG.warn("Recovering transaction " + txID + ", status is not set to COMMITTED or ABORTED. Aborting.");
+                                             txnManager.abort(ts);
+                                          }
+                                       } // no need of peer quorum, commit decision for txn started locally ca be determined soley by local TLOG
                                 	} // indoubt transaction started at local node
                                 	else { // transcations started by peers, here we do similar commit decision like regular commit processing if take over
-                                		   // if peer is DOWN, then uses local TLOG to make commit decision (commit takeover from peer)
-                                		   // if peer is UP, then directly ask peer (holding commit processing)
-                                                takeover = false;
-                                                answerFromPeer = false;
-                                                if (LOG.isDebugEnabled()) { LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " started at  " + clusterid + " is indoubt "); }
-                                		if (pSTRConfig.getPeerStatus(clusterid).contains(PeerInfo.STR_DOWN)) {
-                                			// STR is down, do commit takeover based on local TLOG
-                                                       if (LOG.isDebugEnabled())
-                                                            LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " commit authority is taken over due to STR_DOWN at peer " + clusterid);
-                                                       commit_takeover(clusterid); // perform takeover preprocessing before starts to resolve transactions
-                                		       audit.getTransactionState(ts, false); // ask local TLOG after take over
-                                                       takeover = true;
-                                	        }
-                                		else if (pSTRConfig.getPeerStatus(clusterid).contains(PeerInfo.STR_UP)) {
-                                			// STR is up, ask peer
-                                		       if (LOG.isDebugEnabled())
-                                			    LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " commit authority is sent to Peer due to STR_UP at peer " + clusterid);
-                                		       answerFromPeer = true;
-                                                       try {
-                                                             TmAuditTlog peerTlog = getTlog(clusterid);
-                                                             peerTlog.getTransactionState(ts, false);
-                                                       } catch (Exception e2) {
-                                                             LOG.error("getTransactionState from Peer " + clusterid + " for tid " + ts.getTransactionId() + "  hit Exception2 " + e2);
-                                		             answerFromPeer = false;
-                                                       }
+                                       // if peer is DOWN, then uses local TLOG to make commit decision (commit takeover from peer)
+                                       // if peer is UP, then directly ask peer (holding commit processing)
+                                       takeover = false;
+                                       answerFromPeer = false;
+                                       if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID + " started at  " + clusterid +
+                                    		   " is indoubt ");
+                                       if (pSTRConfig.getPeerStatus(clusterid).contains(PeerInfo.STR_DOWN)) {
+                                          // STR is down, do commit takeover based on local TLOG
+                                    	   if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID +
+                                        		  " commit authority is taken over due to STR_DOWN at peer " + clusterid);
+                                          commit_takeover(clusterid); // perform takeover preprocessing before starts to resolve transactions
+                                		  audit.getTransactionState(ts, false); // ask local TLOG after take over
+                                          takeover = true;
+                                	   }
+                                       else if (pSTRConfig.getPeerStatus(clusterid).contains(PeerInfo.STR_UP)) {
+                                          // STR is up, ask peer
+                                    	   if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID +
+                                				  " commit authority is sent to Peer due to STR_UP at peer " + clusterid);
+                                		  answerFromPeer = true;
+                                          try {
+                                             TmAuditTlog peerTlog = getTlog(clusterid);
+                                             peerTlog.getTransactionState(ts, false);
+                                          } catch (Exception e2) {
+                                             LOG.error("getTransactionState from Peer " + clusterid + " for tid " + ts.getTransactionId() + "  hit Exception2 " + e2);
+                                		     answerFromPeer = false;
+                                          }
                                 		}
                                                 else {
-                               		               if (LOG.isDebugEnabled())
-                                			   LOG.debug("TRAF RCOV PEER THREAD: TID " + txID + " commit originator status is unknown, neither STR_UP or STR_DOWN " + clusterid);
+                                                	if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV PEER THREAD: TID " + txID + " commit originator status is unknown, neither STR_UP or STR_DOWN " + clusterid);
                                                 }
                                              
                                                 // No need to post all the regions in R2.0 for the takeover case since remote peer could be down and this could cause 
@@ -2030,22 +2068,18 @@ public class HBaseTxClient {
                                                 // pass "false" in the second parameter for getTransactionState postAllRegions
 
                                                 if (takeover || answerFromPeer) {
-                                                     if (LOG.isDebugEnabled())
-                                                          LOG.debug("TRAF RCOV THREAD makes commit decision for " + txID + " from sources " + takeover + " and " + answerFromPeer);
+                                                	if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD makes commit decision for " + txID + " from sources " + takeover + " and " + answerFromPeer);
                                                     if (ts.getStatus().equals(TransState.STATE_COMMITTED.toString())) {
-                                                         if (LOG.isDebugEnabled())
-                                                          LOG.debug("TRAF RCOV THREAD:Redriving commit for " + txID + " number of regions " + ts.getParticipatingRegions().size() +
+                                                    	if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD:Redriving commit for " + txID + " number of regions " + ts.getParticipatingRegions().size() +
                                                               " and tolerating UnknownTransactionExceptions");
                                                           txnManager.doCommit(ts, true /*ignore UnknownTransactionException*/);
                                                     }  // committed
                                                     else if (ts.getStatus().equals(TransState.STATE_ABORTED.toString())) {
-                                                          if (LOG.isDebugEnabled())
-                                                             LOG.debug("TRAF RCOV THREAD:Redriving abort for " + txID);
+                                                    	if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD:Redriving abort for " + txID);
                                                           txnManager.abort(ts);
                                                     } // aborted
                                                     else {
-                                                          if (LOG.isDebugEnabled())
-                                                             LOG.debug("TRAF RCOV THREAD:Redriving abort for " + txID);
+                                                    	if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV THREAD:Redriving abort for " + txID);
                                                           LOG.warn("Recovering transaction " + txID + ", status is not set to COMMITTED or ABORTED. Aborting.");
                                                           // here write abort txn state recordfs into local TLOG and any alive peer
                                                           put_single_tlog_record_during_commit_takeover(clusterid, txID, ts);

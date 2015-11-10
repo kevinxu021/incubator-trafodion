@@ -1,4 +1,4 @@
-#!/home/centos/jython2.7.0/bin/jython
+#! /usr/bin/env jython
 
 import sys
 import time
@@ -41,20 +41,22 @@ def main():
     tstart = int(round(time.time() * 1000))
     dbConn = getConnection(JDBC_URL, USER_NAME, PASS_WORD, JDBC_DRIVER)
     tend = int(round(time.time() * 1000))
-    print ("esgyndb.canary.sqlconnect.time %d %d" % (tend, (tend-tstart)))
+    connTime = (tend-tstart)
 
     stmt = dbConn.createStatement()
+    ddlTime = 0
     try:
         tstart = int(round(time.time() * 1000))
         stmt.executeUpdate(TABLE_DROPPER)
         stmt.executeUpdate(TABLE_CREATOR)
         tend = int(round(time.time() * 1000))
-        print ("esgyndb.canary.sqlddl.time %d %d" % (tend, (tend-tstart)))
+        ddlTime = (tend-tstart)
     except SQLException, msg:
         print ("Drop or Create %s" % msg)
         sys.exit(1)
-
-    if populateTable(dbConn, PLANET_DATA):
+    result, writeTime = populateTable(dbConn, PLANET_DATA)
+    tstart = int(round(time.time() * 1000))
+    if result:
         tstart = int(round(time.time() * 1000))
         resultSet = stmt.executeQuery(PLANET_QUERY)
         while resultSet.next():
@@ -65,6 +67,9 @@ def main():
     stmt.close()
     dbConn.close()
     tend = int(round(time.time() * 1000))
+    print ("esgyndb.canary.sqlconnect.time %d %d" % (tend, connTime))
+    print ("esgyndb.canary.sqlddl.time %d %d" % (tend, ddlTime))
+    print ("esgyndb.canary.sqlwrite.time %d %d" % (tend, writeTime))
     print ("esgyndb.canary.sqlread.time %d %d" % (tend, (tend-tstart)))
     sys.exit(0)
 
@@ -100,12 +105,12 @@ def populateTable(dbConn, feedstock):
         preppedStmt.executeBatch()
         dbConn.setAutoCommit(True)
         tend = int(round(time.time() * 1000))
-        print ("esgyndb.canary.sqlwrite.time %d %d" % (tend, (tend-tstart)))
+        return True, (tend-tstart)
     except SQLException, msg:
         print msg
-        return False
+        return False,0
 
-    return True
+    return True,0
 
 ################################################################################
 ################################################################################

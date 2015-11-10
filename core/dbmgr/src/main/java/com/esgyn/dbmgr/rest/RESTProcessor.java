@@ -71,6 +71,7 @@ public class RESTProcessor {
 	public static String getRestOutput(String jsonString, String userName, String password) throws Exception {
 		StringBuffer outputBuffer = new StringBuffer();
 		HttpURLConnection conn = null;
+		String urlString = "";
 
 		try {
 			SSLContext ssl_ctx = SSLContext.getInstance("TLS");
@@ -85,6 +86,7 @@ public class RESTProcessor {
 			RESTRequest a = mapper.readValue(jsonString, RESTRequest.class);
 
 			String uri = a.url;
+			urlString = a.url;
 
 			String parameterString = "";
 			if (a.parameters != null && a.parameters.size() > 0) {
@@ -145,7 +147,12 @@ public class RESTProcessor {
 				conn.setRequestMethod(a.method.toUpperCase());
 				OutputStream os = conn.getOutputStream();
 				BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
-				writer.write(parameterString);
+				if (a.jsonParameter != null) {
+					writer.write(mapper.writeValueAsString(a.jsonParameter));
+				} else {
+					writer.write(parameterString);
+				}
+
 				writer.close();
 				os.close();
 			}
@@ -177,8 +184,8 @@ public class RESTProcessor {
 			}
 
 		} catch (Exception ex) {
-			_LOG.debug("Error processing the REST request : " + ex.toString());
-			throw new Exception("Error processing the REST request " + ex.getMessage());
+			_LOG.debug("Error processing the REST request " + urlString + " : " + ex.toString());
+			throw new Exception("Error processing the REST request " + urlString + " : " + ex.getMessage());
 		} finally {
 
 			if (conn != null) {
@@ -380,6 +387,28 @@ public class RESTProcessor {
 				rows.add(new String[] { row });
 			}
 		}
+	}
+
+	public static JsonNode GetNode(String jsonString, String targetElementName) {
+		JsonFactory factory = new JsonFactory();
+		ObjectMapper mapper = new ObjectMapper(factory);
+
+		try {
+			JsonNode node = mapper.readTree(jsonString);
+
+			// If specific target element is specified in request use that, else
+			// parse for first array
+			// node
+			if (targetElementName != null && targetElementName.trim().length() > 0) {
+				JsonNode targetNode = node.findValue(targetElementName);
+				if (targetNode != null) {
+					return targetNode;
+				}
+			}
+		} catch (Exception ex) {
+
+		}
+		return null;
 	}
 
 	public static String GetNodeValue(String jsonString, String targetElementName)

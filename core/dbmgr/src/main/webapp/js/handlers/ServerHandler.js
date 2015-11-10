@@ -20,8 +20,14 @@ define(['handlers/EventDispatcher', 'common'],
 				this.FETCH_SERVICES_ERROR = 'fetchServicesError';
 				this.FETCH_NODES_SUCCESS = 'fetchNodesSuccess';
 				this.FETCH_NODES_ERROR = 'fetchNodesError';
+				
 				this.FETCH_ALERTS_LIST_SUCCESS = 'FETCH_ALERTS_LIST_SUCCESS';
 				this.FETCH_ALERTS_LIST_ERROR = 'FETCH_ALERTS_LIST_ERROR';
+				this.FETCH_ALERT_DETAIL_SUCCESS = 'FETCH_ALERT_DETAIL_SUCCESS';
+				this.FETCH_ALERT_DETAIL_ERROR = 'FETCH_ALERT_DETAIL_ERROR';
+				this.ALERT_UPDATE_SUCCESS = 'ALERT_UPDATE_SUCCESS';
+				this.ALERT_UPDATE_ERROR = 'ALERT_UPDATE_ERROR';
+				
 				this.FETCH_VERSION_SUCCESS = 'FETCH_VERSION_SUCCESS';
 				this.FETCH_VERSION_ERROR = 'FETCH_VERSION_ERROR';
 				this.WRKBNCH_EXECUTE_SUCCESS = 'WRKBNCH_EXECUTE_SUCCESS';
@@ -91,7 +97,11 @@ define(['handlers/EventDispatcher', 'common'],
 				};    
 
 				this.loadServerConfig = function(){
-					$.ajax({
+					var xhr = xhrs["server_config"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["server_config"] = $.ajax({
 						url: 'resources/server/config',
 						type:'GET',
 						dataType:"json",
@@ -106,7 +116,11 @@ define(['handlers/EventDispatcher', 'common'],
 				}; 
 				
 				this.explainQuery = function(param){
-					$.ajax({
+					var xhr = xhrs["explain_query"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["explain_query"] = $.ajax({
 		        	    url:'resources/queries/explain',
 		        	    type:'POST',
 		        	    data: JSON.stringify(param),
@@ -126,7 +140,11 @@ define(['handlers/EventDispatcher', 'common'],
 				};
 				
 				this.executeQuery = function(param){
-					$.ajax({
+					var xhr = xhrs["execute_query"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["execute_query"] = $.ajax({
 		        	    url:'resources/queries/execute',
 		        	    type:'POST',
 		        	    data: JSON.stringify(param),
@@ -165,6 +183,54 @@ define(['handlers/EventDispatcher', 'common'],
 						},
 						error:function(jqXHR, res, error){
 							dispatcher.fire(_this.FETCH_ALERTS_LIST_ERROR, jqXHR, res, error);
+						}
+					});
+				};
+				
+				this.fetchAlertDetail = function(params){
+					var xhr = xhrs["alert_detail"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["alert_detail"] = $.ajax({
+						url: 'resources/alerts/detail',
+						type:'POST',
+						dataType:"json",
+						data: JSON.stringify(params),						
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.FETCH_ALERT_DETAIL_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.FETCH_ALERT_DETAIL_ERROR, jqXHR, res, error);
+						}
+					});
+				};
+				
+				this.updateAlert = function(params){
+					var xhr = xhrs["update_alert"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["update_alert"] = $.ajax({
+						url: 'resources/alerts/action',
+						type:'POST',
+						dataType:"json",
+						data: JSON.stringify(params),						
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.ALERT_UPDATE_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.ALERT_UPDATE_ERROR, jqXHR, res, error);
 						}
 					});
 				};

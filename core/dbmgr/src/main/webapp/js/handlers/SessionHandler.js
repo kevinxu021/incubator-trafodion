@@ -25,7 +25,7 @@ define(['handlers/EventDispatcher', 'common'],
 						data: JSON.stringify(param),
 						dataType:"json",
 						contentType: "application/json;",
-						async: false,
+						//async: false,
 						success: function(data){
 							common.storeSessionProperties(data);
 							dispatcher.fire(_this.LOGIN_SUCCESS, data);
