@@ -18,7 +18,7 @@
 # under the License.
 # @@@ END COPYRIGHT @@@
 
-export PATH=$MGBLTY_INSTALL_DIR/jython-2.7.0/bin:$PATH
+export PATH=$MGBLTY_INSTALL_DIR/jython2.7.0/bin:$PATH
 #Check if Trafodion is up and running
 trafcheck
 tf_stat=$?
