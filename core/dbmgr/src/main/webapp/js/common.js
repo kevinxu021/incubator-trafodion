@@ -315,6 +315,12 @@ define(['moment',
 				});
 			};
 
+
+			this.microsecondsToStringExtend = function(microseconds){
+				var str = _this.millisecondsToString(microseconds/1000);
+				var ext = microseconds % 1000;
+				return str + "." + ext;
+			},
 			this.microsecondsToString = function(microseconds){
 				return _this.millisecondsToString(microseconds/1000);
 			};

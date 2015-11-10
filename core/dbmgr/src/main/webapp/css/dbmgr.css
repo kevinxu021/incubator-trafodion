@@ -30,6 +30,14 @@
 	margin-bottom: 10px;
 }
 
+.dbmgr-form-workload-cell-label {
+	display: table-cell;
+	padding-right: 10px;
+	width: 200px;
+	margin-bottom: 0px;
+	font-weight: 500;
+}
+
 .nav>li {
 	display: inline-block;
 }
