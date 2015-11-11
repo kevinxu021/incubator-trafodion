@@ -76,7 +76,7 @@ define([
 			'workloads/history': 'showHistoricalWorkloads',
 			'workloads/history/querydetail(/*args)':'showHistoricalWorkloadDetail',
 			'workloads/active/querydetail(/*args)':'showActiveQueryDetail',
-			'workloads/history/queryplan(/*args)':'showQueryPlan',
+			'workloads/queryplan(/*args)':'showQueryPlan',
 			'alerts': 'showAlertsSummary',
 			'alert/detail(/*args)': 'showAlertDetail',
 			'help/about': 'showAbout',

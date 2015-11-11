@@ -181,6 +181,20 @@ sudo su $TRAF_USER --command "$TRAF_PDSH $CREATE_TABLE"
 
 }
 
+function registerMetrics {
+CREATE_METRICS="$SQ_ROOT/mgblty/opentsdb/tools/register_metrics.sh"
+
+echo "***INFO: Registering Metrics"
+echo
+sudo su $TRAF_USER --command "echo 'source /etc/trafodion/trafodion_config' | cat - $CREATE_METRICS > temp && mv temp $CREATE_METRICS"
+
+sudo su $TRAF_USER --command "chmod 777 $CREATE_METRICS"
+
+sudo su $TRAF_USER --command "$TRAF_PDSH $CREATE_METRICS"
+
+}
+
+
 function unSetFlag {
 
 export HBASE_HOME=""
@@ -230,7 +244,7 @@ if [[ ! -z $openPort ]]; then
    if [[ $node_count -ne "1" ]]; then
       sudo su $TRAF_USER --command "$TRAF_PDCP $BOSUN_CONFIG $BOSUN_CONFIG" 
    fi
-   TSD_PORT="$openPort"
+   TSD_PORT="$port"
 fi
 
 
@@ -269,7 +283,6 @@ if [[ ! -z $openPort ]]; then
    fi
    HTTP_PORT=$port
 fi
-
 
 sudo chmod 777 $TRAF_CONFIG
 sed -i '/HTTP_PORT\=/d' $TRAF_CONFIG
@@ -341,6 +354,17 @@ fi
 
 }
 
+function editLogBack {
+
+logLocation="$SQ_ROOT/mgblty/opentsdb/etc/opentsdb/logback.xml"
+
+formerName="\/var\/log\/opentsdb"
+newName="..\/..\/log"
+
+sudo sed -i "s/$formerName/$newName/g" $logLocation
+
+}
+
 function configureDBM {
 
 export DM_HTTP_PORT="4205"
@@ -371,6 +395,8 @@ setFlags
 
 createOpenTSDBTables
 
+registerMetrics
+
 unSetFlag
 
 checkPorts
@@ -378,6 +404,8 @@ checkPorts
 editOPENTSDB_CONF
 
 editStartStop
+
+editLogBack
 
 getTimeZone
 

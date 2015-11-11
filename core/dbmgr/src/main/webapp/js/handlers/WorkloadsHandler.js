@@ -130,7 +130,7 @@ define(['handlers/EventDispatcher'],
 						xhr.abort();
 					}
 					xhrs["active_detail"] = $.ajax({
-						url: 'resources/workloads/active/detail?queryID=' + queryID,
+						url: 'resources/workloads/active/detailnew?queryID=' + queryID,
 						type:'GET',
 						dataType:"json",
 						contentType: "application/json;",

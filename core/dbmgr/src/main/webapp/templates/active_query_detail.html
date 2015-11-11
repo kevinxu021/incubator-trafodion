@@ -1,6 +1,34 @@
 <div id="page-wrapper">
 	<div class="row">
 		<div class="col-lg-12">
+			<div class="pull-right">
+				<div class="btn-toolbar">
+					<div class="btn-group" style="margin-right: 5px">
+						<label for="refreshInterval"
+							style="display: inline-block; margin-top: 5px; font-size: 14px; font-weight: normal">Auto-Refresh: </label>
+						<select class="form-control" id="refreshInterval"
+							style="display: inline-block; width: 110px; font-size: 12px; height: 30px; margin-top: 10px; padding: 2px">
+							<option value="0.5">Every 30 sec</option>
+							<option value="1">Every 1 min</option>
+							<option value="5">Every 5 min</option>
+							<option value="10">Every 10 min</option>
+							<option id="customTimeRange" value="">OFF</option>
+						</select>
+					</div>
+					<div class="btn-group"
+						style="margin-bottom: 10px; margin-top: 10px;">
+						<button type="button"
+							class="btn btn-default btn-xs dropdown-toggle"
+							data-toggle="dropdown" style="height: 30px;">
+							Actions <span class="caret"></span>
+						</button>
+						<ul class="dropdown-menu pull-right" role="menu">
+							<li><a id="refreshAction">Refresh</a></li>
+							<li><a id="cancelAction">Cancel</a></li>
+						</ul>
+					</div>
+				</div>
+			</div>
 			<h2 class="page-header">Query Detail</h2>
 		</div>
 	</div>
@@ -9,28 +37,188 @@
 			<div class="panel panel-default">
 				<div class="panel-heading">
 					Summary <img id="loadingImg" src="img/ajax-loader.gif" />
-					<div class="pull-right">
-						<div class="btn-group">
-							<button type="button"
-								class="btn btn-default btn-xs dropdown-toggle"
-								data-toggle="dropdown">
-								Actions <span class="caret"></span>
-							</button>
-							<ul class="dropdown-menu pull-right" role="menu">
-								<li><a id="refreshAction">Refresh</a></li>
-								<li><a id="cancelAction">Cancel</a></li>
-							</ul>
-						</div>
-					</div>
 				</div>
 				<div class="panel-body">
-					<fieldset class="dbmgr-fieldset-table" style="width: 90%">
-						<ul style="padding: 0px; width: 90%">
+					<fieldset class="dbmgr-fieldset-table" style="width: 90%;float:left">
+						<ul  style="padding: 0px; width: 90%">
 							<li class="dbmgr-form-item-row" style="width: 90%"><label
-								class="dbmgr-form-item-cell-label" style="vertical-align: top;">Query
-									ID</label> <input class="dbmgr-form-item-cell-label"
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Query
+									ID</label> <input class="dbmgr-form-workload-cell-label"
 								style="width: 600px; border: none;" readonly id="query-id"
 								maxlength="255"></li>
+						</ul>
+					</fieldset>
+					<div style="clear:both;"></div>
+					<fieldset class="dbmgr-fieldset-table" style="width: 50%;float:left;font-weight:normal">
+						<ul style="padding: 0px; width: 90%">
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Compile
+									Start Time</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="CompStartTime"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Compile
+									End Time</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="CompEndTime"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Compile
+									Elapsed Time</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly
+								id="compElapsedTime" maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Execution
+									Start Time</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="ExeStartTime"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Execution
+									End Time</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="ExeEndTime"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Execution
+									Elapsed Time</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="exeElapsedTime"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Status</label>
+								<input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="State"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Rows
+									Affected</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="RowsAffected"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">SQL
+									Error Code</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="SqlErrorCode"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Stats
+									Error Code</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="StatsErrorCode"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Query
+									Type</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="queryType"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Sub
+									Query Type</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="subqueryType"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Estimated
+									Accessed Row</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly
+								id="EstRowsAccessed" maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Estimated
+									Row Used</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="EstRowsUsed"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Stats
+									Collection Type </label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="StatsType"
+								maxlength="25"></li>
+						</ul>
+					</fieldset>
+					<fieldset class="dbmgr-fieldset-table" style="width: 50%;float:left">
+						<ul>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+									class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Parent
+										Qid</label> <input class="dbmgr-form-workload-cell-label"
+									style="width: 400px; border: none;" readonly id="parentQid"
+									maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Parent
+									Query System</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly
+								id="parentQidSystem" maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Child
+									Qid</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="childQid"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Number
+									of SQL Process</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="numSqlProcs"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Number
+									of Cpus</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="numCpus"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Transactiond
+									Id</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="transId"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">SQL
+									Source Length</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="sqlSrcLen"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Rows
+									Returned</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="rowsReturned"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">First
+									Row Return Time</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly
+								id="firstRowReturnTime" maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Last Error Before AQR</label>
+								<input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly
+								id="LastErrorBeforeAQR" maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Number
+									of AQR retries</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="AQRNumRetries"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Delay
+									Before AQR</label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="DelayBeforeAQR"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Number
+									of times reclaimed </label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly
+								id="reclaimSpaceCnt" maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Cancel
+									Time </label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="CanceledTime"
+								maxlength="25"></li>
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Last
+									Suspend Time </label> <input class="dbmgr-form-workload-cell-label"
+								style="width: 400px; border: none;" readonly id="lastSuspendTime"
+								maxlength="25"></li>
+						</ul>
+					</fieldset>
+					<div style="clear:both;"></div>
+					<fieldset class="dbmgr-fieldset-table" style="width: 90%;float:left">
+						<ul  style="padding: 0px; width: 90%">
+							<li class="dbmgr-form-item-row" style="width: 90%"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;">Query
+									Text</label> <textarea id="query-text" readonly name="TextMessage"
+									spellcheck="false" rows="5" readonly class="textarea"
+									style="width: 600px; margin-bottom: 10px"></textarea></li>
+							<li class="dbmgr-form-item-row"><label
+								class="dbmgr-form-workload-cell-label" style="vertical-align: top;"></label>
+								<button id="historical-explain-btn" class="btn btn-info fa fa-sitemap"
+								style="font-family: FontAwesome;"> Explain Plan</button></li>
 						</ul>
 					</fieldset>
 				</div>
@@ -42,11 +230,10 @@
 			<div class="panel panel-default">
 				<div class="panel-heading">Statistics</div>
 				<div class="panel-body">
-					<textarea id="query-statistics" readonly name="query-statistics"
-						spellcheck="false" rows="30" readonly class="textarea"
-						style="width: 100%; margin-bottom: 10px; font-family: Courier New, Courier, monospace"></textarea>
+					<div id="statistic-container" class="table-responsive"></div>
 				</div>
 			</div>
 		</div>
+
 	</div>
 </div>

@@ -49,6 +49,18 @@ Options:
 EOF
 }
 
+function copyConfig  {
+
+if [ $node_count -ne 1 ]; then
+   cp $TRAF_CONFIG $LOCAL_WORKDIR
+   $TRAF_PDCP $LOCAL_WORKDIR/$TRAF_CONFIG_FILE $LOCAL_WORKDIR
+   $TRAF_PDSH sudo mkdir -p $TRAF_CONFIG_DIR
+   $TRAF_PDSH sudo cp $LOCAL_WORKDIR/$TRAF_CONFIG_FILE $TRAF_CONFIG_DIR
+   $TRAF_PDSH sudo chmod 777 $TRAF_CONFIG
+fi
+
+}
+
 function checkHBaseVersion {
 
 for node in $HADOOP_NODES;
@@ -640,13 +652,8 @@ $TRAF_PDSH sudo mkdir -p $LOCAL_WORKDIR
 $TRAF_PDSH sudo chmod 777 $LOCAL_WORKDIR
 
 # copy config file to all nodes
-if [ $node_count -ne 1 ]; then
-   cp $TRAF_CONFIG $LOCAL_WORKDIR
-   $TRAF_PDCP $LOCAL_WORKDIR/$TRAF_CONFIG_FILE $LOCAL_WORKDIR
-   $TRAF_PDSH sudo mkdir -p $TRAF_CONFIG_DIR
-   $TRAF_PDSH sudo cp $LOCAL_WORKDIR/$TRAF_CONFIG_FILE $TRAF_CONFIG_DIR
-   $TRAF_PDSH sudo chmod 777 $TRAF_CONFIG
-fi
+
+copyConfig
 
 
 $LOCAL_WORKDIR/traf_sqconfig
@@ -692,6 +699,7 @@ sed -i '/DCS_INFO_PORT\=/d' $TRAF_CONFIG
 echo "export DCS_INFO_PORT=\"24400\"" >> $TRAF_CONFIG
 sudo chmod 777 $TRAF_CONFIG
 source $TRAF_CONFIG
+copyConfig
 
 #Set Max kernel pid 
 
@@ -806,6 +814,7 @@ sed -i '/MODS_COMPLETE\=/d' $TRAF_CONFIG
 echo "export MODS_COMPLETE=\"$MODS_COMPLETE\"" >> $TRAF_CONFIG
 sudo chmod 777 $TRAF_CONFIG
 source $TRAF_CONFIG
+copyConfig
 echo
 echo "*********************************"
 echo " TRAFODION INSTALLATION COMPLETE"

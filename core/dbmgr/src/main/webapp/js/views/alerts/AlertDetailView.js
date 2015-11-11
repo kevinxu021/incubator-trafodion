@@ -197,12 +197,12 @@ define([
 			}
 
 			var alertActions = alertDetail.Actions;
-			if(alertActions != null && alertHistory.length > 0){
+			if(alertActions != null && alertActions.length > 0){
 				$(ACTION_CONTAINER).show();
 				$(ACTION_TYPE).val(alertActions[alertActions.length -1].Type);
 				$(ACTION_MESSAGE).val(alertActions[alertActions.length -1].Message);
 				$(ACTION_USER).val(alertActions[alertActions.length -1].User);
-				var time = moment(alertHistory[alertActions.length -1].Time);
+				var time = moment(alertActions[alertActions.length -1].Time);
 				$(ACTION_TIME).val(time.tz(common.serverTimeZone).format('YYYY-MM-DD HH:mm:ss'));
 			}else{
 				$(ACTION_CONTAINER).hide();

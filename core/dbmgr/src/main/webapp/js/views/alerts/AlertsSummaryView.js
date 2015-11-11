@@ -235,10 +235,9 @@ define([
 		updateTimeRangeLabel: function(){
 			var timeRange = $(FILTER_TIME_RANGE).val();
 			if(timeRange != '-1'){
-				$(TIME_RANGE_LABEL).show();
 				$(TIME_RANGE_LABEL).text('Time Range : ' +  $(START_TIME_PICKER).data("DateTimePicker").date().format(DATE_FORMAT_ZONE) + ' - ' +  $(END_TIME_PICKER).data("DateTimePicker").date().format(DATE_FORMAT_ZONE));
 			}else{
-				$(TIME_RANGE_LABEL).hide();
+				$(TIME_RANGE_LABEL).text('Time Range : <All time ranges included>' );
 			}
 		},
 		filterButtonClicked: function(){
@@ -338,6 +337,7 @@ define([
 					//"scrollY":        "800px",
 					"scrollCollapse": true,
 					//"bJQueryUI": true,
+					stateSave: true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"aoColumnDefs": [{

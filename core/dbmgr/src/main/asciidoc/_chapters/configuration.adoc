@@ -79,7 +79,7 @@ The hostname or IP address for the node on which TSD is listening.
 The listen port number for TSD. 
 The default value is 4242.
 *Server TimeZone Name*::
-The canonical timezone name of the EsgynDB instance. DB Manager displays all date time values in the EsgyDB server local time.
+The canonical timezone name of the EsgynDB instance. DB Manager displays all date time values in the EsgynDB server local time.
 The timezone name has to be in the canonical format like *Etc/UTC* or *America/Los_Angeles*. You can use the handy script gettimezone.sh to find the canonical timezone of the instance.
 
 * The generated configuration is saved in *dbgmr-{projectVersion}./conf/config.xml*. A sample configuration is shown below.
