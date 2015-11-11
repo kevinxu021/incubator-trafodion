@@ -514,7 +514,8 @@ public class TransactionState {
     public String toString() {
         return "transactionId: " + transactionId + ", startId: " + startId + ", commitId: " + commitId +
                ", participants: " + participatingRegions.size() + ", ignoring: " + regionsToIgnore.size() +
-               ", hasDDL: " + hasDDLTx() + ", recoveryASN: " + getRecoveryASN() + ", remotePeers: " + hasRemotePeers();
+               ", hasDDL: " + hasDDLTx() + ", recoveryASN: " + getRecoveryASN() + ", remotePeers: "
+               + hasRemotePeers() + ", state: " + status.toString();
     }
 
     public int getParticipantCount() {
