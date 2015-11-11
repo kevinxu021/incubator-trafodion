@@ -44,13 +44,17 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 
 import org.apache.hadoop.hbase.Abortable;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.transactional.TransactionRegionLocation;
+import org.apache.hadoop.hbase.client.transactional.STRConfig;
 
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
+import org.apache.hadoop.hbase.zookeeper.ZooKeeperListener;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.zookeeper.KeeperException;
 
@@ -58,6 +62,7 @@ import org.apache.zookeeper.KeeperException;
  * Zookeeper client-side communication class for the DTM
  */
 public class HBaseTmZK implements Abortable{
+	public static final String rootNode = "/hbase/Trafodion/recovery";
 	private final String baseNode = "/hbase/Trafodion/recovery/TM";
     private final String zNodeLDTMPath = "/hbase/Trafodion/recovery/TM/LDTM";
     private final String zNodeTLOGPath = "/hbase/Trafodion/recovery/TM/TLOG";
@@ -111,11 +116,28 @@ public class HBaseTmZK implements Abortable{
 	
 	/**
 	 * @return
-	 * @throws KeeperException
+ 	 * @throws KeeperException
 	 */
 	private List<String> getChildren() throws KeeperException {
 		return ZKUtil.listChildrenNoWatch(zooKeeper, zkNode);
 	}
+
+    public void printChildren(String pv_node, int pv_depth) throws KeeperException, InterruptedException {
+
+	if (pv_depth == 0) {System.out.println(pv_node);};
+	pv_depth++;
+
+	List<String> lv_child_list = ZKUtil.listChildrenNoWatch(zooKeeper, pv_node);
+	java.util.Collections.sort(lv_child_list);
+	for (String lv_child : lv_child_list ) {
+	    for (int i = 0; i < pv_depth; i++) System.out.print(" ");
+	    System.out.print(lv_child);
+	    String lv_child_node = pv_node + "/" + lv_child;
+	    byte[] lv_child_data = checkData(lv_child_node);
+	    System.out.println("[" + new String(lv_child_data) + "]");
+	    printChildren(lv_child_node, pv_depth);
+	}
+    }
 
 	/**
 	 * @return
@@ -335,4 +357,74 @@ public class HBaseTmZK implements Abortable{
 		// TODO Auto-generated method stub
 		return false;
 	}
+
+    static void usage() {
+	
+	System.out.println("usage:");
+	System.out.println("HBaseTMZK [<options>...]");
+	System.out.println("<options>         : [ <peer info> | -h | -v ]");
+	System.out.println("<peer info>       : -peer <id>");
+	System.out.println("                  :    With this option the command is executed at the specified peer.");
+	System.out.println("                  :    (Defaults to the local cluster)");
+	System.out.println("-h                : Help (this output).");
+	System.out.println("-v                : Verbose output. ");
+
+    }    
+
+    public static void main(String [] Args) throws Exception {
+
+	boolean lv_retcode = true;
+
+	boolean lv_verbose = false;
+	boolean lv_test    = false;
+	int     lv_peer_id = 0;
+
+	String  lv_my_id  = new String();
+
+	int lv_index = 0;
+	for (String lv_arg : Args) {
+	    lv_index++;
+	    if (lv_arg.compareTo("-h") == 0) {
+		usage();
+		System.exit(0);
+	    }
+	    if (lv_arg.compareTo("-v") == 0) {
+		lv_verbose = true;
+	    }
+	    if (lv_arg.compareTo("-t") == 0) {
+		lv_test = true;
+	    }
+	    else if (lv_arg.compareTo("-peer") == 0) {
+		lv_peer_id = Integer.parseInt(Args[lv_index]);
+		if (lv_verbose) System.out.println("Talk to Peer Cluster, ID: " + lv_peer_id);
+	    }
+	}
+	    
+	STRConfig lv_STRConfig = null;
+	Configuration lv_config = HBaseConfiguration.create();
+	if (lv_peer_id > 0) {
+	    try {
+		lv_STRConfig = STRConfig.getInstance(lv_config);
+		lv_config = lv_STRConfig.getPeerConfiguration(lv_peer_id, false);
+		if (lv_config == null) {
+		    System.out.println("Peer ID: " + lv_peer_id + " does not exist OR it has not been configured.");
+		    System.exit(1);
+		}
+	    }
+	    catch (ZooKeeperConnectionException zke) {
+		System.out.println("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
+		System.exit(1);
+	    }
+	    catch (IOException ioe) {
+		System.out.println("IO Exception trying to get STRConfig instance: " + ioe);
+		System.exit(1);
+	    }
+	}
+
+	HBaseTmZK lv_tz = new HBaseTmZK(lv_config);
+	lv_tz.printChildren(HBaseTmZK.rootNode, 0);
+
+	System.exit(0);
+    }
+
 }
