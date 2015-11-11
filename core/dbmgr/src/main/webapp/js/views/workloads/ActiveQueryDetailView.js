@@ -94,7 +94,7 @@ define([
 		},
         explainQuery: function(){
         	var queryText = $('#query-text').text();
-			sessionStorage.setItem(queryID, JSON.stringify({type: 'repo', text: queryText}));	
+			sessionStorage.setItem(queryID, JSON.stringify({type: 'active', text: queryText}));	
 			window.location.hash = '/workloads/queryplan/'+queryID;
         },
         fetchActiveQueryDetail: function(){
