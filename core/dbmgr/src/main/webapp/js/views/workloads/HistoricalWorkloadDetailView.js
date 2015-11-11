@@ -20,7 +20,8 @@ define([
 	'use strict';
     var LOADING_SELECTOR = "#loadingImg",
   		REFRESH_MENU = '#refreshAction',
-  		QCANCEL_MENU = '#cancelAction';
+  		QCANCEL_MENU = '#cancelAction',
+  		EXPLAIN_BUTTON = '#historical-explain-btn';
 
     var _that = null;
     var queryID = null;
@@ -31,26 +32,26 @@ define([
 			_that = this;
 			$('#query-id').val(args);
 			queryID = args;
-			$('#explainLink').attr("href", "#/workloads/history/queryplan/"+queryID);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
 			$(REFRESH_MENU).on('click', this.fetchRepositoryQueryDetail);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
+			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
 			this.fetchRepositoryQueryDetail();
 			
 		},
 		doResume: function(args){
 			$('#query-id').val(args);
 			queryID = args;
-			$('#explainLink').attr("href", "#/workloads/history/queryplan/"+queryID);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
 			$(REFRESH_MENU).on('click', this.fetchRepositoryQueryDetail);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
+			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
 			this.fetchRepositoryQueryDetail();
 		},
 		doPause: function(){
@@ -60,6 +61,7 @@ define([
 			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
 			$(REFRESH_MENU).off('click', this.fetchRepositoryQueryDetail);
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
+			$(EXPLAIN_BUTTON).off('click', this.explainQuery);
 		},
         showLoading: function(){
         	$(LOADING_SELECTOR).show();
@@ -81,7 +83,12 @@ define([
         },
         cancelQueryError:function(jqXHR){
         	alert(jqXHR.responseText);
-        },        
+        },  
+        explainQuery: function(){
+        	var queryText = $('#query-text').text();
+			sessionStorage.setItem(queryID, JSON.stringify({type: 'repo', text: queryText}));	
+			window.location.hash = '/workloads/queryplan/'+queryID;
+       },
         fetchRepositoryQueryDetail: function(){
 			_that.showLoading();
 			//$(ERROR_CONTAINER).hide();
@@ -91,7 +98,7 @@ define([
 		displayResults: function (result){
 			_that.hideLoading();
 			$('#query-text').text(result.queryText);
-			sessionStorage.setItem(queryID, result.queryText);	
+			//sessionStorage.setItem(queryID, result.queryText);	
 			
 			$('#query-status').val(result.status.trim());
 			var startTimeVal = "";

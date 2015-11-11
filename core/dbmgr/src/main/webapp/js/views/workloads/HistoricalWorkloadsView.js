@@ -331,10 +331,11 @@ define([
 					paging: true,
 					buttons: [
 					          'copy','csv','excel','pdf','print'
-					          ],					                 
-					          fnDrawCallback: function(){
-					        	  //$('#repo-query-results td').css("white-space","nowrap");
-					          }
+					          ],
+			          "order":[[2, "desc"]],
+			          fnDrawCallback: function(){
+			        	  //$('#repo-query-results td').css("white-space","nowrap");
+			          }
 				});
 
 				$('#repo-query-results td').css("white-space","nowrap");
