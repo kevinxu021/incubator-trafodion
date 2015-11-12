@@ -91,6 +91,8 @@ public class HBaseAuditControlPoint {
     private static final int versions = 6;
     private static int myClusterId;
     private static STRConfig pSTRConfig = null;
+    private int TlogRetryDelay;
+    private int TlogRetryCount;
 
     public HBaseAuditControlPoint(Configuration config) throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("Enter HBaseAuditControlPoint constructor()");
@@ -112,6 +114,28 @@ public class HBaseAuditControlPoint {
       myClusterId = 0;
       if (pSTRConfig != null) {
          myClusterId = pSTRConfig.getMyClusterIdInt();
+      }
+
+      TlogRetryDelay = 3000; // 3 seconds
+      try {
+         String retryDelayS = System.getenv("TM_TLOG_RETRY_DELAY");
+         if (retryDelayS != null){
+            TlogRetryDelay = (Integer.parseInt(retryDelayS) > TlogRetryDelay ? Integer.parseInt(retryDelayS) : TlogRetryDelay);
+         }
+      }
+      catch (Exception e) {
+         if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_RETRY_DELAY is not in ms.env");
+      }
+
+      TlogRetryCount = 40;
+      try {
+         String retryCountS = System.getenv("TM_TLOG_RETRY_COUNT");
+         if (retryCountS != null){
+           TlogRetryCount = (Integer.parseInt(retryCountS) > TlogRetryCount ? Integer.parseInt(retryCountS) : TlogRetryCount);
+         }
+      }
+      catch (Exception e) {
+         if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_RETRY_COUNT is not in ms.env");
       }
 
       disableBlockCache = false;
@@ -224,18 +248,37 @@ public class HBaseAuditControlPoint {
       p.add(CONTROL_POINT_FAMILY, CP_NUM_AND_ASN_HWM, 
     		  Bytes.toBytes(String.valueOf(ControlPt) + ","
     	               + String.valueOf(startingSequenceNumber)));
-      try {
-         if (LOG.isTraceEnabled()) LOG.trace("try table.put with cluster Id: " + clusterId + " and startingSequenceNumber " + startingSequenceNumber);
-         table.put(p);
-         if (useAutoFlush == false) {
-            if (LOG.isTraceEnabled()) LOG.trace("flushing controlpoint record");
-            table.flushCommits();
+      boolean complete = false;
+      int retries = 0;
+      do {
+         try {
+       	    retries++;
+            if (LOG.isTraceEnabled()) LOG.trace("try table.put with cluster Id: " + clusterId + " and startingSequenceNumber " + startingSequenceNumber);
+            table.put(p);
+            if (useAutoFlush == false) {
+               if (LOG.isTraceEnabled()) LOG.trace("flushing controlpoint record");
+               table.flushCommits();
+            }
+            complete = true;
+            if (retries > 1){
+               if (LOG.isTraceEnabled()) LOG.trace("Retry successful in putRecord for cp: " + ControlPt + " on table "
+                        + table.getTableName().toString());                    	 
+            }
          }
-      }
-      catch (Exception e) {
-         LOG.error("HBaseAuditControlPoint:putRecord Exception" + e);
-         throw e;
-      }
+         catch (Exception e){
+             LOG.error("Retrying putRecord on control point: " + ControlPt + " on control point table "
+                     + table.getTableName().toString() + " due to Exception " + e);
+//             locator.getRegionLocation(p.getRow(), true);
+             table.getRegionLocation(p.getRow(), true);
+
+             Thread.sleep(TlogRetryDelay); // 3 second default
+             if (retries == TlogRetryCount){
+                LOG.error("putRecord aborting due to excessive retries on on control point table : "
+                         + table.getTableName().toString() + " due to Exception; aborting ");
+                System.exit(1);
+             }
+         }
+      } while (! complete && retries < TlogRetryCount);  // default give up after 5 minutes
       if (LOG.isTraceEnabled()) LOG.trace("HBaseAuditControlPoint:putRecord returning " + ControlPt);
       return ControlPt;
    }

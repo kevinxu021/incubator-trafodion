@@ -11,16 +11,19 @@ define([
         'handlers/WorkloadsHandler',
         'moment',
         'common',
+        'views/RefreshTimerView',
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
-        ], function (BaseView, WorkloadsT, $, wHandler, moment, common) {
+        ], function (BaseView, WorkloadsT, $, wHandler, moment, common, refreshTimer) {
 	'use strict';
     var LOADING_SELECTOR = "#loadingImg",
+    	REFRESH_INTERVAL = '#refreshInterval',
   		REFRESH_MENU = '#refreshAction',
-  		QCANCEL_MENU = '#cancelAction';
+  		QCANCEL_MENU = '#cancelAction',
+  		EXPLAIN_BUTTON = '#historical-explain-btn';
 
-    var _that = null;
+    var _this = null;
     var queryID = null;
     var historySummary = {};
 	var historyStatistic = {};
@@ -28,39 +31,47 @@ define([
 		template:  _.template(WorkloadsT),
 
 		doInit: function (args){
-			_that = this;
+			_this = this;
 			$('#query-id').val(args);
 			queryID = args;
-			$('#explainLink').attr("href", "#/workloads/history/queryplan/"+queryID);
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			refreshTimer.init();
+			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimer.setRefreshInterval(0.5);
 			
 			$(REFRESH_MENU).on('click', this.fetchActiveQueryDetail);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
+			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
 			this.fetchActiveQueryDetail();
 			
 		},
 		doResume: function(args){
 			$('#query-id').val(args);
 			queryID = args;
-			$('#explainLink').attr("href", "#/workloads/history/queryplan/"+queryID);
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
 			$(REFRESH_MENU).on('click', this.fetchActiveQueryDetail);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
+			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
+			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimer.resume();
 			this.fetchActiveQueryDetail();
 		},
 		doPause: function(){
+			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimer.pause();
 			wHandler.off(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.off(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
 			$(REFRESH_MENU).off('click', this.fetchActiveQueryDetail);
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
+			$(EXPLAIN_BUTTON).off('click', this.explainQuery);
 		},
         showLoading: function(){
         	$(LOADING_SELECTOR).show();
@@ -78,14 +89,22 @@ define([
         cancelQueryError:function(jqXHR){
         	alert(jqXHR.responseText);
         },
+		timerBeeped: function(){
+			_this.fetchActiveQueryDetail();
+		},
+        explainQuery: function(){
+        	var queryText = $('#query-text').text();
+			sessionStorage.setItem(queryID, JSON.stringify({type: 'active', text: queryText}));	
+			window.location.hash = '/workloads/queryplan/'+queryID;
+        },
         fetchActiveQueryDetail: function(){
-			_that.showLoading();
+			_this.showLoading();
 			//$(ERROR_CONTAINER).hide();
 			wHandler.fetchActiveQueryDetail(queryID);
 		},
 
 		displayResults: function (result){
-			_that.hideLoading();
+			_this.hideLoading();
 
 			if (historySummary.Qid != queryID) {
 				// different workload, clear history
@@ -98,7 +117,7 @@ define([
 			var queryText = summary.sqlSrc;
 			queryText = queryText.substring(1,queryText.length-1);
 			$('#query-text').text(queryText);
-			sessionStorage.setItem(queryID, queryText);	
+			//sessionStorage.setItem(queryID, queryText);	
 
 			for ( var k in summary) {
 				var htmlTag = "#" + k;
@@ -146,7 +165,7 @@ define([
 				var act_rows = common.formatNumberWithCommas(dataSet[i].Actual_Rows);
 				var dop = dataSet[i].DOP;
 				var oper_cpu_time = common.microsecondsToStringExtend(dataSet[i].Oper_CPU_Time);
-				var details = _that.formatDetail(dataSet[i].Details);
+				var details = _this.formatDetail(dataSet[i].Details);
 				
 				if (!( historyStatistic[id] === undefined)) {
 					if (historyStatistic[id].act_rows != act_rows) {
@@ -158,16 +177,16 @@ define([
 					if (historyStatistic[id].oper_cpu_time != oper_cpu_time) {
 						oper_cpu_time = "<sflag>" + oper_cpu_time + "</eflag>";
 					}
-					details = _that.flagDetail(historyStatistic[id].details,details);
+					details = _this.flagDetail(historyStatistic[id].details,details);
 				}
 
-				statisticDataSet.push([lc, rc, id, pid, eid,frag_num, tdb_name, dop, oper_cpu_time, est_rows, act_rows, _that.detailToString(details)]);
+				statisticDataSet.push([lc, rc, id, pid, eid,frag_num, tdb_name, dop, oper_cpu_time, est_rows, act_rows, _this.detailToString(details)]);
 				// update history
 				historyStatistic[id] = {};
 				historyStatistic[id]["act_rows"] = common.formatNumberWithCommas(dataSet[i].Actual_Rows);
 				historyStatistic[id]["dop"] = dataSet[i].DOP;
 				historyStatistic[id]["oper_cpu_time"] = common.microsecondsToStringExtend(dataSet[i].Oper_CPU_Time);
-				historyStatistic[id]["details"] = _that.formatDetail(dataSet[i].Details);
+				historyStatistic[id]["details"] = _this.formatDetail(dataSet[i].Details);
 			}
 
 			var statisticTable = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="statistic-results"></table>';
@@ -180,7 +199,7 @@ define([
 						// "bAutoWidth": true,
 						"scrollCollapse" : true,
 						"aaData" : statisticDataSet,
-						"aaSorting" :	[[2,"asc"]],
+						"aaSorting" :	[[2,"desc"]],
 						"columns" : [{"sTitle" : "LC"},{"sTitle" : "RC"},{"sTitle" : "Id"},
 								{"sTitle" : "PaId"},{"sTitle" : "ExId"},{"sTitle" : "Frag"},
 								{"sTitle" : "TDB Name"},{"sTitle" : "DOP"},{"sTitle" : "Oper Cpu Time"},
@@ -245,7 +264,7 @@ define([
 		},
 
         showErrorMessage: function (jqXHR) {
-        	_that.hideLoading();
+        	_this.hideLoading();
         	/*$(RESULT_CONTAINER).hide();
         	$(ERROR_CONTAINER).show();
         	if (jqXHR.responseText) {

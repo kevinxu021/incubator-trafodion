@@ -85,10 +85,12 @@ define([
 			$('#query-id').val(args);
 			queryID = args;
 
-			var queryText = sessionStorage.getItem(queryID);
+			var queryParams = sessionStorage.getItem(queryID);
 			sessionStorage.removeItem(queryID);
-			if(queryText != null){
-				$('#query-text').text(queryText);
+			if(queryParams != null){
+				queryParams = JSON.parse(queryParams);
+				if(queryParams.text)
+					$('#query-text').text(queryParams.text);
 			}
 		},
 		fetchExplainPlan: function(){

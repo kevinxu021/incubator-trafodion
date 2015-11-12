@@ -16,6 +16,15 @@ else
     TRAF_PDCP="pdcp -R ssh $MY_NODES"
 fi
 
+function shutDownMgblty  {
+
+echo "***INFO: Shutting down DBManager if running."
+echo 
+
+sudo su $TRAF_USER --login --command "echo 'source /etc/trafodion/trafodion_config' | $SQ_ROOT/sql/scripts/mgblty_stop" &> /dev/null
+
+}
+
 function setPackageNames {
 
 source $TRAF_CONFIG
@@ -171,7 +180,7 @@ source $TRAF_CONFIG
 function createOpenTSDBTables {
 CREATE_TABLE="$SQ_ROOT/mgblty/opentsdb/tools/create_table.sh"
 
-echo "***INFO: Createing OpenTSDB tables"
+echo "***INFO: Creating OpenTSDB tables"
 echo
 sudo su $TRAF_USER --command "echo 'source /etc/trafodion/trafodion_config' | cat - $CREATE_TABLE > temp && mv temp $CREATE_TABLE"
 
@@ -380,6 +389,8 @@ sudo su $TRAF_USER --login --command "$DBMGR_INSTALL_DIR/bin/configure.py --http
 #================================================
 
 #Main
+
+shutDownMgblty
 
 setPackageNames
 

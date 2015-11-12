@@ -36,6 +36,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
@@ -50,6 +52,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
@@ -176,26 +179,6 @@ public class TmAuditTlog {
    private Object tablePutLock;            // Lock for synchronizing table.put operations
                                                   // to avoid ArrayIndexOutOfBoundsException
    private static byte filler[];
-
-   public static final int TM_TX_STATE_NOTX = 0; //S0 - NOTX
-   public static final int TM_TX_STATE_ACTIVE = 1; //S1 - ACTIVE
-   public static final int TM_TX_STATE_FORGOTTEN = 2; //N/A
-   public static final int TM_TX_STATE_COMMITTED = 3; //N/A
-   public static final int TM_TX_STATE_ABORTING = 4; //S4 - ROLLBACK
-   public static final int TM_TX_STATE_ABORTED = 5; //S4 - ROLLBACK
-   public static final int TM_TX_STATE_COMMITTING = 6; //S3 - PREPARED
-   public static final int TM_TX_STATE_PREPARING = 7; //S2 - IDLE
-   public static final int TM_TX_STATE_FORGETTING = 8; //N/A
-   public static final int TM_TX_STATE_PREPARED = 9; //S3 - PREPARED XARM Branches only!
-   public static final int TM_TX_STATE_FORGETTING_HEUR = 10; //S5 - HEURISTIC
-   public static final int TM_TX_STATE_BEGINNING = 11; //S1 - ACTIVE
-   public static final int TM_TX_STATE_HUNGCOMMITTED = 12; //N/A
-   public static final int TM_TX_STATE_HUNGABORTED = 13; //S4 - ROLLBACK
-   public static final int TM_TX_STATE_IDLE = 14; //S2 - IDLE XARM Branches only!
-   public static final int TM_TX_STATE_FORGOTTEN_HEUR = 15; //S5 - HEURISTIC - Waiting Superior TM xa_forget request
-   public static final int TM_TX_STATE_ABORTING_PART2 = 16; // Internal State
-   public static final int TM_TX_STATE_TERMINATING = 17;
-   public static final int TM_TX_STATE_LAST = 17;
 
    public static final int TLOG_SLEEP = 1000;      // One second
    public static final int TLOG_SLEEP_INCR = 5000; // Five seconds
@@ -1192,16 +1175,54 @@ public class TmAuditTlog {
 
       if (recoveryASN != -1){
          // We need to send this to a remote Tlog, not our local one, so open the appropriate table
-         HTableInterface recoveryTable;
+//         HTableInterface recoveryTable;
+         Table recoveryTable;
          int lv_ownerNid = (int)TransactionState.getNodeId(lvTransid);
          String lv_tLogName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(lv_ownerNid) + "_LOG_" + Integer.toHexString(lv_lockIndex));
          if (LOG.isTraceEnabled()) LOG.trace("TLOG putSingleRecord with recoveryASN != 0 on table " + lv_tLogName);
-         HConnection recoveryTableConnection = HConnectionManager.createConnection(this.config);
+//         HConnection recoveryTableConnection = HConnectionManager.createConnection(this.config);
+         Connection recoveryTableConnection = ConnectionFactory.createConnection(this.config);
          if (LOG.isTraceEnabled()) LOG.trace("putSingleRecord new HConnection: " + recoveryTableConnection);
          recoveryTable = recoveryTableConnection.getTable(TableName.valueOf(lv_tLogName));
+         RegionLocator locator = recoveryTableConnection.getRegionLocator(recoveryTable.getName());
 
          try {
-            recoveryTable.put(p);
+            boolean complete = false;
+            int retries = 0;
+            do {
+               try {
+                  retries++;
+                  if (LOG.isTraceEnabled()) LOG.trace("try recovery table.put in thread " + threadId + ", " + p );
+                  recoveryTable.put(p);
+                  complete = true;
+                  if (retries > 1){
+                      if (LOG.isTraceEnabled()) LOG.trace("Retry successful in putSingleRecord for transaction: " + lvTransid + " on recovery table "
+                              + recoveryTable.getName().toString());                    	 
+                   }
+               }
+               catch (RetriesExhaustedWithDetailsException rewde){
+                   LOG.error("Retrying putSingleRecord on recoveryTable for transaction: " + lvTransid + " on table "
+                           + recoveryTable.getName().toString() + " due to RetriesExhaustedWithDetailsException " + rewde);
+                   locator.getRegionLocation(p.getRow(), true);
+                   Thread.sleep(TlogRetryDelay); // 3 second default
+                   if (retries == TlogRetryCount){
+                      LOG.error("putSingleRecord aborting due to excessive retries on recoveryTable for transaction: " + lvTransid + " on table "
+                               + recoveryTable.getName().toString() + " due to RetriesExhaustedWithDetailsException; aborting ");
+                      System.exit(1);
+                   }
+               }
+               catch (Exception e2){
+                   LOG.error("Retrying putSingleRecord on recoveryTable for transaction: " + lvTransid + " on table "
+                           + recoveryTable.getName().toString() + " due to Exception " + e2);
+                   locator.getRegionLocation(p.getRow(), true);
+                   Thread.sleep(TlogRetryDelay); // 3 second default
+                   if (retries == TlogRetryCount){
+                      LOG.error("putSingleRecord aborting due to excessive retries on recoveryTable for transaction: " + lvTransid + " on table "
+                               + recoveryTable.getName().toString() + " due t Exception; aborting ");
+                      System.exit(1);
+                   }
+               }
+            } while (! complete && retries < TlogRetryCount);  // default give up after 5 minutes
          }
          catch (Exception e2){
             // create record of the exception
@@ -1211,11 +1232,12 @@ public class TmAuditTlog {
          }
          finally {
             try {
+               locator.close();
                recoveryTable.close();
                recoveryTableConnection.close();
             }
             catch (IOException e) {
-               LOG.error("putSingleRecord IOException closing recovery table or connection for table " + lv_tLogName);
+               LOG.error("putSingleRecord IOException closing locator, recovery table or connection for table " + lv_tLogName);
                e.printStackTrace();
             }
          }
@@ -1241,21 +1263,32 @@ public class TmAuditTlog {
                      }
                      endTimes[lv_TimeIndex] = System.nanoTime();
                      complete = true;
+                     if (retries > 1){
+                        if (LOG.isTraceEnabled()) LOG.trace("Retry successful in putSingleRecord for transaction: " + lvTransid + " on table "
+                                + table[lv_lockIndex].getTableName().toString());                    	 
+                     }
                   }
                   catch (RetriesExhaustedWithDetailsException rewde){
                       LOG.error("Retrying putSingleRecord for transaction: " + lvTransid + " on table "
                               + table[lv_lockIndex].getTableName().toString() + " due to RetriesExhaustedWithDetailsException " + rewde);
                	      table[lv_lockIndex].getRegionLocations();
                       Thread.sleep(TlogRetryDelay); // 3 second default
-               	      continue;
-                	  
+                      if (retries == TlogRetryCount){
+                         LOG.error("putSingleRecord aborting due to excessive retries for transaction: " + lvTransid + " on table "
+                              + table[lv_lockIndex].getTableName().toString() + " due to RetriesExhaustedWithDetailsException; aborting ");
+                         System.exit(1);
+                      }
                   }
                   catch (Exception e2){
-                     // create record of the exception
-                     LOG.error("putSingleRecord for transaction: " + lvTransid + " on table "
-                                + table[lv_lockIndex].getTableName().toString() + " Exception " + e2);
-                     e2.printStackTrace();
-                     throw e2;
+                      LOG.error("Retrying putSingleRecord for transaction: " + lvTransid + " on table "
+                              + table[lv_lockIndex].getTableName().toString() + " due to Exception " + e2);
+               	      table[lv_lockIndex].getRegionLocations();
+                      Thread.sleep(TlogRetryDelay); // 3 second default
+                      if (retries == TlogRetryCount){
+                         LOG.error("putSingleRecord aborting due to excessive retries for transaction: " + lvTransid + " on table "
+                                  + table[lv_lockIndex].getTableName().toString() + " due to Exception; aborting ");
+                         System.exit(1);
+                      }
                   }
                } while (! complete && retries < TlogRetryCount);  // default give up after 5 minutes
             } // End global synchronization
@@ -1414,10 +1447,10 @@ public class TmAuditTlog {
             byte [] value = r.getValue(TLOG_FAMILY, ASN_STATE);
             stateString =  new String (Bytes.toString(value));
             if (LOG.isTraceEnabled()) LOG.trace("stateString is " + stateString);
-            if (stateString.equals(TransState.STATE_COMMITTED.toString())){
-               lvTxState = TransState.STATE_COMMITTED;
+            if (stateString.contains("COMMIT")){
+                lvTxState = TransState.STATE_COMMITTED;
             }
-            else if (stateString.equals(TransState.STATE_ABORTED.toString())){
+            else if (stateString.contains("ABORTED")){
                lvTxState = TransState.STATE_ABORTED;
             }
             else if (stateString.equals(TransState.STATE_ACTIVE.toString())){
@@ -1466,7 +1499,7 @@ public class TmAuditTlog {
                lvTxState = TransState.STATE_ABORTING_PART2;
             }
             else if (stateString.equals(TransState.STATE_TERMINATING.toString())){
-               lvTxState = TransState.STATE_TERMINATING;
+                lvTxState = TransState.STATE_TERMINATING;
             }
             else {
                lvTxState = TransState.STATE_BAD;
@@ -1593,9 +1626,10 @@ public class TmAuditTlog {
                                      + ", node: " + TransactionState.getNodeId(tmp_trans)
                                      + ", clusterId: " + TransactionState.getClusterId(tmp_trans));
                         }
-                        if ((Long.parseLong(asnToken) < lvAsn) && (stateToken.equals(TransState.STATE_FORGOTTEN.toString()))) {
+                        if ((Long.parseLong(asnToken) < lvAsn) && (stateToken.contains(TransState.STATE_FORGOTTEN.toString()))) {
                            Delete del = new Delete(r.getRow());
-                           if (LOG.isTraceEnabled()) LOG.trace("adding transid: " + transidToken + " to delete list");
+                           LOG.info("adding transid: " + transidToken + " to delete list");
+//                           if (LOG.isTraceEnabled()) LOG.trace("adding transid: " + transidToken + " to delete list");
                            deleteList.add(del);
                         }
                         else if ((Long.parseLong(asnToken) < lvAsn) &&
@@ -1619,7 +1653,7 @@ public class TmAuditTlog {
                                     asnToken = stok.nextElement().toString() ;
                                     transidToken = stok.nextElement().toString() ;
                                     stateToken = stok.nextElement().toString() ;
-                                    if ((Long.parseLong(asnToken) < lvAsn) && (stateToken.equals(TransState.STATE_FORGOTTEN.toString()))) {
+                                    if ((Long.parseLong(asnToken) < lvAsn) && (stateToken.contains(TransState.STATE_FORGOTTEN.toString()))) {
                                        Delete del = new Delete(r.getRow());
                                        if (LOG.isTraceEnabled()) LOG.trace("Secondary search found new delete - adding (" + transidToken + ") with asn: " + asnToken + " to delete list");
                                        deleteList.add(del);
@@ -1813,7 +1847,8 @@ public class TmAuditTlog {
    }
 
    public void getTransactionState (TransactionState ts, boolean postAllRegions) throws Exception {
-      if (LOG.isTraceEnabled()) LOG.trace("getTransactionState start; transid: " + ts.getTransactionId());
+     LOG.info("getTransactionState start; transid: " + ts.getTransactionId());
+//      if (LOG.isTraceEnabled()) LOG.trace("getTransactionState start; transid: " + ts.getTransactionId());
 
       // This request might be for a transaction not originating on this node, so we need to open
       // the appropriate Tlog
@@ -1822,7 +1857,8 @@ public class TmAuditTlog {
       int lv_ownerNid = (int)TransactionState.getNodeId(lvTransid);
       int lv_lockIndex = (int)(TransactionState.getTransSeqNum(lvTransid) & tLogHashKey);
       String lv_tLogName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(lv_ownerNid) + "_LOG_" + Integer.toHexString(lv_lockIndex));
-      if (LOG.isTraceEnabled()) LOG.trace("getTransactionState reading from: " + lv_tLogName);
+      LOG.info("getTransactionState reading from: " + lv_tLogName);
+//      if (LOG.isTraceEnabled()) LOG.trace("getTransactionState reading from: " + lv_tLogName);
       HConnection unknownTableConnection = HConnectionManager.createConnection(this.config);
       unknownTransactionTable = unknownTableConnection.getTable(TableName.valueOf(lv_tLogName));
 
@@ -1830,7 +1866,8 @@ public class TmAuditTlog {
          String transidString = new String(String.valueOf(lvTransid));
          Get g;
          long key = ((((long)lv_lockIndex) << tLogHashShiftFactor) + TransactionState.getTransSeqNum(lvTransid));
-         if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hexkey: " + Long.toHexString(key) + ", transid: " +  lvTransid);
+         LOG.info("key: " + key + ", hexkey: " + Long.toHexString(key) + ", transid: " +  lvTransid);
+//         if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hexkey: " + Long.toHexString(key) + ", transid: " +  lvTransid);
          g = new Get(Bytes.toBytes(key));
          TransState lvTxState = TransState.STATE_NOTX;
          String stateString = "";
@@ -1840,20 +1877,26 @@ public class TmAuditTlog {
          try {
             Result r = unknownTransactionTable.get(g);
             if (r == null) {
-               if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: tLog result is null: " + transidString);
+               LOG.info("getTransactionState: tLog result is null: " + transidString);
+               ts.setStatus(TransState.STATE_NOTX);
+//               if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: tLog result is null: " + transidString);
             }
             if (r.isEmpty()) {
-               if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: tLog empty result: " + transidString);
+               LOG.info("getTransactionState: tLog empty result: " + transidString);
+               ts.setStatus(TransState.STATE_NOTX);
+//               if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: tLog empty result: " + transidString);
             }
             byte [] value = r.getValue(TLOG_FAMILY, ASN_STATE);
             if (value == null) {
                ts.setStatus(TransState.STATE_NOTX);
-               if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: tLog value is null: " + transidString);
+               LOG.info("getTransactionState: tLog value is null: " + transidString);
+//               if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: tLog value is null: " + transidString);
                return;
             }
             if (value.length == 0) {
                ts.setStatus(TransState.STATE_NOTX);
-               if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: tLog transaction not found: " + transidString);
+               LOG.info("getTransactionState: tLog transaction not found: " + transidString);
+//               if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: tLog transaction not found: " + transidString);
                return;
             }
 
@@ -1864,12 +1907,13 @@ public class TmAuditTlog {
                String asnToken = st.nextElement().toString();
                transidToken = st.nextElement().toString();
                stateString = st.nextElement().toString();
-               if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: transaction: " + transidToken + " stateString is: " + stateString);
+               LOG.info("getTransactionState: transaction: " + transidToken + " stateString is: " + stateString);
+//               if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: transaction: " + transidToken + " stateString is: " + stateString);
             }
-            if (stateString.equals(TransState.STATE_COMMITTED.toString())){
+            if (stateString.contains("COMMIT")){
                lvTxState = TransState.STATE_COMMITTED;
             }
-            else if (stateString.equals(TransState.STATE_ABORTED.toString())){
+            else if (stateString.contains("ABORT")){
                lvTxState = TransState.STATE_ABORTED;
             }
             else if (stateString.equals(TransState.STATE_ACTIVE.toString())){
@@ -1881,7 +1925,7 @@ public class TmAuditTlog {
             else if (stateString.equals(TransState.STATE_NOTX.toString())){
                lvTxState = TransState.STATE_NOTX;
             }
-            else if (stateString.equals(TransState.STATE_FORGOTTEN.toString())){
+            else if (stateString.contains("FORGOT")){
                // Need to get the previous state record so we know how to drive the regions
                String keyS = new String(r.getRow());
                Get get = new Get(r.getRow());
@@ -1892,17 +1936,21 @@ public class TmAuditTlog {
                for (Cell element : list) {
                   st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(element)), ",");
                   if (st.hasMoreElements()) {
-                     if (LOG.isTraceEnabled()) LOG.trace("Performing secondary search on (" + transidToken + ")");
+                	  LOG.info("Performing secondary search on (" + transidToken + ")");
+//                     if (LOG.isTraceEnabled()) LOG.trace("Performing secondary search on (" + transidToken + ")");
                      String asnToken = st.nextElement().toString() ;
                      transidToken = st.nextElement().toString() ;
                      String stateToken = st.nextElement().toString() ;
-                     if ((stateToken.equals(TransState.STATE_COMMITTED.toString())) || (stateToken.equals(TransState.STATE_ABORTED.toString()))) {
-                         if (LOG.isTraceEnabled()) LOG.trace("Secondary search found record for (" + transidToken + ") with state: " + stateToken);
-                         lvTxState = (stateToken.equals(TransState.STATE_COMMITTED.toString()) ) ? TransState.STATE_COMMITTED : TransState.STATE_ABORTED;
+                	 LOG.info("Trans (" + transidToken + ") has stateToken: " + stateToken);
+                     if ((stateToken.contains("COMMIT")) || (stateToken.contains("ABORT"))) {
+                    	 LOG.info("Secondary search found record for (" + transidToken + ") with state: " + stateToken);
+//                         if (LOG.isTraceEnabled()) LOG.trace("Secondary search found record for (" + transidToken + ") with state: " + stateToken);
+                         lvTxState = (stateToken.contains("COMMIT")) ? TransState.STATE_COMMITTED : TransState.STATE_ABORTED;
                          break;
                      }
                      else {
-                         if (LOG.isTraceEnabled()) LOG.trace("Secondary search skipping entry for (" + 
+//                         if (LOG.isTraceEnabled()) LOG.trace("Secondary search skipping entry for (" + 
+                    	 LOG.info("Secondary search skipping entry for (" + 
                                     transidToken + ") with state: " + stateToken );
                      }
                   }
@@ -1910,6 +1958,15 @@ public class TmAuditTlog {
             }
             else if (stateString.equals(TransState.STATE_ABORTING.toString())){
                lvTxState = TransState.STATE_ABORTING;
+            }
+            else if (stateString.equals(TransState.STATE_FORGOTTEN_COMMIT.toString())){
+               lvTxState = TransState.STATE_FORGOTTEN_COMMIT;
+            }
+            else if (stateString.equals(TransState.STATE_FORGOTTEN_ABORT.toString())){
+               lvTxState = TransState.STATE_FORGOTTEN_ABORT;
+            }
+            else if (stateString.equals(TransState.STATE_RECOVERY_COMMIT.toString())){
+               lvTxState = TransState.STATE_RECOVERY_COMMIT;
             }
             else if (stateString.equals(TransState.STATE_COMMITTING.toString())){
                lvTxState = TransState.STATE_COMMITTING;
@@ -1969,7 +2026,8 @@ public class TmAuditTlog {
                while(it.hasNext()) { // iterate entries.
                   NavigableMap.Entry<HRegionInfo, ServerName> pairs = it.next();
                   HRegionInfo regionKey = pairs.getKey();
-                  if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: transaction: " + transidToken + " adding region: " + regionKey.getRegionNameAsString());
+                  LOG.info("getTransactionState: transaction: " + transidToken + " adding region: " + regionKey.getRegionNameAsString());
+//                  if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: transaction: " + transidToken + " adding region: " + regionKey.getRegionNameAsString());
                   ServerName serverValue = regions.get(regionKey);
                   String hostAndPort = new String(serverValue.getHostAndPort());
                   StringTokenizer tok = new StringTokenizer(hostAndPort, ":");
@@ -1981,7 +2039,9 @@ public class TmAuditTlog {
             }
             ts.setStatus(lvTxState);
 
-            if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: returning transid: " + ts.getTransactionId() + " state: " + lvTxState);
+            LOG.info("getTransactionState: returning ts: " + ts);
+            LOG.info("getTransactionState: returning transid: " + ts.getTransactionId() + " state: " + lvTxState);
+//            if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: returning transid: " + ts.getTransactionId() + " state: " + lvTxState);
          } catch (Exception e){
              LOG.error("getTransactionState Exception " + Arrays.toString(e.getStackTrace()));
              throw e;
@@ -1992,7 +2052,8 @@ public class TmAuditTlog {
             e2.printStackTrace();
             throw e2;
       }
-      if (LOG.isTraceEnabled()) LOG.trace("getTransactionState end transid: " + ts.getTransactionId());
+      LOG.info("getTransactionState end transid: " + ts.getTransactionId());
+//      if (LOG.isTraceEnabled()) LOG.trace("getTransactionState end transid: " + ts.getTransactionId());
       return;
    }
 
