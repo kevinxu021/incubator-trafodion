@@ -1861,32 +1861,42 @@ public class TmAuditTlog {
 //      if (LOG.isTraceEnabled()) LOG.trace("getTransactionState reading from: " + lv_tLogName);
       HConnection unknownTableConnection = HConnectionManager.createConnection(this.config);
       unknownTransactionTable = unknownTableConnection.getTable(TableName.valueOf(lv_tLogName));
+      RegionLocator rl = unknownTableConnection.getRegionLocator(TableName.valueOf(lv_tLogName));
+      rl.getAllRegionLocations();
 
-      try {
-         String transidString = new String(String.valueOf(lvTransid));
-         Get g;
-         long key = ((((long)lv_lockIndex) << tLogHashShiftFactor) + TransactionState.getTransSeqNum(lvTransid));
-         LOG.info("key: " + key + ", hexkey: " + Long.toHexString(key) + ", transid: " +  lvTransid);
-//         if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hexkey: " + Long.toHexString(key) + ", transid: " +  lvTransid);
-         g = new Get(Bytes.toBytes(key));
-         TransState lvTxState = TransState.STATE_NOTX;
-         String stateString = "";
-         String transidToken = "";
-         String startIdToken = "";
-         String commitIdToken = "";
+      boolean complete = false;
+      int retries = 0;
+      Get g;
+      byte [] value;
+      String stateString = "";
+      String transidToken = "";
+      String startIdToken = "";
+      String commitIdToken = "";
+      TransState lvTxState;
+      Result r;
+      StringTokenizer st;
+      long key = ((((long)lv_lockIndex) << tLogHashShiftFactor) + TransactionState.getTransSeqNum(lvTransid));
+
+      do {
          try {
-            Result r = unknownTransactionTable.get(g);
+       	    retries++;
+            String transidString = new String(String.valueOf(lvTransid));
+            LOG.info("key: " + key + ", hexkey: " + Long.toHexString(key) + ", transid: " +  lvTransid);
+//         if (LOG.isTraceEnabled()) LOG.trace("key: " + key + ", hexkey: " + Long.toHexString(key) + ", transid: " +  lvTransid);
+            g = new Get(Bytes.toBytes(key));
+            lvTxState = TransState.STATE_NOTX;
+            r = unknownTransactionTable.get(g);
             if (r == null) {
                LOG.info("getTransactionState: tLog result is null: " + transidString);
                ts.setStatus(TransState.STATE_NOTX);
-//               if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: tLog result is null: " + transidString);
+//                 if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: tLog result is null: " + transidString);
             }
             if (r.isEmpty()) {
                LOG.info("getTransactionState: tLog empty result: " + transidString);
                ts.setStatus(TransState.STATE_NOTX);
-//               if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: tLog empty result: " + transidString);
+//                  if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: tLog empty result: " + transidString);
             }
-            byte [] value = r.getValue(TLOG_FAMILY, ASN_STATE);
+            value = r.getValue(TLOG_FAMILY, ASN_STATE);
             if (value == null) {
                ts.setStatus(TransState.STATE_NOTX);
                LOG.info("getTransactionState: tLog value is null: " + transidString);
@@ -1899,159 +1909,125 @@ public class TmAuditTlog {
 //               if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: tLog transaction not found: " + transidString);
                return;
             }
+            try {
+               st = new StringTokenizer(Bytes.toString(value), ",");
+               if (st.hasMoreElements()) {
+                   String asnToken = st.nextElement().toString();
+                   transidToken = st.nextElement().toString();
+                   stateString = st.nextElement().toString();
+                   LOG.info("getTransactionState: transaction: " + transidToken + " stateString is: " + stateString);
+//                         if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: transaction: " + transidToken + " stateString is: " + stateString);
+                }
+                if (stateString.contains("COMMIT")){
+                   lvTxState = TransState.STATE_COMMITTED;
+                }
+                else if (stateString.contains("ABORT")){
+                   lvTxState = TransState.STATE_ABORTED;
+                }
+                else if (stateString.contains("FORGOT")){
+                   // Need to get the previous state record so we know how to drive the regions
+                   String keyS = new String(r.getRow());
+                   Get get = new Get(r.getRow());
+                   get.setMaxVersions(versions);  // will return last n versions of row
+                   Result lvResult = unknownTransactionTable.get(get);
+                   // byte[] b = lvResult.getValue(TLOG_FAMILY, ASN_STATE);  // returns current version of value
+                   List<Cell> list = lvResult.getColumnCells(TLOG_FAMILY, ASN_STATE);  // returns all versions of this column
+                   for (Cell element : list) {
+                      st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(element)), ",");
+                      if (st.hasMoreElements()) {
+                         LOG.info("Performing secondary search on (" + transidToken + ")");
+//                               if (LOG.isTraceEnabled()) LOG.trace("Performing secondary search on (" + transidToken + ")");
+                         String asnToken = st.nextElement().toString() ;
+                         transidToken = st.nextElement().toString() ;
+                         String stateToken = st.nextElement().toString() ;
+                         LOG.info("Trans (" + transidToken + ") has stateToken: " + stateToken);
+                         if ((stateToken.contains("COMMIT")) || (stateToken.contains("ABORT"))) {
+                            LOG.info("Secondary search found record for (" + transidToken + ") with state: " + stateToken);
+//                                   if (LOG.isTraceEnabled()) LOG.trace("Secondary search found record for (" + transidToken + ") with state: " + stateToken);
+                            lvTxState = (stateToken.contains("COMMIT")) ? TransState.STATE_COMMITTED : TransState.STATE_ABORTED;
+                            break;
+                         }
+                         else {
+//                                   if (LOG.isTraceEnabled()) LOG.trace("Secondary search skipping entry for (" + 
+                            LOG.info("Secondary search skipping entry for (" + 
+                                         transidToken + ") with state: " + stateToken );
+                         }
+                      }
+                   }
+                }
+                else {
+                   lvTxState = TransState.STATE_BAD;
+                }
 
-            if (postAllRegions) ts.clearParticipatingRegions();
+                // get past the filler
+                st.nextElement();
+                String hasPeerS = st.nextElement().toString();
+                if (hasPeerS.compareTo("1") == 0) {
+                   ts.setHasRemotePeers(true);
+                }
 
-            StringTokenizer st = new StringTokenizer(Bytes.toString(value), ",");
-            if (st.hasMoreElements()) {
-               String asnToken = st.nextElement().toString();
-               transidToken = st.nextElement().toString();
-               stateString = st.nextElement().toString();
-               LOG.info("getTransactionState: transaction: " + transidToken + " stateString is: " + stateString);
-//               if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: transaction: " + transidToken + " stateString is: " + stateString);
-            }
-            if (stateString.contains("COMMIT")){
-               lvTxState = TransState.STATE_COMMITTED;
-            }
-            else if (stateString.contains("ABORT")){
-               lvTxState = TransState.STATE_ABORTED;
-            }
-            else if (stateString.equals(TransState.STATE_ACTIVE.toString())){
-               lvTxState = TransState.STATE_ACTIVE;
-            }
-            else if (stateString.equals(TransState.STATE_PREPARED.toString())){
-               lvTxState = TransState.STATE_PREPARED;
-            }
-            else if (stateString.equals(TransState.STATE_NOTX.toString())){
-               lvTxState = TransState.STATE_NOTX;
-            }
-            else if (stateString.contains("FORGOT")){
-               // Need to get the previous state record so we know how to drive the regions
-               String keyS = new String(r.getRow());
-               Get get = new Get(r.getRow());
-               get.setMaxVersions(versions);  // will return last n versions of row
-               Result lvResult = unknownTransactionTable.get(get);
-               // byte[] b = lvResult.getValue(TLOG_FAMILY, ASN_STATE);  // returns current version of value
-               List<Cell> list = lvResult.getColumnCells(TLOG_FAMILY, ASN_STATE);  // returns all versions of this column
-               for (Cell element : list) {
-                  st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(element)), ",");
-                  if (st.hasMoreElements()) {
-                	  LOG.info("Performing secondary search on (" + transidToken + ")");
-//                     if (LOG.isTraceEnabled()) LOG.trace("Performing secondary search on (" + transidToken + ")");
-                     String asnToken = st.nextElement().toString() ;
-                     transidToken = st.nextElement().toString() ;
-                     String stateToken = st.nextElement().toString() ;
-                	 LOG.info("Trans (" + transidToken + ") has stateToken: " + stateToken);
-                     if ((stateToken.contains("COMMIT")) || (stateToken.contains("ABORT"))) {
-                    	 LOG.info("Secondary search found record for (" + transidToken + ") with state: " + stateToken);
-//                         if (LOG.isTraceEnabled()) LOG.trace("Secondary search found record for (" + transidToken + ") with state: " + stateToken);
-                         lvTxState = (stateToken.contains("COMMIT")) ? TransState.STATE_COMMITTED : TransState.STATE_ABORTED;
-                         break;
-                     }
-                     else {
-//                         if (LOG.isTraceEnabled()) LOG.trace("Secondary search skipping entry for (" + 
-                    	 LOG.info("Secondary search skipping entry for (" + 
-                                    transidToken + ") with state: " + stateToken );
-                     }
-                  }
-               }
-            }
-            else if (stateString.equals(TransState.STATE_ABORTING.toString())){
-               lvTxState = TransState.STATE_ABORTING;
-            }
-            else if (stateString.equals(TransState.STATE_FORGOTTEN_COMMIT.toString())){
-               lvTxState = TransState.STATE_FORGOTTEN_COMMIT;
-            }
-            else if (stateString.equals(TransState.STATE_FORGOTTEN_ABORT.toString())){
-               lvTxState = TransState.STATE_FORGOTTEN_ABORT;
-            }
-            else if (stateString.equals(TransState.STATE_RECOVERY_COMMIT.toString())){
-               lvTxState = TransState.STATE_RECOVERY_COMMIT;
-            }
-            else if (stateString.equals(TransState.STATE_COMMITTING.toString())){
-               lvTxState = TransState.STATE_COMMITTING;
-            }
-            else if (stateString.equals(TransState.STATE_PREPARING.toString())){
-               lvTxState = TransState.STATE_PREPARING;
-            }
-            else if (stateString.equals(TransState.STATE_FORGETTING.toString())){
-               lvTxState = TransState.STATE_FORGETTING;
-            }
-            else if (stateString.equals(TransState.STATE_FORGETTING_HEUR.toString())){
-               lvTxState = TransState.STATE_FORGETTING_HEUR;
-            }
-            else if (stateString.equals(TransState.STATE_BEGINNING.toString())){
-               lvTxState = TransState.STATE_BEGINNING;
-            }
-            else if (stateString.equals(TransState.STATE_HUNGCOMMITTED.toString())){
-               lvTxState = TransState.STATE_HUNGCOMMITTED;
-            }
-            else if (stateString.equals(TransState.STATE_HUNGABORTED.toString())){
-               lvTxState = TransState.STATE_HUNGABORTED;
-            }
-            else if (stateString.equals(TransState.STATE_IDLE.toString())){
-               lvTxState = TransState.STATE_IDLE;
-            }
-            else if (stateString.equals(TransState.STATE_FORGOTTEN_HEUR.toString())){
-               lvTxState = TransState.STATE_FORGOTTEN_HEUR;
-            }
-            else if (stateString.equals(TransState.STATE_ABORTING_PART2.toString())){
-               lvTxState = TransState.STATE_ABORTING_PART2;
-            }
-            else if (stateString.equals(TransState.STATE_TERMINATING.toString())){
-               lvTxState = TransState.STATE_TERMINATING;
-            }
-            else {
-               lvTxState = TransState.STATE_BAD;
-            }
+                startIdToken = st.nextElement().toString();
+                ts.setStartId(Long.parseLong(startIdToken));
+                commitIdToken = st.nextElement().toString();
+                ts.setCommitId(Long.parseLong(commitIdToken));
 
-            // get past the filler
-            st.nextElement();
-            String hasPeerS = st.nextElement().toString();
-            if (hasPeerS.compareTo("1") == 0) {
-               ts.setHasRemotePeers(true);
+                if (postAllRegions){
+                   ts.clearParticipatingRegions();
+
+                   // Load the TransactionState object up with regions
+                   while (st.hasMoreElements()) {
+                      String tableNameToken = st.nextToken();
+                      HTable table = new HTable(config, tableNameToken);
+                      NavigableMap<HRegionInfo, ServerName> regions = table.getRegionLocations();
+                      Iterator<Map.Entry<HRegionInfo, ServerName>> it =  regions.entrySet().iterator();
+                      while(it.hasNext()) { // iterate entries.
+                         NavigableMap.Entry<HRegionInfo, ServerName> pairs = it.next();
+                         HRegionInfo regionKey = pairs.getKey();
+                            LOG.info("getTransactionState: transaction: " + transidToken + " adding region: " + regionKey.getRegionNameAsString());
+//                            if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: transaction: " + transidToken + " adding region: " + regionKey.getRegionNameAsString());
+                         ServerName serverValue = regions.get(regionKey);
+                         String hostAndPort = new String(serverValue.getHostAndPort());
+                         StringTokenizer tok = new StringTokenizer(hostAndPort, ":");
+                         String hostName = new String(tok.nextElement().toString());
+                         int portNumber = Integer.parseInt(tok.nextElement().toString());
+                         TransactionRegionLocation loc = new TransactionRegionLocation(regionKey, serverValue, 0);
+                         if (postAllRegions) ts.addRegion(loc); // TBD quick workaround, skip put if noPostAllRegions
+                      }
+                   }
+                }
             }
-
-            startIdToken = st.nextElement().toString();
-            ts.setStartId(Long.parseLong(startIdToken));
-            commitIdToken = st.nextElement().toString();
-            ts.setCommitId(Long.parseLong(commitIdToken));
-
-            // Load the TransactionState object up with regions
-            while (st.hasMoreElements()) {
-               String tableNameToken = st.nextToken();
-               HTable table = new HTable(config, tableNameToken);
-               NavigableMap<HRegionInfo, ServerName> regions = table.getRegionLocations();
-               Iterator<Map.Entry<HRegionInfo, ServerName>> it =  regions.entrySet().iterator();
-               while(it.hasNext()) { // iterate entries.
-                  NavigableMap.Entry<HRegionInfo, ServerName> pairs = it.next();
-                  HRegionInfo regionKey = pairs.getKey();
-                  LOG.info("getTransactionState: transaction: " + transidToken + " adding region: " + regionKey.getRegionNameAsString());
-//                  if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: transaction: " + transidToken + " adding region: " + regionKey.getRegionNameAsString());
-                  ServerName serverValue = regions.get(regionKey);
-                  String hostAndPort = new String(serverValue.getHostAndPort());
-                  StringTokenizer tok = new StringTokenizer(hostAndPort, ":");
-                  String hostName = new String(tok.nextElement().toString());
-                  int portNumber = Integer.parseInt(tok.nextElement().toString());
-                  TransactionRegionLocation loc = new TransactionRegionLocation(regionKey, serverValue, 0);
-                  if (postAllRegions) ts.addRegion(loc); // TBD quick workaround, skip put if noPostAllRegions
-              }
+            catch (Exception ste) {
+               LOG.error("getTransactionState found a malformed record for transid: " + lvTransid
+               		 + " record: " + Bytes.toString(value) + " on table: "
+                         +lv_tLogName + " returning STATE_NOTX ");
+               ts.setStatus(TransState.STATE_NOTX);
+               return;
             }
             ts.setStatus(lvTxState);
 
-            LOG.info("getTransactionState: returning ts: " + ts);
-            LOG.info("getTransactionState: returning transid: " + ts.getTransactionId() + " state: " + lvTxState);
-//            if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: returning transid: " + ts.getTransactionId() + " state: " + lvTxState);
-         } catch (Exception e){
-             LOG.error("getTransactionState Exception " + Arrays.toString(e.getStackTrace()));
-             throw e;
+            complete = true;
+            if (retries > 1){
+               if (LOG.isTraceEnabled()) LOG.trace("Retry successful in getTransactionState for transid: "
+                            + lvTransid + " on table " + lv_tLogName);                    	 
+            }
          }
-      }
-      catch (Exception e2) {
-            LOG.error("getTransactionState Exception2 " + e2);
-            e2.printStackTrace();
-            throw e2;
-      }
+         catch (Exception e){
+            LOG.error("Retrying getTransactionState for transid: "
+                   + lvTransid + " on table " + lv_tLogName + " due to Exception " + e);
+            rl.getRegionLocation(Bytes.toBytes(key), true);
+
+            Thread.sleep(TlogRetryDelay); // 3 second default
+            if (retries == TlogRetryCount){
+               LOG.error("getTransactionState aborting due to excessive retries on on table : "
+                         +lv_tLogName + " due to Exception; aborting ");
+               System.exit(1);
+            }
+         }
+      } while (! complete && retries < TlogRetryCount);  // default give up after 5 minutes
+
+      LOG.info("getTransactionState: returning ts: " + ts);
+//            if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: returning transid: " + ts.getTransactionId() + " state: " + lvTxState);
+
       LOG.info("getTransactionState end transid: " + ts.getTransactionId());
 //      if (LOG.isTraceEnabled()) LOG.trace("getTransactionState end transid: " + ts.getTransactionId());
       return;
