@@ -2017,7 +2017,12 @@ public class HBaseTxClient {
                                          }
 
                                         audit.getTransactionState(ts, false);
-                                        if ((!ts.getStatus().contains("NOTX")) && (!ts.hasRemotePeers())) { // only has local participant (no STR peer region)
+                                        if (peerid == -1) {
+                                            audit.getTransactionState(ts, true);
+                                            LOG.info("TRAF RCOV PEER THREAD: TID " + txID + " has no peer configured " + peerid + " ,commit authority is handled by local owner " + clusterid + " with ts status " + ts.getStatus().toString());
+                                            commitPath = 1;
+                                        }
+                                        else if ((!ts.getStatus().contains("NOTX")) && (!ts.hasRemotePeers())) { // only has local participant (no STR peer region)
                                            audit.getTransactionState(ts, true);
                                            LOG.info("TRAF RCOV PEER THREAD: TID " + txID + " has no remote participants, commit authority is handled by local owner " + clusterid + " with ts status " + ts.getStatus().toString());
                                            commitPath = 1;

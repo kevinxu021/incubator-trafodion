@@ -376,6 +376,7 @@ CoprocessorService, Coprocessor {
   private static final int DEFAULT_MEMORY_SLEEP = 15 * 1000;
   private static final boolean DEFAULT_MEMORY_WARN_ONLY = true;        
   private static final boolean DEFAULT_MEMORY_PERFORM_GC = false;
+  private static final boolean DEFAULT_SKIP_WAL = true;
   private static final boolean DEFAULT_SUPPRESS_OOP = false;
   private static final String SLEEP_CONF = "hbase.transaction.clean.sleep";
   private static final String LEASE_CONF  = "hbase.transaction.lease.timeout";
@@ -383,6 +384,7 @@ CoprocessorService, Coprocessor {
   private static final String MEMORY_WARN_ONLY = "hbase.transaction.memory.warn.only";
   private static final String MEMORY_CONF = "hbase.transaction.memory.sleep";
   private static final String MEMORY_PERFORM_GC = "hbase.transaction.memory.perform.GC";
+  private static final String CONF_SKIP_WAL  = "hbase.transaction.skip.wal";
   private static final String SUPPRESS_OOP = "hbase.transaction.suppress.OOP.exception";
   private static final String CHECK_ROW = "hbase.transaction.check.row";
   protected static int transactionLeaseTimeout = 0;
@@ -391,6 +393,7 @@ CoprocessorService, Coprocessor {
   private static int memoryUsageThreshold = DEFAULT_MEMORY_THRESHOLD;
   private static boolean memoryUsagePerformGC = DEFAULT_MEMORY_PERFORM_GC;
   private static boolean memoryUsageWarnOnly = DEFAULT_MEMORY_WARN_ONLY;
+  private static boolean skipWal = DEFAULT_SKIP_WAL;
   private static MemoryMXBean memoryBean = null;
   private static float memoryPercentage = 0;
   private static boolean memoryThrottle = false;
@@ -3277,6 +3280,8 @@ CoprocessorService, Coprocessor {
         this.cleanTimer = config.getInt(SLEEP_CONF, DEFAULT_SLEEP);
         this.memoryUsageThreshold = config.getInt(MEMORY_THRESHOLD, DEFAULT_MEMORY_THRESHOLD);
         this.memoryUsagePerformGC = config.getBoolean(MEMORY_PERFORM_GC, DEFAULT_MEMORY_PERFORM_GC);
+        this.skipWal = config.getBoolean(CONF_SKIP_WAL, DEFAULT_SKIP_WAL);
+        LOG.info ("TRX coprocessor starting with skipWal: " + skipWal);
         this.memoryUsageWarnOnly = config.getBoolean(MEMORY_WARN_ONLY, DEFAULT_MEMORY_WARN_ONLY);
         this.memoryUsageTimer = config.getInt(MEMORY_CONF, DEFAULT_MEMORY_SLEEP);
         this.checkRowBelongs = config.getBoolean(CHECK_ROW, true);
@@ -3805,7 +3810,9 @@ CoprocessorService, Coprocessor {
          Put put = action.getPut();
 
          if (null != put) {
-          put.setDurability(Durability.SKIP_WAL);
+          if (this.skipWal){
+             put.setDurability(Durability.SKIP_WAL); 
+          }
           if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Executing put directly to m_Region");
            try {
              m_Region.put(put);
@@ -3820,7 +3827,9 @@ CoprocessorService, Coprocessor {
          Delete delete = action.getDelete();
 
          if (null != delete){
-          delete.setDurability(Durability.SKIP_WAL);
+          if (this.skipWal){
+             delete.setDurability(Durability.SKIP_WAL); 
+          }
           if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Executing delete directly to m_Region");
            try {
              m_Region.delete(delete);
