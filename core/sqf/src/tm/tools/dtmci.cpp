@@ -133,9 +133,9 @@ void get_time_difference(struct timeval *pp_result, struct timeval *pp_firsttime
     pp_result->tv_usec = lv_difference % 1000000;
 }
 
-void print_transid_str(int32 pv_node, int32 pv_seqnum) {
+void print_transid_str(int32 pv_clusterid, int32 pv_node, int32 pv_seqnum) {
          char la_transid_str[TRANSID_LEN];
-         sprintf(la_transid_str,"(%d,%d)", pv_node, pv_seqnum);
+         sprintf(la_transid_str,"(%d,%d,%d)", pv_clusterid, pv_node, pv_seqnum);
          la_transid_str[TRANSID_LEN-1] = '\0';
          printf("%-16s", la_transid_str);
 }
@@ -560,7 +560,7 @@ void process_statusalltransactions_node(int32 pv_node)
      sort(lv_trans, lv_trans + lv_count, sort_comparator);
      for(int i = 0; i < lv_count; i++)
      {
-       print_transid_str(lv_trans[i].iv_nid, lv_trans[i].iv_seqnum);
+       print_transid_str(lv_trans[i].iv_cid, lv_trans[i].iv_nid, lv_trans[i].iv_seqnum);
 
        printf("%d,%d\t%d\t%d\t%d",
        lv_trans[i].iv_owner_nid,
@@ -631,18 +631,16 @@ void process_list_node(int32 pv_node)
         if (lv_count == 0)
         printf("Node %d : No Transactions were returned.\n", pv_node);
         else
-        printf("Transid         Owner\teventQ\tpending\tJoiners\tTSEs\tState\n");
+        printf("(cid,nid,xid)\tOwner\tFull_Transid\t\tState\n");
         for (int i = 0; i < lv_count; i++)
         {
-        print_transid_str(lv_trans[i].iv_nid, lv_trans[i].iv_seqnum);
+	  print_transid_str(lv_trans[i].iv_cid, lv_trans[i].iv_nid, lv_trans[i].iv_seqnum);
 
-        printf("%d,%d\t%d\t%d\t%d\t%d\t",
+        printf("%d,%d\t%ld\t\t",
                 lv_trans[i].iv_owner_nid,
                 lv_trans[i].iv_owner_pid,
-                lv_trans[i].iv_event_count,
-                lv_trans[i].iv_pendingRequest_count,
-                lv_trans[i].iv_num_active_partic-1,
-                lv_trans[i].iv_num_partic_RMs);
+                lv_trans[i].iv_transid
+	       );
                   
         print_txnstatus(lv_trans[i].iv_status);
 
@@ -990,17 +988,16 @@ void process_statustransaction(const char *transid)
        struct tm * lv_timeinfo;
        lv_timeinfo = localtime (&lv_timestamp);
 
-       printf("Transid         Owner\teventQ\tpending\tJoiners\tTSEs\tTX Fl\tTT Fl\tROnly\tRecov\tState\n");
+       printf("Transid         Owner\teventQ\tpending\tJoiners\tTX Fl\tTT Fl\tROnly\tRecov\tState\n");
        
-       print_transid_str(lv_trans_info.iv_nid, lv_trans_info.iv_seqnum);
+       print_transid_str(lv_trans_info.iv_cid, lv_trans_info.iv_nid, lv_trans_info.iv_seqnum);
        
-       printf("%d,%d\t%d\t%d\t%d\t%d\t0x%x\t0x" PFLLX "\t",
+       printf("%d,%d\t%d\t%d\t%d\t0x%x\t0x" PFLLX "\t",
            lv_trans_info.iv_owner_nid,
            lv_trans_info.iv_owner_pid,
            lv_trans_info.iv_event_count,
            lv_trans_info.iv_pendingRequest_count,
            lv_trans_info.iv_num_active_partic-1,
-           lv_trans_info.iv_num_partic_RMs,
            lv_trans_info.iv_tx_flags,
            lv_trans_info.iv_tt_flags);
            fputs(lv_trans_info.iv_read_only ? "true" : "false",stdout);
@@ -1102,7 +1099,7 @@ void process_gettransinfo(const char *transid, bool pv_string_cmd)
          u_flag.iv_tt_flags = *lp_tt_flags; 
          //output regular transid command output
          printf("Transid         Node    Seq #    Incarn    TX Flags    TT Flags\n");
-         print_transid_str(*lp_node, *lp_seq_num);
+         print_transid_str(-1, *lp_node, *lp_seq_num);
 #if __WORDSIZE == 64
          printf("%-4d    %-5d    %-6d    0x%-6x    0x%-6lx\t\n", *lp_node, *lp_seq_num,
                 *lp_incarnation_num, *lp_tx_flags, u_flag.iv_int_tt_flags);
@@ -1159,7 +1156,7 @@ void process_request_regions_info()
           {
              printf("----------------------------------------------------------------------------------------------\n");
 
-             print_transid_str(lv_trans_reg[i].iv_nid, lv_trans_reg[i].iv_seqnum);
+             print_transid_str(lv_trans_reg[i].iv_cid, lv_trans_reg[i].iv_nid, lv_trans_reg[i].iv_seqnum);
              print_txnstatus(lv_trans_reg[i].iv_status);
 
              tname   = lv_trans_reg[i].iv_tablename;
