@@ -1251,11 +1251,11 @@ public class TmAuditTlog {
                endSynch = System.nanoTime();
                boolean complete = false;
                int retries = 0;
+               startTimes[lv_TimeIndex] = System.nanoTime();
                do {
                   try {
                 	 retries++;
                      if (LOG.isTraceEnabled()) LOG.trace("try table.put in thread " + threadId + ", " + p );
-                     startTimes[lv_TimeIndex] = System.nanoTime();
                      table[lv_lockIndex].put(p);
                      if ((forced) && (useAutoFlush == false)) {
                         if (LOG.isTraceEnabled()) LOG.trace("flushing commits in thread " + threadId);
