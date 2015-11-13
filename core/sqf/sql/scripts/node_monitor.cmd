@@ -32,3 +32,7 @@ cd - >/dev/null
 # Setting this variable so that downstream scripts executed here are aware of the context
 export NODE_MONITOR_MODE=1
 #----  End : Setup the env to run any script - please do not edit this block
+
+$MY_SQROOT/mgblty/opentsdb/bin/tsd.sh watch 
+
+$MY_SQROOT/mgblty/tcollector/startstop watch 
