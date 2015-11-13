@@ -14,6 +14,7 @@ fi
 mkdir -p $DBMGR_INSTALL_DIR/logs
 
 WARFILE=`echo $DBMGR_INSTALL_DIR/lib/dbmgr*.war`
+WARFILENAME=$(basename $WARFILE)
 
 usage() {
     prog=`basename $0`
@@ -26,7 +27,7 @@ usage() {
 }
 
 getpid() {
-    echo `ps -u $USER -o pid,cmd | grep " -jar $WARFILE" | grep -v grep | awk '{print \$1}'`
+    echo `ps -u $USER -o pid,cmd | grep "$WARFILENAME" | grep -v grep | awk '{print \$1}'`
 }
 
 dbmgr_start() {

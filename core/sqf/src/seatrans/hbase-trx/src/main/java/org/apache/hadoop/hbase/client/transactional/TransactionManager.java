@@ -968,7 +968,7 @@ public class TransactionManager {
               }
 
               if(result.size() == 0) {
-                     LOG.error("doAbortX, received 0 region results.");
+                     LOG.error("doAbortX, received 0 region results for transaction: " + transactionId);
                      refresh = true;
                      retry = true;
               }
@@ -976,7 +976,7 @@ public class TransactionManager {
                  for (AbortTransactionResponse cresponse : result.values()) {
                    if(cresponse.getHasException()) {
                      String exceptionString = cresponse.getException().toString();
-                     LOG.error("Abort HasException true: " + exceptionString);
+                     LOG.error("Abort of transaction: " + transactionId + " threw Exception: " + exceptionString);
                      if(exceptionString.contains("UnknownTransactionException")) {
                        throw new UnknownTransactionException();
                      }
@@ -990,13 +990,13 @@ public class TransactionManager {
                  LOG.debug("UnknownTransactionException in doAbortX for transaction: " + transactionId + "(ignoring): " + ute);
           }
           catch (Exception e) {
-                if(e.toString().contains("Asked to commit a non-pending transaction")) {
-                  LOG.error("doCommitX will not retry: " + e);
+                if(e.toString().contains("Asked to commit a non-pending transaction ")) {
+                  LOG.error(" doCommitX will not retry transaction: " + transactionId + " : " + e);
                   refresh = false;
                   retry = false;
                 }
                 else {
-                    LOG.error("doAbortX retrying due to Exception: " + e );
+                    LOG.error("doAbortX retrying transaction: " + transactionId + " due to Exception: " + e );
                     refresh = true;
                     retry = true;
                 }
@@ -1079,7 +1079,7 @@ public class TransactionManager {
                      for (SsccAbortTransactionResponse cresponse : result.values()) {
                 if(cresponse.getHasException()) {
                   String exceptionString = cresponse.getException().toString();
-                  LOG.error("Abort HasException true: " + exceptionString);
+                  LOG.error("Abort of transaction: " + transactionId + " threw Exception: " + exceptionString);
                   if(exceptionString.contains("UnknownTransactionException")) {
                          throw new UnknownTransactionException();
                   }

@@ -97,6 +97,7 @@ typedef union RMID {
 typedef struct trans_list {
     int64 iv_transid;
     short iv_status;
+    int iv_cid;         // Transaction beginner cluster id
     int iv_nid;         // Transaction beginner TM nid
     int iv_seqnum;      // Transaction sequence number
     int iv_tag;         // Transaction tag
@@ -119,6 +120,7 @@ typedef struct status_all_trans {
     int64 iv_transid;
     int64 iv_timestamp;
     short iv_status;
+    int iv_cid;         // Transaction beginner clusterid
     int iv_nid;         // Transaction beginner TM nid
     int iv_seqnum;      // Transaction sequence number
     int iv_tag;         // Transaction tag
@@ -226,6 +228,7 @@ typedef struct  TMSTATUS {
 typedef struct TM_STATUS_TRANS {
      TM_Transid_Type iv_transid;
      short iv_status;
+     int iv_cid;                  // Transaction beginner cluster id
      int32 iv_nid;                // Transaction beginner TM nid
      int32 iv_seqnum;             // Transaction sequence number
      int16 iv_incarnation_num;    // Transaction incarnation number
@@ -258,6 +261,7 @@ typedef struct TM_STATUSSYS {
 typedef struct TM_HBASEREGIONINFO {
     int64 iv_transid;
     short iv_status;
+    int iv_cid;                 // Transaction beginner cluster id
     int iv_nid;                 // Transaction beginner TM nid
     int iv_seqnum;              // Transaction sequence number
     int iv_owner_nid;           // Transaction owner nid

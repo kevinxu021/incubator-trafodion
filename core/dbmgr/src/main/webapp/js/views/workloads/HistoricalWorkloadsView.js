@@ -50,6 +50,7 @@ define([
 	var oDataTable = null;
 	var _this = null;
 	var validator = null;
+	var lastAppliedFilters = null; //last set of filters applied by user explicitly
 
 	var WorkloadsView = BaseView.extend({
 		template:  _.template(WorkloadsT),
@@ -100,6 +101,12 @@ define([
 
 			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
 				_this.updateFilter();
+			});
+
+			$(FILTER_DIALOG).on('hide.bs.modal', function (e, v) {
+				if(document.activeElement != $(FILTER_APPLY_BUTTON)[0]){
+					_this.resetFilter();  //cancel clicked
+				}
 			});
 
 			$(FILTER_TIME_RANGE).change(function(){
@@ -191,7 +198,39 @@ define([
 		filterButtonClicked: function(){
 			$(FILTER_DIALOG).modal('show');
 		},
-		filterApplyClicked: function(){
+		resetFilter:function(){
+			$(FILTER_MAX_FETCH_ROWS).val('5000');
+			$(FILTER_QUERY_IDS).val('');
+			$(FILTER_USER_NAMES).val('');
+			$(FILTER_APP_NAMES).val('');
+			$(FILTER_CLIENT_NAMES).val('');
+			$(FILTER_QUERY_TEXT).val('');  
+
+			$('#state-completed').prop('checked',false);
+			$('#state-executing').prop('checked', false);
+			$('#state-init').prop('checked', false)
+
+			if(lastAppliedFilters != null){
+				$(FILTER_TIME_RANGE).val(lastAppliedFilters.timeRange);
+				if(lastAppliedFilters.timeRange == '0'){
+					$(START_TIME_PICKER).data("DateTimePicker").date(moment(lastAppliedFilters.startTime));
+					$(END_TIME_PICKER).data("DateTimePicker").date(moment(lastAppliedFilters.endTime));
+				}
+
+				$(FILTER_QUERY_IDS).val(lastAppliedFilters.queryIDs);
+				$(FILTER_USER_NAMES).val(lastAppliedFilters.userNames);
+				$(FILTER_APP_NAMES).val(lastAppliedFilters.appNames);
+				$(FILTER_CLIENT_NAMES).val(lastAppliedFilters.clientNames);
+				$(FILTER_QUERY_TEXT).val(lastAppliedFilters.queryText);  
+
+				var states = lastAppliedFilters.states.split(',');
+				$.each(states, function(index, value){
+					if($('#state-' + value.toLowerCase()))
+						$('#state-' + value.toLowerCase()).prop('checked', true);
+				});
+			}
+		},
+		filterApplyClicked: function(source){
 			if($(FILTER_FORM).valid()){
 
 			}else{
@@ -199,6 +238,22 @@ define([
 			}
 			_this.updateTimeRangeLabel();
 
+			var param = _this.getFilterParams();
+
+			if(lastAppliedFilters == null || source != null){
+				lastAppliedFilters = param;
+			}else{
+				if(param.timeRange != '0'){
+					lastAppliedFilters.startTime = param.startTime;
+					lastAppliedFilters.endTime = param.endTime;
+				}
+			}
+
+			$(FILTER_DIALOG).modal('hide').data('test');
+			_this.showLoading();
+			wHandler.fetchQueriesInRepository(lastAppliedFilters);
+		},
+		getFilterParams: function(){
 			var startTime = $(START_TIME_PICKER).data("DateTimePicker").date();
 			var endTime = $(END_TIME_PICKER).data("DateTimePicker").date();
 			var states = [];
@@ -213,9 +268,10 @@ define([
 			if($('#state-init').is(':checked'))
 				states.push($('#state-init').val());
 
-
 			var param = {};
-        	param.maxRows = $(FILTER_MAX_FETCH_ROWS).val();
+
+			param.maxRows = $(FILTER_MAX_FETCH_ROWS).val();
+			param.timeRange = $(FILTER_TIME_RANGE).val();
 			param.startTime = startTime.format(DATE_FORMAT);
 			param.endTime = endTime.format(DATE_FORMAT);
 			param.states = states.join(',');
@@ -223,11 +279,9 @@ define([
 			param.userNames = $(FILTER_USER_NAMES).val();
 			param.appNames = $(FILTER_APP_NAMES).val();
 			param.clientNames = $(FILTER_CLIENT_NAMES).val();
-			param.queryText = $(FILTER_QUERY_TEXT).val();
+			param.queryText = $(FILTER_QUERY_TEXT).val();  
 
-			$(FILTER_DIALOG).modal('hide');
-			_this.showLoading();
-			wHandler.fetchQueriesInRepository(param);
+			return param;
 		},
 		fetchQueriesInRepository: function () {
 			_this.showLoading();
@@ -235,7 +289,6 @@ define([
 			_this.updateFilter();
 			_this.filterApplyClicked();
 		},
-
 		displayResults: function (result){
 			_this.hideLoading();
 			$(ERROR_CONTAINER).hide();
@@ -332,10 +385,10 @@ define([
 					buttons: [
 					          'copy','csv','excel','pdf','print'
 					          ],
-			          "order":[[2, "desc"]],
-			          fnDrawCallback: function(){
-			        	  //$('#repo-query-results td').css("white-space","nowrap");
-			          }
+					          "order":[[2, "desc"]],
+					          fnDrawCallback: function(){
+					        	  //$('#repo-query-results td').css("white-space","nowrap");
+					          }
 				});
 
 				$('#repo-query-results td').css("white-space","nowrap");
@@ -350,10 +403,10 @@ define([
 				if (jqXHR.responseText) {
 					$(ERROR_CONTAINER).text(jqXHR.responseText);
 				}else{
-	        		if(jqXHR.status != null && jqXHR.status == 0) {
-	        			$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
-	        		}
-	        	}
+					if(jqXHR.status != null && jqXHR.status == 0) {
+						$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+					}
+				}
 			}
 		},
 		parseInputDate:function(date){

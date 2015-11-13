@@ -494,6 +494,7 @@ void tm_process_req_requestregioninfo(CTmTxMessage * pp_msg)
         u.lv_transid.iv_seq_num = lp_current_tx->seqnum();
         pp_msg->response()->u.iv_hbaseregion_info.iv_trans[lv_inx].iv_transid = u.lv_transid_int64;
         pp_msg->response()->u.iv_hbaseregion_info.iv_trans[lv_inx].iv_nid = lp_current_tx->node();
+        pp_msg->response()->u.iv_hbaseregion_info.iv_trans[lv_inx].iv_cid = lp_current_tx->clusterid();
         pp_msg->response()->u.iv_hbaseregion_info.iv_trans[lv_inx].iv_seqnum = lp_current_tx->seqnum();
 
         char* res2 = map->getTableName(lv_inx);
@@ -822,8 +823,9 @@ void tm_process_req_list(CTmTxMessage *pp_msg)
         pp_msg->response()->u.iv_list_trans.iv_trans[lv_inx].iv_status = lp_current_tx->tx_state(); 
         u.lv_transid.iv_seq_num = lp_current_tx->seqnum();
         u.lv_transid.iv_node = lp_current_tx->node();
-        pp_msg->response()->u.iv_list_trans.iv_trans[lv_inx].iv_transid = u.lv_transid_int64;
+        pp_msg->response()->u.iv_list_trans.iv_trans[lv_inx].iv_transid = lp_current_tx->legacyTransid();
         pp_msg->response()->u.iv_list_trans.iv_trans[lv_inx].iv_nid = lp_current_tx->node();
+        pp_msg->response()->u.iv_list_trans.iv_trans[lv_inx].iv_cid = lp_current_tx->clusterid();
         pp_msg->response()->u.iv_list_trans.iv_trans[lv_inx].iv_seqnum = lp_current_tx->seqnum();
         pp_msg->response()->u.iv_list_trans.iv_trans[lv_inx].iv_tag = lp_current_tx->tag();
         pp_msg->response()->u.iv_list_trans.iv_trans[lv_inx].iv_owner_nid = lp_current_tx->ender_nid();
@@ -878,6 +880,7 @@ void tm_process_req_status_all_transmgmt(CTmTxMessage *pp_msg)
        pp_msg->response()->u.iv_status_alltrans.iv_trans[lv_inx].iv_transid = u.lv_transid_int64;
        pp_msg->response()->u.iv_status_alltrans.iv_trans[lv_inx].iv_timestamp = lp_current_tx->timestamp();
        pp_msg->response()->u.iv_status_alltrans.iv_trans[lv_inx].iv_nid = lp_current_tx->node();
+       pp_msg->response()->u.iv_status_alltrans.iv_trans[lv_inx].iv_cid = lp_current_tx->clusterid();
        pp_msg->response()->u.iv_status_alltrans.iv_trans[lv_inx].iv_seqnum = lp_current_tx->seqnum();
        pp_msg->response()->u.iv_status_alltrans.iv_trans[lv_inx].iv_tag = lp_current_tx->tag();
        pp_msg->response()->u.iv_status_alltrans.iv_trans[lv_inx].iv_owner_nid = lp_current_tx->ender_nid();
@@ -1016,6 +1019,7 @@ void tm_process_req_status_transmgmt(CTmTxMessage *pp_msg)
     lv_fulltransid.set_external_data_type(&pp_msg->response()->u.iv_status_transm.iv_status_trans.iv_transid);
     pp_msg->response()->u.iv_status_transm.iv_status_trans.iv_status               = lp_tx->tx_state();
     pp_msg->response()->u.iv_status_transm.iv_status_trans.iv_nid                  = lp_tx->node();
+    pp_msg->response()->u.iv_status_transm.iv_status_trans.iv_cid                  = lp_tx->clusterid();
     pp_msg->response()->u.iv_status_transm.iv_status_trans.iv_seqnum               = lp_tx->seqnum();
     pp_msg->response()->u.iv_status_transm.iv_status_trans.iv_incarnation_num      = lv_transid.get_incarnation_num();
     pp_msg->response()->u.iv_status_transm.iv_status_trans.iv_tx_flags             = lv_transid.get_tx_flags();
