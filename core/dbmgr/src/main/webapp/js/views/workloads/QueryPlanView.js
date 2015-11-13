@@ -27,6 +27,7 @@ define([
 
 	var _this = null;
 	var queryID = null;
+	var queryType = null;
 	var setRootNode = false;
 	var st = null;
 	var resizeTimer = null;	
@@ -84,11 +85,13 @@ define([
 		processArgs: function(args){
 			$('#query-id').val(args);
 			queryID = args;
-
+			queryType = null;
+			
 			var queryParams = sessionStorage.getItem(queryID);
 			sessionStorage.removeItem(queryID);
 			if(queryParams != null){
 				queryParams = JSON.parse(queryParams);
+				queryType = queryParams.type;
 				if(queryParams.text)
 					$('#query-text').text(queryParams.text);
 			}
@@ -99,7 +102,7 @@ define([
 			$("#infovis").hide();
 			$("#errorText").hide();
 			$(TEXT_PLAN_CONTAINER).hide();
-			var param = {sQuery : queryText, sControlStmts: "", sQueryID: queryID};
+			var param = {sQuery : queryText, sControlStmts: "", sQueryID: queryID, sQueryType: queryType};
 
 
 			_this.showLoading();

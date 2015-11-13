@@ -12,7 +12,7 @@ define([
         'moment',
         'common',
         'views/RefreshTimerView',
-       'jqueryui',
+        'jqueryui',
         'datatables',
         'datatablesBootStrap',
         'tablebuttons',
@@ -28,7 +28,7 @@ define([
 	ERROR_CONTAINER = '#alerts-list-error',
 	REFRESH_MENU = '#refreshAction',
 	REFRESH_INTERVAL = '#refreshInterval';
-	 
+
 	var DATE_FORMAT = 'YYYY-MM-DD HH:mm:ss',
 	DATE_FORMAT_ZONE = DATE_FORMAT + ' z',
 	TIME_RANGE_LABEL = '#timeRangeLabel',
@@ -47,6 +47,7 @@ define([
 	var oDataTable = null;
 	var _this = null;
 	var validator = null;
+	var lastAppliedFilters = null; //last set of filters applied by user explicitly
 
 	var AlertsSummaryView = BaseView.extend({
 		template:  _.template(AlertsT),
@@ -63,7 +64,7 @@ define([
 				return true;
 
 			}, "* Start Time is required for custom time range.");
-			
+
 			$.validator.addMethod("validateCustomEndTime", function(value, element) {
 				var timeRange = $(FILTER_TIME_RANGE).val();
 				if(timeRange == '0'){
@@ -129,6 +130,12 @@ define([
 				_this.updateFilter();
 			});
 
+			$(FILTER_DIALOG).on('hide.bs.modal', function (e, v) {
+				if(document.activeElement != $(FILTER_APPLY_BUTTON)[0]){
+					_this.resetFilter(); //cancel clicked
+				}
+			});
+
 			$(FILTER_TIME_RANGE).change(function(){
 				var sel = $(this).val();
 				switch(sel){
@@ -161,7 +168,6 @@ define([
 					$('#filter-end-time').prop("disabled", false);
 				}
 			});
-
 
 			serverHandler.on(serverHandler.FETCH_ALERTS_LIST_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.FETCH_ALERTS_LIST_ERROR, this.showErrorMessage);
@@ -234,24 +240,80 @@ define([
 		},
 		updateTimeRangeLabel: function(){
 			var timeRange = $(FILTER_TIME_RANGE).val();
-			if(timeRange != '-1'){
-				$(TIME_RANGE_LABEL).text('Time Range : ' +  $(START_TIME_PICKER).data("DateTimePicker").date().format(DATE_FORMAT_ZONE) + ' - ' +  $(END_TIME_PICKER).data("DateTimePicker").date().format(DATE_FORMAT_ZONE));
-			}else{
-				$(TIME_RANGE_LABEL).text('Time Range : <All time ranges included>' );
+			if(timeRange != null) {
+				if(timeRange != '-1'){
+					$(TIME_RANGE_LABEL).text('Time Range : ' +  $(START_TIME_PICKER).data("DateTimePicker").date().format(DATE_FORMAT_ZONE) + ' - ' +  $(END_TIME_PICKER).data("DateTimePicker").date().format(DATE_FORMAT_ZONE));
+				}else{
+					$(TIME_RANGE_LABEL).text('Time Range : <All time ranges included>' );
+				}
 			}
 		},
 		filterButtonClicked: function(){
 			$(FILTER_DIALOG).modal('show');
 		},
-		filterApplyClicked: function(){
+		resetFilter:function(){
+			$(FILTER_ALERT_TEXT).val('');
+
+			$('#state-ack').prop('checked',false);
+			$('#state-unack').prop('checked', false);
+			$('#state-init').prop('checked', false)
+			
+			$('#severity-crit').prop('checked',false);
+			$('#severity-warn').prop('checked', false);
+			$('#severity-normal').prop('checked', false)
+			$('#severity-unknown').prop('checked', false);
+
+			if(lastAppliedFilters != null){
+				$(FILTER_TIME_RANGE).val(lastAppliedFilters.timeRange);
+				if(lastAppliedFilters.timeRange == '0'){
+					$(START_TIME_PICKER).data("DateTimePicker").date(moment(lastAppliedFilters.startTime));
+					$(END_TIME_PICKER).data("DateTimePicker").date(moment(lastAppliedFilters.endTime));
+				}
+				$(FILTER_ALERT_TEXT).val(lastAppliedFilters.alertText);  
+
+				var states = lastAppliedFilters.filter.split(' ');
+				$.each(states, function(index, value){
+					var parts = value.split(':');
+					if(parts.length > 1){
+						if(parts[0] == 'status'){
+							if($('#severity-' + part[1].toLowerCase()))
+								$('#severity-' + part[1].toLowerCase()).prop('checked', true);
+						}else{
+							if(parts[1] == 'true')
+								$('#state-ack').prop('checked', true);
+							else
+								$('#state-unack').prop('checked', true);
+						}
+
+					}
+				});
+			}
+		},
+		filterApplyClicked: function(source){
 			if($(FILTER_FORM).valid()){
 
 			}else{
 				return;
 			}
-        	_this.updateTimeRangeLabel();
+			_this.updateTimeRangeLabel();
 
-        	var startTime = $('#startdatetimepicker').data("DateTimePicker").date();
+			var param = _this.getFilterParams();
+
+			if(lastAppliedFilters == null || source != null){
+				lastAppliedFilters = param;
+			}else{
+				if(param.timeRange != '0'){
+					lastAppliedFilters.startTime = param.startTime;
+					lastAppliedFilters.endTime = param.endTime;
+				}
+			}
+
+			$(FILTER_DIALOG).modal('hide');
+			_this.showLoading();
+			serverHandler.fetchAlertsList(param);
+		},
+		getFilterParams: function(){
+			var startTime = $('#startdatetimepicker').data("DateTimePicker").date();
 			var endTime = $('#enddatetimepicker').data("DateTimePicker").date();
 			var filter = [];
 
@@ -269,8 +331,8 @@ define([
 			if($('#severity-unknown').is(':checked'))
 				filter.push('status:'+$('#severity-unknown').val());
 
-
 			var param = {};
+			param.timeRange = $(FILTER_TIME_RANGE).val();
 			if(startTime){
 				param.startTime = startTime.format('YYYY-MM-DD HH:mm:ss');
 			}
@@ -279,17 +341,14 @@ define([
 			}
 			param.filter = filter.join(' ');
 			param.alertText = $(FILTER_ALERT_TEXT).val();
-
-			$(FILTER_DIALOG).modal('hide');
-			_this.showLoading();
-			serverHandler.fetchAlertsList(param);
+			return param;
 		},
-        refreshIntervalChanged: function(){
+		refreshIntervalChanged: function(){
 
-        },
-        timerBeeped: function(){
-        	_this.fetchAlertsSummary();
-        },
+		},
+		timerBeeped: function(){
+			_this.fetchAlertsSummary();
+		},
 		fetchAlertsSummary: function () {
 			_this.showLoading();
 			$(ERROR_CONTAINER).hide();
@@ -385,10 +444,10 @@ define([
 				if (jqXHR.responseText) {
 					$(ERROR_CONTAINER).text(jqXHR.responseText);
 				}else{
-	        		if(jqXHR.status != null && jqXHR.status == 0) {
-	        			$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
-	        		}
-	        	}
+					if(jqXHR.status != null && jqXHR.status == 0) {
+						$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+					}
+				}
 			}
 		},  
 		parseInputDate:function(date){

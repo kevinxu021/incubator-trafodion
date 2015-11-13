@@ -1,8 +1,8 @@
-// @@@ START COPYRIGHT @@@
-//
-// (C) Copyright 2015 Esgyn Corporation
-//
-// @@@ END COPYRIGHT @@@
+//@@@ START COPYRIGHT @@@
+
+//(C) Copyright 2015 Esgyn Corporation
+
+//@@@ END COPYRIGHT @@@
 
 define([
         'views/BaseView',
@@ -18,13 +18,19 @@ define([
         'jqueryvalidate'
         ], function (BaseView, WorkloadsT, $, wHandler, moment, common) {
 	'use strict';
-    var LOADING_SELECTOR = "#loadingImg",
-  		REFRESH_MENU = '#refreshAction',
-  		QCANCEL_MENU = '#cancelAction',
-  		EXPLAIN_BUTTON = '#historical-explain-btn';
+	var LOADING_SELECTOR = "#loadingImg",
+	REFRESH_MENU = '#refreshAction',
+	QCANCEL_MENU = '#cancelAction',
+	EXPLAIN_BUTTON = '#historical-explain-btn',
+	DETAILS_CLASS = '.dbmgr-query-detailsr',
+	RESULT_CONTAINER = '#details-container',
+	ERROR_CONTAINER = '#error-container',
+	ERROR_TEXT = '#query-detail-error-text';
 
-    var _that = null;
-    var queryID = null;
+	var _that = null;
+	var queryID = null;
+	var connDataTable = null, compDataTable = null, runDataTable = null;
+
 	var HistoricalWorkloadDetailView = BaseView.extend({
 		template:  _.template(WorkloadsT),
 
@@ -39,12 +45,43 @@ define([
 			$(REFRESH_MENU).on('click', this.fetchRepositoryQueryDetail);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
+			$(ERROR_CONTAINER).hide();
 			this.fetchRepositoryQueryDetail();
-			
+
 		},
 		doResume: function(args){
 			$('#query-id').val(args);
-			queryID = args;
+			if(queryID != null && queryID != args){
+				queryID = args;
+				$(RESULT_CONTAINER).show();
+				$(DETAILS_CLASS).show();
+				$(ERROR_CONTAINER).hide();
+				$('#query-start-time').val('');
+				$('#query-end-time').val('');
+				$('#query-text').text('');
+				$('#query-status').val('');
+				try{
+					if(connDataTable != null){
+						connDataTable.fnClearTable();
+					}
+				}catch(Error){
+
+				}
+				try{
+					if(compDataTable != null){
+						compDataTable.fnClearTable();
+					}
+				}catch(Error){
+
+				}
+				try{
+					if(runDataTable != null){
+						runDataTable.fnClearTable();
+					}
+				}catch(Error){
+
+				}
+			}
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
@@ -63,33 +100,33 @@ define([
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
 			$(EXPLAIN_BUTTON).off('click', this.explainQuery);
 		},
-        showLoading: function(){
-        	$(LOADING_SELECTOR).show();
-        },
+		showLoading: function(){
+			$(LOADING_SELECTOR).show();
+		},
 
-        hideLoading: function () {
-        	$(LOADING_SELECTOR).hide();
-        },
-        cancelQuery: function(){
-        	var queryStatus = $('#query-status').val();
-        	if(queryStatus == 'EXECUTING'){
-        		wHandler.cancelQuery(queryID);
-        	}else {
-        		alert("The query is not in executing state. Cannot cancel the query.");
-        	}
-        },
-        cancelQuerySuccess:function(){
-        	alert('The cancel query request has been submitted');
-        },
-        cancelQueryError:function(jqXHR){
-        	alert(jqXHR.responseText);
-        },  
-        explainQuery: function(){
-        	var queryText = $('#query-text').text();
+		hideLoading: function () {
+			$(LOADING_SELECTOR).hide();
+		},
+		cancelQuery: function(){
+			var queryStatus = $('#query-status').val();
+			if(queryStatus == 'EXECUTING'){
+				wHandler.cancelQuery(queryID);
+			}else {
+				alert("The query is not in executing state. Cannot cancel the query.");
+			}
+		},
+		cancelQuerySuccess:function(){
+			alert('The cancel query request has been submitted');
+		},
+		cancelQueryError:function(jqXHR){
+			alert(jqXHR.responseText);
+		},  
+		explainQuery: function(){
+			var queryText = $('#query-text').text();
 			sessionStorage.setItem(queryID, JSON.stringify({type: 'repo', text: queryText}));	
 			window.location.hash = '/workloads/queryplan/'+queryID;
-       },
-        fetchRepositoryQueryDetail: function(){
+		},
+		fetchRepositoryQueryDetail: function(){
 			_that.showLoading();
 			//$(ERROR_CONTAINER).hide();
 			wHandler.fetchRepositoryQueryDetail(queryID);
@@ -97,9 +134,13 @@ define([
 
 		displayResults: function (result){
 			_that.hideLoading();
+			$(RESULT_CONTAINER).show();
+			$(DETAILS_CLASS).show();
+			$(ERROR_CONTAINER).hide();
+
 			$('#query-text').text(result.queryText);
 			//sessionStorage.setItem(queryID, result.queryText);	
-			
+
 			$('#query-status').val(result.status.trim());
 			var startTimeVal = "";
 			if(result.startTime != null && result.startTime != -1){
@@ -109,11 +150,11 @@ define([
 			if(result.endTime != null && result.endTime != -1){
 				endTimeVal = common.toServerLocalDateFromUtcMilliSeconds(result.endTime);
 			}			
-			
+
 			$('#query-start-time').val(startTimeVal);
 			$('#query-end-time').val(endTimeVal);
 			var colNames = [{"title":"Name"}, {"title":"Value"}];
-			
+
 			var connDataSet = [];
 			connDataSet.push(["User", result.userName]);
 			connDataSet.push(["Application", result.metrics.application_name]);
@@ -126,7 +167,7 @@ define([
 			connDataSet.push(["Master Process ID", result.metrics.master_process_id]);
 			connDataSet.push(["Submit Time", common.toServerLocalDateFromUtcMilliSeconds(result.metrics.submit_utc_ts)]);
 			connDataSet.push(["Node Count", result.metrics.num_nodes]);
-			
+
 			var compDataSet = [];
 			compDataSet.push(["Compile Start Time", common.toServerLocalDateFromUtcMilliSeconds(result.metrics.compile_start_utc_ts)]);
 			compDataSet.push(["Compile End Time", common.toServerLocalDateFromUtcMilliSeconds(result.metrics.compile_end_utc_ts)]);
@@ -167,12 +208,12 @@ define([
 			runtimeDataSet.push(["Message Size to Disk", common.bytesToSize(result.metrics.msg_bytes_to_disk)]);
 			runtimeDataSet.push(["Overflow Size Written", common.bytesToSize(result.metrics.ovf_buffer_bytes_written*1024)]);
 			runtimeDataSet.push(["Overflow Size Read", common.bytesToSize(result.metrics.ovf_buffer_bytes_read*1024)]);
-			
-	
+
+
 			var connTable = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="conn-metrics-results"></table>';
 			$('#connection-metrics-container').html( connTable );
 
-			$('#conn-metrics-results').dataTable({
+			connDataTable = $('#conn-metrics-results').dataTable({
 				"bProcessing": true,
 				"bFilter": false,
 				"bPaginate" : false, 
@@ -181,37 +222,37 @@ define([
 				"aaData": connDataSet, 
 				"aoColumns" : colNames,
 				"aoColumnDefs": [{
-					  "sWidth": "50%",
-				      "aTargets": [ 0 ],
-				      "mData": 0,
-				      "mRender": function ( data, type, full ) {
-				       if (type === 'display') {
-				          return data != null ? data : "";
-				        }
-				        else return data != null ? data : "";
-				      }
-				    },
-				    {
-				      "aTargets": [ 1 ],
-				      "mData": 1,
-				      "mRender": function ( data, type, full ) {
-				       if (type === 'display') {
-				          return data != null ? data : "";
-				        }
-				        else return data != null ? data : "";
-				      }
-				    } ],
-		        aaSorting: [],
-	             fnDrawCallback: function(){
-						//$('#conn-metrics-results td').css("white-space","nowrap");
-		             }
+					"sWidth": "50%",
+					"aTargets": [ 0 ],
+					"mData": 0,
+					"mRender": function ( data, type, full ) {
+						if (type === 'display') {
+							return data != null ? data : "";
+						}
+						else return data != null ? data : "";
+					}
+				},
+				{
+					"aTargets": [ 1 ],
+					"mData": 1,
+					"mRender": function ( data, type, full ) {
+						if (type === 'display') {
+							return data != null ? data : "";
+						}
+						else return data != null ? data : "";
+					}
+				} ],
+				aaSorting: [],
+				fnDrawCallback: function(){
+					//$('#conn-metrics-results td').css("white-space","nowrap");
+				}
 
 			});	
 
 			var compTable = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="compile-metrics-results"></table>';
 			$('#compile-metrics-container').html( compTable );
 
-			$('#compile-metrics-results').dataTable({
+			compDataTable = $('#compile-metrics-results').dataTable({
 				"bProcessing": true,
 				"bFilter": false,
 				"bPaginate" : false, 
@@ -220,26 +261,26 @@ define([
 				"aaData": compDataSet, 
 				"aoColumns" : colNames,
 				"aoColumnDefs": [ {
-				      "aTargets": [ 1 ],
-				      "mData": 1,
-				      "mRender": function ( data, type, full ) {
-				       if (type === 'display') {
-				          return data != null ? data : "";
-				        }
-				        else return data != null ? data : "";
-				      }
-				    } ],
-		        aaSorting: [],
-	             fnDrawCallback: function(){
-						//$('#conn-metrics-results td').css("white-space","nowrap");
-		             }
+					"aTargets": [ 1 ],
+					"mData": 1,
+					"mRender": function ( data, type, full ) {
+						if (type === 'display') {
+							return data != null ? data : "";
+						}
+						else return data != null ? data : "";
+					}
+				} ],
+				aaSorting: [],
+				fnDrawCallback: function(){
+					//$('#conn-metrics-results td').css("white-space","nowrap");
+				}
 
 			});	
 
 			var runTable = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="run-metrics-results"></table>';
 			$('#runtime-metrics-container').html( runTable );
 
-			$('#run-metrics-results').dataTable({
+			runDataTable = $('#run-metrics-results').dataTable({
 				"bFilter": false,
 				"bProcessing": true,
 				"bPaginate" : false, 
@@ -248,38 +289,41 @@ define([
 				"aaData": runtimeDataSet, 
 				"aoColumns" : colNames,
 				"aoColumnDefs": [ {
-				      "aTargets": [ 1 ],
-				      "mData": 1,
-				      "mRender": function ( data, type, full ) {
-				       if (type === 'display') {
-				          return data != null ? data : "";
-				        }
-				        else return data != null ? data : "";
-				      }
-				    } ],
-		        aaSorting: [],
-	             fnDrawCallback: function(){
-						//$('#conn-metrics-results td').css("white-space","nowrap");
-		             }
+					"aTargets": [ 1 ],
+					"mData": 1,
+					"mRender": function ( data, type, full ) {
+						if (type === 'display') {
+							return data != null ? data : "";
+						}
+						else return data != null ? data : "";
+					}
+				} ],
+				aaSorting: [],
+				fnDrawCallback: function(){
+					//$('#conn-metrics-results td').css("white-space","nowrap");
+				}
 
 			});	
 			//$('#conn-metrics-results td').css("white-space","nowrap");
-			
+
 		},
 
-        showErrorMessage: function (jqXHR) {
+		showErrorMessage: function (jqXHR) {
 			if(jqXHR.statusText != 'abort'){
-	        	_that.hideLoading();
-	        	//$(RESULT_CONTAINER).hide();
-	        	//$(ERROR_CONTAINER).show();
-	        	//if (jqXHR.responseText) {
-	        	//	$(ERROR_CONTAINER).text(jqXHR.responseText);
-	        	//}else{
-        		if(jqXHR.status != null && jqXHR.status == 0) {
-        			alert("Error : Unable to communicate with the server.");
-        		}
+				_that.hideLoading();
+				$(RESULT_CONTAINER).hide();
+				$(DETAILS_CLASS).hide();
+				$(ERROR_CONTAINER).show();
+				$(ERROR_TEXT).text("");
+				if (jqXHR.responseText) {
+					$(ERROR_TEXT).text(jqXHR.responseText);
+				}else{
+					if(jqXHR.status != null && jqXHR.status == 0) {
+						$(ERROR_TEXT).text("Error : Unable to communicate with the server.");
+					}
+				}
 			}
-        }  
+		}
 
 	});
 
