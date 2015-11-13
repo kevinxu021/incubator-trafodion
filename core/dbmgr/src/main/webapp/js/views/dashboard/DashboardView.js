@@ -115,7 +115,7 @@ define([
 						chartTitle: "Disk Space Usage",
 						chartType: "Line",
 						xtimemultiplier: 1,
-						ylabels: ["Avg. Memory Usage"],
+						ylabels: ["Avg. Disk Usage"],
 						yunit: "%",
 						ymax: 100,
 						spinner:"#useddiskspace-spinner",

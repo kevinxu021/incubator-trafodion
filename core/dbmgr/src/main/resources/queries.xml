@@ -179,11 +179,11 @@
 		</query>
 		<query>
 			<name>OPENTSDB_IOWAITS</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:%4$s-avg:proc.stat.cpu{type=iowait}", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:rate:proc.stat.cpu{type=iowait}", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_IOWAITS_DRILLDOWN</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:%4$s-avg:proc.stat.cpu{type=iowait,host=*}", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:rate:proc.stat.cpu{type=iowait,host=*}", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_CPU_BUSY</name>
@@ -207,11 +207,11 @@
 		</query>
 		<query>
 			<name>OPENTSDB_GCTIME</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:hbase.regionserver.jvmmetrics.GcTimeMillis", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:rate:hbase.regionserver.jvmmetrics.GcTimeMillis", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_GCTIME_DRILLDOWN</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:hbase.regionserver.jvmmetrics.GcTimeMillis{host=*}", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:rate:hbase.regionserver.jvmmetrics.GcTimeMillis{host=*}", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_LOADAVG_1</name>
@@ -259,11 +259,11 @@
 		</query>
 		<query>
 			<name>OPENTSDB_REGION_MEMSTORE_SIZE</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:hbase.regionserver.regions.memStoreSize", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:%4$s-avg:hbase.regionserver.regions.memStoreSize", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_REGION_MEMSTORE_SIZE_DRILLDOWN</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:hbase.regionserver.regions.memStoreSize{host=*}", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:%4$s-avg:hbase.regionserver.regions.memStoreSize{host=*}", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>FETCH_ALERTS_LIST</name>
