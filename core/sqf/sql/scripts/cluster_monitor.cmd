@@ -35,3 +35,5 @@ export CLUSTER_MONITOR_MODE=1
 #----  End : Setup the env to run any script - please do not edit this block
 
 xdc -pull
+
+$MY_SQROOT/dbmgr-2.0.0/bin/dbmgr.sh watch 
