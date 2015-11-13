@@ -31,27 +31,28 @@
 									ID</label> <input class="dbmgr-form-item-cell-label"
 								style="width: 600px; border: none;" readonly id="query-id"
 								maxlength="255"></li>
-							<li class="dbmgr-form-item-row" style="width: 90%"><label
+							<li class="dbmgr-form-item-row dbmgr-query-details" style="width: 90%"><label
 								class="dbmgr-form-item-cell-label" style="vertical-align: top;">Status</label>
 								<input class="dbmgr-form-item-cell-label"
 								style="width: 600px; border: none;" readonly id="query-status"
 								maxlength="25"></li>
-							<li class="dbmgr-form-item-row" style="width: 90%"><label
+							<li class="dbmgr-form-item-row dbmgr-query-details" style="width: 90%"><label
 								class="dbmgr-form-item-cell-label" style="vertical-align: top;">Start
 									Time</label> <input class="dbmgr-form-item-cell-label"
 								style="width: 600px; border: none;" readonly
 								id="query-start-time" maxlength="25"></li>
-							<li class="dbmgr-form-item-row" style="width: 90%"><label
+							<li class="dbmgr-form-item-row dbmgr-query-details" style="width: 90%"><label
 								class="dbmgr-form-item-cell-label" style="vertical-align: top;">End
 									Time</label> <input class="dbmgr-form-item-cell-label"
 								style="width: 600px; border: none;" readonly id="query-end-time"
 								maxlength="25"></li>
-							<li class="dbmgr-form-item-row" style="width: 90%"><label
+							<li class="dbmgr-form-item-row dbmgr-query-details" style="width: 90%"><label
 								class="dbmgr-form-item-cell-label" style="vertical-align: top;">Query
 									Text</label> <textarea id="query-text" readonly name="TextMessage"
 									spellcheck="false" rows="5" readonly class="textarea"
 									style="width: 800px; margin-bottom: 10px"></textarea></li>
-							<li class="dbmgr-form-item-row">
+							<li class="dbmgr-form-item-row dbmgr-query-details"><label
+								class="dbmgr-form-item-cell-label" style="vertical-align: top;"></label> 
 								<button id="historical-explain-btn" class="btn btn-info fa fa-sitemap"
 								style="font-family: FontAwesome;"> Explain Plan</button></li>
 							
@@ -61,7 +62,7 @@
 			</div>
 		</div>
 	</div>
-	<div class="row">
+	<div id="details-container" class="row">
 		<div class="col-lg-4">
 			<div class="panel panel-default">
 				<div class="panel-heading">Connection Metrics</div>
@@ -83,6 +84,16 @@
 				<div class="panel-heading">Run Time Metrics</div>
 				<div class="panel-body">
 					<div id="runtime-metrics-container" class="table-responsive"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div id="error-container" class="row">
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">Error</div>
+				<div class="panel-body">
+					<label id="query-detail-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 		</div>
