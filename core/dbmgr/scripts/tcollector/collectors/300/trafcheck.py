@@ -6,7 +6,7 @@ import subprocess
 import sys
 import time
 import re
-
+import os
 #from collectors.lib import utils
 
 interval = 30  # seconds
@@ -15,8 +15,12 @@ cmd = "sqcheck"
 
 def main():
 	"""sqcheck main loop"""
-#       p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-#	utils.drop_privileges()
+	
+	#We only collect these metrics from one node in the cluster
+	#If CMON is running, then collect and report metrics, else exit
+	cmon_node = os.environ.get('CMON_RUNNING')
+	if cmon_node != '1':
+		sys.exit(-1)
 
 	try:
 		p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

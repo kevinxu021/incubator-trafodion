@@ -2,7 +2,7 @@
 
 import sys
 import time
-
+import os
 from java.lang import Class
 from java.sql  import DriverManager, SQLException
 
@@ -14,9 +14,9 @@ JDBC_DRIVER = "org.trafodion.jdbc.t4.T4Driver"
 USER_NAME       = "usr"
 PASS_WORD       = "pwd"
 TABLE_NAME      = "seabase.planet"
-TABLE_DROPPER   = "drop table if exists %s"                      % TABLE_NAME
+TABLE_DROPPER   = "drop table if exists %s"  % TABLE_NAME
 TABLE_CREATOR   = "create table %s (pname varchar(20), psize varchar(10), solar_distance int not null primary key)" % TABLE_NAME
-RECORD_INSERTER = "insert into %s values (?, ?, ?)"              % TABLE_NAME
+RECORD_INSERTER = "insert into %s values (?, ?, ?)"  % TABLE_NAME
 PLANET_QUERY = """
 select pname, psize, solar_distance
 from %s
@@ -37,6 +37,11 @@ PLANET_DATA = [('mercury' , 'small' ,    57),  # distance in million kilometers
 ################################################################################
 
 def main():
+    #We only collect these metrics from one node in the cluster
+    #If CMON is running, then collect and report metrics, else exit
+    cmon_node = os.environ.get('CMON_RUNNING')
+    if cmon_node != '1':
+        sys.exit(-1)
     
     tstart = int(round(time.time() * 1000))
     dbConn = getConnection(JDBC_URL, USER_NAME, PASS_WORD, JDBC_DRIVER)
