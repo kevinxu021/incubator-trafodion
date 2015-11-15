@@ -96,9 +96,6 @@ dcsstop
 # Stop the lob Service
 lobstop
 
-#Stop the managability service
-mgblty_stop 2>$MY_SQROOT/logs/mgblty_err.log
-
 # Issue the shutdown request
 echoLog "Shutting down ($shutdowntype) the SQ environment!"
 echoLog "`date`"
@@ -193,6 +190,9 @@ while [[ $sq_stat == 0 ]]; do
 
 done
 echoLog
+
+#Stop the managability service
+mgblty_stop 2>$MY_SQROOT/logs/mgblty_err.log
 
 shutdownmsg="SQ Shutdown ($shutdowntype) from $PWD Successful"
 

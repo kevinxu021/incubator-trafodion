@@ -203,6 +203,68 @@
 			</div>
 		</div>
 	</div>
+	<div class="row row-eq-height dbmgr-ent">
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<div class="btn-toolbar">
+						<i class="fa fa-bar-chart-o fa-fw"></i> CPU Load<img
+							id="cpuload-spinner" src="img/ajax-loader.gif" />
+						<div class="btn-group pull-right">
+							<button id="cpuload-drilldown-btn" type="button"
+								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								data-toggle="tooltip" data-placement="left" title="CPU Busy Per Node"
+								style="height: 30px; width: 30px"></button>
+						</div>	
+					</div>					
+				</div>
+				<div class="panel-body">
+					<div id="cpuload-chart" class="dbmgr-graph"></div>
+					<label id="cpuload-error-text" class="dbmgr-error-text"></label>
+				</div>
+			</div>
+		</div>	
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<div class="btn-toolbar">
+						<i class="fa fa-bar-chart-o fa-fw"></i> Free Memory<img
+							id="freememory-spinner" src="img/ajax-loader.gif" />
+						<div class="btn-group pull-right">
+							<button id="freememory-drilldown-btn" type="button"
+								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								data-toggle="tooltip" data-placement="left" title="Free Memory Per Node"
+								style="height: 30px; width: 30px"></button>
+						</div>	
+					</div>					
+				</div>
+				<div class="panel-body">
+					<div id="freememory-chart" class="dbmgr-graph"></div>
+					<label id="freememory-error-text" class="dbmgr-error-text"></label>
+				</div>
+			</div>
+		</div>	
+		<div class="col-lg-4">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<div class="btn-toolbar">
+						<i class="fa fa-bar-chart-o fa-fw"></i> Network IO<img
+							id="network-io-spinner" src="img/ajax-loader.gif" />
+						<div class="btn-group pull-right">
+							<button id="network-io-drilldown-btn" type="button"
+								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								data-toggle="tooltip" data-placement="left" title="Network IO Per Node"
+								style="height: 30px; width: 30px"></button>
+						</div>	
+					</div>					
+				</div>
+				<div class="panel-body">
+					<div id="network-io-chart" class="dbmgr-graph"></div>
+					<label id="network-io-error-text" class="dbmgr-error-text"></label>
+				</div>
+			</div>
+		</div>			
+	</div>
 	<div class="modal fade" id="metricsDialog" role="dialog"
 		aria-labelledby="metricsDialogLabel" data-backdrop="static" data-keyboard="false">
 		<div class="modal-dialog" role="document"

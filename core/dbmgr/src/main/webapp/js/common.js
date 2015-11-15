@@ -250,6 +250,10 @@ define(['moment',
 				return (bytes / Math.pow(1024, i)).toFixed(1) + units[i];
 			};
 
+			this.fortmat2Decimals = function(value){
+				return value.toFixed(2);
+			};
+			
 			this.convertToMB = function(bytes){
 				if(bytes <=0)
 					return 0;

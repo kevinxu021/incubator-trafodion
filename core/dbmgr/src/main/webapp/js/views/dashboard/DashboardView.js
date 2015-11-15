@@ -39,6 +39,9 @@ define([
 	JVMGC_DRILLDOWN_BTN = '#jvmgctime-drilldown-btn',
 	RSERVER_MEMORY_DRILLDOWN_BTN = '#regionservermemory-drilldown-btn',
 	MEMSTORE_DRILLDOWN_BTN = '#memstoresize-drilldown-btn',
+	CPULOAD_DRILLDOWN_BTN = '#cpuload-drilldown-btn',
+	FREEMEM_DRILLDOWN_BTN = '#freememory-drilldown-btn',
+	NETWORKIO_DRILLDOWN_BTN = '#network-io-drilldown-btn',
 
 	DRILLDOWN_SPINNER = '#metrics-drilldown-spinner',
 	DRILLDOWN_CHART_CONTAINER = '#metrics-drilldown-chart',
@@ -153,17 +156,42 @@ define([
 						spinner:"#regionservermemory-spinner",
 						graphcontainer:"regionservermemory-chart",
 						errorcontainer:"#regionservermemory-error-text"
-					}/*,
-					cpubusy:{
-						chartTitle: "CPU Busy",
+					},
+					cpuload:{
+						chartTitle: "CPU Load Avg.",
 						chartType: "Line",
-						xtimemultiplier: 1,
-						ylabels: ["Avg. CPU Busy"],
-						yunit: "%",
-						spinner:"#cpubusy-spinner",
-						graphcontainer:"cpubusy-chart",
-						errorcontainer:"#cpubusy-error-text"
-					}*/
+						xtimemultiplier: 1000,
+						ylabels: ["CPU Load Avg. 15min"],
+						yLabelFormat: common.fortmat2Decimals,
+						spinner:"#cpuload-spinner",
+						graphcontainer:"cpuload-chart",
+						errorcontainer:"#cpuload-error-text"
+					},
+					freememory:{
+						chartTitle: "Free Memory",
+						chartType: "Line",
+						xtimemultiplier: 1000,
+						ylabels: ["Free Memory"],
+						yunit: "MB",
+						yLabelFormat: common.convertToMB,
+						yvalformatter: common.convertToMB,
+						spinner:"#freememory-spinner",
+						graphcontainer:"freememory-chart",
+						errorcontainer:"#freememory-error-text"
+					},
+					networkio:{
+						chartTitle: "Network IO.",
+						chartType: "Line",
+						xtimemultiplier: 1000,
+						ylabels: ["In", "Out"],
+						yunit: "MB",
+						yLabelFormat: common.convertToMB,
+						yvalformatter: common.convertToMB,
+						spinner:"#network-io-spinner",
+						graphcontainer:"network-io-chart",
+						errorcontainer:"#network-io-error-text"
+					}
+					
 			};
 
 			$(REFRESH_ACTION).on('click', this.refreshPage);
@@ -188,6 +216,9 @@ define([
 				$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
 				$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
 				$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
+				$(CPULOAD_DRILLDOWN_BTN).on('click',this.cpuLoadDrillDown);
+				$(FREEMEM_DRILLDOWN_BTN).on('click',this.freeMemoryDrillDown);
+				$(NETWORKIO_DRILLDOWN_BTN).on('click',this.networkIODrillDown);
 
 				$('#metricsDialog').on('show.bs.modal', function(event, ab){
 					$(DRILLDOWN_CHART_CONTAINER).empty();
@@ -229,6 +260,9 @@ define([
 				$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
 				$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
 				$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
+				$(CPULOAD_DRILLDOWN_BTN).on('click',this.cpuLoadDrillDown);
+				$(FREEMEM_DRILLDOWN_BTN).on('click',this.freeMemoryDrillDown);
+				$(NETWORKIO_DRILLDOWN_BTN).on('click',this.networkIODrillDown);
 				
 				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
 				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
@@ -258,6 +292,9 @@ define([
 				$(JVMGC_DRILLDOWN_BTN).off('click',this.jvmGCDrillDown);
 				$(RSERVER_MEMORY_DRILLDOWN_BTN).off('click',this.rserverMemoryDrillDown);
 				$(MEMSTORE_DRILLDOWN_BTN).off('click',this.memStoreDrillDown);
+				$(CPULOAD_DRILLDOWN_BTN).off('click',this.cpuLoadDrillDown);
+				$(FREEMEM_DRILLDOWN_BTN).off('click',this.freeMemoryDrillDown);
+				$(NETWORKIO_DRILLDOWN_BTN).off('click',this.networkIODrillDown);
 				dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
 				dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
 				dashboardHandler.off(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
@@ -687,6 +724,15 @@ define([
 		},
 		memStoreDrillDown: function(){
 			_this.displayDetails('memstoresize');
+		},
+		cpuLoadDrillDown: function(){
+			_this.displayDetails('cpuload');
+		},
+		freeMemoryDrillDown: function(){
+			_this.displayDetails('freememory');
+		},
+		networkIODrillDown: function(){
+			_this.displayDetails('networkio');
 		},
 		displayDetails: function(metricName){
 			$('#metricsDialog').modal('show');
