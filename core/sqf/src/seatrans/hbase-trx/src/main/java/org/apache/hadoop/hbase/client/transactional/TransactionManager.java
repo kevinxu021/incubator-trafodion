@@ -207,6 +207,8 @@ public class TransactionManager {
 
   private IdTm idServer;
   private static final int ID_TM_SERVER_TIMEOUT = 1000;
+  private static final int ABORT_EXCEPTION_DELAY = 30000;
+  private static final int ABORT_EXCEPTION_RETIRES = 30;
 
   private Map<String,Long> batchRSMetrics = new ConcurrentHashMap<String, Long>();
   private long regions = 0;
@@ -931,7 +933,7 @@ public class TransactionManager {
     public Integer doAbortX(final byte[] regionName, final long transactionId) throws IOException{
         if(LOG.isTraceEnabled()) LOG.trace("doAbortX -- ENTRY txID: " + transactionId);
         boolean retry = false;
-            boolean refresh = false;
+        boolean refresh = false;
         int retryCount = 0;
             int retrySleep = TM_SLEEP;
 
@@ -2274,53 +2276,34 @@ public class TransactionManager {
              });
         }
         transactionState.completeSendInvoke(loopCount);
-        /*
-        if(transactionState.getRegionsRetryCount() > 0) {
-            for (TransactionRegionLocation location : transactionState.getRetryRegions()) {
-                loopCount++;
-                threadPool.submit(new TransactionManagerCallable(transactionState, location, connection) {
-                    public Integer call() throws CommitUnsuccessfulException, IOException {
-
-                        return doAbortX(location.getRegionInfo().getRegionName(),
-                                transactionState.getTransactionId());
-                    }
-                });
-            }
-        }
-        transactionState.clearRetryRegions();
-        */
     }
     else {
-
-      for (TransactionRegionLocation location : transactionState.getParticipatingRegions()) {
-          if (transactionState.getRegionsToIgnore().contains(location)) {
-              continue;
-          }
-          try {
-	    loopCount++;
-	    final byte[] regionName = location.getRegionInfo().getRegionName();
-              
-            threadPool.submit(new TransactionManagerCallable(transactionState, location, pSTRConfig.getPeerConnections().get(location.peerId)) {
-              public Integer call() throws IOException {
-                return doAbortX(regionName, transactionState.getTransactionId());
-              }
-            });
-          } catch (Exception e) {
-            LOG.error("exception in abort: " + e + "  Trans: "
-                + transactionState + "  Region: " + location.getRegionInfo().getRegionName());
-          }
-            /*
-            } catch (UnknownTransactionException e) {
-        LOG.error("exception in abort: " + e);
-                LOG.info("Got unknown transaction exception during abort. Transaction: ["
-                        + transactionState.getTransactionId() + "], region: ["
-                        + location.getRegionInfo().getRegionNameAsString() + "]. Ignoring.");
-            } catch (NotServingRegionException e) {
-                LOG.info("Got NSRE during abort. Transaction: [" + transactionState.getTransactionId() + "], region: ["
-                        + location.getRegionInfo().getRegionNameAsString() + "]. Ignoring.");
+    	
+      loopCount = 0;
+         for (TransactionRegionLocation location : transactionState.getParticipatingRegions()) {
+            if (transactionState.getRegionsToIgnore().contains(location)) {
+               continue;
             }
-            */
-        }
+            try {
+               loopCount++;
+               final byte[] regionName = location.getRegionInfo().getRegionName();
+               threadPool.submit(new TransactionManagerCallable(transactionState, location, pSTRConfig.getPeerConnections().get(location.peerId)) {
+                 public Integer call() throws IOException {
+                    return doAbortX(regionName, transactionState.getTransactionId());
+                 }
+               });
+            } catch (IllegalArgumentException iae) {
+               loopCount--;
+               LOG.error("exception in abort: " + iae + " Reducing loopCount to: " + loopCount + " Trans: "
+                   + transactionState + "  Region: " + location.getRegionInfo().getRegionName());
+            } catch (Exception e) {
+                loopCount--;
+                LOG.error("Got Exception during abort. Reducing loopCount to: "
+                            + loopCount + "Transaction: ["
+                            + transactionState.getTransactionId() + "], region: ["
+                            + location.getRegionInfo().getRegionNameAsString() + "]. Ignoring. " + e);
+            }
+           }
 
         // all requests sent at this point, can record the count
         transactionState.completeSendInvoke(loopCount);
