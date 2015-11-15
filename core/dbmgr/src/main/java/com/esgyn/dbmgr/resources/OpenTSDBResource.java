@@ -98,13 +98,19 @@ public class OpenTSDBResource {
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_TRANSACTION_STATS),
 						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset);
 				break;
-			case "cpu":
-				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_CPU_USAGE), openTSDBUri,
+			case "cpuload":
+				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_CPU_LOAD_DRILLDOWN),
+						openTSDBUri,
 						startTimeStr, endTimeStr, downSampleOffset);
 				break;
-			case "memory":
-				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_MEMORY_USAGE), openTSDBUri,
+			case "freememory":
+				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_FREE_MEMORY_DRILLDOWN),
+						openTSDBUri,
 						startTimeStr, endTimeStr, downSampleOffset);
+				break;
+			case "networkio":
+				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_NETWORK_IO_DRILLDOWN),
+						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "useddiskspace":
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_DISK_SPACE_USED_DRILLDOWN),
@@ -202,12 +208,16 @@ public class OpenTSDBResource {
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_TRANSACTION_STATS),
 						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset);
 				break;
-			case "cpu":
-				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_CPU_USAGE), openTSDBUri,
+			case "cpuload":
+				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_CPU_LOAD), openTSDBUri,
 						startTimeStr, endTimeStr, downSampleOffset);
 				break;
-			case "memory":
-				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_MEMORY_USAGE), openTSDBUri,
+			case "freememory":
+				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_FREE_MEMORY), openTSDBUri,
+						startTimeStr, endTimeStr, downSampleOffset);
+				break;
+			case "networkio":
+				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_NETWORK_IO), openTSDBUri,
 						startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "useddiskspace":

@@ -12,14 +12,20 @@ import sys
 import time
 import re
 import json
- 
+import os 
 #from collectors.lib import utils
  
 cmd = "dtmci stats -j"
  
 def main():
-    """sqcheck main loop"""
- 
+    """dtmstats main loop"""
+    
+    #We only collect these metrics from one node in the cluster
+    #If CMON is running, then collect and report metrics, else exit
+    cmon_node = os.environ.get('CMON_RUNNING')
+    if cmon_node != '1':
+        sys.exit(-1)
+
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 #    utils.drop_privileges()
  

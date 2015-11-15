@@ -4,14 +4,20 @@ import subprocess
 import sys
 import time
 import re
-
+import os
 #from collectors.lib import utils
 
 interval = 60  # seconds
 cmd = "sqnodecheck"
 
 def main():
-    """sqcheck main loop"""
+    """sqnodecheck main loop"""
+    
+    #We only collect these metrics from one node in the cluster
+    #If CMON is running, then collect and report metrics, else exit
+    cmon_node = os.environ.get('CMON_RUNNING')
+    if cmon_node != '1':
+        sys.exit(-1)
 
     #utils.drop_privileges()
     try:

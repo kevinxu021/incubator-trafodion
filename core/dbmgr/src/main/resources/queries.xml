@@ -179,19 +179,35 @@
 		</query>
 		<query>
 			<name>OPENTSDB_IOWAITS</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:%4$s-avg:proc.stat.cpu{type=iowait}", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:rate:proc.stat.cpu{type=iowait}", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_IOWAITS_DRILLDOWN</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:%4$s-avg:proc.stat.cpu{type=iowait,host=*}", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:rate:proc.stat.cpu{type=iowait,host=*}", "method":"get"}]]></text>
 		</query>
 		<query>
-			<name>OPENTSDB_CPU_BUSY</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:%4$s-avg:proc.stat.cpu{type=idle}", "method":"get"}]]></text>
+			<name>OPENTSDB_CPU_LOAD</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:proc.loadavg.15min", "method":"get"}]]></text>
 		</query>
 		<query>
-			<name>OPENTSDB_CPU_BUSY_DRILLDOWN</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:%4$s-avg:proc.stat.cpu{type=idle,host=*}", "method":"get"}]]></text>
+			<name>OPENTSDB_CPU_LOAD_DRILLDOWN</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:proc.loadavg.15min{host=*}", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>OPENTSDB_FREE_MEMORY</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:proc.meminfo.memfree", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>OPENTSDB_FREE_MEMORY_DRILLDOWN</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:proc.meminfo.memfree{host=*}", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>OPENTSDB_NETWORK_IO</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:%4$s-avg:proc.net.bytes{direction=*}", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>OPENTSDB_NETWORK_IO_DRILLDOWN</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:%4$s-avg:proc.net.bytes{direction=*,host=*}", "method":"get"}]]></text>
 		</query>
 		
 		<query>
@@ -207,11 +223,11 @@
 		</query>
 		<query>
 			<name>OPENTSDB_GCTIME</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:hbase.regionserver.jvmmetrics.GcTimeMillis", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:rate:hbase.regionserver.jvmmetrics.GcTimeMillis", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_GCTIME_DRILLDOWN</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:hbase.regionserver.jvmmetrics.GcTimeMillis{host=*}", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:rate:hbase.regionserver.jvmmetrics.GcTimeMillis{host=*}", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_LOADAVG_1</name>
@@ -259,11 +275,11 @@
 		</query>
 		<query>
 			<name>OPENTSDB_REGION_MEMSTORE_SIZE</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:hbase.regionserver.regions.memStoreSize", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:%4$s-avg:hbase.regionserver.regions.memStoreSize", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_REGION_MEMSTORE_SIZE_DRILLDOWN</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:hbase.regionserver.regions.memStoreSize{host=*}", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:%4$s-avg:hbase.regionserver.regions.memStoreSize{host=*}", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>FETCH_ALERTS_LIST</name>
