@@ -375,8 +375,9 @@ CoprocessorService, Coprocessor {
   private static final int DEFAULT_MEMORY_SLEEP = 15 * 1000;
   private static final boolean DEFAULT_MEMORY_WARN_ONLY = true;        
   private static final boolean DEFAULT_MEMORY_PERFORM_GC = false;
-  private static final boolean DEFAULT_SKIP_WAL = true;
-  private static final boolean DEFAULT_COMMIT_EDIT = true;
+  private static final int DEFAULT_ASYNC_WAL = 0;
+  private static final boolean DEFAULT_SKIP_WAL = false;
+  private static final boolean DEFAULT_COMMIT_EDIT = false;
   private static final boolean DEFAULT_SUPPRESS_OOP = false;
   private static final String SLEEP_CONF = "hbase.transaction.clean.sleep";
   private static final String LEASE_CONF  = "hbase.transaction.lease.timeout";
@@ -384,6 +385,7 @@ CoprocessorService, Coprocessor {
   private static final String MEMORY_WARN_ONLY = "hbase.transaction.memory.warn.only";
   private static final String MEMORY_CONF = "hbase.transaction.memory.sleep";
   private static final String MEMORY_PERFORM_GC = "hbase.transaction.memory.perform.GC";
+  private static final String CONF_ASYNC_WAL  = "hbase.trafodion.async.wal";
   private static final String CONF_SKIP_WAL  = "hbase.trafodion.skip.wal";
   private static final String CONF_COMMIT_EDIT  = "hbase.trafodion.full.commit.edit";
   private static final String SUPPRESS_OOP = "hbase.transaction.suppress.OOP.exception";
@@ -394,6 +396,7 @@ CoprocessorService, Coprocessor {
   private static int memoryUsageThreshold = DEFAULT_MEMORY_THRESHOLD;
   private static boolean memoryUsagePerformGC = DEFAULT_MEMORY_PERFORM_GC;
   private static boolean memoryUsageWarnOnly = DEFAULT_MEMORY_WARN_ONLY;
+  private static int asyncWal = DEFAULT_ASYNC_WAL;
   private static boolean skipWal = DEFAULT_SKIP_WAL;
   private static boolean fullEditInCommit = DEFAULT_COMMIT_EDIT;
   private static MemoryMXBean memoryBean = null;
@@ -3282,9 +3285,10 @@ CoprocessorService, Coprocessor {
         this.cleanTimer = config.getInt(SLEEP_CONF, DEFAULT_SLEEP);
         this.memoryUsageThreshold = config.getInt(MEMORY_THRESHOLD, DEFAULT_MEMORY_THRESHOLD);
         this.memoryUsagePerformGC = config.getBoolean(MEMORY_PERFORM_GC, DEFAULT_MEMORY_PERFORM_GC);
+        this.asyncWal = config.getInt(CONF_ASYNC_WAL, DEFAULT_ASYNC_WAL);
         this.skipWal = config.getBoolean(CONF_SKIP_WAL, DEFAULT_SKIP_WAL);
         this.fullEditInCommit = config.getBoolean(CONF_COMMIT_EDIT, DEFAULT_COMMIT_EDIT);
-        LOG.info ("TRX coprocessor starting with skipWal: " + skipWal
+        LOG.info ("TRX coprocessor starting with asyncWal: " + asyncWal + " skipWal: " + skipWal
         		      + " and fullEditInCommit: " + fullEditInCommit);
         this.memoryUsageWarnOnly = config.getBoolean(MEMORY_WARN_ONLY, DEFAULT_MEMORY_WARN_ONLY);
         this.memoryUsageTimer = config.getInt(MEMORY_CONF, DEFAULT_MEMORY_SLEEP);
@@ -3807,6 +3811,8 @@ CoprocessorService, Coprocessor {
       // maybe we can turn off WAL here for HLOG since THLOG has contained required edits in phase 1
 
       ListIterator<WriteAction> writeOrderIter = null;
+      int size = state.writeSize();
+      int index = 0;
       for (writeOrderIter = state.getWriteOrderingIter();
              writeOrderIter.hasNext();) {
          WriteAction action =(WriteAction) writeOrderIter.next();
@@ -3817,34 +3823,62 @@ CoprocessorService, Coprocessor {
           if (this.skipWal){
              put.setDurability(Durability.SKIP_WAL); 
           }
-          if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Executing put directly to m_Region");
-           try {
-             m_Region.put(put);
-           }
-           catch (Exception e) {
-              LOG.warn("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Executing put caught an exception " + e.toString());
-              throw new IOException(e.toString());
-           }
+          else { 
+             if (this.asyncWal != 0) {
+                put.setDurability(Durability.ASYNC_WAL); 
+                if ((index == 0) && ((this.asyncWal == 3) || (this.asyncWal == 4))) {
+                   put.setDurability(Durability.SYNC_WAL); 
+                }
+                if ((index == (size - 1)) && ((this.asyncWal == 2)  || (this.asyncWal == 4))) {
+                   put.setDurability(Durability.SYNC_WAL); 
+                }
+             }
+          }
+          if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId "
+               + transactionId + ", Executing put index " + index + " durability "
+               + put.getDurability().toString() + " directly to m_Region");
+          try {
+            m_Region.put(put);
+         }
+         catch (Exception e) {
+            LOG.warn("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Executing put caught an exception " + e.toString());
+            throw new IOException(e.toString());
          }
 
-         // Process Delete
-         Delete delete = action.getDelete();
+      }
 
-         if (null != delete){
-          if (this.skipWal){
-             delete.setDurability(Durability.SKIP_WAL); 
-          }
-          if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Executing delete directly to m_Region");
-           try {
-             m_Region.delete(delete);
-           }
-           catch (Exception e) {
-              LOG.warn("TrxRegionEndpoint coprocessor: commit  - txId " + transactionId + ", Executing delete caught an exception " + e.toString());
-              throw new IOException(e.toString());
-           }
+      // Process Delete
+      Delete delete = action.getDelete();
+      if (null != delete){
+         if (this.skipWal) {
+            delete.setDurability(Durability.SKIP_WAL); 
+         }
+         else { 
+            if (this.asyncWal != 0) {
+               delete.setDurability(Durability.ASYNC_WAL); 
+               if ((index == 0) && ((this.asyncWal == 3) || (this.asyncWal == 4))) {
+            	  delete.setDurability(Durability.SYNC_WAL);
+               }
+               if ((index == (size - 1)) && ((this.asyncWal == 2)  || (this.asyncWal == 4))) {
+                  delete.setDurability(Durability.SYNC_WAL); 
+               }
+            }
+         }
+         if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId "
+                 + transactionId + ", Executing delete index " + index + " durability "
+        		 + delete.getDurability().toString() + " directly to m_Region");
+         try {
+            m_Region.delete(delete);
+         }
+         catch (Exception e) {
+            LOG.warn("TrxRegionEndpoint coprocessor: commit  - txId " + transactionId
+            		+ ", Executing delete caught an exception " + e.toString());
+            throw new IOException(e.toString());
          }
        }
-    } // normal transactions
+       index++;
+     }
+   } // normal transactions
 
     // Now write a commit edit to HLOG
 
