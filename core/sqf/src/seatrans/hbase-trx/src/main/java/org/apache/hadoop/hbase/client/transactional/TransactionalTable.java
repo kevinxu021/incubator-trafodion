@@ -651,6 +651,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
             else{
                Thread.sleep(TransactionalTable.delay);
             }
+            retry = true;
             transactionState.setRetried(true);
             retryCount++;
           }
