@@ -3780,31 +3780,49 @@ CoprocessorService, Coprocessor {
 					 );
 
     if (state.isReinstated() && !this.configuredConflictReinstate) {
-      if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit Trafodion Recovery: commit reinstated indoubt transactions " + transactionId + 
-                              " in region " + m_Region.getRegionInfo().getRegionNameAsString());
+      if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit" 
+					  + " Trafodion Recovery: commit reinstated indoubt transaction " + transactionId 
+					  + " in region " + m_Region.getRegionInfo().getRegionNameAsString()
+					  );
       synchronized (indoubtTransactionsById) {  
         editList = (ArrayList<WALEdit>) indoubtTransactionsById.get(transactionId);
       }
       num  = editList.size();
-       if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", region " + regionInfo.getRegionNameAsString() + 
-       ", Redrive commit with number of edit kvs list size " + num);
+       if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit -" 
+					   + " txId " + transactionId 
+					   + ", region " + regionInfo.getRegionNameAsString() 
+					   + ", Redrive commit with number of edit kvs list size " + num
+					   );
       for ( int i = 0; i < num; i++){
          b = editList.get(i);
-         if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Writing " + b.size() + " updates for reinstated transaction");
+         if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit -"
+					     + " txId" + transactionId 
+					     + ", Writing " + b.size() + " updates for reinstated transaction"
+					     );
          for (Cell kv : b.getCells()) {
            synchronized (editReplay) {
              Put put;
              Delete del;
-             if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor:commit - txId " + transactionId + ", Trafodion Recovery: region " + m_Region.getRegionInfo().getRegionNameAsString() + ", Replay commit for transaction with Op " + kv.getTypeByte());
+             if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor:commit -"
+						 + " txId " + transactionId 
+						 + ", Trafodion Recovery: region " + m_Region.getRegionInfo().getRegionNameAsString() 
+						 + ", Replay commit for transaction with Op " + kv.getTypeByte()
+						 );
              if (kv.getTypeByte() == KeyValue.Type.Put.getCode()) {
 		put = new Put(CellUtil.cloneRow(kv)); // kv.getRow()
-                put.add(CellUtil.cloneFamily(kv), CellUtil.cloneQualifier(kv), kv.getTimestamp(), CellUtil.cloneValue(kv));
-                //state.addWrite(put); // no need to add since add has been done in constructInDoubtTransactions
+                put.add(CellUtil.cloneFamily(kv),
+			CellUtil.cloneQualifier(kv),
+			EnvironmentEdgeManager.currentTime(),
+			CellUtil.cloneValue(kv));
+		TransactionState.updateLatestTimestamp(put.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTime());
               try {
                 m_Region.put(put);
               }
               catch (Exception e) {
-                 LOG.warn("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Trafodion Recovery: Executing put caught an exception " + e.toString());
+                 LOG.warn("TrxRegionEndpoint coprocessor: commit -" 
+			  + " txId " + transactionId 
+			  + ", Trafodion Recovery: Executing put caught an exception " + e.toString()
+			  );
                  throw new IOException(e.toString());
               }
      	     } else if (CellUtil.isDelete(kv))  {
@@ -3814,12 +3832,15 @@ CoprocessorService, Coprocessor {
 	        } else if (CellUtil.isDeleteType(kv)) {
 	             del.deleteColumn(CellUtil.cloneFamily(kv), CellUtil.cloneQualifier(kv));
 	        }
-                //state.addDelete(del);  // no need to add since add has been done in constructInDoubtTransactions
+		TransactionState.updateLatestTimestamp(del.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTime());
                try {
                  m_Region.delete(del);
                   }
                catch (Exception e) {
-                 LOG.warn("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Trafodion Recovery: Executing delete caught an exception " + e.toString());
+                 LOG.warn("TrxRegionEndpoint coprocessor: commit -" 
+			  + " txId " + transactionId 
+			  + ", Trafodion Recovery: Executing delete caught an exception " + e.toString()
+			  );
                  throw new IOException(e.toString());
                 }
    	     }
@@ -3857,12 +3878,16 @@ CoprocessorService, Coprocessor {
           }
           if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId " 
 					      + transactionId + ", Executing put index " + index + " durability "
-					      + put.getDurability().toString() + " directly to m_Region");
+					      + put.getDurability().toString() + " directly to m_Region"
+					      );
            try {
              m_Region.put(put);
            }
            catch (Exception e) {
-              LOG.warn("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Executing put caught an exception " + e.toString());
+              LOG.warn("TrxRegionEndpoint coprocessor: commit -" 
+		       + " txId " + transactionId 
+		       + ", Executing put caught an exception " + e.toString()
+		       );
               throw new IOException(e.toString());
            }
          }
@@ -3892,7 +3917,10 @@ CoprocessorService, Coprocessor {
              m_Region.delete(delete);
            }
            catch (Exception e) {
-              LOG.warn("TrxRegionEndpoint coprocessor: commit  - txId " + transactionId + ", Executing delete caught an exception " + e.toString());
+              LOG.warn("TrxRegionEndpoint coprocessor: commit  -" 
+		       + " txId " + transactionId 
+		       + ", Executing delete caught an exception " + e.toString()
+		       );
               throw new IOException(e.toString());
            }
          }
@@ -3910,7 +3938,10 @@ CoprocessorService, Coprocessor {
             WALEdit e1 = state.getEdit();
             WALEdit e = new WALEdit();
             if (e1.isEmpty() || e1.getCells().size() <= 0) {
-               if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV endpoint CP: commit - txId " + transactionId + ", Encountered empty TS WAL Edit list during commit, HLog txid " + txid);
+               if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV endpoint CP: commit -" 
+						 + " txId " + transactionId 
+						 + ", Encountered empty TS WAL Edit list during commit, HLog txid " + txid
+						 );
                }
             else {
                  Cell c = e1.getCells().get(0);
@@ -3922,10 +3953,6 @@ CoprocessorService, Coprocessor {
       
                  e.add(kv);
                  try {
-                	
-                   // txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
-                   //     e, new ArrayList<UUID>(), EnvironmentEdgeManager.currentTime(), this.m_Region.getTableDesc(),
-                   //     nextLogSequenceId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
                 	 final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(), 
 						      this.regionInfo.getTable(), 
 						      EnvironmentEdgeManager.currentTime());
@@ -3938,12 +3965,16 @@ CoprocessorService, Coprocessor {
 						  false, 
 						  null);
                 	
-                    if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId " 
-							+ transactionId 
-							+ ", Write commit HLOG seq " + txid);
+                    if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit -" 
+							+ " txId " + transactionId 
+							+ ", Write commit HLOG seq " + txid
+							);
                  }
                  catch (IOException exp1) {
-                    if (LOG.isTraceEnabled()) LOG.trace("TRAF RCOV endpoint CP: commit - txId " + transactionId + ", Writing to HLOG : Threw an exception " + exp1.toString());
+                    if (LOG.isTraceEnabled()) LOG.trace("TRAF RCOV endpoint CP: commit -" 
+							+ " txId " + transactionId 
+							+ ", Writing to HLOG : Threw an exception " + exp1.toString()
+							);
                     throw exp1;
                  }
             } // e1 is not empty
@@ -3964,10 +3995,7 @@ CoprocessorService, Coprocessor {
               e.add(kv);
             }
             try {
-                //txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
-                //     e, new ArrayList<UUID>(), EnvironmentEdgeManager.currentTimeMillis(), this.m_Region.getTableDesc(),
-                //     nextLogSequenceId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
-                
+
                 final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(), 
 					     this.regionInfo.getTable(), 
 					     EnvironmentEdgeManager.currentTime());;
@@ -3979,13 +4007,22 @@ CoprocessorService, Coprocessor {
 						 false, 
 						 null);
            	 	this.tHLog.sync(txid);
-                if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Y11 write commit HLOG seq " + txid);
+                if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit -" 
+						    + " txId " + transactionId 
+						    + ", Y11 write commit HLOG seq " + txid
+						    );
             }
             catch (IOException exp1) {
-               if (LOG.isTraceEnabled()) LOG.trace("TRAF RCOV endpoint CP: commit - txId " + transactionId + ", Writing to HLOG : Threw an exception " + exp1.toString());
+               if (LOG.isTraceEnabled()) LOG.trace("TRAF RCOV endpoint CP: commit -" 
+						   + " txId " + transactionId 
+						   + ", Writing to HLOG : Threw an exception " + exp1.toString()
+						   );
                throw exp1;
              }
-            if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor:commit -- EXIT txId: " + transactionId + " HLog seq " + txid);
+            if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor:commit -- EXIT" 
+						+ " txId: " + transactionId 
+						+ " HLog seq " + txid
+						);
            // if (this.fullEditInCommit) this.fullEditInCommit = false;
         } // else -- full edit write in commit record during phase 2
     } // write or reinstated
@@ -3994,7 +4031,10 @@ CoprocessorService, Coprocessor {
     if (state.hasWrite() || state.isReinstated()) {
       synchronized (commitPendingTransactions) {
       if (!commitPendingTransactions.remove(state)) {
-          LOG.fatal("TrxRegionEndpoint coprocessor: commit - txid: " + transactionId + ", Commiting a non-query transaction that is not in commitPendingTransactions");
+          LOG.fatal("TrxRegionEndpoint coprocessor: commit -" 
+		    + " txid: " + transactionId 
+		    + ", Commiting a non-query transaction that is not in commitPendingTransactions"
+		    );
           // synchronized statements are cleared for a throw
         throw new IOException("commit failure");
       }
@@ -4002,7 +4042,7 @@ CoprocessorService, Coprocessor {
     }
 
     if (LOG.isDebugEnabled()) LOG.debug("TrxRegionEndpoint coprocessor: commit(tstate) -- EXIT TrxTransactionState: " + 
-      state.toString());
+					state.toString());
 
     if (state.isReinstated()) {
       synchronized(indoubtTransactionsById) {
@@ -4019,18 +4059,32 @@ CoprocessorService, Coprocessor {
           indoubtTransactionsCountByTmid.remove(tmid);
           String lv_encoded = m_Region.getRegionInfo().getEncodedName();
             try {
-              if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit  - txId " + transactionId + ", Trafodion Recovery: delete in commit recovery zNode TM " + tmid + " region encoded name " + lv_encoded + " for 0 in-doubt transaction");
+              if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit  -" 
+						  + " txId " + transactionId 
+						  + ", Trafodion Recovery: delete in commit recovery zNode TM " + tmid 
+						  + " region encoded name " + lv_encoded + " for 0 in-doubt transaction"
+						  );
               deleteRecoveryzNode(tmid, lv_encoded);
             } catch (IOException e) {
-            LOG.error("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Trafodion Recovery: delete recovery zNode failed. Caught exception " + e.toString());
+            LOG.error("TrxRegionEndpoint coprocessor: commit -" 
+		      + " txId " + transactionId 
+		      + ", Trafodion Recovery: delete recovery zNode failed. Caught exception " + e.toString()
+		      );
             }
         }
 
         if ((indoubtTransactionsById == null) || (indoubtTransactionsById.size() == 0)) {
           if (indoubtTransactionsById == null) 
-            if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Trafodion Recovery: start region in commit with indoubtTransactionsById null");
+            if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit -" 
+						+ " txId " + transactionId 
+						+ ", Trafodion Recovery: start region in commit with indoubtTransactionsById null"
+						);
           else
-            if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Trafodion Recovery: start region in commit with indoubtTransactionsById size " + indoubtTransactionsById.size());
+            if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit -" 
+						+ " txId " + transactionId 
+						+ ", Trafodion Recovery: start region in commit with indoubtTransactionsById size " 
+						+ indoubtTransactionsById.size()
+						);
           startRegionAfterRecovery();
         }
       }
