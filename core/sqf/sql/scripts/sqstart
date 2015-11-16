@@ -342,7 +342,7 @@ WARM_STARTFILE=$SQSCRIPTS_DIR/gomon.warm
 COLD_RECOV_STARTFILE=$SQSCRIPTS_DIR/gomon.cold.recovery
 
 echo "Checking if HBase is available"
-run_util hbcheck 3 10
+run_util hbcheck 4 30
 
 echo "-------------"
 echo "My cluster id"
