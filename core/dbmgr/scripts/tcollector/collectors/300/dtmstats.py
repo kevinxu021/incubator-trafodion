@@ -37,12 +37,13 @@ def main():
         tb = 0
         tc = 0
         for i in xrange(len(data)):
-            ta = ta + int(data[i]['txnStats']['txnAborts'])
-            tb = tb + int(data[i]['txnStats']['txnBegins'])
-            tc = tc + int(data[i]['txnStats']['txnCommits'])
-        print ("esgyndb.dtm.txnaborts %d %d" % (ts, ta))
-        print ("esgyndb.dtm.txnbegins %d %d" % (ts, tb))
-        print ("esgyndb.dtm.txncommits %d %d" % (ts, tc))
+            ta = int(data[i]['txnStats']['txnAborts'])
+            tb = int(data[i]['txnStats']['txnBegins'])
+            tc = int(data[i]['txnStats']['txnCommits'])
+            print ("esgyndb.dtm.txnaborts %d %d node=%d" % (ts, ta, i))
+            print ("esgyndb.dtm.txnbegins %d %d node=%d" % (ts, tb, i))
+            print ("esgyndb.dtm.txncommits %d %d node=%d" % (ts, tc, i))
+
 
         sys.stdout.flush()
     except:
