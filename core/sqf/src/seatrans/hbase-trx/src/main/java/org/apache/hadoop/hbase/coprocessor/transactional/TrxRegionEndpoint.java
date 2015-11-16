@@ -377,9 +377,9 @@ CoprocessorService, Coprocessor {
   private static final int DEFAULT_MEMORY_SLEEP = 15 * 1000;
   private static final boolean DEFAULT_MEMORY_WARN_ONLY = true;        
   private static final boolean DEFAULT_MEMORY_PERFORM_GC = false;
-  private static final int DEFAULT_ASYNC_WAL = 0;
-  private static final boolean DEFAULT_SKIP_WAL = true;
-  private static final boolean DEFAULT_COMMIT_EDIT = true;
+  private static final int DEFAULT_ASYNC_WAL = 1;
+  private static final boolean DEFAULT_SKIP_WAL = false;
+  private static final boolean DEFAULT_COMMIT_EDIT = false;
   private static final boolean DEFAULT_SUPPRESS_OOP = false;
   private static final String SLEEP_CONF = "hbase.transaction.clean.sleep";
   private static final String LEASE_CONF  = "hbase.transaction.lease.timeout";
