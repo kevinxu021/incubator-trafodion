@@ -21,34 +21,50 @@
 :experimental:
 
 This chapter describes how to install EsgynDB Manager and configure its runtime properties. 
+The instructions vary depending on the version of EsgynDB you are running.
 
-=== Install EsgynDB Manager
+=== Installation
+*  If you are using EsgynDB Enterprise Edition, DB Manager is already installed along with the core EsgynDB components. No additional install steps are required.
+EsgynDB Manager is installed in *$MY_SQROOT/dbmgr-{projectVersion}* folder.
 
-EsgynDB Manager is available for download as compressed tar file *dbmgr-{projectVersion}.tar.gz* from the Esgyn.com website.
+* If you running a non-enterprise edition of EsgynDB or Apache Trafodion, you can install DB Manager as an add-on product. 
+You can obtain a licensed version of DB Manager by contacting Esgyn.
 
-* Download the EsgynDB Manager binary tar file to your target system.
-* Untar the contents to the target directory. A *dbmgr-{projectVersion}* sub-directory will be created.
+** Download the EsgynDB Manager binary *dbmgr-{projectVersion}.tar.gz* file to your target system.
+** Untar the contents to the target directory. A *dbmgr-{projectVersion}* sub-directory will be created.
 
-====
+[source,bash,subs="attributes"]
+----
 $ tar xfz dbmgr-{projectVersion}.tar.gz
-====
+----
 
-=== Configure EsgynDB Manager
+=== Configuration
 EsgynDB Manager communicates with the EsgynDB runtime via ODBC or HTTP.
 DB Manager uses a configuration file that can be customized for your runtime environment.
 
-* Find the canonical timezone name of the EsgynDB instance. DB Manager displays all date time values in the EsgynDB server local time. You can use the handy script *gettimezone.sh* that is provided in the *dbmgr-{projectVersion}/bin* directory to find the canonical timezone name like *Etc/UTC* or *America/Los_Angeles*. This script is also available in the *$MY_SQROOT/tools* directory on the EsgynDB nodes.
-====
-$ cd dbmgr-{projectVersion}/bin +
-$ ./gettimezone.sh +
+- If you are using EsgynDB Enterprise Edition, the EsgynDB Installer will configure the necessary settings. No additional configuration is required. But you can refer to the rest of this section to understand what properties are configured and how they are used by DB Manager.
+
+- For a stand-alone install of DB Manager, you will need to explicitly configure DB Manager using the following steps:
+
+** Find the canonical timezone name of the EsgynDB instance. DB Manager displays all date time values in the EsgynDB server local time. You can use the handy script *gettimezone.sh* that is provided in the *dbmgr-{projectVersion}/bin* directory to find the canonical timezone name like *Etc/UTC* or *America/Los_Angeles*. This script is also available in the *$MY_SQROOT/tools* directory on the EsgynDB nodes.
++
+[source,bash,subs="attributes"]
+----
+$ cd dbmgr-{projectVersion}/bin
+$ ./gettimezone.sh
 America/New_York
-====
-* Run the configure.py script from the bin directory. 
-====
-$ cd dbmgr-{projectVersion}/bin +
-$ ./configure.py
-====
-* This script will prompt for the runtime properties.
+----
++
+** Run the configure.py script from the bin directory.
++ 
+[source,bash,subs="attributes"]
+----
+	$ cd dbmgr-{projectVersion}/bin
+	$ ./configure.py
+----
++
+** This script will prompt for the runtime properties.
++
 *HTTP Port*:: 
 This is the port the EsgynDB Manager embedded Jetty server binds to waiting for client HTTP connections. 
 The value may need to be changed if this port number conflicts with other ports in use on your cluster.
@@ -74,15 +90,21 @@ The hostname or IP address for the node on which EsgynDB REST server is listenin
 The listen port number for EsgynDB REST Server. 
 The default value is 4200.
 *TSD Host*::
-The hostname or IP address for the node on which TSD is listening.
+*Only enabled and used in Enterprise Edition*. The hostname or IP address for the node on which TSD is listening. DB Manager uses this property to make a HTTP connection to OpenTSDB to query the timeseries metrics.
 *TSD Port*::
-The listen port number for TSD. 
-The default value is 4242.
+*Only enabled and used in Enterprise Edition*. The listen port number for TSD. DB Manager uses this property to make a HTTP connection to OpenTSDB to query the timeseries metrics.
+The default value is 5242.
+*Bosun Host*::
+*Only enabled and used in Enterprise Edition*. The hostname or IP address for the node on which Bosun notification engine is listening. DB Manager uses this property to make a HTTP connection to Bosun to query and update alert notifications.
+*Bosun Port*::
+*Only enabled and used in Enterprise Edition*. The listen port number for Bosun. 
+The default value is 8070.
 *Server TimeZone Name*::
 The canonical timezone name of the EsgynDB instance. DB Manager displays all date time values in the EsgynDB server local time.
 The timezone name has to be in the canonical format like *Etc/UTC* or *America/Los_Angeles*. You can use the handy script gettimezone.sh to find the canonical timezone of the instance.
-
-* The generated configuration is saved in *dbgmr-{projectVersion}./conf/config.xml*. A sample configuration is shown below.
++
+** The generated configuration is saved in *dbgmr-{projectVersion}./conf/config.xml*. A sample configuration is shown below.
++
 [source,xml]
 ----
 <?xml version="1.0" encoding="UTF-8"?>
@@ -123,18 +145,28 @@ The timezone name has to be in the canonical format like *Etc/UTC* or *America/L
 	<!-- The TimeZone name of the EsgynDB server. Enter in java time zone format 
 		like Etc/UTC or America/New_York -->
 	<entry key="timeZoneName">America/New_York</entry>
+	
+	<!-- The openTSDB HTTP URI-->
+	<entry key="openTSDBUri">my.esgyndb.server:5242</entry>
+
+	<!-- Enable/disable alerts feature -->
+	<entry key="enableAlerts">true</entry>
+	
+	<!-- The Alerts HTTP URI-->
+	<entry key="alertsUri">my.esgyndb.server:8070</entry>	
 </properties>
 ----
 
-=== Log settings
-DB Manager uses logback for its logging. You can edit the *dbmgr-{projectVersion}/conf/logback.xml* to change rate at which the log files are rolled and to change the level at which the server logs messages. After a successful start, the EsgynDB Manager runtime logs are written in the *dbmgr-{projectVersion}/logs* directory.
-
 === Start EsgynDB Manager
-Start EsgynDB Manager as an embedded jetty server using the dbmgr.sh script.
-====
-$ cd dbmgr-{projectVersion}/bin +
+
+In EsgynDB Enterprise Edition, sqstart script will automatically start DB Manager. 
+
+In non-enterprise edition, You will need to start EsgynDB Manager as an embedded jetty server using the dbmgr.sh script.
+[source,bash,subs="attributes"]
+----
+$ cd dbmgr-{projectVersion}/bin
 ./dbmgr.sh start
-====
+----
 
 If the EsgynDB Manager starts successfully, you should see a prompt like below:
 ----
@@ -146,6 +178,18 @@ If the start fails, you see a message like this. Check the *dbmgr.log* for error
 EsgynDB Manager is NOT running. Check dbmgr.log.
 ----
 
+=== Stop EsgynDB Manager
+In EsgynDB Enterprise Edition, sqstop script will automatically stop DB Manager. 
+
+In non-enterprise edition, To stop EsgynDB Manager, run the following command from the bin directory.
+----
+$ ./dbmgr.sh stop
+EsgynDB Manager has been stopped.
+----
+
+=== Log settings
+DB Manager uses logback for its logging. You can edit the *dbmgr-{projectVersion}/conf/logback.xml* to change rate at which the log files are rolled and to change the level at which the server logs messages. After a successful start, the EsgynDB Manager runtime logs are written in the *dbmgr-{projectVersion}/logs* directory.
+
 === Check Status of EsgynDB Manager
 To check the state of EsgynDB Manager, run the following command from the bin directory.
 ----
@@ -153,17 +197,11 @@ $ ./dbmgr.sh status
 EsgynDB Manager is running. PID is 3391.
 ----
 
-=== Stop EsgynDB Manager
-To stop EsgynDB Manager, run the following command from the bin directory.
-----
-$ ./dbmgr.sh stop
-EsgynDB Manager has been stopped.
-----
-
 === Display EsgynDB Manager Version
 To display the version of EsgynDB Manager, run the following command from the bin directory.
-====
-$ ./dbmgr.sh version +
+[source,bash,subs="attributes"]
+----
+$ ./dbmgr.sh version
 EsgynDB Manager Release {projectVersion} (Branch 0e9aa50-Ent2.0, Date 11Oct2015)
-====
+----
  
