@@ -104,19 +104,18 @@ define([
         fetchActiveQueryDetail: function(){
 			_this.showLoading();
 			//$(ERROR_CONTAINER).hide();
-			wHandler.fetchActiveQueryDetail(queryID);
-		},
-
-		displayResults: function (result){
-			_this.hideLoading();
-			$(ERROR_CONTAINER).hide();
-
 			if (historySummary.Qid != queryID) {
 				_this.clearPage();
 				$('#query-id').val(queryID);
 				historyStatistic = {};
 				historySummary = {};
 			}
+			wHandler.fetchActiveQueryDetail(queryID);
+		},
+
+		displayResults: function (result){
+			_this.hideLoading();
+			$(ERROR_CONTAINER).hide();
 
 			//summary
 			var summary = result.summary;
@@ -288,10 +287,13 @@ define([
 				_this.hideLoading();
 				$(ERROR_CONTAINER).show();
 				$(ERROR_TEXT).text("");
-				_this.clearPage();
 				if (jqXHR.responseText) {
 					$(ERROR_TEXT).text(jqXHR.responseText);
 				}else{
+					var patt = new RegExp('ERROR\[8923\]'); 
+					if (!patt.test(jqXHR.responseText)){
+						_this.clearPage();
+					}
 					if(jqXHR.status != null && jqXHR.status == 0) {
 						$(ERROR_TEXT).text("Error : Unable to communicate with the server.");
 					}
