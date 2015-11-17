@@ -458,9 +458,8 @@ public class ServerManager implements Callable {
         if (LOG.isDebugEnabled())
             LOG.debug("Reading " + parentZnode
                     + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_RUNNING);
-        List<String> children = getChildren(parentZnode
-                + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_RUNNING,
-                new RunningWatcher());
+		String path = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_RUNNING;
+		List<String> children = getChildren(path, new RunningWatcher());
 
         if (!children.isEmpty()) {
             for (String child : children) {
@@ -486,10 +485,11 @@ public class ServerManager implements Callable {
                 // If we are DcsMaster follower that is taking over from failed
                 // one then ignore timestamp issues described above.
                 // See MasterLeaderElection.elect()
-                if (master.isFollower() == false) {
-                    if (serverStartTimestamp < startupTimestamp)
-                        continue;
-                }
+				if (master.isFollower() == false) {
+					Stat stat = zkc.exists(path + "/" + child, new RunningWatcher());
+					if (stat == null || stat.getCtime() < startupTimestamp)
+						continue;
+				}
 
                 if (!runningServers.contains(child)) {
                     if (LOG.isDebugEnabled())

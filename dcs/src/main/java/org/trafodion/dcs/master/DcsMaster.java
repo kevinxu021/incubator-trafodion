@@ -231,6 +231,13 @@ public class DcsMaster implements Runnable {
                     + ":" + startTime;
             zkc.create(path, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
                     CreateMode.EPHEMERAL);
+            Stat stat = zkc.exists(path, false);
+			if (stat == null) {
+				LOG.error("Node [" + path + "] does not exist!");
+				throw new Exception("Node [" + path + "] does not exist!");
+			}
+            long currCTime = stat.getCtime();
+            
             LOG.info("Created znode [" + path + "]");
 
             int requestTimeout = conf.getInt(
@@ -259,7 +266,7 @@ public class DcsMaster implements Runnable {
 
             pool = Executors.newSingleThreadExecutor();
             serverManager = new ServerManager(this, conf, zkc, netConf,
-                    startTime, metrics);
+            		currCTime, metrics);
             Future future = pool.submit(serverManager);
             future.get();// block
 
