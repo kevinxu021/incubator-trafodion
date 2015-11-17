@@ -27,6 +27,8 @@ define([
     var queryID = null;
     var historySummary = {};
 	var historyStatistic = {};
+	var ERROR_CONTAINER = '#error-container';
+	var ERROR_TEXT = '#query-detail-error-text';
 	var ActiveQueryDetailView = BaseView.extend({
 		template:  _.template(WorkloadsT),
 
@@ -45,6 +47,7 @@ define([
 			$(REFRESH_MENU).on('click', this.fetchActiveQueryDetail);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
+			$(ERROR_CONTAINER).hide();
 			this.fetchActiveQueryDetail();
 			
 		},
@@ -60,6 +63,7 @@ define([
 			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
 			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimer.resume();
+			$(ERROR_CONTAINER).hide();
 			this.fetchActiveQueryDetail();
 		},
 		doPause: function(){
@@ -100,55 +104,37 @@ define([
         fetchActiveQueryDetail: function(){
 			_this.showLoading();
 			//$(ERROR_CONTAINER).hide();
+			if (historySummary.Qid != queryID) {
+				_this.clearPage();
+				$('#query-id').val(queryID);
+				historyStatistic = {};
+				historySummary = {};
+			}
 			wHandler.fetchActiveQueryDetail(queryID);
 		},
 
 		displayResults: function (result){
 			_this.hideLoading();
+			$(ERROR_CONTAINER).hide();
 
-			if (historySummary.Qid != queryID) {
-				// different workload, clear history
-				historyStatistic = {};
-				historySummary = {};
-			}
-
-			// summary
+			//summary
 			var summary = result.summary;
 			var queryText = summary.sqlSrc;
 			queryText = queryText.substring(1,queryText.length-1);
 			$('#query-text').text(queryText);
-			//sessionStorage.setItem(queryID, queryText);	
-
 			for ( var k in summary) {
 				var htmlTag = "#" + k;
 				var value = summary[k];
-				if (historySummary[k] != undefined && historySummary[k] != value) {
+				if (!(historySummary[k] === undefined) && historySummary[k] != value) {
 					$(htmlTag).css("color", "blue");
 				} else {
 					$(htmlTag).css("color", "black");
 				}
-				if (value == "-1") {
-					value = ""
-				}
-				if (k == "exeElapsedTime" || k == "compElapsedTime" || k == "CanceledTime"|| k == "lastSuspendTime") {
-					value = common.microsecondsToString(value);
-				}
-				if (k == "State"){
-					var state ={
-							1:"INITIAL",2:"OPEN",3:"EOF",4:"CLOSE",5:"DEALLOCATED",
-							6:"FETCH",7:"CLOSE_TABLES",8:"PROCESS_ENDED",9:"UNKNOWN",10:"NULL"
-					}
-					value = state[value];
-				}
-				if (k == "StatsType"){
-					var statsCollectionType = {
-							0:"SQLCLI_NO_STATS",2:"SQLCLI_ACCUMULATED_STATS",3:"SQLCLI_PERTABLE_STATS",5:"SQLCLI_OPERATOR_STATS"
-					}
-					value = statsCollectionType[value];
-				}
+				value = _this.formatSummary(k, summary[k]);
 				$(htmlTag).val(value);
 			}
-			historySummary = result.summary
+			historySummary = result.summary;
+			
 			// statistic table
 			var statisticDataSet = [];
 			var dataSet = result.operators;
@@ -165,7 +151,7 @@ define([
 				var act_rows = common.formatNumberWithCommas(dataSet[i].Actual_Rows);
 				var dop = dataSet[i].DOP;
 				var oper_cpu_time = common.microsecondsToStringExtend(dataSet[i].Oper_CPU_Time);
-				var details = _this.formatDetail(dataSet[i].Details);
+				var details = dataSet[i].Details;
 				
 				if (!( historyStatistic[id] === undefined)) {
 					if (historyStatistic[id].act_rows != act_rows) {
@@ -177,16 +163,15 @@ define([
 					if (historyStatistic[id].oper_cpu_time != oper_cpu_time) {
 						oper_cpu_time = "<sflag>" + oper_cpu_time + "</eflag>";
 					}
-					details = _this.flagDetail(historyStatistic[id].details,details);
 				}
 
-				statisticDataSet.push([lc, rc, id, pid, eid,frag_num, tdb_name, dop, oper_cpu_time, est_rows, act_rows, _this.detailToString(details)]);
+				statisticDataSet.push([lc, rc, id, pid, eid,frag_num, tdb_name, dop, oper_cpu_time, est_rows, act_rows, _this.formatDetail(details,historyStatistic[id])]);
 				// update history
 				historyStatistic[id] = {};
 				historyStatistic[id]["act_rows"] = common.formatNumberWithCommas(dataSet[i].Actual_Rows);
 				historyStatistic[id]["dop"] = dataSet[i].DOP;
 				historyStatistic[id]["oper_cpu_time"] = common.microsecondsToStringExtend(dataSet[i].Oper_CPU_Time);
-				historyStatistic[id]["details"] = _this.formatDetail(dataSet[i].Details);
+				historyStatistic[id]["details"] = details;
 			}
 
 			var statisticTable = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="statistic-results"></table>';
@@ -205,7 +190,7 @@ define([
 								{"sTitle" : "TDB Name"},{"sTitle" : "DOP"},{"sTitle" : "Oper Cpu Time"},
 								{"sTitle" : "Est. Records Used"},{"sTitle" : "Act. Records Used"},{"sTitle" : "Details"} ],
 						"columnDefs" : [ {
-							"targets" : [ 7, 9, 10],
+							"targets" : [ 7, 9, 10, 11],
 							"render" : function(data,type, full) {
 								var data = data;
 								if (!(data === undefined)) {
@@ -221,56 +206,100 @@ define([
 		
 		},
 		
-		flagDetail : function(history, latest) {
-			for ( var k in latest) {
-				if(history[k] === undefined || history[k] != latest[k]){
-					latest[k] = "<sflag>" + latest[k] + "</eflag>";
-				}else{
-					latest[k] =  latest[k];
-				}
-			}
-			return latest;
-		},
-
-		detailToString : function(detail){
-			var arr = [];
-			for (var k in detail){
-				arr.push(k + ":   " + detail[k])
-			}
-			return arr.join("</br>");
-		},
 		
-		formatDetail : function(Obj) {
-			var result = {};
-			for ( var o in Obj) {
-				var key = o;
-				var value = Obj[o];
-				if(value == "-1"){
-					value = "";
-				}else{
-					if(key=="CpuTime" || key=="waitTime" || key=="CumulativeReadTime" || key=="HbaseSumIOTime" || key=="OFPhaseStartTime" 
-						|| key=="HbaseMaxIOTime" || key=="hdfsAccessLayerTime" || key=="hdfsConnectionTime" || key=="cursorElapsedTime" ){
-						value = common.microsecondsToStringExtend(value);
-					}else if(key=="bmoHeapWM" || key =="bmoHeapTotal" || key == "bmoHeapUsed" || key == "scrBuffferRead" || key == "scrBufferWritten"  
-						|| key == "scrBufferBlockSize" || key == "bmoSpaceBufferSize" || key == "BytesToRead" || key == "MessagesBytes" ){
-						value = common.bytesToSize(parseInt(value));
-					}else{
-						value = common.formatNumberWithCommas(value);
+		formatDetail : function(currentDetails, history){
+			var details ={};
+			var sortKeys = [];
+			var sortDetails = [];
+			for ( var k in currentDetails) {
+				var val = currentDetails[k];
+				var flag = false;
+				if(!(history === undefined)){
+					if (history.details[k]  === undefined || history.details[k] != val){
+						flag = true; //compare history
 					}
 				}
-				result[key] = value;
+				if(val == "-1"){//format display
+					val = "";
+				}else{
+					if(k=="CpuTime" || k=="waitTime" || k=="CumulativeReadTime" || k=="HbaseSumIOTime" || k=="OFPhaseStartTime" 
+						|| k=="HbaseMaxIOTime" || k=="hdfsAccessLayerTime" || k=="hdfsConnectionTime" || k=="cursorElapsedTime" ){
+						val = common.microsecondsToStringExtend(val);
+					}else if(k=="bmoHeapWM" || k =="bmoHeapTotal" || k == "bmoHeapUsed" || k == "scrBuffferRead" || k == "scrBufferWritten"  
+						|| k == "scrBufferBlockSize" || k == "bmoSpaceBufferSize" || k == "BytesToRead" || k == "MessagesBytes" ){
+						val = common.bytesToSize(parseInt(val));
+					}else{
+						val = common.formatNumberWithCommas(val);
+					}
+				}
+				if (flag == true){
+					val = "<sflag>" + val + "</eflag>";
+				}
+				details[k] = val;
+				sortKeys.push(k);
 			}
-			return result;
+			sortKeys.sort(); 
+			for (var index = 0; index < sortKeys.length; index++) { //detail to string
+				sortDetails.push(sortKeys[index] + ":   " + details[sortKeys[index]]);
+		    }
+			return sortDetails.join("</br>");
+		},
+		
+		formatSummary : function(key, value){
+			if (value == "-1" || value == "" ) {
+				value = ""
+			} else {
+				if (key == "exeElapsedTime" || key == "compElapsedTime" || key == "CanceledTime"|| key == "lastSuspendTime") {
+					value = common.microsecondsToStringExtend(value);
+				}
+				if (key == "State"){
+					var state ={
+							1:"INITIAL",2:"OPEN",3:"EOF",4:"CLOSE",5:"DEALLOCATED",
+							6:"FETCH",7:"CLOSE_TABLES",8:"PROCESS_ENDED",9:"UNKNOWN",10:"NULL"
+					}
+					value = state[value];
+				}
+				if (key == "StatsType"){
+					var statsCollectionType = {
+							0:"SQLCLI_NO_STATS",2:"SQLCLI_ACCUMULATED_STATS",3:"SQLCLI_PERTABLE_STATS",5:"SQLCLI_OPERATOR_STATS"
+					}
+					value = statsCollectionType[value];
+				}
+				if (key == "rowsReturned" || key == "RowsAffected" || key == "EstRowsAccessed"|| key == "EstRowsUsed"){
+					value = common.formatNumberWithCommas(value);
+				}
+			}
+			return value;
 		},
 
+		clearPage: function(){
+			$(".dbmgr-form-workload-cell-label").val("");
+			$('#query-text').text("");
+			//$('#statistic-results').DataTable().clear().draw();
+			$('#statistic-results').DataTable().destroy(true);
+		},
+		test: function(){
+        	_this.showErrorMessage();
+        },
+		
         showErrorMessage: function (jqXHR) {
-        	_this.hideLoading();
-        	/*$(RESULT_CONTAINER).hide();
-        	$(ERROR_CONTAINER).show();
-        	if (jqXHR.responseText) {
-        		$(ERROR_CONTAINER).text(jqXHR.responseText);
-        	}*/
-        }  
+			if(jqXHR.statusText != 'abort'){
+				_this.hideLoading();
+				$(ERROR_CONTAINER).show();
+				$(ERROR_TEXT).text("");
+				if (jqXHR.responseText) {
+					$(ERROR_TEXT).text(jqXHR.responseText);
+				}else{
+					var patt = new RegExp('ERROR\[8923\]'); 
+					if (!patt.test(jqXHR.responseText)){
+						_this.clearPage();
+					}
+					if(jqXHR.status != null && jqXHR.status == 0) {
+						$(ERROR_TEXT).text("Error : Unable to communicate with the server.");
+					}
+				}
+			}
+		}  
 
 	});
 
