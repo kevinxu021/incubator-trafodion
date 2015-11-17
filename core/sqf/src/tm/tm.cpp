@@ -877,7 +877,7 @@ void tm_process_req_status_all_transmgmt(CTmTxMessage *pp_msg)
        pp_msg->response()->u.iv_status_alltrans.iv_trans[lv_inx].iv_status = lp_current_tx->tx_state();
        u.lv_transid.iv_seq_num = lp_current_tx->seqnum();
        u.lv_transid.iv_node = lp_current_tx->node();
-       pp_msg->response()->u.iv_status_alltrans.iv_trans[lv_inx].iv_transid = u.lv_transid_int64;
+       pp_msg->response()->u.iv_status_alltrans.iv_trans[lv_inx].iv_transid = lp_current_tx->legacyTransid();
        pp_msg->response()->u.iv_status_alltrans.iv_trans[lv_inx].iv_timestamp = lp_current_tx->timestamp();
        pp_msg->response()->u.iv_status_alltrans.iv_trans[lv_inx].iv_nid = lp_current_tx->node();
        pp_msg->response()->u.iv_status_alltrans.iv_trans[lv_inx].iv_cid = lp_current_tx->clusterid();
