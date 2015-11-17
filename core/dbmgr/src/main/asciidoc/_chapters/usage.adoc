@@ -36,17 +36,30 @@ Or
 https://my.esgyndb.server:4206
 ----
 === Login
-In the Login page, enter the user name and password and click on the Login button. EsgynDB Manager relies on database authentication and makes a JDBC connection to authenticate the user.
+In the Login page, a valid database user name and password and click on the Login button. EsgynDB Manager relies on database authentication and makes a JDBC connection to authenticate the user.
+
+=== Navigation
+To Navigate the UI and access the different features, use the navigation menu at the top of the screen.
+[[img-rest]]
+image::navigation.png[caption="Figure 2: ", title="Navigation Menus"]
+
 
 === Dashboard
 
-The dashboard page displays the status of the EsgynDB services and nodes.
+The dashboard page displays the status of the EsgynDB services, nodes and display timeseries charts for key system and HBase metrics.
 
 ==== Service Status
 
 The service status displays the status of the core EsgynDB services : *Transaction Manager, Connectivity Service and Runtime Manageability Service*.
+
 For each service, you can see the number of configured processes, the number of actual running processes, the number of down processes if any.
-This information is provided by the EsgynDB REST Server which invokes the sqcheck script.
+* The status icon is green if all configured servers are up.
+* The status icon is Yellow (Warning) if the number of actual servers is not equal to the configured servers.
+* The status icon is RED (Error) if actual server count is 0 or if the actual servers are < 30% of the configured servers.
+
+A tooltip on the status icon displays down process information if there are any. You can also export the data to a spreadsheet or clipboard to look at the details.
+
+The service status information is provided by the EsgynDB REST Server which invokes the sqcheck script.
 
 ==== Node Status
 
@@ -54,9 +67,23 @@ The node status displays the *Up* or *Down* status of all the configured logical
 This information is provided by the EsgynDB REST Server which invokes the sqnodestatus script.
 
 === Workloads
+The Workload pages display EsgynDB query details. This includes all EsgynDB queries including user and system queries.
 
 ==== Active Workloads
 The active workloads page displays the list of active EsgynDB queries. This includes queries that are currently executing and queries that completed within the last 30 seconds. The information is obtained from the EsgynDB Runtime Manageability Service.
+
+The list of queries are displayed in a tabular output with the following information:
+
+*Time*:: 
+The time when the information was fetched
+*Last Activity Seconds*:: 
+A positive number shows how long the query has been active and is still executing. A negative number shows how long since the query completed execution. Queries remain in RMS memory for 30 seconds after completion.
+*Query ID*:: 
+The unique identifier for the query.
+*Execution State*:: 
+The current state of the query. Valid values are OPEN, EXECUTING, DEALLOCATED or COMPLETED.
+*Query Text*:: 
+The SQL statement of the query.
 
 Use the *Action -> Refresh* menu to refresh the list of active queries. 
 
