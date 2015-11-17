@@ -3809,12 +3809,12 @@ CoprocessorService, Coprocessor {
 						 + ", Replay commit for transaction with Op " + kv.getTypeByte()
 						 );
              if (kv.getTypeByte() == KeyValue.Type.Put.getCode()) {
-		put = new Put(CellUtil.cloneRow(kv)); // kv.getRow()
-                put.add(CellUtil.cloneFamily(kv),
+		put = new Put(CellUtil.cloneRow(kv), kv.getTimestamp()); // kv.getRow()
+                put.add(CellUtil.cloneFamily(kv), 
 			CellUtil.cloneQualifier(kv),
-			EnvironmentEdgeManager.currentTime(),
+			kv.getTimestamp(), /*EnvironmentEdgeManager.currentTime(),*/
 			CellUtil.cloneValue(kv));
-		TransactionState.updateLatestTimestamp(put.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTime());
+		//TransactionState.updateLatestTimestamp(put.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTime());
               try {
                 m_Region.put(put);
               }
@@ -3826,13 +3826,16 @@ CoprocessorService, Coprocessor {
                  throw new IOException(e.toString());
               }
      	     } else if (CellUtil.isDelete(kv))  {
-	   	del = new Delete(CellUtil.cloneRow(kv));
+		del = new Delete(CellUtil.cloneRow(kv), kv.getTimestamp());
 	       	if (CellUtil.isDeleteFamily(kv)) {
-	 	     del.deleteFamily(CellUtil.cloneFamily(kv));
-	        } else if (CellUtil.isDeleteType(kv)) {
-	             del.deleteColumn(CellUtil.cloneFamily(kv), CellUtil.cloneQualifier(kv));
+		    del.addFamily(CellUtil.cloneFamily(kv), kv.getTimestamp());
+                } 
+		else if (CellUtil.isDeleteType(kv)) {
+		    del.addColumn(CellUtil.cloneFamily(kv),
+				     CellUtil.cloneQualifier(kv), kv.getTimestamp());
 	        }
-		TransactionState.updateLatestTimestamp(del.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTime());
+                //del.setTimestamp(kv.getTimestamp());
+		//TransactionState.updateLatestTimestamp(del.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTime());
                try {
                  m_Region.delete(del);
                   }
