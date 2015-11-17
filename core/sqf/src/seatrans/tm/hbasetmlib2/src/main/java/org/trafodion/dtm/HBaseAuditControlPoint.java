@@ -387,14 +387,13 @@ public class HBaseAuditControlPoint {
          }
          catch (Exception e) {
            LOG.error("getNextAuditSeqNum IOException" + e);
-           e.printStackTrace();
          } finally {
             ss.close();
          }
       }
       catch (IOException e) {
-         LOG.error("getNextAuditSeqNum IOException setting up scan for " + lv_tName);
-         e.printStackTrace();
+         LOG.error("getNextAuditSeqNum IOException setting up scan for "
+                    + lv_tName + " Exception: " + e);
       }
       finally {
          try {
@@ -402,8 +401,8 @@ public class HBaseAuditControlPoint {
             remoteConnection.close();
          }
          catch (IOException e) {
-            LOG.error("getNextAuditSeqNum IOException closing table or connection for " + lv_tName);
-            e.printStackTrace();
+            LOG.error("getNextAuditSeqNum IOException closing table or connection for "
+                        + lv_tName + " Exception: " + e);
          }
       }
       if (LOG.isTraceEnabled()) LOG.trace("getNextAuditSeqNum returning " + (highValue + 1));
@@ -422,7 +421,7 @@ public class HBaseAuditControlPoint {
          putRecord(clusterId, currControlPt, sequenceNumber);
       }
       catch (Exception e) {
-         LOG.error("doControlPoint Exception" + e);
+         LOG.error("doControlPoint Exception " + e);
       }
 
       if (LOG.isTraceEnabled()) LOG.trace("doControlPoint - exit");
