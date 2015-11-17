@@ -124,7 +124,13 @@ define([
 			$('#query-text').text(queryText);
 			for ( var k in summary) {
 				var htmlTag = "#" + k;
-				var value = _this.formatSummary(k, summary[k]);
+				var value = summary[k];
+				if (typeof historySummary[k] != undefined && historySummary[k] != value) {
+					$(htmlTag).css("color", "blue");
+				} else {
+					$(htmlTag).css("color", "black");
+				}
+				value = _this.formatSummary(k, summary[k]);
 				$(htmlTag).val(value);
 			}
 			historySummary = result.summary;
@@ -242,25 +248,26 @@ define([
 		formatSummary : function(key, value){
 			if (value == "-1") {
 				value = ""
-			}
-			if (key == "exeElapsedTime" || key == "compElapsedTime" || key == "CanceledTime"|| key == "lastSuspendTime") {
-				value = common.microsecondsToString(value);
-			}
-			if (key == "State"){
-				var state ={
-						1:"INITIAL",2:"OPEN",3:"EOF",4:"CLOSE",5:"DEALLOCATED",
-						6:"FETCH",7:"CLOSE_TABLES",8:"PROCESS_ENDED",9:"UNKNOWN",10:"NULL"
+			} else {
+				if (key == "exeElapsedTime" || key == "compElapsedTime" || key == "CanceledTime"|| key == "lastSuspendTime") {
+					value = common.microsecondsToStringExtend(value);
 				}
-				value = state[value];
-			}
-			if (key == "StatsType"){
-				var statsCollectionType = {
-						0:"SQLCLI_NO_STATS",2:"SQLCLI_ACCUMULATED_STATS",3:"SQLCLI_PERTABLE_STATS",5:"SQLCLI_OPERATOR_STATS"
+				if (key == "State"){
+					var state ={
+							1:"INITIAL",2:"OPEN",3:"EOF",4:"CLOSE",5:"DEALLOCATED",
+							6:"FETCH",7:"CLOSE_TABLES",8:"PROCESS_ENDED",9:"UNKNOWN",10:"NULL"
+					}
+					value = state[value];
 				}
-				value = statsCollectionType[value];
-			}
-			if (key == "rowsReturned" || key == "RowsAffected" || key == "EstRowsAccessed"|| key == "EstRowsUsed"){
-				value = common.formatNumberWithCommas(value);
+				if (key == "StatsType"){
+					var statsCollectionType = {
+							0:"SQLCLI_NO_STATS",2:"SQLCLI_ACCUMULATED_STATS",3:"SQLCLI_PERTABLE_STATS",5:"SQLCLI_OPERATOR_STATS"
+					}
+					value = statsCollectionType[value];
+				}
+				if (key == "rowsReturned" || key == "RowsAffected" || key == "EstRowsAccessed"|| key == "EstRowsUsed"){
+					value = common.formatNumberWithCommas(value);
+				}
 			}
 			return value;
 		},
