@@ -29,7 +29,7 @@ DB Manager allows the user to monitor the health and status of EsgynDB services 
 * Dashboard
 ** Monitor runtime status of EsgynDB services
 ** Monitor runtime status of EsgynDB Nodes
-** Time-series charts for monitoring key System and HBase metrics.
+** Time-series charts for monitoring key system and HBase metrics. ( * only in EsgynDB Enterprise Edition)
 * Workloads
 ** Monitor Active queries
 ** Drill-down into runtime statistics for a specific active query
@@ -45,6 +45,6 @@ DB Manager allows the user to monitor the health and status of EsgynDB services 
 ** Execute adhoc queries
 ** Generate visual and textual explain plans
 ** Support for CQDs
-* Alerts
+* Alerts ( * only in EsgynDB Enterprise Edition)
 ** View Alert notifications
 ** Acknowledge and update alerts

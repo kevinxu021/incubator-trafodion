@@ -88,7 +88,7 @@ fi
 
 $TRAF_PDSH sudo cp -r $HOME/mgblty $SQ_ROOT
 $TRAF_PDSH sudo chown -R $TRAF_USER.trafodion $SQ_ROOT/mgblty
-$TRAF_PDSH sudo chmod -R 777 $SQ_ROOT/mgblty
+$TRAF_PDSH sudo chmod -R 755 $SQ_ROOT/mgblty
 }
 
 function unTarDMPackage {
@@ -108,7 +108,7 @@ fi
 
 $TRAF_PDSH sudo cp -r $HOME/$dbmgr_dir $SQ_ROOT
 $TRAF_PDSH sudo chown -R $TRAF_USER.trafodion $SQ_ROOT/$dbmgr_dir
-$TRAF_PDSH sudo chmod -R 777 $SQ_ROOT/$dbmgr_dir
+$TRAF_PDSH sudo chmod -R 755 $SQ_ROOT/$dbmgr_dir
 
 
 DBMGR_INSTALL_DIR="$SQ_ROOT/$dbmgr_dir"
@@ -186,7 +186,7 @@ sudo su $TRAF_USER --command "echo 'source /etc/trafodion/trafodion_config' | ca
 
 sudo su $TRAF_USER --command "chmod 777 $CREATE_TABLE"
 
-sudo su $TRAF_USER --command "$TRAF_PDSH $CREATE_TABLE"
+sudo su $TRAF_USER --command "$CREATE_TABLE"
 
 }
 
@@ -199,7 +199,7 @@ sudo su $TRAF_USER --command "echo 'source /etc/trafodion/trafodion_config' | ca
 
 sudo su $TRAF_USER --command "chmod 777 $CREATE_METRICS"
 
-sudo su $TRAF_USER --command "$TRAF_PDSH $CREATE_METRICS"
+sudo su $TRAF_USER --command "$CREATE_METRICS"
 
 }
 

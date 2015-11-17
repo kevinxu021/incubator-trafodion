@@ -41,6 +41,8 @@ fi
 if [ "$lv_execute_killall" == "1" ]; then
     dcsstop
     reststop
+    #Stop the managability service
+    mgblty_stop 2>$MY_SQROOT/logs/mgblty_err.log
     
     setup_sqpdsh
     eval '$SQPDSHA "$MY_SQROOT/sql/scripts/pkillall"'

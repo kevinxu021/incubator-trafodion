@@ -27,6 +27,7 @@ The EsgynDB Manager is a web application that monitors and manages an EsgynDB in
 * Client to DB Manager webserver communication uses HTTPS encryption.
 * Uses JDBC Authentication.
 * EsgynDB Manager has been tested with Chrome, IE11, Firefox and Microsoft Edge browsers.
+* When you connect up to an Enterprise Edition of EsgynDB, you get additional managaeability components that use OpenTSDB, TCollector and Bosun
  
 [[img-rest]]
-image::architecture.png[caption="Figure 1: ", title="EsgynDB Manager Architecture"]
+image::architecture.png[caption="Figure 1: ", title="EsgynDB Manager Architecture", width="700", height="700"]

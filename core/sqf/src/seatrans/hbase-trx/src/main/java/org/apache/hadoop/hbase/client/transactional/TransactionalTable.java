@@ -127,8 +127,9 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
     static private HConnection connection = null;
     static Configuration       config = HBaseConfiguration.create();
     static ExecutorService     threadPool;
-    static int                 retries = 15;
+    static int                 retries = 30;
     static int                 delay = 1000;
+    static int                 regionNotReadyDelay = 30000;
 
     private String retryErrMsg = "Coprocessor result is null, retries exhausted";
 
@@ -272,8 +273,17 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
             retry = false;
           } 
 
-          if(result == null || result.getException().contains("closing region")) {
-            Thread.sleep(TransactionalTable.delay);
+          if(result == null || result.getException().contains("closing region")
+                            || result.getException().contains("NewTransactionStartedBefore")) {
+            if (result.getException().contains("NewTransactionStartedBefore")) {
+               if (LOG.isTraceEnabled()) LOG.trace("Get retrying because region is recovering,"
+                      + " transaction [" + transactionState.getTransactionId() + "]");
+
+               Thread.sleep(TransactionalTable.regionNotReadyDelay);
+            }
+            else{
+               Thread.sleep(TransactionalTable.delay);
+            }
             retry = true;
             transactionState.setRetried(true);
             retryCount++;
@@ -351,8 +361,17 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
               retry = false;
             }
 
-            if(result == null || result.getException().contains("closing region")) {
-              Thread.sleep(TransactionalTable.delay);
+            if(result == null || result.getException().contains("closing region")
+                              || result.getException().contains("NewTransactionStartedBefore")) {
+              if (result.getException().contains("NewTransactionStartedBefore")) {
+                 if (LOG.isTraceEnabled()) LOG.trace("Delete retrying because region is recovering,"
+                          + " transaction [" + transactionState.getTransactionId() + "]");
+
+                 Thread.sleep(TransactionalTable.regionNotReadyDelay);
+              }
+              else{
+                 Thread.sleep(TransactionalTable.delay);
+              }
               retry = true;
               transactionState.setRetried(true);
               retryCount++;
@@ -428,8 +447,17 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
           retry = false;
         }
 
-        if(result == null || result.getException().contains("closing region")) {
-          Thread.sleep(TransactionalTable.delay);
+        if(result == null || result.getException().contains("closing region")
+                          || result.getException().contains("NewTransactionStartedBefore")) {
+          if (result.getException().contains("NewTransactionStartedBefore")) {
+             if (LOG.isTraceEnabled()) LOG.trace("Put retrying because region is recovering,"
+                      + " transaction [" + transactionState.getTransactionId() + "]");
+
+             Thread.sleep(TransactionalTable.regionNotReadyDelay);
+          }
+          else{
+             Thread.sleep(TransactionalTable.delay);
+          }
           retry = true;
           transactionState.setRetried(true);
           retryCount++;
@@ -521,8 +549,17 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
             retry = false;
           }
 
-          if(result == null || result.getException().contains("closing region")) {
-            Thread.sleep(TransactionalTable.delay);
+          if(result == null || result.getException().contains("closing region")
+                            || result.getException().contains("NewTransactionStartedBefore")) {
+            if (result.getException().contains("NewTransactionStartedBefore")) {
+               if (LOG.isTraceEnabled()) LOG.trace("CheckAndDelete retrying because region is recovering, "
+                             + " transaction [" + transactionState.getTransactionId() + "]");
+
+               Thread.sleep(TransactionalTable.regionNotReadyDelay);
+            }
+            else{
+               Thread.sleep(TransactionalTable.delay);
+            }
             retry = true;
             transactionState.setRetried(true);
             retryCount++;
@@ -603,8 +640,17 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
             retry = false;
           }
 
-          if(result == null || result.getException().contains("closing region")) {
-            Thread.sleep(TransactionalTable.delay);
+          if(result == null || result.getException().contains("closing region")
+                            || result.getException().contains("NewTransactionStartedBefore")) {
+            if (result.getException().contains("NewTransactionStartedBefore")) {
+               if (LOG.isTraceEnabled()) LOG.trace("CheckAndPut retrying because region is recovering ,"
+                       + " transaction [" + transactionState.getTransactionId() + "]");
+
+               Thread.sleep(TransactionalTable.regionNotReadyDelay);
+            }
+            else{
+               Thread.sleep(TransactionalTable.delay);
+            }
             retry = true;
             transactionState.setRetried(true);
             retryCount++;
@@ -702,8 +748,19 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
  	            retry = false;
  	          }
 
- 	          if(result == null || result.getException().contains("closing region")) {
- 	            Thread.sleep(TransactionalTable.delay);
+ 	          if(result == null || result.getException().contains("closing region")
+  		                        || result.getException().contains("NewTransactionStartedBefore")) {
+                if (result.getException().contains("NewTransactionStartedBefore")) {
+                   if (LOG.isTraceEnabled()) LOG.trace("delete <List> retrying because region is recovering trRegion ["
+                           + location.getRegionInfo().getEncodedName() + "], endKey: "
+                           + Hex.encodeHexString(location.getRegionInfo().getEndKey())
+                           + " and transaction [" + transactionId + "]");
+
+                   Thread.sleep(TransactionalTable.regionNotReadyDelay);
+                }
+                else{
+                   Thread.sleep(TransactionalTable.delay);
+                }
  	            retry = true;
  	            transactionState.setRetried(true);
  	            retryCount++;
@@ -798,8 +855,19 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
             retry = false;
           }
 
-          if(result == null || result.getException().contains("closing region")) {
-            Thread.sleep(TransactionalTable.delay);
+          if(result == null || result.getException().contains("closing region")
+        		            || result.getException().contains("NewTransactionStartedBefore")) {
+            if (result.getException().contains("NewTransactionStartedBefore")) {
+               if (LOG.isTraceEnabled()) LOG.trace("put <List> retrying because region is recovering trRegion ["
+                      + location.getRegionInfo().getEncodedName() + "], endKey: "
+                      + Hex.encodeHexString(location.getRegionInfo().getEndKey())
+                      + " and transaction [" + transactionId + "]");
+
+               Thread.sleep(TransactionalTable.regionNotReadyDelay);
+            }
+            else{
+                Thread.sleep(TransactionalTable.delay);
+            }
             retry = true;
             transactionState.setRetried(true);
             retryCount++;

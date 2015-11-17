@@ -49,37 +49,47 @@ else
     cd $MGBLTY_DOWNLOAD_DIR
     echo
     if [[ -f $MGBLTY_DOWNLOAD_DIR/bosun-linux-amd64 ]]; then
-   	echo "Bosun directory already exists, skipping bosun setup" | tee -a ${MGBLTY_LOG}
+   	echo "Bosun download file already exists, skipping download of bosun " | tee -a ${MGBLTY_LOG}
     else
         echo "Downloading and installing bosun"| tee -a ${MGBLTY_LOG}
         wget https://github.com/bosun-monitor/bosun/releases/download/0.4.0/bosun-linux-amd64
         wget https://github.com/bosun-monitor/bosun/releases/download/0.4.0/scollector-linux-amd64
+        wget https://raw.githubusercontent.com/bosun-monitor/bosun/master/LICENSE
     fi
-    echo "Copying bosun files..."
-    mkdir -p $BOSUN_DIR/bin
-    cp -p bosun-linux-amd64 $BOSUN_DIR/bin
-    cp -p scollector-linux-amd64 $BOSUN_DIR/bin
-    echo "Completed setup of Bosun" | tee -a ${MGBLTY_LOG}
+    if [[ ! -d $BOSUN_DIR ]]; then
+       echo "Copying bosun files..."
+       mkdir -p $BOSUN_DIR/bin
+       cp -p bosun-linux-amd64 $BOSUN_DIR/bin
+       cp -p scollector-linux-amd64 $BOSUN_DIR/bin
+       cp -p LICENSE $BOSUN_DIR
+       echo "Completed setup of Bosun" | tee -a ${MGBLTY_LOG}
+    else
+       echo "Bosun files already exist " |tee -a ${MGBLTY_LOG}
+    fi
     echo
     cd $MGBLTY_DOWNLOAD_DIR
     if [[ -d $MGBLTY_DOWNLOAD_DIR/tcollector ]]; then
-      echo "Tcollector directory already exists, skipping tcollector setup" | tee -a ${MGBLTY_LOG}
+      echo "Tcollector download files already exists, skipping tcollector download" | tee -a ${MGBLTY_LOG}
     else
        echo "Downloading and installing tcollector"| tee -a ${MGBLTY_LOG}
        git clone git://github.com/OpenTSDB/tcollector.git
     fi
-    echo "Copying tcollector files..."
-    mkdir -p $TCOLLECTOR_DIR
-    cp -p tcollector/*.py $TCOLLECTOR_DIR
-    cp -p tcollector/startstop $TCOLLECTOR_DIR
-    cp -rp tcollector/collectors $TCOLLECTOR_DIR
-    cp -rp tcollector/stumbleupon $TCOLLECTOR_DIR
-    cp -rp tcollector/COPYING $TCOLLECTOR_DIR
-    echo "Completed set up of Tcollector" | tee -a ${MGBLTY_LOG}
+    if [[ ! -d $TCOLLECTOR_DIR ]]; then
+       echo "Copying tcollector files..."
+       mkdir -p $TCOLLECTOR_DIR
+       cp -p tcollector/*.py $TCOLLECTOR_DIR
+       cp -p tcollector/startstop $TCOLLECTOR_DIR
+       cp -rp tcollector/collectors $TCOLLECTOR_DIR
+       cp -rp tcollector/stumbleupon $TCOLLECTOR_DIR
+       cp -rp tcollector/COPYING $TCOLLECTOR_DIR
+       echo "Completed set up of Tcollector" | tee -a ${MGBLTY_LOG}
+    else
+       echo "Tcollector files already exist " |tee -a ${MGBLTY_LOG}
+    fi
     echo
     cd $MGBLTY_DOWNLOAD_DIR
     if [[ -d $MGBLTY_DOWNLOAD_DIR/opentsdb ]]; then
-       echo "opentsdb directory already exists, skipping opentsdb setup" | tee -a ${MGBLTY_LOG}
+       echo "opentsdb download files already exists, skipping opentsdb download" | tee -a ${MGBLTY_LOG}
     else
        echo "Downloading and installing openTSDB"| tee -a ${MGBLTY_LOG}
        git clone git://github.com/OpenTSDB/opentsdb.git
@@ -87,28 +97,31 @@ else
        mkdir build
        cd build
        ../configure --prefix=/tmp/myinst-${USER} "$@"  
-       /bin/sh $PWD
+       /bin/sh $PWD 
        unset CLASSPATH
        make 
        cd ../../
     fi
-    cd opentsdb/build
-    make install
-    cp -rp gwt/queryui/*  /tmp/myinst-$USER/share/opentsdb/static
-    cp -rp /tmp/myinst-$USER/bin/tsdb /tmp/myinst-$USER/share/opentsdb/bin
-    cd /tmp/myinst-$USER/share/opentsdb/bin
-    mv -f tsdb tsdb-orig 
-    sed -e "s@pkgdatadir='/tmp/myinst-$USER/share/opentsdb'@pkgdatadir=\$MGBLTY_INSTALL_DIR/opentsdb@" -e "s@configdir='/tmp/myinst-$USER/share/opentsdb/etc/opentsdb'@configdir=\$MGBLTY_INSTALL_DIR/opentsdb/etc/opentsdb@" tsdb-orig > tsdb
-    chmod +x tsdb
-    rm -f tsdb-orig
-    cd $MY_SQROOT/sql/scripts
-    cp -rp /tmp/myinst-$USER/share/opentsdb $MGBLTY_TOOLSDIR
-    cd $MGBLTY_DOWNLOAD_DIR/opentsdb
-    cp -rp COPYING $OPENTSDB_DIR
-    echo "Completed set up of OpenTSDB " | tee -a ${MGBLTY_LOG}
-    rm -rf /tmp/myinst-$USER
+    if [[ ! -d $OPENTSDB_DIR ]]; then
+       cd opentsdb/build
+       make install
+       cp -rp gwt/queryui/*  /tmp/myinst-$USER/share/opentsdb/static
+       cp -rp /tmp/myinst-$USER/bin/tsdb /tmp/myinst-$USER/share/opentsdb/bin
+       cd /tmp/myinst-$USER/share/opentsdb/bin
+       mv -f tsdb tsdb-orig 
+       sed -e "s@pkgdatadir='/tmp/myinst-$USER/share/opentsdb'@pkgdatadir=\$MGBLTY_INSTALL_DIR/opentsdb@" -e "s@configdir='/tmp/myinst-$USER/share/opentsdb/etc/opentsdb'@configdir=\$MGBLTY_INSTALL_DIR/opentsdb/etc/opentsdb@" tsdb-orig > tsdb
+       chmod +x tsdb
+       rm -f tsdb-orig
+       cd $MY_SQROOT/sql/scripts
+       cp -rp /tmp/myinst-$USER/share/opentsdb $MGBLTY_TOOLSDIR
+       cd $MGBLTY_DOWNLOAD_DIR/opentsdb
+       cp -rp COPYING $OPENTSDB_DIR
+       echo "Completed set up of OpenTSDB " | tee -a ${MGBLTY_LOG}
+       rm -rf /tmp/myinst-$USER
+    else
+       echo "openTSDB files already exist " |tee -a ${MGBLTY_LOG}
+    fi
     echo
-
     cd $MGBLTY_DOWNLOAD_DIR
     if [[ -f $MGBLTY_DOWNLOAD_DIR/jython_installer.jar ]]; then
        echo "Jython installer jar already exists, skipping jython download step" | tee -a ${MGBLTY_LOG}
@@ -116,13 +129,19 @@ else
        echo "Downloading and installing Jython"| tee -a ${MGBLTY_LOG}
        wget http://search.maven.org/remotecontent?filepath=org/python/jython-installer/2.7.0/jython-installer-2.7.0.jar -O jython_installer.jar
     fi
-    echo "Installing jython files..."
-    mkdir -p $JYTHON_DIR
-    $JAVA_HOME/bin/java -jar jython_installer.jar -s -d $JYTHON_DIR -t minimum 2>/dev/null
-    echo "Completed setup of Jython" | tee -a ${MGBLTY_LOG}
+    if [[ ! -d $JYTHON_DIR ]]; then
+       echo "Installing jython files..."
+       mkdir -p $JYTHON_DIR
+       /bin/sh $PWD
+       unset PATH
+       $JAVA_HOME/bin/java -jar jython_installer.jar -s -d $JYTHON_DIR -t minimum 2>/dev/null
+       echo "Completed setup of Jython" 
+    else
+       echo "Jython files already exist " |tee -a ${MGBLTY_LOG}
+    fi
     echo
-
-    echo "Successfully installed manageability tools" | tee -a ${MGBLTY_LOG}
+    cds
+    echo "Successfully installed manageability tools"
     echo
     exit 0
 fi
