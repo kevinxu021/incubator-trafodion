@@ -113,6 +113,7 @@ define([
 
 			if (historySummary.Qid != queryID) {
 				_this.clearPage();
+				$('#query-id').val(queryID);
 				historyStatistic = {};
 				historySummary = {};
 			}
@@ -125,7 +126,7 @@ define([
 			for ( var k in summary) {
 				var htmlTag = "#" + k;
 				var value = summary[k];
-				if (typeof historySummary[k] != undefined && historySummary[k] != value) {
+				if (!(historySummary[k] === undefined) && historySummary[k] != value) {
 					$(htmlTag).css("color", "blue");
 				} else {
 					$(htmlTag).css("color", "black");
@@ -246,7 +247,7 @@ define([
 		},
 		
 		formatSummary : function(key, value){
-			if (value == "-1") {
+			if (value == "-1" || value == "" ) {
 				value = ""
 			} else {
 				if (key == "exeElapsedTime" || key == "compElapsedTime" || key == "CanceledTime"|| key == "lastSuspendTime") {
@@ -287,6 +288,7 @@ define([
 				_this.hideLoading();
 				$(ERROR_CONTAINER).show();
 				$(ERROR_TEXT).text("");
+				_this.clearPage();
 				if (jqXHR.responseText) {
 					$(ERROR_TEXT).text(jqXHR.responseText);
 				}else{
