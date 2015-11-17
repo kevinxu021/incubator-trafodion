@@ -218,18 +218,18 @@ public class TransactionState {
      */
     public void  requestPendingCountDec(boolean wakeUp)
     {
-        synchronized (countLock)
-        {
-            requestReceivedCount++;
-            if ((requestReceivedCount == requestPendingCount) || (wakeUp == true))
-            {
-                //Signal waiters that an error occurred
-                if (wakeUp == true)
-                    hasError = true;
+       synchronized (countLock)
+       {
+          requestReceivedCount++;
+          if ((requestReceivedCount == requestPendingCount) || (wakeUp == true))
+          {
+             //Signal waiters that an error occurred
+             if (wakeUp == true)
+                hasError = true;
 
-                countLock.notify();
-        }
-    }
+             countLock.notify();
+          }
+       }
     }
 
     /**
