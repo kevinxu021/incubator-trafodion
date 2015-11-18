@@ -424,7 +424,7 @@ start_trafodion()
   which_environment
   local env1=$?
   local sqstart_rc=1
-  if [[ "$USER" -eq "$traf_user" ]]; then
+  if [[ "$USER" == "$traf_user" ]]; then
     env1=1
   fi
   if [[ $env1 -eq 1 ]]; then
