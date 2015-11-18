@@ -143,9 +143,9 @@
 				      , cast(tokenstr('State:', variable_info)           -- (4) State
 				             as char(30)) "Execution State"
 				      , cast(substr(variable_info,             -- (5) SQL Source
-				             position('%1$s' in variable_info) + char_length('%1$s'),
+				             position('%1$s' in variable_info) + char_length('%1$s')+1,
 				             char_length(variable_info) - 
-				                        ( position('%1$s' in variable_info) + char_length('%1$s') ))
+				                        ( position('%1$s' in variable_info) + char_length('%1$s')+1 ))
 				            as char(256) CHARACTER SET UTF8) "Query Text"          
 				from table (statistics(NULL, 'ACTIVE_QUERIES=%2$s')) 
 				order by 2 descending;

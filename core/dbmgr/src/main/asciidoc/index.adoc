@@ -12,6 +12,7 @@
 ////
 
 = EsgynDB Manager User Guide
+Version {projectVersion}
 :doctype: book
 :numbered:
 :toc: left
@@ -22,28 +23,27 @@
 :linkcss:
 :experimental:
 :source-language: java
-
 :leveloffset: 0
 
 // The directory is called _chapters because asciidoctor skips direct
 // processing of files found in directories starting with an _. This
 // prevents each chapter being built as its own book.
-
-Copyright (C) 2015 Esgyn Corporation
+(C) Copyright 2015 Esgyn Corporation + 
+(C) Copyright 2015 上海易鲸捷信息技术有限公司
 
 The information contained herein is subject to change without notice. 
 This documentation is distributed on an "AS IS" basis, without warranties or conditions of any kind, either express or implied. 
 Nothing herein should be construed as constituting an additional warranty. 
 Esgyn Corporation shall not be liable for technical or editorial errors or omissions contained herein.
 
-
+	
 [cols="2"]
 |===
 2+|*Revision History*
 |{projectVersion} 
 |{buildDate}
 |===
-
+<<<
 include::_chapters/getting_started.adoc[]
 include::_chapters/architecture.adoc[]
 include::_chapters/configuration.adoc[]

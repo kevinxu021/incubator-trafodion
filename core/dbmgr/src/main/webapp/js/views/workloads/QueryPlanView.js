@@ -23,7 +23,10 @@ define([
 	TEXT_PLAN_CONTAINER = '#text-result-container',
 	GRIDCONTAINER = "#dbmgr-1",
 	REFRESH_MENU = '#refreshAction',
-	QCANCEL_MENU = '#cancelAction';
+	QCANCEL_MENU = '#cancelAction',    	
+	TOOLTIP_DIALOG = '#tooltipDialog',
+	TOOLTIP_DAILOG_LABEL = '#toolTipDialogLabel',
+	TOOLTIP_CONTAINER = '#tooltipContainer';
 
 	var _this = null;
 	var queryID = null;
@@ -31,6 +34,7 @@ define([
 	var setRootNode = false;
 	var st = null;
 	var resizeTimer = null;	
+	var xhr = null;
 
 	var QuerPlanView = BaseView.extend({
 		template:  _.template(QueryPlanT),
@@ -39,7 +43,14 @@ define([
 			_this = this;
 
 			this.processArgs(args);
-
+			
+			$(TOOLTIP_DIALOG).on('show.bs.modal', function () {
+			       $(this).find('.modal-body').css({
+			              width:'auto', //probably not needed
+			              height:'auto', //probably not needed 
+			              'max-height':'100%'
+			       });
+	        	});
 			$(REFRESH_MENU).on('click', this.fetchExplainPlan());
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
@@ -86,6 +97,7 @@ define([
 			$('#query-id').val(args);
 			queryID = args;
 			queryType = null;
+			$('#query-text').text('');
 			
 			var queryParams = sessionStorage.getItem(queryID);
 			sessionStorage.removeItem(queryID);
@@ -108,7 +120,10 @@ define([
 			_this.showLoading();
 			$(ERROR_CONTAINER).hide();
 			//wHandler.fetchExplainPlan(param);
-			$.ajax({
+			if(xhr && xhr.readyState !=4){
+				xhr.abort();
+			}
+			xhr = $.ajax({
 				url:'resources/queries/explain',
 				type:'POST',
 				data: JSON.stringify(param),
@@ -128,7 +143,7 @@ define([
 			$('#text-result').text(jsonData.planText);
 			$("#infovis").empty();
 
-			st = common.generateExplainTree(jsonData, setRootNode);
+			st = common.generateExplainTree(jsonData, setRootNode, _this.showExplainTooltip);
 			//load json data
 			st.loadJSON(jsonData);
 
@@ -156,6 +171,19 @@ define([
 	        	}
 			}
 		} , 
+		showExplainTooltip: function(nodeName, data){
+        	$(TOOLTIP_DIALOG).modal('show');
+			nodeName = nodeName.replace("_", " ");
+			nodeName = nodeName.replace("SEABASE","TRAFODION");
+			nodeName = common.toProperCase(nodeName);        	
+        	$(TOOLTIP_DAILOG_LABEL).text(nodeName);
+        	$(TOOLTIP_CONTAINER).text(data);
+        },
+        toProperCase: function (s) {
+        	return s.toLowerCase().replace(/^(.)|\s(.)/g, function($1) {
+        		return $1.toUpperCase();
+        	});
+        },
 		cancelQuery: function(){
 			wHandler.cancelQuery(queryID);
 		},
