@@ -1,4 +1,24 @@
 #!/bin/bash
+# @@@ START COPYRIGHT @@@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+# @@@ END COPYRIGHT @@@
 
 export timestamp=$(date +%F-%H-%M-%S)
 export YUM_LOG=/var/log/trafodion/trafodion_yum_$timestamp.log
@@ -22,6 +42,7 @@ echo "***INFO: Shutting down DBManager if running."
 echo 
 
 sudo su $TRAF_USER --login --command "echo 'source /etc/trafodion/trafodion_config' | $SQ_ROOT/sql/scripts/mgblty_stop" &> /dev/null
+sleep 15
 
 }
 
@@ -29,8 +50,27 @@ function setPackageNames {
 
 source $TRAF_CONFIG
 
-build_file=$(ls $UNTAR_DIR | grep "mgblty")
-DBM_SETUP_PACKAGE=$UNTAR_DIR/$build_file
+if [[ "$UTT_INSTALL" == "Y" ]]; then
+   echo -n "Enter location of Managbility Tools tar file [$DBM_SETUP_PACKAGE]: "
+   read answer
+   if [ -z $answer ]; then
+      if [ -z $DBM_SETUP_PACKAGE ]; then
+         echo "***ERROR: Must specify DCS tar file location."
+         exit -1
+      fi
+   else
+      DBM_SETUP_PACKAGE=$answer
+   fi
+
+   # make sure file exists
+   if [ ! -f $DBM_SETUP_PACKAGE ]; then
+      echo "***ERROR: $DBM_SETUP_PACKAGE does not exist"
+      exit -1
+   fi 
+else
+   build_file=$(ls $UNTAR_DIR | grep "mgblty")
+   DBM_SETUP_PACKAGE=$UNTAR_DIR/$build_file
+fi
 
 MGBLTY_INSTALL_DIR="$SQ_ROOT/mgblty"
 
@@ -43,8 +83,27 @@ echo "export MGBLTY_INSTALL_DIR=\"$MGBLTY_INSTALL_DIR\"" >> $TRAF_CONFIG
 sudo chmod 777 $TRAF_CONFIG
 source $TRAF_CONFIG
 
-build_file=$(ls $UNTAR_DIR | grep "dbmgr")
-DBM_PACKAGE=$UNTAR_DIR/$build_file
+if [[ "$UTT_INSTALL" == "Y" ]]; then
+   echo -n "Enter location of DB Manager tar file [$DBM_PACKAGE]: "
+   read answer
+   if [ -z $answer ]; then
+      if [ -z $DBM_PACKAGE ]; then
+         echo "***ERROR: Must specify DCS tar file location."
+         exit -1
+      fi
+   else
+      DBM_PACKAGE=$answer
+   fi
+
+   # make sure file exists
+   if [ ! -f $DBM_PACKAGE ]; then
+      echo "***ERROR: $DBM_PACKAGE does not exist"
+      exit -1
+   fi
+else
+   build_file=$(ls $UNTAR_DIR | grep "dbmgr")
+   DBM_PACKAGE=$UNTAR_DIR/$build_file
+fi
 
 sudo chmod 777 $TRAF_CONFIG
 sed -i '/DBM_PACKAGE\=/d' $TRAF_CONFIG
@@ -66,8 +125,8 @@ if [[ $SUSE_LINUX == "false" ]]; then
 else
    for node in $NODE_LIST
    do
-      ssh -q -n $node sudo zypper -y install gnuplot >> $ZYPP_LOG
-      ssh -q -n $node sudo zypper -y install lsof >> $ZYPP_LOG
+      ssh -q -n $node sudo zypper install -y gnuplot >> $ZYPP_LOG
+      ssh -q -n $node sudo zypper install -y lsof >> $ZYPP_LOG
    done
 fi
 
@@ -88,7 +147,7 @@ fi
 
 $TRAF_PDSH sudo cp -r $HOME/mgblty $SQ_ROOT
 $TRAF_PDSH sudo chown -R $TRAF_USER.trafodion $SQ_ROOT/mgblty
-$TRAF_PDSH sudo chmod -R 755 $SQ_ROOT/mgblty
+$TRAF_PDSH sudo chmod -R 777 $SQ_ROOT/mgblty
 }
 
 function unTarDMPackage {
@@ -108,7 +167,7 @@ fi
 
 $TRAF_PDSH sudo cp -r $HOME/$dbmgr_dir $SQ_ROOT
 $TRAF_PDSH sudo chown -R $TRAF_USER.trafodion $SQ_ROOT/$dbmgr_dir
-$TRAF_PDSH sudo chmod -R 755 $SQ_ROOT/$dbmgr_dir
+$TRAF_PDSH sudo chmod -R 777 $SQ_ROOT/$dbmgr_dir
 
 
 DBMGR_INSTALL_DIR="$SQ_ROOT/$dbmgr_dir"
@@ -186,7 +245,7 @@ sudo su $TRAF_USER --command "echo 'source /etc/trafodion/trafodion_config' | ca
 
 sudo su $TRAF_USER --command "chmod 777 $CREATE_TABLE"
 
-sudo su $TRAF_USER --command "$CREATE_TABLE"
+sudo su $TRAF_USER --command "$TRAF_PDSH $CREATE_TABLE"
 
 }
 
@@ -199,7 +258,7 @@ sudo su $TRAF_USER --command "echo 'source /etc/trafodion/trafodion_config' | ca
 
 sudo su $TRAF_USER --command "chmod 777 $CREATE_METRICS"
 
-sudo su $TRAF_USER --command "$CREATE_METRICS"
+sudo su $TRAF_USER --command "$TRAF_PDSH $CREATE_METRICS"
 
 }
 
@@ -233,8 +292,12 @@ openPort=$(sudo lsof -wni tcp:$TSD_PORT)
 
 if [[ ! -z $openPort ]]; then
    echo "***ERROR: Port 5242 is being used by another process"
-   echo -n "Please select another port, that is open: "
+   echo -n "Please select another port that is open, default is [$TSD_PORT]: "
    read port
+
+   if [ -z $port ]; then
+      port=$TSD_PORT
+   fi
 
    openPort=$(sudo lsof -wni tcp:$port)
    if [[ ! -z $openPort ]]; then
@@ -276,8 +339,12 @@ openPort=$(sudo lsof -wni tcp:$HTTP_PORT)
 
 if [[ ! -z $openPort ]]; then
    echo "***ERROR: Port 8070 is being used by another process"
-   echo -n "Please select another port, that is open: "
+   echo -n "Please select another port that is open, default is [$HTTP_PORT]: "
    read port
+
+   if [ -z $port ]; then
+      port=$HTTP_PORT
+   fi 
 
    openPort=$(sudo lsof -wni tcp:$port)
    if [[ ! -z $openPort ]]; then
@@ -338,7 +405,7 @@ do
    ssh -q -n $node sudo sed -i -e "s/TSD_PORT=5242/$TSD_PORT/g" $START_STOP
 
    ssh -q -n $node sudo sed -i -e "s@DCS_MASTER_HOST:DCS_PORT@$DCS_MASTER_HOST:$DCS_PORT@" $TRAF_CANARY
-   
+
 done
 
 }
@@ -391,11 +458,18 @@ sudo su $TRAF_USER --login --command "$DBMGR_INSTALL_DIR/bin/configure.py --http
 
 }
 
+function changePermissions {
+
+$TRAF_PDSH sudo chmod -R 755 $MGBLTY_INSTALL_DIR
+$TRAF_PDSH sudo chmod -R 755 $DBMGR_INSTALL_DIR
+
+}
+
 #================================================
 
 #Main
 
-shutDownMgblty
+#shutDownMgblty
 
 setPackageNames
 
@@ -426,3 +500,5 @@ editLogBack
 getTimeZone
 
 configureDBM
+
+changePermissions

@@ -383,7 +383,7 @@ fi
 #Run Trafodion scanner
 
 if [[ $UPGRADE_TRAF == "true" ]]; then
-   echo "***INFO: Trafodion scanner will not be run."
+   echo
 else 
    if [[ "$RUN_SCANNER" == "Y" ]]; then
       echo "***INFO: Running Trafodion Scanner"
@@ -701,9 +701,13 @@ sudo chmod 777 $TRAF_CONFIG
 source $TRAF_CONFIG
 copyConfig
 
+if [[ $ENABLE_HA == "true" ]]; then
+   $LOCAL_WORKDIR/traf_add_sudoAccess
+fi
+
 #Set Max kernel pid 
 
-$TRAF_PDSH sudo sysctl -w kernel.pid_max=65535 2>&1 > /dev/null
+$TRAF_PDSH sudo /sbin/sysctl -w kernel.pid_max=65535 2>&1 > /dev/null
 
 
 #Create install directory
