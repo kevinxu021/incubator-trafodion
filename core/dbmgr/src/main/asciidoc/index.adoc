@@ -28,8 +28,7 @@ Version {projectVersion}
 // The directory is called _chapters because asciidoctor skips direct
 // processing of files found in directories starting with an _. This
 // prevents each chapter being built as its own book.
-(C) Copyright 2015 Esgyn Corporation + 
-(C) Copyright 2015 上海易鲸捷信息技术有限公司
+(C) Copyright 2015 Esgyn Corporation 
 
 The information contained herein is subject to change without notice. 
 This documentation is distributed on an "AS IS" basis, without warranties or conditions of any kind, either express or implied. 
