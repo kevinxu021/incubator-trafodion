@@ -36,4 +36,4 @@ export CLUSTER_MONITOR_MODE=1
 
 xdc -pull
 
-$MY_SQROOT/dbmgr-2.0.0/bin/dbmgr.sh watch 
+$DBMGR_INSTALL_DIR/bin/dbmgr.sh watch 
