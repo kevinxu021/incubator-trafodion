@@ -431,8 +431,8 @@ start_trafodion()
     $MY_SQROOT/sql/scripts/sqstart
     sqstart_rc=$?
   elif [[ $env1 -eq 2 ]]; then
-    sudo -n -u $traf_user sh -c ". /home/trafodion/.bashrc; sqstart"  
-    sqstart_rc=$?
+    #sudo -n -u $traf_user sh -c ". /home/trafodion/.bashrc; sqstart"  
+    sqstart_rc=1
   else
     sqstart_rc=1 
   fi

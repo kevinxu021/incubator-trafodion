@@ -392,7 +392,7 @@ public class WorkloadsResource {
 		ObjectMapper mapper = new ObjectMapper(factory);
 		ObjectNode resultObject = mapper.createObjectNode();
 		String[] dateFields = new String[] { "CompStartTime", "CompEndTime", "ExeStartTime", "ExeEndTime",
-				"CanceledTime", "lastSuspendTime" };
+				"CanceledTime", "lastSuspendTime", "firstRowReturnTime" };
 		List<String> dateTimeColumns = Arrays.asList(dateFields);
 		try {
 
