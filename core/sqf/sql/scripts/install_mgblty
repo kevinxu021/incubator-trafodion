@@ -88,6 +88,7 @@ else
     fi
     echo
     cd $MGBLTY_DOWNLOAD_DIR
+    OPENTSDB_TMP_DIR=$MGBLTY_DOWNLOAD_DIR/myinst-${USER}
     if [[ -d $MGBLTY_DOWNLOAD_DIR/opentsdb ]]; then
        echo "opentsdb download files already exists, skipping opentsdb download" | tee -a ${MGBLTY_LOG}
     else
@@ -96,7 +97,7 @@ else
        cd opentsdb && ./bootstrap
        mkdir build
        cd build
-       ../configure --prefix=/tmp/myinst-${USER} "$@"  
+       ../configure --prefix=$OPENTSDB_TMP_DIR "$@"  
        /bin/sh $PWD 
        unset CLASSPATH
        make 
@@ -105,19 +106,19 @@ else
     if [[ ! -d $OPENTSDB_DIR ]]; then
        cd opentsdb/build
        make install
-       cp -rp gwt/queryui/*  /tmp/myinst-$USER/share/opentsdb/static
-       cp -rp /tmp/myinst-$USER/bin/tsdb /tmp/myinst-$USER/share/opentsdb/bin
-       cd /tmp/myinst-$USER/share/opentsdb/bin
+       cp -rp gwt/queryui/*  $OPENTSDB_TMP_DIR/share/opentsdb/static
+       cp -rp $OPENTSDB_TMP_DIR/bin/tsdb $OPENTSDB_TMP_DIR/share/opentsdb/bin
+       cd $OPENTSDB_TMP_DIR/share/opentsdb/bin
        mv -f tsdb tsdb-orig 
-       sed -e "s@pkgdatadir='/tmp/myinst-$USER/share/opentsdb'@pkgdatadir=\$MGBLTY_INSTALL_DIR/opentsdb@" -e "s@configdir='/tmp/myinst-$USER/share/opentsdb/etc/opentsdb'@configdir=\$MGBLTY_INSTALL_DIR/opentsdb/etc/opentsdb@" tsdb-orig > tsdb
+       sed -e "s@pkgdatadir='$OPENTSDB_TMP_DIR/share/opentsdb'@pkgdatadir=\$MGBLTY_INSTALL_DIR/opentsdb@" -e "s@configdir='$OPENTSDB_TMP_DIR/share/opentsdb/etc/opentsdb'@configdir=\$MGBLTY_INSTALL_DIR/opentsdb/etc/opentsdb@" tsdb-orig > tsdb
        chmod +x tsdb
        rm -f tsdb-orig
        cd $MY_SQROOT/sql/scripts
-       cp -rp /tmp/myinst-$USER/share/opentsdb $MGBLTY_TOOLSDIR
+       cp -rp $OPENTSDB_TMP_DIR/share/opentsdb $MGBLTY_TOOLSDIR
        cd $MGBLTY_DOWNLOAD_DIR/opentsdb
        cp -rp COPYING $OPENTSDB_DIR
        echo "Completed set up of OpenTSDB " | tee -a ${MGBLTY_LOG}
-       rm -rf /tmp/myinst-$USER
+       rm -rf $OPENTSDB_TMP_DIR 
     else
        echo "openTSDB files already exist " |tee -a ${MGBLTY_LOG}
     fi
