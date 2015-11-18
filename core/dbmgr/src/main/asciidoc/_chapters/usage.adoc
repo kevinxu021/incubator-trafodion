@@ -46,7 +46,7 @@ image::navigation.png[caption="Figure 2: ", title="Navigation Menus"]
 
 === Dashboard
 
-The dashboard page displays the status of the EsgynDB services, nodes and display timeseries charts for key system and HBase metrics.
+The dashboard page displays the status of the EsgynDB services, nodes and display time-series charts for key system and HBase metrics.
 
 ==== Service Status
 
@@ -142,6 +142,7 @@ The components are:
 |SQL.SSMP | Runtime Manageability Service
 |SQL.UDR | User Defined Routines
 |WDG | Watchdog
+|DCS | Connectivity Service
 |===========================
 
 === DCS Servers
@@ -161,6 +162,16 @@ You can use the *Explain* button to generate an explain plan for the query. You 
 
 ==== Control Options
 The Control options allow you enter SET statements or Control Query statements that can influence the query plan and execution. You can use these options to tune your query performance. Refer to the SQL Reference manual for more details on the SET and Control query commands.
+
+=== Alerts
+DB Manager uses Bosun to monitor key system or workload metrics and generate notifications based on rule templates. You can configure rule templates and notification templates in bosun. When the rules evaluate to true, the alerts are notified.
+
+Using the Alerts page in DB Manager, you can view all active alerts for the given time range. 
+
+==== Alert Details
+In the alerts page, you can click on a specific alert key and you can view the details of the alert. The details include summary information as well as the detail information that was sent out as a notification.
+
+Use the Actions menu to update the alert. You can acknowledge new alerts and enter a comment. For alerts that are no longer active, meaning the alert condition is no longer true, you can close the alerts.
 
 === Log Out
 You can click on the user icon at the top right corner of the application and select the *Logout* option.
