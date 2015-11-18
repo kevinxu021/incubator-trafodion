@@ -84,13 +84,14 @@ The unique identifier for the query.
 The current state of the query. Valid values are OPEN, EXECUTING, DEALLOCATED or COMPLETED.
 *Query Text*:: 
 The SQL statement of the query.
-
++
 Use the *Action -> Refresh* menu to refresh the list of active queries. 
 
 You can click on the Query ID hyper-link to drill-down into the details of that specific query.
 
-===== Active Query Details
+==== Active Query Details
 The active query details page displays a summary of the runtime metrics as well the operator level statistics for the query. The metrics are obtained from the EsgynDB Runtime Manageability Service. 
+The page is set to auto-refresh every 30 seconds by default. The metrics that have changed since the last refresh for this query, are highlighted in blue color, so you can observe how the query is progessing.
 
 Use the *Action -> Refresh* menu to refresh the page and reload the latest metrics for the query. 
 
@@ -105,14 +106,14 @@ You can use the *Filters* option to specify your search parameters. Using the fi
 
 You can click on the Query ID hyper-link to drill-down into the details of a particular query.
 
-===== Historical Query Detail
+==== Historical Query Detail
 The historical query details page displays the details for the query. The details are grouped together as summary, compile time metrics and run time metrics. You can compare the compile time metrics to the run time metrics and analyze the query behavior.
 
 Use the *Explain* hyper-link to view the explain plan for this query.
 
 Use the *Action -> Cancel* menu to cancel the query, if the query is a long running query and is still executing.  
 
-===== Historical Query Explain Plan
+==== Query Explain Plan
 The Query Plan page displays the Query ID, the query text, a visual explain plan and a textual explain plan.
 
 If you click on a specific node in the explain tree, you will see the metrics for that specific operator in a pop-up dialog.
@@ -172,6 +173,9 @@ Using the Alerts page in DB Manager, you can view all active alerts for the give
 In the alerts page, you can click on a specific alert key and you can view the details of the alert. The details include summary information as well as the detail information that was sent out as a notification.
 
 Use the Actions menu to update the alert. You can acknowledge new alerts and enter a comment. For alerts that are no longer active, meaning the alert condition is no longer true, you can close the alerts.
+
+=== About
+Use the *Help->About* to view the version of DB Manager. The page also displays the version of the EsgynDB instance you are currently connected to. When you contact Esgyn for DB Manager technical support, provide the information in the About page.
 
 === Log Out
 You can click on the user icon at the top right corner of the application and select the *Logout* option.
