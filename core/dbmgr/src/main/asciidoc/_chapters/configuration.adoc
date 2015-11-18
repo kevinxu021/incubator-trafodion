@@ -29,10 +29,10 @@ EsgynDB Manager is installed in *$MY_SQROOT/dbmgr-{projectVersion}* folder.
 
 * If you running a non-enterprise edition of EsgynDB or Apache Trafodion, you can install DB Manager as an add-on product. 
 You can obtain a licensed version of DB Manager by contacting Esgyn.
-
++
 ** Download the EsgynDB Manager binary *dbmgr-{projectVersion}.tar.gz* file to your target system.
 ** Untar the contents to the target directory. A *dbmgr-{projectVersion}* sub-directory will be created.
-
++
 [source,bash,subs="attributes"]
 ----
 $ tar xfz dbmgr-{projectVersion}.tar.gz
@@ -159,29 +159,33 @@ The timezone name has to be in the canonical format like *Etc/UTC* or *America/L
 
 === Start EsgynDB Manager
 
-In EsgynDB Enterprise Edition, sqstart script will automatically start DB Manager. 
+- In EsgynDB Enterprise Edition, sqstart script will automatically start DB Manager. 
 
-In non-enterprise edition, You will need to start EsgynDB Manager as an embedded jetty server using the dbmgr.sh script.
+- For a stand-alone install of DB Manager, you will need to start EsgynDB Manager as an embedded jetty server using the dbmgr.sh script.
++
 [source,bash,subs="attributes"]
 ----
 $ cd dbmgr-{projectVersion}/bin
 ./dbmgr.sh start
 ----
-
++
 If the EsgynDB Manager starts successfully, you should see a prompt like below:
++
 ----
 EsgynDB Manager is running. PID is 3391.
 ----
-
++
 If the start fails, you see a message like this. Check the *dbmgr.log* for errors.
++
 ----
 EsgynDB Manager is NOT running. Check dbmgr.log.
 ----
 
 === Stop EsgynDB Manager
-In EsgynDB Enterprise Edition, sqstop script will automatically stop DB Manager. 
+- In EsgynDB Enterprise Edition, sqstop script will automatically stop DB Manager. 
 
-In non-enterprise edition, To stop EsgynDB Manager, run the following command from the bin directory.
+- In a stand-alone install of DB Manager, you can stop EsgynDB Manager with the following command from the bin directory.
++
 ----
 $ ./dbmgr.sh stop
 EsgynDB Manager has been stopped.

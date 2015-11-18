@@ -30,9 +30,9 @@ The EsgynDB Manager is a web application that monitors and manages an EsgynDB in
 * When you connect up to an Enterprise Edition of EsgynDB, you get additional manageability components that use OpenTSDB, TCollector and Bosun. DB Manager uses these manageability components to display system monitoring metrics and report alert notifications.
 
 *OpenTSDB*::
-We use OpenTSDB to store time-series metrics. These are system health and performance metrics as well the health and performance of EsgynDB services.
+We use OpenTSDB to store time-series metrics. The system health and performance metrics as well the health and performance of EsgynDB services as periodically collected as time-series data and published into OpenTSDB.
 
-TCollector*::
+*TCollector*::
 TCollector provides several scripts to measure system health and performance and also an extensible infrastructure to launch scripts at pre-defined intervals. The metrics are published into OpenTSDB.
 
 *Bosun*::
