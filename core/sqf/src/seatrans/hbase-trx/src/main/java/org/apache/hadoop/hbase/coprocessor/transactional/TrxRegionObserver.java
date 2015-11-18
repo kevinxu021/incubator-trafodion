@@ -689,24 +689,25 @@ public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> ed
 			  + transactionId + " edit num " + i + " with Op " + kv.getTypeByte());
 
 	    if (kv.getTypeByte() == KeyValue.Type.Put.getCode()) {
-		Put put = new Put(CellUtil.cloneRow(kv)); // kv.getRow()
+		Put put = new Put(CellUtil.cloneRow(kv), kv.getTimestamp()); // kv.getRow()
                 put.add(CellUtil.cloneFamily(kv), 
 			CellUtil.cloneQualifier(kv),
-			EnvironmentEdgeManager.currentTime(),
+			kv.getTimestamp(), /*EnvironmentEdgeManager.currentTime(),*/
 			CellUtil.cloneValue(kv));
-		TransactionState.updateLatestTimestamp(put.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTime());
+		//TransactionState.updateLatestTimestamp(put.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTime());
 	        my_Region.put(put); // let it generate new edits at this moment
 	    } 
 	    else if (CellUtil.isDelete(kv)) {
-		Delete del = new Delete(CellUtil.cloneRow(kv));
+		Delete del = new Delete(CellUtil.cloneRow(kv), kv.getTimestamp());
 	       	if (CellUtil.isDeleteFamily(kv)) {
-		    del.deleteFamily(CellUtil.cloneFamily(kv));
+		    del.addFamily(CellUtil.cloneFamily(kv), kv.getTimestamp());
                 } 
 		else if (CellUtil.isDeleteType(kv)) {
-		    del.deleteColumn(CellUtil.cloneFamily(kv),
-				     CellUtil.cloneQualifier(kv));
+		    del.addColumn(CellUtil.cloneFamily(kv),
+				     CellUtil.cloneQualifier(kv), kv.getTimestamp());
 	        }
-		TransactionState.updateLatestTimestamp(del.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTime());
+                //del.setTimestamp(kv.getTimestamp());
+		//TransactionState.updateLatestTimestamp(del.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTime());
                 my_Region.delete(del);
 	    }
         } // synchronized of editReplay
