@@ -89,6 +89,7 @@ define([
         },
         cancelQuerySuccess:function(){
         	alert('The cancel query request has been submitted');
+        	_this.fetchActiveQueryDetail();
         },
         cancelQueryError:function(jqXHR){
         	alert(jqXHR.responseText);

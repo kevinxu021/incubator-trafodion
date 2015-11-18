@@ -249,7 +249,9 @@ define([
 				}
 			}
 
-			$(FILTER_DIALOG).modal('hide').data('test');
+			if(source != null && $(source.currentTarget)[0] == $(FILTER_APPLY_BUTTON)[0]){
+				$(FILTER_DIALOG).modal('hide');
+			}
 			_this.showLoading();
 			wHandler.fetchQueriesInRepository(lastAppliedFilters);
 		},

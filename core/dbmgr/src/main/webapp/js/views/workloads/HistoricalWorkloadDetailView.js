@@ -117,6 +117,8 @@ define([
 		},
 		cancelQuerySuccess:function(){
 			alert('The cancel query request has been submitted');
+			_that.fetchRepositoryQueryDetail();
+			
 		},
 		cancelQueryError:function(jqXHR){
 			alert(jqXHR.responseText);
