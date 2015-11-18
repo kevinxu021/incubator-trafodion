@@ -32,7 +32,7 @@ cd - >/dev/null
 # Setting this variable so that downstream scripts executed here are aware of the context
 export NODE_MONITOR_MODE=1
 
-# Are we also running the CMON (cluster monitor on this node)
+# Are we also running the CMON (cluster monitor) on this node
 lv_stat=`pstat | grep service_monitor | grep '\$CMON '`
 if [[ $? == 0 ]]; then
     export CMON_RUNNING=1
@@ -40,7 +40,6 @@ else
     export CMON_RUNNING=0
 fi
 
-echo "CMON_RUNNING: $CMON_RUNNING"
 #----  End : Setup the env to run any script - please do not edit this block
 
 $MY_SQROOT/mgblty/opentsdb/bin/tsd.sh watch 
