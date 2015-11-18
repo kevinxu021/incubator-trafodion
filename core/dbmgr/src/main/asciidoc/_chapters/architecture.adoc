@@ -27,7 +27,16 @@ The EsgynDB Manager is a web application that monitors and manages an EsgynDB in
 * Client to DB Manager webserver communication uses HTTPS encryption.
 * Uses JDBC Authentication.
 * EsgynDB Manager has been tested with Chrome, IE11, Firefox and Microsoft Edge browsers.
-* When you connect up to an Enterprise Edition of EsgynDB, you get additional managaeability components that use OpenTSDB, TCollector and Bosun
+* When you connect up to an Enterprise Edition of EsgynDB, you get additional manageability components that use OpenTSDB, TCollector and Bosun. DB Manager uses these manageability components to display system monitoring metrics and report alert notifications.
+
+*OpenTSDB*::
+We use OpenTSDB to store time-series metrics. These are system health and performance metrics as well the health and performance of EsgynDB services.
+
+TCollector*::
+TCollector provides several scripts to measure system health and performance and also an extensible infrastructure to launch scripts at pre-defined intervals. The metrics are published into OpenTSDB.
+
+*Bosun*::
+Bosun is an alerting and notification engine. It uses the metrics in OpenTSDB and based on the rules and notifications template you configure, it can send out email or HTTP notifications.
  
 [[img-rest]]
 image::architecture.png[caption="Figure 1: ", title="EsgynDB Manager Architecture", width="700", height="700"]
