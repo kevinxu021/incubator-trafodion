@@ -31,7 +31,9 @@ def main():
  
     try:
         ts = int(time.time())
-        json_data = p.stdout.readline()
+        json_data = ""
+        for line in p.stdout.readlines():
+            json_data = json_data + line
         data = json.loads(json_data)
         ta = 0
         tb = 0
@@ -43,7 +45,6 @@ def main():
             print ("esgyndb.dtm.txnaborts %d %d node=%d" % (ts, ta, i))
             print ("esgyndb.dtm.txnbegins %d %d node=%d" % (ts, tb, i))
             print ("esgyndb.dtm.txncommits %d %d node=%d" % (ts, tc, i))
-
 
         sys.stdout.flush()
     except:

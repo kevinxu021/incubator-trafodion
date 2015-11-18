@@ -209,8 +209,7 @@ public class TmAuditTlog {
          try {
             table = new HTable(location.getRegionInfo().getTable(), connection, tlogThreadPool);
          } catch(IOException e) {
-            e.printStackTrace();
-            LOG.error("Error obtaining HTable instance");
+            LOG.error("Error obtaining HTable instance " + e);
             table = null;
          }
          startKey = location.getRegionInfo().getStartKey();
@@ -364,8 +363,7 @@ public class TmAuditTlog {
          try {
             table = new HTable(location.getRegionInfo().getTable(), connection, tlogThreadPool);
          } catch(IOException e) {
-            e.printStackTrace();
-            LOG.error("Error obtaining HTable instance");
+            LOG.error("Error obtaining HTable instance " + e);
             table = null;
          }
          startKey = location.getRegionInfo().getStartKey();
@@ -1227,7 +1225,6 @@ public class TmAuditTlog {
          catch (Exception e2){
             // create record of the exception
             LOG.error("putSingleRecord Exception in recoveryTable" + e2);
-            e2.printStackTrace();
             throw e2;
          }
          finally {
@@ -1237,8 +1234,8 @@ public class TmAuditTlog {
                recoveryTableConnection.close();
             }
             catch (IOException e) {
-               LOG.error("putSingleRecord IOException closing locator, recovery table or connection for table " + lv_tLogName);
-               e.printStackTrace();
+               LOG.error("putSingleRecord IOException closing locator, recovery table or connection for table "
+                   + lv_tLogName + " Exception: " + e);
             }
          }
       }
@@ -1296,7 +1293,6 @@ public class TmAuditTlog {
          catch (Exception e) {
             // create record of the exception
             LOG.error("Synchronizing on tlogAuditLock[" + lv_lockIndex + "] for transaction:" + lvTransid + " Exception " + e);
-            e.printStackTrace();
             throw e;
          }
          if (LOG.isTraceEnabled()) LOG.trace("TLOG putSingleRecord synchronization complete in thread " + threadId );
@@ -1518,7 +1514,6 @@ public class TmAuditTlog {
       }
       catch (Exception e2) {
             LOG.error("getRecord Exception2 " + e2);
-            e2.printStackTrace();
       }
 
       if (LOG.isTraceEnabled()) LOG.trace("getRecord end; returning " + lvTxState);
@@ -1692,8 +1687,8 @@ public class TmAuditTlog {
            }
         }
         catch (IOException e) {
-           LOG.error("deleteAgedEntries IOException setting up scan on table index " + i);
-           e.printStackTrace();
+           LOG.error("deleteAgedEntries IOException setting up scan on table index "
+                                 + i + "Exception: " + e);
         }
         finally {
            try {
@@ -1702,8 +1697,8 @@ public class TmAuditTlog {
               deleteConnection.close();
            }
            catch (IOException e) {
-              LOG.error("deleteAgedEntries IOException closing table or connection for table index " + i);
-              e.printStackTrace();
+              LOG.error("deleteAgedEntries IOException closing table or connection for table index "
+                         + i + "Exception: " + e);
            }
         }
      }
@@ -1738,7 +1733,6 @@ public class TmAuditTlog {
          }
          catch (Exception ex) {
             LOG.error("formatRecord Exception " + ex);
-            ex.printStackTrace();
             throw ex;
          }
         }
@@ -1821,14 +1815,12 @@ public class TmAuditTlog {
                }
             }
             catch (IOException e){
-               LOG.error("addControlPoint IOException");
-               e.printStackTrace();
+               LOG.error("addControlPoint IOException " + e);
                throw e;
             }
          }
       } catch (Exception e){
           LOG.error("addControlPoint Exception " + e);
-          e.printStackTrace();
           throw e;
       }
       if (LOG.isInfoEnabled()) LOG.info("addControlPoint returning " + lvCtrlPt);

@@ -8,7 +8,7 @@ from java.sql  import DriverManager, SQLException
 
 ################################################################################
 
-JDBC_URL    = "jdbc:t4jdbc://localhost:23400/:"
+JDBC_URL    = "jdbc:t4jdbc://DCS_MASTER_HOST:DCS_PORT/:"
 JDBC_DRIVER = "org.trafodion.jdbc.t4.T4Driver"
 
 USER_NAME       = "usr"
@@ -58,7 +58,7 @@ def main():
         ddlTime = (tend-tstart)
     except SQLException, msg:
         print ("Drop or Create %s" % msg)
-        sys.exit(1)
+        sys.exit(0)
     result, writeTime = populateTable(dbConn, PLANET_DATA)
     tstart = int(round(time.time() * 1000))
     if result:
@@ -91,7 +91,7 @@ def getConnection(jdbc_url, usr, pwd, driverName):
         dbConn = DriverManager.getConnection(jdbc_url, usr, pwd)
     except SQLException, msg:
         print msg
-        sys.exit(-1)
+        sys.exit(0)
 
     return dbConn
 
@@ -122,3 +122,4 @@ def populateTable(dbConn, feedstock):
 
 if __name__ == '__main__':
     main()
+

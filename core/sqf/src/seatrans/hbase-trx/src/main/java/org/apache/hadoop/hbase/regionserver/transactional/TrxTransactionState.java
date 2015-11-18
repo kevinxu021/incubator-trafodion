@@ -41,6 +41,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -935,6 +936,34 @@ public class TrxTransactionState  extends TransactionState{
     public Set<TrxTransactionState> getTransactionsToCheck() {
       return transactionsToCheck;
     }
+    
+    /**
+     * before adding a put to the writeOrdering list, check whether we have deleted a row with the
+     * same key.  If true remove the delete before adding the put
+     */
+    public void removeDelBeforePut(Put put) {
+        if (LOG.isTraceEnabled()) LOG.trace("removeDelBeforePut put : " + put);
+        byte[] putRow = put.getRow();
+        KeyValue kv;
 
-   
+        for(WriteAction wa : getWriteOrdering()) {
+           Delete delete = wa.getDelete();
+           if (delete != null){
+              byte[] delRow = delete.getRow();
+              if (LOG.isTraceEnabled()) LOG.trace("putRow : " + Bytes.toString(putRow)
+                             + " : delRow : " + Bytes.toString(delRow));
+
+              if (Arrays.equals(putRow, delRow) ) {
+               	if (LOG.isTraceEnabled()) LOG.trace("Removing delete from writeOrdering for row : "
+                                     + Bytes.toString(delRow));
+//                for (Cell value : wa.getCells()) {
+//                   kv = KeyValue.cloneAndAddTags(value, tagList);
+//                   e.remove(kv);
+//                }
+               	deletes.remove(delete);
+               	writeOrdering.remove(wa);
+              }
+           }        	
+        }
+    }
 }

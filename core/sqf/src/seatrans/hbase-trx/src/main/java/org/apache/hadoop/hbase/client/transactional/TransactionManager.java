@@ -1014,15 +1014,18 @@ public class TransactionManager {
                  if(retryCount == RETRY_ATTEMPTS){
                     LOG.error("Exceeded retry attempts in doAbortX: " + retryCount + " (ingoring)");
                  }
-
-//                 if ((location.getRegionInfo().getEncodedName().compareTo(lv_hri.getEncodedName()) != 0) ||  // Encoded name is different
-//                     (location.getHostname().regionMatches(0, lv_node, 0, lv_length) == false)) {            // Node is different
-                    if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- " + table.toString() + " location being refreshed");
-                    if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- lv_hri: " + lv_hri);
-                    if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- location.getRegionInfo(): " + location.getRegionInfo());
+                 if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- " + table.toString() + " location being refreshed");
+                 if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- lv_hri: " + lv_hri);
+                 if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- location.getRegionInfo(): " + location.getRegionInfo());
+                 if (hbadmin.isTableEnabled(table.getTableName())) {
                     table.getRegionLocation(startKey, true);
-//                 }
-                 if (LOG.isTraceEnabled()) LOG.trace("doAbortX -- setting retry, count: " + retryCount);
+                 }
+                 else {
+                    LOG.error("doAbortX -- table: " + table.toString() + " is disabled, ignoring table and returning");
+                    transactionState.requestPendingCountDec(false);
+                    return 0;                    	
+                 }
+                 if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- setting retry, count: " + retryCount);
                  refresh = false;
               }
 
@@ -1110,14 +1113,18 @@ public class TransactionManager {
                     LOG.error("Exceeded retry attempts in doAbortX: " + retryCount + " (ingoring)");
                  }
 
-//                 if ((location.getRegionInfo().getEncodedName().compareTo(lv_hri.getEncodedName()) != 0) ||  // Encoded name is different
-//                     (location.getHostname().regionMatches(0, lv_node, 0, lv_length) == false)) {            // Node is different
-                    if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- " + table.toString() + " location being refreshed");
-                    if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- lv_hri: " + lv_hri);
-                    if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- location.getRegionInfo(): " + location.getRegionInfo());
+                 if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- " + table.toString() + " location being refreshed");
+                 if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- lv_hri: " + lv_hri);
+                 if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- location.getRegionInfo(): " + location.getRegionInfo());
+                 if (hbadmin.isTableEnabled(table.getTableName())) {
                     table.getRegionLocation(startKey, true);
-//                 }
-                 if (LOG.isTraceEnabled()) LOG.trace("doAbortX -- setting retry, count: " + retryCount);
+                 }
+                 else {
+                    LOG.error("doAbortX -- table: " + table.toString() + " is disabled, ignoring table and returning");
+                    transactionState.requestPendingCountDec(false);
+                    return 0;                    	
+                 }
+                 if (LOG.isWarnEnabled()) LOG.warn("doAbortX -- setting retry, count: " + retryCount);
                  refresh = false;
               }
 
@@ -1902,7 +1909,7 @@ public class TransactionManager {
           List<TransactionRegionLocation> completedList = new ArrayList<TransactionRegionLocation>();
           final long commitIdVal = (TRANSACTION_ALGORITHM == AlgorithmType.SSCC) ? transactionState.getCommitId() : -1;
           for (TransactionRegionLocation location : transactionState.getRetryRegions()) {
-            if(LOG.isTraceEnabled()) LOG.trace("retryAbort retrying abort for: " + location.getRegionInfo().getRegionNameAsString());
+            if(LOG.isTraceEnabled()) LOG.trace("retryCommit retrying commit for: " + location.getRegionInfo().getRegionNameAsString());
             threadPool.submit(new TransactionManagerCallable(transactionState, location, pSTRConfig.getPeerConnections().get(location.peerId)) {
                 public Integer call() throws CommitUnsuccessfulException, IOException {
 
@@ -2303,7 +2310,7 @@ public class TransactionManager {
                             + transactionState.getTransactionId() + "], region: ["
                             + location.getRegionInfo().getRegionNameAsString() + "]. Ignoring. " + e);
             }
-           }
+         }
 
         // all requests sent at this point, can record the count
         transactionState.completeSendInvoke(loopCount);

@@ -553,19 +553,18 @@ void process_statusalltransactions_node(int32 pv_node)
      if (lv_count == 0)
        printf("Node %d : No Transactions were returned.\n", pv_node);
      else
-       printf("Transid         Owner\tJoins\tPartic\tUnresol\tElapsed(sec)\tState\t   Timestamp\n");
+       printf("Transid         Owner\tFull_Transid\tJoins\tElapsed(sec)\tState\t   Timestamp\n");
 
      sort(lv_trans, lv_trans + lv_count, sort_comparator);
      for(int i = 0; i < lv_count; i++)
      {
        print_transid_str(lv_trans[i].iv_cid, lv_trans[i].iv_nid, lv_trans[i].iv_seqnum);
 
-       printf("%d,%d\t%d\t%d\t%d",
+       printf("%d,%d\t%ld\t%d",
        lv_trans[i].iv_owner_nid,
        lv_trans[i].iv_owner_pid,
-       lv_trans[i].iv_num_active_partic-1,
-       lv_trans[i].iv_num_partic_RMs,
-       lv_trans[i].iv_num_unresolved_RMs);
+       lv_trans[i].iv_transid,
+       lv_trans[i].iv_num_active_partic-1);
 
        lv_localtime = time(NULL);
        lv_trans_timestamp = (time_t)(lv_trans[i].iv_timestamp/1000);
