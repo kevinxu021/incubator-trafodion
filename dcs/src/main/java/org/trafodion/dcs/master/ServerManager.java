@@ -474,16 +474,16 @@ public class ServerManager implements Callable {
                 // If we are DcsMaster follower that is taking over from failed
                 // one then ignore timestamp issues described above.
                 // See MasterLeaderElection.elect()
-				if (master.isFollower() == false) {
-					Stat stat = zkc.exists(path + "/" + child, new RunningWatcher());
-					if (stat == null || stat.getCtime() < startupTimestamp){
-						if(stat == null)
-							LOG.warn("Node "+path + "/" + child + " in Zookeeper does not exist!");
-						else
-							LOG.warn("Node creation time[" + stat.getCtime() + "] is eariler than Master node creation time[" + startupTimestamp + "]");
-						continue;
-					}
-				}
+		if (master.isFollower() == false) {
+			Stat stat = zkc.exists(path + "/" + child, new RunningWatcher());
+			if (stat == null || stat.getCtime() < startupTimestamp){
+				if(stat == null)
+					LOG.warn("Node "+path + "/" + child + " in Zookeeper does not exist!");
+				else
+					LOG.warn("Node creation time[" + stat.getCtime() + "] is eariler than Master node creation time[" + startupTimestamp + "]");
+				continue;
+			}
+		}
 
                 if (!runningServers.contains(child)) {
                     if (LOG.isDebugEnabled())
