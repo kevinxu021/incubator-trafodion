@@ -171,6 +171,7 @@ function setFlags {
 export HBASE_HOME="/usr"
 export COMPRESSION="NONE"
 export PATH=$PATH:$JAVA_HOME/bin
+export PATH=$MGBLTY_INSTALL_DIR/jython2.7.0/bin:$PATH
 
 sudo chmod 777 $TRAF_CONFIG
 sed -i '/HBASE_HOME\=/d' $TRAF_CONFIG
