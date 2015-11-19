@@ -438,7 +438,6 @@ export DM_HTTP_PORT="4205"
 export DM_HTTPS_PORT="4206"
 export REST_PORT="4200"
 DBMGR_CONFIG="$DBMGR_INSTALL_DIR/conf/config.xml"
-DBMGR_KEYSTORE="$DBMGR_INSTALL_DIR/etc/dbmgr.keystore"
 
 echo "***INFO: Configuring DB Manager"
 
@@ -446,18 +445,11 @@ sudo su $TRAF_USER --login --command "$DBMGR_INSTALL_DIR/bin/configure.py --http
 
 if [[ $node_count -ne "1" ]]; then
    sudo su $TRAF_USER --command "$TRAF_PDCP $DBMGR_CONFIG $DBMGR_CONFIG"
-   sudo su $TRAF_USER --command "$TRAF_PDCP $DBMGR_KEYSTORE $DBMGR_KEYSTORE"
 fi
 
 }
 
 function changePermissions {
-#set MGBLTY_INSTALL_DIR and DBMGR_INSTALL_DIR in sqenvcom.sh
-sudo su $TRAF_USER --command "grep --invert-match \"MGBLTY_INSTALL_DIR=\" $SQ_ROOT/sqenvcom.sh > $SQ_ROOT/sqenvcom.temp"
-sudo su $TRAF_USER --command "echo -e \"export MGBLTY_INSTALL_DIR=$MGBLTY_INSTALL_DIR\nexport DBMGR_INSTALL_DIR=$DBMGR_INSTALL_DIR\" >> $SQ_ROOT/sqenvcom.temp"
-sudo su $TRAF_USER --command "mv $SQ_ROOT/sqenvcom.temp $SQ_ROOT/sqenvcom.sh"
-sudo su $TRAF_USER --command "$TRAF_PDCP $SQ_ROOT/sqenvcom.sh $SQ_ROOT/sqenvcom.sh"
-
 
 $TRAF_PDSH sudo chmod -R 755 $MGBLTY_INSTALL_DIR
 $TRAF_PDSH sudo chmod -R 755 $DBMGR_INSTALL_DIR
@@ -468,7 +460,7 @@ $TRAF_PDSH sudo chmod -R 755 $DBMGR_INSTALL_DIR
 
 #Main
 
-#shutDownMgblty
+shutDownMgblty
 
 setPackageNames
 
