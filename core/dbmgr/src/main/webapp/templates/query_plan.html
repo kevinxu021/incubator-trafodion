@@ -10,6 +10,7 @@
 						Actions <span class="caret"></span>
 					</button>
 					<ul class="dropdown-menu pull-right" role="menu">
+						<li><a id="refreshAction">Refresh</a></li>
 						<li><a id="cancelAction">Cancel Query</a></li>
 					</ul>
 				</div>
@@ -62,4 +63,29 @@
 			</div>
 		</div>
 	</div>
+	<div class="modal fade" id="tooltipDialog" tabindex="-1" role="dialog"
+		aria-labelledby="tooltipDialogLabel">
+		<div class="modal-dialog" role="document" style="width:700px">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="toolTipDialogLabel">Operator Details</h4>
+				</div>
+				<div class="modal-body">
+					<form>
+						<div class="form-group">
+							<textarea id="tooltipContainer" rows="25" cols="500"
+								class="textarea" style="width:600px" readonly> </textarea>
+						</div>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+				</div>				
+			</div>
+		</div>
+	</div>	
 </div>

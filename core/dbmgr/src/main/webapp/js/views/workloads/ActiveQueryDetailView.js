@@ -36,6 +36,7 @@ define([
 			_this = this;
 			$('#query-id').val(args);
 			queryID = args;
+			this.loadQueryText();
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
@@ -54,6 +55,7 @@ define([
 		doResume: function(args){
 			$('#query-id').val(args);
 			queryID = args;
+			this.loadQueryText();
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
@@ -76,6 +78,15 @@ define([
 			$(REFRESH_MENU).off('click', this.fetchActiveQueryDetail);
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
 			$(EXPLAIN_BUTTON).off('click', this.explainQuery);
+		},
+		loadQueryText: function(){
+			var queryParams = sessionStorage.getItem(queryID);
+			sessionStorage.removeItem(queryID);
+			if(queryParams != null){
+				queryParams = JSON.parse(queryParams);
+				if(queryParams.text)
+					$('#query-text').text(queryParams.text);
+			}
 		},
         showLoading: function(){
         	$(LOADING_SELECTOR).show();
@@ -122,7 +133,11 @@ define([
 			var summary = result.summary;
 			var queryText = summary.sqlSrc;
 			queryText = queryText.substring(1,queryText.length-1);
-			$('#query-text').text(queryText);
+			var currentQueryText = $('#query-text').text();
+			if(currentQueryText == null || currentQueryText.length == 0){
+				$('#query-text').text(queryText);
+			}
+			
 			for ( var k in summary) {
 				var htmlTag = "#" + k;
 				var value = summary[k];
@@ -273,9 +288,11 @@ define([
 			return value;
 		},
 
-		clearPage: function(){
+		clearPage: function(isError){
 			$(".dbmgr-form-workload-cell-label").val("");
-			$('#query-text').text("");
+			if(isError == true){
+				$('#query-text').text(""); 
+			}
 			//$('#statistic-results').DataTable().clear().draw();
 			$('#statistic-results').DataTable().destroy(true);
 		},
@@ -293,7 +310,7 @@ define([
 				}else{
 					var patt = new RegExp('ERROR\[8923\]'); 
 					if (!patt.test(jqXHR.responseText)){
-						_this.clearPage();
+						_this.clearPage(true);
 					}
 					if(jqXHR.status != null && jqXHR.status == 0) {
 						$(ERROR_TEXT).text("Error : Unable to communicate with the server.");

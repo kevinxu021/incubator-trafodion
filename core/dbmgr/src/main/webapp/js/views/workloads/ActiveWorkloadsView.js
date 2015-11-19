@@ -86,6 +86,7 @@ define([
 				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="active-query-results"></table>';
 				$('#active-result-container').html( sb );
 
+				
 				var aoColumns = [];
 				var aaData = [];
 
@@ -102,7 +103,7 @@ define([
 
 				var bPaging = aaData.length > 25;
 
-				oDataTable = $('#active-query-results').dataTable({
+				oDataTable = $('#active-query-results').DataTable({
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
 					"bPaginate" : bPaging, 
@@ -149,6 +150,12 @@ define([
 				});
 
 				$('#active-query-results td').css("white-space","nowrap");
+				$('#active-query-results tbody').on( 'click', 'tr', function (e, a) {
+					var data = oDataTable.row(this).data();
+					if(data && data.length > 0){
+						sessionStorage.setItem(data[2], JSON.stringify({type: 'active', text: data[4]}));	
+					}
+				} );				
 			}
 
 		},
