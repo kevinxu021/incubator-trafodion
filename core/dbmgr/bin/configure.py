@@ -227,7 +227,7 @@ def run():
     print "Generating self-signed certificate and SSL keystore..."
     keyfile = os.path.join(dbmgr_path,"etc/dbmgr.keystore")
     if (os.path.exists(keyfile)): os.remove(keyfile)
-    cmd = 'keytool -genkey -alias dbmgr -keyalg RSA -dname "cn='+host_fqdnh+',ou=dbmgr,o=Esgyn,l=Milpitas,st=CA,c=US" -keypass "%s" -storepass "%s" -keystore %s -validity 36500 -keysize 2048' % (options.password,options.password,keyfile)
+    cmd = 'keytool -genkey -alias dbmgr -keyalg RSA -dname "cn='+str(options.dcs_host)+',ou=dbmgr,o=Esgyn,l=Milpitas,st=CA,c=US" -keypass "%s" -storepass "%s" -keystore %s -validity 36500 -keysize 2048' % (options.password,options.password,keyfile)
     cmd = options.java_home+'/bin/'+cmd
     returncode = os.system(cmd)
     if (returncode != 0):

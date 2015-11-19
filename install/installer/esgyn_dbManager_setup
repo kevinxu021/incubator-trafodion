@@ -438,6 +438,7 @@ export DM_HTTP_PORT="4205"
 export DM_HTTPS_PORT="4206"
 export REST_PORT="4200"
 DBMGR_CONFIG="$DBMGR_INSTALL_DIR/conf/config.xml"
+DBMGR_KEYSTORE="$DBMGR_INSTALL_DIR/etc/dbmgr.keystore"
 
 echo "***INFO: Configuring DB Manager"
 
@@ -445,6 +446,7 @@ sudo su $TRAF_USER --login --command "$DBMGR_INSTALL_DIR/bin/configure.py --http
 
 if [[ $node_count -ne "1" ]]; then
    sudo su $TRAF_USER --command "$TRAF_PDCP $DBMGR_CONFIG $DBMGR_CONFIG"
+   sudo su $TRAF_USER --command "$TRAF_PDCP $DBMGR_KEYSTORE $DBMGR_KEYSTORE"
 fi
 
 }
