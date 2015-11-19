@@ -34,6 +34,4 @@ cd - >/dev/null
 export CLUSTER_MONITOR_MODE=1
 #----  End : Setup the env to run any script - please do not edit this block
 
-xdc -pull
-
 $DBMGR_INSTALL_DIR/bin/dbmgr.sh watch 
