@@ -32,7 +32,7 @@ fi
 
 #==========================================
 echo "***INFO: starting sqgen" | tee -a $INSTALL_LOG
-cd $MY_SQROOT/sql/scripts
+cd $SQ_ROOT/sql/scripts
 sqgen
 SQGEN_RC=$?
 if [ "$SQGEN_RC" != "0" ]; then
