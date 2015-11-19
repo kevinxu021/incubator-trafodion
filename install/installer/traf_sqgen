@@ -33,7 +33,7 @@ fi
 #==========================================
 echo "***INFO: starting sqgen" | tee -a $INSTALL_LOG
 cd $SQ_ROOT/sql/scripts
-sqgen
+$SQ_ROOT/sql/scripts/sqgen
 SQGEN_RC=$?
 if [ "$SQGEN_RC" != "0" ]; then
     echo "***ERROR: sqgen failed with RC=$SQGEN_RC. Check install log file for details." | tee -a $INSTALL_LOG
