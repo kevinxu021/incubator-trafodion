@@ -424,9 +424,11 @@ start_trafodion()
   which_environment
   local env1=$?
   local sqstart_rc=1
-  if [[ "$USER" == "$traf_user" ]]; then
+  local curuser=`whoami`
+  if [[ "$curuser" == "$traf_user" ]]; then  
     env1=1
   fi
+
   if [[ $env1 -eq 1 ]]; then
     $MY_SQROOT/sql/scripts/sqstart
     sqstart_rc=$?
