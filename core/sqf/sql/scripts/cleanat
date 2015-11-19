@@ -1,0 +1,6 @@
+hbase shell <<EOF
+disable_all 'TRAFODION._DTM_.*'
+y
+drop_all 'TRAFODION._DTM_.*'
+y
+EOF

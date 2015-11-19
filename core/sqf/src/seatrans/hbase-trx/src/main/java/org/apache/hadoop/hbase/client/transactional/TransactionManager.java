@@ -266,7 +266,7 @@ public class TransactionManager {
       hbadmin = new HBaseAdmin(config);
     }
     catch(Exception e) {
-      System.out.println("ERROR: Unable to obtain HBase accessors, Exiting");
+      System.out.println("ERROR: Unable to obtain HBase accessors, Exiting " + e);
       e.printStackTrace();
       System.exit(1);
     }
@@ -290,7 +290,7 @@ public class TransactionManager {
 	    table = new HTable(location.getRegionInfo().getTable(), (Connection) connection, cp_tpe);
         } catch(IOException e) {
           e.printStackTrace();
-          LOG.error("Error obtaining HTable instance");
+          LOG.error("Error obtaining HTable instance " + e);
           table = null;
         }
         startKey = location.getRegionInfo().getStartKey();
@@ -346,12 +346,14 @@ public class TransactionManager {
                         table.toString() + " startKey: " + new String(startKey, "UTF-8") + " endKey: " + new String(endKey, "UTF-8"));
                  result = table.coprocessorService(TrxRegionService.class, startKey, endKey, callable);
                } catch (Throwable e) {
-                  String msg = "ERROR occurred while calling doCommitX coprocessor service in doCommitX";
-                  LOG.error(msg + ":" + e);
+                  String msg = new String ("ERROR occurred while calling doCommitX coprocessor service in doCommitX for transaction: "
+                              + transactionId + " Exception: " + e);
+                  LOG.error(msg);
                   throw new Exception(msg);
                }
                if(result.size() == 0) {
-                  LOG.error("doCommitX, received incorrect result size: " + result.size() + " txid: " + transactionId);
+                  LOG.error("doCommitX, received incorrect result size: " + result.size() + " txid: "
+                       + transactionId + " location: " + location.getRegionInfo().getRegionNameAsString());
                   refresh = true;
                   retry = true;
                }
@@ -360,7 +362,7 @@ public class TransactionManager {
                   for (CommitResponse cresponse : result.values()){
                     if(cresponse.getHasException()) {
                       String exceptionString = new String (cresponse.getException().toString());
-		      LOG.error("doCommitX - exceptionString: " + exceptionString);
+                      LOG.error("doCommitX - exceptionString: " + exceptionString);
                       if (exceptionString.contains("UnknownTransactionException")) {
                         if (ignoreUnknownTransaction == true) {
                           if (LOG.isTraceEnabled()) LOG.trace("doCommitX, ignoring UnknownTransactionException in cresponse");
@@ -370,22 +372,22 @@ public class TransactionManager {
                           throw new UnknownTransactionException();
                         }
                       }
-		      else if (exceptionString.contains("org.apache.hadoop.hbase.exceptions.FailedSanityCheckException")) {
-			  throw new org.apache.hadoop.hbase.exceptions.FailedSanityCheckException(cresponse.getException());
-		      }
+                      else if (exceptionString.contains("org.apache.hadoop.hbase.exceptions.FailedSanityCheckException")) {
+                         throw new org.apache.hadoop.hbase.exceptions.FailedSanityCheckException(cresponse.getException());
+                      }
                       else {
                         if (LOG.isTraceEnabled()) LOG.trace("doCommitX coprocessor exception: " + cresponse.getException());
                         throw new Exception(cresponse.getException());
                       }
+                    }
                   }
+                  retry = false;
                }
-               retry = false;
-             }
-             else {
+               else {
                   for (CommitResponse cresponse : result.values()){
                     if(cresponse.getHasException()) {
                       String exceptionString = new String (cresponse.getException().toString());
-		      LOG.error("doCommitX - exceptionString: " + exceptionString);
+                      LOG.error("doCommitX - exceptionString: " + exceptionString);
                       if (exceptionString.contains("UnknownTransactionException")) {
                         if (ignoreUnknownTransaction == true) {
                           if (LOG.isTraceEnabled()) LOG.trace("doCommitX, ignoring UnknownTransactionException in cresponse");
@@ -395,9 +397,9 @@ public class TransactionManager {
                           throw new UnknownTransactionException();
                         }
                       }
-		      else if (exceptionString.contains("org.apache.hadoop.hbase.exceptions.FailedSanityCheckException")) {
-			  throw new org.apache.hadoop.hbase.exceptions.FailedSanityCheckException(cresponse.getException());
-		      }
+                      else if (exceptionString.contains("org.apache.hadoop.hbase.exceptions.FailedSanityCheckException")) {
+                         throw new org.apache.hadoop.hbase.exceptions.FailedSanityCheckException(cresponse.getException());
+                      }
                       else if(exceptionString.contains("Asked to commit a non-pending transaction")) {
                         if (LOG.isTraceEnabled()) LOG.trace("doCommitX, ignoring 'commit non-pending transaction' in cresponse");
                       }
@@ -405,31 +407,31 @@ public class TransactionManager {
                         if (LOG.isTraceEnabled()) LOG.trace("doCommitX coprocessor exception: " + cresponse.getException());
                         throw new Exception(cresponse.getException());
                       }
+                    }
                   }
+                  retry = false;
                }
-               retry = false;
-             }
-
           }
           catch (UnknownTransactionException ute) {
               LOG.error("Got unknown exception in doCommitX for transaction: " + transactionId + " " + ute);
               transactionState.requestPendingCountDec(true);
               throw new UnknownTransactionException();
           }
-	  catch (org.apache.hadoop.hbase.exceptions.FailedSanityCheckException fsce) {
-	      LOG.error("doCommitX non-retriable error: " + fsce);
-	      refresh = false;
-	      retry = false;
-	      throw fsce;
-	  }
+          catch (org.apache.hadoop.hbase.exceptions.FailedSanityCheckException fsce) {
+              LOG.error("doCommitX transaction: " + transactionId + " non-retriable error: " + fsce);
+              refresh = false;
+              retry = false;
+              throw fsce;
+          }
           catch (Exception e) {
              if(e.toString().contains("Asked to commit a non-pending transaction")) {
-               if (LOG.isDebugEnabled()) LOG.debug("doCommitX will not retry: " + e);
+               LOG.error("doCommitX transaction: "
+                         + transactionId + " will not retry: " + e);
                refresh = false;
                retry = false;
              }
              else {
-               LOG.error("doCommitX retrying due to Exception: " + e);
+               LOG.error("doCommitX retrying transaction: " + transactionId + " due to Exception: " + e);
                refresh = true;
                retry = true;
              }
@@ -438,8 +440,6 @@ public class TransactionManager {
 
              HRegionLocation lv_hrl = table.getRegionLocation(startKey);
              HRegionInfo     lv_hri = lv_hrl.getRegionInfo();
-             //String          lv_node = lv_hrl.getHostname();
-             //int             lv_length = lv_node.indexOf('.');
 
              if (LOG.isTraceEnabled()) LOG.trace("doCommitX -- location being refreshed : " + location.getRegionInfo().getRegionNameAsString() + " endKey: "
                      + Hex.encodeHexString(location.getRegionInfo().getEndKey()) + " for transaction: " + transactionId);
@@ -452,14 +452,11 @@ public class TransactionManager {
                 throw new CommitUnsuccessfulException("Exceeded retry attempts (" + retryCount + ") in doCommitX for transaction: " + transactionId);
              }
 
-//             if ((location.getRegionInfo().getEncodedName().compareTo(lv_hri.getEncodedName()) != 0) ||  // Encoded name is different
-//                 (location.getHostname().regionMatches(0, lv_node, 0, lv_length) == false)) {            // Node is different
-                if (LOG.isWarnEnabled()) LOG.warn("doCommitX -- " + table.toString() + " location being refreshed");
-                if (LOG.isWarnEnabled()) LOG.warn("doCommitX -- lv_hri: " + lv_hri);
-                if (LOG.isWarnEnabled()) LOG.warn("doCommitX -- location.getRegionInfo(): " + location.getRegionInfo());
-                table.getRegionLocation(startKey, true);
-//             }
-             if (LOG.isTraceEnabled()) LOG.trace("doCommitX -- setting retry, count: " + retryCount);
+             if (LOG.isWarnEnabled()) LOG.warn("doCommitX -- " + table.toString() + " location being refreshed");
+             if (LOG.isWarnEnabled()) LOG.warn("doCommitX -- lv_hri: " + lv_hri);
+             if (LOG.isWarnEnabled()) LOG.warn("doCommitX -- location.getRegionInfo(): " + location.getRegionInfo());
+             table.getRegionLocation(startKey, true);
+             if (LOG.isWarnEnabled()) LOG.warn("doCommitX -- setting retry, count: " + retryCount);
              refresh = false;
            }
 
@@ -952,7 +949,6 @@ public class TransactionManager {
                 org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.AbortTransactionRequest.Builder builder = AbortTransactionRequest.newBuilder();
                 builder.setTransactionId(transactionId);
                 builder.setRegionName(ByteString.copyFromUtf8(Bytes.toString(regionName)));
-
                 instance.abortTransaction(controller, builder.build(), rpcCallback);
                 return rpcCallback.get();
               }
@@ -960,9 +956,10 @@ public class TransactionManager {
 
             Map<byte[], AbortTransactionResponse> result = null;
               try {
-                      if (LOG.isTraceEnabled()) LOG.trace("doAbortX -- before coprocessorService txid: " + transactionId + " table: " +
-                        table.toString() + " startKey: " + new String(startKey, "UTF-8") + " endKey: " + new String(endKey, "UTF-8"));
-                      result = table.coprocessorService(TrxRegionService.class, startKey, endKey, callable);
+                 if (LOG.isTraceEnabled()) LOG.trace("doAbortX -- before coprocessorService txid: "
+                        + transactionId + " table: " + table.toString() + " startKey: "
+                		 + new String(startKey, "UTF-8") + " endKey: " + new String(endKey, "UTF-8"));
+                 result = table.coprocessorService(TrxRegionService.class, startKey, endKey, callable);
               } catch (Throwable e) {
                   String msg = "ERROR occurred while calling doAbortX coprocessor service";
                   LOG.error(msg + ":" + e);
@@ -970,9 +967,9 @@ public class TransactionManager {
               }
 
               if(result.size() == 0) {
-                     LOG.error("doAbortX, received 0 region results for transaction: " + transactionId);
-                     refresh = true;
-                     retry = true;
+                 LOG.error("doAbortX, received 0 region results for transaction: " + transactionId);
+                 refresh = true;
+                 retry = true;
               }
               else {
                  for (AbortTransactionResponse cresponse : result.values()) {
@@ -1781,7 +1778,8 @@ public class TransactionManager {
            }
 
         } catch (Exception e) {
-           LOG.error("exception in prepareCommit (during submit to pool): " + e);
+           LOG.error("exception in prepareCommit for transaction: "
+                + transactionState.getTransactionId() + " (during submit to pool): " + e);
            throw new CommitUnsuccessfulException(e);
         }
 
@@ -1810,8 +1808,9 @@ public class TransactionManager {
             }
           }
         }catch (Exception e) {
-          LOG.error("exception in prepareCommit (during completion processing): " + e);
-          throw new CommitUnsuccessfulException(e);
+            LOG.error("exception in prepareCommit for transaction: "
+                    + transactionState.getTransactionId() + " (during completion processing): " + e);
+            throw new CommitUnsuccessfulException(e);
         }
         if(commitError != 0)
            return commitError;
@@ -2063,15 +2062,9 @@ public class TransactionManager {
               });
            }
         } catch (Exception e) {
-          LOG.error("exception in doCommit for transaction: " + transactionState.getTransactionId() + " "  + e);
+          LOG.error("exception in doCommit for transaction: "
+                   + transactionState.getTransactionId() + " "  + e);
             // This happens on a NSRE that is triggered by a split
-/*            try {
-                abort(transactionState);
-            } catch (Exception abortException) {
-
-                LOG.warn("Exeption during abort", abortException);
-            }
-*/
           throw new CommitUnsuccessfulException(e);
         }
 

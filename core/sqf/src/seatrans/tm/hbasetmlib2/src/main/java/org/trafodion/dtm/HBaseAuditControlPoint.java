@@ -88,7 +88,7 @@ public class HBaseAuditControlPoint {
     private HTable table;
     private boolean useAutoFlush;
     private boolean disableBlockCache;
-    private static final int versions = 6;
+    private static final int versions = 10;
     private static int myClusterId;
     private static STRConfig pSTRConfig = null;
     private int TlogRetryDelay;
