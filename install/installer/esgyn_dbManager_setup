@@ -1,24 +1,4 @@
 #!/bin/bash
-# @@@ START COPYRIGHT @@@
-#
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
-#
-# @@@ END COPYRIGHT @@@
 
 export timestamp=$(date +%F-%H-%M-%S)
 export YUM_LOG=/var/log/trafodion/trafodion_yum_$timestamp.log
@@ -34,6 +14,12 @@ if [ $node_count -eq 1 ]; then
 else
     TRAF_PDSH="pdsh -R exec $MY_NODES ssh -q -n %h"
     TRAF_PDCP="pdcp -R ssh $MY_NODES"
+fi
+
+if [[ "$ENABLE_HA" == "true" ]]; then
+   DCS_HOSTNAME="$FLOATING_IP"
+else
+   DCS_HOSTNAME="$(hostname -f)"
 fi
 
 function shutDownMgblty  {
@@ -55,7 +41,7 @@ if [[ "$UTT_INSTALL" == "Y" ]]; then
    read answer
    if [ -z $answer ]; then
       if [ -z $DBM_SETUP_PACKAGE ]; then
-         echo "***ERROR: Must specify DCS tar file location."
+         echo "***ERROR: Must specify Managbility Tools tar file location."
          exit -1
       fi
    else
@@ -88,7 +74,7 @@ if [[ "$UTT_INSTALL" == "Y" ]]; then
    read answer
    if [ -z $answer ]; then
       if [ -z $DBM_PACKAGE ]; then
-         echo "***ERROR: Must specify DCS tar file location."
+         echo "***ERROR: Must specify DB Manager tar file location."
          exit -1
       fi
    else
@@ -393,7 +379,7 @@ TRAF_CANARY="$SQ_ROOT/mgblty/tcollector/collectors/300/trafcanqry.py"
 echo "***INFO: Editing TCollector startstop script with TSD_HOST and TSD_PORT"
 
 TSD_PORT="TSD_PORT=$TSD_PORT"
-DCS_MASTER_HOST=$(hostname -f)
+DCS_MASTER_HOST="$DCS_HOSTNAME"
 
 for node in $NODE_LIST
 do
@@ -451,10 +437,15 @@ function configureDBM {
 export DM_HTTP_PORT="4205"
 export DM_HTTPS_PORT="4206"
 export REST_PORT="4200"
+DBMGR_CONFIG="$DBMGR_INSTALL_DIR/conf/config.xml"
 
 echo "***INFO: Configuring DB Manager"
 
-sudo su $TRAF_USER --login --command "$DBMGR_INSTALL_DIR/bin/configure.py --httpport $DM_HTTP_PORT --httpsport $DM_HTTPS_PORT --dcshost $(hostname -f) --dcsport $DCS_PORT --password dbmgr23400 --dcsinfoport $DCS_INFO_PORT --resthost $(hostname -f) --restport $REST_PORT --tsdhost $(hostname -f) --tsdport $TSD_PORT --bosunhost $(hostname -f) --bosunport $HTTP_PORT --timezone $TIME_ZONE"
+sudo su $TRAF_USER --login --command "$DBMGR_INSTALL_DIR/bin/configure.py --httpport $DM_HTTP_PORT --httpsport $DM_HTTPS_PORT --dcshost $DCS_HOSTNAME --dcsport $DCS_PORT --password dbmgr23400 --dcsinfoport $DCS_INFO_PORT --resthost $DCS_HOSTNAME --restport $REST_PORT --tsdhost $DCS_HOSTNAME --tsdport $TSD_PORT --bosunhost $DCS_HOSTNAME --bosunport $HTTP_PORT --timezone $TIME_ZONE"
+
+if [[ $node_count -ne "1" ]]; then
+   sudo su $TRAF_USER --command "$TRAF_PDCP $DBMGR_CONFIG $DBMGR_CONFIG"
+fi
 
 }
 
