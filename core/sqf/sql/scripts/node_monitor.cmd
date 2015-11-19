@@ -42,6 +42,6 @@ fi
 
 #----  End : Setup the env to run any script - please do not edit this block
 
-$MY_SQROOT/mgblty/opentsdb/bin/tsd.sh watch 
+$MGBLTY_INSTALL_DIR/opentsdb/bin/tsd.sh watch 
 
-$MY_SQROOT/mgblty/tcollector/startstop watch 
+$MGBLTY_INSTALL_DIR/tcollector/startstop watch 

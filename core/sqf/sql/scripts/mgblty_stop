@@ -19,11 +19,16 @@
 # @@@ END COPYRIGHT @@@
 
 echo
+if [ -e $SQ_PDSH ]; then
+   L_PDSH="$PDSH $MY_NODES $PDSH_SSH_CMD"
+else
+   L_PDSH=
+fi
 echo "Stopping OpenTSD..."
-$MGBLTY_INSTALL_DIR/opentsdb/bin/tsd.sh stop
+$L_PDSH $MGBLTY_INSTALL_DIR/opentsdb/bin/tsd.sh stop
 echo
 echo "Stopping Tcollector..."
-$MGBLTY_INSTALL_DIR/tcollector/startstop stop
+$L_PDSH $MGBLTY_INSTALL_DIR/tcollector/startstop stop
 echo
 echo "Stopping DBMgr..."
 $DBMGR_INSTALL_DIR/bin/dbmgr.sh stop

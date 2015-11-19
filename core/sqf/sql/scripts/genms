@@ -205,6 +205,12 @@ echo "CACERTS_DIR=$cacertsdir"
 dcsinstalldir=$DCS_INSTALL_DIR
 echo "DCS_INSTALL_DIR=$dcsinstalldir"
 
+mgbltyinstalldir=$MGBLTY_INSTALL_DIR
+echo "MGBLTY_INSTALL_DIR=$mgbltyinstalldir"
+
+dbmgrinstalldir=$DBMGR_INSTALL_DIR
+echo "DBMGR_INSTALL_DIR=$dbmgrinstalldir"
+
 echo ""
 echo ""
 echo "# Added by gensq.pl"
