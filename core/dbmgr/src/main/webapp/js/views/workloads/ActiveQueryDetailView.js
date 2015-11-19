@@ -249,7 +249,7 @@ define([
 			if (value == "-1" || value == "" ) {
 				value = ""
 			} else {
-				if (key == "exeElapsedTime" || key == "compElapsedTime" || key == "CanceledTime"|| key == "lastSuspendTime") {
+				if (key == "exeElapsedTime" || key == "compElapsedTime" ) {
 					value = common.microsecondsToStringExtend(value);
 				}
 				if (key == "State"){
@@ -289,11 +289,15 @@ define([
 				$(ERROR_TEXT).text("");
 				if (jqXHR.responseText) {
 					$(ERROR_TEXT).text(jqXHR.responseText);
-				}else{
 					var patt = new RegExp('ERROR\[8923\]'); 
 					if (!patt.test(jqXHR.responseText)){
+						alert(jqXHR.responseText);
+						$(ERROR_CONTAINER).hide();
+						$(ERROR_TEXT).text("");
+					}else{
 						_this.clearPage();
 					}
+				}else{
 					if(jqXHR.status != null && jqXHR.status == 0) {
 						$(ERROR_TEXT).text("Error : Unable to communicate with the server.");
 					}
