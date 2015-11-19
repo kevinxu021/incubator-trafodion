@@ -867,7 +867,7 @@ public class TmAuditTlog {
       }
       LOG.info("ageCommitted is " + ageCommitted);
 
-      versions = 5;
+      versions = 10;
       try {
          String maxVersions = System.getenv("TM_TLOG_MAX_VERSIONS");
          if (maxVersions != null){
@@ -878,7 +878,7 @@ public class TmAuditTlog {
          if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_MAX_VERSIONS is not in ms.env");
       }
 
-      TlogRetryDelay = 3000; // 3 seconds
+      TlogRetryDelay = 5000; // 3 seconds
       try {
           String retryDelayS = System.getenv("TM_TLOG_RETRY_DELAY");
           if (retryDelayS != null){
@@ -889,7 +889,7 @@ public class TmAuditTlog {
           if (LOG.isDebugEnabled()) LOG.debug("TM_TLOG_RETRY_DELAY is not in ms.env");
        }
 
-      TlogRetryCount = 40;
+      TlogRetryCount = 60;
       try {
           String retryCountS = System.getenv("TM_TLOG_RETRY_COUNT");
           if (retryCountS != null){
@@ -1243,15 +1243,15 @@ public class TmAuditTlog {
          // This goes to our local TLOG
          if (LOG.isTraceEnabled()) LOG.trace("TLOG putSingleRecord synchronizing tlogAuditLock[" + lv_lockIndex + "] in thread " + threadId );
          startSynch = System.nanoTime();
-         try {
+         boolean complete = false;
+         int retries = 0;
+         do {     
+           retries++;
+    	   try {
             synchronized (tlogAuditLock[lv_lockIndex]) {
                endSynch = System.nanoTime();
-               boolean complete = false;
-               int retries = 0;
                startTimes[lv_TimeIndex] = System.nanoTime();
-               do {
                   try {
-                	 retries++;
                      if (LOG.isTraceEnabled()) LOG.trace("try table.put in thread " + threadId + ", " + p );
                      table[lv_lockIndex].put(p);
                      if ((forced) && (useAutoFlush == false)) {
@@ -1266,9 +1266,9 @@ public class TmAuditTlog {
                      }
                   }
                   catch (RetriesExhaustedWithDetailsException rewde){
-                      LOG.error("Retrying putSingleRecord for transaction: " + lvTransid + " on table "
+                      LOG.error("Retry " + retries + " putSingleRecord for transaction: " + lvTransid + " on table "
                               + table[lv_lockIndex].getTableName().toString() + " due to RetriesExhaustedWithDetailsException " + rewde);
-               	      table[lv_lockIndex].getRegionLocations();
+               	      table[lv_lockIndex].getRegionLocation(p.getRow(), true);
                       Thread.sleep(TlogRetryDelay); // 3 second default
                       if (retries == TlogRetryCount){
                          LOG.error("putSingleRecord aborting due to excessive retries for transaction: " + lvTransid + " on table "
@@ -1277,9 +1277,9 @@ public class TmAuditTlog {
                       }
                   }
                   catch (Exception e2){
-                      LOG.error("Retrying putSingleRecord for transaction: " + lvTransid + " on table "
+                      LOG.error("Retry " + retries + " putSingleRecord for transaction: " + lvTransid + " on table "
                               + table[lv_lockIndex].getTableName().toString() + " due to Exception " + e2);
-               	      table[lv_lockIndex].getRegionLocations();
+               	      table[lv_lockIndex].getRegionLocation(p.getRow(), true);
                       Thread.sleep(TlogRetryDelay); // 3 second default
                       if (retries == TlogRetryCount){
                          LOG.error("putSingleRecord aborting due to excessive retries for transaction: " + lvTransid + " on table "
@@ -1287,14 +1287,22 @@ public class TmAuditTlog {
                          System.exit(1);
                       }
                   }
-               } while (! complete && retries < TlogRetryCount);  // default give up after 5 minutes
-            } // End global synchronization
-         }
-         catch (Exception e) {
-            // create record of the exception
-            LOG.error("Synchronizing on tlogAuditLock[" + lv_lockIndex + "] for transaction:" + lvTransid + " Exception " + e);
-            throw e;
-         }
+               } // End global synchronization
+            }
+            catch (Exception e) {
+               // create record of the exception
+               LOG.error("Synchronizing on tlogAuditLock[" + lv_lockIndex + "] for transaction:" + lvTransid + " Exception " + e);
+               Thread.sleep(TlogRetryDelay); // 3 second default
+               table[lv_lockIndex].getRegionLocation(p.getRow(), true);
+               if (retries == TlogRetryCount){
+                   LOG.error("putSingleRecord retries exceeded synchronizing on tlogAuditLock[" + lv_lockIndex
+                		   + "] for transaction: " + lvTransid + " on table "
+                           + table[lv_lockIndex].getTableName().toString() + " due to Exception; Throwing exception");
+                   throw e;            	   
+               }
+            }
+
+         } while (! complete && retries < TlogRetryCount);  // default give up after 5 minutes
          if (LOG.isTraceEnabled()) LOG.trace("TLOG putSingleRecord synchronization complete in thread " + threadId );
 
          synchTimes[lv_TimeIndex] = endSynch - startSynch;
@@ -1508,7 +1516,7 @@ public class TmAuditTlog {
              throw e;
          }
          catch (Exception e){
-             LOG.error("getRecord Exception");
+             LOG.error("getRecord Exception " + e);
              throw e;
          }
       }
@@ -1789,7 +1797,7 @@ public class TmAuditTlog {
          if (LOG.isTraceEnabled()) LOG.trace("Control point record " + lvCtrlPt +
         		 " returned for table " + tLogControlPoint.getTableName());
 
-         long deleteCP = tLogControlPoint.getNthRecord(clusterId, 5);
+         long deleteCP = tLogControlPoint.getNthRecord(clusterId, versions - 2);
          if ((deleteCP) > 0){  // We'll keep 5 control points of audit
             try {
                if (LOG.isTraceEnabled()) LOG.trace("Attempting to get control point record from " + 
