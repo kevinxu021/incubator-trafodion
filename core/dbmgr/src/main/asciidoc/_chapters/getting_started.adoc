@@ -35,7 +35,7 @@ DB Manager allows the user to monitor the health and status of EsgynDB services 
 ** Drill-down into runtime statistics for a specific active query
 ** View historical query statistics from repository
 ** Drill-down into detailed query metrics
-**View visual explain plan for historical queries
+** View visual explain plan for historical queries
 ** Cancel queries that are impacting the system
 * Logs
 ** View EsgynDB logs via logs TMUDF

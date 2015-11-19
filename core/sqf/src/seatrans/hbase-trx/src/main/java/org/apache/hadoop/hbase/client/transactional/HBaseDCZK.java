@@ -408,10 +408,30 @@ public class HBaseDCZK implements Abortable {
 	    String lv_myid = get_my_id();
 	    
 	    if (pv_cluster_id.equals(lv_myid)) {
-		System.err.println("Cannot delete your own info");
+		System.out.println("Cannot delete your own info.");
 		return false;
 	    }
 	    
+	    Map<Integer, PeerInfo> lv_pi_list = list_clusters();
+	
+	    if (lv_pi_list == null) {
+		return false;
+	    }
+
+	    boolean lb_found = false;
+	    for (PeerInfo lv_pi : lv_pi_list.values()) {
+		if (lv_pi.get_id().equals(pv_cluster_id)) {
+		    lb_found = true;
+		}
+	    }
+
+	    if ( ! lb_found ) {
+		System.out.println("peer: " 
+				   + pv_cluster_id 
+				   + " does not exist");
+		return false;
+	    }
+
 	    ZKUtil.deleteNodeRecursively(m_zkw,
 					 m_clusters_node + "/" + pv_cluster_id
 					 );
@@ -802,9 +822,9 @@ public class HBaseDCZK implements Abortable {
 	System.out.println("<quorum info>     : -quorum <zookeeper quorum>");
 	System.out.println("<port info>       : -port <zookeeper client port>");
 	System.out.println("<status info>     : -status <status>");
-	System.out.println("<status>          : <Trafodion Status>:<STR Status>");
-	System.out.println("<Trafodion Status>: <Trafodion Up>(tup)| <Trafodion Down> (tdn)");
+	System.out.println("<status>          : <STR Status>");
 	System.out.println("<STR Status>      : <STR Up>      (sup)| <STR Down>       (sdn)");
+	System.out.println("<Trafodion Status>: <Trafodion Up>(tup)| <Trafodion Down> (tdn)");
 	System.out.println("<peer info>       : -peer <id>");
 	System.out.println("                  :    With this option the command is executed at the specified peer.");
 	System.out.println("                  :    (Defaults to the local cluster)");
@@ -1007,6 +1027,11 @@ public class HBaseDCZK implements Abortable {
 		}
 	    }
 	    else if (lv_cmd_set) {
+		if ((lv_status.compareTo("sup") != 0) && 
+		    (lv_status.compareTo("sdn") != 0)) {
+		    System.out.println("Status string can only be sup or sdn");
+		    System.exit(1);
+		}
 		lv_zk.set_peer_znode(lv_id, lv_quorum, lv_port, lv_status);
 	    }
 	    else if (lv_cmd_get) {
@@ -1019,11 +1044,8 @@ public class HBaseDCZK implements Abortable {
 	    else if (lv_cmd_delete) {
 		if (lv_verbose) System.out.println(lv_id);
 		lv_retcode = lv_zk.delete_peer_znode(lv_id);
-		if (! lv_retcode) {
-		    System.out.println("Error while deleting the peer znode: " + lv_id);
-		}
-		else {
-		    System.out.println("Successfully deleted the peer znode: " + lv_id);
+		if (lv_retcode) {
+		    System.out.println("Successfully deleted the info about the peer: " + lv_id);
 		}		    
 	    }
 	    else if (lv_cmd_list) {

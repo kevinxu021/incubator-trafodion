@@ -19,29 +19,36 @@
 # under the License.
 #
 # @@@ END COPYRIGHT @@@
-#
-# Add code to monitor processes/services at a node level
-#
-# The stdout is the file $MY_SQROOT/sql/scripts/stdout_nmon
-#
-#---- Begin: Setup the env to run any script - please do not edit this block
-cd $MY_SQROOT
-. $MY_SQROOT/sqenv.sh
-cd - >/dev/null
 
-# Setting this variable so that downstream scripts executed here are aware of the context
-export NODE_MONITOR_MODE=1
+TRAF_CONFIG=/etc/trafodion/trafodion_config
+source $TRAF_CONFIG
 
-# Are we also running the CMON (cluster monitor) on this node
-lv_stat=`pstat | grep service_monitor | grep '\$CMON '`
-if [[ $? == 0 ]]; then
-    export CMON_RUNNING=1
+if [ $node_count -eq 1 ]; then
+    TRAF_PDSH=""
+    TRAF_PDCP=""
 else
-    export CMON_RUNNING=0
+    TRAF_PDSH="pdsh -R exec $MY_NODES $PDSH_SSH_CMD"
+    TRAF_PDCP="pdcp -R ssh $MY_NODES"
 fi
 
-#----  End : Setup the env to run any script - please do not edit this block
 
-$MGBLTY_INSTALL_DIR/opentsdb/bin/tsd.sh watch 
+sudoFile="trafodion"
+echo "***INFO: Creating $TRAF_USER sudo access file"
+echo
 
-$MGBLTY_INSTALL_DIR/tcollector/startstop watch 
+echo "## Trafodion Floating IP commands" > $sudoFile
+echo "Cmnd_Alias IP = /sbin/ip" >>  $sudoFile
+echo "Cmnd_Alias ARP = /sbin/arping" >> $sudoFile
+ 
+echo "## Allow Trafodion id to run commands needed to configure floating IP" >> $sudoFile
+echo "%trafodion ALL = NOPASSWD: IP, ARP" >> $sudoFile
+
+
+if [[ $node_count -gt "1" ]]; then
+   $TRAF_PDCP $sudoFile $HOME
+   $TRAF_PDSH sudo cp $HOME/$sudoFile /etc/sudoers.d/
+   $TRAF_PDSH sudo rm -f $HOME/$sudoFile
+else 
+   sudo cp $TRAF_USR /etc/sudoers.d
+fi
+ 

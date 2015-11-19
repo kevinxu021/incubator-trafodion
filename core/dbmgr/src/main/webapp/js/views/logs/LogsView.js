@@ -324,7 +324,9 @@ define([
 					lastAppliedFilters.endTime = param.endTime;
 				}
 			}
-			$(FILTER_DIALOG).modal('hide');
+			if(source != null && $(source.currentTarget)[0] == $(FILTER_APPLY_BUTTON)[0]){
+				$(FILTER_DIALOG).modal('hide');
+			}
 			$(FILTER_ERROR_MSG).html('');
 
 			_this.showLoading();

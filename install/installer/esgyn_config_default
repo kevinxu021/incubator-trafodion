@@ -21,13 +21,13 @@
 # @@@ END COPYRIGHT @@@
 
 #====================================================
-# Trafodion Configuration File
+# Esgyn Configuration File
 # This file contains default values for the installer.
 
 # Users can also edit this file and provide values for all parameters
 # and then specify this file on the run line of trafodion_install.
 # Example:
-# ./trafodion_install --config_file <Trafodion-config-file>
+# ./esgynDB_install --config_file <esgyn-config-file>
 # WARNING: This mode is for advanced users! 
 #
 #=====================================================
@@ -90,9 +90,13 @@ export TRAF_PACKAGE=""
 # TRAF_BUILD is the trafodion_server tar file
 # DCS_BUILD is the DCS tar file
 # REST_BUILD is the REST tar file
+# MGBLTY_BUILD is the managabilty tools tar file (mgblty-tooks-<version>.tgz)
+# DBM_BUILD is the db manager tar file (dbmgr-<version>.tgz)
 export TRAF_BUILD=""
 export DCS_BUILD=""
 export REST_BUILD=""
+export MGBLTY_BUILD=""
+export DBM_BUILD=""
 # Either "cloudera" or "hortonworks" (all lowercase)
 export HADOOP_TYPE=""
 
@@ -144,11 +148,10 @@ export LDAP_SECURITY="N"
 export LDAP_AUTH_FILE="traf_authentication_config_${HOSTNAME}"
 
 #HA configuraton enabled, if want to enable set to true and add valid floating IP address.
-export ENABLE_HA="false"
+export ENABLE_HA="false" 
 
-#Floating IP address for HA configuration only if ENABLE_HA is set to true
+#Floating IP address for HA configuration only if ENABLE_HA is set to true 
 export FLOATING_IP=""
 
 #If HA enabled the set the DCS Backup nodes
 export BACKUP_DCS_NODES=""
-

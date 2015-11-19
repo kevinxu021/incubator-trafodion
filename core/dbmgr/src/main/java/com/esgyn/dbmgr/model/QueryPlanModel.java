@@ -119,9 +119,11 @@ public class QueryPlanModel {
 		return currDepth;
 	}
 
-	public void GeneratePlan(String userName, String password, String queryText, String controlStmts, String queryID)
+	public void GeneratePlan(String userName, String password, String queryText, String controlStmts, String queryID,
+			String queryType)
 			throws EsgynDBMgrException {
-		ArrayList<QueryPlanData> planDataArray = GetPlan(userName, password, queryText, controlStmts, queryID);
+		ArrayList<QueryPlanData> planDataArray = GetPlan(userName, password, queryText, controlStmts, queryID,
+				queryType);
 		QueryPlanArray.clear();
 		for (QueryPlanData planData : planDataArray) {
 			setQueryPlanData(planData);
@@ -132,7 +134,7 @@ public class QueryPlanModel {
 	}
 
 	public ArrayList<QueryPlanData> GetPlan(String userName, String password, String queryText, String controlStmts,
-			String queryID) throws EsgynDBMgrException {
+			String queryID, String queryType) throws EsgynDBMgrException {
 
 		ArrayList<QueryPlanData> planArray = new ArrayList<QueryPlanData>();
 		Connection connection = null;
@@ -154,33 +156,69 @@ public class QueryPlanModel {
 
 			boolean explainSuccess = false;
 			if (queryID != null && queryID.length() > 0) {
+				if (queryType != null && queryType.equalsIgnoreCase("active")) {
+					try {
+						rs = stmt
+								.executeQuery(String.format("SELECT * FROM TABLE(explain(null, 'QID=%1$s'))", queryID));
+						while (rs.next()) {
+							explainSuccess = true;
+							QueryPlanData qpd = new QueryPlanData();
+							qpd.sequenceNumber = rs.getString(4);
+							qpd.theOperator = rs.getString(5).trim();
+							qpd.leftChildSeqNum = rs.getString(6);
+							qpd.rightChildSeqNum = rs.getString(7);
+							qpd.tableName = rs.getString(8);
+							qpd.cardinality = rs.getString(9);
+							qpd.operatorCost = rs.getString(10);
+							qpd.totalCost = rs.getString(11);
+							qpd.detailCost = rs.getString(12);
+							qpd.description = rs.getString(13);
+
+							String tableName = extractTableName(qpd.description);
+							if (tableName != null && tableName.length() > 0) {
+								qpd.tableName = GetExternalTableName(tableName);
+							}
+							qpd.formattedCostDesc = computeDisplayString(qpd.detailCost, qpd.description);
+							planArray.add(qpd);
+							// System.out.println(qpd);
+						}
+
+						rs.close();
+					} catch (Exception ex) {
+						// System.out.println("Failed using EXPLAIN_QID");
+					}
+				}
+
 				try {
 					// System.out.println("Using EXPLAIN_QID first");
-					rs = stmt.executeQuery("SELECT * FROM TABLE(explain(null, 'EXPLAIN_QID=" + queryID + "'))");
-					while (rs.next()) {
-						explainSuccess = true;
-						QueryPlanData qpd = new QueryPlanData();
-						qpd.sequenceNumber = rs.getString(4);
-						qpd.theOperator = rs.getString(5).trim();
-						qpd.leftChildSeqNum = rs.getString(6);
-						qpd.rightChildSeqNum = rs.getString(7);
-						qpd.tableName = rs.getString(8);
-						qpd.cardinality = rs.getString(9);
-						qpd.operatorCost = rs.getString(10);
-						qpd.totalCost = rs.getString(11);
-						qpd.detailCost = rs.getString(12);
-						qpd.description = rs.getString(13);
+					if (!explainSuccess) {
+						rs = stmt.executeQuery(
+								String.format("SELECT * FROM TABLE(explain(null, 'EXPLAIN_QID=%1$s'))", queryID));
+						while (rs.next()) {
+							explainSuccess = true;
+							QueryPlanData qpd = new QueryPlanData();
+							qpd.sequenceNumber = rs.getString(4);
+							qpd.theOperator = rs.getString(5).trim();
+							qpd.leftChildSeqNum = rs.getString(6);
+							qpd.rightChildSeqNum = rs.getString(7);
+							qpd.tableName = rs.getString(8);
+							qpd.cardinality = rs.getString(9);
+							qpd.operatorCost = rs.getString(10);
+							qpd.totalCost = rs.getString(11);
+							qpd.detailCost = rs.getString(12);
+							qpd.description = rs.getString(13);
 
-						String tableName = extractTableName(qpd.description);
-						if (tableName != null && tableName.length() > 0) {
-							qpd.tableName = GetExternalTableName(tableName);
+							String tableName = extractTableName(qpd.description);
+							if (tableName != null && tableName.length() > 0) {
+								qpd.tableName = GetExternalTableName(tableName);
+							}
+							qpd.formattedCostDesc = computeDisplayString(qpd.detailCost, qpd.description);
+							planArray.add(qpd);
+							// System.out.println(qpd);
 						}
-						qpd.formattedCostDesc = computeDisplayString(qpd.detailCost, qpd.description);
-						planArray.add(qpd);
-						// System.out.println(qpd);
-					}
 
-					rs.close();
+						rs.close();
+					}
 
 					if (explainSuccess) {
 						rs = stmt.executeQuery("explain qid " + queryID + " from repository");

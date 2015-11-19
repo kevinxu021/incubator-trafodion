@@ -147,12 +147,16 @@ public class QueryResource {
 		String queryText = obj.get("sQuery").textValue();
 		String sControlStmts = "";
 		String sQueryID = "";
+		String sQueryType = "";
 
 		if (obj.has("sControlStmts")) {
 			sControlStmts = obj.get("sControlStmts").textValue();
 		}
 		if (obj.has("sQueryID")) {
 			sQueryID = obj.get("sQueryID").textValue();
+		}
+		if (obj.has("sQueryType")) {
+			sQueryType = obj.get("sQueryType").textValue();
 		}
 
 		try {
@@ -163,7 +167,7 @@ public class QueryResource {
 		}
 
 		QueryPlanModel qe = new QueryPlanModel();
-		qe.GeneratePlan(soc.getUsername(), soc.getPassword(), queryText, sControlStmts, sQueryID);
+		qe.GeneratePlan(soc.getUsername(), soc.getPassword(), queryText, sControlStmts, sQueryID, sQueryType);
 
 		QueryPlanResponse response = qe.getQueryPlanResponse();
 		return response;
