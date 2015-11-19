@@ -322,8 +322,15 @@ define(['moment',
 
 			this.microsecondsToStringExtend = function(microseconds){
 				var str = _this.millisecondsToString(microseconds/1000);
-				var ext = microseconds % 1000;
-				return str + "." + ext;
+				var ext = microseconds % 1000000;
+				var origin = ext.toString().split("");
+				var result = [0,0,0,0,0,0];
+				var length = origin.length;
+				var index = 6 - length;
+				for (var i = 0 ;i < length ;i++){
+					result[index+i] = origin[i];
+				}
+				return str + "." + result.join("");
 			},
 			this.microsecondsToString = function(microseconds){
 				return _this.millisecondsToString(microseconds/1000);
