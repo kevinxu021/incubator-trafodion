@@ -480,6 +480,8 @@ read answer
 if [[ ! -z $answer ]]; then
    if [[ "${answer}" =~ ^[Yy]$ ]]; then
       ENABLE_HA="true"
+   else
+      ENABLE_HA="false"
    fi
 else
    ENABLE_HA="false"
