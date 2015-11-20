@@ -454,6 +454,12 @@ fi
 
 function changePermissions {
 
+#set MGBLTY_INSTALL_DIR and DBMGR_INSTALL_DIR in sqenvcom.sh
+sudo su $TRAF_USER --command "grep --invert-match \"MGBLTY_INSTALL_DIR=\" $SQ_ROOT/sqenvcom.sh > $SQ_ROOT/sqenvcom.temp"
+sudo su $TRAF_USER --command "echo -e \"export MGBLTY_INSTALL_DIR=$MGBLTY_INSTALL_DIR\nexport DBMGR_INSTALL_DIR=$DBMGR_INSTALL_DIR\" >> $SQ_ROOT/sqenvcom.temp"
+sudo su $TRAF_USER --command "mv $SQ_ROOT/sqenvcom.temp $SQ_ROOT/sqenvcom.sh"
+sudo su $TRAF_USER --command "$TRAF_PDCP $SQ_ROOT/sqenvcom.sh $SQ_ROOT/sqenvcom.sh"
+
 $TRAF_PDSH sudo chmod -R 755 $MGBLTY_INSTALL_DIR
 $TRAF_PDSH sudo chmod -R 755 $DBMGR_INSTALL_DIR
 
