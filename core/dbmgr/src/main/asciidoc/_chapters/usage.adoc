@@ -1,14 +1,14 @@
 ////
-<!-- 
+<!--
 /**
   *(C) Copyright 2015 Esgyn Corporation
   *
-  * Confidential computer software. Valid license from Esgyn required for 
-  * possession, use or copying. Consistent with FAR 12.211 and 12.212, 
-  * Commercial Computer Software, Computer Software Documentation, and 
-  * Technical Data for Commercial Items are licensed to the U.S. Government 
+  * Confidential computer software. Valid license from Esgyn required for
+  * possession, use or copying. Consistent with FAR 12.211 and 12.212,
+  * Commercial Computer Software, Computer Software Documentation, and
+  * Technical Data for Commercial Items are licensed to the U.S. Government
   * under vendor's standard commercial license.
-  *  
+  *
   */
 -->
 ////
@@ -20,7 +20,7 @@
 :icons: font
 :experimental:
 
-This chapter describes how to connect to EsgynDB Manager and use its features. 
+This chapter describes how to connect to EsgynDB Manager and use its features.
 
 === Connecting to EsgynDB Manager
 
@@ -30,7 +30,7 @@ Open a web browser and point to the host name on which EsgynDB Manager is runnin
 http://my.esgyndb.server:4205
 ----
 
-Or 
+Or
 
 ----
 https://my.esgyndb.server:4206
@@ -74,67 +74,93 @@ The active workloads page displays the list of active EsgynDB queries. This incl
 
 The list of queries are displayed in a tabular output with the following information:
 
-*Time*:: 
+*Time*::
 The time when the information was fetched
-*Last Activity Seconds*:: 
+*Last Activity Seconds*::
 A positive number shows how long the query has been active and is still executing. A negative number shows how long since the query completed execution. Queries remain in RMS memory for 30 seconds after completion.
-*Query ID*:: 
+*Query ID*::
 The unique identifier for the query.
-*Execution State*:: 
+*Execution State*::
 The current state of the query. Valid values are OPEN, EXECUTING, DEALLOCATED or COMPLETED.
-*Query Text*:: 
+*Query Text*::
 The SQL statement of the query.
-+
-Use the *Action -> Refresh* menu to refresh the list of active queries. 
 
 You can click on the Query ID hyper-link to drill-down into the details of that specific query.
 
+Use the *Action -> Refresh* menu to refresh the list of active queries.
+
 ==== Active Query Details
-The active query details page displays a summary of the runtime metrics as well the operator level statistics for the query. The metrics are obtained from the EsgynDB Runtime Manageability Service. 
-The page is set to auto-refresh every 30 seconds by default. The metrics that have changed since the last refresh for this query, are highlighted in blue color, so you can observe how the query is progessing.
+The active query details page displays a summary of the runtime metrics as well the operator level statistics for the selected query. The metrics are obtained from the EsgynDB Runtime Manageability Service.
 
-Use the *Action -> Refresh* menu to refresh the page and reload the latest metrics for the query. 
+The metrics that have changed since the last refresh for this query, are highlighted in blue color, so you can observe how the query is progressing. For example if the operator CPU time is increasing, you know the operator and query is progressing. If the CPU time for the operator does not increase, it indicates that operator is waiting for some other resource.
 
-Use the *Action -> Cancel* menu to cancel the executing query.  
+The page is set to auto-refresh every 30 seconds by default. You can also use the *Action -> Refresh* menu to refresh the page and reload the latest metrics for the query.
+
+Click on the *Explain* button to view the explain plan for this query.
+
+Use the *Action -> Cancel* menu to cancel the executing query.
 
 ==== Historical Workloads
-The historical workloads page by default fetches the queries that completed in the last 1 hour. This information is fetched from the EsgynDB query statistics tables.
+You can use the historical workloads page to view queries that have run for longer than configured threshold (default 60 seconds).
 
-Use the *Action -> Refresh* action option to refresh the page. 
+The threshold is defined by the dcs.server.user.program.statistics.limit.time property in dcs-site.xml. If this property is not explicitly set, then the default value of 60 seconds apply.
 
-You can use the *Filters* option to specify your search parameters. Using the filter dialog, you can search for queries that ran during a specific time range by specific applications or users.
+Queries that exceed this run threshold are recorded in the EsgynDB manageability repository tables in the "\_REPOS_" schema. The historical workloads page fetches the query summary from the *"\_REPOS_".METRIC_QUERY_TABLE*.
+
+By default the page displays the queries that either started or completed in the last 1 hour or is still executing. You can use the *Filters* option to change your search parameters. In the filter dialog, you can specify different time range or use additional filters like specific application names or user names or queries that match a particular query text. All the filter predicates are applied using *AND* operator, meaning that only queries that match all the filter predicates are returned.
+
+Use the *Action -> Refresh* action option to refresh the page.
 
 You can click on the Query ID hyper-link to drill-down into the details of a particular query.
 
 ==== Historical Query Detail
-The historical query details page displays the details for the query. The details are grouped together as summary, compile time metrics and run time metrics. You can compare the compile time metrics to the run time metrics and analyze the query behavior.
+The historical query details page displays the details for the selected query. The details are grouped together as summary, query text, connection metrics, compile time metrics and run time metrics. The compile metrics includes estimates from the compiler. The runtime metrics are the actuals reported by the Runtime Manageability Service. You can compare the compile time metrics to the run time metrics and analyze the query behavior.
 
-Use the *Explain* hyper-link to view the explain plan for this query.
+Click on the *Explain* button to view the explain plan for this query.
 
-Use the *Action -> Cancel* menu to cancel the query, if the query is a long running query and is still executing.  
+Use the *Action -> Cancel* menu to cancel the query, if the query is a long running query and is still executing.
 
-==== Query Explain Plan
+==== Query Plan
 The Query Plan page displays the Query ID, the query text, a visual explain plan and a textual explain plan.
+
+For a query that is currently active, the textual plan may not show initially. If the query ran longer than a minute, then the textual plan is obtained from the repository and displayed.
+
+Use the *Action -> Refresh* menu to refresh the page and reload the visual and textual plans.
 
 If you click on a specific node in the explain tree, you will see the metrics for that specific operator in a pop-up dialog.
 
-You can use the *Action -> Cancel* menu to cancel the query if the query is still executing.  
+You can use the *Action -> Cancel* menu to cancel the query if the query is still executing.
 
 ==== Cancel Query
-You can invoke the cancel action from any of the workload pages. If the query is in EXECUTING state, a cancel request will be submitted to EsgynDB engine and provided the user has the necessary privileges to cancel the query, the query will be cancelled by the engine.
+You can invoke the cancel action from the Active Workload Detail, Historical Workload Detail and Query Plan pages. If the query is in EXECUTING state, a cancel request will be submitted to EsgynDB engine and provided the user has the necessary privileges to cancel the query, the engine would schedule a cancel of the query.
 
 === Logs
-The Logs page displays the log messages from the EsgynDB processes. The logs are fetched using the logs TMUDF which filters the log entries from the EsgynDB log files and provides a single consolidated view.
+The Logs page displays the log messages from the EsgynDB processes. The logs are fetched using the logs TMUDF which filters the log entries from all the EsgynDB log files and provides a single consolidated and time sequenced view.
 
-Use the Filters button to specify custom filters for your search. You can filter the log entries using a time range, specific severity levels, component names, process names, error codes or message text.
+The Log details include the following:
 
-The components are:
+*Time*::
+The time when the log event occurred
+*Severity*::
+The event severity (FATAL/ERROR/WARN/INFO/DEBUG)
+*Component*::
+The EsgynDB component name reporting the event
+*Process*::
+The component process reporting the event
+*Error Code*::
+Error code if applicable. SQL Errors have error codes.
+*Message*::
+The event message
+
+Use the *Filters* button to specify custom filters for your search. You can filter the log entries using a time range, specific severity levels, component names, process names, error codes or message text.
+
+The table below describes the component names:
 [options="header"]
 |===========================
 |Component Name |Description
 |MON | Monitor
 |MXOSRVR | Master Executor
-|SQL | SQL 
+|SQL | SQL
 |SQL.COMP | Compiler
 |SQL.ESP | Executor Server Process
 |SQL.EXE | Master Executor SQL
@@ -143,40 +169,78 @@ The components are:
 |SQL.SSMP | Runtime Manageability Service
 |SQL.UDR | User Defined Routines
 |WDG | Watchdog
-|DCS | Connectivity Service
+|DCS | Connectivity Servers
 |===========================
 
 === DCS Servers
-The DCS Servers page displays the current active DCS Server sessions. If the DCS server is in a connected state, you will see the user name, the application name and client workstation that is connected.
+The DCS Servers page displays the current active DCS Server sessions and the available DCS servers. If the DCS server is in a connected state, you will see the user name, the application name and client workstation that is connected.
+
+If a client connection is rejected with error message that no more DCS servers are available, you can use this page to confirm that all DCS servers are used up.
+
+To increase the number of DCS servers, increase the number of configured servers in the *$DCS_INSTALL_DIR/conf/servers* file and restart DCS.
+
 
 === Query Workbench
-The query workbench page allows you to execute ad hoc queries and view the results in a tabular form or to generate a visual explain plan.
+The query workbench page allows you to execute ad hoc queries and view the results in a tabular form or to generate a visual and textual explain plan.
 
-Type the SQL query text in the Query text area. The query text should in valid EsgynDB query syntax. If not the engine will reject and report an error.
+Type the SQL query text in the Query text area. The query text should in valid EsgynDB query syntax. You can a use single EsgynDB SQL statement. It can be a DDL or DML statement. Compound SQL statements are not supported.
+
+The SQL statement should conform to EsgynDB SQL syntax and any errors reported by the engine are displayed with full error text.
+
 
 ==== Execute Query
-You can use the *Execute* button to execute the query. For a query that returns a result set, the results are displayed in a tabular format. For a query that is not SELECT or returns a scalar results, the results are displayed as normal text.
-If the engine rejects the SQL query, the entire SQL exception is displayed in the screen.
+Use the *Execute* button to execute the query. For a query that returns a result set, the results are displayed in a tabular format. For non-select queries or queries that returns a scalar result, the results are displayed as normal text.
 
 ==== Explain Plan
-You can use the *Explain* button to generate an explain plan for the query. You get a visual explain in a tree graph and also a textual plan. You can right mouse click on the graph and move the graph around or use your mouse scroll key to zoom-in and zoom-out the graph. If you click on a specific node in the tree, you can see the details and cost for that specific operator. 
+You can use the *Explain* button to generate an explain plan for the query. You get a visual explain in a tree graph and also a textual plan. You can right mouse click on the graph and move the graph around or use your mouse scroll key to zoom-in and zoom-out the graph. If you click on a specific node in the tree, you can see the details and cost for that specific operator in a pop-up window.
 
 ==== Control Options
 The Control options allow you enter SET statements or Control Query statements that can influence the query plan and execution. You can use these options to tune your query performance. Refer to the SQL Reference manual for more details on the SET and Control query commands.
 
 === Alerts
-DB Manager uses Bosun to monitor key system or workload metrics and generate notifications based on rule templates. You can configure rule templates and notification templates in bosun. When the rules evaluate to true, the alerts are notified.
+DB Manager uses Bosun to monitor key system or workload metrics and generate notifications based on rule templates. You can configure rule templates and notification templates in Bosun. When the rules evaluate to true, the alerts are notified.
 
-Using the Alerts page in DB Manager, you can view all active alerts for the given time range. 
+You configure your Bosun alert definitions in the $MGBLTY_INSTALL_DIR/bosun/conf/bosun.conf file. Refer to the Bosun documentation at https://bosun.org/documentation.html for instructions on how to define the alert rule and notification templates.
+
+Additionally, refer to the OpenTSDB documentation and the TCollector documentation to understand the type of metrics that can be available and how to write the TSDB query expression that will be used in your Bosun alert template.
+http://opentsdb.net/docs/build/html/index.html
+http://opentsdb.net/docs/build/html/user_guide/utilities/tcollector.html
+
+Using the Alerts page in DB Manager, you can view all active alerts for the given time range.
+The Alerts summary displays all the open and active alerts. You can narrow down the filter predicates using the *Filter* button and find alerts for specific time range and/or alert status and/or severity and/or alert text.
+
+The Alert summary includes:
+
+*Time*::
+The time when the alert notification was generated.
+*Alert Key*::
+The Alert Key
+*Alert*::
+The subject text of the alert notification.
+*Status*::
+Status of the alert. Acknowledged or Un-Acknowledged.
+*Severity*::
+Severity State of the alert. Critical/Warning/Normal/Unknown.
+*Active*::
+Indicates if the alert is still active, meaning if the alert trigger condition still exists. Only inactive alerts can be closed.
+
+
+*Silenced*::
+Indicates if the alert has been silenced.
+
+Click on the Alert Key hyperlink to drill-down into the details of a specific alert.
 
 ==== Alert Details
-In the alerts page, you can click on a specific alert key and you can view the details of the alert. The details include summary information as well as the detail information that was sent out as a notification.
+The alert detail page displays all the details of the alert. This includes the alert summary information as well as the detail information that was sent out in the notification. For example if you had configured the alert template to include graphs, the display includes the graphs as well.
+
+If the alert has been acknowledged already by a user, it shows who acknowledged or closed the alert, when the alert was updated and the notes entered during the update.
 
 Use the Actions menu to update the alert. You can acknowledge new alerts and enter a comment. For alerts that are no longer active, meaning the alert condition is no longer true, you can close the alerts.
+
+Refer to the Bosun documentation at https://bosun.org/documentation.html for more details.
 
 === About
 Use the *Help->About* to view the version of DB Manager. The page also displays the version of the EsgynDB instance you are currently connected to. When you contact Esgyn for DB Manager technical support, provide the information in the About page.
 
 === Log Out
 You can click on the user icon at the top right corner of the application and select the *Logout* option.
-

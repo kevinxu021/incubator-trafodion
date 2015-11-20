@@ -31,7 +31,7 @@ EsgynDB Manager is installed in *$MY_SQROOT/dbmgr-{projectVersion}* folder.
 You can obtain a licensed version of DB Manager by contacting Esgyn.
 +
 ** Download the EsgynDB Manager binary *dbmgr-{projectVersion}.tar.gz* file to your target system.
-** Untar the contents to the target directory. A *dbmgr-{projectVersion}* sub-directory will be created.
+** Extract the contents to the target directory. A *dbmgr-{projectVersion}* sub-directory will be created.
 +
 [source,bash,subs="attributes"]
 ----
@@ -90,9 +90,9 @@ The hostname or IP address for the node on which EsgynDB REST server is listenin
 The listen port number for EsgynDB REST Server. 
 The default value is 4200.
 *TSD Host*::
-*Only enabled and used in Enterprise Edition*. The hostname or IP address for the node on which TSD is listening. DB Manager uses this property to make a HTTP connection to OpenTSDB to query the timeseries metrics.
+*Only enabled and used in Enterprise Edition*. The hostname or IP address for the node on which TSD is listening. DB Manager uses this property to make a HTTP connection to OpenTSDB to query the time series metrics.
 *TSD Port*::
-*Only enabled and used in Enterprise Edition*. The listen port number for TSD. DB Manager uses this property to make a HTTP connection to OpenTSDB to query the timeseries metrics.
+*Only enabled and used in Enterprise Edition*. The listen port number for TSD. DB Manager uses this property to make a HTTP connection to OpenTSDB to query the time series metrics.
 The default value is 5242.
 *Bosun Host*::
 *Only enabled and used in Enterprise Edition*. The hostname or IP address for the node on which Bosun notification engine is listening. DB Manager uses this property to make a HTTP connection to Bosun to query and update alert notifications.
