@@ -146,6 +146,6 @@ cat <<EOF > ${lv_hbase_site_xml}
 </configuration>
 EOF
 
-$JAVA_HOME/bin/java org.apache.hadoop.hbase.client.transactional.HBaseDCZK -set -id ${lv_peer_id} -quorum ${lv_zookeeper_quorum} -port ${lv_zookeeper_port} -status hupsup 2>/dev/null
+$JAVA_HOME/bin/java org.apache.hadoop.hbase.client.transactional.HBaseDCZK -set -id ${lv_peer_id} -quorum ${lv_zookeeper_quorum} -port ${lv_zookeeper_port} -status sup 2>/dev/null
 
 exit 0
