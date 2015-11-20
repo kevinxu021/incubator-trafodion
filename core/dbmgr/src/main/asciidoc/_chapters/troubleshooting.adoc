@@ -1,0 +1,55 @@
+////
+/**
+  *(C) Copyright 2015 Esgyn Corporation
+  *
+  * Confidential computer software. Valid license from Esgyn required for
+  * possession, use or copying. Consistent with FAR 12.211 and 12.212,
+  * Commercial Computer Software, Computer Software Documentation, and
+  * Technical Data for Commercial Items are licensed to the U.S. Government
+  * under vendor's standard commercial license.
+  *
+  */
+////
+[[architecture]]
+== Troubleshooting and Support
+:doctype: book
+:numbered:
+:toc: left
+:icons: font
+:experimental:
+
+=== Troubleshooting
+Use these common tips to troubleshoot any display issues with EsgynDB Manager.
+
+* Cannot login to DB Manager
+** Check the browser URL for accuracy. Make sure you have the right host name and port number.
+** Verify that the DB Manager ports (4205/4206) are not blocked by any firewall.
+** Check if DB Manager is running. Use the *mgblty_check* or *dbmgr.sh status* to confirm EsgynDB Manager is running.
+** If DB Manager is up, verify that DCS, REST and EsgynDB is up and running.
+*** sqcheck
+*** dcscheck
+*** jps  (to check if TrafodionRest server is running)
+
+* Page is blank or partially loaded
+** It could be a transient error like browser load timeouts. Refresh your page and try again.
+** Sometimes refreshing the browser cache also helps.
+** Check the browser console for errors.
+
+* The Datetime values do not look right
+** DB Manager displays all datetime values in the servers local time zone
+** Make sure the timeZoneName property in the DB Manager config.xml matches the EsgynDB server time zone
+** Make sure the timezoneName is specified the correct canonical form like America/Los_Angeles or Asia/Shanghai or Etc/UTC etc..
+
+*Note:* You will need to restart DB Manager anytime you change property values in config.xml
+
+=== Support
+When contacting Esgyn Support, the following information will be handy and requested:
+
+* Latest logs in *$MY_SQROOT/dbmgr-1.0.0/logs/*
+* $MY_SQROOT/dbmgr-1.0.0/config.xml
+* EsgynDB Manager version information from the About page
+
+For UI issues:
+
+* A screen shot of the error
+* If error is reproducible, a description of the sequence of actions the user performed to reproduce the error.

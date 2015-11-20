@@ -47,3 +47,5 @@ include::_chapters/getting_started.adoc[]
 include::_chapters/architecture.adoc[]
 include::_chapters/configuration.adoc[]
 include::_chapters/usage.adoc[]
+include::_chapters/troubleshooting.adoc[]
+
