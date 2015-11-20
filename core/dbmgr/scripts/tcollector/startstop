@@ -73,7 +73,7 @@ start () {
     echo "$(date +%F_%T): Starting $PROG"
     # eval is neccesary for zsh support as multiple-word variables are not 
     # split into words by default, see zsh help for SH_WORD_SPLIT.
-    eval "$PYTHON $PROG $ARGS" >> $LOG 2>&1 &
+    eval "$PYTHON $PROG $ARGS &" >> $LOG 2>&1 
     echo "$(date +%F_%T): Started collectors"
 }
 
