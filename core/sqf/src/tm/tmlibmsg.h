@@ -889,6 +889,7 @@ typedef struct statustransmgmt_rsp {
 typedef struct gettransinfo_rsp {
     int32 iv_seqnum;
     int32 iv_node;
+    int32 iv_clusterid;
     int16 iv_incarnation_num;
     int16 iv_tx_flags;
     TM_TT_Flags iv_tt_flags;

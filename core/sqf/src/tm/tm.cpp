@@ -1071,6 +1071,7 @@ void tm_process_req_status_gettransinfo(CTmTxMessage *pp_msg)
    TM_Transid lv_fulltransid(*(lp_tx->transid()));
    pp_msg->response()->u.iv_gettransinfo.iv_seqnum          = lp_tx->seqnum();
    pp_msg->response()->u.iv_gettransinfo.iv_node             = lp_tx->node();
+   pp_msg->response()->u.iv_gettransinfo.iv_clusterid        = lp_tx->clusterid();
    pp_msg->response()->u.iv_gettransinfo.iv_incarnation_num  = lv_fulltransid.get_incarnation_num();
    pp_msg->response()->u.iv_gettransinfo.iv_tx_flags         = lv_fulltransid.get_tx_flags();
    u.lv_tt_flags_int64                                       = lp_tx->TT_flags();

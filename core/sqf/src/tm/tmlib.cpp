@@ -1770,6 +1770,7 @@ short DTM_STATUSALLTRANS(TM_STATUS_ALL_TRANS pa_trans[], short *pp_count, int pv
 short DTM_GETTRANSINFO(int64 pv_transid, 
                        int32 *pp_seq_num, 
                        int32 *pp_node,
+		       int32 *pp_clusterid, 
                        int16 *pp_incarnation_num, 
                        int16 *pp_tx_flags,
                        TM_TT_Flags *pp_tt_flags, 
@@ -1797,6 +1798,7 @@ short DTM_GETTRANSINFO(int64 pv_transid,
         lv_error = DTM_GETTRANSINFO_EXT(lv_transid_type, 
                                         pp_seq_num, 
                                         pp_node, 
+					pp_clusterid,
                                         pp_incarnation_num, 
                                         pp_tx_flags, 
                                         pp_tt_flags,
@@ -1826,6 +1828,7 @@ short DTM_GETTRANSINFO(int64 pv_transid,
 // -----------------------------------------------------------------
 short DTM_GETTRANSINFO_EXT(TM_Transid_Type pv_transid, 
                            int32 *pp_seq_num, 
+			   int32 *pp_clusterid, 
                            int32 *pp_node,
                            int16 *pp_incarnation_num, 
                            int16 *pp_tx_flags,
@@ -1870,6 +1873,10 @@ short DTM_GETTRANSINFO_EXT(TM_Transid_Type pv_transid,
         if(pp_node != NULL) {
             memcpy(pp_node, &lv_rsp.u.iv_gettransinfo.iv_node, 
                 (sizeof(lv_rsp.u.iv_gettransinfo.iv_node)));  
+        }
+        if(pp_clusterid != NULL) {
+            memcpy(pp_clusterid, &lv_rsp.u.iv_gettransinfo.iv_clusterid, 
+                (sizeof(lv_rsp.u.iv_gettransinfo.iv_clusterid)));  
         }
         if(pp_incarnation_num != NULL) {
             memcpy(pp_incarnation_num, &lv_rsp.u.iv_gettransinfo.iv_incarnation_num, 
@@ -1920,7 +1927,7 @@ short DTM_GETTRANSINFO_EXT(TM_Transid_Type pv_transid,
 // -----------------------------------------------------------------
 short DTM_GETTRANSIDSTR(int64 pv_transid, char *pp_transidstr)
 {
-    int32 lv_seq_num, lv_node;
+    int32 lv_seq_num, lv_node, lv_clusterid;
     int16 lv_incarnation_num;
     short lv_error = FEOK;
 
@@ -1930,7 +1937,10 @@ short DTM_GETTRANSIDSTR(int64 pv_transid, char *pp_transidstr)
     if (gp_trans_thr == NULL)
        gp_trans_thr = new TMLIB_ThreadTxn_Object();
     
-    lv_error = DTM_GETTRANSINFO(pv_transid, &lv_seq_num, &lv_node, 
+    lv_error = DTM_GETTRANSINFO(pv_transid, 
+				&lv_seq_num, 
+				&lv_node, 
+				&lv_clusterid,
                                 &lv_incarnation_num, NULL, 
                                 NULL, NULL, NULL,
                                 NULL);

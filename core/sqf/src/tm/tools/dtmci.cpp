@@ -949,7 +949,7 @@ void process_statustransaction(const char *transid)
    u.iv_int_txid = 0;
 
    if (!strchr(transid, ',')) {
-       lv_error = DTM_STATUSTRANSACTION(atoi(transid), &lv_trans_info);
+       lv_error = DTM_STATUSTRANSACTION(atol(transid), &lv_trans_info);
    }
    else {
        strncpy(la_transid_node, transid, TRANSID_LEN);
@@ -1019,6 +1019,7 @@ void process_gettransinfo(const char *transid, bool pv_string_cmd)
 
    int32 *lp_seq_num = new int32();
    int32 *lp_node = new int32();
+   int32 *lp_clusterid = new int32();
    int16 *lp_incarnation_num = new int16();
    int16 *lp_tx_flags = new int16();
    TM_TT_Flags *lp_tt_flags = new TM_TT_Flags();
@@ -1045,9 +1046,10 @@ void process_gettransinfo(const char *transid, bool pv_string_cmd)
    u.iv_int_txid = 0;
 
    if (!strchr(transid, ',')) {
-       lv_error = DTM_GETTRANSINFO(atoi(transid), 
+       lv_error = DTM_GETTRANSINFO(atol(transid), 
                                    lp_seq_num, 
                                    lp_node, 
+                                   lp_clusterid, 
                                    lp_incarnation_num, 
                                    lp_tx_flags,
                                    lp_tt_flags,
@@ -1068,6 +1070,7 @@ void process_gettransinfo(const char *transid, bool pv_string_cmd)
        lv_error = DTM_GETTRANSINFO(u.iv_int_txid, 
                                    lp_seq_num, 
                                    lp_node, 
+                                   lp_clusterid, 
                                    lp_incarnation_num, 
                                    lp_tx_flags,
                                    lp_tt_flags,
@@ -1096,7 +1099,7 @@ void process_gettransinfo(const char *transid, bool pv_string_cmd)
          u_flag.iv_tt_flags = *lp_tt_flags; 
          //output regular transid command output
          printf("Transid         Node    Seq #    Incarn    TX Flags    TT Flags\n");
-         print_transid_str(-1, *lp_node, *lp_seq_num);
+         print_transid_str(*lp_clusterid, *lp_node, *lp_seq_num);
 #if __WORDSIZE == 64
          printf("%-4d    %-5d    %-6d    0x%-6x    0x%-6lx\t\n", *lp_node, *lp_seq_num,
                 *lp_incarnation_num, *lp_tx_flags, u_flag.iv_int_tt_flags);
