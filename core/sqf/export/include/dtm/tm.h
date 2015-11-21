@@ -322,10 +322,12 @@ extern "C" short DTM_DRAINTRANSACTIONS(int32 pv_node, bool pv_immediate);
 extern "C" short LISTTRANSACTION(TM_LIST_TRANS pa_trans[], short *pp_count, int pv_node);
 extern "C" short TMSTATS(int pv_node, TM_TMSTATS *pp_tmstats, bool pv_reset = false);
 extern "C" short DTM_GETTRANSINFO(int64 pv_transid, int32 *pp_seq_num, int32 *pp_node,
+				  int32 *pp_clusterid,
                                   int16 *pp_incarnation_num, int16 *pp_tx_flags,
                                   TM_TT_Flags *pp_tt_flags, int16 *pp_version,
                                   int16 *pp_checksum, int64 *pp_timestamp);
 extern "C" short DTM_GETTRANSINFO_EXT(TM_Transid_Type pv_transid, int32 *pp_seq_num, int32 *pp_node,
+				      int32 *pp_clusterid,
                                       int16 *pp_incarnation_num, int16 *pp_tx_flags,
                                       TM_TT_Flags *pp_tt_flags, int16 *pp_version,
                                       int16 *pp_checksum, int64 *pp_timestamp);

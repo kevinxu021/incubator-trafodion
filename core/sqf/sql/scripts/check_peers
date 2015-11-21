@@ -29,10 +29,18 @@ fi
 
 if [[ ${#lv_peers} > 0 ]]; then
     for lv_peer in $lv_peers; do
-	hbcheck -p ${lv_peer} $*
+	xdc -get ${lv_peer} | grep '\-sup'
 	lv_ret=$?
 	if [[ ${lv_ret} != 0 ]]; then
-	    exit 1;
+	    xdc -get ${lv_peer}
+	    echo "The STR status of peer ${lv_peer} is DOWN. Skipping its check..."
+	else
+	    echo "Checking the STR status of peer ${lv_peer}"
+	    hbcheck -p ${lv_peer} $*
+	    lv_ret=$?
+	    if [[ ${lv_ret} != 0 ]]; then
+		exit 1;
+	    fi
 	fi
     done
 fi

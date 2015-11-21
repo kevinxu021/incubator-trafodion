@@ -338,6 +338,9 @@ public class HBaseTxClient {
             for ( Map.Entry<Integer, HConnection> entry : pSTRConfig.getPeerConnections().entrySet()) {
                int lv_peerId = entry.getKey();
                if (lv_peerId == 0) continue;
+	       if (! pSTRConfig.getPeerStatus(lv_peerId).contains(PeerInfo.STR_UP)) {
+		   continue;
+	       }
                lv_connection = entry.getValue();
                lv_config = pSTRConfig.getPeerConfiguration(lv_peerId);
                try{
