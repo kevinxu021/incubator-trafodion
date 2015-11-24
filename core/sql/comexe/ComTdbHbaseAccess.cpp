@@ -134,6 +134,8 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   encodedKeyExpr_(encodedKeyExpr),
   keyColValExpr_(keyColValExpr),
   insDelPreCondExpr_(NULL),
+  insConstraintExpr_(NULL),
+  updConstraintExpr_(NULL),
   hbaseFilterExpr_(hbaseFilterExpr),
   hbTagExpr_(hbTagExpr),
 
@@ -246,6 +248,8 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   encodedKeyExpr_(NULL),
   keyColValExpr_(NULL),
   insDelPreCondExpr_(NULL),
+  insConstraintExpr_(NULL),
+  updConstraintExpr_(NULL),
   hbaseFilterExpr_(NULL),
   hbTagExpr_(NULL),
 
@@ -322,7 +326,7 @@ ComTdbHbaseAccess::~ComTdbHbaseAccess()
 Int32
 ComTdbHbaseAccess::numExpressions() const
 {
-  return(17);
+  return(19);
 }
  
 // Return the expression names of the explain TDB based on some 
@@ -366,6 +370,10 @@ ComTdbHbaseAccess::getExpressionName(Int32 expNum) const
       return "preCondExpr";
     case 16:
       return "hbTagExpr";
+    case 17:
+      return "insConstraintExpr";
+    case 18:
+      return "updConstraintExpr";
     default:
       return 0;
     }  
@@ -412,6 +420,10 @@ ComTdbHbaseAccess::getExpressionNode(Int32 expNum)
       return insDelPreCondExpr_;
     case 16:
       return hbTagExpr_;
+    case 17:
+      return insConstraintExpr_;
+    case 18:
+      return updConstraintExpr_;
     default:
       return NULL;
     }  
@@ -433,6 +445,8 @@ Long ComTdbHbaseAccess::pack(void * space)
   encodedKeyExpr_.pack(space);
   keyColValExpr_.pack(space);
   insDelPreCondExpr_.pack(space);
+  insConstraintExpr_.pack(space);
+  updConstraintExpr_.pack(space);
   hbaseFilterExpr_.pack(space);
   hbTagExpr_.pack(space);
   colFamNameList_.pack(space);
@@ -502,6 +516,8 @@ Lng32 ComTdbHbaseAccess::unpack(void * base, void * reallocator)
   if(encodedKeyExpr_.unpack(base, reallocator)) return -1;
   if(keyColValExpr_.unpack(base, reallocator)) return -1;
   if(insDelPreCondExpr_.unpack(base, reallocator)) return -1;
+  if(insConstraintExpr_.unpack(base, reallocator)) return -1;
+  if(updConstraintExpr_.unpack(base, reallocator)) return -1;
   if(hbaseFilterExpr_.unpack(base, reallocator)) return -1;
   if(hbTagExpr_.unpack(base, reallocator)) return -1;
   if(colFamNameList_.unpack(base, reallocator)) return -1;

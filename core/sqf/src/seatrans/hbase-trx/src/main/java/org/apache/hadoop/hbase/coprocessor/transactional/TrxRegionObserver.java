@@ -537,7 +537,7 @@ public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
     }
   }
 
-   //        Trafodion Recovery : after Open, we should have already constructed all the indoubt transactions in
+   //        Trafodion Recovery : after Open, we should have alreday constructed all the indoubt transactions in
    //        pendingTransactionsById now process it and construct transaction list by TM id. These two data
    //        structures are put in the reference map which is shared with TrxRegionEndpoint coprocessor class per region 
 

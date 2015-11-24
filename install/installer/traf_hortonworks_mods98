@@ -66,6 +66,7 @@ else
     echo "***ERROR: unable to determine Hadoop's java version"
     exit -1
 fi
+traf_util_jar="trafodion-utility-${TRAF_VERSION}.jar"
 
 traf_util_jar="trafodion-utility-${TRAF_VERSION}.jar"
 
@@ -97,6 +98,7 @@ if [ $node_count -ne 1 ]; then
     $PDCP $MY_HADOOP_NODES $LOCAL_WORKDIR/$traf_util_jar $LOCAL_WORKDIR
     $PDSH $MY_HADOOP_NODES $PDSH_SSH_CMD sudo cp $LOCAL_WORKDIR/$traf_util_jar $HADOOP_PATH
     $PDSH $MY_HADOOP_NODES $PDSH_SSH_CMD sudo cp $LOCAL_WORKDIR/$hbase_trx_jar $HADOOP_PATH
+    $PDSH $MY_HADOOP_NODES $PDSH_SSH_CMD sudo cp $LOCAL_WORKDIR/$traf_util_jar $HADOOP_PATH
     $PDSH $MY_HADOOP_NODES $PDSH_SSH_CMD sudo chmod 644 $HADOOP_PATH/$hbase_trx_jar
     $PDSH $MY_HADOOP_NODES $PDSH_SSH_CMD sudo chmod 644 $HADOOP_PATH/$traf_util_jar
 

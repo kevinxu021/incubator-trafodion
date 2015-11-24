@@ -2992,6 +2992,9 @@ CollIndex ScanOptimizer::getEstNumActivePartitionsAtRuntime() const
     }
   }
 
+  if ( actParts > 1 ) 
+     actParts = MINOF(actParts, getFileScan().getComputedNumOfActivePartiions());
+
   return actParts;
 }
 
@@ -3025,6 +3028,9 @@ CollIndex ScanOptimizer::getEstNumActivePartitionsAtRuntimeForHbaseRegions() con
   // be one, use that value
   if (estActParts == 1 AND (CmpCommon::getDefault(NCM_HBASE_COSTING) == DF_ON))
     actParts = estActParts;
+
+  if ( actParts > 1 ) 
+     actParts = MINOF(actParts, getFileScan().getComputedNumOfActivePartiions());
 
   return actParts;
 }
@@ -8462,6 +8468,7 @@ void MDAMCostWA::compute()
 // 	  // invalidate the cache
 // 	  disjunctsFR_.reset();
 // 	  disjunctsLR_.reset();
+          MDAM_DEBUG0(MTL2, "Mdam scan lost because disjunctMdamOK_ is false");
 	  return;
 	}
 
@@ -8590,6 +8597,7 @@ void MDAMCostWA::compute()
 // 	  // invalidate the cache
 // 	  disjunctsFR_.reset();
 // 	  disjunctsLR_.reset();
+          MDAM_DEBUG0(MTL2, "Mdam scan lost due to exceeding cost bound");
           return;
 	}
       }
@@ -8625,9 +8633,11 @@ void MDAMCostWA::computeDisjunct()
   if( NOT (allKeyPredicates) )
     noExePreds_ = FALSE;
 
+
   // return with a NULL cost if there are no key predicates
   // "costBoundPtr_ == NULL" means "MDAM is forced"
   if (disjunctKeyPreds.isEmpty() AND costBoundPtr_ != NULL) {
+    MDAM_DEBUG0(MTL2, "MDAMCostWA::computeDisjunct(): disjunctKeyPreds is empty"); 
     disjunctMdamOK_ = FALSE;
     return; // full table scan, MDAM is worthless here
   }
@@ -8693,8 +8703,10 @@ void MDAMCostWA::computeDisjunct()
 	     (currKeyColumn->getType() ==
 	      KeyColumns::KeyColumn::INLIST) );
       
-      if( NOT conflict ) // single subset should be chosen.
+      if( NOT conflict ) { // single subset should be chosen.
+        MDAM_DEBUG0(MTL2, "MDAMCostWA::computeDisjunct(): conflict predicate for single subset, force MDAM off"); 
 	mdamMakeSense = FALSE;
+      }
     }
   }
 
@@ -8708,7 +8720,9 @@ void MDAMCostWA::computeDisjunct()
    (!checkMDAMadditionalRestriction(keyPredsByCol,optimizer_.computeLastKeyColumnOfDisjunct(keyPredsByCol),noOfmissingKeyColumnsTot,presentKeyColumnsTot))
    )
   {
-  mdamMakeSense = FALSE;
+        
+    MDAM_DEBUG0(MTL2, "MDAMCostWA::computeDisjunct(): MDAM additional restriction check failed"); 
+    mdamMakeSense = FALSE;
   }
   disjunctMdamOK_ = mdamMakeSense;
 }

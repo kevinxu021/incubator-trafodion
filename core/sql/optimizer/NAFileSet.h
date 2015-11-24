@@ -161,6 +161,7 @@ public:
   Lng32 getRecordLength() const             { return recordLength_; }
   Lng32 getLockLength() const             { return lockLength_; }
   Lng32 getKeyLength();
+  Lng32 getEncodedKeyLength();
   Lng32 getBlockSize() const                   { return blockSize_; }
 
   Int32 getIndexLevels() const                   { return indexLevels_; }
@@ -239,6 +240,8 @@ public:
   
   const NAColumnArray & getPartitioningKeyColumns() const
                                        { return partitioningKeyColumns_; }
+
+  NAString getBestPartitioningKeyColumns(char separator) const;
 
   PartitioningFunction * getPartitioningFunction() const
                                                      { return partFunc_; }
@@ -331,6 +334,11 @@ private:
   // Key length in bytes.
   //----------------------------------------------------------------------
   Lng32 keyLength_;
+
+  // ---------------------------------------------------------------------
+  // Encoded key length in bytes.
+  //----------------------------------------------------------------------
+  Lng32 encodedKeyLength_;
 
   // ---------------------------------------------------------------------
   // Lock length in bytes.

@@ -33,7 +33,7 @@
 export TRAFODION_VER_PROD="EsgynDB Enterprise"
 # Trafodion version (also update file ../sql/common/copyright.h)
 export TRAFODION_VER_MAJOR=2
-export TRAFODION_VER_MINOR=0
+export TRAFODION_VER_MINOR=1
 export TRAFODION_VER_UPDATE=0
 export TRAFODION_VER="${TRAFODION_VER_MAJOR}.${TRAFODION_VER_MINOR}.${TRAFODION_VER_UPDATE}"
 
@@ -246,8 +246,12 @@ if [[ -e $MY_SQROOT/sql/scripts/sw_env.sh ]]; then
   # native library directories and include directories
   export HADOOP_LIB_DIR=$YARN_HOME/lib/native
   export HADOOP_INC_DIR=$YARN_HOME/include
-  export THRIFT_LIB_DIR=$TOOLSDIR/thrift-0.9.0/lib
-  export THRIFT_INC_DIR=$TOOLSDIR/thrift-0.9.0/include
+  if [ -z $THRIFT_LIB_DIR ]; then
+    export THRIFT_LIB_DIR=$TOOLSDIR/thrift-0.9.0/lib
+  fi
+  if [ -z $THRIFT_INC_DIR ]; then
+    export THRIFT_INC_DIR=$TOOLSDIR/thrift-0.9.0/include
+  fi
   export CURL_INC_DIR=/usr/include
   export CURL_LIB_DIR=/usr/lib64
   # directories with jar files and list of jar files
@@ -486,24 +490,24 @@ else
 
   cat <<EOF
 
-    If you have Apache Hadoop and HBase installed, without a distro,
-    please do the following to ensure Trafodion can find the installation
+    If you are ready to build Trafodion, perform one of the following options:
 
-    Method 1: Ensure that hadoop-site.xml, hbase-site.xml and hive-site.xml
-              are in the CLASSPATH.
+      make all         (Build Trafodion, DCS, and REST) OR
+      make package     (Build Trafodion, DCS, REST, and Client drivers)  OR
+      make package-all (Build Trafodion, DCS, REST, Client drivers, and Tests)
 
-    Method 2: Set the following environment variables:
-              - HADOOP_PREFIX for Hadoop (example: /opt/hadoop-1.2.3)
-              - HBASE_HOME for HBase (example: /opt/hbase-1.2.3)
-              - HIVE_HOME for Hive (example: /opt/hive-1.2.3)
+    If Trafodion has been built and you want test: 
 
-    See http://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-common/ClusterSetup.html
+       Execute the install_local_hadoop script which performs a single node
+       install using a popular Hadoop distribution 
 
-    Yet another option is to use the install_local_hadoop script on a
-    single node for evaluation or development.
+          cd $MY_SQROOT/sql/scripts
+          install_local_hadoop [-p <port option>]
+          install_traf_components 
+          configure Trafodion and start the processes
+          HAVE FUN!
 
-    If you just checked out or copied a Trafodion source tree and want to build,
-    then you can ignore the above and continue with your build.
+   You can also choose to install_local_hadoop before building Trafodion.
 
 EOF
   }
@@ -632,8 +636,12 @@ fi
 
 # Common for local workstations, Cloudera, Hortonworks and MapR
 
-export ZOOKEEPER_DIR=$TOOLSDIR/zookeeper-3.4.5
-export MPICH_ROOT=$TOOLSDIR/dest-mpich-3.0.4
+if [ -z $ZOOKEEPER_DIR ]; then
+  export ZOOKEEPER_DIR=$TOOLSDIR/zookeeper-3.4.5
+fi
+if [ -z $MPICH_ROOT ]; then
+  export MPICH_ROOT=$TOOLSDIR/dest-mpich-3.0.4
+fi
 export PROTOBUFS=/usr
 
 # LOG4CXX
@@ -787,27 +795,30 @@ source tools/sqtools.sh
 ######################
 
 # Standard tools expected to be installed and found in PATH
-export ANT="/usr/bin/ant"
-if [[ ! -e $ANT ]]; then
-  ANT="${TOOLSDIR}/bin/ant"
-fi
+# Tool availability are checked during the build (make) step
+export ANT=ant
 export AR=ar
 export FLEX=flex
 export CXX=g++
 export MAVEN=mvn
-if [[ -z "$(which $MAVEN 2> /dev/null)" ]]; then
-  export M2_HOME="${TOOLSDIR}/apache-maven-3.0.5"
-  MAVEN="${M2_HOME}/bin/mvn"
-fi
 
 # Non-standard or newer version tools
-export BISON="${TOOLSDIR}/bison_3_linux/bin/bison"     # Need 1.3 version or later
-export LLVM="${TOOLSDIR}/dest-llvm-3.2"
-export UDIS86="${TOOLSDIR}/udis86-1.7.2"
-export ICU="${TOOLSDIR}/icu4.4"
+if [ -z $BISON ]; then
+  export BISON="${TOOLSDIR}/bison_3_linux/bin/bison"     # Need 1.3 version or later
+fi
+if [ -z $LLVM ]; then
+  export LLVM="${TOOLSDIR}/dest-llvm-3.2"
+fi
+if [ -z $UDIS86 ]; then
+  export UDIS86="${TOOLSDIR}/udis86-1.7.2"
+fi
+if [ -z $ICU ]; then
+  export ICU="${TOOLSDIR}/icu4.4"
+fi
 
 #######################
 # Developer Local over-rides  (see sqf/LocalSettingsTemplate.sh)
+# Cannot rely on this, the connectivity build overwrites the .trafodion file
 ######################
 if [[ -r ~/.trafodion ]]; then
   [[ $SQ_VERBOSE == 1 ]] && echo "Sourcing local settings file ~/.trafodion"
