@@ -1975,10 +1975,10 @@ ExWorkProcRetcode ExHbaseUMDtrafUniqueTaskTcb::work(short &rc)
 	case EVAL_UPD_CONSTRAINT:
 	  {
             rc = 1;
-
             if (tcb_->updateRow_)
-              rc = tcb_->applyPred(tcb_->mergeUpdScanExpr());
-	    if (rc == 1) // expr is true or no expr
+              rc = tcb_->evalConstraintExpr(tcb_->updConstraintExpr(), tcb_->hbaseAccessTdb().updateTuppIndex_,
+	        tcb_->updateRow_);
+	    if (rc == 1)
 	      step_ = CREATE_MUTATIONS;
 	    else if (rc == 0) 
 	      step_ = GET_CLOSE;
@@ -2995,10 +2995,9 @@ ExWorkProcRetcode ExHbaseUMDtrafSubsetTaskTcb::work(short &rc)
 	  {
             rc = 1;
             if (tcb_->updateRow_)
-              rc = tcb_->applyPred(tcb_->mergeUpdScanExpr(), 
-                                   tcb_->hbaseAccessTdb().updateTuppIndex_, 
-                                   tcb_->updateRow_);
-	    if (rc == 1) // expr is true or no expr
+              rc = tcb_->evalConstraintExpr(tcb_->updConstraintExpr(), tcb_->hbaseAccessTdb().updateTuppIndex_,
+                    tcb_->updateRow_);
+	    if (rc == 1)
 	      step_ = CREATE_MUTATIONS;
 	    else if (rc == 0)
 	      step_ = SCAN_CLOSE; 
