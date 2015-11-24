@@ -6250,6 +6250,7 @@ short CmpSeabaseDDL::createEncodedKeysBuffer(char** &encodedKeysBuffer,
   NAString **splitValuesAsText = new(STMTHEAP) NAString *[numKeys];
   ElemDDLPartitionList * pPartitionList = NULL;
   ElemDDLPartitionRange *pPartitionRange = NULL;
+  int numSplitByCols = 0;
 
   // determine the number of splits needed
   if (usesSplitBy)
@@ -6274,7 +6275,9 @@ short CmpSeabaseDDL::createEncodedKeysBuffer(char** &encodedKeysBuffer,
         splitByCols->getPartitionKeyColumnArray();
       desc_struct *keyColDesc = keyDescs;
 
-      if (numKeys < splitByColRefs.entries())
+      numSplitByCols = splitByColRefs.entries();
+
+      if (numKeys < numSplitByCols)
         {
           // more SPLIT BY columns than key columns
           *CmpCommon::diags() << DgSqlCode(-1209)
@@ -6282,7 +6285,7 @@ short CmpSeabaseDDL::createEncodedKeysBuffer(char** &encodedKeysBuffer,
           return -1;
         }
 
-      for (CollIndex c=0; c<splitByColRefs.entries(); c++)
+      for (CollIndex c=0; c<numSplitByCols; c++)
         {
           desc_struct *cd = colDescs;
           int tableColNum = keyColDesc->body.keys_desc.tablecolnumber;
@@ -6364,7 +6367,7 @@ short CmpSeabaseDDL::createEncodedKeysBuffer(char** &encodedKeysBuffer,
           const ItemConstValueArray &cva =
             pPartitionRange->getKeyValueArray();
 
-          if (cva.entries() > numKeys)
+          if (cva.entries() > numSplitByCols)
             {
               *CmpCommon::diags() << DgSqlCode(-1213)
                                   << DgInt0(i+1);
