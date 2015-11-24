@@ -45,6 +45,7 @@ if [[ $? == '0' ]]; then
    exit $?
 else
    echo "Trafodion is not running on the current node: `hostname`"
+   lv_monitor_not_running_on_curr_node=1
 fi
 
 if [[ ! -z ${SQ_VIRTUAL_NODES} ]]; then
@@ -72,13 +73,19 @@ if [[ $lv_ret == 0 ]]; then
     echo "$grep_out"
     for lv_node in $grep_out; do
 	echo
-        echo "Executing sqcheck on node: $lv_node"
+        echo "Executing sqcheck on node (via ssh): $lv_node"
         echo "ssh $lv_node sqcheck"
         ssh $lv_node sqcheck
-        exit $?
+        lv_sqcheck_retcode=$?
+        if [[ ${lv_monitor_not_running_on_curr_node} == "1" ]]; then
+            let lv_exit_code=(${lv_sqcheck_retcode}+100)
+        else
+            let lv_exit_code=(${lv_sqcheck_retcode})
+	fi
+        exit ${lv_exit_code}
     done
 else
     echo "None of the Trafodion nodes have a Trafodion monitor running on them."
     echo "Trafodion is currently down."
-    exit 1;
+    exit 255;
 fi
