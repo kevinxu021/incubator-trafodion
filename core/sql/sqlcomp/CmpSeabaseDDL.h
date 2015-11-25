@@ -313,7 +313,7 @@ class CmpSeabaseDDL
 
   static NABoolean isSerialized(ULng32 flags)
   {
-    return (flags & SEABASE_SERIALIZED) != 0;
+    return (flags & NAColumn::SEABASE_SERIALIZED) != 0;
   }
 
   short buildColInfoArray(
@@ -429,13 +429,11 @@ class CmpSeabaseDDL
     return (flags &= bitFlags) != 0; 
   }
 
- protected:
-
   enum {
-    SEABASE_SERIALIZED = 0x0001,
     // set if we need to get the hbase snapshot info of the table
     GET_SNAPSHOTS = 0x0002
   };
+ protected:
 
   void setFlags(ULng32 &flags, ULng32 flagbits)
   {
@@ -806,7 +804,8 @@ class CmpSeabaseDDL
 			ExeCliInterface * cliInterface);
   
   short gatherViewPrivileges (const StmtDDLCreateView * createViewParseNode,
-			      ExeCliInterface * cliInterface,
+                              ExeCliInterface * cliInterface,
+                              NABoolean viewCreator,
                               PrivMgrBitmap &privilegesBitmap,
                               PrivMgrBitmap &grantableBitmap);
 

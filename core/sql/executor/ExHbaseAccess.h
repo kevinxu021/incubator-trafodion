@@ -235,6 +235,12 @@ protected:
   inline ex_expr *insDelPreCondExpr() const
     { return hbaseAccessTdb().insDelPreCondExpr_; }
 
+  inline ex_expr *insConstraintExpr() const
+    { return hbaseAccessTdb().insConstraintExpr_; }
+
+  inline ex_expr *updConstraintExpr() const
+    { return hbaseAccessTdb().updConstraintExpr_; }
+
   inline ex_expr *hbaseFilterValExpr() const 
     { return hbaseAccessTdb().hbaseFilterExpr_; }
 
@@ -302,6 +308,8 @@ protected:
   short extractColFamilyAndName(char * input, Text &colFam, Text &colName);
   short evalKeyColValExpr(HbaseStr &columnToCheck, HbaseStr &colValToCheck);
   short evalInsDelPreCondExpr();
+  short evalConstraintExpr(ex_expr *expr, UInt16 tuppIndex = 0,
+                  char * tuppRow = NULL);
   short evalEncodedKeyExpr();
   short evalRowIdExpr(NABoolean noVarchar = FALSE);
   short evalRowIdAsciiExpr(NABoolean noVarchar = FALSE);
@@ -958,7 +966,8 @@ public:
     , NEXT_ROW
     , CREATE_FETCHED_ROW
     , CREATE_UPDATED_ROW
-    , EVAL_CONSTRAINT
+    , EVAL_INS_CONSTRAINT
+    , EVAL_UPD_CONSTRAINT
     , CREATE_MUTATIONS
     , APPLY_PRED
     , APPLY_MERGE_UPD_SCAN_PRED
@@ -1027,7 +1036,8 @@ public:
     , CREATE_UPDATED_ROW
     , CREATE_MERGE_INSERTED_ROW
     , CREATE_MUTATIONS
-    , EVAL_CONSTRAINT
+    , EVAL_INS_CONSTRAINT
+    , EVAL_UPD_CONSTRAINT
     , APPLY_PRED
     , APPLY_MERGE_UPD_SCAN_PRED
     , RETURN_ROW
@@ -1141,6 +1151,7 @@ public:
     , CREATE_UPDATED_ROW
     , PROCESS_DELETE
     , PROCESS_DELETE_AND_CLOSE
+    , EVAL_CONSTRAINT
     , PROCESS_UPDATE
     , PROCESS_UPDATE_AND_CLOSE
     , PROCESS_SELECT

@@ -440,6 +440,8 @@ public class TransactionManager {
 
              HRegionLocation lv_hrl = table.getRegionLocation(startKey);
              HRegionInfo     lv_hri = lv_hrl.getRegionInfo();
+             //String          lv_node = lv_hrl.getHostname();
+             //int             lv_length = lv_node.indexOf('.');
 
              if (LOG.isTraceEnabled()) LOG.trace("doCommitX -- location being refreshed : " + location.getRegionInfo().getRegionNameAsString() + " endKey: "
                      + Hex.encodeHexString(location.getRegionInfo().getEndKey()) + " for transaction: " + transactionId);

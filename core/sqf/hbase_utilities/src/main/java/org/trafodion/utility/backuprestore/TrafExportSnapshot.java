@@ -24,13 +24,13 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
-import java.net.URI;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -108,9 +108,9 @@ public class TrafExportSnapshot extends Configured implements Tool {
   private static final String CONF_CHECKSUM_VERIFY = "snapshot.export.checksum.verify";
   private static final String CONF_OUTPUT_ROOT = "snapshot.export.output.root";
   private static final String CONF_INPUT_ROOT = "snapshot.export.input.root";
+  private static final String CONF_BANDWIDTH_MB = "snapshot.export.map.bandwidth.mb";
   private static final String CONF_BUFFER_SIZE = "snapshot.export.buffer.size";
   private static final String CONF_MAP_GROUP = "snapshot.export.default.map.group";
-  private static final String CONF_BANDWIDTH_MB = "snapshot.export.map.bandwidth.mb";
   protected static final String CONF_SKIP_TMP = "snapshot.export.skip.tmp";
 
   static final String CONF_TEST_FAILURE = "test.snapshot.export.failure";
@@ -410,7 +410,7 @@ public class TrafExportSnapshot extends Configured implements Tool {
      * if the file is not found.
      */
     private FSDataInputStream openSourceFile(Context context, final SnapshotFileInfo fileInfo)
-            throws IOException {
+        throws IOException {
       try {
         Configuration conf = context.getConfiguration();
         FileLink link = null;
@@ -954,7 +954,7 @@ public class TrafExportSnapshot extends Configured implements Tool {
           .build();
       SnapshotDescriptionUtils.writeSnapshotInfo(snapshotDesc, snapshotTmpDir, outputFs);
     }
-    
+
     List<Pair<SnapshotFileInfo, Long>> snapshotFiles = getSnapshotFiles(conf, inputFs, snapshotDir);
     Long snapshotTotalDataSize = 0L;
     boolean hasWALfiles = false;
@@ -964,7 +964,8 @@ public class TrafExportSnapshot extends Configured implements Tool {
     	if (fileInfo.getFirst().getType() == SnapshotFileInfo.Type.WAL)
     		hasWALfiles = true;
     }
-
+    
+    
 
     // Step 2 - Start MR Job to copy files
     // The snapshot references must be copied before the files otherwise the files gets removed
@@ -1078,14 +1079,10 @@ public class TrafExportSnapshot extends Configured implements Tool {
     System.err.println("  -no-target-verify       Do not verify the integrity of the \\" +
         "exported snapshot.");
     System.err.println("  -overwrite              Rewrite the snapshot manifest if already exists");
-    System.err.println("  -chuser USERNAME        Change the owner of the files " +
-        "to the specified one.");
-    System.err.println("  -chgroup GROUP          Change the group of the files to " +
-        "the specified one.");
-    System.err.println("  -chmod MODE             Change the permission of the files " +
-        "to the specified one.");
-    System.err.println("  -mappers                Number of mappers to use during the " +
-        "copy (mapreduce.job.maps).");
+    System.err.println("  -chuser USERNAME        Change the owner of the files to the specified one.");
+    System.err.println("  -chgroup GROUP          Change the group of the files to the specified one.");
+    System.err.println("  -chmod MODE             Change the permission of the files to the specified one.");
+    System.err.println("  -mappers                Number of mappers to use during the copy (mapreduce.job.maps).");
     System.err.println("  -bandwidth              Limit bandwidth to this value in MB/second.");
     System.err.println("  -mr-lowlimit-mb         Use file copy command instead of MR copy for files \\" +
     		"smaller than this size.");
