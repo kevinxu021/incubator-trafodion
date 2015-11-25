@@ -58,7 +58,6 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.io.InterruptedIOException;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
@@ -884,23 +883,23 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
      }
 		}
 	
-	// validate for well-formedness
-	public void validatePut(final Put put) throws IllegalArgumentException {
-       if (put.isEmpty()) {
-          throw new IllegalArgumentException("No columns to insert");
-       }
-       if (maxKeyValueSize > 0) {
-          for (List<Cell> list : put.getFamilyCellMap().values()) {		  
-             for (Cell cell : list) {
-                if (KeyValueUtil.length(cell) > maxKeyValueSize){
-                   throw new IllegalArgumentException("Cell size too large: "
-                           + KeyValueUtil.length(cell));
+    // validate for well-formedness
+    public void validatePut(final Put put) throws IllegalArgumentException {
+        if (put.isEmpty()) {
+            throw new IllegalArgumentException("No columns to insert");
+        }
+        if (maxKeyValueSize > 0) {
+            for (List<Cell> list : put.getFamilyCellMap().values()) {
+                for (Cell c : list) {
+                    if (KeyValueUtil.length(c) > maxKeyValueSize) {
+                        throw new IllegalArgumentException("KeyValue size too large");
+                    }
                 }
-             }
-          }
-       }
-	}
-	
+            }
+        }
+    }
+
+
 	private int maxKeyValueSize;
 public HRegionLocation getRegionLocation(byte[] row, boolean f)
                                   throws IOException {

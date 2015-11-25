@@ -69,6 +69,7 @@ jdk_1_7_apache:
 #build_all: jdk_1_7_apache jdk_1_7_cdh jdk_1_7_hdp jdk_1_7_mapr
 #build_all:jdk_1_7_cdh
 build_all: jdk_1_7_apache jdk_1_7_cdh
+#build_all: jdk_1_7_apache jdk_1_7_cdh jdk_1_7_hdp 
 
 build_chk_apache:
 	$(GENVERS) > $(VFILE)

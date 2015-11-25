@@ -110,6 +110,7 @@ NAFileSet::NAFileSet(const QualifiedName & fileSetName,
            resetAfterStatement_(FALSE),
 	   bitFlags_(0),
 	   keyLength_(0),
+	   encodedKeyLength_(0),
            thisRemoteIndexGone_(FALSE),
            isDecoupledRangePartitioned_(isDecoupledRangePartitioned),
            fileCode_(fileCode),
@@ -161,6 +162,18 @@ Lng32 NAFileSet::getKeyLength()
 		keyLength_ += indexKeyColumns_[i]->getType()->getTotalSize();
 	}
 	return keyLength_;
+}
+
+// returns the length of the encoded key in bytes for this index
+Lng32 NAFileSet::getEncodedKeyLength()
+{
+	if(encodedKeyLength_ >0) return encodedKeyLength_;
+
+	for(CollIndex i=0;i<indexKeyColumns_.entries();i++)
+	{
+		encodedKeyLength_ += indexKeyColumns_[i]->getType()->getEncodedKeyLength();
+	}
+	return encodedKeyLength_;
 }
 
 Lng32 NAFileSet::getCountOfPartitions() const
@@ -361,4 +374,18 @@ const QualifiedName& NAFileSet::getRandomPartition() const
   QualifiedName *partQName = 
     new (STMTHEAP) QualifiedName(nme->getPartitionName(), 3, STMTHEAP, NULL);
   return *partQName;
+}
+
+NAString NAFileSet::getBestPartitioningKeyColumns(char separator) const
+{
+   const NAColumnArray & partKeyCols = getPartitioningKeyColumns();
+
+   if ( partKeyCols.entries() > 0 ) {
+      return partKeyCols.getColumnNamesAsString(separator);
+   } else {
+      const NAColumnArray& allCols = getAllColumns();
+      UInt32 ct = allCols.entries();
+      if ( ct > 2 ) ct=2;
+      return allCols.getColumnNamesAsString(separator, ct);
+   }
 }

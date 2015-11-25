@@ -3284,10 +3284,9 @@ CoprocessorService, Coprocessor {
         }
 
         this.scannerLeaseTimeoutPeriod = HBaseConfiguration.getInt(config,
-								   HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD,
-								   HConstants.HBASE_REGIONSERVER_LEASE_PERIOD_KEY,
-								   HConstants.DEFAULT_HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD);
-
+          HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD,
+          HConstants.HBASE_REGIONSERVER_LEASE_PERIOD_KEY,
+          HConstants.DEFAULT_HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD);
         this.scannerThreadWakeFrequency = config.getInt(HConstants.THREAD_WAKE_FREQUENCY, 10 * 1000);
 
         this.cleanTimer = config.getInt(SLEEP_CONF, DEFAULT_SLEEP);

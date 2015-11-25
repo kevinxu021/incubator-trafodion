@@ -32,7 +32,6 @@ else
    exit 1;
 fi
 
-
 # Default location of Trafodion, DCS, REST and Phoenix src folders
 TRAF_SRC=$MY_SQROOT/../../
 DCS_SRC=$MY_SQROOT/../../dcs
@@ -443,7 +442,7 @@ else
 # command to run JDBC tests
 cd $JDBCTEST_DIR
 ./jdbc_test.py --appid=jdbc_test --user=SOMEUSER --pw=SOMEPASSWORD --javahome=\$JAVA_HOME \\
-  --target=localhost:$MY_DCS_MASTER_PORT \\
+  --target=localhost:$MY_DCS_MASTER_PORT --dbmaj=\$TRAFODION_VER_MAJOR --dbmin=\$TRAFODION_VER_MINOR \\
   --jdbctype=T4 --jdbccp=\$MY_SQROOT/export/lib/jdbcT4.jar "\$@"
 EOF
     chmod +x $MY_SQROOT/sql/scripts/swjdbc
@@ -464,6 +463,7 @@ EOF
 fi
 
 # End setup of PyODBC test
+
 
 echo | tee -a ${MY_LOG_FILE}
 echo "Configuration scripts for DCS, REST, TRAFCI and Phoenix test are set up " | tee -a ${MY_LOG_FILE}

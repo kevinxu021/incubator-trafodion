@@ -195,7 +195,6 @@ public:
   PrivStatus grantObjectPriv(
       const ComObjectType objectType,
       const int32_t granteeID,
-      const std::string &granteeName,
       const PrivObjectBitmap privsBitmap,
       const PrivObjectBitmap grantableBitmap);
 

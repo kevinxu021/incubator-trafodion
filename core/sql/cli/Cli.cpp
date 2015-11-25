@@ -10409,7 +10409,7 @@ Lng32 SQLCLI_LOBddlInterface
 	      }
 	    
 	    // create LOB descriptor and LOB header tables
-	    char lobHandle[512];
+	    char lobHandle[LOB_HANDLE_LEN];
 	    Lng32 handleLen = 0;
 	    ExpLOBoper::genLOBhandle(objectUID,
 				     lobNumList[i],
@@ -10481,7 +10481,7 @@ Lng32 SQLCLI_LOBddlInterface
 	      }
 	    
 	    // drop LOB descriptor and LOB header tables
-	    char lobHandle[512];
+	    char lobHandle[LOB_HANDLE_LEN];
 	    Lng32 handleLen = 0;
 	    ExpLOBoper::genLOBhandle(objectUID,
 				     lobNumList[i],

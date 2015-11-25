@@ -10,12 +10,12 @@
 	<groupId>com.esgyn</groupId>
 	<artifactId>dbmgr</artifactId>
 	<packaging>war</packaging>
-	<version>2.0.0</version>
+	<version>${env.TRAFODION_VER}</version>
 	<name>EsgynDB Manager</name>
 	<properties>
 		<jettyVersion>9.2.6.v20141205</jettyVersion>
 		<jersey-version>1.19</jersey-version>
-		<traf-jdbc-version>2.0.0</traf-jdbc-version>
+		<traf-jdbc-version>${project.version}</traf-jdbc-version>
 		<jackson-version>2.6.1</jackson-version>
 		<logback-version>1.0.0</logback-version>
 		<asciidoctor.version>1.5.2.1</asciidoctor.version>

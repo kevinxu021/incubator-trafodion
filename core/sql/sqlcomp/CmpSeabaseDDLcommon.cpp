@@ -2095,6 +2095,13 @@ NABoolean CmpSeabaseDDL::enabledForSerialization(NAColumn * nac)
   return FALSE;
 }
 
+// NAColumn in memory is expected to have the correct HbaseColFlags for
+// serialization depending on if it belongs to index or table. 
+// Index and Table row format can be different now. However, it is
+// recommended that the function is called only when it is not aligned
+// row format. The existing callers are verified to be working correctly
+// even though some callers don't adhere to this recommendation
+
 NABoolean CmpSeabaseDDL::isEncodingNeededForSerialization(NAColumn * nac)
 {
   const NAType *givenType = nac->getType();
@@ -2671,13 +2678,13 @@ short CmpSeabaseDDL::getTypeInfo(const NAType * naType,
         collationSequence = charType->getCollation();
         if (serializedOption == 1) // option explicitly specified
           {
-            setFlags(hbaseColFlags, SEABASE_SERIALIZED);
+            setFlags(hbaseColFlags, NAColumn::SEABASE_SERIALIZED);
           }
         else if ((serializedOption == -1) && // not specified
                  (CmpCommon::getDefault(HBASE_SERIALIZATION) == DF_ON) &&
                  (NOT alignedFormat))
           {
-            setFlags(hbaseColFlags, SEABASE_SERIALIZED);
+            setFlags(hbaseColFlags, NAColumn::SEABASE_SERIALIZED);
           }
        }
       break;
@@ -2697,7 +2704,7 @@ short CmpSeabaseDDL::getTypeInfo(const NAType * naType,
         if (serializedOption == 1) // option explicitly specified
           {
             if (DFS2REC::isBinary(datatype))
-              setFlags(hbaseColFlags, SEABASE_SERIALIZED);
+              setFlags(hbaseColFlags, NAColumn::SEABASE_SERIALIZED);
             else if (numericType->isEncodingNeeded())
               {
                 *CmpCommon::diags() << DgSqlCode(-1191)
@@ -2710,7 +2717,7 @@ short CmpSeabaseDDL::getTypeInfo(const NAType * naType,
                  (DFS2REC::isBinary(datatype)) &&
                  (NOT alignedFormat))
           {
-            setFlags(hbaseColFlags, SEABASE_SERIALIZED);
+            setFlags(hbaseColFlags, NAColumn::SEABASE_SERIALIZED);
           }
       }
       break;
@@ -2770,7 +2777,7 @@ short CmpSeabaseDDL::getTypeInfo(const NAType * naType,
   if ((serializedOption == 1) && (alignedFormat))
     {
       // ignore serialized option on aligned format tables
-      resetFlags(hbaseColFlags, SEABASE_SERIALIZED);
+      resetFlags(hbaseColFlags, NAColumn::SEABASE_SERIALIZED);
       
       /*
        *CmpCommon::diags()
@@ -2836,7 +2843,7 @@ short CmpSeabaseDDL::getColInfo(ElemDDLColDef * colNode,
 
   if (colName == "SYSKEY")
     {
-      resetFlags(hbaseColFlags, SEABASE_SERIALIZED);
+      resetFlags(hbaseColFlags, NAColumn::SEABASE_SERIALIZED);
     }
 
   if  (collationSequence != CharInfo::DefaultCollation)
@@ -6413,6 +6420,7 @@ short CmpSeabaseDDL::createEncodedKeysBuffer(char** &encodedKeysBuffer,
                                keyDescs,
                                splitValuesAsText, // INPUT
                                isIndex,
+                               FALSE,             // encoding for Min Key
                                encodedKeysBuffer[i],  // OUTPUT
                                STMTHEAP,
                                CmpCommon::diags());
