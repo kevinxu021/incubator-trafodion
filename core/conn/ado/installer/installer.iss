@@ -2,7 +2,6 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "EsgynDB ADO.NET"
-#define MyAppVersion "2.0.0"
 #define MyAppPublisher "Esgyn Corporation"
 #define MyAppURL "http://www.esgyn.com/"
 
@@ -11,14 +10,14 @@
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{6DBEB17E-258A-448C-BAAE-1EEA836BC002}
-AppName={#MyAppName} {#MyAppVersion}
-AppVersion={#MyAppVersion}
-AppVerName={#MyAppName} {#MyAppVersion}
+AppName={#MyAppName} {#TrafVersion}
+AppVersion={#TrafVersion}
+AppVerName={#MyAppName} {#TrafVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={pf}\EsgynDB\ADO.NET-2.0.0
+DefaultDirName={pf}\EsgynDB\ADO.NET-{#TrafVersion}
 DefaultGroupName={#MyAppName}
 LicenseFile=Eula.rtf
 Compression=lzma
@@ -26,8 +25,8 @@ SolidCompression=yes
 AppCopyright=Copyright 2015 Esgyn Corporation
 UserInfoPage=True
 ArchitecturesInstallIn64BitMode=x64
-UninstallDisplayName={#MyAppName} {#MyAppVersion}
-OutputBaseFilename=EsgynDB-ADO.NET-{#MyAppVersion}
+UninstallDisplayName={#MyAppName} {#TrafVersion}
+OutputBaseFilename=EsgynDB-ADO.NET-{#TrafVersion}
 WizardImageBackColor=$00333333
 WizardImageStretch=False
 UsePreviousGroup=False
@@ -38,17 +37,17 @@ SetupLogging=yes
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "C:\Build\EsgynDBADO\Release\EsgynDB.Data.dll"; DestDir: "{app}"; StrongAssemblyName: "EsgynDB.Data, Version=1.0.0.0, PublicKeyToken=cfb872a824fb4c13, Culture=neutral, ProcessorArchitecture=MSIL";Flags: "gacinstall sharedfile uninsnosharedfileprompt"
+Source: "..\EsgynDB.Data\Release\EsgynDB.Data.dll"; DestDir: "{app}"; StrongAssemblyName: "EsgynDB.Data, Version={#TrafVersion}.0, PublicKeyToken=cfb872a824fb4c13, Culture=neutral, ProcessorArchitecture=MSIL";Flags: "gacinstall sharedfile uninsnosharedfileprompt"
 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
-Name: "{group}\{cm:UninstallProgram,{#MyAppName} {#MyAppVersion}}"; Filename: "{uninstallexe}"
+Name: "{group}\{cm:UninstallProgram,{#MyAppName} {#TrafVersion}}"; Filename: "{uninstallexe}"
 
 [Registry]
-Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\v2.0.50727\AssemblyFoldersEx\EsgynDB ADO.NET 2.0.0"; ValueType: string; ValueData: "{app}" ;Flags: uninsdeletekey
-Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\AssemblyFolders\EsgynDB ADO.NET 2.0.0"; ValueType: string; ValueData: "{app}" ;Flags: uninsdeletekey
-Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\v4.0.30319\AssemblyFoldersEx\EsgynDB ADO.NET 2.0.0"; ValueType: string;  ValueData: "{app}" ;Flags: uninsdeletekey
+Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\v2.0.50727\AssemblyFoldersEx\EsgynDB ADO.NET {#TrafVersion}"; ValueType: string; ValueData: "{app}" ;Flags: uninsdeletekey
+Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\AssemblyFolders\EsgynDB ADO.NET {#TrafVersion}"; ValueType: string; ValueData: "{app}" ;Flags: uninsdeletekey
+Root: "HKLM"; Subkey: "SOFTWARE\Microsoft\.NETFramework\v4.0.30319\AssemblyFoldersEx\EsgynDB ADO.NET {#TrafVersion}"; ValueType: string;  ValueData: "{app}" ;Flags: uninsdeletekey
 
 [Code]
 function GetUninstallString: string;
