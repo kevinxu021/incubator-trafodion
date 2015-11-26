@@ -22,7 +22,7 @@ DefaultGroupName={#MyAppName}
 LicenseFile=Eula.rtf
 Compression=lzma
 SolidCompression=yes
-AppCopyright=Copyright 2015 Esgyn Corporation
+AppCopyright={#TrafCopyright}
 UserInfoPage=True
 ArchitecturesInstallIn64BitMode=x64
 UninstallDisplayName={#MyAppName} {#TrafVersion}
@@ -37,7 +37,7 @@ SetupLogging=yes
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "..\EsgynDB.Data\Release\EsgynDB.Data.dll"; DestDir: "{app}"; StrongAssemblyName: "EsgynDB.Data, Version={#TrafVersion}.0, PublicKeyToken=cfb872a824fb4c13, Culture=neutral, ProcessorArchitecture=MSIL";Flags: "gacinstall sharedfile uninsnosharedfileprompt"
+Source: "{#CurrentPath}\EsgynDB.Data\Release\EsgynDB.Data.dll"; DestDir: "{app}"; StrongAssemblyName: "EsgynDB.Data, Version={#TrafVersion}.0, PublicKeyToken=cfb872a824fb4c13, Culture=neutral, ProcessorArchitecture=MSIL";Flags: "gacinstall sharedfile uninsnosharedfileprompt"
 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
