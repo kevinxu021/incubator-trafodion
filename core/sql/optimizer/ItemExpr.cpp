@@ -10521,8 +10521,23 @@ Int32 ConstValue::getArity() const { return 0; }
 
 NAString ConstValue::getConstStr(NABoolean transformeNeeded) const
 {
-  if (getType()->getTypeQualifier() == NA_DATETIME_TYPE &&
-      getType()->getPrecision() != SQLDTCODE_MPDATETIME)
+  if (!textIsValidatedSQLLiteralInUTF8_ &&
+      (*text_ == "<min>" || *text_ == "<max>"))
+  {
+    // the <min> or <max> notation for missing key values
+    // is not sufficient here, use the real min/max value
+    // instead (can be created from the binary value)
+    NAString *minMaxLiteral = NULL;
+    NABoolean isNull = FALSE;
+
+    type_->createSQLLiteral((const char *)value_,
+                            minMaxLiteral,
+                            isNull,
+                            (NAMemory *) CmpCommon::statementHeap());
+    return *minMaxLiteral;
+  }
+  else if (getType()->getTypeQualifier() == NA_DATETIME_TYPE &&
+           getType()->getPrecision() != SQLDTCODE_MPDATETIME)
   {
     return getType()->getSimpleTypeName() + " '" + *text_ + "'";
   }
