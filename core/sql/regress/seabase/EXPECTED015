@@ -337,7 +337,7 @@ A            B                           C
 >>create table terr6(a integer not null,
 +>                   b int not null,
 +>                   primary key (a, b desc))
-+>range split by (a)
++>range split by (a, b desc)
 +> (add first key (10,1),
 +>  add first key (11,11),
 +>  add first key (11,22),  -- out of sequence
