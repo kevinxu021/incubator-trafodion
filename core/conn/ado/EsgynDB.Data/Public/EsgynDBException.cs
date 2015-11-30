@@ -26,6 +26,32 @@
             throw e;
         }
 
+        internal EsgynDBException(int rowId, string message)
+            : this(rowId, message, -3)
+        {
+        }
+
+        internal EsgynDBException(int rowId, string message, int errorCode)
+        {
+            this._errors = new EsgynDBErrorCollection();
+            this._warnings = new EsgynDBErrorCollection();
+            EsgynDBError error = new EsgynDBError()
+            {
+                ErrorCode = errorCode,
+                Message = message,
+                RowId = rowId + 1,
+                State = "00000"
+            };
+            if (error.ErrorCode > 0)
+            {
+                this.Warnings.Add(error);
+            }
+            else
+            {
+                this.Errors.Add(error);
+            }
+        }
+
         internal EsgynDBException(EsgynDBMessage msg, params object[] objs)
         {
             this._errors = new EsgynDBErrorCollection();
