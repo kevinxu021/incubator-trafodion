@@ -3769,12 +3769,24 @@ enum DefaultConstants
   // turn hbase visibility feature on or off.
   HBASE_VISIBILITY,
 
-  // decide if to apply the additional restriction check (majority of keys with predicates)
-  MDAM_APPLY_RESTRICTION_CHECK,
-
   // if ON, then trafodion views on hive objects are supported.
   // Off by default, for now.
   HIVE_VIEWS,
+
+  // Specify whic additional restriction check to apply
+  //  0: no check
+  //  1: apply majority of keys with predicates check
+  //  2: apply total UECs on keyless key columns check
+  //  3: apply both 1) and 2)
+  MDAM_APPLY_RESTRICTION_CHECK,
+
+  // A threshold of total UECs on keyless key columns above which MDAM will not be considered.
+  // The threshold is expressed as a percentage of the total RC.
+  MDAM_TOTAL_UEC_CHECK_UEC_THRESHOLD,
+
+  // A threshold of minitmal RC above which the above total UEC check will be applied.
+  MDAM_TOTAL_UEC_CHECK_MIN_RC_THRESHOLD,
+
 
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
