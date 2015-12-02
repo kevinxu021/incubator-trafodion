@@ -386,7 +386,7 @@ define([
 
 				oDataTable = $('#alerts-results').dataTable({
 					"oLanguage": {
-						"sEmptyTable": "No queries found."
+						"sEmptyTable": "No alerts found."
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,

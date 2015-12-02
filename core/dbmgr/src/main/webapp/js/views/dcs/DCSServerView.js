@@ -98,6 +98,7 @@ define([
 					//"scrollY":        "800px",
 					"scrollCollapse": true,
 					//"bJQueryUI": true,
+					stateSave: true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"aoColumnDefs": [ {
