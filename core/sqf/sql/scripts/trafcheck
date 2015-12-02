@@ -73,7 +73,7 @@ if [[ $lv_ret == 0 ]]; then
     echo "$grep_out"
     for lv_node in $grep_out; do
 	echo
-        echo "Executing sqcheck on node: $lv_node"
+        echo "Executing sqcheck on node (via ssh): $lv_node"
         echo "ssh $lv_node sqcheck"
         ssh $lv_node sqcheck
         lv_sqcheck_retcode=$?

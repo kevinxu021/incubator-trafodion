@@ -296,7 +296,13 @@ short CmpSeabaseDDL::updateViewUsage(StmtDDLCreateView * createViewParseNode,
       const NAString schemaNamePart = usedObjName.getSchemaNamePartAsAnsiString(TRUE);
       const NAString objectNamePart = usedObjName.getObjectNamePartAsAnsiString(TRUE);
       const NAString extUsedObjName = usedObjName.getExternalName(TRUE);
-      
+
+      // do not put hive objects in view usage list.
+      if ((CmpCommon::getDefault(HIVE_VIEWS) == DF_ON) &&
+          (catalogNamePart == HIVE_SYSTEM_CATALOG) &&
+          (schemaNamePart == HIVE_SYSTEM_SCHEMA))
+        continue;
+
       char objType[10];
       Int64 usedObjUID = getObjectUID(cliInterface,
 				      catalogNamePart.data(), schemaNamePart.data(), 
