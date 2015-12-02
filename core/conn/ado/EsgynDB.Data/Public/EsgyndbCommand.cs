@@ -932,7 +932,7 @@ namespace EsgynDB.Data
         }
 
         // TODO: maybe a hashtable of function pointers would clean this up a bit with separate funcs for each datatype?
-        private void InsertParam(DataStream ds, Descriptor desc, object value)
+        private void InsertParam(int rowId, DataStream ds, Descriptor desc, object value)
         {
             string str;
             byte[] buf;
@@ -958,7 +958,7 @@ namespace EsgynDB.Data
 
                     if (i > desc.MaxLength)
                     {
-                        throw new Exception("data too long for char column");
+                        throw new EsgynDBException(rowId, "data too long for char column");
                     }
 
                     System.Buffer.BlockCopy(temp, 0, buf, 0, i);
@@ -989,7 +989,7 @@ namespace EsgynDB.Data
                     buf = this._conn.Network.Encoder.GetBytes(str, desc.NdcsEncoding);
                     if (buf.Length > desc.MaxLength)
                     {
-                        throw new Exception("varchar data too long");
+                        throw new EsgynDBException(rowId, "varchar data too long");
                     }
 
                     ds.WriteInt16((short)buf.Length);
@@ -1011,12 +1011,12 @@ namespace EsgynDB.Data
                             str = dt.ToString(EsgynDBUtility.TimestampFormat[desc.Precision]);
                             break;
                         default:
-                            throw new Exception("internal error: bad datetime");
+                            throw new EsgynDBException(rowId, "internal error: bad datetime");
                     }
 
                     if (str.Length > desc.MaxLength)
                     {
-                        throw new Exception("Internal Error: datetime data too long");
+                        throw new EsgynDBException(rowId, "Internal Error: datetime data too long");
                     }
 
                     ds.WriteBytes(System.Text.ASCIIEncoding.ASCII.GetBytes(str));
@@ -1029,7 +1029,7 @@ namespace EsgynDB.Data
 
                     if (srcLen > targetLen)
                     {
-                        throw new Exception("interval data too long");
+                        throw new EsgynDBException(rowId, "interval data too long");
                     }
 
                     ds.InsertBlank((targetLen - srcLen), System.Text.Encoding.ASCII);
@@ -1128,7 +1128,7 @@ namespace EsgynDB.Data
 
                     if (str.Length > desc.MaxLength)
                     {
-                        throw new Exception("data too long for decimal column: " + value);
+                        throw new EsgynDBException(rowId, "data too long for decimal column: " + value);
                     }
 
                     buf = System.Text.ASCIIEncoding.ASCII.GetBytes(str);
@@ -1147,7 +1147,7 @@ namespace EsgynDB.Data
                     // check for valid characters
                     if (!EsgynDBUtility.ValidateNumeric.IsMatch(str))
                     {
-                        throw new Exception("invalid numeric string: " + str);
+                        throw new EsgynDBException(rowId, "invalid numeric string: " + str);
                     }
 
                     // we need to unscale the value -- messy as we have to keep it as a string
@@ -1179,7 +1179,7 @@ namespace EsgynDB.Data
                     break;
 
                 default:
-                    throw new NotSupportedException("Internal Error: Invalid FSType " + desc.FsType);
+                    throw new EsgynDBException(rowId, "Internal Error: Invalid FSType " + desc.FsType);
             }
         }
 
@@ -1210,7 +1210,7 @@ namespace EsgynDB.Data
                     {
                         if(!desc.Nullable) 
                         {
-                            throw new Exception("cannot assign null to non nullable column");
+                            throw new EsgynDBException(i, "cannot assign null to non nullable column");
                         }
 
                         ds.Position = (desc.NullOffset * batchCount) + (2 * i);
@@ -1237,7 +1237,7 @@ namespace EsgynDB.Data
                         {
                             ds.Position = (desc.DataOffset * batchCount) + (dataLength * i);
                         }
-                        this.InsertParam(ds, desc, value);
+                        this.InsertParam(i, ds, desc, value);
                     }
                 }
             }
