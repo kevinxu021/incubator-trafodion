@@ -471,9 +471,11 @@ void process_tmstats_node(bool pv_reset, int32 pv_nid, bool json)
     TM_TMSTATS lv_stats;
 
     lv_error = TMSTATS(pv_nid, &lv_stats, pv_reset);
+
     if (lv_error) {
         printf("Node %d\t**Error %d.\n", pv_nid, lv_error);
     }
+
     else if(json==false) {
         printf("Node %d:", pv_nid);
         print_counters(&lv_stats.iv_counts);
