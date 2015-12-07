@@ -39,6 +39,7 @@
 
 #include "excep.h"
 #include "mslimits.h"
+#include "SCMfeatures.h"
 
 // SRE flags
 enum {
