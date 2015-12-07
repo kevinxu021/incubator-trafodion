@@ -48,14 +48,20 @@ LIBS		= $(LIBSBFS) \
 		  $(LIBSBSTR) \
 		  $(LIBSBUTIL) \
 		  $(LIBSQSTATESB) \
+		  $(LIBFEATURES) \
+		  $(LIBFEATURES_ENT) \
+		  $(LIBFEATURES_ADV) \
 		  $(OPTLIBS)
 LIBSBLOGALT	= $(LIBEXPDIR)/libsblogalt.so
 LIBSBSAUTIL	= $(LIBEXPDIR)/libsbsautil.so
 LIBSBUTIL	= $(LIBEXPDIR)/libsbutil.so
 LIBSQSTATESB	= $(LIBEXPDIR)/libsqstatesb.so
+LIBFEATURES	= $(LIBEXPDIR)/libfeatures.so
+LIBFEATURES_ENT	= $(LIBEXPDIR)/libfeatures_ent.so
+LIBFEATURES_ADV	= $(LIBEXPDIR)/libfeatures_adv.so
+
 # neet -lrt for clock_gettime
 LIBSX	       += -lrt
-
 
 OBJSBFS		= $(OUTDIR)/fs.o \
 		  $(OUTDIR)/fsfname.o \
@@ -157,9 +163,8 @@ $(OUTDIR)/logalt.o: logalt.cpp
 	$(OCXX) $(CDEPFLAGS) $(CXXFLAGS) $(INCLUDES) -c -o $@ $<
 
 
-$(LIBEXPDIR)/libsbms.so: $(OBJSBMS) $(LIBSBUTIL)
-	$(CXX) $(LIBSX) $(LNK_FLGS) -shared -o $@ $(OBJSBMS) $(LIBSBUTILX) $(LIBSMX) -ldl
-
+$(LIBEXPDIR)/libsbms.so: $(OBJSBMS) $(LIBSBUTIL) $(LIBFEATURES)
+	$(CXX) $(LIBSX) $(LNK_FLGS) -shared -o $@ $(OBJSBMS) $(LIBSBUTILX) $(LIBSMX) $(LIBFEATURES) -ldl
 
 $(LIBEXPDIR)/libsbsautil.so: $(OBJSBSAUTIL)
 	$(OCXX) $(LNK_FLGS) -shared -o $@ $(OBJSBSAUTIL) -lpthread
@@ -171,6 +176,21 @@ $(LIBEXPDIR)/libsqstatesb.so: $(OBJSQSTATESB) $(LIBSBFS)
 
 $(LIBEXPDIR)/libsbutil.so: $(OBJSBUTIL) $(LIBEXPDIR)/libsblogalt.so
 	$(CXX) $(LNK_FLGS) -shared -o $@ $(OBJSBUTIL) $(LIBSBLOGALTX)
+
+$(OUTDIR)/features_ent.o: features.cpp
+	$(CXX) $(CDEPFLAGS) $(CXXFLAGS) $(INCLUDES) -DFEATURES_ENT -c -o $@ $<
+
+$(OUTDIR)/features_adv.o: features.cpp
+	$(CXX) $(CDEPFLAGS) $(CXXFLAGS) $(INCLUDES) -DFEATURES_ADV -c -o $@ $<
+
+$(LIBEXPDIR)/libfeatures.so: $(LIBFEATURES_ENT) $(LIBFEATURES_ADV)
+	cp -p $(LIBFEATURES_ADV) $(LIBFEATURES)
+
+$(LIBEXPDIR)/libfeatures_ent.so: $(OUTDIR)/features_ent.o
+	$(CXX) $(LNK_FLGS) -shared -o $@ $(OUTDIR)/features_ent.o
+
+$(LIBEXPDIR)/libfeatures_adv.so: $(OUTDIR)/features_adv.o
+	$(CXX) $(LNK_FLGS) -shared -o $@ $(OUTDIR)/features_adv.o
 
 # Currently can't have NDEBUG
 $(OUTDIR)/monclio.o: monclio.cpp

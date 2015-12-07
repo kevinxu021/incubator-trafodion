@@ -32,8 +32,12 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.serde2.objectinspector.*;
 import org.apache.hadoop.hive.ql.io.orc.*;
 
+import org.apache.log4j.Logger;
+
 public class OrcFileReader
 {
+
+    static Logger logger = Logger.getLogger(OrcFileReader.class.getName());;
 
     Configuration               m_conf;
     Path                        m_file_path;
@@ -46,98 +50,77 @@ public class OrcFileReader
     String                      lastError = null;
     Reader.Options		m_options;
 
-public class OrcRowReturnSQL
-{
-		int m_row_length;
-		int m_column_count;
-		long m_row_number;
-		byte[] m_row_ba = new byte[4096];
-}
+    public class OrcRowReturnSQL
+    {
+	int m_row_length;
+	int m_column_count;
+	long m_row_number;
+	byte[] m_row_ba = new byte[4096];
+    }
 
     OrcRowReturnSQL		rowData;	//TEMP!!
 
-
-    OrcFileReader() {
+    OrcFileReader() 
+    {
+	if (logger.isTraceEnabled()) logger.trace("Enter OrcFileReader()");
 	m_conf = new Configuration();
 	rowData = new OrcRowReturnSQL();	//TEMP: was in fetch
     }
 
-//********************************************************************************
+    public String open(String pv_file_name) throws IOException 
+    {
 
-//  ORIGINAL VERSION BEFORE ADDING SUPPORT FOR COLUMN SELECTION
-    public String open(String pv_file_name) throws IOException {
-//    pv_file_name= pv_file_name + "/000000_0";
+	if (logger.isTraceEnabled()) logger.trace("Enter open(), file name: " + pv_file_name);
 
 	m_file_path = new Path(pv_file_name);
 
-		try{
-				m_reader = OrcFile.createReader(m_file_path, OrcFile.readerOptions(m_conf));
-		} catch (java.io.FileNotFoundException e1) {
-						return "file not found";
-		}
-	if (m_reader == null)
-			return "open failed!";
+	try{
+	    m_reader = OrcFile.createReader(m_file_path, OrcFile.readerOptions(m_conf));
+	} catch (java.io.FileNotFoundException e1) {
+	    if (logger.isTraceEnabled()) logger.trace("Error: file not found: " + pv_file_name);
+	    return "file not found";
+	}
+
+	if (m_reader == null) {
+	    if (logger.isTraceEnabled()) logger.trace("Error: open failed, createReader returned a null object");
+	    return "open failed!";
+	}
+
 	m_types = m_reader.getTypes();
 	m_oi = (StructObjectInspector) m_reader.getObjectInspector();
 	m_fields = m_oi.getAllStructFieldRefs();
 	
 	try{
-			m_rr = m_reader.rows();
+	    m_rr = m_reader.rows();
 	} catch (java.io.IOException e1) {
-					return (e1.getMessage());
+	    logger.error("reader.rows returned an exception: " + e1);
+	    return (e1.getMessage());
 	}
 	
-	if (m_rr == null)
-			return "open:RecordReader is null";
+	if (m_rr == null) {
+	    if (logger.isTraceEnabled()) logger.trace("m_reader.rows() returned a null");
+	    return "open:RecordReader is null";
+	}
+
+	if (logger.isTraceEnabled()) logger.trace("Exit open()");
 	return null;
     }
-
-//********************************************************************************
-/*
-    public String open(String pv_file_name) throws Exception {
-//    pv_file_name= pv_file_name + "/000000_0";
-	m_file_path = new Path(pv_file_name);
-
-		try{
-				m_reader = OrcFile.createReader(m_file_path, OrcFile.readerOptions(m_conf));
-		} catch (java.io.FileNotFoundException e1) {
-						return "file not found";
-		}
-	if (m_reader == null)
-			return "open failed!";
-	m_types = m_reader.getTypes();
-	m_oi = (StructObjectInspector) m_reader.getObjectInspector();
-	m_fields = m_oi.getAllStructFieldRefs();
-	
-//	m_rr = m_reader.rows();		//RESTORE THIS as working code!
-//						boolean[] includes = new boolean[29];
-  						boolean[] includes = new boolean[] 					{true,true,false,false,false,false,false,false,false,false,false,false,
-  											false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true};
-  						 m_options = new Reader.Options();
-//  						my_options.include(includes);
-//  						System.out.println("Array size: " + includes.length);
- 					m_rr = m_reader.rowsOptions(m_options.include(includes));
-// 					m_rr = m_reader.rowsOptions(m_options.include(new boolean[] {false,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false}));
-//{true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true}));
-
-	return null;
-    }
-*/
-//********************************************************************************
     
-	public String close()
-	{
-				m_reader = null;
-				m_rr = null; 
-				m_file_path = null;            
-    return null;
-	}
+    public String close()
+    {
+	if (logger.isTraceEnabled()) logger.trace("Enter close()");
+	m_reader = null;
+	m_rr = null; 
+	m_file_path = null;            
+	return null;
+    }
 
+    public void printFileInfo() throws Exception 
+    {
 
-    public void printFileInfo() throws Exception {
+	if (logger.isTraceEnabled()) logger.trace("Enter printFileInfo()");
 
 	System.out.println("Reader: " + m_reader);
-
 
 	System.out.println("# Rows: " + m_reader.getNumberOfRows());
 	System.out.println("# Types in the file: " + m_types.size());
@@ -167,7 +150,10 @@ public class OrcRowReturnSQL
 
     }
 
-    public boolean seekToRow(long pv_rowNumber) throws IOException {
+    public boolean seekToRow(long pv_rowNumber) throws IOException 
+    {
+
+	if (logger.isTraceEnabled()) logger.trace("Enter seekToRow(), rowNumber: " + pv_rowNumber);
 
 	if (m_reader == null) {
 	    return false;
@@ -183,13 +169,19 @@ public class OrcRowReturnSQL
 	return true;
     }
 
-    public String seeknSync(long pv_rowNumber) throws IOException {
+    public String seeknSync(long pv_rowNumber) throws IOException 
+    {
+
+	if (logger.isTraceEnabled()) logger.trace("Enter seeknSync(), rowNumber: " + pv_rowNumber);
+
 	if (m_reader == null) {
+	    if (logger.isTraceEnabled()) logger.trace("seeknSync(). Error: No reader object yet");
 	    return "Looks like a file has not been opened. Call open() first.";
 	}
 
 	if ((pv_rowNumber < 0) ||
 	    (pv_rowNumber >= m_reader.getNumberOfRows())) {
+	    if (logger.isTraceEnabled()) logger.trace("seeknSync(). Error: Invalid row number");
 	    return "Invalid rownumber: " + pv_rowNumber + " provided.";
 	}
 
@@ -198,20 +190,29 @@ public class OrcRowReturnSQL
 	return null;
     }
 
-    public long getNumberOfRows() throws IOException {
+    public long getNumberOfRows() throws IOException 
+    {
+
+	if (logger.isTraceEnabled()) logger.trace("Enter getNumberOfRows");
 
 	return m_reader.getNumberOfRows();
 
     }
 
-    public long getPosition() throws IOException {
+    public long getPosition() throws IOException 
+    {
+
+	if (logger.isTraceEnabled()) logger.trace("Enter getPosition");
 
 	return m_rr.getRowNumber();
 
     }
 
     // Dumps the content of the file. The columns are '|' separated.
-    public void readFile_String() throws Exception {
+    public void readFile_String() throws Exception 
+    {
+
+	if (logger.isTraceEnabled()) logger.trace("Enter readFile_String");
 
 	seeknSync(0);
 	OrcStruct lv_row = null;
@@ -232,9 +233,11 @@ public class OrcRowReturnSQL
 
     }
 
-
     // Dumps the contents of the file as ByteBuffer.
-    public void readFile_ByteBuffer() throws Exception {
+    public void readFile_ByteBuffer() throws Exception 
+    {
+
+	if (logger.isTraceEnabled()) logger.trace("Enter readFile_ByteBuffer()");
 
 	OrcStruct lv_row = null;
 	Object lv_field_val = null;
@@ -262,7 +265,10 @@ public class OrcRowReturnSQL
 	}
     }
 
-    public String getNext_String(char pv_ColSeparator) throws Exception {
+    public String getNext_String(char pv_ColSeparator) throws Exception 
+    {
+
+	if (logger.isTraceEnabled()) logger.trace("Enter getNext_String()");
 
 	if ( ! m_rr.hasNext()) {
 	    return null;
@@ -285,14 +291,16 @@ public class OrcRowReturnSQL
     }
 
     // returns the next row as a byte array
-    public byte[] fetchNextRow() throws Exception {
+    public byte[] fetchNextRow() throws Exception 
+    {
+
+	if (logger.isTraceEnabled()) logger.trace("Enter fetchNextRow()");
 
 	if ( ! m_rr.hasNext()) {
 	    return null;
 	}
 
-//	OrcStruct lv_row = (OrcStruct) m_rr.next(null);
- OrcStruct lv_row = (OrcStruct) m_rr.next(null);
+	OrcStruct lv_row = (OrcStruct) m_rr.next(null);
 	Object lv_field_val = null;
    	ByteBuffer lv_row_buffer;
 
@@ -312,18 +320,15 @@ public class OrcRowReturnSQL
 	}
 	return lv_row_buffer.array();
     }
-    
-    
-//****************************************************************************
 	
-//THIS IS THE ORIGINAL FORM BEFORE ADDING SUPPORT FOR COLUMN SELECTION !!!!
-public OrcRowReturnSQL fetchNextRowObj() throws Exception
-{
-//		int	lv_integerLength = Integer.Bytes;
-		int	lv_integerLength = 4;
-//		OrcRowReturnSQL rowData = new OrcRowReturnSQL();
+    public OrcRowReturnSQL fetchNextRowObj() throws Exception
+    {
+
+	if (logger.isTraceEnabled()) logger.trace("Enter fetchNextRowObj()");
+
+	int	lv_integerLength = 4;
 	 
-	 	if ( ! m_rr.hasNext()) {
+	if ( ! m_rr.hasNext()) {
 	    return null;
 	}
 
@@ -331,7 +336,6 @@ public OrcRowReturnSQL fetchNextRowObj() throws Exception
 	Object lv_field_val = null;
    	ByteBuffer lv_row_buffer;
 
-//	lv_row_buffer.order(ByteOrder.LITTLE_ENDIAN);
 	lv_row_buffer = ByteBuffer.wrap(rowData.m_row_ba);
 	lv_row_buffer.order(ByteOrder.LITTLE_ENDIAN);
 	
@@ -348,86 +352,38 @@ public OrcRowReturnSQL fetchNextRowObj() throws Exception
 	    }
 	    String lv_field_val_str = lv_field_val.toString();
 	    lv_row_buffer.putInt(lv_field_val_str.length());
-  			rowData.m_row_length = rowData.m_row_length + lv_integerLength;
+	    rowData.m_row_length = rowData.m_row_length + lv_integerLength;
 	    if (lv_field_val != null) {
 		lv_row_buffer.put(lv_field_val_str.getBytes());
   		rowData.m_row_length = rowData.m_row_length + lv_field_val_str.length();
 	    }
 	}
     	 
-	 return rowData;
+	return rowData;
 	
-}
+    }
 
-//****************************************************************************
-/*
-public OrcRowReturnSQL fetchNextRowObj() throws Exception
-{
-//		int	lv_integerLength = Integer.Bytes;
-		int	lv_integerLength = 4;
-		boolean[]	lv_include;
-		
-		OrcRowReturnSQL rowData = new OrcRowReturnSQL();
-	 
-	 	if ( ! m_rr.hasNext()) {
-	    return null;
-	}
+    String getLastError() 
+    {
+	return lastError;
+    }
 
-	OrcStruct lv_row = (OrcStruct) m_rr.next(null);
-	Object lv_field_val = null;
-   	ByteBuffer lv_row_buffer;
+    public boolean isEOF() throws Exception
+    { 
+	if (logger.isTraceEnabled()) logger.trace("Enter isEOF()");
 
-//	lv_row_buffer.order(ByteOrder.LITTLE_ENDIAN);
-	lv_row_buffer = ByteBuffer.wrap(rowData.m_row_ba);
-	lv_row_buffer.order(ByteOrder.LITTLE_ENDIAN);
-//	rowData.m_column_count = m_fields.size();
-	rowData.m_column_count = 0;;
-	rowData.m_row_number = m_rr.getRowNumber();
-	lv_include = m_options.getInclude();
-	
-	for (int i = 0; i < m_fields.size(); i++) {
-					if (lv_include[i+1] == false) continue;
-	    lv_field_val = m_oi.getStructFieldData(lv_row, m_fields.get(i));
-	    if (lv_field_val == null) {
-  				lv_row_buffer.putInt(0);
-  				rowData.m_row_length = rowData.m_row_length + lv_integerLength;
-						rowData.m_column_count++;;
-						continue;
-	    }
-	    String lv_field_val_str = lv_field_val.toString();
-	    lv_row_buffer.putInt(lv_field_val_str.length());
-  			rowData.m_row_length = rowData.m_row_length + lv_integerLength;
-	    if (lv_field_val != null) {
-		lv_row_buffer.put(lv_field_val_str.getBytes());
-  		rowData.m_row_length = rowData.m_row_length + lv_field_val_str.length();
-				rowData.m_column_count++;;
-
-	    }
-	}
-    	 
-	 return rowData;
-	
-}
-*/
-//****************************************************************************
-String getLastError() {
-      return lastError;
-  }
-
-//****************************************************************************
-public boolean isEOF() throws Exception
-{ 
-	if (m_rr.hasNext())
-	{
+	if (m_rr.hasNext()) {
 	    return false;
 	}
-	else
-			{
-					return true;
-			}
-}  
-//****************************************************************************
- public String fetchNextRow(char pv_ColSeparator) throws Exception {
+	else {
+	    return true;
+	}
+    }  
+
+    public String fetchNextRow(char pv_ColSeparator) throws Exception 
+    {
+
+	if (logger.isTraceEnabled()) logger.trace("Enter fetchNextRow(), col separator: " + pv_ColSeparator);
 
 	if ( ! m_rr.hasNext()) {
 	    return null;
@@ -448,8 +404,6 @@ public boolean isEOF() throws Exception
 	
 	return lv_row_string.toString();
     }
-    
-
 
     public static void main(String[] args) throws Exception
     {
@@ -495,6 +449,6 @@ public boolean isEOF() throws Exception
 		}
 	    }
 	}
-        System.out.println("Shows the change in place");
+
     }
 }
