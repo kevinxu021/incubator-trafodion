@@ -6,6 +6,7 @@ core.*
 CVS
 thirdparty_export/lib/*
 export/include/SCM*
+export/lib*/libfeatures_*.so
 export/lib*/redist*
 export/lib*/redist-gcc-*/lib*
 lost+found
