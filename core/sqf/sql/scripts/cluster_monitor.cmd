@@ -35,3 +35,4 @@ export CLUSTER_MONITOR_MODE=1
 #----  End : Setup the env to run any script - please do not edit this block
 
 $DBMGR_INSTALL_DIR/bin/dbmgr.sh watch 
+$MGBLTY_INSTALL_DIR/bosun/bin/runbosun.sh watch 

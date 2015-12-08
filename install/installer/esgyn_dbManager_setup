@@ -245,7 +245,7 @@ sudo su $TRAF_USER --command "echo 'source /etc/trafodion/trafodion_config' | ca
 
 sudo su $TRAF_USER --command "chmod 777 $CREATE_METRICS"
 
-sudo su $TRAF_USER --command "$TRAF_PDSH $CREATE_METRICS"
+sudo su $TRAF_USER --command "$CREATE_METRICS"
 
 }
 
@@ -485,13 +485,13 @@ getTimeZone
 
 createOpenTSDBTables
 
-registerMetrics
-
 unSetFlag
 
 checkPorts
 
 editOPENTSDB_CONF
+
+registerMetrics
 
 editStartStop
 
