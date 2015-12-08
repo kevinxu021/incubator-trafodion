@@ -186,6 +186,12 @@ $(OUTDIR)/features_adv.o: features.cpp
 $(LIBEXPDIR)/libfeatures.so: $(LIBFEATURES_ENT) $(LIBFEATURES_ADV)
 	cp -p $(LIBFEATURES_ADV) $(LIBFEATURES)
 
+setup_ent: $(LIBFEATURES_ENT)
+	cp -p $(LIBFEATURES_ENT) $(LIBFEATURES)
+
+setup_adv: $(LIBFEATURES_ADV)
+	cp -p $(LIBFEATURES_ADV) $(LIBFEATURES)
+
 $(LIBEXPDIR)/libfeatures_ent.so: $(OUTDIR)/features_ent.o
 	$(CXX) $(LNK_FLGS) -shared -o $@ $(OUTDIR)/features_ent.o
 

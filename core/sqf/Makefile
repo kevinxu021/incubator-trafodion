@@ -57,7 +57,6 @@ win: make_sqevlog seabed
 seabed: make_sqevlog
 	cd src/seabed; $(MAKE) 2>&1 | sed -e "s/$$/	##(SQF)/" ; exit $${PIPESTATUS[0]}
 
-
 tm: seabed make_sqevlog
 	cd src/tm; $(MAKE) 2>&1 | sed -e "s/$$/	##(SQF)/" ; exit $${PIPESTATUS[0]}
 
@@ -271,7 +270,13 @@ else
 endif
 
 PKG_BIN ?= "${PKG_PROD}.bin"
-PKG_TAR ?= "../../${DISTRIBUTION_DIR}/${PKG_PROD}_$(PKG_TYPE).tgz"
+
+# set this when we want to build individual feature specific packages (for adv/ent etc.)
+ifeq ($(SQ_BUILD_FEATURE_SPECIFIC_PACKAGE),1)
+  PKG_TAR ?= "../../${DISTRIBUTION_DIR}/${PKG_PROD}_${PKG_FEATURE}_$(PKG_TYPE).tgz"
+else
+  PKG_TAR ?= "../../${DISTRIBUTION_DIR}/${PKG_PROD}_$(PKG_TYPE).tgz"
+endif
 PKG_TAR_UN = "${PKG_PROD}_${SQ_BUILD_TYPE}.tar"
 SRC_PKG_BIN ?= "../../${DISTRIBUTION_DIR}/${PKG_PROD}-src.bin"
 SRC_PKG_TAR ?= "../../${DISTRIBUTION_DIR}/${PKG_PROD}-src.tgz"
@@ -297,8 +302,36 @@ PKG_REGRESS_TAR ?= "../../${DISTRIBUTION_DIR}/${PKG_PROD}-regress.tgz"
 # Package SeaMonster kernel module
 SEAMONSTER_TAR ?= "seamonster_${SQ_BUILD_TYPE}-src.tar.gz"
 
+setup_adv: seabed
+	cd src/seabed/src; $(MAKE) setup_adv
+	@echo "In setup_adv, PKG_TAR=$(PKG_TAR)"
+
+setup_ent: seabed
+	cd src/seabed/src; $(MAKE) setup_ent
+	@echo "In setup_ent, PKG_TAR=$(PKG_TAR)"
+
+package_adv : PKG_FEATURE = adv
+package_adv : setup_adv actually_package
+	@echo "PKG_TAR=$(PKG_TAR)"
+
+package_ent : PKG_FEATURE = ent
+package_ent : setup_ent actually_package
+	@echo "PKG_TAR=$(PKG_TAR)"
+
+ifeq ($(SQ_BUILD_FEATURE_SPECIFIC_PACKAGE),1)
+  FEATURE_SPECIFIC_PACKAGES = package_adv package_ent
+else
+  FEATURE_SPECIFIC_PACKAGES = package_adv
+endif
+
+.PHONY: $(FEATURE_SPECIFIC_PACKAGES) actually_package
+package : 
+	for mk_specific_package in $(FEATURE_SPECIFIC_PACKAGES); do \
+		$(MAKE) $$mk_specific_package; \
+	done
+
 #	Targets to tar/gzip the tree
-package: pkglist-files pkglist-symlinks tmp/sqenv.sh
+actually_package : pkglist-files pkglist-symlinks tmp/sqenv.sh
 	mkdir -p ../../${DISTRIBUTION_DIR}
 	chmod o-rwx $(PKG_BIN_DIRS)
 	chmod -R o-rwx $(PKG_BIN_OBJS)
