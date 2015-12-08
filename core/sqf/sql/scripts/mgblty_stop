@@ -34,5 +34,5 @@ echo "Stopping DBMgr..."
 $DBMGR_INSTALL_DIR/bin/dbmgr.sh stop
 echo
 
-#For future use
-#$MGBLTY_DIR/bosun/bin/runbosun.sh stop
+echo "Stopping Bosun..."
+$MGBLTY_INSTALL_DIR/bosun/bin/runbosun.sh stop

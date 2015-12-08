@@ -33,6 +33,9 @@ if ( [ $tf_stat == 0 ]  || [ $tf_stat == 1 ] ); then
 	echo "Starting DBMgr..."
 	$DBMGR_INSTALL_DIR/bin/dbmgr.sh start
 	echo
+	echo "Starting Bosun..."
+	$MGBLTY_INSTALL_DIR/bosun/bin/runbosun.sh start
+	echo
 else
 	echo "Trafodion is partially up or not started..."
         exit 1
