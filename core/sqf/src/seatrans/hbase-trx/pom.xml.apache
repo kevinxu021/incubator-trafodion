@@ -28,6 +28,7 @@
   </repository>
 </repositories> 
 
+
 <properties>
   <hadoop.version>2.4.0</hadoop.version>
   <hbase.version>1.0.2</hbase.version>

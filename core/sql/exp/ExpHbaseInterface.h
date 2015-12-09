@@ -410,6 +410,8 @@ class ExpHbaseInterface : public NABasicObject
 
   virtual Lng32 addTablesToHDFSCache(const std::vector<Text>& tables, const char* poolName) = 0;
   virtual Lng32 removeTablesFromHDFSCache(const std::vector<Text>& tables, const char* poolName) = 0;
+  // get regions and size
+  virtual ByteArrayList* getRegionStats(const HbaseStr& tblName) = 0;
 
 protected:
   enum 
@@ -739,6 +741,8 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
   
   virtual Lng32 addTablesToHDFSCache(const std::vector<Text> & tables, const char* poolName);
   virtual Lng32 removeTablesFromHDFSCache(const std::vector<Text> & tables, const char* poolName);
+
+  virtual ByteArrayList* getRegionStats(const HbaseStr& tblName);
 
 private:
   bool  useTRex_;
