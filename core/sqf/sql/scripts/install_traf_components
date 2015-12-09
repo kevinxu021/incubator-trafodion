@@ -520,7 +520,7 @@ else
 
       chmod +x $MGBLTY_HOME/bosun/bin/*
 
-      export COMPRESSION=NONE
+      export COMPRESSION=GZ
       $MGBLTY_HOME/opentsdb/tools/create_table.sh 
       $MGBLTY_HOME/opentsdb/tools/register_metrics.sh
   else
