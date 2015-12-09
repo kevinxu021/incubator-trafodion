@@ -169,7 +169,7 @@ source $TRAF_CONFIG
 function setFlags {
 
 export HBASE_HOME="/usr"
-export COMPRESSION="NONE"
+export COMPRESSION="GZ"
 export PATH=$PATH:$JAVA_HOME/bin
 export PATH=$MGBLTY_INSTALL_DIR/jython2.7.0/bin:$PATH
 
