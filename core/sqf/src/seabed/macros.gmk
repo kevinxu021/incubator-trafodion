@@ -106,6 +106,8 @@ LIBSBSAUTIL	= $(LIBEXPDIR)/libsbsautil.so
 LIBSBSAUTILX	= -L$(LIBEXPDIR) -lsbsautil
 LIBSBUTIL	= $(LIBEXPDIR)/libsbutil.so
 LIBSBUTILX	= -L$(LIBEXPDIR) -lsbutil
+LIBFEATURES	= $(LIBEXPDIR)/libfeatures.so
+LIBFEATURESX	= -L$(LIBEXPDIR) -lfeatures
 
 
 # common rules

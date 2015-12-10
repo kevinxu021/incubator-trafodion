@@ -21,6 +21,10 @@
 
 #include "SCMfeatures.h"
 
+#include "verslib.h"
+
+VERS_LIB(libfeatures)
+
 enum
 {
   EntFeature = 1,
