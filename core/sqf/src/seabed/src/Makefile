@@ -56,7 +56,6 @@ LIBSBLOGALT	= $(LIBEXPDIR)/libsblogalt.so
 LIBSBSAUTIL	= $(LIBEXPDIR)/libsbsautil.so
 LIBSBUTIL	= $(LIBEXPDIR)/libsbutil.so
 LIBSQSTATESB	= $(LIBEXPDIR)/libsqstatesb.so
-LIBFEATURES	= $(LIBEXPDIR)/libfeatures.so
 LIBFEATURES_ENT	= $(LIBEXPDIR)/libfeatures_ent.so
 LIBFEATURES_ADV	= $(LIBEXPDIR)/libfeatures_adv.so
 
@@ -164,7 +163,7 @@ $(OUTDIR)/logalt.o: logalt.cpp
 
 
 $(LIBEXPDIR)/libsbms.so: $(OBJSBMS) $(LIBSBUTIL) $(LIBFEATURES)
-	$(CXX) $(LIBSX) $(LNK_FLGS) -shared -o $@ $(OBJSBMS) $(LIBSBUTILX) $(LIBSMX) $(LIBFEATURES) -ldl
+	$(CXX) $(LIBSX) $(LNK_FLGS) -shared -o $@ $(OBJSBMS) $(LIBSBUTILX) $(LIBSMX) $(LIBFEATURESX) -ldl
 
 $(LIBEXPDIR)/libsbsautil.so: $(OBJSBSAUTIL)
 	$(OCXX) $(LNK_FLGS) -shared -o $@ $(OBJSBSAUTIL) -lpthread
