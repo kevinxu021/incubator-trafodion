@@ -483,7 +483,6 @@ function checkRoleGroups {
 
 }
 
-
 function checkClouderaVersion {
 
 if [[ $CDH_5_3_HDP_2_2_SUPPORT == "N" ]]; then
