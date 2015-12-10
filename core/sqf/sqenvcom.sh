@@ -665,7 +665,7 @@ fi
 
 
 # for debugging
-export LD_BIND_NOW=true
+# export LD_BIND_NOW=true
 
 export MPI_TMPDIR=$PWD/tmp
 if [[ -d $MPI_TMPDIR ]]; then

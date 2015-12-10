@@ -21,26 +21,6 @@
 * @@@ END COPYRIGHT @@@
 **/
 
-// @@@ START COPYRIGHT @@@
-//
-// Licensed to the Apache Software Foundation (ASF) under one
-// or more contributor license agreements.  See the NOTICE file
-// distributed with this work for additional information
-// regarding copyright ownership.  The ASF licenses this file
-// to you under the Apache License, Version 2.0 (the
-// "License"); you may not use this file except in compliance
-// with the License.  You may obtain a copy of the License at
-//
-//   http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-//
-// @@@ END COPYRIGHT @@@
 package org.apache.hadoop.hbase.coprocessor.transactional;
 
 import java.io.IOException;
@@ -683,8 +663,10 @@ CoprocessorService, Coprocessor {
     Throwable t = null;
     WrongRegionException wre = null;
     long transactionId = request.getTransactionId();
+    final int participantNum = request.getParticipantNum();
 
-    if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit - txId "  + transactionId + ", regionName " + regionInfo.getRegionNameAsString());
+    if (LOG.isDebugEnabled()) LOG.debug("TrxRegionEndpoint coprocessor: commit - txId "
+         + transactionId + ", participantNum " + participantNum + ", regionName " + regionInfo.getRegionNameAsString());
 
         /*  commenting out for the time being
     java.lang.String name = ((com.google.protobuf.ByteString) request.getRegionName()).toStringUtf8();
@@ -702,7 +684,7 @@ CoprocessorService, Coprocessor {
     {
      // Process local memory
       try {
-        commit(transactionId, request.getIgnoreUnknownTransactionException());
+        commit(transactionId, participantNum, request.getIgnoreUnknownTransactionException());
       } catch (Throwable e) {
         LOG.error("TrxRegionEndpoint coprocessor: commit - txId " + transactionId + ", Caught exception after internal commit call "
                      + e.getMessage() + " " + stackTraceToString(e));
@@ -763,7 +745,7 @@ CoprocessorService, Coprocessor {
                  commitMultipleResponseBuilder.setException(i, BatchException.EXCEPTION_REGIONNOTFOUND_ERR.toString());
               }
               else {
-                 regionEPCP.commit(transactionId, request.getIgnoreUnknownTransactionException());
+                 regionEPCP.commit(transactionId, i, request.getIgnoreUnknownTransactionException());
               }
               if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint commitMultiple ends");
              //commit(transactionId, request.getIgnoreUnknownTransactionException());
@@ -802,6 +784,7 @@ CoprocessorService, Coprocessor {
 
     boolean reply = false;
     long transactionId = request.getTransactionId();
+    final int participantNum = request.getParticipantNum();
     Throwable t = null;
     WrongRegionException wre = null;
 
@@ -821,8 +804,8 @@ CoprocessorService, Coprocessor {
      {
        // Process local memory
        try {
-         if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commitIfPossible - txId "  + transactionId + ", regionName, " + regionInfo.getRegionNameAsString() + "calling internal commitIfPossible");
-         reply = commitIfPossible(transactionId);
+    	 if (LOG.isDebugEnabled()) LOG.debug("TrxRegionEndpoint coprocessor: commitIfPossible - txId "  + transactionId + ", regionName, " + regionInfo.getRegionNameAsString() + "calling internal commitIfPossible");
+         reply = commitIfPossible(transactionId, participantNum);
        } catch (Throwable e) {
           if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commitIfPossible - txId " + transactionId + ", Caught exception after internal commitIfPossible call "
                    + e.getMessage() + " " + stackTraceToString(e));
@@ -863,8 +846,10 @@ CoprocessorService, Coprocessor {
     Throwable t = null;
     WrongRegionException wre = null;
     long transactionId = request.getTransactionId();
+    int participantNum = request.getParticipantNum();
 
-    if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commitRequest - txId "  + transactionId + ", regionName " + regionInfo.getRegionNameAsString());
+    if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commitRequest - txId "
+         + transactionId + ", participantNum " + participantNum + ", regionName " + regionInfo.getRegionNameAsString());
 
     /*  commenting out for the time being
     java.lang.String name = ((com.google.protobuf.ByteString) request.getRegionName()).toStringUtf8();
@@ -882,7 +867,7 @@ CoprocessorService, Coprocessor {
     {
       // Process local memory
       try {
-        status = commitRequest(transactionId);
+        status = commitRequest(transactionId, participantNum);
       } catch (UnknownTransactionException u) {
         if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commitRequest - txId " + transactionId + ", Caught UnknownTransactionException after internal commitRequest call - " + u.toString());
         ute = u;
@@ -983,8 +968,8 @@ CoprocessorService, Coprocessor {
                  commitRequestMultipleResponseBuilder.setException(i, BatchException.EXCEPTION_REGIONNOTFOUND_ERR.toString());
               }
               else {
-                 if (i == (numOfRegion - 1)) {status = regionEPCP.commitRequest(transactionId, true);} // only the last region flush
-                 else {status = regionEPCP.commitRequest(transactionId, false);}
+                 if (i == (numOfRegion - 1)) {status = regionEPCP.commitRequest(transactionId, i, true);} // only the last region flush
+                 else {status = regionEPCP.commitRequest(transactionId, i, false);}
               }
               if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint commitRequestMultiple ends");
              //status = commitRequest(transactionId);
@@ -4773,8 +4758,8 @@ CoprocessorService, Coprocessor {
    * @param long TransactionId
    * @throws IOException
    */
-  public void commit(final long transactionId) throws IOException {
-     commit(transactionId, false /* IgnoreUnknownTransactionException */);
+  public void commit(final long transactionId, final int participantNum) throws IOException {
+     commit(transactionId, participantNum, false /* IgnoreUnknownTransactionException */);
   }
 
   /**
@@ -4783,9 +4768,9 @@ CoprocessorService, Coprocessor {
    * @param boolean ignoreUnknownTransactionException
    * @throws IOException 
    */
-  public void commit(final long transactionId, final boolean ignoreUnknownTransactionException) throws IOException {
+  public void commit(final long transactionId, final int participantNum, final boolean ignoreUnknownTransactionException) throws IOException {
     if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit(txId) -- ENTRY txId: " + transactionId +
-              " ignoreUnknownTransactionException: " + ignoreUnknownTransactionException);
+              " ignoreUnknownTransaction: " + ignoreUnknownTransactionException);
     CommitProgress commitStatus = CommitProgress.NONE;
     TrxTransactionState state;
     try {
@@ -4797,10 +4782,11 @@ CoprocessorService, Coprocessor {
                 + m_Region.getRegionInfo().getRegionNameAsString());
          return;
       }
-      LOG.fatal("TrxRegionEndpoint coprocessor: Asked to commit unknown transaction: " + transactionId
-                + " in region "
-                + m_Region.getRegionInfo().getRegionNameAsString());
-      throw new IOException("UnknownTransactionException, transId: " + transactionId);
+      LOG.fatal("TrxRegionEndpoint coprocessor: Participant " + participantNum
+               + " Asked to commit unknown transaction: " + transactionId
+                + " in region " + m_Region.getRegionInfo().getRegionNameAsString());
+      throw new IOException("UnknownTransactionException,  Participant "
+                           + participantNum + " transId: " + transactionId);
     }
 
     if (!state.getStatus().equals(Status.COMMIT_PENDING)) {
@@ -4844,14 +4830,15 @@ CoprocessorService, Coprocessor {
    * @return TransactionRegionInterface commit code
    * @throws IOException
    */
-  public int commitRequest(final long transactionId) throws IOException {
-     return commitRequest(transactionId, true);
+  public int commitRequest(final long transactionId, final int participantNum) throws IOException {
+     return commitRequest(transactionId, participantNum, true);
   }
 
-  public int commitRequest(final long transactionId, boolean flushHLOG) throws IOException,
+  public int commitRequest(final long transactionId, final int participantNum, boolean flushHLOG) throws IOException,
                                                                                UnknownTransactionException {
     long txid = 0;
-    if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commitRequest -- ENTRY txId: " + transactionId);
+    if (LOG.isDebugEnabled()) LOG.debug("TrxRegionEndpoint coprocessor: commitRequest -- ENTRY txId: "
+               + transactionId + " participantNum " + participantNum);
     TrxTransactionState state;
 
     int lv_totalCommits = 0;
@@ -4875,10 +4862,10 @@ CoprocessorService, Coprocessor {
     try {
       state = getTransactionState(transactionId);
     } catch (UnknownTransactionException e) {
-      if (LOG.isDebugEnabled()) LOG.debug("TrxRegionEndpoint coprocessor: commitRequest Unknown transaction [" + transactionId
-                 + "] in region [" 
+      if (LOG.isDebugEnabled()) LOG.debug("TrxRegionEndpoint coprocessor: commitRequest Unknown transaction ["
+                 + transactionId + "] in region [" 
                  + m_Region.getRegionInfo().getRegionNameAsString()
-                 + "], ignoring");
+                 + "], participantNum " + participantNum + " ignoring");
      state = null;
     }
       // may change to indicate a NOTFOUND case  then depends on the TM ts state, if reinstated tx, ignore the exception
@@ -5279,18 +5266,18 @@ CoprocessorService, Coprocessor {
    * @return boolean
    * @throws IOException
    */
-  public boolean commitIfPossible(final long transactionId)
+  public boolean commitIfPossible(final long transactionId, final int participantNum)
     throws IOException {
 
     if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commitIfPossible -- ENTRY txId: "
                + transactionId);
-    int status = commitRequest(transactionId);
+    int status = commitRequest(transactionId, participantNum);
   
     if (status == COMMIT_OK) {
 
        // Process local memory
        try {
-         commit(transactionId);
+         commit(transactionId, participantNum);
          if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commitIfPossible -- ENTRY txId: " + transactionId + " COMMIT_OK");
          return true;
        } catch (Throwable e) {
