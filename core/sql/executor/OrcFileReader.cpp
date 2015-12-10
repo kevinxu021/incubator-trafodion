@@ -71,6 +71,10 @@ OFR_RetCode OrcFileReader::init()
 {
   static char className[]="org/trafodion/sql/OrcFileReader";
   
+  QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
+		LL_DEBUG,
+		"Enter OrcFileReader::init()");
+
   if (JavaMethods_) {
     return (OFR_RetCode)JavaObjectInterface::init(className, 
 						  javaClass_, 
@@ -375,9 +379,13 @@ OFR_RetCode OrcFileReader::fetchRowsIntoBuffer(Int64   stopOffset,
 					       Int64&  bytesRead, 
 					       char    rowDelimiter)
 {
-/*
-Removed until implemented
-  QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER, LL_DEBUG, "OrcFileReader::fetchRowsIntoBuffer(stopOffset: %ld, buffSize: %ld) called.", stopOffset, buffSize);
+
+  QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER, 
+		LL_DEBUG, 
+		"OrcFileReader::fetchRowsIntoBuffer(stopOffset: %ld, buffSize: %ld) called.", 
+		stopOffset, 
+		buffSize);
+
   Int32 maxRowLength = 0;
   char* pos = buffer;
   Int64 limit = buffSize;
@@ -386,7 +394,8 @@ Removed until implemented
   bytesRead = 0;
   do
   {
-    retCode = fetchNextRow(stopOffset, pos);
+    //    retCode = fetchNextRow(row, stopOffset, pos);
+    retCode = OFR_OK;
     if (retCode == OFR_OK)
     {
       rowsRead++;
@@ -405,6 +414,4 @@ Removed until implemented
   
   QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER, LL_DEBUG, "  =>Returning %d, read %ld bytes in %d rows.", retCode, bytesRead, rowsRead);
   return retCode;
-*/
-	return (OFR_NOMORE);
 }

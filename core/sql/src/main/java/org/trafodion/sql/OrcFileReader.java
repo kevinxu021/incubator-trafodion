@@ -86,9 +86,11 @@ public class OrcFileReader
 	    return "open failed!";
 	}
 
+	if (logger.isTraceEnabled()) logger.trace("open() Reader opened, file name: " + pv_file_name);
 	m_types = m_reader.getTypes();
 	m_oi = (StructObjectInspector) m_reader.getObjectInspector();
 	m_fields = m_oi.getAllStructFieldRefs();
+	if (logger.isTraceEnabled()) logger.trace("open() got MD types, file name: " + pv_file_name);
 	
 	try{
 	    m_rr = m_reader.rows();
@@ -119,6 +121,11 @@ public class OrcFileReader
     {
 
 	if (logger.isTraceEnabled()) logger.trace("Enter printFileInfo()");
+	
+	if (m_reader == null) {
+	    if (logger.isTraceEnabled()) logger.trace("OrcFileReader.printFileInfo: Error: reader object is null. Exitting");
+	    return;
+	}
 
 	System.out.println("Reader: " + m_reader);
 
@@ -213,6 +220,11 @@ public class OrcFileReader
     {
 
 	if (logger.isTraceEnabled()) logger.trace("Enter readFile_String");
+
+	if (m_rr == null) {
+	    if (logger.isTraceEnabled()) logger.trace("readFile_String: Error: reader object is null. Exitting.");
+	    return;
+	}
 
 	seeknSync(0);
 	OrcStruct lv_row = null;
@@ -413,15 +425,27 @@ public class OrcFileReader
 
 	lv_this.open(args[0]);
 
+	System.out.println("================= Begin File Info:" + 
+			   args[0]);
+	
 	lv_this.printFileInfo();
 
+	System.out.println("================= End File Info:" + 
+			   args[0]);
+
+	System.out.println("================= Begin: readFile_String");
 	lv_this.readFile_String();
+	System.out.println("================= End: readFile_String");
 
+	System.out.println("================= Begin: readFile_ByteBuffer");
 	lv_this.readFile_ByteBuffer();
+	System.out.println("================= End: readFile_ByteBuffer");
 
+	System.out.println("================= Begin: seeknSync(4)");
 	// Gets rows as byte[]  (starts at row# 4)
 	boolean lv_done = false;
 	if (lv_this.seeknSync(4) == null) {
+	    System.out.println("================= Begin: fetchNextRow()");
 	    while (! lv_done) {
 		System.out.println("Next row #: " + lv_this.getPosition());
 		byte[] lv_row_bb = lv_this.fetchNextRow();
@@ -433,6 +457,7 @@ public class OrcFileReader
 		    lv_done = true;
 		}
 	    }
+	    System.out.println("================= End: fetchNextRow()");
 	}
 
 	// Gets rows as String (starts at row# 10)
