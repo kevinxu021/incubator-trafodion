@@ -464,6 +464,7 @@ public class OrcFileReader
 	lv_done = false;
 	String lv_row_string;
 	if (lv_this.seeknSync(10) == null) {
+	    System.out.println("================= Begin: After seeknSync(10)... will do getNext_String()");
 	    while (! lv_done) {
 		lv_row_string = lv_this.getNext_String('|');
 		if (lv_row_string != null) {
@@ -473,6 +474,7 @@ public class OrcFileReader
 		    lv_done = true;
 		}
 	    }
+	    System.out.println("================= End: After seeknSync(10)... will do getNext_String()");
 	}
 
     }
