@@ -48,5 +48,5 @@ echo "Status of DBMgr..."
 $DBMGR_INSTALL_DIR/bin/dbmgr.sh status
 echo 
 
-# For future use
-#$MGBLTY_DIR/bosun/bin/runbosun.sh status
+echo "Status of Bosun..."
+$MGBLTY_INSTALL_DIR/bosun/bin/runbosun.sh status
