@@ -475,6 +475,7 @@ cd $MY_SW_ROOT
 
 echo | tee -a ${MY_LOG_FILE}
 # Begin setup of manageability tools
+TIME_ZONE=$($MY_SQROOT/tools/gettimezone.sh  | awk '{print $1}'| head -1)
 
 if [ -d mgblty* ]; then
   echo "Manageability tools already exist, skipping manageability tools setup" | tee -a ${MY_LOG_FILE}
@@ -500,7 +501,7 @@ else
       # Customize openTSD scripts
       cd $MGBLTY_HOME/opentsdb/etc/opentsdb
       mv opentsdb.conf opentsdb.conf.orig | tee -a ${MY_LOG_FILE}
-      sed -e "s@5242@$MY_OPEN_TSDB_PORT@" -e "s@/usr/share@$MGBLTY_HOME@" -e "s@/tmp@$MGBLTY_HOME@" -e "s@2181@$MY_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT_NUM@" opentsdb.conf.orig > opentsdb.conf | tee -a ${MY_LOG_FILE}
+      sed -e "s@5242@$MY_OPEN_TSDB_PORT@" -e "s@/usr/share@$MGBLTY_HOME@" -e "s@/tmp@$MGBLTY_HOME@" -e "s@2181@$MY_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT_NUM@" -e "s@TIMEZONE_NAME@$TIME_ZONE@" opentsdb.conf.orig > opentsdb.conf | tee -a ${MY_LOG_FILE}
 
       mv logback.xml logback.xml.orig | tee -a ${MY_LOG_FILE}
       sed -e "s@<file>/var/log/opentsdb@<file>$MGBLTY_HOME/opentsdb/log@" -e "s@<fileNamePattern>/var/log/opentsdb@<fileNamePattern>$MGBLTY_HOME/opentsdb/log@" logback.xml.orig > logback.xml | tee -a ${MY_LOG_FILE}
@@ -519,7 +520,7 @@ else
 
       chmod +x $MGBLTY_HOME/bosun/bin/*
 
-      export COMPRESSION=NONE
+      export COMPRESSION=GZ
       $MGBLTY_HOME/opentsdb/tools/create_table.sh 
       $MGBLTY_HOME/opentsdb/tools/register_metrics.sh
   else
@@ -543,6 +544,7 @@ else
       echo "Installing DBMGR from: $DBMGR_TAR"  | tee -a ${MY_LOG_FILE}
       tar xzf $DBMGR_TAR | tee -a ${MY_LOG_FILE}
       DBMGR_HOME=$(/bin/ls -d $MY_SW_ROOT/dbmgr-*)
+      
       if [[ -f ~/.trafodion ]]
       then
         mv -f ~/.trafodion ~/.trafodion.orig
@@ -556,7 +558,7 @@ else
       sed -e "s@<fileNamePattern>\${DBMGR_INSTALL_DIR}@<fileNamePattern>$DBMGR_HOME@" logback.xml.orig > logback.xml | tee -a ${MY_LOG_FILE}
 
       cd $DBMGR_HOME/bin
-      ./configure.py --httpport $MY_DB_MGR_PORT --httpsport $MY_DB_MGR_SECURE_PORT --dcshost localhost --dcsport $MY_DCS_MASTER_PORT --password traf123 --dcsinfoport $MY_DCS_MASTER_INFO_PORT --resthost localhost --restport $MY_REST_SERVER_PORT --tsdhost localhost --tsdport $MY_OPEN_TSDB_PORT --bosunhost localhost --bosunport $MY_BOSUN_PORT --timezone Etc/UTC 
+      ./configure.py --httpport $MY_DB_MGR_PORT --httpsport $MY_DB_MGR_SECURE_PORT --dcshost localhost --dcsport $MY_DCS_MASTER_PORT --password traf123 --dcsinfoport $MY_DCS_MASTER_INFO_PORT --resthost localhost --restport $MY_REST_SERVER_PORT --tsdhost localhost --tsdport $MY_OPEN_TSDB_PORT --bosunhost localhost --bosunport $MY_BOSUN_PORT --timezone $TIME_ZONE 
   else
       echo "DBMGR Tar file does not exist" | tee -a ${MY_LOG_FILE}
   fi

@@ -43,6 +43,7 @@ package-tools: install-tools
 	${CP} -r scripts/bosun/* $(MY_SQROOT)/../../mgblty/bosun
 	${CP} -r scripts/tcollector/* $(MY_SQROOT)/../../mgblty/tcollector
 	${CP} -r scripts/opentsdb/bin/tsd.sh $(MY_SQROOT)/../../mgblty/opentsdb/bin
+	${CP} -r scripts/opentsdb/bin/tsdb.local $(MY_SQROOT)/../../mgblty/opentsdb/bin
 	${CP} -r scripts/opentsdb/bin/register_metrics.sh $(MY_SQROOT)/../../mgblty/opentsdb/tools
 	${CP} -r scripts/opentsdb/bin/opentsdb.conf $(MY_SQROOT)/../../mgblty/opentsdb/etc/opentsdb
 	tar chzf ../../${DISTRIBUTION_DIR}/$(MGBLTY_TOOLS_TARNAME) ../../mgblty 

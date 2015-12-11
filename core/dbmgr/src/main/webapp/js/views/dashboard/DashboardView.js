@@ -60,6 +60,7 @@ define([
 
 	var servicesTable = null, nodesTable = null;
 	var timeinterval = 0;
+	var lastUsedTimeRange = null;
 
 	var DashboardView = BaseView.extend({
 		template:  _.template(DashboardT),
@@ -315,10 +316,25 @@ define([
 		generateParams: function(metricName, isDrilldown){
 			var startTime = $('#startdatetimepicker').data("DateTimePicker").date();
 			var endTime = $('#enddatetimepicker').data("DateTimePicker").date();
-
+			
 			var params = {};
 			params.startTime = startTime.format('YYYY/MM/DD-HH:mm:ss');
 			params.endTime = endTime.format('YYYY/MM/DD-HH:mm:ss');
+			
+			if(($("#filterDialog").data('bs.modal') || {}).isShown == true){
+				if(lastUsedTimeRange != null){
+					params.startTime = lastUsedTimeRange.startTime;
+					params.endTime = lastUsedTimeRange.endTime;
+				}
+			}
+			
+			if(lastUsedTimeRange == null){
+				lastUsedTimeRange = {};
+			}
+			lastUsedTimeRange.startTime = params.startTime;
+			lastUsedTimeRange.endTime = params.endTime;
+
+
 			params.metricName = metricName;
 			params.isDrilldown = isDrilldown ? isDrilldown : false;
 			params.timeinterval = endTime - startTime;

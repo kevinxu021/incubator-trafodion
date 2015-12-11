@@ -31,7 +31,7 @@ getpid() {
 }
 
 dbmgr_start() {
-        setsid java -Dlogback.configurationFile=$DBMGR_INSTALL_DIR/conf/logback.xml -jar $WARFILE > $DBMGR_INSTALL_DIR/logs/dbmgr.log 2>&1  &
+        setsid java -Xmx1G -Dlogback.configurationFile=$DBMGR_INSTALL_DIR/conf/logback.xml -jar $WARFILE > $DBMGR_INSTALL_DIR/logs/dbmgr.log 2>&1  &
         sleep 5s
         pid=$(getpid)
         if [ -n "$pid" ]; then
