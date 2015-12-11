@@ -366,7 +366,7 @@ OPENTSDB_CONFIG="$SQ_ROOT/mgblty/opentsdb/etc/opentsdb/opentsdb.conf"
 
 zooKeeperNodes="tsd.storage.hbase.zk_quorum = $ZOOKEEPER_NODES"
 sudo sed -i -e "s/tsd.storage.hbase.zk.quorum = localhost:2181/$zooKeeperNodes/g" $OPENTSDB_CONFIG
-sudo sed -i -e "s/TIMEZONE_NAME/$TIME_ZONE/g" $OPENTSDB_CONFIG
+sudo sed -i -e "s@TIMEZONE_NAME@$TIME_ZONE@g" $OPENTSDB_CONFIG
 
 if [[ $node_count -ne "1" ]]; then
    sudo su $TRAF_USER --command "$TRAF_PDCP $OPENTSDB_CONFIG $OPENTSDB_CONFIG"
