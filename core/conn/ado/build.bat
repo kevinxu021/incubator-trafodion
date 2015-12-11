@@ -3,7 +3,7 @@
 @set DEVENV_HOME=c:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\IDE
 @set GIT_HOME=D:\Program Files\Git
 @set TrafVersion=2.0.0
-@set TrafCopyright="Copyright 2015 Esgyn Corporation"
+@set TrafCopyright="Copyright © 2015 Esgyn Corporation"
 
 @set curr_path=%~dp0
 @set ver_file=%curr_path%\EsgynDB.Data\Public\DisplayVersion.cs
@@ -42,6 +42,8 @@
 @echo    {>> %ver_file%
 @echo       public const string VersionStr = "%TrafVersion%.00000";>> %ver_file%
 @echo       public const string FileVersion = "%TrafVersion%.00000";>> %ver_file%
+@echo       public const string Version = "%TrafVersion%";>> %ver_file%
+@echo       public const string Copyright = %TrafCopyright%;>> %ver_file%
 @echo       public const string Vproc = "EsgynDB ADO.NET Version %TrafVersion% Release %TrafVersion% (Build release [%release_ver%])";>> %ver_file%
 @echo   }>> %ver_file%
 @echo }>> %ver_file%
