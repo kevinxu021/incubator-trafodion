@@ -61,6 +61,7 @@ public class OrcFileRead
     List<? extends StructField> m_fields;
     RecordReader m_rr;
     long m_totalNumberOfRows;
+    boolean m_include_cols[];
 
     OrcFileRead(String pv_file_name) {
 	m_conf = new Configuration();
@@ -139,7 +140,19 @@ public class OrcFileRead
 	m_oi = (StructObjectInspector) m_reader.getObjectInspector();
 	m_fields = m_oi.getAllStructFieldRefs();
 	
-	m_rr = m_reader.rows();
+	//m_rr = m_reader.rows();
+	m_include_cols = new boolean[m_types.size()];
+	for (int i = 0; i < m_types.size(); i++) {
+	    // Set it to true to include all the columns
+	    m_include_cols[i] = false;
+	}
+
+	m_include_cols[1] = true;
+	m_include_cols[2] = true;
+	m_include_cols[6] = true;
+	m_rr = m_reader.rowsOptions(new Reader.Options()
+				    .include(m_include_cols)
+				    );
 
 	return 0;
     }
@@ -198,6 +211,9 @@ public class OrcFileRead
 	    lv_row = (OrcStruct) m_rr.next(lv_row);
 	    lv_row_string.setLength(0);
 	    for (int i = 0; i < m_fields.size(); i++) {
+		if (!m_include_cols[i+1]) {
+		    continue;
+		}
 		lv_field_val = lv_row.getFieldValue(i);
 		if (lv_field_val != null) {
 		    lv_row_string.append(lv_field_val);

@@ -130,6 +130,7 @@ public class OrcFileReader
 	System.out.println("Reader: " + m_reader);
 
 	System.out.println("# Rows: " + m_reader.getNumberOfRows());
+	System.out.println("Size of the file (bytes): " + m_reader.getContentLength());
 	System.out.println("# Types in the file: " + m_types.size());
 	for (int i=0; i < m_types.size(); i++) {
 	    System.out.println("Type " + i + ": " + m_types.get(i).getKind());
@@ -419,59 +420,77 @@ public class OrcFileReader
 
     public static void main(String[] args) throws Exception
     {
+	boolean lv_print_info = false;
+	boolean lv_perform_scans = false;
+
+	for (String lv_arg : args) {
+	    if (lv_arg.compareTo("-i") == 0) {
+		lv_print_info = true;
+	    }
+	    if (lv_arg.compareTo("-s") == 0) {
+		lv_perform_scans = true;
+	    }
+	}
+
 	System.out.println("OrcFile Reader main");
 
 	OrcFileReader lv_this = new OrcFileReader();
 
 	lv_this.open(args[0]);
 
-	System.out.println("================= Begin File Info:" + 
-			   args[0]);
+	if (lv_print_info) {
+	    System.out.println("================= Begin File Info:" + 
+			       args[0]);
 	
-	lv_this.printFileInfo();
+	    lv_this.printFileInfo();
 
-	System.out.println("================= End File Info:" + 
-			   args[0]);
-
-	System.out.println("================= Begin: readFile_String");
-	lv_this.readFile_String();
-	System.out.println("================= End: readFile_String");
-
-	System.out.println("================= Begin: readFile_ByteBuffer");
-	lv_this.readFile_ByteBuffer();
-	System.out.println("================= End: readFile_ByteBuffer");
-
-	System.out.println("================= Begin: seeknSync(4)");
-	// Gets rows as byte[]  (starts at row# 4)
-	boolean lv_done = false;
-	if (lv_this.seeknSync(4) == null) {
-	    System.out.println("================= Begin: fetchNextRow()");
-	    while (! lv_done) {
-		System.out.println("Next row #: " + lv_this.getPosition());
-		byte[] lv_row_bb = lv_this.fetchNextRow();
-		if (lv_row_bb != null) {
-		    System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_row_bb, 0, 100));
-		    System.out.println("Length lv_row_bb: " + lv_row_bb.length);
-		}
-		else {
-		    lv_done = true;
-		}
-	    }
-	    System.out.println("================= End: fetchNextRow()");
+	    System.out.println("================= End File Info:" + 
+			       args[0]);
 	}
 
-	// Gets rows as String (starts at row# 10)
-	lv_done = false;
-	String lv_row_string;
-	if (lv_this.seeknSync(10) == null) {
-	    while (! lv_done) {
-		lv_row_string = lv_this.getNext_String('|');
-		if (lv_row_string != null) {
-		    System.out.println(lv_row_string);
+	if (lv_perform_scans) {
+	    System.out.println("================= Begin: readFile_String");
+	    lv_this.readFile_String();
+	    System.out.println("================= End: readFile_String");
+
+	    System.out.println("================= Begin: readFile_ByteBuffer");
+	    lv_this.readFile_ByteBuffer();
+	    System.out.println("================= End: readFile_ByteBuffer");
+
+	    System.out.println("================= Begin: seeknSync(4)");
+	    // Gets rows as byte[]  (starts at row# 4)
+	    boolean lv_done = false;
+	    if (lv_this.seeknSync(4) == null) {
+		System.out.println("================= Begin: fetchNextRow()");
+		while (! lv_done) {
+		    System.out.println("Next row #: " + lv_this.getPosition());
+		    byte[] lv_row_bb = lv_this.fetchNextRow();
+		    if (lv_row_bb != null) {
+			System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_row_bb, 0, 100));
+			System.out.println("Length lv_row_bb: " + lv_row_bb.length);
+		    }
+		    else {
+			lv_done = true;
+		    }
 		}
-		else {
-		    lv_done = true;
+		System.out.println("================= End: fetchNextRow()");
+	    }
+
+	    // Gets rows as String (starts at row# 10)
+	    lv_done = false;
+	    String lv_row_string;
+	    if (lv_this.seeknSync(10) == null) {
+		System.out.println("================= Begin: After seeknSync(10)... will do getNext_String()");
+		while (! lv_done) {
+		    lv_row_string = lv_this.getNext_String('|');
+		    if (lv_row_string != null) {
+			System.out.println(lv_row_string);
+		    }
+		    else {
+			lv_done = true;
+		    }
 		}
+		System.out.println("================= End: After seeknSync(10)... will do getNext_String()");
 	    }
 	}
 
