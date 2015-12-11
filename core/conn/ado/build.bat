@@ -2,7 +2,7 @@
 @set INNO_SETUP_PATH=d:\Program Files (x86)\Inno Setup 5
 @set DEVENV_HOME=c:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\IDE
 @set GIT_HOME=D:\Program Files\Git
-@set TrafVersion=3.3.3
+@set TrafVersion=2.0.0
 @set TrafCopyright="Copyright 2015 Esgyn Corporation"
 
 @set curr_path=%~dp0
