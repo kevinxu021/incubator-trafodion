@@ -34,7 +34,7 @@ export TRAFODION_VER_PROD="EsgynDB Enterprise"
 # Trafodion version (also update file ../sql/common/copyright.h)
 export TRAFODION_VER_MAJOR=2
 export TRAFODION_VER_MINOR=0
-export TRAFODION_VER_UPDATE=0
+export TRAFODION_VER_UPDATE=1
 export TRAFODION_VER="${TRAFODION_VER_MAJOR}.${TRAFODION_VER_MINOR}.${TRAFODION_VER_UPDATE}"
 
 # Product copyright header
