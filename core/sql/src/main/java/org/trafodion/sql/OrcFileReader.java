@@ -70,10 +70,16 @@ public class OrcFileReader
 	rowData = new OrcRowReturnSQL();     
     }
 
-    public String open(String pv_file_name) throws IOException 
+    public String open(String pv_file_name,
+		       int    pv_num_cols_to_project,
+		       int[]  pv_which_cols) throws IOException 
     {
 
-	if (logger.isTraceEnabled()) logger.trace("Enter open(), file name: " + pv_file_name);
+	if (logger.isTraceEnabled()) logger.trace("Enter open()," 
+						  + " file name: " + pv_file_name
+						  + " num_cols_to_project: " + pv_num_cols_to_project
+						  + " pv_which_cols: " + pv_which_cols
+						  );
 
 	m_file_path = new Path(pv_file_name);
 
@@ -94,11 +100,30 @@ public class OrcFileReader
 	m_oi = (StructObjectInspector) m_reader.getObjectInspector();
 	m_fields = m_oi.getAllStructFieldRefs();
 	if (logger.isTraceEnabled()) logger.trace("open() got MD types, file name: " + pv_file_name);
+
+	int lv_num_cols_in_table = m_types.size();
+	m_include_cols = new boolean[lv_num_cols_in_table];
+
+	boolean lv_include_col = false;
+	if (pv_num_cols_to_project == -1) {
+	    lv_include_col = true;
+	}
 	
-	m_include_cols = new boolean[m_types.size()];
-	for (int i = 0; i < m_types.size(); i++) {
-	    // Setting it to true to include all the columns
-	    m_include_cols[i] = true;
+	// Initialize m_include_cols
+	for (int i = 0; i < lv_num_cols_in_table; i++) {
+	    m_include_cols[i] = lv_include_col;
+
+	}
+
+	// Set m_include_cols as per the passed in parameters
+	if ((pv_num_cols_to_project > 0) &&
+	    (pv_which_cols != null)) {
+	    for (int lv_curr_index : pv_which_cols) {
+		if ((lv_curr_index >= 0) &&
+		    (lv_curr_index < lv_num_cols_in_table)) {
+		    m_include_cols[lv_curr_index+1] = true;
+		}
+	    }
 	}
 
 	try{
@@ -450,7 +475,12 @@ public class OrcFileReader
 
 	OrcFileReader lv_this = new OrcFileReader();
 
-	lv_this.open(args[0]);
+	int lv_include_cols [] = new int[4];
+	lv_include_cols[0]=0;
+	lv_include_cols[1]=1;
+	lv_include_cols[2]=5;
+	lv_include_cols[3]=6;
+	lv_this.open(args[0], 4, lv_include_cols);
 
 	if (lv_print_info) {
 	    System.out.println("================= Begin File Info:" + 
