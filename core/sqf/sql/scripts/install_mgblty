@@ -34,18 +34,17 @@ TCOLLECTOR_DIR=$MGBLTY_TOOLSDIR/tcollector
 BOSUN_DIR=$MGBLTY_TOOLSDIR/bosun
 JYTHON_DIR=$MGBLTY_TOOLSDIR/jython2.7.0
 
-# Location of manageability log file
-MY_SW_ROOT=$MY_SQROOT/sql/local_hadoop
-MGBLTY_LOG=$MY_SW_ROOT/log/install_mgblty_$(date +%F_%T).log
 
 # Location of temporary download folder
 MGBLTY_DOWNLOAD_DIR=$MY_SQROOT/../dbmgr/mgblty_download
 
+# Location of manageability log file
+MGBLTY_LOG=$MGBLTY_DOWNLOAD_DIR/log/install_mgblty_$(date +%F_%T).log
+mkdir -p $MGBLTY_DOWNLOAD_DIR/log
 if [ -d $OPENTSDB_DIR ] && [ -d $TCOLLECTOR_DIR ] &&
         [ -d $BOSUN_DIR ] && [ -d $JYTHON_DIR ]; then
     echo "Manageability tools (tcollector, opentsdb, bosun and jython) already exists.." | tee -a ${MGBLTY_LOG}
 else
-    mkdir -p $MGBLTY_DOWNLOAD_DIR
     cd $MGBLTY_DOWNLOAD_DIR
     echo
     if [[ -f $MGBLTY_DOWNLOAD_DIR/bosun-linux-amd64 ]]; then

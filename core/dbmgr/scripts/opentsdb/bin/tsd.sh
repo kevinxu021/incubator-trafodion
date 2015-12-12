@@ -33,7 +33,7 @@ getpid() {
 }
 
 tsd_start() {
-    setsid $MGBLTY_INSTALL_DIR/opentsdb/bin/tsdb tsd --auto-metric --config=$MGBLTY_INSTALL_DIR/opentsdb/etc/opentsdb/opentsdb.conf --staticroot=$MGBLTY_INSTALL_DIR/opentsdb/static --cachedir=$MGBLTY_INSTALL_DIR/opentsdb/cache > $MGBLTY_INSTALL_DIR/opentsdb/log/tsd.log 2>&1  &
+    setsid $MGBLTY_INSTALL_DIR/opentsdb/bin/tsdb tsd --config=$MGBLTY_INSTALL_DIR/opentsdb/etc/opentsdb/opentsdb.conf --staticroot=$MGBLTY_INSTALL_DIR/opentsdb/static --cachedir=$MGBLTY_INSTALL_DIR/opentsdb/cache > $MGBLTY_INSTALL_DIR/opentsdb/log/tsd.log 2>&1  &
     sleep 5s
     pid=$(getpid)
     if [ -n "$pid" ]; then

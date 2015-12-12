@@ -234,6 +234,7 @@ define([
 			if($(FILTER_FORM).valid()){
 
 			}else{
+				_this.hideLoading();
 				return;
 			}
 			_this.updateTimeRangeLabel();
@@ -243,10 +244,10 @@ define([
 			if(lastAppliedFilters == null || source != null){
 				lastAppliedFilters = param;
 			}else{
-				if(param.timeRange != '0'){
+				/*if(param.timeRange != '0'){
 					lastAppliedFilters.startTime = param.startTime;
 					lastAppliedFilters.endTime = param.endTime;
-				}
+				}*/
 			}
 
 			if(source != null && $(source.currentTarget)[0] == $(FILTER_APPLY_BUTTON)[0]){
