@@ -68,15 +68,17 @@ public:
   // Open the HDFS OrcFile 'path' for reading (returns all the columns)
   OFR_RetCode    open(const char* path);
 
-  // Open the HDFS OrcFile 'path' for reading.
-  //
-  // path                  : HDFS OrcFile path
-  //
-  // num_cols_to_project   : The number of columns to be returned 
-  //                         set it to -1 to get all the columns
-  //
-  // which_cols            : array containing the column numbers to be returned
-  //                         (Column numbers are zero based)
+  /*******
+   * Open the HDFS OrcFile 'path' for reading.
+   *
+   * path                  : HDFS OrcFile path
+   *
+   * num_cols_to_project   : The number of columns to be returned 
+   *                         set it to -1 to get all the columns
+   *
+   * which_cols            : array containing the column numbers to be returned
+   *                         (Column numbers are zero based)
+   *******/
   OFR_RetCode    open(const char* path, int num_cols_in_projection, int *which_cols);
   
   // Get the current file position.
@@ -90,8 +92,7 @@ public:
   OFR_RetCode    isEOF(bool& isEOF);
   
   // Fetch the next row as a raw string into 'buffer'.
-//  OFR_RetCode    fetchNextRow(Int64 stopOffset, char* buffer);
-		OFR_RetCode fetchNextRow(char * buffer, long& array_length, long& rowNumber, int& num_columns);
+  OFR_RetCode fetchNextRow(char * buffer, long& array_length, long& rowNumber, int& num_columns);
   
   // Close the file.
   OFR_RetCode    close();
@@ -105,8 +106,6 @@ public:
 protected:
   jstring getLastError();
 
-//  char** JStringArray2CharsArray(jobjectArray jarray);
-  
 private:
   enum JAVA_METHODS {
     JM_CTOR = 0, 
@@ -118,8 +117,6 @@ private:
     JM_FETCHROW,
     JM_FETCHROW2,
     JM_GETNUMROWS,
-//    JM_FETCHBUFF1,
-//    JM_FETCHBUFF2,
     JM_CLOSE,
     JM_LAST
   };
