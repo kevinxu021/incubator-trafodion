@@ -31,6 +31,8 @@ import org.apache.hadoop.fs.Path;
 
 import org.apache.hadoop.hive.serde2.objectinspector.*;
 import org.apache.hadoop.hive.ql.io.orc.*;
+import org.apache.hadoop.hive.ql.io.sarg.SearchArgument;
+import org.apache.hadoop.hive.ql.io.sarg.SearchArgumentFactory;
 
 import org.apache.log4j.Logger;
 
@@ -49,6 +51,7 @@ public class OrcFileReader
     RecordReader                m_rr;
     String                      lastError = null;
     Reader.Options		m_options;
+    boolean                     m_include_cols[];
 
     public class OrcRowReturnSQL
     {
@@ -58,13 +61,13 @@ public class OrcFileReader
 	byte[] m_row_ba = new byte[4096];
     }
 
-    OrcRowReturnSQL		rowData;	//TEMP!!
+    OrcRowReturnSQL		rowData; 
 
     OrcFileReader() 
     {
 	if (logger.isTraceEnabled()) logger.trace("Enter OrcFileReader()");
 	m_conf = new Configuration();
-	rowData = new OrcRowReturnSQL();	//TEMP: was in fetch
+	rowData = new OrcRowReturnSQL();     
     }
 
     public String open(String pv_file_name) throws IOException 
@@ -92,13 +95,23 @@ public class OrcFileReader
 	m_fields = m_oi.getAllStructFieldRefs();
 	if (logger.isTraceEnabled()) logger.trace("open() got MD types, file name: " + pv_file_name);
 	
+	m_include_cols = new boolean[m_types.size()];
+	for (int i = 0; i < m_types.size(); i++) {
+	    // Setting it to true to include all the columns
+	    m_include_cols[i] = true;
+	}
+
 	try{
-	    m_rr = m_reader.rows();
+	    m_rr = m_reader.rowsOptions(new Reader.Options()
+				    .include(m_include_cols)
+				    );
 	} catch (java.io.IOException e1) {
 	    logger.error("reader.rows returned an exception: " + e1);
 	    return (e1.getMessage());
 	}
 	
+	if (logger.isTraceEnabled()) logger.trace("got a record reader, file name: " + pv_file_name);
+
 	if (m_rr == null) {
 	    if (logger.isTraceEnabled()) logger.trace("m_reader.rows() returned a null");
 	    return "open:RecordReader is null";
@@ -107,6 +120,7 @@ public class OrcFileReader
 	if (logger.isTraceEnabled()) logger.trace("Exit open()");
 	return null;
     }
+    
     
     public String close()
     {

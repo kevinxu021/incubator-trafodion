@@ -31,7 +31,7 @@
     <hadoop.version>2.6.0-cdh5.4.4</hadoop.version>
     <hbase.version>1.0.0-cdh5.4.4</hbase.version>
     <hbase-trx.id>hbase-trx-cdh5_4</hbase-trx.id>
-    <hive.version>0.13.1</hive.version>
+    <hive.version>1.1.0-cdh5.4.4</hive.version>
     <thrift.version>0.9.0</thrift.version>
     <java.version>1.7</java.version>
   </properties>
@@ -53,6 +53,11 @@
       <version>${env.TRAFODION_VER}</version>
       <scope>system</scope>
       <systemPath>${env.MY_SQROOT}/export/lib/${hbase-trx.id}-${env.TRAFODION_VER}.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hive</groupId>
+      <artifactId>hive-exec</artifactId>
+      <version>${hive.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.hive</groupId>
