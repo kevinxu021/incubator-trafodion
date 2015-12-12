@@ -65,8 +65,19 @@ public:
   // Must be called.
   OFR_RetCode    init();
 
-  // Open the HDFS OrcFile 'path' for reading.
+  // Open the HDFS OrcFile 'path' for reading (returns all the columns)
   OFR_RetCode    open(const char* path);
+
+  // Open the HDFS OrcFile 'path' for reading.
+  //
+  // path                  : HDFS OrcFile path
+  //
+  // num_cols_to_project   : The number of columns to be returned 
+  //                         set it to -1 to get all the columns
+  //
+  // which_cols            : array containing the column numbers to be returned
+  //                         (Column numbers are zero based)
+  OFR_RetCode    open(const char* path, int num_cols_in_projection, int *which_cols);
   
   // Get the current file position.
   OFR_RetCode    getPosition(Int64& pos);

@@ -117,12 +117,14 @@ OFR_RetCode OrcFileReader::init()
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-OFR_RetCode OrcFileReader::open(const char* pv_path)
+OFR_RetCode OrcFileReader::open(const char* pv_path, int pv_num_cols_in_projection, int *pv_which_cols)
 {
   QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
 		LL_DEBUG,
-		"OrcFileReader::open(%s) called.",
-		pv_path);
+		"OrcFileReader::open(%s, %d, %p) called.",
+		pv_path,
+		pv_num_cols_in_projection,
+		pv_which_cols);
 
   jstring js_path = jenv_->NewStringUTF(pv_path);
   if (js_path == NULL) 
@@ -150,6 +152,17 @@ OFR_RetCode OrcFileReader::open(const char* pv_path)
   }
   
   return OFR_OK;
+}
+
+OFR_RetCode OrcFileReader::open(const char* pv_path)
+{
+  QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
+		LL_DEBUG,
+		"OrcFileReader::open(%s) called.",
+		pv_path);
+
+  // All the columns
+  return this->open(pv_path, -1, NULL);
 }
 
 //////////////////////////////////////////////////////////////////////////////
