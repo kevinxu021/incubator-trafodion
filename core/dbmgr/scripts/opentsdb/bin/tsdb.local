@@ -1,3 +1,5 @@
 HEAPARGS="-Xmx1G"
-JVMARGS="$JVMARGS $HEAPARGS"
+LOGBACK="-Dlogback.configurationFile=$MGBLTY_INSTALL_DIR/opentsdb/etc/opentsdb/logback.xml"
+JVMARGS="$JVMARGS $LOGBACK $HEAPARGS"
+
 
