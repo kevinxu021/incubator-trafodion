@@ -33,25 +33,22 @@
 
         internal EsgynDBException(int rowId, string message, int errorCode)
         {
-            this._errors = new EsgynDBErrorCollection();
-            this._warnings = new EsgynDBErrorCollection();
-            EsgynDBError error = new EsgynDBError()
-            {
-                ErrorCode = errorCode,
-                Message = message,
-                RowId = rowId + 1,
-                State = "00000"
-            };
-            if (error.ErrorCode > 0)
-            {
-                this.Warnings.Add(error);
-            }
-            else
-            {
-                this.Errors.Add(error);
-            }
+            this.RowId = rowId + 1;
+            this._message = message;
+            this._errorCode = errorCode;
         }
 
+        internal EsgynDBError ToEsgynDBError(){
+            return new EsgynDBError()
+            {
+                ErrorCode = this.ErrorCode,
+                Message = this.Message,
+                RowId = this.RowId,
+                State = this.State
+            };
+        }
+
+        
         internal EsgynDBException(EsgynDBMessage msg, params object[] objs)
         {
             this._errors = new EsgynDBErrorCollection();
@@ -158,7 +155,14 @@
         /// </summary>
         public EsgynDBErrorCollection Errors 
         {
-            get { return this._errors; }
+            get
+            {
+                if (this._errors == null)
+                {
+                    this._errors = new EsgynDBErrorCollection();
+                }
+                return this._errors;
+            }
         }
 
         /// <summary>
@@ -166,7 +170,14 @@
         /// </summary>
         public EsgynDBErrorCollection Warnings 
         {
-            get { return this._warnings; }
+            get
+            {
+                if (this._warnings == null)
+                {
+                    this._warnings = new EsgynDBErrorCollection();
+                }
+                return this._warnings;
+            }
         }
 
         //these should be the same as defined in HPError and InfoMessageEventArgs
@@ -181,7 +192,16 @@
         /// <returns>A string representation of the current exception.</returns>
         public override string ToString()
         {
-            return this._message;
+            string msg = "Message: " + this.Message;
+            if (this.RowId > 0)
+            {
+                msg += ", Row id: " + this.RowId;
+            }
+            if (this.ErrorCode < 0)
+            {
+                msg += ", Error code: " + this.ErrorCode;
+            }
+            return msg;
         }
 
         private void SetMembers()
