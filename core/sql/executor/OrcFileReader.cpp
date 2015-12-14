@@ -89,7 +89,7 @@ OFR_RetCode OrcFileReader::init()
     JavaMethods_[JM_GETERROR  ].jm_name      = "getLastError";
     JavaMethods_[JM_GETERROR  ].jm_signature = "()Ljava/lang/String;";
     JavaMethods_[JM_OPEN      ].jm_name      = "open";
-    JavaMethods_[JM_OPEN      ].jm_signature = "(Ljava/lang/String;)Ljava/lang/String;";
+    JavaMethods_[JM_OPEN      ].jm_signature = "(Ljava/lang/String;I[I)Ljava/lang/String;";
     JavaMethods_[JM_GETPOS    ].jm_name      = "getPosition";
     JavaMethods_[JM_GETPOS    ].jm_signature = "()J";
     JavaMethods_[JM_SYNC      ].jm_name      = "seeknSync";
@@ -117,24 +117,62 @@ OFR_RetCode OrcFileReader::init()
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-OFR_RetCode OrcFileReader::open(const char* pv_path)
+OFR_RetCode OrcFileReader::open(const char *pv_path,
+				int         pv_num_cols_in_projection,
+				int        *pv_which_cols)
 {
   QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
 		LL_DEBUG,
-		"OrcFileReader::open(%s) called.",
-		pv_path);
+		"OrcFileReader::open(%s, %d, %p) called.",
+		pv_path,
+		pv_num_cols_in_projection,
+		pv_which_cols);
 
-  jstring js_path = jenv_->NewStringUTF(pv_path);
-  if (js_path == NULL) 
-    return OFR_ERROR_OPEN_PARAM;
+  OFR_RetCode lv_retcode = OFR_OK;
 
-  // String open(java.lang.String);
+  jstring   js_path = NULL;
+  jintArray jia_which_cols = NULL;
+  jint      ji_num_cols_in_projection = pv_num_cols_in_projection;
+  jstring   jresult = NULL;
+
+  js_path = jenv_->NewStringUTF(pv_path);
+  if (js_path == NULL) {
+    lv_retcode = OFR_ERROR_OPEN_PARAM;
+    goto fn_exit;
+  }
+  
+  if ((pv_num_cols_in_projection > 0) && 
+      (pv_which_cols != 0)) {
+    jia_which_cols = jenv_->NewIntArray(pv_num_cols_in_projection);
+    if (jia_which_cols == NULL) {
+      QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
+		    LL_ERROR,
+		    "OrcFileReader::open(%s, %d, %p). Error while allocating memory for j_col_array",
+		    pv_path,
+		    pv_num_cols_in_projection,
+		    pv_which_cols);
+      
+      jenv_->DeleteLocalRef(js_path);
+      lv_retcode = OFR_ERROR_OPEN_PARAM;
+      goto fn_exit;
+    }
+    
+    jenv_->SetIntArrayRegion(jia_which_cols,
+			     0,
+			     pv_num_cols_in_projection,
+			     pv_which_cols);
+  }
+
+  // String open(java.lang.String, int, int[]);
   tsRecentJMFromJNI = JavaMethods_[JM_OPEN].jm_full_name;
-  jstring jresult = (jstring)jenv_->CallObjectMethod(javaObj_,
-						     JavaMethods_[JM_OPEN].methodID,
-						     js_path);
+  jresult = (jstring)jenv_->CallObjectMethod(javaObj_,
+					     JavaMethods_[JM_OPEN].methodID,
+					     js_path,
+					     ji_num_cols_in_projection,
+					     jia_which_cols);
 
   jenv_->DeleteLocalRef(js_path);  
+  jenv_->DeleteLocalRef(jia_which_cols);  
 
   if (jresult != NULL) {
     const char *my_string = jenv_->GetStringUTFChars(jresult, JNI_FALSE);
@@ -146,10 +184,28 @@ OFR_RetCode OrcFileReader::open(const char* pv_path)
     logError(CAT_SQL_HDFS_ORC_FILE_READER,
 	     "OrcFileReader::open()",
 	     jresult);
-    return OFR_ERROR_OPEN_EXCEPTION;
+    lv_retcode = OFR_ERROR_OPEN_EXCEPTION;
   }
-  
+
+ fn_exit:  
+  jenv_->PopLocalFrame(NULL);
   return OFR_OK;
+}
+
+OFR_RetCode OrcFileReader::open(const char* pv_path)
+{
+  QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
+		LL_DEBUG,
+		"OrcFileReader::open(%s) called.",
+		pv_path);
+
+  /* For testing, try the following code:
+     int la_cols[] = {0, 1}; 
+     return this->open(pv_path, 2, la_cols);
+  */
+
+  // All the columns
+  return this->open(pv_path, -1, NULL);
 }
 
 //////////////////////////////////////////////////////////////////////////////

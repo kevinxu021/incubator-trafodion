@@ -38,6 +38,7 @@ import org.apache.hadoop.fs.Path;
 
 import org.apache.hadoop.hive.conf.*;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgument;
+import org.apache.hadoop.hive.ql.io.sarg.SearchArgumentFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.*              ;
 
 import org.apache.hadoop.io.IntWritable;
@@ -147,11 +148,18 @@ public class OrcFileRead
 	    m_include_cols[i] = false;
 	}
 
+	SearchArgument sarg = SearchArgumentFactory.newBuilder()
+	    .startAnd()
+	    .between("_aacol0", 5, 10)
+	    .end()
+	    .build();
+
 	m_include_cols[1] = true;
 	m_include_cols[2] = true;
 	m_include_cols[6] = true;
 	m_rr = m_reader.rowsOptions(new Reader.Options()
 				    .include(m_include_cols)
+				    .searchArgument(sarg, new String[]{null, "_col0"})
 				    );
 
 	return 0;
@@ -203,6 +211,8 @@ public class OrcFileRead
 
     // Dumps the content of the file. The columns are '|' separated.
     public void readFile_String() throws Exception {
+	
+	System.out.println("Enter: readFile_String()");
 
 	OrcStruct lv_row = null;
 	Object lv_field_val = null;
@@ -284,13 +294,26 @@ public class OrcFileRead
 
     public static void main(String[] args) throws Exception
     {
+	boolean lv_print_info = false;
+	boolean lv_perform_scans = false;
+
+	for (String lv_arg : args) {
+	    if (lv_arg.compareTo("-i") == 0) {
+		lv_print_info = true;
+	    }
+	    if (lv_arg.compareTo("-s") == 0) {
+		lv_perform_scans = true;
+	    }
+	}
 	System.out.println("OrcFile Reader");
 
 	OrcFileRead lv_this = new OrcFileRead(args[0]);
 
 	lv_this.openFile();
 
-	lv_this.printFileInfo();
+	if (lv_print_info) {
+	    lv_this.printFileInfo();
+	}
 
 	lv_this.readFile_String();
 

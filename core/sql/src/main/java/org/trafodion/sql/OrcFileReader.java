@@ -31,6 +31,8 @@ import org.apache.hadoop.fs.Path;
 
 import org.apache.hadoop.hive.serde2.objectinspector.*;
 import org.apache.hadoop.hive.ql.io.orc.*;
+import org.apache.hadoop.hive.ql.io.sarg.SearchArgument;
+import org.apache.hadoop.hive.ql.io.sarg.SearchArgumentFactory;
 
 import org.apache.log4j.Logger;
 
@@ -49,6 +51,8 @@ public class OrcFileReader
     RecordReader                m_rr;
     String                      lastError = null;
     Reader.Options		m_options;
+    boolean                     m_include_cols[];
+    int                         m_col_count;
 
     public class OrcRowReturnSQL
     {
@@ -58,19 +62,25 @@ public class OrcFileReader
 	byte[] m_row_ba = new byte[4096];
     }
 
-    OrcRowReturnSQL		rowData;	//TEMP!!
+    OrcRowReturnSQL		rowData; 
 
     OrcFileReader() 
     {
 	if (logger.isTraceEnabled()) logger.trace("Enter OrcFileReader()");
 	m_conf = new Configuration();
-	rowData = new OrcRowReturnSQL();	//TEMP: was in fetch
+	rowData = new OrcRowReturnSQL();     
     }
 
-    public String open(String pv_file_name) throws IOException 
+    public String open(String pv_file_name,
+		       int    pv_num_cols_to_project,
+		       int[]  pv_which_cols) throws IOException 
     {
 
-	if (logger.isTraceEnabled()) logger.trace("Enter open(), file name: " + pv_file_name);
+	if (logger.isTraceEnabled()) logger.trace("Enter open()," 
+						  + " file name: " + pv_file_name
+						  + " num_cols_to_project: " + pv_num_cols_to_project
+						  + " pv_which_cols: " + pv_which_cols
+						  );
 
 	m_file_path = new Path(pv_file_name);
 
@@ -87,18 +97,50 @@ public class OrcFileReader
 	}
 
 	if (logger.isTraceEnabled()) logger.trace("open() Reader opened, file name: " + pv_file_name);
+
 	m_types = m_reader.getTypes();
 	m_oi = (StructObjectInspector) m_reader.getObjectInspector();
 	m_fields = m_oi.getAllStructFieldRefs();
 	if (logger.isTraceEnabled()) logger.trace("open() got MD types, file name: " + pv_file_name);
+
+	int lv_num_cols_in_table = m_types.size();
+	m_include_cols = new boolean[lv_num_cols_in_table];
+
+	boolean lv_include_col = false;
+	m_col_count = pv_num_cols_to_project;
+	if (pv_num_cols_to_project == -1) {
+	    lv_include_col = true;
+	    m_col_count = m_fields.size();
+	}
 	
+	// Initialize m_include_cols
+	for (int i = 0; i < lv_num_cols_in_table; i++) {
+	    m_include_cols[i] = lv_include_col;
+
+	}
+
+	// Set m_include_cols as per the passed in parameters
+	if ((pv_num_cols_to_project > 0) &&
+	    (pv_which_cols != null)) {
+	    for (int lv_curr_index : pv_which_cols) {
+		if ((lv_curr_index >= 0) &&
+		    (lv_curr_index < lv_num_cols_in_table)) {
+		    m_include_cols[lv_curr_index+1] = true;
+		}
+	    }
+	}
+
 	try{
-	    m_rr = m_reader.rows();
+	    m_rr = m_reader.rowsOptions(new Reader.Options()
+				    .include(m_include_cols)
+				    );
 	} catch (java.io.IOException e1) {
 	    logger.error("reader.rows returned an exception: " + e1);
 	    return (e1.getMessage());
 	}
 	
+	if (logger.isTraceEnabled()) logger.trace("got a record reader, file name: " + pv_file_name);
+
 	if (m_rr == null) {
 	    if (logger.isTraceEnabled()) logger.trace("m_reader.rows() returned a null");
 	    return "open:RecordReader is null";
@@ -107,6 +149,7 @@ public class OrcFileReader
 	if (logger.isTraceEnabled()) logger.trace("Exit open()");
 	return null;
     }
+    
     
     public String close()
     {
@@ -228,21 +271,9 @@ public class OrcFileReader
 	}
 
 	seeknSync(0);
-	OrcStruct lv_row = null;
-	Object lv_field_val = null;
-   	StringBuilder lv_row_string = new StringBuilder(1024);
 	while (m_rr.hasNext()) {
-	    lv_row = (OrcStruct) m_rr.next(lv_row);
-	    lv_row_string.setLength(0);
-	    for (int i = 0; i < m_fields.size(); i++) {
-		lv_field_val = m_oi.getStructFieldData(lv_row, m_fields.get(i));
-		if (lv_field_val != null) {
-		    lv_row_string.append(lv_field_val);
-		}
-		lv_row_string.append('|');
-	    }
-	    System.out.println(lv_row_string);
-	}
+	    System.out.println(fetchNextRow('|'));
+	}	
 
     }
 
@@ -274,33 +305,7 @@ public class OrcFileReader
 		}
 	    }
 	    System.out.println(lv_row_buffer);
-	    //	    System.out.println(new String(lv_row_buffer.array()));
 	}
-    }
-
-    public String getNext_String(char pv_ColSeparator) throws Exception 
-    {
-
-	if (logger.isTraceEnabled()) logger.trace("Enter getNext_String()");
-
-	if ( ! m_rr.hasNext()) {
-	    return null;
-	}
-
-	OrcStruct lv_row = null;
-	Object lv_field_val = null;
-   	StringBuilder lv_row_string = new StringBuilder(1024);
-
-	lv_row = (OrcStruct) m_rr.next(lv_row);
-	for (int i = 0; i < m_fields.size(); i++) {
-	    lv_field_val = m_oi.getStructFieldData(lv_row, m_fields.get(i));
-	    if (lv_field_val != null) {
-		lv_row_string.append(lv_field_val);
-	    }
-	    lv_row_string.append(pv_ColSeparator);
-	}
-	
-	return lv_row_string.toString();
     }
 
     // returns the next row as a byte array
@@ -353,10 +358,12 @@ public class OrcFileReader
 	lv_row_buffer.order(ByteOrder.LITTLE_ENDIAN);
 	
 	rowData.m_row_length = 0;
-	rowData.m_column_count = m_fields.size();
+	rowData.m_column_count = m_col_count;
 	rowData.m_row_number = m_rr.getRowNumber();
 	
 	for (int i = 0; i < m_fields.size(); i++) {
+	    if (! m_include_cols[i+1]) continue;
+
 	    lv_field_val = m_oi.getStructFieldData(lv_row, m_fields.get(i));
 	    if (lv_field_val == null) {
   		lv_row_buffer.putInt(0);
@@ -365,15 +372,40 @@ public class OrcFileReader
 	    }
 	    String lv_field_val_str = lv_field_val.toString();
 	    lv_row_buffer.putInt(lv_field_val_str.length());
-	    rowData.m_row_length = rowData.m_row_length + lv_integerLength;
-	    if (lv_field_val != null) {
-		lv_row_buffer.put(lv_field_val_str.getBytes());
-  		rowData.m_row_length = rowData.m_row_length + lv_field_val_str.length();
-	    }
+	    rowData.m_row_length += lv_integerLength;
+
+	    lv_row_buffer.put(lv_field_val_str.getBytes());
+	    rowData.m_row_length += lv_field_val_str.length();
 	}
     	 
 	return rowData;
+    }
+
+    public String fetchNextRow(char pv_ColSeparator) throws Exception 
+    {
+
+	if (logger.isTraceEnabled()) logger.trace("Enter fetchNextRow(), col separator: " + pv_ColSeparator);
+
+	if ( ! m_rr.hasNext()) {
+	    return null;
+	}
+
+	OrcStruct lv_row = null;
+	Object lv_field_val = null;
+   	StringBuilder lv_row_string = new StringBuilder(1024);
+
+	lv_row = (OrcStruct) m_rr.next(lv_row);
+	for (int i = 0; i < m_fields.size(); i++) {
+	    if (! m_include_cols[i+1]) continue;
+
+	    lv_field_val = m_oi.getStructFieldData(lv_row, m_fields.get(i));
+	    if (lv_field_val != null) {
+		lv_row_string.append(lv_field_val);
+	    }
+	    lv_row_string.append(pv_ColSeparator);
+	}
 	
+	return lv_row_string.toString();
     }
 
     String getLastError() 
@@ -393,31 +425,6 @@ public class OrcFileReader
 	}
     }  
 
-    public String fetchNextRow(char pv_ColSeparator) throws Exception 
-    {
-
-	if (logger.isTraceEnabled()) logger.trace("Enter fetchNextRow(), col separator: " + pv_ColSeparator);
-
-	if ( ! m_rr.hasNext()) {
-	    return null;
-	}
-
-	OrcStruct lv_row = null;
-	Object lv_field_val = null;
-   	StringBuilder lv_row_string = new StringBuilder(1024);
-
-	lv_row = (OrcStruct) m_rr.next(lv_row);
-	for (int i = 0; i < m_fields.size(); i++) {
-	    lv_field_val = m_oi.getStructFieldData(lv_row, m_fields.get(i));
-	    if (lv_field_val != null) {
-		lv_row_string.append(lv_field_val);
-	    }
-	    lv_row_string.append(pv_ColSeparator);
-	}
-	
-	return lv_row_string.toString();
-    }
-
     public static void main(String[] args) throws Exception
     {
 	boolean lv_print_info = false;
@@ -436,7 +443,12 @@ public class OrcFileReader
 
 	OrcFileReader lv_this = new OrcFileReader();
 
-	lv_this.open(args[0]);
+	int lv_include_cols [] = new int[4];
+	lv_include_cols[0]=0;
+	lv_include_cols[1]=1;
+	lv_include_cols[2]=5;
+	lv_include_cols[3]=6;
+	lv_this.open(args[0], 4, lv_include_cols);
 
 	if (lv_print_info) {
 	    System.out.println("================= Begin File Info:" + 
@@ -449,18 +461,17 @@ public class OrcFileReader
 	}
 
 	if (lv_perform_scans) {
-	    System.out.println("================= Begin: readFile_String");
-	    lv_this.readFile_String();
-	    System.out.println("================= End: readFile_String");
-
 	    System.out.println("================= Begin: readFile_ByteBuffer");
 	    lv_this.readFile_ByteBuffer();
 	    System.out.println("================= End: readFile_ByteBuffer");
 
-	    System.out.println("================= Begin: seeknSync(4)");
-	    // Gets rows as byte[]  (starts at row# 4)
+	    System.out.println("================= Begin: readFile_String");
+	    lv_this.readFile_String();
+	    System.out.println("================= End: readFile_String");
+
+	    System.out.println("================= Begin: seeknSync(8)");
 	    boolean lv_done = false;
-	    if (lv_this.seeknSync(4) == null) {
+	    if (lv_this.seeknSync(8) == null) {
 		System.out.println("================= Begin: fetchNextRow()");
 		while (! lv_done) {
 		    System.out.println("Next row #: " + lv_this.getPosition());
@@ -476,13 +487,12 @@ public class OrcFileReader
 		System.out.println("================= End: fetchNextRow()");
 	    }
 
-	    // Gets rows as String (starts at row# 10)
 	    lv_done = false;
 	    String lv_row_string;
 	    if (lv_this.seeknSync(10) == null) {
-		System.out.println("================= Begin: After seeknSync(10)... will do getNext_String()");
+		System.out.println("================= Begin: After seeknSync(10)... will do fetchNextRow('|')");
 		while (! lv_done) {
-		    lv_row_string = lv_this.getNext_String('|');
+		    lv_row_string = lv_this.fetchNextRow('|');
 		    if (lv_row_string != null) {
 			System.out.println(lv_row_string);
 		    }
@@ -490,7 +500,7 @@ public class OrcFileReader
 			lv_done = true;
 		    }
 		}
-		System.out.println("================= End: After seeknSync(10)... will do getNext_String()");
+		System.out.println("================= End: After seeknSync(10)... will do fetchNextRow('|')");
 	    }
 	}
 
