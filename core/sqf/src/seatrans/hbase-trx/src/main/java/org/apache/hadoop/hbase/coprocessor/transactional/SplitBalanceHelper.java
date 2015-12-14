@@ -48,13 +48,15 @@ public class SplitBalanceHelper {
 		this.zkw = zkw;
 		this.tablename = my_Region.getTableDesc().getNameAsString();
 		try {
-			if (ZKUtil.checkExists(zkw, zSplitBalPathNoSlash) == -1) 
+			if (ZKUtil.checkExists(zkw, zSplitBalPathNoSlash) == -1) {
+				if(LOG.isDebugEnabled()) LOG.debug("HELPER create with parents");
 				ZKUtil.createWithParents(zkw, zSplitBalPathNoSlash);
+			}
 		} catch (KeeperException ke) {
 			LOG.error("ERROR: Zookeeper exception: "+ ke);
 		}
 		this.flushPath = new Path(region.getRegionFileSystem().getRegionDir(), fileName);
-		regionPath = zSplitBalPath  + this.tablename + "/" + hri.getEncodedName();
+		regionPath = zSplitBalPath + this.tablename + "/" + hri.getEncodedName();
 		balancePath =  regionPath + "/" + BALANCE + "/";
 		splitPath = regionPath + "/" + SPLIT + "/";
 		
@@ -97,12 +99,19 @@ public class SplitBalanceHelper {
 			if(ZKUtil.checkExists(zkw, balancePath.substring(0,balancePath.length()-1)) != -1) {
 				clearBalance();
 			}
-			if (ZKUtil.checkExists(zkw, zLeftKey) == -1) 
+			if(LOG.isDebugEnabled()) LOG.debug("Split checking for left key ");
+			if (ZKUtil.checkExists(zkw, zLeftKey) == -1){ 
+				if(LOG.isDebugEnabled()) LOG.debug("Split creating left key with parents");
 				ZKUtil.createWithParents(zkw, zLeftKey);
-			if (ZKUtil.checkExists(zkw, zRightKey) == -1) 
+			}
+			if(LOG.isDebugEnabled()) LOG.debug("Split checking for right key ");
+			if (ZKUtil.checkExists(zkw, zRightKey) == -1){ 
+				if(LOG.isDebugEnabled()) LOG.debug("Split creating right key with parents");
 				ZKUtil.createWithParents(zkw, zRightKey);
-			
+			}
+			if(LOG.isDebugEnabled()) LOG.debug("Split createAndFailSilent for left key ");
 			ZKUtil.createAndFailSilent(zkw, zLeftKey + "/" + SPLIT, Bytes.toBytes(flushPath.toString()));
+			if(LOG.isDebugEnabled()) LOG.debug("Split createAndFailSilent for right key ");
 			ZKUtil.createAndFailSilent(zkw, zRightKey + "/" + SPLIT, Bytes.toBytes(flushPath.toString()));
 			if(LOG.isDebugEnabled()) LOG.debug("Split coordination node written for " + leftRegion.getRegionNameAsString() +
 					                           " and " + rightRegion.getRegionNameAsString());
@@ -164,6 +173,7 @@ public class SplitBalanceHelper {
 			}
 
 			if (ZKUtil.checkExists(zkw, balancePath.substring(0, balancePath.length()-1)) == -1) {
+				if(LOG.isDebugEnabled()) LOG.debug("setBalance createWithParents balancePath");
 				ZKUtil.createWithParents(zkw, balancePath.substring(0, balancePath.length()-1));
 			}
 			ZKUtil.createSetData(zkw, balancePath.substring(0, balancePath.length()-1), Bytes.toBytes(flushPath.toString()));
@@ -283,7 +293,7 @@ public class SplitBalanceHelper {
           
           for(String tableName : trafTables) {
               if(!hbaseTables.contains(tableName)) {
-                  if(LOG.isTraceEnabled()) LOG.trace("zkCleanup, removing " + zSplitBalPath + tableName);
+                  LOG.info("zkCleanup, removing " + zSplitBalPath + tableName);
                   ZKUtil.deleteNodeRecursively(zkw, zSplitBalPath + tableName);
               }
           }
