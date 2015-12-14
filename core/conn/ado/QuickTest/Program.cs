@@ -20,7 +20,7 @@ namespace ConsoleApp
 {
     class Program
     {
-        public static string ConnectionString = "server=10.0.0.5:23400;user=zz;password=zz;schema=ado";
+        public static string ConnectionString = "server=10.10.10.173:23400;user=zz;password=zz;schema=ado"; 
         public static void TestBatch()
         {
             try
@@ -42,7 +42,7 @@ namespace ConsoleApp
                             Console.WriteLine(e.Message);
                         }
 
-                        cmd.CommandText = "create table t0 (c1 varchar(20), c2 nchar(20)) no partition";
+                        cmd.CommandText = "create table if not exists t0 (c1 varchar(20), c2 nchar(20)) no partition";
                         cmd.ExecuteNonQuery();
 
                         cmd.CommandText = "insert into t0 values(?,?)";
@@ -53,7 +53,7 @@ namespace ConsoleApp
 
                         for (int i = 0; i < 10; i++)
                         {
-                            cmd.Parameters[0].Value = "test col1";
+                            cmd.Parameters[0].Value = "test col133333333333333333333333333333333333333333333333333333333";
                             cmd.Parameters[1].Value = "test col2";
                             cmd.AddBatch();
                         }
@@ -78,9 +78,13 @@ namespace ConsoleApp
                     }
                 }
             }
-            catch (Exception e)
+            catch (EsgynDBException e)
             {
                 Console.WriteLine(e.ToString());
+                for(int i=0; i<e.Errors.Count; i++){
+                    Console.WriteLine(e.Errors[i]);
+                }
+                
             }
         }
 
@@ -932,194 +936,8 @@ namespace ConsoleApp
 
         static void Main(string[] args)
         {
-            
-            EsgynDBConnection conn = new EsgynDBConnection();
-
-            conn.ConnectionString = Program.ConnectionString;
-
-            conn.Open();
-            //Console.WriteLine(conn.Database);
-            /*
-
-            String value = "!\"#$%&a()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQR";
-            String strCrtSchm = "create schema tsch";
-            String strDropTbl = "drop table tsch.atest";
-            String strCrtTbl = "create table tsch.atest(c1 char(500) CHARACTER SET UCS2 COLLATE default not null)";
-            String strInst = "Insert into tsch.atest values('" + value + "')";
-            String strSelct = "select * from tsch.atest";
-            String strSelCnt1 = "select count(*) from tsch.atest where c1=?";
-            String strSelCnt2 = "select count(*) from tsch.atest where c1='" + value + "'";
-
-            EsgyndbCommand cmd = conn.CreateCommand();
-            
-            cmd.CommandText = strCrtSchm;
-            cmd.ExecuteNonQuery();
-
-            //cmd.CommandText = strDropTbl;
-            //cmd.ExecuteNonQuery();
-
-            cmd.CommandText = strCrtTbl;
-            Console.WriteLine("Executing: " + strCrtTbl + "...");
-            cmd.ExecuteNonQuery();
-
-            cmd.CommandText = strInst;
-            Console.WriteLine("Executing: " + strInst + "...");
-            cmd.ExecuteNonQuery();
-
-            Console.WriteLine("Value " + value + "inserted.");            
-            
-            cmd.CommandText = strSelct;
-            Console.WriteLine("Executing: " + strSelct + "...");
-            EsgynDBDataReader reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                Console.WriteLine("GetString(c1) : " + reader.GetString(0));
-                
-                char[] buffer = new char[2048];
-                long retLen = reader.GetChars(0, 0, buffer, 0, buffer.Length);
-
-                Console.WriteLine("GetChars(c1) : " + retLen + " chars returned.");
-                Console.WriteLine("\tValue = " + new String(buffer));
-                 
-            }
-
-            cmd.CommandText = strSelCnt2;
-            Console.WriteLine("Executing: " + strSelCnt2 + "...");
-            reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                Console.WriteLine("{0} count of rows found: ", reader.GetInt64(0));
-            }
-            reader.Close();
-
-            cmd.CommandText = strSelCnt1;
-            Console.WriteLine("Executing: " + strSelCnt1 + "...");
-            cmd.Parameters.Clear();
-            EsgynDBParameter pam = new EsgynDBParameter("C1Value", EsgynDBType.Char);
-            //pam.DbType = DbType.String;
-            //pam.Value = value;
-            Encoding utf8 = Encoding.GetEncoding("UTF-8");
-            Encoding utf16 = Encoding.GetEncoding("UTF-16");
-            byte[] utf8Bytes = utf8.GetBytes(value);
-            byte[] utf16Bytes = Encoding.Convert(utf8, utf16, utf8Bytes);
-            //pam.Value = utf16.GetString(utf16Bytes);
-            pam.Value = utf8.GetString(utf8Bytes);
-
-            byte[] vBytes = Encoding.Default.GetBytes(value);
-            //byte[] vPamBytes = Encoding.Default.GetBytes((String)pam.Value);
-
-            Console.WriteLine("Default Bytes:");
-            for (int i = 0; i < vBytes.Length; i++)
-            {
-                if (i % 10 != 0)
-                    Console.Write(vBytes[i] + " ");
-                else
-                    Console.WriteLine("");
-            }
-            Console.WriteLine("\n");
-
-            Console.WriteLine("UTF-8 Bytes:");
-            for (int i = 0; i < utf8Bytes.Length; i++)
-            {
-                if (i % 10 != 0)
-                    Console.Write(utf8Bytes[i] + " ");
-                else
-                    Console.WriteLine("");
-            }
-            Console.WriteLine("\n");
-
-            Console.WriteLine("UTF-16 Bytes:");
-            for (int i = 0; i < utf16Bytes.Length; i++)
-            {
-                if (i % 10 != 0)
-                    Console.Write(utf16Bytes[i] + " ");
-                else
-                    Console.WriteLine("");
-            }
-            Console.WriteLine("\n");
-
-            cmd.Parameters.Add(pam);
-
-            Object obj = cmd.ExecuteScalar();
-            Console.WriteLine("{0} count of rows found: ", obj.ToString());
-            */
-
-            /*
-            System.Data.DataTable dt = conn.GetSchema();
-            //dt.TableName
-            foreach (System.Data.DataRow row in dt.Rows)
-            {
-                foreach (System.Data.DataColumn col in dt.Columns)
-                {
-                    Console.WriteLine("{0} = {1}", col.ColumnName, row[col]);
-                }
-                Console.WriteLine("============================");
-            }
-            */
-            
-                
-            /*try
-            {
-                using (EsgynDBConnection conn = new EsgynDBConnection())
-                {
-                    conn.ConnectionString = ConnectionString;
-                    conn.Open();
-
-                    using (EsgyndbCommand cmd = conn.CreateCommand())
-                    {
-                        cmd.CommandText = "drop table t1";
-                        try { cmd.ExecuteNonQuery(); }
-                        catch { }
-
-                        cmd.CommandText = "create table t1 (c1 timestamp(3)) no partition;";
-                        cmd.ExecuteNonQuery();
-
-                        cmd.CommandText = "insert into t1 values(?)";
-                        cmd.Parameters.Add(new EsgynDBParameter("c1", EsgynDBType.Timestamp));
-                        cmd.Parameters[0].Value = "2008-04-03 19:12:10.123";
-                        cmd.ExecuteNonQuery();
-
-                        cmd.Parameters.Clear();
-                        cmd.CommandText = "select * from t1";
-                        using (EsgynDBDataReader dr = cmd.ExecuteReader())
-                        {
-                            while (dr.Read())
-                            {
-                                cmd.Cancel();
-                                Console.WriteLine(dr.GetDateTime(0).ToString("yyyy-MM-dd hh:mm:ss.fff"));
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.ToString());
-            }
-             * */
-
-            /*
-            Console.WriteLine("\r\n");
-            TestDynamicNumeric();
-            Console.WriteLine("\r\n");
-            TestStaticNumericUnsigned();
-            Console.WriteLine("\r\n");
-            TestStaticNumeric();
-            Console.WriteLine("\r\n");
-            TestDateTime();
-            Console.WriteLine("\r\n");
-            TestString();
-            Console.WriteLine("\r\n");
-            
             TestBatch();
-            
-           TestAdapterBuilder();
-                        * */
-
-            //TestPerformance();
-
-            TestMetaData();
-
+         
             Console.Read();
         }
 

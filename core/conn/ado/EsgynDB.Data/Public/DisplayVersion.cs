@@ -14,7 +14,8 @@
         /// File revision number.
         /// </summary>
         public const string FileVersion = "2.0.0.00000";
-
+        public const string Version = "3.3.4";
+        public const string Copyright = "Copyright © 2015 Esgyn Corporation";
         /// <summary>
         /// EsgynDB Database ADO.NET Provider VPROC.
         /// </summary>
