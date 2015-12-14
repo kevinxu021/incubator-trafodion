@@ -1198,50 +1198,60 @@ namespace EsgynDB.Data
 
             data = new byte[this._inputRowLength * batchCount];
             ds = new DataStream(data, this.ByteOrder);
-
+            EsgynDBException ex = new EsgynDBException(-3, "Errors occured( Batch aborted)! Please check more details in EsgynDBException.Errors.");
             for (int i = 0; i < batchCount; i++)
             {
-                for (int j = 0; j < paramCount; j++)
+                try
                 {
-                    value = this._batchedParams[i][j];
-                    desc = this._parameters[j].Descriptor;
-
-                    if (value == null || value == DBNull.Value)
+                    for (int j = 0; j < paramCount; j++)
                     {
-                        if(!desc.Nullable) 
-                        {
-                            throw new EsgynDBException(i, "cannot assign null to non nullable column");
-                        }
+                        value = this._batchedParams[i][j];
+                        desc = this._parameters[j].Descriptor;
 
-                        ds.Position = (desc.NullOffset * batchCount) + (2 * i);
-                        ds.WriteInt16((short)-1);
-                    }
-                    else
-                    {
-                        dataLength = desc.MaxLength;
-
-                        if (desc.EsgyndbDataType == EsgynDBType.Varchar || 
-                            desc.EsgyndbDataType == EsgynDBType.NVarchar)
+                        if (value == null || value == DBNull.Value)
                         {
-                            dataLength += 2;
+                            if (!desc.Nullable)
+                            {
+                                throw new EsgynDBException(i, "cannot assign null to non nullable column");
+                            }
 
-                            if (dataLength % 2 != 0)
-                                dataLength++;
-                        }
-                        
-                        if (this.isRWRS)
-                        {
-                            ds.Position = (desc.DataOffset) + (this._inputRowLength * i);
+                            ds.Position = (desc.NullOffset * batchCount) + (2 * i);
+                            ds.WriteInt16((short)-1);
                         }
                         else
                         {
-                            ds.Position = (desc.DataOffset * batchCount) + (dataLength * i);
+                            dataLength = desc.MaxLength;
+
+                            if (desc.EsgyndbDataType == EsgynDBType.Varchar ||
+                                desc.EsgyndbDataType == EsgynDBType.NVarchar)
+                            {
+                                dataLength += 2;
+
+                                if (dataLength % 2 != 0)
+                                    dataLength++;
+                            }
+
+                            if (this.isRWRS)
+                            {
+                                ds.Position = (desc.DataOffset) + (this._inputRowLength * i);
+                            }
+                            else
+                            {
+                                ds.Position = (desc.DataOffset * batchCount) + (dataLength * i);
+                            }
+                            this.InsertParam(i, ds, desc, value);
                         }
-                        this.InsertParam(i, ds, desc, value);
                     }
                 }
+                catch (EsgynDBException e)
+                {
+                    ex.Errors.Add(e.ToEsgynDBError());
+                }
             }
-
+            if (ex.Errors.Count > 0)
+            {
+                throw ex;
+            }
             return data;
         }
 
