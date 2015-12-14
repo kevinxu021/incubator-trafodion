@@ -7,11 +7,11 @@ using EsgynDB.Data;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("EsgynDB.Data")]
-[assembly: AssemblyDescription(ProductVersion.Vproc)]
+[assembly: AssemblyDescription(DisplayVersion.Vproc)]
 [assembly: AssemblyConfiguration("Release")]
 [assembly: AssemblyCompany("Esgyn Corporation")]
-[assembly: AssemblyProduct("EsgynDB ADO.NET 1.0 Provider")]
-[assembly: AssemblyCopyright("Copyright © Esgyn Corporation 2015")]
+[assembly: AssemblyProduct("EsgynDB ADO.NET " + DisplayVersion.Version+ " Provider")]
+[assembly: AssemblyCopyright(DisplayVersion.Copyright)]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
