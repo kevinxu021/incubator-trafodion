@@ -46,7 +46,14 @@ define([
 	DRILLDOWN_SPINNER = '#metrics-drilldown-spinner',
 	DRILLDOWN_CHART_CONTAINER = '#metrics-drilldown-chart',
 	DRILLDOWN_ERROR_CONTAINER= '#metrics-drilldown-error-text',
-
+	FILTER_DIALOG = '#filterDialog',
+	FILTER_FORM = '#filter-form',
+	FILTER_APPLY_BUTTON = "#filterApplyButton",
+	FILTER_START_TIME = '#filter-start-time',
+	FILTER_END_TIME = '#filter-end-time',
+	START_TIME_PICKER = '#startdatetimepicker',
+	END_TIME_PICKER = '#enddatetimepicker',
+	FILTER_TIME_RANGE = '#timeRange',
 	REFRESH_ACTION = '#refreshAction',
 	OPEN_FILTER = '#openFilter';
 
@@ -233,6 +240,23 @@ define([
 			}else{
 				$('.dbmgr-ent').hide();
 			}
+			
+			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
+				if(lastUsedTimeRange == null){
+					lastUsedTimeRange = {};
+					var startTime = $(START_TIME_PICKER).data("DateTimePicker").date();
+					var endTime = $(END_TIME_PICKER).data("DateTimePicker").date();
+
+					lastUsedTimeRange.startTime = startTime.format('YYYY/MM/DD-HH:mm:ss');
+					lastUsedTimeRange.endTime = endTime.format('YYYY/MM/DD-HH:mm:ss');
+				}
+			});
+			
+			$(FILTER_DIALOG).on('hide.bs.modal', function (e, v) {
+				if(document.activeElement != $(FILTER_APPLY_BUTTON)[0]){
+					_this.resetFilter(); //cancel clicked
+				}
+			});	
 			this.refreshPage();
 		},
 		doResume: function(){
@@ -321,19 +345,12 @@ define([
 			params.startTime = startTime.format('YYYY/MM/DD-HH:mm:ss');
 			params.endTime = endTime.format('YYYY/MM/DD-HH:mm:ss');
 			
-			if(($("#filterDialog").data('bs.modal') || {}).isShown == true){
-				if(lastUsedTimeRange != null){
-					params.startTime = lastUsedTimeRange.startTime;
-					params.endTime = lastUsedTimeRange.endTime;
-				}
-			}
-			
 			if(lastUsedTimeRange == null){
 				lastUsedTimeRange = {};
-			}
+			}		
 			lastUsedTimeRange.startTime = params.startTime;
 			lastUsedTimeRange.endTime = params.endTime;
-
+			lastUsedTimeRange.timeRange = $(FILTER_TIME_RANGE).val();
 
 			params.metricName = metricName;
 			params.isDrilldown = isDrilldown ? isDrilldown : false;
@@ -341,7 +358,21 @@ define([
 			timeinterval = params.timeinterval;
 			return params;
 		},
+		resetFilter: function(){
+			if(lastUsedTimeRange != null){
+				$(FILTER_TIME_RANGE).val(lastUsedTimeRange.timeRange);
+				//if(lastUsedTimeRange.timeRange == '0'){
+					$(START_TIME_PICKER).data("DateTimePicker").date(moment(lastUsedTimeRange.startTime));
+					$(END_TIME_PICKER).data("DateTimePicker").date(moment(lastUsedTimeRange.endTime));
+				//}
+			}
+		},
 		refreshPage: function() {
+			//If filter dialog is open, no refresh.
+			if(($("#filterDialog").data('bs.modal') || {}).isShown == true){
+				return;
+			}
+			
 			timeRangeView.updateFilter();
 			_this.fetchServices();
 			_this.fetchNodes();
