@@ -36,6 +36,7 @@ import org.apache.hadoop.hive.ql.io.sarg.SearchArgumentFactory;
 
 import org.apache.log4j.Logger;
 
+
 public class OrcFileReader
 {
 
@@ -425,10 +426,98 @@ public class OrcFileReader
 	}
     }  
 
+    // test push-down with ORC
+    public String selectiveScan(String pv_file_name) throws IOException {
+
+	m_file_path = new Path(pv_file_name);
+
+	try{
+          m_reader = OrcFile.createReader(m_file_path, OrcFile.readerOptions(m_conf));
+	} catch (java.io.FileNotFoundException e1) {
+          return "file not found";
+	}
+	if (m_reader == null)
+		return "open failed!";
+	m_types = m_reader.getTypes();
+	m_oi = (StructObjectInspector) m_reader.getObjectInspector();
+	m_fields = m_oi.getAllStructFieldRefs();
+
+        // hive 0.13.1
+        //SearchArgument.Builder builder = SearchArgument.FACTORY.newBuilder();
+        //
+        // hive 1.1
+        SearchArgument.Builder builder = SearchArgumentFactory.newBuilder();
+
+        // other possible predicates
+//.startAnd().equals("_col2", "2").end()
+//.startOr().equals("_col2", 2).equals("_col1", 3).end()
+//.startNot().equals("_col2", "2").end()
+//.startAnd().between("_col2", 2, 3).end()
+//.startAnd().in("_col2", 1, 3, 4).end()
+        SearchArgument sarg = builder
+        .startAnd().in("_col2", 1, 3, 4).end()
+        .build();
+	
+        // test 
+	//boolean include[] = {true, true, true};
+        //String colNames[] = {null, "_col0", "_col1"};
+        //
+	boolean[] include = new boolean[1+m_fields.size()];
+	String[] colNames = new String[1+m_fields.size()];
+
+        colNames[0] = null;
+	include[0] = true;
+
+        for (int i = 1; i <= m_fields.size(); i++) {
+	   include[i] = true;
+	   colNames[i] = new String("_col" + i);
+        }
+
+	try{
+	   m_rr = m_reader.rowsOptions(new Reader.Options()
+                    .range(0L, Long.MAX_VALUE)
+                    .include(include)
+                    .searchArgument(sarg, colNames));
+
+	} catch (java.io.IOException e1) {
+           return (e1.getMessage());
+	}
+	
+        long startRowNum = m_rr.getRowNumber();
+	System.out.println("<<<<<< RecorderReader: " + m_rr + ", startRowNum=" + startRowNum);
+
+	if (m_rr == null)
+           return "open:RecordReader is null";
+
+        Object field_val = null;
+        StringBuilder row_string = new StringBuilder(1024);
+        int ct = 0;
+        OrcStruct row = null;
+
+        while (m_rr.hasNext() ) {
+            startRowNum = m_rr.getRowNumber();
+            //System.out.println("To read a row with rowNum=" + startRowNum);
+            ct++;
+            row = (OrcStruct) m_rr.next(row);
+            row_string.setLength(0);
+            for (int i = 0; i < m_fields.size(); i++) {
+                field_val = m_oi.getStructFieldData(row, m_fields.get(i));
+                if (field_val != null) {
+                    row_string.append(field_val);
+                }
+                row_string.append('|');
+            }
+            System.out.println(row_string);
+        }
+
+	return null;
+    }
+
     public static void main(String[] args) throws Exception
     {
 	boolean lv_print_info = false;
 	boolean lv_perform_scans = false;
+        boolean lv_perform_selective_scans = false;
 
 	for (String lv_arg : args) {
 	    if (lv_arg.compareTo("-i") == 0) {
@@ -436,6 +525,9 @@ public class OrcFileReader
 	    }
 	    if (lv_arg.compareTo("-s") == 0) {
 		lv_perform_scans = true;
+	    }
+	    if (lv_arg.compareTo("-ss") == 0) {
+		lv_perform_selective_scans = true;
 	    }
 	}
 
@@ -503,6 +595,8 @@ public class OrcFileReader
 		System.out.println("================= End: After seeknSync(10)... will do fetchNextRow('|')");
 	    }
 	}
-
+        else if ( lv_perform_selective_scans ) {
+           lv_this.selectiveScan(args[1]);
+        }
     }
 }
