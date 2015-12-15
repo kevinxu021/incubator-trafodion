@@ -121,8 +121,14 @@ private:
     JM_LAST
   };
  
-  static jclass javaClass_;
-  static JavaMethodInit* JavaMethods_;
+  static jclass          javaClass_;
+  static JavaMethodInit *JavaMethods_;
+
+  static jclass         sjavaClass_OrcRow_;
+  static jfieldID       sjavaFieldID_OrcRow_row_length_;
+  static jfieldID       sjavaFieldID_OrcRow_column_count_;
+  static jfieldID       sjavaFieldID_OrcRow_row_number_;
+  static jfieldID       sjavaFieldID_OrcRow_row_ba_;
 };
 
 

@@ -55,7 +55,7 @@ public class OrcFileReader
     boolean                     m_include_cols[];
     int                         m_col_count;
 
-    public class OrcRowReturnSQL
+    public static class OrcRowReturnSQL
     {
 	int m_row_length;
 	int m_column_count;
@@ -596,7 +596,7 @@ public class OrcFileReader
 	    }
 	}
         else if ( lv_perform_selective_scans ) {
-           lv_this.selectiveScan(args[1]);
+	    System.out.println(lv_this.selectiveScan(args[1]));
         }
     }
 }
