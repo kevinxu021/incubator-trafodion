@@ -34,7 +34,7 @@
         internal EsgynDBException(int rowId, string message, int errorCode)
         {
             this.RowId = rowId + 1;
-            this._message = message;
+            this._message = "*** ERROR[" + errorCode + "] " + message + " [" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "]";
             this._errorCode = errorCode;
         }
 
