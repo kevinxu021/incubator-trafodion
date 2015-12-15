@@ -36,11 +36,11 @@ URL:            http://www.esgyn.com
 
 Requires: audit-libs
 Requires: coreutils
-Requires: coreutils-libs
+#Requires: coreutils-libs
 Requires: cracklib
-Requires: cracklib-dicts
-Requires: cyrus-sasl-lib
-Requires: db4
+#Requires: cracklib-dicts
+#Requires: cyrus-sasl-lib
+#Requires: db4
 Requires: expect
 Requires: gawk
 Requires: glib2
@@ -49,25 +49,26 @@ Requires: gmp
 Requires: groff
 Requires: gzip
 Requires: keyutils-libs
-Requires: krb5-libs
+#Requires: krb5-libs
 Requires: libcom_err
 Requires: libgcc
-Requires: libgenders
-Requires: libselinux
-Requires: libstdc++
-Requires: libtool-ltdl
+#Requires: libgenders
+#Requires: libselinux
+#Requires: libstdc++
+#Requires: libtool-ltdl
 Requires: libxml2
 Requires: ncurses
-Requires: ncurses-base
-Requires: ncurses-libs
-Requires: nspr
-Requires: nss
-Requires: nss-softokn-freebl
-Requires: nss-util
-Requires: openldap
+#Requires: ncurses-base
+#Requires: ncurses-libs
+#Requires: nspr
+#Requires: nss
+#Requires: nss-softokn-freebl
+#Requires: nss-util
+#Requires: openldap
 Requires: openssl
 Requires: pam
 Requires: pcre
+Requires: pdsh
 Requires: perl
 Requires: perl-DBD-SQLite
 Requires: perl-DBI
@@ -78,15 +79,15 @@ Requires: perl-Pod-Escapes
 Requires: perl-Pod-Simple
 Requires: perl-Time-HiRes
 Requires: perl-version
-Requires: protobuf
+#Requires: protobuf
 Requires: python
 Requires: readline
-Requires: setup
+#Requires: setup
 Requires: sqlite
 Requires: tcl
-Requires: tzdata
+#Requires: tzdata
 Requires: unixODBC
-Requires: xerces-c
+#Requires: xerces-c
 Requires: zlib
 
 
@@ -102,6 +103,8 @@ EsgynDB, based on Apache Trafodion, delivers 100x better price/performance for O
 %setup -b 0 -b 1 -b 2 -n %{name}-%{version}-%{release} -c %{name}-%{version}-%{release}
 
 %pre
+getent group trafodion > /dev/null || /usr/sbin/groupadd trafodion > /dev/null 2>&1
+getent passwd trafodion > /dev/null || /usr/sbin/useradd --shell /bin/bash -m trafodion -g trafodion --home /home/trafodion > /dev/null 2>&1
 
 %post
 
@@ -114,15 +117,15 @@ EsgynDB, based on Apache Trafodion, delivers 100x better price/performance for O
 %define debug_package:
 
 %install
-mkdir -p %{buildroot}/opt/trafodion/%{name}-%{version}
-cp -rf * %{buildroot}/opt/trafodion/%{name}-%{version}
+mkdir -p %{buildroot}/home/trafodion/%{name}-%{version}
+cp -rf * %{buildroot}/home/trafodion/%{name}-%{version}
 
 %clean
 /bin/rm -rf %{buildroot}
 
 %files
-%defattr(-,root,root)
-/opt/trafodion/%{name}-%{version}
+%defattr(-,trafodion,trafodion)
+/home/trafodion/%{name}-%{version}
 
 %changelog
 * Wed Sep 6 2015 Eason Zhang
