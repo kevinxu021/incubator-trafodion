@@ -368,16 +368,15 @@ else
    if [[ $validURL -ne "1" ]]; then
       errorFound=1
       echo "HADOOP URL" >> $ERROR_LOG
-      echo "***ERROR: Could not access http://$URL" >> $ERROR_LOG
-      echo "***ERROR: Do not include 'http or https'" >> $ERROR_LOG
+      echo "***ERROR: Could not access $URL" >> $ERROR_LOG
       echo "***ERROR: Check that URL and port are correct or if $HADOOP_TYPE is up" >> $ERROR_LOG
       majorErrorFound
    fi
 
-   hadoopVersion=$(curl -su $ADMIN:$PASSWORD http://$URL/api/v1/clusters | grep version | grep -c CDH)
+   hadoopVersion=$(curl -su $ADMIN:$PASSWORD $URL/api/v1/clusters | grep version | grep -c CDH)
 
    if [[ $hadoopVersion -ne "1" ]]; then
-      hadoopVersion=$(curl -su $ADMIN:$PASSWORD http://$URL/api/v1/clusters | grep version | grep -c HDP)
+      hadoopVersion=$(curl -su $ADMIN:$PASSWORD $URL/api/v1/clusters | grep version | grep -c HDP)
       if [[ $hadoopVersion -ne "1" ]]; then
          errorFound=1
          echo "HADOOP URL" >> $ERROR_LOG
@@ -396,14 +395,14 @@ else
    sudo chmod 777 $TRAF_CONFIG
    source $TRAF_CONFIG
 
-   temp=$(curl -su $ADMIN:$PASSWORD http://$URL/api/v1/clusters |grep name | sed -e 's@[,]@@'g | sed 's/^[^\:]* ://')
+   temp=$(curl -su $ADMIN:$PASSWORD $URL/api/v1/clusters |grep name | sed -e 's@[,]@@'g | sed 's/^[^\:]* ://')
    CLUSTER_NAME=$(echo $temp | sed -e 's/^"//' -e 's/"$//')
    CLUSTER_NAME=${CLUSTER_NAME// /%20}
 
    if [ -z $CLUSTER_NAME ]; then
       errorFound=1
       echo "HADOOP URL" >> $ERROR_LOG
-      echo "***ERROR: Could not access http://$URL" >> $ERROR_LOG
+      echo "***ERROR: Could not access $URL" >> $ERROR_LOG
       echo "***ERROR: Check URL and port are correct or if $hadoop_type is up." >> $ERROR_LOG
       majorErrorFound
    fi
@@ -472,7 +471,7 @@ done
 
 function checkRoleGroups {
 
-   regionGroup1=$(curl -su $ADMIN:$PASSWORD http://$URL/api/v10/clusters/$CLUSTER_NAME/services/hbase/roleConfigGroups | grep displayName | grep "RegionServer Group 1" | wc -l)
+   regionGroup1=$(curl -su $ADMIN:$PASSWORD $URL/api/v10/clusters/$CLUSTER_NAME/services/hbase/roleConfigGroups | grep displayName | grep "RegionServer Group 1" | wc -l)
 
    if [[ $regionGroup1 -ge "1" ]]; then
       errorFound=1

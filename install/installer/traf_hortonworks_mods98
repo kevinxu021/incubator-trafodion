@@ -274,7 +274,7 @@ echo "***INFO: Stopping HBase..."
 curl -u $ADMIN:$PASSWORD \
     -H "X-Requested-By: Trafodion" \
     -X PUT -d '{"ServiceInfo": { "state" : "INSTALLED" }}' \
-    http://$URL/api/v1/clusters/$CLUSTER_NAME/services/HBASE > $TRAF_WORKDIR/traf_hbase_restart_temp
+    $URL/api/v1/clusters/$CLUSTER_NAME/services/HBASE > $TRAF_WORKDIR/traf_hbase_restart_temp
 
 if [ $? != 0 ]; then 
    echo "***ERROR: Unable to stop HBase"
@@ -299,7 +299,7 @@ completed=0
 while [ $completed -eq 0 ]; do
     sleep $poll_time
     curl -u $ADMIN:$PASSWORD \
-        http://$URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
+        $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/hbase_restart_status_temp
     cat $LOCAL_WORKDIR/hbase_restart_status_temp
     echo "***INFO: ...polling every $poll_time seconds until HBase stop is completed."
@@ -316,7 +316,7 @@ echo "***INFO: Stopping Zookeeper..."
 curl --user $ADMIN:$PASSWORD \
     -H "X-Requested-By: Trafodion" \
     -X PUT -d '{"ServiceInfo": { "state" : "INSTALLED" }}' \
-    http://$URL/api/v1/clusters/$CLUSTER_NAME/services/ZOOKEEPER > $TRAF_WORKDIR/traf_zoo_restart_temp
+    $URL/api/v1/clusters/$CLUSTER_NAME/services/ZOOKEEPER > $TRAF_WORKDIR/traf_zoo_restart_temp
 
 if [ $? != 0 ]; then
    echo "***ERROR: Unable to restart Zookeeper"
@@ -341,7 +341,7 @@ completed=0
 while [ $completed -eq 0 ]; do
     sleep $poll_time
     curl --user $ADMIN:$PASSWORD \
-        http://$URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
+        $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/traf_zoo_restart_temp
     cat $LOCAL_WORKDIR/traf_zoo_restart_temp
     echo "***INFO: ...polling every $poll_time seconds until Zookeeper stop is completed."
@@ -357,7 +357,7 @@ echo "***INFO: Stopping HDFS..."
 curl --user $ADMIN:$PASSWORD \
     -H "X-Requested-By: Trafodion" \
     -X PUT -d '{"ServiceInfo": { "state" : "INSTALLED" }}' \
-    http://$URL/api/v1/clusters/$CLUSTER_NAME/services/HDFS > $TRAF_WORKDIR/traf_hdfs_restart_temp
+    $URL/api/v1/clusters/$CLUSTER_NAME/services/HDFS > $TRAF_WORKDIR/traf_hdfs_restart_temp
 
 if [ $? != 0 ]; then 
    echo "***ERROR: Unable to restart HDFS"
@@ -382,7 +382,7 @@ completed=0
 while [ $completed -eq 0 ]; do
     sleep $poll_time
     curl --user $ADMIN:$PASSWORD \
-        http://$URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
+        $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/traf_hdfs_restart_temp
     cat $LOCAL_WORKDIR/traf_hdfs_restart_temp
     echo "***INFO: ...polling every $poll_time seconds until HDFS stop is completed."
@@ -394,7 +394,7 @@ echo "***INFO: Starting HDFS..."
 curl --user $ADMIN:$PASSWORD \
     -H "X-Requested-By: Trafodion" \
     -X PUT -d '{"ServiceInfo": { "state" : "STARTED" }}' \
-    http://$URL/api/v1/clusters/$CLUSTER_NAME/services/HDFS > $TRAF_WORKDIR/traf_hdfs_restart_temp
+    $URL/api/v1/clusters/$CLUSTER_NAME/services/HDFS > $TRAF_WORKDIR/traf_hdfs_restart_temp
 
 if [ $? != 0 ]; then
    echo "***ERROR: Unable to restart HDFS"
@@ -418,7 +418,7 @@ completed=0
 while [ $completed -eq 0 ]; do
     sleep $poll_time
     curl --user $ADMIN:$PASSWORD \
-        http://$URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
+        $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/traf_hdfs_restart_temp
     cat $LOCAL_WORKDIR/traf_hdfs_restart_temp
     echo "***INFO: ...polling every $poll_time seconds until HDFS start is completed."
@@ -439,7 +439,7 @@ echo "***INFO: Starting Zookeeper..."
 curl --user $ADMIN:$PASSWORD \
     -H "X-Requested-By: Trafodion" \
     -X PUT -d '{"ServiceInfo": { "state" : "STARTED" }}' \
-    http://$URL/api/v1/clusters/$CLUSTER_NAME/services/ZOOKEEPER > $TRAF_WORKDIR/traf_zoo_restart_temp
+    $URL/api/v1/clusters/$CLUSTER_NAME/services/ZOOKEEPER > $TRAF_WORKDIR/traf_zoo_restart_temp
 
 if [ $? != 0 ]; then
    echo "***ERROR: Unable to restart Zookeeper"
@@ -463,7 +463,7 @@ completed=0
 while [ $completed -eq 0 ]; do
     sleep $poll_time
     curl --user $ADMIN:$PASSWORD \
-        http://$URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
+        $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/traf_zoo_restart_temp
     cat $LOCAL_WORKDIR/traf_zoo_restart_temp
     echo "***INFO: ...polling every $poll_time seconds until Zookeeper start is completed."
@@ -481,7 +481,7 @@ echo "***INFO: Starting HBase..."
 curl -u $ADMIN:$PASSWORD \
     -H "X-Requested-By: Trafodion" \
     -X PUT -d '{"ServiceInfo": { "state" : "STARTED" }}' \
-    http://$URL/api/v1/clusters/$CLUSTER_NAME/services/HBASE > $TRAF_WORKDIR/traf_hbase_restart_temp
+    $URL/api/v1/clusters/$CLUSTER_NAME/services/HBASE > $TRAF_WORKDIR/traf_hbase_restart_temp
 
 if [ $? != 0 ]; then
    echo "***ERROR: Unable to restart HBase"
@@ -505,7 +505,7 @@ completed=0
 while [ $completed -eq 0 ]; do
     sleep $poll_time
     curl -u $ADMIN:$PASSWORD \
-        http://$URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
+        $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/hbase_restart_status_temp
     cat $LOCAL_WORKDIR/hbase_restart_status_temp
     echo "***INFO: ...polling every $poll_time seconds until HBase start is completed."

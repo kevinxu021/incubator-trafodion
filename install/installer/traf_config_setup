@@ -143,6 +143,10 @@ if [ -f $LOCAL_TRAF_CONFIG ]; then
 	source $LOCAL_TRAF_CONFIG
 fi
 
+if [[ -f $TRAF_CONFIG ]]; then
+   source $TRAF_CONFIG
+fi
+
 if [[ "$suseLinux" -ge "1" ]]; then
    SUSE_LINUX="true"
 else 
@@ -354,7 +358,7 @@ fi
 #==============================================
 #Hadoop URL
 
-echo -n "Enter Hadoop external network URL:port (no 'http://' needed), default is [$URL]: "
+echo -n "Enter full Hadoop external network URL:port (include 'http://' or 'https://), default is [$URL]: "
 read answer
 
 if [ -z  $answer ]; then
@@ -371,8 +375,7 @@ validURL=$(curl -s --head $URL | head -n 1 | grep "OK" | wc -l)
 if [[ $validURL -eq "1" ]]; then
    echo "export URL=\"$URL\"" >> $LOCAL_TRAF_CONFIG
 else
-   echo "***ERROR: Could not access http://$URL"
-   echo "***ERROR: Do not include 'http or https'"
+   echo "***ERROR: Could not access $URL"
    echo "***ERROR: Check that URL and port are correct or if $HADOOP_TYPE is up"
    exit -1
 fi
