@@ -184,14 +184,14 @@ namespace EsgynDB.Data
         }
 
         /// <summary>
-        /// Determines whether the specified EsgynDBParameter is in this EsgynDBParameterCollection.
+        /// Determines whether the specified EsgynDBParameter.Value is in this EsgynDBParameterCollection.
         /// </summary>
         /// <param name="value">The EsgynDBParameter value.</param>
         /// <returns>true if the EsygndbbParameterCollections contains the EsgynDBParameter; otherwise false.</returns>
         /// <exception cref="InvalidCastException">The parameter passed was not a EsgynDBParameter.</exception>
         public override bool Contains(object value)
         {
-            return this._parameters.Contains((EsgynDBParameter)value);
+            return this._parameters.Exists(x => x.Value.Equals(((DbParameter)value).Value));
         }
 
         /// <summary>
