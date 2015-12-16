@@ -97,6 +97,7 @@ public class HiveClient {
     }
 
     public boolean close() {
+	if (logger.isDebugEnabled()) logger.debug("HiveClient.close called.");
         hmsClient.close();
         return true;
     }
@@ -131,9 +132,10 @@ public class HiveClient {
                      tblName + ") called.");
         try {
             table = hmsClient.getTable(schName, tblName);
-            if (logger.isDebugEnabled()) logger.debug("getTable returns null for " + schName + "." + tblName + ".");
-            if (table == null)
+            if (table == null) {
+		if (logger.isDebugEnabled()) logger.debug("getTable returns null for " + schName + "." + tblName + ".");
                 return 0;
+	    }
         }
         catch (NoSuchObjectException x) {
             if (logger.isDebugEnabled()) logger.debug("Hive table no longer exists.");
