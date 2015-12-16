@@ -593,6 +593,7 @@ short Exchange::codeGenForESP(Generator * generator)
                                                     BMOsMemoryUsage_.value());
     
     //store the numBottomEsps from this node for access by child sort operator.
+    Lng32 saveNumEsps = generator->getNumESPs();
     generator->setNumESPs(numBottomEsps);
 
     generator->getFragmentDir()->setEspLevel(childFragmentId, 
@@ -603,6 +604,8 @@ short Exchange::codeGenForESP(Generator * generator)
     // ---------------------------------------------------------------------
     child(0)->codeGen(generator);
     
+    generator->setNumESPs(saveNumEsps);
+ 
     ComTdb * child_tdb  = (ComTdb *)(generator->getGenObj());
     ExplainTuple *childExplainTuple = generator->getExplainTuple();
     child_up_cri_desc   = generator->getCriDesc(Generator::UP);
