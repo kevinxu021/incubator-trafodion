@@ -376,6 +376,7 @@ OFR_RetCode OrcFileReader::isEOF(bool& isEOF)
   return OFR_OK;
 }
 
+#ifdef USE_ORIG
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
@@ -384,7 +385,6 @@ OFR_RetCode OrcFileReader::fetchNextRow(char * pv_buffer,
 					long& pv_rowNumber,
 					int& pv_num_columns)
 {
-  jfieldID fid;
 
   tsRecentJMFromJNI = JavaMethods_[JM_FETCHROW2].jm_full_name;
   jobject jresult = (jobject)jenv_->CallObjectMethod(javaObj_,
@@ -422,6 +422,48 @@ OFR_RetCode OrcFileReader::fetchNextRow(char * pv_buffer,
 			    0,
 			    row_length, (jbyte*)pv_buffer);
   jenv_->DeleteLocalRef(jrow);  
+
+  return (OFR_OK);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+// 
+//////////////////////////////////////////////////////////////////////////////
+OFR_RetCode OrcFileReader::fetchNextRow(char * pv_buffer,
+					long& pv_array_length,
+					long& pv_rowNumber,
+					int& pv_num_columns)
+{
+
+  tsRecentJMFromJNI = JavaMethods_[JM_FETCHROW2].jm_full_name;
+  jbyteArray jba_val = (jbyteArray)jenv_->CallObjectMethod(javaObj_,
+							JavaMethods_[JM_FETCHROW].methodID);
+  if (jba_val == NULL && getLastError()) {
+    logError(CAT_SQL_HDFS_ORC_FILE_READER,
+	     "OrcFileReader::fetchNextRow()",
+	     getLastError());
+    return OFR_ERROR_FETCHROW_EXCEPTION;
+  }
+
+  if (jba_val == NULL)
+    return (OFR_NOMORE);		//No more rows
+
+  int lv_len = jenv_->GetArrayLength(jba_val);
+  jbyte *lv_ba = jenv_->GetByteArrayElements(jba_val, 0);
+  char *p_ba = (char *) lv_ba;
+  pv_array_length = (long) *(int*) p_ba;
+  p_ba += sizeof(int);
+
+  pv_num_columns = *(int*) p_ba;
+  p_ba += sizeof(int);
+  
+  pv_rowNumber = *(long*) p_ba;
+  p_ba += sizeof(long);
+	
+  memcpy(pv_buffer, p_ba, pv_array_length);
+
+  jenv_->ReleaseByteArrayElements(jba_val, lv_ba, JNI_ABORT);
 
   return (OFR_OK);
 }

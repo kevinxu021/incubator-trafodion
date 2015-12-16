@@ -77,7 +77,7 @@ public class OrcFileReader
 		       int[]  pv_which_cols) throws IOException 
     {
 
-	if (logger.isTraceEnabled()) logger.trace("Enter open()," 
+	if (logger.isDebugEnabled()) logger.debug("Enter open()," 
 						  + " file name: " + pv_file_name
 						  + " num_cols_to_project: " + pv_num_cols_to_project
 						  + " pv_which_cols: " + pv_which_cols
@@ -92,6 +92,7 @@ public class OrcFileReader
 	    return "file not found";
 	}
 
+	if (logger.isDebugEnabled()) logger.debug("open() - reader created");
 	if (m_reader == null) {
 	    if (logger.isTraceEnabled()) logger.trace("Error: open failed, createReader returned a null object");
 	    return "open failed!";
@@ -131,6 +132,7 @@ public class OrcFileReader
 	    }
 	}
 
+	if (logger.isDebugEnabled()) logger.debug("open() - before creating recordreader");
 	try{
 	    m_rr = m_reader.rowsOptions(new Reader.Options()
 				    .include(m_include_cols)
@@ -140,7 +142,7 @@ public class OrcFileReader
 	    return (e1.getMessage());
 	}
 	
-	if (logger.isTraceEnabled()) logger.trace("got a record reader, file name: " + pv_file_name);
+	if (logger.isDebugEnabled()) logger.debug("got a record reader, file name: " + pv_file_name);
 
 	if (m_rr == null) {
 	    if (logger.isTraceEnabled()) logger.trace("m_reader.rows() returned a null");
@@ -313,7 +315,7 @@ public class OrcFileReader
     public byte[] fetchNextRow() throws Exception 
     {
 
-	if (logger.isTraceEnabled()) logger.trace("Enter fetchNextRow()");
+	if (logger.isDebugEnabled()) logger.debug("Enter fetchNextRow()");
 
 	if ( ! m_rr.hasNext()) {
 	    return null;
@@ -325,7 +327,16 @@ public class OrcFileReader
 
 	byte[] lv_row_ba = new byte[4096];
 	lv_row_buffer = ByteBuffer.wrap(lv_row_ba);
+	lv_row_buffer.order(ByteOrder.LITTLE_ENDIAN);
+
+	lv_row_buffer.putInt(0);
+	lv_row_buffer.putInt(m_col_count);
+	lv_row_buffer.putLong(m_rr.getRowNumber());
+	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length1: " + lv_row_buffer.position());
+
 	for (int i = 0; i < m_fields.size(); i++) {
+	    if (! m_include_cols[i+1]) continue;
+
 	    lv_field_val = m_oi.getStructFieldData(lv_row, m_fields.get(i));
 	    if (lv_field_val == null) {
   		lv_row_buffer.putInt(0);
@@ -337,6 +348,8 @@ public class OrcFileReader
 		lv_row_buffer.put(lv_field_val_str.getBytes());
 	    }
 	}
+	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length2: " + lv_row_buffer.position());
+	lv_row_buffer.putInt(0, lv_row_buffer.position() - 16);
 	return lv_row_buffer.array();
     }
 	
@@ -378,7 +391,8 @@ public class OrcFileReader
 	    lv_row_buffer.put(lv_field_val_str.getBytes());
 	    rowData.m_row_length += lv_field_val_str.length();
 	}
-    	 
+
+	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length: " + lv_row_buffer.position());
 	return rowData;
     }
 
@@ -581,8 +595,8 @@ public class OrcFileReader
 
 	    lv_done = false;
 	    String lv_row_string;
-	    if (lv_this.seeknSync(10) == null) {
-		System.out.println("================= Begin: After seeknSync(10)... will do fetchNextRow('|')");
+	    if (lv_this.seeknSync(11) == null) {
+		System.out.println("================= Begin: After seeknSync(11)... will do fetchNextRow('|')");
 		while (! lv_done) {
 		    lv_row_string = lv_this.fetchNextRow('|');
 		    if (lv_row_string != null) {
@@ -592,7 +606,19 @@ public class OrcFileReader
 			lv_done = true;
 		    }
 		}
-		System.out.println("================= End: After seeknSync(10)... will do fetchNextRow('|')");
+		System.out.println("================= End: After seeknSync(11)... will do fetchNextRow('|')");
+	    }
+
+	    if (lv_this.seeknSync(10) == null) {
+		System.out.println("================= Begin: After seeknSync(11)... will do fetchNextRowObj()");
+		lv_done = false;
+		while (! lv_done) {
+		    OrcRowReturnSQL lv_sql_obj = lv_this.fetchNextRowObj();
+		    if (lv_sql_obj == null) {
+			lv_done = true;
+		    }
+		}
+		System.out.println("================= End: After seeknSync(11)... will do fetchNextRowObj()");
 	    }
 	}
         else if ( lv_perform_selective_scans ) {
