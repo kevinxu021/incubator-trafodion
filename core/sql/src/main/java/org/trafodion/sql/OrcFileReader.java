@@ -46,6 +46,8 @@ public class OrcFileReader
     Path                        m_file_path;
     
     Reader                      m_reader;
+    static Map<String, Reader>  s_map_readers = new HashMap<String, Reader>();
+
     List<OrcProto.Type>         m_types;
     StructObjectInspector       m_oi;
     List<? extends StructField> m_fields;
@@ -84,15 +86,26 @@ public class OrcFileReader
 						  );
 
 	m_file_path = new Path(pv_file_name);
-
-	try{
-	    m_reader = OrcFile.createReader(m_file_path, OrcFile.readerOptions(m_conf));
-	} catch (java.io.FileNotFoundException e1) {
-	    if (logger.isTraceEnabled()) logger.trace("Error: file not found: " + pv_file_name);
-	    return "file not found";
+	
+	m_reader = s_map_readers.get(pv_file_name);
+	if (m_reader == null) {
+	    if (logger.isDebugEnabled()) logger.debug("open() - creating a reader, path: " + pv_file_name);
+	    try{
+		m_reader = OrcFile.createReader(m_file_path, OrcFile.readerOptions(m_conf));
+	    } catch (java.io.FileNotFoundException e1) {
+		if (logger.isTraceEnabled()) logger.trace("Error: file not found: " + pv_file_name);
+		return "file not found";
+	    }
+	    // commented out for the time being
+	    //s_map_readers.put(pv_file_name, m_reader);
+	    //if (logger.isDebugEnabled()) logger.debug("open() - put reader to map, for: "
+	    //+ pv_file_name
+	    //					      + " map size: "
+	    //+ s_map_readers.size()
+	    //);
 	}
 
-	if (logger.isDebugEnabled()) logger.debug("open() - reader created");
+	if (logger.isDebugEnabled()) logger.debug("open() - reader created, path: " + pv_file_name);
 	if (m_reader == null) {
 	    if (logger.isTraceEnabled()) logger.trace("Error: open failed, createReader returned a null object");
 	    return "open failed!";
@@ -609,6 +622,9 @@ public class OrcFileReader
 		System.out.println("================= End: After seeknSync(11)... will do fetchNextRow('|')");
 	    }
 
+	    lv_this.close();
+	    lv_this.open(args[0], -1, null);
+
 	    if (lv_this.seeknSync(10) == null) {
 		System.out.println("================= Begin: After seeknSync(11)... will do fetchNextRowObj()");
 		lv_done = false;
@@ -619,6 +635,26 @@ public class OrcFileReader
 		    }
 		}
 		System.out.println("================= End: After seeknSync(11)... will do fetchNextRowObj()");
+	    }
+
+	    lv_this.close();
+	    lv_this.open(args[0], -1, null);
+
+	    lv_done = false;
+	    if (lv_this.seeknSync(8) == null) {
+		System.out.println("================= Begin: fetchNextRow()");
+		while (! lv_done) {
+		    System.out.println("Next row #: " + lv_this.getPosition());
+		    byte[] lv_row_bb = lv_this.fetchNextRow();
+		    if (lv_row_bb != null) {
+			System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_row_bb, 0, 100));
+			System.out.println("Length lv_row_bb: " + lv_row_bb.length);
+		    }
+		    else {
+			lv_done = true;
+		    }
+		}
+		System.out.println("================= End: fetchNextRow()");
 	    }
 	}
         else if ( lv_perform_selective_scans ) {
