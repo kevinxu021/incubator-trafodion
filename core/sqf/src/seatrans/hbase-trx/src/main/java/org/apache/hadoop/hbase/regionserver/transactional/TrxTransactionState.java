@@ -24,7 +24,6 @@
 package org.apache.hadoop.hbase.regionserver.transactional;
 
 import java.io.IOException;
-
 import java.lang.Class;
 
 import java.lang.reflect.Constructor;
@@ -56,6 +55,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValueUtil;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.KeyValue.KVComparator;
 import org.apache.hadoop.hbase.KeyValue.Type;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.Delete;
@@ -73,6 +73,7 @@ import org.apache.hadoop.hbase.regionserver.ScanInfo;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
+import org.apache.hadoop.hbase.util.VersionInfo;
 import org.apache.hadoop.io.DataInputBuffer;
 
 /**
@@ -81,31 +82,96 @@ import org.apache.hadoop.io.DataInputBuffer;
  */
 public class TrxTransactionState  extends TransactionState{
 
-    static java.lang.reflect.Constructor c1_0 = null;
-    
+    static boolean sb_sqm_98_1 = false;
+    static boolean sb_sqm_98_4 = false;
+    static boolean sb_sqm_98_9 = false;
+    static java.lang.reflect.Constructor c98_1 = null;
+    static java.lang.reflect.Constructor c98_4 = null;
+    static java.lang.reflect.Constructor c98_9 = null;
+
+    static Class keepDeletedCellsClazz = null;
+    static Class scaninfoClazz = null;
+    static Constructor scaninfoConstructor = null;
+    static Object[] scaninfoArgs = null;
+
     static {
-		try {
-		    NavigableSet<byte[]> lv_nvg = (NavigableSet<byte[]>) null;
-		    c1_0 = ScanQueryMatcher.class.getConstructor(
-								  new Class [] {
-								      Scan.class,
-								      ScanInfo.class,
-								      java.util.NavigableSet.class,
-								      ScanType.class,
-								      long.class,
-								      long.class,
-								      long.class,
-								      long.class,
-								      RegionCoprocessorHost.class
-								  });
-		    if (c1_0 != null)
-			    LOG.info("Got info of Class ScanQueryMatcher for HBase 1.0");
-			
-			}
-			catch (NoSuchMethodException exc_nsm) {
-				LOG.info("TrxRegionEndpoint coprocessor, No matching ScanQueryMatcher : Threw an exception");
-			}
-		}
+        String version = VersionInfo.getVersion();// the hbase version string, eg. "0.6.3-dev"
+        LOG.info("Got info of Class ScanQueryMatcher for HBase version :" + version);
+
+        try {
+            c98_1 = ScanQueryMatcher.class.getConstructor(new Class[] { Scan.class,
+                                                                        ScanInfo.class,
+                                                                        java.util.NavigableSet.class,
+                                                                        ScanType.class,
+                                                                        long.class,
+                                                                        long.class,
+                                                                        long.class });
+            LOG.info("Got info of Class ScanQueryMatcher for HBase 98.1");
+            sb_sqm_98_1 = true;
+        } catch (NoSuchMethodException e) {
+            try {
+                c98_4 = ScanQueryMatcher.class.getConstructor(new Class[] { Scan.class,
+                                                                            ScanInfo.class,
+                                                                            java.util.NavigableSet.class,
+                                                                            ScanType.class,
+                                                                            long.class,
+                                                                            long.class,
+                                                                            long.class,
+                                                                            RegionCoprocessorHost.class });
+                LOG.info("Got info of Class ScanQueryMatcher for HBase 98.4");
+                sb_sqm_98_4 = true;
+            } catch (NoSuchMethodException e1) {
+                try {
+                    c98_9 = ScanQueryMatcher.class.getConstructor(new Class[] { Scan.class,
+                                                                                ScanInfo.class,
+                                                                                java.util.NavigableSet.class,
+                                                                                ScanType.class,
+                                                                                long.class,
+                                                                                long.class,
+                                                                                long.class,
+                                                                                long.class,
+                                                                                RegionCoprocessorHost.class });
+                    LOG.info("Got info of Class ScanQueryMatcher for HBase 98.9");
+                    sb_sqm_98_9 = true;
+                } catch (NoSuchMethodException e2) {
+                    throw new RuntimeException("HBase version :" + version + ". No matcher ScanQueryMatcher.");
+                }
+            }
+        }
+	
+	
+        try {
+            scaninfoClazz = Class.forName("org.apache.hadoop.hbase.regionserver.ScanInfo");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+        Class[] types = null;
+
+        try {
+            types = new Class[] { byte[].class, int.class, int.class, long.class, boolean.class, long.class, KVComparator.class };
+            scaninfoConstructor = scaninfoClazz.getConstructor(types);
+            scaninfoArgs = new Object[] { null, 0, 1, HConstants.FOREVER, false, 0, KeyValue.COMPARATOR };
+            if (LOG.isTraceEnabled())
+                LOG.trace("Created ScanInfo instance before HBase 98.8");
+        } catch (Exception e) {
+            
+            try {
+                keepDeletedCellsClazz = Class.forName("org.apache.hadoop.hbase.KeepDeletedCells");
+            } catch (ClassNotFoundException e1) {
+                throw new RuntimeException(e1.getMessage());
+            }
+            types = new Class[] { byte[].class, int.class, int.class, long.class, keepDeletedCellsClazz, long.class, KVComparator.class };
+            try {
+                scaninfoConstructor = scaninfoClazz.getConstructor(types);
+                scaninfoArgs = new Object[] { null, 0, 1, HConstants.FOREVER, Enum.valueOf(keepDeletedCellsClazz, "FALSE"), 0, KeyValue.COMPARATOR };
+                if (LOG.isTraceEnabled())
+                    LOG.trace("Created ScanInfo instance after HBase 98.8");
+            } catch (Exception e1) {
+                LOG.error("Created ScanInfo instance ERROR");
+                throw new RuntimeException(e1.getMessage());
+            }
+        }
+    }
 
     /**
      * Simple container of the range of the scanners we've opened. Used to check for conflicting writes.
@@ -639,35 +705,87 @@ public class TrxTransactionState  extends TransactionState{
             super.setSequenceID(Long.MAX_VALUE);
             
             //Store.ScanInfo scaninfo = new Store.ScanInfo(null, 0, 1, HConstants.FOREVER, false, 0, Cell.COMPARATOR);
-            ScanInfo scaninfo = new ScanInfo(null, 0, 1, HConstants.FOREVER,KeepDeletedCells.FALSE, 0, KeyValue.COMPARATOR);
-            
-           
-        if(c1_0 != null) {
-        	try {
-    		    matcher = (ScanQueryMatcher) c1_0.newInstance(scan,
-    								   scaninfo,
-    								   null,
-    								   ScanType.USER_SCAN,
-    								   Long.MAX_VALUE,
-    								   HConstants.LATEST_TIMESTAMP,
-    								   (long) 0,
-    								   EnvironmentEdgeManager.currentTime(),
-    								   null);
-    		    if (LOG.isTraceEnabled()) LOG.trace("Created matcher using reflection for HBase 1.0");
-    		    }
-    		    catch (InstantiationException exc_ins) {
-    			LOG.error("InstantiationException: " + exc_ins);
-    		    }
-    		    catch (IllegalAccessException exc_ill_acc) {
-    			LOG.error("IllegalAccessException: " + exc_ill_acc);
-    		    }
-    		    catch (InvocationTargetException exc_inv_tgt) {
-    			LOG.error("InvocationTargetException: " + exc_inv_tgt);
-    		    }
-        	    catch (Exception e) {
-        	    LOG.error("error while instantiating the ScanQueryMatcher()" + e);
-        	    }
-         	}
+            //after hbase 0.98.8, ScanInfo instance need KeepDeletedCells as param instead of boolean
+            ScanInfo scaninfo = null;
+            try {
+                scaninfo = (ScanInfo) scaninfoConstructor.newInstance(scaninfoArgs);
+            } catch (Exception e) {
+                throw new RuntimeException(e.getMessage());
+            }
+
+            try {
+		if (sb_sqm_98_1) {
+		    try {
+			matcher = (ScanQueryMatcher) c98_1.newInstance(scan,
+								       scaninfo,
+								       null,
+								       ScanType.USER_SCAN,
+								       Long.MAX_VALUE,
+								       HConstants.LATEST_TIMESTAMP,
+								       0);
+			if (LOG.isTraceEnabled()) LOG.trace("Created matcher using reflection for HBase 98.1");
+		    }
+		    catch (InstantiationException exc_ins) {
+			LOG.error("InstantiationException: " + exc_ins);
+		    }
+		    catch (IllegalAccessException exc_ill_acc) {
+			LOG.error("IllegalAccessException: " + exc_ill_acc);
+		    }
+		    catch (InvocationTargetException exc_inv_tgt) {
+			LOG.error("InvocationTargetException: " + exc_inv_tgt);
+		    }
+		    
+		}
+		else if(sb_sqm_98_4) {
+		    try {
+		    matcher = (ScanQueryMatcher) c98_4.newInstance(scan,
+								   scaninfo,
+								   null,
+								   ScanType.USER_SCAN,
+								   Long.MAX_VALUE,
+								   HConstants.LATEST_TIMESTAMP,
+								   (long) 0,
+								   null);
+		    if (LOG.isTraceEnabled()) LOG.trace("Created matcher using reflection for HBase 98.4");
+		    }
+		    catch (InstantiationException exc_ins) {
+			LOG.error("InstantiationException: " + exc_ins);
+		    }
+		    catch (IllegalAccessException exc_ill_acc) {
+			LOG.error("IllegalAccessException: " + exc_ill_acc);
+		    }
+		    catch (InvocationTargetException exc_inv_tgt) {
+			LOG.error("InvocationTargetException: " + exc_inv_tgt);
+		    }
+
+		}
+                else
+                {    
+                    try {
+                        matcher = (ScanQueryMatcher) c98_9.newInstance(scan,
+                                                                       scaninfo,
+                                                                       null,
+                                                                       ScanType.USER_SCAN,
+                                                                       Long.MAX_VALUE,
+                                                                       HConstants.LATEST_TIMESTAMP,
+                                                                       0l,  
+                                                                       EnvironmentEdgeManager.currentTime(),
+                                                                       null);
+                        if (LOG.isTraceEnabled())
+                            LOG.trace("Created matcher using reflection for HBase 98.9");
+                    } catch (InstantiationException exc_ins) {
+                        LOG.error("InstantiationException: " + exc_ins);
+                    } catch (IllegalAccessException exc_ill_acc) {
+                        LOG.error("IllegalAccessException: " + exc_ill_acc);
+                    } catch (InvocationTargetException exc_inv_tgt) {
+                        LOG.error("InvocationTargetException: " + exc_inv_tgt);
+                    }    
+                }    
+            }
+            catch (Exception e) {
+              LOG.error("error while instantiating the ScanQueryMatcher()" + e);
+            }
+         
         }
 
         /**

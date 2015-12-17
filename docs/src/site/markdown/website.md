@@ -20,7 +20,7 @@ This page describes how to change the Trafodion web pages. Please refer to the [
 
 **Publication:** https://git-wip-us.apache.org/repos/asf/incubator-trafodion-site.git
 
-You develop and test all changes in the Trafodion source tree. Once checked in and built, the content of ```docs/target``` plus different [documentation](document.html) are copied to https://git-wip-us.apache.org/repos/asf/incubator-trafodion-site.git. The changes are then pushed out by Apache [svnpubsub](http://svn.apache.org/viewvc/subversion/trunk/tools/server-side/svnpubsub/), thereby populating http://incubator.trafodion.apache.org.
+You develop and test all changes in the Trafodion source tree. Once checked in and built, the content of ```docs/target``` plus different [documentation](document.html) are copied to https://git-wip-us.apache.org/repos/asf/incubator-trafodion-site.git. The changes are then pushed out by Apache gitpubsub, thereby populating http://incubator.trafodion.apache.org.
 
 # Making Changes
 The following information helps you understand how to make changes to the web-site content.
@@ -68,6 +68,25 @@ Typically, you'll use Eclipse to develop and build the website pages. The config
 
 The website files are located in **```docs/target```**. Open **```index.html```** from your browser and test your changes. For example, you want to validate the page layout, page navigation, links, and review the overall content on the pages you modified or added/deleted.
 
+## Tables
+markdown supports a simple format for tables. You can use markdown-style writing in such tables.
+
+    Table Header   | Table Header
+    ---------------|---------------
+    Text           | Text
+    Text           | Text
+
+However, no special formatting can be done; for example, creating a bulleted list in a cell. If you need tables with such formatting, then you will need to define the table in raw HTML format. No markdown-style writing is supported for HTML tables; use pure HTML tagging instead.
+
+## Callout Boxes
+You can create a simple callout box using an HTML table. Example:
+
+    <table><tr><td><strong>NOTE</strong><br />Whatever you want to say here.</td></tr></table>
+
+Generates:
+
+<table><tr><td><strong>NOTE</strong><br />Whatever you want to say here.</td></tr></table>
+
 ----
 
 # Publishing
@@ -78,11 +97,12 @@ The website files are located in **```docs/target```**. Open **```index.html```*
 
 Do the following:
 
-1. Check in your changes to the Trafodion source tree.
-2. Build Trafodion.
+1. Wait for the changes to be committed to the Trafodion master branch.
+2. Build Trafodion site (mvn site).
 3. If there are documentation changes: Follow the [documentation publishing](document.html#Publishing) instructions.
-3. ```svn checkout``` https://git-wip-us.apache.org/repos/asf/incubator-trafodion-site.git
-4. Copy content of ```docs/target``` into the svn ```asf-site``` directory.
-5. ```svn commit``` the changes. 
+3. ```git clone``` https://git-wip-us.apache.org/repos/asf/incubator-trafodion-site.git
+4. Copy content of ```docs/target``` into the incubator-trafodion-site directory. Commit changes.
+5. Push them back to the apache origin repo to the ```asf-site``` branch.
 
-Once committed, Apache [svnpubsub](http://svn.apache.org/viewvc/subversion/trunk/tools/server-side/svnpubsub/) takes care of populating http://incubator.trafodion.apache.org with your new changes.
+Once pushed, Apache gitpubsub takes care of populating http://incubator.trafodion.apache.org with your new changes.
+If they don't show up, pushing another empty (or whitespace change) commit may work to trigger the automation.
