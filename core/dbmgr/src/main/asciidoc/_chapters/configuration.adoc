@@ -234,7 +234,7 @@ $MGBLTY_INSTALL_DIR/bosun/bin/runbosun.sh watch
 +
 With the *watch* option, the runbosun.sh script first checks if Bosun is running. If Bosun is running then the script exits, otherwise it starts Bosun. So by calling this watch command every 1 minute, we are able to keep Bosun persistent.
 
-** If the primary node were to fail, the CMON process would fail over to a secondary node and that node will become the primary and the all the commands from the cluster_monitor.cmd are executed to start the defined processes on the new primary node.
+** If the primary node were to fail, the CMON process would fail over to a secondary node and that node will become the primary and all the commands from the cluster_monitor.cmd are executed to start the defined processes on the new primary node.
 
 - *NMON* runs on every node. It is started and managed by the EsynDB monitor process, so NMON is inherently persistent. 
 
