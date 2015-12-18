@@ -67,6 +67,7 @@ char* OrcFileReader::getErrorText(OFR_RetCode pv_errEnum)
 OrcFileReader::~OrcFileReader()
 {
   close();
+  releaseJavaAllocation();
 }
  
 //////////////////////////////////////////////////////////////////////////////
@@ -104,6 +105,8 @@ OFR_RetCode OrcFileReader::init()
     JavaMethods_[JM_SYNC      ].jm_signature = "(J)Ljava/lang/String;";
     JavaMethods_[JM_ISEOF     ].jm_name      = "isEOF";
     JavaMethods_[JM_ISEOF     ].jm_signature = "()Z";
+    JavaMethods_[JM_FETCHBLOCK].jm_name      = "fetchNextBlock";
+    JavaMethods_[JM_FETCHBLOCK].jm_signature = "()[B";
     JavaMethods_[JM_FETCHROW  ].jm_name      = "fetchNextRow";
     JavaMethods_[JM_FETCHROW  ].jm_signature = "()[B";
     JavaMethods_[JM_FETCHROW2 ].jm_name      = "fetchNextRowObj";
@@ -225,6 +228,7 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
   jint      ji_num_cols_in_projection = pv_num_cols_in_projection;
   jstring   jresult = NULL;
 
+  releaseJavaAllocation();
   js_path = jenv_->NewStringUTF(pv_path);
   if (js_path == NULL) {
     lv_retcode = OFR_ERROR_OPEN_PARAM;
@@ -378,7 +382,7 @@ OFR_RetCode OrcFileReader::isEOF(bool& isEOF)
 
 #ifdef USE_ORIG
 //////////////////////////////////////////////////////////////////////////////
-// 
+// Uses the Java method OrcFileReader.fetchNextRowObj()
 //////////////////////////////////////////////////////////////////////////////
 OFR_RetCode OrcFileReader::fetchNextRow(char * pv_buffer,
 					long& pv_array_length,
@@ -425,10 +429,9 @@ OFR_RetCode OrcFileReader::fetchNextRow(char * pv_buffer,
 
   return (OFR_OK);
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////////
-// 
+// Uses the Java method: 'byte[] OrcFileReader.fetchNextRow()'
 //////////////////////////////////////////////////////////////////////////////
 OFR_RetCode OrcFileReader::fetchNextRow(char * pv_buffer,
 					long& pv_array_length,
@@ -436,7 +439,7 @@ OFR_RetCode OrcFileReader::fetchNextRow(char * pv_buffer,
 					int& pv_num_columns)
 {
 
-  tsRecentJMFromJNI = JavaMethods_[JM_FETCHROW2].jm_full_name;
+  tsRecentJMFromJNI = JavaMethods_[JM_FETCHROW].jm_full_name;
   jbyteArray jba_val = (jbyteArray)jenv_->CallObjectMethod(javaObj_,
 							JavaMethods_[JM_FETCHROW].methodID);
   if (jba_val == NULL && getLastError()) {
@@ -466,6 +469,97 @@ OFR_RetCode OrcFileReader::fetchNextRow(char * pv_buffer,
   jenv_->ReleaseByteArrayElements(jba_val, lv_ba, JNI_ABORT);
 
   return (OFR_OK);
+}
+#endif
+
+void OrcFileReader::releaseJavaAllocation() {
+
+  if (! m_java_ba_released) {
+    jenv_->ReleaseByteArrayElements(m_java_block,
+				    m_java_ba,
+				    JNI_ABORT);
+    m_java_ba_released = true;
+  }
+    
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// 
+//////////////////////////////////////////////////////////////////////////////
+OFR_RetCode OrcFileReader::fetchNextRow(char * pv_buffer,
+					long& pv_array_length,
+					long& pv_rowNumber,
+					int& pv_num_columns)
+{
+
+  tsRecentJMFromJNI = JavaMethods_[JM_FETCHROW].jm_full_name;
+  
+  if (m_number_of_remaining_rows_in_block == 0) {
+
+    releaseJavaAllocation();
+    
+    m_total_number_of_rows_in_block = 0;
+    m_java_block = (jbyteArray)jenv_->CallObjectMethod(javaObj_,
+						    JavaMethods_[JM_FETCHBLOCK].methodID);
+    if (m_java_block == NULL && getLastError()) {
+      logError(CAT_SQL_HDFS_ORC_FILE_READER,
+	       "OrcFileReader::fetchNextRow()",
+	       getLastError());
+      return OFR_ERROR_FETCHROW_EXCEPTION;
+    }
+
+    if (m_java_block == NULL)
+      return (OFR_NOMORE);		//No more rows
+
+    int lv_len = jenv_->GetArrayLength(m_java_block);
+    m_java_ba = jenv_->GetByteArrayElements(m_java_block, 0);
+    m_java_ba_released = false;
+
+    m_block = (char *) m_java_ba;
+    m_total_number_of_rows_in_block = *(int *) m_block;
+    if (m_total_number_of_rows_in_block <= 0) {
+      return (OFR_NOMORE);
+    }
+
+    m_block += sizeof(int);
+    m_number_of_remaining_rows_in_block = m_total_number_of_rows_in_block;
+  }
+  
+  fillNextRow(m_block,
+	      pv_buffer,
+	      pv_array_length,
+	      pv_rowNumber,
+	      pv_num_columns);
+  
+  --m_number_of_remaining_rows_in_block;
+  m_block += sizeof(int) + sizeof(int) + sizeof(long) + pv_array_length;
+
+  return (OFR_OK);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// 
+//////////////////////////////////////////////////////////////////////////////
+void OrcFileReader::fillNextRow(
+				char *p_ba,
+				char *pv_buffer,
+				long& pv_array_length,
+				long& pv_rowNumber,
+				int&  pv_num_columns)
+{
+  
+  pv_array_length = (long) *(int *) p_ba;
+  p_ba += sizeof(int);
+
+  pv_num_columns = *(int *) p_ba;
+  p_ba += sizeof(int);
+  
+  pv_rowNumber = *(long *) p_ba;
+  p_ba += sizeof(long);
+	
+  memcpy(pv_buffer, p_ba, pv_array_length);
+
+  return;
 }
 
 //////////////////////////////////////////////////////////////////////////////

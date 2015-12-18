@@ -50,8 +50,14 @@ class OrcFileReader : public JavaObjectInterface
 public:
   // Default constructor - for creating a new JVM		
   OrcFileReader(NAHeap *heap)
-  :  JavaObjectInterface(heap) 
-  {}
+    :  JavaObjectInterface(heap)
+    , m_total_number_of_rows_in_block(0)
+    , m_number_of_remaining_rows_in_block(0)
+    , m_block(0)
+    , m_java_block(0)
+    , m_java_ba(0)
+    , m_java_ba_released(true)
+    {}
 
   // Constructor for reusing an existing JVM.
   OrcFileReader(NAHeap *heap, JavaVM *jvm, JNIEnv *jenv)
@@ -107,6 +113,21 @@ protected:
   jstring getLastError();
 
 private:
+  void fillNextRow(char *p_ba,
+		   char *pv_buffer,
+		   long& pv_array_length,
+		   long& pv_rowNumber,
+		   int&  pv_num_columns);
+  void releaseJavaAllocation();
+
+  int   m_total_number_of_rows_in_block;
+  int   m_number_of_remaining_rows_in_block;
+  char *m_block;
+
+  jbyteArray m_java_block;
+  jbyte     *m_java_ba;
+  bool       m_java_ba_released;
+
   enum JAVA_METHODS {
     JM_CTOR = 0, 
     JM_GETERROR,
@@ -114,6 +135,7 @@ private:
     JM_GETPOS,
     JM_SYNC,
     JM_ISEOF,
+    JM_FETCHBLOCK,
     JM_FETCHROW,
     JM_FETCHROW2,
     JM_GETNUMROWS,
