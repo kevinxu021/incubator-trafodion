@@ -3269,9 +3269,10 @@ CoprocessorService, Coprocessor {
         }
 
         this.scannerLeaseTimeoutPeriod = HBaseConfiguration.getInt(config,
-          HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD,
-          HConstants.HBASE_REGIONSERVER_LEASE_PERIOD_KEY,
-          HConstants.DEFAULT_HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD);
+								   HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD,
+								   HConstants.HBASE_REGIONSERVER_LEASE_PERIOD_KEY,
+								   HConstants.DEFAULT_HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD);
+
         this.scannerThreadWakeFrequency = config.getInt(HConstants.THREAD_WAKE_FREQUENCY, 10 * 1000);
 
         this.cleanTimer = config.getInt(SLEEP_CONF, DEFAULT_SLEEP);
@@ -3281,7 +3282,7 @@ CoprocessorService, Coprocessor {
         this.skipWal = config.getBoolean(CONF_SKIP_WAL, DEFAULT_SKIP_WAL);
         this.fullEditInCommit = config.getBoolean(CONF_COMMIT_EDIT, DEFAULT_COMMIT_EDIT);
 	m_regionName = this.regionInfo.getRegionNameAsString();
-	m_isTrafodionMetadata = m_regionName.contains("_MD_");
+	m_isTrafodionMetadata = m_regionName.contains("TRAFODION._MD_.");
 
         LOG.info ("TRX Endpoint coprocessor, " 
 		  + " region: " + m_regionName 
@@ -3793,12 +3794,12 @@ CoprocessorService, Coprocessor {
 						 + ", Replay commit for transaction with Op " + kv.getTypeByte()
 						 );
              if (kv.getTypeByte() == KeyValue.Type.Put.getCode()) {
-		put = new Put(CellUtil.cloneRow(kv), kv.getTimestamp()); // kv.getRow()
-                put.add(CellUtil.cloneFamily(kv), 
-			CellUtil.cloneQualifier(kv),
-			kv.getTimestamp(), /*EnvironmentEdgeManager.currentTime(),*/
-			CellUtil.cloneValue(kv));
-		//TransactionState.updateLatestTimestamp(put.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTime());
+                put = new Put(CellUtil.cloneRow(kv), kv.getTimestamp()); // kv.getRow()
+                put.add(CellUtil.cloneFamily(kv),
+                        CellUtil.cloneQualifier(kv),
+                        kv.getTimestamp(),
+                        CellUtil.cloneValue(kv));
+                //state.addWrite(put); // no need to add since add has been done in constructInDoubtTransactions
               try {
                 m_Region.put(put);
               }
@@ -3810,16 +3811,14 @@ CoprocessorService, Coprocessor {
                  throw new IOException(e.toString());
               }
      	     } else if (CellUtil.isDelete(kv))  {
-		del = new Delete(CellUtil.cloneRow(kv), kv.getTimestamp());
-	       	if (CellUtil.isDeleteFamily(kv)) {
-		    del.addFamily(CellUtil.cloneFamily(kv), kv.getTimestamp());
-                } 
-		else if (CellUtil.isDeleteType(kv)) {
-		    del.addColumn(CellUtil.cloneFamily(kv),
-				     CellUtil.cloneQualifier(kv), kv.getTimestamp());
-	        }
-                //del.setTimestamp(kv.getTimestamp());
-		//TransactionState.updateLatestTimestamp(del.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTime());
+                del = new Delete(CellUtil.cloneRow(kv), kv.getTimestamp());
+                if (CellUtil.isDeleteFamily(kv)) {
+                   del.deleteFamily(CellUtil.cloneFamily(kv), kv.getTimestamp());
+                } else if (CellUtil.isDeleteType(kv)) {
+                   del.deleteColumn(CellUtil.cloneFamily(kv),
+                		   CellUtil.cloneQualifier(kv), kv.getTimestamp());
+                }
+                //state.addDelete(del);  // no need to add since add has been done in constructInDoubtTransactions
                try {
                  m_Region.delete(del);
                   }
@@ -3925,11 +3924,11 @@ CoprocessorService, Coprocessor {
             WALEdit e1 = state.getEdit();
             WALEdit e = new WALEdit();
             if (e1.isEmpty() || e1.getCells().size() <= 0) {
-               if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV endpoint CP: commit -" 
-						 + " txId " + transactionId 
-						 + ", Encountered empty TS WAL Edit list during commit, HLog txid " + txid
-						 );
-               }
+               if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV endpoint CP: commit - txId "
+                        + transactionId
+                        + ", Encountered empty TS WAL Edit list during commit, HLog txid "
+                        + txid);
+            }
             else {
                  Cell c = e1.getCells().get(0);
                  KeyValue kv = new KeyValue(c.getRowArray(), c.getRowOffset(), (int)c.getRowLength(),
@@ -4904,19 +4903,19 @@ CoprocessorService, Coprocessor {
       // If there are writes we must keep record of the transaction
       putBySequenceStartTime = System.nanoTime();
       if (state.hasWrite()) {
-        if (LOG.isInfoEnabled())
-          putBySequenceOperations.getAndIncrement();
-        // Order is important
-	state.setStatus(Status.COMMIT_PENDING);
-        state.setCPEpoch(controlPointEpoch.get());
-	commitPendingTransactions.add(state);
-	state.setSequenceNumber(nextSequenceId.getAndIncrement());
-	commitedTransactionsBySequenceNumber.put(state.getSequenceNumber(), state);
-      if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: Transaction " + transactionId
-		+ " found in region "
-		+ m_Region.getRegionInfo().getRegionNameAsString()
-		+ ". Adding to commitedTransactionsBySequenceNumber for sequence number " + state.getSequenceNumber());
-
+         if (LOG.isInfoEnabled()) {
+            // Only increment this counter if we are logging the statistics
+            putBySequenceOperations.getAndIncrement();
+         }
+         // Order is important
+         state.setStatus(Status.COMMIT_PENDING);
+         state.setCPEpoch(controlPointEpoch.get());
+         commitPendingTransactions.add(state);
+         state.setSequenceNumber(nextSequenceId.getAndIncrement());
+         commitedTransactionsBySequenceNumber.put(state.getSequenceNumber(), state);
+         if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: Transaction " + transactionId
+               + " found in region " + m_Region.getRegionInfo().getRegionNameAsString()
+               + ". Adding to commitedTransactionsBySequenceNumber for sequence number " + state.getSequenceNumber());
       }
       commitCheckEndTime = putBySequenceEndTime = System.nanoTime();
     } // exit sync block of commitCheckLock
