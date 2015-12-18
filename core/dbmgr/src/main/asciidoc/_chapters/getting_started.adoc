@@ -1,16 +1,16 @@
 ////
-<!-- 
+<!--
 /**
   *(C) Copyright 2015 Esgyn Corporation
   *
-  * Confidential computer software. Valid license from Esgyn required for 
-  * possession, use or copying. Consistent with FAR 12.211 and 12.212, 
-  * Commercial Computer Software, Computer Software Documentation, and 
-  * Technical Data for Commercial Items are licensed to the U.S. Government 
+  * Confidential computer software. Valid license from Esgyn required for
+  * possession, use or copying. Consistent with FAR 12.211 and 12.212,
+  * Commercial Computer Software, Computer Software Documentation, and
+  * Technical Data for Commercial Items are licensed to the U.S. Government
   * under vendor's standard commercial license.
-  *  
+  *
   */
--->         
+-->
 ////
 
 == Getting Started
@@ -23,13 +23,13 @@
 
 === Introduction
 EsgynDB Manager is a web based enterprise management tool for EsgynDB.
-DB Manager allows the user to monitor the health and status of EsgynDB services and workloads. 
+DB Manager allows the user to monitor the health and status of EsgynDB services and workloads.
 
-=== Features  
+=== Features
 * Dashboard
 ** Monitor runtime status of EsgynDB services
 ** Monitor runtime status of EsgynDB Nodes
-** Time-series charts for monitoring key system and HBase metrics. ( * only in EsgynDB Enterprise Edition)
+** Time-series charts for monitoring key system and HBase metrics. ( * only in EsgynDB Enterprise Advanced Edition)
 * Workloads
 ** Monitor Active queries
 ** Drill-down into runtime statistics for a specific active query
@@ -42,9 +42,9 @@ DB Manager allows the user to monitor the health and status of EsgynDB services 
 * DCS Servers
 ** View connected and available DCS Servers
 * Query Workbench
-** Execute adhoc queries
+** Execute ad-hoc queries
 ** Generate visual and textual explain plans
 ** Support for CQDs
-* Alerts ( * only in EsgynDB Enterprise Edition)
+* Alerts ( * only in EsgynDB Enterprise Advanced Edition)
 ** View Alert notifications
 ** Acknowledge and update alerts
