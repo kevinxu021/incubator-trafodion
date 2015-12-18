@@ -363,7 +363,7 @@ if [[ -z "$URL" ]]; then
    echo "***ERROR: Hadoop URL variable not set in config file."
    majorErrorFound  
 else
-   validURL=$(curl -s --head $URL | head -n 1 | grep "OK" | wc -l)
+   validURL=$(curl -k -s --head $URL | head -n 1 | grep "OK" | wc -l)
 
    if [[ $validURL -ne "1" ]]; then
       errorFound=1

@@ -370,7 +370,7 @@ else
    URL=$answer
 fi
 
-validURL=$(curl -s --head $URL | head -n 1 | grep "OK" | wc -l)
+validURL=$(curl -k -s --head $URL | head -n 1 | grep "OK" | wc -l)
 
 if [[ $validURL -eq "1" ]]; then
    echo "export URL=\"$URL\"" >> $LOCAL_TRAF_CONFIG
