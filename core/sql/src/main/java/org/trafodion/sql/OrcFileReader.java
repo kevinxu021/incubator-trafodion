@@ -150,9 +150,9 @@ public class OrcFileReader
 	if ((pv_num_cols_to_project > 0) &&
 	    (pv_which_cols != null)) {
 	    for (int lv_curr_index : pv_which_cols) {
-		if ((lv_curr_index >= 0) &&
-		    (lv_curr_index < lv_num_cols_in_table)) {
-		    m_include_cols[lv_curr_index+1] = true;
+		if ((lv_curr_index >= 1) &&
+		    (lv_curr_index <= lv_num_cols_in_table)) {
+		    m_include_cols[lv_curr_index] = true;
 		}
 	    }
 	}
@@ -709,10 +709,10 @@ public class OrcFileReader
 	OrcFileReader lv_this = new OrcFileReader();
 
 	int lv_include_cols [] = new int[4];
-	lv_include_cols[0]=0;
-	lv_include_cols[1]=1;
-	lv_include_cols[2]=5;
-	lv_include_cols[3]=6;
+	lv_include_cols[0]=1;
+	lv_include_cols[1]=2;
+	lv_include_cols[2]=6;
+	lv_include_cols[3]=7;
 	lv_this.open(args[0], 4, lv_include_cols);
 
 	if (lv_print_info) {
