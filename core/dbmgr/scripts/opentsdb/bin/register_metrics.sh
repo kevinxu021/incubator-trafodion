@@ -13,6 +13,7 @@ $MGBLTY_INSTALL_DIR/opentsdb/bin/tsdb mkmetric df.bytes.used --config=$MGBLTY_IN
 $MGBLTY_INSTALL_DIR/opentsdb/bin/tsdb mkmetric esgyn.hbase.regionserver --config=$MGBLTY_INSTALL_DIR/opentsdb/etc/opentsdb/opentsdb.conf
 $MGBLTY_INSTALL_DIR/opentsdb/bin/tsdb mkmetric esgyn.hbase.running --config=$MGBLTY_INSTALL_DIR/opentsdb/etc/opentsdb/opentsdb.conf
 $MGBLTY_INSTALL_DIR/opentsdb/bin/tsdb mkmetric esgyn.nodes.up --config=$MGBLTY_INSTALL_DIR/opentsdb/etc/opentsdb/opentsdb.conf
+$MGBLTY_INSTALL_DIR/opentsdb/bin/tsdb mkmetric esgyn.nodes.down --config=$MGBLTY_INSTALL_DIR/opentsdb/etc/opentsdb/opentsdb.conf
 $MGBLTY_INSTALL_DIR/opentsdb/bin/tsdb mkmetric esgyndb.canary.sqlconnect.time --config=$MGBLTY_INSTALL_DIR/opentsdb/etc/opentsdb/opentsdb.conf
 $MGBLTY_INSTALL_DIR/opentsdb/bin/tsdb mkmetric esgyndb.canary.sqlddl.time --config=$MGBLTY_INSTALL_DIR/opentsdb/etc/opentsdb/opentsdb.conf
 $MGBLTY_INSTALL_DIR/opentsdb/bin/tsdb mkmetric esgyndb.canary.sqlread.time --config=$MGBLTY_INSTALL_DIR/opentsdb/etc/opentsdb/opentsdb.conf

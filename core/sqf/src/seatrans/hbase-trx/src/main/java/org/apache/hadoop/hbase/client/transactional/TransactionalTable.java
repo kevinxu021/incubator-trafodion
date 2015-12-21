@@ -102,7 +102,7 @@ import com.google.protobuf.ServiceException;
  * Table with transactional support.
  */
 public class TransactionalTable extends HTable implements TransactionalTableClient {
-    static final Log LOG = LogFactory.getLog(RMInterface.class);
+    static final Log LOG = LogFactory.getLog(TransactionalTable.class);
     static private HConnection connection = null;
     static Configuration       config = HBaseConfiguration.create();
     static ExecutorService     threadPool;

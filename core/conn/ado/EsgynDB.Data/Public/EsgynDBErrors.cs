@@ -88,7 +88,7 @@
         /// <returns>The message text.</returns>
         public override string ToString()
         {
-            return this._message +  ", State: " + this.State + ", Row index: " + this.RowId;
+            return this._message + ", State: " + this.State + ", Row index: " + this.RowId;
         }
     }
 

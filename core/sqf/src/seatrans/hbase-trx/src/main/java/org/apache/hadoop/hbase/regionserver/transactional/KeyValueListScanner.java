@@ -171,11 +171,10 @@ public class KeyValueListScanner implements KeyValueScanner {
   public boolean backwardSeek(Cell seekKey) throws IOException {
     throw new NotImplementedException("Not implemented");
   }
-    
-    //FOR_APACHE@Override
-     public Cell getNextIndexedKey() 
-    {
+
+//FOR_APACHE@Override
+  public Cell getNextIndexedKey() {
 	return null;
-    }
+  }
 
 }
