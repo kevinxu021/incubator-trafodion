@@ -5894,6 +5894,7 @@ float NADefaults::computeNumESPsPerCore(NABoolean aggressive)
      // In osim simulation mode, the pointer can point at a NAClusterNSK
      // object, for which the method numTSEsForPOS() is not defined.
    NAClusterInfoLinux* gpLinux = dynamic_cast<NAClusterInfoLinux*>(gpClusterInfo);
+   assert(gpLinux);		
 
    // cores per node
    Lng32 coresPerNode = gpClusterInfo->numberOfCpusPerSMP();
