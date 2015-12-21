@@ -1642,6 +1642,7 @@ public class TransactionManager {
                 loopCount++;
                 final int lv_participant = loopCount;
                 int lv_peerId = entry.getValue().get(0).peerId;
+                final int lv_participant = loopCount;
                 compPool.submit(new TransactionManagerCallable(transactionState, 
 							       entry.getValue().iterator().next(),
 							       pSTRConfig.getPeerConnections().get(lv_peerId)) {
@@ -1954,11 +1955,11 @@ public class TransactionManager {
           List<TransactionRegionLocation> completedList = new ArrayList<TransactionRegionLocation>();
           int loopCount = 0;
           for (TransactionRegionLocation location : transactionState.getRetryRegions()) {
-             loopCount++;
-             final int participantNum = loopCount;
-             if(LOG.isTraceEnabled()) LOG.trace("retryAbort retrying abort for transaction: "
-                      + transactionState.getTransactionId() + ", participant: "
-              		+ participantNum + ", region: " + location.getRegionInfo().getRegionNameAsString());
+            loopCount++;
+            final int participantNum = loopCount;
+            if(LOG.isTraceEnabled()) LOG.trace("retryAbort retrying abort for transaction: "
+                    + transactionState.getTransactionId() + ", participant: "
+            		+ participantNum + ", region: " + location.getRegionInfo().getRegionNameAsString());
 	     //TBD : The parameter '0' to getPeerConnections().get() may need to be something else
              threadPool.submit(new TransactionManagerCallable(transactionState, location, pSTRConfig.getPeerConnections().get(0)) {
                   public Integer call() throws CommitUnsuccessfulException, IOException {
@@ -2025,15 +2026,15 @@ public class TransactionManager {
              for(final Map.Entry<ServerName, List<TransactionRegionLocation>> entry : locations.entrySet()) {
                  if (LOG.isTraceEnabled()) LOG.trace("sending commits ... [" + transactionState.getTransactionId() + "]");
                  loopCount++;
-                 final int lv_participant = loopCount;
-
+                final int lv_participant = loopCount;
 		 //TBD : The parameter '0' to getPeerConnections().get() may need to be something else
                 threadPool.submit(new TransactionManagerCallable(transactionState,
 								  entry.getValue().iterator().next(), 
 								  pSTRConfig.getPeerConnections().get(entry.getValue().get(0).peerId)) {
                     public Integer call() throws CommitUnsuccessfulException, IOException {
-                        if (LOG.isTraceEnabled()) LOG.trace("before doCommit() [" + transactionState.getTransactionId() + "]" +
-                                                            " ignoreUnknownTransaction: " + ignoreUnknownTransaction);
+                        if (LOG.isTraceEnabled()) LOG.trace("before doCommit() ["
+                                        + transactionState.getTransactionId()
+                                        + "] ignoreUnknownTransaction: " + ignoreUnknownTransaction);
                         return doCommitX(entry.getValue(), transactionState.getTransactionId(),
                                       transactionState.getCommitId(), lv_participant, ignoreUnknownTransaction);
                      }
@@ -2299,15 +2300,14 @@ public class TransactionManager {
         }
         for(final Map.Entry<ServerName, List<TransactionRegionLocation>> entry : locations.entrySet()) {
             loopCount++;
-            final int participantNum = loopCount;
-
+            final int lv_participant = loopCount;
             threadPool.submit(new TransactionManagerCallable(transactionState,
 							     entry.getValue().iterator().next(),
 							     pSTRConfig.getPeerConnections().get(entry.getValue().get(0).peerId)) {
                 public Integer call() throws IOException {
                    if (LOG.isTraceEnabled()) LOG.trace("before abort() [" + transactionState.getTransactionId() + "]");
 
-                   return doAbortX(entry.getValue(), transactionState.getTransactionId(), participantNum);
+                   return doAbortX(entry.getValue(), transactionState.getTransactionId(), lv_participant);
                 }
              });
         }
@@ -2324,6 +2324,10 @@ public class TransactionManager {
                loopCount++;
                final int participantNum = loopCount;
                final byte[] regionName = location.getRegionInfo().getRegionName();
+               if(LOG.isTraceEnabled()) LOG.trace("Submitting abort for transaction: "
+                       + transactionState.getTransactionId() + ", participant: "
+               		+ participantNum + ", region: " + location.getRegionInfo().getRegionNameAsString());
+
                threadPool.submit(new TransactionManagerCallable(transactionState, location, pSTRConfig.getPeerConnections().get(location.peerId)) {
                  public Integer call() throws IOException {
                     return doAbortX(regionName, transactionState.getTransactionId(), participantNum);

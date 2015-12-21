@@ -105,6 +105,7 @@ define([
 
 			$(FILTER_DIALOG).on('hide.bs.modal', function (e, v) {
 				if(document.activeElement != $(FILTER_APPLY_BUTTON)[0]){
+					validator.resetForm();
 					_this.resetFilter();  //cancel clicked
 				}
 			});

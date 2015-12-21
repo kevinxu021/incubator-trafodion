@@ -137,10 +137,19 @@ define([
 
 			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
 				_this.updateFilter();
+				if(lastAppliedFilters == null){
+					lastAppliedFilters = {};
+					var startTime = $(START_TIME_PICKER).data("DateTimePicker").date();
+					var endTime = $(END_TIME_PICKER).data("DateTimePicker").date();
+
+					lastAppliedFilters.startTime = startTime.format('YYYY/MM/DD-HH:mm:ss');
+					lastAppliedFilters.endTime = endTime.format('YYYY/MM/DD-HH:mm:ss');
+				}
 			});
 
 			$(FILTER_DIALOG).on('hide.bs.modal', function (e, v) {
 				if(document.activeElement != $(FILTER_APPLY_BUTTON)[0]){
+					validator.resetForm();
 					_this.resetFilter(); //cancel clicked
 				}
 			});
