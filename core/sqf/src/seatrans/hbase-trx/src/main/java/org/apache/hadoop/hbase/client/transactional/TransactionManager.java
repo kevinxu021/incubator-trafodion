@@ -1642,7 +1642,6 @@ public class TransactionManager {
                 loopCount++;
                 final int lv_participant = loopCount;
                 int lv_peerId = entry.getValue().get(0).peerId;
-                final int lv_participant = loopCount;
                 compPool.submit(new TransactionManagerCallable(transactionState, 
 							       entry.getValue().iterator().next(),
 							       pSTRConfig.getPeerConnections().get(lv_peerId)) {
