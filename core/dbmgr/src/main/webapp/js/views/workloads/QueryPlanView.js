@@ -9,14 +9,17 @@ define([
         'text!templates/query_plan.html',
         'jquery',
         'handlers/WorkloadsHandler',
+        'handlers/ServerHandler',
         'moment',
         'common',
+        '../../../bower_components/codemirror/lib/codemirror',
+        '../../../bower_components/codemirror/mode/sql/sql',
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
         'datetimepicker',
         'jqueryvalidate'
-        ], function (BaseView, QueryPlanT, $, wHandler, moment, common) {
+        ], function (BaseView, QueryPlanT, $, wHandler, serverHandler, moment, common, CodeMirror) {
 	'use strict';
 	var LOADING_SELECTOR = "#loadingImg",
 	ERROR_CONTAINER = '#visual-plan-error',
@@ -35,14 +38,37 @@ define([
 	var st = null;
 	var resizeTimer = null;	
 	var xhr = null;
-
+	var queryTextEditor = null;
+	
 	var QuerPlanView = BaseView.extend({
 		template:  _.template(QueryPlanT),
 
 		doInit: function (args){
 			_this = this;
 
+			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
+				common.defineEsgynSQLMime(CodeMirror);
+			}
+
+			queryTextEditor = CodeMirror.fromTextArea(document.getElementById("query-text"), {
+				mode: 'text/x-esgyndb',
+				indentWithTabs: true,
+				smartIndent: true,
+				lineNumbers: false,
+				lineWrapping: true,
+				matchBrackets : true,
+				autofocus: true,
+				extraKeys: {"Ctrl-Space": "autocomplete"}
+			});
+			$(queryTextEditor.getWrapperElement()).resizable({
+				resize: function() {
+					queryTextEditor.setSize($(this).width(), $(this).height());
+				}
+			});
+			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
+			
 			this.processArgs(args);
+			
 			
 			$(TOOLTIP_DIALOG).on('show.bs.modal', function () {
 			       $(this).find('.modal-body').css({
@@ -51,11 +77,13 @@ define([
 			              'max-height':'100%'
 			       });
 	        	});
-			$(REFRESH_MENU).on('click', this.fetchExplainPlan());
+			$(REFRESH_MENU).on('click', this.fetchExplainPlan);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
-			
+			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
+			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
+
 			this.fetchExplainPlan();
 
 		},
@@ -66,6 +94,9 @@ define([
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
+			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
+
 			this.fetchExplainPlan();
 		},
 		doPause: function(){
@@ -73,6 +104,8 @@ define([
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
 			wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
+			serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
@@ -97,7 +130,8 @@ define([
 			$('#query-id').val(args);
 			queryID = args;
 			queryType = null;
-			$('#query-text').text('');
+			//$('#query-text').text('');
+			queryTextEditor.setValue('');
 			
 			var queryParams = sessionStorage.getItem(queryID);
 			sessionStorage.removeItem(queryID);
@@ -105,11 +139,12 @@ define([
 				queryParams = JSON.parse(queryParams);
 				queryType = queryParams.type;
 				if(queryParams.text)
-					$('#query-text').text(queryParams.text);
+					//$('#query-text').text(queryParams.text);
+					queryTextEditor.setValue(queryParams.text);
 			}
 		},
 		fetchExplainPlan: function(){
-			var queryText = $("#query-text").val();
+			var queryText = queryTextEditor.getValue(); //$("#query-text").val();
 
 			$("#infovis").hide();
 			$("#errorText").hide();
@@ -118,9 +153,10 @@ define([
 
 
 			_this.showLoading();
+			serverHandler.explainQuery(param);
 			$(ERROR_CONTAINER).hide();
 			//wHandler.fetchExplainPlan(param);
-			if(xhr && xhr.readyState !=4){
+/*			if(xhr && xhr.readyState !=4){
 				xhr.abort();
 			}
 			xhr = $.ajax({
@@ -134,7 +170,7 @@ define([
 					_this.hideLoading();
 					_this.showErrorMessage(jqXHR);
 				}
-			});
+			});*/
 		},
 
 		drawExplain: function (jsonData){

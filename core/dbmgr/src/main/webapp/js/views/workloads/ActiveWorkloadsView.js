@@ -149,7 +149,7 @@ define([
 					                           }
 				});
 
-				$('#active-query-results td').css("white-space","nowrap");
+				//$('#active-query-results td').css("white-space","nowrap");
 				$('#active-query-results tbody').on( 'click', 'tr', function (e, a) {
 					var data = oDataTable.row(this).data();
 					if(data && data.length > 0){

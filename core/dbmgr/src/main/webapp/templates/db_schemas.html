@@ -1,0 +1,36 @@
+<div id="page-wrapper">
+	<div class="row">
+		<div class="col-lg-12">
+			<div class="pull-right">
+				<div class="btn-group"
+					style="margin-bottom: 10px; margin-top: 10px;">
+					<button type="button"
+						class="btn btn-default btn-xs dropdown-toggle"
+						data-toggle="dropdown" style="height: 30px;">
+						Actions <span class="caret"></span>
+					</button>
+					<ul class="dropdown-menu pull-right" role="menu">
+						<li><a id="refreshAction" href="#">Refresh</a></li>
+					</ul>
+				</div>
+			</div>
+			<h2 class="page-header">Database</h2>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-lg-12">
+			<div class="panel panel-default">
+				<ol id="database-crumb" class="breadcrumb">
+					<li><a href="#/database">Schemas</a></li>
+  				</ol>
+				<div class="panel-body" style="padding-bottom:15px;padding-top:0px">
+                    <label style='padding: 10px 0px;font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;font-size:18px;font-weight:500'>Schemas</label>
+	                <img id="loadingImg" style="padding-top: 5px; padding-left: 5px;" src="img/ajax-loader.gif" />
+					<br>
+					<textarea id="db-schemas-error-text" readonly name="db-schemas-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
+					<div id="db-schemas-list-container" class="table-responsive"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

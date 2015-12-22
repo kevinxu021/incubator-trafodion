@@ -25,10 +25,12 @@
 		<query>
 			<!-- Fetch list of schemas -->
 			<name>SELECT_SCHEMAS</name>
-			<text><![CDATA[select distinct schema_name as "Name", schema_owner as "Owner", 
+			<text><![CDATA[select distinct schema_name as "Name", authname(schema_owner) as "Owner", 
 					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime" 
 					from "_MD_".objects 
-					where object_name = '__SCHEMA__'
+					where catalog_name = '%1$s'
+					and schema_name != '_MD_'
+					and object_name = '__SCHEMA__'
 					order by schema_name FOR READ UNCOMMITTED ACCESS;
 				]]></text>
 		</query>
@@ -38,7 +40,8 @@
 			<text><![CDATA[select distinct schema_name as "Name", user(schema_owner) as "Owner", 
 					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime" 
 					from "_MD_".objects 
-					where schema_name = '%1$s'
+					where catalog_name = '%1$s' and schema_name = '%2$s'
+					and schema_name != '_MD_'
 					and object_name = '__SCHEMA__'
 					order by schema_name FOR READ UNCOMMITTED ACCESS;
 				]]></text>
@@ -49,11 +52,43 @@
 			<text><![CDATA[select distinct object_name as "Name", user(object_owner) as "Owner", 
 					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime" 
 					from "_MD_".objects 
-					where schema_name = '%1$s'
-					and object_type = '%2$s'
+					WHERE CATALOG_NAME = '%1$s' AND SCHEMA_NAME = '%2$s'
+					and object_type = '%3$s'
 					order by object_name FOR READ UNCOMMITTED ACCESS;
 				]]></text>
 		</query>
+		<query>
+			<!-- Fetch list of tables in a schema -->
+			<name>SELECT_TABLES_IN_SCHEMA</name>
+			<text><![CDATA[SELECT TABLE_NAME as "Name", KEY_LENGTH, ROW_DATA_LENGTH, ROW_TOTAL_LENGTH, NUM_SALT_PARTNS
+					FROM "_MD_".TABLES_VIEW
+					WHERE CATALOG_NAME = '%1$s' AND SCHEMA_NAME = '%2$s'
+					ORDER BY 2 FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>
+		<query>
+			<!-- Fetch list of views in a schema -->
+			<name>SELECT_VIEWS_IN_SCHEMA</name>
+			<text><![CDATA[SELECT VIEW_NAME as "Name", CHECK_OPTION, IS_UPDATABLE, IS_INSERTABLE
+					FROM "_MD_".VIEWS_VIEW
+					WHERE CATALOG_NAME = '%1$s' AND SCHEMA_NAME = '%2$s'
+					ORDER BY 2 FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>		
+		<query>
+			<!-- Fetch list of indexes in a schema -->
+			<name>SELECT_INDEXES_IN_SCHEMA</name>
+			<text><![CDATA[SELECT INDEX_NAME as "Name", TABLE_NAME, IS_UNIQUE, KEY_COLCOUNT, NONKEY_COLCOUNT
+					FROM "_MD_".INDEXES_VIEW
+					WHERE CATALOG_NAME = '%1$s' AND SCHEMA_NAME = '%2$s'
+					ORDER BY 2 FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>		
+		<query>
+			<!-- Get DDL Text for database object -->
+			<name>SELECT_DDL_TEXT</name>
+			<text><![CDATA[SHOWDDL %1$s %2$s, PRIVILEGES]]></text>
+		</query>		
 		<query>
 			<!-- Fetch list of historical workloads -->
 			<name>SELECT_REPO_QUERIES</name>
@@ -146,7 +181,9 @@
 				             position('%1$s' in variable_info) + char_length('%1$s')+1,
 				             char_length(variable_info) - 
 				                        ( position('%1$s' in variable_info) + char_length('%1$s')+1 ))
-				            as char(256) CHARACTER SET UTF8) "Query Text"          
+				            as char(256) CHARACTER SET UTF8) "Query Text"
+				      , cast(tokenstr('sqlSrcLen:', variable_info)
+				            as NUMERIC(18) ) "Full Text Length"          
 				from table (statistics(NULL, 'ACTIVE_QUERIES=%2$s')) 
 				order by 2 descending;
 				]]></text>
