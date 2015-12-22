@@ -373,10 +373,10 @@ else
       majorErrorFound
    fi
 
-   hadoopVersion=$(curl -su $ADMIN:$PASSWORD $URL/api/v1/clusters | grep version | grep -c CDH)
+   hadoopVersion=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters | grep version | grep -c CDH)
 
    if [[ $hadoopVersion -ne "1" ]]; then
-      hadoopVersion=$(curl -su $ADMIN:$PASSWORD $URL/api/v1/clusters | grep version | grep -c HDP)
+      hadoopVersion=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters | grep version | grep -c HDP)
       if [[ $hadoopVersion -ne "1" ]]; then
          errorFound=1
          echo "HADOOP URL" >> $ERROR_LOG
@@ -395,7 +395,7 @@ else
    sudo chmod 777 $TRAF_CONFIG
    source $TRAF_CONFIG
 
-   temp=$(curl -su $ADMIN:$PASSWORD $URL/api/v1/clusters |grep name | sed -e 's@[,]@@'g | sed 's/^[^\:]* ://')
+   temp=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters |grep name | sed -e 's@[,]@@'g | sed 's/^[^\:]* ://')
    CLUSTER_NAME=$(echo $temp | sed -e 's/^"//' -e 's/"$//')
    CLUSTER_NAME=${CLUSTER_NAME// /%20}
 
@@ -471,7 +471,7 @@ done
 
 function checkRoleGroups {
 
-   regionGroup1=$(curl -su $ADMIN:$PASSWORD $URL/api/v10/clusters/$CLUSTER_NAME/services/hbase/roleConfigGroups | grep displayName | grep "RegionServer Group 1" | wc -l)
+   regionGroup1=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v10/clusters/$CLUSTER_NAME/services/hbase/roleConfigGroups | grep displayName | grep "RegionServer Group 1" | wc -l)
 
    if [[ $regionGroup1 -ge "1" ]]; then
       errorFound=1

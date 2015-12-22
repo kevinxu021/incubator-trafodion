@@ -29,7 +29,7 @@ echo "***INFO: Getting list of all $HADOOP_TYPE nodes"
 
 curlRC=0
 if [[ $HADOOP_TYPE == "cloudera" ]]; then
-   curl -su $ADMIN:$PASSWORD $URL/api/v6/cm/deployment > tempFile
+   curl -k -su $ADMIN:$PASSWORD $URL/api/v10/hosts > tempFile
    curlRC=$?
    numberHadoopNodes=$(grep -r "hostname" tempFile | wc -l)
    grep -r "hostname" tempFile > tempFile2
@@ -42,7 +42,7 @@ if [[ $HADOOP_TYPE == "cloudera" ]]; then
 fi
 
 if [[ $HADOOP_TYPE == "hortonworks" ]]; then
-   curl -su $ADMIN:$PASSWORD $URL/api/v1/clusters/$CLUSTER_NAME/hosts > tempFile
+   curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters/$CLUSTER_NAME/hosts > tempFile
    curlRC=$?
    numberHadoopNodes=$(grep -r "host_name" tempFile | wc -l)
    grep -r "host_name" tempFile > tempFile2
