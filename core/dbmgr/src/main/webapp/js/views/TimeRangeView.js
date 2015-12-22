@@ -185,6 +185,12 @@ define([
 					$(FILTER_APPLY_BUTTON).attr('disabled', true);
 				}
 			});
+			
+			$(FILTER_DIALOG).on('hide.bs.modal', function (e, v) {
+				if(document.activeElement != $(FILTER_APPLY_BUTTON)[0]){
+					validator.resetForm(); //cancel clicked
+				}
+			});	
 
 			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
 			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});

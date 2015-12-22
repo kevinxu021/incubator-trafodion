@@ -53,14 +53,15 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.client.transactional.CommitUnsuccessfulException;
+import org.apache.hadoop.hbase.client.transactional.HBaseBackedTransactionLogger;
+import org.apache.hadoop.hbase.client.transactional.PeerInfo;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
-import org.apache.hadoop.hbase.client.transactional.TransactionState;
-import org.apache.hadoop.hbase.client.transactional.CommitUnsuccessfulException;
-import org.apache.hadoop.hbase.client.transactional.UnknownTransactionException;
-import org.apache.hadoop.hbase.client.transactional.HBaseBackedTransactionLogger;
 import org.apache.hadoop.hbase.client.transactional.TransactionRegionLocation;
+import org.apache.hadoop.hbase.client.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.TransState;
+import org.apache.hadoop.hbase.client.transactional.UnknownTransactionException;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogTransactionStatesFromIntervalRequest;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogTransactionStatesFromIntervalResponse;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogWriteRequest;
@@ -1268,6 +1269,11 @@ public class TmAuditTlog {
                   catch (RetriesExhaustedWithDetailsException rewde){
                       LOG.error("Retry " + retries + " putSingleRecord for transaction: " + lvTransid + " on table "
                               + table[lv_lockIndex].getTableName().toString() + " due to RetriesExhaustedWithDetailsException " + rewde);
+                      if (pSTRConfig.getPeerStatus(myClusterId).contains(PeerInfo.STR_DOWN)) {
+                          LOG.error("putSingleRecord for transid: " + lvTransid + " aborting because clusterId: " + myClusterId + " is down.  Table "
+                                  + table[lv_lockIndex].getTableName().toString());
+                         System.exit(1);
+                      }
                	      table[lv_lockIndex].getRegionLocation(p.getRow(), true);
                       Thread.sleep(TlogRetryDelay); // 3 second default
                       if (retries == TlogRetryCount){
@@ -1279,6 +1285,11 @@ public class TmAuditTlog {
                   catch (Exception e2){
                       LOG.error("Retry " + retries + " putSingleRecord for transaction: " + lvTransid + " on table "
                               + table[lv_lockIndex].getTableName().toString() + " due to Exception " + e2);
+                      if (pSTRConfig.getPeerStatus(myClusterId).contains(PeerInfo.STR_DOWN)) {
+                          LOG.error("putSingleRecord for transid: " + lvTransid + " aborting because clusterId: " + myClusterId + " is down.  Table "
+                                  + table[lv_lockIndex].getTableName().toString());
+                         System.exit(1);
+                      }
                	      table[lv_lockIndex].getRegionLocation(p.getRow(), true);
                       Thread.sleep(TlogRetryDelay); // 3 second default
                       if (retries == TlogRetryCount){
