@@ -30,13 +30,15 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
 import org.apache.hadoop.hive.serde2.objectinspector.*;
+
+import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
+
 import org.apache.hadoop.hive.ql.io.orc.*;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgument;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgumentFactory;
 
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.Logger;
-
 
 public class OrcFileReader
 {
@@ -53,6 +55,9 @@ public class OrcFileReader
     StructObjectInspector       m_oi;
     List<? extends StructField> m_fields;
     RecordReader                m_rr;
+    VectorizedRowBatch          m_batch = null;
+    int                         m_curr_row_in_batch;
+
     String                      lastError = null;
     Reader.Options		m_options;
     boolean                     m_include_cols[];
@@ -180,13 +185,47 @@ public class OrcFileReader
 	return null;
     }
     
-    
+    void getNextBatch() {
+
+	if (m_rr == null) {
+	    return;
+	}
+
+	try {
+	    m_batch = m_rr.nextBatch(m_batch);
+	} catch (java.io.IOException e1) {
+	    if (logger.isTraceEnabled()) logger.error("reader.rows returned an exception: " + e1);
+	    m_batch = null;
+	}
+
+	m_curr_row_in_batch = 0;
+	if (m_batch == null) {
+	    if (logger.isTraceEnabled()) logger.debug("getNextBatch, m_batch is null");
+	}
+	else {
+	    if (logger.isTraceEnabled()) logger.debug("getNextBatch, Vectorized row batch," 
+						      + " size: " + m_batch.size
+						      + " #cols: " + m_batch.cols.length
+						      );
+	}
+
+    }
+
     public String close()
     {
 	if (logger.isTraceEnabled()) logger.trace("Enter close()");
 	m_reader = null;
-	m_rr = null; 
+	try {
+	    m_rr.close(); 
+	}
+	catch (java.io.IOException e1) {
+	    if (logger.isTraceEnabled()) logger.error("reader.rows returned an exception: " + e1);
+	}
 	m_file_path = null;            
+	
+	m_batch = null;
+	m_curr_row_in_batch = 0;
+
 	return null;
     }
 
@@ -246,6 +285,7 @@ public class OrcFileReader
 	}
 
 	m_rr.seekToRow(pv_rowNumber);
+	getNextBatch();
 
 	return true;
     }
@@ -267,6 +307,7 @@ public class OrcFileReader
 	}
 
 	m_rr.seekToRow(pv_rowNumber);
+	//	getNextBatch();
 
 	return null;
     }
@@ -456,7 +497,23 @@ public class OrcFileReader
 	return (lv_filled_bytes);
     }
 
-    // returns the next row as a byte array
+    /**************************************************
+     *
+     * Returns the next Block as a byte[]
+     *
+     * The Block structure is:
+     * - int: number of Row Elements in the Block
+     * - Array of Row Elements:
+     *     - Each Row Element:
+     *     - int: length of the Row
+     *     - int: number of columns in the Row
+     *     - long: Row number (in the table)
+     *     - byte[]: the Row
+     *         - Each Row:
+     *         - int: length of the column
+     *         - byte[]: column content
+     *
+     **************************************************/
     public byte[] fetchNextBlock() throws Exception 
     {
 	if (logger.isDebugEnabled()) logger.debug("Enter fetchNextBlock()");
@@ -580,6 +637,68 @@ public class OrcFileReader
 	return lv_row_string.toString();
     }
 
+    public String fetchNextRowFromVector(char pv_ColSeparator) throws Exception 
+    {
+
+	if (logger.isTraceEnabled()) logger.trace("Enter fetchNextRowFromVector()," 
+						  + " col separator: " + pv_ColSeparator);
+
+	if ((m_batch == null) ||
+	    (m_curr_row_in_batch >= m_batch.size)) {
+
+	    if ((m_batch != null) &&
+		(m_batch.endOfFile)) {
+		if (logger.isTraceEnabled()) logger.trace("fetchNextRowFromVector(),"
+							  + " col separator: "
+							  + pv_ColSeparator
+							  + " m_batch at endOfFile."
+							  );
+		return null;
+	    }
+	    
+	    getNextBatch();
+	    /*	    try {
+		m_batch = m_rr.nextBatch(m_batch);
+	    }
+	    catch (java.lang.IndexOutOfBoundsException eiob) {
+		if (logger.isTraceEnabled()) logger.trace("fetchNextRowFromVector(),"
+							  + " col separator: "
+							  + pv_ColSeparator
+							  + " Encounterd java.lang.IndexOutOfBoundsException\n: "
+							  + eiob);
+		m_batch = null;
+	    }
+	    m_curr_row_in_batch = 0;
+	    */
+	}
+
+	if (m_batch == null) {
+	    return null;
+	}
+
+	if (logger.isTraceEnabled()) logger.trace("fetchNextRowFromVector()," 
+						  + " next row to be returned: " + m_curr_row_in_batch
+						  + " m_batch.endOfFile: " + m_batch.endOfFile
+						  );
+
+	OrcStruct lv_row = null;
+	Object lv_field_val = null;
+   	StringBuilder lv_row_string = new StringBuilder(1024);
+
+	for (int i = 0; i < m_batch.cols.length; i++) {
+	    if (! m_include_cols[i+1]) continue;
+
+	    lv_field_val = m_batch.cols[i].getWritableObject(m_curr_row_in_batch);
+	    if (lv_field_val != null) {
+		lv_row_string.append(lv_field_val);
+	    }
+	    lv_row_string.append(pv_ColSeparator);
+	}
+	
+	m_curr_row_in_batch++;
+	return lv_row_string.toString();
+    }
+
     String getLastError() 
     {
 	return lastError;
@@ -684,11 +803,12 @@ public class OrcFileReader
 	return null;
     }
 
-    public static void main(String[] args) throws Exception
+    public static void mainOld(String[] args) throws Exception
     {
 	boolean lv_print_info = false;
 	boolean lv_perform_scans = false;
         boolean lv_perform_selective_scans = false;
+        boolean lv_perform_vectorized_scans = false;
 
 	setupLog4j();
 
@@ -701,6 +821,9 @@ public class OrcFileReader
 	    }
 	    if (lv_arg.compareTo("-ss") == 0) {
 		lv_perform_selective_scans = true;
+	    }
+	    if (lv_arg.compareTo("-vs") == 0) {
+		lv_perform_vectorized_scans = true;
 	    }
 	}
 
@@ -818,6 +941,160 @@ public class OrcFileReader
 
 		System.out.println("================= End: fetchNextBlock()");
 	    }
+
+	}
+        else if ( lv_perform_selective_scans ) {
+	    System.out.println(lv_this.selectiveScan(args[1]));
+        }
+    }
+
+    public static void main(String[] args) throws Exception
+    {
+	boolean lv_print_info = false;
+	boolean lv_perform_scans = false;
+        boolean lv_perform_selective_scans = false;
+        boolean lv_perform_vectorized_scans = false;
+	boolean lv_done = false;
+
+	setupLog4j();
+
+	for (String lv_arg : args) {
+	    if (lv_arg.compareTo("-i") == 0) {
+		lv_print_info = true;
+	    }
+	    if (lv_arg.compareTo("-s") == 0) {
+		lv_perform_scans = true;
+	    }
+	    if (lv_arg.compareTo("-ss") == 0) {
+		lv_perform_selective_scans = true;
+	    }
+	    if (lv_arg.compareTo("-vs") == 0) {
+		lv_perform_vectorized_scans = true;
+	    }
+	}
+
+	System.out.println("OrcFile Reader main");
+
+	OrcFileReader lv_this = new OrcFileReader();
+
+	int lv_include_cols [] = new int[4];
+	lv_include_cols[0]=1;
+	lv_include_cols[1]=2;
+	lv_include_cols[2]=6;
+	lv_include_cols[3]=7;
+	lv_this.open(args[0], 4, lv_include_cols);
+
+	if (lv_print_info) {
+	    System.out.println("================= Begin File Info:" + 
+			       args[0]);
+	
+	    lv_this.printFileInfo();
+
+	    System.out.println("================= End File Info:" + 
+			       args[0]);
+	}
+
+	if (lv_perform_scans) {
+	    lv_done = false;
+	    String lv_row_string;
+	    if (lv_this.seeknSync(1) == null) {
+		System.out.println("================= Begin: After seeknSync(1)... will do fetchNextRow('|')");
+		while (! lv_done) {
+		    lv_row_string = lv_this.fetchNextRow('|');
+		    if (lv_row_string != null) {
+			System.out.println(lv_row_string);
+		    }
+		    else {
+			lv_done = true;
+		    }
+		}
+		System.out.println("================= End: After seeknSync(1)... will do fetchNextRow('|')");
+	    }
+
+	    lv_this.close();
+	    lv_this.open(args[0], -1, null);
+
+	    lv_done = false;
+	    if (lv_this.seeknSync(8) == null) {
+		System.out.println("================= Begin: fetchNextRow()");
+		while (! lv_done) {
+		    System.out.println("Next row #: " + lv_this.getPosition());
+		    byte[] lv_row_bb = lv_this.fetchNextRow();
+		    if (lv_row_bb != null) {
+			System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_row_bb, 0, 100));
+			System.out.println("Length lv_row_bb: " + lv_row_bb.length);
+		    }
+		    else {
+			lv_done = true;
+		    }
+		}
+		System.out.println("================= End: fetchNextRow()");
+	    }
+
+	    lv_done = false;
+	    if (lv_this.seeknSync(0) == null) {
+		System.out.println("================= Begin: fetchNextBlock()");
+		System.out.println("Next row #: " + lv_this.getPosition());
+		byte[] lv_block_ba = lv_this.fetchNextBlock();
+		if (lv_block_ba != null) {
+		    ByteBuffer lv_block_bb = ByteBuffer.wrap(lv_block_ba);
+		    int lv_num_rows = lv_block_bb.getInt();
+		    System.out.println("Length lv_block_bb: " + lv_block_ba.length);
+		    System.out.println("Number of rows in the block: " + lv_num_rows);
+		    System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_block_ba, 0, 100));
+		}
+
+		System.out.println("================= End: fetchNextBlock()");
+	    }
+
+	}
+	else if (lv_perform_vectorized_scans) {
+	    lv_done = false;
+	    String lv_row_string;
+	    if (lv_this.seeknSync(1) == null) {
+		System.out.println("================= Begin: After seeknSync(1)... will do fetchNextRowFromVector('|')");
+		while (! lv_done) {
+		    lv_row_string = lv_this.fetchNextRowFromVector('|');
+		    if (lv_row_string != null) {
+			System.out.println(lv_row_string);
+		    }
+		    else {
+			lv_done = true;
+		    }
+		}
+		System.out.println("================= End: After seeknSync(1)... will do fetchNextRowFromVector('|')");
+	    }
+	    /*
+	    lv_this.close();
+	    lv_this.open(args[0], -1, null);
+
+	    lv_done = false;
+	    if (lv_this.seeknSync(8) == null) {
+		System.out.println("================= Begin: After seeknSync(8)...fetchNextRowFromVector()");
+		while (! lv_done) {
+		    lv_row_string = lv_this.fetchNextRowFromVector('|');
+		    if (lv_row_string != null) {
+			System.out.println(lv_row_string);
+		    }
+		    else {
+			lv_done = true;
+		    }
+		}
+
+		while (! lv_done) {
+		    System.out.println("Next row #: " + lv_this.getPosition());
+		    byte[] lv_row_bb = lv_this.fetchNextRow();
+		    if (lv_row_bb != null) {
+			System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_row_bb, 0, 100));
+			System.out.println("Length lv_row_bb: " + lv_row_bb.length);
+		    }
+		    else {
+			lv_done = true;
+		    }
+		}
+		System.out.println("================= End: fetchNextRow()");
+	    }
+	    */
 
 	}
         else if ( lv_perform_selective_scans ) {
