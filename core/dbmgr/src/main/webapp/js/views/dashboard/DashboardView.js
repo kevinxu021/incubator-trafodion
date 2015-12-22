@@ -264,8 +264,6 @@ define([
 			$(SERVICES_ERROR_TEXT).hide();
 			$('#nodes-error-text').hide();
 
-			$(REFRESH_ACTION).on('click', this.refreshPage);
-
 			refreshTimer.resume();
 			timeRangeView.resume();
 
