@@ -353,10 +353,11 @@ THREAD_P DefaultDefault defaultDefaults[] = {
 
 SDDint__(AFFINITY_VALUE,                        "-2"),
 
-SDDkwd__(ALLOW_AUDIT_ATTRIBUTE_CHANGE,	       "FALSE"), // Used to control if row sampling will use the sample operator in SQL/MX or the
-
  // controls the ESP allocation per core. 
  DDkwd__(AGGRESSIVE_ESP_ALLOCATION_PER_CORE,        "OFF"),
+
+SDDkwd__(ALLOW_AUDIT_ATTRIBUTE_CHANGE,	       "FALSE"), // Used to control if row sampling will use the sample operator in SQL/MX or the
+
  // this should be used for testing only. DML should not be executed on
  // non-audited tables
  DDkwd__(ALLOW_DML_ON_NONAUDITED_TABLE,        "OFF"),
