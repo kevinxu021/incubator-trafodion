@@ -107,15 +107,17 @@ OFR_RetCode OrcFileReader::init()
     JavaMethods_[JM_ISEOF     ].jm_signature = "()Z";
     JavaMethods_[JM_FETCHBLOCK].jm_name      = "fetchNextBlock";
     JavaMethods_[JM_FETCHBLOCK].jm_signature = "()[B";
+    JavaMethods_[JM_FETCHBLOCK_VECTOR].jm_name      = "fetchNextBlockFromVector";
+    JavaMethods_[JM_FETCHBLOCK_VECTOR].jm_signature = "()[B";
     JavaMethods_[JM_FETCHROW  ].jm_name      = "fetchNextRow";
     JavaMethods_[JM_FETCHROW  ].jm_signature = "()[B";
     JavaMethods_[JM_FETCHROW2 ].jm_name      = "fetchNextRowObj";
     JavaMethods_[JM_FETCHROW2 ].jm_signature = "()Lorg/trafodion/sql/OrcFileReader$OrcRowReturnSQL;";
-    JavaMethods_[JM_GETNUMROWS ].jm_name      = "getNumberOfRows";
-    JavaMethods_[JM_GETNUMROWS ].jm_signature = "()J";
+    JavaMethods_[JM_GETNUMROWS].jm_name      = "getNumberOfRows";
+    JavaMethods_[JM_GETNUMROWS].jm_signature = "()J";
     JavaMethods_[JM_CLOSE     ].jm_name      = "close";
     JavaMethods_[JM_CLOSE     ].jm_signature = "()Ljava/lang/String;";
-   
+  
     setHBaseCompatibilityMode(FALSE);
     
     lv_retcode = (OFR_RetCode)JavaObjectInterface::init(className,
@@ -491,8 +493,18 @@ OFR_RetCode OrcFileReader::fetchNextRow(char * pv_buffer,
 					long& pv_rowNumber,
 					int& pv_num_columns)
 {
+  static bool sv_env_variable_read = false;
+  static int  sv_java_fetch_next_row_method = JM_FETCHBLOCK;
+  if (! sv_env_variable_read) {
+    sv_env_variable_read = true;
+    char *lv_orc_reader_env = getenv("VECTORIZED_ORC_READER");
+    if ((lv_orc_reader_env) &&
+	(lv_orc_reader_env[0] == '1')) {
+      sv_java_fetch_next_row_method = JM_FETCHBLOCK_VECTOR;
+    }
+  }
 
-  tsRecentJMFromJNI = JavaMethods_[JM_FETCHROW].jm_full_name;
+  tsRecentJMFromJNI = JavaMethods_[sv_java_fetch_next_row_method].jm_full_name;
   
   if (m_number_of_remaining_rows_in_block == 0) {
 
@@ -500,7 +512,7 @@ OFR_RetCode OrcFileReader::fetchNextRow(char * pv_buffer,
     
     m_total_number_of_rows_in_block = 0;
     m_java_block = (jbyteArray)jenv_->CallObjectMethod(javaObj_,
-						    JavaMethods_[JM_FETCHBLOCK].methodID);
+						    JavaMethods_[sv_java_fetch_next_row_method].methodID);
     if (m_java_block == NULL && getLastError()) {
       logError(CAT_SQL_HDFS_ORC_FILE_READER,
 	       "OrcFileReader::fetchNextRow()",
