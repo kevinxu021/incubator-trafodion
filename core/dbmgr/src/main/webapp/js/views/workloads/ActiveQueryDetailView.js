@@ -1,8 +1,8 @@
-// @@@ START COPYRIGHT @@@
-//
-// (C) Copyright 2015 Esgyn Corporation
-//
-// @@@ END COPYRIGHT @@@
+//@@@ START COPYRIGHT @@@
+
+//(C) Copyright 2015 Esgyn Corporation
+
+//@@@ END COPYRIGHT @@@
 
 define([
         'views/BaseView',
@@ -12,23 +12,27 @@ define([
         'moment',
         'common',
         'views/RefreshTimerView',
+        '../../../bower_components/codemirror/lib/codemirror',
+        '../../../bower_components/codemirror/mode/sql/sql',
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
-        ], function (BaseView, WorkloadsT, $, wHandler, moment, common, refreshTimer) {
+        ], function (BaseView, WorkloadsT, $, wHandler, moment, common, refreshTimer, CodeMirror) {
 	'use strict';
-    var LOADING_SELECTOR = "#loadingImg",
-    	REFRESH_INTERVAL = '#refreshInterval',
-  		REFRESH_MENU = '#refreshAction',
-  		QCANCEL_MENU = '#cancelAction',
-  		EXPLAIN_BUTTON = '#historical-explain-btn';
+	var LOADING_SELECTOR = "#loadingImg",
+	REFRESH_INTERVAL = '#refreshInterval',
+	REFRESH_MENU = '#refreshAction',
+	QCANCEL_MENU = '#cancelAction',
+	EXPLAIN_BUTTON = '#historical-explain-btn';
 
-    var _this = null;
-    var queryID = null;
-    var historySummary = {};
+	var _this = null;
+	var queryID = null;
+	var historySummary = {};
 	var historyStatistic = {};
 	var ERROR_CONTAINER = '#error-container';
 	var ERROR_TEXT = '#query-detail-error-text';
+	var queryTextEditor = null;
+
 	var ActiveQueryDetailView = BaseView.extend({
 		template:  _.template(WorkloadsT),
 
@@ -36,21 +40,44 @@ define([
 			_this = this;
 			$('#query-id').val(args);
 			queryID = args;
+			
+			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
+				common.defineEsgynSQLMime(CodeMirror);
+			}
+
+			queryTextEditor = CodeMirror.fromTextArea(document.getElementById("query-text"), {
+				mode: 'text/x-esgyndb',
+				indentWithTabs: true,
+				smartIndent: true,
+				lineNumbers: false,
+				lineWrapping: true,
+				matchBrackets : true,
+				autofocus: true,
+				extraKeys: {"Ctrl-Space": "autocomplete"}
+			});
+			$(queryTextEditor.getWrapperElement()).resizable({
+				resize: function() {
+					queryTextEditor.setSize($(this).width(), $(this).height());
+				}
+			});
+			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
+
 			this.loadQueryText();
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
 			refreshTimer.init();
+			
 			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimer.setRefreshInterval(0.5);
-			
+
 			$(REFRESH_MENU).on('click', this.fetchActiveQueryDetail);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
 			$(ERROR_CONTAINER).hide();
 			this.fetchActiveQueryDetail();
-			
+
 		},
 		doResume: function(args){
 			$('#query-id').val(args);
@@ -84,36 +111,38 @@ define([
 			sessionStorage.removeItem(queryID);
 			if(queryParams != null){
 				queryParams = JSON.parse(queryParams);
-				if(queryParams.text)
-					$('#query-text').text(queryParams.text);
+				if(queryParams.text){
+					if(queryTextEditor)
+						queryTextEditor.setValue(queryParams.text);
+				}
 			}
 		},
-        showLoading: function(){
-        	$(LOADING_SELECTOR).show();
-        },
+		showLoading: function(){
+			$(LOADING_SELECTOR).show();
+		},
 
-        hideLoading: function () {
-        	$(LOADING_SELECTOR).hide();
-        },
-        cancelQuery: function(){
-        	wHandler.cancelQuery(queryID);
-        },
-        cancelQuerySuccess:function(){
-        	alert('The cancel query request has been submitted');
-        	_this.fetchActiveQueryDetail();
-        },
-        cancelQueryError:function(jqXHR){
-        	alert(jqXHR.responseText);
-        },
+		hideLoading: function () {
+			$(LOADING_SELECTOR).hide();
+		},
+		cancelQuery: function(){
+			wHandler.cancelQuery(queryID);
+		},
+		cancelQuerySuccess:function(){
+			alert('The cancel query request has been submitted');
+			_this.fetchActiveQueryDetail();
+		},
+		cancelQueryError:function(jqXHR){
+			alert(jqXHR.responseText);
+		},
 		timerBeeped: function(){
 			_this.fetchActiveQueryDetail();
 		},
-        explainQuery: function(){
-        	var queryText = $('#query-text').text();
+		explainQuery: function(){
+			var queryText = queryTextEditor.getValue();
 			sessionStorage.setItem(queryID, JSON.stringify({type: 'active', text: queryText}));	
 			window.location.hash = '/workloads/queryplan/'+queryID;
-        },
-        fetchActiveQueryDetail: function(){
+		},
+		fetchActiveQueryDetail: function(){
 			_this.showLoading();
 			//$(ERROR_CONTAINER).hide();
 			if (historySummary.Qid != queryID) {
@@ -133,11 +162,12 @@ define([
 			var summary = result.summary;
 			var queryText = summary.sqlSrc;
 			queryText = queryText.substring(1,queryText.length-1);
-			var currentQueryText = $('#query-text').text();
+			var currentQueryText = queryTextEditor.getValue();
 			if(currentQueryText == null || currentQueryText.length == 0){
-				$('#query-text').text(queryText);
+				queryTextEditor.setValue(queryText);
+				//$('#query-text').text(queryText);
 			}
-			
+
 			for ( var k in summary) {
 				var htmlTag = "#" + k;
 				var value = summary[k];
@@ -150,7 +180,7 @@ define([
 				$(htmlTag).val(value);
 			}
 			historySummary = result.summary;
-			
+
 			// statistic table
 			var statisticDataSet = [];
 			var dataSet = result.operators;
@@ -168,7 +198,7 @@ define([
 				var dop = dataSet[i].DOP;
 				var oper_cpu_time = common.microsecondsToStringExtend(dataSet[i].Oper_CPU_Time);
 				var details = dataSet[i].Details;
-				
+
 				if (!( historyStatistic[id] === undefined)) {
 					if (historyStatistic[id].act_rows != act_rows) {
 						act_rows = "<sflag>" + act_rows + "</eflag>";
@@ -193,36 +223,36 @@ define([
 			var statisticTable = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="statistic-results"></table>';
 			$('#statistic-container').html(statisticTable);
 			$('#statistic-results').dataTable({
-						"bAutoWidth" : true,
-						"bProcessing" : true,
-						"bFilter" : false,
-						"bPaginate" : false,
-						// "bAutoWidth": true,
-						"scrollCollapse" : true,
-						"aaData" : statisticDataSet,
-						"aaSorting" :	[[2,"desc"]],
-						"columns" : [{"sTitle" : "LC"},{"sTitle" : "RC"},{"sTitle" : "Id"},
-								{"sTitle" : "PaId"},{"sTitle" : "ExId"},{"sTitle" : "Frag"},
-								{"sTitle" : "TDB Name"},{"sTitle" : "DOP"},{"sTitle" : "Oper Cpu Time"},
-								{"sTitle" : "Est. Records Used"},{"sTitle" : "Act. Records Used"},{"sTitle" : "Details"} ],
-						"columnDefs" : [ {
-							"targets" : [ 7, 9, 10, 11],
-							"render" : function(data,type, full) {
-								var data = data;
-								if (!(data === undefined)) {
-									data = data.toString();
-									data = data.replace(/sflag/g,"span style='color:blue'")
-									data = data.replace(/eflag/g,"span")
-									return data;
-								} 
-								return "";
-							}
-						} ]
-					});
-		
+				"bAutoWidth" : true,
+				"bProcessing" : true,
+				"bFilter" : false,
+				"bPaginate" : false,
+				// "bAutoWidth": true,
+				"scrollCollapse" : true,
+				"aaData" : statisticDataSet,
+				"aaSorting" :	[[2,"desc"]],
+				"columns" : [{"sTitle" : "LC"},{"sTitle" : "RC"},{"sTitle" : "Id"},
+				             {"sTitle" : "PaId"},{"sTitle" : "ExId"},{"sTitle" : "Frag"},
+				             {"sTitle" : "TDB Name"},{"sTitle" : "DOP"},{"sTitle" : "Oper Cpu Time"},
+				             {"sTitle" : "Est. Records Used"},{"sTitle" : "Act. Records Used"},{"sTitle" : "Details"} ],
+				             "columnDefs" : [ {
+				            	 "targets" : [ 7, 9, 10, 11],
+				            	 "render" : function(data,type, full) {
+				            		 var data = data;
+				            		 if (!(data === undefined)) {
+				            			 data = data.toString();
+				            			 data = data.replace(/sflag/g,"span style='color:blue'")
+				            			 data = data.replace(/eflag/g,"span")
+				            			 return data;
+				            		 } 
+				            		 return "";
+				            	 }
+				             } ]
+			});
+
 		},
-		
-		
+
+
 		formatDetail : function(currentDetails, history){
 			var details ={};
 			var sortKeys = [];
@@ -257,10 +287,10 @@ define([
 			sortKeys.sort(); 
 			for (var index = 0; index < sortKeys.length; index++) { //detail to string
 				sortDetails.push(sortKeys[index] + ":   " + details[sortKeys[index]]);
-		    }
+			}
 			return sortDetails.join("</br>");
 		},
-		
+
 		formatSummary : function(key, value){
 			if (value == "-1" || value == "" ) {
 				value = ""
@@ -291,16 +321,17 @@ define([
 		clearPage: function(isError){
 			$(".dbmgr-form-workload-cell-label").val("");
 			if(isError == true){
-				$('#query-text').text(""); 
+				//$('#query-text').text("");
+				queryTextEditor.setValue("");
 			}
 			//$('#statistic-results').DataTable().clear().draw();
 			$('#statistic-results').DataTable().destroy(true);
 		},
 		test: function(){
-        	_this.showErrorMessage();
-        },
-		
-        showErrorMessage: function (jqXHR) {
+			_this.showErrorMessage();
+		},
+
+		showErrorMessage: function (jqXHR) {
 			if(jqXHR.statusText != 'abort'){
 				_this.hideLoading();
 				$(ERROR_CONTAINER).show();

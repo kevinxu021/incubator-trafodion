@@ -13,7 +13,10 @@ define([
         'views/workbench/WorkbenchView',
         'views/dcs/DCSServerView',
         'views/login/LoginView',
-        'views/database/DatabaseView',
+        'views/database/SchemasView',
+        'views/database/SchemaDetailView',
+        'views/database/SchemaObjectsView',
+        'views/database/SchemaObjectDetailView',
         'views/workloads/ActiveWorkloadsView',
         'views/workloads/ActiveQueryDetailView',
         'views/workloads/HistoricalWorkloadsView',
@@ -26,7 +29,8 @@ define([
         'model/Session',
         'model/Localizer',
         'metismenu'
-        ], function($, _, Backbone, NavbarView, DashboardView, WorkbenchView, DCSServerView, LoginView, DatabaseView, 
+        ], function($, _, Backbone, NavbarView, DashboardView, WorkbenchView, DCSServerView, LoginView, 
+        		SchemasView, SchemaDetailView, SchemaObjectsView, SchemaObjectDetailView,
         		ActiveWorkloadsView, ActiveQueryDetailView, HistoricalWorkloadsView, HistoricalWorkloadDetailView, QueryPlanView, 
         		LogsView, AlertsSummaryView, AlertDetailView, AboutView, Session, Localizer) {
 	'use strict';
@@ -37,7 +41,10 @@ define([
 	var workbenchView = null;
 	var dcsServerView = null;
 	var loginView = null;
-	var databaseView = null;
+	var schemasView = null;
+	var schemaDetailView = null;
+	var schemaObjectsView = null;
+	var schemaObjectDetailView = null;
 	var historicalWorkloadsView = null;
 	var historicalWorkloadDetailView = null;
 	var activeWorkloadsView = null;
@@ -68,7 +75,11 @@ define([
 			'workbench': 'showWorkbench',
 			'dcsservers': 'showDcsServers',
 			//'database(/:objecttype)(/:name)(/:feature)' : 'showDatabase',
-			'database(/*args)' : 'showDatabase',
+			//'database(/*args)(?*:params)' : 'showDatabase',
+			'database' : 'showSchemas',
+			'database/schema(?*:params)': 'showSchemaDetail',
+			'database/objects(?*:params)': 'showSchemaObjects',
+			'database/objdetail(?*:params)': 'showSchemaObjectDetail',
 			'login': 'showLogin',
 			'logout': 'doLogout',
 			'stimeout': 'doSessionTimeout',
@@ -80,19 +91,38 @@ define([
 			'alerts': 'showAlertsSummary',
 			'alert/detail(/*args)': 'showAlertDetail',
 			'help/about': 'showAbout',
+			'help/userguide': 'showUserGuide',
 			'logs': 'showLogs',
 			'tools/(*args)': 'showTools',
 			// Default
 			'*actions': 'defaultAction'
 		}
 	});
-
+	
+	var deparam = function(){
+		var urlHash = window.location.hash;
+		var paramIndex = urlHash.indexOf('?');
+		
+	    var result = {};
+	    if( paramIndex < 0){
+	        return result;
+	    }
+	    var paramString = urlHash.substring(paramIndex + 1);
+	    $.each(paramString.split('&'), function(index, value){
+	        if(value){
+	            var param = value.split('=');
+	            result[param[0]] = param[1];
+	        }
+	    });
+	    return result;
+	};
+	
 	var switchView = function(view, args) {
 		
 		topOffset = 50;
 		$('#side-menu').metisMenu();
 		
-		if (currentView && currentView != view) {
+		if (currentView && (currentView != view || currentView == schemasView)) {
 			// Detach the old view
 			currentView.remove();
 		}
@@ -116,7 +146,10 @@ define([
 		dashboardView = null;
 		workbenchView = null;
 		dcsServerView = null;
-		databaseView = null;	
+		schemasView = null;
+		schemaDetailView = null;
+		schemaObjectsView = null;
+		schemaObjectDetailView = null;
 		historicalWorkloadsView = null;
 		historicalWorkloadDetailView = null;
 		activeWorkloadsView = null;
@@ -173,12 +206,40 @@ define([
 			switchView(dcsServerView);
 		});
 
-		app_router.on('route:showDatabase', function (args) {
-			if(databaseView == null)
-				databaseView = new DatabaseView();
-			switchView(databaseView, args);
+		app_router.on('route:showSchemas', function () {
+			if(schemasView == null)
+				schemasView = new SchemasView();	
+			
+			switchView(schemasView);
 		});
 		
+		app_router.on('route:showSchemaDetail', function () {
+			
+			var args = deparam();
+			
+			if(schemaDetailView == null)
+				schemaDetailView = new SchemaDetailView();	
+			
+			switchView(schemaDetailView, args);
+		});
+
+		app_router.on('route:showSchemaObjects', function (args, params) {
+			var args = deparam();
+			if(schemaObjectsView == null)
+				schemaObjectsView = new SchemaObjectsView();	
+			
+			switchView(schemaObjectsView, args);
+		});
+
+		app_router.on('route:showSchemaObjectDetail', function (args, params) {
+			var args = deparam();
+
+			if(schemaObjectDetailView == null)
+				schemaObjectDetailView = new SchemaObjectDetailView();	
+			
+			switchView(schemaObjectDetailView, args);
+		});
+
 		app_router.on('route:showHistoricalWorkloads', function (args) {
 			if(historicalWorkloadsView == null)
 				historicalWorkloadsView = new HistoricalWorkloadsView();
@@ -238,6 +299,11 @@ define([
 		
 		app_router.on('route:doLogout', function () {
 			logout();
+		});
+		
+		app_router.on('route:showUserGuide', function(){
+			var uri = window.location.protocol+'://'+window.location.host+'/docs/';
+			window.open(uri);
 		});
 		
 		app_router.on('route:doSessionTimeout', function(){

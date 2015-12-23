@@ -11,12 +11,14 @@ define([
         'handlers/WorkloadsHandler',
         'moment',
         'common',
+        '../../../bower_components/codemirror/lib/codemirror',
+        '../../../bower_components/codemirror/mode/sql/sql',
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
         'datetimepicker',
         'jqueryvalidate'
-        ], function (BaseView, WorkloadsT, $, wHandler, moment, common) {
+        ], function (BaseView, WorkloadsT, $, wHandler, moment, common, CodeMirror) {
 	'use strict';
 	var LOADING_SELECTOR = "#loadingImg",
 	REFRESH_MENU = '#refreshAction',
@@ -30,7 +32,8 @@ define([
 	var _that = null;
 	var queryID = null;
 	var connDataTable = null, compDataTable = null, runDataTable = null;
-
+	var queryTextEditor = null;
+	
 	var HistoricalWorkloadDetailView = BaseView.extend({
 		template:  _.template(WorkloadsT),
 
@@ -38,6 +41,28 @@ define([
 			_that = this;
 			$('#query-id').val(args);
 			queryID = args;
+			
+			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
+				common.defineEsgynSQLMime(CodeMirror);
+			}
+
+			queryTextEditor = CodeMirror.fromTextArea(document.getElementById("query-text"), {
+				mode: 'text/x-esgyndb',
+				indentWithTabs: true,
+				smartIndent: true,
+				lineNumbers: false,
+				lineWrapping: true,
+				matchBrackets : true,
+				autofocus: true,
+				extraKeys: {"Ctrl-Space": "autocomplete"}
+			});
+			$(queryTextEditor.getWrapperElement()).resizable({
+				resize: function() {
+					queryTextEditor.setSize($(this).width(), $(this).height());
+				}
+			});
+			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
+			
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
@@ -58,7 +83,8 @@ define([
 				$(ERROR_CONTAINER).hide();
 				$('#query-start-time').val('');
 				$('#query-end-time').val('');
-				$('#query-text').text('');
+				//$('#query-text').text('');
+				queryTextEditor.setValue('');
 				$('#query-status').val('');
 				try{
 					if(connDataTable != null){
@@ -124,7 +150,7 @@ define([
 			alert(jqXHR.responseText);
 		},  
 		explainQuery: function(){
-			var queryText = $('#query-text').text();
+			var queryText = queryTextEditor.getValue(); //$('#query-text').text();
 			sessionStorage.setItem(queryID, JSON.stringify({type: 'repo', text: queryText}));	
 			window.location.hash = '/workloads/queryplan/'+queryID;
 		},
@@ -140,7 +166,8 @@ define([
 			$(DETAILS_CLASS).show();
 			$(ERROR_CONTAINER).hide();
 
-			$('#query-text').text(result.queryText);
+			//$('#query-text').text(result.queryText);
+			queryTextEditor.setValue(result.queryText);
 			//sessionStorage.setItem(queryID, result.queryText);	
 
 			$('#query-status').val(result.status.trim());

@@ -1,0 +1,73 @@
+<div id="page-wrapper">
+	<div class="row">
+		<div class="col-lg-12">
+			<div class="pull-right">
+				<div class="btn-group"
+					style="margin-bottom: 10px; margin-top: 10px;">
+					<button type="button"
+						class="btn btn-default btn-xs dropdown-toggle"
+						data-toggle="dropdown" style="height: 30px;">
+						Actions <span class="caret"></span>
+					</button>
+					<ul class="dropdown-menu pull-right" role="menu">
+						<li><a id="refreshAction" href="#">Refresh</a></li>
+					</ul>
+				</div>
+			</div>
+			<h2 class="page-header">Database</h2>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-lg-12">
+			<div class="panel panel-default">
+				<ol id="database-crumb" class="breadcrumb">
+					<li><a href="#/database">Schemas</a></li>
+				</ol>
+
+				<div class="panel-body" style="padding-bottom:15px;padding-top:0px">
+                    <label id="object-name" style='padding: 10px 0px;font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;font-size:18px;font-weight:500'></label>
+					<ul id="dboject-feature-selector" class="nav dbmgr-nav nav-pills" style="padding-bottom:15px;">
+					  <li role="presentation" class="active"><a id="db-attributes-link" data-toggle="pill">Attributes</a></li>
+					  <li role="presentation" style="padding-left: 5px;" ><a href="#db-columns-link" data-toggle="pill">Columns</a></li>
+					  <li role="presentation" style="padding-left: 5px;" ><a href="#db-partitions-link" data-toggle="pill">Partitions</a></li>
+					  <li role="presentation" style="padding-left: 5px;" ><a href="#db-ddl-link" data-toggle="pill">DDL</a></li>
+					  <li role="presentation" style="padding-left: 5px;" ><a href="#db-privileges-link" data-toggle="pill">Privileges</a></li>
+					  <li role="presentation" style="padding-left: 5px;" ><a href="#db-indexes-link" data-toggle="pill">Indexes</a></li>
+					  <li role="presentation" style="padding-left: 5px;" ><a href="#db-usages-link" data-toggle="pill">Usage</a></li>
+                      <li><img id="loadingImg" style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></li>
+					</ul>
+
+					<div id="object-details-container" class="tab-content">
+					    <div class="tab-pane fade in active" id="db-attributes-link">
+							<div>
+								<table id="db-object-attributes-container"></table>
+							</div>
+					    </div>
+					    <div class="tab-pane fade" id="db-columns-link">
+							<div>
+								<table id="db-object-columns-container"></table>
+							</div>
+					    </div>
+					    <div class="tab-pane fade" id="db-partitions-link">
+							<div>
+								<table id="db-object-partitions-container"></table>
+							</div>
+					    </div>
+					    <div class="tab-pane fade" id="db-ddl-link">
+							<div id ="db-object-ddl-container">
+								<textarea id="object-ddl-text" readonly name="object-ddl-text" spellcheck="false" rows="25" readonly class="textarea" style="font-family: Courier New, Courier, monospace;width: 95%; margin-bottom: 10px"></textarea>
+							</div>
+					    </div>
+					    <div class="tab-pane fade" id="db-privileges-link">
+							<div id ="db-object-privileges-container"></div>
+					    </div>
+					    <div class="tab-pane fade" id="db-usages-link">
+							<div id ="db-object-usages-container"></div>
+					    </div>
+					</div>
+					<textarea id="db-object-error-text" readonly name="db-object-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
