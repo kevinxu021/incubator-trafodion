@@ -96,7 +96,8 @@ export REST_BUILD=""
 # Either "cloudera" or "hortonworks" (all lowercase)
 export HADOOP_TYPE=""
 
-# The URL for Cloudera/Hortonworks REST API (i.e. node1.hp.com:8080)
+# The URL for Cloudera/Hortonworks REST API (i.e. http://node1.hp.com:8080)
+# Include http or https
 export URL=""
 
 # Cloudera/Hortonworks UI admin's userid and password
