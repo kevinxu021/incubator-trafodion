@@ -142,7 +142,7 @@ define([
 					             {"mData": 'CreateTime', sClass: 'left', "sTitle": 'Create Time',
 					            	 "mRender": function ( data, type, full ) {
 					            		 if(type == 'display') {
-					            			 return common.toDateFromMilliSeconds(data);                          
+					            			 return common.toServerLocalDateFromUtcMilliSeconds(data);                        
 					            		 }else { 
 					            			 return data;
 					            		 }
@@ -151,7 +151,7 @@ define([
 					             {"mData": 'ModifiedTime', sClass: 'left', "sTitle": 'Modified Time',
 					            	 "mRender": function ( data, type, full ) {
 					            		 if(type == 'display') {
-					            			 return common.toDateFromMilliSeconds(data);                        
+					            			 return common.toServerLocalDateFromUtcMilliSeconds(data);                        
 					            		 }else { 
 					            			 return data;
 					            		 }
