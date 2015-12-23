@@ -16,6 +16,10 @@ public class SystemQueryCache {
 	public static final String SELECT_SCHEMAS = "SELECT_SCHEMAS";
 	public static final String SELECT_SCHEMA = "SELECT_SCHEMA";
 	public static final String SELECT_SCHEMA_OBJECTS = "SELECT_SCHEMA_OBJECTS";
+	public static final String SELECT_DDL_TEXT = "SELECT_DDL_TEXT";
+	public static final String SELECT_TABLES_IN_SCHEMA = "SELECT_TABLES_IN_SCHEMA";
+	public static final String SELECT_VIEWS_IN_SCHEMA = "SELECT_VIEWS_IN_SCHEMA";
+	public static final String SELECT_INDEXES_IN_SCHEMA = "SELECT_INDEXES_IN_SCHEMA";
 
 	public static final String SELECT_REPO_QUERIES = "SELECT_REPO_QUERIES";
 	public static final String SELECT_REPO_QUERY_DETAIL = "SELECT_REPO_QUERY_DETAIL";

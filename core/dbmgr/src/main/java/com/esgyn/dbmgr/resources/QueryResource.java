@@ -91,8 +91,8 @@ public class QueryResource {
 			stmt1.close();
 
 			pstmt = connection.prepareStatement(queryText);
-			boolean hasResultSet = pstmt.execute();
 			_LOG.debug(queryText);
+			boolean hasResultSet = pstmt.execute();
 			if (hasResultSet) {
 				rs = pstmt.getResultSet();
 				js = Helper.convertResultSetToTabularResult(rs);

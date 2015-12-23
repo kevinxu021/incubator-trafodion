@@ -66,6 +66,7 @@
 	.CodeMirror pre {
 	  padding: 0 4px; /* Horizontal padding of content */
 	  padding-left:30px;
+	  /*font-family: Courier New, Courier, monospace;*/
 	}
 	
 	.navbar-default .dbmgr-title {
@@ -107,6 +108,10 @@
 	}
 	.nav>li>a {
 		color: white;
+	}
+	.dbmgr-nav>li>a{
+		color: black;
+		background-color: #e7e7e7;
 	}
 	.mytooltip {
 		color: black;
