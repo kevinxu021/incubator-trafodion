@@ -83,7 +83,7 @@ public:
    *                         set it to -1 to get all the columns
    *
    * which_cols            : array containing the column numbers to be returned
-   *                         (Column numbers are zero based)
+   *                         (Column numbers are one based)
    *******/
   OFR_RetCode    open(const char* path, int num_cols_in_projection, int *which_cols);
   
