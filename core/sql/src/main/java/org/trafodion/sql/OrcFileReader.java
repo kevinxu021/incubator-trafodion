@@ -183,7 +183,7 @@ public class OrcFileReader
 	}
 
 	m_row_ba = new byte[1024 * 64];
-	m_max_rows_to_fill_in_block = 32;
+	m_max_rows_to_fill_in_block = 128;
 	if (logger.isTraceEnabled()) logger.trace("Exit open()");
 	return null;
     }
@@ -897,6 +897,11 @@ public class OrcFileReader
 	m_vector_mode = pv_mode;
     }
 
+    public OrcStruct getNext() throws Exception
+    {
+	return (OrcStruct) m_rr.next(null);
+    }
+
     public boolean isEOF() throws Exception
     { 
 	if (logger.isTraceEnabled()) logger.trace("Enter isEOF()");
@@ -1149,6 +1154,8 @@ public class OrcFileReader
         boolean lv_perform_vectorized_scans = false;
 	boolean lv_done = false;
 
+	int lv_count = 0;
+
 	setupLog4j();
 
 	for (String lv_arg : args) {
@@ -1273,10 +1280,14 @@ public class OrcFileReader
 	    lv_this.setVectorMode(true);
 	    if (lv_this.seeknSync(1) == null) {
 		logger.trace("================= Begin: After seeknSync(1)... will do fetchNextRowFromVector('|')");
+		lv_count = 0;
 		while (! lv_done) {
 		    lv_row_string = lv_this.fetchNextRowFromVector('|');
 		    if (lv_row_string != null) {
 			System.out.println(lv_row_string);
+			if (++lv_count > 5) {
+			    lv_done = true;
+			}
 		    }
 		    else {
 			lv_done = true;
@@ -1291,10 +1302,14 @@ public class OrcFileReader
 	    lv_done = false;
 	    if (lv_this.seeknSync(8) == null) {
 		logger.trace("================= Begin: After seeknSync(8)...fetchNextRowFromVector('|')");
+		lv_count = 0;
 		while (! lv_done) {
 		    lv_row_string = lv_this.fetchNextRowFromVector('|');
 		    if (lv_row_string != null) {
 			System.out.println(lv_row_string);
+			if (++lv_count > 5) {
+			    lv_done = true;
+			}
 		    }
 		    else {
 			lv_done = true;
@@ -1308,6 +1323,9 @@ public class OrcFileReader
 		    lv_row_string = lv_this.fetchNextRowFromVector('|');
 		    if (lv_row_string != null) {
 			System.out.println(lv_row_string);
+			if (++lv_count > 5) {
+			    lv_done = true;
+			}
 		    }
 		    else {
 			lv_done = true;
@@ -1320,6 +1338,7 @@ public class OrcFileReader
 	    lv_done = false;
 	    if (lv_this.seeknSync(8) == null) {
 		logger.trace("================= Begin: byte[] fetchNextRowFromVector()");
+		lv_count = 0;
 		while (! lv_done) {
 		    System.out.println("Next row #: " + lv_this.getPosition());
 		    byte[] lv_row_ba = lv_this.fetchNextRowFromVector();
@@ -1330,6 +1349,9 @@ public class OrcFileReader
 					   + " col count: " + lv_row_bb.getInt()
 					   + " row number: " + lv_row_bb.getLong());
 			System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_row_ba, 0, 100));
+			if (++lv_count > 5) {
+			    lv_done = true;
+			}
 		    }
 		    else {
 			lv_done = true;
@@ -1341,17 +1363,22 @@ public class OrcFileReader
 	    lv_done = false;
 	    if (lv_this.seeknSync(0) == null) {
 		logger.trace("================= Begin: fetchNextBlockFromVector()");
-		System.out.println("Next row #: " + lv_this.getPosition());
-		byte[] lv_block_ba = lv_this.fetchNextBlockFromVector();
-		if (lv_block_ba != null) {
-		    ByteBuffer lv_block_bb = ByteBuffer.wrap(lv_block_ba);
-		    System.out.println("Length of the returned byte array: " + lv_block_ba.length 
-				       + " #rows in the block: " + lv_block_bb.getInt()
-				       + " data[] len: " + lv_block_bb.getInt()
-				       + " col count: " + lv_block_bb.getInt()
-				       + " row number: " + lv_block_bb.getLong()
-				       + " 1st col len: " + lv_block_bb.getInt());
-		    System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_block_ba, 0, 100));
+		while (! lv_done) {
+		    System.out.println("Next row #: " + lv_this.getPosition());
+		    byte[] lv_block_ba = lv_this.fetchNextBlockFromVector();
+		    if (lv_block_ba != null) {
+			ByteBuffer lv_block_bb = ByteBuffer.wrap(lv_block_ba);
+			System.out.println("Length of the returned byte array: " + lv_block_ba.length 
+					   + " #rows in the block: " + lv_block_bb.getInt()
+					   + " data[] len: " + lv_block_bb.getInt()
+					   + " col count: " + lv_block_bb.getInt()
+					   + " row number: " + lv_block_bb.getLong()
+					   + " 1st col len: " + lv_block_bb.getInt());
+			System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_block_ba, 0, 100));
+		    }
+		    else {
+			lv_done = true;
+		    }
 		}
 
 		logger.trace("================= End: fetchNextBlockFromVector()");
@@ -1363,4 +1390,5 @@ public class OrcFileReader
 	    System.out.println(lv_this.selectiveScan(args[1]));
         }
     }
+
 }

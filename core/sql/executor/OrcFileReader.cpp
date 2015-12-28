@@ -294,11 +294,13 @@ OFR_RetCode OrcFileReader::open(const char* pv_path)
 		LL_DEBUG,
 		"OrcFileReader::open(%s) called.",
 		pv_path);
-
-  /* For testing, try the following code:
-     int la_cols[] = {0, 1}; 
-     return this->open(pv_path, 2, la_cols);
-  */
+  bool lv_test = false;
+  //* For testing, try the following code:
+  if (lv_test) {
+    int la_cols[] = {1}; 
+    return this->open(pv_path, 1, la_cols);
+  }
+  //  */
 
   // All the columns
   return this->open(pv_path, -1, NULL);
