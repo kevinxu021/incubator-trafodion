@@ -84,7 +84,7 @@ public:
    *                         set it to -1 to get all the columns
    *
    * which_cols            : array containing the column numbers to be returned
-   *                         (Column numbers are zero based)
+   *                         (Column numbers are one based)
    *******/
   OFR_RetCode    open(const char* path, int num_cols_in_projection, int *which_cols);
   
@@ -142,6 +142,7 @@ private:
     JM_SYNC,
     JM_ISEOF,
     JM_FETCHBLOCK,
+    JM_FETCHBLOCK_VECTOR,
     JM_FETCHROW,
     JM_FETCHROW2,
     JM_GETNUMROWS,
