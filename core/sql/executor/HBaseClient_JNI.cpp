@@ -6226,3 +6226,24 @@ int convertStringObjectArrayToList(NAHeap *heap, jarray j_objArray,
     return arrayLen;
 }
 
+int convertLongObjectArrayToList(NAHeap *heap, jlongArray j_longArray, LIST(Int64)&list)
+{
+    if (j_longArray == NULL)
+        return 0;
+    int arrayLen = jenv_->GetArrayLength(j_longArray);
+    const char *str;
+    jboolean isCopy;
+
+    jlong *body = jenv_->GetLongArrayElements(j_longArray, NULL);
+
+    for (int i = 0; i < arrayLen; i++)
+    {
+        jlong x = body[i];
+        list.insert(Int64(body[i]));
+    }
+
+    jenv_->ReleaseLongArrayElements(j_longArray, body, NULL);
+
+    return arrayLen;
+}
+

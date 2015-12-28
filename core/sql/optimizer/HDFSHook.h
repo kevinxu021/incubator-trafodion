@@ -150,7 +150,7 @@ public:
                                    fileName_(heap),
                                    blockHosts_(NULL) {}
   ~HHDFSFileStats();
-  void populate(hdfsFS fs,
+  virtual void populate(hdfsFS fs,
                 hdfsFileInfo *fileInfo,
                 Int32& samples,
                 HHDFSDiags &diags,
@@ -164,8 +164,7 @@ public:
                         { return blockHosts_[replicate*numBlocks_+blockNum]; }
   void print(FILE *ofd);
 
-private:
-
+protected:
   NAString fileName_;
   Int32 replication_;
   Int64 blockSize_;
@@ -173,7 +172,32 @@ private:
   // list of blocks for this file
   HostId *blockHosts_;
   NAMemory *heap_;
+};
 
+class HHDFSORCFileStats : public HHDFSFileStats
+{
+
+public:
+  HHDFSORCFileStats(NAMemory *heap) : 
+      HHDFSFileStats(heap),
+      numOfRowsInStripe_(heap), 
+      offsetOfStripe_(heap), 
+      totalBytesOfStripe_(heap) {};
+
+  ~HHDFSORCFileStats() {};
+
+  void populate(hdfsFS fs,
+                hdfsFileInfo *fileInfo,
+                Int32& samples,
+                HHDFSDiags &diags,
+                NABoolean doEstimation = TRUE,
+                char recordTerminator = '\n'
+                ); 
+
+protected:
+  LIST(Int64) numOfRowsInStripe_;
+  LIST(Int64) offsetOfStripe_;
+  LIST(Int64) totalBytesOfStripe_;
 };
 
 class HHDFSBucketStats : public HHDFSStatsBase
@@ -191,7 +215,8 @@ public:
                HHDFSDiags &diags,
                NABoolean doEstimate = TRUE,
                char recordTerminator = '\n',
-               CollIndex pos = NULL_COLL_INDEX);
+               CollIndex pos = NULL_COLL_INDEX,
+               NABoolean isORC = FALSE);
                     
   void removeAt(CollIndex i);
   void print(FILE *ofd);
@@ -225,8 +250,10 @@ public:
 
   void populate(hdfsFS fs, const NAString &dir, Int32 numOfBuckets, 
                 HHDFSDiags &diags,
-                NABoolean doEsTimation, char recordTerminator);
-  NABoolean validateAndRefresh(hdfsFS fs, HHDFSDiags &diags, NABoolean refresh);
+                NABoolean doEsTimation, char recordTerminator, 
+                NABoolean isORC);
+  NABoolean validateAndRefresh(hdfsFS fs, HHDFSDiags &diags, NABoolean refresh, 
+                               NABoolean isORC);
   Int32 determineBucketNum(const char *fileName);
   void print(FILE *ofd);
 
@@ -289,7 +316,7 @@ public:
                           NAString &tableDir);
 
   void processDirectory(const NAString &dir, Int32 numOfBuckets, 
-                        NABoolean doEstimation, char recordTerminator);
+                        NABoolean doEstimation, char recordTerminator, NABoolean isORC);
 
   void setPortOverride(Int32 portOverride)         { hdfsPortOverride_ = portOverride; }
 

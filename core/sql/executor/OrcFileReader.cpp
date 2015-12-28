@@ -23,6 +23,7 @@
 
 #include "OrcFileReader.h"
 #include "QRLogger.h"
+#include "HBaseClient_JNI.h"
 
 // ===========================================================================
 // ===== Class OrcFileReader
@@ -48,6 +49,7 @@ static const char* const sfrErrorEnumStr[] =
  ,"Java exception in isEOF()"
  ,"Java exception in fetchNextRow()"
  ,"Java exception in close()"
+ ,"Error from GetStripeInfo()"
  ,"Unknown error returned from ORC interface"
 };
 
@@ -118,7 +120,14 @@ OFR_RetCode OrcFileReader::init()
     JavaMethods_[JM_GETCOLSTATS ].jm_signature = "(I)Lorg/trafodion/sql/ByteArrayList;";
     JavaMethods_[JM_CLOSE     ].jm_name      = "close";
     JavaMethods_[JM_CLOSE     ].jm_signature = "()Ljava/lang/String;";
-  
+    JavaMethods_[JM_GETSTRIPE_NUMROWS].jm_name      = "getStripeNumRows";
+    JavaMethods_[JM_GETSTRIPE_NUMROWS].jm_signature = "()[J";
+    JavaMethods_[JM_GETSTRIPE_OFFSETS].jm_name      = "getStripeOffsets";
+    JavaMethods_[JM_GETSTRIPE_OFFSETS].jm_signature = "()[J";
+    JavaMethods_[JM_GETSTRIPE_LENGTHS].jm_name      = "getStripeLengths";
+    JavaMethods_[JM_GETSTRIPE_LENGTHS].jm_signature = "()[J";
+
+   
     setHBaseCompatibilityMode(FALSE);
     
     lv_retcode = (OFR_RetCode)JavaObjectInterface::init(className,
@@ -295,11 +304,13 @@ OFR_RetCode OrcFileReader::open(const char* pv_path)
 		LL_DEBUG,
 		"OrcFileReader::open(%s) called.",
 		pv_path);
-
-  /* For testing, try the following code:
-     int la_cols[] = {0, 1}; 
-     return this->open(pv_path, 2, la_cols);
-  */
+  bool lv_test = false;
+  //* For testing, try the following code:
+  if (lv_test) {
+    int la_cols[] = {1}; 
+    return this->open(pv_path, 1, la_cols);
+  }
+  //  */
 
   // All the columns
   return this->open(pv_path, -1, NULL);
@@ -693,5 +704,55 @@ OFR_RetCode OrcFileReader::fetchRowsIntoBuffer(Int64   stopOffset,
   } while (retCode == OFR_OK && bytesRead < limit);
   
   QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER, LL_DEBUG, "  =>Returning %d, read %ld bytes in %d rows.", retCode, bytesRead, rowsRead);
+  return retCode;
+}
+
+
+OFR_RetCode 
+OrcFileReader::getLongArray(OrcFileReader::JAVA_METHODS method, const char* msg, LIST(Int64)& resultArray)
+{
+
+  tsRecentJMFromJNI = JavaMethods_[method].jm_full_name;
+
+  jlongArray jresult = (jlongArray)jenv_->CallObjectMethod(javaObj_, JavaMethods_[method].methodID);
+
+  if (jresult == NULL) {
+    logError(CAT_SQL_HDFS_ORC_FILE_READER,
+             msg,
+             getLastError());
+    return OFR_ERROR_GETSTRIPEINFO_EXCEPTION;
+  }
+
+  int numOffsets = convertLongObjectArrayToList(heap_, jresult, resultArray);
+
+  return OFR_OK;
+}
+
+OFR_RetCode 
+OrcFileReader::getStripeInfo(LIST(Int64)& stripeRows,
+                             LIST(Int64)& stripeOffsets,
+                             LIST(Int64)& stripeLengths 
+                            )
+{
+  QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER, 
+		LL_DEBUG, 
+		"OrcFileReader::getStripeInfo() called.");
+
+  OFR_RetCode retCode = OFR_OK;
+
+  if (javaObj_ == NULL) {
+    // Maybe there was an initialization error.
+    return OFR_OK;
+  }
+
+  retCode = getLongArray(JM_GETSTRIPE_NUMROWS, "OrcFileReader::getStripeNumRows()", stripeRows);
+
+  if ( retCode == OFR_OK ) 
+    retCode = getLongArray(JM_GETSTRIPE_OFFSETS, "OrcFileReader::getStripeOffsets()", stripeOffsets);
+
+  if ( retCode == OFR_OK ) 
+    retCode = getLongArray(JM_GETSTRIPE_LENGTHS, "OrcFileReader::getStripeLengths()", stripeLengths);
+
+  QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER, LL_DEBUG, "=>Returning %d.", retCode);
   return retCode;
 }

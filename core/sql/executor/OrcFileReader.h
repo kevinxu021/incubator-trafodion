@@ -43,6 +43,7 @@ typedef enum {
  ,OFR_ERROR_ISEOF_EXCEPTION     // Java exception in isEOF()
  ,OFR_ERROR_FETCHROW_EXCEPTION  // Java exception in fetchNextRow()
  ,OFR_ERROR_CLOSE_EXCEPTION     // Java exception in close()
+ ,OFR_ERROR_GETSTRIPEINFO_EXCEPTION 
  ,OFR_UNKNOWN_ERROR
  ,OFR_LAST
 } OFR_RetCode;
@@ -85,7 +86,7 @@ public:
    *                         set it to -1 to get all the columns
    *
    * which_cols            : array containing the column numbers to be returned
-   *                         (Column numbers are zero based)
+   *                         (Column numbers are one based)
    *******/
   OFR_RetCode    open(const char* path, int num_cols_in_projection, int *which_cols);
   
@@ -110,6 +111,11 @@ public:
   ByteArrayList* getColStats(int colNum);
 
   virtual char*  getErrorText(OFR_RetCode errEnum);
+
+  OFR_RetCode getStripeInfo(LIST(Int64)& numOfRowsInStripe,  
+                            LIST(Int64)& offsetOfStripe,  
+                            LIST(Int64)& totalBytesOfStripe
+                            );
 
 protected:
   jstring getLastError();
@@ -143,6 +149,9 @@ private:
     JM_FETCHROW2,
     JM_GETCOLSTATS,
     JM_CLOSE,
+    JM_GETSTRIPE_OFFSETS,
+    JM_GETSTRIPE_LENGTHS,
+    JM_GETSTRIPE_NUMROWS,
     JM_LAST
   };
  
@@ -154,6 +163,9 @@ private:
   static jfieldID       sjavaFieldID_OrcRow_column_count_;
   static jfieldID       sjavaFieldID_OrcRow_row_number_;
   static jfieldID       sjavaFieldID_OrcRow_row_ba_;
+
+private:
+  OFR_RetCode getLongArray(JAVA_METHODS method, const char* msg, LIST(Int64)& resultArray);
 };
 
 
