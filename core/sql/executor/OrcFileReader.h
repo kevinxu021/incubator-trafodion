@@ -24,6 +24,7 @@
 #define ORC_FILE_READER_H
 
 #include "JavaObjectInterface.h"
+#include "ByteArrayList.h"
 
 // ===========================================================================
 // ===== The OrcFileReader class implements access to th Java 
@@ -42,6 +43,7 @@ typedef enum {
  ,OFR_ERROR_ISEOF_EXCEPTION     // Java exception in isEOF()
  ,OFR_ERROR_FETCHROW_EXCEPTION  // Java exception in fetchNextRow()
  ,OFR_ERROR_CLOSE_EXCEPTION     // Java exception in close()
+ ,OFR_UNKNOWN_ERROR
  ,OFR_LAST
 } OFR_RetCode;
 
@@ -105,7 +107,7 @@ public:
 
   OFR_RetCode    fetchRowsIntoBuffer(Int64 stopOffset, char* buffer, Int64 buffSize, Int64& bytesRead, char rowDelimiter);
   
-  OFR_RetCode				getRowCount(Int64& count);
+  ByteArrayList* getColStats(int colNum);
 
   virtual char*  getErrorText(OFR_RetCode errEnum);
 
@@ -139,7 +141,7 @@ private:
     JM_FETCHBLOCK_VECTOR,
     JM_FETCHROW,
     JM_FETCHROW2,
-    JM_GETNUMROWS,
+    JM_GETCOLSTATS,
     JM_CLOSE,
     JM_LAST
   };

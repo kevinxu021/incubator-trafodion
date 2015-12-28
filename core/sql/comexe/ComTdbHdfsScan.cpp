@@ -45,6 +45,7 @@ ComTdbHdfsScan::ComTdbHdfsScan(
                                Queue * hdfsFileInfoList,
                                Queue * hdfsFileRangeBeginList,
                                Queue * hdfsFileRangeNumList,
+                               Queue * hdfsColInfoList,
                                char recordDelimiter,
                                char columnDelimiter,
                                Int64 hdfsBufSize,
@@ -91,6 +92,7 @@ ComTdbHdfsScan::ComTdbHdfsScan(
   hdfsFileInfoList_(hdfsFileInfoList),
   hdfsFileRangeBeginList_(hdfsFileRangeBeginList),
   hdfsFileRangeNumList_(hdfsFileRangeNumList),
+  hdfsColInfoList_(hdfsColInfoList),
   recordDelimiter_(recordDelimiter),
   columnDelimiter_(columnDelimiter),
   hdfsBufSize_(hdfsBufSize),
@@ -139,6 +141,20 @@ Long ComTdbHdfsScan::pack(void * space)
   hdfsFileInfoList_.pack(space);
   hdfsFileRangeBeginList_.pack(space);
   hdfsFileRangeNumList_.pack(space);
+
+  // pack elements in hdfsColInfoList
+  if (getHdfsColInfoList())
+    {
+      getHdfsColInfoList()->position();
+      for (Lng32 i = 0; i < getHdfsColInfoList()->numEntries(); i++)
+        {
+          HdfsColInfo * hco = (HdfsColInfo*)getHdfsColInfoList()->getNext();
+          
+          hco->colName_.pack(space);
+        }
+      hdfsColInfoList_.pack(space);
+    }
+
   errCountTable_.pack(space);
   loggingLocation_.pack(space);
   errCountRowId_.pack(space);
@@ -165,6 +181,19 @@ Lng32 ComTdbHdfsScan::unpack(void * base, void * reallocator)
       HdfsFileInfo * hdf = (HdfsFileInfo*)getHdfsFileInfoList()->getNext();
       
       if (hdf->fileName_.unpack(base)) return -1;
+    }
+
+  // unpack elements in hdfsColInfoList
+  if (getHdfsColInfoList())
+    {
+      if (hdfsColInfoList_.unpack(base, reallocator)) return -1;
+      getHdfsColInfoList()->position();
+      for (Lng32 i = 0; i < getHdfsColInfoList()->numEntries(); i++)
+        {
+          HdfsColInfo * hco = (HdfsColInfo*)getHdfsColInfoList()->getNext();
+          
+          if (hco->colName_.unpack(base)) return -1;
+        }
     }
 
   if (hdfsFileRangeBeginList_.unpack(base, reallocator)) return -1;
@@ -419,6 +448,25 @@ void ComTdbHdfsScan::displayContents(Space * space,ULng32 flag)
                                                    sizeof(short));
             }
         }
+
+      Queue *hdfsColInfoList = hdfsColInfoList_;
+      if (hdfsColInfoList)
+        {
+          UInt32 dataElems = hdfsColInfoList->numEntries();
+          str_sprintf(buf, "\nNumber of columns to retrieve: %d",
+                      (Int32) dataElems);
+          space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+
+          hdfsColInfoList->position();
+          HdfsColInfo * hco = NULL;
+          while ((hco = (HdfsColInfo*)hdfsColInfoList->getNext()) != NULL)
+            {
+              str_sprintf(buf, "ColNumber: %d, ColName: %s",
+                          hco->colNumber(), hco->colName());
+              space->allocateAndCopyToAlignedSpace
+                (buf, str_len(buf), sizeof(short));
+            }
+        }
     }
 
   if(flag & 0x00000001)
@@ -448,10 +496,16 @@ ComTdbOrcFastAggr::ComTdbOrcFastAggr():
 // Constructor
 ComTdbOrcFastAggr::ComTdbOrcFastAggr(
                                      char * tableName,
-                                     OrcAggrType type,
                                      Queue * hdfsFileInfoList,
                                      Queue * hdfsFileRangeBeginList,
                                      Queue * hdfsFileRangeNumList,
+                                     Queue * listOfAggrTypes,
+                                     Queue * listOfAggrColInfo,
+                                     ex_expr * aggr_expr,
+                                     Int32 finalAggrRowLength,
+                                     const unsigned short finalAggrTuppIndex,
+                                     Int32 orcAggrRowLength,
+                                     const unsigned short orcAggrTuppIndex,
                                      ex_expr * proj_expr,
                                      Int64 projRowLen,
                                      const unsigned short projTuppIndex,
@@ -466,7 +520,7 @@ ComTdbOrcFastAggr::ComTdbOrcFastAggr(
                                      )
   : ComTdbHdfsScan( 
                    tableName,
-                   type,
+                   (short)ComTdbHdfsScan::ORC_,
                    NULL, NULL,
                    proj_expr,
                    NULL,
@@ -474,13 +528,11 @@ ComTdbOrcFastAggr::ComTdbOrcFastAggr(
                    hdfsFileInfoList,
                    hdfsFileRangeBeginList,
                    hdfsFileRangeNumList,
+                   listOfAggrColInfo,
                    0, 0, 0, 0, 0,
                    projRowLen, 
                    0, 0,
-                   returnedTuppIndex,
-                   0, 
-                   projTuppIndex, 
-                   0,
+                   returnedTuppIndex, 0, finalAggrTuppIndex, projTuppIndex,
                    work_cri_desc,
                    given_cri_desc,
                    returned_cri_desc,
@@ -489,7 +541,11 @@ ComTdbOrcFastAggr::ComTdbOrcFastAggr(
                    0,
                    numBuffers,        // num_buffers - we use numInnerTuples_ instead.
                    bufferSize),       // buffer_size - we use numInnerTuples_ instead.
-    type_(type)
+    aggrExpr_(aggr_expr),
+    finalAggrRowLength_(finalAggrRowLength),
+    orcAggrRowLength_(orcAggrRowLength),
+    orcAggrTuppIndex_(orcAggrTuppIndex),
+    aggrTypeList_(listOfAggrTypes)
 {
   setNodeType(ComTdb::ex_ORC_AGGR);
   setEyeCatcher(eye_ORC_AGGR);
@@ -497,5 +553,21 @@ ComTdbOrcFastAggr::ComTdbOrcFastAggr(
 
 ComTdbOrcFastAggr::~ComTdbOrcFastAggr()
 {
+}
+
+Long ComTdbOrcFastAggr::pack(void * space)
+{
+  aggrTypeList_.pack(space);
+  aggrExpr_.pack(space);
+
+  return ComTdbHdfsScan::pack(space);
+}
+
+Lng32 ComTdbOrcFastAggr::unpack(void * base, void * reallocator)
+{
+  if (aggrTypeList_.unpack(base, reallocator)) return -1;
+  if (aggrExpr_.unpack(base, reallocator)) return -1;
+
+  return ComTdbHdfsScan::unpack(base, reallocator);
 }
 

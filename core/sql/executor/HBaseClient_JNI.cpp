@@ -4432,8 +4432,11 @@ HTC_RetCode HTableClient_JNI::deleteRow(Int64 transID, HbaseStr &rowID, const LI
     hbs_->getHbaseTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_DELETE].jm_full_name;
   jboolean j_asyncOperation = FALSE;
+
+  jstring js_hbaseAuths = NULL;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, 
-          JavaMethods_[JM_DELETE].methodID, j_tid, jba_rowID, j_cols, j_ts, j_asyncOperation);
+                                              JavaMethods_[JM_DELETE].methodID, j_tid, jba_rowID, j_cols, j_ts, j_asyncOperation,
+                                              js_hbaseAuths);
   if (hbs_)
     {
       hbs_->incMaxHbaseIOTime(hbs_->getHbaseTimer().stop());

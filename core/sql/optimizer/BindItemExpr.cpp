@@ -5108,6 +5108,8 @@ ItemExpr *Aggregate::bindNode(BindWA *bindWA)
 
   context->aggScope() = NULL;					  // AggBind#6
 
+  ItemExpr * childExpr = child(0);
+
   // If there is an Sequence operator for OLAP functions, then add
   // this non-OLAP Aggregate to the outputs of the Sequence operator.
   // All outputs of the Sequence operator have an NotCovered on top of
@@ -5135,6 +5137,57 @@ ItemExpr *Aggregate::bindNode(BindWA *bindWA)
     return getValueId().getItemExpr();
   }
 } // Aggregate::bindNode()
+
+// -----------------------------------------------------------------------
+// member functions for class Aggregate
+// -----------------------------------------------------------------------
+
+ItemExpr *AggregatePushdown::bindNode(BindWA *bindWA)
+{
+  if (nodeIsBound())
+    return getValueId().getItemExpr();
+
+  if (isHbase_)
+    {
+      return Aggregate::bindNode(bindWA);
+    }
+
+  if (child(0))
+    {
+      ItemExpr * boundExpr = child(0)->bindNode(bindWA);
+      if (bindWA->errStatus())
+        return this;
+
+      child(0) = boundExpr;
+    }
+
+  synthTypeAndValueId(TRUE); // redrive
+
+  const NAType *myType = &getValueId().getType();
+  NAType * aggrType = NULL;
+  if (myType->getTypeQualifier() == NA_NUMERIC_TYPE)
+    {
+      NumericType *nType = (NumericType*)myType;
+      if (nType->isExact() && nType->binaryPrecision())
+        {
+          aggrType = new(bindWA->wHeap()) SQLLargeInt(TRUE, FALSE);
+        }
+    }
+
+  if (! aggrType)
+    aggrType = myType->newCopy(bindWA->wHeap());
+  aggrType->resetSQLnullFlag();
+
+  ItemExpr * aggrArg = new (bindWA->wHeap()) NATypeToItem(aggrType);
+  aggrArg->bindNode(bindWA);
+  if (bindWA->errStatus())
+    return this;
+
+  origChild_ = child(0);
+  setChild(0, aggrArg);
+
+  return getValueId().getItemExpr();
+}
 
 // -----------------------------------------------------------------------
 // Variance::bindNode()
@@ -7437,6 +7490,17 @@ void BindWA::markAsReferencedColumn(const ValueId &vid,
 
 ItemExpr *ColReference::bindNode(BindWA *bindWA)
 {
+  if (colRefName_->getColName() == "S_STORE_SK")
+    {
+      //      ItemExpr * ie = getValueId().getItemExpr();
+
+      Lng32 ij = 0;
+      while (ij)
+        {
+          ij = 2 - ij;
+        }
+    }
+
   if (nodeIsBound()) 
     {
       if (getColRefNameObj().isStar())
@@ -7456,21 +7520,19 @@ ItemExpr *ColReference::bindNode(BindWA *bindWA)
       // this return has been there for a long time.
       // No idea what the code below it is doing since it will never be reached.
       return getValueId().getItemExpr();
-      
-      // In case the first time this Colreference was seen it was on
-      // left side of a set clause
-      NAColumn *nacol = getValueId().getNAColumn(TRUE/*okIfNotColumn*/);
-      const NATable * naTable = nacol->getNATable();
-      NAString fileName( naTable->getViewText() ?
-                         (NAString)naTable->getViewFileName() :
-                         naTable->getClusteringIndex()->
-                         getFileSetName().getQualifiedNameAsString(),
-                         bindWA->wHeap());
-      
-      bindWA->setColumnRefsInStoi(fileName.data(),nacol->getPosition());
-      
     }
   
+  if (colRefName_->getColName() == "S_STORE_SK")
+    {
+      //      ItemExpr * ie = getValueId().getItemExpr();
+
+      Lng32 ij = 0;
+      while (ij)
+        {
+          ij = 2 - ij;
+        }
+    }
+
   // In mode_special_4,
   // if name is of the form:   IDENTIFIER.NEXTVAL or IDENTIFIER.CURRVAL,
   // then change it to:  seqnum(identifier, next) or seqnum(identifier, current)
@@ -8127,6 +8189,15 @@ ItemExpr *ColReference::bindNode(BindWA *bindWA)
 				  getParent());
   if (!currScope->context()->inComputedColumnExpr())
     bindWA->markAsReferencedColumn(xcnmEntry->getColumnDesc());
+
+  if (colRefName_->getColName() == "S_STORE_SK")
+    {
+      Lng32 ij = 0;
+      while (ij)
+        {
+          ij = 2 - ij;
+        }
+    }
 
   bindSelf(bindWA);
   return valId.getItemExpr();

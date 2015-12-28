@@ -273,7 +273,17 @@ public:
 
   ColReference(ColRefName *colRefName) :
     ItemExpr(ITM_REFERENCE), colRefName_(colRefName), starExpansion_(NULL),
-      parent_(NULL), targetColumnClass_(USER_COLUMN) {}
+      parent_(NULL), targetColumnClass_(USER_COLUMN) 
+{
+  if (colRefName && colRefName_->getColName() == "S_STORE_SK")
+    {
+      Lng32 ij = 0;
+      while (ij)
+        {
+          ij = 2 - ij;
+        }
+    }
+}
 
   // virtual destructor
   virtual ~ColReference() {}

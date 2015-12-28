@@ -4817,6 +4817,178 @@ void RelRoot::processRownum(BindWA * bindWA)
   return;
 }
 
+RelExpr *RelRoot::transformForAggrPushdown(BindWA *bindWA)
+{
+  if (NOT isTrueRoot()) 
+    return this;
+
+  // if this is simple scalar aggregate on a seabase table
+  //  (of the form:  select count(*) from t; )
+  // or aggrs count(*), min, max on orc table,
+  // then transform it so it could be evaluated by hbase coproc
+  // or using ORC apis.
+  NABoolean aggrPushdown = FALSE;
+  Scan * scan = NULL;
+  NATable * naTable = NULL;
+  ItemExprList selList(bindWA->wHeap());
+  if ((CmpCommon::getDefault(HBASE_COPROCESSORS) == DF_ON) &&
+      (child(0) && child(0)->getOperatorType() == REL_SCAN))
+    {
+      scan = (Scan*)child(0)->castToRelExpr();
+      
+      if ((getCompExprTree()) &&
+          (NOT hasOrderBy()) &&
+          (! getSelPredTree()) &&
+          (! scan->getSelPredTree()) &&
+          (scan->selectionPred().isEmpty()) &&
+          ((scan->getTableName().getSpecialType() == ExtendedQualName::NORMAL_TABLE) ||
+           (scan->getTableName().getSpecialType() == ExtendedQualName::INDEX_TABLE)) &&
+          !scan->getTableName().isPartitionNameSpecified() &&
+          !scan->getTableName().isPartitionRangeSpecified() &&
+          (NOT bindWA->inViewDefinition()))
+        {
+          aggrPushdown = TRUE;
+        }
+    }
+  
+  if (aggrPushdown)
+    {
+      naTable = bindWA->getNATable(scan->getTableName());
+      if (bindWA->errStatus()) 
+        return NULL;
+      
+      naTable->decrReferenceCount();
+
+      if (NOT (((naTable->getObjectType() == COM_BASE_TABLE_OBJECT) ||
+                (naTable->getObjectType() == COM_INDEX_OBJECT)) &&
+               ((naTable->isSeabaseTable()) ||
+                ((naTable->isHiveTable()) &&
+                 (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile())))))
+        {
+          aggrPushdown = FALSE;
+        }
+
+      if ((aggrPushdown) &&
+          ((naTable->isHiveTable()) &&
+           (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile())) &&
+          (CmpCommon::getDefaultNumeric(ORC_AGGR_PUSHDOWN) != 1))
+        {
+          aggrPushdown = FALSE;
+        }
+    }
+  
+  if (aggrPushdown)
+    {
+      selList.insertTree(getCompExprTree());
+      
+      if ((naTable->isSeabaseTable()) &&
+          (selList.entries() > 1))
+        {
+          aggrPushdown = FALSE;
+        }
+      
+      for (int i = 0; (aggrPushdown && (i < selList.entries())); i++)
+        {
+          if ((selList[i]->getOperatorType() == ITM_COUNT) &&
+              (selList[i]->origOpType() == ITM_COUNT_STAR__ORIGINALLY))
+            continue;
+          
+          if (((naTable->isHiveTable()) &&
+               (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile())) &&
+              ((selList[i]->getOperatorType() == ITM_MIN) ||
+               (selList[i]->getOperatorType() == ITM_MAX) ||
+               (selList[i]->getOperatorType() == ITM_SUM)))
+            continue;
+
+          aggrPushdown = FALSE;
+        }
+    }
+  
+  if (aggrPushdown)
+    {
+      ValueIdSet aggrSet;
+      removeCompExprTree();
+      for (int i = 0; (aggrPushdown && (i < selList.entries())); i++)
+        {
+          Aggregate * origAgg = (Aggregate*)selList[i];
+
+          Aggregate * agg = NULL;
+
+          if (naTable->isSeabaseTable())
+            {
+              if (origAgg->getOperatorType() == ITM_COUNT)
+                {
+                  agg = new(bindWA->wHeap()) 
+                    Aggregate(ITM_COUNT,
+                              new (bindWA->wHeap()) SystemLiteral(1),
+                              FALSE /*i.e. not distinct*/,
+                              ITM_COUNT_STAR__ORIGINALLY,
+                              '!');
+
+                  agg->bindNode(bindWA);
+                  if (bindWA->errStatus())
+                    {	  
+                      return this;
+                    }
+                }
+            } // seabasePushdown
+          else
+            {
+             if (origAgg->getOperatorType() == ITM_COUNT)
+               {
+                 agg = new(bindWA->wHeap()) 
+                   AggregatePushdown(ITM_SUM,
+                                     origAgg->child(0),
+                                     FALSE /*i.e. not distinct*/,
+                                     ITM_COUNT,
+                                     naTable->isSeabaseTable());
+               }
+             else if ((origAgg->getOperatorType() == ITM_MIN) ||
+                      (origAgg->getOperatorType() == ITM_MAX))
+               {
+                 agg = new(bindWA->wHeap()) 
+                   AggregatePushdown(origAgg->getOperatorType(),
+                                     origAgg->child(0),
+                                     FALSE /*i.e. not distinct*/,
+                                     origAgg->getOperatorType(),
+                                     naTable->isSeabaseTable());
+               }
+             else if (origAgg->getOperatorType() == ITM_SUM)
+               {
+                 agg = new(bindWA->wHeap()) 
+                   AggregatePushdown(ITM_SUM,
+                                     origAgg->child(0),
+                                     FALSE /*i.e. not distinct*/,
+                                     ITM_SUM,
+                                     naTable->isSeabaseTable());
+               }
+             
+             agg->allocValueId();
+            } // ORC pushdown
+   
+          aggrSet.insert(agg->getValueId());
+          addCompExprTree(agg);
+        } // for
+
+      ExeUtilExpr * eue = NULL;
+      if (naTable->isSeabaseTable())
+        eue = 
+          new(CmpCommon::statementHeap())
+          ExeUtilHbaseCoProcAggr(scan->getTableName(),
+                                 aggrSet);
+      else
+        eue = 
+          new(CmpCommon::statementHeap())
+          ExeUtilOrcFastAggr(scan->getTableName(),
+                             aggrSet);
+
+      setChild(0, eue);
+      
+    } // aggrPushdown
+  
+  return this;
+}
+
 RelExpr *RelRoot::bindNode(BindWA *bindWA)
 {
   if (nodeIsBound())
@@ -4825,87 +4997,10 @@ RelExpr *RelRoot::bindNode(BindWA *bindWA)
     return this;
   }
 
-  if (isTrueRoot()) 
+  if (isTrueRoot())
     {
-      // if this is simple scalar aggregate on a seabase table
-      //  (of the form:  select count(*), sum(a) from t; )
-      // then transform it so it could be evaluated using hbase co-processor.
-      if ((CmpCommon::getDefault(HBASE_COPROCESSORS) == DF_ON) &&
-	  (child(0) && child(0)->getOperatorType() == REL_SCAN))
-	{
-          Scan * scan = (Scan*)child(0)->castToRelExpr();
-
-	  if ((getCompExprTree()) &&
-              (NOT hasOrderBy()) &&
-              (! getSelPredTree()) &&
-              (! scan->getSelPredTree()) &&
-	      (scan->selectionPred().isEmpty()) &&
-              ((scan->getTableName().getSpecialType() == ExtendedQualName::NORMAL_TABLE) ||
-	       (scan->getTableName().getSpecialType() == ExtendedQualName::INDEX_TABLE)) &&
-              !scan->getTableName().isPartitionNameSpecified() &&
-              !scan->getTableName().isPartitionRangeSpecified() &&
-              (NOT bindWA->inViewDefinition()))
-	    {
-              ItemExprList selList(bindWA->wHeap());
-              selList.insertTree(getCompExprTree());
-	      // for now, only count(*) can be co-proc'd
-              if ((selList.entries() == 1) &&
-                  (selList[0]->getOperatorType() == ITM_COUNT) &&
-		  (selList[0]->origOpType() == ITM_COUNT_STAR__ORIGINALLY))
-                {
-		  NATable *naTable = bindWA->getNATable(scan->getTableName());
-		  if (bindWA->errStatus()) 
-		    return this;
-
-		  if (((naTable->getObjectType() == COM_BASE_TABLE_OBJECT) ||
-		       (naTable->getObjectType() == COM_INDEX_OBJECT)) &&
-		      ((naTable->isSeabaseTable()) ||
-                       ((naTable->isHiveTable()) &&
-                        (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile()))))
-		    {
-		      Aggregate * agg = 
-			new(bindWA->wHeap()) Aggregate(ITM_COUNT,
-						       new (bindWA->wHeap()) SystemLiteral(1),
-						       FALSE /*i.e. not distinct*/,
-						       ITM_COUNT_STAR__ORIGINALLY,
-						       '!');
-		      agg->bindNode(bindWA);
-		      if (bindWA->errStatus())
-			{	  
-			  return this;
-			}
-
-		      ValueIdSet aggrSet;
-		      aggrSet.insert(agg->getValueId());
-		      ExeUtilExpr * eue = NULL;
-                      
-                      if (naTable->isSeabaseTable())
-                        eue = 
-                          new(CmpCommon::statementHeap())
-                          ExeUtilHbaseCoProcAggr(scan->getTableName(),
-                                                 aggrSet);
-                      else
-                        eue = 
-                          new(CmpCommon::statementHeap())
-                          ExeUtilOrcFastAggr(scan->getTableName(),
-                                             aggrSet);
-		      
-		      eue->bindNode(bindWA);
-		      if (bindWA->errStatus())
-			{	  
-			  return this;
-			}
-		      
-		      setChild(0, eue);
-
-                      removeCompExprTree();
-                      addCompExprTree(agg);
-
-		    } // if seabaseTable
-		} // count aggr
-	    }
-	} // coproc on
-
+      if (! transformForAggrPushdown(bindWA))
+        return this;
 
       if (child(0) && 
 	  ((child(0)->getOperatorType() == REL_INSERT) ||
@@ -4914,22 +5009,22 @@ RelExpr *RelRoot::bindNode(BindWA *bindWA)
 	{
 	  Insert * ins = (Insert*)child(0)->castToRelExpr();
 	  if (ins->isNoRollback())
-          {
-            if ((CmpCommon::getDefault(AQR_WNR) 
-                 != DF_OFF) &&
-                (CmpCommon::getDefault(AQR_WNR_INSERT_CLEANUP)
-                 != DF_OFF))
-              ins->enableAqrWnrEmpty() = TRUE;
-          }
+            {
+              if ((CmpCommon::getDefault(AQR_WNR) 
+                   != DF_OFF) &&
+                  (CmpCommon::getDefault(AQR_WNR_INSERT_CLEANUP)
+                   != DF_OFF))
+                ins->enableAqrWnrEmpty() = TRUE;
+            }
           if (CmpCommon::transMode()->anyNoRollback())
-          {
-            // tbd - may need to integrate these two.
-            if ((CmpCommon::getDefault(AQR_WNR)
-                != DF_OFF) &&
-                (CmpCommon::getDefault(AQR_WNR_INSERT_CLEANUP)
-                != DF_OFF))
-              ins->enableAqrWnrEmpty() = TRUE;
-          }
+            {
+              // tbd - may need to integrate these two.
+              if ((CmpCommon::getDefault(AQR_WNR)
+                   != DF_OFF) &&
+                  (CmpCommon::getDefault(AQR_WNR_INSERT_CLEANUP)
+                   != DF_OFF))
+                ins->enableAqrWnrEmpty() = TRUE;
+            }
 	}
       
       // if lob is being extracted as chunks of string, then only one
@@ -4958,11 +5053,7 @@ RelExpr *RelRoot::bindNode(BindWA *bindWA)
 	      setChild(0, le);
 	 
 	    }
-	     
-
 	}
-	
-      
 
       processRownum(bindWA);
       

@@ -66,6 +66,23 @@ class HdfsFileInfo
   Int64 bytesToRead_;
 };
 
+class HdfsColInfo
+{
+ public:
+  HdfsColInfo(char * cname, Lng32 cnum) :
+       colName_(cname), colNum_(cnum)
+  {}
+
+  char * colName() { return colName_; }
+  Lng32  colNumber() { return colNum_; }
+
+  Lng32 getFlags() { return flags_; }
+
+  Lng32 colNum_; // 0 based. Number of first col in file is 0.
+  Lng32 flags_;
+  NABasicPtr  colName_;
+};
+
 #include "ExpLOBaccess.h"
 
 #define LOB_ACCESS_SUCCESS 0

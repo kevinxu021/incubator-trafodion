@@ -48,6 +48,7 @@ static const char* const sfrErrorEnumStr[] =
  ,"Java exception in isEOF()"
  ,"Java exception in fetchNextRow()"
  ,"Java exception in close()"
+ ,"Unknown error returned from ORC interface"
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -113,8 +114,8 @@ OFR_RetCode OrcFileReader::init()
     JavaMethods_[JM_FETCHROW  ].jm_signature = "()[B";
     JavaMethods_[JM_FETCHROW2 ].jm_name      = "fetchNextRowObj";
     JavaMethods_[JM_FETCHROW2 ].jm_signature = "()Lorg/trafodion/sql/OrcFileReader$OrcRowReturnSQL;";
-    JavaMethods_[JM_GETNUMROWS].jm_name      = "getNumberOfRows";
-    JavaMethods_[JM_GETNUMROWS].jm_signature = "()J";
+    JavaMethods_[JM_GETCOLSTATS ].jm_name      = "getColStats";
+    JavaMethods_[JM_GETCOLSTATS ].jm_signature = "(I)Lorg/trafodion/sql/ByteArrayList;";
     JavaMethods_[JM_CLOSE     ].jm_name      = "close";
     JavaMethods_[JM_CLOSE     ].jm_signature = "()Ljava/lang/String;";
   
@@ -606,22 +607,35 @@ OFR_RetCode OrcFileReader::close()
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-OFR_RetCode OrcFileReader::getRowCount(Int64& count)
+ByteArrayList* OrcFileReader::getColStats(int colNum)
 {
   QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
 		LL_DEBUG,
-		"OrcFileReader::getRowCount() called.");
+		"OrcFileReader::getColStats() called.");
   if (javaObj_ == NULL) {
     // Maybe there was an initialization error.
-    return OFR_OK;
+    return NULL;
   }
     
-  tsRecentJMFromJNI = JavaMethods_[JM_GETNUMROWS].jm_full_name;
-  jlong jresult = (jlong)jenv_->CallObjectMethod(javaObj_,
-						 JavaMethods_[JM_GETNUMROWS].methodID);
-  count = jresult;
+  jint      ji_colNum = colNum;
+
+    //  tsRecentJMFromJNI = JavaMethods_[JM_GETCOLSTATS].jm_full_name;
+  jobject jByteArrayList = jenv_->CallObjectMethod
+    (javaObj_,
+     JavaMethods_[JM_GETCOLSTATS].methodID,
+     ji_colNum);
   
-  return OFR_OK;
+  ByteArrayList* colStats = new (heap_) ByteArrayList(heap_, jByteArrayList);
+  jenv_->DeleteLocalRef(jByteArrayList);
+  if (colStats->init() != BAL_OK)
+    {
+      NADELETE(colStats, ByteArrayList, heap_);
+      jenv_->PopLocalFrame(NULL);
+      return NULL;
+    }
+  
+  jenv_->PopLocalFrame(NULL);
+  return colStats;
 }
 
 //////////////////////////////////////////////////////////////////////////////

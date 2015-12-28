@@ -3790,6 +3790,10 @@ enum DefaultConstants
   // set to ON to aggressively allocate ESP per core
   AGGRESSIVE_ESP_ALLOCATION_PER_CORE,
 
+  // 0: no pushdown, evaluated using traditional way (scan and aggr).
+  // 1: transform in binder. See RelRoot::transformForAggrPushdown
+  // 2: transform in preCodeGen
+  ORC_AGGR_PUSHDOWN,
 
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!

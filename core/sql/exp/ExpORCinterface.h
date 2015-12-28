@@ -67,10 +67,18 @@ class ExpORCinterface : public NABasicObject
   // startRowNum: first rownum to be returned. 
   // stopRowNum:  last rownum to be returned
   //    Rownums start at 1 and stop at N. If N is -1, then all rows are to be returned.
+  // 
+  // numCols   : Number of columns to be returned 
+  //                         set it to -1 to get all the columns
+  //
+  // whichCol            : array containing the column numbers to be returned
+  //                        (Column numbers are zero based)
   Lng32 scanOpen(
                  char * orcFileName,
                  const Int64 startRowNum, 
-                 const Int64 stopRowNum);
+                 const Int64 stopRowNum,
+                 Lng32 numCols,
+                 Lng32 *whichCols);
 
   // orcRow:   pointer to buffer where ORC will return the row.
   //                Buffer is allocated by caller.
@@ -90,7 +98,14 @@ class ExpORCinterface : public NABasicObject
 
   Lng32 scanClose();
 
-  Lng32 getRowCount(char * orcFileName, Int64 &count);
+  Lng32 open(char * orcFileName,
+             Lng32 numCols = 0,
+             Lng32 * whichCols = NULL);
+
+  Lng32 close();
+
+  Lng32 getColStats(char * orcFileName, Lng32 colNum,
+                    ByteArrayList* &bal);
 
   char * getErrorText(Lng32 errEnum);
 protected:

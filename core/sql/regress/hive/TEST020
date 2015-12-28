@@ -1,4 +1,4 @@
--- Tests for ORC file accedss
+-- Tests for ORC file access
 -- Added Nov 2014
 --
 -- @@@ START COPYRIGHT @@@
@@ -84,4 +84,18 @@ execute explainIt;
 
 -- execute of join between hive(hdfs) and ORC tables
 execute XX;
+
+-- aggregate pushdown to ORC layer
+cqd orc_aggr_pushdown '1';
+explain options 'f' select count(*) from store_orc;
+select count(*) from store_orc;
+select count(*), count(*) from store_orc;
+select min(s_store_sk) from store_orc;
+select max(s_store_sk) from store_orc;
+select sum(s_store_sk) from store_orc;
+select count(*), min(s_store_sk), max(s_store_sk), sum(s_store_sk) 
+   from store_orc;
+explain options 'f' select count(*), min(s_store_sk), max(s_store_sk), 
+   sum(s_store_sk) from store_orc;
+
 

@@ -130,7 +130,11 @@ class ComTdbHdfsScan : public ComTdb
   NABasicPtr errCountTable_;                                  // 160 - 167
   NABasicPtr loggingLocation_;                                // 168 - 175
   NABasicPtr errCountRowId_;                                  // 176 - 183
-  char fillersComTdbHdfsScan1_[16];                           // 184 - 199
+
+  // list of retrieved cols. Each entry is "class HdfsColInfo".
+  QueuePtr hdfsColInfoList_;   
+                                // 184 - 191
+  char fillersComTdbHdfsScan1_[8];                           // 192 - 199
 
 public:
   enum HDFSFileType
@@ -158,6 +162,7 @@ public:
 		 Queue * hdfsFileInfoList,
 		 Queue * hdfsFileRangeBeginList,
 		 Queue * hdfsFileRangeNumList,
+                 Queue * hdfsColInfoList,
                  char recordDelimiter,
                  char columnDelimiter,
 		 Int64 hdfsBufSize,
@@ -177,10 +182,10 @@ public:
 		 queue_index up,
 		 Cardinality estimatedRowCount,
                  Int32  numBuffers,
-                 UInt32  bufferSize
-                 , char * errCountTable
-                 , char * loggingLocation
-                 , char * errCountId
+                 UInt32  bufferSize,
+                 char * errCountTable,
+                 char * loggingLocation,
+                 char * errCountId
                  );
 
   ~ComTdbHdfsScan();
@@ -221,6 +226,7 @@ public:
   Queue* getHdfsFileInfoList() {return hdfsFileInfoList_;}
   Queue* getHdfsFileRangeBeginList() {return hdfsFileRangeBeginList_;}
   Queue* getHdfsFileRangeNumList() {return hdfsFileRangeNumList_;}
+  Queue* getHdfsColInfoList() {return hdfsColInfoList_;}
 
   const NABoolean isTextFile() const { return (type_ == TEXT_);}
   const NABoolean isSequenceFile() const { return (type_ == SEQUENCE_);}  
@@ -337,10 +343,12 @@ class ComTdbOrcFastAggr : public ComTdbHdfsScan
 public:
   enum OrcAggrType
   {
-    UNKNOWN_ = 0,
-    COUNT_      = 1,
-    MIN_           = 2,
-    MAX_          = 3
+    UNKNOWN_       = 0,
+    COUNT_         = 1,
+    COUNT_UNIQ_    = 2,
+    MIN_           = 3,
+    MAX_           = 4,
+    SUM_           = 5
   };
 
   // Constructor
@@ -348,10 +356,16 @@ public:
   
   ComTdbOrcFastAggr(
                 char * tableName,
-                OrcAggrType type,
                 Queue * hdfsFileInfoList,
                 Queue * hdfsFileRangeBeginList,
                 Queue * hdfsFileRangeNumList,
+                Queue * listOfAggrTypes,
+                Queue * listOfAggrColInfo,
+                ex_expr * aggr_expr,
+                Int32 finalAggrRowLen,
+                const unsigned short finalAggrTuppIndex,
+                Int32 orcAggrRowLen,
+                const unsigned short orcAggrTuppIndex,                
                 ex_expr * proj_expr,
                 Int64 projRowLen,
                 const unsigned short projTuppIndex,
@@ -367,12 +381,51 @@ public:
   
   ~ComTdbOrcFastAggr();
 
+  Queue* getAggrTypeList() {return aggrTypeList_;}
+
   virtual short getClassSize() { return (short)sizeof(ComTdbOrcFastAggr); }  
 
   virtual const char *getNodeName() const { return "EX_ORC_FAST_AGGR"; };
 
+  virtual Int32 numExpressions() const 
+  { return (ComTdbHdfsScan::numExpressions() + 1); }
+
+  virtual ex_expr* getExpressionNode(Int32 pos) {
+    if (pos < ComTdbHdfsScan::numExpressions())
+      return ComTdbHdfsScan::getExpressionNode(pos);
+
+    if (pos ==  ComTdbHdfsScan::numExpressions())
+      return aggrExpr_;
+
+    return NULL;
+  }
+  
+  virtual const char * getExpressionName(Int32 pos) const {
+    if (pos < ComTdbHdfsScan::numExpressions())
+      return ComTdbHdfsScan::getExpressionName(pos);
+
+    if (pos ==  ComTdbHdfsScan::numExpressions())
+      return "aggrExpr_";
+
+    return NULL;
+  }
+ 
+  Long pack(void *);
+
+  Lng32 unpack(void *, void * reallocator);
+
  private:
-   OrcAggrType type_;
+  QueuePtr aggrTypeList_;   
+
+  ExExprPtr aggrExpr_;
+
+  // max length of orc aggr row.
+  Int32 orcAggrRowLength_;
+  Int32 finalAggrRowLength_;
+
+  UInt16 orcAggrTuppIndex_;
+
+  char filler_[6];
 };
 
 #endif

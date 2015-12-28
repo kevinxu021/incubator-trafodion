@@ -333,6 +333,11 @@ protected:
   Int64 orcNumRows_;
   Int64 orcStopRowNum_;
 
+  // Number of columns to be returned. -1, for all cols.
+  Lng32 numCols_;
+  // array of col numbers to be returned. (zero based)
+  Lng32 *whichCols_;
+
   // returned row from orc scanFetch
   char * orcRow_;
   Int64 orcRowLen_;
@@ -404,12 +409,23 @@ public:
 
   inline ExOrcFastAggrTdb &orcAggrTdb() const
   { return (ExOrcFastAggrTdb &) tdb; }
-  
+
+  ex_expr *aggrExpr() const 
+  { return orcAggrTdb().aggrExpr_; }
+
+   
 protected:
   enum {
     NOT_STARTED
     , ORC_AGGR_INIT
+    , ORC_AGGR_OPEN
+    , ORC_AGGR_NEXT
+    , ORC_AGGR_CLOSE
     , ORC_AGGR_EVAL
+    , ORC_AGGR_COUNT
+    , ORC_AGGR_MIN
+    , ORC_AGGR_MAX
+    , ORC_AGGR_SUM
     , ORC_AGGR_PROJECT
     , ORC_AGGR_RETURN
     , CLOSE_FILE
@@ -424,7 +440,21 @@ protected:
   /////////////////////////////////////////////////////
  private:
   Int64 rowCount_;
-  char * aggrRow_;
+  
+  char * outputRow_;
+
+  // row where aggregate values retrieved from orc will be moved into.
+  char * orcAggrRow_;
+
+  // row where aggregate value from all stripes will be computed.
+  char * finalAggrRow_;
+
+  Lng32 aggrNum_;
+
+  ComTdbOrcFastAggr::OrcAggrType aggrType_;
+  Lng32 colNum_;
+
+  ByteArrayList * bal_;
 };
 
 #define RANGE_DELIMITER '\002'

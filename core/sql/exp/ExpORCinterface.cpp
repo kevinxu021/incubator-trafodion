@@ -62,20 +62,41 @@ Lng32 ExpORCinterface::init()
   return 0;
 }
 
+Lng32 ExpORCinterface::open(char * orcFileName,
+                            Lng32 numCols,
+                            Lng32 * whichCols)
+{
+  OFR_RetCode rc = 
+    (numCols == 0 ? ofr_->open(orcFileName) 
+     : ofr_->open(orcFileName, numCols, whichCols));
+  if (rc != OFR_OK)
+    return -rc;
+
+  return 0;
+}
+
 Lng32 ExpORCinterface::scanOpen(
                                 char * orcFileName,
                                 const Int64 startRowNum, 
-                                const Int64 stopRowNum)
+                                const Int64 stopRowNum,
+                                Lng32 numCols,
+                                Lng32 * whichCols)
 {
-  OFR_RetCode rc = ofr_->open(orcFileName);
+  Lng32 rc0 = open(orcFileName, numCols, whichCols);
+  if (rc0)
+    return rc0;
+
+#ifdef __ignore
+  OFR_RetCode rc = ofr_->open(orcFileName, numCols, whichCols);
   if (rc != OFR_OK)
     return -rc;
+#endif
 
   startRowNum_ = startRowNum;
   currRowNum_  = startRowNum;
   stopRowNum_  = stopRowNum;
 
-  rc = ofr_->seeknSync(startRowNum);
+  OFR_RetCode rc = ofr_->seeknSync(startRowNum);
   if (rc != OFR_OK)
     return -rc;
   
@@ -95,12 +116,15 @@ Lng32 ExpORCinterface::scanFetch(char* row, Int64 &rowLen, Int64 &rowNum,
   if (rc != OFR_OK)
     return -rc;
   
+  if ((rowLen <= 0) || (numCols <= 0))
+    return -OFR_UNKNOWN_ERROR;
+
   currRowNum_++;
   
   return 0;
 }
 
-Lng32 ExpORCinterface::scanClose()
+Lng32 ExpORCinterface::close()
 {
   OFR_RetCode rc = ofr_->close();
   if (rc != OFR_OK)
@@ -109,17 +133,23 @@ Lng32 ExpORCinterface::scanClose()
   return 0;
 }
 
-Lng32 ExpORCinterface::getRowCount(char * orcFileName, Int64 &count)
+Lng32 ExpORCinterface::scanClose()
 {
-  count = 0;
+  return close();
+}
+
+Lng32 ExpORCinterface::getColStats(char * orcFileName, Lng32 colNum,
+                                   ByteArrayList* &bal)
+{
+  bal = NULL;
 
   OFR_RetCode rc = ofr_->open(orcFileName);
   if (rc != OFR_OK)
     return -rc;
 
-  rc = ofr_->getRowCount(count);
-  if (rc != OFR_OK)
-    return -rc;
+  bal = ofr_->getColStats(colNum);
+  if (bal == NULL)
+    return -1;
  
   rc = ofr_->close();
   if (rc != OFR_OK)

@@ -443,13 +443,13 @@ short FileScan::genForTextAndSeq(Generator * generator,
 }
 
 short FileScan::genForOrc(Generator * generator,
-                         const HHDFSTableStats* hTabStats,
-                         const PartitioningFunction * mypart,
-                         Queue * &hdfsFileInfoList,
-                         Queue * &hdfsFileRangeBeginList,
-                         Queue * &hdfsFileRangeNumList,
-                         char* &hdfsHostName,
-                         Int32 &hdfsPort)
+                          const HHDFSTableStats* hTabStats,
+                          const PartitioningFunction * mypart,
+                          Queue * &hdfsFileInfoList,
+                          Queue * &hdfsFileRangeBeginList,
+                          Queue * &hdfsFileRangeNumList,
+                          char* &hdfsHostName,
+                          Int32 &hdfsPort)
 {
   Space * space          = generator->getSpace();
 
@@ -461,7 +461,7 @@ short FileScan::genForOrc(Generator * generator,
   hdfsFileInfoList = new(space) Queue(space);
   hdfsFileRangeBeginList = new(space) Queue(space);
   hdfsFileRangeNumList = new(space) Queue(space);
-
+ 
   const NodeMap* nmap = (mypart ? mypart->getNodeMap() : NULL);
 
   NABoolean emptyScan = FALSE;
@@ -1015,6 +1015,7 @@ short FileScan::codeGenForHive(Generator * generator)
   Queue * hdfsFileInfoList = NULL;
   Queue * hdfsFileRangeBeginList = NULL;
   Queue * hdfsFileRangeNumList = NULL;
+  Queue * hdfsColInfoList = NULL;
   Int64 expirationTimestamp = 0;
   char * hdfsHostName = NULL;
   Int32 hdfsPort = 0;
@@ -1056,6 +1057,36 @@ short FileScan::codeGenForHive(Generator * generator)
                 getPhysicalProperty()->getPartitioningFunction(),
                 hdfsFileInfoList, hdfsFileRangeBeginList, hdfsFileRangeNumList,
                 hdfsHostName, hdfsPort);
+      
+      hdfsColInfoList = new(space) Queue(space);
+      for (int i = 0; i < neededHdfsVals.entries(); i++)
+        {
+          ValueId &vid = neededHdfsVals[i];
+          ItemExpr * ie = vid.getItemExpr();
+
+          NAColumn * nac = NULL;
+          if (ie->getOperatorType() == ITM_BASECOLUMN)
+            {
+              nac = ((BaseColumn*)ie)->getNAColumn();
+            }
+          else if (ie->getOperatorType() == ITM_INDEXCOLUMN)
+            {
+              nac = ((IndexColumn*)ie)->getNAColumn();
+            }
+          else
+            continue;
+
+          char * cnameInList = 
+            space->allocateAndCopyToAlignedSpace
+            (nac->getColName().data(), nac->getColName().length(), 0);
+          
+          // orc col numbers are 1 based
+          HdfsColInfo hco(cnameInList, nac->getPosition()+1);
+          char * hcoInList = space->allocateAndCopyToAlignedSpace
+            ((char*)&hco, sizeof(HdfsColInfo));
+          hdfsColInfoList->insert(hcoInList);
+        }
+      
     }
 
   // set expiration timestamp
@@ -1136,6 +1167,7 @@ if (hTabStats->isOrcFile())
 		   hdfsFileInfoList,
 		   hdfsFileRangeBeginList,
 		   hdfsFileRangeNumList,
+                   hdfsColInfoList,
 		   hTabStats->getRecordTerminator(),  // recordDelimiter
 		   hTabStats->getFieldTerminator(),   // columnDelimiter,
 		   hdfsBufSize,

@@ -2736,6 +2736,8 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   //OPTS_PUSH_DOWN_DAM made external RV 06/21/01 CR 10-010425-2440
   DDui___(OPTS_PUSH_DOWN_DAM,                   "0"),
 
+  DDui___(ORC_AGGR_PUSHDOWN,                    "1"),
+
   DDkwd__(ORDERED_HASH_JOIN_CONTROL,            "ON"),
  SDDkwd__(OR_OPTIMIZATION,                      "ON"),
   DDkwd__(OR_PRED_ADD_BLOCK_TO_IN_LIST,         "ON"),
@@ -3326,7 +3328,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
 
  DDkwd__(TRAF_DEFAULT_COL_CHARSET,            (char *)SQLCHARSETSTRING_ISO88591),
  
- DDkwd__(TRAF_ENABLE_ORC_FORMAT,                 "OFF"),   
+ DDkwd__(TRAF_ENABLE_ORC_FORMAT,                 "ON"),   
 
   DDkwd__(TRAF_INDEX_ALIGNED_ROW_FORMAT,        "ON"),   
   DDkwd__(TRAF_INDEX_CREATE_OPT,          "OFF"),

@@ -24,6 +24,7 @@ package org.trafodion.sql;
 import java.io.IOException;
 import java.util.*;
 import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 import java.nio.ByteOrder;
 
 import org.apache.hadoop.conf.Configuration;
@@ -36,6 +37,13 @@ import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
 import org.apache.hadoop.hive.ql.io.orc.*;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgument;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgumentFactory;
+
+import org.apache.hadoop.hive.ql.io.orc.OrcProto.Type;
+import org.apache.hadoop.hive.ql.io.orc.OrcProto.Type.Kind;
+import org.apache.hadoop.hbase.util.Bytes;
+
+import java.lang.Integer;
+import java.lang.Long;
 
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.Logger;
@@ -393,14 +401,132 @@ public class OrcFileReader
         m_byteorder = pv_bo;
     }
 
-    public long getNumberOfRows() throws IOException 
-    {
+    // for input column num, the returned list contains 4 entries:
+    //     type
+    //     unique entry count
+    //     min value
+    //     max value
+    //     sum value (for numeric datatypes)
+    public ByteArrayList getColStats(int colNum) throws IOException 
+     {
+	if (logger.isTraceEnabled()) logger.trace("Enter getColStats");
 
-	if (logger.isTraceEnabled()) logger.trace("Enter getNumberOfRows");
+        ByteArrayList retColStats = new ByteArrayList();
 
-	return m_reader.getNumberOfRows();
+        // total number of vals (includes null and dups)
+        long numVals = m_reader.getNumberOfRows();
+        byte[] bytes = 
+            ByteBuffer.allocate(8) //Long.BYTES)
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .putLong(numVals).array();
+        retColStats.add(bytes);
 
-    }
+        if (colNum == -1)
+            {
+                System.out.println("count = " + numVals);
+                return retColStats;
+            }
+
+        ColumnStatistics columnStatistics = m_reader.getStatistics()[colNum];
+
+        // type of aggr
+        List<Type> types = m_reader.getTypes();
+        Type[] arrayTypes = types.toArray(new Type[0]);
+        Type columnType = arrayTypes[colNum];
+        int ctInt = columnType.getKind().getNumber();
+        bytes = 
+            ByteBuffer.allocate(4) //Integer.BYTES)
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .putInt(ctInt).array();
+        retColStats.add(bytes);
+
+        // num of uniq values (does not include dups and nulls)
+        long numUniqVals = columnStatistics.getNumberOfValues();
+        bytes = 
+            ByteBuffer.allocate(8) //Long.BYTES)
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .putLong(numUniqVals).array();
+        retColStats.add(bytes);
+
+        switch (columnType.getKind())
+            {
+            case BYTE:
+            case SHORT:
+            case INT:
+            case LONG:
+                {
+                    IntegerColumnStatistics ics = 
+                        (IntegerColumnStatistics)columnStatistics;
+                    long min = ics.getMinimum();
+                    long max = ics.getMaximum();
+                    long sum = (ics.isSumDefined() ? ics.getSum() : -1);
+
+                    bytes = 
+                        ByteBuffer.allocate(8) //Long.BYTES)
+                        .order(ByteOrder.LITTLE_ENDIAN)
+                        .putLong(min).array();
+
+                    retColStats.add(bytes);
+
+                    bytes = 
+                        ByteBuffer.allocate(8) //Long.BYTES)
+                        .order(ByteOrder.LITTLE_ENDIAN)
+                        .putLong(max).array();
+
+                    retColStats.add(bytes);
+
+                    bytes = 
+                        ByteBuffer.allocate(8) //Long.BYTES)
+                        .order(ByteOrder.LITTLE_ENDIAN)
+                        .putLong(sum).array();
+
+                    retColStats.add(bytes);
+
+                    //                    System.out.println("min = " + min);
+                    //                    System.out.println("max = " + max);
+                    //                    System.out.println("sum = " + sum);                    
+                }
+                break;
+
+            case DOUBLE:
+                {
+                    DoubleColumnStatistics dcs = 
+                        (DoubleColumnStatistics)columnStatistics;
+                    double min = dcs.getMinimum();
+                    bytes = Bytes.toBytes(min);
+                    retColStats.add(bytes);
+
+                    double max = dcs.getMaximum();
+                    bytes = Bytes.toBytes(max);
+                    retColStats.add(bytes);
+
+                    double sum = dcs.getSum();
+                    bytes = Bytes.toBytes(sum);
+                    retColStats.add(bytes);
+
+                }
+                break;
+
+            case STRING:
+                {
+                    StringColumnStatistics scs = 
+                        (StringColumnStatistics)columnStatistics;
+                    String min = scs.getMinimum();
+                    bytes = min.getBytes();
+                    retColStats.add(bytes);
+
+                    String max = scs.getMaximum();
+                    bytes = max.getBytes();
+                    retColStats.add(bytes);
+
+                }
+                break;
+            }
+
+	return retColStats;
+ 
+     }
+ 
 
     public long getPosition() throws IOException 
     {

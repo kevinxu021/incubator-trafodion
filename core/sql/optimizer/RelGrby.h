@@ -516,6 +516,10 @@ public:
      ValueIdSet       &pulledPredicates,        // return the pulled-up preds
      ValueIdMap       *optionalMap);            // optional map to rewrite preds
 
+  RelExpr *transformForAggrPushdown(Generator * generator,
+                                    const ValueIdSet & externalInputs,
+                                    ValueIdSet &pulledNewInputs);
+
   /*ExpTupleDesc::TupleDataFormat determineInternalFormat( const ValueIdList & valIdList,
                                                            RelExpr * relExpr,
                                                            NABoolean & resizeCifRecord,

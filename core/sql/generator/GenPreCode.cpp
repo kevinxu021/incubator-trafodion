@@ -70,6 +70,9 @@
 #include "CmpSeabaseDDL.h"
 #include "NAExecTrans.h"
 #include "exp_function.h"
+
+#include "HDFSHook.h"
+
 #include "SqlParserGlobals.h"      // must be last #include
 
 extern ItemExpr * buildComparisonPred (	ItemExpr *, ItemExpr *, ItemExpr *,
@@ -5770,6 +5773,219 @@ RelExpr * HashGroupBy::preCodeGen(Generator * generator,
 
 }
 
+RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
+                                              const ValueIdSet & externalInputs,
+                                              ValueIdSet &pulledNewInputs)
+{
+  RelExpr * newNode = this;
+
+  // if this is simple scalar aggregate on a seabase table
+  //  (of the form:  select count(*) from t; )
+  // or aggrs count(*), min, max on orc table,
+  // then transform it so it could be evaluated by hbase coproc
+  // or using ORC apis.
+  NABoolean aggrPushdown = FALSE;
+  Scan * scan = NULL;
+
+  if (child(0) && child(0)->getOperatorType() == REL_FILE_SCAN)
+    {
+      scan = (Scan*)child(0)->castToRelExpr();
+      
+      if ((NOT aggregateExpr().isEmpty()) &&
+          (groupExpr().isEmpty()) &&
+          (selectionPred().isEmpty()) &&
+          (scan->selectionPred().isEmpty()) &&
+          ((scan->getTableName().getSpecialType() == ExtendedQualName::NORMAL_TABLE) ||
+           (scan->getTableName().getSpecialType() == ExtendedQualName::INDEX_TABLE)) &&
+          !scan->getTableName().isPartitionNameSpecified() &&
+          !scan->getTableName().isPartitionRangeSpecified())
+        {
+          aggrPushdown = TRUE;
+        }
+    }
+
+  NABoolean isSeabase = FALSE;
+  NABoolean isOrc = FALSE;
+  if (aggrPushdown)
+    {
+      const NATable * naTable = scan->getTableDesc()->getNATable();
+      isSeabase = naTable->isSeabaseTable();
+      isOrc = ((naTable->isHiveTable()) &&
+               (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile()));
+      if (NOT (((naTable->getObjectType() == COM_BASE_TABLE_OBJECT) ||
+                (naTable->getObjectType() == COM_INDEX_OBJECT)) &&
+               ((naTable->isSeabaseTable()) || (isOrc))))
+        {
+          aggrPushdown = FALSE;
+        }
+
+      if ((aggrPushdown) &&
+          ((naTable->isHiveTable()) &&
+           (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile())) &&
+          (CmpCommon::getDefaultNumeric(ORC_AGGR_PUSHDOWN) != 2))
+        {
+          aggrPushdown = FALSE;
+        }
+    }
+  
+  if (aggrPushdown)
+    {
+      for (ValueId valId = aggregateExpr().init();
+	   (aggrPushdown && aggregateExpr().next(valId));
+	   aggregateExpr().advance(valId)) 
+        {
+          ItemExpr * ae = valId.getItemExpr();
+          if ((ae->getOperatorType() == ITM_COUNT) &&
+              (ae->origOpType() == ITM_COUNT_STAR__ORIGINALLY))
+            continue;
+
+          if ((isOrc) &&
+              ((ae->getOperatorType() == ITM_MIN) ||
+               (ae->getOperatorType() == ITM_MAX) ||
+               (ae->getOperatorType() == ITM_SUM)))
+            continue;
+
+          aggrPushdown = FALSE;
+        }
+    }
+  
+  if (aggrPushdown)
+    {
+      ValueIdSet aggrSet;
+      for (ValueId valId = aggregateExpr().init();
+	   (aggrPushdown && aggregateExpr().next(valId));
+	   aggregateExpr().advance(valId)) 
+        {
+          Aggregate * origAgg = (Aggregate*)valId.getItemExpr();
+
+          Aggregate * agg = NULL;
+
+          origAgg->setIsPushdown(TRUE);
+
+          if (isOrc)
+            {
+              if (origAgg->getOperatorType() == ITM_COUNT)
+                {
+                  origAgg->setOperatorType(ITM_SUM);
+                  origAgg->setOrigOpType(ITM_COUNT);
+                }
+
+              const NAType *myType = &origAgg->getValueId().getType();
+              NAType * orcAggrType = NULL;
+              if (myType->getTypeQualifier() == NA_NUMERIC_TYPE)
+                {
+                  NumericType *nType = (NumericType*)myType;
+                  if (nType->isExact() && nType->binaryPrecision())
+                    {
+                      orcAggrType = 
+                        new(generator->wHeap()) SQLLargeInt(TRUE, FALSE);
+                    }
+                }
+              
+              if (! orcAggrType)
+                orcAggrType = myType->newCopy(generator->wHeap());
+              orcAggrType->resetSQLnullFlag();
+          
+              ItemExpr * orcAggrArg = 
+                new (generator->wHeap()) NATypeToItem(orcAggrType);
+              orcAggrArg->bindNode(generator->getBindWA());
+              if (generator->getBindWA()->errStatus())
+                return this;
+              
+              //              origChild_ = child(0);
+              origAgg->setOriginalChild(origAgg->child(0));
+              origAgg->setChild(0, orcAggrArg);
+            }
+          
+#ifdef __ignore
+          if (isSeabase)
+            {
+              if (origAgg->getOperatorType() == ITM_COUNT)
+                {
+                  agg = new(generator->wHeap()) 
+                    Aggregate(ITM_COUNT,
+                              new (generator->wHeap()) SystemLiteral(1),
+                              FALSE /*i.e. not distinct*/,
+                              ITM_COUNT_STAR__ORIGINALLY,
+                              '!');
+
+                  agg->bindNode(generator->getBindWA());
+                  if (generator->getBindWA()->errStatus())
+                    {	  
+                      return this;
+                    }
+                }
+            } // seabasePushdown
+          else
+            {
+             if (origAgg->getOperatorType() == ITM_COUNT)
+               {
+                 agg = new(generator->wHeap()) 
+                   AggregatePushdown(ITM_SUM,
+                                     origAgg->child(0),
+                                     FALSE /*i.e. not distinct*/,
+                                     ITM_COUNT,
+                                     isSeabase);
+               }
+             else if ((origAgg->getOperatorType() == ITM_MIN) ||
+                      (origAgg->getOperatorType() == ITM_MAX))
+               {
+                 agg = new(generator->wHeap()) 
+                   AggregatePushdown(origAgg->getOperatorType(),
+                                     origAgg->child(0),
+                                     FALSE /*i.e. not distinct*/,
+                                     origAgg->getOperatorType(),
+                                     isSeabase);
+               }
+             else if (origAgg->getOperatorType() == ITM_SUM)
+               {
+                 agg = new(generator->wHeap()) 
+                   AggregatePushdown(ITM_SUM,
+                                     origAgg->child(0),
+                                     FALSE /*i.e. not distinct*/,
+                                     ITM_SUM,
+                                     isSeabase);
+               }
+             
+             agg->setValueId(valId);
+             valId.getItemExpr()->synthesizeType();
+            } // ORC pushdown
+          aggrSet.insert(agg->getValueId());
+#endif
+        } // for
+
+      ExeUtilExpr * eue = NULL;
+      if (isSeabase)
+        eue = 
+          new(CmpCommon::statementHeap())
+          ExeUtilHbaseCoProcAggr(scan->getTableName(),
+                                 aggregateExpr()); //aggrSet);
+      else
+        eue = 
+          new(CmpCommon::statementHeap())
+          ExeUtilOrcFastAggr(scan->getTableName(),
+                             aggregateExpr()); //aggrSet);
+
+      eue->setEstRowsUsed(getEstRowsUsed());
+      eue->setMaxCardEst(getMaxCardEst());
+      eue->setInputCardinality(getInputCardinality());
+      eue->setPhysicalProperty(getPhysicalProperty());
+      eue->setGroupAttr(getGroupAttr());
+
+      newNode = eue->bindNode(generator->getBindWA());
+      if (generator->getBindWA()->errStatus())
+        return NULL;
+      
+      newNode = newNode->preCodeGen
+        (generator,
+         getGroupAttr()->getCharacteristicInputs(),
+         pulledNewInputs);
+
+    } // aggrPushdown
+  
+  return newNode;
+}
+
 RelExpr * GroupByAgg::preCodeGen(Generator * generator,
 				 const ValueIdSet & externalInputs,
 				 ValueIdSet &pulledNewInputs)
@@ -5904,10 +6120,15 @@ RelExpr * GroupByAgg::preCodeGen(Generator * generator,
 
   }
 
+  RelExpr * pcgExpr = transformForAggrPushdown
+    (generator, externalInputs, pulledNewInputs);
+  if (! pcgExpr)
+    return NULL;
+
   markAsPreCodeGenned();
 
   // Done.
-  return this;
+  return pcgExpr;
 } // GroupByAgg::preCodeGen()
 
 RelExpr * MergeUnion::preCodeGen(Generator * generator,

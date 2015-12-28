@@ -39,12 +39,7 @@
 // forward declare
 class ExHbaseAccessStats;
 
-using namespace apache::hadoop::hbase::thrift;
-
-namespace {
-  typedef std::vector<Text> TextVec;
-}
-
+#include "ByteArrayList.h"
 
 class ContextCli;
 
@@ -56,70 +51,6 @@ typedef enum {
   HBC_Req_Shutdown = 0
  ,HBC_Req_Drop
 } HBaseClientReqType;
-
-// ===========================================================================
-// ===== The ByteArrayList class implements access to the Java 
-// ===== ByteArrayList class.
-// ===========================================================================
-
-typedef enum {
-  BAL_OK     = JOI_OK
- ,BAL_FIRST  = JOI_LAST
- ,BAL_ERROR_ADD_PARAM = BAL_FIRST
- ,BAL_ERROR_ADD_EXCEPTION
- ,BAL_ERROR_GET_EXCEPTION
- ,BAL_LAST
-} BAL_RetCode;
-
-class ByteArrayList : public JavaObjectInterface
-{
-public:
-  ByteArrayList(NAHeap *heap, jobject jObj = NULL)
-    :  JavaObjectInterface(heap, jObj)
-  {}
-
-  // Destructor
-  virtual ~ByteArrayList();
-  
-  // Initialize JVM and all the JNI configuration.
-  // Must be called.
-  BAL_RetCode    init();
-  
-  BAL_RetCode add(const Text& str);
-    
-  // Add a Text vector.
-  BAL_RetCode add(const TextVec& vec);
-
-  BAL_RetCode addElement(const char * data, int keyLength);
-    
-  // Get a Text element
-  Text* get(Int32 i);
-
-  // Get the error description.
-  virtual char* getErrorText(BAL_RetCode errEnum);
-
-  Int32 getSize();
-  Int32 getEntrySize(Int32 i);
-  char* getEntry(Int32 i, char* buf, Int32 bufLen, Int32& dataLen);
-
-
-private:  
-  enum JAVA_METHODS {
-    JM_CTOR = 0, 
-    JM_ADD,
-    JM_GET,
-    JM_GETSIZE,
-    JM_GETENTRY,
-    JM_GETENTRYSIZE,
-    JM_LAST
-  };
-  
-  static jclass          javaClass_;  
-  static JavaMethodInit* JavaMethods_;
-  static bool javaMethodsInitialized_;
-  // this mutex protects both JaveMethods_ and javaClass_ initialization
-  static pthread_mutex_t javaMethodsInitMutex_;
-};
 
 class HBaseClientRequest
 {

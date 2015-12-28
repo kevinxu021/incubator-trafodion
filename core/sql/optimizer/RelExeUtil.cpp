@@ -5597,6 +5597,14 @@ RelExpr * ExeUtilOrcFastAggr::bindNode(BindWA *bindWA)
   if (bindWA->errStatus())
     return this;
 
+  for (ValueId v = aggregateExpr_.init(); aggregateExpr_.next(v);
+       aggregateExpr_.advance(v))
+    {
+      v.getItemExpr()->bindNode(bindWA);
+      if (bindWA->errStatus())
+        return this;
+    }
+
   return boundExpr;
 }
 
