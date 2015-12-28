@@ -872,8 +872,9 @@ jobjectArray convertToByteArrayObjectArray(const char **array,
 jobjectArray convertToStringObjectArray(const TextVec &vec);
 jobjectArray convertToStringObjectArray(const HBASE_NAMELIST& nameList);
 jobjectArray convertToStringObjectArray(const NAText *text, int arrayLen);
-int convertStringObjectArrayToList(NAHeap *heap, jarray j_objArray, 
-                                         LIST(Text *)&list);
+int convertStringObjectArrayToList(NAHeap *heap, jarray j_objArray, LIST(Text *)&list);
+int convertLongObjectArrayToList(NAHeap *heap, jlongArray j_longArray, LIST(Int64)&list);
+
 #endif
 
 

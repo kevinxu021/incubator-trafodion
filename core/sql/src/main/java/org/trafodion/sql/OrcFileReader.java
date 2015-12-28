@@ -716,6 +716,100 @@ public class OrcFileReader
 	}
     }  
 
+    // On return, 
+    //    object[0]: # of total rows in the OCR file (as long)
+    //    object[1]: # of total rows in the OCR file (as long[])
+    //    object[2]: offset of each strip (as long[])
+    //    object[3]: total length of each strip (as long[])
+    long[] getStripeOffsets() throws IOException {
+
+       if ( m_reader == null )
+          m_reader = OrcFile.createReader(m_file_path, OrcFile.readerOptions(m_conf));
+
+       if ( m_reader == null )
+          return null;
+
+       Iterable<StripeInformation> siItor = m_reader.getStripes();
+       List<Long> offsets  = new ArrayList<Long>();
+
+       for (StripeInformation si : siItor) {
+          offsets.add(si.getOffset());
+       }
+
+       //return offsets.toArray(new Long[offsets.size()]);
+       long[] x = new long[offsets.size()];
+       for (int i=0; i<offsets.size(); i++)
+         x[i] = offsets.get(i);
+
+       return x;
+    }
+
+    long[] getStripeLengths() throws IOException {
+
+       if ( m_reader == null )
+          m_reader = OrcFile.createReader(m_file_path, OrcFile.readerOptions(m_conf));
+
+       if ( m_reader == null )
+          return null;
+
+       Iterable<StripeInformation> siItor = m_reader.getStripes();
+       List<Long> lengths  = new ArrayList<Long>();
+
+       for (StripeInformation si : siItor) {
+          lengths.add(si.getIndexLength() + si.getDataLength() + si.getFooterLength());
+       }
+
+       //return lengths.toArray(new Long[lengths.size()]);
+       long[] x = new long[lengths.size()];
+       for (int i=0; i<lengths.size(); i++)
+         x[i] = lengths.get(i);
+
+       return x;
+    }
+
+    long[] getStripeNumRows() throws IOException {
+
+       if ( m_reader == null )
+          m_reader = OrcFile.createReader(m_file_path, OrcFile.readerOptions(m_conf));
+
+       if ( m_reader == null )
+          return null;
+
+       Iterable<StripeInformation> siItor = m_reader.getStripes();
+       ArrayList<Long> numRows = new ArrayList<Long>();
+
+       for (StripeInformation si : siItor) {
+          numRows.add(si.getNumberOfRows());
+       }
+
+       //return numRows.toArray(new long[numRows.size()]);
+       long[] x = new long[numRows.size()];
+       for (int i=0; i<numRows.size(); i++)
+         x[i] = numRows.get(i);
+
+       return x;
+    }
+
+    void printStripeInfo() throws IOException {
+
+       long[] offsets = getStripeOffsets();
+       long[] lengths= getStripeLengths();
+       long [] numRows = getStripeNumRows();
+
+       if ( offsets == null || lengths == null || numRows == null ) {
+          System.out.println("Getting stripe info failed");
+          return;
+       }
+
+       //long dim1[] = (long[])(numRows);
+       //Long dim2[] = (Long[])(offsets);
+       //Long dim3[] = (Long[])(lengths);
+
+       for (int i=0; i<offsets.length; i++ ) {
+         System.out.println(i + ":" + numRows[i] + "," + offsets[i] + "," + lengths[i]);
+       }
+    }
+    
     // test push-down with ORC
     public String selectiveScan(String pv_file_name) throws IOException {
 

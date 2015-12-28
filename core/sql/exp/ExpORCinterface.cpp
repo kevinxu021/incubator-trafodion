@@ -133,4 +133,22 @@ char * ExpORCinterface::getErrorText(Lng32 errEnum)
   return ofr_->getErrorText((OFR_RetCode)errEnum);
 }
 
+Lng32 ExpORCinterface::getStripeInfo(const char* orcFileName, 
+                                     LIST(Int64)& numOfRowsInStripe,
+                                     LIST(Int64)& offsetOfStripe,
+                                     LIST(Int64)& totalBytesOfStripe)
+{
+  OFR_RetCode rc = ofr_->open(orcFileName);
+  if (rc != OFR_OK)
+    return -rc;
 
+  rc = ofr_->getStripeInfo(numOfRowsInStripe, offsetOfStripe, totalBytesOfStripe);
+  if (rc != OFR_OK)
+    return -rc;
+
+  rc = ofr_->close();
+  if (rc != OFR_OK)
+    return -rc;
+
+  return 0;
+}

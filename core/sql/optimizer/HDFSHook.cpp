@@ -26,6 +26,7 @@
 #include "CmpCommon.h"
 #include "SchemaDB.h"
 #include "ComCextdecs.h"
+#include "ExpORCinterface.h"
 
 // for DNS name resolution
 #include <netdb.h>
@@ -486,9 +487,12 @@ void HHDFSBucketStats::addFile(hdfsFS fs, hdfsFileInfo *fileInfo,
                                HHDFSDiags &diags,
                                NABoolean doEstimate, 
                                char recordTerminator,
-                               CollIndex pos)
+                               CollIndex pos,
+                               NABoolean isORC)
 {
-  HHDFSFileStats *fileStats = new(heap_) HHDFSFileStats(heap_);
+  HHDFSFileStats *fileStats = (isORC) ? 
+                                 new(heap_) HHDFSORCFileStats(heap_) :
+                                 new(heap_) HHDFSFileStats(heap_);
 
   if ( scount_ > 10 )
     doEstimate = FALSE;
@@ -538,7 +542,8 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
                                        Int32 numOfBuckets,
                                        HHDFSDiags &diags,
                                        NABoolean doEstimation,
-                                       char recordTerminator)
+                                       char recordTerminator, 
+                                       NABoolean isORC)
 {
   int numFiles = 0;
 
@@ -583,7 +588,8 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
             else
               bucketStats = bucketStatsList_[bucketNum];
 
-            bucketStats->addFile(fs, &fileInfos[f], diags, doEstimation, recordTerminator);
+            bucketStats->addFile(fs, &fileInfos[f], diags, doEstimation, 
+                                 recordTerminator, NULL_COLL_INDEX, isORC);
           }
 
       hdfsFreeFileInfo(fileInfos, numFiles);
@@ -595,7 +601,7 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
     }
 }
 
-NABoolean HHDFSListPartitionStats::validateAndRefresh(hdfsFS fs, HHDFSDiags &diags, NABoolean refresh)
+NABoolean HHDFSListPartitionStats::validateAndRefresh(hdfsFS fs, HHDFSDiags &diags, NABoolean refresh, NABoolean isORC)
 {
   NABoolean result = TRUE;
 
@@ -722,7 +728,8 @@ NABoolean HHDFSListPartitionStats::validateAndRefresh(hdfsFS fs, HHDFSDiags &dia
                                  diags,
                                  doEstimation_,
                                  recordTerminator_,
-                                 fileNumInBucket[bucketNum]);
+                                 fileNumInBucket[bucketNum], 
+                                 isORC);
             if (!diags.isSuccess())
               {
                 result = FALSE;
@@ -856,7 +863,8 @@ NABoolean HHDFSTableStats::populate(struct hive_tbl_desc *htd)
       // visit the directory
       processDirectory(tableDir, hsd->buckets_, 
                        hsd->isTrulyText(), 
-                       hsd->getRecordTerminator());
+                       hsd->getRecordTerminator(), 
+                       type_==ORC_);
 
       hsd = hsd->next_;
     }
@@ -900,7 +908,7 @@ NABoolean HHDFSTableStats::validateAndRefresh(Int64 expirationJTimestamp, NABool
         return FALSE;
 
       subtract(partStats);
-      result = partStats->validateAndRefresh(fs_, diags_, refresh);
+      result = partStats->validateAndRefresh(fs_, diags_, refresh, type_);
       if (result)
         add(partStats);
     }
@@ -997,10 +1005,12 @@ NABoolean HHDFSTableStats::splitLocation(const char *tableLocation,
 }
 
 void HHDFSTableStats::processDirectory(const NAString &dir, Int32 numOfBuckets, 
-                                       NABoolean doEstimate, char recordTerminator)
+                                       NABoolean doEstimate, char recordTerminator,
+                                       NABoolean isORC)
 {
   HHDFSListPartitionStats *partStats = new(heap_) HHDFSListPartitionStats(heap_);
-  partStats->populate(fs_, dir, numOfBuckets, diags_, doEstimate, recordTerminator);
+  partStats->populate(fs_, dir, numOfBuckets, diags_, doEstimate, recordTerminator,
+                      isORC);
 
   if (diags_.isSuccess())
     {
@@ -1102,3 +1112,27 @@ void HHDFSTableStats::disconnectHDFS()
     hdfsDisconnect(fs_);
   fs_ = NULL;
 }
+
+void HHDFSORCFileStats::populate(hdfsFS fs,
+                hdfsFileInfo *fileInfo,
+                Int32& samples,
+                HHDFSDiags &diags,
+                NABoolean doEstimation,
+                char recordTerminator)
+{
+   HHDFSFileStats::populate(fs, fileInfo, samples, diags, doEstimation, recordTerminator);
+
+   Lng32 minBytesPerESP = 
+      (ActiveSchemaDB()->getDefaults()).getAsLong(HIVE_MIN_BYTES_PER_ESP_PARTITION);
+
+   if ( fileInfo && fileInfo->mSize > minBytesPerESP ) 
+   {
+
+      ExpORCinterface* orci = ExpORCinterface::newInstance(heap_);
+      orci->getStripeInfo(getFileName().data(),
+                          numOfRowsInStripe_, offsetOfStripe_, totalBytesOfStripe_);
+
+   }
+}
+
+
