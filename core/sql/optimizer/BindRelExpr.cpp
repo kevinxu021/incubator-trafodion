@@ -4819,6 +4819,8 @@ void RelRoot::processRownum(BindWA * bindWA)
 
 RelExpr *RelRoot::transformForAggrPushdown(BindWA *bindWA)
 {
+  return this;
+
   if (NOT isTrueRoot()) 
     return this;
 
@@ -4999,8 +5001,8 @@ RelExpr *RelRoot::bindNode(BindWA *bindWA)
 
   if (isTrueRoot())
     {
-      if (! transformForAggrPushdown(bindWA))
-        return this;
+      //      if (! transformForAggrPushdown(bindWA))
+      //        return this;
 
       if (child(0) && 
 	  ((child(0)->getOperatorType() == REL_INSERT) ||

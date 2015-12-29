@@ -84,7 +84,15 @@ Lng32 ExpORCinterface::scanOpen(
 {
   Lng32 rc0 = open(orcFileName, numCols, whichCols);
   if (rc0)
-    return rc0;
+    {
+      if (rc0 == -OFR_ERROR_OPEN_EXCEPTION)
+        {
+          startRowNum_ = -1;
+          return 0;
+        }
+
+      return rc0;
+    }
 
 #ifdef __ignore
   OFR_RetCode rc = ofr_->open(orcFileName, numCols, whichCols);
@@ -106,7 +114,8 @@ Lng32 ExpORCinterface::scanOpen(
 Lng32 ExpORCinterface::scanFetch(char* row, Int64 &rowLen, Int64 &rowNum,
                                  Lng32 &numCols)
 { 
-  if ((stopRowNum_ != -1) && (currRowNum_ > stopRowNum_))
+  if ((startRowNum_ == -1) ||
+      ((stopRowNum_ != -1) && (currRowNum_ > stopRowNum_)))
     return 100;
   
   OFR_RetCode rc = ofr_->fetchNextRow(row, rowLen, rowNum, numCols);
@@ -143,17 +152,31 @@ Lng32 ExpORCinterface::getColStats(char * orcFileName, Lng32 colNum,
 {
   bal = NULL;
 
+#ifdef __ignore
   OFR_RetCode rc = ofr_->open(orcFileName);
   if (rc != OFR_OK)
-    return -rc;
+    {
+      if (rc == OFR_ERROR_OPEN_EXCEPTION)
+        {
+          bal = new((NAHeap*)heap_) ByteArrayList((NAHeap*)heap_);
+          Int64 numVals = 0;
+          bal->addElement((char*)&numVals, sizeof(numVals));
+          return 0;
+        }
+
+      return -rc;
+    }
+#endif
 
   bal = ofr_->getColStats(colNum);
   if (bal == NULL)
-    return -1;
+   return -OFR_UNKNOWN_ERROR;
  
+#ifdef __ignore
   rc = ofr_->close();
   if (rc != OFR_OK)
     return -rc;
+#endif
 
   return 0;
 }

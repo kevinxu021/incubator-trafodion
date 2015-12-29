@@ -5581,6 +5581,8 @@ RelExpr * ExeUtilOrcFastAggr::bindNode(BindWA *bindWA)
     return this;
   }
 
+  bindWA->initNewScope();
+
   NATable *naTable = NULL;
 
   naTable = bindWA->getNATable(getTableName());
@@ -5604,6 +5606,8 @@ RelExpr * ExeUtilOrcFastAggr::bindNode(BindWA *bindWA)
       if (bindWA->errStatus())
         return this;
     }
+
+  bindWA->removeCurrentScope();
 
   return boundExpr;
 }

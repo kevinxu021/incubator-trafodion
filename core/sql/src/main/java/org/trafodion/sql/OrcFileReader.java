@@ -415,6 +415,7 @@ public class OrcFileReader
 
         // total number of vals (includes null and dups)
         long numVals = m_reader.getNumberOfRows();
+
         byte[] bytes = 
             ByteBuffer.allocate(8) //Long.BYTES)
             .order(ByteOrder.LITTLE_ENDIAN)
@@ -423,7 +424,7 @@ public class OrcFileReader
 
         if (colNum == -1)
             {
-                System.out.println("count = " + numVals);
+                //                System.out.println("count = " + numVals);
                 return retColStats;
             }
 

@@ -5820,9 +5820,9 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
         }
 
       if ((aggrPushdown) &&
-          ((naTable->isHiveTable()) &&
-           (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile())) &&
-          (CmpCommon::getDefaultNumeric(ORC_AGGR_PUSHDOWN) != 2))
+          (((isSeabase) && (CmpCommon::getDefault(HBASE_COPROCESSORS) == DF_OFF)) ||
+           
+           ((isOrc) && (CmpCommon::getDefault(ORC_AGGR_PUSHDOWN) == DF_OFF))))
         {
           aggrPushdown = FALSE;
         }
@@ -5857,9 +5857,6 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
 	   aggregateExpr().advance(valId)) 
         {
           Aggregate * origAgg = (Aggregate*)valId.getItemExpr();
-
-          Aggregate * agg = NULL;
-
           origAgg->setIsPushdown(TRUE);
 
           if (isOrc)
@@ -5871,23 +5868,26 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
                 }
 
               const NAType *myType = &origAgg->getValueId().getType();
-              NAType * orcAggrType = NULL;
-              if (myType->getTypeQualifier() == NA_NUMERIC_TYPE)
+              const NAType *childType = 
+                &origAgg->child(0)->getValueId().getType();
+              const NAType * orcAggrType = NULL;
+              if (childType->getTypeQualifier() == NA_NUMERIC_TYPE)
                 {
-                  NumericType *nType = (NumericType*)myType;
+                  NumericType *nType = (NumericType*)childType;
                   if (nType->isExact() && nType->binaryPrecision())
                     {
                       orcAggrType = 
-                        new(generator->wHeap()) SQLLargeInt(TRUE, FALSE);
+                        new(generator->wHeap()) SQLLargeInt
+                        (TRUE, childType->supportsSQLnull()); 
                     }
                 }
               
               if (! orcAggrType)
-                orcAggrType = myType->newCopy(generator->wHeap());
-              orcAggrType->resetSQLnullFlag();
+                orcAggrType = myType; //->newCopy(generator->wHeap());
+              //              orcAggrType->resetSQLnullFlag();
           
               ItemExpr * orcAggrArg = 
-                new (generator->wHeap()) NATypeToItem(orcAggrType);
+                new (generator->wHeap()) NATypeToItem((NAType*)orcAggrType);
               orcAggrArg->bindNode(generator->getBindWA());
               if (generator->getBindWA()->errStatus())
                 return this;
@@ -5897,61 +5897,6 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
               origAgg->setChild(0, orcAggrArg);
             }
           
-#ifdef __ignore
-          if (isSeabase)
-            {
-              if (origAgg->getOperatorType() == ITM_COUNT)
-                {
-                  agg = new(generator->wHeap()) 
-                    Aggregate(ITM_COUNT,
-                              new (generator->wHeap()) SystemLiteral(1),
-                              FALSE /*i.e. not distinct*/,
-                              ITM_COUNT_STAR__ORIGINALLY,
-                              '!');
-
-                  agg->bindNode(generator->getBindWA());
-                  if (generator->getBindWA()->errStatus())
-                    {	  
-                      return this;
-                    }
-                }
-            } // seabasePushdown
-          else
-            {
-             if (origAgg->getOperatorType() == ITM_COUNT)
-               {
-                 agg = new(generator->wHeap()) 
-                   AggregatePushdown(ITM_SUM,
-                                     origAgg->child(0),
-                                     FALSE /*i.e. not distinct*/,
-                                     ITM_COUNT,
-                                     isSeabase);
-               }
-             else if ((origAgg->getOperatorType() == ITM_MIN) ||
-                      (origAgg->getOperatorType() == ITM_MAX))
-               {
-                 agg = new(generator->wHeap()) 
-                   AggregatePushdown(origAgg->getOperatorType(),
-                                     origAgg->child(0),
-                                     FALSE /*i.e. not distinct*/,
-                                     origAgg->getOperatorType(),
-                                     isSeabase);
-               }
-             else if (origAgg->getOperatorType() == ITM_SUM)
-               {
-                 agg = new(generator->wHeap()) 
-                   AggregatePushdown(ITM_SUM,
-                                     origAgg->child(0),
-                                     FALSE /*i.e. not distinct*/,
-                                     ITM_SUM,
-                                     isSeabase);
-               }
-             
-             agg->setValueId(valId);
-             valId.getItemExpr()->synthesizeType();
-            } // ORC pushdown
-          aggrSet.insert(agg->getValueId());
-#endif
         } // for
 
       ExeUtilExpr * eue = NULL;
@@ -11907,3 +11852,60 @@ RelExpr * ExeUtilOrcFastAggr::preCodeGen(Generator * generator,
   // Done.
   return this;
 }
+
+
+#ifdef __ignore
+          if (isSeabase)
+            {
+              if (origAgg->getOperatorType() == ITM_COUNT)
+                {
+                  agg = new(generator->wHeap()) 
+                    Aggregate(ITM_COUNT,
+                              new (generator->wHeap()) SystemLiteral(1),
+                              FALSE /*i.e. not distinct*/,
+                              ITM_COUNT_STAR__ORIGINALLY,
+                              '!');
+
+                  agg->bindNode(generator->getBindWA());
+                  if (generator->getBindWA()->errStatus())
+                    {	  
+                      return this;
+                    }
+                }
+            } // seabasePushdown
+          else
+            {
+             if (origAgg->getOperatorType() == ITM_COUNT)
+               {
+                 agg = new(generator->wHeap()) 
+                   AggregatePushdown(ITM_SUM,
+                                     origAgg->child(0),
+                                     FALSE /*i.e. not distinct*/,
+                                     ITM_COUNT,
+                                     isSeabase);
+               }
+             else if ((origAgg->getOperatorType() == ITM_MIN) ||
+                      (origAgg->getOperatorType() == ITM_MAX))
+               {
+                 agg = new(generator->wHeap()) 
+                   AggregatePushdown(origAgg->getOperatorType(),
+                                     origAgg->child(0),
+                                     FALSE /*i.e. not distinct*/,
+                                     origAgg->getOperatorType(),
+                                     isSeabase);
+               }
+             else if (origAgg->getOperatorType() == ITM_SUM)
+               {
+                 agg = new(generator->wHeap()) 
+                   AggregatePushdown(ITM_SUM,
+                                     origAgg->child(0),
+                                     FALSE /*i.e. not distinct*/,
+                                     ITM_SUM,
+                                     isSeabase);
+               }
+             
+             agg->setValueId(valId);
+             valId.getItemExpr()->synthesizeType();
+            } // ORC pushdown
+          aggrSet.insert(agg->getValueId());
+#endif

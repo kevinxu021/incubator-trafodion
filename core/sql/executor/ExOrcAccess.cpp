@@ -590,7 +590,8 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
                 break;
               }
 
-            hdfo_ = (HdfsFileInfo*)orcAggrTdb().getHdfsFileInfoList()->getNext();
+            hdfo_ = 
+              (HdfsFileInfo*)orcAggrTdb().getHdfsFileInfoList()->getNext();
             
             hdfsFileName_ = hdfo_->fileName();
 
@@ -605,20 +606,28 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 
         case ORC_AGGR_OPEN:
           {
+            if (((AggrExpr *)aggrExpr())->initializeAggr(workAtp_) ==
+                ex_expr::EXPR_ERROR)
+              {
+                step_ = HANDLE_ERROR;
+                break;
+              }
+
             retcode = orci_->open(hdfsFileName_);
+            if (retcode == -OFR_ERROR_OPEN_EXCEPTION)
+              {
+                // file doesnt exist. Treat as no rows found.
+                // Move to next file.
+                step_ = ORC_AGGR_INIT;
+                break;
+              }
+
             if (retcode < 0)
               {
                 setupError(EXE_ERROR_FROM_LOB_INTERFACE, retcode, 
                            "ORC", "open", 
                            orci_->getErrorText(-retcode));
 
-                step_ = HANDLE_ERROR;
-                break;
-              }
-
-            if (((AggrExpr *)aggrExpr())->initializeAggr(workAtp_) ==
-                ex_expr::EXPR_ERROR)
-              {
                 step_ = HANDLE_ERROR;
                 break;
               }

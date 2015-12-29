@@ -4784,6 +4784,11 @@ short ExeUtilOrcFastAggr::codeGen(Generator * generator)
 
   work_cri_desc->setTupleDescriptor(projTuppIndex, projTupleDesc);
 
+  // The output row will be returned as the last entry of the returned atp.
+  // Change the atp and atpindex of the returned values to indicate that.
+  expGen->assignAtpAndAtpIndex(aggrVidList,
+			       0, returnedDesc->noTuples()-1);
+
   Queue * hdfsFileInfoList = NULL;
   Queue * hdfsFileRangeBeginList = NULL;
   Queue * hdfsFileRangeNumList = NULL;

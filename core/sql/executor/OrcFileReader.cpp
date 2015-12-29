@@ -291,11 +291,13 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
 	     "OrcFileReader::open()",
 	     jresult);
     lv_retcode = OFR_ERROR_OPEN_EXCEPTION;
+    goto fn_exit;
   }
 
  fn_exit:  
   jenv_->PopLocalFrame(NULL);
-  return OFR_OK;
+  return lv_retcode;
+  //  return OFR_OK;
 }
 
 OFR_RetCode OrcFileReader::open(const char* pv_path)
