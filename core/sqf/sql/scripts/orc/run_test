@@ -22,4 +22,5 @@
 #
 
 #$JAVA_HOME/bin/java org.trafodion.sql.TestOrcFileReader /user/hive/warehouse/store_orc/000000_0 $*
-$JAVA_HOME/bin/java -Xmx512m org.trafodion.sql.TestOrcFileReader /user/hive/warehouse/customer_address_orc/000000_0 $*
+#$JAVA_HOME/bin/java -Xmx512m org.trafodion.sql.TestOrcFileReader /user/hive/warehouse/customer_address_orc/000000_0 $*
+$JAVA_HOME/bin/java -Xmx1024m org.trafodion.sql.TestOrcFileReader /user/hive/warehouse/store_sales_orc/000000_0 $*
