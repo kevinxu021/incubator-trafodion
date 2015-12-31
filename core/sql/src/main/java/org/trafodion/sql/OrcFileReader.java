@@ -94,7 +94,14 @@ public class OrcFileReader
 	rowData = new OrcRowReturnSQL();     
     }
 
-    public String open(String pv_file_name,
+    public String open(String pv_file_name, 
+		       int    pv_num_cols_to_project,
+		       int[]  pv_which_cols) throws IOException 
+    {
+        return open(pv_file_name, 0L, Long.MAX_VALUE, pv_num_cols_to_project, pv_which_cols);
+    }
+
+    public String open(String pv_file_name, long offset, long length,
 		       int    pv_num_cols_to_project,
 		       int[]  pv_which_cols) throws IOException 
     {
@@ -168,6 +175,7 @@ public class OrcFileReader
 	if (logger.isDebugEnabled()) logger.debug("open() - before creating recordreader");
 	try{
 	    m_rr = m_reader.rowsOptions(new Reader.Options()
+                                    .range(offset, length)
 				    .include(m_include_cols)
 				    );
 	} catch (java.io.IOException e1) {
@@ -1057,7 +1065,8 @@ public class OrcFileReader
 
 	try{
 	   m_rr = m_reader.rowsOptions(new Reader.Options()
-                    .range(0L, Long.MAX_VALUE)
+                    //.range(0L, Long.MAX_VALUE)
+                    .range(3, 121394)
                     .include(include)
                     .searchArgument(sarg, colNames));
 

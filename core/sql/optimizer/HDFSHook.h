@@ -49,6 +49,9 @@
 // forward declarations
 struct hive_tbl_desc;
 class HivePartitionAndBucketKey;
+class NodeMap;
+class HiveNodeMapEntry;
+class NodeMapIterator;
 
 typedef CollIndex HostId;
 typedef Int64 BucketNum;
@@ -115,6 +118,7 @@ class HHDFSStatsBase : public NABasicObject
 public:
   HHDFSStatsBase() : numBlocks_(0),
                      numFiles_(0),
+                     totalRows_(0),
                      totalSize_(0),
                      modificationTS_(0),
                      sampledBytes_(0),
@@ -126,6 +130,7 @@ public:
   Int64 getTotalSize() const { return totalSize_; }
   Int64 getNumFiles() const { return numFiles_; }
   Int64 getNumBlocks() const { return numBlocks_; }
+  Int64 getTotalRows() const { return totalRows_; }
   Int64 getSampledBytes() const { return sampledBytes_; }
   Int64 getSampledRows() const { return sampledRows_; }
   time_t getModificationTS() const { return modificationTS_; }
@@ -137,6 +142,7 @@ public:
 protected:
   Int64 numBlocks_;
   Int64 numFiles_;
+  Int64 totalRows_;  // for ORC files
   Int64 totalSize_;
   time_t modificationTS_; // last modification time of this object (file, partition/directory, bucket or table)
   Int64 sampledBytes_;
@@ -164,6 +170,13 @@ public:
                         { return blockHosts_[replicate*numBlocks_+blockNum]; }
   void print(FILE *ofd);
 
+  // Assign all blocks in this to ESPs, considering locality
+  // return: total # of bytes assigned for the hive file
+  virtual Int64 assignToESPs(Int64 *espDistribution, NodeMap* nodeMap, Int32 numSQNodes, Int32 numESPs, Int32 numOfBytesToReadPerRow);
+
+  // Assign all blocks in this to ESPs, without considering locality
+  virtual void assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& entry, Int64 totalBytesPerESP, Int32 numOfBytesToReadPerRow);
+
 protected:
   NAString fileName_;
   Int32 replication_;
@@ -180,9 +193,10 @@ class HHDFSORCFileStats : public HHDFSFileStats
 public:
   HHDFSORCFileStats(NAMemory *heap) : 
       HHDFSFileStats(heap),
-      numOfRowsInStripe_(heap), 
-      offsetOfStripe_(heap), 
-      totalBytesOfStripe_(heap) {};
+      numOfRows_(heap), 
+      offsets_(heap), 
+      totalBytes_(heap)
+      {};
 
   ~HHDFSORCFileStats() {};
 
@@ -194,10 +208,22 @@ public:
                 char recordTerminator = '\n'
                 ); 
 
+  // find the block number for the stripe with offset x
+  Int64 findBlockForStripe(Int64 x);
+
 protected:
-  LIST(Int64) numOfRowsInStripe_;
-  LIST(Int64) offsetOfStripe_;
-  LIST(Int64) totalBytesOfStripe_;
+  // Assign all stripes in this to ESPs, considering locality
+  Int64 assignToESPs(Int64 *espDistribution, NodeMap* nodeMap, Int32 numSQNodes, Int32 numESPs, Int32 numOfBytesToReadPerRow);
+
+  // Assign all stripes in this to ESPs, without considering locality
+  void assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& entry, Int64 totalBytesPerESP, Int32 numOfBytesToReadPerRow);
+  
+protected:
+  
+  // per stripe info
+  LIST(Int64) numOfRows_;
+  LIST(Int64) offsets_;
+  LIST(Int64) totalBytes_;
 };
 
 class HHDFSBucketStats : public HHDFSStatsBase

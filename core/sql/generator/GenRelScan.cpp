@@ -607,9 +607,8 @@ short FileScan::genForOrc(Generator * generator,
 	      hfi.entryNum_ = entryNum;
 	      entryNum++;
 
-              // for now, scan all rows.
-	      hfi.startOffset_ = 1; // startRowNum
-	      hfi.bytesToRead_ = -1; // numRows
+	      hfi.startOffset_ = startRowNum; // used to be 1 to scan all rows
+	      hfi.bytesToRead_ = numRows;     // used to be -1 to scan all rows
 	      hfi.fileName_ = fnameInList;
 	      
 	      char * hfiInList = space->allocateAndCopyToAlignedSpace

@@ -218,6 +218,8 @@ public:
    void addScanInfo(HiveScanInfo info) 
      { scanInfo_.insertAt(scanInfo_.entries(), info); }
 
+   void addOrUpdateScanInfo(HiveScanInfo info);
+
    HiveNodeMapEntry& operator=(const HiveNodeMapEntry& other);
 
 
@@ -389,6 +391,9 @@ public:
   void display() const;
 
   void print( FILE* ofd = stdout,
+	      const char* indent = DEFAULT_INDENT,
+              const char* title = "NodeMap") const;
+  void printToLog(
 	      const char* indent = DEFAULT_INDENT,
               const char* title = "NodeMap") const;
 

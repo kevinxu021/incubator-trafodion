@@ -67,17 +67,22 @@ Lng32 ExpORCinterface::scanOpen(
                                 const Int64 startRowNum, 
                                 const Int64 stopRowNum)
 {
-  OFR_RetCode rc = ofr_->open(orcFileName);
+  OFR_RetCode rc = ofr_->open(orcFileName, startRowNum, stopRowNum);
   if (rc != OFR_OK)
     return -rc;
 
-  startRowNum_ = startRowNum;
-  currRowNum_  = startRowNum;
-  stopRowNum_  = stopRowNum;
+  // Since the actual value of startRowNum (aka offset) and stopRowNum(aka length)
+  // have been used during the open call above, we do not need to use these two
+  // variables here.
+  startRowNum_ = 0; // startRowNum;
+  currRowNum_  = startRowNum_;
+  stopRowNum_  = -1; // stopRowNum;
 
-  rc = ofr_->seeknSync(startRowNum);
+/*
+  rc = ofr_->seeknSync(startRowNum_);
   if (rc != OFR_OK)
     return -rc;
+*/;
   
   return 0;
 }
