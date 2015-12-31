@@ -283,7 +283,9 @@ public class OrcFileReader
 	if (logger.isTraceEnabled()) logger.trace("Enter close()");
 	m_reader = null;
 	try {
-	    m_rr.close(); 
+	    if (m_rr != null) {
+		m_rr.close(); 
+	    }
 	}
 	catch (java.io.IOException e1) {
 	    if (logger.isTraceEnabled()) logger.error("reader.rows returned an exception: " + e1);

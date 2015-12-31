@@ -406,25 +406,30 @@ public class TestOrcFileReader
 	long ts1 = System.nanoTime();
 	if (sv_ofr.seeknSync(0) == null) {
 	    if (logger.isTraceEnabled()) logger.trace("================= Begin: fetchNextBlock()");
+	    System.out.println("Next row #: " 
+			       + sv_ofr.getPosition()
+			       + " Table EOF?: " 
+			       + sv_ofr.isEOF()
+			       );
 	    while (! lv_done) {
-		System.out.println("Next row #: " 
-				   + sv_ofr.getPosition()
-				   + " Table EOF?: " 
-				   + sv_ofr.isEOF()
-				   );
 		byte[] lv_block_ba = sv_ofr.fetchNextBlock();
 		if (lv_block_ba != null) {
 		    ByteBuffer lv_block_bb = ByteBuffer.wrap(lv_block_ba);
-		    logger.info("Length of the returned byte array: " + lv_block_ba.length 
-				+ " #rows in the block: " + lv_block_bb.getInt()
-				+ " data[] len: " + lv_block_bb.getInt()
-				+ " col count: " + lv_block_bb.getInt()
-				+ " row number: " + lv_block_bb.getLong()
-				+ " 1st col len: " + lv_block_bb.getInt());
-		    logger.info("First 100 bytes of lv_row_bb: " + new String(lv_block_ba, 0, 100));
+		    if (logger.isTraceEnabled()) logger.trace("Length of the returned byte array: " + lv_block_ba.length 
+							      + " #rows in the block: " + lv_block_bb.getInt()
+							      + " data[] len: " + lv_block_bb.getInt()
+							      + " col count: " + lv_block_bb.getInt()
+							      + " row number: " + lv_block_bb.getLong()
+							      + " 1st col len: " + lv_block_bb.getInt());
+		    if (logger.isTraceEnabled()) logger.trace("First 100 bytes of lv_row_bb: " + new String(lv_block_ba, 0, 100));
 		    
 		}
 		else {
+		    System.out.println("Next row #: " 
+				       + sv_ofr.getPosition()
+				       + " Table EOF?: " 
+				       + sv_ofr.isEOF()
+				       );
 		    lv_done = true;
 		}
 	    }
@@ -481,25 +486,30 @@ public class TestOrcFileReader
 	long ts1 = System.nanoTime();
 	if (sv_ofr.seeknSync(0) == null) {
 	    if (logger.isTraceEnabled()) logger.trace("================= Begin: fetchNextBlockFromVector()");
+	    System.out.println("Next row #: " 
+			       + sv_ofr.getPosition()
+			       + " Table EOF?: " 
+			       + sv_ofr.isEOF()
+			       );
 	    while (! lv_done) {
-		System.out.println("Next row #: " 
-				   + sv_ofr.getPosition()
-				   + " Table EOF?: " 
-				   + sv_ofr.isEOF()
-				   );
 		byte[] lv_block_ba = sv_ofr.fetchNextBlockFromVector();
 		if (lv_block_ba != null) {
 		    ByteBuffer lv_block_bb = ByteBuffer.wrap(lv_block_ba);
-		    logger.info("Length of the returned byte array: " + lv_block_ba.length 
-				+ " #rows in the block: " + lv_block_bb.getInt()
-				+ " data[] len: " + lv_block_bb.getInt()
-				+ " col count: " + lv_block_bb.getInt()
-				+ " row number: " + lv_block_bb.getLong()
-				+ " 1st col len: " + lv_block_bb.getInt());
-		    logger.info("First 100 bytes of lv_row_bb: " + new String(lv_block_ba, 0, 100));
+		    if (logger.isTraceEnabled()) logger.info("Length of the returned byte array: " + lv_block_ba.length 
+							     + " #rows in the block: " + lv_block_bb.getInt()
+							     + " data[] len: " + lv_block_bb.getInt()
+							     + " col count: " + lv_block_bb.getInt()
+							     + " row number: " + lv_block_bb.getLong()
+							     + " 1st col len: " + lv_block_bb.getInt());
+		    if (logger.isTraceEnabled()) logger.info("First 100 bytes of lv_row_bb: " + new String(lv_block_ba, 0, 100));
 		    
 		}
 		else {
+		    System.out.println("Next row #: " 
+				       + sv_ofr.getPosition()
+				       + " Table EOF?: " 
+				       + sv_ofr.isEOF()
+				       );
 		    lv_done = true;
 		}
 	    }
@@ -545,6 +555,28 @@ public class TestOrcFileReader
 	long ts2 = System.nanoTime();
 	printElapsedTime(ts1, ts2);
 
+    }
+
+    static void open_read_1st_col()  throws Exception
+    {
+	int lv_include_cols [] = new int[4];
+	lv_include_cols[0]=1;
+	
+	System.out.println("Opening " + sv_filename + ", reading only the first column");
+	if (sv_ofr != null) {
+	    sv_ofr.close();
+	}
+
+	sv_ofr.open(sv_filename, 1, lv_include_cols);
+    }
+
+    static void open_read_all_cols()  throws Exception
+    {
+	System.out.println("Opening " + sv_filename + ", reading all columns");
+	if (sv_ofr != null) {
+	    sv_ofr.close();
+	}
+	sv_ofr.open(sv_filename, -1, null);
     }
 
     public static void main(String[] args) throws Exception
@@ -597,12 +629,7 @@ public class TestOrcFileReader
 	sv_ofr = new OrcFileReader();
 	sv_ofr.setByteOrder(ByteOrder.BIG_ENDIAN);
 
-	int lv_include_cols [] = new int[4];
-	lv_include_cols[0]=1;
-	lv_include_cols[1]=2;
-	lv_include_cols[2]=6;
-	lv_include_cols[3]=7;
-	sv_ofr.open(sv_filename, 4, lv_include_cols);
+	open_read_1st_col();
 
 	if (lv_print_info) {
 	    System.out.println("================= Begin File Info:" + 
@@ -619,8 +646,12 @@ public class TestOrcFileReader
 	}
 	else if (lv_measure_scans) {
 	    MeasureScan();
+	    open_read_all_cols();
+	    MeasureScan();
 	}
 	else if (lv_measure_pure_scans) {
+	    MeasurePureScan();
+	    open_read_all_cols();
 	    MeasurePureScan();
 	}
 	else if (lv_perform_vectorized_scans) {
@@ -628,8 +659,12 @@ public class TestOrcFileReader
 	}
 	else if (lv_measure_vectorized_scans) {
 	    MeasureVectorizedScan();
+	    open_read_all_cols();
+	    MeasureVectorizedScan();
 	}
 	else if (lv_measure_pure_vectorized_scans) {
+	    MeasurePureVectorizedScan();
+	    open_read_all_cols();
 	    MeasurePureVectorizedScan();
 	}
         else if ( lv_perform_selective_scans ) {
