@@ -586,7 +586,7 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 	  {
             if (orcAggrTdb().getHdfsFileInfoList()->atEnd())
               {
-                step_ = ORC_AGGR_PROJECT;
+                step_ = ORC_AGGR_HAVING_PRED;
                 break;
               }
 
@@ -662,6 +662,8 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
           {
             if (aggrType_ == ComTdbOrcFastAggr::COUNT_)
               step_ = ORC_AGGR_COUNT;
+            else if (aggrType_ == ComTdbOrcFastAggr::COUNT_NONULL_)
+              step_ = ORC_AGGR_COUNT_NONULL;
             else if (aggrType_ == ComTdbOrcFastAggr::MIN_)
               step_ = ORC_AGGR_MIN;
             else if (aggrType_ == ComTdbOrcFastAggr::MAX_)
@@ -670,6 +672,17 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
               step_ = ORC_AGGR_SUM;
             else
               step_ = HANDLE_ERROR;
+          }
+          break;
+
+        case ORC_AGGR_COUNT_NONULL:
+          {
+            // should not reach here. Generator should not have chosen
+            // this option.
+            // ORC either returns count of all rows or count of column values
+            // after removing null and duplicate values.
+            // It doesn't return a count with only null values removed.
+            step_ = HANDLE_ERROR;
           }
           break;
 
@@ -702,6 +715,12 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 
             char * orcAggrLoc = &orcAggrRow_[attr->getOffset()];
 
+            if (attr->getNullFlag())
+              {
+                char * nullLoc = &orcAggrRow_[attr->getNullIndOffset()];
+                *(short*)nullLoc = 0;
+              }
+
             Int32 len = 0;
 
              if (step_ == ORC_AGGR_COUNT)
@@ -722,13 +741,30 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
              // num uniq vals (excl dups and nulls)
             long numUniqVals = -1;
             bal_->getEntry(2, (char*)&numUniqVals, sizeof(numVals), len);
-          
-            if (step_ == ORC_AGGR_MIN)
-              bal_->getEntry(3, orcAggrLoc, attr->getLength(), len);
-            else if (step_ == ORC_AGGR_MAX)
-              bal_->getEntry(4, orcAggrLoc, attr->getLength(), len);
-            else if (step_ == ORC_AGGR_SUM)
-              bal_->getEntry(5, orcAggrLoc, attr->getLength(), len);
+
+            if (numUniqVals == 0)
+              {
+                if (attr->getNullFlag())
+                  {
+                    char * nullLoc = &orcAggrRow_[attr->getNullIndOffset()];
+                    *(short*)nullLoc = -1;
+                  }
+              }
+            else
+              {
+                if (step_ == ORC_AGGR_MIN)
+                  bal_->getEntry(3, orcAggrLoc, attr->getLength(), len);
+                else if (step_ == ORC_AGGR_MAX)
+                  bal_->getEntry(4, orcAggrLoc, attr->getLength(), len);
+                else if (step_ == ORC_AGGR_SUM)
+                  bal_->getEntry(5, orcAggrLoc, attr->getLength(), len);
+
+                if (attr->getVCIndicatorLength() > 0)
+                  {
+                    char * vcLenLoc = &orcAggrRow_[attr->getVCLenIndOffset()];
+                    attr->setVarLength(len, vcLenLoc);
+                  }
+              }
 
             step_ = ORC_AGGR_NEXT;
           }
@@ -755,6 +791,29 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
               }
 
             step_ = ORC_AGGR_INIT;
+          }
+          break;
+
+        case ORC_AGGR_HAVING_PRED:
+          {
+            if (selectPred())
+              {
+                ex_expr::exp_return_type evalRetCode =
+                  selectPred()->eval(pentry_down->getAtp(), workAtp_);
+                if (evalRetCode == ex_expr::EXPR_ERROR)
+                  {
+                    step_ = HANDLE_ERROR;
+                    break;
+                  }
+
+                if (evalRetCode == ex_expr::EXPR_FALSE)
+                  {
+                    step_ = DONE;
+                    break;
+                  }
+              }
+
+            step_ = ORC_AGGR_PROJECT;
           }
           break;
 

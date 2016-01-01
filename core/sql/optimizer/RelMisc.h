@@ -237,8 +237,6 @@ public:
 
   void processRownum(BindWA * bindWA);
 
-  RelExpr *transformForAggrPushdown(BindWA *bindWA);
-
   // a virtual function for performing name binding within the query tree
   virtual RelExpr * bindNode(BindWA *bindWAPtr);
 

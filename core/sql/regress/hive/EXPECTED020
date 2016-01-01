@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Fri Dec  4 19:48:03 2015
+-- Definition current  Wed Dec 30 05:33:16 2015
 
   (
     S_STORE_SK                       INT
@@ -226,5 +226,172 @@ Suite 160             Park Green
 Suite 100             College             
 
 --- 12 row(s) selected.
+>>
+>>-- aggregate pushdown to ORC layer
+>>cqd orc_aggr_pushdown 'ON';
+
+--- SQL operation complete.
+>>explain options 'f' select count(*) from store_orc;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+1    .    2    root                                                  1.00E+000
+.    .    1    orc_aggr                                              1.00E+000
+
+--- SQL operation complete.
+>>select count(*) from store_orc;
+
+(EXPR)              
+--------------------
+
+                  12
+
+--- 1 row(s) selected.
+>>select count(*), count(*) from store_orc;
+
+(EXPR)                (EXPR)              
+--------------------  --------------------
+
+                  12                    12
+
+--- 1 row(s) selected.
+>>select min(s_store_sk) from store_orc;
+
+(EXPR)     
+-----------
+
+          1
+
+--- 1 row(s) selected.
+>>select max(s_store_sk) from store_orc;
+
+(EXPR)     
+-----------
+
+         12
+
+--- 1 row(s) selected.
+>>select sum(s_store_sk) from store_orc;
+
+(EXPR)              
+--------------------
+
+                  78
+
+--- 1 row(s) selected.
+>>select count(*), min(s_store_sk), max(s_store_sk), sum(s_store_sk) 
++>   from store_orc;
+
+(EXPR)                (EXPR)       (EXPR)       (EXPR)              
+--------------------  -----------  -----------  --------------------
+
+                  12            1           12                    78
+
+--- 1 row(s) selected.
+>>explain options 'f' select count(*), min(s_store_sk), max(s_store_sk), 
++>   sum(s_store_sk) from store_orc;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+1    .    2    root                                                  1.00E+000
+.    .    1    orc_aggr                                              1.00E+000
+
+--- SQL operation complete.
+>>
+>>explain options 'f'
++>  select count(*) from hive.hive.store_orc union all 
++>  select count(*) from hive.hive.store_orc;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+3    .    4    root                                                  2.00E+000
+1    2    3    merge_union                                           2.00E+000
+.    .    2    orc_aggr                                              1.00E+000
+.    .    1    orc_aggr                                              1.00E+000
+
+--- SQL operation complete.
+>>select count(*) from hive.hive.store_orc union all 
++>  select count(*) from hive.hive.store_orc;
+
+(EXPR)              
+--------------------
+
+                  12
+                  12
+
+--- 2 row(s) selected.
+>>
+>>explain options 'f'
++>  select min(s_store_sk) from hive.hive.store_orc union all 
++>  select min(s_store_sk) from hive.hive.store_orc;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+3    .    4    root                                                  2.00E+000
+1    2    3    merge_union                                           2.00E+000
+.    .    2    orc_aggr                                              1.00E+000
+.    .    1    orc_aggr                                              1.00E+000
+
+--- SQL operation complete.
+>>select min(s_store_sk) from hive.hive.store_orc union all 
++>  select min(s_store_sk) from hive.hive.store_orc;
+
+(EXPR)     
+-----------
+
+          1
+          1
+
+--- 2 row(s) selected.
+>>
+>>explain options 'f' select count(s_store_sk) from store_orc;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+2    .    3    root                                                  1.00E+000
+1    .    2    sort_scalar_aggr                                      1.00E+000
+.    .    1    hive_scan                       STORE_ORC             4.21E+003
+
+--- SQL operation complete.
+>>select count(s_store_sk) from store_orc;
+
+(EXPR)              
+--------------------
+
+                  12
+
+--- 1 row(s) selected.
+>>
+>>explain options 'f' select count(*) from store_orc
++>  having sum(s_store_sk) = 78;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+1    .    2    root                                                  1.00E+000
+.    .    1    orc_aggr                                              1.00E+000
+
+--- SQL operation complete.
+>>select count(*) from store_orc having sum(s_store_sk) = 78;
+
+(EXPR)              
+--------------------
+
+                  12
+
+--- 1 row(s) selected.
+>>
+>>select count(*) from store_orc having sum(s_store_sk) = 77;
+
+--- 0 row(s) selected.
+>>
+>>
+>>
+>>
 >>
 >>log;

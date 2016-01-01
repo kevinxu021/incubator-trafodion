@@ -856,6 +856,8 @@ RelExpr * RelExpr::copyTopNode(RelExpr *derivedNode,CollHeap* outHeap)
 
   result->optHbaseAccessOptions_ = optHbaseAccessOptions_;
 
+  result->flags_ = flags_;
+
   return result;
 }
 
@@ -8087,6 +8089,52 @@ PlanPriority HashGroupBy::computeOperatorPriority
   //cout<<maxDegree<<"-------"<<spp->getCountOfPartitions()<<endl;
 
   return result;
+}
+
+// -----------------------------------------------------------------------
+// member functions for class HbasePushdownAggr
+// -----------------------------------------------------------------------
+HbasePushdownAggr::~HbasePushdownAggr()
+{}
+
+const NAString HbasePushdownAggr::getText() const
+{
+  return "hbase_aggr";
+}
+
+RelExpr * HbasePushdownAggr::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
+{
+  RelExpr *result;
+
+  if (derivedNode == NULL)
+    result = new (outHeap) HbasePushdownAggr(aggregateExpr(), tableDesc_);
+  else
+    result = derivedNode;
+
+  return GroupByAgg::copyTopNode(result, outHeap);
+}
+
+// -----------------------------------------------------------------------
+// member functions for class OrcPushdownAggr
+// -----------------------------------------------------------------------
+OrcPushdownAggr::~OrcPushdownAggr()
+{}
+
+const NAString OrcPushdownAggr::getText() const
+{
+  return "orc_aggr";
+}
+
+RelExpr * OrcPushdownAggr::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
+{
+  RelExpr *result;
+
+  if (derivedNode == NULL)
+    result = new (outHeap) OrcPushdownAggr(aggregateExpr(), tableDesc_);
+  else
+    result = derivedNode;
+
+  return GroupByAgg::copyTopNode(result, outHeap);
 }
 
 // -----------------------------------------------------------------------

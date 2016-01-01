@@ -5139,57 +5139,6 @@ ItemExpr *Aggregate::bindNode(BindWA *bindWA)
 } // Aggregate::bindNode()
 
 // -----------------------------------------------------------------------
-// member functions for class Aggregate
-// -----------------------------------------------------------------------
-
-ItemExpr *AggregatePushdown::bindNode(BindWA *bindWA)
-{
-  if (nodeIsBound())
-    return getValueId().getItemExpr();
-
-  if (isHbase_)
-    {
-      return Aggregate::bindNode(bindWA);
-    }
-
-  if (child(0))
-    {
-      ItemExpr * boundExpr = child(0)->bindNode(bindWA);
-      if (bindWA->errStatus())
-        return this;
-
-      child(0) = boundExpr;
-    }
-
-  synthTypeAndValueId(TRUE); // redrive
-
-  const NAType *myType = &getValueId().getType();
-  NAType * aggrType = NULL;
-  if (myType->getTypeQualifier() == NA_NUMERIC_TYPE)
-    {
-      NumericType *nType = (NumericType*)myType;
-      if (nType->isExact() && nType->binaryPrecision())
-        {
-          aggrType = new(bindWA->wHeap()) SQLLargeInt(TRUE, FALSE);
-        }
-    }
-
-  if (! aggrType)
-    aggrType = myType->newCopy(bindWA->wHeap());
-  aggrType->resetSQLnullFlag();
-
-  ItemExpr * aggrArg = new (bindWA->wHeap()) NATypeToItem(aggrType);
-  aggrArg->bindNode(bindWA);
-  if (bindWA->errStatus())
-    return this;
-
-  origChild_ = child(0);
-  setChild(0, aggrArg);
-
-  return getValueId().getItemExpr();
-}
-
-// -----------------------------------------------------------------------
 // Variance::bindNode()
 //
 // Variance is a subclass of Aggregate.

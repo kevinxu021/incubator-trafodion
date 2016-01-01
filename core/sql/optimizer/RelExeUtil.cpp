@@ -397,10 +397,6 @@ const NAString ExeUtilExpr::getText() const
       result = "HBASE_COPROC_AGGR";
       break;
       
-    case ORC_FAST_AGGR_:
-      result = "ORC_FAST_AGGR";
-      break;
-      
     case WNR_INSERT_:
       result = "NO_ROLLBACK_INSERT";
       break;
@@ -5525,6 +5521,8 @@ RelExpr * ExeUtilHbaseCoProcAggr::bindNode(BindWA *bindWA)
     return this;
   }
 
+  bindWA->initNewScope();
+
   NATable *naTable = NULL;
 
   naTable = bindWA->getNATable(getTableName());
@@ -5547,6 +5545,8 @@ RelExpr * ExeUtilHbaseCoProcAggr::bindNode(BindWA *bindWA)
   CostScalar rowsAccessed(naTable->estimateHBaseRowCount());
   setEstRowsAccessed(rowsAccessed);
 
+  bindWA->removeCurrentScope();
+
   return boundExpr;
 }
 
@@ -5557,68 +5557,6 @@ void ExeUtilHbaseCoProcAggr::getPotentialOutputValues(
   
   outputValues += aggregateExpr();
 } // HbaseAccessCoProcAggr::getPotentialOutputValues()
-
-// -----------------------------------------------------------------------
-// Member functions for class ExeUtilOrcFastAggr
-// -----------------------------------------------------------------------
-RelExpr * ExeUtilOrcFastAggr::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
-{
-  ExeUtilOrcFastAggr *result;
-
-  if (derivedNode == NULL)
-    result = new (outHeap) 
-      ExeUtilOrcFastAggr(getTableName(), aggregateExpr(), outHeap);
-  else
-    result = (ExeUtilOrcFastAggr *) derivedNode;
-
-  return ExeUtilExpr::copyTopNode(result, outHeap);
-}
-
-RelExpr * ExeUtilOrcFastAggr::bindNode(BindWA *bindWA)
-{
-  if (nodeIsBound()) {
-    bindWA->getCurrentScope()->setRETDesc(getRETDesc());
-    return this;
-  }
-
-  bindWA->initNewScope();
-
-  NATable *naTable = NULL;
-
-  naTable = bindWA->getNATable(getTableName());
-  if (bindWA->errStatus())
-    return this;
-
-  RelExpr * boundExpr = ExeUtilExpr::bindNode(bindWA);
-  if (bindWA->errStatus())
-    return NULL;
-
-  // Allocate a TableDesc and attach it to this.
-  //
-  setUtilTableDesc(bindWA->createTableDesc(naTable, getTableName()));
-  if (bindWA->errStatus())
-    return this;
-
-  for (ValueId v = aggregateExpr_.init(); aggregateExpr_.next(v);
-       aggregateExpr_.advance(v))
-    {
-      v.getItemExpr()->bindNode(bindWA);
-      if (bindWA->errStatus())
-        return this;
-    }
-
-  bindWA->removeCurrentScope();
-
-  return boundExpr;
-}
-
-void ExeUtilOrcFastAggr::getPotentialOutputValues(
-						      ValueIdSet & outputValues) const
-{
-  outputValues.clear();
-  
-  outputValues += aggregateExpr();
-} // ExeUtilOrcFastAggr::getPotentialOutputValues()
 
 // -----------------------------------------------------------------------
 // Member functions for class ExeUtilHbaseDDL

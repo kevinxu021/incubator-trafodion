@@ -345,7 +345,7 @@ public:
   {
     UNKNOWN_       = 0,
     COUNT_         = 1,
-    COUNT_UNIQ_    = 2,
+    COUNT_NONULL_  = 2,
     MIN_           = 3,
     MAX_           = 4,
     SUM_           = 5
@@ -365,7 +365,8 @@ public:
                 Int32 finalAggrRowLen,
                 const unsigned short finalAggrTuppIndex,
                 Int32 orcAggrRowLen,
-                const unsigned short orcAggrTuppIndex,                
+                const unsigned short orcAggrTuppIndex,  
+                ex_expr * having_expr,
                 ex_expr * proj_expr,
                 Int64 projRowLen,
                 const unsigned short projTuppIndex,

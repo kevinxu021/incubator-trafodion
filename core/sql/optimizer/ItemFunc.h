@@ -392,36 +392,6 @@ private:
   NABoolean isPushdown_;
 }; // class Aggregate
 
-
-// Aggregate that are pushed down to hbase or ORC.
-class AggregatePushdown : public Aggregate
-{
-public:
-  AggregatePushdown(OperatorTypeEnum otype,
-                    ItemExpr *child0,
-                    NABoolean isDistinct,
-                    OperatorTypeEnum otypeSpecifiedByUser,
-                    NABoolean isHbase)
-       : Aggregate(otype, child0, isDistinct, otypeSpecifiedByUser, '!'),
-         isHbase_(isHbase),
-         origChild_(NULL)
-  {
-    setIsPushdown(TRUE);
-  }
-
-  // a virtual function for performing name binding within the query tree
-  virtual ItemExpr * bindNode(BindWA *bindWA);
-  
-  NABoolean isHbase() { return isHbase_;}
-  NABoolean isOrc() { return (NOT isHbase_);}
-
-  ItemExpr * origChild() { return origChild_;}
-private:
-  NABoolean isHbase_;
-
-  ItemExpr * origChild_;
-}; // class AggregateCoproc
-
 // Variance -  Variance is an aggregate itemExpr derived from the
 // Aggregate class.  This class implements the compiler side of the Variance
 // and Stddev aggregates. This new class redefines the {con,de}structor, the

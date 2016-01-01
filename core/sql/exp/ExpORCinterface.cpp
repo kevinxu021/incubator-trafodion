@@ -94,12 +94,6 @@ Lng32 ExpORCinterface::scanOpen(
       return rc0;
     }
 
-#ifdef __ignore
-  OFR_RetCode rc = ofr_->open(orcFileName, numCols, whichCols);
-  if (rc != OFR_OK)
-    return -rc;
-#endif
-
   startRowNum_ = startRowNum;
   currRowNum_  = startRowNum;
   stopRowNum_  = stopRowNum;
@@ -152,32 +146,10 @@ Lng32 ExpORCinterface::getColStats(char * orcFileName, Lng32 colNum,
 {
   bal = NULL;
 
-#ifdef __ignore
-  OFR_RetCode rc = ofr_->open(orcFileName);
-  if (rc != OFR_OK)
-    {
-      if (rc == OFR_ERROR_OPEN_EXCEPTION)
-        {
-          bal = new((NAHeap*)heap_) ByteArrayList((NAHeap*)heap_);
-          Int64 numVals = 0;
-          bal->addElement((char*)&numVals, sizeof(numVals));
-          return 0;
-        }
-
-      return -rc;
-    }
-#endif
-
   bal = ofr_->getColStats(colNum);
   if (bal == NULL)
    return -OFR_UNKNOWN_ERROR;
  
-#ifdef __ignore
-  rc = ofr_->close();
-  if (rc != OFR_OK)
-    return -rc;
-#endif
-
   return 0;
 }
 

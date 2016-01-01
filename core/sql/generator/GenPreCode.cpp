@@ -5773,6 +5773,26 @@ RelExpr * HashGroupBy::preCodeGen(Generator * generator,
 
 }
 
+RelExpr * HbasePushdownAggr::preCodeGen(Generator * generator,
+                                        const ValueIdSet & externalInputs,
+                                        ValueIdSet &pulledNewInputs)
+{
+  if (nodeIsPreCodeGenned())
+    return this;
+  
+  return GroupByAgg::preCodeGen(generator, externalInputs, pulledNewInputs);
+}
+
+RelExpr * OrcPushdownAggr::preCodeGen(Generator * generator,
+                                      const ValueIdSet & externalInputs,
+                                      ValueIdSet &pulledNewInputs)
+{
+  if (nodeIsPreCodeGenned())
+    return this;
+  
+  return GroupByAgg::preCodeGen(generator, externalInputs, pulledNewInputs);
+}
+
 RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
                                               const ValueIdSet & externalInputs,
                                               ValueIdSet &pulledNewInputs)
@@ -5787,14 +5807,16 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
   NABoolean aggrPushdown = FALSE;
   Scan * scan = NULL;
 
-  if (child(0) && child(0)->getOperatorType() == REL_FILE_SCAN)
+  if (child(0) && 
+      ((child(0)->getOperatorType() == REL_FILE_SCAN) ||
+       (child(0)->getOperatorType() == REL_HBASE_ACCESS)))
     {
       scan = (Scan*)child(0)->castToRelExpr();
       
       if ((NOT aggregateExpr().isEmpty()) &&
           (groupExpr().isEmpty()) &&
-          (selectionPred().isEmpty()) &&
           (scan->selectionPred().isEmpty()) &&
+          (NOT scan->userSpecifiedPred()) &&
           ((scan->getTableName().getSpecialType() == ExtendedQualName::NORMAL_TABLE) ||
            (scan->getTableName().getSpecialType() == ExtendedQualName::INDEX_TABLE)) &&
           !scan->getTableName().isPartitionNameSpecified() &&
@@ -5826,6 +5848,9 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
         {
           aggrPushdown = FALSE;
         }
+
+      if (aggrPushdown && isSeabase && (NOT selectionPred().isEmpty()))
+        aggrPushdown = FALSE;
     }
   
   if (aggrPushdown)
@@ -5835,15 +5860,23 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
 	   aggregateExpr().advance(valId)) 
         {
           ItemExpr * ae = valId.getItemExpr();
-          if ((ae->getOperatorType() == ITM_COUNT) &&
+          if ((isSeabase) &&
+              (ae->getOperatorType() == ITM_COUNT) &&
               (ae->origOpType() == ITM_COUNT_STAR__ORIGINALLY))
             continue;
 
           if ((isOrc) &&
-              ((ae->getOperatorType() == ITM_MIN) ||
+              ((ae->getOperatorType() == ITM_COUNT) ||
+               (ae->getOperatorType() == ITM_MIN) ||
                (ae->getOperatorType() == ITM_MAX) ||
                (ae->getOperatorType() == ITM_SUM)))
             continue;
+
+          // ORC either returns count of all rows or count of column values
+          // after removing null and duplicate values.
+          // It doesn't return a count with only null values removed.
+          if (ae->getOperatorType() == ITM_COUNT_NONULL)
+            aggrPushdown = FALSE;
 
           aggrPushdown = FALSE;
         }
@@ -5861,16 +5894,10 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
 
           if (isOrc)
             {
-              if (origAgg->getOperatorType() == ITM_COUNT)
-                {
-                  origAgg->setOperatorType(ITM_SUM);
-                  origAgg->setOrigOpType(ITM_COUNT);
-                }
-
               const NAType *myType = &origAgg->getValueId().getType();
               const NAType *childType = 
                 &origAgg->child(0)->getValueId().getType();
-              const NAType * orcAggrType = NULL;
+              NAType * orcAggrType = NULL;
               if (childType->getTypeQualifier() == NA_NUMERIC_TYPE)
                 {
                   NumericType *nType = (NumericType*)childType;
@@ -5878,38 +5905,48 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
                     {
                       orcAggrType = 
                         new(generator->wHeap()) SQLLargeInt
-                        (TRUE, childType->supportsSQLnull()); 
+                        // (TRUE, childType->supportsSQLnull()); 
+                        (TRUE, TRUE);
                     }
                 }
               
               if (! orcAggrType)
-                orcAggrType = myType; //->newCopy(generator->wHeap());
-              //              orcAggrType->resetSQLnullFlag();
-          
+                {
+                  orcAggrType = myType->newCopy(generator->wHeap());
+                  orcAggrType->setSQLnullFlag();
+                }
+
               ItemExpr * orcAggrArg = 
                 new (generator->wHeap()) NATypeToItem((NAType*)orcAggrType);
               orcAggrArg->bindNode(generator->getBindWA());
               if (generator->getBindWA()->errStatus())
                 return this;
               
-              //              origChild_ = child(0);
               origAgg->setOriginalChild(origAgg->child(0));
               origAgg->setChild(0, orcAggrArg);
             }
           
         } // for
 
-      ExeUtilExpr * eue = NULL;
+      RelExpr * eue = NULL;
       if (isSeabase)
-        eue = 
-          new(CmpCommon::statementHeap())
-          ExeUtilHbaseCoProcAggr(scan->getTableName(),
-                                 aggregateExpr()); //aggrSet);
+        {
+          eue = 
+            new(CmpCommon::statementHeap())
+            HbasePushdownAggr(aggregateExpr(), scan->getTableDesc());
+          
+          //          ExeUtilHbaseCoProcAggr(scan->getTableName(),
+          //                                 aggregateExpr());
+        }
       else
-        eue = 
-          new(CmpCommon::statementHeap())
-          ExeUtilOrcFastAggr(scan->getTableName(),
-                             aggregateExpr()); //aggrSet);
+        {
+          eue = new(CmpCommon::statementHeap())
+            OrcPushdownAggr(aggregateExpr(), scan->getTableDesc());
+          if (NOT selectionPred().isEmpty())
+            {
+              eue->setSelectionPredicates(selectionPred());
+            }
+        }
 
       eue->setEstRowsUsed(getEstRowsUsed());
       eue->setMaxCardEst(getMaxCardEst());
@@ -5946,12 +5983,16 @@ RelExpr * GroupByAgg::preCodeGen(Generator * generator,
   // Resolve the VEGReferences and VEGPredicates, if any, that appear
   // in the Characteristic Inputs, in terms of the externalInputs.
   getGroupAttr()->resolveCharacteristicInputs(externalInputs);
-  // My Characteristic Inputs become the external inputs for my child.
-  child(0) = child(0)->preCodeGen(generator,
-				  getGroupAttr()->getCharacteristicInputs(),
-				  pulledNewInputs);
-  if (! child(0).getPtr())
-    return NULL;
+
+  if (child(0))
+    {
+      // My Characteristic Inputs become the external inputs for my child.
+      child(0) = child(0)->preCodeGen(generator,
+                                      getGroupAttr()->getCharacteristicInputs(),
+                                      pulledNewInputs);
+      if (! child(0).getPtr())
+        return NULL;
+    }
 
   if ((getOperatorType() == REL_SHORTCUT_GROUPBY)
       && (getFirstNRows() == 1))
@@ -6065,15 +6106,17 @@ RelExpr * GroupByAgg::preCodeGen(Generator * generator,
 
   }
 
-  RelExpr * pcgExpr = transformForAggrPushdown
+  RelExpr * apdExpr = transformForAggrPushdown
     (generator, externalInputs, pulledNewInputs);
-  if (! pcgExpr)
+  if (! apdExpr)
     return NULL;
+  else if (apdExpr != this)
+    return apdExpr;
 
   markAsPreCodeGenned();
 
   // Done.
-  return pcgExpr;
+  return this;
 } // GroupByAgg::preCodeGen()
 
 RelExpr * MergeUnion::preCodeGen(Generator * generator,
@@ -11830,82 +11873,3 @@ RelExpr * ExeUtilHbaseCoProcAggr::preCodeGen(Generator * generator,
   return this;
 }
 
-RelExpr * ExeUtilOrcFastAggr::preCodeGen(Generator * generator,
-                                         const ValueIdSet & externalInputs,
-                                         ValueIdSet &pulledNewInputs)
-{
-  if (nodeIsPreCodeGenned())
-    return this;
-
-  if (! ExeUtilExpr::preCodeGen(generator,externalInputs,pulledNewInputs))
-    return NULL;
-
-  // Rebuild the aggregate expressions tree
-  ValueIdSet availableValues;
-  getInputValuesFromParentAndChildren(availableValues);
-  aggregateExpr().replaceVEGExpressions
-                     (availableValues,
-  	 	      getGroupAttr()->getCharacteristicInputs());
-
-  markAsPreCodeGenned();
-  
-  // Done.
-  return this;
-}
-
-
-#ifdef __ignore
-          if (isSeabase)
-            {
-              if (origAgg->getOperatorType() == ITM_COUNT)
-                {
-                  agg = new(generator->wHeap()) 
-                    Aggregate(ITM_COUNT,
-                              new (generator->wHeap()) SystemLiteral(1),
-                              FALSE /*i.e. not distinct*/,
-                              ITM_COUNT_STAR__ORIGINALLY,
-                              '!');
-
-                  agg->bindNode(generator->getBindWA());
-                  if (generator->getBindWA()->errStatus())
-                    {	  
-                      return this;
-                    }
-                }
-            } // seabasePushdown
-          else
-            {
-             if (origAgg->getOperatorType() == ITM_COUNT)
-               {
-                 agg = new(generator->wHeap()) 
-                   AggregatePushdown(ITM_SUM,
-                                     origAgg->child(0),
-                                     FALSE /*i.e. not distinct*/,
-                                     ITM_COUNT,
-                                     isSeabase);
-               }
-             else if ((origAgg->getOperatorType() == ITM_MIN) ||
-                      (origAgg->getOperatorType() == ITM_MAX))
-               {
-                 agg = new(generator->wHeap()) 
-                   AggregatePushdown(origAgg->getOperatorType(),
-                                     origAgg->child(0),
-                                     FALSE /*i.e. not distinct*/,
-                                     origAgg->getOperatorType(),
-                                     isSeabase);
-               }
-             else if (origAgg->getOperatorType() == ITM_SUM)
-               {
-                 agg = new(generator->wHeap()) 
-                   AggregatePushdown(ITM_SUM,
-                                     origAgg->child(0),
-                                     FALSE /*i.e. not distinct*/,
-                                     ITM_SUM,
-                                     isSeabase);
-               }
-             
-             agg->setValueId(valId);
-             valId.getItemExpr()->synthesizeType();
-            } // ORC pushdown
-          aggrSet.insert(agg->getValueId());
-#endif

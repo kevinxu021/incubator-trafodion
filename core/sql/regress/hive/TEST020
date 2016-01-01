@@ -86,7 +86,7 @@ execute explainIt;
 execute XX;
 
 -- aggregate pushdown to ORC layer
-cqd orc_aggr_pushdown '1';
+cqd orc_aggr_pushdown 'ON';
 explain options 'f' select count(*) from store_orc;
 select count(*) from store_orc;
 select count(*), count(*) from store_orc;
@@ -97,5 +97,29 @@ select count(*), min(s_store_sk), max(s_store_sk), sum(s_store_sk)
    from store_orc;
 explain options 'f' select count(*), min(s_store_sk), max(s_store_sk), 
    sum(s_store_sk) from store_orc;
+
+explain options 'f'
+  select count(*) from hive.hive.store_orc union all 
+  select count(*) from hive.hive.store_orc;
+select count(*) from hive.hive.store_orc union all 
+  select count(*) from hive.hive.store_orc;
+
+explain options 'f'
+  select min(s_store_sk) from hive.hive.store_orc union all 
+  select min(s_store_sk) from hive.hive.store_orc;
+select min(s_store_sk) from hive.hive.store_orc union all 
+  select min(s_store_sk) from hive.hive.store_orc;
+
+explain options 'f' select count(s_store_sk) from store_orc;
+select count(s_store_sk) from store_orc;
+
+explain options 'f' select count(*) from store_orc
+  having sum(s_store_sk) = 78;
+select count(*) from store_orc having sum(s_store_sk) = 78;
+
+select count(*) from store_orc having sum(s_store_sk) = 77;
+
+
+
 
 

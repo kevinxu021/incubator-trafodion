@@ -506,6 +506,7 @@ ComTdbOrcFastAggr::ComTdbOrcFastAggr(
                                      const unsigned short finalAggrTuppIndex,
                                      Int32 orcAggrRowLength,
                                      const unsigned short orcAggrTuppIndex,
+                                     ex_expr * having_expr,
                                      ex_expr * proj_expr,
                                      Int64 projRowLen,
                                      const unsigned short projTuppIndex,
@@ -521,7 +522,8 @@ ComTdbOrcFastAggr::ComTdbOrcFastAggr(
   : ComTdbHdfsScan( 
                    tableName,
                    (short)ComTdbHdfsScan::ORC_,
-                   NULL, NULL,
+                   having_expr,
+                   NULL,
                    proj_expr,
                    NULL,
                    0, NULL, NULL, 0,
