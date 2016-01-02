@@ -3167,5 +3167,8 @@ Int64 HivePartitionAndBucketKey::getTotalSize()
 
 Int32 HivePartitionAndBucketKey::getTotalBytesToReadPerRow()
 {
-  return selectionPred_.getRowLength();
+  // For query like "select [first 1] * from hive.hive.store_orc", the 
+  // selectionPred is an empty set. For such cases, we request the
+  // value to be minimally one.
+  return MAXOF(selectionPred_.getRowLength(), 1);
 }
