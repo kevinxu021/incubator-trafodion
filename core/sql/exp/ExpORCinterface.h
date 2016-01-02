@@ -99,6 +99,8 @@ class ExpORCinterface : public NABasicObject
   Lng32 scanClose();
 
   Lng32 open(char * orcFileName,
+             const Int64 startRowNum = 0, 
+             const Int64 stopRowNum = ULLONG_MAX,
              Lng32 numCols = 0,
              Lng32 * whichCols = NULL);
 

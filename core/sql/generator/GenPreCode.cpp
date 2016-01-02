@@ -4106,9 +4106,10 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 	 &vegPairs,
 	 TRUE);
 
-      if (isHiveTable())
-	// assign individual files and blocks to each ESPs
+      if (isHiveTable()) {
+	// assign individual files and blocks or stripes to each ESPs
 	((NodeMap *) getPartFunc()->getNodeMap())->assignScanInfos(hiveSearchKey_);
+      }
     }
 
   // Selection predicates are not needed anymore:

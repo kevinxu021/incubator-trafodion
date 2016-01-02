@@ -44,6 +44,7 @@ static const char* const sfrErrorEnumStr[] =
  ,"Java exception in initSerDe()"
  ,"JNI NewStringUTF() in open()"
  ,"Java exception in open()"
+ ,"Java file not found exception in open()"
  ,"Java exception in getPos()"
  ,"Java exception in seeknSync()"
  ,"Java exception in isEOF()"
@@ -101,7 +102,7 @@ OFR_RetCode OrcFileReader::init()
     JavaMethods_[JM_GETERROR  ].jm_name      = "getLastError";
     JavaMethods_[JM_GETERROR  ].jm_signature = "()Ljava/lang/String;";
     JavaMethods_[JM_OPEN      ].jm_name      = "open";
-    JavaMethods_[JM_OPEN      ].jm_signature = "(Ljava/lang/String;I[I)Ljava/lang/String;";
+    JavaMethods_[JM_OPEN      ].jm_signature = "(Ljava/lang/String;JJI[I)Ljava/lang/String;";
     JavaMethods_[JM_GETPOS    ].jm_name      = "getPosition";
     JavaMethods_[JM_GETPOS    ].jm_signature = "()J";
     JavaMethods_[JM_SYNC      ].jm_name      = "seeknSync";
@@ -223,6 +224,8 @@ OFR_RetCode OrcFileReader::init()
 // 
 //////////////////////////////////////////////////////////////////////////////
 OFR_RetCode OrcFileReader::open(const char *pv_path,
+                                Int64 offset,  
+                                Int64 length,  
 				int         pv_num_cols_in_projection,
 				int        *pv_which_cols)
 {
@@ -238,6 +241,8 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
   jstring   js_path = NULL;
   jintArray jia_which_cols = NULL;
   jint      ji_num_cols_in_projection = pv_num_cols_in_projection;
+  jlong     jl_offset = offset;
+  jlong     jl_length = length;
   jstring   jresult = NULL;
 
   releaseJavaAllocation();
@@ -269,11 +274,13 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
 			     pv_which_cols);
   }
 
-  // String open(java.lang.String, int, int[]);
+  // String open(java.lang.String, long, long, int, int[]);
   tsRecentJMFromJNI = JavaMethods_[JM_OPEN].jm_full_name;
   jresult = (jstring)jenv_->CallObjectMethod(javaObj_,
 					     JavaMethods_[JM_OPEN].methodID,
 					     js_path,
+					     jl_offset,
+					     jl_length,
 					     ji_num_cols_in_projection,
 					     jia_which_cols);
 
@@ -290,7 +297,10 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
     logError(CAT_SQL_HDFS_ORC_FILE_READER,
 	     "OrcFileReader::open()",
 	     jresult);
-    lv_retcode = OFR_ERROR_OPEN_EXCEPTION;
+    if (strcmp(my_string, "file not found") == 0)
+      lv_retcode = OFR_ERROR_FILE_NOT_FOUND_EXCEPTION;
+    else
+      lv_retcode = OFR_ERROR_OPEN_EXCEPTION;
     goto fn_exit;
   }
 
@@ -300,7 +310,7 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
   //  return OFR_OK;
 }
 
-OFR_RetCode OrcFileReader::open(const char* pv_path)
+OFR_RetCode OrcFileReader::open(const char* pv_path, Int64 offset, Int64 length)
 {
   QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
 		LL_DEBUG,
@@ -310,12 +320,12 @@ OFR_RetCode OrcFileReader::open(const char* pv_path)
   //* For testing, try the following code:
   if (lv_test) {
     int la_cols[] = {1}; 
-    return this->open(pv_path, 1, la_cols);
+    return this->open(pv_path, offset, length, 1, la_cols);
   }
   //  */
 
   // All the columns
-  return this->open(pv_path, -1, NULL);
+  return this->open(pv_path, offset, length, -1, NULL);
 }
 
 //////////////////////////////////////////////////////////////////////////////

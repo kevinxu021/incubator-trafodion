@@ -63,12 +63,14 @@ Lng32 ExpORCinterface::init()
 }
 
 Lng32 ExpORCinterface::open(char * orcFileName,
+                            const Int64 startRowNum, 
+                            const Int64 stopRowNum,
                             Lng32 numCols,
                             Lng32 * whichCols)
 {
   OFR_RetCode rc = 
-    (numCols == 0 ? ofr_->open(orcFileName) 
-     : ofr_->open(orcFileName, numCols, whichCols));
+    (numCols == 0 ? ofr_->open(orcFileName, startRowNum, stopRowNum) 
+     : ofr_->open(orcFileName, startRowNum, stopRowNum, numCols, whichCols));
   if (rc != OFR_OK)
     return -rc;
 
@@ -82,26 +84,26 @@ Lng32 ExpORCinterface::scanOpen(
                                 Lng32 numCols,
                                 Lng32 * whichCols)
 {
-  Lng32 rc0 = open(orcFileName, numCols, whichCols);
+  Lng32 rc0 = open(orcFileName, startRowNum, stopRowNum,
+                   numCols, whichCols);
   if (rc0)
     {
-      if (rc0 == -OFR_ERROR_OPEN_EXCEPTION)
+      if (rc0 == -OFR_ERROR_FILE_NOT_FOUND_EXCEPTION)
         {
           startRowNum_ = -1;
           return 0;
         }
-
+      
       return rc0;
     }
 
-  startRowNum_ = startRowNum;
-  currRowNum_  = startRowNum;
-  stopRowNum_  = stopRowNum;
+  // Since the actual value of startRowNum (aka offset) and stopRowNum(aka length)
+  // have been used during the open call above, we do not need to use these two
+  // variables here.
+  startRowNum_ = 0; // startRowNum;
+  currRowNum_  = startRowNum_;
+  stopRowNum_  = -1; // stopRowNum;
 
-  OFR_RetCode rc = ofr_->seeknSync(startRowNum);
-  if (rc != OFR_OK)
-    return -rc;
-  
   return 0;
 }
 

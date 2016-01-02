@@ -27,6 +27,7 @@
 #include "SchemaDB.h"
 #include "ComCextdecs.h"
 #include "ExpORCinterface.h"
+#include "NodeMap.h"
 
 // for DNS name resolution
 #include <netdb.h>
@@ -185,6 +186,7 @@ void HHDFSStatsBase::add(const HHDFSStatsBase *o)
 {
   numBlocks_ += o->numBlocks_;
   numFiles_ += o->numFiles_; 
+  totalRows_ += o->totalRows_; 
   totalSize_ += o->totalSize_;
   if (o->modificationTS_ > modificationTS_)
     modificationTS_ = o->modificationTS_ ;
@@ -196,6 +198,7 @@ void HHDFSStatsBase::subtract(const HHDFSStatsBase *o)
 {
   numBlocks_ -= o->numBlocks_;
   numFiles_ -= o->numFiles_; 
+  totalRows_-= o->totalRows_; 
   totalSize_ -= o->totalSize_;
   sampledBytes_ -= o->sampledBytes_;
   sampledRows_ -= o->sampledRows_;
@@ -1113,6 +1116,221 @@ void HHDFSTableStats::disconnectHDFS()
   fs_ = NULL;
 }
 
+// Assign all blocks in this to ESPs, considering locality
+Int64 HHDFSFileStats::assignToESPs(Int64 *espDistribution, NodeMap* nodeMap, Int32 numSQNodes, Int32 numESPs, Int32 numOfBytesToReadPerRow)
+{
+   Int64 totalBytesAssigned = 0;
+   Int64 offset = 0;
+   Int64 blockSize = getBlockSize();
+   Int32 nextDefaultPartNum = numESPs/2;
+
+   for (Int64 b=0; b<getNumBlocks(); b++)
+     {
+       // find the host for the first replica of this block,
+       // the host id is also the SQ node id
+       HostId h = getHostId(0,b);
+       Int32 nodeNum = h;
+       Int32 partNum = nodeNum;
+       Int64 bytesToRead = MINOF(getTotalSize() - offset, blockSize);
+       NABoolean isLocal = TRUE;
+
+       if (partNum >= numESPs || partNum > numSQNodes)
+         {
+           // we don't have ESPs covering this node,
+           // assign a default partition
+           // NOTE: If we have fewer ESPs than SQ nodes
+           // we should really be doing AS, using affinity
+           // TBD later.
+           partNum = nextDefaultPartNum++;
+           if (nextDefaultPartNum >= numESPs)
+             nextDefaultPartNum = 0;
+           isLocal = FALSE;
+         }
+
+       // if we have multiple ESPs per SQ node, pick the one with the
+       // smallest load so far
+       for (Int32 c=partNum; c < numESPs; c += numSQNodes)
+         if (espDistribution[c] < espDistribution[partNum])
+           partNum = c;
+
+       HiveNodeMapEntry *e = (HiveNodeMapEntry*) (nodeMap->getNodeMapEntry(partNum));
+       e->addScanInfo(HiveScanInfo(this, offset, bytesToRead, isLocal));
+
+       // do bookkeeping
+       espDistribution[partNum] += bytesToRead;
+       totalBytesAssigned += bytesToRead;
+
+       // increment offset for next block
+       offset += bytesToRead;
+     }
+
+   return totalBytesAssigned;
+}
+
+// Assign all blocks in this to ESPs, without considering locality
+void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& entry, Int64 totalBytesPerESP, Int32 numOfBytesToReadPerRow)
+{
+   Int64 available = getTotalSize(); // # of bytes available from the current file
+   Int64 offset = 0;                 // offset in the current file
+   Int64 filled = 0;                 // # of bytes filled in the current split
+
+   while ( available > 0 ) 
+   {
+      if ( filled + available <= totalBytesPerESP ) 
+        {
+          // The current file's contribution is not enough to 
+          // make a new split. Add it to the current split.
+          // 
+          // get the file name index into the fileStatsList array
+          // in bucket stats
+   
+          entry->addScanInfo(HiveScanInfo(this, offset, available));
+          available = 0;
+   
+          if ( filled + available == totalBytesPerESP ) 
+            {
+              // The contribution is just right for the split. Need
+              // to take all the and add it to the current node map entry, 
+              // and start a new split.
+              entry = (HiveNodeMapEntry*)(nmi->advanceAndGetEntry());
+   
+              filled = 0;
+            }
+          else
+            filled += available;
+        }
+      else
+        {
+    
+          // The contribution is more than what the current split can take.
+          // Add a portion of the contribution to the current split.
+          // Start a new split. 
+   
+          Int64 portion = totalBytesPerESP - filled;
+   
+          entry -> addScanInfo(HiveScanInfo(this, offset, portion));
+     
+          offset += portion;
+   
+          entry = (HiveNodeMapEntry*)(nmi->advanceAndGetEntry());
+
+          filled = 0;
+          available -= portion;
+       
+        }
+   }
+}
+
+Int64 HHDFSORCFileStats::findBlockForStripe(Int64 offset)
+{
+   Int64 y = offset % getBlockSize();
+   
+   return (offset - y) / getBlockSize();
+}
+
+// Assign all stripes in this to ESPs, considering locality
+Int64 HHDFSORCFileStats::assignToESPs(Int64 *espDistribution, NodeMap* nodeMap, Int32 numSQNodes, Int32 numESPs, Int32 numOfBytesToReadPerRow)
+{
+   Int64 totalBytesAssigned = 0;
+   Int64 offset = 0;
+   Int64 length = 0;
+   Int64 bytesToRead = 0;
+   Int32 nextDefaultPartNum = numESPs/2;
+
+   for (Int32 i=0; i<offsets_.entries(); i++)
+     {
+       offset = offsets_[i];
+       length = totalBytes_[i];
+       bytesToRead = numOfRows_[i] * numOfBytesToReadPerRow;
+
+       Int64 b = findBlockForStripe(offset);
+       // find the host for the first replica of this block,
+       // the host id is also the SQ node id
+       HostId h = getHostId(0,b);
+       Int32 nodeNum = h;
+       Int32 partNum = nodeNum;
+       NABoolean isLocal = TRUE;
+
+       if (partNum >= numESPs || partNum > numSQNodes)
+         {
+           // we don't have ESPs covering this node,
+           // assign a default partition
+           // NOTE: If we have fewer ESPs than SQ nodes
+           // we should really be doing AS, using affinity
+           // TBD later.
+           partNum = nextDefaultPartNum++;
+           if (nextDefaultPartNum >= numESPs)
+             nextDefaultPartNum = 0;
+           isLocal = FALSE;
+         }
+
+       // if we have multiple ESPs per SQ node, pick the one with the
+       // smallest load so far
+       for (Int32 c=partNum; c < numESPs; c += numSQNodes)
+         if (espDistribution[c] < espDistribution[partNum])
+           partNum = c;
+
+       HiveNodeMapEntry *e = (HiveNodeMapEntry*) (nodeMap->getNodeMapEntry(partNum));
+       e->addScanInfo(HiveScanInfo(this, offset, length, isLocal));
+
+       // do bookkeeping
+       espDistribution[partNum] += bytesToRead;
+       totalBytesAssigned += bytesToRead;
+     }
+
+   return totalBytesAssigned;
+}
+// Assign all strpes in this to ESPs, without considering locality
+void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& entry, Int64 totalBytesPerESP, Int32 numOfBytesToReadPerRow)
+{
+  //   CMPASSERT(numOfBytesToReadPerRow > 0);
+
+   Int64 available = 0;  // # of bytes to read from the stripe
+   Int64 offset = 0;     // offset in the current stripe 
+   Int64 length = 0;     // length of the current stripe 
+   Int64 filled = 0;     // # of bytes filled in the current split
+
+   // traverse all the stripes in ORC file and assign each to some ESP.
+   for (Int32 i=0; i<offsets_.entries(); i++ )
+   {
+      available = numOfRows_[i] * numOfBytesToReadPerRow;
+      offset = offsets_[i];
+      length = totalBytes_[i];
+
+      if ( filled + available > totalBytesPerESP && filled > 0 ) 
+        {
+          // The contribution is more than what the current split 
+          // (with content) can take. Since we do not want two ESPs 
+          // to read a single stripe, we will start a new split.
+          entry = (HiveNodeMapEntry*)(nmi->advanceAndGetEntry());
+
+          filled = 0;
+        }
+
+        
+      // The current stripe contribution is guaranteed to fit
+      // the current split (with content), or the will not fit even
+      // an empty split. Add it.
+      // 
+      // get the file name index into the fileStatsList array
+      // in bucket stats. Note that we use the entire length
+      // of the stripe as requried by ORC file read API.
+      entry->addOrUpdateScanInfo(HiveScanInfo(this, offset, length));
+   
+      if ( filled + available == totalBytesPerESP ) 
+        {
+          // The contribution is just right for the split. Need
+          // to take all the and add it to the current node map entry, 
+          // and start a new split.
+          entry = (HiveNodeMapEntry*)(nmi->advanceAndGetEntry());
+ 
+          filled = 0;
+        }
+      else
+        filled += available;
+   }
+} 
+
 void HHDFSORCFileStats::populate(hdfsFS fs,
                 hdfsFileInfo *fileInfo,
                 Int32& samples,
@@ -1122,16 +1340,13 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
 {
    HHDFSFileStats::populate(fs, fileInfo, samples, diags, doEstimation, recordTerminator);
 
-   Lng32 minBytesPerESP = 
-      (ActiveSchemaDB()->getDefaults()).getAsLong(HIVE_MIN_BYTES_PER_ESP_PARTITION);
+   ExpORCinterface* orci = ExpORCinterface::newInstance(heap_);
+   orci->getStripeInfo(getFileName().data(), numOfRows_, offsets_, totalBytes_);
 
-   if ( fileInfo && fileInfo->mSize > minBytesPerESP ) 
+   totalRows_ = 0;
+   for (Int32 i=0; i<numOfRows_.entries(); i++) 
    {
-
-      ExpORCinterface* orci = ExpORCinterface::newInstance(heap_);
-      orci->getStripeInfo(getFileName().data(),
-                          numOfRowsInStripe_, offsetOfStripe_, totalBytesOfStripe_);
-
+      totalRows_ += numOfRows_[i];
    }
 }
 

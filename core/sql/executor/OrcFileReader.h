@@ -38,6 +38,7 @@ typedef enum {
  ,OFR_ERROR_INITSERDE_EXCEPTION // Java exception in initSerDe()
  ,OFR_ERROR_OPEN_PARAM          // JNI NewStringUTF() in open()
  ,OFR_ERROR_OPEN_EXCEPTION      // Java exception in open()
+ ,OFR_ERROR_FILE_NOT_FOUND_EXCEPTION // Jave exception in open()
  ,OFR_ERROR_GETPOS_EXCEPTION    // Java exception in getPos()
  ,OFR_ERROR_SYNC_EXCEPTION      // Java exception in seeknSync(
  ,OFR_ERROR_ISEOF_EXCEPTION     // Java exception in isEOF()
@@ -75,12 +76,18 @@ public:
   OFR_RetCode    init();
 
   // Open the HDFS OrcFile 'path' for reading (returns all the columns)
-  OFR_RetCode    open(const char* path);
+  // offset                : offset to start scan
+  // length                : scan upto offset + length 
+  OFR_RetCode    open(const char* path, Int64 offset=0L, Int64 length=ULLONG_MAX);
 
   /*******
    * Open the HDFS OrcFile 'path' for reading.
    *
    * path                  : HDFS OrcFile path
+   *
+   * offset                : offset to start scan
+   *
+   * length                : scan upto offset + length 
    *
    * num_cols_to_project   : The number of columns to be returned 
    *                         set it to -1 to get all the columns
@@ -88,7 +95,7 @@ public:
    * which_cols            : array containing the column numbers to be returned
    *                         (Column numbers are one based)
    *******/
-  OFR_RetCode    open(const char* path, int num_cols_in_projection, int *which_cols);
+  OFR_RetCode    open(const char* path, Int64 offset, Int64 length, int num_cols_in_projection, int *which_cols);
   
   // Get the current file position.
   OFR_RetCode    getPosition(Int64& pos);

@@ -14509,12 +14509,6 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   NABoolean requiredESPsFixed = 
     partReq && partReq->castToFullySpecifiedPartitioningRequirement();
 
-  const HHDFSTableStats *tableStats = hiveSearchKey_->getHDFSTableStats();
-
-  // stats for partitions/buckets selected by predicates
-  HHDFSStatsBase selectedStats;
-
-  hiveSearchKey_->accumulateSelectedStats(selectedStats);
 
   // limit the number of ESPs to HIVE_NUM_ESPS_PER_DATANODE * nodes
   maxESPs = MAXOF(MINOF(numSQNodes*numESPsPerDataNode, maxESPs),1);
@@ -14536,8 +14530,10 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
     double numESPsBasedOnTotalSize = 1;
 
     // adjust minESPs based on HIVE_MIN_BYTES_PER_ESP_PARTITION CQD
-    if (bytesPerESP > 1.01)
-      numESPsBasedOnTotalSize = selectedStats.getTotalSize()/(bytesPerESP-1.0);
+    if (bytesPerESP > 1.01) {
+      Int64 totalSize = hiveSearchKey_->getTotalSize();
+      numESPsBasedOnTotalSize = totalSize/(bytesPerESP-1.0);
+    }
 
     if (numESPsBasedOnTotalSize >= maxESPs)
       numESPs = maxESPs;

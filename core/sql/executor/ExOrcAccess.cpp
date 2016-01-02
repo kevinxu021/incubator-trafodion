@@ -578,6 +578,13 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 
             rowCount_ = 0;
 
+            if (((AggrExpr *)aggrExpr())->initializeAggr(workAtp_) ==
+                ex_expr::EXPR_ERROR)
+              {
+                step_ = HANDLE_ERROR;
+                break;
+              }
+
 	    step_ = ORC_AGGR_INIT;
 	  }
 	  break;
@@ -606,15 +613,8 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 
         case ORC_AGGR_OPEN:
           {
-            if (((AggrExpr *)aggrExpr())->initializeAggr(workAtp_) ==
-                ex_expr::EXPR_ERROR)
-              {
-                step_ = HANDLE_ERROR;
-                break;
-              }
-
             retcode = orci_->open(hdfsFileName_);
-            if (retcode == -OFR_ERROR_OPEN_EXCEPTION)
+            if (retcode == -OFR_ERROR_FILE_NOT_FOUND_EXCEPTION)
               {
                 // file doesnt exist. Treat as no rows found.
                 // Move to next file.
