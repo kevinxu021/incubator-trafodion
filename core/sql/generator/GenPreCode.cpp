@@ -5863,7 +5863,8 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
           ItemExpr * ae = valId.getItemExpr();
           if ((isSeabase) &&
               (ae->getOperatorType() == ITM_COUNT) &&
-              (ae->origOpType() == ITM_COUNT_STAR__ORIGINALLY))
+              (ae->origOpType() == ITM_COUNT_STAR__ORIGINALLY) &&
+              (NOT generator->preCodeGenParallelOperator()))
             continue;
 
           if ((isOrc) &&
@@ -5902,12 +5903,18 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
               if (childType->getTypeQualifier() == NA_NUMERIC_TYPE)
                 {
                   NumericType *nType = (NumericType*)childType;
-                  if (nType->isExact() && nType->binaryPrecision())
+                  if (nType->binaryPrecision())
                     {
-                      orcAggrType = 
-                        new(generator->wHeap()) SQLLargeInt
-                        // (TRUE, childType->supportsSQLnull()); 
-                        (TRUE, TRUE);
+                      if (nType->isExact())
+                        {
+                          orcAggrType = 
+                            new(generator->wHeap()) SQLLargeInt(TRUE, TRUE);
+                        }
+                      else
+                        {
+                          orcAggrType = 
+                            new(generator->wHeap()) SQLDoublePrecision(TRUE);
+                        }
                     }
                 }
               
@@ -5935,9 +5942,6 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
           eue = 
             new(CmpCommon::statementHeap())
             HbasePushdownAggr(aggregateExpr(), scan->getTableDesc());
-          
-          //          ExeUtilHbaseCoProcAggr(scan->getTableName(),
-          //                                 aggregateExpr());
         }
       else
         {

@@ -445,6 +445,7 @@ public class OrcFileReader
         Type[] arrayTypes = types.toArray(new Type[0]);
         Type columnType = arrayTypes[colNum];
         int ctInt = columnType.getKind().getNumber();
+        //        System.out.println("ctInt = " + ctInt);
         bytes = 
             ByteBuffer.allocate(4) //Integer.BYTES)
             .order(ByteOrder.LITTLE_ENDIAN)
@@ -499,22 +500,33 @@ public class OrcFileReader
                 }
                 break;
 
+            case FLOAT:
             case DOUBLE:
                 {
                     DoubleColumnStatistics dcs = 
                         (DoubleColumnStatistics)columnStatistics;
                     double min = dcs.getMinimum();
-                    bytes = Bytes.toBytes(min);
+                    bytes = 
+                        ByteBuffer.allocate(8) //Double.BYTES)
+                        .order(ByteOrder.LITTLE_ENDIAN)
+                        .putDouble(min).array();
                     retColStats.add(bytes);
+                    //                    System.out.println("min = " + min);
 
                     double max = dcs.getMaximum();
-                    bytes = Bytes.toBytes(max);
+                    bytes = 
+                        ByteBuffer.allocate(8) //Double.BYTES)
+                        .order(ByteOrder.LITTLE_ENDIAN)
+                        .putDouble(max).array();
                     retColStats.add(bytes);
 
                     double sum = dcs.getSum();
                     bytes = Bytes.toBytes(sum);
+                    bytes = 
+                        ByteBuffer.allocate(8) //Double.BYTES)
+                        .order(ByteOrder.LITTLE_ENDIAN)
+                        .putDouble(sum).array();
                     retColStats.add(bytes);
-
                 }
                 break;
 
@@ -530,6 +542,12 @@ public class OrcFileReader
                     bytes = max.getBytes();
                     retColStats.add(bytes);
 
+                }
+                break;
+                
+            default:
+                {
+                    retColStats = null;
                 }
                 break;
             }

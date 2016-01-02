@@ -585,7 +585,36 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
                 break;
               }
 
-	    step_ = ORC_AGGR_INIT;
+
+#ifdef __ignore
+
+	    beginRangeNum_ = -1;
+	    numRanges_ = -1;
+
+	    if (orcAggrTdb().getHdfsFileInfoList()->isEmpty())
+	      {
+		step_ = DONE;
+		break;
+	      }
+
+	    myInstNum_ = getGlobals()->getMyInstanceNumber();
+
+	    beginRangeNum_ =  
+	      *(Lng32*)hdfsScanTdb().getHdfsFileRangeBeginList()->get(myInstNum_);
+
+	    numRanges_ =  
+	      *(Lng32*)hdfsScanTdb().getHdfsFileRangeNumList()->get(myInstNum_);
+
+	    currRangeNum_ = beginRangeNum_;
+
+	    if (numRanges_ > 0)
+              step_ = ORC_AGGR_INIT;
+            else
+              step_ = DONE;
+
+#endif
+
+
 	  }
 	  break;
 

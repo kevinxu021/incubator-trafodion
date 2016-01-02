@@ -1283,7 +1283,7 @@ Int64 HHDFSORCFileStats::assignToESPs(Int64 *espDistribution, NodeMap* nodeMap, 
 // Assign all strpes in this to ESPs, without considering locality
 void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& entry, Int64 totalBytesPerESP, Int32 numOfBytesToReadPerRow)
 {
-  //   CMPASSERT(numOfBytesToReadPerRow > 0);
+  CMPASSERT(numOfBytesToReadPerRow > 0);
 
    Int64 available = 0;  // # of bytes to read from the stripe
    Int64 offset = 0;     // offset in the current stripe 

@@ -648,15 +648,20 @@ ByteArrayList* OrcFileReader::getColStats(int colNum)
      JavaMethods_[JM_GETCOLSTATS].methodID,
      ji_colNum);
   
-  ByteArrayList* colStats = new (heap_) ByteArrayList(heap_, jByteArrayList);
-  jenv_->DeleteLocalRef(jByteArrayList);
-  if (colStats->init() != BAL_OK)
+  ByteArrayList* colStats = NULL;
+
+  if (jByteArrayList != NULL)
     {
-      NADELETE(colStats, ByteArrayList, heap_);
-      jenv_->PopLocalFrame(NULL);
-      return NULL;
+      colStats = new (heap_) ByteArrayList(heap_, jByteArrayList);
+      jenv_->DeleteLocalRef(jByteArrayList);
+      if (colStats->init() != BAL_OK)
+        {
+          NADELETE(colStats, ByteArrayList, heap_);
+          jenv_->PopLocalFrame(NULL);
+          return NULL;
+        }
     }
-  
+
   jenv_->PopLocalFrame(NULL);
   return colStats;
 }
