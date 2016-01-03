@@ -6314,7 +6314,6 @@ NABoolean RelRoot::checkPrivileges(BindWA* bindWA)
   //  SeqValList contains any sequences
   if (bindWA->getStoiList().entries() == 0 &&
       bindWA->getUdrStoiList().entries() == 0 &&
-      bindWA->getCoProcAggrList().entries() == 0 &&
       bindWA->getSeqValList().entries() == 0)
     return TRUE;
 
@@ -6461,71 +6460,6 @@ NABoolean RelRoot::checkPrivileges(BindWA* bindWA)
       }
     }  // for loop over UDRs
   }  // end if any UDRs.
-
-  // ==> Check privs on any CoprocAggrs used in the query.
-  for (Int32 i=0; i<(Int32)bindWA->getCoProcAggrList().entries(); i++)
-  {
-    RemoveNATableEntryFromCache = FALSE ;  // Initialize each time through loop
-    ExeUtilHbaseCoProcAggr *coProcAggr = (bindWA->getCoProcAggrList())[i];
-    NATable* tab = bindWA->getSchemaDB()->getNATableDB()->
-                                   get(coProcAggr->getCorrName(), bindWA, NULL);
-
-    Int32 numSecKeys = 0;
-
-    // Privilege info for the user/table combination is stored in the NATable
-    // object.
-    PrivMgrUserPrivs* pPrivInfo = tab->getPrivInfo();
-    PrivMgrUserPrivs privInfo;
-
-    // System metadata tables do not, by default, have privileges stored in the
-    // NATable structure.  Go ahead and retrieve them now. 
-    if (!pPrivInfo)
-    {
-      CmpSeabaseDDL cmpSBD(STMTHEAP);
-      if (cmpSBD.switchCompiler(CmpContextInfo::CMPCONTEXT_TYPE_META))
-      {
-        if (CmpCommon::diags()->getNumber(DgSqlCode::ERROR_) == 0)
-          *CmpCommon::diags() << DgSqlCode( -4400 );
-        return FALSE;
-      }
-      retcode = privInterface.getPrivileges( tab->objectUid().get_value(), 
-                                             tab->getObjectType(), thisUserID, 
-                                             privInfo);
-      cmpSBD.switchBackCompiler();
-
-      if (retcode != STATUS_GOOD)
-      {
-        bindWA->setFailedForPrivileges( TRUE );
-        RemoveNATableEntryFromCache = TRUE;
-        *CmpCommon::diags() << DgSqlCode( -1034 );
-        return FALSE;
-      }
-      pPrivInfo = &privInfo;
-    }
-
-    // Verify that the user has select priv
-    // Select priv is needed for EXPLAIN requests, so no special check is done
-    NABoolean insertQIKeys = FALSE; 
-    if (QI_enabled && (tab->getSecKeySet().entries()) > 0)
-      insertQIKeys = TRUE;
-    if (pPrivInfo->hasPriv(SELECT_PRIV))
-    {
-      // do this only if QI is enabled and object has security keys defined
-      if ( insertQIKeys )
-        findKeyAndInsertInOutputList(tab->getSecKeySet(), userHashValue, SELECT_PRIV );
-    }
-
-    // plan requires privilege but user has none, report an error
-    else
-    {
-       bindWA->setFailedForPrivileges( TRUE );
-       tab->setRemoveFromCacheBNC(TRUE); // To be removed by CmpMain before Compilation retry
-       *CmpCommon::diags()
-         << DgSqlCode( -4481 )
-         << DgString0( "SELECT" )
-         << DgString1( tab->getTableName().getQualifiedNameAsAnsiString() );
-    }
-  }  // for loop over coprocs
 
   // ==> Check privs on any sequence generators used in the query.
   for (Int32 i=0; i<(Int32)bindWA->getSeqValList().entries(); i++)

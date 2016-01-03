@@ -121,7 +121,6 @@ BindWA::BindWA(SchemaDB *schemaDB, CmpContext* cmpContext, NABoolean inDDL, NABo
      , scopes_(cmpContext ? cmpContext->statementHeap() : NULL)
      , stoiList_(cmpContext ? cmpContext->statementHeap() : NULL)
      , udrStoiList_(cmpContext ? cmpContext->statementHeap() : NULL)
-     , coProcAggrList_(cmpContext ? cmpContext->statementHeap() : NULL)
      , seqValList_(cmpContext ? cmpContext->statementHeap() : NULL)
      , defaultSchema_(cmpContext ? cmpContext->statementHeap() : NULL)
      , RETDescList_(cmpContext ? cmpContext->statementHeap() : NULL)

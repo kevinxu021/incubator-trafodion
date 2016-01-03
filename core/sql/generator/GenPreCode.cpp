@@ -5956,7 +5956,7 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
       eue->setEstRowsUsed(getEstRowsUsed());
       eue->setMaxCardEst(getMaxCardEst());
       eue->setInputCardinality(getInputCardinality());
-      eue->setPhysicalProperty(getPhysicalProperty());
+      eue->setPhysicalProperty(scan->getPhysicalProperty());
       eue->setGroupAttr(getGroupAttr());
 
       newNode = eue->bindNode(generator->getBindWA());
@@ -11831,50 +11831,3 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
   // Done.
   return this;
 }
-
-RelExpr * HbaseAccessCoProcAggr::preCodeGen(Generator * generator,
-					    const ValueIdSet & externalInputs,
-					    ValueIdSet &pulledNewInputs)
-{
-  if (nodeIsPreCodeGenned())
-    return this;
-
-  if (! HbaseAccess::preCodeGen(generator,externalInputs,pulledNewInputs))
-    return NULL;
-
-  // Rebuild the aggregate expressions tree
-  ValueIdSet availableValues;
-  getInputValuesFromParentAndChildren(availableValues);
-  aggregateExpr().replaceVEGExpressions
-                     (availableValues,
-  	 	      getGroupAttr()->getCharacteristicInputs());
-
-  markAsPreCodeGenned();
-  
-  // Done.
-  return this;
-}
-
-RelExpr * ExeUtilHbaseCoProcAggr::preCodeGen(Generator * generator,
-					    const ValueIdSet & externalInputs,
-					    ValueIdSet &pulledNewInputs)
-{
-  if (nodeIsPreCodeGenned())
-    return this;
-
-  if (! ExeUtilExpr::preCodeGen(generator,externalInputs,pulledNewInputs))
-    return NULL;
-
-  // Rebuild the aggregate expressions tree
-  ValueIdSet availableValues;
-  getInputValuesFromParentAndChildren(availableValues);
-  aggregateExpr().replaceVEGExpressions
-                     (availableValues,
-  	 	      getGroupAttr()->getCharacteristicInputs());
-
-  markAsPreCodeGenned();
-  
-  // Done.
-  return this;
-}
-

@@ -83,7 +83,6 @@ class StmtDDLCreateTrigger;
 struct desc_struct;
 class NARoutine;
 class HbaseColUsageInfo;
-class ExeUtilHbaseCoProcAggr;
 
 // ***********************************************************************
 // BindContext
@@ -1486,14 +1485,7 @@ public:
 
   LIST(OptSqlTableOpenInfo *) &getStoiList()  { return stoiList_; }
   LIST(OptUdrOpenInfo *) &getUdrStoiList()  { return udrStoiList_; }
-  LIST(ExeUtilHbaseCoProcAggr *) &getCoProcAggrList() { return coProcAggrList_; }
   LIST(SequenceValue *) &getSeqValList() { return seqValList_; }
-
-  BindWA& insertCoProcAggr(ExeUtilHbaseCoProcAggr *coProcAggr)
-  {
-    coProcAggrList_.insert(coProcAggr);
-    return *this;
-  }
 
   BindWA& insertSeqVal(SequenceValue *seqVal)
   {
@@ -1740,11 +1732,6 @@ private:
   // Open access info (security info) for all UDR's referenced in a statement
   // --------------------------------------------------------------------
   LIST(OptUdrOpenInfo *) udrStoiList_;
-
-  // --------------------------------------------------------------------
-  // All coprocessors referenced in a statement
-  // --------------------------------------------------------------------
-  LIST(ExeUtilHbaseCoProcAggr *) coProcAggrList_;
 
   // --------------------------------------------------------------------
   // All sequence generators referenced in a statement

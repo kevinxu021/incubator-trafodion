@@ -393,10 +393,6 @@ const NAString ExeUtilExpr::getText() const
       result = "LOB_EXTRACT";
       break;
       
-    case HBASE_COPROC_AGGR_:
-      result = "HBASE_COPROC_AGGR";
-      break;
-      
     case WNR_INSERT_:
       result = "NO_ROLLBACK_INSERT";
       break;
@@ -5494,69 +5490,6 @@ RelExpr * ExeUtilLobShowddl::bindNode(BindWA *bindWA)
   return boundExpr;
 }
 
-
-// -----------------------------------------------------------------------
-// Member functions for class ExeUtilHbaseCoProcAggr
-// -----------------------------------------------------------------------
-RelExpr * ExeUtilHbaseCoProcAggr::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
-{
-  ExeUtilHbaseCoProcAggr *result;
-
-  if (derivedNode == NULL)
-  {
-    result = new (outHeap) 
-      ExeUtilHbaseCoProcAggr(getTableName(), aggregateExpr(), outHeap);
-    result->setEstRowsAccessed(getEstRowsAccessed());
-  }
-  else
-    result = (ExeUtilHbaseCoProcAggr *) derivedNode;
-
-  return ExeUtilExpr::copyTopNode(result, outHeap);
-}
-
-RelExpr * ExeUtilHbaseCoProcAggr::bindNode(BindWA *bindWA)
-{
-  if (nodeIsBound()) {
-    bindWA->getCurrentScope()->setRETDesc(getRETDesc());
-    return this;
-  }
-
-  bindWA->initNewScope();
-
-  NATable *naTable = NULL;
-
-  naTable = bindWA->getNATable(getTableName());
-  if (bindWA->errStatus())
-    return this;
-
-  RelExpr * boundExpr = ExeUtilExpr::bindNode(bindWA);
-  if (bindWA->errStatus())
-    return NULL;
-
-  // Allocate a TableDesc and attach it to this.
-  //
-  setUtilTableDesc(bindWA->createTableDesc(naTable, getTableName()));
-  if (bindWA->errStatus())
-    return this;
-
-  // BindWA keeps list of coprocessors used, so privileges can be checked.
-  bindWA->insertCoProcAggr(this);
-
-  CostScalar rowsAccessed(naTable->estimateHBaseRowCount());
-  setEstRowsAccessed(rowsAccessed);
-
-  bindWA->removeCurrentScope();
-
-  return boundExpr;
-}
-
-void ExeUtilHbaseCoProcAggr::getPotentialOutputValues(
-						      ValueIdSet & outputValues) const
-{
-  outputValues.clear();
-  
-  outputValues += aggregateExpr();
-} // HbaseAccessCoProcAggr::getPotentialOutputValues()
 
 // -----------------------------------------------------------------------
 // Member functions for class ExeUtilHbaseDDL

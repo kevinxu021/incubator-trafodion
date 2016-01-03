@@ -585,42 +585,27 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
                 break;
               }
 
-
-#ifdef __ignore
-
 	    beginRangeNum_ = -1;
 	    numRanges_ = -1;
-
-	    if (orcAggrTdb().getHdfsFileInfoList()->isEmpty())
-	      {
-		step_ = DONE;
-		break;
-	      }
 
 	    myInstNum_ = getGlobals()->getMyInstanceNumber();
 
 	    beginRangeNum_ =  
-	      *(Lng32*)hdfsScanTdb().getHdfsFileRangeBeginList()->get(myInstNum_);
+	      *(Lng32*)orcAggrTdb().getHdfsFileRangeBeginList()->get(myInstNum_);
 
 	    numRanges_ =  
-	      *(Lng32*)hdfsScanTdb().getHdfsFileRangeNumList()->get(myInstNum_);
+	      *(Lng32*)orcAggrTdb().getHdfsFileRangeNumList()->get(myInstNum_);
 
 	    currRangeNum_ = beginRangeNum_;
 
-	    if (numRanges_ > 0)
-              step_ = ORC_AGGR_INIT;
-            else
-              step_ = DONE;
-
-#endif
-
-
+            step_ = ORC_AGGR_INIT;
 	  }
 	  break;
 
 	case ORC_AGGR_INIT:
 	  {
-            if (orcAggrTdb().getHdfsFileInfoList()->atEnd())
+            if ((orcAggrTdb().getHdfsFileInfoList()->atEnd()) ||
+                (currRangeNum_ >= (beginRangeNum_ + numRanges_)))
               {
                 step_ = ORC_AGGR_HAVING_PRED;
                 break;
@@ -629,7 +614,17 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
             hdfo_ = 
               (HdfsFileInfo*)orcAggrTdb().getHdfsFileInfoList()->getNext();
             
+            orcStartRowNum_ = hdfo_->getStartRow();
+            orcNumRows_ = hdfo_->getNumRows();
+            
             hdfsFileName_ = hdfo_->fileName();
+
+            sprintf(cursorId_, "%d", currRangeNum_);
+
+            if (orcNumRows_ == -1) // select all rows
+              orcStopRowNum_ = -1;
+            else
+              orcStopRowNum_ = orcStartRowNum_ + orcNumRows_ - 1;
 
             orcAggrTdb().getAggrTypeList()->position();
             orcAggrTdb().getHdfsColInfoList()->position();
@@ -642,7 +637,8 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 
         case ORC_AGGR_OPEN:
           {
-            retcode = orci_->open(hdfsFileName_);
+            retcode = orci_->open(hdfsFileName_,
+                                  orcStartRowNum_, orcStopRowNum_);
             if (retcode == -OFR_ERROR_FILE_NOT_FOUND_EXCEPTION)
               {
                 // file doesnt exist. Treat as no rows found.
@@ -818,6 +814,8 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
                 step_ = HANDLE_ERROR;
                 break;
               }
+
+            currRangeNum_++;
 
             step_ = ORC_AGGR_INIT;
           }
