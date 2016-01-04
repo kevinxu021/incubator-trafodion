@@ -5868,17 +5868,35 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
             continue;
 
           if ((isOrc) &&
-              ((ae->getOperatorType() == ITM_COUNT) ||
-               (ae->getOperatorType() == ITM_MIN) ||
-               (ae->getOperatorType() == ITM_MAX) ||
-               (ae->getOperatorType() == ITM_SUM)))
-            continue;
+              (NOT (((ae->getOperatorType() == ITM_COUNT) ||
+                     (ae->getOperatorType() == ITM_MIN) ||
+                     (ae->getOperatorType() == ITM_MAX) ||
+                     (ae->getOperatorType() == ITM_SUM) ||
+                     (ae->getOperatorType() == ITM_COUNT_NONULL)))))
+            {
+              aggrPushdown = FALSE;
+              continue;
+            }
 
           // ORC either returns count of all rows or count of column values
           // after removing null and duplicate values.
           // It doesn't return a count with only null values removed.
           if (ae->getOperatorType() == ITM_COUNT_NONULL)
-            aggrPushdown = FALSE;
+            {
+              aggrPushdown = FALSE;
+              continue;
+            }
+
+          const NAType &aggrType = valId.getType();
+          if (isOrc)
+            {
+              if (aggrType.getTypeQualifier() == NA_CHARACTER_TYPE)
+                continue;
+              
+              if ((aggrType.getTypeQualifier() == NA_NUMERIC_TYPE) &&
+                  (((NumericType&)aggrType).binaryPrecision()))
+                continue;
+            }
 
           aggrPushdown = FALSE;
         }
