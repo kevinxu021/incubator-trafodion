@@ -2512,12 +2512,14 @@ HivePartitionAndBucketKey::HivePartitionAndBucketKey(
      : hdfsTableStats_(hdfsTableStats),
        hivePartColList_(hivePartColList),
        hiveBucketColList_(hiveBucketColList),
-       selectedPartitions_(&(((HHDFSTableStats *) hdfsTableStats)->listPartitionStatsList_), (CollHeap *) NULL)
+       selectedPartitions_(&(((HHDFSTableStats *) hdfsTableStats)->listPartitionStatsList_), (CollHeap *) NULL),
+       selectionPred_(setOfPredicates)
 {
   // mark all buckets as selected
   selectedSingleBucket_ = -1;
   // select all partitions by default
   selectedPartitions_.complement();
+
 }
 
 void HivePartitionAndBucketKey::accumulateSelectedStats(
@@ -3145,4 +3147,28 @@ HbaseSearchKey::isEqualTo(const HbaseSearchKey* other) const
      return FALSE;
 
   return TRUE;
+}
+
+Int64 HivePartitionAndBucketKey::getTotalSize(HHDFSStatsBase& selectedStats)
+{
+  if (getHDFSTableStats()->isOrcFile()) 
+     return selectedStats.getTotalRows() * getTotalBytesToReadPerRow();
+  else 
+     return selectedStats.getTotalSize();
+}
+
+Int64 HivePartitionAndBucketKey::getTotalSize()
+{
+  HHDFSStatsBase selectedStats;
+  accumulateSelectedStats(selectedStats);
+
+  return getTotalSize(selectedStats);
+}
+
+Int32 HivePartitionAndBucketKey::getTotalBytesToReadPerRow()
+{
+  // For query like "select [first 1] * from hive.hive.store_orc", the 
+  // selectionPred is an empty set. For such cases, we request the
+  // value to be minimally one.
+  return MAXOF(selectionPred_.getRowLength(), 1);
 }

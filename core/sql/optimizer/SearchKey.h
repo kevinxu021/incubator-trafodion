@@ -932,6 +932,17 @@ public:
   // iteratively retrieve a list of HDFS files selected by the selection preds
   NABoolean getNextFile(HiveFileIterator &i);
 
+  // Return the total bytes to read
+  Int64 getTotalSize();
+
+  // Return the total bytes to read per row
+  Int32 getTotalBytesToReadPerRow();
+
+protected:
+  // Return the total bytes read, given a accumulated stats and the selection predicate
+  // selectionPred_
+  Int64 getTotalSize(HHDFSStatsBase& selectedStats);
+
 private:
 
   const HHDFSTableStats *hdfsTableStats_;
@@ -946,6 +957,9 @@ private:
   // bitmap for Hive partitions that are not eliminated by
   // predicates on Hive partitioning columns
   SUBARRAY(HHDFSListPartitionStats *) selectedPartitions_;
+
+  // selection predicate
+  ValueIdSet selectionPred_;
 };
 
 // Iterator class to retrieve a list of HDFS files that are

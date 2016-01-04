@@ -93,6 +93,12 @@ class ExpORCinterface : public NABasicObject
   Lng32 getRowCount(char * orcFileName, Int64 &count);
 
   char * getErrorText(Lng32 errEnum);
+
+  Lng32 getStripeInfo(const char* orcFileName,
+                      LIST(Int64)& numOfRowsInStripe,
+                      LIST(Int64)& offsetOfStripe,
+                      LIST(Int64)& totalBytesOfStripe);
+
 protected:
     
 private:

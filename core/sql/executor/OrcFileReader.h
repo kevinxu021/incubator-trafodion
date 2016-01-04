@@ -42,6 +42,7 @@ typedef enum {
  ,OFR_ERROR_ISEOF_EXCEPTION     // Java exception in isEOF()
  ,OFR_ERROR_FETCHROW_EXCEPTION  // Java exception in fetchNextRow()
  ,OFR_ERROR_CLOSE_EXCEPTION     // Java exception in close()
+ ,OFR_ERROR_GETSTRIPEINFO_EXCEPTION 
  ,OFR_LAST
 } OFR_RetCode;
 
@@ -72,20 +73,26 @@ public:
   OFR_RetCode    init();
 
   // Open the HDFS OrcFile 'path' for reading (returns all the columns)
-  OFR_RetCode    open(const char* path);
+  // offset                : offset to start scan
+  // length                : scan upto offset + length 
+  OFR_RetCode    open(const char* path, Int64 offset=0L, Int64 length=ULLONG_MAX);
 
   /*******
    * Open the HDFS OrcFile 'path' for reading.
    *
    * path                  : HDFS OrcFile path
    *
+   * offset                : offset to start scan
+   *
+   * length                : scan upto offset + length 
+   *
    * num_cols_to_project   : The number of columns to be returned 
    *                         set it to -1 to get all the columns
    *
    * which_cols            : array containing the column numbers to be returned
-   *                         (Column numbers are zero based)
+   *                         (Column numbers are one based)
    *******/
-  OFR_RetCode    open(const char* path, int num_cols_in_projection, int *which_cols);
+  OFR_RetCode    open(const char* path, Int64 offset, Int64 length, int num_cols_in_projection, int *which_cols);
   
   // Get the current file position.
   OFR_RetCode    getPosition(Int64& pos);
@@ -108,6 +115,11 @@ public:
   OFR_RetCode				getRowCount(Int64& count);
 
   virtual char*  getErrorText(OFR_RetCode errEnum);
+
+  OFR_RetCode getStripeInfo(LIST(Int64)& numOfRowsInStripe,  
+                            LIST(Int64)& offsetOfStripe,  
+                            LIST(Int64)& totalBytesOfStripe
+                            );
 
 protected:
   jstring getLastError();
@@ -141,6 +153,9 @@ private:
     JM_FETCHROW2,
     JM_GETNUMROWS,
     JM_CLOSE,
+    JM_GETSTRIPE_OFFSETS,
+    JM_GETSTRIPE_LENGTHS,
+    JM_GETSTRIPE_NUMROWS,
     JM_LAST
   };
  
@@ -152,6 +167,9 @@ private:
   static jfieldID       sjavaFieldID_OrcRow_column_count_;
   static jfieldID       sjavaFieldID_OrcRow_row_number_;
   static jfieldID       sjavaFieldID_OrcRow_row_ba_;
+
+private:
+  OFR_RetCode getLongArray(JAVA_METHODS method, const char* msg, LIST(Int64)& resultArray);
 };
 
 
