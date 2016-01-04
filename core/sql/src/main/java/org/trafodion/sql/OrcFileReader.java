@@ -58,8 +58,8 @@ public class OrcFileReader
     ByteOrder                   m_byteorder = ByteOrder.LITTLE_ENDIAN;
     VectorizedRowBatch          m_batch = null;
     boolean                     m_vector_mode = true;
-    long                        m_first_row_in_batch;
-    int                         m_curr_row_in_batch;
+    long                        m_first_row_in_batch; // Absolute row # in the ORC file (zero-based)
+    int                         m_curr_row_in_batch; // Relative row# in a Vector batch (zero-based)
 
     String                      lastError = null;
     Reader.Options		m_options;
@@ -587,7 +587,7 @@ public class OrcFileReader
 
 	lv_row_bb.putInt(p_offset); // just a placeholder at this point to advance the pointer
 	lv_row_bb.putInt(m_col_count);
-	lv_row_bb.putLong(m_first_row_in_batch + m_curr_row_in_batch + 1);
+	lv_row_bb.putLong(m_first_row_in_batch + m_curr_row_in_batch + 1); // absolute row# within the ORC file
 	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length1: " + lv_row_bb.position());
 
 	for (int i = 0; i < m_fields.size(); i++) {
@@ -1104,151 +1104,6 @@ public class OrcFileReader
         }
 
 	return null;
-    }
-
-    public static void mainOld(String[] args) throws Exception
-    {
-	boolean lv_print_info = false;
-	boolean lv_perform_scans = false;
-        boolean lv_perform_selective_scans = false;
-        boolean lv_perform_vectorized_scans = false;
-
-	setupLog4j();
-
-	for (String lv_arg : args) {
-	    if (lv_arg.compareTo("-i") == 0) {
-		lv_print_info = true;
-	    }
-	    if (lv_arg.compareTo("-s") == 0) {
-		lv_perform_scans = true;
-	    }
-	    if (lv_arg.compareTo("-ss") == 0) {
-		lv_perform_selective_scans = true;
-	    }
-	    if (lv_arg.compareTo("-vs") == 0) {
-		lv_perform_vectorized_scans = true;
-	    }
-	}
-
-	System.out.println("OrcFile Reader main");
-
-	OrcFileReader lv_this = new OrcFileReader();
-
-	int lv_include_cols [] = new int[4];
-	lv_include_cols[0]=1;
-	lv_include_cols[1]=2;
-	lv_include_cols[2]=6;
-	lv_include_cols[3]=7;
-	lv_this.open(args[0], 4, lv_include_cols);
-
-	if (lv_print_info) {
-	    System.out.println("================= Begin File Info:" + 
-			       args[0]);
-	
-	    lv_this.printFileInfo();
-
-	    System.out.println("================= End File Info:" + 
-			       args[0]);
-	}
-
-	if (lv_perform_scans) {
-	    System.out.println("================= Begin: readFile_ByteBuffer");
-	    lv_this.readFile_ByteBuffer();
-	    System.out.println("================= End: readFile_ByteBuffer");
-
-	    System.out.println("================= Begin: readFile_String");
-	    lv_this.readFile_String();
-	    System.out.println("================= End: readFile_String");
-
-	    System.out.println("================= Begin: seeknSync(8)");
-	    boolean lv_done = false;
-	    if (lv_this.seeknSync(8) == null) {
-		System.out.println("================= Begin: fetchNextRow()");
-		while (! lv_done) {
-		    System.out.println("Next row #: " + lv_this.getPosition());
-		    byte[] lv_row_bb = lv_this.fetchNextRow();
-		    if (lv_row_bb != null) {
-			System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_row_bb, 0, 100));
-			System.out.println("Length lv_row_bb: " + lv_row_bb.length);
-		    }
-		    else {
-			lv_done = true;
-		    }
-		}
-		System.out.println("================= End: fetchNextRow()");
-	    }
-
-	    lv_done = false;
-	    String lv_row_string;
-	    if (lv_this.seeknSync(11) == null) {
-		System.out.println("================= Begin: After seeknSync(11)... will do fetchNextRow('|')");
-		while (! lv_done) {
-		    lv_row_string = lv_this.fetchNextRow('|');
-		    if (lv_row_string != null) {
-			System.out.println(lv_row_string);
-		    }
-		    else {
-			lv_done = true;
-		    }
-		}
-		System.out.println("================= End: After seeknSync(11)... will do fetchNextRow('|')");
-	    }
-
-	    lv_this.close();
-	    lv_this.open(args[0], -1, null);
-
-	    if (lv_this.seeknSync(10) == null) {
-		System.out.println("================= Begin: After seeknSync(11)... will do fetchNextRowObj()");
-		lv_done = false;
-		while (! lv_done) {
-		    OrcRowReturnSQL lv_sql_obj = lv_this.fetchNextRowObj();
-		    if (lv_sql_obj == null) {
-			lv_done = true;
-		    }
-		}
-		System.out.println("================= End: After seeknSync(11)... will do fetchNextRowObj()");
-	    }
-
-	    lv_this.close();
-	    lv_this.open(args[0], -1, null);
-
-	    lv_done = false;
-	    if (lv_this.seeknSync(8) == null) {
-		System.out.println("================= Begin: fetchNextRow()");
-		while (! lv_done) {
-		    System.out.println("Next row #: " + lv_this.getPosition());
-		    byte[] lv_row_bb = lv_this.fetchNextRow();
-		    if (lv_row_bb != null) {
-			System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_row_bb, 0, 100));
-			System.out.println("Length lv_row_bb: " + lv_row_bb.length);
-		    }
-		    else {
-			lv_done = true;
-		    }
-		}
-		System.out.println("================= End: fetchNextRow()");
-	    }
-
-	    lv_done = false;
-	    if (lv_this.seeknSync(0) == null) {
-		System.out.println("================= Begin: fetchNextBlock()");
-		System.out.println("Next row #: " + lv_this.getPosition());
-		byte[] lv_block_ba = lv_this.fetchNextBlock();
-		if (lv_block_ba != null) {
-		    ByteBuffer lv_block_bb = ByteBuffer.wrap(lv_block_ba);
-		    int lv_num_rows = lv_block_bb.getInt();
-		    System.out.println("Length lv_block_bb: " + lv_block_ba.length);
-		    System.out.println("Number of rows in the block: " + lv_num_rows);
-		    System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_block_ba, 0, 100));
-		}
-
-		System.out.println("================= End: fetchNextBlock()");
-	    }
-
-	}
-        else if ( lv_perform_selective_scans ) {
-	    System.out.println(lv_this.selectiveScan(args[1]));
-        }
     }
 
     public static void main(String[] args) throws Exception
