@@ -1,9 +1,5 @@
-<!-- @@@ START COPYRIGHT @@@
- 
-     (C) Copyright 2015 Esgyn Corporation
- 
-     @@@ END COPYRIGHT @@@
--->
+<!-- @@@ START COPYRIGHT @@@ (C) Copyright 2015 Esgyn Corporation @@@ END 
+	COPYRIGHT @@@ -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
@@ -15,7 +11,7 @@
 	<properties>
 		<jettyVersion>9.2.6.v20141205</jettyVersion>
 		<jersey-version>1.19</jersey-version>
-		<traf-jdbc-version>2.1.0</traf-jdbc-version>
+		<traf-jdbc-version>${env.TRAFODION_VER}</traf-jdbc-version>
 		<jackson-version>2.6.1</jackson-version>
 		<logback-version>1.0.0</logback-version>
 		<asciidoctor.version>1.5.2.1</asciidoctor.version>
@@ -160,6 +156,26 @@
 			<version>${logback-version}</version>
 		</dependency>
 	</dependencies>
+	<!-- Profiles configuration -->
+	<profiles>
+		<!-- The configuration of the development profile -->
+		<profile>
+			<id>eclipse</id>
+			<!-- The development profile is active by default -->
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<properties>
+				<env.TRAFODION_VER>2.1.0</env.TRAFODION_VER>
+			</properties>
+		</profile>
+		<!-- The configuration of the production profile -->
+		<profile>
+			<id>prod</id>
+			<properties>
+			</properties>
+		</profile>
+	</profiles>
 	<build>
 		<finalName>${project.artifactId}-${project.version}</finalName>
 		<plugins>
@@ -239,7 +255,8 @@
 							<Implementation-Version-2>Release ${project.version}</Implementation-Version-2>
 							<Implementation-Version-3>Build release</Implementation-Version-3>
 							<Implementation-Version-4>[${user.name}]</Implementation-Version-4>
-							<Implementation-Version-5>Branch ${mvngit.commit.abbrev}-${mvngit.branch}</Implementation-Version-5>
+							<Implementation-Version-5>Branch
+								${mvngit.commit.abbrev}-${mvngit.branch}</Implementation-Version-5>
 							<Implementation-Version-6>Date ${maven.build.timestamp}</Implementation-Version-6>
 							<Product-Name>${project.name}</Product-Name>
 						</manifestEntries>
