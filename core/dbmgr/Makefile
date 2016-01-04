@@ -30,7 +30,7 @@ all: dbmgr
 
 dbmgr:package-tools
 	bower install --config.cwd=src/main/webapp --config.interactive=false
-	$(MAVEN) install -DskipTests 
+	$(MAVEN) install -DskipTests -P prod
 	-mkdir -p ../../${DISTRIBUTION_DIR}
 	mv target/$(DBMGR_TARNAME) ../../${DISTRIBUTION_DIR}
 
@@ -50,7 +50,7 @@ package-tools: install-tools
 	tar chzf ../../${DISTRIBUTION_DIR}/$(MGBLTY_TOOLS_TARNAME) ../../mgblty 
 
 clean:
-	$(MAVEN) clean
+	$(MAVEN) clean -P prod
 	$(RM) -r $(MY_SQROOT)/../../mgblty
 	${RM} ../../${DISTRIBUTION_DIR}/$(DBMGR_TARNAME)
 	${RM} ../../${DISTRIBUTION_DIR}/$(MGBLTY_TOOLS_TARNAME)

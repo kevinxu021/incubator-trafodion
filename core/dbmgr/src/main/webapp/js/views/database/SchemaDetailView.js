@@ -224,7 +224,7 @@ define([
 					if(properties.hasOwnProperty(property)){
 						var value = properties[property];
 						if(property == 'CreateTime' || property == 'ModifiedTime'){
-							value = common.toDateFromMilliSeconds(value);
+							value = common.toServerLocalDateFromUtcMilliSeconds(value);
 						}
 					}
 					$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
