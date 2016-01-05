@@ -9759,6 +9759,8 @@ RelExpr * FileScan::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
   result->setExecutorPredicates(getExecutorPredicates());
   result->retrievedCols_ = retrievedCols_;
 
+  result->orcListOfPPI_ = orcListOfPPI_;
+
   return Scan::copyTopNode(result, outHeap);
 }
 

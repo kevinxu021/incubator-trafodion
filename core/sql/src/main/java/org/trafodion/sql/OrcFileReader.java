@@ -411,8 +411,12 @@ public class OrcFileReader
         m_byteorder = pv_bo;
     }
 
-    // for input column num, the returned list contains 4 entries:
-    //     type
+    // for input column num, the returned list contains following entries:
+    //  (note: if input col num == -1, then only first entry is returned. 
+    //         This is used for count(*)  )
+    // 
+    //     total Num of entries (includes nulls and dups)
+    //     type of aggr
     //     unique entry count
     //     min value
     //     max value
