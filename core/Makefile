@@ -136,7 +136,7 @@ cleanall: sqroot eclipseclean cleantests
 	cd dbmgr &&			$(MAKE) cleanall
 	$(RM) -r ../${DISTRIBUTION_DIR}
 
-package-all: package pkg-sql-regress pkg-phx-tests pkg-dcs-tests
+package-all: rpmbuild pkg-client pkg-sql-regress pkg-phx-tests pkg-dcs-tests
 
 pkg-product: all  
 	cd sqf && $(MAKE) package 2>&1 | sed -e "s/$$/	##(Package)/";exit $${PIPESTATUS[0]}
@@ -212,7 +212,7 @@ rpmpackage_dbmgr: dbmgr
 	ln -L ../distribution/mgblty-tools-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
 	ln -L ../distribution/dbmgr-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
 
-rpmpackage: all pkg-product
+rpmpackage: pkg-product
 	/bin/rm -rf $(RPMROOT)
 	mkdir -p $(RPMDIR)
 	mkdir -p $(SOURCEDIR)
