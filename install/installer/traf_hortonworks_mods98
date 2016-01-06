@@ -271,7 +271,7 @@ echo
 poll_time=30
 echo "***INFO: Restarting HBase to pick up config changes for Trafodion"
 echo "***INFO: Stopping HBase..."
-curl -u $ADMIN:$PASSWORD \
+curl -k -u $ADMIN:$PASSWORD \
     -H "X-Requested-By: Trafodion" \
     -X PUT -d '{"ServiceInfo": { "state" : "INSTALLED" }}' \
     $URL/api/v1/clusters/$CLUSTER_NAME/services/HBASE > $TRAF_WORKDIR/traf_hbase_restart_temp
@@ -298,7 +298,7 @@ echo "***DEBUG: Ambari command_id=$command_id"
 completed=0
 while [ $completed -eq 0 ]; do
     sleep $poll_time
-    curl -u $ADMIN:$PASSWORD \
+    curl -k -u $ADMIN:$PASSWORD \
         $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/hbase_restart_status_temp
     cat $LOCAL_WORKDIR/hbase_restart_status_temp
@@ -313,7 +313,7 @@ echo "***INFO: HBase stop completed"
 #Stop Zookeeper
 
 echo "***INFO: Stopping Zookeeper..."
-curl --user $ADMIN:$PASSWORD \
+curl -k --user $ADMIN:$PASSWORD \
     -H "X-Requested-By: Trafodion" \
     -X PUT -d '{"ServiceInfo": { "state" : "INSTALLED" }}' \
     $URL/api/v1/clusters/$CLUSTER_NAME/services/ZOOKEEPER > $TRAF_WORKDIR/traf_zoo_restart_temp
@@ -340,7 +340,7 @@ echo "***DEBUG: Ambari command_id=$command_id"
 completed=0
 while [ $completed -eq 0 ]; do
     sleep $poll_time
-    curl --user $ADMIN:$PASSWORD \
+    curl -k --user $ADMIN:$PASSWORD \
         $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/traf_zoo_restart_temp
     cat $LOCAL_WORKDIR/traf_zoo_restart_temp
@@ -354,7 +354,7 @@ done
 
 echo "***INFO: Restarting HDFS to pick up config changes for Trafodion"
 echo "***INFO: Stopping HDFS..."
-curl --user $ADMIN:$PASSWORD \
+curl -k --user $ADMIN:$PASSWORD \
     -H "X-Requested-By: Trafodion" \
     -X PUT -d '{"ServiceInfo": { "state" : "INSTALLED" }}' \
     $URL/api/v1/clusters/$CLUSTER_NAME/services/HDFS > $TRAF_WORKDIR/traf_hdfs_restart_temp
@@ -381,7 +381,7 @@ echo "***DEBUG: Ambari command_id=$command_id"
 completed=0
 while [ $completed -eq 0 ]; do
     sleep $poll_time
-    curl --user $ADMIN:$PASSWORD \
+    curl -k --user $ADMIN:$PASSWORD \
         $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/traf_hdfs_restart_temp
     cat $LOCAL_WORKDIR/traf_hdfs_restart_temp
@@ -391,7 +391,7 @@ while [ $completed -eq 0 ]; do
 done
 
 echo "***INFO: Starting HDFS..."
-curl --user $ADMIN:$PASSWORD \
+curl -k --user $ADMIN:$PASSWORD \
     -H "X-Requested-By: Trafodion" \
     -X PUT -d '{"ServiceInfo": { "state" : "STARTED" }}' \
     $URL/api/v1/clusters/$CLUSTER_NAME/services/HDFS > $TRAF_WORKDIR/traf_hdfs_restart_temp
@@ -417,7 +417,7 @@ echo "***DEBUG: Ambari command_id=$command_id"
 completed=0
 while [ $completed -eq 0 ]; do
     sleep $poll_time
-    curl --user $ADMIN:$PASSWORD \
+    curl -k --user $ADMIN:$PASSWORD \
         $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/traf_hdfs_restart_temp
     cat $LOCAL_WORKDIR/traf_hdfs_restart_temp
@@ -436,7 +436,7 @@ sudo su hdfs --command "hdfs dfsadmin -safemode wait"
 # Start Zookeeper to pick up all the changes just made
 
 echo "***INFO: Starting Zookeeper..."
-curl --user $ADMIN:$PASSWORD \
+curl -k --user $ADMIN:$PASSWORD \
     -H "X-Requested-By: Trafodion" \
     -X PUT -d '{"ServiceInfo": { "state" : "STARTED" }}' \
     $URL/api/v1/clusters/$CLUSTER_NAME/services/ZOOKEEPER > $TRAF_WORKDIR/traf_zoo_restart_temp
@@ -462,7 +462,7 @@ echo "***DEBUG: Ambari command_id=$command_id"
 completed=0
 while [ $completed -eq 0 ]; do
     sleep $poll_time
-    curl --user $ADMIN:$PASSWORD \
+    curl -k --user $ADMIN:$PASSWORD \
         $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/traf_zoo_restart_temp
     cat $LOCAL_WORKDIR/traf_zoo_restart_temp
@@ -478,7 +478,7 @@ echo "***INFO: Zookeeper start completed"
 
 echo "***INFO: Restarting HBase to pick up config changes for Trafodion"
 echo "***INFO: Starting HBase..."
-curl -u $ADMIN:$PASSWORD \
+curl -k -u $ADMIN:$PASSWORD \
     -H "X-Requested-By: Trafodion" \
     -X PUT -d '{"ServiceInfo": { "state" : "STARTED" }}' \
     $URL/api/v1/clusters/$CLUSTER_NAME/services/HBASE > $TRAF_WORKDIR/traf_hbase_restart_temp
@@ -504,7 +504,7 @@ echo "***DEBUG: Ambari command_id=$command_id"
 completed=0
 while [ $completed -eq 0 ]; do
     sleep $poll_time
-    curl -u $ADMIN:$PASSWORD \
+    curl -k -u $ADMIN:$PASSWORD \
         $URL/api/v1/clusters/$CLUSTER_NAME/requests/$command_id \
         > $LOCAL_WORKDIR/hbase_restart_status_temp
     cat $LOCAL_WORKDIR/hbase_restart_status_temp
