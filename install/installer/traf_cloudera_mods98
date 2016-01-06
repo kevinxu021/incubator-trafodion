@@ -163,7 +163,7 @@ rm $HOME/traf_hdfs1_config_temp 2> /dev/null
 rm $HOME/traf_hbase_config_temp 2> /dev/null
 
 # change the hdfs configuration using Cloudera's REST API
-curl -X PUT -H 'Content-Type:application/json' -u $ADMIN:$PASSWORD  --data \
+curl -k -X PUT -H 'Content-Type:application/json' -u $ADMIN:$PASSWORD  --data \
 '{ "roleTypeConfigs" :  [ {
         "roleType" : "NAMENODE",
         "items": [ {
@@ -182,7 +182,7 @@ curl -X PUT -H 'Content-Type:application/json' -u $ADMIN:$PASSWORD  --data \
              "value":"true"
              } ]
 }' \
-http://$URL/api/v1/clusters/$CLUSTER_NAME/services/hdfs/config > $LOCAL_WORKDIR/traf_hdfs_config_temp
+$URL/api/v1/clusters/$CLUSTER_NAME/services/hdfs/config > $LOCAL_WORKDIR/traf_hdfs_config_temp
 
 if [ $? != 0 ]; then
     echo "***ERROR: Unable to modify HDFS configuration through Cloudera's REST API."
@@ -212,7 +212,7 @@ rm $LOCAL_WORKDIR/traf_hdfs_config_temp 2> /dev/null
 # NOTE: hbase.regionserver.lease.period is used as it is equivalent to
 #       hbase.client.scanner.timeout.period and Cloudera only allows
 #       hbase.regionserver.lease.period to be set through the REST API.
-curl -X PUT -H 'Content-Type:application/json' -u $ADMIN:$PASSWORD  --data \
+curl -k -X PUT -H 'Content-Type:application/json' -u $ADMIN:$PASSWORD  --data \
 '{ "roleTypeConfigs" :	[ {
 	"roleType" : "MASTER",
 	"items" : [ { 
@@ -233,7 +233,7 @@ curl -X PUT -H 'Content-Type:application/json' -u $ADMIN:$PASSWORD  --data \
 		} ] 
 	} ] 
 }' \
-http://$URL/api/v1/clusters/$CLUSTER_NAME/services/$HBASE/config > $LOCAL_WORKDIR/traf_hbase_config_temp
+$URL/api/v1/clusters/$CLUSTER_NAME/services/$HBASE/config > $LOCAL_WORKDIR/traf_hbase_config_temp
 
 if [ $? != 0 ]; then
     echo "***ERROR: Unable to modify HBase configuration through Cloudera's REST API."
@@ -261,7 +261,7 @@ rm $LOCAL_WORKDIR/traf_hbase_config_temp 2> /dev/null
 
 # Change zookeeper config using Cloudera REST API
 
-curl -X PUT -H 'Content-Type:application/json' -u $ADMIN:$PASSWORD  --data \
+curl -k -X PUT -H 'Content-Type:application/json' -u $ADMIN:$PASSWORD  --data \
 '{ "roleTypeConfigs" :  [ {
         "roleType" : "SERVER",
         "items": [ {
@@ -271,7 +271,7 @@ curl -X PUT -H 'Content-Type:application/json' -u $ADMIN:$PASSWORD  --data \
         } ]
 
 }' \
-http://$URL/api/v1/clusters/$CLUSTER_NAME/services/zookeeper/config > $LOCAL_WORKDIR/traf_zookeeper_config_temp
+$URL/api/v1/clusters/$CLUSTER_NAME/services/zookeeper/config > $LOCAL_WORKDIR/traf_zookeeper_config_temp
 
 # in most cases curl does not return an error
 # so curl's actual output needs to be checked, too
@@ -297,8 +297,8 @@ rm $LOCAL_WORKDIR/traf_zookeeper_config_temp 2> /dev/null
 poll_time=30
 echo "***INFO: restarting Hadoop to pickup Trafodion transaction jar"
 echo "***INFO: ...polling every $poll_time seconds until restart is completed."
-restart_info=$(curl -X POST -u $ADMIN:$PASSWORD \
-    http://$URL/api/v1/clusters/$CLUSTER_NAME/commands/restart)
+restart_info=$(curl -k -X POST -u $ADMIN:$PASSWORD \
+    $URL/api/v1/clusters/$CLUSTER_NAME/commands/restart)
 echo $restart_info
 command_id=$(echo $restart_info | grep id | awk '{print $4}' | sed -e 's@,@@' )
 echo "***DEBUG: Cloudera command_id=$command_id"
@@ -307,8 +307,8 @@ echo "***DEBUG: Cloudera command_id=$command_id"
 active=1
 while [ $active -ne 0 ]; do
     sleep $poll_time
-    curl -u $ADMIN:$PASSWORD \
-        http://$URL/api/v1/commands/$command_id \
+    curl -k -u $ADMIN:$PASSWORD \
+        $URL/api/v1/commands/$command_id \
         > $LOCAL_WORKDIR/hbase_restart_status_temp
     cat $LOCAL_WORKDIR/hbase_restart_status_temp
     echo "***INFO: ...polling every $poll_time seconds until restart is completed."
