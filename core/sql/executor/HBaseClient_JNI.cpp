@@ -4341,7 +4341,8 @@ HTC_RetCode HTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-HTC_RetCode HTableClient_JNI::deleteRow(Int64 transID, HbaseStr &rowID, const LIST(HbaseStr) *cols, Int64 timestamp)
+HTC_RetCode HTableClient_JNI::deleteRow(Int64 transID, HbaseStr &rowID, const LIST(HbaseStr) *cols, Int64 timestamp,
+                                        const char * hbaseAuths)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HTableClient_JNI::deleteRow(%ld, %s) called.", transID, rowID.val);
 
@@ -4373,12 +4374,26 @@ HTC_RetCode HTableClient_JNI::deleteRow(Int64 transID, HbaseStr &rowID, const LI
   }  
   jlong j_tid = transID;  
   jlong j_ts = timestamp;
+  jstring js_hbaseAuths = NULL;
+  if (hbaseAuths)
+    js_hbaseAuths = jenv_->NewStringUTF(hbaseAuths);
+  else
+    js_hbaseAuths = jenv_->NewStringUTF("");
+  if (js_hbaseAuths == NULL)
+    {
+      getExceptionDetails();
+      logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+      logError(CAT_SQL_HBASE, "HTableClient_JNI::deleteRow()", getLastError());
+      jenv_->PopLocalFrame(NULL);
+      return HTC_ERROR_DELETEROW_PARAM;
+    }
+
   if (hbs_)
     hbs_->getTimer().start();
   tsRecentJMFromJNI = JavaMethods_[JM_DELETE].jm_full_name;
   jboolean j_asyncOperation = FALSE;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, 
-          JavaMethods_[JM_DELETE].methodID, j_tid, jba_rowID, j_cols, j_ts, j_asyncOperation);
+          JavaMethods_[JM_DELETE].methodID, j_tid, jba_rowID, j_cols, j_ts, j_asyncOperation, js_hbaseAuths);
   if (hbs_)
     {
       hbs_->incMaxHbaseIOTime(hbs_->getTimer().stop());
