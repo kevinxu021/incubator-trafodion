@@ -64,6 +64,7 @@
 #include "AppliedStatMan.h"
 #include "Generator.h"
 #include "CmpStatement.h"
+#include "HDFSHook.h"
 
 #define TEXT_DISPLAY_LENGTH 1001
 
@@ -9851,7 +9852,17 @@ const NAString FileScan::getText() const
   if (indexDesc_ == NULL OR indexDesc_->isClusteringIndex())
     {
       if (isHiveTable())
-	op += "hive_scan ";
+        {
+          NABoolean isOrc = 
+            (getTableDesc() && getTableDesc()->getNATable() ? 
+             getTableDesc()->getNATable()->getClusteringIndex()->
+             getHHDFSTableStats()->isOrcFile() : FALSE);
+
+          if (isOrc)
+            op += "orc_scan ";
+          else
+            op += "hive_scan ";
+        }
       else
 	op += "file_scan ";
     }

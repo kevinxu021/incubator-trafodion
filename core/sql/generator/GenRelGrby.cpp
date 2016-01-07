@@ -2268,11 +2268,15 @@ short OrcPushdownAggr::codeGen(Generator * generator)
   const HHDFSTableStats* hTabStats = 
     tableDesc_->getClusteringIndex()->getNAFileSet()->getHHDFSTableStats();
 
+  Queue * tdbListOfOrcPPI = NULL;
+  ValueIdList orcOperVIDlist;
   FileScan::genForOrc(generator, 
                       hTabStats,
                       getPhysicalProperty()->getPartitioningFunction(),
-                      //                      tableDesc_->getClusteringIndex()->getNAFileSet()->getPartitioningFunction(),
+                      NULL,
                       hdfsFileInfoList, hdfsFileRangeBeginList, hdfsFileRangeNumList,
+                      tdbListOfOrcPPI,
+                      orcOperVIDlist,
                       hdfsHostName, hdfsPort);
   
   ULng32 buffersize = 3 * getDefault(GEN_DPSO_BUFFER_SIZE);

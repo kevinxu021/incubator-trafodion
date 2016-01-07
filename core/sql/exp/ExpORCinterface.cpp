@@ -66,11 +66,20 @@ Lng32 ExpORCinterface::open(char * orcFileName,
                             const Int64 startRowNum, 
                             const Int64 stopRowNum,
                             Lng32 numCols,
-                            Lng32 * whichCols)
+                            Lng32 * whichCols,
+                            Lng32 ppiBuflen,
+                            char * ppiBuf,
+                            TextVec *ppiAllCols)
 {
   OFR_RetCode rc = 
-    (numCols == 0 ? ofr_->open(orcFileName, startRowNum, stopRowNum) 
-     : ofr_->open(orcFileName, startRowNum, stopRowNum, numCols, whichCols));
+    (numCols == 0 
+     ? ofr_->open(orcFileName, startRowNum, stopRowNum, 
+                  numCols, whichCols,
+                  ppiBuflen, ppiBuf,
+                  ppiAllCols) 
+     : ofr_->open(orcFileName, startRowNum, stopRowNum, 
+                  numCols, whichCols,
+                  ppiBuflen, ppiBuf, ppiAllCols));
   if (rc != OFR_OK)
     return -rc;
 
@@ -82,10 +91,13 @@ Lng32 ExpORCinterface::scanOpen(
                                 const Int64 startRowNum, 
                                 const Int64 stopRowNum,
                                 Lng32 numCols,
-                                Lng32 * whichCols)
+                                Lng32 * whichCols,
+                                Lng32 ppiBuflen,
+                                char * ppiBuf,
+                                TextVec *ppiAllCols)
 {
   Lng32 rc0 = open(orcFileName, startRowNum, stopRowNum,
-                   numCols, whichCols);
+                   numCols, whichCols, ppiBuflen, ppiBuf);
   if (rc0)
     {
       if (rc0 == -OFR_ERROR_FILE_NOT_FOUND_EXCEPTION)

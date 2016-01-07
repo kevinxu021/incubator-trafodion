@@ -445,9 +445,12 @@ short FileScan::genForTextAndSeq(Generator * generator,
 short FileScan::genForOrc(Generator * generator,
                           const HHDFSTableStats* hTabStats,
                           const PartitioningFunction * mypart,
+                          NAList<OrcPushdownPredInfo> *listOfOrcPPI,
                           Queue * &hdfsFileInfoList,
                           Queue * &hdfsFileRangeBeginList,
                           Queue * &hdfsFileRangeNumList,
+                          Queue * &tdbListOfOrcPPI,
+                          ValueIdList &orcOperVIDlist,
                           char* &hdfsHostName,
                           Int32 &hdfsPort)
 {
@@ -630,6 +633,69 @@ short FileScan::genForOrc(Generator * generator,
 	} // for nodemap
     } // if hive
 
+  tdbListOfOrcPPI = NULL;
+  if (listOfOrcPPI && (listOfOrcPPI->entries() > 0))
+    {
+      tdbListOfOrcPPI = new(space) Queue(space);
+      
+      for (Lng32 i = 0; i < listOfOrcPPI->entries(); i++)
+        {
+          OrcPushdownPredInfo &ppi = (*listOfOrcPPI)[i];
+          OrcPushdownOperatorType type = ppi.getType();
+         
+          ValueId &colValId = ppi.colValId();
+          char * colName = NULL;
+          if (colValId != NULL_VALUE_ID)
+            {
+              ItemExpr * ie = colValId.getItemExpr();
+              
+              NAColumn * nac = NULL;
+              if (ie->getOperatorType() == ITM_BASECOLUMN)
+                {
+                  nac = ((BaseColumn*)ie)->getNAColumn();
+                }
+              else if (ie->getOperatorType() == ITM_INDEXCOLUMN)
+                {
+                  nac = ((IndexColumn*)ie)->getNAColumn();
+                }
+
+              if (nac)
+                colName =
+                  space->allocateAndCopyToAlignedSpace
+                  (nac->getColName().data(), nac->getColName().length(), 0);
+            }
+
+          ValueId &operValId = ppi.operValId();
+          Lng32 operAttrIndex = -1;
+          if (operValId != NULL_VALUE_ID)
+            {
+              operAttrIndex = orcOperVIDlist.entries();
+
+              const NAType &typ = operValId.getType();
+              Lng32 dl = typ.getDisplayLength();
+              
+              if (typ.getTypeQualifier() != NA_CHARACTER_TYPE)
+                {
+                  NAType * newTyp = new (generator->wHeap())
+                    SQLVarChar(dl, typ.supportsSQLnull());
+                  
+                  ItemExpr * c = new(generator->wHeap()) 
+                    Cast(operValId.getItemExpr(), newTyp);
+                  c = c->bindNode(generator->getBindWA());
+                  c = c->preCodeGen(generator);
+                  operValId = c->getValueId();
+                }
+                
+              orcOperVIDlist.insert(operValId);
+            }
+
+          ComTdbOrcPPI * tdbPPI = 
+            new(space) ComTdbOrcPPI(type, colName, operAttrIndex);
+          tdbListOfOrcPPI->insert(tdbPPI);
+        } // for
+
+    }
+  
   return 0;
 }
 
@@ -742,6 +808,7 @@ short FileScan::codeGenForHive(Generator * generator)
   ex_expr *proj_expr = 0;
   ex_expr *convert_expr = 0;
   ex_expr *project_convert_expr = 0;
+  ex_expr *orcOperExpr = NULL;
 
   // set flag to enable pcode for indirect varchar
   NABoolean vcflag = exp_gen->handleIndirectVC();
@@ -788,12 +855,16 @@ short FileScan::codeGenForHive(Generator * generator)
   ULng32 asciiRowLen; 
   ExpTupleDesc * asciiTupleDesc = 0;
 
+  const Int32 orcOperTuppIndex = 5;
+  ULng32 orcOperLength = 0;
+
   ex_cri_desc * work_cri_desc = NULL;
-  work_cri_desc = new(space) ex_cri_desc(5, space);
+  work_cri_desc = new(space) ex_cri_desc(6, space);
   returned_desc = new(space) ex_cri_desc(given_desc->noTuples() + 1, space);
 
   ExpTupleDesc::TupleDataFormat asciiRowFormat = ExpTupleDesc::SQLARK_EXPLODED_FORMAT;
   ExpTupleDesc::TupleDataFormat hdfsRowFormat = ExpTupleDesc::SQLMX_ALIGNED_FORMAT;
+
   ValueIdList asciiVids;
   ValueIdList executorPredCastVids;
   ValueIdList projectExprOnlyCastVids;
@@ -974,7 +1045,7 @@ short FileScan::codeGenForHive(Generator * generator)
 
   exp_gen->generateContiguousMoveExpr(rvidl, TRUE /*add conv nodes*/,
                                       0 /*atp*/, returned_atp_index,
-                                      ExpTupleDesc::SQLMX_ALIGNED_FORMAT,
+                                      hdfsRowFormat,
                                       returnedRowlen,
                                       &proj_expr, 
                                       &tuple_desc,
@@ -1015,6 +1086,7 @@ short FileScan::codeGenForHive(Generator * generator)
   Queue * hdfsFileRangeBeginList = NULL;
   Queue * hdfsFileRangeNumList = NULL;
   Queue * hdfsColInfoList = NULL;
+  Queue * hdfsAllColInfoList = NULL;
   Int64 expirationTimestamp = 0;
   char * hdfsHostName = NULL;
   Int32 hdfsPort = 0;
@@ -1042,6 +1114,7 @@ short FileScan::codeGenForHive(Generator * generator)
   NABoolean useCursorMulti = FALSE;
   NABoolean doSplitFileOpt = FALSE;
 
+  Queue * tdbListOfOrcPPI = NULL;
   if ((hTabStats->isTextFile()) || (hTabStats->isSequenceFile()))
     {
       genForTextAndSeq(generator, 
@@ -1051,10 +1124,14 @@ short FileScan::codeGenForHive(Generator * generator)
     }
   else if (hTabStats->isOrcFile())
     {
+      ValueIdList orcOperVIDlist;
       genForOrc(generator, 
                 hTabStats,
                 getPhysicalProperty()->getPartitioningFunction(),
+                &orcListOfPPI(),
                 hdfsFileInfoList, hdfsFileRangeBeginList, hdfsFileRangeNumList,
+                tdbListOfOrcPPI,
+                orcOperVIDlist,
                 hdfsHostName, hdfsPort);
       
       hdfsColInfoList = new(space) Queue(space);
@@ -1085,7 +1162,45 @@ short FileScan::codeGenForHive(Generator * generator)
             ((char*)&hco, sizeof(HdfsColInfo));
           hdfsColInfoList->insert(hcoInList);
         }
-      
+
+      if (orcOperVIDlist.entries() > 0)
+        {
+          ExpTupleDesc * orcOperTupleDesc = NULL;
+          exp_gen->generateContiguousMoveExpr(
+               orcOperVIDlist, -1,
+               work_atp, orcOperTuppIndex, 
+               ExpTupleDesc::SQLARK_EXPLODED_FORMAT,
+               orcOperLength,
+               &orcOperExpr,
+               &orcOperTupleDesc,
+               ExpTupleDesc::LONG_FORMAT);
+
+          work_cri_desc->setTupleDescriptor(orcOperTuppIndex, orcOperTupleDesc);
+
+          hdfsAllColInfoList = new(space) Queue(space);
+          for (int i = 0; i < hdfsVals.entries(); i++)
+            {
+              const ValueId &vid = hdfsVals[i];
+              ItemExpr * ie = vid.getItemExpr();
+              
+              NAColumn * nac = NULL;
+              if (ie->getOperatorType() == ITM_BASECOLUMN)
+                {
+                  nac = ((BaseColumn*)ie)->getNAColumn();
+                }
+              else if (ie->getOperatorType() == ITM_INDEXCOLUMN)
+                {
+                  nac = ((IndexColumn*)ie)->getNAColumn();
+                }
+              else
+                continue;
+              
+              char * cnameInList = 
+                space->allocateAndCopyToAlignedSpace
+                (nac->getColName().data(), nac->getColName().length(), 0);
+              hdfsAllColInfoList->insert(cnameInList);
+            } // for
+        }
     }
 
   // set expiration timestamp
@@ -1151,47 +1266,97 @@ if (hTabStats->isOrcFile())
     space->AllocateAndCopyToAlignedSpace(GenGetQualifiedName(getIndexDesc()->getNAFileSet()->getFileSetName()), 0);
 
   // create hdfsscan_tdb
-  ComTdbHdfsScan *hdfsscan_tdb = new(space) 
-    ComTdbHdfsScan(
-		   tablename,
-                   type,
-		   executor_expr,
-		   proj_expr,
-		   convert_expr,
-                   project_convert_expr,
-		   hdfsVals.entries(),      // size of convertSkipList
-		   convertSkipList,
-		   hdfsHostName, 
-		   hdfsPort,      
-		   hdfsFileInfoList,
-		   hdfsFileRangeBeginList,
-		   hdfsFileRangeNumList,
-                   hdfsColInfoList,
-		   hTabStats->getRecordTerminator(),  // recordDelimiter
-		   hTabStats->getFieldTerminator(),   // columnDelimiter,
-		   hdfsBufSize,
-                   rangeTailIOSize,
-		   executorPredColsRecLength,
-		   returnedRowlen,
-		   asciiRowLen,
-                   projectOnlyColsRecLength,
-		   returned_atp_index, 
-		   asciiTuppIndex,
-		   executorPredTuppIndex,
-                   projectOnlyTuppIndex,
-		   work_cri_desc,
-		   given_desc,
-		   returned_desc,
-		   downqueuelength,
-		   upqueuelength,
-		   (Cardinality)getEstRowsAccessed().getValue(),
-		   numBuffers,
-		   buffersize,
-		   errCountTab,
-		   logLocation,
-		   errCountRowId 
-		   );
-
+  ComTdbHdfsScan *hdfsscan_tdb = NULL;
+  if (hTabStats->isOrcFile())
+    hdfsscan_tdb = new(space)
+      ComTdbOrcScan
+      (
+           tablename,
+           type,
+           executor_expr,
+           proj_expr,
+           convert_expr,
+           project_convert_expr,
+           orcOperExpr,
+           hdfsVals.entries(),      // size of convertSkipList
+           convertSkipList,
+           hdfsHostName, 
+           hdfsPort,      
+           hdfsFileInfoList,
+           hdfsFileRangeBeginList,
+           hdfsFileRangeNumList,
+           hdfsColInfoList,
+           hdfsAllColInfoList,
+           hTabStats->getRecordTerminator(),  // recordDelimiter
+           hTabStats->getFieldTerminator(),   // columnDelimiter,
+           hdfsBufSize,
+           rangeTailIOSize,
+           tdbListOfOrcPPI,
+           executorPredColsRecLength,
+           returnedRowlen,
+           asciiRowLen,
+           projectOnlyColsRecLength,
+           orcOperLength,
+           returned_atp_index, 
+           asciiTuppIndex,
+           executorPredTuppIndex,
+           projectOnlyTuppIndex,
+           orcOperTuppIndex,
+           work_cri_desc,
+           given_desc,
+           returned_desc,
+           downqueuelength,
+           upqueuelength,
+           (Cardinality)getEstRowsAccessed().getValue(),
+           numBuffers,
+           buffersize,
+           errCountTab,
+           logLocation,
+           errCountRowId 
+       );
+  else
+    hdfsscan_tdb = new(space)
+      ComTdbHdfsScan
+      (
+           tablename,
+           type,
+           executor_expr,
+           proj_expr,
+           convert_expr,
+           project_convert_expr,
+           hdfsVals.entries(),      // size of convertSkipList
+           convertSkipList,
+           hdfsHostName, 
+           hdfsPort,      
+           hdfsFileInfoList,
+           hdfsFileRangeBeginList,
+           hdfsFileRangeNumList,
+           hdfsColInfoList,
+           hTabStats->getRecordTerminator(),  // recordDelimiter
+           hTabStats->getFieldTerminator(),   // columnDelimiter,
+           hdfsBufSize,
+           rangeTailIOSize,
+           executorPredColsRecLength,
+           returnedRowlen,
+           asciiRowLen,
+           projectOnlyColsRecLength,
+           returned_atp_index, 
+           asciiTuppIndex,
+           executorPredTuppIndex,
+           projectOnlyTuppIndex,
+           work_cri_desc,
+           given_desc,
+           returned_desc,
+           downqueuelength,
+           upqueuelength,
+           (Cardinality)getEstRowsAccessed().getValue(),
+           numBuffers,
+           buffersize,
+           errCountTab,
+           logLocation,
+           errCountRowId 
+       );
+  
   generator->initTdbFields(hdfsscan_tdb);
 
   hdfsscan_tdb->setUseCursorMulti(useCursorMulti);

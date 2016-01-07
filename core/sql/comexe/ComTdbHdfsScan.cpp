@@ -481,13 +481,177 @@ Int32 ComTdbHdfsScan::orderedQueueProtocol() const
   return 1;
 }
 
+///////////////////////////////////////////////////////
+// ComTdbOrcScan
+///////////////////////////////////////////////////////
+// Dummy constructor for "unpack" routines.
+ComTdbOrcScan::ComTdbOrcScan():
+ ComTdbHdfsScan()
+{};
+
+// Constructor
+
+ComTdbOrcScan::ComTdbOrcScan(
+                               char * tableName,
+                               short type,
+                               ex_expr * select_pred,
+                               ex_expr * move_expr,
+                               ex_expr * convert_expr,
+                               ex_expr * move_convert_expr,
+                               ex_expr * orcOperExpr,
+                               UInt16 convertSkipListSize,
+                               Int16 * convertSkipList,
+                               char * hostName,
+                               tPort port,
+                               Queue * hdfsFileInfoList,
+                               Queue * hdfsFileRangeBeginList,
+                               Queue * hdfsFileRangeNumList,
+                               Queue * hdfsColInfoList,
+                               Queue * orcAllColInfoList,
+                               char recordDelimiter,
+                               char columnDelimiter,
+                               Int64 hdfsBufSize,
+                               UInt32 rangeTailIOSize,
+                               Queue * tdbListOfOrcPPI,
+                               Int64 hdfsSqlMaxRecLen,
+                               Int64 outputRowLength,
+                               Int64 asciiRowLen,
+                               Int64 moveColsRowLen,
+                               Int64 orcOperLength,
+                               const unsigned short tuppIndex,
+                               const unsigned short asciiTuppIndex,
+                               const unsigned short workAtpIndex,
+                               const unsigned short moveColsTuppIndex,
+                               const unsigned short orcOperTuppIndex,
+                               ex_cri_desc * work_cri_desc,
+                               ex_cri_desc * given_cri_desc,
+                               ex_cri_desc * returned_cri_desc,
+                               queue_index down,
+                               queue_index up,
+                               Cardinality estimatedRowCount,
+                               Int32  numBuffers,
+                               UInt32  bufferSize,
+                               char * errCountTable = NULL,
+                               char * loggingLocation = NULL,
+                               char * errCountId = NULL
+                               )
+  : ComTdbHdfsScan( 
+                   tableName,
+                   type,
+                   select_pred,
+                   move_expr,
+                   convert_expr,
+                   move_convert_expr,
+                   convertSkipListSize, convertSkipList, hostName, port,
+                   hdfsFileInfoList,
+                   hdfsFileRangeBeginList,
+                   hdfsFileRangeNumList,
+                   hdfsColInfoList,
+                   recordDelimiter, columnDelimiter, hdfsBufSize, 
+                   rangeTailIOSize, hdfsSqlMaxRecLen,
+                   outputRowLength, asciiRowLen, moveColsRowLen,
+                   tuppIndex, asciiTuppIndex, workAtpIndex, moveColsTuppIndex,
+                   work_cri_desc,
+                   given_cri_desc,
+                   returned_cri_desc,
+                   down,
+                   up,
+                   estimatedRowCount,
+                   numBuffers,
+                   bufferSize,
+                   errCountTable, loggingLocation, errCountId),
+    orcOperExpr_(orcOperExpr),
+    orcOperLength_(orcOperLength),
+    orcOperTuppIndex_(orcOperTuppIndex),
+    listOfOrcPPI_(tdbListOfOrcPPI),
+    orcAllColInfoList_(orcAllColInfoList)
+{
+  setNodeType(ComTdb::ex_ORC_SCAN);
+  setEyeCatcher(eye_ORC_SCAN);
+}
+
+ComTdbOrcScan::~ComTdbOrcScan()
+{};
+
+Long ComTdbOrcScan::pack(void * space)
+{
+  if (listOfOrcPPI() && listOfOrcPPI()->numEntries() > 0)
+    {
+      listOfOrcPPI()->position();
+      for (Lng32 i = 0; i < listOfOrcPPI()->numEntries(); i++)
+	{
+	  ComTdbOrcPPI * ppi = (ComTdbOrcPPI*)listOfOrcPPI()->getNext();
+          ppi->pack(space);
+          //	  ppi->operands_.pack(space);
+	}
+    }
+ 
+  listOfOrcPPI_.pack(space);
+
+  orcOperExpr_.pack(space);
+
+  // pack elements in orcAllColInfoList
+  if (orcAllColInfoList())
+    {
+      /*      orcAllColInfoList_->position();
+      for (Lng32 i = 0; i < orcAllColInfoList_->numEntries(); i++)
+        {
+          char * cn = (char*)orcAllColInfoList_->getNext();
+          
+          cn->colName_.pack(space);
+        }
+      */
+      orcAllColInfoList_.pack(space);
+    }
+
+  return ComTdbHdfsScan::pack(space);
+}
+
+Lng32 ComTdbOrcScan::unpack(void * base, void * reallocator)
+{
+  if(listOfOrcPPI_.unpack(base, reallocator)) return -1;
+
+  if (listOfOrcPPI() && listOfOrcPPI()->numEntries() > 0)
+    {
+      listOfOrcPPI()->position();
+      for (Lng32 i = 0; i < listOfOrcPPI()->numEntries(); i++)
+	{
+	  ComTdbOrcPPI * ppi = (ComTdbOrcPPI*)listOfOrcPPI()->getNext();
+          if (ppi->unpack(base, reallocator)) return -1;
+          //	  if (ppi->operands_.unpack(base, reallocator)) return -1;
+	}
+    }
+
+  if (orcAllColInfoList_.unpack(base, reallocator)) return -1;
+
+  if(orcOperExpr_.unpack(base, reallocator)) return -1;
+
+  return ComTdbHdfsScan::unpack(base, reallocator);
+}
+
+Long ComTdbOrcPPI::pack(void * space)
+{
+  //  operands_.pack(space);
+  colName_.pack(space);
+
+  return NAVersionedObject::pack(space);
+}
+
+Lng32 ComTdbOrcPPI::unpack(void * base, void * reallocator)
+{
+  //  if(operands_.unpack(base, reallocator)) return -1;
+  if(colName_.unpack(base)) return -1;
+  
+  return NAVersionedObject::unpack(base, reallocator);
+}
+
 ///////////////////////////////////////////////////////////////
 // ComTdbOrcAggr
 ///////////////////////////////////////////////////////////////
 
 // Dummy constructor for "unpack" routines.
 ComTdbOrcFastAggr::ComTdbOrcFastAggr():
- ComTdbHdfsScan()
+ ComTdbOrcScan()
 {
   setNodeType(ComTdb::ex_ORC_AGGR);
   setEyeCatcher(eye_ORC_AGGR);
@@ -519,22 +683,23 @@ ComTdbOrcFastAggr::ComTdbOrcFastAggr(
                                      Int32  numBuffers,
                                      UInt32  bufferSize
                                      )
-  : ComTdbHdfsScan( 
+  : ComTdbOrcScan( 
                    tableName,
                    (short)ComTdbHdfsScan::ORC_,
                    having_expr,
                    NULL,
                    proj_expr,
-                   NULL,
+                   NULL, NULL,
                    0, NULL, NULL, 0,
                    hdfsFileInfoList,
                    hdfsFileRangeBeginList,
                    hdfsFileRangeNumList,
                    listOfAggrColInfo,
-                   0, 0, 0, 0, 0,
+                   NULL,
+                   0, 0, 0, 0, NULL, 0,
                    projRowLen, 
-                   0, 0,
-                   returnedTuppIndex, 0, finalAggrTuppIndex, projTuppIndex,
+                   0, 0, 0,
+                   returnedTuppIndex, 0, finalAggrTuppIndex, projTuppIndex, 0,
                    work_cri_desc,
                    given_cri_desc,
                    returned_cri_desc,

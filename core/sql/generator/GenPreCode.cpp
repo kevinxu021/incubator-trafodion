@@ -4126,6 +4126,39 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
     (availableValues,
      getGroupAttr()->getCharacteristicInputs());
 
+  if (getenv("ORC_PPI_TEST"))
+    {
+      if (getTableDesc()->getNATable()->getTableName().getQualifiedNameAsString() == "HIVE.HIVE.PPI_ORC_TEST")
+        {
+          if (! executorPred().isEmpty())
+            {
+              ItemExpr * newPredTree = 
+                executorPred().rebuildExprTree(ITM_AND,TRUE,TRUE);
+
+              newPredTree = newPredTree->preCodeGen(generator);
+
+              ItemExpr * childExpr = newPredTree->child(0);
+
+              if ((childExpr->getOperatorType() == ITM_EQUAL) &&
+                  ((childExpr->child(0)->getOperatorType() == ITM_BASECOLUMN) ||
+                   (childExpr->child(0)->getOperatorType() == ITM_INDEXCOLUMN)) &&
+                  (childExpr->child(1)->getOperatorType() == ITM_CONSTANT))
+                {
+                  OrcPushdownPredInfo startAnd(STARTAND, NULL, NULL);
+                  orcListOfPPI().insert(startAnd);
+
+                  ValueId vid0 = childExpr->child(0)->getValueId();
+                  ValueId vid1 = childExpr->child(1)->getValueId();
+                  OrcPushdownPredInfo ppi(EQUALS, &vid0, &vid1);
+                  orcListOfPPI().insert(ppi);
+
+                  OrcPushdownPredInfo endd(END, NULL, NULL);
+                  orcListOfPPI().insert(endd);
+                }
+            }
+        }
+    }
+
   generator->oltOptInfo()->mayDisableOperStats(&oltOptInfo());
   markAsPreCodeGenned();
   return this;

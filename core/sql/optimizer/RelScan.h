@@ -756,35 +756,30 @@ private:
 class OrcPushdownPredInfo
 {
 public:
-  enum OperatorType 
-    {
-      UNKNOWN,
-      STARTAND,
-      STARTOR,
-      STARTNOT,
-      END,
-      EQ,
-      LESSTHEN, 
-      LESSTHANEQUAL,
-      ISNULL,
-      IN
-    };
+ OrcPushdownPredInfo(enum OrcPushdownOperatorType type, 
+                     ValueId *colValId,
+                     ValueId *operValId)
+      : type_(type)
+  {
+    if (colValId)
+      colValId_ = *colValId;
 
-  OrcPushdownPredInfo(enum OperatorType type, NAList<NAString> &operands)
-       : type_(type),
-         operands_(operands)
-  {}
+    if (operValId)
+      operValId_ = *operValId;
+  }
 
   OrcPushdownPredInfo()
-       : type_(UNKNOWN)
+       : type_(UNKNOWN_OPER)
   {}
 
-  enum OperatorType getType() { return type_; }
-  NAList<NAString> &operands() { return operands_; }
+  enum OrcPushdownOperatorType getType() { return type_; }
+  ValueId &colValId() { return colValId_; }
+  ValueId &operValId() { return operValId_; }
 
 private:
-  enum OperatorType type_; 
-  NAList<NAString> operands_;
+  enum OrcPushdownOperatorType type_; 
+  ValueId colValId_;
+  ValueId operValId_;
 };
 
 // -----------------------------------------------------------------------
@@ -890,9 +885,12 @@ public:
   static short genForOrc(Generator * generator,
                          const HHDFSTableStats* hTabStats,
                          const PartitioningFunction * mypart,
+                         NAList<OrcPushdownPredInfo> *listOfOrcPPI,
                          Queue * &hdfsFileInfoList,
                          Queue * &hdfsFileRangeBeginList,
                          Queue * &hdfsFileRangeNumList,
+                         Queue * &tdbListOfOrcPPI,
+                         ValueIdList &orcOperVIDlist,
                          char* &hdfsHostName,
                          Int32 &hdfsPort);
   

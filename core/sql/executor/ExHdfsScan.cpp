@@ -61,13 +61,6 @@ ex_tcb * ExHdfsScanTdb::build(ex_globals * glob)
                       *this,
                       exe_glob);
     }
-  else if (isOrcFile())
-    {
-      tcb = new(exe_glob->getSpace()) 
-        ExOrcScanTcb(
-                     *this,
-                     exe_glob);
-    }
 
   ex_assert(tcb, "Error building ExHdfsScanTcb.");
 

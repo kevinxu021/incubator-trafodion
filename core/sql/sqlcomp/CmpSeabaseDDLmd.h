@@ -42,6 +42,7 @@
 #ifndef _CMP_SEABASE_MD_H_
 #define _CMP_SEABASE_MD_H_
 
+/* defined in common/ComSmallDefs.h
 #define COL_MAX_CATALOG_LEN 256
 #define COL_MAX_SCHEMA_LEN 256
 #define COL_MAX_TABLE_LEN 256
@@ -50,6 +51,7 @@
 #define COL_MAX_LIB_LEN 512
 #define COL_MAX_ATTRIBUTE_LEN 3
 #define MAX_HBASE_NAME_LEN 255
+*/
 
 #define MD_COL_DATATYPE REC_BYTE_V_ASCII
 

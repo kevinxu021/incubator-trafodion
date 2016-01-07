@@ -1875,6 +1875,29 @@ enum ComAuthenticationType{
 #define COM_TEXT__TEXT__MD_COL_MAX_SIZE 3000
 #endif // ! defined(COM_TEXT__TEXT__MD_COL_MAX_SIZE)
 
+#define COL_MAX_CATALOG_LEN 256
+#define COL_MAX_SCHEMA_LEN 256
+#define COL_MAX_TABLE_LEN 256
+#define COL_MAX_COLUMN_LEN 256
+#define COL_MAX_EXT_LEN 1024
+#define COL_MAX_LIB_LEN 512
+#define COL_MAX_ATTRIBUTE_LEN 3
+#define MAX_HBASE_NAME_LEN 255
+
+enum OrcPushdownOperatorType 
+  {
+    UNKNOWN_OPER = -1,
+    STARTAND = 0,
+    STARTOR,
+    STARTNOT,
+    END,
+    EQUALS,
+    LESSTHAN, 
+    LESSTHANEQUALS,
+    ISNULL,
+    IN
+  };
+
 //
 // Definition of class ComUID
 //

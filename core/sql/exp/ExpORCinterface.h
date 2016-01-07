@@ -63,22 +63,35 @@ class ExpORCinterface : public NABasicObject
   
   Lng32 init();
   
+  //////////////////////////////////////////////////////////////////
   // orcFileName:   location and name of orc file
   // startRowNum: first rownum to be returned. 
   // stopRowNum:  last rownum to be returned
-  //    Rownums start at 1 and stop at N. If N is -1, then all rows are to be returned.
+  //    Rownums start at 1 and stop at N. If N is -1, 
+  //   then all rows are to be returned.
   // 
   // numCols   : Number of columns to be returned 
   //                         set it to -1 to get all the columns
   //
   // whichCol            : array containing the column numbers to be returned
   //                        (Column numbers are zero based)
+  //
+  // ppiBuflen:   length of buffer containing PPI (pred pushdown info)
+  // ppiBuf:      buffer containing PPI
+  // Format of data in ppiBuf:
+  //   <numElems><type><nameLen><name><numOpers><opValLen><opVal>... 
+  //    4-bytes    4B     4B      nlB     4B         4B      ovl B
+  //////////////////////////////////////////////////////////////////
+
   Lng32 scanOpen(
                  char * orcFileName,
                  const Int64 startRowNum, 
                  const Int64 stopRowNum,
                  Lng32 numCols,
-                 Lng32 *whichCols);
+                 Lng32 *whichCols,
+                 Lng32 ppiBuflen,
+                 char * ppiBuf,
+                 TextVec *ppiAllCols);
 
   // orcRow:   pointer to buffer where ORC will return the row.
   //                Buffer is allocated by caller.
@@ -102,7 +115,10 @@ class ExpORCinterface : public NABasicObject
              const Int64 startRowNum = 0, 
              const Int64 stopRowNum = ULLONG_MAX,
              Lng32 numCols = 0,
-             Lng32 * whichCols = NULL);
+             Lng32 * whichCols = NULL,
+             Lng32 ppiBuflen = 0,
+             char * ppiBuf = NULL,
+             TextVec *ppiAllCols = NULL);
 
   Lng32 close();
 

@@ -78,7 +78,8 @@ public:
   // Open the HDFS OrcFile 'path' for reading (returns all the columns)
   // offset                : offset to start scan
   // length                : scan upto offset + length 
-  OFR_RetCode    open(const char* path, Int64 offset=0L, Int64 length=ULLONG_MAX);
+  //  OFR_RetCode    open(const char* path, Int64 offset=0L, Int64 length=ULLONG_MAX);
+
 
   /*******
    * Open the HDFS OrcFile 'path' for reading.
@@ -94,8 +95,19 @@ public:
    *
    * which_cols            : array containing the column numbers to be returned
    *                         (Column numbers are one based)
+   *
+   * ppiBuflen:   length of buffer containing PPI (pred pushdown info)
+   * ppiBuf:      buffer containing PPI
+   * Format of data in ppiBuf:
+   *   <numElems><type><nameLen><name><numOpers><opValLen><opVal>... 
+   *    4-bytes    4B     4B      nlB     4B         4B      ovl B
+   * ppiAllCols:  list of all columns. Used by ORC during pred evaluation.
    *******/
-  OFR_RetCode    open(const char* path, Int64 offset, Int64 length, int num_cols_in_projection, int *which_cols);
+  OFR_RetCode    open(const char* path, 
+                      Int64 offset=0L, Int64 length=ULLONG_MAX, 
+                      int num_cols_in_projection=-1, int *which_cols=NULL,
+                      int ppiBuflen=0, char * ppiBuf=NULL,
+                      TextVec *ppiAllCols=NULL);
   
   // Get the current file position.
   OFR_RetCode    getPosition(Int64& pos);

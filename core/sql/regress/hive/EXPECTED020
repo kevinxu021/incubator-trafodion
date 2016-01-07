@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Wed Dec 30 05:33:16 2015
+-- Definition current  Wed Jan  6 01:41:46 2016
 
   (
     S_STORE_SK                       INT
@@ -162,8 +162,8 @@ S   OPERATOR          LC  RC  TAB_NAME
 
 04  ROOT              3   ?             
 03  HYBRID_HASH_JOIN  2   1             
-02  HIVE_SCAN         ?   ?   STORE_ORC 
-01  HIVE_SCAN         ?   ?   STORE_ORC 
+02  ORC_SCAN          ?   ?   STORE_ORC 
+01  ORC_SCAN          ?   ?   STORE_ORC 
 
 --- 4 row(s) selected.
 >>
@@ -201,7 +201,7 @@ S   OPERATOR          LC  RC  TAB_NAME
 
 04  ROOT              3   ?             
 03  NESTED_JOIN       1   2             
-02  HIVE_SCAN         ?   ?   STORE_ORC 
+02  ORC_SCAN          ?   ?   STORE_ORC 
 01  HIVE_SCAN         ?   ?   STORE     
 
 --- 4 row(s) selected.
@@ -355,7 +355,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 
 2    .    3    root                                                  1.00E+000
 1    .    2    sort_scalar_aggr                                      1.00E+000
-.    .    1    hive_scan                       STORE_ORC             4.21E+003
+.    .    1    orc_scan                        STORE_ORC             4.21E+003
 
 --- SQL operation complete.
 >>select count(s_store_sk) from store_orc;

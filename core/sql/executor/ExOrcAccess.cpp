@@ -44,6 +44,24 @@
 
 #include "ExpORCinterface.h"
 
+ex_tcb * ExOrcScanTdb::build(ex_globals * glob)
+{
+  ExExeStmtGlobals * exe_glob = glob->castToExExeStmtGlobals();
+  
+  ex_assert(exe_glob,"This operator cannot be in DP2");
+
+  ExHdfsScanTcb *tcb = NULL;
+  
+  tcb = new(exe_glob->getSpace()) 
+    ExOrcScanTcb(
+         *this,
+         exe_glob);
+
+  ex_assert(tcb, "Error building ExHdfsScanTcb.");
+
+  return (tcb);
+}
+
 
 ex_tcb * ExOrcFastAggrTdb::build(ex_globals * glob)
 {
@@ -62,27 +80,30 @@ ex_tcb * ExOrcFastAggrTdb::build(ex_globals * glob)
 // ORC files
 ////////////////////////////////////////////////////////////////////////
 ExOrcScanTcb::ExOrcScanTcb(
-          const ComTdbHdfsScan &orcScanTdb, 
+          const ComTdbOrcScan &orc_scan_tdb, 
           ex_globals * glob ) :
-  ExHdfsScanTcb( orcScanTdb, glob),
+  ExHdfsScanTcb(orc_scan_tdb, glob),
   step_(NOT_STARTED)
 {
+  Space * space = (glob ? glob->getSpace() : 0);
+  CollHeap * heap = (glob ? glob->getDefaultHeap() : 0);
+
   orci_ = ExpORCinterface::newInstance(glob->getDefaultHeap(),
-                                       (char*)orcScanTdb.hostName_,
-                                       orcScanTdb.port_);
+                                       (char*)orcScanTdb().hostName_,
+                                       orcScanTdb().port_);
   
   numCols_ = -1;
   whichCols_ = NULL;
 
-  if ((hdfsScanTdb().getHdfsColInfoList()) &&
-      (hdfsScanTdb().getHdfsColInfoList()->numEntries() > 0))
+  if ((orcScanTdb().getHdfsColInfoList()) &&
+      (orcScanTdb().getHdfsColInfoList()->numEntries() > 0))
     {
-      numCols_ = hdfsScanTdb().getHdfsColInfoList()->numEntries();
+      numCols_ = orcScanTdb().getHdfsColInfoList()->numEntries();
 
       whichCols_ = 
-        new(glob->getDefaultHeap()) Lng32[hdfsScanTdb().getHdfsColInfoList()->numEntries()];
+        new(glob->getDefaultHeap()) Lng32[orcScanTdb().getHdfsColInfoList()->numEntries()];
 
-      Queue *hdfsColInfoList = hdfsScanTdb().getHdfsColInfoList();
+      Queue *hdfsColInfoList = orcScanTdb().getHdfsColInfoList();
       hdfsColInfoList->position();
       int i = 0;
       HdfsColInfo * hco = NULL;
@@ -92,6 +113,28 @@ ExOrcScanTcb::ExOrcScanTcb(
           i++;
         }
     }
+
+  // fixup expressions
+  if (orcOperExpr())
+    {
+      orcOperExpr()->fixup(0, getExpressionMode(), this,  
+                           space, heap, FALSE, glob);
+    }
+  
+  orcOperRow_ = NULL;
+  if (orcScanTdb().orcOperTuppIndex_ > 0)
+    {
+      pool_->get_free_tuple(workAtp_->getTupp
+                            (orcScanTdb().orcOperTuppIndex_), 0);
+
+      orcOperRow_ = new(glob->getDefaultHeap()) 
+        char[orcScanTdb().orcOperLength_];
+
+      workAtp_->getTupp(orcScanTdb().orcOperTuppIndex_)
+        .setDataPointer(orcOperRow_);
+
+    }
+
 }
 
 ExOrcScanTcb::~ExOrcScanTcb()
@@ -112,7 +155,7 @@ short ExOrcScanTcb::extractAndTransformOrcSourceToSqlRow(
   char *sourceData = orcRow;
 
   ExpTupleDesc * asciiSourceTD =
-     hdfsScanTdb().workCriDesc_->getTupleDescriptor(hdfsScanTdb().asciiTuppIndex_);
+     orcScanTdb().workCriDesc_->getTupleDescriptor(orcScanTdb().asciiTuppIndex_);
   if (asciiSourceTD->numAttrs() == 0)
     {
       // no columns need to be converted. For e.g. count(*) with no predicate
@@ -151,12 +194,13 @@ short ExOrcScanTcb::extractAndTransformOrcSourceToSqlRow(
       
       sourceData += currColLen;
     }
-  
-  workAtp_->getTupp(hdfsScanTdb().workAtpIndex_) = hdfsSqlTupp_;
-  workAtp_->getTupp(hdfsScanTdb().asciiTuppIndex_) = hdfsAsciiSourceTupp_;
-  workAtp_->getTupp(hdfsScanTdb().moveExprColsTuppIndex_) = moveExprColsTupp_;
 
   err = 0;
+
+  workAtp_->getTupp(orcScanTdb().workAtpIndex_) = hdfsSqlTupp_;
+  workAtp_->getTupp(orcScanTdb().asciiTuppIndex_) = hdfsAsciiSourceTupp_;
+  workAtp_->getTupp(orcScanTdb().moveExprColsTuppIndex_) = moveExprColsTupp_;
+
   if (convertExpr())
     {
       ex_expr::exp_return_type evalRetCode =
@@ -199,7 +243,7 @@ ExWorkProcRetcode ExOrcScanTcb::work()
 	    beginRangeNum_ = -1;
 	    numRanges_ = -1;
 
-	    if (hdfsScanTdb().getHdfsFileInfoList()->isEmpty())
+	    if (orcScanTdb().getHdfsFileInfoList()->isEmpty())
 	      {
 		step_ = DONE;
 		break;
@@ -208,29 +252,135 @@ ExWorkProcRetcode ExOrcScanTcb::work()
 	    myInstNum_ = getGlobals()->getMyInstanceNumber();
 
 	    beginRangeNum_ =  
-	      *(Lng32*)hdfsScanTdb().getHdfsFileRangeBeginList()->get(myInstNum_);
+	      *(Lng32*)orcScanTdb().getHdfsFileRangeBeginList()->get(myInstNum_);
 
 	    numRanges_ =  
-	      *(Lng32*)hdfsScanTdb().getHdfsFileRangeNumList()->get(myInstNum_);
+	      *(Lng32*)orcScanTdb().getHdfsFileRangeNumList()->get(myInstNum_);
 
 	    currRangeNum_ = beginRangeNum_;
 
 	    if (numRanges_ > 0)
-              step_ = INIT_ORC_CURSOR;
+              {
+                if (orcScanTdb().listOfOrcPPI())
+                  step_ = SETUP_ORC_PPI;
+                else
+                  step_ = INIT_ORC_CURSOR;
+              }
             else
               step_ = DONE;
 	  }
 	  break;
 
+        case SETUP_ORC_PPI:
+          {
+            ExpTupleDesc * orcOperTD = NULL;
+	    if (orcOperExpr())
+	      {
+		ex_expr::exp_return_type evalRetCode =
+		  orcOperExpr()->eval(pentry_down->getAtp(), workAtp_);
+
+                if (evalRetCode == ex_expr::EXPR_ERROR)
+                  {
+                    step_ = HANDLE_ERROR;
+                    break;
+                  }
+
+                orcOperTD =
+                  orcScanTdb().workCriDesc_->getTupleDescriptor
+                  (orcScanTdb().orcOperTuppIndex_);
+               }
+
+            Queue *ppiList = orcScanTdb().listOfOrcPPI();
+
+            //////////////////////////////////////////////////////////////////
+            // <numElems><type><nameLen><name><numOpers><opValLen><opVal>... 
+            //  4-bytes    4B     4B      nlB     4B         4B      ovl B
+            //////////////////////////////////////////////////////////////////
+
+            Lng32 totalLen = sizeof(Lng32); // numElems
+            ppiList->position();
+            ComTdbOrcPPI * ppi = NULL;
+            while ((ppi = (ComTdbOrcPPI*)ppiList->getNext()) != NULL)
+              {
+                totalLen += sizeof(Lng32); // type
+                totalLen += sizeof(Lng32); // colNameLen
+                if (ppi->colName())
+                  {
+                    totalLen += ROUND4(strlen(ppi->colName())); // col name
+                  }
+
+                totalLen += sizeof(Lng32); // numOpers.
+                Lng32 operIndex = ppi->operAttrIndex();
+                if ((orcOperTD) && (operIndex >= 0))
+                  {
+                    // Currently, max opers is 1
+                    Attributes * attr = orcOperTD->getAttr(operIndex);
+                    totalLen += sizeof(Lng32); // opValLen
+                    
+                    totalLen += ROUND4(attr->getLength());
+                  }
+                
+              } // while
+
+            
+            orcPPIBuf_ = new(getGlobals()->getDefaultHeap()) char[totalLen];
+            char * currPos = orcPPIBuf_;
+            *(Lng32*)currPos = ppiList->numEntries();
+            currPos += sizeof(Lng32);
+
+            ppiList->position();
+            ppi = NULL;
+            while ((ppi = (ComTdbOrcPPI*)ppiList->getNext()) != NULL)
+              {
+                Lng32 type = (Lng32)ppi->type();
+                *(Lng32*)currPos = type;
+                currPos += sizeof(Lng32);
+
+                char * colName = ppi->colName();
+                Lng32 colNameLen = (colName ? strlen(colName) : 0);
+                *(Lng32*)currPos = colNameLen;
+                currPos += sizeof(Lng32);
+
+                if (colNameLen > 0)
+                  {
+                    str_cpy_all(currPos, colName, colNameLen);
+                    currPos += ROUND4(colNameLen);
+                  }
+
+                Lng32 operIndex = ppi->operAttrIndex();
+                Lng32 numOpers = ((operIndex >= 0) ? 1 : 0); // currently max oper is 1
+                *(Lng32*)currPos = numOpers;
+                currPos += sizeof(Lng32);
+
+                if (operIndex >= 0)
+                  {
+                    Attributes * attr = orcOperTD->getAttr(operIndex);
+                    
+                    char * vcLenPtr = &orcOperRow_[attr->getVCLenIndOffset()];
+                    Lng32 dataLen = attr->getLength(vcLenPtr);
+                    char * data = &orcOperRow_[attr->getOffset()];
+                    *(Lng32*)currPos = dataLen;
+                    currPos += sizeof(Lng32);
+                    str_cpy_all(currPos, data, dataLen);
+                    currPos += ROUND4(dataLen);
+                  }
+              } // while
+            
+            orcPPIBuflen_ = currPos - orcPPIBuf_;
+
+            step_ = INIT_ORC_CURSOR;
+          }
+          break;
+
 	case INIT_ORC_CURSOR:
 	  {
             /*            orci_ = ExpORCinterface::newInstance(getHeap(),
-                                                 (char*)hdfsScanTdb().hostName_,
+                                                 (char*)orcScanTdb().hostName_,
                                        
             */
 
             hdfo_ = (HdfsFileInfo*)
-              hdfsScanTdb().getHdfsFileInfoList()->get(currRangeNum_);
+              orcScanTdb().getHdfsFileInfoList()->get(currRangeNum_);
             
             orcStartRowNum_ = hdfo_->getStartRow();
             orcNumRows_ = hdfo_->getNumRows();
@@ -251,7 +401,8 @@ ExWorkProcRetcode ExOrcScanTcb::work()
 	  {
             retcode = orci_->scanOpen(hdfsFileName_,
                                       orcStartRowNum_, orcStopRowNum_,
-                                      numCols_, whichCols_);
+                                      numCols_, whichCols_,
+                                      orcPPIBuflen_, orcPPIBuf_, NULL);
             if (retcode < 0)
               {
                 setupError(EXE_ERROR_FROM_LOB_INTERFACE, retcode, "ORC", "scanOpen", 
@@ -268,7 +419,7 @@ ExWorkProcRetcode ExOrcScanTcb::work()
         case GET_ORC_ROW:
           {
             orcRow_ = hdfsScanBuffer_;
-            orcRowLen_ =  hdfsScanTdb().hdfsBufSize_;
+            orcRowLen_ =  orcScanTdb().hdfsBufSize_;
             retcode = orci_->scanFetch(orcRow_, orcRowLen_, orcRowNum_,
                                        numOrcCols_);
             if (retcode < 0)
@@ -309,8 +460,8 @@ ExWorkProcRetcode ExOrcScanTcb::work()
 	    if (hdfsStats_)
 	      hdfsStats_->incAccessedRows();
 	    
-	    workAtp_->getTupp(hdfsScanTdb().workAtpIndex_) = 
-	      hdfsSqlTupp_;
+            //	    workAtp_->getTupp(orcScanTdb().workAtpIndex_) = 
+            //	      hdfsSqlTupp_;
 
 	    bool rowWillBeSelected = true;
 	    if (selectPred())
@@ -366,13 +517,13 @@ ExWorkProcRetcode ExOrcScanTcb::work()
 	    
 	    if (moveExpr())
 	      {
-	        UInt32 maxRowLen = hdfsScanTdb().outputRowLength_;
+	        UInt32 maxRowLen = orcScanTdb().outputRowLength_;
 	        UInt32 rowLen = maxRowLen;
                 
-                if (hdfsScanTdb().useCifDefrag() &&
-                    !pool_->currentBufferHasEnoughSpace((Lng32)hdfsScanTdb().outputRowLength_))
+                if (orcScanTdb().useCifDefrag() &&
+                    !pool_->currentBufferHasEnoughSpace((Lng32)orcScanTdb().outputRowLength_))
                   {
-                    up_entry->getTupp(hdfsScanTdb().tuppIndex_) = defragTd_;
+                    up_entry->getTupp(orcScanTdb().tuppIndex_) = defragTd_;
                     defragTd_->setReferenceCount(1);
                     ex_expr::exp_return_type evalRetCode =
                       moveExpr()->eval(up_entry->getAtp(), workAtp_,0,-1,&rowLen);
@@ -394,10 +545,10 @@ ExWorkProcRetcode ExOrcScanTcb::work()
                         break;
                       }
                     if (pool_->get_free_tuple(
-                                              up_entry->getTupp(hdfsScanTdb().tuppIndex_),
+                                              up_entry->getTupp(orcScanTdb().tuppIndex_),
                                               rowLen))
                       return WORK_POOL_BLOCKED;
-                    str_cpy_all(up_entry->getTupp(hdfsScanTdb().tuppIndex_).getDataPointer(),
+                    str_cpy_all(up_entry->getTupp(orcScanTdb().tuppIndex_).getDataPointer(),
                                 defragTd_->getTupleAddress(),
                                 rowLen);
                     
@@ -405,8 +556,8 @@ ExWorkProcRetcode ExOrcScanTcb::work()
                 else
                   {
                     if (pool_->get_free_tuple(
-                                              up_entry->getTupp(hdfsScanTdb().tuppIndex_),
-                                              (Lng32)hdfsScanTdb().outputRowLength_))
+                                              up_entry->getTupp(orcScanTdb().tuppIndex_),
+                                              (Lng32)orcScanTdb().outputRowLength_))
                       return WORK_POOL_BLOCKED;
                     ex_expr::exp_return_type evalRetCode =
                       moveExpr()->eval(up_entry->getAtp(), workAtp_,0,-1,&rowLen);
@@ -427,10 +578,10 @@ ExWorkProcRetcode ExOrcScanTcb::work()
                         step_ = HANDLE_ERROR;
                         break;
                       }
-                    if (hdfsScanTdb().useCif() && rowLen != maxRowLen)
+                    if (orcScanTdb().useCif() && rowLen != maxRowLen)
                       {
                         pool_->resizeLastTuple(rowLen,
-                                               up_entry->getTupp(hdfsScanTdb().tuppIndex_).getDataPointer());
+                                               up_entry->getTupp(orcScanTdb().tuppIndex_).getDataPointer());
                       }
                   }
 	      }

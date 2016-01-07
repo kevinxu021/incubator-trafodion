@@ -106,12 +106,14 @@ public class OrcFileReader
 		       int    pv_num_cols_to_project,
 		       int[]  pv_which_cols) throws IOException 
     {
-        return open(pv_file_name, 0L, Long.MAX_VALUE, pv_num_cols_to_project, pv_which_cols);
+        return open(pv_file_name, 0L, Long.MAX_VALUE, pv_num_cols_to_project, pv_which_cols, null);
     }
 
+    
     public String open(String pv_file_name, long offset, long length,
 		       int    pv_num_cols_to_project,
-		       int[]  pv_which_cols) throws IOException 
+		       int[]  pv_which_cols,
+                       Object ppi_buf) throws IOException 
     {
 
 	if (logger.isDebugEnabled()) logger.debug("Enter open()," 
