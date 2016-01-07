@@ -49,6 +49,7 @@
 #include "ExprNode.h"
 #include "CostScalar.h"
 #include "ClusteredBitmap.h"
+#include "orcPushdownPredInfo.h"
 
 // -----------------------------------------------------------------------
 // contents of this file
@@ -1463,6 +1464,11 @@ public:
   // ---------------------------------------------------------------------
   NABoolean containsAnyTrue(ValueId &refAnyTrue ) const;
 
+
+  // generate push down list for ORC, based on the veg-replaced push down 
+  // predicates contained in this ValueIdSet. This member function is called
+  // during preCodeGen for Hive scan.
+  void generatePushdownListForORC(OrcPushdownPredInfoList&);
 
 
 /////////////////////////////////////////////////////////////

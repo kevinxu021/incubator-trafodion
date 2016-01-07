@@ -586,6 +586,9 @@ public:
 
   // does the value of this constant (if char) has trailing blanks
   NABoolean valueHasTrailingBlanks();
+
+  // remove non-pushabe predicates for ORC.
+  virtual ItemExpr* removeNonPushablePredicatesForORC() { return this; }
   
 private:
   void initCharConstValue(const NAString&,

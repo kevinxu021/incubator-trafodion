@@ -15056,3 +15056,215 @@ ConstValue* ItemExpr::evaluate(CollHeap* heap)
 
   return result;
 }
+
+ItemExpr* ItemExpr::doBinaryRemoveNonPushablePredicatesForORC()
+{
+  Int32 nc = getArity();
+  
+  CMPASSERT(nc == 2);
+  
+  for (Lng32 i = 0; i < (Lng32)nc; i++)
+    child(i) = child(i)->removeNonPushablePredicatesForORC();
+  
+  if ( child(0) == NULL )
+      return child(1);
+  
+  if ( child(1) == NULL )
+      return child(0);
+  
+  setValueId(NULL_VALUE_ID);
+
+  return this;
+}
+
+// ITM_AND and ITM_OR are acceptable
+ItemExpr* BiLogic::removeNonPushablePredicatesForORC()
+{
+  switch (getOperatorType()) {
+    case ITM_AND:
+    case ITM_OR:
+       break;
+    default:
+      return NULL;
+  }
+
+  return doBinaryRemoveNonPushablePredicatesForORC();
+}
+
+// ==, <, <=, IS NULL are acceptable
+ItemExpr* BiRelat::removeNonPushablePredicatesForORC()
+{
+  NABoolean reverseAndAddNotOperator = FALSE;
+  switch (getOperatorType()) {
+    case ITM_EQUAL:
+    case ITM_LESS:
+    case ITM_LESS_EQ:
+       break;
+
+    case ITM_GREATER:
+    case ITM_GREATER_EQ:
+       reverseAndAddNotOperator = TRUE;
+       break;
+
+    default:
+      return NULL;
+  }
+
+  ItemExpr* ie = NULL;
+  if ( isAPredicateBetweenColumnAndConstant() ) {
+
+    ie = this;
+    if ( reverseAndAddNotOperator ) {
+       ie = reverse();
+       ie = new (STMTHEAP) UnLogic(ITM_NOT, ie);
+       //ie->synthTypeAndValueId();
+    } 
+  }
+  
+  return ie;
+}
+
+NABoolean ItemExpr::isInvolvingAColumn()
+{
+  if (isAColumnReference())
+    return TRUE;
+
+  return (getOperatorType() == ITM_VEG_REFERENCE);
+}
+
+NABoolean BiRelat::isAPredicateBetweenColumnAndConstant()
+{
+  ItemExpr *leftC=child(0);
+  ItemExpr *rightC=child(1);
+  OperatorTypeEnum rightO = rightC->getOperatorType();
+
+  if ( leftC->isInvolvingAColumn() && rightO == ITM_CONSTANT )
+    return TRUE;
+
+  OperatorTypeEnum leftO = leftC->getOperatorType();
+
+  if ( rightC->isInvolvingAColumn() && leftO == ITM_CONSTANT )
+    return TRUE;
+
+  return FALSE;
+}
+
+// ITM_NOT and ITM_IS_NULL are acceptable
+ItemExpr* UnLogic::removeNonPushablePredicatesForORC()
+{
+  switch (getOperatorType()) {
+    case ITM_NOT:
+    case ITM_IS_NULL:
+       return this;
+    default:
+       return NULL;
+  }
+
+  return NULL;
+}
+
+ItemExpr* RangeSpecRef::removeNonPushablePredicatesForORC()
+{
+   OptNormRangeSpec* destObj = getRangeObject();
+
+   // need to revisit when in(1,2,3) can be push down natively
+   // to ORC. The current implementaion limit at two operands
+   // per push-down operator. As a result, A in(1,2,3) will be 
+   // pushed down as A=3 or A=2 or A=1.
+   ItemExpr* ie = const_cast<ItemExpr*>(destObj->getOriginalItemExpr());
+
+   ie=ie->removeNonPushablePredicatesForORC();
+
+   return ie;
+}
+
+ItemExpr* BiRelat::reverse()
+{
+   OperatorTypeEnum op;
+   switch (getOperatorType()) {
+
+      case ITM_LESS:
+         op = ITM_GREATER_EQ;
+         break;
+
+      case ITM_LESS_EQ:
+         op = ITM_GREATER;
+         break;
+    
+      case ITM_GREATER:
+         op = ITM_LESS_EQ;
+         break;
+
+      case ITM_GREATER_EQ:
+         op = ITM_LESS;
+         break;
+
+      default:
+         return this;
+         break;
+   }
+
+   ItemExpr* c0 = child(0);
+   ItemExpr* c1 = child(1);
+   ItemExpr* ie = new (STMTHEAP) BiRelat(op, c0, c1, specialNulls_, isaPartKeyPred_);
+   //ie->synthTypeAndValueId();
+
+   return ie;
+}
+
+void BiLogic::generatePushdownListForORC(OrcPushdownPredInfoList& result)
+{
+  switch (getOperatorType()) {
+    case ITM_AND:
+       result.insertStartAND();
+       break;
+
+    case ITM_OR:
+       result.insertStartOR();
+       break;
+
+    default:
+      CMPASSERT("Invalid biLogic operator to convert to OrcPushdownPredInfo");
+  }
+
+  child(0)->generatePushdownListForORC(result);
+  child(1)->generatePushdownListForORC(result);
+
+  result.insertEND();
+}
+
+void UnLogic::generatePushdownListForORC(OrcPushdownPredInfoList& result)
+{
+   if ( getOperatorType() == ITM_NOT ) {
+      result.insertStartNOT();
+      child(0)->generatePushdownListForORC(result);
+      result.insertEND();
+   } if ( getOperatorType() == ITM_IS_NULL ) {
+      ComObjectName colName(child(0)->getText());
+      result.insertIS_NULL(colName.getObjectNamePartAsAnsiString());
+   } else
+      CMPASSERT("Invalid UnLogic operator to convert to OrcPushdownPredInfo");
+}
+
+void BiRelat::generatePushdownListForORC(OrcPushdownPredInfoList& result)
+{
+  ComObjectName colName(child(0)->getText());
+  switch (getOperatorType()) {
+
+    case ITM_EQUAL:
+       result.insertEQ(colName.getObjectNamePartAsAnsiString(), child(1)->getText());
+       break;
+
+    case ITM_LESS:
+       result.insertLESS(colName.getObjectNamePartAsAnsiString(), child(1)->getText());
+       break;
+
+    case ITM_LESS_EQ:
+       result.insertLESS_EQ(colName.getObjectNamePartAsAnsiString(), child(1)->getText());
+       break;
+
+    default:
+      CMPASSERT("Invalid bi-relat operator to convert to OrcPushdownPredInfo");
+   }
+}
+

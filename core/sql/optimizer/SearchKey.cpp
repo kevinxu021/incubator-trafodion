@@ -3172,3 +3172,24 @@ Int32 HivePartitionAndBucketKey::getTotalBytesToReadPerRow()
   // value to be minimally one.
   return MAXOF(selectionPred_.getRowLength(), 1);
 }
+
+
+void HivePartitionAndBucketKey::makeHiveOrcPushdownPrecates(
+        const HivePartitionAndBucketKey* hiveKey,
+        const ValueIdSet & localPreds,
+        const ValueIdSet & externalInputs,
+        const IndexDesc *indexDesc,
+        ValueIdSet &producedPredicates)
+{
+  for (ValueId e=localPreds.init(); localPreds.next(e); localPreds.advance(e))
+  {
+    ItemExpr* ie = e.getItemExpr()->copyTopNode(NULL, STMTHEAP);
+
+    ie = ie->removeNonPushablePredicatesForORC();
+
+    if ( ie )  {
+       ie->synthTypeAndValueId(TRUE, TRUE);
+       producedPredicates.insert(ie->getValueId());
+    }
+  }
+}

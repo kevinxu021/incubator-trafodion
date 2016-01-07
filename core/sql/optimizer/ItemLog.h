@@ -196,6 +196,10 @@ public:
   virtual QR::ExprElement getQRExprElem() const;
   virtual NABoolean hasEquivalentProperties(ItemExpr * other) { return TRUE;}
 
+  ItemExpr* removeNonPushablePredicatesForORC();
+
+  void generatePushdownListForORC(OrcPushdownPredInfoList& result);
+
   private:
     Int32 numLeaves_;
 
@@ -314,6 +318,10 @@ public:
 
   virtual QR::ExprElement getQRExprElem() const;
   virtual NABoolean hasEquivalentProperties(ItemExpr * other) { return TRUE;}
+
+  ItemExpr* removeNonPushablePredicatesForORC();
+
+  void generatePushdownListForORC(OrcPushdownPredInfoList&);
 
 }; // class UnLogic
 
@@ -618,6 +626,15 @@ public:
   NABoolean addedForLikePred()   { return (flags_ & FOR_LIKE) != 0; }
   void setAddedForLikePred(NABoolean v)
   { (v ? flags_ |= FOR_LIKE : flags_ &= ~FOR_LIKE); }
+
+  ItemExpr* removeNonPushablePredicatesForORC();
+
+  NABoolean isAPredicateBetweenColumnAndConstant();
+
+  // reverse the predicate. For example, the reverse of "a > 1" is "a <= 1".
+  ItemExpr* reverse();
+
+  void generatePushdownListForORC(OrcPushdownPredInfoList& result);
 
  private:
 

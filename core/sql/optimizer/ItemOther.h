@@ -1011,6 +1011,10 @@ public:
   // Performs the MDAM tree walk.  See ItemExpr.h for a detailed description.
   DisjunctArray * mdamTreeWalk();
 
+
+  // remove non-pushabe predicates for ORC.
+  virtual ItemExpr* removeNonPushablePredicatesForORC() { return this; }
+
 private:
 
   // Method used by the code generator for replacing a reference
@@ -1122,6 +1126,9 @@ public:
 					       CostScalar & minUec,
 					       CostScalar & maxUec);
 
+  // remove non-pushabe predicates for ORC.
+  virtual ItemExpr* removeNonPushablePredicatesForORC() { return this; }
+
 private:
 
   // Methods used by the code generator for replacing a reference
@@ -1203,6 +1210,9 @@ public:
   
   // method to do code generation
   short codeGen(Generator*);
+
+  ItemExpr* removeNonPushablePredicatesForORC();
+
  private:
   OptNormRangeSpec* range_;
 

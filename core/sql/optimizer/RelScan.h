@@ -50,6 +50,7 @@
 #include "SchemaDB.h"
 #include "HbaseSearchSpec.h"
 #include "OptHints.h"
+#include "orcPushdownPredInfo.h"
 #include <vector>
 
 // -----------------------------------------------------------------------
@@ -753,40 +754,6 @@ private:
   NAList<MVMatch*> matchingMVs_;
 };
 
-class OrcPushdownPredInfo
-{
-public:
-  enum OperatorType 
-    {
-      UNKNOWN,
-      STARTAND,
-      STARTOR,
-      STARTNOT,
-      END,
-      EQ,
-      LESSTHEN, 
-      LESSTHANEQUAL,
-      ISNULL,
-      IN
-    };
-
-  OrcPushdownPredInfo(enum OperatorType type, NAList<NAString> &operands)
-       : type_(type),
-         operands_(operands)
-  {}
-
-  OrcPushdownPredInfo()
-       : type_(UNKNOWN)
-  {}
-
-  enum OperatorType getType() { return type_; }
-  NAList<NAString> &operands() { return operands_; }
-
-private:
-  enum OperatorType type_; 
-  NAList<NAString> operands_;
-};
-
 // -----------------------------------------------------------------------
 // FileScan : Physical Operator
 //
@@ -1047,7 +1014,7 @@ public:
 
   Int32 getComputedNumOfActivePartiions()  const { return computedNumOfActivePartitions_; }
 
-  NAList<OrcPushdownPredInfo> &orcListOfPPI() { return orcListOfPPI_;}
+  OrcPushdownPredInfoList &orcListOfPPI() { return orcListOfPPI_;}
 private:
 
 
@@ -1138,7 +1105,7 @@ private:
   // and the search key (partKey_)
   Int32 computedNumOfActivePartitions_;
 
-  NAList<OrcPushdownPredInfo> orcListOfPPI_;
+  OrcPushdownPredInfoList orcListOfPPI_;
 }; // class FileScan
 
 

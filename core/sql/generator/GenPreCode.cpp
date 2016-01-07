@@ -4095,8 +4095,33 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
   else
     {
       // Hive table scan (HBase scan has executor preds set up already)
-      if (isHiveTable())
+      if (isHiveTable()) {
+
+        LIST(orcPushdownPredicate*) producedPredicates;
+       
+        TableAnalysis* tableAnalysis = getGroupAttr()->getGroupAnalysis()->getNodeAnalysis()->getTableAnalysis();
+        const ValueIdSet& locals = tableAnalysis->getLocalPreds();
+        ValueIdSet externalInputs; // not used yet
+      
+        ValueIdSet orcPushdownPreds;
+             HivePartitionAndBucketKey::makeHiveOrcPushdownPrecates(
+                hiveSearchKey_, 
+                locals, 
+                externalInputs, 
+                NULL, 
+                orcPushdownPreds);
+
+         orcPushdownPreds.replaceVEGExpressions (
+	                 availableValues,
+	                 getGroupAttr()->getCharacteristicInputs(),
+	                 FALSE, // no need for key predicate generation here
+                         &vegPairs,
+                         TRUE);
+
+        orcPushdownPreds.generatePushdownListForORC(orcListOfPPI_);
+
         setExecutorPredicates(selectionPred());
+       }
 
       // Rebuild the executor  predicate tree
       executorPred().replaceVEGExpressions
