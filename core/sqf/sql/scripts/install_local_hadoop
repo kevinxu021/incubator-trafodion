@@ -324,7 +324,7 @@ MY_CMD=$0
 MY_IMPLICIT_Y=
 NOACTION=
 VERBOSE=
-MISSING_P_VAL="ERROR: -p option should be followed by <start port num>, rand, fromDisplay, or display"
+MISSING_P_VAL="ERROR: -p option should be followed by <start port num>, rand, fromDisplay or available"
 
 # process command line arguments
 ################################
@@ -502,6 +502,7 @@ if [ $USE_DEFAULT_PORTS == 'yes' ]; then
   MY_DRILL_BIT_PORT_NUM=31011
 else
   # fs.default.name
+
   MY_HADOOP_HDFS_PORT_NUM=$MY_START_PORT
   MY_HADOOP_SHUFFLE_PORT_NUM=`expr $MY_START_PORT + 62`
   MY_YARN_RESMAN_PORT_NUM=`expr $MY_START_PORT + 132`
@@ -573,6 +574,7 @@ MY_HADOOP_TASK_TRACKER_PORT_NUM=`expr $MY_START_PORT + 60`
 # mapred.job.tracker (???)
 
 listports > $MY_SW_SCRIPTS_DIR/sw_ports
+
 if [[ -n "$VERBOSE" ]]; then
   listports
 fi

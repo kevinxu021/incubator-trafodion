@@ -123,7 +123,7 @@ do
 
 done
 
-HBASE=$(curl -su $ADMIN:$PASSWORD http://$URL/api/v1/clusters/$CLUSTER_NAME/services | grep name | grep hbase | sed -e 's@[,]@@'g | awk '{print $3}' | sed "s/\"//g")
+HBASE=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters/$CLUSTER_NAME/services | grep name | grep hbase | sed -e 's@[,]@@'g | awk '{print $3}' | sed "s/\"//g")
 
 
 sudo chmod 777 $TRAF_CONFIG
@@ -705,7 +705,7 @@ if [[ $ENABLE_HA == "true" ]]; then
    $LOCAL_WORKDIR/traf_add_sudoAccess
 fi
 
-#Set Max kernel pid 
+#Set Max kernel pid
 
 $TRAF_PDSH sudo /sbin/sysctl -w kernel.pid_max=65535 2>&1 > /dev/null
 
