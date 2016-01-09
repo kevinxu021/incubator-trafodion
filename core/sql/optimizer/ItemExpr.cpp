@@ -1270,7 +1270,19 @@ ItemExpr * ItemExpr::copyTree(CollHeap* outHeap)
       result->child(i) = child(i)->copyTree(outHeap);
     }
   }
+  return result;
+}
 
+ItemExpr * ItemExpr::cloneTree(CollHeap* outHeap)
+{
+  ItemExpr * result = cloneTopNode(outHeap);
+  Int32 arity = getArity();
+
+  for (Int32 i = 0; i < arity; i++) {
+    if (child(i)) {
+      result->child(i) = child(i)->cloneTree(outHeap);
+    }
+  }
   return result;
 }
 
@@ -5383,6 +5395,13 @@ ItemExpr * VEGPredicate::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 
   return ItemExpr::copyTopNode(result, outHeap);
 } // VEGPredicate::copyTopNode()
+
+ItemExpr * VEGPredicate::cloneTopNode(CollHeap* outHeap)
+{
+  ItemExpr* result = copyTopNode(NULL, outHeap);
+  result->setValueId(getValueId());
+  return result;
+}
 
 // -----------------------------------------------------------------------
 // member functions for class VEGReference
@@ -15057,7 +15076,7 @@ ConstValue* ItemExpr::evaluate(CollHeap* heap)
   return result;
 }
 
-ItemExpr* ItemExpr::doBinaryRemoveNonPushablePredicatesForORC()
+ItemExpr* ItemExpr::doBinaryRemoveNonPushablePredicatesForORC(NABoolean allowBranchTrimOff)
 {
   Int32 nc = getArity();
   
@@ -15066,14 +15085,13 @@ ItemExpr* ItemExpr::doBinaryRemoveNonPushablePredicatesForORC()
   for (Lng32 i = 0; i < (Lng32)nc; i++)
     child(i) = child(i)->removeNonPushablePredicatesForORC();
   
-  if ( child(0) == NULL )
-      return child(1);
+  if ( child(0) == NULL ) 
+     return ( allowBranchTrimOff ) ? child(1) : NULL;
   
   if ( child(1) == NULL )
-      return child(0);
+     return ( allowBranchTrimOff ) ? child(0) : NULL;
   
-  setValueId(NULL_VALUE_ID);
-
+  //setValueId(NULL_VALUE_ID);
   return this;
 }
 
@@ -15082,13 +15100,14 @@ ItemExpr* BiLogic::removeNonPushablePredicatesForORC()
 {
   switch (getOperatorType()) {
     case ITM_AND:
+       return doBinaryRemoveNonPushablePredicatesForORC(TRUE);
     case ITM_OR:
+       return doBinaryRemoveNonPushablePredicatesForORC(FALSE);
        break;
     default:
-      return NULL;
+      break;
   }
-
-  return doBinaryRemoveNonPushablePredicatesForORC();
+  return NULL;
 }
 
 // ==, <, <=, IS NULL are acceptable
@@ -15136,6 +15155,10 @@ NABoolean BiRelat::isAPredicateBetweenColumnAndConstant()
 {
   ItemExpr *leftC=child(0);
   ItemExpr *rightC=child(1);
+
+  if ( !leftC || !rightC )
+    return FALSE;
+
   OperatorTypeEnum rightO = rightC->getOperatorType();
 
   if ( leftC->isInvolvingAColumn() && rightO == ITM_CONSTANT )
@@ -15176,6 +15199,11 @@ ItemExpr* RangeSpecRef::removeNonPushablePredicatesForORC()
    ie=ie->removeNonPushablePredicatesForORC();
 
    return ie;
+}
+
+ItemExpr* VEGPredicate::removeNonPushablePredicatesForORC() 
+{
+   return this;
 }
 
 ItemExpr* BiRelat::reverse()

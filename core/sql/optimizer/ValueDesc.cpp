@@ -6570,6 +6570,10 @@ ValueIdList::computeEncodedKey(const TableDesc* tDesc, NABoolean isMaxKey,
 void ValueIdSet::generatePushdownListForORC(OrcPushdownPredInfoList& result)
 {
    result.clear();
+
+   if ( entries() == 0 )
+      return;
+
    result.insertStartAND();
    for (ValueId e=init(); next(e); advance(e))
    { 

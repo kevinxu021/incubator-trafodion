@@ -987,6 +987,18 @@ public:
   // the top node of an expression tree or an entire tree
   ItemExpr * copyTree(CollHeap* outHeap=0);
 
+  ItemExpr * copyLeaves(CollHeap* outHeap=0);
+
+
+  // Clone the entire item tree, including the ValueIds. 
+  // Thus far, only VEGPredicate is known to alters its ValueId after 
+  // the copyTopNode() call. So  there is a special 
+  // cloneTopNode() method for VEGPredicate.
+  virtual ItemExpr * cloneTree(CollHeap* outHeap=0);
+  virtual ItemExpr * cloneTopNode(CollHeap* outHeap=0) 
+   { return copyTopNode(NULL, outHeap); };
+
+
   // Is this operator supported by the synthesis functions?
   virtual NABoolean synthSupportedOp() const { return FALSE; }
 
@@ -1227,11 +1239,12 @@ public:
   virtual NABoolean isInvolvingAColumn();
 
   // remove non-pushabe predicates for ORC, default implementation, for binary item exprs
-  virtual ItemExpr* doBinaryRemoveNonPushablePredicatesForORC();
+  virtual ItemExpr* doBinaryRemoveNonPushablePredicatesForORC(NABoolean allowTrimOff);
 
   virtual void generatePushdownListForORC(OrcPushdownPredInfoList&) {};
 
 protected:
+
 
   // ---------------------------------------------------------------------
   // This function does the real work of bind nodes for an expression.
