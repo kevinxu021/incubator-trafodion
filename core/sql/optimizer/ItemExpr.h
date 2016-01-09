@@ -46,6 +46,7 @@
 #include "QRExprElement.h"
 #include "IndexDesc.h"
 #include "ComKeyMDAM.h"
+#include "orcPushdownPredInfo.h"
 
 // -----------------------------------------------------------------------
 // contents of this file
@@ -1219,7 +1220,19 @@ public:
   virtual Int32       getOutputDegree()     { return 1; }
   virtual ItemExpr *getOutputItem(UInt32 i) { return this; }
 
+  // remove non-pushabe predicates for ORC, default implementation.
+  virtual ItemExpr* removeNonPushablePredicatesForORC() { return NULL; }
+
+  // check if this item expr involves a column directly or indirectly
+  virtual NABoolean isInvolvingAColumn();
+
+  // remove non-pushabe predicates for ORC, default implementation, for binary item exprs
+  virtual ItemExpr* doBinaryRemoveNonPushablePredicatesForORC();
+
+  virtual void generatePushdownListForORC(OrcPushdownPredInfoList&) {};
+
 protected:
+
   // ---------------------------------------------------------------------
   // This function does the real work of bind nodes for an expression.
   // It calls bindNode on the tree and then fills any incomplete

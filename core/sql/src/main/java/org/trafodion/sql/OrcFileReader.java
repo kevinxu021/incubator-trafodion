@@ -76,6 +76,19 @@ public class OrcFileReader
     byte[]                      m_row_ba;
     int                         m_max_rows_to_fill_in_block;
 
+    // this set of constants MUST be kept in sync with 
+    // enum OrcPushdownOperatorType in common/ComSmallDefs.h 
+    private static final int UNKNOWN_OPER = 0;
+    private static final int STARTAND = 1;
+    private static final int STARTOR = 2;
+    private static final int STARTNOT = 3;
+    private static final int END = 4;
+    private static final int EQUALS = 5;
+    private static final int LESSTHAN = 6;
+    private static final int LESSTHANEQUALS = 7;
+    private static final int ISNULL = 8;
+    private static final int IN = 9;
+
     public static class OrcRowReturnSQL
     {
 	int m_row_length;
@@ -102,18 +115,87 @@ public class OrcFileReader
 	rowData = new OrcRowReturnSQL();     
     }
 
+    private SearchArgument buildSARG(Object[] ppi_vec)
+    {
+
+        SearchArgument.Builder builder = SearchArgumentFactory.newBuilder();
+        
+        for (int i = 0; i < ppi_vec.length; i++) {
+            ByteBuffer bb = ByteBuffer.wrap((byte[])ppi_vec[i]);
+            bb.order(ByteOrder.LITTLE_ENDIAN);
+
+            int type = bb.getInt();
+            int colNameLen = bb.getInt();
+            byte[] colName = null;
+            if (colNameLen > 0) {
+                colName = new byte[colNameLen];
+                bb.get(colName, 0, colNameLen);
+            }
+
+            int operLen = bb.getInt();
+            byte[] oper = null;
+            if (operLen > 0) {
+                oper = new byte[operLen];
+                bb.get(oper, 0, operLen);
+
+                //                System.out.println("operLen = " + operLen + " oper " + Bytes.toString(oper));
+            }
+
+            if (type == EQUALS) {
+                //                System.out.println("colNameLen = " + colNameLen + " colName = " + Bytes.toString(colName));
+            }
+
+            switch (type) {
+            case UNKNOWN_OPER:
+                break;
+            case STARTAND:
+                builder.startAnd();
+                break;
+            case STARTOR:
+                builder.startOr();
+                break;
+            case STARTNOT:
+                builder.startNot();
+                break;
+            case END:
+                builder.end();
+                break;
+            case EQUALS:
+                builder.equals(Bytes.toString(colName), Bytes.toString(oper));
+                break;
+            case LESSTHAN:
+                builder.lessThan(Bytes.toString(colName), Bytes.toString(oper));
+                break;
+            case LESSTHANEQUALS:
+                builder.lessThanEquals(Bytes.toString(colName), Bytes.toString(oper));
+                break;
+            case ISNULL:
+                builder.isNull(Bytes.toString(colName));
+                break;
+            case IN:
+                builder.in(Bytes.toString(colName), Bytes.toString(oper));
+                break;
+            }
+        }
+
+        SearchArgument sarg = builder.build();
+
+        return sarg;
+    }
+
     public String open(String pv_file_name, 
 		       int    pv_num_cols_to_project,
 		       int[]  pv_which_cols) throws IOException 
     {
-        return open(pv_file_name, 0L, Long.MAX_VALUE, pv_num_cols_to_project, pv_which_cols, null);
+        return open(pv_file_name, 0L, Long.MAX_VALUE, pv_num_cols_to_project, pv_which_cols, null, null);
     }
 
     
     public String open(String pv_file_name, long offset, long length,
 		       int    pv_num_cols_to_project,
 		       int[]  pv_which_cols,
-                       Object ppi_buf) throws IOException 
+                       Object[] ppi_vec,
+                       Object[] ppi_all_cols) throws IOException 
     {
 
 	if (logger.isDebugEnabled()) logger.debug("Enter open()," 
@@ -184,10 +266,27 @@ public class OrcFileReader
 
 	if (logger.isDebugEnabled()) logger.debug("open() - before creating recordreader");
 	try{
-	    m_rr = m_reader.rowsOptions(new Reader.Options()
-                                    .range(offset, length)
-				    .include(m_include_cols)
-				    );
+            if (ppi_vec == null)
+                m_rr = m_reader.rowsOptions(new Reader.Options()
+                                            .range(offset, length)
+                                            .include(m_include_cols)
+                                            );
+            else {
+                SearchArgument sarg = buildSARG(ppi_vec);
+
+                String[] colNames = new String[1+ppi_all_cols.length];
+                colNames[0] = null;
+                for (int i = 0; i < ppi_all_cols.length; i++) {
+                    colNames[i+1] = (String)ppi_all_cols[i];
+                    // System.out.println("colNames for i " + i + colNames[i]);
+                }
+                m_rr = m_reader.rowsOptions(new Reader.Options()
+                                            .range(offset, length)
+                                            .include(m_include_cols)
+                                            .searchArgument(sarg, colNames)
+                                            );
+            }
+
 	} catch (java.io.IOException e1) {
 	    logger.error("reader.rows returned an exception: " + e1);
 	    return (e1.getMessage());

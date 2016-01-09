@@ -102,7 +102,7 @@ OFR_RetCode OrcFileReader::init()
     JavaMethods_[JM_GETERROR  ].jm_name      = "getLastError";
     JavaMethods_[JM_GETERROR  ].jm_signature = "()Ljava/lang/String;";
     JavaMethods_[JM_OPEN      ].jm_name      = "open";
-    JavaMethods_[JM_OPEN      ].jm_signature = "(Ljava/lang/String;JJI[ILjava/lang/Object;)Ljava/lang/String;";
+    JavaMethods_[JM_OPEN      ].jm_signature = "(Ljava/lang/String;JJI[I[Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/String;";
     JavaMethods_[JM_GETPOS    ].jm_name      = "getPosition";
     JavaMethods_[JM_GETPOS    ].jm_signature = "()J";
     JavaMethods_[JM_SYNC      ].jm_name      = "seeknSync";
@@ -228,8 +228,7 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
                                 Int64 length,  
 				int   pv_num_cols_in_projection,
 				int  *pv_which_cols,
-                                int   ppiBuflen, 
-                                char * ppiBuf,
+                                TextVec *ppiVec,
                                 TextVec *ppiAllCols)
 {
   QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
@@ -248,6 +247,8 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
   jlong     jl_length = length;
   jobject   jo_ppiBuf = NULL;
   jstring   jresult = NULL;
+  jobjectArray jor_ppiVec = NULL;
+  jobjectArray jor_ppiAllCols = NULL;
   
   releaseJavaAllocation();
   js_path = jenv_->NewStringUTF(pv_path);
@@ -278,13 +279,28 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
 			     pv_which_cols);
   }
 
-  if (ppiBuflen > 0)
+  if (ppiVec && (!ppiVec->empty()))
     {
-      jobject jo_ppiBuf = jenv_->NewDirectByteBuffer(ppiBuf, ppiBuflen);
-      if (jo_ppiBuf == NULL) {
+      jor_ppiVec = convertToByteArrayObjectArray(*ppiVec);
+      if (jor_ppiVec == NULL) {
         jenv_->DeleteLocalRef(js_path);
         return OFR_ERROR_OPEN_PARAM;
       }
+
+      if (ppiAllCols && (!ppiAllCols->empty()))
+        {
+          QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "  Adding %d cols.", 
+                        ppiAllCols->size());
+          jor_ppiAllCols = convertToStringObjectArray(*ppiAllCols);
+          if (jor_ppiAllCols == NULL)
+            {
+              getExceptionDetails();
+              logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+              logError(CAT_SQL_HBASE, "HBaseClient_JNI::open()", getLastError());
+              jenv_->DeleteLocalRef(js_path);  
+              return OFR_ERROR_OPEN_PARAM;
+            }
+        }
     }
 
   // String open(java.lang.String, long, long, int, int[]);
@@ -296,7 +312,8 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
 					     jl_length,
 					     ji_num_cols_in_projection,
 					     jia_which_cols,
-                                             jo_ppiBuf);
+                                             jor_ppiVec,
+                                             jor_ppiAllCols);
 
   jenv_->DeleteLocalRef(js_path);  
   jenv_->DeleteLocalRef(jia_which_cols);  
@@ -323,26 +340,6 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
   return lv_retcode;
   //  return OFR_OK;
 }
-
-#ifdef __ignore
-OFR_RetCode OrcFileReader::open(const char* pv_path, Int64 offset, Int64 length)
-{
-  QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
-		LL_DEBUG,
-		"OrcFileReader::open(%s) called.",
-		pv_path);
-  bool lv_test = false;
-  //* For testing, try the following code:
-  if (lv_test) {
-    int la_cols[] = {1}; 
-    return this->open(pv_path, offset, length, 1, la_cols, 0, NULL);
-  }
-  //  */
-
-  // All the columns
-  return this->open(pv_path, offset, length, -1, NULL, 0, NULL);
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // 

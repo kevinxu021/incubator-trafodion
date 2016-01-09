@@ -46,7 +46,7 @@
 
 #include "OrcFileReader.h"
 
-typedef std::string Text;
+//typedef std::string Text;
 
 class ExpORCinterface : public NABasicObject
 {
@@ -89,8 +89,7 @@ class ExpORCinterface : public NABasicObject
                  const Int64 stopRowNum,
                  Lng32 numCols,
                  Lng32 *whichCols,
-                 Lng32 ppiBuflen,
-                 char * ppiBuf,
+                 TextVec *ppiVec,
                  TextVec *ppiAllCols);
 
   // orcRow:   pointer to buffer where ORC will return the row.
@@ -116,8 +115,7 @@ class ExpORCinterface : public NABasicObject
              const Int64 stopRowNum = ULLONG_MAX,
              Lng32 numCols = 0,
              Lng32 * whichCols = NULL,
-             Lng32 ppiBuflen = 0,
-             char * ppiBuf = NULL,
+             TextVec *ppiVec = NULL,
              TextVec *ppiAllCols = NULL);
 
   Lng32 close();

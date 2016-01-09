@@ -106,7 +106,7 @@ public:
   OFR_RetCode    open(const char* path, 
                       Int64 offset=0L, Int64 length=ULLONG_MAX, 
                       int num_cols_in_projection=-1, int *which_cols=NULL,
-                      int ppiBuflen=0, char * ppiBuf=NULL,
+                      TextVec *ppiVec=NULL,
                       TextVec *ppiAllCols=NULL);
   
   // Get the current file position.

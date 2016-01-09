@@ -50,6 +50,7 @@
 #include "SchemaDB.h"
 #include "HbaseSearchSpec.h"
 #include "OptHints.h"
+#include "orcPushdownPredInfo.h"
 #include <vector>
 
 // -----------------------------------------------------------------------
@@ -753,35 +754,6 @@ private:
   NAList<MVMatch*> matchingMVs_;
 };
 
-class OrcPushdownPredInfo
-{
-public:
- OrcPushdownPredInfo(enum OrcPushdownOperatorType type, 
-                     ValueId *colValId,
-                     ValueId *operValId)
-      : type_(type)
-  {
-    if (colValId)
-      colValId_ = *colValId;
-
-    if (operValId)
-      operValId_ = *operValId;
-  }
-
-  OrcPushdownPredInfo()
-       : type_(UNKNOWN_OPER)
-  {}
-
-  enum OrcPushdownOperatorType getType() { return type_; }
-  ValueId &colValId() { return colValId_; }
-  ValueId &operValId() { return operValId_; }
-
-private:
-  enum OrcPushdownOperatorType type_; 
-  ValueId colValId_;
-  ValueId operValId_;
-};
-
 // -----------------------------------------------------------------------
 // FileScan : Physical Operator
 //
@@ -1045,7 +1017,7 @@ public:
 
   Int32 getComputedNumOfActivePartiions()  const { return computedNumOfActivePartitions_; }
 
-  NAList<OrcPushdownPredInfo> &orcListOfPPI() { return orcListOfPPI_;}
+  OrcPushdownPredInfoList &orcListOfPPI() { return orcListOfPPI_;}
 private:
 
 
@@ -1136,7 +1108,7 @@ private:
   // and the search key (partKey_)
   Int32 computedNumOfActivePartitions_;
 
-  NAList<OrcPushdownPredInfo> orcListOfPPI_;
+  OrcPushdownPredInfoList orcListOfPPI_;
 }; // class FileScan
 
 

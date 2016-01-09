@@ -800,6 +800,7 @@ jobjectArray convertToByteArrayObjectArray(const LIST(NAString) &vec);
 jobjectArray convertToByteArrayObjectArray(const LIST(HbaseStr) &vec);
 jobjectArray convertToByteArrayObjectArray(const char **array,
                    int numElements, int elementLen);
+jobjectArray convertToByteArrayObjectArray(const TextVec &vec);
 jobjectArray convertToStringObjectArray(const TextVec &vec);
 jobjectArray convertToStringObjectArray(const HBASE_NAMELIST& nameList);
 jobjectArray convertToStringObjectArray(const NAText *text, int arrayLen);

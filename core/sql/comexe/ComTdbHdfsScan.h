@@ -265,6 +265,7 @@ public:
   // ---------------------------------------------------------------------
   // Used by the internal SHOWPLAN command to get attributes of a TDB.
   // ---------------------------------------------------------------------
+  void displayContentsBase(Space *space,ULng32 flag);
   virtual void displayContents(Space *space,ULng32 flag);
 
   virtual const ComTdb* getChild(Int32 pos) const;
@@ -365,7 +366,7 @@ public:
   char * colName() { return colName_; }
   Lng32 operAttrIndex() { return operAttrIndex_; }
   //  Queue * operands() { return operands_; }
-private:
+  //private:
   Lng32 type_;
   Lng32 operAttrIndex_;
   NABasicPtr colName_;
@@ -456,6 +457,8 @@ public:
     else
       return "orcOperExpr_";
   }
+
+  virtual void displayContents(Space *space,ULng32 flag);
 
   Queue* listOfOrcPPI() const { return listOfOrcPPI_; }
   Queue* orcAllColInfoList() { return orcAllColInfoList_; }
@@ -550,6 +553,8 @@ public:
 
     return NULL;
   }
+
+  virtual void displayContents(Space *space,ULng32 flag);
  
   Long pack(void *);
 

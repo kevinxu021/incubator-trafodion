@@ -6567,3 +6567,17 @@ ValueIdList::computeEncodedKey(const TableDesc* tDesc, NABoolean isMaxKey,
    }
 }
 
+void ValueIdSet::generatePushdownListForORC(OrcPushdownPredInfoList& result)
+{
+  if (isEmpty())
+    return;
+
+   result.clear();
+   result.insertStartAND();
+   for (ValueId e=init(); next(e); advance(e))
+   { 
+      ItemExpr* ie = e.getItemExpr();
+      ie->generatePushdownListForORC(result);
+   }
+   result.insertEND();
+}

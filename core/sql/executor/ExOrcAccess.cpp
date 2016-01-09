@@ -292,66 +292,22 @@ ExWorkProcRetcode ExOrcScanTcb::work()
 
             Queue *ppiList = orcScanTdb().listOfOrcPPI();
 
-            //////////////////////////////////////////////////////////////////
-            // <numElems><type><nameLen><name><numOpers><opValLen><opVal>... 
-            //  4-bytes    4B     4B      nlB     4B         4B      ovl B
-            //////////////////////////////////////////////////////////////////
-
-            Lng32 totalLen = sizeof(Lng32); // numElems
+            Lng32 numPPIelems = ppiList->numEntries();
             ppiList->position();
             ComTdbOrcPPI * ppi = NULL;
             while ((ppi = (ComTdbOrcPPI*)ppiList->getNext()) != NULL)
               {
-                totalLen += sizeof(Lng32); // type
-                totalLen += sizeof(Lng32); // colNameLen
-                if (ppi->colName())
-                  {
-                    totalLen += ROUND4(strlen(ppi->colName())); // col name
-                  }
+                Text ppiText;
+                Lng32 temp = ppi->type();
+                ppiText.append((char*)&temp, sizeof(temp));
 
-                totalLen += sizeof(Lng32); // numOpers.
-                Lng32 operIndex = ppi->operAttrIndex();
-                if ((orcOperTD) && (operIndex >= 0))
-                  {
-                    // Currently, max opers is 1
-                    Attributes * attr = orcOperTD->getAttr(operIndex);
-                    totalLen += sizeof(Lng32); // opValLen
-                    
-                    totalLen += ROUND4(attr->getLength());
-                  }
+                temp = (ppi->colName() ? strlen(ppi->colName()) : 0);
+                ppiText.append((char*)&temp, sizeof(temp));
                 
-              } // while
-
-            
-            orcPPIBuf_ = new(getGlobals()->getDefaultHeap()) char[totalLen];
-            char * currPos = orcPPIBuf_;
-            *(Lng32*)currPos = ppiList->numEntries();
-            currPos += sizeof(Lng32);
-
-            ppiList->position();
-            ppi = NULL;
-            while ((ppi = (ComTdbOrcPPI*)ppiList->getNext()) != NULL)
-              {
-                Lng32 type = (Lng32)ppi->type();
-                *(Lng32*)currPos = type;
-                currPos += sizeof(Lng32);
-
-                char * colName = ppi->colName();
-                Lng32 colNameLen = (colName ? strlen(colName) : 0);
-                *(Lng32*)currPos = colNameLen;
-                currPos += sizeof(Lng32);
-
-                if (colNameLen > 0)
-                  {
-                    str_cpy_all(currPos, colName, colNameLen);
-                    currPos += ROUND4(colNameLen);
-                  }
+                if (temp > 0)
+                  ppiText.append(ppi->colName());
 
                 Lng32 operIndex = ppi->operAttrIndex();
-                Lng32 numOpers = ((operIndex >= 0) ? 1 : 0); // currently max oper is 1
-                *(Lng32*)currPos = numOpers;
-                currPos += sizeof(Lng32);
-
                 if (operIndex >= 0)
                   {
                     Attributes * attr = orcOperTD->getAttr(operIndex);
@@ -359,14 +315,17 @@ ExWorkProcRetcode ExOrcScanTcb::work()
                     char * vcLenPtr = &orcOperRow_[attr->getVCLenIndOffset()];
                     Lng32 dataLen = attr->getLength(vcLenPtr);
                     char * data = &orcOperRow_[attr->getOffset()];
-                    *(Lng32*)currPos = dataLen;
-                    currPos += sizeof(Lng32);
-                    str_cpy_all(currPos, data, dataLen);
-                    currPos += ROUND4(dataLen);
+                    ppiText.append((char*)&dataLen, sizeof(dataLen));
+                    ppiText.append(data, dataLen);
                   }
-              } // while
-            
-            orcPPIBuflen_ = currPos - orcPPIBuf_;
+                else
+                  {
+                    temp = 0;
+                    ppiText.append((char*)&temp, sizeof(temp));
+                  }
+
+                orcPPIvec_.push_back(ppiText);
+              }
 
             step_ = INIT_ORC_CURSOR;
           }
@@ -399,10 +358,24 @@ ExWorkProcRetcode ExOrcScanTcb::work()
 
 	case OPEN_ORC_CURSOR:
 	  {
+            
+            TextVec tv;
+            if (orcScanTdb().orcAllColInfoList())
+              {
+                orcScanTdb().orcAllColInfoList()->position();
+                char * cn = NULL;
+                while ((cn = (char*)orcScanTdb().orcAllColInfoList()->getNext()) != NULL)
+                  {
+                    Text t(cn);
+                    tv.push_back(t);
+                  }
+              }
+
             retcode = orci_->scanOpen(hdfsFileName_,
                                       orcStartRowNum_, orcStopRowNum_,
                                       numCols_, whichCols_,
-                                      orcPPIBuflen_, orcPPIBuf_, NULL);
+                                      &orcPPIvec_,
+                                      (orcScanTdb().orcAllColInfoList() ? &tv : NULL));
             if (retcode < 0)
               {
                 setupError(EXE_ERROR_FROM_LOB_INTERFACE, retcode, "ORC", "scanOpen", 
@@ -460,9 +433,6 @@ ExWorkProcRetcode ExOrcScanTcb::work()
 	    if (hdfsStats_)
 	      hdfsStats_->incAccessedRows();
 	    
-            //	    workAtp_->getTupp(orcScanTdb().workAtpIndex_) = 
-            //	      hdfsSqlTupp_;
-
 	    bool rowWillBeSelected = true;
 	    if (selectPred())
 	      {

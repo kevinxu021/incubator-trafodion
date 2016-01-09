@@ -338,7 +338,7 @@ do
       exit 1
     fi
     MY_START_PORT=$1
-    if [ $MY_START_PORT != "rand" -a $MY_START_PORT != "fromDisplay" -a $MY_START_PORT != "available"]; then
+    if [ $MY_START_PORT != "rand" -a $MY_START_PORT != "fromDisplay" -a $MY_START_PORT != "available" ]; then
       test $MY_START_PORT -gt 0 >/dev/null 2>&1
       if [ $? -ne 0 ]; then
         echo "$MISSING_P_VAL"
@@ -400,7 +400,7 @@ else
 
      missingPort=`echo $portMsg | cut -d':' -f 1-1`
 
-     if [[ $missingPort != "Port ranges not in use" ]]; then
+     if [[ "$missingPort" != "Port ranges not in use" ]]; then
         echo "No free port available, exit"
         exit 1
      fi

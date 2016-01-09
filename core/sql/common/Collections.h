@@ -2107,6 +2107,11 @@ public:
     return TRUE;
   }
 
+  NA_EIDPROC inline CollIndex append(const T &elem)
+  {
+     return insertAt(this->entries(), elem);
+  }
+
   // insert a new entry at a given position(new element becomes element # i,
   // the rest of the list moves 1 entry up)
   // use i = entries() to insert at the end, i = 0 to insert at the front

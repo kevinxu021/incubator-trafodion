@@ -4094,9 +4094,35 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
     }
   else
     {
-      // Hive table scan (HBase scan has executor preds set up already)
-      if (isHiveTable())
+      // ORC table scan (HBase scan has executor preds set up already)
+      if ((isHiveTable()) &&
+          (getIndexDesc()->getNAFileSet()->getHHDFSTableStats()->isOrcFile())) {
+
+        LIST(orcPushdownPredicate*) producedPredicates;
+       
+        TableAnalysis* tableAnalysis = getGroupAttr()->getGroupAnalysis()->getNodeAnalysis()->getTableAnalysis();
+        const ValueIdSet& locals = tableAnalysis->getLocalPreds();
+        ValueIdSet externalInputs; // not used yet
+      
+        ValueIdSet orcPushdownPreds;
+        HivePartitionAndBucketKey::makeHiveOrcPushdownPrecates(
+             hiveSearchKey_, 
+             locals, 
+             externalInputs, 
+             NULL, 
+             orcPushdownPreds);
+
+         orcPushdownPreds.replaceVEGExpressions (
+	                 availableValues,
+	                 getGroupAttr()->getCharacteristicInputs(),
+	                 FALSE, // no need for key predicate generation here
+                         &vegPairs,
+                         TRUE);
+
+        orcPushdownPreds.generatePushdownListForORC(orcListOfPPI_);
+
         setExecutorPredicates(selectionPred());
+       }
 
       // Rebuild the executor  predicate tree
       executorPred().replaceVEGExpressions
@@ -4125,39 +4151,6 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
   getGroupAttr()->resolveCharacteristicOutputs
     (availableValues,
      getGroupAttr()->getCharacteristicInputs());
-
-  if (getenv("ORC_PPI_TEST"))
-    {
-      if (getTableDesc()->getNATable()->getTableName().getQualifiedNameAsString() == "HIVE.HIVE.PPI_ORC_TEST")
-        {
-          if (! executorPred().isEmpty())
-            {
-              ItemExpr * newPredTree = 
-                executorPred().rebuildExprTree(ITM_AND,TRUE,TRUE);
-
-              newPredTree = newPredTree->preCodeGen(generator);
-
-              ItemExpr * childExpr = newPredTree->child(0);
-
-              if ((childExpr->getOperatorType() == ITM_EQUAL) &&
-                  ((childExpr->child(0)->getOperatorType() == ITM_BASECOLUMN) ||
-                   (childExpr->child(0)->getOperatorType() == ITM_INDEXCOLUMN)) &&
-                  (childExpr->child(1)->getOperatorType() == ITM_CONSTANT))
-                {
-                  OrcPushdownPredInfo startAnd(STARTAND, NULL, NULL);
-                  orcListOfPPI().insert(startAnd);
-
-                  ValueId vid0 = childExpr->child(0)->getValueId();
-                  ValueId vid1 = childExpr->child(1)->getValueId();
-                  OrcPushdownPredInfo ppi(EQUALS, &vid0, &vid1);
-                  orcListOfPPI().insert(ppi);
-
-                  OrcPushdownPredInfo endd(END, NULL, NULL);
-                  orcListOfPPI().insert(endd);
-                }
-            }
-        }
-    }
 
   generator->oltOptInfo()->mayDisableOperStats(&oltOptInfo());
   markAsPreCodeGenned();

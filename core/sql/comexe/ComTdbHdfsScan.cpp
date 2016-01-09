@@ -205,19 +205,14 @@ Lng32 ComTdbHdfsScan::unpack(void * base, void * reallocator)
   return ComTdb::unpack(base, reallocator);
 }
 
-void ComTdbHdfsScan::displayContents(Space * space,ULng32 flag)
+void ComTdbHdfsScan::displayContentsBase(Space * space,ULng32 flag)
 {
-  ComTdb::displayContents(space,flag & 0xFFFFFFFE);
-
   if(flag & 0x00000008)
     {
       char buf[16384];
 
-      str_sprintf(buf, "\nFor ComTdbHdfsScan :");
-      space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
-
       str_sprintf(buf, "tableName_ = %s", (char*)tableName_);
-     space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+      space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
 
       if (hostName_)
         str_sprintf(buf, "hostName_ = %s, port_ = %d", 
@@ -468,6 +463,21 @@ void ComTdbHdfsScan::displayContents(Space * space,ULng32 flag)
             }
         }
     }
+}
+
+void ComTdbHdfsScan::displayContents(Space * space,ULng32 flag)
+{
+  ComTdb::displayContents(space,flag & 0xFFFFFFFE);
+
+  if(flag & 0x00000008)
+    {
+      char buf[16384];
+
+      str_sprintf(buf, "\nFor ComTdbHdfsScan :");
+      space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+    }
+
+  ComTdbHdfsScan::displayContentsBase(space, flag);
 
   if(flag & 0x00000001)
     {
@@ -581,8 +591,7 @@ Long ComTdbOrcScan::pack(void * space)
       for (Lng32 i = 0; i < listOfOrcPPI()->numEntries(); i++)
 	{
 	  ComTdbOrcPPI * ppi = (ComTdbOrcPPI*)listOfOrcPPI()->getNext();
-          ppi->pack(space);
-          //	  ppi->operands_.pack(space);
+          ppi->colName_.pack(space);
 	}
     }
  
@@ -593,14 +602,6 @@ Long ComTdbOrcScan::pack(void * space)
   // pack elements in orcAllColInfoList
   if (orcAllColInfoList())
     {
-      /*      orcAllColInfoList_->position();
-      for (Lng32 i = 0; i < orcAllColInfoList_->numEntries(); i++)
-        {
-          char * cn = (char*)orcAllColInfoList_->getNext();
-          
-          cn->colName_.pack(space);
-        }
-      */
       orcAllColInfoList_.pack(space);
     }
 
@@ -617,8 +618,7 @@ Lng32 ComTdbOrcScan::unpack(void * base, void * reallocator)
       for (Lng32 i = 0; i < listOfOrcPPI()->numEntries(); i++)
 	{
 	  ComTdbOrcPPI * ppi = (ComTdbOrcPPI*)listOfOrcPPI()->getNext();
-          if (ppi->unpack(base, reallocator)) return -1;
-          //	  if (ppi->operands_.unpack(base, reallocator)) return -1;
+          if (ppi->colName_.unpack(base)) return -1;
 	}
     }
 
@@ -627,6 +627,59 @@ Lng32 ComTdbOrcScan::unpack(void * base, void * reallocator)
   if(orcOperExpr_.unpack(base, reallocator)) return -1;
 
   return ComTdbHdfsScan::unpack(base, reallocator);
+}
+
+void ComTdbOrcScan::displayContents(Space * space,ULng32 flag)
+{
+  ComTdb::displayContents(space,flag & 0xFFFFFFFE);
+
+  if(flag & 0x00000008)
+    {
+      char buf[16384];
+
+      str_sprintf(buf, "\nFor ComTdbOrcScan :");
+      space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+    }
+
+  ComTdbHdfsScan::displayContentsBase(space, flag);
+
+  if (listOfOrcPPI() && listOfOrcPPI()->numEntries() > 0)
+    {
+      char buf[500];
+      str_sprintf(buf, "\nNumber of PPI entries: %d", 
+                  listOfOrcPPI()->numEntries());
+      space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+       
+      listOfOrcPPI()->position();
+      for (Lng32 i = 0; i < listOfOrcPPI()->numEntries(); i++)
+	{
+	  ComTdbOrcPPI * ppi = (ComTdbOrcPPI*)listOfOrcPPI()->getNext();
+
+          str_sprintf(buf, "PPI: #%d", i+1);
+          space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+          
+          str_sprintf(buf, "  type: %s(%d)",
+                      orcPushdownOperatorTypeStr[ppi->type()], ppi->type());
+          space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+          if (ppi->operAttrIndex_ >= 0)
+            {
+              str_sprintf(buf, "  operAttrIndex: %d", ppi->operAttrIndex_);
+              space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+            }
+          
+          if (ppi->colName())
+            {
+              str_sprintf(buf, "  colName_: %s", ppi->colName());
+              space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));  
+            }
+ 	}
+    }
+
+  if(flag & 0x00000001)
+    {
+      displayExpression(space,flag);
+      displayChildren(space,flag);
+    }
 }
 
 Long ComTdbOrcPPI::pack(void * space)
@@ -639,7 +692,6 @@ Long ComTdbOrcPPI::pack(void * space)
 
 Lng32 ComTdbOrcPPI::unpack(void * base, void * reallocator)
 {
-  //  if(operands_.unpack(base, reallocator)) return -1;
   if(colName_.unpack(base)) return -1;
   
   return NAVersionedObject::unpack(base, reallocator);
@@ -736,5 +788,26 @@ Lng32 ComTdbOrcFastAggr::unpack(void * base, void * reallocator)
   if (aggrExpr_.unpack(base, reallocator)) return -1;
 
   return ComTdbHdfsScan::unpack(base, reallocator);
+}
+
+void ComTdbOrcFastAggr::displayContents(Space * space,ULng32 flag)
+{
+  ComTdb::displayContents(space,flag & 0xFFFFFFFE);
+
+  if(flag & 0x00000008)
+    {
+      char buf[16384];
+
+      str_sprintf(buf, "\nFor ComTdbOrcFastAggr :");
+      space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+    }
+
+  ComTdbHdfsScan::displayContentsBase(space, flag);
+
+  if(flag & 0x00000001)
+    {
+      displayExpression(space,flag);
+      displayChildren(space,flag);
+    }
 }
 

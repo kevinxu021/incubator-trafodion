@@ -6115,6 +6115,39 @@ jobjectArray convertToByteArrayObjectArray(const char **array,
    return j_objArray;
 }
 
+jobjectArray convertToByteArrayObjectArray(const TextVec &vec)
+{
+   int vecLen = vec.size();
+   int i = 0;
+   jobjectArray j_objArray = NULL;
+   for ( ; i < vec.size(); i++)
+   {
+       const Text &t = vec[i];
+     //       const HbaseStr *hbStr = &vec.at(i);
+       jbyteArray j_obj = jenv_->NewByteArray(t.size());
+       if (jenv_->ExceptionCheck())
+       {
+          if (j_objArray != NULL)
+             jenv_->DeleteLocalRef(j_objArray);
+          return NULL; 
+       }
+       jenv_->SetByteArrayRegion(j_obj, 0, t.size(), (const jbyte *)t.data());
+       if (j_objArray == NULL)
+       {
+          j_objArray = jenv_->NewObjectArray(vecLen,
+                 jenv_->GetObjectClass(j_obj), NULL);
+          if (jenv_->ExceptionCheck())
+          {
+             jenv_->DeleteLocalRef(j_obj);
+             return NULL;
+          }
+       }
+       jenv_->SetObjectArrayElement(j_objArray, i, (jobject)j_obj);
+       jenv_->DeleteLocalRef(j_obj);
+   }
+   return j_objArray;
+}
+
 jobjectArray convertToStringObjectArray(const TextVec &vec)
 {
    int vecLen = vec.size();

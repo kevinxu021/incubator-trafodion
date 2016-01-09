@@ -1884,10 +1884,14 @@ enum ComAuthenticationType{
 #define COL_MAX_ATTRIBUTE_LEN 3
 #define MAX_HBASE_NAME_LEN 255
 
+// enum OrcPushdownOperatorType and  orcPushdownOperatorTypeStr[] must
+// remain in sync with each other.
+// They also need to be in sync with 'private static final' vars with 
+// corresponding names declared in OrcFileReader.java.
 enum OrcPushdownOperatorType 
   {
-    UNKNOWN_OPER = -1,
-    STARTAND = 0,
+    UNKNOWN_OPER = 0,
+    STARTAND,
     STARTOR,
     STARTNOT,
     END,
@@ -1896,6 +1900,20 @@ enum OrcPushdownOperatorType
     LESSTHANEQUALS,
     ISNULL,
     IN
+  };
+
+static const char * const orcPushdownOperatorTypeStr[] =
+  {
+    "UNKNOWN_OPER",
+    "STARTAND",
+    "STARTOR",
+    "STARTNOT",
+    "END",
+    "EQUALS",
+    "LESSTHAN",
+    "LESSTHANEQUALS",
+    "ISNULL",
+    "IN"
   };
 
 //

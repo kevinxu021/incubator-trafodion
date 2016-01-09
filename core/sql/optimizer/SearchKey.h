@@ -909,6 +909,7 @@ private:
 // -----------------------------------------------------------------------
 
 class HiveFileIterator;
+class orcPushdownPredicate;
 
 class HivePartitionAndBucketKey : public NABasicObject
 {
@@ -937,6 +938,14 @@ public:
 
   // Return the total bytes to read per row
   Int32 getTotalBytesToReadPerRow();
+
+  // make Hive PushDown predicates
+  static void  makeHiveOrcPushdownPrecates(
+        const HivePartitionAndBucketKey* hiveKey,
+        const ValueIdSet & localPreds,
+        const ValueIdSet & externalInputs,
+        const IndexDesc *indexDesc,
+        ValueIdSet& pushdownPredicatesProduced);
 
 protected:
   // Return the total bytes read, given a accumulated stats and the selection predicate
@@ -995,6 +1004,19 @@ private:
   CollIndex l_; // level at which to try to advance next
 };
 
+class orcPushdownPredicate
+{
+public:
+   orcPushdownPredicate(CollHeap *oHeap = CmpCommon::statementHeap()) :
+    operands_(oHeap) {};
+
+   ~orcPushdownPredicate() {};
+
+protected:
+  //   ORC_SearchArgumentType opType_;
+  OrcPushdownOperatorType opType_;
+  LIST(ValueId) operands_;
+};
 
 class HbaseSearchKey : public SearchKey
 {

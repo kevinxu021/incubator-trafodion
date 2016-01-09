@@ -405,6 +405,8 @@ protected:
   char * orcOperRow_;
   char * orcPPIBuf_;
   Lng32 orcPPIBuflen_;
+
+  TextVec orcPPIvec_;
 };
 
 // -----------------------------------------------------------------------
