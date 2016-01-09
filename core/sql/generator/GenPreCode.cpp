@@ -72,6 +72,7 @@
 #include "exp_function.h"
 
 #include "HDFSHook.h"
+#include "vegrewritepairs.h"
 
 #include "SqlParserGlobals.h"      // must be last #include
 
@@ -4094,35 +4095,40 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
     }
   else
     {
-      // ORC table scan (HBase scan has executor preds set up already)
-      if ((isHiveTable()) &&
-          (getIndexDesc()->getNAFileSet()->getHHDFSTableStats()->isOrcFile())) {
+      // Hive table scan (HBase scan has executor preds set up already)
+      if (isHiveTable()) {
 
-        LIST(orcPushdownPredicate*) producedPredicates;
-       
-        TableAnalysis* tableAnalysis = getGroupAttr()->getGroupAnalysis()->getNodeAnalysis()->getTableAnalysis();
-        const ValueIdSet& locals = tableAnalysis->getLocalPreds();
-        ValueIdSet externalInputs; // not used yet
-      
-        ValueIdSet orcPushdownPreds;
-        HivePartitionAndBucketKey::makeHiveOrcPushdownPrecates(
-             hiveSearchKey_, 
-             locals, 
-             externalInputs, 
-             NULL, 
-             orcPushdownPreds);
+        const HHDFSTableStats* hTabStats = getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
 
-         orcPushdownPreds.replaceVEGExpressions (
-	                 availableValues,
-	                 getGroupAttr()->getCharacteristicInputs(),
-	                 FALSE, // no need for key predicate generation here
-                         &vegPairs,
-                         TRUE);
+        if (( hTabStats->isOrcFile() ) &&
+            (CmpCommon::getDefault(ORC_PRED_PUSHDOWN) == DF_ON) ) {
 
-        orcPushdownPreds.generatePushdownListForORC(orcListOfPPI_);
+           TableAnalysis* tableAnalysis = 
+                getGroupAttr()->getGroupAnalysis()->getNodeAnalysis()->getTableAnalysis();
+
+           const ValueIdSet& locals = tableAnalysis->getLocalPreds();
+   
+           ValueIdSet externalInputs; // not used yet
+           ValueIdSet orcPushdownPreds;
+           HivePartitionAndBucketKey::makeHiveOrcPushdownPrecates(
+                   hiveSearchKey_, 
+                   locals, 
+                   externalInputs, 
+                   NULL, 
+                   orcPushdownPreds);
+   
+           orcPushdownPreds.replaceVEGExpressions (
+   	                 availableValues,
+   	                 getGroupAttr()->getCharacteristicInputs(),
+   	                 FALSE, // no need for key predicate generation here
+                            &vegPairs, // to be side-affected
+                            TRUE);
+   
+           orcPushdownPreds.generatePushdownListForORC(orcListOfPPI_);
+        }
 
         setExecutorPredicates(selectionPred());
-       }
+      }
 
       // Rebuild the executor  predicate tree
       executorPred().replaceVEGExpressions
@@ -10433,7 +10439,7 @@ void VEGRewritePairs::VEGRewritePair::print(FILE *ofd) const
 #pragma nowarn(1506)   // warning elimination
     reId = CollIndex(rewritten_);
 #pragma warn(1506)  // warning elimination
-  fprintf(ofd,"<%d, %d>",orId,reId);
+  fprintf(ofd,"<%d, %d>\n",orId,reId);
 }
 
 
@@ -10455,6 +10461,8 @@ void VEGRewritePairs::print( FILE* ofd,
       iter.getNext(key, value);
       value->print(ofd);
     }
+
+  fflush(ofd);
 }
 
 // PhysTranspose::preCodeGen() -------------------------------------------
@@ -11875,3 +11883,6 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
   // Done.
   return this;
 }
+
+void VEGRewritePairs::display() const { print(); }
+

@@ -277,9 +277,23 @@ public class OrcFileReader
                 String[] colNames = new String[1+ppi_all_cols.length];
                 colNames[0] = null;
                 for (int i = 0; i < ppi_all_cols.length; i++) {
-                    colNames[i+1] = (String)ppi_all_cols[i];
-                    // System.out.println("colNames for i " + i + colNames[i]);
+                    //                    colNames[i+1] = new String("_col" + (i+1));
+                    colNames[i+1] = new String((String)ppi_all_cols[i]);
+                    //                    System.out.println("colNames for i " + i + " " + colNames[i]);
                 }
+
+                for (int i = 0; i <= ppi_all_cols.length; i++) {
+                    //System.out.println("colNames for i " + i + " " + colNames[i]);
+                }
+
+                /*
+                boolean[] include = new boolean[1 + ppi_all_cols.length];
+                include[0] = true;
+                for (int i = 1; i <= ppi_all_cols.length; i++) {
+                    include[i] = true;
+                }
+                */
+
                 m_rr = m_reader.rowsOptions(new Reader.Options()
                                             .range(offset, length)
                                             .include(m_include_cols)

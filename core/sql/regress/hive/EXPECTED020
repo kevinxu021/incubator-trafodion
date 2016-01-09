@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Wed Jan  6 01:41:46 2016
+-- Definition current  Sat Jan  9 23:54:49 2016
 
   (
     S_STORE_SK                       INT
@@ -226,6 +226,102 @@ Suite 160             Park Green
 Suite 100             College             
 
 --- 12 row(s) selected.
+>>
+>>cqd orc_pred_pushdown 'OFF';
+
+--- SQL operation complete.
+>>select s_store_sk from store_orc where s_store_sk = 3;
+
+S_STORE_SK 
+-----------
+
+          3
+
+--- 1 row(s) selected.
+>>select s_store_sk from store_orc where s_store_sk < 2;
+
+S_STORE_SK 
+-----------
+
+          1
+
+--- 1 row(s) selected.
+>>select s_store_sk from store_orc where s_store_sk >= 11;
+
+S_STORE_SK 
+-----------
+
+         11
+         12
+
+--- 2 row(s) selected.
+>>select s_store_sk from store_orc where s_store_sk >= 4 and s_store_sk < 6;
+
+S_STORE_SK 
+-----------
+
+          4
+          5
+
+--- 2 row(s) selected.
+>>select s_store_sk from store_orc where s_store_sk in (7,8,9);
+
+S_STORE_SK 
+-----------
+
+          7
+          8
+          9
+
+--- 3 row(s) selected.
+>>
+>>cqd orc_pred_pushdown 'ON';
+
+--- SQL operation complete.
+>>select s_store_sk from store_orc where s_store_sk = 3;
+
+S_STORE_SK 
+-----------
+
+          3
+
+--- 1 row(s) selected.
+>>select s_store_sk from store_orc where s_store_sk < 2;
+
+S_STORE_SK 
+-----------
+
+          1
+
+--- 1 row(s) selected.
+>>select s_store_sk from store_orc where s_store_sk >= 11;
+
+S_STORE_SK 
+-----------
+
+         11
+         12
+
+--- 2 row(s) selected.
+>>select s_store_sk from store_orc where s_store_sk >= 4 and s_store_sk < 6;
+
+S_STORE_SK 
+-----------
+
+          4
+          5
+
+--- 2 row(s) selected.
+>>select s_store_sk from store_orc where s_store_sk in (7,8,9);
+
+S_STORE_SK 
+-----------
+
+          7
+          8
+          9
+
+--- 3 row(s) selected.
 >>
 >>-- aggregate pushdown to ORC layer
 >>cqd orc_aggr_pushdown 'ON';

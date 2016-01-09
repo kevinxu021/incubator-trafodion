@@ -3183,7 +3183,8 @@ void HivePartitionAndBucketKey::makeHiveOrcPushdownPrecates(
 {
   for (ValueId e=localPreds.init(); localPreds.next(e); localPreds.advance(e))
   {
-    ItemExpr* ie = e.getItemExpr()->copyTopNode(NULL, STMTHEAP);
+    //ItemExpr* ie = e.getItemExpr()->copyTopNode(NULL, STMTHEAP);
+    ItemExpr* ie = e.getItemExpr()->cloneTree(STMTHEAP);
 
     ie = ie->removeNonPushablePredicatesForORC();
 

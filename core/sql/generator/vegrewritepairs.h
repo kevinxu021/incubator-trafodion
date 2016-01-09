@@ -75,6 +75,7 @@ public:
   NABoolean getRewritten(ValueId& rewritten, const ValueId& original) const;
   
 
+  void display() const;
   void print( FILE* ofd = stdout,
 	      const char* indent = DEFAULT_INDENT,
 	      const char* title = "VEGRewritePairs") const;

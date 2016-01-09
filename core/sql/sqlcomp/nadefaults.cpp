@@ -2737,6 +2737,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDui___(OPTS_PUSH_DOWN_DAM,                   "0"),
 
   DDkwd__(ORC_AGGR_PUSHDOWN,                    "ON"),
+  DDkwd__(ORC_PRED_PUSHDOWN,                    "ON"),
 
   DDkwd__(ORDERED_HASH_JOIN_CONTROL,            "ON"),
  SDDkwd__(OR_OPTIMIZATION,                      "ON"),
