@@ -568,13 +568,14 @@ ExWorkProcRetcode ExOrcScanTcb::work()
 	    
 	    if ((pentry_down->downState.request == ex_queue::GET_N) &&
 		(pentry_down->downState.requestValue == matches_))
-	      step_ = CLOSE_ORC_CURSOR;
+	      step_ = CLOSE_ORC_CURSOR_AND_DONE;
 	    else
 	      step_ = GET_ORC_ROW;
 	    break;
 	  }
 
         case CLOSE_ORC_CURSOR:
+        case CLOSE_ORC_CURSOR_AND_DONE:
           {
             retcode = orci_->scanClose();
             if (retcode < 0)
@@ -586,6 +587,12 @@ ExWorkProcRetcode ExOrcScanTcb::work()
                 break;
               }
             
+            if (step_ == CLOSE_ORC_CURSOR_AND_DONE)
+              {
+                step_ = DONE;
+                break;
+              }
+
             currRangeNum_++;
             
             if (currRangeNum_ < (beginRangeNum_ + numRanges_))
