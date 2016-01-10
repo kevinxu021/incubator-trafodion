@@ -638,6 +638,14 @@ FileScan::addSpecificExplainInfo(ExplainTupleMaster *explainTuple,
       description += " ";
     }
 
+  if ((getTableDesc()->getNATable()->isHiveTable()) &&
+      (getTableDesc()->getNATable()->getClusteringIndex()->
+       getHHDFSTableStats()->isOrcFile()) &&
+      (orcListOfPPI().entries() > 0))
+    {
+      description += "orc_pred_pushdown: yes ";
+    }
+
   explainTuple->setDescription(description);
 
 //  explainTuple->setTableName(getTableName());

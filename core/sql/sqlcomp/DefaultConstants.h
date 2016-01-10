@@ -3794,8 +3794,14 @@ enum DefaultConstants
   // ON: transform in preCodeGen, eval in ORC layer
   ORC_AGGR_PUSHDOWN,
 
+  // pushdown column list to orc
+  ORC_COLUMNS_PUSHDOWN,
+
   // pushdown preds to ORC layer
   ORC_PRED_PUSHDOWN,
+
+  // vectorized rows batch scan
+  ORC_VECTORIZED_SCAN,
 
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!

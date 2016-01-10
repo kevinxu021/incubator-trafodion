@@ -463,7 +463,16 @@ public:
   Queue* listOfOrcPPI() const { return listOfOrcPPI_; }
   Queue* orcAllColInfoList() { return orcAllColInfoList_; }
 
+  void setVectorizedScan(NABoolean v)
+  {(v ? flags_ |= VECTORIZED_SCAN : flags_ &= ~VECTORIZED_SCAN); };
+  NABoolean vectorizedScan() { return (flags_ & VECTORIZED_SCAN) != 0; };
+
 private:
+  enum
+  {
+    VECTORIZED_SCAN= 0x0001
+  };
+
   QueuePtr listOfOrcPPI_;
 
   ExExprPtr orcOperExpr_; 

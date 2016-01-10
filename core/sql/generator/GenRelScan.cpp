@@ -757,7 +757,7 @@ short FileScan::codeGenForHive(Generator * generator)
   ValueIdSet outputCols =
     getGroupAttr()->getCharacteristicOutputs();
   outputCols -= getGroupAttr()->getCharacteristicInputs();
-  const ValueIdList& hdfsVals = getIndexDesc()->getIndexColumns();
+  const ValueIdList& allHdfsVals = getIndexDesc()->getIndexColumns();
   ValueIdList neededHdfsVals;
   ValueIdList executorPredVals;
   ValueIdList projectExprOnlyVals;
@@ -765,16 +765,16 @@ short FileScan::codeGenForHive(Generator * generator)
   Int16 *convertSkipList = NULL;
   NABoolean inExecutorPred = FALSE;
   NABoolean inProjExpr = FALSE;
-  convertSkipList = new(space) Int16[hdfsVals.entries()];
+  convertSkipList = new(space) Int16[allHdfsVals.entries()];
 
-  for (CollIndex i = 0; i < hdfsVals.entries(); i++)
+  for (CollIndex i = 0; i < allHdfsVals.entries(); i++)
   {
-    if (outputCols.referencesTheGivenValue(hdfsVals[i],dummyVal))
+    if (outputCols.referencesTheGivenValue(allHdfsVals[i],dummyVal))
       inProjExpr = TRUE ;
     else
       inProjExpr = FALSE;
 
-    if (executorPred().referencesTheGivenValue(hdfsVals[i],dummyVal))
+    if (executorPred().referencesTheGivenValue(allHdfsVals[i],dummyVal))
       inExecutorPred = TRUE;
     else
       inExecutorPred = FALSE;
@@ -782,20 +782,20 @@ short FileScan::codeGenForHive(Generator * generator)
     if (inExecutorPred && inProjExpr)
     {
       convertSkipList[i] = 1;
-      neededHdfsVals.insert(hdfsVals[i]);
-      executorPredVals.insert(hdfsVals[i]);
+      neededHdfsVals.insert(allHdfsVals[i]);
+      executorPredVals.insert(allHdfsVals[i]);
     }
     else if (inExecutorPred && !inProjExpr)
     {
       convertSkipList[i] = 2;   
-      neededHdfsVals.insert(hdfsVals[i]);
-      executorPredVals.insert(hdfsVals[i]);
+      neededHdfsVals.insert(allHdfsVals[i]);
+      executorPredVals.insert(allHdfsVals[i]);
     }
     else if (!inExecutorPred && inProjExpr)
     {
       convertSkipList[i] = 3;   
-      neededHdfsVals.insert(hdfsVals[i]);
-      projectExprOnlyVals.insert(hdfsVals[i]);
+      neededHdfsVals.insert(allHdfsVals[i]);
+      projectExprOnlyVals.insert(allHdfsVals[i]);
     }
     else
     {
@@ -886,12 +886,12 @@ short FileScan::codeGenForHive(Generator * generator)
   //   by making sure that the output ValueIds created during
   //   binding refer to the outputs of the move expression
 
-  for (int ii = 0; ii < (int)hdfsVals.entries();ii++)
+  for (int ii = 0; ii < (int)allHdfsVals.entries();ii++)
   {
     if (convertSkipList[ii] == 0)
       continue;
 
-    const NAType &givenType = hdfsVals[ii].getType();
+    const NAType &givenType = allHdfsVals[ii].getType();
     int res;    
     ItemExpr *asciiValue = NULL;
     ItemExpr *castValue = NULL;
@@ -918,7 +918,7 @@ short FileScan::codeGenForHive(Generator * generator)
     orcRowLen += sizeof(Lng32);
     orcRowLen += givenType.getDisplayLength();
 
-  } // for (ii = 0; ii < hdfsVals; ii++)
+  } // for (ii = 0; ii < allHdfsVals; ii++)
     
 
   // Add ascii columns to the MapTable. After this call the MapTable
@@ -1133,7 +1133,13 @@ short FileScan::codeGenForHive(Generator * generator)
                 tdbListOfOrcPPI,
                 orcOperVIDlist,
                 hdfsHostName, hdfsPort);
-      
+
+      if (CmpCommon::getDefault(ORC_COLUMNS_PUSHDOWN) == DF_OFF)
+        {
+          neededHdfsVals.clear();
+          neededHdfsVals = allHdfsVals;
+        }
+
       hdfsColInfoList = new(space) Queue(space);
       for (int i = 0; i < neededHdfsVals.entries(); i++)
         {
@@ -1178,9 +1184,9 @@ short FileScan::codeGenForHive(Generator * generator)
           work_cri_desc->setTupleDescriptor(orcOperTuppIndex, orcOperTupleDesc);
 
           hdfsAllColInfoList = new(space) Queue(space);
-          for (int i = 0; i < hdfsVals.entries(); i++)
+          for (int i = 0; i < allHdfsVals.entries(); i++)
             {
-              const ValueId &vid = hdfsVals[i];
+              const ValueId &vid = allHdfsVals[i];
               ItemExpr * ie = vid.getItemExpr();
               
               NAColumn * nac = NULL;
@@ -1278,7 +1284,7 @@ if (hTabStats->isOrcFile())
            convert_expr,
            project_convert_expr,
            orcOperExpr,
-           hdfsVals.entries(),      // size of convertSkipList
+           allHdfsVals.entries(),      // size of convertSkipList
            convertSkipList,
            hdfsHostName, 
            hdfsPort,      
@@ -1324,7 +1330,7 @@ if (hTabStats->isOrcFile())
            proj_expr,
            convert_expr,
            project_convert_expr,
-           hdfsVals.entries(),      // size of convertSkipList
+           allHdfsVals.entries(),      // size of convertSkipList
            convertSkipList,
            hdfsHostName, 
            hdfsPort,      
@@ -1359,6 +1365,12 @@ if (hTabStats->isOrcFile())
   
   generator->initTdbFields(hdfsscan_tdb);
 
+  if ((hTabStats->isOrcFile()) &&
+      (CmpCommon::getDefault(ORC_VECTORIZED_SCAN) == DF_ON))
+    {
+      ((ComTdbOrcScan*)hdfsscan_tdb)->setVectorizedScan(TRUE);
+    }
+    
   hdfsscan_tdb->setUseCursorMulti(useCursorMulti);
 
   hdfsscan_tdb->setDoSplitFileOpt(doSplitFileOpt);

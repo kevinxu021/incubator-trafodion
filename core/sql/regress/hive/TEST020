@@ -85,12 +85,22 @@ execute explainIt;
 -- execute of join between hive(hdfs) and ORC tables
 execute XX;
 
+-- column list pushdown test
+cqd orc_columns_pushdown 'OFF';
+showplan option 't' select s_store_sk from store_orc;
+select s_store_sk from store_orc;
+cqd orc_columns_pushdown 'ON';
+showplan option 't' select s_store_sk from store_orc;
+select s_store_sk from store_orc;
+
+-- predicate pushdown to ORC layer
 cqd orc_pred_pushdown 'OFF';
 select s_store_sk from store_orc where s_store_sk = 3;
 select s_store_sk from store_orc where s_store_sk < 2;
 select s_store_sk from store_orc where s_store_sk >= 11;
 select s_store_sk from store_orc where s_store_sk >= 4 and s_store_sk < 6;
 select s_store_sk from store_orc where s_store_sk in (7,8,9);
+showplan option 't' select s_store_sk from store_orc where s_store_sk = 3;
 
 cqd orc_pred_pushdown 'ON';
 select s_store_sk from store_orc where s_store_sk = 3;
@@ -98,6 +108,7 @@ select s_store_sk from store_orc where s_store_sk < 2;
 select s_store_sk from store_orc where s_store_sk >= 11;
 select s_store_sk from store_orc where s_store_sk >= 4 and s_store_sk < 6;
 select s_store_sk from store_orc where s_store_sk in (7,8,9);
+showplan option 't' select s_store_sk from store_orc where s_store_sk = 3;
 
 -- aggregate pushdown to ORC layer
 cqd orc_aggr_pushdown 'ON';
@@ -133,6 +144,11 @@ select count(*) from store_orc having sum(s_store_sk) = 78;
 
 select count(*) from store_orc having sum(s_store_sk) = 77;
 
+cqd orc_aggr_pushdown 'OFF';
+explain options 'f' select count(*), min(s_store_sk), max(s_store_sk), 
+   sum(s_store_sk) from store_orc;
+select count(*), min(s_store_sk), max(s_store_sk), sum(s_store_sk) 
+   from store_orc;
 
 
 

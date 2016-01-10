@@ -478,6 +478,9 @@ location '/hive/tpcds/customer_address';
 create table store_orc stored as orc as select * from store;
 create table store_sales_orc stored as orc as select * from store_sales;
 create table customer_address_orc stored as orc as select * from customer_address;
+set hive.enforce.sorting=true;   
+create table store2_sales_orc stored as orc as select * from store_sales
+  sort by ss_item_sk;
 
 quit;
 
