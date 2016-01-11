@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
 import com.esgyn.dbmgr.common.Helper;
+import com.esgyn.dbmgr.common.JdbcHelper;
 import com.esgyn.dbmgr.common.TabularResult;
 import com.esgyn.dbmgr.model.QueryDetail;
 import com.esgyn.dbmgr.model.Session;
@@ -212,7 +213,7 @@ public class WorkloadsResource {
 					maxRows, predicate);
 			_LOG.debug(queryText);
 
-			TabularResult result = QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText);
+			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
 			return result;
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch list of workloads : " + ex.getMessage());
@@ -243,7 +244,9 @@ public class WorkloadsResource {
 		String url = ConfigurationResource.getInstance().getJdbcUrl();
 
 		try {
-			connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
+			// connection = DriverManager.getConnection(url, soc.getUsername(),
+			// soc.getPassword());
+			connection = JdbcHelper.getInstance().getAdminConnection();
 
 			stmt = connection.createStatement();
 			rs = stmt.executeQuery(sqlText);
@@ -353,7 +356,9 @@ public class WorkloadsResource {
 		String url = ConfigurationResource.getInstance().getJdbcUrl();
 
 		try {
-			connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
+			// connection = DriverManager.getConnection(url, soc.getUsername(),
+			// soc.getPassword());
+			connection = JdbcHelper.getInstance().getAdminConnection();
 			stmt = connection.createStatement();
 			rs = stmt.executeQuery(sqlText);
 			while (rs.next()) {
@@ -396,7 +401,7 @@ public class WorkloadsResource {
 		List<String> dateTimeColumns = Arrays.asList(dateFields);
 		try {
 
-			TabularResult result1 = QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), sqlText);
+			TabularResult result1 = QueryResource.executeAdminSQLQuery(sqlText);
 			List<String> columnNames = Arrays.asList(result1.columnNames);
 			int vIndex = columnNames.indexOf("VARIABLE_INFO");
 			int tIndex = columnNames.indexOf("TDB_ID");
@@ -546,7 +551,7 @@ public class WorkloadsResource {
 					" sqlSrc: ", 30);
 			_LOG.debug(queryText);
 
-			TabularResult result = QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText);
+			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
 			return result;
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch list of active queries : " + ex.getMessage());
