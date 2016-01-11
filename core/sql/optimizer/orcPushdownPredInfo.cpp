@@ -22,54 +22,95 @@
 **********************************************************************/
 
 #include "orcPushdownPredInfo.h"
+#include "ItemExpr.h"
 
 void OrcPushdownPredInfo::display()
 {
+   NAString text = getText();
+   fprintf(stdout, "%s", text.data());
+}
+
+NAString OrcPushdownPredInfo::getText()
+{
+  NAString result;
+  NAString op;
+  NABoolean doBinaryOp = FALSE;
+  NABoolean doUnaryOp = FALSE;
   switch (type_) {
       case UNKNOWN_OPER:
-        fprintf(stdout, "UNKNOWN ");
+        return "UNKNOWN";
         break;
       case STARTAND:
-        fprintf(stdout, "STARTAND");
+        result += "and(";
         break;
       case STARTOR:
-        fprintf(stdout, "STARTOR");
+        result += "or(";
         break;
       case STARTNOT:
-        fprintf(stdout, "STARTNOT");
+        result += "not(";
         break;
       case END:
-        fprintf(stdout, "END");
+        result += ")";
         break;
       case EQUALS:
-        fprintf(stdout, "EQUALS");
+        op = " = ";
+        doBinaryOp = TRUE;
         break;
       case LESSTHAN:
-        fprintf(stdout, "LESSTHAN");
+        op = " <" ;
+        doBinaryOp = TRUE;
         break;
       case LESSTHANEQUALS:
-        fprintf(stdout, "LESSTHANEQUALS");
+        op = " <= ";
+        doBinaryOp = TRUE;
         break;
       case ISNULL:
-        fprintf(stdout, "ISNULL");
+        op = " is null";
+        doUnaryOp = TRUE;
         break;
       case IN:
-        fprintf(stdout, "IN");
+        return "IN";
+        doBinaryOp = TRUE;
         break;
+//      case BETWEEN:
+//        return "BETWEEN";
+//        break;
       default:
         break;
   }
+          
+  if ( doBinaryOp ) {
+     NAString x;
+     colValId().getItemExpr()->unparse(x);
+     result += x;
+     result += op;
+     x.remove(0);
+     operValId().getItemExpr()->unparse(x);
+     result += x;
+  } else 
+  if ( doUnaryOp ) {
+     NAString x;
+     colValId().getItemExpr()->unparse(x);
+     result += x;
+     result += op;
+  }
+  return result;
+}
 
-  //  for ( Int32 i=0; i<operands_.entries(); i++ )
-  //     fprintf(stdout, " %s", operands_[i].data());
+NAString OrcPushdownPredInfoList::getText()
+{
+  NAString text;
+  for ( Int32 i=0; i<entries(); i++ ) {
+     text += (*this)[i].getText();
+     text += " ";
+  }
+  return text;
 }
 
 void OrcPushdownPredInfoList::display()
 {
-  for ( Int32 i=0; i<entries(); i++ ) {
-     (*this)[i].display();
-     fprintf(stdout, "\n");
-  }
+   NAString text = getText();
+   fprintf(stdout, "%s\n", text.data());
 }
 
 void OrcPushdownPredInfoList::insertStartAND()

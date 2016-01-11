@@ -68,7 +68,10 @@ public:
   ValueId &colValId() { return colValId_; }
   ValueId &operValId() { return operValId_; }
 
-   void display();
+  NAString getText();
+
+  void display();
+
 private:
   enum OrcPushdownOperatorType type_; 
   ValueId colValId_;
@@ -91,6 +94,8 @@ public:
    void insertLESS(const ValueId& col, const ValueId& val);
    void insertLESS_EQ(const ValueId& col, const ValueId& val);
    void insertIS_NULL(const ValueId& col);
+
+   NAString getText();
 
    void display();
 };

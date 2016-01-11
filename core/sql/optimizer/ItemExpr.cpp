@@ -15082,8 +15082,9 @@ ItemExpr* ItemExpr::doBinaryRemoveNonPushablePredicatesForORC(NABoolean allowBra
   
   CMPASSERT(nc == 2);
   
-  for (Lng32 i = 0; i < (Lng32)nc; i++)
+  for (Lng32 i = 0; i < (Lng32)nc; i++) {
     child(i) = child(i)->removeNonPushablePredicatesForORC();
+  }  
   
   if ( child(0) == NULL ) 
      return ( allowBranchTrimOff ) ? child(1) : NULL;
@@ -15091,7 +15092,11 @@ ItemExpr* ItemExpr::doBinaryRemoveNonPushablePredicatesForORC(NABoolean allowBra
   if ( child(1) == NULL )
      return ( allowBranchTrimOff ) ? child(0) : NULL;
   
-  //setValueId(NULL_VALUE_ID);
+  // Unconditionally reset the valId_ so that we
+  // can re-synthesize a new one in case there is
+  // a change of the children expressions in the above
+  // two removeNonPushablePredicatesForORC() calls.
+  setValueId(NULL_VALUE_ID);
   return this;
 }
 
@@ -15136,7 +15141,6 @@ ItemExpr* BiRelat::removeNonPushablePredicatesForORC()
     if ( reverseAndAddNotOperator ) {
        ie = reverse();
        ie = new (STMTHEAP) UnLogic(ITM_NOT, ie);
-       //ie->synthTypeAndValueId();
     } 
   }
   
@@ -15177,6 +15181,20 @@ ItemExpr* UnLogic::removeNonPushablePredicatesForORC()
 {
   switch (getOperatorType()) {
     case ITM_NOT:
+      { 
+        child(0) = child(0)->removeNonPushablePredicatesForORC();
+  
+        if ( child(0) == NULL ) 
+          return NULL;
+
+        // Unconditionally reset the valId_ so that we
+        // can re-synthesize a new one in case there is
+        // a change of the child expression in the above
+        // removeNonPushablePredicatesForORC() call.
+        setValueId(NULL_VALUE_ID);
+
+        return this;
+      }
     case ITM_IS_NULL:
        return this;
     default:
@@ -15235,7 +15253,6 @@ ItemExpr* BiRelat::reverse()
    ItemExpr* c0 = child(0);
    ItemExpr* c1 = child(1);
    ItemExpr* ie = new (STMTHEAP) BiRelat(op, c0, c1, specialNulls_, isaPartKeyPred_);
-   //ie->synthTypeAndValueId();
 
    return ie;
 }

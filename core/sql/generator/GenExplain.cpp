@@ -644,6 +644,8 @@ FileScan::addSpecificExplainInfo(ExplainTupleMaster *explainTuple,
       (orcListOfPPI().entries() > 0))
     {
       description += "orc_pred_pushdown: yes ";
+      description += "orc_search_arguments: ";
+      description += orcListOfPPI().getText();
     }
 
   explainTuple->setDescription(description);

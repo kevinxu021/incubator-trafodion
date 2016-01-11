@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Sun Jan 10 16:18:34 2016
+-- Definition current  Mon Jan 11 18:15:32 2016
 
   (
     S_STORE_SK                       INT
@@ -670,7 +670,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 3624
+explain_plan_size = 3688
 
 # of Expressions = 4
 

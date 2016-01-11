@@ -987,14 +987,14 @@ public:
   // the top node of an expression tree or an entire tree
   ItemExpr * copyTree(CollHeap* outHeap=0);
 
-  ItemExpr * copyLeaves(CollHeap* outHeap=0);
-
-
-  // Clone the entire item tree, including the ValueIds. 
-  // Thus far, only VEGPredicate is known to alters its ValueId after 
-  // the copyTopNode() call. So  there is a special 
-  // cloneTopNode() method for VEGPredicate.
+  // Clone the entire item tree, including the data member ValueId in 
+  // every node. 
   virtual ItemExpr * cloneTree(CollHeap* outHeap=0);
+
+  // Clone this item expression only, including the data member ValueId. 
+  // Thus far, only VEGPredicate is known to alter its ValueId after 
+  // the copyTopNode() call. So there is a special method cloneTopNode
+  // for VEGPredicate.
   virtual ItemExpr * cloneTopNode(CollHeap* outHeap=0) 
    { return copyTopNode(NULL, outHeap); };
 
