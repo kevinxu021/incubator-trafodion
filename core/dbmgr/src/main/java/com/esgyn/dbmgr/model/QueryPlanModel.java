@@ -19,7 +19,6 @@ import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.trafodion.jdbc.t4.TrafT4Connection;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
 import com.esgyn.dbmgr.resources.ConfigurationResource;
@@ -148,7 +147,7 @@ public class QueryPlanModel {
 
 		try {
 			String url = ConfigurationResource.getInstance().getJdbcUrl();
-			connection = (TrafT4Connection) DriverManager.getConnection(url, userName, password);
+			connection = DriverManager.getConnection(url, userName, password);
 			stmt = connection.createStatement();
 			for (String controlText : controlStatements) {
 				stmt.execute(controlText);

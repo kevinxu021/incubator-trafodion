@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
 import com.esgyn.dbmgr.common.Helper;
+import com.esgyn.dbmgr.common.JdbcHelper;
 import com.esgyn.dbmgr.common.TabularResult;
 import com.esgyn.dbmgr.model.QueryPlanModel;
 import com.esgyn.dbmgr.model.QueryPlanResponse;
@@ -61,25 +62,36 @@ public class QueryResource {
 
 	public static TabularResult executeSQLQuery(String user, String password, String queryText, String sControlStmts)
 			throws EsgynDBMgrException {
-
-		Connection connection = null;
-		ResultSet rs;
-		TabularResult js = new TabularResult();
-		PreparedStatement pstmt = null;
-
 		String url = ConfigurationResource.getInstance().getJdbcUrl();
 
 		try {
 			Class.forName(ConfigurationResource.getInstance().getJdbcDriverClass());
+			Connection connection = DriverManager.getConnection(url, user, password);
+			return executeQuery(connection, queryText, sControlStmts);
 		} catch (Exception e) {
-			e.printStackTrace();
 			System.out.println(e.getMessage());
-			System.exit(0);
+			throw new EsgynDBMgrException(e.getMessage());
 		}
+	}
+
+	public static TabularResult executeAdminSQLQuery(String queryText) throws EsgynDBMgrException {
+		try {
+			Connection connection = JdbcHelper.getInstance().getAdminConnection();
+			return executeQuery(connection, queryText, null);
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+			throw new EsgynDBMgrException(e.getMessage());
+		}
+	}
+
+	public static TabularResult executeQuery(Connection connection, String queryText, String sControlStmts)
+			throws EsgynDBMgrException {
+
+		ResultSet rs;
+		TabularResult js = new TabularResult();
+		PreparedStatement pstmt = null;
 
 		try {
-			connection = DriverManager.getConnection(url, user, password);
-
 			String[] controlStatements = new String[0];
 			if (sControlStmts != null && sControlStmts.length() > 0) {
 				controlStatements = sControlStmts.split(";");
@@ -92,6 +104,7 @@ public class QueryResource {
 
 			pstmt = connection.prepareStatement(queryText);
 			_LOG.debug(queryText);
+
 			boolean hasResultSet = pstmt.execute();
 			if (hasResultSet) {
 				rs = pstmt.getResultSet();

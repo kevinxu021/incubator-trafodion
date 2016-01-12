@@ -318,15 +318,14 @@ define([
 				var properties = JSON.parse(attrs);
 				$(ATTRIBUTES_CONTAINER).empty();
 				$(ATTRIBUTES_CONTAINER).append('<thead><tr><td style="width:200px;"><h2 style="color:black;font-size:15px;font-weight:bold">Name</h2></td><td><h2 style="color:black;font-size:15px;;font-weight:bold">Value</h2></td></tr></thead>');
-				for (var property in properties) {
-					if(properties.hasOwnProperty(property)){
-						var value = properties[property];
-						if(property == 'CreateTime' || property == 'ModifiedTime'){
-							value = common.toServerLocalDateFromUtcMilliSeconds(value);
-						}
+				$.each(properties.columns, function(k, v){
+					var property = v.title;
+					var value = properties.data[k];
+					if(property == 'CreateTime' || property == 'ModifiedTime'){
+						value = common.toServerLocalDateFromUtcMilliSeconds(value);
 					}
 					$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
-				}
+				});
 			}
 		},
 		displayDDL: function(data){
