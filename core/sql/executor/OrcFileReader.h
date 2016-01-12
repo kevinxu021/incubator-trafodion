@@ -23,7 +23,16 @@
 #ifndef ORC_FILE_READER_H
 #define ORC_FILE_READER_H
 
+#include <list>
+#include "Platform.h"
+#include "Collections.h"
+#include "NABasicObject.h"
+
 #include "JavaObjectInterface.h"
+#include "Hbase_types.h"
+#include "ExpHbaseDefs.h"
+#include "NAMemory.h"
+
 #include "ByteArrayList.h"
 
 // ===========================================================================
@@ -120,7 +129,7 @@ public:
   OFR_RetCode    isEOF(bool& isEOF);
   
   // Fetch the next row as a raw string into 'buffer'.
-  OFR_RetCode fetchNextRow(char * buffer, long& array_length, long& rowNumber, int& num_columns);
+  OFR_RetCode fetchNextRow(char** buffer, long& array_length, long& rowNumber, int& num_columns);
   
   // Close the file.
   OFR_RetCode    close();
@@ -140,8 +149,7 @@ protected:
   jstring getLastError();
 
 private:
-  void fillNextRow(char *p_ba,
-		   char *pv_buffer,
+  void fillNextRow(char**pv_buffer,
 		   long& pv_array_length,
 		   long& pv_rowNumber,
 		   int&  pv_num_columns);
