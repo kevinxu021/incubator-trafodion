@@ -2100,15 +2100,14 @@ short OrcPushdownAggr::codeGen(Generator * generator)
        aggregateExpr().next(valId);
        aggregateExpr().advance(valId), i++) 
     {
-      // this value will be populated at runtime by aggr returned by ORC.
-      // It will not be aggregated by the aggr expression.
-      // Mark it as codeGenerated.
-      MapInfo * mapInfo = generator->addMapInfo(valId, 0);
-      attrs[i] = mapInfo->getAttr();
-      mapInfo->codeGenerated();
       aggrVidList.insert(valId);
 
-      const ValueId &orcAggrVid = valId.getItemExpr()->child(0)->getValueId();
+      ItemExpr * orcAggrVal = 
+        ((valId.getType().getTypeQualifier() == NA_DATETIME_TYPE) ?
+         valId.getItemExpr()->child(0)->child(0) :
+         valId.getItemExpr()->child(0));
+
+      const ValueId &orcAggrVid = orcAggrVal->getValueId();
       generator->addMapInfo(orcAggrVid, 0);
       orcAggrVidList.insert(orcAggrVid);
     }
@@ -2129,17 +2128,14 @@ short OrcPushdownAggr::codeGen(Generator * generator)
   // Create the descriptor describing the aggr row and assign offset to attrs. 
   ExpTupleDesc * tupleDesc = NULL;
   ULng32 finalAggrRowLen = 0;
-  expGen->processAttributes(numAttrs,
-			    attrs,
-			    ExpTupleDesc::SQLARK_EXPLODED_FORMAT,
-			    finalAggrRowLen,
-			    workAtp,
-			    finalAggrTuppIndex,
-			    &tupleDesc,
-			    ExpTupleDesc::SHORT_FORMAT);
+  expGen->processValIdList(aggrVidList,
+                           ExpTupleDesc::SQLARK_EXPLODED_FORMAT,
+                           finalAggrRowLen,
+                           workAtp,
+                           finalAggrTuppIndex,
+                           &tupleDesc,
+                           ExpTupleDesc::LONG_FORMAT);
   
-  NADELETEBASIC(attrs, generator->wHeap());
-
   for (Int32 j = 0; j < numAttrs; j++)
     {
       ValueId &valId = aggrVidList[j];
@@ -2155,7 +2151,6 @@ short OrcPushdownAggr::codeGen(Generator * generator)
       char * aggrColName = NULL;
 
       if (NOT ((a->getOperatorType() == ITM_COUNT) ||
-               //               (a->getOperatorType() == ITM_COUNT_NONULL) ||
                (a->getOperatorType() == ITM_MIN) ||
                (a->getOperatorType() == ITM_MAX) ||
                (a->getOperatorType() == ITM_SUM)))

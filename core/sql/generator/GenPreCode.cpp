@@ -5928,7 +5928,10 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
               if ((aggrType.getTypeQualifier() == NA_NUMERIC_TYPE) &&
                   (((NumericType&)aggrType).binaryPrecision()))
                 continue;
-            }
+
+              if (aggrType.getTypeQualifier() == NA_DATETIME_TYPE)
+                continue;
+             }
 
           aggrPushdown = FALSE;
         }
@@ -5967,7 +5970,14 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
                         }
                     }
                 }
-              
+              else if (childType->getTypeQualifier() == NA_DATETIME_TYPE)
+                {
+                  DatetimeType *dType = (DatetimeType*)childType;
+
+                  orcAggrType =
+                    new(generator->wHeap()) SQLChar(dType->getDisplayLength(), TRUE);
+                }
+
               if (! orcAggrType)
                 {
                   orcAggrType = myType->newCopy(generator->wHeap());
@@ -5981,6 +5991,17 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
                 return this;
               
               origAgg->setOriginalChild(origAgg->child(0));
+
+              if (childType->getTypeQualifier() == NA_DATETIME_TYPE)
+                {
+                  DatetimeType *dType = (DatetimeType*)childType;
+
+                  orcAggrArg = new(generator->wHeap()) Cast(orcAggrArg, dType);
+                  orcAggrArg->bindNode(generator->getBindWA());
+                  if (generator->getBindWA()->errStatus())
+                    return this;
+                 }
+              
               origAgg->setChild(0, orcAggrArg);
             }
           

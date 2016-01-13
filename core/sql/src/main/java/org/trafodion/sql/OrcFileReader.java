@@ -44,6 +44,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import java.lang.Integer;
 import java.lang.Long;
+import java.sql.Timestamp;
 
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.Logger;
@@ -117,6 +118,7 @@ public class OrcFileReader
 
     private SearchArgument buildSARG(Object[] ppi_vec)
     {
+        //        System.out.println("buildSARG called, ppi_vec.length = " + ppi_vec.length);
 
         SearchArgument.Builder builder = SearchArgumentFactory.newBuilder();
         
@@ -615,7 +617,7 @@ public class OrcFileReader
 
                     //                    System.out.println("min = " + min);
                     //                    System.out.println("max = " + max);
-                    //                    System.out.println("sum = " + sum);                    
+                    //                    System.out.println("sum = " + sum); 
                 }
                 break;
 
@@ -661,6 +663,37 @@ public class OrcFileReader
                     bytes = max.getBytes();
                     retColStats.add(bytes);
 
+                }
+                break;
+                
+            case DATE:
+                {
+                    DateColumnStatistics scs = 
+                        (DateColumnStatistics)columnStatistics;
+                    String min = scs.getMinimum().toString();
+                    bytes = min.getBytes();
+                    retColStats.add(bytes);
+
+                    String max = scs.getMaximum().toString();
+                    bytes = max.getBytes();
+                    retColStats.add(bytes);
+                }
+                break;
+                
+            case TIMESTAMP:
+                {
+                    TimestampColumnStatistics scs = 
+                        (TimestampColumnStatistics)columnStatistics;
+
+                    String min = scs.getMinimum().toString();
+                    //                    System.out.println("min = " + min);
+                    bytes = min.getBytes();
+                    retColStats.add(bytes);
+
+                    String max = scs.getMaximum().toString();
+                    //                    System.out.println("max = " + max);
+                    bytes = max.getBytes();
+                    retColStats.add(bytes);
                 }
                 break;
                 

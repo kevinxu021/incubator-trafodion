@@ -59,7 +59,7 @@ invoke hive.hive.store_orc;
 select [first 1] * from hive.hive.store_orc;
 
 -- select all rows from ORC table
-select * from hive.hive.store_orc;
+select * from hive.hive.store_orc order by s_store_sk;
 
 -- select of few columns with WHERE predicate
 select s_store_sk, left(s_store_id, 20) from hive.hive.store_orc where s_store_sk < 7;

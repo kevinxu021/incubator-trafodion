@@ -273,6 +273,8 @@ ExWorkProcRetcode ExOrcScanTcb::work()
 
         case SETUP_ORC_PPI:
           {
+            orcPPIvec_.clear();
+
             ExpTupleDesc * orcOperTD = NULL;
 	    if (orcOperExpr())
 	      {
@@ -905,6 +907,7 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
               }
             else
               {
+                memset(orcAggrLoc, ' ', attr->getLength());
                 if (step_ == ORC_AGGR_MIN)
                   bal_->getEntry(3, orcAggrLoc, attr->getLength(), len);
                 else if (step_ == ORC_AGGR_MAX)
