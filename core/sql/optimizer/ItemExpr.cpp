@@ -15197,6 +15197,13 @@ ItemExpr* UnLogic::removeNonPushablePredicatesForORC()
       }
     case ITM_IS_NULL:
        return this;
+      
+    case ITM_IS_NOT_NULL:
+      {
+       ItemExpr* ie = new (STMTHEAP) UnLogic(ITM_IS_NULL, child(0));
+       ie = new (STMTHEAP) UnLogic(ITM_NOT, ie);
+       return ie;
+      }
     default:
        return NULL;
   }

@@ -4362,6 +4362,7 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
 			   LIST(CollIndex) & tableIdList  /*OUT*/,
                            NAMemory* heap,
                            BindWA * bindWA,
+			   NABoolean& isORC,
 			   Int32 *maxIndexLevelsPtr = NULL)
 {
   NABoolean isTheClusteringKey = TRUE;
@@ -4477,13 +4478,17 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
           return TRUE;
         }
 
-      if ((hiveHDFSTableStats->isOrcFile()) &&
-          (CmpCommon::getDefault(TRAF_ENABLE_ORC_FORMAT) == DF_OFF))
+      if ( hiveHDFSTableStats->isOrcFile() ) {
+
+        if (CmpCommon::getDefault(TRAF_ENABLE_ORC_FORMAT) == DF_OFF)
         {
           *CmpCommon::diags() << DgSqlCode(-3069)
                               << DgTableName(table->getTableName().getQualifiedNameAsAnsiString());
           return TRUE;
         }
+
+        isORC = TRUE;
+      }
 
 #ifndef NDEBUG
       NAString logFile = 
@@ -4933,6 +4938,7 @@ NATable::NATable(BindWA *bindWA,
     keyLength_(0),
     parentTableName_(NULL),
     sgAttributes_(NULL),
+    isORC_(FALSE),
     isHive_(FALSE),
     isHbase_(FALSE),
     isHbaseCell_(FALSE),
@@ -5664,6 +5670,7 @@ NATable::NATable(BindWA *bindWA,
     keyLength_(0),
     parentTableName_(NULL),
     sgAttributes_(NULL),
+    isORC_(FALSE),
     isHive_(TRUE),
     isHbase_(FALSE),
     isHbaseCell_(FALSE),
@@ -5799,6 +5806,8 @@ NATable::NATable(BindWA *bindWA,
 
   setRecordLength(recLen);
 
+  NABoolean isORC = FALSE;
+
   if (createNAFileSets(htbl             /*IN*/,
                        this             /*IN*/,
                        colArray_        /*IN*/,
@@ -5807,11 +5816,14 @@ NATable::NATable(BindWA *bindWA,
                            clusteringIndex_ /*OUT*/,
                            tableIdList_     /*OUT*/,
                            heap_,
-                           bindWA
+                           bindWA,
+                           isORC 
                            )) {
     colcount_ = 0; // indicates failure
     return;
   }
+
+  setIsORC(isORC);
 
   // HIVE-TBD ignore constraint info creation for now
 

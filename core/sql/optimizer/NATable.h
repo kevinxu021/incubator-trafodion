@@ -827,6 +827,7 @@ public:
 		    { return qualifiedName_.isPartitionRangeSpecified(); }
 
   NABoolean isHiveTable() const { return isHive_; }
+  NABoolean isORC() const { return isORC_; }
 
   NABoolean isHbaseTable() const { return isHbase_; }
   NABoolean isHbaseCellTable() const { return isHbaseCell_; }
@@ -838,6 +839,7 @@ public:
 
   NABoolean isUserUpdatableSeabaseMDTable() const { return isUserUpdatableSeabaseMD_; }
 
+  void setIsORC(NABoolean v) { isORC_ = v; }
   void setIsHbaseTable(NABoolean v) { isHbase_ = v; }
   void setIsHbaseCellTable(NABoolean v) { isHbaseCell_ = v; }
   void setIsHbaseRowTable(NABoolean v) { isHbaseRow_ = v; }
@@ -1153,6 +1155,7 @@ private:
 
   NABoolean isHive_;
   NABoolean isHbase_;
+  NABoolean isORC_;
   NABoolean isHbaseCell_;
   NABoolean isHbaseRow_;
   NABoolean isSeabase_;
