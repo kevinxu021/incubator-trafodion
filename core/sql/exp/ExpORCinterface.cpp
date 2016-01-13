@@ -118,7 +118,7 @@ Lng32 ExpORCinterface::scanOpen(
   return 0;
 }
 
-Lng32 ExpORCinterface::scanFetch(char* row, Int64 &rowLen, Int64 &rowNum,
+Lng32 ExpORCinterface::scanFetch(char** row, Int64 &rowLen, Int64 &rowNum,
                                  Lng32 &numCols)
 { 
   if ((startRowNum_ == -1) ||

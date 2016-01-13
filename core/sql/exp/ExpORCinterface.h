@@ -106,7 +106,7 @@ class ExpORCinterface : public NABasicObject
   //                         -ve num, if error
   //                          100: EOD
   //
-  Lng32 scanFetch(char* row, Int64 &rowLen, Int64 &rowNum, Lng32 &numCols);
+  Lng32 scanFetch(char** row, Int64 &rowLen, Int64 &rowNum, Lng32 &numCols);
 
   Lng32 scanClose();
 

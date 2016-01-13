@@ -31,6 +31,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
 import org.apache.hadoop.hive.serde2.objectinspector.*;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.*;
 
 import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
 
@@ -54,6 +55,15 @@ public class OrcFileReader
 
     static Logger logger = Logger.getLogger(OrcFileReader.class.getName());;
 
+    static boolean sb_use_original = true;
+    static {
+	String s_orc_use_new_marshal = System.getenv("ORC_USE_NEW_MARSHAL");
+	if ((s_orc_use_new_marshal != null) &&
+	    (Integer.parseInt(s_orc_use_new_marshal) == 1)) {
+	    sb_use_original = false;
+	}
+    }
+
     Configuration               m_conf;
     Path                        m_file_path;
     
@@ -62,19 +72,21 @@ public class OrcFileReader
 
     List<OrcProto.Type>         m_types;
     StructObjectInspector       m_oi;
+    ObjectInspector             m_foi; // Used when inspecting columns in the fill.. method
     List<? extends StructField> m_fields;
     RecordReader                m_rr;
     ByteOrder                   m_byteorder = ByteOrder.LITTLE_ENDIAN;
     VectorizedRowBatch          m_batch = null;
     boolean                     m_vector_mode = true;
-    long                        m_first_row_in_batch; // Absolute row # in the ORC file (zero-based)
-    int                         m_curr_row_in_batch; // Relative row# in a Vector batch (zero-based)
+    long                        m_first_row_in_batch = 0; // Absolute row # in the ORC file (zero-based)
+    int                         m_curr_row_in_batch = 0; // Relative row# in a Vector batch (zero-based)
 
     String                      lastError = null;
     Reader.Options		m_options;
     boolean                     m_include_cols[];
     int                         m_col_count;
-    byte[]                      m_row_ba;
+    ByteBuffer                  m_block_bb;
+    int                         m_allocation_size = 1024 * 1024;
     int                         m_max_rows_to_fill_in_block;
 
     // this set of constants MUST be kept in sync with 
@@ -202,6 +214,8 @@ public class OrcFileReader
 
 	if (logger.isDebugEnabled()) logger.debug("Enter open()," 
 						  + " file name: " + pv_file_name
+						  + " offset: " + offset
+						  + " length: " + length
 						  + " num_cols_to_project: " + pv_num_cols_to_project
 						  + " pv_which_cols: " + pv_which_cols
 						  );
@@ -311,13 +325,14 @@ public class OrcFileReader
 	if (logger.isDebugEnabled()) logger.debug("got a record reader, file name: " + pv_file_name);
 
 	if (m_rr == null) {
-	    if (logger.isTraceEnabled()) logger.trace("m_reader.rows() returned a null");
+	    logger.error("m_reader.rows() returned a null");
 	    return "open:RecordReader is null";
 	}
 
-	m_row_ba = new byte[1024 * 64];
+	m_block_bb = ByteBuffer.allocateDirect(m_allocation_size);
+
 	m_max_rows_to_fill_in_block = 128;
-	if (logger.isTraceEnabled()) logger.trace("Exit open()");
+	if (logger.isDebugEnabled()) logger.debug("Exit open()");
 	return null;
     }
     
@@ -358,6 +373,7 @@ public class OrcFileReader
 
 	if (logger.isDebugEnabled()) logger.debug("getNextBatch() Enter, m_batch.endOfFile:"
 						  + (m_batch == null ? "(null)" : m_batch.endOfFile )
+						  + " 1strow: " + m_first_row_in_batch
 						  );
 
 	if (m_rr == null) {
@@ -368,8 +384,8 @@ public class OrcFileReader
 	    m_first_row_in_batch = this.getPosition();
 	}
 	catch (java.io.IOException ejii) {
-	    if (logger.isTraceEnabled()) logger.error("getNextBatch() this.getPosition() returned java.io.IOException: " 
-						      + ejii);
+	    logger.error("getNextBatch() this.getPosition() returned java.io.IOException: " 
+			 + ejii);
 	    m_batch = null;
 	}
 	if (m_batch != null) {
@@ -381,13 +397,13 @@ public class OrcFileReader
 	    m_batch = m_rr.nextBatch(m_batch);
 	} 
 	catch (java.io.IOException ejii) {
-	    if (logger.isTraceEnabled()) logger.error("getNextBatch() reader.nextBatch returned java.io.IOException: " 
-						      + ejii);
+	    logger.error("getNextBatch() reader.nextBatch returned java.io.IOException: " 
+			 + ejii);
 	    m_batch = null;
 	}
 	catch (java.lang.IndexOutOfBoundsException ejliob) {
-	    if (logger.isTraceEnabled()) logger.trace("getNextBatch() reader.nextBatch returned java.lang.IndexOutOfBoundsException\n: "
-						      + ejliob);
+	    logger.error("getNextBatch() reader.nextBatch returned java.lang.IndexOutOfBoundsException\n: "
+			 + ejliob);
 	    m_batch = null;
 	}
 
@@ -395,7 +411,7 @@ public class OrcFileReader
 	    if (logger.isTraceEnabled()) logger.debug("getNextBatch, m_batch is null");
 	}
 	else {
-	    if (logger.isTraceEnabled()) logger.debug("getNextBatch, Vectorized row batch," 
+	    if (logger.isTraceEnabled()) logger.trace("getNextBatch, Vectorized row batch," 
 						      + " size: " + m_batch.size
 						      + " #cols: " + m_batch.cols.length
 						      );
@@ -514,12 +530,6 @@ public class OrcFileReader
 						  + " to rowNumber: " + pv_rowNumber
 						  + " next row returned: " + this.getPosition()
 						  );
-
-	if (logger.isTraceEnabled()) logger.trace("seeknSync, " 
-						  + " to rowNumber: " + pv_rowNumber
-						  + " next row returned after getNextBatch(): " + this.getPosition()
-						  );
-
 
 	return null;
     }
@@ -768,52 +778,10 @@ public class OrcFileReader
     }
 
     // returns the next row as a byte array
-    public byte[] fetchNextRowOrig() throws Exception 
-    {
-
-	if (logger.isDebugEnabled()) logger.debug("Enter fetchNextRow()");
-
-	if ( ! m_rr.hasNext()) {
-	    return null;
-	}
-
-	OrcStruct lv_row = (OrcStruct) m_rr.next(null);
-	Object lv_field_val = null;
-   	ByteBuffer lv_row_buffer;
-
-	byte[] lv_row_ba = new byte[4096];
-	lv_row_buffer = ByteBuffer.wrap(lv_row_ba);
-	lv_row_buffer.order(m_byteorder);
-
-	lv_row_buffer.putInt(0);
-	lv_row_buffer.putInt(m_col_count);
-	lv_row_buffer.putLong(m_rr.getRowNumber());
-	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length1: " + lv_row_buffer.position());
-
-	for (int i = 0; i < m_fields.size(); i++) {
-	    if (! m_include_cols[i+1]) continue;
-
-	    lv_field_val = m_oi.getStructFieldData(lv_row, m_fields.get(i));
-	    if (lv_field_val == null) {
-  		lv_row_buffer.putInt(0);
-		continue;
-	    }
-	    String lv_field_val_str = lv_field_val.toString();
-	    lv_row_buffer.putInt(lv_field_val_str.length());
-	    if (lv_field_val != null) {
-		lv_row_buffer.put(lv_field_val_str.getBytes());
-	    }
-	}
-	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length2: " + lv_row_buffer.position());
-	lv_row_buffer.putInt(0, lv_row_buffer.position() - 16);
-	return lv_row_buffer.array();
-    }
-
-    // returns the next row as a byte array
     public byte[] fetchNextRow() throws Exception 
     {
 
-	if (logger.isDebugEnabled()) logger.debug("Enter fetchNextRow()");
+	if (logger.isTraceEnabled()) logger.trace("Enter fetchNextRow()");
 
 	if ( ! m_rr.hasNext()) {
 	    return null;
@@ -825,7 +793,7 @@ public class OrcFileReader
 	int lv_filled_bytes = fillNextRow(lv_row_ba,
 					  0,
 					  lv_row);
-	if (logger.isDebugEnabled()) logger.debug("fetchNextRow(), fillNextRow returned: " 
+	if (logger.isTraceEnabled()) logger.trace("fetchNextRow(), fillNextRow returned: " 
 						  + lv_filled_bytes);
 
 	return lv_row_ba;
@@ -835,7 +803,7 @@ public class OrcFileReader
     public byte[] fetchNextRowFromVector() throws Exception 
     {
 
-	if (logger.isDebugEnabled()) logger.debug("Enter fetchNextRowFromVector()");
+	if (logger.isTraceEnabled()) logger.trace("Enter fetchNextRowFromVector()");
 
 	getNextBatchIfNeeded();
 
@@ -848,7 +816,7 @@ public class OrcFileReader
 	int lv_filled_bytes = fillNextRowFromVector(lv_row_ba,
 						    0);
 
-	if (logger.isDebugEnabled()) logger.debug("fetchNextRowFromVector()," 
+	if (logger.isTraceEnabled()) logger.trace("fetchNextRowFromVector()," 
 						  + " fillNextRowFromVector returned: " 
 						  + lv_filled_bytes);
 
@@ -862,7 +830,7 @@ public class OrcFileReader
 				     ) throws Exception 
     {
 	
-	if (logger.isDebugEnabled()) logger.debug("Enter fillNextRowFromVector(),"
+	if (logger.isTraceEnabled()) logger.trace("Enter fillNextRowFromVector(),"
 						  + " offset: " 
 						  + p_offset
 						  + " length of array: " 
@@ -874,38 +842,61 @@ public class OrcFileReader
 	    return 0;
 	}
 
-	Object lv_field_val = null;
    	ByteBuffer lv_row_bb;
 
 	lv_row_bb = ByteBuffer.wrap(p_row_ba,
 				    p_offset,
 				    p_row_ba.length - p_offset);
 	lv_row_bb.order(m_byteorder);
+	return fillNextRowFromVector(lv_row_bb, 0);
+    }
 
-	lv_row_bb.putInt(p_offset); // just a placeholder at this point to advance the pointer
-	lv_row_bb.putInt(m_col_count);
-	lv_row_bb.putLong(m_first_row_in_batch + m_curr_row_in_batch + 1); // absolute row# within the ORC file
-	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length1: " + lv_row_bb.position());
+    // fills the row in the given ByteBuffer
+    public int fillNextRowFromVector(ByteBuffer p_row_bb,
+				     int        p_offset
+				     ) throws Exception 
+    {
+	
+	if (logger.isTraceEnabled()) logger.trace("Enter fillNextRowFromVector(),"
+						  + " offset: " 
+						  + p_offset
+						  + " length of array: " 
+						  + (p_row_bb == null ? 0 : p_row_bb.capacity())
+						  );
+
+	if ((p_row_bb  == null) ||
+	    (m_batch == null)) {
+	    return 0;
+	}
+
+	Object lv_field_val = null;
+
+	p_row_bb.position(p_offset);
+
+	p_row_bb.putInt(p_offset); // just a placeholder at this point to advance the pointer
+	p_row_bb.putInt(m_col_count);
+	p_row_bb.putLong(m_first_row_in_batch + m_curr_row_in_batch + 1); // absolute row# within the ORC file
+	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length1: " + p_row_bb.position());
 
 	for (int i = 0; i < m_fields.size(); i++) {
 	    if (! m_include_cols[i+1]) continue;
 
 	    if (m_batch.cols[i].isNull[m_curr_row_in_batch]) {
-  		lv_row_bb.putInt(0);
+  		p_row_bb.putInt(0);
 		continue;
 	    }
 
 	    lv_field_val = m_batch.cols[i].getWritableObject(m_curr_row_in_batch);
 	    String lv_field_val_str = lv_field_val.toString();
-	    lv_row_bb.putInt(lv_field_val_str.length());
+	    p_row_bb.putInt(lv_field_val_str.length());
 	    if (lv_field_val != null) {
-		lv_row_bb.put(lv_field_val_str.getBytes());
+		p_row_bb.put(lv_field_val_str.getBytes());
 	    }
 	}
 
-	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length2: " + lv_row_bb.position());
-	int lv_filled_bytes = lv_row_bb.position() - p_offset;
-	lv_row_bb.putInt(p_offset, lv_filled_bytes - 16);
+	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length2: " + p_row_bb.position());
+	int lv_filled_bytes = p_row_bb.position() - p_offset;
+	p_row_bb.putInt(p_offset, lv_filled_bytes - 16);
 
 	return (lv_filled_bytes);
     }
@@ -917,7 +908,7 @@ public class OrcFileReader
 			   ) throws Exception 
     {
 	
-	if (logger.isDebugEnabled()) logger.debug("Enter fillNextRow(),"
+	if (logger.isTraceEnabled()) logger.trace("Enter fillNextRow(),"
 						  + " offset: " 
 						  + p_offset
 						  + " length of array: " 
@@ -929,44 +920,160 @@ public class OrcFileReader
 	    return 0;
 	}
 
-	Object lv_field_val = null;
    	ByteBuffer lv_row_bb;
 
 	lv_row_bb = ByteBuffer.wrap(p_row_ba,
 				    p_offset,
 				    p_row_ba.length - p_offset);
 	lv_row_bb.order(m_byteorder);
+	return fillNextRow(lv_row_bb, 0, p_orc_row);
+    }
 
-	lv_row_bb.putInt(p_offset); // just a placeholder at this point to advance the pointer
-	lv_row_bb.putInt(m_col_count);
-	lv_row_bb.putLong(m_rr.getRowNumber());
-	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length1: " + lv_row_bb.position());
+    // fills the row in the given ByteBuffer
+    public int fillNextRow(ByteBuffer p_row_bb, 
+			   int       p_offset,
+			   OrcStruct p_orc_row
+			   ) throws Exception 
+    {
+	
+	if (logger.isTraceEnabled()) logger.trace("Enter fillNextRow(),"
+						  + " offset: " 
+						  + p_offset
+						  + " length of array: " 
+						  + (p_row_bb == null ? 0 : p_row_bb.capacity())
+						  );
+
+	Object lv_field_val = null;
+
+	p_row_bb.position(p_offset);
+
+	p_row_bb.putInt(p_offset); // just a placeholder at this point to advance the pointer
+	p_row_bb.putInt(m_col_count);
+	p_row_bb.putLong(m_rr.getRowNumber());
+	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length1: " + p_row_bb.position());
 
 	for (int i = 0; i < m_fields.size(); i++) {
 	    if (! m_include_cols[i+1]) continue;
 
 	    lv_field_val = m_oi.getStructFieldData(p_orc_row, m_fields.get(i));
 	    if (lv_field_val == null) {
-  		lv_row_bb.putInt(0);
+  		p_row_bb.putInt(-1);
 		continue;
 	    }
-	    String lv_field_val_str = lv_field_val.toString();
-	    lv_row_bb.putInt(lv_field_val_str.length());
-	    if (lv_field_val != null) {
-		lv_row_bb.put(lv_field_val_str.getBytes());
+
+	    m_foi = m_fields.get(i).getFieldObjectInspector();
+	    int lv_element_type = m_types.get(i+1).getKind().getNumber();
+	    switch (lv_element_type) {
+	    case OrcProto.Type.Kind.BYTE_VALUE:
+		break;
+	    case OrcProto.Type.Kind.SHORT_VALUE:
+		short lv_s = ((WritableShortObjectInspector) m_foi).get(lv_field_val);
+		p_row_bb.putInt(2);
+		p_row_bb.putShort(lv_s);
+		break;
+	    case OrcProto.Type.Kind.INT_VALUE:
+		int lv_i = ((WritableIntObjectInspector) m_foi).get(lv_field_val);
+		p_row_bb.putInt(4);
+		p_row_bb.putInt(lv_i);
+		break;
+	    case OrcProto.Type.Kind.LONG_VALUE:
+		long lv_l = ((WritableLongObjectInspector) m_foi).get(lv_field_val);
+		p_row_bb.putInt(8);
+		p_row_bb.putLong(lv_l);
+		break;
+	    case OrcProto.Type.Kind.FLOAT_VALUE:
+		float lv_f = ((WritableFloatObjectInspector) m_foi).get(lv_field_val);
+		p_row_bb.putInt(4);
+		p_row_bb.putFloat(lv_f);
+		break;
+	    case OrcProto.Type.Kind.DOUBLE_VALUE:
+		double lv_d = ((WritableDoubleObjectInspector) m_foi).get(lv_field_val);
+		p_row_bb.putInt(8);
+		p_row_bb.putDouble(lv_d);
+		break;
+	    case OrcProto.Type.Kind.STRING_VALUE:
+		String lv_string = ((WritableStringObjectInspector) m_foi).getPrimitiveJavaObject(lv_field_val);
+		p_row_bb.putInt(lv_string.length());
+		p_row_bb.put(lv_string.getBytes());
+		break;
+	    case OrcProto.Type.Kind.BINARY_VALUE:
+		break;
+	    case OrcProto.Type.Kind.TIMESTAMP_VALUE:
+		String lv_timestamp_string = lv_field_val.toString();
+		p_row_bb.putInt(lv_timestamp_string.length());
+		p_row_bb.put(lv_timestamp_string.getBytes());
+		break;
+	    case OrcProto.Type.Kind.DECIMAL_VALUE:
+		break;
+	    case OrcProto.Type.Kind.DATE_VALUE:
+		break;
+	    case OrcProto.Type.Kind.VARCHAR_VALUE:
+		break;
+	    case OrcProto.Type.Kind.CHAR_VALUE:
+		break;
+	    default:
+		break;
 	    }
 	}
 
-	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length2: " + lv_row_bb.position());
-	int lv_filled_bytes = lv_row_bb.position() - p_offset;
-	lv_row_bb.putInt(p_offset, lv_filled_bytes - 16);
+	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length2: " + p_row_bb.position());
+	int lv_filled_bytes = p_row_bb.position() - p_offset;
+	p_row_bb.putInt(p_offset, lv_filled_bytes - 16);
+
+	return (lv_filled_bytes);
+    }
+
+    // fills the row in the given ByteBuffer
+    public int fillNextRowOrig(ByteBuffer p_row_bb, 
+			       int       p_offset,
+			       OrcStruct p_orc_row
+			       ) throws Exception 
+    {
+	
+	if (logger.isTraceEnabled()) logger.trace("Enter fillNextRow(),"
+						  + " offset: " 
+						  + p_offset
+						  + " length of array: " 
+						  + (p_row_bb == null ? 0 : p_row_bb.capacity())
+						  );
+
+	Object lv_field_val = null;
+
+	p_row_bb.position(p_offset);
+
+	p_row_bb.putInt(p_offset); // just a placeholder at this point to advance the pointer
+	p_row_bb.putInt(m_col_count);
+	p_row_bb.putLong(m_rr.getRowNumber());
+	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length1: " + p_row_bb.position());
+
+	for (int i = 0; i < m_fields.size(); i++) {
+	    if (! m_include_cols[i+1]) continue;
+
+	    lv_field_val = m_oi.getStructFieldData(p_orc_row, m_fields.get(i));
+	    if (lv_field_val == null) {
+  		p_row_bb.putInt(0);
+		continue;
+	    }
+
+	    String lv_field_val_str = lv_field_val.toString();
+
+	    p_row_bb.putInt(lv_field_val_str.length());
+	    if (lv_field_val != null) {
+		p_row_bb.put(lv_field_val_str.getBytes());
+	    }
+
+	}
+
+	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length2: " + p_row_bb.position());
+	int lv_filled_bytes = p_row_bb.position() - p_offset;
+	p_row_bb.putInt(p_offset, lv_filled_bytes - 16);
 
 	return (lv_filled_bytes);
     }
 
     /**************************************************
      *
-     * Returns the next Block as a byte[]
+     * Returns the next Block as a ByteBuffer
      *
      * The Block structure is:
      * - int: number of Row Elements in the Block
@@ -981,7 +1088,7 @@ public class OrcFileReader
      *         - byte[]: column content
      *
      **************************************************/
-    public byte[] fetchNextBlockFromVector() throws Exception 
+    public ByteBuffer fetchNextBlockFromVector() throws Exception 
     {
 	if (logger.isDebugEnabled()) logger.debug("Enter fetchNextBlockFromVector()");
 
@@ -996,11 +1103,8 @@ public class OrcFileReader
 	int lv_filled_bytes = 0;
 	boolean lv_done = false;
 
-	ByteBuffer lv_block_bb;
-	lv_block_bb = ByteBuffer.wrap(m_row_ba,
-				      0,
-				      m_row_ba.length);
-	lv_block_bb.order(m_byteorder);
+	m_block_bb.clear();
+	m_block_bb.order(m_byteorder);
 
 	while ((moreRowsInBatch()) &&
 	       (lv_num_rows < m_max_rows_to_fill_in_block) &&
@@ -1011,7 +1115,7 @@ public class OrcFileReader
 						      + " filled bytes: " + lv_filled_bytes
 						      );
 	
-	    lv_filled_bytes  = fillNextRowFromVector(m_row_ba,
+	    lv_filled_bytes  = fillNextRowFromVector(m_block_bb,
 						     lv_row_offset
 						     );
 
@@ -1032,14 +1136,16 @@ public class OrcFileReader
 						  + " filled bytes: " + lv_filled_bytes
 						  );
 	// Set the number of rows in the block header
-	lv_block_bb.putInt(0, lv_num_rows);
+	m_block_bb.putInt(0, lv_num_rows);
 
-	return m_row_ba;
+	return m_block_bb;
     }
 	
-    public byte[] fetchNextBlock() throws Exception 
+    public ByteBuffer fetchNextBlock() throws Exception 
     {
-	if (logger.isDebugEnabled()) logger.debug("Enter fetchNextBlock()");
+	if (logger.isDebugEnabled()) logger.debug("Enter fetchNextBlock()"
+						  + " 1strow: " + m_rr.getRowNumber()
+						  );
 
 	if ( ! m_rr.hasNext()) {
 	    return null;
@@ -1050,11 +1156,8 @@ public class OrcFileReader
 	int lv_filled_bytes = 0;
 	boolean lv_done = false;
 
-	ByteBuffer lv_block_bb;
-	lv_block_bb = ByteBuffer.wrap(m_row_ba,
-				      0,
-				      m_row_ba.length);
-	lv_block_bb.order(m_byteorder);
+	m_block_bb.clear();
+	m_block_bb.order(m_byteorder);
 
 	while ((m_rr.hasNext()) &&
 	       (lv_num_rows < m_max_rows_to_fill_in_block) &&
@@ -1066,9 +1169,16 @@ public class OrcFileReader
 						      );
 	
 	    OrcStruct lv_orc_row = (OrcStruct) m_rr.next(null);
-	    lv_filled_bytes  = fillNextRow(m_row_ba,
-					   lv_row_offset,
-					   lv_orc_row);
+	    if (sb_use_original) {
+		lv_filled_bytes  = fillNextRowOrig(m_block_bb,
+						   lv_row_offset,
+						   lv_orc_row);
+	    }
+	    else {
+		lv_filled_bytes  = fillNextRow(m_block_bb,
+					       lv_row_offset,
+					       lv_orc_row);
+	    }		
 
 	    if (lv_filled_bytes > 0) {
 		lv_row_offset += lv_filled_bytes;
@@ -1085,9 +1195,9 @@ public class OrcFileReader
 						  + " filled bytes: " + lv_filled_bytes
 						  );
 	// Set the number of rows in the block header
-	lv_block_bb.putInt(0, lv_num_rows);
+	m_block_bb.putInt(0, lv_num_rows);
 
-	return m_row_ba;
+	return m_block_bb;
     }
 	
     public OrcRowReturnSQL fetchNextRowObj() throws Exception
@@ -1344,7 +1454,10 @@ public class OrcFileReader
 //.startAnd().between("_col2", 2, 3).end()
 //.startAnd().in("_col2", 1, 3, 4).end()
         SearchArgument sarg = builder
-        .startAnd().in("_col2", 1, 3, 4).end()
+	    .startAnd()
+	    .equals("_col3", 6928)
+	    .equals("_col4", 68284)
+	    .end()
         .build();
 	
         // test 
@@ -1365,7 +1478,7 @@ public class OrcFileReader
 	try{
 	   m_rr = m_reader.rowsOptions(new Reader.Options()
                     //.range(0L, Long.MAX_VALUE)
-                    .range(3, 121394)
+                    .range(0L, Long.MAX_VALUE)
                     .include(include)
                     .searchArgument(sarg, colNames));
 
@@ -1384,7 +1497,13 @@ public class OrcFileReader
         int ct = 0;
         OrcStruct row = null;
 
-        while (m_rr.hasNext() ) {
+	long lv_count = 0;
+	while (m_rr.hasNext() ) {
+	    lv_count++;
+            row = (OrcStruct) m_rr.next(row);
+	}
+	System.out.println("Number of rows: " + lv_count);
+	/*        while (m_rr.hasNext() ) {
             startRowNum = m_rr.getRowNumber();
             //System.out.println("To read a row with rowNum=" + startRowNum);
             ct++;
@@ -1398,7 +1517,7 @@ public class OrcFileReader
                 row_string.append('|');
             }
             System.out.println(row_string);
-        }
+	    }*/
 
 	return null;
     }
@@ -1515,16 +1634,22 @@ public class OrcFileReader
 	    if (lv_this.seeknSync(0) == null) {
 		logger.trace("================= Begin: fetchNextBlock()");
 		System.out.println("Next row #: " + lv_this.getPosition());
-		byte[] lv_block_ba = lv_this.fetchNextBlock();
-		if (lv_block_ba != null) {
-		    ByteBuffer lv_block_bb = ByteBuffer.wrap(lv_block_ba);
-		    System.out.println("Length of the returned byte array: " + lv_block_ba.length 
+		//		byte[] lv_block_ba = lv_this.fetchNextBlock();
+		ByteBuffer lv_block_bb = lv_this.fetchNextBlock();
+		//		if (lv_block_ba != null) {
+		if (lv_block_bb != null) {
+		    //		    ByteBuffer lv_block_bb = ByteBuffer.wrap(lv_block_ba);
+		    lv_block_bb.position(0);
+		    System.out.println("Length of the returned byte array: " + lv_block_bb.capacity() 
 				       + " #rows in the block: " + lv_block_bb.getInt()
 				       + " data[] len: " + lv_block_bb.getInt()
 				       + " col count: " + lv_block_bb.getInt()
 				       + " row number: " + lv_block_bb.getLong()
 				       + " 1st col len: " + lv_block_bb.getInt());
-		    System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_block_ba, 0, 100));
+		    System.out.println("First 100 bytes of lv_row_bb: " );
+		    for (int i = 0; i < 100; i++) {
+			System.out.print(lv_block_bb.getChar(i) + ";");
+		    }
 		}
 
 		logger.trace("================= End: fetchNextBlock()");
@@ -1622,16 +1747,19 @@ public class OrcFileReader
 		logger.trace("================= Begin: fetchNextBlockFromVector()");
 		while (! lv_done) {
 		    System.out.println("Next row #: " + lv_this.getPosition());
-		    byte[] lv_block_ba = lv_this.fetchNextBlockFromVector();
-		    if (lv_block_ba != null) {
-			ByteBuffer lv_block_bb = ByteBuffer.wrap(lv_block_ba);
-			System.out.println("Length of the returned byte array: " + lv_block_ba.length 
+		    ByteBuffer lv_block_bb = lv_this.fetchNextBlockFromVector();
+		    if (lv_block_bb != null) {
+			lv_block_bb.position(0);
+			System.out.println("Length of the returned byte array: " + lv_block_bb.capacity() 
 					   + " #rows in the block: " + lv_block_bb.getInt()
 					   + " data[] len: " + lv_block_bb.getInt()
 					   + " col count: " + lv_block_bb.getInt()
 					   + " row number: " + lv_block_bb.getLong()
 					   + " 1st col len: " + lv_block_bb.getInt());
-			System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_block_ba, 0, 100));
+			System.out.println("First 100 bytes of lv_row_bb: " );
+			for (int i = 0; i < 100; i++) {
+			    System.out.print(lv_block_bb.getChar(i) + ";");
+			}
 		    }
 		    else {
 			lv_done = true;

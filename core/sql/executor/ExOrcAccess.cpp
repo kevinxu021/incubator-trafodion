@@ -393,9 +393,10 @@ ExWorkProcRetcode ExOrcScanTcb::work()
           
         case GET_ORC_ROW:
           {
-            orcRow_ = hdfsScanBuffer_;
-            orcRowLen_ =  orcScanTdb().hdfsBufSize_;
-            retcode = orci_->scanFetch(orcRow_, orcRowLen_, orcRowNum_,
+	    //            orcRow_ = hdfsScanBuffer_;
+            orcRow_ = 0;
+            orcRowLen_ =  hdfsScanTdb().hdfsBufSize_;
+            retcode = orci_->scanFetch(&orcRow_, orcRowLen_, orcRowNum_,
                                        numOrcCols_);
             if (retcode < 0)
               {

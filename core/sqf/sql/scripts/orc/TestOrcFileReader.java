@@ -182,13 +182,11 @@ public class TestOrcFileReader
 	    if (sv_ofr.seeknSync(0) == null) {
 		System.out.println("================= Begin: fetchNextBlock()");
 		System.out.println("Next row #: " + sv_ofr.getPosition());
-		byte[] lv_block_ba = sv_ofr.fetchNextBlock();
-		if (lv_block_ba != null) {
-		    ByteBuffer lv_block_bb = ByteBuffer.wrap(lv_block_ba);
+		ByteBuffer lv_block_bb = sv_ofr.fetchNextBlock();
+		if (lv_block_bb != null) {
 		    int lv_num_rows = lv_block_bb.getInt();
-		    System.out.println("Length lv_block_bb: " + lv_block_ba.length);
+		    System.out.println("Length lv_block_bb: " + lv_block_bb.capacity());
 		    System.out.println("Number of rows in the block: " + lv_num_rows);
-		    System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_block_ba, 0, 100));
 		}
 
 		System.out.println("================= End: fetchNextBlock()");
@@ -264,16 +262,14 @@ public class TestOrcFileReader
 	if (sv_ofr.seeknSync(0) == null) {
 	    logger.trace("================= Begin: fetchNextBlock()");
 	    System.out.println("Next row #: " + sv_ofr.getPosition());
-	    byte[] lv_block_ba = sv_ofr.fetchNextBlock();
-	    if (lv_block_ba != null) {
-		ByteBuffer lv_block_bb = ByteBuffer.wrap(lv_block_ba);
-		System.out.println("Length of the returned byte array: " + lv_block_ba.length 
+	    ByteBuffer lv_block_bb = sv_ofr.fetchNextBlock();
+	    if (lv_block_bb != null) {
+		System.out.println("Length of the returned byte array: " + lv_block_bb.capacity() 
 				   + " #rows in the block: " + lv_block_bb.getInt()
 				   + " data[] len: " + lv_block_bb.getInt()
 				   + " col count: " + lv_block_bb.getInt()
 				   + " row number: " + lv_block_bb.getLong()
 				   + " 1st col len: " + lv_block_bb.getInt());
-		System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_block_ba, 0, 100));
 	    }
 
 	    logger.trace("================= End: fetchNextBlock()");
@@ -375,16 +371,14 @@ public class TestOrcFileReader
 	    logger.trace("================= Begin: fetchNextBlockFromVector()");
 	    while (! lv_done) {
 		System.out.println("Next row #: " + sv_ofr.getPosition());
-		byte[] lv_block_ba = sv_ofr.fetchNextBlockFromVector();
-		if (lv_block_ba != null) {
-		    ByteBuffer lv_block_bb = ByteBuffer.wrap(lv_block_ba);
-		    System.out.println("Length of the returned byte array: " + lv_block_ba.length 
+		ByteBuffer lv_block_bb = sv_ofr.fetchNextBlockFromVector();
+		if (lv_block_bb != null) {
+		    System.out.println("Length of the returned byte array: " + lv_block_bb.capacity() 
 				       + " #rows in the block: " + lv_block_bb.getInt()
 				       + " data[] len: " + lv_block_bb.getInt()
 				       + " col count: " + lv_block_bb.getInt()
 				       + " row number: " + lv_block_bb.getLong()
 				       + " 1st col len: " + lv_block_bb.getInt());
-		    System.out.println("First 100 bytes of lv_row_bb: " + new String(lv_block_ba, 0, 100));
 		}
 		else {
 		    lv_done = true;
@@ -412,16 +406,14 @@ public class TestOrcFileReader
 			       + sv_ofr.isEOF()
 			       );
 	    while (! lv_done) {
-		byte[] lv_block_ba = sv_ofr.fetchNextBlock();
-		if (lv_block_ba != null) {
-		    ByteBuffer lv_block_bb = ByteBuffer.wrap(lv_block_ba);
-		    if (logger.isTraceEnabled()) logger.trace("Length of the returned byte array: " + lv_block_ba.length 
+		ByteBuffer lv_block_bb = sv_ofr.fetchNextBlock();
+		if (lv_block_bb != null) {
+		    if (logger.isTraceEnabled()) logger.trace("Length of the returned byte array: " + lv_block_bb.capacity() 
 							      + " #rows in the block: " + lv_block_bb.getInt()
 							      + " data[] len: " + lv_block_bb.getInt()
 							      + " col count: " + lv_block_bb.getInt()
 							      + " row number: " + lv_block_bb.getLong()
 							      + " 1st col len: " + lv_block_bb.getInt());
-		    if (logger.isTraceEnabled()) logger.trace("First 100 bytes of lv_row_bb: " + new String(lv_block_ba, 0, 100));
 		    
 		}
 		else {
@@ -492,16 +484,14 @@ public class TestOrcFileReader
 			       + sv_ofr.isEOF()
 			       );
 	    while (! lv_done) {
-		byte[] lv_block_ba = sv_ofr.fetchNextBlockFromVector();
-		if (lv_block_ba != null) {
-		    ByteBuffer lv_block_bb = ByteBuffer.wrap(lv_block_ba);
-		    if (logger.isTraceEnabled()) logger.info("Length of the returned byte array: " + lv_block_ba.length 
+		ByteBuffer lv_block_bb = sv_ofr.fetchNextBlockFromVector();
+		if (lv_block_bb != null) {
+		    if (logger.isTraceEnabled()) logger.info("Length of the returned byte array: " + lv_block_bb.capacity() 
 							     + " #rows in the block: " + lv_block_bb.getInt()
 							     + " data[] len: " + lv_block_bb.getInt()
 							     + " col count: " + lv_block_bb.getInt()
 							     + " row number: " + lv_block_bb.getLong()
 							     + " 1st col len: " + lv_block_bb.getInt());
-		    if (logger.isTraceEnabled()) logger.info("First 100 bytes of lv_row_bb: " + new String(lv_block_ba, 0, 100));
 		    
 		}
 		else {
@@ -563,6 +553,35 @@ public class TestOrcFileReader
 	lv_include_cols[0]=1;
 	
 	System.out.println("Opening " + sv_filename + ", reading only the first column");
+	if (sv_ofr != null) {
+	    sv_ofr.close();
+	}
+
+	sv_ofr.open(sv_filename, 1, lv_include_cols);
+    }
+
+    static void open_read_2cols()  throws Exception
+    {
+	int lv_include_cols [] = new int[4];
+	lv_include_cols[0]=1;
+	lv_include_cols[1]=2;
+	
+	System.out.println("Opening " + sv_filename + ", reading the first 2 columns");
+	if (sv_ofr != null) {
+	    sv_ofr.close();
+	}
+
+	sv_ofr.open(sv_filename, 1, lv_include_cols);
+    }
+
+    static void open_read_3cols()  throws Exception
+    {
+	int lv_include_cols [] = new int[100];
+	lv_include_cols[0]=1;
+	lv_include_cols[1]=2;
+	lv_include_cols[2]=3;
+	
+	System.out.println("Opening " + sv_filename + ", reading the first 3 columns");
 	if (sv_ofr != null) {
 	    sv_ofr.close();
 	}
@@ -646,10 +665,18 @@ public class TestOrcFileReader
 	}
 	else if (lv_measure_scans) {
 	    MeasureScan();
+	    open_read_2cols();
+	    MeasureScan();
+	    open_read_3cols();
+	    MeasureScan();
 	    open_read_all_cols();
 	    MeasureScan();
 	}
 	else if (lv_measure_pure_scans) {
+	    MeasurePureScan();
+	    open_read_2cols();
+	    MeasurePureScan();
+	    open_read_3cols();
 	    MeasurePureScan();
 	    open_read_all_cols();
 	    MeasurePureScan();
@@ -659,10 +686,18 @@ public class TestOrcFileReader
 	}
 	else if (lv_measure_vectorized_scans) {
 	    MeasureVectorizedScan();
+	    open_read_2cols();
+	    MeasureVectorizedScan();
+	    open_read_3cols();
+	    MeasureVectorizedScan();
 	    open_read_all_cols();
 	    MeasureVectorizedScan();
 	}
 	else if (lv_measure_pure_vectorized_scans) {
+	    MeasurePureVectorizedScan();
+	    open_read_2cols();
+	    MeasurePureVectorizedScan();
+	    open_read_3cols();
 	    MeasurePureVectorizedScan();
 	    open_read_all_cols();
 	    MeasurePureVectorizedScan();
