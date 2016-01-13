@@ -701,7 +701,7 @@ fi
 function checkHadoopSupport {
 
 if [[ -z $TRAF_BUILD ]] || [[ ! -e $TRAF_BUILD ]] ; then
-   TRAF_BUILD=$(tar -tf $TRAF_PACKAGE | grep "trafodion_server")
+   TRAF_BUILD=$(tar -tf $TRAF_PACKAGE | grep "trafodion_.*server")
    tar -xzf $TRAF_PACKAGE --directory $LOCAL_WORKDIR
    TRAF_BUILD_PATH=$LOCAL_WORKDIR/$TRAF_BUILD
 else
