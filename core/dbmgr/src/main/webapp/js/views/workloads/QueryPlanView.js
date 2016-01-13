@@ -24,7 +24,7 @@ define([
 	var LOADING_SELECTOR = "#loadingImg",
 	ERROR_CONTAINER = '#visual-plan-error',
 	TEXT_PLAN_CONTAINER = '#text-result-container',
-	GRIDCONTAINER = "#dbmgr-1",
+	GRAPH_CONTAINER = '#graph-container',
 	REFRESH_MENU = '#refreshAction',
 	QCANCEL_MENU = '#cancelAction',    	
 	TOOLTIP_DIALOG = '#tooltipDialog',
@@ -123,7 +123,7 @@ define([
 		},
 		doResize: function () {
 			if(st != null) {
-				st.canvas.resize($('#infovis').width(), ($(GRIDCONTAINER).height() + $(GRIDCONTAINER).scrollTop() + 800));
+				st.canvas.resize($('#infovis').width(), ($(GRAPH_CONTAINER).height() + $(GRAPH_CONTAINER).scrollTop()));
 			}
 		},
 		processArgs: function(args){
@@ -179,7 +179,7 @@ define([
 			$('#text-result').text(jsonData.planText);
 			$("#infovis").empty();
 
-			st = common.generateExplainTree(jsonData, setRootNode, _this.showExplainTooltip);
+			st = common.generateExplainTree(jsonData, setRootNode, _this.showExplainTooltip, $(GRAPH_CONTAINER));
 			//load json data
 			st.loadJSON(jsonData);
 

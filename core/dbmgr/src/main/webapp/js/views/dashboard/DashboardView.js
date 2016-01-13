@@ -433,10 +433,9 @@ define([
 				});
 
 				servicesTable = $('#services-results').dataTable({
-					dom: 'rtB',
+					dom: 'tB',
 					"bProcessing": true,
-					"bPaginate" : false, 
-					"bAutoWidth": false,
+					//"bAutoWidth": false,
 					"scrollCollapse": true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
@@ -476,7 +475,7 @@ define([
 					                				 'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0")+'"><i class="fa fa-warning"></i></button>';
 					                			 }
 					                			 return '<button type="button" class="btn btn-success btn-circle btn-small dbmgr-status-btn" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
-					                			 'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0") +'"><i class="fa fa-check"></i></button>';
+					                			 'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0") +'"><i class="fa fa-check" ></i></button>';
 					                		 }
 					                		 else return data;
 					                	 }

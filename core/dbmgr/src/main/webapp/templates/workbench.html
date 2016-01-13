@@ -17,11 +17,11 @@
 						<br>
 						<button id="executeQuery" class="btn btn-primary fa fa-play"
 							style="font-family: FontAwesome;"> Execute</button>
-						<button id="explainQuery" class="btn btn-info fa fa-sitemap"
+						<button id="explainQuery" class="btn btn-success fa fa-sitemap"
 							style="font-family: FontAwesome;"> Explain</button>
 						<button id="clearAction" class="btn btn-default fa fa-eraser"
 							style="font-family: FontAwesome;"> Clear</button>
-						<button id="setControlStmts" class="btn btn-default fa fa-gear"
+						<button id="setControlStmts" class="btn btn-info fa fa-gear"
 							style="font-family: FontAwesome;"> Options</button>
 					</div>
 				</div>
@@ -29,12 +29,12 @@
 			<br />
 			<div class="panel panel-default">
 				<div id="result-panel-title" class="panel-heading">Result</div>
-				<div class="panel-body">
+				<div id="primary-result-container" class="panel-body">
 					<img id="loadingImg" src="img/ajax-loader.gif" />
 					<div id="query-result-container" class="table-responsive"></div>
 					<label id="scalar-result-container" 
 					style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: normal;color: black;"></label>
-					<div id="infovis"></div>
+					<div id="infovis" style="overflow: scroll;"></div>
 					<label id="query-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
@@ -74,7 +74,7 @@
 				<div class="modal-footer">
 					<button id="controlApplyButton" type="button"
 						class="btn btn-primary">Apply</button>
-					<button type="button" class="btn btn-primary" data-dismiss="modal">Cancel</button>
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
 				</div>
 			</div>
 		</div>

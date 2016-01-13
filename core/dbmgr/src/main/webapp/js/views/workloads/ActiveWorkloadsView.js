@@ -104,9 +104,12 @@ define([
 				var bPaging = aaData.length > 25;
 
 				oDataTable = $('#active-query-results').DataTable({
+					"oLanguage": {
+						"sEmptyTable": "No active queries found."
+					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
-					"bPaginate" : bPaging, 
+					paging : bPaging, 
 					"bAutoWidth": true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
@@ -139,7 +142,6 @@ define([
 					                		 else return data;
 					                	 }
 					                 }],
-					                 paging: true,
 					                 buttons: [
 					                           'copy','csv','excel','pdf','print'
 					                           ],					                 
@@ -168,7 +170,7 @@ define([
 					$(ERROR_TEXT).text(jqXHR.responseText);
 				}else{
 	        		if(jqXHR.status != null && jqXHR.status == 0) {
-	        			$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+	        			$(ERROR_TEXT).text("Error : Unable to communicate with the server.");
 	        		}
 	        	}
 			}
