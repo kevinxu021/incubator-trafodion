@@ -35,6 +35,7 @@
 	"jquery-localize-i18n": "latest",
 	"moment-timezone": "0.4.0",
 	"codemirror":"latest",
-	"datatables-buttons":"1.0.3"
+	"datatables-buttons":"1.0.3",
+	"bootswatch":"3.3.6"
   }
 }

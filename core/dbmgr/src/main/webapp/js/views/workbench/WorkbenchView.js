@@ -26,7 +26,6 @@ define([
 	var LOADING_SELECTOR = ".dbmgr-spinner";			
 	var st = null;
 	var resizeTimer = null;			
-	var GRIDCONTAINER = "#dbmgr-1";
 	var oDataTable = null;
 	var controlStatements = null;
 	var previousScrollTop = 0;
@@ -39,6 +38,7 @@ define([
 	TOOLTIP_CONTAINER = '#tooltipContainer';
 
 	var SPINNER = '#loadingImg',
+	PRIMARY_RESULT_CONTAINER = '#primary-result-container',
 	TEXT_RESULT_CONTAINER = '#text-result-container',
 	TEXT_RESULT = '#text-result',
 	EXPLAIN_TREE = '#infovis',
@@ -99,7 +99,7 @@ define([
 
 			//init Spacetree
 			//Create a new ST instance
-			st = common.generateExplainTree(jsonData, setRootNode, _that.showExplainTooltip);
+			st = common.generateExplainTree(jsonData, setRootNode, _that.showExplainTooltip, $(PRIMARY_RESULT_CONTAINER));
 
 			//load json data
 			st.loadJSON(jsonData);
@@ -136,12 +136,12 @@ define([
 			$(CONTROL_APPLY_BUTTON).on('click', this.controlApplyClicked);
 			$(OPTIONS_BTN).on('click', this.openFilterDialog);
 
-			$(EXPLAIN_TREE).show();
+			$(EXPLAIN_TREE).hide();
 			$(ERROR_TEXT).hide();
 			$(TOOLTIP_DIALOG).on('show.bs.modal', function () {
 				$(this).find('.modal-body').css({
-					width:'auto', //probably not needed
-					height:'auto', //probably not needed 
+					width:'auto', 
+					height:'auto',
 					'max-height':'100%'
 				});
 			});
@@ -166,17 +166,19 @@ define([
 				}
 			});
 			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
-
+			
 			controlStmtEditor = CodeMirror.fromTextArea(document.getElementById("query-control-stmts"), {
 				mode: 'text/x-esgyndb',
 				indentWithTabs: true,
 				smartIndent: true,
 				lineNumbers: true,
-				matchBrackets : true,
-				autofocus: false,
 				lineWrapping: true,
+				matchBrackets : true,
+				autofocus: true,
 				extraKeys: {"Ctrl-Space": "autocomplete"}
 			});
+
+			
 			$(controlStmtEditor.getWrapperElement()).resizable({
 				resize: function() {
 					controlStmtEditor.setSize($(this).width(), $(this).height());
@@ -225,7 +227,7 @@ define([
 		},
 		doResize: function () {
 			if(st != null) {
-				st.canvas.resize($(EXPLAIN_TREE).width(), ($(GRIDCONTAINER).height() + $(GRIDCONTAINER).scrollTop() + 800));
+				st.canvas.resize($(EXPLAIN_TREE).width(), ($(PRIMARY_RESULT_CONTAINER).height() + $(PRIMARY_RESULT_CONTAINER).scrollTop()));
 			}
 		},
 
@@ -408,13 +410,12 @@ define([
 						},
 						dom:'lBftrip',
 						"bProcessing": true,
-						"bPaginate" : true, 
 						"iDisplayLength" : 25, 
-						"sPaginationType": "simple_numbers",
+						"sPaginationType": "full_numbers",
 						"scrollCollapse": true,
 						"aaData": aaData, 
 						"aoColumns" : aoColumns,
-						paging: true,
+						paging: bPaging,
 						buttons: [
 						          'copy','csv','excel','pdf','print'
 						          ]
