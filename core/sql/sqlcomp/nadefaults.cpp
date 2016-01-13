@@ -2292,7 +2292,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDkwd__(MODE_SPECIAL_3,                       "OFF"),
   DDkwd__(MODE_SPECIAL_4,                       "OFF"),
   DDkwd__(MODE_SPECIAL_5,                       "OFF"),
-
+  DD_____(MONARCH_CATALOG,                      MONARCH_CATALOG_LIT),
   DDnsklo(MP_CATALOG,				"$SYSTEM.SQL"),
   DDnsksv(MP_SUBVOLUME,				"SUBVOL"),
   DDnsksy(MP_SYSTEM,				""),

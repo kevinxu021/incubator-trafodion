@@ -4296,7 +4296,7 @@ static short CmpDescribeTableHDFSCache(const CorrName  &dtName, char *&outbuf, U
     tableList.push_back(naTable->getTableName().getQualifiedNameAsAnsiString().data());
     //Call Java method to get hdfs cache information for this table.
     CmpSeabaseDDL cmpSBD(STMTHEAP);
-    ExpHbaseInterface * ehi = cmpSBD.allocEHI();
+    ExpHbaseInterface * ehi = cmpSBD.allocEHI(naTable->isMonarchTable());
     ByteArrayList* rows = ehi->showTablesHDFSCache(tableList);
     if(rows == NULL)
         return -1;
@@ -4434,7 +4434,7 @@ static short CmpDescribeSchemaHDFSCache(const NAString  & schemaText, char *&out
     }
     CmpSeabaseDDL cmpSBD(STMTHEAP);
     //Call Java method to get hdfs cache information for this table.
-    ExpHbaseInterface * ehi = cmpSBD.allocEHI();
+    ExpHbaseInterface * ehi = cmpSBD.allocEHI(CmpSeabaseDDL::isMonarch(catName));
     if (ehi == NULL) 
         return -1; 
     ByteArrayList* rows = ehi->showTablesHDFSCache(tableList);
