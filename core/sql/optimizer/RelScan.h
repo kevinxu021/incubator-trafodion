@@ -1343,12 +1343,18 @@ public:
 
   virtual NABoolean isHbaseScan() { return TRUE; }
 
+  static int createAsciiColAndCastExprNative(Generator * generator,
+                                             const NAType &givenType,
+                                             ItemExpr *&asciiValue,
+                                             ItemExpr *&castValue);
+
   static int createAsciiColAndCastExpr(Generator * generator,
 				       const NAType &givenType,
 				       ItemExpr *&asciiValue,
-				       ItemExpr *&castValue);
-
- static int createAsciiColAndCastExpr2(Generator * generator,
+				       ItemExpr *&castValue,
+                                       NABoolean isOrc = FALSE);
+  
+  static int createAsciiColAndCastExpr2(Generator * generator,
 				       ItemExpr * colNode,
 				       const NAType &givenType,
 				       ItemExpr *&asciiValue,

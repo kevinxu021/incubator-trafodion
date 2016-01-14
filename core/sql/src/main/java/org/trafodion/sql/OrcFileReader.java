@@ -55,14 +55,7 @@ public class OrcFileReader
 
     static Logger logger = Logger.getLogger(OrcFileReader.class.getName());;
 
-    static boolean sb_use_original = true;
-    static {
-	String s_orc_use_new_marshal = System.getenv("ORC_USE_NEW_MARSHAL");
-	if ((s_orc_use_new_marshal != null) &&
-	    (Integer.parseInt(s_orc_use_new_marshal) == 1)) {
-	    sb_use_original = false;
-	}
-    }
+    static boolean sb_use_original = false;
 
     Configuration               m_conf;
     Path                        m_file_path;
@@ -963,6 +956,9 @@ public class OrcFileReader
 
 	    m_foi = m_fields.get(i).getFieldObjectInspector();
 	    int lv_element_type = m_types.get(i+1).getKind().getNumber();
+
+            //            System.out.println("lv_type = " + lv_element_type);
+
 	    switch (lv_element_type) {
 	    case OrcProto.Type.Kind.BYTE_VALUE:
 		break;
@@ -975,6 +971,9 @@ public class OrcFileReader
 		int lv_i = ((WritableIntObjectInspector) m_foi).get(lv_field_val);
 		p_row_bb.putInt(4);
 		p_row_bb.putInt(lv_i);
+
+                //                System.out.println("lv_i = " + lv_i);
+                
 		break;
 	    case OrcProto.Type.Kind.LONG_VALUE:
 		long lv_l = ((WritableLongObjectInspector) m_foi).get(lv_field_val);
@@ -995,6 +994,7 @@ public class OrcFileReader
 		String lv_string = ((WritableStringObjectInspector) m_foi).getPrimitiveJavaObject(lv_field_val);
 		p_row_bb.putInt(lv_string.length());
 		p_row_bb.put(lv_string.getBytes());
+                //                System.out.println("lv_string = " + lv_string);
 		break;
 	    case OrcProto.Type.Kind.BINARY_VALUE:
 		break;

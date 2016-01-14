@@ -42,7 +42,7 @@
 #include "BaseTypes.h"
 #include "Int64.h"
 #include "NAString.h"
-
+#include <errno.h>
 #include <stdarg.h>
 
 
@@ -368,52 +368,17 @@ double str_ftoi(const char * instr, Lng32 instrLen)
 {
   assert(instr);
 
+  // create temp null terminated instr before passing to strtof
+  char temp[instrLen+1];
+  memcpy(temp, instr, instrLen);
+  temp[instrLen] = 0;
+
   double v = 0;
-
-  Int32 i = 0;
- 
-  // look for decimal point
-  while ((i < instrLen) && (instr[i] != '.'))
-    i++;
-
-  if (i == instrLen)
-    {
-      // not a scaled number.
-      v = (double)str_atoi(instr, instrLen);
-    }
-  else
-    {
-      // found decimal point at 'i'
-      
-      // extract the mantissa
-      Int64 m = 0;
-      if (i > 0)
-	{
-	  m = str_atoi(instr, i);
-	  if (m < 0)
-	    return -1;
-	}
-
-      // extract the fraction
-      Int64 f;
-      Lng32 scaleLen = instrLen - (i + 1);
-      f = str_atoi(&instr[i+1], scaleLen);
-      if (f < 0)
-	return -1;
-
-      v = (double)m;
-      Int64 tf = f;
-      Int64 tens = 10;
-      while (tf > 0)
-	{
-	  tf = tf / 10;
-	  tens = tens * 10;
-	}
-      v = (v*tens + f) / tens;
-    }
+  v = strtof(temp, NULL);
+  if (errno == ERANGE)
+    return -1;
 
   return v;
-
 }
 
 Int32 mem_cpy_all(void *tgt, const void *src, Lng32 length)

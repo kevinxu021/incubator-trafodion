@@ -193,11 +193,48 @@ short FileScan::codeGen(Generator * generator)
   return 0;
 }
 
-int HbaseAccess::createAsciiColAndCastExpr(Generator * generator,
-						  const NAType &givenType,
-						  ItemExpr *&asciiValue,
-						  ItemExpr *&castValue)
+int HbaseAccess::createAsciiColAndCastExprNative(Generator * generator,
+                                                 const NAType &givenType,
+                                                 ItemExpr *&asciiValue,
+                                                 ItemExpr *&castValue)
 {
+  int result = 0;
+  asciiValue = NULL;
+  castValue = NULL;
+  CollHeap * h = generator->wHeap();
+
+  // if this is an upshifted datatype, remove the upshift attr.
+  // We dont want to upshift data during retrievals or while building keys.
+  // Data is only upshifted during insert or updates.
+  const NAType * newGivenType = &givenType;
+  if (newGivenType->getTypeQualifier() == NA_CHARACTER_TYPE &&
+      ((CharType *)newGivenType)->isUpshifted())
+    {
+      newGivenType = newGivenType->newCopy(h);
+      ((CharType*)newGivenType)->setUpshifted(FALSE);
+    }
+
+  asciiValue = new (h) NATypeToItem(newGivenType->newCopy(h));
+  castValue = new(h) Cast(asciiValue, newGivenType); 
+  if (newGivenType->getTypeQualifier() == NA_INTERVAL_TYPE)
+    ((Cast*)castValue)->setAllowSignInInterval(TRUE);
+  
+  if (castValue && asciiValue)
+    result = 1;
+
+  return result;
+}
+
+int HbaseAccess::createAsciiColAndCastExpr(Generator * generator,
+                                           const NAType &givenType,
+                                           ItemExpr *&asciiValue,
+                                           ItemExpr *&castValue,
+                                           NABoolean isOrc)
+{
+  if (isOrc)
+    return createAsciiColAndCastExprNative
+      (generator, givenType, asciiValue, castValue);
+
   int result = 0;
   asciiValue = NULL;
   castValue = NULL;
@@ -869,6 +906,11 @@ short FileScan::codeGenForHive(Generator * generator)
   ValueIdList executorPredCastVids;
   ValueIdList projectExprOnlyCastVids;
 
+  const HHDFSTableStats* hTabStats = 
+    getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
+
+  NABoolean isOrc = hTabStats->isOrcFile();
+
   // ORC row is returned by hdfs as len/value pair for each column.
   // Compute the length of this row.
   Lng32 orcRowLen = 0;
@@ -900,7 +942,8 @@ short FileScan::codeGenForHive(Generator * generator)
 				    generator,        // for heap
 				    givenType,         // [IN] Actual type of HDFS column
 				    asciiValue,         // [OUT] Returned expression for ascii rep.
-				    castValue        // [OUT] Returned expression for binary rep.
+				    castValue,        // [OUT] Returned expression for binary rep.
+                                    isOrc
                                     );
      
     GenAssert(res == 1 && asciiValue != NULL && castValue != NULL,
@@ -1080,8 +1123,6 @@ short FileScan::codeGenForHive(Generator * generator)
   
   // Now we can start preparing data that goes in the TDB.
 
-  const HHDFSTableStats* hTabStats = 
-    getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
   Queue * hdfsFileInfoList = NULL;
   Queue * hdfsFileRangeBeginList = NULL;
   Queue * hdfsFileRangeNumList = NULL;
@@ -1122,7 +1163,7 @@ short FileScan::codeGenForHive(Generator * generator)
                        hdfsHostName, hdfsPort,
                        useCursorMulti, doSplitFileOpt);
     }
-  else if (hTabStats->isOrcFile())
+  else if (isOrc)
     {
       ValueIdList orcOperVIDlist;
       genForOrc(generator, 

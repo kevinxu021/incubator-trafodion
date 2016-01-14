@@ -172,27 +172,29 @@ short ExOrcScanTcb::extractAndTransformOrcSourceToSqlRow(
       currColLen = *(Lng32*)sourceData;
       sourceData += sizeof(currColLen);
 
-      *(short*)&hdfsAsciiSourceData_[attr->getVCLenIndOffset()] = currColLen;
       if (attr->getNullFlag())
         {
-          if (currColLen == 0)
-            *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = -1;
-          else if (memcmp(sourceData, "\\N", currColLen) == 0)
+          if (currColLen == -1)
             *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = -1;
           else
             *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = 0;
         }
       
+      if ((attr->getVCIndicatorLength() > 0) &&
+          (currColLen >= 0))
+        {
+          char * vcLenLoc = &hdfsAsciiSourceData_[attr->getVCLenIndOffset()];
+          attr->setVarLength(currColLen, vcLenLoc);
+        }
+
       if (currColLen > 0)
         {
-          // move address of data into the source operand.
-          // convertExpr will dereference this addr and get to the actual
-          // data.
-          *(Int64*)&hdfsAsciiSourceData_[attr->getOffset()] =
-            (Int64)sourceData;
+          str_cpy_all((char*)&hdfsAsciiSourceData_[attr->getOffset()],
+                      sourceData, currColLen);
         }
       
-      sourceData += currColLen;
+      if (currColLen >= 0)
+        sourceData += currColLen;
     }
 
   err = 0;

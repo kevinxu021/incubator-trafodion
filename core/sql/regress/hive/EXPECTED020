@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Mon Jan 11 18:15:32 2016
+-- Definition current  Thu Jan 14 20:20:41 2016
 
   (
     S_STORE_SK                       INT
@@ -119,7 +119,7 @@ S_STORE_SK   S_STORE_ID            S_REC_START_DATE            S_REC_END_DATE   
           8  AAAAAAAAIAAAAAAA      ?                           ?                                          ?  eing                                 278        6995995  8AM-4PM               Brett Yates                     2  Unknown               Various bars make mo  Dean Morrison                     1  Unknown                          1  Unknown               226                   12th                  Lane                  Suite D               Fairview              Williamson County     TN                    35709                 United States         -5.0000000E+000    7.9999998E-002
           9  AAAAAAAAIAAAAAAA      ?                           ?                                          ?  eing                                 271        6995995  8AM-4PM               Brett Yates                     2  Unknown               Formal, psychologica  Dean Morrison                     1  Unknown                          1  Unknown               226                   Hill                  Boulevard             Suite 190             Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    7.9999998E-002
          10  AAAAAAAAKAAAAAAA      ?                           ?                                          ?  bar                                  294        9294113  8AM-4PM               Raymond Jacobs                  8  Unknown               Little expectations   Michael Wilson                    1  Unknown                          1  Unknown               175                   4th                   Court                 Suite C               Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    5.9999998E-002
-         11  AAAAAAAAKAAAAAAA      ?                           ?                                          ?  ought                                294        9294113  8AM-4PM               Raymond Jacobs                  6  Unknown               Mysterious employe    Michael Wilson                    1  Unknown                          1  Unknown               175                   Park Green            Court                 Suite 160             Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    1.0999999E-002
+         11  AAAAAAAAKAAAAAAA      ?                           ?                                          ?  ought                                294        9294113  8AM-4PM               Raymond Jacobs                  6  Unknown               Mysterious employe    Michael Wilson                    1  Unknown                          1  Unknown               175                   Park Green            Court                 Suite 160             Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    1.0999999E-001
          12  AAAAAAAAKAAAAAAA      ?                           ?                                          ?  ought                                294        5219562  8AM-12AM              Robert Thompson                 6  Unknown               Events develop i      Dustin Kelly                      1  Unknown                          1  Unknown               337                   College               Boulevard             Suite 100             Fairview              Williamson County     TN                    31904                 United States         -5.0000000E+000    9.9999997E-003
 
 --- 12 row(s) selected.
@@ -235,7 +235,7 @@ Suite 100             College
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 12032
+Fragment ID: 0, Length: 12016
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -283,7 +283,7 @@ hostName_ = NULL (empty scan)
 recordDelimiter_ = 10, columnDelimiter_ = 1
 hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
 tuppIndex_ = 2, workAtpIndex_ = 3
-asciiTuppIndex_ = 4, asciiRowLen_ = 12
+asciiTuppIndex_ = 4, asciiRowLen_ = 8
 moveExprColsTuppIndex_ = 2, moveExprColsRowLength_ = 16
 convertSkipListSize_ = 29, convertSkipList_ = 3
 outputRowLength_ = 16
@@ -367,7 +367,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 9552
+Fragment ID: 0, Length: 9536
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -415,7 +415,7 @@ hostName_ = NULL (empty scan)
 recordDelimiter_ = 10, columnDelimiter_ = 1
 hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
 tuppIndex_ = 2, workAtpIndex_ = 3
-asciiTuppIndex_ = 4, asciiRowLen_ = 12
+asciiTuppIndex_ = 4, asciiRowLen_ = 8
 moveExprColsTuppIndex_ = 2, moveExprColsRowLength_ = 16
 convertSkipListSize_ = 29, convertSkipList_ = 3
 outputRowLength_ = 16
@@ -517,7 +517,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 9872
+Fragment ID: 0, Length: 9856
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -565,7 +565,7 @@ hostName_ = NULL (empty scan)
 recordDelimiter_ = 10, columnDelimiter_ = 1
 hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 16
 tuppIndex_ = 3, workAtpIndex_ = 3
-asciiTuppIndex_ = 4, asciiRowLen_ = 12
+asciiTuppIndex_ = 4, asciiRowLen_ = 8
 moveExprColsTuppIndex_ = 2, moveExprColsRowLength_ = 8
 convertSkipListSize_ = 29, convertSkipList_ = 2
 outputRowLength_ = 8
@@ -647,7 +647,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 14576
+Fragment ID: 0, Length: 14560
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -695,7 +695,7 @@ hostName_ = NULL (empty scan)
 recordDelimiter_ = 10, columnDelimiter_ = 1
 hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 16
 tuppIndex_ = 3, workAtpIndex_ = 3
-asciiTuppIndex_ = 4, asciiRowLen_ = 12
+asciiTuppIndex_ = 4, asciiRowLen_ = 8
 moveExprColsTuppIndex_ = 2, moveExprColsRowLength_ = 8
 convertSkipListSize_ = 29, convertSkipList_ = 2
 outputRowLength_ = 8
