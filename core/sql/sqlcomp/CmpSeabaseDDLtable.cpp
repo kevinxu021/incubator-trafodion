@@ -1394,7 +1394,7 @@ short CmpSeabaseDDL::createSeabaseTable2(
   const NAString extTableName = tableName.getExternalName(TRUE);
   const NAString extNameForHbase = catalogNamePart + "." + schemaNamePart + "." + objectNamePart;
   
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -2783,7 +2783,7 @@ short CmpSeabaseDDL::dropSeabaseTable2(
   BindWA bindWA(ActiveSchemaDB(), CmpCommon::context(), FALSE/*inDDL*/);
   bindWA.setAllowExternalTables(TRUE);
  
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -3758,7 +3758,7 @@ void CmpSeabaseDDL::renameSeabaseTable(
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
   CmpCommon::context()->sqlSession()->getParentQid());
   
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -4000,7 +4000,7 @@ void CmpSeabaseDDL::alterSeabaseTableHBaseOptions(
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
   CmpCommon::context()->sqlSession()->getParentQid());
   
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -4143,7 +4143,7 @@ void CmpSeabaseDDL::alterSeabaseTableAttribute(
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
   CmpCommon::context()->sqlSession()->getParentQid());
   
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -4718,7 +4718,7 @@ void CmpSeabaseDDL::alterSeabaseTableHDFSCache(StmtDDLAlterTableHDFSCache * alte
        return;
     }
 
-    ExpHbaseInterface * ehi = allocEHI();
+    ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
     if (ehi == NULL)
     {
        processReturn();
@@ -4825,7 +4825,7 @@ void CmpSeabaseDDL::alterSeabaseTableAddColumn(
       return;
     }
 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -5202,7 +5202,7 @@ void CmpSeabaseDDL::alterSeabaseTableDropColumn(
       return;
     }
 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -5714,7 +5714,7 @@ void CmpSeabaseDDL::alterSeabaseTableAlterColumnDatatype(
       return;
     }
 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -5939,7 +5939,7 @@ void CmpSeabaseDDL::alterSeabaseTableAddPKeyConstraint(
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
   CmpCommon::context()->sqlSession()->getParentQid());
 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -6224,7 +6224,7 @@ void CmpSeabaseDDL::alterSeabaseTableAddUniqueConstraint(
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
   CmpCommon::context()->sqlSession()->getParentQid());
 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -6456,7 +6456,7 @@ void CmpSeabaseDDL::alterSeabaseTableAddRIConstraint(
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
   CmpCommon::context()->sqlSession()->getParentQid());
 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -7192,7 +7192,7 @@ void CmpSeabaseDDL::alterSeabaseTableAddCheckConstraint(
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
   CmpCommon::context()->sqlSession()->getParentQid());
 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -7405,7 +7405,7 @@ void CmpSeabaseDDL::alterSeabaseTableDropConstraint(
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
   CmpCommon::context()->sqlSession()->getParentQid());
 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -8067,7 +8067,7 @@ void CmpSeabaseDDL::seabaseGrantRevokeHBase(
       return;
     }
 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -8218,7 +8218,7 @@ void CmpSeabaseDDL::createNativeHbaseTable(
   const NAString schemaNamePart = tableName.getSchemaNamePartAsAnsiString(TRUE);
   const NAString objectNamePart = tableName.getObjectNamePartAsAnsiString(TRUE);
   
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -8277,7 +8277,7 @@ void CmpSeabaseDDL::dropNativeHbaseTable(
   // TDB - add a check to see if there is an external HBASE table that should be
   // removed
 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -9847,7 +9847,7 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
   if ( tableDesc ) {
 
        // request the default
-      ExpHbaseInterface* ehi =CmpSeabaseDDL::allocEHI();
+      ExpHbaseInterface* ehi =CmpSeabaseDDL::allocEHI(CmpSeabaseDDL::isMonarch(catName));
       ByteArrayList* bal = ehi->getRegionEndKeys(extNameForHbase);
 
       // Set the header.nodetype to either HASH2 or RANGE based on whether

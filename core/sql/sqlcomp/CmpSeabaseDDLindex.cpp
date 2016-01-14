@@ -419,7 +419,7 @@ void CmpSeabaseDDL::createSeabaseIndex(
   NAString extIndexName = indexName.getExternalName(TRUE);
   NAString extNameForHbase = catalogNamePart + "." + schemaNamePart + "." + objectNamePart;
   NABoolean alignedFormatNotAllowed = FALSE; 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     return;
 
@@ -1416,7 +1416,7 @@ void CmpSeabaseDDL::dropSeabaseIndex(
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
        CmpCommon::context()->sqlSession()->getParentQid());
 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();
@@ -1982,7 +1982,7 @@ void CmpSeabaseDDL::alterSeabaseIndexHBaseOptions(
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
   CmpCommon::context()->sqlSession()->getParentQid());
   
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
       processReturn();

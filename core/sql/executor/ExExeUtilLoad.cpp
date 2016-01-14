@@ -66,6 +66,8 @@ using std::ofstream;
 #include  "ExpLOBexternal.h"
 #include  "str.h"
 #include "ExpHbaseInterface.h"
+#include "ComTdbHbaseAccess.h"
+
 ///////////////////////////////////////////////////////////////////
 ex_tcb * ExExeUtilCreateTableAsTdb::build(ex_globals * glob)
 {
@@ -1230,6 +1232,8 @@ short ExExeUtilHBaseBulkLoadTcb::work()
         ehi_ = ExpHbaseInterface::newInstance(getGlobals()->getDefaultHeap(),
                                               (char*)"", //Later may need to change to hblTdb.server_,
                                               (char*)"", //Later may need to change to hblTdb.zkPort_,
+                                              ((ComTdbHbaseAccess *)getTdb())->getTableType(),
+                                              ((ComTdbHbaseAccess *)getTdb())->replSync(),
                                               jniDebugPort,
                                               jniDebugTimeout);
         retcode = ehi_->initHBLC();

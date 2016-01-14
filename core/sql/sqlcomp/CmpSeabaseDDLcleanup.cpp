@@ -41,6 +41,7 @@
 #include "CmpSeabaseDDLcleanup.h"
 #include "ExpLOB.h"
 
+
 //////////////////////////////////////////////////////////////////////////
 // Methods related to cleanup of objects from metadata.
 //////////////////////////////////////////////////////////////////////////
@@ -1725,7 +1726,7 @@ void CmpSeabaseMDcleanup::cleanupObjects(StmtDDLCleanupObjects * stmtCleanupNode
         return;
     }
 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI((isMonarch(currCatName) ? ComTdbHbaseAccess::MONARCH_TABLE : ComTdbHbaseAccess::HBASE_TABLE));
   if (ehi == NULL)
     {
       return;
