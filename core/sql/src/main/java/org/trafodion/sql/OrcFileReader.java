@@ -30,6 +30,9 @@ import java.nio.ByteOrder;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
+import org.apache.hadoop.hive.common.type.HiveChar;
+import org.apache.hadoop.hive.common.type.HiveVarchar;
+
 import org.apache.hadoop.hive.serde2.objectinspector.*;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.*;
 
@@ -960,7 +963,8 @@ public class OrcFileReader
 
 	    switch (lv_element_type) {
 	    case OrcProto.Type.Kind.BYTE_VALUE:
-		break;
+		throw new IOException("OrcFileReader.fillNextRow: Unsupported Type: BYTE_VALUE");
+
 	    case OrcProto.Type.Kind.SHORT_VALUE:
 		short lv_s = ((WritableShortObjectInspector) m_foi).get(lv_field_val);
 		p_row_bb.putInt(2);
@@ -996,7 +1000,8 @@ public class OrcFileReader
                 //                System.out.println("lv_string = " + lv_string);
 		break;
 	    case OrcProto.Type.Kind.BINARY_VALUE:
-		break;
+		throw new IOException("OrcFileReader.fillNextRow: Unsupported Type: BINARY_VALUE");
+
 	    case OrcProto.Type.Kind.TIMESTAMP_VALUE:
 		java.sql.Timestamp lv_timestamp = ((WritableTimestampObjectInspector) m_foi).getPrimitiveJavaObject(lv_field_val);
 		p_row_bb.putInt(11);
@@ -1009,7 +1014,8 @@ public class OrcFileReader
 		p_row_bb.putInt(lv_timestamp.getNanos());
 		break;
 	    case OrcProto.Type.Kind.DECIMAL_VALUE:
-		break;
+		throw new IOException("OrcFileReader.fillNextRow: Unsupported Type: DECIMAL_VALUE");
+
 	    case OrcProto.Type.Kind.DATE_VALUE:
 		java.sql.Date lv_date = ((WritableDateObjectInspector) m_foi).getPrimitiveJavaObject(lv_field_val);
 		p_row_bb.putInt(4);
@@ -1018,8 +1024,14 @@ public class OrcFileReader
 		p_row_bb.put((byte)lv_date.getDate()); // Between 1 and 31
 		break;
 	    case OrcProto.Type.Kind.VARCHAR_VALUE:
+		HiveVarchar lv_hivevarchar = ((WritableHiveVarcharObjectInspector) m_foi).getPrimitiveJavaObject(lv_field_val);
+		p_row_bb.putInt(lv_hivevarchar.getCharacterLength());
+		p_row_bb.put(lv_hivevarchar.getValue().getBytes());
 		break;
 	    case OrcProto.Type.Kind.CHAR_VALUE:
+		HiveChar lv_hivechar = ((WritableHiveCharObjectInspector) m_foi).getPrimitiveJavaObject(lv_field_val);
+		p_row_bb.putInt(lv_hivechar.getCharacterLength());
+		p_row_bb.put(lv_hivechar.getValue().getBytes());
 		break;
 	    default:
 		break;
