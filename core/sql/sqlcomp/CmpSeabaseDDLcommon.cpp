@@ -1124,9 +1124,18 @@ ExpHbaseInterface* CmpSeabaseDDL::allocEHI(NABoolean isMonarchTable, NADefaults 
   if (!defsL)
     defsL = &ActiveSchemaDB()->getDefaults();
   
-  const char * server = defsL->getValue(HBASE_SERVER);
-  const char* zkPort = defsL->getValue(HBASE_ZOOKEEPER_PORT);
+  const char *server;
+  const char *zkPort;
 
+  if (isMonarchTable) {
+     server = defsL->getValue(MONARCH_LOCATOR_ADDRESS);
+     zkPort = defsL->getValue(MONARCH_LOCATOR_PORT);
+  }
+  else {
+     server = defsL->getValue(HBASE_SERVER);
+     zkPort = defsL->getValue(HBASE_ZOOKEEPER_PORT);
+  }
+     
   ehi = allocEHI(server, zkPort, TRUE, isMonarchTable);
     
   return ehi;

@@ -3791,7 +3791,8 @@ enum DefaultConstants
   AGGRESSIVE_ESP_ALLOCATION_PER_CORE,
 
   MONARCH_CATALOG,
-  
+  MONARCH_LOCATOR_ADDRESS,
+  MONARCH_LOCATOR_PORT,
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES
