@@ -46,6 +46,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.lang.Integer;
 import java.lang.Long;
 import java.sql.Timestamp;
+import java.sql.Date;
 
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.Logger;
@@ -54,8 +55,6 @@ public class OrcFileReader
 {
 
     static Logger logger = Logger.getLogger(OrcFileReader.class.getName());;
-
-    static boolean sb_use_original = false;
 
     Configuration               m_conf;
     Path                        m_file_path;
@@ -999,13 +998,24 @@ public class OrcFileReader
 	    case OrcProto.Type.Kind.BINARY_VALUE:
 		break;
 	    case OrcProto.Type.Kind.TIMESTAMP_VALUE:
-		String lv_timestamp_string = lv_field_val.toString();
-		p_row_bb.putInt(lv_timestamp_string.length());
-		p_row_bb.put(lv_timestamp_string.getBytes());
+		java.sql.Timestamp lv_timestamp = ((WritableTimestampObjectInspector) m_foi).getPrimitiveJavaObject(lv_field_val);
+		p_row_bb.putInt(11);
+		p_row_bb.putShort((short)lv_timestamp.getYear()); // (Year - 1900)
+		p_row_bb.put((byte)lv_timestamp.getMonth());// Between 0 and 11
+		p_row_bb.put((byte)lv_timestamp.getDate()); // Between 1 and 31
+		p_row_bb.put((byte)lv_timestamp.getHours());
+		p_row_bb.put((byte)lv_timestamp.getMinutes());
+		p_row_bb.put((byte)lv_timestamp.getSeconds());
+		p_row_bb.putInt(lv_timestamp.getNanos());
 		break;
 	    case OrcProto.Type.Kind.DECIMAL_VALUE:
 		break;
 	    case OrcProto.Type.Kind.DATE_VALUE:
+		java.sql.Date lv_date = ((WritableDateObjectInspector) m_foi).getPrimitiveJavaObject(lv_field_val);
+		p_row_bb.putInt(4);
+		p_row_bb.putShort((short)lv_date.getYear()); // (Year - 1900)
+		p_row_bb.put((byte)lv_date.getMonth()); // Between 0 and 11 
+		p_row_bb.put((byte)lv_date.getDate()); // Between 1 and 31
 		break;
 	    case OrcProto.Type.Kind.VARCHAR_VALUE:
 		break;
@@ -1014,54 +1024,6 @@ public class OrcFileReader
 	    default:
 		break;
 	    }
-	}
-
-	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length2: " + p_row_bb.position());
-	int lv_filled_bytes = p_row_bb.position() - p_offset;
-	p_row_bb.putInt(p_offset, lv_filled_bytes - 16);
-
-	return (lv_filled_bytes);
-    }
-
-    // fills the row in the given ByteBuffer
-    public int fillNextRowOrig(ByteBuffer p_row_bb, 
-			       int       p_offset,
-			       OrcStruct p_orc_row
-			       ) throws Exception 
-    {
-	
-	if (logger.isTraceEnabled()) logger.trace("Enter fillNextRow(),"
-						  + " offset: " 
-						  + p_offset
-						  + " length of array: " 
-						  + (p_row_bb == null ? 0 : p_row_bb.capacity())
-						  );
-
-	Object lv_field_val = null;
-
-	p_row_bb.position(p_offset);
-
-	p_row_bb.putInt(p_offset); // just a placeholder at this point to advance the pointer
-	p_row_bb.putInt(m_col_count);
-	p_row_bb.putLong(m_rr.getRowNumber());
-	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length1: " + p_row_bb.position());
-
-	for (int i = 0; i < m_fields.size(); i++) {
-	    if (! m_include_cols[i+1]) continue;
-
-	    lv_field_val = m_oi.getStructFieldData(p_orc_row, m_fields.get(i));
-	    if (lv_field_val == null) {
-  		p_row_bb.putInt(0);
-		continue;
-	    }
-
-	    String lv_field_val_str = lv_field_val.toString();
-
-	    p_row_bb.putInt(lv_field_val_str.length());
-	    if (lv_field_val != null) {
-		p_row_bb.put(lv_field_val_str.getBytes());
-	    }
-
 	}
 
 	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length2: " + p_row_bb.position());
@@ -1169,17 +1131,10 @@ public class OrcFileReader
 						      );
 	
 	    OrcStruct lv_orc_row = (OrcStruct) m_rr.next(null);
-	    if (sb_use_original) {
-		lv_filled_bytes  = fillNextRowOrig(m_block_bb,
-						   lv_row_offset,
-						   lv_orc_row);
-	    }
-	    else {
-		lv_filled_bytes  = fillNextRow(m_block_bb,
-					       lv_row_offset,
-					       lv_orc_row);
-	    }		
-
+	    lv_filled_bytes  = fillNextRow(m_block_bb,
+					   lv_row_offset,
+					   lv_orc_row);
+	    
 	    if (lv_filled_bytes > 0) {
 		lv_row_offset += lv_filled_bytes;
 		lv_num_rows++;

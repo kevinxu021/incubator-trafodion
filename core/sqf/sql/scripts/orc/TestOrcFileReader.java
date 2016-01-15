@@ -560,6 +560,19 @@ public class TestOrcFileReader
 	sv_ofr.open(sv_filename, 1, lv_include_cols);
     }
 
+    static void open_read_8th_col()  throws Exception
+    {
+	int lv_include_cols [] = new int[4];
+	lv_include_cols[0]=8;
+	
+	System.out.println("Opening " + sv_filename + ", reading only the eigth column");
+	if (sv_ofr != null) {
+	    sv_ofr.close();
+	}
+
+	sv_ofr.open(sv_filename, 1, lv_include_cols);
+    }
+
     static void open_read_2cols()  throws Exception
     {
 	int lv_include_cols [] = new int[4];
@@ -648,7 +661,7 @@ public class TestOrcFileReader
 	sv_ofr = new OrcFileReader();
 	sv_ofr.setByteOrder(ByteOrder.BIG_ENDIAN);
 
-	open_read_1st_col();
+	open_read_8th_col();
 
 	if (lv_print_info) {
 	    System.out.println("================= Begin File Info:" + 
