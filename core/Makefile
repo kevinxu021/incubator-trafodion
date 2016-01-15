@@ -136,7 +136,7 @@ cleanall: sqroot eclipseclean cleantests
 	cd dbmgr &&			$(MAKE) cleanall
 	$(RM) -r ../${DISTRIBUTION_DIR}
 
-package-all: rpmbuild pkg-client pkg-sql-regress pkg-phx-tests pkg-dcs-tests
+package-all: rpmbuild rpmbuild_dbmgr pkg-client pkg-sql-regress pkg-phx-tests pkg-dcs-tests
 
 pkg-product: all  
 	cd sqf && $(MAKE) package 2>&1 | sed -e "s/$$/	##(Package)/";exit $${PIPESTATUS[0]}
@@ -235,6 +235,7 @@ rpmbuild_dbmgr: rpmpackage_dbmgr
                         --define "_arch $(ARCH)" \
                         --define "_topdir $(RPMROOT)" \
                         $(DBMGR_SPECFILE)
+	mv $(RPMROOT)/RPMS/$(ARCH)/$(DBMGR_RPMNAME)*.rpm ../distribution/
 
 rpmbuild: rpmpackage
 	rpmbuild -vv -bb \
@@ -248,6 +249,7 @@ rpmbuild: rpmpackage
                         --define "_arch $(ARCH)" \
                         --define "_topdir $(RPMROOT)" \
                         $(SPECFILE)
+	mv $(RPMROOT)/RPMS/$(ARCH)/$(PKG_PROD)*.rpm ../distribution/
 
 
 eclipse: rest/.project dcs/.project sql/.project sqf/src/seatrans/hbase-trx/.project .project
