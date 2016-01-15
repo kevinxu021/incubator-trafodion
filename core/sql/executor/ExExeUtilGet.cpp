@@ -3016,6 +3016,8 @@ ExExeUtilGetHbaseObjectsTcb::ExExeUtilGetHbaseObjectsTcb(
   ehi_ = ExpHbaseInterface::newInstance(glob->getDefaultHeap(),
 					(char*)exe_util_tdb.server(), 
 					(char*)exe_util_tdb.zkPort(),
+                                        ((ComTdbHbaseAccess *)getTdb())->getTableType(),
+                                        ((ComTdbHbaseAccess *)getTdb())->replSync(),
                                         jniDebugPort,
                                         jniDebugTimeout);
 
@@ -5399,6 +5401,8 @@ ExExeUtilRegionStatsTcb::ExExeUtilRegionStatsTcb(
   ehi_ = ExpHbaseInterface::newInstance(glob->getDefaultHeap(),
 					(char*)"", //exe_util_tdb.server(), 
 					(char*)"", //exe_util_tdb.zkPort(),
+                                        ((ComTdbHbaseAccess *)getTdb())->getTableType(),
+                                        ((ComTdbHbaseAccess *)getTdb())->replSync(),
                                         jniDebugPort,
                                         jniDebugTimeout);
 

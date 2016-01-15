@@ -135,6 +135,7 @@ typedef NABoolean               ComBoolean;
 #define SEABASE_OLD_PRIVMGR_SCHEMA         "PRIVMGR_MD"
 #define SEABASE_PRIVMGR_SCHEMA         "_PRIVMGR_MD_"
 #define SEABASE_UDF_SCHEMA             "_UDF_"
+#define MONARCH_CATALOG_LIT               "MONARCH"
 
 #define SEABASE_DEFAULT_COL_FAMILY "#1"
 

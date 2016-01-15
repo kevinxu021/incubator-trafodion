@@ -874,6 +874,7 @@ jobjectArray convertToStringObjectArray(const HBASE_NAMELIST& nameList);
 jobjectArray convertToStringObjectArray(const NAText *text, int arrayLen);
 int convertStringObjectArrayToList(NAHeap *heap, jarray j_objArray, 
                                          LIST(Text *)&list);
+
 #endif
 
 

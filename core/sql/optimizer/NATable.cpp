@@ -4935,6 +4935,7 @@ NATable::NATable(BindWA *bindWA,
     sgAttributes_(NULL),
     isHive_(FALSE),
     isHbase_(FALSE),
+    isMonarch_(FALSE),
     isHbaseCell_(FALSE),
     isHbaseRow_(FALSE),
     isSeabase_(FALSE),
@@ -5666,6 +5667,7 @@ NATable::NATable(BindWA *bindWA,
     sgAttributes_(NULL),
     isHive_(TRUE),
     isHbase_(FALSE),
+    isMonarch_(FALSE),
     isHbaseCell_(FALSE),
     isHbaseRow_(FALSE),
     isSeabase_(FALSE),
@@ -7660,16 +7662,20 @@ ExpHbaseInterface* NATable::getHBaseInterface() const
       getSpecialType() == ExtendedQualName::VIRTUAL_TABLE)
     return NULL;
 
-   return NATable::getHBaseInterfaceRaw();
+   return NATable::getHBaseInterfaceRaw(isMonarchTable());
 }
 
-ExpHbaseInterface* NATable::getHBaseInterfaceRaw() 
+ExpHbaseInterface* NATable::getHBaseInterfaceRaw(NABoolean isMonarchTable) 
 {
   NADefaults* defs = &ActiveSchemaDB()->getDefaults();
   const char* server = defs->getValue(HBASE_SERVER);
   const char* zkPort = defs->getValue(HBASE_ZOOKEEPER_PORT);
+  NABoolean replSync = FALSE;
   ExpHbaseInterface* ehi = ExpHbaseInterface::newInstance
-                           (STMTHEAP, server, zkPort);
+                           (STMTHEAP, server, zkPort, 
+                           (isMonarchTable ? ComTdbHbaseAccess::MONARCH_TABLE : ComTdbHbaseAccess::HBASE_TABLE),
+                           replSync);
+                           
 
   Lng32 retcode = ehi->init(NULL);
   if (retcode < 0)
@@ -7689,7 +7695,7 @@ ExpHbaseInterface* NATable::getHBaseInterfaceRaw()
 
 ByteArrayList* NATable::getRegionsBeginKey(const char* hbaseName) 
 {
-  ExpHbaseInterface* ehi = getHBaseInterfaceRaw();
+  ExpHbaseInterface* ehi = getHBaseInterfaceRaw(FALSE);
   ByteArrayList* bal = NULL;
 
   if (!ehi)

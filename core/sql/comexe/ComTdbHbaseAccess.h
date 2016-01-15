@@ -880,6 +880,18 @@ public:
    void setUpdConstraintExpr(ExExprPtr exprPtr) {
       updConstraintExpr_ = exprPtr;
    }
+
+   enum TABLE_TYPE {
+    HBASE_TABLE = 0,
+    MONARCH_TABLE
+   };
+
+   void setTableType(TABLE_TYPE tableType) {
+      tableType_ = tableType;
+   } 
+
+   TABLE_TYPE getTableType() { return tableType_; } 
+
  protected:
   enum
   {
@@ -1029,6 +1041,7 @@ public:
   UInt16 hbaseRowsetVsbbSize_; 
   UInt16 trafLoadFlushSize_;
   ComHbaseAccessOptionsPtr comHbaseAccessOptions_; 
+  TABLE_TYPE tableType_;
   char fillers[2];
 };
 

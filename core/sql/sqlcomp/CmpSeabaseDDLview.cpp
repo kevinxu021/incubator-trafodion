@@ -589,7 +589,7 @@ void CmpSeabaseDDL::createSeabaseView(
   
   ExpHbaseInterface * ehi = NULL;
 
-  ehi = allocEHI();
+  ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     {
      processReturn();
@@ -980,7 +980,7 @@ void CmpSeabaseDDL::dropSeabaseView(
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
   CmpCommon::context()->sqlSession()->getParentQid());
 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
   if (ehi == NULL)
     return;
 

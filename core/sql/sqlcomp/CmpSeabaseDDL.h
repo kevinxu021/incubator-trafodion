@@ -164,6 +164,8 @@ class CmpSeabaseDDL
 
   static NABoolean isHbase(const NAString &catName);
 
+  static NABoolean isMonarch(const NAString &catName);
+
   static bool isHistogramTable(const NAString &tabName);
 
   static NABoolean isSeabaseMD(const NAString &catName,
@@ -401,7 +403,7 @@ class CmpSeabaseDDL
 
    short switchBackCompiler();
 
-  ExpHbaseInterface* allocEHI(NADefaults * defs = NULL);
+  ExpHbaseInterface* allocEHI(NABoolean isMonarchTable, NADefaults * defs = NULL);
   
   void deallocEHI(ExpHbaseInterface* &ehi);
   void dropLOBHdfsFiles();
@@ -462,8 +464,7 @@ class CmpSeabaseDDL
   short isMetadataInitialized(ExpHbaseInterface * ehi = NULL);
   short isOldMetadataInitialized(ExpHbaseInterface * ehi);
 
-  ExpHbaseInterface* allocEHI(const char * server, const char * zkPort,
-                              NABoolean raiseError);
+  ExpHbaseInterface* allocEHI(const char *server, const char *zkport, NABoolean raiseError, NABoolean isMonarchTable);
   
   // if prevContext is defined, get user CQDs from the controlDB of
   // previous context and send them to the new cmp context

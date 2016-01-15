@@ -54,6 +54,9 @@
 #include "ExpHbaseDefs.h"
 
 #include "HBaseClient_JNI.h"
+#include "MonarchClient_JNI.h"
+#include "ComTdbHbaseAccess.h"
+#include "CmpSeabaseDDLincludes.h"
 
 #define INLINE_COLNAME_LEN 256
 
@@ -63,32 +66,16 @@ class ExHbaseAccessStats;
 
 Int64 getTransactionIDFromContext();
 
-using namespace apache::thrift;
-using namespace apache::thrift::protocol;
-using namespace apache::thrift::transport;
-
-using namespace apache::hadoop::hbase::thrift;
-
-namespace {
-
-  typedef std::vector<std::string> StrVec;
-  typedef std::map<std::string,std::string> StrMap;
-  typedef std::vector<ColumnDescriptor> ColVec;
-  typedef std::map<std::string,ColumnDescriptor> ColMap;
-  typedef std::vector<TCell> CellVec;
-  typedef std::map<std::string,TCell> CellMap;
-  typedef std::vector<Text> ColNames;
-}
-
 // ===========================================================================
 class ExpHbaseInterface : public NABasicObject
 {
  public:
 
   static ExpHbaseInterface* newInstance(CollHeap* heap, 
-                                        const char* server = NULL, 
-                                        const char *zkPort = NULL, 
-					NABoolean replSync = false,
+                                        const char* server, 
+                                        const char *zkPort, 
+                                        ComTdbHbaseAccess::TABLE_TYPE tableType,
+					NABoolean replSync,
                                         int debugPort = 0, 
                                         int DebugTimeout = 0);
 
@@ -112,7 +99,11 @@ class ExpHbaseInterface : public NABasicObject
                        int numSplits, int keyLength,
                        const char ** splitValues,
                        NABoolean noXn,
-                       NABoolean isMVCC) =0;
+                       NABoolean isMVCC) = 0;
+
+  virtual Lng32 create(HbaseStr &tblName,
+                       const NAList<HbaseStr> &cols,
+                       NABoolean isMVCC) = 0;
 
   virtual Lng32 alter(HbaseStr &tblName,
 		      NAText * hbaseCreateOptionsArray,
@@ -443,7 +434,8 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 
   ExpHbaseInterface_JNI(CollHeap* heap,
                         const char* server, bool useTRex, NABoolean replSync, 
-                        const char *zkPort, int debugPort, int debugTimeout);
+                        const char *zkPort, int debugPort, int debugTimeout,
+                        ComTdbHbaseAccess::TABLE_TYPE tableType = ComTdbHbaseAccess::HBASE_TABLE);
   
   virtual ~ExpHbaseInterface_JNI();
   
@@ -464,6 +456,10 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
                        int numSplits, int keyLength,
                        const char ** splitValues,
                        NABoolean noXn,
+                       NABoolean isMVCC);
+
+  virtual Lng32 create(HbaseStr &tblName,
+                       const NAList<HbaseStr> &cols,
                        NABoolean isMVCC);
 
   virtual Lng32 alter(HbaseStr &tblName,
@@ -753,6 +749,10 @@ private:
   HiveClient_JNI* hive_;
   HTableClient_JNI *asyncHtc_;
   Int32  retCode_;
+  ComTdbHbaseAccess::TABLE_TYPE tableType_;
+  MonarchClient_JNI *mClient_;
+  MTableClient_JNI *mtc_;
+  MTableClient_JNI *asyncMtc_;
 };
 
 #endif

@@ -227,10 +227,11 @@ NABoolean SchemaDB::endTransaction()
 
 float SchemaDB::getHbaseBlockCacheFrac()
 {
+  NABoolean isMonarchTable = FALSE;
   if (hbaseBlockCacheFrac_ < 0) // access JNI layer first time to set value
   {
     CmpSeabaseDDL cmpSBD(STMTHEAP);
-    ExpHbaseInterface* ehi = cmpSBD.allocEHI();
+    ExpHbaseInterface* ehi = cmpSBD.allocEHI(isMonarchTable);
     if (!ehi)
       hbaseBlockCacheFrac_ = 0.4 ; // hbase default default
     else {

@@ -829,6 +829,7 @@ public:
   NABoolean isHiveTable() const { return isHive_; }
 
   NABoolean isHbaseTable() const { return isHbase_; }
+  NABoolean isMonarchTable() const { return isMonarch_; }
   NABoolean isHbaseCellTable() const { return isHbaseCell_; }
   NABoolean isHbaseRowTable() const { return isHbaseRow_; }
   NABoolean isSeabaseTable() const { return isSeabase_; }
@@ -839,6 +840,7 @@ public:
   NABoolean isUserUpdatableSeabaseMDTable() const { return isUserUpdatableSeabaseMD_; }
 
   void setIsHbaseTable(NABoolean v) { isHbase_ = v; }
+  void setIsMonarchTable(NABoolean v) { isMonarch_ = v; }
   void setIsHbaseCellTable(NABoolean v) { isHbaseCell_ = v; }
   void setIsHbaseRowTable(NABoolean v) { isHbaseRow_ = v; }
   void setIsSeabaseTable(NABoolean v) { isSeabase_ = v; }
@@ -883,7 +885,7 @@ private:
   void setupPrivInfo();
 
   ExpHbaseInterface* getHBaseInterface() const;
-  static ExpHbaseInterface* getHBaseInterfaceRaw();
+  static ExpHbaseInterface* getHBaseInterfaceRaw(NABoolean isMonarch);
 
   //size of All NATable related data after construction
   //this is used when NATables are cached and only then
@@ -1175,6 +1177,7 @@ private:
 
   NAString defaultColFam_;
   NAList<NAString> allColFams_;
+  NABoolean isMonarch_;
 }; // class NATable
 
 #pragma warn(1506)  // warning elimination 
