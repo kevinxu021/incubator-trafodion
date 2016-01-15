@@ -175,7 +175,7 @@ check-copyrights:
 
 ##############
 # RPM defines
-PKG_PROD=trafodion
+PKG_PROD=trafodion_adv
 
 ifeq ($(SQ_BUILD_TYPE),release)
   RELEASE ?= 1

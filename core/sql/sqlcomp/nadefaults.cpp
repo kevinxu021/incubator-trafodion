@@ -353,7 +353,7 @@ THREAD_P DefaultDefault defaultDefaults[] = {
 
 SDDint__(AFFINITY_VALUE,                        "-2"),
 
- // controls the ESP allocation per core. 
+// controls the ESP allocation per core. 
  DDkwd__(AGGRESSIVE_ESP_ALLOCATION_PER_CORE,        "OFF"),
 
 SDDkwd__(ALLOW_AUDIT_ATTRIBUTE_CHANGE,	       "FALSE"), // Used to control if row sampling will use the sample operator in SQL/MX or the
@@ -5889,8 +5889,6 @@ enum DefaultConstants NADefaults::validateAndInsert(const char *attrName,
 
 } // NADefaults::validateAndInsert()
 
-
-
 float NADefaults::computeNumESPsPerCore(NABoolean aggressive)
 {
    #define DEFAULT_ESPS_PER_NODE 2   // for conservation allocation
@@ -5907,7 +5905,7 @@ float NADefaults::computeNumESPsPerCore(NABoolean aggressive)
 
    if ( aggressive ) {
       float totalMemory = gpLinux->totalMemoryAvailable(); // per Node, in KB
-      totalMemory /= 1024; // per Node, in GB
+      totalMemory /= (1024*1024); // per Node, in GB
       totalMemory /= coresPerNode ; // per core, in GB
       totalMemory /= 2; // per core, 2GB per ESP
       return MINOF(DEFAULT_ESPS_PER_CORE, totalMemory);
@@ -5916,7 +5914,8 @@ float NADefaults::computeNumESPsPerCore(NABoolean aggressive)
       return (float)(numESPsPerNode)/(float)(coresPerNode);
    }
 
-//   Lng32 numESPsPerNode = DEFAULT_ESPS_PER_NODE;
+// The following lines of code are comment out but retained for possible
+// future references.
 //
 //     // number of POS TSE
 //   Lng32 numTSEsPerCluster = gpLinux->numTSEsForPOS();

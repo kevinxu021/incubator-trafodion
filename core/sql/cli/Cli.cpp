@@ -7532,8 +7532,8 @@ Lng32 SQLCLI_Xact(/*IN*/ CliGlobals * cliGlobals,
         if ((currContext.getTransaction()->xnInProgress()) &&
             (currContext.getTransaction()->exeStartedXn()) &&
             (currContext.getTransaction()->autoCommit()))
-          {
-            retcode = currContext.getTransaction()->rollbackTransactionWaited();
+          {            
+	    retcode = currContext.getTransaction()->rollbackTransactionWaited();
 	    if (retcode)
 	      {
 		diags.mergeAfter(*(currContext.getTransaction()->getDiagsArea()));
@@ -7551,11 +7551,14 @@ Lng32 SQLCLI_Xact(/*IN*/ CliGlobals * cliGlobals,
 	    (currContext.getTransaction()->exeStartedXn()))
 	  {
 	    retcode = currContext.getTransaction()->commitTransaction();
+
             if (retcode)
 	      {
-		diags.mergeAfter(*(currContext.getTransaction()->getDiagsArea()));
-		return -1;
+                diags.mergeAfter(*(currContext.getTransaction()->getDiagsArea()));
+                return -1;
 	      }
+              
+	  
 	  }
       }
       //LCOV_EXCL_STOP
@@ -7567,12 +7570,12 @@ Lng32 SQLCLI_Xact(/*IN*/ CliGlobals * cliGlobals,
 	if ((currContext.getTransaction()->xnInProgress()) &&
 	    (currContext.getTransaction()->exeStartedXn()))
 	  {
-	    retcode = currContext.getTransaction()->rollbackTransaction();
-	    if (retcode)
+	    retcode= currContext.getTransaction()->rollbackTransaction();
+            if (retcode)
 	      {
-		diags.mergeAfter(*(currContext.getTransaction()->getDiagsArea()));
-		return -1;
-	      }
+                diags.mergeAfter(*(currContext.getTransaction()->getDiagsArea()));
+                return -1;
+              }
 	  }
       }
       //LCOV_EXCL_STOP
@@ -7584,7 +7587,7 @@ Lng32 SQLCLI_Xact(/*IN*/ CliGlobals * cliGlobals,
 	if (! (currContext.getTransaction()->xnInProgress()))
 	  {
 	    retcode = currContext.getTransaction()->beginTransaction();
-	    if (retcode)
+            if (retcode)
 	      {
 		diags.mergeAfter(*(currContext.getTransaction()->getDiagsArea()));
 		return -1;

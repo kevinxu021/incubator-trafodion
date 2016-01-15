@@ -89,9 +89,12 @@ define([
 				var bPaging = aaData.length > 25;
 
 				oDataTable = $('#dcs-query-results').dataTable({
+					"oLanguage": {
+						"sEmptyTable": "There are no dcs servers"
+					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
-					"bPaginate" : true, 
+					paging: bPaging,
 					//"bAutoWidth": true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "simple_numbers",
@@ -108,7 +111,6 @@ define([
 							return moment(data , 'ddd MMM DD HH:mm:ss Z YYYY').format('YYYY-MM-DD HH:mm:ss');
 						}
 					} ],
-					paging: true,
 					buttons: [
 					          'copy','csv','excel','pdf','print'
 				          ],

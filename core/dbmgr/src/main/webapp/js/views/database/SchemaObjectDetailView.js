@@ -56,6 +56,7 @@ define([
 		doInit: function (args){
 			_this = this;
 			routeArgs = args;
+			prevRouteArgs = args;
 			schemaName = routeArgs.schema;
 			$(OBJECT_DETAILS_CONTAINER).hide();
 			$(ERROR_CONTAINER).hide();
@@ -80,7 +81,7 @@ define([
 					ddlTextEditor.setSize($(this).width(), $(this).height());
 				}
 			});
-			$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
+			//$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
 
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 
@@ -98,12 +99,17 @@ define([
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.showErrorMessage);
 			
-			if(schemaName != routeArgs.name){
-				schemaName = routeArgs.name;
+			if(prevRouteArgs.schema != routeArgs.schema || 
+					prevRouteArgs.name != routeArgs.name ||
+					prevRouteArgs.type != routeArgs.type ){
+				schemaName = routeArgs.schema;
 				initialized = false;
 	        	if(ddlTextEditor)
 	        		ddlTextEditor.setValue("");
 			}	
+			
+			prevRouteArgs = args;
+
 			var TAB_LINK = $(OBJECT_DETAILS_CONTAINER+' .tab-pane.active');
 			if(TAB_LINK){
 				var selectedTab = '#'+TAB_LINK.attr('id');

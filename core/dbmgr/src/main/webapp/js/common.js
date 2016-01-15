@@ -394,8 +394,38 @@ define(['moment',
 
 				return result;
 			};
+			
+			this.calculateHeight = function(depth){
+				return Math.max(310,70*depth);
+			};
+			
+			
+			this.calculateWidth = function(tree, container){
+				var a=[];
+				this.traverseWidth(a, tree, 0);
+				var left=Math.max.apply(null, a);
+				var right=Math.min.apply(null, a); //only left is used, if precise position needed, we will use right value;
+				
+				return Math.max($(container).width(), left*2*70);
+			};
+			
+			
+			this.traverseWidth = function(arr, tree, i){						
+				if(tree&&tree.children){
+					if(tree.children.length==2){
+						this.traverseWidth(arr, tree.children[0], i+1);
+						this.traverseWidth(arr, tree.children[1], i-1);
+					} else {
+						arr.push(i);
+						this.traverseWidth(arr, tree.children[0],i);
+					}								
+				} else{
+					arr.push(i);
+				}
+				
+			};
 
-			this.generateExplainTree = function(jsonData, setRootNode, onClickCallback){
+			this.generateExplainTree = function(jsonData, setRootNode, onClickCallback, container){
 				var st = new $jit.ST({
 					'injectInto': 'infovis',
 					orientation: "top",
@@ -407,13 +437,15 @@ define(['moment',
 					//set distance between node and its children
 					levelDistance: 40,
 					siblingOffset: 100,
+				    width: this.calculateWidth(jsonData, container),						   
+				    height: this.calculateHeight(jsonData.treeDepth),
 					//set max levels to show. Useful when used with
 					//the request method for requesting trees of specific depth
-					levelsToShow: 20,
-					offsetX: -100,
-					offsetY: 350,
-					width: $('#dbmgr-1').width(),
-					height: $('#dbmgr-1').height(),	        		
+					levelsToShow: jsonData.treeDepth,
+					offsetX: -(jsonData.treeDepth * 25),//-100,
+					offsetY: this.calculateHeight(jsonData.treeDepth)/2,//350,
+					//width: $('#dbmgr-1').width(),
+					//height: $('#dbmgr-1').height(),	        		
 					//set node and edge styles
 					//set overridable=true for styling individual
 					//nodes or edges
@@ -608,7 +640,7 @@ define(['moment',
 						}
 						label.id = node.id;            
 						label.innerHTML = html;
-						label.onclick = function(){
+						label.ondblclick = function(){
 							var m = { 
 									offsetX: st.canvas.translateOffsetX, 
 									offsetY: st.canvas.translateOffsetY 

@@ -4677,6 +4677,8 @@ CoprocessorService, Coprocessor {
     }
 
     String key = getTransactionalUniqueId(transactionId);
+    if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: beginTransaction -- new TrxTransactionState for txId: "
+           + transactionId + " for key: " + key);
     synchronized (transactionsById) {
       transactionsById.put(key, state);
     }
@@ -4734,8 +4736,8 @@ CoprocessorService, Coprocessor {
   private TrxTransactionState beginTransIfNotExist(final long transactionId) throws IOException{
 
     if (LOG.isTraceEnabled()) LOG.trace("Enter TrxRegionEndpoint coprocessor: beginTransIfNotExist, txid: "
-              + transactionId + " transactionsById size: "
-              + transactionsById.size());
+            + transactionId + ", regionName " + regionInfo.getRegionNameAsString()
+            + " transactionsById size: " + transactionsById.size());
     checkClosing(transactionId);
 
     String key = getTransactionalUniqueId(transactionId);
@@ -4743,7 +4745,8 @@ CoprocessorService, Coprocessor {
       TrxTransactionState state = transactionsById.get(key);
 
       if (state == null) {
-        if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: Begin transaction in beginTransIfNotExist beginning the transaction internally as state was null");
+        if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: Begin transaction for txid: " + transactionId
+                + " in beginTransIfNotExist beginning the transaction internally as state was null for key " + key);
         this.beginTransaction(transactionId);
         state =  transactionsById.get(key);
       }
@@ -4829,15 +4832,16 @@ CoprocessorService, Coprocessor {
    * @return TransactionRegionInterface commit code
    * @throws IOException
    */
-  public int commitRequest(final long transactionId, final int participantNum) throws IOException {
+  public int commitRequest(final long transactionId, final int participantNum) throws IOException, UnknownTransactionException {
      return commitRequest(transactionId, participantNum, true);
   }
 
   public int commitRequest(final long transactionId, final int participantNum, boolean flushHLOG) throws IOException,
                                                                                UnknownTransactionException {
     long txid = 0;
+    String lv_regionName = new String(m_Region.getRegionInfo().getRegionNameAsString());
     if (LOG.isDebugEnabled()) LOG.debug("TrxRegionEndpoint coprocessor: commitRequest -- ENTRY txId: "
-               + transactionId + " participantNum " + participantNum);
+               + transactionId + " participantNum " + participantNum + ", regionName " + lv_regionName);
     TrxTransactionState state;
 
     int lv_totalCommits = 0;
@@ -4863,13 +4867,14 @@ CoprocessorService, Coprocessor {
     } catch (UnknownTransactionException e) {
       if (LOG.isDebugEnabled()) LOG.debug("TrxRegionEndpoint coprocessor: commitRequest Unknown transaction ["
                  + transactionId + "] in region [" 
-                 + m_Region.getRegionInfo().getRegionNameAsString()
+                 + lv_regionName
                  + "], participantNum " + participantNum + " ignoring");
      state = null;
     }
       // may change to indicate a NOTFOUND case  then depends on the TM ts state, if reinstated tx, ignore the exception
       if (state == null) {
-        String errMsg = "TrxRegionEndpoint coprocessor: commitRequest encountered unknown transactionID txId: " + transactionId;
+        String errMsg = "TrxRegionEndpoint coprocessor: commitRequest for participant " + participantNum
+               + " encountered unknown transactionID txId: " + transactionId + " in region " + lv_regionName;
         if (LOG.isTraceEnabled()) LOG.trace(errMsg);
         //return COMMIT_UNSUCCESSFUL_FROM_COPROCESSOR;
         throw new UnknownTransactionException(errMsg);
@@ -4887,7 +4892,8 @@ CoprocessorService, Coprocessor {
         }
         state.setStatus(Status.ABORTED);
         retireTransaction(state, true);
-        if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commitRequest encountered conflict txId: " + transactionId + "returning COMMIT_CONFLICT");
+        if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commitRequest encountered conflict txId: "
+                 + transactionId + "returning COMMIT_CONFLICT");
         return COMMIT_CONFLICT;
       }
 
@@ -4897,8 +4903,8 @@ CoprocessorService, Coprocessor {
       // No conflicts, we can commit.
       if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: No conflicts for transaction " + transactionId
 		+ " found in region "
-		+ m_Region.getRegionInfo().getRegionNameAsString()
-		+ ". Votes to commit");
+        + lv_regionName
+        + ". Participant " + participantNum + " votes to commit");
 
       // If there are writes we must keep record of the transaction
       putBySequenceStartTime = System.nanoTime();

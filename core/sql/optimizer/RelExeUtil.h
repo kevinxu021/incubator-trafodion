@@ -1928,8 +1928,8 @@ public:
   
  ExeUtilLobExtract(ItemExpr * handle, 
 		   ExtractToType toType,
-		   ItemExpr * bufaddr,
-		   ItemExpr * bufsize,
+		   Int64 bufaddr=0,
+		   Int64 extractSizeAddr=0,
 		   Int64 intParam = 0,
 		   Int64 intParam2 = 0,
 		   char * stringParam = NULL,
@@ -1942,8 +1942,8 @@ public:
 		 NULL, CharInfo::UnknownCharSet, oHeap),
     handle_(handle),
     toType_(toType),
-    bufAddrExpr_(bufaddr),
-    bufSizeExpr_(bufsize),
+    bufAddr_(bufaddr),
+    extractSizeAddr_(extractSizeAddr),
     intParam_(intParam),
     intParam2_(intParam2),
     handleInStringFormat_(TRUE),
@@ -1999,8 +1999,8 @@ public:
   ItemExpr * handle_;
   ExtractToType toType_;
   
-  ItemExpr * bufAddrExpr_;
-  ItemExpr * bufSizeExpr_;
+  Int64 bufAddr_;
+  Int64 extractSizeAddr_;
   
   Int64 intParam_;   // options for create or size limit
   Int64 intParam2_;// options for file behavior
