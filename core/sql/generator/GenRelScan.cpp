@@ -1836,15 +1836,6 @@ short HbaseAccess::genListOfColNames(Generator * generator,
   return 0;
 }
 
-// colIdformat:
-//     2 bytes len, len bytes colname.
-//
-// colname format: 
-//       <colfam>:<colQual>  (for base table access)
-//       <colfam>:@<colQual>   (for index access)
-//
-//                colQual is 1,2,4 bytes
-//
 short HbaseAccess::convNumToId(const char * colQualPtr, Lng32 colQualLen,
                                NAString &cid)
 {
@@ -1871,6 +1862,15 @@ short HbaseAccess::convNumToId(const char * colQualPtr, Lng32 colQualLen,
   return 0;
 }
 
+// colIdformat:
+//     2 bytes len, len bytes colname.
+//
+// colname format: 
+//       <colfam>:<colQual>  (for base table access)
+//       <colfam>:@<colQual>   (for index access)
+//
+//                colQual is 1,2,4 bytes
+//
 short HbaseAccess::createHbaseColId(const NAColumn * nac,
 				    NAString &cid, 
 				    NABoolean isSecondaryIndex,

@@ -5001,6 +5001,10 @@ NATable::NATable(BindWA *bindWA,
       setIsHbaseRowTable(corrName.isHbaseRow());
       setIsSeabaseMDTable(corrName.isSeabaseMD());
     }
+  else if (corrName.isMonarch())
+    {
+      setIsMonarchTable(corrName.isMonarch());
+    }
 
   // Check if the synonym name translation to reference object has been done.
   if (table_desc->body.table_desc.isSynonymNameTranslationDone)
@@ -7951,7 +7955,7 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
     //otherwise it is NULL.
     NATable * tableInCache = table;
 
-    if ((corrName.isHbase() || corrName.isSeabase()) &&
+    if ((corrName.isHbase() || corrName.isSeabase() || corrName.isMonarch()) &&
 	(!isSQUmdTable(corrName)) &&
 	(!isSQUtiDisplayExplain(corrName)) &&
 	(!isSQInternalStoredProcedure(corrName))
@@ -7962,6 +7966,7 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
       desc_struct *tableDesc = NULL;
 
       NABoolean isSeabase = FALSE;
+      NABoolean isMonarch = FALSE;
       NABoolean isSeabaseMD = FALSE;
       NABoolean isUserUpdatableSeabaseMD = FALSE;
       NABoolean isHbaseCell = corrName.isHbaseCell();
@@ -8026,7 +8031,10 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
       else if (! inTableDescStruct)
         {
           ComObjectType objectType = COM_BASE_TABLE_OBJECT;
-          isSeabase = TRUE;
+          if (corrName.isMonarch())
+            isMonarch = TRUE;
+          else
+            isSeabase = TRUE;
           if (corrName.isSpecialTable())
           {
             switch (corrName.getSpecialType())
@@ -8069,7 +8077,7 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
 	  NATable(bindWA, corrName, naTableHeap, tableDesc);
       if (!tableDesc || !table || bindWA->errStatus())
 	{
-	  if (isSeabase)
+	  if (isSeabase || isMonarch)
 	    *CmpCommon::diags()
 	      << DgSqlCode(-4082)
 	      << DgTableName(corrName.getExposedNameAsAnsiString());
@@ -8085,6 +8093,7 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
       table->setIsHbaseCellTable(isHbaseCell);
       table->setIsHbaseRowTable(isHbaseRow);
       table->setIsSeabaseTable(isSeabase);
+      table->setIsMonarchTable(isMonarch);
       table->setIsSeabaseMDTable(isSeabaseMD);
       table->setIsUserUpdatableSeabaseMDTable(isUserUpdatableSeabaseMD);
     }

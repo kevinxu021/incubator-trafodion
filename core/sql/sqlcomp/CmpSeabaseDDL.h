@@ -510,6 +510,11 @@ class CmpSeabaseDDL
                          char **encodedKeysBuffer = NULL,
 			 NABoolean doRetry = TRUE);
 
+  short createMonarchTable(ExpHbaseInterface *ehi, 
+                           HbaseStr *table,
+                           NAList<HbaseStr> &cols
+                           );
+
   short alterHbaseTable(ExpHbaseInterface *ehi,
                         HbaseStr *table,
                         NAList<NAString> &allColFams,

@@ -658,6 +658,16 @@ NABoolean QualifiedName::isSeabase() const
   return isSeabase(getCatalogName());
 }
 
+NABoolean QualifiedName::isMonarch(const NAString &catName) 
+{
+  return CmpSeabaseDDL::isMonarch(catName);
+}
+
+NABoolean QualifiedName::isMonarch() const
+{
+  return isMonarch(getCatalogName());
+}
+
 NABoolean QualifiedName::isSeabaseMD() const
 {
   return CmpSeabaseDDL::isSeabaseMD(
@@ -943,6 +953,11 @@ NABoolean CorrName::isHive() const
 NABoolean CorrName::isSeabase() const
 {
   return getQualifiedNameObj().isSeabase();
+}
+
+NABoolean CorrName::isMonarch() const
+{
+  return getQualifiedNameObj().isMonarch();
 }
 
 NABoolean CorrName::isSeabaseMD() const

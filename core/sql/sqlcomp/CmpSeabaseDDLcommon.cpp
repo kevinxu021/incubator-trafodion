@@ -2334,6 +2334,58 @@ short CmpSeabaseDDL::generateHbaseOptionsArray(
   return 0;
 }
 
+short CmpSeabaseDDL::createMonarchTable(ExpHbaseInterface *ehi, 
+                                        HbaseStr *table,
+                                        NAList<HbaseStr> &cols
+                                        )
+{
+  // TEMPTEMP Monarch
+  return 0;
+  // TEMPTEMP
+
+  short retcode = 0;
+
+  retcode = ehi->exists(*table);
+  if (retcode == -1)
+    {
+      *CmpCommon::diags() << DgSqlCode(-1390)
+                          << DgString0(table->val);
+      return -1;
+    } 
+  
+  if (retcode < 0)
+    {
+      *CmpCommon::diags() << DgSqlCode(-8448)
+                          << DgString0((char*)"ExpHbaseInterface::exists()")
+                          << DgString1(getHbaseErrStr(-retcode))
+                          << DgInt0(-retcode)
+                          << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
+      
+      return -1;
+    }
+
+  NABoolean isMVCC = true;
+  if (CmpCommon::getDefault(TRAF_TRANS_TYPE) == DF_SSCC)
+    isMVCC = false;
+
+  retcode = ehi->create(*table,
+                        cols,
+                        isMVCC);
+
+  if (retcode < 0)
+    {
+      *CmpCommon::diags() << DgSqlCode(-8448)
+                          << DgString0((char*)"ExpHbaseInterface::create()")
+                          << DgString1(getHbaseErrStr(-retcode))
+                          << DgInt0(-retcode)
+                          << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
+      
+      return -1;
+    }
+  
+  return 0;
+}
+
 short CmpSeabaseDDL::createHbaseTable(ExpHbaseInterface *ehi, 
                                       HbaseStr *table,
                                       std::vector<NAString> &colFamVec,

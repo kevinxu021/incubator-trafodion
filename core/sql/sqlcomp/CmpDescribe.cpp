@@ -2792,8 +2792,9 @@ short CmpDescribeSeabaseTable (
                 "-- Definition current  %s",
                 tableName.data(), ctime(&tp));
       else
-        sprintf(buf,  "-- Definition of Trafodion%stable %s\n"
+        sprintf(buf,  "-- Definition of %s%stable %s\n"
                 "-- Definition current  %s",
+                (dtName.isMonarch() ? "Monarch" : "Trafodion"),
                 (isVolatile ? " volatile " : isExternalTable ? " external " : " "), 
                 tableName.data(), ctime(&tp));
       outputShortLine(space, buf);

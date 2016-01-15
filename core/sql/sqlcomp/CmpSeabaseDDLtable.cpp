@@ -1394,7 +1394,14 @@ short CmpSeabaseDDL::createSeabaseTable2(
   const NAString extTableName = tableName.getExternalName(TRUE);
   const NAString extNameForHbase = catalogNamePart + "." + schemaNamePart + "." + objectNamePart;
   
-  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
+  NABoolean isMonarchTable = isMonarch(catalogNamePart);
+  
+  // TEMPTEMP. Temporarily pass false for monarch table until allocEHI 
+  // issue is fixed.
+  ExpHbaseInterface * ehi = allocEHI(FALSE);
+  // TEMPTEMP
+
+  //  ExpHbaseInterface * ehi = allocEHI(isMonarchTable);
   if (ehi == NULL)
     {
       processReturn();
@@ -2011,6 +2018,19 @@ short CmpSeabaseDDL::createSeabaseTable2(
   NAList<HbaseCreateOption*> hbaseCreateOptions;
   NAString hco;
 
+  if ((isMonarchTable) &&
+      ((createTableNode->getHbaseOptionsClause()) ||
+       (numSplits > 0)))
+    {
+      // these options cannot be specified for a Monarch table.
+      *CmpCommon::diags() << DgSqlCode(-3242)
+                          << DgString0("Hbase options or salt cannot be specified for a Monarch table.");
+
+      deallocEHI(ehi);
+      processReturn();
+      return -1; 
+    }
+
   short retVal = setupHbaseOptions(createTableNode->getHbaseOptionsClause(), 
                                    numSplits, extTableName, 
                                    hbaseCreateOptions, hco);
@@ -2190,10 +2210,36 @@ short CmpSeabaseDDL::createSeabaseTable2(
     HbaseStr hbaseTable;
     hbaseTable.val = (char*)extNameForHbase.data();
     hbaseTable.len = extNameForHbase.length();
-    if (createHbaseTable(ehi, &hbaseTable, trafColFamVec,
-                         &hbaseCreateOptions, 
-                         numSplits, keyLength,
-                         encodedKeysBuffer) == -1)
+    if (isMonarchTable)
+      {
+        NAList<HbaseStr> monarchCols;
+        for (Lng32 i = 0; i < colArray.entries(); i++)
+          {
+            NAString * nas = new(STMTHEAP) NAString();
+            
+            NAString colFam(colInfoArray[i].hbaseColFam);
+            NAString colQual;
+            HbaseAccess::convNumToId(
+                 colInfoArray[i].hbaseColQual,
+                 strlen(colInfoArray[i].hbaseColQual),
+                 colQual);
+            *nas = colFam + ":" + colQual;
+
+            HbaseStr hbs;
+            hbs.val = (char*)nas->data();
+            hbs.len = nas->length();
+
+            monarchCols.insert(hbs);
+          }
+        
+        retcode = createMonarchTable(ehi, &hbaseTable, monarchCols);
+      }
+    else
+      retcode = createHbaseTable(ehi, &hbaseTable, trafColFamVec,
+                                 &hbaseCreateOptions, 
+                                 numSplits, keyLength,
+                                 encodedKeysBuffer);
+    if (retcode == -1)
       {
         deallocEHI(ehi); 
 
@@ -9844,41 +9890,65 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
  // reset the SMD table flag
   tableDesc->body.table_desc.issystemtablecode = 0;
 
+  NABoolean isMonarchTable = isMonarch(catName);
   if ( tableDesc ) {
 
-       // request the default
-      ExpHbaseInterface* ehi =CmpSeabaseDDL::allocEHI(CmpSeabaseDDL::isMonarch(catName));
-      ByteArrayList* bal = ehi->getRegionEndKeys(extNameForHbase);
+    // TEMPTEMP. Temporarily pass false for monarch table until allocEHI 
+    // issue is fixed.
+    ExpHbaseInterface * ehi = allocEHI(FALSE);
+    // TEMPTEMP
+    
+    // request the default
+    //    ExpHbaseInterface* ehi = 
+    //      CmpSeabaseDDL::allocEHI(isMonarchTable); 
 
       // Set the header.nodetype to either HASH2 or RANGE based on whether
-      // the table is salted or not.  
-      if (tableIsSalted && CmpCommon::getDefault(HBASE_HASH2_PARTITIONING) == DF_ON) 
-        ((table_desc_struct*)tableDesc)->hbase_regionkey_desc = 
-          assembleDescs(bal, populateRegionDescAsHASH2, STMTHEAP);
+      // the table is salted or not. 
+      if (isMonarchTable)
+        {
+          // TBD:Monarch: assembleDescs for Monarch table
+        }
       else
-       if ( CmpCommon::getDefault(HBASE_RANGE_PARTITIONING) == DF_ON ) 
-         ((table_desc_struct*)tableDesc)->hbase_regionkey_desc = 
-            assembleDescs(bal, populateRegionDescAsRANGE, STMTHEAP);
-      delete bal;
+        {
+          ByteArrayList* bal = ehi->getRegionEndKeys(extNameForHbase);
+
+          if (tableIsSalted && CmpCommon::getDefault(HBASE_HASH2_PARTITIONING) == DF_ON) 
+            ((table_desc_struct*)tableDesc)->hbase_regionkey_desc = 
+              assembleDescs(bal, populateRegionDescAsHASH2, STMTHEAP);
+          else
+            if ( CmpCommon::getDefault(HBASE_RANGE_PARTITIONING) == DF_ON ) 
+              ((table_desc_struct*)tableDesc)->hbase_regionkey_desc = 
+                assembleDescs(bal, populateRegionDescAsRANGE, STMTHEAP);
+          delete bal;
+        }
+
 
       // if this is base table or index and hbase object doesn't exist, then this object
       // is corrupted.
       if (!objectFlags & SEABASE_OBJECT_IS_EXTERNAL_HIVE &&
           !objectFlags & SEABASE_OBJECT_IS_EXTERNAL_HBASE)
         {
-          if ((tableDesc->body.table_desc.objectType == COM_BASE_TABLE_OBJECT) &&
-              (existsInHbase(extNameForHbase, ehi) == 0))
+          if (tableDesc->body.table_desc.objectType == COM_BASE_TABLE_OBJECT)
             {
-              *CmpCommon::diags() << DgSqlCode(-4254)
-                                  << DgString0(*extTableName);
-          
-              tableDesc = NULL;
-          
-              return NULL;
-            }
+              if (isMonarchTable)
+                {
+                  // TBD:Monarch: detect if this already exists in storage 
+
+                } // Monarch table
+              else if (existsInHbase(extNameForHbase, ehi) == 0)
+                {
+                  *CmpCommon::diags() << DgSqlCode(-4254)
+                                      << DgString0(*extTableName);
+                  
+                  tableDesc = NULL;
+                  
+                  return NULL;
+                }
+            } // Base Table
         }
 
-      if (ctlFlags & GET_SNAPSHOTS)
+      if ((NOT isMonarchTable) &&
+          (ctlFlags & GET_SNAPSHOTS))
       {
         char * snapName = NULL;
         Lng32 retcode = ehi->getLatestSnapshot(extNameForHbase.data(), snapName, STMTHEAP);
