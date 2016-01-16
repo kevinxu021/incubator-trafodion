@@ -102,8 +102,7 @@ class ExpHbaseInterface : public NABasicObject
                        NABoolean isMVCC) = 0;
 
   virtual Lng32 create(HbaseStr &tblName,
-                       const NAList<HbaseStr> &cols,
-                       NABoolean isMVCC) = 0;
+                       const NAList<HbaseStr> &cols) = 0;
 
   virtual Lng32 alter(HbaseStr &tblName,
 		      NAText * hbaseCreateOptionsArray,
@@ -416,7 +415,11 @@ protected:
                     const char * zkPort = NULL,
                     int debugPort = 0,
                     int debugTimeout = 0);
-  
+
+  // Monarch doesn't yet support '.' in table names.
+  // Change '.' to '_' until it is supported.
+  short fixupMonarchName(HbaseStr &tblName);
+
   CollHeap * heap_;
   ExHbaseAccessStats * hbs_;
   char server_[MAX_SERVER_SIZE+1];
@@ -459,8 +462,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
                        NABoolean isMVCC);
 
   virtual Lng32 create(HbaseStr &tblName,
-                       const NAList<HbaseStr> &cols,
-                       NABoolean isMVCC);
+                       const NAList<HbaseStr> &cols);
 
   virtual Lng32 alter(HbaseStr &tblName,
 		      NAText * hbaseCreateOptionsArray,

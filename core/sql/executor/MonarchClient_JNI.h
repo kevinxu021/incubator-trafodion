@@ -194,7 +194,7 @@ public:
                         Int64 maxTS = -1,
                         const char * hbaseAuths = NULL);
 */
-  MTC_RetCode deleteRow(Int64 transID, HbaseStr &rowID, const LIST(HbaseStr) *columns, Int64 timestamp);
+  MTC_RetCode deleteRow(Int64 transID, HbaseStr &rowID, const LIST(HbaseStr) *columns, Int64 timestamp, const char *hbaseAuths);
 /*
   MTC_RetCode setWriteBufferSize(Int64 size);
   MTC_RetCode setWriteToWAL(bool vWAL);
@@ -287,18 +287,18 @@ private:
   enum JAVA_METHODS {
     JM_CTOR = 0
    ,JM_GET_ERROR 
-   ,JM_SCAN_OPEN 
+  //,JM_SCAN_OPEN 
    ,JM_DELETE    
-   ,JM_COPROC_AGGR
+  //,JM_COPROC_AGGR
    ,JM_GET_NAME
    ,JM_GET_HTNAME
-   ,JM_GETENDKEYS
-   ,JM_FLUSHT
-   ,JM_SET_WB_SIZE
-   ,JM_SET_WRITE_TO_WAL
+  // ,JM_GETENDKEYS
+  // ,JM_FLUSHT
+  // ,JM_SET_WB_SIZE
+  // ,JM_SET_WRITE_TO_WAL
    ,JM_FETCH_ROWS
    ,JM_COMPLETE_PUT
-   ,JM_GETBEGINKEYS
+  // ,JM_GETBEGINKEYS
    ,JM_LAST
   };
   char *tableName_; 
@@ -608,7 +608,7 @@ private:
    //,JM_GET_REGN_NODES
    ,JM_MC_DIRECT_INSERT_ROW
    ,JM_MC_DIRECT_INSERT_ROWS
-   ,JM_MC_DIRECT_UPDATE_TAGS
+   //,JM_MC_DIRECT_UPDATE_TAGS
    ,JM_MC_DIRECT_CHECKANDUPDATE_ROW
    ,JM_MC_DELETE_ROW
    ,JM_MC_DIRECT_DELETE_ROWS

@@ -201,8 +201,8 @@ ComTdbHbaseAccess::ComTdbHbaseAccess(
   hbaseRowsetVsbbSize_(0),
   hbaseCellTS_(-1),
   comHbaseAccessOptions_(comHbaseAccessOptions),
-  trafLoadFlushSize_(0)
-  , tableType_(HBASE_TABLE)
+  trafLoadFlushSize_(0),
+  tableType_(HBASE_TABLE)
 {};
 
 ComTdbHbaseAccess::ComTdbHbaseAccess(

@@ -2349,12 +2349,12 @@ short CmpSeabaseDDL::createMonarchTable(ExpHbaseInterface *ehi,
                                         )
 {
   // TEMPTEMP Monarch
-  return 0;
+  //  return 0;
   // TEMPTEMP
 
   short retcode = 0;
 
-  retcode = ehi->exists(*table);
+//  retcode = ehi->exists(*table);
   if (retcode == -1)
     {
       *CmpCommon::diags() << DgSqlCode(-1390)
@@ -2378,8 +2378,7 @@ short CmpSeabaseDDL::createMonarchTable(ExpHbaseInterface *ehi,
     isMVCC = false;
 
   retcode = ehi->create(*table,
-                        cols,
-                        isMVCC);
+                        cols);
 
   if (retcode < 0)
     {

@@ -2290,7 +2290,8 @@ short HbaseAccess::codeGen(Generator * generator)
                                            GenGetQualifiedName(getTableName()), 0);
 
   ValueIdList columnList;
-  if ((getTableDesc()->getNATable()->isSeabaseTable()) &&
+  if (((getTableDesc()->getNATable()->isSeabaseTable()) ||
+       (getTableDesc()->getNATable()->isMonarchTable())) &&
       (NOT isAlignedFormat))
     sortValues(retColumnList, columnList,
 	       (getIndexDesc()->getNAFileSet()->getKeytag() != 0));
@@ -2555,7 +2556,8 @@ short HbaseAccess::codeGen(Generator * generator)
     }
 
   Queue * listOfFetchedColNames = NULL;
-  if ((getTableDesc()->getNATable()->isSeabaseTable()) &&
+  if (((getTableDesc()->getNATable()->isSeabaseTable()) ||
+       (getTableDesc()->getNATable()->isMonarchTable())) &&
       (isAlignedFormat))
     {
       listOfFetchedColNames = new(space) Queue(space);
@@ -2572,7 +2574,8 @@ short HbaseAccess::codeGen(Generator * generator)
       
       listOfFetchedColNames->insert(colNameInList);
     }
-  else if (getTableDesc()->getNATable()->isSeabaseTable())
+  else if ((getTableDesc()->getNATable()->isSeabaseTable()) ||
+           (getTableDesc()->getNATable()->isMonarchTable()))
     {
       listOfFetchedColNames = new(space) Queue(space);
 
@@ -2705,7 +2708,8 @@ short HbaseAccess::codeGen(Generator * generator)
   Queue * tdbListOfRangeRows = NULL;
   Queue * tdbListOfUniqueRows = NULL;
 
-  if (getTableDesc()->getNATable()->isSeabaseTable())
+  if ((getTableDesc()->getNATable()->isSeabaseTable()) ||
+      (getTableDesc()->getNATable()->isMonarchTable()))
     {
       genRowIdExpr(generator,
 		   getIndexDesc()->getNAFileSet()->getIndexKeyColumns(),
@@ -2967,8 +2971,14 @@ short HbaseAccess::codeGen(Generator * generator)
   hbasescan_tdb->setUseCif(hbaseRowFormat == 
 			   ExpTupleDesc::SQLMX_ALIGNED_FORMAT);
 
-  if (getTableDesc()->getNATable()->isSeabaseTable())
+  if ((getTableDesc()->getNATable()->isSeabaseTable()) ||
+      (getTableDesc()->getNATable()->isMonarchTable()))
     {
+      if (getTableDesc()->getNATable()->isMonarchTable())
+        {
+          hbasescan_tdb->setTableType(ComTdbHbaseAccess::MONARCH_TABLE);
+        }
+      
       hbasescan_tdb->setSQHbaseTable(TRUE);
 
       if (isAlignedFormat)
@@ -2978,7 +2988,7 @@ short HbaseAccess::codeGen(Generator * generator)
         generator->objectUids().insert(
           getTableDesc()->getNATable()->objectUid().get_value());
     }
- 
+
   if (keyInfo && searchKey() && searchKey()->isUnique())
     hbasescan_tdb->setUniqueKeyInfo(TRUE);
 

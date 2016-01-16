@@ -662,7 +662,7 @@ public class MTableClient {
       pushRowsToJni(getResultSet);
       return getResultSet.length;
    }
-/*
+
    public int fetchRows() throws IOException, 
          InterruptedException, ExecutionException {
       int rowsReturned = 0;
@@ -676,6 +676,8 @@ public class MTableClient {
       }
       else
       {
+         throw (new IOException("Scan Not yet supported"));
+/*
          if (scanner == null) {
             String err = "  fetchRows() called before scanOpen().";
             logger.error(err);
@@ -698,9 +700,10 @@ public class MTableClient {
             rowsReturned = pushRowsToJni(result);
          }
          return rowsReturned;
+*/
       }
    }
-*/
+
    protected int pushRowsToJni(MResult[] result) 
          throws IOException {
       if (result == null || result.length == 0)
@@ -823,7 +826,7 @@ TODO:Selva - MResult.size() is missing
    
    public boolean deleteRow(final long transID, byte[] rowID, 
              Object[] columns,
-             long timestamp, boolean asyncOperation) throws IOException {
+             long timestamp, boolean asyncOperation, String hbaseAuths) throws IOException {
 
       if (logger.isTraceEnabled()) 
          logger.trace("Enter deleteRow(" + new String(rowID) + ", " + timestamp + ") " + tableName);
@@ -867,7 +870,7 @@ TODO:Selva - MResult.size() is missing
    }
 
    public boolean deleteRows(final long transID, short rowIDLen, Object rowIDs,
-            long timestamp, boolean asyncOperation) throws IOException {
+            long timestamp, boolean asyncOperation, String hbaseAuths) throws IOException {
 
       if (logger.isTraceEnabled()) 
          logger.trace("Enter deleteRows() " + tableName);

@@ -1339,6 +1339,11 @@ short HbaseDelete::codeGen(Generator * generator)
         hbasescan_tdb->setReplAsync(TRUE);
     }
 
+  if (getTableDesc()->getNATable()->isMonarchTable())
+    {
+      hbasescan_tdb->setTableType(ComTdbHbaseAccess::MONARCH_TABLE);
+    }
+
   if (keyInfo && getSearchKey() && getSearchKey()->isUnique())
     hbasescan_tdb->setUniqueKeyInfo(TRUE);
 
@@ -2231,6 +2236,11 @@ short HbaseUpdate::codeGen(Generator * generator)
         }
     }
 
+  if (getTableDesc()->getNATable()->isMonarchTable())
+    {
+      hbasescan_tdb->setTableType(ComTdbHbaseAccess::MONARCH_TABLE);
+    }
+
   if (keyInfo && getSearchKey() && getSearchKey()->isUnique())
     hbasescan_tdb->setUniqueKeyInfo(TRUE);
 
@@ -2899,10 +2909,16 @@ short HbaseInsert::codeGen(Generator *generator)
   if (insConstraintExpr)
     hbasescan_tdb->setInsConstraintExpr(insConstraintExpr);
 
-  if (getTableDesc()->getNATable()->isSeabaseTable())
+ if ((getTableDesc()->getNATable()->isSeabaseTable()) ||
+      (getTableDesc()->getNATable()->isMonarchTable()))
     {
       hbasescan_tdb->setSQHbaseTable(TRUE);
 
+      if (getTableDesc()->getNATable()->isMonarchTable())
+        {
+          hbasescan_tdb->setTableType(ComTdbHbaseAccess::MONARCH_TABLE);
+        }
+ 
       if (isAlignedFormat)
         hbasescan_tdb->setAlignedFormat(TRUE);
 

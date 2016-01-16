@@ -714,7 +714,9 @@ short ExHbaseAccessTcb::setupError(Lng32 retcode, const char * str, const char *
       Lng32 intParam1 = -retcode;
       ComDiagsArea * diagsArea = NULL;
       ExRaiseSqlError(getHeap(), &diagsArea, 
-		      (ExeErrorCode)(8448), NULL, &intParam1, 
+                      (hbaseAccessTdb().getTableType() == ComTdbHbaseAccess::HBASE_TABLE 
+                       ? (ExeErrorCode)(8448) : (ExeErrorCode)(8451)),
+                      NULL, &intParam1, 
 		      &cliError, NULL, 
 		      (str ? (char*)str : (char*)" "),
 		      getHbaseErrStr(retcode),

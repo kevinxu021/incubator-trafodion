@@ -1398,10 +1398,10 @@ short CmpSeabaseDDL::createSeabaseTable2(
   
   // TEMPTEMP. Temporarily pass false for monarch table until allocEHI 
   // issue is fixed.
-  ExpHbaseInterface * ehi = allocEHI(FALSE);
+  //  ExpHbaseInterface * ehi = allocEHI(FALSE);
   // TEMPTEMP
 
-  //  ExpHbaseInterface * ehi = allocEHI(isMonarchTable);
+  ExpHbaseInterface * ehi = allocEHI(isMonarchTable);
   if (ehi == NULL)
     {
       processReturn();
@@ -9895,12 +9895,11 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
 
     // TEMPTEMP. Temporarily pass false for monarch table until allocEHI 
     // issue is fixed.
-    ExpHbaseInterface * ehi = allocEHI(FALSE);
+    //    ExpHbaseInterface * ehi = allocEHI(FALSE);
     // TEMPTEMP
     
-    // request the default
-    //    ExpHbaseInterface* ehi = 
-    //      CmpSeabaseDDL::allocEHI(isMonarchTable); 
+    ExpHbaseInterface* ehi = 
+      CmpSeabaseDDL::allocEHI(isMonarchTable); 
 
       // Set the header.nodetype to either HASH2 or RANGE based on whether
       // the table is salted or not. 

@@ -291,16 +291,21 @@ MC_RetCode MonarchClient_JNI::init()
     JavaMethods_[JM_MC_DIRECT_INSERT_ROW].jm_signature = "(JLjava/lang/String;ZZJ[BLjava/lang/Object;JZZ)Z";
     JavaMethods_[JM_MC_DIRECT_INSERT_ROWS].jm_name      = "insertRows";
     JavaMethods_[JM_MC_DIRECT_INSERT_ROWS].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;Ljava/lang/Object;JZZ)Z";
+/*
     JavaMethods_[JM_MC_DIRECT_UPDATE_TAGS].jm_name      = "updateVisibility";
     JavaMethods_[JM_MC_DIRECT_UPDATE_TAGS].jm_signature = "(JLjava/lang/String;ZJ[BLjava/lang/Object;)Z";
+*/
     JavaMethods_[JM_MC_DIRECT_CHECKANDUPDATE_ROW].jm_name      = "checkAndUpdateRow";
     JavaMethods_[JM_MC_DIRECT_CHECKANDUPDATE_ROW].jm_signature = "(JLjava/lang/String;ZZJ[BLjava/lang/Object;[B[BJZ)Z";
     JavaMethods_[JM_MC_DELETE_ROW ].jm_name      = "deleteRow";
     JavaMethods_[JM_MC_DELETE_ROW ].jm_signature = "(JLjava/lang/String;ZZJ[B[Ljava/lang/Object;JZLjava/lang/String;)Z";
     JavaMethods_[JM_MC_DIRECT_DELETE_ROWS ].jm_name      = "deleteRows";
-    JavaMethods_[JM_MC_DIRECT_DELETE_ROWS ].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;[Ljava/lang/Object;JZLjava/lang/String;)Z";
+    JavaMethods_[JM_MC_DIRECT_DELETE_ROWS ].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;JZLjava/lang/String;)Z";
+    //JavaMethods_[JM_MC_DIRECT_DELETE_ROWS ].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;[Ljava/lang/Object;JZLjava/lang/String;)Z";
     JavaMethods_[JM_MC_CHECKANDDELETE_ROW ].jm_name      = "checkAndDeleteRow";
-    JavaMethods_[JM_MC_CHECKANDDELETE_ROW ].jm_signature = "(JLjava/lang/String;ZZJ[B[Ljava/lang/Object;[B[BJZLjava/lang/String;)Z";
+    JavaMethods_[JM_MC_CHECKANDDELETE_ROW ].jm_signature = "(JLjava/lang/String;ZZJ[B[B[BJZLjava/lang/String;)Z";
+
+//    JavaMethods_[JM_MC_CHECKANDDELETE_ROW ].jm_signature = "(JLjava/lang/String;ZZJ[B[Ljava/lang/Object;[B[BJZLjava/lang/String;)Z";
 /*
     JavaMethods_[JM_SHOW_TABLES_HDFS_CACHE].jm_name = "showTablesHDFSCache";
     JavaMethods_[JM_SHOW_TABLES_HDFS_CACHE].jm_signature = "([Ljava/lang/Object;)Lorg/trafodion/sql/ByteArrayList;";
@@ -2754,7 +2759,7 @@ MC_RetCode MonarchClient_JNI::deleteRows(NAHeap *heap,
 					      j_tid,
 					      j_rowIDLen,
 					      jRowIDs,
-                                              j_cols,
+                                             // j_cols,
 					      j_ts,
 					      j_asyncOperation,
                                               js_hbaseAuths);
@@ -3071,10 +3076,10 @@ MTC_RetCode MTableClient_JNI::init()
     JavaMethods_[JM_SET_WB_SIZE ].jm_name      = "setWriteBufferSize";
     JavaMethods_[JM_SET_WB_SIZE ].jm_signature = "(J)Z";
     JavaMethods_[JM_SET_WRITE_TO_WAL ].jm_name      = "setWriteToWAL";
-    JavaMethods_[JM_SET_WRITE_TO_WAL ].jm_signature = "(Z)Z";
+    JavaMethods_[JM_SET_WRITE _TO_WAL ].jm_signature = "(Z)Z";
+*/
     JavaMethods_[JM_FETCH_ROWS ].jm_name      = "fetchRows";
     JavaMethods_[JM_FETCH_ROWS ].jm_signature = "()I";
-*/
     JavaMethods_[JM_COMPLETE_PUT ].jm_name      = "completeAsyncOperation";
     JavaMethods_[JM_COMPLETE_PUT ].jm_signature = "(I[Z)Z";
 /*
@@ -3326,7 +3331,7 @@ MTC_RetCode MTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-MTC_RetCode MTableClient_JNI::deleteRow(Int64 transID, HbaseStr &rowID, const LIST(HbaseStr) *cols, Int64 timestamp)
+MTC_RetCode MTableClient_JNI::deleteRow(Int64 transID, HbaseStr &rowID, const LIST(HbaseStr) *cols, Int64 timestamp, const char *hbaseAuths)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "MTableClient_JNI::deleteRow(%ld, %s) called.", transID, rowID.val);
 
@@ -3355,6 +3360,17 @@ MTC_RetCode MTableClient_JNI::deleteRow(Int64 transID, HbaseStr &rowID, const LI
         return MTC_ERROR_DELETEROW_PARAM;
      }
   }  
+  jstring js_hbaseAuths = NULL;
+  if (hbaseAuths) {
+     js_hbaseAuths = jenv_->NewStringUTF(hbaseAuths);
+     if (js_hbaseAuths == NULL) {
+         getExceptionDetails();
+         logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+         logError(CAT_SQL_HBASE, "MTableClient_JNI::deleteRow()", getLastError());
+         jenv_->PopLocalFrame(NULL);
+         return MTC_ERROR_DELETEROW_PARAM;
+     }
+  }
   jlong j_tid = transID;  
   jlong j_ts = timestamp;
   if (hbs_)
@@ -3362,7 +3378,7 @@ MTC_RetCode MTableClient_JNI::deleteRow(Int64 transID, HbaseStr &rowID, const LI
   tsRecentJMFromJNI = JavaMethods_[JM_DELETE].jm_full_name;
   jboolean j_asyncOperation = FALSE;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, 
-          JavaMethods_[JM_DELETE].methodID, j_tid, jba_rowID, j_cols, j_ts, j_asyncOperation);
+          JavaMethods_[JM_DELETE].methodID, j_tid, jba_rowID, j_cols, j_ts, j_asyncOperation, js_hbaseAuths);
   if (hbs_)
     {
       hbs_->incMaxHbaseIOTime(hbs_->getHbaseTimer().stop());

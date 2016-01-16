@@ -1669,7 +1669,7 @@ public class MonarchClient {
                                  long timestamp, boolean asyncOperation,
                                  String hbaseAuths) throws IOException {
       MTableClient mtc = getMTableClient(jniObject, tblName, useTRex, bSynchronize);
-      boolean ret = mtc.deleteRow(transID, rowID, columns, timestamp, asyncOperation);
+      boolean ret = mtc.deleteRow(transID, rowID, columns, timestamp, asyncOperation, hbaseAuths);
       if (asyncOperation == true)
          mtc.setJavaObject(jniObject);
       else
@@ -1682,7 +1682,7 @@ public class MonarchClient {
                       boolean asyncOperation,
                       String hbaseAuths) throws IOException, InterruptedException, ExecutionException {
       MTableClient mtc = getMTableClient(jniObject, tblName, useTRex, bSynchronize);
-      boolean ret = mtc.deleteRows(transID, rowIDLen, rowIDs, timestamp, asyncOperation);
+      boolean ret = mtc.deleteRows(transID, rowIDLen, rowIDs, timestamp, asyncOperation, hbaseAuths);
       if (asyncOperation == true)
          mtc.setJavaObject(jniObject);
       else
