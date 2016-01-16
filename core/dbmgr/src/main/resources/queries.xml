@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- @@@ START COPYRIGHT @@@
  
-     (C) Copyright 2015 Esgyn Corporation
+     (C) Copyright 2016 Esgyn Corporation
  
      @@@ END COPYRIGHT @@@
 -->
@@ -57,7 +57,7 @@
 		<query>
 			<!-- Fetch list of historical workloads -->
 			<name>SELECT_REPO_QUERIES</name>
-			<text><![CDATA[SELECT [first %1$s] query_id as "Query ID", query_status AS "Status" ,
+			<text><![CDATA[SELECT [first %1$s] trim(query_id) as "Query ID", query_status AS "Status" ,
 						exec_start_utc_ts as "Start Time", exec_end_utc_ts AS "End Time", 
 						USER_NAME AS "User Name",  APPLICATION_NAME as "Application",
 						CLIENT_NAME as "Client", query_elapsed_time AS "Elapsed Time", 

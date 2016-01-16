@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -21,7 +21,7 @@ define([
 	var LOADING_SELECTOR = "#loadingImg",
 	ERROR_CONTAINER = '#visual-plan-error',
 	TEXT_PLAN_CONTAINER = '#text-result-container',
-	GRIDCONTAINER = "#dbmgr-1",
+	GRAPH_CONTAINER = '#graph-container',
 	REFRESH_MENU = '#refreshAction',
 	QCANCEL_MENU = '#cancelAction',    	
 	TOOLTIP_DIALOG = '#tooltipDialog',
@@ -51,7 +51,7 @@ define([
 			              'max-height':'100%'
 			       });
 	        	});
-			$(REFRESH_MENU).on('click', this.fetchExplainPlan());
+			$(REFRESH_MENU).on('click', this.fetchExplainPlan);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
@@ -90,7 +90,7 @@ define([
 		},
 		doResize: function () {
 			if(st != null) {
-				st.canvas.resize($('#infovis').width(), ($(GRIDCONTAINER).height() + $(GRIDCONTAINER).scrollTop() + 800));
+				st.canvas.resize($('#infovis').width(), ($(GRAPH_CONTAINER).height() + $(GRAPH_CONTAINER).scrollTop()));
 			}
 		},
 		processArgs: function(args){
@@ -115,7 +115,6 @@ define([
 			$("#errorText").hide();
 			$(TEXT_PLAN_CONTAINER).hide();
 			var param = {sQuery : queryText, sControlStmts: "", sQueryID: queryID, sQueryType: queryType};
-
 
 			_this.showLoading();
 			$(ERROR_CONTAINER).hide();
@@ -143,7 +142,7 @@ define([
 			$('#text-result').text(jsonData.planText);
 			$("#infovis").empty();
 
-			st = common.generateExplainTree(jsonData, setRootNode, _this.showExplainTooltip);
+			st = common.generateExplainTree(jsonData, setRootNode, _this.showExplainTooltip, $(GRAPH_CONTAINER));
 			//load json data
 			st.loadJSON(jsonData);
 
