@@ -4,7 +4,7 @@
 //
 // @@@ END COPYRIGHT @@@
 
-package com.esgyn.dbmgr.filter;
+package com.esgyn.dbmgr.listener;
 
 import javax.servlet.http.HttpSessionEvent;
 import javax.servlet.http.HttpSessionListener;

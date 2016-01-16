@@ -8,6 +8,14 @@
 #page-wrapper {
 	margin: 2px;
 }
+.panel-heading span {
+    margin-top: 0px;
+    font-size: 15px;
+}
+
+.dbmgr-collapsible {
+    cursor: pointer;
+}
 
 .dbmgr-login-footer {
 	background:url(../img/esgyn-logo.png) no-repeat;
@@ -37,6 +45,9 @@
 	display: table-cell;
 	padding-right: 10px;
 	margin-bottom: 10px;
+}
+.btn, .dbmgr-link-button {
+	padding: 7px 10px;
 }
 
 .dbmgr-form-workload-cell-label {
@@ -151,7 +162,7 @@
 	    border-radius: 12px;
 	    text-align: center;
 	    font-size: 10px;
-	    overflow: hidden !important
+	    overflow: hidden !important;
 	}
 	table.dbmgr-dashboard-table tbody tr td{
 		white-space: nowrap;

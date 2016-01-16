@@ -46,6 +46,21 @@ define([
 		doInit: function (args){
 			_this = this;
 
+			$('.panel-heading span.dbmgr-collapsible').on("click", function (e) {
+		        if ($(this).hasClass('panel-collapsed')) {
+		                // expand the panel
+		                $(this).parents('.panel').find('.panel-body').slideDown();
+		                $(this).removeClass('panel-collapsed');
+		                $(this).find('i').removeClass('fa-sort-down').addClass('fa-sort-up');
+		            }
+		            else {
+		                // collapse the panel
+		                $(this).parents('.panel').find('.panel-body').slideUp();
+		                $(this).addClass('panel-collapsed');
+		                $(this).find('i').removeClass('fa-sort-up').addClass('fa-sort-down');
+		            }
+		        });
+			 
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
 			}

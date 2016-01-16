@@ -92,6 +92,12 @@
 				<div class="panel-heading">
 					<i class=""></i> Nodes <img
 						id="nodes-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
+						<div class="btn-group pull-right">
+							<button id="nodes-drilldown-btn" type="button"
+								class="btn btn-default btn-xs fa fa-search-plus fa-fw"
+								data-toggle="tooltip" data-placement="left" title="Node Status"
+								style="height: 30px; width: 30px"></button>
+						</div>
 				</div>
 				<div class="panel-body">
 					<div id="nodes-result-container" class="table-responsive"
@@ -281,6 +287,8 @@
 				<div class="modal-body">
 					<form id="metrics-form">
 						<div id="metrics-drilldown-chart" class="dbmgr-drilldown-graph"></div>
+						<div id="grid-drilldown-container" class="table-responsive"
+						style="overflow: auto"></div>
 						<label id="metrics-drilldown-error-text" class="dbmgr-error-text"></label>
 					</form>
 				</div>

@@ -136,6 +136,7 @@ define([
 			$(CONTROL_APPLY_BUTTON).on('click', this.controlApplyClicked);
 			$(OPTIONS_BTN).on('click', this.openFilterDialog);
 
+			
 			$(EXPLAIN_TREE).hide();
 			$(ERROR_TEXT).hide();
 			$(TOOLTIP_DIALOG).on('show.bs.modal', function () {
@@ -145,7 +146,20 @@ define([
 					'max-height':'100%'
 				});
 			});
-
+			 $('.panel-heading span.dbmgr-collapsible').on("click", function (e) {
+		            if ($(this).hasClass('panel-collapsed')) {
+		                // expand the panel
+		                $(this).parents('.panel').find('.panel-body').slideDown();
+		                $(this).removeClass('panel-collapsed');
+		                $(this).find('i').removeClass('fa-sort-down').addClass('fa-sort-up');
+		            }
+		            else {
+		                // collapse the panel
+		                $(this).parents('.panel').find('.panel-body').slideUp();
+		                $(this).addClass('panel-collapsed');
+		                $(this).find('i').removeClass('fa-sort-up').addClass('fa-sort-down');
+		            }
+		        });
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
 			}
@@ -165,7 +179,7 @@ define([
 					queryTextEditor.setSize($(this).width(), $(this).height());
 				}
 			});
-			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
+			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"120px"});
 			
 			controlStmtEditor = CodeMirror.fromTextArea(document.getElementById("query-control-stmts"), {
 				mode: 'text/x-esgyndb',

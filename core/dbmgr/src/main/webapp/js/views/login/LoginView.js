@@ -48,7 +48,7 @@ define([
 					"password": { required: true}
 				},
 				messages: {
-					username: "Please enter your user name",
+					username: "Please enter a user name",
 		                    	password: "Please provide a password"
 		                },
 				highlight: function(element) {
