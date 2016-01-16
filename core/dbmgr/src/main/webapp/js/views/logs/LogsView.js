@@ -449,7 +449,7 @@ define([
 					"bPaginate" : true, 
 					//"bAutoWidth": true,
 					"iDisplayLength" : 25, 
-					"sPaginationType": "simple_numbers",
+					"sPaginationType": "full_numbers",
 					//"scrollY":        "800px",
 					"scrollCollapse": true,
 					//"bJQueryUI": true,
@@ -476,7 +476,6 @@ define([
 						}
 					}
 					],
-					paging: true,
 					buttons: [
 					          'copy','csv','excel','pdf','print'
 					          ],

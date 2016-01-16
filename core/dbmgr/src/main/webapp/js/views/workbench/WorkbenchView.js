@@ -26,7 +26,6 @@ define([
     var LOADING_SELECTOR = ".dbmgr-spinner";			
     var st = null;
     var resizeTimer = null;			
-    var GRIDCONTAINER = "#dbmgr-1";
     var oDataTable = null;
     var controlStatements = null;
     var previousScrollTop = 0;
@@ -410,7 +409,7 @@ define([
             			dom:'lBftrip',
             			"bProcessing": true,
             			"iDisplayLength" : 25, 
-            			"sPaginationType": "simple_numbers",
+				"sPaginationType": "full_numbers",
         		        "scrollCollapse": true,
             			"aaData": aaData, 
             			"aoColumns" : aoColumns,

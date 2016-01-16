@@ -106,7 +106,7 @@ define([
 				oDataTable = $('#active-query-results').DataTable({
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
-					"bPaginate" : bPaging, 
+					paging : bPaging, 
 					"bAutoWidth": true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
@@ -139,7 +139,6 @@ define([
 					                		 else return data;
 					                	 }
 					                 }],
-					                 paging: true,
 					                 buttons: [
 					                           'copy','csv','excel','pdf','print'
 					                           ],					                 

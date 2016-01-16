@@ -166,13 +166,13 @@ define([
 		},
 		showErrorMessage: function (jqXHR, res, error) {
 			_that.hideLoading();
-			$("#login-error-text").text("");
-			$("#login-error-text").show();
+			$(ERROR_TEXT).text("");
+			$(ERROR_TEXT).show();
 			if (jqXHR) {
 				if(jqXHR.status != null && jqXHR.status == 0) {
-					$("#login-error-text").text("Error : Unable to communicate with the server.");
+					$(ERROR_TEXT).text("Error : Unable to communicate with the server.");
 				}else {
-					$("#login-error-text").text(jqXHR.statusText);
+					$(ERROR_TEXT).text(jqXHR.statusText);
 				}
 			}
 		}  
