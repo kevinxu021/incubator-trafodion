@@ -134,6 +134,8 @@ public class OrcFileReader
             bb.order(ByteOrder.LITTLE_ENDIAN);
 
             int type = bb.getInt();
+            //            System.out.println("type = " + type);
+
             int colNameLen = bb.getInt();
             byte[] colName = null;
             if (colNameLen > 0) {
@@ -1005,13 +1007,20 @@ public class OrcFileReader
 	    case OrcProto.Type.Kind.TIMESTAMP_VALUE:
 		java.sql.Timestamp lv_timestamp = ((WritableTimestampObjectInspector) m_foi).getPrimitiveJavaObject(lv_field_val);
 		p_row_bb.putInt(11);
-		p_row_bb.putShort((short)lv_timestamp.getYear()); // (Year - 1900)
-		p_row_bb.put((byte)lv_timestamp.getMonth());// Between 0 and 11
+
+                // timestamp contains (Year - 1900). Add 1900 to it.
+		p_row_bb.putShort((short)(lv_timestamp.getYear()+1900)); 
+                
+                // Stored month is between 0 and 11. Add 1 to it.
+		p_row_bb.put((byte)(lv_timestamp.getMonth()+1));
+
 		p_row_bb.put((byte)lv_timestamp.getDate()); // Between 1 and 31
 		p_row_bb.put((byte)lv_timestamp.getHours());
 		p_row_bb.put((byte)lv_timestamp.getMinutes());
 		p_row_bb.put((byte)lv_timestamp.getSeconds());
-		p_row_bb.putInt(lv_timestamp.getNanos());
+
+                // timestamp contains nano secs. Convert to microsecs
+		p_row_bb.putInt(lv_timestamp.getNanos() / 1000);
 		break;
 	    case OrcProto.Type.Kind.DECIMAL_VALUE:
 		throw new IOException("OrcFileReader.fillNextRow: Unsupported Type: DECIMAL_VALUE");
@@ -1019,8 +1028,12 @@ public class OrcFileReader
 	    case OrcProto.Type.Kind.DATE_VALUE:
 		java.sql.Date lv_date = ((WritableDateObjectInspector) m_foi).getPrimitiveJavaObject(lv_field_val);
 		p_row_bb.putInt(4);
-		p_row_bb.putShort((short)lv_date.getYear()); // (Year - 1900)
-		p_row_bb.put((byte)lv_date.getMonth()); // Between 0 and 11 
+                
+                // Date contains (Year - 1900). Add 1900 to it.
+		p_row_bb.putShort((short)(lv_date.getYear()+1900)); 
+
+                // Stored month is between 0 and 11. Add 1 to it.
+		p_row_bb.put((byte)(lv_date.getMonth()+1)); 
 		p_row_bb.put((byte)lv_date.getDate()); // Between 1 and 31
 		break;
 	    case OrcProto.Type.Kind.VARCHAR_VALUE:

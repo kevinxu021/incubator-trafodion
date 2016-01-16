@@ -1223,7 +1223,10 @@ short FileScan::codeGenForHive(Generator * generator)
                ExpTupleDesc::LONG_FORMAT);
 
           work_cri_desc->setTupleDescriptor(orcOperTuppIndex, orcOperTupleDesc);
+        }
 
+      if (orcListOfPPI().entries() > 0)
+        {
           hdfsAllColInfoList = new(space) Queue(space);
           for (int i = 0; i < allHdfsVals.entries(); i++)
             {

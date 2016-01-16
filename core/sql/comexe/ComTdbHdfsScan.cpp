@@ -672,7 +672,14 @@ void ComTdbOrcScan::displayContents(Space * space,ULng32 flag)
               str_sprintf(buf, "  colName_: %s", ppi->colName());
               space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));  
             }
- 	}
+ 	} // for
+
+      if (orcAllColInfoList())
+        {
+          str_sprintf(buf, "Num Of orcAllColInfoList entries: %d",
+                      orcAllColInfoList()->entries());
+          space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
+         }
     }
 
   if(flag & 0x00000001)

@@ -3536,6 +3536,9 @@ NAType* getSQColTypeForHive(const char* hiveType, NAMemory* heap)
   if ( !strcmp(hiveType, "double"))
     return new (heap) SQLDoublePrecision(TRUE /* allow NULL*/, heap);
 
+  if ( !strcmp(hiveType, "date"))
+    return new (heap) SQLDate(TRUE /* allow NULL */ , heap);
+
   if ( !strcmp(hiveType, "timestamp"))
     return new (heap) SQLTimestamp(TRUE /* allow NULL */ , 6, heap);
 

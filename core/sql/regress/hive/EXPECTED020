@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Thu Jan 14 20:20:41 2016
+-- Definition current  Sat Jan 16 01:48:48 2016
 
   (
     S_STORE_SK                       INT
@@ -725,6 +725,7 @@ PPI: #2
   colName_: S_STORE_SK
 PPI: #3
   type: END(4)
+Num Of orcAllColInfoList entries: 29
 
 # of Expressions = 5
 
