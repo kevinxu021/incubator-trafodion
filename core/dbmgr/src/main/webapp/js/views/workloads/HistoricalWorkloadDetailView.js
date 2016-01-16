@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -38,6 +38,7 @@ define([
 			_that = this;
 			$('#query-id').val(args);
 			queryID = args;
+			this.loadQueryText();
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
@@ -53,12 +54,13 @@ define([
 			$('#query-id').val(args);
 			if(queryID != null && queryID != args){
 				queryID = args;
+				$('#query-text').text('');
+				this.loadQueryText();
 				$(RESULT_CONTAINER).show();
 				$(DETAILS_CLASS).show();
 				$(ERROR_CONTAINER).hide();
 				$('#query-start-time').val('');
 				$('#query-end-time').val('');
-				$('#query-text').text('');
 				$('#query-status').val('');
 				try{
 					if(connDataTable != null){
@@ -99,6 +101,15 @@ define([
 			$(REFRESH_MENU).off('click', this.fetchRepositoryQueryDetail);
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
 			$(EXPLAIN_BUTTON).off('click', this.explainQuery);
+		},
+		loadQueryText: function(){
+			var queryParams = sessionStorage.getItem(queryID);
+			sessionStorage.removeItem(queryID);
+			if(queryParams != null){
+				queryParams = JSON.parse(queryParams);
+				if(queryParams.text)
+					$('#query-text').text(queryParams.text);
+			}
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
