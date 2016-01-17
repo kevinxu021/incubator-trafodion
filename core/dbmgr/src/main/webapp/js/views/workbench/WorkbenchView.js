@@ -449,7 +449,7 @@ define([
 				$(ERROR_TEXT).text(jqXHR.responseText);
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
-					$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+					$(ERROR_TEXT).text("Error : Unable to communicate with the server.");
 				}
 			}
 		}        

@@ -46,8 +46,8 @@
 	padding-right: 10px;
 	margin-bottom: 10px;
 }
-.btn, .dbmgr-link-button {
-	padding: 7px 10px;
+.dbmgr-button, .dbmgr-link-button {
+	padding: 7px 10px !important;
 }
 
 .dbmgr-form-workload-cell-label {
