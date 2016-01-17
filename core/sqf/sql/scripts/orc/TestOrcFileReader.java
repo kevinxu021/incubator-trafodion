@@ -611,6 +611,101 @@ public class TestOrcFileReader
 	sv_ofr.open(sv_filename, -1, null);
     }
 
+    // test push-down with ORC
+    public static String selectiveScanTest(String pv_file_name) throws IOException {
+
+	Configuration m_conf = new Configuration();
+	Path m_file_path = new Path(pv_file_name);
+
+	Reader m_reader;
+	try{
+          m_reader = OrcFile.createReader(m_file_path, OrcFile.readerOptions(m_conf));
+	} catch (java.io.FileNotFoundException e1) {
+          return "file not found";
+	}
+	if (m_reader == null)
+		return "open failed!";
+	List<OrcProto.Type> m_types = m_reader.getTypes();
+	StructObjectInspector m_oi = (StructObjectInspector) m_reader.getObjectInspector();
+	List<? extends StructField> m_fields = m_oi.getAllStructFieldRefs();
+
+        SearchArgument.Builder builder = SearchArgumentFactory.newBuilder();
+
+        // other possible predicates
+//.startAnd().equals("_col2", "2").end()
+//.startOr().equals("_col2", 2).equals("_col1", 3).end()
+//.startNot().equals("_col2", "2").end()
+//.startAnd().between("_col2", 2, 3).end()
+//.startAnd().in("_col2", 1, 3, 4).end()
+        SearchArgument sarg = builder
+	    .startAnd()
+	    .equals("_col3", 6928)
+	    .end()
+        .build();
+	
+        // test 
+	//boolean include[] = {true, true, true};
+        //String colNames[] = {null, "_col0", "_col1"};
+        //
+	boolean[] include = new boolean[1+m_fields.size()];
+	String[] colNames = new String[1+m_fields.size()];
+
+        colNames[0] = null;
+	include[0] = true;
+
+        for (int i = 1; i <= m_fields.size(); i++) {
+	   include[i] = true;
+	   colNames[i] = new String("_col" + i);
+        }
+
+	RecordReader m_rr;
+	try{
+	   m_rr = m_reader.rowsOptions(new Reader.Options()
+                    //.range(0L, Long.MAX_VALUE)
+                    .range(0L, Long.MAX_VALUE)
+                    .include(include)
+                    .searchArgument(sarg, colNames));
+
+	} catch (java.io.IOException e1) {
+           return (e1.getMessage());
+	}
+	
+        long startRowNum = m_rr.getRowNumber();
+	System.out.println("<<<<<< RecorderReader: " + m_rr + ", startRowNum=" + startRowNum);
+
+	if (m_rr == null)
+           return "open:RecordReader is null";
+
+        Object field_val = null;
+        StringBuilder row_string = new StringBuilder(1024);
+        int ct = 0;
+        OrcStruct row = null;
+
+	long lv_count = 0;
+	while (m_rr.hasNext() ) {
+	    lv_count++;
+            row = (OrcStruct) m_rr.next(row);
+	}
+	System.out.println("Number of rows: " + lv_count);
+	/*        while (m_rr.hasNext() ) {
+            startRowNum = m_rr.getRowNumber();
+            //System.out.println("To read a row with rowNum=" + startRowNum);
+            ct++;
+            row = (OrcStruct) m_rr.next(row);
+            row_string.setLength(0);
+            for (int i = 0; i < m_fields.size(); i++) {
+                field_val = m_oi.getStructFieldData(row, m_fields.get(i));
+                if (field_val != null) {
+                    row_string.append(field_val);
+                }
+                row_string.append('|');
+            }
+            System.out.println(row_string);
+	    }*/
+
+	return null;
+    }
+
     public static void main(String[] args) throws Exception
     {
 	boolean lv_print_info = false;
@@ -716,7 +811,7 @@ public class TestOrcFileReader
 	    MeasurePureVectorizedScan();
 	}
         else if ( lv_perform_selective_scans ) {
-	    System.out.println(sv_ofr.selectiveScan(sv_filename));
+	    System.out.println(selectiveScanTest(sv_filename));
         }
     }
 
