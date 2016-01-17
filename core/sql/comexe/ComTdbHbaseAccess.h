@@ -881,16 +881,11 @@ public:
       updConstraintExpr_ = exprPtr;
    }
 
-   enum TABLE_TYPE {
-    HBASE_TABLE = 0,
-    MONARCH_TABLE
-   };
-
-   void setTableType(TABLE_TYPE tableType) {
-      tableType_ = tableType;
+   void setStorageType(ComStorageType storageType) {
+      storageType_ = storageType;
    } 
 
-   TABLE_TYPE getTableType() { return tableType_; } 
+   ComStorageType getStorageType() { return storageType_; } 
 
  protected:
   enum
@@ -1041,7 +1036,7 @@ public:
   UInt16 hbaseRowsetVsbbSize_; 
   UInt16 trafLoadFlushSize_;
   ComHbaseAccessOptionsPtr comHbaseAccessOptions_; 
-  TABLE_TYPE tableType_;
+  ComStorageType storageType_;
   char fillers[2];
 };
 

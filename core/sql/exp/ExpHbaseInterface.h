@@ -74,7 +74,7 @@ class ExpHbaseInterface : public NABasicObject
   static ExpHbaseInterface* newInstance(CollHeap* heap, 
                                         const char* server, 
                                         const char *zkPort, 
-                                        ComTdbHbaseAccess::TABLE_TYPE tableType,
+                                        ComStorageType storageType,
 					NABoolean replSync,
                                         int debugPort = 0, 
                                         int DebugTimeout = 0);
@@ -438,7 +438,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
   ExpHbaseInterface_JNI(CollHeap* heap,
                         const char* server, bool useTRex, NABoolean replSync, 
                         const char *zkPort, int debugPort, int debugTimeout,
-                        ComTdbHbaseAccess::TABLE_TYPE tableType = ComTdbHbaseAccess::HBASE_TABLE);
+                        ComStorageType storageType = COM_STORAGE_HBASE);
   
   virtual ~ExpHbaseInterface_JNI();
   
@@ -751,7 +751,7 @@ private:
   HiveClient_JNI* hive_;
   HTableClient_JNI *asyncHtc_;
   Int32  retCode_;
-  ComTdbHbaseAccess::TABLE_TYPE tableType_;
+  ComStorageType storageType_;
   MonarchClient_JNI *mClient_;
   MTableClient_JNI *mtc_;
   MTableClient_JNI *asyncMtc_;

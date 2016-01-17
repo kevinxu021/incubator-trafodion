@@ -135,7 +135,6 @@ typedef NABoolean               ComBoolean;
 #define SEABASE_OLD_PRIVMGR_SCHEMA         "PRIVMGR_MD"
 #define SEABASE_PRIVMGR_SCHEMA         "_PRIVMGR_MD_"
 #define SEABASE_UDF_SCHEMA             "_UDF_"
-#define MONARCH_CATALOG_LIT               "MONARCH"
 
 #define SEABASE_DEFAULT_COL_FAMILY "#1"
 
@@ -1738,6 +1737,13 @@ enum ComReplType
   { COM_REPL_NONE =  0,    // no replication
     COM_REPL_SYNC =  1,    // synchronized replication during IUD query
     COM_REPL_ASYNC = 2     // asyn replication at a later time
+  };
+
+// storage system of a trafodion table
+enum ComStorageType
+  {
+    COM_STORAGE_HBASE = 0,
+    COM_STORAGE_MONARCH = 1
   };
 
 // DDL Operation literals

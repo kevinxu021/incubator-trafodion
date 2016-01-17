@@ -371,7 +371,6 @@ public:
   NABoolean isHiveTable() const;
   NABoolean isHbaseTable() const;
   NABoolean isSeabaseTable() const;
-  NABoolean isMonarchTable() const;
 
   // a virtual function for performing name binding within the query tree
   virtual RelExpr * bindNode(BindWA *bindWAPtr);

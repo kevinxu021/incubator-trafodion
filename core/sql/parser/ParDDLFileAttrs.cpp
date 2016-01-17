@@ -747,7 +747,7 @@ ParDDLFileAttrsAlterTable::copy(const ParDDLFileAttrsAlterTable &rhs)
 
   isXnReplSpec_                 = rhs.isXnReplSpec_;
   xnRepl_                       = rhs.xnRepl_;
-  
+
 } // ParDDLFileAttrsAlterTable::copy()
 
 //
@@ -1141,7 +1141,6 @@ ParDDLFileAttrsAlterTable::setFileAttr(ElemDDLFileAttr * pFileAttr)
     isMvsAllowedSpec_ = TRUE;
     break;
     
-    
   case ELM_FILE_ATTR_XN_REPL_ELEM :
     if (isXnReplSpec_)
       {
@@ -1157,7 +1156,6 @@ ParDDLFileAttrsAlterTable::setFileAttr(ElemDDLFileAttr * pFileAttr)
       xnRepl_ = pXnRepl->xnRepl();
     }
     break;
-    
     
   default :
     NAAbort("ParDDLFileAttrs.C", __LINE__, "internal logic error");
@@ -1956,6 +1954,9 @@ ParDDLFileAttrsCreateTable::copy(const ParDDLFileAttrsCreateTable &rhs)
   isXnReplSpec_ = rhs.isXnReplSpec_;
   xnRepl_ = rhs.xnRepl_;
 
+  isStorageTypeSpec_ = rhs.isStorageTypeSpec_;
+  storageType_ = rhs.storageType_;
+
   // [ NO ] AUDITCOMPRESS      
   //   inherits from class ParDDLFileAttrsCreateIndex
 
@@ -2046,6 +2047,7 @@ ParDDLFileAttrsCreateTable::initializeDataMembers()
 
   xnRepl_ = COM_REPL_NONE;
 
+  storageType_ = COM_STORAGE_HBASE;
 } // ParDDLFileAttrsCreateTable::initializeDataMembers()
 
 //
@@ -2087,6 +2089,8 @@ ParDDLFileAttrsCreateTable::resetAllIsSpecDataMembers()
   isColFamSpec_                     = FALSE;
 
   isXnReplSpec_                     = FALSE;
+
+  isStorageTypeSpec_                     = FALSE;
 
   // [ NO ] AUDITCOMPRESS
   //   inherits from class ParDDLFileAttrsCreateIndex
@@ -2171,6 +2175,22 @@ ParDDLFileAttrsCreateTable::setFileAttr(ElemDDLFileAttr * pFileAttr)
     }
     break;
 
+  case ELM_FILE_ATTR_STORAGE_TYPE_ELEM :
+    if (isStorageTypeSpec_)
+      {
+        // Duplicate sync xn phrases.
+        *SqlParser_Diags << DgSqlCode(-3183)
+                         << DgString0("replication");
+      }
+    isStorageTypeSpec_ = TRUE;
+    ComASSERT(pFileAttr->castToElemDDLFileAttrStorageType() NEQ NULL);
+    {
+      ElemDDLFileAttrStorageType * pStorageType =
+        pFileAttr->castToElemDDLFileAttrStorageType();
+      storageType_ = pStorageType->storageType();
+    }
+    break;
+    
   case ELM_FILE_ATTR_AUDIT_ELEM:
 
 	// MvAudit is only for MVs. Mvs cannot have audit it the ATTRIBUTE 

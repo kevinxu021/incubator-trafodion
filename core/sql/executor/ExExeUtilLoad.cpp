@@ -1232,7 +1232,7 @@ short ExExeUtilHBaseBulkLoadTcb::work()
         ehi_ = ExpHbaseInterface::newInstance(getGlobals()->getDefaultHeap(),
                                               (char*)"", //Later may need to change to hblTdb.server_,
                                               (char*)"", //Later may need to change to hblTdb.zkPort_,
-                                              ((ComTdbHbaseAccess *)getTdb())->getTableType(),
+                                              ((ComTdbHbaseAccess *)getTdb())->getStorageType(),
                                               ((ComTdbHbaseAccess *)getTdb())->replSync(),
                                               jniDebugPort,
                                               jniDebugTimeout);

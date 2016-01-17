@@ -8151,13 +8151,6 @@ NABoolean Scan::isSeabaseTable() const
 	  FALSE);
 }
 
-NABoolean Scan::isMonarchTable() const 
-{
-  return (getTableDesc() && getTableDesc()->getNATable() ?
-	  getTableDesc()->getNATable()->isMonarchTable() :
-	  FALSE);
-}
-
 const NAString Scan::getText() const
 {
   NAString op(CmpCommon::statementHeap());
@@ -10127,26 +10120,35 @@ const NAString HbaseAccess::getText() const
   if (isSampleScan())
     sampleOpt = "sample_";
 
+  NABoolean isMonarch = 
+    (getTableDesc() && getTableDesc()->getNATable()
+     ? getTableDesc()->getNATable()->isMonarch() : FALSE);
+  
   if (getIndexDesc() == NULL OR getIndexDesc()->isClusteringIndex())
     {
       if (isSeabaseTable())
 	{
 	  if (uniqueRowsetHbaseOper())
-	    (op += "trafodion_vsbb_") += sampleOpt += "scan ";
+            if (isMonarch)
+              (op += "monarch_vsbb_") += sampleOpt += "scan ";
+            else
+              (op += "trafodion_vsbb_") += sampleOpt += "scan ";
 	  else
-	    (op += "trafodion_") += sampleOpt += "scan ";
+            if (isMonarch)
+              (op += "monarch_") += sampleOpt += "scan ";
+          else
+              (op += "trafodion_") += sampleOpt += "scan ";
 	}
-      else if (isMonarchTable())
-        (op += "monarch_") += sampleOpt += "scan ";
       else
 	(op += "hbase_") += sampleOpt += "scan ";
     }
   else 
     {
       if (isSeabaseTable())
-	(op += "trafodion_index_") += sampleOpt += "scan ";
-      else if (isMonarchTable())
-	(op += "monarch_index_") += sampleOpt += "scan ";
+        if (isMonarch)
+          (op += "monarch_index_") += sampleOpt += "scan ";
+        else
+          (op += "trafodion_index_") += sampleOpt += "scan ";
       else
 	(op += "hbase_index_") += sampleOpt += "scan ";
  
@@ -10462,7 +10464,7 @@ const NAString HbaseDelete::getText() const
 
   NABoolean isMonarch = 
     (getTableDesc() && getTableDesc()->getNATable() ? 
-     getTableDesc()->getNATable()->isMonarchTable() : FALSE);
+     getTableDesc()->getNATable()->isMonarch() : FALSE);
 
   NAString text;
 
@@ -10578,7 +10580,7 @@ const NAString HbaseUpdate::getText() const
 
   NABoolean isMonarch = 
     (getTableDesc() && getTableDesc()->getNATable() ? 
-     getTableDesc()->getNATable()->isMonarchTable() : FALSE);
+     getTableDesc()->getNATable()->isMonarch() : FALSE);
 
   NAString text;
   if (isMerge())
@@ -13096,16 +13098,19 @@ const NAString HbaseInsert::getText() const
 
   NABoolean isMonarch = 
     (getTableDesc() && getTableDesc()->getNATable() ? 
-     getTableDesc()->getNATable()->isMonarchTable() : FALSE);
+     getTableDesc()->getNATable()->isMonarch() : FALSE);
 
   NAString text;
 
-  if (isMonarch)
-    text = "monarch_";
-  else if (NOT isSeabase)
+  if (NOT isSeabase)
     text = "hbase_";
   else
-    text = "trafodion_";
+    {
+      if (isMonarch)
+        text = "monarch_";
+      else
+        text = "trafodion_";
+    }
 
   if (isUpsert())
     {

@@ -4935,7 +4935,6 @@ NATable::NATable(BindWA *bindWA,
     sgAttributes_(NULL),
     isHive_(FALSE),
     isHbase_(FALSE),
-    isMonarch_(FALSE),
     isHbaseCell_(FALSE),
     isHbaseRow_(FALSE),
     isSeabase_(FALSE),
@@ -4951,6 +4950,7 @@ NATable::NATable(BindWA *bindWA,
     newColumns_(heap),
     snapshotName_(NULL),
     xnRepl_(COM_REPL_NONE),
+    storageType_(COM_STORAGE_HBASE),
     prototype_(NULL)
 {
   NAString tblName = qualifiedName_.getQualifiedNameObj().getQualifiedNameAsString();
@@ -5000,10 +5000,6 @@ NATable::NATable(BindWA *bindWA,
       setIsHbaseCellTable(corrName.isHbaseCell());
       setIsHbaseRowTable(corrName.isHbaseRow());
       setIsSeabaseMDTable(corrName.isSeabaseMD());
-    }
-  else if (corrName.isMonarch())
-    {
-      setIsMonarchTable(corrName.isMonarch());
     }
 
   // Check if the synonym name translation to reference object has been done.
@@ -5070,6 +5066,8 @@ NATable::NATable(BindWA *bindWA,
       else if ((ComReplType)table_desc->body.table_desc.xn_repl == COM_REPL_ASYNC)
         setXnRepl(COM_REPL_ASYNC);
     }
+
+  setStorageType(table_desc->body.table_desc.storageType);
 
   if (corrName.isExternal())
   {
@@ -5671,7 +5669,6 @@ NATable::NATable(BindWA *bindWA,
     sgAttributes_(NULL),
     isHive_(TRUE),
     isHbase_(FALSE),
-    isMonarch_(FALSE),
     isHbaseCell_(FALSE),
     isHbaseRow_(FALSE),
     isSeabase_(FALSE),
@@ -5686,7 +5683,8 @@ NATable::NATable(BindWA *bindWA,
     privInfo_(NULL),
     newColumns_(heap),
     snapshotName_(NULL),
-    xnRepl_(COM_REPL_NONE)
+    xnRepl_(COM_REPL_NONE),
+    storageType_(COM_STORAGE_HBASE)
 {
 
   NAString tblName = qualifiedName_.getQualifiedNameObj().getQualifiedNameAsString();
@@ -7666,7 +7664,8 @@ ExpHbaseInterface* NATable::getHBaseInterface() const
       getSpecialType() == ExtendedQualName::VIRTUAL_TABLE)
     return NULL;
 
-   return NATable::getHBaseInterfaceRaw(isMonarchTable());
+   return NATable::getHBaseInterfaceRaw
+     ((storageType_ == COM_STORAGE_MONARCH));
 }
 
 ExpHbaseInterface* NATable::getHBaseInterfaceRaw(NABoolean isMonarchTable) 
@@ -7677,7 +7676,7 @@ ExpHbaseInterface* NATable::getHBaseInterfaceRaw(NABoolean isMonarchTable)
   NABoolean replSync = FALSE;
   ExpHbaseInterface* ehi = ExpHbaseInterface::newInstance
                            (STMTHEAP, server, zkPort, 
-                           (isMonarchTable ? ComTdbHbaseAccess::MONARCH_TABLE : ComTdbHbaseAccess::HBASE_TABLE),
+                            (isMonarchTable ? COM_STORAGE_MONARCH : COM_STORAGE_HBASE),
                            replSync);
                            
 
@@ -7955,7 +7954,7 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
     //otherwise it is NULL.
     NATable * tableInCache = table;
 
-    if ((corrName.isHbase() || corrName.isSeabase() || corrName.isMonarch()) &&
+    if ((corrName.isHbase() || corrName.isSeabase()) &&
 	(!isSQUmdTable(corrName)) &&
 	(!isSQUtiDisplayExplain(corrName)) &&
 	(!isSQInternalStoredProcedure(corrName))
@@ -7966,7 +7965,6 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
       desc_struct *tableDesc = NULL;
 
       NABoolean isSeabase = FALSE;
-      NABoolean isMonarch = FALSE;
       NABoolean isSeabaseMD = FALSE;
       NABoolean isUserUpdatableSeabaseMD = FALSE;
       NABoolean isHbaseCell = corrName.isHbaseCell();
@@ -8031,10 +8029,7 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
       else if (! inTableDescStruct)
         {
           ComObjectType objectType = COM_BASE_TABLE_OBJECT;
-          if (corrName.isMonarch())
-            isMonarch = TRUE;
-          else
-            isSeabase = TRUE;
+          isSeabase = TRUE;
           if (corrName.isSpecialTable())
           {
             switch (corrName.getSpecialType())
@@ -8077,7 +8072,7 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
 	  NATable(bindWA, corrName, naTableHeap, tableDesc);
       if (!tableDesc || !table || bindWA->errStatus())
 	{
-	  if (isSeabase || isMonarch)
+	  if (isSeabase)
 	    *CmpCommon::diags()
 	      << DgSqlCode(-4082)
 	      << DgTableName(corrName.getExposedNameAsAnsiString());
@@ -8093,7 +8088,6 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
       table->setIsHbaseCellTable(isHbaseCell);
       table->setIsHbaseRowTable(isHbaseRow);
       table->setIsSeabaseTable(isSeabase);
-      table->setIsMonarchTable(isMonarch);
       table->setIsSeabaseMDTable(isSeabaseMD);
       table->setIsUserUpdatableSeabaseMDTable(isUserUpdatableSeabaseMD);
     }

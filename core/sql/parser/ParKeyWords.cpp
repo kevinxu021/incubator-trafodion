@@ -653,6 +653,7 @@ ParKeyWord ParKeyWords::keyWords_[] = {
   ParKeyWord("MODIFY",             IDENTIFIER,      POTANS_|RESWORD_),
   ParKeyWord("MODULE",             TOK_MODULE,      ANS_|RESWORD_),
   ParKeyWord("MODULES",            TOK_MODULES,     NONRESTOKEN_),
+  ParKeyWord("MONARCH",            TOK_MONARCH,        NONRESTOKEN_),
   ParKeyWord("MONTH",              TOK_MONTH,       ANS_|RESWORD_|MPWORD_),
   ParKeyWord("MONTHNAME",          TOK_MONTHNAME,   NONRESTOKEN_),
   ParKeyWord("MONTHS_BETWEEN",     TOK_MONTHS_BETWEEN,   NONRESTOKEN_),

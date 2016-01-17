@@ -1337,11 +1337,11 @@ short HbaseDelete::codeGen(Generator * generator)
 
       if (getTableDesc()->getNATable()->xnRepl() == COM_REPL_ASYNC)
         hbasescan_tdb->setReplAsync(TRUE);
-    }
 
-  if (getTableDesc()->getNATable()->isMonarchTable())
-    {
-      hbasescan_tdb->setTableType(ComTdbHbaseAccess::MONARCH_TABLE);
+      if (getTableDesc()->getNATable()->isMonarch())
+        {
+          hbasescan_tdb->setStorageType(COM_STORAGE_MONARCH);
+        }
     }
 
   if (keyInfo && getSearchKey() && getSearchKey()->isUnique())
@@ -2234,11 +2234,11 @@ short HbaseUpdate::codeGen(Generator * generator)
 
           hbasescan_tdb->setHbaseCellTS(ts);
         }
-    }
 
-  if (getTableDesc()->getNATable()->isMonarchTable())
-    {
-      hbasescan_tdb->setTableType(ComTdbHbaseAccess::MONARCH_TABLE);
+      if (getTableDesc()->getNATable()->isMonarch())
+        {
+          hbasescan_tdb->setStorageType(COM_STORAGE_MONARCH);
+        }
     }
 
   if (keyInfo && getSearchKey() && getSearchKey()->isUnique())
@@ -2909,14 +2909,13 @@ short HbaseInsert::codeGen(Generator *generator)
   if (insConstraintExpr)
     hbasescan_tdb->setInsConstraintExpr(insConstraintExpr);
 
- if ((getTableDesc()->getNATable()->isSeabaseTable()) ||
-      (getTableDesc()->getNATable()->isMonarchTable()))
+ if (getTableDesc()->getNATable()->isSeabaseTable())
     {
       hbasescan_tdb->setSQHbaseTable(TRUE);
 
-      if (getTableDesc()->getNATable()->isMonarchTable())
+      if (getTableDesc()->getNATable()->isMonarch())
         {
-          hbasescan_tdb->setTableType(ComTdbHbaseAccess::MONARCH_TABLE);
+          hbasescan_tdb->setStorageType(COM_STORAGE_MONARCH);
         }
  
       if (isAlignedFormat)

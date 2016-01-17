@@ -315,11 +315,9 @@ public:
   static NABoolean isHive(const NAString &catName);
   static NABoolean isHbase(const NAString &catName);
   static NABoolean isSeabase(const NAString &catName);
-  static NABoolean isMonarch(const NAString &catName);
 
   NABoolean isHive() const;
   NABoolean isSeabase() const;
-  NABoolean isMonarch() const;
   NABoolean isHbase() const;
   NABoolean isSeabaseMD() const;
   NABoolean isSeabasePrivMgrMD() const;
@@ -874,7 +872,6 @@ public:
 
   NABoolean isHive() const;
   NABoolean isSeabase() const;
-  NABoolean isMonarch() const;
   NABoolean isHbase() const;
   NABoolean isSeabaseMD() const;
   NABoolean isSeabasePrivMgrMD() const;

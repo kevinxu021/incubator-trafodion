@@ -2290,8 +2290,7 @@ short HbaseAccess::codeGen(Generator * generator)
                                            GenGetQualifiedName(getTableName()), 0);
 
   ValueIdList columnList;
-  if (((getTableDesc()->getNATable()->isSeabaseTable()) ||
-       (getTableDesc()->getNATable()->isMonarchTable())) &&
+  if ((getTableDesc()->getNATable()->isSeabaseTable()) &&
       (NOT isAlignedFormat))
     sortValues(retColumnList, columnList,
 	       (getIndexDesc()->getNAFileSet()->getKeytag() != 0));
@@ -2556,8 +2555,7 @@ short HbaseAccess::codeGen(Generator * generator)
     }
 
   Queue * listOfFetchedColNames = NULL;
-  if (((getTableDesc()->getNATable()->isSeabaseTable()) ||
-       (getTableDesc()->getNATable()->isMonarchTable())) &&
+  if ((getTableDesc()->getNATable()->isSeabaseTable()) &&
       (isAlignedFormat))
     {
       listOfFetchedColNames = new(space) Queue(space);
@@ -2574,8 +2572,7 @@ short HbaseAccess::codeGen(Generator * generator)
       
       listOfFetchedColNames->insert(colNameInList);
     }
-  else if ((getTableDesc()->getNATable()->isSeabaseTable()) ||
-           (getTableDesc()->getNATable()->isMonarchTable()))
+  else if (getTableDesc()->getNATable()->isSeabaseTable())
     {
       listOfFetchedColNames = new(space) Queue(space);
 
@@ -2708,8 +2705,7 @@ short HbaseAccess::codeGen(Generator * generator)
   Queue * tdbListOfRangeRows = NULL;
   Queue * tdbListOfUniqueRows = NULL;
 
-  if ((getTableDesc()->getNATable()->isSeabaseTable()) ||
-      (getTableDesc()->getNATable()->isMonarchTable()))
+  if (getTableDesc()->getNATable()->isSeabaseTable())
     {
       genRowIdExpr(generator,
 		   getIndexDesc()->getNAFileSet()->getIndexKeyColumns(),
@@ -2971,12 +2967,11 @@ short HbaseAccess::codeGen(Generator * generator)
   hbasescan_tdb->setUseCif(hbaseRowFormat == 
 			   ExpTupleDesc::SQLMX_ALIGNED_FORMAT);
 
-  if ((getTableDesc()->getNATable()->isSeabaseTable()) ||
-      (getTableDesc()->getNATable()->isMonarchTable()))
+  if (getTableDesc()->getNATable()->isSeabaseTable())
     {
-      if (getTableDesc()->getNATable()->isMonarchTable())
+      if (getTableDesc()->getNATable()->isMonarch())
         {
-          hbasescan_tdb->setTableType(ComTdbHbaseAccess::MONARCH_TABLE);
+          hbasescan_tdb->setStorageType(COM_STORAGE_MONARCH);
         }
       
       hbasescan_tdb->setSQHbaseTable(TRUE);

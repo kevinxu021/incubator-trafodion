@@ -1836,6 +1836,7 @@ desc_struct * Generator::createVirtualTableDesc(
   table_desc->body.table_desc.rowcount = 100;
 
   table_desc->body.table_desc.xn_repl = (short)COM_REPL_NONE;
+  table_desc->body.table_desc.storageType = COM_STORAGE_HBASE;
   if (tableInfo)
     {
       table_desc->body.table_desc.rowFormat =
@@ -1843,6 +1844,9 @@ desc_struct * Generator::createVirtualTableDesc(
 
       table_desc->body.table_desc.xn_repl = 
         (short)tableInfo->xnRepl;
+
+      table_desc->body.table_desc.storageType = 
+        tableInfo->storageType;
     }
 
   if (CmpCommon::context()->sqlSession()->validateVolatileName(tableName))

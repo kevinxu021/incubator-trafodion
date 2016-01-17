@@ -940,11 +940,8 @@ NABoolean CmpSeabaseDDL::isSeabase(const NAString &catName)
       CmpCommon::getDefault(SEABASE_CATALOG, seabaseDefCatName, FALSE);
       seabaseDefCatName.toUpper();
 
-      NAString monarchDefCatName = "";
-      CmpCommon::getDefault(MONARCH_CATALOG, monarchDefCatName, FALSE);
-      
-      if (catName == seabaseDefCatName || catName == monarchDefCatName)
-         return TRUE;
+      if (catName == seabaseDefCatName)
+        return TRUE;
     }
   
   return FALSE;
@@ -953,22 +950,6 @@ NABoolean CmpSeabaseDDL::isSeabase(const NAString &catName)
 ComBoolean CmpSeabaseDDL::isSeabase(const ComObjectName &name) 
 {
   return isSeabase(name.getCatalogNamePartAsAnsiString());
-}
-
-NABoolean CmpSeabaseDDL::isMonarch(const NAString &catName)
-{
-  if ((CmpCommon::getDefault(MODE_SEABASE) == DF_ON) &&
-      (NOT catName.isNull()))
-    {
-      NAString monarchDefCatName = "";
-      CmpCommon::getDefault(MONARCH_CATALOG, monarchDefCatName, FALSE);
-      monarchDefCatName.toUpper();
-      
-      if (catName == monarchDefCatName)
-         return TRUE;
-    }
-  
-  return FALSE;
 }
 
 NABoolean CmpSeabaseDDL::isSeabaseMD(
@@ -1095,7 +1076,8 @@ ExpHbaseInterface* CmpSeabaseDDL::allocEHI(const char * server,
   NABoolean replSync = FALSE;
   ehi = ExpHbaseInterface::newInstance
     (heap_, server, zkPort, 
-        (isMonarchTable ? ComTdbHbaseAccess::MONARCH_TABLE : ComTdbHbaseAccess::HBASE_TABLE), replSync); 
+     (isMonarchTable ? COM_STORAGE_MONARCH : COM_STORAGE_HBASE),
+     replSync); 
     
   Lng32 retcode = ehi->init(NULL);
   if (retcode < 0)
@@ -4740,6 +4722,13 @@ short CmpSeabaseDDL::updateSeabaseMDTable(
                 CmpSeabaseDDL::setMDflags
                   (flags,CmpSeabaseDDL::MD_TABLES_REPL_ASYNC_FLG);
             }
+
+          if (tableInfo->storageType == COM_STORAGE_MONARCH)
+            {
+              CmpSeabaseDDL::setMDflags
+                (flags, CmpSeabaseDDL::MD_TABLES_STORAGE_MONARCH_FLG);
+            }
+
         }
 
       str_sprintf(buf, "upsert into %s.\"%s\".%s values (%Ld, '%s', '%s', %d, %d, %d, %d, %Ld) ",
@@ -8032,20 +8021,12 @@ void CmpSeabaseDDL::purgedataHbaseTable(DDLExpr * ddlExpr,
 
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL,
     CmpCommon::context()->sqlSession()->getParentQid());
-  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
-  if (ehi == NULL)
-    {
-      processReturn();
-      
-      return;
-    }
 
   if ((isSeabaseReservedSchema(tableName)) &&
       (!Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL)))
     {
       *CmpCommon::diags() << DgSqlCode(-CAT_USER_CANNOT_DROP_SMD_TABLE)
                           << DgTableName(extTableName);
-      deallocEHI(ehi); 
 
       processReturn();
 
@@ -8078,6 +8059,14 @@ void CmpSeabaseDDL::purgedataHbaseTable(DDLExpr * ddlExpr,
     {
       processReturn();
 
+      return;
+    }
+
+  ExpHbaseInterface * ehi = allocEHI(naTable->isMonarch());
+  if (ehi == NULL)
+    {
+      processReturn();
+      
       return;
     }
 

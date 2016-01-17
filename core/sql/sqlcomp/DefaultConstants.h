@@ -3790,7 +3790,6 @@ enum DefaultConstants
   // set to ON to aggressively allocate ESP per core
   AGGRESSIVE_ESP_ALLOCATION_PER_CORE,
 
-  MONARCH_CATALOG,
   MONARCH_LOCATOR_ADDRESS,
   MONARCH_LOCATOR_PORT,
 

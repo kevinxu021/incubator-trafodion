@@ -714,6 +714,8 @@ public:
   ComReplType xnRepl() { return xnRepl_; }
   void setXnRepl(ComReplType v) { xnRepl_ = v; }
 
+  ComStorageType storageType() { return storageType_; }
+  void setStorageType(ComStorageType v) { storageType_ = v; }
 
   void setIsExternalTable( NABoolean value )
   {  value ? flags_ |= IS_EXTERNAL_TABLE : flags_ &= ~IS_EXTERNAL_TABLE; }
@@ -829,7 +831,6 @@ public:
   NABoolean isHiveTable() const { return isHive_; }
 
   NABoolean isHbaseTable() const { return isHbase_; }
-  NABoolean isMonarchTable() const { return isMonarch_; }
   NABoolean isHbaseCellTable() const { return isHbaseCell_; }
   NABoolean isHbaseRowTable() const { return isHbaseRow_; }
   NABoolean isSeabaseTable() const { return isSeabase_; }
@@ -840,7 +841,6 @@ public:
   NABoolean isUserUpdatableSeabaseMDTable() const { return isUserUpdatableSeabaseMD_; }
 
   void setIsHbaseTable(NABoolean v) { isHbase_ = v; }
-  void setIsMonarchTable(NABoolean v) { isMonarch_ = v; }
   void setIsHbaseCellTable(NABoolean v) { isHbaseCell_ = v; }
   void setIsHbaseRowTable(NABoolean v) { isHbaseRow_ = v; }
   void setIsSeabaseTable(NABoolean v) { isSeabase_ = v; }
@@ -873,6 +873,8 @@ public:
 
   NAString &defaultColFam() { return defaultColFam_; }
   NAList<NAString> &allColFams() { return allColFams_; }
+
+  NABoolean isMonarch() const { return (storageType_ == COM_STORAGE_MONARCH);};
 
 private:
   NABoolean getSQLMXAlignedTable() const
@@ -1078,6 +1080,10 @@ private:
   // transaction replication across multiple clusters
   ComReplType xnRepl_;
 
+  // storage engine where data is stored.
+  // Currently: HBASE or MONARCH
+  ComStorageType storageType_;
+
   // ---------------------------------------------------------------------
   // Flags
   // ---------------------------------------------------------------------
@@ -1177,7 +1183,6 @@ private:
 
   NAString defaultColFam_;
   NAList<NAString> allColFams_;
-  NABoolean isMonarch_;
 }; // class NATable
 
 #pragma warn(1506)  // warning elimination 

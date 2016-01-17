@@ -164,8 +164,6 @@ class CmpSeabaseDDL
 
   static NABoolean isHbase(const NAString &catName);
 
-  static NABoolean isMonarch(const NAString &catName);
-
   static bool isHistogramTable(const NAString &tabName);
 
   static NABoolean isSeabaseMD(const NAString &catName,
@@ -410,8 +408,9 @@ class CmpSeabaseDDL
 
   enum 
     {
-      MD_TABLES_REPL_SYNC_FLG  = 0x0001,
-      MD_TABLES_REPL_ASYNC_FLG = 0x0002
+      MD_TABLES_REPL_SYNC_FLG       = 0x0001,
+      MD_TABLES_REPL_ASYNC_FLG      = 0x0002,
+      MD_TABLES_STORAGE_MONARCH_FLG = 0x0004
       
     };
   static void setMDflags(Int64 &flags, //INOUT

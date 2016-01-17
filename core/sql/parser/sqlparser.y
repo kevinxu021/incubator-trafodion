@@ -1315,6 +1315,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_LOCKING             /* TD extension that HP wants to ignore */
 %token <tokval> TOK_LOCKONREFRESH		// MV
 %token <tokval> TOK_M                   /* Tandem extension */
+%token <tokval> TOK_MONARCH
 %token <tokval> TOK_MOVE                /* Tandem extension */
 %token <tokval> TOK_MOVEMENT            /* Tandem extension */
 %token <tokval> TOK_MVLOG				// MV
@@ -2643,6 +2644,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <pElemDDL>  		file_attribute_row_format_clause
 %type <pElemDDL>  		file_attribute_default_col_fam
 %type <pElemDDL>                file_attribute_str_clause
+%type <pElemDDL>                file_attribute_storage_clause
 %type <pElemDDL>  		file_attribute_pos_clause
 %type <pElemDDL>                attribute_num_rows_clause
 %type <pElemDDL>                attribute_inmemory_options_clause
@@ -26116,6 +26118,7 @@ file_attribute :        file_attribute_allocate_clause
                       | file_attribute_owner_clause
                       | file_attribute_default_col_fam
                       | file_attribute_str_clause
+                      | file_attribute_storage_clause
 
 /* type pElemDDL */           
 file_attribute_allocate_clause : TOK_ALLOCATE unsigned_smallint
@@ -26555,6 +26558,18 @@ file_attribute_str_clause : TOK_SYNCHRONOUS TOK_REPLICATION
                               {
                                 $$ = new (PARSERHEAP()) 
                                   ElemDDLFileAttrXnRepl(COM_REPL_NONE);
+                              }
+
+/* type pElemDDL */
+file_attribute_storage_clause : TOK_STORAGE TOK_MONARCH
+                              {
+                                $$ = new (PARSERHEAP()) 
+                                  ElemDDLFileAttrStorageType(COM_STORAGE_MONARCH);
+                              }
+                          | TOK_STORAGE TOK_HBASE
+                              {
+                                $$ = new (PARSERHEAP()) 
+                                  ElemDDLFileAttrStorageType(COM_STORAGE_HBASE);
                               }
 
 /* type pElemDDL */
@@ -33143,6 +33158,7 @@ nonreserved_word :      TOK_ABORT
 		      | TOK_MINVALUE
                       | TOK_MODE
                       | TOK_MODULES
+                      | TOK_MONARCH
                       | TOK_MORE
                       | TOK_MOVE
                       | TOK_MOVEMENT

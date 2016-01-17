@@ -1726,7 +1726,7 @@ void CmpSeabaseMDcleanup::cleanupObjects(StmtDDLCleanupObjects * stmtCleanupNode
         return;
     }
 
-  ExpHbaseInterface * ehi = allocEHI((isMonarch(currCatName) ? ComTdbHbaseAccess::MONARCH_TABLE : ComTdbHbaseAccess::HBASE_TABLE));
+  ExpHbaseInterface * ehi = allocEHI(FALSE);
   if (ehi == NULL)
     {
       return;

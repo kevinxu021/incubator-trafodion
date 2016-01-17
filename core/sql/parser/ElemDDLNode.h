@@ -107,6 +107,7 @@ class ElemDDLFileAttrUID;
 class ElemDDLFileAttrRowFormat;
 class ElemDDLFileAttrColFam;
 class ElemDDLFileAttrXnRepl;
+class ElemDDLFileAttrStorageType;
 class ElemDDLFileAttrNoLabelUpdate;
 class ElemDDLFileAttrOwner;
 //++ MV
@@ -427,6 +428,7 @@ public:
   virtual ElemDDLFileAttrRowFormat	* castToElemDDLFileAttrRowFormat();
   virtual ElemDDLFileAttrColFam	* castToElemDDLFileAttrColFam();
   virtual ElemDDLFileAttrXnRepl	* castToElemDDLFileAttrXnRepl();
+  virtual ElemDDLFileAttrStorageType	* castToElemDDLFileAttrStorageType();
   virtual ElemDDLFileAttrNoLabelUpdate  * castToElemDDLFileAttrNoLabelUpdate();
   virtual ElemDDLFileAttrOwner          * castToElemDDLFileAttrOwner();
 

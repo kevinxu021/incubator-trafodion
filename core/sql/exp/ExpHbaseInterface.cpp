@@ -74,13 +74,13 @@ ExpHbaseInterface::ExpHbaseInterface(CollHeap * heap,
 ExpHbaseInterface* ExpHbaseInterface::newInstance(CollHeap* heap,
                                                   const char* server,
                                                   const char *zkPort,
-                                                  ComTdbHbaseAccess::TABLE_TYPE tableType,
+                                                  ComStorageType storageType,
 						  NABoolean replSync,
                                                   int debugPort,
                                                   int debugTimeout)
 {
   return new (heap) ExpHbaseInterface_JNI(heap, server, TRUE, replSync, zkPort,
-                                          debugPort, debugTimeout, tableType); // This is the transactional interface
+                                          debugPort, debugTimeout, storageType); // This is the transactional interface
 }
 
 short ExpHbaseInterface::fixupMonarchName(HbaseStr &tblName)
@@ -316,7 +316,7 @@ char * getHbaseErrStr(Lng32 errEnum)
 // ===========================================================================
 
 ExpHbaseInterface_JNI::ExpHbaseInterface_JNI(CollHeap* heap, const char* server, bool useTRex, NABoolean replSync, 
-                                             const char *zkPort, int debugPort, int debugTimeout, ComTdbHbaseAccess::TABLE_TYPE tableType)
+                                             const char *zkPort, int debugPort, int debugTimeout, ComStorageType storageType)
      : ExpHbaseInterface(heap, server, zkPort, debugPort, debugTimeout)
    ,useTRex_(useTRex)
    ,replSync_(replSync)
@@ -326,7 +326,7 @@ ExpHbaseInterface_JNI::ExpHbaseInterface_JNI(CollHeap* heap, const char* server,
    ,hive_(NULL)
    ,asyncHtc_(NULL)
    ,retCode_(HBC_OK)
-   ,tableType_(tableType)
+   ,storageType_(storageType)
    ,mClient_(NULL)
    ,mtc_(NULL)
    ,asyncMtc_(NULL)
@@ -367,8 +367,8 @@ Lng32 ExpHbaseInterface_JNI::init(ExHbaseAccessStats *hbs)
 {
   //HBaseClient_JNI::logIt("ExpHbaseInterface_JNI::init() called.");
   // Cannot use statement heap - objects persist accross statements.
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      {
         if (mClient_ == NULL) {
            MonarchClient_JNI::logIt("ExpHbaseInterface_JNI::init() creating new client.");
@@ -435,8 +435,8 @@ Lng32 ExpHbaseInterface_JNI::initHive()
 Lng32 ExpHbaseInterface_JNI::cleanup()
 {
   //  HBaseClient_JNI::logIt("ExpHbaseInterface_JNI::cleanup() called.");
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      if (mClient_ != NULL) {
         if (mtc_ != NULL) {
            mClient_->releaseMTableClient(mtc_);
@@ -468,8 +468,8 @@ Lng32 ExpHbaseInterface_JNI::cleanup()
 //----------------------------------------------------------------------------
 Lng32 ExpHbaseInterface_JNI::cleanupClient()
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      if (mClient_ != NULL) 
         mClient_->cleanup();
      break; 
@@ -486,8 +486,8 @@ Lng32 ExpHbaseInterface_JNI::cleanupClient()
 Lng32 ExpHbaseInterface_JNI::close()
 {
 //  HBaseClient_JNI::logIt("ExpHbaseInterface_JNI::close() called.");
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      if (mClient_ == NULL) 
         return HBASE_ACCESS_SUCCESS;
      break; 
@@ -569,8 +569,8 @@ Lng32 ExpHbaseInterface_JNI::alter(HbaseStr &tblName,
 				   NAText * hbaseCreateOptionsArray,
                                    NABoolean noXn)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
     fixupMonarchName(tblName);
 
       return HBASE_NOT_IMPLEMENTED;
@@ -597,8 +597,8 @@ Lng32 ExpHbaseInterface_JNI::alter(HbaseStr &tblName,
 //----------------------------------------------------------------------------
 Lng32 ExpHbaseInterface_JNI::registerTruncateOnAbort(HbaseStr &tblName, NABoolean noXn)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
     fixupMonarchName(tblName);
 
       return HBASE_NOT_IMPLEMENTED;
@@ -634,8 +634,8 @@ Lng32 ExpHbaseInterface_JNI::drop(HbaseStr &tblName, NABoolean async, NABoolean 
   else
     transID = getTransactionIDFromContext();
 
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      if (mClient_ == NULL) {
         if (init(hbs_) != HBASE_ACCESS_SUCCESS)
            return -HBASE_ACCESS_ERROR;
@@ -663,8 +663,8 @@ Lng32 ExpHbaseInterface_JNI::drop(HbaseStr &tblName, NABoolean async, NABoolean 
 //----------------------------------------------------------------------------
 Lng32 ExpHbaseInterface_JNI::dropAll(const char * pattern, NABoolean async)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
       return HBASE_NOT_IMPLEMENTED;
       break;
   default:
@@ -685,8 +685,8 @@ Lng32 ExpHbaseInterface_JNI::dropAll(const char * pattern, NABoolean async)
 //----------------------------------------------------------------------------
 ByteArrayList* ExpHbaseInterface_JNI::listAll(const char * pattern)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
       return NULL;
       break;
   default:
@@ -707,8 +707,8 @@ ByteArrayList* ExpHbaseInterface_JNI::listAll(const char * pattern)
 //----------------------------------------------------------------------------
 Lng32 ExpHbaseInterface_JNI::copy(HbaseStr &currTblName, HbaseStr &oldTblName)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
       return HBASE_NOT_IMPLEMENTED;
       break;
   default:
@@ -729,8 +729,8 @@ Lng32 ExpHbaseInterface_JNI::copy(HbaseStr &currTblName, HbaseStr &oldTblName)
 //----------------------------------------------------------------------------
 Lng32 ExpHbaseInterface_JNI::exists(HbaseStr &tblName)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      if (mClient_ == NULL) {
         if (init(hbs_) != HBASE_ACCESS_SUCCESS)
            return -HBASE_ACCESS_ERROR;
@@ -789,8 +789,8 @@ Lng32 ExpHbaseInterface_JNI::scanOpen(
                                       HbaseAccessOptions *hao,
                                       const char * hbaseAuths)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
     fixupMonarchName(tblName);
     
     return HBASE_NOT_IMPLEMENTED;
@@ -842,8 +842,8 @@ Lng32 ExpHbaseInterface_JNI::scanOpen(
 //----------------------------------------------------------------------------
 Lng32 ExpHbaseInterface_JNI::scanClose()
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
       return HBASE_NOT_IMPLEMENTED;
       break;
   default:
@@ -866,8 +866,8 @@ Lng32 ExpHbaseInterface_JNI::getRowOpen(
         const char * hbaseAuths)
 {
   Int64 transID = getTransactionIDFromContext();
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
     fixupMonarchName(tblName);
 
      mtc_ = mClient_->startGet((NAHeap *)heap_, (char *)tblName.val, useTRex_, FALSE, 
@@ -909,8 +909,8 @@ Lng32 ExpHbaseInterface_JNI::getRowsOpen(
         const char * hbaseAuths)
 {
   Int64 transID = getTransactionIDFromContext();
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
     fixupMonarchName(tblName);
 
      mtc_ = mClient_->startGets((NAHeap *)heap_, (char *)tblName.val, useTRex_, FALSE, 
@@ -949,8 +949,8 @@ Lng32 ExpHbaseInterface_JNI::deleteRow(
     transID = 0;
   else
     transID = getTransactionIDFromContext();
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
     fixupMonarchName(tblName);
 
      MTableClient_JNI *mtc;
@@ -999,8 +999,8 @@ Lng32 ExpHbaseInterface_JNI::deleteRows(
   else
     transID = getTransactionIDFromContext();
 
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      MTableClient_JNI *mtc;
      fixupMonarchName(tblName);
 
@@ -1052,8 +1052,8 @@ Lng32 ExpHbaseInterface_JNI::checkAndDeleteRow(
     transID = 0;
   else
     transID = getTransactionIDFromContext();
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
     fixupMonarchName(tblName);
 
      MTableClient_JNI *mtc;
@@ -1109,8 +1109,8 @@ Lng32 ExpHbaseInterface_JNI::insertRow(
     transID = 0;
   else
     transID = getTransactionIDFromContext();
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
     fixupMonarchName(tblName);
 
      MTableClient_JNI *mtc;
@@ -1157,8 +1157,8 @@ Lng32 ExpHbaseInterface_JNI::insertRows(
     transID = 0;
   else
     transID = getTransactionIDFromContext();
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
     fixupMonarchName(tblName);
 
      MTableClient_JNI *mtc;
@@ -1203,8 +1203,8 @@ Lng32 ExpHbaseInterface_JNI::updateVisibility(
     transID = 0;
   else
     transID = getTransactionIDFromContext();
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
       return HBASE_NOT_IMPLEMENTED;
       break;
   default:
@@ -1229,8 +1229,8 @@ Lng32 ExpHbaseInterface_JNI::getRowsOpen(
 {
   Int64 transID;
   transID = getTransactionIDFromContext();
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
     fixupMonarchName(tblName);
 
      mtc_ = mClient_->startGets((NAHeap *)heap_, (char *)tblName.val, useTRex_, FALSE, hbs_,
@@ -1255,8 +1255,8 @@ Lng32 ExpHbaseInterface_JNI::setWriteBufferSize(
                                 HbaseStr &tblName,
                                 Lng32 size)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
       return HBASE_NOT_IMPLEMENTED;
       break;
   default:
@@ -1281,8 +1281,8 @@ Lng32 ExpHbaseInterface_JNI::setWriteToWAL(
                                 NABoolean WAL )
 { 
 
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
       return HBASE_NOT_IMPLEMENTED;
       break;
   default:
@@ -1307,8 +1307,8 @@ Lng32 ExpHbaseInterface_JNI::setWriteToWAL(
 
 Lng32 ExpHbaseInterface_JNI::initHBLC(ExHbaseAccessStats* hbs)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
       return HBASE_NOT_IMPLEMENTED;
       break;
   default:
@@ -1512,8 +1512,8 @@ Lng32 ExpHbaseInterface_JNI::isEmpty(
 {
   Lng32 retcode;
 
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
       return HBASE_NOT_IMPLEMENTED;
       break;
   default:
@@ -1556,8 +1556,8 @@ Lng32 ExpHbaseInterface_JNI::checkAndInsertRow(
     transID = 0; 
   else 
     transID = getTransactionIDFromContext();
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      MTableClient_JNI *mtc;
      retCode_ = mClient_->insertRow((NAHeap *)heap_, tblName.val, hbs_,
 				useTRex_, replSync, transID, rowID, row, timestamp, checkAndPut, asyncOperation, &mtc);
@@ -1611,8 +1611,8 @@ Lng32 ExpHbaseInterface_JNI::checkAndUpdateRow(
     transID = 0; 
   else 
     transID = getTransactionIDFromContext();
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      MTableClient_JNI *mtc;
      retCode_ = mClient_->checkAndUpdateRow((NAHeap *)heap_, tblName.val, hbs_,
 					useTRex_, replSync, 
@@ -1658,8 +1658,8 @@ Lng32 ExpHbaseInterface_JNI::coProcAggr(
 				    const NABoolean replSync,
 				    Text &aggrVal) // returned value
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
       return HBASE_NOT_IMPLEMENTED;
       break;
   default:
@@ -1687,8 +1687,8 @@ Lng32 ExpHbaseInterface_JNI::coProcAggr(
 //----------------------------------------------------------------------------
 Lng32 ExpHbaseInterface_JNI::getClose()
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      if (mtc_) {
         mClient_->releaseMTableClient(mtc_);
         mtc_ = NULL;
@@ -1710,8 +1710,8 @@ Lng32 ExpHbaseInterface_JNI::grant(
 				   const Text& tblName,
 				   const std::vector<Text> & actionCodes)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
       return HBASE_NOT_IMPLEMENTED;
       break;
   default:
@@ -1728,8 +1728,8 @@ Lng32 ExpHbaseInterface_JNI::revoke(
 				   const Text& tblName,
 				   const std::vector<Text> & actionCodes)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
       return HBASE_NOT_IMPLEMENTED;
       break;
   default:
@@ -1771,8 +1771,8 @@ Lng32 ExpHbaseInterface_JNI::getColVal(int colNo, BYTE *colVal,
                                        NABoolean nullable, BYTE &nullVal,
                                        BYTE *tag, Lng32 &tagLen)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      MTC_RetCode mtcRetCode;
      if (mtc_ != NULL) {
         mtcRetCode = mtc_->getColVal(colNo, colVal, colValLen, nullable,
@@ -1803,8 +1803,8 @@ Lng32 ExpHbaseInterface_JNI::getColVal(int colNo, BYTE *colVal,
 Lng32 ExpHbaseInterface_JNI::getColVal(NAHeap *heap, int colNo, 
           BYTE **colVal, Lng32 &colValLen)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      MTC_RetCode mtcRetCode;
      if (mtc_ != NULL)
         mtcRetCode = mtc_->getColVal(heap, colNo, colVal, colValLen);
@@ -1831,8 +1831,8 @@ Lng32 ExpHbaseInterface_JNI::getColVal(NAHeap *heap, int colNo,
 
 Lng32 ExpHbaseInterface_JNI::getRowID(HbaseStr &rowID)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      MTC_RetCode mtcRetCode;
      if (mtc_ != NULL)
         mtcRetCode = mtc_->getRowID(rowID);
@@ -1859,8 +1859,8 @@ Lng32 ExpHbaseInterface_JNI::getRowID(HbaseStr &rowID)
 
 Lng32 ExpHbaseInterface_JNI::getNumCellsPerRow(int &numCells)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      MTC_RetCode mtcRetCode;
      if (mtc_ != NULL)
         mtcRetCode = mtc_->getNumCellsPerRow(numCells);
@@ -1894,8 +1894,8 @@ Lng32 ExpHbaseInterface_JNI::getColName(int colNo,
               short &colNameLen,
               Int64 &timestamp)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      MTC_RetCode mtcRetCode;
      if (mtc_ != NULL)
         mtcRetCode = mtc_->getColName(colNo, outColName, colNameLen, timestamp);
@@ -1922,8 +1922,8 @@ Lng32 ExpHbaseInterface_JNI::getColName(int colNo,
 
 Lng32 ExpHbaseInterface_JNI::nextRow()
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      MTC_RetCode mtcRetCode;
      if (mtc_ != NULL)
         mtcRetCode = mtc_->nextRow();
@@ -1963,8 +1963,8 @@ Lng32 ExpHbaseInterface_JNI::nextCell(HbaseStr &rowId,
           HbaseStr &colVal,
           Int64 &timestamp)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      MTC_RetCode mtcRetCode;
      if (mtc_ != NULL)
         mtcRetCode = mtc_->nextCell(rowId, colFamName,
@@ -1998,8 +1998,8 @@ Lng32 ExpHbaseInterface_JNI::nextCell(HbaseStr &rowId,
 Lng32 ExpHbaseInterface_JNI::completeAsyncOperation(Int32 timeout, NABoolean *resultArray, 
 		Int16 resultArrayLen)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      MTC_RetCode mtcRetCode;
      if (asyncMtc_ != NULL)
         mtcRetCode = asyncMtc_->completeAsyncOperation(timeout, resultArray, resultArrayLen);
@@ -2038,8 +2038,8 @@ Lng32 ExpHbaseInterface_JNI::estimateRowCount(HbaseStr& tblName,
                                               Int32 numCols,
                                               Int64& estRC)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      estRC = 0;
      retCode_ =  HBASE_ACCESS_SUCCESS;
      break;
@@ -2061,8 +2061,8 @@ Lng32 ExpHbaseInterface_JNI::getRegionsNodeName(const HbaseStr& tblName,
                                                 Int32 partns,
                                                 ARRAY(const char *)& nodeNames)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      retCode_ =  HBASE_ACCESS_SUCCESS;
      break;
   default:
@@ -2085,8 +2085,8 @@ Lng32 ExpHbaseInterface_JNI::getHbaseTableInfo(const HbaseStr& tblName,
                                                Int32& indexLevels,
                                                Int32& blockSize)
 {
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      retCode_ =  HBASE_ACCESS_SUCCESS;
      break;
   default:
@@ -2177,8 +2177,8 @@ ByteArrayList * ExpHbaseInterface_JNI::getRegionStats(const HbaseStr& tblName)
 {
   ByteArrayList *regionStats;
 
-  switch (tableType_) {
-  case ComTdbHbaseAccess::MONARCH_TABLE:
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
      regionStats = NULL;
      break;
   default:

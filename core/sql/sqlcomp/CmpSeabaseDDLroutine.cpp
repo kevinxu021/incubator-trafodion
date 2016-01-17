@@ -311,7 +311,7 @@ void CmpSeabaseDDL::createSeabaseLibrary(
      
   ExpHbaseInterface * ehi = NULL;
 
-  ehi = allocEHI(isMonarch(catalogNamePart));
+  ehi = allocEHI(FALSE);
   if (ehi == NULL)
     {
       processReturn();
@@ -446,7 +446,7 @@ void CmpSeabaseDDL::dropSeabaseLibrary(StmtDDLDropLibrary * dropLibraryNode,
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
     CmpCommon::context()->sqlSession()->getParentQid());
 
-  ExpHbaseInterface * ehi = allocEHI(isMonarch(catalogNamePart));
+  ExpHbaseInterface * ehi = allocEHI(FALSE);
   if (ehi == NULL)
     return;
 
@@ -590,7 +590,7 @@ void CmpSeabaseDDL::createSeabaseRoutine(
   
   ExpHbaseInterface * ehi = NULL;
 
-  ehi = allocEHI(isMonarch(catalogNamePart));
+  ehi = allocEHI(FALSE);
   if (ehi == NULL)
     {
       processReturn();
@@ -1161,7 +1161,7 @@ void CmpSeabaseDDL::dropSeabaseRoutine(StmtDDLDropRoutine * dropRoutineNode,
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
     CmpCommon::context()->sqlSession()->getParentQid());
 
-  ehi = allocEHI(isMonarch(catalogNamePart));
+  ehi = allocEHI(FALSE);
   if (ehi == NULL)
     {
       processReturn();

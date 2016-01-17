@@ -1,0 +1,50 @@
+>>obey TEST030(creates);
+>>create table test030t1 (a int not null primary key, b int)
++>  attribute storage monarch;
+
+--- SQL operation complete.
+>>invoke test030t1;
+
+-- Definition of Monarch table TRAFODION.TEST030_SCH.TEST030T1
+-- Definition current  Sun Jan 17 01:50:46 2016
+
+  (
+    A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
+  , B                                INT DEFAULT NULL
+  )
+
+--- SQL operation complete.
+>>
+>>obey TEST030(inserts);
+>>upsert into test030t1 values (1,2);
+
+--- 1 row(s) inserted.
+>>
+>>obey TEST030(selects);
+>>explain options 'f' select * from test030t1 where a = 1;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+1    .    2    root                  o                               1.00E+000
+.    .    1    monarch_scan                    TEST030T1             1.00E+000
+
+--- SQL operation complete.
+>>select * from test030t1 where a = 1;
+
+A            B          
+-----------  -----------
+
+          1            2
+
+--- 1 row(s) selected.
+>>select * from test030t1 where a = 0;
+
+--- 0 row(s) selected.
+>>
+>>obey TEST030(clean_up);
+>>drop table test030t1;
+
+--- SQL operation complete.
+>>
+>>log;
