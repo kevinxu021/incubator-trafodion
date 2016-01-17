@@ -97,7 +97,7 @@ define([
 			var TAB_LINK = $(SCHEMA_DETAILS_CONTAINER+' .tab-pane.active');
 			if(TAB_LINK){
 				var selectedTab = '#'+TAB_LINK.attr('id');
-				if(selectedTab == ATTRIBUTES_SELECTOR || selectedTab == DDL_TEXT_SELECTOR || selectedTab == PRIVILEGES_SELECTOR){
+				if(selectedTab == ATTRIBUTES_SELECTOR || selectedTab == DDL_SELECTOR || selectedTab == PRIVILEGES_SELECTOR){
 					//no-op
 				}else{
 					$(SCHEMA_DETAILS_CONTAINER +' a:first').tab('show');

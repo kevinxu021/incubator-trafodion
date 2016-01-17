@@ -157,8 +157,11 @@ public class QueryPlanModel {
 			if (queryID != null && queryID.length() > 0) {
 				if (queryType != null && queryType.equalsIgnoreCase("active")) {
 					try {
-						rs = stmt
-								.executeQuery(String.format("SELECT * FROM TABLE(explain(null, 'QID=%1$s'))", queryID));
+						String explainQryText = String.format("SELECT * FROM TABLE(explain(null, 'QID=%1$s'))",
+								queryID);
+						_LOG.debug(explainQryText);
+						rs = stmt.executeQuery(explainQryText);
+
 						while (rs.next()) {
 							explainSuccess = true;
 							QueryPlanData qpd = new QueryPlanData();
@@ -185,14 +188,17 @@ public class QueryPlanModel {
 						rs.close();
 					} catch (Exception ex) {
 						// System.out.println("Failed using EXPLAIN_QID");
+						_LOG.error("Explain failed: " + ex.getMessage());
 					}
 				}
 
 				try {
 					// System.out.println("Using EXPLAIN_QID first");
 					if (!explainSuccess) {
-						rs = stmt.executeQuery(
-								String.format("SELECT * FROM TABLE(explain(null, 'EXPLAIN_QID=%1$s'))", queryID));
+						String explainQryText = String.format("SELECT * FROM TABLE(explain(null, 'EXPLAIN_QID=%1$s'))",
+								queryID);
+						_LOG.debug(explainQryText);
+						rs = stmt.executeQuery(explainQryText);
 						while (rs.next()) {
 							explainSuccess = true;
 							QueryPlanData qpd = new QueryPlanData();
@@ -220,7 +226,9 @@ public class QueryPlanModel {
 					}
 
 					if (explainSuccess) {
-						rs = stmt.executeQuery("explain qid " + queryID + " from repository");
+						String explainQryText = "explain qid " + queryID + " from repository";
+						_LOG.debug(explainQryText);
+						rs = stmt.executeQuery(explainQryText);
 						StringBuilder sb = new StringBuilder();
 
 						while (rs.next()) {
@@ -234,6 +242,7 @@ public class QueryPlanModel {
 					}
 
 				} catch (Exception ex) {
+					_LOG.error("Explain failed: " + ex.getMessage());
 					// System.out.println("Failed using EXPLAIN_QID");
 				}
 			}
@@ -250,6 +259,7 @@ public class QueryPlanModel {
 
 				String exQuery = "SELECT * FROM TABLE(explain(null, 'EXPLAIN_STMT=" + delimitedQueryText + " '))";
 				// System.out.println(exQuery);
+				_LOG.debug(exQuery);
 				rs = stmt.executeQuery(exQuery);
 
 				while (rs.next()) {

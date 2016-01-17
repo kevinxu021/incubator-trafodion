@@ -7,7 +7,9 @@
 	<div class="row">
 		<div class="col-lg-12">
 			<div class="panel panel-default">
-				<div class="panel-heading">Query</div>
+				<div class="panel-heading">Query
+					<span class="pull-right dbmgr-collapsible"><i class="fa fa-sort-up"></i></span>
+				</div>
 				<div class="panel-body">
 					<div id="workbench-query">
 						<label>Query Text</label>
@@ -15,20 +17,23 @@
 							placeholder="Enter a SQL query..." rows="3" class="textarea"
 							style="width: 95%; margin-bottom: 10px"></textarea>
 						<br>
-						<button id="executeQuery" class="btn btn-primary fa fa-play"
+						<button id="executeQuery" class="btn btn-primary dbmgr-button fa fa-play"
 							style="font-family: FontAwesome;"> Execute</button>
-						<button id="explainQuery" class="btn btn-success fa fa-sitemap"
+						<button id="explainQuery" class="btn btn-success dbmgr-button fa fa-sitemap"
 							style="font-family: FontAwesome;"> Explain</button>
-						<button id="clearAction" class="btn btn-default fa fa-eraser"
+						<button id="clearAction" class="btn btn-default dbmgr-button fa fa-eraser"
 							style="font-family: FontAwesome;"> Clear</button>
-						<button id="setControlStmts" class="btn btn-info fa fa-gear"
+						<button id="setControlStmts" class="btn btn-info dbmgr-button fa fa-gear"
 							style="font-family: FontAwesome;"> Options</button>
 					</div>
 				</div>
 			</div>
 			<br />
 			<div class="panel panel-default">
-				<div id="result-panel-title" class="panel-heading">Result</div>
+				<div id="result-panel-title" class="panel-heading">Result
+					<span class="pull-right dbmgr-collapsible"><i class="fa fa-sort-up"></i></span>
+				</div>
+				
 				<div id="primary-result-container" class="panel-body">
 					<img id="loadingImg" src="img/ajax-loader.gif" />
 					<div id="query-result-container" class="table-responsive"></div>
@@ -39,7 +44,9 @@
 				</div>
 			</div>
 			<div id="text-result-container" class="panel panel-default">
-				<div class="panel-heading">Text Plan</div>
+				<div class="panel-heading">Text Plan
+					<span class="pull-right dbmgr-collapsible"><i class="fa fa-sort-up"></i></span>
+				</div>
 				<div class="panel-body">
 					<textarea id="text-result"
 						style="width: 100%; height: 400px; font-family: Courier New, Courier, monospace; font-weight: 600"

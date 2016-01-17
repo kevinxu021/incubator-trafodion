@@ -9,8 +9,6 @@ package com.esgyn.dbmgr.resources;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -107,20 +105,17 @@ public class ServerResource {
 			Class.forName(server.getJdbcDriverClass());
 			connection = DriverManager.getConnection(url, usr, pwd);
 
-			Statement stmt = connection.createStatement();
-			ResultSet rs = stmt.executeQuery("info system");
-			while (rs.next()) {
-				ConfigurationResource.setServerTimeZone(rs.getString("TM_ZONE"));
-				ConfigurationResource.setServerUTCOffset(rs.getLong("TM_GMTOFF_SEC"));
-				break;
-			}
-			rs = stmt.executeQuery("get version of software");
-			if (rs.next()) {
-				String version = rs.getString(1);
-				String[] versionparts = version.split(":");
-				ConfigurationResource
-						.setSystemVersion(versionparts.length > 1 ? versionparts[1].trim() : versionparts[0]);
-			}
+			/*
+			 * Statement stmt = connection.createStatement(); ResultSet rs =
+			 * stmt.executeQuery("info system"); while (rs.next()) {
+			 * ConfigurationResource.setServerTimeZone(rs.getString("TM_ZONE"));
+			 * ConfigurationResource.setServerUTCOffset(rs.getLong(
+			 * "TM_GMTOFF_SEC")); break; } rs = stmt.executeQuery(
+			 * "get version of software"); if (rs.next()) { String version =
+			 * rs.getString(1); String[] versionparts = version.split(":");
+			 * ConfigurationResource .setSystemVersion(versionparts.length > 1 ?
+			 * versionparts[1].trim() : versionparts[0]); }
+			 */
 
 		} catch (Exception e) {
 			_LOG.error(e.getMessage());

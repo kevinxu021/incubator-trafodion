@@ -61,33 +61,48 @@
 </head>
 
 <body>
+	<nav class="navbar navbar-default navbar-static-top" role="navigation"
+		style="margin-bottom: 0">
+		<div class="navbar-header">
+			<button type="button" class="navbar-toggle" data-toggle="collapse"
+				data-target=".navbar-collapse">
+				<span class="sr-only">Toggle navigation</span> <span class="icon-bar"></span>
+				<span class="icon-bar"></span> <span class="icon-bar"></span>
+			</button>
+			<div style="display: inline-flex">
+				<!--<img id="title-img" src="img/DBMgr_Logo.png" alt="logo"/>-->
+				<a class="navbar-brand dbmgr-title"> EsgynDB Manager</a>
+			</div>
+		</div>
+	</nav>
 	<!--<div id="content-container">-->
 	<div id="wrapper">
 		<div class="row">
 			<div class="col-md-4 col-md-offset-4">
 				<div class="login-panel panel panel-default"
-					style="margin: 150px auto; vertical-align: middle; width: 400px;">
+					style="margin-bottom: 150px;margin-left: auto;margin-right: auto;margin-top: 100px;width: 400px;">
 					<div class="panel-heading">
 						<header id="title-header">
-							<h1 style="text-align: center; font-size: 24px">EsgynDB
-								Manager</h1>
+							<h1 style="text-align: center; font-size: 24px;">Login</h1>
 						</header>
 					</div>
 					<div class="panel-body">
 						<form id="login-form" role="form" onsubmit="return false">
 							<fieldset>
 								<div class="form-group">
+									<label for="username"><i class="glyphicon glyphicon-user"></i> Username</label>
 									<input name="username" id="username" class="form-control"
-										placeholder="User Name" name="username"
+										name="username"
 										style="height: 40px; font-size: 18px" autofocus>
 								</div>
 								<div class="form-group">
+									<label for="password"><i class="glyphicon glyphicon-lock"></i> Password</label>
 									<input name="password" id="password" class="form-control"
-										placeholder="Password" name="password" type="password"
+										name="password" type="password"
 										value="" style="height: 40px; font-size: 18px">
 								</div>
 								<!-- Change this to a button or input when using this as a form -->
-								<button id="loginBtn" class="btn btn-success btn-block">Login</button>
+								<button id="loginBtn" class="btn btn-success btn-block" style="font-weight:bold">Login</button>
 							</fieldset>
 							<label id="login-error-text"
 								style="color: red; font-weight: 500; display: none"></label> <img
@@ -105,7 +120,7 @@
 
 </body>
 <footer class="footer"
-	style="position: absolute; bottom: 50px; width: 100%; height: 60px; background-color: #f5f5f5;">
+	style="position: absolute; bottom: 40px; width: 100%; height: 60px;">
 	<div class="container">
 		<a title="EsgynDB Manager" href="/" class="dbmgr-login-footer">EsgynDB
 			Manager</a>

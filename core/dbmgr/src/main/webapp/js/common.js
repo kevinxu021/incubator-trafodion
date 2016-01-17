@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -437,15 +437,13 @@ define(['moment',
 					//set distance between node and its children
 					levelDistance: 40,
 					siblingOffset: 100,
-				    width: this.calculateWidth(jsonData, container),						   
-				    height: this.calculateHeight(jsonData.treeDepth),
 					//set max levels to show. Useful when used with
 					//the request method for requesting trees of specific depth
 					levelsToShow: jsonData.treeDepth,
 					offsetX: -(jsonData.treeDepth * 25),//-100,
 					offsetY: this.calculateHeight(jsonData.treeDepth)/2,//350,
-					//width: $('#dbmgr-1').width(),
-					//height: $('#dbmgr-1').height(),	        		
+	 				width: this.calculateWidth(jsonData, container),						   
+	 				height: this.calculateHeight(jsonData.treeDepth),        		
 					//set node and edge styles
 					//set overridable=true for styling individual
 					//nodes or edges
@@ -459,6 +457,7 @@ define(['moment',
 						lineWidth: 2,
 						align:"center",
 						overridable: true
+						
 					},
 					Navigation: {  
 						enable: true,  
@@ -520,7 +519,7 @@ define(['moment',
 					//your node.
 					onCreateLabel: function(label, node){
 						var nodeName = node.name;
-						nodeName = nodeName.replace("_", " ");
+						nodeName = nodeName.replace(/_/gi, " ");
 						nodeName = nodeName.replace("SEABASE","TRAFODION");
 						nodeName = _this.toProperCase(nodeName);
 
@@ -640,21 +639,29 @@ define(['moment',
 						}
 						label.id = node.id;            
 						label.innerHTML = html;
+
+						label.onmouseover = function(e){
+							$(e.currentTarget).children('img').css({"border": "crimson", "border-width": "3px", "border-style":"dashed"});
+						};
+						label.onmouseout = function(e){
+							$(e.currentTarget).children('img').css({"border": "white", "border-width": "0", "border-style":"none"});
+						};
+						
 						label.ondblclick = function(){
 							var m = { 
 									offsetX: st.canvas.translateOffsetX, 
 									offsetY: st.canvas.translateOffsetY 
 							}; 
-							st.onClick(node.id, { Move: m }); 
+							//st.onClick(node.id, { Move: m }); 
 							if(onClickCallback){
 								onClickCallback(node.name, node.data.formattedCostDesc);
 							}
 						};
 						//set label styles
 						var style = label.style;
-						style.width = 175 + 'px';
+						style.width = 130 + 'px';
 						style.height = 17 + 'px';            
-						style.cursor = 'pointer';
+						//style.cursor = 'pointer';
 						style.color = '#000';
 						style.display = 'inline-table';
 						//style.backgroundColor = '#1a1a1a';
