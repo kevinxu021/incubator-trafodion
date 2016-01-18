@@ -53,6 +53,7 @@ ExpORCinterface::~ExpORCinterface()
 {
   // close. Ignore errors.
   scanClose();
+  NADELETE(ofr_, OrcFileReader, heap_);
 }
 
 Lng32 ExpORCinterface::init()

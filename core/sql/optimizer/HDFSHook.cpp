@@ -1341,13 +1341,22 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
    HHDFSFileStats::populate(fs, fileInfo, samples, diags, doEstimation, recordTerminator);
 
    ExpORCinterface* orci = ExpORCinterface::newInstance(heap_);
-   orci->getStripeInfo(getFileName().data(), numOfRows_, offsets_, totalBytes_);
+   if (orci == NULL) {
+     diags.recordError(NAString("Could not allocate an object of class ExpORCInterface") +
+		       "HHDFSORCFileStats::populate");
+     return;
+   }
 
+   orci->getStripeInfo(getFileName().data(), numOfRows_, offsets_, totalBytes_);
+   
    totalRows_ = 0;
    for (Int32 i=0; i<numOfRows_.entries(); i++) 
    {
       totalRows_ += numOfRows_[i];
    }
+
+   delete orci;
+
 }
 
 

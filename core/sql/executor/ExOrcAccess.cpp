@@ -139,6 +139,9 @@ ExOrcScanTcb::ExOrcScanTcb(
 
 ExOrcScanTcb::~ExOrcScanTcb()
 {
+  if (orci_ != NULL) {
+    delete orci_;
+  }
 }
 
 short ExOrcScanTcb::extractAndTransformOrcSourceToSqlRow(

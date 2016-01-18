@@ -80,6 +80,8 @@ public class OrcFileReader
     Reader.Options		m_options;
     boolean                     m_include_cols[];
     int                         m_col_count;
+
+    boolean                     m_memory_allocated = false;
     ByteBuffer                  m_block_bb;
     int                         m_allocation_size = 1024 * 1024;
     int                         m_max_rows_to_fill_in_block;
@@ -97,16 +99,6 @@ public class OrcFileReader
     private static final int ISNULL = 8;
     private static final int IN = 9;
 
-    public static class OrcRowReturnSQL
-    {
-	int m_row_length;
-	int m_column_count;
-	long m_row_number;
-	byte[] m_row_ba = new byte[4096];
-    }
-
-    OrcRowReturnSQL		rowData; 
-
     /* Only to be used for testing - when called by this file's main() */
     static void setupLog4j() {
        System.out.println("In setupLog4J");
@@ -120,12 +112,11 @@ public class OrcFileReader
     {
 	if (logger.isTraceEnabled()) logger.trace("Enter OrcFileReader()");
 	m_conf = new Configuration();
-	rowData = new OrcRowReturnSQL();     
     }
 
     private SearchArgument buildSARG(Object[] ppi_vec)
     {
-        //        System.out.println("buildSARG called, ppi_vec.length = " + ppi_vec.length);
+        if (logger.isDebugEnabled()) logger.debug("buildSARG called, ppi_vec.length = " + ppi_vec.length);
 
         SearchArgument.Builder builder = SearchArgumentFactory.newBuilder();
         
@@ -134,7 +125,7 @@ public class OrcFileReader
             bb.order(ByteOrder.LITTLE_ENDIAN);
 
             int type = bb.getInt();
-            //            System.out.println("type = " + type);
+            if (logger.isDebugEnabled()) logger.debug("type = " + type);
 
             int colNameLen = bb.getInt();
             byte[] colName = null;
@@ -149,11 +140,11 @@ public class OrcFileReader
                 oper = new byte[operLen];
                 bb.get(oper, 0, operLen);
 
-                //                System.out.println("operLen = " + operLen + " oper " + Bytes.toString(oper));
+            if (logger.isDebugEnabled()) logger.debug("operLen = " + operLen + " oper " + Bytes.toString(oper));
             }
 
             if (type == EQUALS) {
-                //                System.out.println("colNameLen = " + colNameLen + " colName = " + Bytes.toString(colName));
+		if (logger.isDebugEnabled()) logger.debug("colNameLen = " + colNameLen + " colName = " + Bytes.toString(colName));
             }
 
             switch (type) {
@@ -202,7 +193,9 @@ public class OrcFileReader
     }
 
     
-    public String open(String pv_file_name, long offset, long length,
+    public String open(String pv_file_name, 
+		       long   offset, 
+		       long   length,
 		       int    pv_num_cols_to_project,
 		       int[]  pv_which_cols,
                        Object[] ppi_vec,
@@ -326,11 +319,21 @@ public class OrcFileReader
 	    return "open:RecordReader is null";
 	}
 
+	if (logger.isDebugEnabled()) logger.debug("Exit open()");
+	return null;
+    }
+
+    void allocateMemory() 
+    {
+	if (m_memory_allocated) {
+	    return;
+	}
+
 	m_block_bb = ByteBuffer.allocateDirect(m_allocation_size);
 
 	m_max_rows_to_fill_in_block = 128;
-	if (logger.isDebugEnabled()) logger.debug("Exit open()");
-	return null;
+
+	m_memory_allocated = true;
     }
     
     boolean moreRowsInBatch()
@@ -429,7 +432,9 @@ public class OrcFileReader
 	    if (logger.isTraceEnabled()) logger.error("reader.rows returned an exception: " + e1);
 	}
 	m_file_path = null;            
-	
+
+	m_block_bb = null;
+	m_memory_allocated = false;
 	
 	if (m_batch != null) {
 	    m_batch.reset();
@@ -1090,6 +1095,7 @@ public class OrcFileReader
 	int lv_filled_bytes = 0;
 	boolean lv_done = false;
 
+	allocateMemory();
 	m_block_bb.clear();
 	m_block_bb.order(m_byteorder);
 
@@ -1143,6 +1149,7 @@ public class OrcFileReader
 	int lv_filled_bytes = 0;
 	boolean lv_done = false;
 
+	allocateMemory();
 	m_block_bb.clear();
 	m_block_bb.order(m_byteorder);
 
@@ -1180,49 +1187,6 @@ public class OrcFileReader
 	return m_block_bb;
     }
 	
-    public OrcRowReturnSQL fetchNextRowObj() throws Exception
-    {
-
-	if (logger.isTraceEnabled()) logger.trace("Enter fetchNextRowObj()");
-
-	int	lv_integerLength = 4;
-	 
-	if ( ! m_rr.hasNext()) {
-	    return null;
-	}
-
-	OrcStruct lv_row = (OrcStruct) m_rr.next(null);
-	Object lv_field_val = null;
-   	ByteBuffer lv_row_buffer;
-
-	lv_row_buffer = ByteBuffer.wrap(rowData.m_row_ba);
-	lv_row_buffer.order(m_byteorder);
-	
-	rowData.m_row_length = 0;
-	rowData.m_column_count = m_col_count;
-	rowData.m_row_number = m_rr.getRowNumber();
-	
-	for (int i = 0; i < m_fields.size(); i++) {
-	    if (! m_include_cols[i+1]) continue;
-
-	    lv_field_val = m_oi.getStructFieldData(lv_row, m_fields.get(i));
-	    if (lv_field_val == null) {
-  		lv_row_buffer.putInt(0);
-  		rowData.m_row_length = rowData.m_row_length + lv_integerLength;
-		continue;
-	    }
-	    String lv_field_val_str = lv_field_val.toString();
-	    lv_row_buffer.putInt(lv_field_val_str.length());
-	    rowData.m_row_length += lv_integerLength;
-
-	    lv_row_buffer.put(lv_field_val_str.getBytes());
-	    rowData.m_row_length += lv_field_val_str.length();
-	}
-
-	if (logger.isTraceEnabled()) logger.trace("Bytebuffer length: " + lv_row_buffer.position());
-	return rowData;
-    }
-
     public String fetchNextRow(char pv_ColSeparator) throws Exception 
     {
 
