@@ -272,11 +272,7 @@ endif
 PKG_BIN ?= "${PKG_PROD}.bin"
 
 # set this when we want to build individual feature specific packages (for adv/ent etc.)
-ifeq ($(SQ_BUILD_FEATURE_SPECIFIC_PACKAGE),1)
-  PKG_TAR ?= "../../${DISTRIBUTION_DIR}/${PKG_PROD}_${PKG_FEATURE}_$(PKG_TYPE).tgz"
-else
-  PKG_TAR ?= "../../${DISTRIBUTION_DIR}/${PKG_PROD}_$(PKG_TYPE).tgz"
-endif
+PKG_TAR ?= "../../${DISTRIBUTION_DIR}/${PKG_PROD}_${PKG_FEATURE}_$(PKG_TYPE).tgz"
 PKG_TAR_UN = "${PKG_PROD}_${SQ_BUILD_TYPE}.tar"
 SRC_PKG_BIN ?= "../../${DISTRIBUTION_DIR}/${PKG_PROD}-src.bin"
 SRC_PKG_TAR ?= "../../${DISTRIBUTION_DIR}/${PKG_PROD}-src.tgz"
@@ -318,11 +314,7 @@ package_ent : PKG_FEATURE = ent
 package_ent : setup_ent actually_package
 	@echo "PKG_TAR=$(PKG_TAR)"
 
-ifeq ($(SQ_BUILD_FEATURE_SPECIFIC_PACKAGE),1)
-  FEATURE_SPECIFIC_PACKAGES = package_adv package_ent
-else
-  FEATURE_SPECIFIC_PACKAGES = package_adv
-endif
+FEATURE_SPECIFIC_PACKAGES = package_adv package_ent
 
 .PHONY: $(FEATURE_SPECIFIC_PACKAGES) actually_package
 package : 

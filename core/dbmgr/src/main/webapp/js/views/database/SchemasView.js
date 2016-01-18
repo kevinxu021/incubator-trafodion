@@ -117,7 +117,7 @@ define([
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
-					"bPaginate" : true, 
+					paging: bPaging,
 					"bAutoWidth": true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "simple_numbers",
@@ -158,7 +158,6 @@ define([
 					            	 }
 					             }
 					             ],
-					             paging: true,
 				                 buttons: [
 				                           'copy','csv','excel','pdf','print'
 				                           ],					             

@@ -12544,7 +12544,7 @@ ItemExpr * LOBoper::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
   LOBoper *result;
 
   if (derivedNode == NULL)
-    result = new (outHeap) LOBoper(getOperatorType(), NULL, NULL, obj_);
+    result = new (outHeap) LOBoper(getOperatorType(), NULL, NULL, NULL,obj_);
   else
     result = (LOBoper*)derivedNode;
 
@@ -12602,7 +12602,7 @@ ItemExpr * LOBupdate::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
   LOBupdate *result;
 
   if (derivedNode == NULL)
-    result = new (outHeap) LOBupdate(NULL, NULL, obj_, append_);
+    result = new (outHeap) LOBupdate(NULL, NULL, NULL,obj_, append_);
   else
     result = (LOBupdate*)derivedNode;
 

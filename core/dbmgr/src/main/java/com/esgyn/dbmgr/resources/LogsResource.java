@@ -131,7 +131,7 @@ public class LogsResource {
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LOGS), maxRows,
 					predicate);
 
-			TabularResult result = QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText);
+			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
 
 			return result;
 		} catch (Exception ex) {

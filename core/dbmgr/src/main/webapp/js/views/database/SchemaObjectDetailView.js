@@ -56,6 +56,7 @@ define([
 		doInit: function (args){
 			_this = this;
 			routeArgs = args;
+			prevRouteArgs = args;
 			schemaName = routeArgs.schema;
 			$(OBJECT_DETAILS_CONTAINER).hide();
 			$(ERROR_CONTAINER).hide();
@@ -80,7 +81,7 @@ define([
 					ddlTextEditor.setSize($(this).width(), $(this).height());
 				}
 			});
-			$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
+			//$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
 
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 
@@ -98,12 +99,17 @@ define([
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.showErrorMessage);
 			
-			if(schemaName != routeArgs.name){
-				schemaName = routeArgs.name;
+			if(prevRouteArgs.schema != routeArgs.schema || 
+					prevRouteArgs.name != routeArgs.name ||
+					prevRouteArgs.type != routeArgs.type ){
+				schemaName = routeArgs.schema;
 				initialized = false;
 	        	if(ddlTextEditor)
 	        		ddlTextEditor.setValue("");
 			}	
+			
+			prevRouteArgs = args;
+
 			var TAB_LINK = $(OBJECT_DETAILS_CONTAINER+' .tab-pane.active');
 			if(TAB_LINK){
 				var selectedTab = '#'+TAB_LINK.attr('id');
@@ -318,15 +324,14 @@ define([
 				var properties = JSON.parse(attrs);
 				$(ATTRIBUTES_CONTAINER).empty();
 				$(ATTRIBUTES_CONTAINER).append('<thead><tr><td style="width:200px;"><h2 style="color:black;font-size:15px;font-weight:bold">Name</h2></td><td><h2 style="color:black;font-size:15px;;font-weight:bold">Value</h2></td></tr></thead>');
-				for (var property in properties) {
-					if(properties.hasOwnProperty(property)){
-						var value = properties[property];
-						if(property == 'CreateTime' || property == 'ModifiedTime'){
-							value = common.toServerLocalDateFromUtcMilliSeconds(value);
-						}
+				$.each(properties.columns, function(k, v){
+					var property = v.title;
+					var value = properties.data[k];
+					if(property == 'CreateTime' || property == 'ModifiedTime'){
+						value = common.toServerLocalDateFromUtcMilliSeconds(value);
 					}
 					$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
-				}
+				});
 			}
 		},
 		displayDDL: function(data){

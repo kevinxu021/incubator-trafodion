@@ -82,7 +82,10 @@ define([
 		doResume: function(args){
 			$('#query-id').val(args);
 			queryID = args;
-			this.loadQueryText();
+			if(queryID != null && queryID != args){
+				queryTextEditor.setValue('');
+				this.loadQueryText();
+			}
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);

@@ -24,7 +24,7 @@ define([
 	var LOADING_SELECTOR = "#loadingImg",
 	ERROR_CONTAINER = '#visual-plan-error',
 	TEXT_PLAN_CONTAINER = '#text-result-container',
-	GRIDCONTAINER = "#dbmgr-1",
+	GRAPH_CONTAINER = '#graph-container',
 	REFRESH_MENU = '#refreshAction',
 	QCANCEL_MENU = '#cancelAction',    	
 	TOOLTIP_DIALOG = '#tooltipDialog',
@@ -46,6 +46,21 @@ define([
 		doInit: function (args){
 			_this = this;
 
+			$('.panel-heading span.dbmgr-collapsible').on("click", function (e) {
+		        if ($(this).hasClass('panel-collapsed')) {
+		                // expand the panel
+		                $(this).parents('.panel').find('.panel-body').slideDown();
+		                $(this).removeClass('panel-collapsed');
+		                $(this).find('i').removeClass('fa-sort-down').addClass('fa-sort-up');
+		            }
+		            else {
+		                // collapse the panel
+		                $(this).parents('.panel').find('.panel-body').slideUp();
+		                $(this).addClass('panel-collapsed');
+		                $(this).find('i').removeClass('fa-sort-up').addClass('fa-sort-down');
+		            }
+		        });
+			 
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
 			}
@@ -123,7 +138,7 @@ define([
 		},
 		doResize: function () {
 			if(st != null) {
-				st.canvas.resize($('#infovis').width(), ($(GRIDCONTAINER).height() + $(GRIDCONTAINER).scrollTop() + 800));
+				st.canvas.resize($('#infovis').width(), ($(GRAPH_CONTAINER).height() + $(GRAPH_CONTAINER).scrollTop()));
 			}
 		},
 		processArgs: function(args){
@@ -179,7 +194,7 @@ define([
 			$('#text-result').text(jsonData.planText);
 			$("#infovis").empty();
 
-			st = common.generateExplainTree(jsonData, setRootNode, _this.showExplainTooltip);
+			st = common.generateExplainTree(jsonData, setRootNode, _this.showExplainTooltip, $(GRAPH_CONTAINER));
 			//load json data
 			st.loadJSON(jsonData);
 

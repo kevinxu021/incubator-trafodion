@@ -153,12 +153,17 @@ define([
 				var link = result.parentLink != null ? result.parentLink : "";
 
 				$.each(result.resultArray, function(i, data){
-					aaData.push(
+					//var rowData = {};
+					//$.each(keys, function(k, v) {
+					//	rowData[v] = data[k];
+					//});
+					/*aaData.push(
 							{'Name' : data[0], 
 								'Owner' : data[1],
 								'CreateTime' : data[2],
 								'ModifiedTime': data[3]
-							});
+							});*/
+					aaData.push(data);
 				});
 
 				// add needed columns
@@ -183,16 +188,53 @@ define([
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
-					"bPaginate" : true, 
+					paging: bPaging,
 					"bAutoWidth": true,
 					"iDisplayLength" : 25, 
-					"sPaginationType": "simple_numbers",
+					"sPaginationType": "full_numbers",
 					//"scrollY":        "800px",
 					"scrollCollapse": true,
 					//"bJQueryUI": true,
 					"aaData": aaData, 
-					//"aoColumns" : aoColumns,
-					aoColumns : [
+					"aoColumns" : aoColumns,
+					"aoColumnDefs": [ {
+						"aTargets": [ 0 ],
+						"mData": 0,
+						"mRender": function ( data, type, full ) {
+		            		 if(type == 'display') {
+		            			 var rowcontent = "<a href=\"#" + link + '&name=' + data ;
+		            			 if(schemaName != null)
+		            				 rowcontent += '&schema='+ schemaName;	            				 
+
+		            			 rowcontent += "\">" + data + "</a>";
+		            			 return rowcontent;                         
+		            		 }else { 
+		            			 return data;
+		            		 }
+		            	 }
+					},
+					{
+						"aTargets": [ 2 ],
+						"mData": 2,
+						"mRender": function ( data, type, full ) {
+							if (type === 'display') {
+								return common.toServerLocalDateFromUtcMilliSeconds(data);  
+							}
+							else return data;
+						}
+					},
+					{
+						"aTargets": [ 3 ],
+						"mData": 3,
+						"mRender": function ( data, type, full ) {
+							if (type === 'display') {
+								return common.toServerLocalDateFromUtcMilliSeconds(data);  
+							}
+							else return data;
+						}
+					}
+					],
+					/*aoColumns : [
 					             {"mData": 'Name', sClass: 'left', "sTitle": 'Name', 
 					            	 "mRender": function ( data, type, full ) {
 					            		 if(type == 'display') {
@@ -226,8 +268,7 @@ define([
 					            		 }
 					            	 }
 					             }
-					             ],
-					             paging: true,
+					             ],*/
 				                 buttons: [
 				                           'copy','csv','excel','pdf','print'
 				                           ],					             
@@ -241,7 +282,11 @@ define([
 				$('#db-objects-list-results tbody').on( 'click', 'tr', function (e, a) {
 					var data = oDataTable.row(this).data();
 					if(data){
-						sessionStorage.setItem(data['Name'], JSON.stringify(data));	
+						//sessionStorage.setItem(data['Name'], JSON.stringify(data));
+						var rowData = {};
+						rowData.data = data;
+						rowData.columns = aoColumns;
+						sessionStorage.setItem(data[0], JSON.stringify(rowData));	
 					}
 				} );				
 			}

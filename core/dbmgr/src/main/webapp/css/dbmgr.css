@@ -8,7 +8,24 @@
 #page-wrapper {
 	margin: 2px;
 }
+.panel-heading span {
+    margin-top: 0px;
+    font-size: 15px;
+}
 
+.dbmgr-collapsible {
+    cursor: pointer;
+}
+
+.dbmgr-login-footer {
+	background:url(../img/esgyn-logo.png) no-repeat;
+    background-size: cover;
+    display: block;
+    width: 200px;
+    height: 48px;
+    text-indent: -9000px;
+    margin: 0 auto;
+}
 #dbmgr-page-wrapper {
 	padding: 0 15px;
 	min-height: 568px;
@@ -29,6 +46,9 @@
 	padding-right: 10px;
 	margin-bottom: 10px;
 }
+.dbmgr-button, .dbmgr-link-button {
+	padding: 7px 10px !important;
+}
 
 .dbmgr-form-workload-cell-label {
 	display: table-cell;
@@ -45,37 +65,33 @@
 .dbmgr-hover { cursor: pointer; cursor: hand; }
 
 @media ( min-width :768px) {
-	.navbar-default {
-		/*background-color: #337ab7;*/
-		/*background-color: #cf5300;*/
+	/*.navbar-default {
 		background-color: steelblue;
 	}
 	.navbar-default .sidebar-nav {
-		/*background-color:rgb(94,115,149);*/
-		/*background-color:#01596e;*/
-		/*background-color:#337ab7;*/
 		border-color: #e7e7e7;
-	}
+	}*/
+	
 	.page-header {
 		margin-top: 10px;
 		padding-bottom: 5px;
 	}
-	.navbar-default .navbar-brand:hover {
+	/*.navbar-default .navbar-brand:hover {
 		color: white;
-	}
+	}*/
 	.CodeMirror pre {
 	  padding: 0 4px; /* Horizontal padding of content */
 	  padding-left:30px;
 	  /*font-family: Courier New, Courier, monospace;*/
 	}
-	
+
 	.navbar-default .dbmgr-title {
 		display: inline-block;
 		font-family: 'Open Sans', Arial, Helvetica, sans-serif;
 		font-size: 24px;
 		padding-left: 10px;
 		/*padding-top: 18px;*/
-		color: white;
+		/*color: white;*/
 	}
 	#dbmgr-page-wrapper {
 		position: inherit;
@@ -95,7 +111,7 @@
 	.dbmgr-drilldown-graph {
 		min-height:400px;
 	}
-	.navbar-default .navbar-nav>li>a {
+/*	.navbar-default .navbar-nav>li>a {
 		color: white;
 	}
 	.nav>li>a:hover, .nav>li>a:focus {
@@ -112,7 +128,7 @@
 	.dbmgr-nav>li>a{
 		color: black;
 		background-color: #e7e7e7;
-	}
+	}*/
 	.mytooltip {
 		color: black;
 		width: 150px;
@@ -136,6 +152,9 @@
 	.dbmgr-table {
 		font-size: 13px !important;
 	}
+	.dbmgr-table>tbody>tr>td, .table>tbody>tr>th, .table>tfoot>tr>td, .table>tfoot>tr>th, .table>thead>tr>td, .table>thead>tr>th {
+		padding:4px;
+	}
 	.dbmgr-status-btn {
 	    width: 24px;
 	    height: 24px;
@@ -143,6 +162,7 @@
 	    border-radius: 12px;
 	    text-align: center;
 	    font-size: 10px;
+	    overflow: hidden !important;
 	}
 	table.dbmgr-dashboard-table tbody tr td{
 		white-space: nowrap;

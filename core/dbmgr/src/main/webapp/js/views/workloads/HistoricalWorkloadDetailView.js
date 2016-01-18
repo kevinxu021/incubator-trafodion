@@ -63,6 +63,7 @@ define([
 			});
 			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
 			
+			this.loadQueryText();
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
@@ -85,6 +86,7 @@ define([
 				$('#query-end-time').val('');
 				//$('#query-text').text('');
 				queryTextEditor.setValue('');
+				this.loadQueryText();
 				$('#query-status').val('');
 				try{
 					if(connDataTable != null){
@@ -125,6 +127,15 @@ define([
 			$(REFRESH_MENU).off('click', this.fetchRepositoryQueryDetail);
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
 			$(EXPLAIN_BUTTON).off('click', this.explainQuery);
+		},
+		loadQueryText: function(){
+			var queryParams = sessionStorage.getItem(queryID);
+			sessionStorage.removeItem(queryID);
+			if(queryParams != null){
+				queryParams = JSON.parse(queryParams);
+				if(queryParams.text)
+					queryTextEditor.setValue(queryParams.text);
+			}
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
