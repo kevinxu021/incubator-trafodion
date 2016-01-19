@@ -95,7 +95,28 @@
 				    O.SCHEMA_NAME != '_MD_' AND I.INDEX_UID = O.OBJECT_UID AND
 				    I.BASE_TABLE_UID = O2.OBJECT_UID FOR READ UNCOMMITTED ACCESS ORDER BY 1;
 				]]></text>
-		</query>		
+		</query>	
+		<query>
+			<!-- Fetch list of columns for a schema object -->
+			<name>SELECT_OBJECT_COLUMNS</name>
+			<text><![CDATA[SELECT K.CONSTRAINT_TYPE as PRIMARY_KEY, C.COLUMN_NUMBER, C.COLUMN_NAME, SQL_DATA_TYPE,  
+			    COLUMN_SIZE, COLUMN_PRECISION, COLUMN_SCALE, 
+			    CASE WHEN NULLABLE = 0 THEN 'NOT NULL'
+			        ELSE 'NULL'
+			    END AS NULLABLE, 
+			    CASE CHARACTER_SET
+			        WHEN '_unknown_' THEN ''
+			        ELSE CHARACTER_SET 
+			    END AS CHARACTER_SET, DEFAULT_VALUE
+			    FROM "_MD_".COLUMNS_VIEW C LEFT JOIN "_MD_".KEYS_VIEW K
+			        ON C.SCHEMA_NAME = K.SCHEMA_NAME AND C.TABLE_NAME = K.TABLE_NAME 
+			        AND C.COLUMN_NAME = K.COLUMN_NAME AND K.CONSTRAINT_TYPE = 'PRIMARY KEY'
+				WHERE C.SCHEMA_NAME = '%1$s'
+				AND C.TABLE_NAME = '%2$s' 
+				AND C.COLUMN_NAME != '_SALT_'
+				FOR READ UNCOMMITTED ACCESS ORDER BY 2;
+			]]></text>
+		</query>			
 		<query>
 			<!-- Get DDL Text for database object -->
 			<name>SELECT_DDL_TEXT</name>
