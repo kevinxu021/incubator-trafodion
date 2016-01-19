@@ -151,7 +151,7 @@ define([
 			$(REFRESH_MENU).on('click', this.fetchQueriesInRepository);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
-			this.fetchQueriesInRepository();
+			//this.fetchQueriesInRepository();
 		},
 		doPause: function(){
 			wHandler.off(wHandler.FETCH_REPO_SUCCESS, this.displayResults);
@@ -395,6 +395,12 @@ define([
 				});
 
 				$('#repo-query-results td').css("white-space","nowrap");
+				$('#repo-query-results tbody').on( 'click', 'tr', function (e, a) {
+					var data = oDataTable.row(this).data();
+					if(data && data.length > 0){
+						sessionStorage.setItem(data[0], JSON.stringify({type: 'repo', text: data[8]}));	
+					}
+				});					
 			}
 
 		},

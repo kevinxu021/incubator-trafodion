@@ -147,7 +147,8 @@ public class DatabaseResource {
 		ObjectMapper mapper = new ObjectMapper(factory);
 
 		try {
-			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+			// Session soc = SessionModel.getSession(servletRequest,
+			// servletResponse);
 
 			String ddlObjectType = "";
 			String ansiObjectName = "";
@@ -166,7 +167,7 @@ public class DatabaseResource {
 				ansiObjectName = ExternalForm(schemaName) + "." + ExternalForm(objectName);
 			}
 
-			String url = ConfigurationResource.getInstance().getJdbcUrl();
+			// String url = ConfigurationResource.getInstance().getJdbcUrl();
 			// connection = DriverManager.getConnection(url, soc.getUsername(),
 			// soc.getPassword());
 			connection = JdbcHelper.getInstance().getAdminConnection();
@@ -207,6 +208,25 @@ public class DatabaseResource {
 		return ddlText;
 	}
 
+	@GET
+	@Path("/columns/")
+	@Produces("application/json")
+	public SqlObjectListResult getObjectColumns(@QueryParam("type") String objectType,
+			@QueryParam("objectName") String objectName,
+			@QueryParam("schemaName") String schemaName, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+		try {
+			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS),
+					ExternalForm(schemaName), ExternalForm(objectName));
+			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
+			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
+			return sqlResult;
+		} catch (Exception ex) {
+			_LOG.error("Failed to fetch list of " + objectType + " : " + ex.getMessage());
+			throw new EsgynDBMgrException(ex.getMessage());
+		}
+	}
+	
 	public static String EncloseInSingleQuotes(String aLiteralString) {
 		return "'" + aLiteralString.replace("'", "''") + "'";
 	}
