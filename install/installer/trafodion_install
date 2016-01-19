@@ -51,7 +51,7 @@ EOF
 
 function copyConfig  {
 
-if [ $node_count -ne 1 ]; then
+if [ $all_node_count -ne 1 ]; then
    cp $TRAF_CONFIG $LOCAL_WORKDIR
    $TRAF_PDCP $LOCAL_WORKDIR/$TRAF_CONFIG_FILE $HOME
    $TRAF_PDSH sudo mkdir -p $TRAF_CONFIG_DIR
@@ -335,8 +335,7 @@ if [ $? -ne 0 ]; then
    echo "***ERROR: unable to source $TRAF_CONFIG"
    exit -1
 fi
-
-#==============================================
+#=============================================
 #Check Config File for Errors
 
 $LOCAL_WORKDIR/traf_config_check | tee -a $INSTALL_LOG
@@ -359,8 +358,7 @@ echo "export START_ALL=\"$NO_START\"" >> $TRAF_CONFIG
 sudo chmod 777 $TRAF_CONFIG
 source $TRAF_CONFIG
 
-
-#==============================================
+#=============================================
 #Check if doing an upgrade
 
 if [[ $CONFIG_COMPLETE ]]; then
@@ -412,12 +410,12 @@ fi
 
 #=============================================
 
-if [ $node_count -eq 1 ]; then
+if [ $all_node_count -eq 1 ]; then
     TRAF_PDSH=""
     TRAF_PDCP=""
 else
-    TRAF_PDSH="pdsh -R exec $MY_NODES $PDSH_SSH_CMD"
-    TRAF_PDCP="pdcp -R ssh $MY_NODES"
+    TRAF_PDSH="pdsh -R exec $ALL_NODES $PDSH_SSH_CMD"
+    TRAF_PDCP="pdcp -R ssh $ALL_NODES"
 fi
 
 sed -i '/ACCEPT_LICENSE\=/d' $TRAF_CONFIG
@@ -609,7 +607,7 @@ if [[ "$UPGRADE_TRAF" == "true" ]]; then
    sudo sed -i -e "s@export NODE_LIST=.*@export NODE_LIST=\"$NODE_LIST\"@" $HOME_DIR/$TRAF_USER/.bashrc   
    sudo sed -i -e "s@export MY_NODES=.*@export MY_NODES=\"$MY_NODES\"@" $HOME_DIR/$TRAF_USER/.bashrc
    
-   for node in $NODE_LIST
+   for node in $ALL_NODE_LIST
    do
       userForTrafodion=$(ssh -q -n $node grep "$TRAF_USER:" /etc/passwd | wc -l)
       if [[ "$userForTrafodion" == 0 ]]; then
@@ -624,7 +622,6 @@ if [[ "$UPGRADE_TRAF" == "true" ]]; then
          fi
       fi
    done
-   
   echo "***INFO: Installing required RPM packages" | tee -a $INSTALL_LOG
   $LOCAL_WORKDIR/traf_package_setup | tee -a $INSTALL_LOG
   if [ $? != 0 ]; then
@@ -668,7 +665,7 @@ echo "***INFO: Reserving DCS ports"
 trafodion_ports=${DCS_MASTER_PORT:-23400},${DCS_MASTER_INFO_PORT:-24400}
 reservedTrafodionPorts="net.ipv4.ip_local_reserved_ports = ${trafodion_ports}"
 
-for node in $NODE_LIST
+for node in $ALL_NODE_LIST
 do
    redhatSystem=$(ssh -q -n $node '/sbin/sysctl net.ipv4.ip_local_reserved_ports | wc -l')
    if [[ "$redhatSystem" -ge "1" ]]; then
@@ -724,7 +721,7 @@ $TRAF_PDSH sudo chown root.root /etc/sysctl.conf
 $TRAF_PDSH sudo chmod 644 /etc/sysctl.conf
 
 #Create install directory
-if [[ "$node_count" -ne "1" ]]; then
+if [[ "$all_node_count" -ne "1" ]]; then
    $TRAF_PDSH sudo mkdir -p /$HOME_DIR/$TRAF_USER/installer &> /dev/null
 fi
 
@@ -732,7 +729,7 @@ fi
 if [[ "$LDAP_SECURITY" == "Y" ]]; then
    echo "***INFO: Copying $LDAP_AUTH_FILE to Trafodion home dir"
 
-   if [[ "$node_count" -eq "1" ]]; then
+   if [[ "$all_node_count" -eq "1" ]]; then
       sudo cp -r $LOCAL_WORKDIR/$LDAP_AUTH_FILE $HOME_DIR/$TRAF_USER
       sudo chown trafodion.trafodion $HOME_DIR/$TRAF_USER/$LDAP_AUTH_FILE
       sudo chmod 750 $HOME_DIR/$TRAF_USER/$LDAP_AUTH_FILE
@@ -749,7 +746,7 @@ if [[ "$LDAP_SECURITY" == "Y" ]]; then
       $TRAF_PDSH sudo chmod 750 $HOME_DIR/$TRAF_USER/$LDAP_AUTH_FILE
       if [[ $LDAP_LEVEL == "2" ]] || [[ $LDAP_LEVEL == "1" ]]; then
          echo "***INFO: Copying $LDAP_CERT to Trafodion home dir"
-         $TRAF_PDCP $LDAP_CERT $HOME
+         $TRAF_PCP $LDAP_CERT $HOME
          $TRAF_PDSH sudo cp -r $HOME/$LDAP_CERT_BASE $HOME_DIR/$TRAF_USER
          $TRAF_PDSH sudo chown trafodion.trafodion $HOME_DIR/$TRAF_USER/$LDAP_CERT_BASE
          $TRAF_PDSH sudo chmod 750 $HOME_DIR/$TRAF_USER/$LDAP_CERT_BASE
@@ -815,7 +812,7 @@ fi
 
 # Install and configure CLI for Cloud environments
 if  [ "$ENABLE_HA" == "true" ] && [[ $CLOUD_CONFIG == "Y" ]]; then
-  echo "***INFO: Install and configure CLI for Cloud"   
+  echo "***INFO: Install and configure CLI for Cloud"
   $TRAF_WORKDIR/installer/cloud_cli_setup
 fi
 
