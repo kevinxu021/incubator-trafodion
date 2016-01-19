@@ -20,6 +20,8 @@ define(['handlers/EventDispatcher'],
 				this.FETCH_OBJECT_DETAILS_ERROR = 'FETCH_OBJECT_DETAILS_ERROR';
 				this.FETCH_DDL_SUCCESS = 'FETCH_DDL_SUCCESS';
 				this.FETCH_DDL_ERROR = 'FETCH_DDL_ERROR';
+				this.FETCH_COLUMNS_SUCCESS = 'FETCH_COLUMNS_SUCCESS';
+				this.FETCH_COLUMNS_ERROR = 'FETCH_COLUMNS_ERROR';
 
 				
 				this.sessionTimeout = function() {
@@ -93,6 +95,38 @@ define(['handlers/EventDispatcher'],
 				};
 				
 			
+				this.fetchColumns = function (objectType, objectName, schemaName) {
+					var xhr = xhrs["fetchColumns"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					
+					var uri = '/resources/db/columns?type='+objectType;
+					if(objectName != null){
+						uri += '&objectName=' + objectName;
+					}
+					if(schemaName != null){
+						uri += '&schemaName=' + schemaName;
+					}
+					
+					xhrs["fetchColumns"] = $.ajax({
+						url: uri,
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.FETCH_COLUMNS_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.FETCH_COLUMNS_ERROR, jqXHR, res, error);
+						}
+					});
+				};
+				
 				this.init = function() {
 
 				};
