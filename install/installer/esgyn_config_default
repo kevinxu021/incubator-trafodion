@@ -100,7 +100,8 @@ export DBM_BUILD=""
 # Either "cloudera" or "hortonworks" (all lowercase)
 export HADOOP_TYPE=""
 
-# The URL for Cloudera/Hortonworks REST API (i.e. node1.hp.com:8080)
+# The URL for Cloudera/Hortonworks REST API (i.e. http://node1.hp.com:8080)
+# Include 'http' or 'https'
 export URL=""
 
 # Cloudera/Hortonworks UI admin's userid and password
@@ -155,3 +156,27 @@ export FLOATING_IP=""
 
 #If HA enabled the set the DCS Backup nodes
 export BACKUP_DCS_NODES=""
+
+#If have management nodes
+export MANAGE_ENABLED="N"
+
+#List of Management nodes
+export MANAGE_NODES=""
+
+#Number of Management nodes
+export manage_node_count=""
+
+# another list of the same nodes in MANAGE_NODES but specified in a pdsh usable format
+# i.e.  "-w centos-cdh[1-6]"  or "-w node1 -w node2 -w node3
+export MY_MANAGE_NODES=""
+
+#ALL nodes including NODE_LIST and MANAGE_NODES
+export ALL_NODE_LIST=""
+
+#Number of all nodes
+export all_node_count=""
+
+#All nodes but specified in pdsh usable format
+export ALL_NODES=""
+
+

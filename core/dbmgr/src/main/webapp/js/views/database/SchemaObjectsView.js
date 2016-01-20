@@ -20,7 +20,6 @@ define([
 	var oDataTable = null;
 	var _this = null;
 	var schemaName = null;
-	var initialized = false;
 	
 	var BREAD_CRUMB = '#database-crumb';
 	var ERROR_CONTAINER = '#db-objects-error-text',
@@ -30,14 +29,20 @@ define([
 	
 	
 	var routeArgs = null;
+	var prevRouteArgs = null;
+	
 	var schemaName = null;
 	var bCrumbsArray = [];
-	var DatabaseView = BaseView.extend({
+	var pageStatus = {};
+	
+	var SchemaObjectsView = BaseView.extend({
 		template:  _.template(DatabaseT),
 
 		doInit: function (args){
 			_this = this;
 			routeArgs = args;
+			prevRouteArgs = args;
+			
 			schemaName = routeArgs.schema;
 			
 			$(ERROR_CONTAINER).hide();
@@ -54,10 +59,13 @@ define([
 			$(ERROR_CONTAINER).hide();
 			$(OBJECT_LIST_CONTAINER).hide();
 			
-			if(schemaName != routeArgs.schema){
+			if(prevRouteArgs.schema != routeArgs.schema || 
+				prevRouteArgs.type != routeArgs.type){
 				schemaName = routeArgs.schema;
-				initialized = false;
+				pageStatus = {};
+				$(OBJECT_LIST_CONTAINER).empty();
 			}
+			prevRouteArgs = args;
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayObjectList);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
@@ -77,11 +85,13 @@ define([
 		},
 		doRefresh: function(){
 			_this.processRequest();
-			$(errorTextContainer).hide();
+			$(ERROR_CONTAINER).hide();
 		},
 		fetchObjects: function(objectType, schemaName){
-			_this.showLoading();
-			dbHandler.fetchObjects(objectType, schemaName);
+			if(!pageStatus[objectType] || pageStatus[objectType] == false){
+				_this.showLoading();
+				dbHandler.fetchObjects(objectType, schemaName);
+			}
 		},
 		updateBreadCrumbs: function(routeArgs){
 			$(BREAD_CRUMB).empty();
@@ -123,6 +133,7 @@ define([
 			_this.updateBreadCrumbs(routeArgs);
 
 			$(BREAD_CRUMB).show();
+			$(OBJECT_LIST_CONTAINER).show();
 			if(routeArgs.type != null && routeArgs.type.length > 0){
 				switch(routeArgs.type){
 					case 'tables' :
@@ -142,6 +153,7 @@ define([
 			_this.hideLoading();
 			var keys = result.columnNames;
 			$(ERROR_CONTAINER).hide();
+			pageStatus[routeArgs.type] = true;
 			
 			if(keys != null && keys.length > 0) {
 				$(OBJECT_LIST_CONTAINER).show();
@@ -153,12 +165,17 @@ define([
 				var link = result.parentLink != null ? result.parentLink : "";
 
 				$.each(result.resultArray, function(i, data){
-					aaData.push(
+					//var rowData = {};
+					//$.each(keys, function(k, v) {
+					//	rowData[v] = data[k];
+					//});
+					/*aaData.push(
 							{'Name' : data[0], 
 								'Owner' : data[1],
 								'CreateTime' : data[2],
 								'ModifiedTime': data[3]
-							});
+							});*/
+					aaData.push(data);
 				});
 
 				// add needed columns
@@ -183,16 +200,53 @@ define([
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
-					"bPaginate" : true, 
+					paging: bPaging,
 					"bAutoWidth": true,
 					"iDisplayLength" : 25, 
-					"sPaginationType": "simple_numbers",
+					"sPaginationType": "full_numbers",
 					//"scrollY":        "800px",
 					"scrollCollapse": true,
 					//"bJQueryUI": true,
 					"aaData": aaData, 
-					//"aoColumns" : aoColumns,
-					aoColumns : [
+					"aoColumns" : aoColumns,
+					"aoColumnDefs": [ {
+						"aTargets": [ 0 ],
+						"mData": 0,
+						"mRender": function ( data, type, full ) {
+		            		 if(type == 'display') {
+		            			 var rowcontent = "<a href=\"#" + link + '&name=' + data ;
+		            			 if(schemaName != null)
+		            				 rowcontent += '&schema='+ schemaName;	            				 
+
+		            			 rowcontent += "\">" + data + "</a>";
+		            			 return rowcontent;                         
+		            		 }else { 
+		            			 return data;
+		            		 }
+		            	 }
+					},
+					{
+						"aTargets": [ 2 ],
+						"mData": 2,
+						"mRender": function ( data, type, full ) {
+							if (type === 'display') {
+								return common.toServerLocalDateFromUtcMilliSeconds(data);  
+							}
+							else return data;
+						}
+					},
+					{
+						"aTargets": [ 3 ],
+						"mData": 3,
+						"mRender": function ( data, type, full ) {
+							if (type === 'display') {
+								return common.toServerLocalDateFromUtcMilliSeconds(data);  
+							}
+							else return data;
+						}
+					}
+					],
+					/*aoColumns : [
 					             {"mData": 'Name', sClass: 'left', "sTitle": 'Name', 
 					            	 "mRender": function ( data, type, full ) {
 					            		 if(type == 'display') {
@@ -226,8 +280,7 @@ define([
 					            		 }
 					            	 }
 					             }
-					             ],
-					             paging: true,
+					             ],*/
 				                 buttons: [
 				                           'copy','csv','excel','pdf','print'
 				                           ],					             
@@ -241,7 +294,11 @@ define([
 				$('#db-objects-list-results tbody').on( 'click', 'tr', function (e, a) {
 					var data = oDataTable.row(this).data();
 					if(data){
-						sessionStorage.setItem(data['Name'], JSON.stringify(data));	
+						//sessionStorage.setItem(data['Name'], JSON.stringify(data));
+						var rowData = {};
+						rowData.data = data;
+						rowData.columns = aoColumns;
+						sessionStorage.setItem(data[0], JSON.stringify(rowData));	
 					}
 				} );				
 			}
@@ -262,5 +319,5 @@ define([
 	});
 
 
-	return DatabaseView;
+	return SchemaObjectsView;
 });

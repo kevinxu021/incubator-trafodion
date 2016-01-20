@@ -7,7 +7,6 @@
 package com.esgyn.dbmgr.resources;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.regex.Pattern;
@@ -25,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
+import com.esgyn.dbmgr.common.JdbcHelper;
 import com.esgyn.dbmgr.common.TabularResult;
 import com.esgyn.dbmgr.model.Session;
 import com.esgyn.dbmgr.model.SessionModel;
@@ -74,18 +74,21 @@ public class DatabaseResource {
 				link = "/database/schema";
 				break;
 			case "tables":
-				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_OBJECTS),
-						catalogName, schemaName, SqlObjectType.TABLE.getObjectType());
+				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_TABLES_IN_SCHEMA),
+						catalogName,
+						schemaName/* , SqlObjectType.TABLE.getObjectType() */);
 				link = "/database/objdetail?type=table";
 				break;
 			case "indexes":
-				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_OBJECTS),
-						catalogName, schemaName, SqlObjectType.INDEX.getObjectType());
+				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEXES_IN_SCHEMA),
+						catalogName,
+						schemaName/* , SqlObjectType.INDEX.getObjectType() */);
 				link = "/database/objdetail?type=index";
 				break;
 			case "views":
-				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_OBJECTS),
-						catalogName, schemaName, SqlObjectType.VIEW.getObjectType());
+				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEWS_IN_SCHEMA),
+						catalogName,
+						schemaName/* , SqlObjectType.VIEW.getObjectType() */);
 				link = "/database/objdetail?type=view";
 				break;
 			case "libraries":
@@ -100,7 +103,7 @@ public class DatabaseResource {
 				break;
 
 			}
-			TabularResult result = QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText);
+			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, link, result);
 			return sqlResult;
 		} catch (Exception ex) {
@@ -118,7 +121,7 @@ public class DatabaseResource {
 		try {
 			Session soc = SessionModel.getSession(servletRequest, servletResponse);
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA), schemaName);
-			TabularResult result = QueryResource.executeSQLQuery(soc.getUsername(), soc.getPassword(), queryText);
+			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult("Schema " + schemaName, "", result);
 			return sqlResult;
 		} catch (Exception ex) {
@@ -144,7 +147,8 @@ public class DatabaseResource {
 		ObjectMapper mapper = new ObjectMapper(factory);
 
 		try {
-			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+			// Session soc = SessionModel.getSession(servletRequest,
+			// servletResponse);
 
 			String ddlObjectType = "";
 			String ansiObjectName = "";
@@ -163,8 +167,10 @@ public class DatabaseResource {
 				ansiObjectName = ExternalForm(schemaName) + "." + ExternalForm(objectName);
 			}
 
-			String url = ConfigurationResource.getInstance().getJdbcUrl();
-			connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
+			// String url = ConfigurationResource.getInstance().getJdbcUrl();
+			// connection = DriverManager.getConnection(url, soc.getUsername(),
+			// soc.getPassword());
+			connection = JdbcHelper.getInstance().getAdminConnection();
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_DDL_TEXT),
 					ddlObjectType, ansiObjectName);
 			stmt = connection.createStatement();
@@ -186,13 +192,41 @@ public class DatabaseResource {
 				sb.append(System.lineSeparator());
 			}
 			ddlText = mapper.writeValueAsString(sb.toString());
+			rs.close();
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch get DDL text for " + objectName + " : " + ex.getMessage());
 			throw new EsgynDBMgrException(ex.getMessage());
+		} finally {
+			try {
+				if (connection != null) {
+					connection.close();
+				}
+			} catch (Exception e) {
+
+			}
 		}
 		return ddlText;
 	}
 
+	@GET
+	@Path("/columns/")
+	@Produces("application/json")
+	public SqlObjectListResult getObjectColumns(@QueryParam("type") String objectType,
+			@QueryParam("objectName") String objectName,
+			@QueryParam("schemaName") String schemaName, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+		try {
+			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS),
+					ExternalForm(schemaName), ExternalForm(objectName));
+			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
+			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
+			return sqlResult;
+		} catch (Exception ex) {
+			_LOG.error("Failed to fetch list of " + objectType + " : " + ex.getMessage());
+			throw new EsgynDBMgrException(ex.getMessage());
+		}
+	}
+	
 	public static String EncloseInSingleQuotes(String aLiteralString) {
 		return "'" + aLiteralString.replace("'", "''") + "'";
 	}

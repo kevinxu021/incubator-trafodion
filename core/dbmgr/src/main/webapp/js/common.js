@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -394,8 +394,38 @@ define(['moment',
 
 				return result;
 			};
+			
+			this.calculateHeight = function(depth){
+				return Math.max(310,70*depth);
+			};
+			
+			
+			this.calculateWidth = function(tree, container){
+				var a=[];
+				this.traverseWidth(a, tree, 0);
+				var left=Math.max.apply(null, a);
+				var right=Math.min.apply(null, a); //only left is used, if precise position needed, we will use right value;
+				
+				return Math.max($(container).width(), left*2*70);
+			};
+			
+			
+			this.traverseWidth = function(arr, tree, i){						
+				if(tree&&tree.children){
+					if(tree.children.length==2){
+						this.traverseWidth(arr, tree.children[0], i+1);
+						this.traverseWidth(arr, tree.children[1], i-1);
+					} else {
+						arr.push(i);
+						this.traverseWidth(arr, tree.children[0],i);
+					}								
+				} else{
+					arr.push(i);
+				}
+				
+			};
 
-			this.generateExplainTree = function(jsonData, setRootNode, onClickCallback){
+			this.generateExplainTree = function(jsonData, setRootNode, onClickCallback, container){
 				var st = new $jit.ST({
 					'injectInto': 'infovis',
 					orientation: "top",
@@ -409,11 +439,11 @@ define(['moment',
 					siblingOffset: 100,
 					//set max levels to show. Useful when used with
 					//the request method for requesting trees of specific depth
-					levelsToShow: 20,
-					offsetX: -100,
-					offsetY: 350,
-					width: $('#dbmgr-1').width(),
-					height: $('#dbmgr-1').height(),	        		
+					levelsToShow: jsonData.treeDepth,
+					offsetX: -(jsonData.treeDepth * 25),//-100,
+					offsetY: this.calculateHeight(jsonData.treeDepth)/2,//350,
+	 				width: this.calculateWidth(jsonData, container),						   
+	 				height: this.calculateHeight(jsonData.treeDepth),        		
 					//set node and edge styles
 					//set overridable=true for styling individual
 					//nodes or edges
@@ -427,6 +457,7 @@ define(['moment',
 						lineWidth: 2,
 						align:"center",
 						overridable: true
+						
 					},
 					Navigation: {  
 						enable: true,  
@@ -488,141 +519,153 @@ define(['moment',
 					//your node.
 					onCreateLabel: function(label, node){
 						var nodeName = node.name;
-						nodeName = nodeName.replace("_", " ");
+						nodeName = nodeName.replace(/_/gi, " ");
 						nodeName = nodeName.replace("SEABASE","TRAFODION");
 						nodeName = _this.toProperCase(nodeName);
 
 						var html = nodeName;
+						var imgSrc = '';
+						
 						switch(node.name)
 						{
 						case 'FILE_SCAN':
 						case 'INDEX_SCAN':
 						case 'FILE_SCAN_UNIQUE':
 						case 'INDEX_SCAN_UNIQUE':
-							html = "<img src='img/file_scan.png' />" + nodeName;
+							imgSrc = 'img/file_scan.png';
 							break;
 						case 'PARTITION_ACCESS':
-							html =  "<img src='img/partition_scan.png' />" + nodeName;
+							imgSrc =  'img/partition_scan.png';
 							break;
 						case 'HASH_GROUPBY':
-							html =  "<img src='img/hash_groupby.png' />" + nodeName;
+							imgSrc =  'img/hash_groupby.png';
 							break;
 						case 'HASH_PARTIAL_GROUPBY_LEAF':
 							nodeName = "Hash Groupby Leaf";
-							html =  "<img src='img/hash_groupby.png' />" + nodeName;
+							imgSrc =  'img/hash_groupby.png';
 							break;
 						case 'HASH_PARTIAL_GROUPBY_ROOT':
 							nodeName = "Hash Groupby Root";
-							html =  "<img src='img/hash_groupby.png' />" + nodeName;
+							imgSrc =  'img/hash_groupby.png';
 							break;
 						case 'SHORTCUT_SCALAR_AGRR':
 						case 'SORT_SCALAR_AGGR':
 							nodeName = "Scalar Aggr";
-							html =  "<img src='img/scalar_aggr.png' />" + nodeName;
+							imgSrc =  'img/scalar_aggr.png';
 							break;
 						case 'SORT':
 						case 'SORT_GROUPBY':
-							html =  "<img src='img/sort_group_by.png' />" + nodeName;
+							imgSrc =  'img/sort_group_by.png';
 							break;
 						case 'SORT_PARTIAL_AGGR_LEAF':
 							nodeName = "Sort Aggr Leaf";
-							html =  "<img src='img/sort_group_by.png' />" + nodeName;
+							imgSrc =  'img/sort_group_by.png';
 							break;
 						case 'SORT_PARTIAL_AGGR_ROOT':
 							nodeName = "Sort Aggr Root";
-							html =  "<img src='img/sort_group_by.png' />" + nodeName;
+							imgSrc =  'img/sort_group_by.png';
 							break;
 						case 'SORT_PARTIAL_GROUPBY_LEAF':
 							nodeName = "Sort Groupby Leaf";
-							html =  "<img src='img/sort_group_by.png' />" + nodeName;
+							imgSrc =  'img/sort_group_by.png';
 							break;
 						case 'SORT_PARTIAL_GROUPBY_ROOT':
 							nodeName = "Sort Groupby Root";
-							html =  "<img src='img/sort_group_by.png' />" + nodeName;
+							imgSrc =  'img/sort_group_by.png';
 							break;
 						case 'INSERT':
 						case 'INSERT_VSBB':
-							html =  "<img src='img/insert.png' />" + nodeName;
+							imgSrc =  'img/insert.png';
 							break;
 						case 'PROBE_CACHE':
-							html =  "<img src='img/probe_cache.png' />" + nodeName;
+							imgSrc =  'img/probe_cache.png';
 							break;
 						case 'HYBRID_HASH_ANTI_SEMI_JOIN':
 						case 'HYBRID_HASH_JOIN':
 						case 'HYBRID_HASH_SEMI_JOIN':
 							nodeName = "Hash Join";
-							html =  "<img src='img/hash_join.png' />"  + nodeName;
+							imgSrc =  'img/hash_join.png';
 							break;
 						case 'LEFT_HYBRID_HASH_JOIN':
 						case 'LEFT_ORDERED_HASH_JOIN':
 							nodeName = "Left Hash Join";
-							html =  "<img src='img/hash_join.png' />"  + nodeName;
+							imgSrc =  'img/hash_join.png';
 							break;
 						case 'ORDERED_HASH_ANTI_SEMI_JOIN':
 						case 'ORDERED_HASH_JOIN':
 						case 'ORDERED_HASH_SEMI_JOIN':
 							nodeName = "Hash Join";
-							html =  "<img src='img/hash_join.png' />"  + nodeName;
+							imgSrc =  'img/hash_join.png';
 							break;
 						case 'TUPLE_FLOW':
-							html =  "<img src='img/tuple_flow.png' />"  + nodeName;
+							imgSrc =  'img/tuple_flow.png';
 							break;
 						case 'LEFT_MERGE_JOIN':
 						case 'MERGE_ANTI_SEMI_JOIN':
 						case 'MERGE_JOIN':
 						case 'MERGE_SEMI_JOIN':
-							html =  "<img src='img/merge_join.png' />"  + nodeName;
+							imgSrc =  'img/merge_join.png';
 							break;									
 						case 'NESTED_ANTI_SEMI_JOIN':
 						case 'LEFT_NESTED_JOIN':
 						case 'NESTED_JOIN':
 						case 'NESTED_SEMI_JOIN':
-							html =  "<img src='img/nested_join.png' />"  + nodeName;
+							imgSrc =  'img/nested_join.png';
 							break;
 						case 'MERGE_UNION':
-							html =  "<img src='img/merge_union.png' />" + nodeName;
+							imgSrc =  'img/merge_union.png';
 							break;
 						case 'ESP_EXCHANGE':
-							html =  "<img src='img/esp_exchange.png' />" + nodeName;
+							imgSrc =  'img/esp_exchange.png';
 							break;
 						case 'SPLIT_TOP':
-							html =  "<img src='img/split_top.png' />" + nodeName;
+							imgSrc =  'img/split_top.png';
 							break;
 						case 'HIVE_INSERT':
 						case 'TRAFODION_':
 						case 'TRAFODION_DELETE':
 						case 'TRAFODION_INSERT':
-							html =  "<img src='img/trafodion_insert.png' />" + nodeName;
+							imgSrc =  'img/trafodion_insert.png';
 							break;
 						case 'HIVE_SCAN':
 						case 'TRAFODION_SCAN':
 						case 'SEABASE_SCAN':
-							html =  "<img src='img/seabase_scan.png' />" + nodeName;
+							imgSrc =  'img/seabase_scan.png';
 							break;
 						case 'ROOT':
-							html =  "<img src='img/root.png'/> " + nodeName;
+							imgSrc =  'img/root.png';
 							break;
 						default:
-							html =  "<img src='img/undefined.png' />" + nodeName;
+							imgSrc =  'img/undefined.png';
 						break;
 						}
 						label.id = node.id;            
-						label.innerHTML = html;
-						label.onclick = function(){
+						label.innerHTML = "<img src='" + imgSrc + "' style='float: left'/><p>" + nodeName + "</p>";
+
+						label.onmouseover = function(e){
+							$(e.currentTarget).children('img').css({"border": "rgb(78, 234, 10)", "border-width": "4px", "border-style":"groove"});
+							$(e.currentTarget).css("text-shadow","2px 2px 4px rgb(78, 234, 10)");
+						};
+						label.onmouseout = function(e){
+							$(e.currentTarget).children('img').css({"border": "white", "border-width": "0", "border-style":"none"});
+							$(e.currentTarget).css("text-shadow","none");
+						};
+						
+						label.ondblclick = function(){
 							var m = { 
 									offsetX: st.canvas.translateOffsetX, 
 									offsetY: st.canvas.translateOffsetY 
 							}; 
-							st.onClick(node.id, { Move: m }); 
+							//st.onClick(node.id, { Move: m }); 
 							if(onClickCallback){
 								onClickCallback(node.name, node.data.formattedCostDesc);
 							}
 						};
 						//set label styles
 						var style = label.style;
-						style.width = 175 + 'px';
+						style.width = 130 + 'px';
 						style.height = 17 + 'px';            
-						style.cursor = 'pointer';
+						//style.cursor = 'pointer';
 						style.color = '#000';
 						style.display = 'inline-table';
 						//style.backgroundColor = '#1a1a1a';

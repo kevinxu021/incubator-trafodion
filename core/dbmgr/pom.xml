@@ -14,7 +14,7 @@
 		<traf-jdbc-version>${env.TRAFODION_VER}</traf-jdbc-version>
 		<jackson-version>2.6.1</jackson-version>
 		<logback-version>1.0.0</logback-version>
-		<asciidoctor.version>1.5.2.1</asciidoctor.version>
+		<asciidoctor.version>1.5.3</asciidoctor.version>
 		<jruby.version>1.7.20.1</jruby.version>
 		<maven.build.timestamp.format>ddMMMyyyy</maven.build.timestamp.format>
 	</properties>
@@ -260,8 +260,7 @@
 							<Implementation-Version-2>Release ${project.version}</Implementation-Version-2>
 							<Implementation-Version-3>Build release</Implementation-Version-3>
 							<Implementation-Version-4>[${user.name}]</Implementation-Version-4>
-							<Implementation-Version-5>Branch
-								${mvngit.commit.abbrev}-${mvngit.branch}</Implementation-Version-5>
+							<Implementation-Version-5>Branch ${mvngit.commit.abbrev}-${mvngit.branch}</Implementation-Version-5>
 							<Implementation-Version-6>Date ${maven.build.timestamp}</Implementation-Version-6>
 							<Product-Name>${project.name}</Product-Name>
 						</manifestEntries>
@@ -356,7 +355,7 @@
 					<dependency>
 						<groupId>org.asciidoctor</groupId>
 						<artifactId>asciidoctorj-pdf</artifactId>
-						<version>1.5.0-alpha.9</version>
+						<version>1.5.0-alpha.10.1</version>
 					</dependency>
 					<dependency>
 						<groupId>org.jruby</groupId>

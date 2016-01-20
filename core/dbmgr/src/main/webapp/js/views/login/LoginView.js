@@ -9,12 +9,21 @@ define([
         'text!templates/login.html',
         'model/Session',
         'handlers/SessionHandler',
-        'common'
-        ], function (BaseView, LoginT, session, sessionHandler, common) {
+        'common',
+        'jqueryvalidate'
+     ], function (BaseView, LoginT, session, sessionHandler, common) {
 	'use strict';
 	var _that = null;
 	var _router = null;
-
+	var validator = null;
+	var LOGIN_FORM = '#login-form',
+		ALERTS_FEATURE = '#alerts-feature',
+		ERROR_TEXT = '#login-error-text',
+		SPINNER = '#loadingImg',
+		LOGIN_BUTTON = '#loginBtn',
+		USERNAME = '#username',
+		PASSWORD = '#password';
+	
 	var LoginView = Backbone.View.extend({
 
 		template:  _.template(LoginT),
@@ -32,26 +41,53 @@ define([
 		init: function(){
 			$('#navbar').hide();
 			_that = this;
+			
+			validator = $(LOGIN_FORM).validate({
+				rules: {
+					"username": { required: true },
+					"password": { required: true}
+				},
+				messages: {
+					username: "Please enter a user name",
+		                    	password: "Please provide a password"
+		                },
+				highlight: function(element) {
+					$(element).closest('.form-group').addClass('has-error');
+				},
+				unhighlight: function(element) {
+					$(element).closest('.form-group').removeClass('has-error');
+				},
+				errorElement: 'span',
+				errorClass: 'help-block',
+				errorPlacement: function(error, element) {
+					if(element.parent('.input-group').length) {
+						error.insertAfter(element.parent());
+					} else {
+						error.insertAfter(element);
+					}
+				}
+			});
+			
 			sessionHandler.on(sessionHandler.LOGIN_SUCCESS, this.loginSuccess);
 			sessionHandler.on(sessionHandler.LOGIN_ERROR, this.showErrorMessage);
-			$('#loginBtn').on('click', this.loginClick);
-			$('#password').on('keypress', this.passwordEnterKeyPressed);
+			$(LOGIN_BUTTON).on('click', this.loginClick);
+			$(PASSWORD).on('keypress', this.passwordEnterKeyPressed);
 		},
 
 		resume: function(){
 			sessionHandler.on(sessionHandler.LOGIN_SUCCESS, this.loginSuccess);
 			sessionHandler.on(sessionHandler.LOGIN_ERROR, this.showErrorMessage);			
-			$('#loginBtn').on('click', this.loginClick);
-			$('#password').on('keypress', this.passwordEnterKeyPressed);
+			$(LOGIN_BUTTON).on('click', this.loginClick);
+			$(PASSWORD).on('keypress', this.passwordEnterKeyPressed);
 		},
 		pause: function() {
 			sessionHandler.off(sessionHandler.LOGIN_SUCCESS, this.loginSuccess);
 			sessionHandler.off(sessionHandler.LOGIN_ERROR, this.showErrorMessage);			
-			$('#loginBtn').off('click', this.loginClick);
-			$('#password').off('keypress', this.passwordEnterKeyPressed);
+			$(LOGIN_BUTTON).off('click', this.loginClick);
+			$(PASSWORD).off('keypress', this.passwordEnterKeyPressed);
 		},
 		showLoading: function(){
-			$('#loadingImg').show();
+			$(SPINNER).show();
 		},
 		passwordEnterKeyPressed: function (ev){
 			var keycode = (ev.keyCode ? ev.keyCode : ev.which);
@@ -60,7 +96,7 @@ define([
 			}
 		},
 		hideLoading: function () {
-			$('#loadingImg').hide();
+			$(SPINNER).hide();
 		},		
 		render: function () {
 			if(this.child == null){
@@ -72,8 +108,8 @@ define([
 				this.resume();
 			}
 			if(_that.sessionTimedOut == true){
-				$('#login-error-text').text("Your session timed out due to inactivity. Please login again.");
-				$('#login-error-text').show();
+				$(ERROR_TEXT).text("Your session timed out due to inactivity. Please login again.");
+				$(ERROR_TEXT).show();
 				_that.sessionTimedOut = false;
 			}
 			return this;        	
@@ -85,47 +121,42 @@ define([
 		},
 		loginClick: function(e){
 
-			$("#login-error-text").text("");
-			$('#login-error-text').hide();
+			$(ERROR_TEXT).text("");
+			$(ERROR_TEXT).hide();
 
-			var userName = $('#username').val();
-			if(userName == null || userName.length == 0) {
-				alert("User Name cannot be empty");
+			if(!$(LOGIN_FORM).valid()){
 				e.preventDefault();
 				return;
 			}
-			var password = $('#password').val();
-			if(password == null || password.length == 0) {
-				alert("Password cannot be empty");
-				e.preventDefault();
-				return;
-			}
+			
+			var userName = $(USERNAME).val();
+			var password = $(PASSWORD).val();
 			_that.showLoading();
 			var param = {username : userName, password: password};
 			sessionHandler.login(param);
 			e.preventDefault();
 		},
 		loginSuccess: function(result){
-			$("#login-error-text").text("");
+			$(ERROR_TEXT).text("");
 			if(result.status == 'OK'){
 				session.saveToken(result.key);
 				session.saveUser(result.user);
 				if(result.enableAlerts != null && result.enableAlerts == false){
-					$('#alerts-feature').hide();
+					$(ALERTS_FEATURE).hide();
 				}else{
-					$('#alerts-feature').show();
+					$(ALERTS_FEATURE).show();
 				}
 				//session.saveLoginTime(toISODateString(new Date()));
 				window.location.hash = '/dashboard';
 			}else{
 				_that.hideLoading();
-				$("#login-error-text").show();
-				$("#login-error-text").text(result.errorMessage);
+				$(ERROR_TEXT).show();
+				$(ERROR_TEXT).text(result.errorMessage);
 			}
 		},
 		doLogout: function(){
 			var param = {username : session.getUser()};
-			$("#login-error-text").text("");
+			$(ERROR_TEXT).text("");
 			common.resetSessionProperties();
 			session.eraseAll();
 			sessionHandler.logout(param);
@@ -135,13 +166,13 @@ define([
 		},
 		showErrorMessage: function (jqXHR, res, error) {
 			_that.hideLoading();
-			$("#login-error-text").text("");
-			$("#login-error-text").show();
+			$(ERROR_TEXT).text("");
+			$(ERROR_TEXT).show();
 			if (jqXHR) {
 				if(jqXHR.status != null && jqXHR.status == 0) {
-					$("#login-error-text").text("Error : Unable to communicate with the server.");
+					$(ERROR_TEXT).text("Error : Unable to communicate with the server.");
 				}else {
-					$("#login-error-text").text(jqXHR.statusText);
+					$(ERROR_TEXT).text(jqXHR.statusText);
 				}
 			}
 		}  

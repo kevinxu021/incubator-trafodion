@@ -442,14 +442,15 @@ define([
 
 				oDataTable = $('#logs-query-results').dataTable({
 					"oLanguage": {
-						"sEmptyTable": "No log entries found."
+						"sEmptyTable": "No log entries found for selected time range and/or filters."
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
-					"bPaginate" : true, 
+					paging: bPaging,
+					"bProcessing": true,
 					//"bAutoWidth": true,
 					"iDisplayLength" : 25, 
-					"sPaginationType": "simple_numbers",
+					"sPaginationType": "full_numbers",
 					//"scrollY":        "800px",
 					"scrollCollapse": true,
 					//"bJQueryUI": true,
@@ -476,7 +477,6 @@ define([
 						}
 					}
 					],
-					paging: true,
 					buttons: [
 					          'copy','csv','excel','pdf','print'
 					          ],

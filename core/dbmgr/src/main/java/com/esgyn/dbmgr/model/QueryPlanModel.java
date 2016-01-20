@@ -19,7 +19,6 @@ import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.trafodion.jdbc.t4.TrafT4Connection;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
 import com.esgyn.dbmgr.resources.ConfigurationResource;
@@ -148,7 +147,7 @@ public class QueryPlanModel {
 
 		try {
 			String url = ConfigurationResource.getInstance().getJdbcUrl();
-			connection = (TrafT4Connection) DriverManager.getConnection(url, userName, password);
+			connection = DriverManager.getConnection(url, userName, password);
 			stmt = connection.createStatement();
 			for (String controlText : controlStatements) {
 				stmt.execute(controlText);
@@ -158,8 +157,11 @@ public class QueryPlanModel {
 			if (queryID != null && queryID.length() > 0) {
 				if (queryType != null && queryType.equalsIgnoreCase("active")) {
 					try {
-						rs = stmt
-								.executeQuery(String.format("SELECT * FROM TABLE(explain(null, 'QID=%1$s'))", queryID));
+						String explainQryText = String.format("SELECT * FROM TABLE(explain(null, 'QID=%1$s'))",
+								queryID);
+						_LOG.debug(explainQryText);
+						rs = stmt.executeQuery(explainQryText);
+
 						while (rs.next()) {
 							explainSuccess = true;
 							QueryPlanData qpd = new QueryPlanData();
@@ -186,14 +188,17 @@ public class QueryPlanModel {
 						rs.close();
 					} catch (Exception ex) {
 						// System.out.println("Failed using EXPLAIN_QID");
+						_LOG.error("Explain failed: " + ex.getMessage());
 					}
 				}
 
 				try {
 					// System.out.println("Using EXPLAIN_QID first");
 					if (!explainSuccess) {
-						rs = stmt.executeQuery(
-								String.format("SELECT * FROM TABLE(explain(null, 'EXPLAIN_QID=%1$s'))", queryID));
+						String explainQryText = String.format("SELECT * FROM TABLE(explain(null, 'EXPLAIN_QID=%1$s'))",
+								queryID);
+						_LOG.debug(explainQryText);
+						rs = stmt.executeQuery(explainQryText);
 						while (rs.next()) {
 							explainSuccess = true;
 							QueryPlanData qpd = new QueryPlanData();
@@ -221,7 +226,9 @@ public class QueryPlanModel {
 					}
 
 					if (explainSuccess) {
-						rs = stmt.executeQuery("explain qid " + queryID + " from repository");
+						String explainQryText = "explain qid " + queryID + " from repository";
+						_LOG.debug(explainQryText);
+						rs = stmt.executeQuery(explainQryText);
 						StringBuilder sb = new StringBuilder();
 
 						while (rs.next()) {
@@ -235,6 +242,7 @@ public class QueryPlanModel {
 					}
 
 				} catch (Exception ex) {
+					_LOG.error("Explain failed: " + ex.getMessage());
 					// System.out.println("Failed using EXPLAIN_QID");
 				}
 			}
@@ -251,6 +259,7 @@ public class QueryPlanModel {
 
 				String exQuery = "SELECT * FROM TABLE(explain(null, 'EXPLAIN_STMT=" + delimitedQueryText + " '))";
 				// System.out.println(exQuery);
+				_LOG.debug(exQuery);
 				rs = stmt.executeQuery(exQuery);
 
 				while (rs.next()) {

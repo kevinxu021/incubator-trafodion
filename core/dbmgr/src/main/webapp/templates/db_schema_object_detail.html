@@ -25,15 +25,15 @@
 				</ol>
 
 				<div class="panel-body" style="padding-bottom:15px;padding-top:0px">
-                    <label id="object-name" style='padding: 10px 0px;font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;font-size:18px;font-weight:500'></label>
+                    <label id="db-object-name" style='padding: 10px 0px;font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;font-size:18px;font-weight:500'></label>
 					<ul id="dboject-feature-selector" class="nav dbmgr-nav nav-pills" style="padding-bottom:15px;">
-					  <li role="presentation" class="active"><a id="db-attributes-link" data-toggle="pill">Attributes</a></li>
-					  <li role="presentation" style="padding-left: 5px;" ><a href="#db-columns-link" data-toggle="pill">Columns</a></li>
-					  <li role="presentation" style="padding-left: 5px;" ><a href="#db-partitions-link" data-toggle="pill">Partitions</a></li>
-					  <li role="presentation" style="padding-left: 5px;" ><a href="#db-ddl-link" data-toggle="pill">DDL</a></li>
-					  <li role="presentation" style="padding-left: 5px;" ><a href="#db-privileges-link" data-toggle="pill">Privileges</a></li>
-					  <li role="presentation" style="padding-left: 5px;" ><a href="#db-indexes-link" data-toggle="pill">Indexes</a></li>
-					  <li role="presentation" style="padding-left: 5px;" ><a href="#db-usages-link" data-toggle="pill">Usage</a></li>
+					  <li id="attributes-btn" role="presentation" class="active"><a href="#db-attributes-link" class="dbmgr-link-button" data-toggle="pill">Attributes</a></li>
+					  <li id="columns-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-columns-link" class="dbmgr-link-button" data-toggle="pill">Columns</a></li>
+					  <li id="partitions-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-partitions-link" class="dbmgr-link-button" data-toggle="pill">Partitions</a></li>
+					  <li id="ddl-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-ddl-link" class="dbmgr-link-button" data-toggle="pill">DDL</a></li>
+					  <li id="privileges-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-privileges-link" class="dbmgr-link-button" data-toggle="pill">Privileges</a></li>
+					  <li id="indexes-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-indexes-link" class="dbmgr-link-button" data-toggle="pill">Indexes</a></li>
+					  <li id="usages-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-usages-link" class="dbmgr-link-button" data-toggle="pill">Usage</a></li>
                       <li><img id="loadingImg" style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></li>
 					</ul>
 
@@ -44,8 +44,7 @@
 							</div>
 					    </div>
 					    <div class="tab-pane fade" id="db-columns-link">
-							<div>
-								<table id="db-object-columns-container"></table>
+							<div id="db-object-columns-container" class="table-responsive">
 							</div>
 					    </div>
 					    <div class="tab-pane fade" id="db-partitions-link">
@@ -55,7 +54,7 @@
 					    </div>
 					    <div class="tab-pane fade" id="db-ddl-link">
 							<div id ="db-object-ddl-container">
-								<textarea id="object-ddl-text" readonly name="object-ddl-text" spellcheck="false" rows="25" readonly class="textarea" style="font-family: Courier New, Courier, monospace;width: 95%; margin-bottom: 10px"></textarea>
+								<textarea id="object-ddl-text" readonly name="object-ddl-text" spellcheck="false" rows="100" readonly class="textarea" style="font-family: Courier New, Courier, monospace;width: 95%; margin-bottom: 10px"></textarea>
 							</div>
 					    </div>
 					    <div class="tab-pane fade" id="db-privileges-link">

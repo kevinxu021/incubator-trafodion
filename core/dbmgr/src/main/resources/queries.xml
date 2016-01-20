@@ -60,30 +60,63 @@
 		<query>
 			<!-- Fetch list of tables in a schema -->
 			<name>SELECT_TABLES_IN_SCHEMA</name>
-			<text><![CDATA[SELECT TABLE_NAME as "Name", KEY_LENGTH, ROW_DATA_LENGTH, ROW_TOTAL_LENGTH, NUM_SALT_PARTNS
-					FROM "_MD_".TABLES_VIEW
-					WHERE CATALOG_NAME = '%1$s' AND SCHEMA_NAME = '%2$s'
-					ORDER BY 2 FOR READ UNCOMMITTED ACCESS;
+			<text><![CDATA[SELECT O.OBJECT_NAME as "Table Name", USER(OBJECT_OWNER) AS "Owner",
+			    CONVERTTIMESTAMP(CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(REDEF_TIME) AS "ModifiedTime",
+			    T.KEY_LENGTH AS "Key Length", T.ROW_DATA_LENGTH as "Row Data Length", T.ROW_TOTAL_LENGTH as "Row Total Length", T.NUM_SALT_PARTNS as "Number Salt Partitions"
+			    FROM TRAFODION."_MD_".OBJECTS O, TRAFODION."_MD_".TABLES T 
+			    WHERE O.CATALOG_NAME = '%1$s' AND O.SCHEMA_NAME = '%2$s' AND
+			    O.OBJECT_UID = T.TABLE_UID AND
+			    O.SCHEMA_NAME != '_MD_' AND O.OBJECT_TYPE = 'BT' FOR READ UNCOMMITTED
+			    ACCESS ORDER BY 1
 				]]></text>
 		</query>
 		<query>
 			<!-- Fetch list of views in a schema -->
 			<name>SELECT_VIEWS_IN_SCHEMA</name>
-			<text><![CDATA[SELECT VIEW_NAME as "Name", CHECK_OPTION, IS_UPDATABLE, IS_INSERTABLE
-					FROM "_MD_".VIEWS_VIEW
-					WHERE CATALOG_NAME = '%1$s' AND SCHEMA_NAME = '%2$s'
-					ORDER BY 2 FOR READ UNCOMMITTED ACCESS;
+			<text><![CDATA[SELECT O.OBJECT_NAME AS "View Name", USER(OBJECT_OWNER) AS "Owner",
+			    CONVERTTIMESTAMP(CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(REDEF_TIME) AS "ModifiedTime",
+			    V.CHECK_OPTION as "Check Option", V.IS_UPDATABLE as "Updateable", V.IS_INSERTABLE as "Insertable"
+			    FROM TRAFODION."_MD_".OBJECTS O, TRAFODION."_MD_".VIEWS V 
+			    WHERE O.CATALOG_NAME = '%1$s' AND O.SCHEMA_NAME = '%2$s' AND
+			    O.SCHEMA_NAME != '_MD_' AND O.OBJECT_UID = V.VIEW_UID
+			    AND O.OBJECT_TYPE = 'VI' FOR READ UNCOMMITTED ACCESS ORDER BY 1 ;
 				]]></text>
 		</query>		
 		<query>
 			<!-- Fetch list of indexes in a schema -->
 			<name>SELECT_INDEXES_IN_SCHEMA</name>
-			<text><![CDATA[SELECT INDEX_NAME as "Name", TABLE_NAME, IS_UNIQUE, KEY_COLCOUNT, NONKEY_COLCOUNT
-					FROM "_MD_".INDEXES_VIEW
-					WHERE CATALOG_NAME = '%1$s' AND SCHEMA_NAME = '%2$s'
-					ORDER BY 2 FOR READ UNCOMMITTED ACCESS;
+			<text><![CDATA[SELECT O.OBJECT_NAME AS "Index Name", USER(O.OBJECT_OWNER) AS "Owner",
+				    CONVERTTIMESTAMP(O.CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(O.REDEF_TIME) AS "ModifiedTime",
+				    O2.OBJECT_NAME as "Table Name", I.IS_UNIQUE as "Is Unqiue", 
+				    I.KEY_COLCOUNT as "Key Col. Count", I.NONKEY_COLCOUNT as "Non Key Col. Count"
+				    FROM TRAFODION."_MD_".INDEXES I, TRAFODION."_MD_".OBJECTS O,
+				    TRAFODION."_MD_".OBJECTS O2 
+				    WHERE  O.CATALOG_NAME = '%1$s' AND O.SCHEMA_NAME = '%2$s' AND
+				    O.SCHEMA_NAME != '_MD_' AND I.INDEX_UID = O.OBJECT_UID AND
+				    I.BASE_TABLE_UID = O2.OBJECT_UID FOR READ UNCOMMITTED ACCESS ORDER BY 1;
 				]]></text>
-		</query>		
+		</query>	
+		<query>
+			<!-- Fetch list of columns for a schema object -->
+			<name>SELECT_OBJECT_COLUMNS</name>
+			<text><![CDATA[SELECT K.CONSTRAINT_TYPE as PRIMARY_KEY, C.COLUMN_NUMBER, C.COLUMN_NAME, SQL_DATA_TYPE,  
+			    COLUMN_SIZE, COLUMN_PRECISION, COLUMN_SCALE, 
+			    CASE WHEN NULLABLE = 0 THEN 'NOT NULL'
+			        ELSE 'NULL'
+			    END AS NULLABLE, 
+			    CASE CHARACTER_SET
+			        WHEN '_unknown_' THEN ''
+			        ELSE CHARACTER_SET 
+			    END AS CHARACTER_SET, DEFAULT_VALUE
+			    FROM "_MD_".COLUMNS_VIEW C LEFT JOIN "_MD_".KEYS_VIEW K
+			        ON C.SCHEMA_NAME = K.SCHEMA_NAME AND C.TABLE_NAME = K.TABLE_NAME 
+			        AND C.COLUMN_NAME = K.COLUMN_NAME AND K.CONSTRAINT_TYPE = 'PRIMARY KEY'
+				WHERE C.SCHEMA_NAME = '%1$s'
+				AND C.TABLE_NAME = '%2$s' 
+				AND C.COLUMN_NAME != '_SALT_'
+				FOR READ UNCOMMITTED ACCESS ORDER BY 2;
+			]]></text>
+		</query>			
 		<query>
 			<!-- Get DDL Text for database object -->
 			<name>SELECT_DDL_TEXT</name>
