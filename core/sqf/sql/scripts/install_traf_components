@@ -558,7 +558,7 @@ else
       sed -e "s@<fileNamePattern>\${DBMGR_INSTALL_DIR}@<fileNamePattern>$DBMGR_HOME@" logback.xml.orig > logback.xml | tee -a ${MY_LOG_FILE}
 
       cd $DBMGR_HOME/bin
-      ./configure.py --httpport $MY_DB_MGR_PORT --httpsport $MY_DB_MGR_SECURE_PORT --dcshost localhost --dcsport $MY_DCS_MASTER_PORT --password traf123 --dcsinfoport $MY_DCS_MASTER_INFO_PORT --resthost localhost --restport $MY_REST_SERVER_PORT --tsdhost localhost --tsdport $MY_OPEN_TSDB_PORT --bosunhost localhost --bosunport $MY_BOSUN_PORT --timezone $TIME_ZONE 
+      ./configure.py --httpport $MY_DB_MGR_PORT --httpsport $MY_DB_MGR_SECURE_PORT --dcshost localhost --dcsport $MY_DCS_MASTER_PORT --password traf123 --dcsinfoport $MY_DCS_MASTER_INFO_PORT --resthost localhost --restport $MY_REST_SERVER_PORT --tsdhost localhost --tsdport $MY_OPEN_TSDB_PORT --bosunhost localhost --bosunport $MY_BOSUN_PORT --timezone $TIME_ZONE --adminuser DB__ADMINUSER --adminpassword traf123
   else
       echo "DBMGR Tar file does not exist" | tee -a ${MY_LOG_FILE}
   fi

@@ -26,7 +26,7 @@
 	<entry key="sessionTimeoutMinutes">120</entry>
 	
 	<!-- The Admin User ID used by DBManager for its internal queries-->
-	<entry key="adminUserID">ADMIN_USER_ID</entry>
+	<entry key="adminUserID">ADMIN_USERID</entry>
 	
 	<!-- The Admin User's password-->
 	<entry key="adminPassword">ADMIN_PASSWORD</entry>	
