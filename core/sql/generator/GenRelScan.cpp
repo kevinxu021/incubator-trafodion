@@ -895,8 +895,11 @@ short FileScan::codeGenForHive(Generator * generator)
   const Int32 orcOperTuppIndex = 5;
   ULng32 orcOperLength = 0;
 
+  const Int32 origTuppIndex = 6;
+  ExpTupleDesc * origTupleDesc = 0;
+
   ex_cri_desc * work_cri_desc = NULL;
-  work_cri_desc = new(space) ex_cri_desc(6, space);
+  work_cri_desc = new(space) ex_cri_desc(7, space);
   returned_desc = new(space) ex_cri_desc(given_desc->noTuples() + 1, space);
 
   ExpTupleDesc::TupleDataFormat asciiRowFormat = ExpTupleDesc::SQLARK_EXPLODED_FORMAT;
@@ -927,7 +930,7 @@ short FileScan::codeGenForHive(Generator * generator)
   //   account for this when we generate the move expression
   //   by making sure that the output ValueIds created during
   //   binding refer to the outputs of the move expression
-
+  ValueIdList origExprVids;
   for (int ii = 0; ii < (int)allHdfsVals.entries();ii++)
   {
     if (convertSkipList[ii] == 0)
@@ -958,6 +961,8 @@ short FileScan::codeGenForHive(Generator * generator)
     else
       projectExprOnlyCastVids.insert(castValue->getValueId());
 
+    origExprVids.insert(allHdfsVals[ii]);
+
     orcRowLen += sizeof(Lng32);
     orcRowLen += givenType.getDisplayLength();
 
@@ -977,6 +982,21 @@ short FileScan::codeGenForHive(Generator * generator)
     
   // Add the tuple descriptor for reply values to the work ATP
   work_cri_desc->setTupleDescriptor(asciiTuppIndex, asciiTupleDesc);
+  
+  // Add ascii columns to the MapTable. After this call the MapTable
+  // has ascii values in the work ATP at index asciiTuppIndex.
+  ULng32 origRowLen; 
+  exp_gen->processValIdList(
+       origExprVids,                             // [IN] ValueIdList
+       asciiRowFormat,                        // [IN] tuple data format
+       origRowLen,                           // [OUT] tuple length 
+       work_atp,                              // [IN] atp number
+       origTuppIndex,                        // [IN] index into atp
+       &origTupleDesc,                       // [optional OUT] tuple desc
+       ExpTupleDesc::LONG_FORMAT);             // [optional IN] desc format
+    
+  // Add the tuple descriptor for reply values to the work ATP
+  work_cri_desc->setTupleDescriptor(origTuppIndex, origTupleDesc);
   
   ExpTupleDesc * tuple_desc = 0;
   ExpTupleDesc * hdfs_desc = 0;
@@ -1394,6 +1414,7 @@ if (hTabStats->isOrcFile())
            asciiTuppIndex,
            executorPredTuppIndex,
            projectOnlyTuppIndex,
+           origTuppIndex,
            work_cri_desc,
            given_desc,
            returned_desc,

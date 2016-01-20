@@ -1368,6 +1368,9 @@ char * ExHdfsScanTcb::extractAndTransformAsciiSourceToSqlRow(int &err,
   ExpTupleDesc * asciiSourceTD =
      hdfsScanTdb().workCriDesc_->getTupleDescriptor(hdfsScanTdb().asciiTuppIndex_);
 
+  ExpTupleDesc * origSourceTD = 
+    hdfsScanTdb().workCriDesc_->getTupleDescriptor(hdfsScanTdb().origTuppIndex_);
+
   const char cd = hdfsScanTdb().columnDelimiter_;
   const char rd = hdfsScanTdb().recordDelimiter_;
   const char *sourceDataEnd = hdfsScanBuffer_+trailingPrevRead_+ bytesRead_;
@@ -1392,6 +1395,7 @@ char * ExHdfsScanTcb::extractAndTransformAsciiSourceToSqlRow(int &err,
 
   Lng32 neededColIndex = 0;
   Attributes * attr = NULL;
+  Attributes * tgtAttr = NULL;
   NABoolean rdSeen = FALSE;
 
   for (Lng32 i = 0; i <  hdfsScanTdb().convertSkipListSize_; i++)
@@ -1401,14 +1405,19 @@ char * ExHdfsScanTcb::extractAndTransformAsciiSourceToSqlRow(int &err,
       if (neededColIndex == asciiSourceTD->numAttrs())
         continue;
 
+      tgtAttr = NULL;
       if (hdfsScanTdb().convertSkipList_[i] > 0)
       {
         attr = asciiSourceTD->getAttr(neededColIndex);
+
+        tgtAttr = origSourceTD->getAttr(neededColIndex);
         neededColIndex++;
       }
       else
-        attr = NULL;
- 
+        {
+          attr = NULL;
+        }
+
       if (!isTrailingMissingColumn) {
          sourceColEnd = hdfs_strchr(sourceData, rd, cd, sourceDataEnd, checkRangeDelimiter_, &rdSeen);
          if (sourceColEnd == NULL) {
@@ -1436,9 +1445,14 @@ char * ExHdfsScanTcb::extractAndTransformAsciiSourceToSqlRow(int &err,
             *(short*)&hdfsAsciiSourceData_[attr->getVCLenIndOffset()] = len;
             if (attr->getNullFlag())
             {
-              if (len == 0)
-                *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = -1;
-	      else if (memcmp(sourceData, "\\N", len) == 0)
+              // for non-varchar, length of zero indicates a null value
+              if ((tgtAttr) &&
+                  (NOT DFS2REC::isSQLVarChar(tgtAttr->getDatatype())) &&
+                  (len == 0))
+                {
+                  *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = -1;
+                }
+	      else if ((len > 0) && (memcmp(sourceData, "\\N", len) == 0))
                 *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = -1;
               else
                 *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = 0;

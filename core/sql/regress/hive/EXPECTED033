@@ -1,5 +1,32 @@
->>
->>?section tests1
+>>set envvar ORC '_ORC';
+
+--- SQL operation complete.
+>>obey TEST033(setup);
+>>set schema hive.hive;
+
+--- SQL operation complete.
+>>cqd HIVE_MAX_STRING_LENGTH '20' ;
+
+--- SQL operation complete.
+>>cqd mode_seahive 'ON';
+
+--- SQL operation complete.
+>>cqd traf_enable_orc_format 'ON';
+
+--- SQL operation complete.
+>>cqd HIST_ROWCOUNT_REQUIRING_STATS '50000';
+
+--- SQL operation complete.
+>>cqd orc_pred_pushdown 'ON';
+
+--- SQL operation complete.
+>>cqd orc_aggr_pushdown 'ON';
+
+--- SQL operation complete.
+>>cqd orc_columns_pushdown 'ON';
+
+--- SQL operation complete.
+>>obey $$REGRTSTDIR$$/TEST003(tests1);
 >>set schema hive.hive;
 
 --- SQL operation complete.
@@ -524,11 +551,11 @@ T_TIME_SK    T_TIME_ID                  T_TIME       T_HOUR       T_MINUTE     T
 --- SQL operation complete.
 >>prepare s from insert into table ins_store_sales_summary select ss_sold_date_sk,ss_store_sk, sum (ss_quantity) from store_sales$$ORC$$ group by  ss_sold_date_sk ,ss_store_sk;
 
-*** WARNING[6008] Statistics for column (SS_SOLD_DATE_SK) from table HIVE.HIVE.STORE_SALES were not available. As a result, the access path chosen might not be the best possible.
+*** WARNING[6008] Statistics for column (SS_SOLD_DATE_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
 
-*** WARNING[6008] Statistics for column (SS_STORE_SK) from table HIVE.HIVE.STORE_SALES were not available. As a result, the access path chosen might not be the best possible.
+*** WARNING[6008] Statistics for column (SS_STORE_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
 
-*** WARNING[6007] Multi-column statistics for columns (SS_SOLD_DATE_SK, SS_STORE_SK) from table HIVE.HIVE.STORE_SALES were not available. The columns were being used by GroupBy operator. As a result, the access path chosen might not be the best possible.
+*** WARNING[6007] Multi-column statistics for columns (SS_SOLD_DATE_SK, SS_STORE_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. The columns were being used by GroupBy operator. As a result, the access path chosen might not be the best possible.
 
 --- SQL command prepared.
 >>explain options 'f' s;
@@ -536,12 +563,12 @@ T_TIME_SK    T_TIME_ID                  T_TIME       T_HOUR       T_MINUTE     T
 LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ---- ---- ---- --------------------  --------  --------------------  ---------
 
-6    .    7    root                                                  2.92E+006
-5    .    6    esp_exchange                    1:2(hash2)            2.92E+006
-3    .    5    hive_insert                     INS_STORE_SALES_SUMM  2.92E+006
-2    .    3    hash_groupby                                          2.92E+006
-1    .    2    esp_exchange                    2(hash2):2(hash2)     2.92E+006
-.    .    1    hive_scan                       STORE_SALES           2.92E+006
+6    .    7    root                                                  1.08E+008
+5    .    6    esp_exchange                    1:2(hash2)            1.08E+008
+3    .    5    hive_insert                     INS_STORE_SALES_SUMM  1.08E+008
+2    .    3    hash_groupby                                          1.08E+008
+1    .    2    esp_exchange                    2(hash2):1            1.08E+008
+.    .    1    orc_scan                        STORE_SALES_ORC       1.08E+008
 
 --- SQL operation complete.
 >>execute s;
@@ -579,30 +606,29 @@ test lp bug # 1355477
 ---
 > >>select  * from ins_store_sales_summary order by  ss_sold_date_sk,ss_store_sk;
 3,10c3,4
-< *** WARNING[6008] Statistics for column (SS_SOLD_DATE_SK) from table HIVE.HIVE.STORE_SALES were not available. As a result, the access path chosen might not be the best possible.
+< *** WARNING[6008] Statistics for column (SS_SOLD_DATE_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
 < 
-< *** WARNING[6008] Statistics for column (SS_STORE_SK) from table HIVE.HIVE.STORE_SALES were not available. As a result, the access path chosen might not be the best possible.
+< *** WARNING[6008] Statistics for column (SS_STORE_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
 < 
-< *** WARNING[6007] Multi-column statistics for columns (SS_SOLD_DATE_SK, SS_STORE_SK) from table HIVE.HIVE.STORE_SALES were not available. The columns were being used by GroupBy operator. As a result, the access path chosen might not be the best possible.
+< *** WARNING[6007] Multi-column statistics for columns (SS_SOLD_DATE_SK, SS_STORE_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. The columns were being used by GroupBy operator. As a result, the access path chosen might not be the best possible.
 < 
 < SS_SOLD_DATE_SK  SS_STORE_SK  (EXPR)              
 < ---------------  -----------  --------------------
 ---
 > SS_SOLD_DATE_SK  SS_STORE_SK  SS_QUANTITY
 > ---------------  -----------  -----------
->>
->>?section tests2
+>>obey $$REGRTSTDIR$$/TEST003(tests2);
 >>--execute again --overwrite should get rid og existing data from previous run
 >>control query shape union(cut,esp_exchange(cut));
 
 --- SQL operation complete.
 >>prepare s from insert overwrite table ins_store_sales_summary select ss_sold_date_sk,ss_store_sk, sum (ss_quantity) from store_sales$$ORC$$ group by  ss_sold_date_sk ,ss_store_sk;
 
-*** WARNING[6008] Statistics for column (SS_SOLD_DATE_SK) from table HIVE.HIVE.STORE_SALES were not available. As a result, the access path chosen might not be the best possible.
+*** WARNING[6008] Statistics for column (SS_SOLD_DATE_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
 
-*** WARNING[6008] Statistics for column (SS_STORE_SK) from table HIVE.HIVE.STORE_SALES were not available. As a result, the access path chosen might not be the best possible.
+*** WARNING[6008] Statistics for column (SS_STORE_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
 
-*** WARNING[6007] Multi-column statistics for columns (SS_SOLD_DATE_SK, SS_STORE_SK) from table HIVE.HIVE.STORE_SALES were not available. The columns were being used by GroupBy operator. As a result, the access path chosen might not be the best possible.
+*** WARNING[6007] Multi-column statistics for columns (SS_SOLD_DATE_SK, SS_STORE_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. The columns were being used by GroupBy operator. As a result, the access path chosen might not be the best possible.
 
 --- SQL command prepared.
 >>explain options 'f' s;
@@ -610,13 +636,13 @@ test lp bug # 1355477
 LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ---- ---- ---- --------------------  --------  --------------------  ---------
 
-8    .    9    root                                                  2.92E+006
-1    7    8    blocked_union                                         2.92E+006
-6    .    7    esp_exchange                    1:2(hash2)            2.92E+006
-4    .    6    hive_insert                     INS_STORE_SALES_SUMM  2.92E+006
-3    .    4    hash_groupby                                          2.92E+006
-2    .    3    esp_exchange                    2(hash2):2(hash2)     2.92E+006
-.    .    2    hive_scan                       STORE_SALES           2.92E+006
+8    .    9    root                                                  1.08E+008
+1    7    8    blocked_union                                         1.08E+008
+6    .    7    esp_exchange                    1:2(hash2)            1.08E+008
+4    .    6    hive_insert                     INS_STORE_SALES_SUMM  1.08E+008
+3    .    4    hash_groupby                                          1.08E+008
+2    .    3    esp_exchange                    2(hash2):1            1.08E+008
+.    .    2    orc_scan                        STORE_SALES_ORC       1.08E+008
 .    .    1    hive_truncate                                         1.00E+000
 
 --- SQL operation complete.
@@ -632,11 +658,11 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ---
 > >>select  * from ins_store_sales_summary order by  ss_sold_date_sk,ss_store_sk;
 3,10c3,4
-< *** WARNING[6008] Statistics for column (SS_SOLD_DATE_SK) from table HIVE.HIVE.STORE_SALES were not available. As a result, the access path chosen might not be the best possible.
+< *** WARNING[6008] Statistics for column (SS_SOLD_DATE_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
 < 
-< *** WARNING[6008] Statistics for column (SS_STORE_SK) from table HIVE.HIVE.STORE_SALES were not available. As a result, the access path chosen might not be the best possible.
+< *** WARNING[6008] Statistics for column (SS_STORE_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
 < 
-< *** WARNING[6007] Multi-column statistics for columns (SS_SOLD_DATE_SK, SS_STORE_SK) from table HIVE.HIVE.STORE_SALES were not available. The columns were being used by GroupBy operator. As a result, the access path chosen might not be the best possible.
+< *** WARNING[6007] Multi-column statistics for columns (SS_SOLD_DATE_SK, SS_STORE_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. The columns were being used by GroupBy operator. As a result, the access path chosen might not be the best possible.
 < 
 < SS_SOLD_DATE_SK  SS_STORE_SK  (EXPR)              
 < ---------------  -----------  --------------------

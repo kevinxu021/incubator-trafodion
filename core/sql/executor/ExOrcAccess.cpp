@@ -179,22 +179,24 @@ short ExOrcScanTcb::extractAndTransformOrcSourceToSqlRow(
           else
             *(short *)&hdfsAsciiSourceData_[attr->getNullIndOffset()] = 0;
         }
-      
-      if ((attr->getVCIndicatorLength() > 0) &&
-          (currColLen >= 0))
-        {
-          char * vcLenLoc = &hdfsAsciiSourceData_[attr->getVCLenIndOffset()];
-          attr->setVarLength(currColLen, vcLenLoc);
-        }
 
-      if (currColLen > 0)
-        {
-          str_cpy_all((char*)&hdfsAsciiSourceData_[attr->getOffset()],
-                      sourceData, currColLen);
-        }
-      
+      Lng32 copyLen = currColLen;
       if (currColLen >= 0)
-        sourceData += currColLen;
+        {
+          if (attr->getVCIndicatorLength() > 0)
+            {
+              copyLen = MINOF(currColLen, attr->getLength());
+
+              char * vcLenLoc = 
+                &hdfsAsciiSourceData_[attr->getVCLenIndOffset()];
+              attr->setVarLength(copyLen, vcLenLoc);
+            }
+         
+          str_cpy_all((char*)&hdfsAsciiSourceData_[attr->getOffset()],
+                     sourceData, copyLen);
+ 
+          sourceData += currColLen;
+        } // currColLen >= 0
     }
 
   err = 0;

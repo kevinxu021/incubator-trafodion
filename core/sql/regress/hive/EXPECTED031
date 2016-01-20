@@ -1,4 +1,32 @@
->>obey TEST001(setup);
+>>set envvar ORC '_ORC';
+
+--- SQL operation complete.
+>>obey TEST031(setup);
+>>set schema hive.hive;
+
+--- SQL operation complete.
+>>cqd HIVE_MAX_STRING_LENGTH '20' ;
+
+--- SQL operation complete.
+>>cqd mode_seahive 'ON';
+
+--- SQL operation complete.
+>>cqd traf_enable_orc_format 'ON';
+
+--- SQL operation complete.
+>>cqd HIST_ROWCOUNT_REQUIRING_STATS '50000';
+
+--- SQL operation complete.
+>>cqd orc_pred_pushdown 'ON';
+
+--- SQL operation complete.
+>>cqd orc_aggr_pushdown 'ON';
+
+--- SQL operation complete.
+>>cqd orc_columns_pushdown 'ON';
+
+--- SQL operation complete.
+>>obey $$REGRTSTDIR$$/TEST001(setup);
 >>--------------------------------------------------------------------------
 >>
 >>set schema hive.hive;
@@ -11,7 +39,7 @@
 
 --- SQL operation complete.
 >>
->>obey TEST001(tests);
+>>obey $$REGRTSTDIR$$/TEST001(tests);
 >>--------------------------------------------------------------------------
 >>
 >>select count(*) from customer$$ORC$$ ;
@@ -98,7 +126,7 @@
 >>
 >>select c_customer_sk from customer$$ORC$$ where c_customer_sk < 100;
 
-*** WARNING[6008] Statistics for column (C_CUSTOMER_SK) from table HIVE.HIVE.CUSTOMER were not available. As a result, the access path chosen might not be the best possible.
+*** WARNING[6008] Statistics for column (C_CUSTOMER_SK) from table HIVE.HIVE.CUSTOMER_ORC were not available. As a result, the access path chosen might not be the best possible.
 
 C_CUSTOMER_SK
 -------------
@@ -208,7 +236,7 @@ C_CUSTOMER_SK
 >>select ca_gmt_offset from customer_address$$ORC$$ where ca_gmt_offset < -8 
 +>order by ca_gmt_offset;
 
-*** WARNING[6008] Statistics for column (CA_GMT_OFFSET) from table HIVE.HIVE.CUSTOMER_ADDRESS were not available. As a result, the access path chosen might not be the best possible.
+*** WARNING[6008] Statistics for column (CA_GMT_OFFSET) from table HIVE.HIVE.CUSTOMER_ADDRESS_ORC were not available. As a result, the access path chosen might not be the best possible.
 
 CA_GMT_OFFSET  
 ---------------
@@ -1062,7 +1090,7 @@ P_PROMO_SK   P_PROMO_ID            P_START_DATE_SK  P_END_DATE_SK  P_ITEM_SK    
 >>
 >>select t_time from time_dim$$ORC$$ where t_time > 100 and t_time < 200 ;
 
-*** WARNING[6008] Statistics for column (T_TIME) from table HIVE.HIVE.TIME_DIM were not available. As a result, the access path chosen might not be the best possible.
+*** WARNING[6008] Statistics for column (T_TIME) from table HIVE.HIVE.TIME_DIM_ORC were not available. As a result, the access path chosen might not be the best possible.
 
 T_TIME     
 -----------
@@ -1191,7 +1219,7 @@ S_STORE_SK   S_STORE_ID            S_REC_START_DATE  S_REC_END_DATE  S_CLOSED_DA
 >>
 >>select d_date from date_dim$$ORC$$ where d_date > cast('2099-01-01' as date);
 
-*** WARNING[6008] Statistics for column (D_DATE) from table HIVE.HIVE.DATE_DIM were not available. As a result, the access path chosen might not be the best possible.
+*** WARNING[6008] Statistics for column (D_DATE) from table HIVE.HIVE.DATE_DIM_ORC were not available. As a result, the access path chosen might not be the best possible.
 
 D_DATE    
 ----------

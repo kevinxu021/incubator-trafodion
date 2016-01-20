@@ -132,9 +132,9 @@ class ComTdbHdfsScan : public ComTdb
   NABasicPtr errCountRowId_;                                  // 176 - 183
 
   // list of retrieved cols. Each entry is "class HdfsColInfo".
-  QueuePtr hdfsColInfoList_;   
-                                // 184 - 191
-  char fillersComTdbHdfsScan1_[8];                           // 192 - 199
+  QueuePtr hdfsColInfoList_;                                  // 184 - 191
+  UInt16 origTuppIndex_;                                      // 192 - 193
+  char fillersComTdbHdfsScan1_[6];                            // 194 - 199
 
 public:
   enum HDFSFileType
@@ -175,6 +175,7 @@ public:
 		 const unsigned short asciiTuppIndex,
 		 const unsigned short workAtpIndex,
                  const unsigned short moveColsTuppIndex,
+                 const unsigned short origTuppIndex,
 		 ex_cri_desc * work_cri_desc,
 		 ex_cri_desc * given_cri_desc,
 		 ex_cri_desc * returned_cri_desc,
@@ -311,6 +312,11 @@ public:
   ExpTupleDesc *getHdfsAsciiRowDesc() const
   {
     return workCriDesc_->getTupleDescriptor(asciiTuppIndex_);
+  }
+
+  ExpTupleDesc *getHdfsOrigRowDesc() const
+  {
+    return workCriDesc_->getTupleDescriptor(origTuppIndex_);
   }
 
   ExpTupleDesc *getMoveExprColsRowDesc() const
