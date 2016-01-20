@@ -24,6 +24,12 @@
 	<!-- Session Timeout in minutes. Your EsgynDB Manager browser session to the server will be 
 		timed out after this interval and you will be asked to login again -->
 	<entry key="sessionTimeoutMinutes">120</entry>
+	
+	<!-- The Admin User ID used by DBManager for its internal queries-->
+	<entry key="adminUserID">ADMIN_USER_ID</entry>
+	
+	<!-- The Admin User's password-->
+	<entry key="adminPassword">ADMIN_PASSWORD</entry>	
 
 	<!-- The following properties are only required and used by the embedded jetty server -->
 	

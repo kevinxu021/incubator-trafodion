@@ -105,6 +105,14 @@ public class ConfigurationResource {
 		return xmlConfig.getProperty("dcsMasterInfoUri");
 	}
 
+	public String getAdminUserID() {
+		return xmlConfig.getProperty("adminUserID", "adminuser");
+	}
+
+	public String getAdminPassword() {
+		return xmlConfig.getProperty("adminPassword", "adminpass");
+	}
+
 	public int getSessionTimeoutMinutes() {
 		int timeOutVal = 120;
 		try {

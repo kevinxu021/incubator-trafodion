@@ -8,6 +8,7 @@ package com.esgyn.dbmgr.model;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -132,12 +133,39 @@ public class QueryPlanModel {
 		CreateSummary(planDataArray);
 	}
 
+	public void GeneratePlan(Connection connection, String queryText, String controlStmts, String queryID,
+			String queryType) throws EsgynDBMgrException {
+		ArrayList<QueryPlanData> planDataArray = GetPlan(connection, queryText, controlStmts, queryID, queryType);
+		QueryPlanArray.clear();
+		for (QueryPlanData planData : planDataArray) {
+			setQueryPlanData(planData);
+			QueryPlanArray.add(planData);
+		}
+		SavePlanSteps(planDataArray);
+		CreateSummary(planDataArray);
+	}
+
 	public ArrayList<QueryPlanData> GetPlan(String userName, String password, String queryText, String controlStmts,
+			String queryID, String queryType) throws EsgynDBMgrException {
+		ArrayList<QueryPlanData> planArray = new ArrayList<QueryPlanData>();
+		Connection connection = null;
+		try {
+			String url = ConfigurationResource.getInstance().getJdbcUrl();
+			connection = DriverManager.getConnection(url, userName, password);
+			planArray = GetPlan(connection, queryText, controlStmts, queryID, queryType);
+		} catch (Exception ex) {
+			// System.out.println("Failed using EXPLAIN_QID");
+			_LOG.error("Explain failed: " + ex.getMessage());
+		}
+		return planArray;
+	}
+
+	public ArrayList<QueryPlanData> GetPlan(Connection connection, String queryText, String controlStmts,
 			String queryID, String queryType) throws EsgynDBMgrException {
 
 		ArrayList<QueryPlanData> planArray = new ArrayList<QueryPlanData>();
-		Connection connection = null;
 		Statement stmt = null;
+		PreparedStatement pStmt = null;
 
 		ResultSet rs;
 		String[] controlStatements = new String[0];
@@ -146,12 +174,11 @@ public class QueryPlanModel {
 		}
 
 		try {
-			String url = ConfigurationResource.getInstance().getJdbcUrl();
-			connection = DriverManager.getConnection(url, userName, password);
 			stmt = connection.createStatement();
 			for (String controlText : controlStatements) {
 				stmt.execute(controlText);
 			}
+			stmt.close();
 
 			boolean explainSuccess = false;
 			if (queryID != null && queryID.length() > 0) {
@@ -160,7 +187,8 @@ public class QueryPlanModel {
 						String explainQryText = String.format("SELECT * FROM TABLE(explain(null, 'QID=%1$s'))",
 								queryID);
 						_LOG.debug(explainQryText);
-						rs = stmt.executeQuery(explainQryText);
+						pStmt = connection.prepareStatement(explainQryText);
+						rs = pStmt.executeQuery();
 
 						while (rs.next()) {
 							explainSuccess = true;
@@ -186,6 +214,7 @@ public class QueryPlanModel {
 						}
 
 						rs.close();
+						pStmt.close();
 					} catch (Exception ex) {
 						// System.out.println("Failed using EXPLAIN_QID");
 						_LOG.error("Explain failed: " + ex.getMessage());
@@ -198,7 +227,8 @@ public class QueryPlanModel {
 						String explainQryText = String.format("SELECT * FROM TABLE(explain(null, 'EXPLAIN_QID=%1$s'))",
 								queryID);
 						_LOG.debug(explainQryText);
-						rs = stmt.executeQuery(explainQryText);
+						pStmt = connection.prepareStatement(explainQryText);
+						rs = pStmt.executeQuery();
 						while (rs.next()) {
 							explainSuccess = true;
 							QueryPlanData qpd = new QueryPlanData();
@@ -223,12 +253,14 @@ public class QueryPlanModel {
 						}
 
 						rs.close();
+						pStmt.close();
 					}
 
 					if (explainSuccess) {
 						String explainQryText = "explain qid " + queryID + " from repository";
 						_LOG.debug(explainQryText);
-						rs = stmt.executeQuery(explainQryText);
+						pStmt = connection.prepareStatement(explainQryText);
+						rs = pStmt.executeQuery();
 						StringBuilder sb = new StringBuilder();
 
 						while (rs.next()) {
@@ -236,7 +268,7 @@ public class QueryPlanModel {
 						}
 
 						rs.close();
-
+						pStmt.close();
 						planText = sb.toString();
 
 					}
@@ -260,7 +292,8 @@ public class QueryPlanModel {
 				String exQuery = "SELECT * FROM TABLE(explain(null, 'EXPLAIN_STMT=" + delimitedQueryText + " '))";
 				// System.out.println(exQuery);
 				_LOG.debug(exQuery);
-				rs = stmt.executeQuery(exQuery);
+				pStmt = connection.prepareStatement(exQuery);
+				rs = pStmt.executeQuery();
 
 				while (rs.next()) {
 					explainSuccess = true;
@@ -290,8 +323,10 @@ public class QueryPlanModel {
 				}
 
 				rs.close();
+				pStmt.close();
 
-				rs = stmt.executeQuery("explain " + queryText);
+				pStmt = connection.prepareStatement("explain " + queryText);
+				rs = pStmt.executeQuery();
 				StringBuilder sb = new StringBuilder();
 
 				while (rs.next()) {
@@ -308,7 +343,7 @@ public class QueryPlanModel {
 				planText = sb.toString();
 
 				rs.close();
-
+				pStmt.close();
 			}
 		} catch (Exception e) {
 			_LOG.error("Explain failed: " + e.getMessage());

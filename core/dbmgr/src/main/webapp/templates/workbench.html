@@ -37,8 +37,12 @@
 				<div id="primary-result-container" class="panel-body">
 					<img id="loadingImg" src="img/ajax-loader.gif" />
 					<div id="query-result-container" class="table-responsive"></div>
-					<label id="scalar-result-container" 
-					style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: normal;color: black;"></label>
+					<div id="scalar-result-container">
+					<textarea id="scalar-result"
+						style="width: 100%; height: 400px; font-family: Courier New, Courier, monospace; font-weight: 600"
+						readonly></textarea></div>
+				<!-- <label id="scalar-result-container" 
+					style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: normal;color: black;"></label> -->
 					<div id="infovis" style="overflow: scroll;"></div>
 					<label id="query-error-text" class="dbmgr-error-text"></label>
 				</div>

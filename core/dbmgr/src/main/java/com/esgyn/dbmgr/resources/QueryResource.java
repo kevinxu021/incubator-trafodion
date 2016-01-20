@@ -84,6 +84,16 @@ public class QueryResource {
 		}
 	}
 
+	public static TabularResult executeAdminSQLQuery(String queryText, String sControlStmts)
+			throws EsgynDBMgrException {
+		try {
+			Connection connection = JdbcHelper.getInstance().getAdminConnection();
+			return executeQuery(connection, queryText, sControlStmts);
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+			throw new EsgynDBMgrException(e.getMessage());
+		}
+	}
 	public static TabularResult executeQuery(Connection connection, String queryText, String sControlStmts)
 			throws EsgynDBMgrException {
 
@@ -108,7 +118,19 @@ public class QueryResource {
 			boolean hasResultSet = pstmt.execute();
 			if (hasResultSet) {
 				rs = pstmt.getResultSet();
-				js = Helper.convertResultSetToTabularResult(rs);
+				if (queryText.toLowerCase().startsWith("select") || rs.getMetaData().getColumnCount() > 1) {
+					js = Helper.convertResultSetToTabularResult(rs);
+				} else {
+					js.isScalarResult = true;
+					js.columnNames = new String[] { "Output" };
+					js.resultArray = new ArrayList<Object[]>();
+					StringBuilder sb = new StringBuilder();
+					while (rs.next()) {
+						sb.append(rs.getString(1) + System.getProperty("line.separator"));
+					}
+					Object[] output = new Object[] { sb.toString() };
+					js.resultArray.add(output);
+				}
 				rs.close();
 			} else {
 				int count = pstmt.getUpdateCount();

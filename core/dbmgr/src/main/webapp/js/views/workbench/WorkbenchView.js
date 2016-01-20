@@ -55,6 +55,7 @@ define([
 	var _that = null;
 	var queryTextEditor = null,
 	controlStmtEditor = null,
+	scalarResultEditor = null,
 	resultsDataTable = null;
 
 	$jit.ST.Plot.NodeTypes.implement({
@@ -200,6 +201,24 @@ define([
 			});
 			$(controlStmtEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"300px"});
 
+			
+			scalarResultEditor = CodeMirror.fromTextArea(document.getElementById("scalar-result"), {
+				mode: 'text/x-esgyndb',
+				indentWithTabs: true,
+				smartIndent: true,
+				lineNumbers: true,
+				lineWrapping: true,
+				matchBrackets : true,
+				autofocus: true,
+				extraKeys: {"Ctrl-Space": "autocomplete"}
+			});
+			$(scalarResultEditor.getWrapperElement()).resizable({
+				resize: function() {
+					scalarResultEditor.setSize($(this).width(), $(this).height());
+				}
+			});
+			$(scalarResultEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"300px"});
+			
 			$(CONTROL_DIALOG).on('hide.bs.modal', function(e){
 				if(controlStmts && controlStmts.length > 0){
 					if(controlStmtEditor)
@@ -299,6 +318,12 @@ define([
 				controlStmtEditor.setValue("");
 			else
 				$(CONTROL_STMTS_TEXT).val();
+			
+			if(scalar-result-container){
+				scalar-result-container.setValue("");
+			}else{
+				$(SCALAR_RESULT_CONTAINER).text("");
+			}
 
 			if(resultsDataTable  != null){
 				try{
@@ -397,7 +422,8 @@ define([
 			var keys = result.columnNames;
 			if(result.isScalarResult != null && result.isScalarResult == true){
 				$(SCALAR_RESULT_CONTAINER).show();
-				$(SCALAR_RESULT_CONTAINER).text(result.resultArray[0][0]);
+				//$(SCALAR_RESULT_CONTAINER).text();
+				scalarResultEditor.setValue(result.resultArray[0][0]);
 			}
 			else{
 				$(QUERY_RESULT_CONTAINER).show();        	
