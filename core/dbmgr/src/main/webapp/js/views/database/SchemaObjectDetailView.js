@@ -21,7 +21,6 @@ define([
 	var LOADING_SELECTOR = '#loadingImg';				
 	var oDataTable = null;
 	var _this = null;
-	var initialized = false;
 	var ddlTextEditor = null;
 	
 	var BREAD_CRUMB = '#database-crumb';
@@ -43,12 +42,23 @@ define([
 		INDEXES_SELECTOR = '#db-indexes-link',
 		PRIVILEGES_SELECTOR = '#db-privileges-link',
 		USAGES_SELECTOR = '#db-usages-link',
+		
+		ATTRIBUTES_BTN = '#attributes-btn',
+		DDL_BTN= '#ddl-btn',
+		PRIVILEGES_BTN = '#privileges-btn',
+		INDEXES_BTN = '#indexes-btn',
+		COLUMNS_BTN = '#columns-btn',
+		PARTITIONS_BTN = '#partitions-btn',
+		USAGES_BTN = '#usages-btn',
+
 		REFRESH_ACTION = '#refreshAction';
 	
 	var routeArgs = null;
 	var schemaName = null;
 	var prevRouteArgs = null;
 	var bCrumbsArray = [];
+	var pageStatus = {};
+	
 	
 	var SchemaObjectDetailView = BaseView.extend({
 		template:  _.template(DatabaseT),
@@ -82,30 +92,44 @@ define([
 				}
 			});
 			//$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
+			$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee"});
 
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
+			dbHandler.on(dbHandler.FETCH_COLUMNS_ERROR, this.showErrorMessage);
 			_this.processRequest();
 
 		},
 		doResume: function(args){
 			routeArgs = args;
 			
+			$(DDL_CONTAINER).hide();
+			$(COLUMNS_CONTAINER).hide();
+
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
+			dbHandler.on(dbHandler.FETCH_COLUMNS_ERROR, this.showErrorMessage);
 			
 			if(prevRouteArgs.schema != routeArgs.schema || 
 					prevRouteArgs.name != routeArgs.name ||
 					prevRouteArgs.type != routeArgs.type ){
 				schemaName = routeArgs.schema;
-				initialized = false;
-	        	if(ddlTextEditor)
+				pageStatus = {};
+				$(ERROR_CONTAINER).hide();
+				$(COLUMNS_CONTAINER).empty();
+	        	if(ddlTextEditor){
 	        		ddlTextEditor.setValue("");
+	        		setTimeout(function() {
+	        			ddlTextEditor.refresh();
+	        		},1);
+	        	}
 			}	
 			
 			prevRouteArgs = args;
@@ -113,7 +137,7 @@ define([
 			var TAB_LINK = $(OBJECT_DETAILS_CONTAINER+' .tab-pane.active');
 			if(TAB_LINK){
 				var selectedTab = '#'+TAB_LINK.attr('id');
-				if(selectedTab == ATTRIBUTES_SELECTOR || selectedTab == DDL_TEXT_SELECTOR || selectedTab == PRIVILEGES_SELECTOR){
+				if(selectedTab == ATTRIBUTES_SELECTOR || selectedTab == DDL_SELECTOR || selectedTab == PRIVILEGES_SELECTOR){
 					//no-op
 				}else{
 					$(OBJECT_DETAILS_CONTAINER +' a:first').tab('show');
@@ -125,6 +149,8 @@ define([
 			$(REFRESH_ACTION).off('click', this.doRefresh);
 			dbHandler.off(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.off(dbHandler.FETCH_DDL_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
+			dbHandler.off(dbHandler.FETCH_COLUMNS_ERROR, this.showErrorMessage);
 			$('a[data-toggle="pill"]').off('shown.bs.tab', this.selectFeature);
 		},
 		showLoading: function(){
@@ -150,6 +176,7 @@ define([
 
 			$(ATTRIBUTES_CONTAINER).hide();
 			$(DDL_CONTAINER).hide();
+			$(COLUMNS_CONTAINER).hide();
 			
 			switch(selectedTab){
 			case ATTRIBUTES_SELECTOR:
@@ -158,6 +185,7 @@ define([
 				break;
 			case COLUMNS_SELECTOR:
 				$(COLUMNS_CONTAINER).show();
+				_this.fetchColumns();
 				break;
 			case PARTITIONS_SELECTOR:
 				$(PARTITIONS_CONTAINER).show();
@@ -179,14 +207,35 @@ define([
 			}
 		},
 		doRefresh: function(){
-			_this.processRequest();
+			var selectedTab = null;
+			var TAB_LINK = $(OBJECT_DETAILS_CONTAINER+' .tab-pane.active');
+			if(TAB_LINK){
+				selectedTab = '#'+TAB_LINK.attr('id');
+			}
+			if(selectedTab != null){
+				switch(selectedTab){
+				case DDL_SELECTOR:
+					pageStatus.ddlfetched = false;
+					break;
+				case COLUMNS_SELECTOR:
+					pageStatus.columnsFetched = false;
+					break;
+				}
+			}
+			_this.selectFeature();
 			$(ERROR_CONTAINER).hide();
 		},
 		fetchDDLText: function(){
-			if(!initialized){
+			if(!pageStatus.ddlFetched || pageStatus.ddlFetched == false ){
 				_this.showLoading();
 				dbHandler.fetchDDL(routeArgs.type, routeArgs.name, routeArgs.schema);
 			}
+		},
+		fetchColumns: function(){
+			if(!pageStatus.columnsFetched || pageStatus.columnsFetched == false){
+				_this.showLoading();
+				dbHandler.fetchColumns(routeArgs.type, routeArgs.name, routeArgs.schema);
+			}			
 		},
 		updateBreadCrumbs: function(routeArgs){
 			$(BREAD_CRUMB).empty();
@@ -232,84 +281,71 @@ define([
 		},
 		processRequest: function(){
 			_this.updateBreadCrumbs(routeArgs);
+			var displayName = common.toProperCase(routeArgs.type) + ' '+routeArgs.name;
+			$(OBJECT_NAME_CONTAINER).text(displayName);
 
 			$(BREAD_CRUMB).show();
 			if(routeArgs.type != null && routeArgs.type.length > 0){
 				switch(routeArgs.type){
 					case 'table': 
 						schemaName = routeArgs.schema;
-						var displayName = common.toProperCase(routeArgs.type) + ' ' + routeArgs.name;
-						$(OBJECT_NAME_CONTAINER).text(displayName);
-						$(ATTRIBUTES_CONTAINER).show();
-						$(ATTRIBUTES_SELECTOR).show();
+						$(ATTRIBUTES_BTN).show();
 						$(ATTRIBUTES_SELECTOR).tab('show');
-						$(COLUMNS_SELECTOR).show();
-						$(PARTITIONS_SELECTOR).show();
-						$(DDL_SELECTOR).show();
-						$(PRIVILEGES_SELECTOR).show();
-						$(USAGES_SELECTOR).show();
-						$(INDEXES_SELECTOR).hide();
+						$(COLUMNS_BTN).show();
+						$(PARTITIONS_BTN).hide();
+						$(DDL_BTN).show();
+						$(PRIVILEGES_BTN).hide();
+						$(USAGES_BTN).hide();
+						$(INDEXES_BTN).hide();
 				
 						_this.selectFeature();
 						break;							
 					case 'view': 
 						schemaName = routeArgs.schema;
-						var displayName = common.toProperCase(routeArgs.type) + ' ' + routeArgs.name;
-						$(OBJECT_NAME_CONTAINER).text(displayName);
-						$(ATTRIBUTES_CONTAINER).show();
-						$(ATTRIBUTES_SELECTOR).show();
+						$(ATTRIBUTES_BTN).show();
 						$(ATTRIBUTES_SELECTOR).tab('show');
-						$(COLUMNS_SELECTOR).show();
-						$(PARTITIONS_SELECTOR).hide();
-						$(DDL_SELECTOR).show();
-						$(PRIVILEGES_SELECTOR).show();
-						$(USAGES_SELECTOR).show();
-						$(INDEXES_SELECTOR).hide();				
+						$(COLUMNS_BTN).show();
+						$(PARTITIONS_BTN).hide();
+						$(DDL_BTN).show();
+						$(PRIVILEGES_BTN).hide();
+						$(USAGES_BTN).hide();
+						$(INDEXES_BTN).hide();				
 						_this.selectFeature();
 						break;
 					case 'index': 
 						schemaName = routeArgs.schema;
-						var displayName = common.toProperCase(routeArgs.type) + ' ' + routeArgs.name;
-						$(OBJECT_NAME_CONTAINER).text(displayName);
-						$(ATTRIBUTES_CONTAINER).show();
-						$(ATTRIBUTES_SELECTOR).show();
+						$(ATTRIBUTES_BTN).show();
 						$(ATTRIBUTES_SELECTOR).tab('show');
-						$(COLUMNS_SELECTOR).show();
-						$(PARTITIONS_SELECTOR).show();
-						$(DDL_SELECTOR).show();
-						$(PRIVILEGES_SELECTOR).show();
-						$(USAGES_SELECTOR).show();
-						$(INDEXES_SELECTOR).hide();					
+						$(COLUMNS_BTN).show();
+						$(PARTITIONS_BTN).hide();
+						$(DDL_BTN).show();
+						$(PRIVILEGES_BTN).hide();
+						$(USAGES_BTN).hide();
+						$(INDEXES_BTN).hide();					
 						_this.selectFeature();
 						break;
 					case 'library': 
 						schemaName = routeArgs.schema;
-						var displayName = common.toProperCase(routeArgs.type) + ' ' + routeArgs.name;
-						$(OBJECT_NAME_CONTAINER).text(displayName);
-						$(ATTRIBUTES_CONTAINER).show();
-						$(ATTRIBUTES_SELECTOR).show();
+						$(ATTRIBUTES_BTN).show();
 						$(ATTRIBUTES_SELECTOR).tab('show');
-						$(COLUMNS_SELECTOR).hide();
-						$(PARTITIONS_SELECTOR).hide();
-						$(DDL_SELECTOR).show();
-						$(PRIVILEGES_SELECTOR).show();
-						$(USAGES_SELECTOR).show();
-						$(INDEXES_SELECTOR).hide();				
+						$(COLUMNS_BTN).hide();
+						$(PARTITIONS_BTN).hide();
+						$(DDL_BTN).show();
+						$(PRIVILEGES_BTN).hide();
+						$(USAGES_BTN).hide();
+						$(INDEXES_BTN).hide();				
 						_this.selectFeature();
 						break;
 					case 'procedure': 
 						schemaName = routeArgs.schema;
-						var displayName = common.toProperCase(routeArgs.type) + ' ' + routeArgs.name;
-						$(OBJECT_NAME_CONTAINER).text(displayName);
-						$(ATTRIBUTES_CONTAINER).show();
-						$(ATTRIBUTES_SELECTOR).show();
+						$(ATTRIBUTES_BTN).show();
 						$(ATTRIBUTES_SELECTOR).tab('show');
-						$(COLUMNS_SELECTOR).hide();
-						$(PARTITIONS_SELECTOR).hide();
-						$(DDL_SELECTOR).show();
-						$(PRIVILEGES_SELECTOR).show();
-						$(USAGES_SELECTOR).show();
-						$(INDEXES_SELECTOR).hide();				
+						$(COLUMNS_BTN).hide();
+						$(PARTITIONS_BTN).hide();
+						$(DDL_BTN).show();
+						$(PRIVILEGES_BTN).hide();
+						$(USAGES_BTN).hide();
+						$(INDEXES_BTN).hide();				
 						_this.selectFeature();
 						break;							
 				}
@@ -336,12 +372,94 @@ define([
 		},
 		displayDDL: function(data){
 			_this.hideLoading();
+			pageStatus.ddlFetched = true;
 			ddlTextEditor.setValue(data);
+			ddlTextEditor.refresh();
+		},
+		displayColumns: function(result){
+			_this.hideLoading();
+			var keys = result.columnNames;
+			$(ERROR_CONTAINER).hide();
+			pageStatus.columnsFetched = true;
+			
+			if(keys != null && keys.length > 0) {
+				$(COLUMNS_CONTAINER).show();
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="db-object-columns-list"></table>';
+				$(COLUMNS_CONTAINER).html( sb );
+
+				var aoColumns = [];
+				var aaData = [];
+				var link = result.parentLink != null ? result.parentLink : "";
+
+				$.each(result.resultArray, function(i, data){
+					aaData.push(data);
+				});
+
+				// add needed columns
+				$.each(keys, function(k, v) {
+					var obj = new Object();
+					obj.title = v;
+					aoColumns.push(obj);
+				});
+
+				var bPaging = aaData.length > 25;
+
+				if(oDataTable != null) {
+					try {
+						oDataTable.fnDestroy();
+					}catch(Error){
+
+					}
+				}
+				oDataTable = $('#db-object-columns-list').DataTable({
+					"oLanguage": {
+						"sEmptyTable": "There are no columns"
+					},
+					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					"bProcessing": true,
+					paging: bPaging,
+					"bAutoWidth": true,
+					"iDisplayLength" : 25, 
+					"sPaginationType": "full_numbers",
+					//"scrollY":        "800px",
+					"scrollCollapse": true,
+					//"bJQueryUI": true,
+					"aaData": aaData, 
+					"aoColumns" : aoColumns,
+					"aoColumnDefs": [ {
+						"aTargets": [ 0 ],
+						"mData": 0,
+						"mRender": function ( data, type, full ) {
+		            		 if(type == 'display') {
+		            			 if(data == 'PRIMARY KEY')
+		            				 return '<i class="fa fa-key" style="padding-left:15px"></i>';
+		            			 else
+		            				 return data;
+		            		 }else { 
+		            			 return data;
+		            		 }
+		            	 }
+					}
+					],
+					"order": [[ 1, "asc" ]],
+	                 buttons: [
+	                           'copy','csv','excel','pdf','print'
+	                           ],					             
+		             fnDrawCallback: function(){
+		            	 $('#db-object-columns-list td').css("white-space","nowrap");
+		             }
+				});
+
+
+				$('#db-object-columns-list td').css("white-space","nowrap");
+		
+			}
 		},
 		showErrorMessage: function (jqXHR) {
 			_this.hideLoading();
 			$(ERROR_CONTAINER).show();
 			$(OBJECT_DETAILS_CONTAINER).hide();
+			$(COLUMNS_CONTAINER).hide();
 			if (jqXHR.responseText) {
 				$(ERROR_CONTAINER).text(jqXHR.responseText);
 			}else{

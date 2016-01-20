@@ -24,11 +24,7 @@ export TRAF_CONFIG=/etc/trafodion/trafodion_config
 
 source $TRAF_CONFIG
 
-if [[ "$node_count" -eq "1" ]]; then
-    STARTING_NODE=$NODE_LIST
-else
-    STARTING_NODE=$(echo $MY_NODES | awk '{print $2}')
-fi
+STARTING_NODE=$(hostname)
 
 #==========================================
 echo "***INFO: starting sqgen" | tee -a $INSTALL_LOG
@@ -43,14 +39,14 @@ fi
 
 if [ "$node_count" -ne "1" ]; then
     echo "***INFO: copying $HOME/sqcert directory to all nodes" | tee -a $INSTALL_LOG
-    $PDCP $MY_NODES -x $HOSTNAME -r $HOME/sqcert $HOME
+    $PDCP $ALL_NODES -x $HOSTNAME -r $HOME/sqcert $HOME
 fi
 
 #==========================================
 
-if [ "$node_count" -ne "1" ]; then
+if [ "$all_node_count" -ne "1" ]; then
    echo "***INFO: copying install to all nodes" | tee -a $INSTALL_LOG
-   $PDCP $MY_NODES -x $HOSTNAME -r $SQ_ROOT $SQ_ROOT/..
+   $PDCP $ALL_NODES -x $HOSTNAME -r $SQ_ROOT $SQ_ROOT/..
 
    if [ "$?" != "0" ]; then
       echo "***ERROR: Unable to copy Trafodion install to all machines in this cluster.  Check install log files for details." | tee -a $INSTALL_LOG
@@ -61,9 +57,9 @@ fi
 #=========================================
 #Copying traf_authentication_conf to scripts directory
 if [[ "$LDAP_SECURITY" == "Y" ]]; then
-   if [ "$node_count" -ne "1" ]; then
+   if [ "$all_node_count" -ne "1" ]; then
       echo "***INFO: Copying $LDAP_AUTH_FILE to all nodes" | tee -a $INSTALL_LOG
-      $PDCP $MY_NODES -r $HOME/$LDAP_AUTH_FILE $SQ_ROOT/sql/scripts/traf_authentication_config
+      $PDCP $ALL_NODES -r $HOME/$LDAP_AUTH_FILE $SQ_ROOT/sql/scripts/traf_authentication_config
       if [ "$?" != "0" ]; then
         echo "***ERROR: Unable to copy $LDAP_AUTH_FILE to all machines in this cluster.  Check install log files for details." | tee -a $INSTALL_LOG
          exit -1;

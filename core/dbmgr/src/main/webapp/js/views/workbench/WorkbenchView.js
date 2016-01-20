@@ -207,8 +207,12 @@ define([
 					else
 						$(CONTROL_STMTS_TEXT).val(controlStmts);
 				}else{
-					if(controlStmtEditor)
+					if(controlStmtEditor){
 						controlStmtEditor.setValue("");
+						setTimeout(function() {
+							controlStmtEditor.refresh();
+		        		},1);
+					}
 					else
 						$(CONTROL_STMTS_TEXT).val("");
 
