@@ -1,4 +1,4 @@
->>obey TEST020(setup);
+>>obey TEST030(setup);
 >>--------------------------------------------------------------------------
 >>
 >>set schema hive.hive;
@@ -32,7 +32,7 @@
 
 --- SQL command prepared.
 >>
->>obey TEST020(tests);
+>>obey TEST030(tests);
 >>--------------------------------------------------------------------------
 >>-- ORC file metadata info
 >>invoke hive.hive.store_orc;

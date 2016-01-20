@@ -22,9 +22,9 @@
 --
 -- @@@ END COPYRIGHT @@@
 
-log LOG020 clear;
-obey TEST020(setup);
-obey TEST020(tests);
+log LOG030 clear;
+obey TEST030(setup);
+obey TEST030(tests);
 log;
 exit;
 
