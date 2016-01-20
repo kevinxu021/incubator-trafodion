@@ -108,13 +108,14 @@ public class ServerResource {
 			connection = DriverManager.getConnection(url, usr, pwd);
 
 			Statement stmt = connection.createStatement();
-			ResultSet rs = stmt.executeQuery("info system");
-			while (rs.next()) {
-				ConfigurationResource.setServerTimeZone(rs.getString("TM_ZONE"));
-				ConfigurationResource.setServerUTCOffset(rs.getLong("TM_GMTOFF_SEC"));
-				break;
-			}
-			rs = stmt.executeQuery("get version of software");
+			//ResultSet rs = stmt.executeQuery("info system");
+			//while (rs.next()) {
+				//ConfigurationResource.setServerTimeZone(rs.getString("TM_ZONE"));
+				//ConfigurationResource.setServerUTCOffset(rs.getLong("TM_GMTOFF_SEC"));
+				//break;
+			//}
+			//rs = stmt.executeQuery("get version of software");
+			ResultSet rs = stmt.executeQuery("get version of software");
 			if (rs.next()) {
 				String version = rs.getString(1);
 				String[] versionparts = version.split(":");

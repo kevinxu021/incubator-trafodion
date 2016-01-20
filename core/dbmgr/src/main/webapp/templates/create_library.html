@@ -1,0 +1,35 @@
+<div id="page-wrapper">
+	<div class="row">
+		<div class="col-lg-12">
+			<h2 class="page-header">Create Library</h2>
+		</div>
+	</div>
+	<div class="dbmgr-tools-form" style="padding-left:30px;padding-top:30px">
+		<form>
+		    <label >Schema Name:</label>
+		    <input id="shcema_name" type="text" style="width:300px;">
+		    <div style="height:10px;"></div>
+		    <label >Library Name(*):</label>
+		    <input id="library_name" type="text" style="width:300px;">
+		    <labe id ="library_name_error" hidden><span style="color:red">Library name cannot be NULL</span></labe>
+		    <div style="height:10px;"></div>
+			<div>
+				<div style="float: left">
+					<label for="file_name">Code File Name:</label>
+					<input id="file_name"type="text" style="width:280px;" disabled>
+				</div>
+				<div style="float: left;width:20px">
+					<a href="javascript:;" class="file">
+					<input type="file" name="" id="file"></a>
+				</div>     
+		    </div>	
+		    
+		    <div style="height:40px;"></div>
+		    <label></label><input id="create_btn" type="submit" value="Create" disabled>
+		    <div style="height:10px;"></div>
+		    <label></label><progress id="uploadprogress" min="0" max="100" value="0">0</progress> 
+		    <div style="height:50px;"></div>
+		    <label id="error_mesg" hidden><span style="color:red">ERROR</span></label>
+		</form>
+	</div>
+</div>

@@ -23,6 +23,7 @@ define([
         'views/workloads/HistoricalWorkloadDetailView',
         'views/workloads/QueryPlanView',
         'views/logs/LogsView',
+        'views/tools/CreateLibraryView',
         'views/alerts/AlertsSummaryView',
         'views/alerts/AlertDetailView',
         'views/help/AboutView',
@@ -32,7 +33,7 @@ define([
         ], function($, _, Backbone, NavbarView, DashboardView, WorkbenchView, DCSServerView, LoginView, 
         		SchemasView, SchemaDetailView, SchemaObjectsView, SchemaObjectDetailView,
         		ActiveWorkloadsView, ActiveQueryDetailView, HistoricalWorkloadsView, HistoricalWorkloadDetailView, QueryPlanView, 
-        		LogsView, AlertsSummaryView, AlertDetailView, AboutView, Session, Localizer) {
+        		LogsView, CreateLibraryView, AlertsSummaryView, AlertDetailView, AboutView, Session, Localizer) {
 	'use strict';
 
 	var currentSelection = null;
@@ -51,6 +52,7 @@ define([
 	var activeQueryDetailView = null;
 	var queryPlanView = null;
 	var logsView = null;
+	var createLibraryView = null;
 	var alertsSummaryView = null;
 	var alertDetailView = null;
 	var aboutView = null;
@@ -88,6 +90,7 @@ define([
 			'workloads/history/querydetail(/*args)':'showHistoricalWorkloadDetail',
 			'workloads/active/querydetail(/*args)':'showActiveQueryDetail',
 			'workloads/queryplan(/*args)':'showQueryPlan',
+			'tools/createlibrary':'createLibrary',
 			'alerts': 'showAlertsSummary',
 			'alert/detail(/*args)': 'showAlertDetail',
 			'help/about': 'showAbout',
@@ -286,6 +289,12 @@ define([
 			if(alertDetailView == null)
 				alertDetailView = new AlertDetailView();
 			switchView(alertDetailView, args);
+		});
+		
+		app_router.on('route:createLibrary', function (args) {
+			if(createLibraryView == null)
+				createLibraryView = new CreateLibraryView();
+			switchView(createLibraryView, args);
 		});
 		
 		app_router.on('route:showAbout', function (args) {

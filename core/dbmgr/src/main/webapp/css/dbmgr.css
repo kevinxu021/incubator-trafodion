@@ -4,6 +4,52 @@
 *
 *  @@@ END COPYRIGHT @@@
 */
+.dbmgr-tools-form {
+	padding-left: 30px;
+	padding-top: 30px;
+}
+
+.dbmgr-tools-form label {
+	width: 150px;
+}
+
+.dbmgr-tools-form .file {
+    position: relative;
+    display: inline-block;
+    background-image:url(../img/glass.png);
+    height:26px;
+    width:20px;
+    border: 1px solid black;
+    overflow: hidden;
+}
+.dbmgr-tools-form .file input {
+    position: absolute;
+    font-size: 100px;
+    right: 0;
+    top: 0;
+    opacity: 0;
+}
+.dbmgr-tools-form .file:hover {
+
+}
+
+.dbmgr-tools-form progress {
+	border-radius: 2px;
+	border-left: 1px #ccc solid;
+	border-right: 1px #ccc solid;
+	border-top: 1px #aaa solid;
+	background-color: #eee;
+	width: 300px;
+	height: 20px;
+}
+
+.dbmgr-tools-form progress::-webkit-progress-bar {
+	background-color: #d7d7d7;
+}
+
+.dbmgr-tools-form progress::-webkit-progress-value {
+	background-color: #aadd6a;
+}
 
 #page-wrapper {
 	margin: 2px;
@@ -42,7 +88,10 @@
 	display: inline-block;
 }
 
-.dbmgr-hover { cursor: pointer; cursor: hand; }
+.dbmgr-hover {
+	cursor: pointer;
+	cursor: hand;
+}
 
 @media ( min-width :768px) {
 	.navbar-default {
@@ -64,11 +113,10 @@
 		color: white;
 	}
 	.CodeMirror pre {
-	  padding: 0 4px; /* Horizontal padding of content */
-	  padding-left:30px;
-	  /*font-family: Courier New, Courier, monospace;*/
+		padding: 0 4px; /* Horizontal padding of content */
+		padding-left: 30px;
+		/*font-family: Courier New, Courier, monospace;*/
 	}
-	
 	.navbar-default .dbmgr-title {
 		display: inline-block;
 		font-family: 'Open Sans', Arial, Helvetica, sans-serif;
@@ -84,16 +132,16 @@
 		border-left: 1px solid #e7e7e7;
 	}
 	.dbmgr-error-text {
-	    color: red;
-    	height: 120px;
-    	overflow: auto;
-    	font-weight: 500;
-    }
+		color: red;
+		height: 120px;
+		overflow: auto;
+		font-weight: 500;
+	}
 	.dbmgr-graph {
-		min-height:125px;
+		min-height: 125px;
 	}
 	.dbmgr-drilldown-graph {
-		min-height:400px;
+		min-height: 400px;
 	}
 	.navbar-default .navbar-nav>li>a {
 		color: white;
@@ -109,7 +157,7 @@
 	.nav>li>a {
 		color: white;
 	}
-	.dbmgr-nav>li>a{
+	.dbmgr-nav>li>a {
 		color: black;
 		background-color: #e7e7e7;
 	}
@@ -137,19 +185,19 @@
 		font-size: 13px !important;
 	}
 	.dbmgr-status-btn {
-	    width: 24px;
-	    height: 24px;
-	    padding: 6px 0;
-	    border-radius: 12px;
-	    text-align: center;
-	    font-size: 10px;
+		width: 24px;
+		height: 24px;
+		padding: 6px 0;
+		border-radius: 12px;
+		text-align: center;
+		font-size: 10px;
 	}
-	table.dbmgr-dashboard-table tbody tr td{
+	table.dbmgr-dashboard-table tbody tr td {
 		white-space: nowrap;
-	    padding-left: 8px;
-	    padding-bottom: 2px;
-	    padding-top: 2px;
-	    vertical-align: middle;
+		padding-left: 8px;
+		padding-bottom: 2px;
+		padding-top: 2px;
+		vertical-align: middle;
 	}
 	table.display thead th div.DataTables_sort_wrapper {
 		position: relative;
@@ -202,6 +250,8 @@
 	table.dataTable thead .sorting:after {
 		content: none;
 	}
-	li { cursor: pointer; cursor: hand; }
-
+	li {
+		cursor: pointer;
+		cursor: hand;
+	}
 }
