@@ -439,15 +439,15 @@ define([
 					aaData.push(data);
 				});
 
-				servicesTable = $('#services-results').dataTable({
+				servicesTable = $('#services-results').DataTable({
 					dom: 'tB',
 					"bProcessing": true,
-					//"bAutoWidth": false,
+					"autoWidth": true,
 					"scrollCollapse": true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"aoColumnDefs": [ 
-					                 { "aTargets": [ 0 ], "sTitle": "SERVICE", "mData": 0, "sWidth":"30px",
+					                 { "aTargets": [ 0 ], 
 					                	 "mRender": function ( data, type, full ) {
 					                		 if (type === 'display') {
 					                			 if(data == 'DTM'){
@@ -491,8 +491,8 @@ define([
 					                 buttons: [
 					                           { extend : 'copy', exportOptions: { columns: [0, 1, 2, 3] } },
 					                           { extend : 'csv', exportOptions: { columns: [0, 1, 2, 3] } },
-					                           { extend : 'excelHtml5', exportOptions: { columns: [0, 1, 2, 3] } },
-					                           { extend : 'pdf', exportOptions: { columns: [0, 1, 2, 3] } },
+					                           { extend : 'excelHtml5', exportOptions: {  columns: [0, 1, 2, 3] } },
+					                           { extend : 'pdf', orientation : 'landscape', exportOptions: { columns: [0, 1, 2, 3] } },
 					                           { extend : 'print', exportOptions: { columns: [0, 1, 2, 3] } }
 					                           ],					                 
 					                           paging: true,
