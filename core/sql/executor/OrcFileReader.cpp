@@ -31,11 +31,6 @@
 
 JavaMethodInit* OrcFileReader::JavaMethods_ = NULL;
 jclass OrcFileReader::javaClass_ = 0;
-jclass OrcFileReader::sjavaClass_OrcRow_ = 0;
-jfieldID OrcFileReader::sjavaFieldID_OrcRow_row_length_ = 0;
-jfieldID OrcFileReader::sjavaFieldID_OrcRow_column_count_ = 0;
-jfieldID OrcFileReader::sjavaFieldID_OrcRow_row_number_ = 0;
-jfieldID OrcFileReader::sjavaFieldID_OrcRow_row_ba_ = 0;
 
 static const char* const sfrErrorEnumStr[] = 
 {
@@ -80,7 +75,7 @@ OrcFileReader::~OrcFileReader()
 OFR_RetCode OrcFileReader::init()
 {
   static char className[]="org/trafodion/sql/OrcFileReader";
-  static char s_OrcRowClassName[]="org/trafodion/sql/OrcFileReader$OrcRowReturnSQL";
+
   OFR_RetCode lv_retcode = OFR_OK;
  
   QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
@@ -115,8 +110,6 @@ OFR_RetCode OrcFileReader::init()
     JavaMethods_[JM_FETCHBLOCK_VECTOR].jm_signature = "()Ljava/nio/ByteBuffer;";
     JavaMethods_[JM_FETCHROW  ].jm_name      = "fetchNextRow";
     JavaMethods_[JM_FETCHROW  ].jm_signature = "()[B";
-    JavaMethods_[JM_FETCHROW2 ].jm_name      = "fetchNextRowObj";
-    JavaMethods_[JM_FETCHROW2 ].jm_signature = "()Lorg/trafodion/sql/OrcFileReader$OrcRowReturnSQL;";
     JavaMethods_[JM_GETCOLSTATS ].jm_name      = "getColStats";
     JavaMethods_[JM_GETCOLSTATS ].jm_signature = "(I)Lorg/trafodion/sql/ByteArrayList;";
     JavaMethods_[JM_CLOSE     ].jm_name      = "close";
@@ -135,83 +128,7 @@ OFR_RetCode OrcFileReader::init()
 							javaClass_,
 							JavaMethods_,
 							(Int32)JM_LAST, FALSE);
-    if ((lv_retcode == OFR_OK) &&
-	(sjavaClass_OrcRow_ == NULL)) {
-      jclass lJavaClass;
-      lJavaClass = jenv_->FindClass(s_OrcRowClassName);
-      if (jenv_->ExceptionCheck()) {
-	getExceptionDetails();
-	QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
-		      LL_ERROR, 
-		      "Exception in FindClass(%s).",
-		      s_OrcRowClassName);
-	lv_retcode = (OFR_RetCode) JOI_ERROR_FINDCLASS;
-	goto fn_exit;
-      }
-      if (lJavaClass == NULL) {
-	QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
-		      LL_ERROR, 
-		      "Error: FindClass(%s) returned NULL.",
-		      s_OrcRowClassName);
-	lv_retcode = (OFR_RetCode) JOI_ERROR_FINDCLASS;
-	goto fn_exit;
-      }
-      sjavaClass_OrcRow_  = (jclass)jenv_->NewGlobalRef(lJavaClass);
-      jenv_->DeleteLocalRef(lJavaClass);
 
-      sjavaFieldID_OrcRow_row_length_ = jenv_->GetFieldID(sjavaClass_OrcRow_,
-							  "m_row_length",
-							  "I");
-      if (sjavaFieldID_OrcRow_row_length_ == NULL) {
-	QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
-		      LL_ERROR, 
-		      "Error: %s.GetFieldID(%s) returned NULL.",
-		      s_OrcRowClassName,
-		      "m_row_length");
-	lv_retcode = (OFR_RetCode) JOI_ERROR_FINDCLASS;
-	goto fn_exit;
-      }		
-
-      sjavaFieldID_OrcRow_column_count_ = jenv_->GetFieldID(sjavaClass_OrcRow_,
-							  "m_column_count",
-							  "I");
-      if (sjavaFieldID_OrcRow_column_count_ == NULL) {
-	QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
-		      LL_ERROR, 
-		      "Error: %s.GetFieldID(%s) returned NULL.",
-		      s_OrcRowClassName,
-		      "m_column_count");
-	lv_retcode = (OFR_RetCode) JOI_ERROR_FINDCLASS;
-	goto fn_exit;
-      }		
-
-      sjavaFieldID_OrcRow_row_number_ = jenv_->GetFieldID(sjavaClass_OrcRow_,
-							  "m_row_number",
-							  "J");
-      if (sjavaFieldID_OrcRow_row_number_ == NULL) {
-	QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
-		      LL_ERROR, 
-		      "Error: %s.GetFieldID(%s) returned NULL.",
-		      s_OrcRowClassName,
-		      "m_row_number");
-	lv_retcode = (OFR_RetCode) JOI_ERROR_FINDCLASS;
-	goto fn_exit;
-      }		
-
-      sjavaFieldID_OrcRow_row_ba_ = jenv_->GetFieldID(sjavaClass_OrcRow_,
-							  "m_row_ba",
-							  "[B");
-      if (sjavaFieldID_OrcRow_row_ba_ == NULL) {
-	QRLogger::log(CAT_SQL_HDFS_ORC_FILE_READER,
-		      LL_ERROR, 
-		      "Error: %s.GetFieldID(%s) returned NULL.",
-		      s_OrcRowClassName,
-		      "m_row_ba");
-	lv_retcode = (OFR_RetCode) JOI_ERROR_FINDCLASS;
-	goto fn_exit;
-      }		
-
-    }
   }
 
  fn_exit:
@@ -250,6 +167,11 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
   jobjectArray jor_ppiVec = NULL;
   jobjectArray jor_ppiAllCols = NULL;
   
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+    getExceptionDetails();
+    return OFR_ERROR_OPEN_EXCEPTION;
+  }
+
   releaseJavaAllocation();
   js_path = jenv_->NewStringUTF(pv_path);
   if (js_path == NULL) {
@@ -421,55 +343,6 @@ OFR_RetCode OrcFileReader::isEOF(bool& isEOF)
 
 #ifdef USE_ORIG
 //////////////////////////////////////////////////////////////////////////////
-// Uses the Java method OrcFileReader.fetchNextRowObj()
-//////////////////////////////////////////////////////////////////////////////
-OFR_RetCode OrcFileReader::fetchNextRow(char * pv_buffer,
-					long& pv_array_length,
-					long& pv_rowNumber,
-					int& pv_num_columns)
-{
-
-  tsRecentJMFromJNI = JavaMethods_[JM_FETCHROW2].jm_full_name;
-  jobject jresult = (jobject)jenv_->CallObjectMethod(javaObj_,
-						     JavaMethods_[JM_FETCHROW2].methodID);
-  if (jresult==NULL && getLastError()) {
-    logError(CAT_SQL_HDFS_ORC_FILE_READER,
-	     "OrcFileReader::fetchNextRow()",
-	     getLastError());
-    return OFR_ERROR_FETCHROW_EXCEPTION;
-  }
-
-  if (jresult == NULL)
-    return (OFR_NOMORE);		//No more rows
-
-  jint row_length = (jint)jenv_->GetIntField(jresult,
-					     sjavaFieldID_OrcRow_row_length_);
-  pv_array_length = (long)row_length;
-	
-  jint column_count = (jint)jenv_->GetIntField(jresult,
-					       sjavaFieldID_OrcRow_column_count_);
-  pv_num_columns = column_count;
-
-  jlong rowNum = (jlong)jenv_->GetIntField(jresult,
-					   sjavaFieldID_OrcRow_row_number_);
-  pv_rowNumber = rowNum;
-	
-  // Get the actual row (it is a byte array). Use the row_length above to specify how much to copy	
-  jbyteArray jrow = (jbyteArray)jenv_->GetObjectField(jresult,
-						      sjavaFieldID_OrcRow_row_ba_);
-
-  if (jrow == NULL)
-    return (OFR_ERROR_FETCHROW_EXCEPTION);
-
-  jenv_->GetByteArrayRegion(jrow,
-			    0,
-			    row_length, (jbyte*)pv_buffer);
-  jenv_->DeleteLocalRef(jrow);  
-
-  return (OFR_OK);
-}
-
-//////////////////////////////////////////////////////////////////////////////
 // Uses the Java method: 'byte[] OrcFileReader.fetchNextRow()'
 //////////////////////////////////////////////////////////////////////////////
 OFR_RetCode OrcFileReader::fetchNextRow(char * pv_buffer,
@@ -626,6 +499,7 @@ OFR_RetCode OrcFileReader::fetchNextRow(char** pv_buffer,
 
     m_block = (char *) jenv_->GetDirectBufferAddress(lv_java_block);
     if (m_block == NULL) {
+      jenv_->DeleteLocalRef(lv_java_block);
       logError(CAT_SQL_HDFS_ORC_FILE_READER,
 	       "OrcFileReader::fetchNextRow() - ",
 	       "NULL pointer returned by GetDirectBufferAddress()"
@@ -634,6 +508,8 @@ OFR_RetCode OrcFileReader::fetchNextRow(char** pv_buffer,
     }
 
     jlong lv_block_capacity = jenv_->GetDirectBufferCapacity(lv_java_block);
+    jenv_->DeleteLocalRef(lv_java_block);
+
     m_total_number_of_rows_in_block = *(int *) m_block;
     if (m_total_number_of_rows_in_block <= 0) {
       return (OFR_NOMORE);
@@ -721,6 +597,11 @@ ByteArrayList* OrcFileReader::getColStats(int colNum)
     return NULL;
   }
     
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+    getExceptionDetails();
+    return NULL;
+  }
+
   jint      ji_colNum = colNum;
 
     //  tsRecentJMFromJNI = JavaMethods_[JM_GETCOLSTATS].jm_full_name;

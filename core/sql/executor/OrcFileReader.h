@@ -173,7 +173,6 @@ private:
     JM_FETCHBLOCK,
     JM_FETCHBLOCK_VECTOR,
     JM_FETCHROW,
-    JM_FETCHROW2,
     JM_GETCOLSTATS,
     JM_CLOSE,
     JM_GETSTRIPE_OFFSETS,
@@ -184,12 +183,6 @@ private:
  
   static jclass          javaClass_;
   static JavaMethodInit *JavaMethods_;
-
-  static jclass         sjavaClass_OrcRow_;
-  static jfieldID       sjavaFieldID_OrcRow_row_length_;
-  static jfieldID       sjavaFieldID_OrcRow_column_count_;
-  static jfieldID       sjavaFieldID_OrcRow_row_number_;
-  static jfieldID       sjavaFieldID_OrcRow_row_ba_;
 
 private:
   OFR_RetCode getLongArray(JAVA_METHODS method, const char* msg, LIST(Int64)& resultArray);
