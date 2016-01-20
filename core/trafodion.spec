@@ -84,7 +84,7 @@ EsgynDB, based on Apache Trafodion, delivers 100x better price/performance for O
 %package -n esgynDB-manager
 Summary:	EsgynDB Manager
 Requires: gnuplot
-Requires: trafodion
+Requires: %{name}
 %description -n esgynDB-manager
 EsgynDB Manager is a web based enterprise management tool for EsgynDB. DB Manager allows the user to monitor the health and status of EsgynDB services and workloads.
 
@@ -94,7 +94,7 @@ EsgynDB Manager is a web based enterprise management tool for EsgynDB. DB Manage
 %setup -b 3 -b 4 -n esgynDB-manager-%{version} -c
 
 
-%pre -n trafodion
+%pre -n %{name}
 getent group trafodion > /dev/null || /usr/sbin/groupadd trafodion > /dev/null 2>&1
 getent passwd trafodion > /dev/null || /usr/sbin/useradd --shell /bin/bash -m trafodion -g trafodion --home /home/trafodion > /dev/null 2>&1
 
@@ -104,10 +104,10 @@ getent passwd trafodion > /dev/null || /usr/sbin/useradd --shell /bin/bash -m tr
 %define debug_package:
 
 %install
-mkdir -p %{buildroot}/home/trafodion/trafodion-%{version}
+mkdir -p %{buildroot}/home/trafodion/%{name}-%{version}
 mkdir -p %{buildroot}/home/trafodion/esgynDB-manager-%{version}
 cd %{_builddir}
-cp -rf %{name}-%{version}/* %{buildroot}/home/trafodion/trafodion-%{version}
+cp -rf %{name}-%{version}/* %{buildroot}/home/trafodion/%{name}-%{version}
 cp -rf esgynDB-manager-%{version}/dbmgr-%{version}/* %{buildroot}/home/trafodion/esgynDB-manager-%{version}
 cp -rf esgynDB-manager-%{version}/mgblty/* %{buildroot}/home/trafodion/esgynDB-manager-%{version}
 
@@ -123,5 +123,5 @@ cp -rf esgynDB-manager-%{version}/mgblty/* %{buildroot}/home/trafodion/esgynDB-m
 /home/trafodion/esgynDB-manager-%{version}
 
 %changelog
-* Mon Jan 18 2016 Eason Zhang
-- ver 1.0
+* Mon Jan 20 2016 Eason Zhang
+- ver 1.2
