@@ -209,16 +209,16 @@ class HiveNodeMapEntry : public NodeMapEntry {
 public:
 
    HiveNodeMapEntry(PartitionState state = ACTIVE, CollHeap* heap=0)
-    : NodeMapEntry(state), scanInfo_(heap, 0) {}
+    : NodeMapEntry(state), scanInfo_(heap, 0), filled_(0) {}
 
    HiveNodeMapEntry(const HiveNodeMapEntry&, CollHeap* heap=0);
 
    ~HiveNodeMapEntry() {}
 
-   void addScanInfo(HiveScanInfo info) 
-     { scanInfo_.insertAt(scanInfo_.entries(), info); }
+   void addScanInfo(HiveScanInfo info, Int64 filled = 0) 
+     { scanInfo_.insertAt(scanInfo_.entries(), info); filled_+= filled; }
 
-   void addOrUpdateScanInfo(HiveScanInfo info);
+   void addOrUpdateScanInfo(HiveScanInfo info, Int64 filled = 0);
 
    HiveNodeMapEntry& operator=(const HiveNodeMapEntry& other);
 
@@ -227,8 +227,12 @@ public:
    
    LIST(HiveScanInfo)& getScanInfo() { return scanInfo_; }
 
+   Int64 getFilled() { return filled_; }
+
 protected:
    LIST(HiveScanInfo) scanInfo_;
+
+   Int64 filled_; // number of bytes filled in scanInfo_
 };
 
 class HBaseNodeMapEntry : public NodeMapEntry {

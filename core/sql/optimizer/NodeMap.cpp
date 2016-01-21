@@ -362,7 +362,7 @@ NodeMapEntry::operator=(const NodeMapEntry& other)
 
 //=======================================================
 
-HiveNodeMapEntry::HiveNodeMapEntry(const HiveNodeMapEntry& other, CollHeap* heap ) : NodeMapEntry(other, heap), scanInfo_(other.scanInfo_, heap)
+HiveNodeMapEntry::HiveNodeMapEntry(const HiveNodeMapEntry& other, CollHeap* heap ) : NodeMapEntry(other, heap), scanInfo_(other.scanInfo_, heap), filled_(other.filled_)
 {
 }
 
@@ -371,6 +371,7 @@ HiveNodeMapEntry::operator=(const HiveNodeMapEntry& other)
 {
    NodeMapEntry::operator=(other);
    scanInfo_ = other.scanInfo_;
+   filled_ = other.filled_ ;
 
    return *this;
 }
@@ -2666,10 +2667,11 @@ HiveNodeMapEntry::print(FILE* ofd, const char* indent, const char* title) const
   BUMP_INDENT(indent);
 #pragma warn(1506)  // warning elimination
 
+  fprintf(ofd,"%s %s\n %s[total filled=%12ld]\n", NEW_INDENT, title, NEW_INDENT, filled_);
+
   for (CollIndex i=0; i<scanInfo_.entries(); i++) {
-     fprintf(ofd,"%s %s [offs=%12ld, span=%12ld, %s file=%s]\n",
+     fprintf(ofd,"%s [offs=%12ld, span=%12ld, %s file=%s]\n",
              NEW_INDENT,
-             title,
              scanInfo_[i].offset_,
              scanInfo_[i].span_,
              (scanInfo_[i].isLocal_ ? "loc" : "   "),
@@ -2678,7 +2680,7 @@ HiveNodeMapEntry::print(FILE* ofd, const char* indent, const char* title) const
 
 } // HiveNodeMapEntry::print()
 
-void HiveNodeMapEntry::addOrUpdateScanInfo(HiveScanInfo info)
+void HiveNodeMapEntry::addOrUpdateScanInfo(HiveScanInfo info, Int64 filled)
 {
    Int32 ct = scanInfo_.entries();
    if ( ct == 0 )
@@ -2690,4 +2692,6 @@ void HiveNodeMapEntry::addOrUpdateScanInfo(HiveScanInfo info)
       else
         addScanInfo(info);
    }
+
+   filled_ += filled;
 }

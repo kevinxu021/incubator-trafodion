@@ -1288,7 +1288,7 @@ void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& en
    Int64 available = 0;  // # of bytes to read from the stripe
    Int64 offset = 0;     // offset in the current stripe 
    Int64 length = 0;     // length of the current stripe 
-   Int64 filled = 0;     // # of bytes filled in the current split
+   Int64 filled = entry->getFilled();     // # of bytes filled in the current split
 
    // traverse all the stripes in ORC file and assign each to some ESP.
    for (Int32 i=0; i<offsets_.entries(); i++ )
@@ -1297,17 +1297,6 @@ void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& en
       offset = offsets_[i];
       length = totalBytes_[i];
 
-      if ( filled + available > totalBytesPerESP && filled > 0 ) 
-        {
-          // The contribution is more than what the current split 
-          // (with content) can take. Since we do not want two ESPs 
-          // to read a single stripe, we will start a new split.
-          entry = (HiveNodeMapEntry*)(nmi->advanceAndGetEntry());
-
-          filled = 0;
-        }
-
-        
       // The current stripe contribution is guaranteed to fit
       // the current split (with content), or the will not fit even
       // an empty split. Add it.
@@ -1315,9 +1304,9 @@ void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& en
       // get the file name index into the fileStatsList array
       // in bucket stats. Note that we use the entire length
       // of the stripe as requried by ORC file read API.
-      entry->addOrUpdateScanInfo(HiveScanInfo(this, offset, length));
+      entry->addOrUpdateScanInfo(HiveScanInfo(this, offset, length), filled);
    
-      if ( filled + available == totalBytesPerESP ) 
+      if ( filled + available >= totalBytesPerESP ) 
         {
           // The contribution is just right for the split. Need
           // to take all the and add it to the current node map entry, 
@@ -1329,6 +1318,7 @@ void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& en
       else
         filled += available;
    }
+
 } 
 
 void HHDFSORCFileStats::populate(hdfsFS fs,
