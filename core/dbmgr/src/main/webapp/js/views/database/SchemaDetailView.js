@@ -107,15 +107,16 @@ define([
 	        		},1);
 	        	}
 			}	
-			var TAB_LINK = $(SCHEMA_DETAILS_CONTAINER+' .tab-pane.active');
-			if(TAB_LINK){
-				var selectedTab = '#'+TAB_LINK.attr('id');
-				if(selectedTab == ATTRIBUTES_SELECTOR || selectedTab == DDL_SELECTOR || selectedTab == PRIVILEGES_SELECTOR){
-					//no-op
+			var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
+			var activeButton = null;
+			if(ACTIVE_BTN){
+				activeButton = '#'+ACTIVE_BTN.attr('id');
+				if(activeButton == ATTRIBUTES_BTN || activeButton == DDL_BTN || activeButton == PRIVILEGES_BTN){
 				}else{
-					$(SCHEMA_DETAILS_CONTAINER +' a:first').tab('show');
+					$(FEATURE_SELECTOR + ' a').first().tab('show')
 				}
 			}
+
 			_this.processRequest();
 		},
 		doPause: function(){
@@ -133,33 +134,55 @@ define([
 		},
 		selectFeature: function(e){
 			$(SCHEMA_DETAILS_CONTAINER).show();
-			var selectedTab = ATTRIBUTES_SELECTOR;
-			var TAB_LINK = $(SCHEMA_DETAILS_CONTAINER+' .tab-pane.active');
-			if(TAB_LINK){
-				selectedTab = '#'+TAB_LINK.attr('id');
-			}else{
-				return;
-			}
+			var selectedFeatureLink = ATTRIBUTES_SELECTOR;
 
 			if(e && e.target && $(e.target).length > 0){
-				selectedTab = $(e.target)[0].hash;
+				selectedFeatureLink = $(e.target)[0].hash;
+			}else{
+				var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
+				var activeButton = null;
+				if(ACTIVE_BTN){
+					activeButton = '#'+ACTIVE_BTN.attr('id');
+				}
+				switch(activeButton){
+				case ATTRIBUTES_BTN:
+					selectedFeatureLink = ATTRIBUTES_SELECTOR;
+					break;
+				case DDL_BTN:
+					selectedFeatureLink = DDL_SELECTOR;
+					break;
+				case PRIVILEGES_BTN:
+					selectedFeatureLink = PRIVILEGES_SELECTOR;
+					break;
+				case TABLES_BTN:
+					selectedFeatureLink = TABLES_SELECTOR;
+					break;
+				case VIEWS_BTN:
+					selectedFeatureLink = VIEWS_SELECTOR;
+					break;
+				case INDEXES_BTN:
+					selectedFeatureLink = INDEXES_SELECTOR;
+					break;
+				case LIBRARIES_BTN:
+					selectedFeatureLink = LIBRARIES_SELECTOR;
+					break;
+				case PROCEDURES_BTN:
+					selectedFeatureLink = PROCEDURES_SELECTOR;
+					break;
+				}
 			}
 
 			$(ATTRIBUTES_CONTAINER).hide();
 			$(DDL_CONTAINER).hide();
 
-			switch(selectedTab){
+			switch(selectedFeatureLink){
 			case ATTRIBUTES_SELECTOR:
 				$(ATTRIBUTES_CONTAINER).show();
 				_this.fetchAttributes();
 				break;
 			case DDL_SELECTOR:
 				$(DDL_CONTAINER).show();
-				var ddlText = ddlTextEditor.getValue();
-				if(ddlText == null || ddlText.length == 0){
-					_this.fetchDDLText();
-				}
-
+				_this.fetchDDLText();
 				break;
 			case PRIVILEGES_SELECTOR:
 				$(PRIVILEGES_CONTAINER).show();
@@ -182,6 +205,7 @@ define([
 			}
 		},
 		doRefresh: function(){
+			pageStatus.ddl = false;
 			_this.processRequest();
 			$(ERROR_CONTAINER).hide();
 		},
@@ -228,6 +252,7 @@ define([
 			var attrs = sessionStorage.getItem(routeArgs.name);	
 			if(attrs == null){
 				//TO DO. Fetch from database.
+				_this.hideLoading();
 			}else{
 				_this.hideLoading();
 				var properties = JSON.parse(attrs);

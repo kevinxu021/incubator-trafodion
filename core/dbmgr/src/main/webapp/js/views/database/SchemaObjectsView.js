@@ -42,6 +42,7 @@ define([
 			_this = this;
 			routeArgs = args;
 			prevRouteArgs = args;
+			pageStatus = {};
 			
 			schemaName = routeArgs.schema;
 			
