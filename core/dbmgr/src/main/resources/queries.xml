@@ -58,15 +58,28 @@
 				]]></text>
 		</query>
 		<query>
+			<!-- Fetch schema object attributes(tables/mvs/views/libraries/procedures) -->
 			<!-- Fetch list of tables in a schema -->
 			<name>SELECT_TABLES_IN_SCHEMA</name>
 			<text><![CDATA[SELECT O.OBJECT_NAME as "Table Name", USER(OBJECT_OWNER) AS "Owner",
 			    CONVERTTIMESTAMP(CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(REDEF_TIME) AS "ModifiedTime",
-			    T.KEY_LENGTH AS "Key Length", T.ROW_DATA_LENGTH as "Row Data Length", T.ROW_TOTAL_LENGTH as "Row Total Length", T.NUM_SALT_PARTNS as "Number Salt Partitions"
-			    FROM TRAFODION."_MD_".OBJECTS O, TRAFODION."_MD_".TABLES T 
+			    T.KEY_LENGTH AS "Key Length", T.ROW_TOTAL_LENGTH as "Row Total Length", 
+                T.NUM_SALT_PARTNS as "Number Salt Partitions", T2.region_count as "Region Count",
+				T2.store_file_size_mb as "Store File Size (MB)", T2.mem_store_size_mb as" Mem Store Size (MB)", 
+				T2.read_requests_count as "Read Requests Count", T2.write_requests_count as "Write Requests Count"
+			    FROM TRAFODION."_MD_".OBJECTS O, TRAFODION."_MD_".TABLES T,
+                (select schema_name, object_name, count(*) as region_count,
+                 sum(store_file_size) as store_file_size_mb, sum(mem_store_size) as mem_store_size_mb,
+				 sum(read_requests_count) as read_requests_count, sum(write_requests_count) as write_requests_count
+                 from table(region stats (using (select * from (
+                   get tables in schema %2$s, no header, return full names) x(a) )))
+                   group by 1, 2) as T2
 			    WHERE O.CATALOG_NAME = '%1$s' AND O.SCHEMA_NAME = '%2$s' AND
 			    O.OBJECT_UID = T.TABLE_UID AND
-			    O.SCHEMA_NAME != '_MD_' AND O.OBJECT_TYPE = 'BT' FOR READ UNCOMMITTED
+			    O.SCHEMA_NAME != '_MD_' AND O.OBJECT_TYPE = 'BT' 
+                AND O.SCHEMA_NAME = T2.SCHEMA_NAME
+                AND O.OBJECT_NAME = T2.OBJECT_NAME
+                FOR READ UNCOMMITTED
 			    ACCESS ORDER BY 1
 				]]></text>
 		</query>
@@ -115,6 +128,36 @@
 				AND C.TABLE_NAME = '%2$s' 
 				AND C.COLUMN_NAME != '_SALT_'
 				FOR READ UNCOMMITTED ACCESS ORDER BY 2;
+			]]></text>
+		</query>
+		<query>
+			<!-- Fetch list of columns for a view -->
+			<name>SELECT_VIEW_COLUMNS</name>
+			<text><![CDATA[SELECT  C.COLUMN_NUMBER, C.COLUMN_NAME,
+			    CAST(CASE WHEN CHAR_LENGTH(TRIM(C.SQL_DATA_TYPE)) = 0 THEN 'UNKNOWN' ELSE
+			    C.SQL_DATA_TYPE END AS CHAR(24)) SQL_DATA_TYPE, 
+			    C.COLUMN_SIZE, C.COLUMN_PRECISION, C.COLUMN_SCALE, C.NULLABLE,
+			    CASE CHARACTER_SET
+			        WHEN '_unknown_' THEN ''
+			        ELSE CHARACTER_SET 
+			    END AS CHARACTER_SET, C.DEFAULT_VALUE 
+			FROM TRAFODION."_MD_".OBJECTS O,
+			TRAFODION."_MD_".COLUMNS C 
+			WHERE O.CATALOG_NAME = 'TRAFODION' 
+			AND O.SCHEMA_NAME = '%1$s' 
+			AND OBJECT_NAME = '%2$s' 
+			AND O.OBJECT_UID = C.OBJECT_UID 
+			AND O.OBJECT_TYPE = 'VI' 
+			FOR READ UNCOMMITTED ACCESS ORDER BY 1, 2, 3, 4 ;
+			]]></text>
+		</query>		
+		<query>
+			<!-- Get HBase Region info for a database object -->
+			<name>SELECT_OBJECT_REGIONS</name>
+			<text><![CDATA[select region_num, region_name, num_stores, num_store_files,
+				store_file_uncomp_size as store_file_uncomp_size_mb, store_file_size as store_file_size_mb, 
+				mem_store_size as mem_store_size_mb, read_requests_count, write_requests_count
+				from table(region stats (%1$s %2$s))
 			]]></text>
 		</query>			
 		<query>

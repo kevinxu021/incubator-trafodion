@@ -41,6 +41,7 @@ public class DBMgrContextListenter implements ServletContextListener {
 
 		} catch (Exception e) {
 			_LOG.error(e.getMessage());
+			System.out.println("Cannot open an admin connection : " + e.getMessage());
 		} finally {
 
 			try {

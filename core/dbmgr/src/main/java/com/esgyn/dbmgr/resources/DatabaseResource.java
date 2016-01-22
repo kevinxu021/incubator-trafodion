@@ -26,8 +26,6 @@ import org.slf4j.LoggerFactory;
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
 import com.esgyn.dbmgr.common.JdbcHelper;
 import com.esgyn.dbmgr.common.TabularResult;
-import com.esgyn.dbmgr.model.Session;
-import com.esgyn.dbmgr.model.SessionModel;
 import com.esgyn.dbmgr.sql.SqlObjectListResult;
 import com.esgyn.dbmgr.sql.SystemQueryCache;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -37,6 +35,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class DatabaseResource {
 
 	private static final Logger _LOG = LoggerFactory.getLogger(DatabaseResource.class);
+
+	private String[] indexDDDLPatterns = { "CREATE UNIQUE INDEX", "CREATE INDEX" };
 
 	public enum SqlObjectType {
 		TABLE("BT"), VIEW("VI"), INDEX("IX"), LIBRARY("LB"), PROCEDURE("UR");
@@ -64,8 +64,6 @@ public class DatabaseResource {
 		String catalogName = "TRAFODION";
 
 		try {
-			Session soc = SessionModel.getSession(servletRequest, servletResponse);
-
 			String queryText = "";
 			String link = "";
 			switch (objectType) {
@@ -103,6 +101,7 @@ public class DatabaseResource {
 				break;
 
 			}
+			_LOG.debug(queryText);
 			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, link, result);
 			return sqlResult;
@@ -119,8 +118,8 @@ public class DatabaseResource {
 			@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
 					throws EsgynDBMgrException {
 		try {
-			Session soc = SessionModel.getSession(servletRequest, servletResponse);
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA), schemaName);
+			_LOG.debug(queryText);
 			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult("Schema " + schemaName, "", result);
 			return sqlResult;
@@ -136,6 +135,7 @@ public class DatabaseResource {
 	public String getDDLText(@QueryParam("type") String objectType, 
 			@QueryParam("objectName") String objectName,
 			@QueryParam("schemaName") String schemaName,
+ 			@QueryParam("parentObjectName") String parentObjectName,
 			@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 
@@ -159,6 +159,16 @@ public class DatabaseResource {
 			case "procedure":
 				ddlObjectType = objectType.toUpperCase();
 				break;
+			case "index":
+				String parentDDLText = getDDLText("table", parentObjectName, schemaName, null, null, null);
+				if (parentDDLText != null && !parentDDLText.isEmpty()) {
+					parentDDLText = mapper.readValue(parentDDLText, String.class);
+					ddlText = FindChildDDL(parentDDLText, objectName, indexDDDLPatterns);
+				}
+				ddlText = ddlText.replaceAll("\n", "");
+				ddlText = ddlText.replaceAll("\r\n", System.lineSeparator());
+				ddlText = mapper.writeValueAsString(ddlText);
+				return ddlText;
 			}
 
 			if (objectType.equalsIgnoreCase("schema")) {
@@ -216,17 +226,47 @@ public class DatabaseResource {
 			@QueryParam("schemaName") String schemaName, @Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 		try {
-			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS),
+			String queryText = "";
+			if (objectType.toLowerCase().equals("view")) {
+				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEW_COLUMNS),
+						ExternalForm(schemaName), ExternalForm(objectName));
+			} else {
+				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS),
 					ExternalForm(schemaName), ExternalForm(objectName));
+			}
+
 			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
 			return sqlResult;
 		} catch (Exception ex) {
-			_LOG.error("Failed to fetch list of " + objectType + " : " + ex.getMessage());
+			_LOG.error("Failed to fetch list of columns for " + objectName + " : " + ex.getMessage());
 			throw new EsgynDBMgrException(ex.getMessage());
 		}
 	}
 	
+	@GET
+	@Path("/regions/")
+	@Produces("application/json")
+	public SqlObjectListResult getObjectRegions(@QueryParam("type") String objectType,
+			@QueryParam("objectName") String objectName, @QueryParam("schemaName") String schemaName,
+			@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
+					throws EsgynDBMgrException {
+		try {
+			String ansiObjectName = ExternalForm(schemaName) + "." + ExternalForm(objectName);
+			String indexQualifier = objectType.toLowerCase().equals("index") ? objectType : "";
+
+			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_REGIONS),
+					indexQualifier, ansiObjectName);
+			_LOG.debug(queryText);
+			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
+			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
+			return sqlResult;
+		} catch (Exception ex) {
+			_LOG.error("Failed to fetch list of regions for " + objectName + " : " + ex.getMessage());
+			throw new EsgynDBMgrException(ex.getMessage());
+		}
+	}
+
 	public static String EncloseInSingleQuotes(String aLiteralString) {
 		return "'" + aLiteralString.replace("'", "''") + "'";
 	}
@@ -259,5 +299,85 @@ public class DatabaseResource {
 			return externalName.substring(1, nameLength - 2);
 		}
 		return externalName.toUpperCase();
+	}
+
+	public static String FindChildDDL(String parentDDLText, String childName, String[] patterns) {
+		for (String pattern : patterns) {
+			int startPosition = 0;
+			boolean done = false;
+
+			while (!done) {
+				// Find all the occurrences of the patterns
+				startPosition = parentDDLText.indexOf(pattern, startPosition);
+				if (startPosition > 0) {
+					int endClausePosition = FindClauseEndPosition(parentDDLText, startPosition);
+					if (endClausePosition == parentDDLText.length()) {
+						// We've reached the end of the parent DDL text.
+						done = true;
+					}
+
+					// There could be comments before the CREATE so go to the
+					// beginning of the line
+					String tempstr = parentDDLText.substring(0, startPosition);
+					int lineBegin = tempstr.lastIndexOf("\r\n");
+
+					if (lineBegin >= 0) {
+						startPosition = startPosition < lineBegin ? startPosition : lineBegin;
+					}
+
+					String fragment = parentDDLText.substring(startPosition, endClausePosition);
+
+					if (IsChildDDLInFragment(fragment, pattern, childName)) {
+						// Found it, now prepare to return it.
+						if (fragment.trim().length() > 0) {
+							// Remove these comments, there are for the parents.
+							fragment = fragment.replace("--  Table has an IUD log.", "");
+							fragment = fragment.replace("--  Materialized view has an IUD log.", "");
+							return fragment;
+						}
+					}
+
+					startPosition = endClausePosition;
+				} else {
+					done = true;
+				}
+			}
+		}
+		return "";
+	}
+
+	static private int FindClauseEndPosition(String aDDLFragment, int start) {
+		// Search if there is another CREATE clause in the fragment
+		int nextCreateStartPosition = aDDLFragment.indexOf("CREATE", start + 5);
+		if (nextCreateStartPosition < 0)
+			nextCreateStartPosition = aDDLFragment.length();
+
+		// Search if there is another ALTER clause in the parent DDL
+		int nextAlterStartPosition = aDDLFragment.indexOf("ALTER", start + 5);
+		if (nextAlterStartPosition < 0)
+			nextAlterStartPosition = aDDLFragment.length();
+
+		// Eliminate GRANT statements from the child ddl
+		int nextGrantStartPosition = aDDLFragment.indexOf("GRANT", start + 5);
+		if (nextGrantStartPosition < 0)
+			nextGrantStartPosition = aDDLFragment.length();
+
+		// Determine the end position based on the next alter or create which
+		// ever comes first
+		int endPosition = nextAlterStartPosition <= nextCreateStartPosition ? nextAlterStartPosition
+				: nextCreateStartPosition;
+		endPosition = endPosition <= nextGrantStartPosition ? endPosition : nextGrantStartPosition;
+
+		return endPosition;
+	}
+
+	static private boolean IsChildDDLInFragment(String aFragment, String pattern, String childName) {
+		String tempStr = aFragment.replace(" ", "").replace("\r\n", "");
+		String ptr = pattern.replace(" ", "") + childName.replace(" ", "");
+		if (tempStr.indexOf(ptr) >= 0) {
+			return true;
+		}
+
+		return false;
 	}
 }
