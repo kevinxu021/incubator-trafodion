@@ -303,7 +303,7 @@ void ComTdbHdfsScan::displayContentsBase(Space * space,ULng32 flag)
             str_sprintf(
                         buf, 
                         "%6s %6s %12s %12s  %s",
-                        "  Esp#", "Range#", " StartRowNum", "     NumRows", "    FileName");
+                        "  Esp#", "Range#", "StripeOffset", "      Length", "    FileName");
           else
             str_sprintf(
                         buf, 

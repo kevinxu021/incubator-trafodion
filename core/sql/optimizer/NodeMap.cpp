@@ -2684,14 +2684,13 @@ void HiveNodeMapEntry::addOrUpdateScanInfo(HiveScanInfo info, Int64 filled)
 {
    Int32 ct = scanInfo_.entries();
    if ( ct == 0 )
-     addScanInfo(info);
+     addScanInfo(info, filled);
    else {
       HiveScanInfo& lastInfo = scanInfo_[ct-1];
-      if ( lastInfo.offset_ + lastInfo.span_ == info.offset_ )
+      if ( lastInfo.offset_ + lastInfo.span_ == info.offset_ ) {
          lastInfo.span_ += info.span_;
-      else
-        addScanInfo(info);
+         filled_ += filled;
+      } else
+        addScanInfo(info, filled);
    }
-
-   filled_ += filled;
 }
