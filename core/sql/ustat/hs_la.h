@@ -280,8 +280,13 @@ class HSHiveTableDef : public HSTableDef
       {}
     Int64 getRowCount(NABoolean &isEstimate)
       {
-        isEstimate = TRUE;
-        return tableStats_->getEstimatedRowCount();
+        if ( tableStats_->getTotalRows() > 0 ) {
+          isEstimate = FALSE; // ORC
+          return tableStats_->getTotalRows();
+        } else { 
+          isEstimate = TRUE; // non-ORC
+          return tableStats_->getEstimatedRowCount();
+        }
       }
     Int64 getRowCount(NABoolean &isEstimate,
                       Int64 &numInserts,

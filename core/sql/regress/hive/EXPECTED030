@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Wed Jan 20 19:19:17 2016
+-- Definition current  Sat Jan 23 17:36:57 2016
 
   (
     S_STORE_SK                       INT
@@ -200,9 +200,9 @@ S   OPERATOR          LC  RC  TAB_NAME
 --  ----------------  --  --  ----------
 
 04  ROOT              3   ?             
-03  NESTED_JOIN       1   2             
-02  ORC_SCAN          ?   ?   STORE_ORC 
-01  HIVE_SCAN         ?   ?   STORE     
+03  HYBRID_HASH_JOIN  2   1             
+02  HIVE_SCAN         ?   ?   STORE     
+01  ORC_SCAN          ?   ?   STORE_ORC 
 
 --- 4 row(s) selected.
 >>
@@ -258,7 +258,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 3496
+explain_plan_size = 3488
 
 # of Expressions = 4
 
@@ -292,7 +292,7 @@ Flag = 0000000000001100
 Number of ranges to scan: 1
 Number of esps to scan:    1
 
-  Esp# Range#  StartRowNum      NumRows      FileName
+  Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
      0      0            3         2853  store_orc/000000_0
@@ -390,7 +390,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 3496
+explain_plan_size = 3488
 
 # of Expressions = 4
 
@@ -424,7 +424,7 @@ Flag = 0000000000001100
 Number of ranges to scan: 1
 Number of esps to scan:    1
 
-  Esp# Range#  StartRowNum      NumRows      FileName
+  Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
      0      0            3         2853  store_orc/000000_0
@@ -540,7 +540,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 3600
+explain_plan_size = 3584
 
 # of Expressions = 4
 
@@ -574,7 +574,7 @@ Flag = 0000000000001100
 Number of ranges to scan: 1
 Number of esps to scan:    1
 
-  Esp# Range#  StartRowNum      NumRows      FileName
+  Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
      0      0            3         2853  store_orc/000000_0
@@ -670,7 +670,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 3688
+explain_plan_size = 3680
 
 # of Expressions = 4
 
@@ -704,7 +704,7 @@ Flag = 0000000000001100
 Number of ranges to scan: 1
 Number of esps to scan:    1
 
-  Esp# Range#  StartRowNum      NumRows      FileName
+  Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
      0      0            3         2853  store_orc/000000_0
@@ -865,7 +865,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 
 2    .    3    root                                                  1.00E+000
 1    .    2    sort_scalar_aggr                                      1.00E+000
-.    .    1    orc_scan                        STORE_ORC             4.28E+003
+.    .    1    orc_scan                        STORE_ORC             1.00E+002
 
 --- SQL operation complete.
 >>select count(s_store_sk) from store_orc;
@@ -911,7 +911,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 
 2    .    3    root                                                  1.00E+000
 1    .    2    sort_scalar_aggr                                      1.00E+000
-.    .    1    orc_scan                        STORE_ORC             4.28E+003
+.    .    1    orc_scan                        STORE_ORC             1.00E+002
 
 --- SQL operation complete.
 >>select count(*), min(s_store_sk), max(s_store_sk), sum(s_store_sk) 

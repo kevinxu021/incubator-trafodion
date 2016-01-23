@@ -4571,7 +4571,10 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       Int64 estimatedRC = 0;
       Int64 estimatedRecordLength = 0;
 
-      if ( !sd_desc->isTrulyText() ) {
+      if ( isORC ) {
+         estimatedRecordLength = colArray.getTotalStorageSize();
+         estimatedRC = hiveHDFSTableStats->getTotalRows();
+      } else if ( !sd_desc->isTrulyText() ) {
          //
          // Poor man's estimation by assuming the record length in hive is the 
          // same as SQ's. We can do better once we know how the binary data is
