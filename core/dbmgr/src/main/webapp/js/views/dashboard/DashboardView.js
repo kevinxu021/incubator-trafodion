@@ -21,7 +21,8 @@ define([
         'responsivetable',
         'tablebuttons',
         'buttonsprint',
-        'buttonshtml'
+        'buttonshtml',
+        'pdfmake'
         ], function (BaseView, Raphael, Morris, DashboardT, dashboardHandler, serverHandler, $, common, moment, refreshTimer, timeRangeView) {
 	'use strict';
 
@@ -491,9 +492,9 @@ define([
 					                 buttons: [
 					                           { extend : 'copy', exportOptions: { columns: [0, 1, 2, 3] } },
 					                           { extend : 'csv', exportOptions: { columns: [0, 1, 2, 3] } },
-					                           { extend : 'excelHtml5', exportOptions: {  columns: [0, 1, 2, 3] } },
-					                           { extend : 'pdf', orientation : 'landscape', exportOptions: { columns: [0, 1, 2, 3] } },
-					                           { extend : 'print', exportOptions: { columns: [0, 1, 2, 3] } }
+					                           { extend : 'excel', exportOptions: {  columns: [0, 1, 2, 3] } },
+					                           { extend : 'pdfHtml5', exportOptions: { columns: [0, 1, 2, 3] }, title: 'Service Status' },
+					                           { extend : 'print', exportOptions: { columns: [0, 1, 2, 3] }, title: 'Service Status' }
 					                           ],					                 
 					                           paging: true,
 					                           fnDrawCallback: function(){
@@ -598,8 +599,8 @@ define([
 				                           { extend : 'copy', exportOptions: { columns: [0, 1] } },
 				                           { extend : 'csv', exportOptions: { columns: [0, 1] } },
 				                           { extend : 'excel', exportOptions: { columns: [0, 1] } },
-				                           { extend : 'pdf', exportOptions: { columns: [0, 1] } },
-				                           { extend : 'print', exportOptions: { columns: [0, 1] } }
+				                           { extend : 'pdfHtml5', exportOptions: { columns: [0, 1] }, title: 'Node Status' },
+				                           { extend : 'print', exportOptions: { columns: [0, 1] }, title: 'Node Status' }
 				                           ],					                 
 				                           fnDrawCallback: function(){
 				                        	   //$('#query-results td').css("white-space","nowrap");

@@ -17,7 +17,8 @@ define([
         'tablebuttons',
         'buttonsflash',
         'buttonsprint',
-        'buttonshtml'
+        'buttonshtml',
+        'pdfmake'
         ], function (BaseView, WorkloadsT, $, wHandler, common, refreshTimer) {
 	'use strict';
 	var LOADING_SELECTOR = ".dbmgr-spinner";			
@@ -142,9 +143,14 @@ define([
 					                		 else return data;
 					                	 }
 					                 }],
-					                 buttons: [
-					                           'copy','csv','excel','pdf','print'
-					                           ],					                 
+									buttons: [
+					                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+					                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+					                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+					                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
+					                        	   title: 'Active Workloads' } ,
+					                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Active Workloads' }
+								          ],
 
 					                           fnDrawCallback: function(){
 					                        	   //$('#query-results td').css("white-space","nowrap");

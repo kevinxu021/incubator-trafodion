@@ -38,6 +38,8 @@ public class DBMgrContextListenter implements ServletContextListener {
 				ConfigurationResource
 						.setSystemVersion(versionparts.length > 1 ? versionparts[1].trim() : versionparts[0]);
 			}
+			rs.close();
+			stmt.close();
 
 		} catch (Exception e) {
 			_LOG.error(e.getMessage());

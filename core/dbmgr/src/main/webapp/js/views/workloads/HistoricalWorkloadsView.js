@@ -19,7 +19,8 @@ define([
         'tablebuttons',
         'buttonsflash',
         'buttonsprint',
-        'buttonshtml'        
+        'buttonshtml',
+        'pdfmake'
         ], function (BaseView, WorkloadsT, $, wHandler, moment, common) {
 	'use strict';
 	var LOADING_SELECTOR = "#loadingImg",
@@ -320,7 +321,7 @@ define([
 
 				var bPaging = aaData.length > 25;
 
-				oDataTable = $('#repo-query-results').dataTable({
+				oDataTable = $('#repo-query-results').DataTable({
 					"oLanguage": {
 						"sEmptyTable": "No queries found for selected time range/or filters."
 					},
@@ -386,15 +387,21 @@ define([
 					}
 					],
 					buttons: [
-					          'copy','csv','excel','pdf','print'
-					          ],
-					          "order":[[2, "desc"]],
+	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
+	                        	   title: 'Historical Workloads' } ,
+	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Historical Workloads' }
+				          ],
+				    "order":[[2, "desc"]],
 					          fnDrawCallback: function(){
 					        	  //$('#repo-query-results td').css("white-space","nowrap");
 					          }
 				});
 
 				$('#repo-query-results td').css("white-space","nowrap");
+				
 				$('#repo-query-results tbody').on( 'click', 'tr', function (e, a) {
 					var data = oDataTable.row(this).data();
 					if(data && data.length > 0){

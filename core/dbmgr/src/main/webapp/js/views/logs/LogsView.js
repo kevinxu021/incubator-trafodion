@@ -21,8 +21,8 @@ define([
         'buttonsprint',
         'buttonshtml',     
         'datetimepicker',
-        'jqueryvalidate'
-
+        'jqueryvalidate',
+        'pdfmake'
         ], function (BaseView, LogsT, $, logsHandler, localizer, moment, common, refreshTimerView) {
 	'use strict';
 	var LOADING_SELECTOR = "#loadingImg",
@@ -465,7 +465,6 @@ define([
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
 					paging: bPaging,
-					"bProcessing": true,
 					//"bAutoWidth": true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
@@ -496,8 +495,13 @@ define([
 					}
 					],
 					buttons: [
-					          'copy','csv','excel','pdf','print'
-					          ],
+	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
+	                        	   title: 'Logs' } ,
+	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Logs' }
+				          ],
 					          aaSorting: [[ 0, "desc" ]],
 					          fnDrawCallback: function(){
 					        	  //$('#logs-query-results td').css("white-space","nowrap");
