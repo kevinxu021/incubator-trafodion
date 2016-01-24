@@ -119,7 +119,7 @@ public:
   HHDFSStatsBase() : numBlocks_(0),
                      numFiles_(0),
                      totalRows_(0),
-                     totalSize_(0),
+                     totalSize_(-1),
                      modificationTS_(0),
                      sampledBytes_(0),
                      sampledRows_(0) {}

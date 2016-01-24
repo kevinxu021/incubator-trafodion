@@ -1283,11 +1283,6 @@ Int64 HHDFSORCFileStats::assignToESPs(Int64 *espDistribution, NodeMap* nodeMap, 
 // Assign all strpes in this to ESPs, without considering locality
 void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& entry, Int64 totalBytesPerESP, Int32 numOfBytesToReadPerRow)
 {
-//FILE* fp = fopen("assignmap", "a+");
-//fprintf(fp, "totalBytesPerESP=%ld\n", totalBytesPerESP);
-//entry->print(fp, "", "<<<<<<HHDFSORCFileStats::assignToESPs()>>>>>>");
-//fprintf(fp, "\n");
-
   CMPASSERT(numOfBytesToReadPerRow > 0);
 
    Int64 available = 0;  // # of bytes to read from the stripe
@@ -1302,9 +1297,6 @@ void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& en
       offset = offsets_[i];
       length = totalBytes_[i];
 
-//fprintf(fp, "entryFilled=%ld, availableToFill=%ld, stipteLength=%ld\n", 
-//        entry->getFilled(), available, length);
-
       // The current stripe contribution is guaranteed to fit
       // the current split (with content), or the will not fit even
       // an empty split. Add it.
@@ -1314,23 +1306,16 @@ void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& en
       // of the stripe as requried by ORC file read API.
       entry->addOrUpdateScanInfo(HiveScanInfo(this, offset, length), available);
 
-//entry->print(fp, "", "after addOrUpdateScanInf()");
-//fprintf(fp, "\n");
-   
       if ( entry->getFilled() > totalBytesPerESP ) 
         {
           // The contribution is just right for the split. Need
           // to take all the and add it to the current node map entry, 
           // and start a new split.
           
-//entry->print(fp, "", "final state:");
-//fprintf(fp, "\n");
           entry = (HiveNodeMapEntry*)(nmi->advanceAndGetEntry());
-//entry->print(fp, "", "a new entry");          
  
         }
    }
-//fclose(fp);
 } 
 
 void HHDFSORCFileStats::populate(hdfsFS fs,
