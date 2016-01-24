@@ -18,7 +18,8 @@ define([
         'tablebuttons',
         'buttonsflash',
         'buttonsprint',
-        'buttonshtml'
+        'buttonshtml',
+        'pdfmake'
         ], function (BaseView, WorkbenchT, $, common, serverHandler, CodeMirror) {
 	'use strict';
 
@@ -461,8 +462,14 @@ define([
 						"aoColumns" : aoColumns,
 						paging: bPaging,
 						buttons: [
-						          'copy','csv','excel','pdf','print'
-						          ]
+		                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+		                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+		                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+		                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
+		                        	   title: 'Query Workbench' } ,
+		                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Query Workbench' }
+					          ],
+
 					});
 				}        		
 			}

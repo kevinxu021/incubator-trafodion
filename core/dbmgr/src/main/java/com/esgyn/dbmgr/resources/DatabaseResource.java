@@ -7,6 +7,7 @@
 package com.esgyn.dbmgr.resources;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.regex.Pattern;
@@ -62,52 +63,87 @@ public class DatabaseResource {
 			objectType = "schemas";
 		}
 		String catalogName = "TRAFODION";
-
+		PreparedStatement pstmt = null;
+		Connection connection = null;
 		try {
+			connection = JdbcHelper.getInstance().getAdminConnection();
+
 			String queryText = "";
 			String link = "";
 			switch (objectType) {
 			case "schemas":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMAS), catalogName);
 				link = "/database/schema";
+				pstmt = connection.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMAS));
+				pstmt.setString(1, catalogName);
 				break;
 			case "tables":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_TABLES_IN_SCHEMA),
-						catalogName,
-						schemaName/* , SqlObjectType.TABLE.getObjectType() */);
+						ExternalForm(schemaName));
 				link = "/database/objdetail?type=table";
+				pstmt = connection.prepareStatement(
+						String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_TABLES_IN_SCHEMA),
+								ExternalForm(schemaName)));
+				pstmt.setString(1, catalogName);
+				pstmt.setString(2, ExternalForm(schemaName));
 				break;
 			case "indexes":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEXES_IN_SCHEMA),
-						catalogName,
-						schemaName/* , SqlObjectType.INDEX.getObjectType() */);
+						catalogName, schemaName);
 				link = "/database/objdetail?type=index";
+				pstmt = connection
+						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEXES_IN_SCHEMA));
+				pstmt.setString(1, catalogName);
+				pstmt.setString(2, ExternalForm(schemaName));
 				break;
 			case "views":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEWS_IN_SCHEMA),
-						catalogName,
-						schemaName/* , SqlObjectType.VIEW.getObjectType() */);
+						catalogName, schemaName);
 				link = "/database/objdetail?type=view";
+				pstmt = connection
+						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEWS_IN_SCHEMA));
+				pstmt.setString(1, catalogName);
+				pstmt.setString(2, ExternalForm(schemaName));
 				break;
 			case "libraries":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_OBJECTS),
 						catalogName, schemaName, SqlObjectType.LIBRARY.getObjectType());
 				link = "/database/objdetail?type=library";
+				pstmt = connection
+						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_OBJECTS));
+				pstmt.setString(1, catalogName);
+				pstmt.setString(2, ExternalForm(schemaName));
+				pstmt.setString(3, SqlObjectType.LIBRARY.getObjectType());
 				break;
 			case "procedures":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_OBJECTS),
 						catalogName, schemaName, SqlObjectType.PROCEDURE.getObjectType());
 				link = "/database/objdetail?type=procedure";
+				pstmt = connection
+						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_OBJECTS));
+				pstmt.setString(1, catalogName);
+				pstmt.setString(2, ExternalForm(schemaName));
+				pstmt.setString(3, SqlObjectType.PROCEDURE.getObjectType());
 				break;
 
 			}
 			_LOG.debug(queryText);
-			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
+			// TabularResult result =
+			// QueryResource.executeAdminSQLQuery(queryText);
+			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, link, result);
 			return sqlResult;
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch list of " + objectType + " : " + ex.getMessage());
 			throw new EsgynDBMgrException(ex.getMessage());
+		} finally {
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (Exception ex) {
+
+				}
+			}
 		}
 	}
 
@@ -117,15 +153,32 @@ public class DatabaseResource {
 	public SqlObjectListResult getSchema(@PathParam("schemaName") String schemaName,
 			@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
 					throws EsgynDBMgrException {
+		String catalogName = "TRAFODION";
+		PreparedStatement pstmt = null;
+		Connection connection = null;
 		try {
-			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA), schemaName);
+			connection = JdbcHelper.getInstance().getAdminConnection();
+			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA), catalogName,
+					ExternalForm(schemaName));
+			pstmt = connection.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA));
+			pstmt.setString(1, catalogName);
+			pstmt.setString(2, ExternalForm(schemaName));
+
 			_LOG.debug(queryText);
-			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
+			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult("Schema " + schemaName, "", result);
 			return sqlResult;
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch schema " + schemaName + " details : " + ex.getMessage());
 			throw new EsgynDBMgrException(ex.getMessage());
+		} finally {
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (Exception ex) {
+
+				}
+			}
 		}
 	}
 
@@ -186,6 +239,8 @@ public class DatabaseResource {
 			stmt = connection.createStatement();
 
 			_LOG.debug(queryText);
+
+
 			rs = stmt.executeQuery(queryText);
 			StringBuilder sb = new StringBuilder();
 			int lineNumber = 0;
@@ -203,6 +258,7 @@ public class DatabaseResource {
 			}
 			ddlText = mapper.writeValueAsString(sb.toString());
 			rs.close();
+			stmt.close();
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch get DDL text for " + objectName + " : " + ex.getMessage());
 			throw new EsgynDBMgrException(ex.getMessage());
@@ -225,22 +281,43 @@ public class DatabaseResource {
 			@QueryParam("objectName") String objectName,
 			@QueryParam("schemaName") String schemaName, @Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+		PreparedStatement pstmt = null;
+		Connection connection = null;
 		try {
 			String queryText = "";
+			connection = JdbcHelper.getInstance().getAdminConnection();
 			if (objectType.toLowerCase().equals("view")) {
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEW_COLUMNS),
 						ExternalForm(schemaName), ExternalForm(objectName));
+				pstmt = connection
+						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEW_COLUMNS));
+				pstmt.setString(1, ExternalForm(schemaName));
+				pstmt.setString(2, ExternalForm(objectName));
 			} else {
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS),
 					ExternalForm(schemaName), ExternalForm(objectName));
+				pstmt = connection
+						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS));
+				pstmt.setString(1, ExternalForm(schemaName));
+				pstmt.setString(2, ExternalForm(objectName));
 			}
 
-			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
+			// TabularResult result =
+			// QueryResource.executeAdminSQLQuery(queryText);
+			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
 			return sqlResult;
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch list of columns for " + objectName + " : " + ex.getMessage());
 			throw new EsgynDBMgrException(ex.getMessage());
+		} finally {
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (Exception ex) {
+
+				}
+			}
 		}
 	}
 	

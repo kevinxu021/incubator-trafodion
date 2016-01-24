@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
 import com.esgyn.dbmgr.resources.ConfigurationResource;
 
+
 public class QueryPlanModel {
 	private static final Logger _LOG = LoggerFactory.getLogger(QueryPlanModel.class);
 	public ArrayList<QueryPlanData> QueryPlanArray = new ArrayList<QueryPlanData>();
@@ -32,6 +33,7 @@ public class QueryPlanModel {
 	private QueryPlanData rootPlan;
 	private PlanSummaryInfo planSummaryInfo = null;
 	String planText = "";
+	private ArrayList<String> tableNames = new ArrayList<String>();
 
 	public QueryPlanData getQueryPlanData() {
 		return queryPlanData;
@@ -61,6 +63,7 @@ public class QueryPlanModel {
 		QueryPlanResponse response = getQueryPlanResponse(null, -1, "L", null);
 		response.setPlanText(planText);
 		response.setTreeDepth(getTreeDepth(response, 1));
+		response.setTableNames(tableNames);
 		return response;
 	}
 
@@ -210,6 +213,9 @@ public class QueryPlanModel {
 							}
 							qpd.formattedCostDesc = computeDisplayString(qpd.detailCost, qpd.description);
 							planArray.add(qpd);
+							if (qpd.tableName != null && qpd.tableName.trim().length() > 0)
+								tableNames.add(qpd.tableName.trim());
+
 							// System.out.println(qpd);
 						}
 
@@ -249,6 +255,8 @@ public class QueryPlanModel {
 							}
 							qpd.formattedCostDesc = computeDisplayString(qpd.detailCost, qpd.description);
 							planArray.add(qpd);
+							if (qpd.tableName != null && qpd.tableName.trim().length() > 0)
+								tableNames.add(qpd.tableName.trim());
 							// System.out.println(qpd);
 						}
 
@@ -319,6 +327,8 @@ public class QueryPlanModel {
 					}
 					qpd.formattedCostDesc = computeDisplayString(qpd.detailCost, qpd.description);
 					planArray.add(qpd);
+					if (qpd.tableName != null && qpd.tableName.trim().length() > 0)
+						tableNames.add(qpd.tableName.trim());
 					// System.out.println(qpd);
 				}
 
@@ -353,6 +363,9 @@ public class QueryPlanModel {
 				if (stmt != null) {
 					stmt.close();
 				}
+				if (pStmt != null) {
+					pStmt.close();
+				}
 				if (connection != null)
 					connection.close();
 			} catch (SQLException e) {
@@ -379,7 +392,7 @@ public class QueryPlanModel {
 			for (String s : nvPairs) {
 				if (0 < s.trim().length()) {
 					String costMetricAndValue = s.replace(":=", ":");
-					sb.append("  " + costMetricAndValue + "\n");
+					sb.append("\t" + costMetricAndValue + "\n");
 
 				}
 			}
@@ -396,7 +409,7 @@ public class QueryPlanModel {
 			}
 
 			for (String p : nvPairs) {
-				sb.append("  " + p + "\n");
+				sb.append("\t" + p + "\n");
 			}
 
 			/*

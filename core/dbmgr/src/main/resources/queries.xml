@@ -25,10 +25,11 @@
 		<query>
 			<!-- Fetch list of schemas -->
 			<name>SELECT_SCHEMAS</name>
-			<text><![CDATA[select distinct schema_name as "Name", authname(schema_owner) as "Owner", 
-					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime" 
+			<text><![CDATA[select schema_name as "Name", authname(schema_owner) as "Owner", 
+					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime",
+					object_uid as "Metadata ID" 
 					from "_MD_".objects 
-					where catalog_name = '%1$s'
+					where catalog_name = ?
 					and schema_name != '_MD_'
 					and object_name = '__SCHEMA__'
 					order by schema_name FOR READ UNCOMMITTED ACCESS;
@@ -37,10 +38,11 @@
 		<query>
 			<!-- Fetch details about a specific schema -->
 			<name>SELECT_SCHEMA</name>
-			<text><![CDATA[select distinct schema_name as "Name", user(schema_owner) as "Owner", 
-					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime" 
+			<text><![CDATA[select schema_name as "Name", user(schema_owner) as "Owner", 
+					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime",
+					object_uid as "Metadata ID" 
 					from "_MD_".objects 
-					where catalog_name = '%1$s' and schema_name = '%2$s'
+					where catalog_name = ? and schema_name = ?
 					and schema_name != '_MD_'
 					and object_name = '__SCHEMA__'
 					order by schema_name FOR READ UNCOMMITTED ACCESS;
@@ -50,10 +52,11 @@
 			<!-- Fetch list of schema objects (tables/mvs/views/libraries/procedures) -->
 			<name>SELECT_SCHEMA_OBJECTS</name>
 			<text><![CDATA[select distinct object_name as "Name", user(object_owner) as "Owner", 
-					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime" 
+					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime",
+					object_uid as "Metadata ID"
 					from "_MD_".objects 
-					WHERE CATALOG_NAME = '%1$s' AND SCHEMA_NAME = '%2$s'
-					and object_type = '%3$s'
+					WHERE CATALOG_NAME = ? AND SCHEMA_NAME = ?
+					and object_type = ?
 					order by object_name FOR READ UNCOMMITTED ACCESS;
 				]]></text>
 		</query>
@@ -63,6 +66,7 @@
 			<name>SELECT_TABLES_IN_SCHEMA</name>
 			<text><![CDATA[SELECT O.OBJECT_NAME as "Table Name", USER(OBJECT_OWNER) AS "Owner",
 			    CONVERTTIMESTAMP(CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(REDEF_TIME) AS "ModifiedTime",
+			    O.object_uid as "Metadata ID",
 			    T.KEY_LENGTH AS "Key Length", T.ROW_TOTAL_LENGTH as "Row Total Length", 
                 T.NUM_SALT_PARTNS as "Number Salt Partitions", T2.region_count as "Region Count",
 				T2.store_file_size_mb as "Store File Size (MB)", T2.mem_store_size_mb as" Mem Store Size (MB)", 
@@ -72,9 +76,9 @@
                  sum(store_file_size) as store_file_size_mb, sum(mem_store_size) as mem_store_size_mb,
 				 sum(read_requests_count) as read_requests_count, sum(write_requests_count) as write_requests_count
                  from table(region stats (using (select * from (
-                   get tables in schema %2$s, no header, return full names) x(a) )))
+                   get tables in schema %1$s, no header, return full names) x(a) )))
                    group by 1, 2) as T2
-			    WHERE O.CATALOG_NAME = '%1$s' AND O.SCHEMA_NAME = '%2$s' AND
+			    WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? AND
 			    O.OBJECT_UID = T.TABLE_UID AND
 			    O.SCHEMA_NAME != '_MD_' AND O.OBJECT_TYPE = 'BT' 
                 AND O.SCHEMA_NAME = T2.SCHEMA_NAME
@@ -88,9 +92,10 @@
 			<name>SELECT_VIEWS_IN_SCHEMA</name>
 			<text><![CDATA[SELECT O.OBJECT_NAME AS "View Name", USER(OBJECT_OWNER) AS "Owner",
 			    CONVERTTIMESTAMP(CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(REDEF_TIME) AS "ModifiedTime",
+			    O.object_uid as "Metadata ID",
 			    V.CHECK_OPTION as "Check Option", V.IS_UPDATABLE as "Updateable", V.IS_INSERTABLE as "Insertable"
 			    FROM TRAFODION."_MD_".OBJECTS O, TRAFODION."_MD_".VIEWS V 
-			    WHERE O.CATALOG_NAME = '%1$s' AND O.SCHEMA_NAME = '%2$s' AND
+			    WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? AND
 			    O.SCHEMA_NAME != '_MD_' AND O.OBJECT_UID = V.VIEW_UID
 			    AND O.OBJECT_TYPE = 'VI' FOR READ UNCOMMITTED ACCESS ORDER BY 1 ;
 				]]></text>
@@ -100,11 +105,12 @@
 			<name>SELECT_INDEXES_IN_SCHEMA</name>
 			<text><![CDATA[SELECT O.OBJECT_NAME AS "Index Name", USER(O.OBJECT_OWNER) AS "Owner",
 				    CONVERTTIMESTAMP(O.CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(O.REDEF_TIME) AS "ModifiedTime",
+				    O.object_uid as "Metadata ID",
 				    O2.OBJECT_NAME as "Table Name", I.IS_UNIQUE as "Is Unqiue", 
 				    I.KEY_COLCOUNT as "Key Col. Count", I.NONKEY_COLCOUNT as "Non Key Col. Count"
 				    FROM TRAFODION."_MD_".INDEXES I, TRAFODION."_MD_".OBJECTS O,
 				    TRAFODION."_MD_".OBJECTS O2 
-				    WHERE  O.CATALOG_NAME = '%1$s' AND O.SCHEMA_NAME = '%2$s' AND
+				    WHERE  O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? AND
 				    O.SCHEMA_NAME != '_MD_' AND I.INDEX_UID = O.OBJECT_UID AND
 				    I.BASE_TABLE_UID = O2.OBJECT_UID FOR READ UNCOMMITTED ACCESS ORDER BY 1;
 				]]></text>
@@ -124,8 +130,8 @@
 			    FROM "_MD_".COLUMNS_VIEW C LEFT JOIN "_MD_".KEYS_VIEW K
 			        ON C.SCHEMA_NAME = K.SCHEMA_NAME AND C.TABLE_NAME = K.TABLE_NAME 
 			        AND C.COLUMN_NAME = K.COLUMN_NAME AND K.CONSTRAINT_TYPE = 'PRIMARY KEY'
-				WHERE C.SCHEMA_NAME = '%1$s'
-				AND C.TABLE_NAME = '%2$s' 
+				WHERE C.SCHEMA_NAME = ?
+				AND C.TABLE_NAME = ? 
 				AND C.COLUMN_NAME != '_SALT_'
 				FOR READ UNCOMMITTED ACCESS ORDER BY 2;
 			]]></text>
@@ -144,8 +150,8 @@
 			FROM TRAFODION."_MD_".OBJECTS O,
 			TRAFODION."_MD_".COLUMNS C 
 			WHERE O.CATALOG_NAME = 'TRAFODION' 
-			AND O.SCHEMA_NAME = '%1$s' 
-			AND OBJECT_NAME = '%2$s' 
+			AND O.SCHEMA_NAME = ? 
+			AND OBJECT_NAME = ? 
 			AND O.OBJECT_UID = C.OBJECT_UID 
 			AND O.OBJECT_TYPE = 'VI' 
 			FOR READ UNCOMMITTED ACCESS ORDER BY 1, 2, 3, 4 ;
@@ -241,7 +247,7 @@
 						ovf_buffer_bytes_written,
 						ovf_buffer_bytes_read
 						from "_REPOS_".metric_query_table
-				 WHERE query_id = '%1$s']]></text>
+				 WHERE query_id = ?]]></text>
 		</query>
 		<query>
 			<!-- Fetch list of active queries visible in RMS -->
