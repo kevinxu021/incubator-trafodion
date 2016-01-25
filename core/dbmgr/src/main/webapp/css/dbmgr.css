@@ -33,24 +33,6 @@
 
 }
 
-.dbmgr-tools-form progress {
-	border-radius: 2px;
-	border-left: 1px #ccc solid;
-	border-right: 1px #ccc solid;
-	border-top: 1px #aaa solid;
-	background-color: #eee;
-	width: 300px;
-	height: 20px;
-}
-
-.dbmgr-tools-form progress::-webkit-progress-bar {
-	background-color: #d7d7d7;
-}
-
-.dbmgr-tools-form progress::-webkit-progress-value {
-	background-color: #aadd6a;
-}
-
 #page-wrapper {
 	margin: 2px;
 }

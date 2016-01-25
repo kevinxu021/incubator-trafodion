@@ -11,14 +11,14 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 	'use strict';
 
 	var _this = null;
-	var ERROR = "#error_mesg";
 	var SCHEMA_NAME = "#shcema_name";
 	var LIBRARY_NAME = "#library_name";
 	var LIBRARY_ERROR = "#library_name_error";
 	var FILE_NAME = "#file_name";
 	var FILE_SELECT = "#file";
-	var CREATE_BTN = "#create_btn"
-	var PROGRESS_BAR = "#uploadprogress";
+	var CREATE_BTN = "#create_btn";
+	var CLEAR_BTN = "#clear_btn";
+	var LOADING = "#loading-spinner";
 	var FILE = null;
 	var CHUNKS = [];
 	var UPLOAD_INDEX = 0;
@@ -30,11 +30,13 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		doInit : function(args) {
 			_this = this;
 			$(CREATE_BTN).on('click', this.uploadFile);
+			$(CLEAR_BTN).on('click', this.cleanField);
 			$(FILE_SELECT).on('change', this.onFileSelected);
-			tHandler.on(tHandler.UPDATE_PROGRESS, this.updateProgress);
 			tHandler.on(tHandler.CREATE_LIBRARY_ERROR, this.createLibraryError);
 			tHandler.on(tHandler.CREATE_LIBRARY_SUCCESS, this.createLibrarySuccess);
 			tHandler.on(tHandler.EXECUTE_UPLOAD_CHUNK, this.executeUploadChunk);
+			$(LOADING).css('visibility', 'hidden');
+			$(CREATE_BTN).prop('disabled', true);
 		},
 		doResume : function(args) {
 
@@ -42,20 +44,15 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		doPause : function() {
 
 		},
-		updateProgress:function(percentComplete){
-	        var value = document.getElementById('uploadprogress').value;
-			var progress = value + percentComplete*100;
-			var bar = document.getElementById('uploadprogress');
-			bar.value = bar.innerHTML = progress;
-		},
+		
 		cleanField:function(){
-			$(SCHEMA_NAME).val="";
-			$(LIBRARY_NAME).val="";
-			$(FILE_NAME).val="";
-			$(ERROR).hide();
+			$(SCHEMA_NAME).val("");
+			$(LIBRARY_NAME).val("");
+			$(FILE_NAME).val("");
+			$(FILE_SELECT).val("");
 			$(LIBRARY_ERROR).hide();
-			var bar = document.getElementById('uploadprogress');
-			bar.value = bar.innerHTML = 0;
+			$(LOADING).css('visibility', 'hidden');
+			$(CREATE_BTN).prop('disabled', true);
 			FILE=null;
 			CHUNKS=[];
 			UPLOAD_INDEX = 0;
@@ -66,11 +63,12 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				$(LIBRARY_ERROR).show();
 				return;
 			}
-			var bar = document.getElementById('uploadprogress');
-			bar.value = bar.innerHTML = 0;
-			var schemaName = $(SCHEMA_NAME).val()==""?"DB_LIBMGR": $(SCHEMA_NAME).val();
+			$(LOADING).css('visibility', 'visible');
+			$(CREATE_BTN).prop('disabled', true);
+			$(CLEAR_BTN).prop('disabled', true);
+			var schemaName = $(SCHEMA_NAME).val()==""?"DB__LIBMGR": $(SCHEMA_NAME).val();
 			var libraryName = $(LIBRARY_NAME).val();
-			var chunk_size = 25  * 1024; //1mb = 1 * 1024 * 1024;
+			var chunk_size = 10000  * 1024; //1mb = 1 * 1024 * 1024;
 			var file = FILE;
 			var fileName = file.name;
 			var filePart = 0;
@@ -78,6 +76,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			var start = 0;
 			var end = chunk_size;
 			var totalChunks = Math.ceil(fileSize / chunk_size);
+			UPLOAD_INDEX = 0;
 			
 			while(start < fileSize){
 				var slice_method = "";
@@ -103,35 +102,44 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				end = start + chunk_size;
 			}
 			UPLOAD_LENGTH = CHUNKS.length;
-			_this.executeUploadChunk();
+			if(UPLOAD_LENGTH==1){
+				_this.executeUploadChunk(true, true);	
+			}else{
+				_this.executeUploadChunk(true, false);
+			}
+			
 		},
 		
-		executeUploadChunk : function(flag){
+		executeUploadChunk : function(sflag, eflag){
 			var data = CHUNKS[UPLOAD_INDEX];
-			console.log(UPLOAD_INDEX +" has complete");
-			tHandler.createLibrary(data.chunk, data.fileName, data.filePart, data.fileSize, data.schemaName, data.libraryName, flag);
+			tHandler.createLibrary(data.chunk, data.fileName, data.filePart, data.fileSize, data.schemaName, data.libraryName, sflag, eflag);
 			UPLOAD_INDEX++;
 		}, 
 		onFileSelected : function(e) {
-			_this.cleanField();
 			var files = e.target.files;
 			FILE = files[0];
-			$(CREATE_BTN).attr('disabled', false);
+			$(CREATE_BTN).prop('disabled', false);
 			$(FILE_NAME).val(FILE.name);
 		},
 		createLibrarySuccess : function(){
-			var flag = false;
 			if(UPLOAD_INDEX==UPLOAD_LENGTH){
-				alert("create success");
+				$(LOADING).css('visibility', 'hidden');
+				$(CREATE_BTN).prop('disabled', false);
+				$(CLEAR_BTN).prop('disabled', false);
+				alert("Create library Success!");
 			}else if(UPLOAD_INDEX==UPLOAD_LENGTH-1){
-				flag = true;
+				_this.executeUploadChunk(false, true);
 			}else{
-				_this.executeUploadChunk(flag);
+				_this.executeUploadChunk(false, false);
 			}
 		},
-		createLibraryError : function(){
-			$(ERROR).show();
-			$(ERROR).val("hello world")
+		createLibraryError : function(error){
+			$(LOADING).css('visibility', 'hidden');
+			$(CREATE_BTN).prop('disabled', false);
+			$(CLEAR_BTN).prop('disabled', false);
+			var errorIndex = error.responseText.lastIndexOf("*** ERROR");
+			var errorString = error.responseText.substring(errorIndex);
+			alert(errorString);
 		}
 	});
 

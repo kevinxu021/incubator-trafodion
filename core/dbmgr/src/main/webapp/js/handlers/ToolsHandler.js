@@ -15,13 +15,12 @@ define(['handlers/EventDispatcher'],
 				var _this = this;
 				this.CREATE_LIBRARY_SUCCESS = 'createLibrarySuccess';
 				this.CREATE_LIBRARY_ERROR = 'createLibraryError';
-				this.UPDATE_PROGRESS = 'updateProgress';
 
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
 				};
 
-				this.createLibrary = function(file, fileName, filePart, fileSize, schemaName, libraryName, flag){
+				this.createLibrary = function(file, fileName, filePart, fileSize, schemaName, libraryName, sflag, eflag){
 					_this.fileSize=fileSize;
 					var fd = new FormData();
 					fd.append("file", file);
@@ -29,24 +28,14 @@ define(['handlers/EventDispatcher'],
 					fd.append("filePart", filePart);
 					fd.append("schemaName", schemaName);
 					fd.append("libraryName", libraryName);
-					fd.append("endFlag", flag);
+					fd.append("startFlag", sflag);
+					fd.append("endFlag", eflag);
 					
 					var xhr = xhrs["create_library"];
 					if(xhr && xhr.readyState !=4){
 						xhr.abort();
 					}
 					$.ajax({
-						xhr: function(){
-							var xhr = new window.XMLHttpRequest();
-						    //Upload progress
-						    xhr.upload.addEventListener("progress", function(evt){
-						      if (evt.lengthComputable) {
-						        var percentComplete = evt.loaded / _this.fileSize;
-						        dispatcher.fire(_this.UPDATE_PROGRESS, percentComplete);
-						      }
-						    }, false);
-						    return xhr;
-						  },
 						url: 'resources/tools/createlibrary',
 						//url: 'resources/tools/upload',
 						type:'POST',
