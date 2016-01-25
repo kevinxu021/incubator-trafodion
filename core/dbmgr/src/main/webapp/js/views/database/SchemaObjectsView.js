@@ -13,14 +13,13 @@ define([
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
-        'jstree'
+        'pdfmake'
         ], function (BaseView, DatabaseT, $, dbHandler, common) {
 	'use strict';
 	var LOADING_SELECTOR = '#loadingImg';			
 	var oDataTable = null;
 	var _this = null;
 	var schemaName = null;
-	var initialized = false;
 	
 	var BREAD_CRUMB = '#database-crumb';
 	var ERROR_CONTAINER = '#db-objects-error-text',
@@ -30,14 +29,21 @@ define([
 	
 	
 	var routeArgs = null;
+	var prevRouteArgs = null;
+	
 	var schemaName = null;
 	var bCrumbsArray = [];
-	var DatabaseView = BaseView.extend({
+	var pageStatus = {};
+	
+	var SchemaObjectsView = BaseView.extend({
 		template:  _.template(DatabaseT),
 
 		doInit: function (args){
 			_this = this;
 			routeArgs = args;
+			prevRouteArgs = args;
+			pageStatus = {};
+			
 			schemaName = routeArgs.schema;
 			
 			$(ERROR_CONTAINER).hide();
@@ -54,10 +60,13 @@ define([
 			$(ERROR_CONTAINER).hide();
 			$(OBJECT_LIST_CONTAINER).hide();
 			
-			if(schemaName != routeArgs.schema){
+			if(prevRouteArgs.schema != routeArgs.schema || 
+				prevRouteArgs.type != routeArgs.type){
 				schemaName = routeArgs.schema;
-				initialized = false;
+				pageStatus = {};
+				$(OBJECT_LIST_CONTAINER).empty();
 			}
+			prevRouteArgs = args;
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayObjectList);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
@@ -77,11 +86,13 @@ define([
 		},
 		doRefresh: function(){
 			_this.processRequest();
-			$(errorTextContainer).hide();
+			$(ERROR_CONTAINER).hide();
 		},
 		fetchObjects: function(objectType, schemaName){
-			_this.showLoading();
-			dbHandler.fetchObjects(objectType, schemaName);
+			if(!pageStatus[objectType] || pageStatus[objectType] == false){
+				_this.showLoading();
+				dbHandler.fetchObjects(objectType, schemaName);
+			}
 		},
 		updateBreadCrumbs: function(routeArgs){
 			$(BREAD_CRUMB).empty();
@@ -123,6 +134,7 @@ define([
 			_this.updateBreadCrumbs(routeArgs);
 
 			$(BREAD_CRUMB).show();
+			$(OBJECT_LIST_CONTAINER).show();
 			if(routeArgs.type != null && routeArgs.type.length > 0){
 				switch(routeArgs.type){
 					case 'tables' :
@@ -142,6 +154,7 @@ define([
 			_this.hideLoading();
 			var keys = result.columnNames;
 			$(ERROR_CONTAINER).hide();
+			pageStatus[routeArgs.type] = true;
 			
 			if(keys != null && keys.length > 0) {
 				$(OBJECT_LIST_CONTAINER).show();
@@ -232,7 +245,14 @@ define([
 							}
 							else return data;
 						}
+					},
+					{
+						"aTargets": [ 4 ],
+						"mData": 4,
+						"visible" : false,
+						"searchable" : false
 					}
+	
 					],
 					/*aoColumns : [
 					             {"mData": 'Name', sClass: 'left', "sTitle": 'Name', 
@@ -270,7 +290,11 @@ define([
 					             }
 					             ],*/
 				                 buttons: [
-				                           'copy','csv','excel','pdf','print'
+				                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+				                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+				                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+				                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
+				                           { extend : 'print', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text() }
 				                           ],					             
 					             fnDrawCallback: function(){
 					            	 $('#db-object-list-results td').css("white-space","nowrap");
@@ -307,5 +331,5 @@ define([
 	});
 
 
-	return DatabaseView;
+	return SchemaObjectsView;
 });

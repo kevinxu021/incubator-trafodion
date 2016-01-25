@@ -21,8 +21,8 @@ define([
         'buttonsprint',
         'buttonshtml',     
         'datetimepicker',
-        'jqueryvalidate'
-
+        'jqueryvalidate',
+        'pdfmake'
         ], function (BaseView, LogsT, $, logsHandler, localizer, moment, common, refreshTimerView) {
 	'use strict';
 	var LOADING_SELECTOR = "#loadingImg",
@@ -42,6 +42,7 @@ define([
 	FILTER_DIALOG = '#filterDialog',
 	FILTER_FORM = '#filter-form',
 	FILTER_APPLY_BUTTON = "#filterApplyButton",
+	FILTER_RESET_BUTTON = "#filterResetButton",
 	FILTER_START_TIME = '#filter-start-time',
 	FILTER_END_TIME = '#filter-end-time',
 	FILTER_COMPONENT_NAMES = '#filter-component-names',
@@ -54,6 +55,8 @@ define([
 
 
 	var oDataTable = null;
+	var isFilterInitialized=false;
+	var initAppliedFilter=null;
 	var _this = null;
 	var validator = null;
 
@@ -145,6 +148,12 @@ define([
 					lastAppliedFilters.startTime = startTime.format('YYYY/MM/DD-HH:mm:ss');
 					lastAppliedFilters.endTime = endTime.format('YYYY/MM/DD-HH:mm:ss');
 				}
+				if(isFilterInitialized==false)
+				{
+					initAppliedFilter={};
+					initAppliedFilter=_this.getFilterParams();
+					isFilterInitialized=true;
+				}
 			});
 
 			$(FILTER_DIALOG).on('hide.bs.modal', function (e, v) {
@@ -190,6 +199,7 @@ define([
 			$(REFRESH_MENU).on('click', this.fetchLogs);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
+			$(FILTER_RESET_BUTTON).on('click', this.filterDialogReset);
 
 			refreshTimerView.init();
 			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
@@ -314,6 +324,14 @@ define([
 		filterButtonClicked: function(){
 			$(FILTER_ERROR_MSG).html('');
 			$(FILTER_DIALOG).modal('show');
+		},
+		filterDialogReset: function(){
+			$(FILTER_ERROR_MSG).html('');
+			lastAppliedFilters={};
+			lastAppliedFilters=initAppliedFilter;
+			validator.resetForm();
+			_this.resetFilter();
+			_this.updateFilter();
 		},
 		filterApplyClicked: function(source){
 			if($(FILTER_FORM).valid()){
@@ -447,7 +465,6 @@ define([
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
 					paging: bPaging,
-					"bProcessing": true,
 					//"bAutoWidth": true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
@@ -478,8 +495,13 @@ define([
 					}
 					],
 					buttons: [
-					          'copy','csv','excel','pdf','print'
-					          ],
+	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
+	                        	   title: 'Logs' } ,
+	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Logs' }
+				          ],
 					          aaSorting: [[ 0, "desc" ]],
 					          fnDrawCallback: function(){
 					        	  //$('#logs-query-results td').css("white-space","nowrap");

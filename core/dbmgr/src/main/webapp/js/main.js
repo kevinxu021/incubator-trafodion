@@ -70,7 +70,16 @@ require.config({
 		},		
 		morrisdata: {
 			deps: ['morris']
-		}
+		},
+		pdfMakeLib :
+        {           
+            exports: 'pdfmake'
+        },
+        pdfmake : 
+        {
+            deps: ['pdfMakeLib'],
+            exports: 'pdfmake'
+        }
 	},
 	paths: {
 		sbadmin2:'../bower_components/startbootstrap-sb-admin-2/dist/js/sb-admin-2',
@@ -100,7 +109,9 @@ require.config({
 		jstree: '../bower_components/jstree/dist/jstree',
 		moment: '../bower_components/moment/min/moment.min',
 		momenttimezone: '../bower_components/moment-timezone/builds/moment-timezone-with-data.min',
-		datetimepicker: '../bower_components/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min'
+		datetimepicker: '../bower_components/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min',
+		pdfmake: '../bower_components/pdfmake/build/vfs_fonts',
+		pdfMakeLib: '../bower_components/pdfmake/build/pdfmake.min'
 	}
 
 });

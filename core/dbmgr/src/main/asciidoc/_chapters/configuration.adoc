@@ -78,6 +78,12 @@ The default value is 4205. This port needs to be open through the firewall since
 This is the port the EsgynDB Manager embedded Jetty server binds to waiting for client HTTPS connections.
 The value may need to be changed if this port number conflicts with other ports in use on your cluster.
 The default value is 4206. This port needs to be open through the firewall since the external clients use this port to connect to DB Manager.
+*EsgynDB Admin User ID*::
+This is the EsgynDB Admin User ID. Default is DB__ADMINUSER.
+DB Manager uses this admin user id for its internal queries to EsgynDB.
+*EsgynDB Admin Password*::
+This is the password for EsgynDB Admin User. The password is obfuscated.
+DB Manager uses this admin password for its internal jdbc connections.
 *SSL Keystore Password*::
 A self-signed certificate will be generated and stored in a SSL keystore using the provided password.
 The password is obfuscated and the SSL keystore is saved as *dbmgr-{projectVersion}/etc/dbmgr.keystore*.
@@ -132,6 +138,12 @@ The timezone name has to be in the canonical format like *Etc/UTC* or *America/L
 	<!-- Session Timeout in minutes. Your EsgynDB Manager browser session to the server
 		will be timed out after this interval and you will be asked to login again -->
 	<entry key="sessionTimeoutMinutes">120</entry>
+
+	<!-- The Admin User ID used by DBManager for its internal queries-->
+  <entry key="adminUserID">DB__ADMINUSER</entry>
+
+  <!-- The Admin User's password-->
+  <entry key="adminPassword">OBF:1sov1sov</entry>
 
 	<!-- The following properties are only required and used by the embedded jetty server -->
 
@@ -236,7 +248,7 @@ With the *watch* option, the runbosun.sh script first checks if Bosun is running
 
 ** If the primary node were to fail, the CMON process would fail over to a secondary node and that node will become the primary and all the commands from the cluster_monitor.cmd are executed to start the defined processes on the new primary node.
 
-- *NMON* runs on every node. It is started and managed by the EsynDB monitor process, so NMON is inherently persistent. 
+- *NMON* runs on every node. It is started and managed by the EsynDB monitor process, so NMON is inherently persistent.
 
 +
 NMON reads a list of commands from *$MY_SQROOT/sql/scripts/node_monitor.cmd* file and executes them every 1 minute.

@@ -20,6 +20,10 @@ define(['handlers/EventDispatcher'],
 				this.FETCH_OBJECT_DETAILS_ERROR = 'FETCH_OBJECT_DETAILS_ERROR';
 				this.FETCH_DDL_SUCCESS = 'FETCH_DDL_SUCCESS';
 				this.FETCH_DDL_ERROR = 'FETCH_DDL_ERROR';
+				this.FETCH_COLUMNS_SUCCESS = 'FETCH_COLUMNS_SUCCESS';
+				this.FETCH_COLUMNS_ERROR = 'FETCH_COLUMNS_ERROR';
+				this.FETCH_REGIONS_SUCCESS = 'FETCH_REGIONS_SUCCESS';
+				this.FETCH_REGIONS_ERROR = 'FETCH_REGIONS_ERROR';
 
 				
 				this.sessionTimeout = function() {
@@ -59,8 +63,8 @@ define(['handlers/EventDispatcher'],
 						}
 					});
 				};
-				
-				this.fetchDDL = function (objectType, objectName, schemaName) {
+
+				this.fetchDDL = function (objectType, objectName, schemaName, parentObjectName) {
 					var xhr = xhrs["fetchddl"];
 					if(xhr && xhr.readyState !=4){
 						xhr.abort();
@@ -72,6 +76,9 @@ define(['handlers/EventDispatcher'],
 					}
 					if(schemaName != null){
 						uri += '&schemaName=' + schemaName;
+					}
+					if(parentObjectName){
+						uri +='&parentObjectName=' + parentObjectName;
 					}
 					
 					xhrs["fetchddl"] = $.ajax({
@@ -93,6 +100,70 @@ define(['handlers/EventDispatcher'],
 				};
 				
 			
+				this.fetchColumns = function (objectType, objectName, schemaName) {
+					var xhr = xhrs["fetchColumns"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					
+					var uri = '/resources/db/columns?type='+objectType;
+					if(objectName != null){
+						uri += '&objectName=' + objectName;
+					}
+					if(schemaName != null){
+						uri += '&schemaName=' + schemaName;
+					}
+					
+					xhrs["fetchColumns"] = $.ajax({
+						url: uri,
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.FETCH_COLUMNS_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.FETCH_COLUMNS_ERROR, jqXHR, res, error);
+						}
+					});
+				};
+				
+				this.fetchRegions = function (objectType, objectName, schemaName) {
+					var xhr = xhrs["fetchRegions"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					
+					var uri = '/resources/db/regions?type='+objectType;
+					if(objectName != null){
+						uri += '&objectName=' + objectName;
+					}
+					if(schemaName != null){
+						uri += '&schemaName=' + schemaName;
+					}
+					
+					xhrs["fetchRegions"] = $.ajax({
+						url: uri,
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.FETCH_REGIONS_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.FETCH_REGIONS_ERROR, jqXHR, res, error);
+						}
+					});
+				};
+				
 				this.init = function() {
 
 				};

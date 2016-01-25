@@ -18,7 +18,8 @@ define([
         'tablebuttons',
         'buttonsflash',
         'buttonsprint',
-        'buttonshtml'
+        'buttonshtml',
+        'pdfmake'
         ], function (BaseView, WorkbenchT, $, common, serverHandler, CodeMirror) {
 	'use strict';
 
@@ -55,6 +56,7 @@ define([
 	var _that = null;
 	var queryTextEditor = null,
 	controlStmtEditor = null,
+	scalarResultEditor = null,
 	resultsDataTable = null;
 
 	$jit.ST.Plot.NodeTypes.implement({
@@ -136,6 +138,7 @@ define([
 			$(CONTROL_APPLY_BUTTON).on('click', this.controlApplyClicked);
 			$(OPTIONS_BTN).on('click', this.openFilterDialog);
 
+			
 			$(EXPLAIN_TREE).hide();
 			$(ERROR_TEXT).hide();
 			$(TOOLTIP_DIALOG).on('show.bs.modal', function () {
@@ -145,7 +148,20 @@ define([
 					'max-height':'100%'
 				});
 			});
-
+			 $('.panel-heading span.dbmgr-collapsible').on("click", function (e) {
+		            if ($(this).hasClass('panel-collapsed')) {
+		                // expand the panel
+		                $(this).parents('.panel').find('.panel-body').slideDown();
+		                $(this).removeClass('panel-collapsed');
+		                $(this).find('i').removeClass('fa-sort-down').addClass('fa-sort-up');
+		            }
+		            else {
+		                // collapse the panel
+		                $(this).parents('.panel').find('.panel-body').slideUp();
+		                $(this).addClass('panel-collapsed');
+		                $(this).find('i').removeClass('fa-sort-up').addClass('fa-sort-down');
+		            }
+		        });
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
 			}
@@ -165,7 +181,7 @@ define([
 					queryTextEditor.setSize($(this).width(), $(this).height());
 				}
 			});
-			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
+			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"120px"});
 			
 			controlStmtEditor = CodeMirror.fromTextArea(document.getElementById("query-control-stmts"), {
 				mode: 'text/x-esgyndb',
@@ -186,6 +202,24 @@ define([
 			});
 			$(controlStmtEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"300px"});
 
+			
+			scalarResultEditor = CodeMirror.fromTextArea(document.getElementById("scalar-result"), {
+				mode: 'text/x-esgyndb',
+				indentWithTabs: true,
+				smartIndent: true,
+				lineNumbers: true,
+				lineWrapping: true,
+				matchBrackets : true,
+				autofocus: true,
+				extraKeys: {"Ctrl-Space": "autocomplete"}
+			});
+			$(scalarResultEditor.getWrapperElement()).resizable({
+				resize: function() {
+					scalarResultEditor.setSize($(this).width(), $(this).height());
+				}
+			});
+			$(scalarResultEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"300px"});
+			
 			$(CONTROL_DIALOG).on('hide.bs.modal', function(e){
 				if(controlStmts && controlStmts.length > 0){
 					if(controlStmtEditor)
@@ -193,8 +227,12 @@ define([
 					else
 						$(CONTROL_STMTS_TEXT).val(controlStmts);
 				}else{
-					if(controlStmtEditor)
+					if(controlStmtEditor){
 						controlStmtEditor.setValue("");
+						setTimeout(function() {
+							controlStmtEditor.refresh();
+		        		},1);
+					}
 					else
 						$(CONTROL_STMTS_TEXT).val("");
 
@@ -281,6 +319,12 @@ define([
 				controlStmtEditor.setValue("");
 			else
 				$(CONTROL_STMTS_TEXT).val();
+			
+			if(scalar-result-container){
+				scalar-result-container.setValue("");
+			}else{
+				$(SCALAR_RESULT_CONTAINER).text("");
+			}
 
 			if(resultsDataTable  != null){
 				try{
@@ -379,7 +423,8 @@ define([
 			var keys = result.columnNames;
 			if(result.isScalarResult != null && result.isScalarResult == true){
 				$(SCALAR_RESULT_CONTAINER).show();
-				$(SCALAR_RESULT_CONTAINER).text(result.resultArray[0][0]);
+				//$(SCALAR_RESULT_CONTAINER).text();
+				scalarResultEditor.setValue(result.resultArray[0][0]);
 			}
 			else{
 				$(QUERY_RESULT_CONTAINER).show();        	
@@ -417,8 +462,14 @@ define([
 						"aoColumns" : aoColumns,
 						paging: bPaging,
 						buttons: [
-						          'copy','csv','excel','pdf','print'
-						          ]
+		                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+		                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+		                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+		                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
+		                        	   title: 'Query Workbench' } ,
+		                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Query Workbench' }
+					          ],
+
 					});
 				}        		
 			}
@@ -435,7 +486,7 @@ define([
 				$(ERROR_TEXT).text(jqXHR.responseText);
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
-					$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+					$(ERROR_TEXT).text("Error : Unable to communicate with the server.");
 				}
 			}
 		}        

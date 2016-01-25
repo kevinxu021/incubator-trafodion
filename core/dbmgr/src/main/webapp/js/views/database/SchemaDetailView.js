@@ -29,6 +29,7 @@ define([
 	OBJECT_NAME_CONTAINER = '#db-object-name',
 	ERROR_CONTAINER = '#db-object-error-text',
 	PRIVILEGES_CONTAINER = '#db-object-privileges-container',
+	FEATURE_SELECTOR  = '#db-object-feature-selector',
 	ATTRIBUTES_SELECTOR = '#db-attributes-link',
 	DDL_SELECTOR = '#db-ddl-link',
 	PRIVILEGES_SELECTOR = '#db-privileges-link',
@@ -37,12 +38,20 @@ define([
 	INDEXES_SELECTOR = '#db-indexes-link',
 	LIBRARIES_SELECTOR = '#db-libraries-link',
 	PROCEDURES_SELECTOR = '#db-procedures-link',
+	ATTRIBUTES_BTN = '#attributes-btn',
+	DDL_BTN= '#ddl-btn',
+	PRIVILEGES_BTN = '#privileges-btn',
+	TABLES_BTN = '#tables-btn',
+	VIEWS_BTN = '#views-btn',
+	INDEXES_BTN = '#indexes-btn',
+	LIBRARIES_BTN = '#libraries-btn',
+	PROCEDURES_BTN = '#procedures-btn',
 	REFRESH_ACTION = '#refreshAction';
 
 	var routeArgs = null;
 	var schemaName = null;
 	var bCrumbsArray = [];
-	var initialized = false;
+	var pageStatus = {};
 
 	var SchemaDetailView = BaseView.extend({
 		template:  _.template(DatabaseT),
@@ -90,19 +99,24 @@ define([
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.showErrorMessage);
 			if(schemaName != routeArgs.name){
 				schemaName = routeArgs.name;
-				initialized = false;
-	        	if(ddlTextEditor)
+				pageStatus = {};
+	        	if(ddlTextEditor){
 	        		ddlTextEditor.setValue("");
+	        		setTimeout(function() {
+	        			ddlTextEditor.refresh();
+	        		},1);
+	        	}
 			}	
-			var TAB_LINK = $(SCHEMA_DETAILS_CONTAINER+' .tab-pane.active');
-			if(TAB_LINK){
-				var selectedTab = '#'+TAB_LINK.attr('id');
-				if(selectedTab == ATTRIBUTES_SELECTOR || selectedTab == DDL_TEXT_SELECTOR || selectedTab == PRIVILEGES_SELECTOR){
-					//no-op
+			var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
+			var activeButton = null;
+			if(ACTIVE_BTN){
+				activeButton = '#'+ACTIVE_BTN.attr('id');
+				if(activeButton == ATTRIBUTES_BTN || activeButton == DDL_BTN || activeButton == PRIVILEGES_BTN){
 				}else{
-					$(SCHEMA_DETAILS_CONTAINER +' a:first').tab('show');
+					$(FEATURE_SELECTOR + ' a').first().tab('show')
 				}
 			}
+
 			_this.processRequest();
 		},
 		doPause: function(){
@@ -116,37 +130,59 @@ define([
 		},
 
 		hideLoading: function () {
-			$(LOADING_SELECTOR).hide();
+			$(LOADING_SELECTOR).hide();$('#db-object-feature-selector .active').attr('id')
 		},
 		selectFeature: function(e){
 			$(SCHEMA_DETAILS_CONTAINER).show();
-			var selectedTab = ATTRIBUTES_SELECTOR;
-			var TAB_LINK = $(SCHEMA_DETAILS_CONTAINER+' .tab-pane.active');
-			if(TAB_LINK){
-				selectedTab = '#'+TAB_LINK.attr('id');
-			}else{
-				return;
-			}
+			var selectedFeatureLink = ATTRIBUTES_SELECTOR;
 
 			if(e && e.target && $(e.target).length > 0){
-				selectedTab = $(e.target)[0].hash;
+				selectedFeatureLink = $(e.target)[0].hash;
+			}else{
+				var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
+				var activeButton = null;
+				if(ACTIVE_BTN){
+					activeButton = '#'+ACTIVE_BTN.attr('id');
+				}
+				switch(activeButton){
+				case ATTRIBUTES_BTN:
+					selectedFeatureLink = ATTRIBUTES_SELECTOR;
+					break;
+				case DDL_BTN:
+					selectedFeatureLink = DDL_SELECTOR;
+					break;
+				case PRIVILEGES_BTN:
+					selectedFeatureLink = PRIVILEGES_SELECTOR;
+					break;
+				case TABLES_BTN:
+					selectedFeatureLink = TABLES_SELECTOR;
+					break;
+				case VIEWS_BTN:
+					selectedFeatureLink = VIEWS_SELECTOR;
+					break;
+				case INDEXES_BTN:
+					selectedFeatureLink = INDEXES_SELECTOR;
+					break;
+				case LIBRARIES_BTN:
+					selectedFeatureLink = LIBRARIES_SELECTOR;
+					break;
+				case PROCEDURES_BTN:
+					selectedFeatureLink = PROCEDURES_SELECTOR;
+					break;
+				}
 			}
 
 			$(ATTRIBUTES_CONTAINER).hide();
 			$(DDL_CONTAINER).hide();
 
-			switch(selectedTab){
+			switch(selectedFeatureLink){
 			case ATTRIBUTES_SELECTOR:
 				$(ATTRIBUTES_CONTAINER).show();
 				_this.fetchAttributes();
 				break;
 			case DDL_SELECTOR:
 				$(DDL_CONTAINER).show();
-				var ddlText = ddlTextEditor.getValue();
-				if(ddlText == null || ddlText.length == 0){
-					_this.fetchDDLText();
-				}
-
+				_this.fetchDDLText();
 				break;
 			case PRIVILEGES_SELECTOR:
 				$(PRIVILEGES_CONTAINER).show();
@@ -169,11 +205,12 @@ define([
 			}
 		},
 		doRefresh: function(){
+			pageStatus.ddl = false;
 			_this.processRequest();
 			$(ERROR_CONTAINER).hide();
 		},
 		fetchDDLText: function(){
-			if(!initialized){
+			if(!pageStatus.ddl || pageStatus.ddl == false){
 				_this.showLoading();
 				dbHandler.fetchDDL('schema', routeArgs.name, null);
 			}
@@ -198,23 +235,24 @@ define([
 			schemaName = routeArgs.name;
 			var displayName = 'Schema ' + routeArgs.name;
 			$(OBJECT_NAME_CONTAINER).text(displayName);
-			$(ATTRIBUTES_CONTAINER).show();
-			$(ATTRIBUTES_SELECTOR).show();
+			$(ATTRIBUTES_BTN).show();
 			$(ATTRIBUTES_SELECTOR).tab('show');
 			//$(ATTRIBUTES_SELECTOR).trigger('click');
-			$('#db-object-feature-selector a:first').tab('show');
-			$(DDL_SELECTOR).show();
-			$(TABLES_SELECTOR).show();
-			$(VIEWS_SELECTOR).show();
-			$(INDEXES_SELECTOR).show();
-			$(LIBRARIES_SELECTOR).show();
-			$(PROCEDURES_SELECTOR).show();					
+			//$('#db-object-feature-selector a:first').tab('show');
+			$(DDL_BTN).show();
+			$(PRIVILEGES_BTN).hide();
+			$(TABLES_BTN).show();
+			$(VIEWS_BTN).show();
+			$(INDEXES_BTN).show();
+			$(LIBRARIES_BTN).show();
+			$(PROCEDURES_BTN).show();					
 			_this.selectFeature();
 		},
 		fetchAttributes: function () {
 			var attrs = sessionStorage.getItem(routeArgs.name);	
 			if(attrs == null){
 				//TO DO. Fetch from database.
+				_this.hideLoading();
 			}else{
 				_this.hideLoading();
 				var properties = JSON.parse(attrs);
@@ -232,8 +270,10 @@ define([
 			}
 		},
 		displayDDL: function(data){
+			pageStatus.ddl = true;
 			_this.hideLoading();
 			ddlTextEditor.setValue(data);
+			ddlTextEditor.refresh();
 		},
 		showErrorMessage: function (jqXHR) {
 			_this.hideLoading();

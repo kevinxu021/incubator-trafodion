@@ -18,9 +18,10 @@ public class JdbcHelper {
 	private JdbcHelper() {
 		dataSource = new HPT4DataSource();
 		dataSource.setUrl(ConfigurationResource.getInstance().getJdbcUrl());
+		dataSource.setMaxStatements(100);
 		dataSource.setMaxPoolSize(8);
-		dataSource.setUser("ds");
-		dataSource.setPassword("ds");
+		dataSource.setUser(ConfigurationResource.getInstance().getAdminUserID());
+		dataSource.setPassword(ConfigurationResource.getInstance().getAdminPassword());
 		dataSource.setMinPoolSize(2);
 		dataSource.setInitialPoolSize(2);
 	}

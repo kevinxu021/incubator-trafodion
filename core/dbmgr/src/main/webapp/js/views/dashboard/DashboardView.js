@@ -21,7 +21,8 @@ define([
         'responsivetable',
         'tablebuttons',
         'buttonsprint',
-        'buttonshtml'
+        'buttonshtml',
+        'pdfmake'
         ], function (BaseView, Raphael, Morris, DashboardT, dashboardHandler, serverHandler, $, common, moment, refreshTimer, timeRangeView) {
 	'use strict';
 
@@ -32,6 +33,7 @@ define([
 
 	NODES_SPINNER = '#nodes-spinner',
 	NODES_RESULT_CONTAINER = '#nodes-result-container',
+	GRID_DRILLDOWN_CONTAINER = '#grid-drilldown-container',
 	NODES_ERROR_TEXT = '#nodes-error-text',
 
 	IOWAITS_DRILLDOWN_BTN = '#iowaits-drilldown-btn',
@@ -42,7 +44,8 @@ define([
 	CPULOAD_DRILLDOWN_BTN = '#cpuload-drilldown-btn',
 	FREEMEM_DRILLDOWN_BTN = '#freememory-drilldown-btn',
 	NETWORKIO_DRILLDOWN_BTN = '#network-io-drilldown-btn',
-
+	NODES_DRILLDOWN_BTN = '#nodes-drilldown-btn',
+	
 	DRILLDOWN_SPINNER = '#metrics-drilldown-spinner',
 	DRILLDOWN_CHART_CONTAINER = '#metrics-drilldown-chart',
 	DRILLDOWN_ERROR_CONTAINER= '#metrics-drilldown-error-text',
@@ -68,7 +71,8 @@ define([
 	var servicesTable = null, nodesTable = null;
 	var timeinterval = 0;
 	var lastUsedTimeRange = null;
-
+	var nodesStatusData = null;
+	
 	var DashboardView = BaseView.extend({
 		template:  _.template(DashboardT),
 
@@ -227,7 +231,8 @@ define([
 				$(CPULOAD_DRILLDOWN_BTN).on('click',this.cpuLoadDrillDown);
 				$(FREEMEM_DRILLDOWN_BTN).on('click',this.freeMemoryDrillDown);
 				$(NETWORKIO_DRILLDOWN_BTN).on('click',this.networkIODrillDown);
-
+				$(NODES_DRILLDOWN_BTN).on('click',this.nodeStatusDrillDown);
+				
 				$('#metricsDialog').on('show.bs.modal', function(event, ab){
 					$(DRILLDOWN_CHART_CONTAINER).empty();
 					$(DRILLDOWN_SPINNER).show();
@@ -286,6 +291,7 @@ define([
 				$(CPULOAD_DRILLDOWN_BTN).on('click',this.cpuLoadDrillDown);
 				$(FREEMEM_DRILLDOWN_BTN).on('click',this.freeMemoryDrillDown);
 				$(NETWORKIO_DRILLDOWN_BTN).on('click',this.networkIODrillDown);
+				$(NODES_DRILLDOWN_BTN).on('click',this.nodeStatusDrillDown);
 				
 				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
 				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
@@ -318,6 +324,8 @@ define([
 				$(CPULOAD_DRILLDOWN_BTN).off('click',this.cpuLoadDrillDown);
 				$(FREEMEM_DRILLDOWN_BTN).off('click',this.freeMemoryDrillDown);
 				$(NETWORKIO_DRILLDOWN_BTN).off('click',this.networkIODrillDown);
+				$(NODES_DRILLDOWN_BTN).off('click',this.nodeStatusDrillDown);
+				
 				dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
 				dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
 				dashboardHandler.off(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
@@ -432,15 +440,15 @@ define([
 					aaData.push(data);
 				});
 
-				servicesTable = $('#services-results').dataTable({
+				servicesTable = $('#services-results').DataTable({
 					dom: 'tB',
 					"bProcessing": true,
-					//"bAutoWidth": false,
+					"autoWidth": true,
 					"scrollCollapse": true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"aoColumnDefs": [ 
-					                 { "aTargets": [ 0 ], "sTitle": "SERVICE", "mData": 0, "sWidth":"30px",
+					                 { "aTargets": [ 0 ], 
 					                	 "mRender": function ( data, type, full ) {
 					                		 if (type === 'display') {
 					                			 if(data == 'DTM'){
@@ -484,9 +492,9 @@ define([
 					                 buttons: [
 					                           { extend : 'copy', exportOptions: { columns: [0, 1, 2, 3] } },
 					                           { extend : 'csv', exportOptions: { columns: [0, 1, 2, 3] } },
-					                           { extend : 'excelHtml5', exportOptions: { columns: [0, 1, 2, 3] } },
-					                           { extend : 'pdf', exportOptions: { columns: [0, 1, 2, 3] } },
-					                           { extend : 'print', exportOptions: { columns: [0, 1, 2, 3] } }
+					                           { extend : 'excel', exportOptions: {  columns: [0, 1, 2, 3] } },
+					                           { extend : 'pdfHtml5', exportOptions: { columns: [0, 1, 2, 3] }, title: 'Service Status' },
+					                           { extend : 'print', exportOptions: { columns: [0, 1, 2, 3] }, title: 'Service Status' }
 					                           ],					                 
 					                           paging: true,
 					                           fnDrawCallback: function(){
@@ -528,8 +536,6 @@ define([
 			var keys = result.columnNames;
 
 			if(keys != null && keys.length > 0) {
-				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table  dbmgr-dashboard-table dt-responsive" id="nodes-results"></table>';
-				$(NODES_RESULT_CONTAINER).html( sb );
 
 				var aoColumns = [];
 				var aaData = [];
@@ -552,51 +558,57 @@ define([
 					aaData.push(data);
 				});
 
-				var bPaging = aaData.length > 10;
-
-				nodesTable = $('#nodes-results').DataTable({
-					dom: 'tifB',
-					"bProcessing": true,
-					"bPaginate" : bPaging, 
-					"iDisplayLength" : 10, 
-					"sPaginationType": "simple_numbers",
-					"scrollCollapse": true,
-					"aaData": aaData, 
-					"aoColumns" : aoColumns,
-					"aoColumnDefs": [
-					                 {"aTargets": [0], "sWidth": "100px"},
-					                 {"aTargets": [1], "sClass":"never", "bVisible":false},
-					                 {
-					                	 "aTargets": [ 2 ],
-					                	 "mData": 2,
-					                	 "sWidth":"50px",
-					                	 "mRender": function ( data, type, full ) {
-					                		 if (type === 'display') {
-					                			 if(data == 'DOWN'){
-					                				 return '<button type="button" class="btn btn-danger btn-circle btn-small dbmgr-status-btn"><i class="fa fa-times"></i></button>';
-					                			 }
-					                			 return '<button type="button" class="btn btn-success btn-circle btn-small dbmgr-status-btn"><i class="fa fa-check"></i></button>';
-					                		 }
-					                		 else return data;
-					                	 }
-					                 }],
-					                 buttons: [
-					                           { extend : 'copy', exportOptions: { columns: [0, 1] } },
-					                           { extend : 'csv', exportOptions: { columns: [0, 1] } },
-					                           { extend : 'excel', exportOptions: { columns: [0, 1] } },
-					                           { extend : 'pdf', exportOptions: { columns: [0, 1] } },
-					                           { extend : 'print', exportOptions: { columns: [0, 1] } }
-					                           ],					                 
-					                           paging: true,
-					                           fnDrawCallback: function(){
-					                        	   //$('#query-results td').css("white-space","nowrap");
-					                           }
-
-				});
-				//nodesTable.buttons().container().appendTo($('#nodes-export-buttons') );
-				$('#nodes-results td').css("white-space","nowrap");
+				_this.nodeStatusData = { aoColumns: aoColumns, aaData: aaData};
+				
+				_this.populateNodeStatus('nodes-results', NODES_RESULT_CONTAINER, false);
 			}
 
+		},
+		populateNodeStatus: function(containerID, parent, isDrilldown){
+			var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table dt-responsive" style="width:100%;" id="'+containerID +'"></table>';
+			$(parent).html( sb );
+
+			var bPaging = _this.nodeStatusData.aaData.length > 10;
+
+			nodesTable = $('#'+containerID).DataTable({
+				dom: isDrilldown ? '<"top"l<"clear">Bf>t<"bottom"rip>' : 'tif',
+				paging: bPaging,
+				"iDisplayLength" : 10, 
+				"sPaginationType": "simple_numbers",
+				"scrollCollapse": true,
+				"aaData": _this.nodeStatusData.aaData, 
+				"aoColumns" : _this.nodeStatusData.aoColumns,
+				"aoColumnDefs": [
+				                 {"aTargets": [0], "sWidth": "100px"},
+				                 {"aTargets": [1], "sClass":"never", "bVisible":false},
+				                 {
+				                	 "aTargets": [ 2 ],
+				                	 "mData": 2,
+				                	 "sWidth":"50px",
+				                	 "mRender": function ( data, type, full ) {
+				                		 if (type === 'display') {
+				                			 if(data == 'DOWN'){
+				                				 return '<button type="button" class="btn btn-danger btn-circle btn-small dbmgr-status-btn"><i class="fa fa-times"></i></button>';
+				                			 }
+				                			 return '<button type="button" class="btn btn-success btn-circle btn-small dbmgr-status-btn"><i class="fa fa-check"></i></button>';
+				                		 }
+				                		 else return data;
+				                	 }
+				                 }],
+				                 buttons: [
+				                           { extend : 'copy', exportOptions: { columns: [0, 1] } },
+				                           { extend : 'csv', exportOptions: { columns: [0, 1] } },
+				                           { extend : 'excel', exportOptions: { columns: [0, 1] } },
+				                           { extend : 'pdfHtml5', exportOptions: { columns: [0, 1] }, title: 'Node Status' },
+				                           { extend : 'print', exportOptions: { columns: [0, 1] }, title: 'Node Status' }
+				                           ],					                 
+				                           fnDrawCallback: function(){
+				                        	   //$('#query-results td').css("white-space","nowrap");
+				                           }
+
+			});
+			//nodesTable.buttons().container().appendTo($('#nodes-export-buttons') );
+			$('#'+containerID+' td').css("white-space","nowrap");			
 		},
 		fetchNodesError: function(jqXHR, res, error) {
 			$(NODES_SPINNER).hide();
@@ -778,8 +790,17 @@ define([
 		networkIODrillDown: function(){
 			_this.displayDetails('networkio');
 		},
+		nodeStatusDrillDown: function(){
+			$('#metricsDialog').modal('show');
+			$('#metricsDialogLabel').text("Node Status");
+			$(DRILLDOWN_SPINNER).hide();
+			$(DRILLDOWN_CHART_CONTAINER).hide();
+			$(GRID_DRILLDOWN_CONTAINER).show();
+			_this.populateNodeStatus('nodes-results-drilldown', GRID_DRILLDOWN_CONTAINER, true);
+		},
 		displayDetails: function(metricName){
 			$('#metricsDialog').modal('show');
+			$(GRID_DRILLDOWN_CONTAINER).hide();
 			dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
 		},
 		fetchDrilldownMetricSuccess:function(result){

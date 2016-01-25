@@ -20,7 +20,8 @@ define([
         'buttonsprint',
         'buttonshtml',        
         'datetimepicker',
-        'jqueryvalidate'
+        'jqueryvalidate',
+        'pdfmake'
         ], function (BaseView, AlertsT, $, serverHandler, moment, common, refreshTimerView) {
 	'use strict';
 	var LOADING_SELECTOR = "#loadingImg",
@@ -428,9 +429,14 @@ define([
 					} ],
 					paging: true,
 					buttons: [
-					          'copy','csv','excel','pdf','print'
-					          ],
-					          fnDrawCallback: function(){
+	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
+	                        	   title: 'Alerts' } ,
+	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Alerts' }
+				          ],
+				    fnDrawCallback: function(){
 					        	  //$('#alerts-results td').css("white-space","nowrap");
 					          }
 				});

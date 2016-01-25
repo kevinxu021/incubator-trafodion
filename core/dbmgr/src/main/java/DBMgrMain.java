@@ -101,6 +101,7 @@ public class DBMgrMain {
 				System.out.println(
 						"Cannot parse the httpsPort property value as integer. "
 								+ ex.getMessage());;
+				System.exit(-1);
 			}
 			try {
 				requestHeaderSize = Integer.parseInt(
@@ -109,6 +110,25 @@ public class DBMgrMain {
 				System.out.println(
 						"Cannot parse the requestHeaderSize property value as integer. "
 								+ ex.getMessage());
+				System.exit(-1);
+			}
+
+			try {
+				String adminUser = config.getProperty("adminUserID");
+				if (adminUser == null || adminUser.length() == 0) {
+					System.out.println("adminUserID property is not set in the configuration file.");
+					System.exit(-1);
+				}
+			} catch (Exception ex) {
+			}
+
+			try {
+				String adminPassword = config.getProperty("adminPassword");
+				if (adminPassword == null || adminPassword.length() == 0) {
+					System.out.println("adminPassword property is not set in the configuration file.");
+					System.exit(-1);
+				}
+			} catch (Exception ex) {
 			}
 
 			QueuedThreadPool threadPool = new QueuedThreadPool();

@@ -119,42 +119,42 @@ sudo chmod 777 $HOME/hbase-site.xml
 sudo cp $HOME/hbase-site.xml $TRAF_WORKDIR
 sudo chown trafodion.trafodion $TRAF_WORKDIR/hbase-site.xml
 
-sudo su $HDFS_USER --command "hadoop fs -mkdir /hbase-staging" 2> $HOME/traf_temp_output
+sudo su $HDFS_USER --command "$HADOOP_BIN_PATH/hadoop fs -mkdir /hbase-staging" 2> $HOME/traf_temp_output
 if [ $? != 0 ]; then
    # ok if directory already exists
    dir_exists=$(grep "File exists" $HOME/traf_temp_output | wc -l)
    if [ $dir_exists -eq 0 ]; then
-      echo "***ERROR: 'hadoop fs -mkdir /hbase-staging' command failed"
+      echo "***ERROR: '$HADOOP_BIN_PATH/hadoop fs -mkdir /hbase-staging' command failed"
       echo "***ERROR: $(cat $HOME/traf_temp_output)"
       exit -1
    fi
 fi
 
-sudo su $HDFS_USER --command "hadoop fs -chown -R $HBASE_USER:$HBASE_GROUP /hbase-staging"
-sudo su $HDFS_USER --command "hadoop fs -mkdir /bulkload" 2> $HOME/traf_temp_output
+sudo su $HDFS_USER --command "$HADOOP_BIN_PATH/hadoop fs -chown -R $HBASE_USER:$HBASE_GROUP /hbase-staging"
+sudo su $HDFS_USER --command "$HADOOP_BIN_PATH/hadoop fs -mkdir /bulkload" 2> $HOME/traf_temp_output
 if [ $? != 0 ]; then
    # ok if directory already exists
    dir_exists=$(grep "File exists" $HOME/traf_temp_output | wc -l)
    if [ $dir_exists -eq 0 ]; then
-      echo "***ERROR: 'hadoop fs -mkdir /bulkload' command failed"
+      echo "***ERROR: '$HADOOP_BIN_PATH/hadoop fs -mkdir /bulkload' command failed"
       echo "***ERROR: $(cat $HOME/traf_temp_output)"
       exit -1
    fi
 fi
-sudo su $HDFS_USER --command "hadoop fs -chown -R $TRAF_USER:trafodion /bulkload"
+sudo su $HDFS_USER --command "$HADOOP_BIN_PATH/hadoop fs -chown -R $TRAF_USER:trafodion /bulkload"
 
 # Create lobs directory
-sudo su $HDFS_USER --command "hadoop fs -mkdir /lobs" 2> $HOME/traf_temp_output
+sudo su $HDFS_USER --command "$HADOOP_BIN_PATH/hadoop fs -mkdir /lobs" 2> $HOME/traf_temp_output
 if [ $? != 0 ]; then
    # ok if directory already exists
    dir_exists=$(grep "File exists" $HOME/traf_temp_output | wc -l)
    if [ $dir_exists -eq 0 ]; then
-      echo "***ERROR: 'hadoop fs -mkdir /lobs' command failed"
+      echo "***ERROR: '$HADOOP_BIN_PATH/hadoop fs -mkdir /lobs' command failed"
       echo "***ERROR: $(cat $LOCAL_WORKDIR/traf_temp_output)"
       exit -1
    fi
 fi
-sudo su $HDFS_USER --command "hadoop fs -chown -R $TRAF_USER:trafodion /lobs"
+sudo su $HDFS_USER --command "$HADOOP_BIN_PATH/hadoop fs -chown -R $TRAF_USER:trafodion /lobs"
 
 #=====================================
 # Modify hadoop settings as needed by Trafodion
@@ -327,35 +327,35 @@ echo "***INFO: Hadoop restart completed successfully"
 
 # wait to make sure HDFS is fully restarted and out of safemode
 echo "***INFO: waiting for HDFS to exit safemode"
-sudo su hdfs --command "hdfs dfsadmin -safemode wait"
+sudo su hdfs --command "$HADOOP_BIN_PATH/hdfs dfsadmin -safemode wait"
 
 #====================================================
 # NOTE: These command must be done AFTER acls are 
 #       enabled and HDFS has been restarted
 echo "***INFO: Setting HDFS ACLs for snapshot scan support"
-sudo su hdfs --command "hdfs dfs -mkdir -p /hbase/archive"
+sudo su hdfs --command "$HADOOP_BIN_PATH/hdfs dfs -mkdir -p /hbase/archive"
 if [ $? != 0 ]; then
-   echo "***ERROR: (hdfs dfs -mkdir -p /hbase/archive) command failed"
+   echo "***ERROR: ($HADOOP_BIN_PATH/hdfs dfs -mkdir -p /hbase/archive) command failed"
    exit -1
 fi
-sudo su hdfs --command "hdfs dfs -chown hbase:hbase /hbase/archive"
+sudo su hdfs --command "$HADOOP_BIN_PATH/hdfs dfs -chown hbase:hbase /hbase/archive"
 if [ $? != 0 ]; then
-   echo "***ERROR: (hdfs dfs -chown hbase:hbase /hbase/archive) command failed"
+   echo "***ERROR: ($HADOOP_BIN_PATH/hdfs dfs -chown hbase:hbase /hbase/archive) command failed"
    exit -1
 fi
-sudo su hdfs --command "hdfs dfs -setfacl -R -m user:$TRAF_USER:rwx /hbase/archive"
+sudo su hdfs --command "$HADOOP_BIN_PATH/hdfs dfs -setfacl -R -m user:$TRAF_USER:rwx /hbase/archive"
 if [ $? != 0 ]; then
-   echo "***ERROR: (hdfs dfs -setfacl -R -m user:$TRAF_USER:rwx /hbase/archive) command failed"
+   echo "***ERROR: ($HADOOP_BIN_PATH/hdfs dfs -setfacl -R -m user:$TRAF_USER:rwx /hbase/archive) command failed"
    exit -1
 fi
-sudo su hdfs --command "hdfs dfs -setfacl -R -m default:user:$TRAF_USER:rwx /hbase/archive"
+sudo su hdfs --command "$HADOOP_BIN_PATH/hdfs dfs -setfacl -R -m default:user:$TRAF_USER:rwx /hbase/archive"
 if [ $? != 0 ]; then
-   echo "***ERROR: (hdfs dfs -setfacl -R -m default:user:$TRAF_USER:rwx /hbase/archive) command failed"
+   echo "***ERROR: ($HADOOP_BIN_PATH/hdfs dfs -setfacl -R -m default:user:$TRAF_USER:rwx /hbase/archive) command failed"
    exit -1
 fi
-sudo su hdfs --command "hdfs dfs -setfacl -R -m mask::rwx /hbase/archive"
+sudo su hdfs --command "$HADOOP_BIN_PATH/hdfs dfs -setfacl -R -m mask::rwx /hbase/archive"
 if [ $? != 0 ]; then
-   echo "***ERROR: (hdfs dfs -setfacl -R -m mask::rwx /hbase/archive) command failed"
+   echo "***ERROR: ($HADOOP_BIN_PATH/hdfs dfs -setfacl -R -m mask::rwx /hbase/archive) command failed"
    exit -1
 fi
 

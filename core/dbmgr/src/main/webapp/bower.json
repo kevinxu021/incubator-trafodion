@@ -36,6 +36,7 @@
 	"moment-timezone": "0.4.0",
 	"codemirror":"latest",
 	"datatables-buttons":"1.0.3",
-	"bootswatch":"3.3.6"
+	"bootswatch":"3.3.6",
+    "pdfmake":"0.1.20"
   }
 }

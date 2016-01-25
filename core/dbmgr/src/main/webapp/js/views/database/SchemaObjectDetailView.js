@@ -19,9 +19,10 @@ define([
         ], function (BaseView, DatabaseT, $, dbHandler, common, CodeMirror) {
 	'use strict';
 	var LOADING_SELECTOR = '#loadingImg';				
-	var oDataTable = null;
+	var objColumnsDataTable = null,
+		regionsDataTable = null;
+		
 	var _this = null;
-	var initialized = false;
 	var ddlTextEditor = null;
 	
 	var BREAD_CRUMB = '#database-crumb';
@@ -29,7 +30,7 @@ define([
 		ATTRIBUTES_CONTAINER = '#db-object-attributes-container',
 		ERROR_CONTAINER = '#db-object-error-text',
 		COLUMNS_CONTAINER = '#db-object-columns-container',
-		PARTITIONS_CONTAINER = '#db-object-partitions-container',
+		REGIONS_CONTAINER = '#db-object-regions-container',
 		DDL_CONTAINER = '#db-object-ddl-container',
 		PRIVILEGES_CONTAINER = '#db-object-privileges-container',
 		USAGES_CONTAINER = '#db-object-usages-container',
@@ -38,17 +39,28 @@ define([
 		FEATURE_SELECTOR = '#db-object-feature-selector',
 		ATTRIBUTES_SELECTOR = '#db-attributes-link',
 		COLUMNS_SELECTOR = '#db-columns-link',
-		PARTITIONS_SELECTOR = '#db-partitions-link',
+		REGIONS_SELECTOR = '#db-regions-link',
 		DDL_SELECTOR = '#db-ddl-link',
 		INDEXES_SELECTOR = '#db-indexes-link',
 		PRIVILEGES_SELECTOR = '#db-privileges-link',
 		USAGES_SELECTOR = '#db-usages-link',
+		
+		ATTRIBUTES_BTN = '#attributes-btn',
+		DDL_BTN= '#ddl-btn',
+		PRIVILEGES_BTN = '#privileges-btn',
+		INDEXES_BTN = '#indexes-btn',
+		COLUMNS_BTN = '#columns-btn',
+		REGIONS_BTN = '#regions-btn',
+		USAGES_BTN = '#usages-btn',
+
 		REFRESH_ACTION = '#refreshAction';
 	
 	var routeArgs = null;
 	var schemaName = null;
 	var prevRouteArgs = null;
 	var bCrumbsArray = [];
+	var pageStatus = {};
+	var objectAttributes = null;
 	
 	var SchemaObjectDetailView = BaseView.extend({
 		template:  _.template(DatabaseT),
@@ -57,7 +69,14 @@ define([
 			_this = this;
 			routeArgs = args;
 			prevRouteArgs = args;
+			pageStatus = {};
+			
 			schemaName = routeArgs.schema;
+			objectAttributes = sessionStorage.getItem(routeArgs.name);
+			if(objectAttributes != null){
+				sessionStorage.removeItem(routeArgs.name);
+				objectAttributes = JSON.parse(objectAttributes);
+			}
 			$(OBJECT_DETAILS_CONTAINER).hide();
 			$(ERROR_CONTAINER).hide();
 			
@@ -82,49 +101,77 @@ define([
 				}
 			});
 			//$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
+			$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee"});
 
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
+			dbHandler.on(dbHandler.FETCH_COLUMNS_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_REGIONS_SUCCESS, this.displayRegions);
+			dbHandler.on(dbHandler.FETCH_REGIONS_ERROR, this.showErrorMessage);
 			_this.processRequest();
 
 		},
 		doResume: function(args){
 			routeArgs = args;
 			
+			$(DDL_CONTAINER).hide();
+			$(COLUMNS_CONTAINER).hide();
+
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
+			dbHandler.on(dbHandler.FETCH_COLUMNS_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_REGIONS_SUCCESS, this.displayRegions);
+			dbHandler.on(dbHandler.FETCH_REGIONS_ERROR, this.showErrorMessage);
 			
 			if(prevRouteArgs.schema != routeArgs.schema || 
 					prevRouteArgs.name != routeArgs.name ||
 					prevRouteArgs.type != routeArgs.type ){
 				schemaName = routeArgs.schema;
-				initialized = false;
-	        	if(ddlTextEditor)
+				objectAttributes = sessionStorage.getItem(routeArgs.name);
+				if(objectAttributes != null){
+					sessionStorage.removeItem(routeArgs.name);
+					objectAttributes = JSON.parse(objectAttributes);
+				}
+				pageStatus = {};
+				$(ERROR_CONTAINER).hide();
+				$(COLUMNS_CONTAINER).empty();
+				$(REGIONS_CONTAINER).empty();
+	        	if(ddlTextEditor){
 	        		ddlTextEditor.setValue("");
+	        		setTimeout(function() {
+	        			ddlTextEditor.refresh();
+	        		},1);
+	        	}
 			}	
 			
 			prevRouteArgs = args;
-
-			var TAB_LINK = $(OBJECT_DETAILS_CONTAINER+' .tab-pane.active');
-			if(TAB_LINK){
-				var selectedTab = '#'+TAB_LINK.attr('id');
-				if(selectedTab == ATTRIBUTES_SELECTOR || selectedTab == DDL_TEXT_SELECTOR || selectedTab == PRIVILEGES_SELECTOR){
-					//no-op
+			var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
+			var activeButton = null;
+			if(ACTIVE_BTN){
+				activeButton = '#'+ACTIVE_BTN.attr('id');
+				if(activeButton == ATTRIBUTES_BTN || activeButton == DDL_BTN || activeButton == PRIVILEGES_BTN || activeButton == COLUMNS_BTN){
 				}else{
-					$(OBJECT_DETAILS_CONTAINER +' a:first').tab('show');
+					$(FEATURE_SELECTOR + ' a').first().tab('show')
 				}
 			}
+
 			_this.processRequest();
 		},
 		doPause: function(){
 			$(REFRESH_ACTION).off('click', this.doRefresh);
 			dbHandler.off(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.off(dbHandler.FETCH_DDL_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
+			dbHandler.off(dbHandler.FETCH_COLUMNS_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_REGIONS_SUCCESS, this.displayRegions);
+			dbHandler.off(dbHandler.FETCH_REGIONS_ERROR, this.showErrorMessage);
 			$('a[data-toggle="pill"]').off('shown.bs.tab', this.selectFeature);
 		},
 		showLoading: function(){
@@ -134,40 +181,76 @@ define([
 		hideLoading: function () {
 			$(LOADING_SELECTOR).hide();
 		},
+		getParentObjectName: function(){
+			var parentObjectName = null;
+			if(objectAttributes != null && objectAttributes.columns != null){
+				$.each(objectAttributes.columns, function(index, value){
+					if(value.title == 'Table Name'){
+						parentObjectName = objectAttributes.data[index];
+						return;
+					}
+				});
+			}
+			return parentObjectName;
+		},
 		selectFeature: function(e){
 			$(OBJECT_DETAILS_CONTAINER).show();
-			var selectedTab = ATTRIBUTES_SELECTOR;
-			var TAB_LINK = $(OBJECT_DETAILS_CONTAINER+' .tab-pane.active');
-			if(TAB_LINK){
-				selectedTab = '#'+TAB_LINK.attr('id');
-			}else{
-				return;
-			}
+			var selectedFeatureLink = ATTRIBUTES_SELECTOR;
 
 			if(e && e.target && $(e.target).length > 0){
-				selectedTab = $(e.target)[0].hash;
+				selectedFeatureLink = $(e.target)[0].hash;
+			}else{
+				var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
+				var activeButton = null;
+				if(ACTIVE_BTN){
+					activeButton = '#'+ACTIVE_BTN.attr('id');
+				}
+				switch(activeButton){
+				case ATTRIBUTES_BTN:
+					selectedFeatureLink = ATTRIBUTES_SELECTOR;
+					break;
+				case COLUMNS_BTN:
+					selectedFeatureLink = COLUMNS_SELECTOR;
+					break;
+				case REGIONS_BTN:
+					selectedFeatureLink = REGIONS_SELECTOR;
+					break;
+				case DDL_BTN:
+					selectedFeatureLink = DDL_SELECTOR;
+					break;
+				case PRIVILEGES_BTN:
+					selectedFeatureLink = PRIVILEGES_SELECTOR;
+					break;
+				case USAGES_BTN:
+					selectedFeatureLink = USAGES_SELECTOR;
+					break;
+				case INDEXES_BTN:
+					selectedFeatureLink = INDEXES_SELECTOR;
+					break;				
+				}
 			}
 
 			$(ATTRIBUTES_CONTAINER).hide();
 			$(DDL_CONTAINER).hide();
+			$(COLUMNS_CONTAINER).hide();
+			$(REGIONS_CONTAINER).hide();
 			
-			switch(selectedTab){
+			switch(selectedFeatureLink){
 			case ATTRIBUTES_SELECTOR:
 				$(ATTRIBUTES_CONTAINER).show();
 				_this.fetchAttributes();
 				break;
 			case COLUMNS_SELECTOR:
 				$(COLUMNS_CONTAINER).show();
+				_this.fetchColumns();
 				break;
-			case PARTITIONS_SELECTOR:
-				$(PARTITIONS_CONTAINER).show();
+			case REGIONS_SELECTOR:
+				$(REGIONS_CONTAINER).show();
+				_this.fetchRegions();
 				break;
 			case DDL_SELECTOR:
 				$(DDL_CONTAINER).show();
-				var ddlText = ddlTextEditor.getValue();
-				if(ddlText == null || ddlText.length == 0){
-					_this.fetchDDLText();
-				}
+				_this.fetchDDLText();
 				break;
 			case PRIVILEGES_SELECTOR:
 				break;
@@ -179,14 +262,48 @@ define([
 			}
 		},
 		doRefresh: function(){
-			_this.processRequest();
+			var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
+			var activeButton = null;
+			if(ACTIVE_BTN){
+				activeButton = '#'+ACTIVE_BTN.attr('id');
+			}
+			if(activeButton != null){
+				switch(activeButton){
+				case DDL_BTN:
+					pageStatus.ddlFetched = false;
+					break;
+				case COLUMNS_BTN:
+					pageStatus.columnsFetched = false;
+					break;
+				case REGIONS_BTN:
+					pageStatus.regionsFetched = false;
+					break;
+				}
+			}
+			_this.selectFeature();
 			$(ERROR_CONTAINER).hide();
 		},
 		fetchDDLText: function(){
-			if(!initialized){
+			if(!pageStatus.ddlFetched || pageStatus.ddlFetched == false ){
 				_this.showLoading();
-				dbHandler.fetchDDL(routeArgs.type, routeArgs.name, routeArgs.schema);
+				var parentObjectName = null;
+				if(routeArgs.type == 'index'){
+					parentObjectName = _this.getParentObjectName();
+				}
+				dbHandler.fetchDDL(routeArgs.type, routeArgs.name, routeArgs.schema, parentObjectName);
 			}
+		},
+		fetchColumns: function(){
+			if(!pageStatus.columnsFetched || pageStatus.columnsFetched == false){
+				_this.showLoading();
+				dbHandler.fetchColumns(routeArgs.type, routeArgs.name, routeArgs.schema);
+			}			
+		},
+		fetchRegions: function(){
+			if(!pageStatus.regionsFetched || pageStatus.regionsFetched == false){
+				_this.showLoading();
+				dbHandler.fetchRegions(routeArgs.type, routeArgs.name, routeArgs.schema);
+			}			
 		},
 		updateBreadCrumbs: function(routeArgs){
 			$(BREAD_CRUMB).empty();
@@ -232,116 +349,256 @@ define([
 		},
 		processRequest: function(){
 			_this.updateBreadCrumbs(routeArgs);
+			var displayName = common.toProperCase(routeArgs.type) + ' '+routeArgs.name;
+			$(OBJECT_NAME_CONTAINER).text(displayName);
 
 			$(BREAD_CRUMB).show();
 			if(routeArgs.type != null && routeArgs.type.length > 0){
 				switch(routeArgs.type){
 					case 'table': 
 						schemaName = routeArgs.schema;
-						var displayName = common.toProperCase(routeArgs.type) + ' ' + routeArgs.name;
-						$(OBJECT_NAME_CONTAINER).text(displayName);
-						$(ATTRIBUTES_CONTAINER).show();
-						$(ATTRIBUTES_SELECTOR).show();
+						$(ATTRIBUTES_BTN).show();
 						$(ATTRIBUTES_SELECTOR).tab('show');
-						$(COLUMNS_SELECTOR).show();
-						$(PARTITIONS_SELECTOR).show();
-						$(DDL_SELECTOR).show();
-						$(PRIVILEGES_SELECTOR).show();
-						$(USAGES_SELECTOR).show();
-						$(INDEXES_SELECTOR).hide();
+						$(COLUMNS_BTN).show();
+						$(REGIONS_BTN).show();
+						$(DDL_BTN).show();
+						$(PRIVILEGES_BTN).hide();
+						$(USAGES_BTN).hide();
+						$(INDEXES_BTN).hide();
 				
 						_this.selectFeature();
 						break;							
 					case 'view': 
 						schemaName = routeArgs.schema;
-						var displayName = common.toProperCase(routeArgs.type) + ' ' + routeArgs.name;
-						$(OBJECT_NAME_CONTAINER).text(displayName);
-						$(ATTRIBUTES_CONTAINER).show();
-						$(ATTRIBUTES_SELECTOR).show();
+						$(ATTRIBUTES_BTN).show();
 						$(ATTRIBUTES_SELECTOR).tab('show');
-						$(COLUMNS_SELECTOR).show();
-						$(PARTITIONS_SELECTOR).hide();
-						$(DDL_SELECTOR).show();
-						$(PRIVILEGES_SELECTOR).show();
-						$(USAGES_SELECTOR).show();
-						$(INDEXES_SELECTOR).hide();				
+						$(COLUMNS_BTN).show();
+						$(REGIONS_BTN).hide();
+						$(DDL_BTN).show();
+						$(PRIVILEGES_BTN).hide();
+						$(USAGES_BTN).hide();
+						$(INDEXES_BTN).hide();				
 						_this.selectFeature();
 						break;
 					case 'index': 
 						schemaName = routeArgs.schema;
-						var displayName = common.toProperCase(routeArgs.type) + ' ' + routeArgs.name;
-						$(OBJECT_NAME_CONTAINER).text(displayName);
-						$(ATTRIBUTES_CONTAINER).show();
-						$(ATTRIBUTES_SELECTOR).show();
+						$(ATTRIBUTES_BTN).show();
 						$(ATTRIBUTES_SELECTOR).tab('show');
-						$(COLUMNS_SELECTOR).show();
-						$(PARTITIONS_SELECTOR).show();
-						$(DDL_SELECTOR).show();
-						$(PRIVILEGES_SELECTOR).show();
-						$(USAGES_SELECTOR).show();
-						$(INDEXES_SELECTOR).hide();					
+						$(COLUMNS_BTN).hide();
+						$(REGIONS_BTN).show();
+						$(DDL_BTN).show();
+						$(PRIVILEGES_BTN).hide();
+						$(USAGES_BTN).hide();
+						$(INDEXES_BTN).hide();					
 						_this.selectFeature();
 						break;
 					case 'library': 
 						schemaName = routeArgs.schema;
-						var displayName = common.toProperCase(routeArgs.type) + ' ' + routeArgs.name;
-						$(OBJECT_NAME_CONTAINER).text(displayName);
-						$(ATTRIBUTES_CONTAINER).show();
-						$(ATTRIBUTES_SELECTOR).show();
+						$(ATTRIBUTES_BTN).show();
 						$(ATTRIBUTES_SELECTOR).tab('show');
-						$(COLUMNS_SELECTOR).hide();
-						$(PARTITIONS_SELECTOR).hide();
-						$(DDL_SELECTOR).show();
-						$(PRIVILEGES_SELECTOR).show();
-						$(USAGES_SELECTOR).show();
-						$(INDEXES_SELECTOR).hide();				
+						$(COLUMNS_BTN).hide();
+						$(REGIONS_BTN).hide();
+						$(DDL_BTN).show();
+						$(PRIVILEGES_BTN).hide();
+						$(USAGES_BTN).hide();
+						$(INDEXES_BTN).hide();				
 						_this.selectFeature();
 						break;
 					case 'procedure': 
 						schemaName = routeArgs.schema;
-						var displayName = common.toProperCase(routeArgs.type) + ' ' + routeArgs.name;
-						$(OBJECT_NAME_CONTAINER).text(displayName);
-						$(ATTRIBUTES_CONTAINER).show();
-						$(ATTRIBUTES_SELECTOR).show();
+						$(ATTRIBUTES_BTN).show();
 						$(ATTRIBUTES_SELECTOR).tab('show');
-						$(COLUMNS_SELECTOR).hide();
-						$(PARTITIONS_SELECTOR).hide();
-						$(DDL_SELECTOR).show();
-						$(PRIVILEGES_SELECTOR).show();
-						$(USAGES_SELECTOR).show();
-						$(INDEXES_SELECTOR).hide();				
+						$(COLUMNS_BTN).hide();
+						$(REGIONS_BTN).hide();
+						$(DDL_BTN).show();
+						$(PRIVILEGES_BTN).hide();
+						$(USAGES_BTN).hide();
+						$(INDEXES_BTN).hide();				
 						_this.selectFeature();
 						break;							
 				}
 			}
 		},
 		fetchAttributes: function () {
-			var attrs = sessionStorage.getItem(routeArgs.name);	
-			if(attrs == null){
-				
+			//var objectAttributes = sessionStorage.getItem(routeArgs.name);	
+			if(objectAttributes == null){
+				_this.hideLoading();
 			}else{
 				_this.hideLoading();
-				var properties = JSON.parse(attrs);
+				//var properties = JSON.parse(objectAttributes);
 				$(ATTRIBUTES_CONTAINER).empty();
 				$(ATTRIBUTES_CONTAINER).append('<thead><tr><td style="width:200px;"><h2 style="color:black;font-size:15px;font-weight:bold">Name</h2></td><td><h2 style="color:black;font-size:15px;;font-weight:bold">Value</h2></td></tr></thead>');
-				$.each(properties.columns, function(k, v){
+				$.each(objectAttributes.columns, function(k, v){
 					var property = v.title;
-					var value = properties.data[k];
+					var value = objectAttributes.data[k];
 					if(property == 'CreateTime' || property == 'ModifiedTime'){
 						value = common.toServerLocalDateFromUtcMilliSeconds(value);
 					}
 					$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
 				});
+				var parentObjectName = _this.getParentObjectName();
+				if(parentObjectName != null){
+					$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">Parent Object</td><td>' + parentObjectName +  '</td>');
+				}
 			}
 		},
 		displayDDL: function(data){
 			_this.hideLoading();
+			pageStatus.ddlFetched = true;
 			ddlTextEditor.setValue(data);
+			ddlTextEditor.refresh();
+		},
+		displayColumns: function(result){
+			_this.hideLoading();
+			var keys = result.columnNames;
+			$(ERROR_CONTAINER).hide();
+			pageStatus.columnsFetched = true;
+			
+			if(keys != null && keys.length > 0) {
+				$(COLUMNS_CONTAINER).show();
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="db-object-columns-list"></table>';
+				$(COLUMNS_CONTAINER).html( sb );
+
+				var aoColumns = [];
+				var aaData = [];
+				var link = result.parentLink != null ? result.parentLink : "";
+
+				$.each(result.resultArray, function(i, data){
+					aaData.push(data);
+				});
+
+				// add needed columns
+				$.each(keys, function(k, v) {
+					var obj = new Object();
+					obj.title = v;
+					aoColumns.push(obj);
+				});
+
+				var bPaging = aaData.length > 25;
+
+				if(objColumnsDataTable != null) {
+					try {
+						objColumnsDataTable.fnDestroy();
+					}catch(Error){
+
+					}
+				}
+				var sortColumn = 1;
+				if(routeArgs.type == 'view'){
+					sortColumn = 0;
+				}
+				objColumnsDataTable = $('#db-object-columns-list').DataTable({
+					"oLanguage": {
+						"sEmptyTable": "There are no columns"
+					},
+					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					"bProcessing": true,
+					paging: bPaging,
+					"bAutoWidth": true,
+					"iDisplayLength" : 25, 
+					"sPaginationType": "full_numbers",
+					//"scrollY":        "800px",
+					"scrollCollapse": true,
+					//"bJQueryUI": true,
+					"aaData": aaData, 
+					"aoColumns" : aoColumns,
+					"aoColumnDefs": [ {
+						"aTargets": [ 0 ],
+						"mData": 0,
+						"mRender": function ( data, type, full ) {
+		            		 if(type == 'display') {
+		            			 if(routeArgs.type == 'table' && data == 'PRIMARY KEY')
+		            				 return '<i class="fa fa-key" style="padding-left:15px"></i>';
+		            			 else
+		            				 return data;
+		            		 }else { 
+		            			 return data;
+		            		 }
+		            	 }
+					}
+					],
+					"order": [[ sortColumn, "asc" ]],
+	                 buttons: [
+	                           'copy','csv','excel','pdf','print'
+	                           ],					             
+		             fnDrawCallback: function(){
+		            	 $('#db-object-columns-list td').css("white-space","nowrap");
+		             }
+				});
+
+
+				$('#db-object-columns-list td').css("white-space","nowrap");
+		
+			}
+		},
+		displayRegions: function(result){
+			_this.hideLoading();
+			var keys = result.columnNames;
+			$(ERROR_CONTAINER).hide();
+			pageStatus.regionsFetched = true;
+			
+			if(keys != null && keys.length > 0) {
+				$(REGIONS_CONTAINER).show();
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="db-object-regions-list"></table>';
+				$(REGIONS_CONTAINER).html( sb );
+
+				var aoColumns = [];
+				var aaData = [];
+				var link = result.parentLink != null ? result.parentLink : "";
+
+				$.each(result.resultArray, function(i, data){
+					aaData.push(data);
+				});
+
+				// add needed columns
+				$.each(keys, function(k, v) {
+					var obj = new Object();
+					obj.title = v;
+					aoColumns.push(obj);
+				});
+
+				var bPaging = aaData.length > 25;
+
+				if(regionsDataTable != null) {
+					try {
+						regionsDataTable.fnDestroy();
+					}catch(Error){
+
+					}
+				}
+				regionsDataTable = $('#db-object-regions-list').DataTable({
+					"oLanguage": {
+						"sEmptyTable": "There are no regions"
+					},
+					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					"bProcessing": true,
+					paging: bPaging,
+					"bAutoWidth": true,
+					"iDisplayLength" : 25, 
+					"sPaginationType": "full_numbers",
+					//"scrollY":        "800px",
+					"scrollCollapse": true,
+					//"bJQueryUI": true,
+					"aaData": aaData, 
+					"aoColumns" : aoColumns,
+					"order": [[ 1, "asc" ]],
+	                 buttons: [
+	                           'copy','csv','excel','pdf','print'
+	                           ],					             
+		             fnDrawCallback: function(){
+		            	 $('#db-object-regions-list td').css("white-space","nowrap");
+		             }
+				});
+
+				$('#db-object-regions-list td').css("white-space","nowrap");
+			}
 		},
 		showErrorMessage: function (jqXHR) {
 			_this.hideLoading();
 			$(ERROR_CONTAINER).show();
 			$(OBJECT_DETAILS_CONTAINER).hide();
+			$(COLUMNS_CONTAINER).hide();
+			$(REGIONS_CONTAINER).hide();
 			if (jqXHR.responseText) {
 				$(ERROR_CONTAINER).text(jqXHR.responseText);
 			}else{
