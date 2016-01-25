@@ -26,10 +26,10 @@
 
 				<div class="panel-body" style="padding-bottom:15px;padding-top:0px">
                     <label id="db-object-name" style='padding: 10px 0px;font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;font-size:18px;font-weight:500'></label>
-					<ul id="dboject-feature-selector" class="nav dbmgr-nav nav-pills" style="padding-bottom:15px;">
+					<ul id="db-object-feature-selector" class="nav dbmgr-nav nav-pills" style="padding-bottom:15px;">
 					  <li id="attributes-btn" role="presentation" class="active"><a href="#db-attributes-link" class="dbmgr-link-button" data-toggle="pill">Attributes</a></li>
 					  <li id="columns-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-columns-link" class="dbmgr-link-button" data-toggle="pill">Columns</a></li>
-					  <li id="partitions-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-partitions-link" class="dbmgr-link-button" data-toggle="pill">Partitions</a></li>
+					  <li id="regions-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-regions-link" class="dbmgr-link-button" data-toggle="pill">Regions</a></li>
 					  <li id="ddl-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-ddl-link" class="dbmgr-link-button" data-toggle="pill">DDL</a></li>
 					  <li id="privileges-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-privileges-link" class="dbmgr-link-button" data-toggle="pill">Privileges</a></li>
 					  <li id="indexes-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-indexes-link" class="dbmgr-link-button" data-toggle="pill">Indexes</a></li>
@@ -47,9 +47,8 @@
 							<div id="db-object-columns-container" class="table-responsive">
 							</div>
 					    </div>
-					    <div class="tab-pane fade" id="db-partitions-link">
-							<div>
-								<table id="db-object-partitions-container"></table>
+					    <div class="tab-pane fade" id="db-regions-link">
+							<div id="db-object-regions-container" class="table-responsive">
 							</div>
 					    </div>
 					    <div class="tab-pane fade" id="db-ddl-link">

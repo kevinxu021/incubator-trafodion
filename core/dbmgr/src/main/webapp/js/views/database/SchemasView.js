@@ -12,7 +12,8 @@ define([
         'common',
         'jqueryui',
         'datatables',
-        'datatablesBootStrap'
+        'datatablesBootStrap',
+        'pdfmake'
         ], function (BaseView, DatabaseT, $, dbHandler, common) {
 	'use strict';
 	var LOADING_SELECTOR = '#loadingImg';			
@@ -86,12 +87,13 @@ define([
 				var link = result.parentLink != null ? result.parentLink : "";
 
 				$.each(result.resultArray, function(i, data){
-					aaData.push(
+					/*aaData.push(
 							{'Name' : data[0], 
 								'Owner' : data[1],
 								'CreateTime' : data[2],
 								'ModifiedTime': data[3]
-							});
+							});*/
+					aaData.push(data);
 				});
 
 				// add needed columns
@@ -125,8 +127,49 @@ define([
 					"scrollCollapse": true,
 					//"bJQueryUI": true,
 					"aaData": aaData, 
-					//"aoColumns" : aoColumns,
-					aoColumns : [
+					"aoColumns" : aoColumns,
+					"aoColumnDefs": [ {
+						"aTargets": [ 0 ],
+						"mData": 0,
+						"mRender": function ( data, type, full ) {
+		            		 if(type == 'display') {
+		            			 var rowcontent = "<a href=\"#" + link + '&name=' + data ;
+		            			 rowcontent += "\">" + data + "</a>";
+		            			 return rowcontent;                         
+		            		 }else { 
+		            			 return data;
+		            		 }
+		            	 }
+					},
+					{
+						"aTargets": [ 2 ],
+						"mData": 2,
+						"mRender": function ( data, type, full ) {
+							if (type === 'display') {
+								return common.toServerLocalDateFromUtcMilliSeconds(data);  
+							}
+							else return data;
+						}
+					},
+					{
+						"aTargets": [ 3 ],
+						"mData": 3,
+						"mRender": function ( data, type, full ) {
+							if (type === 'display') {
+								return common.toServerLocalDateFromUtcMilliSeconds(data);  
+							}
+							else return data;
+						}
+					},
+					{
+						"aTargets": [ 4 ],
+						"mData": 4,
+						"visible" : false,
+						"searchable" : false
+					}
+	
+					],
+					/*aoColumns : [
 					             {"mData": 'Name', sClass: 'left', "sTitle": 'Name', 
 					            	 "mRender": function ( data, type, full ) {
 					            		 if(type == 'display') {
@@ -157,9 +200,13 @@ define([
 					            		 }
 					            	 }
 					             }
-					             ],
+					             ],*/
 				                 buttons: [
-				                           'copy','csv','excel','pdf','print'
+				                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+				                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+				                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+				                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: 'Schemas' },
+				                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Schemas' }
 				                           ],					             
 					             fnDrawCallback: function(){
 					            	 $('#db-object-list-results td').css("white-space","nowrap");

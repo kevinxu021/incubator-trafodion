@@ -13,7 +13,7 @@ define([
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
-        'jstree'
+        'pdfmake'
         ], function (BaseView, DatabaseT, $, dbHandler, common) {
 	'use strict';
 	var LOADING_SELECTOR = '#loadingImg';			
@@ -42,6 +42,7 @@ define([
 			_this = this;
 			routeArgs = args;
 			prevRouteArgs = args;
+			pageStatus = {};
 			
 			schemaName = routeArgs.schema;
 			
@@ -244,7 +245,14 @@ define([
 							}
 							else return data;
 						}
+					},
+					{
+						"aTargets": [ 4 ],
+						"mData": 4,
+						"visible" : false,
+						"searchable" : false
 					}
+	
 					],
 					/*aoColumns : [
 					             {"mData": 'Name', sClass: 'left', "sTitle": 'Name', 
@@ -282,7 +290,11 @@ define([
 					             }
 					             ],*/
 				                 buttons: [
-				                           'copy','csv','excel','pdf','print'
+				                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+				                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+				                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+				                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
+				                           { extend : 'print', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text() }
 				                           ],					             
 					             fnDrawCallback: function(){
 					            	 $('#db-object-list-results td').css("white-space","nowrap");

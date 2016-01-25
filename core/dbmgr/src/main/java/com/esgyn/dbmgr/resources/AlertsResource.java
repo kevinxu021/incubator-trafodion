@@ -225,12 +225,16 @@ public class AlertsResource {
 											&& subjectText.length() > 0 && alertName.contains(subjectText))) {
 										ObjectNode aNode = mapper.createObjectNode();
 										aNode.put("Time", dateTime.toString("yyyy-MM-dd HH:mm:ss"));
-										aNode.put("AlertKey", alertNode.get("AlertKey").textValue());
+										aNode.put("AlertKey", alertNode.get("AlertKey") != null
+												? alertNode.get("AlertKey").textValue() : "");
 										aNode.put("Alert", alertName);
 										aNode.put("Status", "Acknowledged");
-										aNode.put("Severity", alertNode.get("Status").textValue());
-										aNode.put("Active", alertNode.get("Active").booleanValue());
-										aNode.put("Silenced", alertNode.get("Silenced").booleanValue());
+										aNode.put("Severity", alertNode.get("Status") != null
+												? alertNode.get("Status").textValue() : "");
+										aNode.put("Active", alertNode.get("Active") != null
+												? String.valueOf(alertNode.get("Active").booleanValue()) : "");
+										aNode.put("Silenced", alertNode.get("Silenced") != null
+												? String.valueOf(alertNode.get("Silenced").booleanValue()) : "");
 
 										resultNode.add(aNode);
 
@@ -259,12 +263,16 @@ public class AlertsResource {
 											&& subjectText.length() > 0 && alertName.contains(subjectText))) {
 										ObjectNode aNode = mapper.createObjectNode();
 										aNode.put("Time", dateTime.toString("yyyy-MM-dd HH:mm:ss"));
-										aNode.put("AlertKey", alertNode.get("AlertKey").textValue());
+										aNode.put("AlertKey", alertNode.get("AlertKey") != null
+												? alertNode.get("AlertKey").textValue() : "");
 										aNode.put("Alert", alertName);
 										aNode.put("Status", "Un-Acknowledged");
-										aNode.put("Severity", alertNode.get("Status").textValue());
-										aNode.put("Active", alertNode.get("Active").booleanValue());
-										aNode.put("Silenced", alertNode.get("Silenced").booleanValue());
+										aNode.put("Severity", alertNode.get("Status") != null
+												? alertNode.get("Status").textValue() : "");
+										aNode.put("Active", alertNode.get("Active") != null
+												? String.valueOf(alertNode.get("Active").booleanValue()) : "");
+										aNode.put("Silenced", alertNode.get("Silenced") != null
+												? String.valueOf(alertNode.get("Silenced").booleanValue()) : "");
 
 										resultNode.add(aNode);
 
