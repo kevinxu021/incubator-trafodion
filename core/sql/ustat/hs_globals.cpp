@@ -2750,6 +2750,7 @@ HSGlobalsClass::HSGlobalsClass(ComDiagsArea &diags)
     numPartitions(0),
     hstogram_table(new(STMTHEAP) NAString(STMTHEAP)),
     hsintval_table(new(STMTHEAP) NAString(STMTHEAP)),
+    hsperssamp_table(new(STMTHEAP) NAString(STMTHEAP)),
     hssample_table(new(STMTHEAP) NAString(STMTHEAP)),
     statstime(new(STMTHEAP) NAString(STMTHEAP)),
 
@@ -3604,7 +3605,7 @@ void HSSample::makeTableName(NABoolean isPersSample)
   NABoolean unpartitionedSample = FALSE;
   if (objDef->getObjectFormat() == SQLMX)
   {
-    //The naming convention used for the temporary sample table is 'SQLMX_'
+    //The naming convention used for the temporary sample table is 'TRAF_SAMPLE_'
     //followed by the object_uid of the source table and a portion of 
     //the timestamp. The object_uid ensures no collisions with update stats
     //for other tables, while the timestamp chars help avoid collision when
@@ -3656,7 +3657,7 @@ void HSSample::makeTableName(NABoolean isPersSample)
 
         convertInt64ToAscii(objDef->getObjectUID(), objectIDStr);
         sprintf(timestampStr, "_%u_%u", (UInt32)tv.tv_sec, (UInt32)tv.tv_usec);
-        sampleTable += "SQLMX_";
+        sampleTable += "TRAF_SAMPLE_";
         sampleTable += objectIDStr;
         sampleTable += timestampStr;
 
@@ -3703,7 +3704,6 @@ Lng32 HSSample::make(NABoolean rowCountIsEstimate, // input
                     Int64 &sampleRowCnt,          // input/output
                     NABoolean isPersSample,       // input. Default value is FALSE
                     NABoolean unpartitionedSample,// input. Default value is TRUE 
-                    NABoolean createDandI,
                     Int64 minRowCtPerPartition
                    )
   {
@@ -3740,7 +3740,7 @@ Lng32 HSSample::make(NABoolean rowCountIsEstimate, // input
     //AUTOABORT time. This process may take a long time and blow away
     //your transaction.
     LM->StartTimer("Create sample table");
-    retcode = create(unpartitionedSample, isPersSample, createDandI);
+    retcode = create(unpartitionedSample, isPersSample);
     LM->StopTimer();
     if (retcode == -HS_PKEY_FLOAT_ERROR) {
       // If creation of sample table fails with -1120, then the primary key
@@ -4797,7 +4797,7 @@ void HSGlobalsClass::getMemoryRequirements(HSColGroupStruct* group, Int64 rows)
   
   if (LM->LogNeeded())
     {
-      sprintf(LM->msg, "Memory estimates for signle group based on " PF64 " rows", rows);
+      sprintf(LM->msg, "Memory estimates for single group based on " PF64 " rows", rows);
       LM->Log(LM->msg);
     }
 
@@ -5050,7 +5050,8 @@ Lng32 HSGlobalsClass::CollectStatistics()
         // Create a persistent sample table. It will be used for this non-IUS
         // execution of Update Stats, and updated incrementally for subsequent
         // IUS operations.
-        HSPersSamples *sampleList = HSPersSamples::Instance(objDef->getCatName());
+        HSPersSamples *sampleList = HSPersSamples::Instance(objDef->getCatName(),
+                                                            objDef->getSchemaName());
         if (!sampleList)
           return -1;  // sample list didn't exist and failed creation
         retcode = sampleList->createAndInsert(objDef, 
@@ -5850,7 +5851,8 @@ Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
      return 0;
 #endif
 
-   HSPersSamples *sampleList = HSPersSamples::Instance(objDef->getCatName());
+   HSPersSamples *sampleList = HSPersSamples::Instance(objDef->getCatName(),
+                                                       objDef->getSchemaName());
    if ( !sampleList ) return -1;
 
    Int64 updTimestamp = 0;
@@ -5861,8 +5863,17 @@ Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
 
    Lng32 retcode =
      sampleList->readIUSUpdateInfo(objDef, ius_update_history_buffer, &updTimestamp);
-   if (retcode != 100)  // need to carry on if no row for this table
-     HSHandleError(retcode);
+   if (retcode == 100)
+     {
+       HSFuncMergeDiags(- UERR_IUS_NO_PERSISTENT_SAMPLE,
+                        objDef->getObjectFullName().data());
+       retcode = -1;
+       HSHandleError(retcode);
+     }
+   else
+     {
+       HSHandleError(retcode);
+     }
 
    time_t t;
 
@@ -5910,10 +5921,12 @@ Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
                                   (char*)nid_pid_str.data(),
                                   (char*)updTimestampStr.data());
 
-   if (retcode)
-     TM->Rollback();
-   else
-     TM->Commit();
+   if (retcode == 100)
+     {
+       HSFuncMergeDiags(- UERR_IUS_NO_PERSISTENT_SAMPLE,
+                        objDef->getObjectFullName().data());
+       retcode = -1;
+     }
 
    HSHandleError(retcode);
 
@@ -5939,7 +5952,8 @@ Lng32 HSGlobalsClass::end_IUS_work()
      return 0;
 #endif
 
-   HSPersSamples *sampleList = HSPersSamples::Instance(objDef->getCatName());
+   HSPersSamples *sampleList = HSPersSamples::Instance(objDef->getCatName(),
+                                                       objDef->getSchemaName());
    if ( !sampleList ) return -1;
 
    // The epoch time
@@ -6186,6 +6200,20 @@ Lng32 HSGlobalsClass::prepareForIUSAlgorithm1(Int64& rows)
   return 0;
 }
 
+static Lng32 create_I(NAString& sampTblName)
+{
+  NAString createI("create table ");
+  createI += sampTblName;
+  createI += "_I LIKE ";
+  createI += sampTblName;
+  createI += " WITH PARTITIONS";
+  Lng32 retcode = HSFuncExecQuery(createI, -UERR_INTERNAL_ERROR,
+                                  NULL, "IUS create I",
+                                  NULL, NULL, TRUE/*doRetry*/);
+  HSHandleError(retcode);
+  return retcode;
+}
+
 
 Lng32 HSGlobalsClass::generateSampleI(Int64 currentSampleSize,
                                       Int64 futureSampleSize,
@@ -6200,11 +6228,11 @@ Lng32 HSGlobalsClass::generateSampleI(Int64 currentSampleSize,
   if (LM->LogNeeded())
      LM->StartTimer("IUS: select-insert data set I");
 
-  // performing: 
-  //
-  //      insert into <sample_I> 
-  //        (select * from <sourceTable> where <where> sample);
-  //
+    // performing: 
+    //
+    //      upsert using load into <sample_I> 
+    //        (select * from <sourceTable> where <where> sample);
+    //
 
     NAString sampleTable_I(*hssample_table);
     sampleTable_I.append("_I");
@@ -6243,7 +6271,7 @@ Lng32 HSGlobalsClass::generateSampleI(Int64 currentSampleSize,
 
 static Lng32 drop_I(NAString& sampTblName)
 {
-  NAString cleanupI("drop table ");
+  NAString cleanupI("drop table if exists ");
   cleanupI.append(sampTblName).append("_I");
   Lng32 retcode = HSFuncExecQuery(cleanupI, -UERR_INTERNAL_ERROR,
                                   NULL, "IUS cleanup I",
@@ -6252,42 +6280,30 @@ static Lng32 drop_I(NAString& sampTblName)
   return retcode;
 }
 
-static Lng32 drop_D(NAString& sampTblName)
-{
-  NAString cleanupI("drop table ");
-  cleanupI.append(sampTblName).append("_D");
-  Lng32 retcode = HSFuncExecQuery(cleanupI, -UERR_INTERNAL_ERROR,
-                                  NULL, "IUS cleanup D",
-                                  NULL, NULL, TRUE/*doRetry*/);
-  HSHandleError(retcode);
-  return retcode;
-}
-
 Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize, 
                                               Int64 futureSampleSIze)
 {
-   Lng32 retcode = 0;
-   Int64    xRows = 0;
+  Lng32 retcode = 0;
+  Int64    xRows = 0;
 
-   HSLogMan *LM = HSLogMan::Instance();
+  HSLogMan *LM = HSLogMan::Instance();
 
-   // create help table -I and -D
-   {
-       diagsArea << DgSqlCode(-4222)
-                 << DgString0("IUS Sample Table");
-  }
+  // create help table -I and -D
 
+  retcode = create_I(*hssample_table);
+  HSHandleError(retcode);
 
-   if (LM->LogNeeded()) 
-     LM->StartTimer("IUS: read in Si");
+  if (LM->LogNeeded()) 
+    LM->StartTimer("IUS: read in Si");
 
-   HSColGroupStruct *group = singleGroup;
-   while (group) {
-       if (group->delayedRead && group->state == PENDING)
-           group->state = SKIP ; // temp. set so that the column
-                                 // data is not to be read.
-       group = group->next;
-   }
+  HSColGroupStruct *group = singleGroup;
+  while (group)
+    {
+      if (group->delayedRead && group->state == PENDING)
+        group->state = SKIP ; // temp. set so that the column
+                              // data is not to be read.
+      group = group->next;
+    }
 
 
   // Populate the selected rows into singleGroup. Use a C scope to allow
@@ -6426,17 +6442,13 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
                               "IUS insert into PS (select from _I)",
                               NULL, NULL, TRUE/*doRetry*/ );
      HSHandleError(retcode);
+  }   // must end the transaction here; DDL and DML can't be in the same transaction
 
-     // step3 - drop _I table
-     retcode = drop_I(*hssample_table);
-     HSHandleError(retcode);
+  // step3 - drop _I table
+  retcode = drop_I(*hssample_table);
+  HSHandleError(retcode);
 
-     // step4 - drop _D table
-     retcode = drop_D(*hssample_table);
-     HSHandleError(retcode);
-
-     HSFuncExecQuery("CONTROL QUERY DEFAULT ALLOW_DML_ON_NONAUDITED_TABLE reset");
-  }
+  HSFuncExecQuery("CONTROL QUERY DEFAULT ALLOW_DML_ON_NONAUDITED_TABLE reset");
 
   checkTime("after updating persistent sample table for IUS");
 
@@ -6726,6 +6738,8 @@ Lng32 HSGlobalsClass::selectIUSBatch(Int64 currentRows, Int64 futureRows, NABool
 
   Lng32 retcode = 0;
   Int64 tableUID = objDef->getObjectUID();
+  char UIDStr[30];
+  convertInt64ToAscii(tableUID,UIDStr);
   Lng32 colnum = 0;
 
   UInt32 histID = 0;
@@ -6734,11 +6748,20 @@ Lng32 HSGlobalsClass::selectIUSBatch(Int64 currentRows, Int64 futureRows, NABool
   Int64 totalUEC = 0;
   Int64 v2;
 
-  HSCliStatement histCursor(HSCliStatement::CURSOR107_MX_2300,
-                            (char*)hstogram_table->data(),
-                            (char*)&tableUID,
-                            (char*)&colnum);
+  // SELECT HISTOGRAM_ID, INTERVAL_COUNT, ROWCOUNT, TOTAL_UEC, V2
+  // FROM SB_HISTOGRAMS
+  // WHERE TABLE_UID = tableUID AND COLCOUNT = 1 AND COLUMN_NUMBER = CAST(? AS INTEGER)
 
+  HSErrorCatcher errorCatcher(retcode, - UERR_INTERNAL_ERROR, "HSGlobalsClass::selectIUSBatch", TRUE);
+
+  NAString query = "SELECT HISTOGRAM_ID, INTERVAL_COUNT, ROWCOUNT, TOTAL_UEC, V2 FROM ";
+  query += *hstogram_table;
+  query += " WHERE TABLE_UID = ";
+  query += UIDStr;
+  query += " AND COLCOUNT = 1 AND COLUMN_NUMBER = CAST(? AS INTEGER)"; // single column histograms only
+
+  HSCursor histCursor;
+  histCursor.prepareQuery(query.data(), 1, 5); // 1 input parameter, 5 output
 
   // Memory required by RUS has been estimated in prepareForIUS().
   // Here we need to add the extra amount needed by IUS. Do it for each group below.
@@ -6773,7 +6796,7 @@ Lng32 HSGlobalsClass::selectIUSBatch(Int64 currentRows, Int64 futureRows, NABool
       }
               
       colnum = group->colSet[0].colnum;
-      retcode = histCursor.open();
+      retcode = histCursor.open(1, (void*)&colnum);
       HSHandleError(retcode);
       retcode = histCursor.fetch(5, (void*)&histID, (void*)&intvlCount,
                                     (void*)&totalRowCount, (void*)&totalUEC,
@@ -7062,6 +7085,8 @@ Lng32 HSGlobalsClass::initIUSIntervals(HSColGroupStruct* smplGroup,
   typedef Int16 LenType;
   Lng32 retcode = 0;
   Int64 tableUID = objDef->getObjectUID();
+  char UIDStr[30];
+  convertInt64ToAscii(tableUID,UIDStr);
 
   Int64 rowCount;
   Int16 intvlNum;
@@ -7072,10 +7097,26 @@ Lng32 HSGlobalsClass::initIUSIntervals(HSColGroupStruct* smplGroup,
   NAWchar boundarySpec[HS_MAX_UCS_BOUNDARY_CHAR + 1];  // +1 for 2-byte count
   NAWchar MFV[HS_MAX_UCS_BOUNDARY_CHAR + 1];
 
-  HSCliStatement intvlCursor(HSCliStatement::SHOWINT_MX_2300,
-                             (char*)hsintval_table->data(),
-                             (char*)&tableUID,
-                             (char*)&histID);
+  char histIDStr[20];
+  sprintf(histIDStr,"%u",histID);
+
+  // SELECT several columns
+  // FROM SB_HISTOGRAM_INTERVALS
+  // WHERE TABLE_UID = tableUID AND HISTOGRAM_ID = histID
+  // ORDER BY INTERVAL_NUMBER
+
+  NAString query = "SELECT INTERVAL_NUMBER, INTERVAL_ROWCOUNT, INTERVAL_UEC,"
+                   " INTERVAL_BOUNDARY, STD_DEV_OF_FREQ, V1, V2, V5 FROM ";
+  query += *hsintval_table;
+  query += " WHERE TABLE_UID = ";
+  query += UIDStr;
+  query += " AND HISTOGRAM_ID = ";
+  query += histIDStr;
+  query += " ORDER BY INTERVAL_NUMBER";
+
+  HSCursor intvlCursor(STMTHEAP,HS_INTERVAL_STMT_ID);
+  intvlCursor.prepareQuery(query.data(), 0, 8); // no input parameters, 8 output
+
   retcode = intvlCursor.open();
   HSHandleError(retcode);
 
@@ -7084,8 +7125,8 @@ Lng32 HSGlobalsClass::initIUSIntervals(HSColGroupStruct* smplGroup,
 
   while (TRUE)
     {
-      retcode = intvlCursor.fetch(8, (void*)&rowCount,
-                                     (void*)&intvlNum,
+      retcode = intvlCursor.fetch(8, (void*)&intvlNum,
+                                     (void*)&rowCount,                                   
                                      (void*)&uec,
                                      (void*)boundarySpec,
                                      (void*)&stddev, (void*)&v1, (void*)&v2,
@@ -10772,8 +10813,9 @@ Lng32 HSGlobalsClass::readColumnsIntoMem(HSCursor *cursor, Int64 rows)
           // processInternalSortNulls() to a separate new method in the future.
           retcode = processInternalSortNulls(cursor->rowsetSize(), singleGroup);
           HSHandleError(retcode);
-          retcode = cursor->setRowsetPointers(singleGroup,
-                                              (Lng32)MINOF(MAX_ROWSET, rowsLeft));
+          Lng32 rowsetSize = (Lng32)MINOF(MAX_ROWSET, rowsLeft);
+          if (rowsetSize > 0)
+            retcode = cursor->setRowsetPointers(singleGroup,rowsetSize);
         }
     }
   if (retcode < 0) HSHandleError(retcode) else retcode=0; // Set to 0 for warnings.
@@ -11534,17 +11576,13 @@ NABoolean HSGlobalsClass::getPersistentSampleTableForIUS(NAString& tableName,
   if ( !okToPerformIUS() )
      return FALSE;
 
-  // Fetch the IUS sample table name via reason code 'I' from table
-  // cat.public_access_schema.persistent_samples and return it.
-  // If we cannot find it, return FALSE.
-  //
-  // The existence of the P predicate does not matter here because 
-  // we may need to update the sample table S with a RUS command.
+  // Fetch the IUS sample table name from SB_PERSISTENT_SAMPLES.
 
-  HSPersSamples *sampleList = HSPersSamples::Instance(objDef->getCatName());
+  HSPersSamples *sampleList = HSPersSamples::Instance(objDef->getCatName(),
+                                                      objDef->getSchemaName());
   if ( !sampleList ) return FALSE;
 
-  Lng32 retcode = sampleList->find(objDef, char('I'), tableName,
+  Lng32 retcode = sampleList->find(objDef, tableName,
                                    requestedRows, sampleRows, sampleRate
                                   );
 
@@ -12461,7 +12499,7 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
        hist->addNullInterval(nullCount, group->colCount);
        totalRC += nullCount;
        totalUEC++;
-  } else {
+  } else if (hist->hasNullInterval()) {
 	 // Add number of nulls inserted minus the number deleted.
 	 // nullCount does not include original #nulls in sample.
      hist->addIntRowCount(hist->getNumIntervals(), nullCount);
@@ -14755,7 +14793,8 @@ Lng32 managePersistentSamples()
       return -1;
     }
 
-    HSPersSamples *sampleList = HSPersSamples::Instance(hs_globals->objDef->getCatName());
+    HSPersSamples *sampleList = HSPersSamples::Instance(hs_globals->objDef->getCatName(),
+                                                        hs_globals->objDef->getSchemaName());
     if (!sampleList) retcode = -1;
     else
     {
@@ -15030,12 +15069,12 @@ HSInMemoryTable::generateInsertSelectIQuery(NAString& targetTable,
 
   // Create query to get data for the desired columns.
   // 
-  // insert into <tmpTable> 
+  // upsert using load into <tmpTable> 
   //  (select <selList> from <sourceTable> where <whereCond> <sample>)
   //                            T 
   // 
 
-  queryText.append("INSERT INTO ");
+  queryText.append("UPSERT USING LOAD INTO ");
 
   queryText.append(targetTable.data());
 
@@ -15131,10 +15170,10 @@ HSInMemoryTable::generateSelectInsertQuery(NAString& smplTable, NAString& source
 {
   // Create query to get data for the desired columns.
   // 
-  // insert into <smplTbl> 
+  // upsert using load into into <smplTbl> 
   //                (select * from <targetTbl_I> 
 
-  queryText.append("INSERT INTO "); // for algorithm 1
+  queryText.append("UPSERT USING LOAD INTO "); // for algorithm 1
 
   queryText.append(smplTable.data());
 
