@@ -15,12 +15,13 @@ define([
         'jqueryui',
         'datatables',
         'datatablesBootStrap',
-        'jstree'
+        'pdfmake'
         ], function (BaseView, DatabaseT, $, dbHandler, common, CodeMirror) {
 	'use strict';
 	var LOADING_SELECTOR = '#loadingImg';				
 	var objColumnsDataTable = null,
-		regionsDataTable = null;
+		regionsDataTable = null,
+		privilegesDataTable = null;
 		
 	var _this = null;
 	var ddlTextEditor = null;
@@ -112,6 +113,10 @@ define([
 			dbHandler.on(dbHandler.FETCH_COLUMNS_ERROR, this.showErrorMessage);
 			dbHandler.on(dbHandler.FETCH_REGIONS_SUCCESS, this.displayRegions);
 			dbHandler.on(dbHandler.FETCH_REGIONS_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_PRIVILEGES_SUCCESS, this.displayPrivileges);
+			dbHandler.on(dbHandler.FETCH_PRIVILEGES_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_SUCCESS, this.displayAttributes);
+			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.showErrorMessage);
 			_this.processRequest();
 
 		},
@@ -129,6 +134,10 @@ define([
 			dbHandler.on(dbHandler.FETCH_COLUMNS_ERROR, this.showErrorMessage);
 			dbHandler.on(dbHandler.FETCH_REGIONS_SUCCESS, this.displayRegions);
 			dbHandler.on(dbHandler.FETCH_REGIONS_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_PRIVILEGES_SUCCESS, this.displayPrivileges);
+			dbHandler.on(dbHandler.FETCH_PRIVILEGES_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_SUCCESS, this.displayAttributes);
+			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.showErrorMessage);
 			
 			if(prevRouteArgs.schema != routeArgs.schema || 
 					prevRouteArgs.name != routeArgs.name ||
@@ -138,6 +147,27 @@ define([
 				if(objectAttributes != null){
 					sessionStorage.removeItem(routeArgs.name);
 					objectAttributes = JSON.parse(objectAttributes);
+				}
+				if(objColumnsDataTable != null) {
+					try {
+						objColumnsDataTable.clear().draw();
+					}catch(Error){
+
+					}
+				}
+				if(regionsDataTable != null) {
+					try {
+						regionsDataTable.clear().draw();
+					}catch(Error){
+
+					}
+				}
+				if(privilegesDataTable != null) {
+					try {
+						privilegesDataTable.clear().draw();
+					}catch(Error){
+						var aa =4;
+					}
 				}
 				pageStatus = {};
 				$(ERROR_CONTAINER).hide();
@@ -172,6 +202,11 @@ define([
 			dbHandler.off(dbHandler.FETCH_COLUMNS_ERROR, this.showErrorMessage);
 			dbHandler.off(dbHandler.FETCH_REGIONS_SUCCESS, this.displayRegions);
 			dbHandler.off(dbHandler.FETCH_REGIONS_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_PRIVILEGES_SUCCESS, this.displayPrivileges);
+			dbHandler.off(dbHandler.FETCH_PRIVILEGES_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_OBJECT_ATTRIBUTES_SUCCESS, this.displayAttributes);
+			dbHandler.off(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.showErrorMessage);
+			
 			$('a[data-toggle="pill"]').off('shown.bs.tab', this.selectFeature);
 		},
 		showLoading: function(){
@@ -185,13 +220,29 @@ define([
 			var parentObjectName = null;
 			if(objectAttributes != null && objectAttributes.columns != null){
 				$.each(objectAttributes.columns, function(index, value){
-					if(value.title == 'Table Name'){
-						parentObjectName = objectAttributes.data[index];
-						return;
+					for (var property in v) {
+						if(property == 'Table Name'){
+							parentObjectName = v[property];
+							return;
+						}
 					}
 				});
 			}
 			return parentObjectName;
+		},
+		getObjectID: function(){
+			var objectID = null;
+			if(objectAttributes != null){
+				$.each(objectAttributes, function(index, v){
+					for (var property in v) {
+						if(property == 'Object ID'){
+							objectID = v[property];
+							return;
+						}
+					}
+				});
+			}
+			return objectID;
 		},
 		selectFeature: function(e){
 			$(OBJECT_DETAILS_CONTAINER).show();
@@ -253,6 +304,8 @@ define([
 				_this.fetchDDLText();
 				break;
 			case PRIVILEGES_SELECTOR:
+				$(PRIVILEGES_CONTAINER).show();
+				_this.fetchPrivileges();
 				break;
 			case USAGES_SELECTOR:
 				break;
@@ -278,6 +331,9 @@ define([
 				case REGIONS_BTN:
 					pageStatus.regionsFetched = false;
 					break;
+				case PRIVILEGES_BTN:
+					pageStatus.privilegesFetched = false;
+					break;					
 				}
 			}
 			_this.selectFeature();
@@ -303,6 +359,13 @@ define([
 			if(!pageStatus.regionsFetched || pageStatus.regionsFetched == false){
 				_this.showLoading();
 				dbHandler.fetchRegions(routeArgs.type, routeArgs.name, routeArgs.schema);
+			}			
+		},
+		fetchPrivileges: function(){
+			if(!pageStatus.privilegesFetched || pageStatus.privilegesFetched == false){
+				_this.showLoading();
+				var objectID = _this.getObjectID();
+				dbHandler.fetchPrivileges(routeArgs.type, routeArgs.name, objectID, routeArgs.schema);
 			}			
 		},
 		updateBreadCrumbs: function(routeArgs){
@@ -362,7 +425,7 @@ define([
 						$(COLUMNS_BTN).show();
 						$(REGIONS_BTN).show();
 						$(DDL_BTN).show();
-						$(PRIVILEGES_BTN).hide();
+						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
 						$(INDEXES_BTN).hide();
 				
@@ -375,7 +438,7 @@ define([
 						$(COLUMNS_BTN).show();
 						$(REGIONS_BTN).hide();
 						$(DDL_BTN).show();
-						$(PRIVILEGES_BTN).hide();
+						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
 						$(INDEXES_BTN).hide();				
 						_this.selectFeature();
@@ -399,7 +462,7 @@ define([
 						$(COLUMNS_BTN).hide();
 						$(REGIONS_BTN).hide();
 						$(DDL_BTN).show();
-						$(PRIVILEGES_BTN).hide();
+						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
 						$(INDEXES_BTN).hide();				
 						_this.selectFeature();
@@ -411,7 +474,7 @@ define([
 						$(COLUMNS_BTN).hide();
 						$(REGIONS_BTN).hide();
 						$(DDL_BTN).show();
-						$(PRIVILEGES_BTN).hide();
+						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
 						$(INDEXES_BTN).hide();				
 						_this.selectFeature();
@@ -442,6 +505,45 @@ define([
 				}
 			}
 		},
+		fetchAttributes: function () {
+			$(ERROR_CONTAINER).hide();
+			if(objectAttributes == null){
+				dbHandler.fetchAttributes(routeArgs.type, routeArgs.name, routeArgs.schema);
+			}else{
+				_this.displayAttributes();
+			/*	_this.hideLoading();
+				
+				//var properties = JSON.parse(objectAttributes);
+				$(ATTRIBUTES_CONTAINER).empty();
+				$(ATTRIBUTES_CONTAINER).append('<thead><tr><td style="width:200px;"><h2 style="color:black;font-size:15px;font-weight:bold">Name</h2></td><td><h2 style="color:black;font-size:15px;;font-weight:bold">Value</h2></td></tr></thead>');
+				$.each(objectAttributes, function(k, v){
+					for (var property in v) {
+						var value = v[property];
+						if(property == 'CreateTime' || property == 'ModifiedTime'){
+							value = common.toServerLocalDateFromUtcMilliSeconds(value);
+						}
+						$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
+					}
+				});*/
+			}
+		},
+		displayAttributes: function(data) {
+			_this.hideLoading();
+			if(data != null){
+				objectAttributes = data;
+			}
+			$(ATTRIBUTES_CONTAINER).empty();
+			$(ATTRIBUTES_CONTAINER).append('<thead><tr><td style="width:200px;"><h2 style="color:black;font-size:15px;font-weight:bold">Name</h2></td><td><h2 style="color:black;font-size:15px;;font-weight:bold">Value</h2></td></tr></thead>');
+			$.each(objectAttributes, function(k, v){
+				for (var property in v) {
+					var value = v[property];
+					if(property == 'CreateTime' || property == 'ModifiedTime'){
+						value = common.toServerLocalDateFromUtcMilliSeconds(value);
+					}
+					$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
+				}
+			});
+		},		
 		displayDDL: function(data){
 			_this.hideLoading();
 			pageStatus.ddlFetched = true;
@@ -478,7 +580,7 @@ define([
 
 				if(objColumnsDataTable != null) {
 					try {
-						objColumnsDataTable.fnDestroy();
+						objColumnsDataTable.clear().draw();
 					}catch(Error){
 
 					}
@@ -519,7 +621,11 @@ define([
 					],
 					"order": [[ sortColumn, "asc" ]],
 	                 buttons: [
-	                           'copy','csv','excel','pdf','print'
+	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Columns in "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
+	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: "Columns in "+routeArgs.type + " " + routeArgs.name }
 	                           ],					             
 		             fnDrawCallback: function(){
 		            	 $('#db-object-columns-list td').css("white-space","nowrap");
@@ -561,7 +667,7 @@ define([
 
 				if(regionsDataTable != null) {
 					try {
-						regionsDataTable.fnDestroy();
+						regionsDataTable.clear().draw();
 					}catch(Error){
 
 					}
@@ -583,7 +689,11 @@ define([
 					"aoColumns" : aoColumns,
 					"order": [[ 1, "asc" ]],
 	                 buttons: [
-	                           'copy','csv','excel','pdf','print'
+	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Regions for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
+	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: "Regions for "+routeArgs.type + " " + routeArgs.name }
 	                           ],					             
 		             fnDrawCallback: function(){
 		            	 $('#db-object-regions-list td').css("white-space","nowrap");
@@ -593,6 +703,72 @@ define([
 				$('#db-object-regions-list td').css("white-space","nowrap");
 			}
 		},
+		displayPrivileges: function(result){
+			_this.hideLoading();
+			var keys = result.columnNames;
+			$(ERROR_CONTAINER).hide();
+			pageStatus.privilegesFetched = true;
+			
+			if(keys != null && keys.length > 0) {
+				$(PRIVILEGES_CONTAINER).show();
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="db-object-privileges-list"></table>';
+				$(PRIVILEGES_CONTAINER).html( sb );
+
+				var aoColumns = [];
+				var aaData = [];
+				var link = result.parentLink != null ? result.parentLink : "";
+
+				$.each(result.resultArray, function(i, data){
+					aaData.push(data);
+				});
+
+				// add needed columns
+				$.each(keys, function(k, v) {
+					var obj = new Object();
+					obj.title = v;
+					aoColumns.push(obj);
+				});
+
+				var bPaging = aaData.length > 25;
+
+				if(privilegesDataTable != null) {
+					try {
+						privilegesDataTable.clear().draw();
+					}catch(Error){
+
+					}
+				}
+				privilegesDataTable = $('#db-object-privileges-list').DataTable({
+					"oLanguage": {
+						"sEmptyTable": "There are no privileges"
+					},
+					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					"bProcessing": true,
+					paging: bPaging,
+					"bAutoWidth": true,
+					"iDisplayLength" : 25, 
+					"sPaginationType": "full_numbers",
+					//"scrollY":        "800px",
+					"scrollCollapse": true,
+					//"bJQueryUI": true,
+					"aaData": aaData, 
+					"aoColumns" : aoColumns,
+					"order": [[ 1, "asc" ]],
+	                 buttons: [
+	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Privileges for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
+	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: "Privileges for "+routeArgs.type + " " + routeArgs.name }
+	                           ],					             
+		             fnDrawCallback: function(){
+		            	// $('#db-object-privileges-list td').css("white-space","nowrap");
+		             }
+				});
+
+				$('#db-object-privileges-list td').css("white-space","nowrap");
+			}
+		},		
 		showErrorMessage: function (jqXHR) {
 			_this.hideLoading();
 			$(ERROR_CONTAINER).show();

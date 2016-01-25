@@ -9,7 +9,10 @@ package com.esgyn.dbmgr.resources;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
@@ -21,6 +24,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +35,8 @@ import com.esgyn.dbmgr.sql.SqlObjectListResult;
 import com.esgyn.dbmgr.sql.SystemQueryCache;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Path("/db")
 public class DatabaseResource {
@@ -131,12 +137,20 @@ public class DatabaseResource {
 			// TabularResult result =
 			// QueryResource.executeAdminSQLQuery(queryText);
 			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
+
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, link, result);
 			return sqlResult;
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch list of " + objectType + " : " + ex.getMessage());
 			throw new EsgynDBMgrException(ex.getMessage());
 		} finally {
+			if (pstmt != null) {
+				try {
+					pstmt.close();
+				} catch (SQLException e) {
+
+				}
+			}
 			if (connection != null) {
 				try {
 					connection.close();
@@ -145,6 +159,124 @@ public class DatabaseResource {
 				}
 			}
 		}
+	}
+
+	@GET
+	@Path("/attributes/")
+	@Produces("application/json")
+	public ArrayNode getObjectAttributes(@QueryParam("type") String objectType,
+			@QueryParam("objectName") String objectName, @QueryParam("schemaName") String schemaName,
+			@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+		if (objectType == null) {
+			objectType = "schemas";
+		}
+		String catalogName = "TRAFODION";
+		PreparedStatement pstmt = null;
+		Connection connection = null;
+		ResultSet rs = null;
+		ObjectMapper mapper = new ObjectMapper();
+		ArrayNode arrayNode = mapper.createArrayNode();
+
+		try {
+			connection = JdbcHelper.getInstance().getAdminConnection();
+
+			String queryText = "";
+			switch (objectType) {
+			case "schema":
+				queryText = SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_ATTRIBUTES);
+				pstmt = connection.prepareStatement(queryText);
+				pstmt.setString(1, catalogName);
+				pstmt.setString(2, ExternalForm(objectName));
+				break;
+			case "table":
+				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_TABLE_ATTRIBUTES),
+						ExternalForm(schemaName));
+				pstmt = connection.prepareStatement(
+						String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_TABLE_ATTRIBUTES),
+								ExternalForm(schemaName)));
+				pstmt.setString(1, catalogName);
+				pstmt.setString(2, ExternalForm(schemaName));
+				pstmt.setString(3, ExternalForm(objectName));
+				break;
+			case "index":
+				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEX_ATTRIBUTES),
+						catalogName, schemaName);
+				pstmt = connection
+						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEX_ATTRIBUTES));
+				pstmt.setString(1, catalogName);
+				pstmt.setString(2, ExternalForm(schemaName));
+				pstmt.setString(3, ExternalForm(objectName));
+				break;
+			case "view":
+				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEW_ATTRIBUTES),
+						catalogName, schemaName);
+				pstmt = connection
+						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEW_ATTRIBUTES));
+				pstmt.setString(1, catalogName);
+				pstmt.setString(2, ExternalForm(schemaName));
+				pstmt.setString(3, ExternalForm(objectName));
+				break;
+			case "library":
+				queryText = String.format(
+						SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_OBJECT_ATTRIBUTES),
+						catalogName, schemaName, SqlObjectType.LIBRARY.getObjectType());
+				pstmt = connection.prepareStatement(
+						SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_OBJECT_ATTRIBUTES));
+				pstmt.setString(1, catalogName);
+				pstmt.setString(2, ExternalForm(schemaName));
+				pstmt.setString(3, ExternalForm(objectName));
+				pstmt.setString(4, SqlObjectType.LIBRARY.getObjectType());
+				break;
+			case "procedure":
+				queryText = String.format(
+						SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_OBJECT_ATTRIBUTES),
+						catalogName, schemaName, SqlObjectType.PROCEDURE.getObjectType());
+				pstmt = connection.prepareStatement(
+						SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_OBJECT_ATTRIBUTES));
+				pstmt.setString(1, catalogName);
+				pstmt.setString(2, ExternalForm(schemaName));
+				pstmt.setString(3, ExternalForm(objectName));
+				pstmt.setString(4, SqlObjectType.PROCEDURE.getObjectType());
+				break;
+
+			}
+			_LOG.debug(queryText);
+			rs = pstmt.executeQuery();
+			java.sql.ResultSetMetaData rsmd = rs.getMetaData();
+			int numColumns = rsmd.getColumnCount();
+			if (rs.next()) {
+				for (int i = 1; i <= numColumns; i++) {
+					Object val = rs.getObject(i);
+					ObjectNode objNode = mapper.createObjectNode();
+					if (val != null)
+						objNode.put(rsmd.getColumnName(i), val.toString());
+					else
+						objNode.put(rsmd.getColumnName(i), "");
+					arrayNode.add(objNode);
+				}
+			}
+			rs.close();
+		} catch (Exception ex) {
+			_LOG.error("Failed to fetch attributes of " + objectName + " : " + ex.getMessage());
+			throw new EsgynDBMgrException(ex.getMessage());
+		} finally {
+			if (pstmt != null) {
+				try {
+					pstmt.close();
+				} catch (Exception ex) {
+
+				}
+			}
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (Exception ex) {
+
+				}
+			}
+		}
+		return arrayNode;
 	}
 
 	@GET
@@ -158,13 +290,14 @@ public class DatabaseResource {
 		Connection connection = null;
 		try {
 			connection = JdbcHelper.getInstance().getAdminConnection();
-			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA), catalogName,
+			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_ATTRIBUTES), catalogName,
 					ExternalForm(schemaName));
-			pstmt = connection.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA));
+			pstmt = connection.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_ATTRIBUTES));
 			pstmt.setString(1, catalogName);
 			pstmt.setString(2, ExternalForm(schemaName));
 
 			_LOG.debug(queryText);
+
 			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult("Schema " + schemaName, "", result);
 			return sqlResult;
@@ -172,6 +305,13 @@ public class DatabaseResource {
 			_LOG.error("Failed to fetch schema " + schemaName + " details : " + ex.getMessage());
 			throw new EsgynDBMgrException(ex.getMessage());
 		} finally {
+			if (pstmt != null) {
+				try {
+					pstmt.close();
+				} catch (SQLException e) {
+
+				}
+			}
 			if (connection != null) {
 				try {
 					connection.close();
@@ -187,13 +327,12 @@ public class DatabaseResource {
 	@Produces("application/json")
 	public String getDDLText(@QueryParam("type") String objectType, 
 			@QueryParam("objectName") String objectName,
-			@QueryParam("schemaName") String schemaName,
- 			@QueryParam("parentObjectName") String parentObjectName,
+			@QueryParam("schemaName") String schemaName, @QueryParam("parentObjectName") String parentObjectName,
 			@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 
 		Connection connection = null;
-		Statement stmt;
+		Statement stmt = null;
 		ResultSet rs;
 		String ddlText = "";
 		JsonFactory factory = new JsonFactory();
@@ -258,11 +397,17 @@ public class DatabaseResource {
 			}
 			ddlText = mapper.writeValueAsString(sb.toString());
 			rs.close();
-			stmt.close();
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch get DDL text for " + objectName + " : " + ex.getMessage());
 			throw new EsgynDBMgrException(ex.getMessage());
 		} finally {
+			try {
+				if (stmt != null) {
+					stmt.close();
+				}
+			} catch (Exception e) {
+
+			}
 			try {
 				if (connection != null) {
 					connection.close();
@@ -295,7 +440,7 @@ public class DatabaseResource {
 				pstmt.setString(2, ExternalForm(objectName));
 			} else {
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS),
-					ExternalForm(schemaName), ExternalForm(objectName));
+						ExternalForm(schemaName), ExternalForm(objectName));
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS));
 				pstmt.setString(1, ExternalForm(schemaName));
@@ -306,11 +451,19 @@ public class DatabaseResource {
 			// QueryResource.executeAdminSQLQuery(queryText);
 			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
+
 			return sqlResult;
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch list of columns for " + objectName + " : " + ex.getMessage());
 			throw new EsgynDBMgrException(ex.getMessage());
 		} finally {
+			if (pstmt != null) {
+				try {
+					pstmt.close();
+				} catch (SQLException e) {
+
+				}
+			}
 			if (connection != null) {
 				try {
 					connection.close();
@@ -320,7 +473,7 @@ public class DatabaseResource {
 			}
 		}
 	}
-	
+
 	@GET
 	@Path("/regions/")
 	@Produces("application/json")
@@ -344,6 +497,62 @@ public class DatabaseResource {
 		}
 	}
 
+	@GET
+	@Path("/privileges/")
+	@Produces("application/json")
+	public SqlObjectListResult getObjectPrivileges(@QueryParam("type") String objectType,
+			@QueryParam("objectName") String objectName, @QueryParam("objectID") String objectID,
+			@QueryParam("schemaName") String schemaName,
+			@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
+					throws EsgynDBMgrException {
+		PreparedStatement pstmt = null;
+		Connection connection = null;
+		try {
+			connection = JdbcHelper.getInstance().getAdminConnection();
+			long objectIDLong = Long.parseLong(objectID.trim());
+
+			String queryText = SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_PRIVILEGES);
+			if (objectType.toLowerCase().equals("schema")) {
+				queryText = SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_PRIVILEGES);
+			}
+			pstmt = connection.prepareStatement(queryText);
+			pstmt.setLong(1, objectIDLong);
+
+			_LOG.debug(queryText);
+			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
+			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
+			for (int i = 0; i < sqlResult.columnNames.length; i++) {
+				if (sqlResult.columnNames[i].equals("Granted Privileges")
+						|| sqlResult.columnNames[i].equals("Privileges with Grant Option")) {
+					for (Object[] rowData : sqlResult.resultArray) {
+						if (rowData[i] != null) {
+							int privBitMap = Integer.parseInt(rowData[i].toString());
+							rowData[i] = Privileges.parsePrivileges(privBitMap);
+						}
+					}
+				}
+			}
+			return sqlResult;
+		} catch (Exception ex) {
+			_LOG.error("Failed to fetch privileges for " + objectName + " : " + ex.getMessage());
+			throw new EsgynDBMgrException(ex.getMessage());
+		} finally {
+			if (pstmt != null) {
+				try {
+					pstmt.close();
+				} catch (SQLException e) {
+
+				}
+			}
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (Exception ex) {
+
+				}
+			}
+		}
+	}
 	public static String EncloseInSingleQuotes(String aLiteralString) {
 		return "'" + aLiteralString.replace("'", "''") + "'";
 	}
@@ -457,4 +666,29 @@ public class DatabaseResource {
 
 		return false;
 	}
+
+	public enum Privileges
+	{
+		SELECT(0), INSERT(1), DELETE(2), UPDATE(3), USAGE(4), REFERENCES(5), EXECUTE(6);
+
+		private int privilege;
+
+		Privileges(int val) {
+			privilege = val;
+		}
+
+		public int getPrivilege() {
+			return privilege;
+		}
+
+		public static String parsePrivileges(int val) {
+			List<String> pList = new ArrayList<String>();
+			for (Privileges ap : values()) {
+				if ((val & ap.getPrivilege()) != 0)
+					pList.add(ap.toString());
+			}
+			return StringUtils.join(pList.toArray(), ", ");
+		}
+	}
 }
+

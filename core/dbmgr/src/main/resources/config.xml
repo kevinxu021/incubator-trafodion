@@ -15,6 +15,15 @@
 	<!-- The JDBC driver class name for the Trafodion/EsgynDB JDBC driver -->
 	<entry key="jdbcDriverClass">org.trafodion.jdbc.t4.T4Driver</entry>
 	
+	<!--  Minimum number of connections for jdbc connection pool -->
+	<entry key="minPoolSize">2</entry>
+	
+	<!--  Max number of connections for jdbc connection pool -->
+	<entry key="maxPoolSize">8</entry>
+	
+	<!--  Max number of statements for jdbc statemt caching -->
+	<entry key="maxStatementsCache">100</entry>
+	
 	<!-- The Trafodion REST Server URI -->
 	<entry key="trafodionRestServerUri">10.1.30.28:4200</entry>
 
