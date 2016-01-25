@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Sat Jan 23 17:36:57 2016
+-- Definition current  Mon Jan 25 17:14:31 2016
 
   (
     S_STORE_SK                       INT
@@ -924,7 +924,36 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 
 --- 1 row(s) selected.
 >>
+>>-- test query cache 
+>>prepare xx from select cd_gender from customer_demographics_orc where cd_gender = 'male' ;
+
+*** WARNING[6008] Statistics for column (CD_GENDER) from table HIVE.HIVE.CUSTOMER_DEMOGRAPHICS_ORC were not available. As a result, the access path chosen might not be the best possible.
+
+--- SQL command prepared.
+>>select num_hits, num_params from table(querycacheentries('user', 'local')) 
++>where substring(text, 1, 16) = 'select cd_gender' order by 1,2;
+
+NUM_HITS    NUM_PARAMS
+----------  ----------
+
+         0           1
+
+--- 1 row(s) selected.
 >>
+>>prepare xx from select cd_gender from customer_demographics_orc where cd_gender = 'female' ;
+
+*** WARNING[6008] Statistics for column (CD_GENDER) from table HIVE.HIVE.CUSTOMER_DEMOGRAPHICS_ORC were not available. As a result, the access path chosen might not be the best possible.
+
+--- SQL command prepared.
+>>select num_hits, num_params from table(querycacheentries('user', 'local')) 
++>where substring(text, 1, 16) = 'select cd_gender' order by 1,2;
+
+NUM_HITS    NUM_PARAMS
+----------  ----------
+
+         1           1
+
+--- 1 row(s) selected.
 >>
 >>
 >>log;

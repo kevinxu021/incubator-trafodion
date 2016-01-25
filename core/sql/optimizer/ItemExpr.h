@@ -360,6 +360,11 @@ public:
 
   void transformOlapFunctions(CollHeap *wHeap);
 
+
+  // test if this is a constant, a host var, a dynamic or a cache parameter.
+  NABoolean isAConstantHostVarOrParameter() const;
+  
+
  private:
   // This method has the code that is common to
   // mapAndRewrite() and mapAndRewriteWithIndex().

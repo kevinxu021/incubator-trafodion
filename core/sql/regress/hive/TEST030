@@ -150,6 +150,13 @@ explain options 'f' select count(*), min(s_store_sk), max(s_store_sk),
 select count(*), min(s_store_sk), max(s_store_sk), sum(s_store_sk) 
    from store_orc;
 
+-- test query cache 
+prepare xx from select cd_gender from customer_demographics_orc where cd_gender = 'male' ;
+select num_hits, num_params from table(querycacheentries('user', 'local')) 
+where substring(text, 1, 16) = 'select cd_gender' order by 1,2;
 
+prepare xx from select cd_gender from customer_demographics_orc where cd_gender = 'female' ;
+select num_hits, num_params from table(querycacheentries('user', 'local')) 
+where substring(text, 1, 16) = 'select cd_gender' order by 1,2;
 
 

@@ -4968,12 +4968,7 @@ ValueId VEG::getAConstantHostVarOrParameter() const
   {
     ItemExpr *ie = id.getItemExpr();
 
-    OperatorTypeEnum oper = ie->getOperatorType();
-
-    if ((oper == ITM_CONSTANT)  ||
-        (oper == ITM_HOSTVAR)   ||
-        (oper == ITM_DYN_PARAM) ||
-        (oper == ITM_CACHE_PARAM))
+    if ( ie->isAConstantHostVarOrParameter() )
       return id;
   }
 
@@ -15155,6 +15150,15 @@ NABoolean ItemExpr::isInvolvingAColumn()
   return (getOperatorType() == ITM_VEG_REFERENCE);
 }
 
+NABoolean ItemExpr::isAConstantHostVarOrParameter() const
+{
+  OperatorTypeEnum oper = getOperatorType();
+
+  return (oper == ITM_CONSTANT  || oper == ITM_HOSTVAR   ||
+          oper == ITM_DYN_PARAM || oper == ITM_CACHE_PARAM);
+}
+
+
 NABoolean BiRelat::isAPredicateBetweenColumnAndConstant()
 {
   ItemExpr *leftC=child(0);
@@ -15163,14 +15167,10 @@ NABoolean BiRelat::isAPredicateBetweenColumnAndConstant()
   if ( !leftC || !rightC )
     return FALSE;
 
-  OperatorTypeEnum rightO = rightC->getOperatorType();
-
-  if ( leftC->isInvolvingAColumn() && rightO == ITM_CONSTANT )
+  if ( leftC->isInvolvingAColumn() && rightC->isAConstantHostVarOrParameter() )
     return TRUE;
 
-  OperatorTypeEnum leftO = leftC->getOperatorType();
-
-  if ( rightC->isInvolvingAColumn() && leftO == ITM_CONSTANT )
+  if ( rightC->isInvolvingAColumn() && leftC->isAConstantHostVarOrParameter() )
     return TRUE;
 
   return FALSE;

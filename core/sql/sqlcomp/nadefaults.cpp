@@ -1968,7 +1968,9 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDint__(HIVE_LIB_HDFS_PORT_OVERRIDE,          "-1"),
   DDint__(HIVE_LOCALITY_BALANCE_LEVEL,          "0"),
   DDui___(HIVE_MAX_ESPS,                        "9999"),
-  DDui___(HIVE_MAX_STRING_LENGTH,               "32000"),
+  // Set to one byte less than QUERY_CACHE_MAX_CHAR_LEN so that hive queries with
+  // string literals can be cached.
+  DDui___(HIVE_MAX_STRING_LENGTH,               "31999"), 
   DDkwd__(HIVE_METADATA_JAVA_ACCESS,            "ON"),
   DDint__(HIVE_METADATA_REFRESH_INTERVAL,       "0"),
   DDflt0_(HIVE_MIN_BYTES_PER_ESP_PARTITION,     "67108864"),
