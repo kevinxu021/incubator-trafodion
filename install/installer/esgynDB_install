@@ -67,6 +67,17 @@ source $TRAF_CONFIG
 
 }
 
+function removePassword {
+
+export TRAF_CONFIG="/etc/trafodion/trafodion_config"
+source $TRAF_CONFIG
+
+$TRAF_PDSH sudo chmod 777 $TRAF_CONFIG
+$TRAF_PDSH sudo sed -i '/TRAF_USER_PASSWORD\=/d' $TRAF_CONFIG
+$TRAF_PDSH sudo sed -i '/PASSWORD\=/d' $TRAF_CONFIG
+$TRAF_PDSH sudo sed -i '/DB_ADMIN_PASSWORD\=/d' $TRAF_CONFIG
+$TRAF_PDSH sudo chmod 777 $TRAF_CONFIG
+}
 
 
 #==============================================
@@ -134,3 +145,4 @@ if [[ $? -eq 0 ]]; then
 fi
 
 setModsToN
+removePassword

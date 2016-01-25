@@ -441,7 +441,7 @@ DBMGR_KEYSTORE="$DBMGR_INSTALL_DIR/etc/dbmgr.keystore"
 
 echo "***INFO: Configuring DB Manager"
 
-sudo su $TRAF_USER --login --command "$DBMGR_INSTALL_DIR/bin/configure.py --httpport $DM_HTTP_PORT --httpsport $DM_HTTPS_PORT --dcshost $DCS_HOSTNAME --dcsport $DCS_PORT --password dbmgr23400 --dcsinfoport $DCS_INFO_PORT --resthost $DCS_HOSTNAME --restport $REST_PORT --tsdhost $DCS_HOSTNAME --tsdport $TSD_PORT --bosunhost $DCS_HOSTNAME --bosunport $HTTP_PORT --timezone $TIME_ZONE --adminuser DB__ADMINUSER --adminpassword traf123"
+sudo su $TRAF_USER --login --command "$DBMGR_INSTALL_DIR/bin/configure.py --httpport $DM_HTTP_PORT --httpsport $DM_HTTPS_PORT --dcshost $DCS_HOSTNAME --dcsport $DCS_PORT --password dbmgr23400 --dcsinfoport $DCS_INFO_PORT --resthost $DCS_HOSTNAME --restport $REST_PORT --tsdhost $DCS_HOSTNAME --tsdport $TSD_PORT --bosunhost $DCS_HOSTNAME --bosunport $HTTP_PORT --timezone $TIME_ZONE --adminuser $DB_ADMIN_USER --adminpassword $DB_ADMIN_PASSWORD"
 
 if [[ $node_count -ne "1" ]]; then
    sudo su $TRAF_USER --command "$TRAF_PDCP $DBMGR_CONFIG $DBMGR_CONFIG"
