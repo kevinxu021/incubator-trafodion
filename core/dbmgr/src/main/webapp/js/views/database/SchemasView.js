@@ -107,7 +107,7 @@ define([
 
 				if(oDataTable != null) {
 					try {
-						oDataTable.fnDestroy();
+						oDataTable.clear().draw();
 					}catch(Error){
 
 					}
@@ -133,7 +133,7 @@ define([
 						"mData": 0,
 						"mRender": function ( data, type, full ) {
 		            		 if(type == 'display') {
-		            			 var rowcontent = "<a href=\"#" + link + '&name=' + data ;
+		            			 var rowcontent = "<a href=\"#" + link + '?name=' + data ;
 		            			 rowcontent += "\">" + data + "</a>";
 		            			 return rowcontent;                         
 		            		 }else { 
@@ -218,9 +218,16 @@ define([
 				$('#db-object-list-results tbody').on( 'click', 'tr', function (e, a) {
 					var data = oDataTable.row(this).data();
 					if(data){
-						sessionStorage.setItem(data['Name'], JSON.stringify(data));	
+						//sessionStorage.setItem(data['Name'], JSON.stringify(data));
+						var objAttributes = [];
+						$.each(aoColumns, function(index, val){
+							var attrib = {};
+							attrib[val.title] = data[index];
+							objAttributes.push(attrib);
+						});
+						sessionStorage.setItem(data[0], JSON.stringify(objAttributes));	
 					}
-				} );				
+				});				
 			}
 
 		},		

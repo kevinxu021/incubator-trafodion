@@ -133,7 +133,7 @@ define([
 			sessionStorage.removeItem(queryID);
 			if(queryParams != null){
 				queryParams = JSON.parse(queryParams);
-				if(queryParams.text)
+				if(queryParams.text && queryTextEditor)
 					queryTextEditor.setValue(queryParams.text);
 			}
 		},

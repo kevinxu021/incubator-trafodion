@@ -85,6 +85,7 @@ define([
 			$(LOADING_SELECTOR).hide();
 		},
 		doRefresh: function(){
+			pageStatus[routeArgs.type] =  false;
 			_this.processRequest();
 			$(ERROR_CONTAINER).hide();
 		},
@@ -190,7 +191,7 @@ define([
 
 				if(oDataTable != null) {
 					try {
-						oDataTable.fnDestroy();
+						oDataTable.destroy();
 					}catch(Error){
 
 					}
@@ -307,12 +308,19 @@ define([
 					var data = oDataTable.row(this).data();
 					if(data){
 						//sessionStorage.setItem(data['Name'], JSON.stringify(data));
-						var rowData = {};
+						/*var rowData = {};
 						rowData.data = data;
 						rowData.columns = aoColumns;
-						sessionStorage.setItem(data[0], JSON.stringify(rowData));	
+						sessionStorage.setItem(data[0], JSON.stringify(rowData));	*/
+						var objAttributes = [];
+						$.each(aoColumns, function(index, val){
+							var attrib = {};
+							attrib[val.title] = data[index];
+							objAttributes.push(attrib);
+						});
+						sessionStorage.setItem(data[0], JSON.stringify(objAttributes));							
 					}
-				} );				
+				});				
 			}
 
 		},		
