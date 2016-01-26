@@ -201,14 +201,11 @@ define([
 						"sEmptyTable": "There are no " + routeArgs.type
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
-					"bProcessing": true,
+					processing: true,
 					paging: bPaging,
-					"bAutoWidth": true,
+					autoWidth: true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
-					//"scrollY":        "800px",
-					"scrollCollapse": true,
-					//"bJQueryUI": true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"aoColumnDefs": [ {
@@ -252,77 +249,41 @@ define([
 						"mData": 4,
 						"visible" : false,
 						"searchable" : false
-					}
-	
-					],
-					/*aoColumns : [
-					             {"mData": 'Name', sClass: 'left', "sTitle": 'Name', 
-					            	 "mRender": function ( data, type, full ) {
-					            		 if(type == 'display') {
-					            			 var rowcontent = "<a href=\"#" + link + '&name=' + data ;
-					            			 if(schemaName != null)
-					            				 rowcontent += '&schema='+ schemaName;	            				 
-
-					            			 rowcontent += "\">" + data + "</a>";
-					            			 return rowcontent;                         
-					            		 }else { 
-					            			 return data;
-					            		 }
-					            	 }			        
-					             },
-					             {"mData": 'Owner', sClass: 'left', "sTitle": 'Owner'},	
-					             {"mData": 'CreateTime', sClass: 'left', "sTitle": 'Create Time',
-					            	 "mRender": function ( data, type, full ) {
-					            		 if(type == 'display') {
-					            			 return common.toServerLocalDateFromUtcMilliSeconds(data);                          
-					            		 }else { 
-					            			 return data;
-					            		 }
-					            	 }
-					             },			   
-					             {"mData": 'ModifiedTime', sClass: 'left', "sTitle": 'Modified Time',
-					            	 "mRender": function ( data, type, full ) {
-					            		 if(type == 'display') {
-					            			 return common.toServerLocalDateFromUtcMilliSeconds(data);                          
-					            		 }else { 
-					            			 return data;
-					            		 }
-					            	 }
-					             }
-					             ],*/
-				                 buttons: [
-				                           { extend : 'copy', exportOptions: { columns: ':visible' } },
-				                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-				                           { extend : 'excel', exportOptions: { columns: ':visible' } },
-				                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
-				                           { extend : 'print', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text() }
-				                           ],					             
-					             fnDrawCallback: function(){
-					            	 $('#db-object-list-results td').css("white-space","nowrap");
-					             }
+					}],
+	                 buttons: [
+	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
+	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text() }
+	                           ],					             
+		             fnDrawCallback: function(){
+		            	// $('#db-object-list-results td').css("white-space","nowrap");
+		             }
 				});
 
 
-				$('#db-objects-list-results td').css("white-space","nowrap");
-				$('#db-objects-list-results tbody').on( 'click', 'tr', function (e, a) {
-					var data = oDataTable.row(this).data();
-					if(data){
-						//sessionStorage.setItem(data['Name'], JSON.stringify(data));
-						/*var rowData = {};
-						rowData.data = data;
-						rowData.columns = aoColumns;
-						sessionStorage.setItem(data[0], JSON.stringify(rowData));	*/
-						var objAttributes = [];
-						$.each(aoColumns, function(index, val){
-							var attrib = {};
-							attrib[val.title] = data[index];
-							objAttributes.push(attrib);
-						});
-						sessionStorage.setItem(data[0], JSON.stringify(objAttributes));							
+				//$('#db-objects-list-results td').css("white-space","nowrap");
+				$('#db-objects-list-results tbody').on( 'click', 'td', function (e, a) {
+					if(oDataTable.cell(this)){
+						var cell = oDataTable.cell(this).index();
+						if(cell){
+							if(cell.column == 0){
+								var data = oDataTable.row(cell.row).data();
+								if(data){
+									var objAttributes = [];
+									$.each(aoColumns, function(index, val){
+										var attrib = {};
+										attrib[val.title] = data[index];
+										objAttributes.push(attrib);
+									});
+									sessionStorage.setItem(data[0], JSON.stringify(objAttributes));	
+								}
+							}
+						}
 					}
-				});				
+				});	
 			}
-
 		},		
 		showErrorMessage: function (jqXHR) {
 			_this.hideLoading();

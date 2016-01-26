@@ -442,7 +442,7 @@ define([
 
 				servicesTable = $('#services-results').DataTable({
 					dom: 'tB',
-					"bProcessing": true,
+					processing: true,
 					"autoWidth": true,
 					"scrollCollapse": true,
 					"aaData": aaData, 
@@ -487,32 +487,29 @@ define([
 					                		 }
 					                		 else return data;
 					                	 }
-					                 }					    
-					                 ],
-					                 buttons: [
-					                           { extend : 'copy', exportOptions: { columns: [0, 1, 2, 3] } },
-					                           { extend : 'csv', exportOptions: { columns: [0, 1, 2, 3] } },
-					                           { extend : 'excel', exportOptions: {  columns: [0, 1, 2, 3] } },
-					                           { extend : 'pdfHtml5', exportOptions: { columns: [0, 1, 2, 3] }, title: 'Service Status' },
-					                           { extend : 'print', exportOptions: { columns: [0, 1, 2, 3] }, title: 'Service Status' }
-					                           ],					                 
-					                           paging: true,
-					                           fnDrawCallback: function(){
-					                        	   //$('#query-results td').css("white-space","nowrap");
-					                           },
-					                           initComplete: function ( settings, json ) {
-					                        	   //activate the bootstrap toggle js
-					                        	   //must be done within initcomplete (ie after table data is loaded)
-					                        	   $('[data-toggle="tooltip"]').tooltip({
-					                        		   trigger: 'hover',
-					                        		   container: "body",
-					                        		   html: true
-					                        	   }).css('overflow','auto');
+					                 }],
+	                 buttons: [
+	                           { extend : 'copy', exportOptions: { columns: [0, 1, 2, 3] } },
+	                           { extend : 'csv', exportOptions: { columns: [0, 1, 2, 3] } },
+	                           { extend : 'excel', exportOptions: {  columns: [0, 1, 2, 3] } },
+	                           { extend : 'pdfHtml5', exportOptions: { columns: [0, 1, 2, 3] }, title: 'Service Status' },
+	                           { extend : 'print', exportOptions: { columns: [0, 1, 2, 3] }, title: 'Service Status' }
+	                           ],					                 
+	                           paging: true,
+	                           fnDrawCallback: function(){
+	                        	   //$('#query-results td').css("white-space","nowrap");
+	                           },
+	                           initComplete: function ( settings, json ) {
+	                        	   //activate the bootstrap toggle js
+	                        	   //must be done within initcomplete (ie after table data is loaded)
+	                        	   $('[data-toggle="tooltip"]').tooltip({
+	                        		   trigger: 'hover',
+	                        		   container: "body",
+	                        		   html: true
+	                        	   }).css('overflow','auto');
 
-					                           }// end of initcomplete*/
+	                           }// end of initcomplete*/
 				});
-
-
 				$('#services-results td').css("white-space","nowrap");
 			}
 

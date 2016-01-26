@@ -449,12 +449,12 @@ define([
 
 					var bPaging = aaData.length > 25;
 
-					$('#wrkbnch-query-results').dataTable({
+					$('#wrkbnch-query-results').DataTable({
 						"oLanguage": {
 							"sEmptyTable": "0 rows(s)"
 						},
 						dom:'lBftrip',
-						"bProcessing": true,
+						processing: true,
 						"iDisplayLength" : 25, 
 						"sPaginationType": "full_numbers",
 						"scrollCollapse": true,

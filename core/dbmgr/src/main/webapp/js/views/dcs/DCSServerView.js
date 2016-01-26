@@ -89,19 +89,16 @@ define([
 
 				var bPaging = aaData.length > 25;
 
-				oDataTable = $('#dcs-query-results').dataTable({
+				oDataTable = $('#dcs-query-results').DataTable({
 					"oLanguage": {
 						"sEmptyTable": "There are no dcs servers"
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
-					"bProcessing": true,
+					processing: true,
 					paging: bPaging,
-					//"bAutoWidth": true,
+					autoWidth: true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "simple_numbers",
-					//"scrollY":        "800px",
-					"scrollCollapse": true,
-					//"bJQueryUI": true,
 					stateSave: true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
@@ -124,11 +121,7 @@ define([
 						//$('#dcs-query-results td').css("white-space","nowrap");
 					}
 				});
-
-
-				$('#dcs-query-results td').css("white-space","nowrap");
 			}
-
 		},
 		showErrorMessage: function (jqXHR) {
 			if(jqXHR.statusText != 'abort'){
