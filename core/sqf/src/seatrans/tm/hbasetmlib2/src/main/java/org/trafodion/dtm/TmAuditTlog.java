@@ -647,6 +647,7 @@ public class TmAuditTlog {
      // send to regions in order to retrience the desired set of transactions
      TransactionState transactionState = new TransactionState(0);
      CompletionService<ArrayList<TransactionState>> compPool = new ExecutorCompletionService<ArrayList<TransactionState>>(tlogThreadPool);
+     HConnection targetTableConnection = HConnectionManager.createConnection(this.config);
 
      try {
         if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval node: " + pv_nodeId
@@ -658,7 +659,6 @@ public class TmAuditTlog {
         // For every Tlog table for this node
         for (int index = 0; index < tlogNumLogs; index++) {
            String lv_tLogName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(pv_nodeId) + "_LOG_" + Integer.toHexString(index));
-           HConnection targetTableConnection = HConnectionManager.createConnection(this.config);
            targetTable = targetTableConnection.getTable(TableName.valueOf(lv_tLogName));
            RegionLocator rl = targetTableConnection.getRegionLocator(TableName.valueOf(lv_tLogName));
            regionList = rl.getAllRegionLocations();
@@ -694,10 +694,11 @@ public class TmAuditTlog {
         }
      }
      catch (Exception e2) {
-       LOG.error("exception retieving reulys in getTransactionStatesFromInterval for interval ASN: " + pv_ASN
+       LOG.error("exception retrieving replys in getTransactionStatesFromInterval for interval ASN: " + pv_ASN
                    + ", node: " + pv_nodeId + " " + e2);
        throw new IOException(e2);
      }
+     HConnectionManager.deleteStaleConnection(targetTableConnection);
      if (LOG.isTraceEnabled()) LOG.trace("getTransactionStatesFromInterval tlog callable requests completed in thread "
          + threadId + ".  " + results.size() + " results returned.");
      return results;
@@ -1595,12 +1596,11 @@ public class TmAuditTlog {
    public boolean deleteAgedEntries(final long lvAsn) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("deleteAgedEntries start:  Entries older than " + lvAsn + " will be removed");
       HTableInterface deleteTable;
+      HConnection deleteConnection = HConnectionManager.createConnection(this.config);
+//    Connection deleteConnection = ConnectionFactory.createConnection(this.config);
+
       for (int i = 0; i < tlogNumLogs; i++) {
          String lv_tLogName = new String(TLOG_TABLE_NAME + "_LOG_" + Integer.toHexString(i));
-//         Connection deleteConnection = ConnectionFactory.createConnection(this.config);
-
-         HConnection deleteConnection = HConnectionManager.createConnection(this.config);
-
          deleteTable = deleteConnection.getTable(TableName.valueOf(lv_tLogName));
          if (LOG.isTraceEnabled()) LOG.trace("delete table is: " + lv_tLogName);
          try {
@@ -2036,6 +2036,7 @@ public class TmAuditTlog {
          }
       } while (! complete && retries < TlogRetryCount);  // default give up after 5 minutes
 
+      HConnectionManager.deleteStaleConnection(unknownTableConnection);
       LOG.info("getTransactionState: returning ts: " + ts);
 //            if (LOG.isTraceEnabled()) LOG.trace("getTransactionState: returning transid: " + ts.getTransactionId() + " state: " + lvTxState);
 
