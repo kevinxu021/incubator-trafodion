@@ -594,14 +594,11 @@ define([
 						"sEmptyTable": "There are no columns"
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
-					"bProcessing": true,
+					processing: true,
 					paging: bPaging,
-					"bAutoWidth": true,
+					autoWidth: true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
-					//"scrollY":        "800px",
-					"scrollCollapse": true,
-					//"bJQueryUI": true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"aoColumnDefs": [ {
@@ -628,13 +625,9 @@ define([
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: "Columns in "+routeArgs.type + " " + routeArgs.name }
 	                           ],					             
 		             fnDrawCallback: function(){
-		            	 $('#db-object-columns-list td').css("white-space","nowrap");
+		            	// $('#db-object-columns-list td').css("white-space","nowrap");
 		             }
 				});
-
-
-				$('#db-object-columns-list td').css("white-space","nowrap");
-		
 			}
 		},
 		displayRegions: function(result){
@@ -677,14 +670,11 @@ define([
 						"sEmptyTable": "There are no regions"
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
-					"bProcessing": true,
+					processing: true,
 					paging: bPaging,
-					"bAutoWidth": true,
+					aAutoWidth: true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
-					//"scrollY":        "800px",
-					"scrollCollapse": true,
-					//"bJQueryUI": true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"order": [[ 1, "asc" ]],
@@ -696,11 +686,9 @@ define([
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: "Regions for "+routeArgs.type + " " + routeArgs.name }
 	                           ],					             
 		             fnDrawCallback: function(){
-		            	 $('#db-object-regions-list td').css("white-space","nowrap");
+		            	 //$('#db-object-regions-list td').css("white-space","nowrap");
 		             }
 				});
-
-				$('#db-object-regions-list td').css("white-space","nowrap");
 			}
 		},
 		displayPrivileges: function(result){
@@ -743,14 +731,11 @@ define([
 						"sEmptyTable": "There are no privileges"
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
-					"bProcessing": true,
+					processing: true,
 					paging: bPaging,
-					"bAutoWidth": true,
+					autoWidth: true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
-					//"scrollY":        "800px",
-					"scrollCollapse": true,
-					//"bJQueryUI": true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"order": [[ 1, "asc" ]],
@@ -765,8 +750,6 @@ define([
 		            	// $('#db-object-privileges-list td').css("white-space","nowrap");
 		             }
 				});
-
-				$('#db-object-privileges-list td').css("white-space","nowrap");
 			}
 		},		
 		showErrorMessage: function (jqXHR) {

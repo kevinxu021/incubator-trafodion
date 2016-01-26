@@ -387,14 +387,11 @@ define([
 						"sEmptyTable": "There are no privileges"
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
-					"bProcessing": true,
+					processing: true,
 					paging: bPaging,
-					"bAutoWidth": true,
+					autoWidth: true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
-					//"scrollY":        "800px",
-					"scrollCollapse": true,
-					//"bJQueryUI": true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"order": [[ 1, "asc" ]],
@@ -409,8 +406,6 @@ define([
 		            	// $('#db-schema-privileges-list td').css("white-space","nowrap");
 		             }
 				});
-
-				$('#db-schema-privileges-list td').css("white-space","nowrap");
 			}
 		},	
 		showErrorMessage: function (jqXHR) {

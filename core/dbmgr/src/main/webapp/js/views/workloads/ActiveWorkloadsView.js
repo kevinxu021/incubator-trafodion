@@ -109,14 +109,11 @@ define([
 						"sEmptyTable": "No active queries found."
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
-					"bProcessing": true,
+					processing: true,
 					paging : bPaging, 
-					"bAutoWidth": true,
+					autoWidth: true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
-					//"scrollY":        "800px",
-					"scrollCollapse": true,
-					//"bJQueryUI": true,
 					stateSave: true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
@@ -143,29 +140,35 @@ define([
 					                		 else return data;
 					                	 }
 					                 }],
-									buttons: [
-					                           { extend : 'copy', exportOptions: { columns: ':visible' } },
-					                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-					                           { extend : 'excel', exportOptions: { columns: ':visible' } },
-					                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
-					                        	   title: 'Active Workloads' } ,
-					                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Active Workloads' }
-								          ],
+					buttons: [
+	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
+	                        	   title: 'Active Workloads' } ,
+	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Active Workloads' }
+				          ],
 
-					                           fnDrawCallback: function(){
-					                        	   //$('#query-results td').css("white-space","nowrap");
-					                           }
+	                           fnDrawCallback: function(){
+	                        	   //$('#query-results td').css("white-space","nowrap");
+	                           }
 				});
 
 				//$('#active-query-results td').css("white-space","nowrap");
-				$('#active-query-results tbody').on( 'click', 'tr', function (e, a) {
-					var data = oDataTable.row(this).data();
-					if(data && data.length > 0){
-						sessionStorage.setItem(data[2], JSON.stringify({type: 'active', text: data[4]}));	
+				$('#active-query-results tbody').on( 'click', 'td', function (e, a) {
+					if(oDataTable.cell(this)){
+						var cell = oDataTable.cell(this).index();
+						if(cell){
+							if(cell.column == 2){
+								var data = oDataTable.row(cell.row).data();
+								if(data && data.length > 0){
+									sessionStorage.setItem(data[2], JSON.stringify({type: 'active', text: data[4]}));
+								}
+							}
+						}
 					}
-				} );				
+				});	
 			}
-
 		},
 		showErrorMessage: function (jqXHR) {
 			if(jqXHR.statusText != 'abort'){

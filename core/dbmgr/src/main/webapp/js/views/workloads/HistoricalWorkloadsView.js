@@ -326,14 +326,11 @@ define([
 						"sEmptyTable": "No queries found for selected time range/or filters."
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
-					"bProcessing": true,
+					processing: true,
 					paging : bPaging, 
-					"bAutoWidth": false,
+					autoWidth: true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
-					//"scrollY":        "800px",
-					"scrollCollapse": true,
-					//"bJQueryUI": true,
 					stateSave: true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
@@ -400,16 +397,21 @@ define([
 					          }
 				});
 
-				$('#repo-query-results td').css("white-space","nowrap");
-				
-				$('#repo-query-results tbody').on( 'click', 'tr', function (e, a) {
-					var data = oDataTable.row(this).data();
-					if(data && data.length > 0){
-						sessionStorage.setItem(data[0], JSON.stringify({type: 'repo', text: data[8]}));	
+				//$('#repo-query-results td').css("white-space","nowrap");
+				$('#repo-query-results tbody').on( 'click', 'td', function (e, a) {
+					if(oDataTable.cell(this)){
+						var cell = oDataTable.cell(this).index();
+						if(cell){
+							if(cell.column == 0){
+								var data = oDataTable.row(cell.row).data();
+								if(data && data.length > 0){
+									sessionStorage.setItem(data[0], JSON.stringify({type: 'repo', text: data[8]}));	
+								}
+							}
+						}
 					}
-				});					
+				});	
 			}
-
 		},
 		showErrorMessage: function (jqXHR) {
 			if(jqXHR.statusText != 'abort'){

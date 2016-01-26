@@ -389,7 +389,7 @@ define([
 
 				oDataTable = $('#alerts-results').dataTable({
 					"oLanguage": {
-						"sEmptyTable": "No alerts found."
+						"sEmptyTable": "No alerts found for selected time range and/or filters."
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,

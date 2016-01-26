@@ -179,8 +179,7 @@ define([
 
 			//$('#query-text').text(result.queryText);
 			queryTextEditor.setValue(result.queryText);
-			//sessionStorage.setItem(queryID, result.queryText);	
-
+	
 			$('#query-status').val(result.status.trim());
 			var startTimeVal = "";
 			if(result.startTime != null && result.startTime != -1){
