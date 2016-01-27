@@ -596,7 +596,9 @@ bool histExists = false;
       // drop user objects first
       if (objType == COM_BASE_TABLE_OBJECT_LIT)
       {
-         if (!(objName == HBASE_HIST_NAME || objName == HBASE_HISTINT_NAME))
+         if (!(objName == HBASE_HIST_NAME || 
+               objName == HBASE_HISTINT_NAME ||
+               objName == HBASE_PERS_SAMP_NAME))
          {
             if (dropOneTable(cliInterface,(char*)catName.data(), 
                              (char*)schName.data(),(char*)objName.data(),
@@ -702,6 +704,10 @@ bool histExists = false;
       
       if (dropOneTable(cliInterface,(char*)catName.data(),(char*)schName.data(), 
                        (char*)HBASE_HIST_NAME,false))
+         someObjectsCouldNotBeDropped = true;
+
+      if (dropOneTable(cliInterface,(char*)catName.data(),(char*)schName.data(), 
+                       (char*)HBASE_PERS_SAMP_NAME,false))
          someObjectsCouldNotBeDropped = true;
    }
 
