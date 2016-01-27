@@ -67,6 +67,7 @@
 #include "ComCextdecs.h"
 #include "ComSysUtils.h"
 #include "ComObjectName.h"
+#include "ComMisc.h"
 #include "SequenceGeneratorAttributes.h"
 #include "security/uid.h"
 #include "HDFSHook.h"
@@ -4356,7 +4357,9 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
 
 
 // for Hive tables
+static
 NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
+                           desc_struct* extTableDesc      /*IN*/,
                            const NATable * table          /*IN*/,
                            const NAColumnArray & colArray /*IN*/,
                            NAFileSetList & indexes        /*OUT*/,
@@ -5595,7 +5598,8 @@ NATable::NATable(BindWA *bindWA,
 NATable::NATable(BindWA *bindWA,
                  const CorrName& corrName,
 		 NAMemory *heap,
-		 struct hive_tbl_desc* htbl)
+		 struct hive_tbl_desc* htbl,
+                 desc_struct* extTableDesc)
   //
   // The NATable heap ( i.e. heap_ ) used to come from ContextHeap
   // (i.e. heap) but it creates high memory usage/leakage in Context
@@ -5815,16 +5819,17 @@ NATable::NATable(BindWA *bindWA,
   NABoolean isORC = FALSE;
 
   if (createNAFileSets(htbl             /*IN*/,
+                       extTableDesc     /*IN*/,
                        this             /*IN*/,
                        colArray_        /*IN*/,
-                           indexes_         /*OUT*/,
-                           vertParts_       /*OUT*/,
-                           clusteringIndex_ /*OUT*/,
-                           tableIdList_     /*OUT*/,
-                           heap_,
-                           bindWA,
-                           isORC 
-                           )) {
+                       indexes_         /*OUT*/,
+                       vertParts_       /*OUT*/,
+                       clusteringIndex_ /*OUT*/,
+                       tableIdList_     /*OUT*/,
+                       heap_,
+                       bindWA,
+                       isORC 
+                       )) {
     colcount_ = 0; // indicates failure
     return;
   }
@@ -7783,6 +7788,30 @@ NABoolean  NATable::getHbaseTableInfo(Int32& hbtIndexLevels, Int32& hbtBlockSize
   return TRUE;
 }
 
+// This method is called on a hive/orc NATable.
+// If that table has a corresponding external table,
+// then this method moves the relevant attributes from 
+// NATable of external table (etTable) to this.
+// Currently, column and clustering key info is moved.
+short NATable::updateExtTableAttrs(NATable *etTable)
+{
+  colcount_ = etTable->getColumnCount();
+  colArray_ = etTable->getNAColumnArray();
+  keyLength_ = etTable->getKeyLength();
+  recordLength_ = etTable->getRecordLength();
+  
+  NAFileSet *fileset = this->getClusteringIndex();
+  NAFileSet *etFileset = etTable->getClusteringIndex();
+  fileset->allColumns_ = etFileset->getAllColumns();
+  fileset->keysDesc_ = etFileset->getKeysDesc();
+  fileset->indexKeyColumns_ = etFileset->getIndexKeyColumns();
+  fileset->keyLength_ = etFileset->getKeyLength();
+  fileset->encodedKeyLength_ = etFileset->getEncodedKeyLength();
+
+  return 0;
+}
+
+
 // get details of this NATable cache entry
 void NATableDB::getEntryDetails(
      Int32 ii,                      // (IN) : NATable cache iterator entry
@@ -7963,14 +7992,12 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
     //otherwise it is NULL.
     NATable * tableInCache = table;
 
+    CmpSeabaseDDL cmpSBD((NAHeap *)CmpCommon::statementHeap());
     if ((corrName.isHbase() || corrName.isSeabase()) &&
 	(!isSQUmdTable(corrName)) &&
 	(!isSQUtiDisplayExplain(corrName)) &&
 	(!isSQInternalStoredProcedure(corrName))
 	) {
-      CmpSeabaseDDL cmpSBD((NAHeap *)CmpCommon::statementHeap());
-
-
       desc_struct *tableDesc = NULL;
 
       NABoolean isSeabase = FALSE;
@@ -8151,7 +8178,35 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
 
        if ( htbl )
 	 {
-	   table = new (naTableHeap) NATable(bindWA, corrName, naTableHeap, htbl);
+           table = new (naTableHeap) NATable
+             (bindWA, corrName, naTableHeap, htbl);
+
+           if ((table->isORC()) &&
+               (CmpCommon::getDefault(ORC_USE_EXT_TABLE_ATTRS) == DF_ON))
+             {
+               // if this hive/orc table has an associated external table, 
+               // get table desc for it.
+               NAString extName = ComConvertNativeNameToTrafName(
+                    corrName.getQualifiedNameObj().getCatalogName(),
+                    corrName.getQualifiedNameObj().getSchemaName(),
+                    corrName.getQualifiedNameObj().getObjectName());
+               
+               QualifiedName qn(extName, 3);
+               desc_struct *etDesc = etDesc = cmpSBD.getSeabaseTableDesc(
+                    qn.getCatalogName(),
+                    qn.getSchemaName(),
+                    qn.getObjectName(),
+                    COM_BASE_TABLE_OBJECT);
+               
+               if (etDesc)
+                 {
+                   CorrName cn(qn);
+                   NATable * etTable = new (naTableHeap) NATable
+                     (bindWA, cn, naTableHeap, etDesc);
+                   
+                   table->updateExtTableAttrs(etTable);
+                 }
+             } // ORC table
 	 }
        else 
          {

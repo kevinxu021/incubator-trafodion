@@ -386,7 +386,7 @@ public:
           desc_struct *inTableDesc = NULL);
 
   NATable(BindWA *bindWA, const CorrName &corrName, NAMemory *heap,
-          struct hive_tbl_desc*);
+          struct hive_tbl_desc*, desc_struct *extTableDesc = NULL);
 
   virtual ~NATable();
 
@@ -500,6 +500,11 @@ public:
   }
   NABoolean isOfflinePartition(const NAString &partitionName) const
   { return !partitionName.isNull() && !containsPartition(partitionName); }
+
+
+  // move relevant attributes from etTable to this.
+  // Currently, column and key info is moved.
+  short updateExtTableAttrs(NATable *etTable);
 
   const Int64 &getCreateTime() const            { return createTime_; }
   const Int64 &getRedefTime() const             { return redefTime_; }

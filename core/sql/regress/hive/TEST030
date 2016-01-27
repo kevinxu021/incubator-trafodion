@@ -160,3 +160,22 @@ select num_hits, num_params from table(querycacheentries('user', 'local'))
 where substring(text, 1, 16) = 'select cd_gender' order by 1,2;
 
 
+-- test external table attributes
+set schema trafodion.sch;
+drop external table if exists store_sales_orc for hive.hive.store_sales_orc;
+create external table store_sales_orc 
+  for hive.hive.store_sales_orc primary key (ss_item_sk);
+invoke hive.hive.store_sales_orc;
+
+set schema hive.hive;
+prepare s from select * from store_sales_orc where ss_item_sk = 1;
+explain s;
+
+-- join with nested join
+control query shape nested_join(scan(path 'CUSTOMER_ORC'), 
+      scan(path 'STORE_SALES_ORC'));
+prepare s from select * from customer_orc, store_sales_orc 
+    where store_sales_orc.ss_item_sk = customer_orc.c_customer_sk;
+explain options 'f' s;
+explain s;
+

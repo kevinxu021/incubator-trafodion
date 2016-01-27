@@ -186,6 +186,7 @@ static short CmpDescribeTransaction(
 
 short CmpDescribeHiveTable ( 
                              const CorrName  &dtName,
+                             short type, // 1, invoke. 2, showddl. 3, createLike
                              char* &outbuf,
                              ULng32 &outbuflen,
                              CollHeap *heap);
@@ -231,6 +232,13 @@ static short CmpDescribeSchemaHDFSCache(
        char *&outbuf, 
        ULng32 &outbuflen, 
        NAMemory *heap);
+
+static short cmpDisplayPrimaryKey(const NAColumnArray & naColArr,
+                                  Lng32 numKeys,
+                                  NABoolean displaySystemCols,
+                                  Space &space, char * buf, 
+                                  NABoolean displayCompact,
+                                  NABoolean displayAscDesc);
 
 // The real Ark catalog manager returns all object names as three-part
 // identifiers, properly delimited where necessary.
@@ -881,7 +889,9 @@ short CmpDescribe(const char *query, const RelExpr *queryExpr,
       (!d->getDescribedTableName().isSpecialTable()))
     {
       rc = 
-        CmpDescribeHiveTable(d->getDescribedTableName(), outbuf, outbuflen, heap);
+        CmpDescribeHiveTable(d->getDescribedTableName(), 
+                             (d->getFormat() == Describe::INVOKE_ ? 1 : 2),
+                             outbuf, outbuflen, heap);
       goto finally;  // we are done
     }
 
@@ -2249,6 +2259,7 @@ static NAString CmpDescribe_ptiToInfCS(const NAString &inputInLatin1)
 
 short CmpDescribeHiveTable ( 
                              const CorrName  &dtName,
+                             short type, // 1, invoke. 2, showddl. 3, createLike
                              char* &outbuf,
                              ULng32 &outbuflen,
                              CollHeap *heap)
@@ -2311,11 +2322,25 @@ short CmpDescribeHiveTable (
 
   outputShortLine(space, "  )");
 
+  if ((naTable->getClusteringIndex()) &&
+      (naTable->isORC()) &&
+      (type == 1))
+    {
+      NAFileSet * naf = naTable->getClusteringIndex();
+      
+      sprintf(buf,  "  PRIMARY KEY ");
+      
+      cmpDisplayPrimaryKey(naf->getIndexKeyColumns(), 
+                           naf->getIndexKeyColumns().entries(),
+                           FALSE,
+                           space, buf, TRUE, TRUE);
+    } // if
+  
   const HHDFSTableStats* hTabStats = 
     naTable->getClusteringIndex()->getHHDFSTableStats();
   if (hTabStats->isOrcFile())
     {
-      outputShortLine(space, "   /* stored as orc */");
+      outputShortLine(space, "  /* stored as orc */");
     }
   else if (hTabStats->isTextFile())
     {

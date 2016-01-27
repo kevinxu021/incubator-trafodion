@@ -27,7 +27,7 @@ upsert into TRAFODION."_MD_".DEFAULTS
      values
      ('SCHEMA ', 'TRAFODION.SCH ', 'inserted during seabase regressions run');
 
-log;
+--log;
 
 -- not logging it since it may or may not exist
 create shared schema trafodion.sch;
@@ -43,4 +43,6 @@ register user sql_user7 as sql_user7;
 register user sql_user8 as sql_user8;
 register user sql_user9 as sql_user9;
 register user sql_user10 as sql_user10;
+
+log;
 

@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Mon Jan 25 17:14:31 2016
+-- Definition current  Wed Jan 27 19:03:20 2016
 
   (
     S_STORE_SK                       INT
@@ -89,7 +89,15 @@
   , S_GMT_OFFSET                     REAL
   , S_TAX_PRECENTAGE                 REAL
   )
-   /* stored as orc */
+  PRIMARY KEY (S_STORE_SK ASC, S_STORE_ID ASC, S_REC_START_DATE ASC,
+    S_REC_END_DATE ASC, S_CLOSED_DATE_SK ASC, S_STORE_NAME ASC,
+    S_NUMBER_EMPLOYEES ASC, S_FLOOR_SPACE ASC, S_HOURS ASC, S_MANAGER ASC,
+    S_MARKET_ID ASC, S_GEOGRAPHY_CLASS ASC, S_MARKET_DESC ASC, S_MARKET_MANAGER
+    ASC, S_DIVISION_ID ASC, S_DIVISION_NAME ASC, S_COMPANY_ID ASC,
+    S_COMPANY_NAME ASC, S_STREET_NUMBER ASC, S_STREET_NAME ASC, S_STREET_TYPE
+    ASC, S_SUITE_NUMBER ASC, S_CITY ASC, S_COUNTY ASC, S_STATE ASC, S_ZIP ASC,
+    S_COUNTRY ASC, S_GMT_OFFSET ASC, S_TAX_PRECENTAGE ASC)
+  /* stored as orc */
 
 --- SQL operation complete.
 >>
@@ -951,9 +959,360 @@ NUM_HITS    NUM_PARAMS
 NUM_HITS    NUM_PARAMS
 ----------  ----------
 
-         1           1
+         0           1
+         0           1
 
---- 1 row(s) selected.
+--- 2 row(s) selected.
 >>
+>>
+>>-- test external table attributes
+>>set schema trafodion.sch;
+
+--- SQL operation complete.
+>>drop external table if exists store_sales_orc for hive.hive.store_sales_orc;
+
+--- SQL operation complete.
+>>create external table store_sales_orc 
++>  for hive.hive.store_sales_orc primary key (ss_item_sk);
+
+--- SQL operation complete.
+>>invoke hive.hive.store_sales_orc;
+
+-- Definition of hive table STORE_SALES_ORC
+-- Definition current  Wed Jan 27 19:03:56 2016
+
+  (
+    SS_SOLD_DATE_SK                  INT
+  , SS_SOLD_TIME_SK                  INT
+  , SS_ITEM_SK                       INT
+  , SS_CUSTOMER_SK                   INT
+  , SS_CDEMO_SK                      INT
+  , SS_HDEMO_SK                      INT
+  , SS_ADDR_SK                       INT
+  , SS_STORE_SK                      INT
+  , SS_PROMO_SK                      INT
+  , SS_TICKET_NUMBER                 INT
+  , SS_QUANTITY                      INT
+  , SS_WHOLESALE_COST                REAL
+  , SS_LIST_PRICE                    REAL
+  , SS_SALES_PRICE                   REAL
+  , SS_EXT_DISCOUNT_AMT              REAL
+  , SS_EXT_SALES_PRICE               REAL
+  , SS_EXT_WHOLESALE_COST            REAL
+  , SS_EXT_LIST_PRICE                REAL
+  , SS_EXT_TAX                       REAL
+  , SS_COUPON_AMT                    REAL
+  , SS_NET_PAID                      REAL
+  , SS_NET_PAID_INC_TAX              REAL
+  , SS_NET_PROFIT                    REAL
+  )
+  PRIMARY KEY (SS_ITEM_SK ASC)
+  /* stored as orc */
+
+--- SQL operation complete.
+>>
+>>set schema hive.hive;
+
+--- SQL operation complete.
+>>prepare s from select * from store_sales_orc where ss_item_sk = 1;
+
+*** WARNING[6008] Statistics for column (SS_ITEM_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
+
+--- SQL command prepared.
+>>explain s;
+
+------------------------------------------------------------------ PLAN SUMMARY
+MODULE_NAME .............. DYNAMICALLY COMPILED
+STATEMENT_NAME ........... S
+PLAN_ID .................. 212320681437652499
+ROWS_OUT ................. 1
+EST_TOTAL_COST ........... 1.21
+STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
+
+
+------------------------------------------------------------------ NODE LISTING
+ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
+REQUESTS_IN .............. 1
+ROWS_OUT ................. 1
+EST_OPER_COST ............ 0
+EST_TOTAL_COST ........... 1.21
+DESCRIPTION
+  max_card_est ........... 1
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  statement_index ........ 0
+  affinity_value ......... 0
+  max_max_cardinality .... 1
+  total_overflow_size .... 0.00 KB
+  xn_access_mode ......... read_only
+  xn_autoabort_interval    0
+  auto_query_retry ....... enabled
+  plan_version ....... 2,600
+  embedded_arkcmp ........ used
+  IS_SQLCI ............... ON
+  LDAP_USERNAME
+  HIVE_MAX_STRING_LENGTH  20
+  MODE_SEAHIVE ........... ON
+  TRAF_ENABLE_ORC_FORMAT   ON
+  HIST_ROWCOUNT_REQU  50,000
+  ORC_COLUMNS_PUSHDOWN ... ON
+  ORC_PRED_PUSHDOWN ...... ON
+  ORC_AGGR_PUSHDOWN ...... OFF
+  SCHEMA ................. HIVE.HIVE
+  select_list ............ HIVE.STORE_SALES_ORC.SS_SOLD_DATE_SK,
+                             HIVE.STORE_SALES_ORC.SS_SOLD_TIME_SK, %(1),
+                             HIVE.STORE_SALES_ORC.SS_CUSTOMER_SK,
+                             HIVE.STORE_SALES_ORC.SS_CDEMO_SK,
+                             HIVE.STORE_SALES_ORC.SS_HDEMO_SK,
+                             HIVE.STORE_SALES_ORC.SS_ADDR_SK,
+                             HIVE.STORE_SALES_ORC.SS_STORE_SK,
+                             HIVE.STORE_SALES_ORC.SS_PROMO_SK,
+                             HIVE.STORE_SALES_ORC.SS_TICKET_NUMBER,
+                             HIVE.STORE_SALES_ORC.SS_QUANTITY,
+                             HIVE.STORE_SALES_ORC.SS_WHOLESALE_COST,
+                             HIVE.STORE_SALES_ORC.SS_LIST_PRICE,
+                             HIVE.STORE_SALES_ORC.SS_SALES_PRICE,
+                             HIVE.STORE_SALES_ORC.SS_EXT_DISCOUNT_AMT,
+                             HIVE.STORE_SALES_ORC.SS_EXT_SALES_PRICE,
+                             HIVE.STORE_SALES_ORC.SS_EXT_WHOLESALE_COST,
+                             HIVE.STORE_SALES_ORC.SS_EXT_LIST_PRICE,
+                             HIVE.STORE_SALES_ORC.SS_EXT_TAX,
+                             HIVE.STORE_SALES_ORC.SS_COUPON_AMT,
+                             HIVE.STORE_SALES_ORC.SS_NET_PAID,
+                             HIVE.STORE_SALES_ORC.SS_NET_PAID_INC_TAX,
+                             HIVE.STORE_SALES_ORC.SS_NET_PROFIT
+  input_variables ........ %(1)
+
+
+ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
+TABLE_NAME ............... HIVE.HIVE.STORE_SALES_ORC
+REQUESTS_IN .............. 1
+ROWS_OUT ................. 1
+EST_OPER_COST ............ 1.21
+EST_TOTAL_COST ........... 1.21
+DESCRIPTION
+  max_card_est ........... 1
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  scan_type .............. subset scan of table HIVE.HIVE.STORE_SALES_ORC
+  object_type ............ Hive_Orc
+  scan_direction ......... forward
+  lock_mode .............. not specified, defaulted to lock cursor
+  access_mode ............ not specified, defaulted to read committed
+  columns_retrieved ..... 23
+  orc_pred_pushdown ...... yes
+  orc_search_arguments ... and( HIVE.STORE_SALES_ORC.SS_ITEM_SK = cast(%(1)) )
+  key_columns ............ HIVE.STORE_SALES_ORC.SS_ITEM_SK
+  executor_predicates .... (HIVE.STORE_SALES_ORC.SS_ITEM_SK = %(1))
+
+--- SQL operation complete.
+>>
+>>-- join with nested join
+>>control query shape nested_join(scan(path 'CUSTOMER_ORC'), 
++>      scan(path 'STORE_SALES_ORC'));
+
+--- SQL operation complete.
+>>prepare s from select * from customer_orc, store_sales_orc 
++>    where store_sales_orc.ss_item_sk = customer_orc.c_customer_sk;
+
+*** WARNING[6008] Statistics for column (C_CUSTOMER_SK) from table HIVE.HIVE.CUSTOMER_ORC were not available. As a result, the access path chosen might not be the best possible.
+
+*** WARNING[6008] Statistics for column (SS_ITEM_SK) from table HIVE.HIVE.STORE_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
+
+--- SQL command prepared.
+>>explain options 'f' s;
+
+LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
+---- ---- ---- --------------------  --------  --------------------  ---------
+
+4    .    5    root                                                  2.88E+006
+1    3    4    nested_join                                           2.88E+006
+2    .    3    probe_cache                                           2.88E+001
+.    .    2    orc_scan                        STORE_SALES_ORC       2.88E+001
+.    .    1    orc_scan                        CUSTOMER_ORC          9.99E+004
+
+--- SQL operation complete.
+>>explain s;
+
+------------------------------------------------------------------ PLAN SUMMARY
+MODULE_NAME .............. DYNAMICALLY COMPILED
+STATEMENT_NAME ........... S
+PLAN_ID .................. 212320681440203452
+ROWS_OUT ......... 2,880,401
+EST_TOTAL_COST ........... 1.77
+STATEMENT ................ select *
+                           from customer_orc, store_sales_orc
+                           where store_sales_orc.ss_item_sk =
+                             customer_orc.c_customer_sk;
+MUST_MATCH ............... forced nested join(forced scan, forced scan)
+
+
+------------------------------------------------------------------ NODE LISTING
+ROOT ======================================  SEQ_NO 5        ONLY CHILD 4
+REQUESTS_IN .............. 1
+ROWS_OUT ......... 2,880,401
+EST_OPER_COST ............ 0
+EST_TOTAL_COST ........... 1.77
+DESCRIPTION
+  max_card_est ........... 2.8804e+06
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  statement_index ........ 0
+  affinity_value ......... 0
+  est_memory_per_cpu ..... 3112 KB
+  max_max_cardinal  2,880,401
+  total_overflow_size .... 0.00 KB
+  xn_access_mode ......... read_only
+  xn_autoabort_interval    0
+  auto_query_retry ....... enabled
+  plan_version ....... 2,600
+  embedded_arkcmp ........ used
+  IS_SQLCI ............... ON
+  LDAP_USERNAME
+  HIVE_MAX_STRING_LENGTH  20
+  MODE_SEAHIVE ........... ON
+  TRAF_ENABLE_ORC_FORMAT   ON
+  HIST_ROWCOUNT_REQU  50,000
+  ORC_COLUMNS_PUSHDOWN ... ON
+  ORC_PRED_PUSHDOWN ...... ON
+  ORC_AGGR_PUSHDOWN ...... OFF
+  SCHEMA ................. HIVE.HIVE
+  select_list ............ HIVE.CUSTOMER_ORC.C_CUSTOMER_SK,
+                             HIVE.CUSTOMER_ORC.C_CUSTOMER_ID,
+                             HIVE.CUSTOMER_ORC.C_CURRENT_CDEMO_SK,
+                             HIVE.CUSTOMER_ORC.C_CURRENT_HDEMO_SK,
+                             HIVE.CUSTOMER_ORC.C_CURRENT_ADDR_SK,
+                             HIVE.CUSTOMER_ORC.C_FIRST_SHIPTO_DATE_SK,
+                             HIVE.CUSTOMER_ORC.C_FIRST_SALES_DATE_SK,
+                             HIVE.CUSTOMER_ORC.C_SALUTATION,
+                             HIVE.CUSTOMER_ORC.C_FIRST_NAME,
+                             HIVE.CUSTOMER_ORC.C_LAST_NAME,
+                             HIVE.CUSTOMER_ORC.C_PREFERRED_CUST_FLAG,
+                             HIVE.CUSTOMER_ORC.C_BIRTH_DAY,
+                             HIVE.CUSTOMER_ORC.C_BIRTH_MONTH,
+                             HIVE.CUSTOMER_ORC.C_BIRTH_YEAR,
+                             HIVE.CUSTOMER_ORC.C_BIRTH_COUNTRY,
+                             HIVE.CUSTOMER_ORC.C_LOGIN,
+                             HIVE.CUSTOMER_ORC.C_EMAIL_ADDRESS,
+                             HIVE.CUSTOMER_ORC.C_LAST_REVIEW_DATE,
+                             HIVE.STORE_SALES_ORC.SS_SOLD_DATE_SK,
+                             HIVE.STORE_SALES_ORC.SS_SOLD_TIME_SK,
+                             HIVE.CUSTOMER_ORC.C_CUSTOMER_SK,
+                             HIVE.STORE_SALES_ORC.SS_CUSTOMER_SK,
+                             HIVE.STORE_SALES_ORC.SS_CDEMO_SK,
+                             HIVE.STORE_SALES_ORC.SS_HDEMO_SK,
+                             HIVE.STORE_SALES_ORC.SS_ADDR_SK,
+                             HIVE.STORE_SALES_ORC.SS_STORE_SK,
+                             HIVE.STORE_SALES_ORC.SS_PROMO_SK,
+                             HIVE.STORE_SALES_ORC.SS_TICKET_NUMBER,
+                             HIVE.STORE_SALES_ORC.SS_QUANTITY,
+                             HIVE.STORE_SALES_ORC.SS_WHOLESALE_COST,
+                             HIVE.STORE_SALES_ORC.SS_LIST_PRICE,
+                             HIVE.STORE_SALES_ORC.SS_SALES_PRICE,
+                             HIVE.STORE_SALES_ORC.SS_EXT_DISCOUNT_AMT,
+                             HIVE.STORE_SALES_ORC.SS_EXT_SALES_PRICE,
+                             HIVE.STORE_SALES_ORC.SS_EXT_WHOLESALE_COST,
+                             HIVE.STORE_SALES_ORC.SS_EXT_LIST_PRICE,
+                             HIVE.STORE_SALES_ORC.SS_EXT_TAX,
+                             HIVE.STORE_SALES_ORC.SS_COUPON_AMT,
+                             HIVE.STORE_SALES_ORC.SS_NET_PAID,
+                             HIVE.STORE_SALES_ORC.SS_NET_PAID_INC_TAX,
+                             HIVE.STORE_SALES_ORC.SS_NET_PROFIT
+  input_variables ........ execution_count
+
+
+NESTED_JOIN ===============================  SEQ_NO 4        CHILDREN 1, 3
+REQUESTS_IN .............. 1
+ROWS_OUT ......... 2,880,401
+EST_OPER_COST ............ 0.5
+EST_TOTAL_COST ........... 1.77
+DESCRIPTION
+  max_card_est ........... 2.8804e+06
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  join_type .............. inner
+  join_method ............ nested
+
+
+PROBE_CACHE ===============================  SEQ_NO 3        ONLY CHILD 2
+REQUESTS_IN ......... 99,997
+ROWS/REQUEST ............ 28.8
+EST_OPER_COST ............ 0
+EST_TOTAL_COST ........... 1.24
+DESCRIPTION
+  max_card_est ........... 2.8804e+06
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  est_memory_per_cpu ..... 3112 KB
+  probe_columns .......... HIVE.CUSTOMER_ORC.C_CUSTOMER_SK, execution_count
+  num_cache_entries   16,384
+  num_inner_tuples    18,432
+
+
+ORC_SCAN ==================================  SEQ_NO 2        NO CHILDREN
+TABLE_NAME ............... HIVE.HIVE.STORE_SALES_ORC
+REQUESTS_IN ......... 99,997
+ROWS/REQUEST ............ 28.8
+EST_OPER_COST ............ 1.24
+EST_TOTAL_COST ........... 1.24
+DESCRIPTION
+  max_card_est ........... 2.8804e+06
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  scan_type .............. subset scan of table HIVE.HIVE.STORE_SALES_ORC
+  object_type ............ Hive_Orc
+  scan_direction ......... forward
+  lock_mode .............. not specified, defaulted to lock cursor
+  access_mode ............ not specified, defaulted to read committed
+  columns_retrieved ..... 23
+  key_columns ............ HIVE.STORE_SALES_ORC.SS_ITEM_SK
+  executor_predicates .... (HIVE.STORE_SALES_ORC.SS_ITEM_SK =
+                             HIVE.CUSTOMER_ORC.C_CUSTOMER_SK)
+
+
+ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
+TABLE_NAME ............... HIVE.HIVE.CUSTOMER_ORC
+REQUESTS_IN .............. 1
+ROWS_OUT ............ 99,997
+EST_OPER_COST ............ 0.03
+EST_TOTAL_COST ........... 0.03
+DESCRIPTION
+  max_card_est ...... 99,997
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  scan_type .............. subset scan of table HIVE.HIVE.CUSTOMER_ORC
+  object_type ............ Hive_Orc
+  scan_direction ......... forward
+  lock_mode .............. not specified, defaulted to lock cursor
+  access_mode ............ not specified, defaulted to read committed
+  columns_retrieved ..... 18
+  key_columns ............ HIVE.CUSTOMER_ORC.C_CUSTOMER_SK,
+                             HIVE.CUSTOMER_ORC.C_CUSTOMER_ID,
+                             HIVE.CUSTOMER_ORC.C_CURRENT_CDEMO_SK,
+                             HIVE.CUSTOMER_ORC.C_CURRENT_HDEMO_SK,
+                             HIVE.CUSTOMER_ORC.C_CURRENT_ADDR_SK,
+                             HIVE.CUSTOMER_ORC.C_FIRST_SHIPTO_DATE_SK,
+                             HIVE.CUSTOMER_ORC.C_FIRST_SALES_DATE_SK,
+                             HIVE.CUSTOMER_ORC.C_SALUTATION,
+                             HIVE.CUSTOMER_ORC.C_FIRST_NAME,
+                             HIVE.CUSTOMER_ORC.C_LAST_NAME,
+                             HIVE.CUSTOMER_ORC.C_PREFERRED_CUST_FLAG,
+                             HIVE.CUSTOMER_ORC.C_BIRTH_DAY,
+                             HIVE.CUSTOMER_ORC.C_BIRTH_MONTH,
+                             HIVE.CUSTOMER_ORC.C_BIRTH_YEAR,
+                             HIVE.CUSTOMER_ORC.C_BIRTH_COUNTRY,
+                             HIVE.CUSTOMER_ORC.C_LOGIN,
+                             HIVE.CUSTOMER_ORC.C_EMAIL_ADDRESS,
+                             HIVE.CUSTOMER_ORC.C_LAST_REVIEW_DATE
+  executor_predicates .... HIVE.CUSTOMER_ORC.C_CUSTOMER_SK is not null
+
+--- SQL operation complete.
 >>
 >>log;

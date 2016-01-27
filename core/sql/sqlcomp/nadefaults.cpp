@@ -2741,6 +2741,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDkwd__(ORC_AGGR_PUSHDOWN,                    "ON"),
   DDkwd__(ORC_COLUMNS_PUSHDOWN,                 "ON"),
   DDkwd__(ORC_PRED_PUSHDOWN,                    "ON"),
+  DDkwd__(ORC_USE_EXT_TABLE_ATTRS,              "ON"),
   DDkwd__(ORC_VECTORIZED_SCAN,                  "ON"),
 
   DDkwd__(ORDERED_HASH_JOIN_CONTROL,            "ON"),

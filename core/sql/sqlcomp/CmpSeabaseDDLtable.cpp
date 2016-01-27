@@ -547,6 +547,30 @@ short CmpSeabaseDDL::createSeabaseTableExternal(
       colInfoArray[index].colFlags = 0;
     }
 
+  ElemDDLColRefArray &keyArray =
+    (createTableNode->getIsConstraintPKSpecified() ?
+     createTableNode->getPrimaryKeyColRefArray() :
+     (createTableNode->getStoreOption() == COM_KEY_COLUMN_LIST_STORE_OPTION ?
+      createTableNode->getKeyColumnArray() :
+      createTableNode->getPrimaryKeyColRefArray()));
+
+  ComTdbVirtTableKeyInfo * keyInfoArray = NULL;
+  Lng32 numKeys = 0;
+  numKeys = keyArray.entries();
+  if (numKeys > 0)
+    {
+      keyInfoArray = new(STMTHEAP) ComTdbVirtTableKeyInfo[numKeys];
+      if (buildKeyInfoArray(NULL, (NAColumnArray*)&naColArray, &keyArray, 
+                            colInfoArray, keyInfoArray, TRUE))
+        {
+          *CmpCommon::diags()
+            << DgSqlCode(-CAT_UNABLE_TO_CREATE_OBJECT)
+        << DgTableName(extTgtTableName);
+          
+          return -1;
+        }
+    }
+
   Int64 objUID = -1;
   cliRC = 0;
   if (updateSeabaseMDTable(&cliInterface,
@@ -556,8 +580,8 @@ short CmpSeabaseDDL::createSeabaseTableExternal(
                            tableInfo,
                            numCols,
                            colInfoArray,
-                           0 /*numKeys*/,
-                           NULL /*keyInfoArray*/,
+                           numKeys,
+                           keyInfoArray,
                            0, NULL,
                            objUID /*returns generated UID*/))
     {
@@ -1774,7 +1798,9 @@ short CmpSeabaseDDL::createSeabaseTable2(
           return -1;
         }
 
-      if (buildKeyInfoArray(&colArray, &keyArray, colInfoArray, keyInfoArray, allowNullableUniqueConstr))
+      if (buildKeyInfoArray(&colArray, NULL,
+                            &keyArray, colInfoArray, keyInfoArray, 
+                            allowNullableUniqueConstr))
         {
           processReturn();
 

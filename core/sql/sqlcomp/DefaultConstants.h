@@ -3803,6 +3803,9 @@ enum DefaultConstants
   // vectorized rows batch scan
   ORC_VECTORIZED_SCAN,
 
+  // use info from external table created on this orc table
+  ORC_USE_EXT_TABLE_ATTRS,
+
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES
