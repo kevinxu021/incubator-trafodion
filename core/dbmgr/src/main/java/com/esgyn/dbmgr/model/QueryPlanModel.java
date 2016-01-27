@@ -209,14 +209,14 @@ public class QueryPlanModel {
 
 							String tableName = extractTableName(qpd.description);
 							if (tableName != null && tableName.length() > 0) {
-								qpd.tableName = GetExternalTableName(tableName);
+								// qpd.tableName =
+								// GetExternalTableName(tableName);
+								qpd.tableName = tableName;
 							}
 							qpd.formattedCostDesc = computeDisplayString(qpd.detailCost, qpd.description);
 							planArray.add(qpd);
 							if (qpd.tableName != null && qpd.tableName.trim().length() > 0)
 								tableNames.add(qpd.tableName.trim());
-
-							// System.out.println(qpd);
 						}
 
 						rs.close();
@@ -251,7 +251,9 @@ public class QueryPlanModel {
 
 							String tableName = extractTableName(qpd.description);
 							if (tableName != null && tableName.length() > 0) {
-								qpd.tableName = GetExternalTableName(tableName);
+								// qpd.tableName =
+								// GetExternalTableName(tableName);
+								qpd.tableName = tableName;
 							}
 							qpd.formattedCostDesc = computeDisplayString(qpd.detailCost, qpd.description);
 							planArray.add(qpd);
@@ -323,7 +325,8 @@ public class QueryPlanModel {
 
 					String tableName = extractTableName(qpd.description);
 					if (tableName != null && tableName.length() > 0) {
-						qpd.tableName = GetExternalTableName(tableName);
+						// qpd.tableName = GetExternalTableName(tableName);
+						qpd.tableName = tableName;
 					}
 					qpd.formattedCostDesc = computeDisplayString(qpd.detailCost, qpd.description);
 					planArray.add(qpd);

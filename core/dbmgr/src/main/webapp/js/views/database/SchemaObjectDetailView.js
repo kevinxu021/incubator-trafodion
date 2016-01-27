@@ -92,6 +92,7 @@ define([
 				lineNumbers: false,
 				lineWrapping: true,
 				matchBrackets : true,
+				readOnly: true,
 				autofocus: true,
 				extraKeys: {"Ctrl-Space": "autocomplete"}
 			});
@@ -218,8 +219,8 @@ define([
 		},
 		getParentObjectName: function(){
 			var parentObjectName = null;
-			if(objectAttributes != null && objectAttributes.columns != null){
-				$.each(objectAttributes.columns, function(index, value){
+			if(objectAttributes != null){
+				$.each(objectAttributes, function(k, v){
 					for (var property in v) {
 						if(property == 'Table Name'){
 							parentObjectName = v[property];
@@ -483,48 +484,11 @@ define([
 			}
 		},
 		fetchAttributes: function () {
-			//var objectAttributes = sessionStorage.getItem(routeArgs.name);	
-			if(objectAttributes == null){
-				_this.hideLoading();
-			}else{
-				_this.hideLoading();
-				//var properties = JSON.parse(objectAttributes);
-				$(ATTRIBUTES_CONTAINER).empty();
-				$(ATTRIBUTES_CONTAINER).append('<thead><tr><td style="width:200px;"><h2 style="color:black;font-size:15px;font-weight:bold">Name</h2></td><td><h2 style="color:black;font-size:15px;;font-weight:bold">Value</h2></td></tr></thead>');
-				$.each(objectAttributes.columns, function(k, v){
-					var property = v.title;
-					var value = objectAttributes.data[k];
-					if(property == 'CreateTime' || property == 'ModifiedTime'){
-						value = common.toServerLocalDateFromUtcMilliSeconds(value);
-					}
-					$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
-				});
-				var parentObjectName = _this.getParentObjectName();
-				if(parentObjectName != null){
-					$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">Parent Object</td><td>' + parentObjectName +  '</td>');
-				}
-			}
-		},
-		fetchAttributes: function () {
 			$(ERROR_CONTAINER).hide();
 			if(objectAttributes == null){
 				dbHandler.fetchAttributes(routeArgs.type, routeArgs.name, routeArgs.schema);
 			}else{
 				_this.displayAttributes();
-			/*	_this.hideLoading();
-				
-				//var properties = JSON.parse(objectAttributes);
-				$(ATTRIBUTES_CONTAINER).empty();
-				$(ATTRIBUTES_CONTAINER).append('<thead><tr><td style="width:200px;"><h2 style="color:black;font-size:15px;font-weight:bold">Name</h2></td><td><h2 style="color:black;font-size:15px;;font-weight:bold">Value</h2></td></tr></thead>');
-				$.each(objectAttributes, function(k, v){
-					for (var property in v) {
-						var value = v[property];
-						if(property == 'CreateTime' || property == 'ModifiedTime'){
-							value = common.toServerLocalDateFromUtcMilliSeconds(value);
-						}
-						$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
-					}
-				});*/
 			}
 		},
 		displayAttributes: function(data) {
@@ -540,7 +504,21 @@ define([
 					if(property == 'CreateTime' || property == 'ModifiedTime'){
 						value = common.toServerLocalDateFromUtcMilliSeconds(value);
 					}
-					$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
+					if(routeArgs.type == 'index' && property == 'Table Name'){
+						var parentObjectName = _this.getParentObjectName();
+						if(parentObjectName != null && parentObjectName.length >0) {
+							var link =	'<a href="#/database/objdetail?type=table' 
+						 		+ '&name=' + value 
+					 			+ '&schema='+ routeArgs.schema            				 
+	      			 			+ '">' + value + '</a>';
+							$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + link +  '</td>');
+							
+						}else {
+							$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
+						}
+					}else{
+						$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
+					}
 				}
 			});
 		},		

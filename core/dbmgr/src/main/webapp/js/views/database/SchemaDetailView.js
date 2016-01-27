@@ -75,11 +75,12 @@ define([
 
 			ddlTextEditor = CodeMirror.fromTextArea(document.getElementById("schema-ddl-text"), {
 				mode: 'text/x-esgyndb',
-				indentWithTabs: true,
-				smartIndent: true,
+				indentWithTabs: false,
+				smartIndent: false,
 				lineNumbers: false,
 				lineWrapping: true,
 				matchBrackets : true,
+				readOnly: true,
 				autofocus: true,
 				extraKeys: {"Ctrl-Space": "autocomplete"}
 			});
@@ -90,7 +91,7 @@ define([
 				}
 			});
 			$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
-
+			
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 
 			$(REFRESH_ACTION).on('click', this.doRefresh);

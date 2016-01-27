@@ -253,7 +253,7 @@ define(['moment',
 			this.fortmat2Decimals = function(value){
 				return value.toFixed(2);
 			};
-			
+
 			this.convertToMB = function(bytes){
 				if(bytes <=0)
 					return 0;
@@ -317,6 +317,40 @@ define(['moment',
 				return s.toLowerCase().replace(/^(.)|\s(.)/g, function($1) {
 					return $1.toUpperCase();
 				});
+			};
+
+			this.crackSQLAnsiName = function(ansiName) {
+				var inQuotes = false;
+				var beginOffset = 0;
+				var result = [];
+
+				for (var currentOffset = 0; currentOffset < ansiName.length; currentOffset++){
+					var aCharacter = ansiName[currentOffset];
+
+					switch (aCharacter){
+					case '"':
+					{
+						inQuotes = !inQuotes;
+						break;
+					}
+					case '.':
+					{
+						if (!inQuotes){
+							result.push(ansiName.substring(beginOffset, currentOffset));
+							beginOffset = currentOffset + 1;
+						}
+						break;
+					}
+					default:
+					{
+						break;
+					}
+					}
+				}
+
+				result.push(ansiName.substring(beginOffset));
+
+				return result;
 			};
 
 
@@ -394,22 +428,22 @@ define(['moment',
 
 				return result;
 			};
-			
+
 			this.calculateHeight = function(depth){
 				return Math.max(310,70*depth);
 			};
-			
-			
+
+
 			this.calculateWidth = function(tree, container){
 				var a=[];
 				this.traverseWidth(a, tree, 0);
 				var left=Math.max.apply(null, a);
 				var right=Math.min.apply(null, a); //only left is used, if precise position needed, we will use right value;
-				
+
 				return Math.max($(container).width(), left*2*70);
 			};
-			
-			
+
+
 			this.traverseWidth = function(arr, tree, i){						
 				if(tree&&tree.children){
 					if(tree.children.length==2){
@@ -422,7 +456,7 @@ define(['moment',
 				} else{
 					arr.push(i);
 				}
-				
+
 			};
 
 			this.generateExplainTree = function(jsonData, setRootNode, onClickCallback, container){
@@ -442,8 +476,8 @@ define(['moment',
 					levelsToShow: jsonData.treeDepth,
 					offsetX: -(jsonData.treeDepth * 25),//-100,
 					offsetY: this.calculateHeight(jsonData.treeDepth)/2,//350,
-	 				width: this.calculateWidth(jsonData, container),						   
-	 				height: this.calculateHeight(jsonData.treeDepth),        		
+					width: this.calculateWidth(jsonData, container),						   
+					height: this.calculateHeight(jsonData.treeDepth),        		
 					//set node and edge styles
 					//set overridable=true for styling individual
 					//nodes or edges
@@ -457,7 +491,7 @@ define(['moment',
 						lineWidth: 2,
 						align:"center",
 						overridable: true
-						
+
 					},
 					Navigation: {  
 						enable: true,  
@@ -525,7 +559,7 @@ define(['moment',
 
 						var html = nodeName;
 						var imgSrc = '';
-						
+
 						switch(node.name)
 						{
 						case 'FILE_SCAN':
@@ -650,7 +684,7 @@ define(['moment',
 							$(e.currentTarget).children('img').css({"border": "white", "border-width": "0", "border-style":"none"});
 							$(e.currentTarget).css("text-shadow","none");
 						};
-						
+
 						label.ondblclick = function(){
 							var m = { 
 									offsetX: st.canvas.translateOffsetX, 

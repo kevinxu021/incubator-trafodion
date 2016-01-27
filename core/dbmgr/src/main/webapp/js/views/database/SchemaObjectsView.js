@@ -196,19 +196,9 @@ define([
 
 					}
 				}
-				oDataTable = $('#db-objects-list-results').DataTable({
-					"oLanguage": {
-						"sEmptyTable": "There are no " + routeArgs.type
-					},
-					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
-					processing: true,
-					paging: bPaging,
-					autoWidth: true,
-					"iDisplayLength" : 25, 
-					"sPaginationType": "full_numbers",
-					"aaData": aaData, 
-					"aoColumns" : aoColumns,
-					"aoColumnDefs": [ {
+				
+				var aoColumnDefs = [];
+				aoColumnDefs.push({
 						"aTargets": [ 0 ],
 						"mData": 0,
 						"mRender": function ( data, type, full ) {
@@ -223,33 +213,67 @@ define([
 		            			 return data;
 		            		 }
 		            	 }
-					},
-					{
-						"aTargets": [ 2 ],
-						"mData": 2,
-						"mRender": function ( data, type, full ) {
-							if (type === 'display') {
-								return common.toServerLocalDateFromUtcMilliSeconds(data);  
-							}
-							else return data;
+					});
+				
+				aoColumnDefs.push({
+					"aTargets": [ 2 ],
+					"mData": 2,
+					"mRender": function ( data, type, full ) {
+						if (type === 'display') {
+							return common.toServerLocalDateFromUtcMilliSeconds(data);  
 						}
-					},
-					{
-						"aTargets": [ 3 ],
-						"mData": 3,
-						"mRender": function ( data, type, full ) {
-							if (type === 'display') {
-								return common.toServerLocalDateFromUtcMilliSeconds(data);  
-							}
-							else return data;
+						else return data;
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 3 ],
+					"mData": 3,
+					"mRender": function ( data, type, full ) {
+						if (type === 'display') {
+							return common.toServerLocalDateFromUtcMilliSeconds(data);  
 						}
+						else return data;
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 4 ],
+					"mData": 4,
+					"visible" : false,
+					"searchable" : false
+				});
+				
+				if(routeArgs.type == 'indexes'){
+					aoColumnDefs.push({
+						"aTargets": [ 5 ],
+						"mData": 5,
+						"mRender": function ( data, type, full ) {
+		            		 if(type == 'display') {
+		            			 var rowcontent = '<a href="#/database/objdetail?type=table&name=' + data ;
+		            			 if(schemaName != null)
+		            				 rowcontent += '&schema='+ routeArgs.schema;	            				 
+
+		            			 rowcontent += '">' + data + '</a>';
+		            			 return rowcontent;                         
+		            		 }else { 
+		            			 return data;
+		            		 }
+		            	 }
+					});
+				}
+				
+				oDataTable = $('#db-objects-list-results').DataTable({
+					"oLanguage": {
+						"sEmptyTable": "There are no " + routeArgs.type
 					},
-					{
-						"aTargets": [ 4 ],
-						"mData": 4,
-						"visible" : false,
-						"searchable" : false
-					}],
+					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					processing: true,
+					paging: bPaging,
+					autoWidth: true,
+					"iDisplayLength" : 25, 
+					"sPaginationType": "full_numbers",
+					"aaData": aaData, 
+					"aoColumns" : aoColumns,
+					"aoColumnDefs": aoColumnDefs,
 	                 buttons: [
 	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
 	                           { extend : 'csv', exportOptions: { columns: ':visible' } },

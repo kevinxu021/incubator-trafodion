@@ -47,11 +47,12 @@ define([
 
 			queryTextEditor = CodeMirror.fromTextArea(document.getElementById("query-text"), {
 				mode: 'text/x-esgyndb',
-				indentWithTabs: true,
-				smartIndent: true,
+				indentWithTabs: false,
+				smartIndent: false,
 				lineNumbers: false,
 				lineWrapping: true,
 				matchBrackets : true,
+				readOnly: true,
 				autofocus: true,
 				extraKeys: {"Ctrl-Space": "autocomplete"}
 			});

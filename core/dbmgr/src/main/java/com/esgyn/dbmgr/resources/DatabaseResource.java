@@ -669,7 +669,7 @@ public class DatabaseResource {
 
 	public enum Privileges
 	{
-		SELECT(0), INSERT(1), DELETE(2), UPDATE(3), USAGE(4), REFERENCES(5), EXECUTE(6);
+		SELECT(1), INSERT(2), DELETE(4), UPDATE(8), USAGE(16), REFERENCES(32), EXECUTE(64);
 
 		private int privilege;
 
