@@ -151,21 +151,19 @@ PrivStatus PrivMgrMDAdmin::initializeComponentPrivileges()
 
 {
 
-// First, let's start with a clean slate.  Drop all components as well as 
-// their respective operations and and any privileges granted.  This should be  
-// a NOP unless PrivMgr metadata was damaged and reintialization is occurring.
-
-PrivMgrComponents components(metadataLocation_,pDiags_);
-
-   components.dropAll();
-   
 // Next, register the component.
 
 PrivStatus privStatus = STATUS_GOOD;
 
+   // First, let's start with a clean slate.  Drop all components as well as 
+   // their respective operations and and any privileges granted.  This should be  
+   // a NOP unless PrivMgr metadata was damaged and reintialization is occurring.
+   PrivMgrComponents components(metadataLocation_,pDiags_);
+   components.dropAll();
+
    privStatus = components.registerComponentInternal(SQL_OPERATION_NAME,
-                                                     SQL_OPERATIONS_COMPONENT_UID,
-                                                     true,"Component for SQL operations");
+                                                     SQL_OPERATIONS_COMPONENT_UID, 
+                                                     true, "Component for SQL operations");
                                              
    if (privStatus != STATUS_GOOD)
       return STATUS_ERROR;  
@@ -207,8 +205,8 @@ PrivMgrComponentPrivileges componentPrivileges(metadataLocation_,pDiags_);
                                                            operationCodes,
                                                            ComUser::getRootUserID(),
                                                            ComUser::getRootUserName(),
-                                                           DB_ROOTROLE_ID,
-                                                           DB_ROOTROLE_NAME,-1);
+                                                           ROOT_ROLE_ID,
+                                                           DB__ROOTROLE,-1);
                                                            
    if (privStatus != STATUS_GOOD)
       return privStatus;
@@ -223,7 +221,7 @@ std::vector<std::string> CSOperationCodes;
                                                            CSOperationCodes,
                                                            ComUser::getRootUserID(),
                                                            ComUser::getRootUserName(),
-                                                           PUBLIC_AUTH_ID,
+                                                           PUBLIC_USER,
                                                            PUBLIC_AUTH_NAME,0);
                                       
    if (privStatus != STATUS_GOOD)
@@ -264,7 +262,6 @@ PrivStatus PrivMgrMDAdmin::initializeMetadata (
   const std::string &colsLocation,
   std::vector<std::string> &tablesCreated,
   std::vector<std::string> &tablesUpgraded)
-
 {
   PrivStatus retcode = STATUS_GOOD;
 
@@ -296,7 +293,7 @@ PrivStatus PrivMgrMDAdmin::initializeMetadata (
     schemaCommand += metadataLocation_;
     cliRC = cliInterface.executeImmediate(schemaCommand.c_str());
     if (cliRC < 0)
-      return STATUS_ERROR;
+      throw STATUS_ERROR;
   }
     
   // Create or upgrade the tables
@@ -332,17 +329,6 @@ PrivStatus PrivMgrMDAdmin::initializeMetadata (
 
         cliRC = createTable(tableName.c_str(), tableDefinition.tableDDL, 
                             cliInterface, pDiags_);
-
-        // Temp code to verify error handling
-        if (CmpCommon::getDefault(CAT_TEST_BOOL) == DF_ON) 
-        {
-          std::string schemaName ("SCHEMA_PRIVILEGES");
-          if (tableName.find(schemaName) !=std::string::npos)
-          {
-            *pDiags_ << DgSqlCode (-CAT_NOT_AUTHORIZED);
-            cliRC = -CAT_NOT_AUTHORIZED;
-          }
-        }
 
         // If create was successful, set flags to load default data
         if (cliRC < 0)
@@ -537,7 +523,7 @@ bool PrivMgrMDAdmin::isAuthorized (void)
 // method:  getViewsThatReferenceObject
 //
 //  this method gets the list of views associated with the passed in 
-//  objectUID that are owned by the objectOwner.
+//  objectUID that are owned by the granteeID.
 // **************************************************************************** 
 PrivStatus PrivMgrMDAdmin::getViewsThatReferenceObject (
   const ObjectUsage &objectUsage,
@@ -548,7 +534,7 @@ PrivStatus PrivMgrMDAdmin::getViewsThatReferenceObject (
   std::string viewsMDTable = trafMetadataLocation_ + ".VIEWS v";
   std::string roleUsageMDTable = metadataLocation_ + ".ROLE_USAGE";
 
-  // Select all the views that are referenced by the table or view owned by the objectOwner
+  // Select all the views that are referenced by the table or view owned by the granteeID
   std::string selectStmt = "select o.object_uid, o.object_owner, o.catalog_name, o.schema_name, o.object_name, v.is_insertable, v.is_updatable from ";
   selectStmt += objectMDTable;
   selectStmt += ", ";
@@ -563,11 +549,11 @@ PrivStatus PrivMgrMDAdmin::getViewsThatReferenceObject (
   // only return rows where user owns the view either directly or through one of
   // their granted roles
   selectStmt += " and (o.object_owner = ";
-  selectStmt += UIDToString(objectUsage.objectOwner);
+  selectStmt += UIDToString(objectUsage.granteeID);
   selectStmt += "  or o.object_owner in (select role_id from ";
   selectStmt += roleUsageMDTable;
   selectStmt += " where grantee_id = ";
-  selectStmt += UIDToString(objectUsage.objectOwner);
+  selectStmt += UIDToString(objectUsage.granteeID);
 
   selectStmt += ")) order by o.create_time ";
 
@@ -758,11 +744,11 @@ PrivStatus PrivMgrMDAdmin::getUdrsThatReferenceLibrary(
   selectStmt += UIDToString(objectUsage.objectUID);
   selectStmt += " and u.used_udr_uid = o.object_uid ";
   selectStmt += " and (o.object_owner = ";
-  selectStmt += UIDToString(objectUsage.objectOwner);
+  selectStmt += UIDToString(objectUsage.granteeID);
   selectStmt += "  or o.object_owner in (select role_id from ";
   selectStmt += roleUsageMDTable;
   selectStmt += " where grantee_id = ";
-  selectStmt += UIDToString(objectUsage.objectOwner);
+  selectStmt += UIDToString(objectUsage.granteeID);
   selectStmt += ")) order by o.create_time ";
 
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
@@ -1290,7 +1276,7 @@ PrivStatus PrivMgrMDAdmin::updatePrivMgrMetadata(
    
 {
    
-PrivStatus privStatus = STATUS_GOOD;
+   PrivStatus privStatus = STATUS_GOOD;
 
    if (shouldPopulateObjectPrivs)
    {
@@ -1301,9 +1287,9 @@ PrivStatus privStatus = STATUS_GOOD;
    }
    
     
-CmpSeabaseDDLrole role;
+   CmpSeabaseDDLrole role;
     
-   role.createStandardRole(DB__ROOTROLE,DB_ROOTROLE_ID);
+   role.createStandardRole(DB__ROOTROLE,ROOT_ROLE_ID);
    role.createStandardRole(DB__HIVEROLE,HIVE_ROLE_ID);
    role.createStandardRole(DB__HBASEROLE,HBASE_ROLE_ID);
    

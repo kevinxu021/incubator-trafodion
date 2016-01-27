@@ -7963,7 +7963,7 @@ void CmpSeabaseDDL::seabaseGrantRevoke(
       if (pGranteeArray[j]->isPublic())
         {
           grantee = PUBLIC_USER;
-          authName = "PUBLIC";
+          authName = PUBLIC_AUTH_NAME;
         }
       else
         {
