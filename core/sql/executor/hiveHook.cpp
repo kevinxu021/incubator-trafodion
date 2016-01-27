@@ -483,7 +483,7 @@ struct hive_skey_desc* populateSortCols(HiveMetaData *md, Int32 sdID,
         return NULL;
       }
       
-      foundB = foundB + strlen("Order(col:");
+      foundB += strlen("Order(col:");
       pos = foundB ;
       if (!findAToken(md, tblStr, pos, ",",
                       "populateSortCols::name:,###"))
@@ -491,15 +491,22 @@ struct hive_skey_desc* populateSortCols(HiveMetaData *md, Int32 sdID,
       NAText nameStr = tblStr->substr(foundB, pos-foundB);
       
       NAText orderStr;
-      if(!extractValueStr(md, tblStr, pos, "order:", ",", 
+      if(!extractValueStr(md, tblStr, pos, "order:", ")", 
                           orderStr, "populateSortCols::order:###"))
         return NULL;
       
       pos++;
-      if (!findAToken(md, tblStr, pos, ",",
-                      "populateSortColumns::comment:,###"))
-        return NULL;
-      
+
+      // skip the possible ', ' two characters before the next
+      // Order() substring. Here is one example of sort column spec on
+      // two columns.
+      // sortCols:[Order(col:s_rec_start_date, order:1), Order(col:s_rec_end_date, order:1)]
+      if ( pos < foundE && tblStr->data()[pos] == ',')
+         pos++;
+
+      if ( pos < foundE && tblStr->data()[pos] == ' ')
+         pos++;
+
       hive_skey_desc* newSkey  = new (CmpCommon::contextHeap())
         struct hive_skey_desc(nameStr.c_str(),
                               colIdx,
