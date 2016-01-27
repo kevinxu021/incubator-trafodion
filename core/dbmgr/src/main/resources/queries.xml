@@ -90,9 +90,9 @@
                  from table(region stats (using (select * from (
                    get tables in schema %1$s, no header, return full names) x(a) )))
                    group by 1, 2) as T2
-			    WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? AND
-			    O.OBJECT_UID = T.TABLE_UID AND
-			    O.SCHEMA_NAME != '_MD_' AND O.OBJECT_TYPE = 'BT' 
+			    WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? 
+			    AND O.OBJECT_UID = T.TABLE_UID 
+			    AND O.SCHEMA_NAME != '_MD_' AND O.OBJECT_TYPE = 'BT' 
                 AND O.SCHEMA_NAME = T2.SCHEMA_NAME
                 AND O.OBJECT_NAME = T2.OBJECT_NAME
                 FOR READ UNCOMMITTED
@@ -117,9 +117,8 @@
                    get tables in schema %1$s, no header, return full names) x(a) )))
                    group by 1, 2) as T2
 			    WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? 
-			    AND O.OBJECT_NAME = ? AND
-			    O.OBJECT_UID = T.TABLE_UID AND
-			    O.SCHEMA_NAME != '_MD_' AND O.OBJECT_TYPE = 'BT' 
+			    AND O.OBJECT_NAME = ? AND O.OBJECT_UID = T.TABLE_UID 
+			    AND O.SCHEMA_NAME != '_MD_' AND O.OBJECT_TYPE = 'BT' 
                 AND O.SCHEMA_NAME = T2.SCHEMA_NAME
                 AND O.OBJECT_NAME = T2.OBJECT_NAME
                 FOR READ UNCOMMITTED
@@ -132,10 +131,12 @@
 			<text><![CDATA[SELECT O.OBJECT_NAME AS "View Name", USER(OBJECT_OWNER) AS "Owner",
 			    CONVERTTIMESTAMP(CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(REDEF_TIME) AS "ModifiedTime",
 			    CAST(O.object_uid  AS CHAR(26)) as "Object ID",
-			    V.CHECK_OPTION as "Check Option", V.IS_UPDATABLE as "Updateable", V.IS_INSERTABLE as "Insertable"
+			    CASE WHEN V.CHECK_OPTION  = 'Y' THEN 'Yes' ELSE 'No' END as "Check Option", 
+				CASE WHEN V.IS_UPDATABLE = 1 THEN 'Yes' ELSE 'No' END as "Updateable", 
+				CASE WHEN V.IS_INSERTABLE = 1 THEN 'Yes' ELSE 'No' END as "Insertable"
 			    FROM TRAFODION."_MD_".OBJECTS O, TRAFODION."_MD_".VIEWS V 
-			    WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? AND
-			    O.SCHEMA_NAME != '_MD_' AND O.OBJECT_UID = V.VIEW_UID
+			    WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? 
+			    AND O.SCHEMA_NAME != '_MD_' AND O.OBJECT_UID = V.VIEW_UID
 			    AND O.OBJECT_TYPE = 'VI' FOR READ UNCOMMITTED ACCESS ORDER BY 1 ;
 				]]></text>
 		</query>		
@@ -145,11 +146,14 @@
 			<text><![CDATA[SELECT O.OBJECT_NAME AS "View Name", USER(OBJECT_OWNER) AS "Owner",
 			    CONVERTTIMESTAMP(CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(REDEF_TIME) AS "ModifiedTime",
 			    CAST(O.object_uid  AS CHAR(26)) as "Object ID",
-			    V.CHECK_OPTION as "Check Option", V.IS_UPDATABLE as "Updateable", V.IS_INSERTABLE as "Insertable"
+			    CASE WHEN V.CHECK_OPTION  = 'Y' THEN 'Yes' ELSE 'No' END as "Check Option", 
+				CASE WHEN V.IS_UPDATABLE = 1 THEN 'Yes' ELSE 'No' END as "Updateable", 
+				CASE WHEN V.IS_INSERTABLE = 1 THEN 'Yes' ELSE 'No' END as "Insertable"
 			    FROM TRAFODION."_MD_".OBJECTS O, TRAFODION."_MD_".VIEWS V 
-			    WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? AND
-			    O.SCHEMA_NAME != '_MD_' AND O.OBJECT_UID = V.VIEW_UID
-			    AND O.OBJECT_TYPE = 'VI' FOR READ UNCOMMITTED ACCESS ORDER BY 1 ;
+			    WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? 
+			    AND O.OBJECT_NAME = ? AND O.SCHEMA_NAME != '_MD_' 
+			    AND O.OBJECT_UID = V.VIEW_UID AND O.OBJECT_TYPE = 'VI' 
+			    FOR READ UNCOMMITTED ACCESS ORDER BY 1 ;
 				]]></text>
 		</query>
 		<query>
@@ -158,13 +162,15 @@
 			<text><![CDATA[SELECT O.OBJECT_NAME AS "Index Name", USER(O.OBJECT_OWNER) AS "Owner",
 				    CONVERTTIMESTAMP(O.CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(O.REDEF_TIME) AS "ModifiedTime",
 				    CAST(O.object_uid  AS CHAR(26)) as "Object ID",
-				    O2.OBJECT_NAME as "Table Name", I.IS_UNIQUE as "Is Unqiue", 
+				    O2.OBJECT_NAME as "Table Name", 
+				    CASE WHEN I.IS_UNIQUE = 1 THEN 'Unique' ELSE 'Non Unique' END as "Is Unqiue", 
 				    I.KEY_COLCOUNT as "Key Col. Count", I.NONKEY_COLCOUNT as "Non Key Col. Count"
 				    FROM TRAFODION."_MD_".INDEXES I, TRAFODION."_MD_".OBJECTS O,
 				    TRAFODION."_MD_".OBJECTS O2 
-				    WHERE  O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? AND
-				    O.SCHEMA_NAME != '_MD_' AND I.INDEX_UID = O.OBJECT_UID AND
-				    I.BASE_TABLE_UID = O2.OBJECT_UID FOR READ UNCOMMITTED ACCESS ORDER BY 1;
+				    WHERE  O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? 
+				    AND O.SCHEMA_NAME != '_MD_' AND I.INDEX_UID = O.OBJECT_UID 
+				    AND I.BASE_TABLE_UID = O2.OBJECT_UID 
+				    FOR READ UNCOMMITTED ACCESS ORDER BY 1;
 				]]></text>
 		</query>	
 		<query>
@@ -173,14 +179,15 @@
 			<text><![CDATA[SELECT O.OBJECT_NAME AS "Index Name", USER(O.OBJECT_OWNER) AS "Owner",
 				    CONVERTTIMESTAMP(O.CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(O.REDEF_TIME) AS "ModifiedTime",
 				    CAST(O.object_uid  AS CHAR(26)) as "Object ID",
-				    O2.OBJECT_NAME as "Table Name", I.IS_UNIQUE as "Is Unqiue", 
+				    O2.OBJECT_NAME as "Table Name", 
+				    CASE WHEN I.IS_UNIQUE = 1 THEN 'Unique' ELSE 'Non Unique' END as "Is Unqiue", 
 				    I.KEY_COLCOUNT as "Key Col. Count", I.NONKEY_COLCOUNT as "Non Key Col. Count"
 				    FROM TRAFODION."_MD_".INDEXES I, TRAFODION."_MD_".OBJECTS O,
 				    TRAFODION."_MD_".OBJECTS O2 
 				    WHERE  O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? 
-				    O.OBJECT_NAME = ? AND
-				    O.SCHEMA_NAME != '_MD_' AND I.INDEX_UID = O.OBJECT_UID AND
-				    I.BASE_TABLE_UID = O2.OBJECT_UID FOR READ UNCOMMITTED ACCESS ORDER BY 1;
+				    AND O.OBJECT_NAME = ? AND O.SCHEMA_NAME != '_MD_' 
+				    AND I.INDEX_UID = O.OBJECT_UID AND I.BASE_TABLE_UID = O2.OBJECT_UID 
+				    FOR READ UNCOMMITTED ACCESS ORDER BY 1;
 				]]></text>
 		</query>
 		<query>
