@@ -960,20 +960,20 @@ CoprocessorService, Coprocessor {
          requestRegionName = request.getRegionName(i).toStringUtf8();    
 /*
          if (LOG.isTraceEnabled()) LOG.trace("EPCP AA0 Region Key " + Hex.encodeHexString(request.getRegionName(i).toStringUtf8().getBytes()));
-         if (LOG.isTraceEnabled()) LOG.trace("EPCP AA0 Region Key " + this.m_Region.getRegionNameAsString());
+         if (LOG.isTraceEnabled()) LOG.trace("EPCP AA0 Region Key " + this.m_Region.getRegionInfo().getRegionNameAsString());
          if (LOG.isTraceEnabled()) LOG.trace("EPCP AA0 Region Key " + this.m_Region.getRegionName().toString());
          if (LOG.isTraceEnabled()) LOG.trace("EPCP AA0 Region Key " + Hex.encodeHexString(ByteString.copyFrom(this.m_Region.getRegionName()).toString().getBytes()));
          if (LOG.isTraceEnabled()) LOG.trace("EPCP AA1 Region Key " + Hex.encodeHexString(requestRegionName.getBytes()));
-         if (LOG.isTraceEnabled()) LOG.trace("EPCP AA2 Region Key " + Hex.encodeHexString(this.m_Region.getRegionNameAsString().getBytes()));
+         if (LOG.isTraceEnabled()) LOG.trace("EPCP AA2 Region Key " + Hex.encodeHexString(this.m_Region.getRegionInfo().getRegionNameAsString().getBytes()));
          if (LOG.isTraceEnabled()) LOG.trace("EPCP AA2 Region Key " + Hex.encodeHexString(this.m_Region.getRegionName()));
 
          if (requestRegionName.equals(ByteString.copyFrom(this.m_Region.getRegionName()).toString())) {
             if (LOG.isTraceEnabled()) { LOG.trace("EPCP BB0 Region Key matches !! " + request.getRegionName(i).toString()); }
          }
-         if (Arrays.equals(request.getRegionName(i).toStringUtf8().getBytes(), this.m_Region.getRegionNameAsString().getBytes())) {
+         if (Arrays.equals(request.getRegionName(i).toStringUtf8().getBytes(), this.m_Region.getRegionInfo().getRegionNameAsString().getBytes())) {
             if (LOG.isTraceEnabled()) { LOG.trace("EPCP BB1 Region Key matches !! " + request.getRegionName(i).toString()); }
          }
-         if (request.getRegionName(i).toStringUtf8().equals(this.m_Region.getRegionNameAsString())) {
+         if (request.getRegionName(i).toStringUtf8().equals(this.m_Region.getRegionInfo().getRegionNameAsString())) {
             if (LOG.isTraceEnabled()) { LOG.trace("EPCP BB2 Region Key matches !! " + request.getRegionName(i).toString()); }
          }
 */         
@@ -2839,7 +2839,7 @@ CoprocessorService, Coprocessor {
       }
     }
     if (LOG.isInfoEnabled()) LOG.info("TrxRegionEndpoint coprocessor: getMax - txId " + transactionId + ", Maximum from this region is "
-        + env.getRegion().getRegionNameAsString() + ": " + max);
+        + env.getRegionInfo().getRegionNameAsString() + ": " + max);
     done.run(response);
   }
 
@@ -2892,7 +2892,7 @@ CoprocessorService, Coprocessor {
       }
     }
     if (LOG.isInfoEnabled()) LOG.info("TrxRegionEndpoint coprocessor: getMin - txId " + transactionId + ", Minimum from this region is "
-        + env.getRegion().getRegionNameAsString() + ": " + min);
+        + env.getRegionInfo().getRegionNameAsString() + ": " + min);
     done.run(response);
   }
 
@@ -2947,7 +2947,7 @@ CoprocessorService, Coprocessor {
       }
     }
     if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: getSum - txId " + transactionId + ", Sum from this region is "
-        + env.getRegion().getRegionNameAsString() + ": " + sum);
+        + env.getRegionInfo().getRegionNameAsString() + ": " + sum);
     done.run(response);
   }
 
@@ -3001,9 +3001,9 @@ CoprocessorService, Coprocessor {
     }
 
     if (LOG.isInfoEnabled()) LOG.info(String.format("Row counter for txId %d from this region: %s is %d, startKey is [%s], endKey is [%s]",
-        transactionId, env.getRegion().getRegionNameAsString(), counter, 
-        env.getRegion().getStartKey() == null ? "null" : Bytes.toStringBinary(env.getRegion().getStartKey()), 
-        env.getRegion().getEndKey() == null ? "null" : Bytes.toStringBinary(env.getRegion().getEndKey())));
+        transactionId, env.getRegionInfo().getRegionNameAsString(), counter, 
+        env.getRegionInfo().getStartKey() == null ? "null" : Bytes.toStringBinary(env.getRegionInfo().getStartKey()), 
+        env.getRegionInfo().getEndKey() == null ? "null" : Bytes.toStringBinary(env.getRegionInfo().getEndKey())));
 
     done.run(response);
   }
@@ -3265,8 +3265,13 @@ CoprocessorService, Coprocessor {
     if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: start");
     RegionCoprocessorEnvironment tmp_env = 
       (RegionCoprocessorEnvironment)env;
+#ifdef HDP2.3
+    this.m_Region = (HRegion)
+       tmp_env.getRegion();
+#else
     this.m_Region =
        tmp_env.getRegion();
+#endif
     this.regionInfo = this.m_Region.getRegionInfo();
     
     this.t_Region = (TransactionalRegion) tmp_env.getRegion();
@@ -3429,7 +3434,7 @@ CoprocessorService, Coprocessor {
     else
        if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: shared map is NOT empty");
 
-    transactionsEPCPMap.put(this.m_Region.getRegionNameAsString()+trxkeyEPCPinstance, this);
+    transactionsEPCPMap.put(this.m_Region.getRegionInfo().getRegionNameAsString()+trxkeyEPCPinstance, this);
 
     transactionsByIdTestz = TrxRegionObserver.getRefMap();
 
@@ -3439,65 +3444,65 @@ CoprocessorService, Coprocessor {
     else  {
        if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: reference map is NOT empty ");
     }
-    if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: Region " + this.m_Region.getRegionNameAsString() + " check indoubt list from reference map ");
+    if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: Region " + this.m_Region.getRegionInfo().getRegionNameAsString() + " check indoubt list from reference map ");
 
     Map<Long, List<WALEdit>> indoubtTransactionsByIdCheck = (TreeMap<Long, List<WALEdit>>)transactionsByIdTestz.get(
-            this.m_Region.getRegionNameAsString()+TrxRegionObserver.trxkeypendingTransactionsById);
+            this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeypendingTransactionsById);
     if(indoubtTransactionsByIdCheck != null) {
         this.indoubtTransactionsById = indoubtTransactionsByIdCheck;
     }
     else {
-        transactionsByIdTestz.put(this.m_Region.getRegionNameAsString()+TrxRegionObserver.trxkeypendingTransactionsById,
+        transactionsByIdTestz.put(this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeypendingTransactionsById,
                                   this.indoubtTransactionsById);
     }
 
     Map<Integer, Integer> indoubtTransactionsCountByTmidCheck = (TreeMap<Integer,Integer>)transactionsByIdTestz.get(
-            this.m_Region.getRegionNameAsString()+TrxRegionObserver.trxkeyindoubtTransactionsCountByTmid);
+            this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeyindoubtTransactionsCountByTmid);
     if(indoubtTransactionsCountByTmidCheck != null) {
         this.indoubtTransactionsCountByTmid = indoubtTransactionsCountByTmidCheck;
     }
     else {
-        transactionsByIdTestz.put(this.m_Region.getRegionNameAsString()+TrxRegionObserver.trxkeyindoubtTransactionsCountByTmid,
+        transactionsByIdTestz.put(this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeyindoubtTransactionsCountByTmid,
                                   this.indoubtTransactionsCountByTmid);
     }
 
     Set<TrxTransactionState> commitPendingTransactionsCheck = (Set<TrxTransactionState>)transactionsByIdTestz.get(
-            this.m_Region.getRegionNameAsString()+TrxRegionObserver.trxkeycommitPendingTransactions);
+            this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeycommitPendingTransactions);
     if(commitPendingTransactionsCheck != null) {
         this.commitPendingTransactions = commitPendingTransactionsCheck;
     }
     else {
-        transactionsByIdTestz.put(this.m_Region.getRegionNameAsString()+TrxRegionObserver.trxkeycommitPendingTransactions,
+        transactionsByIdTestz.put(this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeycommitPendingTransactions,
                 this.commitPendingTransactions);
     }
 
     ConcurrentHashMap<String, TrxTransactionState> transactionsByIdCheck = (ConcurrentHashMap<String, TrxTransactionState>) transactionsByIdTestz.get(
-            this.m_Region.getRegionNameAsString()+TrxRegionObserver.trxkeytransactionsById);
+            this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeytransactionsById);
     if(transactionsByIdCheck != null) {
         this.transactionsById = transactionsByIdCheck;
     }
     else {
-        transactionsByIdTestz.put(this.m_Region.getRegionNameAsString()+TrxRegionObserver.trxkeytransactionsById,
+        transactionsByIdTestz.put(this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeytransactionsById,
                                   this.transactionsById);
     }
 
     AtomicBoolean closingCheck = (AtomicBoolean)transactionsByIdTestz
-            .get(this.m_Region.getRegionNameAsString()+TrxRegionObserver.trxkeyClosingVar);
+            .get(this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeyClosingVar);
     if(closingCheck != null) {
         this.closing = closingCheck;
     }
     else {
-        transactionsByIdTestz.put(this.m_Region.getRegionNameAsString()+TrxRegionObserver.trxkeyClosingVar,
+        transactionsByIdTestz.put(this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeyClosingVar,
                                   this.closing);
     }
     ConcurrentHashMap<Long,TransactionalRegionScannerHolder> scannersCheck =
         (ConcurrentHashMap<Long,TransactionalRegionScannerHolder>)transactionsByIdTestz
-        .get(this.m_Region.getRegionNameAsString()+TrxRegionObserver.trxkeyScanners);
+        .get(this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeyScanners);
     if(scannersCheck != null) {
       this.scanners = scannersCheck;
     }
     else {
-      transactionsByIdTestz.put(this.m_Region.getRegionNameAsString()+TrxRegionObserver.trxkeyScanners,
+      transactionsByIdTestz.put(this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeyScanners,
                               this.scanners);
     }
 
@@ -3513,7 +3518,7 @@ CoprocessorService, Coprocessor {
     if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: stop ");
     stoppable.stop("stop() TrxRegionEndpoint");
 
-    transactionsEPCPMap.remove(this.m_Region.getRegionNameAsString()+trxkeyEPCPinstance);
+    transactionsEPCPMap.remove(this.m_Region.getRegionInfo().getRegionNameAsString()+trxkeyEPCPinstance);
 
   }
 
@@ -3741,7 +3746,11 @@ CoprocessorService, Coprocessor {
 
     try {
           if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: Trafodion Recovery:  Flushing cache in startRegionAfterRecovery " + m_Region.getRegionInfo().getRegionNameAsString());
+#ifdef HDP2.3
+          m_Region.flush(true);
+#else
           m_Region.flushcache();
+#endif
           //if (!m_Region.flushcache().isFlushSucceeded()) { 
           //   LOG.trace("TrxRegionEndpoint coprocessor: Trafodion Recovery:  Flushcache returns false !!! " + m_Region.getRegionInfo().getRegionNameAsString());
           //}
@@ -5739,7 +5748,7 @@ CoprocessorService, Coprocessor {
    * @return String 
    */
   public String getRegionNameAsString() {
-    return this.m_Region.getRegionNameAsString();
+    return this.m_Region.getRegionInfo().getRegionNameAsString();
   }
 
 /**

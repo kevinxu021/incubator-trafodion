@@ -160,7 +160,9 @@ public class KeyValueListScanner implements KeyValueScanner {
     throw new NotImplementedException("Not implemented");
   }
 
-//FOR_APACHE@Override
+#ifndef CDH1.0
+  @Override
+#endif
   public Cell getNextIndexedKey() {
 	return null;
   }
