@@ -25,34 +25,3 @@
 #  trafodion_config file. This script will be called from
 #  traf_config_setup and will prompt for user needed prompts. 
 
-
-export TRAF_CONFIG="/etc/trafodion/trafodion_config"
-
-function checkDBAdminUser {
-
-if [ -z $DB_ADMIN_USER ]; then
-   echo "***ERROR: DB_ADMIN_USER variable not set in config file."
-   echo "***ERROR: DB_ADMIN_PASSWORD variable will need to be set as well."
-   exit -1
-
-fi
-
-}
-
-function checkDBAdminPass {
-
-if [ -z $DB_ADMIN_PASSWORD ]; then
-   echo "***ERROR: DB_ADMIN_PASSWORD variable not set in config file."
-   exit -1
-
-fi
-
-}
-
-
-#Main
-
-source $TRAF_CONFIG
-
-checkDBAdminUser
-checkDBAdminPass
