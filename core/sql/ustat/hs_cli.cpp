@@ -1358,6 +1358,7 @@ void HSPersSamples::setCatalogSchema(const NAString &catalog,
   {
     *catalog_ = catalog;
     *schema_ = schema;
+    triedCreatingSBPersistentSamples_ = false; // will try again on a new schema
   }
 
 //
