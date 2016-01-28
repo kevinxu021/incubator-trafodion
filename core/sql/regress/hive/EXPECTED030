@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Wed Jan 27 19:03:20 2016
+-- Definition current  Thu Jan 28 23:11:13 2016
 
   (
     S_STORE_SK                       INT
@@ -89,14 +89,6 @@
   , S_GMT_OFFSET                     REAL
   , S_TAX_PRECENTAGE                 REAL
   )
-  PRIMARY KEY (S_STORE_SK ASC, S_STORE_ID ASC, S_REC_START_DATE ASC,
-    S_REC_END_DATE ASC, S_CLOSED_DATE_SK ASC, S_STORE_NAME ASC,
-    S_NUMBER_EMPLOYEES ASC, S_FLOOR_SPACE ASC, S_HOURS ASC, S_MANAGER ASC,
-    S_MARKET_ID ASC, S_GEOGRAPHY_CLASS ASC, S_MARKET_DESC ASC, S_MARKET_MANAGER
-    ASC, S_DIVISION_ID ASC, S_DIVISION_NAME ASC, S_COMPANY_ID ASC,
-    S_COMPANY_NAME ASC, S_STREET_NUMBER ASC, S_STREET_NAME ASC, S_STREET_TYPE
-    ASC, S_SUITE_NUMBER ASC, S_CITY ASC, S_COUNTY ASC, S_STATE ASC, S_ZIP ASC,
-    S_COUNTRY ASC, S_GMT_OFFSET ASC, S_TAX_PRECENTAGE ASC)
   /* stored as orc */
 
 --- SQL operation complete.
@@ -979,7 +971,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Wed Jan 27 19:03:56 2016
+-- Definition current  Thu Jan 28 23:11:53 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1024,7 +1016,7 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212320681437652499
+PLAN_ID .................. 212320782714328449
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 1.21
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
@@ -1139,7 +1131,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212320681440203452
+PLAN_ID .................. 212320782716521296
 ROWS_OUT ......... 2,880,401
 EST_TOTAL_COST ........... 1.77
 STATEMENT ................ select *
@@ -1314,5 +1306,539 @@ DESCRIPTION
   executor_predicates .... HIVE.CUSTOMER_ORC.C_CUSTOMER_SK is not null
 
 --- SQL operation complete.
+>>
+>>control query shape cut;
+
+--- SQL operation complete.
+>>set schema trafodion.sch;
+
+--- SQL operation complete.
+>>drop external table if exists date_dim_orc for hive.hive.date_dim_orc;
+
+--- SQL operation complete.
+>>cqd volatile_table_find_suitable_key 'SYSTEM';
+
+--- SQL operation complete.
+>>create external table date_dim_orc 
++>  (d_date_sk int, d_date_id varchar(100 bytes) character set utf8, d_date date, 
++>   d_month_seq int, d_week_seq int, d_quarter_seq int, d_year int, d_dow int,
++>   d_moy int, d_dom int, d_qoy int, d_fy_year int, d_fy_quarter_seq int,
++>   d_fy_week_seq int,
++>   d_day_name varchar(120 bytes) character set utf8, d_quarter_name varchar(200 bytes) character set utf8, d_holiday varchar(100 bytes) character set utf8,
++>   d_weekend varchar(100 bytes) character set utf8, d_following_holiday varchar(100 bytes) character set utf8, 
++>   d_first_dom int, d_last_dom int, d_same_day_ly int, d_same_day_lq int,
++>   d_current_day varchar(100 bytes) character set utf8, d_current_week varchar(111 bytes) character set utf8,
++>   d_current_month varchar(200 bytes) character set utf8, d_current_quarter varchar(100 bytes) character set utf8, 
++>   d_current_year varchar(100 bytes) character set utf8)
++>  for hive.hive.date_dim_orc primary key (d_date);
+
+--- SQL operation complete.
+>>invoke hive.hive.date_dim_orc;
+
+-- Definition of hive table DATE_DIM_ORC
+-- Definition current  Thu Jan 28 23:12:05 2016
+
+  (
+    D_DATE_SK                        INT
+  , D_DATE_ID                        VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_DATE                           DATE
+  , D_MONTH_SEQ                      INT
+  , D_WEEK_SEQ                       INT
+  , D_QUARTER_SEQ                    INT
+  , D_YEAR                           INT
+  , D_DOW                            INT
+  , D_MOY                            INT
+  , D_DOM                            INT
+  , D_QOY                            INT
+  , D_FY_YEAR                        INT
+  , D_FY_QUARTER_SEQ                 INT
+  , D_FY_WEEK_SEQ                    INT
+  , D_DAY_NAME                       VARCHAR(120 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_QUARTER_NAME                   VARCHAR(200 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_HOLIDAY                        VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_WEEKEND                        VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_FOLLOWING_HOLIDAY              VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_FIRST_DOM                      INT
+  , D_LAST_DOM                       INT
+  , D_SAME_DAY_LY                    INT
+  , D_SAME_DAY_LQ                    INT
+  , D_CURRENT_DAY                    VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_CURRENT_WEEK                   VARCHAR(111 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_CURRENT_MONTH                  VARCHAR(200 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_CURRENT_QUARTER                VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_CURRENT_YEAR                   VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  )
+  PRIMARY KEY (D_DATE ASC)
+  /* stored as orc */
+
+--- SQL operation complete.
+>>showddl hive.hive.date_dim_orc;
+
+/* Hive DDL */
+CREATE TABLE DATE_DIM_ORC
+  (
+    D_DATE_SK                        int
+  , D_DATE_ID                        string
+  , D_DATE                           date
+  , D_MONTH_SEQ                      int
+  , D_WEEK_SEQ                       int
+  , D_QUARTER_SEQ                    int
+  , D_YEAR                           int
+  , D_DOW                            int
+  , D_MOY                            int
+  , D_DOM                            int
+  , D_QOY                            int
+  , D_FY_YEAR                        int
+  , D_FY_QUARTER_SEQ                 int
+  , D_FY_WEEK_SEQ                    int
+  , D_DAY_NAME                       string
+  , D_QUARTER_NAME                   string
+  , D_HOLIDAY                        string
+  , D_WEEKEND                        string
+  , D_FOLLOWING_HOLIDAY              string
+  , D_FIRST_DOM                      int
+  , D_LAST_DOM                       int
+  , D_SAME_DAY_LY                    int
+  , D_SAME_DAY_LQ                    int
+  , D_CURRENT_DAY                    string
+  , D_CURRENT_WEEK                   string
+  , D_CURRENT_MONTH                  string
+  , D_CURRENT_QUARTER                string
+  , D_CURRENT_YEAR                   string
+  )
+  stored as orc
+;
+
+/* Trafodion DDL */
+
+CREATE EXTERNAL TABLE DATE_DIM_ORC
+  (
+    D_DATE_SK                        INT DEFAULT NULL
+  , D_DATE_ID                        VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_DATE                           DATE DEFAULT NULL
+  , D_MONTH_SEQ                      INT DEFAULT NULL
+  , D_WEEK_SEQ                       INT DEFAULT NULL
+  , D_QUARTER_SEQ                    INT DEFAULT NULL
+  , D_YEAR                           INT DEFAULT NULL
+  , D_DOW                            INT DEFAULT NULL
+  , D_MOY                            INT DEFAULT NULL
+  , D_DOM                            INT DEFAULT NULL
+  , D_QOY                            INT DEFAULT NULL
+  , D_FY_YEAR                        INT DEFAULT NULL
+  , D_FY_QUARTER_SEQ                 INT DEFAULT NULL
+  , D_FY_WEEK_SEQ                    INT DEFAULT NULL
+  , D_DAY_NAME                       VARCHAR(120 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_QUARTER_NAME                   VARCHAR(200 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_HOLIDAY                        VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_WEEKEND                        VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_FOLLOWING_HOLIDAY              VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_FIRST_DOM                      INT DEFAULT NULL
+  , D_LAST_DOM                       INT DEFAULT NULL
+  , D_SAME_DAY_LY                    INT DEFAULT NULL
+  , D_SAME_DAY_LQ                    INT DEFAULT NULL
+  , D_CURRENT_DAY                    VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_CURRENT_WEEK                   VARCHAR(111 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_CURRENT_MONTH                  VARCHAR(200 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_CURRENT_QUARTER                VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_CURRENT_YEAR                   VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , PRIMARY KEY (D_DATE ASC)
+  )
+  FOR HIVE.HIVE.DATE_DIM_ORC
+;
+
+--- SQL operation complete.
+>>prepare s from select * from hive.hive.date_dim_orc where d_date = date '2016-01-27';
+
+*** WARNING[6008] Statistics for column (D_DATE) from table HIVE.HIVE.DATE_DIM_ORC were not available. As a result, the access path chosen might not be the best possible.
+
+--- SQL command prepared.
+>>explain s;
+
+------------------------------------------------------------------ PLAN SUMMARY
+MODULE_NAME .............. DYNAMICALLY COMPILED
+STATEMENT_NAME ........... S
+PLAN_ID .................. 212320782726453435
+ROWS_OUT ................. 1
+EST_TOTAL_COST ........... 0.01
+STATEMENT ................ select *
+                           from hive.hive.date_dim_orc
+                           where d_date = date '2016-01-27';
+
+
+------------------------------------------------------------------ NODE LISTING
+ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
+REQUESTS_IN .............. 1
+ROWS_OUT ................. 1
+EST_OPER_COST ............ 0
+EST_TOTAL_COST ........... 0.01
+DESCRIPTION
+  max_card_est ........... 1
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  statement_index ........ 0
+  affinity_value ......... 0
+  max_max_cardinality .... 1
+  total_overflow_size .... 0.00 KB
+  xn_access_mode ......... read_only
+  xn_autoabort_interval    0
+  auto_query_retry ....... enabled
+  plan_version ....... 2,600
+  embedded_arkcmp ........ used
+  IS_SQLCI ............... ON
+  LDAP_USERNAME
+  HIVE_MAX_STRING_LENGTH  20
+  MODE_SEAHIVE ........... ON
+  TRAF_ENABLE_ORC_FORMAT   ON
+  HIST_ROWCOUNT_REQU  50,000
+  ORC_COLUMNS_PUSHDOWN ... ON
+  ORC_PRED_PUSHDOWN ...... ON
+  ORC_AGGR_PUSHDOWN ...... OFF
+  SCHEMA ................. TRAFODION.SCH
+  VOLATILE_TABLE_FIND_SUI  SYSTEM
+  select_list ............ HIVE.DATE_DIM_ORC.D_DATE_SK,
+                             HIVE.DATE_DIM_ORC.D_DATE_ID, %(2016-01-27),
+                             HIVE.DATE_DIM_ORC.D_MONTH_SEQ,
+                             HIVE.DATE_DIM_ORC.D_WEEK_SEQ,
+                             HIVE.DATE_DIM_ORC.D_QUARTER_SEQ,
+                             HIVE.DATE_DIM_ORC.D_YEAR, HIVE.DATE_DIM_ORC.D_DOW,
+                             HIVE.DATE_DIM_ORC.D_MOY, HIVE.DATE_DIM_ORC.D_DOM,
+                             HIVE.DATE_DIM_ORC.D_QOY,
+                             HIVE.DATE_DIM_ORC.D_FY_YEAR,
+                             HIVE.DATE_DIM_ORC.D_FY_QUARTER_SEQ,
+                             HIVE.DATE_DIM_ORC.D_FY_WEEK_SEQ,
+                             HIVE.DATE_DIM_ORC.D_DAY_NAME,
+                             HIVE.DATE_DIM_ORC.D_QUARTER_NAME,
+                             HIVE.DATE_DIM_ORC.D_HOLIDAY,
+                             HIVE.DATE_DIM_ORC.D_WEEKEND,
+                             HIVE.DATE_DIM_ORC.D_FOLLOWING_HOLIDAY,
+                             HIVE.DATE_DIM_ORC.D_FIRST_DOM,
+                             HIVE.DATE_DIM_ORC.D_LAST_DOM,
+                             HIVE.DATE_DIM_ORC.D_SAME_DAY_LY,
+                             HIVE.DATE_DIM_ORC.D_SAME_DAY_LQ,
+                             HIVE.DATE_DIM_ORC.D_CURRENT_DAY,
+                             HIVE.DATE_DIM_ORC.D_CURRENT_WEEK,
+                             HIVE.DATE_DIM_ORC.D_CURRENT_MONTH,
+                             HIVE.DATE_DIM_ORC.D_CURRENT_QUARTER,
+                             HIVE.DATE_DIM_ORC.D_CURRENT_YEAR
+  input_variables ........ %(2016-01-27)
+
+
+ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
+TABLE_NAME ............... HIVE.HIVE.DATE_DIM_ORC
+REQUESTS_IN .............. 1
+ROWS_OUT ................. 1
+EST_OPER_COST ............ 0.01
+EST_TOTAL_COST ........... 0.01
+DESCRIPTION
+  max_card_est ........... 1
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  scan_type .............. subset scan of table HIVE.HIVE.DATE_DIM_ORC
+  object_type ............ Hive_Orc
+  scan_direction ......... forward
+  lock_mode .............. not specified, defaulted to lock cursor
+  access_mode ............ not specified, defaulted to read committed
+  columns_retrieved ..... 28
+  orc_pred_pushdown ...... yes
+  orc_search_arguments ... and( HIVE.DATE_DIM_ORC.D_DATE = cast(%(2016-01-27))
+                             )
+  key_columns ............ HIVE.DATE_DIM_ORC.D_DATE
+  executor_predicates .... (HIVE.DATE_DIM_ORC.D_DATE = %(2016-01-27))
+
+--- SQL operation complete.
+>>
+>>drop external table if exists date_dim_orc for hive.hive.date_dim_orc;
+
+--- SQL operation complete.
+>>create external table date_dim_orc 
++>  (d_date_sk int, d_date_id varchar(100 bytes) character set utf8, d_date date)
++>  for hive.hive.date_dim_orc primary key (d_date);
+
+--- SQL operation complete.
+>>invoke hive.hive.date_dim_orc;
+
+-- Definition of hive table DATE_DIM_ORC
+-- Definition current  Thu Jan 28 23:12:13 2016
+
+  (
+    D_DATE_SK                        INT
+  , D_DATE_ID                        VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_DATE                           DATE
+  , D_MONTH_SEQ                      INT
+  , D_WEEK_SEQ                       INT
+  , D_QUARTER_SEQ                    INT
+  , D_YEAR                           INT
+  , D_DOW                            INT
+  , D_MOY                            INT
+  , D_DOM                            INT
+  , D_QOY                            INT
+  , D_FY_YEAR                        INT
+  , D_FY_QUARTER_SEQ                 INT
+  , D_FY_WEEK_SEQ                    INT
+  , D_DAY_NAME                       VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_QUARTER_NAME                   VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_HOLIDAY                        VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_WEEKEND                        VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_FOLLOWING_HOLIDAY              VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_FIRST_DOM                      INT
+  , D_LAST_DOM                       INT
+  , D_SAME_DAY_LY                    INT
+  , D_SAME_DAY_LQ                    INT
+  , D_CURRENT_DAY                    VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_CURRENT_WEEK                   VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_CURRENT_MONTH                  VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_CURRENT_QUARTER                VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  , D_CURRENT_YEAR                   VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT
+  )
+  PRIMARY KEY (D_DATE ASC)
+  /* stored as orc */
+
+--- SQL operation complete.
+>>showddl hive.hive.date_dim_orc;
+
+/* Hive DDL */
+CREATE TABLE DATE_DIM_ORC
+  (
+    D_DATE_SK                        int
+  , D_DATE_ID                        string
+  , D_DATE                           date
+  , D_MONTH_SEQ                      int
+  , D_WEEK_SEQ                       int
+  , D_QUARTER_SEQ                    int
+  , D_YEAR                           int
+  , D_DOW                            int
+  , D_MOY                            int
+  , D_DOM                            int
+  , D_QOY                            int
+  , D_FY_YEAR                        int
+  , D_FY_QUARTER_SEQ                 int
+  , D_FY_WEEK_SEQ                    int
+  , D_DAY_NAME                       string
+  , D_QUARTER_NAME                   string
+  , D_HOLIDAY                        string
+  , D_WEEKEND                        string
+  , D_FOLLOWING_HOLIDAY              string
+  , D_FIRST_DOM                      int
+  , D_LAST_DOM                       int
+  , D_SAME_DAY_LY                    int
+  , D_SAME_DAY_LQ                    int
+  , D_CURRENT_DAY                    string
+  , D_CURRENT_WEEK                   string
+  , D_CURRENT_MONTH                  string
+  , D_CURRENT_QUARTER                string
+  , D_CURRENT_YEAR                   string
+  )
+  stored as orc
+;
+
+/* Trafodion DDL */
+
+CREATE EXTERNAL TABLE DATE_DIM_ORC
+  (
+    D_DATE_SK                        INT DEFAULT NULL
+  , D_DATE_ID                        VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_DATE                           DATE DEFAULT NULL
+  , D_MONTH_SEQ                      INT DEFAULT NULL
+  , D_WEEK_SEQ                       INT DEFAULT NULL
+  , D_QUARTER_SEQ                    INT DEFAULT NULL
+  , D_YEAR                           INT DEFAULT NULL
+  , D_DOW                            INT DEFAULT NULL
+  , D_MOY                            INT DEFAULT NULL
+  , D_DOM                            INT DEFAULT NULL
+  , D_QOY                            INT DEFAULT NULL
+  , D_FY_YEAR                        INT DEFAULT NULL
+  , D_FY_QUARTER_SEQ                 INT DEFAULT NULL
+  , D_FY_WEEK_SEQ                    INT DEFAULT NULL
+  , D_DAY_NAME                       VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_QUARTER_NAME                   VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_HOLIDAY                        VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_WEEKEND                        VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_FOLLOWING_HOLIDAY              VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_FIRST_DOM                      INT DEFAULT NULL
+  , D_LAST_DOM                       INT DEFAULT NULL
+  , D_SAME_DAY_LY                    INT DEFAULT NULL
+  , D_SAME_DAY_LQ                    INT DEFAULT NULL
+  , D_CURRENT_DAY                    VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_CURRENT_WEEK                   VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_CURRENT_MONTH                  VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_CURRENT_QUARTER                VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_CURRENT_YEAR                   VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , PRIMARY KEY (D_DATE ASC)
+  )
+  FOR HIVE.HIVE.DATE_DIM_ORC
+;
+
+--- SQL operation complete.
+>>prepare s from select * from hive.hive.date_dim_orc where d_date = date '2016-01-27';
+
+*** WARNING[6008] Statistics for column (D_DATE) from table HIVE.HIVE.DATE_DIM_ORC were not available. As a result, the access path chosen might not be the best possible.
+
+--- SQL command prepared.
+>>explain s;
+
+------------------------------------------------------------------ PLAN SUMMARY
+MODULE_NAME .............. DYNAMICALLY COMPILED
+STATEMENT_NAME ........... S
+PLAN_ID .................. 212320782734332118
+ROWS_OUT ................. 1
+EST_TOTAL_COST ........... 0.01
+STATEMENT ................ select *
+                           from hive.hive.date_dim_orc
+                           where d_date = date '2016-01-27';
+
+
+------------------------------------------------------------------ NODE LISTING
+ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
+REQUESTS_IN .............. 1
+ROWS_OUT ................. 1
+EST_OPER_COST ............ 0
+EST_TOTAL_COST ........... 0.01
+DESCRIPTION
+  max_card_est ........... 1
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  statement_index ........ 0
+  affinity_value ......... 0
+  max_max_cardinality .... 1
+  total_overflow_size .... 0.00 KB
+  xn_access_mode ......... read_only
+  xn_autoabort_interval    0
+  auto_query_retry ....... enabled
+  plan_version ....... 2,600
+  embedded_arkcmp ........ used
+  IS_SQLCI ............... ON
+  LDAP_USERNAME
+  HIVE_MAX_STRING_LENGTH  20
+  MODE_SEAHIVE ........... ON
+  TRAF_ENABLE_ORC_FORMAT   ON
+  HIST_ROWCOUNT_REQU  50,000
+  ORC_COLUMNS_PUSHDOWN ... ON
+  ORC_PRED_PUSHDOWN ...... ON
+  ORC_AGGR_PUSHDOWN ...... OFF
+  SCHEMA ................. TRAFODION.SCH
+  VOLATILE_TABLE_FIND_SUI  SYSTEM
+  select_list ............ HIVE.DATE_DIM_ORC.D_DATE_SK,
+                             HIVE.DATE_DIM_ORC.D_DATE_ID, %(2016-01-27),
+                             HIVE.DATE_DIM_ORC.D_MONTH_SEQ,
+                             HIVE.DATE_DIM_ORC.D_WEEK_SEQ,
+                             HIVE.DATE_DIM_ORC.D_QUARTER_SEQ,
+                             HIVE.DATE_DIM_ORC.D_YEAR, HIVE.DATE_DIM_ORC.D_DOW,
+                             HIVE.DATE_DIM_ORC.D_MOY, HIVE.DATE_DIM_ORC.D_DOM,
+                             HIVE.DATE_DIM_ORC.D_QOY,
+                             HIVE.DATE_DIM_ORC.D_FY_YEAR,
+                             HIVE.DATE_DIM_ORC.D_FY_QUARTER_SEQ,
+                             HIVE.DATE_DIM_ORC.D_FY_WEEK_SEQ,
+                             HIVE.DATE_DIM_ORC.D_DAY_NAME,
+                             HIVE.DATE_DIM_ORC.D_QUARTER_NAME,
+                             HIVE.DATE_DIM_ORC.D_HOLIDAY,
+                             HIVE.DATE_DIM_ORC.D_WEEKEND,
+                             HIVE.DATE_DIM_ORC.D_FOLLOWING_HOLIDAY,
+                             HIVE.DATE_DIM_ORC.D_FIRST_DOM,
+                             HIVE.DATE_DIM_ORC.D_LAST_DOM,
+                             HIVE.DATE_DIM_ORC.D_SAME_DAY_LY,
+                             HIVE.DATE_DIM_ORC.D_SAME_DAY_LQ,
+                             HIVE.DATE_DIM_ORC.D_CURRENT_DAY,
+                             HIVE.DATE_DIM_ORC.D_CURRENT_WEEK,
+                             HIVE.DATE_DIM_ORC.D_CURRENT_MONTH,
+                             HIVE.DATE_DIM_ORC.D_CURRENT_QUARTER,
+                             HIVE.DATE_DIM_ORC.D_CURRENT_YEAR
+  input_variables ........ %(2016-01-27)
+
+
+ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
+TABLE_NAME ............... HIVE.HIVE.DATE_DIM_ORC
+REQUESTS_IN .............. 1
+ROWS_OUT ................. 1
+EST_OPER_COST ............ 0.01
+EST_TOTAL_COST ........... 0.01
+DESCRIPTION
+  max_card_est ........... 1
+  fragment_id ............ 0
+  parent_frag ............ (none)
+  fragment_type .......... master
+  scan_type .............. subset scan of table HIVE.HIVE.DATE_DIM_ORC
+  object_type ............ Hive_Orc
+  scan_direction ......... forward
+  lock_mode .............. not specified, defaulted to lock cursor
+  access_mode ............ not specified, defaulted to read committed
+  columns_retrieved ..... 28
+  orc_pred_pushdown ...... yes
+  orc_search_arguments ... and( HIVE.DATE_DIM_ORC.D_DATE = cast(%(2016-01-27))
+                             )
+  key_columns ............ HIVE.DATE_DIM_ORC.D_DATE
+  executor_predicates .... (HIVE.DATE_DIM_ORC.D_DATE = %(2016-01-27))
+
+--- SQL operation complete.
+>>
+>>
+>>-- error cases
+>>drop external table if exists date_dim_orc for hive.hive.date_dim_orc;
+
+--- SQL operation complete.
+>>
+>>-- column d_date_skk doesn't exist in native hive table
+>>create external table date_dim_orc 
++>  (d_date_skk int)
++>  for hive.hive.date_dim_orc;
+
+*** ERROR[1009] Column D_DATE_SKK does not exist in the specified table.
+
+--- SQL operation failed with errors.
+>>
+>>-- column d_date_sk has incompatible type
+>>create external table date_dim_orc 
++>  (d_date_sk date)
++>  for hive.hive.date_dim_orc;
+
+*** ERROR[1186] Column D_DATE_SK is of type DATE which is not compatible with the default value's type, INTEGER SIGNED.
+
+--- SQL operation failed with errors.
 >>
 >>log;

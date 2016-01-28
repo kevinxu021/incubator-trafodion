@@ -7439,17 +7439,6 @@ void BindWA::markAsReferencedColumn(const ValueId &vid,
 
 ItemExpr *ColReference::bindNode(BindWA *bindWA)
 {
-  if (colRefName_->getColName() == "S_STORE_SK")
-    {
-      //      ItemExpr * ie = getValueId().getItemExpr();
-
-      Lng32 ij = 0;
-      while (ij)
-        {
-          ij = 2 - ij;
-        }
-    }
-
   if (nodeIsBound()) 
     {
       if (getColRefNameObj().isStar())
@@ -7471,17 +7460,6 @@ ItemExpr *ColReference::bindNode(BindWA *bindWA)
       return getValueId().getItemExpr();
     }
   
-  if (colRefName_->getColName() == "S_STORE_SK")
-    {
-      //      ItemExpr * ie = getValueId().getItemExpr();
-
-      Lng32 ij = 0;
-      while (ij)
-        {
-          ij = 2 - ij;
-        }
-    }
-
   // In mode_special_4,
   // if name is of the form:   IDENTIFIER.NEXTVAL or IDENTIFIER.CURRVAL,
   // then change it to:  seqnum(identifier, next) or seqnum(identifier, current)
@@ -8138,15 +8116,6 @@ ItemExpr *ColReference::bindNode(BindWA *bindWA)
 				  getParent());
   if (!currScope->context()->inComputedColumnExpr())
     bindWA->markAsReferencedColumn(xcnmEntry->getColumnDesc());
-
-  if (colRefName_->getColName() == "S_STORE_SK")
-    {
-      Lng32 ij = 0;
-      while (ij)
-        {
-          ij = 2 - ij;
-        }
-    }
 
   bindSelf(bindWA);
   return valId.getItemExpr();

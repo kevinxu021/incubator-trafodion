@@ -8205,6 +8205,8 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
                      (bindWA, cn, naTableHeap, etDesc);
                    
                    table->updateExtTableAttrs(etTable);
+
+                   table->setHasHiveExtTable(TRUE);
                  }
              } // ORC table
 	 }

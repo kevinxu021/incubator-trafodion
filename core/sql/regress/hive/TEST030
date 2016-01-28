@@ -179,3 +179,47 @@ prepare s from select * from customer_orc, store_sales_orc
 explain options 'f' s;
 explain s;
 
+control query shape cut;
+set schema trafodion.sch;
+drop external table if exists date_dim_orc for hive.hive.date_dim_orc;
+cqd volatile_table_find_suitable_key 'SYSTEM';
+create external table date_dim_orc 
+  (d_date_sk int, d_date_id varchar(100 bytes) character set utf8, d_date date, 
+   d_month_seq int, d_week_seq int, d_quarter_seq int, d_year int, d_dow int,
+   d_moy int, d_dom int, d_qoy int, d_fy_year int, d_fy_quarter_seq int,
+   d_fy_week_seq int,
+   d_day_name varchar(120 bytes) character set utf8, d_quarter_name varchar(200 bytes) character set utf8, d_holiday varchar(100 bytes) character set utf8,
+   d_weekend varchar(100 bytes) character set utf8, d_following_holiday varchar(100 bytes) character set utf8, 
+   d_first_dom int, d_last_dom int, d_same_day_ly int, d_same_day_lq int,
+   d_current_day varchar(100 bytes) character set utf8, d_current_week varchar(111 bytes) character set utf8,
+   d_current_month varchar(200 bytes) character set utf8, d_current_quarter varchar(100 bytes) character set utf8, 
+   d_current_year varchar(100 bytes) character set utf8)
+  for hive.hive.date_dim_orc primary key (d_date);
+invoke hive.hive.date_dim_orc;
+showddl hive.hive.date_dim_orc;
+prepare s from select * from hive.hive.date_dim_orc where d_date = date '2016-01-27';
+explain s;
+
+drop external table if exists date_dim_orc for hive.hive.date_dim_orc;
+create external table date_dim_orc 
+  (d_date_sk int, d_date_id varchar(100 bytes) character set utf8, d_date date)
+  for hive.hive.date_dim_orc primary key (d_date);
+invoke hive.hive.date_dim_orc;
+showddl hive.hive.date_dim_orc;
+prepare s from select * from hive.hive.date_dim_orc where d_date = date '2016-01-27';
+explain s;
+
+
+-- error cases
+drop external table if exists date_dim_orc for hive.hive.date_dim_orc;
+
+-- column d_date_skk doesn't exist in native hive table
+create external table date_dim_orc 
+  (d_date_skk int)
+  for hive.hive.date_dim_orc;
+
+-- column d_date_sk has incompatible type
+create external table date_dim_orc 
+  (d_date_sk date)
+  for hive.hive.date_dim_orc;
+
