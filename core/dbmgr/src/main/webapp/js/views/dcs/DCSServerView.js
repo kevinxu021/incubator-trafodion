@@ -96,7 +96,7 @@ define([
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					processing: true,
 					paging: bPaging,
-					autoWidth: true,
+					//autoWidth: true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "simple_numbers",
 					stateSave: true,
@@ -118,7 +118,7 @@ define([
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Connectivity Servers' }
 				          ],
 					fnDrawCallback: function(){
-						//$('#dcs-query-results td').css("white-space","nowrap");
+						$('#dcs-query-results td').css("white-space","nowrap");
 					}
 				});
 			}

@@ -26,13 +26,15 @@ define(['handlers/EventDispatcher'],
 				this.FETCH_REGIONS_ERROR = 'FETCH_REGIONS_ERROR';
 				this.FETCH_PRIVILEGES_SUCCESS = 'FETCH_PRIVILEGES_SUCCESS';
 				this.FETCH_PRIVILEGES_ERROR = 'FETCH_PRIVILEGES_ERROR';
+				this.FETCH_STATISTICS_SUCCESS = 'FETCH_STATISTICS_SUCCESS';
+				this.FETCH_STATISTICS_ERROR = 'FETCH_STATISTICS_ERROR';
 
 				
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
 				};
 
-				this.fetchObjects = function(objectType, schemaName){
+				this.fetchObjects = function(objectType, schemaName, parentObjectName){
 					var xhr = xhrs["objectlist"];
 					
 					if(xhr && xhr.readyState !=4){
@@ -42,6 +44,9 @@ define(['handlers/EventDispatcher'],
 					var uri = '/resources/db/objects?type='+objectType;
 					if(schemaName != null){
 						uri += '&schema=' + schemaName;
+					}
+					if(parentObjectName != null){
+						uri += '&parentObjectName=' + parentObjectName;
 					}
 					
 					xhrs["objectlist"] = $.ajax({
@@ -235,6 +240,41 @@ define(['handlers/EventDispatcher'],
 						},
 						error:function(jqXHR, res, error){
 							dispatcher.fire(_this.FETCH_PRIVILEGES_ERROR, jqXHR, res, error);
+						}
+					});
+				};
+				
+				this.fetchStatistics = function (objectType, objectName, objectID, schemaName) {
+					var xhr = xhrs["fetchStatistics"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					
+					var uri = '/resources/db/statistics?type='+objectType;
+					if(objectName != null){
+						uri += '&objectName=' + objectName;
+					}
+					if(objectID != null){
+						uri += '&objectID=' + objectID;
+					}
+					if(schemaName != null){
+						uri += '&schemaName=' + schemaName;
+					}
+					
+					xhrs["fetchStatistics"] = $.ajax({
+						url: uri,
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.FETCH_STATISTICS_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.FETCH_STATISTICS_ERROR, jqXHR, res, error);
 						}
 					});
 				};
