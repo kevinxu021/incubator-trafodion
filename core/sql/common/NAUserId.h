@@ -53,17 +53,21 @@
 // Defines for special users
 #define SYSTEM_AUTH_NAME "_SYSTEM"
 #define DB__ROOT         "DB__ROOT"
+#define DB__ADMIN        "DB__ADMIN"
 
 // Defines for special roles
 #define PUBLIC_AUTH_NAME "PUBLIC"
 #define DB__HIVEROLE     "DB__HIVEROLE"
 #define DB__HBASEROLE    "DB__HBASEROLE"
 #define DB__ROOTROLE     "DB__ROOTROLE"
+#define DB__ADMINROLE    "DB__ADMINROLE"
+#define DB__SERVICESROLE "DB__SERVICESROLE"
 
 #define SUPER_USER_LIT "33333"
 
 #define SYSTEM_USER  -2
 #define PUBLIC_USER  -1
+#define ADMIN_USER_ID 33332
 #define ROOT_USER_ID  33333
 #define SUPER_USER    33333  
 
@@ -71,5 +75,6 @@
 #define HIVE_ROLE_ID     1490000 
 #define HBASE_ROLE_ID    1490001
 
+#define DEFAULT_AUTH_EXT_NAME "TRAFODION"
 
 #endif  /*  NAUSERID_H*/

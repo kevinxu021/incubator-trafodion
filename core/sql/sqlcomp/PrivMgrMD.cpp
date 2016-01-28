@@ -136,9 +136,9 @@ PrivMgrMDAdmin::~PrivMgrMDAdmin()
 // Method:  initializeComponentPrivileges
 //
 // This method registers standard Trafodion components, creates the 
-// standard operations, and grants the privilege on those operations to
-// the role DB__ROOTROLE.  SQL DDL operations (CREATE_SCHEMA, SHOW) are 
-// granted to PUBLIC.
+// standard operations, and grants the privilege on those operations to the
+// owner (DB__ROOT), user DB__ADMIN, roles DB__ROOTROLE, DB_ADMINROLE, and
+// PUBLIC.
 //
 // Returns PrivStatus
 //    STATUS_GOOD
@@ -146,101 +146,154 @@ PrivMgrMDAdmin::~PrivMgrMDAdmin()
 //
 // A cli error is put into the diags area if there is an error
 // ----------------------------------------------------------------------------
-
 PrivStatus PrivMgrMDAdmin::initializeComponentPrivileges()
 
 {
+  PrivStatus privStatus = STATUS_GOOD;
 
-// Next, register the component.
-
-PrivStatus privStatus = STATUS_GOOD;
-
-   // First, let's start with a clean slate.  Drop all components as well as 
-   // their respective operations and and any privileges granted.  This should be  
-   // a NOP unless PrivMgr metadata was damaged and reintialization is occurring.
-   PrivMgrComponents components(metadataLocation_,pDiags_);
-   components.dropAll();
-
-   privStatus = components.registerComponentInternal(SQL_OPERATION_NAME,
-                                                     SQL_OPERATIONS_COMPONENT_UID, 
-                                                     true, "Component for SQL operations");
-                                             
-   if (privStatus != STATUS_GOOD)
+  // First register the component.
+  PrivMgrComponents components(metadataLocation_,pDiags_);
+  bool componentExists = (components.exists(SQL_OPERATION_NAME));
+  if (!componentExists)
+  {
+    privStatus = components.registerComponentInternal(SQL_OPERATION_NAME,
+                                                      SQL_OPERATIONS_COMPONENT_UID,
+                                                      true,"Component for SQL operations");
+    if (privStatus != STATUS_GOOD)
       return STATUS_ERROR;  
-      
-// Component is registered, now create all the operations associated with
-// the component.  A grant from the system to the grantee (DB__ROOT) will
-// be added for each operation.                                         
-                                
-PrivMgrComponentOperations componentOperations(metadataLocation_,pDiags_);
-std::vector<std::string> operationCodes;
+  }
 
-int32_t DB__ROOTID = ComUser::getRootUserID();
-std::string DB__ROOTName(ComUser::getRootUserName());
+  // Component is registered, now create all the operations associated with
+  // the component.  A grant from the system to the owner (DB__ROOT) will
+  // be added for each operation. In addition, set up the list of grants
+  // for different users/roles.
+  //   allOpsList - list of operations (granted to owner)
+  //   rootRoleList - list of operations granted to DB__ROOTROLE
+  //   adminList - list of operations granted to both DB__ADMIN and DB__ADMINROLE
+  //   publicList - list of operations granted to PUBLIC
+  std::vector<std::string> allOpsList;
+  std::vector<std::string> rootRoleList;
+  std::vector<std::string> adminList;
+  std::vector<std::string> publicList;
 
-   for (SQLOperation operation = SQLOperation::FIRST_OPERATION;
-        static_cast<int>(operation) <= static_cast<int>(SQLOperation::LAST_OPERATION); 
-        operation = static_cast<SQLOperation>(static_cast<int>(operation) + 1))
-   {
-      const char *codePtr = PrivMgr::getSQLOperationCode(operation);
-      privStatus = componentOperations.createOperationInternal(SQL_OPERATIONS_COMPONENT_UID,
-                                                               PrivMgr::getSQLOperationName(operation),
-                                                               codePtr,true,
-                                                               PrivMgr::getSQLOperationDescription(operation),
-                                                               DB__ROOTID,DB__ROOTName,-1);
+  PrivMgrComponentOperations componentOperations(metadataLocation_,pDiags_);
+  int32_t DB__ROOTID = ComUser::getRootUserID();
+  std::string DB__ROOTName(ComUser::getRootUserName());
+
+  // The componentOpList is the list of component operations required for
+  // the SQL_OPERATIONS component. Each entry contains the operationCode,
+  // operationName, and whether the privileges should be granted for DB__ROOTROLE,
+  // DB__ADMIN/DB__ADMINROLE, and PUBLIC.  Also, if it is an DML privilege,
+  size_t numOps = sizeof(componentOpList)/sizeof(ComponentOpStruct);
+  for (int i = 0; i < numOps; i++)
+  {
+    const ComponentOpStruct &opDefinition = componentOpList[i];
+
+    // Add the operation and owner grants
+    std::string description = "Allow grantee to perform ";
+    description += opDefinition.operationName;
+    description += " operation";
+    privStatus = componentOperations.createOperationInternal(SQL_OPERATIONS_COMPONENT_UID,
+                                                             opDefinition.operationName,
+                                                             opDefinition.operationCode,true,
+                                                             description,
+                                                             DB__ROOTID,DB__ROOTName,-1, 
+                                                             componentExists);
                                                        
-      if (privStatus == STATUS_GOOD)
-         operationCodes.push_back(codePtr); 
-      //TODO: report warning if not all operations added
-   }
+    // Go ahead and continue even if unsuccessful in creating the operation
+    if (privStatus == STATUS_GOOD)
+    {
+      // All operations are included in the allOpsList
+      allOpsList.push_back(opDefinition.operationName); 
+      if (opDefinition.isRootRoleOp)
+        rootRoleList.push_back(opDefinition.operationCode);
+      if (opDefinition.isAdminOp)
+        adminList.push_back(opDefinition.operationCode);
+      if (opDefinition.isPublicOp)
+        publicList.push_back(opDefinition.operationCode);
+    }
+  }
 
-// In the unlikely event no operations were created, we are done.   
-   if (operationCodes.size() == 0)
-      return STATUS_GOOD;
-      
-PrivMgrComponentPrivileges componentPrivileges(metadataLocation_,pDiags_);
+
+  // In the unlikely event no operations were created, we are done.   
+  if (allOpsList.size() == 0)
+    return STATUS_GOOD;
    
-// Grant all SQL_OPERATIONS to DB__ROOTROLE WITH GRANT OPTION                                      
-   privStatus = componentPrivileges.grantPrivilegeInternal(SQL_OPERATIONS_COMPONENT_UID,
-                                                           operationCodes,
-                                                           ComUser::getRootUserID(),
-                                                           ComUser::getRootUserName(),
-                                                           ROOT_ROLE_ID,
-                                                           DB__ROOTROLE,-1);
-                                                           
-   if (privStatus != STATUS_GOOD)
-      return privStatus;
+  // Grant privileges to DB__ROOTROLE WITH GRANT OPTION                                      
+  PrivMgrComponentPrivileges componentPrivileges(metadataLocation_,pDiags_);
+  privStatus = componentPrivileges.grantPrivilegeInternal(SQL_OPERATIONS_COMPONENT_UID,
+                                                          rootRoleList,
+                                                          ComUser::getRootUserID(),
+                                                          ComUser::getRootUserName(),
+                                                          ROOT_ROLE_ID,
+                                                          DB__ROOTROLE,-1,
+                                                          componentExists);
+  if (privStatus != STATUS_GOOD)
+    return privStatus;
                                       
-// Grant SQL_OPERATIONS CREATE_SCHEMA and SHOW to PUBLIC 
-std::vector<std::string> CSOperationCodes;
-
-   CSOperationCodes.push_back(PrivMgr::getSQLOperationCode(SQLOperation::CREATE_SCHEMA));
-   CSOperationCodes.push_back(PrivMgr::getSQLOperationCode(SQLOperation::SHOW));
-                                     
-   privStatus = componentPrivileges.grantPrivilegeInternal(SQL_OPERATIONS_COMPONENT_UID,
-                                                           CSOperationCodes,
-                                                           ComUser::getRootUserID(),
-                                                           ComUser::getRootUserName(),
-                                                           PUBLIC_USER,
-                                                           PUBLIC_AUTH_NAME,0);
-                                      
-   if (privStatus != STATUS_GOOD)
-      return privStatus;
+  // Grant privileges to PUBLIC
+  privStatus = componentPrivileges.grantPrivilegeInternal(SQL_OPERATIONS_COMPONENT_UID,
+                                                          publicList,
+                                                          ComUser::getRootUserID(),
+                                                          ComUser::getRootUserName(),
+                                                          PUBLIC_USER,
+                                                          PUBLIC_AUTH_NAME,0,
+                                                          componentExists);
+  if (privStatus != STATUS_GOOD)
+    return privStatus;
       
-// Verify counts for tables.
+  // Grant component operations to DB__ADMIN user 
+  privStatus = componentPrivileges.grantPrivilegeInternal(SQL_OPERATIONS_COMPONENT_UID,
+                                                          adminList,
+                                                          ComUser::getRootUserID(),
+                                                          ComUser::getRootUserName(),
+                                                          ADMIN_USER_ID,
+                                                          DB__ADMIN,0,
+                                                          componentExists);
 
-// Expected number of privileges granted is 2 for each operation (one each
-// for DB__ROOT and DB__ROOTROLE) plus the two grants to PUBLIC.
+  if (privStatus != STATUS_GOOD)
+    return privStatus;
 
-int64_t expectedPrivCount = static_cast<int64_t>(SQLOperation::NUMBER_OF_OPERATIONS) * 2 + 2;
+  // Grant component operations to DB__ADMINROLE role.
+  CmpSeabaseDDLrole role;
+  Int32 roleID = 0;
+  if (!role.getRoleIDFromRoleName(DB__ADMINROLE, roleID))
+    PRIVMGR_INTERNAL_ERROR("Unable to get role_id for DB__ADMINROLE"); 
+  privStatus = componentPrivileges.grantPrivilegeInternal(SQL_OPERATIONS_COMPONENT_UID,
+                                                          adminList,
+                                                          ComUser::getRootUserID(),
+                                                          ComUser::getRootUserName(),
+                                                          roleID,
+                                                          DB__ADMINROLE,0,
+                                                          componentExists);
 
-   if (components.getCount() != 1 ||
-       componentOperations.getCount() != static_cast<int64_t>(SQLOperation::NUMBER_OF_OPERATIONS) ||
-       componentPrivileges.getCount() != expectedPrivCount)
-      return STATUS_ERROR;
+  if (privStatus != STATUS_GOOD)
+    return privStatus;
+
+  // Verify counts for tables.
+
+  // Expected number of privileges granted is:
+  //   one for each operation (owner)
+  //   one for each entry in rootRoleList and publicList
+  //   two for each entry in adminList (DB__ADMIN & DB__ADMINROLE)
+  int64_t expectedPrivCount = numOps + rootRoleList.size() + 
+                             (adminList.size()*2) + publicList.size();
+
+  if (componentPrivileges.getCount() != expectedPrivCount)
+  {
+    std::string message ("Expected to insert ");
+    message += to_string((long long int)expectedPrivCount);
+    message += " component privileges, instead ";
+    message += to_string((long long int)componentPrivileges.getCount());
+    message += " were found.";
+    PRIVMGR_INTERNAL_ERROR(message.c_str());
+    return STATUS_ERROR;
+  }
      
-   return STATUS_GOOD; 
-
+  // See if any operations were not created change diags to warnings
+  //if (allOpsList.size() != numOps)
+  //  pDiags_.negateAllErrors();
+  return STATUS_GOOD; 
 }
 
 // ----------------------------------------------------------------------------
@@ -275,7 +328,7 @@ PrivStatus PrivMgrMDAdmin::initializeMetadata (
   Int32 cliRC = 0;
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
                           CmpCommon::context()->sqlSession()->getParentQid());
-  
+
   // See what tables exist
   std::set<std::string> existingObjectList;
   PrivMDStatus initStatus = authorizationEnabled(existingObjectList);
@@ -364,6 +417,8 @@ PrivStatus PrivMgrMDAdmin::initializeMetadata (
     // if error occurs, drop tables already created
     if (privStatus == STATUS_ERROR)
       throw STATUS_ERROR;
+
+    // Add any additional users, if they don't already exist
 
     //TODO: should notify QI?
   } 
@@ -498,6 +553,8 @@ PrivStatus PrivMgrMDAdmin::dropMetadata (const std::vector<std::string> &objects
   role.dropStandardRole(DB__ROOTROLE);
   role.dropStandardRole(DB__HIVEROLE);
   role.dropStandardRole(DB__HBASEROLE);
+  role.dropStandardRole(DB__ADMINROLE);
+  role.dropStandardRole(DB__SERVICESROLE);
     
 
 //TODO: should notify QI
@@ -1273,7 +1330,6 @@ PrivStatus PrivMgrMDAdmin::updatePrivMgrMetadata(
    const std::string &authsLocation,
    const bool shouldPopulateObjectPrivs,
    const bool shouldPopulateRoleGrants)
-   
 {
    
    PrivStatus privStatus = STATUS_GOOD;
@@ -1292,6 +1348,8 @@ PrivStatus PrivMgrMDAdmin::updatePrivMgrMetadata(
    role.createStandardRole(DB__ROOTROLE,ROOT_ROLE_ID);
    role.createStandardRole(DB__HIVEROLE,HIVE_ROLE_ID);
    role.createStandardRole(DB__HBASEROLE,HBASE_ROLE_ID);
+   role.createStandardRole(DB__ADMINROLE, NA_UserIdDefault);
+   role.createStandardRole(DB__SERVICESROLE, NA_UserIdDefault);
    
    if (shouldPopulateRoleGrants)
    {
@@ -1302,10 +1360,10 @@ PrivStatus PrivMgrMDAdmin::updatePrivMgrMetadata(
          return STATUS_ERROR;
    }
     
-      privStatus = initializeComponentPrivileges();
+   privStatus = initializeComponentPrivileges();
    
-      if (privStatus != STATUS_GOOD)
-         return STATUS_ERROR;
+   if (privStatus != STATUS_GOOD)
+      return STATUS_ERROR;
       
    // When new components and component operations are added
    // add an upgrade procedure

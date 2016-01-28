@@ -88,6 +88,7 @@ class PrivMgr
       std::string &authName);
     
     static const char * getSQLOperationName(SQLOperation operation);
+    static const char * getSQLOperationName(std::string operationCode);
     static const char * getSQLOperationCode(SQLOperation operation);
     static const char * getSQLOperationDescription(SQLOperation operation);
     static bool isSQLAlterOperation(SQLOperation operation);
