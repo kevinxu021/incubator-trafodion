@@ -545,7 +545,7 @@ fi
 HADOOP_MIRROR_URL=http://archive.cloudera.com/cdh5/cdh/5
 HADOOP_TAR=hadoop-2.6.0-cdh5.4.4.tar.gz
 if [[ "$HBASE_DISTRO" = "HDP" ]]; then
-    HADOOP_TAR=hadoop-2.6.0.2.2.0.0-2041.tar.gz
+    HADOOP_TAR=hadoop-2.7.1.2.3.2.0-2950.tar.gz
 fi
 
 # Alternative: Use MariaDB (not validated)
@@ -561,11 +561,15 @@ MYSQL_JDBC_TAR=mysql-connector-java-5.1.23.tar.gz
 HIVE_MIRROR_URL=http://archive.cloudera.com/cdh5/cdh/5
 HIVE_PREFIX=hive-1.1.0-cdh5.4.4
 HIVE_TAR=${HIVE_PREFIX}.tar.gz
+if [[ "$HBASE_DISTRO" = "HDP" ]]; then
+   HIVE_PREFIX=apache-hive-1.2.1.2.3.2.0-2950-bin
+   HIVE_TAR=${HIVE_PREFIX}.tar.gz
+fi
 
 HBASE_MIRROR_URL=http://archive.cloudera.com/cdh5/cdh/5
 HBASE_TAR=hbase-1.0.0-cdh5.4.4.tar.gz
 if [[ "$HBASE_DISTRO" = "HDP" ]]; then
-    HBASE_TAR=hbase-0.98.4.2.2.0.0-2041-hadoop2.tar.gz
+    HBASE_TAR=hbase-1.1.2.2.3.2.0-2950.tar.gz
 fi
 if [[ "$HBASE_DISTRO" = "APACHE" ]]; then
     HBASE_TAR=apache_hbase-1.0.2-bin.tar.gz

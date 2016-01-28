@@ -145,7 +145,10 @@ export DTM_COMMON_JAR=trafodion-dtm-${TRAFODION_VER}.jar
 export SQL_JAR=trafodion-sql-${TRAFODION_VER}.jar
 export UTIL_JAR=trafodion-utility-${TRAFODION_VER}.jar
 if [[ "$HBASE_DISTRO" = "HDP" ]]; then
-    export HBASE_TRX_JAR=hbase-trx-hdp2_2-${TRAFODION_VER}.jar
+    export HBASE_VERSION_ID=hdp2_3
+    export HBASE_TRX_JAR=hbase-trx-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
+    export DTM_COMMON_JAR=trafodion-dtm-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
+    export SQL_JAR=trafodion-sql-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
 fi
 if [[ "$HBASE_DISTRO" = "APACHE" ]]; then
     export HBASE_VERSION_ID=apache1_0_2
@@ -405,7 +408,10 @@ elif [[ -n "$(ls /etc/init.d/ambari* 2>/dev/null)" ]]; then
   export HIVE_JAR_DIRS="/usr/hdp/current/hive-client/lib"
   export HIVE_JAR_FILES="/usr/hdp/current/hadoop-mapreduce-client/hadoop-mapreduce-client-core*.jar"
 
-  export HBASE_TRX_JAR=hbase-trx-hdp2_2-${TRAFODION_VER}.jar
+  export HBASE_VERSION_ID=hdp2_3
+  export HBASE_TRX_JAR=hbase-trx-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
+  export DTM_COMMON_JAR=trafodion-dtm-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
+  export SQL_JAR=trafodion-sql-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
 
   # Configuration directories
 

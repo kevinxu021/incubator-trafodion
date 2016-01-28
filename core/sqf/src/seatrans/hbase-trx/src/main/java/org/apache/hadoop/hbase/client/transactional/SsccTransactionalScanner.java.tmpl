@@ -56,32 +56,34 @@ import org.apache.hadoop.hbase.client.AbstractClientScanner;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos;
-import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CloseScannerRequest;
-import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CloseScannerResponse;
-import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.OpenScannerRequest;
-import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PerformScanRequest;
-import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PerformScanResponse;
-import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TrxRegionService;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.SsccRegionProtos;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.SsccRegionProtos.SsccGetTransactionalRequest;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.SsccRegionProtos.SsccGetTransactionalResponse;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.SsccRegionProtos.SsccPerformScanRequest;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.SsccRegionProtos.SsccPerformScanResponse;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.SsccRegionProtos.SsccOpenScannerRequest;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.SsccRegionProtos.SsccOpenScannerResponse;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.SsccRegionProtos.SsccRegionService;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.SsccRegionProtos.SsccCloseScannerRequest;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.SsccRegionProtos.SsccCloseScannerResponse;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import com.google.protobuf.ServiceException;
 import com.google.protobuf.ByteString;
 
 
 /*
- *   Transaction Scanner
+ *   Simple Transaction Scanner
  */
-public class TransactionalScanner extends AbstractClientScanner {
+public class SsccTransactionalScanner extends AbstractClientScanner {
     private final Log LOG = LogFactory.getLog(this.getClass());
     public Scan scan;
     public Long scannerID;
     public TransactionState ts;
-    public TransactionalTable ttable;
+    public SsccTransactionalTable ttable;
     protected boolean closed = false;
     // Experiment with this parameter, may be faster without having to send the final close()
     protected boolean doNotCloseOnLast = true;
@@ -89,13 +91,12 @@ public class TransactionalScanner extends AbstractClientScanner {
     protected long nextCallSeq = 0;
     private boolean hasMore = true;
     private boolean moreScanners = true;
-    private boolean interrupted = false;
     public HRegionInfo currentRegion;
     public byte[] currentBeginKey;
     public byte[] currentEndKey;
     protected final LinkedList<Result> cache = new LinkedList<Result>();
 
-    public TransactionalScanner(final TransactionalTable ttable, final TransactionState ts, final Scan scan, final Long scannerID) {
+    public SsccTransactionalScanner(final SsccTransactionalTable ttable, final TransactionState ts, final Scan scan, final Long scannerID) {
         super();
         this.scan = scan;
         this.scannerID = scannerID;
@@ -130,26 +131,15 @@ public class TransactionalScanner extends AbstractClientScanner {
             if(LOG.isTraceEnabled()) LOG.trace("close()  already closed -- EXIT txID: " + ts.getTransactionId());
             return;
         }
-        this.closed = true;
-        if(this.interrupted) {
-            if(LOG.isDebugEnabled()) LOG.debug("close() resetting connection, txID: " + ts.getTransactionId());
-            try {
-               ttable.resetConnection();
-            } catch(IOException e) {
-               if(LOG.isErrorEnabled()) LOG.error("close() unable to reset connection, txID: " + ts.getTransactionId());
-               return;
-            }
-            this.interrupted = false;
-        }
-        TrxRegionProtos.CloseScannerRequest.Builder requestBuilder = CloseScannerRequest.newBuilder();
+        SsccRegionProtos.SsccCloseScannerRequest.Builder requestBuilder = SsccCloseScannerRequest.newBuilder();
         requestBuilder.setTransactionId(ts.getTransactionId());
         requestBuilder.setRegionName(ByteString.copyFromUtf8(currentRegion.getRegionNameAsString()));
         requestBuilder.setScannerId(scannerID);
-        TrxRegionProtos.CloseScannerRequest closeRequest = requestBuilder.build();
+        SsccRegionProtos.SsccCloseScannerRequest closeRequest = requestBuilder.build();
         try {
             CoprocessorRpcChannel channel = ttable.coprocessorService(this.currentBeginKey);
-            TrxRegionService.BlockingInterface trxService = TrxRegionService.newBlockingStub(channel);
-            TrxRegionProtos.CloseScannerResponse response = trxService.closeScanner(null, closeRequest);
+            SsccRegionService.BlockingInterface trxService = SsccRegionService.newBlockingStub(channel);
+            SsccRegionProtos.SsccCloseScannerResponse response = trxService.closeScanner(null, closeRequest);
             String exception = response.getException();
             if(response.getHasException()) {
                 String errMsg = "closeScanner encountered Exception txID: " +
@@ -157,26 +147,17 @@ public class TransactionalScanner extends AbstractClientScanner {
                     LOG.error(errMsg);
             }
         }
-        catch(ServiceException se) {
-            this.interrupted = true;
-            this.closed = false;
-        }
-
         catch (Throwable e) {
             String errMsg = "CloseScanner error on coprocessor call, scannerID: " + this.scannerID + " " + e;
             LOG.error(errMsg);
         }
 
+        this.closed = true;
         if(LOG.isTraceEnabled()) LOG.trace("close() -- EXIT txID: " + ts.getTransactionId());
     }
 
     protected boolean nextScanner(final boolean done) throws IOException{
         if(LOG.isTraceEnabled()) LOG.trace("nextScanner() -- ENTRY txID: " + ts.getTransactionId());
-        if(this.interrupted) {
-            if(LOG.isDebugEnabled()) LOG.debug("nextScanner() resetting connection, txID: " + ts.getTransactionId());
-            ttable.resetConnection();
-            this.interrupted = false;
-        }
         if(this.currentBeginKey != null) {
             if(LOG.isTraceEnabled()) LOG.trace("nextScanner() currentBeginKey != null txID: " + ts.getTransactionId());
             if (doNotCloseOnLast)
@@ -185,7 +166,7 @@ public class TransactionalScanner extends AbstractClientScanner {
                 Bytes.equals(this.currentEndKey, HConstants.EMPTY_BYTE_ARRAY) ||
                 checkScanStopRow(this.currentEndKey) || 
                 done) {
-                if(LOG.isTraceEnabled()) LOG.trace("endKey: " + Bytes.toString(this.currentEndKey));
+                LOG.trace("endKey: " + Bytes.toString(this.currentEndKey));
                 if(LOG.isTraceEnabled()) LOG.trace("nextScanner() -- EXIT -- returning false txID: " + ts.getTransactionId());
                 this.moreScanners = false;
                 return false;
@@ -207,15 +188,16 @@ public class TransactionalScanner extends AbstractClientScanner {
 
         this.closed = false;
 
-      TrxRegionProtos.OpenScannerRequest.Builder requestBuilder = OpenScannerRequest.newBuilder();
+      SsccRegionProtos.SsccOpenScannerRequest.Builder requestBuilder = SsccOpenScannerRequest.newBuilder();
       requestBuilder.setTransactionId(ts.getTransactionId());
+      requestBuilder.setStartId(ts.getStartId());
       requestBuilder.setRegionName(ByteString.copyFromUtf8(currentRegion.getRegionNameAsString()));
       requestBuilder.setScan(ProtobufUtil.toScan(scan));
-      TrxRegionProtos.OpenScannerRequest openRequest = requestBuilder.build();
+      SsccRegionProtos.SsccOpenScannerRequest openRequest = requestBuilder.build();
       try {
           CoprocessorRpcChannel channel = ttable.coprocessorService(this.currentBeginKey);
-          TrxRegionService.BlockingInterface trxService = TrxRegionService.newBlockingStub(channel);
-          TrxRegionProtos.OpenScannerResponse response = trxService.openScanner(null, openRequest);
+          SsccRegionService.BlockingInterface trxService = SsccRegionService.newBlockingStub(channel);
+          SsccRegionProtos.SsccOpenScannerResponse response = trxService.openScanner(null, openRequest);
           String exception = response.getException();
           if(response.getHasException()) {
               String errMsg = "nextScanner encountered Exception txID: " +
@@ -225,14 +207,8 @@ public class TransactionalScanner extends AbstractClientScanner {
           }
           this.scannerID = response.getScannerId();
       }
-      catch(ServiceException se) {
-          this.interrupted = true;
-          String errMsg = "OpenScanner error encountered Service Exception, scannerID: " + this.scannerID + " " + se;
-          LOG.error(errMsg);
-          throw new IOException(errMsg);
-      }
       catch (Throwable e) {
-          String errMsg = "OpenScanner error on coprocessor call, scannerID: " + this.scannerID + " " + e;
+          String errMsg = "OpenScanner error on coprocessor call, scannerID: " + this.scannerID;
           LOG.error(errMsg);
           throw new IOException(errMsg);
       }
@@ -250,8 +226,9 @@ public class TransactionalScanner extends AbstractClientScanner {
                 if (LOG.isTraceEnabled())
                     LOG.trace("next() before coprocessor PerformScan call txID: " + ts.getTransactionId());
                 final long nextCallSeqInput = this.nextCallSeq;
-                TrxRegionProtos.PerformScanRequest.Builder requestBuilder = PerformScanRequest.newBuilder();
+                SsccRegionProtos.SsccPerformScanRequest.Builder requestBuilder = SsccPerformScanRequest.newBuilder();
                 requestBuilder.setTransactionId(ts.getTransactionId());
+                requestBuilder.setStartId(ts.getStartId());
                 requestBuilder.setRegionName(ByteString.copyFromUtf8(currentRegion.getRegionNameAsString()));
                 requestBuilder.setScannerId(scannerID);
                 requestBuilder.setNumberOfRows(nbRows);
@@ -260,28 +237,23 @@ public class TransactionalScanner extends AbstractClientScanner {
                 else
                     requestBuilder.setCloseScanner(true);
                 requestBuilder.setNextCallSeq(nextCallSeqInput);
-                TrxRegionProtos.PerformScanRequest perfScanRequest = requestBuilder.build();
-                TrxRegionProtos.PerformScanResponse response;
+                SsccRegionProtos.SsccPerformScanRequest perfScanRequest = requestBuilder.build();
+                SsccRegionProtos.SsccPerformScanResponse response;
                 try {
                     CoprocessorRpcChannel channel = ttable.coprocessorService(this.currentBeginKey);
-                    TrxRegionService.BlockingInterface trxService = TrxRegionService.newBlockingStub(channel);
+                    SsccRegionService.BlockingInterface trxService = SsccRegionService.newBlockingStub(channel);
                     response = trxService.performScan(null, perfScanRequest);
                     String exception = response.getException();
                     if(response.getHasException()) {
-                        String errMsg = "performScan encountered Exception txID: " +
+                        String errMsg = "peformScan encountered Exception txID: " +
                                 ts.getTransactionId() + " Exception: " + exception;
                             LOG.error(errMsg);
                             throw new IOException(errMsg);
                     }
                 }
-                catch (ServiceException se) {
-                    this.interrupted = true;
-                    if(LOG.isDebugEnabled()) LOG.debug("PerformScan encountered Service Exception, scannerID: " + this.scannerID + " " + se);
-                    return null;
-                }
                 catch (Throwable e) {
-                    String errMsg = "PerformScan error on coprocessor call, scannerID: " + this.scannerID + " " + e;
-                    if(LOG.isErrorEnabled()) LOG.error(errMsg);
+                    String errMsg = "PerformScan error on coprocessor call, scannerID: " + this.scannerID;
+                    LOG.error(errMsg);
                     throw new IOException(errMsg);
                 }
                 int count;
@@ -335,11 +307,13 @@ public class TransactionalScanner extends AbstractClientScanner {
         }
     }
 
-    /**                                                                                                                                        * Allow the client to renew the scanner's lease on the server.                                                                            * @return true if the lease was successfully renewed, false otherwise.                                                                    */
-    // Note that this method should be on ResultScanner, but that is marked stable.                                                           // Callers have to cast their instance of ResultScanner to AbstractClientScanner to use this.                                             @Override
+    // Note that this method should be on ResultScanner, but that is marked stable.
+    // Callers have to cast their instance of ResultScanner to AbstractClientScanner to use this.
+#ifdef HDP2.3
+    @Override
+#endif
     public boolean renewLease()
     {
 	return true;
     }
-
 }

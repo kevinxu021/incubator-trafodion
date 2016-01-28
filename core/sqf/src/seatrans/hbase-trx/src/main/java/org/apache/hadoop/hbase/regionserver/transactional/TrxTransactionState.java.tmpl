@@ -80,6 +80,9 @@ import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.ScanQueryMatcher;
 import org.apache.hadoop.hbase.regionserver.ScanType;
 import org.apache.hadoop.hbase.regionserver.ScanInfo;
+#ifdef HDP2.3
+import org.apache.hadoop.hbase.regionserver.ScannerContext;
+#endif
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
@@ -650,7 +653,24 @@ public class TrxTransactionState  extends TransactionState{
             
             //Store.ScanInfo scaninfo = new Store.ScanInfo(null, 0, 1, HConstants.FOREVER, false, 0, Cell.COMPARATOR);
             ScanInfo scaninfo = new ScanInfo(null, 0, 1, HConstants.FOREVER,KeepDeletedCells.FALSE, 0, KeyValue.COMPARATOR);
-            
+           
+#ifdef HDP2.3
+            //Hbase 1.1.2 and beyond has optimization in TimeRange.compare(cell) to return true for all time ranges if TimeRange.isAllTime() is true.
+            //scan.setTimeRange(min, max) instantiates TimeRange with a different constructor (isAllTime is false in this case). This is set 
+            //in scan object by the client if specific time range is needed. In all other cases, a default TimeRange() (isAllTime is true)
+            //instance is used. 
+            //In Trx set of KVs, there is an extra cell ( with timestamp of Long.MAX_VALUE) for every row. TimeRange.compare(cell) returns true
+            //even for this cell when default TimeRange instance is involved(isAlltime is true). This causes scanQueryMatcher
+            //to return "INCLUDE" verses "SKIP" for this specific cell. Fix is to instantiate a TimeRange instance by calling the constructor
+            //that sets TimeRange.isAllTime() to be false.
+            //Setting this here only affects Trx scanner applicable to Trx KVs.
+            if(scan.getTimeRange().isAllTime())
+            	try{
+            		scan.setTimeRange(0,Long.MAX_VALUE);
+            	}catch (Exception e) {
+            		LOG.error("error setting time range" + e);
+            }
+#endif 
            
         if(c1_0 != null) {
         	try {
@@ -687,7 +707,9 @@ public class TrxTransactionState  extends TransactionState{
          * @param limit
          * @return true if there are more rows, false if scanner is done
          */
+#ifndef HDP2.3
         @Override
+#endif
         public synchronized boolean next(final List<Cell> outResult, final int limit) throws IOException {          	
             Cell peeked = this.peek();            
             if (peeked == null) {            
@@ -750,31 +772,18 @@ public class TrxTransactionState  extends TransactionState{
             close();
             return false;
         }
-
+#ifndef HDP2.3
         @Override
-        /* Commenting out for HBase 0.98
-        public boolean next(final List<KeyValue> results) throws IOException {
-            return next(results, -1);
-        }
-       // May need to use metric value
-        @Override
-        public boolean next(List<KeyValue> results, String metric) throws IOException{          
-          return next(results, -1);
-        }
-        
-        // May need to use metric value
-        @Override
-        public boolean next(List<Cell> results, int limit, String metric) throws IOException {
-          
-          return next(results,limit);
-        }
-
-       */
-        
+#endif
         public synchronized boolean next(final List<Cell> results) throws IOException {
           return next(results, -1);
         }
-       
+#ifdef HDP2.3
+       @Override
+       public boolean next(List<Cell> results, ScannerContext scannerContext) throws IOException {
+           return next(results, -1);
+       }
+#endif  
      }
 
     private synchronized boolean isKvInPut(final Cell kv, final Put put) {

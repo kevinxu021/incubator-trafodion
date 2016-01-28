@@ -108,6 +108,11 @@ import org.apache.hadoop.hbase.client.Mutation;
 import java.util.ListIterator;
 import org.apache.hadoop.hbase.Cell;
 
+#ifdef HDP2.3
+import org.apache.hadoop.hbase.regionserver.ScannerContext;
+import org.apache.hadoop.hbase.regionserver.Region;
+#endif
+
 public class TrxRegionObserver extends BaseRegionObserver {
 
 
@@ -197,7 +202,11 @@ public void start(CoprocessorEnvironment e) throws IOException {
 
     RegionCoprocessorEnvironment regionCoprEnv = (RegionCoprocessorEnvironment)e;
     RegionCoprocessorEnvironment re = (RegionCoprocessorEnvironment) e;
+#ifdef HDP2.3
+    my_Region = (HRegion) re.getRegion();
+#else
     my_Region = re.getRegion();
+#endif
     regionInfo = my_Region.getRegionInfo();
     String lv_regionName = this.regionInfo.getRegionNameAsString();
     m_isTrafodionMetadata = lv_regionName.contains("_MD_");
@@ -781,8 +790,11 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
     }
 
     @Override
+#ifdef HDP2.3
+    public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e, Region l, Region r) {
+#else
     public void	postSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) {
-
+#endif
         if(splitDelayNoFlush)
           return;
 
@@ -824,8 +836,12 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
 
         if (!hasClosed) {
 	        if(LOG.isInfoEnabled()) {
+#ifdef HDP2.3
+                    HRegion region = (HRegion) c.getEnvironment().getRegion();
+#else
 	            HRegion region = c.getEnvironment().getRegion();
-	            LOG.debug("preClose -- setting close var to true on: " + region.getRegionNameAsString());
+#endif
+	            LOG.debug("preClose -- setting close var to true on: " + region.getRegionInfo().getRegionNameAsString());
 	        }
 	        try {
 	          sbHelper.pendingAndScannersWait(commitPendingTransactions, scanners, pendingDelayLen);
@@ -866,7 +882,7 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
 
     @Override
     public void postClose(ObserverContext<RegionCoprocessorEnvironment> c, boolean abortRequested) {
-        String regionName = my_Region.getRegionNameAsString();
+        String regionName = my_Region.getRegionInfo().getRegionNameAsString();
         transactionsRefMap.remove(regionName+trxkeypendingTransactionsById);
         transactionsRefMap.remove(regionName+trxkeyindoubtTransactionsCountByTmid);
         transactionsRefMap.remove(regionName+trxkeytransactionsById);
@@ -926,13 +942,22 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
             }
 
             @Override
+#ifdef HDP2.3
+            public boolean next(List<Cell> result, ScannerContext scannerContext) throws IOException {
+              if (LOG.isTraceEnabled()) LOG.trace("preCompact: call next with scannerContext limit " + scannerContext);
+#else
             public boolean next(List<Cell> result, int limit) throws IOException {
                 if (LOG.isTraceEnabled()) LOG.trace("preCompact: call next with limit " + limit);
+#endif
                 boolean ret=true;
                 boolean skip=false;
                 ConcurrentHashMap<String, Integer>  verCountByCol = new ConcurrentHashMap<String,Integer>();
                 try {
+#ifdef HDP2.3
+  		    ret = s.next(result,scannerContext);
+#else
                     ret = s.next(result,limit);
+#endif
                     if(ret == false) return ret;
                     ListIterator<Cell> cellIter = null;
                     for( cellIter = result.listIterator(); cellIter.hasNext();) {
