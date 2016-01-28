@@ -71,8 +71,8 @@ define([
 			$.validator.addMethod("validateStartAndEndTimes", function(value, element) {
 				var startTime = new Date($(START_TIME_PICKER).data("DateTimePicker").date()).getTime();
 				var endTime = new Date($(END_TIME_PICKER).data("DateTimePicker").date()).getTime();
-				return (startTime < endTime);
-			}, "* Start Time has to be less than End Time");
+				return (startTime > 0 && startTime < endTime);
+			}, "* Invalid Date Time and/or Start Time is greater than End Time");
 
 			$.validator.addMethod("validateErrorCodes", function(value, element) {
 				var errorCodes = $(FILTER_ERROR_CODES).val();

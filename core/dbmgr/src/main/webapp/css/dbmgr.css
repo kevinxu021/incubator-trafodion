@@ -4,28 +4,29 @@
 *
 *  @@@ END COPYRIGHT @@@
 */
-
 #page-wrapper {
 	margin: 2px;
 }
+
 .panel-heading span {
-    margin-top: 0px;
-    font-size: 15px;
+	margin-top: 0px;
+	font-size: 15px;
 }
 
 .dbmgr-collapsible {
-    cursor: pointer;
+	cursor: pointer;
 }
 
 .dbmgr-login-footer {
-	background:url(../img/esgyn-logo.png) no-repeat;
-    background-size: cover;
-    display: block;
-    width: 200px;
-    height: 48px;
-    text-indent: -9000px;
-    margin: 0 auto;
+	background: url(../img/esgyn-logo.png) no-repeat;
+	background-size: cover;
+	display: block;
+	width: 200px;
+	height: 48px;
+	text-indent: -9000px;
+	margin: 0 auto;
 }
+
 #dbmgr-page-wrapper {
 	padding: 0 15px;
 	min-height: 568px;
@@ -34,6 +35,17 @@
 
 .dbmgr-fieldset-table {
 	display: table
+}
+
+.dbmgr-text-ellipsis {
+	width: 200px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.dbmgr-nowrap {
+	white-space: nowrap;
 }
 
 .dbmgr-form-item-row {
@@ -46,6 +58,7 @@
 	padding-right: 10px;
 	margin-bottom: 10px;
 }
+
 .dbmgr-button, .dbmgr-link-button {
 	padding: 7px 10px !important;
 }
@@ -62,7 +75,10 @@
 	display: inline-block;
 }
 
-.dbmgr-hover { cursor: pointer; cursor: hand; }
+.dbmgr-hover {
+	cursor: pointer;
+	cursor: hand;
+}
 
 @media ( min-width :768px) {
 	/*.navbar-default {
@@ -71,7 +87,6 @@
 	.navbar-default .sidebar-nav {
 		border-color: #e7e7e7;
 	}*/
-	
 	.page-header {
 		margin-top: 10px;
 		padding-bottom: 5px;
@@ -80,11 +95,10 @@
 		color: white;
 	}*/
 	.CodeMirror pre {
-	  padding: 0 4px; /* Horizontal padding of content */
-	  padding-left:30px;
-	  /*font-family: Courier New, Courier, monospace;*/
+		padding: 0 4px; /* Horizontal padding of content */
+		padding-left: 30px;
+		/*font-family: Courier New, Courier, monospace;*/
 	}
-
 	.navbar-default .dbmgr-title {
 		display: inline-block;
 		font-family: 'Open Sans', Arial, Helvetica, sans-serif;
@@ -100,18 +114,18 @@
 		border-left: 1px solid #e7e7e7;
 	}
 	.dbmgr-error-text {
-	    color: red;
-    	height: 120px;
-    	overflow: auto;
-    	font-weight: 500;
-    }
+		color: red;
+		height: 120px;
+		overflow: auto;
+		font-weight: 500;
+	}
 	.dbmgr-graph {
-		min-height:125px;
+		min-height: 125px;
 	}
 	.dbmgr-drilldown-graph {
-		min-height:400px;
+		min-height: 400px;
 	}
-/*	.navbar-default .navbar-nav>li>a {
+	/*	.navbar-default .navbar-nav>li>a {
 		color: white;
 	}
 	.nav>li>a:hover, .nav>li>a:focus {
@@ -151,25 +165,27 @@
 	}
 	.dbmgr-table {
 		font-size: 13px !important;
+		width:100% !important;
 	}
-	.dbmgr-table>tbody>tr>td, .table>tbody>tr>th, .table>tfoot>tr>td, .table>tfoot>tr>th, .table>thead>tr>td, .table>thead>tr>th {
-		padding:4px;
+	.dbmgr-table>tbody>tr>td, .table>tbody>tr>th, .table>tfoot>tr>td, .table>tfoot>tr>th,
+		.table>thead>tr>td, .table>thead>tr>th {
+		padding: 4px;
 	}
 	.dbmgr-status-btn {
-	    width: 24px;
-	    height: 24px;
-	    padding: 6px 0;
-	    border-radius: 12px;
-	    text-align: center;
-	    font-size: 10px;
-	    overflow: hidden !important;
+		width: 24px;
+		height: 24px;
+		padding: 6px 0;
+		border-radius: 12px;
+		text-align: center;
+		font-size: 10px;
+		overflow: hidden !important;
 	}
-	table.dbmgr-dashboard-table tbody tr td{
+	table.dbmgr-dashboard-table tbody tr td {
 		white-space: nowrap;
-	    padding-left: 8px;
-	    padding-bottom: 2px;
-	    padding-top: 2px;
-	    vertical-align: middle;
+		padding-left: 8px;
+		padding-bottom: 2px;
+		padding-top: 2px;
+		vertical-align: middle;
 	}
 	table.display thead th div.DataTables_sort_wrapper {
 		position: relative;
@@ -222,6 +238,8 @@
 	table.dataTable thead .sorting:after {
 		content: none;
 	}
-	li { cursor: pointer; cursor: hand; }
-
+	li {
+		cursor: pointer;
+		cursor: hand;
+	}
 }

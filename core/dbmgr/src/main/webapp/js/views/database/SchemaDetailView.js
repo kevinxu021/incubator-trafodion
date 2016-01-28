@@ -295,7 +295,7 @@ define([
 			//$(ATTRIBUTES_SELECTOR).trigger('click');
 			//$('#db-object-feature-selector a:first').tab('show');
 			$(DDL_BTN).show();
-			$(PRIVILEGES_BTN).show();
+			$(PRIVILEGES_BTN).hide();
 			$(TABLES_BTN).show();
 			$(VIEWS_BTN).show();
 			$(INDEXES_BTN).show();

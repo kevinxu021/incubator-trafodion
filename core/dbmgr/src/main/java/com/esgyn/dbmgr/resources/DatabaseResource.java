@@ -63,7 +63,8 @@ public class DatabaseResource {
 	@Path("/objects/")
 	@Produces("application/json")
 	public SqlObjectListResult getDatabaseObjects(@QueryParam("type") String objectType,
-			@QueryParam("schema") String schemaName, @Context HttpServletRequest servletRequest,
+			@QueryParam("schema") String schemaName, @QueryParam("parentObjectName") String parentObjectName,
+			@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 		if (objectType == null) {
 			objectType = "schemas";
@@ -94,13 +95,23 @@ public class DatabaseResource {
 				pstmt.setString(2, ExternalForm(schemaName));
 				break;
 			case "indexes":
-				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEXES_IN_SCHEMA),
-						catalogName, schemaName);
 				link = "/database/objdetail?type=index";
-				pstmt = connection
-						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEXES_IN_SCHEMA));
-				pstmt.setString(1, catalogName);
-				pstmt.setString(2, ExternalForm(schemaName));
+				if (parentObjectName != null && parentObjectName.length() > 0) {
+					queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEXES_ON_OBJECT),
+							catalogName, schemaName, parentObjectName);
+					pstmt = connection
+							.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEXES_ON_OBJECT));
+					pstmt.setString(1, catalogName);
+					pstmt.setString(2, ExternalForm(schemaName));
+					pstmt.setString(3, ExternalForm(parentObjectName));
+				} else {
+					queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEXES_IN_SCHEMA),
+							catalogName, schemaName);
+					pstmt = connection
+							.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEXES_IN_SCHEMA));
+					pstmt.setString(1, catalogName);
+					pstmt.setString(2, ExternalForm(schemaName));
+				}
 				break;
 			case "views":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEWS_IN_SCHEMA),
@@ -493,6 +504,28 @@ public class DatabaseResource {
 			return sqlResult;
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch list of regions for " + objectName + " : " + ex.getMessage());
+			throw new EsgynDBMgrException(ex.getMessage());
+		}
+	}
+
+	@GET
+	@Path("/statistics/")
+	@Produces("application/json")
+	public SqlObjectListResult getObjectStatistics(@QueryParam("type") String objectType,
+			@QueryParam("objectName") String objectName, @QueryParam("objectID") String objectID,
+			@QueryParam("schemaName") String schemaName,
+			@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
+					throws EsgynDBMgrException {
+		try {
+			String queryText = String.format(
+					SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_HISTOGRAM_STATISTICS),
+					ExternalForm(schemaName), objectID);
+			_LOG.debug(queryText);
+			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
+			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
+			return sqlResult;
+		} catch (Exception ex) {
+			_LOG.error("Failed to fetch histogram statistics for " + objectName + " : " + ex.getMessage());
 			throw new EsgynDBMgrException(ex.getMessage());
 		}
 	}

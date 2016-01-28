@@ -31,7 +31,9 @@
 					from "_MD_".objects 
 					where catalog_name = ?
 					and schema_name != '_MD_'
+					and schema_name != '_PRIVMGR_MD_'
 					and object_name = '__SCHEMA__'
+					and object_type = 'PS'
 					order by schema_name FOR READ UNCOMMITTED ACCESS;
 				]]></text>
 		</query>
@@ -44,7 +46,9 @@
 					from "_MD_".objects 
 					where catalog_name = ? and schema_name = ?
 					and schema_name != '_MD_'
+					and schema_name != '_PRIVMGR_MD_'
 					and object_name = '__SCHEMA__'
+					and object_type = 'PS'
 					order by schema_name FOR READ UNCOMMITTED ACCESS;
 				]]></text>
 		</query>
@@ -57,6 +61,7 @@
 					from "_MD_".objects 
 					WHERE CATALOG_NAME = ? AND SCHEMA_NAME = ?
 					and object_type = ?
+					and object_name not in ('SB_HISTOGRAMS', 'SB_HISTOGRAM_INTERVALS')
 					order by object_name FOR READ UNCOMMITTED ACCESS;
 				]]></text>
 		</query>
@@ -174,6 +179,24 @@
 				]]></text>
 		</query>	
 		<query>
+			<!-- Fetch list of indexes on a given object -->
+			<name>SELECT_INDEXES_ON_OBJECT</name>
+			<text><![CDATA[SELECT O.OBJECT_NAME AS "Index Name", USER(O.OBJECT_OWNER) AS "Owner",
+				    CONVERTTIMESTAMP(O.CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(O.REDEF_TIME) AS "ModifiedTime",
+				    CAST(O.object_uid  AS CHAR(26)) as "Object ID",
+				    O2.OBJECT_NAME as "Table Name", 
+				    CASE WHEN I.IS_UNIQUE = 1 THEN 'Unique' ELSE 'Non Unique' END as "Is Unqiue", 
+				    I.KEY_COLCOUNT as "Key Col. Count", I.NONKEY_COLCOUNT as "Non Key Col. Count"
+				    FROM TRAFODION."_MD_".INDEXES I, TRAFODION."_MD_".OBJECTS O,
+				    TRAFODION."_MD_".OBJECTS O2 
+				    WHERE  O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? 
+				    AND O.SCHEMA_NAME != '_MD_' AND I.INDEX_UID = O.OBJECT_UID 
+				    AND O2.OBJECT_NAME = ?
+				    AND I.BASE_TABLE_UID = O2.OBJECT_UID 
+				    FOR READ UNCOMMITTED ACCESS ORDER BY 1;
+				]]></text>
+		</query>
+		<query>
 			<!-- Fetch index attributes -->
 			<name>SELECT_INDEX_ATTRIBUTES</name>
 			<text><![CDATA[SELECT O.OBJECT_NAME AS "Index Name", USER(O.OBJECT_OWNER) AS "Owner",
@@ -241,6 +264,28 @@
 				from table(region stats (%1$s %2$s))
 			]]></text>
 		</query>			
+		<query>
+			<!-- Get histogram stats for a table -->
+			<name>SELECT_OBJECT_HISTOGRAM_STATISTICS</name>
+			<text><![CDATA[SELECT T1.COLUMN_NUMBER, C.COLUMN_NAME, C.SQL_DATA_TYPE, ISNULL(T2.INTERVAL_ROWCOUNT,0) as NULL_COUNT, 
+				T1.LOW_VALUE, T1.HIGH_VALUE, T1.CV, 
+				T1.TOTAL_UEC, T1.ROWCOUNT, T1.STATS_TIME
+				FROM (
+				    SELECT TABLE_UID, HISTOGRAM_ID, COLUMN_NUMBER, LOW_VALUE, HIGH_VALUE, CV, TOTAL_UEC, ROWCOUNT,
+				    STATS_TIME
+				    FROM %1$s.SB_HISTOGRAMS 
+				    WHERE TABLE_UID = %2$s AND COLCOUNT = 1
+				) AS T1 
+				LEFT JOIN %1$s.SB_HISTOGRAM_INTERVALS T2 
+				ON (T1.TABLE_UID = T2.TABLE_UID AND T1.HISTOGRAM_ID = T2.HISTOGRAM_ID 
+				AND T2.INTERVAL_BOUNDARY = '(NULL)') 
+				, "_MD_".COLUMNS C
+				WHERE T1.COLUMN_NUMBER = C.COLUMN_NUMBER
+				AND T1.TABLE_UID = C.OBJECT_UID
+				AND C.COLUMN_NAME != '_SALT_'
+				ORDER BY T1.COLUMN_NUMBER FOR READ UNCOMMITTED ACCESS;
+			]]></text>
+		</query>	
 		<query>
 			<!-- Get DDL Text for database object -->
 			<name>SELECT_DDL_TEXT</name>

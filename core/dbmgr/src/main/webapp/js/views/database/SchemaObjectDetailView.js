@@ -21,7 +21,9 @@ define([
 	var LOADING_SELECTOR = '#loadingImg';				
 	var objColumnsDataTable = null,
 		regionsDataTable = null,
-		privilegesDataTable = null;
+		statisticsTable = null,
+		privilegesDataTable = null,
+		indexesDataTable = null;
 		
 	var _this = null;
 	var ddlTextEditor = null;
@@ -36,6 +38,8 @@ define([
 		PRIVILEGES_CONTAINER = '#db-object-privileges-container',
 		USAGES_CONTAINER = '#db-object-usages-container',
 		OBJECT_NAME_CONTAINER = '#db-object-name',
+		STATISTICS_CONTAINER = '#db-object-statistics-container',
+		INDEXES_CONTAINER = '#db-object-indexes-container',
 		
 		FEATURE_SELECTOR = '#db-object-feature-selector',
 		ATTRIBUTES_SELECTOR = '#db-attributes-link',
@@ -45,6 +49,7 @@ define([
 		INDEXES_SELECTOR = '#db-indexes-link',
 		PRIVILEGES_SELECTOR = '#db-privileges-link',
 		USAGES_SELECTOR = '#db-usages-link',
+		STATISTICS_SELECTOR = '#db-statistics-link',
 		
 		ATTRIBUTES_BTN = '#attributes-btn',
 		DDL_BTN= '#ddl-btn',
@@ -53,7 +58,7 @@ define([
 		COLUMNS_BTN = '#columns-btn',
 		REGIONS_BTN = '#regions-btn',
 		USAGES_BTN = '#usages-btn',
-
+		STATISTICS_BTN = '#statistics-btn',
 		REFRESH_ACTION = '#refreshAction';
 	
 	var routeArgs = null;
@@ -118,6 +123,11 @@ define([
 			dbHandler.on(dbHandler.FETCH_PRIVILEGES_ERROR, this.showErrorMessage);
 			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_SUCCESS, this.displayAttributes);
 			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_STATISTICS_SUCCESS, this.displayStatistics);
+			dbHandler.on(dbHandler.FETCH_STATISTICS_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayIndexes);
+			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
+			
 			_this.processRequest();
 
 		},
@@ -139,6 +149,10 @@ define([
 			dbHandler.on(dbHandler.FETCH_PRIVILEGES_ERROR, this.showErrorMessage);
 			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_SUCCESS, this.displayAttributes);
 			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_STATISTICS_SUCCESS, this.displayStatistics);
+			dbHandler.on(dbHandler.FETCH_STATISTICS_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayIndexes);
+			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
 			
 			if(prevRouteArgs.schema != routeArgs.schema || 
 					prevRouteArgs.name != routeArgs.name ||
@@ -167,13 +181,28 @@ define([
 					try {
 						privilegesDataTable.clear().draw();
 					}catch(Error){
-						var aa =4;
+					}
+				}
+				if(statisticsTable != null){
+					try{
+						statisticsTable.clear().draw();
+					}catch(Error){
+						
+					}
+				}
+				if(indexesDataTable != null){
+					try{
+						indexesDataTable.clear.draw();
+					}catch(Error){
+						
 					}
 				}
 				pageStatus = {};
 				$(ERROR_CONTAINER).hide();
 				$(COLUMNS_CONTAINER).empty();
 				$(REGIONS_CONTAINER).empty();
+				$(STATISTICS_CONTAINER).empty();
+				
 	        	if(ddlTextEditor){
 	        		ddlTextEditor.setValue("");
 	        		setTimeout(function() {
@@ -207,6 +236,10 @@ define([
 			dbHandler.off(dbHandler.FETCH_PRIVILEGES_ERROR, this.showErrorMessage);
 			dbHandler.off(dbHandler.FETCH_OBJECT_ATTRIBUTES_SUCCESS, this.displayAttributes);
 			dbHandler.off(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_STATISTICS_SUCCESS, this.displayStatistics);
+			dbHandler.off(dbHandler.FETCH_STATISTICS_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayIndexes);
+			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
 			
 			$('a[data-toggle="pill"]').off('shown.bs.tab', this.selectFeature);
 		},
@@ -278,7 +311,10 @@ define([
 					break;
 				case INDEXES_BTN:
 					selectedFeatureLink = INDEXES_SELECTOR;
-					break;				
+					break;	
+				case STATISTICS_BTN:
+					selectedFeatureLink = STATISTICS_SELECTOR;
+					break;
 				}
 			}
 
@@ -286,6 +322,7 @@ define([
 			$(DDL_CONTAINER).hide();
 			$(COLUMNS_CONTAINER).hide();
 			$(REGIONS_CONTAINER).hide();
+			$(STATISTICS_CONTAINER).hide();
 			
 			switch(selectedFeatureLink){
 			case ATTRIBUTES_SELECTOR:
@@ -300,6 +337,10 @@ define([
 				$(REGIONS_CONTAINER).show();
 				_this.fetchRegions();
 				break;
+			case STATISTICS_SELECTOR:
+				$(STATISTICS_CONTAINER).show();
+				_this.fetchStatistics();
+				break;
 			case DDL_SELECTOR:
 				$(DDL_CONTAINER).show();
 				_this.fetchDDLText();
@@ -311,7 +352,9 @@ define([
 			case USAGES_SELECTOR:
 				break;
 			case INDEXES_SELECTOR:
-				window.location.hash = '/database?type=indexes&schema='+schemaName;
+				//window.location.hash = '/database?type=indexes&schema='+schemaName;
+				$(INDEXES_CONTAINER).show();
+				_this.fetchIndexes();
 				break;
 			}
 		},
@@ -335,6 +378,12 @@ define([
 				case PRIVILEGES_BTN:
 					pageStatus.privilegesFetched = false;
 					break;					
+				case STATISTICS_BTN:
+					pageStatus.statisticsFetched = false;
+					break;	
+				case INDEXES_BTN:
+					pageStatus.indexesFetched = false;
+					break;						
 				}
 			}
 			_this.selectFeature();
@@ -362,11 +411,24 @@ define([
 				dbHandler.fetchRegions(routeArgs.type, routeArgs.name, routeArgs.schema);
 			}			
 		},
+		fetchStatistics: function(){
+			if(!pageStatus.statisticsFetched || pageStatus.statisticsFetched == false){
+				_this.showLoading();
+				var objectID = _this.getObjectID();
+				dbHandler.fetchStatistics(routeArgs.type, routeArgs.name, objectID, routeArgs.schema);
+			}			
+		},
 		fetchPrivileges: function(){
 			if(!pageStatus.privilegesFetched || pageStatus.privilegesFetched == false){
 				_this.showLoading();
 				var objectID = _this.getObjectID();
 				dbHandler.fetchPrivileges(routeArgs.type, routeArgs.name, objectID, routeArgs.schema);
+			}			
+		},
+		fetchIndexes: function(){
+			if(!pageStatus.indexesFetched || pageStatus.indexesFetched == false){
+				_this.showLoading();
+				dbHandler.fetchObjects("indexes", routeArgs.schema, routeArgs.name);
 			}			
 		},
 		updateBreadCrumbs: function(routeArgs){
@@ -425,10 +487,11 @@ define([
 						$(ATTRIBUTES_SELECTOR).tab('show');
 						$(COLUMNS_BTN).show();
 						$(REGIONS_BTN).show();
+						$(STATISTICS_BTN).show();
 						$(DDL_BTN).show();
 						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
-						$(INDEXES_BTN).hide();
+						$(INDEXES_BTN).show();
 				
 						_this.selectFeature();
 						break;							
@@ -438,6 +501,7 @@ define([
 						$(ATTRIBUTES_SELECTOR).tab('show');
 						$(COLUMNS_BTN).show();
 						$(REGIONS_BTN).hide();
+						$(STATISTICS_BTN).hide();
 						$(DDL_BTN).show();
 						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
@@ -450,6 +514,7 @@ define([
 						$(ATTRIBUTES_SELECTOR).tab('show');
 						$(COLUMNS_BTN).hide();
 						$(REGIONS_BTN).show();
+						$(STATISTICS_BTN).hide();
 						$(DDL_BTN).show();
 						$(PRIVILEGES_BTN).hide();
 						$(USAGES_BTN).hide();
@@ -462,6 +527,7 @@ define([
 						$(ATTRIBUTES_SELECTOR).tab('show');
 						$(COLUMNS_BTN).hide();
 						$(REGIONS_BTN).hide();
+						$(STATISTICS_BTN).hide();
 						$(DDL_BTN).show();
 						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
@@ -474,6 +540,7 @@ define([
 						$(ATTRIBUTES_SELECTOR).tab('show');
 						$(COLUMNS_BTN).hide();
 						$(REGIONS_BTN).hide();
+						$(STATISTICS_BTN).hide();
 						$(DDL_BTN).show();
 						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
@@ -726,6 +793,226 @@ define([
 	                           ],					             
 		             fnDrawCallback: function(){
 		            	// $('#db-object-privileges-list td').css("white-space","nowrap");
+		             }
+				});
+			}
+		},	
+		displayIndexes: function(result){
+			_this.hideLoading();
+			var keys = result.columnNames;
+			$(ERROR_CONTAINER).hide();
+			pageStatus[routeArgs.type] = true;
+			
+			if(keys != null && keys.length > 0) {
+				$(INDEXES_CONTAINER).show();
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="db-objects-list-results"></table>';
+				$(INDEXES_CONTAINER).html( sb );
+
+				var aoColumns = [];
+				var aaData = [];
+				var link = result.parentLink != null ? result.parentLink : "";
+
+				$.each(result.resultArray, function(i, data){
+					//var rowData = {};
+					//$.each(keys, function(k, v) {
+					//	rowData[v] = data[k];
+					//});
+					/*aaData.push(
+							{'Name' : data[0], 
+								'Owner' : data[1],
+								'CreateTime' : data[2],
+								'ModifiedTime': data[3]
+							});*/
+					aaData.push(data);
+				});
+
+				// add needed columns
+				$.each(keys, function(k, v) {
+					var obj = new Object();
+					obj.title = v;
+					aoColumns.push(obj);
+				});
+
+				var bPaging = aaData.length > 25;
+
+				if(indexesDataTable != null) {
+					try {
+						indexesDataTable.clear().draw();
+					}catch(Error){
+
+					}
+				}
+				
+				var aoColumnDefs = [];
+				aoColumnDefs.push({
+						"aTargets": [ 0 ],
+						"mData": 0,
+						"mRender": function ( data, type, full ) {
+		            		 if(type == 'display') {
+		            			 var rowcontent = "<a href=\"#" + link + '&name=' + data ;
+		            			 if(schemaName != null)
+		            				 rowcontent += '&schema='+ schemaName;	            				 
+
+		            			 rowcontent += "\">" + data + "</a>";
+		            			 return rowcontent;                         
+		            		 }else { 
+		            			 return data;
+		            		 }
+		            	 }
+					});
+				
+				aoColumnDefs.push({
+					"aTargets": [ 2 ],
+					"mData": 2,
+					"mRender": function ( data, type, full ) {
+						if (type === 'display') {
+							return common.toServerLocalDateFromUtcMilliSeconds(data);  
+						}
+						else return data;
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 3 ],
+					"mData": 3,
+					"mRender": function ( data, type, full ) {
+						if (type === 'display') {
+							return common.toServerLocalDateFromUtcMilliSeconds(data);  
+						}
+						else return data;
+					}
+				});
+				aoColumnDefs.push({
+					"aTargets": [ 4 ],
+					"mData": 4,
+					"visible" : false,
+					"searchable" : false
+				});
+				
+				aoColumnDefs.push({
+					"aTargets": [ 5 ],
+					"mData": 5,
+					"visible" : false,
+					"searchable" : false
+				});
+				
+				indexesDataTable = $('#db-objects-list-results').DataTable({
+					"oLanguage": {
+						"sEmptyTable": "There are no " + routeArgs.type
+					},
+					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					processing: true,
+					paging: bPaging,
+					autoWidth: true,
+					"iDisplayLength" : 25, 
+					"sPaginationType": "full_numbers",
+					"aaData": aaData, 
+					"aoColumns" : aoColumns,
+					"aoColumnDefs": aoColumnDefs,
+	                 buttons: [
+	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
+	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text() }
+	                           ],					             
+		             fnDrawCallback: function(){
+		            	// $('#db-object-list-results td').css("white-space","nowrap");
+		             }
+				});
+
+
+				//$('#db-objects-list-results td').css("white-space","nowrap");
+				$('#db-objects-list-results tbody').on( 'click', 'td', function (e, a) {
+					if(indexesDataTable.cell(this)){
+						var cell = indexesDataTable.cell(this).index();
+						if(cell){
+							if(cell.column == 0){
+								var data = indexesDataTable.row(cell.row).data();
+								if(data){
+									var objAttributes = [];
+									$.each(aoColumns, function(index, val){
+										var attrib = {};
+										attrib[val.title] = data[index];
+										objAttributes.push(attrib);
+									});
+									sessionStorage.setItem(data[0], JSON.stringify(objAttributes));	
+								}
+							}
+						}
+					}
+				});	
+			}
+		},
+		displayStatistics: function(result){
+			_this.hideLoading();
+			var keys = result.columnNames;
+			$(ERROR_CONTAINER).hide();
+			pageStatus.statisticsFetched = true;
+			
+			if(keys != null && keys.length > 0) {
+				$(STATISTICS_CONTAINER).show();
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="db-object-statistics-list"></table>';
+				$(STATISTICS_CONTAINER).html( sb );
+
+				var aoColumns = [];
+				var aaData = [];
+				var link = result.parentLink != null ? result.parentLink : "";
+
+				$.each(result.resultArray, function(i, data){
+					aaData.push(data);
+				});
+
+				// add needed columns
+				$.each(keys, function(k, v) {
+					var obj = new Object();
+					obj.title = v;
+					aoColumns.push(obj);
+				});
+
+				var bPaging = aaData.length > 25;
+
+				if(statisticsTable != null) {
+					try {
+						statisticsTable.clear().draw();
+					}catch(Error){
+
+					}
+				}
+				var aoColumnDefs = [];
+				aoColumnDefs.push({
+						"aTargets": [ 9 ],
+						"mData": 9,
+						"mRender": function ( data, type, full ) {
+							if (type === 'display') {
+								return common.toServerLocalDateFromUtcMilliSeconds(data);  
+							}
+							else return data;
+		            	 }
+					});	
+				
+				statisticsTable = $('#db-object-statistics-list').DataTable({
+					"oLanguage": {
+						"sEmptyTable": "There are no statistics"
+					},
+					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					processing: true,
+					paging: bPaging,
+					autoWidth: true,
+					"iDisplayLength" : 25, 
+					"sPaginationType": "full_numbers",
+					"aaData": aaData, 
+					"aoColumns" : aoColumns,
+					aoColumnDefs: aoColumnDefs,
+					"order": [[ 0, "asc" ]],
+	                 buttons: [
+	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Statistics for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
+	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: "Statistics for "+routeArgs.type + " " + routeArgs.name }
+	                           ],					             
+		             fnDrawCallback: function(){
+		            	// $('#db-object-statistics-list td').css("white-space","nowrap");
 		             }
 				});
 			}

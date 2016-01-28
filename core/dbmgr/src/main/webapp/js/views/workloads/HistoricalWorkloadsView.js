@@ -51,6 +51,7 @@ define([
 	var oDataTable = null;
 	var _this = null;
 	var validator = null;
+	var resizeTimer = null;
 	var lastAppliedFilters = null; //last set of filters applied by user explicitly
 
 	var WorkloadsView = BaseView.extend({
@@ -62,8 +63,8 @@ define([
 			$.validator.addMethod("validateStartAndEndTimes", function(value, element) {
 				var startTime = new Date($(START_TIME_PICKER).data("DateTimePicker").date()).getTime();
 				var endTime = new Date($(END_TIME_PICKER).data("DateTimePicker").date()).getTime();
-				return (startTime < endTime);
-			}, "* Start Time has to be less than End Time");
+				return (startTime > 0 && startTime < endTime);
+			}, "* Invalid Date Time and/or Start Time is not less than End Time");
 
 			validator = $(FILTER_FORM).validate({
 				rules: {
@@ -138,12 +139,12 @@ define([
 				}
 			});
 
-
 			wHandler.on(wHandler.FETCH_REPO_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_ERROR, this.showErrorMessage);
 			$(REFRESH_MENU).on('click', this.fetchQueriesInRepository);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
+			$(window).on('resize', this.onResize);
 			this.fetchQueriesInRepository();
 		},
 		doResume: function(){
@@ -152,6 +153,7 @@ define([
 			$(REFRESH_MENU).on('click', this.fetchQueriesInRepository);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
+			$(window).on('resize', this.onResize);
 			//this.fetchQueriesInRepository();
 		},
 		doPause: function(){
@@ -160,6 +162,7 @@ define([
 			$(REFRESH_MENU).off('click', this.fetchLogs);
 			$(FILTER_APPLY_BUTTON).off('click', this.filterApplyClicked);
 			$(OPEN_FILTER).off('click', this.filterButtonClicked);
+			$(window).off('resize', this.onResize);
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
@@ -328,7 +331,7 @@ define([
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					processing: true,
 					paging : bPaging, 
-					autoWidth: true,
+					//autoWidth: true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
 					stateSave: true,
@@ -381,6 +384,20 @@ define([
 							//}
 							//else return data;
 						}
+					},
+					{
+						"aTargets": [8],
+						"mData" : 8,
+						"mRender": function(data, type, full){
+							if(type == 'display' && data != null){
+								if(data.length > 30){
+									return '<div class="pointer dbmgr-text-ellipsis">'+data+'</div>';
+								}else{
+									return '<div class=\"dbmgr-nowrap\">'+data+'</div>';
+								}
+							}else
+								return data;
+						}
 					}
 					],
 					buttons: [
@@ -407,9 +424,21 @@ define([
 								if(data && data.length > 0){
 									sessionStorage.setItem(data[0], JSON.stringify({type: 'repo', text: data[8]}));	
 								}
+							}else if(cell.column == 8){
+								if ($(this).find('.dbmgr-text-ellipsis').length > 0)
+									$(this).find('.dbmgr-text-ellipsis').removeClass('dbmgr-text-ellipsis'); 
+								else 
+									$(this).find('div').addClass('dbmgr-text-ellipsis');
+							}else{
+								$(this).find('div').addClass('dbmgr-nowrap');
 							}
 						}
 					}
+				}).on('dblclick', 'td', function(e, a){
+					if ($(this).find('.dbmgr-text-ellipsis').length > 0)
+						$(this).find('.dbmgr-text-ellipsis').removeClass('dbmgr-text-ellipsis'); 
+					else
+						$(this).find('div').selectText();	
 				});	
 			}
 		},
@@ -429,7 +458,17 @@ define([
 		},
 		parseInputDate:function(date){
 			return moment.tz(date, DATE_FORMAT_ZONE, common.serverTimeZone);
-		}  
+		},
+		onResize: function() {
+			clearTimeout(resizeTimer);
+			resizeTimer = setTimeout(_this.doResize, 200);
+		},
+		doResize: function() {
+				if(oDataTable != null){
+					oDataTable.columns.adjust().draw();
+				}
+
+		}		
 	});
 
 

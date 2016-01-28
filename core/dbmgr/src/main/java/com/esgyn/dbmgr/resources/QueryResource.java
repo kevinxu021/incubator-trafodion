@@ -127,7 +127,7 @@ public class QueryResource {
 			boolean hasResultSet = pStmt.execute();
 			if (hasResultSet) {
 				rs = pStmt.getResultSet();
-				if (queryText.toLowerCase().startsWith("select") || rs.getMetaData().getColumnCount() > 1) {
+				if (queryText.trim().toLowerCase().startsWith("select") || rs.getMetaData().getColumnCount() > 1) {
 					js = Helper.convertResultSetToTabularResult(rs);
 				} else {
 					js.isScalarResult = true;
