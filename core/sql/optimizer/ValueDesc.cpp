@@ -6582,3 +6582,28 @@ void ValueIdSet::generatePushdownListForORC(OrcPushdownPredInfoList& result)
    }
    result.insertEND();
 }
+
+void ValueIdSet::findAllReferencingMinMaxConstants(ValueIdSet & result) const
+{
+   // Simply loop over all the expressions in the set
+   for (ValueId x= init(); next(x); advance(x) ) {
+       ValueIdSet allConstants;
+       x.getItemExpr()->findAll(ITM_CONSTANT, allConstants, TRUE, TRUE);
+       
+       ValueIdSet minMaxConstants;
+       allConstants.findMinMaxConstants(minMaxConstants);
+       if ( minMaxConstants.entries() > 0 )
+         result += x;
+   }
+}
+
+
+void ValueIdSet::findMinMaxConstants(ValueIdSet& result) const
+{
+   for (ValueId x= init(); next(x); advance(x) ) {
+       ConstValue* cv = dynamic_cast<ConstValue*>(x.getItemExpr());
+       if ( cv->isMin() || cv->isMax() )
+          result += x;
+   }  
+}  
+

@@ -11186,6 +11186,16 @@ NABoolean ConstValue::valueHasTrailingBlanks()
    return hasATrailingBlanks;
 }
 
+NABoolean ConstValue::isMin()
+{
+   return *text_ == "<min>";
+}
+
+NABoolean ConstValue::isMax()
+{
+   return *text_ == "<max>";
+}
+
 QR::ExprElement ConstValue::getQRExprElem() const
 {
   return QR::QRScalarValueElem;

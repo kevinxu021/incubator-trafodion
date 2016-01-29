@@ -590,6 +590,10 @@ public:
   // remove non-pushabe predicates for ORC.
   virtual ItemExpr* removeNonPushablePredicatesForORC() { return this; }
   
+  //  whether this constant encodes a min or a max value
+  NABoolean isMin();
+  NABoolean isMax();
+
 private:
   void initCharConstValue(const NAString&,
             enum CharInfo::CharSet charSet,

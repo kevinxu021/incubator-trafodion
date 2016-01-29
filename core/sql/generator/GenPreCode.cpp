@@ -4100,6 +4100,23 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
         const HHDFSTableStats* hTabStats = getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
 
+        if ( getSearchKey() && getDoUseSearchKey() ) {
+       
+          NABoolean replicatePredicates = TRUE;
+          generateKeyExpr(getGroupAttr()->getCharacteristicInputs(),
+                             getIndexDesc()->getIndexKey(),
+                             getSearchKey()->getBeginKeyValues(),
+                             beginKeyPred_,
+                             generator,
+                             replicatePredicates);
+          generateKeyExpr(getGroupAttr()->getCharacteristicInputs(),
+                             getIndexDesc()->getIndexKey(),
+                             getSearchKey()->getEndKeyValues(),
+                             endKeyPred_,
+                             generator,
+                             replicatePredicates);
+        }
+
         if (( hTabStats->isOrcFile() ) &&
             (CmpCommon::getDefault(ORC_PRED_PUSHDOWN) == DF_ON) ) {
 
@@ -4116,6 +4133,33 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
                    externalInputs, 
                    NULL, 
                    orcPushdownPreds);
+
+           // remove any predicates referencing min and max
+           //
+           // do it first for the beginKeyPred_
+           ValueIdSet minMaxPreds;
+
+           // make a copy
+           ValueIdSet beginKeyPredCopy(beginKeyPred_);
+
+           // collect  min and max constants
+           beginKeyPredCopy.findAllReferencingMinMaxConstants(minMaxPreds);
+
+           // rmove any predicates involving the min and max constants
+           beginKeyPredCopy -= minMaxPreds;
+     
+           // add the remaining to the ORC push-down set
+           orcPushdownPreds += beginKeyPredCopy;
+
+           // do it next for the endKeyPred_
+           minMaxPreds.clear();
+
+           ValueIdSet endKeyPredCopy(endKeyPred_);
+           endKeyPredCopy.findAllReferencingMinMaxConstants(minMaxPreds);
+
+           endKeyPredCopy -= minMaxPreds;
+     
+           orcPushdownPreds += endKeyPredCopy;
    
            orcPushdownPreds.replaceVEGExpressions (
    	                 availableValues,
@@ -4127,6 +4171,7 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
            orcPushdownPreds.generatePushdownListForORC(orcListOfPPI_);
         }
 
+  
         setExecutorPredicates(selectionPred());
       }
 
