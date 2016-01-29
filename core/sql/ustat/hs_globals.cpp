@@ -5817,7 +5817,7 @@ void genArkcmpInfo(NAString& nidpid)
 // against a target table. The transaction is established by updating the row in the 
 // PERSISTENT_SAMPLES table about the persistent sample table used by the IUS:
 //   1. UPDATE_DATE field is populated with the current timestamp;
-//   2. IUS_UPDATE_HISTORY field is populated with the SQ node ID and process ID
+//   2. UPDATER_INFO field is populated with the SQ node ID and process ID
 //      of the tdm_arkcmp process performing the IUS work
 // The method will return 0 after the above successful updates, indicating that the IUS
 // work can proceed.
@@ -5831,7 +5831,7 @@ void genArkcmpInfo(NAString& nidpid)
 // considered legitimate, and the current call to the method will return an error
 // indicating that a concurrent IUS is in progress.
 // The argument ius_update_history_buffer will be filled with the string 
-// read from the corresponding field IUS_UPDATE_HISTORY.
+// read from the corresponding field UPDATER_INFO.
 // 
 // When P2-P1 > CQD(USTAT_IUS_MAX_TRANSACTION_DURATION), the on-going transaction is
 // considered over-due and will be discarded. The method proceeds as if there was
@@ -5919,7 +5919,8 @@ Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
    retcode =
      sampleList->updIUSUpdateInfo(objDef,
                                   (char*)nid_pid_str.data(),
-                                  (char*)updTimestampStr.data());
+                                  (char*)updTimestampStr.data(),
+                                  0 /* don't write where condition now */);
 
    if (retcode == 100)
      {
@@ -5932,7 +5933,7 @@ Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
 
    //
    // If we reach here, it means we have successfully stored the bdt and our process info
-   // into the UPDATE_DATE and IUS_UPDATE_HISTORY column. We can return TRUE.
+   // into the UPDATE_DATE and UPDATER_INFO column. We can return TRUE.
    //
    return 0;
 }
@@ -5943,7 +5944,7 @@ Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
 // as follows.
 //
 //   1. UPDATE_DATE field is reset to a timestamp representing epoch time;
-//   2. IUS_UPDATE_HISTORY field is reset to an empty string.
+//   2. UPDATER_INFO field is reset to an empty string.
 
 Lng32 HSGlobalsClass::end_IUS_work()
 {
@@ -5967,7 +5968,10 @@ Lng32 HSGlobalsClass::end_IUS_work()
    genSQLTimestampConstant(bdt, updTimestampStr);
 
    Lng32 retcode = 
-     sampleList->updIUSUpdateInfo(objDef, (char*)"", (char*)updTimestampStr.data());
+     sampleList->updIUSUpdateInfo(objDef,
+                                  (char*)"",
+                                  (char*)updTimestampStr.data(),
+                                  getWherePredicateForIUS());
    HSHandleError(retcode);
 
    return 0;
@@ -14777,12 +14781,30 @@ Lng32 managePersistentSamples()
 
     tableRows = hs_globals->objDef->getRowCount(isEstimate);
 
+    // tableRows could be zero for a Trafodion or HBase table if the table is new
+    // and all the data is still in memstore. So, in the logic below we dance around
+    // that, attempting to supply a not unreasonable guess for tableRows in that case.
+    // If we don't do this, then we later get a sampling ratio of -nan which will
+    // cause a syntax error when we formulate the sampling query.
+
     if (hs_globals->optFlags & SAMPLE_BASIC_1) 
-      sampleRows = hs_globals->sampleValue1;
+      {
+        sampleRows = hs_globals->sampleValue1;
+        if (tableRows == 0)
+          tableRows = sampleRows;  // just use the value the user gave 
+      }
     else if (hs_globals->optFlags & SAMPLE_RAND_1) // sampleValue1 is % * HS_SAMP_PCNT_UPSCALE. */ 
-      sampleRows = (Int64)(((double)hs_globals->sampleValue1/(HS_SAMP_PCNT_UPSCALE*100)) * tableRows);
+      {
+        if (tableRows == 0)
+          tableRows = 10000;  // just use a made-up number
+        sampleRows = (Int64)(((double)hs_globals->sampleValue1/(HS_SAMP_PCNT_UPSCALE*100)) * tableRows);
+      }
     else // hs_globals->optFlags & SAMPLE_ALL
-      sampleRows = tableRows/100; // use default sample size and then match all sample w/ large diff.
+      {
+        if (tableRows == 0)
+          tableRows = 10000;  // just use a made-up number
+        sampleRows = tableRows/100; // use default sample size and then match all sample w/ large diff.
+      }
 
     //Return -1 with error msg if sample rows greater than base table rows.
     if (sampleRows > tableRows)
