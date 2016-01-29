@@ -105,6 +105,7 @@ public class ServerResource {
 			Class.forName(server.getJdbcDriverClass());
 			connection = DriverManager.getConnection(url, usr, pwd);
 
+
 			/*
 			 * Statement stmt = connection.createStatement(); ResultSet rs =
 			 * stmt.executeQuery("info system"); while (rs.next()) {
@@ -116,6 +117,7 @@ public class ServerResource {
 			 * ConfigurationResource .setSystemVersion(versionparts.length > 1 ?
 			 * versionparts[1].trim() : versionparts[0]); }
 			 */
+
 
 		} catch (Exception e) {
 			_LOG.error(e.getMessage());
