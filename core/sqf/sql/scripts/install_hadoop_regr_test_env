@@ -486,6 +486,8 @@ create external table customer_address
 row format delimited fields terminated by '|' 
 location '/hive/tpcds/customer_address';
 
+set hive.enforce.sorting=true;   
+
 drop table customer_orc;
 create table customer_orc stored as orc as select * from customer;
 
@@ -493,7 +495,8 @@ drop table customer_address_orc;
 create table customer_address_orc stored as orc as select * from customer_address;
 
 drop table customer_demographics_orc;
-create table customer_demographics_orc stored as orc as select * from customer_demographics;
+create table customer_demographics_orc stored as orc as select * from customer_demographics
+ sort by cd_gender, cd_marital_status, cd_education_status;
 
 drop table household_demographics_orc;
 create table household_demographics_orc stored as orc as select * from household_demographics;
@@ -505,10 +508,9 @@ drop table store_orc;
 create table store_orc stored as orc as select * from store;
 
 drop table store_sales_orc;
-create table store_sales_orc stored as orc as select * from store_sales;
+create table store_sales_orc stored as orc tblproperties ("orc.stripe.size"="1048576")  as select * from store_sales
+  sort by ss_item_sk;
 
-
-set hive.enforce.sorting=true;   
 
 drop table store2_orc;
 create table store2_orc stored as orc as select * from store 

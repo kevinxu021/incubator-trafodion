@@ -790,6 +790,7 @@ class CmpSeabaseDDL
   
   short buildKeyInfoArray(
 			  ElemDDLColDefArray *colArray,
+                          NAColumnArray *nacolArray,
 			  ElemDDLColRefArray *keyArray,
 			  ComTdbVirtTableColumnInfo * colInfoArray,
 			  ComTdbVirtTableKeyInfo * keyInfoArray,

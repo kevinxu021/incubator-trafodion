@@ -25005,6 +25005,13 @@ create_table_as_token: TOK_AS
 table_definition_body : table_element_list
                       | like_definition
                       | external_table_definition
+                      | table_element_list external_table_definition
+                        {
+                          $$ = new (PARSERHEAP())
+                            ElemDDLList(
+                                 $1 /*table_elements*/,
+                                 $2 /*table_element*/);
+                        }
 
 /* type pElemDDL */
 table_element_list : '(' table_elements ')'
@@ -31108,6 +31115,21 @@ alter_table_statement : TOK_ALTER optional_ghost TOK_TABLE ddl_qualified_name
                                   $$ = $5 /*alter_table_action*/;
                                   if ($2) /*optional_ghost*/
                                     $$->setIsGhostObject(TRUE);
+                                  $$->castToStmtDDLAlterTable()->
+                                    setTableName(QualifiedName (*$4 /*ddl_qualified_name*/, 
+                                                  PARSERHEAP()));
+				  if($$->castToStmtDDLAlterTableAddColumn())
+                                    {
+				      $$->castToStmtDDLAlterTableAddColumn()->
+					synthesize();
+                                    }
+                                  delete $4 /*ddl_qualified_name*/;
+                                }
+                        | TOK_ALTER TOK_EXTERNAL TOK_TABLE ddl_qualified_name
+                                alter_table_action 
+                                {
+                                  $$ = $5 /*alter_table_action*/;
+                                  $$->setIsExternal(TRUE);
                                   $$->castToStmtDDLAlterTable()->
                                     setTableName(QualifiedName (*$4 /*ddl_qualified_name*/, 
                                                   PARSERHEAP()));

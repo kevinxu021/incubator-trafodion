@@ -386,7 +386,7 @@ public:
           desc_struct *inTableDesc = NULL);
 
   NATable(BindWA *bindWA, const CorrName &corrName, NAMemory *heap,
-          struct hive_tbl_desc*);
+          struct hive_tbl_desc*, desc_struct *extTableDesc = NULL);
 
   virtual ~NATable();
 
@@ -500,6 +500,11 @@ public:
   }
   NABoolean isOfflinePartition(const NAString &partitionName) const
   { return !partitionName.isNull() && !containsPartition(partitionName); }
+
+
+  // move relevant attributes from etTable to this.
+  // Currently, column and key info is moved.
+  short updateExtTableAttrs(NATable *etTable);
 
   const Int64 &getCreateTime() const            { return createTime_; }
   const Int64 &getRedefTime() const             { return redefTime_; }
@@ -733,6 +738,11 @@ public:
   NABoolean isHistogramTable() const
   {  return (flags_ & IS_HISTOGRAM_TABLE) != 0; }
 
+  void setHasHiveExtTable( NABoolean value )
+  {  value ? flags_ |= HAS_HIVE_EXT_TABLE : flags_ &= ~HAS_HIVE_EXT_TABLE; }
+  NABoolean hasHiveExtTable() const
+  {  return (flags_ & HAS_HIVE_EXT_TABLE) != 0; }
+
   const CheckConstraintList &getCheckConstraints() const
                                                 { return checkConstraints_; }
   const AbstractRIConstraintList &getUniqueConstraints() const
@@ -953,8 +963,9 @@ private:
     IS_HISTOGRAM_TABLE        = 0x00200000,
     
     // synchronize transactions across multiple clusters for this table
-    SYNC_XN                   = 0x00080000
+    SYNC_XN                   = 0x00080000,
 
+    HAS_HIVE_EXT_TABLE        = 0x00100000
   };
     
   UInt32 flags_;

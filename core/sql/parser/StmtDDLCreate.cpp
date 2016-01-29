@@ -5015,7 +5015,16 @@ StmtDDLCreateTable_visitTableDefElement(ElemDDLNode * pCreateTableNode,
   StmtDDLCreateTable * pCreateTable =
     pCreateTableNode->castToStmtDDLCreateTable();
 
-  if (pElement->castToElemDDLConstraint() NEQ NULL)
+  if (pElement->castToElemDDLLikeCreateTable() NEQ NULL)
+    {
+      pCreateTable->likeSourceTableCorrName_ = 
+        pElement->castToElemDDLLikeCreateTable()
+        ->getDDLLikeNameAsCorrName();
+      pCreateTable->likeOptions_ = 
+        pElement->castToElemDDLLikeCreateTable()
+        ->getLikeOptions();
+    }
+  else if (pElement->castToElemDDLConstraint() NEQ NULL)
   {
     //
     // table constraint definition

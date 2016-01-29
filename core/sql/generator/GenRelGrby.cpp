@@ -1859,28 +1859,12 @@ short HbasePushdownAggr::codeGen(Generator * generator)
       attrs[i] = mapInfo->getAttr();
       mapInfo->codeGenerated();
       aggrVidList.insert(valId);
-
-#ifdef __ignore
-      const ValueId &hbaseAggrVid = valId.getItemExpr()->child(0)->getValueId();
-      generator->addMapInfo(hbaseAggrVid, 0);
-      hbaseAggrVidList.insert(hbaseAggrVid);
-#endif
     }
 
   // Create the descriptor describing row where aggr returned by hbase will
   // be added.
   ExpTupleDesc * hbaseAggrTupleDesc = NULL;
   ULng32 hbaseAggrRowLen = 0;
-#ifdef __ignore
-  expGen->processValIdList(hbaseAggrVidList,
-                           ExpTupleDesc::SQLARK_EXPLODED_FORMAT,
-                           hbaseAggrRowLen,
-                           workAtp,
-                           hbaseAggrTuppIndex,
-                           &hbaseAggrTupleDesc,
-                           ExpTupleDesc::LONG_FORMAT);
-  work_cri_desc->setTupleDescriptor(hbaseAggrTuppIndex, hbaseAggrTupleDesc);
-#endif
   
   // Create the descriptor describing the aggr row and assign offset to attrs. 
   ExpTupleDesc * tupleDesc = NULL;
