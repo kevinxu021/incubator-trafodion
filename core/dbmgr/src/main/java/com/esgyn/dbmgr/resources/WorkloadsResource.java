@@ -252,7 +252,8 @@ public class WorkloadsResource {
 			stmt = connection
 					.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_REPO_QUERY_DETAIL));
 			stmt.setString(1, queryID);
-			rs = stmt.executeQuery(sqlText);
+
+			rs = stmt.executeQuery();
 			while (rs.next()) {
 				qDetail.setUserName(rs.getString("user_name"));
 				qDetail.setStatus(rs.getString("query_status"));

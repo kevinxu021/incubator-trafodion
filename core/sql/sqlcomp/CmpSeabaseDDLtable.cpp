@@ -3501,13 +3501,17 @@ short CmpSeabaseDDL::dropSeabaseTable2(
     }
 
   // drop SB_HISTOGRAMS and SB_HISTOGRAM_INTERVALS entries, if any
-  // if the table that we are dropping itself is not a SB_HISTOGRAMS or SB_HISTOGRAM_INTERVALS table
+  // if the table that we are dropping itself is not a SB_HISTOGRAMS 
+  // or SB_HISTOGRAM_INTERVALS table or sampling tables
   // TBD: need to change once we start updating statistics for external
   // tables
   if (! (tableName.isExternalHive() || tableName.isExternalHbase()) )
     {
       if (objectNamePart != "SB_HISTOGRAMS" && 
-          objectNamePart != "SB_HISTOGRAM_INTERVALS")
+          objectNamePart != "SB_HISTOGRAM_INTERVALS" &&
+          objectNamePart != "SB_PERSISTENT_SAMPLES" &&
+          strncmp(objectNamePart.data(),"TRAF_SAMPLE_",sizeof("TRAF_SAMPLE_")) != 0)
+          
       {
         if (dropSeabaseStats(cliInterface,
                              catalogNamePart.data(),
@@ -7963,7 +7967,7 @@ void CmpSeabaseDDL::seabaseGrantRevoke(
       if (pGranteeArray[j]->isPublic())
         {
           grantee = PUBLIC_USER;
-          authName = "PUBLIC";
+          authName = PUBLIC_AUTH_NAME;
         }
       else
         {

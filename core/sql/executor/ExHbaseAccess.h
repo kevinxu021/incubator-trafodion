@@ -849,6 +849,7 @@ public:
     , DONE
     , ALL_DONE
     , COMPLETE_ASYNC_INSERT
+    , CLOSE_AND_DONE
 
   } step_;
 
@@ -1149,10 +1150,8 @@ public:
     , SETUP_UMD
     , SETUP_SELECT
     , CREATE_UPDATED_ROW
-    , PROCESS_DELETE
     , PROCESS_DELETE_AND_CLOSE
     , EVAL_CONSTRAINT
-    , PROCESS_UPDATE
     , PROCESS_UPDATE_AND_CLOSE
     , PROCESS_SELECT
     , NEXT_ROW
@@ -1165,6 +1164,7 @@ public:
     , APPLY_PRED
     , RETURN_ROW
     , COMPLETE_ASYNC_OPERATION
+    , CLOSE_AND_DONE
   } step_;
 
   ExHbaseAccessSQRowsetTcb( const ExHbaseAccessTdb &tdb,

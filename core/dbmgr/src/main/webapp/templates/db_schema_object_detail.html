@@ -30,6 +30,7 @@
 					  <li id="attributes-btn" role="presentation" class="active"><a href="#db-attributes-link" class="dbmgr-link-button" data-toggle="pill">Attributes</a></li>
 					  <li id="columns-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-columns-link" class="dbmgr-link-button" data-toggle="pill">Columns</a></li>
 					  <li id="regions-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-regions-link" class="dbmgr-link-button" data-toggle="pill">Regions</a></li>
+					  <li id="statistics-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-statistics-link" class="dbmgr-link-button" data-toggle="pill">Statistics</a></li>
 					  <li id="ddl-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-ddl-link" class="dbmgr-link-button" data-toggle="pill">DDL</a></li>
 					  <li id="privileges-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-privileges-link" class="dbmgr-link-button" data-toggle="pill">Privileges</a></li>
 					  <li id="indexes-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-indexes-link" class="dbmgr-link-button" data-toggle="pill">Indexes</a></li>
@@ -40,7 +41,7 @@
 					<div id="object-details-container" class="tab-content">
 					    <div class="tab-pane fade in active" id="db-attributes-link">
 							<div>
-								<table id="db-object-attributes-container"></table>
+								<table id="db-object-attributes-container" class="dbmgr-table"></table>
 							</div>
 					    </div>
 					    <div class="tab-pane fade" id="db-columns-link">
@@ -51,17 +52,25 @@
 							<div id="db-object-regions-container" class="table-responsive">
 							</div>
 					    </div>
+					    <div class="tab-pane fade" id="db-statistics-link">
+							<div id="db-object-statistics-container" class="table-responsive">
+							</div>
+					    </div>
 					    <div class="tab-pane fade" id="db-ddl-link">
 							<div id ="db-object-ddl-container">
 								<textarea id="object-ddl-text" readonly name="object-ddl-text" spellcheck="false" rows="100" readonly class="textarea" style="font-family: Courier New, Courier, monospace;width: 95%; margin-bottom: 10px"></textarea>
 							</div>
 					    </div>
 					    <div class="tab-pane fade" id="db-privileges-link">
-							<div id ="db-object-privileges-container"></div>
+							<div id ="db-object-privileges-container" class="table-responsive"></div>
 					    </div>
 					    <div class="tab-pane fade" id="db-usages-link">
 							<div id ="db-object-usages-container"></div>
 					    </div>
+					    <div class="tab-pane fade" id="db-indexes-link">
+							<div id="db-object-indexes-container" class="table-responsive">
+							</div>
+					    </div>					    
 					</div>
 					<textarea id="db-object-error-text" readonly name="db-object-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 				</div>

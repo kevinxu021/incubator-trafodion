@@ -1575,6 +1575,7 @@ public:
     Int64          numPartitions;                  /* # of partns in object   */
     NAString      *hstogram_table;                 /* HISTOGRM table          */
     NAString      *hsintval_table;                 /* HISTINTS table          */
+    NAString      *hsperssamp_table;               /* PERSISTENT_SAMPLES table */
     NAString      *hssample_table;                 /* SAMPLING table          */
     NABoolean      externalSampleTable;            /* ownership of sample tab */
     hs_table_type  tableType;                      /* GUARDIAN | ANSI format  */

@@ -71,8 +71,8 @@ define([
 			$.validator.addMethod("validateStartAndEndTimes", function(value, element) {
 				var startTime = new Date($(START_TIME_PICKER).data("DateTimePicker").date()).getTime();
 				var endTime = new Date($(END_TIME_PICKER).data("DateTimePicker").date()).getTime();
-				return (startTime < endTime);
-			}, "* Start Time has to be less than End Time");
+				return (startTime > 0 && startTime < endTime);
+			}, "* Invalid Date Time and/or Start Time is greater than End Time");
 
 			$.validator.addMethod("validateErrorCodes", function(value, element) {
 				var errorCodes = $(FILTER_ERROR_CODES).val();
@@ -458,19 +458,16 @@ define([
 
 				var bPaging = aaData.length > 25;
 
-				oDataTable = $('#logs-query-results').dataTable({
+				oDataTable = $('#logs-query-results').DataTable({
 					"oLanguage": {
 						"sEmptyTable": "No log entries found for selected time range and/or filters."
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
-					"bProcessing": true,
+					processing: true,
 					paging: bPaging,
-					//"bAutoWidth": true,
+					autoWidth: true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
-					//"scrollY":        "800px",
-					"scrollCollapse": true,
-					//"bJQueryUI": true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					stateSave: true,
@@ -509,7 +506,7 @@ define([
 				});
 
 
-				$('#logs-query-results td').css("white-space","nowrap");
+				//$('#logs-query-results td').css("white-space","nowrap");
 			}
 
 		},

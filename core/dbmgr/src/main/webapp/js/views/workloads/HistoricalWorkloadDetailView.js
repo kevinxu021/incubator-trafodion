@@ -48,11 +48,12 @@ define([
 
 			queryTextEditor = CodeMirror.fromTextArea(document.getElementById("query-text"), {
 				mode: 'text/x-esgyndb',
-				indentWithTabs: true,
-				smartIndent: true,
+				indentWithTabs: false,
+				smartIndent: false,
 				lineNumbers: false,
 				lineWrapping: true,
 				matchBrackets : true,
+				readOnly: true,
 				autofocus: true,
 				extraKeys: {"Ctrl-Space": "autocomplete"}
 			});
@@ -133,7 +134,7 @@ define([
 			sessionStorage.removeItem(queryID);
 			if(queryParams != null){
 				queryParams = JSON.parse(queryParams);
-				if(queryParams.text)
+				if(queryParams.text && queryTextEditor)
 					queryTextEditor.setValue(queryParams.text);
 			}
 		},
@@ -179,8 +180,7 @@ define([
 
 			//$('#query-text').text(result.queryText);
 			queryTextEditor.setValue(result.queryText);
-			//sessionStorage.setItem(queryID, result.queryText);	
-
+	
 			$('#query-status').val(result.status.trim());
 			var startTimeVal = "";
 			if(result.startTime != null && result.startTime != -1){
