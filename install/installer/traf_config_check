@@ -490,10 +490,10 @@ fi
 function checkBackupUser {
 
 if [ -z $BACKUP_USER ]; then
-   errorFound=1
-   echo "BACKUP_USER" >> $ERROR_LOG
-   echo "***ERROR: BACKUP_USER variable not set in config file." >> $ERROR_LOG
-
+   echo "***ERROR: BACKUP_USER variable not set in config file."
+   echo "***WARNING: BACKUP_USER will be set to trafodion."
+   
+   sudo "export BACKUP_USER=\"trafodion\"" >> $TRAF_CONFIG
 fi
 
 }
