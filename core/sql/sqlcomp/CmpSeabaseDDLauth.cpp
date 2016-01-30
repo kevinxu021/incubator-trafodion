@@ -763,9 +763,9 @@ Int32 CmpSeabaseDDLuser::getUniqueID()
   whereClause += userIDString;
  
   newUserID = selectMaxAuthID(whereClause);
-  // DB__ROOT should always be registered as MIN_USERID.  Just in case ...
+  // DB__ROOT should always be registered as ROOT_USER_ID.  Just in case ...
   if (newUserID == 0)
-     newUserID = MIN_USERID + 1;
+     newUserID = ROOT_USER_ID + 1;
   else
      newUserID++;
 
@@ -1872,7 +1872,7 @@ Int32 CmpSeabaseDDLrole::getUniqueID()
   sprintf(roleIDString,"%d",MIN_ROLEID);
   whereClause += roleIDString;
   whereClause += " and auth_id < ";
-  sprintf(roleIDString, "%d", MAX_ROLEID);
+  sprintf(roleIDString, "%d", MAX_ROLEID_RANGE1);
   whereClause += roleIDString;
 
   newRoleID = selectMaxAuthID(whereClause);
@@ -1883,8 +1883,8 @@ Int32 CmpSeabaseDDLrole::getUniqueID()
 
   // We have 490000 available ID's.  Don't expect to run out of ID's for awhile
   // but if/when we do, the algorithm needs to change.  Can reuse ID's for roles 
-  // that were dropped.
-  if (newRoleID >= MAX_ROLEID)
+  // that were dropped or extent the range.
+  if (newRoleID >= MAX_ROLEID_RANGE1)
     SEABASEDDL_INTERNAL_ERROR("CmpSeabaseDDLrole::getUniqueID failed, ran out of available IDs");
 
   return newRoleID;

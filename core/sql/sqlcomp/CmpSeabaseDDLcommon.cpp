@@ -6619,7 +6619,7 @@ short CmpSeabaseDDL::updateSeabaseAuths(
   NAString mdLocation;
   CONCAT_CATSCH(mdLocation, getSystemCatalog(), SEABASE_MD_SCHEMA);
   CmpSeabaseDDLuser authOperation(sysCat, mdLocation.data());
-  authOperation.registerStandardUser(DB__ROOT, ROOT_ROLE_ID);
+  authOperation.registerStandardUser(DB__ROOT, ROOT_USER_ID);
   if (CmpCommon::diags()->getNumber(DgSqlCode::ERROR_))
     return -1;
 
