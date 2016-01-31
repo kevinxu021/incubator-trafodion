@@ -121,6 +121,10 @@ define([
 						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Procedures', link:  ''});
 						break;
+					case 'udfs': 
+						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: 'UDFs', link:  ''});
+						break;
 				}
 			}
 			$.each(bCrumbsArray, function(key, crumb){
@@ -144,6 +148,11 @@ define([
 					case 'libraries' :
 					case 'procedures' :
 						var displayName = common.toProperCase(routeArgs.type) + ' in schema ' + routeArgs.schema;
+						$(OBJECT_NAME_CONTAINER).text(displayName);
+						_this.fetchObjects(routeArgs.type, routeArgs.schema);
+						break;
+					case 'udfs' :
+						var displayName = 'UDFs in schema ' + routeArgs.schema;
 						$(OBJECT_NAME_CONTAINER).text(displayName);
 						_this.fetchObjects(routeArgs.type, routeArgs.schema);
 						break;
@@ -260,7 +269,68 @@ define([
 		            	 }
 					});
 				}
-				
+				if(routeArgs.type == 'procedures'){
+					aoColumnDefs.push({
+						"aTargets": [ 5 ],
+						"mData": 5,
+						"visible" : false,
+						"searchable" : false
+					});
+					aoColumnDefs.push({
+						"aTargets": [ 6 ],
+						"mData": 6,
+						"mRender": function ( data, type, full ) {
+		            		 if(type == 'display') {
+		            			 if(data != null && data.length > 0){
+			            			 var libSchema = full[5];
+			            			 var rowcontent = '<a href="#/database/objdetail?type=library&name=' + data ;
+			            			 if(libSchema != null && libSchema.length > 0){
+			            				 rowcontent += '&schema='+ libSchema;
+			            				 rowcontent += '">' + libSchema+'.'+data + '</a>';		            				 
+			            			 }else{
+			            				 rowcontent += '">' + libSchema+'.'+data + '</a>';	
+			            			 }
+			            			 return rowcontent; 
+		            			 }else{
+		            				 return "";
+		            			 }
+		            		 }else { 
+		            			 return data;
+		            		 }
+		            	 }
+					});
+				}
+				if(routeArgs.type == 'udfs'){
+					aoColumnDefs.push({
+						"aTargets": [ 7 ],
+						"mData": 7,
+						"visible" : false,
+						"searchable" : false
+					});
+					aoColumnDefs.push({
+						"aTargets": [ 8 ],
+						"mData": 8,
+						"mRender": function ( data, type, full ) {
+		            		 if(type == 'display') {
+		            			 if(data != null && data.length > 0){
+			            			 var libSchema = full[7];
+			            			 var rowcontent = '<a href="#/database/objdetail?type=library&name=' + data ;
+			            			 if(libSchema != null && libSchema.length > 0){
+			            				 rowcontent += '&schema='+ libSchema;
+			            				 rowcontent += '">' + libSchema+'.'+data + '</a>';		            				 
+			            			 }else{
+			            				 rowcontent += '">' + libSchema+'.'+data + '</a>';	
+			            			 }
+			            			 return rowcontent; 
+		            			 }else{
+		            				 return "";
+		            			 }
+		            		 }else { 
+		            			 return data;
+		            		 }
+		            	 }
+					});
+				}				
 				oDataTable = $('#db-objects-list-results').DataTable({
 					"oLanguage": {
 						"sEmptyTable": "There are no " + routeArgs.type

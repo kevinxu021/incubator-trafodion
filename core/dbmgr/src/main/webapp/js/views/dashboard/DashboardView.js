@@ -445,10 +445,11 @@ define([
 					processing: true,
 					"autoWidth": true,
 					"scrollCollapse": true,
+					"ordering": false,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"aoColumnDefs": [ 
-					                 { "aTargets": [ 0 ], 
+					                 { "aTargets": [ 0 ],
 					                	 "mRender": function ( data, type, full ) {
 					                		 if (type === 'display') {
 					                			 if(data == 'DTM'){
@@ -457,8 +458,11 @@ define([
 					                			 if(data == 'RMS'){
 					                				 return 'Runtime Manageability Service';
 					                			 }
+					                			 if(data == 'DCSMASTER'){
+					                				 return 'DCS Master';
+					                			 }
 					                			 if(data == 'MXOSRVR'){
-					                				 return 'Connectivity Service';
+					                				 return 'Master Executor';
 					                			 }
 					                			 return data;
 					                		 }
@@ -488,7 +492,8 @@ define([
 					                		 else return data;
 					                	 }
 					                 }],
-	                 buttons: [
+					    "order": [],
+						buttons: [
 	                           { extend : 'copy', exportOptions: { columns: [0, 1, 2, 3] } },
 	                           { extend : 'csv', exportOptions: { columns: [0, 1, 2, 3] } },
 	                           { extend : 'excel', exportOptions: {  columns: [0, 1, 2, 3] } },
@@ -662,63 +667,63 @@ define([
 					}else{
 						yLabelArray.push(metricConfig.ylabels);
 					}
-				}				
-				var options = {
-						element: metricConfig.graphcontainer,
-						data: seriesData,
-						lineWidth:2,
-						xkey:'x',
-						ykeys:ykeys,
-						ymin: 0,
-						ymax: metricConfig.ymax ? metricConfig.ymax: 'auto',
-						labels: yLabelArray,
-						pointSize: seriesData.length == 1 ? '2.5' : '0.0',
-						hideHover: 'auto',
-						resize:true,
-						yLabelFormat: function(y){
-							if(metricConfig.yLabelFormat){
-								return metricConfig.yLabelFormat(y);
-							}
-							return y.toFixed(0);
-						},
-						parseTime: false,
-						xLabelFormat:function(data){
-							return common.formatGraphDateLabels(data.src.x, timeinterval);
-						},
-						hoverCallback: function (index, options, content, row) {
-							var newContent = [];
-
-							var nDecimals = 2;
-							if(metricConfig.ydecimals != null){
-								nDecimals = metricConfig.ydecimals;
-							}
-							var yPoint = 0;
-							$.each($(content), function(i, v){
-								var aa = 5;
-								if($(v).hasClass('morris-hover-row-label')){
-									$(v).text("Time : " + common.toServerLocalDateFromMilliSeconds(row.x));
-									newContent.push($(v));
+				}
+					var options = {
+							element: metricConfig.graphcontainer,
+							data: seriesData,
+							lineWidth:2,
+							xkey:'x',
+							ykeys:ykeys,
+							ymin: 0,
+							ymax: metricConfig.ymax ? metricConfig.ymax: 'auto',
+							labels: yLabelArray,
+							pointSize: seriesData.length == 1 ? '2.5' : '0.0',
+							hideHover: 'auto',
+							resize:true,
+							yLabelFormat: function(y){
+								if(metricConfig.yLabelFormat){
+									return metricConfig.yLabelFormat(y);
 								}
-								if($(v).hasClass('morris-hover-point')){
-									var text = options.labels[yPoint] + " : ";
-									if(metricConfig.yvalformatter){
-
-										text += metricConfig.yvalformatter(row['y'+yPoint].toFixed(nDecimals));
-									}else{
-										text += row['y'+yPoint].toFixed(nDecimals);
-									}
-									if(metricConfig.yunit){
-										text += metricConfig.yunit;
-									}
-									yPoint++;
-									$(v).text(text);
-									newContent.push($(v));
+								return y.toFixed(0);
+							},
+							parseTime: false,
+							xLabelFormat:function(data){
+								return common.formatGraphDateLabels(data.src.x, timeinterval);
+							},
+							hoverCallback: function (index, options, content, row) {
+								var newContent = [];
+	
+								var nDecimals = 2;
+								if(metricConfig.ydecimals != null){
+									nDecimals = metricConfig.ydecimals;
 								}
-							});
-							return newContent;
-						}
-				};
-				chartsData[result.metricName] = options;
+								var yPoint = 0;
+								$.each($(content), function(i, v){
+									var aa = 5;
+									if($(v).hasClass('morris-hover-row-label')){
+										$(v).text("Time : " + common.toServerLocalDateFromMilliSeconds(row.x));
+										newContent.push($(v));
+									}
+									if($(v).hasClass('morris-hover-point')){
+										var text = options.labels[yPoint] + " : ";
+										if(metricConfig.yvalformatter){
+	
+											text += metricConfig.yvalformatter(row['y'+yPoint].toFixed(nDecimals));
+										}else{
+											text += row['y'+yPoint].toFixed(nDecimals);
+										}
+										if(metricConfig.yunit){
+											text += metricConfig.yunit;
+										}
+										yPoint++;
+										$(v).text(text);
+										newContent.push($(v));
+									}
+								});
+								return newContent;
+							}
+					};
+					chartsData[result.metricName] = options;
 				
 				setTimeout(function(){
 					_this.renderGraph(result.metricName, metricConfig);

@@ -28,7 +28,8 @@ define(['handlers/EventDispatcher'],
 				this.FETCH_PRIVILEGES_ERROR = 'FETCH_PRIVILEGES_ERROR';
 				this.FETCH_STATISTICS_SUCCESS = 'FETCH_STATISTICS_SUCCESS';
 				this.FETCH_STATISTICS_ERROR = 'FETCH_STATISTICS_ERROR';
-
+				this.FETCH_USAGE_SUCCESS = 'FETCH_USAGE_SUCCESS';
+				this.FETCH_USAGE_ERROR = 'FETCH_USAGE_ERROR';
 				
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
@@ -244,6 +245,41 @@ define(['handlers/EventDispatcher'],
 					});
 				};
 				
+				this.fetchUsages = function (objectType, objectName, objectID, schemaName) {
+					var xhr = xhrs["fetchUsages"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					
+					var uri = '/resources/db/usage?type='+objectType;
+					if(objectName != null){
+						uri += '&objectName=' + objectName;
+					}
+					if(objectID != null){
+						uri += '&objectID=' + objectID;
+					}
+					if(schemaName != null){
+						uri += '&schemaName=' + schemaName;
+					}
+					
+					xhrs["fetchUsages"] = $.ajax({
+						url: uri,
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},
+						success: function(data){
+							dispatcher.fire(_this.FETCH_USAGE_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.FETCH_USAGE_ERROR, jqXHR, res, error);
+						}
+					});
+				};
+
 				this.fetchStatistics = function (objectType, objectName, objectID, schemaName) {
 					var xhr = xhrs["fetchStatistics"];
 					if(xhr && xhr.readyState !=4){
