@@ -310,6 +310,134 @@
 			]]></text>
 		</query>
 		<query>
+			<!-- Fetch list of libraries in a schema -->
+			<name>SELECT_LIBRARIES_IN_SCHEMA</name>
+			<text><![CDATA[select distinct object_name as "Name", user(object_owner) as "Owner", 
+					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime",
+					CAST(object_uid  AS CHAR(26))  as "Object ID" , L.LIBRARY_FILENAME as "Code File Name"
+					from "_MD_".objects O, "_MD_".LIBRARIES L
+					WHERE CATALOG_NAME = ? AND SCHEMA_NAME = ?
+					and object_type = ?
+					and O.OBJECT_UID = L.LIBRARY_UID
+					order by object_name FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>	
+		<query>
+			<!-- Fetch attributes of a library -->
+			<name>SELECT_LIBRARY_ATTRIBUTES</name>
+			<text><![CDATA[select distinct object_name as "Name", user(object_owner) as "Owner", 
+					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime",
+					CAST(object_uid  AS CHAR(26))  as "Object ID" , L.LIBRARY_FILENAME as "Code File Name"
+					from "_MD_".objects O, "_MD_".LIBRARIES L
+					WHERE CATALOG_NAME = ? AND SCHEMA_NAME = ?
+					and o.object_name = ? and object_type = ?
+					and O.OBJECT_UID = L.LIBRARY_UID
+					order by object_name FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>
+		<query>
+			<!-- Fetch procedures and udfs that use this library -->
+			<name>SELECT_LIBRARY_USAGE</name>
+			<text><![CDATA[SELECT T3.OBJECT_NAME AS "Routine Name", T3.SCHEMA_NAME as "Routine Schema" ,
+					CASE T4.UDR_TYPE
+					  WHEN 'P' THEN 'Procedure'
+					  WHEN 'T' THEN 'Table Mapping UDF'
+					  WHEN 'F' THEN 'Scalar Function UDF'
+					  ELSE 'UnKnown'
+					END as "Routine Type"
+					FROM "_MD_".OBJECTS AS T1,
+					"_MD_".LIBRARIES_USAGE AS T2,
+					"_MD_".OBJECTS AS T3 , 
+					"_MD_".ROUTINES AS T4 
+					WHERE T1.CATALOG_NAME = ? 
+					AND T1.SCHEMA_NAME = ? 
+					AND T1.OBJECT_NAME = ? 
+					AND T1.OBJECT_UID = T2.USING_LIBRARY_UID
+					AND T2.USING_LIBRARY_UID = T4.LIBRARY_UID 
+					AND T3.OBJECT_UID = T2.USED_UDR_UID 
+					AND T3.OBJECT_TYPE = 'UR' 
+					AND T2.USED_UDR_UID = T4.UDR_UID 
+					ORDER BY 1 FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>
+		<query>
+			<!-- Fetch list of procedures/udfs in a schema -->
+			<name>SELECT_ROUTINES_IN_SCHEMA</name>
+			<text><![CDATA[	select distinct O.object_name as "Name", user(O.object_owner) as "Owner", 
+					converttimestamp(O.create_time) as "CreateTime", converttimestamp(O.redef_time) as "ModifiedTime",
+					CAST(O.object_uid  AS CHAR(26)) as "Object ID", 
+					isnull(O2.SCHEMA_NAME,'') as "UsageSchemaName", isnull(O2.OBJECT_NAME,'') as "Library Name"
+					from "_MD_".objects O, "_MD_".ROUTINES R LEFT JOIN "_MD_".objects O2
+					ON R.LIBRARY_UID = O2.OBJECT_UID
+					WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ?
+					and O.object_type = ?
+					and O.object_uid = R.UDR_UID
+					and R.udr_type = ?
+					order by O.object_name FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>			
+		<query>
+			<!-- Fetch list of procedures/udfs in a schema -->
+			<name>SELECT_PROCDURES_IN_SCHEMA</name>
+			<text><![CDATA[	select distinct O.object_name as "Name", user(O.object_owner) as "Owner", 
+					converttimestamp(O.create_time) as "CreateTime", converttimestamp(O.redef_time) as "ModifiedTime",
+					CAST(O.object_uid  AS CHAR(26)) as "Object ID", 
+					isnull(O2.SCHEMA_NAME,'') as "UsageSchemaName", isnull(O2.OBJECT_NAME,'') as "Library Name"
+					from "_MD_".objects O, "_MD_".ROUTINES R LEFT JOIN "_MD_".objects O2
+					ON R.LIBRARY_UID = O2.OBJECT_UID
+					WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ?
+					and O.object_type = ?
+					and O.object_uid = R.UDR_UID
+					and R.udr_type = 'P'
+					order by O.object_name FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>
+		<query>
+			<!-- Fetch list of procedures/udfs in a schema -->
+			<name>SELECT_UDFS_IN_SCHEMA</name>
+			<text><![CDATA[	select distinct O.object_name as "Name", user(O.object_owner) as "Owner", 
+					converttimestamp(O.create_time) as "CreateTime", converttimestamp(O.redef_time) as "ModifiedTime",
+					CAST(O.object_uid  AS CHAR(26)) as "Object ID", 
+					CASE WHEN R.UDR_TYPE = 'T' THEN 'TABLE MAPPING FUNCTION'
+					ELSE 'SCALAR FUNCTION'
+					END as "Function Type",
+					CASE R.LANGUAGE_TYPE 
+						WHEN 'J' THEN 'Java'
+						WHEN 'C+' THEN 'C++'
+					ELSE R.LANGUAGE_TYPE END as "Language Type",
+					isnull(O2.SCHEMA_NAME,'') as "UsageSchemaName", isnull(O2.OBJECT_NAME,'') as "Library Name"
+					from "_MD_".objects O, "_MD_".ROUTINES R LEFT JOIN "_MD_".objects O2
+					ON R.LIBRARY_UID = O2.OBJECT_UID
+					WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ?
+					and O.object_type = ?
+					and O.object_uid = R.UDR_UID
+					and (R.udr_type = 'F' or R.udr_type = 'T')
+					order by O.object_name FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>
+		<query>
+			<!-- Fetch attributes for a procedure or udf -->
+			<name>SELECT_ROUTINE_ATTRIBUTES</name>
+			<text><![CDATA[	select distinct O.object_name as "Name", user(O.object_owner) as "Owner", 
+					converttimestamp(O.create_time) as "CreateTime", converttimestamp(O.redef_time) as "ModifiedTime",
+					CAST(O.object_uid  AS CHAR(26)) as "Object ID", 
+					CASE WHEN R.UDR_TYPE = 'T' THEN 'TABLE MAPPING FUNCTION'
+					ELSE 'SCALAR FUNCTION'
+					END as "Function Type",
+					CASE R.LANGUAGE_TYPE 
+						WHEN 'J' THEN 'Java'
+						WHEN 'C+' THEN 'C++'
+					ELSE R.LANGUAGE_TYPE END as "Language Type",
+					isnull(O2.SCHEMA_NAME,'') as "UsageSchemaName", isnull(O2.OBJECT_NAME,'') as "Library Name"
+					from "_MD_".objects O, "_MD_".ROUTINES R LEFT JOIN "_MD_".objects O2
+					ON R.LIBRARY_UID = O2.OBJECT_UID
+					WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ?
+					AND O.OBJECT_NAME = ? and O.object_type =?
+					and O.object_uid = R.UDR_UID
+					order by O.object_name FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>
+		<query>
 			<!-- Fetch list of historical workloads -->
 			<name>SELECT_REPO_QUERIES</name>
 			<text><![CDATA[SELECT [first %1$s] trim(query_id) as "Query ID", query_status AS "Status" ,

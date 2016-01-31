@@ -39,6 +39,7 @@ define([
 	INDEXES_SELECTOR = '#db-indexes-link',
 	LIBRARIES_SELECTOR = '#db-libraries-link',
 	PROCEDURES_SELECTOR = '#db-procedures-link',
+	UDFS_SELECTOR = '#db-udfs-link',
 	ATTRIBUTES_BTN = '#attributes-btn',
 	DDL_BTN= '#ddl-btn',
 	PRIVILEGES_BTN = '#privileges-btn',
@@ -47,6 +48,7 @@ define([
 	INDEXES_BTN = '#indexes-btn',
 	LIBRARIES_BTN = '#libraries-btn',
 	PROCEDURES_BTN = '#procedures-btn',
+	UDFS_BTN = '#udfs-btn',
 	REFRESH_ACTION = '#refreshAction';
 
 	var routeArgs = null;
@@ -202,6 +204,9 @@ define([
 				case PROCEDURES_BTN:
 					selectedFeatureLink = PROCEDURES_SELECTOR;
 					break;
+				case UDFS_BTN:
+					selectedFeatureLink = UDFS_SELECTOR;
+					break;
 				}
 			}
 
@@ -235,6 +240,9 @@ define([
 				break;
 			case PROCEDURES_SELECTOR:
 				window.location.hash = '/database/objects?type=procedures&schema='+schemaName;
+				break;
+			case UDFS_SELECTOR:
+				window.location.hash = '/database/objects?type=udfs&schema='+schemaName;
 				break;
 			}
 		},
@@ -300,7 +308,8 @@ define([
 			$(VIEWS_BTN).show();
 			$(INDEXES_BTN).show();
 			$(LIBRARIES_BTN).show();
-			$(PROCEDURES_BTN).show();					
+			$(PROCEDURES_BTN).show();
+			$(UDFS_BTN).show();
 			_this.selectFeature();
 		},
 		fetchAttributes: function () {
