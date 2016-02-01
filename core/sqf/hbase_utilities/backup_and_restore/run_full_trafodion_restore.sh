@@ -115,6 +115,13 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
+#validate sudo access to hbase, applicable only for restore.
+validate_hbase_sudo_access
+if [[ $? -ne 0 ]]; then
+  echo "***[ERROR]: Trafodion Restore can only be performed by an authorized user."  | tee -a $log_file
+  exit 1
+fi
+
 hbase_root_dir=$($(get_hbase_cmd) org.apache.hadoop.hbase.util.HBaseConfTool hbase.rootdir)
 echo "hbase.rootdir= ${hbase_root_dir}"
 if [[ -z "${hbase_root_dir}" ]]
@@ -133,14 +140,6 @@ fi
 
 #get the hdfs uri
 hdfs_uri=$(get_hdfs_uri)
-
-#verify that the hbase home dir exist. ExportSnapshot fails if it does not exist
-verify_or_create_folder "${hdfs_uri}/user/${hbase_user}" "create"
-ret_code=$?
-if [[ $ret_code -ne 0  ]] ; then
-   exit $ret_code
-fi
-
 
 #copy the snapshot list from the hdfs backup location to local tmp folder
 hbase_cmd="$(get_hadoop_cmd) fs -copyToLocal ${hdfs_backup_location}/trafodion_snapshot_list.txt ${snapshot_list_file}"
@@ -202,9 +201,9 @@ do
   echo "delete_snapshot	'${snapshot_name}'" >>	$hbase_delete_snapshots
   echo  "Importing Snapshot: ${snapshot_name}"   | tee -a $log_file
   if [[ ${mr_limit} -eq 0 ]]; then
-     hbase_cmd="$(get_hbase_cmd) org.apache.hadoop.hbase.snapshot.ExportSnapshot"
+     hbase_cmd="sudo -u ${hbase_user} $(get_hbase_cmd) org.apache.hadoop.hbase.snapshot.ExportSnapshot"
   else 
-     hbase_cmd="$(get_hbase_cmd) org.trafodion.utility.backuprestore.TrafExportSnapshot"
+     hbase_cmd="sudo -u ${hbase_user} $(get_hbase_cmd) org.trafodion.utility.backuprestore.TrafExportSnapshot"
   fi
   hbase_cmd+=" -D hbase.rootdir=${hdfs_backup_location}/${snapshot_name}"
   hbase_cmd+=" -snapshot ${snapshot_name}"
