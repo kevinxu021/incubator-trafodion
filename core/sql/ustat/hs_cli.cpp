@@ -555,8 +555,8 @@ Lng32 CreateSeabasePersSamples(const HSGlobalsClass* hsGlobal)
                "  , REASON                CHAR(1) CHARACTER SET UCS2 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
                "  , SAMPLE_NAME           VARCHAR(250) CHARACTER SET UCS2 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
                "  , LAST_WHERE_PREDICATE  VARCHAR(250) CHARACTER SET UCS2 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , LAST_UPDATE_TIME      TIMESTAMP(0) NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , UPDATE_HISTORY        VARCHAR(128) CHARACTER SET ISO88591 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
+               "  , UPDATE_START_TIME      TIMESTAMP(0) NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
+               "  , UPDATER_INFO        VARCHAR(128) CHARACTER SET ISO88591 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
                "  , V1                    VARCHAR(250) CHARACTER SET UCS2 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
                "  , V2                    VARCHAR(250) CHARACTER SET UCS2 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
                "  , constraint "HBASE_PERS_SAMP_PK" primary key"
@@ -1356,9 +1356,12 @@ HSPersSamples::~HSPersSamples()
 void HSPersSamples::setCatalogSchema(const NAString &catalog,
                                      const NAString &schema)
   {
-    *catalog_ = catalog;
-    *schema_ = schema;
-    triedCreatingSBPersistentSamples_ = false; // will try again on a new schema
+    if ((schema != *schema_) || (catalog != *catalog_))
+      {
+        *catalog_ = catalog;
+        *schema_ = schema;
+        triedCreatingSBPersistentSamples_ = false; // will try again on a new schema
+      }
   }
 
 //
@@ -1776,57 +1779,7 @@ Lng32 HSPersSamples::createAndInsert(HSTableDef *tabDef, NAString &sampleName,
       TM->Begin("INSERT INTO SB_PERSISTENT_SAMPLES TABLE.");
       char timeStr[HS_TIMESTAMP_SIZE];
       hs_formatTimestamp(timeStr);
-#if 0 // Use the static INSERT_PST query defined in w:/ustat/sqlhist.mdf
-      NAWString *pSampleNameInUTF16 =
-        charToUnicode ( (Lng32) CharInfo::UTF8                 // char set of src str
-                      , sampleName/*in_utf8*/.data()           // src str
-                      , (Int32)sampleName/*in_utf8*/.length()  // src str len in bytes
-                      , STMTHEAP                               // heap for allocated target str
-                      );
-      NAWString sampleNameInUTF16(STMTHEAP);
-      if (pSampleNameInUTF16 != NULL && pSampleNameInUTF16->length() > 0)
-        sampleNameInUTF16.append(*pSampleNameInUTF16);
-      delete pSampleNameInUTF16; pSampleNameInUTF16 = NULL;
-      if (!sampleName.isNull() && sampleNameInUTF16.length() <= 0)
-      {
-        NAString str0((size_t)600/*allocate 600 bytes*/, STMTHEAP);
-        str0.append("INSERT ");
-        str0.append(sampleName);
-        *CmpCommon::diags() << DgSqlCode(-UERR_GENERIC_ERROR)
-                            << DgString0(str0.data())
-                            << DgString1("-2109")
-                            << DgString2("Unable to translate sample name from UTF8 to UCS2");
-        // HSHandleError(-UERR_GENERIC_ERROR);
-        return (-UERR_GENERIC_ERROR);
-      }
 
-      HSGlobalsClass *hs_globals = GetHSContext();
-
-      NAWString V1(L"Dummy value for V1 column", STMTHEAP);
-      NAWString V2(L"Dummy value for V2 column", STMTHEAP);
-
-      // Set the UPDATE_DATE to the epoch time '1970-01-01 00:00:00'.
-      // See its usage in HSGlobalsClass::begin_IUS_work() and ::end_IUS_work()
-      HSCliStatement insertPST(stmt,
-                              (char *)into_table.data(),
-                              (char *)&objUID,
-                              (char *)&reqSampleRows,
-                              (char *)&sampleRows,
-                              (char *)&percent,
-                              (char *)&timeStr[0],
-                              (char *)&reason,
-                              (char *)sampleNameInUTF16.data(),
-                              (char *)L"",   // IUS_SEARCH_CONDITION (added after IUS stmt)
-                              (char *)"1970-01-01 00:00:00",   // epoch UPDATE_DATE
-                              (char *)"",                      // dummy IUS_UPDATE_HISTORY
-                              (char *)V1.data(),   // V1
-                              (char *)V2.data());  // V2
-
-      retcode = insertPST.execFetch("INSERT " + sampleName );
-      HSHandleError(retcode);
-
-
-#else // Use dynamic query as a workaround if having problem with the static query
       NAString dml((size_t)500/*allocate 500 bytes*/, STMTHEAP);
       dml.append("INSERT INTO ");
       dml += into_table; // in UTF8
@@ -1855,8 +1808,8 @@ Lng32 HSPersSamples::createAndInsert(HSTableDef *tabDef, NAString &sampleName,
                      , TRUE             // in  - NABoolean encloseInQuotes = TRUE
                      );
       dml += ",_UCS2''";               // IUS_SEARCH_CONDITION (added after IUS stmt)
-      dml += ",TIMESTAMP'1970-01-01 00:00:00'"; // UPDATE_DATE TIMESTAMP
-      dml += ",''"; // IUS_UPDATE_HISTORY
+      dml += ",TIMESTAMP'1970-01-01 00:00:00'"; // UPDATE_START_TIME TIMESTAMP
+      dml += ",''"; // UPDATER_INFO
       dml += ",_UCS2''";  // V1
       dml += ",_UCS2''";  // V2
       dml += ");";
@@ -1864,8 +1817,6 @@ Lng32 HSPersSamples::createAndInsert(HSTableDef *tabDef, NAString &sampleName,
       retcode = HSFuncExecQuery(dml, - UERR_INTERNAL_ERROR, NULL,
                                 HS_QUERY_ERROR, NULL, NULL, TRUE/*doRetry*/ );
       HSHandleError(retcode);
-#endif
-
 
       if (!retcode) TM->Commit();
       else {
@@ -1968,7 +1919,7 @@ Lng32 HSPersSamples::removeMatchingSamples(HSTableDef *tabDef,
 
 /*********************************************************************/
 /* METHOD:  readIUSUpdateInfo()                                      */
-/* PURPOSE: Retrieve the UPDATE_DATE and IUS_UPDATE_HISTORY columns  */
+/* PURPOSE: Retrieve the UPDATE_START_TIME and UPDATER_INFO columns  */
 /*          of the persistent samples table for the row identified   */
 /*          by the UID of the passed HSTableDef.                     */
 /* INPUT:   tblDef - Ptr to HSTableDef for table the sample is on.   */
@@ -1996,8 +1947,8 @@ Lng32 HSPersSamples::readIUSUpdateInfo(HSTableDef* tblDef,
 
     HSCursor readIUSInfoCursor(STMTHEAP,"readIUSUpdateInfo");
 
-    NAString query = "SELECT UPDATE_HISTORY, "
-                     "CAST(LAST_UPDATE_TIME - TIMESTAMP '1970-01-01 00:00:00' AS LARGEINT) FROM ";
+    NAString query = "SELECT UPDATER_INFO, "
+                     "CAST(UPDATE_START_TIME - TIMESTAMP '1970-01-01 00:00:00' AS LARGEINT) FROM ";
     query += fromTable;
     query += " WHERE TABLE_UID = ";
     query += uidStr;
@@ -2013,7 +1964,7 @@ Lng32 HSPersSamples::readIUSUpdateInfo(HSTableDef* tblDef,
         struct 
           {
             short len;
-            char data[129];   // to fetch a varchar; UPDATE_HISTORY is VARCHAR(128)
+            char data[129];   // to fetch a varchar; UPDATER_INFO is VARCHAR(128)
           } buffer;
 
         retcode = readIUSInfoCursor.fetch(2, (void *)&buffer, (void *)updTimestamp);
@@ -2034,19 +1985,49 @@ Lng32 HSPersSamples::readIUSUpdateInfo(HSTableDef* tblDef,
     return retcode;
   }
 
+
+// helper function that doubles any single quotes in text, so that
+// we can write SQL text into a SQL table
+void doubleUpSingleQuotes(const char *text, NAString & result)
+  {
+    const char * next = text;
+    char buf[2];  
+    char doubledSingleQuote[3] = "''";
+
+    buf[1] = '\0';
+
+    while (*next)
+      {
+        if (*next == '\'')
+          result += doubledSingleQuote;  // double up any single quote
+        else
+          {
+            // NAString += with a char doesn't work; have to use a char[]
+            buf[0] = *next;
+            result += buf;
+          }
+        next++;
+      }   
+  }
+
+
 /*********************************************************************/
 /* METHOD:  updIUSUpdateInfo()                                       */
-/* PURPOSE: Update the UPDATE_DATE and IUS_UPDATE_HISTORY columns of */
+/* PURPOSE: Update the UPDATE_START_TIME and UPDATER_INFO columns of */
 /*          the persistent samples table for the row identified by   */
 /*          the UID of the passed HSTableDef.                        */
 /* INPUT:   tblDef - Ptr to HSTableDef for table the sample is on.   */
-/*          updHistory - Buffer containing update history value.     */
+/*          updHistory - Buffer containing updater info.             */
 /*          updTimestamp - Char representation of update timestamp.  */
+/*          updWhereCondition - if not null, the where predicate of  */
+/*          the last completed IUS operation. (If null, we don't     */
+/*          update this column.)                                     */
 /* RETCODE: Status code from the update operation.                   */
 /*********************************************************************/
 Lng32 HSPersSamples::updIUSUpdateInfo(HSTableDef* tblDef,
-                                      char* updHistory,
-                                      char* updTimestampStr)
+                                      const char* updHistory,
+                                      const char* updTimestampStr,
+                                      const char* updWhereCondition)
 {
   Lng32 retcode = 0;
   HSErrorCatcher errorCatcher(retcode, - UERR_INTERNAL_ERROR, "updIUSUpdateInfo", TRUE);
@@ -2077,11 +2058,31 @@ Lng32 HSPersSamples::updIUSUpdateInfo(HSTableDef* tblDef,
 
   NAString query = "UPDATE ";                   
   query += updTable;
-  query += " SET LAST_UPDATE_TIME = TIMESTAMP '";
+  query += " SET UPDATE_START_TIME = TIMESTAMP '";
   query += updTimestampStr;
-  query += "', UPDATE_HISTORY = '";
+  query += "', UPDATER_INFO = '";
   query += updHistory;
-  query += "' WHERE TABLE_UID = ";
+  query += "'";
+  if (updWhereCondition)
+    {
+      NAString doubledUp;
+      doubleUpSingleQuotes(updWhereCondition,doubledUp /* out*/);
+      query += ", LAST_WHERE_PREDICATE = ";
+      if (strlen(updWhereCondition) > 250)
+        {
+          // let SQL deal with character truncation issues
+          query += "SUBSTRING('";
+          query += doubledUp;
+          query += "' FOR 250)";
+        }    
+      else
+        {
+          query += "'";
+          query += doubledUp;
+          query += "'";
+        }
+    }
+  query += " WHERE TABLE_UID = ";
   query += uidStr;
 
   retcode = writeIUSInfoCursor.prepareQuery(query, 0, 0);

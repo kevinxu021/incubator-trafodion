@@ -414,8 +414,9 @@ class HSPersSamples
                                         const NAString &schema);
 
          Lng32 updIUSUpdateInfo(HSTableDef* tblDef,
-                                char* updHistory,
-                                char* updTimestampStr);
+                                const char* updHistory,
+                                const char* updTimestampStr,
+                                const char* updWhereCondition);
 
          Lng32 readIUSUpdateInfo(HSTableDef* tblDef,
                                  char* updHistory,
