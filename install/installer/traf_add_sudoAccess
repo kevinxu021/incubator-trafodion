@@ -23,15 +23,6 @@
 TRAF_CONFIG=/etc/trafodion/trafodion_config
 source $TRAF_CONFIG
 
-if [ $all_node_count -eq 1 ]; then
-    TRAF_PDSH=""
-    TRAF_PDCP=""
-else
-    TRAF_PDSH="pdsh -R exec $ALL_NODES $PDSH_SSH_CMD"
-    TRAF_PDCP="pdcp -R ssh $ALL_NODES"
-fi
-
-
 sudoFile="trafodion"
 echo "***INFO: Creating $TRAF_USER sudo access file"
 echo
