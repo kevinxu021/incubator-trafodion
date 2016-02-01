@@ -184,9 +184,6 @@ public:
    PrivStatus insertSelect(
       const std::string & objectsLocation,
       const std::string & authsLocation);
-   PrivStatus insertSelectOnAuthsToPublic(
-      const std::string &objectsLocation,
-      const std::string &authsLocation);
 
 private:   
    ObjectPrivsMDTable();
@@ -5926,55 +5923,6 @@ PrivStatus ObjectPrivsMDTable::insertSelect(
 
  
   return STATUS_GOOD;
-}
-
-// ----------------------------------------------------------------------------
-// method::insertSelect
-//
-// This method inserts a grant of SELECT on the AUTHS table to PUBLIC
-//  into the OBJECT_PRIVILEGES table
-//
-// Input:   objectsLocation - name of objects table
-//          authsLocation - name of auths table
-//
-// Output:  PrivStatus
-//
-// The ComDiags area is set up with unexpected errors
-// ----------------------------------------------------------------------------
-PrivStatus ObjectPrivsMDTable::insertSelectOnAuthsToPublic(
-   const std::string &objectsLocation,
-   const std::string &authsLocation)
-{
-
-  char buf[2000];
-
-  sprintf(buf, "insert into %s select o.object_uid,'%s','BT',-1,'PUBLIC','U',"
-               "%d,'DB__ROOT','U',1,0 FROM %s O WHERE O.OBJECT_NAME = 'AUTHS'", 
-              tableName_.c_str(),authsLocation.c_str(), MIN_USERID, objectsLocation.c_str());
-
-  // set pointer in diags area
-  int32_t diagsMark = pDiags_->mark();
-
-  Int64 rowsInserted = 0;
-  ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
-  CmpCommon::context()->sqlSession()->getParentQid());
-  int32_t cliRC = cliInterface.executeImmediate(buf, NULL, NULL, FALSE, &rowsInserted);
-  if (cliRC < 0)
-  {
-    cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
-    return STATUS_ERROR;
-  }
-
-  // Bug:  for some reasons, insert returns NOTFOUND even though the 
-  //       operations succeeded.
-  if (cliRC == 100) 
-  {
-    pDiags_->rewind(diagsMark);
-    cliRC = 0;
-  }
- 
-  return STATUS_GOOD;
-  
 }
 
 // *****************************************************************************
