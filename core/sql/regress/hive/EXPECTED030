@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Thu Jan 28 23:11:13 2016
+-- Definition current  Tue Feb  2 01:16:36 2016
 
   (
     S_STORE_SK                       INT
@@ -971,7 +971,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Thu Jan 28 23:11:53 2016
+-- Definition current  Tue Feb  2 01:17:20 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1016,9 +1016,9 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212320782714328449
+PLAN_ID .................. 212321135841799320
 ROWS_OUT ................. 1
-EST_TOTAL_COST ........... 1.21
+EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
 
 
@@ -1027,7 +1027,7 @@ ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 1.21
+EST_TOTAL_COST ........... 0.01
 DESCRIPTION
   max_card_est ........... 1
   fragment_id ............ 0
@@ -1081,8 +1081,8 @@ ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES_ORC
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
-EST_OPER_COST ............ 1.21
-EST_TOTAL_COST ........... 1.21
+EST_OPER_COST ............ 0.01
+EST_TOTAL_COST ........... 0.01
 DESCRIPTION
   max_card_est ........... 1
   fragment_id ............ 0
@@ -1094,10 +1094,16 @@ DESCRIPTION
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
   columns_retrieved ..... 23
+  probes ................. 1
+  rows_accessed .......... 1
   orc_pred_pushdown ...... yes
-  orc_search_arguments ... and( HIVE.STORE_SALES_ORC.SS_ITEM_SK = cast(%(1)) )
+  orc_search_arguments ... and( HIVE.STORE_SALES_ORC.SS_ITEM_SK = cast(%(1))
+                             HIVE.STORE_SALES_ORC.SS_ITEM_SK = cast(%(1))
+                             HIVE.STORE_SALES_ORC.SS_ITEM_SK = cast(%(1)) )
   key_columns ............ HIVE.STORE_SALES_ORC.SS_ITEM_SK
   executor_predicates .... (HIVE.STORE_SALES_ORC.SS_ITEM_SK = %(1))
+  begin_key .............. (HIVE.STORE_SALES_ORC.SS_ITEM_SK = %(1))
+  end_key ................ (HIVE.STORE_SALES_ORC.SS_ITEM_SK = %(1))
 
 --- SQL operation complete.
 >>
@@ -1131,9 +1137,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212320782716521296
+PLAN_ID .................. 212321135844442652
 ROWS_OUT ......... 2,880,401
-EST_TOTAL_COST ........... 1.77
+EST_TOTAL_COST ........... 0.56
 STATEMENT ................ select *
                            from customer_orc, store_sales_orc
                            where store_sales_orc.ss_item_sk =
@@ -1146,7 +1152,7 @@ ROOT ======================================  SEQ_NO 5        ONLY CHILD 4
 REQUESTS_IN .............. 1
 ROWS_OUT ......... 2,880,401
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 1.77
+EST_TOTAL_COST ........... 0.56
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0
@@ -1220,7 +1226,7 @@ NESTED_JOIN ===============================  SEQ_NO 4        CHILDREN 1, 3
 REQUESTS_IN .............. 1
 ROWS_OUT ......... 2,880,401
 EST_OPER_COST ............ 0.5
-EST_TOTAL_COST ........... 1.77
+EST_TOTAL_COST ........... 0.56
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0
@@ -1234,7 +1240,7 @@ PROBE_CACHE ===============================  SEQ_NO 3        ONLY CHILD 2
 REQUESTS_IN ......... 99,997
 ROWS/REQUEST ............ 28.8
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 1.24
+EST_TOTAL_COST ........... 0.03
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0
@@ -1250,8 +1256,8 @@ ORC_SCAN ==================================  SEQ_NO 2        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES_ORC
 REQUESTS_IN ......... 99,997
 ROWS/REQUEST ............ 28.8
-EST_OPER_COST ............ 1.24
-EST_TOTAL_COST ........... 1.24
+EST_OPER_COST ............ 0.03
+EST_TOTAL_COST ........... 0.03
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0
@@ -1263,8 +1269,22 @@ DESCRIPTION
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
   columns_retrieved ..... 23
+  probes ............ 99,997
+  successful_probes   99,997
+  unique_probes ...... 5,000
+  duplicated_succ_pr  94,997
+  rows_accessed .......... 1.99994e+06
+  orc_pred_pushdown ...... yes
+  orc_search_arguments ... and( HIVE.STORE_SALES_ORC.SS_ITEM_SK =
+                             cast(HIVE.CUSTOMER_ORC.C_CUSTOMER_SK)
+                             HIVE.STORE_SALES_ORC.SS_ITEM_SK =
+                             cast(HIVE.CUSTOMER_ORC.C_CUSTOMER_SK) )
   key_columns ............ HIVE.STORE_SALES_ORC.SS_ITEM_SK
   executor_predicates .... (HIVE.STORE_SALES_ORC.SS_ITEM_SK =
+                             HIVE.CUSTOMER_ORC.C_CUSTOMER_SK)
+  begin_key .............. (HIVE.STORE_SALES_ORC.SS_ITEM_SK =
+                             HIVE.CUSTOMER_ORC.C_CUSTOMER_SK)
+  end_key ................ (HIVE.STORE_SALES_ORC.SS_ITEM_SK =
                              HIVE.CUSTOMER_ORC.C_CUSTOMER_SK)
 
 
@@ -1336,7 +1356,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Thu Jan 28 23:12:05 2016
+-- Definition current  Tue Feb  2 01:17:27 2016
 
   (
     D_DATE_SK                        INT
@@ -1479,7 +1499,7 @@ CREATE EXTERNAL TABLE DATE_DIM_ORC
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212320782726453435
+PLAN_ID .................. 212321135848833165
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1563,11 +1583,16 @@ DESCRIPTION
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
   columns_retrieved ..... 28
+  probes ................. 1
+  rows_accessed .......... 1
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( HIVE.DATE_DIM_ORC.D_DATE = cast(%(2016-01-27))
-                             )
+                             HIVE.DATE_DIM_ORC.D_DATE = cast(%(2016-01-27))
+                             HIVE.DATE_DIM_ORC.D_DATE = cast(%(2016-01-27)) )
   key_columns ............ HIVE.DATE_DIM_ORC.D_DATE
   executor_predicates .... (HIVE.DATE_DIM_ORC.D_DATE = %(2016-01-27))
+  begin_key .............. (HIVE.DATE_DIM_ORC.D_DATE = %(2016-01-27))
+  end_key ................ (HIVE.DATE_DIM_ORC.D_DATE = %(2016-01-27))
 
 --- SQL operation complete.
 >>
@@ -1582,7 +1607,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Thu Jan 28 23:12:13 2016
+-- Definition current  Tue Feb  2 01:17:33 2016
 
   (
     D_DATE_SK                        INT
@@ -1725,7 +1750,7 @@ CREATE EXTERNAL TABLE DATE_DIM_ORC
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212320782734332118
+PLAN_ID .................. 212321135854480499
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1809,11 +1834,16 @@ DESCRIPTION
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
   columns_retrieved ..... 28
+  probes ................. 1
+  rows_accessed .......... 1
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( HIVE.DATE_DIM_ORC.D_DATE = cast(%(2016-01-27))
-                             )
+                             HIVE.DATE_DIM_ORC.D_DATE = cast(%(2016-01-27))
+                             HIVE.DATE_DIM_ORC.D_DATE = cast(%(2016-01-27)) )
   key_columns ............ HIVE.DATE_DIM_ORC.D_DATE
   executor_predicates .... (HIVE.DATE_DIM_ORC.D_DATE = %(2016-01-27))
+  begin_key .............. (HIVE.DATE_DIM_ORC.D_DATE = %(2016-01-27))
+  end_key ................ (HIVE.DATE_DIM_ORC.D_DATE = %(2016-01-27))
 
 --- SQL operation complete.
 >>

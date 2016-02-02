@@ -7807,6 +7807,9 @@ short NATable::updateExtTableAttrs(NATable *etTable)
   fileset->indexKeyColumns_ = etFileset->getIndexKeyColumns();
   fileset->keyLength_ = etFileset->getKeyLength();
   fileset->encodedKeyLength_ = etFileset->getEncodedKeyLength();
+  fileset->partitioningKeyColumns_ = etFileset->getPartitioningKeyColumns();
+  fileset->partFunc_ = etFileset->getPartitioningFunction();
+  fileset->countOfFiles_ = etFileset->getCountOfFiles();
 
   return 0;
 }
