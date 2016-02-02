@@ -2911,4 +2911,28 @@ GroupAttributes::getNonEssentialCharacteristicOutputs(ValueIdSet & vset) const
   vset -= getEssentialCharacteristicOutputs();
 }
 
+NABoolean GroupAttributes::allHiveTables()
+{
+  for (CollIndex i = 0; i < availableBtreeIndexes_.entries(); i++)
+  {
+    IndexDesc* iDesc = availableBtreeIndexes_[i];
+    if ( !(iDesc->getPrimaryTableDesc()->getNATable()->isHiveTable()))
+      return FALSE;
+  }
+  return TRUE;
+}
+
+NABoolean GroupAttributes::allHiveORCTablesSorted()
+{
+   if ( !allHiveTables() )
+     return FALSE;
+
+  for (CollIndex i = 0; i < availableBtreeIndexes_.entries(); i++)
+  {
+    IndexDesc* iDesc = availableBtreeIndexes_[i];
+    if ( !(iDesc->isSortedORCHive()) )
+      return FALSE;
+  }
+  return TRUE;
+}
 

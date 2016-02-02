@@ -1979,7 +1979,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDkwd__(HIVE_SORT_HDFS_HOSTS,                 "ON"),
   DD_____(HIVE_USE_FAKE_SQ_NODE_NAMES,          "" ),
   DDkwd__(HIVE_USE_FAKE_TABLE_DESC,             "OFF"),
-  DDkwd__(HIVE_USE_HASH2_AS_PARTFUNCION,        "ON"),
+  DDkwd__(HIVE_USE_HASH2_AS_PARTFUNCION,        "SYSTEM"),
   DDkwd__(HIVE_VIEWS,                           "OFF"),
 
  // -------------------------------------------------------------------------
@@ -2741,7 +2741,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDkwd__(ORC_AGGR_PUSHDOWN,                    "ON"),
   DDkwd__(ORC_COLUMNS_PUSHDOWN,                 "ON"),
   DDkwd__(ORC_PRED_PUSHDOWN,                    "ON"),
-  DDkwd__(ORC_USE_EXT_TABLE_ATTRS,              "ON"),
+  DDkwd__(ORC_USE_EXT_TABLE_ATTRS,              "OFF"),
   DDkwd__(ORC_VECTORIZED_SCAN,                  "ON"),
 
   DDkwd__(ORDERED_HASH_JOIN_CONTROL,            "ON"),
@@ -6753,6 +6753,7 @@ DefaultToken NADefaults::token(Int32 attrEnum,
       */
 
     case AUTO_QUERY_RETRY:
+    case HIVE_USE_HASH2_AS_PARTFUNCION:
       if (tok == DF_ON ||
 	  tok == DF_OFF ||
 	  tok == DF_SYSTEM)

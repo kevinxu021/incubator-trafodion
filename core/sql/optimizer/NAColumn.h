@@ -351,7 +351,8 @@ public:
 	     const char* title = "NAColumn",
              CollHeap *c=NULL, char *buf=NULL) const;
 
-  inline void display() const { print(); }
+  void display() ;
+
   void trace (FILE *f) const;
 
   inline ComColumnDirection getColumnMode ()  const {return columnMode_;}
@@ -587,7 +588,7 @@ public:
                       const char* title = "NAColumnArray",
                       CollHeap *c=NULL, char *buf=NULL) const;
 
-  void display() const { print(); }
+  void display() const;
   void trace (FILE *f) const;
 
   // ---------------------------------------------------------------------

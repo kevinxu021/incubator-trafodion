@@ -3696,8 +3696,9 @@ isOneToOneMatchHashPartitionJoinPossible(NestedJoin* nj,
     }
 
 
-    // Check whether this is hash2 partitioning. If not, return FALSE.
-    if ( leftPartFunc->castToHash2PartitioningFunction() == NULL )
+    // Check whether this is hash2 or hive partitioning. If not, return FALSE.
+    if ( leftPartFunc->castToHash2PartitioningFunction() == NULL &&
+         leftPartFunc->castToHivePartitioningFunction() == NULL )
        return NULL;
   }
 
@@ -3768,6 +3769,16 @@ ReqdPhysicalProperty* NestedJoin::genRightChildReqs(
                          NABoolean avoidNSquareOpens)
 {
   ReqdPhysicalProperty* rppForChild = NULL;
+
+  // Nested join into non sorted ORC hive tables is not allowed.
+  /*
+  if (child(1).getGroupAttr()->allHiveTables() )
+   {
+      if ( !((child(1)).getGroupAttr()->allHiveORCTablesSorted()) ) {
+         return NULL;
+      }
+   }
+  */
 
   // ---------------------------------------------------------------
   // spp should have been synthesized for child's optimal plan.
@@ -14606,8 +14617,29 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
    
   NodeMap* myNodeMap = NULL;
 
-  const ValueIdList& keyColumnList = indexDesc_->getPartitioningKey();
-
+  //
+  // Setup partKeys_, iff the hive table is clustered, sorted and in ORC format. 
+  // such tables are created with the DDL similar to the following.
+  //
+  // create table store_sorted_orc
+  // (
+  //     s_store_sk                int,
+  //     s_store_id                string,
+  //    .. ...
+  // )
+  // clustered by (s_store_sk) sorted by (s_store_sk, s_rec_start_date, s_rec_end_date) into 2 buckets;
+  //
+  // Note that the clustered and the sorted by clause must appear together.
+  //
+  // We require ORC tables because it is possible to implement the search key through 
+  // ORC predicate pushdown.
+  //
+  // Inside the compiler, 
+  //     clustering columns: IndexDesc::getPartitioningKey()
+  //     sorted columns:     Indexdesc::getIndexKey()
+  //
+  NABoolean canUseSearchKey = indexDesc_->isSortedORCHive();
+ 
   if (numESPs > 1)
     {
       // create a HASH2 partitioning function with numESPs partitions
@@ -14658,36 +14690,22 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
 
       myPartFunc->createPartitioningKeyPredicates();
 
-      //
-      // Setup partKeys_, iff the table is clustered. IndeDesc::getPartitioningKey() 
-      // returns the set of columns appearing in the clustered clause such as in the following 
-      //
-      // create table store_sorted_orc
-      // (
-      //     s_store_sk                int,
-      //     s_store_id                string,
-      //    .. ...
-      // )
-      // clustered by (s_store_sk) sorted by (s_store_sk, s_rec_start_date, s_rec_end_date) into 2 buckets;
-      //
-
-       if ( !keyColumnList.isEmpty() ) {
-          const ValueIdList& orderOfKeyValues = indexDesc_->getOrderOfKeyValues();
+      if ( canUseSearchKey ) {
           ValueIdSet externalInputs = getGroupAttr()->getCharacteristicInputs();
           ValueIdSet dummySet;
   
-          // Create and set the Searchkey for the clustering key (aka columns in the sorted by clause):
-          partKeys_ =  new (CmpCommon::statementHeap())
-                     SearchKey(indexDesc_->getIndexKey(), 
-                               orderOfKeyValues, 
-                               externalInputs,
-                               NOT getReverseScan(),
-                               selectionPred(),
-                               *disjunctsPtr_,
-                               dummySet, // needed by interface but not used here
-                               indexDesc_
-                               );
-       }
+          // Create and set the Searchkey for the index key (aka those columns in the sorted by clause):
+           partKeys_ =  new (CmpCommon::statementHeap())
+                           SearchKey(indexDesc_->getIndexKey(), 
+                                      indexDesc_->getOrderOfKeyValues(), // the order of the index key
+                                      externalInputs,
+                                      NOT getReverseScan(),
+                                      selectionPred(),
+                                      *disjunctsPtr_,
+                                      dummySet, // needed by interface but not used here
+                                      indexDesc_
+                                      );
+      }
     }
   else
     {
@@ -14701,7 +14719,7 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
     }
 
   
-  if ( keyColumnList.isEmpty() ) {
+  if ( !canUseSearchKey ) {
      // create a very simple physical property for now, no sort order
      // and no partitioning key for now
      sppForMe = new(CmpCommon::statementHeap()) PhysicalProperty(myPartFunc,

@@ -6592,8 +6592,7 @@ void HivePartitioningFunction::print(FILE* ofd, const char* indent,
 // LCOV_EXCL_STOP
 
 PartitioningFunction*
-HivePartitioningFunction::
-createPartitioningFunctionForIndexDesc(IndexDesc *idesc) const
+HivePartitioningFunction::createPartitioningFunctionForIndexDesc(IndexDesc *idesc) const
 {
   const NAFileSet * fileSet = idesc->getNAFileSet();
   const NAColumnArray & allColumns = fileSet->getAllColumns();

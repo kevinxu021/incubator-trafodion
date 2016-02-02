@@ -857,6 +857,16 @@ NAString NAColumnArray::getColumnNamesAsString(char separator) const
    return getColumnNamesAsString(separator, entries());
 }
 
+void NAColumnArray::display() const
+{
+   print();
+}
+
+void NAColumn::display() 
+{
+   print();
+}
+
 NAString NAColumnArray::getColumnNamesAsString(char separator, UInt32 ct) const
 {
   NAString nmList;

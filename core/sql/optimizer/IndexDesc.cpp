@@ -202,6 +202,8 @@ IndexDesc::IndexDesc(TableDesc *tdesc,
                                     = fileSet_->getPartitioningKeyColumns();
   for (i = 0; i < partitioningKeyColumns.entries(); i++)
     {
+
+NAColumn* p = partitioningKeyColumns[i];
       // which column of the index is this 
 #pragma nowarn(1506)   // warning elimination 
       ixColNumber = allColumns.index(partitioningKeyColumns[i]);
@@ -852,5 +854,12 @@ IndexProperty::compareIndexPromise(const IndexProperty *ixProp) const
        } 
      
     return INCOMPATIBLE;
+}
+  
+NABoolean IndexDesc::isSortedORCHive() const
+{
+   return getPartitioningKey().entries() > 0 &&
+          getIndexKey().entries() > 0 &&
+          getPrimaryTableDesc()->getNATable()->isORC();
 }
 // eof

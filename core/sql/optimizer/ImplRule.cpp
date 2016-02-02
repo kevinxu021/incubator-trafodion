@@ -1139,18 +1139,22 @@ NABoolean FileScanRule::topMatch(RelExpr * relExpr, Context *context)
       if (rppForMe->executeInDP2())
         return FALSE;
 
-      // The Hive scan can handle only fuzzy and single partition requests for now
-      if (partReq &&
-          ! partReq->isRequirementExactlyOne() &&
-          ! partReq->isRequirementFuzzy())
-        return FALSE;
-
-      // A hive scan doesn't have a partitioning key for now (change that later)
+      // The following two if tests were commented out to support NJs into Hive 
+      // tables.
       //
-      if (partReq &&
-          partReq->partitioningKeyIsSpecified() &&
-          ! partReq->isRequirementExactlyOne())
-        return FALSE;
+      // The Hive scan can handle only fuzzy and single partition requests for now
+      //if (partReq &&
+      //    ! partReq->isRequirementExactlyOne() &&
+      //    ! partReq->isRequirementFuzzy())
+      //  return FALSE;
+
+      //// A hive scan doesn't have a partitioning key for now (change that later)
+      ////
+      //if (partReq &&
+      //    partReq->partitioningKeyIsSpecified() &&
+      //    ! partReq->isRequirementExactlyOne())
+      //  return FALSE;
+
     }
   else
     {
@@ -2813,6 +2817,14 @@ NABoolean NestedJoinRule::topMatch(RelExpr * relExpr,
   if ((rppForMe->getMustMatch() != NULL) AND
       (rppForMe->getMustMatch()->getOperatorType() == REL_FORCE_NESTED_JOIN))
     return TRUE;
+
+  // Nested join into non sorted ORC hive tables is not allowed.
+  if (joinExpr->child(1).getGroupAttr()->allHiveTables() )
+     {
+          if ( !(joinExpr->child(1).getGroupAttr()->allHiveORCTablesSorted()) ) {
+                return NULL;
+          }
+     }
 
   // Fix genesis case 10-040524-2077 "NE:RG:mxcmp internal error when stream
   // used with rowset in WHERE clause" by commenting out the following code on
