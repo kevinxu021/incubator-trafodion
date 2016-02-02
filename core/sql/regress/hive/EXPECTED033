@@ -329,8 +329,6 @@ lp 1425661 - Hang with hive scan and [FIRST N]
 >>
 >>prepare s from insert into hive.ins_date_dim select * from hive.date_dim$$ORC$$;
 
-*** WARNING[6008] Statistics for column (D_DATE) from table HIVE.HIVE.DATE_DIM_ORC were not available. As a result, the access path chosen might not be the best possible.
-
 --- SQL command prepared.
 >>execute s;
 
