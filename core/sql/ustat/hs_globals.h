@@ -1795,6 +1795,9 @@ private:
     HSInMemoryTable* iusSampleDeletedInMem;
     HSInMemoryTable* iusSampleInsertedInMem;
 
+    // used by IUS code for clean up purposes
+    NABoolean sampleIExists_;
+
     template <class T>
     Int32 processIUSColumn(T* ptr,
                            const NAWchar* format,

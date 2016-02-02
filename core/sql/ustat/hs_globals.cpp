@@ -120,6 +120,8 @@ Lng32 setBufferValue(MCWrapper& value, const HSColGroupStruct *mgroup, HSDataBuf
 template <class T>
 void createHistogram(HSColGroupStruct *group, Lng32 numIntervals, Int64 estRowCount, NABoolean usingSample, T* dummyPtr);
 
+static Lng32 drop_I(NAString& sampTblName);
+
 //
 // Initialize the GLOBAL instances of ISFixedChar and ISVarChar values.
 // See the "as lightweight as possible" comments in hs_globals.h
@@ -2781,6 +2783,7 @@ HSGlobalsClass::HSGlobalsClass(ComDiagsArea &diags)
     //iusSampleInMem(NULL),
     iusSampleDeletedInMem(NULL),
     iusSampleInsertedInMem(NULL),
+    sampleIExists_(FALSE),
     sampleRateAsPercetageForIUS(0),
     minRowCtPerPartition_(-1),
     sample_I_generated(FALSE),
@@ -3994,6 +3997,7 @@ Lng32 HSSample::make(NABoolean rowCountIsEstimate, // input
     if ((sampleRowCount == 0) &&                    // sample set is empty;
         (CmpCommon::getDefault(USTAT_USE_BULK_LOAD) == DF_OFF))
       {                                          // cannot generate histograms
+        drop();  // drop the sample table we created
         HSFuncMergeDiags(- UERR_SAMPLE_SET_IS_ZERO);
         retcode = -1;
       }
@@ -5846,10 +5850,12 @@ void genArkcmpInfo(NAString& nidpid)
 
 Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
 {
+   sampleIExists_ = FALSE;  // keep track of whether a _I table needs to be dropped
+
 #ifdef _DEBUG
    if (CmpCommon::getDefault(USTAT_IUS_NO_BLOCK) == DF_ON)
      return 0;
-#endif
+#endif 
 
    HSPersSamples *sampleList = HSPersSamples::Instance(objDef->getCatName(),
                                                        objDef->getSchemaName());
@@ -5948,6 +5954,14 @@ Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
 
 Lng32 HSGlobalsClass::end_IUS_work()
 {
+   Lng32 retcode = 0;
+   if (sampleIExists_)
+     {
+       retcode = drop_I(*hssample_table);
+       // ignore retcode; we want to try the rest of this method as well
+       sampleIExists_ = FALSE;
+     }
+
 #ifdef _DEBUG
    if (CmpCommon::getDefault(USTAT_IUS_NO_BLOCK) == DF_ON)
      return 0;
@@ -5967,7 +5981,7 @@ Lng32 HSGlobalsClass::end_IUS_work()
    NAString updTimestampStr;
    genSQLTimestampConstant(bdt, updTimestampStr);
 
-   Lng32 retcode = 
+   retcode = 
      sampleList->updIUSUpdateInfo(objDef,
                                   (char*)"",
                                   (char*)updTimestampStr.data(),
@@ -6292,10 +6306,11 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
 
   HSLogMan *LM = HSLogMan::Instance();
 
-  // create help table -I and -D
+  // create help table -I 
 
   retcode = create_I(*hssample_table);
   HSHandleError(retcode);
+  sampleIExists_ = TRUE;  // so we remember to drop it
 
   if (LM->LogNeeded()) 
     LM->StartTimer("IUS: read in Si");
@@ -6355,6 +6370,7 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
                                                selectDQuery);
 
   retcode = iusSampleDeletedInMem->populate(selectDQuery);
+  HSHandleError(retcode);
 
   if (LM->LogNeeded()) 
     LM->StopTimer();
@@ -6449,7 +6465,8 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
   }   // must end the transaction here; DDL and DML can't be in the same transaction
 
   // step3 - drop _I table
-  retcode = drop_I(*hssample_table);
+  sampleIExists_ = FALSE;  // only try to drop it once
+  retcode = drop_I(*hssample_table);  
   HSHandleError(retcode);
 
   HSFuncExecQuery("CONTROL QUERY DEFAULT ALLOW_DML_ON_NONAUDITED_TABLE reset");
