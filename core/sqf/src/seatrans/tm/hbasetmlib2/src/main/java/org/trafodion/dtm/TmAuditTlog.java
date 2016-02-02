@@ -1319,12 +1319,10 @@ public class TmAuditTlog {
 
       if (recoveryASN != -1){
          // We need to send this to a remote Tlog, not our local one, so open the appropriate table
-//         HTableInterface recoveryTable;
          Table recoveryTable;
          int lv_ownerNid = (int)TransactionState.getNodeId(lvTransid);
          String lv_tLogName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(lv_ownerNid) + "_LOG_" + Integer.toHexString(lv_lockIndex));
          if (LOG.isTraceEnabled()) LOG.trace("TLOG putSingleRecord with recoveryASN != 0 on table " + lv_tLogName);
-//         HConnection recoveryTableConnection = HConnectionManager.createConnection(this.config);
          Connection recoveryTableConnection = ConnectionFactory.createConnection(this.config);
          if (LOG.isTraceEnabled()) LOG.trace("putSingleRecord new HConnection: " + recoveryTableConnection);
          recoveryTable = recoveryTableConnection.getTable(TableName.valueOf(lv_tLogName));
@@ -1963,8 +1961,8 @@ public class TmAuditTlog {
                if (agedAsn > 0){
                   try {
                      if (LOG.isTraceEnabled()) LOG.trace("Attempting to remove TLOG writes older than asn " + agedAsn);
-                     deleteAgedEntries(agedAsn);
-//                     deleteEntriesOlderThanASN(agedAsn, ageCommitted);
+//                     deleteAgedEntries(agedAsn);
+                     deleteEntriesOlderThanASN(agedAsn, ageCommitted);
                   }
                   catch (Exception e){
                      LOG.error("deleteAgedEntries Exception " + e);
@@ -2218,18 +2216,18 @@ public class TmAuditTlog {
       // send to regions in order to retrience the desired set of transactions
       TransactionState transactionState = new TransactionState(0);
       CompletionService<Integer> compPool = new ExecutorCompletionService<Integer>(tlogThreadPool);
-      HConnection targetTableConnection = HConnectionManager.createConnection(this.config);
+      Connection targetTableConnection = ConnectionFactory.createConnection(this.config);
 
       try {
          if (LOG.isTraceEnabled()) LOG.trace("deleteEntriesOlderThanASN: "
               + pv_ASN + ", in thread: " + threadId);
-         HTableInterface targetTable;
          List<HRegionLocation> regionList;
 
          // For every Tlog table for this node
          for (int index = 0; index < tlogNumLogs; index++) {
             String lv_tLogName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(this.dtmid) + "_LOG_" + Integer.toHexString(index));
-            regionList = targetTableConnection.locateRegions(TableName.valueOf(lv_tLogName), false, false);
+            RegionLocator locator = targetTableConnection.getRegionLocator(TableName.valueOf(lv_tLogName));
+            regionList = locator.getAllRegionLocations();
             loopCount++;
             // For every region in this table
             for (HRegionLocation location : regionList) {
@@ -2242,6 +2240,7 @@ public class TmAuditTlog {
                   }
                });
             }
+            locator.close();
          }
       } catch (Exception e) {
          LOG.error("exception in deleteEntriesOlderThanASN for ASN: "
@@ -2263,7 +2262,16 @@ public class TmAuditTlog {
                  + " " + e2);
          throw new IOException(e2);
       }
-      HConnectionManager.deleteStaleConnection(targetTableConnection);
+      finally{
+         try {
+            targetTableConnection.close();
+         }
+         catch (Exception e){
+            LOG.error("Exception closing Connection in deleteEntriesOlderThanASN for interval ASN: " + pv_ASN
+                      + " " + e);
+            throw new IOException(e);
+         }
+      }
       if (LOG.isTraceEnabled()) LOG.trace("deleteEntriesOlderThanASN tlog callable requests completed in thread "
             + threadId);
       return;
