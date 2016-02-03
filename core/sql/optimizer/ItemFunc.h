@@ -4632,7 +4632,7 @@ public:
   ItemExpr *transformOlapAvg(CollHeap *heap);
   ItemExpr *transformOlapRank(CollHeap *heap);
   ItemExpr *transformOlapDRank(CollHeap *heap);
-  ItemExpr *transformOlapFunction(CollHeap *heap);
+  virtual ItemExpr *transformOlapFunction(CollHeap *heap);
 
   virtual NABoolean hasEquivalentProperties(ItemExpr * other);
 
@@ -4716,6 +4716,59 @@ private:
   //
   Lng32 frameStart_;
   Lng32 frameEnd_;
+} ;
+
+class ItmLeadOlapFunction: public ItmSeqOlapFunction 
+{
+public:
+  ItmLeadOlapFunction(ItemExpr *valPtr, ItemExpr* offsetExpr = NULL): 
+        ItmSeqOlapFunction(ITM_OLAP_LEAD, valPtr),
+        offsetExpr_(offsetExpr),
+        offset_(-1)
+        { }
+
+  ItmLeadOlapFunction(ItemExpr *valPtr, Int32 offset): 
+        ItmSeqOlapFunction(ITM_OLAP_LEAD, valPtr),
+        offsetExpr_(NULL),
+        offset_(offset)
+        { }
+
+  // virtual destructor
+  virtual ~ItmLeadOlapFunction();
+
+  // a virtual function for performing name binding within the query tree
+  virtual ItemExpr * bindNode(BindWA *bindWA);
+
+  // methods for code generation
+  virtual ItemExpr *preCodeGen(Generator*);  //transfomr into running seq functions
+  virtual short codeGen(Generator*);
+
+  virtual ItemExpr * copyTopNode(ItemExpr *derivedNode = NULL,
+                                 CollHeap* outHeap = 0);
+
+  virtual NABoolean hasEquivalentProperties(ItemExpr * other);
+
+  // a virtual function for type propagating the node
+  virtual const NAType * synthesizeType();
+
+
+  virtual  NABoolean isOlapFunction() const { return TRUE; } ;  // virtual method
+
+  ItemExpr* getOffsetExpr() { return offsetExpr_; };
+  Int32  getOffset() { return offset_; };
+
+  void setOffset(Int32 x) { offset_ = x; };
+
+  ItemExpr* transformOlapFunction(CollHeap *wHeap);
+
+  // get a printable string that identifies the operator
+  virtual const NAString getText() const
+    { return "LEAD"; };
+
+private:
+
+   ItemExpr* offsetExpr_;
+   Int32 offset_;
 } ;
 
 // ------------------------------------------------------------------------

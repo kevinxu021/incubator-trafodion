@@ -793,6 +793,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_LAST_SYSKEY
 %token <tokval> TOK_LASTSYSKEY
 %token <tokval> TOK_LCASE               /* ODBC extension   */
+%token <tokval> TOK_LEAD                /* LEAD OLAP Function */
 %token <tokval> TOK_LEADING
 %token <tokval> TOK_LEAST
 %token <tokval> TOK_LEFT
@@ -7678,7 +7679,69 @@ olap_sequence_function : set_function_specification TOK_OVER '('
 			      } 
                               SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
                             }
+// start of OLAP LEAD function()
+                       | TOK_LEAD '(' value_expression ')' TOK_OVER '('
+                         opt_olap_part_clause
+                         opt_olap_order_clause ')'
+                        {
+                          ItmLeadOlapFunction* leadExpr =
+                                       new (PARSERHEAP()) ItmLeadOlapFunction($3, 1);
+                          leadExpr->setOLAPInfo($7, $8);
+                           $$=leadExpr;
 
+                          SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                        }
+                       | TOK_LEAD '(' value_expression ')' TOK_OVER '('
+                         opt_olap_part_clause
+                         opt_olap_order_clause ')'
+                         TOK_ROWS olap_rows_spec
+                        {
+                          ItmLeadOlapFunction* leadExpr =
+                                       new (PARSERHEAP()) ItmLeadOlapFunction($3, 1);
+                          leadExpr->setOLAPInfo($7, $8);
+                          leadExpr->setOlapWindowFrame($11, 0);
+                          $$=leadExpr;
+
+                          SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                        }
+                       | TOK_LEAD '(' value_expression ')' TOK_OVER '('
+                         opt_olap_part_clause
+                         opt_olap_order_clause ')'
+                         TOK_ROWS TOK_BETWEEN olap_rows_spec TOK_AND olap_rows_spec
+                        {
+                          ItmLeadOlapFunction* leadExpr =
+                                    new (PARSERHEAP()) ItmLeadOlapFunction($3, 1);
+                          leadExpr->setOLAPInfo($7, $8);
+                          leadExpr->setOlapWindowFrame($12, $14);
+                          $$=leadExpr;
+
+                          SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                        }
+                        | TOK_LEAD '(' value_expression ',' value_expression ')' TOK_OVER '('
+                         opt_olap_part_clause
+                         opt_olap_order_clause ')'
+                         TOK_ROWS olap_rows_spec
+                        {
+                           ItmLeadOlapFunction* leadExpr =
+                                new (PARSERHEAP()) ItmLeadOlapFunction($3, $5);
+                           leadExpr->setOLAPInfo($9, $10);
+                           leadExpr->setOlapWindowFrame($13, 0);
+                           $$=leadExpr;
+                           SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                        }
+                        | TOK_LEAD '(' value_expression ',' value_expression ')' TOK_OVER '('
+                         opt_olap_part_clause
+                         opt_olap_order_clause ')'
+                         TOK_ROWS TOK_BETWEEN olap_rows_spec TOK_AND olap_rows_spec
+                        {
+                           ItmLeadOlapFunction* leadExpr =
+                               new (PARSERHEAP()) ItmLeadOlapFunction($3, $5);
+                           leadExpr->setOLAPInfo($9, $10);
+                           leadExpr->setOlapWindowFrame($14, $16);
+                           $$=leadExpr;
+                           SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                        }
+// end of OLAP LEAD function()
 
 opt_olap_part_clause   : empty
                          {

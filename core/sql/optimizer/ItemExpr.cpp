@@ -15056,3 +15056,94 @@ ConstValue* ItemExpr::evaluate(CollHeap* heap)
 
   return result;
 }
+  
+ItmLeadOlapFunction::~ItmLeadOlapFunction() {}
+
+  // methods for code generation
+//ItemExpr* ItmLeadOlapFunction::preCodeGen(Generator*)
+//{
+//   return NULL;
+//}
+
+ItemExpr * 
+ItmLeadOlapFunction::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
+{
+  ItemExpr *result;
+
+  if (derivedNode == NULL)
+    {
+     result = new (outHeap) ItmLeadOlapFunction(child(0), offsetExpr_);
+     ((ItmSeqRunningFunction *)result)->setIsOLAP(isOLAP());
+    }
+  else              
+    result = derivedNode;                 
+
+  ((ItmLeadOlapFunction*)result)->setOffset(getOffset());
+
+  return ItmSeqOlapFunction::copyTopNode(result, outHeap);
+}
+
+ItemExpr * ItmLeadOlapFunction::bindNode(BindWA * bindWA)
+{
+   // the offset expr must be a non-negative integer
+   NABoolean offsetOK = FALSE;
+   Int64 value = 0;
+   if ( offsetExpr_ ) 
+   {
+      if ( offsetExpr_->getOperatorType() == ITM_CONSTANT ) 
+      {
+         ConstValue* cv = (ConstValue*)offsetExpr_;
+         if ( cv->canGetExactNumericValue() )
+         {
+            value = cv->getExactNumericValue();
+            if ( value >= 0 ) {
+               offsetOK = TRUE;
+               offset_ = (Int32)value;
+            }
+         }
+      }
+
+   } else { 
+
+      if ( offset_ >= 0 )
+        offsetOK = TRUE;
+   }
+
+   if ( !offsetOK ) {
+
+      *CmpCommon::diags() << DgSqlCode(-4249) << DgString0("LEAD");
+
+      if ( bindWA )
+          bindWA->setErrStatus();
+
+      return this;
+   }
+
+   ItemExpr * result = ItmSeqOlapFunction::bindNode(bindWA);
+   return result;
+}
+
+NABoolean ItmLeadOlapFunction::hasEquivalentProperties(ItemExpr * other)
+{
+  if (other == NULL)
+    return FALSE;
+
+  if (getOperatorType() != other->getOperatorType() ||
+        getArity() != other->getArity())
+    return FALSE;
+
+  return getOffsetExpr()->hasEquivalentProperties(((ItmLeadOlapFunction*)other)->getOffsetExpr());
+}
+
+const NAType * ItmLeadOlapFunction::synthesizeType()
+{
+   // the type of the LEAD() is the type of the 1st argument.
+   const NAType& operand = child(0)->castToItemExpr()->getValueId().getType();
+   NAType* result = operand.newCopy(HEAP);
+   return result;
+}
+
+ItemExpr *ItmLeadOlapFunction::transformOlapFunction(CollHeap *heap)
+{
+   return this;
+}

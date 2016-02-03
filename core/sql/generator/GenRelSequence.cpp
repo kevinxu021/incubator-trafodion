@@ -90,6 +90,7 @@ void PhysSequence::getHistoryAttributes(const ValueIdSet &sequenceFunctions,
         {
           // The child needs to be in the history row.
           //
+        case ITM_OLAP_LEAD:
         case ITM_OFFSET:
         case ITM_ROWS_SINCE:
         case ITM_THIS:
@@ -345,6 +346,10 @@ void PhysSequence::computeHistoryRows(const ValueIdSet &sequenceFunctions,//hist
         case ITM_LAST_NOT_NULL:
           computedHistoryRows = MAXOF(computedHistoryRows, 2);
           break;
+
+        case ITM_OLAP_LEAD:
+            value = ((ItmLeadOlapFunction*)itmExpr)->getOffset();
+          
         ///set to unable to compute for now-- will change later to compte values from frameStart_ and frameEnd_
         case ITM_OLAP_SUM:
         case ITM_OLAP_COUNT:
@@ -393,7 +398,9 @@ void PhysSequence::computeHistoryRows(const ValueIdSet &sequenceFunctions,//hist
           unableToCalculate = 1;
           break;
 
-        // The MOVING and OFFSET functions need to go back as far as the value
+
+
+        // The MOVING and  OFFSET functions need to go back as far as the value
         // of their second child.
         //
         //  The second argument can be:
@@ -1172,6 +1179,10 @@ void PhysSequence::transformOlapFunctions(CollHeap *wHeap)
 
       itmExpr = ((ItmSeqOlapFunction*)itmExpr)->transformOlapFunction(wHeap);
 
+      if ( itmExpr->getOperatorType() == ITM_OLAP_LEAD ) {
+        computeAndSetMinFollowingRows(((ItmLeadOlapFunction*)itmExpr)->getOffset());
+      }
+
       CMPASSERT(itmExpr);
       if(itmExpr->getValueId() != valId)
       {
@@ -1378,6 +1389,16 @@ void PhysSequence::computeReadNReturnItems( ValueId topSeqVid,
   {
     return;
   }
+
+  if ( itmExpr->getOperatorType() == ITM_OLAP_LEAD )
+  {
+    readSeqFunctions() -= topSeqVid;
+    returnSeqFunctions() += topSeqVid;
+
+    readSeqFunctions() += itmExpr->child(0)->castToItemExpr()->getValueId();
+    return;
+  }
+
   //test if itm_minus and then if negative offset ....
   if ( itmExpr->getOperatorType() == ITM_OFFSET &&
       ((ItmSeqOffset *)itmExpr)->getOffsetConstantValue() < 0)

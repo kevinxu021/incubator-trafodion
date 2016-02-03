@@ -577,6 +577,7 @@ ParKeyWord ParKeyWords::keyWords_[] = {
   ParKeyWord("LAST_SYSKEY",        TOK_LAST_SYSKEY, NONRESTOKEN_),
   ParKeyWord("LATERAL",            TOK_LATERAL,     COMPAQ_|RESWORD_),
   ParKeyWord("LCASE",              TOK_LCASE,       NONRESTOKEN_),
+  ParKeyWord("LEAD",               TOK_LEAD,        ANS_|RESWORD_),
   ParKeyWord("LEADING",            TOK_LEADING,     ANS_|RESWORD_|MPWORD_),
   ParKeyWord("LEADING_PRECISION",  TOK_LEADING_PRECISION, NONRESTOKEN_),
   ParKeyWord("LEAST",                  TOK_LEAST,           NONRESTOKEN_),

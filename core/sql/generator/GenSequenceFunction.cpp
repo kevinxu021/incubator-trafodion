@@ -104,6 +104,14 @@ ItemExpr *ItmSeqOffset::preCodeGen(Generator *generator)
   return ItemExpr::preCodeGen(generator);
 }
 
+ItemExpr *ItmLeadOlapFunction::preCodeGen(Generator *generator)
+{
+  if (nodeIsPreCodeGenned())
+    return this;
+  
+  return ItemExpr::preCodeGen(generator);
+}
+
 // ItmSeqOffset::codeGen
 //
 short ItmSeqOffset::codeGen(Generator* generator)
@@ -127,6 +135,37 @@ short ItmSeqOffset::codeGen(Generator* generator)
 
   ((ExpSequenceFunction *)seqClause)->setIsLeading(isLeading());
   ((ExpSequenceFunction *)seqClause)->setWinSize(winSize());
+
+  if(isOLAP())
+    ((ExpSequenceFunction *)seqClause)->setIsOLAP(TRUE);
+
+  generator->getExpGenerator()->linkClause(this, seqClause);
+  return 0;
+}
+
+// ItmSeqOlapFunction::codeGen
+//
+short ItmLeadOlapFunction::codeGen(Generator* generator)
+{
+  Attributes** attr;
+  Space* space = generator->getSpace();
+
+  if(generator->getExpGenerator()->genItemExpr
+     (this, &attr, (1 + getArity()), -1) == 1)
+    return 0;
+
+  ex_clause* seqClause 
+    = new(space) ExpSequenceFunction(ITM_OFFSET, // ITM_OLAP_LEAD
+				     getArity() + 1,
+				     getOffset(),
+				     attr,
+				     space);
+
+  //if(nullRowIsZero())
+  ((ExpSequenceFunction *)seqClause)->setNullRowIsZero(FALSE);
+
+  ((ExpSequenceFunction *)seqClause)->setIsLeading(TRUE);
+  ((ExpSequenceFunction *)seqClause)->setWinSize(getOffset());
 
   if(isOLAP())
     ((ExpSequenceFunction *)seqClause)->setIsOLAP(TRUE);

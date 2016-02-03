@@ -179,6 +179,7 @@ public:
     while(clause)
       {
 	if(clause->getOperType() == ITM_OFFSET)
+// || clause->getOperType() == ITM_OLAP_LEAD)
 	  {
 	    ExpSequenceFunction *seqClause = (ExpSequenceFunction*)clause;
 	    seqClause->GetRowData_ = data;
