@@ -6753,9 +6753,14 @@ DefaultToken NADefaults::token(Int32 attrEnum,
       */
 
     case AUTO_QUERY_RETRY:
-    case HIVE_USE_HASH2_AS_PARTFUNCION:
       if (tok == DF_ON ||
 	  tok == DF_OFF ||
+	  tok == DF_SYSTEM)
+	isValid = TRUE;
+      break;
+
+    case HIVE_USE_HASH2_AS_PARTFUNCION:
+      if (tok == DF_ON ||
 	  tok == DF_SYSTEM)
 	isValid = TRUE;
       break;
