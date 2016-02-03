@@ -15147,3 +15147,4 @@ ItemExpr *ItmLeadOlapFunction::transformOlapFunction(CollHeap *heap)
 {
    return this;
 }
+
