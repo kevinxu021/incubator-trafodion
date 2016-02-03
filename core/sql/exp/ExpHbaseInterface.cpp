@@ -149,7 +149,7 @@ Int32 ExpHbaseInterface_JNI::deleteColumns(
             done = TRUE; 
             break;
          }
-         retcode = htc_->deleteRow(transID, rowID, &columns, -1);
+         retcode = htc_->deleteRow(transID, rowID, &columns, -1, NULL);
          if (retcode != HTC_OK) 
          {
             done = TRUE;

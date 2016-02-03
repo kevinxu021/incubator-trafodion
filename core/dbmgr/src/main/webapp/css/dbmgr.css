@@ -1,6 +1,6 @@
 /* @@@ START COPYRIGHT @@@
 * 
-*  (C) Copyright 2015 Esgyn Corporation
+*  (C) Copyright 2016 Esgyn Corporation
 *
 *  @@@ END COPYRIGHT @@@
 */
@@ -201,6 +201,9 @@
 	.dbmgr-table>tbody>tr>td, .table>tbody>tr>th, .table>tfoot>tr>td, .table>tfoot>tr>th,
 		.table>thead>tr>td, .table>thead>tr>th {
 		padding: 4px;
+	}
+	.dbmgr-table>tbody>tr>td, .table>tbody>tr>th, .table>tfoot>tr>td, .table>tfoot>tr>th, .table>thead>tr>td, .table>thead>tr>th {
+		padding:4px;
 	}
 	.dbmgr-status-btn {
 		width: 24px;

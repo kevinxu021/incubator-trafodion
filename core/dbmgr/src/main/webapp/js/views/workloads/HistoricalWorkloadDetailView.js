@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -80,6 +80,8 @@ define([
 			$('#query-id').val(args);
 			if(queryID != null && queryID != args){
 				queryID = args;
+				$('#query-text').text('');
+				this.loadQueryText();
 				$(RESULT_CONTAINER).show();
 				$(DETAILS_CLASS).show();
 				$(ERROR_CONTAINER).hide();

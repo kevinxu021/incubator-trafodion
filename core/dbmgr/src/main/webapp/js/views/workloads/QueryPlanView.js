@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -168,7 +168,6 @@ define([
 			$("#errorText").hide();
 			$(TEXT_PLAN_CONTAINER).hide();
 			var param = {sQuery : queryText, sControlStmts: "", sQueryID: queryID, sQueryType: queryType};
-
 
 			_this.showLoading();
 			serverHandler.explainQuery(param);
