@@ -56,7 +56,7 @@ define([
 	var bCrumbsArray = [];
 	var pageStatus = {};
 	var objectAttributes = null;
-	
+
 	var SchemaDetailView = BaseView.extend({
 		template:  _.template(DatabaseT),
 
@@ -86,14 +86,14 @@ define([
 				autofocus: true,
 				extraKeys: {"Ctrl-Space": "autocomplete"}
 			});
-			
+
 			$(ddlTextEditor.getWrapperElement()).resizable({
 				resize: function() {
 					ddlTextEditor.setSize($(this).width(), $(this).height());
 				}
 			});
 			$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
-			
+
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 
 			$(REFRESH_ACTION).on('click', this.doRefresh);
@@ -115,7 +115,7 @@ define([
 			dbHandler.on(dbHandler.FETCH_PRIVILEGES_ERROR, this.showErrorMessage);
 			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_SUCCESS, this.displayAttributes);
 			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.showErrorMessage);
-			
+
 			if(schemaName != routeArgs.name){
 				schemaName = routeArgs.name;
 				objectAttributes = sessionStorage.getItem(routeArgs.name);
@@ -123,20 +123,7 @@ define([
 					sessionStorage.removeItem(routeArgs.name);
 					objectAttributes = JSON.parse(objectAttributes);
 				}
-				pageStatus = {};
-	        	if(ddlTextEditor){
-	        		ddlTextEditor.setValue("");
-	        		setTimeout(function() {
-	        			ddlTextEditor.refresh();
-	        		},1);
-	        	}
-	        	if(oDataTable != null) {
-					try {
-						oDataTable.clear().draw();
-					}catch(Error){
-
-					}
-				}
+				_this.doReset();
 			}	
 			var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
 			var activeButton = null;
@@ -160,6 +147,22 @@ define([
 			dbHandler.off(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.showErrorMessage);
 			$('a[data-toggle="pill"]').off('shown.bs.tab', this.selectFeature);
 		},
+		doReset: function(){
+			pageStatus = {};
+			if(ddlTextEditor){
+				ddlTextEditor.setValue("");
+				setTimeout(function() {
+					ddlTextEditor.refresh();
+				},1);
+			}
+			if(oDataTable != null) {
+				try {
+					oDataTable.clear().draw();
+				}catch(Error){
+
+				}
+			}
+		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
 		},
@@ -169,6 +172,7 @@ define([
 		},
 		selectFeature: function(e){
 			$(SCHEMA_DETAILS_CONTAINER).show();
+			$(ERROR_CONTAINER).hide();
 			var selectedFeatureLink = ATTRIBUTES_SELECTOR;
 
 			if(e && e.target && $(e.target).length > 0){
@@ -318,8 +322,8 @@ define([
 				dbHandler.fetchAttributes('schema', routeArgs.name);
 			}else{
 				_this.displayAttributes();
-			/*	_this.hideLoading();
-				
+				/*	_this.hideLoading();
+
 				//var properties = JSON.parse(objectAttributes);
 				$(ATTRIBUTES_CONTAINER).empty();
 				$(ATTRIBUTES_CONTAINER).append('<thead><tr><td style="width:200px;"><h2 style="color:black;font-size:15px;font-weight:bold">Name</h2></td><td><h2 style="color:black;font-size:15px;;font-weight:bold">Value</h2></td></tr></thead>');
@@ -362,7 +366,7 @@ define([
 			var keys = result.columnNames;
 			$(ERROR_CONTAINER).hide();
 			pageStatus.privilegesFetched = true;
-			
+
 			if(keys != null && keys.length > 0) {
 				$(PRIVILEGES_CONTAINER).show();
 				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="db-schema-privileges-list"></table>';
@@ -405,16 +409,16 @@ define([
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					"order": [[ 1, "asc" ]],
-	                 buttons: [
-	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
-	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
-	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Schema level privilges for " + routeArgs.name, orientation: 'landscape' },
-	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: "Schema level privilges for " + routeArgs.name }
-	                           ],					             
-		             fnDrawCallback: function(){
-		            	// $('#db-schema-privileges-list td').css("white-space","nowrap");
-		             }
+					buttons: [
+					          { extend : 'copy', exportOptions: { columns: ':visible' } },
+					          { extend : 'csv', exportOptions: { columns: ':visible' } },
+					          { extend : 'excel', exportOptions: { columns: ':visible' } },
+					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Schema level privilges for " + routeArgs.name, orientation: 'landscape' },
+					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Schema level privilges for " + routeArgs.name }
+					          ],					             
+					          fnDrawCallback: function(){
+					        	  // $('#db-schema-privileges-list td').css("white-space","nowrap");
+					          }
 				});
 			}
 		},	

@@ -93,7 +93,7 @@ public class DatabaseResource {
 			String link = "";
 			switch (objectType) {
 			case "schemas":
-				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMAS), catalogName);
+				queryText = SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMAS);
 				link = "/database/schema";
 				pstmt = connection.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMAS));
 				pstmt.setString(1, catalogName);
@@ -106,7 +106,7 @@ public class DatabaseResource {
 						String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_TABLES_IN_SCHEMA),
 								ExternalForm(schemaName)));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, ExternalForm(schemaName));
+				pstmt.setString(2, InternalForm(schemaName));
 				break;
 			case "indexes":
 				link = "/database/objdetail?type=index";
@@ -116,15 +116,15 @@ public class DatabaseResource {
 					pstmt = connection
 							.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEXES_ON_OBJECT));
 					pstmt.setString(1, catalogName);
-					pstmt.setString(2, ExternalForm(schemaName));
-					pstmt.setString(3, ExternalForm(parentObjectName));
+					pstmt.setString(2, InternalForm(schemaName));
+					pstmt.setString(3, InternalForm(parentObjectName));
 				} else {
 					queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEXES_IN_SCHEMA),
 							catalogName, schemaName);
 					pstmt = connection
 							.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEXES_IN_SCHEMA));
 					pstmt.setString(1, catalogName);
-					pstmt.setString(2, ExternalForm(schemaName));
+					pstmt.setString(2, InternalForm(schemaName));
 				}
 				break;
 			case "views":
@@ -134,7 +134,7 @@ public class DatabaseResource {
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEWS_IN_SCHEMA));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, ExternalForm(schemaName));
+				pstmt.setString(2, InternalForm(schemaName));
 				break;
 			case "libraries":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LIBRARIES_IN_SCHEMA),
@@ -143,7 +143,7 @@ public class DatabaseResource {
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LIBRARIES_IN_SCHEMA));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, ExternalForm(schemaName));
+				pstmt.setString(2, InternalForm(schemaName));
 				pstmt.setString(3, SqlObjectType.LIBRARY.getObjectType());
 				break;
 			case "procedures":
@@ -153,7 +153,7 @@ public class DatabaseResource {
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_PROCDURES_IN_SCHEMA));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, ExternalForm(schemaName));
+				pstmt.setString(2, InternalForm(schemaName));
 				pstmt.setString(3, SqlObjectType.ROUTINE.getObjectType());
 				// pstmt.setString(4,
 				// SqlRoutineType.PROCEDURE.getRoutineType());
@@ -165,7 +165,7 @@ public class DatabaseResource {
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_UDFS_IN_SCHEMA));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, ExternalForm(schemaName));
+				pstmt.setString(2, InternalForm(schemaName));
 				pstmt.setString(3, SqlObjectType.ROUTINE.getObjectType());
 				// pstmt.setString(4,
 				// SqlRoutineType.PROCEDURE.getRoutineType());
@@ -224,17 +224,17 @@ public class DatabaseResource {
 				queryText = SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_ATTRIBUTES);
 				pstmt = connection.prepareStatement(queryText);
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, ExternalForm(objectName));
+				pstmt.setString(2, InternalForm(objectName));
 				break;
 			case "table":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_TABLE_ATTRIBUTES),
-						ExternalForm(schemaName));
+						InternalForm(schemaName));
 				pstmt = connection.prepareStatement(
 						String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_TABLE_ATTRIBUTES),
 								ExternalForm(schemaName)));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, ExternalForm(schemaName));
-				pstmt.setString(3, ExternalForm(objectName));
+				pstmt.setString(2, InternalForm(schemaName));
+				pstmt.setString(3, InternalForm(objectName));
 				break;
 			case "index":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEX_ATTRIBUTES),
@@ -242,8 +242,8 @@ public class DatabaseResource {
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_INDEX_ATTRIBUTES));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, ExternalForm(schemaName));
-				pstmt.setString(3, ExternalForm(objectName));
+				pstmt.setString(2, InternalForm(schemaName));
+				pstmt.setString(3, InternalForm(objectName));
 				break;
 			case "view":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEW_ATTRIBUTES),
@@ -251,8 +251,8 @@ public class DatabaseResource {
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEW_ATTRIBUTES));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, ExternalForm(schemaName));
-				pstmt.setString(3, ExternalForm(objectName));
+				pstmt.setString(2, InternalForm(schemaName));
+				pstmt.setString(3, InternalForm(objectName));
 				break;
 			case "library":
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LIBRARY_ATTRIBUTES),
@@ -260,8 +260,8 @@ public class DatabaseResource {
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LIBRARY_ATTRIBUTES));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, ExternalForm(schemaName));
-				pstmt.setString(3, ExternalForm(objectName));
+				pstmt.setString(2, InternalForm(schemaName));
+				pstmt.setString(3, InternalForm(objectName));
 				pstmt.setString(4, SqlObjectType.LIBRARY.getObjectType());
 				break;
 			case "procedure":
@@ -271,8 +271,8 @@ public class DatabaseResource {
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_ROUTINE_ATTRIBUTES));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, ExternalForm(schemaName));
-				pstmt.setString(3, ExternalForm(objectName));
+				pstmt.setString(2, InternalForm(schemaName));
+				pstmt.setString(3, InternalForm(objectName));
 				pstmt.setString(4, SqlObjectType.ROUTINE.getObjectType());
 				// pstmt.setString(5,
 				// SqlRoutineType.PROCEDURE.getRoutineType());
@@ -327,11 +327,11 @@ public class DatabaseResource {
 		Connection connection = null;
 		try {
 			connection = JdbcHelper.getInstance().getAdminConnection();
-			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_ATTRIBUTES), catalogName,
-					ExternalForm(schemaName));
+			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_ATTRIBUTES),
+					catalogName, InternalForm(schemaName));
 			pstmt = connection.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_ATTRIBUTES));
 			pstmt.setString(1, catalogName);
-			pstmt.setString(2, ExternalForm(schemaName));
+			pstmt.setString(2, InternalForm(schemaName));
 
 			_LOG.debug(queryText);
 
@@ -473,18 +473,18 @@ public class DatabaseResource {
 			connection = JdbcHelper.getInstance().getAdminConnection();
 			if (objectType.toLowerCase().equals("view")) {
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEW_COLUMNS),
-						ExternalForm(schemaName), ExternalForm(objectName));
+						InternalForm(schemaName), InternalForm(objectName));
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_VIEW_COLUMNS));
-				pstmt.setString(1, ExternalForm(schemaName));
-				pstmt.setString(2, ExternalForm(objectName));
+				pstmt.setString(1, InternalForm(schemaName));
+				pstmt.setString(2, InternalForm(objectName));
 			} else {
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS),
-						ExternalForm(schemaName), ExternalForm(objectName));
+						InternalForm(schemaName), InternalForm(objectName));
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS));
-				pstmt.setString(1, ExternalForm(schemaName));
-				pstmt.setString(2, ExternalForm(objectName));
+				pstmt.setString(1, InternalForm(schemaName));
+				pstmt.setString(2, InternalForm(objectName));
 			}
 
 			// TabularResult result =
@@ -548,7 +548,7 @@ public class DatabaseResource {
 		try {
 			String queryText = String.format(
 					SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_HISTOGRAM_STATISTICS),
-					ExternalForm(schemaName), objectID);
+					InternalForm(schemaName), objectID);
 			_LOG.debug(queryText);
 			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
@@ -631,19 +631,19 @@ public class DatabaseResource {
 			connection = JdbcHelper.getInstance().getAdminConnection();
 			if (objectType.toLowerCase().equals("library")) {
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LIBRARY_USAGE),
-						ExternalForm(schemaName), ExternalForm(objectName));
+						InternalForm(schemaName), InternalForm(objectName));
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LIBRARY_USAGE));
 				pstmt.setString(1, catalogName);
-				pstmt.setString(2, ExternalForm(schemaName));
-				pstmt.setString(3, ExternalForm(objectName));
+				pstmt.setString(2, InternalForm(schemaName));
+				pstmt.setString(3, InternalForm(objectName));
 			} else {
 				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS),
-						ExternalForm(schemaName), ExternalForm(objectName));
+						InternalForm(schemaName), InternalForm(objectName));
 				pstmt = connection
 						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS));
-				pstmt.setString(1, ExternalForm(schemaName));
-				pstmt.setString(2, ExternalForm(objectName));
+				pstmt.setString(1, InternalForm(schemaName));
+				pstmt.setString(2, InternalForm(objectName));
 			}
 
 			// TabularResult result =

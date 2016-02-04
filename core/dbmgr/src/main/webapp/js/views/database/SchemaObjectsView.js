@@ -63,8 +63,7 @@ define([
 			if(prevRouteArgs.schema != routeArgs.schema || 
 				prevRouteArgs.type != routeArgs.type){
 				schemaName = routeArgs.schema;
-				pageStatus = {};
-				$(OBJECT_LIST_CONTAINER).empty();
+				_this.doReset();
 			}
 			prevRouteArgs = args;
 			$(REFRESH_ACTION).on('click', this.doRefresh);
@@ -76,6 +75,10 @@ define([
 			$(REFRESH_ACTION).off('click', this.doRefresh);
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayObjectList);
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
+		},
+		doReset: function(){
+			pageStatus = {};
+			$(OBJECT_LIST_CONTAINER).empty();
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();

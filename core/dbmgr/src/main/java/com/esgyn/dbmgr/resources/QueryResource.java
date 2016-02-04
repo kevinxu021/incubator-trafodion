@@ -186,36 +186,6 @@ public class QueryResource {
 			}
 		}
 	}
-
-	public static TabularResult executeAdminSQLQuery(PreparedStatement pStmt, String queryText, String sControlStmts)
-			throws EsgynDBMgrException {
-		Connection connection = null;
-		try {
-			connection = JdbcHelper.getInstance().getAdminConnection();
-			String[] controlStatements = new String[0];
-			if (sControlStmts != null && sControlStmts.length() > 0) {
-				controlStatements = sControlStmts.split(";");
-			}
-			Statement stmt1 = connection.createStatement();
-			for (String controlText : controlStatements) {
-				stmt1.execute(controlText);
-			}
-			stmt1.close();
-			return executeQuery(pStmt, queryText);
-		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			throw new EsgynDBMgrException(e.getMessage());
-		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (Exception ex) {
-
-				}
-			}
-		}
-	}
-
 	@POST
 	@Path("/explain/")
 	@Produces("application/json")
