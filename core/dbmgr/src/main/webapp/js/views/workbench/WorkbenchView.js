@@ -355,25 +355,6 @@ define([
 
 			_that.showLoading();
 			serverHandler.explainQuery(param);
-
-			/*$.ajax({
-        	    url:'resources/queries/explain',
-        	    type:'POST',
-        	    data: JSON.stringify(param),
-        	    dataType:"json",
-        	    contentType: "application/json;",
-				statusCode : {
-					401 : _that.sessionTimeout,
-					403 : _that.sessionTimeout
-				},
-				success:_that.drawExplain,
-        	    error:function(jqXHR, res, error){
-        	    	_that.hideLoading();
-        	    	_that.showErrorMessage(jqXHR);
-        	    }
-        	});*/
-
-
 		},
 
 		executeQuery: function () {
@@ -395,23 +376,6 @@ define([
 			$(QUERY_RESULT_CONTAINER).hide();
 			var param = {sQuery : queryText, sControlStmts: controlStmts};
 			serverHandler.executeQuery(param);
-
-			/*$.ajax({
-        	    url:'resources/queries/execute',
-        	    type:'POST',
-        	    data: JSON.stringify(param),
-        	    dataType:"json",
-        	    contentType: "application/json;",
-				statusCode : {
-					401 : _that.sessionTimeout,
-					403 : _that.sessionTimeout
-				},
-				success:_that.displayResults,
-        	    error:function(jqXHR, res, error){
-        	    	_that.hideLoading();
-        	    	_that.showErrorMessage(jqXHR);
-        	    }
-        	});*/
 		},
 
 		sessionTimeout: function() {

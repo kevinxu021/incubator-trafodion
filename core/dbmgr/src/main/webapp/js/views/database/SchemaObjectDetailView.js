@@ -167,72 +167,11 @@ define([
 					sessionStorage.removeItem(routeArgs.name);
 					objectAttributes = JSON.parse(objectAttributes);
 				}
-				if(objColumnsDataTable != null) {
-					try {
-						objColumnsDataTable.clear().draw();
-					}catch(Error){
-
-					}
-				}
-				if(regionsDataTable != null) {
-					try {
-						regionsDataTable.clear().draw();
-					}catch(Error){
-
-					}
-				}
-				if(privilegesDataTable != null) {
-					try {
-						privilegesDataTable.clear().draw();
-					}catch(Error){
-					}
-				}
-				if(usagesDataTable != null) {
-					try {
-						usagesDataTable.clear().draw();
-					}catch(Error){
-					}
-				}
-				if(statisticsTable != null){
-					try{
-						statisticsTable.clear().draw();
-					}catch(Error){
-						
-					}
-				}
-				if(indexesDataTable != null){
-					try{
-						indexesDataTable.clear.draw();
-					}catch(Error){
-						
-					}
-				}
-				pageStatus = {};
-				$(ERROR_CONTAINER).hide();
-				$(COLUMNS_CONTAINER).empty();
-				$(REGIONS_CONTAINER).empty();
-				$(STATISTICS_CONTAINER).empty();
-				
-	        	if(ddlTextEditor){
-	        		ddlTextEditor.setValue("");
-	        		setTimeout(function() {
-	        			ddlTextEditor.refresh();
-	        		},1);
-	        	}
+				_this.doReset();
 			}	
 			
 			prevRouteArgs = args;
-			var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
-			var activeButton = null;
-			if(ACTIVE_BTN){
-				activeButton = '#'+ACTIVE_BTN.attr('id');
-				if(activeButton == ATTRIBUTES_BTN || activeButton == DDL_BTN || activeButton == PRIVILEGES_BTN
-						|| activeButton == COLUMNS_BTN  || activeButton == USAGES_BTN){
-				}else{
-					$(FEATURE_SELECTOR + ' a').first().tab('show')
-				}
-			}
-
+			
 			_this.processRequest();
 		},
 		doPause: function(){
@@ -255,6 +194,60 @@ define([
 			dbHandler.off(dbHandler.FETCH_USAGE_ERROR, this.showErrorMessage);
 			
 			$('a[data-toggle="pill"]').off('shown.bs.tab', this.selectFeature);
+		},
+		doReset: function(){
+			if(objColumnsDataTable != null) {
+				try {
+					objColumnsDataTable.clear().draw();
+				}catch(Error){
+
+				}
+			}
+			if(regionsDataTable != null) {
+				try {
+					regionsDataTable.clear().draw();
+				}catch(Error){
+
+				}
+			}
+			if(privilegesDataTable != null) {
+				try {
+					privilegesDataTable.clear().draw();
+				}catch(Error){
+				}
+			}
+			if(usagesDataTable != null) {
+				try {
+					usagesDataTable.clear().draw();
+				}catch(Error){
+				}
+			}
+			if(statisticsTable != null){
+				try{
+					statisticsTable.clear().draw();
+				}catch(Error){
+					
+				}
+			}
+			if(indexesDataTable != null){
+				try{
+					indexesDataTable.clear.draw();
+				}catch(Error){
+					
+				}
+			}
+			pageStatus = {};
+			$(ERROR_CONTAINER).hide();
+			$(COLUMNS_CONTAINER).empty();
+			$(REGIONS_CONTAINER).empty();
+			$(STATISTICS_CONTAINER).empty();
+			
+        	if(ddlTextEditor){
+        		ddlTextEditor.setValue("");
+        		setTimeout(function() {
+        			ddlTextEditor.refresh();
+        		},1);
+        	}			
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
@@ -310,6 +303,7 @@ define([
 		},
 		selectFeature: function(e){
 			$(OBJECT_DETAILS_CONTAINER).show();
+			$(ERROR_CONTAINER).hide();
 			var selectedFeatureLink = ATTRIBUTES_SELECTOR;
 
 			if(e && e.target && $(e.target).length > 0){
@@ -539,8 +533,6 @@ define([
 						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
 						$(INDEXES_BTN).show();
-				
-						_this.selectFeature();
 						break;							
 					case 'view': 
 						schemaName = routeArgs.schema;
@@ -553,7 +545,6 @@ define([
 						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
 						$(INDEXES_BTN).hide();				
-						_this.selectFeature();
 						break;
 					case 'index': 
 						schemaName = routeArgs.schema;
@@ -566,7 +557,6 @@ define([
 						$(PRIVILEGES_BTN).hide();
 						$(USAGES_BTN).hide();
 						$(INDEXES_BTN).hide();					
-						_this.selectFeature();
 						break;
 					case 'library': 
 						schemaName = routeArgs.schema;
@@ -579,7 +569,6 @@ define([
 						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).show();
 						$(INDEXES_BTN).hide();				
-						_this.selectFeature();
 						break;
 					case 'procedure': 
 					case 'udf': 
@@ -593,10 +582,21 @@ define([
 						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
 						$(INDEXES_BTN).hide();				
-						_this.selectFeature();
 						break;							
 				}
 			}
+			var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
+			var activeButton = null;
+			if(ACTIVE_BTN){
+				activeButton = '#'+ACTIVE_BTN.attr('id');
+				if($(activeButton).is(':visible') && (activeButton == ATTRIBUTES_BTN || activeButton == DDL_BTN || activeButton == PRIVILEGES_BTN
+						|| activeButton == COLUMNS_BTN  || activeButton == USAGES_BTN)){
+				}else{
+					$(FEATURE_SELECTOR + ' a').first().tab('show')
+				}
+			}
+			_this.selectFeature();
+
 		},
 		fetchAttributes: function () {
 			$(ERROR_CONTAINER).hide();

@@ -32,8 +32,8 @@
 					where catalog_name = ?
 					and schema_name != '_MD_'
 					and schema_name != '_PRIVMGR_MD_'
+					and schema_name NOT LIKE 'VOLATILE%'
 					and object_name = '__SCHEMA__'
-					and object_type = 'PS'
 					order by schema_name FOR READ UNCOMMITTED ACCESS;
 				]]></text>
 		</query>
@@ -47,8 +47,8 @@
 					where catalog_name = ? and schema_name = ?
 					and schema_name != '_MD_'
 					and schema_name != '_PRIVMGR_MD_'
+					and schema_name NOT LIKE 'VOLATILE%'
 					and object_name = '__SCHEMA__'
-					and object_type = 'PS'
 					order by schema_name FOR READ UNCOMMITTED ACCESS;
 				]]></text>
 		</query>

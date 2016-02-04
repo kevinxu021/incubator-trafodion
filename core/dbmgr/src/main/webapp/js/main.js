@@ -29,7 +29,11 @@ require.config({
 	shim: {
 		bootstrap: {
 			deps: ['jquery'],
-			exports: 'jquery'
+			exports: 'bootstrap'
+		},
+		jqueryui: {
+			deps: ['jquery'],
+			exports: 'jqueryui'
 		},
 		backbone: {
 			// Depends on underscore and jQuery
@@ -89,7 +93,7 @@ require.config({
 		jquerycookie: '../bower_components/jquery.cookie/jquery.cookie',
 		jquerylocalize: '../bower_components/jquery-localize-i18n/dist/jquery.localize.min',
 		jqueryvalidate: '../bower_components/jquery-validation/dist/jquery.validate.min',
-		jqueryui: '../bower_components/jquery-ui/jquery-ui',
+		jqueryui: '../bower_components/jquery-ui/jquery-ui.min',
 		underscore: '../bower_components/underscore/underscore-min',
 		backbone: '../bower_components/backbone/backbone-min',
 		morris: '../bower_components/morrisjs/morris.min',
