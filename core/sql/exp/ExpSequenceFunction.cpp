@@ -63,10 +63,10 @@
 // PSTCOND: ExpSequenceFunction is constructed.
 //
 ExpSequenceFunction::ExpSequenceFunction
-(OperatorTypeEnum oper_type, Int32 arity, Int32 index,
+(OperatorTypeEnum oper_type, Int32 arity, Int32 index, Int32 r,
  Attributes ** attr, Space * space)
 #pragma nowarn(1506)   // warning elimination 
-  : ex_function_clause(oper_type, arity, attr, space), offsetIndex_(index), flags_(0) {
+  : ex_function_clause(oper_type, arity, attr, space), offsetIndex_(index), flags_(0), readFromBuffer_(r) {
 #pragma warn(1506)  // warning elimination 
 };
 
@@ -253,7 +253,10 @@ ex_expr::exp_return_type ExpSequenceFunction::eval(char *op_data[],
   char *srcVC   = NULL;
   Int32 rc=0;
 
+  if ( readFromBuffer_ )
   {
+    // read from the history buffer at index index and store the result in 
+    // op_dataa[0]
     char *row = (*GetRow_)(GetRowData_, index, isLeading(), winSize(), rc);
 
     if(rc == -1)
@@ -271,6 +274,9 @@ ex_expr::exp_return_type ExpSequenceFunction::eval(char *op_data[],
         if(attrs[1]->getNullFlag())
           srcNull = row + attrs[1]->getNullIndOffset();
       }
+  } else {
+    // read from op_data[1] and store it in the history buffer at index.
+    srcData = op_data[1];
   }
 
   // Is the source null? There are two reaons the source data can be null:
@@ -283,99 +289,108 @@ ex_expr::exp_return_type ExpSequenceFunction::eval(char *op_data[],
 
   // Get the pointer to the start of the result data.
   //
-  char *dstData = op_data[0];
-  char *dstNull = op_data[-2 * MAX_OPERANDS + 0];
-  char *dstVC   = op_data[- MAX_OPERANDS];
+  if ( readFromBuffer_ ) {
+     char *dstData = op_data[0];
+     char *dstNull = op_data[-2 * MAX_OPERANDS + 0];
+     char *dstVC   = op_data[- MAX_OPERANDS];
+   
+     if (rc == -3)
+     {
+       *((unsigned short*)dstNull) = 0xFFFFU;
+       return ex_expr::EXPR_OK;
+     }
+     // Copy the source data to the destination data.
+     //
+     if(srcIsNull)
+       {
+         if(nullRowIsZero() || (rc == -2)) {
+           switch (getOperand(1)->getDatatype()) {
+           case REC_BIN16_UNSIGNED:
+           case REC_BIN16_SIGNED: 
+           {
+             // LCOV_EXCL_START
+             // hiding code from code coverag tool-- 
+             short value = 0;
+             str_cpy_all(dstData, (char *) &value, sizeof(value));
+             break;
+             // LCOV_EXCL_STOP
+           }
+           case REC_BIN32_SIGNED:
+           case REC_BIN32_UNSIGNED:
+           {
+             // LCOV_EXCL_START
+             Lng32 value = 0;
+             str_cpy_all(dstData, (char *) &value, sizeof(value));
+             break;
+             // LCOV_EXCL_STOP
+           }
+           case REC_BIN64_SIGNED:
+           {
+             Int64 value = 0;
+             str_cpy_all(dstData, (char *) &value, sizeof(value));
+             break;
+           }
+           case REC_IEEE_FLOAT32:
+           {
+             // LCOV_EXCL_START
+             float value = 0;
+             str_cpy_all(dstData, (char *) &value, sizeof(value));
+             break;
+             // LCOV_EXCL_STOP
+           }
+           case REC_IEEE_FLOAT64:
+           {
+             double value = 0;
+             str_cpy_all(dstData, (char *) &value, sizeof(value));
+             break;
+           }
+           default:
+           {
+             Lng32 value = 0;
+             if (convDoIt((char *)&value,
+                          sizeof(value),
+                          REC_BIN32_SIGNED,
+                          0,
+                          0,
+                          dstData,
+                          getOperand(1)->getLength(),
+                          getOperand(1)->getDatatype(),
+                          getOperand(1)->getPrecision(),
+                          getOperand(1)->getScale(),
+                          NULL, 0, heap, diagsArea,
+                          CONV_UNKNOWN) != ex_expr::EXPR_OK) {
+               // LCOV_EXCL_START
+               return ex_expr::EXPR_ERROR;
+               // LCOV_EXCL_STOP
+             }
+   
+             break;
+           }
+           }
+   
+           if(attrs[0]->getNullFlag())
+             *((short*)dstNull) = 0x0000;
+   
+         } else {
+           *((unsigned short*)dstNull) = 0xFFFFU;
+         }
+       }
+     else
+       {
+         str_cpy_all(dstData, srcData, attrs[0]->getLength());
+         if (attrs[1]->getVCIndicatorLength() > 0)
+              getOperand(0)->setVarLength(getOperand(1)->getLength(srcVC), dstVC);
+         if(attrs[0]->getNullFlag())
+           *((short*)dstNull) = 0x0000;
+       }
+  } else {
+      (*PutRow_)(srcData, index, isLeading(), winSize(), rc);
 
-  if (rc == -3)
-  {
-    *((unsigned short*)dstNull) = 0xFFFFU;
-    return ex_expr::EXPR_OK;
-  }
-  // Copy the source data to the destination data.
-  //
-  if(srcIsNull)
-    {
-      if(nullRowIsZero() || (rc == -2)) {
-        switch (getOperand(1)->getDatatype()) {
-        case REC_BIN16_UNSIGNED:
-        case REC_BIN16_SIGNED: 
-        {
-          // LCOV_EXCL_START
-          // hiding code from code coverag tool-- 
-          short value = 0;
-          str_cpy_all(dstData, (char *) &value, sizeof(value));
-          break;
-          // LCOV_EXCL_STOP
-        }
-        case REC_BIN32_SIGNED:
-        case REC_BIN32_UNSIGNED:
-        {
-          // LCOV_EXCL_START
-          Lng32 value = 0;
-          str_cpy_all(dstData, (char *) &value, sizeof(value));
-          break;
-          // LCOV_EXCL_STOP
-        }
-        case REC_BIN64_SIGNED:
-        {
-          Int64 value = 0;
-          str_cpy_all(dstData, (char *) &value, sizeof(value));
-          break;
-        }
-        case REC_IEEE_FLOAT32:
-        {
-          // LCOV_EXCL_START
-          float value = 0;
-          str_cpy_all(dstData, (char *) &value, sizeof(value));
-          break;
-          // LCOV_EXCL_STOP
-        }
-        case REC_IEEE_FLOAT64:
-        {
-          double value = 0;
-          str_cpy_all(dstData, (char *) &value, sizeof(value));
-          break;
-        }
-        default:
-        {
-          Lng32 value = 0;
-          if (convDoIt((char *)&value,
-                       sizeof(value),
-                       REC_BIN32_SIGNED,
-                       0,
-                       0,
-                       dstData,
-                       getOperand(1)->getLength(),
-                       getOperand(1)->getDatatype(),
-                       getOperand(1)->getPrecision(),
-                       getOperand(1)->getScale(),
-                       NULL, 0, heap, diagsArea,
-                       CONV_UNKNOWN) != ex_expr::EXPR_OK) {
-            // LCOV_EXCL_START
-            return ex_expr::EXPR_ERROR;
-            // LCOV_EXCL_STOP
-          }
-
-          break;
-        }
-        }
-
-        if(attrs[0]->getNullFlag())
-          *((short*)dstNull) = 0x0000;
-
-      } else {
-        *((unsigned short*)dstNull) = 0xFFFFU;
+      if(rc == -1) {
+        ExRaiseSqlError(heap, diagsArea, EXE_HISTORY_BUFFER_TOO_SMALL);
+        return ex_expr::EXPR_ERROR;
       }
-    }
-  else
-    {
-      str_cpy_all(dstData, srcData, attrs[0]->getLength());
-      if (attrs[1]->getVCIndicatorLength() > 0)
-           getOperand(0)->setVarLength(getOperand(1)->getLength(srcVC), dstVC);
-      if(attrs[0]->getNullFlag())
-        *((short*)dstNull) = 0x0000;
-    }
+  }
 
   // Return all OK...
   //

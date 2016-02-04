@@ -127,6 +127,7 @@ short ItmSeqOffset::codeGen(Generator* generator)
     = new(space) ExpSequenceFunction(ITM_OFFSET,
 				     getArity() + 1,
 				     getOffsetConstantValue(),
+				     1, // Read from the buffer
 				     attr,
 				     space);
 
@@ -158,6 +159,7 @@ short ItmLeadOlapFunction::codeGen(Generator* generator)
     = new(space) ExpSequenceFunction(ITM_OFFSET, // ITM_OLAP_LEAD
 				     getArity() + 1,
 				     getOffset(),
+				     1, // Read from the buffer
 				     attr,
 				     space);
 
