@@ -171,17 +171,7 @@ define([
 			}	
 			
 			prevRouteArgs = args;
-			var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
-			var activeButton = null;
-			if(ACTIVE_BTN){
-				activeButton = '#'+ACTIVE_BTN.attr('id');
-				if(activeButton == ATTRIBUTES_BTN || activeButton == DDL_BTN || activeButton == PRIVILEGES_BTN
-						|| activeButton == COLUMNS_BTN  || activeButton == USAGES_BTN){
-				}else{
-					$(FEATURE_SELECTOR + ' a').first().tab('show')
-				}
-			}
-
+			
 			_this.processRequest();
 		},
 		doPause: function(){
@@ -543,8 +533,6 @@ define([
 						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
 						$(INDEXES_BTN).show();
-				
-						_this.selectFeature();
 						break;							
 					case 'view': 
 						schemaName = routeArgs.schema;
@@ -557,7 +545,6 @@ define([
 						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
 						$(INDEXES_BTN).hide();				
-						_this.selectFeature();
 						break;
 					case 'index': 
 						schemaName = routeArgs.schema;
@@ -570,7 +557,6 @@ define([
 						$(PRIVILEGES_BTN).hide();
 						$(USAGES_BTN).hide();
 						$(INDEXES_BTN).hide();					
-						_this.selectFeature();
 						break;
 					case 'library': 
 						schemaName = routeArgs.schema;
@@ -583,7 +569,6 @@ define([
 						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).show();
 						$(INDEXES_BTN).hide();				
-						_this.selectFeature();
 						break;
 					case 'procedure': 
 					case 'udf': 
@@ -597,10 +582,21 @@ define([
 						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
 						$(INDEXES_BTN).hide();				
-						_this.selectFeature();
 						break;							
 				}
 			}
+			var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
+			var activeButton = null;
+			if(ACTIVE_BTN){
+				activeButton = '#'+ACTIVE_BTN.attr('id');
+				if($(activeButton).is(':visible') && (activeButton == ATTRIBUTES_BTN || activeButton == DDL_BTN || activeButton == PRIVILEGES_BTN
+						|| activeButton == COLUMNS_BTN  || activeButton == USAGES_BTN)){
+				}else{
+					$(FEATURE_SELECTOR + ' a').first().tab('show')
+				}
+			}
+			_this.selectFeature();
+
 		},
 		fetchAttributes: function () {
 			$(ERROR_CONTAINER).hide();
