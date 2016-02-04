@@ -784,6 +784,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_JAVA                /* Tandem extension non-reserved word */
 %token <tokval> TOK_JOIN
 %token <tokval> TOK_JULIANTIMESTAMP     /* Tandem extension */
+%token <tokval> TOK_LAG    /* LAG OLAP Function */
 %token <tokval> TOK_LANGUAGE
 %token <tokval> TOK_LARGEINT            /* Tandem extension non-reserved word */
 %token <tokval> TOK_LASTNOTNULL
@@ -1977,6 +1978,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <item>				running_sequence_function
 %type <item>                moving_sequence_function
 %type <item>                offset_sequence_function
+%type <item>                olap_lag_function
 %type <item>                this_sequence_function
 %type <item>                olap_sequence_function
 %type <item>                opt_olap_part_clause
@@ -7742,6 +7744,23 @@ olap_sequence_function : set_function_specification TOK_OVER '('
                            SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
                         }
 // end of OLAP LEAD function()
+                       |TOK_LAG '(' value_expression ','  value_expression ')'  TOK_OVER '('
+                         opt_olap_part_clause
+                         opt_olap_order_clause ')'
+                         {
+                              ItmLagOlapFunction* lagExpr =
+                                                       new (PARSERHEAP()) ItmLagOlapFunction($3, $5);
+                             lagExpr->setOLAPInfo($9, $10);
+                             $$=lagExpr;
+                             SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                         }
+
+olap_lag_function : TOK_LAG '(' value_expression ','  value_expression ')' 
+                            {
+                                ItmLagOlapFunction* lagExpr =
+                                             new (PARSERHEAP()) ItmLagOlapFunction($3, $5);
+                                $$ = lagExpr;
+                            }
 
 opt_olap_part_clause   : empty
                          {

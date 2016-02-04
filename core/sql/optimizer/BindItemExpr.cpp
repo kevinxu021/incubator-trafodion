@@ -12487,7 +12487,52 @@ ItemExpr *ItmSequenceFunction::bindNode(BindWA *bindWA)
   else
     return getValueId().getItemExpr();
 }
+//-------------------------------------------------------------------------
+//
+// member functions for class ItmLagOlapFunction
+//
+//-------------------------------------------------------------------------
 
+ItemExpr * ItmLagOlapFunction::bindNode(BindWA * bindWA)
+{
+   // the offset expr must be a non-negative integer
+   NABoolean offsetOK = FALSE;
+   Int64 value = 0;
+
+   if ( getArity() > 1) 
+   {
+      if ( child(1)->getOperatorType() == ITM_CONSTANT ) 
+      {
+         ConstValue* cv = (ConstValue*)getChild(1);
+         if ( cv->canGetExactNumericValue() )
+         {
+            value = cv->getExactNumericValue();
+            if ( value >= 0 ) {
+               offsetOK = TRUE;
+               offset_ = (Int32)value;
+            }
+         }
+      }
+
+   } else { 
+
+      if ( offset_ >= 0 )
+        offsetOK = TRUE;
+   }
+
+   if ( !offsetOK ) {
+
+      *CmpCommon::diags() << DgSqlCode(-4249) << DgString0("LAG");
+
+      if ( bindWA )
+          bindWA->setErrStatus();
+
+      return this;
+   }
+
+   ItemExpr * result = ItmSeqOlapFunction::bindNode(bindWA);
+   return result;
+}
 
 //-------------------------------------------------------------------------
 //

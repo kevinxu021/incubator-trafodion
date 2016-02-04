@@ -112,6 +112,29 @@ ItemExpr *ItmLeadOlapFunction::preCodeGen(Generator *generator)
   return ItemExpr::preCodeGen(generator);
 }
 
+ItemExpr *ItmLagOlapFunction::preCodeGen(Generator *generator)
+{
+  if (nodeIsPreCodeGenned())
+    return this;
+  
+  CollHeap *wHeap = generator->wHeap();
+    
+  if (getArity() > 1)
+  {
+
+    const NAType &cType = child(1)->getValueId().getType();
+
+    // (must be) signed; nulls allowed (if allowed by child1)   
+   ItemExpr *castExpr   = new (wHeap) Cast (child(1),
+                                           new (wHeap)
+                                           SQLInt(TRUE, cType.supportsSQLnullLogical()));
+   castExpr->synthTypeAndValueId(TRUE);
+   child (1) = castExpr;
+  }
+  return ItemExpr::preCodeGen(generator);
+}
+
+
 // ItmSeqOffset::codeGen
 //
 short ItmSeqOffset::codeGen(Generator* generator)
@@ -175,6 +198,36 @@ short ItmLeadOlapFunction::codeGen(Generator* generator)
   generator->getExpGenerator()->linkClause(this, seqClause);
   return 0;
 }
+
+short ItmLagOlapFunction::codeGen(Generator* generator)
+{
+  Attributes** attr;
+  Space* space = generator->getSpace();
+
+  if(generator->getExpGenerator()->genItemExpr
+     (this, &attr, (1 + getArity()), -1) == 1)
+    return 0;
+
+  ex_clause* seqClause 
+    = new(space) ExpSequenceFunction(ITM_OFFSET,
+				     getArity() + 1,
+				     0,
+				     1, // Read from the buffer
+				     attr,
+				     space);
+
+  ((ExpSequenceFunction *)seqClause)->setNullRowIsZero(FALSE);
+
+  ((ExpSequenceFunction *)seqClause)->setIsLeading(FALSE);
+  ((ExpSequenceFunction *)seqClause)->setWinSize(0);
+
+  if(isOLAP())
+    ((ExpSequenceFunction *)seqClause)->setIsOLAP(TRUE);
+
+  generator->getExpGenerator()->linkClause(this, seqClause);
+  return 0;
+}
+
 
 // ItmSeqRunningFunction::preCodeGen
 //

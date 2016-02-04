@@ -1589,6 +1589,7 @@ void PhysSequence::estimateHistoryRowLength(const ValueIdSet &sequenceFunctions,
       switch(itmExpr->getOperatorType())
       {
         case ITM_OLAP_LEAD:
+        case ITM_OLAP_LAG:
         case ITM_OFFSET:
         case ITM_ROWS_SINCE:
         case ITM_THIS:
