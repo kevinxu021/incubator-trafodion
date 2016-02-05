@@ -28,37 +28,55 @@ import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+#ifdef HDP2.3
+import org.apache.hadoop.hbase.ScheduledChore;
+#else
 import org.apache.hadoop.hbase.Chore;
+#endif
 import org.apache.hadoop.hbase.Stoppable;
 
 import org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionEndpoint;
 
 /**
- * Manages the MemoryMXBean to determine a regionserver's memory usage.
+ * Cleans up committed transactions when they are no longer needed to verify
+ * pending transactions.
  */
-public class MemoryUsageChore extends Chore {
-
+#ifdef HDP2.3
+public class CleanOldTransactionsChore extends ScheduledChore {
+#else
+public class CleanOldTransactionsChore extends Chore {
+#endif
   private final TrxRegionEndpoint trx_Region;
 
-  static final Log LOG = LogFactory.getLog(MemoryUsageChore.class);
+  static final Log LOG = LogFactory.getLog(CleanOldTransactionsChore.class);
 
   /**
    * @param trx_Region
    * @param timer        
    * @param stoppable    
    */
-  public MemoryUsageChore(final TrxRegionEndpoint trx_Region,
-                          final int timer,  
-                          final Stoppable stoppable) {
-    super("MemoryUsageChore", timer, stoppable);
+  public CleanOldTransactionsChore(final TrxRegionEndpoint trx_Region,
+                                   final int timer,  
+                                   final Stoppable stoppable) {
+#ifdef HDP2.3
+    super("CleanOldTransactionsChore", stoppable, timer);
+#else
+    super("CleanOldTransactionsChore", timer, stoppable);
+#endif
     this.trx_Region = trx_Region;
   }
 
   @Override
   public void chore() {
 
-      //if (LOG.isTraceEnabled()) LOG.trace("Trafodion MemoryUsage ChoreThread, calling checkMemoryUsage, CP Epoch " + trx_Region.controlPointEpoch.get());
-      trx_Region.checkMemoryUsage();
+      trx_Region.removeUnNeededCommitedTransactions();
 
+      //if (LOG.isDebugEnabled()) LOG.debug("Trafodion ChoreThread CP Epoch " + trx_Region.controlPointEpoch.get());
+
+      trx_Region.choreThreadDetectStaleTransactionBranch();
+
+      //LOG.trace("CleanOldTransactionsChore: region " + this.trx_Region.getRegionNameAsString());
+        
+      trx_Region.removeUnNeededStaleScanners();
   }
 }

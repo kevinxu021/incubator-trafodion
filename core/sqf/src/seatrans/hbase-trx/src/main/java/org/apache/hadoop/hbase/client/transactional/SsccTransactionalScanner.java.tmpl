@@ -287,8 +287,11 @@ public class SsccTransactionalScanner extends AbstractClientScanner {
         }
     }
 
-    /**                                                                                                                                        * Allow the client to renew the scanner's lease on the server.                                                                            * @return true if the lease was successfully renewed, false otherwise.                                                                    */
-    // Note that this method should be on ResultScanner, but that is marked stable.                                                           // Callers have to cast their instance of ResultScanner to AbstractClientScanner to use this.                                             @Override
+    // Note that this method should be on ResultScanner, but that is marked stable.
+    // Callers have to cast their instance of ResultScanner to AbstractClientScanner to use this.
+#ifdef HDP2.3
+    @Override
+#endif
     public boolean renewLease()
     {
 	return true;

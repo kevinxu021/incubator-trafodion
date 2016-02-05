@@ -2967,7 +2967,7 @@ CoprocessorService, Coprocessor {
       }
     }
     if (LOG.isTraceEnabled()) LOG.trace("SsccRegionEndpoint coprocessor: getMax - Maximum from this region is "
-        + env.getRegion().getRegionNameAsString() + ": " + max);
+        + env.getRegion().getRegionInfo().getRegionNameAsString() + ": " + max);
     done.run(response);
   }
 
@@ -3022,7 +3022,7 @@ CoprocessorService, Coprocessor {
       }
     }
     if (LOG.isTraceEnabled()) LOG.trace("Minimum from this region is "
-        + env.getRegion().getRegionNameAsString() + ": " + min);
+        + env.getRegion().getRegionInfo().getRegionNameAsString() + ": " + min);
     done.run(response);
   }
 
@@ -3120,7 +3120,7 @@ CoprocessorService, Coprocessor {
       }
     }
     if (LOG.isTraceEnabled()) LOG.trace("Sum from this region is "
-        + env.getRegion().getRegionNameAsString() + ": " + sum);
+        + env.getRegion().getRegionInfo().getRegionNameAsString() + ": " + sum);
     done.run(response);
   }
 
@@ -3214,7 +3214,7 @@ CoprocessorService, Coprocessor {
       }
     }
     if (LOG.isTraceEnabled()) LOG.trace("Row counter for transactionId " + transactionId + " from this region: "
-        + env.getRegion().getRegionNameAsString() + " is " + counter);
+        + env.getRegion().getRegionInfo().getRegionNameAsString() + " is " + counter);
     done.run(response);
   }
 
@@ -3469,8 +3469,13 @@ CoprocessorService, Coprocessor {
     if (LOG.isTraceEnabled()) LOG.trace("SsccRegionEndpoint coprocessor: start");
     RegionCoprocessorEnvironment tmp_env = 
       (RegionCoprocessorEnvironment)env;
+#ifdef HDP2.3
+    this.m_Region = (HRegion)
+       tmp_env.getRegion();
+#else
     this.m_Region =
        tmp_env.getRegion();
+#endif
     this.regionInfo = this.m_Region.getRegionInfo();
     this.t_Region = (TransactionalRegion) tmp_env.getRegion();
     this.fs = this.m_Region.getFilesystem();
@@ -3550,13 +3555,13 @@ CoprocessorService, Coprocessor {
     else
        if (LOG.isTraceEnabled()) LOG.trace("SsccRegionEndpoint coprocessor: reference map is NOT empty Yes ... ");
 
-    if (LOG.isTraceEnabled()) LOG.trace("SsccRegionEndpoint coprocessor: UUU Region " + this.m_Region.getRegionNameAsString() + " check indoubt list from reference map ");
+    if (LOG.isTraceEnabled()) LOG.trace("SsccRegionEndpoint coprocessor: UUU Region " + this.m_Region.getRegionInfo().getRegionNameAsString() + " check indoubt list from reference map ");
 
     indoubtTransactionsById = (TreeMap<Long, WALEdit>)transactionsByIdTestz.get(
-                               this.m_Region.getRegionNameAsString()+TrxRegionObserver.trxkeypendingTransactionsById);
+                               this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeypendingTransactionsById);
 
     indoubtTransactionsCountByTmid = (TreeMap<Integer,Integer>)transactionsByIdTestz.get(
-                               this.m_Region.getRegionNameAsString()+TrxRegionObserver.trxkeyindoubtTransactionsCountByTmid);
+                               this.m_Region.getRegionInfo().getRegionNameAsString()+TrxRegionObserver.trxkeyindoubtTransactionsCountByTmid);
     if (indoubtTransactionsCountByTmid != null) {
        if (LOG.isTraceEnabled()) LOG.trace("SsccRegionEndpoint coprocessor:OOO successfully get the reference from Region CoprocessorEnvrionment ");
     }
@@ -3626,7 +3631,11 @@ CoprocessorService, Coprocessor {
 
     try {
           if (LOG.isTraceEnabled()) LOG.trace("SsccRegionEndpoint coprocessor:  Trafodion Recovery:  Flushing cache in startRegionAfterRecovery " + m_Region.getRegionInfo().getRegionNameAsString());
+#ifdef HDP2.3
+	  m_Region.flush(true);
+#else
           m_Region.flushcache();
+#endif
           //if (!m_Region.flushcache().isFlushSucceeded()) { 
           //   LOG.trace("SsccRegionEndpoint coprocessor:  Trafodion Recovery:  Flushcache returns false !!! " + m_Region.getRegionInfo().getRegionNameAsString());
           //}
@@ -4143,7 +4152,7 @@ CoprocessorService, Coprocessor {
    * @return String 
    */
   public String getRegionNameAsString() {
-    return this.m_Region.getRegionNameAsString();
+    return this.m_Region.getRegionInfo().getRegionNameAsString();
   }
 
 /**

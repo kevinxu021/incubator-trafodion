@@ -168,13 +168,6 @@ fi
 
 echo "Backup Folder: ${hdfs_backup_location} ." | tee -a $log_file
 
-#verify that the hbase home dir exist. ExportSnapshot fails if it does not exist
-verify_or_create_folder "${hdfs_uri}/user/${hbase_user}" "create"
-ret_code=$?
-if [[ $ret_code -ne 0  ]] ; then
-   exit $ret_code
-fi
-
 ###get list of trafodion tables
 echo "hbase_trafodion_table_list: ${hbase_trafodion_table_list}" | tee -a $log_file
 cat <<EOF > ${hbase_trafodion_table_list}
