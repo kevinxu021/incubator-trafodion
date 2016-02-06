@@ -1978,7 +1978,6 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <item>				running_sequence_function
 %type <item>                moving_sequence_function
 %type <item>                offset_sequence_function
-%type <item>                olap_lag_function
 %type <item>                this_sequence_function
 %type <item>                olap_sequence_function
 %type <item>                opt_olap_part_clause
@@ -7755,12 +7754,6 @@ olap_sequence_function : set_function_specification TOK_OVER '('
                              SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
                          }
 
-olap_lag_function : TOK_LAG '(' value_expression ','  value_expression ')' 
-                            {
-                                ItmLagOlapFunction* lagExpr =
-                                             new (PARSERHEAP()) ItmLagOlapFunction($3, $5);
-                                $$ = lagExpr;
-                            }
 
 opt_olap_part_clause   : empty
                          {
