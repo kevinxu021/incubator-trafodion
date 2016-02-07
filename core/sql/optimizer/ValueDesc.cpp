@@ -6597,3 +6597,24 @@ ValueIdList::computeEncodedKey(const TableDesc* tDesc, NABoolean isMaxKey,
    }
 }
 
+void ValueIdSet::findAllOpType(OperatorTypeEnum type, ValueIdSet & result) const
+{
+    for(ValueId valId = init(); next(valId); advance(valId)) {
+  
+      ItemExpr *itmExpr = valId.getItemExpr();
+      if(itmExpr->getOperatorType() == type) 
+         result += valId;
+    }
+}
+
+void ValueIdSet::findAllChildren(ValueIdSet & result, Int32 num) const
+{   
+    for(ValueId valId = init(); next(valId); advance(valId)) {
+      
+      ItemExpr *itmExpr = valId.getItemExpr();
+
+      if ( itmExpr->getArity() == num )
+         result += itmExpr->child(0).getValueId();
+    }
+}
+

@@ -88,8 +88,8 @@ void PhysSequence::getHistoryAttributes(const ValueIdSet &sequenceFunctions,
 
       switch(itmExpr->getOperatorType())
         {
-          // The child needs to be in the history row.
-          //
+          // The child needs to be in the history row only during reading phase.
+          // Fall through.
         case ITM_OLAP_LEAD:
         case ITM_OFFSET:
         case ITM_ROWS_SINCE:
@@ -888,10 +888,31 @@ PhysSequence::codeGen(Generator *generator)
 
   getHistoryAttributes(readSeqFunctions(),outputFromChild, historyIds, TRUE, wHeap);
 
+  // remove LEAD from readSeqFunctions() and remeber it in leadFuncs
+  // Its child has CONVERT added in getHistoryAttributes() call.
+  ValueIdSet leadFuncs;
+  ValueIdSet leadFuncChildren;
+
+  readSeqFunctions().findAllOpType(ITM_OLAP_LEAD, leadFuncs);
+  leadFuncs.findAllChildren(leadFuncChildren, 1);
+  readSeqFunctions() -= leadFuncs;
+  readSeqFunctions() += leadFuncChildren;
+
   // Add in the top level sequence functions.
   historyIds += readSeqFunctions();
 
+       
+  // remove LEAD in old form from the return function
+  ValueIdSet leadFuncsInReturn;
+  returnSeqFunctions().findAllOpType(ITM_OLAP_LEAD, leadFuncsInReturn);
+  returnSeqFunctions() -= leadFuncsInReturn;
+
+  // add in the LEAD in new form
+  returnSeqFunctions() += leadFuncs;
+
+
   getHistoryAttributes(returnSeqFunctions(),outputFromChild, historyIds, TRUE, wHeap);
+
   // Add in the top level functions.
   historyIds += returnSeqFunctions();
   
@@ -1390,12 +1411,26 @@ void PhysSequence::computeReadNReturnItems( ValueId topSeqVid,
     return;
   }
 
+  // Make sure both the return and returning function
+  // contain the same LEAD function. later on in
+  // Sequence::codeGen() near seperateReadAndReturnItems(),
+  // the function is separated as follows.
+  //
+  // LEAD in old form: LEAD(c)
+  // LEAD in new form: LEAD(CONVERT(c))
+  //
+  // After separation:
+  //
+  //    readFunction: COVNERT(C)
+  //    returnFunction: LEAD(CONVERT(C))
+  //
+  //  In particular, both functions refer to CONVERT(C)
+  //  with the same valueId.
+  //
   if ( itmExpr->getOperatorType() == ITM_OLAP_LEAD )
   {
-    readSeqFunctions() -= topSeqVid;
+    readSeqFunctions() += topSeqVid;
     returnSeqFunctions() += topSeqVid;
-
-    readSeqFunctions() += itmExpr->child(0)->castToItemExpr()->getValueId();
     return;
   }
 

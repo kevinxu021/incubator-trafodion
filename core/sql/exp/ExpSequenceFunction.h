@@ -64,7 +64,6 @@ public:
   NA_EIDPROC ExpSequenceFunction(OperatorTypeEnum oper_type,
 				 Int32 arity,
 				 Int32 index,
-				 Int32 r,
 				 Attributes ** attr,
 				 Space * space);
 
@@ -166,8 +165,7 @@ public:
   Int32            offsetIndex_; // 00-03
   Int32            flags_;       // 04-07
   Int32            winSize_;     // 08-11
-  Int32            readFromBuffer_; // 12-15
-  //char             filler_[4];   // 12-15
+  char             filler_[4];   // 12-15
   
 };
 

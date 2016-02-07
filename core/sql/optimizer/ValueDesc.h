@@ -1410,6 +1410,18 @@ public:
   // -----------------------------------------------------------------------
   void findAllEqualityCols(ValueIdSet & result) const;
 
+  // -----------------------------------------------------------------------
+  // This method finds all itemExpr with the type referenced directly 
+  // -----------------------------------------------------------------------
+  void findAllOpType(OperatorTypeEnum type, ValueIdSet & result) const;
+
+  // -----------------------------------------------------------------------
+  // This method collects all chilren expressions, for each member of the 
+  // set and the member has exactly num chilredn. This method only goes the
+  // top level.
+  // -----------------------------------------------------------------------
+  void findAllChildren(ValueIdSet & result, Int32 num) const;
+
   // ---------------------------------------------------------------------
   // ValueIdSet::getAllTables()
   // This method will get all tables whose columns are included in the set

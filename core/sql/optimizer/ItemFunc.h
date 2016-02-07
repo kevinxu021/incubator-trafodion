@@ -4755,8 +4755,8 @@ public:
   virtual  NABoolean isOlapFunction() const { return TRUE; } ;  // virtual method
 
   ItemExpr* getOffsetExpr() { return offsetExpr_; };
-  Int32  getOffset() { return offset_; };
 
+  Int32  getOffset() { return offset_; };
   void setOffset(Int32 x) { offset_ = x; };
 
   ItemExpr* transformOlapFunction(CollHeap *wHeap);
