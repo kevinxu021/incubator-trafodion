@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -20,6 +20,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -287,6 +288,39 @@ public class ServerResource {
 			throw new EsgynDBMgrException(ex.getMessage());
 		}
 		return result;
+	}
+
+	@GET
+	@Path("/pstack/{processID}")
+	@Produces("application/json")
+	public String getPStack(@PathParam("processID") int processID, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse)
+			throws EsgynDBMgrException {
+		String result = "";
+		String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
+		String uri = "";
+		Session soc = SessionModel.getSession(servletRequest, servletResponse);
+		JsonFactory factory = new JsonFactory();
+		ObjectMapper mapper = new ObjectMapper(factory);
+
+		try {
+			if (trafRestUri != null && trafRestUri.length() > 0) {
+				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.GET_PROCESS_PSTACK);
+				uri = String.format(queryText, trafRestUri, processID);
+			}
+
+			RESTRequest request = mapper.readValue(uri, RESTRequest.class);
+
+			String jsonRequest = mapper.writeValueAsString(request);
+			result = RESTProcessor.getRestOutput(jsonRequest, soc.getUsername(), soc.getPassword());
+			result = result.replaceAll("\\n", System.getProperty("line.separator"));
+			return result;
+
+		} catch (Exception ex) {
+			_LOG.error("Failed to get pstack : " + ex.getMessage());
+			throw new EsgynDBMgrException("Failed to get pstack : " + ex.getMessage());
+
+		}
 	}
 
 	private TabularResult processRESTRequest(String uri, String userName, String password) throws Exception {

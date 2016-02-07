@@ -1,0 +1,7 @@
+{
+"ignoredDependencies": [
+  	"datatables",
+	  	"datatables-responsive",
+		  	"datatables-plugins"
+			  ]
+			  }

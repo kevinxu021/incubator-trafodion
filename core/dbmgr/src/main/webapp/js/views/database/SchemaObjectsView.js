@@ -11,8 +11,8 @@ define([
         'handlers/DatabaseHandler',
         'common',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
+        'datatables.net',
+        'datatables.net-bs',
         'pdfmake'
         ], function (BaseView, DatabaseT, $, dbHandler, common) {
 	'use strict';
@@ -230,6 +230,7 @@ define([
 				aoColumnDefs.push({
 					"aTargets": [ 2 ],
 					"mData": 2,
+					"className" : "dbmgr-nowrap",
 					"mRender": function ( data, type, full ) {
 						if (type === 'display') {
 							return common.toServerLocalDateFromUtcMilliSeconds(data);  
@@ -240,6 +241,7 @@ define([
 				aoColumnDefs.push({
 					"aTargets": [ 3 ],
 					"mData": 3,
+					"className" : "dbmgr-nowrap",
 					"mRender": function ( data, type, full ) {
 						if (type === 'display') {
 							return common.toServerLocalDateFromUtcMilliSeconds(data);  

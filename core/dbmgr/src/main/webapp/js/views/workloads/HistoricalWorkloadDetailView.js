@@ -14,8 +14,8 @@ define([
         '../../../bower_components/codemirror/lib/codemirror',
         '../../../bower_components/codemirror/mode/sql/sql',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
+        'datatables.net',
+        'datatables.net-bs',
         'datetimepicker',
         'jqueryvalidate'
         ], function (BaseView, WorkloadsT, $, wHandler, moment, common, CodeMirror) {
@@ -80,8 +80,6 @@ define([
 			$('#query-id').val(args);
 			if(queryID != null && queryID != args){
 				queryID = args;
-				$('#query-text').text('');
-				this.loadQueryText();
 				$(RESULT_CONTAINER).show();
 				$(DETAILS_CLASS).show();
 				$(ERROR_CONTAINER).hide();

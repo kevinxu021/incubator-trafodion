@@ -23,6 +23,11 @@
 			<text><![CDATA[{"url":"http://%1$s/v1/servers/nodes", "method":"get"}]]></text>
 		</query>				
 		<query>
+			<!-- Get pstack of a process -->
+			<name>GET_PROCESS_PSTACK</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/servers/pstack/program/%2$s", "method":"get"}]]></text>
+		</query>	
+		<query>
 			<!-- Fetch list of schemas -->
 			<name>SELECT_SCHEMAS</name>
 			<text><![CDATA[select schema_name as "Name", authname(schema_owner) as "Owner", 
@@ -216,7 +221,7 @@
 		<query>
 			<!-- Fetch list of columns for a schema object -->
 			<name>SELECT_OBJECT_COLUMNS</name>
-			<text><![CDATA[SELECT K.CONSTRAINT_TYPE as PRIMARY_KEY, C.COLUMN_NUMBER, C.COLUMN_NAME, SQL_DATA_TYPE,  
+			<text><![CDATA[SELECT CASE WHEN K.CONSTRAINT_TYPE = 'PRIMARY KEY' THEN 'P' ELSE '' END as PRIMARY_KEY, C.COLUMN_NUMBER, C.COLUMN_NAME, SQL_DATA_TYPE,  
 			    COLUMN_SIZE, COLUMN_PRECISION, COLUMN_SCALE, 
 			    CASE WHEN NULLABLE = 0 THEN 'NOT NULL'
 			        ELSE 'NULL'

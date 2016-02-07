@@ -11,6 +11,7 @@
 					</button>
 					<ul class="dropdown-menu pull-right" role="menu">
 						<li><a id="refreshAction">Refresh</a></li>
+						<li><a id="pstackAction">Process Stack</a></li>
 					</ul>
 				</div>
 			</div>
@@ -31,4 +32,26 @@
 			</div>
 		</div>
 	</div>
+	<div class="modal fade" id="pStackDialog" tabindex="-1" role="dialog"
+		aria-labelledby="pStackDialogLabel">
+		<div class="modal-dialog" role="document" style="width:1000px">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="pStackDialogLabel">Process Stack</h4>
+					<img id="pstackLloadingImg" src="img/ajax-loader.gif" />
+				</div>
+				<div class="modal-body">
+					<textarea id="pStackContainer" rows="25" cols="900"
+						class="textarea" style="font-size:14px;width:100%" readonly> </textarea>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+				</div>				
+			</div>
+		</div>
+	</div>	
 </div>

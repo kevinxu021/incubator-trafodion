@@ -16,10 +16,10 @@ define([
         'moment',
         'views/RefreshTimerView',
         'views/TimeRangeView',
-        'datatables',
-        'datatablesBootStrap',
+        'datatables.net',
+        'datatables.net-bs',
         'responsivetable',
-        'tablebuttons',
+        'datatables.net-buttons',
         'buttonsprint',
         'buttonshtml',
         'pdfmake'
