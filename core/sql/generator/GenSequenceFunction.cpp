@@ -210,7 +210,6 @@ short ItmLagOlapFunction::codeGen(Generator* generator)
     = new(space) ExpSequenceFunction(ITM_OFFSET,
 				     getArity() + 1,
 				     0,
-				     1, // Read from the buffer
 				     attr,
 				     space);
 

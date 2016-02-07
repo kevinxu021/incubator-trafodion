@@ -7682,65 +7682,24 @@ olap_sequence_function : set_function_specification TOK_OVER '('
                             }
 // start of OLAP LEAD function()
                        | TOK_LEAD '(' value_expression ')' TOK_OVER '('
-                         opt_olap_part_clause
-                         opt_olap_order_clause ')'
+                         opt_olap_part_clause opt_olap_order_clause ')'
                         {
                           ItmLeadOlapFunction* leadExpr =
                                        new (PARSERHEAP()) ItmLeadOlapFunction($3, 1);
                           leadExpr->setOLAPInfo($7, $8);
-                           $$=leadExpr;
-
-                          SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
-                        }
-                       | TOK_LEAD '(' value_expression ')' TOK_OVER '('
-                         opt_olap_part_clause
-                         opt_olap_order_clause ')'
-                         TOK_ROWS olap_rows_spec
-                        {
-                          ItmLeadOlapFunction* leadExpr =
-                                       new (PARSERHEAP()) ItmLeadOlapFunction($3, 1);
-                          leadExpr->setOLAPInfo($7, $8);
-                          leadExpr->setOlapWindowFrame($11, 0);
                           $$=leadExpr;
 
                           SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
                         }
-                       | TOK_LEAD '(' value_expression ')' TOK_OVER '('
-                         opt_olap_part_clause
-                         opt_olap_order_clause ')'
-                         TOK_ROWS TOK_BETWEEN olap_rows_spec TOK_AND olap_rows_spec
-                        {
-                          ItmLeadOlapFunction* leadExpr =
-                                    new (PARSERHEAP()) ItmLeadOlapFunction($3, 1);
-                          leadExpr->setOLAPInfo($7, $8);
-                          leadExpr->setOlapWindowFrame($12, $14);
+                       | TOK_LEAD '(' value_expression ',' value_expression ')' TOK_OVER '('
+                         opt_olap_part_clause opt_olap_order_clause ')'
+                        { 
+                          ItmLeadOlapFunction* leadExpr = 
+                                       new (PARSERHEAP()) ItmLeadOlapFunction($3, $5);
+                          leadExpr->setOLAPInfo($9, $10);
                           $$=leadExpr;
-
+                          
                           SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
-                        }
-                        | TOK_LEAD '(' value_expression ',' value_expression ')' TOK_OVER '('
-                         opt_olap_part_clause
-                         opt_olap_order_clause ')'
-                         TOK_ROWS olap_rows_spec
-                        {
-                           ItmLeadOlapFunction* leadExpr =
-                                new (PARSERHEAP()) ItmLeadOlapFunction($3, $5);
-                           leadExpr->setOLAPInfo($9, $10);
-                           leadExpr->setOlapWindowFrame($13, 0);
-                           $$=leadExpr;
-                           SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
-                        }
-                        | TOK_LEAD '(' value_expression ',' value_expression ')' TOK_OVER '('
-                         opt_olap_part_clause
-                         opt_olap_order_clause ')'
-                         TOK_ROWS TOK_BETWEEN olap_rows_spec TOK_AND olap_rows_spec
-                        {
-                           ItmLeadOlapFunction* leadExpr =
-                               new (PARSERHEAP()) ItmLeadOlapFunction($3, $5);
-                           leadExpr->setOLAPInfo($9, $10);
-                           leadExpr->setOlapWindowFrame($14, $16);
-                           $$=leadExpr;
-                           SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
                         }
 // end of OLAP LEAD function()
                        |TOK_LAG '(' value_expression ','  value_expression ')'  TOK_OVER '('
