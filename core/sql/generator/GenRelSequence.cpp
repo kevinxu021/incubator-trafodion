@@ -91,6 +91,7 @@ void PhysSequence::getHistoryAttributes(const ValueIdSet &sequenceFunctions,
           // The child needs to be in the history row only during reading phase.
           // Fall through.
         case ITM_OLAP_LEAD:
+        case ITM_OLAP_LAG:
         case ITM_OFFSET:
         case ITM_ROWS_SINCE:
         case ITM_THIS:
@@ -413,7 +414,7 @@ void PhysSequence::computeHistoryRows(const ValueIdSet &sequenceFunctions,//hist
         case ITM_MOVING_MIN:
         case ITM_MOVING_MAX:
         case ITM_OFFSET:
-         
+        case ITM_OLAP_LAG:
           for(Lng32 i = 1; i < itmExpr->getArity(); i++)
           {
             if (itmExpr->child(i)->getOperatorType() != ITM_NOTCOVERED)

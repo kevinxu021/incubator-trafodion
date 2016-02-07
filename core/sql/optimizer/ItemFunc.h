@@ -4604,8 +4604,8 @@ public:
 class ItmSeqOlapFunction : public ItmSequenceFunction
 {
 public:
-  ItmSeqOlapFunction(OperatorTypeEnum itemType, ItemExpr *valPtr): 
-        ItmSequenceFunction(itemType, valPtr),
+  ItmSeqOlapFunction(OperatorTypeEnum itemType, ItemExpr *val1Ptr, ItemExpr *val2Ptr = NULL): 
+        ItmSequenceFunction(itemType, val1Ptr, val2Ptr),
         frameStart_(0),
         frameEnd_(0)
         {  }
@@ -4849,6 +4849,47 @@ private:
   Lng32 winSize_;
 
 }; // class ItmSeqOffset
+
+class ItmLagOlapFunction: public ItmSeqOlapFunction 
+{
+public:
+  ItmLagOlapFunction(ItemExpr *val1Ptr, ItemExpr *offsetExpr)
+         : ItmSeqOlapFunction(ITM_OLAP_LAG, val1Ptr, offsetExpr)
+         , offset_(-1)
+         {}
+
+  // virtual destructor
+  virtual ~ItmLagOlapFunction(){}
+  
+  // a virtual function for performing name binding within the query tree
+  virtual ItemExpr * bindNode(BindWA *bindWA);
+
+  // methods to do code generation
+  virtual ItemExpr *preCodeGen(Generator*);
+  virtual short codeGen(Generator*);
+
+  // a virtual function for type propagating the node
+  virtual const NAType * synthesizeType();
+  
+  void transformNode(NormWA & normWARef,
+                ExprValueId & locationOfPointerToMe,
+                ExprGroupId & introduceSemiJoinHere,
+                const ValueIdSet & externalInputs);
+	
+  virtual  NABoolean isOlapFunction() const { return TRUE; }
+  
+  Int32  getOffset() { return offset_; }
+  void setOffset(Int32 x) { offset_ = x; }
+
+  ItemExpr * transformOlapFunction(CollHeap *heap) { return this; }
+
+  // get a printable string that identifies the operator
+  virtual const NAString getText() const    { return "LAG"; };
+  
+private:
+  Int32 offset_;
+} ;
+
 
 // --------------------------------------------------------------------------
 //

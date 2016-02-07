@@ -5903,6 +5903,33 @@ const NAType *ItmSeqOffset::synthesizeType()
  }
  return result;
 }
+
+const NAType *ItmLagOlapFunction::synthesizeType()
+{
+// Verify that child 1 is numeric.
+// Return the type of child 0.
+
+  const NAType &operand1 = child(0)->getValueId().getType();
+
+  if (getArity() > 1)  {
+    const NAType &operand2 = child(1)->getValueId().getType();
+
+    if (operand2.getTypeQualifier() != NA_NUMERIC_TYPE) {
+    // The second operand of an OFFSET function must be numeric.
+    *CmpCommon::diags() << DgSqlCode(-4052) << DgString0(getTextUpper());
+    return NULL;
+    }
+  }
+
+ NAType *result = operand1.newCopy(HEAP);
+
+ if (isOLAP())
+ {
+   result->setNullable(TRUE);
+ }
+ return result;
+}
+
 // -----------------------------------------------------------------------
 // member functions for class ItmSeqDiff1
 // -----------------------------------------------------------------------

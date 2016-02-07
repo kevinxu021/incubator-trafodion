@@ -566,6 +566,7 @@ ParKeyWord ParKeyWords::keyWords_[] = {
   ParKeyWord("LABEL_CREATE",       TOK_LABEL_CREATE,       NONRESTOKEN_),
   ParKeyWord("LABEL_DROP",         TOK_LABEL_DROP,         NONRESTOKEN_),
   ParKeyWord("LABEL_PURGEDATA",    TOK_LABEL_PURGEDATA,    NONRESTOKEN_),
+  ParKeyWord("LAG",               TOK_LAG,        ANS_|RESWORD_),
   ParKeyWord("LANGUAGE",           TOK_LANGUAGE,    ANS_|RESWORD_),
   ParKeyWord("LARGE",              TOK_LARGE,       COMPAQ_|RESWORD_),
   ParKeyWord("LARGEINT",           TOK_LARGEINT,    NONRESTOKEN_),
