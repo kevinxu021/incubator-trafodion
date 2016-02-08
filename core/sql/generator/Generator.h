@@ -1640,9 +1640,8 @@ public:
   void setHBaseCacheBlocks(Int32 hbaseRowSize, double rowsAccessed, 
                            ComTdbHbaseAccess::HbasePerfAttributes * hbpa);
   void setHBaseSmallScanner(Int32 hbaseRowSize, double rowsAccessed,
-  						Int32 hbaseBlockSize, ComTdbHbaseAccess::HbasePerfAttributes * hbpa);
+                          Int32 hbaseBlockSize, ComTdbHbaseAccess::HbasePerfAttributes * hbpa);
 
-  
 
   NASet<Int64> &objectUids() { return objectUids_; }
 
