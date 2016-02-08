@@ -6,7 +6,7 @@
 
 define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		'handlers/ToolsHandler', 'moment', 'common', 'views/RefreshTimerView',
-		'jqueryui', 'datatables', 'datatablesBootStrap', ], function(BaseView,
+		'jqueryui', 'datatables.net', 'datatables.net-bs', ], function(BaseView,
 		CreateLibraryT, $, tHandler, moment, common, refreshTimer) {
 	'use strict';
 

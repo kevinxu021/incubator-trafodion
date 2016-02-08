@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -57,20 +57,20 @@ require.config({
 		sbadmin2: {
 			deps:['jquery','metismenu']
 		},
-		dataTablesBootStrap: {
-			deps: ['datatables']
+		"datatables.net-bs": {
+			deps: ['datatables.net']
 		},
 		buttonsbootstrap: {
-			deps:['datatables']
+			deps:['datatables.net']
 		},
 		buttonsflash: {
-			deps:['datatables']
+			deps:['datatables.net']
 		},
 		buttonsprint: {
-			deps:['datatables']
+			deps:['datatables.net']
 		},
 		buttonshtml: {
-			deps:['datatables']
+			deps:['datatables.net']
 		},		
 		morrisdata: {
 			deps: ['morris']
@@ -101,15 +101,15 @@ require.config({
 		templates: '../templates',
 		metismenu: '../bower_components/metisMenu/dist/metisMenu',
 		jit: '../bower_components/jit/Jit/jit',
-		datatables: '../bower_components/datatables/media/js/jquery.dataTables.min',
-		datatablesBootStrap: '../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap',
-		datatablesUI: '../bower_components/datatables-plugins/integration/jqueryui/dataTables.jqueryui',
-		tablebuttons: '../bower_components/datatables-buttons/js/dataTables.buttons',
-		buttonsbootstrap: '../bower_components/datatables-buttons/js/buttons.bootstrap',
-		buttonsflash: '../bower_components/datatables-buttons/js/buttons.flash',
-		buttonsprint: '../bower_components/datatables-buttons/js/buttons.print',
-		buttonshtml: '../bower_components/datatables-buttons/js/buttons.html5',
-		responsivetable: '../bower_components/datatables-responsive/js/dataTables.responsive',
+		"datatables.net": '../bower_components/datatables.net/js/jquery.dataTables.min',
+		"datatables.net-bs": '../bower_components/datatables.net-bs/js/dataTables.bootstrap.min',
+		"datatables.net-select": '../bower_components/datatables.net-select/js/dataTables.select.min',
+		"datatables.net-buttons": '../bower_components/datatables.net-buttons/js/dataTables.buttons.min',
+		buttonsbootstrap: '../bower_components/datatables.net-buttons-bs/js/buttons.bootstrap.min',
+		buttonsflash: '../bower_components/datatables.net-buttons/js/buttons.flash.min',
+		buttonsprint: '../bower_components/datatables.net-buttons/js/buttons.print.min',
+		buttonshtml: '../bower_components/datatables.net-buttons/js/buttons.html5.min',
+		responsivetable: '../bower_components/datatables.net-responsive/js/dataTables.responsive.min',
 		jstree: '../bower_components/jstree/dist/jstree',
 		moment: '../bower_components/moment/min/moment.min',
 		momenttimezone: '../bower_components/moment-timezone/builds/moment-timezone-with-data.min',

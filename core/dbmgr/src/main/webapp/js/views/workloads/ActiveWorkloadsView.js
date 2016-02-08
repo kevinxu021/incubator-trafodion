@@ -12,9 +12,9 @@ define([
         'common',
         'views/RefreshTimerView',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
-        'tablebuttons',
+        'datatables.net',
+        'datatables.net-bs',
+        'datatables.net-buttons',
         'buttonsflash',
         'buttonsprint',
         'buttonshtml',
@@ -121,6 +121,7 @@ define([
 					                 {
 					                	 "aTargets": [ 0 ],
 					                	 "mData": 0,
+								 "className" : "dbmgr-nowrap",
 					                	 "mRender": function ( data, type, full ) {
 					                		 if (type === 'display') {
 					                			 return common.toDateFromMilliSeconds(data);

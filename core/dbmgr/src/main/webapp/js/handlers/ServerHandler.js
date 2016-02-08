@@ -16,6 +16,8 @@ define(['handlers/EventDispatcher', 'common'],
 
 				this.FETCHDCS_SUCCESS = 'fetchDcsServersSuccess';
 				this.FETCHDCS_ERROR = 'fetchDcsServersError';
+				this.PSTACK_SUCCESS = 'PSTACK_SUCCESS';
+				this.PSTACK_ERROR = 'PSTACK_ERROR';
 				this.FETCH_SERVICES_SUCCESS = 'fetchServicesSuccess';
 				this.FETCH_SERVICES_ERROR = 'fetchServicesError';
 				this.FETCH_NODES_SUCCESS = 'fetchNodesSuccess';
@@ -40,7 +42,11 @@ define(['handlers/EventDispatcher', 'common'],
 				};
 
 				this.fetchDcsServers = function(){
-					$.ajax({
+					var xhr = xhrs["fetchDcsServers"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["fetchDcsServers"] = $.ajax({
 						url: 'resources/server/dcsservers',
 						type:'GET',
 						dataType:"json",
@@ -58,8 +64,43 @@ define(['handlers/EventDispatcher', 'common'],
 					});
 				};   
 
+				this.getPStack = function(processID, processName){
+					var xhr = xhrs["getPStack"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["getPStack"] = $.ajax({
+						url: 'resources/server/pstack/'+processID,
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},    				
+						success: function(data){
+							var result = {};
+							result.processID = processID;
+							result.processName = processName;
+							result.pStack = JSON.stringify(data[0].PROGRAM);
+							dispatcher.fire(_this.PSTACK_SUCCESS, result);
+						},
+						error:function(jqXHR, res, error){
+							var result = {};
+							result.processID = processID;
+							result.processName = processName;
+							result.pStack = jqXHR.responseText;
+							dispatcher.fire(_this.PSTACK_ERROR, result);
+						}
+					});
+				}; 
+				
 				this.fetchServices = function(){
-					$.ajax({
+					var xhr = xhrs["fetchServices"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["fetchServices"] = $.ajax({
 						url: 'resources/server/services',
 						type:'GET',
 						dataType:"json",
@@ -78,7 +119,12 @@ define(['handlers/EventDispatcher', 'common'],
 				};
 
 				this.fetchNodes = function(){
-					$.ajax({
+					var xhr = xhrs["fetchNodes"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					
+					xhrs["fetchNodes"] = $.ajax({
 						url: 'resources/server/nodes',
 						type:'GET',
 						dataType:"json",

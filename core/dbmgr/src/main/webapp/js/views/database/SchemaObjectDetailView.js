@@ -13,8 +13,8 @@ define([
         '../../../bower_components/codemirror/lib/codemirror',
         '../../../bower_components/codemirror/mode/sql/sql',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
+        'datatables.net',
+        'datatables.net-bs',
         'pdfmake'
         ], function (BaseView, DatabaseT, $, dbHandler, common, CodeMirror) {
 	'use strict';
@@ -707,7 +707,7 @@ define([
 						"mData": 0,
 						"mRender": function ( data, type, full ) {
 		            		 if(type == 'display') {
-		            			 if(routeArgs.type == 'table' && data == 'PRIMARY KEY')
+		            			 if(routeArgs.type == 'table' && data == 'P')
 		            				 return '<i class="fa fa-key" style="padding-left:15px"></i>';
 		            			 else
 		            				 return data;
@@ -719,11 +719,11 @@ define([
 					],
 					"order": [[ sortColumn, "asc" ]],
 	                 buttons: [
-	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
-	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
-	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Columns in "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
-	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: "Columns in "+routeArgs.type + " " + routeArgs.name }
+	                           { extend : 'copy', exportOptions: { columns: ':visible', orthogonal: 'export'  } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible', orthogonal: 'export' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible', orthogonal: 'export' } },
+	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, title: "Columns in "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
+	                           { extend : 'print', exportOptions: { columns: ':visible', orthogonal: 'export' }, title: "Columns in "+routeArgs.type + " " + routeArgs.name }
 	                           ],					             
 		             fnDrawCallback: function(){
 		            	// $('#db-object-columns-list td').css("white-space","nowrap");
