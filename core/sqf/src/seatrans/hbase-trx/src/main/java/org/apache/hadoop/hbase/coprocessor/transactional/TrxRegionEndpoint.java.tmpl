@@ -5226,7 +5226,7 @@ CoprocessorService, Coprocessor {
          state.setSequenceNumber(nextSequenceId.getAndIncrement());
          commitedTransactionsBySequenceNumber.put(state.getSequenceNumber(), state);
          if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: Transaction " + transactionId
-               + " found in region " + m_Region.getRegionInfo().getRegionNameAsString()
+               + " found in region " + lv_regionName
                + ". Adding to commitedTransactionsBySequenceNumber for sequence number " + state.getSequenceNumber());
       }
       commitCheckEndTime = putBySequenceEndTime = System.nanoTime();
@@ -5409,7 +5409,8 @@ CoprocessorService, Coprocessor {
     if(state.getSplitRetry())
       return COMMIT_RESEND;
     retireTransaction(state, true);
-    if (LOG.isDebugEnabled()) LOG.debug("TrxRegionEndpoint coprocessor: commitRequest READ ONLY -- EXIT txId: " + transactionId);
+    if (LOG.isDebugEnabled()) LOG.debug("TrxRegionEndpoint coprocessor: commitRequest READ ONLY for participant "
+       + participantNum + " -- EXIT txId: " + transactionId + ", regionName " + regionInfo.getRegionNameAsString());
     return COMMIT_OK_READ_ONLY;
   }
 

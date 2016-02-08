@@ -119,6 +119,7 @@ public class TrafStatement {
         try {
             if (curKey != 0){
                 resultSetList.get(curKey).closeTResultSet();
+                resultSetList.remove(curKey);
              }
         } catch (Exception e){}
     }
@@ -145,6 +146,7 @@ public class TrafStatement {
             if (resultSetList.containsKey(key)){
                 if (LOG.isDebugEnabled())
                     LOG.debug(serverWorkerName + ". getNextTResultSet returns true ");
+                ++curKey;
                 return true;
             }
         }
