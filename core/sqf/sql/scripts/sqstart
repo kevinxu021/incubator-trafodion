@@ -173,6 +173,8 @@ function SQStartProcesses {
 
 function SQCheckOrphanProcesses {
 
+return
+
     let lv_orphans_exist=0
     let lv_orphan_process_count=0
     let lv_sqcop_done=0
