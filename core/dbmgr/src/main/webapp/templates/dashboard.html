@@ -32,7 +32,7 @@
 					<div class="btn-group"
 						style="margin-bottom: 10px; margin-top: 10px;">
 						<button type="button"
-							class="btn btn-default btn-xs dropdown-toggle"
+							class="btn btn-primary btn-xs dropdown-toggle"
 							data-toggle="dropdown" style="height: 30px;">
 							Actions <span class="caret"></span>
 						</button>
@@ -95,9 +95,9 @@
 							id="nodes-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
 							<div class="btn-group pull-right">
 								<button id="nodes-drilldown-btn" type="button"
-									class="btn btn-default btn-xs fa fa-search-plus fa-fw"
+									class="btn btn-default btn-xs text-primary fa fa-expand fa-fw"
 									data-toggle="tooltip" data-placement="left" title="Node Status"
-									style="height: 30px; width: 30px"></button>
+									style="background-color: transparent; border-color:transparent; padding:1px; width:22px"></button>
 							</div>
 					</div>
 				</div>
@@ -112,19 +112,19 @@
 			<div class="panel panel-default">
 				<div class="panel-heading">
 					<div class="btn-toolbar">
-						<i class="fa fa-bar-chart-o fa-fw"></i> IO Waits<img
-							id="iowaits-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
+						<i class="fa fa-bar-chart-o fa-fw"></i> CPU Load<img
+							id="cpuload-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
 						<div class="btn-group pull-right">
-							<button id="iowaits-drilldown-btn" type="button"
-								class="btn btn-default btn-xs fa fa-search-plus fa-fw"
-								data-toggle="tooltip" data-placement="left" title="IO Waits per Node"
-								style="height: 30px; width: 30px"></button>
-						</div>
-					</div>
+							<button id="cpuload-drilldown-btn" type="button"
+								class="btn btn-default btn-xs text-primary fa fa-expand"
+								data-toggle="tooltip" data-placement="left" title="CPU Busy Per Node"
+								style="background-color: transparent; border-color:transparent; padding:1px; width:22px"></button>
+						</div>	
+					</div>	
 				</div>
 				<div class="panel-body">
-					<div id="iowaits-chart" class="dbmgr-graph"></div>
-					<label id="iowaits-error-text" class="dbmgr-error-text"></label>
+					<div id="cpuload-chart" class="dbmgr-graph"></div>
+					<label id="cpuload-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 		</div>
@@ -132,19 +132,19 @@
 			<div class="panel panel-default">
 				<div class="panel-heading">
 					<div class="btn-toolbar">
-						<i class="fa fa-bar-chart-o fa-fw"></i> Disk Space Used %<img
-							id="useddiskspace-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
+						<i class="fa fa-bar-chart-o fa-fw"></i> Free Memory<img
+							id="freememory-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
 						<div class="btn-group pull-right">
-							<button id="useddiskspace-drilldown-btn" type="button"
-								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
-								data-toggle="tooltip" data-placement="left" title="Space usage by Node"
-								style="height: 30px; width: 30px"></button>
-						</div>
-					</div>
+							<button id="freememory-drilldown-btn" type="button"
+								class="btn btn-default btn-xs text-primary fa fa-expand"
+								data-toggle="tooltip" data-placement="left" title="Free Memory Per Node"
+								style="background-color: transparent; border-color:transparent; padding:1px; width:22px"></button>
+						</div>	
+					</div>					
 				</div>
 				<div class="panel-body">
-					<div id="useddiskspace-chart" class="dbmgr-graph"></div>
-					<label id="useddiskspace-error-text" class="dbmgr-error-text"></label>
+					<div id="freememory-chart" class="dbmgr-graph"></div>
+					<label id="freememory-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 		</div>
@@ -158,9 +158,9 @@
 							id="jvmgctime-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
 						<div class="btn-group pull-right">
 							<button id="jvmgctime-drilldown-btn" type="button"
-								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								class="btn btn-default btn-xs text-primary fa fa-expand"
 								data-toggle="tooltip" data-placement="left" title="GC Time per Node"
-								style="height: 30px; width: 30px"></button>
+								style="background-color: transparent; border-color:transparent; padding:1px; width:22px"></button>
 						</div>	
 					</div>					
 				</div>
@@ -178,9 +178,9 @@
 							id="regionservermemory-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
 						<div class="btn-group pull-right">
 							<button id="regionservermemory-drilldown-btn" type="button"
-								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								class="btn btn-default btn-xs text-primary fa fa-expand"
 								data-toggle="tooltip" data-placement="left" title="Regionserver Memory Use per Node"
-								style="height: 30px; width: 30px"></button>
+								style="background-color: transparent; border-color:transparent; padding:1px; width:22px"></button>
 						</div>
 					</div>
 				</div>
@@ -198,9 +198,9 @@
 							id="memstoresize-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
 						<div class="btn-group pull-right">
 							<button id="memstoresize-drilldown-btn" type="button"
-								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								class="btn btn-default btn-xs text-primary fa fa-expand"
 								data-toggle="tooltip" data-placement="left" title="Memstore Size by Node"
-								style="height: 30px; width: 30px"></button>
+								style="background-color: transparent; border-color:transparent; padding:1px; width:22px"></button>
 						</div>
 					</div>
 				</div>
@@ -216,19 +216,19 @@
 			<div class="panel panel-default">
 				<div class="panel-heading">
 					<div class="btn-toolbar">
-						<i class="fa fa-bar-chart-o fa-fw"></i> CPU Load<img
-							id="cpuload-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
+						<i class="fa fa-bar-chart-o fa-fw"></i> IO Waits<img
+							id="iowaits-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
 						<div class="btn-group pull-right">
-							<button id="cpuload-drilldown-btn" type="button"
-								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
-								data-toggle="tooltip" data-placement="left" title="CPU Busy Per Node"
-								style="height: 30px; width: 30px"></button>
-						</div>	
-					</div>					
+							<button id="iowaits-drilldown-btn" type="button"
+								class="btn btn-default btn-xs text-primary fa fa-expand fa-fw"
+								data-toggle="tooltip" data-placement="left" title="IO Waits per Node"
+								style="background-color: transparent; border-color:transparent; padding:1px; width:22px"></button>
+						</div>
+					</div>				
 				</div>
 				<div class="panel-body">
-					<div id="cpuload-chart" class="dbmgr-graph"></div>
-					<label id="cpuload-error-text" class="dbmgr-error-text"></label>
+					<div id="iowaits-chart" class="dbmgr-graph"></div>
+					<label id="iowaits-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 		</div>	
@@ -236,19 +236,19 @@
 			<div class="panel panel-default">
 				<div class="panel-heading">
 					<div class="btn-toolbar">
-						<i class="fa fa-bar-chart-o fa-fw"></i> Free Memory<img
-							id="freememory-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
+						<i class="fa fa-bar-chart-o fa-fw"></i> Disk Space Used %<img
+							id="useddiskspace-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
 						<div class="btn-group pull-right">
-							<button id="freememory-drilldown-btn" type="button"
-								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
-								data-toggle="tooltip" data-placement="left" title="Free Memory Per Node"
-								style="height: 30px; width: 30px"></button>
-						</div>	
-					</div>					
+							<button id="useddiskspace-drilldown-btn" type="button"
+								class="btn btn-default btn-xs text-primary fa fa-expand"
+								data-toggle="tooltip" data-placement="left" title="Space usage by Node"
+								style="background-color: transparent; border-color:transparent; padding:1px; width:22px"></button>
+						</div>
+					</div>
 				</div>
 				<div class="panel-body">
-					<div id="freememory-chart" class="dbmgr-graph"></div>
-					<label id="freememory-error-text" class="dbmgr-error-text"></label>
+					<div id="useddiskspace-chart" class="dbmgr-graph"></div>
+					<label id="useddiskspace-error-text" class="dbmgr-error-text"></label>
 				</div>
 			</div>
 		</div>	
@@ -260,9 +260,9 @@
 							id="network-io-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
 						<div class="btn-group pull-right">
 							<button id="network-io-drilldown-btn" type="button"
-								class="btn btn-default btn-xs fa fa-search-plus fa-fw "
+								class="btn btn-default btn-xs text-primary fa fa-expand"
 								data-toggle="tooltip" data-placement="left" title="Network IO Per Node"
-								style="height: 30px; width: 30px"></button>
+								style="background-color: transparent; border-color:transparent; padding:1px; width:22px"></button>
 						</div>	
 					</div>					
 				</div>

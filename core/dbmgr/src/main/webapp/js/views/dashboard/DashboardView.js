@@ -567,50 +567,52 @@ define([
 
 		},
 		populateNodeStatus: function(containerID, parent, isDrilldown){
-			var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table dt-responsive" style="width:100%;" id="'+containerID +'"></table>';
-			$(parent).html( sb );
+			if(_this.nodeStatusData && _this.nodeStatusData.aaData){
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table dt-responsive" style="width:100%;" id="'+containerID +'"></table>';
+				$(parent).html( sb );
 
-			var bPaging = _this.nodeStatusData.aaData.length > 10;
+				var bPaging = _this.nodeStatusData.aaData.length > 10;
 
-			nodesTable = $('#'+containerID).DataTable({
-				dom: isDrilldown ? '<"top"l<"clear">Bf>t<"bottom"rip>' : 'tif',
-				paging: bPaging,
-				"iDisplayLength" : 10, 
-				"sPaginationType": "simple_numbers",
-				"scrollCollapse": true,
-				"aaData": _this.nodeStatusData.aaData, 
-				"aoColumns" : _this.nodeStatusData.aoColumns,
-				"aoColumnDefs": [
-				                 {"aTargets": [0], "sWidth": "100px"},
-				                 {"aTargets": [1], "sClass":"never", "bVisible":false},
-				                 {
-				                	 "aTargets": [ 2 ],
-				                	 "mData": 2,
-				                	 "sWidth":"50px",
-				                	 "mRender": function ( data, type, full ) {
-				                		 if (type === 'display') {
-				                			 if(data == 'DOWN'){
-				                				 return '<button type="button" class="btn btn-danger btn-circle btn-small dbmgr-status-btn"><i class="fa fa-times"></i></button>';
-				                			 }
-				                			 return '<button type="button" class="btn btn-success btn-circle btn-small dbmgr-status-btn"><i class="fa fa-check"></i></button>';
-				                		 }
-				                		 else return data;
-				                	 }
-				                 }],
-				                 buttons: [
-				                           { extend : 'copy', exportOptions: { columns: [0, 1] } },
-				                           { extend : 'csv', exportOptions: { columns: [0, 1] } },
-				                           { extend : 'excel', exportOptions: { columns: [0, 1] } },
-				                           { extend : 'pdfHtml5', exportOptions: { columns: [0, 1] }, title: 'Node Status' },
-				                           { extend : 'print', exportOptions: { columns: [0, 1] }, title: 'Node Status' }
-				                           ],					                 
-				                           fnDrawCallback: function(){
-				                        	   //$('#query-results td').css("white-space","nowrap");
-				                           }
+				nodesTable = $('#'+containerID).DataTable({
+					dom: isDrilldown ? '<"top"l<"clear">Bf>t<"bottom"rip>' : 'tif',
+					paging: bPaging,
+					"iDisplayLength" : 10, 
+					"sPaginationType": "simple_numbers",
+					"scrollCollapse": true,
+					"aaData": _this.nodeStatusData.aaData, 
+					"aoColumns" : _this.nodeStatusData.aoColumns,
+					"aoColumnDefs": [
+					                 {"aTargets": [0], "sWidth": "100px"},
+					                 {"aTargets": [1], "sClass":"never", "bVisible":false},
+					                 {
+					                	 "aTargets": [ 2 ],
+					                	 "mData": 2,
+					                	 "sWidth":"50px",
+					                	 "mRender": function ( data, type, full ) {
+					                		 if (type === 'display') {
+					                			 if(data == 'DOWN'){
+					                				 return '<button type="button" class="btn btn-danger btn-circle btn-small dbmgr-status-btn"><i class="fa fa-times"></i></button>';
+					                			 }
+					                			 return '<button type="button" class="btn btn-success btn-circle btn-small dbmgr-status-btn"><i class="fa fa-check"></i></button>';
+					                		 }
+					                		 else return data;
+					                	 }
+					                 }],
+					                 buttons: [
+					                           { extend : 'copy', exportOptions: { columns: [0, 1] } },
+					                           { extend : 'csv', exportOptions: { columns: [0, 1] } },
+					                           { extend : 'excel', exportOptions: { columns: [0, 1] } },
+					                           { extend : 'pdfHtml5', exportOptions: { columns: [0, 1] }, title: 'Node Status' },
+					                           { extend : 'print', exportOptions: { columns: [0, 1] }, title: 'Node Status' }
+					                           ],					                 
+					                           fnDrawCallback: function(){
+					                        	   //$('#query-results td').css("white-space","nowrap");
+					                           }
 
-			});
-			//nodesTable.buttons().container().appendTo($('#nodes-export-buttons') );
-			$('#'+containerID+' td').css("white-space","nowrap");			
+				});
+				//nodesTable.buttons().container().appendTo($('#nodes-export-buttons') );
+				$('#'+containerID+' td').css("white-space","nowrap");			
+			}
 		},
 		fetchNodesError: function(jqXHR, res, error) {
 			$(NODES_SPINNER).hide();
@@ -725,9 +727,9 @@ define([
 					};
 					chartsData[result.metricName] = options;
 				
-				setTimeout(function(){
+				//setTimeout(function(){
 					_this.renderGraph(result.metricName, metricConfig);
-				},1200);
+				//},1200);
 			}
 		},
 		renderGraph: function(metricName, metricConfig){
