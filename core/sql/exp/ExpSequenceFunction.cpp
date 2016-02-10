@@ -370,6 +370,7 @@ ex_expr::exp_return_type ExpSequenceFunction::eval(char *op_data[],
     }
   else
     {
+      Int32 len = attrs[0]->getLength();
       str_cpy_all(dstData, srcData, attrs[0]->getLength());
       if (attrs[1]->getVCIndicatorLength() > 0)
            getOperand(0)->setVarLength(getOperand(1)->getLength(srcVC), dstVC);

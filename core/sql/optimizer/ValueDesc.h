@@ -1410,6 +1410,18 @@ public:
   // -----------------------------------------------------------------------
   void findAllEqualityCols(ValueIdSet & result) const;
 
+  // -----------------------------------------------------------------------
+  // This method finds all itemExpr with the type referenced directly 
+  // -----------------------------------------------------------------------
+  void findAllOpType(OperatorTypeEnum type, ValueIdSet & result) const;
+
+  // -----------------------------------------------------------------------
+  // This method collects all chilren expressions, for each member of the 
+  // set and the member has exactly num chilredn. This method only goes the
+  // top level.
+  // -----------------------------------------------------------------------
+  void findAllChildren(ValueIdSet & result, Int32 num) const;
+
   // ---------------------------------------------------------------------
   // ValueIdSet::getAllTables()
   // This method will get all tables whose columns are included in the set
@@ -1469,6 +1481,10 @@ public:
   NABoolean containsAnyTrue(ValueId &refAnyTrue ) const;
 
 
+  // for each OLAP LEAD function cotnained in this, add the equivalent
+  // OLAP LEAD function for each element (as the child of LEAD) in input, 
+  // and save the new function in result
+  void addOlapLeadFuncs(const ValueIdSet& input, ValueIdSet& result);
 
 /////////////////////////////////////////////////////////////
 
