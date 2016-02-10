@@ -15135,16 +15135,7 @@ NABoolean ItmLeadOlapFunction::hasEquivalentProperties(ItemExpr * other)
   return getOffsetExpr()->hasEquivalentProperties(((ItmLeadOlapFunction*)other)->getOffsetExpr());
 }
 
-const NAType * ItmLeadOlapFunction::synthesizeType()
-{
-   // the type of the LEAD() is the type of the 1st argument.
-   const NAType& operand = child(0)->castToItemExpr()->getValueId().getType();
-   NAType* result = operand.newCopy(HEAP);
-   return result;
-}
-
 ItemExpr *ItmLeadOlapFunction::transformOlapFunction(CollHeap *heap)
 {
    return this;
 }
-

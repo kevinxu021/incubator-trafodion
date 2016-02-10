@@ -6765,3 +6765,15 @@ const NAType *LOBextract::synthesizeType()
   return result;
 }
 
+const NAType * ItmLeadOlapFunction::synthesizeType()
+{
+   // the type of the LEAD() is the type of the 1st argument.
+   const NAType& operand = child(0)->castToItemExpr()->getValueId().getType();
+   NAType* result = operand.newCopy(HEAP);
+
+   result->setNullable(TRUE);
+
+   return result;
+}
+
+

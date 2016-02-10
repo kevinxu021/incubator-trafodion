@@ -911,6 +911,17 @@ PhysSequence::codeGen(Generator *generator)
   // add in the LEAD in new form
   returnSeqFunctions() += leadFuncs;
 
+// The usefulness of the following logic is to TBD
+//  if ( !leadFuncs.isEmpty() ) {
+//     ValueIdSet valSet;
+//     valSet += movePartIdsExpr(); 
+//     valSet += sequencedColumns();
+//     
+//     ValueIdSet result;
+//     leadFuncs.addOlapLeadFuncs(valSet, result);
+//     returnSeqFunctions() += result;
+//  }
+
 
   getHistoryAttributes(returnSeqFunctions(),outputFromChild, historyIds, TRUE, wHeap);
 

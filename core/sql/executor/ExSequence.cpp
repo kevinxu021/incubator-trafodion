@@ -692,6 +692,8 @@ short ExSequenceTcb::work()
                   }
                 }
 
+//workAtp_->display("read eval result", myTdb().getCriDescUp());
+
                 // merge the child's diags area into the work atp
                 updateDiagsArea(centry);
 
@@ -820,6 +822,8 @@ short ExSequenceTcb::work()
                 // LCOV_EXCL_STOP
               }
             }
+
+//pentry_up->getAtp()->display("return eval result", myTdb().getCriDescUp());
 
             retCode = ex_expr::EXPR_OK;
             //Apply post predicate expression  

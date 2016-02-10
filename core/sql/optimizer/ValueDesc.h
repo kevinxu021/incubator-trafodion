@@ -1481,6 +1481,10 @@ public:
   NABoolean containsAnyTrue(ValueId &refAnyTrue ) const;
 
 
+  // for each OLAP LEAD function cotnained in this, add the equivalent
+  // OLAP LEAD function for each element (as the child of LEAD) in input, 
+  // and save the new function in result
+  void addOlapLeadFuncs(const ValueIdSet& input, ValueIdSet& result);
 
 /////////////////////////////////////////////////////////////
 

@@ -6618,3 +6618,21 @@ void ValueIdSet::findAllChildren(ValueIdSet & result, Int32 num) const
     }
 }
 
+void ValueIdSet::addOlapLeadFuncs(const ValueIdSet& input, ValueIdSet& result)
+{
+    for(ValueId valId = init(); next(valId); advance(valId)) {
+       ItemExpr *itmExpr = valId.getItemExpr();
+       if ( itmExpr->getOperatorType() == ITM_OLAP_LEAD ) {
+
+          ItmLeadOlapFunction* me = (ItmLeadOlapFunction*)(itmExpr);  
+
+          for(ValueId j= input.init(); input.next(j); input.advance(j)) {
+             ItemExpr* child = j.getItemExpr();
+             ItmLeadOlapFunction* lead = 
+                 new (STMTHEAP) ItmLeadOlapFunction(child, me->getOffset());
+             lead->synthTypeAndValueId();
+             result.insert(lead->getValueId());
+         }
+      }
+    }
+}
