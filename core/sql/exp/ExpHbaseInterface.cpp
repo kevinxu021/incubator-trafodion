@@ -1829,7 +1829,7 @@ Lng32 ExpHbaseInterface_JNI::getNumCellsPerRow(int &numCells)
      if (mtcRetCode == MTC_OK)
         return HBASE_ACCESS_SUCCESS;
      else if (mtcRetCode == MTC_DONE_DATA)
-        HBASE_ACCESS_NO_ROW;
+        return HBASE_ACCESS_NO_ROW;
      break;
   default:
   HTC_RetCode retCode = HTC_OK;
