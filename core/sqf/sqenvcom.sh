@@ -109,7 +109,6 @@ fi
 
 # Use JAVA_HOME if set, else look for installed openjdk, finally toolsdir
 REQ_JDK_VER="1.8.0_65"
-echo $JAVA_HOME
 if [[ -z "$JAVA_HOME" && -d "${TOOLSDIR}/jdk${REQ_JDK_VER}" ]]; then
   echo "JAVA_HOME-2" $JAVA_HOME
   export JAVA_HOME="${TOOLSDIR}/jdk${REQ_JDK_VER}"
