@@ -41,10 +41,10 @@ import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 import java.nio.ByteOrder;
 
-import io.ampool.monarch.common.Bytes;
-import io.ampool.monarch.common.Constants;
-import io.ampool.monarch.common.MConfiguration;
+import io.ampool.conf.Constants;
 import io.ampool.monarch.table.*;
+import io.ampool.monarch.table.exceptions.*;
+import io.ampool.monarch.table.client.*;
 
 /*
 import org.apache.hadoop.conf.Configuration;
@@ -117,20 +117,13 @@ public class MTableClient {
    //private boolean writeToWAL = false;
    int numRowsCached = 1;
    int numColsInScan = 0;
-/*
-   int[] kvValLen = null;
-   int[] kvValOffset = null;
-   int[] kvQualLen = null;
-   int[] kvQualOffset = null;
-   int[] kvFamLen = null;
-   int[] kvFamOffset = null;
-   long[] kvTimestamp = null;
-   byte[][] kvBuffer = null;
+   int[] cellsValLen = null;
+   int[] cellsValOffset = null;
+   byte[][] cellsValBuffer = null;
    byte[][] rowIDs = null;
-*/
    long[] cellsTimestamp = null;
    int[] cellsPerRow = null;
-   byte[][] cellsValue = null;
+   //byte[][] cellsValue = null;
    byte[][] cellsName = null;
    byte[][] rowKeys = null;
    byte[] rowKey = null;
@@ -139,7 +132,6 @@ public class MTableClient {
    boolean preFetch = false;
    int fetchType = 0;
    long jniObject = 0;
-   MConnection mConnection = null;
 /*
    SnapshotScanHelper snapHelper = null;
 
@@ -316,7 +308,7 @@ public class MTableClient {
        return true;
      }
 */ 
-   public boolean init(MConnection connection, String tblName,
+   public boolean init(String tblName,
               boolean useTRex, boolean bSynchronized) throws IOException {
       if (logger.isDebugEnabled()) 
          logger.debug("Enter MTableClient::init, tableName: " + tblName);
@@ -348,8 +340,7 @@ public class MTableClient {
       }
        }
 */
-       mConnection = connection;
-       table = mConnection.getTable(tblName);
+       table = MClientCacheFactory.getAnyInstance().getTable(tblName);
        if (logger.isDebugEnabled())
           logger.debug("Exit MTableClient::init, table object: " + table);
        return true;
@@ -725,11 +716,14 @@ TODO:Selva - MResult.size() is missing
          numTotalCells = 2 * rowsReturned * numColsInScan;
       int numColsReturned;
 
-      if (cellsValue == null ||
-          (cellsValue != null && numTotalCells > cellsValue.length))
+      if (cellsValBuffer == null ||
+          (cellsValBuffer != null && numTotalCells > cellsValBuffer.length))
       {
-         cellsValue = new byte[numTotalCells][];
+         //cellsValue = new byte[numTotalCells][];
+         cellsValBuffer = new byte[numTotalCells][];
          cellsName = new byte[numTotalCells][];
+         cellsValLen = new int[numTotalCells];
+         cellsValOffset = new int[numTotalCells];
          cellsTimestamp = new long[numTotalCells];
       }
   
@@ -750,7 +744,9 @@ TODO:Selva - MResult.size() is missing
          cellsPerRow[rowNum] = numColsReturned;
          for (int colNum = 0 ; colNum < numColsReturned ; colNum++, cellNum++) { 
             cell = cells.get(colNum);
-            cellsValue[cellNum] = cell.getColumnValue();
+            cellsValBuffer[cellNum] = cell.getValueArray();
+            cellsValLen[cellNum] = cell.getValueLength();
+            cellsValOffset[cellNum] = cell.getValueOffset();
             cellsName[cellNum] = cell.getColumnName();
             cellsTimestamp[cellNum] = -1;
             //cellsTimestamp[cellNum] = cell.getTimestamp();
@@ -763,9 +759,9 @@ TODO:Selva - MResult.size() is missing
       else
          cellsReturned = 0;
       if (cellsReturned == 0)
-         setResultInfo(jniObject, null, null, null, rowKeys, cellsPerRow, cellsReturned, rowsReturned);
+         setResultInfo(jniObject, null, null, null, null, null, rowKeys, cellsPerRow, cellsReturned, rowsReturned);
       else 
-         setResultInfo(jniObject, cellsName, cellsValue, cellsTimestamp, rowKeys, cellsPerRow, cellsReturned, rowsReturned);
+         setResultInfo(jniObject, cellsName, cellsValBuffer, cellsValOffset, cellsValLen,  cellsTimestamp, rowKeys, cellsPerRow, cellsReturned, rowsReturned);
       return rowsReturned;   
    }      
    
@@ -786,10 +782,12 @@ TODO:Selva - MResult.size() is missing
       List<MCell> cells;
       MCell cell;
 
-      if (cellsValue == null ||
-          (cellsValue != null && numTotalCells > cellsValue.length))
+      if (cellsValBuffer == null ||
+          (cellsValBuffer != null && numTotalCells > cellsValBuffer.length))
       {
-         cellsValue = new byte[numTotalCells][];
+         cellsValBuffer = new byte[numTotalCells][];
+         cellsValLen = new int[numTotalCells];
+         cellsValOffset = new int[numTotalCells];
          cellsName = new byte[numTotalCells][];
          cellsTimestamp = new long[numTotalCells];
       }
@@ -812,15 +810,17 @@ TODO:Selva - MResult.size() is missing
       cellsPerRow[0] = numColsReturned;
       for (int colNum = 0 ; colNum < numColsReturned ; colNum++) { 
          cell = cells.get(colNum);
-         cellsValue[colNum] = cell.getColumnValue();
+         cellsValBuffer[colNum] = cell.getValueArray();
+         cellsValLen[colNum] = cell.getValueLength();
+         cellsValOffset[colNum] = cell.getValueOffset();
          cellsName[colNum] = cell.getColumnName();
          cellsTimestamp[colNum] = -1;
          //cellsTimestamp[colNum] = cell.getTimestamp();
       }
       if (numColsReturned == 0)
-         setResultInfo(jniObject, null, null, null, rowKeys, cellsPerRow, numColsReturned, rowsReturned);
+         setResultInfo(jniObject, null, null, null, null, null, rowKeys, cellsPerRow, numColsReturned, rowsReturned);
       else 
-         setResultInfo(jniObject, cellsName, cellsValue, cellsTimestamp, rowKeys, cellsPerRow, numColsReturned, rowsReturned);
+         setResultInfo(jniObject, cellsName, cellsValBuffer, cellsValOffset, cellsValLen, cellsTimestamp, rowKeys, cellsPerRow, numColsReturned, rowsReturned);
       return rowsReturned;   
    }      
    
@@ -1353,7 +1353,8 @@ TODO:Selva - MResult.size() is missing
     }    
 
     private native int setResultInfo(long jniObject,
-            byte[][] cellsName, byte[][] cellsValue,
+            byte[][] cellsName, byte[][] cellsValBuffer,
+            int[] cellsValOffset, int[] cellsValLen,
             long[] cellsTimesamp, byte[][] rowKeys, 
             int[] cellsPerRow, int numCellsReturned,
             int rowsReturned);
