@@ -122,12 +122,21 @@ public:
   {
      heap_ = heap;
      tableName_ = NULL;
+/*
+     jKvValLen_ = NULL;
+     jKvValOffset_ = NULL;
+     jKvQualLen_ = NULL;
+     jKvQualOffset_ = NULL;
+     jKvFamLen_ = NULL;
+     jKvFamOffset_ = NULL;
+     jKvBuffer_ = NULL;
+     jKvTag_ = NULL;
+     jKvsPerRow_ = NULL;
+*/
      jTimestamp_ = NULL;
      jRowIDs_ = NULL;
      jCellsName_ = NULL;
-     jCellsValBuffer_ = NULL;
-     jCellsValOffset_ = NULL;
-     jCellsValLen_ = NULL;
+     jCellsValue_ = NULL;
      jCellsPerRow_ = NULL;
      currentRowNum_ = -1;
      currentRowCellNum_ = -1;
@@ -140,16 +149,25 @@ public:
      numReqRows_ = -1;
      cleanupDone_ = FALSE;
      hbs_ = NULL;
-     p_cellsValLen_ = NULL;
-     p_cellsValOffset_ = NULL;
+/*
+     p_kvValLen_ = NULL;
+     p_kvValOffset_ = NULL;
+     p_kvFamLen_ = NULL;
+     p_kvFamOffset_ = NULL;
+     p_kvQualLen_ = NULL;
+     p_kvQualOffset_ = NULL;
+     p_timestamp_ = NULL;
+     jba_kvBuffer_ = NULL;
+*/
      p_timestamp_ = NULL;
      p_cellsPerRow_ = NULL;
      jba_cellName_ = NULL;
-     jba_cellValBuffer_ = NULL; 
+     jba_cellValue_ = NULL; 
      jba_rowID_ = NULL;
      fetchMode_ = UNKNOWN;
      p_rowID_ = NULL;
      p_cellName_ = NULL;
+     p_cellValue_ = NULL;
      numCellsReturned_ = 0;
      numCellsAllocated_ = 0;
      rowIDLen_ = 0;
@@ -190,8 +208,7 @@ public:
 			 const Lng32 numCacheRows,
 			 Text &aggrVal); // returned value
 */
-  void setResultInfo(jobjectArray jCellsName, jobjectArray jCellsValBuffer, 
-                      jintArray jcellsValOffset, jintArray jcellsValLen,
+  void setResultInfo(jobjectArray jCellsName, jobjectArray jCellsValue, 
                       jlongArray jTimestamp, 
                       jobjectArray jRowIDs, jintArray jCellsPerRow, jint numCellsReturned, jint numRowsReturned);
   void getResultInfo();
@@ -285,21 +302,39 @@ private:
    ,JM_LAST
   };
   char *tableName_; 
+/*
+  jintArray jKvValLen_;
+  jintArray jKvValOffset_;
+  jintArray jKvQualLen_;
+  jintArray jKvQualOffset_;
+  jintArray jKvFamLen_;
+  jintArray jKvFamOffset_;
+  jlongArray jTimestamp_;
+  jobjectArray jKvBuffer_;
+  jobjectArray jKvTag_;
+*/
   jobjectArray jRowIDs_;
   jlongArray jTimestamp_;
   jobjectArray jCellsName_;
-  jobjectArray jCellsValBuffer_;
-  jintArray jCellsValOffset_;
-  jintArray jCellsValLen_;
+  jobjectArray jCellsValue_;
   jintArray jCellsPerRow_;
+/*
+  jint *p_kvValLen_;
+  jint *p_kvValOffset_;
+  jint *p_kvQualLen_;
+  jint *p_kvQualOffset_;
+  jint *p_kvFamLen_;
+  jint *p_kvFamOffset_;
+*/
   jlong *p_timestamp_;
-  jint *p_cellsValLen_;
-  jint *p_cellsValOffset_;
-  jbyteArray jba_cellValBuffer_;
+  //jbyteArray jba_kvBuffer_;
   jbyteArray jba_rowID_;
   jbyteArray jba_cellName_;
+  jbyteArray jba_cellValue_;
   jbyte *p_rowID_;
   jbyte *p_cellName_;
+  jbyte *p_cellValue_;
+ // jint *p_kvsPerRow_;
   jint *p_cellsPerRow_;
   jint numRowsReturned_;
   int currentRowNum_;

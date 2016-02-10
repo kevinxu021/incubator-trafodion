@@ -100,10 +100,10 @@ import org.apache.commons.codec.binary.Hex;
 */
 import com.google.protobuf.ServiceException;
 
-import io.ampool.conf.Constants;
+import io.ampool.monarch.common.Bytes;
+import io.ampool.monarch.common.Constants;
+import io.ampool.monarch.common.MConfiguration;
 import io.ampool.monarch.table.*;
-import io.ampool.monarch.table.exceptions.*;
-import io.ampool.monarch.table.client.*;
 
 public class MonarchClient {
 
@@ -113,7 +113,7 @@ public class MonarchClient {
     //RMInterface table = null;
     private PoolMap<String, MTableClient> mTableClientsFree;
     private PoolMap<String, MTableClient> mTableClientsInUse;
-    private MAdmin admin = null;
+    private MConnection connection;
 /*
     // this set of constants MUST be kept in sync with the C++ enum in
     // ExpHbaseDefs.h
@@ -180,9 +180,7 @@ public class MonarchClient {
           logger.debug("MonarchClient.init(" + server + ", " + port + ") called.");
        config.set(Constants.MonarchLocator.MONARCH_LOCATOR_ADDRESS, server);
        config.setInt(Constants.MonarchLocator.MONARCH_LOCATOR_PORT, Integer.parseInt(port));
-       config.set(Constants.MClientCacheconfig.MONARCH_CLIENT_LOG, "/tmp/MTableClient.log");
-       MClientCache clientCache = new MClientCacheFactory().create(config);
-       admin = clientCache.getAdmin();
+       connection = MConnectionFactory.createConnection(config);
        return true;
     }
  
@@ -259,7 +257,7 @@ public class MonarchClient {
               metaColDesc.setMaxVersions(DtmConst.SSCC_MAX_DATA_VERSION);
             metaColDesc.setInMemory(true);
 */
-            admin.createTable(tblName, desc);
+            connection.createTable(tblName, desc);
             return true;
    } 
 
@@ -676,10 +674,10 @@ public class MonarchClient {
         if (logger.isDebugEnabled()) logger.debug("MonarchClient.drop(" + tblName + ") called.");
 
            if(transID != 0) {
-              admin.deleteTable(tblName);
+              connection.deleteTable(tblName);
            }
            else {
-              admin.deleteTable(tblName);
+              connection.deleteTable(tblName);
            }
         return cleanupCache(tblName);
     }
@@ -831,7 +829,7 @@ public class MonarchClient {
                logger.debug("MonarchClient.exists(" + tblName + ") called.");
             boolean result = true;
             try {
-               MTable table = MClientCacheFactory.getAnyInstance().getTable(tblName);
+               MTable table = connection.getTable(tblName);
             }
             catch (MTableNotExistsException e) {
                 result = false;
@@ -850,7 +848,7 @@ public class MonarchClient {
        MTableClient mTable = mTableClientsFree.get(tblName);
        if (mTable == null) {
           mTable = new MTableClient();
-          if (mTable.init(tblName, useTRex, bSynchronized) == false) {
+          if (mTable.init(connection, tblName, useTRex, bSynchronized) == false) {
              if (logger.isDebugEnabled()) 
                 logger.debug("  ==> Error in init(), returning empty.");
              return null;

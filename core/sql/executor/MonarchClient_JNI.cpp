@@ -3015,8 +3015,13 @@ MTableClient_JNI::~MTableClient_JNI()
      NADELETEBASIC(colName_, heap_);
   if (numCellsAllocated_ > 0)
   {
-      NADELETEBASIC(p_cellsValLen_, heap_);
-      NADELETEBASIC(p_cellsValOffset_, heap_);
+/*    NADELETEBASIC(p_kvValLen_, heap_);
+      NADELETEBASIC(p_kvValOffset_, heap_);
+      NADELETEBASIC(p_kvFamLen_, heap_);
+      NADELETEBASIC(p_kvFamOffset_, heap_);
+      NADELETEBASIC(p_kvQualLen_, heap_);
+      NADELETEBASIC(p_kvQualOffset_, heap_);
+*/
       NADELETEBASIC(p_timestamp_, heap_);
       numCellsAllocated_ = 0;
   }
@@ -3713,8 +3718,7 @@ extern "C" {
 
 JNIEXPORT jint JNICALL Java_org_trafodion_sql_MTableClient_setResultInfo
   (JNIEnv *jenv, jobject jobj, jlong jniObject, 
-   jobjectArray jCellsName, jobjectArray jCellsValBuffer,
-   jintArray jCellsValOffset, jintArray jCellsValLen,
+   jobjectArray jCellsName, jobjectArray jCellsValue,
    jlongArray jTimestamp, jobjectArray jRowIDs,
    jintArray jCellsPerRow, jint numCellsReturned, jint numRowsReturned)
 {
@@ -3722,7 +3726,7 @@ JNIEXPORT jint JNICALL Java_org_trafodion_sql_MTableClient_setResultInfo
    if (mtc->getFetchMode() == MTableClient_JNI::GET_ROW ||
           mtc->getFetchMode() == MTableClient_JNI::BATCH_GET)
       mtc->setJavaObject(jobj);
-   mtc->setResultInfo(jCellsName, jCellsValBuffer, jCellsValOffset, jCellsValLen, jTimestamp,
+   mtc->setResultInfo(jCellsName, jCellsValue, jTimestamp,
                       jRowIDs, jCellsPerRow, 
                       numCellsReturned, numRowsReturned);  
    return 0;
@@ -3747,8 +3751,7 @@ JNIEXPORT void JNICALL Java_org_trafodion_sql_MTableClient_cleanup
 }
 #endif
 
-void MTableClient_JNI::setResultInfo( jobjectArray jCellsName, jobjectArray jCellsValBuffer, 
-                                      jintArray jCellsValOffset, jintArray jCellsValLen,
+void MTableClient_JNI::setResultInfo( jobjectArray jCellsName, jobjectArray jCellsValue, 
                                       jlongArray jTimestamp,  jobjectArray jRowIDs,
                                       jintArray jCellsPerRow, jint numCellsReturned, jint numRowsReturned)
 {
@@ -3760,17 +3763,7 @@ void MTableClient_JNI::setResultInfo( jobjectArray jCellsName, jobjectArray jCel
       if (jenv_->ExceptionCheck())
           exceptionFound = TRUE;
       if (! exceptionFound) {
-         jCellsValBuffer_ = (jobjectArray)jenv_->NewGlobalRef(jCellsValBuffer);
-         if (jenv_->ExceptionCheck())
-            exceptionFound = TRUE;
-      }
-      if (! exceptionFound) {
-         jCellsValOffset_ = (jintArray)jenv_->NewGlobalRef(jCellsValOffset);
-         if (jenv_->ExceptionCheck())
-            exceptionFound = TRUE;
-      }
-      if (! exceptionFound) {
-         jCellsValLen_ = (jintArray)jenv_->NewGlobalRef(jCellsValLen);
+         jCellsValue_ = (jobjectArray)jenv_->NewGlobalRef(jCellsValue);
          if (jenv_->ExceptionCheck())
             exceptionFound = TRUE;
       }
@@ -3807,17 +3800,9 @@ void MTableClient_JNI::cleanupResultInfo()
       jenv_->DeleteGlobalRef(jCellsName_);
       jCellsName_ = NULL;
    }
-   if (jCellsValBuffer_ != NULL) {
-      jenv_->DeleteGlobalRef(jCellsValBuffer_);
-      jCellsValBuffer_ = NULL;
-   }
-   if (jCellsValLen_ != NULL) {
-      jenv_->DeleteGlobalRef(jCellsValLen_);
-      jCellsValLen_ = NULL;
-   }
-   if (jCellsValOffset_ != NULL) {
-      jenv_->DeleteGlobalRef(jCellsValOffset_);
-      jCellsValOffset_ = NULL;
+   if (jCellsValue_ != NULL) {
+      jenv_->DeleteGlobalRef(jCellsValue_);
+      jCellsValue_ = NULL;
    }
    if (jTimestamp_ != NULL) {
       jenv_->DeleteGlobalRef(jTimestamp_);
@@ -3827,17 +3812,14 @@ void MTableClient_JNI::cleanupResultInfo()
       jenv_->DeleteGlobalRef(jRowIDs_);
       jRowIDs_ = NULL;
    }
-   if (jba_cellValBuffer_ != NULL) {
-      jenv_->DeleteGlobalRef(jba_cellValBuffer_);
-      jba_cellValBuffer_ = NULL;
-   }
-   if (p_rowID_ != NULL) {
+   if (p_rowID_ != NULL)
+   {
       jenv_->ReleaseByteArrayElements(jba_rowID_, p_rowID_, JNI_ABORT);
       p_rowID_ = NULL;
       jenv_->DeleteGlobalRef(jba_rowID_);
-      jba_rowID_ = NULL;
    }
-   if (p_cellsPerRow_ != NULL) {
+   if (p_cellsPerRow_ != NULL)
+   {
       jenv_->ReleaseIntArrayElements(jCellsPerRow_, p_cellsPerRow_, JNI_ABORT);
       p_cellsPerRow_ = NULL;
       jenv_->DeleteGlobalRef(jCellsPerRow_);
@@ -3934,28 +3916,22 @@ void MTableClient_JNI::getResultInfo()
 		numCellsAllocated_ < numCellsReturned_) {
       NAHeap *heap = getHeap();
       if (numCellsAllocated_ > 0) {
-         NADELETEBASIC(p_cellsValLen_, heap_);
-         NADELETEBASIC(p_cellsValOffset_, heap_);
-         NADELETEBASIC(p_timestamp_, heap);
-         numCellsNeeded = numCellsReturned_;
-      }
-      else {  
-         if (numColsInScan_ == 0)
-            numCellsNeeded = numCellsReturned_;
-         else    
-            numCellsNeeded = 2 * numReqRows_ * numColsInScan_;
-      }
-      p_cellsValLen_ = new (heap) jint[numCellsNeeded];
-      p_cellsValOffset_ = new (heap) jint[numCellsNeeded];
-      p_timestamp_ = new (heap) jlong[numCellsNeeded];
-      numCellsAllocated_ = numCellsNeeded;
-   }
-   jenv_->GetIntArrayRegion(jCellsValLen_, 0, numCellsReturned_, p_cellsValLen_);
-   jenv_->GetIntArrayRegion(jCellsValOffset_, 0, numCellsReturned_, p_cellsValOffset_);
-   p_cellsPerRow_ = jenv_->GetIntArrayElements(jCellsPerRow_, NULL);
-   currentRowNum_ = 0;
-   currentRowCellNum_ = 0;
-   prevRowCellNum_ = 0;
+          NADELETEBASIC(p_timestamp_, heap);
+          numCellsNeeded = numCellsReturned_;
+       }
+       else {  
+          if (numColsInScan_ == 0)
+              numCellsNeeded = numCellsReturned_;
+          else    
+              numCellsNeeded = 2 * numReqRows_ * numColsInScan_;
+       }
+       p_timestamp_ = new (heap) jlong[numCellsNeeded];
+       numCellsAllocated_ = numCellsNeeded;
+    }
+    p_cellsPerRow_ = jenv_->GetIntArrayElements(jCellsPerRow_, NULL);
+    currentRowNum_ = 0;
+    currentRowCellNum_ = 0;
+    prevRowCellNum_ = 0;
 }
 
 MTC_RetCode MTableClient_JNI::getColName(int colNo,
@@ -4011,6 +3987,7 @@ MTC_RetCode MTableClient_JNI::getColVal(int colNo, BYTE *colVal,
                                         NABoolean nullable, BYTE &nullVal,
                                         BYTE *tag, Lng32 &tagLen)
 {
+    jsize cellValueLen;
     Lng32 copyLen;
     jbyte nullByte;
 
@@ -4019,40 +3996,36 @@ MTC_RetCode MTableClient_JNI::getColVal(int colNo, BYTE *colVal,
        return MTC_GET_COLVAL_EXCEPTION;
     int idx = prevRowCellNum_ + colNo;
     ex_assert((idx < numCellsReturned_), "Buffer overflow");
-    jint cellValLen = p_cellsValLen_[idx];
-    jint cellValOffset = p_cellsValOffset_[idx];
-    // clean the jba_cellValBuffer_ of the previous column
-    // And get the jba_cellValBuffer_ for the current column
-    if (jba_cellValBuffer_ != NULL) {
-       jenv_->DeleteGlobalRef(jba_cellValBuffer_);
-       jba_cellValBuffer_ = NULL;
+    if (jba_cellValue_ != NULL) {
+       jenv_->DeleteGlobalRef(jba_cellValue_);
+       jba_cellValue_ = NULL;
     }
-    jobject cellValBufferObj;
-    cellValBufferObj = jenv_->GetObjectArrayElement(jCellsValBuffer_, idx);
+    jobject cellNameObj;
+    cellNameObj = jenv_->GetObjectArrayElement(jCellsValue_, idx);
     if (jenv_->ExceptionCheck()) {
       getExceptionDetails();
       logError(CAT_SQL_HBASE, __FILE__, __LINE__);
       logError(CAT_SQL_HBASE, "MTableClient_JNI::getColVal()", getLastError());
       return MTC_GET_COLVAL_EXCEPTION;
     }
-    jba_cellValBuffer_ = (jbyteArray)jenv_->NewGlobalRef(cellValBufferObj);
+    jba_cellValue_ = (jbyteArray)jenv_->NewGlobalRef(cellNameObj);
     if (jenv_->ExceptionCheck()) {
       getExceptionDetails();
       logError(CAT_SQL_HBASE, __FILE__, __LINE__);
       logError(CAT_SQL_HBASE, "MTableClient_JNI::getColVal()", getLastError());
       return MTC_GET_COLVAL_EXCEPTION;
     }
-    jenv_->DeleteLocalRef(cellValBufferObj);
+    jenv_->DeleteLocalRef(cellNameObj);
+    cellValueLen = jenv_->GetArrayLength(jba_cellValue_);
     // If the column is nullable, get the first byte
     // The first byte determines if the column is null(0xff) or not (0)
     if (nullable) {
-       copyLen = MINOF(cellValLen-1, colValLen);
-       jenv_->GetByteArrayRegion(jba_cellValBuffer_, cellValOffset, 1, &nullByte);
-       jenv_->GetByteArrayRegion(jba_cellValBuffer_, cellValOffset+1, copyLen,
-               (jbyte *)colVal);
+       copyLen = MINOF(cellValueLen-1, colValLen);
+       jenv_->GetByteArrayRegion(jba_cellValue_, 0, 1, &nullByte); 
+       jenv_->GetByteArrayRegion(jba_cellValue_, 1, copyLen,  (jbyte *)colVal); 
     } else {
-       copyLen = MINOF(cellValLen-1, colValLen);
-       jenv_->GetByteArrayRegion(jba_cellValBuffer_, cellValOffset, copyLen, (jbyte *)colVal ); 
+       copyLen = MINOF(cellValueLen-1, colValLen);
+       jenv_->GetByteArrayRegion(jba_cellValue_, 1, copyLen, (jbyte *)colVal ); 
     }
     nullVal = nullByte;
     colValLen = copyLen;
@@ -4064,39 +4037,34 @@ MTC_RetCode MTableClient_JNI::getColVal(int colNo, BYTE *colVal,
 MTC_RetCode MTableClient_JNI::getColVal(NAHeap *heap, int colNo, BYTE **colVal, 
           Lng32 &colValLen)
 {
+    jsize cellValLen;
+
     jint cellsPerRow = p_cellsPerRow_[currentRowNum_];
     if (cellsPerRow == 0 || colNo >= cellsPerRow)
        return MTC_GET_COLVAL_EXCEPTION;
     int idx = prevRowCellNum_ + colNo;
     ex_assert((idx < numCellsReturned_), "Buffer overflow");
-    if (jba_cellValBuffer_ != NULL) {
-       jenv_->DeleteGlobalRef(jba_cellValBuffer_);
-       jba_cellValBuffer_ = NULL;
+    if (jba_cellValue_ != NULL) {
+       jenv_->DeleteGlobalRef(jba_cellValue_);
+       jba_cellValue_ = NULL;
     }
-    jint cellValLen = p_cellsValLen_[idx];
-    jint cellValOffset = p_cellsValOffset_[idx];
-    // clean the jba_cellValBuffer_ of the previous column
-    // And get the jba_cellValBuffer_ for the current column
-    if (jba_cellValBuffer_ != NULL) {
-       jenv_->DeleteGlobalRef(jba_cellValBuffer_);
-       jba_cellValBuffer_ = NULL;
-    }
-    jobject cellValBufferObj;
-    cellValBufferObj = jenv_->GetObjectArrayElement(jCellsValBuffer_, idx);
+    jobject cellNameObj;
+    cellNameObj = jenv_->GetObjectArrayElement(jCellsValue_, idx);
     if (jenv_->ExceptionCheck()) {
       getExceptionDetails();
       logError(CAT_SQL_HBASE, __FILE__, __LINE__);
       logError(CAT_SQL_HBASE, "MTableClient_JNI::getColVal()", getLastError());
       return MTC_GET_COLVAL_EXCEPTION;
     }
-    jba_cellValBuffer_ = (jbyteArray)jenv_->NewGlobalRef(cellValBufferObj);
+    jba_cellValue_ = (jbyteArray)jenv_->NewGlobalRef(cellNameObj);
     if (jenv_->ExceptionCheck()) {
       getExceptionDetails();
       logError(CAT_SQL_HBASE, __FILE__, __LINE__);
       logError(CAT_SQL_HBASE, "MTableClient_JNI::getColVal()", getLastError());
       return MTC_GET_COLVAL_EXCEPTION;
     }
-    jenv_->DeleteLocalRef(cellValBufferObj);
+    jenv_->DeleteLocalRef(cellNameObj);
+    cellValLen = jenv_->GetArrayLength(jba_cellValue_);
    
     BYTE *colValTmp;
     int colValLenTmp;
@@ -4112,7 +4080,7 @@ MTC_RetCode MTableClient_JNI::getColVal(NAHeap *heap, int colNo, BYTE **colVal,
        colValTmp = new (heap) BYTE[cellValLen];
        colValLenTmp = cellValLen;
     }
-    jenv_->GetByteArrayRegion(jba_cellValBuffer_, cellValOffset, colValLenTmp,
+    jenv_->GetByteArrayRegion(jba_cellValue_, 0, colValLenTmp,
              (jbyte *)colValTmp); 
     *colVal = colValTmp;
     colValLen = colValLenTmp;

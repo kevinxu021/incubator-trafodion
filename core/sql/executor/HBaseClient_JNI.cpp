@@ -5500,15 +5500,13 @@ void HTableClient_JNI::cleanupResultInfo()
       jenv_->ReleaseByteArrayElements(jba_rowID_, p_rowID_, JNI_ABORT);
       p_rowID_ = NULL;
       jenv_->DeleteGlobalRef(jba_rowID_);
-      jba_rowID_ = NULL;
    }
    if (p_kvsPerRow_ != NULL)
    {
       jenv_->ReleaseIntArrayElements(jKvsPerRow_, p_kvsPerRow_, JNI_ABORT);
-      p_kvsPerRow_ = NULL;
-      jenv_->DeleteGlobalRef(jKvsPerRow_);
-      jKvsPerRow_ = NULL;
+       p_kvsPerRow_ = NULL;
    }
+   jenv_->DeleteGlobalRef(jKvsPerRow_);
    cleanupDone_ = TRUE;
    return;
 }

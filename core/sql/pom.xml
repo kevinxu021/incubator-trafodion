@@ -24,10 +24,6 @@
       <id>cloudera</id>
       <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
     </repository>
-    <repository>
-      <id>Ampool-client</id>
-      <url>https://s3-us-west-2.amazonaws.com/ampool/mvn-repo</url>
-    </repository>
   </repositories>
 
   <properties>
@@ -88,11 +84,19 @@
       <artifactId>protobuf-java</artifactId>
       <version>2.5.0</version>
     </dependency>
-   <dependency>
-      <groupId>io.ampool</groupId>
-      <artifactId>ampool-core</artifactId>
-      <version>0.3.0.0-SNAPSHOT</version>
-      <scope>compile</scope>
+    <dependency>
+      <groupId>io.ampool.monarch.common</groupId>
+      <artifactId>ampool-common</artifactId>
+      <version>0.2.0.0</version>
+      <scope>system</scope>
+      <systemPath>/mnt/gselva/ampool/monarch/0.2.0.0/lib/monarch-common-0.2.0.0.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>io.ampool.monarch.table</groupId>
+      <artifactId>ampool-table</artifactId>
+      <version>0.2.0.0</version>
+      <scope>system</scope>
+      <systemPath>/mnt/gselva/ampool/monarch/0.2.0.0/lib/monarch-table-0.2.0.0.jar</systemPath>
     </dependency>
   </dependencies>
 

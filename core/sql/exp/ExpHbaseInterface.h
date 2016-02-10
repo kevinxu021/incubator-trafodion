@@ -416,6 +416,10 @@ protected:
                     int debugPort = 0,
                     int debugTimeout = 0);
 
+  // Monarch doesn't yet support '.' in table names.
+  // Change '.' to '_' until it is supported.
+  short fixupMonarchName(HbaseStr &tblName);
+
   CollHeap * heap_;
   ExHbaseAccessStats * hbs_;
   char server_[MAX_SERVER_SIZE+1];
