@@ -180,7 +180,6 @@ public class MonarchClient {
           logger.debug("MonarchClient.init(" + server + ", " + port + ") called.");
        config.set(Constants.MonarchLocator.MONARCH_LOCATOR_ADDRESS, server);
        config.setInt(Constants.MonarchLocator.MONARCH_LOCATOR_PORT, Integer.parseInt(port));
-       config.set(Constants.MClientCacheconfig.MONARCH_CLIENT_LOG, "/tmp/MTableClient.log");
        MClientCache clientCache = new MClientCacheFactory().create(config);
        admin = clientCache.getAdmin();
        return true;
