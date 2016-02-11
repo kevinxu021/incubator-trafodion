@@ -159,8 +159,10 @@ public:
   virtual ~MTableClient_JNI();
   
   MTC_RetCode init();
- /* 
-  MTC_RetCode startScan(Int64 transID, const Text& startRowID, const Text& stopRowID, const LIST(HbaseStr) & cols, Int64 timestamp, bool cacheBlocks, bool smallScanner, Lng32 numCacheRows,
+ 
+  MTC_RetCode startScan(Int64 transID, const Text& startRowID, const Text& stopRowID, const LIST(HbaseStr) & cols, Int64 timestamp, 
+                        bool cacheBlocks, bool smallScanner, 
+                        Lng32 numCacheRows,
                         NABoolean preFetch,
 			const LIST(NAString) *inColNamesToFilter, 
 			const LIST(NAString) *inCompareOpList,
@@ -175,7 +177,7 @@ public:
                         Int64 minTS = -1,
                         Int64 maxTS = -1,
                         const char * hbaseAuths = NULL);
-*/
+
   MTC_RetCode deleteRow(Int64 transID, HbaseStr &rowID, const LIST(HbaseStr) *columns, Int64 timestamp, const char *hbaseAuths);
 /*
   MTC_RetCode setWriteBufferSize(Int64 size);
@@ -270,7 +272,7 @@ private:
   enum JAVA_METHODS {
     JM_CTOR = 0
    ,JM_GET_ERROR 
-  //,JM_SCAN_OPEN 
+   ,JM_SCAN_OPEN 
    ,JM_DELETE    
   //,JM_COPROC_AGGR
    ,JM_GET_NAME

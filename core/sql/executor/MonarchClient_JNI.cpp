@@ -3049,10 +3049,8 @@ MTC_RetCode MTableClient_JNI::init()
     JavaMethods_[JM_CTOR       ].jm_signature = "()V";
     JavaMethods_[JM_GET_ERROR  ].jm_name      = "getLastError";
     JavaMethods_[JM_GET_ERROR  ].jm_signature = "()Ljava/lang/String;";
-/*
     JavaMethods_[JM_SCAN_OPEN  ].jm_name      = "startScan";
     JavaMethods_[JM_SCAN_OPEN  ].jm_signature = "(J[B[B[Ljava/lang/Object;JZZI[Ljava/lang/Object;[Ljava/lang/Object;[Ljava/lang/Object;FZZILjava/lang/String;Ljava/lang/String;IIJJLjava/lang/String;)Z";
-*/
     JavaMethods_[JM_DELETE     ].jm_name      = "deleteRow";
     JavaMethods_[JM_DELETE     ].jm_signature = "(J[B[Ljava/lang/Object;JZLjava/lang/String;)Z";
 /*
@@ -3095,7 +3093,7 @@ NAString MTableClient_JNI::getLastJavaError()
 {
   return JavaObjectInterface::getLastJavaError(JavaMethods_[JM_GET_ERROR].methodID);
 }
-/*
+
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
@@ -3137,7 +3135,6 @@ MTC_RetCode MTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
   if (jba_stopRowID == NULL) 
   {
     GetCliGlobals()->setJniErrorStr(getErrorText(MTC_ERROR_SCANOPEN_PARAM));
-    jenv_->DeleteLocalRef(jba_startRowID);
     jenv_->PopLocalFrame(NULL);
     return MTC_ERROR_SCANOPEN_PARAM;
   }
@@ -3152,8 +3149,6 @@ MTC_RetCode MTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
        getExceptionDetails();
        logError(CAT_SQL_HBASE, __FILE__, __LINE__);
        logError(CAT_SQL_HBASE, "MTableClient_JNI::startScan()", getLastError());
-       jenv_->DeleteLocalRef(jba_startRowID);
-       jenv_->DeleteLocalRef(jba_stopRowID);
        jenv_->PopLocalFrame(NULL);
        return MTC_ERROR_SCANOPEN_PARAM;
     }
@@ -3181,10 +3176,6 @@ MTC_RetCode MTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
        getExceptionDetails();
        logError(CAT_SQL_HBASE, __FILE__, __LINE__);
        logError(CAT_SQL_HBASE, "MTableClient_JNI::startScan()", getLastError());
-       jenv_->DeleteLocalRef(jba_startRowID);
-       jenv_->DeleteLocalRef(jba_stopRowID);
-       if (j_cols != NULL)
-           jenv_->DeleteLocalRef(j_cols);
        jenv_->PopLocalFrame(NULL);
        return MTC_ERROR_SCANOPEN_PARAM;
     }
@@ -3199,12 +3190,6 @@ MTC_RetCode MTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
         getExceptionDetails();
         logError(CAT_SQL_HBASE, __FILE__, __LINE__);
         logError(CAT_SQL_HBASE, "MTableClient_JNI::startScan()", getLastError());
-        jenv_->DeleteLocalRef(jba_startRowID);
-        jenv_->DeleteLocalRef(jba_stopRowID);
-        if (j_cols != NULL)
-           jenv_->DeleteLocalRef(j_cols);
-        if (j_colnamestofilter != NULL)
-           jenv_->DeleteLocalRef(j_colnamestofilter);
         jenv_->PopLocalFrame(NULL);
         return MTC_ERROR_SCANOPEN_PARAM;
      }
@@ -3219,14 +3204,6 @@ MTC_RetCode MTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
         getExceptionDetails();
         logError(CAT_SQL_HBASE, __FILE__, __LINE__);
         logError(CAT_SQL_HBASE, "MTableClient_JNI::startScan()", getLastError());
-        jenv_->DeleteLocalRef(jba_startRowID);
-        jenv_->DeleteLocalRef(jba_stopRowID);
-        if (j_cols != NULL)
-           jenv_->DeleteLocalRef(j_cols);
-        if (j_colnamestofilter != NULL)
-           jenv_->DeleteLocalRef(j_colnamestofilter);
-        if (j_compareoplist != NULL)
-           jenv_->DeleteLocalRef(j_compareoplist);
         jenv_->PopLocalFrame(NULL);
         return MTC_ERROR_SCANOPEN_PARAM;
      }
@@ -3252,7 +3229,6 @@ MTC_RetCode MTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
    {
      GetCliGlobals()->setJniErrorStr(getErrorText(MTC_ERROR_SCANOPEN_PARAM));
      //delete the previous string in case of error
-     jenv_->DeleteLocalRef(js_snapName);
      jenv_->PopLocalFrame(NULL);
      return MTC_ERROR_SCANOPEN_PARAM;
    }
@@ -3288,23 +3264,7 @@ MTC_RetCode MTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
     hbs_->incMaxHbaseIOTime(hbs_->getHbaseTimer().stop());
     hbs_->incHbaseCalls();
   }
-
-  jenv_->DeleteLocalRef(jba_startRowID);  
-  jenv_->DeleteLocalRef(jba_stopRowID);  
-  if (j_cols != NULL)
-     jenv_->DeleteLocalRef(j_cols);
-  if (j_colnamestofilter != NULL)
-     jenv_->DeleteLocalRef(j_colnamestofilter);
-  if (j_compareoplist != NULL)
-     jenv_->DeleteLocalRef(j_compareoplist);
-  if (j_colvaluestocompare != NULL)
-     jenv_->DeleteLocalRef(j_colvaluestocompare);
-  if (js_tmp_loc!= NULL)
-    jenv_->DeleteLocalRef(js_tmp_loc);
-  if (js_snapName!= NULL)
-    jenv_->DeleteLocalRef(js_snapName);
-  if (jenv_->ExceptionCheck())
-  {
+  if (jenv_->ExceptionCheck()) {
     getExceptionDetails();
     logError(CAT_SQL_HBASE, __FILE__, __LINE__);
     logError(CAT_SQL_HBASE, "MTableClient_JNI::scanOpen()", getLastError());
@@ -3322,7 +3282,7 @@ MTC_RetCode MTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
   jenv_->PopLocalFrame(NULL);
   return MTC_OK;
 }
-*/
+
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
@@ -4051,7 +4011,8 @@ MTC_RetCode MTableClient_JNI::getColVal(int colNo, BYTE *colVal,
        jenv_->GetByteArrayRegion(jba_cellValBuffer_, cellValOffset+1, copyLen,
                (jbyte *)colVal);
     } else {
-       copyLen = MINOF(cellValLen-1, colValLen);
+       copyLen = MINOF(cellValLen, colValLen);
+       nullByte = 0;
        jenv_->GetByteArrayRegion(jba_cellValBuffer_, cellValOffset, copyLen, (jbyte *)colVal ); 
     }
     nullVal = nullByte;

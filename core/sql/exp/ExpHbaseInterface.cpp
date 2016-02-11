@@ -727,7 +727,7 @@ Lng32 ExpHbaseInterface_JNI::exists(HbaseStr &tblName)
   }
   if (retCode_ == HBC_OK)
     return -1;   // Found.
-  else if (retCode_ == HBC_DONE)
+  else if (retCode_ == HBC_DONE || retCode_ == MC_DONE)
     return 0;  // Not found
   else
     return -HBASE_ACCESS_ERROR;
@@ -765,10 +765,38 @@ Lng32 ExpHbaseInterface_JNI::scanOpen(
                                       HbaseAccessOptions *hao,
                                       const char * hbaseAuths)
 {
+  Int64 transID;
+  if (noXn)
+    transID = 0;
+  else
+    transID = getTransactionIDFromContext();
   switch (storageType_) {
   case COM_STORAGE_MONARCH:
-    return HBASE_NOT_IMPLEMENTED;
-    break;
+     mtc_ = mClient_->getMTableClient((NAHeap *)heap_, tblName.val, useTRex_, replSync, hbs_);
+     if (mtc_ == NULL) {
+        retCode_ = MC_ERROR_GET_MTC_EXCEPTION;
+        return HBASE_OPEN_ERROR;
+     }
+     retCode_ = mtc_->startScan(transID, startRow, stopRow, columns, timestamp, 
+                             cacheBlocks,
+			     smallScanner,
+			     numCacheRows,
+                             preFetch,
+                             inColNamesToFilter,
+                             inCompareOpList,
+                             inColValuesToCompare,
+                             samplePercent,
+                             useSnapshotScan,
+                             snapTimeout,
+                             snapName,
+                             tmpLoc,
+                             espNum,
+                             (hao && hao->multiVersions()) 
+                             ? hao->getNumVersions() : 0,
+                             hao ? hao->hbaseMinTS() : -1,
+                             hao ? hao->hbaseMaxTS() : -1,
+                             hbaseAuths);
+     break;
   default:
   htc_ = client_->getHTableClient((NAHeap *)heap_, tblName.val, useTRex_, replSync, hbs_);
   if (htc_ == NULL)
@@ -776,17 +804,6 @@ Lng32 ExpHbaseInterface_JNI::scanOpen(
     retCode_ = HBC_ERROR_GET_HTC_EXCEPTION;
     return HBASE_OPEN_ERROR;
   }
-
-  if (hao)
-    {
-      Lng32 kk = 0;
-    }
-
-  Int64 transID;
-  if (noXn)
-    transID = 0;
-  else
-    transID = getTransactionIDFromContext();
   retCode_ = htc_->startScan(transID, startRow, stopRow, columns, timestamp, 
                              cacheBlocks,
 			     smallScanner,

@@ -107,8 +107,8 @@ public class MTableClient {
    private boolean useTRexScanner;
    private String tableName;
 
-   //private ResultScanner scanner = null;
-        //private ScanHelper scanHelper = null;
+   private MResultScanner scanner = null;
+   private ScanHelper scanHelper = null;
    MResult[] getResultSet = null;
    String lastError;
    MTable table = null;
@@ -257,42 +257,15 @@ public class MTableClient {
         }
       }
     }
-
+*/
    class ScanHelper implements Callable {
-            public Result[] call() throws Exception {
-                return scanner.next(numRowsCached);
-            }
-        }
- */   
+      public MResult[] call() throws Exception {
+         return scanner.next(numRowsCached);
+      }
+   }
+    
    static Logger logger = Logger.getLogger(MTableClient.class.getName());;
-
 /*
-   static public  byte[] getFamily(byte[] qc) {
-      byte[] family = null;
-
-      if (qc != null && qc.length > 0) {
-          int pos = Bytes.indexOf(qc, (byte) ':');
-          if (pos == -1) 
-             family = Bytes.toBytes("cf1");
-          else
-             family = Arrays.copyOfRange(qc, 0, pos);
-           }   
-      return family;
-   }
-
-   static public byte[] getName(byte[] qc) {
-      byte[] name = null;
-
-      if (qc != null && qc.length > 0) {
-         int pos = Bytes.indexOf(qc, (byte) ':');
-         if (pos == -1) 
-            name = qc;
-         else
-            name = Arrays.copyOfRange(qc, pos + 1, qc.length);
-      }   
-      return name;
-   }
-
    public boolean setWriteBufferSize(long writeBufferSize) throws IOException {
       if (logger.isDebugEnabled()) logger.debug("Enter MTableClient::setWriteBufferSize, size  : " + writeBufferSize);
        table.setWriteBufferSize(writeBufferSize);
@@ -365,16 +338,15 @@ public class MTableClient {
          return null;
       else
          return getTableName();
-//         return new String(table.getTableName());
    }
 /*
    void resetAutoFlush() {
       table.setAutoFlush(true, true);
    }
-
+*/
    public boolean startScan(long transID, byte[] startRow, byte[] stopRow,
                                  Object[]  columns, long timestamp,
-                                 boolean cacheBlocks, int numCacheRows,
+                                 boolean cacheBlocks,  boolean smallScanner, int numCacheRows,
                                  Object[] cellsNameToFilter, 
                                  Object[] compareOpList, 
                                  Object[] cellsValueToCompare,
@@ -385,55 +357,62 @@ public class MTableClient {
                                  String snapName,
                                  String tmpLoc,
                                  int espNum,
-                                 int versions)
+                                 int versions,
+                                 long minTS,
+                                 long maxTS,
+                                 String hbaseAuths)
            throws IOException, Exception {
      if (logger.isTraceEnabled()) logger.trace("Enter startScan() " + tableName + " txid: " + transID+ " CacheBlocks: " + cacheBlocks + " numCacheRows: " + numCacheRows + " Bulkread: " + useSnapshotScan);
 
-     Scan scan;
+     MScan scan;
 
-     if (startRow != null && startRow.toString() == "")
+     if (startRow != null && (startRow.toString() == "" || startRow.length == 0))
        startRow = null;
-     if (stopRow != null && stopRow.toString() == "")
+     if (stopRow != null && (stopRow.toString() == "" || stopRow.length == 0))
        stopRow = null;
 
      if (startRow != null && stopRow != null)
-       scan = new Scan(startRow, stopRow);
+       scan = new MScan(startRow, stopRow);
      else
-       scan = new Scan();
+       scan = new MScan();
 
-          if (versions != 0)
-            {
-              if (versions == -1)
-                scan.setMaxVersions();
-              else if (versions == -2)
-                {
-                  scan.setMaxVersions();
-                  scan.setRaw(true);
-                  columns = null;
-                }
-              else if (versions > 0)
-               {
-                 scan.setMaxVersions(versions);
-               }
-           }
-
-          if (cacheBlocks == true) {
-              scan.setCacheBlocks(true);
-          }
+     if (versions != 0) {
+        if (versions == -1)
+           scan.setMaxVersions();
+        else if (versions == -2) {
+           scan.setMaxVersions();
+           //scan.setRaw(true);
+            columns = null;
+        }
+        else if (versions > 0) {
+           scan.setMaxVersions(versions);
+        }
+     }
+/*
+     if ((minTS != -1) && (maxTS != -1))
+        scan.setTimeRange(minTS, maxTS);
+     if (cacheBlocks == true) 
+        scan.setCacheBlocks(true);
      else
-              scan.setCacheBlocks(false);
-          
+        scan.setCacheBlocks(false);
+     scan.setSmall(smallScanner);
+
+ */         
      scan.setCaching(numCacheRows);
      numRowsCached = numCacheRows;
      if (columns != null) {
        numColsInScan = columns.length;
        for (int i = 0; i < columns.length ; i++) {
-         byte[] col = (byte[])columns[i];
-         scan.addColumn(getFamily(col), getName(col));
+         byte[] col = (byte[]) columns[i];
+         scan.addColumn(col);
        }
      }
      else
        numColsInScan = 0;
+  
+/*
+ *  Filters are supported, but FilterList is not supported - 
+ *  No support for RandomRowFilter, SingleColumnValueFilter
      if (cellsNameToFilter != null) {
        FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ALL);
 
@@ -460,6 +439,19 @@ public class MTableClient {
        scan.setFilter(list);
      } else if (samplePercent > 0.0f) {
        scan.setFilter(new RandomRowFilter(samplePercent));
+     }
+
+     if (hbaseAuths != null) {
+        List<String> listOfHA = Arrays.asList(hbaseAuths);
+        Authorizations auths = new Authorizations(listOfHA);
+
+        scan.setAuthorizations(auths);
+
+        System.out.println("scan hbaseAuths " + hbaseAuths);
+        System.out.println("listOfHA " + listOfHA);
+
+        // System.out.println("hbaseAuths " + hbaseAuths);
+        // System.out.println("listOfHA " + listOfHA);
      }
 
      if (!useSnapshotScan || transID != 0)
@@ -489,10 +481,12 @@ public class MTableClient {
          throw new Exception("Cannot create Table Snapshot Scanner");
      }
     
-          if (useSnapshotScan)
-             preFetch = false;
-          else
-        preFetch = inPreFetch;
+     if (useSnapshotScan)
+        preFetch = false;
+     else
+*/
+     scanner = table.getScanner(scan);
+     preFetch = inPreFetch;
      if (preFetch)
      {
        scanHelper = new ScanHelper(); 
@@ -502,7 +496,7 @@ public class MTableClient {
      if (logger.isTraceEnabled()) logger.trace("Exit startScan().");
      return true;
    }
-*/
+
    public int  startGet(long transID, byte[] rowID, 
                      Object[] columns, long timestamp) throws IOException {
 
@@ -667,8 +661,6 @@ public class MTableClient {
       }
       else
       {
-         throw (new IOException("Scan Not yet supported"));
-/*
          if (scanner == null) {
             String err = "  fetchRows() called before scanOpen().";
             logger.error(err);
@@ -678,7 +670,7 @@ public class MTableClient {
          MResult[] result = null;
          if (preFetch)
          {
-            result = (Result[])future.get();
+            result = (MResult[])future.get();
             rowsReturned = pushRowsToJni(result);
             future = null;
             if ((rowsReturned <= 0 || rowsReturned < numRowsCached))
@@ -691,7 +683,6 @@ public class MTableClient {
             rowsReturned = pushRowsToJni(result);
          }
          return rowsReturned;
-*/
       }
    }
 
@@ -700,16 +691,21 @@ public class MTableClient {
       if (result == null || result.length == 0)
          return 0; 
       int rowsReturned = result.length;
+ // This FOR loop should be removed when ampool fixes the result size issue
+      for (int rowNum = 0; rowNum < result.length ; rowNum++) {
+          if (result[rowNum] == null) {
+              rowsReturned = rowNum;
+              break;
+          }
+      }
       int numTotalCells = 0;
-/*
-TODO:Selva - MResult.size() is missing 
+
       if (numColsInScan == 0) {
-         for (int i = 0; i < result.length; i++) {   
+         for (int i = 0; i < rowsReturned; i++) {   
             numTotalCells += result[i].size();
          }
       }
       else
-*/
       // There can be maximum of 2 versions per kv
       // So, allocate place holder to keep cell info
       // for that many KVs
@@ -946,22 +942,12 @@ TODO:Selva - MResult.size() is missing
          del = new MDelete(rowID);
          if (timestamp != -1) 
             del.setTimestamp(timestamp);
-/*
-         byte[] family = null;
-         byte[] qualifier = null;
-
-         if (columnToCheck.length > 0) {
-            family = getFamily(columnToCheck);
-            qualifier = getName(columnToCheck);
-         }
-         
-*/
          boolean res = true;
 /*
          if (useTRex && (transID != 0)) 
-             res = table.checkAndDelete(transID, rowID, family, qualifier, colValToCheck, del);
+             res = table.checkAndDelete(transID, rowID, columnToCheck, colValToCheck, del);
           else 
-             res = table.checkAndDelete(rowID, family, qualifier, colValToCheck, del);
+             res = table.checkAndDelete(rowID, columnToCheck, colValToCheck, del);
 */
          table.delete(del);
          if (res == false)
@@ -980,8 +966,6 @@ TODO:Selva - MResult.size() is missing
       short numCols;
       short colNameLen;
       int colValueLen;
-      byte[] family = null;
-      byte[] qualifier = null;
       byte[] colName, colValue;
 
       bb = (ByteBuffer)row;
@@ -995,65 +979,55 @@ TODO:Selva - MResult.size() is missing
          colValue = new byte[colValueLen];
          bb.get(colValue, 0, colValueLen);
          put.addColumn(colName, colValue);
-/*
-         if (checkAndPut && colIndex == 0) {
-            family = getFamily(colName);
-            qualifier = getName(colName);
-         } 
-*/
       }
-/*
-      if (columnToCheck != null && columnToCheck.length > 0) {
-         family = getFamily(columnToCheck);
-         qualifier = getName(columnToCheck);
-      }
-      final byte[] family1 = family;
-      final byte[] qualifier1 = qualifier;
-*/
+
       if (asyncOperation) {
          future = executorService.submit(new Callable() {
             public Object call() throws Exception {
                boolean res = true;
-/*
                if (checkAndPut) {
-                      if (useTRex && (transID != 0)) 
+/*
+                  if (useTRex && (transID != 0)) 
                      res = table.checkAndPut(transID, rowID, 
-                        family1, qualifier1, colValToCheck, put);
-                      else 
+                          columnToCheck, colValToCheck, put);
+                  else 
                      res = table.checkAndPut(rowID, 
-                        family1, qualifier1, colValToCheck, put);
-               }
-               else {
-                      if (useTRex && (transID != 0)) 
-                     table.put(transID, put);
-                      else 
+                        columnToCheck, colValToCheck, put);
+*/
                      table.put(put);
                }
+               else {
+/*
+                  if (useTRex && (transID != 0)) 
+                     table.put(transID, put);
+                  else 
 */
-               table.put(put);
+                     table.put(put);
+               }
                return new Boolean(res);
             }
          });
          return true;
       } else {
-          boolean result = true;
-/*
+         boolean result = true;
          if (checkAndPut) {
-                if (useTRex && (transID != 0)) 
-               result = table.checkAndPut(transID, rowID, 
-                  family1, qualifier1, colValToCheck, put);
-               else 
+/*
+            if (useTRex && (transID != 0)) 
+                result = table.checkAndPut(transID, rowID, 
+                  columnToCheck, colValToCheck, put);
+            else 
                result = table.checkAndPut(rowID, 
-                  family1, qualifier1, colValToCheck, put);
+                  columnToCheck, colValToCheck, put);
+*/          table.put(put);
          }
          else {
-                if (useTRex && (transID != 0)) 
+/*
+            if (useTRex && (transID != 0)) 
                table.put(transID, put);
-                else 
-               table.put(put);
-         }
+            else 
 */
-         table.put(put);
+                table.put(put);
+         }
          return result;
       }   
    }

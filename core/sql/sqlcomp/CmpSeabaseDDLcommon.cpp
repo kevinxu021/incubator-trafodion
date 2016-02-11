@@ -2336,7 +2336,7 @@ short CmpSeabaseDDL::createMonarchTable(ExpHbaseInterface *ehi,
 
   short retcode = 0;
 
-//  retcode = ehi->exists(*table);
+  retcode = ehi->exists(*table);
   if (retcode == -1)
     {
       *CmpCommon::diags() << DgSqlCode(-1390)
