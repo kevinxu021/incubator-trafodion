@@ -12308,8 +12308,8 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
   ///////////////////////////////////////////////////
   // fetch uec and rowcount per interval from cbf. 
   ///////////////////////////////////////////////////
-  UInt64* sampledIntvlRCs = new(STMTHEAP) UInt64[numNonNullIntervals+1];
-  UInt64* sampledIntvlUECs = new(STMTHEAP) UInt64[numNonNullIntervals+1];
+  UInt64* sampledIntvlRCs = new(STMTHEAP) UInt64[cbf->numBuckets()];
+  UInt64* sampledIntvlUECs = new(STMTHEAP) UInt64[cbf->numBuckets()];
 
 
   HSLogMan *LM = HSLogMan::Instance();
