@@ -12076,12 +12076,18 @@ if ( x[0] == (unsigned char)255 && x[1] == (unsigned char)127 ) {
      LM->StartTimer(title);
   }
 
+  // An object to keep track of any new lowest and highest values so we
+  // can tweak interval boundaries if need be
+  HSHiLowValues<T> hiLowVal;
+
   insertFailCount = 0;
   valIter.init(insGroup);
   for (rowInx=1; rowInx<=numInsRows - insGroup->nullCount; rowInx++)
     {
       intervalIdx = findInterval(numNonNullIntervals, boundaryValues, valIter.val());
       if (intvlRC) intvlRC[intervalIdx]++;  // for logging
+
+      hiLowVal.findHiLowValues(valIter.val());
 
       CountingBloomFilter::INSERT_ENUM insert_status =
           cbf->insert((char*)valIter.dataRepPtr(), valIter.size(), intervalIdx, 
@@ -12148,6 +12154,59 @@ if ( x[0] == (unsigned char)255 && x[1] == (unsigned char)127 ) {
   retcode = estimateAndTestIUSStats(smplGroup, delGroup, insGroup,
                                     hist, cbf, numNonNullIntervals,
                                     scaleFactor, nullCount, intvlRC);
+
+  // If the adjusted histogram is judged worthy by estimateAndTestIUSStats, we next
+  // tweak the highest and lowest interval boundaries. If the sample data produced a
+  // value higher than the highest interval, we extend that interval's boundary to
+  // include it. Similarly on the low end. We don't attempt to shrink the intervals,
+  // though, if sample values were deleted. Instead we count on reversion to RUS
+  // if the rowcounts of those intervals get too small.
+  if ((retcode == 0) && (hiLowVal.seenAtLeastOneValue_))
+    {
+      T convertedBoundaryValue[1];  // a target for convertBoundaryOrMFVValue
+      
+      // highest interval -- the highest boundary is stored in 
+      // interval numNonNullIntervals
+  
+      // convert boundary to data type T
+      const HSDataBuffer & hiBoundary = hist->getIntBoundary(numNonNullIntervals);
+      convertBoundaryOrMFVValue(hiBoundary,
+                                smplGroup,
+                                0,
+                                convertedBoundaryValue,  
+                                format);
+          
+      if (hiLowVal.hiValue_ > convertedBoundaryValue[0])
+        {
+          // convert T back to what would be stored in the histogram
+          HSDataBuffer newHiBoundary;
+          Lng32 convertRC = setBufferValue(hiLowVal.hiValue_,
+                                           smplGroup,
+                                           newHiBoundary);
+          hist->setIntBoundary(numNonNullIntervals,newHiBoundary);
+        }
+
+      // lowest interval -- the low boundary is stored in interval 0
+      
+      // convert boundary to data type T
+      const HSDataBuffer & lowBoundary = hist->getIntBoundary(0);
+      convertBoundaryOrMFVValue(lowBoundary,
+                                smplGroup,
+                                0,
+                                convertedBoundaryValue,  
+                                format);
+          
+      if (hiLowVal.lowValue_ < convertedBoundaryValue[0])
+        {
+          // convert T back to what would be stored in the histogram
+          HSDataBuffer newLowBoundary;
+          Lng32 convertRC = setBufferValue(hiLowVal.lowValue_,
+                                           smplGroup,
+                                           newLowBoundary);
+          hist->setIntBoundary(0,newLowBoundary);
+        }
+    }
+
   if (intvlRC)
     NADELETEBASIC(intvlRC, STMTHEAP);
   return retcode;
