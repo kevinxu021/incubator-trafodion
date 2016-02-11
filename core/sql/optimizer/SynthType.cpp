@@ -5922,7 +5922,7 @@ const NAType *ItmLagOlapFunction::synthesizeType()
     const NAType &operand2 = child(1)->getValueId().getType();
 
     if (operand2.getTypeQualifier() != NA_NUMERIC_TYPE) {
-    // The second operand of an OFFSET function must be numeric.
+    // The second operand of a LAG function must be numeric.
     *CmpCommon::diags() << DgSqlCode(-4052) << DgString0(getTextUpper());
     return NULL;
     }
@@ -5930,10 +5930,8 @@ const NAType *ItmLagOlapFunction::synthesizeType()
 
  NAType *result = operand1.newCopy(HEAP);
 
- if (isOLAP())
- {
-   result->setNullable(TRUE);
- }
+ result->setNullable(TRUE);
+
  return result;
 }
 
@@ -6774,10 +6772,22 @@ const NAType *LOBextract::synthesizeType()
 
 const NAType * ItmLeadOlapFunction::synthesizeType()
 {
+    // check the type of the offset operand, if present
+    if (getArity() > 1)  {
+       const NAType &operand2 = child(1)->getValueId().getType();
+
+       if (operand2.getTypeQualifier() != NA_NUMERIC_TYPE) {
+         // The second operand of a LEAD function must be numeric.
+         *CmpCommon::diags() << DgSqlCode(-4052) << DgString0(getTextUpper());
+         return NULL;
+       }
+    }
+    
    // the type of the LEAD() is the type of the 1st argument.
    const NAType& operand = child(0)->castToItemExpr()->getValueId().getType();
    NAType* result = operand.newCopy(HEAP);
 
+   // LEAD can return NULL.
    result->setNullable(TRUE);
 
    return result;

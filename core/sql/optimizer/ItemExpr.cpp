@@ -15061,12 +15061,6 @@ ConstValue* ItemExpr::evaluate(CollHeap* heap)
   
 ItmLeadOlapFunction::~ItmLeadOlapFunction() {}
 
-  // methods for code generation
-//ItemExpr* ItmLeadOlapFunction::preCodeGen(Generator*)
-//{
-//   return NULL;
-//}
-
 ItemExpr * 
 ItmLeadOlapFunction::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 {
