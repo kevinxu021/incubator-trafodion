@@ -88,8 +88,7 @@ tupp_descriptor::tupp_descriptor()
 };
 
 
-#ifdef _DEBUG
-void tupp::print()
+void tupp::display()
 {
   char * dataPointer = getDataPointer();
   Lng32 keyLen = getAllocatedSize();
@@ -97,5 +96,4 @@ void tupp::print()
   printBrief(dataPointer, keyLen);
 
 }
-#endif 
 

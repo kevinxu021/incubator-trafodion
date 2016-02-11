@@ -97,11 +97,8 @@ NA_EIDPROC
 NA_EIDPROC
   NABoolean isAllocated(){return (tuppDescPointer ? TRUE : FALSE);};
 
-//#ifdef NA_DEBUG_TUPP
-#ifdef _DEBUG
 NA_EIDPROC
-  void print();
-#endif
+  void display();
 
 };
 
