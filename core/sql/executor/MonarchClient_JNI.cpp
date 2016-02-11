@@ -240,8 +240,10 @@ MC_RetCode MonarchClient_JNI::init()
 /*
     JavaMethods_[JM_DROP_ALL       ].jm_name      = "dropAll";
     JavaMethods_[JM_DROP_ALL       ].jm_signature = "(Ljava/lang/String;)Z";
+*/
     JavaMethods_[JM_LIST_ALL       ].jm_name      = "listAll";
     JavaMethods_[JM_LIST_ALL       ].jm_signature = "(Ljava/lang/String;)Lorg/trafodion/sql/ByteArrayList;";
+/*
     JavaMethods_[JM_GET_REGION_STATS       ].jm_name      = "getRegionStats";
     JavaMethods_[JM_GET_REGION_STATS       ].jm_signature = "(Ljava/lang/String;)Lorg/trafodion/sql/ByteArrayList;";
     JavaMethods_[JM_COPY       ].jm_name      = "copy";
@@ -1137,7 +1139,7 @@ MC_RetCode MonarchClient_JNI::dropAll(const char* pattern, bool async)
   jenv_->PopLocalFrame(NULL);
   return MC_OK;
 }
-
+*/
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
@@ -1181,19 +1183,19 @@ ByteArrayList* MonarchClient_JNI::listAll(const char* pattern)
     return NULL;
   }
 
-  ByteArrayList* hbaseTables = new (heap_) ByteArrayList(heap_, jByteArrayList);
+  ByteArrayList* mTables = new (heap_) ByteArrayList(heap_, jByteArrayList);
   jenv_->DeleteLocalRef(jByteArrayList);
-  if (hbaseTables->init() != BAL_OK)
+  if (mTables->init() != BAL_OK)
     {
-      NADELETE(hbaseTables, ByteArrayList, heap_);
+      NADELETE(mTables, ByteArrayList, heap_);
       jenv_->PopLocalFrame(NULL);
       return NULL;
     }
   
   jenv_->PopLocalFrame(NULL);
-  return hbaseTables;
+  return mTables;
 }
-
+/*
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////

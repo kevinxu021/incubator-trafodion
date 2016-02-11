@@ -438,7 +438,9 @@ public:
 /*
   MC_RetCode dropAll(const char* pattern, bool async);
   MC_RetCode copy(const char* currTblName, const char* oldTblName);
+*/
   ByteArrayList* listAll(const char* pattern);
+/*
   ByteArrayList* getRegionStats(const char* tblName);
   static MC_RetCode flushAllTablesStatic();
   MC_RetCode flushAllTables();
@@ -552,7 +554,7 @@ private:
    //,JM_ALTER
    ,JM_DROP
    // ,JM_DROP_ALL
-   //,JM_LIST_ALL
+   ,JM_LIST_ALL
    //,JM_GET_REGION_STATS
    //,JM_COPY
    ,JM_EXISTS

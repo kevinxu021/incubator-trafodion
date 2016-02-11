@@ -201,13 +201,13 @@ public class MonarchClient {
          mTable.close(clearRegionCache, cleanJniObject);          
        }
        mTableClientsPool.clear();
-    }
+   }
 
-    public boolean cleanup() throws IOException {
+   public boolean cleanup() throws IOException {
        cleanup(mTableClientsInUse);
        cleanup(mTableClientsFree);
        return true;
-    }
+   }
 
    public void cleanupCache(Collection mTableClients) throws IOException
     {
@@ -708,30 +708,22 @@ public class MonarchClient {
             admin.close();
             return cleanup();
     }
-
+*/
     public ByteArrayList listAll(String pattern) 
-             throws MasterNotRunningException, IOException {
+             throws IOException {
             if (logger.isDebugEnabled()) logger.debug("MonarchClient.listAll(" + pattern + ") called.");
-            HBaseAdmin admin = new HBaseAdmin(config);
 
-            ByteArrayList hbaseTables = new ByteArrayList();
+            ByteArrayList mTables = new ByteArrayList();
 
-	    MTableDescriptor[] htdl = 
-                (pattern.isEmpty() ? admin.listTables() : admin.listTables(pattern));
+            String[] mTableNames = admin.listTableNames();
 
-	    for (MTableDescriptor htd : htdl) {
-		String tblName = htd.getNameAsString();
-
-                byte[] b = tblName.getBytes();
-                hbaseTables.add(b);
-	    }
- 	    
-            admin.close();
-            cleanup();
-            
-            return hbaseTables;
+            for (int i = 0 ; i < mTableNames.length; i++) {
+                byte[] b = mTableNames[i].getBytes();
+                mTables.add(b);
+            }
+            return mTables;
     }
-
+/*
     public ByteArrayList getRegionStats(String tableName) 
              throws MasterNotRunningException, IOException {
             if (logger.isDebugEnabled()) logger.debug("MonarchClient.getRegionStats(" + tableName + ") called.");

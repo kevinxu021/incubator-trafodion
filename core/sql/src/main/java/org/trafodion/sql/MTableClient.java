@@ -47,16 +47,6 @@ import io.ampool.monarch.table.exceptions.*;
 import io.ampool.monarch.table.client.*;
 
 /*
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.client.coprocessor.AggregationClient;
 import org.apache.hadoop.hbase.client.transactional.RMInterface;
@@ -68,34 +58,6 @@ import org.apache.log4j.Logger;
 
 // H98 coprocessor needs
 import java.util.*;
-/*
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.client.coprocessor.*;
-import org.apache.hadoop.hbase.coprocessor.*;
-import org.apache.hadoop.hbase.ipc.*;
-import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos.*;
-import org.apache.hadoop.hbase.util.*;
-
-//import org.apache.hadoop.hbase.client.coprocessor.AggregationClient;
-import org.apache.hadoop.hbase.coprocessor.ColumnInterpreter;
-import org.apache.hadoop.hbase.client.coprocessor.LongColumnInterpreter;
-
-// classes to do column value filtering
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
-import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
-import org.apache.hadoop.hbase.filter.FilterList;
-import org.apache.hadoop.hbase.filter.RandomRowFilter;
-
-import org.apache.hadoop.hbase.client.TableSnapshotScanner;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FileUtil;
-*/
 import java.util.UUID;
 import java.security.InvalidParameterException;
 
@@ -123,7 +85,6 @@ public class MTableClient {
    byte[][] rowIDs = null;
    long[] cellsTimestamp = null;
    int[] cellsPerRow = null;
-   //byte[][] cellsValue = null;
    byte[][] cellsName = null;
    byte[][] rowKeys = null;
    byte[] rowKey = null;
@@ -518,13 +479,11 @@ public class MTableClient {
          
       MResult getResult;
 /*
-      if (useTRex && (transID != 0)) {
+      if (useTRex && (transID != 0)) 
          getResult = table.get(transID, get);
-      } else {
-         getResult = table.get(get);
-      }
+       else 
 */
-      getResult = table.get(get);
+         getResult = table.get(get);
       if (getResult == null ) {
          setJavaObject(jniObject);
          return 0;
@@ -578,7 +537,7 @@ public class MTableClient {
 /*
       if (useTRex && (transID != 0)) {
          getResultSet = batchGet(transID, listOfGets);
-                        fetchType = GET_ROW; 
+         fetchType = BATCH_GET; 
       } else 
 */
       {
@@ -635,7 +594,7 @@ public class MTableClient {
 /*
       if (useTRex && (transID != 0)) {
          getResultSet = batchGet(transID, listOfGets);
-                        fetchType = GET_ROW; 
+         fetchType = BATCH_GET; 
       } else
 */
       {
@@ -691,7 +650,7 @@ public class MTableClient {
       if (result == null || result.length == 0)
          return 0; 
       int rowsReturned = result.length;
- // This FOR loop should be removed when ampool fixes the result size issue
+ // This FOR loop should be removed when ampool fixes the result array length issue
       for (int rowNum = 0; rowNum < result.length ; rowNum++) {
           if (result[rowNum] == null) {
               rowsReturned = rowNum;
@@ -715,7 +674,6 @@ public class MTableClient {
       if (cellsValBuffer == null ||
           (cellsValBuffer != null && numTotalCells > cellsValBuffer.length))
       {
-         //cellsValue = new byte[numTotalCells][];
          cellsValBuffer = new byte[numTotalCells][];
          cellsName = new byte[numTotalCells][];
          cellsValLen = new int[numTotalCells];
@@ -744,8 +702,7 @@ public class MTableClient {
             cellsValLen[cellNum] = cell.getValueLength();
             cellsValOffset[cellNum] = cell.getValueOffset();
             cellsName[cellNum] = cell.getColumnName();
-            cellsTimestamp[cellNum] = -1;
-            //cellsTimestamp[cellNum] = cell.getTimestamp();
+            cellsTimestamp[cellNum] = result[rowNum].getRowTimeStamp();
             colFound = true;
          }
       }
@@ -765,11 +722,10 @@ public class MTableClient {
          throws IOException {
       int rowsReturned = 1;
       int numTotalCells;
-/*
+
       if (numColsInScan == 0)
          numTotalCells = result.size();
       else
-*/
       // There can be maximum of 2 versions per kv
       // So, allocate place holder to keep cell info
       // for that many KVs
@@ -810,8 +766,7 @@ public class MTableClient {
          cellsValLen[colNum] = cell.getValueLength();
          cellsValOffset[colNum] = cell.getValueOffset();
          cellsName[colNum] = cell.getColumnName();
-         cellsTimestamp[colNum] = -1;
-         //cellsTimestamp[colNum] = cell.getTimestamp();
+         cellsTimestamp[colNum] = result.getRowTimeStamp();
       }
       if (numColsReturned == 0)
          setResultInfo(jniObject, null, null, null, null, null, rowKeys, cellsPerRow, numColsReturned, rowsReturned);
@@ -1124,8 +1079,8 @@ public class MTableClient {
       }
       try {         
          Boolean result = (Boolean)future.get(timeout, TimeUnit.MILLISECONDS);
-                        // Need to enhance to return the result 
-                        // for each Put object
+         // Need to enhance to return the result 
+         // for each Put object
          for (int i = 0; i < resultArray.length; i++)
              resultArray[i] = result.booleanValue();
          future = null;
@@ -1224,23 +1179,25 @@ public class MTableClient {
 /*
       if (table != null)
          table.flushCommits();
+*/
       if (scanner != null) {
          scanner.close();
          scanner = null;
       }
+/*
       if (snapHelper !=null) {
          snapHelper.release();
          snapHelper = null;
       }
-      cleanScan();      
 */
+      cleanScan();      
       getResultSet = null;
       if (cleanJniObject) {
          if (jniObject != 0)
             cleanup(jniObject);
          tableName = null;
       }
-      //scanHelper = null;
+      scanHelper = null;
       jniObject = 0;
       return retcode;
    }
@@ -1303,25 +1260,22 @@ public class MTableClient {
         if (logger.isTraceEnabled()) logger.trace("Exit getStartKeys(), result size: " + result.getSize());
         return result;
     }
-
+*/
     private void cleanScan()
     {
         if (fetchType == GET_ROW || fetchType == BATCH_GET)
            return;
         numRowsCached = 1;
         numColsInScan = 0;
-        kvValLen = null;
-        kvValOffset = null;
-        kvQualLen = null;
-        kvQualOffset = null;
-        kvFamLen = null;
-        kvFamOffset = null;
-        kvTimestamp = null;
-        kvBuffer = null;
+        cellsValLen = null;
+        cellsValOffset = null;
+        cellsValBuffer = null;
+        cellsTimestamp = null;
+        cellsPerRow = null;
+        cellsName = null;
         rowIDs = null;
-        kvsPerRow = null;
     }
-*/
+
     protected void setJniObject(long inJniObject) {
        jniObject = inJniObject;
     }    
