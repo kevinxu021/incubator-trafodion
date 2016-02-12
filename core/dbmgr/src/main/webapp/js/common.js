@@ -745,6 +745,45 @@ define(['moment',
 				});
 				return st;
 			};
+
+			this.showTooltip = function(x, y, contents, tooltipId) {
+				var tipId = 'tooltip';
+				if (tooltipId != null && tooltipId != undefined) {
+					tipId = tooltipId;
+				}
+
+				var tip = $('<div id="' + tipId + '" class="tooltip-inner">' + contents + '</div>');
+				$('body').append(tip);
+				var tipWidth = tip.outerWidth() + 20,
+				tipHeight = tip.outerHeight();
+				var tipStyle = {
+						width: tipWidth + 'px',
+						position : 'absolute',
+						display : "none",
+						top : y - tipHeight - 10,
+						left : x,
+						border : "1px solid #000",
+						"font-size": "13px",
+						padding : "5px 2px"
+
+				};
+				this.showTooltipStyle(tipStyle, tip);
+			};
+
+			this.showTooltipStyle = function(tipStyle, tip) {
+				if (tipStyle.top < 0) {
+
+					if ((tipStyle.left + tip.outerWidth()) > $(window).width()) {
+						tipStyle.left = $(window).width() - tip.outerWidth();
+					}
+				} else {
+					// keep it above
+					if ((tipStyle.left + tip.outerWidth()) > $(window).width()) {
+						tipStyle.left = $(window).width() - tip.outerWidth();
+					}
+				}
+				tip.css(tipStyle).fadeIn(50);
+			};
 		}
 		return new Common();
 	})();

@@ -1,7 +1,8 @@
 {
-"ignoredDependencies": [
-  	"datatables",
-	  	"datatables-responsive",
-		  	"datatables-plugins"
-			  ]
-			  }
+    "ignoredDependencies": [
+        "datatables",
+        "datatables-responsive",
+        "datatables-plugins",
+        "morrisjs"
+    ]
+}
