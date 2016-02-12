@@ -124,7 +124,6 @@ define([
 	
 	var switchView = function(view, args) {
 		
-		topOffset = 50;
 		$('#side-menu').metisMenu();
 		
 		if (currentView && (currentView != view || currentView == schemasView)) {

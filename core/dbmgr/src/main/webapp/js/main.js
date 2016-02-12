@@ -1,8 +1,8 @@
-// @@@ START COPYRIGHT @@@
-//
-// (C) Copyright 2016 Esgyn Corporation
-//
-// @@@ END COPYRIGHT @@@
+//@@@ START COPYRIGHT @@@
+
+//(C) Copyright 2016 Esgyn Corporation
+
+//@@@ END COPYRIGHT @@@
 
 require.config({
 	packages: [{
@@ -43,14 +43,6 @@ require.config({
 		underscore: {
 			exports: '_'
 		},
-		morris: {
-			deps: ['jquery', 'raphael'],
-			exports: 'Morris'
-		},
-		raphael: {
-			deps: ['jquery'],
-			exports: 'Raphael'
-		},
 		metismenu: {
 			deps: ['jquery']
 		},
@@ -76,14 +68,30 @@ require.config({
 			deps: ['morris']
 		},
 		pdfMakeLib :
-        {           
-            exports: 'pdfmake'
-        },
-        pdfmake : 
-        {
-            deps: ['pdfMakeLib'],
-            exports: 'pdfmake'
-        }
+		{           
+			exports: 'pdfmake'
+		},
+		pdfmake : 
+		{
+			deps: ['pdfMakeLib'],
+			exports: 'pdfmake'
+		},
+		flot : {
+			deps : ['jquery'],
+			exports: 'flot'
+		},
+		flottime : {
+			deps : ['flot'],
+			exports: 'flottime'
+		},
+		flotcanvas : {
+			deps : ['flot'],
+			exports: 'flotcanvas'
+		},
+		flotcrosshair : {
+			deps : ['flot'],
+			exports: 'flotcrosshair'
+		}
 	},
 	paths: {
 		sbadmin2:'../bower_components/startbootstrap-sb-admin-2/dist/js/sb-admin-2',
@@ -96,8 +104,6 @@ require.config({
 		jqueryui: '../bower_components/jquery-ui/jquery-ui.min',
 		underscore: '../bower_components/underscore/underscore-min',
 		backbone: '../bower_components/backbone/backbone-min',
-		morris: '../bower_components/morrisjs/morris.min',
-		raphael: '../bower_components/raphael/raphael-min',
 		templates: '../templates',
 		metismenu: '../bower_components/metisMenu/dist/metisMenu',
 		jit: '../bower_components/jit/Jit/jit',
@@ -115,7 +121,11 @@ require.config({
 		momenttimezone: '../bower_components/moment-timezone/builds/moment-timezone-with-data.min',
 		datetimepicker: '../bower_components/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min',
 		pdfmake: '../bower_components/pdfmake/build/vfs_fonts',
-		pdfMakeLib: '../bower_components/pdfmake/build/pdfmake.min'
+		pdfMakeLib: '../bower_components/pdfmake/build/pdfmake.min',
+		flot: '../bower_components/flot/jquery.flot',
+		flottime: '../bower_components/flot/jquery.flot.time',
+		flotcanvas: '../bower_components/flot/jquery.flot.canvas',
+		flotcrosshair: '../bower_components/flot/jquery.flot.crosshair',
 	}
 
 });
