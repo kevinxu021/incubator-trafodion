@@ -1604,6 +1604,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
   ComObjectName                 *comObjectName;
   ComObjectType                 objectTypeEnum;
   ComPartitioningScheme         partitionType;
+  ComStorageType                storageTypeEnum;
   ComParamDirection             routineParamMode;
   ComRoutineExecutionMode       routineExecutionMode;
   ComRoutinePassThroughInputType passThroughInputType;
@@ -2645,6 +2646,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <pElemDDL>  		file_attribute_default_col_fam
 %type <pElemDDL>                file_attribute_str_clause
 %type <pElemDDL>                file_attribute_storage_clause
+%type <storageTypeEnum>         storage_type
 %type <pElemDDL>  		file_attribute_pos_clause
 %type <pElemDDL>                attribute_num_rows_clause
 %type <pElemDDL>                attribute_inmemory_options_clause
@@ -15499,13 +15501,15 @@ exe_util_get_metadata_info :
             delete $6; // component_name
             delete $7; // user_name
           }
-       | TOK_GET get_info_aus_clause TOK_HBASE TOK_OBJECTS
+       | TOK_GET get_info_aus_clause storage_type TOK_OBJECTS
          {
            NAString ausStr(*$2);
            if (*$2 == "NONE")
              ausStr = "USER";
 
-           NAString infoType("HBASE_OBJECTS");
+           NAString infoType =  (($3 == COM_STORAGE_MONARCH) ? 
+           "MONARCH_OBJECTS" : "HBASE_OBJECTS");
+            
            NAString iofStr;
            NAString objectType;
            CorrName objectName("DUMMY");
@@ -15527,13 +15531,14 @@ exe_util_get_metadata_info :
 
            $$ = gmi;
          }
-       | TOK_GET get_info_aus_clause TOK_HBASE TOK_OBJECTS ',' TOK_MATCH QUOTED_STRING
+       | TOK_GET get_info_aus_clause storage_type TOK_OBJECTS ',' TOK_MATCH QUOTED_STRING
          {
            NAString ausStr(*$2);
            if (*$2 == "NONE")
              ausStr = "USER";
 
-           NAString infoType("HBASE_OBJECTS");
+           NAString infoType =  (($3 == COM_STORAGE_MONARCH) ? 
+           "MONARCH_OBJECTS" : "HBASE_OBJECTS");
            NAString iofStr;
            NAString objectType;
            CorrName objectName("DUMMY");
@@ -26561,16 +26566,20 @@ file_attribute_str_clause : TOK_SYNCHRONOUS TOK_REPLICATION
                               }
 
 /* type pElemDDL */
-file_attribute_storage_clause : TOK_STORAGE TOK_MONARCH
+file_attribute_storage_clause : TOK_STORAGE storage_type
                               {
                                 $$ = new (PARSERHEAP()) 
-                                  ElemDDLFileAttrStorageType(COM_STORAGE_MONARCH);
+                                  ElemDDLFileAttrStorageType($2);
                               }
-                          | TOK_STORAGE TOK_HBASE
-                              {
-                                $$ = new (PARSERHEAP()) 
-                                  ElemDDLFileAttrStorageType(COM_STORAGE_HBASE);
-                              }
+
+storage_type                 : TOK_MONARCH
+                             {
+                                $$ = COM_STORAGE_MONARCH;
+                             }
+                             | TOK_HBASE
+                             {
+                                $$ = COM_STORAGE_HBASE;
+                             }
 
 /* type pElemDDL */
 attribute_inmemory_options_clause : 

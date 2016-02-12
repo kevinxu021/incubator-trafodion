@@ -99,7 +99,8 @@ ex_tcb * ExExeUtilGetMetadataInfoTdb::build(ex_globals * glob)
   else if (getVersion())
     exe_util_tcb =
       new(glob->getSpace()) ExExeUtilGetMetadataInfoVersionTcb(*this, glob);
-  else if (queryType() == ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_)
+  else if (queryType() == ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ ||
+              queryType() == ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_)
     exe_util_tcb =
       new(glob->getSpace()) ExExeUtilGetHbaseObjectsTcb(*this, glob);
   else
@@ -3013,11 +3014,18 @@ ExExeUtilGetHbaseObjectsTcb::ExExeUtilGetHbaseObjectsTcb(
 {
   int jniDebugPort = 0;
   int jniDebugTimeout = 0;
+  ComStorageType storageType;
+
+  if (((ComTdbExeUtilGetMetadataInfo *)getTdb())->queryType() ==
+             ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_)
+     storageType = COM_STORAGE_MONARCH;
+  else
+     storageType = COM_STORAGE_HBASE;
   ehi_ = ExpHbaseInterface::newInstance(glob->getDefaultHeap(),
 					(char*)exe_util_tdb.server(), 
 					(char*)exe_util_tdb.zkPort(),
-                                        ((ComTdbHbaseAccess *)getTdb())->getStorageType(),
-                                        ((ComTdbHbaseAccess *)getTdb())->replSync(),
+                                        storageType,
+                                        FALSE, //replSync
                                         jniDebugPort,
                                         jniDebugTimeout);
 

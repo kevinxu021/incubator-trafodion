@@ -3060,7 +3060,7 @@ short CmpDescribeSeabaseTable (
             {
               strcat(attrs, "DEFAULT COLUMN FAMILY '");
               strcat(attrs, naTable->defaultColFam());
-              strcat(attrs, "'");
+              strcat(attrs, "' ");
             }
           outputShortLine(space, attrs);
 
@@ -3069,7 +3069,6 @@ short CmpDescribeSeabaseTable (
 
       if (xnRepl != COM_REPL_NONE)
         {
-          strcpy(attrs, "  ");
           if (NOT attributesSet)
             {
               strcpy(attrs, " ATTRIBUTES ");
@@ -3084,6 +3083,14 @@ short CmpDescribeSeabaseTable (
           outputShortLine(space, attrs);
         }
 
+      if (storageType == COM_STORAGE_MONARCH) {
+         if (NOT attributesSet) {
+            strcpy(attrs, " ATTRIBUTES ");
+            attributesSet = TRUE;
+         }
+         strcat(attrs, "STORAGE MONARCH ");
+         outputShortLine(space, attrs);
+      }
       if (!isView && (naTable->hbaseCreateOptions()) &&
           (naTable->hbaseCreateOptions()->entries() > 0))
         {

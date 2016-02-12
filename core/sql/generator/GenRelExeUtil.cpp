@@ -1780,7 +1780,8 @@ short ExeUtilGetMetadataInfo::codeGen(Generator * generator)
     {  "USER",   "HBASE_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ },
     {  "ALL",   "HBASE_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ },
     {  "SYSTEM",   "HBASE_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ },
-    {  "EXTERNAL",   "HBASE_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ }
+    {  "EXTERNAL",   "HBASE_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ },
+    {  "ALL",   "MONARCH_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_ }
 
 //==================================================================================================================================
    // AUSStr   InfoType     IOFStr   ObjectType  Version MaxParts  GroupBy OrderBy QueryType
@@ -2068,8 +2069,15 @@ short ExeUtilGetMetadataInfo::codeGen(Generator * generator)
       strcpy(param1, param1_.data());
     }
 
-  NAString serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
-  NAString zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  NAString serverNAS;
+  NAString zkPortNAS;
+  if (queryType == ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_) {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_ADDRESS);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_PORT);
+  } else {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  }
   char * server = space->allocateAlignedSpace(serverNAS.length() + 1);
   strcpy(server, serverNAS.data());
   char * zkPort = space->allocateAlignedSpace(zkPortNAS.length() + 1);
@@ -2142,7 +2150,8 @@ short ExeUtilGetMetadataInfo::codeGen(Generator * generator)
     gm_exe_util_tdb->setSystemObjs(TRUE);
   else if (ausStr == "ALL")
     gm_exe_util_tdb->setAllObjs(TRUE);
-  else if ((queryType == ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_) &&
+  else if ((queryType == ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ || 
+             queryType == ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_) &&
            (ausStr == "EXTERNAL"))
     gm_exe_util_tdb->setExternalObjs(TRUE);
   gm_exe_util_tdb->setGetVersion(getVersion_);
@@ -2163,7 +2172,9 @@ short ExeUtilGetMetadataInfo::codeGen(Generator * generator)
       if (orderBy)
 	gm_exe_util_tdb->setOrderBy(TRUE);
 	}
-
+  if (queryType == ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_) {
+     
+  }
   generator->initTdbFields(exe_util_tdb);
 
   if(!generator->explainDisabled()) {
