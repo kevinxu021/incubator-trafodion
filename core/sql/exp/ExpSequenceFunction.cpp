@@ -270,7 +270,18 @@ ex_expr::exp_return_type ExpSequenceFunction::eval(char *op_data[],
           srcVC = row + attrs[1]->getVCLenIndOffset();
         if(attrs[1]->getNullFlag())
           srcNull = row + attrs[1]->getNullIndOffset();
-      }
+      } else {
+         if(getNumOperands() == 4) {
+
+            srcData = op_data[3];
+
+            if(attrs[3]->getVCIndicatorLength() > 0)
+               srcVC = srcData + attrs[1]->getVCLenIndOffset();
+
+            if(attrs[1]->getNullFlag())
+               srcNull = srcData + attrs[1]->getNullIndOffset();
+         }
+     }
   }
 
   // Is the source null? There are two reaons the source data can be null:
@@ -287,10 +298,10 @@ ex_expr::exp_return_type ExpSequenceFunction::eval(char *op_data[],
   char *dstNull = op_data[-2 * MAX_OPERANDS + 0];
   char *dstVC   = op_data[- MAX_OPERANDS];
 
-  if (rc == -3)
+  if (rc == -3 && !srcData )
   {
-    *((unsigned short*)dstNull) = 0xFFFFU;
-    return ex_expr::EXPR_OK;
+     *((unsigned short*)dstNull) = 0xFFFFU;
+     return ex_expr::EXPR_OK;
   }
   // Copy the source data to the destination data.
   //

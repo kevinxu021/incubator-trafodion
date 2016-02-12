@@ -7701,6 +7701,16 @@ olap_sequence_function : set_function_specification TOK_OVER '('
                           
                           SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
                         }
+                       | TOK_LEAD '(' value_expression ',' value_expression ',' value_expression ')' TOK_OVER '('
+                         opt_olap_part_clause opt_olap_order_clause ')'
+                        { 
+                          ItmLeadOlapFunction* leadExpr = 
+                                       new (PARSERHEAP()) ItmLeadOlapFunction($3, $5, $7);
+                          leadExpr->setOLAPInfo($11, $12);
+                          $$=leadExpr;
+                          
+                          SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                        }
 // end of OLAP LEAD function()
                        |TOK_LAG '(' value_expression ','  value_expression ')'  TOK_OVER '('
                          opt_olap_part_clause

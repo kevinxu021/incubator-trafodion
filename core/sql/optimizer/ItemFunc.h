@@ -4605,8 +4605,8 @@ public:
 class ItmSeqOlapFunction : public ItmSequenceFunction
 {
 public:
-  ItmSeqOlapFunction(OperatorTypeEnum itemType, ItemExpr *val1Ptr, ItemExpr *val2Ptr = NULL): 
-        ItmSequenceFunction(itemType, val1Ptr, val2Ptr),
+  ItmSeqOlapFunction(OperatorTypeEnum itemType, ItemExpr *val1Ptr, ItemExpr *val2Ptr = NULL, ItemExpr *val3Ptr = NULL): 
+        ItmSequenceFunction(itemType, val1Ptr, val2Ptr, val3Ptr),
         frameStart_(0),
         frameEnd_(0)
         {  }
@@ -4722,8 +4722,8 @@ private:
 class ItmLeadOlapFunction: public ItmSeqOlapFunction 
 {
 public:
-  ItmLeadOlapFunction(ItemExpr *valPtr, ItemExpr* offsetExpr = NULL): 
-        ItmSeqOlapFunction(ITM_OLAP_LEAD, valPtr, offsetExpr),
+  ItmLeadOlapFunction(ItemExpr *valPtr, ItemExpr* offsetExpr = NULL, ItemExpr* defaultValue = NULL): 
+        ItmSeqOlapFunction(ITM_OLAP_LEAD, valPtr, offsetExpr, defaultValue),
         offset_(-1)
         { }
 
@@ -4734,9 +4734,6 @@ public:
 
   // virtual destructor
   virtual ~ItmLeadOlapFunction();
-
-  // a virtual function for performing name binding within the query tree
-  //virtual ItemExpr * bindNode(BindWA *bindWA);
 
   // methods for code generation
   virtual ItemExpr *preCodeGen(Generator*);  //transfomr into running seq functions

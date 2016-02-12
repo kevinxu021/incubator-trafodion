@@ -6776,8 +6776,16 @@ const NAType * ItmLeadOlapFunction::synthesizeType()
    if (getArity() > 1)  {
       const NAType &operand2 = child(1)->getValueId().getType();
 
-      if (operand2.getTypeQualifier() != NA_INTERVAL_TYPE) {
+      NABoolean isInteger = FALSE;
+      if (operand2.getTypeQualifier() == NA_NUMERIC_TYPE ) {
+
+         const NumericType& nt = (NumericType&)operand2;
+         if ( nt.isInteger() ) 
+           isInteger = TRUE;
+      }
+            
          // The second operand of a LEAD function must be of integer type.
+     if ( !isInteger ) {
          *CmpCommon::diags() << DgSqlCode(-4140) << DgString0(getTextUpper());
          return NULL;
      }
@@ -6818,6 +6826,35 @@ const NAType * ItmLeadOlapFunction::synthesizeType()
         *CmpCommon::diags() << DgSqlCode(-4249) << DgString0("LEAD");
         return NULL;
      }
+   }
+
+   // check the default expression which should have the same type as the
+   // child(0).
+   if (getArity() > 2)  {
+      const NAType& typeForOp0 = child(0)->castToItemExpr()->getValueId().getType();
+      const NAType& typeForDefault = child(2)->castToItemExpr()->getValueId().getType();
+
+      UInt32 flags =
+          ((CmpCommon::getDefault(LIMIT_MAX_NUMERIC_PRECISION) == DF_ON)
+            ? NAType::LIMIT_MAX_NUMERIC_PRECISION : 0);
+
+      if ( !(typeForOp0 == typeForDefault) ) {
+         const NAType* resultType = typeForOp0.synthesizeType(SYNTH_RULE_ADD,
+                                       typeForOp0,
+                                       typeForDefault,
+                                       HEAP, &flags);
+
+         if ( !resultType ) {
+            *CmpCommon::diags() << DgSqlCode(-4141) << DgString0("LEAD");
+            return NULL;
+         }
+
+         // Set the null attribute of the default value to TRUE.
+         NAType* newType = typeForDefault.newCopy(HEAP);
+         newType->setNullable(TRUE);
+         ValueId vid2 = child(2)->castToItemExpr()->getValueId();
+         vid2.changeType(newType);
+      }
    }
     
    // the type of the LEAD() is the type of the 1st argument.
