@@ -241,6 +241,11 @@ namespace EsgynDB.Data
 
                     this.Reset(); // reset the command so it can be reused
                 }
+                else if (this._conn.Network != this._network)
+                {
+                    this._network = this._conn.Network; // switch the network layer to use
+                    this.Label = this._conn.GenerateStatementLabel();
+                }
             }
         }
 
