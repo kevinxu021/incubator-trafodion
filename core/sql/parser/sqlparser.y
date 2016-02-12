@@ -7712,6 +7712,18 @@ olap_sequence_function : set_function_specification TOK_OVER '('
                           SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
                         }
 // end of OLAP LEAD function()
+// start of OLAP LAG function()
+                       |TOK_LAG '(' value_expression ','  value_expression ','  value_expression ')'  TOK_OVER '('
+                         opt_olap_part_clause
+                         opt_olap_order_clause ')'
+                         {
+                             //3rd value_expression is default value    
+                              ItmLagOlapFunction* lagExpr =
+                                                       new (PARSERHEAP()) ItmLagOlapFunction($3, $5, $7);
+                             lagExpr->setOLAPInfo($11, $12);
+                             $$=lagExpr;
+                             SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                         }
                        |TOK_LAG '(' value_expression ','  value_expression ')'  TOK_OVER '('
                          opt_olap_part_clause
                          opt_olap_order_clause ')'
@@ -7722,6 +7734,21 @@ olap_sequence_function : set_function_specification TOK_OVER '('
                              $$=lagExpr;
                              SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
                          }
+                       |TOK_LAG '(' value_expression  ')'  TOK_OVER '('
+                          opt_olap_part_clause
+                          opt_olap_order_clause ')'
+                          {    
+                               //default offset is 1;
+                               NAString * defaultOffset = new (PARSERHEAP()) NAString("1");
+                               ItemExpr * offsetExpr = literalOfNumericNoScale(defaultOffset);
+                               if (!offsetExpr) YYERROR;   
+                               ItmLagOlapFunction* lagExpr =
+                                                        new (PARSERHEAP()) ItmLagOlapFunction($3, offsetExpr);
+                              lagExpr->setOLAPInfo($7, $8);
+                              $$=lagExpr;
+                              SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                          }
+// end of OLAP LAG function()
 
 
 opt_olap_part_clause   : empty

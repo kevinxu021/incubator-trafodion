@@ -4850,16 +4850,12 @@ private:
 class ItmLagOlapFunction: public ItmSeqOlapFunction 
 {
 public:
-  ItmLagOlapFunction(ItemExpr *val1Ptr, ItemExpr *offsetExpr)
-         : ItmSeqOlapFunction(ITM_OLAP_LAG, val1Ptr, offsetExpr)
-         , offset_(-1)
+  ItmLagOlapFunction(ItemExpr *seqColumn, ItemExpr *offsetExpr, ItemExpr* defaultValue = NULL)
+         : ItmSeqOlapFunction(ITM_OLAP_LAG, seqColumn, offsetExpr, defaultValue)
          {}
 
   // virtual destructor
   virtual ~ItmLagOlapFunction(){}
-  
-  // a virtual function for performing name binding within the query tree
-  virtual ItemExpr * bindNode(BindWA *bindWA);
 
   // methods to do code generation
   virtual ItemExpr *preCodeGen(Generator*);
@@ -4868,23 +4864,19 @@ public:
   // a virtual function for type propagating the node
   virtual const NAType * synthesizeType();
   
+  virtual ItemExpr * copyTopNode(ItemExpr *derivedNode = NULL, CollHeap* outHeap = 0);
+  
   void transformNode(NormWA & normWARef,
                 ExprValueId & locationOfPointerToMe,
                 ExprGroupId & introduceSemiJoinHere,
                 const ValueIdSet & externalInputs);
 	
   virtual  NABoolean isOlapFunction() const { return TRUE; }
-  
-  Int32  getOffset() { return offset_; }
-  void setOffset(Int32 x) { offset_ = x; }
 
   ItemExpr * transformOlapFunction(CollHeap *heap) { return this; }
 
   // get a printable string that identifies the operator
   virtual const NAString getText() const    { return "LAG"; };
-  
-private:
-  Int32 offset_;
 } ;
 
 

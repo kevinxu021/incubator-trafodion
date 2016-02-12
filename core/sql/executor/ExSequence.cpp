@@ -52,6 +52,10 @@ char *GetHistoryRowOLAP(void *data, Int32 n,
                         NABoolean leading, Lng32 winSize, Int32 &retcode)
 {
   ExSequenceTcb *tcb = (ExSequenceTcb*)data;
+  
+  //flip the sign of n for now. same as GetHistoryRowFollowingOLAP
+  if ( n < 0 )
+    n = -n;
 
   retcode = 0;
   if(!leading)
