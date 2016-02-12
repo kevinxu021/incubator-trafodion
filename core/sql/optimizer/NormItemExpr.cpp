@@ -4703,7 +4703,23 @@ void ItmLagOlapFunction::transformNode(NormWA & normWARef,
   ItemExpr::transformNode(normWARef, locationOfPointerToMe,
                           introduceSemiJoinHere, externalInputs);
 
-} // ItmSeqOffset::transformNode()
+} // ItmLagOlapFunction::transformNode()
+
+void ItmLeadOlapFunction::transformNode(NormWA & normWARef,
+                                 ExprValueId & locationOfPointerToMe,
+                                 ExprGroupId & introduceSemiJoinHere,
+                                 const ValueIdSet & externalInputs)
+{
+  if (nodeIsTransformed())
+    {
+      locationOfPointerToMe = getReplacementExpr();
+      return;
+    }
+
+  ItemExpr::transformNode(normWARef, locationOfPointerToMe,
+                          introduceSemiJoinHere, externalInputs);
+
+} // ItmLeadOlapFunction::transformNode()
 
 // ***********************************************************************
 // $$$$ ItmSeqDiff1

@@ -6607,14 +6607,14 @@ void ValueIdSet::findAllOpType(OperatorTypeEnum type, ValueIdSet & result) const
     }
 }
 
-void ValueIdSet::findAllChildren(ValueIdSet & result, Int32 num) const
+void ValueIdSet::findAllChildren(ValueIdSet & result) const
 {   
     for(ValueId valId = init(); next(valId); advance(valId)) {
       
       ItemExpr *itmExpr = valId.getItemExpr();
 
-      if ( itmExpr->getArity() == num )
-         result += itmExpr->child(0).getValueId();
+      for ( Lng32 i = 0; i < itmExpr->getArity(); i++ )
+         result += itmExpr->child(i).getValueId();
     }
 }
 

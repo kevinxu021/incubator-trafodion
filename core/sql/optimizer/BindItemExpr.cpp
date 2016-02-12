@@ -13122,3 +13122,4 @@ NABoolean RowNumFunc::canBeUsedInGBorOB(NABoolean setErr)
 
   return FALSE;
 }
+

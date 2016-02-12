@@ -4723,14 +4723,12 @@ class ItmLeadOlapFunction: public ItmSeqOlapFunction
 {
 public:
   ItmLeadOlapFunction(ItemExpr *valPtr, ItemExpr* offsetExpr = NULL): 
-        ItmSeqOlapFunction(ITM_OLAP_LEAD, valPtr),
-        offsetExpr_(offsetExpr),
+        ItmSeqOlapFunction(ITM_OLAP_LEAD, valPtr, offsetExpr),
         offset_(-1)
         { }
 
   ItmLeadOlapFunction(ItemExpr *valPtr, Int32 offset): 
         ItmSeqOlapFunction(ITM_OLAP_LEAD, valPtr),
-        offsetExpr_(NULL),
         offset_(offset)
         { }
 
@@ -4738,7 +4736,7 @@ public:
   virtual ~ItmLeadOlapFunction();
 
   // a virtual function for performing name binding within the query tree
-  virtual ItemExpr * bindNode(BindWA *bindWA);
+  //virtual ItemExpr * bindNode(BindWA *bindWA);
 
   // methods for code generation
   virtual ItemExpr *preCodeGen(Generator*);  //transfomr into running seq functions
@@ -4752,15 +4750,17 @@ public:
   // a virtual function for type propagating the node
   virtual const NAType * synthesizeType();
 
-
   virtual  NABoolean isOlapFunction() const { return TRUE; } ;  // virtual method
-
-  ItemExpr* getOffsetExpr() { return offsetExpr_; };
 
   Int32  getOffset() { return offset_; };
   void setOffset(Int32 x) { offset_ = x; };
 
   ItemExpr* transformOlapFunction(CollHeap *wHeap);
+
+  void transformNode(NormWA & normWARef, 
+                     ExprValueId & locationOfPointerToMe,
+                     ExprGroupId & introduceSemiJoinHere, 
+                     const ValueIdSet & externalInputs);
 
   // get a printable string that identifies the operator
   virtual const NAString getText() const
@@ -4768,7 +4768,6 @@ public:
 
 private:
 
-   ItemExpr* offsetExpr_;
    Int32 offset_;
 } ;
 

@@ -895,7 +895,7 @@ PhysSequence::codeGen(Generator *generator)
   ValueIdSet leadFuncChildren;
 
   readSeqFunctions().findAllOpType(ITM_OLAP_LEAD, leadFuncs);
-  leadFuncs.findAllChildren(leadFuncChildren, 1);
+  leadFuncs.findAllChildren(leadFuncChildren);
   readSeqFunctions() -= leadFuncs;
   readSeqFunctions() += leadFuncChildren;
 

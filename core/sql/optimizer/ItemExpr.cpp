@@ -15068,8 +15068,16 @@ ItmLeadOlapFunction::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 
   if (derivedNode == NULL)
     {
-     result = new (outHeap) ItmLeadOlapFunction(child(0), offsetExpr_);
-     ((ItmSeqRunningFunction *)result)->setIsOLAP(isOLAP());
+     switch (getArity()) { 
+      case 2:
+         result = new (outHeap) ItmLeadOlapFunction(child(0), child(1));
+         break;
+      
+      case 1:
+      default:
+         result = new (outHeap) ItmLeadOlapFunction(child(0));
+         break;
+     }
     }
   else              
     result = derivedNode;                 
@@ -15079,45 +15087,6 @@ ItmLeadOlapFunction::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
   return ItmSeqOlapFunction::copyTopNode(result, outHeap);
 }
 
-ItemExpr * ItmLeadOlapFunction::bindNode(BindWA * bindWA)
-{
-   // the offset expr must be a non-negative integer
-   NABoolean offsetOK = FALSE;
-   Int64 value = 0;
-   if ( offsetExpr_ ) 
-   {
-      if ( offsetExpr_->getOperatorType() == ITM_CONSTANT ) 
-      {
-         ConstValue* cv = (ConstValue*)offsetExpr_;
-         if ( cv->canGetExactNumericValue() )
-         {
-            value = cv->getExactNumericValue();
-            if ( value >= 0 ) {
-               offsetOK = TRUE;
-               offset_ = (Int32)value;
-            }
-         }
-      }
-
-   } else { 
-
-      if ( offset_ >= 0 )
-        offsetOK = TRUE;
-   }
-
-   if ( !offsetOK ) {
-
-      *CmpCommon::diags() << DgSqlCode(-4249) << DgString0("LEAD");
-
-      if ( bindWA )
-          bindWA->setErrStatus();
-
-      return this;
-   }
-
-   ItemExpr * result = ItmSeqOlapFunction::bindNode(bindWA);
-   return result;
-}
 
 NABoolean ItmLeadOlapFunction::hasEquivalentProperties(ItemExpr * other)
 {
@@ -15128,7 +15097,8 @@ NABoolean ItmLeadOlapFunction::hasEquivalentProperties(ItemExpr * other)
         getArity() != other->getArity())
     return FALSE;
 
-  return getOffsetExpr()->hasEquivalentProperties(((ItmLeadOlapFunction*)other)->getOffsetExpr());
+  //return getOffsetExpr()->hasEquivalentProperties(((ItmLeadOlapFunction*)other)->getOffsetExpr());
+  return TRUE;
 }
 
 ItemExpr *ItmLeadOlapFunction::transformOlapFunction(CollHeap *heap)

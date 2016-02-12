@@ -1203,6 +1203,7 @@ $1~String1 --------------------------------
 4137 ZZZZZ 99999 BEGINNER MAJOR DBADMIN A DELETE [FIRST N] statement was specified on table $0~TableName which has more than one partition, without using the PARTITION clause. 
 4138 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Use of a subquery in the WHERE clause of a DELETE [FIRST N] statement is not supported.
 4139 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Use of a subquery in the WHERE clause of a Long Running Update statement is not supported.
+4140 42000 99999 BEGINNER MAJOR DBADMIN The second operand of function $0~string0 must be of interger type.
 4150 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Primary key of table expression $0~string0 must be used for join with embedded $0~string1 expression.  Tables in scope: $2~string2.
 4151 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Stream access is supported only on updatable views. View: $0~TableName.
 4152 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Table $0~TableName cannot be both read and updated.

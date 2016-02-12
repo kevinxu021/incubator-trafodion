@@ -1416,11 +1416,10 @@ public:
   void findAllOpType(OperatorTypeEnum type, ValueIdSet & result) const;
 
   // -----------------------------------------------------------------------
-  // This method collects all chilren expressions, for each member of the 
-  // set and the member has exactly num chilredn. This method only goes the
-  // top level.
+  // This method collects all child expressions, for each member of the 
+  // set. This method does not recursively go below the current set.
   // -----------------------------------------------------------------------
-  void findAllChildren(ValueIdSet & result, Int32 num) const;
+  void findAllChildren(ValueIdSet & result) const;
 
   // ---------------------------------------------------------------------
   // ValueIdSet::getAllTables()

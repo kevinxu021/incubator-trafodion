@@ -6772,16 +6772,53 @@ const NAType *LOBextract::synthesizeType()
 
 const NAType * ItmLeadOlapFunction::synthesizeType()
 {
-    // check the type of the offset operand, if present
-    if (getArity() > 1)  {
-       const NAType &operand2 = child(1)->getValueId().getType();
+   // check the type of the offset operand, if present
+   if (getArity() > 1)  {
+      const NAType &operand2 = child(1)->getValueId().getType();
 
-       if (operand2.getTypeQualifier() != NA_NUMERIC_TYPE) {
-         // The second operand of a LEAD function must be numeric.
-         *CmpCommon::diags() << DgSqlCode(-4052) << DgString0(getTextUpper());
+      if (operand2.getTypeQualifier() != NA_INTERVAL_TYPE) {
+         // The second operand of a LEAD function must be of integer type.
+         *CmpCommon::diags() << DgSqlCode(-4140) << DgString0(getTextUpper());
          return NULL;
+     }
+
+     // check the value of the offset expression constant
+     NABoolean offsetOK = FALSE;
+     Int64 value = 0;
+  
+     if ( getArity() > 1 )
+     {
+        ValueId vid1 = child(1)->getValueId();
+        ItemExpr *offsetExpr = vid1.getItemExpr();
+  
+        if (offsetExpr) {
+           if ( offsetExpr->getOperatorType() == ITM_CONSTANT ) 
+           {
+              ConstValue* cv = (ConstValue*)offsetExpr;
+              if ( cv->canGetExactNumericValue() )
+              {
+                 value = cv->getExactNumericValue();
+                 if ( value >= 0 ) {
+                    offsetOK = TRUE;
+                    offset_ = (Int32)value;
+                 }
+              }
+           } else 
+             offsetOK = TRUE; // delay making the decision. It coud be a row subquery
        }
-    }
+  
+     } else { 
+  
+        if ( offset_ >= 0 )
+          offsetOK = TRUE;
+     }
+  
+     if ( !offsetOK ) {
+  
+        *CmpCommon::diags() << DgSqlCode(-4249) << DgString0("LEAD");
+        return NULL;
+     }
+   }
     
    // the type of the LEAD() is the type of the 1st argument.
    const NAType& operand = child(0)->castToItemExpr()->getValueId().getType();

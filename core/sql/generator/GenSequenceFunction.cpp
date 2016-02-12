@@ -75,6 +75,8 @@ ItemExpr *ItmSeqOffset::preCodeGen(Generator *generator)
   {
     NABoolean negate;
     ConstValue *cv = child(1)->castToConstValue(negate);
+
+
     if (cv AND cv->canGetExactNumericValue())
       {
         Lng32 scale;
@@ -95,11 +97,11 @@ ItemExpr *ItmSeqOffset::preCodeGen(Generator *generator)
     const NAType &cType = child(1)->getValueId().getType();
 
     // (must be) signed; nulls allowed (if allowed by child1)   
-   ItemExpr *castExpr   = new (wHeap) Cast (child(1),
+    ItemExpr *castExpr   = new (wHeap) Cast (child(1),
                                            new (wHeap)
                                            SQLInt(TRUE, cType.supportsSQLnullLogical()));
-   castExpr->synthTypeAndValueId(TRUE);
-   child (1) = castExpr;
+    castExpr->synthTypeAndValueId(TRUE);
+    child (1) = castExpr;
   }
   return ItemExpr::preCodeGen(generator);
 }
@@ -108,6 +110,19 @@ ItemExpr *ItmLeadOlapFunction::preCodeGen(Generator *generator)
 {
   if (nodeIsPreCodeGenned())
     return this;
+
+  if (getArity() > 1)
+  {
+    const NAType &cType = child(1)->getValueId().getType();
+
+    // (must be) signed; nulls allowed (if allowed by child1)   
+    CollHeap *wHeap = generator->wHeap();
+    ItemExpr *castExpr   = new (wHeap) Cast (child(1),
+                                           new (wHeap)
+                                           SQLInt(TRUE, cType.supportsSQLnullLogical()));
+    castExpr->synthTypeAndValueId(TRUE);
+    child (1) = castExpr;
+  }
 
   return ItemExpr::preCodeGen(generator);
 }
