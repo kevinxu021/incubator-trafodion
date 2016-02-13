@@ -146,7 +146,9 @@
 >>
 >>drop table t006taoc;
 
---- SQL operation complete.
+*** ERROR[1389] Object TRAFODION.SCH.T006TAOC does not exist in Trafodion.
+
+--- SQL operation failed with errors.
 >>create table t006taoc(a char(10), b char(10), c varchar(10));
 
 --- SQL operation complete.
