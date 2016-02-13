@@ -6839,7 +6839,13 @@ const NAType * ItmLeadOlapFunction::synthesizeType()
             ? NAType::LIMIT_MAX_NUMERIC_PRECISION : 0);
 
       if ( !(typeForOp0 == typeForDefault) ) {
-         const NAType* resultType = typeForOp0.synthesizeType(SYNTH_RULE_ADD,
+
+         NATypeSynthRuleEnum rule = SYNTH_RULE_ADD;
+
+         if ( typeForOp0.getTypeQualifier() == NA_CHARACTER_TYPE )
+           rule = SYNTH_RULE_CONCAT;
+
+         const NAType* resultType = typeForOp0.synthesizeType(rule,
                                        typeForOp0,
                                        typeForDefault,
                                        HEAP, &flags);

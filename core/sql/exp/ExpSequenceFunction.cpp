@@ -249,6 +249,7 @@ ex_expr::exp_return_type ExpSequenceFunction::eval(char *op_data[],
   // to the attribute data, null indicator, and varchar indicator.
   //
   char *srcData = NULL;
+  UInt32 srcLen = 0;
   char *srcNull = NULL;
   char *srcVC   = NULL;
   Int32 rc=0;
@@ -270,16 +271,14 @@ ex_expr::exp_return_type ExpSequenceFunction::eval(char *op_data[],
           srcVC = row + attrs[1]->getVCLenIndOffset();
         if(attrs[1]->getNullFlag())
           srcNull = row + attrs[1]->getNullIndOffset();
+
+         srcLen = getOperand(1)->getLength(srcVC);
       } else {
          if(getNumOperands() == 4) {
 
             srcData = op_data[3];
-
-            if(attrs[3]->getVCIndicatorLength() > 0)
-               srcVC = srcData + attrs[1]->getVCLenIndOffset();
-
-            if(attrs[1]->getNullFlag())
-               srcNull = srcData + attrs[1]->getNullIndOffset();
+            srcLen = getOperand(3)->getLength(op_data[-MAX_OPERANDS+3]);
+            srcNull = NULL;
          }
      }
   }
@@ -298,6 +297,8 @@ ex_expr::exp_return_type ExpSequenceFunction::eval(char *op_data[],
   char *dstNull = op_data[-2 * MAX_OPERANDS + 0];
   char *dstVC   = op_data[- MAX_OPERANDS];
 
+  // srcData is not null if a default value is present,
+  // picked up from op_data[3]
   if (rc == -3 && !srcData )
   {
      *((unsigned short*)dstNull) = 0xFFFFU;
@@ -384,7 +385,8 @@ ex_expr::exp_return_type ExpSequenceFunction::eval(char *op_data[],
       Int32 len = attrs[0]->getLength();
       str_cpy_all(dstData, srcData, attrs[0]->getLength());
       if (attrs[1]->getVCIndicatorLength() > 0)
-           getOperand(0)->setVarLength(getOperand(1)->getLength(srcVC), dstVC);
+          getOperand(0)->setVarLength(srcLen, dstVC);
+          //getOperand(0)->setVarLength(getOperand(1)->getLength(srcVC), dstVC);
       if(attrs[0]->getNullFlag())
         *((short*)dstNull) = 0x0000;
     }
