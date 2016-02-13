@@ -17207,7 +17207,7 @@ maintain_object_option : TOK_ALL
 			    if (fromStr)
 			      {
 				from = 
-				  new (PARSERHEAP()) DatetimeValue(fromStr, REC_DATE_YEAR, REC_DATE_SECOND, fractionPrec1);
+				  new (PARSERHEAP()) DatetimeValue(fromStr, REC_DATE_YEAR, REC_DATE_SECOND, fractionPrec1, FALSE);
 			      }
 
 			    if (toStr && (forVal > 0))
@@ -17216,7 +17216,7 @@ maintain_object_option : TOK_ALL
 			    if (toStr)
 			      {
 				to = 
-				  new (PARSERHEAP()) DatetimeValue(toStr, REC_DATE_YEAR, REC_DATE_SECOND, fractionPrec2);
+				  new (PARSERHEAP()) DatetimeValue(toStr, REC_DATE_YEAR, REC_DATE_SECOND, fractionPrec2, FALSE);
 			      }
 
 			    if ((from && (! from->isValid())) ||
