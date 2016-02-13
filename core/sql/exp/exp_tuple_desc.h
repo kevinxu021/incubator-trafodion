@@ -907,6 +907,8 @@ public:
     return ( tdf == SQLMX_ALIGNED_FORMAT );
   }
 
+  void display(const char* title = NULL);
+
   // ---------------------------------------------------------------------
   // Redefinition of methods inherited from NAVersionedObject.
   // ---------------------------------------------------------------------

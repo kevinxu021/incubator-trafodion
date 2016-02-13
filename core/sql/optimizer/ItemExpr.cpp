@@ -15058,3 +15058,50 @@ ConstValue* ItemExpr::evaluate(CollHeap* heap)
 
   return result;
 }
+  
+ItmLeadOlapFunction::~ItmLeadOlapFunction() {}
+
+ItemExpr * 
+ItmLeadOlapFunction::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
+{
+  ItemExpr *result;
+
+  if (derivedNode == NULL)
+    {
+     switch (getArity()) { 
+      case 2:
+         result = new (outHeap) ItmLeadOlapFunction(child(0), child(1));
+         break;
+      
+      case 1:
+      default:
+         result = new (outHeap) ItmLeadOlapFunction(child(0));
+         break;
+     }
+    }
+  else              
+    result = derivedNode;                 
+
+  ((ItmLeadOlapFunction*)result)->setOffset(getOffset());
+
+  return ItmSeqOlapFunction::copyTopNode(result, outHeap);
+}
+
+
+NABoolean ItmLeadOlapFunction::hasEquivalentProperties(ItemExpr * other)
+{
+  if (other == NULL)
+    return FALSE;
+
+  if (getOperatorType() != other->getOperatorType() ||
+        getArity() != other->getArity())
+    return FALSE;
+
+  //return getOffsetExpr()->hasEquivalentProperties(((ItmLeadOlapFunction*)other)->getOffsetExpr());
+  return TRUE;
+}
+
+ItemExpr *ItmLeadOlapFunction::transformOlapFunction(CollHeap *heap)
+{
+   return this;
+}

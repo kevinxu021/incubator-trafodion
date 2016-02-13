@@ -34,6 +34,7 @@ obey TEST006(positive_tests);
 obey TEST006(analyzer_tests);
 obey TEST006(defaults_tests);
 obey TEST006(misc_tests);
+obey TEST006(olap_functions);
 log;
 obey TEST006(clean_up);
 
@@ -55,6 +56,8 @@ drop table x1 cascade;
 drop table x2 cascade;
 drop table x3 cascade;
 drop mv mvx cascade;
+drop table t006tao;
+drop table t006_employees;
 
 
 ?section create_tables
@@ -94,6 +97,83 @@ from x1 group by a;
 update statistics for table x1 on every column;
 update statistics for table x2 on every column;
 update statistics for table x3 on every column;
+
+drop table t006tao;
+create table t006tao(a int, b int, c int);
+
+insert into t006tao values
+(0,NULL,3),
+(1,NULL,3),
+(1,2,3),
+(3,4,5),
+(3,8,5),
+(3,10,5),
+(10,5,8),
+(10,6,9),
+(10,7,8),
+(10,8,9),
+(10,9,8),
+(10,10,9),
+(10,11,8),
+(10,12,9),
+(10,13,9),
+(10,14,9)
+;
+
+drop table t006_employees;
+
+CREATE TABLE t006_employees
+(emp_name VARCHAR(10) NOT NULL,
+ dept_name VARCHAR(15) NOT NULL,
+ salary_amt DECIMAL (8,2) NOT NULL,
+ PRIMARY KEY (emp_name, dept_name)
+);
+
+INSERT INTO t006_employees
+VALUES
+('Aaron','acct',3100.00),
+('Abaddon','acct',3200.00),
+('Abbott','acct',3300.00),
+('Abel','acct',3500.00),
+('Absalom','acct', 5500.00),
+('Shannen','ship', 1000.00),
+('Shannon','ship', 2000.00),
+('Shaquille','ship', 3400.00),
+('Sheamus','ship', 4000.00),
+('Shelah','ship', 3600.00),
+('Shelby','ship', 4500.00),
+('Sheldon','ship', 5500.00),
+('Hamilton','HR',2300.00),
+('Hamish', 'HR', 1600.00),
+('Hamlet', 'HR', 1200.00),
+('Hammond', 'HR', 800.00),
+('Hamuel', 'HR', 700.00),
+('Hanael', 'HR', 600.00),
+('Hanan', 'HR', 1000.00);
+
+drop table t006taoc;
+create table t006taoc(a char(10), b char(10), c varchar(10));
+
+insert into t006taoc values
+('0',NULL,'3'),
+('a',NULL,'3'),
+('a','2','3'),
+('3bc','4','5'),
+('3bc','8','5'),
+('3bc','10','5'),
+('10','5','8'),
+('10','6','9'),
+('10','7','8'),
+('10','8','9'),
+('10','9','8'),
+('10','10','9'),
+('10','11','8'),
+('10','12','9'),
+('10','13','9'),
+('10','14','9')
+;
+
+
 
 ?section negative_tests
 
@@ -527,4 +607,26 @@ control query default MEMORY_MONITOR_LOG_INSTANTLY 'on';
 control query default MEMORY_MONITOR_LOGFILE 'mml.log';
 prepare xx from select * from t006t2;
 control query default MEMORY_MONITOR 'OFF';
+
+?section olap_functions
+
+select a, b, 
+lead(b, 2) over(partition by a order by a),
+max(c) over(partition by a order by a)
+from t006tao
+;
+
+select emp_name, dept_name, salary_amt,
+lead(salary_amt, 3) over (partition by dept_name order by emp_name),
+lead(salary_amt, 2) over (partition by dept_name order by emp_name)
+from t006_employees;
+
+-- this will destroy the output order of the lead function, and make it
+-- less obvious on the correctness of the result.
+select
+a, b, lead(b, 2)
+over(partition by a order by a)
+from t006taoc <<+ cardinality 10e6 >>
+order by 1, 2, 3
+;
 
