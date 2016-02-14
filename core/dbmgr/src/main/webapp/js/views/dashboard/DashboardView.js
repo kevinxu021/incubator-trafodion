@@ -957,8 +957,9 @@ define([
 						grid : {
 							hoverable: true,
 							borderColor: "#f3f3f3",
-							orderWidth: {top:0, right: 0, bottom: 1, left: 1},
+							borderWidth: {top:0, right: 0, bottom: 1, left: 1},
 							tickColor: "#737373",
+							autoHighlight: false
 						},
 						yaxes:[{
 							tickLength:5,

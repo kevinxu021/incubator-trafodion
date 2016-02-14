@@ -13,6 +13,11 @@
 			<text><![CDATA[{"url":"http://%1$s/v1/servers/dcs/connections", "method":"get"}]]></text>
 		</query>
 		<query>
+			<!-- Get DCS summary -->
+			<name>GET_DCS_SUMMARY</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/servers/dcs/summary", "method":"get"}]]></text>
+		</query>
+		<query>
 			<!-- Get status of EsgynDB Services -->
 			<name>GET_SERVICE_STATUS</name>
 			<text><![CDATA[{"url":"http://%1$s/v1/servers", "method":"get"}]]></text>
@@ -637,7 +642,7 @@
 		</query>		
 		<query>
 			<name>OPENTSDB_DISK_SPACE_USED_DRILLDOWN</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:df.bytes.percentused{host=*}", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:df.bytes.percentused{host=*}", "method":"get"}]]></text>
 		</query>		
 		<query>
 			<name>OPENTSDB_STOREFILE_COUNT</name>
