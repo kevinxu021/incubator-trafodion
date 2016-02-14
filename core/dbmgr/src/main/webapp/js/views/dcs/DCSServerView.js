@@ -23,7 +23,10 @@ define([
         ], function (BaseView, DcsServerT, $, serverHandler, moment, common) {
 	'use strict';
 	var LOADING_SELECTOR = '#loadingImg',
+	SUMMARY_LOADING_SELECTOR = '#summaryloadingImg',
 	PSTACK_LOADING_SELECTOR = '#pstackLloadingImg',
+	SUMMARY_CONTAINER = '#dcs-summary-container',
+	SUMMARY_ERROR_CONTAINER = '#dcs-summary-error-text',
 	RESULT_CONTAINER = '#dcs-result-container',
 	ERROR_CONTAINER = '#dcs-error-text',
 	REFRESH_ACTION = '#refreshAction',
@@ -42,6 +45,9 @@ define([
 			_that = this;
 			serverHandler.on(serverHandler.FETCHDCS_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
+			serverHandler.on(serverHandler.DCS_SUMMARY_SUCCESS, this.displaySummary);
+			serverHandler.on(serverHandler.DCS_SUMMARY_ERROR, this.showSummaryErrorMessage);			
+
 			serverHandler.on(serverHandler.PSTACK_SUCCESS, this.displayPStack);
 			serverHandler.on(serverHandler.PSTACK_ERROR, this.displayPStack);			
 
@@ -61,6 +67,8 @@ define([
 			serverHandler.on(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
 			serverHandler.on(serverHandler.PSTACK_SUCCESS, this.displayPStack);
 			serverHandler.on(serverHandler.PSTACK_ERROR, this.displayPStack);			
+			serverHandler.on(serverHandler.DCS_SUMMARY_SUCCESS, this.displaySummary);
+			serverHandler.on(serverHandler.DCS_SUMMARY_ERROR, this.showSummaryErrorMessage);			
 			$(REFRESH_ACTION).on('click', this.fetchDcsServers);
 			$(PSTACK_ACTION).on('click', this.getPStack);
 			this.fetchDcsServers();
@@ -70,6 +78,8 @@ define([
 			serverHandler.off(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
 			serverHandler.off(serverHandler.PSTACK_SUCCESS, this.displayPStack);
 			serverHandler.off(serverHandler.PSTACK_ERROR, this.displayPStack);			
+			serverHandler.off(serverHandler.DCS_SUMMARY_SUCCESS, this.displaySummary);
+			serverHandler.off(serverHandler.DCS_SUMMARY_ERROR, this.showSummaryErrorMessage);			
 			$(REFRESH_ACTION).off('click', this.fetchDcsServers);
 			$(PSTACK_ACTION).off('click', this.getPStack);
 		},
@@ -82,8 +92,10 @@ define([
 		},
 		fetchDcsServers: function () {
 			_that.showLoading();
+			$(SUMMARY_LOADING_SELECTOR).show();
 			$(ERROR_CONTAINER).hide();
 			serverHandler.fetchDcsServers();
+			serverHandler.fetchDcsSummary();
 		},
 		getPStack: function(){
 			//serverHandler.getPStack();
@@ -102,7 +114,17 @@ define([
 			$(PSTACK_LOADING_SELECTOR).hide();
 			$(PSTACK_CONTAINER).val(result.pStack.replace(/\\n/g,'\r\n'));
  		},
-
+ 		displaySummary: function(result){
+ 			$(SUMMARY_LOADING_SELECTOR).hide();
+ 			$(SUMMARY_CONTAINER).show();
+ 			$(SUMMARY_ERROR_CONTAINER).hide();
+			$(SUMMARY_CONTAINER).empty();
+			for (var property in result) {
+				var value = result[property];
+				$(SUMMARY_CONTAINER).append('<tr><td style="padding:3px 0px;width:250px">' + property + '</td><td>' + value +  '</td>');
+			}
+			
+ 		},
 		displayResults: function (result){
 			_that.hideLoading();
 			$(ERROR_CONTAINER).hide();
@@ -177,7 +199,21 @@ define([
 	        		}
 	        	}
 			}
-		}  
+		},
+		showSummaryErrorMessage: function (jqXHR) {
+			if(jqXHR.statusText != 'abort'){
+				$(SUMMARY_LOADING_SELECTOR).hide();
+				$(SUMMARY_CONTAINER).hide();
+				$(SUMMARY_ERROR_CONTAINER).show();
+				if (jqXHR.responseText) {
+					$(SUMMARY_ERROR_CONTAINER).text(jqXHR.responseText);
+				}else{
+	        		if(jqXHR.status != null && jqXHR.status == 0) {
+	        			$(SUMMARY_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+	        		}
+	        	}
+			}
+		}
 	});
 
 

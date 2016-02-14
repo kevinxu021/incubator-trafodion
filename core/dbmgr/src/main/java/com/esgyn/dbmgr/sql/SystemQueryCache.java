@@ -13,6 +13,7 @@ public class SystemQueryCache {
 	public static final String GET_SERVICE_STATUS = "GET_SERVICE_STATUS";
 	public static final String GET_NODE_STATUS = "GET_NODE_STATUS";
 	public static final String GET_PROCESS_PSTACK = "GET_PROCESS_PSTACK";
+	public static final String GET_DCS_SUMMARY = "GET_DCS_SUMMARY";
 
 	public static final String SELECT_SCHEMAS = "SELECT_SCHEMAS";
 	public static final String SELECT_SCHEMA_ATTRIBUTES = "SELECT_SCHEMA_ATTRIBUTES";

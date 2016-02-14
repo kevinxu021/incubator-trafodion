@@ -215,7 +215,7 @@ public class ServerResource {
 	}
 
 	@GET
-	@Path("/dcsservers/")
+	@Path("/dcs/servers/")
 	@Produces("application/json")
 	public TabularResult getDcsConnections(@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
@@ -232,6 +232,31 @@ public class ServerResource {
 			}
 
 			result = processRESTRequest(uri, soc.getUsername(), soc.getPassword());
+
+		} catch (Exception ex) {
+			_LOG.error("Failed to fetch dcs connections : " + ex.getMessage());
+			throw new EsgynDBMgrException(ex.getMessage());
+		}
+		return result;
+	}
+
+	@GET
+	@Path("/dcs/summary/")
+	@Produces("application/json")
+	public String getDcsSummary(@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		String result = null;
+		try {
+			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
+			String uri = "";
+			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+
+			if (trafRestUri != null && trafRestUri.length() > 0) {
+				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.GET_DCS_SUMMARY);
+				uri = String.format(queryText, trafRestUri);
+			}
+			result = RESTProcessor.getRestOutput(uri, soc.getUsername(), soc.getPassword());
 
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch dcs connections : " + ex.getMessage());
