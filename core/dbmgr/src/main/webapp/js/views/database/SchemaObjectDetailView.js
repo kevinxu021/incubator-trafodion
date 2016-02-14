@@ -13,8 +13,8 @@ define([
         '../../../bower_components/codemirror/lib/codemirror',
         '../../../bower_components/codemirror/mode/sql/sql',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
+        'datatables.net',
+        'datatables.net-bs',
         'pdfmake'
         ], function (BaseView, DatabaseT, $, dbHandler, common, CodeMirror) {
 	'use strict';
@@ -23,6 +23,7 @@ define([
 		regionsDataTable = null,
 		statisticsTable = null,
 		privilegesDataTable = null,
+		usagesDataTable = null,
 		indexesDataTable = null;
 		
 	var _this = null;
@@ -127,7 +128,8 @@ define([
 			dbHandler.on(dbHandler.FETCH_STATISTICS_ERROR, this.showErrorMessage);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayIndexes);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
-			
+			dbHandler.on(dbHandler.FETCH_USAGE_SUCCESS, this.displayUsages);
+			dbHandler.on(dbHandler.FETCH_USAGE_ERROR, this.showErrorMessage);
 			_this.processRequest();
 
 		},
@@ -153,6 +155,8 @@ define([
 			dbHandler.on(dbHandler.FETCH_STATISTICS_ERROR, this.showErrorMessage);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayIndexes);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_USAGE_SUCCESS, this.displayUsages);
+			dbHandler.on(dbHandler.FETCH_USAGE_ERROR, this.showErrorMessage);
 			
 			if(prevRouteArgs.schema != routeArgs.schema || 
 					prevRouteArgs.name != routeArgs.name ||
@@ -163,65 +167,11 @@ define([
 					sessionStorage.removeItem(routeArgs.name);
 					objectAttributes = JSON.parse(objectAttributes);
 				}
-				if(objColumnsDataTable != null) {
-					try {
-						objColumnsDataTable.clear().draw();
-					}catch(Error){
-
-					}
-				}
-				if(regionsDataTable != null) {
-					try {
-						regionsDataTable.clear().draw();
-					}catch(Error){
-
-					}
-				}
-				if(privilegesDataTable != null) {
-					try {
-						privilegesDataTable.clear().draw();
-					}catch(Error){
-					}
-				}
-				if(statisticsTable != null){
-					try{
-						statisticsTable.clear().draw();
-					}catch(Error){
-						
-					}
-				}
-				if(indexesDataTable != null){
-					try{
-						indexesDataTable.clear.draw();
-					}catch(Error){
-						
-					}
-				}
-				pageStatus = {};
-				$(ERROR_CONTAINER).hide();
-				$(COLUMNS_CONTAINER).empty();
-				$(REGIONS_CONTAINER).empty();
-				$(STATISTICS_CONTAINER).empty();
-				
-	        	if(ddlTextEditor){
-	        		ddlTextEditor.setValue("");
-	        		setTimeout(function() {
-	        			ddlTextEditor.refresh();
-	        		},1);
-	        	}
+				_this.doReset();
 			}	
 			
 			prevRouteArgs = args;
-			var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
-			var activeButton = null;
-			if(ACTIVE_BTN){
-				activeButton = '#'+ACTIVE_BTN.attr('id');
-				if(activeButton == ATTRIBUTES_BTN || activeButton == DDL_BTN || activeButton == PRIVILEGES_BTN || activeButton == COLUMNS_BTN){
-				}else{
-					$(FEATURE_SELECTOR + ' a').first().tab('show')
-				}
-			}
-
+			
 			_this.processRequest();
 		},
 		doPause: function(){
@@ -240,8 +190,64 @@ define([
 			dbHandler.off(dbHandler.FETCH_STATISTICS_ERROR, this.showErrorMessage);
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayIndexes);
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_USAGE_SUCCESS, this.displayUsages);
+			dbHandler.off(dbHandler.FETCH_USAGE_ERROR, this.showErrorMessage);
 			
 			$('a[data-toggle="pill"]').off('shown.bs.tab', this.selectFeature);
+		},
+		doReset: function(){
+			if(objColumnsDataTable != null) {
+				try {
+					objColumnsDataTable.clear().draw();
+				}catch(Error){
+
+				}
+			}
+			if(regionsDataTable != null) {
+				try {
+					regionsDataTable.clear().draw();
+				}catch(Error){
+
+				}
+			}
+			if(privilegesDataTable != null) {
+				try {
+					privilegesDataTable.clear().draw();
+				}catch(Error){
+				}
+			}
+			if(usagesDataTable != null) {
+				try {
+					usagesDataTable.clear().draw();
+				}catch(Error){
+				}
+			}
+			if(statisticsTable != null){
+				try{
+					statisticsTable.clear().draw();
+				}catch(Error){
+					
+				}
+			}
+			if(indexesDataTable != null){
+				try{
+					indexesDataTable.clear.draw();
+				}catch(Error){
+					
+				}
+			}
+			pageStatus = {};
+			$(ERROR_CONTAINER).hide();
+			$(COLUMNS_CONTAINER).empty();
+			$(REGIONS_CONTAINER).empty();
+			$(STATISTICS_CONTAINER).empty();
+			
+        	if(ddlTextEditor){
+        		ddlTextEditor.setValue("");
+        		setTimeout(function() {
+        			ddlTextEditor.refresh();
+        		},1);
+        	}			
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
@@ -255,7 +261,7 @@ define([
 			if(objectAttributes != null){
 				$.each(objectAttributes, function(k, v){
 					for (var property in v) {
-						if(property == 'Table Name'){
+						if(routeArgs.type == 'index' && property == 'Table Name'){
 							parentObjectName = v[property];
 							return;
 						}
@@ -264,6 +270,23 @@ define([
 			}
 			return parentObjectName;
 		},
+		
+		getUsageSchemaName: function(){
+			
+			var usageSchemaName = null;
+			if(objectAttributes != null){
+				$.each(objectAttributes, function(k, v){
+					for (var property in v) {
+						if(property == 'UsageSchemaName'){
+							usageSchemaName = v[property];
+							return;
+						}
+					}
+				});
+			}
+			return usageSchemaName;		
+		},
+		
 		getObjectID: function(){
 			var objectID = null;
 			if(objectAttributes != null){
@@ -280,6 +303,7 @@ define([
 		},
 		selectFeature: function(e){
 			$(OBJECT_DETAILS_CONTAINER).show();
+			$(ERROR_CONTAINER).hide();
 			var selectedFeatureLink = ATTRIBUTES_SELECTOR;
 
 			if(e && e.target && $(e.target).length > 0){
@@ -350,6 +374,8 @@ define([
 				_this.fetchPrivileges();
 				break;
 			case USAGES_SELECTOR:
+				$(USAGES_CONTAINER).show();
+				_this.fetchUsages();
 				break;
 			case INDEXES_SELECTOR:
 				//window.location.hash = '/database?type=indexes&schema='+schemaName;
@@ -377,7 +403,10 @@ define([
 					break;
 				case PRIVILEGES_BTN:
 					pageStatus.privilegesFetched = false;
-					break;					
+					break;	
+				case USAGES_BTN:
+					pageStatus.usagesFetched = false;
+					break;
 				case STATISTICS_BTN:
 					pageStatus.statisticsFetched = false;
 					break;	
@@ -425,6 +454,13 @@ define([
 				dbHandler.fetchPrivileges(routeArgs.type, routeArgs.name, objectID, routeArgs.schema);
 			}			
 		},
+		fetchUsages: function(){
+			if(!pageStatus.usagesFetched || pageStatus.usagesFetched == false){
+				_this.showLoading();
+				var objectID = _this.getObjectID();
+				dbHandler.fetchUsages(routeArgs.type, routeArgs.name, objectID, routeArgs.schema);
+			}			
+		},		
 		fetchIndexes: function(){
 			if(!pageStatus.indexesFetched || pageStatus.indexesFetched == false){
 				_this.showLoading();
@@ -462,6 +498,11 @@ define([
 						bCrumbsArray.push({name: 'Procedures', link: '#/database/objects?type=procedures&schema='+routeArgs.schema});
 						bCrumbsArray.push({name: routeArgs.name, link: ''});
 						break;
+					case 'udf': 
+						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: 'User Defined Functions', link: '#/database/objects?type=udfs&schema='+routeArgs.schema});
+						bCrumbsArray.push({name: routeArgs.name, link: ''});
+						break;
 						
 				}
 			}
@@ -492,8 +533,6 @@ define([
 						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
 						$(INDEXES_BTN).show();
-				
-						_this.selectFeature();
 						break;							
 					case 'view': 
 						schemaName = routeArgs.schema;
@@ -506,7 +545,6 @@ define([
 						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
 						$(INDEXES_BTN).hide();				
-						_this.selectFeature();
 						break;
 					case 'index': 
 						schemaName = routeArgs.schema;
@@ -519,7 +557,6 @@ define([
 						$(PRIVILEGES_BTN).hide();
 						$(USAGES_BTN).hide();
 						$(INDEXES_BTN).hide();					
-						_this.selectFeature();
 						break;
 					case 'library': 
 						schemaName = routeArgs.schema;
@@ -530,11 +567,11 @@ define([
 						$(STATISTICS_BTN).hide();
 						$(DDL_BTN).show();
 						$(PRIVILEGES_BTN).show();
-						$(USAGES_BTN).hide();
+						$(USAGES_BTN).show();
 						$(INDEXES_BTN).hide();				
-						_this.selectFeature();
 						break;
 					case 'procedure': 
+					case 'udf': 
 						schemaName = routeArgs.schema;
 						$(ATTRIBUTES_BTN).show();
 						$(ATTRIBUTES_SELECTOR).tab('show');
@@ -545,10 +582,21 @@ define([
 						$(PRIVILEGES_BTN).show();
 						$(USAGES_BTN).hide();
 						$(INDEXES_BTN).hide();				
-						_this.selectFeature();
 						break;							
 				}
 			}
+			var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
+			var activeButton = null;
+			if(ACTIVE_BTN){
+				activeButton = '#'+ACTIVE_BTN.attr('id');
+				if($(activeButton).is(':visible') && (activeButton == ATTRIBUTES_BTN || activeButton == DDL_BTN || activeButton == PRIVILEGES_BTN
+						|| activeButton == COLUMNS_BTN  || activeButton == USAGES_BTN)){
+				}else{
+					$(FEATURE_SELECTOR + ' a').first().tab('show')
+				}
+			}
+			_this.selectFeature();
+
 		},
 		fetchAttributes: function () {
 			$(ERROR_CONTAINER).hide();
@@ -583,6 +631,14 @@ define([
 						}else {
 							$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
 						}
+					}else if((routeArgs.type == 'procedure' || routeArgs.type == 'udf') && property == 'UsageSchemaName'){
+						continue;
+					}else if((routeArgs.type == 'procedure' || routeArgs.type == 'udf') && property == 'Library Name'){
+						var libSch = _this.getUsageSchemaName();
+						libSch = (libSch != null && libSch.length > 0) ? libSch : routeArgs.schema;
+						var link =	'<a href="#/database/objdetail?type=library&name=' + value + '&schema=' +  libSch           				 
+      			 			+ '">' + libSch+'.'+value + '</a>';
+						$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + link +  '</td>');
 					}else{
 						$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
 					}
@@ -651,7 +707,7 @@ define([
 						"mData": 0,
 						"mRender": function ( data, type, full ) {
 		            		 if(type == 'display') {
-		            			 if(routeArgs.type == 'table' && data == 'PRIMARY KEY')
+		            			 if(routeArgs.type == 'table' && data == 'P')
 		            				 return '<i class="fa fa-key" style="padding-left:15px"></i>';
 		            			 else
 		            				 return data;
@@ -663,11 +719,11 @@ define([
 					],
 					"order": [[ sortColumn, "asc" ]],
 	                 buttons: [
-	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
-	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
-	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Columns in "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
-	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: "Columns in "+routeArgs.type + " " + routeArgs.name }
+	                           { extend : 'copy', exportOptions: { columns: ':visible', orthogonal: 'export'  } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible', orthogonal: 'export' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible', orthogonal: 'export' } },
+	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, title: "Columns in "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
+	                           { extend : 'print', exportOptions: { columns: ':visible', orthogonal: 'export' }, title: "Columns in "+routeArgs.type + " " + routeArgs.name }
 	                           ],					             
 		             fnDrawCallback: function(){
 		            	// $('#db-object-columns-list td').css("white-space","nowrap");
@@ -790,6 +846,102 @@ define([
 	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
 	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Privileges for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: "Privileges for "+routeArgs.type + " " + routeArgs.name }
+	                           ],					             
+		             fnDrawCallback: function(){
+		            	// $('#db-object-privileges-list td').css("white-space","nowrap");
+		             }
+				});
+			}
+		},	
+		displayUsages: function(result){
+			_this.hideLoading();
+			var keys = result.columnNames;
+			$(ERROR_CONTAINER).hide();
+			pageStatus.usagesFetched = true;
+			
+			if(keys != null && keys.length > 0) {
+				$(USAGES_CONTAINER).show();
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="db-object-usage-list"></table>';
+				$(USAGES_CONTAINER).html( sb );
+
+				var aoColumns = [];
+				var aaData = [];
+				var link = result.parentLink != null ? result.parentLink : "";
+
+				$.each(result.resultArray, function(i, data){
+					aaData.push(data);
+				});
+
+				// add needed columns
+				$.each(keys, function(k, v) {
+					var obj = new Object();
+					obj.title = v;
+					aoColumns.push(obj);
+				});
+
+				var bPaging = aaData.length > 25;
+
+				if(usagesDataTable != null) {
+					try {
+						usagesDataTable.clear().draw();
+					}catch(Error){
+
+					}
+				}
+				var aoColumnDefs = [];
+				if(routeArgs.type == 'library'){
+					aoColumnDefs.push({
+						"aTargets": [ 1 ],
+						"mData": 1,
+						"visible" : false,
+						"searchable" : false
+					});
+					aoColumnDefs.push({
+						"aTargets": [ 0 ],
+						"mData": 0,
+						"mRender": function ( data, type, full ) {
+		            		 if(type == 'display') {
+		            			 if(data != null && data.length > 0){
+			            			 var udrSchema = full[1];
+			            			 var udrType = full[2];
+			            			 var rtype = udrType != null && udrType == 'Procedure' ? 'procedure':'udf';
+			            			 var rowcontent = '<a href="#/database/objdetail?type='+rtype+'&name=' + data ;
+			            			 if(udrSchema != null && udrSchema.length > 0){
+			            				 rowcontent += '&schema='+ udrSchema;
+			            				 rowcontent += '">' + udrSchema+'.'+data + '</a>';		            				 
+			            			 }else{
+			            				 rowcontent += '">' + udrSchema+'.'+data + '</a>';	
+			            			 }
+			            			 return rowcontent; 
+		            			 }else{
+		            				 return "";
+		            			 }
+		            		 }else { 
+		            			 return data;
+		            		 }
+		            	 }
+					});
+				}
+				usagesDataTable = $('#db-object-usage-list').DataTable({
+					"oLanguage": {
+						"sEmptyTable": "There are no objects using this " + routeArgs.type
+					},
+					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					processing: true,
+					paging: bPaging,
+					autoWidth: true,
+					"iDisplayLength" : 25, 
+					"sPaginationType": "full_numbers",
+					"aaData": aaData, 
+					"aoColumns" : aoColumns,
+					aoColumnDefs: aoColumnDefs,
+					"order": [[ 1, "asc" ]],
+	                 buttons: [
+	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Objects using "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
+	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: "Objects using "+routeArgs.type + " " + routeArgs.name }
 	                           ],					             
 		             fnDrawCallback: function(){
 		            	// $('#db-object-privileges-list td').css("white-space","nowrap");

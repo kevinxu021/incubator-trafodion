@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -14,8 +14,8 @@ define([
         '../../../bower_components/codemirror/lib/codemirror',
         '../../../bower_components/codemirror/mode/sql/sql',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
+        'datatables.net',
+        'datatables.net-bs',
         'datetimepicker',
         'jqueryvalidate'
         ], function (BaseView, WorkloadsT, $, wHandler, moment, common, CodeMirror) {

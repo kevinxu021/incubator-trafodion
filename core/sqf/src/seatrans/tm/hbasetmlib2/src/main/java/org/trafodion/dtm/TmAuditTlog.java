@@ -62,6 +62,7 @@ import org.apache.hadoop.hbase.client.transactional.TransactionRegionLocation;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.TransState;
 import org.apache.hadoop.hbase.client.transactional.UnknownTransactionException;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogDeleteRequest;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogDeleteResponse;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogTransactionStatesFromIntervalRequest;
@@ -83,6 +84,14 @@ import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.FailedServerException;
+import org.apache.hadoop.hbase.ipc.ServerRpcController;
+import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto;
+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.MutationType;
+
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
+
+import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto;
@@ -182,7 +191,6 @@ public class TmAuditTlog {
    private static Object tablePutLock;            // Lock for synchronizing table.put operations
                                                   // to avoid ArrayIndexOutOfBoundsException
    private static byte filler[];
-
    public static final int TLOG_SLEEP = 1000;      // One second
    public static final int TLOG_SLEEP_INCR = 5000; // Five seconds
    public static final int TLOG_RETRY_ATTEMPTS = 5;
@@ -196,12 +204,12 @@ public class TmAuditTlog {
    ExecutorService tlogThreadPool;
 
    private abstract class TlogCallable implements Callable<Integer>{
-     TransactionState transactionState;
-     HRegionLocation  location;
-     HTable table;
-     byte[] startKey;
-     byte[] endKey_orig;
-     byte[] endKey;
+      TransactionState transactionState;
+      HRegionLocation  location;
+      HTable table;
+      byte[] startKey;
+      byte[] endKey_orig;
+      byte[] endKey;
 
      TlogCallable(TransactionState txState, HRegionLocation location, HConnection connection) {
         transactionState = txState;
@@ -215,40 +223,40 @@ public class TmAuditTlog {
         startKey = location.getRegionInfo().getStartKey();
         endKey_orig = location.getRegionInfo().getEndKey();
         endKey = TransactionManager.binaryIncrementPos(endKey_orig, -1);
-     }
+    }
 
-     public Integer deleteEntriesOlderThanASNX(final byte[] regionName, final long auditSeqNum, final boolean pv_ageCommitted) throws IOException {
-        long threadId = Thread.currentThread().getId();
-        if (LOG.isTraceEnabled()) LOG.trace("deleteEntriesOlderThanASNX -- ENTRY auditSeqNum: "
-             + auditSeqNum + ", thread " + threadId);
-        boolean retry = false;
-        boolean refresh = false;
-        final Scan scan = new Scan(startKey, endKey);
+    public Integer deleteEntriesOlderThanASNX(final byte[] regionName, final long auditSeqNum, final boolean pv_ageCommitted) throws IOException {
+       long threadId = Thread.currentThread().getId();
+       if (LOG.isTraceEnabled()) LOG.trace("deleteEntriesOlderThanASNX -- ENTRY auditSeqNum: "
+            + auditSeqNum + ", thread " + threadId);
+       boolean retry = false;
+       boolean refresh = false;
+       final Scan scan = new Scan(startKey, endKey);
 
-        int retryCount = 0;
-        int retrySleep = TLOG_SLEEP;
-        do {
-           try {
-              if (LOG.isTraceEnabled()) LOG.trace("deleteEntriesOlderThanASNX -- ENTRY ASN: " + auditSeqNum);
-              Batch.Call<TrxRegionService, TlogDeleteResponse> callable =
-                 new Batch.Call<TrxRegionService, TlogDeleteResponse>() {
-                   ServerRpcController controller = new ServerRpcController();
-                   BlockingRpcCallback<TlogDeleteResponse> rpcCallback =
-                       new BlockingRpcCallback<TlogDeleteResponse>();
+       int retryCount = 0;
+       int retrySleep = TLOG_SLEEP;
+       do {
+          try {
+             if (LOG.isTraceEnabled()) LOG.trace("deleteEntriesOlderThanASNX -- ENTRY ASN: " + auditSeqNum);
+             Batch.Call<TrxRegionService, TlogDeleteResponse> callable =
+                new Batch.Call<TrxRegionService, TlogDeleteResponse>() {
+                  ServerRpcController controller = new ServerRpcController();
+                  BlockingRpcCallback<TlogDeleteResponse> rpcCallback =
+                      new BlockingRpcCallback<TlogDeleteResponse>();
 
-                      @Override
-                      public TlogDeleteResponse call(TrxRegionService instance) throws IOException {
-                         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogDeleteRequest.Builder
-                         builder = TlogDeleteRequest.newBuilder();
-                         builder.setAuditSeqNum(auditSeqNum);
-                         builder.setTransactionId(transactionState.getTransactionId());
-                         builder.setScan(ProtobufUtil.toScan(scan));
-                         builder.setRegionName(ByteString.copyFromUtf8(Bytes.toString(regionName))); //ByteString.copyFromUtf8(Bytes.toString(regionName)));
-                         builder.setAgeCommitted(pv_ageCommitted); 
+                     @Override
+                     public TlogDeleteResponse call(TrxRegionService instance) throws IOException {
+                        org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TlogDeleteRequest.Builder
+                        builder = TlogDeleteRequest.newBuilder();
+                        builder.setAuditSeqNum(auditSeqNum);
+                        builder.setTransactionId(transactionState.getTransactionId());
+                        builder.setScan(ProtobufUtil.toScan(scan));
+                        builder.setRegionName(ByteString.copyFromUtf8(Bytes.toString(regionName))); //ByteString.copyFromUtf8(Bytes.toString(regionName)));
+                        builder.setAgeCommitted(pv_ageCommitted); 
 
-                         instance.deleteTlogEntries(controller, builder.build(), rpcCallback);
-                         return rpcCallback.get();
-                     }
+                        instance.deleteTlogEntries(controller, builder.build(), rpcCallback);
+                        return rpcCallback.get();
+                    }
                  };
 
                  Map<byte[], TlogDeleteResponse> result = null;
@@ -288,33 +296,34 @@ public class TmAuditTlog {
               }
               if (refresh) {
 
-                 HRegionLocation lv_hrl = table.getRegionLocation(startKey);
-                 HRegionInfo     lv_hri = lv_hrl.getRegionInfo();
-                 String          lv_node = lv_hrl.getHostname();
-                 int             lv_length = lv_node.indexOf('.');
-                 if (LOG.isTraceEnabled()) LOG.trace("deleteEntriesOlderThanASNX -- location being refreshed : "
-                       + location.getRegionInfo().getRegionNameAsString() + "endKey: "
-                       + Hex.encodeHexString(location.getRegionInfo().getEndKey()) + " for ASN: " + auditSeqNum);
-                 if(retryCount == RETRY_ATTEMPTS) {
-                    LOG.error("Exceeded retry attempts (" + retryCount + ") in deleteEntriesOlderThanASNX for ASN: " + auditSeqNum);
-                    // We have received our reply in the form of an exception,
-                    // so decrement outstanding count and wake up waiters to avoid
-                    // getting hung forever
-                    transactionState.requestPendingCountDec(true);
-                    throw new IOException("Exceeded retry attempts (" + retryCount + ") in deleteEntriesOlderThanASNX for ASN: " + auditSeqNum);
-                 }
+               HRegionLocation lv_hrl = table.getRegionLocation(startKey);
+               HRegionInfo     lv_hri = lv_hrl.getRegionInfo();
+               String          lv_node = lv_hrl.getHostname();
+               int             lv_length = lv_node.indexOf('.');
 
-                 if (LOG.isWarnEnabled()) LOG.warn("deleteEntriesOlderThanASNX -- " + table.toString() + " location being refreshed");
-                 if (LOG.isWarnEnabled()) LOG.warn("deleteEntriesOlderThanASNX -- lv_hri: " + lv_hri);
-                 if (LOG.isWarnEnabled()) LOG.warn("deleteEntriesOlderThanASNX -- location.getRegionInfo(): " + location.getRegionInfo());
-                 table.getRegionLocation(startKey, true);
+               if (LOG.isTraceEnabled()) LOG.trace("deleteEntriesOlderThanASNX -- location being refreshed : "
+                    + location.getRegionInfo().getRegionNameAsString() + "endKey: "
+                    + Hex.encodeHexString(location.getRegionInfo().getEndKey()) + " for ASN: " + auditSeqNum);
+               if(retryCount == RETRY_ATTEMPTS) {
+                  LOG.error("Exceeded retry attempts (" + retryCount + ") in deleteEntriesOlderThanASNX for ASN: " + auditSeqNum);
+                  // We have received our reply in the form of an exception,
+                  // so decrement outstanding count and wake up waiters to avoid
+                  // getting hung forever
+                  transactionState.requestPendingCountDec(true);
+                  throw new IOException("Exceeded retry attempts (" + retryCount + ") in deleteEntriesOlderThanASNX for ASN: " + auditSeqNum);
+               }
 
-                 if (LOG.isTraceEnabled()) LOG.trace("deleteEntriesOlderThanASNX -- setting retry, count: " + retryCount);
-                 refresh = false;
-              }
-              retryCount++;
+               if (LOG.isWarnEnabled()) LOG.warn("deleteEntriesOlderThanASNX -- " + table.toString() + " location being refreshed");
+               if (LOG.isWarnEnabled()) LOG.warn("deleteEntriesOlderThanASNX -- lv_hri: " + lv_hri);
+               if (LOG.isWarnEnabled()) LOG.warn("deleteEntriesOlderThanASNX -- location.getRegionInfo(): " + location.getRegionInfo());
+               table.getRegionLocation(startKey, true);
 
-             if (retryCount < RETRY_ATTEMPTS && retry == true) {
+               if (LOG.isTraceEnabled()) LOG.trace("deleteEntriesOlderThanASNX -- setting retry, count: " + retryCount);
+               refresh = false;
+            }
+            retryCount++;
+
+            if (retryCount < RETRY_ATTEMPTS && retry == true) {
                try {
                   Thread.sleep(retrySleep);
                } catch(InterruptedException ex) {
@@ -322,14 +331,14 @@ public class TmAuditTlog {
                }
 
                retrySleep += TLOG_SLEEP_INCR;
-             }
-        } while (retryCount < RETRY_ATTEMPTS && retry == true);
-        // We have received our reply so decrement outstanding count
-        transactionState.requestPendingCountDec(false);
+            }
+       } while (retryCount < RETRY_ATTEMPTS && retry == true);
+       // We have received our reply so decrement outstanding count
+       transactionState.requestPendingCountDec(false);
 
-        if (LOG.isTraceEnabled()) LOG.trace("deleteEntriesOlderThanASNX -- EXIT ASN: " + auditSeqNum);
-        return 0;
-      } //getTransactionStatesFromIntervalX
+       if (LOG.isTraceEnabled()) LOG.trace("deleteEntriesOlderThanASNX -- EXIT ASN: " + auditSeqNum);
+       return 0;
+     } //getTransactionStatesFromIntervalX
    } // TlogCallable
 
    /**
@@ -1307,7 +1316,7 @@ public class TmAuditTlog {
          lvAsn = recoveryASN;
       }
       if (LOG.isTraceEnabled()) LOG.trace("transid: " + lvTransid + " state: " + lvTxState + " ASN: " + lvAsn
-    		  + " in thread " + threadId);
+              + " in thread " + threadId);
       p.add(TLOG_FAMILY, ASN_STATE, Bytes.toBytes(String.valueOf(lvAsn) + ","
                        + String.valueOf(lvTransid) + "," + lvTxState
                        + "," + Bytes.toString(filler)
@@ -1319,12 +1328,10 @@ public class TmAuditTlog {
 
       if (recoveryASN != -1){
          // We need to send this to a remote Tlog, not our local one, so open the appropriate table
-//         HTableInterface recoveryTable;
          Table recoveryTable;
          int lv_ownerNid = (int)TransactionState.getNodeId(lvTransid);
          String lv_tLogName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(lv_ownerNid) + "_LOG_" + Integer.toHexString(lv_lockIndex));
          if (LOG.isTraceEnabled()) LOG.trace("TLOG putSingleRecord with recoveryASN != 0 on table " + lv_tLogName);
-//         HConnection recoveryTableConnection = HConnectionManager.createConnection(this.config);
          Connection recoveryTableConnection = ConnectionFactory.createConnection(this.config);
          if (LOG.isTraceEnabled()) LOG.trace("putSingleRecord new HConnection: " + recoveryTableConnection);
          recoveryTable = recoveryTableConnection.getTable(TableName.valueOf(lv_tLogName));
@@ -1669,7 +1676,7 @@ public class TmAuditTlog {
             if (LOG.isTraceEnabled()) LOG.trace("transid: " + lvTransid + " state: " + lvTxState);
          }
          catch (IOException e){
-             LOG.error("getRecord IOException");
+             LOG.error("getRecord IOException " + e);
              throw e;
          }
          catch (Exception e){
@@ -1763,8 +1770,8 @@ public class TmAuditTlog {
                      break;
                   }
                   for (Cell cell : r.rawCells()) {
-                     StringTokenizer st = 
-                            new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
+                     StringTokenizer st =
+                        new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                      if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
                      if (st.hasMoreElements()) {
                         String asnToken = st.nextElement().toString();
@@ -1804,8 +1811,7 @@ public class TmAuditTlog {
                               Result lvResult = deleteTable.get(get);
                               List<Cell> list = lvResult.getColumnCells(TLOG_FAMILY, ASN_STATE);  // returns all versions of this column
                               for (Cell element : list) {
-                                 StringTokenizer stok =
-                                       new StringTokenizer(Bytes.toString(CellUtil.cloneValue(element)), ",");
+                                 StringTokenizer stok = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(element)), ",");
                                  if (stok.hasMoreElements()) {
                                     if (LOG.isTraceEnabled()) LOG.trace("Performing secondary search on (" + transidToken + ")");
                                     asnToken = stok.nextElement().toString() ;
@@ -1840,7 +1846,8 @@ public class TmAuditTlog {
               if (LOG.isTraceEnabled()) LOG.trace("deleteAgedEntries closing ResultScanner");
               ss.close();
            }
-           if (LOG.isTraceEnabled()) LOG.trace("attempting to delete list with " + deleteList.size() + " elements from table " + lv_tLogName);
+           if (LOG.isTraceEnabled()) LOG.trace("attempting to delete list with " + deleteList.size()
+                   + " elements from table " + lv_tLogName);
            try {
               deleteTable.delete(deleteList);
            }
@@ -1875,7 +1882,8 @@ public class TmAuditTlog {
       long startTime = System.nanoTime();
       long endTime;
 
-      if (LOG.isTraceEnabled()) LOG.trace("Tlog " + getTlogTableNameBase() + " writeControlPointRecords for clusterId " + clusterId + " start with map size " + map.size());
+      if (LOG.isTraceEnabled()) LOG.trace("Tlog " + getTlogTableNameBase()
+           + " writeControlPointRecords for clusterId " + clusterId + " start with map size " + map.size());
 
       try {
         for (Map.Entry<Long, TransactionState> e : map.entrySet()) {
@@ -1963,8 +1971,8 @@ public class TmAuditTlog {
                if (agedAsn > 0){
                   try {
                      if (LOG.isTraceEnabled()) LOG.trace("Attempting to remove TLOG writes older than asn " + agedAsn);
-                     deleteAgedEntries(agedAsn);
-//                     deleteEntriesOlderThanASN(agedAsn, ageCommitted);
+//                     deleteAgedEntries(agedAsn);
+                     deleteEntriesOlderThanASN(agedAsn, ageCommitted);
                   }
                   catch (Exception e){
                      LOG.error("deleteAgedEntries Exception " + e);
@@ -2218,18 +2226,18 @@ public class TmAuditTlog {
       // send to regions in order to retrience the desired set of transactions
       TransactionState transactionState = new TransactionState(0);
       CompletionService<Integer> compPool = new ExecutorCompletionService<Integer>(tlogThreadPool);
-      HConnection targetTableConnection = HConnectionManager.createConnection(this.config);
+      Connection targetTableConnection = ConnectionFactory.createConnection(this.config);
 
       try {
          if (LOG.isTraceEnabled()) LOG.trace("deleteEntriesOlderThanASN: "
               + pv_ASN + ", in thread: " + threadId);
-         HTableInterface targetTable;
          List<HRegionLocation> regionList;
 
          // For every Tlog table for this node
          for (int index = 0; index < tlogNumLogs; index++) {
             String lv_tLogName = new String("TRAFODION._DTM_.TLOG" + String.valueOf(this.dtmid) + "_LOG_" + Integer.toHexString(index));
-            regionList = targetTableConnection.locateRegions(TableName.valueOf(lv_tLogName), false, false);
+            RegionLocator locator = targetTableConnection.getRegionLocator(TableName.valueOf(lv_tLogName));
+            regionList = locator.getAllRegionLocations();
             loopCount++;
             // For every region in this table
             for (HRegionLocation location : regionList) {
@@ -2242,6 +2250,7 @@ public class TmAuditTlog {
                   }
                });
             }
+            locator.close();
          }
       } catch (Exception e) {
          LOG.error("exception in deleteEntriesOlderThanASN for ASN: "
@@ -2263,7 +2272,16 @@ public class TmAuditTlog {
                  + " " + e2);
          throw new IOException(e2);
       }
-      HConnectionManager.deleteStaleConnection(targetTableConnection);
+      finally{
+         try {
+            targetTableConnection.close();
+         }
+         catch (Exception e){
+            LOG.error("Exception closing Connection in deleteEntriesOlderThanASN for interval ASN: " + pv_ASN
+                      + " " + e);
+            throw new IOException(e);
+         }
+      }
       if (LOG.isTraceEnabled()) LOG.trace("deleteEntriesOlderThanASN tlog callable requests completed in thread "
             + threadId);
       return;

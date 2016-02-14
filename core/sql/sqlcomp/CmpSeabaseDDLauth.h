@@ -115,6 +115,10 @@ class CmpSeabaseDDLauth
      void setAuthValid       (bool isValid)
        {authValid_ = isValid;}
 
+     void createStandardAuth (
+        const std::string authName,
+        const int32_t authID);
+
     // metadata access methods
     void deleteRow      (const NAString &authName);
     void insertRow      (void);
@@ -160,6 +164,9 @@ class CmpSeabaseDDLuser : public CmpSeabaseDDLauth
      void alterUser(StmtDDLAlterUser * pNode);
      void registerUser(StmtDDLRegisterUser * pNode);
      void unregisterUser(StmtDDLRegisterUser * pNode);
+     void registerStandardUser(
+       const std::string userName,
+       const int32_t userID);
      
      CmpSeabaseDDLauth::AuthStatus getUserDetails(const char *pUserName, 
                                                     bool isExternal = false);
@@ -194,8 +201,8 @@ class CmpSeabaseDDLrole : public CmpSeabaseDDLauth
      void createRole(StmtDDLCreateRole * pNode);
         
      void createStandardRole(
-        const std::string roleName,
-        const int32_t roleID);
+        const std::string authName,
+        const int32_t authID);
         
      bool describe(
         const NAString & roleName, 

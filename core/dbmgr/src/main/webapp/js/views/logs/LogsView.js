@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -14,9 +14,9 @@ define([
         'common',
         'views/RefreshTimerView',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
-        'tablebuttons',
+        'datatables.net',
+        'datatables.net-bs',
+        'datatables.net-buttons',
         'buttonsflash',
         'buttonsprint',
         'buttonshtml',     
@@ -474,6 +474,7 @@ define([
 					"aoColumnDefs": [ {
 						"aTargets": [ 0 ],
 						"mData": 0,
+						"className" : "dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							if (type === 'display') {
 								return moment(data).format("YYYY-MM-DD HH:mm:ss");

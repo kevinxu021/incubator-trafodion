@@ -86,3 +86,14 @@ tupp_descriptor::tupp_descriptor()
 {
   init();
 };
+
+
+void tupp::display()
+{
+  char * dataPointer = getDataPointer();
+  Lng32 keyLen = getAllocatedSize();
+
+  printBrief(dataPointer, keyLen);
+
+}
+

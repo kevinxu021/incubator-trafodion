@@ -120,6 +120,8 @@ Lng32 setBufferValue(MCWrapper& value, const HSColGroupStruct *mgroup, HSDataBuf
 template <class T>
 void createHistogram(HSColGroupStruct *group, Lng32 numIntervals, Int64 estRowCount, NABoolean usingSample, T* dummyPtr);
 
+static Lng32 drop_I(NAString& sampTblName);
+
 //
 // Initialize the GLOBAL instances of ISFixedChar and ISVarChar values.
 // See the "as lightweight as possible" comments in hs_globals.h
@@ -2781,6 +2783,7 @@ HSGlobalsClass::HSGlobalsClass(ComDiagsArea &diags)
     //iusSampleInMem(NULL),
     iusSampleDeletedInMem(NULL),
     iusSampleInsertedInMem(NULL),
+    sampleIExists_(FALSE),
     sampleRateAsPercetageForIUS(0),
     minRowCtPerPartition_(-1),
     sample_I_generated(FALSE),
@@ -3026,6 +3029,24 @@ Lng32 HSGlobalsClass::Initialize()
       rowChangeCount = inserts + deletes + updates;
 
     HS_ASSERT(actualRowCount >= 0);
+
+    Int64 youWillLikelyBeSorry = 
+      ActiveSchemaDB()->getDefaults().getAsDouble(USTAT_YOULL_LIKELY_BE_SORRY);
+    if ((actualRowCount >= youWillLikelyBeSorry) &&
+       !(optFlags & SAMPLE_REQUESTED) &&
+       !(optFlags & IUS_OPT))
+      {
+        // attempt to do UPDATE STATISTICS on a big table without sampling,
+        // which could take a really long time
+        if ((optFlags & NO_SAMPLE) == 0)  // if explicit NO SAMPLE is missing
+          {
+            // raise an error on the chance that omitting the SAMPLE clause
+            // was accidental
+            HSFuncMergeDiags(-UERR_YOU_WILL_LIKELY_BE_SORRY);
+            retcode = -1;
+            HSHandleError(retcode);
+          }
+      }
 
 
                                              /*===================================*/
@@ -3994,6 +4015,7 @@ Lng32 HSSample::make(NABoolean rowCountIsEstimate, // input
     if ((sampleRowCount == 0) &&                    // sample set is empty;
         (CmpCommon::getDefault(USTAT_USE_BULK_LOAD) == DF_OFF))
       {                                          // cannot generate histograms
+        drop();  // drop the sample table we created
         HSFuncMergeDiags(- UERR_SAMPLE_SET_IS_ZERO);
         retcode = -1;
       }
@@ -5817,7 +5839,7 @@ void genArkcmpInfo(NAString& nidpid)
 // against a target table. The transaction is established by updating the row in the 
 // PERSISTENT_SAMPLES table about the persistent sample table used by the IUS:
 //   1. UPDATE_DATE field is populated with the current timestamp;
-//   2. IUS_UPDATE_HISTORY field is populated with the SQ node ID and process ID
+//   2. UPDATER_INFO field is populated with the SQ node ID and process ID
 //      of the tdm_arkcmp process performing the IUS work
 // The method will return 0 after the above successful updates, indicating that the IUS
 // work can proceed.
@@ -5831,7 +5853,7 @@ void genArkcmpInfo(NAString& nidpid)
 // considered legitimate, and the current call to the method will return an error
 // indicating that a concurrent IUS is in progress.
 // The argument ius_update_history_buffer will be filled with the string 
-// read from the corresponding field IUS_UPDATE_HISTORY.
+// read from the corresponding field UPDATER_INFO.
 // 
 // When P2-P1 > CQD(USTAT_IUS_MAX_TRANSACTION_DURATION), the on-going transaction is
 // considered over-due and will be discarded. The method proceeds as if there was
@@ -5846,10 +5868,12 @@ void genArkcmpInfo(NAString& nidpid)
 
 Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
 {
+   sampleIExists_ = FALSE;  // keep track of whether a _I table needs to be dropped
+
 #ifdef _DEBUG
    if (CmpCommon::getDefault(USTAT_IUS_NO_BLOCK) == DF_ON)
      return 0;
-#endif
+#endif 
 
    HSPersSamples *sampleList = HSPersSamples::Instance(objDef->getCatName(),
                                                        objDef->getSchemaName());
@@ -5919,7 +5943,8 @@ Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
    retcode =
      sampleList->updIUSUpdateInfo(objDef,
                                   (char*)nid_pid_str.data(),
-                                  (char*)updTimestampStr.data());
+                                  (char*)updTimestampStr.data(),
+                                  0 /* don't write where condition now */);
 
    if (retcode == 100)
      {
@@ -5932,7 +5957,7 @@ Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
 
    //
    // If we reach here, it means we have successfully stored the bdt and our process info
-   // into the UPDATE_DATE and IUS_UPDATE_HISTORY column. We can return TRUE.
+   // into the UPDATE_DATE and UPDATER_INFO column. We can return TRUE.
    //
    return 0;
 }
@@ -5943,10 +5968,18 @@ Lng32 HSGlobalsClass::begin_IUS_work(char* ius_update_history_buffer)
 // as follows.
 //
 //   1. UPDATE_DATE field is reset to a timestamp representing epoch time;
-//   2. IUS_UPDATE_HISTORY field is reset to an empty string.
+//   2. UPDATER_INFO field is reset to an empty string.
 
 Lng32 HSGlobalsClass::end_IUS_work()
 {
+   Lng32 retcode = 0;
+   if (sampleIExists_)
+     {
+       retcode = drop_I(*hssample_table);
+       // ignore retcode; we want to try the rest of this method as well
+       sampleIExists_ = FALSE;
+     }
+
 #ifdef _DEBUG
    if (CmpCommon::getDefault(USTAT_IUS_NO_BLOCK) == DF_ON)
      return 0;
@@ -5966,8 +5999,11 @@ Lng32 HSGlobalsClass::end_IUS_work()
    NAString updTimestampStr;
    genSQLTimestampConstant(bdt, updTimestampStr);
 
-   Lng32 retcode = 
-     sampleList->updIUSUpdateInfo(objDef, (char*)"", (char*)updTimestampStr.data());
+   retcode = 
+     sampleList->updIUSUpdateInfo(objDef,
+                                  (char*)"",
+                                  (char*)updTimestampStr.data(),
+                                  getWherePredicateForIUS());
    HSHandleError(retcode);
 
    return 0;
@@ -6288,10 +6324,11 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
 
   HSLogMan *LM = HSLogMan::Instance();
 
-  // create help table -I and -D
+  // create help table -I 
 
   retcode = create_I(*hssample_table);
   HSHandleError(retcode);
+  sampleIExists_ = TRUE;  // so we remember to drop it
 
   if (LM->LogNeeded()) 
     LM->StartTimer("IUS: read in Si");
@@ -6351,6 +6388,7 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
                                                selectDQuery);
 
   retcode = iusSampleDeletedInMem->populate(selectDQuery);
+  HSHandleError(retcode);
 
   if (LM->LogNeeded()) 
     LM->StopTimer();
@@ -6445,7 +6483,8 @@ Lng32 HSGlobalsClass::CollectStatisticsForIUS(Int64 currentSampleSize,
   }   // must end the transaction here; DDL and DML can't be in the same transaction
 
   // step3 - drop _I table
-  retcode = drop_I(*hssample_table);
+  sampleIExists_ = FALSE;  // only try to drop it once
+  retcode = drop_I(*hssample_table);  
   HSHandleError(retcode);
 
   HSFuncExecQuery("CONTROL QUERY DEFAULT ALLOW_DML_ON_NONAUDITED_TABLE reset");
@@ -12037,12 +12076,18 @@ if ( x[0] == (unsigned char)255 && x[1] == (unsigned char)127 ) {
      LM->StartTimer(title);
   }
 
+  // An object to keep track of any new lowest and highest values so we
+  // can tweak interval boundaries if need be
+  HSHiLowValues<T> hiLowVal;
+
   insertFailCount = 0;
   valIter.init(insGroup);
   for (rowInx=1; rowInx<=numInsRows - insGroup->nullCount; rowInx++)
     {
       intervalIdx = findInterval(numNonNullIntervals, boundaryValues, valIter.val());
       if (intvlRC) intvlRC[intervalIdx]++;  // for logging
+
+      hiLowVal.findHiLowValues(valIter.val());
 
       CountingBloomFilter::INSERT_ENUM insert_status =
           cbf->insert((char*)valIter.dataRepPtr(), valIter.size(), intervalIdx, 
@@ -12109,6 +12154,59 @@ if ( x[0] == (unsigned char)255 && x[1] == (unsigned char)127 ) {
   retcode = estimateAndTestIUSStats(smplGroup, delGroup, insGroup,
                                     hist, cbf, numNonNullIntervals,
                                     scaleFactor, nullCount, intvlRC);
+
+  // If the adjusted histogram is judged worthy by estimateAndTestIUSStats, we next
+  // tweak the highest and lowest interval boundaries. If the sample data produced a
+  // value higher than the highest interval, we extend that interval's boundary to
+  // include it. Similarly on the low end. We don't attempt to shrink the intervals,
+  // though, if sample values were deleted. Instead we count on reversion to RUS
+  // if the rowcounts of those intervals get too small.
+  if ((retcode == 0) && (hiLowVal.seenAtLeastOneValue_))
+    {
+      T convertedBoundaryValue[1];  // a target for convertBoundaryOrMFVValue
+      
+      // highest interval -- the highest boundary is stored in 
+      // interval numNonNullIntervals
+  
+      // convert boundary to data type T
+      const HSDataBuffer & hiBoundary = hist->getIntBoundary(numNonNullIntervals);
+      convertBoundaryOrMFVValue(hiBoundary,
+                                smplGroup,
+                                0,
+                                convertedBoundaryValue,  
+                                format);
+          
+      if (hiLowVal.hiValue_ > convertedBoundaryValue[0])
+        {
+          // convert T back to what would be stored in the histogram
+          HSDataBuffer newHiBoundary;
+          Lng32 convertRC = setBufferValue(hiLowVal.hiValue_,
+                                           smplGroup,
+                                           newHiBoundary);
+          hist->setIntBoundary(numNonNullIntervals,newHiBoundary);
+        }
+
+      // lowest interval -- the low boundary is stored in interval 0
+      
+      // convert boundary to data type T
+      const HSDataBuffer & lowBoundary = hist->getIntBoundary(0);
+      convertBoundaryOrMFVValue(lowBoundary,
+                                smplGroup,
+                                0,
+                                convertedBoundaryValue,  
+                                format);
+          
+      if (hiLowVal.lowValue_ < convertedBoundaryValue[0])
+        {
+          // convert T back to what would be stored in the histogram
+          HSDataBuffer newLowBoundary;
+          Lng32 convertRC = setBufferValue(hiLowVal.lowValue_,
+                                           smplGroup,
+                                           newLowBoundary);
+          hist->setIntBoundary(0,newLowBoundary);
+        }
+    }
+
   if (intvlRC)
     NADELETEBASIC(intvlRC, STMTHEAP);
   return retcode;
@@ -12210,8 +12308,8 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
   ///////////////////////////////////////////////////
   // fetch uec and rowcount per interval from cbf. 
   ///////////////////////////////////////////////////
-  UInt64* sampledIntvlRCs = new(STMTHEAP) UInt64[numNonNullIntervals+1];
-  UInt64* sampledIntvlUECs = new(STMTHEAP) UInt64[numNonNullIntervals+1];
+  UInt64* sampledIntvlRCs = new(STMTHEAP) UInt64[cbf->numBuckets()];
+  UInt64* sampledIntvlUECs = new(STMTHEAP) UInt64[cbf->numBuckets()];
 
 
   HSLogMan *LM = HSLogMan::Instance();
@@ -14777,12 +14875,30 @@ Lng32 managePersistentSamples()
 
     tableRows = hs_globals->objDef->getRowCount(isEstimate);
 
+    // tableRows could be zero for a Trafodion or HBase table if the table is new
+    // and all the data is still in memstore. So, in the logic below we dance around
+    // that, attempting to supply a not unreasonable guess for tableRows in that case.
+    // If we don't do this, then we later get a sampling ratio of -nan which will
+    // cause a syntax error when we formulate the sampling query.
+
     if (hs_globals->optFlags & SAMPLE_BASIC_1) 
-      sampleRows = hs_globals->sampleValue1;
+      {
+        sampleRows = hs_globals->sampleValue1;
+        if (tableRows == 0)
+          tableRows = sampleRows;  // just use the value the user gave 
+      }
     else if (hs_globals->optFlags & SAMPLE_RAND_1) // sampleValue1 is % * HS_SAMP_PCNT_UPSCALE. */ 
-      sampleRows = (Int64)(((double)hs_globals->sampleValue1/(HS_SAMP_PCNT_UPSCALE*100)) * tableRows);
+      {
+        if (tableRows == 0)
+          tableRows = 10000;  // just use a made-up number
+        sampleRows = (Int64)(((double)hs_globals->sampleValue1/(HS_SAMP_PCNT_UPSCALE*100)) * tableRows);
+      }
     else // hs_globals->optFlags & SAMPLE_ALL
-      sampleRows = tableRows/100; // use default sample size and then match all sample w/ large diff.
+      {
+        if (tableRows == 0)
+          tableRows = 10000;  // just use a made-up number
+        sampleRows = tableRows/100; // use default sample size and then match all sample w/ large diff.
+      }
 
     //Return -1 with error msg if sample rows greater than base table rows.
     if (sampleRows > tableRows)

@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -12,11 +12,11 @@ define([
         'moment',
         'common',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
+        'datatables.net',
+        'datatables.net-bs',
         'datetimepicker',
         'jqueryvalidate',
-        'tablebuttons',
+        'datatables.net-buttons',
         'buttonsflash',
         'buttonsprint',
         'buttonshtml',
@@ -352,6 +352,7 @@ define([
 					{
 						"aTargets": [ 2],
 						"mData": 2,
+						"className" : "dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							//if (type === 'display') {
 							if(data != null || data != -1)
@@ -364,6 +365,7 @@ define([
 					{
 						"aTargets": [3 ],
 						"mData": 3,
+						"className" : "dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							//if (type === 'display') {
 							if(data != null || data != -1)

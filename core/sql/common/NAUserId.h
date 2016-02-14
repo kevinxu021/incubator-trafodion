@@ -42,10 +42,11 @@
 #define MAX_USERNAME_LEN 128
 #define MAX_AUTHNAME_LEN 128
 #define MAX_AUTHID_AS_STRING_LEN 20
-#define MIN_USERID 33333
-#define MAX_USERID 999999
-#define MIN_ROLEID 1000000
-#define MAX_ROLEID 1490000
+#define MIN_USERID          33332
+#define MAX_USERID         999999
+#define MIN_ROLEID        1000000
+#define MAX_ROLEID_RANGE1 1490000
+#define MAX_ROLEID        1500000
 #define NA_UserId Int32
 #define NA_AuthID Int32
 #define NA_UserIdDefault 0
@@ -53,17 +54,23 @@
 // Defines for special users
 #define SYSTEM_AUTH_NAME "_SYSTEM"
 #define DB__ROOT         "DB__ROOT"
+#define DB__ADMIN        "DB__ADMIN"
 
 // Defines for special roles
 #define PUBLIC_AUTH_NAME "PUBLIC"
 #define DB__HIVEROLE     "DB__HIVEROLE"
 #define DB__HBASEROLE    "DB__HBASEROLE"
 #define DB__ROOTROLE     "DB__ROOTROLE"
+#define DB__ADMINROLE    "DB__ADMINROLE"
+#define DB__SERVICESROLE "DB__SERVICESROLE"
 
 #define SUPER_USER_LIT "33333"
 
+// If a new system defined user is added, subtract one from ADMIN_USER_ID and
+// be sure to change MIN_USERID to the smaller value
 #define SYSTEM_USER  -2
 #define PUBLIC_USER  -1
+#define ADMIN_USER_ID 33332
 #define ROOT_USER_ID  33333
 #define SUPER_USER    33333  
 
@@ -71,5 +78,6 @@
 #define HIVE_ROLE_ID     1490000 
 #define HBASE_ROLE_ID    1490001
 
+#define DEFAULT_AUTH_EXT_NAME "TRAFODION"
 
 #endif  /*  NAUSERID_H*/

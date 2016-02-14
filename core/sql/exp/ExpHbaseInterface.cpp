@@ -149,7 +149,7 @@ Int32 ExpHbaseInterface_JNI::deleteColumns(
             done = TRUE; 
             break;
          }
-         retcode = htc_->deleteRow(transID, rowID, &columns, -1);
+         retcode = htc_->deleteRow(transID, rowID, &columns, -1, NULL);
          if (retcode != HTC_OK) 
          {
             done = TRUE;
@@ -637,7 +637,7 @@ Lng32 ExpHbaseInterface_JNI::scanOpen(
 				      const NABoolean noXn,
 				      const NABoolean replSync,
 				      const NABoolean cacheBlocks,
-					  const NABoolean smallScanner,
+				      const NABoolean smallScanner,
 				      const Lng32 numCacheRows,
                                       const NABoolean preFetch,
 				      const LIST(NAString) *inColNamesToFilter,
@@ -671,8 +671,8 @@ Lng32 ExpHbaseInterface_JNI::scanOpen(
     transID = getTransactionIDFromContext();
   retCode_ = htc_->startScan(transID, startRow, stopRow, columns, timestamp, 
                              cacheBlocks,
-			     smallScanner,
-			     numCacheRows,
+                             smallScanner,
+                             numCacheRows,
                              preFetch,
                              inColNamesToFilter,
                              inCompareOpList,

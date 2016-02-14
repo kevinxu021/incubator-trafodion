@@ -1795,6 +1795,9 @@ private:
     HSInMemoryTable* iusSampleDeletedInMem;
     HSInMemoryTable* iusSampleInsertedInMem;
 
+    // used by IUS code for clean up purposes
+    NABoolean sampleIExists_;
+
     template <class T>
     Int32 processIUSColumn(T* ptr,
                            const NAWchar* format,
@@ -1878,6 +1881,36 @@ private:
                        HSColGroupStruct* smplGroup, Int64 smplrows,
                        HSColGroupStruct* delGroup, Int64 delrows,
                        HSColGroupStruct* insGroup, Int64 insrows);
+
+    template <class T>
+    class HSHiLowValues
+      {
+        public:
+
+          NABoolean seenAtLeastOneValue_;  // initially FALSE
+          // the next two are valid only if seenAtLeastOneValue_ is TRUE
+          T hiValue_;  // highest value seen so far
+          T lowValue_; // lowest value seen so far
+
+          HSHiLowValues() : seenAtLeastOneValue_(FALSE) { };
+
+          void findHiLowValues(T& val)
+            {
+              if (seenAtLeastOneValue_)
+                {
+                  if (val < lowValue_)
+                    lowValue_ = val;
+                  else if (val > hiValue_)
+                    hiValue_ = val;
+                }
+              else
+                {
+                  seenAtLeastOneValue_ = TRUE;
+                  lowValue_ = val;
+                  hiValue_ = val;
+                } 
+            };
+      };
 
     template <class T>
     Int16 findInterval(Int16 numInt, T* boundaries, T& val)
@@ -2162,6 +2195,8 @@ public:
     void setHasNull(NABoolean val) { hasNull_ = val; }
     void setIntBoundary(const Lng32 intNum, const char* value, Int16 len)
       { intArry_[intNum].boundary_.copyFrom(value, len, TRUE); }
+    void setIntBoundary(const Lng32 intNum, const HSDataBuffer & newBoundary)
+      { intArry_[intNum].boundary_ = newBoundary; }
     void setIntMFVValue(const Lng32 intNum, const char* value, Int16 len)
       { intArry_[intNum].mostFreqVal_.copyFrom(value, len, TRUE); }
 

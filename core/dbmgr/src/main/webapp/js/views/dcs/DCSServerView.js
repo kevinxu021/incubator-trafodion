@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 //
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 //
 //@@@ END COPYRIGHT @@@
 
@@ -12,9 +12,10 @@ define([
         'moment',
         'common',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
-        'tablebuttons',
+        'datatables.net',
+        'datatables.net-bs',
+        'datatables.net-buttons',
+        'datatables.net-select',
         'buttonsflash',
         'buttonsprint',
         'buttonshtml',
@@ -22,9 +23,14 @@ define([
         ], function (BaseView, DcsServerT, $, serverHandler, moment, common) {
 	'use strict';
 	var LOADING_SELECTOR = '#loadingImg',
+	PSTACK_LOADING_SELECTOR = '#pstackLloadingImg',
 	RESULT_CONTAINER = '#dcs-result-container',
 	ERROR_CONTAINER = '#dcs-error-text',
-	REFRESH_ACTION = '#refreshAction';
+	REFRESH_ACTION = '#refreshAction',
+	PSTACK_ACTION = '#pstackAction',
+	PSTACK_DIALOG = '#pStackDialog',
+	PSTACK_DAILOG_LABEL = '#pStackDialogLabel',
+	PSTACK_CONTAINER = '#pStackContainer';
 
 	var oDataTable = null;
 	var _that = null;
@@ -36,19 +42,36 @@ define([
 			_that = this;
 			serverHandler.on(serverHandler.FETCHDCS_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
+			serverHandler.on(serverHandler.PSTACK_SUCCESS, this.displayPStack);
+			serverHandler.on(serverHandler.PSTACK_ERROR, this.displayPStack);			
+
 			$(REFRESH_ACTION).on('click', this.fetchDcsServers);
+			$(PSTACK_ACTION).on('click', this.getPStack);
+			$(PSTACK_DIALOG).on('show.bs.modal', function () {
+			       $(this).find('.modal-body').css({
+			              width:'auto', //probably not needed
+			              height:'auto', //probably not needed 
+			              'max-height':'100%'
+			       });
+	        	});
 			this.fetchDcsServers();
 		},
 		doResume: function(){
 			serverHandler.on(serverHandler.FETCHDCS_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
+			serverHandler.on(serverHandler.PSTACK_SUCCESS, this.displayPStack);
+			serverHandler.on(serverHandler.PSTACK_ERROR, this.displayPStack);			
 			$(REFRESH_ACTION).on('click', this.fetchDcsServers);
+			$(PSTACK_ACTION).on('click', this.getPStack);
 			this.fetchDcsServers();
 		},
 		doPause: function(){
 			serverHandler.off(serverHandler.FETCHDCS_SUCCESS, this.displayResults);
 			serverHandler.off(serverHandler.FETCHDCS_ERROR, this.showErrorMessage);			
+			serverHandler.off(serverHandler.PSTACK_SUCCESS, this.displayPStack);
+			serverHandler.off(serverHandler.PSTACK_ERROR, this.displayPStack);			
 			$(REFRESH_ACTION).off('click', this.fetchDcsServers);
+			$(PSTACK_ACTION).off('click', this.getPStack);
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
@@ -62,6 +85,23 @@ define([
 			$(ERROR_CONTAINER).hide();
 			serverHandler.fetchDcsServers();
 		},
+		getPStack: function(){
+			//serverHandler.getPStack();
+			var selectedRows = oDataTable.rows( { selected: true } );
+			if(selectedRows && selectedRows.count() >0){
+				var processID = selectedRows.data()[0][6];
+				var processName = selectedRows.data()[0][7];
+				$(PSTACK_CONTAINER).val("Fetching pstack information ...");
+	        	$(PSTACK_DIALOG).modal('show');
+	        	$(PSTACK_LOADING_SELECTOR).show();
+	        	$(PSTACK_DAILOG_LABEL).text("PStack for " + processName);
+				serverHandler.getPStack(processID, processName);
+			}
+		},
+		displayPStack: function(result){
+			$(PSTACK_LOADING_SELECTOR).hide();
+			$(PSTACK_CONTAINER).val(result.pStack.replace(/\\n/g,'\r\n'));
+ 		},
 
 		displayResults: function (result){
 			_that.hideLoading();
@@ -99,6 +139,7 @@ define([
 					//autoWidth: true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "simple_numbers",
+					select: {style: 'single', items: 'row', info: false},
 					stateSave: true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
@@ -115,7 +156,7 @@ define([
 	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
 	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 	                        	   title: 'Connectivity Servers'} ,
-	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Connectivity Servers' }
+	                           { extend : 'print', orientation: 'landscape', exportOptions: { columns: ':visible' }, title: 'Connectivity Servers' }
 				          ],
 					fnDrawCallback: function(){
 						$('#dcs-query-results td').css("white-space","nowrap");

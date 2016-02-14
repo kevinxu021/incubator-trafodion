@@ -386,8 +386,6 @@ public class HBaseTxClient {
             throw new RuntimeException(e);
          }
       }
-      if(useDDLTrans)
-         trxManager.init(tmDDL);
 
       try {
           trxManager = TransactionManager.getInstance(config);
