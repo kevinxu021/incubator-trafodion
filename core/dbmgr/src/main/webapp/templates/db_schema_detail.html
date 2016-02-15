@@ -36,24 +36,28 @@
 					  <li id="libraries-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-libraries-link" class="dbmgr-link-button" data-toggle="pill">Libraries</a></li>
 					  <li id="procedures-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-procedures-link" class="dbmgr-link-button" data-toggle="pill">Procedures</a></li>
 					  <li id="udfs-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-udfs-link" class="dbmgr-link-button" data-toggle="pill">UDFs</a></li>
-                      <li><img id="loadingImg" style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></li>
 					</ul>
 					<div id="schema-details-container" class="tab-content">
 					    <div class="tab-pane fade in active" id="db-attributes-link">
+					    	<div id="attributes-spinner">Fetching attributes... <img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
 							<div>
 								<table id="db-object-attributes-container" class="dbmgr-table"></table>
+								<textarea id="db-object-attributes-error-text" readonly name="db-object-attributes-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 							</div>
 					    </div>
 					    <div class="tab-pane fade" id="db-ddl-link">
+					    	<div id="ddl-spinner">Fetching DDL... <img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
 							<div id ="db-object-ddl-container">
 								<textarea id="schema-ddl-text" readonly name="schema-ddl-text" spellcheck="false" rows="100" readonly class="textarea" style="width: 800px; margin-bottom: 10px"></textarea>
+								<textarea id="db-object-ddl-error-text" readonly name="db-object-ddl-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 							</div>
 					    </div>
 					    <div class="tab-pane fade" id="db-privileges-link">
+					    	<div id="privileges-spinner">Fetching privileges... <img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
 							<div id ="db-object-privileges-container"></div>
+							<textarea id="db-object-privileges-error-text" readonly name="db-object-privileges-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 					    </div>
 					</div>
-					<textarea id="db-object-error-text" readonly name="db-object-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 				</div>
 			</div>
 		</div>

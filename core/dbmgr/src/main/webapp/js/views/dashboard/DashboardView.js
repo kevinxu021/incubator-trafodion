@@ -289,7 +289,7 @@ define([
 				});
 
 				$(DRILLDOWN_DIALOG).on('show.bs.modal', function(event, ab){
-					$(DRILLDOWN_CHART_CONTAINER).empty();
+					$(DRILLDOWN_CHART).empty();
 					$(DRILLDOWN_SPINNER).show();
 				});
 
@@ -876,9 +876,8 @@ define([
 			}else{
 				$(DRILLDOWN_ERROR_CONTAINER).text("");
 				$(DRILLDOWN_ERROR_CONTAINER).hide();
-				$(DRILLDOWN_CHART_CONTAINER).empty();
-				$(DRILLDOWN_CHART_CONTAINER).show();
 				$(DRILLDOWN_CHART).empty();
+				$(DRILLDOWN_CHART_CONTAINER).show();
 				$(DRILLDOWN_LEGEND).empty();
 
 				var plotData = [];

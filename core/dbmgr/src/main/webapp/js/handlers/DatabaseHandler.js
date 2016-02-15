@@ -62,11 +62,13 @@ define(['handlers/EventDispatcher'],
 						success: function(data){
 							data.objectType = objectType;
 							data.schemaName = schemaName;
+							data.parentObjectName = parentObjectName;
 							dispatcher.fire(_this.FETCH_OBJECT_LIST_SUCCESS, data);
 						},
 						error:function(jqXHR, res, error){
 							jqXHR.objectType = objectType;
 							jqXHR.schemaName = schemaName;
+							jqXHR.parentObjectName = parentObjectName;
 							dispatcher.fire(_this.FETCH_OBJECT_LIST_ERROR, jqXHR, res, error);
 						}
 					});

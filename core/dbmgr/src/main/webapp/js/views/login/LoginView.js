@@ -41,7 +41,7 @@ define([
 		init: function(){
 			$('#navbar').hide();
 			_that = this;
-			
+			$(SPINNER).hide();
 			validator = $(LOGIN_FORM).validate({
 				rules: {
 					"username": { required: true },
