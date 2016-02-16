@@ -34,8 +34,9 @@
 #include "HBaseClient_JNI.h"
 #include "Globals.h"
 
-struct hive_sd_desc* populateSD(HiveMetaData *md, Int32 mainSdID, 
-                                Int32 tblID, NAText* tblStr, size_t& pos);
+struct hive_sd_desc* populateSDs(HiveMetaData *md, Int32 mainSdID, 
+                                 Int32 tblID, NAText* tblStr, size_t& pos,
+                                 hive_pkey_desc *&pkeyDesc);
 struct hive_column_desc* populateColumns(HiveMetaData *md, Int32 cdID,  
                                          NAText* tblStr, size_t& pos);
 struct hive_pkey_desc* populatePartitionKey(HiveMetaData *md, Int32 tblID,  
@@ -249,78 +250,101 @@ void HiveMetaData::resetErrorInfo()
   errCodeStr_ = NULL;
 }
 
-struct hive_sd_desc* populateSD(HiveMetaData *md, Int32 mainSdID, 
-                                Int32 tblID,  NAText* tblStr, size_t& pos)
+struct hive_sd_desc* populateSDs(HiveMetaData *md, Int32 mainSdID, 
+                                 Int32 tblID,  NAText* tblStr, size_t& pos,
+                                 hive_pkey_desc *&pkeyDesc)
 {
   struct hive_sd_desc* result = NULL;
-  struct hive_sd_desc* mainSD = NULL;
-  struct hive_sd_desc* last = NULL;
+  struct hive_sd_desc* lastSD = NULL;
   char fieldTerminator, recordTerminator;
+  const char *startStringForSD = "sd:StorageDescriptor(";
+  NABoolean isAPartition = FALSE;
 
   size_t foundB;
-  
-  if (!findAToken(md, tblStr, pos, "sd:StorageDescriptor(", 
-                  "getTableDesc::sd:StorageDescriptor(###"))
-    return NULL;
-  struct hive_column_desc* newColumns = populateColumns(md, 0, 
-                                                        tblStr, pos);
-  if (!newColumns)
-    return NULL;
 
-  NAText locationStr;
-  if(!extractValueStr(md, tblStr, pos, "location:", ",", 
-                      locationStr, "populateSD::location:###"))
-    return NULL;
-    
-  NAText inputStr;
-  if(!extractValueStr(md, tblStr, pos, "inputFormat:", ",", 
-                      inputStr, "populateSD:inputFormat:###"))
-    return NULL;
-  
-  NAText outputStr;
-  if(!extractValueStr(md, tblStr, pos, "outputFormat:", ",", 
-                      outputStr, "populateSD:outputFormat:###"))
-    return NULL;
-  
-  NAText numBucketsStr;
-  if(!extractValueStr(md, tblStr, pos, "numBuckets:", ",", 
-                      numBucketsStr, "populateSD:numBuckets:###"))
-    return NULL;
-  Int32 numBuckets = atoi(numBucketsStr.c_str());
-  
-  NABoolean success = populateSerDeParams(md, 0, fieldTerminator, 
-                                          recordTerminator, tblStr, pos);
-  if (!success)
-    return NULL;
+  while (findAToken(md, tblStr, pos, startStringForSD, 
+                    "getTableDesc::sd:StorageDescriptor/Partition(###", FALSE))
+    {
+      NAText partColValues;
+      if (lastSD != NULL)
+        {
+          if (!extractValueStr(md, tblStr, pos, "values:[", "]", 
+                               partColValues, "populateSD::values:[###"))
+            return NULL;
+          if (!findAToken(md, tblStr, pos, "sd:StorageDescriptor(",
+                          "populateSD::sd:StorageDescriptor(###"))
+            return NULL;
+        }
 
-  struct hive_bkey_desc* newBucketingCols = 
-    populateBucketingCols(md, 0, tblStr, pos);
+      struct hive_column_desc* newColumns = populateColumns(md, 0, 
+                                                            tblStr, pos);
+      if (!newColumns)
+        return NULL;
 
-  struct hive_skey_desc* newSortCols = populateSortCols(md, 0, 
-                                                        tblStr, pos);
+      NAText locationStr;
+      if(!extractValueStr(md, tblStr, pos, "location:", ",", 
+                          locationStr, "populateSD::location:###"))
+        return NULL;
 
-  struct hive_sd_desc* newSD = new (CmpCommon::contextHeap()) 
-    struct hive_sd_desc(0, //SdID
-                        locationStr.c_str(),
-                        0, // creation time
-                        numBuckets,
-                        inputStr.c_str(),
-                        outputStr.c_str(),
-                        hive_sd_desc::TABLE_SD, 
-                        // TODO : no support for hive_sd_desc::PARTN_SD
-                        newColumns, 
-                        newSortCols, 
-                        newBucketingCols,
-                        fieldTerminator,
-                        recordTerminator
-                        );
-  
-  result = newSD;
-  
-  // TODO : loop over SDs
-  if (findAToken(md, tblStr, pos, "sd:StorageDescriptor(", 
-                 "getTableDesc::sd:StorageDescriptor(###)",FALSE))
-    return NULL;
+      NAText inputStr;
+      if(!extractValueStr(md, tblStr, pos, "inputFormat:", ",", 
+                          inputStr, "populateSD:inputFormat:###"))
+        return NULL;
+
+      NAText outputStr;
+      if(!extractValueStr(md, tblStr, pos, "outputFormat:", ",", 
+                          outputStr, "populateSD:outputFormat:###"))
+        return NULL;
+
+      NAText numBucketsStr;
+      if(!extractValueStr(md, tblStr, pos, "numBuckets:", ",", 
+                          numBucketsStr, "populateSD:numBuckets:###"))
+        return NULL;
+      Int32 numBuckets = atoi(numBucketsStr.c_str());
+
+      NABoolean success = populateSerDeParams(md, 0, fieldTerminator, 
+                                              recordTerminator, tblStr, pos);
+      if (!success)
+        return NULL;
+
+      struct hive_bkey_desc* newBucketingCols = 
+        populateBucketingCols(md, 0, tblStr, pos);
+
+      struct hive_skey_desc* newSortCols = populateSortCols(md, 0, 
+                                                            tblStr, pos);
+
+      if (lastSD == NULL)
+        {
+          pkeyDesc = populatePartitionKey(md, 0, tblStr, pos);
+        }
+
+      struct hive_sd_desc* newSD = new (CmpCommon::contextHeap()) 
+        struct hive_sd_desc(0, //SdID
+                            locationStr.c_str(),
+                            0, // creation time
+                            numBuckets,
+                            inputStr.c_str(),
+                            outputStr.c_str(),
+                            (lastSD == NULL ? hive_sd_desc::TABLE_SD : hive_sd_desc::PARTN_SD),
+                            newColumns, 
+                            newSortCols, 
+                            newBucketingCols,
+                            fieldTerminator,
+                            recordTerminator,
+                            (lastSD == NULL ? NULL : partColValues.c_str()));
+
+      if (!result)
+        result = newSD;
+      else
+        {
+          lastSD->next_ = newSD;
+          if (!result->sdsAreCompatible(md, newSD))
+            return NULL;
+        }
+
+      lastSD = newSD;
+      startStringForSD = "Partition(";
+    }
 
   return result;
 }
@@ -342,6 +366,48 @@ NABoolean hive_sd_desc::isTextFile() const
 {
   return strstr(inputFormat_, "Text") && 
     strstr(outputFormat_, "Text");
+}
+
+NABoolean hive_sd_desc::sdsAreCompatible(HiveMetaData *md,
+                                         const hive_sd_desc *partnDesc) const
+{
+  const char *errItem = NULL;
+  const char *errText = NULL;
+
+  if (buckets_ != partnDesc->buckets_)
+    {
+      errItem = "number of buckets";
+      errText = " ";
+    }
+  else if (strcmp(inputFormat_, partnDesc->inputFormat_))
+    {
+      errItem = "input format";
+      errText = partnDesc->inputFormat_;
+    }
+  else if (strcmp(outputFormat_, partnDesc->outputFormat_))
+    {
+      errItem = "output format";
+      errText = partnDesc->outputFormat_;
+    }
+  else if (fieldTerminator_ != partnDesc->fieldTerminator_)
+    {
+      errItem = "field terminator";
+      errText = " ";
+    }
+  else if (recordTerminator_ != partnDesc->recordTerminator_)
+    {
+      errItem = "record terminator";
+      errText = " ";
+    }
+
+  if (errItem)
+    {
+      md->recordParseError(1550, "Table/Partition compatibility", 
+                           errItem, errText);
+      return FALSE;
+    }
+
+  return TRUE;
 }
 
 struct hive_column_desc* populateColumns(HiveMetaData *md, Int32 cdID,  
@@ -670,7 +736,7 @@ struct hive_tbl_desc* HiveMetaData::getFakedTableDesc(const char* tblName)
 
    hive_sd_desc* sd1 = new (h)hive_sd_desc(1, "loc", 0, 1, "ift", "oft", 
                                            hive_sd_desc::TABLE_SD, c1, 
-                                           sk1, bk1, '\010', '\n');
+                                           sk1, bk1, '\010', '\n', NULL);
 
    hive_tbl_desc* tbl1 = new (h) hive_tbl_desc(1, "myHive", "default", 
                                                0, sd1, 0);
@@ -756,13 +822,10 @@ struct hive_tbl_desc* HiveMetaData::getTableDesc(const char* schemaName,
 
    creationTS = atol(createTimeStr.c_str());
 
-   
-   // TODO: need to handle multiple SDs
-   struct hive_sd_desc* sd = populateSD(this, 0,0, tblStr, pos);
+   struct hive_pkey_desc* pkey = NULL;
+   struct hive_sd_desc* sd = populateSDs(this, 0,0, tblStr, pos, pkey);
    if (!sd)
      return NULL;
-   struct hive_pkey_desc* pkey = populatePartitionKey(this, 0, 
-                                                      tblStr, pos);
    
    result = 
      new (CmpCommon::contextHeap()) 
@@ -775,7 +838,6 @@ struct hive_tbl_desc* HiveMetaData::getTableDesc(const char* schemaName,
    // add the new table to the cache
    result->next_ = tbl_;
    tbl_ = result;
-   
    
    //delete tblStr ;
 

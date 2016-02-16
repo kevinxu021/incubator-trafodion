@@ -847,13 +847,16 @@ public:
 
   short codeGenForHive(Generator*);
   short genForTextAndSeq(Generator * generator,
-                             Queue * &hdfsFileInfoList,
-                             Queue * &hdfsFileRangeBeginList,
-                             Queue * &hdfsFileRangeNumList,
-                             char* &hdfsHostName,
-                             Int32 &hdfsPort,
-                             NABoolean &doMultiCursor,
-                             NABoolean &doSplitFileOpt);
+                         Queue * &hdfsFileInfoList,
+                         Queue * &hdfsFileRangeBeginList,
+                         Queue * &hdfsFileRangeNumList,
+                         char* &hdfsHostName,
+                         Int32 &hdfsPort,
+                         NABoolean &doMultiCursor,
+                         NABoolean &doSplitFileOpt,
+                         ExpTupleDesc *partCols,
+                         int partColValuesLen,
+                         const HivePartitionAndBucketKey *hiveSearchKey);
   static short genForOrc(Generator * generator,
                          const HHDFSTableStats* hTabStats,
                          const PartitioningFunction * mypart,
@@ -864,7 +867,13 @@ public:
                          Queue * &tdbListOfOrcPPI,
                          ValueIdList &orcOperVIDlist,
                          char* &hdfsHostName,
-                         Int32 &hdfsPort);
+                         Int32 &hdfsPort,
+                         ExpTupleDesc *partCols,
+                         int partColValuesLen,
+                         const HivePartitionAndBucketKey *hiveSearchKey);
+  static char * genExplodedHivePartKeyVals(Generator *generator,
+                                           ExpTupleDesc *partCols,
+                                           const ValueIdList &valList);
   
  static desc_struct *createHbaseTableDesc(const char * table_name);
 
@@ -1109,6 +1118,7 @@ private:
   Int32 computedNumOfActivePartitions_;
 
   OrcPushdownPredInfoList orcListOfPPI_;
+
 }; // class FileScan
 
 

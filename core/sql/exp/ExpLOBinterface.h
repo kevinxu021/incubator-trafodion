@@ -39,6 +39,9 @@ class HdfsFileInfo
   Int64 getStartRow() { return startOffset_; }
   Int64 getNumRows() { return bytesToRead_; }
 
+  // used for partitioned Hive tables
+  const char *getPartColValues() const { return partColValues_; }
+
   Lng32 getFlags() { return flags_; }
 
   void setFileIsLocal(NABoolean v)
@@ -64,6 +67,7 @@ class HdfsFileInfo
   NABasicPtr  fileName_;
   Int64 startOffset_;
   Int64 bytesToRead_;
+  NABasicPtr partColValues_;
 };
 
 class HdfsColInfo

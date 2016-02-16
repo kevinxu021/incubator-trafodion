@@ -41,14 +41,16 @@ sh regrhive.ksh -v -f $REGRTSTDIR/TEST005_a.hive.sql;
 sh regrhadoop.ksh fs -put $REGRTSTDIR/tbl_utf8.data /user/hive/exttables/tbl_utf8;
 sh regrhadoop.ksh fs -put $REGRTSTDIR/tbl_type.data /user/hive/exttables/tbl_type;
 
+-- cleanup any left-over Trafodion objects
+drop external table hivepi for hive.hive.hivepi;
+
 log LOG005 clear;
 
 set schema hive.hive;
 set terminal_charset utf8;
 
 cqd AUTO_QUERY_RETRY 'OFF';
-cqd HIVE_MAX_STRING_LENGTH '25' ;
-cqd mode_seahive 'ON';
+cqd HIVE_MAX_STRING_LENGTH '32' ;
 cqd CALL_EMBEDDED_ARKCMP 'OFF';
 cqd HIST_ROWCOUNT_REQUIRING_STATS '50000';
 ------------------------------------------------------------
@@ -80,6 +82,20 @@ prepare s1part from
 execute s1part;
 -- expect 0 rows
 
+insert into hive.hive.hivenonp
+values -- partition 1,one
+       (1,1,1,'one'),
+       (11,11,1,'one'),
+       -- partition 2,two
+       (2,2,2,'two'),
+       (22,22,2,'two'),
+       (222,222,2,'two'),
+       -- partition 3,three
+       (3,3,3,'three'),
+       -- partition 3 or partition 3,four
+       (34,34,3,'four');
+select * from hive.hive.hivenonp;
+
 -- insert some data and add one more partition
 sh regrhive.ksh -v -f $REGRTSTDIR/TEST005_b.hive.sql;
 
@@ -101,12 +117,11 @@ prepare s2 from
   ;
 
 prepare s2part from
-  -- selecting part col not supported right now
-  select --c_preferred_cust_flag,
+  select c_preferred_cust_flag,
          count(*) 
   from customer_bp 
-  --group by 1 
-  --order by 1
+  group by 1 
+  order by 1
   ;
 execute s1;
 -- because we don't invalidate in the executor,
@@ -218,5 +233,49 @@ select * from tbl_utf8p where chapter like '%海印_昧%';
 select * from tbl_type;
 insert into tbl_type_temp select * from tbl_type;
 select * from tbl_type_temp;
+
+cqd traf_enable_orc_format 'ON';
+select * from hivenonp;
+select * from hivepi;
+select * from hiveps;
+select * from hivepis;
+--select * from hivepio;
+
+prepare s from
+select * 
+from hive.hive.hivepis
+where id=2 and p1=2 and p2 = 'two' and (id<100 or p2='three');
+select count(*)
+from table(explain(null,'S'))
+where operator like '%SCAN%'
+  and description like '%part_elim_compiled%';
+select count(*)
+from table(explain(null,'S'))
+where operator like '%SCAN%'
+  and description like '%part_elim_runtime%';
+
+select *,
+       block__offset__inside__file,
+       input__range__number,
+       row__number__in__range
+       --, cast(substring(input__file__name,1,100) as char(100)) file_name
+from hive.hive.hivepis;
+select input__range__number, row__number__in__range, block__offset__inside__file
+from hive.hive.hivenonp;
+select input__range__number, row__number__in__range, block__offset__inside__file
+from hive.hive.hivepi;
+
+-- partitioned ORC tables not working yet
+-- prepare s from select * from hive.hive.hivepio;
+-- execute s;
+
+set catalog trafodion;
+-- create external table hivepi for hive.hive.hivepi;
+set schema hive.hive;
+-- update statistics is not working yet
+-- update statistics for table hive.hive.hivepi on every column;
+-- update statistics for table hivepis on every column;
+
+-- drop external table hivepi for hive.hive.hivepi;
 
 log;

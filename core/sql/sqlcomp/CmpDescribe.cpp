@@ -2316,28 +2316,32 @@ short CmpDescribeHiveTable (
 
   outputShortLine(space, "  ( ");
 
+  Int32 numPrintedCols = 0;
+  NABoolean describeVirtCols =
+    (CmpCommon::getDefault(HIVE_DESCRIBE_VIRT_COLS) == DF_ON);
   for (Int32 i = 0; i < (Int32)naTable->getColumnCount(); i++)
     {
       NAColumn * nac = naTable->getNAColumnArray()[i];
 
-      const NAString &colName = nac->getColName();
+      if (!nac->isHiveVirtualColumn() || describeVirtCols)
+        {
+          const NAString &colName = nac->getColName();
+          const NAType * nat = nac->getType();
 
-      sprintf(buf, "%-*s ", CM_SIM_NAME_LEN,
-              ANSI_ID(colName.data()));
-      
-      const NAType * nat = nac->getType();
+          sprintf(buf, "%-*s ", CM_SIM_NAME_LEN,
+                  ANSI_ID(colName.data()));
 
-      NAString nas;
-      if (type == 1)
-        ((NAType*)nat)->getMyTypeAsText(&nas, FALSE);
-      else
-        ((NAType*)nat)->getMyTypeAsHiveText(&nas);
+          NAString nas;
+          if (type == 1)
+            ((NAType*)nat)->getMyTypeAsText(&nas, FALSE);
+          else
+            ((NAType*)nat)->getMyTypeAsHiveText(&nas);
 
-      sprintf(&buf[strlen(buf)], "%s", nas.data());
+          sprintf(&buf[strlen(buf)], "%s", nas.data());
 
-      NAString colString(buf);
-      Int32 j = i;
-      outputColumnLine(space, colString, j);
+          NAString colString(buf);
+          outputColumnLine(space, colString, numPrintedCols);
+        }
     }
 
   outputShortLine(space, "  )");

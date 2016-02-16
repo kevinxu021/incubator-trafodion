@@ -53,6 +53,7 @@ class NAFileSetList;
 // Forward declarations
 // -----------------------------------------------------------------------
 class PartitioningFunction;
+class RangePartitioningFunction;
 struct desc_struct;
 class HHDFSTableStats;
 class HbaseCreateOption;
@@ -248,6 +249,11 @@ public:
   PartitioningFunction * getPartitioningFunction() const
                                                      { return partFunc_; }
 
+  const RangePartitioningFunction * getHivePartColValues() const
+                                             {return hivePartColValues_; }
+  void setHivePartColValues(RangePartitioningFunction * p)
+                                               { hivePartColValues_ = p; }
+
   NABoolean isPacked() const { return packedRows_; };
   
   NABoolean hasRemotePartitions() const { return hasRemotePartition_; };
@@ -409,6 +415,14 @@ private:
   NAColumnArray partitioningKeyColumns_;
   
   PartitioningFunction * partFunc_;
+
+  // ---------------------------------------------------------------------
+  // For partitioned Hive tables, we store the values for partition
+  // columns in a RangePartitioningFunction object. Note that since
+  // these partitions may be too few or not evenly distributed, we
+  // will usually not use this partitioning function for parallelism.
+  // ---------------------------------------------------------------------
+  RangePartitioningFunction * hivePartColValues_;
 
   // ---------------------------------------------------------------------
   // Some day we may support arbitrary queries, then an additional

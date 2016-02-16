@@ -567,7 +567,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 5    .    6    esp_exchange                    1:2(hash2)            2.88E+006
 3    .    5    hive_insert                     INS_STORE_SALES_SUMM  2.88E+006
 2    .    3    hash_groupby                                          2.88E+006
-1    .    2    esp_exchange                    2(hash2):1            2.88E+006
+1    .    2    esp_exchange                    2(hash2):2(hash2)     2.88E+006
 .    .    1    orc_scan                        STORE_SALES_ORC       2.88E+006
 
 --- SQL operation complete.
@@ -641,7 +641,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 6    .    7    esp_exchange                    1:2(hash2)            2.88E+006
 4    .    6    hive_insert                     INS_STORE_SALES_SUMM  2.88E+006
 3    .    4    hash_groupby                                          2.88E+006
-2    .    3    esp_exchange                    2(hash2):1            2.88E+006
+2    .    3    esp_exchange                    2(hash2):2(hash2)     2.88E+006
 .    .    2    orc_scan                        STORE_SALES_ORC       2.88E+006
 .    .    1    hive_truncate                                         1.00E+000
 

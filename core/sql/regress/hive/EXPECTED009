@@ -459,15 +459,12 @@ TRAFODION                                                                       
 --- 8 row(s) selected.
 >>drop external table t009t1 for hive.sch_t009.t009t1;
 
-*** ERROR[1389] Object TRAFODION."_HV_SCH_T009_".T009T1 does not exist in Trafodion.
-
---- SQL operation failed with errors.
+--- SQL operation complete.
 >>get tables in schema "_HV_SCH_T009_";
 
 Tables in Schema TRAFODION._HV_SCH_T009_
 ========================================
 
-T009T1
 T009T2
 
 --- SQL operation complete.
@@ -481,9 +478,7 @@ ROW_ID      CATALOG_NAME                                                        
 --- 1 row(s) selected.
 >>create external table t009t1 for hive.sch_t009.t009t1;
 
-*** ERROR[1390] Object TRAFODION."_HV_SCH_T009_".T009T1 already exists in Trafodion.
-
---- SQL operation failed with errors.
+--- SQL operation complete.
 >>
 >>-- select should now succeed
 >>select count(*) from hive.sch_t009.t009t1;

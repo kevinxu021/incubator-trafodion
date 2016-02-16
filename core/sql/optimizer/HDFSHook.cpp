@@ -542,6 +542,8 @@ HHDFSListPartitionStats::~HHDFSListPartitionStats()
 
 void HHDFSListPartitionStats::populate(hdfsFS fs,
                                        const NAString &dir,
+                                       int partIndex,
+                                       const char *partitionKeyValues,
                                        Int32 numOfBuckets,
                                        HHDFSDiags &diags,
                                        NABoolean doEstimation,
@@ -552,9 +554,12 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
 
   // remember parameters
   partitionDir_     = dir;
+  partIndex_        = partIndex;
   defaultBucketIdx_ = (numOfBuckets >= 1) ? numOfBuckets : 0;
   doEstimation_     = doEstimation;
   recordTerminator_ = recordTerminator;
+  if (partitionKeyValues)
+    partitionKeyValues_ = partitionKeyValues;
 
   // to avoid a crash, due to lacking permissions, check the directory
   // itself first
@@ -794,6 +799,8 @@ void HHDFSListPartitionStats::print(FILE *ofd)
 {
   fprintf(ofd,"------------- Partition %s\n", partitionDir_.data());
   fprintf(ofd," num of buckets: %d\n", defaultBucketIdx_);
+  if (partitionKeyValues_.length() > 0)
+    fprintf(ofd," partition key values: %s\n", partitionKeyValues_.data());
 
   for (CollIndex b=0; b<=defaultBucketIdx_; b++)
     if (bucketStatsList_.used(b))
@@ -864,7 +871,9 @@ NABoolean HHDFSTableStats::populate(struct hive_tbl_desc *htd)
       tableDir = hsd->location_;
 
       // visit the directory
-      processDirectory(tableDir, hsd->buckets_, 
+      processDirectory(tableDir,
+                       hsd->partitionColValues_,
+                       hsd->buckets_, 
                        hsd->isTrulyText(), 
                        hsd->getRecordTerminator(), 
                        type_==ORC_);
@@ -1007,13 +1016,17 @@ NABoolean HHDFSTableStats::splitLocation(const char *tableLocation,
   return TRUE;
 }
 
-void HHDFSTableStats::processDirectory(const NAString &dir, Int32 numOfBuckets, 
-                                       NABoolean doEstimate, char recordTerminator,
+void HHDFSTableStats::processDirectory(const NAString &dir,
+                                       const char *partColValues,
+                                       Int32 numOfBuckets, 
+                                       NABoolean doEstimate,
+                                       char recordTerminator,
                                        NABoolean isORC)
 {
   HHDFSListPartitionStats *partStats = new(heap_) HHDFSListPartitionStats(heap_);
-  partStats->populate(fs_, dir, numOfBuckets, diags_, doEstimate, recordTerminator,
-                      isORC);
+  partStats->populate(fs_, dir, listPartitionStatsList_.entries(),
+                      partColValues, numOfBuckets,
+                      diags_, doEstimate, recordTerminator, isORC);
 
   if (diags_.isSuccess())
     {
@@ -1117,7 +1130,12 @@ void HHDFSTableStats::disconnectHDFS()
 }
 
 // Assign all blocks in this to ESPs, considering locality
-Int64 HHDFSFileStats::assignToESPs(Int64 *espDistribution, NodeMap* nodeMap, Int32 numSQNodes, Int32 numESPs, Int32 numOfBytesToReadPerRow)
+Int64 HHDFSFileStats::assignToESPs(Int64 *espDistribution,
+                                   NodeMap* nodeMap,
+                                   Int32 numSQNodes,
+                                   Int32 numESPs,
+                                   Int32 numOfBytesToReadPerRow,
+                                   HHDFSListPartitionStats *partition)
 {
    Int64 totalBytesAssigned = 0;
    Int64 offset = 0;
@@ -1154,7 +1172,7 @@ Int64 HHDFSFileStats::assignToESPs(Int64 *espDistribution, NodeMap* nodeMap, Int
            partNum = c;
 
        HiveNodeMapEntry *e = (HiveNodeMapEntry*) (nodeMap->getNodeMapEntry(partNum));
-       e->addScanInfo(HiveScanInfo(this, offset, bytesToRead, isLocal));
+       e->addScanInfo(HiveScanInfo(this, offset, bytesToRead, isLocal, partition));
 
        // do bookkeeping
        espDistribution[partNum] += bytesToRead;
@@ -1168,7 +1186,11 @@ Int64 HHDFSFileStats::assignToESPs(Int64 *espDistribution, NodeMap* nodeMap, Int
 }
 
 // Assign all blocks in this to ESPs, without considering locality
-void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& entry, Int64 totalBytesPerESP, Int32 numOfBytesToReadPerRow)
+void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi,
+                                  HiveNodeMapEntry*& entry,
+                                  Int64 totalBytesPerESP,
+                                  Int32 numOfBytesToReadPerRow,
+                                  HHDFSListPartitionStats *partition)
 {
    Int64 available = getTotalSize(); // # of bytes available from the current file
    Int64 offset = 0;                 // offset in the current file
@@ -1184,7 +1206,7 @@ void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& entry
           // get the file name index into the fileStatsList array
           // in bucket stats
    
-          entry->addScanInfo(HiveScanInfo(this, offset, available));
+          entry->addScanInfo(HiveScanInfo(this, offset, available, FALSE, partition));
           available = 0;
    
           if ( filled + available == totalBytesPerESP ) 
@@ -1208,7 +1230,7 @@ void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& entry
    
           Int64 portion = totalBytesPerESP - filled;
    
-          entry -> addScanInfo(HiveScanInfo(this, offset, portion));
+          entry -> addScanInfo(HiveScanInfo(this, offset, portion, FALSE, partition));
      
           offset += portion;
    
@@ -1229,7 +1251,12 @@ Int64 HHDFSORCFileStats::findBlockForStripe(Int64 offset)
 }
 
 // Assign all stripes in this to ESPs, considering locality
-Int64 HHDFSORCFileStats::assignToESPs(Int64 *espDistribution, NodeMap* nodeMap, Int32 numSQNodes, Int32 numESPs, Int32 numOfBytesToReadPerRow)
+Int64 HHDFSORCFileStats::assignToESPs(Int64 *espDistribution,
+                                      NodeMap* nodeMap,
+                                      Int32 numSQNodes,
+                                      Int32 numESPs,
+                                      Int32 numOfBytesToReadPerRow,
+                                      HHDFSListPartitionStats *partition)
 {
    Int64 totalBytesAssigned = 0;
    Int64 offset = 0;
@@ -1271,7 +1298,7 @@ Int64 HHDFSORCFileStats::assignToESPs(Int64 *espDistribution, NodeMap* nodeMap, 
            partNum = c;
 
        HiveNodeMapEntry *e = (HiveNodeMapEntry*) (nodeMap->getNodeMapEntry(partNum));
-       e->addScanInfo(HiveScanInfo(this, offset, length, isLocal));
+       e->addScanInfo(HiveScanInfo(this, offset, length, isLocal, partition));
 
        // do bookkeeping
        espDistribution[partNum] += bytesToRead;
@@ -1281,7 +1308,11 @@ Int64 HHDFSORCFileStats::assignToESPs(Int64 *espDistribution, NodeMap* nodeMap, 
    return totalBytesAssigned;
 }
 // Assign all strpes in this to ESPs, without considering locality
-void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& entry, Int64 totalBytesPerESP, Int32 numOfBytesToReadPerRow)
+void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi,
+                                     HiveNodeMapEntry*& entry,
+                                     Int64 totalBytesPerESP,
+                                     Int32 numOfBytesToReadPerRow,
+                                     HHDFSListPartitionStats *partition)
 {
   CMPASSERT(numOfBytesToReadPerRow > 0);
 
@@ -1304,7 +1335,8 @@ void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& en
       // get the file name index into the fileStatsList array
       // in bucket stats. Note that we use the entire length
       // of the stripe as requried by ORC file read API.
-      entry->addOrUpdateScanInfo(HiveScanInfo(this, offset, length), available);
+      entry->addOrUpdateScanInfo(HiveScanInfo(this, offset, length, FALSE, partition),
+                                 available);
 
       if ( entry->getFilled() > totalBytesPerESP ) 
         {

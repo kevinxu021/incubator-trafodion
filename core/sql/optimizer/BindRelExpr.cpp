@@ -1604,9 +1604,9 @@ NATable *BindWA::getNATable(CorrName& corrName,
       NATable *nativeNATable = bindWA->getSchemaDB()->getNATableDB()->
                                   get(externalCorrName, bindWA, inTableDescStruct);
   
-       // Compare column lists
-       // TBD - return what mismatches
-       if ( nativeNATable && !(table->getNAColumnArray() == nativeNATable->getNAColumnArray()))
+      // Compare column lists (user columns only)
+      // TBD - return what mismatches
+      if ( nativeNATable && !(table->getNAColumnArray().compare(nativeNATable->getNAColumnArray(), FALSE)))
          {
            *CmpCommon::diags() << DgSqlCode(-3078)
                                << DgString0(adjustedName)
@@ -8948,15 +8948,16 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
 
   if (getTableDesc()->getNATable()->isHiveTable())
   {
-    if (partKeyCols.entries() > 0)
-      {
-        // Insert into partitioned tables would require computing the target
-        // partition directory name, something we don't support yet.
-        *CmpCommon::diags() << DgSqlCode(-4222)
-                            << DgString0("Insert into partitioned Hive tables");
-        bindWA->setErrStatus();
-        return this;
-      }
+    for (int c=0; c<fileset->getAllColumns().entries(); c++)
+      if (fileset->getAllColumns()[c]->isHivePartColumn())
+        {
+          // Insert into partitioned tables would require computing the target
+          // partition directory name, something we don't support yet.
+          *CmpCommon::diags() << DgSqlCode(-4222)
+                              << DgString0("Insert into partitioned Hive tables");
+          bindWA->setErrStatus();
+          return this;
+        }
 
     RelExpr * mychild = child(0);
 

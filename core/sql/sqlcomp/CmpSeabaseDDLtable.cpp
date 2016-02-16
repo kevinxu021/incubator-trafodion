@@ -513,7 +513,16 @@ short CmpSeabaseDDL::createSeabaseTableExternal(
   ElemDDLColDefArray &colArray = createTableNode->getColDefArray();
 
   // convert column array from NATable into a ComTdbVirtTableColumnInfo struct
-  const NAColumnArray &naColArray = naTable->getNAColumnArray();
+  NAColumnArray naColArray;
+  const NAColumnArray &origColArray = naTable->getNAColumnArray();
+  NABoolean includeVirtHiveCols =
+    (CmpCommon::getDefault(HIVE_EXT_TABLE_INCLUDE_VIRT_COLS) == DF_ON);
+
+  // eliminate Hive virtual columns, unless requested via CQD
+  for (CollIndex c=0; c<origColArray.entries(); c++)
+    if (!origColArray[c]->isHiveVirtualColumn() || includeVirtHiveCols)
+      naColArray.insert(origColArray[c]);
+
   numCols = naColArray.entries();
 
   // make sure all columns specified in colArray are part of naColArray

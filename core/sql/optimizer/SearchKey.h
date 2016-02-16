@@ -914,12 +914,17 @@ class orcPushdownPredicate;
 class HivePartitionAndBucketKey : public NABasicObject
 {
 public:
-  HivePartitionAndBucketKey(const HHDFSTableStats *hdfsTableStats,// IN
-                            const ValueIdList &hivePartColList,   // IN
-                            const ValueIdList &hiveBucketColList, // IN
-                            ValueIdSet & setOfPredicates);        // IN/OUT
+  HivePartitionAndBucketKey(TableDesc *tDesc);
 
   const HHDFSTableStats * getHDFSTableStats() const { return hdfsTableStats_; }
+  const ValueIdList &getPartCols() const           { return hivePartColList_; }
+  const ValueIdList &getBucketCols() const       { return hiveBucketColList_; }
+  const ValueIdSet &getCompileTimePartColPreds() const
+                                           { return compileTimePartColPreds_; }
+  const ValueIdSet &getPartAndVirtColPreds() const
+                                               { return partAndVirtColPreds_; }
+  const ValueIdSet &getBucketColPreds() const       { return bucketColPreds_; }
+
   // compute statistics for selected partitions and buckets
   void accumulateSelectedStats(HHDFSStatsBase &result);
 
@@ -931,13 +936,38 @@ public:
                                                 { return selectedPartitions_; }
 
   // iteratively retrieve a list of HDFS files selected by the selection preds
-  NABoolean getNextFile(HiveFileIterator &i);
+  NABoolean getNextFile(HiveFileIterator &i) const;
 
   // Return the total bytes to read
   Int64 getTotalSize();
 
   // Return the total bytes to read per row
   Int32 getTotalBytesToReadPerRow();
+
+  // return the partition column values for partition p
+  // in executor exploded format
+  const char *getExplodedPartColValues(int p) const
+                                            { return binaryPartColValues_[p]; }
+
+  // convert the Hive metadata representation of partition column values
+  // to a list of expressions in Trafodion SQL syntax, return FALSE on error
+  static NABoolean convertHivePartColValsToSQL(
+       const char *hivePartKeyValues,
+       int partNum,
+       const NATable *naTable,
+       const NAColumnArray *colArray,
+       NAString &sqlPartKeyValues);
+
+  // compute Hive partition/scan range predicates, remove
+  // those from selectionPredicates
+  NABoolean computePartitionPredicates(
+       const GroupAttributes *ga,
+       const ValueIdSet &selectionPredicates);
+
+  // evaluate some predicates on partition columns at compile time
+  // to eliminate unneeded partitions and compute the partition
+  // column values for the active partitions
+  int computeActivePartitions();
 
   // make Hive PushDown predicates
   static void  makeHiveOrcPushdownPrecates(
@@ -947,6 +977,10 @@ public:
         const IndexDesc *indexDesc,
         ValueIdSet& pushdownPredicatesProduced);
 
+  void replaceVEGExpressions(const ValueIdSet & availableValues,
+                             const ValueIdSet & inputValues,
+                             VEGRewritePairs * lookup = NULL);
+
 protected:
   // Return the total bytes read, given a accumulated stats and the selection predicate
   // selectionPred_
@@ -954,10 +988,26 @@ protected:
 
 private:
 
+  static void reportError(int part,
+                          int col,
+                          const NATable *naTable,
+                          const char *partColVals,
+                          const char *details);
+
   const HHDFSTableStats *hdfsTableStats_;
   ValueIdList hivePartColList_;
   ValueIdList hiveBucketColList_;
-  // TBD: how to process the predicates
+  ValueIdList hiveVirtFileColList_;
+  ValueIdList hiveVirtRowColList_;
+
+  // predicates on Hive partition columns that can be
+  // evaluated at compile time (only part cols, constants)
+  ValueIdSet compileTimePartColPreds_;
+  // predicates on partition columns or virtual columns for
+  // file name and scan range, these can be evaluated once
+  // per scan range at runtime
+  ValueIdSet partAndVirtColPreds_;
+  ValueIdSet bucketColPreds_;
 
   // number of the bucket if predicates select a single bucket,
   // -1 otherwise
@@ -967,8 +1017,13 @@ private:
   // predicates on Hive partitioning columns
   SUBARRAY(HHDFSListPartitionStats *) selectedPartitions_;
 
-  // selection predicate
-  ValueIdSet selectionPred_;
+  // A partitioning function object that stores the column
+  // values of the partition
+  const RangePartitioningFunction *partColValuesAsFunc_;
+
+  // array of binary partition column values in exploded
+  // format, for selected partitions
+  ARRAY(const char *) binaryPartColValues_;
 };
 
 // Iterator class to retrieve a list of HDFS files that are

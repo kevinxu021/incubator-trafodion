@@ -1963,6 +1963,8 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
 
   DDkwd__(HIVE_DEFAULT_CHARSET,            (char *)SQLCHARSETSTRING_UTF8),
   DD_____(HIVE_DEFAULT_SCHEMA,                  "HIVE"),
+  DDkwd__(HIVE_DESCRIBE_VIRT_COLS,              "OFF"),
+  DDkwd__(HIVE_EXT_TABLE_INCLUDE_VIRT_COLS,     "OFF"),
   DD_____(HIVE_FILE_NAME,     "/hive/tpcds/customer/customer.dat" ),
   DD_____(HIVE_HDFS_STATS_LOG_FILE,             ""),
   DDint__(HIVE_LIB_HDFS_PORT_OVERRIDE,          "-1"),
@@ -1976,6 +1978,8 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDflt0_(HIVE_MIN_BYTES_PER_ESP_PARTITION,     "67108864"),
   DDui___(HIVE_NUM_ESPS_PER_DATANODE,           "2"),
   DDpct__(HIVE_NUM_ESPS_ROUND_DEVIATION,        "34"),
+  DDkwd__(HIVE_PARTITION_ELIMINATION_CT,        "OFF"),
+  DDkwd__(HIVE_PARTITION_ELIMINATION_RT,        "ON"),
   DDkwd__(HIVE_SORT_HDFS_HOSTS,                 "ON"),
   DD_____(HIVE_USE_FAKE_SQ_NODE_NAMES,          "" ),
   DDkwd__(HIVE_USE_FAKE_TABLE_DESC,             "OFF"),
@@ -3505,6 +3509,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDkwd__(USTAT_COLLECT_FILE_STATS,             "ON"), // do we collect file stats
 
   DDkwd__(USTAT_COLLECT_MC_SKEW_VALUES,         "OFF"),
+  DDkwd__(USTAT_COLLECT_VIRT_COL_STATS,         "OFF"),
 
   DD_____(USTAT_CQDS_ALLOWED_FOR_SPAWNED_COMPILERS, ""), // list of CQDs that can be pushed to seconday compilers
                                                          // CQDs are delimited by ","

@@ -191,6 +191,9 @@ protected:
   inline ex_expr *moveColsConvertExpr() const 
     { return hdfsScanTdb().moveColsConvertExpr_; }
 
+  inline ex_expr *partElimExpr() const 
+    { return hdfsScanTdb().partElimExpr_; }
+
   inline bool isSequenceFile() const
   {return hdfsScanTdb().isSequenceFile(); }
 
@@ -244,6 +247,14 @@ protected:
   ExSimpleSQLBuffer *hdfsAsciiSourceBuffer_;
   tupp hdfsAsciiSourceTupp_;
   char * hdfsAsciiSourceData_;
+
+  ExSimpleSQLBuffer *partColsBuffer_;
+  tupp partColTupp_;                  // tupp for partition columns, if any
+  char *partColData_;                 // pointer to data for partition columns
+
+  ExSimpleSQLBuffer *virtColsBuffer_;
+  tupp virtColTupp_;                  // tupp for virtual columns, if needed
+  struct ComTdbHdfsVirtCols *virtColData_; // pointer to data for virtual columns
 
   sql_buffer_pool * pool_;            // row images after selection pred,
                                       // with only the required columns. 

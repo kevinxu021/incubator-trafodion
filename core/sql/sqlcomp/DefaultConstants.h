@@ -3806,6 +3806,14 @@ enum DefaultConstants
   // use info from external table created on this orc table
   ORC_USE_EXT_TABLE_ATTRS,
 
+  // include Hive virtual cols in DESCRIBE
+  HIVE_DESCRIBE_VIRT_COLS,
+  // Hive partition elimination at compile/run time
+  HIVE_PARTITION_ELIMINATION_CT,
+  HIVE_PARTITION_ELIMINATION_RT,
+  USTAT_COLLECT_VIRT_COL_STATS,
+  HIVE_EXT_TABLE_INCLUDE_VIRT_COLS,
+
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES

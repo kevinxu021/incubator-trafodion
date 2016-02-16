@@ -52,6 +52,7 @@ class HivePartitionAndBucketKey;
 class NodeMap;
 class HiveNodeMapEntry;
 class NodeMapIterator;
+class HHDFSListPartitionStats;
 
 typedef CollIndex HostId;
 typedef Int64 BucketNum;
@@ -172,10 +173,19 @@ public:
 
   // Assign all blocks in this to ESPs, considering locality
   // return: total # of bytes assigned for the hive file
-  virtual Int64 assignToESPs(Int64 *espDistribution, NodeMap* nodeMap, Int32 numSQNodes, Int32 numESPs, Int32 numOfBytesToReadPerRow);
+  virtual Int64 assignToESPs(Int64 *espDistribution,
+                             NodeMap* nodeMap,
+                             Int32 numSQNodes,
+                             Int32 numESPs,
+                             Int32 numOfBytesToReadPerRow,
+                             HHDFSListPartitionStats *partition);
 
   // Assign all blocks in this to ESPs, without considering locality
-  virtual void assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& entry, Int64 totalBytesPerESP, Int32 numOfBytesToReadPerRow);
+  virtual void assignToESPs(NodeMapIterator* nmi,
+                            HiveNodeMapEntry*& entry,
+                            Int64 totalBytesPerESP,
+                            Int32 numOfBytesToReadPerRow,
+                            HHDFSListPartitionStats *partition);
 
 protected:
   NAString fileName_;
@@ -213,10 +223,19 @@ public:
 
 protected:
   // Assign all stripes in this to ESPs, considering locality
-  Int64 assignToESPs(Int64 *espDistribution, NodeMap* nodeMap, Int32 numSQNodes, Int32 numESPs, Int32 numOfBytesToReadPerRow);
+  Int64 assignToESPs(Int64 *espDistribution,
+                     NodeMap* nodeMap,
+                     Int32 numSQNodes,
+                     Int32 numESPs,
+                     Int32 numOfBytesToReadPerRow,
+                     HHDFSListPartitionStats *partition);
 
   // Assign all stripes in this to ESPs, without considering locality
-  void assignToESPs(NodeMapIterator* nmi, HiveNodeMapEntry*& entry, Int64 totalBytesPerESP, Int32 numOfBytesToReadPerRow);
+  void assignToESPs(NodeMapIterator* nmi,
+                    HiveNodeMapEntry*& entry,
+                    Int64 totalBytesPerESP,
+                    Int32 numOfBytesToReadPerRow,
+                    HHDFSListPartitionStats *partition);
   
 protected:
   
@@ -261,12 +280,16 @@ class HHDFSListPartitionStats : public HHDFSStatsBase
 public:
   HHDFSListPartitionStats(NAMemory *heap) : heap_(heap), partitionDir_(heap),
     bucketStatsList_(heap),
+    partIndex_(-1),
+    defaultBucketIdx_(-1),
     doEstimation_(FALSE),
     recordTerminator_(0)
     {}
   ~HHDFSListPartitionStats();
 
   const NAString &getDirName() const                 { return partitionDir_; }
+  int getPartIndex() const                              { return partIndex_; }
+  const NAString &getPartitionKeyValues() const {return partitionKeyValues_; }
   const CollIndex entries() const       { return bucketStatsList_.entries(); }
   const HHDFSBucketStats * operator[](CollIndex i) const 
            { return (bucketStatsList_.used(i) ? bucketStatsList_[i] : NULL); }
@@ -274,9 +297,13 @@ public:
   Int32 getNumOfBuckets() const { return (defaultBucketIdx_ ? defaultBucketIdx_ : 1); }
   Int32 getLastValidBucketIndx() const               { return defaultBucketIdx_; }
 
-  void populate(hdfsFS fs, const NAString &dir, Int32 numOfBuckets, 
+  void populate(hdfsFS fs,
+                const NAString &dir,
+                int partIndex,
+                const char *partitionKeyValues,
+                Int32 numOfBuckets, 
                 HHDFSDiags &diags,
-                NABoolean doEsTimation, char recordTerminator, 
+                NABoolean doEstimation, char recordTerminator, 
                 NABoolean isORC);
   NABoolean validateAndRefresh(hdfsFS fs, HHDFSDiags &diags, NABoolean refresh, 
                                NABoolean isORC);
@@ -287,6 +314,8 @@ private:
 
   // directory of the partition
   NAString partitionDir_;
+  NAString partitionKeyValues_;
+  int partIndex_; // index in HDFSTableStats list
 
   // number of buckets (from table DDL) or 0 if partition is not bucketed
   // Note this value can never be 1. This value indicates the last
@@ -341,8 +370,12 @@ public:
                           Int32 &hdfsPort,
                           NAString &tableDir);
 
-  void processDirectory(const NAString &dir, Int32 numOfBuckets, 
-                        NABoolean doEstimation, char recordTerminator, NABoolean isORC);
+  void processDirectory(const NAString &dir,
+                        const char *partColValues,
+                        Int32 numOfBuckets, 
+                        NABoolean doEstimation,
+                        char recordTerminator,
+                        NABoolean isORC);
 
   void setPortOverride(Int32 portOverride)         { hdfsPortOverride_ = portOverride; }
 
