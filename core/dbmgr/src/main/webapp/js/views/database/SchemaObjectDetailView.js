@@ -18,7 +18,14 @@ define([
         'pdfmake'
         ], function (BaseView, DatabaseT, $, dbHandler, common, CodeMirror) {
 	'use strict';
-	var LOADING_SELECTOR = '#loadingImg';				
+	var ATTRIBUTES_SPINNER = '#attributes-spinner',
+		COLUMNS_SPINNER = '#columns-spinner',
+		REGIONS_SPINNER = '#regions-spinner',
+		STATISTICS_SPINNER = '#statistics-spinner',
+		DDL_SPINNER = '#ddl-spinner',
+		PRIVILEGES_SPINNER = '#privileges-spinner',
+		USAGES_SPINNER = '#usages-spinner',
+		INDEXES_SPINNER = '#indexes-spinner';			
 	var objColumnsDataTable = null,
 		regionsDataTable = null,
 		statisticsTable = null,
@@ -31,16 +38,23 @@ define([
 	
 	var BREAD_CRUMB = '#database-crumb';
 	var OBJECT_DETAILS_CONTAINER = '#object-details-container',
-		ATTRIBUTES_CONTAINER = '#db-object-attributes-container',
-		ERROR_CONTAINER = '#db-object-error-text',
-		COLUMNS_CONTAINER = '#db-object-columns-container',
-		REGIONS_CONTAINER = '#db-object-regions-container',
-		DDL_CONTAINER = '#db-object-ddl-container',
-		PRIVILEGES_CONTAINER = '#db-object-privileges-container',
-		USAGES_CONTAINER = '#db-object-usages-container',
 		OBJECT_NAME_CONTAINER = '#db-object-name',
+		ATTRIBUTES_CONTAINER = '#db-object-attributes-container',
+		ATTRIBUTES_ERROR_CONTAINER = '#db-object-attributes-error-text',
+		COLUMNS_CONTAINER = '#db-object-columns-container',
+		COLUMNS_ERROR_CONTAINER = '#db-object-columns-error-text',
+		REGIONS_CONTAINER = '#db-object-regions-container',
+		REGIONS_ERROR_CONTAINER = '#db-object-regions-error-text',
+		DDL_CONTAINER = '#db-object-ddl-container',
+		DDL_ERROR_CONTAINER = '#db-object-ddl-error-text',
+		PRIVILEGES_CONTAINER = '#db-object-privileges-container',
+		PRIVILEGES_ERROR_CONTAINER = '#db-object-privileges-error-text',
+		USAGES_CONTAINER = '#db-object-usages-container',
+		USAGES_ERROR_CONTAINER = '#db-object-usages-error-text',
 		STATISTICS_CONTAINER = '#db-object-statistics-container',
+		STATISTICS_ERROR_CONTAINER = '#db-object-statistics-error-text',
 		INDEXES_CONTAINER = '#db-object-indexes-container',
+		INDEXES_ERROR_CONTAINER = '#db-object-indexes-error-text',
 		
 		FEATURE_SELECTOR = '#db-object-feature-selector',
 		ATTRIBUTES_SELECTOR = '#db-attributes-link',
@@ -85,7 +99,6 @@ define([
 				objectAttributes = JSON.parse(objectAttributes);
 			}
 			$(OBJECT_DETAILS_CONTAINER).hide();
-			$(ERROR_CONTAINER).hide();
 			
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
@@ -115,21 +128,21 @@ define([
 
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
-			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.on(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
-			dbHandler.on(dbHandler.FETCH_COLUMNS_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_COLUMNS_ERROR, this.fetchColumnsError);
 			dbHandler.on(dbHandler.FETCH_REGIONS_SUCCESS, this.displayRegions);
-			dbHandler.on(dbHandler.FETCH_REGIONS_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_REGIONS_ERROR, this.fetchRegionsError);
 			dbHandler.on(dbHandler.FETCH_PRIVILEGES_SUCCESS, this.displayPrivileges);
-			dbHandler.on(dbHandler.FETCH_PRIVILEGES_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_PRIVILEGES_ERROR, this.fetchPrivilegesError);
 			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_SUCCESS, this.displayAttributes);
-			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.fetchAttributesError);
 			dbHandler.on(dbHandler.FETCH_STATISTICS_SUCCESS, this.displayStatistics);
-			dbHandler.on(dbHandler.FETCH_STATISTICS_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_STATISTICS_ERROR, this.fetchStatisticsError);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayIndexes);
-			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.fetchIndexesError);
 			dbHandler.on(dbHandler.FETCH_USAGE_SUCCESS, this.displayUsages);
-			dbHandler.on(dbHandler.FETCH_USAGE_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_USAGE_ERROR, this.fetchUsagesError);
 			_this.processRequest();
 
 		},
@@ -142,21 +155,21 @@ define([
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
-			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.on(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
-			dbHandler.on(dbHandler.FETCH_COLUMNS_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_COLUMNS_ERROR, this.fetchColumnsError);
 			dbHandler.on(dbHandler.FETCH_REGIONS_SUCCESS, this.displayRegions);
-			dbHandler.on(dbHandler.FETCH_REGIONS_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_REGIONS_ERROR, this.fetchRegionsError);
 			dbHandler.on(dbHandler.FETCH_PRIVILEGES_SUCCESS, this.displayPrivileges);
-			dbHandler.on(dbHandler.FETCH_PRIVILEGES_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_PRIVILEGES_ERROR, this.fetchPrivilegesError);
 			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_SUCCESS, this.displayAttributes);
-			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.fetchAttributesError);
 			dbHandler.on(dbHandler.FETCH_STATISTICS_SUCCESS, this.displayStatistics);
-			dbHandler.on(dbHandler.FETCH_STATISTICS_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_STATISTICS_ERROR, this.fetchStatisticsError);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayIndexes);
-			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.fetchIndexesError);
 			dbHandler.on(dbHandler.FETCH_USAGE_SUCCESS, this.displayUsages);
-			dbHandler.on(dbHandler.FETCH_USAGE_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_USAGE_ERROR, this.fetchUsagesError);
 			
 			if(prevRouteArgs.schema != routeArgs.schema || 
 					prevRouteArgs.name != routeArgs.name ||
@@ -177,21 +190,21 @@ define([
 		doPause: function(){
 			$(REFRESH_ACTION).off('click', this.doRefresh);
 			dbHandler.off(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
-			dbHandler.off(dbHandler.FETCH_DDL_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.off(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
-			dbHandler.off(dbHandler.FETCH_COLUMNS_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_COLUMNS_ERROR, this.fetchColumnsError);
 			dbHandler.off(dbHandler.FETCH_REGIONS_SUCCESS, this.displayRegions);
-			dbHandler.off(dbHandler.FETCH_REGIONS_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_REGIONS_ERROR, this.fetchRegionsError);
 			dbHandler.off(dbHandler.FETCH_PRIVILEGES_SUCCESS, this.displayPrivileges);
-			dbHandler.off(dbHandler.FETCH_PRIVILEGES_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_PRIVILEGES_ERROR, this.fetchPrivilegesError);
 			dbHandler.off(dbHandler.FETCH_OBJECT_ATTRIBUTES_SUCCESS, this.displayAttributes);
-			dbHandler.off(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.fetchAttributesError);
 			dbHandler.off(dbHandler.FETCH_STATISTICS_SUCCESS, this.displayStatistics);
-			dbHandler.off(dbHandler.FETCH_STATISTICS_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_STATISTICS_ERROR, this.fetchStatisticsError);
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayIndexes);
-			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_ERROR, this.fetchIndexesError);
 			dbHandler.off(dbHandler.FETCH_USAGE_SUCCESS, this.displayUsages);
-			dbHandler.off(dbHandler.FETCH_USAGE_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_USAGE_ERROR, this.fetchUsagesError);
 			
 			$('a[data-toggle="pill"]').off('shown.bs.tab', this.selectFeature);
 		},
@@ -237,10 +250,13 @@ define([
 				}
 			}
 			pageStatus = {};
-			$(ERROR_CONTAINER).hide();
+
 			$(COLUMNS_CONTAINER).empty();
 			$(REGIONS_CONTAINER).empty();
 			$(STATISTICS_CONTAINER).empty();
+			$(PRIVILEGES_CONTAINER).empty();
+			$(STATISTICS_CONTAINER).empty();
+			$(INDEXES_CONTAINER).empty();
 			
         	if(ddlTextEditor){
         		ddlTextEditor.setValue("");
@@ -249,13 +265,7 @@ define([
         		},1);
         	}			
 		},
-		showLoading: function(){
-			$(LOADING_SELECTOR).show();
-		},
 
-		hideLoading: function () {
-			$(LOADING_SELECTOR).hide();
-		},
 		getParentObjectName: function(){
 			var parentObjectName = null;
 			if(objectAttributes != null){
@@ -303,7 +313,6 @@ define([
 		},
 		selectFeature: function(e){
 			$(OBJECT_DETAILS_CONTAINER).show();
-			$(ERROR_CONTAINER).hide();
 			var selectedFeatureLink = ATTRIBUTES_SELECTOR;
 
 			if(e && e.target && $(e.target).length > 0){
@@ -347,6 +356,15 @@ define([
 			$(COLUMNS_CONTAINER).hide();
 			$(REGIONS_CONTAINER).hide();
 			$(STATISTICS_CONTAINER).hide();
+			$(USAGES_CONTAINER).hide();
+			$(INDEXES_CONTAINER).hide();
+			$(ATTRIBUTES_ERROR_CONTAINER).hide();
+			$(DDL_ERROR_CONTAINER).hide();
+			$(COLUMNS_ERROR_CONTAINER).hide();
+			$(REGIONS_ERROR_CONTAINER).hide();
+			$(STATISTICS_ERROR_CONTAINER).hide();
+			$(USAGES_ERROR_CONTAINER).hide();
+			$(INDEXES_ERROR_CONTAINER).hide();
 			
 			switch(selectedFeatureLink){
 			case ATTRIBUTES_SELECTOR:
@@ -416,56 +434,6 @@ define([
 				}
 			}
 			_this.selectFeature();
-			$(ERROR_CONTAINER).hide();
-		},
-		fetchDDLText: function(){
-			if(!pageStatus.ddlFetched || pageStatus.ddlFetched == false ){
-				_this.showLoading();
-				var parentObjectName = null;
-				if(routeArgs.type == 'index'){
-					parentObjectName = _this.getParentObjectName();
-				}
-				dbHandler.fetchDDL(routeArgs.type, routeArgs.name, routeArgs.schema, parentObjectName);
-			}
-		},
-		fetchColumns: function(){
-			if(!pageStatus.columnsFetched || pageStatus.columnsFetched == false){
-				_this.showLoading();
-				dbHandler.fetchColumns(routeArgs.type, routeArgs.name, routeArgs.schema);
-			}			
-		},
-		fetchRegions: function(){
-			if(!pageStatus.regionsFetched || pageStatus.regionsFetched == false){
-				_this.showLoading();
-				dbHandler.fetchRegions(routeArgs.type, routeArgs.name, routeArgs.schema);
-			}			
-		},
-		fetchStatistics: function(){
-			if(!pageStatus.statisticsFetched || pageStatus.statisticsFetched == false){
-				_this.showLoading();
-				var objectID = _this.getObjectID();
-				dbHandler.fetchStatistics(routeArgs.type, routeArgs.name, objectID, routeArgs.schema);
-			}			
-		},
-		fetchPrivileges: function(){
-			if(!pageStatus.privilegesFetched || pageStatus.privilegesFetched == false){
-				_this.showLoading();
-				var objectID = _this.getObjectID();
-				dbHandler.fetchPrivileges(routeArgs.type, routeArgs.name, objectID, routeArgs.schema);
-			}			
-		},
-		fetchUsages: function(){
-			if(!pageStatus.usagesFetched || pageStatus.usagesFetched == false){
-				_this.showLoading();
-				var objectID = _this.getObjectID();
-				dbHandler.fetchUsages(routeArgs.type, routeArgs.name, objectID, routeArgs.schema);
-			}			
-		},		
-		fetchIndexes: function(){
-			if(!pageStatus.indexesFetched || pageStatus.indexesFetched == false){
-				_this.showLoading();
-				dbHandler.fetchObjects("indexes", routeArgs.schema, routeArgs.name);
-			}			
 		},
 		updateBreadCrumbs: function(routeArgs){
 			$(BREAD_CRUMB).empty();
@@ -599,18 +567,69 @@ define([
 
 		},
 		fetchAttributes: function () {
-			$(ERROR_CONTAINER).hide();
+			$(ATTRIBUTES_ERROR_CONTAINER).hide();
 			if(objectAttributes == null){
+				$(ATTRIBUTES_SPINNER).show();
 				dbHandler.fetchAttributes(routeArgs.type, routeArgs.name, routeArgs.schema);
 			}else{
 				_this.displayAttributes();
 			}
 		},
+		fetchDDLText: function(){
+			if(!pageStatus.ddlFetched || pageStatus.ddlFetched == false ){
+				$(DDL_SPINNER).show();
+				var parentObjectName = null;
+				if(routeArgs.type == 'index'){
+					parentObjectName = _this.getParentObjectName();
+				}
+				dbHandler.fetchDDL(routeArgs.type, routeArgs.name, routeArgs.schema, parentObjectName);
+			}
+		},
+		fetchColumns: function(){
+			if(!pageStatus.columnsFetched || pageStatus.columnsFetched == false){
+				$(COLUMNS_SPINNER).show();
+				dbHandler.fetchColumns(routeArgs.type, routeArgs.name, routeArgs.schema);
+			}			
+		},
+		fetchRegions: function(){
+			if(!pageStatus.regionsFetched || pageStatus.regionsFetched == false){
+				$(COLUMNS_SPINNER).show();
+				dbHandler.fetchRegions(routeArgs.type, routeArgs.name, routeArgs.schema);
+			}			
+		},
+		fetchStatistics: function(){
+			if(!pageStatus.statisticsFetched || pageStatus.statisticsFetched == false){
+				$(STATISTICS_SPINNER).show();
+				var objectID = _this.getObjectID();
+				dbHandler.fetchStatistics(routeArgs.type, routeArgs.name, objectID, routeArgs.schema);
+			}			
+		},
+		fetchPrivileges: function(){
+			if(!pageStatus.privilegesFetched || pageStatus.privilegesFetched == false){
+				$(PRIVILEGES_SPINNER).show();
+				var objectID = _this.getObjectID();
+				dbHandler.fetchPrivileges(routeArgs.type, routeArgs.name, objectID, routeArgs.schema);
+			}			
+		},
+		fetchUsages: function(){
+			if(!pageStatus.usagesFetched || pageStatus.usagesFetched == false){
+				$(USAGES_SPINNER).show();
+				var objectID = _this.getObjectID();
+				dbHandler.fetchUsages(routeArgs.type, routeArgs.name, objectID, routeArgs.schema);
+			}			
+		},		
+		fetchIndexes: function(){
+			if(!pageStatus.indexesFetched || pageStatus.indexesFetched == false){
+				$(INDEXES_SPINNER).show();
+				dbHandler.fetchObjects("indexes", routeArgs.schema, routeArgs.name);
+			}			
+		},
 		displayAttributes: function(data) {
-			_this.hideLoading();
+			$(ATTRIBUTES_SPINNER).hide();
 			if(data != null){
 				objectAttributes = data;
 			}
+			$(ATTRIBUTES_ERROR_CONTAINER).hide();
 			$(ATTRIBUTES_CONTAINER).empty();
 			$(ATTRIBUTES_CONTAINER).append('<thead><tr><td style="width:200px;"><h2 style="color:black;font-size:15px;font-weight:bold">Name</h2></td><td><h2 style="color:black;font-size:15px;;font-weight:bold">Value</h2></td></tr></thead>');
 			$.each(objectAttributes, function(k, v){
@@ -646,15 +665,16 @@ define([
 			});
 		},		
 		displayDDL: function(data){
-			_this.hideLoading();
+			$(DDL_SPINNER).hide();
+			$(DDL_ERROR_CONTAINER).hide();
 			pageStatus.ddlFetched = true;
 			ddlTextEditor.setValue(data);
 			ddlTextEditor.refresh();
 		},
 		displayColumns: function(result){
-			_this.hideLoading();
+			$(COLUMNS_SPINNER).hide();
 			var keys = result.columnNames;
-			$(ERROR_CONTAINER).hide();
+			$(COLUMNS_ERROR_CONTAINER).hide();
 			pageStatus.columnsFetched = true;
 			
 			if(keys != null && keys.length > 0) {
@@ -732,9 +752,9 @@ define([
 			}
 		},
 		displayRegions: function(result){
-			_this.hideLoading();
+			$(REGIONS_SPINNER).hide();
 			var keys = result.columnNames;
-			$(ERROR_CONTAINER).hide();
+			$(REGIONS_ERROR_CONTAINER).hide();
 			pageStatus.regionsFetched = true;
 			
 			if(keys != null && keys.length > 0) {
@@ -793,9 +813,9 @@ define([
 			}
 		},
 		displayPrivileges: function(result){
-			_this.hideLoading();
+			$(PRIVILEGES_SPINNER).hide();
 			var keys = result.columnNames;
-			$(ERROR_CONTAINER).hide();
+			$(PRIVILEGES_ERROR_CONTAINER).hide();
 			pageStatus.privilegesFetched = true;
 			
 			if(keys != null && keys.length > 0) {
@@ -854,9 +874,9 @@ define([
 			}
 		},	
 		displayUsages: function(result){
-			_this.hideLoading();
+			$(USAGES_SPINNER).hide();
 			var keys = result.columnNames;
-			$(ERROR_CONTAINER).hide();
+			$(USAGES_ERROR_CONTAINER).hide();
 			pageStatus.usagesFetched = true;
 			
 			if(keys != null && keys.length > 0) {
@@ -950,9 +970,9 @@ define([
 			}
 		},	
 		displayIndexes: function(result){
-			_this.hideLoading();
+			$(INDEXES_SPINNER).hide();
 			var keys = result.columnNames;
-			$(ERROR_CONTAINER).hide();
+			$(INDEXES_ERROR_CONTAINER).hide();
 			pageStatus[routeArgs.type] = true;
 			
 			if(keys != null && keys.length > 0) {
@@ -965,16 +985,6 @@ define([
 				var link = result.parentLink != null ? result.parentLink : "";
 
 				$.each(result.resultArray, function(i, data){
-					//var rowData = {};
-					//$.each(keys, function(k, v) {
-					//	rowData[v] = data[k];
-					//});
-					/*aaData.push(
-							{'Name' : data[0], 
-								'Owner' : data[1],
-								'CreateTime' : data[2],
-								'ModifiedTime': data[3]
-							});*/
 					aaData.push(data);
 				});
 
@@ -1049,7 +1059,7 @@ define([
 				
 				indexesDataTable = $('#db-objects-list-results').DataTable({
 					"oLanguage": {
-						"sEmptyTable": "There are no " + routeArgs.type
+						"sEmptyTable": "There are no indexes on this table"
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					processing: true,
@@ -1096,9 +1106,9 @@ define([
 			}
 		},
 		displayStatistics: function(result){
-			_this.hideLoading();
+			$(STATISTICS_SPINNER).hide();
 			var keys = result.columnNames;
-			$(ERROR_CONTAINER).hide();
+			$(STATISTICS_ERROR_CONTAINER).hide();
 			pageStatus.statisticsFetched = true;
 			
 			if(keys != null && keys.length > 0) {
@@ -1169,20 +1179,102 @@ define([
 				});
 			}
 		},		
-		showErrorMessage: function (jqXHR) {
-			_this.hideLoading();
-			$(ERROR_CONTAINER).show();
-			$(OBJECT_DETAILS_CONTAINER).hide();
-			$(COLUMNS_CONTAINER).hide();
-			$(REGIONS_CONTAINER).hide();
+		fetchAttributesError: function (jqXHR) {
+			$(ATTRIBUTES_SPINNER).hide();
+			$(ATTRIBUTES_ERROR_CONTAINER).show();
+			$(ATTRIBUTES_CONTAINER).hide();
 			if (jqXHR.responseText) {
-				$(ERROR_CONTAINER).text(jqXHR.responseText);
+				$(ATTRIBUTES_ERROR_CONTAINER).text(jqXHR.responseText);
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
-					$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+					$(ATTRIBUTES_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
 				}
 			}
-		}  
+		},
+		fetchDDLError: function (jqXHR) {
+			$(DDL_SPINNER).hide();
+			$(DDL_ERROR_CONTAINER).show();
+			$(DDL_CONTAINER).hide();
+			if (jqXHR.responseText) {
+				$(DDL_ERROR_CONTAINER).text(jqXHR.responseText);
+			}else{
+				if(jqXHR.status != null && jqXHR.status == 0) {
+					$(DDL_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+				}
+			}
+		}, 
+		fetchColumnsError: function (jqXHR) {
+			$(COLUMNS_SPINNER).hide();
+			$(COLUMNS_ERROR_CONTAINER).show();
+			$(COLUMNS_CONTAINER).hide();
+			if (jqXHR.responseText) {
+				$(COLUMNS_ERROR_CONTAINER).text(jqXHR.responseText);
+			}else{
+				if(jqXHR.status != null && jqXHR.status == 0) {
+					$(COLUMNS_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+				}
+			}
+		},  
+		fetchRegionsError: function (jqXHR) {
+			$(REGIONS_SPINNER).hide();
+			$(REGIONS_ERROR_CONTAINER).show();
+			$(REGIONS_CONTAINER).hide();
+			if (jqXHR.responseText) {
+				$(REGIONS_ERROR_CONTAINER).text(jqXHR.responseText);
+			}else{
+				if(jqXHR.status != null && jqXHR.status == 0) {
+					$(REGIONS_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+				}
+			}
+		},  
+		fetchPrivilegesError: function (jqXHR) {
+			$(PRIVILEGES_SPINNER).hide();
+			$(PRIVILEGES_ERROR_CONTAINER).show();
+			$(PRIVILEGES_CONTAINER).hide();
+			if (jqXHR.responseText) {
+				$(PRIVILEGES_ERROR_CONTAINER).text(jqXHR.responseText);
+			}else{
+				if(jqXHR.status != null && jqXHR.status == 0) {
+					$(PRIVILEGES_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+				}
+			}
+		}, 
+		fetchUsagesError: function (jqXHR) {
+			$(USAGES_SPINNER).hide();
+			$(USAGES_ERROR_CONTAINER).show();
+			$(USAGES_CONTAINER).hide();
+			if (jqXHR.responseText) {
+				$(USAGES_ERROR_CONTAINER).text(jqXHR.responseText);
+			}else{
+				if(jqXHR.status != null && jqXHR.status == 0) {
+					$(USAGES_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+				}
+			}
+		},  
+		fetchIndexesError: function (jqXHR) {
+			$(INDEXES_SPINNER).hide();
+			$(INDEXES_ERROR_CONTAINER).show();
+			$(INDEXES_CONTAINER).hide();
+			if (jqXHR.responseText) {
+				$(INDEXES_ERROR_CONTAINER).text(jqXHR.responseText);
+			}else{
+				if(jqXHR.status != null && jqXHR.status == 0) {
+					$(INDEXES_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+				}
+			}
+		}, 
+		fetchStatisticsError: function (jqXHR) {
+			$(STATISTICS_SPINNER).hide();
+			$(STATISTICS_ERROR_CONTAINER).show();
+			$(STATISTICS_CONTAINER).hide();
+			if (jqXHR.responseText) {
+				$(STATISTICS_ERROR_CONTAINER).text(jqXHR.responseText);
+			}else{
+				if(jqXHR.status != null && jqXHR.status == 0) {
+					$(STATISTICS_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+				}
+			}
+		},  
 	});
 
 
