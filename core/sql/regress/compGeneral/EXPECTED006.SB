@@ -1541,30 +1541,9 @@ Sheldon ship 5500.00 5500.00
 +>lag(salary_amt, -2) over (partition by dept_name order by emp_name)
 +>from T006_EMPLOYEES;
 
-EMP_NAME DEPT_NAME SALARY_AMT (EXPR)
-----------
+*** ERROR[8440] The size of the history buffer is too small to execute one or more of the OLAP Windowed Functions in the query.
 
-Hamilton HR 2300.00 ?
-Hamish HR 1600.00 ?
-Hamlet HR 1200.00 2300.00
-Hammond HR 800.00 1600.00
-Hamuel HR 700.00 1200.00
-Hanael HR 600.00 800.00
-Hanan HR 1000.00 700.00
-Aaron acct 3100.00 ?
-Abaddon acct 3200.00 ?
-Abbott acct 3300.00 3100.00
-Abel acct 3500.00 3200.00
-Absalom acct 5500.00 3300.00
-Shannen ship 1000.00 ?
-Shannon ship 2000.00 ?
-Shaquille ship 3400.00 1000.00
-Sheamus ship 4000.00 2000.00
-Shelah ship 3600.00 3400.00
-Shelby ship 4500.00 4000.00
-Sheldon ship 5500.00 3600.00
-
---- 19 row(s) selected.
+--- 0 row(s) selected.
 >>
 >>prepare xx from select emp_name, dept_name, salary_amt,
 +>lag(salary_amt, CAST(? as INT)) over (partition by dept_name order by emp_name)
