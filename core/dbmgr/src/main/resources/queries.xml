@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- @@@ START COPYRIGHT @@@
  
-     (C) Copyright 2015 Esgyn Corporation
+     (C) Copyright 2016 Esgyn Corporation
  
      @@@ END COPYRIGHT @@@
 -->
@@ -11,6 +11,11 @@
 			<!-- Get List of DCS servers and their status -->
 			<name>GET_DCS_SERVERS</name>
 			<text><![CDATA[{"url":"http://%1$s/v1/servers/dcs/connections", "method":"get"}]]></text>
+		</query>
+		<query>
+			<!-- Get DCS summary -->
+			<name>GET_DCS_SUMMARY</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/servers/dcs/summary", "method":"get"}]]></text>
 		</query>
 		<query>
 			<!-- Get status of EsgynDB Services -->
@@ -23,27 +28,36 @@
 			<text><![CDATA[{"url":"http://%1$s/v1/servers/nodes", "method":"get"}]]></text>
 		</query>				
 		<query>
+			<!-- Get pstack of a process -->
+			<name>GET_PROCESS_PSTACK</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/servers/pstack/program/%2$s", "method":"get"}]]></text>
+		</query>	
+		<query>
 			<!-- Fetch list of schemas -->
 			<name>SELECT_SCHEMAS</name>
 			<text><![CDATA[select schema_name as "Name", authname(schema_owner) as "Owner", 
 					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime",
-					object_uid as "Metadata ID" 
+					CAST(object_uid  AS CHAR(26)) as "Object ID" 
 					from "_MD_".objects 
 					where catalog_name = ?
 					and schema_name != '_MD_'
+					and schema_name != '_PRIVMGR_MD_'
+					and schema_name NOT LIKE 'VOLATILE%'
 					and object_name = '__SCHEMA__'
 					order by schema_name FOR READ UNCOMMITTED ACCESS;
 				]]></text>
 		</query>
 		<query>
 			<!-- Fetch details about a specific schema -->
-			<name>SELECT_SCHEMA</name>
+			<name>SELECT_SCHEMA_ATTRIBUTES</name>
 			<text><![CDATA[select schema_name as "Name", user(schema_owner) as "Owner", 
 					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime",
-					object_uid as "Metadata ID" 
+					CAST(object_uid  AS CHAR(26)) as "Object ID" 
 					from "_MD_".objects 
 					where catalog_name = ? and schema_name = ?
 					and schema_name != '_MD_'
+					and schema_name != '_PRIVMGR_MD_'
+					and schema_name NOT LIKE 'VOLATILE%'
 					and object_name = '__SCHEMA__'
 					order by schema_name FOR READ UNCOMMITTED ACCESS;
 				]]></text>
@@ -53,20 +67,33 @@
 			<name>SELECT_SCHEMA_OBJECTS</name>
 			<text><![CDATA[select distinct object_name as "Name", user(object_owner) as "Owner", 
 					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime",
-					object_uid as "Metadata ID"
+					CAST(object_uid  AS CHAR(26))  as "Object ID"
 					from "_MD_".objects 
 					WHERE CATALOG_NAME = ? AND SCHEMA_NAME = ?
+					and object_type = ?
+					and object_name not in ('SB_HISTOGRAMS', 'SB_HISTOGRAM_INTERVALS')
+					order by object_name FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>
+		<query>
+			<!-- Fetch attributes of schema object (tables/mvs/views/libraries/procedures) -->
+			<name>SELECT_SCHEMA_OBJECT_ATTRIBUTES</name>
+			<text><![CDATA[select object_name as "Name", user(object_owner) as "Owner", 
+					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime",
+					CAST(object_uid  AS CHAR(26))  as "Object ID"
+					from "_MD_".objects 
+					WHERE CATALOG_NAME = ? AND SCHEMA_NAME = ?
+					and object_name = ?
 					and object_type = ?
 					order by object_name FOR READ UNCOMMITTED ACCESS;
 				]]></text>
 		</query>
 		<query>
-			<!-- Fetch schema object attributes(tables/mvs/views/libraries/procedures) -->
 			<!-- Fetch list of tables in a schema -->
 			<name>SELECT_TABLES_IN_SCHEMA</name>
 			<text><![CDATA[SELECT O.OBJECT_NAME as "Table Name", USER(OBJECT_OWNER) AS "Owner",
 			    CONVERTTIMESTAMP(CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(REDEF_TIME) AS "ModifiedTime",
-			    O.object_uid as "Metadata ID",
+			    CAST(O.object_uid  AS CHAR(26)) as "Object ID",
 			    T.KEY_LENGTH AS "Key Length", T.ROW_TOTAL_LENGTH as "Row Total Length", 
                 T.NUM_SALT_PARTNS as "Number Salt Partitions", T2.region_count as "Region Count",
 				T2.store_file_size_mb as "Store File Size (MB)", T2.mem_store_size_mb as" Mem Store Size (MB)", 
@@ -78,9 +105,9 @@
                  from table(region stats (using (select * from (
                    get tables in schema %1$s, no header, return full names) x(a) )))
                    group by 1, 2) as T2
-			    WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? AND
-			    O.OBJECT_UID = T.TABLE_UID AND
-			    O.SCHEMA_NAME != '_MD_' AND O.OBJECT_TYPE = 'BT' 
+			    WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? 
+			    AND O.OBJECT_UID = T.TABLE_UID 
+			    AND O.SCHEMA_NAME != '_MD_' AND O.OBJECT_TYPE = 'BT' 
                 AND O.SCHEMA_NAME = T2.SCHEMA_NAME
                 AND O.OBJECT_NAME = T2.OBJECT_NAME
                 FOR READ UNCOMMITTED
@@ -88,37 +115,118 @@
 				]]></text>
 		</query>
 		<query>
+			<!-- Fetch table attributes -->
+			<name>SELECT_TABLE_ATTRIBUTES</name>
+			<text><![CDATA[SELECT O.OBJECT_NAME as "Table Name", USER(OBJECT_OWNER) AS "Owner",
+			    CONVERTTIMESTAMP(CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(REDEF_TIME) AS "ModifiedTime",
+			    CAST(O.object_uid  AS CHAR(26)) as "Object ID",
+			    T.KEY_LENGTH AS "Key Length", T.ROW_TOTAL_LENGTH as "Row Total Length", 
+                T.NUM_SALT_PARTNS as "Number Salt Partitions", T2.region_count as "Region Count",
+				T2.store_file_size_mb as "Store File Size (MB)", T2.mem_store_size_mb as" Mem Store Size (MB)", 
+				T2.read_requests_count as "Read Requests Count", T2.write_requests_count as "Write Requests Count"
+			    FROM TRAFODION."_MD_".OBJECTS O, TRAFODION."_MD_".TABLES T,
+                (select schema_name, object_name, count(*) as region_count,
+                 sum(store_file_size) as store_file_size_mb, sum(mem_store_size) as mem_store_size_mb,
+				 sum(read_requests_count) as read_requests_count, sum(write_requests_count) as write_requests_count
+                 from table(region stats (using (select * from (
+                   get tables in schema %1$s, no header, return full names) x(a) )))
+                   group by 1, 2) as T2
+			    WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? 
+			    AND O.OBJECT_NAME = ? AND O.OBJECT_UID = T.TABLE_UID 
+			    AND O.SCHEMA_NAME != '_MD_' AND O.OBJECT_TYPE = 'BT' 
+                AND O.SCHEMA_NAME = T2.SCHEMA_NAME
+                AND O.OBJECT_NAME = T2.OBJECT_NAME
+                FOR READ UNCOMMITTED
+			    ACCESS ORDER BY 1
+				]]></text>
+		</query>		
+		<query>
 			<!-- Fetch list of views in a schema -->
 			<name>SELECT_VIEWS_IN_SCHEMA</name>
 			<text><![CDATA[SELECT O.OBJECT_NAME AS "View Name", USER(OBJECT_OWNER) AS "Owner",
 			    CONVERTTIMESTAMP(CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(REDEF_TIME) AS "ModifiedTime",
-			    O.object_uid as "Metadata ID",
-			    V.CHECK_OPTION as "Check Option", V.IS_UPDATABLE as "Updateable", V.IS_INSERTABLE as "Insertable"
+			    CAST(O.object_uid  AS CHAR(26)) as "Object ID",
+			    CASE WHEN V.CHECK_OPTION  = 'Y' THEN 'Yes' ELSE 'No' END as "Check Option", 
+				CASE WHEN V.IS_UPDATABLE = 1 THEN 'Yes' ELSE 'No' END as "Updateable", 
+				CASE WHEN V.IS_INSERTABLE = 1 THEN 'Yes' ELSE 'No' END as "Insertable"
 			    FROM TRAFODION."_MD_".OBJECTS O, TRAFODION."_MD_".VIEWS V 
-			    WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? AND
-			    O.SCHEMA_NAME != '_MD_' AND O.OBJECT_UID = V.VIEW_UID
+			    WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? 
+			    AND O.SCHEMA_NAME != '_MD_' AND O.OBJECT_UID = V.VIEW_UID
 			    AND O.OBJECT_TYPE = 'VI' FOR READ UNCOMMITTED ACCESS ORDER BY 1 ;
 				]]></text>
 		</query>		
+		<query>
+			<!-- Fetch view attributes -->
+			<name>SELECT_VIEW_ATTRIBUTES</name>
+			<text><![CDATA[SELECT O.OBJECT_NAME AS "View Name", USER(OBJECT_OWNER) AS "Owner",
+			    CONVERTTIMESTAMP(CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(REDEF_TIME) AS "ModifiedTime",
+			    CAST(O.object_uid  AS CHAR(26)) as "Object ID",
+			    CASE WHEN V.CHECK_OPTION  = 'Y' THEN 'Yes' ELSE 'No' END as "Check Option", 
+				CASE WHEN V.IS_UPDATABLE = 1 THEN 'Yes' ELSE 'No' END as "Updateable", 
+				CASE WHEN V.IS_INSERTABLE = 1 THEN 'Yes' ELSE 'No' END as "Insertable"
+			    FROM TRAFODION."_MD_".OBJECTS O, TRAFODION."_MD_".VIEWS V 
+			    WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? 
+			    AND O.OBJECT_NAME = ? AND O.SCHEMA_NAME != '_MD_' 
+			    AND O.OBJECT_UID = V.VIEW_UID AND O.OBJECT_TYPE = 'VI' 
+			    FOR READ UNCOMMITTED ACCESS ORDER BY 1 ;
+				]]></text>
+		</query>
 		<query>
 			<!-- Fetch list of indexes in a schema -->
 			<name>SELECT_INDEXES_IN_SCHEMA</name>
 			<text><![CDATA[SELECT O.OBJECT_NAME AS "Index Name", USER(O.OBJECT_OWNER) AS "Owner",
 				    CONVERTTIMESTAMP(O.CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(O.REDEF_TIME) AS "ModifiedTime",
-				    O.object_uid as "Metadata ID",
-				    O2.OBJECT_NAME as "Table Name", I.IS_UNIQUE as "Is Unqiue", 
+				    CAST(O.object_uid  AS CHAR(26)) as "Object ID",
+				    O2.OBJECT_NAME as "Table Name", 
+				    CASE WHEN I.IS_UNIQUE = 1 THEN 'Unique' ELSE 'Non Unique' END as "Is Unqiue", 
 				    I.KEY_COLCOUNT as "Key Col. Count", I.NONKEY_COLCOUNT as "Non Key Col. Count"
 				    FROM TRAFODION."_MD_".INDEXES I, TRAFODION."_MD_".OBJECTS O,
 				    TRAFODION."_MD_".OBJECTS O2 
-				    WHERE  O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? AND
-				    O.SCHEMA_NAME != '_MD_' AND I.INDEX_UID = O.OBJECT_UID AND
-				    I.BASE_TABLE_UID = O2.OBJECT_UID FOR READ UNCOMMITTED ACCESS ORDER BY 1;
+				    WHERE  O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? 
+				    AND O.SCHEMA_NAME != '_MD_' AND I.INDEX_UID = O.OBJECT_UID 
+				    AND I.BASE_TABLE_UID = O2.OBJECT_UID 
+				    FOR READ UNCOMMITTED ACCESS ORDER BY 1;
 				]]></text>
 		</query>	
 		<query>
+			<!-- Fetch list of indexes on a given object -->
+			<name>SELECT_INDEXES_ON_OBJECT</name>
+			<text><![CDATA[SELECT O.OBJECT_NAME AS "Index Name", USER(O.OBJECT_OWNER) AS "Owner",
+				    CONVERTTIMESTAMP(O.CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(O.REDEF_TIME) AS "ModifiedTime",
+				    CAST(O.object_uid  AS CHAR(26)) as "Object ID",
+				    O2.OBJECT_NAME as "Table Name", 
+				    CASE WHEN I.IS_UNIQUE = 1 THEN 'Unique' ELSE 'Non Unique' END as "Is Unqiue", 
+				    I.KEY_COLCOUNT as "Key Col. Count", I.NONKEY_COLCOUNT as "Non Key Col. Count"
+				    FROM TRAFODION."_MD_".INDEXES I, TRAFODION."_MD_".OBJECTS O,
+				    TRAFODION."_MD_".OBJECTS O2 
+				    WHERE  O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? 
+				    AND O.SCHEMA_NAME != '_MD_' AND I.INDEX_UID = O.OBJECT_UID 
+				    AND O2.OBJECT_NAME = ?
+				    AND I.BASE_TABLE_UID = O2.OBJECT_UID 
+				    FOR READ UNCOMMITTED ACCESS ORDER BY 1;
+				]]></text>
+		</query>
+		<query>
+			<!-- Fetch index attributes -->
+			<name>SELECT_INDEX_ATTRIBUTES</name>
+			<text><![CDATA[SELECT O.OBJECT_NAME AS "Index Name", USER(O.OBJECT_OWNER) AS "Owner",
+				    CONVERTTIMESTAMP(O.CREATE_TIME) AS "CreateTime", CONVERTTIMESTAMP(O.REDEF_TIME) AS "ModifiedTime",
+				    CAST(O.object_uid  AS CHAR(26)) as "Object ID",
+				    O2.OBJECT_NAME as "Table Name", 
+				    CASE WHEN I.IS_UNIQUE = 1 THEN 'Unique' ELSE 'Non Unique' END as "Is Unqiue", 
+				    I.KEY_COLCOUNT as "Key Col. Count", I.NONKEY_COLCOUNT as "Non Key Col. Count"
+				    FROM TRAFODION."_MD_".INDEXES I, TRAFODION."_MD_".OBJECTS O,
+				    TRAFODION."_MD_".OBJECTS O2 
+				    WHERE  O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ? 
+				    AND O.OBJECT_NAME = ? AND O.SCHEMA_NAME != '_MD_' 
+				    AND I.INDEX_UID = O.OBJECT_UID AND I.BASE_TABLE_UID = O2.OBJECT_UID 
+				    FOR READ UNCOMMITTED ACCESS ORDER BY 1;
+				]]></text>
+		</query>
+		<query>
 			<!-- Fetch list of columns for a schema object -->
 			<name>SELECT_OBJECT_COLUMNS</name>
-			<text><![CDATA[SELECT K.CONSTRAINT_TYPE as PRIMARY_KEY, C.COLUMN_NUMBER, C.COLUMN_NAME, SQL_DATA_TYPE,  
+			<text><![CDATA[SELECT CASE WHEN K.CONSTRAINT_TYPE = 'PRIMARY KEY' THEN 'P' ELSE '' END as PRIMARY_KEY, C.COLUMN_NUMBER, C.COLUMN_NAME, SQL_DATA_TYPE,  
 			    COLUMN_SIZE, COLUMN_PRECISION, COLUMN_SCALE, 
 			    CASE WHEN NULLABLE = 0 THEN 'NOT NULL'
 			        ELSE 'NULL'
@@ -167,14 +275,182 @@
 			]]></text>
 		</query>			
 		<query>
+			<!-- Get histogram stats for a table -->
+			<name>SELECT_OBJECT_HISTOGRAM_STATISTICS</name>
+			<text><![CDATA[SELECT T1.COLUMN_NUMBER, C.COLUMN_NAME, C.SQL_DATA_TYPE, ISNULL(T2.INTERVAL_ROWCOUNT,0) as NULL_COUNT, 
+				T1.LOW_VALUE, T1.HIGH_VALUE, T1.CV, 
+				T1.TOTAL_UEC, T1.ROWCOUNT, T1.STATS_TIME
+				FROM (
+				    SELECT TABLE_UID, HISTOGRAM_ID, COLUMN_NUMBER, LOW_VALUE, HIGH_VALUE, CV, TOTAL_UEC, ROWCOUNT,
+				    STATS_TIME
+				    FROM %1$s.SB_HISTOGRAMS 
+				    WHERE TABLE_UID = %2$s AND COLCOUNT = 1
+				) AS T1 
+				LEFT JOIN %1$s.SB_HISTOGRAM_INTERVALS T2 
+				ON (T1.TABLE_UID = T2.TABLE_UID AND T1.HISTOGRAM_ID = T2.HISTOGRAM_ID 
+				AND T2.INTERVAL_BOUNDARY = '(NULL)') 
+				, "_MD_".COLUMNS C
+				WHERE T1.COLUMN_NUMBER = C.COLUMN_NUMBER
+				AND T1.TABLE_UID = C.OBJECT_UID
+				AND C.COLUMN_NAME != '_SALT_'
+				ORDER BY T1.COLUMN_NUMBER FOR READ UNCOMMITTED ACCESS;
+			]]></text>
+		</query>	
+		<query>
 			<!-- Get DDL Text for database object -->
 			<name>SELECT_DDL_TEXT</name>
 			<text><![CDATA[SHOWDDL %1$s %2$s, PRIVILEGES]]></text>
 		</query>		
 		<query>
+			<!-- Get schema level privileges -->
+			<name>SELECT_SCHEMA_PRIVILEGES</name>
+			<text><![CDATA[SELECT GRANTEE_NAME as "Grantee Name", GRANTOR_NAME as "Grantor Name", 
+				PRIVILEGES_BITMAP as "Granted Privileges", GRANTABLE_BITMAP as "Privileges with Grant Option"
+				FROM "_PRIVMGR_MD_".SCHEMA_PRIVILEGES
+				WHERE SCHEMA_UID = ?
+			]]></text>
+		</query>
+		<query>
+			<!-- Get object level privileges -->
+			<name>SELECT_OBJECT_PRIVILEGES</name>
+			<text><![CDATA[SELECT GRANTEE_NAME as "Grantee Name", GRANTOR_NAME as "Grantor Name", 
+				PRIVILEGES_BITMAP as "Granted Privileges", GRANTABLE_BITMAP as "Privileges with Grant Option"
+				FROM "_PRIVMGR_MD_".OBJECT_PRIVILEGES
+				WHERE OBJECT_UID = ?
+			]]></text>
+		</query>
+		<query>
+			<!-- Fetch list of libraries in a schema -->
+			<name>SELECT_LIBRARIES_IN_SCHEMA</name>
+			<text><![CDATA[select distinct object_name as "Name", user(object_owner) as "Owner", 
+					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime",
+					CAST(object_uid  AS CHAR(26))  as "Object ID" , L.LIBRARY_FILENAME as "Code File Name"
+					from "_MD_".objects O, "_MD_".LIBRARIES L
+					WHERE CATALOG_NAME = ? AND SCHEMA_NAME = ?
+					and object_type = ?
+					and O.OBJECT_UID = L.LIBRARY_UID
+					order by object_name FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>	
+		<query>
+			<!-- Fetch attributes of a library -->
+			<name>SELECT_LIBRARY_ATTRIBUTES</name>
+			<text><![CDATA[select distinct object_name as "Name", user(object_owner) as "Owner", 
+					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime",
+					CAST(object_uid  AS CHAR(26))  as "Object ID" , L.LIBRARY_FILENAME as "Code File Name"
+					from "_MD_".objects O, "_MD_".LIBRARIES L
+					WHERE CATALOG_NAME = ? AND SCHEMA_NAME = ?
+					and o.object_name = ? and object_type = ?
+					and O.OBJECT_UID = L.LIBRARY_UID
+					order by object_name FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>
+		<query>
+			<!-- Fetch procedures and udfs that use this library -->
+			<name>SELECT_LIBRARY_USAGE</name>
+			<text><![CDATA[SELECT T3.OBJECT_NAME AS "Routine Name", T3.SCHEMA_NAME as "Routine Schema" ,
+					CASE T4.UDR_TYPE
+					  WHEN 'P' THEN 'Procedure'
+					  WHEN 'T' THEN 'Table Mapping UDF'
+					  WHEN 'F' THEN 'Scalar Function UDF'
+					  ELSE 'UnKnown'
+					END as "Routine Type"
+					FROM "_MD_".OBJECTS AS T1,
+					"_MD_".LIBRARIES_USAGE AS T2,
+					"_MD_".OBJECTS AS T3 , 
+					"_MD_".ROUTINES AS T4 
+					WHERE T1.CATALOG_NAME = ? 
+					AND T1.SCHEMA_NAME = ? 
+					AND T1.OBJECT_NAME = ? 
+					AND T1.OBJECT_UID = T2.USING_LIBRARY_UID
+					AND T2.USING_LIBRARY_UID = T4.LIBRARY_UID 
+					AND T3.OBJECT_UID = T2.USED_UDR_UID 
+					AND T3.OBJECT_TYPE = 'UR' 
+					AND T2.USED_UDR_UID = T4.UDR_UID 
+					ORDER BY 1 FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>
+		<query>
+			<!-- Fetch list of procedures/udfs in a schema -->
+			<name>SELECT_ROUTINES_IN_SCHEMA</name>
+			<text><![CDATA[	select distinct O.object_name as "Name", user(O.object_owner) as "Owner", 
+					converttimestamp(O.create_time) as "CreateTime", converttimestamp(O.redef_time) as "ModifiedTime",
+					CAST(O.object_uid  AS CHAR(26)) as "Object ID", 
+					isnull(O2.SCHEMA_NAME,'') as "UsageSchemaName", isnull(O2.OBJECT_NAME,'') as "Library Name"
+					from "_MD_".objects O, "_MD_".ROUTINES R LEFT JOIN "_MD_".objects O2
+					ON R.LIBRARY_UID = O2.OBJECT_UID
+					WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ?
+					and O.object_type = ?
+					and O.object_uid = R.UDR_UID
+					and R.udr_type = ?
+					order by O.object_name FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>			
+		<query>
+			<!-- Fetch list of procedures/udfs in a schema -->
+			<name>SELECT_PROCDURES_IN_SCHEMA</name>
+			<text><![CDATA[	select distinct O.object_name as "Name", user(O.object_owner) as "Owner", 
+					converttimestamp(O.create_time) as "CreateTime", converttimestamp(O.redef_time) as "ModifiedTime",
+					CAST(O.object_uid  AS CHAR(26)) as "Object ID", 
+					isnull(O2.SCHEMA_NAME,'') as "UsageSchemaName", isnull(O2.OBJECT_NAME,'') as "Library Name"
+					from "_MD_".objects O, "_MD_".ROUTINES R LEFT JOIN "_MD_".objects O2
+					ON R.LIBRARY_UID = O2.OBJECT_UID
+					WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ?
+					and O.object_type = ?
+					and O.object_uid = R.UDR_UID
+					and R.udr_type = 'P'
+					order by O.object_name FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>
+		<query>
+			<!-- Fetch list of procedures/udfs in a schema -->
+			<name>SELECT_UDFS_IN_SCHEMA</name>
+			<text><![CDATA[	select distinct O.object_name as "Name", user(O.object_owner) as "Owner", 
+					converttimestamp(O.create_time) as "CreateTime", converttimestamp(O.redef_time) as "ModifiedTime",
+					CAST(O.object_uid  AS CHAR(26)) as "Object ID", 
+					CASE WHEN R.UDR_TYPE = 'T' THEN 'TABLE MAPPING FUNCTION'
+					ELSE 'SCALAR FUNCTION'
+					END as "Function Type",
+					CASE R.LANGUAGE_TYPE 
+						WHEN 'J' THEN 'Java'
+						WHEN 'C+' THEN 'C++'
+					ELSE R.LANGUAGE_TYPE END as "Language Type",
+					isnull(O2.SCHEMA_NAME,'') as "UsageSchemaName", isnull(O2.OBJECT_NAME,'') as "Library Name"
+					from "_MD_".objects O, "_MD_".ROUTINES R LEFT JOIN "_MD_".objects O2
+					ON R.LIBRARY_UID = O2.OBJECT_UID
+					WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ?
+					and O.object_type = ?
+					and O.object_uid = R.UDR_UID
+					and (R.udr_type = 'F' or R.udr_type = 'T')
+					order by O.object_name FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>
+		<query>
+			<!-- Fetch attributes for a procedure or udf -->
+			<name>SELECT_ROUTINE_ATTRIBUTES</name>
+			<text><![CDATA[	select distinct O.object_name as "Name", user(O.object_owner) as "Owner", 
+					converttimestamp(O.create_time) as "CreateTime", converttimestamp(O.redef_time) as "ModifiedTime",
+					CAST(O.object_uid  AS CHAR(26)) as "Object ID", 
+					CASE WHEN R.UDR_TYPE = 'T' THEN 'TABLE MAPPING FUNCTION'
+					ELSE 'SCALAR FUNCTION'
+					END as "Function Type",
+					CASE R.LANGUAGE_TYPE 
+						WHEN 'J' THEN 'Java'
+						WHEN 'C+' THEN 'C++'
+					ELSE R.LANGUAGE_TYPE END as "Language Type",
+					isnull(O2.SCHEMA_NAME,'') as "UsageSchemaName", isnull(O2.OBJECT_NAME,'') as "Library Name"
+					from "_MD_".objects O, "_MD_".ROUTINES R LEFT JOIN "_MD_".objects O2
+					ON R.LIBRARY_UID = O2.OBJECT_UID
+					WHERE O.CATALOG_NAME = ? AND O.SCHEMA_NAME = ?
+					AND O.OBJECT_NAME = ? and O.object_type =?
+					and O.object_uid = R.UDR_UID
+					order by O.object_name FOR READ UNCOMMITTED ACCESS;
+				]]></text>
+		</query>
+		<query>
 			<!-- Fetch list of historical workloads -->
 			<name>SELECT_REPO_QUERIES</name>
-			<text><![CDATA[SELECT [first %1$s] query_id as "Query ID", query_status AS "Status" ,
+			<text><![CDATA[SELECT [first %1$s] trim(query_id) as "Query ID", query_status AS "Status" ,
 						exec_start_utc_ts as "Start Time", exec_end_utc_ts AS "End Time", 
 						USER_NAME AS "User Name",  APPLICATION_NAME as "Application",
 						CLIENT_NAME as "Client", query_elapsed_time AS "Elapsed Time", 
@@ -366,7 +642,7 @@
 		</query>		
 		<query>
 			<name>OPENTSDB_DISK_SPACE_USED_DRILLDOWN</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:df.bytes.percentused{host=*}", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:df.bytes.percentused{host=*}", "method":"get"}]]></text>
 		</query>		
 		<query>
 			<name>OPENTSDB_STOREFILE_COUNT</name>

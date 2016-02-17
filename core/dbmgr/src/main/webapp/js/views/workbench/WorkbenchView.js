@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -13,9 +13,9 @@ define([
         '../../../bower_components/codemirror/lib/codemirror',
         '../../../bower_components/codemirror/mode/sql/sql',
         'jit',
-        'datatables',
-        'datatablesBootStrap',
-        'tablebuttons',
+        'datatables.net',
+        'datatables.net-bs',
+        'datatables.net-buttons',
         'buttonsflash',
         'buttonsprint',
         'buttonshtml',
@@ -355,25 +355,6 @@ define([
 
 			_that.showLoading();
 			serverHandler.explainQuery(param);
-
-			/*$.ajax({
-        	    url:'resources/queries/explain',
-        	    type:'POST',
-        	    data: JSON.stringify(param),
-        	    dataType:"json",
-        	    contentType: "application/json;",
-				statusCode : {
-					401 : _that.sessionTimeout,
-					403 : _that.sessionTimeout
-				},
-				success:_that.drawExplain,
-        	    error:function(jqXHR, res, error){
-        	    	_that.hideLoading();
-        	    	_that.showErrorMessage(jqXHR);
-        	    }
-        	});*/
-
-
 		},
 
 		executeQuery: function () {
@@ -395,23 +376,6 @@ define([
 			$(QUERY_RESULT_CONTAINER).hide();
 			var param = {sQuery : queryText, sControlStmts: controlStmts};
 			serverHandler.executeQuery(param);
-
-			/*$.ajax({
-        	    url:'resources/queries/execute',
-        	    type:'POST',
-        	    data: JSON.stringify(param),
-        	    dataType:"json",
-        	    contentType: "application/json;",
-				statusCode : {
-					401 : _that.sessionTimeout,
-					403 : _that.sessionTimeout
-				},
-				success:_that.displayResults,
-        	    error:function(jqXHR, res, error){
-        	    	_that.hideLoading();
-        	    	_that.showErrorMessage(jqXHR);
-        	    }
-        	});*/
 		},
 
 		sessionTimeout: function() {
@@ -449,12 +413,12 @@ define([
 
 					var bPaging = aaData.length > 25;
 
-					$('#wrkbnch-query-results').dataTable({
+					$('#wrkbnch-query-results').DataTable({
 						"oLanguage": {
 							"sEmptyTable": "0 rows(s)"
 						},
 						dom:'lBftrip',
-						"bProcessing": true,
+						processing: true,
 						"iDisplayLength" : 25, 
 						"sPaginationType": "full_numbers",
 						"scrollCollapse": true,

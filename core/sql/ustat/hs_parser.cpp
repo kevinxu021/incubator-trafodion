@@ -346,9 +346,13 @@ Lng32 AddTableName( const hs_table_type type
                                           hs_globals->tableType,
                                           hs_globals->nameSpace);
 
+       // just do this check once since it side effects diags (not to mention
+       // multiple calls do multiple metadata lookups in failure scenarios)
+       NABoolean objExists = hs_globals->objDef->objExists(hs_globals->isUpdatestatsStmt);
+
        // try public schema if an object is not qualified and not found
        if ((NOT schema) && 
-           (NOT hs_globals->objDef->objExists(hs_globals->isUpdatestatsStmt)))
+           (NOT objExists))
        {
           NAString pubSch = ActiveSchemaDB()->getDefaults().getValue(PUBLIC_SCHEMA_NAME);
           ComSchemaName pubSchema(pubSch);
@@ -370,14 +374,21 @@ Lng32 AddTableName( const hs_table_type type
                 if (pubObjDef->objExists(hs_globals->isUpdatestatsStmt))
                 {
                   hs_globals->objDef = pubObjDef;
+                  objExists = TRUE;
                 }
 	     }
           }
        }
 
-      if (NOT hs_globals->objDef->objExists(hs_globals->isUpdatestatsStmt))
+      if (NOT objExists)
       {
-         HSFuncMergeDiags(-UERR_OBJECT_INACCESSIBLE, extName);
+         ComDiagsArea & diagsArea = GetHSContext()->diagsArea;
+         if (!diagsArea.findCondition(-UERR_OBJECT_INACCESSIBLE))
+           {
+             // only add this error in if objExists check didn't already
+             // (it's annoying to have the same error repeated)
+             HSFuncMergeDiags(-UERR_OBJECT_INACCESSIBLE, extName);
+           }
          retcode = -1;
          HSHandleError(retcode);
       }
@@ -438,15 +449,19 @@ Lng32 AddTableName( const hs_table_type type
 
         *hs_globals->hsintval_table = getHistogramsTableLocation(hs_globals->catSch->data(), FALSE);
 
+        *hs_globals->hsperssamp_table = getHistogramsTableLocation(hs_globals->catSch->data(), FALSE);
+
         NABoolean isHbaseOrHive = HSGlobalsClass::isHbaseCat(catName) ||
                                   HSGlobalsClass::isHiveCat(catName);
 
         if (isHbaseOrHive) {
           hs_globals->hstogram_table->append(".").append(HBASE_HIST_NAME);
           hs_globals->hsintval_table->append(".").append(HBASE_HISTINT_NAME);
+          hs_globals->hsperssamp_table->append(".").append(HBASE_PERS_SAMP_NAME);
         } else {
           hs_globals->hstogram_table->append(".HISTOGRAMS");
           hs_globals->hsintval_table->append(".HISTOGRAM_INTERVALS");
+          hs_globals->hsperssamp_table->append(".PERSISTENT_SAMPLES");
         }
       }
     else

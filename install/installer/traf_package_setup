@@ -39,15 +39,6 @@ echo >> $INSTALL_LOG
 
 echo "***INFO: Starting Trafodion Package Setup ($timestamp)"
 #========================================
-#Setting up pdsh variables
-if [ $all_node_count -eq 1 ]; then
-    TRAF_PDSH=""
-    TRAF_PDCP=""
-else
-    TRAF_PDSH="pdsh -R exec $ALL_NODES ssh -q -n %h"
-    TRAF_PDCP="pdcp -R ssh $ALL_NODES"
-fi
-#==========================================
 echo "***INFO: Installing required packages"
 echo "***INFO: Log file located in /var/log/trafodion"
 YUM_LOG=/var/log/trafodion/trafodion_yum_$timestamp.log
@@ -160,7 +151,7 @@ if [[ $SUSE_LINUX == "false" ]]; then
    # it doesn't hurt if it was already enabled and we try to enable it again
    $TRAF_PDSH sudo yum-config-manager --enable RedHat-6-x86_64-Fedora-EPEL 2>> $YUM_LOG >> $YUM_LOG
 
-   package_list="log4cxx sqlite expect perl-DBD-SQLite* protobuf xerces-c perl-Params-Validate perl-Time-HiRes gzip"
+   package_list="sqlite expect perl-DBD-SQLite* protobuf xerces-c perl-Params-Validate perl-Time-HiRes gzip"
    if [[ $internetAccess == "true" ]]; then
       for package in $package_list
       do
@@ -201,7 +192,7 @@ else
    echo
    echo 
    echo "***WARNING: All needed RPM's must be installed in advance to install Trafodion on SUSE."
-   echo "***WARNING: log4cxx sqlite expect perl-DBD-SQLite* protobuf xerces-c perl-Params-Validate perl-Time-HiRes gzip"
+   echo "***WARNING: sqlite expect perl-DBD-SQLite* protobuf xerces-c perl-Params-Validate perl-Time-HiRes gzip"
    echo "***WARNING: If any of these packages have not been installed. Stop Trafodion installation and install."
    echo 
    echo 

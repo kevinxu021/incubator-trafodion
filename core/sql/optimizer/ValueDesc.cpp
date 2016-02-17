@@ -513,6 +513,30 @@ ValueId::getNAColumn(NABoolean okIfNotColumn) const
   return NULL;  // NT_PORT
 }
 
+
+NABoolean ValueId::isAddedColumnWithNonNullDefault() const{
+  NAColumn * nac = NULL;
+  ItemExpr *ck = getItemExpr();
+  if ( ck == NULL )
+     return FALSE;
+  switch (ck->getOperatorType()){
+  case ITM_BASECOLUMN:
+      nac = ((BaseColumn*)ck)->getNAColumn();
+      break;
+  case ITM_INDEXCOLUMN:
+      nac = ((IndexColumn*)ck)->getNAColumn();
+      break;
+  default:
+      break;
+  }
+  if (nac && nac->isAddedColumn() && nac->getDefaultValue())
+      return TRUE;
+  else
+      return FALSE;
+}
+
+
+
 // Since we *can* have an INSTANTIATE_NULL inside a VEG_REFERENCE, a loop
 // was required for the function below.
 //
@@ -3165,7 +3189,12 @@ void ValueIdSet::replaceVEGExpressions
           if (iePtr != exprId.getItemExpr())  // a replacement was done
 	    {
 	      subtractElement(exprId);        // remove existing ValueId
-	      newExpr += iePtr->getValueId(); // replace with a new one
+          //insert new expression(s)
+          if (iePtr->getOperatorType() == ITM_AND)
+              //The replacement of a RangeSpec could be an AND, convert ANDed predicates into additional values in newExpr.
+              iePtr->convertToValueIdSet(newExpr, NULL, ITM_AND, FALSE, FALSE);
+          else
+              newExpr += iePtr->getValueId(); // replace with a new one
 	    }
 	}
       else // delete the ValueId of the VEGPredicate/VEGReference from the set
@@ -6381,6 +6410,7 @@ ValueIdSet& ValueIdSet::intersectSetDeep(const ValueIdSet & v)
   return *this;
 }
 
+
 // --------------------------------------------------------------------
 // return true iff ValueIdSet has predicates that guarantee
 // that opd is not nullable
@@ -6567,3 +6597,42 @@ ValueIdList::computeEncodedKey(const TableDesc* tDesc, NABoolean isMaxKey,
    }
 }
 
+void ValueIdSet::findAllOpType(OperatorTypeEnum type, ValueIdSet & result) const
+{
+    for(ValueId valId = init(); next(valId); advance(valId)) {
+  
+      ItemExpr *itmExpr = valId.getItemExpr();
+      if(itmExpr->getOperatorType() == type) 
+         result += valId;
+    }
+}
+
+void ValueIdSet::findAllChildren(ValueIdSet & result) const
+{   
+    for(ValueId valId = init(); next(valId); advance(valId)) {
+      
+      ItemExpr *itmExpr = valId.getItemExpr();
+
+      for ( Lng32 i = 0; i < itmExpr->getArity(); i++ )
+         result += itmExpr->child(i).getValueId();
+    }
+}
+
+void ValueIdSet::addOlapLeadFuncs(const ValueIdSet& input, ValueIdSet& result)
+{
+    for(ValueId valId = init(); next(valId); advance(valId)) {
+       ItemExpr *itmExpr = valId.getItemExpr();
+       if ( itmExpr->getOperatorType() == ITM_OLAP_LEAD ) {
+
+          ItmLeadOlapFunction* me = (ItmLeadOlapFunction*)(itmExpr);  
+
+          for(ValueId j= input.init(); input.next(j); input.advance(j)) {
+             ItemExpr* child = j.getItemExpr();
+             ItmLeadOlapFunction* lead = 
+                 new (STMTHEAP) ItmLeadOlapFunction(child, me->getOffset());
+             lead->synthTypeAndValueId();
+             result.insert(lead->getValueId());
+         }
+      }
+    }
+}

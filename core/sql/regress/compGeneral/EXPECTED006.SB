@@ -60,9 +60,10 @@
 >>create mv mvx refresh on request initialize on create as select a,sum(b) s_b
 +>from x1 group by a;
 
-*** ERROR[1002] Catalog SEABASE does not exist or has not been registered on node \NSK.
+*** ERROR[4222] The DDL feature is not supported in this software version.
 
---- SQL operation failed with errors.
+*** ERROR[8822] The statement was not prepared.
+
 >>
 >>update statistics for table x1 on every column;
 
@@ -73,6 +74,107 @@
 >>update statistics for table x3 on every column;
 
 --- SQL operation complete.
+>>
+>>drop table t006tao;
+
+*** ERROR[1389] Object TRAFODION.SCH.T006TAO does not exist in Trafodion.
+
+--- SQL operation failed with errors.
+>>create table t006tao(a int, b int, c int);
+
+--- SQL operation complete.
+>>
+>>insert into t006tao values
++>(0,NULL,3),
++>(1,NULL,3),
++>(1,2,3),
++>(3,4,5),
++>(3,8,5),
++>(3,10,5),
++>(10,5,8),
++>(10,6,9),
++>(10,7,8),
++>(10,8,9),
++>(10,9,8),
++>(10,10,9),
++>(10,11,8),
++>(10,12,9),
++>(10,13,9),
++>(10,14,9)
++>;
+
+--- 16 row(s) inserted.
+>>
+>>drop table t006_employees;
+
+*** ERROR[1389] Object TRAFODION.SCH.T006_EMPLOYEES does not exist in Trafodion.
+
+--- SQL operation failed with errors.
+>>
+>>CREATE TABLE t006_employees
++>(emp_name VARCHAR(10) NOT NULL,
++> dept_name VARCHAR(15) NOT NULL,
++> salary_amt DECIMAL (8,2) NOT NULL,
++> PRIMARY KEY (emp_name, dept_name)
++>);
+
+--- SQL operation complete.
+>>
+>>INSERT INTO t006_employees
++>VALUES
++>('Aaron','acct',3100.00),
++>('Abaddon','acct',3200.00),
++>('Abbott','acct',3300.00),
++>('Abel','acct',3500.00),
++>('Absalom','acct', 5500.00),
++>('Shannen','ship', 1000.00),
++>('Shannon','ship', 2000.00),
++>('Shaquille','ship', 3400.00),
++>('Sheamus','ship', 4000.00),
++>('Shelah','ship', 3600.00),
++>('Shelby','ship', 4500.00),
++>('Sheldon','ship', 5500.00),
++>('Hamilton','HR',2300.00),
++>('Hamish', 'HR', 1600.00),
++>('Hamlet', 'HR', 1200.00),
++>('Hammond', 'HR', 800.00),
++>('Hamuel', 'HR', 700.00),
++>('Hanael', 'HR', 600.00),
++>('Hanan', 'HR', 1000.00);
+
+--- 19 row(s) inserted.
+>>
+>>drop table t006taoc;
+
+*** ERROR[1389] Object TRAFODION.SCH.T006TAOC does not exist in Trafodion.
+
+--- SQL operation failed with errors.
+>>create table t006taoc(a char(10), b char(10), c varchar(10));
+
+--- SQL operation complete.
+>>
+>>insert into t006taoc values
++>('0',NULL,'3'),
++>('a',NULL,'3'),
++>('a','2','3'),
++>('3bc','4','5'),
++>('3bc','8','5'),
++>('3bc','10','5'),
++>('10','5','8'),
++>('10','6','9'),
++>('10','7','8'),
++>('10','8','9'),
++>('10','9','8'),
++>('10','10','9'),
++>('10','11','8'),
++>('10','12','9'),
++>('10','13','9'),
++>('10','14','9')
++>;
+
+--- 16 row(s) inserted.
+>>
+>>
 >>
 >>obey TEST006(negative_tests);
 >>
@@ -138,7 +240,7 @@
 --- SQL operation complete.
 >>prepare s1 from insert into t006t3 select * from t006t3 where a in (select a from t006t3);
 
-*** ERROR[4026] Reading from and inserting into, or updating in, or deleting from the same table, SEABASE.SCH.T006T3, is not currently supported.
+*** ERROR[4026] Reading from and inserting into, or updating in, or deleting from the same table, TRAFODION.SCH.T006T3, is not currently supported.
 
 *** ERROR[8822] The statement was not prepared.
 
@@ -615,7 +717,7 @@
 >>-- Error 4073
 >>prepare xx from select * from t006t1 where a = (select a from t006t3) collate default;
 
-*** ERROR[4034] The operation (SCALAR_AGGR(SCAN SEABASE.SCH.T006T3) COLLATE DEFAULT)  is not allowed.
+*** ERROR[4034] The operation (SCALAR_AGGR(SCAN TRAFODION.SCH.T006T3) COLLATE DEFAULT)  is not allowed.
 
 *** ERROR[4073] The COLLATE clause may appear only after an expression of character data type, not INTEGER.
 
@@ -641,7 +743,7 @@
 >>-- Error 4122
 >>prepare xx from insert into t006t3 values (NULL);
 
-*** ERROR[4122] NULL cannot be assigned to NOT NULL column SEABASE.SCH.T006T3.A.
+*** ERROR[4122] NULL cannot be assigned to NOT NULL column TRAFODION.SCH.T006T3.A.
 
 *** ERROR[8822] The statement was not prepared.
 
@@ -673,7 +775,7 @@
 
 *** ERROR[4310] USER(x) is currently supported only in the outermost SELECT list. For example, it cannot be a part of the subquery.
 
-*** ERROR[4062] The preceding error actually occurred in function USER(SEABASE.SCH.T006T1.A).
+*** ERROR[4062] The preceding error actually occurred in function USER(TRAFODION.SCH.T006T1.A).
 
 *** ERROR[8822] The statement was not prepared.
 
@@ -681,7 +783,7 @@
 
 *** ERROR[4310] USER(x) is currently supported only in the outermost SELECT list. For example, it cannot be a part of the subquery.
 
-*** ERROR[4062] The preceding error actually occurred in function USER(SEABASE.SCH.T006T2.A).
+*** ERROR[4062] The preceding error actually occurred in function USER(TRAFODION.SCH.T006T2.A).
 
 *** ERROR[8822] The statement was not prepared.
 
@@ -689,7 +791,7 @@
 >>-- Error 4312
 >>prepare xx from update HP_SYSTEM_CATALOG.mxcs_schema.ASSOC2DS set assoc_id = 100;
 
-*** ERROR[4312] HP_SYSTEM_CATALOG.MXCS_SCHEMA.ASSOC2DS is an MXCS metadata table and cannot be directly updated.
+*** ERROR[1002] Catalog HP_SYSTEM_CATALOG does not exist or has not been registered on node .
 
 *** ERROR[8822] The statement was not prepared.
 
@@ -1253,5 +1355,96 @@
 >>control query default MEMORY_MONITOR 'OFF';
 
 --- SQL operation complete.
+>>
+>>obey TEST006(olap_functions);
+>>
+>>select a, b, 
++>lead(b, 2) over(partition by a order by a),
++>max(c) over(partition by a order by a)
++>from t006tao
++>;
+
+A            B            (EXPR)       (EXPR)     
+-----------  -----------  -----------  -----------
+
+          0            ?            ?            3
+          1            2            ?            3
+          1            ?            ?            3
+          3            8            4            5
+          3           10            ?            5
+          3            4            ?            5
+         10            7            9            8
+         10            8           10            9
+         10            9           11            9
+         10           10           12            9
+         10           11            5            9
+         10           12           13            9
+         10            5           14            9
+         10           13            6            9
+         10           14            ?            9
+         10            6            ?            9
+
+--- 16 row(s) selected.
+>>
+>>select emp_name, dept_name, salary_amt,
++>lead(salary_amt, 3) over (partition by dept_name order by emp_name),
++>lead(salary_amt, 2) over (partition by dept_name order by emp_name)
++>from t006_employees;
+
+EMP_NAME    DEPT_NAME        SALARY_AMT  (EXPR)      (EXPR)    
+----------  ---------------  ----------  ----------  ----------
+
+Hamilton    HR                  2300.00      800.00     1200.00
+Hamish      HR                  1600.00      700.00      800.00
+Hamlet      HR                  1200.00      600.00      700.00
+Hammond     HR                   800.00     1000.00      600.00
+Hamuel      HR                   700.00           ?     1000.00
+Hanael      HR                   600.00           ?           ?
+Hanan       HR                  1000.00           ?           ?
+Aaron       acct                3100.00     3500.00     3300.00
+Abaddon     acct                3200.00     5500.00     3500.00
+Abbott      acct                3300.00           ?     5500.00
+Abel        acct                3500.00           ?           ?
+Absalom     acct                5500.00           ?           ?
+Shannen     ship                1000.00     4000.00     3400.00
+Shannon     ship                2000.00     3600.00     4000.00
+Shaquille   ship                3400.00     4500.00     3600.00
+Sheamus     ship                4000.00     5500.00     4500.00
+Shelah      ship                3600.00           ?     5500.00
+Shelby      ship                4500.00           ?           ?
+Sheldon     ship                5500.00           ?           ?
+
+--- 19 row(s) selected.
+>>
+>>-- this will destroy the output order of the lead function, and make it
+>>-- less obvious on the correctness of the result.
+>>select
++>a, b, lead(b, 2)
++>over(partition by a order by a)
++>from t006taoc <<+ cardinality 10e6 >>
++>order by 1, 2, 3
++>;
+
+A           B           (EXPR)    
+----------  ----------  ----------
+
+0           ?           ?         
+10          10          12        
+10          11          ?         
+10          12          ?         
+10          13          5         
+10          14          6         
+10          5           7         
+10          6           8         
+10          7           9         
+10          8           10        
+10          9           11        
+3bc         10          4         
+3bc         4           ?         
+3bc         8           ?         
+a           2           ?         
+a           ?           ?         
+
+--- 16 row(s) selected.
 >>
 >>log;

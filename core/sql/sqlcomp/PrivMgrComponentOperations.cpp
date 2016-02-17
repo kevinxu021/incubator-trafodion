@@ -175,8 +175,9 @@ PrivMgrComponentOperations::PrivMgrComponentOperations(
    ComDiagsArea * pDiags)
 : PrivMgr(metadataLocation, pDiags),
   fullTableName_(metadataLocation_ + "." + PRIVMGR_COMPONENT_OPERATIONS),
-  myTable_(*new MyTable(fullTableName_,COMPONENT_OPERATIONS_ENUM, pDiags)) 
-{ };
+  myTable_(*new MyTable(fullTableName_,COMPONENT_OPERATIONS_ENUM, pDiags))
+{
+}
 
 // -----------------------------------------------------------------------
 // Copy constructor
@@ -468,11 +469,18 @@ PrivStatus PrivMgrComponentOperations::createOperationInternal(
    const std::string & operationDescription,
    const int32_t granteeID,
    const std::string & granteeName,
-   const int32_t grantDepth)
+   const int32_t grantDepth,
+   const bool checkExistence)
   
 {
 
-MyRow row(fullTableName_);
+   PrivStatus privStatus = STATUS_GOOD;
+
+   // If operation already created, no need to create
+   if (checkExistence && nameExists(componentUID,operationName))
+      return STATUS_GOOD;
+
+   MyRow row(fullTableName_);
 
    row.componentUID_ = componentUID;
    row.operationCode_ = operationCode;
@@ -480,31 +488,32 @@ MyRow row(fullTableName_);
    row.isSystem_ = isSystemOperation;
    row.operationDescription_ = operationDescription;
    
-MyTable &myTable = static_cast<MyTable &>(myTable_);
+   MyTable &myTable = static_cast<MyTable &>(myTable_);
 
-PrivStatus privStatus = myTable.insert(row);
+   privStatus = myTable.insert(row);
    
    if (privStatus != STATUS_GOOD)
       return privStatus;
       
-// Grant authority to creator
-PrivMgrComponentPrivileges componentPrivileges(metadataLocation_,pDiags_);
+   // Grant authority to creator
+   PrivMgrComponentPrivileges componentPrivileges(metadataLocation_,pDiags_);
 
-std::vector<std::string> operationCodes;
+   std::vector<std::string> operationCodes;
 
    operationCodes.push_back(operationCode);                                                     
                                                      
    privStatus = componentPrivileges.grantPrivilegeInternal(componentUID,
                                                            operationCodes,
-                                                           SYSTEM_AUTH_ID,
+                                                           SYSTEM_USER,
                                                            ComUser::getSystemUserName(),
                                                            granteeID,
-                                                           granteeName,grantDepth);
+                                                           granteeName,grantDepth,
+                                                           checkExistence);
                                                      
    return privStatus;
                                                      
 }  
-//************ End of PrivMgrComponentOperations::createOperation **************
+//********* End of PrivMgrComponentOperations::createOperationInternal *********
   
 
 // *****************************************************************************

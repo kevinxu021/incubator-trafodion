@@ -127,7 +127,7 @@ public class QueryResource {
 			boolean hasResultSet = pStmt.execute();
 			if (hasResultSet) {
 				rs = pStmt.getResultSet();
-				if (queryText.toLowerCase().startsWith("select") || rs.getMetaData().getColumnCount() > 1) {
+				if (queryText.trim().toLowerCase().startsWith("select") || rs.getMetaData().getColumnCount() > 1) {
 					js = Helper.convertResultSetToTabularResult(rs);
 				} else {
 					js.isScalarResult = true;
@@ -159,14 +159,6 @@ public class QueryResource {
 		} catch (Exception e) {
 			_LOG.error("Failed to execute query : " + e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
-		} finally {
-			if (pStmt != null) {
-				try {
-					pStmt.close();
-				} catch (SQLException e) {
-
-				}
-			}
 		}
 		return js;
 	}
@@ -177,30 +169,10 @@ public class QueryResource {
 
 	public static TabularResult executeAdminSQLQuery(String queryText, String sControlStmts)
 			throws EsgynDBMgrException {
-		try {
-			Connection connection = JdbcHelper.getInstance().getAdminConnection();
-			return executeQuery(connection, queryText, sControlStmts);
-		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			throw new EsgynDBMgrException(e.getMessage());
-		}
-	}
-
-	public static TabularResult executeAdminSQLQuery(PreparedStatement pStmt, String queryText, String sControlStmts)
-			throws EsgynDBMgrException {
 		Connection connection = null;
 		try {
 			connection = JdbcHelper.getInstance().getAdminConnection();
-			String[] controlStatements = new String[0];
-			if (sControlStmts != null && sControlStmts.length() > 0) {
-				controlStatements = sControlStmts.split(";");
-			}
-			Statement stmt1 = connection.createStatement();
-			for (String controlText : controlStatements) {
-				stmt1.execute(controlText);
-			}
-			stmt1.close();
-			return executeQuery(pStmt, queryText);
+			return executeQuery(connection, queryText, sControlStmts);
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
@@ -214,7 +186,6 @@ public class QueryResource {
 			}
 		}
 	}
-
 	@POST
 	@Path("/explain/")
 	@Produces("application/json")

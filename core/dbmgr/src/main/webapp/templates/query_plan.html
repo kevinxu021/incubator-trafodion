@@ -5,7 +5,7 @@
 				<div class="btn-group" 
 						style="margin-bottom: 10px; margin-top: 10px;">
 					<button type="button"
-						class="btn btn-default btn-xs dropdown-toggle"
+						class="btn btn-primary btn-xs dropdown-toggle"
 						data-toggle="dropdown" style="height: 30px;">
 						Actions <span class="caret"></span>
 					</button>
@@ -33,13 +33,25 @@
 									ID</label> <input class="dbmgr-form-item-cell-label"
 								style="width: 700px;border: none;" readonly id="query-id"
 								maxlength="255"></li>
-							<li class="dbmgr-form-item-row dbmgr-query-details" style="width: 90%"><label
+						</ul>
+					</fieldset>
+					<fieldset class="dbmgr-fieldset-table" style="width: 60%;float:left;font-weight:normal">
+						<ul style="padding: 0px; width: 95%">					
+							<li class="dbmgr-form-item-row dbmgr-query-details"><label
 								class="dbmgr-form-item-cell-label" style="vertical-align: top;">Query
 									Text</label> <textarea id="query-text" readonly name="TextMessage"
 									spellcheck="false" rows="5" readonly class="textarea"
-									style="width: 95%;margin-bottom: 10px"></textarea></li>
+									style="width:100%;margin-bottom: 10px"></textarea></li>
 						</ul>
 					</fieldset>
+					<fieldset id="used-tables-div" class="dbmgr-fieldset-table" style="width: 40%;float:left;font-weight:normal">
+						<ul style="padding: 0px; width: 95%">					
+							<li class="dbmgr-form-item-row dbmgr-query-details"><label
+									class="dbmgr-form-item-cell-label" style="vertical-align: top;">Tables Used</label> 
+								<div id="tables-used-container" style="width:100%;font-size:13px;height:150px;overflow:auto"></div>
+							</li>
+						</ul>
+					</fieldset>			
 				</div>
 			</div>
 		</div>

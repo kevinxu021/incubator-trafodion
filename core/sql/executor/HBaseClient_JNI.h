@@ -261,7 +261,7 @@ public:
                         Int64 minTS = -1,
                         Int64 maxTS = -1,
                         const char * hbaseAuths = NULL);
-  HTC_RetCode deleteRow(Int64 transID, HbaseStr &rowID, const LIST(HbaseStr) *columns, Int64 timestamp);
+  HTC_RetCode deleteRow(Int64 transID, HbaseStr &rowID, const LIST(HbaseStr) *columns, Int64 timestamp, const char * hbaseAuths);
   HTC_RetCode setWriteBufferSize(Int64 size);
   HTC_RetCode setWriteToWAL(bool vWAL);
   HTC_RetCode coProcAggr(Int64 transID, 

@@ -13,9 +13,9 @@ define([
         'common',
         'views/RefreshTimerView',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
-        'tablebuttons',
+        'datatables.net',
+        'datatables.net-bs',
+        'datatables.net-buttons',
         'buttonsflash',
         'buttonsprint',
         'buttonshtml',        
@@ -84,13 +84,13 @@ define([
 					if(sDate != null && eDate != null){
 						var startTime = new Date(sDate).getTime();
 						var endTime = new Date(eDate).getTime();
-						return (startTime < endTime);					
+						return (startTime > 0 && startTime < endTime);					
 					}
 					return false;
 				}
 				return true;
 
-			}, "* Start Time has to be less than End Time");
+			}, "* Invalid Date Time and/or Start Time is greater than End Time");
 
 			validator = $(FILTER_FORM).validate({
 				rules: {
@@ -389,7 +389,7 @@ define([
 
 				oDataTable = $('#alerts-results').dataTable({
 					"oLanguage": {
-						"sEmptyTable": "No alerts found."
+						"sEmptyTable": "No alerts found for selected time range and/or filters."
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,

@@ -185,7 +185,7 @@ CmpSeabaseDDLauth::getAuthDetails(const char *pAuthName, bool isExternal)
     setAuthCreateTime(0);
     setAuthDbName(PUBLIC_AUTH_NAME);
     setAuthExtName(PUBLIC_AUTH_NAME);
-    setAuthID(PUBLIC_AUTH_ID);
+    setAuthID(PUBLIC_USER);
     setAuthRedefTime(0);
     setAuthType(COM_ROLE_CLASS);
     setAuthValid(false);
@@ -287,9 +287,9 @@ bool CmpSeabaseDDLauth::isAuthNameReserved (const NAString &authName)
            authName.operator()(0,strlen(RESERVED_AUTH_NAME_PREFIX)) ==
                                                    RESERVED_AUTH_NAME_PREFIX
            ||
-           authName == "_SYSTEM"
+           authName == SYSTEM_AUTH_NAME
            ||
-           authName == "PUBLIC"
+           authName == PUBLIC_AUTH_NAME
            ||
            authName == "NONE";
 
@@ -353,6 +353,57 @@ bool CmpSeabaseDDLauth::isUserID(Int32 authID)
 
    return (authID >= MIN_USERID && authID <= MAX_USERID);
    
+}
+
+// ----------------------------------------------------------------------------
+// protected method: createStandardAuth
+//
+// Inserts a standard user or role in the Trafodion metadata
+// The authType needs to be set up before calling
+//
+// Input:  
+//    authName
+//    authID
+// ----------------------------------------------------------------------------
+void CmpSeabaseDDLauth::createStandardAuth(
+   const std::string authName,
+   const int32_t authID)
+{ 
+  // The type of authorization ID needs to be setup before calling
+  if (getAuthType() != COM_USER_CLASS && getAuthType() != COM_ROLE_CLASS)
+    SEABASEDDL_INTERNAL_ERROR("createStandardAuth invalid auth type");
+
+  // Verify name is a standard name
+  size_t prefixLength = strlen(RESERVED_AUTH_NAME_PREFIX);
+  if (authName.size() <= prefixLength ||
+      authName.compare(0,prefixLength,RESERVED_AUTH_NAME_PREFIX) != 0)
+  { 
+    *CmpCommon::diags() << DgSqlCode(-CAT_ROLE_NOT_EXIST)
+                        << DgString0(authName.data());
+    return;
+  }
+  setAuthDbName(authName.c_str());
+  if (getAuthType() == COM_USER_CLASS)
+    setAuthExtName(DEFAULT_AUTH_EXT_NAME);
+  else
+    setAuthExtName(authName.c_str());
+
+  setAuthValid(true); // assume a valid authorization ID
+
+  Int64 createTime = NA_JulianTimestamp();
+  setAuthCreateTime(createTime);
+  setAuthRedefTime(createTime);  // make redef time the same as create time
+
+  // Make sure authorization ID has not already been registered
+  if (authExists(getAuthDbName(),false))
+    return;
+
+  Int32 newAuthID = (authID == NA_UserIdDefault) ? getUniqueID() : authID;
+  setAuthID(newAuthID);
+  setAuthCreator(ComUser::getRootUserID());
+
+  // Add the role to AUTHS table
+  insertRow();
 }
 
 // ----------------------------------------------------------------------------
@@ -712,11 +763,18 @@ Int32 CmpSeabaseDDLuser::getUniqueID()
   whereClause += userIDString;
  
   newUserID = selectMaxAuthID(whereClause);
-  // DB__ROOT should always be registered as MIN_USERID.  Just in case ...
+  // DB__ROOT should always be registered as ROOT_USER_ID.  Just in case ...
   if (newUserID == 0)
-     newUserID = MIN_USERID + 1;
+     newUserID = ROOT_USER_ID + 1;
   else
      newUserID++;
+
+  // We have 966,667 available ID's.  Don't expect to run out of ID's for awhile
+  // but if/when we do, the algorithm needs to change.  Can reuse ID's for users 
+  // that were unregistered.
+  if (newUserID >= MAX_USERID)
+    SEABASEDDL_INTERNAL_ERROR("CmpSeabaseDDLrole::getUniqueID failed, ran out of available IDs");
+
   return newUserID;
 }
 
@@ -1077,6 +1135,23 @@ void CmpSeabaseDDLuser::alterUser (StmtDDLAlterUser * pNode)
   }
 }
 
+// ----------------------------------------------------------------------------
+// method: registerStandardUser
+//
+// Creates a standard user ie. (DB__ROOT) in the Trafodion metadata
+//
+// Input:  
+//    authName
+//    authID
+// ----------------------------------------------------------------------------
+void CmpSeabaseDDLuser::registerStandardUser(
+   const std::string authName,
+   const int32_t authID)
+{
+  setAuthType(COM_USER_CLASS);  // we are a user
+  createStandardAuth(authName, authID);
+}
+
 // -----------------------------------------------------------------------------
 // *                                                                           *
 // * Function: validateExternalUsername                                        *
@@ -1411,56 +1486,22 @@ void CmpSeabaseDDLrole::createRole(StmtDDLCreateRole * pNode)
    }
 }
 
-
 // ----------------------------------------------------------------------------
 // Public method: createStandardRole
 //
 // Creates a standard role (ie. DB__nameROLE) in the Trafodion metadata
 //
 // Input:  
-//    role name
-//    role ID
+//    authName
+//    authID
 // ----------------------------------------------------------------------------
 void CmpSeabaseDDLrole::createStandardRole(
-   const std::string roleName,
-   const int32_t roleID)
-
+   const std::string authName,
+   const int32_t authID)
 {
-
-// Verify name is a standard name
-
-size_t prefixLength = strlen(RESERVED_AUTH_NAME_PREFIX);
-
-   if (roleName.size() <= prefixLength ||
-       roleName.compare(0,prefixLength,RESERVED_AUTH_NAME_PREFIX) != 0)
-   {
-       *CmpCommon::diags() << DgSqlCode(-CAT_ROLE_NOT_EXIST)
-                           << DgString0(roleName.data());
-       return;
-   }
-
-   setAuthDbName(roleName.c_str());
-   setAuthExtName(roleName.c_str());
-   setAuthType(COM_ROLE_CLASS);  // we are a role
-   setAuthValid(true); // assume a valid role
-
-   Int64 createTime = NA_JulianTimestamp();
-   setAuthCreateTime(createTime);
-   setAuthRedefTime(createTime);  // make redef time the same as create time
-
-   // Make sure role has not already been registered
-   if (authExists(getAuthDbName(),false))
-      return;
-   
-   setAuthID(roleID);
-   setAuthCreator(ComUser::getRootUserID());
-
-// Add the role to AUTHS table
-   insertRow();
-
+  setAuthType(COM_ROLE_CLASS);  // we are a user
+  createStandardAuth(authName, authID);
 }
-
-
 
 // -----------------------------------------------------------------------------
 // public method:  describe
@@ -1828,14 +1869,24 @@ Int32 CmpSeabaseDDLrole::getUniqueID()
   char roleIDString[MAX_AUTHID_AS_STRING_LEN];
 
   NAString whereClause ("where auth_id >= ");
-  sprintf(roleIDString,"%d",DB_ROOTROLE_ID);
+  sprintf(roleIDString,"%d",MIN_ROLEID);
+  whereClause += roleIDString;
+  whereClause += " and auth_id < ";
+  sprintf(roleIDString, "%d", MAX_ROLEID_RANGE1);
   whereClause += roleIDString;
 
   newRoleID = selectMaxAuthID(whereClause);
   if (newRoleID == 0)
-     newRoleID = DB_ROOTROLE_ID + 1;
+     newRoleID = ROOT_ROLE_ID + 1;
   else
      newRoleID++;
+
+  // We have 490000 available ID's.  Don't expect to run out of ID's for awhile
+  // but if/when we do, the algorithm needs to change.  Can reuse ID's for roles 
+  // that were dropped or extent the range.
+  if (newRoleID >= MAX_ROLEID_RANGE1)
+    SEABASEDDL_INTERNAL_ERROR("CmpSeabaseDDLrole::getUniqueID failed, ran out of available IDs");
+
   return newRoleID;
 }
 

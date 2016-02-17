@@ -48,6 +48,7 @@
 #include "CmpDDLCatErrorCodes.h"
 #include "logmxevent_traf.h"
 #include "ComUser.h"
+#include "NAUserId.h"
 
 
 // ==========================================================================
@@ -101,7 +102,8 @@ PrivMgr::PrivMgr(
    const std::string & metadataLocation,
    ComDiagsArea * pDiags,
    PrivMDStatus authorizationEnabled)
-: metadataLocation_ (metadataLocation),
+: trafMetadataLocation_ ("TRAFODION.\"_MD_\""),
+  metadataLocation_ (metadataLocation),
   pDiags_(pDiags),
   authorizationEnabled_(authorizationEnabled)
   
@@ -261,17 +263,17 @@ bool PrivMgr::getAuthNameFromAuthID(
 {
   switch (authID)
   {
-    case SYSTEM_AUTH_ID:
+    case SYSTEM_USER:
       authName = SYSTEM_AUTH_NAME;
       break;  
-    case PUBLIC_AUTH_ID:
+    case PUBLIC_USER:
       authName = PUBLIC_AUTH_NAME;
       break;  
     case SUPER_USER:
       authName = DB__ROOT;
       break;
-    case DB_ROOTROLE_ID:
-      authName = DB_ROOTROLE_NAME;
+    case ROOT_ROLE_ID:
+      authName = DB__ROOTROLE;
       break;
     case HIVE_ROLE_ID:
       authName = DB__HIVEROLE;
@@ -301,99 +303,6 @@ bool PrivMgr::getAuthNameFromAuthID(
 
 // *****************************************************************************
 // *                                                                           *
-// * Function: PrivMgr::getSQLOperationName                                    *
-// *                                                                           *
-// *    Returns the operation name associated with the specified operation.    *
-// *                                                                           *
-// *****************************************************************************
-// *                                                                           *
-// *  Parameters:                                                              *
-// *                                                                           *
-// *  <operation>                     SQLOperation                    In       *
-// *    is the operation.                                                      *
-// *                                                                           *
-// *****************************************************************************
-// *                                                                           *
-// * Returns: const char                                                       *
-// *                                                                           *
-// *  If the operation exists, the corresponding name is returned, otherwise   *
-// *  the string "UNKNOWN" is returned.                                        *
-// *                                                                           *
-// *****************************************************************************
-const char * PrivMgr::getSQLOperationName(SQLOperation operation) 
-    
-{
-
-   switch (operation)
-   {
-      case SQLOperation::ALTER: return "ALTER";
-      case SQLOperation::ALTER_LIBRARY: return "ALTER_LIBRARY";
-      case SQLOperation::ALTER_ROUTINE: return "ALTER_ROUTINE";
-      case SQLOperation::ALTER_ROUTINE_ACTION: return "ALTER_ROUTINE_ACTION";
-      case SQLOperation::ALTER_SCHEMA: return "ALTER_SCHEMA";
-      case SQLOperation::ALTER_SEQUENCE: return "ALTER_SEQUENCE";
-      case SQLOperation::ALTER_SYNONYM: return "ALTER_SYNONYM";
-      case SQLOperation::ALTER_TABLE: return "ALTER_TABLE";
-      case SQLOperation::ALTER_TRIGGER: return "ALTER_TRIGGER";
-      case SQLOperation::ALTER_VIEW: return "ALTER_VIEW";
-      case SQLOperation::CREATE: return "CREATE";
-      case SQLOperation::CREATE_CATALOG: return "CREATE_CATALOG";
-      case SQLOperation::CREATE_INDEX: return "CREATE_INDEX";
-      case SQLOperation::CREATE_LIBRARY: return "CREATE_LIBRARY";
-      case SQLOperation::CREATE_PROCEDURE: return "CREATE_PROCEDURE";
-      case SQLOperation::CREATE_ROUTINE: return "CREATE_ROUTINE";
-      case SQLOperation::CREATE_ROUTINE_ACTION: return "CREATE_ROUTINE_ACTION";
-      case SQLOperation::CREATE_SCHEMA: return "CREATE_SCHEMA";
-      case SQLOperation::CREATE_SEQUENCE: return "CREATE_SEQUENCE";
-      case SQLOperation::CREATE_SYNONYM: return "CREATE_SYNONYM";
-      case SQLOperation::CREATE_TABLE: return "CREATE_TABLE";
-      case SQLOperation::CREATE_TRIGGER: return "CREATE_TRIGGER";
-      case SQLOperation::CREATE_VIEW: return "CREATE_VIEW";
-      case SQLOperation::DML_DELETE: return "DML_DELETE";
-      case SQLOperation::DML_EXECUTE: return "DML_EXECUTE";
-      case SQLOperation::DML_INSERT: return "DML_INSERT";
-      case SQLOperation::DML_REFERENCES: return "DML_REFERENCES";
-      case SQLOperation::DML_SELECT: return "DML_SELECT";
-      case SQLOperation::DML_UPDATE: return "DML_UPDATE";
-      case SQLOperation::DML_USAGE: return "DML_USAGE";
-      case SQLOperation::DROP: return "DROP";
-      case SQLOperation::DROP_CATALOG: return "DROP_CATALOG";
-      case SQLOperation::DROP_INDEX: return "DROP_INDEX";
-      case SQLOperation::DROP_LIBRARY: return "DROP_LIBRARY";
-      case SQLOperation::DROP_PROCEDURE: return "DROP_PROCEDURE";
-      case SQLOperation::DROP_ROUTINE: return "DROP_ROUTINE";
-      case SQLOperation::DROP_ROUTINE_ACTION: return "DROP_ROUTINE_ACTION";
-      case SQLOperation::DROP_SCHEMA: return "DROP_SCHEMA";
-      case SQLOperation::DROP_SEQUENCE: return "DROP_SEQUENCE";
-      case SQLOperation::DROP_SYNONYM: return "DROP_SYNONYM";
-      case SQLOperation::DROP_TABLE: return "DROP_TABLE";
-      case SQLOperation::DROP_TRIGGER: return "DROP_TRIGGER";
-      case SQLOperation::DROP_VIEW: return "DROP_VIEW";
-      case SQLOperation::MANAGE: return "MANAGE";
-      case SQLOperation::MANAGE_COMPONENTS: return "MANAGE_COMPONENTS";
-      case SQLOperation::MANAGE_LIBRARY: return "MANAGE_LIBRARY";
-      case SQLOperation::MANAGE_LOAD: return "MANAGE_LOAD";
-      case SQLOperation::MANAGE_PRIVILEGES: return "MANAGE_PRIVILEGES";
-      case SQLOperation::MANAGE_ROLES: return "MANAGE_ROLES";
-      case SQLOperation::MANAGE_STATISTICS: return "MANAGE_STATISTICS";
-      case SQLOperation::MANAGE_USERS: return "MANAGE_USERS";
-      case SQLOperation::QUERY_ACTIVATE: return "QUERY_ACTIVATE";
-      case SQLOperation::QUERY_CANCEL: return "QUERY_CANCEL";
-      case SQLOperation::QUERY_SUSPEND: return "QUERY_SUSPEND";
-      case SQLOperation::REMAP_USER: return "REMAP_USER";
-      case SQLOperation::SHOW: return "SHOW";
-      case SQLOperation::USE_ALTERNATE_SCHEMA: return "USE_ALTERNATE_SCHEMA";
-      default:
-         return "UNKNOWN";   
-   }
-
-   return "UNKNOWN";   
-
-}    
-//******************** End of PrivMgr::getSQLOperationName *********************
-    
-// *****************************************************************************
-// *                                                                           *
 // * Function: PrivMgr::getSQLOperationCode                                    *
 // *                                                                           *
 // *    Returns the operation code associated with the specified operation.    *
@@ -416,170 +325,45 @@ const char * PrivMgr::getSQLOperationName(SQLOperation operation)
 const char * PrivMgr::getSQLOperationCode(SQLOperation operation) 
 
 {
-
-   switch (operation)
-   {
-      case SQLOperation::ALTER: return "A0";
-      case SQLOperation::ALTER_LIBRARY: return "AL";
-      case SQLOperation::ALTER_ROUTINE: return "AR";
-      case SQLOperation::ALTER_ROUTINE_ACTION: return "AA";
-      case SQLOperation::ALTER_SCHEMA: return "AH";
-      case SQLOperation::ALTER_SEQUENCE: return "AQ";
-      case SQLOperation::ALTER_SYNONYM: return "AY";
-      case SQLOperation::ALTER_TABLE: return "AT";
-      case SQLOperation::ALTER_TRIGGER: return "AG";
-      case SQLOperation::ALTER_VIEW: return "AV";
-      case SQLOperation::CREATE: return "C0";
-      case SQLOperation::CREATE_CATALOG: return "CC";
-      case SQLOperation::CREATE_INDEX: return "CI";
-      case SQLOperation::CREATE_LIBRARY: return "CL";
-      case SQLOperation::CREATE_PROCEDURE: return "CP";
-      case SQLOperation::CREATE_ROUTINE: return "CR";
-      case SQLOperation::CREATE_ROUTINE_ACTION: return "CA";
-      case SQLOperation::CREATE_SCHEMA: return "CH";
-      case SQLOperation::CREATE_SEQUENCE: return "CQ";
-      case SQLOperation::CREATE_SYNONYM: return "CY";
-      case SQLOperation::CREATE_TABLE: return "CT";
-      case SQLOperation::CREATE_TRIGGER: return "CG";
-      case SQLOperation::CREATE_VIEW: return "CV";
-      case SQLOperation::DML_DELETE: return "PD";
-      case SQLOperation::DML_EXECUTE: return "PE";
-      case SQLOperation::DML_INSERT: return "PI";
-      case SQLOperation::DML_REFERENCES: return "PR";
-      case SQLOperation::DML_SELECT: return "PS";
-      case SQLOperation::DML_UPDATE: return "PU";
-      case SQLOperation::DML_USAGE: return "PG";
-      case SQLOperation::DROP: return "D0";
-      case SQLOperation::DROP_CATALOG: return "DC";
-      case SQLOperation::DROP_INDEX: return "DI";
-      case SQLOperation::DROP_LIBRARY: return "DL";
-      case SQLOperation::DROP_PROCEDURE: return "DP";
-      case SQLOperation::DROP_ROUTINE: return "DR";
-      case SQLOperation::DROP_ROUTINE_ACTION: return "DA";
-      case SQLOperation::DROP_SCHEMA: return "DH";
-      case SQLOperation::DROP_SEQUENCE: return "DQ";
-      case SQLOperation::DROP_SYNONYM: return "DY";
-      case SQLOperation::DROP_TABLE: return "DT";
-      case SQLOperation::DROP_TRIGGER: return "DG";
-      case SQLOperation::DROP_VIEW: return "DV";
-      case SQLOperation::MANAGE: return "M0";
-      case SQLOperation::MANAGE_COMPONENTS: return "MC";
-      case SQLOperation::MANAGE_LIBRARY: return "ML";
-      case SQLOperation::MANAGE_LOAD: return "MT";
-      case SQLOperation::MANAGE_PRIVILEGES: return "MP";
-      case SQLOperation::MANAGE_ROLES: return "MR";
-      case SQLOperation::MANAGE_STATISTICS: return "MS";
-      case SQLOperation::MANAGE_USERS: return "MU";
-      case SQLOperation::QUERY_ACTIVATE: return "QA";
-      case SQLOperation::QUERY_CANCEL: return "QC";
-      case SQLOperation::QUERY_SUSPEND: return "QS";
-      case SQLOperation::REMAP_USER: return "RU";
-      case SQLOperation::SHOW: return "SW";
-      case SQLOperation::USE_ALTERNATE_SCHEMA: return "UA";
-      default:
-         return "  ";   
-   }
-
-   return "  ";   
+  size_t numOps = sizeof(componentOpList)/sizeof(ComponentOpStruct);
+  for (int i = 0; i < numOps; i++)
+  {
+    const ComponentOpStruct &opDefinition = componentOpList[i];
+    if (operation == opDefinition.operation)
+      return opDefinition.operationCode;
+  }
+  return "  ";   
 
 }
 //******************** End of PrivMgr::getSQLOperationCode *********************
 
-
-
-// *****************************************************************************
-// *                                                                           *
-// * Function: PrivMgr::getSQLOperationDescription                             *
-// *                                                                           *
-// *    Returns the description for the specified SQL operation.  Note, all    *
-// * SQL operations have a description.                                        *
-// *                                                                           *
-// *****************************************************************************
-// *                                                                           *
-// *  Parameters:                                                              *
-// *                                                                           *
-// *  <operation>                     SQLOperation                    In       *
-// *    is the operation.                                                      *
-// *                                                                           *
-// *****************************************************************************
-// *                                                                           *
-// * Returns: const char                                                       *
-// *                                                                           *
-// *  If the operation exists, the corresponding description is returned,      *
-// *  otherwise the empty string "" is returned.                               *
-// *                                                                           *
-// *****************************************************************************
-const char * PrivMgr::getSQLOperationDescription(SQLOperation operation) 
+const char * PrivMgr::getSQLOperationName(SQLOperation operation)
 
 {
-
-   switch (operation)
-   {
-      case SQLOperation::ALTER: return "Allow grantee to alter database objects";
-      case SQLOperation::ALTER_LIBRARY: return "Allow grantee to alter libraries";
-      case SQLOperation::ALTER_ROUTINE: return "Allow grantee to alter routines";
-      case SQLOperation::ALTER_ROUTINE_ACTION: return "Allow grantee to alter routine actions";
-      case SQLOperation::ALTER_SCHEMA: return "Allow grantee to alter schemas";
-      case SQLOperation::ALTER_SEQUENCE: return "Allow grantee to alter sequence generators";
-      case SQLOperation::ALTER_SYNONYM: return "Allow grantee to alter synonyms";
-      case SQLOperation::ALTER_TABLE: return "Allow grantee to alter tables";
-      case SQLOperation::ALTER_TRIGGER: return "Allow grantee to alter triggers";
-      case SQLOperation::ALTER_VIEW: return "Allow grantee to alter views";
-      case SQLOperation::CREATE: return "Allow grantee to create database objects";
-      case SQLOperation::CREATE_CATALOG: return "Allow grantee to create catalogs";
-      case SQLOperation::CREATE_INDEX: return "Allow grantee to create indexes";
-      case SQLOperation::CREATE_LIBRARY: return "Allow grantee to create libraries";
-      case SQLOperation::CREATE_PROCEDURE: return "Allow grantee to create procedures";
-      case SQLOperation::CREATE_ROUTINE: return "Allow grantee to create routines";
-      case SQLOperation::CREATE_ROUTINE_ACTION: return "Allow grantee to create routine actions";
-      case SQLOperation::CREATE_SCHEMA: return "Allow grantee to create schemas";
-      case SQLOperation::CREATE_SEQUENCE: return "Allow grantee to create sequence generators";
-      case SQLOperation::CREATE_SYNONYM: return "Allow grantee to create synonyms";
-      case SQLOperation::CREATE_TABLE: return "Allow grantee to create tables";
-      case SQLOperation::CREATE_TRIGGER: return "Allow grantee to create triggers";
-      case SQLOperation::CREATE_VIEW: return "Allow grantee to create views";
-      case SQLOperation::DML_DELETE: return "Allow grantee to delete rows";
-      case SQLOperation::DML_EXECUTE: return "Allow grantee to execute functions";
-      case SQLOperation::DML_INSERT: return "Allow grantee to insert rows";
-      case SQLOperation::DML_REFERENCES: return "Allow grantee to reference columns";
-      case SQLOperation::DML_SELECT: return "Allow grantee to select rows";
-      case SQLOperation::DML_UPDATE: return "Allow grantee to update rows";
-      case SQLOperation::DML_USAGE: return "Allow grantee to use libraries and sequences";
-      case SQLOperation::DROP: return "Allow grantee to drop database objects";
-      case SQLOperation::DROP_CATALOG: return "Allow grantee to drop catalogs";
-      case SQLOperation::DROP_INDEX: return "Allow grantee to drop indexes";
-      case SQLOperation::DROP_LIBRARY: return "Allow grantee to drop libraries";
-      case SQLOperation::DROP_PROCEDURE: return "Allow grantee to drop procedures";
-      case SQLOperation::DROP_ROUTINE: return "Allow grantee to drop routines";
-      case SQLOperation::DROP_ROUTINE_ACTION: return "Allow grantee to drop routine actions";
-      case SQLOperation::DROP_SCHEMA: return "Allow grantee to drop schemas";
-      case SQLOperation::DROP_SEQUENCE: return "Allow grantee to drop sequence generators";
-      case SQLOperation::DROP_SYNONYM: return "Allow grantee to drop synonyms";
-      case SQLOperation::DROP_TABLE: return "Allow grantee to drop tables";
-      case SQLOperation::DROP_TRIGGER: return "Allow grantee to drop triggers";
-      case SQLOperation::DROP_VIEW: return "Allow grantee to drop views";
-      case SQLOperation::MANAGE: return "Allow grantee to manage all SQL Operations";
-      case SQLOperation::MANAGE_COMPONENTS: return "Allow grantee to manage components";
-      case SQLOperation::MANAGE_LIBRARY: return "Allow grantee to manage libraries";
-      case SQLOperation::MANAGE_LOAD: return "Allow grantee to perform LOAD and UNLOAD commands";
-      case SQLOperation::MANAGE_PRIVILEGES: return "Allow grantee to manage privileges on SQL objects";
-      case SQLOperation::MANAGE_ROLES: return "Allow grantee to manage roles";
-      case SQLOperation::MANAGE_STATISTICS: return "Allow grantee to show and update statistics";
-      case SQLOperation::MANAGE_USERS: return "Allow grantee to manage users";
-      case SQLOperation::QUERY_ACTIVATE: return "Allow grantee to activate queries";
-      case SQLOperation::QUERY_CANCEL: return "Allow grantee to cancel queries";
-      case SQLOperation::QUERY_SUSPEND: return "Allow grantee to suspend queries";
-      case SQLOperation::REMAP_USER: return "Allow grantee to remap DB__ users to a different external username";
-      case SQLOperation::SHOW: return "Allow grantee to view metadata information about objects";
-      case SQLOperation::USE_ALTERNATE_SCHEMA: return "Allow grantee to use non-default schemas";
-      default:
-         return "";   
-   }
-
-   return "";   
+  size_t numOps = sizeof(componentOpList)/sizeof(ComponentOpStruct);
+  for (int i = 0; i < numOps; i++)
+  {
+    const ComponentOpStruct &opDefinition = componentOpList[i];
+    if (operation == opDefinition.operation)
+      return opDefinition.operationName;
+  }
+  return "  ";
 
 }
-//**************** End of PrivMgr::getSQLOperationDescription ******************
+
+const char * PrivMgr::getSQLOperationName(std::string operationCode)
+{
+  size_t numOps = sizeof(componentOpList)/sizeof(ComponentOpStruct);
+  for (int i = 0; i < numOps; i++)
+  {
+    const ComponentOpStruct &opDefinition = componentOpList[i];
+    if (operationCode == opDefinition.operationCode)
+      return opDefinition.operationName;
+  }
+  return "  ";
+
+}
+
 
 // *****************************************************************************
 // *                                                                           *

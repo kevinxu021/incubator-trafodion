@@ -1,6 +1,6 @@
 {
   "name": "esgyndbmgr",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "authors": [
 	"venkat1m <venkat.muthuswamy@esgyn.com>"
   ],
@@ -12,7 +12,6 @@
   "keywords": [
 	"EsgynDB"
   ],
-  "license": "Apache 2.0",
   "ignore": [
 	"**/.*",
 	"node_modules",
@@ -35,8 +34,15 @@
 	"jquery-localize-i18n": "latest",
 	"moment-timezone": "0.4.0",
 	"codemirror":"latest",
-	"datatables-buttons":"1.0.3",
+	"datatables.net-dt":"1.10.10",
+	"datatables.net-buttons":"1.1.2",
+	"datatables.net-buttons-bs":"1.1.2",
+	"datatables.net-buttons-dt":"1.1.2",
+	"datatables.net-select":"1.1.0",
+	"datatables.net-select-bs":"1.1.0",
+	"datatables.net-responsive":"2.0.1",
+	"datatables.net-responsive-bs":"2.0.1",
 	"bootswatch":"3.3.6",
-    "pdfmake":"0.1.20"
+        "pdfmake":"0.1.20"
   }
 }

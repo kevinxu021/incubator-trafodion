@@ -30,6 +30,69 @@ public class ConfigurationResource {
 	private static long serverUTCOffset = 0;
 	private static String systemVersion = "";
 
+	public static int getMaxPoolSize() {
+		String maxSize = xmlConfig.getProperty("maxPoolSize", "2");
+		try {
+			maxPoolSize = Integer.parseInt(maxSize);
+			if (maxPoolSize < 1) {
+				_LOG.warn("Error: maxPoolSize value cannot be negative. Defaulting it to 8.");
+				maxPoolSize = 8;
+			}
+		} catch (Exception ex) {
+			maxPoolSize = 8;
+			_LOG.error("Error: maxPoolSize value in configuration file is not a numeric value. Defaulting it to 8.");
+		}
+		return maxPoolSize;
+	}
+
+	public static void setMaxPoolSize(int maxPoolSize) {
+		ConfigurationResource.maxPoolSize = maxPoolSize;
+	}
+
+	public static int getMinPoolSize() {
+
+		String minSize = xmlConfig.getProperty("minPoolSize", "2");
+		try {
+			minPoolSize = Integer.parseInt(minSize);
+			if (minPoolSize < 1) {
+				_LOG.warn("Error: minPoolSize value cannot be negative. Defaulting it to 2.");
+				minPoolSize = 2;
+			}
+		} catch (Exception ex) {
+			minPoolSize = 2;
+			_LOG.error("Error: minPoolSize value in configuration file is not a numeric value. Defaulting it to 2.");
+		}
+		return minPoolSize;
+	}
+
+	public static void setMinPoolSize(int minPoolSize) {
+		ConfigurationResource.minPoolSize = minPoolSize;
+	}
+
+	public static int getMaxStatementsCache() {
+		String maxStmts = xmlConfig.getProperty("maxStatementsCache", "100");
+		try {
+			maxStatementsCache = Integer.parseInt(maxStmts);
+			if (maxStatementsCache < 1) {
+				_LOG.warn("Error: maxStatementsCache value cannot be negative. Defaulting it to 100.");
+				maxStatementsCache = 2;
+			}
+		} catch (Exception ex) {
+			maxStatementsCache = 2;
+			_LOG.error(
+					"Error: maxStatementsCache value in configuration file is not a numeric value. Defaulting it to 100.");
+		}
+		return maxStatementsCache;
+	}
+
+	public static void setMaxStatementsCache(int maxStatementsCache) {
+		ConfigurationResource.maxStatementsCache = maxStatementsCache;
+	}
+
+	private static int maxPoolSize = 2;
+	private static int minPoolSize = 8;
+	private static int maxStatementsCache = 100;
+
 	static {
 		xmlConfig = readDBMgrXmlConfig();
 		readSystemQueries();
