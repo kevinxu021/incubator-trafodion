@@ -223,7 +223,6 @@ Lng32 atp_struct::unpack(Lng32 base)
   return 0;
 }
 
-#ifdef _DEBUG
 void atp_struct::display(const char* title, ex_cri_desc* cri)
 {
    cout << title << endl;
@@ -293,6 +292,5 @@ void atp_struct::print(char* title, Int16 dt, char* ptr, UInt32 len)
    }
    cout << "\"" << endl;
 }
-#endif
 
 
