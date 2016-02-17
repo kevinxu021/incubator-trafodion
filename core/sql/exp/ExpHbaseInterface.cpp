@@ -952,8 +952,10 @@ Lng32 ExpHbaseInterface_JNI::deleteRow(
         asyncMtc_ = NULL;
         return -HBASE_ACCESS_ERROR;
      }
-     else
-        asyncMtc_ = mtc;
+     else {
+      if (asyncOperation)
+         asyncMtc_ = mtc;
+     }
      break;
   default:
   HTableClient_JNI *htc;
@@ -967,6 +969,7 @@ Lng32 ExpHbaseInterface_JNI::deleteRow(
   else {
     if (asyncOperation)
        asyncHtc_ = htc;
+  }
   } 
   return HBASE_ACCESS_SUCCESS;
 }
@@ -1002,8 +1005,10 @@ Lng32 ExpHbaseInterface_JNI::deleteRows(
         asyncMtc_ = NULL;
         return -HBASE_ACCESS_ERROR;
      }
-     else 
-       asyncMtc_ = mtc;
+     else {
+      if (asyncOperation)
+         asyncMtc_ = mtc;
+     }
      break;
   default:
   HTableClient_JNI *htc;
@@ -1018,6 +1023,7 @@ Lng32 ExpHbaseInterface_JNI::deleteRows(
   else {
     if (asyncOperation)
        asyncHtc_ = htc;
+  } 
   } 
   return HBASE_ACCESS_SUCCESS;
 }
@@ -1056,8 +1062,10 @@ Lng32 ExpHbaseInterface_JNI::checkAndDeleteRow(
         asyncMtc_ = NULL;
         return -HBASE_ACCESS_ERROR;
      }
-     else 
-        asyncMtc_ = mtc;
+     else {
+      if (asyncOperation)
+         asyncMtc_ = mtc;
+     }
      break;
   default:
   HTableClient_JNI *htc;
@@ -1075,6 +1083,7 @@ Lng32 ExpHbaseInterface_JNI::checkAndDeleteRow(
     if (asyncOperation)
        asyncHtc_ = htc;
   } 
+  }
   return HBASE_ACCESS_SUCCESS;
 }
 //
@@ -1105,8 +1114,10 @@ Lng32 ExpHbaseInterface_JNI::insertRow(
         asyncMtc_ = NULL;
         return -HBASE_ACCESS_ERROR;
      }
-     else 
-        asyncMtc_ = mtc;
+     else {
+      if (asyncOperation)
+         asyncMtc_ = mtc;
+     }
      break;
   default:
   HTableClient_JNI *htc;
@@ -1119,6 +1130,7 @@ Lng32 ExpHbaseInterface_JNI::insertRow(
   else {
     if (asyncOperation)
        asyncHtc_ = htc;
+  } 
   }
   return HBASE_ACCESS_SUCCESS;
 }
@@ -1151,8 +1163,10 @@ Lng32 ExpHbaseInterface_JNI::insertRows(
         asyncMtc_ = NULL;
         return -HBASE_ACCESS_ERROR;
      }
-     else 
-        asyncMtc_ = mtc;
+     else {
+      if (asyncOperation)
+         asyncMtc_ = mtc;
+     }
      break;
   default:
   HTableClient_JNI *htc;
@@ -1166,6 +1180,7 @@ Lng32 ExpHbaseInterface_JNI::insertRows(
     if (asyncOperation)
        asyncHtc_ = htc;
   } 
+  }
   return HBASE_ACCESS_SUCCESS;
 }
 
@@ -1550,8 +1565,10 @@ Lng32 ExpHbaseInterface_JNI::checkAndInsertRow(
         asyncMtc_ = NULL;
         return -HBASE_ACCESS_ERROR;
      }
-     else 
-        asyncMtc_ = mtc; 
+     else {
+      if (asyncOperation)
+         asyncMtc_ = mtc;
+     }
      break;
   default:
   HTableClient_JNI *htc = NULL;
@@ -1568,6 +1585,7 @@ Lng32 ExpHbaseInterface_JNI::checkAndInsertRow(
   else {
     if (asyncOperation)
         asyncHtc_ = htc;
+  }
   }
   return HBASE_ACCESS_SUCCESS;
 }
@@ -1603,7 +1621,10 @@ Lng32 ExpHbaseInterface_JNI::checkAndUpdateRow(
      if (retCode_ != MC_OK) {
         asyncMtc_ = NULL;
         return -HBASE_ACCESS_ERROR;
-     } else 
+     } else {
+      if (asyncOperation)
+         asyncMtc_ = mtc;
+     }
         asyncMtc_ = mtc;
      break;
   default:
@@ -1620,6 +1641,7 @@ Lng32 ExpHbaseInterface_JNI::checkAndUpdateRow(
   } else {
     if (asyncOperation)
        asyncHtc_ = htc; 
+  }
   }
   return HBASE_ACCESS_SUCCESS;
 }
