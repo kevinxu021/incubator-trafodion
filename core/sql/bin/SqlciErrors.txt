@@ -1203,6 +1203,8 @@ $1~String1 --------------------------------
 4137 ZZZZZ 99999 BEGINNER MAJOR DBADMIN A DELETE [FIRST N] statement was specified on table $0~TableName which has more than one partition, without using the PARTITION clause. 
 4138 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Use of a subquery in the WHERE clause of a DELETE [FIRST N] statement is not supported.
 4139 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Use of a subquery in the WHERE clause of a Long Running Update statement is not supported.
+4140 42000 99999 BEGINNER MAJOR DBADMIN The second operand of function $0~string0 must be of interger type.
+4141 42000 99999 BEGINNER MAJOR DBADMIN The default value operand of function $0~string0 must be of the same type as the 1st operand.
 4150 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Primary key of table expression $0~string0 must be used for join with embedded $0~string1 expression.  Tables in scope: $2~string2.
 4151 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Stream access is supported only on updatable views. View: $0~TableName.
 4152 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Table $0~TableName cannot be both read and updated.
@@ -1288,6 +1290,7 @@ $1~String1 --------------------------------
 4246 ZZZZZ 99999 BEGINNER MINOR DBADMIN All column values must be specified when loading data by UPSERT USING LOAD syntax.
 4247 0A000 99999 BEGINNER MAJOR DBADMIN Specified size in bytes ($0~Int0) exceeds the maximum size allowed ($1~Int1) for column $0~ColumnName.
 4248 ZZZZZ 99999 BEGINNER MINOR DBADMIN Index $0~string1 cannot be divisioned like a table since table $0~string0 is not divisioned.
+4249 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Only non-negative constant offset value is allowed in $0~string0 function.
 4250 ZZZZZ 99999 BEGINNER MINOR DBADMIN Object name could not be retrieved from metadata based on the provided uid. The underlying hbase object will not be removed.
 4251 ZZZZZ 99999 BEGINNER MINOR DBADMIN Object UID could not be retrieved from metadata based on the provided object name. Metadata cleanup will not be performed but the underlying hbase object will be removed, if it exists.
 4252 ZZZZZ 99999 BEGINNER MINOR DBADMIN This metadata cleanup option is not yet supported.
@@ -1859,6 +1862,7 @@ drop the default context
 9225 ZZZZZ 99999 BEGINNER MINOR LOGONLY Incremental UPDATE STATISTICS: the total unique count for column $0~String0 changed more than the percentage specified by CQD USTAT_IUS_TOTAL_UEC_CHANGE_THRESHOLD. A regular UPDATE STATISTICS is performed instead.
 9226 ZZZZZ 99999 BEGINNER MINOR LOGONLY Incremental UPDATE STATISTICS: one interval for column $0~String0 is reset to zero. A regular UPDATE STATISTICS is performed instead.
 9227 ZZZZZ 99999 BEGINNER MINOR LOGONLY Incremental UPDATE STATISTICS: an interval for column $0~String0 is reduced to zero rows using IUS. A regular UPDATE STATISTICS is performed instead.
+9228 ZZZZZ 99999 BEGINNER MINOR LOGONLY There were no sample tables to drop.
 9230 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Incremental UPDATE STATISTICS: cannot allocate enough memory. A regular UPDATE STATISTICS is performed instead. 
 9231 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Incremental UPDATE STATISTICS: only RANDOM <percentage> PERCENT is allowed as the sampling specification with PERSISTENT.
 9232 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Incremental UPDATE STATISTICS: cannot proceed because of the on-going IUS transaction originated at $0~String0. 
@@ -1872,6 +1876,7 @@ drop the default context
 9240 ZZZZZ 99999 BEGINNER MINOR DBADMIN ON EVERY KEY option is not yet implemented for Update Statistics on $0~string0 tables.
 9241 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Insufficient privileges to perform the statistics request for table $0~String0.
 9242 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Unable to create schema for Hive statistics.
+9243 ZZZZZ 99999 BEGINNER MAJOR DBADMIN This UPDATE STATISTICS command may take too long. It is recommended to use the SAMPLE clause instead. If you wish to do this without a SAMPLE clause, specify NO SAMPLE explicitly.
 9250 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU Last UPDATE STATISTICS error.
 10000 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU Sort Error: First Sort error
 10001 ZZZZZ 99999 ADVANCED MAJOR DIALOUT Sort Error : No error text defined. Unexpected error. $0~String0

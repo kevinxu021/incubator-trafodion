@@ -278,7 +278,7 @@ public:
     {
       CACHE_BLOCKS               = 0x0001,
       USE_MIN_MDAM_PROBE_SIZE    = 0x0002,
-	  USE_SMALL_SCANNER	         = 0x0004
+      USE_SMALL_SCANNER          = 0x0004
     };
     
     UInt32 flags_;

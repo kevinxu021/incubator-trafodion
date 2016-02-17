@@ -88,6 +88,7 @@ class PrivMgr
       std::string &authName);
     
     static const char * getSQLOperationName(SQLOperation operation);
+    static const char * getSQLOperationName(std::string operationCode);
     static const char * getSQLOperationCode(SQLOperation operation);
     static const char * getSQLOperationDescription(SQLOperation operation);
     static bool isSQLAlterOperation(SQLOperation operation);
@@ -120,6 +121,11 @@ class PrivMgr
        bitmap.set(REFERENCES_PRIV);
     }
 
+    static void log(
+      const std::string filename,
+      const std::string message,
+      const int_32 index);
+
     // -------------------------------------------------------------------
     // Constructors and destructors:
     // -------------------------------------------------------------------
@@ -151,10 +157,6 @@ class PrivMgr
        std::vector<PrivClass> privClasses);
     void resetFlags();
     void setFlags();
-    void log(
-      const std::string filename,
-      const std::string message,
-      const int_32 index);
 
 
   protected:

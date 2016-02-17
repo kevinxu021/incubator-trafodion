@@ -10,7 +10,7 @@ define([
         'backbone',
         'common',
         'handlers/ServerHandler',
-        'jqueryui',
+        'jqueryui'
         ], function ($, _, Backbone, common, serverHandler) {
 	'use strict';
     var _this = null;
@@ -138,6 +138,12 @@ define([
 				this.pageWrapper = childElement.detach();
 
 		},
+		
+		reset: function(){
+			if(this.doReset){
+				this.doReset();
+			}
+		}
 	});
 
 	return BaseView;

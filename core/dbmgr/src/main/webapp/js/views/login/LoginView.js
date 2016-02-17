@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -41,14 +41,14 @@ define([
 		init: function(){
 			$('#navbar').hide();
 			_that = this;
-			
+			$(SPINNER).hide();
 			validator = $(LOGIN_FORM).validate({
 				rules: {
 					"username": { required: true },
 					"password": { required: true}
 				},
 				messages: {
-					username: "Please enter your user name",
+					username: "Please enter a user name",
 		                    	password: "Please provide a password"
 		                },
 				highlight: function(element) {

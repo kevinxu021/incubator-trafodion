@@ -16,13 +16,15 @@ public class JdbcHelper {
 	private static HPT4DataSource dataSource = null;
 
 	private JdbcHelper() {
+		ConfigurationResource configResource = ConfigurationResource.getInstance();
 		dataSource = new HPT4DataSource();
-		dataSource.setUrl(ConfigurationResource.getInstance().getJdbcUrl());
-		dataSource.setMaxPoolSize(8);
-		dataSource.setUser("ds");
-		dataSource.setPassword("ds");
-		dataSource.setMinPoolSize(2);
-		dataSource.setInitialPoolSize(2);
+		dataSource.setUrl(configResource.getJdbcUrl());
+		dataSource.setMaxStatements(ConfigurationResource.getMaxStatementsCache());
+		dataSource.setMaxPoolSize(ConfigurationResource.getMaxPoolSize());
+		dataSource.setUser(configResource.getAdminUserID());
+		dataSource.setPassword(configResource.getAdminPassword());
+		dataSource.setMinPoolSize(ConfigurationResource.getMinPoolSize());
+		dataSource.setInitialPoolSize(ConfigurationResource.getMinPoolSize());
 	}
 
 	public synchronized static final JdbcHelper getInstance() {

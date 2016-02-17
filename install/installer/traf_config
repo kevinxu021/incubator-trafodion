@@ -146,11 +146,7 @@ sed -e "s@export SQ_HOME=.*@export SQ_HOME=$SQ_ROOT@" <bashrc_temp >$HOME/.bashr
 cp .bashrc bashrc_temp
 sed -e "s@export TOOLSDIR=.*@export TOOLSDIR=$TRAF_TOOLSDIR@" <bashrc_temp >$HOME/.bashrc
 
-# Delete any existing MY_NODES and NODE_LIST from .bashrc
-#cp .bashrc bashrc_temp
-#grep -vE "MY_NODES|NODE_LIST" bashrc_temp > $HOME/.bashrc
-
-if [[ $node_count == "1" ]]; then
+if [[ $all_node_count == "1" ]]; then
 
    # since sqgen uses the existence of /usr/bin/pdsh to determine multi-node cluster
    # and sqgen uses the existence of /usr/bin/pdcp to determine if it needs to copy
@@ -172,9 +168,9 @@ sed -e "s@export MY_NODES=.*@export MY_NODES=\"$MY_NODES\"@" <bashrc_temp >$HOME
 # re-source .bashrc to pick up these changes
 source ~/.bashrc
 
-if [ "$node_count" -ne "1" ]; then
+if [ "$all_node_count" -ne "1" ]; then
     echo "***INFO: copying .bashrc file to all nodes" | tee -a $INSTALL_LOG
-    $PDCP $MY_NODES -x $HOSTNAME $HOME/.bashrc $HOME
+    $PDCP $ALL_NODES -x $HOSTNAME $HOME/.bashrc $HOME
 fi
 
 
@@ -189,12 +185,12 @@ cd $SQ_ROOT
 
 #=================================================
 
-if [ "$node_count" -ne "1" ]; then
+if [ "$all_node_count" -ne "1" ]; then
    echo "***INFO: Creating $SQ_ROOT directory on all nodes" | tee -a $INSTALL_LOG
-   $PDSH $MY_NODES -x $HOSTNAME $PDSH_SSH_CMD mkdir -p $SQ_ROOT
+   $PDSH $ALL_NODES -x $HOSTNAME $PDSH_SSH_CMD mkdir -p $SQ_ROOT
    if [[ -f $HOME/sqenvcom.sh ]]; then
       echo "****INFO: Copying over sqenvcom.sh"
-      $PDCP $MY_NODES $HOME/sqenvcom.sh $SQ_ROOT
+      $PDCP $ALL_NODES $HOME/sqenvcom.sh $SQ_ROOT
    fi
 fi
 

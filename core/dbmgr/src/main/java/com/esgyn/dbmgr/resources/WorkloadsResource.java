@@ -8,6 +8,7 @@ package com.esgyn.dbmgr.resources;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.Timestamp;
@@ -238,7 +239,7 @@ public class WorkloadsResource {
 		_LOG.debug(sqlText);
 
 		Connection connection = null;
-		Statement stmt;
+		PreparedStatement stmt;
 		ResultSet rs;
 
 		String url = ConfigurationResource.getInstance().getJdbcUrl();
@@ -248,8 +249,11 @@ public class WorkloadsResource {
 			// soc.getPassword());
 			connection = JdbcHelper.getInstance().getAdminConnection();
 
-			stmt = connection.createStatement();
-			rs = stmt.executeQuery(sqlText);
+			stmt = connection
+					.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_REPO_QUERY_DETAIL));
+			stmt.setString(1, queryID);
+
+			rs = stmt.executeQuery();
 			while (rs.next()) {
 				qDetail.setUserName(rs.getString("user_name"));
 				qDetail.setStatus(rs.getString("query_status"));
@@ -318,7 +322,7 @@ public class WorkloadsResource {
 				qDetail.setMetrics(metrics);
 			}
 			rs.close();
-
+			stmt.close();
 		} catch (Exception e) {
 			_LOG.error("Failed to execute query : " + e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
@@ -366,6 +370,7 @@ public class WorkloadsResource {
 			}
 
 			rs.close();
+			stmt.close();
 
 		} catch (Exception e) {
 			_LOG.error("Failed to execute query : " + e.getMessage());
@@ -576,6 +581,7 @@ public class WorkloadsResource {
 			connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
 			stmt = connection.createStatement();
 			stmt.execute(sqlText);
+			stmt.close();
 		} catch (Exception e) {
 			_LOG.error("Failed to cancel query : " + e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());

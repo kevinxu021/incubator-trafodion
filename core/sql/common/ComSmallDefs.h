@@ -88,20 +88,7 @@ typedef Int32			ComUserID;
 
 typedef NABoolean               ComBoolean;
 
-
-// Defines for special users and roles
-#define DB__HIVEROLE      "DB__HIVEROLE"
-#define DB__HBASEROLE      "DB__HBASEROLE"
-#define DB__ROOTROLE            "DB__ROOTROLE"
-#define DB__ROOT                "DB__ROOT"
-#define SUPER_USER_LIT "33333"
-
-#define SYSTEM_USER -2
-#define PUBLIC_USER -1
-#define SUPER_USER 33333          // user id of DB__ROOT
-
-#define HIVE_ROLE_ID 1490000      // role id of DB__HIVEROLE
-#define HBASE_ROLE_ID 1490001     // role id of DB__HBASEROLE
+// user and role definitions have been moved to NAUserId.h
 
 // Defaults for system attributes
 #define SMD_LOCATION  "$SYSTEM"
@@ -123,8 +110,10 @@ typedef NABoolean               ComBoolean;
 #define HBASE_SYSTEM_SCHEMA           "HBASE"
 #define HBASE_HIST_NAME               "SB_HISTOGRAMS"
 #define HBASE_HISTINT_NAME            "SB_HISTOGRAM_INTERVALS"
+#define HBASE_PERS_SAMP_NAME          "SB_PERSISTENT_SAMPLES"
 #define HBASE_HIST_PK                    "SB_HISTOGRAMS_PK"
 #define HBASE_HISTINT_PK               "SB_HISTOGRAM_INTERVALS_PK"
+#define HBASE_PERS_SAMP_PK            "SB_PERSISTENT_SAMPLES_PK"
 #define HBASE_EXT_SCHEMA_PREFIX       "_HB_"
 
 #define HBASE_STATS_CATALOG          "TRAFODION"

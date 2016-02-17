@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -14,8 +14,8 @@ define([
         '../../../bower_components/codemirror/lib/codemirror',
         '../../../bower_components/codemirror/mode/sql/sql',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
+        'datatables.net',
+        'datatables.net-bs',
         'datetimepicker',
         'jqueryvalidate'
         ], function (BaseView, WorkloadsT, $, wHandler, moment, common, CodeMirror) {
@@ -48,11 +48,12 @@ define([
 
 			queryTextEditor = CodeMirror.fromTextArea(document.getElementById("query-text"), {
 				mode: 'text/x-esgyndb',
-				indentWithTabs: true,
-				smartIndent: true,
+				indentWithTabs: false,
+				smartIndent: false,
 				lineNumbers: false,
 				lineWrapping: true,
 				matchBrackets : true,
+				readOnly: true,
 				autofocus: true,
 				extraKeys: {"Ctrl-Space": "autocomplete"}
 			});
@@ -63,6 +64,7 @@ define([
 			});
 			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
 			
+			this.loadQueryText();
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
@@ -85,6 +87,7 @@ define([
 				$('#query-end-time').val('');
 				//$('#query-text').text('');
 				queryTextEditor.setValue('');
+				this.loadQueryText();
 				$('#query-status').val('');
 				try{
 					if(connDataTable != null){
@@ -125,6 +128,15 @@ define([
 			$(REFRESH_MENU).off('click', this.fetchRepositoryQueryDetail);
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
 			$(EXPLAIN_BUTTON).off('click', this.explainQuery);
+		},
+		loadQueryText: function(){
+			var queryParams = sessionStorage.getItem(queryID);
+			sessionStorage.removeItem(queryID);
+			if(queryParams != null){
+				queryParams = JSON.parse(queryParams);
+				if(queryParams.text && queryTextEditor)
+					queryTextEditor.setValue(queryParams.text);
+			}
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
@@ -168,8 +180,7 @@ define([
 
 			//$('#query-text').text(result.queryText);
 			queryTextEditor.setValue(result.queryText);
-			//sessionStorage.setItem(queryID, result.queryText);	
-
+	
 			$('#query-status').val(result.status.trim());
 			var startTimeVal = "";
 			if(result.startTime != null && result.startTime != -1){

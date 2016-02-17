@@ -3813,7 +3813,7 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
       return boundExpr;
       //      isHbase_ = TRUE;
     }
-  else if (initAuthorization() || dropAuthorization())
+  else if (initAuthorization() || dropAuthorization() || cleanupAuth())
   {
     isHbase_ = TRUE;
     hbaseDDLNoUserXn_ = TRUE;

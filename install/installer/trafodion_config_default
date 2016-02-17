@@ -153,10 +153,11 @@ export FLOATING_IP=""
 #If HA enabled the set the DCS Backup nodes
 export BACKUP_DCS_NODES=""
 
+
 #If HA enabled then set INTERFACE to match the interface of the floating ip
 export INTERFACE=""
 
-#Define if cloud environment is being used, if specified "Y" for CLOUD_CONFIG 
+#Define if cloud environment is being used, if specified "Y" for CLOUD_CONFIG
 #the please define the type of cloud (CLOUD_TYPE) being used
 export CLOUD_CONFIG="N"
 
@@ -170,3 +171,4 @@ export CLOUD_OTHER=""
 #Specify the node name of primary DcsMaster node, Default is the host where
 #dcs start script is run
 export DCS_PRIMARY_MASTER_NODE=`hostname -f`
+

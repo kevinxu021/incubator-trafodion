@@ -13,14 +13,15 @@ define([
         'common',
         'views/RefreshTimerView',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
-        'tablebuttons',
+        'datatables.net',
+        'datatables.net-bs',
+        'datatables.net-buttons',
         'buttonsflash',
         'buttonsprint',
         'buttonshtml',        
         'datetimepicker',
-        'jqueryvalidate'
+        'jqueryvalidate',
+        'pdfmake'
         ], function (BaseView, AlertsT, $, serverHandler, moment, common, refreshTimerView) {
 	'use strict';
 	var LOADING_SELECTOR = "#loadingImg",
@@ -83,13 +84,13 @@ define([
 					if(sDate != null && eDate != null){
 						var startTime = new Date(sDate).getTime();
 						var endTime = new Date(eDate).getTime();
-						return (startTime < endTime);					
+						return (startTime > 0 && startTime < endTime);					
 					}
 					return false;
 				}
 				return true;
 
-			}, "* Start Time has to be less than End Time");
+			}, "* Invalid Date Time and/or Start Time is greater than End Time");
 
 			validator = $(FILTER_FORM).validate({
 				rules: {
@@ -388,7 +389,7 @@ define([
 
 				oDataTable = $('#alerts-results').dataTable({
 					"oLanguage": {
-						"sEmptyTable": "No alerts found."
+						"sEmptyTable": "No alerts found for selected time range and/or filters."
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
 					"bProcessing": true,
@@ -428,9 +429,14 @@ define([
 					} ],
 					paging: true,
 					buttons: [
-					          'copy','csv','excel','pdf','print'
-					          ],
-					          fnDrawCallback: function(){
+	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
+	                        	   title: 'Alerts' } ,
+	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Alerts' }
+				          ],
+				    fnDrawCallback: function(){
 					        	  //$('#alerts-results td').css("white-space","nowrap");
 					          }
 				});

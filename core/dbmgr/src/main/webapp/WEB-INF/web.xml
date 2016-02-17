@@ -65,7 +65,12 @@
 			<transport-guarantee>CONFIDENTIAL</transport-guarantee>
 		</user-data-constraint>
 	</security-constraint>
+	
 	<listener>
-		<listener-class>com.esgyn.dbmgr.filter.SessionListener</listener-class>
+		<listener-class>com.esgyn.dbmgr.listener.DBMgrContextListenter</listener-class>
+	</listener>
+	
+	<listener>
+		<listener-class>com.esgyn.dbmgr.listener.SessionListener</listener-class>
 	</listener>
 </web-app>

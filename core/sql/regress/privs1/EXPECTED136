@@ -237,6 +237,7 @@ TEST136_USER8                                                                   
 Users
 =====
 
+DB__ADMIN
 DB__ROOT
 SQL_USER1
 SQL_USER10

@@ -141,17 +141,17 @@ define([
 				var startTime = new Date($(START_TIME_PICKER).data("DateTimePicker").date()).getTime();
 				var endTime = new Date($(END_TIME_PICKER).data("DateTimePicker").date()).getTime();
 				if($(START_TIME_PICKER).data("DateTimePicker").date() != null && $(END_TIME_PICKER).data("DateTimePicker").date() != null)
-					return (startTime < endTime);
+					return (startTime > 0 && startTime < endTime);
 				else return true;
-			}, "* Start Time has to be less than End Time");
+			}, "* Invalid Date Time and/or Start Time is greater than End Time");
 			
 			$.validator.addMethod("validateEndTime", function(value, element) {
 				var startTime = new Date($(START_TIME_PICKER).data("DateTimePicker").date()).getTime();
 				var endTime = new Date($(END_TIME_PICKER).data("DateTimePicker").date()).getTime();
 				if($(START_TIME_PICKER).data("DateTimePicker").date() != null && $(END_TIME_PICKER).data("DateTimePicker").date() != null)
-					return (startTime < endTime);
+					return (endTime > 0 && startTime < endTime);
 				else return true;
-			}, "* End Time has to be greater than Start Time");			
+			}, "* Invalid Date Time and/or Start Time is greater than End Time");			
 		}, 
 
 		init: function(){

@@ -20,7 +20,47 @@ namespace ConsoleApp
 {
     class Program
     {
-        public static string ConnectionString = "server=10.10.10.173:23400;user=zz;password=zz;schema=ado"; 
+        public static string ConnectionString = "server=10.10.10.145:23400;user=zz;password=zz;schema=ado;MaxPoolSize=1";
+
+        public static void TestConn()
+        {
+            string testQuery = "select * from \"_MD_\".objects limit 1";
+            DataTable retTb1 = new DataTable();
+            DataTable retTb2 = new DataTable();
+            EsgynDBCommand cmd = new EsgynDBCommand();
+            using (EsgynDBConnection conn = new EsgynDBConnection())
+            {
+                conn.ConnectionString = ConnectionString;
+                cmd.Connection = conn;
+                conn.Open();
+                //EsgynDBCommand cmd = conn.CreateCommand();
+                using (EsgynDBDataAdapter adapter2 = new EsgynDBDataAdapter())
+                {
+                    cmd.CommandText = testQuery;
+                    adapter2.SelectCommand = cmd;
+                    adapter2.Fill(retTb1);
+                }
+                Console.WriteLine("first RemoteProcess" + conn.RemoteProcess);
+            }
+            //Thread.Sleep(10000);
+            using (EsgynDBConnection conn = new EsgynDBConnection())
+            {
+                conn.ConnectionString = ConnectionString;
+                cmd.Connection = conn;
+                conn.Open();
+                
+                using (EsgynDBDataAdapter adapter2 = new EsgynDBDataAdapter())
+                {
+                    cmd.CommandText = testQuery;
+                    adapter2.SelectCommand = cmd;
+                    adapter2.Fill(retTb1);
+                }
+                Console.WriteLine("second RemoteProcess" + conn.RemoteProcess);
+            }
+
+            Console.WriteLine("Done!");
+        }
+
         public static void TestBatch()
         {
             try
@@ -936,7 +976,8 @@ namespace ConsoleApp
 
         static void Main(string[] args)
         {
-            TestBatch();
+            TestConn();
+            //TestBatch();
          
             Console.Read();
         }

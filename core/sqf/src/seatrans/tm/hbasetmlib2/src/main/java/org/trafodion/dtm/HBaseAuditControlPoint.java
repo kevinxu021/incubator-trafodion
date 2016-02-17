@@ -513,7 +513,7 @@ public class HBaseAuditControlPoint {
    }
    
    public long getNthRecord(int clusterId, int n) throws IOException{
-      if (LOG.isTraceEnabled()) LOG.trace("getNthRecord start - clusterId " + clusterId + " n" + n);
+      if (LOG.isTraceEnabled()) LOG.trace("getNthRecord start - clusterId " + clusterId + " n: " + n);
 
       Get g = new Get(Bytes.toBytes(clusterId));
       g.setMaxVersions(n + 1);  // will return last n+1 versions of row just in case

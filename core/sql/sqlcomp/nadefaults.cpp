@@ -1785,8 +1785,8 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DD_____(HBASE_SCHEMA,                         "HBASE"),
  DDkwd__(HBASE_SERIALIZATION,		"ON"),
  
-  DD_____(HBASE_SERVER,                         ""),
-  DDkwd__(HBASE_SMALL_SCANNER,		"OFF"),
+  DD_____(HBASE_SERVER,                         ""), 
+  DDkwd__(HBASE_SMALL_SCANNER,      "OFF"),
   DDkwd__(HBASE_SQL_IUD_SEMANTICS,		"ON"),
   DDkwd__(HBASE_STATS_PARTITIONING,           	"ON"),
   DDkwd__(HBASE_TRANSFORM_UPDATE_TO_DELETE_INSERT,		"OFF"),
@@ -1963,6 +1963,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
 
   DDkwd__(HIVE_DEFAULT_CHARSET,            (char *)SQLCHARSETSTRING_UTF8),
   DD_____(HIVE_DEFAULT_SCHEMA,                  "HIVE"),
+  DD_____(HIVE_FILE_CHARSET,                    ""),
   DD_____(HIVE_FILE_NAME,     "/hive/tpcds/customer/customer.dat" ),
   DD_____(HIVE_HDFS_STATS_LOG_FILE,             ""),
   DDint__(HIVE_LIB_HDFS_PORT_OVERRIDE,          "-1"),
@@ -3466,6 +3467,9 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDkwd__(USE_LARGE_QUEUES,                     "ON"),
 
   DDkwd__(USE_MAINTAIN_CONTROL_TABLE,          "OFF"),
+
+  DDkwd__(USE_OLD_DT_CONSTRUCTOR,      "OFF"),
+
   // Adaptive segmentation, use operator max to determine degree of parallelism
   DDui___(USE_OPERATOR_MAX_FOR_DOP,     "1"),
 
@@ -3591,6 +3595,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDkwd__(USTAT_USE_SIDETREE_INSERT,            "ON"),
   DDkwd__(USTAT_USE_SLIDING_SAMPLE_RATIO,       "ON"), // Trend sampling rate down w/increasing table size, going
                                                        //   flat at 1%.
+ XDDui1__(USTAT_YOULL_LIKELY_BE_SORRY,          "100000000"),  // guard against unintentional long-running UPDATE STATS
   DDkwd__(VALIDATE_RFORK_REDEF_TS,	        "OFF"),
 
   DDkwd__(VALIDATE_VIEWS_AT_OPEN_TIME,		"OFF"),
@@ -6396,6 +6401,7 @@ DefaultToken NADefaults::token(Int32 attrEnum,
   else {
     if ((attrEnum == TERMINAL_CHARSET) ||
         (attrEnum == USE_HIVE_SOURCE) ||
+        (attrEnum == HIVE_FILE_CHARSET) ||
         (attrEnum == HBASE_DATA_BLOCK_ENCODING_OPTION) ||
         (attrEnum == HBASE_COMPRESSION_OPTION))
       return DF_USER;
@@ -6469,6 +6475,14 @@ DefaultToken NADefaults::token(Int32 attrEnum,
 	  case '2':	return DF_HIGH;
 	  case '3':	return DF_MAXIMUM;
 	}
+      // HBASE_FILTER_PREDS
+        if ((attrEnum == HBASE_FILTER_PREDS) && value.length()==1)
+      switch (*value.data()){
+        case '0': return DF_OFF;
+        case '1': return DF_MINIMUM;
+        case '2': return DF_MEDIUM;
+        // in the future add DF_HIGH and DF_MAXIMUM when we implement more pushdown capabilities
+      }
     if ( attrEnum == TEMPORARY_TABLE_HASH_PARTITIONS ||
          attrEnum == MVQR_REWRITE_CANDIDATES ||
          attrEnum == MVQR_PUBLISH_TABLE_LOCATION ||
@@ -6724,6 +6738,15 @@ DefaultToken NADefaults::token(Int32 attrEnum,
           tok == DF_MEDIUM	 || tok == DF_MAXIMUM)
         isValid = TRUE;
       break;
+
+    case HBASE_FILTER_PREDS:
+        if(tok == DF_OFF || tok == DF_ON)
+        {
+            if (tok == DF_ON)
+                tok = DF_MINIMUM; // to keep backward compatibility
+        isValid= TRUE;
+        }
+        break;
 
     case ROBUST_QUERY_OPTIMIZATION:
       if (tok == DF_MINIMUM || tok == DF_SYSTEM || tok == DF_MAXIMUM ||

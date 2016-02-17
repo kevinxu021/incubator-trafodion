@@ -1,8 +1,8 @@
-//@@@ START COPYRIGHT @@@
-
-//(C) Copyright 2015 Esgyn Corporation
-
-//@@@ END COPYRIGHT @@@
+// @@@ START COPYRIGHT @@@
+//
+// (C) Copyright 2016 Esgyn Corporation
+//
+// @@@ END COPYRIGHT @@@
 
 define([
         'views/BaseView',
@@ -15,8 +15,8 @@ define([
         '../../../bower_components/codemirror/lib/codemirror',
         '../../../bower_components/codemirror/mode/sql/sql',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
+        'datatables.net',
+        'datatables.net-bs',
         ], function (BaseView, WorkloadsT, $, wHandler, moment, common, refreshTimer, CodeMirror) {
 	'use strict';
 	var LOADING_SELECTOR = "#loadingImg",
@@ -47,11 +47,12 @@ define([
 
 			queryTextEditor = CodeMirror.fromTextArea(document.getElementById("query-text"), {
 				mode: 'text/x-esgyndb',
-				indentWithTabs: true,
-				smartIndent: true,
+				indentWithTabs: false,
+				smartIndent: false,
 				lineNumbers: false,
 				lineWrapping: true,
 				matchBrackets : true,
+				readOnly: true,
 				autofocus: true,
 				extraKeys: {"Ctrl-Space": "autocomplete"}
 			});
@@ -81,8 +82,11 @@ define([
 		},
 		doResume: function(args){
 			$('#query-id').val(args);
-			queryID = args;
-			this.loadQueryText();
+			if(queryID != null && queryID != args){
+				queryID = args;
+				queryTextEditor.setValue('');
+				this.loadQueryText();
+			}
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
