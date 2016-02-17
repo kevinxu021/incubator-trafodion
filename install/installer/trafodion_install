@@ -105,7 +105,7 @@ do
             else
                supportedHBase=$(echo $version | grep "1.1.2" | wc -l)
                if [[ $supportedHBase -eq "0" ]]; then
-                  echo "***ERROR: HBase installed must be 1.1.1 on node $node"
+                  echo "***ERROR: HBase installed must be 1.1.2 on node $node"
                   exit -1
                fi
             fi
