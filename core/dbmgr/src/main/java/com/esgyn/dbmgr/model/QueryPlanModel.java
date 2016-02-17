@@ -156,9 +156,12 @@ public class QueryPlanModel {
 			String url = ConfigurationResource.getInstance().getJdbcUrl();
 			connection = DriverManager.getConnection(url, userName, password);
 			planArray = GetPlan(connection, queryText, controlStmts, queryID, queryType);
+		} catch (EsgynDBMgrException e) {
+			throw e;
 		} catch (Exception ex) {
 			// System.out.println("Failed using EXPLAIN_QID");
 			_LOG.error("Explain failed: " + ex.getMessage());
+			throw new EsgynDBMgrException("Explain failed: " + ex.getMessage());
 		}
 		return planArray;
 	}
