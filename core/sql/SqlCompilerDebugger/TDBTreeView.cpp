@@ -273,7 +273,7 @@ void TDBTreeView::on_treeWidget_itemClicked ( QTreeWidgetItem * item, int column
   TDBDlgMdamNet* MdamDlg_;
   QVariant v = item->data(0, Qt::UserRole);
   currTdb = (ComTdb*)v.value <void *>();
-  NAString textString = currTdb->getNodeName;
+  NAString textString = currTdb->getNodeName();
   switch (column) {
     case 1 :  // Expr
             ExprDlg_ = new TDBDlgExprList(this, currTdb, textString);
