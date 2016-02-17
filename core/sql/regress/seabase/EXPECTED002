@@ -180,7 +180,6 @@ T002SCH.T002T2                                                               1  
 (EXPR)                                                    (EXPR)                (EXPR)                         (EXPR)
 --------------------------------------------------------  --------------------  -----------------------------  ------------------------------
 
-T002SCH.T002T2                                                               0  ReadRequestsCount: 1           WriteRequestsCount: 1         
 T002SCH.SB_HIS                                                               0  ReadRequestsCount: 0           WriteRequestsCount: 0         
 T002SCH.T002T1                                                               0  ReadRequestsCount: 2           WriteRequestsCount: 1         
 T002SCH.T002T2                                                               0  ReadRequestsCount: 1           WriteRequestsCount: 1         
@@ -198,7 +197,6 @@ T002SCH.T002T2                                                               0  
 (EXPR)                                                    (EXPR)                (EXPR)                         (EXPR)
 --------------------------------------------------------  --------------------  -----------------------------  ------------------------------
 
-T002SCH.T002T2                                                               0  ReadRequestsCount: 1           WriteRequestsCount: 1         
 T002SCH.SB_HIS                                                               0  ReadRequestsCount: 0           WriteRequestsCount: 0         
 T002SCH.T002T1                                                               0  ReadRequestsCount: 2           WriteRequestsCount: 1         
 T002SCH.T002T2                                                               0  ReadRequestsCount: 1           WriteRequestsCount: 1         
