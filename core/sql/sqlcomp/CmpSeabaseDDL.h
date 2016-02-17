@@ -1156,7 +1156,8 @@ class CmpSeabaseDDL
                                 std::vector<std::string> &tablesCreated,
                                 std::vector<std::string> &tablesUpgraded);
 
-  void dropSeabaseAuthorization(ExeCliInterface *cliInterface);
+  void dropSeabaseAuthorization(ExeCliInterface *cliInterface, 
+                                NABoolean doCleanup = FALSE);
 
   NABoolean insertPrivMgrInfo(const Int64 objUID,
                               const NAString &objName,

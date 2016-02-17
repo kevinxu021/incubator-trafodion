@@ -156,7 +156,9 @@ inline bool isSequenceGeneratorPrivType(PrivType privType)
 }
      
 // Defines the list of privileges that are supported for the 
-// SQLOperation component
+// SQL_OPERATIONS component
+// To add a new operation, add an entry to this list (currently listed in
+// alphabetic order) and add an entry to the componentOpList that follows. 
 enum class SQLOperation {
    ALTER = 2,
    ALTER_LIBRARY,
@@ -223,6 +225,100 @@ enum class SQLOperation {
    LAST_DML_PRIV = DML_USAGE
 };
 
+// The ComponentPrivs struct is used to describe an operation for a component
+// privilege
+//   operation - corresponds to an enum entry found in SQLOperations
+//   operationCode - unique 2 charater value that represents the operation
+//   operationName - name of the operation
+//   isRootRoleOp - DB__ROOTROLE is granted this operation WGO
+//   isAdminOp - DB__ADMIN and DB__ADMINROLE is granted this operation
+//   isDMLOp - this is a DML operation
+//   isPublicOp - PUBLIC is granted this operation
+struct ComponentOpStruct
+{
+  enum SQLOperation operation;
+  const char * operationCode;
+  const char * operationName;
+  const bool isRootRoleOp;
+  const bool isAdminOp;
+  const bool isDMLOp;
+  const bool isPublicOp;
+};
+
+// To add a new operation to SQL_OPERATIONS component, add an entry to this
+// list (currently in alphabetic order). The operationCode must be unique.
+//
+// Recommended that:
+//    DB__ROOTROLE be granted all non DML privileges WGO
+//    DB__ADMIN user and DB__ADMINROLE be granted all non DML privileges
+//    PUBLIC granted only a small subset of privileges
+static const ComponentOpStruct componentOpList[] = 
+{
+ {SQLOperation::ALTER,               "A0","ALTER",true,true,false,false},
+ {SQLOperation::ALTER_LIBRARY,       "AL","ALTER_LIBRARY",true,false,false,false},
+ {SQLOperation::ALTER_ROUTINE,       "AR","ALTER_ROUTINE",true,false,false,false},
+ {SQLOperation::ALTER_ROUTINE_ACTION,"AA","ALTER_ROUTINE_ACTION",true,false,false,false},
+ {SQLOperation::ALTER_SCHEMA,        "AH","ALTER_SCHEMA",true,false,false,false},
+ {SQLOperation::ALTER_SEQUENCE,      "AQ","ALTER_SEQUENCE",true,false,false,false},
+ {SQLOperation::ALTER_SYNONYM,       "AY","ALTER_SYNONYM",true,false,false,false},
+ {SQLOperation::ALTER_TABLE,         "AT","ALTER_TABLE",true,false,false,false},
+ {SQLOperation::ALTER_TRIGGER,       "AG","ALTER_TRIGGER",true,false,false,false},
+ {SQLOperation::ALTER_VIEW,          "AV","ALTER_VIEW",true,false,false,false},
+
+ {SQLOperation::CREATE,              "C0","CREATE",true,true,false,false },
+ {SQLOperation::CREATE_CATALOG,      "CC","CREATE_CATALOG",true,false,false,false},
+ {SQLOperation::CREATE_INDEX,        "CI","CREATE_INDEX",true,false,false,false},
+ {SQLOperation::CREATE_LIBRARY,      "CL","CREATE_LIBRARY",true,false,false,false},
+ {SQLOperation::CREATE_PROCEDURE,    "CP","CREATE_PROCEDURE",true,false,false,false},
+ {SQLOperation::CREATE_ROUTINE,      "CR","CREATE_ROUTINE",true,false,false,false},
+ {SQLOperation::CREATE_ROUTINE_ACTION,"CA","CREATE_ROUTINE_ACTION",true,false,false,false},
+ {SQLOperation::CREATE_SCHEMA,       "CH","CREATE_SCHEMA",true,false,false,true},
+ {SQLOperation::CREATE_SEQUENCE,     "CQ","CREATE_SEQUENCE",true,false,false,false},
+ {SQLOperation::CREATE_SYNONYM,      "CY","CREATE_SYNONYM",true,false,false,false},
+ {SQLOperation::CREATE_TABLE,        "CT","CREATE_TABLE",true,false,false,false},
+ {SQLOperation::CREATE_TRIGGER,      "CG","CREATE_TRIGGER",true,false,false,false},
+ {SQLOperation::CREATE_VIEW,         "CV","CREATE_VIEW",true,false,false,false},
+    
+ {SQLOperation::DML_DELETE,     "PD","DML_DELETE",false,false,true,false},
+ {SQLOperation::DML_EXECUTE,    "PE","DML_EXECUTE",false,false,true,false},
+ {SQLOperation::DML_INSERT,     "PI","DML_INSERT",false,false,true,false},
+ {SQLOperation::DML_REFERENCES, "PR","DML_REFERENCES",false,false,true,false},
+ {SQLOperation::DML_SELECT,     "PS","DML_SELECT",false,false,true,false},
+ {SQLOperation::DML_UPDATE,     "PU","DML_UPDATE",false,false,true,false},
+ {SQLOperation::DML_USAGE,      "PG","DML_USAGE",false,false,true,false},
+
+ {SQLOperation::DROP,               "D0","DROP",true,true,false,false },
+ {SQLOperation::DROP_CATALOG,       "DC","DROP_CATALOG",true,false,false,false},
+ {SQLOperation::DROP_INDEX,         "DI","DROP_INDEX",true,false,false,false},
+ {SQLOperation::DROP_LIBRARY,       "DL","DROP_LIBRARY",true,false,false,false},
+ {SQLOperation::DROP_PROCEDURE,     "DP","DROP_PROCEDURE",true,false,false,false},
+ {SQLOperation::DROP_ROUTINE,       "DR","DROP_ROUTINE",true,false,false,false},
+ {SQLOperation::DROP_ROUTINE_ACTION,"DA","DROP_ROUTINE_ACTION",true,false,false,false},
+ {SQLOperation::DROP_SCHEMA,        "DH","DROP_SCHEMA",true,false,false,false},
+ {SQLOperation::DROP_SEQUENCE,      "DQ","DROP_SEQUENCE",true,false,false,false},
+ {SQLOperation::DROP_SYNONYM,       "DY","DROP_SYNONYM",true,false,false,false},
+ {SQLOperation::DROP_TABLE,         "DT","DROP_TABLE",true,false,false,false},
+ {SQLOperation::DROP_TRIGGER,       "DG","DROP_TRIGGER",true,false,false,false},
+ {SQLOperation::DROP_VIEW,          "DV","DROP_VIEW",true,false,false,false},
+    
+ {SQLOperation::MANAGE,            "M0","MANAGE",true,true,false,false},
+ {SQLOperation::MANAGE_COMPONENTS, "MC","MANAGE_COMPONENTS",true,false,false,false},
+ {SQLOperation::MANAGE_LIBRARY,    "ML","MANAGE_LIBRARY",true,false,false,false},
+ {SQLOperation::MANAGE_LOAD,       "MT","MANAGE_LOAD",true,false,false,false},
+ {SQLOperation::MANAGE_PRIVILEGES, "MP","MANAGE_PRIVILEGES",true,false,false,false},
+ {SQLOperation::MANAGE_ROLES,      "MR","MANAGE_ROLES",true,false,false,false},
+ {SQLOperation::MANAGE_STATISTICS, "MS","MANAGE_STATISTICS",true,false,false,false},
+ {SQLOperation::MANAGE_USERS,      "MU","MANAGE_USERS",true,false,false,false},
+
+ {SQLOperation::QUERY_ACTIVATE, "QA","QUERY_ACTIVATE",true,true,false,false},
+ {SQLOperation::QUERY_CANCEL,   "QC","QUERY_CANCEL",true,true,false,false},
+ {SQLOperation::QUERY_SUSPEND,  "QS","QUERY_SUSPEND",true,true,false,false}, 
+
+ {SQLOperation::REMAP_USER,           "RU","REMAP_USER",true,true,false,false},
+ {SQLOperation::SHOW,                 "SW","SHOW",true,true,false,true},
+ {SQLOperation::USE_ALTERNATE_SCHEMA, "UA","USE_ALTERNATE_SCHEMA",true,true,false,false}
+};
+  
 enum class PrivDropBehavior {
    CASCADE = 2,
    RESTRICT = 3
@@ -298,15 +394,6 @@ inline bool isDMLPrivType(PrivType privType)
 #define UNKNOWN_GRANTEE_TYPE_LIT               "  "
 #define PUBLIC_GRANTEE_LIT                     "P "
 #define USER_GRANTEE_LIT                       "U "
-
-#define SYSTEM_AUTH_ID          -2
-#define PUBLIC_AUTH_ID          -1
-
-#define PUBLIC_AUTH_NAME "PUBLIC"
-#define SYSTEM_AUTH_NAME "_SYSTEM"
-
-#define DB_ROOTROLE_NAME "DB__ROOTROLE"
-#define DB_ROOTROLE_ID 1000000
 
 #define MAX_SQL_IDENTIFIER_NAME_LEN 256
 

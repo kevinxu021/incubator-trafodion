@@ -45,8 +45,8 @@ Use these common tips to troubleshoot any display issues with EsgynDB Manager.
 === Support
 When contacting Esgyn Support, the following information will be handy and requested:
 
-* Latest logs in *$MY_SQROOT/dbmgr-1.0.0/logs/*
-* $MY_SQROOT/dbmgr-1.0.0/config.xml
+* Latest logs in *$MY_SQROOT/dbmgr-{projectVersion}/logs/*
+* $MY_SQROOT/dbmgr-{projectVersion}/config.xml
 * EsgynDB Manager version information from the About page
 
 For UI issues:

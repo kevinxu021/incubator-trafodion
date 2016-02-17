@@ -128,14 +128,14 @@ PLAYER_NAME                                         TEAM_NAME
 --------------------------------------------------  --------------------
 
 Pete                                                Cardinals           
-Julie                                               Giants              
 Joanne                                              Giants              
 Toby                                                Giants              
+Julie                                               Giants              
 Pete                                                Giants              
 Jared                                               Indians             
 Zachary                                             Indians             
-Omar                                                Tigers              
 Lynne                                               Tigers              
+Omar                                                Tigers              
 Toby                                                White Socks         
 Bob                                                 White Socks         
 Tom                                                 White Socks         
@@ -326,7 +326,7 @@ SCHEMA_PRIVILEGES
 (EXPR)              
 --------------------
 
-                 116
+                 129
 
 --- 1 row(s) selected.
 >>execute get_owner_privs;

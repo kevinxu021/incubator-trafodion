@@ -62,14 +62,16 @@ Int64 OptHbaseAccessOptions::computeHbaseTS(const char * tsStr)
   UInt32 fracPrec;
 
   NAString epochStr("1970-01-01:00:00:00");
-  DatetimeValue epochDT(epochStr, REC_DATE_YEAR, REC_DATE_SECOND, fracPrec);
+  DatetimeValue epochDT(epochStr, REC_DATE_YEAR, REC_DATE_SECOND, fracPrec,
+      (CmpCommon::getDefault(USE_OLD_DT_CONSTRUCTOR) == DF_ON));
   Int64 epochJTS = DatetimeType::julianTimestampValue
     ((char*)epochDT.getValue(), epochDT.getValueLen(), fracPrec);
   
   Int64 jts = 0;
   if (tsStr)
     {
-      DatetimeValue dtVal(tsStr, REC_DATE_YEAR, REC_DATE_SECOND, fracPrec);
+      DatetimeValue dtVal(tsStr, REC_DATE_YEAR, REC_DATE_SECOND, fracPrec,
+          (CmpCommon::getDefault(USE_OLD_DT_CONSTRUCTOR) == DF_ON));
       if (! dtVal.isValid())
         {
           return -1;
@@ -106,12 +108,14 @@ short OptHbaseAccessOptions::setHbaseTS
   Int64 maxJTS = -1;
 
   NAString epochStr("1970-01-01:00:00:00");
-  DatetimeValue epochDT(epochStr, REC_DATE_YEAR, REC_DATE_SECOND, fracPrec);
+  DatetimeValue epochDT(epochStr, REC_DATE_YEAR, REC_DATE_SECOND, fracPrec,
+      (CmpCommon::getDefault(USE_OLD_DT_CONSTRUCTOR) == DF_ON));
   Int64 epochJTS = DatetimeType::julianTimestampValue
     ((char*)epochDT.getValue(), epochDT.getValueLen(), fracPrec);
 
   NAString highestStr("9999-12-31:00:00:00");
-  DatetimeValue highestDT(highestStr, REC_DATE_YEAR, REC_DATE_SECOND, fracPrec);
+  DatetimeValue highestDT(highestStr, REC_DATE_YEAR, REC_DATE_SECOND, fracPrec,
+      (CmpCommon::getDefault(USE_OLD_DT_CONSTRUCTOR) == DF_ON));
   Int64 highestJTS = DatetimeType::julianTimestampValue
     ((char*)highestDT.getValue(), highestDT.getValueLen(), fracPrec);
 

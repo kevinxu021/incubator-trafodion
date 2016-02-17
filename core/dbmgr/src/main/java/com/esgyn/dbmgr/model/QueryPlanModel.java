@@ -8,6 +8,7 @@ package com.esgyn.dbmgr.model;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
 import com.esgyn.dbmgr.resources.ConfigurationResource;
 
+
 public class QueryPlanModel {
 	private static final Logger _LOG = LoggerFactory.getLogger(QueryPlanModel.class);
 	public ArrayList<QueryPlanData> QueryPlanArray = new ArrayList<QueryPlanData>();
@@ -31,6 +33,7 @@ public class QueryPlanModel {
 	private QueryPlanData rootPlan;
 	private PlanSummaryInfo planSummaryInfo = null;
 	String planText = "";
+	private ArrayList<String> tableNames = new ArrayList<String>();
 
 	public QueryPlanData getQueryPlanData() {
 		return queryPlanData;
@@ -60,6 +63,7 @@ public class QueryPlanModel {
 		QueryPlanResponse response = getQueryPlanResponse(null, -1, "L", null);
 		response.setPlanText(planText);
 		response.setTreeDepth(getTreeDepth(response, 1));
+		response.setTableNames(tableNames);
 		return response;
 	}
 
@@ -132,12 +136,39 @@ public class QueryPlanModel {
 		CreateSummary(planDataArray);
 	}
 
+	public void GeneratePlan(Connection connection, String queryText, String controlStmts, String queryID,
+			String queryType) throws EsgynDBMgrException {
+		ArrayList<QueryPlanData> planDataArray = GetPlan(connection, queryText, controlStmts, queryID, queryType);
+		QueryPlanArray.clear();
+		for (QueryPlanData planData : planDataArray) {
+			setQueryPlanData(planData);
+			QueryPlanArray.add(planData);
+		}
+		SavePlanSteps(planDataArray);
+		CreateSummary(planDataArray);
+	}
+
 	public ArrayList<QueryPlanData> GetPlan(String userName, String password, String queryText, String controlStmts,
+			String queryID, String queryType) throws EsgynDBMgrException {
+		ArrayList<QueryPlanData> planArray = new ArrayList<QueryPlanData>();
+		Connection connection = null;
+		try {
+			String url = ConfigurationResource.getInstance().getJdbcUrl();
+			connection = DriverManager.getConnection(url, userName, password);
+			planArray = GetPlan(connection, queryText, controlStmts, queryID, queryType);
+		} catch (Exception ex) {
+			// System.out.println("Failed using EXPLAIN_QID");
+			_LOG.error("Explain failed: " + ex.getMessage());
+		}
+		return planArray;
+	}
+
+	public ArrayList<QueryPlanData> GetPlan(Connection connection, String queryText, String controlStmts,
 			String queryID, String queryType) throws EsgynDBMgrException {
 
 		ArrayList<QueryPlanData> planArray = new ArrayList<QueryPlanData>();
-		Connection connection = null;
 		Statement stmt = null;
+		PreparedStatement pStmt = null;
 
 		ResultSet rs;
 		String[] controlStatements = new String[0];
@@ -146,19 +177,22 @@ public class QueryPlanModel {
 		}
 
 		try {
-			String url = ConfigurationResource.getInstance().getJdbcUrl();
-			connection = DriverManager.getConnection(url, userName, password);
 			stmt = connection.createStatement();
 			for (String controlText : controlStatements) {
 				stmt.execute(controlText);
 			}
+			stmt.close();
 
 			boolean explainSuccess = false;
 			if (queryID != null && queryID.length() > 0) {
 				if (queryType != null && queryType.equalsIgnoreCase("active")) {
 					try {
-						rs = stmt
-								.executeQuery(String.format("SELECT * FROM TABLE(explain(null, 'QID=%1$s'))", queryID));
+						String explainQryText = String.format("SELECT * FROM TABLE(explain(null, 'QID=%1$s'))",
+								queryID);
+						_LOG.debug(explainQryText);
+						pStmt = connection.prepareStatement(explainQryText);
+						rs = pStmt.executeQuery();
+
 						while (rs.next()) {
 							explainSuccess = true;
 							QueryPlanData qpd = new QueryPlanData();
@@ -175,24 +209,32 @@ public class QueryPlanModel {
 
 							String tableName = extractTableName(qpd.description);
 							if (tableName != null && tableName.length() > 0) {
-								qpd.tableName = GetExternalTableName(tableName);
+								// qpd.tableName =
+								// GetExternalTableName(tableName);
+								qpd.tableName = tableName;
 							}
 							qpd.formattedCostDesc = computeDisplayString(qpd.detailCost, qpd.description);
 							planArray.add(qpd);
-							// System.out.println(qpd);
+							if (qpd.tableName != null && qpd.tableName.trim().length() > 0)
+								tableNames.add(qpd.tableName.trim());
 						}
 
 						rs.close();
+						pStmt.close();
 					} catch (Exception ex) {
 						// System.out.println("Failed using EXPLAIN_QID");
+						_LOG.error("Explain failed: " + ex.getMessage());
 					}
 				}
 
 				try {
 					// System.out.println("Using EXPLAIN_QID first");
 					if (!explainSuccess) {
-						rs = stmt.executeQuery(
-								String.format("SELECT * FROM TABLE(explain(null, 'EXPLAIN_QID=%1$s'))", queryID));
+						String explainQryText = String.format("SELECT * FROM TABLE(explain(null, 'EXPLAIN_QID=%1$s'))",
+								queryID);
+						_LOG.debug(explainQryText);
+						pStmt = connection.prepareStatement(explainQryText);
+						rs = pStmt.executeQuery();
 						while (rs.next()) {
 							explainSuccess = true;
 							QueryPlanData qpd = new QueryPlanData();
@@ -209,18 +251,26 @@ public class QueryPlanModel {
 
 							String tableName = extractTableName(qpd.description);
 							if (tableName != null && tableName.length() > 0) {
-								qpd.tableName = GetExternalTableName(tableName);
+								// qpd.tableName =
+								// GetExternalTableName(tableName);
+								qpd.tableName = tableName;
 							}
 							qpd.formattedCostDesc = computeDisplayString(qpd.detailCost, qpd.description);
 							planArray.add(qpd);
+							if (qpd.tableName != null && qpd.tableName.trim().length() > 0)
+								tableNames.add(qpd.tableName.trim());
 							// System.out.println(qpd);
 						}
 
 						rs.close();
+						pStmt.close();
 					}
 
 					if (explainSuccess) {
-						rs = stmt.executeQuery("explain qid " + queryID + " from repository");
+						String explainQryText = "explain qid " + queryID + " from repository";
+						_LOG.debug(explainQryText);
+						pStmt = connection.prepareStatement(explainQryText);
+						rs = pStmt.executeQuery();
 						StringBuilder sb = new StringBuilder();
 
 						while (rs.next()) {
@@ -228,12 +278,13 @@ public class QueryPlanModel {
 						}
 
 						rs.close();
-
+						pStmt.close();
 						planText = sb.toString();
 
 					}
 
 				} catch (Exception ex) {
+					_LOG.error("Explain failed: " + ex.getMessage());
 					// System.out.println("Failed using EXPLAIN_QID");
 				}
 			}
@@ -250,7 +301,9 @@ public class QueryPlanModel {
 
 				String exQuery = "SELECT * FROM TABLE(explain(null, 'EXPLAIN_STMT=" + delimitedQueryText + " '))";
 				// System.out.println(exQuery);
-				rs = stmt.executeQuery(exQuery);
+				_LOG.debug(exQuery);
+				pStmt = connection.prepareStatement(exQuery);
+				rs = pStmt.executeQuery();
 
 				while (rs.next()) {
 					explainSuccess = true;
@@ -272,16 +325,21 @@ public class QueryPlanModel {
 
 					String tableName = extractTableName(qpd.description);
 					if (tableName != null && tableName.length() > 0) {
-						qpd.tableName = GetExternalTableName(tableName);
+						// qpd.tableName = GetExternalTableName(tableName);
+						qpd.tableName = tableName;
 					}
 					qpd.formattedCostDesc = computeDisplayString(qpd.detailCost, qpd.description);
 					planArray.add(qpd);
+					if (qpd.tableName != null && qpd.tableName.trim().length() > 0)
+						tableNames.add(qpd.tableName.trim());
 					// System.out.println(qpd);
 				}
 
 				rs.close();
+				pStmt.close();
 
-				rs = stmt.executeQuery("explain " + queryText);
+				pStmt = connection.prepareStatement("explain " + queryText);
+				rs = pStmt.executeQuery();
 				StringBuilder sb = new StringBuilder();
 
 				while (rs.next()) {
@@ -298,7 +356,7 @@ public class QueryPlanModel {
 				planText = sb.toString();
 
 				rs.close();
-
+				pStmt.close();
 			}
 		} catch (Exception e) {
 			_LOG.error("Explain failed: " + e.getMessage());
@@ -307,6 +365,9 @@ public class QueryPlanModel {
 			try {
 				if (stmt != null) {
 					stmt.close();
+				}
+				if (pStmt != null) {
+					pStmt.close();
 				}
 				if (connection != null)
 					connection.close();
@@ -334,7 +395,7 @@ public class QueryPlanModel {
 			for (String s : nvPairs) {
 				if (0 < s.trim().length()) {
 					String costMetricAndValue = s.replace(":=", ":");
-					sb.append("  " + costMetricAndValue + "\n");
+					sb.append("\t" + costMetricAndValue + "\n");
 
 				}
 			}
@@ -351,7 +412,7 @@ public class QueryPlanModel {
 			}
 
 			for (String p : nvPairs) {
-				sb.append("  " + p + "\n");
+				sb.append("\t" + p + "\n");
 			}
 
 			/*

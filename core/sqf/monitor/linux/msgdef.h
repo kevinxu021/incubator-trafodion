@@ -74,7 +74,7 @@
 
 #define MAX_FAULT_ZONES  16 
 #define MAX_FILE_NAME    256
-#define MAX_KEY_NAME     32
+#define MAX_KEY_NAME     64
 #define MAX_KEY_LIST     32
 #define MAX_NODE_LIST    64
 #define MAX_OPEN_LIST    256

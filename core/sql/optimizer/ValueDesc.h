@@ -193,6 +193,11 @@ public:
   // get the associated base column.
   NABoolean isSaltColumn() const;
 
+  // return TRUE if I am a ValueId associated with an Index Column, or
+  // a base column , and I am an added column with a default value that is not
+  // null.
+  NABoolean isAddedColumnWithNonNullDefault() const;
+
   // ---------------------------------------------------------------------
   // change the ValueId's type to the given type
   // ---------------------------------------------------------------------
@@ -1405,6 +1410,17 @@ public:
   // -----------------------------------------------------------------------
   void findAllEqualityCols(ValueIdSet & result) const;
 
+  // -----------------------------------------------------------------------
+  // This method finds all itemExpr with the type referenced directly 
+  // -----------------------------------------------------------------------
+  void findAllOpType(OperatorTypeEnum type, ValueIdSet & result) const;
+
+  // -----------------------------------------------------------------------
+  // This method collects all child expressions, for each member of the 
+  // set. This method does not recursively go below the current set.
+  // -----------------------------------------------------------------------
+  void findAllChildren(ValueIdSet & result) const;
+
   // ---------------------------------------------------------------------
   // ValueIdSet::getAllTables()
   // This method will get all tables whose columns are included in the set
@@ -1464,6 +1480,10 @@ public:
   NABoolean containsAnyTrue(ValueId &refAnyTrue ) const;
 
 
+  // for each OLAP LEAD function cotnained in this, add the equivalent
+  // OLAP LEAD function for each element (as the child of LEAD) in input, 
+  // and save the new function in result
+  void addOlapLeadFuncs(const ValueIdSet& input, ValueIdSet& result);
 
 /////////////////////////////////////////////////////////////
 

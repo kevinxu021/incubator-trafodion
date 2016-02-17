@@ -101,6 +101,7 @@ public class TmDDL {
       tablePutLock = new Object();
 
       table = new HTable(config, tablename);
+      if (LOG.isTraceEnabled()) LOG.trace("Exit TmDDL constructor for dtmid: " + dtmid);
    }
 
    public void putRow(final long transid, final String Operation, final String tableName) throws Exception {

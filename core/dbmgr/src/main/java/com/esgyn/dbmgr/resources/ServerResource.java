@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -9,8 +9,6 @@ package com.esgyn.dbmgr.resources;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -22,6 +20,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -107,20 +106,19 @@ public class ServerResource {
 			Class.forName(server.getJdbcDriverClass());
 			connection = DriverManager.getConnection(url, usr, pwd);
 
-			Statement stmt = connection.createStatement();
-			ResultSet rs = stmt.executeQuery("info system");
-			while (rs.next()) {
-				ConfigurationResource.setServerTimeZone(rs.getString("TM_ZONE"));
-				ConfigurationResource.setServerUTCOffset(rs.getLong("TM_GMTOFF_SEC"));
-				break;
-			}
-			rs = stmt.executeQuery("get version of software");
-			if (rs.next()) {
-				String version = rs.getString(1);
-				String[] versionparts = version.split(":");
-				ConfigurationResource
-						.setSystemVersion(versionparts.length > 1 ? versionparts[1].trim() : versionparts[0]);
-			}
+
+			/*
+			 * Statement stmt = connection.createStatement(); ResultSet rs =
+			 * stmt.executeQuery("info system"); while (rs.next()) {
+			 * ConfigurationResource.setServerTimeZone(rs.getString("TM_ZONE"));
+			 * ConfigurationResource.setServerUTCOffset(rs.getLong(
+			 * "TM_GMTOFF_SEC")); break; } rs = stmt.executeQuery(
+			 * "get version of software"); if (rs.next()) { String version =
+			 * rs.getString(1); String[] versionparts = version.split(":");
+			 * ConfigurationResource .setSystemVersion(versionparts.length > 1 ?
+			 * versionparts[1].trim() : versionparts[0]); }
+			 */
+
 
 		} catch (Exception e) {
 			_LOG.error(e.getMessage());
@@ -217,7 +215,7 @@ public class ServerResource {
 	}
 
 	@GET
-	@Path("/dcsservers/")
+	@Path("/dcs/servers/")
 	@Produces("application/json")
 	public TabularResult getDcsConnections(@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
@@ -234,6 +232,31 @@ public class ServerResource {
 			}
 
 			result = processRESTRequest(uri, soc.getUsername(), soc.getPassword());
+
+		} catch (Exception ex) {
+			_LOG.error("Failed to fetch dcs connections : " + ex.getMessage());
+			throw new EsgynDBMgrException(ex.getMessage());
+		}
+		return result;
+	}
+
+	@GET
+	@Path("/dcs/summary/")
+	@Produces("application/json")
+	public String getDcsSummary(@Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		String result = null;
+		try {
+			String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
+			String uri = "";
+			Session soc = SessionModel.getSession(servletRequest, servletResponse);
+
+			if (trafRestUri != null && trafRestUri.length() > 0) {
+				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.GET_DCS_SUMMARY);
+				uri = String.format(queryText, trafRestUri);
+			}
+			result = RESTProcessor.getRestOutput(uri, soc.getUsername(), soc.getPassword());
 
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch dcs connections : " + ex.getMessage());
@@ -290,6 +313,39 @@ public class ServerResource {
 			throw new EsgynDBMgrException(ex.getMessage());
 		}
 		return result;
+	}
+
+	@GET
+	@Path("/pstack/{processID}")
+	@Produces("application/json")
+	public String getPStack(@PathParam("processID") int processID, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse)
+			throws EsgynDBMgrException {
+		String result = "";
+		String trafRestUri = ConfigurationResource.getInstance().getTrafodionRestServerUri();
+		String uri = "";
+		Session soc = SessionModel.getSession(servletRequest, servletResponse);
+		JsonFactory factory = new JsonFactory();
+		ObjectMapper mapper = new ObjectMapper(factory);
+
+		try {
+			if (trafRestUri != null && trafRestUri.length() > 0) {
+				String queryText = SystemQueryCache.getQueryText(SystemQueryCache.GET_PROCESS_PSTACK);
+				uri = String.format(queryText, trafRestUri, processID);
+			}
+
+			RESTRequest request = mapper.readValue(uri, RESTRequest.class);
+
+			String jsonRequest = mapper.writeValueAsString(request);
+			result = RESTProcessor.getRestOutput(jsonRequest, soc.getUsername(), soc.getPassword());
+			result = result.replaceAll("\\n", System.getProperty("line.separator"));
+			return result;
+
+		} catch (Exception ex) {
+			_LOG.error("Failed to get pstack : " + ex.getMessage());
+			throw new EsgynDBMgrException("Failed to get pstack : " + ex.getMessage());
+
+		}
 	}
 
 	private TabularResult processRESTRequest(String uri, String userName, String password) throws Exception {

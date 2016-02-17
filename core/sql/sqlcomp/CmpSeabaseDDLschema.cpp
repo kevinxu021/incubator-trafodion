@@ -596,7 +596,9 @@ bool histExists = false;
       // drop user objects first
       if (objType == COM_BASE_TABLE_OBJECT_LIT)
       {
-         if (!(objName == HBASE_HIST_NAME || objName == HBASE_HISTINT_NAME))
+         if (!(objName == HBASE_HIST_NAME || 
+               objName == HBASE_HISTINT_NAME ||
+               objName == HBASE_PERS_SAMP_NAME))
          {
             if (dropOneTable(cliInterface,(char*)catName.data(), 
                              (char*)schName.data(),(char*)objName.data(),
@@ -702,6 +704,10 @@ bool histExists = false;
       
       if (dropOneTable(cliInterface,(char*)catName.data(),(char*)schName.data(), 
                        (char*)HBASE_HIST_NAME,false))
+         someObjectsCouldNotBeDropped = true;
+
+      if (dropOneTable(cliInterface,(char*)catName.data(),(char*)schName.data(), 
+                       (char*)HBASE_PERS_SAMP_NAME,false))
          someObjectsCouldNotBeDropped = true;
    }
 
@@ -1090,18 +1096,10 @@ static bool dropOneTable(
 
 char buf [1000];
 
-Lng32 cliRC = cliInterface.holdAndSetCQD("TRAF_RELOAD_NATABLE_CACHE", "ON");
-
-   if (cliRC < 0)
-   {
-      cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
-      
-      return false;
-   }
-
 bool someObjectsCouldNotBeDropped = false;
 
 char volatileString[20] = {0};
+Lng32 cliRC = 0;
 
    if (isVolatile)
       strcpy(volatileString,"VOLATILE");
@@ -1140,7 +1138,6 @@ ULng32 savedParserFlags = Get_SqlParser_Flags(0xFFFFFFFF);
 
    ActiveSchemaDB()->getNATableDB()->removeNATable(cn,
      NATableDB::REMOVE_FROM_ALL_USERS, COM_BASE_TABLE_OBJECT);
-   cliRC = cliInterface.restoreCQD("TRAF_RELOAD_NATABLE_CACHE");
 
    return someObjectsCouldNotBeDropped;
    

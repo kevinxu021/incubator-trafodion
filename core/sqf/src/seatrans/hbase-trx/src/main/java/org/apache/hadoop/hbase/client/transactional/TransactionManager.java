@@ -2640,7 +2640,7 @@ public class TransactionManager {
             else {
             hbadmin.createTable(desc);
             }
-            hbadmin.close();
+            // hbadmin.close();
 
             // Set transaction state object as participating in ddl transaction
             transactionState.setDDLTx(true);

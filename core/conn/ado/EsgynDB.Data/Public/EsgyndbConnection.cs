@@ -271,7 +271,10 @@ namespace EsgynDB.Data
 
                 try
                 {
-                    this.Network.Dispose();
+                    if (this.ConnectionStringBuilder.MaxPoolSize <= 0)
+                    {
+                        this.Network.Dispose();
+                    }
                 }
                 catch
                 {
@@ -533,7 +536,11 @@ namespace EsgynDB.Data
                 if (conn != null)
                 {
                     CopyProperties(conn);
+                    foreach(EsgynDBCommand cmd in Commands){
+                            cmd.Connection = this;
+                    }
                     initialized = true;
+
                 }
             }
             Monitor.Exit(EsgynDBConnection._connPools);

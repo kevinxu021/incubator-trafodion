@@ -113,7 +113,7 @@ do_sudo()
   if [[ $which_env -eq 1 ]];  then
    sudo_cmd=$cmd
   elif [[ $which_env -eq 2  ]]; then
-   sudo_cmd="sudo $sudo_options -n -u $sudo_user $cmd"
+   sudo_cmd=$cmd
   else
    echo "***[ERROR]: Did not find supported Hadoop distribution or $MY_SQROOT is not set" | tee -a  ${log_file}
    return 1
@@ -214,7 +214,7 @@ verify_or_create_folder()
   local hsdf_loc="$1"
   local cr="$2"
   # check if it is valid HDFS path
-  echo  "${hdfs_backup_location}" | egrep -i -e 'hdfs://.*:.*/.*'  2>&1 > /dev/null
+  echo  "${hdfs_backup_location}" | egrep -i -e 'hdfs://.*/.*'  2>&1 > /dev/null
   if [[ ${PIPESTATUS[1]} -ne 0 ]]
   then
     echo "***[ERROR]: "${hdfs_backup_location}"  is not a valid HDFS path."   | tee -a $log_file
@@ -232,13 +232,6 @@ verify_or_create_folder()
     if [[ ${PIPESTATUS[0]} -ne 0 ]] ;  then
       echo "***[ERROR]: ${hsdf_loc} folder could not be created."   | tee -a $log_file
       return  1
-    fi
-    hbase_cmd="$(get_hadoop_cmd) fs -chown ${hbase_user}:${hbase_user}   ${hsdf_loc} "
-    echo  "${hbase_cmd}" | tee -a ${log_file}
-    do_sudo ${hdfs_user} "${hbase_cmd}"   2>&1 | tee -a  ${log_file}
-    if [[ ${PIPESTATUS[0]} -ne 0 ]] ;  then
-      echo "***[ERROR]: Could not change owner on ${hsdf_loc}."   | tee -a $log_file
-      return 1
     fi
   fi
 
@@ -294,18 +287,23 @@ verify_trafodion_is_down()
   return 0
 }
 ###############################################################################
-#validate_sudo_access
+#validate_hbase_sudo_access
 ###############################################################################
-validate_sudo_access()
+validate_hbase_sudo_access()
 {
-   local usr=$1
-   do_sudo $usr "echo 'aa'" &> /dev/null
-   if [[  $? -ne 0 ]]
-   then
-     echo "***[ERROR]: Could not validate sudo access for ${usr}."     | tee -a ${log_file}
-     return 1
+   which_environment
+   which_env=$?
+   if [[ $which_env -eq 2  ]]; then
+    echo "Validating sudo access to hbase. "
+    hbase_cmd="sudo -u ${hbase_user} $(get_hbase_cmd) version"
+    echo  "${hbase_cmd}" | tee -a ${log_file}
+    $hbase_cmd 2>&1 /dev/null 
+    if [[  $? -ne 0 ]]
+    then
+      echo "***[ERROR]: Could not validate sudo hbase access. "     | tee -a ${log_file}
+      return 1
+    fi
    fi
-
    return 0
 }
 ###############################################################################
@@ -366,18 +364,8 @@ validate_environment_and_users()
     hdfs_user="$verified_user_name"
     echo "HDFS user name: $hdfs_user"  | tee -a ${log_file}
 
-    validate_srvr_user_name "$trafodion_user" "Trafodion"  "$default_trafodion_user"  "Trafodion"
-    if [[ $? -ne 0 ]] ; then
-      echo "***[ERROR]: Trafodion user could not be validated." | tee -a ${log_file}
-      return 1
-    fi
-    trafodion_user="$verified_user_name"
+    trafodion_user="Trafodion"
     echo "Trafodion user name: $trafodion_user"  | tee -a ${log_file}
-    #verify sudo access
-    validate_sudo_access $hbase_user
-    if [[ $? -ne 0 ]]; then
-      return 1
-    fi
   else
     echo "***[ERROR]: Did not find supported Hadoop distribution or $MY_SQROOT is not set."
     return 1
