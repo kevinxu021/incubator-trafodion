@@ -3679,6 +3679,253 @@ RelExpr * HashJoin::preCodeGen(Generator * generator,
 
 } //  HashJoin::preCodeGen()
 
+void FileScan::processMinMaxKeys(Generator* generator, 
+                                 ValueIdSet& pulledNewInputs, ValueIdSet& availableValues)
+{
+      if ( (CmpCommon::getDefault(GEN_HSHJ_MIN_MAX_OPT) == DF_OFF) ) 
+        return;
+
+      if (generator->getMinMaxKeys().entries() &&
+          !getSearchKey() ||
+          (
+           (getSearchKey()->getBeginKeyValues()[0] != getSearchKey()->getEndKeyValues()[0]) &&
+           (!getSearchKey()->isBeginKeyExclusive() || !getSearchKey()->isEndKeyExclusive())
+          )
+         ) {
+
+        // The keys of the scan.
+        const ValueIdList &keys = getIndexDesc()->getIndexKey();
+        ValueId      minMaxKeyCol = keys[0];
+        IndexColumn *ixCol = (IndexColumn *) (minMaxKeyCol.getItemExpr());
+        BaseColumn  *baseCol = NULL;
+        ValueId      underlyingCol;
+        NABoolean    needToComputeActualMinMax = FALSE;
+        ItemExpr    *computedColExpr = NULL;
+        
+        // The candidate values for min and max.
+        const ValueIdList &minMaxKeys = generator->getMinMaxKeys();
+    
+        CollIndex keyIdx = NULL_COLL_INDEX;
+
+        // Determine how min/max is related to begin/end.  depends
+        // on ordering (ASC vs DESC) and scan direction (forward vs
+        // reverse)
+        NABoolean ascKey = 
+          getIndexDesc()->getNAFileSet()->getIndexKeyColumns().isAscending(0);
+
+        if(getReverseScan())
+          ascKey = !ascKey;
+
+        // If the leading key column is a divisioning column, then
+        // look for min/max values of an underlying column
+        GenAssert(ixCol->getOperatorType() == ITM_INDEXCOLUMN,
+                  "unexpected object type");
+        baseCol = 
+          (BaseColumn *) (((IndexColumn *) ixCol)->getDefinition().getItemExpr());
+        GenAssert(baseCol->getOperatorType() == ITM_BASECOLUMN,
+                  "unexpected object type");
+        if (baseCol->getNAColumn()->isDivisioningColumn()) {
+          ValueIdSet underlyingCols;
+          baseCol->getUnderlyingColumnsForCC(underlyingCols);
+
+          if (underlyingCols.entries() == 1) {
+            // We have a leading division column that's computed from
+            // 1 base column, now get the underlying column and the
+            // divisioning expression
+            needToComputeActualMinMax = TRUE;
+            underlyingCols.getFirst(minMaxKeyCol);
+            computedColExpr = baseCol->getComputedColumnExpr().getItemExpr();
+            BaseColumn  *underlyingBaseCol =
+              (BaseColumn *) minMaxKeyCol.getItemExpr();
+            GenAssert(underlyingBaseCol->getOperatorType() == ITM_BASECOLUMN,
+                      "unexpected object type");
+            // the computed column expression has been rewritten to use
+            // VEGRefs, so get the corresponding VEGRef for the underlying column
+            underlyingCol = underlyingBaseCol->getTableDesc()->
+              getColumnVEGList()[underlyingBaseCol->getColNumber()];
+          }
+        }
+
+        // Check all the candidate values.  If any one of them matches
+        // the leading key of this scan, then select it for use in the
+        // begin/end key value of the leading key.
+
+        // Scalar min/max functions cause an exponential growth when
+        // combined with each other, see ItmScalarMinMax::codeGen()
+        Int32 limitItems = 3 ; // use at most 3
+
+
+        CollHeap* gheap = generator->wHeap();
+
+        for(CollIndex i = 0; i < minMaxKeys.entries() && limitItems; i++) {
+          ValueId mmKeyId = minMaxKeys[i];
+          if(mmKeyId != NULL_VALUE_ID) {
+            ItemExpr *mmItem = mmKeyId.getItemExpr();
+      
+            if (mmItem->getOperatorType() == ITM_VEG_PREDICATE) {
+              VEGPredicate *vPred = (VEGPredicate *)mmItem;
+              const ValueIdSet &members = vPred->getVEG()->getAllValues();
+
+              if (members.contains(minMaxKeyCol)) {
+
+                // some other operator is producing min/max values
+                // for our leading key column, now check whether we
+                // can use them
+
+                keyIdx = i;
+
+                // Indicate in the 'will use' list that we will use these
+                // min/max values.  This will indicate to the HashJoin that
+                // it should produce these values.
+                generator->getWillUseMinMaxKeys()[keyIdx] =
+                  generator->getMinMaxKeys()[keyIdx];
+                addMinMaxHJColumn(baseCol->getValueId());
+
+                limitItems-- ; // one more is used
+
+                // If we can use a min/max value for the begin key, do so...
+                if(!getSearchKey() || !getSearchKey()->isBeginKeyExclusive()) {
+
+                  ItemExpr *keyPred = NULL;
+                  ItemExpr *currentBeg = NULL;
+                  if ( getSearchKey() ) {
+                     keyPred = getBeginKeyPred()[0].getItemExpr();
+                     currentBeg = keyPred->child(1);
+                  }
+
+                  // Get the proper begin key (min or max) that came from
+                  // the HashJoin
+                  ValueId hashJoinBeg = (ascKey ?
+                                         generator->getMinVals()[keyIdx] :
+                                         generator->getMaxVals()[keyIdx]);
+
+                  // Construct an expression which determines at runtime
+                  // which BK to use.  Either the existing one or the one
+                  // coming from HashJoin whichever is larger (smaller).
+                  // 
+                  ItemExpr *newBeg = hashJoinBeg.getItemExpr();
+
+                  if (needToComputeActualMinMax) {
+                    ValueIdMap divExprMap;
+                    ValueId computedBeg;
+
+                    // If hashJoinBeg is :sysHV1 and the computed column
+                    // expression is A/100, then the begin value for
+                    // the computed column is :sysHV1/100. Do this
+                    // rewrite by using a ValueIdMap
+                    divExprMap.addMapEntry(underlyingCol, hashJoinBeg);
+                    divExprMap.rewriteValueIdDown(computedColExpr->getValueId(),
+                                                  computedBeg);
+                    newBeg = computedBeg.getItemExpr();
+                  }
+
+                  if ( currentBeg ) {
+                     newBeg = new (generator->wHeap())
+                       ItmScalarMinMax((ascKey ? ITM_SCALAR_MAX : ITM_SCALAR_MIN),
+                                       currentBeg, 
+                                       newBeg);
+                     newBeg->synthTypeAndValueId();
+
+                     // Replace the RHS of the key pred.
+                     keyPred->child(1) = newBeg->getValueId();
+                  } else {
+                     // No begin key even exists before.
+                     //
+                     // create a new expression: 
+                     //       (ascKey) ? minMaxKeyCol >= newBeg : 
+                     //                  minMaxKeyCOl <= newBeg
+                     if ( ascKey )
+                        newBeg = new (gheap) BiRelat(ITM_GREATER_EQ, ixCol, newBeg);
+                     else
+                        newBeg = new (gheap) BiRelat(ITM_LESS_EQ, ixCol, newBeg);
+
+                     newBeg->synthTypeAndValueId();
+
+                     beginKeyPred_.insert(newBeg->getValueId());
+                  }
+
+
+                  // The value coming from the HashJoin must be in out inputs.
+                  getGroupAttr()->addCharacteristicInputs(hashJoinBeg);
+
+                  // And we must pull those values from the HashJoin.
+                  pulledNewInputs += hashJoinBeg;
+                  availableValues += hashJoinBeg;
+                }
+
+                // If we can use a min/max value for the end key, do so...
+                if(!getSearchKey() || !getSearchKey()->isEndKeyExclusive()) {
+
+                  ItemExpr *keyPred = NULL;
+                  ItemExpr *currentEnd = NULL;
+                  if ( getSearchKey() ) {
+                     keyPred = getEndKeyPred()[0].getItemExpr();
+                     currentEnd = keyPred->child(1);
+                  }
+
+                  // Get the proper end key (max or min) that came from
+                  // the HashJoin
+                  ValueId hashJoinEnd = (ascKey ?
+                                         generator->getMaxVals()[keyIdx] :
+                                         generator->getMinVals()[keyIdx]);
+
+                  // Construct an expression which determines at runtime
+                  // which EK to use.  Either the existing one or the one
+                  // coming from HashJoin whichever is smaller (larger).
+                  // 
+                  ItemExpr *newEnd = hashJoinEnd.getItemExpr();
+
+                  if (needToComputeActualMinMax) {
+                    ValueIdMap divExprMap;
+                    ValueId computedEnd;
+
+                    divExprMap.addMapEntry(underlyingCol, hashJoinEnd);
+                    divExprMap.rewriteValueIdDown(computedColExpr->getValueId(),
+                                                  computedEnd);
+                    newEnd = computedEnd.getItemExpr();
+                  }
+
+                  if ( currentEnd ) {
+                     newEnd = new (generator->wHeap())
+                       ItmScalarMinMax((ascKey ? ITM_SCALAR_MIN : ITM_SCALAR_MAX),
+                                       currentEnd, 
+                                       newEnd);
+                     newEnd->synthTypeAndValueId();
+
+                     // Replace the RHS of the key pred.
+                     keyPred->child(1) = newEnd->getValueId();
+                  } else {
+
+                     // No end key even exists before.
+                     //
+                     // create a new expression: 
+                     //       (ascKey) ? minMaxKeyCol <= newBeg : 
+                     //                  minMaxKeyCOl >= newBeg
+                     if ( ascKey )
+                        newEnd = new (gheap) BiRelat(ITM_LESS_EQ, ixCol, newEnd);
+                     else
+                        newEnd = new (gheap) BiRelat(ITM_GREATER_EQ, ixCol, newEnd);
+
+                     newEnd->synthTypeAndValueId();
+
+                     endKeyPred_.insert(newEnd->getValueId());
+                  }
+
+
+                  // The value coming from the HashJoin must be in out inputs.
+                  getGroupAttr()->addCharacteristicInputs(hashJoinEnd);
+
+                  // And we must pull those values from the HashJoin.
+                  pulledNewInputs += hashJoinEnd;
+                  availableValues += hashJoinEnd;
+                }
+              }
+            }
+          }
+        }
+      }
+}
+
 RelExpr * FileScan::preCodeGen(Generator * generator,
 			       const ValueIdSet & externalInputs,
 			       ValueIdSet &pulledNewInputs)
@@ -4126,19 +4373,23 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
         if (( hTabStats->isOrcFile() ) &&
             (CmpCommon::getDefault(ORC_PRED_PUSHDOWN) == DF_ON) ) {
 
+           processMinMaxKeys(generator, pulledNewInputs, availableValues);
+
            TableAnalysis* tableAnalysis = 
                 getGroupAttr()->getGroupAnalysis()->getNodeAnalysis()->getTableAnalysis();
 
-           const ValueIdSet& locals = tableAnalysis->getLocalPreds();
+           ValueIdSet locals(tableAnalysis->getLocalPreds());
    
            ValueIdSet externalInputs; // not used yet
            ValueIdSet orcPushdownPreds;
+/*
            HivePartitionAndBucketKey::makeHiveOrcPushdownPrecates(
                    hiveSearchKey_, 
                    locals, 
                    externalInputs, 
                    NULL, 
                    orcPushdownPreds);
+*/
 
            // remove any predicates referencing min and max
            //
@@ -4155,7 +4406,7 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
            beginKeyPredCopy -= minMaxPreds;
      
            // add the remaining to the ORC push-down set
-           orcPushdownPreds += beginKeyPredCopy;
+           locals += beginKeyPredCopy;
 
            // do it next for the endKeyPred_
            minMaxPreds.clear();
@@ -4165,8 +4416,15 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
            endKeyPredCopy -= minMaxPreds;
      
-           orcPushdownPreds += endKeyPredCopy;
+           locals += endKeyPredCopy;
    
+           HivePartitionAndBucketKey::makeHiveOrcPushdownPrecates(
+                   hiveSearchKey_, 
+                   locals, 
+                   externalInputs, 
+                   NULL, 
+                   orcPushdownPreds);
+
            orcPushdownPreds.replaceVEGExpressions (
    	                 availableValues,
    	                 getGroupAttr()->getCharacteristicInputs(),

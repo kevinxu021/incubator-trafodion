@@ -845,6 +845,11 @@ public:
                                ValueIdSet &pulledNewInputs);
   virtual short codeGen(Generator*);
 
+  // process min max keys
+  virtual void processMinMaxKeys(Generator* generator, 
+                                 ValueIdSet& pulledNewInputs, 
+                                 ValueIdSet& availableValues);
+
   short codeGenForHive(Generator*);
   short genForTextAndSeq(Generator * generator,
                          Queue * &hdfsFileInfoList,
