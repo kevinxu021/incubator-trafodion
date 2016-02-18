@@ -82,6 +82,7 @@ public:
 		    INDEX_KEY = 0x1, PARTITIONING_KEY = 0x2 , PRIMARY_KEY = 0x4
 		  };
   enum NAColumnAssert { MustBeBaseColumn, MustBeColumn, NoError };
+  enum VirtColType { NON_VIRTUAL_COL = 0, HIVE_PART_COL, HIVE_VIRT_FILE_COL, HIVE_VIRT_ROW_COL };
 
   // ---------------------------------------------------------------------
   // Constructor
@@ -134,7 +135,8 @@ public:
     lobNum_(-1),
     lobStorageType_(Lob_Invalid_Storage),
     lobStorageLocation_(NULL),
-    hbaseColFlags_(0)
+    hbaseColFlags_(0),
+    virtualColumnType_(NON_VIRTUAL_COL)
   {
     routineParamType_[0] = 0;
      if (routineParamType) strncpy(routineParamType_, routineParamType, 2);
@@ -173,7 +175,8 @@ public:
     lobStorageLocation_(nac.lobStorageLocation_),
     hbaseColFam_(nac.hbaseColFam_),
     hbaseColQual_(nac.hbaseColQual_),
-    hbaseColFlags_(nac.hbaseColFlags_)
+    hbaseColFlags_(nac.hbaseColFlags_),
+    virtualColumnType_(NON_VIRTUAL_COL)
   {
     routineParamType_[0] = 0;
     if (nac.routineParamType_) strncpy(routineParamType_, nac.routineParamType_, 2);
@@ -244,6 +247,11 @@ public:
   inline NABoolean isAddedColumn() const { return addedColumn_; }
   inline NABoolean isSaltColumn() const        { return isSaltColumn_;}
   inline NABoolean isDivisioningColumn() const { return isDivisioningColumn_; }
+  inline NABoolean isHivePartColumn() const { return virtualColumnType_ == HIVE_PART_COL; }
+  inline NABoolean isHiveVirtualFileColumn() const { return virtualColumnType_ == HIVE_VIRT_FILE_COL; }
+  inline NABoolean isHiveVirtualRowColumn() const { return virtualColumnType_ == HIVE_VIRT_ROW_COL; }
+  inline NABoolean isHiveVirtualColumn() const { return (virtualColumnType_ == HIVE_VIRT_FILE_COL ||
+                                                         virtualColumnType_ == HIVE_VIRT_ROW_COL); }
 
   inline SortOrdering getClusteringKeyOrdering() const	{return clusteringKeyOrdering_;}
   inline NABoolean isClusteringKey() const	{ return clusteringKeyOrdering_
@@ -323,6 +331,7 @@ public:
 
   inline void setMvSystemAddedColumn() { mvSystemAddedColumn_ = TRUE; }
   inline NABoolean isMvSystemAddedColumn() const { return mvSystemAddedColumn_; }
+  inline void setVirtualColumnType(VirtColType vct) { virtualColumnType_ = vct; }
 
   static NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 				const NATable *table  		/*IN*/,
@@ -553,6 +562,8 @@ private:
   NAString hbaseColQual_;
   ULng32 hbaseColFlags_;
 
+  // is this a virtual Hive column?
+  VirtColType virtualColumnType_;
 }; // class NAColumn
 
 typedef NABoolean (NAColumn::*NAColumnBooleanFuncPtrT)() const;
@@ -582,6 +593,8 @@ public:
   NAColumnArray & operator=(const NAColumnArray& other);
 
   NABoolean operator==(const NAColumnArray& other) const;
+  NABoolean compare(const NAColumnArray &other,
+                    NABoolean compareSystemCols = TRUE) const;
 
   virtual void print( FILE* ofd = stdout,
 		      const char* indent = DEFAULT_INDENT,

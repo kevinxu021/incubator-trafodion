@@ -130,11 +130,17 @@ class ComTdbHdfsScan : public ComTdb
   NABasicPtr errCountTable_;                                  // 160 - 167
   NABasicPtr loggingLocation_;                                // 168 - 175
   NABasicPtr errCountRowId_;                                  // 176 - 183
-
   // list of retrieved cols. Each entry is "class HdfsColInfo".
   QueuePtr hdfsColInfoList_;                                  // 184 - 191
   UInt16 origTuppIndex_;                                      // 192 - 193
-  char fillersComTdbHdfsScan1_[6];                            // 194 - 199
+  UInt16 partColsTuppIndex_;                                  // 194 - 195
+  UInt16 virtColsTuppIndex_;                                  // 196 - 197
+  UInt16 filler2_;                                            // 198 - 199
+  Int32 partColsRowLength_;                                   // 200 - 203
+  Int32 virtColsRowLength_;                                   // 204 - 207
+  UInt32 filler0_;                                            // 208 - 211
+  ExExprPtr partElimExpr_;                                    // 212 - 219
+  char fillersComTdbHdfsScan1_[16];                           // 220 - 235
 
 public:
   enum HDFSFileType
@@ -155,6 +161,7 @@ public:
 		 ex_expr * move_expr,
                  ex_expr * convert_expr,
                  ex_expr * move_convert_expr,
+                 ex_expr * part_elim_expr,
                  UInt16 convertSkipListSize,
                  Int16 * convertSkipList,
                  char * hdfsHostName,
@@ -171,11 +178,15 @@ public:
                  Int64 outputRowLength,
 		 Int64 asciiRowLen,
                  Int64 moveColsRowLen,
+                 Int32 partColsRowLength,
+                 Int32 virtColsRowLength,
 		 const unsigned short tuppIndex,
 		 const unsigned short asciiTuppIndex,
 		 const unsigned short workAtpIndex,
                  const unsigned short moveColsTuppIndex,
                  const unsigned short origTuppIndex,
+                 const unsigned short partColsTuppIndex,
+                 const unsigned short virtColsTuppIndex,
 		 ex_cri_desc * work_cri_desc,
 		 ex_cri_desc * given_cri_desc,
 		 ex_cri_desc * returned_cri_desc,
@@ -275,7 +286,7 @@ public:
 
   virtual const char *getNodeName() const { return "EX_HDFS_SCAN"; };
 
-  virtual Int32 numExpressions() const { return 4; }
+  virtual Int32 numExpressions() const { return 5; }
 
   virtual ex_expr* getExpressionNode(Int32 pos) {
      if (pos == 0)
@@ -286,6 +297,8 @@ public:
        return convertExpr_;
      else if (pos == 3)
        return moveColsConvertExpr_;
+     else if (pos == 4)
+       return partElimExpr_;
      else
        return NULL;
   }
@@ -299,7 +312,8 @@ public:
        return "convertExpr_";
      else if (pos ==3)
        return "moveColsConvertExpr_";
-
+     else if (pos ==4)
+       return "partElimExpr_";
      else
 	return NULL;
   }
@@ -339,6 +353,28 @@ inline ComTdb * ComTdbHdfsScan::getChildTdb()
 inline const ComTdb* ComTdbHdfsScan::getChild(Int32 pos) const
 {
   return NULL;
+};
+
+// A struct to hold the physical representation of Hive virtual
+// columns. This struct is not part of the query plan, it gets
+// allocated at runtime, but the offsets in it must match what
+// is generated at compile time (exploded row format).
+//
+struct ComTdbHdfsVirtCols
+{
+  // ------------------------------------------------------
+  // NOTE: The layout of this struct must match the columns
+  //       defined in static NABoolean createNAColumns() in
+  //       file ../optimizer/NATable.cpp
+  // ------------------------------------------------------
+  Int16 input_file_name_len;           // 0000
+  char  input_file_name[4096];         // 0002
+  char  filler1[6];                    // 4098
+  Int64 block_offset_inside_file;      // 4104
+  Int32 input_range_number;            // 4112
+  Int32 filler2;                       // 4116
+  Int64 row_number_in_range;           // 4120
+                                       // 4128 total length
 };
 
 class ComTdbOrcPPI : public NAVersionedObject
@@ -401,6 +437,7 @@ public:
        ex_expr * move_expr,
        ex_expr * convert_expr,
        ex_expr * move_convert_expr,
+       ex_expr * part_elim_expr,
        ex_expr * orcOperExpr,
        UInt16 convertSkipListSize,
        Int16 * convertSkipList,
@@ -420,11 +457,15 @@ public:
        Int64 outputRowLength,
        Int64 asciiRowLen,
        Int64 moveColsRowLen,
+       Int32 partColsRowLength,
+       Int32 virtColsRowLength,
        Int64 orcOperLength,
        const unsigned short tuppIndex,
        const unsigned short asciiTuppIndex,
        const unsigned short workAtpIndex,
        const unsigned short moveColsTuppIndex,
+       const unsigned short partColsTuppIndex,
+       const unsigned short virtColsTuppIndex,
        const unsigned short orcOperTuppIndex,
        ex_cri_desc * work_cri_desc,
        ex_cri_desc * given_cri_desc,

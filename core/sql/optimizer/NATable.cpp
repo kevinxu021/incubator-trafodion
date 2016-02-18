@@ -1928,7 +1928,7 @@ static RangePartitionBoundaries * createRangePartitionBoundaries
       encodedKey = partns_desc->body.partns_desc.encodedkey;
       size_t encodedKeyLen = partns_desc->body.partns_desc.encodedkeylen;
 
-      if(heap != CmpCommon::statementHeap())
+      if(heap != CmpCommon::statementHeap() && encodedKeyLen > 0)
       {
         //we don't know here if encodedkey is a regular char or a wchar
         //if it's a wchar then it should end with "\0\0", so add an extra
@@ -2651,6 +2651,98 @@ createRangePartitioningFunctionForMultiRegionHBase(Int32 partns,
                                  heap);
 }
 
+static 
+RangePartitioningFunction*
+createRangePartitioningFunctionForHive(HHDFSTableStats * hiveHDFSTableStats,
+                                       const NATable* table, 
+                                       NAMemory* heap)
+{
+  int numParts = hiveHDFSTableStats->entries();
+
+  if (numParts > 1)
+    {
+      const NAColumnArray &allCols = table->getNAColumnArray();
+      NAColumnArray partKeyColArray;
+      NodeMap* nodeMap = new(heap) NodeMap(heap,
+                                           numParts,
+                                           NodeMapEntry::ACTIVE,
+                                           NodeMap::HIVE);
+      struct desc_struct *partns_desc = NULL;
+      struct desc_struct *last = NULL;
+
+      for (int c=0; c<allCols.entries(); c++)
+        if (allCols[c]->isHivePartColumn())
+          partKeyColArray.insert(allCols[c]);
+
+      for (int p=0; p<numParts; p++)
+        {
+          struct desc_struct * curr = new(heap) struct desc_struct;
+
+          memset(&curr->header, 0, sizeof(curr->header));
+          memset(&curr->body.partns_desc, 0, sizeof(curr->body.partns_desc));
+          curr->header.nodetype = DESC_PARTNS_TYPE;
+
+          if (p == 0)
+            {
+              // partition 0 is a dummy "primary" partition with no
+              // start value, it will be skipped in the call to
+              // createRangePartitioningFunction() below. In
+              // hiveHDFSTableStats, partition 0 represents the table,
+              // not an individual partition.
+              curr->body.partns_desc.primarypartition = 1;
+              CMPASSERT((*hiveHDFSTableStats)[p]->getPartitionKeyValues().length() == 0);
+            }
+          else
+            {
+              NAString partKeyValsSQL;
+
+              if (!HivePartitionAndBucketKey::convertHivePartColValsToSQL(
+                       (*hiveHDFSTableStats)[p]->getPartitionKeyValues(),
+                       p,
+                       table,
+                       &partKeyColArray,
+                       partKeyValsSQL))
+                return NULL;
+
+              int partKeyValsLen = partKeyValsSQL.length();
+              
+              // copy only the character representation, a comma-separated
+              // list of values, into the "firstkey" field, leave encoded
+              // values blank
+              curr->body.partns_desc.firstkey = new(heap) char[partKeyValsLen+1];
+              memcpy(curr->body.partns_desc.firstkey,
+                     partKeyValsSQL.data(),
+                     partKeyValsLen+1);
+              curr->body.partns_desc.firstkeylen = partKeyValsLen;
+            }
+
+          if (partns_desc == NULL)
+            {
+              partns_desc = last = curr;
+            }
+          else
+            {
+              // append at the end of the linked list
+              last->header.next = curr;
+              last = curr;
+            }
+        }
+
+      PartitioningFunction *pf = createRangePartitioningFunction(
+           partns_desc,
+           partKeyColArray,
+           nodeMap,
+           heap);
+      if (pf)
+        return const_cast<RangePartitioningFunction *>(
+             pf->castToRangePartitioningFunction());
+      else
+        return NULL;
+    }
+  else
+    return NULL;
+}
+
 Int32 findDescEntries(desc_struct* desc)
 {
    Int32 partns = 0;
@@ -3332,10 +3424,10 @@ NABoolean createNAType(columns_desc_struct *column_desc	/*IN*/,
 // one for each column_desc in the list supplied as input.
 // -----------------------------------------------------------------------
 #pragma nowarn(1506)   // warning elimination
-NABoolean createNAColumns(desc_struct *column_desc_list	/*IN*/,
-			  NATable *table		/*IN*/,
-			  NAColumnArray &colArray	/*OUT*/,
-			  NAMemory *heap		/*IN*/)
+static NABoolean createNAColumns(desc_struct *column_desc_list	/*IN*/,
+                                 NATable *table		/*IN*/,
+                                 NAColumnArray &colArray	/*OUT*/,
+                                 NAMemory *heap		/*IN*/)
 {
   NAType *type;
   ColumnClass colClass;
@@ -3546,15 +3638,16 @@ NAType* getSQColTypeForHive(const char* hiveType, NAMemory* heap)
   return NULL;
 }
 
-NABoolean createNAColumns(struct hive_column_desc* hcolumn /*IN*/,
-			  NATable *table		/*IN*/,
-			  NAColumnArray &colArray	/*OUT*/,
-			  NAMemory *heap		/*IN*/)
+static NABoolean createNAColumns(struct hive_column_desc* hcolumn /*IN*/,
+                                 struct hive_pkey_desc* pcolumn /*IN*/,
+                                 NATable *table		/*IN*/,
+                                 NAColumnArray &colArray	/*OUT*/,
+                                 NAMemory *heap		/*IN*/)
 {
   // Assume that hive_struct->conn has the right connection,
   // and tblID and sdID has be properly set.
   // In the following loop, we need to extract the column information.
-
+  int maxColIx = -1;
 
    while (hcolumn) {
 
@@ -3600,9 +3693,102 @@ NABoolean createNAColumns(struct hive_column_desc* hcolumn /*IN*/,
 
       colArray.insert(newColumn);
 
+      if (maxColIx < hcolumn->intIndex_)
+        maxColIx = hcolumn->intIndex_;
+
       hcolumn= hcolumn->next_;
 
     }
+
+   // Add partitioning columns at the end, if present. These
+   // will be computed from the metadata, they are not present
+   // in the actual file.
+   int partColIx = 0;
+
+   while (pcolumn) {
+
+      NAType* natype = getSQColTypeForHive(pcolumn->type_, heap);
+
+      if ( !natype ) {
+	*CmpCommon::diags()
+	  << DgSqlCode(-1204)
+	  << DgString0(pcolumn->type_);
+         return TRUE;
+      }
+
+      NAString colName(pcolumn->name_);
+      colName.toUpper();
+
+      NAColumn* newColumn = new (heap)
+        NAColumn(colName.data(),
+                 ++maxColIx,
+                 natype,
+                 heap,
+                 table);
+
+      newColumn->setVirtualColumnType(NAColumn::HIVE_PART_COL);
+      colArray.insert(newColumn);
+
+      pcolumn= pcolumn->next_;
+
+    }
+
+   // Add virtual Hive columns:
+
+   // INPUT__FILE__NAME            char(1024 bytes) character set utf8
+   // BLOCK__OFFSET__INSIDE__FILE  largeint
+   // INPUT__RANGE__NUMBER         integer
+   // ROW__NUMBER__IN__RANGE       largeint
+
+   for (int v=0; v<4; v++)
+     {
+       const char *virtColName = NULL;
+       NAType* virtType = NULL;
+       NAColumn::VirtColType virtColType = NAColumn::HIVE_VIRT_FILE_COL;
+
+       // ------------------------------------------------
+       // NOTE: The data types of these columns must match
+       //       the layout of struct ComTdbHdfsVirtCols in
+       //       file ../comexe/ComTdbHdfsScan.h
+       // ------------------------------------------------
+       switch (v)
+         {
+         case 0:
+           virtColName = "INPUT__FILE__NAME";
+           // VARCHAR(1024 BYTES) CHARACTER SET UTF8
+           virtType = new(heap) SQLVarChar(CharLenInfo(4096, 4096),
+                                           FALSE, // not NULL
+                                           FALSE, // not upshifted
+                                           FALSE, // case sensitive
+                                           CharInfo::UTF8);
+           break;
+         case 1:
+           virtColName = "BLOCK__OFFSET__INSIDE__FILE";
+           virtType = new(heap) SQLLargeInt(TRUE, FALSE);
+           virtColType = NAColumn::HIVE_VIRT_ROW_COL;
+           break;
+         case 2:
+           virtColName = "INPUT__RANGE__NUMBER";
+           virtType = new(heap) SQLInt(TRUE, FALSE);
+           break;
+         case 3:
+           virtColName = "ROW__NUMBER__IN__RANGE";
+           virtType = new(heap) SQLLargeInt(TRUE, FALSE);
+           virtColType = NAColumn::HIVE_VIRT_ROW_COL;
+           break;
+         }
+
+       NAColumn* newVirtColumn = new (heap)
+         NAColumn(virtColName,
+                  ++maxColIx,
+                  virtType,
+                  heap,
+                  table,
+                  SYSTEM_COLUMN);
+
+       newVirtColumn->setVirtualColumnType(virtColType);
+       colArray.insert(newVirtColumn);
+     }
 
   return FALSE;							// no error
 
@@ -4399,8 +4585,8 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       // the index key columns - the SORT columns
       NAColumnArray indexKeyColumns(CmpCommon::statementHeap());
 
-      // the partitioning key columns - the BUCKETING columns
-      NAColumnArray partitioningKeyColumns(CmpCommon::statementHeap());
+      // the BUCKETING columns
+      NAColumnArray bucketingKeyColumns(CmpCommon::statementHeap());
 
       PartitioningFunction * partFunc = NULL;
       // is this an index or is it really a VP?
@@ -4425,7 +4611,7 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
           NAColumn* bucketingColumn = colArray.getColumn(colName);
 
           if ( bucketingColumn ) {
-	     partitioningKeyColumns.insert(bucketingColumn);
+	     bucketingKeyColumns.insert(bucketingColumn);
              numBucketingColumns++;
           }
 
@@ -4484,6 +4670,19 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
           return TRUE;
         }
 
+      // for partitioned Hive tables, create a RangePartitioningFunction with
+      // start key values that represent the Hive partition values (note that
+      // there are no other allowed values than the start values and that the
+      // first range partition is empty, there is no equivalent Hive partition)
+      RangePartitioningFunction *partColValues = createRangePartitioningFunctionForHive(
+           hiveHDFSTableStats,
+           table,
+           heap);
+      if (partColValues == NULL &&
+          hiveHDFSTableStats->entries() > 1)
+        // a partitioned Hive table should return a part func here
+        return TRUE;
+
       if ( hiveHDFSTableStats->isOrcFile() ) {
 
         if (CmpCommon::getDefault(TRAF_ENABLE_ORC_FORMAT) == DF_OFF)
@@ -4527,13 +4726,13 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
                
       Int32 numBuckets = hvt_desc->getSDs()->buckets_;
 
-      if (numBuckets>1 && partitioningKeyColumns.entries()>0) {
+      if (numBuckets>1 && bucketingKeyColumns.entries()>0) {
          if ( CmpCommon::getDefault(HIVE_USE_HASH2_AS_PARTFUNCION) == DF_ON )
             partFunc = createHash2PartitioningFunction
-                          (numBuckets, partitioningKeyColumns, nodeMap, heap);
+                          (numBuckets, bucketingKeyColumns, nodeMap, heap);
          else
             partFunc = createHivePartitioningFunction
-                          (numBuckets, partitioningKeyColumns, nodeMap, heap);
+                          (numBuckets, bucketingKeyColumns, nodeMap, heap);
       } else
          partFunc = new (heap)
                        SinglePartitionPartitioningFunction(nodeMap, heap);
@@ -4620,7 +4819,7 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
 		  indexLevels, // HIVE-TBD
 		  allColumns,
 		  indexKeyColumns,
-		  partitioningKeyColumns,
+		  bucketingKeyColumns,
 		  partFunc,
 		  0, // indexes_desc->body.indexes_desc.keytag,
 
@@ -4653,7 +4852,9 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       // Mark each NAColumn in the list
       indexKeyColumns.setIndexKey();
 
-      partitioningKeyColumns.setPartitioningKey();
+      bucketingKeyColumns.setPartitioningKey();
+
+      newIndex->setHivePartColValues(partColValues);
 
       // If it is a VP add it to the list of VPs.
       // Otherwise, add it to the list of indices.
@@ -5792,6 +5993,7 @@ NATable::NATable(BindWA *bindWA,
   //
 
   if (createNAColumns(htbl->getColumns(),
+                      htbl->getPartKey(),
 		      this,
 		      colArray_ /*OUT*/,
 		      heap_))

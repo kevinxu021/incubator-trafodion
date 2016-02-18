@@ -4178,6 +4178,7 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
         const HHDFSTableStats* hTabStats = getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
 
+
         if ( getSearchKey() && getDoUseSearchKey() ) {
        
           NABoolean replicatePredicates = TRUE;
@@ -4194,6 +4195,11 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
                              generator,
                              replicatePredicates);
         }
+
+        hiveSearchKey_->replaceVEGExpressions(
+             availableValues,
+             getGroupAttr()->getCharacteristicInputs(),
+             &vegPairs); // to be side-affected
 
         if (( hTabStats->isOrcFile() ) &&
             (CmpCommon::getDefault(ORC_PRED_PUSHDOWN) == DF_ON) ) {
@@ -4271,6 +4277,10 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 	 TRUE);
 
       if (isHiveTable()) {
+        // subtract predicates that are handled by hiveSearchKey_
+        executorPredicates_ -= hiveSearchKey_->getCompileTimePartColPreds();
+        executorPredicates_ -= hiveSearchKey_->getPartAndVirtColPreds();
+
 	// assign individual files and blocks or stripes to each ESPs
 	((NodeMap *) getPartFunc()->getNodeMap())->assignScanInfos(hiveSearchKey_);
       }

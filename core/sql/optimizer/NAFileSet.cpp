@@ -95,6 +95,7 @@ NAFileSet::NAFileSet(const QualifiedName & fileSetName,
            indexKeyColumns_(indexKeyColumns, h),
 	   partitioningKeyColumns_(horizontalPartKeyColumns, h),
            partFunc_(forHorizontalPartitioning),
+           hivePartColValues_(NULL),
 	   keytag_(keytag),
 	   redefTime_(redefTime),
 	   audited_(audited),
@@ -143,6 +144,8 @@ NAFileSet::NAFileSet(const QualifiedName & fileSetName,
 NAFileSet::~NAFileSet()
 {
   delete partFunc_;
+  if (hivePartColValues_)
+    delete hivePartColValues_;
   if (hHDFSTableStats_)
     delete hHDFSTableStats_;
 }
@@ -251,6 +254,9 @@ void NAFileSet::resetAfterStatement()
   if(partFunc_)
     partFunc_->resetAfterStatement();
 
+  if (hivePartColValues_)
+    hivePartColValues_->resetAfterStatement();
+
   if (hHDFSTableStats_)
     hHDFSTableStats_->resetAfterStatement();
 
@@ -281,6 +287,9 @@ void NAFileSet::setupForStatement()
 
   if(partFunc_)
     partFunc_->setupForStatement();
+
+  if (hivePartColValues_)
+    hivePartColValues_->setupForStatement();
 
   if (hHDFSTableStats_)
     hHDFSTableStats_->setupForStatement();

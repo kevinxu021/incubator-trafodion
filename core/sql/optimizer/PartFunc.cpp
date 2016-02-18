@@ -3107,12 +3107,11 @@ void RangePartitionBoundaries::defineUnboundBoundary
   // new entry delimits partition <partitionNumber>
   CMPASSERT(partitionNumber > 0 AND
       partitionNumber <= partitionCount_ AND
-      unboundBoundaryValue != NULL AND
-      encodedKeyValue != NULL);
+      unboundBoundaryValue != NULL);
   boundaryValuesList_.insertAt(partitionNumber, unboundBoundaryValue);
 
 
-  // encodedKeyValue should be NULL only for SQL/MP tables
+  // encodedKeyValue should be NULL only for Hive tables
   if (encodedKeyValue)
     binaryBoundaryValues_.insertAt(partitionNumber, encodedKeyValue);
 }

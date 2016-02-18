@@ -38,6 +38,7 @@ ComTdbHdfsScan::ComTdbHdfsScan(
                                ex_expr * move_expr,
                                ex_expr * convert_expr,
                                ex_expr * move_convert_expr,
+                               ex_expr * part_elim_expr,
                                UInt16 convertSkipListSize,
                                Int16 * convertSkipList,
                                char * hostName,
@@ -54,11 +55,15 @@ ComTdbHdfsScan::ComTdbHdfsScan(
                                Int64 outputRowLength,
                                Int64 asciiRowLen,
                                Int64 moveColsRowLen,
+                               Int32 partColsRowLength,
+                               Int32 virtColsRowLength,
                                const unsigned short tuppIndex,
                                const unsigned short asciiTuppIndex,
                                const unsigned short workAtpIndex,
                                const unsigned short moveColsTuppIndex,
                                const unsigned short origTuppIndex,
+                               const unsigned short partColsTuppIndex,
+                               const unsigned short virtColsTuppIndex,
                                ex_cri_desc * work_cri_desc,
                                ex_cri_desc * given_cri_desc,
                                ex_cri_desc * returned_cri_desc,
@@ -111,7 +116,12 @@ ComTdbHdfsScan::ComTdbHdfsScan(
   flags_(0),
   errCountTable_(errCountTable),
   loggingLocation_(loggingLocation),
-  errCountRowId_(errCountId)
+  errCountRowId_(errCountId),
+  partColsTuppIndex_(partColsTuppIndex),
+  virtColsTuppIndex_(virtColsTuppIndex),
+  partColsRowLength_(partColsRowLength),
+  virtColsRowLength_(virtColsRowLength),
+  partElimExpr_(part_elim_expr)
 {};
 
 ComTdbHdfsScan::~ComTdbHdfsScan()
@@ -138,6 +148,7 @@ Long ComTdbHdfsScan::pack(void * space)
       HdfsFileInfo * hdf = (HdfsFileInfo*)getHdfsFileInfoList()->getNext();
       
       hdf->fileName_.pack(space);
+      hdf->partColValues_.pack(space);
     }
 
   hdfsFileInfoList_.pack(space);
@@ -160,6 +171,7 @@ Long ComTdbHdfsScan::pack(void * space)
   errCountTable_.pack(space);
   loggingLocation_.pack(space);
   errCountRowId_.pack(space);
+  partElimExpr_.pack(space);
   return ComTdb::pack(space);
 }
 
@@ -183,6 +195,7 @@ Lng32 ComTdbHdfsScan::unpack(void * base, void * reallocator)
       HdfsFileInfo * hdf = (HdfsFileInfo*)getHdfsFileInfoList()->getNext();
       
       if (hdf->fileName_.unpack(base)) return -1;
+      if (hdf->partColValues_.unpack(base)) return -1;
     }
 
   // unpack elements in hdfsColInfoList
@@ -204,6 +217,7 @@ Lng32 ComTdbHdfsScan::unpack(void * base, void * reallocator)
   if (errCountTable_.unpack(base)) return -1;
   if (loggingLocation_.unpack(base)) return -1;
   if (errCountRowId_.unpack(base)) return -1;
+  if (partElimExpr_.unpack(base, reallocator)) return -1;
   return ComTdb::unpack(base, reallocator);
 }
 
@@ -374,7 +388,7 @@ void ComTdbHdfsScan::displayContentsBase(Space * space,ULng32 flag)
                      
                   strcat(splitInfo, "seq");
                 }
-                
+
 	      // filename is fully qualified addr and looks like this:
 	      // hdfs://....com/hive/warehouse/so_dtl_f_test/000030_0
 	      // To make it little easier to read, if it starts with "hdfs://", then pick
@@ -510,6 +524,7 @@ ComTdbOrcScan::ComTdbOrcScan(
                                ex_expr * move_expr,
                                ex_expr * convert_expr,
                                ex_expr * move_convert_expr,
+                               ex_expr * part_elim_expr,
                                ex_expr * orcOperExpr,
                                UInt16 convertSkipListSize,
                                Int16 * convertSkipList,
@@ -529,11 +544,15 @@ ComTdbOrcScan::ComTdbOrcScan(
                                Int64 outputRowLength,
                                Int64 asciiRowLen,
                                Int64 moveColsRowLen,
+                               Int32 partColsRowLength,
+                               Int32 virtColsRowLength,
                                Int64 orcOperLength,
                                const unsigned short tuppIndex,
                                const unsigned short asciiTuppIndex,
                                const unsigned short workAtpIndex,
                                const unsigned short moveColsTuppIndex,
+                               const unsigned short partColsTuppIndex,
+                               const unsigned short virtColsTuppIndex,
                                const unsigned short orcOperTuppIndex,
                                ex_cri_desc * work_cri_desc,
                                ex_cri_desc * given_cri_desc,
@@ -554,6 +573,7 @@ ComTdbOrcScan::ComTdbOrcScan(
                    move_expr,
                    convert_expr,
                    move_convert_expr,
+                   part_elim_expr,
                    convertSkipListSize, convertSkipList, hostName, port,
                    hdfsFileInfoList,
                    hdfsFileRangeBeginList,
@@ -562,8 +582,12 @@ ComTdbOrcScan::ComTdbOrcScan(
                    recordDelimiter, columnDelimiter, hdfsBufSize, 
                    rangeTailIOSize, hdfsSqlMaxRecLen,
                    outputRowLength, asciiRowLen, moveColsRowLen,
+                   partColsRowLength,
+                   virtColsRowLength,
                    tuppIndex, asciiTuppIndex, workAtpIndex, moveColsTuppIndex, 
                    0,
+                   partColsTuppIndex,
+                   virtColsTuppIndex,
                    work_cri_desc,
                    given_cri_desc,
                    returned_cri_desc,
@@ -751,7 +775,7 @@ ComTdbOrcFastAggr::ComTdbOrcFastAggr(
                    having_expr,
                    NULL,
                    proj_expr,
-                   NULL, NULL,
+                   NULL, NULL, NULL,
                    0, NULL, NULL, 0,
                    hdfsFileInfoList,
                    hdfsFileRangeBeginList,
@@ -760,8 +784,12 @@ ComTdbOrcFastAggr::ComTdbOrcFastAggr(
                    NULL,
                    0, 0, 0, 0, NULL, 0,
                    projRowLen, 
+                   0, 0, 0, 0, 0,
+                   returnedTuppIndex,
+                   0,
+                   finalAggrTuppIndex, 
+                   projTuppIndex,
                    0, 0, 0,
-                   returnedTuppIndex, 0, finalAggrTuppIndex, projTuppIndex, 0,
                    work_cri_desc,
                    given_cri_desc,
                    returned_cri_desc,

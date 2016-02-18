@@ -235,7 +235,7 @@ Suite 100             College
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 12232
+Fragment ID: 0, Length: 12304
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -258,7 +258,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 3488
+explain_plan_size = 2632
 
 # of Expressions = 4
 
@@ -270,7 +270,7 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 360
+Class Version = 1, Class Size = 400
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 41032
@@ -285,7 +285,7 @@ hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
 tuppIndex_ = 2, workAtpIndex_ = 3
 asciiTuppIndex_ = 4, asciiRowLen_ = 8
 moveExprColsTuppIndex_ = 2, moveExprColsRowLength_ = 16
-convertSkipListSize_ = 29, convertSkipList_ = 3
+convertSkipListSize_ = 33, convertSkipList_ = 3
 outputRowLength_ = 16
 Flag = 0000000000001100
 
@@ -332,12 +332,13 @@ ColNumber: 27, ColName: S_COUNTRY
 ColNumber: 28, ColName: S_GMT_OFFSET
 ColNumber: 29, ColName: S_TAX_PRECENTAGE
 
-# of Expressions = 5
+# of Expressions = 6
 
 Expression: selectExpr_ is NULL
 Expression: moveExpr_ is not NULL
 Expression: convertExpr_ is NULL
 Expression: moveColsConvertExpr_ is not NULL
+Expression: partElimExpr_ is NULL
 Expression: orcOperExpr_ is NULL
 
 --- SQL operation complete.
@@ -367,7 +368,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 9752
+Fragment ID: 0, Length: 9824
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -390,7 +391,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 3488
+explain_plan_size = 2632
 
 # of Expressions = 4
 
@@ -402,7 +403,7 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 360
+Class Version = 1, Class Size = 400
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 41032
@@ -417,7 +418,7 @@ hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 8
 tuppIndex_ = 2, workAtpIndex_ = 3
 asciiTuppIndex_ = 4, asciiRowLen_ = 8
 moveExprColsTuppIndex_ = 2, moveExprColsRowLength_ = 16
-convertSkipListSize_ = 29, convertSkipList_ = 3
+convertSkipListSize_ = 33, convertSkipList_ = 3
 outputRowLength_ = 16
 Flag = 0000000000001100
 
@@ -436,12 +437,13 @@ ESP    0 reads               2853 bytes ( 100 percent of avg)
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
 
-# of Expressions = 5
+# of Expressions = 6
 
 Expression: selectExpr_ is NULL
 Expression: moveExpr_ is not NULL
 Expression: convertExpr_ is NULL
 Expression: moveColsConvertExpr_ is not NULL
+Expression: partElimExpr_ is NULL
 Expression: orcOperExpr_ is NULL
 
 --- SQL operation complete.
@@ -517,7 +519,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 10072
+Fragment ID: 0, Length: 10144
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -540,7 +542,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 3584
+explain_plan_size = 2728
 
 # of Expressions = 4
 
@@ -552,7 +554,7 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 360
+Class Version = 1, Class Size = 400
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 32840
@@ -567,7 +569,7 @@ hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 16
 tuppIndex_ = 3, workAtpIndex_ = 3
 asciiTuppIndex_ = 4, asciiRowLen_ = 8
 moveExprColsTuppIndex_ = 2, moveExprColsRowLength_ = 8
-convertSkipListSize_ = 29, convertSkipList_ = 2
+convertSkipListSize_ = 33, convertSkipList_ = 2
 outputRowLength_ = 8
 Flag = 0000000000001100
 
@@ -586,12 +588,13 @@ ESP    0 reads               2853 bytes ( 100 percent of avg)
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
 
-# of Expressions = 5
+# of Expressions = 6
 
 Expression: selectExpr_ is not NULL
 Expression: moveExpr_ is NULL
 Expression: convertExpr_ is not NULL
 Expression: moveColsConvertExpr_ is NULL
+Expression: partElimExpr_ is NULL
 Expression: orcOperExpr_ is NULL
 
 --- SQL operation complete.
@@ -647,7 +650,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 14776
+Fragment ID: 0, Length: 15144
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -670,7 +673,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 3680
+explain_plan_size = 2816
 
 # of Expressions = 4
 
@@ -682,7 +685,7 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 360
+Class Version = 1, Class Size = 400
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 32840
@@ -697,7 +700,7 @@ hdfsBufSize_ = 2030, rangeTailIOSize_ = 16384, hdfsSqlMaxRecLen_ = 16
 tuppIndex_ = 3, workAtpIndex_ = 3
 asciiTuppIndex_ = 4, asciiRowLen_ = 8
 moveExprColsTuppIndex_ = 2, moveExprColsRowLength_ = 8
-convertSkipListSize_ = 29, convertSkipList_ = 2
+convertSkipListSize_ = 33, convertSkipList_ = 2
 outputRowLength_ = 8
 Flag = 0000000000001100
 
@@ -725,14 +728,15 @@ PPI: #2
   colName_: S_STORE_SK
 PPI: #3
   type: END(4)
-Num Of orcAllColInfoList entries: 29
+Num Of orcAllColInfoList entries: 33
 
-# of Expressions = 5
+# of Expressions = 6
 
 Expression: selectExpr_ is not NULL
 Expression: moveExpr_ is NULL
 Expression: convertExpr_ is not NULL
 Expression: moveColsConvertExpr_ is NULL
+Expression: partElimExpr_ is NULL
 Expression: orcOperExpr_ is not NULL
 
 --- SQL operation complete.
@@ -1099,32 +1103,9 @@ DESCRIPTION
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
-  columns_retrieved ..... 23
+  columns_retrieved ..... 27
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( HIVE.STORE_SALES_ORC.SS_ITEM_SK = cast(%(1)) )
-  key_columns ............ HIVE.STORE_SALES_ORC.SS_SOLD_DATE_SK,
-                             HIVE.STORE_SALES_ORC.SS_SOLD_TIME_SK,
-                             HIVE.STORE_SALES_ORC.SS_ITEM_SK,
-                             HIVE.STORE_SALES_ORC.SS_CUSTOMER_SK,
-                             HIVE.STORE_SALES_ORC.SS_CDEMO_SK,
-                             HIVE.STORE_SALES_ORC.SS_HDEMO_SK,
-                             HIVE.STORE_SALES_ORC.SS_ADDR_SK,
-                             HIVE.STORE_SALES_ORC.SS_STORE_SK,
-                             HIVE.STORE_SALES_ORC.SS_PROMO_SK,
-                             HIVE.STORE_SALES_ORC.SS_TICKET_NUMBER,
-                             HIVE.STORE_SALES_ORC.SS_QUANTITY,
-                             HIVE.STORE_SALES_ORC.SS_WHOLESALE_COST,
-                             HIVE.STORE_SALES_ORC.SS_LIST_PRICE,
-                             HIVE.STORE_SALES_ORC.SS_SALES_PRICE,
-                             HIVE.STORE_SALES_ORC.SS_EXT_DISCOUNT_AMT,
-                             HIVE.STORE_SALES_ORC.SS_EXT_SALES_PRICE,
-                             HIVE.STORE_SALES_ORC.SS_EXT_WHOLESALE_COST,
-                             HIVE.STORE_SALES_ORC.SS_EXT_LIST_PRICE,
-                             HIVE.STORE_SALES_ORC.SS_EXT_TAX,
-                             HIVE.STORE_SALES_ORC.SS_COUPON_AMT,
-                             HIVE.STORE_SALES_ORC.SS_NET_PAID,
-                             HIVE.STORE_SALES_ORC.SS_NET_PAID_INC_TAX,
-                             HIVE.STORE_SALES_ORC.SS_NET_PROFIT
   executor_predicates .... (HIVE.STORE_SALES_ORC.SS_ITEM_SK = %(1))
 
 --- SQL operation complete.
@@ -1271,30 +1252,7 @@ DESCRIPTION
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
-  columns_retrieved ..... 23
-  key_columns ............ HIVE.STORE_SALES_ORC.SS_SOLD_DATE_SK,
-                             HIVE.STORE_SALES_ORC.SS_SOLD_TIME_SK,
-                             HIVE.STORE_SALES_ORC.SS_ITEM_SK,
-                             HIVE.STORE_SALES_ORC.SS_CUSTOMER_SK,
-                             HIVE.STORE_SALES_ORC.SS_CDEMO_SK,
-                             HIVE.STORE_SALES_ORC.SS_HDEMO_SK,
-                             HIVE.STORE_SALES_ORC.SS_ADDR_SK,
-                             HIVE.STORE_SALES_ORC.SS_STORE_SK,
-                             HIVE.STORE_SALES_ORC.SS_PROMO_SK,
-                             HIVE.STORE_SALES_ORC.SS_TICKET_NUMBER,
-                             HIVE.STORE_SALES_ORC.SS_QUANTITY,
-                             HIVE.STORE_SALES_ORC.SS_WHOLESALE_COST,
-                             HIVE.STORE_SALES_ORC.SS_LIST_PRICE,
-                             HIVE.STORE_SALES_ORC.SS_SALES_PRICE,
-                             HIVE.STORE_SALES_ORC.SS_EXT_DISCOUNT_AMT,
-                             HIVE.STORE_SALES_ORC.SS_EXT_SALES_PRICE,
-                             HIVE.STORE_SALES_ORC.SS_EXT_WHOLESALE_COST,
-                             HIVE.STORE_SALES_ORC.SS_EXT_LIST_PRICE,
-                             HIVE.STORE_SALES_ORC.SS_EXT_TAX,
-                             HIVE.STORE_SALES_ORC.SS_COUPON_AMT,
-                             HIVE.STORE_SALES_ORC.SS_NET_PAID,
-                             HIVE.STORE_SALES_ORC.SS_NET_PAID_INC_TAX,
-                             HIVE.STORE_SALES_ORC.SS_NET_PROFIT
+  columns_retrieved ..... 27
   executor_predicates .... (HIVE.STORE_SALES_ORC.SS_ITEM_SK =
                              HIVE.CUSTOMER_ORC.C_CUSTOMER_SK)
 
@@ -1315,25 +1273,7 @@ DESCRIPTION
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
-  columns_retrieved ..... 18
-  key_columns ............ HIVE.CUSTOMER_ORC.C_CUSTOMER_SK,
-                             HIVE.CUSTOMER_ORC.C_CUSTOMER_ID,
-                             HIVE.CUSTOMER_ORC.C_CURRENT_CDEMO_SK,
-                             HIVE.CUSTOMER_ORC.C_CURRENT_HDEMO_SK,
-                             HIVE.CUSTOMER_ORC.C_CURRENT_ADDR_SK,
-                             HIVE.CUSTOMER_ORC.C_FIRST_SHIPTO_DATE_SK,
-                             HIVE.CUSTOMER_ORC.C_FIRST_SALES_DATE_SK,
-                             HIVE.CUSTOMER_ORC.C_SALUTATION,
-                             HIVE.CUSTOMER_ORC.C_FIRST_NAME,
-                             HIVE.CUSTOMER_ORC.C_LAST_NAME,
-                             HIVE.CUSTOMER_ORC.C_PREFERRED_CUST_FLAG,
-                             HIVE.CUSTOMER_ORC.C_BIRTH_DAY,
-                             HIVE.CUSTOMER_ORC.C_BIRTH_MONTH,
-                             HIVE.CUSTOMER_ORC.C_BIRTH_YEAR,
-                             HIVE.CUSTOMER_ORC.C_BIRTH_COUNTRY,
-                             HIVE.CUSTOMER_ORC.C_LOGIN,
-                             HIVE.CUSTOMER_ORC.C_EMAIL_ADDRESS,
-                             HIVE.CUSTOMER_ORC.C_LAST_REVIEW_DATE
+  columns_retrieved ..... 22
   executor_predicates .... HIVE.CUSTOMER_ORC.C_CUSTOMER_SK is not null
 
 --- SQL operation complete.
@@ -1518,36 +1458,10 @@ DESCRIPTION
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
-  columns_retrieved ..... 28
+  columns_retrieved ..... 32
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( HIVE.DATE_DIM_ORC.D_DATE = cast(%(2016-01-27))
                              )
-  key_columns ............ HIVE.DATE_DIM_ORC.D_DATE_SK,
-                             HIVE.DATE_DIM_ORC.D_DATE_ID,
-                             HIVE.DATE_DIM_ORC.D_DATE,
-                             HIVE.DATE_DIM_ORC.D_MONTH_SEQ,
-                             HIVE.DATE_DIM_ORC.D_WEEK_SEQ,
-                             HIVE.DATE_DIM_ORC.D_QUARTER_SEQ,
-                             HIVE.DATE_DIM_ORC.D_YEAR, HIVE.DATE_DIM_ORC.D_DOW,
-                             HIVE.DATE_DIM_ORC.D_MOY, HIVE.DATE_DIM_ORC.D_DOM,
-                             HIVE.DATE_DIM_ORC.D_QOY,
-                             HIVE.DATE_DIM_ORC.D_FY_YEAR,
-                             HIVE.DATE_DIM_ORC.D_FY_QUARTER_SEQ,
-                             HIVE.DATE_DIM_ORC.D_FY_WEEK_SEQ,
-                             HIVE.DATE_DIM_ORC.D_DAY_NAME,
-                             HIVE.DATE_DIM_ORC.D_QUARTER_NAME,
-                             HIVE.DATE_DIM_ORC.D_HOLIDAY,
-                             HIVE.DATE_DIM_ORC.D_WEEKEND,
-                             HIVE.DATE_DIM_ORC.D_FOLLOWING_HOLIDAY,
-                             HIVE.DATE_DIM_ORC.D_FIRST_DOM,
-                             HIVE.DATE_DIM_ORC.D_LAST_DOM,
-                             HIVE.DATE_DIM_ORC.D_SAME_DAY_LY,
-                             HIVE.DATE_DIM_ORC.D_SAME_DAY_LQ,
-                             HIVE.DATE_DIM_ORC.D_CURRENT_DAY,
-                             HIVE.DATE_DIM_ORC.D_CURRENT_WEEK,
-                             HIVE.DATE_DIM_ORC.D_CURRENT_MONTH,
-                             HIVE.DATE_DIM_ORC.D_CURRENT_QUARTER,
-                             HIVE.DATE_DIM_ORC.D_CURRENT_YEAR
   executor_predicates .... (HIVE.DATE_DIM_ORC.D_DATE = %(2016-01-27))
 
 --- SQL operation complete.
@@ -1716,36 +1630,10 @@ DESCRIPTION
   scan_direction ......... forward
   lock_mode .............. not specified, defaulted to lock cursor
   access_mode ............ not specified, defaulted to read committed
-  columns_retrieved ..... 28
+  columns_retrieved ..... 32
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( HIVE.DATE_DIM_ORC.D_DATE = cast(%(2016-01-27))
                              )
-  key_columns ............ HIVE.DATE_DIM_ORC.D_DATE_SK,
-                             HIVE.DATE_DIM_ORC.D_DATE_ID,
-                             HIVE.DATE_DIM_ORC.D_DATE,
-                             HIVE.DATE_DIM_ORC.D_MONTH_SEQ,
-                             HIVE.DATE_DIM_ORC.D_WEEK_SEQ,
-                             HIVE.DATE_DIM_ORC.D_QUARTER_SEQ,
-                             HIVE.DATE_DIM_ORC.D_YEAR, HIVE.DATE_DIM_ORC.D_DOW,
-                             HIVE.DATE_DIM_ORC.D_MOY, HIVE.DATE_DIM_ORC.D_DOM,
-                             HIVE.DATE_DIM_ORC.D_QOY,
-                             HIVE.DATE_DIM_ORC.D_FY_YEAR,
-                             HIVE.DATE_DIM_ORC.D_FY_QUARTER_SEQ,
-                             HIVE.DATE_DIM_ORC.D_FY_WEEK_SEQ,
-                             HIVE.DATE_DIM_ORC.D_DAY_NAME,
-                             HIVE.DATE_DIM_ORC.D_QUARTER_NAME,
-                             HIVE.DATE_DIM_ORC.D_HOLIDAY,
-                             HIVE.DATE_DIM_ORC.D_WEEKEND,
-                             HIVE.DATE_DIM_ORC.D_FOLLOWING_HOLIDAY,
-                             HIVE.DATE_DIM_ORC.D_FIRST_DOM,
-                             HIVE.DATE_DIM_ORC.D_LAST_DOM,
-                             HIVE.DATE_DIM_ORC.D_SAME_DAY_LY,
-                             HIVE.DATE_DIM_ORC.D_SAME_DAY_LQ,
-                             HIVE.DATE_DIM_ORC.D_CURRENT_DAY,
-                             HIVE.DATE_DIM_ORC.D_CURRENT_WEEK,
-                             HIVE.DATE_DIM_ORC.D_CURRENT_MONTH,
-                             HIVE.DATE_DIM_ORC.D_CURRENT_QUARTER,
-                             HIVE.DATE_DIM_ORC.D_CURRENT_YEAR
   executor_predicates .... (HIVE.DATE_DIM_ORC.D_DATE = %(2016-01-27))
 
 --- SQL operation complete.

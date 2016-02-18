@@ -7,10 +7,7 @@
 >>cqd AUTO_QUERY_RETRY 'OFF';
 
 --- SQL operation complete.
->>cqd HIVE_MAX_STRING_LENGTH '25' ;
-
---- SQL operation complete.
->>cqd mode_seahive 'ON';
+>>cqd HIVE_MAX_STRING_LENGTH '32' ;
 
 --- SQL operation complete.
 >>cqd CALL_EMBEDDED_ARKCMP 'OFF';
@@ -61,6 +58,35 @@
 --- 1 row(s) selected.
 >>-- expect 0 rows
 >>
+>>insert into hive.hive.hivenonp
++>values -- partition 1,one
++>       (1,1,1,'one'),
++>       (11,11,1,'one'),
++>       -- partition 2,two
++>       (2,2,2,'two'),
++>       (22,22,2,'two'),
++>       (222,222,2,'two'),
++>       -- partition 3,three
++>       (3,3,3,'three'),
++>       -- partition 3 or partition 3,four
++>       (34,34,3,'four');
+
+--- 7 row(s) inserted.
+>>select * from hive.hive.hivenonp;
+
+ID           COL2         P1           P2                              
+-----------  -----------  -----------  --------------------------------
+
+          1            1            1  one                             
+         11           11            1  one                             
+          2            2            2  two                             
+         22           22            2  two                             
+        222          222            2  two                             
+          3            3            3  three                           
+         34           34            3  four                            
+
+--- 7 row(s) selected.
+>>
 >>-- insert some data and add one more partition
 >>sh regrhive.ksh -v -f $REGRTSTDIR/TEST005_b.hive.sql;
 >>
@@ -72,12 +98,12 @@
 +>  order by 1
 +>  ;
 
-C_PREFERRED_CUST_FLAG      (EXPR)              
--------------------------  --------------------
+C_PREFERRED_CUST_FLAG             (EXPR)              
+--------------------------------  --------------------
 
-                                            685
-N                                          9789
-Y                                          9525
+                                                   685
+N                                                 9789
+Y                                                 9525
 
 --- 3 row(s) selected.
 >>
@@ -93,12 +119,11 @@ Y                                          9525
 --- SQL command prepared.
 >>
 >>prepare s2part from
-+>  -- selecting part col not supported right now
-+>  select --c_preferred_cust_flag,
++>  select c_preferred_cust_flag,
 +>         count(*) 
 +>  from customer_bp 
-+>  --group by 1 
-+>  --order by 1
++>  group by 1 
++>  order by 1
 +>  ;
 
 --- SQL command prepared.
@@ -110,12 +135,12 @@ Y                                          9525
 >>
 >>execute s2;
 
-C_PREFERRED_CUST_FLAG      (EXPR)              
--------------------------  --------------------
+C_PREFERRED_CUST_FLAG             (EXPR)              
+--------------------------------  --------------------
 
-                                            685
-N                                          9789
-Y                                          9525
+                                                   685
+N                                                 9789
+Y                                                 9525
 
 --- 3 row(s) selected.
 >>-- should get an NATable cache
@@ -135,12 +160,7 @@ Y                                          9525
 >>
 >>execute s2part;
 
-(EXPR)              
---------------------
-
-                   0
-
---- 1 row(s) selected.
+--- 0 row(s) selected.
 >>-- although this should get an NATable cache
 >>-- hit, we should notice the change in the table
 >>-- and return the correct result
@@ -165,10 +185,10 @@ Y                                          9525
 --- SQL operation complete.
 >>select * from newtable;
 
-A                        
--------------------------
+A                               
+--------------------------------
 
-abc                      
+abc                             
 
 --- 1 row(s) selected.
 >>-- expect to see the row, but only because query cache is off
@@ -181,10 +201,10 @@ abc
 --- 1 row(s) inserted.
 >>select * from hiveregr5.newtable2;
 
-A                        
--------------------------
+A                               
+--------------------------------
 
-xyz                      
+xyz                             
 
 --- 1 row(s) selected.
 >>
@@ -218,12 +238,12 @@ xyz
 >>-- s1 should still return 0 rows - for now
 >>execute s2;
 
-C_PREFERRED_CUST_FLAG      (EXPR)              
--------------------------  --------------------
+C_PREFERRED_CUST_FLAG             (EXPR)              
+--------------------------------  --------------------
 
-                                            685
-N                                          9789
-Y                                          9525
+                                                   685
+N                                                 9789
+Y                                                 9525
 
 --- 3 row(s) selected.
 >>execute s3;
@@ -245,12 +265,7 @@ Y                                          9525
 >>-- s1 should still return 0 rows - for now
 >>execute s2part;
 
-(EXPR)              
---------------------
-
-                   0
-
---- 1 row(s) selected.
+--- 0 row(s) selected.
 >>execute s3part;
 
 (EXPR)              
@@ -270,10 +285,10 @@ Y                                          9525
 --- 1 row(s) inserted.
 >>select a,b from newtable;
 
-A            B                        
------------  -------------------------
+A            B                               
+-----------  --------------------------------
 
-          1  def                      
+          1  def                             
 
 --- 1 row(s) selected.
 >>
@@ -304,32 +319,27 @@ A            B
 --- SQL command prepared.
 >>execute s2;
 
-C_PREFERRED_CUST_FLAG      (EXPR)              
--------------------------  --------------------
+C_PREFERRED_CUST_FLAG             (EXPR)              
+--------------------------------  --------------------
 
-                                            685
-N                                          9789
-Y                                          9525
+                                                   685
+N                                                 9789
+Y                                                 9525
 
 --- 3 row(s) selected.
 >>execute s4;
 
-C_PREFERRED_CUST_FLAG      (EXPR)              
--------------------------  --------------------
+C_PREFERRED_CUST_FLAG             (EXPR)              
+--------------------------------  --------------------
 
-                                           1384
-N                                         19631
-Y                                         18984
+                                                  1384
+N                                                19631
+Y                                                18984
 
 --- 3 row(s) selected.
 >>execute s2part;
 
-(EXPR)              
---------------------
-
-                   0
-
---- 1 row(s) selected.
+--- 0 row(s) selected.
 >>execute s4part;
 
 (EXPR)              
@@ -348,33 +358,34 @@ Y                                         18984
 --- 1 row(s) selected.
 >>select * from tbl_utf8 where id between 8 and 12;
 
-ID           CHAPTER                    ENGLISH                    TRANSLATOR
------------  -------------------------  -------------------------  -------------------------
+ID           CHAPTER                           ENGLISH                           TRANSLATOR
+-----------  --------------------------------  --------------------------------  --------------------------------
 
-          8  Shin fukatoku 心不可  The Mind Cannot Be Got     (Bielefeldt)             
-          9  Kobutsushin 古佛心      The Old Buddha Mind        (Bielefeldt)             
-         10  Daigo 大悟               Great Awakening            (Bielefeldt)             
-         11  Zazen gi 坐禪儀         Principles of Zazen        (Bielefeldt)             
-         12  Zazen shin 坐禪箴       Lancet of Zazen            (Bielefeldt)             
+          8  Shin fukatoku 心不可得        The Mind Cannot Be Got            (Bielefeldt)                    
+          9  Kobutsushin 古佛心             The Old Buddha Mind               (Bielefeldt)                    
+         10  Daigo 大悟                      Great Awakening                   (Bielefeldt)                    
+         11  Zazen gi 坐禪儀                Principles of Zazen               (Bielefeldt)                    
+         12  Zazen shin 坐禪箴              Lancet of Zazen                   (Bielefeldt)                    
 
 --- 5 row(s) selected.
 >>select * from tbl_utf8 where chapter like '%三%';
 
-ID           CHAPTER                    ENGLISH                    TRANSLATOR
------------  -------------------------  -------------------------  -------------------------
+ID           CHAPTER                           ENGLISH                           TRANSLATOR
+-----------  --------------------------------  --------------------------------  --------------------------------
 
-         13  Kaiin zanmai 海印三昧  The Ocean Seal Samadhi     (Bielefeldt & Radich)    
-         41  Sangai yuishin 三界唯  The Three Realms Are Only  (Weinstein)              
-         66  Zanmai ō zanmai 三昧  The King of Samadhis Sama  (Bielefeldt)             
-         69  Jishō zanmai 自證三  The Samadhi of Self Verif  (Bielefeldt)             
+         13  Kaiin zanmai 海印三昧         The Ocean Seal Samadhi            (Bielefeldt & Radich)           
+         41  Sangai yuishin 三界唯心       The Three Realms Are Only Mind    (Weinstein)                     
+         60  Sanjûshichihon bodai bunpō 三                                    (Weinstein)                     
+         66  Zanmai ō zanmai 三昧王三昧  The King of Samadhis Samadhi      (Bielefeldt)                    
+         69  Jishō zanmai 自證三昧        The Samadhi of Self Verification  (Bielefeldt)                    
 
---- 4 row(s) selected.
+--- 5 row(s) selected.
 >>select * from tbl_utf8 where chapter like '%海印_昧%';
 
-ID           CHAPTER                    ENGLISH                    TRANSLATOR
------------  -------------------------  -------------------------  -------------------------
+ID           CHAPTER                           ENGLISH                           TRANSLATOR
+-----------  --------------------------------  --------------------------------  --------------------------------
 
-         13  Kaiin zanmai 海印三昧  The Ocean Seal Samadhi     (Bielefeldt & Radich)    
+         13  Kaiin zanmai 海印三昧         The Ocean Seal Samadhi            (Bielefeldt & Radich)           
 
 --- 1 row(s) selected.
 >>
@@ -393,22 +404,22 @@ ID           CHAPTER                    ENGLISH                    TRANSLATOR
 --- 1 row(s) selected.
 >>select * from tbl_utf8_temp where id between 8 and 12;
 
-ID           CHAPTER                    ENGLISH                    TRANSLATOR
------------  -------------------------  -------------------------  -------------------------
+ID           CHAPTER                           ENGLISH                           TRANSLATOR
+-----------  --------------------------------  --------------------------------  --------------------------------
 
-          8  Shin fukatoku 心不可  The Mind Cannot Be Got     (Bielefeldt)             
-          9  Kobutsushin 古佛心      The Old Buddha Mind        (Bielefeldt)             
-         10  Daigo 大悟               Great Awakening            (Bielefeldt)             
-         11  Zazen gi 坐禪儀         Principles of Zazen        (Bielefeldt)             
-         12  Zazen shin 坐禪箴       Lancet of Zazen            (Bielefeldt)             
+          8  Shin fukatoku 心不可得        The Mind Cannot Be Got            (Bielefeldt)                    
+          9  Kobutsushin 古佛心             The Old Buddha Mind               (Bielefeldt)                    
+         10  Daigo 大悟                      Great Awakening                   (Bielefeldt)                    
+         11  Zazen gi 坐禪儀                Principles of Zazen               (Bielefeldt)                    
+         12  Zazen shin 坐禪箴              Lancet of Zazen                   (Bielefeldt)                    
 
 --- 5 row(s) selected.
 >>select * from tbl_utf8_temp where chapter like '%海印_昧%';
 
-ID           CHAPTER                    ENGLISH                    TRANSLATOR
------------  -------------------------  -------------------------  -------------------------
+ID           CHAPTER                           ENGLISH                           TRANSLATOR
+-----------  --------------------------------  --------------------------------  --------------------------------
 
-         13  Kaiin zanmai 海印三昧  The Ocean Seal Samadhi     (Bielefeldt & Radich)    
+         13  Kaiin zanmai 海印三昧         The Ocean Seal Samadhi            (Bielefeldt & Radich)           
 
 --- 1 row(s) selected.
 >>
@@ -417,22 +428,36 @@ ID           CHAPTER                    ENGLISH                    TRANSLATOR
 (EXPR)              
 --------------------
 
-                   0
+                  75
 
 --- 1 row(s) selected.
 >>select * from tbl_utf8p where id between 8 and 12;
 
---- 0 row(s) selected.
+ID           CHAPTER                           ENGLISH                           TRANSLATOR
+-----------  --------------------------------  --------------------------------  --------------------------------
+
+          8  Shin fukatoku 心不可得        The Mind Cannot Be Got            (Bielefeldt)                    
+          9  Kobutsushin 古佛心             The Old Buddha Mind               (Bielefeldt)                    
+         10  Daigo 大悟                      Great Awakening                   (Bielefeldt)                    
+         11  Zazen gi 坐禪儀                Principles of Zazen               (Bielefeldt)                    
+         12  Zazen shin 坐禪箴              Lancet of Zazen                   (Bielefeldt)                    
+
+--- 5 row(s) selected.
 >>select * from tbl_utf8p where chapter like '%海印_昧%';
 
---- 0 row(s) selected.
+ID           CHAPTER                           ENGLISH                           TRANSLATOR
+-----------  --------------------------------  --------------------------------  --------------------------------
+
+         13  Kaiin zanmai 海印三昧         The Ocean Seal Samadhi            (Bielefeldt & Radich)           
+
+--- 1 row(s) selected.
 >>
 >>select * from tbl_type;
 
-TINT    SM      I            BIG                   STR                        F                D                          T
-------  ------  -----------  --------------------  -------------------------  ---------------  -------------------------  --------------------------
+TINT    SM      I            BIG                   STR                               F                D                          T
+------  ------  -----------  --------------------  --------------------------------  ---------------  -------------------------  --------------------------
 
-   201     202          203                   204  two hundred                 2.0000000E+002   2.00000000000000000E+002  2022-02-02 22:22:22.222222
+   201     202          203                   204  two hundred                        2.0000000E+002   2.00000000000000000E+002  2022-02-02 22:22:22.222222
 
 --- 1 row(s) selected.
 >>insert into tbl_type_temp select * from tbl_type;
@@ -440,11 +465,168 @@ TINT    SM      I            BIG                   STR                        F 
 --- 1 row(s) inserted.
 >>select * from tbl_type_temp;
 
-TINT    SM      I            BIG                   STR                        F                D                          T
-------  ------  -----------  --------------------  -------------------------  ---------------  -------------------------  --------------------------
+TINT    SM      I            BIG                   STR                               F                D                          T
+------  ------  -----------  --------------------  --------------------------------  ---------------  -------------------------  --------------------------
 
-   201     202          203                   204  two hundred                 2.0000000E+002   2.00000000000000000E+002  2022-02-02 22:22:22.222222
+   201     202          203                   204  two hundred                        2.0000000E+002   2.00000000000000000E+002  2022-02-02 22:22:22.222222
 
 --- 1 row(s) selected.
+>>
+>>cqd traf_enable_orc_format 'ON';
+
+--- SQL operation complete.
+>>select * from hivenonp;
+
+ID           COL2         P1           P2                              
+-----------  -----------  -----------  --------------------------------
+
+          1            1            1  one                             
+         11           11            1  one                             
+          2            2            2  two                             
+         22           22            2  two                             
+        222          222            2  two                             
+          3            3            3  three                           
+         34           34            3  four                            
+
+--- 7 row(s) selected.
+>>select * from hivepi;
+
+ID           COL2         P1         
+-----------  -----------  -----------
+
+          1            1            1
+         11           11            1
+          2            2            2
+         22           22            2
+        222          222            2
+          3            3            3
+         34           34            3
+
+--- 7 row(s) selected.
+>>select * from hiveps;
+
+ID           COL2         P2                              
+-----------  -----------  --------------------------------
+
+         34           34  four                            
+          1            1  one                             
+         11           11  one                             
+          3            3  three                           
+          2            2  two                             
+         22           22  two                             
+        222          222  two                             
+
+--- 7 row(s) selected.
+>>select * from hivepis;
+
+ID           COL2         P1           P2                              
+-----------  -----------  -----------  --------------------------------
+
+          1            1            1  one                             
+         11           11            1  one                             
+          2            2            2  two                             
+         22           22            2  two                             
+        222          222            2  two                             
+         34           34            3  four                            
+          3            3            3  three                           
+
+--- 7 row(s) selected.
+>>--select * from hivepio;
+>>
+>>prepare s from
++>select * 
++>from hive.hive.hivepis
++>where id=2 and p1=2 and p2 = 'two' and (id<100 or p2='three');
+
+--- SQL command prepared.
+>>select count(*)
++>from table(explain(null,'S'))
++>where operator like '%SCAN%'
++>  and description like '%part_elim_compiled%';
+
+(EXPR)              
+--------------------
+
+                   0
+
+--- 1 row(s) selected.
+>>select count(*)
++>from table(explain(null,'S'))
++>where operator like '%SCAN%'
++>  and description like '%part_elim_runtime%';
+
+(EXPR)              
+--------------------
+
+                   1
+
+--- 1 row(s) selected.
+>>
+>>select *,
++>       block__offset__inside__file,
++>       input__range__number,
++>       row__number__in__range
++>       --, cast(substring(input__file__name,1,100) as char(100)) file_name
++>from hive.hive.hivepis;
+
+ID           COL2         P1           P2                                BLOCK__OFFSET__INSIDE__FILE  INPUT__RANGE__NUMBER  ROW__NUMBER__IN__RANGE
+-----------  -----------  -----------  --------------------------------  ---------------------------  --------------------  ----------------------
+
+          1            1            1  one                                                         4                     0                       0
+         11           11            1  one                                                        10                     0                       1
+          2            2            2  two                                                         4                     1                       0
+         22           22            2  two                                                        10                     1                       1
+        222          222            2  two                                                        18                     1                       2
+         34           34            3  four                                                        6                     2                       0
+          3            3            3  three                                                       4                     3                       0
+
+--- 7 row(s) selected.
+>>select input__range__number, row__number__in__range, block__offset__inside__file
++>from hive.hive.hivenonp;
+
+INPUT__RANGE__NUMBER  ROW__NUMBER__IN__RANGE  BLOCK__OFFSET__INSIDE__FILE
+--------------------  ----------------------  ---------------------------
+
+                   0                       0                           10
+                   0                       1                           22
+                   0                       2                           32
+                   0                       3                           44
+                   0                       4                           58
+                   0                       5                           70
+                   0                       6                           83
+
+--- 7 row(s) selected.
+>>select input__range__number, row__number__in__range, block__offset__inside__file
++>from hive.hive.hivepi;
+
+INPUT__RANGE__NUMBER  ROW__NUMBER__IN__RANGE  BLOCK__OFFSET__INSIDE__FILE
+--------------------  ----------------------  ---------------------------
+
+                   0                       0                            4
+                   0                       1                           10
+                   1                       0                            4
+                   1                       1                           10
+                   1                       2                           18
+                   2                       0                            4
+                   2                       1                           10
+
+--- 7 row(s) selected.
+>>
+>>-- partitioned ORC tables not working yet
+>>-- prepare s from select * from hive.hive.hivepio;
+>>-- execute s;
+>>
+>>set catalog trafodion;
+
+--- SQL operation complete.
+>>-- create external table hivepi for hive.hive.hivepi;
+>>set schema hive.hive;
+
+--- SQL operation complete.
+>>-- update statistics is not working yet
+>>-- update statistics for table hive.hive.hivepi on every column;
+>>-- update statistics for table hivepis on every column;
+>>
+>>-- drop external table hivepi for hive.hive.hivepi;
 >>
 >>log;

@@ -125,6 +125,39 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   ex_assert((error == 0), "get_free_tuple cannot hold a row.");
   hdfsAsciiSourceData_ = hdfsAsciiSourceTupp_.getDataPointer();
 
+  if (hdfsScanTdb.partColsRowLength_ > 0)
+    {
+      partColsBuffer_ = new(space) ExSimpleSQLBuffer( 1, // one row 
+                                                      hdfsScanTdb.partColsRowLength_,
+                                                      space);
+      error = partColsBuffer_->getFreeTuple(partColTupp_);
+      ex_assert((error == 0), "get_free_tuple cannot hold a row.");
+      partColData_ = partColTupp_.getDataPointer();
+    }
+  else
+    {
+      partColsBuffer_ = NULL;
+      partColData_ = NULL;
+    }
+
+  if (hdfsScanTdb.virtColsRowLength_ > 0)
+    {
+      virtColsBuffer_ = new(space) ExSimpleSQLBuffer( 1, // one row 
+                                                      hdfsScanTdb.virtColsRowLength_,
+                                                      space);
+      error = virtColsBuffer_->getFreeTuple(virtColTupp_);
+      ex_assert((error == 0), "get_free_tuple cannot hold a part col row.");
+      ex_assert(hdfsScanTdb.virtColsRowLength_ == sizeof(struct ComTdbHdfsVirtCols),
+                "Inconsistency in virt col length");
+      virtColData_ = reinterpret_cast<struct ComTdbHdfsVirtCols*>(
+           virtColTupp_.getDataPointer());
+    }
+  else
+    {
+      virtColsBuffer_ = NULL;
+      virtColData_ = NULL;
+    }
+
   pool_ = new(space) 
         sql_buffer_pool(hdfsScanTdb.numBuffers_,
         hdfsScanTdb.bufferSize_,
@@ -156,6 +189,8 @@ ExHdfsScanTcb::ExHdfsScanTcb(
     convertExpr()->fixup(0, getExpressionMode(), this,  space, heap, FALSE, glob);
   if (moveColsConvertExpr())
     moveColsConvertExpr()->fixup(0, getExpressionMode(), this,  space, heap, FALSE, glob);
+  if (partElimExpr())
+    partElimExpr()->fixup(0, getExpressionMode(), this,  space, heap, FALSE, glob);
 
 
   // Register subtasks with the scheduler
@@ -214,6 +249,18 @@ void ExHdfsScanTcb::freeResources()
   {
     delete moveExprColsBuffer_;
     moveExprColsBuffer_ = NULL;
+  }
+  if (partColsBuffer_)
+  {
+    delete partColsBuffer_;
+    partColsBuffer_ = NULL;
+    partColData_ = NULL;
+  }
+  if (virtColsBuffer_)
+  {
+    delete virtColsBuffer_;
+    virtColsBuffer_ = NULL;
+    virtColData_ = NULL;
   }
   if (pool_)
   {
@@ -417,6 +464,30 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
             bytesLeft_ = hdfo_->getBytesToRead();
 
             hdfsFileName_ = hdfo_->fileName();
+            if (partColData_)
+              {
+                ex_assert(hdfo_->getPartColValues(),
+                          "Missing part col values");
+                memcpy(partColData_,
+                       hdfo_->getPartColValues(),
+                       hdfsScanTdb().partColsRowLength_);
+                workAtp_->getTupp(hdfsScanTdb().partColsTuppIndex_) = partColTupp_;
+              }
+            if (virtColData_)
+              {
+                int fileNameLen = strlen(hdfsFileName_);
+                str_cpy(virtColData_->input_file_name,
+                        hdfsFileName_,
+                        sizeof(virtColData_->input_file_name));
+                // truncate the file name (should not happen)
+                if (fileNameLen > sizeof(virtColData_->input_file_name))
+                  fileNameLen = sizeof(virtColData_->input_file_name);
+                virtColData_->input_file_name_len = (UInt16) fileNameLen;
+                virtColData_->block_offset_inside_file = hdfsOffset_;
+                virtColData_->input_range_number = currRangeNum_;
+                virtColData_->row_number_in_range = -1;
+                workAtp_->getTupp(hdfsScanTdb().virtColsTuppIndex_) = virtColTupp_;
+              }
             sprintf(cursorId_, "%d", currRangeNum_);
             stopOffset_ = hdfsOffset_ + hdfo_->getBytesToRead();
 
@@ -779,8 +850,14 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	  }
 	  else
 	  {
-	    numBytesProcessedInRange_ +=
-	        startOfNextRow - hdfsBufNextRow_;
+            Int64 thisRowLen = startOfNextRow - hdfsBufNextRow_;
+
+            if (virtColData_)
+            {
+              virtColData_->block_offset_inside_file += thisRowLen;
+              virtColData_->row_number_in_range++;
+            }
+	    numBytesProcessedInRange_ += thisRowLen;
 	    hdfsBufNextRow_ = startOfNextRow;
 	  }
 
@@ -867,7 +944,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	    if (hdfsStats_)
 	      hdfsStats_->incUsedRows();
 
-	    step_ = RETURN_ROW;
+            step_ = RETURN_ROW;
 	    break;
 	  }
 
@@ -890,7 +967,6 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	      pentry_down->downState.parentIndex;
 	  up_entry->upState.downIndex = qparent_.down->getHeadIndex();
 	  up_entry->upState.status = ex_queue::Q_OK_MMORE;
-
 
 	  if (moveExpr())
 	  {
@@ -1500,7 +1576,6 @@ char * ExHdfsScanTcb::extractAndTransformAsciiSourceToSqlRow(int &err,
 
   workAtp_->getTupp(hdfsScanTdb().workAtpIndex_) = hdfsSqlTupp_;
   workAtp_->getTupp(hdfsScanTdb().asciiTuppIndex_) = hdfsAsciiSourceTupp_;
-  // for later
   workAtp_->getTupp(hdfsScanTdb().moveExprColsTuppIndex_) = moveExprColsTupp_;
 
   if (convertExpr())
@@ -1617,4 +1692,3 @@ short ExHdfsScanTcb::handleDone(ExWorkProcRetcode &rc)
 
   return 0;
 }
-

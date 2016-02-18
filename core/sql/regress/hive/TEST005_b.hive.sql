@@ -74,3 +74,10 @@ drop schema if exists hiveregr5;
 create schema hiveregr5;
 
 create table hiveregr5.newtable2(a string);
+
+set hive.exec.dynamic.partition=true;
+set hive.exec.dynamic.partition.mode=nonstrict;
+insert into table hivepi partition (p1) select id, col2, p1 from hivenonp;
+insert into table hiveps partition (p2) select id, col2, p2 from hivenonp;
+insert into table hivepis partition (p1, p2) select id, col2, p1, p2 from hivenonp;
+insert into table hivepio partition (p1) select id, col2, p2 from hivenonp;

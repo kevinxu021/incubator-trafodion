@@ -154,3 +154,60 @@ create table tbl_type_temp
      t           timestamp
 )
 row format delimited fields terminated by '|';
+
+drop table hivenonp;
+create table hivenonp
+(
+    id    int,
+    col2  int,
+    p1    int,
+    p2    string
+)
+row format delimited fields terminated by '|';
+
+drop table hivepi;
+create table hivepi
+(
+    id    int,
+    col2  int
+)
+partitioned by (p1 int)
+row format delimited fields terminated by '|';
+
+drop table hiveps;
+create table hiveps
+(
+    id    int,
+    col2  int
+)
+partitioned by (p2 string)
+row format delimited fields terminated by '|';
+
+drop table hivepis;
+create table hivepis
+(
+    id    int,
+    col2  int
+)
+partitioned by (p1 int, p2 string)
+row format delimited fields terminated by '|';
+
+-- create a partitioned Hive table with ORC files
+drop table hivepio;
+create table hivepio
+(
+    id    int,
+    col2  int
+)
+partitioned by (p1 int)
+stored as orc;
+
+-- create a partitioned Hive table with ORC files
+drop table hivepiso;
+create table hivepiso
+(
+    id    int,
+    col2  int
+)
+partitioned by (p1 int, p2 string)
+stored as orc;

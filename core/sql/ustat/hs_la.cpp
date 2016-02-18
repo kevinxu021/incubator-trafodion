@@ -965,35 +965,51 @@ Int64 HSHiveTableDef::getRowCount(NABoolean &isEstimate,
 
 Lng32 HSHiveTableDef::DescribeColumnNames()
 {
-  hive_column_desc* hiveColDesc = hiveTblDesc_->getColumns();
-  while (hiveColDesc)
-    {
+  const NATable *nat = getNATable();
+  const NAColumnArray &colArray = nat->getNAColumnArray();
+  NABoolean collectVirtColStats =
+    (CmpCommon::getDefault(USTAT_COLLECT_VIRT_COL_STATS) == DF_ON);
+  CollIndex numColEntries = colArray.entries();
+  CollIndex currColEntry = 0;
+
+  // first, determine the number of column entries needed
+  for (CollIndex c1=0; c1<numColEntries; c1++)
+    if (!(colArray[c1]->isHiveVirtualColumn()) || collectVirtColStats)
       numCols_++;
-      hiveColDesc = hiveColDesc->next_;
-    }
 
   colInfo_ = new(STMTHEAP) HSColumnStruct[numCols_];
-  hiveColDesc = hiveTblDesc_->getColumns();
-  for (Int32 i=0; i<numCols_; i++)
+
+  // now fill the allocated column entries
+  for (CollIndex c2=0; c2<numColEntries; c2++)
     {
-      *(colInfo_[i].colname) = hiveColDesc->name_;
-      colInfo_[i].colname->toUpper();
+      const NAColumn *nac = colArray[c2];
 
-      NAType* natype = getSQColTypeForHive(hiveColDesc->type_, STMTHEAP);
-      colInfo_[i].datatype = natype->getFSDatatype();
-      colInfo_[i].nullflag = natype->supportsSQLnullLogical();
-      colInfo_[i].charset = natype->getCharSet();
-      if (DFS2REC::isAnyCharacter(natype->getFSDatatype()))
+      // same condition as used above to count cols
+      if (!nac->isHiveVirtualColumn() || collectVirtColStats)
         {
-          colInfo_[i].colCollation = (static_cast<CharType*>(natype))->getCollation();
-          colInfo_[i].caseInsensitive = (static_cast<CharType*>(natype))->isCaseinsensitive();
-        }
-      colInfo_[i].length = natype->getNominalSize();
-      colInfo_[i].precision = natype->getPrecision();
-      colInfo_[i].scale = natype->getScale();
+          const NAString &colName = nac->getColName();
+          const NAType *natype = nac->getType();
 
-      hiveColDesc = hiveColDesc->next_;
+          *(colInfo_[currColEntry].colname) = colName;
+
+          colInfo_[currColEntry].datatype = natype->getFSDatatype();
+          colInfo_[currColEntry].nullflag = natype->supportsSQLnullLogical();
+          colInfo_[currColEntry].charset = natype->getCharSet();
+          if (DFS2REC::isAnyCharacter(natype->getFSDatatype()))
+            {
+              colInfo_[currColEntry].colCollation =
+                (static_cast<const CharType*>(natype))->getCollation();
+              colInfo_[currColEntry].caseInsensitive =
+                (static_cast<const CharType*>(natype))->isCaseinsensitive();
+            }
+          colInfo_[currColEntry].length = natype->getNominalSize();
+          colInfo_[currColEntry].precision = natype->getPrecision();
+          colInfo_[currColEntry].scale = natype->getScale();
+
+          currColEntry++;
+        }
     }
+  HS_ASSERT(currColEntry == numCols_);
 
   return 0;
 }

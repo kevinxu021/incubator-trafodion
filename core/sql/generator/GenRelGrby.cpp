@@ -2172,6 +2172,10 @@ short OrcPushdownAggr::codeGen(Generator * generator)
               GenAssert(0, "ORC aggr: invalid child type");
             }
 
+          GenAssert(!nac->isHivePartColumn() &&
+                    !nac->isHiveVirtualColumn(),
+                    "Can't push down aggregates on part/virt cols");
+
           cnameInList = 
             space->allocateAndCopyToAlignedSpace
             (nac->getColName().data(), nac->getColName().length(), 0);
@@ -2256,7 +2260,7 @@ short OrcPushdownAggr::codeGen(Generator * generator)
                       hdfsFileInfoList, hdfsFileRangeBeginList, hdfsFileRangeNumList,
                       tdbListOfOrcPPI,
                       orcOperVIDlist,
-                      hdfsHostName, hdfsPort);
+                      hdfsHostName, hdfsPort, NULL, 0 , NULL);
   
   ULng32 buffersize = 3 * getDefault(GEN_DPSO_BUFFER_SIZE);
   queue_index upqueuelength = (queue_index)getDefault(GEN_DPSO_SIZE_UP);

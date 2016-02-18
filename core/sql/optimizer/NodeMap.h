@@ -45,6 +45,7 @@ class Generator;
 class PartitioningFunction;
 class HivePartitionAndBucketKey;
 class HHDFSStatsBase;
+class HHDFSListPartitionStats;
 
 //----------------------------------------------------------------
 //  Needed for passing CollIndex pointers as reference parameters.
@@ -195,13 +196,18 @@ struct HiveScanInfo
 {
    void print(FILE* ofd, const char* indent, const char* title) const;
 
-  HiveScanInfo(HHDFSFileStats* file=NULL, Int64 off=0, Int64 span=0, NABoolean loc=FALSE)
-     : file_(file), offset_(off), span_(span), isLocal_(loc) {}
+  HiveScanInfo(HHDFSFileStats* file=NULL, Int64 off=0, Int64 span=0, NABoolean loc=FALSE,
+               HHDFSListPartitionStats* partition=NULL,
+               const char *partColExplodedValues=NULL)
+       : file_(file), offset_(off), span_(span), isLocal_(loc),
+         partition_(partition), partColExplodedValues_(partColExplodedValues) {}
      
    HHDFSFileStats* file_;
    Int64 offset_;
    Int64 span_;
    NABoolean isLocal_;
+   HHDFSListPartitionStats* partition_;
+   const char *partColExplodedValues_;
 };
    
 class HiveNodeMapEntry : public NodeMapEntry {

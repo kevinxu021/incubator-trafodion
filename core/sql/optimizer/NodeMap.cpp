@@ -2162,8 +2162,7 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
           f = (HHDFSFileStats*)i.getFileStats();
 
           totalBytesAssigned += 
-            f->assignToESPs(espDistribution, this, numSQNodes, numESPs, numOfBytesToRead);
-
+          f->assignToESPs(espDistribution, this, numSQNodes, numESPs, numOfBytesToRead, p);
         }
 
       if (numESPs > 1)
@@ -2198,8 +2197,7 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
           b = (HHDFSBucketStats*)i.getBucketStats();
           f = (HHDFSFileStats*)i.getFileStats();
 
-          f->assignToESPs(&nmi, entry, totalBytesPerESP, numOfBytesToRead);
-          
+          f->assignToESPs(&nmi, entry, totalBytesPerESP, numOfBytesToRead, p);
         } // while
 
         printToLog(DEFAULT_INDENT, "NodeMap for non-locality assignment");

@@ -9920,7 +9920,7 @@ const NAString FileScan::getTypeText() const
 void FileScan::addLocalExpr(LIST(ExprNode *) &xlist,
 			    LIST(NAString) &llist) const
 {
-  if (getIndexDesc() != NULL)
+  if (getIndexDesc() != NULL && !isHiveTable())
     {
       const ValueIdList& keyColumns = getIndexDesc()->getIndexKey();
       xlist.insert(keyColumns.rebuildExprTree());
@@ -10051,6 +10051,18 @@ void FileScan::addLocalExpr(LIST(ExprNode *) &xlist,
     {
       xlist.insert(getEndKeyPred().rebuildExprTree());
       llist.insert("end_key");
+    }
+  if (hiveSearchKey_ &&
+      !hiveSearchKey_->getCompileTimePartColPreds().isEmpty())
+    {
+      xlist.insert(hiveSearchKey_->getCompileTimePartColPreds().rebuildExprTree());
+      llist.insert("part_elim_compiled");
+    }
+  if (hiveSearchKey_ &&
+      !hiveSearchKey_->getPartAndVirtColPreds().isEmpty())
+    {
+      xlist.insert(hiveSearchKey_->getPartAndVirtColPreds().rebuildExprTree());
+      llist.insert("part_elim_runtime");
     }
 
     // xlist.insert(retrievedCols_.rebuildExprTree(ITM_ITEM_LIST));
