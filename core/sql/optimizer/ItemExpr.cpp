@@ -2623,6 +2623,11 @@ void ItemExpr::unparse(NAString &result,
     case 0:
       // simply print the text out for a leaf operator
       result += kwd;
+      
+      char buf[20];
+      snprintf(buf, 20, "(%d)", getValueId().toUInt32());
+      result += buf;
+
       break;
 
     case 2:
@@ -5392,6 +5397,20 @@ ItemExpr * VEGPredicate::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 } // VEGPredicate::copyTopNode()
 
 ItemExpr * VEGPredicate::cloneTopNode(CollHeap* outHeap)
+{
+  ItemExpr* result = copyTopNode(NULL, outHeap);
+  result->setValueId(getValueId());
+  return result;
+}
+
+ItemExpr * HostVar::cloneTopNode(CollHeap* outHeap)
+{
+  ItemExpr* result = copyTopNode(NULL, outHeap);
+  result->setValueId(getValueId());
+  return result;
+}
+
+ItemExpr * ConstValue::cloneTopNode(CollHeap* outHeap)
 {
   ItemExpr* result = copyTopNode(NULL, outHeap);
   result->setValueId(getValueId());

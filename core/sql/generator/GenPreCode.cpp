@@ -107,7 +107,7 @@ extern ItemExpr * buildComparisonPred (	ItemExpr *, ItemExpr *, ItemExpr *,
 //         computed and supplied in this list.
 //
 // ValueIdList & listOfKeyExpr
-//    OUT: An assignment expression of the form <key column> = <value>
+//    OUT: A comparison expression of the form <key column> = <value>
 //         for each key column.
 //
 // -----------------------------------------------------------------------
@@ -3679,17 +3679,25 @@ RelExpr * HashJoin::preCodeGen(Generator * generator,
 
 } //  HashJoin::preCodeGen()
 
+ 
+ // Check to see if there are any MIN/MAX values coming from a
+ // HashJoin which could be used as begin/end key values for the
+ // leading key of this scan.  Don't consider doing this if this
+ // is a unique scan (can't improve on that) or if the leading
+ // key is already unique or if both the begin and end key are
+ // exclusive (min max are inclusive and no easy way to mix
+ // them).
 void FileScan::processMinMaxKeys(Generator* generator, 
-                                 ValueIdSet& pulledNewInputs, ValueIdSet& availableValues)
+                                 ValueIdSet& pulledNewInputs, 
+                                 ValueIdSet& availableValues, 
+                                 NABoolean updateSearchKeyOnly)
 {
-      if ( (CmpCommon::getDefault(GEN_HSHJ_MIN_MAX_OPT) == DF_OFF) ) 
-        return;
-
       if (generator->getMinMaxKeys().entries() &&
-          !getSearchKey() ||
+          (!getSearchKey() ||
           (
            (getSearchKey()->getBeginKeyValues()[0] != getSearchKey()->getEndKeyValues()[0]) &&
            (!getSearchKey()->isBeginKeyExclusive() || !getSearchKey()->isEndKeyExclusive())
+          )
           )
          ) {
 
@@ -3788,7 +3796,12 @@ void FileScan::processMinMaxKeys(Generator* generator,
 
                   ItemExpr *keyPred = NULL;
                   ItemExpr *currentBeg = NULL;
-                  if ( getSearchKey() ) {
+
+                  if ( updateSearchKeyOnly ) {
+                     CMPASSERT(getSearchKey());
+                     currentBeg = (getSearchKey()->getBeginKeyValues()[0]).getItemExpr();
+                  } else
+                  if ( !getBeginKeyPred().isEmpty() ) {
                      keyPred = getBeginKeyPred()[0].getItemExpr();
                      currentBeg = keyPred->child(1);
                   }
@@ -3824,10 +3837,13 @@ void FileScan::processMinMaxKeys(Generator* generator,
                        ItmScalarMinMax((ascKey ? ITM_SCALAR_MAX : ITM_SCALAR_MIN),
                                        currentBeg, 
                                        newBeg);
-                     newBeg->synthTypeAndValueId();
+                     newBeg->synthTypeAndValueId(TRUE);
 
                      // Replace the RHS of the key pred.
-                     keyPred->child(1) = newBeg->getValueId();
+                     if ( updateSearchKeyOnly )
+                        searchKey()->setBeginKeyValue(0, newBeg->getValueId());
+                     else
+                        keyPred->child(1) = newBeg->getValueId();
                   } else {
                      // No begin key even exists before.
                      //
@@ -3839,7 +3855,7 @@ void FileScan::processMinMaxKeys(Generator* generator,
                      else
                         newBeg = new (gheap) BiRelat(ITM_LESS_EQ, ixCol, newBeg);
 
-                     newBeg->synthTypeAndValueId();
+                     newBeg->synthTypeAndValueId(TRUE);
 
                      beginKeyPred_.insert(newBeg->getValueId());
                   }
@@ -3858,7 +3874,12 @@ void FileScan::processMinMaxKeys(Generator* generator,
 
                   ItemExpr *keyPred = NULL;
                   ItemExpr *currentEnd = NULL;
-                  if ( getSearchKey() ) {
+
+                  if ( updateSearchKeyOnly ) {
+                     CMPASSERT(getSearchKey());
+                     currentEnd = (getSearchKey()->getEndKeyValues()[0]).getItemExpr();
+                  } else
+                  if ( !getEndKeyPred().isEmpty() ) {
                      keyPred = getEndKeyPred()[0].getItemExpr();
                      currentEnd = keyPred->child(1);
                   }
@@ -3893,7 +3914,10 @@ void FileScan::processMinMaxKeys(Generator* generator,
                      newEnd->synthTypeAndValueId();
 
                      // Replace the RHS of the key pred.
-                     keyPred->child(1) = newEnd->getValueId();
+                     if ( updateSearchKeyOnly )
+                        searchKey()->setEndKeyValue(0, newEnd->getValueId());
+                     else
+                        keyPred->child(1) = newEnd->getValueId();
                   } else {
 
                      // No end key even exists before.
@@ -3906,7 +3930,7 @@ void FileScan::processMinMaxKeys(Generator* generator,
                      else
                         newEnd = new (gheap) BiRelat(ITM_GREATER_EQ, ixCol, newEnd);
 
-                     newEnd->synthTypeAndValueId();
+                     newEnd->synthTypeAndValueId(TRUE);
 
                      endKeyPred_.insert(newEnd->getValueId());
                   }
@@ -4144,201 +4168,8 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
                       replicatePredicates);
       }
 
-      // Check to see if there are any MIN/MAX values coming from a
-      // HashJoin which could be used as begin/end key values for the
-      // leading key of this scan.  Don't consider doing this if this
-      // is a unique scan (can't improve on that) or if the leading
-      // key is already unique or if both the begin and end key are
-      // exclusive (min max are inclusive and no easy way to mix
-      // them).
-      if (generator->getMinMaxKeys().entries() &&
-         (getSearchKey()->getBeginKeyValues()[0] !=
-          getSearchKey()->getEndKeyValues()[0]) &&
-         (!getSearchKey()->isBeginKeyExclusive() ||
-          !getSearchKey()->isEndKeyExclusive())) {
-
-        // The keys of the scan.
-        const ValueIdList &keys = getIndexDesc()->getIndexKey();
-        ValueId      minMaxKeyCol = keys[0];
-        IndexColumn *ixCol = (IndexColumn *) (minMaxKeyCol.getItemExpr());
-        BaseColumn  *baseCol = NULL;
-        ValueId      underlyingCol;
-        NABoolean    needToComputeActualMinMax = FALSE;
-        ItemExpr    *computedColExpr = NULL;
-        
-        // The candidate values for min and max.
-        const ValueIdList &minMaxKeys = generator->getMinMaxKeys();
-    
-        CollIndex keyIdx = NULL_COLL_INDEX;
-
-        // Determine how min/max is related to begin/end.  depends
-        // on ordering (ASC vs DESC) and scan direction (forward vs
-        // reverse)
-        NABoolean ascKey = 
-          getIndexDesc()->getNAFileSet()->getIndexKeyColumns().isAscending(0);
-
-        if(getReverseScan())
-          ascKey = !ascKey;
-
-        // If the leading key column is a divisioning column, then
-        // look for min/max values of an underlying column
-        GenAssert(ixCol->getOperatorType() == ITM_INDEXCOLUMN,
-                  "unexpected object type");
-        baseCol = 
-          (BaseColumn *) (((IndexColumn *) ixCol)->getDefinition().getItemExpr());
-        GenAssert(baseCol->getOperatorType() == ITM_BASECOLUMN,
-                  "unexpected object type");
-        if (baseCol->getNAColumn()->isDivisioningColumn()) {
-          ValueIdSet underlyingCols;
-          baseCol->getUnderlyingColumnsForCC(underlyingCols);
-
-          if (underlyingCols.entries() == 1) {
-            // We have a leading division column that's computed from
-            // 1 base column, now get the underlying column and the
-            // divisioning expression
-            needToComputeActualMinMax = TRUE;
-            underlyingCols.getFirst(minMaxKeyCol);
-            computedColExpr = baseCol->getComputedColumnExpr().getItemExpr();
-            BaseColumn  *underlyingBaseCol =
-              (BaseColumn *) minMaxKeyCol.getItemExpr();
-            GenAssert(underlyingBaseCol->getOperatorType() == ITM_BASECOLUMN,
-                      "unexpected object type");
-            // the computed column expression has been rewritten to use
-            // VEGRefs, so get the corresponding VEGRef for the underlying column
-            underlyingCol = underlyingBaseCol->getTableDesc()->
-              getColumnVEGList()[underlyingBaseCol->getColNumber()];
-          }
-        }
-
-        // Check all the candidate values.  If any one of them matches
-        // the leading key of this scan, then select it for use in the
-        // begin/end key value of the leading key.
-
-        // Scalar min/max functions cause an exponential growth when
-        // combined with each other, see ItmScalarMinMax::codeGen()
-        Int32 limitItems = 3 ; // use at most 3
-
-        for(CollIndex i = 0; i < minMaxKeys.entries() && limitItems; i++) {
-          ValueId mmKeyId = minMaxKeys[i];
-          if(mmKeyId != NULL_VALUE_ID) {
-            ItemExpr *mmItem = mmKeyId.getItemExpr();
-      
-            if (mmItem->getOperatorType() == ITM_VEG_PREDICATE) {
-              VEGPredicate *vPred = (VEGPredicate *)mmItem;
-              const ValueIdSet &members = vPred->getVEG()->getAllValues();
-
-              if (members.contains(minMaxKeyCol)) {
-
-                // some other operator is producing min/max values
-                // for our leading key column, now check whether we
-                // can use them
-
-                keyIdx = i;
-
-                // Indicate in the 'will use' list that we will use these
-                // min/max values.  This will indicate to the HashJoin that
-                // it should produce these values.
-                generator->getWillUseMinMaxKeys()[keyIdx] =
-                  generator->getMinMaxKeys()[keyIdx];
-                addMinMaxHJColumn(baseCol->getValueId());
-
-                limitItems-- ; // one more is used
-
-                // If we can use a min/max value for the begin key, do so...
-                if(!getSearchKey()->isBeginKeyExclusive()) {
-                  ItemExpr *keyPred = getBeginKeyPred()[0].getItemExpr();
-                  ItemExpr *currentBeg = keyPred->child(1);
-
-                  // Get the proper begin key (min or max) that came from
-                  // the HashJoin
-                  ValueId hashJoinBeg = (ascKey ?
-                                         generator->getMinVals()[keyIdx] :
-                                         generator->getMaxVals()[keyIdx]);
-
-                  // Construct an expression which determines at runtime
-                  // which BK to use.  Either the existing one or the one
-                  // coming from HashJoin whichever is larger (smaller).
-                  // 
-                  ItemExpr *newBeg = hashJoinBeg.getItemExpr();
-
-                  if (needToComputeActualMinMax) {
-                    ValueIdMap divExprMap;
-                    ValueId computedBeg;
-
-                    // If hashJoinBeg is :sysHV1 and the computed column
-                    // expression is A/100, then the begin value for
-                    // the computed column is :sysHV1/100. Do this
-                    // rewrite by using a ValueIdMap
-                    divExprMap.addMapEntry(underlyingCol, hashJoinBeg);
-                    divExprMap.rewriteValueIdDown(computedColExpr->getValueId(),
-                                                  computedBeg);
-                    newBeg = computedBeg.getItemExpr();
-                  }
-
-                  newBeg = new (generator->wHeap())
-                    ItmScalarMinMax((ascKey ? ITM_SCALAR_MAX : ITM_SCALAR_MIN),
-                                    currentBeg, 
-                                    newBeg);
-                  newBeg->synthTypeAndValueId();
-                  // Replace the RHS of the key pred.
-                  keyPred->child(1) = newBeg->getValueId();
-
-                  // The value coming from the HashJoin must be in out inputs.
-                  getGroupAttr()->addCharacteristicInputs(hashJoinBeg);
-
-                  // And we must pull those values from the HashJoin.
-                  pulledNewInputs += hashJoinBeg;
-                  availableValues += hashJoinBeg;
-                }
-
-                // If we can use a min/max value for the end key, do so...
-                if(!getSearchKey()->isEndKeyExclusive()) {
-                  ItemExpr *keyPred = getEndKeyPred()[0].getItemExpr();
-                  ItemExpr *currentEnd = keyPred->child(1);
-
-                  // Get the proper end key (max or min) that came from
-                  // the HashJoin
-                  ValueId hashJoinEnd = (ascKey ?
-                                         generator->getMaxVals()[keyIdx] :
-                                         generator->getMinVals()[keyIdx]);
-
-                  // Construct an expression which determines at runtime
-                  // which EK to use.  Either the existing one or the one
-                  // coming from HashJoin whichever is smaller (larger).
-                  // 
-                  ItemExpr *newEnd = hashJoinEnd.getItemExpr();
-
-                  if (needToComputeActualMinMax) {
-                    ValueIdMap divExprMap;
-                    ValueId computedEnd;
-
-                    divExprMap.addMapEntry(underlyingCol, hashJoinEnd);
-                    divExprMap.rewriteValueIdDown(computedColExpr->getValueId(),
-                                                  computedEnd);
-                    newEnd = computedEnd.getItemExpr();
-                  }
-
-                  newEnd = new (generator->wHeap())
-                    ItmScalarMinMax((ascKey ? ITM_SCALAR_MIN : ITM_SCALAR_MAX),
-                                    currentEnd, 
-                                    newEnd);
-                  newEnd->synthTypeAndValueId();
-
-                  // Replace the RHS of the key pred.
-                  keyPred->child(1) = newEnd->getValueId();
-
-                  // The value coming from the HashJoin must be in out inputs.
-                  getGroupAttr()->addCharacteristicInputs(hashJoinEnd);
-
-                  // And we must pull those values from the HashJoin.
-                  pulledNewInputs += hashJoinEnd;
-                  availableValues += hashJoinEnd;
-                }
-              }
-            }
-          }
-        }
-      }
+      // code move to HbaseAccess::preCodeGen() to side-effect the search key.
+      //processMinMaxKeys(generator, pulledNewInputs, availableValues);
     }
   else
     {
@@ -4367,7 +4198,8 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
         if (( hTabStats->isOrcFile() ) &&
             (CmpCommon::getDefault(ORC_PRED_PUSHDOWN) == DF_ON) ) {
 
-           processMinMaxKeys(generator, pulledNewInputs, availableValues);
+           // Set the last argumen to FALSE to side-effect begin/end key predicates only
+           processMinMaxKeys(generator, pulledNewInputs, availableValues, FALSE);
 
            TableAnalysis* tableAnalysis = 
                 getGroupAttr()->getGroupAnalysis()->getNodeAnalysis()->getTableAnalysis();
@@ -4376,14 +4208,6 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
    
            ValueIdSet externalInputs; // not used yet
            ValueIdSet orcPushdownPreds;
-/*
-           HivePartitionAndBucketKey::makeHiveOrcPushdownPrecates(
-                   hiveSearchKey_, 
-                   locals, 
-                   externalInputs, 
-                   NULL, 
-                   orcPushdownPreds);
-*/
 
            // remove any predicates referencing min and max
            //
@@ -4427,10 +4251,15 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
                             TRUE);
    
            orcPushdownPreds.generatePushdownListForORC(orcListOfPPI_);
-        }
 
-  
-        setExecutorPredicates(selectionPred());
+           // include begin/end key predicates in executor predicates
+           ValueIdSet execPred(selectionPred());
+           execPred += beginKeyPredCopy;
+           execPred += endKeyPredCopy;
+           setExecutorPredicates(execPred);
+
+        } else
+           setExecutorPredicates(selectionPred());
       }
 
       // Rebuild the executor  predicate tree
@@ -12026,6 +11855,9 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
   if ( myPartFunc == NULL ||
        !myPartFunc->isPartitioned() ||
        myPartFunc->isAReplicationPartitioningFunction())
+  {
+    //processMinMaxKeys(generator, pulledNewInputs, externalInputs, TRUE);
+
     if (!processConstHBaseKeys(
            generator,
            this,
@@ -12036,6 +11868,7 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
            listOfUniqueRows_,
            listOfRangeRows_))
       return NULL;
+  }
 
   if (! FileScan::preCodeGen(generator,externalInputs,pulledNewInputs))
     return NULL;

@@ -276,6 +276,9 @@ public:
   const ValueIdList & getEndKeyValues() const
                                                  { return endKeyValues_; }
 
+  void setBeginKeyValue(Int32 index, ValueId x);
+  void setEndKeyValue(Int32 index, ValueId x);
+
   // -----------------------------------------------------------------------
   // Method for checking whether two key values are the same and both point
   // at the same partition.

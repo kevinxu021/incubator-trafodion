@@ -506,6 +506,8 @@ public:
   virtual ItemExpr * copyTopNode(ItemExpr *derivedNode = NULL,
 				 CollHeap* outHeap = 0);
 
+  ItemExpr * cloneTopNode(CollHeap* outHeap);
+
   // can this base column be calculated from these values/group attributes
   virtual NABoolean isCovered(const ValueIdSet& newExternalInputs,
 			      const GroupAttributes& newRelExprAnchorGA,
@@ -902,6 +904,8 @@ public:
   virtual NABoolean duplicateMatch(const ItemExpr & other) const;
   virtual ItemExpr * copyTopNode(ItemExpr *derivedNode = NULL,
 				 CollHeap* outHeap = 0);
+
+  ItemExpr * cloneTopNode(CollHeap* outHeap);
 
   // get a printable string that identifies the operator
   const NAString getText() const;

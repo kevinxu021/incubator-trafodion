@@ -2785,6 +2785,19 @@ void SearchKey::computeFullKeyPredicates(ValueIdSet& predicates)
   }
 }
 
+void SearchKey::setBeginKeyValue(Int32 index, ValueId x) 
+{ 
+   CMPASSERT(index >= 0 && index < getBeginKeyValues().entries());
+   beginKeyValues_[index] = x; 
+}
+
+void SearchKey::setEndKeyValue(Int32 index, ValueId x) 
+{ 
+   CMPASSERT(index >= 0 && index < getBeginKeyValues().entries());
+   endKeyValues_[index] = x; 
+}
+
+
 // ---------------------------------------------------------------------------
 // Take a set of predicates and make one or more HBase search keys from it.
 // Parameters are the same as for HbaseSearchKey constructor, with the

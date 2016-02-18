@@ -848,7 +848,8 @@ public:
   // process min max keys
   virtual void processMinMaxKeys(Generator* generator, 
                                  ValueIdSet& pulledNewInputs, 
-                                 ValueIdSet& availableValues);
+                                 ValueIdSet& availableValues,
+                                 NABoolean updateSearchKeyOnly = FALSE);
 
   short codeGenForHive(Generator*);
   short genForTextAndSeq(Generator * generator,
