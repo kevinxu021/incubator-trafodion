@@ -734,14 +734,13 @@ char * FileScan::genExplodedHivePartKeyVals(Generator *generator,
       NABoolean dummy;
       ConstValue *cv = valList[pc].getItemExpr()->castToConstValue(dummy);
       GenAssert(cv, "Hive part col constant not found");
+      GenAssert(!dummy, "Negate not allowed in part col const");
       const NAType &srcType = cv->getValueId().getType();
       int srcNullIndOffset;
       int srcVcLenOffset;
       int srcDataOffset;
       Attributes *attr = partCols->getAttr(pc);
       const char *src = static_cast<char *>(cv->getConstValue());
-
-      GenAssert(!dummy, "Negate not allowed in part col const");
 
       // get the data layout of the binary buffer in the constant value
       cv->getOffsetsInBuffer(srcNullIndOffset, srcVcLenOffset, srcDataOffset);
@@ -879,6 +878,8 @@ short FileScan::codeGenForHive(Generator * generator)
             neededHdfsVals.insert(allHdfsVals[i]);
             projectExprOnlyVals.insert(allHdfsVals[i]);
           }
+        // else the column is used neither in SELECT nor WHERE
+        // and convertSkipList[i] remains at 0
       }
     else
       {
@@ -905,7 +906,7 @@ short FileScan::codeGenForHive(Generator * generator)
                 numVirtColsUsed++;
               }
           }
-        convertSkipList[i] = 0; 
+        // convertSkipList[i] remains at 0
       }
   }
 

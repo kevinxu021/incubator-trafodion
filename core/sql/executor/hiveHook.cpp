@@ -262,6 +262,9 @@ struct hive_sd_desc* populateSDs(HiveMetaData *md, Int32 mainSdID,
 
   size_t foundB;
 
+  // The first SD is found in the text right after "sd:StorageDescriptor(".
+  // This is followed by optional additional SDs, each starting with "Partition("
+
   while (findAToken(md, tblStr, pos, startStringForSD, 
                     "getTableDesc::sd:StorageDescriptor/Partition(###", FALSE))
     {
@@ -373,6 +376,8 @@ NABoolean hive_sd_desc::sdsAreCompatible(HiveMetaData *md,
 {
   const char *errItem = NULL;
   const char *errText = NULL;
+  NABoolean isTextFile = partnDesc->isTextFile();
+  NABoolean isSequenceFile = partnDesc->isSequenceFile();
 
   if (buckets_ != partnDesc->buckets_)
     {
@@ -389,12 +394,14 @@ NABoolean hive_sd_desc::sdsAreCompatible(HiveMetaData *md,
       errItem = "output format";
       errText = partnDesc->outputFormat_;
     }
-  else if (fieldTerminator_ != partnDesc->fieldTerminator_)
+  else if ((isTextFile || isSequenceFile) &&
+           fieldTerminator_ != partnDesc->fieldTerminator_)
     {
       errItem = "field terminator";
       errText = " ";
     }
-  else if (recordTerminator_ != partnDesc->recordTerminator_)
+  else if (isTextFile &&
+           recordTerminator_ != partnDesc->recordTerminator_)
     {
       errItem = "record terminator";
       errText = " ";

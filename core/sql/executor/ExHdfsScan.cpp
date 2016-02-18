@@ -146,7 +146,7 @@ ExHdfsScanTcb::ExHdfsScanTcb(
                                                       hdfsScanTdb.virtColsRowLength_,
                                                       space);
       error = virtColsBuffer_->getFreeTuple(virtColTupp_);
-      ex_assert((error == 0), "get_free_tuple cannot hold a row.");
+      ex_assert((error == 0), "get_free_tuple cannot hold a part col row.");
       ex_assert(hdfsScanTdb.virtColsRowLength_ == sizeof(struct ComTdbHdfsVirtCols),
                 "Inconsistency in virt col length");
       virtColData_ = reinterpret_cast<struct ComTdbHdfsVirtCols*>(

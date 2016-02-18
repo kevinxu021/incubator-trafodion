@@ -2804,6 +2804,12 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
           !partAndVirtColPreds_.isEmpty());
 }
 
+// Evaluate compile time partition elimination expressions and remove
+// partitions that fail the compile time test. Also, compute the value
+// of the partition columns in exploded form, to be used at runtime
+// for runtime partition elimination. Return the number of partitions
+// left after compile time partition elimination.
+
 int HivePartitionAndBucketKey::computeActivePartitions()
 {
   if (hivePartColList_.isEmpty())

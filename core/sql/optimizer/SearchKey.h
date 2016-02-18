@@ -921,7 +921,7 @@ public:
   const ValueIdList &getBucketCols() const       { return hiveBucketColList_; }
   const ValueIdSet &getCompileTimePartColPreds() const
                                            { return compileTimePartColPreds_; }
-  const ValueIdSet &getPartAndVirtColPreds() const
+  const ValueIdSet &getPartAndVirtColPreds() const // run time part elim preds
                                                { return partAndVirtColPreds_; }
   const ValueIdSet &getBucketColPreds() const       { return bucketColPreds_; }
 

@@ -3733,7 +3733,13 @@ static NABoolean createNAColumns(struct hive_column_desc* hcolumn /*IN*/,
 
     }
 
-   // Add virtual Hive columns
+   // Add virtual Hive columns:
+
+   // INPUT__FILE__NAME            char(1024 bytes) character set utf8
+   // BLOCK__OFFSET__INSIDE__FILE  largeint
+   // INPUT__RANGE__NUMBER         integer
+   // ROW__NUMBER__IN__RANGE       largeint
+
    for (int v=0; v<4; v++)
      {
        const char *virtColName = NULL;
