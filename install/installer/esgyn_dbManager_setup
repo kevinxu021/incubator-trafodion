@@ -368,6 +368,13 @@ zooKeeperNodes="tsd.storage.hbase.zk_quorum = $ZOOKEEPER_NODES"
 sudo sed -i -e "s/tsd.storage.hbase.zk.quorum = localhost:2181/$zooKeeperNodes/g" $OPENTSDB_CONFIG
 sudo sed -i -e "s@TIMEZONE_NAME@$TIME_ZONE@g" $OPENTSDB_CONFIG
 
+if [[ $HADOOP_TYPE == "hortonworks" ]]; then
+   oldHbaseRoot="tsd.storage.hbase.zk_basedir = /hbase"
+   hbaseRoot="tsd.storage.hbase.zk_basedir = /hbase-unsecure"
+
+   sudo sed -i -e "s#$oldHbaseRoot#$hbaseRoot#g" $OPENTSDB_CONFIG
+fi
+
 if [[ $node_count -ne "1" ]]; then
    sudo su $TRAF_USER --command "$TRAF_PDCP $OPENTSDB_CONFIG $OPENTSDB_CONFIG"
 fi
