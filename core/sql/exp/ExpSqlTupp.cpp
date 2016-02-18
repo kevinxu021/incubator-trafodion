@@ -39,6 +39,7 @@
 
 #include "ComPackDefs.h"
 #include "ExpSqlTupp.h"
+#include "str.h"
 
 tupp::tupp()			// constructor
 {
@@ -87,7 +88,7 @@ tupp_descriptor::tupp_descriptor()
   init();
 };
 
-
+#ifdef _DEBUG
 void tupp::display()
 {
   char * dataPointer = getDataPointer();
@@ -96,4 +97,4 @@ void tupp::display()
   printBrief(dataPointer, keyLen);
 
 }
-
+#endif
