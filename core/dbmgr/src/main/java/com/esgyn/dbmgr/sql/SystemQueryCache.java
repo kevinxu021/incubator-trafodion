@@ -40,6 +40,9 @@ public class SystemQueryCache {
 	public static final String SELECT_ROUTINE_ATTRIBUTES = "SELECT_ROUTINE_ATTRIBUTES";
 	public static final String SELECT_PROCDURES_IN_SCHEMA = "SELECT_PROCDURES_IN_SCHEMA";
 	public static final String SELECT_UDFS_IN_SCHEMA = "SELECT_UDFS_IN_SCHEMA";
+	public static final String GET_TABLE_USAGE = "GET_TABLE_USAGE";
+	public static final String GET_VIEW_USAGE = "GET_VIEW_USAGE";
+	public static final String GET_ROUTINE_USAGE = "GET_ROUTINE_USAGE";
 
 	public static final String SELECT_REPO_QUERIES = "SELECT_REPO_QUERIES";
 	public static final String SELECT_REPO_QUERY_DETAIL = "SELECT_REPO_QUERY_DETAIL";

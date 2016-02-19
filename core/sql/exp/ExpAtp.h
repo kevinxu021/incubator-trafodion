@@ -127,11 +127,11 @@ class SQLEXP_LIB_FUNC  atp_struct
 
   // The passed-in cri will be used if it is not NULL. Otherwise
   // the cri associated with the atp is used.
-  NA_EIDPROC 
+  NA_EIDPROC
   void display(const char* title = "", ex_cri_desc* cri = NULL);
-
+  //
   // print the content of a data field, based on the data type dt
-  NA_EIDPROC 
+  NA_EIDPROC
   void print(char* title, Int16 dt, char* ptr, UInt32 len);
   //---------------------------------------------
    

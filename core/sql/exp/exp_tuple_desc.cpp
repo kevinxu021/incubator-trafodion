@@ -71,7 +71,7 @@ ExpTupleDesc::ExpTupleDesc(UInt32 num_attrs,
       attrs_ = 0;
   
 #ifndef _DEBUG
-        if (tdescF == LONG_FORMAT)
+      if (tdescF == LONG_FORMAT)
 #endif
 	{
 	  // allocate an array of num_attrs Attributes*. This array follows
@@ -971,7 +971,7 @@ void ExpTupleDesc::display(const char* title)
 {
    if (title)
       cout << title;
-   else 
+   else
       cout << "ExpTupleDesc::display()";
 
    cout << endl;
@@ -986,3 +986,4 @@ void ExpTupleDesc::display(const char* title)
        cout << j << "th attr: dt=" << dt << ", len=" << len << endl;
    }
 }
+

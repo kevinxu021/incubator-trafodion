@@ -621,53 +621,153 @@ public class DatabaseResource {
 	@Produces("application/json")
 	public SqlObjectListResult getObjectUsage(@QueryParam("type") String objectType,
 			@QueryParam("objectName") String objectName, @QueryParam("objectID") String objectID,
-			@QueryParam("schemaName") String schemaName,
-			@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
-					throws EsgynDBMgrException {
+			@QueryParam("schemaName") String schemaName, @Context HttpServletRequest servletRequest,
+			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+		switch (objectType) {
+		case "library":
+			return getLibraryUsage(objectType, objectName, objectID, schemaName);
+		case "table":
+			return getTableUsage(objectType, objectName, objectID, schemaName);
+		case "view":
+			return getViewUsage(objectType, objectName, objectID, schemaName);
+		case "procedure":
+			return getFunctionUsage(objectType, objectName, objectID, schemaName);
+		default:
+			throw new EsgynDBMgrException("Usage information is not supported for this object type : " + objectType);
+		}
+	}
+
+	private SqlObjectListResult getTableUsage(String objectType, String objectName, String objectID, String schemaName)
+			throws EsgynDBMgrException {
 		PreparedStatement pstmt = null;
 		Connection connection = null;
 		try {
-			String queryText = "";
 			connection = JdbcHelper.getInstance().getAdminConnection();
-			if (objectType.toLowerCase().equals("library")) {
-				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LIBRARY_USAGE),
-						InternalForm(schemaName), InternalForm(objectName));
-				pstmt = connection
-						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LIBRARY_USAGE));
-				pstmt.setString(1, catalogName);
-				pstmt.setString(2, InternalForm(schemaName));
-				pstmt.setString(3, InternalForm(objectName));
-			} else {
-				queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS),
-						InternalForm(schemaName), InternalForm(objectName));
-				pstmt = connection
-						.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_COLUMNS));
-				pstmt.setString(1, InternalForm(schemaName));
-				pstmt.setString(2, InternalForm(objectName));
-			}
-
-			// TabularResult result =
-			// QueryResource.executeAdminSQLQuery(queryText);
+			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.GET_TABLE_USAGE),
+					ExternalForm(schemaName) + "." + ExternalForm(objectName));
+			pstmt = connection.prepareStatement(queryText);
 			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
 
 			return sqlResult;
 		} catch (Exception ex) {
-			_LOG.error("Failed to fetch list of columns for " + objectName + " : " + ex.getMessage());
+			_LOG.error("Failed to fetch usage information for table " + objectName + " : " + ex.getMessage());
 			throw new EsgynDBMgrException(ex.getMessage());
 		} finally {
 			if (pstmt != null) {
 				try {
 					pstmt.close();
 				} catch (SQLException e) {
-
 				}
 			}
 			if (connection != null) {
 				try {
 					connection.close();
 				} catch (Exception ex) {
+				}
+			}
+		}
+	}
 
+	private SqlObjectListResult getViewUsage(String objectType, String objectName, String objectID, String schemaName)
+			throws EsgynDBMgrException {
+		PreparedStatement pstmt = null;
+		Connection connection = null;
+		try {
+			connection = JdbcHelper.getInstance().getAdminConnection();
+			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.GET_VIEW_USAGE),
+					ExternalForm(schemaName) + "." + ExternalForm(objectName));
+			pstmt = connection.prepareStatement(queryText);
+			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
+			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
+
+			return sqlResult;
+		} catch (Exception ex) {
+			_LOG.error("Failed to fetch usage information for view " + objectName + " : " + ex.getMessage());
+			throw new EsgynDBMgrException(ex.getMessage());
+		} finally {
+			if (pstmt != null) {
+				try {
+					pstmt.close();
+				} catch (SQLException e) {
+				}
+			}
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (Exception ex) {
+				}
+			}
+		}
+	}
+
+	private SqlObjectListResult getLibraryUsage(String objectType, String objectName, String objectID,
+			String schemaName) throws EsgynDBMgrException {
+		PreparedStatement pstmt = null;
+		Connection connection = null;
+		try {
+
+			connection = JdbcHelper.getInstance().getAdminConnection();
+			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LIBRARY_USAGE),
+					InternalForm(schemaName), InternalForm(objectName));
+			pstmt = connection.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_LIBRARY_USAGE));
+			pstmt.setString(1, catalogName);
+			pstmt.setString(2, InternalForm(schemaName));
+			pstmt.setString(3, InternalForm(objectName));
+			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
+			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
+
+			return sqlResult;
+		} catch (Exception ex) {
+			_LOG.error("Failed to fetch usage information for library " + objectName + " : " + ex.getMessage());
+			throw new EsgynDBMgrException(ex.getMessage());
+		} finally {
+			if (pstmt != null) {
+				try {
+					pstmt.close();
+				} catch (SQLException e) {
+				}
+			}
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (Exception ex) {
+				}
+			}
+		}
+	}
+
+	private SqlObjectListResult getFunctionUsage(String objectType, String objectName, String objectID,
+			String schemaName) throws EsgynDBMgrException {
+		PreparedStatement pstmt = null;
+		Connection connection = null;
+		try {
+			long objectIDLong = Long.parseLong(objectID.trim());
+			connection = JdbcHelper.getInstance().getAdminConnection();
+			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.GET_ROUTINE_USAGE),
+					objectID);
+			pstmt = connection.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.GET_ROUTINE_USAGE));
+			pstmt.setLong(1, objectIDLong);
+
+			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
+			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
+
+			return sqlResult;
+		} catch (Exception ex) {
+			_LOG.error(
+					"Failed to fetch usage information for " + objectType + " " + objectName + " : " + ex.getMessage());
+			throw new EsgynDBMgrException(ex.getMessage());
+		} finally {
+			if (pstmt != null) {
+				try {
+					pstmt.close();
+				} catch (SQLException e) {
+				}
+			}
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (Exception ex) {
 				}
 			}
 		}
