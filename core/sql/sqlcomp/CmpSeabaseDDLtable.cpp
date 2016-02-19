@@ -2016,19 +2016,6 @@ short CmpSeabaseDDL::createSeabaseTable2(
   NAList<HbaseCreateOption*> hbaseCreateOptions;
   NAString hco;
 
-  if ((isMonarch) &&
-      ((createTableNode->getHbaseOptionsClause()) ||
-       (numSplits > 0)))
-    {
-      // these options cannot be specified for a Monarch table.
-      *CmpCommon::diags() << DgSqlCode(-3242)
-                          << DgString0("Hbase options or salt cannot be specified for a Monarch table.");
-
-      deallocEHI(ehi);
-      processReturn();
-      return -1; 
-    }
-
   short retVal = setupHbaseOptions(createTableNode->getHbaseOptionsClause(), 
                                    numSplits, extTableName, 
                                    hbaseCreateOptions, hco);
@@ -2230,7 +2217,10 @@ short CmpSeabaseDDL::createSeabaseTable2(
             monarchCols.insert(hbs);
           }
         
-        retcode = createMonarchTable(ehi, &hbaseTable, monarchCols);
+        retcode = createMonarchTable(ehi, &hbaseTable, MonarchTableType::RANGE_PARTITIONED, monarchCols,
+                                 &hbaseCreateOptions, 
+                                 numSplits, keyLength,
+                                 encodedKeysBuffer);
       }
     else
       retcode = createHbaseTable(ehi, &hbaseTable, trafColFamVec,

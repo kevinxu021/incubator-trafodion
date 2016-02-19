@@ -104,6 +104,15 @@ class ExpHbaseInterface : public NABasicObject
   virtual Lng32 create(HbaseStr &tblName,
                        const NAList<HbaseStr> &cols) = 0;
 
+  virtual Lng32 create(HbaseStr &tblName,
+                                    int tableType,
+                                    const NAList<HbaseStr> &cols,
+                                    NAText * monarchCreateOptionsArray,
+                                    int numSplits, int keyLength,
+                                    const char ** splitValues,
+                                    NABoolean noXn,
+                                    NABoolean isMVCC) = 0;
+
   virtual Lng32 alter(HbaseStr &tblName,
 		      NAText * hbaseCreateOptionsArray,
                       NABoolean noXn) =0;
@@ -459,6 +468,15 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 
   virtual Lng32 create(HbaseStr &tblName,
                        const NAList<HbaseStr> &cols);
+
+  virtual Lng32 create(HbaseStr &tblName,
+                                    int tableType,
+                                    const NAList<HbaseStr> &cols,
+                                    NAText * monarchCreateOptionsArray,
+                                    int numSplits, int keyLength,
+                                    const char ** splitValues,
+                                    NABoolean noXn,
+                                    NABoolean isMVCC);
 
   virtual Lng32 alter(HbaseStr &tblName,
 		      NAText * hbaseCreateOptionsArray,

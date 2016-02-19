@@ -32,81 +32,28 @@ import java.util.NavigableMap;
 import java.util.Map;
 import java.util.Arrays;
 import java.net.URI;
+import java.util.HashMap;
 import java.net.URISyntaxException;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.Logger;
-/*
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.MTableDescriptor;
-import org.apache.hadoop.hbase.MColumnDescriptor;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.NamespaceDescriptor;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.transactional.RMInterface;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.FSUtils;
-import org.apache.hadoop.hbase.util.HFileArchiveUtil;
-import org.apache.hadoop.hbase.util.Pair;
-
-*/ 
 import org.apache.hadoop.hbase.util.PoolMap;
 import org.apache.hadoop.hbase.util.PoolMap.PoolType;
-/*
-import org.apache.hadoop.hbase.security.access.AccessController;
-import org.apache.hadoop.hbase.security.access.UserPermission;
-import org.apache.hadoop.hbase.security.access.Permission;
-import org.apache.hadoop.hbase.MasterNotRunningException;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-import org.apache.hadoop.hbase.snapshot.SnapshotCreationException;
-import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos.SnapshotDescription;
-import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos.SnapshotDescription.Type;
-//import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 
-import org.apache.hadoop.hbase.io.compress.Compression.Algorithm;
-//import org.apache.hadoop.hbase.io.hfile.Compression.Algorithm;
-import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
-import org.apache.hadoop.hbase.regionserver.BloomType; 
-//import org.apache.hadoop.hbase.regionserver.StoreFile.BloomType ;
-import org.apache.hadoop.hbase.regionserver.KeyPrefixRegionSplitPolicy;
-import org.apache.hadoop.hbase.client.Durability;
-*/
 import org.trafodion.sql.MTableClient;
-/*
-import org.apache.hadoop.hbase.ServerLoad;
-import org.apache.hadoop.hbase.RegionLoad;
-import org.apache.hadoop.hbase.client.MTable;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.ClusterStatus;
-import org.apache.hadoop.hbase.ServerName;
-*/
 import java.util.concurrent.ExecutionException;
 import java.util.Set;
 import java.util.TreeSet;
-/*
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.permission.AclEntry;
-import org.apache.hadoop.hbase.io.hfile.CacheConfig;
-import org.apache.hadoop.hbase.io.hfile.HFile;
-import org.apache.hadoop.hbase.io.hfile.HFileScanner;
-import org.apache.hadoop.hbase.io.hfile.FixedFileTrailer;
-import org.apache.hadoop.hbase.regionserver.StoreFileInfo;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.DtmConst;
-import org.apache.commons.codec.binary.Hex;
-*/
-import com.google.protobuf.ServiceException;
 
 import io.ampool.conf.Constants;
 import io.ampool.monarch.table.*;
 import io.ampool.monarch.table.exceptions.*;
 import io.ampool.monarch.table.client.*;
 
-public class MonarchClient {
+import org.trafodion.sql.MTableClient;
 
+public class MonarchClient {
+    static final int RANGE_PARTITIONED = 0;
+    static final int HASH_PARTITIONED = 1;
     static Logger logger = Logger.getLogger(MonarchClient.class.getName());
     public static MConfiguration config = MConfiguration.create();
     String lastError;
@@ -242,14 +189,14 @@ public class MonarchClient {
             String colName;
             MTableDescriptor desc = new MTableDescriptor();
             for (int i = 0; i < colNames.length ; i++) {
-               /* 
-                if (isMVCC)
-                  colDesc.setMaxVersions(DtmConst.MVCC_MAX_VERSION);
-                else
-                  colDesc.setMaxVersions(DtmConst.SSCC_MAX_VERSION);
-               */
                desc.addColumn((byte[])colNames[i]);
             }
+/* 
+            if (isMVCC)
+               desc.setMaxVersions(DtmConst.MVCC_MAX_VERSION);
+            else
+               desc.setMaxVersions(DtmConst.SSCC_MAX_VERSION);
+*/
 /*
             MColumnDescriptor metaColDesc = new MColumnDescriptor(DtmConst.TRANSACTION_META_FAMILY);
             if (isMVCC)
@@ -481,82 +428,61 @@ public class MonarchClient {
 
        return returnStatus;
    }
+*/
 
-
-   public boolean createk(String tblName, Object[] tableOptions,
-       Object[]  beginEndKeys, long transID, int numSplits, int keyLength,
+   public boolean createk(String tblName, int tableType, Object[] colNames, Object[] tableOptions,
+       Object[]  beginEndKeys, long transID, int numSplits, int keyLength, 
        boolean isMVCC)
-       throws IOException, MasterNotRunningException {
-            if (logger.isDebugEnabled()) logger.debug("MonarchClient.createk(" + tblName + ") called.");
-            String trueStr = "TRUE";
-            cleanupCache(tblName);
-            MTableDescriptor desc = new MTableDescriptor(tblName);
-
-            int defaultVersionsValue = 0;
-            if (isMVCC)
-                defaultVersionsValue = DtmConst.MVCC_MAX_VERSION;
-            else
-                defaultVersionsValue = DtmConst.SSCC_MAX_VERSION;
-
-            // column family names are space delimited list of names.
-            // extract all family names and add to table descriptor.
-            // All other default and specified options remain the same for all families.
-            String colFamsStr = (String)tableOptions[HBASE_NAME];
-            String[] colFamsArr = colFamsStr.split("\\s+"); 
-
-            for (int i = 0; i < colFamsArr.length; i++){            
-                String colFam = colFamsArr[i];
-
-                MColumnDescriptor colDesc = new MColumnDescriptor(colFam);
-
-                // change the descriptors based on the tableOptions; 
-                setDescriptors(tableOptions,desc ,colDesc , defaultVersionsValue);
-                
-                desc.addFamily(colDesc);
+       throws IOException
+   {
+      if (logger.isDebugEnabled()) logger.debug("MonarchClient.createk(" + tblName + ") called.");
+      cleanupCache(tblName);
+      MTableDescriptor desc = new MTableDescriptor();
+      String colName;
+      for (int i = 0; i < colNames.length ; i++) {
+         desc.addColumn((byte[])colNames[i]);
+      }
+/*
+      if (isMVCC)
+         desc.setMaxVersions(DtmConst.MVCC_MAX_DATA_VERSION);
+      else
+         desc.setMaxVersions(DtmConst.SSCC_MAX_DATA_VERSION);
+*/
+      if (tableType == RANGE_PARTITIONED) {
+         desc.setTableType(MTableType.ORDERED_VERSIONED);
+         HashMap<Integer, Pair<byte[], byte[]>> keySpace = new HashMap();
+         byte[] startKey = null;
+         byte[] endKey;
+         int i = 0;
+         if (beginEndKeys != null  && beginEndKeys.length != 0) {
+            for (i = 0; i < beginEndKeys.length; i++) {
+                if (i == 0) 
+                   startKey = new byte[keyLength+1];
+                endKey = (byte[])beginEndKeys[i];
+                keySpace.put(Integer.valueOf(i), new Pair(startKey, endKey));
+                startKey = new byte[keyLength+1];
+                System.arraycopy(endKey, 0, startKey, 0, endKey.length);
             }
-
-            MColumnDescriptor metaColDesc = new MColumnDescriptor(DtmConst.TRANSACTION_META_FAMILY);
-            if (isMVCC)
-              metaColDesc.setMaxVersions(DtmConst.MVCC_MAX_DATA_VERSION);
-            else
-              metaColDesc.setMaxVersions(DtmConst.SSCC_MAX_DATA_VERSION);
-            metaColDesc.setInMemory(true);
-            desc.addFamily(metaColDesc);
-            HBaseAdmin admin = new HBaseAdmin(config);
-
-            try {
-               if (beginEndKeys != null && beginEndKeys.length > 0)
-               {
-                  byte[][] keys = new byte[beginEndKeys.length][];
-                  for (int i = 0; i < beginEndKeys.length; i++){
-                     keys[i] = (byte[])beginEndKeys[i]; 
-                     if (logger.isDebugEnabled()) logger.debug("MonarchClient.createk key #" + i + "value" + keys[i] + ") called.");
-                  }
-                  if (transID != 0) {
-                     table.createTable(desc, keys, numSplits, keyLength, transID);
-                     if (logger.isDebugEnabled()) logger.debug("MonarchClient.createk beginEndKeys(" + beginEndKeys + ") called.");
-                  } else {
-                     admin.createTable(desc, keys);
-                  }
-               }
-               else {
-                  if (transID != 0) {
-                     table.createTable(desc, null, numSplits, keyLength, transID);
-                  } else {
-                     admin.createTable(desc);
-                  }
-               }
-            }
-            catch (IOException e)
-            {
-               if (logger.isDebugEnabled()) logger.debug("MonarchClient.createk : createTable error" + e);
-               throw e;
-            }
-            admin.close();
-        return true;
-    }
-
-    public boolean registerTruncateOnAbort(String tblName, long transID)
+            endKey = new byte[keyLength];
+            Arrays.fill(endKey, (byte)0xff); 
+            keySpace.put(Integer.valueOf(i), new Pair(startKey, endKey));
+            desc.setKeySpace(keySpace);
+         } 
+      }
+      else {
+         desc.setTableType(MTableType.UNORDERED);
+         desc.setTotalNumOfSplits(numSplits);
+      }
+/* 
+      if (transID != 0) 
+         admin.createTable(tblName, desc, transID);
+      else
+*/
+         admin.createTable(tblName, desc);
+      return true;
+   }
+/*
+   public boolean registerTruncateOnAbort(String tblName, long transID)
         throws MasterNotRunningException, IOException {
 
         try {
@@ -878,7 +804,7 @@ public class MonarchClient {
            cleanupCache(mTable.getTableName());
         else
         {
-           if (mTableClientsInUse.remove(mTable.getTableName(), mTable))
+           if (mTableClientsInUse.removeValue(mTable.getTableName(), mTable))
               mTableClientsFree.put(mTable.getTableName(), mTable);
            else
               if (logger.isDebugEnabled()) 
@@ -1262,37 +1188,24 @@ public class MonarchClient {
       if (logger.isDebugEnabled()) logger.debug("Total estimated row count for " + tblName + " = " + rc[0]);
       return true;
     }
+*/
 
-
-    //This method returns node names where Hbase Table regions reside
+    //This method returns node names where Monarch Table reside
     public boolean getRegionsNodeName(String tblName, String[] nodeNames)
                    throws IOException
     {
       if (logger.isDebugEnabled()) 
         logger.debug("MonarchClient.getRegionsNodeName(" + tblName + ") called.");
-
-      HRegionInfo regInfo = null;
-
-
-      MTable htbl = new MTable(config, tblName);
-      if (logger.isDebugEnabled())
-         logger.debug("after MTable call in getRegionsNodeName");
-
       try {
-        NavigableMap<HRegionInfo, ServerName> locations = htbl.getRegionLocations();
-        if (logger.isDebugEnabled())
-           logger.debug("after mTable.getRegionLocations call in getRegionsNodeName");
 
+        MTable table = MClientCacheFactory.getAnyInstance().getTable(tblName);
+        java.util.List<MServerLocation> locations = table.getMTableLocationInfo().getAllMTableLocations();
       
         String hostName;
         int regCount = 0;
 
-        for (Map.Entry<HRegionInfo, ServerName> entry: locations.entrySet()) {
-          if (logger.isDebugEnabled()) logger.debug("Entered for loop in getRegionsNodeName");
-          regInfo = entry.getKey();
-          hostName = entry.getValue().getHostname();
-          nodeNames[regCount] = hostName;
-          if (logger.isDebugEnabled()) logger.debug("Hostname for region " + regCount + " is " + hostName);
+        for (MServerLocation entry: locations) {
+          nodeNames[regCount] = entry.getHostName() + ':' + entry.getPort();
           regCount++;
         }
       } catch (Exception ie) {
@@ -1304,7 +1217,6 @@ public class MonarchClient {
       return true;
     }
 
-*/
 
 /*
     This method returns index levels and block size of Hbase Table.

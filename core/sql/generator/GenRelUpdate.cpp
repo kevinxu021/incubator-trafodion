@@ -132,6 +132,7 @@ void GenericUpdate::setTransactionRequired(Generator *generator,
   {
     // Internal refresh statement and table is non-audited.
     if (!getTableDesc()->getNATable()->isAnMV()  &&
+         !getTableDesc()->getNATable()->isMonarch() &&
          getTableName().getSpecialType() != ExtendedQualName::IUD_LOG_TABLE &&
          getTableName().getSpecialType() != ExtendedQualName::GHOST_IUD_LOG_TABLE)
     {

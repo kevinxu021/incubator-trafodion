@@ -227,9 +227,9 @@ MC_RetCode MonarchClient_JNI::init()
     JavaMethods_[JM_REL_MTC    ].jm_signature = "(Lorg/trafodion/sql/MTableClient;)V";
     JavaMethods_[JM_CREATE     ].jm_name      = "create";
     JavaMethods_[JM_CREATE     ].jm_signature = "(Ljava/lang/String;[Ljava/lang/Object;Z)Z";
-/*
     JavaMethods_[JM_CREATEK    ].jm_name      = "createk";
-    JavaMethods_[JM_CREATEK    ].jm_signature = "(Ljava/lang/String;[Ljava/lang/Object;[Ljava/lang/Object;JIIZ)Z";
+    JavaMethods_[JM_CREATEK    ].jm_signature = "(Ljava/lang/String;I[Ljava/lang/Object;[Ljava/lang/Object;[Ljava/lang/Object;JIIZ)Z";
+/*
     JavaMethods_[JM_TRUNCABORT ].jm_name      = "registerTruncateOnAbort";
     JavaMethods_[JM_TRUNCABORT ].jm_signature = "(Ljava/lang/String;J)Z";
     JavaMethods_[JM_ALTER      ].jm_name      = "alter";
@@ -286,9 +286,9 @@ MC_RetCode MonarchClient_JNI::init()
     JavaMethods_[JM_CREATE_COUNTER_TABLE ].jm_signature = "(Ljava/lang/String;Ljava/lang/String;)Z";
     JavaMethods_[JM_INCR_COUNTER         ].jm_name      = "incrCounter";
     JavaMethods_[JM_INCR_COUNTER         ].jm_signature = "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;J)J";
+*/
     JavaMethods_[JM_GET_REGN_NODES].jm_name      = "getRegionsNodeName";
     JavaMethods_[JM_GET_REGN_NODES].jm_signature = "(Ljava/lang/String;[Ljava/lang/String;)Z";
-*/
     JavaMethods_[JM_MC_DIRECT_INSERT_ROW].jm_name      = "insertRow";
     JavaMethods_[JM_MC_DIRECT_INSERT_ROW].jm_signature = "(JLjava/lang/String;ZZJ[BLjava/lang/Object;JZZ)Z";
     JavaMethods_[JM_MC_DIRECT_INSERT_ROWS].jm_name      = "insertRows";
@@ -594,11 +594,12 @@ MC_RetCode MonarchClient_JNI::create(const char* fileName, const LIST(HbaseStr) 
   return MC_OK;
 }
 
-/*
+
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
 MC_RetCode MonarchClient_JNI::create(const char* fileName, 
+                                    int tableType,  const NAList<HbaseStr> &cols,
                                     NAText* createOptionsArray,
                                     int numSplits, int keyLength,
                                     const char ** splitValues,
@@ -628,7 +629,16 @@ MC_RetCode MonarchClient_JNI::create(const char* fileName,
      getExceptionDetails();
      logError(CAT_SQL_HBASE, __FILE__, __LINE__);
      logError(CAT_SQL_HBASE, "MonarchClient_JNI::create()", getLastError());
-     jenv_->DeleteLocalRef(js_fileName); 
+     jenv_->PopLocalFrame(NULL);
+     return MC_ERROR_CREATE_PARAM;
+  }
+
+  jobjectArray j_cols = NULL;
+  j_cols = convertToByteArrayObjectArray(cols);
+  if (j_cols == NULL) {
+     getExceptionDetails();
+     logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+     logError(CAT_SQL_HBASE, "MonarchClient_JNI::create()", getLastError());
      jenv_->PopLocalFrame(NULL);
      return MC_ERROR_CREATE_PARAM;
   }
@@ -642,8 +652,6 @@ MC_RetCode MonarchClient_JNI::create(const char* fileName,
         getExceptionDetails();
         logError(CAT_SQL_HBASE, __FILE__, __LINE__);
         logError(CAT_SQL_HBASE, "MonarchClient_JNI::create()", getLastError());
-        jenv_->DeleteLocalRef(js_fileName); 
-        jenv_->DeleteLocalRef(j_opts);
         jenv_->PopLocalFrame(NULL);
         return MC_ERROR_CREATE_PARAM;
      }
@@ -651,16 +659,12 @@ MC_RetCode MonarchClient_JNI::create(const char* fileName,
   jlong j_tid = transID;
   jint j_numSplits = numSplits;
   jint j_keyLength = keyLength;
+  jint j_tableType = tableType;
 
   tsRecentJMFromJNI = JavaMethods_[JM_CREATEK].jm_full_name;
   jboolean j_isMVCC = isMVCC;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, 
-          JavaMethods_[JM_CREATEK].methodID, js_fileName, j_opts, j_keys, j_tid, j_numSplits, j_keyLength, j_isMVCC);
-
-  jenv_->DeleteLocalRef(js_fileName); 
-  jenv_->DeleteLocalRef(j_opts);
-  if (j_keys != NULL)
-     jenv_->DeleteLocalRef(j_keys);
+          JavaMethods_[JM_CREATEK].methodID, js_fileName, j_tableType, j_cols, j_opts, j_keys, j_tid, j_numSplits, j_keyLength, j_isMVCC);
 
   if (jenv_->ExceptionCheck())
   {
@@ -680,7 +684,7 @@ MC_RetCode MonarchClient_JNI::create(const char* fileName,
   jenv_->PopLocalFrame(NULL);
   return MC_OK;
 }
-
+/*
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
@@ -1988,7 +1992,7 @@ MTableClient_JNI *MonarchClient_JNI::startGets(NAHeap *heap,
   jenv_->PopLocalFrame(NULL);
   return mtc;
 }
-/*
+
 MC_RetCode MonarchClient_JNI::getRegionsNodeName(const char* tblName,
                                                 Int32 partns,
                                                 ARRAY(const char *)& nodeNames)
@@ -2034,9 +2038,6 @@ MC_RetCode MonarchClient_JNI::getRegionsNodeName(const char* tblName,
     jenv_->DeleteLocalRef(strObj);
   }
 
-  jenv_->DeleteLocalRef(jNodeNames);
-  jenv_->DeleteLocalRef(js_tblName);
-
   if (jenv_->ExceptionCheck())
   {
     getExceptionDetails();
@@ -2054,8 +2055,8 @@ MC_RetCode MonarchClient_JNI::getRegionsNodeName(const char* tblName,
   }
   jenv_->PopLocalFrame(NULL);
   return MC_OK;  // Table exists.
-
 }
+/*
 //////////////////////////////////////////////////////////////////////////////
 // Get Hbase Table information. Currently the following info is requested:
 // 1. index levels : This info is obtained from trailer block of Hfiles of randomly chosen region
@@ -3063,9 +3064,9 @@ MTC_RetCode MTableClient_JNI::init()
     JavaMethods_[JM_GET_NAME   ].jm_signature = "()Ljava/lang/String;";
     JavaMethods_[JM_GET_HTNAME ].jm_name      = "getMTableName";
     JavaMethods_[JM_GET_HTNAME ].jm_signature = "()Ljava/lang/String;";
-/*
     JavaMethods_[JM_GETENDKEYS ].jm_name      = "getEndKeys";
     JavaMethods_[JM_GETENDKEYS ].jm_signature = "()Lorg/trafodion/sql/ByteArrayList;";
+/*
     JavaMethods_[JM_FLUSHT     ].jm_name      = "flush";
     JavaMethods_[JM_FLUSHT     ].jm_signature = "()Z";
     JavaMethods_[JM_SET_WB_SIZE ].jm_name      = "setWriteBufferSize";
@@ -3077,10 +3078,8 @@ MTC_RetCode MTableClient_JNI::init()
     JavaMethods_[JM_FETCH_ROWS ].jm_signature = "()I";
     JavaMethods_[JM_COMPLETE_PUT ].jm_name      = "completeAsyncOperation";
     JavaMethods_[JM_COMPLETE_PUT ].jm_signature = "(I[Z)Z";
-/*
     JavaMethods_[JM_GETBEGINKEYS ].jm_name      = "getStartKeys";
     JavaMethods_[JM_GETBEGINKEYS ].jm_signature = "()Lorg/trafodion/sql/ByteArrayList;";
- */  
     rc = (MTC_RetCode)JavaObjectInterface::init(className, javaClass_, JavaMethods_, (Int32)JM_LAST, javaMethodsInitialized_);
     javaMethodsInitialized_ = TRUE;
     pthread_mutex_unlock(&javaMethodsInitMutex_);
@@ -3592,6 +3591,7 @@ MTC_RetCode MTableClient_JNI::coProcAggr(Int64 transID,
   jenv_->PopLocalFrame(NULL);
   return MTC_OK;
 }
+*/
 
 ByteArrayList* MTableClient_JNI::getBeginKeys()
 {
@@ -3638,7 +3638,7 @@ ByteArrayList* MTableClient_JNI::getKeys(Int32 funcIndex)
   return keys;
 
 }
-
+/*
 MTC_RetCode MTableClient_JNI::flushTable()
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "MTableClient_JNI::flushTable() called.");

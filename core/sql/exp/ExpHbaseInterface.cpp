@@ -546,8 +546,38 @@ Lng32 ExpHbaseInterface_JNI::create(HbaseStr &tblName,
   retCode_ = client_->create(tblName.val, hbaseCreateOptionsArray,
                              numSplits, keyLength, splitValues, transID,
                              isMVCC);
-  //close();
   if (retCode_ == HBC_OK)
+    return HBASE_ACCESS_SUCCESS;
+  else
+    return -HBASE_CREATE_ERROR;
+}
+
+//----------------------------------------------------------------------------
+Lng32 ExpHbaseInterface_JNI::create(HbaseStr &tblName,
+                                    int tableType,
+                                    const NAList<HbaseStr> &cols,
+				    NAText * monarchCreateOptionsArray,
+                                    int numSplits, int keyLength,
+                                    const char ** splitValues,
+                                    NABoolean noXn,
+                                    NABoolean isMVCC)
+{
+  if (mClient_ == NULL)
+  {
+    if (init(hbs_) != HBASE_ACCESS_SUCCESS)
+      return -HBASE_ACCESS_ERROR;
+  }
+  
+  Int64 transID;
+  if (noXn)
+    transID = 0;
+  else
+    transID = getTransactionIDFromContext();
+ 
+  retCode_ = mClient_->create(tblName.val, tableType, cols, monarchCreateOptionsArray,
+                             numSplits, keyLength, splitValues, transID,
+                             isMVCC);
+  if (retCode_ == MC_OK)
     return HBASE_ACCESS_SUCCESS;
   else
     return -HBASE_CREATE_ERROR;
@@ -1742,28 +1772,50 @@ Lng32 ExpHbaseInterface_JNI::revoke(
 
 ByteArrayList* ExpHbaseInterface_JNI::getRegionBeginKeys(const char* tblName)
 { 
+  ByteArrayList* bal = NULL;
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
+     mtc_ = mClient_->getMTableClient((NAHeap *)heap_, tblName, useTRex_, FALSE, hbs_);
+     if (mtc_ == NULL) {
+        retCode_ = MC_ERROR_GET_MTC_EXCEPTION;
+        return NULL;
+     }
+     bal = mtc_->getBeginKeys();
+     break;
+  default:
   htc_ = client_->getHTableClient((NAHeap *)heap_, tblName, useTRex_, FALSE, hbs_);
   if (htc_ == NULL)
   {
     retCode_ = HBC_ERROR_GET_HTC_EXCEPTION;
     return NULL;
   }
-
-   ByteArrayList* bal = htc_->getBeginKeys();
-   return bal;
+  bal = htc_->getBeginKeys();
+  }
+  return bal;
 }
 
 ByteArrayList* ExpHbaseInterface_JNI::getRegionEndKeys(const char* tblName)
 { 
+  ByteArrayList* bal = NULL;
+  switch (storageType_) {
+  case COM_STORAGE_MONARCH:
+     mtc_ = mClient_->getMTableClient((NAHeap *)heap_, tblName, useTRex_, FALSE, hbs_);
+     if (mtc_ == NULL) {
+        retCode_ = MC_ERROR_GET_MTC_EXCEPTION;
+        return NULL;
+     }
+     bal = mtc_->getEndKeys();
+     break;
+  default:
   htc_ = client_->getHTableClient((NAHeap *)heap_, tblName, useTRex_, FALSE, hbs_);
   if (htc_ == NULL)
   {
     retCode_ = HBC_ERROR_GET_HTC_EXCEPTION;
     return NULL;
   }
-
-   ByteArrayList* bal = htc_->getEndKeys();
-   return bal;
+  bal = htc_->getEndKeys();
+  } 
+  return bal;
 }
 
 Lng32 ExpHbaseInterface_JNI::getColVal(int colNo, BYTE *colVal,
@@ -2063,7 +2115,13 @@ Lng32 ExpHbaseInterface_JNI::getRegionsNodeName(const HbaseStr& tblName,
 {
   switch (storageType_) {
   case COM_STORAGE_MONARCH:
-     retCode_ =  HBASE_ACCESS_SUCCESS;
+     if (mClient_ == NULL) {
+       if (init(hbs_) != HBASE_ACCESS_SUCCESS)
+          return -HBASE_ACCESS_ERROR;
+     }
+     retCode_ = mClient_->getRegionsNodeName(tblName.val, partns, nodeNames);
+     if (retCode_ != MC_OK)
+        return -HBASE_ACCESS_ERROR;
      break;
   default:
   if (client_ == NULL)
@@ -2071,10 +2129,11 @@ Lng32 ExpHbaseInterface_JNI::getRegionsNodeName(const HbaseStr& tblName,
     if (init(hbs_) != HBASE_ACCESS_SUCCESS)
       return -HBASE_ACCESS_ERROR;
   }
-
   retCode_ = client_->getRegionsNodeName(tblName.val, partns, nodeNames);
+  if (retCode_ != HBC_OK)
+        return -HBASE_ACCESS_ERROR;
   }
-  return retCode_;
+  return HBASE_ACCESS_SUCCESS;
 }
 
 
@@ -2111,6 +2170,7 @@ Lng32 ExpHbaseInterface_JNI::getLatestSnapshot( const char * tabname, char *& sn
   retCode_ = client_->getLatestSnapshot(tabname, snapshotName, heap);
   return retCode_;
 }
+
 Lng32 ExpHbaseInterface_JNI::cleanSnpTmpLocation( const char * path)
 {
   if (client_ == NULL)

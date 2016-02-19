@@ -1781,7 +1781,10 @@ short ExeUtilGetMetadataInfo::codeGen(Generator * generator)
     {  "ALL",   "HBASE_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ },
     {  "SYSTEM",   "HBASE_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ },
     {  "EXTERNAL",   "HBASE_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::HBASE_OBJECTS_ },
-    {  "ALL",   "MONARCH_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_ }
+    {  "USER",   "MONARCH_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_ },
+    {  "ALL",   "MONARCH_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_ },
+    {  "SYSTEM",   "MONARCH_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_ },
+    {  "EXTERNAL",   "MONARCH_OBJECTS",     "",   "",     0,      0,        0,      0,      ComTdbExeUtilGetMetadataInfo::MONARCH_OBJECTS_ }
 
 //==================================================================================================================================
    // AUSStr   InfoType     IOFStr   ObjectType  Version MaxParts  GroupBy OrderBy QueryType

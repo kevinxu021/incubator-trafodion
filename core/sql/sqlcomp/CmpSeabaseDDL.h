@@ -510,9 +510,14 @@ class CmpSeabaseDDL
 			 NABoolean doRetry = TRUE);
 
   short createMonarchTable(ExpHbaseInterface *ehi, 
-                           HbaseStr *table,
-                           NAList<HbaseStr> &cols
-                           );
+                         HbaseStr *table,
+                         const int tableType,
+                         NAList<HbaseStr> &cols,
+                         NAList<HbaseCreateOption*> * inMonarchCreateOptions = NULL,
+                         const int numSplits = 0,
+                         const int keyLength = 0,
+                         char** encodedKeysBuffer = NULL,
+                         NABoolean doRetry = TRUE);
 
   short alterHbaseTable(ExpHbaseInterface *ehi,
                         HbaseStr *table,

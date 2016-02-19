@@ -2329,8 +2329,13 @@ short CmpSeabaseDDL::generateHbaseOptionsArray(
 
 short CmpSeabaseDDL::createMonarchTable(ExpHbaseInterface *ehi, 
                                         HbaseStr *table,
-                                        NAList<HbaseStr> &cols
-                                        )
+                                        const int tableType,
+                                        NAList<HbaseStr> &cols,
+                                        NAList<HbaseCreateOption*> * monarchCreateOptions,
+                                        const int numSplits,
+                                        const int keyLength,
+                                        char** encodedKeysBuffer,
+                                        NABoolean doRetry)
 {
   // TEMPTEMP Monarch
   //  return 0;
@@ -2361,11 +2366,24 @@ short CmpSeabaseDDL::createMonarchTable(ExpHbaseInterface *ehi,
   if (CmpCommon::getDefault(TRAF_TRANS_TYPE) == DF_SSCC)
     isMVCC = false;
 
-  retcode = ehi->create(*table,
-                        cols);
+  NABoolean noXn =
+    (CmpCommon::getDefault(DDL_TRANSACTIONS) == DF_OFF) ?  true : false;
+
+  NAText monarchCreateOptionsArray[HBASE_MAX_OPTIONS];
+  if (generateHbaseOptionsArray(monarchCreateOptionsArray,
+                                monarchCreateOptions) < 0) {
+      // diags already set             
+      return -1;
+  }
+  
+  retcode = ehi->create(*table, tableType, cols, monarchCreateOptionsArray,
+                        numSplits, keyLength,
+                        (const char **)encodedKeysBuffer,
+                        noXn,
+                        isMVCC);
 
   if (retcode < 0)
-    {
+  {
       *CmpCommon::diags() << DgSqlCode(-8448)
                           << DgString0((char*)"ExpHbaseInterface::create()")
                           << DgString1(getHbaseErrStr(-retcode))
@@ -2373,7 +2391,7 @@ short CmpSeabaseDDL::createMonarchTable(ExpHbaseInterface *ehi,
                           << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
       
       return -1;
-    }
+  }
   
   return 0;
 }

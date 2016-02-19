@@ -56,6 +56,11 @@
 #define MD_COL_CHARSET SQLCHARSETCODE_UTF8
 
 #define TEXTLEN 10000
+ 
+enum MonarchTableType {
+   RANGE_PARTITIONED = 0,
+   HASH_PARTITIONED
+};
 
 struct QString {
 public:

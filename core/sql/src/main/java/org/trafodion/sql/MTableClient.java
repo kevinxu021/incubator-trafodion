@@ -1218,14 +1218,14 @@ public class MTableClient {
            }
            return true;
    }
-/*
+
    public ByteArrayList getEndKeys() throws IOException {
        if (logger.isTraceEnabled()) logger.trace("Enter getEndKeys() " + tableName);
             ByteArrayList result = new ByteArrayList();
             if (table == null) {
                 return null;
             }
-            byte[][] htableResult = table.getEndKeys();
+            byte[][] htableResult = table.getMTableLocationInfo().getEndKeys();
 
             // transfer the MTable result to ByteArrayList
             for (int i=0; i<htableResult.length; i++ ) {
@@ -1240,13 +1240,13 @@ public class MTableClient {
             return result;
    }
 
-    public ByteArrayList getStartKeys() throws IOException {
-        if (logger.isTraceEnabled()) logger.trace("Enter getStartKeys() " + tableName);
-        ByteArrayList result = new ByteArrayList();
+   public ByteArrayList getStartKeys() throws IOException {
+       if (logger.isTraceEnabled()) logger.trace("Enter getStartKeys() " + tableName);
+       ByteArrayList result = new ByteArrayList();
         if (table == null) {
             return null;
         }
-        byte[][] htableResult = table.getStartKeys();
+        byte[][] htableResult = table.getMTableLocationInfo().getStartKeys();
 
         // transfer the MTable result to ByteArrayList
         for (int i=0; i<htableResult.length; i++ ) {
@@ -1260,7 +1260,7 @@ public class MTableClient {
         if (logger.isTraceEnabled()) logger.trace("Exit getStartKeys(), result size: " + result.getSize());
         return result;
     }
-*/
+
     private void cleanScan()
     {
         if (fetchType == GET_ROW || fetchType == BATCH_GET)

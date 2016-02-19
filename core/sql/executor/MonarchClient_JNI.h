@@ -231,12 +231,12 @@ public:
 
   // Get the error description.
   virtual char* getErrorText(MTC_RetCode errEnum);
-/*
+
   ByteArrayList* getBeginKeys();
   ByteArrayList* getEndKeys();
 
-  MTC_RetCode flushTable(); 
-*/
+  //MTC_RetCode flushTable(); 
+
   void setTableName(const char *tableName)
   {
     Int32 len = strlen(tableName);
@@ -277,13 +277,13 @@ private:
   //,JM_COPROC_AGGR
    ,JM_GET_NAME
    ,JM_GET_HTNAME
-  // ,JM_GETENDKEYS
+   ,JM_GETENDKEYS
   // ,JM_FLUSHT
   // ,JM_SET_WB_SIZE
   // ,JM_SET_WRITE_TO_WAL
    ,JM_FETCH_ROWS
    ,JM_COMPLETE_PUT
-  // ,JM_GETBEGINKEYS
+   ,JM_GETBEGINKEYS
    ,JM_LAST
   };
   char *tableName_; 
@@ -427,11 +427,9 @@ public:
 				    bool useTRex, NABoolean replSync, ExHbaseAccessStats *hbs);
   MC_RetCode releaseMTableClient(MTableClient_JNI* htc);
   MC_RetCode create(const char* fileName, const NAList<HbaseStr> &cols, NABoolean isMVCC);
-/*
-  MC_RetCode create(const char* fileName, NAText*  hbaseOptions, 
+  MC_RetCode create(const char* fileName, int tableType,  const NAList<HbaseStr> &cols, NAText*  monarchOptions, 
                      int numSplits, int keyLength, const char** splitValues, Int64 transID, NABoolean isMVCC);
-  MC_RetCode alter(const char* fileName, NAText*  hbaseOptions, Int64 transID);
-*/
+  //MC_RetCode alter(const char* fileName, NAText*  hbaseOptions, Int64 transID);
  // MC_RetCode registerTruncateOnAbort(const char* fileName, Int64 transID);
   MC_RetCode drop(const char* fileName, bool async, Int64 transID);
   MC_RetCode drop(const char* fileName, JNIEnv* jenv, Int64 transID); // thread specific
@@ -454,7 +452,9 @@ public:
   MC_RetCode getLatestSnapshot(const char * tabname, char *& snapshotName, NAHeap * heap);
   MC_RetCode cleanSnpTmpLocation(const char * path);
   MC_RetCode setArchivePermissions(const char * path);
-
+*/
+  MC_RetCode getRegionsNodeName(const char* tblName, Int32 partns, ARRAY(const char *)& nodeNames);
+/*
   // req processing in worker threads
   MC_RetCode enqueueRequest(MonarchClientRequest *request);
   MC_RetCode enqueueShutdownRequest();
@@ -549,7 +549,7 @@ private:
    ,JM_GET_MTC
    ,JM_REL_MTC
    ,JM_CREATE
-   //,JM_CREATEK
+   ,JM_CREATEK
    //,JM_TRUNCABORT
    //,JM_ALTER
    ,JM_DROP
@@ -574,7 +574,7 @@ private:
    //,JM_GET_HBTI
    //,JM_CREATE_COUNTER_TABLE  
    //,JM_INCR_COUNTER
-   //,JM_GET_REGN_NODES
+   ,JM_GET_REGN_NODES
    ,JM_MC_DIRECT_INSERT_ROW
    ,JM_MC_DIRECT_INSERT_ROWS
    //,JM_MC_DIRECT_UPDATE_TAGS

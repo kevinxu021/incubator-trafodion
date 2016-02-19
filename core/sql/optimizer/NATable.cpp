@@ -7678,14 +7678,21 @@ ExpHbaseInterface* NATable::getHBaseInterface() const
 ExpHbaseInterface* NATable::getHBaseInterfaceRaw(NABoolean isMonarchTable) 
 {
   NADefaults* defs = &ActiveSchemaDB()->getDefaults();
-  const char* server = defs->getValue(HBASE_SERVER);
-  const char* zkPort = defs->getValue(HBASE_ZOOKEEPER_PORT);
+  const char* server;
+  const char* zkPort;
+  if (isMonarchTable) {
+     server = defs->getValue(MONARCH_LOCATOR_ADDRESS);
+     zkPort = defs->getValue(MONARCH_LOCATOR_PORT);
+  }
+  else {
+     server = defs->getValue(HBASE_SERVER);
+     zkPort = defs->getValue(HBASE_ZOOKEEPER_PORT);
+  }
   NABoolean replSync = FALSE;
   ExpHbaseInterface* ehi = ExpHbaseInterface::newInstance
                            (STMTHEAP, server, zkPort, 
                             (isMonarchTable ? COM_STORAGE_MONARCH : COM_STORAGE_HBASE),
                            replSync);
-                           
 
   Lng32 retcode = ehi->init(NULL);
   if (retcode < 0)
@@ -7699,7 +7706,6 @@ ExpHbaseInterface* NATable::getHBaseInterfaceRaw(NABoolean isMonarchTable)
     delete ehi;
     return NULL;
   }
-
   return ehi;
 }
 
@@ -7712,9 +7718,8 @@ ByteArrayList* NATable::getRegionsBeginKey(const char* hbaseName)
     return NULL;
   else
   {
-    bal = ehi->getRegionBeginKeys(hbaseName);
-
-    delete ehi;
+     bal = ehi->getRegionBeginKeys(hbaseName);
+     delete ehi;
   }
   return bal;
 }
