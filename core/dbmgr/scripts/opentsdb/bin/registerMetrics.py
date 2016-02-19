@@ -86,9 +86,9 @@ def getRegisterMetrics(logger):
 				new_metrics.append(i+'\n')	
 		file_obj=open("new_metrics.txt",'w')
                 file_obj.writelines(new_metrics)
-		#p=subprocess.Popen("rm tmp.txt existing_metrics.txt", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-		#for line in p.stdout.readlines():
-                #	logger.debug(line)
+		p=subprocess.Popen("rm tmp.txt existing_metrics.txt", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		for line in p.stdout.readlines():
+                	logger.debug(line)
         except Exception,e:
         	print('here is the error message: %100s'% e) 
 	finally:
