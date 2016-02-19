@@ -15058,7 +15058,31 @@ ConstValue* ItemExpr::evaluate(CollHeap* heap)
 
   return result;
 }
-  
+
+ItemExpr * ItmLagOlapFunction::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
+{
+    ItemExpr *result;
+
+    if (derivedNode == NULL)
+    {
+        switch (getArity()) { 
+           case 2:
+               result = new (outHeap) ItmLagOlapFunction(child(0), child(1));
+               break;
+           case 3:
+               result = new (outHeap) ItmLagOlapFunction(child(0), child(1), child(2));
+               break;
+           default:
+               CMPASSERT(FALSE);
+        }
+    }
+    else              
+        result = derivedNode;                 
+
+  return ItmSeqOlapFunction::copyTopNode(result, outHeap);
+}
+
+
 ItmLeadOlapFunction::~ItmLeadOlapFunction() {}
 
 ItemExpr * 
