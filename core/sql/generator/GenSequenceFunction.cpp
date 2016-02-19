@@ -136,9 +136,9 @@ ItemExpr *ItmLagOlapFunction::preCodeGen(Generator *generator)
     
   if (getArity() > 1)
   {
-
+  
     const NAType &cType = child(1)->getValueId().getType();
-
+  
     // (must be) signed; nulls allowed (if allowed by child1)   
    ItemExpr *castExpr   = new (wHeap) Cast (child(1),
                                            new (wHeap)
@@ -233,7 +233,7 @@ short ItmLagOlapFunction::codeGen(Generator* generator)
 
   ((ExpSequenceFunction *)seqClause)->setNullRowIsZero(FALSE);
 
-  ((ExpSequenceFunction *)seqClause)->setIsLeading(FALSE);
+  ((ExpSequenceFunction *)seqClause)->setIsLeading(TRUE);
   ((ExpSequenceFunction *)seqClause)->setWinSize(0);
 
   if(isOLAP())
