@@ -635,6 +635,8 @@ public:
 
   virtual QR::ExprElement getQRExprElem() const;
 
+  ItemExpr* removeNonPushablePredicatesForORC();
+
 private:
 
   // Whether the SQL NULL keyword (our NULL ConstValue) may appear

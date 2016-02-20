@@ -2624,9 +2624,13 @@ void ItemExpr::unparse(NAString &result,
       // simply print the text out for a leaf operator
       result += kwd;
       
+      // A handy debug trick to append the value id after the 
+      // unparsed text. Good to figure out valueId business.
+      /*
       char buf[20];
       snprintf(buf, 20, "(%d)", getValueId().toUInt32());
       result += buf;
+      */
 
       break;
 
@@ -4973,7 +4977,7 @@ ValueId VEG::getAConstantHostVarOrParameter() const
   {
     ItemExpr *ie = id.getItemExpr();
 
-    if ( ie->isAConstantHostVarOrParameter() )
+    if ( ie->isAConstantHostVarParameterOrFunc() )
       return id;
   }
 
@@ -15159,7 +15163,7 @@ ItemExpr* BiRelat::removeNonPushablePredicatesForORC()
   }
 
   ItemExpr* ie = NULL;
-  if ( isAPredicateBetweenColumnAndConstant() ) {
+  if ( isAPredicateBetweenColumnAndExpression() ) {
 
     ie = this;
     if ( reverseAndAddNotOperator ) {
@@ -15171,6 +15175,27 @@ ItemExpr* BiRelat::removeNonPushablePredicatesForORC()
   return ie;
 }
 
+ItemExpr* Function::removeNonPushablePredicatesForORC()
+{
+   switch ( getOperatorType() ) {
+     case ITM_SCALAR_MAX:
+     case ITM_SCALAR_MIN:
+       break;
+
+     default:
+       return NULL;
+   }
+
+   Int32 nc = getArity();
+
+   for (Lng32 i = 0; i < (Lng32)nc; i++) {
+      ItemExpr* ie = child(i)->removeNonPushablePredicatesForORC();
+      if (!ie || ie != (child(i)->getValueId()).getItemExpr())
+        return NULL;
+   }
+   return this;
+}
+
 NABoolean ItemExpr::isInvolvingAColumn()
 {
   if (isAColumnReference())
@@ -15179,16 +15204,21 @@ NABoolean ItemExpr::isInvolvingAColumn()
   return (getOperatorType() == ITM_VEG_REFERENCE);
 }
 
-NABoolean ItemExpr::isAConstantHostVarOrParameter() const
+NABoolean ItemExpr::isAConstantHostVarParameterOrFunc() 
 {
   OperatorTypeEnum oper = getOperatorType();
 
-  return (oper == ITM_CONSTANT  || oper == ITM_HOSTVAR   ||
-          oper == ITM_DYN_PARAM || oper == ITM_CACHE_PARAM);
+  if (oper == ITM_CONSTANT  || oper == ITM_HOSTVAR   ||
+      oper == ITM_DYN_PARAM || oper == ITM_CACHE_PARAM)
+     return TRUE;
+
+  // check if it is an acceptable function
+  ItemExpr* ie = removeNonPushablePredicatesForORC();
+
+  return ( this == ie );
 }
 
-
-NABoolean BiRelat::isAPredicateBetweenColumnAndConstant()
+NABoolean BiRelat::isAPredicateBetweenColumnAndExpression()
 {
   ItemExpr *leftC=child(0);
   ItemExpr *rightC=child(1);
@@ -15196,10 +15226,10 @@ NABoolean BiRelat::isAPredicateBetweenColumnAndConstant()
   if ( !leftC || !rightC )
     return FALSE;
 
-  if ( leftC->isInvolvingAColumn() && rightC->isAConstantHostVarOrParameter() )
+  if ( leftC->isInvolvingAColumn() && rightC->isAConstantHostVarParameterOrFunc() )
     return TRUE;
 
-  if ( rightC->isInvolvingAColumn() && leftC->isAConstantHostVarOrParameter() )
+  if ( rightC->isInvolvingAColumn() && leftC->isAConstantHostVarParameterOrFunc() )
     return TRUE;
 
   return FALSE;

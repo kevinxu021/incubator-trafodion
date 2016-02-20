@@ -11866,6 +11866,10 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
        !myPartFunc->isPartitioned() ||
        myPartFunc->isAReplicationPartitioningFunction())
   {
+    //
+    // Set the last argument to TRUE to side-effect the searchKey(). TBT 
+    // (to be tested)
+    //
     //processMinMaxKeys(generator, pulledNewInputs, externalInputs, TRUE);
 
     if (!processConstHBaseKeys(

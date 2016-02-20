@@ -629,7 +629,7 @@ public:
 
   ItemExpr* removeNonPushablePredicatesForORC();
 
-  NABoolean isAPredicateBetweenColumnAndConstant();
+  NABoolean isAPredicateBetweenColumnAndExpression();
 
   // reverse the predicate. For example, the reverse of "a > 1" is "a <= 1".
   ItemExpr* reverse();

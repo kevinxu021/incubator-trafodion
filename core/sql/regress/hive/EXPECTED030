@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Wed Feb  3 02:52:17 2016
+-- Definition current  Sat Feb 20 14:26:50 2016
 
   (
     S_STORE_SK                       INT
@@ -975,7 +975,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Wed Feb  3 02:52:39 2016
+-- Definition current  Sat Feb 20 14:27:19 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1026,7 +1026,7 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212321227960093915
+PLAN_ID .................. 212322738439525981
 ROWS_OUT ............. 1,698
 EST_TOTAL_COST ........... 1.21
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
@@ -1139,7 +1139,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212321227960849347
+PLAN_ID .................. 212322738440231615
 ROWS_OUT ......... 2,880,401
 EST_TOTAL_COST ........... 1.77
 STATEMENT ................ select *
@@ -1303,11 +1303,13 @@ DESCRIPTION
 +>   d_current_year varchar(100 bytes) character set utf8)
 +>  for hive.hive.date_dim_orc primary key (d_date);
 
---- SQL operation complete.
+*** ERROR[1390] Object TRAFODION."_HV_HIVE_".DATE_DIM_ORC already exists in Trafodion.
+
+--- SQL operation failed with errors.
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Wed Feb  3 02:52:42 2016
+-- Definition current  Sat Feb 20 14:27:21 2016
 
   (
     D_DATE_SK                        INT
@@ -1375,7 +1377,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212321227964249204
+PLAN_ID .................. 212322738442985451
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1479,7 +1481,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Wed Feb  3 02:52:44 2016
+-- Definition current  Sat Feb 20 14:27:24 2016
 
   (
     D_DATE_SK                        INT
@@ -1547,7 +1549,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212321227965364186
+PLAN_ID .................. 212322738445176913
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1662,4 +1664,57 @@ DESCRIPTION
 
 --- SQL operation failed with errors.
 >>
+>>-- test min-max optimization
+>>
+>>cqd ORC_PRED_PUSHDOWN 'ON';
+
+--- SQL operation complete.
+>>cqd GEN_HSHJ_MIN_MAX_OPT 'on';
+
+--- SQL operation complete.
+>>
+>>prepare xx from select count(*) from
++>hive.hive.store2_sales_orc, -- sorted on ss_sold_date_sk
++>hive.hive.date_dim, 
++>hive.hive.time_dim
++> where ss_sold_date_sk = d_date_sk and
++>       ss_sold_date_sk = t_time_sk and d_year = 2001 and t_hour = 10 ;
+
+*** WARNING[6008] Statistics for column (D_DATE_SK) from table HIVE.HIVE.DATE_DIM were not available. As a result, the access path chosen might not be the best possible.
+
+*** WARNING[6008] Statistics for column (D_YEAR) from table HIVE.HIVE.DATE_DIM were not available. As a result, the access path chosen might not be the best possible.
+
+*** WARNING[6008] Statistics for column (T_TIME_SK) from table HIVE.HIVE.TIME_DIM were not available. As a result, the access path chosen might not be the best possible.
+
+*** WARNING[6008] Statistics for column (T_HOUR) from table HIVE.HIVE.TIME_DIM were not available. As a result, the access path chosen might not be the best possible.
+
+*** WARNING[6008] Statistics for column (SS_SOLD_DATE_SK) from table HIVE.HIVE.STORE2_SALES_ORC were not available. As a result, the access path chosen might not be the best possible.
+
+--- SQL command prepared.
+>>
+>>-- display the push-down predicates, which should include the 
+>>-- min/max expressions from dimension table date_dim and time_dim.
+>>select cast(substring(description,
++>           position('orc_search_arguments' in description),
++>           position('executor_predicates' in description) -
++>           position('orc_search_arguments' in description)
++>                ) as char(400))
++>         from table (explain(NULL,'XX'))
++>where position('orc_search_arguments' in description)  > 0 ;
+
+(EXPR)
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK <cast(cast(case(if_then_else((\:_sys_MinVal0 is null or (\:_sys_MinVal1 > \:_sys_MinVal0)), \:_sys_MinVal1, \:_sys_MinVal0)))) ) HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK <= cast(cast(case(if_then_else((\:_sys_MaxVal0 is null or (\:_sys_MaxVal1 < \:_sys_MaxVal0)), \:_sys_MaxVal1, \:_sys_MaxVal0)))) )                                 
+
+--- 1 row(s) selected.
+>>
+>>execute xx;
+
+(EXPR)              
+--------------------
+
+                   0
+
+--- 1 row(s) selected.
 >>log;

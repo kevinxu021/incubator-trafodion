@@ -223,3 +223,26 @@ create external table date_dim_orc
   (d_date_sk date)
   for hive.hive.date_dim_orc;
 
+-- test min-max optimization
+
+cqd ORC_PRED_PUSHDOWN 'ON';
+cqd GEN_HSHJ_MIN_MAX_OPT 'on';
+
+prepare xx from select count(*) from
+hive.hive.store2_sales_orc, -- sorted on ss_sold_date_sk
+hive.hive.date_dim, 
+hive.hive.time_dim
+ where ss_sold_date_sk = d_date_sk and
+       ss_sold_date_sk = t_time_sk and d_year = 2001 and t_hour = 10 ;
+
+-- display the push-down predicates, which should include the 
+-- min/max expressions from dimension table date_dim and time_dim.
+select cast(substring(description,
+           position('orc_search_arguments' in description),
+           position('executor_predicates' in description) -
+           position('orc_search_arguments' in description)
+                ) as char(400))
+         from table (explain(NULL,'XX'))
+where position('orc_search_arguments' in description)  > 0 ;
+
+execute xx;

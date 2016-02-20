@@ -362,7 +362,7 @@ public:
 
 
   // test if this is a constant, a host var, a dynamic or a cache parameter.
-  NABoolean isAConstantHostVarOrParameter() const;
+  NABoolean isAConstantHostVarParameterOrFunc() ;
   
 
  private:

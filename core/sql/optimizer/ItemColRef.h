@@ -1002,6 +1002,8 @@ public:
     tablename_ = tablename; 
   }
   // LCOV_EXCL_STOP
+  //
+  ItemExpr* removeNonPushablePredicatesForORC() { return this; };
 
 private:
 
