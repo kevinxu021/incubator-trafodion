@@ -52,7 +52,7 @@ char *GetHistoryRowOLAP(void *data, Int32 n,
                         NABoolean leading, Lng32 winSize, Int32 &retcode)
 {
   ExSequenceTcb *tcb = (ExSequenceTcb*)data;
-
+  
   retcode = 0;
   if(!leading)
     retcode = -2;
@@ -838,6 +838,8 @@ short ExSequenceTcb::work()
                 // LCOV_EXCL_STOP
               }
             }
+
+//pentry_up->getAtp()->display("return eval result", myTdb().getCriDescUp());
 
             //
             // Case-10-030724-7963: we are done pointing the tupp at the

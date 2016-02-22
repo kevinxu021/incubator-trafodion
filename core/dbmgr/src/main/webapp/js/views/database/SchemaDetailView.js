@@ -18,18 +18,23 @@ define([
         'pdfmake'
         ], function (BaseView, DatabaseT, $, dbHandler, common, CodeMirror) {
 	'use strict';
-	var LOADING_SELECTOR = '#loadingImg';			
+	var ATTRIBUTES_SPINNER = '#attributes-spinner',
+		DDL_SPINNER = '#ddl-spinner',
+		PRIVILEGES_SPINNER = '#privileges-spinner';	
+	
 	var oDataTable = null;
 	var _this = null;
 	var ddlTextEditor = null;
 
 	var BREAD_CRUMB = '#database-crumb',
+	OBJECT_NAME_CONTAINER = '#db-object-name',
 	SCHEMA_DETAILS_CONTAINER = '#schema-details-container',
 	ATTRIBUTES_CONTAINER = '#db-object-attributes-container',
+	ATTRIBUTES_ERROR_CONTAINER = '#db-object-attributes-error-text',
 	DDL_CONTAINER = '#db-object-ddl-container',
-	OBJECT_NAME_CONTAINER = '#db-object-name',
-	ERROR_CONTAINER = '#db-object-error-text',
+	DDL_ERROR_CONTAINER = '#db-object-ddl-error-text',
 	PRIVILEGES_CONTAINER = '#db-object-privileges-container',
+	PRIVILEGES_ERROR_CONTAINER = '#db-object-privileges-error-text',
 	FEATURE_SELECTOR  = '#db-object-feature-selector',
 	ATTRIBUTES_SELECTOR = '#db-attributes-link',
 	DDL_SELECTOR = '#db-ddl-link',
@@ -70,7 +75,6 @@ define([
 				objectAttributes = JSON.parse(objectAttributes);
 			}
 			$(SCHEMA_DETAILS_CONTAINER).hide();
-			$(ERROR_CONTAINER).hide();
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
 			}
@@ -98,11 +102,11 @@ define([
 
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
-			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.on(dbHandler.FETCH_PRIVILEGES_SUCCESS, this.displayPrivileges);
-			dbHandler.on(dbHandler.FETCH_PRIVILEGES_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_PRIVILEGES_ERROR, this.fetchPrivilegesError);
 			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_SUCCESS, this.displayAttributes);
-			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.fetchAttributesError);
 			_this.processRequest();
 		},
 		doResume: function(args){
@@ -110,11 +114,11 @@ define([
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
-			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.on(dbHandler.FETCH_PRIVILEGES_SUCCESS, this.displayPrivileges);
-			dbHandler.on(dbHandler.FETCH_PRIVILEGES_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_PRIVILEGES_ERROR, this.fetchPrivilegesError);
 			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_SUCCESS, this.displayAttributes);
-			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.showErrorMessage);
+			dbHandler.on(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.fetchAttributesError);
 
 			if(schemaName != routeArgs.name){
 				schemaName = routeArgs.name;
@@ -140,11 +144,11 @@ define([
 		doPause: function(){
 			$(REFRESH_ACTION).off('click', this.doRefresh);
 			dbHandler.off(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
-			dbHandler.off(dbHandler.FETCH_DDL_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.off(dbHandler.FETCH_PRIVILEGES_SUCCESS, this.displayPrivileges);
-			dbHandler.off(dbHandler.FETCH_PRIVILEGES_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_PRIVILEGES_ERROR, this.fetchPrivilegesError);
 			dbHandler.off(dbHandler.FETCH_OBJECT_ATTRIBUTES_SUCCESS, this.displayAttributes);
-			dbHandler.off(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.showErrorMessage);
+			dbHandler.off(dbHandler.FETCH_OBJECT_ATTRIBUTES_ERROR, this.fetchAttributesError);
 			$('a[data-toggle="pill"]').off('shown.bs.tab', this.selectFeature);
 		},
 		doReset: function(){
@@ -163,16 +167,8 @@ define([
 				}
 			}
 		},
-		showLoading: function(){
-			$(LOADING_SELECTOR).show();
-		},
-
-		hideLoading: function () {
-			$(LOADING_SELECTOR).hide();$('#db-object-feature-selector .active').attr('id')
-		},
 		selectFeature: function(e){
 			$(SCHEMA_DETAILS_CONTAINER).show();
-			$(ERROR_CONTAINER).hide();
 			var selectedFeatureLink = ATTRIBUTES_SELECTOR;
 
 			if(e && e.target && $(e.target).length > 0){
@@ -216,7 +212,9 @@ define([
 
 			$(ATTRIBUTES_CONTAINER).hide();
 			$(DDL_CONTAINER).hide();
-
+			$(ATTRIBUTES_ERROR_CONTAINER).hide();
+			$(DDL_ERROR_CONTAINER).hide();
+			
 			switch(selectedFeatureLink){
 			case ATTRIBUTES_SELECTOR:
 				$(ATTRIBUTES_CONTAINER).show();
@@ -253,7 +251,6 @@ define([
 		doRefresh: function(){
 			pageStatus.ddl = false;
 			_this.processRequest();
-			$(ERROR_CONTAINER).hide();
 		},
 		getObjectID: function(){
 			var objectID = null;
@@ -271,13 +268,17 @@ define([
 		},
 		fetchDDLText: function(){
 			if(!pageStatus.ddl || pageStatus.ddl == false){
-				_this.showLoading();
+				$(DDL_SPINNER).show();
+				$(DDL_ERROR_CONTAINER).hide();
+				$(DDL_CONTAINER).show();
 				dbHandler.fetchDDL('schema', routeArgs.name, null);
 			}
 		},
 		fetchPrivileges: function(){
 			if(!pageStatus.privilegesFetched || pageStatus.privilegesFetched == false){
-				_this.showLoading();
+				$(PRIVILEGES_SPINNER).show();
+				$(PRIVILEGES_ERROR_CONTAINER).hide();
+				$(PRIVILEGES__CONTAINER).show();
 				var objectID = _this.getObjectID();
 				dbHandler.fetchPrivileges('schema', routeArgs.name, objectID, null);
 			}			
@@ -317,32 +318,22 @@ define([
 			_this.selectFeature();
 		},
 		fetchAttributes: function () {
-			$(ERROR_CONTAINER).hide();
+			$(ATTRIBUTES_ERROR_CONTAINER).hide();
 			if(objectAttributes == null){
+				$(ATTRIBUTES_ERROR_CONTAINER).hide();
+				$(ATTRIBUTES_SPINNER).show();
 				dbHandler.fetchAttributes('schema', routeArgs.name);
 			}else{
 				_this.displayAttributes();
-				/*	_this.hideLoading();
-
-				//var properties = JSON.parse(objectAttributes);
-				$(ATTRIBUTES_CONTAINER).empty();
-				$(ATTRIBUTES_CONTAINER).append('<thead><tr><td style="width:200px;"><h2 style="color:black;font-size:15px;font-weight:bold">Name</h2></td><td><h2 style="color:black;font-size:15px;;font-weight:bold">Value</h2></td></tr></thead>');
-				$.each(objectAttributes, function(k, v){
-					for (var property in v) {
-						var value = v[property];
-						if(property == 'CreateTime' || property == 'ModifiedTime'){
-							value = common.toServerLocalDateFromUtcMilliSeconds(value);
-						}
-						$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
-					}
-				});*/
 			}
 		},
 		displayAttributes: function(data) {
-			_this.hideLoading();
+			$(ATTRIBUTES_SPINNER).hide();
 			if(data != null){
 				objectAttributes = data;
 			}
+			$(ATTRIBUTES_ERROR_CONTAINER).hide();
+			$(ATTRIBUTES_CONTAINER).show();
 			$(ATTRIBUTES_CONTAINER).empty();
 			$(ATTRIBUTES_CONTAINER).append('<thead><tr><td style="width:200px;"><h2 style="color:black;font-size:15px;font-weight:bold">Name</h2></td><td><h2 style="color:black;font-size:15px;;font-weight:bold">Value</h2></td></tr></thead>');
 			$.each(objectAttributes, function(k, v){
@@ -355,16 +346,42 @@ define([
 				}
 			});
 		},
+		fetchAttributesError: function(jqXHR){
+			$(ATTRIBUTES_SPINNER).hide();
+			$(ATTRIBUTES_ERROR_CONTAINER).show();
+			$(ATTRIBUTES_CONTAINER).hide();
+			if (jqXHR.responseText) {
+				$(ATTRIBUTES_ERROR_CONTAINER).text(jqXHR.responseText);
+			}else{
+				if(jqXHR.status != null && jqXHR.status == 0) {
+					$(ATTRIBUTES_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+				}
+			}			
+		},
 		displayDDL: function(data){
 			pageStatus.ddl = true;
-			_this.hideLoading();
+			$(DDL_ERROR_CONTAINER).hide();
+			$(DDL_CONTAINER).show();
+			$(DDL_SPINNER).hide();
 			ddlTextEditor.setValue(data);
 			ddlTextEditor.refresh();
 		},
+		fetchDDLError: function(jqXHR){
+			$(DDL_SPINNER).hide();
+			$(DDL_ERROR_CONTAINER).show();
+			$(DDL_CONTAINER).hide();
+			if (jqXHR.responseText) {
+				$(DDL_ERROR_CONTAINER).text(jqXHR.responseText);
+			}else{
+				if(jqXHR.status != null && jqXHR.status == 0) {
+					$(DDL_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+				}
+			}			
+		},
 		displayPrivileges: function(result){
-			_this.hideLoading();
+			$(PRIVILEGES_SPINNER).hide();
 			var keys = result.columnNames;
-			$(ERROR_CONTAINER).hide();
+			$(PRIVILEGES_ERROR_CONTAINER).hide();
 			pageStatus.privilegesFetched = true;
 
 			if(keys != null && keys.length > 0) {
@@ -421,18 +438,18 @@ define([
 					          }
 				});
 			}
-		},	
-		showErrorMessage: function (jqXHR) {
-			_this.hideLoading();
-			$(ERROR_CONTAINER).show();
-			$(SCHEMA_DETAILS_CONTAINER).hide();
+		},
+		fetchPrivilegesError: function(jqXHR){
+			$(PRIVILEGES_SPINNER).hide();
+			$(PRIVILEGES_ERROR_CONTAINER).show();
+			$(PRIVILEGES_CONTAINER).hide();
 			if (jqXHR.responseText) {
-				$(ERROR_CONTAINER).text(jqXHR.responseText);
+				$(PRIVILEGES_ERROR_CONTAINER).text(jqXHR.responseText);
 			}else{
 				if(jqXHR.status != null && jqXHR.status == 0) {
-					$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+					$(PRIVILEGES_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
 				}
-			}
+			}					
 		}  
 	});
 

@@ -38,6 +38,7 @@ define([
 	GRID_DRILLDOWN_CONTAINER = '#grid-drilldown-container',
 	NODES_ERROR_TEXT = '#nodes-error-text',
 
+	TRANSACTIONS_DRILLDOWN_BTN = '#transactions-drilldown-btn',
 	IOWAITS_DRILLDOWN_BTN = '#iowaits-drilldown-btn',
 	DISK_SPACE_DRILLDOWN_BTN = '#useddiskspace-drilldown-btn',
 	JVMGC_DRILLDOWN_BTN = '#jvmgctime-drilldown-btn',
@@ -72,6 +73,7 @@ define([
 	var renderedFlotCharts = {};
 	var chartsData = {};
 	var resizeTimer = null;
+	var drillDownChart = {};
 	
 	var chartConfig = null;
 	var transConfig = null;
@@ -235,6 +237,7 @@ define([
 			
 			if(common.isEnterprise()){
 				$('.dbmgr-ent').show();
+				$(TRANSACTIONS_DRILLDOWN_BTN).on('click',this.transactionsDrillDown);
 				$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
 				$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
 				$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
@@ -289,7 +292,7 @@ define([
 				});
 
 				$(DRILLDOWN_DIALOG).on('show.bs.modal', function(event, ab){
-					$(DRILLDOWN_CHART_CONTAINER).empty();
+					$(DRILLDOWN_CHART).empty();
 					$(DRILLDOWN_SPINNER).show();
 				});
 
@@ -338,6 +341,7 @@ define([
 
 			if(common.isEnterprise()){
 				$('.dbmgr-ent').show();
+				$(TRANSACTIONS_DRILLDOWN_BTN).on('click',this.transactionsDrillDown);
 				$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
 				$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
 				$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
@@ -372,6 +376,7 @@ define([
 			serverHandler.off(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
 
 			if(common.isEnterprise()){
+				$(TRANSACTIONS_DRILLDOWN_BTN).off('click',this.transactionsDrillDown);
 				$(IOWAITS_DRILLDOWN_BTN).off('click',this.iowaitsDrillDown);
 				$(DISK_SPACE_DRILLDOWN_BTN).off('click',this.diskspaceDrillDown);
 				$(JVMGC_DRILLDOWN_BTN).off('click',this.jvmGCDrillDown);
@@ -429,7 +434,10 @@ define([
 
 			if(lastUsedTimeRange == null){
 				lastUsedTimeRange = {};
-			}		
+			}
+			lastUsedTimeRange.startMsec = startTime.unix() * 1000;
+			lastUsedTimeRange.endMsec = endTime.unix() * 1000;
+			
 			lastUsedTimeRange.startTime = params.startTime;
 			lastUsedTimeRange.endTime = params.endTime;
 			lastUsedTimeRange.timeRange = $(FILTER_TIME_RANGE).val();
@@ -743,7 +751,10 @@ define([
 						colors : graphColors,
 						canvas: true,
 						xaxis : {
+							min: lastUsedTimeRange.startMsec,
+							max: lastUsedTimeRange.endMsec,
 							mode : "time", 
+							ticks: 6,
 							tickFormatter: function(val, axis) {
 								return common.formatGraphDateLabels(val, timeinterval);
 							},
@@ -767,6 +778,7 @@ define([
 							mode: "x"
 						},*/
 						lines: {
+							lineWidth: 2.5,
 							fill: false,
 						},
 						grid : {
@@ -811,16 +823,9 @@ define([
 					$(metricConfig.errorcontainer).text(jqXHR.responseText);     
 				}				
 			}
-		},		
-
-		showErrorMessage: function (jqXHR) {
-			_this.hideLoading();
-			$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
-			$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
-			$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
-			$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
-			$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
-
+		},	
+		transactionsDrillDown: function(){
+			_this.displayDetails("transactions");
 		},
 		iowaitsDrillDown: function(){
 			_this.displayDetails('iowaits');
@@ -864,8 +869,10 @@ define([
 			var metricConfig = chartConfig[result.metricName];
 			var tags = result.data.tags;
 			var keys = Object.keys(metricsData);
-			var plot = null;
-
+			
+			drillDownChart= {};
+			drillDownChart.metricConfig = metricConfig;
+			
 			$(DRILLDOWN_TITLE).text(metricConfig.chartTitle);
 			$(DRILLDOWN_SPINNER).hide();
 
@@ -876,17 +883,16 @@ define([
 			}else{
 				$(DRILLDOWN_ERROR_CONTAINER).text("");
 				$(DRILLDOWN_ERROR_CONTAINER).hide();
-				$(DRILLDOWN_CHART_CONTAINER).empty();
-				$(DRILLDOWN_CHART_CONTAINER).show();
 				$(DRILLDOWN_CHART).empty();
+				$(DRILLDOWN_CHART_CONTAINER).show();
 				$(DRILLDOWN_LEGEND).empty();
 
-				var plotData = [];
+				drillDownChart.plotData = [];
 				$.each(metricsData	[keys[0]], function(i, v){
 					var seriesData = {label: "", data:[], color: ""};
 					seriesData.label = result.data.tags[i];
 					seriesData.color = graphColors[i];
-					plotData.push(seriesData);
+					drillDownChart.plotData.push(seriesData);
 				});
 
 				$.each(keys, function(index, value){
@@ -903,7 +909,7 @@ define([
 							yVal = 0;
 						}
 						//dataPoint.push(yVal);
-						plotData[i].data.push([xVal, yVal]);
+						drillDownChart.plotData[i].data.push([xVal, yVal]);
 					});
 					//metricConfig.toolTipTexts[xVal] = dataPoint;
 				});
@@ -916,9 +922,9 @@ define([
 						+ val + "</label> <label id='v" + key + "' class='y-val-label'></label>");
 				});
 
-				$(DRILLDOWN_LEGEND).find("input").click(plotAccordingToChoices);
+				$(DRILLDOWN_LEGEND).find("input").click(_this.plotAccordingToChoices);
 				
-				var flotOptions = {
+				drillDownChart.flotOptions = {
 						//colors : graphColors,
 						canvas: true,
 						legend: {
@@ -931,6 +937,9 @@ define([
 						},
 						xaxis : {
 							mode : "time", 
+							min: lastUsedTimeRange.startMsec,
+							max: lastUsedTimeRange.endMsec,
+							ticks: 10,
 							tickFormatter: function(val, axis) {
 								return common.formatGraphDateLabels(val, timeinterval);
 							},
@@ -951,14 +960,15 @@ define([
 							}
 						},	
 						lines: {
-							fill: false,
-							color: ["#3c8dbc", "#f56954"]
+							lineWidth: 2.5,
+							fill: false
 						},
 						grid : {
 							hoverable: true,
 							borderColor: "#f3f3f3",
-							orderWidth: {top:0, right: 0, bottom: 1, left: 1},
+							borderWidth: {top:0, right: 0, bottom: 1, left: 1},
 							tickColor: "#737373",
+							autoHighlight: false
 						},
 						yaxes:[{
 							tickLength:5,
@@ -982,100 +992,97 @@ define([
 						}]
 				};
 
-				//$.plot($(DRILLDOWN_CHART), plotData, flotOptions);
-				function plotAccordingToChoices() {
-
-					var data = [];
-
-					$(DRILLDOWN_LEGEND).find('#x-time').text('');
-					$(DRILLDOWN_LEGEND).find(".y-val-label").text('');
-					
-					$(DRILLDOWN_LEGEND).find("input:checked").each(function () {
-						var key = $(this).attr("name");
-						if (key && plotData[key]) {
-							data.push(plotData[key]);
-						}
-					});
-
-					if (data.length > 0) {
-						plot = $.plot($(DRILLDOWN_CHART), data, flotOptions);
-					}
-				}
-
-				plotAccordingToChoices();
+				_this.plotAccordingToChoices();
 				
-				var updateLegendTimeout = null;
-				var latestPosition = null;
-
-				function updateLegend() {
-
-					updateLegendTimeout = null;
-
-					var pos = latestPosition;
-
-					var axes = plot.getAxes();
-					if (pos.x < axes.xaxis.min || pos.x > axes.xaxis.max ||
-						pos.y < axes.yaxis.min || pos.y > axes.yaxis.max) {
-						return;
-					}
-
-					var i, j, dataset = plot.getData();
-					for (i = 0; i < dataset.length; ++i) {
-
-						var series = dataset[i];
-
-						// Find the nearest points, x-wise
-
-						for (j = 0; j < series.data.length; ++j) {
-							if (series.data[j][0] > pos.x) {
-								break;
-							}
-						}
-
-						// Now Interpolate
-
-						var y, x,
-							p1 = series.data[j - 1],
-							p2 = series.data[j];
-
-						if (p1 == null) {
-							y = p2[1];
-							x = p2[0];
-						} else if (p2 == null) {
-							y = p1[1];
-							x = p1[0];
-						} else {
-							y = p1[1] + (p2[1] - p1[1]) * (pos.x - p1[0]) / (p2[0] - p1[0]);
-							x = p1[0] + (p2[0] - p1[0]) * (pos.x - p1[0]) / (p2[0] - p1[0]);
-						}
-
-						var nDecimals = 2;
-						if(metricConfig.ydecimals != null){
-							nDecimals = metricConfig.ydecimals;
-						}
-						
-						var text = " =  ";
-						if(metricConfig.yvalformatter){
-							text += metricConfig.yvalformatter(y.toFixed(nDecimals));
-						}else{
-							text += y.toFixed(nDecimals);
-						}
-						if(metricConfig.yunit){
-							text += metricConfig.yunit;
-						}
-						$(DRILLDOWN_LEGEND).find('#x-time').text("Time :  " + common.toServerLocalDateFromMilliSeconds(x));
-						$(DRILLDOWN_LEGEND).find('#v'+i).text(text);
-					}
-				}
+				drillDownChart.updateLegendTimeout = null;
+				drillDownChart.latestPosition = null;
 
 				$(DRILLDOWN_CHART).bind("plothover",  function (event, pos, item) {
-					latestPosition = pos;
-					if (!updateLegendTimeout) {
-						updateLegendTimeout = setTimeout(updateLegend, 50);
+					drillDownChart.latestPosition = pos;
+					if (!drillDownChart.updateLegendTimeout) {
+						drillDownChart.updateLegendTimeout = setTimeout(_this.updateLegend, 50);
 					}
 				});				
 			}			
 		},
+		plotAccordingToChoices: function() {
+
+			var data = [];
+
+			$(DRILLDOWN_LEGEND).find('#x-time').text('');
+			$(DRILLDOWN_LEGEND).find(".y-val-label").text('');
+			
+			$(DRILLDOWN_LEGEND).find("input:checked").each(function () {
+				var key = $(this).attr("name");
+				if (key && drillDownChart.plotData[key]) {
+					data.push(drillDownChart.plotData[key]);
+				}
+			});
+
+			if (data.length > 0) {
+				drillDownChart.plot = $.plot($(DRILLDOWN_CHART), data, drillDownChart.flotOptions);
+			}
+		},
+		updateLegend: function() {
+
+			drillDownChart.updateLegendTimeout = null;
+
+			var pos = drillDownChart.latestPosition;
+
+			var axes = drillDownChart.plot.getAxes();
+			if (pos.x < axes.xaxis.min || pos.x > axes.xaxis.max ||
+				pos.y < axes.yaxis.min || pos.y > axes.yaxis.max) {
+				return;
+			}
+
+			var i, j, dataset = drillDownChart.plot.getData();
+			for (i = 0; i < dataset.length; ++i) {
+
+				var series = dataset[i];
+
+				// Find the nearest points, x-wise
+
+				for (j = 0; j < series.data.length; ++j) {
+					if (series.data[j][0] > pos.x) {
+						break;
+					}
+				}
+
+				// Now Interpolate
+
+				var y, x,
+					p1 = series.data[j - 1],
+					p2 = series.data[j];
+
+				if (p1 == null) {
+					y = p2[1];
+					x = p2[0];
+				} else if (p2 == null) {
+					y = p1[1];
+					x = p1[0];
+				} else {
+					y = p1[1] + (p2[1] - p1[1]) * (pos.x - p1[0]) / (p2[0] - p1[0]);
+					x = p1[0] + (p2[0] - p1[0]) * (pos.x - p1[0]) / (p2[0] - p1[0]);
+				}
+
+				var nDecimals = 2;
+				if(drillDownChart.metricConfig.ydecimals != null){
+					nDecimals = drillDownChart.metricConfig.ydecimals;
+				}
+				
+				var text = " =  ";
+				if(drillDownChart.metricConfig.yvalformatter){
+					text += drillDownChart.metricConfig.yvalformatter(y.toFixed(nDecimals));
+				}else{
+					text += y.toFixed(nDecimals);
+				}
+				if(drillDownChart.metricConfig.yunit){
+					text += drillDownChart.metricConfig.yunit;
+				}
+				$(DRILLDOWN_LEGEND).find('#x-time').text("Time :  " + common.toServerLocalDateFromMilliSeconds(x));
+				$(DRILLDOWN_LEGEND).find('#v'+i).text(text);
+			}
+		},		
 		fetchDrilldownMetricError:function(jqXHR, res, error){
 			var metricConfig = chartConfig[jqXHR.metricName];
 			$(DRILLDOWN_TITLE).text(metricConfig.chartTitle);

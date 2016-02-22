@@ -82,8 +82,8 @@ define([
 		},
 		doResume: function(args){
 			$('#query-id').val(args);
-			queryID = args;
 			if(queryID != null && queryID != args){
+				queryID = args;
 				queryTextEditor.setValue('');
 				this.loadQueryText();
 			}

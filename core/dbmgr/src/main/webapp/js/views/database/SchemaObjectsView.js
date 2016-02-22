@@ -164,235 +164,239 @@ define([
 		},
 
 		displayObjectList: function (result){
-			_this.hideLoading();
-			var keys = result.columnNames;
-			$(ERROR_CONTAINER).hide();
-			pageStatus[routeArgs.type] = true;
-			
-			if(keys != null && keys.length > 0) {
-				$(OBJECT_LIST_CONTAINER).show();
-				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="db-objects-list-results"></table>';
-				$(OBJECT_LIST_CONTAINER).html( sb );
-
-				var aoColumns = [];
-				var aaData = [];
-				var link = result.parentLink != null ? result.parentLink : "";
-
-				$.each(result.resultArray, function(i, data){
-					//var rowData = {};
-					//$.each(keys, function(k, v) {
-					//	rowData[v] = data[k];
-					//});
-					/*aaData.push(
-							{'Name' : data[0], 
-								'Owner' : data[1],
-								'CreateTime' : data[2],
-								'ModifiedTime': data[3]
-							});*/
-					aaData.push(data);
-				});
-
-				// add needed columns
-				$.each(keys, function(k, v) {
-					var obj = new Object();
-					obj.title = v;
-					aoColumns.push(obj);
-				});
-
-				var bPaging = aaData.length > 25;
-
-				if(oDataTable != null) {
-					try {
-						oDataTable.destroy();
-					}catch(Error){
-
-					}
-				}
+			if(result.objectType == routeArgs.type){
+				_this.hideLoading();
+				var keys = result.columnNames;
+				$(ERROR_CONTAINER).hide();
+				pageStatus[routeArgs.type] = true;
 				
-				var aoColumnDefs = [];
-				aoColumnDefs.push({
-						"aTargets": [ 0 ],
-						"mData": 0,
-						"mRender": function ( data, type, full ) {
-		            		 if(type == 'display') {
-		            			 var rowcontent = "<a href=\"#" + link + '&name=' + data ;
-		            			 if(schemaName != null)
-		            				 rowcontent += '&schema='+ schemaName;	            				 
-
-		            			 rowcontent += "\">" + data + "</a>";
-		            			 return rowcontent;                         
-		            		 }else { 
-		            			 return data;
-		            		 }
-		            	 }
+				if(keys != null && keys.length > 0) {
+					$(OBJECT_LIST_CONTAINER).show();
+					var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="db-objects-list-results"></table>';
+					$(OBJECT_LIST_CONTAINER).html( sb );
+	
+					var aoColumns = [];
+					var aaData = [];
+					var link = result.parentLink != null ? result.parentLink : "";
+	
+					$.each(result.resultArray, function(i, data){
+						//var rowData = {};
+						//$.each(keys, function(k, v) {
+						//	rowData[v] = data[k];
+						//});
+						/*aaData.push(
+								{'Name' : data[0], 
+									'Owner' : data[1],
+									'CreateTime' : data[2],
+									'ModifiedTime': data[3]
+								});*/
+						aaData.push(data);
 					});
-				
-				aoColumnDefs.push({
-					"aTargets": [ 2 ],
-					"mData": 2,
-					"className" : "dbmgr-nowrap",
-					"mRender": function ( data, type, full ) {
-						if (type === 'display') {
-							return common.toServerLocalDateFromUtcMilliSeconds(data);  
-						}
-						else return data;
-					}
-				});
-				aoColumnDefs.push({
-					"aTargets": [ 3 ],
-					"mData": 3,
-					"className" : "dbmgr-nowrap",
-					"mRender": function ( data, type, full ) {
-						if (type === 'display') {
-							return common.toServerLocalDateFromUtcMilliSeconds(data);  
-						}
-						else return data;
-					}
-				});
-				aoColumnDefs.push({
-					"aTargets": [ 4 ],
-					"mData": 4,
-					"visible" : false,
-					"searchable" : false
-				});
-				
-				if(routeArgs.type == 'indexes'){
-					aoColumnDefs.push({
-						"aTargets": [ 5 ],
-						"mData": 5,
-						"mRender": function ( data, type, full ) {
-		            		 if(type == 'display') {
-		            			 var rowcontent = '<a href="#/database/objdetail?type=table&name=' + data ;
-		            			 if(schemaName != null)
-		            				 rowcontent += '&schema='+ routeArgs.schema;	            				 
-
-		            			 rowcontent += '">' + data + '</a>';
-		            			 return rowcontent;                         
-		            		 }else { 
-		            			 return data;
-		            		 }
-		            	 }
+	
+					// add needed columns
+					$.each(keys, function(k, v) {
+						var obj = new Object();
+						obj.title = v;
+						aoColumns.push(obj);
 					});
-				}
-				if(routeArgs.type == 'procedures'){
+	
+					var bPaging = aaData.length > 25;
+	
+					if(oDataTable != null) {
+						try {
+							oDataTable.destroy();
+						}catch(Error){
+	
+						}
+					}
+					
+					var aoColumnDefs = [];
 					aoColumnDefs.push({
-						"aTargets": [ 5 ],
-						"mData": 5,
+							"aTargets": [ 0 ],
+							"mData": 0,
+							"mRender": function ( data, type, full ) {
+			            		 if(type == 'display') {
+			            			 var rowcontent = "<a href=\"#" + link + '&name=' + data ;
+			            			 if(schemaName != null)
+			            				 rowcontent += '&schema='+ schemaName;	            				 
+	
+			            			 rowcontent += "\">" + data + "</a>";
+			            			 return rowcontent;                         
+			            		 }else { 
+			            			 return data;
+			            		 }
+			            	 }
+						});
+					
+					aoColumnDefs.push({
+						"aTargets": [ 2 ],
+						"mData": 2,
+						"className" : "dbmgr-nowrap",
+						"mRender": function ( data, type, full ) {
+							if (type === 'display') {
+								return common.toServerLocalDateFromUtcMilliSeconds(data);  
+							}
+							else return data;
+						}
+					});
+					aoColumnDefs.push({
+						"aTargets": [ 3 ],
+						"mData": 3,
+						"className" : "dbmgr-nowrap",
+						"mRender": function ( data, type, full ) {
+							if (type === 'display') {
+								return common.toServerLocalDateFromUtcMilliSeconds(data);  
+							}
+							else return data;
+						}
+					});
+					aoColumnDefs.push({
+						"aTargets": [ 4 ],
+						"mData": 4,
 						"visible" : false,
 						"searchable" : false
 					});
-					aoColumnDefs.push({
-						"aTargets": [ 6 ],
-						"mData": 6,
-						"mRender": function ( data, type, full ) {
-		            		 if(type == 'display') {
-		            			 if(data != null && data.length > 0){
-			            			 var libSchema = full[5];
-			            			 var rowcontent = '<a href="#/database/objdetail?type=library&name=' + data ;
-			            			 if(libSchema != null && libSchema.length > 0){
-			            				 rowcontent += '&schema='+ libSchema;
-			            				 rowcontent += '">' + libSchema+'.'+data + '</a>';		            				 
+					
+					if(routeArgs.type == 'indexes'){
+						aoColumnDefs.push({
+							"aTargets": [ 5 ],
+							"mData": 5,
+							"mRender": function ( data, type, full ) {
+			            		 if(type == 'display') {
+			            			 var rowcontent = '<a href="#/database/objdetail?type=table&name=' + data ;
+			            			 if(schemaName != null)
+			            				 rowcontent += '&schema='+ routeArgs.schema;	            				 
+	
+			            			 rowcontent += '">' + data + '</a>';
+			            			 return rowcontent;                         
+			            		 }else { 
+			            			 return data;
+			            		 }
+			            	 }
+						});
+					}
+					if(routeArgs.type == 'procedures'){
+						aoColumnDefs.push({
+							"aTargets": [ 5 ],
+							"mData": 5,
+							"visible" : false,
+							"searchable" : false
+						});
+						aoColumnDefs.push({
+							"aTargets": [ 6 ],
+							"mData": 6,
+							"mRender": function ( data, type, full ) {
+			            		 if(type == 'display') {
+			            			 if(data != null && data.length > 0){
+				            			 var libSchema = full[5];
+				            			 var rowcontent = '<a href="#/database/objdetail?type=library&name=' + data ;
+				            			 if(libSchema != null && libSchema.length > 0){
+				            				 rowcontent += '&schema='+ libSchema;
+				            				 rowcontent += '">' + libSchema+'.'+data + '</a>';		            				 
+				            			 }else{
+				            				 rowcontent += '">' + libSchema+'.'+data + '</a>';	
+				            			 }
+				            			 return rowcontent; 
 			            			 }else{
-			            				 rowcontent += '">' + libSchema+'.'+data + '</a>';	
+			            				 return "";
 			            			 }
-			            			 return rowcontent; 
-		            			 }else{
-		            				 return "";
-		            			 }
-		            		 }else { 
-		            			 return data;
-		            		 }
-		            	 }
-					});
-				}
-				if(routeArgs.type == 'udfs'){
-					aoColumnDefs.push({
-						"aTargets": [ 7 ],
-						"mData": 7,
-						"visible" : false,
-						"searchable" : false
-					});
-					aoColumnDefs.push({
-						"aTargets": [ 8 ],
-						"mData": 8,
-						"mRender": function ( data, type, full ) {
-		            		 if(type == 'display') {
-		            			 if(data != null && data.length > 0){
-			            			 var libSchema = full[7];
-			            			 var rowcontent = '<a href="#/database/objdetail?type=library&name=' + data ;
-			            			 if(libSchema != null && libSchema.length > 0){
-			            				 rowcontent += '&schema='+ libSchema;
-			            				 rowcontent += '">' + libSchema+'.'+data + '</a>';		            				 
+			            		 }else { 
+			            			 return data;
+			            		 }
+			            	 }
+						});
+					}
+					if(routeArgs.type == 'udfs'){
+						aoColumnDefs.push({
+							"aTargets": [ 7 ],
+							"mData": 7,
+							"visible" : false,
+							"searchable" : false
+						});
+						aoColumnDefs.push({
+							"aTargets": [ 8 ],
+							"mData": 8,
+							"mRender": function ( data, type, full ) {
+			            		 if(type == 'display') {
+			            			 if(data != null && data.length > 0){
+				            			 var libSchema = full[7];
+				            			 var rowcontent = '<a href="#/database/objdetail?type=library&name=' + data ;
+				            			 if(libSchema != null && libSchema.length > 0){
+				            				 rowcontent += '&schema='+ libSchema;
+				            				 rowcontent += '">' + libSchema+'.'+data + '</a>';		            				 
+				            			 }else{
+				            				 rowcontent += '">' + libSchema+'.'+data + '</a>';	
+				            			 }
+				            			 return rowcontent; 
 			            			 }else{
-			            				 rowcontent += '">' + libSchema+'.'+data + '</a>';	
+			            				 return "";
 			            			 }
-			            			 return rowcontent; 
-		            			 }else{
-		            				 return "";
-		            			 }
-		            		 }else { 
-		            			 return data;
-		            		 }
-		            	 }
+			            		 }else { 
+			            			 return data;
+			            		 }
+			            	 }
+						});
+					}				
+					oDataTable = $('#db-objects-list-results').DataTable({
+						"oLanguage": {
+							"sEmptyTable": "There are no " + routeArgs.type
+						},
+						dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+						processing: true,
+						paging: bPaging,
+						autoWidth: true,
+						"iDisplayLength" : 25, 
+						"sPaginationType": "full_numbers",
+						"aaData": aaData, 
+						"aoColumns" : aoColumns,
+						"aoColumnDefs": aoColumnDefs,
+		                 buttons: [
+		                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+		                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+		                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+		                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
+		                           { extend : 'print', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text() }
+		                           ],					             
+			             fnDrawCallback: function(){
+			            	// $('#db-object-list-results td').css("white-space","nowrap");
+			             }
 					});
-				}				
-				oDataTable = $('#db-objects-list-results').DataTable({
-					"oLanguage": {
-						"sEmptyTable": "There are no " + routeArgs.type
-					},
-					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
-					processing: true,
-					paging: bPaging,
-					autoWidth: true,
-					"iDisplayLength" : 25, 
-					"sPaginationType": "full_numbers",
-					"aaData": aaData, 
-					"aoColumns" : aoColumns,
-					"aoColumnDefs": aoColumnDefs,
-	                 buttons: [
-	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
-	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
-	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
-	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text() }
-	                           ],					             
-		             fnDrawCallback: function(){
-		            	// $('#db-object-list-results td').css("white-space","nowrap");
-		             }
-				});
-
-
-				//$('#db-objects-list-results td').css("white-space","nowrap");
-				$('#db-objects-list-results tbody').on( 'click', 'td', function (e, a) {
-					if(oDataTable.cell(this)){
-						var cell = oDataTable.cell(this).index();
-						if(cell){
-							if(cell.column == 0){
-								var data = oDataTable.row(cell.row).data();
-								if(data){
-									var objAttributes = [];
-									$.each(aoColumns, function(index, val){
-										var attrib = {};
-										attrib[val.title] = data[index];
-										objAttributes.push(attrib);
-									});
-									sessionStorage.setItem(data[0], JSON.stringify(objAttributes));	
+	
+	
+					//$('#db-objects-list-results td').css("white-space","nowrap");
+					$('#db-objects-list-results tbody').on( 'click', 'td', function (e, a) {
+						if(oDataTable.cell(this)){
+							var cell = oDataTable.cell(this).index();
+							if(cell){
+								if(cell.column == 0){
+									var data = oDataTable.row(cell.row).data();
+									if(data){
+										var objAttributes = [];
+										$.each(aoColumns, function(index, val){
+											var attrib = {};
+											attrib[val.title] = data[index];
+											objAttributes.push(attrib);
+										});
+										sessionStorage.setItem(data[0], JSON.stringify(objAttributes));	
+									}
 								}
 							}
 						}
-					}
-				});	
+					});	
+				}
 			}
 		},		
 		showErrorMessage: function (jqXHR) {
-			_this.hideLoading();
-			$(ERROR_CONTAINER).show();
-			$(OBJECT_LIST_CONTAINER).hide();
-			if (jqXHR.responseText) {
-				$(ERROR_CONTAINER).text(jqXHR.responseText);
-			}else{
-				if(jqXHR.status != null && jqXHR.status == 0) {
-					$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+			if(jqXHR.objectType == routeArgs.type){
+				_this.hideLoading();
+				$(ERROR_CONTAINER).show();
+				$(OBJECT_LIST_CONTAINER).hide();
+				if (jqXHR.responseText) {
+					$(ERROR_CONTAINER).text(jqXHR.responseText);
+				}else{
+					if(jqXHR.status != null && jqXHR.status == 0) {
+						$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+					}
 				}
 			}
 		}  

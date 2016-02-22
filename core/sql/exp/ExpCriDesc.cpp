@@ -95,3 +95,4 @@ NA_EIDPROC void ex_cri_desc::display(const char* title)
          cout << i << "th tuple's TupleDesc is NULL" << endl;
    }
 }
+

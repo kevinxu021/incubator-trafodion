@@ -5913,19 +5913,52 @@ const NAType *ItmSeqOffset::synthesizeType()
 
 const NAType *ItmLagOlapFunction::synthesizeType()
 {
-// Verify that child 1 is numeric.
 // Return the type of child 0.
+ const NAType &operand1 = child(0)->getValueId().getType();
 
-  const NAType &operand1 = child(0)->getValueId().getType();
-
-  if (getArity() > 1)  {
+ if (getArity() > 1)  {
     const NAType &operand2 = child(1)->getValueId().getType();
-
+      
     if (operand2.getTypeQualifier() != NA_NUMERIC_TYPE) {
-    // The second operand of a LAG function must be numeric.
-    *CmpCommon::diags() << DgSqlCode(-4052) << DgString0(getTextUpper());
-    return NULL;
+      // The second operand of a LAG function must be numeric.
+      *CmpCommon::diags() << DgSqlCode(-4052) << DgString0(getTextUpper());
+      return NULL;
     }
+
+    // check the default expression which should have the same type as the
+    // child(0).
+    if (getArity() > 2)  {
+        const NAType& typeForOp0 = child(0)->castToItemExpr()->getValueId().getType();
+        const NAType& typeForDefault = child(2)->castToItemExpr()->getValueId().getType();
+     
+        UInt32 flags =
+            ((CmpCommon::getDefault(LIMIT_MAX_NUMERIC_PRECISION) == DF_ON)
+              ? NAType::LIMIT_MAX_NUMERIC_PRECISION : 0);
+  
+         if ( !(typeForOp0 == typeForDefault) ) {
+          
+                NATypeSynthRuleEnum rule = SYNTH_RULE_ADD;
+          
+                if ( typeForOp0.getTypeQualifier() == NA_CHARACTER_TYPE )
+                  rule = SYNTH_RULE_CONCAT;
+          
+                const NAType* resultType = typeForOp0.synthesizeType(rule,
+                                              typeForOp0,
+                                              typeForDefault,
+                                              HEAP, &flags);
+          
+                if ( !resultType ) {
+                   *CmpCommon::diags() << DgSqlCode(-4141) << DgString0("LAD");
+                   return NULL;
+                }
+          
+                // Set the null attribute of the default value to TRUE.
+                NAType* newType = typeForDefault.newCopy(HEAP);
+                newType->setNullable(TRUE);
+                ValueId vid2 = child(2)->castToItemExpr()->getValueId();
+                vid2.changeType(newType);
+         }
+     }
   }
 
  NAType *result = operand1.newCopy(HEAP);

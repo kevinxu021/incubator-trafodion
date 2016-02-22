@@ -1593,11 +1593,11 @@ Int32 str_convertToHexAscii(const char * src,               // in
 // are obtained from a tupp as follows.
 //
 //    char * dataPointer = getDataPointer();
-//    Lng32 len = tupp_.getAllocatedSize();
+//    Lng32 keyLen = tupp_.getAllocatedSize();
 //
 //    printBrief(dataPointer, len) 
 //    
-void printBrief(char* dataPointer, Lng32 len) 
+void printBrief(char* dataPointer, Lng32 keyLen) 
 {
   // We don't know what the data type is, but we do know how
   // long the field is. So we will guess the data type.
@@ -1629,7 +1629,7 @@ void printBrief(char* dataPointer, Lng32 len)
     bool allFFs = true;
     bool allPrintable = true;
     size_t i = 0;
-    while (i < len && (allNulls || allFFs))
+    while (i < keyLen && (allNulls || allFFs))
       {
       if (dataPointer[i] != '\0') allNulls = false;
       if (dataPointer[i] != -1) allFFs = false;
@@ -1647,8 +1647,8 @@ void printBrief(char* dataPointer, Lng32 len)
     else if (allPrintable)
       {
       size_t lengthToMove = sizeof(local) - 1;
-      if (len < lengthToMove)
-        lengthToMove = len;
+      if (keyLen < lengthToMove)
+        lengthToMove = keyLen;
       strncpy(local,dataPointer,lengthToMove);
       local[lengthToMove] = '\0';
       }
@@ -1658,8 +1658,8 @@ void printBrief(char* dataPointer, Lng32 len)
       strcpy(local,"hex ");
       char * nextTarget = local + strlen(local);
       size_t repdChars = ((sizeof(local) - 1)/2) - 4; // -4 to allow for "hex "
-      if (len < repdChars)
-        repdChars = len;
+      if (keyLen < repdChars)
+        repdChars = keyLen;
 
       for (size_t i = 0; i < repdChars; i++)
         {
@@ -1680,7 +1680,7 @@ void printBrief(char* dataPointer, Lng32 len)
       *nextTarget = '\0';         
       }
 
-    if (len == 2)  // if it might be a short
+    if (keyLen == 2)  // if it might be a short
       {
       // append an interpretation as a short (note that there
       // is room in local for this purpose)
@@ -1690,7 +1690,7 @@ void printBrief(char* dataPointer, Lng32 len)
                    (unsigned char)dataPointer[1];                  
       sprintf(local + strlen(local), " (short %ld)",value);
       }
-    else if (len == 4)  // if it might be a long
+    else if (keyLen == 4)  // if it might be a long
       {
       // append an interpretation as a long (note that there
       // is room in local for this purpose)
@@ -1702,7 +1702,7 @@ void printBrief(char* dataPointer, Lng32 len)
                    (unsigned char)dataPointer[3];           
       sprintf(local + strlen(local), " (long %ld)",value);
       }
-    else if (len == 8)  // if it might be a 64-bit integer
+    else if (keyLen == 8)  // if it might be a 64-bit integer
       {
       // append an interpretation as a short (note that there
       // is room in local for this purpose)
@@ -1719,7 +1719,7 @@ void printBrief(char* dataPointer, Lng32 len)
                    (unsigned char)dataPointer[7];        
       sprintf(local + strlen(local), " (long long %lld)",value);
       }
-    else if (len == 7)  // a TIMESTAMP(0) perhaps?
+    else if (keyLen == 7)  // a TIMESTAMP(0) perhaps?
       {
       long year = 256 * dataPointer[0] +
                           (unsigned char)dataPointer[1];
