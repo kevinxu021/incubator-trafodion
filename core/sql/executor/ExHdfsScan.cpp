@@ -445,53 +445,15 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 
 	case INIT_HDFS_CURSOR:
 	  {
-
-            hdfo_ = (HdfsFileInfo*)
-              hdfsScanTdb().getHdfsFileInfoList()->get(currRangeNum_);
-            if ((hdfo_->getBytesToRead() == 0) && 
-                (beginRangeNum_ == currRangeNum_) && (numRanges_ > 1))
+            if (getAndInitNextSelectedRange(false) >= 0)
               {
-                // skip the first range if it has 0 bytes to read
-                // doing this for subsequent ranges is more complex
-                // since the file may neeed to be closed. The first 
-                // range being 0 is common with sqoop generated files
-                currRangeNum_++;
-                hdfo_ = (HdfsFileInfo*)
-                  hdfsScanTdb().getHdfsFileInfoList()->get(currRangeNum_);
-              }
-               
-            hdfsOffset_ = hdfo_->getStartOffset();
-            bytesLeft_ = hdfo_->getBytesToRead();
+                sprintf(cursorId_, "%d", currRangeNum_);
+                stopOffset_ = hdfsOffset_ + hdfo_->getBytesToRead();
 
-            hdfsFileName_ = hdfo_->fileName();
-            if (partColData_)
-              {
-                ex_assert(hdfo_->getPartColValues(),
-                          "Missing part col values");
-                memcpy(partColData_,
-                       hdfo_->getPartColValues(),
-                       hdfsScanTdb().partColsRowLength_);
-                workAtp_->getTupp(hdfsScanTdb().partColsTuppIndex_) = partColTupp_;
+                step_ = OPEN_HDFS_CURSOR;
               }
-            if (virtColData_)
-              {
-                int fileNameLen = strlen(hdfsFileName_);
-                str_cpy(virtColData_->input_file_name,
-                        hdfsFileName_,
-                        sizeof(virtColData_->input_file_name));
-                // truncate the file name (should not happen)
-                if (fileNameLen > sizeof(virtColData_->input_file_name))
-                  fileNameLen = sizeof(virtColData_->input_file_name);
-                virtColData_->input_file_name_len = (UInt16) fileNameLen;
-                virtColData_->block_offset_inside_file = hdfsOffset_;
-                virtColData_->input_range_number = currRangeNum_;
-                virtColData_->row_number_in_range = -1;
-                workAtp_->getTupp(hdfsScanTdb().virtColsTuppIndex_) = virtColTupp_;
-              }
-            sprintf(cursorId_, "%d", currRangeNum_);
-            stopOffset_ = hdfsOffset_ + hdfo_->getBytesToRead();
-
-	    step_ = OPEN_HDFS_CURSOR;
+            else
+              step_ = DONE;
 	  }
 	  break;
 
@@ -562,18 +524,18 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                    );
                 
                 // preopen next range. 
-                if ( (currRangeNum_ + 1) < (beginRangeNum_ + numRanges_) ) 
+                Lng32 nextRange = getAndInitNextSelectedRange(true);
+                if (nextRange >= 0) 
                   {
                     hdfo = (HdfsFileInfo*)
-                      hdfsScanTdb().getHdfsFileInfoList()->get(currRangeNum_ + 1);
+                      hdfsScanTdb().getHdfsFileInfoList()->get(nextRange);
                 
-                    hdfsFileName_ = hdfo->fileName();
-                    sprintf(cursorId, "%d", currRangeNum_ + 1);
+                    sprintf(cursorId, "%d", nextRange);
                     openType = 1; // preOpen
                 
                     retcode = ExpLOBInterfaceSelectCursor
                       (lobGlob_,
-                       hdfsFileName_, //hdfsScanTdb().hdfsFileName_,
+                       hdfo->fileName(),
                        NULL, //(char*)"",
                        (Lng32)Lob_External_HDFS_File,
                        hdfsScanTdb().hostName_,
@@ -593,8 +555,6 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                        1,// open
                        openType
                        );
-                
-                    hdfsFileName_ = hdfo_->fileName();
                   } 
               }
                 
@@ -1346,6 +1306,9 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
             // if next file is not same as current file, then close the current file. 
             bool closeFile = true;
 
+            /* TBD: Replace this optimization with something else,
+               now that we no longer open every file, due to
+               the partition elimination predicate
             if ( (step_ == CLOSE_FILE) && 
                  ((currRangeNum_ + 1) < (beginRangeNum_ + numRanges_))) 
                  
@@ -1354,6 +1317,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                 if (strcmp(hdfsFileName_, hdfo->fileName()) == 0) 
                     closeFile = false;
             }
+            */
 
             if (closeFile) 
             {
@@ -1388,17 +1352,15 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	    if (step_ == CLOSE_FILE)
 	      {
                 currRangeNum_++;
-                if (currRangeNum_ < (beginRangeNum_ + numRanges_)) {
-                    if (((pentry_down->downState.request == ex_queue::GET_N) &&
-                        (pentry_down->downState.requestValue == matches_)) ||
-                         (pentry_down->downState.request == ex_queue::GET_NOMORE))
-                       step_ = DONE;
-                    else
-                       // move to the next file.
-                       step_ = INIT_HDFS_CURSOR;
-                    break;
-                }
-	      }
+                if (((pentry_down->downState.request == ex_queue::GET_N) &&
+                    (pentry_down->downState.requestValue == matches_)) ||
+                     (pentry_down->downState.request == ex_queue::GET_NOMORE))
+                   step_ = DONE;
+                else
+                   // move to the next range
+                   step_ = INIT_HDFS_CURSOR;
+                break;
+              }
 
 	    step_ = DONE;
 	  }
@@ -1645,6 +1607,115 @@ short ExHdfsScanTcb::moveRowToUpQueue(const char * row, Lng32 len,
   qparent_.up->insert();
 
   return 0;
+}
+
+void ExHdfsScanTcb::initPartAndVirtColData(HdfsFileInfo* hdfo,
+                                           Lng32 rangeNum,
+                                           bool prefetch)
+{
+  if (partColData_)
+    {
+      ex_assert(hdfo->getPartColValues(),
+                "Missing part col values");
+      memcpy(partColData_,
+             hdfo->getPartColValues(),
+             hdfsScanTdb().partColsRowLength_);
+      workAtp_->getTupp(hdfsScanTdb().partColsTuppIndex_) = partColTupp_;
+    }
+  if (virtColData_)
+    {
+      int fileNameLen = strlen(hdfo->fileName());
+      str_cpy(virtColData_->input_file_name,
+              hdfo->fileName(),
+              sizeof(virtColData_->input_file_name));
+      // truncate the file name (should not happen)
+      if (fileNameLen > sizeof(virtColData_->input_file_name))
+        fileNameLen = sizeof(virtColData_->input_file_name);
+      virtColData_->input_file_name_len = (UInt16) fileNameLen;
+      virtColData_->input_range_number = rangeNum;
+      if (!prefetch)
+        {
+          virtColData_->block_offset_inside_file = hdfo->getStartOffset();
+          virtColData_->row_number_in_range = -1;
+        }
+      workAtp_->getTupp(hdfsScanTdb().virtColsTuppIndex_) = virtColTupp_;
+    }
+}
+
+int ExHdfsScanTcb::getAndInitNextSelectedRange(bool prefetch)
+{
+  HdfsFileInfo* hdfo = NULL;
+  Lng32 rangeNum = currRangeNum_;
+  bool rangeIsSelected = false;
+  bool restorePartAndVirtCols = false;
+
+  if (prefetch)
+    rangeNum++;
+
+  while (!rangeIsSelected &&
+         rangeNum < (beginRangeNum_ + numRanges_))
+    {
+      hdfo = (HdfsFileInfo *)
+        hdfsScanTdb().getHdfsFileInfoList()->get(rangeNum);
+
+      // eliminate empty ranges (e.g. sqoop-generated files)
+      if (hdfo->getBytesToRead() > 0)
+        {
+          // initialize partition and virtual column with the
+          // values for this range and see whether it qualifies
+          if (!prefetch || partElimExpr())
+            {
+              initPartAndVirtColData(hdfo, rangeNum, prefetch);
+              restorePartAndVirtCols = prefetch;
+            }
+
+          if (partElimExpr())
+            {
+              // Try to eliminate the entire range based on the
+              // partition elimination expression. Note that we call
+              // it partition elimination expression, but we will
+              // actually call it for each range, and it can
+              // reference the INPUT__RANGE__NUMBER virtual column,
+              // which is specific to the range.
+              ex_expr::exp_return_type evalRetCode =
+                partElimExpr()->eval(qparent_.down->getHeadEntry()->getAtp(),
+                                     workAtp_);
+              if (evalRetCode == ex_expr::EXPR_TRUE)
+                rangeIsSelected = true;
+            }
+          else
+            rangeIsSelected = true;
+        }
+
+      if (!rangeIsSelected)
+        rangeNum++;
+    }
+
+    if (rangeIsSelected && !prefetch)
+      {
+        // prepare the TDB to scan this new, selected, range
+        currRangeNum_ = rangeNum;
+        hdfo_         = hdfo;
+        hdfsFileName_ = hdfo_->fileName();
+        hdfsOffset_   = hdfo_->getStartOffset();
+        bytesLeft_    = hdfo_->getBytesToRead();
+        // part and virt columns have already been set above
+      }
+
+    if (restorePartAndVirtCols)
+      {
+        // Put back the original partition and virtual columns
+        initPartAndVirtColData(
+             (HdfsFileInfo *)
+             hdfsScanTdb().getHdfsFileInfoList()->get(currRangeNum_),
+             currRangeNum_,
+             prefetch);
+      }
+
+    if (rangeIsSelected)
+      return rangeNum;
+    else
+      return -1;
 }
 
 short ExHdfsScanTcb::handleError(short &rc)

@@ -531,7 +531,34 @@ ID           COL2         P1           P2
           3            3            3  three                           
 
 --- 7 row(s) selected.
->>--select * from hivepio;
+>>select * from hivepio;
+
+ID           COL2         P1         
+-----------  -----------  -----------
+
+          1            1            1
+         11           11            1
+          2            2            2
+         22           22            2
+        222          222            2
+          3            3            3
+         34           34            3
+
+--- 7 row(s) selected.
+>>select * from hivepiso;
+
+ID           COL2         P1           P2                              
+-----------  -----------  -----------  --------------------------------
+
+          1            1            1  one                             
+         11           11            1  one                             
+          2            2            2  two                             
+         22           22            2  two                             
+        222          222            2  two                             
+         34           34            3  four                            
+          3            3            3  three                           
+
+--- 7 row(s) selected.
 >>
 >>prepare s from
 +>select * 
@@ -612,21 +639,116 @@ INPUT__RANGE__NUMBER  ROW__NUMBER__IN__RANGE  BLOCK__OFFSET__INSIDE__FILE
 
 --- 7 row(s) selected.
 >>
->>-- partitioned ORC tables not working yet
->>-- prepare s from select * from hive.hive.hivepio;
->>-- execute s;
+>>prepare s from select * from hive.hive.hivepio;
+
+--- SQL command prepared.
+>>execute s;
+
+ID           COL2         P1         
+-----------  -----------  -----------
+
+          1            1            1
+         11           11            1
+          2            2            2
+         22           22            2
+        222          222            2
+          3            3            3
+         34           34            3
+
+--- 7 row(s) selected.
+>>select * from hive.hive.hivepiso;
+
+ID           COL2         P1           P2                              
+-----------  -----------  -----------  --------------------------------
+
+          1            1            1  one                             
+         11           11            1  one                             
+          2            2            2  two                             
+         22           22            2  two                             
+        222          222            2  two                             
+         34           34            3  four                            
+          3            3            3  three                           
+
+--- 7 row(s) selected.
+>>
+>>-- partition elimination on ORC table
+>>select * from hive.hive.hivepio where p1=2;
+
+ID           COL2         P1         
+-----------  -----------  -----------
+
+          2            2            2
+         22           22            2
+        222          222            2
+
+--- 3 row(s) selected.
+>>select * from hive.hive.hivepio where p1 in (1,3);
+
+ID           COL2         P1         
+-----------  -----------  -----------
+
+          1            1            1
+         11           11            1
+          3            3            3
+         34           34            3
+
+--- 4 row(s) selected.
+>>
+>>-- this pred can neither be pushed to ORC nor used as
+>>-- a partition elimination predicate
+>>--select * from hive.hive.hivepio where p1=1 or col2<10;
 >>
 >>set catalog trafodion;
 
 --- SQL operation complete.
->>-- create external table hivepi for hive.hive.hivepi;
+>>create external table hivepi for hive.hive.hivepi;
+
+--- SQL operation complete.
 >>set schema hive.hive;
 
 --- SQL operation complete.
->>-- update statistics is not working yet
->>-- update statistics for table hive.hive.hivepi on every column;
->>-- update statistics for table hivepis on every column;
+>>update statistics for table hive.hive.hivepi on every column;
+
+--- SQL operation complete.
+>>update statistics for table hivepis on every column;
+
+--- SQL operation complete.
+>>update statistics for table hivepiso on every column --, INPUT__FILE__NAME, ROW__NUMBER__IN__RANGE
++>;
+
+--- SQL operation complete.
 >>
->>-- drop external table hivepi for hive.hive.hivepi;
+>>select cast(substring(o.object_name, 1, 20) as
++>            char(20) character set iso88591) object_name,
++>       cast(substring(c.column_name, 1, 20) as
++>            char(20) character set iso88591) col_name
++>  from trafodion."_MD_".objects o 
++>  join trafodion."_MD_".columns c on o.object_uid = c.object_uid
++>  join trafodion."_HIVESTATS_".sb_histograms g on g.table_uid = o.object_uid 
++>                       and g.column_number = c.column_number
++>  where o.object_type = 'BT'
++>    and o.object_name in ('HIVEPI', 'HIVEPIS', 'HIVEPISO')
++>order by 1, 2;
+
+OBJECT_NAME           COL_NAME            
+--------------------  --------------------
+
+HIVEPI                COL2                
+HIVEPI                ID                  
+HIVEPI                P1                  
+HIVEPIS               COL2                
+HIVEPIS               ID                  
+HIVEPIS               P1                  
+HIVEPIS               P2                  
+HIVEPISO              COL2                
+HIVEPISO              ID                  
+HIVEPISO              P1                  
+HIVEPISO              P2                  
+
+--- 11 row(s) selected.
+>>
+>>drop external table hivepi for hive.hive.hivepi;
+
+--- SQL operation complete.
 >>
 >>log;

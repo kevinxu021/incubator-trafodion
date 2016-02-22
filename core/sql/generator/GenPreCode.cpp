@@ -4254,6 +4254,16 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
            endKeyPredCopy -= minMaxPreds;
      
            locals += endKeyPredCopy;
+
+           locals.replaceVEGExpressions (
+   	                 availableValues,
+   	                 getGroupAttr()->getCharacteristicInputs(),
+   	                 FALSE, // no need for key predicate generation here
+                            &vegPairs, // to be side-affected
+                            TRUE);
+   
+           if (hiveSearchKey_)
+             locals -= hiveSearchKey_->getPartAndVirtColPreds();
    
            HivePartitionAndBucketKey::makeHiveOrcPushdownPrecates(
                    hiveSearchKey_, 
@@ -4262,13 +4272,6 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
                    NULL, 
                    orcPushdownPreds);
 
-           orcPushdownPreds.replaceVEGExpressions (
-   	                 availableValues,
-   	                 getGroupAttr()->getCharacteristicInputs(),
-   	                 FALSE, // no need for key predicate generation here
-                            &vegPairs, // to be side-affected
-                            TRUE);
-   
            orcPushdownPreds.generatePushdownListForORC(orcListOfPPI_);
 
            // include begin/end key predicates in executor predicates

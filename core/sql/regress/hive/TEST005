@@ -239,7 +239,8 @@ select * from hivenonp;
 select * from hivepi;
 select * from hiveps;
 select * from hivepis;
---select * from hivepio;
+select * from hivepio;
+select * from hivepiso;
 
 prepare s from
 select * 
@@ -265,17 +266,38 @@ from hive.hive.hivenonp;
 select input__range__number, row__number__in__range, block__offset__inside__file
 from hive.hive.hivepi;
 
--- partitioned ORC tables not working yet
--- prepare s from select * from hive.hive.hivepio;
--- execute s;
+prepare s from select * from hive.hive.hivepio;
+execute s;
+select * from hive.hive.hivepiso;
+
+-- partition elimination on ORC table
+select * from hive.hive.hivepio where p1=2;
+select * from hive.hive.hivepio where p1 in (1,3);
+
+-- this pred can neither be pushed to ORC nor used as
+-- a partition elimination predicate
+--select * from hive.hive.hivepio where p1=1 or col2<10;
 
 set catalog trafodion;
--- create external table hivepi for hive.hive.hivepi;
+create external table hivepi for hive.hive.hivepi;
 set schema hive.hive;
--- update statistics is not working yet
--- update statistics for table hive.hive.hivepi on every column;
--- update statistics for table hivepis on every column;
+update statistics for table hive.hive.hivepi on every column;
+update statistics for table hivepis on every column;
+update statistics for table hivepiso on every column --, INPUT__FILE__NAME, ROW__NUMBER__IN__RANGE
+;
 
--- drop external table hivepi for hive.hive.hivepi;
+select cast(substring(o.object_name, 1, 20) as
+            char(20) character set iso88591) object_name,
+       cast(substring(c.column_name, 1, 20) as
+            char(20) character set iso88591) col_name
+  from trafodion."_MD_".objects o 
+  join trafodion."_MD_".columns c on o.object_uid = c.object_uid
+  join trafodion."_HIVESTATS_".sb_histograms g on g.table_uid = o.object_uid 
+                       and g.column_number = c.column_number
+  where o.object_type = 'BT'
+    and o.object_name in ('HIVEPI', 'HIVEPIS', 'HIVEPISO')
+order by 1, 2;
+
+drop external table hivepi for hive.hive.hivepi;
 
 log;
