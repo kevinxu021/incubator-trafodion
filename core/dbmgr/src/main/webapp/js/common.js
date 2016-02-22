@@ -156,6 +156,11 @@ define(['moment',
 					return "";
 				return number.toString().replace(/,/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 			};
+			this.formatNumberRoundWithCommas = function(number) {
+				if(number == null)
+					return "";
+				return Math.round(number).toString().replace(/,/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+			};
 
 			this.toUTCFromMilliSeconds = function(milliSeconds) {
 				if (milliSeconds != null) {

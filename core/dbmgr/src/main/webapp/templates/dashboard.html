@@ -66,6 +66,12 @@
 				<div class="panel-heading">
 					<i class="fa fa-bar-chart-o fa-fw"></i> Transaction Counts<img
 						id="transactions-spinner" src="img/ajax-loader.gif" style="padding-left:2px"/>
+					<div class="btn-group pull-right">
+						<button id="transactions-drilldown-btn" type="button"
+							class="btn btn-default btn-xs text-primary fa fa-expand"
+							data-toggle="tooltip" data-placement="left" title="Transactions Per Node"
+							style="background-color: transparent; border-color:transparent; padding:1px; width:22px"></button>
+					</div>							
 				</div>
 				<div class="panel-body">
 					<div id="transactions-chart" class="dbmgr-graph"></div>
@@ -78,6 +84,12 @@
 				<div class="panel-heading">
 					<i class="fa fa-bar-chart-o fa-fw"></i> Canary Response<img
 						id="canary-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
+					<div class="btn-group pull-right">
+						<button id="canary-drilldown-btn" type="button"
+							class="btn btn-default btn-xs text-primary fa fa-expand"
+							data-toggle="tooltip" data-placement="left" title="Canary Response"
+							style="background-color: transparent; border-color:transparent; padding:1px; width:22px"></button>
+					</div>	
 				</div>
 				<div class="panel-body">
 					<div id="canary-chart" class="dbmgr-graph"></div>
@@ -285,9 +297,14 @@
 					</button>
 					<h4 class="modal-title" id="metricsDialogLabel">Metric Details</h4>
 					<img id="metrics-drilldown-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
+					<label id="metric-name-holder" style="display:none"></label>
 				</div>
 				<div class="modal-body" style="height:600px">
 					<form id="metrics-form" style="padding:10px">
+						<div id="metric-series-select-container">
+							<label style="padding-right:10px;padding-bottom:20px">Metric Name</label>
+							<select id="seriesSelect" style="font-size:13px;"> </select>
+						</div>
 						<div id="metrics-drilldown-container">
 							<div id="metrics-drilldown-chart" class="dbmgr-drilldown-graph"></div>
 							<div style="overflow:auto">

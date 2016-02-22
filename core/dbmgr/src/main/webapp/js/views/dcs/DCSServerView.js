@@ -94,6 +94,7 @@ define([
 			_that.showLoading();
 			$(SUMMARY_LOADING_SELECTOR).show();
 			$(ERROR_CONTAINER).hide();
+			$(SUMMARY_ERROR_CONTAINER).hide();
 			serverHandler.fetchDcsServers();
 			serverHandler.fetchDcsSummary();
 		},
