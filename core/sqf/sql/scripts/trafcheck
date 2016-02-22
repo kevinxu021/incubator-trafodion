@@ -64,7 +64,7 @@ EOF
 echo 
 echo "Let's check if a Trafodion monitor is running on other nodes..."
 
-grep_out_mon=`cstat | grep "monitor COLD" `
+grep_out_mon=`$SQ_ROOT/sql/scripts/cstat | grep "monitor COLD" `
 lv_ret=$?
 if [[ $lv_ret == 0 ]]; then
     grep_out=`cstat | grep "monitor COLD" | grep -v mpirun | sort | cut -d: -f1`

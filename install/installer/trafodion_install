@@ -803,6 +803,9 @@ fi
 
 echo "***INFO: Trafodion Mods ran successfully."
 
+#Get HBaseSite.xml information 
+$LOCAL_WORKDIR/parseHBaseSite.py
+
 #==============================================
 #Install Trafodion
 echo

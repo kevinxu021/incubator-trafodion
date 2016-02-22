@@ -141,6 +141,8 @@ if [[ $? -eq 0 ]]; then
    sudo su $TRAF_USER --login --command "$TRAF_WORKDIR/installer/traf_sqgen" 2>&1 | tee -a $INSTALL_LOG
    if [ ${PIPESTATUS[0]} == "0" ]; then
       sudo su $TRAF_USER --command "$TRAF_WORKDIR/installer/traf_start" 2>&1 | tee -a $INSTALL_LOG
+      sudo su $TRAF_USER --login --command "$TRAF_WORKDIR/installer/mgblty_restart" 2>&1 | tee -a $INSTALL_LOG
+ 
    fi
 fi
 
