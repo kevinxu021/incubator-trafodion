@@ -803,6 +803,19 @@ fi
 
 echo "***INFO: Trafodion Mods ran successfully."
 
+#Get HBaseSite.xml information 
+$LOCAL_WORKDIR/parseHBaseSite.py
+
+if [[ $HADOOP_TYPE == "cloudera" ]]; then
+   sudo chmod 777 $TRAF_CONFIG
+   sed -i '/HBASE_MASTER_INFO_PORT\=/d' $TRAF_CONFIG
+   echo "export HBASE_MASTER_INFO_PORT=\"60010\"" >> $TRAF_CONFIG
+   sed -i '/REGIONSERVER_INFO_PORT\=/d' $TRAF_CONFIG
+   echo "export REGIONSERVER_INFO_PORT=\"60030\"" >> $TRAF_CONFIG 
+   sudo chmod 777 $TRAF_CONFIG
+
+fi
+
 #==============================================
 #Install Trafodion
 echo
