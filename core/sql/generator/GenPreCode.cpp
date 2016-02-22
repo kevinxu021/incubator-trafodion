@@ -3688,14 +3688,27 @@ RelExpr * HashJoin::preCodeGen(Generator * generator,
  // exclusive (min max are inclusive and no easy way to mix
  // them).
 void FileScan::processMinMaxKeys(Generator* generator, 
-                                 ValueIdSet& pulledNewInputs, 
+                                 ValueIdSet& pulledNewInputs,
                                  ValueIdSet& availableValues, 
-                                 NABoolean updateSearchKeyOnly)
+                                 NABoolean updateSearchKeyOnly
+                                )
 {
+    // impossible to satisfy such request.
+    if ( !getSearchKey() && updateSearchKeyOnly )
+      return;
+
+    CollIndex leadKeyIdx = 0;
+    if (getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHbaseTable() &
+        getIndexDesc()->getPrimaryTableDesc()->getNATable()->hasSaltedColumn()) 
+    { 
+       leadKeyIdx = 1;
+    }
+      
+
       if (generator->getMinMaxKeys().entries() &&
           (!getSearchKey() ||
           (
-           (getSearchKey()->getBeginKeyValues()[0] != getSearchKey()->getEndKeyValues()[0]) &&
+           (getSearchKey()->getBeginKeyValues()[leadKeyIdx] != getSearchKey()->getEndKeyValues()[leadKeyIdx]) &&
            (!getSearchKey()->isBeginKeyExclusive() || !getSearchKey()->isEndKeyExclusive())
           )
           )
@@ -3703,7 +3716,7 @@ void FileScan::processMinMaxKeys(Generator* generator,
 
         // The keys of the scan.
         const ValueIdList &keys = getIndexDesc()->getIndexKey();
-        ValueId      minMaxKeyCol = keys[0];
+        ValueId      minMaxKeyCol = keys[leadKeyIdx];
         IndexColumn *ixCol = (IndexColumn *) (minMaxKeyCol.getItemExpr());
         BaseColumn  *baseCol = NULL;
         ValueId      underlyingCol;
@@ -3719,7 +3732,7 @@ void FileScan::processMinMaxKeys(Generator* generator,
         // on ordering (ASC vs DESC) and scan direction (forward vs
         // reverse)
         NABoolean ascKey = 
-          getIndexDesc()->getNAFileSet()->getIndexKeyColumns().isAscending(0);
+          getIndexDesc()->getNAFileSet()->getIndexKeyColumns().isAscending(leadKeyIdx);
 
         if(getReverseScan())
           ascKey = !ascKey;
@@ -3799,10 +3812,10 @@ void FileScan::processMinMaxKeys(Generator* generator,
 
                   if ( updateSearchKeyOnly ) {
                      CMPASSERT(getSearchKey());
-                     currentBeg = (getSearchKey()->getBeginKeyValues()[0]).getItemExpr();
+                     currentBeg = (getSearchKey()->getBeginKeyValues()[leadKeyIdx]).getItemExpr();
                   } else
                   if ( !getBeginKeyPred().isEmpty() ) {
-                     keyPred = getBeginKeyPred()[0].getItemExpr();
+                     keyPred = getBeginKeyPred()[leadKeyIdx].getItemExpr();
                      currentBeg = keyPred->child(1);
                   }
 
@@ -3841,7 +3854,7 @@ void FileScan::processMinMaxKeys(Generator* generator,
 
                      // Replace the RHS of the key pred.
                      if ( updateSearchKeyOnly )
-                        searchKey()->setBeginKeyValue(0, newBeg->getValueId());
+                        searchKey()->setBeginKeyValue(leadKeyIdx, newBeg->getValueId());
                      else
                         keyPred->child(1) = newBeg->getValueId();
                   } else {
@@ -3877,10 +3890,10 @@ void FileScan::processMinMaxKeys(Generator* generator,
 
                   if ( updateSearchKeyOnly ) {
                      CMPASSERT(getSearchKey());
-                     currentEnd = (getSearchKey()->getEndKeyValues()[0]).getItemExpr();
+                     currentEnd = (getSearchKey()->getEndKeyValues()[leadKeyIdx]).getItemExpr();
                   } else
                   if ( !getEndKeyPred().isEmpty() ) {
-                     keyPred = getEndKeyPred()[0].getItemExpr();
+                     keyPred = getEndKeyPred()[leadKeyIdx].getItemExpr();
                      currentEnd = keyPred->child(1);
                   }
 
@@ -3915,7 +3928,7 @@ void FileScan::processMinMaxKeys(Generator* generator,
 
                      // Replace the RHS of the key pred.
                      if ( updateSearchKeyOnly )
-                        searchKey()->setEndKeyValue(0, newEnd->getValueId());
+                        searchKey()->setEndKeyValue(leadKeyIdx, newEnd->getValueId());
                      else
                         keyPred->child(1) = newEnd->getValueId();
                   } else {
@@ -11862,15 +11875,16 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
 
   // use const HBase keys only if we don't have to add
   // partitioning key predicates
+  ValueIdSet availableValues(externalInputs);
   if ( myPartFunc == NULL ||
        !myPartFunc->isPartitioned() ||
        myPartFunc->isAReplicationPartitioningFunction())
   {
     //
-    // Set the last argument to TRUE to side-effect the searchKey(). TBT 
+    // Set the last argument to TRUE to side-effect the searchKey() only. TBT 
     // (to be tested)
     //
-    //processMinMaxKeys(generator, pulledNewInputs, externalInputs, TRUE);
+    processMinMaxKeys(generator, pulledNewInputs, availableValues, TRUE);
 
     if (!processConstHBaseKeys(
            generator,
@@ -11884,7 +11898,7 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
       return NULL;
   }
 
-  if (! FileScan::preCodeGen(generator,externalInputs,pulledNewInputs))
+  if (! FileScan::preCodeGen(generator,availableValues,pulledNewInputs))
     return NULL;
 
   ValueIdSet colRefSet;

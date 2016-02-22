@@ -7764,7 +7764,7 @@ ExtendedQualName::SpecialTableType NATable::getTableType()
   return qualifiedName_.getSpecialType();
 }
 
-NABoolean NATable::hasSaltedColumn()
+NABoolean NATable::hasSaltedColumn() const
 {
   for (CollIndex i=0; i<colArray_.entries(); i++ )
   {

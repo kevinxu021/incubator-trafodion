@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Sat Feb 20 14:26:50 2016
+-- Definition current  Sun Feb 21 23:43:37 2016
 
   (
     S_STORE_SK                       INT
@@ -975,7 +975,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Sat Feb 20 14:27:19 2016
+-- Definition current  Sun Feb 21 23:44:00 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1026,7 +1026,7 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212322738439525981
+PLAN_ID .................. 212322858240760933
 ROWS_OUT ............. 1,698
 EST_TOTAL_COST ........... 1.21
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
@@ -1139,7 +1139,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212322738440231615
+PLAN_ID .................. 212322858241453859
 ROWS_OUT ......... 2,880,401
 EST_TOTAL_COST ........... 1.77
 STATEMENT ................ select *
@@ -1303,13 +1303,11 @@ DESCRIPTION
 +>   d_current_year varchar(100 bytes) character set utf8)
 +>  for hive.hive.date_dim_orc primary key (d_date);
 
-*** ERROR[1390] Object TRAFODION."_HV_HIVE_".DATE_DIM_ORC already exists in Trafodion.
-
---- SQL operation failed with errors.
+--- SQL operation complete.
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Sat Feb 20 14:27:21 2016
+-- Definition current  Sun Feb 21 23:44:03 2016
 
   (
     D_DATE_SK                        INT
@@ -1377,7 +1375,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212322738442985451
+PLAN_ID .................. 212322858245651809
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1481,7 +1479,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Sat Feb 20 14:27:24 2016
+-- Definition current  Sun Feb 21 23:44:06 2016
 
   (
     D_DATE_SK                        INT
@@ -1549,7 +1547,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212322738445176913
+PLAN_ID .................. 212322858247826669
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *

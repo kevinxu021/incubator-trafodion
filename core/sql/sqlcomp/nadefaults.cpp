@@ -1538,7 +1538,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDui1__(GEN_HSHJ_BUFFER_SIZE,			"262144"),
 
  // Controls use of the hash join min/max optimization.
-  DDkwd__(GEN_HSHJ_MIN_MAX_OPT,			"OFF"),
+  DDkwd__(GEN_HSHJ_MIN_MAX_OPT,			"ON"),
   DDui1__(GEN_HSHJ_NUM_BUFFERS,			"1"),
   DDui1__(GEN_HSHJ_SIZE_DOWN,			"2048"),
   DDui1__(GEN_HSHJ_SIZE_UP,			"2048"),
