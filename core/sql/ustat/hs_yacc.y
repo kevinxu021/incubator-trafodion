@@ -92,7 +92,7 @@ extern int yylex(YYSTYPE * lvalp, void* scanner);
 %token  ON TOK_OFF EVERY COLUMN KEY TO CLEAR VIEWONLY GENERATE INTERVALS
 %token  TOK_SET ROWCOUNT SAMPLE ROWS RANDOM PERIODIC TOK_PERCENT CLUSTERS BLOCKS OF
 %token  EXISTING COLUMNS NECESSARY CREATE REMOVE ALL WITH SKEWED VALUES 
-%token  INCREMENTAL WHERE WHERE_CONDITION PERSISTENT
+%token  INCREMENTAL WHERE WHERE_CONDITION PERSISTENT NO
 %%
 
 /*
@@ -353,19 +353,18 @@ histogram_options : CLEAR
                       {
                         hs_globals_y->optFlags |= CLEAR_OPT;
                       }
-                 |  CREATE SAMPLE sample_clause_for_createremove
+                 |  CREATE SAMPLE random_clause
                       {
-                        if (hs_globals_y->optFlags & SAMPLE_ALL)
+                        if (hs_globals_y->optFlags & SAMPLE_RAND_2)
                           {
-                            HSFuncMergeDiags(- UERR_INVALID_OPTION,
-                                             "ALL",
-                                             "RANDOM X PERCENT or r ROWS");
+                            HSFuncMergeDiags(-UERR_IUS_WRONG_RANDOM);
                             hs_globals_y->parserError = HSGlobalsClass::ERROR_SEMANTICS;
                             return -1;
                           }
+
                         hs_globals_y->optFlags |= CREATE_SAMPLE_OPT;
                       }
-                 |  REMOVE SAMPLE sample_clause_for_createremove
+                 |  REMOVE SAMPLE
                       {
                         hs_globals_y->optFlags |= REMOVE_SAMPLE_OPT;
                       }
@@ -402,37 +401,6 @@ histogram_options : CLEAR
                  | /* empty */
 ;
 
-sample_clause_for_createremove: ALL
-                      { 
-                        hs_globals_y->optFlags |= SAMPLE_ALL;
-                      }
-                 |  int_number ROWS
-                      {
-                        if ($1 <= 0)
-                          {
-                            HSFuncMergeDiags(- UERR_INVALID_OPTION,
-                                             "SAMPLE ROWS",
-                                             "an integer greater than or equal to 0 and within limits");
-                            hs_globals_y->parserError = HSGlobalsClass::ERROR_SEMANTICS;
-                            return -1;
-                          }
-                        hs_globals_y->optFlags |= SAMPLE_BASIC_1;
-                        hs_globals_y->sampleValue1 = $1;
-                      }
-                 |  RANDOM real_number TOK_PERCENT
-                      {
-                        if ($2 <= 0 || $2 >= 100)
-                          {
-                            HSFuncMergeDiags(- UERR_INVALID_OPTION,
-                                             "PERCENT",
-                                             "a value between 0 and 100");
-                            hs_globals_y->parserError = HSGlobalsClass::ERROR_SEMANTICS;
-                            return -1;
-                          }
-                        hs_globals_y->optFlags |= SAMPLE_RAND_1;
-                        hs_globals_y->sampleValue1 = (Int64)($2 * HS_SAMP_PCNT_UPSCALE);
-                      }
-;
 
 on_clause :         ON predefined_groups
                  |  ON predefined_groups ',' regular_group_list
@@ -509,6 +477,13 @@ interval_clause :   GENERATE int_number INTERVALS
 ;
 
 sample_clause : sample_clause_init sample_clause_body
+
+              | NO SAMPLE
+                 {
+                   // explicit NO SAMPLE, to override error 
+                   // UERR_YOU_WILL_LIKELY_BE_SORRY on large tables
+                   hs_globals_y->optFlags |= NO_SAMPLE;
+                 }
 ;
 
 sample_clause_init : { 
@@ -578,17 +553,17 @@ sample_clause_body : SAMPLE
                         if (LM->LogNeeded() )
                           LM->Log("Creation of persistent sample table for IUS requested");
 
-                        if (hs_globals_y->optFlags & (REG_GROUP_OPT | EVERYCOL_OPT | EVERYKEY_OPT))
-                          HSFuncMergeDiags(-UERR_WRONG_ON_CLAUSE_FOR_IUS, "PERSISTENT");
-                        else if (hs_globals_y->optFlags & SAMPLE_RAND_2)
+                        // Formerly there was code here to limit PERSISTENT to 
+                        // ON EXISTING COLUMNS and ON NECESSARY COLUMNS (EXISTING_OPT and
+                        // NECESSARY_OPT in the optFlags). But there doesn't seem to be
+                        // a compelling reason for this limitation. The persistent sample
+                        // table will have all the columns of the base table regardless
+                        // of the ON clause.
+
+                        if (hs_globals_y->optFlags & SAMPLE_RAND_2)
                           HSFuncMergeDiags(-UERR_IUS_WRONG_RANDOM);
                         else
-                          {
-                            // This assert is here to make sure we covered all other possible ON
-                            // clauses in the check above.
-                            HS_ASSERT(hs_globals_y->optFlags & (EXISTING_OPT | NECESSARY_OPT));
-                            hs_globals_y->optFlags |= IUS_PERSIST;
-                          }
+                          hs_globals_y->optFlags |= IUS_PERSIST;
                       }
                  |  SAMPLE random_clause rowcount_clause
                  |  SAMPLE periodic_clause

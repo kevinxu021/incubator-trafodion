@@ -113,40 +113,48 @@ char *GetHistoryRowOLAP(void *data, Int32 n,
   return tmpBuf->getFirstRow() + ( tcb->maxRowsInOLAPBuffer_ - n ) * tcb->recLen();
 };
 
+  
 char *GetHistoryRowFollowingOLAP(void *data, Int32 n, 
                                  NABoolean leading, Lng32 winSize, Int32 &retcode)
 {
   ExSequenceTcb *tcb = (ExSequenceTcb*)data;
+
+  // flip the sign of n for now. The logic to handle negative offsets should be done 
+  // in GetHistoryRowPrecedingOLAP() (aka GetHistoryRowOLAP()).
+  if ( n < 0 )
+    n = -n;
 
   retcode = 0;
   if(!leading)
     retcode = -2;
 
   if (winSize !=0)
-  {
-    if (-n == INT_MAX && tcb->isUnboundedFollowing()) 
-    {
+  { 
+    if (n == INT_MAX && tcb->isUnboundedFollowing())
+    { 
       return tcb->lastRow_;
     }
-    if (-n >= tcb->numFollowingRows()) 
-    {
-      if(!leading || (-n - tcb->numFollowingRows()) >= winSize && -n != INT_MAX) 
-      {
+    if (n >= tcb->numFollowingRows())
+    { 
+      if(!leading || (n - tcb->numFollowingRows()) >= winSize && n != INT_MAX)
+      { 
         retcode = 0;
         return NULL;
       } else
-        n = -tcb->numFollowingRows();
+        n = tcb->numFollowingRows();
     }
   }
   else
   {
-    if (-n > tcb->numFollowingRows())
+    if (n > tcb->numFollowingRows())
     {
       retcode = -3;
       return NULL;
     }
   }
-  n = tcb->currentRetHistRowInOLAPBuffer_ - n;  // n become absolute positive offset (i.e. not relative)
+
+
+  n += tcb->currentRetHistRowInOLAPBuffer_;  // n become absolute positive offset (i.e. not relative)
 
   if ( n < tcb->maxRowsInOLAPBuffer_ ) // we're within the current buffer
     return tcb->currentRetOLAPBuffer_->getFirstRow() + n * tcb->recLen() ;
@@ -684,6 +692,8 @@ short ExSequenceTcb::work()
                   }
                 }
 
+//workAtp_->display("read eval result", myTdb().getCriDescUp());
+
                 // merge the child's diags area into the work atp
                 updateDiagsArea(centry);
 
@@ -813,6 +823,8 @@ short ExSequenceTcb::work()
               }
             }
 
+//pentry_up->getAtp()->display("return eval result", myTdb().getCriDescUp());
+
             retCode = ex_expr::EXPR_OK;
             //Apply post predicate expression  
             if (postPred()) 
@@ -826,6 +838,8 @@ short ExSequenceTcb::work()
                 // LCOV_EXCL_STOP
               }
             }
+
+//pentry_up->getAtp()->display("return eval result", myTdb().getCriDescUp());
 
             //
             // Case-10-030724-7963: we are done pointing the tupp at the

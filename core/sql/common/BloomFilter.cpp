@@ -287,9 +287,10 @@ CountingBloomFilter::CountingBloomFilter(NAHeap* heap,
   freq2sH_(NULL),
   actualOverflowF2s_(0),
   uecs_(numBuckets, (UInt32)bitsNeeded(n), heap_),
-  totalFreqs_(numBuckets, (UInt32)MINOF(32, nonOverflowFreq * n / numBuckets), heap_), 
+  totalFreqs_(numBuckets, (UInt32)MINOF(32, MAXOF(nonOverflowFreq * n / numBuckets,1)), heap_), 
                                                      // total freq per bucket is estimated as
-                                                     // avg. freq * n / numBuckets
+                                                     // avg. freq * n / numBuckets, but don't
+                                                     // allow a 0 value for this ratio
   numBuckets_(numBuckets),
   savedFreq2sL_(NULL),
   totalMemSz_(0),

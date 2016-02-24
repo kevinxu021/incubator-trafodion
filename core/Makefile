@@ -192,8 +192,6 @@ else
 endif
 
 SPECFILE = trafodion.spec
-DBMGR_SPECFILE = esgyndb-manager.spec
-DBMGR_RPMNAME = esgynDB-manager
 
 RPMROOT=$(shell cd ..; /bin/pwd)/RPMROOT
 RPMDIR=$(RPMROOT)/RPMS
@@ -201,16 +199,6 @@ SRPMDIR=$(RPMROOT)/SRPMS
 SOURCEDIR=$(RPMROOT)/SOURCES
 BUILDDIR=$(RPMROOT)/BUILD
 BUILDROOTDIR=$(RPMROOT)/BUILDROOT
-
-rpmpackage_dbmgr: dbmgr
-	/bin/rm -rf $(RPMROOT)
-	mkdir -p $(RPMDIR)
-	mkdir -p $(SOURCEDIR)
-	mkdir -p $(BUILDDIR)
-	mkdir -p $(BUILDROOTDIR)
-	mkdir -p $(SRPMDIR)
-	ln -L ../distribution/mgblty-tools-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
-	ln -L ../distribution/dbmgr-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
 
 rpmpackage: pkg-product
 	/bin/rm -rf $(RPMROOT)
@@ -222,19 +210,8 @@ rpmpackage: pkg-product
 	ln -L ../distribution/$(SERVERTAR) $(SOURCEDIR)/$(PKG_PROD)_server-$(TRAFODION_VER).tgz
 	ln -L ../distribution/rest-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
 	ln -L ../distribution/dcs-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
-
-rpmbuild_dbmgr: rpmpackage_dbmgr
-	rpmbuild -vv -bb \
-                        --define "name $(DBMGR_RPMNAME)" \
-                        --define "version $(TRAFODION_VER)" \
-                        --define "release $(RELEASE)" \
-                        --define "_builddir $(BUILDDIR)" \
-                        --define "_buildrootdir $(BUILDROOTDIR)" \
-                        --define "_sourcedir $(SOURCEDIR)" \
-                        --define "_rpmdir $(RPMDIR)" \
-                        --define "_arch $(ARCH)" \
-                        --define "_topdir $(RPMROOT)" \
-                        $(DBMGR_SPECFILE)
+	ln -L ../distribution/mgblty-tools-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
+	ln -L ../distribution/dbmgr-$(TRAFODION_VER).tar.gz $(SOURCEDIR)/
 
 rpmbuild: rpmpackage
 	rpmbuild -vv -bb \
@@ -248,6 +225,8 @@ rpmbuild: rpmpackage
                         --define "_arch $(ARCH)" \
                         --define "_topdir $(RPMROOT)" \
                         $(SPECFILE)
+	mv $(RPMROOT)/RPMS/$(ARCH)/$(PKG_PROD)*.rpm ../distribution/
+	mv $(RPMROOT)/RPMS/$(ARCH)/esgynDB-manager*.rpm ../distribution/
 
 
 eclipse: rest/.project dcs/.project sql/.project sqf/src/seatrans/hbase-trx/.project .project

@@ -386,8 +386,6 @@ public class HBaseTxClient {
             throw new RuntimeException(e);
          }
       }
-      if(useDDLTrans)
-         trxManager.init(tmDDL);
 
       try {
           trxManager = TransactionManager.getInstance(config);
@@ -1145,7 +1143,7 @@ public class HBaseTxClient {
                                     int pv_peerId) throws Exception {
        String hostname    = new String(pv_hostname);
        if (LOG.isTraceEnabled()) LOG.trace("Enter callRegisterRegion, "
-					   + "[peerId: " + pv_peerId + "]" 
+					   + "[peerId: " + pv_peerId + "] " 
 					   + "txid: [" + transactionId + "]" 
 					   + ", startId: " + startId 
 					   + ", port: " + pv_port 

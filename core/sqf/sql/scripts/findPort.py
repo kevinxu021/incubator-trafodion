@@ -63,7 +63,6 @@ args = parser.parse_args()  # exits and prints help if args are incorrect
 
 exitCode = 0
 
-# get the set of lines to process ( netstat | grep localhost )
 
 retcode = subprocess.call("sudo -ll lsof", shell=True) 
 
@@ -71,6 +70,7 @@ inUseRanges = sets.Set()
 
 if retcode == 0:
     # sudo lsof can be run successfully
+    # get the ips in use to process ( sudo lsof -i | awk -f lsof.awk )
     print "Use sudo lsof to get port numbers";
     p1 = subprocess.Popen(["sudo", "lsof", "-i"], stdout=subprocess.PIPE)
     p2 = subprocess.Popen(["awk", "-f", "lsof.awk"], stdin=p1.stdout, stdout=subprocess.PIPE, close_fds=True)
@@ -80,6 +80,7 @@ if retcode == 0:
         inUseRanges.add(rangeInUse)
 else :
     # no sudo permission on lsof 
+    # get the set of lines to process ( netstat | grep localhost )
     print "Use netstat to get port numbers";
     p1 = subprocess.Popen(["netstat"], stdout=subprocess.PIPE)
     p2 = subprocess.Popen(["grep","localhost"], stdin=p1.stdout, stdout=subprocess.PIPE, close_fds=True)

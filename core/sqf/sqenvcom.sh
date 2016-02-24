@@ -145,7 +145,10 @@ export DTM_COMMON_JAR=trafodion-dtm-${TRAFODION_VER}.jar
 export SQL_JAR=trafodion-sql-${TRAFODION_VER}.jar
 export UTIL_JAR=trafodion-utility-${TRAFODION_VER}.jar
 if [[ "$HBASE_DISTRO" = "HDP" ]]; then
-    export HBASE_TRX_JAR=hbase-trx-hdp2_2-${TRAFODION_VER}.jar
+    export HBASE_VERSION_ID=hdp2_3
+    export HBASE_TRX_JAR=hbase-trx-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
+    export DTM_COMMON_JAR=trafodion-dtm-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
+    export SQL_JAR=trafodion-sql-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
 fi
 if [[ "$HBASE_DISTRO" = "APACHE" ]]; then
     export HBASE_VERSION_ID=apache1_0_2
@@ -316,7 +319,8 @@ elif [[ -d /opt/cloudera/parcels/CDH ]]; then
                           /opt/cloudera/parcels/CDH/lib/hbase/lib/high-scale-lib-*.jar
                           /opt/cloudera/parcels/CDH/lib/hbase/hbase-hadoop-compat.jar "
   export HIVE_JAR_DIRS="/opt/cloudera/parcels/CDH/lib/hive/lib"
-  export HIVE_JAR_FILES="/opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-client-core.jar"
+  export HIVE_JAR_FILES="/opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-client-core.jar
+                         /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-client-common*.jar"
 
   # suffixes to suppress in the classpath (set this to ---none--- to add all files)
   export SUFFIXES_TO_SUPPRESS="-sources.jar -tests.jar"
@@ -409,7 +413,10 @@ elif [[ -n "$(ls /etc/init.d/ambari* 2>/dev/null)" ]]; then
   export HIVE_JAR_DIRS="/usr/hdp/current/hive-client/lib"
   export HIVE_JAR_FILES="/usr/hdp/current/hadoop-mapreduce-client/hadoop-mapreduce-client-core*.jar"
 
-  export HBASE_TRX_JAR=hbase-trx-hdp2_2-${TRAFODION_VER}.jar
+  export HBASE_VERSION_ID=hdp2_3
+  export HBASE_TRX_JAR=hbase-trx-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
+  export DTM_COMMON_JAR=trafodion-dtm-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
+  export SQL_JAR=trafodion-sql-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
 
   # Configuration directories
 
@@ -650,7 +657,7 @@ then
   export LOG4CXX_LIB_DIR=$TOOLSDIR/apache-log4cxx-0.10.0/lib
   export LOG4CXX_INC_DIR=$TOOLSDIR/apache-log4cxx-0.10.0/include
 else
-  export LOG4CXX_LIB_DIR=/lib64:/usr/lib64
+  export LOG4CXX_LIB_DIR=/usr/lib64
   export LOG4CXX_INC_DIR=/usr/include/log4cxx
 fi
 
@@ -717,9 +724,6 @@ export SQ_DTM_PERSISTENT_PROCESS=1
 
 # Check the state of the node with the cluster manager during regroup
 export SQ_WDT_CHECK_CLUSTER_STATE=0
-
-# Perl libraries used by Seaquest (e.g. sqgen components)
-export PERL5LIB=$MY_SQROOT/export/lib
 
 # Enable SQ_PIDMAP if you want to get a record of process activity.
 # This can be useful in troubleshooting problems.  There is an overhead cost
@@ -946,7 +950,7 @@ MANPATH=$(remove_duplicates_in_path "$MANPATH")
 ###################
 
 # Check variables that should refer to real directories
-VARLIST="MY_SQROOT $VARLIST JAVA_HOME PERL5LIB MPI_TMPDIR"
+VARLIST="MY_SQROOT $VARLIST JAVA_HOME MPI_TMPDIR"
 
 if [[ "$SQ_VERBOSE" == "1" ]]; then
   echo "Checking variables reference existing directories ..."

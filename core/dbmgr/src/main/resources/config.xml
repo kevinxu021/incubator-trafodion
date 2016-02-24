@@ -15,6 +15,15 @@
 	<!-- The JDBC driver class name for the Trafodion/EsgynDB JDBC driver -->
 	<entry key="jdbcDriverClass">org.trafodion.jdbc.t4.T4Driver</entry>
 	
+	<!--  Minimum number of connections for jdbc connection pool -->
+	<entry key="minPoolSize">2</entry>
+	
+	<!--  Max number of connections for jdbc connection pool -->
+	<entry key="maxPoolSize">8</entry>
+	
+	<!--  Max number of statements for jdbc statemt caching -->
+	<entry key="maxStatementsCache">100</entry>
+	
 	<!-- The Trafodion REST Server URI -->
 	<entry key="trafodionRestServerUri">10.1.30.28:4200</entry>
 
@@ -24,6 +33,12 @@
 	<!-- Session Timeout in minutes. Your EsgynDB Manager browser session to the server will be 
 		timed out after this interval and you will be asked to login again -->
 	<entry key="sessionTimeoutMinutes">120</entry>
+	
+	<!-- The Admin User ID used by DBManager for its internal queries-->
+	<entry key="adminUserID">adminuser</entry>
+	
+	<!-- The Admin User's password-->
+	<entry key="adminPassword">adminpass</entry>
 
 	<!-- The following properties are only required and used by the embedded jetty server -->
 	

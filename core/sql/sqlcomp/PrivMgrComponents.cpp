@@ -599,14 +599,14 @@ PrivStatus PrivMgrComponents::registerComponentInternal(
 
 {
       
-MyRow row(fullTableName_);
+   MyRow row(fullTableName_);
 
    row.componentUID_ = componentUID;
    row.componentName_ = componentName;
    row.isSystem_ = isSystem;
    row.componentDescription_ = componentDescription;
    
-// write the row to the components table
+   // write the row to the components table
    return myTable_.insert(row);
 
 }

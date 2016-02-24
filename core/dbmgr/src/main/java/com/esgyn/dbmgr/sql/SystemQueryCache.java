@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -12,14 +12,37 @@ public class SystemQueryCache {
 	public static final String GET_DCS_SERVERS = "GET_DCS_SERVERS";
 	public static final String GET_SERVICE_STATUS = "GET_SERVICE_STATUS";
 	public static final String GET_NODE_STATUS = "GET_NODE_STATUS";
+	public static final String GET_PROCESS_PSTACK = "GET_PROCESS_PSTACK";
+	public static final String GET_DCS_SUMMARY = "GET_DCS_SUMMARY";
 
 	public static final String SELECT_SCHEMAS = "SELECT_SCHEMAS";
-	public static final String SELECT_SCHEMA = "SELECT_SCHEMA";
+	public static final String SELECT_SCHEMA_ATTRIBUTES = "SELECT_SCHEMA_ATTRIBUTES";
 	public static final String SELECT_SCHEMA_OBJECTS = "SELECT_SCHEMA_OBJECTS";
 	public static final String SELECT_DDL_TEXT = "SELECT_DDL_TEXT";
 	public static final String SELECT_TABLES_IN_SCHEMA = "SELECT_TABLES_IN_SCHEMA";
 	public static final String SELECT_VIEWS_IN_SCHEMA = "SELECT_VIEWS_IN_SCHEMA";
 	public static final String SELECT_INDEXES_IN_SCHEMA = "SELECT_INDEXES_IN_SCHEMA";
+	public static final String SELECT_INDEXES_ON_OBJECT = "SELECT_INDEXES_ON_OBJECT";
+	public static final String SELECT_OBJECT_COLUMNS = "SELECT_OBJECT_COLUMNS";
+	public static final String SELECT_VIEW_COLUMNS = "SELECT_VIEW_COLUMNS";
+	public static final String SELECT_OBJECT_REGIONS = "SELECT_OBJECT_REGIONS";
+	public static final String SELECT_SCHEMA_PRIVILEGES = "SELECT_SCHEMA_PRIVILEGES";
+	public static final String SELECT_OBJECT_PRIVILEGES = "SELECT_OBJECT_PRIVILEGES";
+	public static final String SELECT_TABLE_ATTRIBUTES = "SELECT_TABLE_ATTRIBUTES";
+	public static final String SELECT_VIEW_ATTRIBUTES = "SELECT_VIEW_ATTRIBUTES";
+	public static final String SELECT_INDEX_ATTRIBUTES = "SELECT_INDEX_ATTRIBUTES";
+	public static final String SELECT_SCHEMA_OBJECT_ATTRIBUTES = "SELECT_SCHEMA_OBJECT_ATTRIBUTES";
+	public static final String SELECT_OBJECT_HISTOGRAM_STATISTICS = "SELECT_OBJECT_HISTOGRAM_STATISTICS";
+	public static final String SELECT_LIBRARIES_IN_SCHEMA = "SELECT_LIBRARIES_IN_SCHEMA";
+	public static final String SELECT_LIBRARY_ATTRIBUTES = "SELECT_LIBRARY_ATTRIBUTES";
+	public static final String SELECT_LIBRARY_USAGE = "SELECT_LIBRARY_USAGE";
+	public static final String SELECT_ROUTINES_IN_SCHEMA = "SELECT_ROUTINES_IN_SCHEMA";
+	public static final String SELECT_ROUTINE_ATTRIBUTES = "SELECT_ROUTINE_ATTRIBUTES";
+	public static final String SELECT_PROCDURES_IN_SCHEMA = "SELECT_PROCDURES_IN_SCHEMA";
+	public static final String SELECT_UDFS_IN_SCHEMA = "SELECT_UDFS_IN_SCHEMA";
+	public static final String GET_TABLE_USAGE = "GET_TABLE_USAGE";
+	public static final String GET_VIEW_USAGE = "GET_VIEW_USAGE";
+	public static final String GET_ROUTINE_USAGE = "GET_ROUTINE_USAGE";
 
 	public static final String SELECT_REPO_QUERIES = "SELECT_REPO_QUERIES";
 	public static final String SELECT_REPO_QUERY_DETAIL = "SELECT_REPO_QUERY_DETAIL";

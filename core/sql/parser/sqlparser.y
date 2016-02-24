@@ -784,6 +784,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_JAVA                /* Tandem extension non-reserved word */
 %token <tokval> TOK_JOIN
 %token <tokval> TOK_JULIANTIMESTAMP     /* Tandem extension */
+%token <tokval> TOK_LAG    /* LAG OLAP Function */
 %token <tokval> TOK_LANGUAGE
 %token <tokval> TOK_LARGEINT            /* Tandem extension non-reserved word */
 %token <tokval> TOK_LASTNOTNULL
@@ -793,6 +794,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_LAST_SYSKEY
 %token <tokval> TOK_LASTSYSKEY
 %token <tokval> TOK_LCASE               /* ODBC extension   */
+%token <tokval> TOK_LEAD                /* LEAD OLAP Function */
 %token <tokval> TOK_LEADING
 %token <tokval> TOK_LEAST
 %token <tokval> TOK_LEFT
@@ -2923,6 +2925,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <boolean>   	       optional_validate_clause
 %type <extractType>            extract_type
 %type <boolean>                optional_if_not_exists_clause
+%type <boolean>                optional_if_exists_clause
 
 %type <uint>                    merge_stmt_start_tokens
 %type <relx>                   merge_stmt_using_clause
@@ -7678,6 +7681,48 @@ olap_sequence_function : set_function_specification TOK_OVER '('
 			      } 
                               SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
                             }
+// start of OLAP LEAD function()
+                       | TOK_LEAD '(' value_expression ')' TOK_OVER '('
+                         opt_olap_part_clause opt_olap_order_clause ')'
+                        {
+                          ItmLeadOlapFunction* leadExpr =
+                                       new (PARSERHEAP()) ItmLeadOlapFunction($3, 1);
+                          leadExpr->setOLAPInfo($7, $8);
+                          $$=leadExpr;
+
+                          SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                        }
+                       | TOK_LEAD '(' value_expression ',' value_expression ')' TOK_OVER '('
+                         opt_olap_part_clause opt_olap_order_clause ')'
+                        { 
+                          ItmLeadOlapFunction* leadExpr = 
+                                       new (PARSERHEAP()) ItmLeadOlapFunction($3, $5);
+                          leadExpr->setOLAPInfo($9, $10);
+                          $$=leadExpr;
+                          
+                          SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                        }
+                       | TOK_LEAD '(' value_expression ',' value_expression ',' value_expression ')' TOK_OVER '('
+                         opt_olap_part_clause opt_olap_order_clause ')'
+                        { 
+                          ItmLeadOlapFunction* leadExpr = 
+                                       new (PARSERHEAP()) ItmLeadOlapFunction($3, $5, $7);
+                          leadExpr->setOLAPInfo($11, $12);
+                          $$=leadExpr;
+                          
+                          SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                        }
+// end of OLAP LEAD function()
+                       |TOK_LAG '(' value_expression ','  value_expression ')'  TOK_OVER '('
+                         opt_olap_part_clause
+                         opt_olap_order_clause ')'
+                         {
+                              ItmLagOlapFunction* lagExpr =
+                                                       new (PARSERHEAP()) ItmLagOlapFunction($3, $5);
+                             lagExpr->setOLAPInfo($9, $10);
+                             $$=lagExpr;
+                             SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                         }
 
 
 opt_olap_part_clause   : empty
@@ -16328,6 +16373,22 @@ exe_util_init_hbase : TOK_INITIALIZE TOK_TRAFODION
 
                }
 
+             | TOK_INITIALIZE TOK_AUTHORIZATION ',' TOK_CLEANUP
+               {
+		 CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+		 NAString * stmt = getSqlStmtStr ( stmtCharSet  // out - CharInfo::CharSet &
+						   , PARSERHEAP() 
+	                                       );
+
+		 DDLExpr * de = new(PARSERHEAP()) DDLExpr(NULL,
+							  (char*)stmt->data(),
+							  stmtCharSet);
+
+                 de->setCleanupAuth(TRUE);
+                 $$ = de;
+
+               }
+
              | TOK_INITIALIZE TOK_AUTHORIZATION ',' TOK_DROP
                {
 		 CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
@@ -17191,7 +17252,7 @@ maintain_object_option : TOK_ALL
 			    if (fromStr)
 			      {
 				from = 
-				  new (PARSERHEAP()) DatetimeValue(fromStr, REC_DATE_YEAR, REC_DATE_SECOND, fractionPrec1);
+				  new (PARSERHEAP()) DatetimeValue(fromStr, REC_DATE_YEAR, REC_DATE_SECOND, fractionPrec1, FALSE);
 			      }
 
 			    if (toStr && (forVal > 0))
@@ -17200,7 +17261,7 @@ maintain_object_option : TOK_ALL
 			    if (toStr)
 			      {
 				to = 
-				  new (PARSERHEAP()) DatetimeValue(toStr, REC_DATE_YEAR, REC_DATE_SECOND, fractionPrec2);
+				  new (PARSERHEAP()) DatetimeValue(toStr, REC_DATE_YEAR, REC_DATE_SECOND, fractionPrec2, FALSE);
 			      }
 
 			    if ((from && (! from->isValid())) ||
@@ -23645,7 +23706,7 @@ external_user_identifier : identifier
 
 /* type pStmtDDL */
 
-routine_definition : TOK_CREATE TOK_PROCEDURE ddl_qualified_name
+routine_definition : TOK_CREATE TOK_PROCEDURE optional_if_not_exists_clause ddl_qualified_name
                         routine_params_list_clause
                         optional_create_routine_attribute_list
                         optional_by_auth_identifier
@@ -23653,22 +23714,23 @@ routine_definition : TOK_CREATE TOK_PROCEDURE ddl_qualified_name
                                   QualifiedName noActionQualName(PARSERHEAP());
                                   StmtDDLCreateRoutine *pNode =
                                     new (PARSERHEAP()) StmtDDLCreateRoutine
-                                    ( *$3  // ddl_qualified_name of SPJs
+                                    ( *$4  // ddl_qualified_name of SPJs
                                     , noActionQualName
-                                    , $4   // ElemDDLNode *  routine_params_list_clause
+                                    , $5   // ElemDDLNode *  routine_params_list_clause
                                     , NULL // ElemDDLNode *  optional_routine_returns_clause
                                     , NULL // ElemDDLNode *  optional_passthrough_inputs_clause
-                                    , $5   // ElemDDLNode *  optional_create_routine_attribute_list
+                                    , $6   // ElemDDLNode *  optional_create_routine_attribute_list
                                     , COM_PROCEDURE_TYPE // ComRoutineType
                                     , PARSERHEAP()
                                     );
-                                  pNode->setOwner($6/*optional_by_auth_identifier*/);
+                                  pNode->setCreateIfNotExists($3);
+                                  pNode->setOwner($7/*optional_by_auth_identifier*/);
                                   pNode->synthesize();
                                   $$ = pNode;
-                                  delete $3;  // ddl_qualified_name of routine
+                                  delete $4;  // ddl_qualified_name of routine
                                 }
 
-  | TOK_CREATE create_scalar_function_tokens ddl_qualified_name
+  | TOK_CREATE create_scalar_function_tokens optional_if_not_exists_clause ddl_qualified_name
     routine_params_list_clause
     optional_routine_returns_clause
     optional_passthrough_inputs_clause
@@ -23677,21 +23739,23 @@ routine_definition : TOK_CREATE TOK_PROCEDURE ddl_qualified_name
       QualifiedName noActionQualName(PARSERHEAP());
       StmtDDLCreateRoutine *pNode =
         new (PARSERHEAP()) StmtDDLCreateRoutine
-        ( *$3 // ddl_qualified_name of scalar function
+        ( *$4 // ddl_qualified_name of scalar function
           , noActionQualName
-          , $4  // ElemDDLNode *  routine_params_list_clause
-          , $5  // ElemDDLNode *  optional_routine_returns_clause
-          , $6  // ElemDDLNode *  optional_passthrough_inputs_clause
-          , $7  // ElemDDLNode *  optional_create_function_attribute_list
+          , $5  // ElemDDLNode *  routine_params_list_clause
+          , $6  // ElemDDLNode *  optional_routine_returns_clause
+          , $7  // ElemDDLNode *  optional_passthrough_inputs_clause
+          , $8  // ElemDDLNode *  optional_create_function_attribute_list
           , COM_SCALAR_UDF_TYPE // ComRoutineType create_scalar_function_tokens
           , PARSERHEAP()
           );
+      pNode->setCreateIfNotExists($3); 
       pNode->synthesize();
       $$ = pNode;
-      delete $3;  // ddl_qualified_name of routine
+      delete $4;  // ddl_qualified_name of routine
     }
 
-  | TOK_CREATE table_mapping_function_tokens ddl_qualified_name
+  | TOK_CREATE table_mapping_function_tokens optional_if_not_exists_clause 
+    ddl_qualified_name
     routine_params_list_clause
     optional_routine_returns_clause
     optional_passthrough_inputs_clause
@@ -23701,41 +23765,44 @@ routine_definition : TOK_CREATE TOK_PROCEDURE ddl_qualified_name
       QualifiedName noActionQualName(PARSERHEAP());
       StmtDDLCreateRoutine *pNode =
         new (PARSERHEAP()) StmtDDLCreateRoutine
-        ( *$3 // ddl_qualified_name of scalar function
+        ( *$4 // ddl_qualified_name of scalar function
           , noActionQualName
-          , $4  // ElemDDLNode *  routine_params_list_clause
-          , $5  // ElemDDLNode *  optional_routine_returns_clause
-          , $6  // ElemDDLNode *  optional_passthrough_inputs_clause
-          , $7  // ElemDDLNode *  optional_create_function_attribute_list
+          , $5  // ElemDDLNode *  routine_params_list_clause
+          , $6  // ElemDDLNode *  optional_routine_returns_clause
+          , $7  // ElemDDLNode *  optional_passthrough_inputs_clause
+          , $8  // ElemDDLNode *  optional_create_function_attribute_list
           , COM_TABLE_UDF_TYPE // ComRoutineType table_mapping_function_tokens
           , PARSERHEAP()
           );
-      pNode->setOwner($8/*optional_by_auth_identifier*/);
+      pNode->setCreateIfNotExists($3);
+      pNode->setOwner($9/*optional_by_auth_identifier*/);
       pNode->synthesize();
       $$ = pNode;
-      delete $3;  // ddl_qualified_name of routine
+      delete $4;  // ddl_qualified_name of routine
     }
 
-  | TOK_CREATE universal_function_tokens ddl_qualified_name
+  | TOK_CREATE universal_function_tokens optional_if_not_exists_clause 
+    ddl_qualified_name
     universal_function_param_clause
     optional_create_function_attribute_list
     {
       QualifiedName noActionQualName(PARSERHEAP());
       StmtDDLCreateRoutine *pNode =
         new (PARSERHEAP()) StmtDDLCreateRoutine
-        ( *$3  // ddl_qualified_name of universal function
+        ( *$4  // ddl_qualified_name of universal function
           , noActionQualName
           , NULL // ElemDDLNode * optional_routine_params_list
           , NULL // ElemDDLNode * optional_routine_returns_clause
           , NULL // ElemDDLNode * optional_passthrough_inputs_clause
-          , $5   // ElemDDLNode * optional_create_function_attribute_list
+          , $6   // ElemDDLNode * optional_create_function_attribute_list
           , COM_UNIVERSAL_UDF_TYPE // ComRoutineType universal_function_tokens
           , PARSERHEAP()
           );
-      pNode->setUudfParamKindList($4); // universal_function_param_clause
+      pNode->setCreateIfNotExists($3);
+      pNode->setUudfParamKindList($5); // universal_function_param_clause
       pNode->synthesize();
       $$ = pNode;
-      delete $3;  // ddl_qualified_name of routine
+      delete $4;  // ddl_qualified_name of routine
     }
 
 /* type routineTypeEnum */
@@ -24939,6 +25006,17 @@ optional_if_not_exists_clause :
                   {
                     $$ = TRUE;
                   }
+
+/* type boolean */
+optional_if_exists_clause :
+          empty
+            {
+               $$ = FALSE;
+             }
+          | TOK_IF TOK_EXISTS
+             {
+               $$ = TRUE;
+             }
 
 
 create_table_as_attr_list_start: empty
@@ -32156,20 +32234,22 @@ drop_routine_type_tokens : TOK_FUNCTION { $$ = COM_UNKNOWN_ROUTINE_TYPE; }
                          | TOK_PROCEDURE { $$ = COM_PROCEDURE_TYPE; }
 
 /* type pStmtDDL */
-drop_routine_statement : TOK_DROP drop_routine_type_tokens ddl_qualified_name
+drop_routine_statement : TOK_DROP drop_routine_type_tokens optional_if_exists_clause
+                         ddl_qualified_name
                          optional_cleanup  optional_drop_behavior
                          optional_validate optional_logfile
                 {
                   $$ = SqlParserAux_buildDropRoutine
                     ( $2  // in - ComRoutineType drop_routine_type_tokens
-                    , $3  // in - QualifiedName * ddl_qualified_name of routine - deep copy
-                    , $4  // in - NABoolean       optional_cleanup
-                    , $5  // in - ComDropBehavior optional_drop_behavior
-                    , $6  // in - NABoolean       optional_validate
-                    , $7  // in - NAString      * optional_logfile              - deep copy
+                    , $4  // in - QualifiedName * ddl_qualified_name of routine - deep copy
+                    , $5  // in - NABoolean       optional_cleanup
+                    , $6  // in - ComDropBehavior optional_drop_behavior
+                    , $7  // in - NABoolean       optional_validate
+                    , $8  // in - NAString      * optional_logfile              - deep copy
+                    , $3  // in - NABoolean       optional_if_exists_clause
                     );
-                  delete $3; // ddl_qualified_name of routine
-                  if ($7) delete $7; // optional_logfile
+                  delete $4; // ddl_qualified_name of routine
+                  if ($8) delete $8; // optional_logfile
                   if ($$ EQU NULL) { yyerror(""); YYERROR; } // Error: internal syntax only!
                 }
 

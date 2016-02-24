@@ -12,12 +12,13 @@ define([
         'common',
         'views/RefreshTimerView',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
-        'tablebuttons',
+        'datatables.net',
+        'datatables.net-bs',
+        'datatables.net-buttons',
         'buttonsflash',
         'buttonsprint',
-        'buttonshtml'
+        'buttonshtml',
+        'pdfmake'
         ], function (BaseView, WorkloadsT, $, wHandler, common, refreshTimer) {
 	'use strict';
 	var LOADING_SELECTOR = ".dbmgr-spinner";			
@@ -108,14 +109,17 @@ define([
 						"sEmptyTable": "No active queries found."
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+<<<<<<< HEAD
 					"bProcessing": true,
 					paging : bPaging, 
 					"bAutoWidth": true,
+=======
+					processing: true,
+					paging : bPaging, 
+					autoWidth: true,
+>>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
-					//"scrollY":        "800px",
-					"scrollCollapse": true,
-					//"bJQueryUI": true,
 					stateSave: true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
@@ -123,6 +127,7 @@ define([
 					                 {
 					                	 "aTargets": [ 0 ],
 					                	 "mData": 0,
+								 "className" : "dbmgr-nowrap",
 					                	 "mRender": function ( data, type, full ) {
 					                		 if (type === 'display') {
 					                			 return common.toDateFromMilliSeconds(data);
@@ -142,6 +147,7 @@ define([
 					                		 else return data;
 					                	 }
 					                 }],
+<<<<<<< HEAD
 					                 buttons: [
 					                           'copy','csv','excel','pdf','print'
 					                           ],					                 
@@ -149,17 +155,37 @@ define([
 					                           fnDrawCallback: function(){
 					                        	   //$('#query-results td').css("white-space","nowrap");
 					                           }
+=======
+					buttons: [
+	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
+	                        	   title: 'Active Workloads' } ,
+	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Active Workloads' }
+				          ],
+
+	                           fnDrawCallback: function(){
+	                        	   //$('#query-results td').css("white-space","nowrap");
+	                           }
+>>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 				});
 
 				//$('#active-query-results td').css("white-space","nowrap");
-				$('#active-query-results tbody').on( 'click', 'tr', function (e, a) {
-					var data = oDataTable.row(this).data();
-					if(data && data.length > 0){
-						sessionStorage.setItem(data[2], JSON.stringify({type: 'active', text: data[4]}));	
+				$('#active-query-results tbody').on( 'click', 'td', function (e, a) {
+					if(oDataTable.cell(this)){
+						var cell = oDataTable.cell(this).index();
+						if(cell){
+							if(cell.column == 2){
+								var data = oDataTable.row(cell.row).data();
+								if(data && data.length > 0){
+									sessionStorage.setItem(data[2], JSON.stringify({type: 'active', text: data[4]}));
+								}
+							}
+						}
 					}
-				} );				
+				});	
 			}
-
 		},
 		showErrorMessage: function (jqXHR) {
 			if(jqXHR.statusText != 'abort'){

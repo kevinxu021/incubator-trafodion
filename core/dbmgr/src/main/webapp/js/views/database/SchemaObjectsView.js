@@ -11,16 +11,15 @@ define([
         'handlers/DatabaseHandler',
         'common',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
-        'jstree'
+        'datatables.net',
+        'datatables.net-bs',
+        'pdfmake'
         ], function (BaseView, DatabaseT, $, dbHandler, common) {
 	'use strict';
 	var LOADING_SELECTOR = '#loadingImg';			
 	var oDataTable = null;
 	var _this = null;
 	var schemaName = null;
-	var initialized = false;
 	
 	var BREAD_CRUMB = '#database-crumb';
 	var ERROR_CONTAINER = '#db-objects-error-text',
@@ -30,14 +29,21 @@ define([
 	
 	
 	var routeArgs = null;
+	var prevRouteArgs = null;
+	
 	var schemaName = null;
 	var bCrumbsArray = [];
-	var DatabaseView = BaseView.extend({
+	var pageStatus = {};
+	
+	var SchemaObjectsView = BaseView.extend({
 		template:  _.template(DatabaseT),
 
 		doInit: function (args){
 			_this = this;
 			routeArgs = args;
+			prevRouteArgs = args;
+			pageStatus = {};
+			
 			schemaName = routeArgs.schema;
 			
 			$(ERROR_CONTAINER).hide();
@@ -54,10 +60,12 @@ define([
 			$(ERROR_CONTAINER).hide();
 			$(OBJECT_LIST_CONTAINER).hide();
 			
-			if(schemaName != routeArgs.schema){
+			if(prevRouteArgs.schema != routeArgs.schema || 
+				prevRouteArgs.type != routeArgs.type){
 				schemaName = routeArgs.schema;
-				initialized = false;
+				_this.doReset();
 			}
+			prevRouteArgs = args;
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayObjectList);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
@@ -68,6 +76,10 @@ define([
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayObjectList);
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
 		},
+		doReset: function(){
+			pageStatus = {};
+			$(OBJECT_LIST_CONTAINER).empty();
+		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
 		},
@@ -76,12 +88,15 @@ define([
 			$(LOADING_SELECTOR).hide();
 		},
 		doRefresh: function(){
+			pageStatus[routeArgs.type] =  false;
 			_this.processRequest();
-			$(errorTextContainer).hide();
+			$(ERROR_CONTAINER).hide();
 		},
 		fetchObjects: function(objectType, schemaName){
-			_this.showLoading();
-			dbHandler.fetchObjects(objectType, schemaName);
+			if(!pageStatus[objectType] || pageStatus[objectType] == false){
+				_this.showLoading();
+				dbHandler.fetchObjects(objectType, schemaName);
+			}
 		},
 		updateBreadCrumbs: function(routeArgs){
 			$(BREAD_CRUMB).empty();
@@ -109,6 +124,10 @@ define([
 						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Procedures', link:  ''});
 						break;
+					case 'udfs': 
+						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: 'UDFs', link:  ''});
+						break;
 				}
 			}
 			$.each(bCrumbsArray, function(key, crumb){
@@ -123,6 +142,7 @@ define([
 			_this.updateBreadCrumbs(routeArgs);
 
 			$(BREAD_CRUMB).show();
+			$(OBJECT_LIST_CONTAINER).show();
 			if(routeArgs.type != null && routeArgs.type.length > 0){
 				switch(routeArgs.type){
 					case 'tables' :
@@ -134,53 +154,62 @@ define([
 						$(OBJECT_NAME_CONTAINER).text(displayName);
 						_this.fetchObjects(routeArgs.type, routeArgs.schema);
 						break;
+					case 'udfs' :
+						var displayName = 'UDFs in schema ' + routeArgs.schema;
+						$(OBJECT_NAME_CONTAINER).text(displayName);
+						_this.fetchObjects(routeArgs.type, routeArgs.schema);
+						break;
 				}
 			}
 		},
 
 		displayObjectList: function (result){
-			_this.hideLoading();
-			var keys = result.columnNames;
-			$(ERROR_CONTAINER).hide();
-			
-			if(keys != null && keys.length > 0) {
-				$(OBJECT_LIST_CONTAINER).show();
-				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="db-objects-list-results"></table>';
-				$(OBJECT_LIST_CONTAINER).html( sb );
-
-				var aoColumns = [];
-				var aaData = [];
-				var link = result.parentLink != null ? result.parentLink : "";
-
-				$.each(result.resultArray, function(i, data){
-					//var rowData = {};
-					//$.each(keys, function(k, v) {
-					//	rowData[v] = data[k];
-					//});
-					/*aaData.push(
-							{'Name' : data[0], 
-								'Owner' : data[1],
-								'CreateTime' : data[2],
-								'ModifiedTime': data[3]
-							});*/
-					aaData.push(data);
-				});
-
-				// add needed columns
-				$.each(keys, function(k, v) {
-					var obj = new Object();
-					obj.title = v;
-					aoColumns.push(obj);
-				});
-
-				var bPaging = aaData.length > 25;
-
-				if(oDataTable != null) {
-					try {
-						oDataTable.fnDestroy();
-					}catch(Error){
-
+			if(result.objectType == routeArgs.type){
+				_this.hideLoading();
+				var keys = result.columnNames;
+				$(ERROR_CONTAINER).hide();
+				pageStatus[routeArgs.type] = true;
+				
+				if(keys != null && keys.length > 0) {
+					$(OBJECT_LIST_CONTAINER).show();
+					var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table" id="db-objects-list-results"></table>';
+					$(OBJECT_LIST_CONTAINER).html( sb );
+	
+					var aoColumns = [];
+					var aaData = [];
+					var link = result.parentLink != null ? result.parentLink : "";
+	
+					$.each(result.resultArray, function(i, data){
+						//var rowData = {};
+						//$.each(keys, function(k, v) {
+						//	rowData[v] = data[k];
+						//});
+						/*aaData.push(
+								{'Name' : data[0], 
+									'Owner' : data[1],
+									'CreateTime' : data[2],
+									'ModifiedTime': data[3]
+								});*/
+						aaData.push(data);
+					});
+	
+					// add needed columns
+					$.each(keys, function(k, v) {
+						var obj = new Object();
+						obj.title = v;
+						aoColumns.push(obj);
+					});
+	
+					var bPaging = aaData.length > 25;
+	
+					if(oDataTable != null) {
+						try {
+							oDataTable.destroy();
+						}catch(Error){
+	
+						}
 					}
+<<<<<<< HEAD
 				}
 				oDataTable = $('#db-objects-list-results').DataTable({
 					"oLanguage": {
@@ -214,25 +243,75 @@ define([
 		            	 }
 					},
 					{
+=======
+					
+					var aoColumnDefs = [];
+					aoColumnDefs.push({
+							"aTargets": [ 0 ],
+							"mData": 0,
+							"mRender": function ( data, type, full ) {
+			            		 if(type == 'display') {
+			            			 var rowcontent = "<a href=\"#" + link + '&name=' + data ;
+			            			 if(schemaName != null)
+			            				 rowcontent += '&schema='+ schemaName;	            				 
+	
+			            			 rowcontent += "\">" + data + "</a>";
+			            			 return rowcontent;                         
+			            		 }else { 
+			            			 return data;
+			            		 }
+			            	 }
+						});
+					
+					aoColumnDefs.push({
+>>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 						"aTargets": [ 2 ],
 						"mData": 2,
+						"className" : "dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							if (type === 'display') {
 								return common.toServerLocalDateFromUtcMilliSeconds(data);  
 							}
 							else return data;
 						}
-					},
-					{
+					});
+					aoColumnDefs.push({
 						"aTargets": [ 3 ],
 						"mData": 3,
+						"className" : "dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							if (type === 'display') {
 								return common.toServerLocalDateFromUtcMilliSeconds(data);  
 							}
 							else return data;
 						}
+					});
+					aoColumnDefs.push({
+						"aTargets": [ 4 ],
+						"mData": 4,
+						"visible" : false,
+						"searchable" : false
+					});
+					
+					if(routeArgs.type == 'indexes'){
+						aoColumnDefs.push({
+							"aTargets": [ 5 ],
+							"mData": 5,
+							"mRender": function ( data, type, full ) {
+			            		 if(type == 'display') {
+			            			 var rowcontent = '<a href="#/database/objdetail?type=table&name=' + data ;
+			            			 if(schemaName != null)
+			            				 rowcontent += '&schema='+ routeArgs.schema;	            				 
+	
+			            			 rowcontent += '">' + data + '</a>';
+			            			 return rowcontent;                         
+			            		 }else { 
+			            			 return data;
+			            		 }
+			            	 }
+						});
 					}
+<<<<<<< HEAD
 					],
 					/*aoColumns : [
 					             {"mData": 'Name', sClass: 'left', "sTitle": 'Name', 
@@ -287,25 +366,135 @@ define([
 						rowData.data = data;
 						rowData.columns = aoColumns;
 						sessionStorage.setItem(data[0], JSON.stringify(rowData));	
+=======
+					if(routeArgs.type == 'procedures'){
+						aoColumnDefs.push({
+							"aTargets": [ 5 ],
+							"mData": 5,
+							"visible" : false,
+							"searchable" : false
+						});
+						aoColumnDefs.push({
+							"aTargets": [ 6 ],
+							"mData": 6,
+							"mRender": function ( data, type, full ) {
+			            		 if(type == 'display') {
+			            			 if(data != null && data.length > 0){
+				            			 var libSchema = full[5];
+				            			 var rowcontent = '<a href="#/database/objdetail?type=library&name=' + data ;
+				            			 if(libSchema != null && libSchema.length > 0){
+				            				 rowcontent += '&schema='+ libSchema;
+				            				 rowcontent += '">' + libSchema+'.'+data + '</a>';		            				 
+				            			 }else{
+				            				 rowcontent += '">' + libSchema+'.'+data + '</a>';	
+				            			 }
+				            			 return rowcontent; 
+			            			 }else{
+			            				 return "";
+			            			 }
+			            		 }else { 
+			            			 return data;
+			            		 }
+			            	 }
+						});
+>>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 					}
-				} );				
+					if(routeArgs.type == 'udfs'){
+						aoColumnDefs.push({
+							"aTargets": [ 7 ],
+							"mData": 7,
+							"visible" : false,
+							"searchable" : false
+						});
+						aoColumnDefs.push({
+							"aTargets": [ 8 ],
+							"mData": 8,
+							"mRender": function ( data, type, full ) {
+			            		 if(type == 'display') {
+			            			 if(data != null && data.length > 0){
+				            			 var libSchema = full[7];
+				            			 var rowcontent = '<a href="#/database/objdetail?type=library&name=' + data ;
+				            			 if(libSchema != null && libSchema.length > 0){
+				            				 rowcontent += '&schema='+ libSchema;
+				            				 rowcontent += '">' + libSchema+'.'+data + '</a>';		            				 
+				            			 }else{
+				            				 rowcontent += '">' + libSchema+'.'+data + '</a>';	
+				            			 }
+				            			 return rowcontent; 
+			            			 }else{
+			            				 return "";
+			            			 }
+			            		 }else { 
+			            			 return data;
+			            		 }
+			            	 }
+						});
+					}				
+					oDataTable = $('#db-objects-list-results').DataTable({
+						"oLanguage": {
+							"sEmptyTable": "There are no " + routeArgs.type
+						},
+						dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+						processing: true,
+						paging: bPaging,
+						autoWidth: true,
+						"iDisplayLength" : 25, 
+						"sPaginationType": "full_numbers",
+						"aaData": aaData, 
+						"aoColumns" : aoColumns,
+						"aoColumnDefs": aoColumnDefs,
+		                 buttons: [
+		                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+		                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+		                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+		                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
+		                           { extend : 'print', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text() }
+		                           ],					             
+			             fnDrawCallback: function(){
+			            	// $('#db-object-list-results td').css("white-space","nowrap");
+			             }
+					});
+	
+	
+					//$('#db-objects-list-results td').css("white-space","nowrap");
+					$('#db-objects-list-results tbody').on( 'click', 'td', function (e, a) {
+						if(oDataTable.cell(this)){
+							var cell = oDataTable.cell(this).index();
+							if(cell){
+								if(cell.column == 0){
+									var data = oDataTable.row(cell.row).data();
+									if(data){
+										var objAttributes = [];
+										$.each(aoColumns, function(index, val){
+											var attrib = {};
+											attrib[val.title] = data[index];
+											objAttributes.push(attrib);
+										});
+										sessionStorage.setItem(data[0], JSON.stringify(objAttributes));	
+									}
+								}
+							}
+						}
+					});	
+				}
 			}
-
 		},		
 		showErrorMessage: function (jqXHR) {
-			_this.hideLoading();
-			$(ERROR_CONTAINER).show();
-			$(OBJECT_LIST_CONTAINER).hide();
-			if (jqXHR.responseText) {
-				$(ERROR_CONTAINER).text(jqXHR.responseText);
-			}else{
-				if(jqXHR.status != null && jqXHR.status == 0) {
-					$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+			if(jqXHR.objectType == routeArgs.type){
+				_this.hideLoading();
+				$(ERROR_CONTAINER).show();
+				$(OBJECT_LIST_CONTAINER).hide();
+				if (jqXHR.responseText) {
+					$(ERROR_CONTAINER).text(jqXHR.responseText);
+				}else{
+					if(jqXHR.status != null && jqXHR.status == 0) {
+						$(ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+					}
 				}
 			}
 		}  
 	});
 
 
-	return DatabaseView;
+	return SchemaObjectsView;
 });

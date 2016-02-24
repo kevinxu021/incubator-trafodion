@@ -14,8 +14,13 @@ define(['handlers/EventDispatcher', 'common'],
 				var dispatcher = new EventDispatcher();
 				var _this = this;
 
-				this.FETCHDCS_SUCCESS = 'fetchDcsServersSuccess';
-				this.FETCHDCS_ERROR = 'fetchDcsServersError';
+				this.FETCHDCS_SUCCESS = 'FETCHDCS_SUCCESS';
+				this.FETCHDCS_ERROR = 'FETCHDCS_ERROR';
+				this.DCS_SUMMARY_SUCCESS = 'DCS_SUMMARY_SUCCESS';
+				this.DCS_SUMMARY_ERROR = 'DCS_SUMMARY_ERROR';
+				
+				this.PSTACK_SUCCESS = 'PSTACK_SUCCESS';
+				this.PSTACK_ERROR = 'PSTACK_ERROR';
 				this.FETCH_SERVICES_SUCCESS = 'fetchServicesSuccess';
 				this.FETCH_SERVICES_ERROR = 'fetchServicesError';
 				this.FETCH_NODES_SUCCESS = 'fetchNodesSuccess';
@@ -40,8 +45,12 @@ define(['handlers/EventDispatcher', 'common'],
 				};
 
 				this.fetchDcsServers = function(){
-					$.ajax({
-						url: 'resources/server/dcsservers',
+					var xhr = xhrs["fetchDcsServers"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["fetchDcsServers"] = $.ajax({
+						url: 'resources/server/dcs/servers',
 						type:'GET',
 						dataType:"json",
 						contentType: "application/json;",
@@ -56,10 +65,68 @@ define(['handlers/EventDispatcher', 'common'],
 							dispatcher.fire(_this.FETCHDCS_ERROR, jqXHR, res, error);
 						}
 					});
-				};   
+				};  
+				
+				this.fetchDcsSummary = function(){
+					var xhr = xhrs["fetchDcsSummary"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["fetchDcsSummary"] = $.ajax({
+						url: 'resources/server/dcs/summary',
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},    				
+						success: function(data){
+							dispatcher.fire(_this.DCS_SUMMARY_SUCCESS, data);
+						},
+						error:function(jqXHR, res, error){
+							dispatcher.fire(_this.DCS_SUMMARY_ERROR, jqXHR, res, error);
+						}
+					});
+				}; 
 
+				this.getPStack = function(processID, processName){
+					var xhr = xhrs["getPStack"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["getPStack"] = $.ajax({
+						url: 'resources/server/pstack/'+processID,
+						type:'GET',
+						dataType:"json",
+						contentType: "application/json;",
+						statusCode : {
+							401 : _this.sessionTimeout,
+							403 : _this.sessionTimeout
+						},    				
+						success: function(data){
+							var result = {};
+							result.processID = processID;
+							result.processName = processName;
+							result.pStack = JSON.stringify(data[0].PROGRAM);
+							dispatcher.fire(_this.PSTACK_SUCCESS, result);
+						},
+						error:function(jqXHR, res, error){
+							var result = {};
+							result.processID = processID;
+							result.processName = processName;
+							result.pStack = jqXHR.responseText;
+							dispatcher.fire(_this.PSTACK_ERROR, result);
+						}
+					});
+				}; 
+				
 				this.fetchServices = function(){
-					$.ajax({
+					var xhr = xhrs["fetchServices"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					xhrs["fetchServices"] = $.ajax({
 						url: 'resources/server/services',
 						type:'GET',
 						dataType:"json",
@@ -78,7 +145,12 @@ define(['handlers/EventDispatcher', 'common'],
 				};
 
 				this.fetchNodes = function(){
-					$.ajax({
+					var xhr = xhrs["fetchNodes"];
+					if(xhr && xhr.readyState !=4){
+						xhr.abort();
+					}
+					
+					xhrs["fetchNodes"] = $.ajax({
 						url: 'resources/server/nodes',
 						type:'GET',
 						dataType:"json",

@@ -36,8 +36,10 @@ if [[ $HADOOP_TYPE == "cloudera" ]]; then
 
    if [[ -d /opt/cloudera/parcels/CDH ]]; then
       HADOOP_PATH="/opt/cloudera/parcels/CDH/lib/hbase/lib"
+      HADOOP_BIN_PATH="/opt/cloudera/parcels/CDH/bin"
    else
       HADOOP_PATH="/usr/lib/hbase/lib"
+      HADOOP_BIN_PATH="/usr/bin"
    fi
 fi
 
@@ -101,6 +103,9 @@ echo "export MY_HADOOP_NODES=\"$MY_HADOOP_NODES\"" >> $TRAF_CONFIG
 sudo chmod 777 $TRAF_CONFIG
 sed -i '/HADOOP_PATH\=/d' $TRAF_CONFIG
 echo "export HADOOP_PATH=\"$HADOOP_PATH\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/HADOOP_BIN_PATH\=/d' $TRAF_CONFIG
+echo "export HADOOP_BIN_PATH=\"$HADOOP_BIN_PATH\"" >> $TRAF_CONFIG
 sudo chmod 777 $TRAF_CONFIG
 sed -i '/hadoop_node_count\=/d' $TRAF_CONFIG
 echo "export hadoop_node_count=\"$hadoop_node_count\"" >> $TRAF_CONFIG

@@ -12,8 +12,8 @@ define([
         'moment',
         'common',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
+        'datatables.net',
+        'datatables.net-bs',
         ], function (BaseView, AlertDetailT, $, serverHandler, moment, common) {
 	'use strict';
 	var LOADING_SELECTOR = "#loadingImg",

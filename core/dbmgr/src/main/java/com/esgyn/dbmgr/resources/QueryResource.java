@@ -63,31 +63,28 @@ public class QueryResource {
 	public static TabularResult executeSQLQuery(String user, String password, String queryText, String sControlStmts)
 			throws EsgynDBMgrException {
 		String url = ConfigurationResource.getInstance().getJdbcUrl();
-
+		Connection connection = null;
 		try {
 			Class.forName(ConfigurationResource.getInstance().getJdbcDriverClass());
-			Connection connection = DriverManager.getConnection(url, user, password);
+			connection = DriverManager.getConnection(url, user, password);
 			return executeQuery(connection, queryText, sControlStmts);
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
-		}
-	}
+		} finally {
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (Exception ex) {
 
-	public static TabularResult executeAdminSQLQuery(String queryText) throws EsgynDBMgrException {
-		try {
-			Connection connection = JdbcHelper.getInstance().getAdminConnection();
-			return executeQuery(connection, queryText, null);
-		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			throw new EsgynDBMgrException(e.getMessage());
+				}
+			}
 		}
 	}
 
 	public static TabularResult executeQuery(Connection connection, String queryText, String sControlStmts)
 			throws EsgynDBMgrException {
 
-		ResultSet rs;
 		TabularResult js = new TabularResult();
 		PreparedStatement pstmt = null;
 
@@ -103,29 +100,8 @@ public class QueryResource {
 			stmt1.close();
 
 			pstmt = connection.prepareStatement(queryText);
-			_LOG.debug(queryText);
 
-			boolean hasResultSet = pstmt.execute();
-			if (hasResultSet) {
-				rs = pstmt.getResultSet();
-				js = Helper.convertResultSetToTabularResult(rs);
-				rs.close();
-			} else {
-				int count = pstmt.getUpdateCount();
-				js.isScalarResult = true;
-				js.columnNames = new String[] { "Status" };
-				js.resultArray = new ArrayList<Object[]>();
-				Object[] data = new Object[1];
-				if (queryText.toLowerCase().startsWith("insert") || queryText.toLowerCase().startsWith("upsert")
-						|| queryText.toLowerCase().startsWith("update")
-						|| queryText.toLowerCase().startsWith("delete")) {
-					data[0] = String.format("%1$s row(s) affected", count);
-				} else {
-					data[0] = "The statement completed successfully.";
-				}
-				js.resultArray.add(data);
-
-			}
+			js = executeQuery(pstmt, queryText);
 		} catch (Exception e) {
 			_LOG.error("Failed to execute query : " + e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
@@ -137,6 +113,70 @@ public class QueryResource {
 
 				}
 			}
+		}
+		return js;
+	}
+
+	public static TabularResult executeQuery(PreparedStatement pStmt, String queryText) throws EsgynDBMgrException {
+		ResultSet rs;
+		TabularResult tResult = new TabularResult();
+		_LOG.debug(queryText);
+
+		try {
+
+			boolean hasResultSet = pStmt.execute();
+			if (hasResultSet) {
+				rs = pStmt.getResultSet();
+				if (queryText.trim().toLowerCase().startsWith("select") || rs.getMetaData().getColumnCount() > 1) {
+					tResult = Helper.convertResultSetToTabularResult(rs);
+				} else {
+					tResult.isScalarResult = true;
+					tResult.columnNames = new String[] { "Output" };
+					tResult.resultArray = new ArrayList<Object[]>();
+					StringBuilder sb = new StringBuilder();
+					while (rs.next()) {
+						sb.append(rs.getString(1) + System.getProperty("line.separator"));
+					}
+					Object[] output = new Object[] { sb.toString() };
+					tResult.resultArray.add(output);
+				}
+				rs.close();
+			} else {
+				int count = pStmt.getUpdateCount();
+				tResult.isScalarResult = true;
+				tResult.columnNames = new String[] { "Status" };
+				tResult.resultArray = new ArrayList<Object[]>();
+				Object[] data = new Object[1];
+				if (queryText.toLowerCase().startsWith("insert") || queryText.toLowerCase().startsWith("upsert")
+						|| queryText.toLowerCase().startsWith("update")
+						|| queryText.toLowerCase().startsWith("delete")) {
+					data[0] = String.format("%1$s row(s) affected", count);
+				} else {
+					data[0] = "The statement completed successfully.";
+				}
+				tResult.resultArray.add(data);
+			}
+		} catch (Exception e) {
+			_LOG.error("Failed to execute query : " + e.getMessage());
+			throw new EsgynDBMgrException(e.getMessage());
+		}
+		return tResult;
+	}
+
+	public static TabularResult executeAdminSQLQuery(String queryText) throws EsgynDBMgrException {
+		return executeAdminSQLQuery(queryText, null);
+	}
+
+	public static TabularResult executeAdminSQLQuery(String queryText, String sControlStmts)
+			throws EsgynDBMgrException {
+		Connection connection = null;
+		try {
+			connection = JdbcHelper.getInstance().getAdminConnection();
+			return executeQuery(connection, queryText, sControlStmts);
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+			throw new EsgynDBMgrException(e.getMessage());
+		} finally {
 			if (connection != null) {
 				try {
 					connection.close();
@@ -145,9 +185,7 @@ public class QueryResource {
 				}
 			}
 		}
-		return js;
 	}
-
 	@POST
 	@Path("/explain/")
 	@Produces("application/json")

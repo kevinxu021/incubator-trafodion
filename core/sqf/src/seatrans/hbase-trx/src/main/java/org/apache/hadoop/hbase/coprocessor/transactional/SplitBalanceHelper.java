@@ -136,8 +136,8 @@ public class SplitBalanceHelper {
 			ZKUtil.createAndFailSilent(zkw, zLeftKey + "/" + SPLIT, Bytes.toBytes(flushPath.toString()));
 			if(LOG.isDebugEnabled()) LOG.debug("Split createAndFailSilent for right key ");
 			ZKUtil.createAndFailSilent(zkw, zRightKey + "/" + SPLIT, Bytes.toBytes(flushPath.toString()));
-			if(LOG.isDebugEnabled()) LOG.debug("Split coordination node written for " + leftRegion.getRegionNameAsString() +
-					                           " and " + rightRegion.getRegionNameAsString());
+			if(LOG.isDebugEnabled()) LOG.debug("Split coordination node written for " + leftRegion.getRegionInfo().getRegionNameAsString() +
+					                           " and " + rightRegion.getRegionInfo().getRegionNameAsString());
 			
 		} catch (KeeperException ke) {
 			LOG.error("ERROR: Zookeeper exception: "+ ke);

@@ -368,6 +368,8 @@ PROMOTION
 Tables in Schema TRAFODION.HIVE_T009
 ====================================
 
+SB_HISTOGRAMS
+SB_HISTOGRAM_INTERVALS
 T009T1
 
 --- SQL operation complete.
@@ -456,7 +458,7 @@ TRAFODION                                                                       
 TRAFODION                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         _HV_SCH_T009_                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     T009T2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
 TRAFODION                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         _MD_                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              OBJECTS                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
 
---- 8 row(s) selected.
+--- 6 row(s) selected.
 >>drop external table t009t1 for hive.sch_t009.t009t1;
 
 --- SQL operation complete.

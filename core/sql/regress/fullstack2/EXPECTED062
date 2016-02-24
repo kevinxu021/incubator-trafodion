@@ -67,12 +67,12 @@ Current Environment
 ----------------------------------
 AUTHENTICATION     disabled
 AUTHORIZATION      enabled
-CURRENT DIRECTORY  /home/centos/ansharma_tag/traf-plus/core/sqf/rundir/fullstack2
+CURRENT DIRECTORY  /mnt/owhadi/workspace/trafodion/incubator-trafodion/core/sqf/rundir/fullstack2
 LIST_COUNT         4294967295
 LOG FILE           LOG062
-MESSAGEFILE        /home/centos/ansharma_tag/traf-plus/core/sqf/export/bin ...
+MESSAGEFILE        /mnt/owhadi/workspace/trafodion/incubator-trafodion/cor ...
 MESSAGEFILE LANG   US English
-MESSAGEFILE VRSN   {2015-10-21 13:13 LINUX:ANSHARMA-3/centos} 
+MESSAGEFILE VRSN   {2016-01-23 00:47 LINUX:EDEV05/owhadi} 
 SQL CATALOG        TRAFODION
 SQL SCHEMA         SCH
 SQL USER CONNECTED user not connected
@@ -499,7 +499,7 @@ CONTROL QUERY DEFAULT
   HBASE_ASYNC_DROP_TABLE        	OFF
   HBASE_SERIALIZATION           	ON
   HBASE_SMALL_SCANNER           	SYSTEM
-  HBASE_FILTER_PREDS            	ON
+  HBASE_FILTER_PREDS            	2
   TRAF_INDEX_CREATE_OPT         	ON
   SHOWCONTROL_SHOW_ALL          	ON
   SCHEMA                        	AAA.BBB
@@ -543,7 +543,7 @@ CONTROL QUERY DEFAULT
   HBASE_ASYNC_DROP_TABLE        	OFF
   HBASE_SERIALIZATION           	ON
   HBASE_SMALL_SCANNER           	SYSTEM
-  HBASE_FILTER_PREDS            	ON
+  HBASE_FILTER_PREDS            	2
   TRAF_INDEX_CREATE_OPT         	ON
   SHOWCONTROL_SHOW_ALL          	ON
   DEF_CHUNK_SIZE                	1000
@@ -578,7 +578,7 @@ CONTROL QUERY DEFAULT
   HBASE_ASYNC_DROP_TABLE        	OFF
   HBASE_SERIALIZATION           	ON
   HBASE_SMALL_SCANNER           	SYSTEM
-  HBASE_FILTER_PREDS            	ON
+  HBASE_FILTER_PREDS            	2
   TRAF_INDEX_CREATE_OPT         	ON
   SHOWCONTROL_SHOW_ALL          	ON
   DEF_CHUNK_SIZE                	1000
@@ -931,12 +931,12 @@ Current Environment
 ----------------------------------
 AUTHENTICATION     disabled
 AUTHORIZATION      enabled
-CURRENT DIRECTORY  /home/centos/ansharma_tag/traf-plus/core/sqf/rundir/fullstack2
+CURRENT DIRECTORY  /mnt/owhadi/workspace/trafodion/incubator-trafodion/core/sqf/rundir/fullstack2
 LIST_COUNT         4294967295
 LOG FILE           LOG062
-MESSAGEFILE        /home/centos/ansharma_tag/traf-plus/core/sqf/export/bin ...
+MESSAGEFILE        /mnt/owhadi/workspace/trafodion/incubator-trafodion/cor ...
 MESSAGEFILE LANG   US English
-MESSAGEFILE VRSN   {2015-10-21 13:13 LINUX:ANSHARMA-3/centos} 
+MESSAGEFILE VRSN   {2016-01-23 00:47 LINUX:EDEV05/owhadi} 
 SQL CATALOG        TRAFODION
 SQL SCHEMA         SCH
 SQL USER CONNECTED user not connected
@@ -995,12 +995,12 @@ Current Environment
 ----------------------------------
 AUTHENTICATION     disabled
 AUTHORIZATION      enabled
-CURRENT DIRECTORY  /home/centos/ansharma_tag/traf-plus/core/sqf/rundir/fullstack2
+CURRENT DIRECTORY  /mnt/owhadi/workspace/trafodion/incubator-trafodion/core/sqf/rundir/fullstack2
 LIST_COUNT         4294967295
 LOG FILE           LOG062
-MESSAGEFILE        /home/centos/ansharma_tag/traf-plus/core/sqf/export/bin ...
+MESSAGEFILE        /mnt/owhadi/workspace/trafodion/incubator-trafodion/cor ...
 MESSAGEFILE LANG   US English
-MESSAGEFILE VRSN   {2015-10-21 13:13 LINUX:ANSHARMA-3/centos} 
+MESSAGEFILE VRSN   {2016-01-23 00:47 LINUX:EDEV05/owhadi} 
 SQL CATALOG        TRAFODION
 SQL SCHEMA         SCH
 SQL USER CONNECTED user not connected
@@ -1055,12 +1055,12 @@ Current Environment
 ----------------------------------
 AUTHENTICATION     disabled
 AUTHORIZATION      enabled
-CURRENT DIRECTORY  /home/centos/ansharma_tag/traf-plus/core/sqf/rundir/fullstack2
+CURRENT DIRECTORY  /mnt/owhadi/workspace/trafodion/incubator-trafodion/core/sqf/rundir/fullstack2
 LIST_COUNT         4294967295
 LOG FILE           LOG062
-MESSAGEFILE        /home/centos/ansharma_tag/traf-plus/core/sqf/export/bin ...
+MESSAGEFILE        /mnt/owhadi/workspace/trafodion/incubator-trafodion/cor ...
 MESSAGEFILE LANG   US English
-MESSAGEFILE VRSN   {2015-10-21 13:13 LINUX:ANSHARMA-3/centos} 
+MESSAGEFILE VRSN   {2016-01-23 00:47 LINUX:EDEV05/owhadi} 
 SQL CATALOG        TRAFODION
 SQL SCHEMA         SCH
 SQL USER CONNECTED user not connected

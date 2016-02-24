@@ -8464,7 +8464,7 @@ RelExpr *RenameReference::bindNode(BindWA *bindWA)
   bindWA->getCurrentScope()->setRETDesc(prevRETDesc);
 
   // Now merge the outer references into the previous scope.
-  bindWA->getCurrentScope()->mergeOuterRefs(myOuterRefs);
+  bindWA->getCurrentScope()->mergeOuterRefs(myOuterRefs, FALSE);
 
   return boundNode;
 }  // RenameReference::bindNode()
@@ -10090,7 +10090,8 @@ RelExpr* Insert::xformUpsertToMerge(BindWA *bindWA)
         setAssign = new(bindWA->wHeap()) ItemList(setAssign,setAssignPrev);
       }
     }
-    myOuterRefs += sourceVals[i];
+    if (sourceVals[i].getItemExpr()->getOperatorType() != ITM_CONSTANT)
+      myOuterRefs += sourceVals[i];
 
     insertValPrev = insertVal;
     insertColPrev = insertCol ;
@@ -10126,8 +10127,14 @@ RelExpr* Insert::xformUpsertToMerge(BindWA *bindWA)
   ((Join*)re)->doNotTransformToTSJ();
   ((Join*)re)->setTSJForMerge(TRUE);	
   ((Join*)re)->setTSJForMergeWithInsert(TRUE);
+  ((Join*)re)->setTSJForMergeUpsert(TRUE);
   ((Join*)re)->setTSJForWrite(TRUE);
-  if (bindWA->hasDynamicRowsetsInQuery())
+
+  // if Inputs of current insert are empty (i.e. we have no params/rowsets)
+  // then there will be no pull up of inputs during transform and the join will
+  // not see the inputs of the mergeUpdate due to intermediate nodes. So
+  // add inputs directly to join and use elimination to remove extra inputs
+  if (NOT getGroupAttr()->getCharacteristicInputs().isEmpty())
     mu->getGroupAttr()->addCharacteristicInputs(myOuterRefs);
   else
     re->getGroupAttr()->addCharacteristicInputs(myOuterRefs);
@@ -10609,7 +10616,7 @@ RelExpr *MergeUpdate::bindNode(BindWA *bindWA)
     getGroupAttr()->addCharacteristicInputs
       (bindWA->getCurrentScope()->getOuterRefs());
   }
-  bindWA->removeCurrentScope();
+  bindWA->removeCurrentScope(xformedUpsert()); // keepLocalRefs for Upsert
 
   bindWA->setMergeStatement(TRUE);
 
@@ -10984,7 +10991,7 @@ RelExpr *MergeDelete::bindNode(BindWA *bindWA)
   if (checkForMergeRestrictions(bindWA))
     return NULL;
 
-  bindWA->removeCurrentScope();
+  bindWA->removeCurrentScope(); 
 
   bindWA->setMergeStatement(TRUE);
 

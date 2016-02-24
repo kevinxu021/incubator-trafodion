@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -12,14 +12,15 @@ define([
         'moment',
         'common',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
+        'datatables.net',
+        'datatables.net-bs',
         'datetimepicker',
         'jqueryvalidate',
-        'tablebuttons',
+        'datatables.net-buttons',
         'buttonsflash',
         'buttonsprint',
-        'buttonshtml'        
+        'buttonshtml',
+        'pdfmake'
         ], function (BaseView, WorkloadsT, $, wHandler, moment, common) {
 	'use strict';
 	var LOADING_SELECTOR = "#loadingImg",
@@ -50,6 +51,7 @@ define([
 	var oDataTable = null;
 	var _this = null;
 	var validator = null;
+	var resizeTimer = null;
 	var lastAppliedFilters = null; //last set of filters applied by user explicitly
 
 	var WorkloadsView = BaseView.extend({
@@ -61,8 +63,8 @@ define([
 			$.validator.addMethod("validateStartAndEndTimes", function(value, element) {
 				var startTime = new Date($(START_TIME_PICKER).data("DateTimePicker").date()).getTime();
 				var endTime = new Date($(END_TIME_PICKER).data("DateTimePicker").date()).getTime();
-				return (startTime < endTime);
-			}, "* Start Time has to be less than End Time");
+				return (startTime > 0 && startTime < endTime);
+			}, "* Invalid Date Time and/or Start Time is not less than End Time");
 
 			validator = $(FILTER_FORM).validate({
 				rules: {
@@ -137,12 +139,12 @@ define([
 				}
 			});
 
-
 			wHandler.on(wHandler.FETCH_REPO_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_ERROR, this.showErrorMessage);
 			$(REFRESH_MENU).on('click', this.fetchQueriesInRepository);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
+			$(window).on('resize', this.onResize);
 			this.fetchQueriesInRepository();
 		},
 		doResume: function(){
@@ -151,7 +153,8 @@ define([
 			$(REFRESH_MENU).on('click', this.fetchQueriesInRepository);
 			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
-			this.fetchQueriesInRepository();
+			$(window).on('resize', this.onResize);
+			//this.fetchQueriesInRepository();
 		},
 		doPause: function(){
 			wHandler.off(wHandler.FETCH_REPO_SUCCESS, this.displayResults);
@@ -159,6 +162,7 @@ define([
 			$(REFRESH_MENU).off('click', this.fetchLogs);
 			$(FILTER_APPLY_BUTTON).off('click', this.filterApplyClicked);
 			$(OPEN_FILTER).off('click', this.filterButtonClicked);
+			$(window).off('resize', this.onResize);
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
@@ -320,19 +324,22 @@ define([
 
 				var bPaging = aaData.length > 25;
 
-				oDataTable = $('#repo-query-results').dataTable({
+				oDataTable = $('#repo-query-results').DataTable({
 					"oLanguage": {
 						"sEmptyTable": "No queries found for selected time range/or filters."
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+<<<<<<< HEAD
 					"bProcessing": true,
 					paging : bPaging, 
 					"bAutoWidth": false,
+=======
+					processing: true,
+					paging : bPaging, 
+					//autoWidth: true,
+>>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
-					//"scrollY":        "800px",
-					"scrollCollapse": true,
-					//"bJQueryUI": true,
 					stateSave: true,
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
@@ -351,6 +358,7 @@ define([
 					{
 						"aTargets": [ 2],
 						"mData": 2,
+						"className" : "dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							//if (type === 'display') {
 							if(data != null || data != -1)
@@ -363,6 +371,7 @@ define([
 					{
 						"aTargets": [3 ],
 						"mData": 3,
+						"className" : "dbmgr-nowrap",
 						"mRender": function ( data, type, full ) {
 							//if (type === 'display') {
 							if(data != null || data != -1)
@@ -383,20 +392,63 @@ define([
 							//}
 							//else return data;
 						}
+					},
+					{
+						"aTargets": [8],
+						"mData" : 8,
+						"mRender": function(data, type, full){
+							if(type == 'display' && data != null){
+								if(data.length > 30){
+									return '<div class="pointer dbmgr-text-ellipsis">'+data+'</div>';
+								}else{
+									return '<div class=\"dbmgr-nowrap\">'+data+'</div>';
+								}
+							}else
+								return data;
+						}
 					}
 					],
 					buttons: [
-					          'copy','csv','excel','pdf','print'
-					          ],
-					          "order":[[2, "desc"]],
+	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
+	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
+	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
+	                        	   title: 'Historical Workloads' } ,
+	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Historical Workloads' }
+				          ],
+				    "order":[[2, "desc"]],
 					          fnDrawCallback: function(){
 					        	  //$('#repo-query-results td').css("white-space","nowrap");
 					          }
 				});
 
-				$('#repo-query-results td').css("white-space","nowrap");
+				//$('#repo-query-results td').css("white-space","nowrap");
+				$('#repo-query-results tbody').on( 'click', 'td', function (e, a) {
+					if(oDataTable.cell(this)){
+						var cell = oDataTable.cell(this).index();
+						if(cell){
+							if(cell.column == 0){
+								var data = oDataTable.row(cell.row).data();
+								if(data && data.length > 0){
+									sessionStorage.setItem(data[0], JSON.stringify({type: 'repo', text: data[8]}));	
+								}
+							}else if(cell.column == 8){
+								if ($(this).find('.dbmgr-text-ellipsis').length > 0)
+									$(this).find('.dbmgr-text-ellipsis').removeClass('dbmgr-text-ellipsis'); 
+								else 
+									$(this).find('div').addClass('dbmgr-text-ellipsis');
+							}else{
+								$(this).find('div').addClass('dbmgr-nowrap');
+							}
+						}
+					}
+				}).on('dblclick', 'td', function(e, a){
+					if ($(this).find('.dbmgr-text-ellipsis').length > 0)
+						$(this).find('.dbmgr-text-ellipsis').removeClass('dbmgr-text-ellipsis'); 
+					else
+						$(this).find('div').selectText();	
+				});	
 			}
-
 		},
 		showErrorMessage: function (jqXHR) {
 			if(jqXHR.statusText != 'abort'){
@@ -414,7 +466,17 @@ define([
 		},
 		parseInputDate:function(date){
 			return moment.tz(date, DATE_FORMAT_ZONE, common.serverTimeZone);
-		}  
+		},
+		onResize: function() {
+			clearTimeout(resizeTimer);
+			resizeTimer = setTimeout(_this.doResize, 200);
+		},
+		doResize: function() {
+				if(oDataTable != null){
+					oDataTable.columns.adjust().draw();
+				}
+
+		}		
 	});
 
 
