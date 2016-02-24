@@ -1399,12 +1399,7 @@ ItemExpr * getRangePartitionBoundaryValues
   Parser parser(CmpCommon::context());
   //partKeyValue = parser.getItemExprTree(keyValue);
   partKeyValue = parser.getItemExprTree(keyValue,length+1,strCharSet);
-  // Check to see if the key values parsed successfully.  An error
-  // could occur if the table is an MP Table and the first key values
-  // contain MP syntax that is not supported by MX.  For instance
-  // Datetime literals which do not have the max number of digits in
-  // each field. (e.g. DATETIME '1999-2-4' YEAR TO DAY)
-  //
+  // Check to see if the key values parsed successfully.
   if(partKeyValue == NULL) {
     return NULL;
   }
@@ -1958,14 +1953,10 @@ static RangePartitionBoundaries * createRangePartitionBoundaries
              encodedKeyLen,
              heap);
 
-      // Check to see if the key values parsed successfully.  An error
-      // could occur if the table is an MP Table and the first key
-      // values contain MP syntax that is not supported by MX. For
-      // instance Datetime literals which do not have the max number
-      // of digits in each field. (e.g. DATETIME '1999-2-4' YEAR TO
-      // DAY)
-      //
-      if (rangePartBoundValues == NULL) {
+      // Check to see if the key values parsed successfully, also check
+      // for constants mistaken as a column reference.
+      if (rangePartBoundValues == NULL ||
+          rangePartBoundValues->containsOpType(ITM_REFERENCE)) {
 
         // Get the name of the table which has the 'bad' first key
         // value.  Use the first entry in the array of partition

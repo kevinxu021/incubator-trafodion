@@ -4226,7 +4226,7 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
            ValueIdSet externalInputs; // not used yet
            ValueIdSet orcPushdownPreds;
 
-           // remove any predicates referencing min and max
+           // remove any predicates referencing min and max from locals
            //
            // do it first for the beginKeyPred_
            ValueIdSet minMaxPreds;
@@ -4253,7 +4253,6 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
      
            locals += endKeyPredCopy;
 
-
            // Process the min and max keys. The function will alter the
            // beginKeyPred_ and endKeyPred_ to compute a narrowed version
            // of begin and end key. Here we set the last argument to FALSE
@@ -4264,10 +4263,21 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
            beginKeyPredCopy.clear();
            beginKeyPredCopy = ValueIdSet(beginKeyPred_);
            endKeyPredCopy.clear();
-           endKeyPredCopy = ValueIdSet(beginKeyPred_);
+           endKeyPredCopy = ValueIdSet(endKeyPred_);
 
+           // include the min/max key predicates into locals
            locals += beginKeyPredCopy;
            locals += endKeyPredCopy;
+
+           locals.replaceVEGExpressions (
+   	                 availableValues,
+   	                 getGroupAttr()->getCharacteristicInputs(),
+   	                 FALSE, // no need for key predicate generation here
+                            &vegPairs, // to be side-affected
+                            TRUE);
+   
+           if (hiveSearchKey_)
+             locals -= hiveSearchKey_->getPartAndVirtColPreds();
    
            HivePartitionAndBucketKey::makeHiveOrcPushdownPrecates(
                    hiveSearchKey_, 
@@ -4276,13 +4286,6 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
                    NULL, 
                    orcPushdownPreds);
 
-           orcPushdownPreds.replaceVEGExpressions (
-   	                 availableValues,
-   	                 getGroupAttr()->getCharacteristicInputs(),
-   	                 FALSE, // no need for key predicate generation here
-                            &vegPairs, // to be side-affected
-                            TRUE);
-   
            orcPushdownPreds.generatePushdownListForORC(orcListOfPPI_);
 
            // include begin/end key predicates in executor predicates

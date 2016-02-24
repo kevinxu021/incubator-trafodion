@@ -878,6 +878,11 @@ short FileScan::codeGenForHive(Generator * generator)
             neededHdfsVals.insert(allHdfsVals[i]);
             projectExprOnlyVals.insert(allHdfsVals[i]);
           }
+        else if (CmpCommon::getDefault(ORC_COLUMNS_PUSHDOWN) == DF_OFF)
+          {
+            neededHdfsVals.insert(allHdfsVals[i]);
+            // convertSkipList[i] remains at 0
+          }
         // else the column is used neither in SELECT nor WHERE
         // and convertSkipList[i] remains at 0
       }
@@ -1330,12 +1335,6 @@ short FileScan::codeGenForHive(Generator * generator)
                 hdfsHostName, hdfsPort,
                 part_cols_desc, partColRowLen, hiveSearchKey_);
 
-      if (CmpCommon::getDefault(ORC_COLUMNS_PUSHDOWN) == DF_OFF)
-        {
-          neededHdfsVals.clear();
-          neededHdfsVals = allHdfsVals;
-        }
-
       hdfsColInfoList = new(space) Queue(space);
       for (int i = 0; i < neededHdfsVals.entries(); i++)
         {
@@ -1352,9 +1351,6 @@ short FileScan::codeGenForHive(Generator * generator)
               nac = ((IndexColumn*)ie)->getNAColumn();
             }
           else
-            continue;
-
-          if (nac->isHivePartColumn() || nac->isHiveVirtualColumn())
             continue;
 
           char * cnameInList = 

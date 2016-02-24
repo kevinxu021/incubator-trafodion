@@ -342,27 +342,23 @@ ExWorkProcRetcode ExOrcScanTcb::work()
 
 	case INIT_ORC_CURSOR:
 	  {
-            /*            orci_ = ExpORCinterface::newInstance(getHeap(),
-                                                 (char*)orcScanTdb().hostName_,
-                                       
-            */
+            if (getAndInitNextSelectedRange(false) >= 0)
+              {
+                // move to the next range
+                orcStartRowNum_ = hdfo_->getStartRow();
+                orcNumRows_ = hdfo_->getNumRows();
+                sprintf(cursorId_, "%d", currRangeNum_);
 
-            hdfo_ = (HdfsFileInfo*)
-              orcScanTdb().getHdfsFileInfoList()->get(currRangeNum_);
-            
-            orcStartRowNum_ = hdfo_->getStartRow();
-            orcNumRows_ = hdfo_->getNumRows();
-            
-            hdfsFileName_ = hdfo_->fileName();
-            sprintf(cursorId_, "%d", currRangeNum_);
+                if (orcNumRows_ == -1) // select all rows
+                  orcStopRowNum_ = -1;
+                else
+                  orcStopRowNum_ = orcStartRowNum_ + orcNumRows_ - 1;
 
-            if (orcNumRows_ == -1) // select all rows
-              orcStopRowNum_ = -1;
+                step_ = OPEN_ORC_CURSOR;
+              }
             else
-              orcStopRowNum_ = orcStartRowNum_ + orcNumRows_ - 1;
-
-	    step_ = OPEN_ORC_CURSOR;
-	  }
+              step_ = DONE;
+          }
 	  break;
 
 	case OPEN_ORC_CURSOR:
@@ -603,16 +599,10 @@ ExWorkProcRetcode ExOrcScanTcb::work()
                 break;
               }
 
+            // move to the next file.
             currRangeNum_++;
-            
-            if (currRangeNum_ < (beginRangeNum_ + numRanges_))
-              {
-                // move to the next file.
-                step_ = INIT_ORC_CURSOR;
-                break;
-              }
-
-            step_ = DONE;
+            step_ = INIT_ORC_CURSOR;
+            break;
           }
           break;
           

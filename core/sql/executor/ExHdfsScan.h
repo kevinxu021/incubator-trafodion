@@ -173,7 +173,7 @@ protected:
   } step_,nextStep_;
 
   /////////////////////////////////////////////////////
-  // Private methods.
+  // Protected methods.
   /////////////////////////////////////////////////////
 
   inline ExHdfsScanTdb &hdfsScanTdb() const
@@ -207,6 +207,8 @@ protected:
 
   short moveRowToUpQueue(const char * row, Lng32 len, 
                          short * rc, NABoolean isVarchar);
+  void initPartAndVirtColData(HdfsFileInfo* hdfo, Lng32 rangeNum, bool prefetch);
+  int getAndInitNextSelectedRange(bool prefetch);
 
   short handleError(short &rc);
   short handleDone(ExWorkProcRetcode &rc);
