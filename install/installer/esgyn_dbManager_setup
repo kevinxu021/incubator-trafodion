@@ -446,7 +446,7 @@ sudo sed -i "s/$formerName/$newName/g" $logLocation
 }
 
 function configureDBM {
-
+source $TRAF_CONFIG
 export DM_HTTP_PORT="4205"
 export DM_HTTPS_PORT="4206"
 export REST_PORT="4200"
