@@ -458,13 +458,25 @@ End of MXCI Session
 >>
 >>populate index t132t1_ndx1 on t132t1;
 
---- SQL operation complete.
+*** ERROR[4481] The user does not have SELECT privilege on table or view TRAFODION.T132SCH.T132T1.
+
+*** ERROR[4481] The user does not have INSERT privilege on table or view TRAFODION.T132SCH.T132T1.
+
+--- SQL operation failed with errors.
 >>populate index t132t2_ndx1 on t132t2;
 
---- SQL operation complete.
+*** ERROR[4481] The user does not have SELECT privilege on table or view TRAFODION.T132SCH.T132T2.
+
+*** ERROR[4481] The user does not have INSERT privilege on table or view TRAFODION.T132SCH.T132T2.
+
+--- SQL operation failed with errors.
 >>populate index t132t3_ndx1 on t132t3;
 
---- SQL operation complete.
+*** ERROR[4481] The user does not have SELECT privilege on table or view TRAFODION.T132SCH.T132T3.
+
+*** ERROR[4481] The user does not have INSERT privilege on table or view TRAFODION.T132SCH.T132T3.
+
+--- SQL operation failed with errors.
 >>
 >>exit;
 
@@ -481,7 +493,7 @@ End of MXCI Session
 (EXPR)              
 --------------------
 
-                   8
+                   0
 
 --- 1 row(s) selected.
 >>select count(*) from table (index_table t132t2_ndx1);
@@ -489,7 +501,7 @@ End of MXCI Session
 (EXPR)              
 --------------------
 
-                   8
+                   0
 
 --- 1 row(s) selected.
 >>select count(*) from table (index_table t132t3_ndx1);
@@ -497,7 +509,7 @@ End of MXCI Session
 (EXPR)              
 --------------------
 
-                   8
+                   0
 
 --- 1 row(s) selected.
 >>
