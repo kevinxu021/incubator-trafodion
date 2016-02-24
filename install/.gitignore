@@ -1,3 +1,5 @@
 installer-*.tar.gz
 installer/decoder
 installer/licensecheck
+LICENSE
+NOTICE

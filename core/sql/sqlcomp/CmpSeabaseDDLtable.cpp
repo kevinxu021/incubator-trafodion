@@ -365,6 +365,8 @@ void CmpSeabaseDDL::createSeabaseTableLike(
       query += " ";
       query += createTableNode->getSplitByClause();
     }
+  // send any user CQDs down 
+  Lng32 retCode = sendAllControls(FALSE, FALSE, TRUE);
 
   ExeCliInterface cliInterface(STMTHEAP, NULL, NULL, 
   CmpCommon::context()->sqlSession()->getParentQid());

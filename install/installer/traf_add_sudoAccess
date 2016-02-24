@@ -48,6 +48,8 @@ echo "%$BACKUP_USER ALL =(hbase) NOPASSWD: /usr/bin/hbase" >> $BACKUP_USER
 
 function copyTrafFile {
 
+function copyTrafFile {
+
 if [[ $all_node_count -gt "1" ]]; then
    $TRAF_PDCP $sudoFile $HOME
    $TRAF_PDSH sudo cp $HOME/$sudoFile /etc/sudoers.d/
