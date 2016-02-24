@@ -4217,9 +4217,7 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
         if (( hTabStats->isOrcFile() ) &&
             (CmpCommon::getDefault(ORC_PRED_PUSHDOWN) == DF_ON) ) {
 
-           // Set the last argumen to FALSE to side-effect begin/end key predicates only
-           processMinMaxKeys(generator, pulledNewInputs, availableValues, FALSE);
-
+           // Collect local predicates
            TableAnalysis* tableAnalysis = 
                 getGroupAttr()->getGroupAnalysis()->getNodeAnalysis()->getTableAnalysis();
 
@@ -4253,6 +4251,22 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
            endKeyPredCopy -= minMaxPreds;
      
+           locals += endKeyPredCopy;
+
+
+           // Process the min and max keys. The function will alter the
+           // beginKeyPred_ and endKeyPred_ to compute a narrowed version
+           // of begin and end key. Here we set the last argument to FALSE
+           // to side-effect begin/end key predicates only.
+           processMinMaxKeys(generator, pulledNewInputs, availableValues, FALSE);
+
+           //update the begin/end key copy to the latest
+           beginKeyPredCopy.clear();
+           beginKeyPredCopy = ValueIdSet(beginKeyPred_);
+           endKeyPredCopy.clear();
+           endKeyPredCopy = ValueIdSet(beginKeyPred_);
+
+           locals += beginKeyPredCopy;
            locals += endKeyPredCopy;
    
            HivePartitionAndBucketKey::makeHiveOrcPushdownPrecates(
