@@ -170,7 +170,9 @@ create table hivenonp
     id    int,
     col2  int,
     p1    int,
-    p2    string
+    p2    string,
+    p1t   timestamp,
+    p1d   date
 )
 row format delimited fields terminated by '|';
 
@@ -201,7 +203,16 @@ create table hivepis
 partitioned by (p1 int, p2 string)
 row format delimited fields terminated by '|';
 
--- create a partitioned Hive table with ORC files
+drop table hivepts;
+create table hivepts
+(
+    id    int,
+    col2  int
+)
+partitioned by (p1t timestamp, p2 string)
+row format delimited fields terminated by '|';
+
+-- create partitioned Hive tables with ORC files
 drop table hivepio;
 create table hivepio
 (
@@ -211,7 +222,15 @@ create table hivepio
 partitioned by (p1 int)
 stored as orc;
 
--- create a partitioned Hive table with ORC files
+drop table hivepdo;
+create table hivepdo
+(
+    id    int,
+    col2  int
+)
+partitioned by (p1d date)
+stored as orc;
+
 drop table hivepiso;
 create table hivepiso
 (

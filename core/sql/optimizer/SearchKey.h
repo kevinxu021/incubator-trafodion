@@ -973,8 +973,7 @@ public:
   int computeActivePartitions();
 
   // make Hive PushDown predicates
-  static void  makeHiveOrcPushdownPrecates(
-        const HivePartitionAndBucketKey* hiveKey,
+  void  makeHiveOrcPushdownPredicates(
         const ValueIdSet & localPreds,
         const ValueIdSet & externalInputs,
         const IndexDesc *indexDesc,

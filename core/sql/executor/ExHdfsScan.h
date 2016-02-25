@@ -278,6 +278,7 @@ protected:
   Lng32 beginRangeNum_;
   Lng32 numRanges_;
   Lng32 currRangeNum_;
+  Lng32 nextDelimRangeNum_;
   char *endOfRequestedRange_ ; // helps rows span ranges.
   char * hdfsFileName_;
   SequenceFileReader* sequenceFileReader_;

@@ -2701,8 +2701,9 @@ NABoolean HivePartitionAndBucketKey::convertHivePartColValsToSQL(
       // strip leading and trailing blanks
       token = token.strip(NAString::both);
 
-      if (colType->getTypeQualifier() == NA_CHARACTER_TYPE)
+      switch (colType->getTypeQualifier())
         {
+        case NA_CHARACTER_TYPE:
           if (token.contains("'"))
                 {
                   reportError(
@@ -2719,20 +2720,43 @@ NABoolean HivePartitionAndBucketKey::convertHivePartColValsToSQL(
           sqlPartKeyValues.append("'");
           sqlPartKeyValues.append(token);
           sqlPartKeyValues.append("'");
-        }
-      else if (colType->getTypeQualifier() == NA_NUMERIC_TYPE)
-        {
+          break;
+
+        case NA_NUMERIC_TYPE:
           // just copy the value unchanged
           sqlPartKeyValues.append(token);
-        }
-      else
-        {
+          break;
+
+        case NA_DATETIME_TYPE:
+          {
+            // surround the value by quotes and prefix it
+            // with date or timestamp (2000-01-01 becomes
+            // date '2000-01-01')
+            const DatetimeType *dtt =
+              static_cast<const DatetimeType *>(colType);
+
+            if (dtt->getSubtype() == DatetimeType::SUBTYPE_SQLDate)
+              sqlPartKeyValues.append("date ");
+            else
+              {
+                CMPASSERT(dtt->getSubtype() == DatetimeType::SUBTYPE_SQLTimestamp);
+                sqlPartKeyValues.append("timestamp ");
+              }
+
+            sqlPartKeyValues.append("'");
+            sqlPartKeyValues.append(token);
+            sqlPartKeyValues.append("'");
+          }
+          break;
+
+        default:
           // For now we only support characters and strings
           // as Hive partition columns
           reportError(partNum, c, naTable, hiveVals,
                       "Unsupported type for partition column");
           return FALSE;
         }
+
       startPos = endPos+1;
     }
   return TRUE;
@@ -3440,14 +3464,29 @@ Int32 HivePartitionAndBucketKey::getTotalBytesToReadPerRow()
 }
 
 
-void HivePartitionAndBucketKey::makeHiveOrcPushdownPrecates(
-        const HivePartitionAndBucketKey* hiveKey,
+void HivePartitionAndBucketKey::makeHiveOrcPushdownPredicates(
         const ValueIdSet & localPreds,
         const ValueIdSet & externalInputs,
         const IndexDesc *indexDesc,
         ValueIdSet &producedPredicates)
 {
-  for (ValueId e=localPreds.init(); localPreds.next(e); localPreds.advance(e))
+  // predicates on partition and virtual columns cannot be pushed
+  // down, since these columns aren't available to the ORC scanner
+  ValueIdSet orcColLocalPreds(localPreds);
+  ValueIdSet inputsAndNonPartCols(externalInputs);
+  const ValueIdList &indexCols = indexDesc->getIndexColumns();
+  const NAColumnArray &nac = indexDesc->getNAFileSet()->getAllColumns();
+
+  for (CollIndex i=0; i<indexCols.entries(); i++)
+    if (!nac[i]->isHivePartColumn() &&
+        !nac[i]->isHiveVirtualColumn())
+      inputsAndNonPartCols += indexCols[i];
+
+  orcColLocalPreds.removeUnCoveredExprs(inputsAndNonPartCols);
+
+  for (ValueId e=orcColLocalPreds.init();
+       orcColLocalPreds.next(e);
+       orcColLocalPreds.advance(e))
   {
     ItemExpr* ie = e.getItemExpr()->cloneTree(STMTHEAP);
 
@@ -3464,7 +3503,7 @@ void HivePartitionAndBucketKey::replaceVEGExpressions(const ValueIdSet & availab
                                                       const ValueIdSet & inputValues,
                                                       VEGRewritePairs * lookup)
 {
-  ValueIdSet availablePartAndVirtCols;
+  ValueIdSet availablePartAndVirtCols(inputValues);
 
   for (ValueId v=availableValues.init();
        availableValues.next(v);

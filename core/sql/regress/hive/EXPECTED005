@@ -60,30 +60,30 @@
 >>
 >>insert into hive.hive.hivenonp
 +>values -- partition 1,one
-+>       (1,1,1,'one'),
-+>       (11,11,1,'one'),
++>       (1,1,1,'one', timestamp '2001-01-01 01:23:45.678901', date '2001-01-01'),
++>       (11,11,1,'one', timestamp '2001-01-01 01:23:45.678901', date '2001-01-01'),
 +>       -- partition 2,two
-+>       (2,2,2,'two'),
-+>       (22,22,2,'two'),
-+>       (222,222,2,'two'),
++>       (2,2,2,'two', timestamp '2002-02-02 02:34:56.789012', date '2020-02-29'),
++>       (22,22,2,'two', timestamp '2002-02-02 02:34:56.789012', date '2020-02-29'),
++>       (222,222,2,'two', timestamp '2002-02-02 02:34:56.789012', date '2020-02-29'),
 +>       -- partition 3,three
-+>       (3,3,3,'three'),
++>       (3,3,3,'three', timestamp '2003-03-03 03:45:57.890123', date '2003-03-31'),
 +>       -- partition 3 or partition 3,four
-+>       (34,34,3,'four');
++>       (34,34,3,'four', timestamp '2004-04-04 04:56:18', date '2004-04-04');
 
 --- 7 row(s) inserted.
 >>select * from hive.hive.hivenonp;
 
-ID           COL2         P1           P2                              
------------  -----------  -----------  --------------------------------
+ID           COL2         P1           P2                                P1T                         P1D
+-----------  -----------  -----------  --------------------------------  --------------------------  ----------
 
-          1            1            1  one                             
-         11           11            1  one                             
-          2            2            2  two                             
-         22           22            2  two                             
-        222          222            2  two                             
-          3            3            3  three                           
-         34           34            3  four                            
+          1            1            1  one                               2001-01-01 01:23:45.678901  2001-01-01
+         11           11            1  one                               2001-01-01 01:23:45.678901  2001-01-01
+          2            2            2  two                               2002-02-02 02:34:56.789012  2020-02-29
+         22           22            2  two                               2002-02-02 02:34:56.789012  2020-02-29
+        222          222            2  two                               2002-02-02 02:34:56.789012  2020-02-29
+          3            3            3  three                             2003-03-03 03:45:57.890123  2003-03-31
+         34           34            3  four                              2004-04-04 04:56:18.000000  2004-04-04
 
 --- 7 row(s) selected.
 >>
@@ -477,16 +477,16 @@ TINT    SM      I            BIG                   STR                          
 --- SQL operation complete.
 >>select * from hivenonp;
 
-ID           COL2         P1           P2                              
------------  -----------  -----------  --------------------------------
+ID           COL2         P1           P2                                P1T                         P1D
+-----------  -----------  -----------  --------------------------------  --------------------------  ----------
 
-          1            1            1  one                             
-         11           11            1  one                             
-          2            2            2  two                             
-         22           22            2  two                             
-        222          222            2  two                             
-          3            3            3  three                           
-         34           34            3  four                            
+          1            1            1  one                               2001-01-01 01:23:45.678901  2001-01-01
+         11           11            1  one                               2001-01-01 01:23:45.678901  2001-01-01
+          2            2            2  two                               2002-02-02 02:34:56.789012  2020-02-29
+         22           22            2  two                               2002-02-02 02:34:56.789012  2020-02-29
+        222          222            2  two                               2002-02-02 02:34:56.789012  2020-02-29
+          3            3            3  three                             2003-03-03 03:45:57.890123  2003-03-31
+         34           34            3  four                              2004-04-04 04:56:18.000000  2004-04-04
 
 --- 7 row(s) selected.
 >>select * from hivepi;
@@ -531,6 +531,20 @@ ID           COL2         P1           P2
           3            3            3  three                           
 
 --- 7 row(s) selected.
+>>select * from hivepts;
+
+ID           COL2         P1T                         P2
+-----------  -----------  --------------------------  --------------------------------
+
+          1            1  2001-01-01 01:23:45.678901  one                             
+         11           11  2001-01-01 01:23:45.678901  one                             
+          2            2  2002-02-02 02:34:56.789012  two                             
+         22           22  2002-02-02 02:34:56.789012  two                             
+        222          222  2002-02-02 02:34:56.789012  two                             
+          3            3  2003-03-03 03:45:57.890123  three                           
+         34           34  2004-04-04 04:56:18.000000  four                            
+
+--- 7 row(s) selected.
 >>select * from hivepio;
 
 ID           COL2         P1         
@@ -543,6 +557,20 @@ ID           COL2         P1
         222          222            2
           3            3            3
          34           34            3
+
+--- 7 row(s) selected.
+>>select * from hivepdo;
+
+ID           COL2         P1D       
+-----------  -----------  ----------
+
+          1            1  2001-01-01
+         11           11  2001-01-01
+          3            3  2003-03-31
+         34           34  2004-04-04
+          2            2  2020-02-29
+         22           22  2020-02-29
+        222          222  2020-02-29
 
 --- 7 row(s) selected.
 >>select * from hivepiso;
@@ -588,6 +616,31 @@ ID           COL2         P1           P2
                    1
 
 --- 1 row(s) selected.
+>>select * from hive.hive.hivepts where p1t > timestamp '2002-01-01 00:00:00.000000' and p2 <> 'four';
+
+ID           COL2         P1T                         P2
+-----------  -----------  --------------------------  --------------------------------
+
+          2            2  2002-02-02 02:34:56.789012  two                             
+         22           22  2002-02-02 02:34:56.789012  two                             
+        222          222  2002-02-02 02:34:56.789012  two                             
+          3            3  2003-03-03 03:45:57.890123  three                           
+
+--- 4 row(s) selected.
+>>select * from hive.hive.hivepts where p1t < current_timestamp;
+
+ID           COL2         P1T                         P2
+-----------  -----------  --------------------------  --------------------------------
+
+          1            1  2001-01-01 01:23:45.678901  one                             
+         11           11  2001-01-01 01:23:45.678901  one                             
+          2            2  2002-02-02 02:34:56.789012  two                             
+         22           22  2002-02-02 02:34:56.789012  two                             
+        222          222  2002-02-02 02:34:56.789012  two                             
+          3            3  2003-03-03 03:45:57.890123  three                           
+         34           34  2004-04-04 04:56:18.000000  four                            
+
+--- 7 row(s) selected.
 >>
 >>select *,
 +>       block__offset__inside__file,
@@ -614,13 +667,13 @@ ID           COL2         P1           P2                                BLOCK__
 INPUT__RANGE__NUMBER  ROW__NUMBER__IN__RANGE  BLOCK__OFFSET__INSIDE__FILE
 --------------------  ----------------------  ---------------------------
 
-                   0                       0                           10
-                   0                       1                           22
-                   0                       2                           32
-                   0                       3                           44
-                   0                       4                           58
-                   0                       5                           70
-                   0                       6                           83
+                   0                       0                           48
+                   0                       1                           98
+                   0                       2                          146
+                   0                       3                          196
+                   0                       4                          248
+                   0                       5                          298
+                   0                       6                          349
 
 --- 7 row(s) selected.
 >>select input__range__number, row__number__in__range, block__offset__inside__file
@@ -693,10 +746,32 @@ ID           COL2         P1
          34           34            3
 
 --- 4 row(s) selected.
+>>select * from hive.hive.hivepdo where p1d >= date '2002-12-31';
+
+ID           COL2         P1D       
+-----------  -----------  ----------
+
+          3            3  2003-03-31
+         34           34  2004-04-04
+          2            2  2020-02-29
+         22           22  2020-02-29
+        222          222  2020-02-29
+
+--- 5 row(s) selected.
 >>
 >>-- this pred can neither be pushed to ORC nor used as
 >>-- a partition elimination predicate
->>--select * from hive.hive.hivepio where p1=1 or col2<10;
+>>select * from hive.hive.hivepio where p1=1 or col2<10;
+
+ID           COL2         P1         
+-----------  -----------  -----------
+
+          1            1            1
+         11           11            1
+          2            2            2
+          3            3            3
+
+--- 4 row(s) selected.
 >>
 >>set catalog trafodion;
 
@@ -713,8 +788,7 @@ ID           COL2         P1
 >>update statistics for table hivepis on every column;
 
 --- SQL operation complete.
->>update statistics for table hivepiso on every column --, INPUT__FILE__NAME, ROW__NUMBER__IN__RANGE
-+>;
+>>update statistics for table hivepiso on every column;
 
 --- SQL operation complete.
 >>

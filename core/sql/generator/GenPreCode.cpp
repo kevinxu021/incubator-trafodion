@@ -3817,8 +3817,13 @@ void FileScan::processMinMaxKeys(Generator* generator,
                   if ( !getBeginKeyPred().isEmpty() ) {
                      keyPred = getBeginKeyPred()[leadKeyIdx].getItemExpr();
                      currentBeg = keyPred->child(1);
+
                   }
 
+                  ConstValue* cv = dynamic_cast<ConstValue*>(currentBeg);
+                  if ( cv && ( cv->isMin() || cv->isMax() ) )
+                     currentBeg = NULL;
+           
                   // Get the proper begin key (min or max) that came from
                   // the HashJoin
                   ValueId hashJoinBeg = (ascKey ?
@@ -3852,10 +3857,10 @@ void FileScan::processMinMaxKeys(Generator* generator,
                                        newBeg);
                      newBeg->synthTypeAndValueId(TRUE);
 
-                     // Replace the RHS of the key pred.
                      if ( updateSearchKeyOnly )
                         searchKey()->setBeginKeyValue(leadKeyIdx, newBeg->getValueId());
                      else
+                        // Replace the RHS of the key pred.
                         keyPred->child(1) = newBeg->getValueId();
                   } else {
                      // No begin key even exists before.
@@ -3897,6 +3902,11 @@ void FileScan::processMinMaxKeys(Generator* generator,
                      currentEnd = keyPred->child(1);
                   }
 
+                  ConstValue* cv = dynamic_cast<ConstValue*>(currentEnd);
+                  if ( cv && ( cv->isMin() || cv->isMax() ) )
+                     currentEnd = NULL;
+
+           
                   // Get the proper end key (max or min) that came from
                   // the HashJoin
                   ValueId hashJoinEnd = (ascKey ?
@@ -4217,9 +4227,13 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
         if (( hTabStats->isOrcFile() ) &&
             (CmpCommon::getDefault(ORC_PRED_PUSHDOWN) == DF_ON) ) {
 
-           // Set the last argumen to FALSE to side-effect begin/end key predicates only
+           // Process the min and max keys. The function will alter the
+           // beginKeyPred_ and endKeyPred_ to compute a narrowed version
+           // of begin and end key. Here we set the last argument to FALSE
+           // to side-effect begin/end key predicates only.
            processMinMaxKeys(generator, pulledNewInputs, availableValues, FALSE);
 
+           // Collect local predicates
            TableAnalysis* tableAnalysis = 
                 getGroupAttr()->getGroupAnalysis()->getNodeAnalysis()->getTableAnalysis();
 
@@ -4228,7 +4242,7 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
            ValueIdSet externalInputs; // not used yet
            ValueIdSet orcPushdownPreds;
 
-           // remove any predicates referencing min and max
+           // remove any predicates referencing min and max from locals
            //
            // do it first for the beginKeyPred_
            ValueIdSet minMaxPreds;
@@ -4262,14 +4276,12 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
                             &vegPairs, // to be side-affected
                             TRUE);
    
-           if (hiveSearchKey_)
-             locals -= hiveSearchKey_->getPartAndVirtColPreds();
+           locals -= hiveSearchKey_->getPartAndVirtColPreds();
    
-           HivePartitionAndBucketKey::makeHiveOrcPushdownPrecates(
-                   hiveSearchKey_, 
+           hiveSearchKey_->makeHiveOrcPushdownPredicates(
                    locals, 
-                   externalInputs, 
-                   NULL, 
+                   getGroupAttr()->getCharacteristicInputs(), 
+                   getIndexDesc(), 
                    orcPushdownPreds);
 
            orcPushdownPreds.generatePushdownListForORC(orcListOfPPI_);
