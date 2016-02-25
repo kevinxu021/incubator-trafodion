@@ -1604,6 +1604,8 @@ C_CUSTOMER_SK  C_CUSTOMER_ID     C_CURRENT_CDEMO_SK  C_CURRENT_HDEMO_SK  C_CURRE
 --- SQL operation complete.
 >>prepare ss from select  * from trafodion.hbase.customer_address;
 
+*** WARNING[6008] Statistics for column (CA_ADDRESS_SK) from table TRAFODION.HBASE.CUSTOMER_ADDRESS were not available. As a result, the access path chosen might not be the best possible.
+
 *** WARNING[4372] Snapshot scan cannot be used with table TRAFODION.HBASE.CUSTOMER_ADDRESS because its estimated size is less than the threshold of 1000 MBs.
 
 --- SQL command prepared.
@@ -2019,9 +2021,9 @@ C_CUSTOMER_SK  C_CUSTOMER_ID                                                    
 LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ---- ---- ---- --------------------  --------  --------------------  ---------
 
-3    .    4    root                                                  9.95E+004
-1    .    3    unload                                                9.95E+004
-.    .    1    trafodion_index_scan            CUSTOMER_IDX1         9.95E+004
+3    .    4    root                                                  9.97E+004
+1    .    3    unload                                                9.97E+004
+.    .    1    trafodion_index_scan            CUSTOMER_IDX1         9.97E+004
 
 --- SQL operation complete.
 >>
