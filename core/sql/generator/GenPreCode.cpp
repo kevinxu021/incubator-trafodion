@@ -4276,14 +4276,12 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
                             &vegPairs, // to be side-affected
                             TRUE);
    
-           if (hiveSearchKey_)
-             locals -= hiveSearchKey_->getPartAndVirtColPreds();
+           locals -= hiveSearchKey_->getPartAndVirtColPreds();
    
-           HivePartitionAndBucketKey::makeHiveOrcPushdownPrecates(
-                   hiveSearchKey_, 
+           hiveSearchKey_->makeHiveOrcPushdownPredicates(
                    locals, 
-                   externalInputs, 
-                   NULL, 
+                   getGroupAttr()->getCharacteristicInputs(), 
+                   getIndexDesc(), 
                    orcPushdownPreds);
 
            orcPushdownPreds.generatePushdownListForORC(orcListOfPPI_);

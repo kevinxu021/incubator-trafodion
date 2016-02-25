@@ -80,5 +80,7 @@ set hive.exec.dynamic.partition.mode=nonstrict;
 insert into table hivepi partition (p1) select id, col2, p1 from hivenonp;
 insert into table hiveps partition (p2) select id, col2, p2 from hivenonp;
 insert into table hivepis partition (p1, p2) select id, col2, p1, p2 from hivenonp;
+insert into table hivepts partition (p1t, p2) select id, col2, p1t, p2 from hivenonp;
 insert into table hivepio partition (p1) select id, col2, p1 from hivenonp;
+insert into table hivepdo partition (p1d) select id, col2, p1d from hivenonp;
 insert into table hivepiso partition (p1, p2) select id, col2, p1, p2 from hivenonp;

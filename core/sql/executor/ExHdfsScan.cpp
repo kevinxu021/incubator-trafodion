@@ -95,6 +95,7 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   , numBytesProcessedInRange_(0)
   , exception_(FALSE)
   , checkRangeDelimiter_(FALSE)
+  , nextDelimRangeNum_(-1)
 {
   Space * space = (glob ? glob->getSpace() : 0);
   CollHeap * heap = (glob ? glob->getDefaultHeap() : 0);
@@ -433,6 +434,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	      *(Lng32*)hdfsScanTdb().getHdfsFileRangeNumList()->get(myInstNum_);
 
 	    currRangeNum_ = beginRangeNum_;
+            nextDelimRangeNum_ = -1;
 
 	    hdfsScanBufMaxSize_ = hdfsScanTdb().hdfsBufSize_;
 
@@ -1305,19 +1307,16 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 
             // if next file is not same as current file, then close the current file. 
             bool closeFile = true;
+            Lng32 nextRange =
+              ( (nextDelimRangeNum_ >= 0) ? nextDelimRangeNum_ : (currRangeNum_ + 1) );
 
-            /* TBD: Replace this optimization with something else,
-               now that we no longer open every file, due to
-               the partition elimination predicate
-            if ( (step_ == CLOSE_FILE) && 
-                 ((currRangeNum_ + 1) < (beginRangeNum_ + numRanges_))) 
-                 
+            if ( (step_ == CLOSE_FILE) &&
+                 (nextRange < (beginRangeNum_ + numRanges_)))
             {   
-                hdfo = (HdfsFileInfo*) hdfsScanTdb().getHdfsFileInfoList()->get(currRangeNum_ + 1);
+                hdfo = (HdfsFileInfo*) hdfsScanTdb().getHdfsFileInfoList()->get(nextRange);
                 if (strcmp(hdfsFileName_, hdfo->fileName()) == 0) 
                     closeFile = false;
             }
-            */
 
             if (closeFile) 
             {
@@ -1351,7 +1350,14 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
             } 
 	    if (step_ == CLOSE_FILE)
 	      {
-                currRangeNum_++;
+                if (nextDelimRangeNum_ >= 0)
+                  {
+                    currRangeNum_ = nextDelimRangeNum_;
+                    nextDelimRangeNum_ = -1;
+                  }
+                else
+                  currRangeNum_++;
+
                 if (((pentry_down->downState.request == ex_queue::GET_N) &&
                     (pentry_down->downState.requestValue == matches_)) ||
                      (pentry_down->downState.request == ex_queue::GET_NOMORE))
