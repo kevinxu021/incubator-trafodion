@@ -35,6 +35,7 @@ fi
 # goes in here.  When not, then remove it!
 sed "
 s/\\\\[A-Z0-9]*\.\\\$[A-Z0-9]*\.[A-Z0-9]*\./#CAT.#SCH./g
+s/CONTROL TABLE [A-Z]*.[A-Z]*./CONTROL TABLE #CAT.#SCH./g
 s,\( DIRECTORY  *\)/[^ ][^ ]* *$,\1/#d,
 s/^\(MESSAGEFILE     [  ]*\).*/\1#f/
 /^MESSAGEFILE VRSN[     ]*{/s/{.*/#v/
