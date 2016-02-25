@@ -920,6 +920,7 @@ define([
 				$.each(metricsData	[keys[0]], function(i, v){
 					var seriesData = {label: "", data:[], color: ""};
 					seriesData.label = result.data.tags[i];
+					seriesData.labelID = "lbl-" + i;
 					seriesData.color = graphColors[i];
 					plotData.push(seriesData);
 				});
@@ -951,7 +952,7 @@ define([
 					$(DRILLDOWN_LEGEND).append("<br/><input type='checkbox' name='" + key +
 							"' checked='checked' id='id" + key + "'><span class='drilldown-legend-selector' style='background-color:"+  graphColors[key] + ";'></span></input>" +
 							"<label for='id" + key + "'>"
-							+ val + "</label> <label id='v" + key + "' class='y-val-label'></label>");
+							+ val + "</label> <label id='lbl-" + key + "' class='y-val-label'></label>");
 				});
 
 				$(DRILLDOWN_LEGEND).find("input").click(plotAccordingToChoices);
@@ -1035,7 +1036,7 @@ define([
 				};
 
 				//$.plot($(DRILLDOWN_CHART), plotData, flotOptions);
-				function plotAccordingToChoices() {
+				function plotAccordingToChoices(e) {
 
 					var data = [];
 
@@ -1051,6 +1052,9 @@ define([
 
 					if (data.length > 0) {
 						plot = $.plot($(DRILLDOWN_CHART), data, flotOptions);
+					}else{
+						if(e != null) // At least one series should be selected. Cancel the click event.
+							e.preventDefault();
 					}
 				}
 
@@ -1116,7 +1120,7 @@ define([
 							text += metricConfig.yunit;
 						}
 						$(DRILLDOWN_LEGEND).find('#x-time').text("Time :  " + common.toServerLocalDateFromMilliSeconds(x));
-						$(DRILLDOWN_LEGEND).find('#v'+i).text(text);
+						$(DRILLDOWN_LEGEND).find('#'+series.labelID).text(text);
 					}
 				}
 

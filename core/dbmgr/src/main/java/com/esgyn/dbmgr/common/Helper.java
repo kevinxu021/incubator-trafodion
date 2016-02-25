@@ -369,4 +369,20 @@ public class Helper {
 		DateTime dateTime = new DateTime(msSinceEpoch, serverTimeZone);
 		return dateTime.toString(fmt);
 	}
+
+	public static EsgynDBMgrException createDBManagerException(String featureTag, Exception ex) {
+		String message = ex.getMessage();
+		if (ex instanceof RESTRequestException) {
+			RESTRequestException re = (RESTRequestException) ex;
+			if (message.contains("RemoteException")) {
+				try {
+					message = RESTProcessor.GetNodeValue(message, "message");
+				} catch (Exception e) {
+				}
+			}
+			return new EsgynDBMgrException(featureTag + ", Reason : " + message + ", Url: " + re.getUri());
+		} else {
+			return new EsgynDBMgrException(featureTag + ", Reason : " + ex.getMessage());
+		}
+	}
 }
