@@ -10,6 +10,12 @@
 >>
 >>get tables;
 
+Tables in Schema TRAFODION.COMPGENERAL_TEST023
+==============================================
+
+SB_HISTOGRAMS
+SB_HISTOGRAM_INTERVALS
+
 --- SQL operation complete.
 >>
 >>CREATE TABLE stest
@@ -80,6 +86,8 @@
 Tables in Schema TRAFODION.COMPGENERAL_TEST023
 ==============================================
 
+SB_HISTOGRAMS
+SB_HISTOGRAM_INTERVALS
 STEST
 STESTC
 STEST_EMPTY
@@ -119,6 +127,8 @@ STEST TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn M
 Tables in Schema TRAFODION.COMPGENERAL_TEST023
 ==============================================
 
+SB_HISTOGRAMS
+SB_HISTOGRAM_INTERVALS
 SB_PERSISTENT_SAMPLES
 STEST
 STESTC
@@ -138,6 +148,8 @@ TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
 Tables in Schema TRAFODION.COMPGENERAL_TEST023
 ==============================================
 
+SB_HISTOGRAMS
+SB_HISTOGRAM_INTERVALS
 SB_PERSISTENT_SAMPLES
 STEST
 STESTC
@@ -167,6 +179,8 @@ STEST TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn M
 Tables in Schema TRAFODION.COMPGENERAL_TEST023
 ==============================================
 
+SB_HISTOGRAMS
+SB_HISTOGRAM_INTERVALS
 SB_PERSISTENT_SAMPLES
 STEST
 STESTC

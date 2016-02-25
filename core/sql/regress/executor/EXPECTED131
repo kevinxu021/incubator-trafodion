@@ -2,9 +2,9 @@
 >>create schema t131sch;
 
 --- SQL operation complete.
+>>set schema t131sch;
 
 --- SQL operation complete.
->>>>>>> apache/master
 >>create table t131helper (a int not null, primary key(a));
 
 --- SQL operation complete.
