@@ -3817,8 +3817,13 @@ void FileScan::processMinMaxKeys(Generator* generator,
                   if ( !getBeginKeyPred().isEmpty() ) {
                      keyPred = getBeginKeyPred()[leadKeyIdx].getItemExpr();
                      currentBeg = keyPred->child(1);
+
                   }
 
+                  ConstValue* cv = dynamic_cast<ConstValue*>(currentBeg);
+                  if ( cv && ( cv->isMin() || cv->isMax() ) )
+                     currentBeg = NULL;
+           
                   // Get the proper begin key (min or max) that came from
                   // the HashJoin
                   ValueId hashJoinBeg = (ascKey ?
@@ -3852,10 +3857,10 @@ void FileScan::processMinMaxKeys(Generator* generator,
                                        newBeg);
                      newBeg->synthTypeAndValueId(TRUE);
 
-                     // Replace the RHS of the key pred.
                      if ( updateSearchKeyOnly )
                         searchKey()->setBeginKeyValue(leadKeyIdx, newBeg->getValueId());
                      else
+                        // Replace the RHS of the key pred.
                         keyPred->child(1) = newBeg->getValueId();
                   } else {
                      // No begin key even exists before.
@@ -3897,6 +3902,11 @@ void FileScan::processMinMaxKeys(Generator* generator,
                      currentEnd = keyPred->child(1);
                   }
 
+                  ConstValue* cv = dynamic_cast<ConstValue*>(currentEnd);
+                  if ( cv && ( cv->isMin() || cv->isMax() ) )
+                     currentEnd = NULL;
+
+           
                   // Get the proper end key (max or min) that came from
                   // the HashJoin
                   ValueId hashJoinEnd = (ascKey ?
@@ -4217,6 +4227,12 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
         if (( hTabStats->isOrcFile() ) &&
             (CmpCommon::getDefault(ORC_PRED_PUSHDOWN) == DF_ON) ) {
 
+           // Process the min and max keys. The function will alter the
+           // beginKeyPred_ and endKeyPred_ to compute a narrowed version
+           // of begin and end key. Here we set the last argument to FALSE
+           // to side-effect begin/end key predicates only.
+           processMinMaxKeys(generator, pulledNewInputs, availableValues, FALSE);
+
            // Collect local predicates
            TableAnalysis* tableAnalysis = 
                 getGroupAttr()->getGroupAnalysis()->getNodeAnalysis()->getTableAnalysis();
@@ -4251,22 +4267,6 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
            endKeyPredCopy -= minMaxPreds;
      
-           locals += endKeyPredCopy;
-
-           // Process the min and max keys. The function will alter the
-           // beginKeyPred_ and endKeyPred_ to compute a narrowed version
-           // of begin and end key. Here we set the last argument to FALSE
-           // to side-effect begin/end key predicates only.
-           processMinMaxKeys(generator, pulledNewInputs, availableValues, FALSE);
-
-           //update the begin/end key copy to the latest
-           beginKeyPredCopy.clear();
-           beginKeyPredCopy = ValueIdSet(beginKeyPred_);
-           endKeyPredCopy.clear();
-           endKeyPredCopy = ValueIdSet(endKeyPred_);
-
-           // include the min/max key predicates into locals
-           locals += beginKeyPredCopy;
            locals += endKeyPredCopy;
 
            locals.replaceVEGExpressions (
