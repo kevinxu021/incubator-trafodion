@@ -1590,6 +1590,8 @@ C_CUSTOMER_SK  C_CUSTOMER_ID     C_CURRENT_CDEMO_SK  C_CURRENT_HDEMO_SK  C_CURRE
 >>
 >>prepare ss from select  c_first_name, c_last_name from HBASE.customer_salt order by c_first_name, c_last_name;
 
+*** WARNING[6008] Statistics for column (C_CUSTOMER_SK) from table TRAFODION.HBASE.CUSTOMER_SALT were not available. As a result, the access path chosen might not be the best possible.
+
 *** WARNING[4372] Snapshot scan cannot be used with table TRAFODION.HBASE.CUSTOMER_IDX1 because snapshot scan is not supported with index tables yet.
 
 --- SQL command prepared.
@@ -2017,9 +2019,9 @@ C_CUSTOMER_SK  C_CUSTOMER_ID                                                    
 LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ---- ---- ---- --------------------  --------  --------------------  ---------
 
-3    .    4    root                                                  1.00E+002
-1    .    3    unload                                                1.00E+002
-.    .    1    trafodion_index_scan            CUSTOMER_IDX1         1.00E+002
+3    .    4    root                                                  9.95E+004
+1    .    3    unload                                                9.95E+004
+.    .    1    trafodion_index_scan            CUSTOMER_IDX1         9.95E+004
 
 --- SQL operation complete.
 >>

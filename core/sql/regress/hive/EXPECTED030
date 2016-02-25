@@ -235,7 +235,7 @@ Suite 100             College
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 12304
+Fragment ID: 0, Length: 12448
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -258,7 +258,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 2632
+explain_plan_size = 2600
 
 # of Expressions = 4
 
@@ -368,7 +368,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 9824
+Fragment ID: 0, Length: 9968
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -391,7 +391,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 2632
+explain_plan_size = 2600
 
 # of Expressions = 4
 
@@ -542,7 +542,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 2728
+explain_plan_size = 2696
 
 # of Expressions = 4
 
@@ -673,7 +673,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 2816
+explain_plan_size = 2784
 
 # of Expressions = 4
 
