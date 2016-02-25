@@ -4217,9 +4217,7 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
         if (( hTabStats->isOrcFile() ) &&
             (CmpCommon::getDefault(ORC_PRED_PUSHDOWN) == DF_ON) ) {
 
-           // Set the last argumen to FALSE to side-effect begin/end key predicates only
-           processMinMaxKeys(generator, pulledNewInputs, availableValues, FALSE);
-
+           // Collect local predicates
            TableAnalysis* tableAnalysis = 
                 getGroupAttr()->getGroupAnalysis()->getNodeAnalysis()->getTableAnalysis();
 
@@ -4228,7 +4226,7 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
            ValueIdSet externalInputs; // not used yet
            ValueIdSet orcPushdownPreds;
 
-           // remove any predicates referencing min and max
+           // remove any predicates referencing min and max from locals
            //
            // do it first for the beginKeyPred_
            ValueIdSet minMaxPreds;
@@ -4253,6 +4251,22 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
            endKeyPredCopy -= minMaxPreds;
      
+           locals += endKeyPredCopy;
+
+           // Process the min and max keys. The function will alter the
+           // beginKeyPred_ and endKeyPred_ to compute a narrowed version
+           // of begin and end key. Here we set the last argument to FALSE
+           // to side-effect begin/end key predicates only.
+           processMinMaxKeys(generator, pulledNewInputs, availableValues, FALSE);
+
+           //update the begin/end key copy to the latest
+           beginKeyPredCopy.clear();
+           beginKeyPredCopy = ValueIdSet(beginKeyPred_);
+           endKeyPredCopy.clear();
+           endKeyPredCopy = ValueIdSet(endKeyPred_);
+
+           // include the min/max key predicates into locals
+           locals += beginKeyPredCopy;
            locals += endKeyPredCopy;
 
            locals.replaceVEGExpressions (
