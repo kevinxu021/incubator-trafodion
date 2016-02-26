@@ -1199,8 +1199,10 @@ public:
   // --------------------------------------------------------------------
   HashPartitioningFunction(Lng32 numberOfHashPartitions,
                            NodeMap* nodeMap,
-                           NAMemory* heap = CmpCommon::statementHeap())
-     : PartitioningFunction(HASH_PARTITIONING_FUNCTION, nodeMap,heap),
+                           NAMemory* heap = CmpCommon::statementHeap(),
+                           const PartitioningFunctionTypeEnum ftype
+                            = HASH_PARTITIONING_FUNCTION)
+     : PartitioningFunction(ftype, nodeMap,heap),
        numberOfHashPartitions_(numberOfHashPartitions)
   {}
 
@@ -1819,7 +1821,8 @@ public:
   HivePartitioningFunction(Lng32 numberOfHashPartitions,
                            NodeMap* nodeMap,
                            NAMemory* heap = CmpCommon::statementHeap())
-     : HashPartitioningFunction(HIVE_PARTITIONING_FUNCTION, nodeMap,heap)
+     : HashPartitioningFunction(numberOfHashPartitions,  
+                                nodeMap,heap, HIVE_PARTITIONING_FUNCTION)
   {}
 
   HivePartitioningFunction(const ValueIdSet& partitioningKeyColumns,

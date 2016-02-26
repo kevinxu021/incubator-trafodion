@@ -2579,7 +2579,10 @@ RelExpr * getTableExpressionRelExpr(
   // add where clause as a selection pred
   //
   if (whereClause)
-    childPtr->addSelPredTree(whereClause);
+    {
+      childPtr->addSelPredTree(whereClause);
+      childPtr->setUserSpecifiedPred(TRUE);
+    }
 
    if(groupByClause || havingClause)
    { 

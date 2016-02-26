@@ -173,7 +173,7 @@ protected:
   } step_,nextStep_;
 
   /////////////////////////////////////////////////////
-  // Private methods.
+  // Protected methods.
   /////////////////////////////////////////////////////
 
   inline ExHdfsScanTdb &hdfsScanTdb() const
@@ -191,6 +191,9 @@ protected:
   inline ex_expr *moveColsConvertExpr() const 
     { return hdfsScanTdb().moveColsConvertExpr_; }
 
+  inline ex_expr *partElimExpr() const 
+    { return hdfsScanTdb().partElimExpr_; }
+
   inline bool isSequenceFile() const
   {return hdfsScanTdb().isSequenceFile(); }
 
@@ -204,6 +207,8 @@ protected:
 
   short moveRowToUpQueue(const char * row, Lng32 len, 
                          short * rc, NABoolean isVarchar);
+  void initPartAndVirtColData(HdfsFileInfo* hdfo, Lng32 rangeNum, bool prefetch);
+  int getAndInitNextSelectedRange(bool prefetch);
 
   short handleError(short &rc);
   short handleDone(ExWorkProcRetcode &rc);
@@ -245,6 +250,14 @@ protected:
   tupp hdfsAsciiSourceTupp_;
   char * hdfsAsciiSourceData_;
 
+  ExSimpleSQLBuffer *partColsBuffer_;
+  tupp partColTupp_;                  // tupp for partition columns, if any
+  char *partColData_;                 // pointer to data for partition columns
+
+  ExSimpleSQLBuffer *virtColsBuffer_;
+  tupp virtColTupp_;                  // tupp for virtual columns, if needed
+  struct ComTdbHdfsVirtCols *virtColData_; // pointer to data for virtual columns
+
   sql_buffer_pool * pool_;            // row images after selection pred,
                                       // with only the required columns. 
   hdfsFile hdfsFp_;
@@ -265,6 +278,7 @@ protected:
   Lng32 beginRangeNum_;
   Lng32 numRanges_;
   Lng32 currRangeNum_;
+  Lng32 nextDelimRangeNum_;
   char *endOfRequestedRange_ ; // helps rows span ranges.
   char * hdfsFileName_;
   SequenceFileReader* sequenceFileReader_;
@@ -285,26 +299,85 @@ protected:
   NABoolean checkRangeDelimiter_;
 };
 
+// -----------------------------------------------------------------------
+// ExOrcScanTdb
+// -----------------------------------------------------------------------
+class ExOrcScanTdb : public ComTdbOrcScan
+{
+public:
+
+  // ---------------------------------------------------------------------
+  // Constructor is only called to instantiate an object used for
+  // retrieval of the virtual table function pointer of the class while
+  // unpacking. An empty constructor is enough.
+  // ---------------------------------------------------------------------
+  NA_EIDPROC ExOrcScanTdb()
+  {}
+
+  NA_EIDPROC virtual ~ExOrcScanTdb()
+  {}
+
+  // ---------------------------------------------------------------------
+  // Build a TCB for this TDB. Redefined in the Executor project.
+  // ---------------------------------------------------------------------
+  NA_EIDPROC virtual ex_tcb *build(ex_globals *globals);
+
+private:
+  // ---------------------------------------------------------------------
+  // !!!!!!! IMPORTANT -- NO DATA MEMBERS ALLOWED IN EXECUTOR TDB !!!!!!!!
+  // *********************************************************************
+  // The Executor TDB's are only used for the sole purpose of providing a
+  // way to supplement the Compiler TDB's (in comexe) with methods whose
+  // implementation depends on Executor objects. This is done so as to
+  // decouple the Compiler from linking in Executor objects unnecessarily.
+  //
+  // When a Compiler generated TDB arrives at the Executor, the same data
+  // image is "cast" as an Executor TDB after unpacking. Therefore, it is
+  // a requirement that a Compiler TDB has the same object layout as its
+  // corresponding Executor TDB. As a result of this, all Executor TDB's
+  // must have absolutely NO data members, but only member functions. So,
+  // if you reach here with an intention to add data members to a TDB, ask
+  // yourself two questions:
+  //
+  // 1. Are those data members Compiler-generated?
+  //    If yes, put them in the appropriate ComTdb subclass instead.
+  //    If no, they should probably belong to someplace else (like TCB).
+  // 
+  // 2. Are the classes those data members belong defined in the executor
+  //    project?
+  //    If your answer to both questions is yes, you might need to move
+  //    the classes to the comexe project.
+  // ---------------------------------------------------------------------
+};
+
 class ExOrcScanTcb  : public ExHdfsScanTcb
 {
   friend class ExOrcFastAggrTcb;
 
 public:
-  ExOrcScanTcb( const ComTdbHdfsScan &tdb,
+  ExOrcScanTcb( const ComTdbOrcScan &tdb,
                  ex_globals *glob );
 
   ~ExOrcScanTcb();
 
   virtual ExWorkProcRetcode work(); 
+
+  inline ExOrcScanTdb &orcScanTdb() const
+  { return (ExOrcScanTdb &) tdb; }
+
+  inline ex_expr *orcOperExpr() const 
+    { return orcScanTdb().orcOperExpr_; }
   
 protected:
   enum {
     NOT_STARTED
+  , SETUP_ORC_PPI
   , INIT_ORC_CURSOR
   , OPEN_ORC_CURSOR
   , GET_ORC_ROW
   , PROCESS_ORC_ROW
   , CLOSE_ORC_CURSOR
+  , CLOSE_ORC_CURSOR_AND_DONE
   , RETURN_ROW
   , CLOSE_FILE
   , ERROR_CLOSE_FILE
@@ -333,11 +406,22 @@ protected:
   Int64 orcNumRows_;
   Int64 orcStopRowNum_;
 
+  // Number of columns to be returned. -1, for all cols.
+  Lng32 numCols_;
+  // array of col numbers to be returned. (zero based)
+  Lng32 *whichCols_;
+
   // returned row from orc scanFetch
   char * orcRow_;
   Int64 orcRowLen_;
   Int64 orcRowNum_;
   Lng32 numOrcCols_;
+
+  char * orcOperRow_;
+  char * orcPPIBuf_;
+  Lng32 orcPPIBuflen_;
+
+  TextVec orcPPIvec_;
 };
 
 // -----------------------------------------------------------------------
@@ -404,12 +488,25 @@ public:
 
   inline ExOrcFastAggrTdb &orcAggrTdb() const
   { return (ExOrcFastAggrTdb &) tdb; }
-  
+
+  ex_expr *aggrExpr() const 
+  { return orcAggrTdb().aggrExpr_; }
+
+   
 protected:
   enum {
     NOT_STARTED
     , ORC_AGGR_INIT
+    , ORC_AGGR_OPEN
+    , ORC_AGGR_NEXT
+    , ORC_AGGR_CLOSE
     , ORC_AGGR_EVAL
+    , ORC_AGGR_COUNT
+    , ORC_AGGR_COUNT_NONULL
+    , ORC_AGGR_MIN
+    , ORC_AGGR_MAX
+    , ORC_AGGR_SUM
+    , ORC_AGGR_HAVING_PRED
     , ORC_AGGR_PROJECT
     , ORC_AGGR_RETURN
     , CLOSE_FILE
@@ -424,7 +521,21 @@ protected:
   /////////////////////////////////////////////////////
  private:
   Int64 rowCount_;
-  char * aggrRow_;
+  
+  char * outputRow_;
+
+  // row where aggregate values retrieved from orc will be moved into.
+  char * orcAggrRow_;
+
+  // row where aggregate value from all stripes will be computed.
+  char * finalAggrRow_;
+
+  Lng32 aggrNum_;
+
+  ComTdbOrcFastAggr::OrcAggrType aggrType_;
+  Lng32 colNum_;
+
+  ByteArrayList * bal_;
 };
 
 #define RANGE_DELIMITER '\002'

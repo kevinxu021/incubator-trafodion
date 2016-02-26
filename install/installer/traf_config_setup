@@ -69,8 +69,12 @@ CLOUD_TYPE=""
 AWS_CLOUD=""
 OPEN_STACK=""
 OTHER_CLOUD=""
+<<<<<<< HEAD
+
+=======
 MANAGEMENT_ENABLED="N"
 MANAGEMENT_NODES=""
+>>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 LDAP_LEVEL="0"
 #==============================================
 
@@ -191,7 +195,11 @@ if [[ "$CLOUD_CONFIG" == "Y" ]]; then
      CLOUD_TYPE=$answer1
   fi
   echo "export CLOUD_TYPE=\"$CLOUD_TYPE\"" >> $LOCAL_TRAF_CONFIG
+<<<<<<< HEAD
+  case "$CLOUD_TYPE" in 
+=======
   case "$CLOUD_TYPE" in
+>>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
     1) AWS_CLOUD=true
        echo "export AWS_CLOUD=\"$AWS_CLOUD\"" >> $LOCAL_TRAF_CONFIG
        ;;
@@ -552,7 +560,10 @@ fi
 echo "export DCS_SERVERS_PARM=\"$DCS_SERVERS_PARM\"" >> $LOCAL_TRAF_CONFIG
 
 #==============================================
+<<<<<<< HEAD
+=======
 
+>>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 #Get the node name where the customer would like to start DcsMaster process
 
 echo -n "Enter the node of primary DcsMaster, default [$DCS_PRIMARY_MASTER_NODE]: "
@@ -583,10 +594,14 @@ fi
 echo "export ENABLE_HA=\"$ENABLE_HA\"" >> $LOCAL_TRAF_CONFIG
 
 #==============================================
-#Add Floating IP if HA Enabled
+#Get the floating IP address, interface name and the list of backup nodes to be used 
 if [[ "$ENABLE_HA" == "true" ]]; then
+<<<<<<< HEAD
+   ######Get the floating IP address 
+=======
    #Get the floating IP address, interface name and the list of backup nodes to be used
    ######Get the floating IP address
+>>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
    echo -n "Enter floating IP address for setting up HA: "
    read answer1
 
@@ -597,11 +612,19 @@ if [[ "$ENABLE_HA" == "true" ]]; then
       FLOATING_IP="$answer1"
    fi
    echo "export FLOATING_IP=\"$FLOATING_IP\"" >> $LOCAL_TRAF_CONFIG
+<<<<<<< HEAD
 
    ######Get the interface used by the floating IP address
    echo -n "Enter interface used for floating IP address: "
    read answer2
 
+=======
+
+   ######Get the interface used by the floating IP address
+   echo -n "Enter interface used for floating IP address: "
+   read answer2
+
+>>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
    if [ -z $answer2 ]; then
       echo "Floating IP address interface name must be specified."
       exit 1
@@ -612,16 +635,22 @@ if [[ "$ENABLE_HA" == "true" ]]; then
 
    ######Get the list of backup nodes to be used
    echo -n "Enter backup nodes for HA (blank seperated): "
+<<<<<<< HEAD
+   read answer3 
+  
+   if [[ -z "$answer3" ]]; then 
+=======
    read answer3
 
    if [[ -z "$answer3" ]]; then
+>>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
       echo "Backup nodes must be specified."
       exit 1
    else
       BACKUP_DCS_NODES="$answer3"
    fi
    echo "export BACKUP_DCS_NODES=\"$BACKUP_DCS_NODES\"" >> $LOCAL_TRAF_CONFIG
-fi 
+fi
 
 #==============================================
 #Simple security

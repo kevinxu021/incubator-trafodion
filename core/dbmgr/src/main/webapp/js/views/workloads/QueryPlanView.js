@@ -25,8 +25,11 @@ define([
 	ERROR_CONTAINER = '#visual-plan-error',
 	TEXT_PLAN_CONTAINER = '#text-result-container',
 	GRAPH_CONTAINER = '#graph-container',
+<<<<<<< HEAD
+=======
 	USED_TABLES_CONTAINER = '#tables-used-container',
 	USED_TABLES_DIV = '#used-tables-div',
+>>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 	REFRESH_MENU = '#refreshAction',
 	QCANCEL_MENU = '#cancelAction',    	
 	TOOLTIP_DIALOG = '#tooltipDialog',

@@ -516,6 +516,10 @@ public:
      ValueIdSet       &pulledPredicates,        // return the pulled-up preds
      ValueIdMap       *optionalMap);            // optional map to rewrite preds
 
+  RelExpr *transformForAggrPushdown(Generator * generator,
+                                    const ValueIdSet & externalInputs,
+                                    ValueIdSet &pulledNewInputs);
+
   /*ExpTupleDesc::TupleDataFormat determineInternalFormat( const ValueIdList & valIdList,
                                                            RelExpr * relExpr,
                                                            NABoolean & resizeCifRecord,
@@ -808,6 +812,79 @@ public:
                                                            NABoolean bmo_affinity,
                                                            NABoolean & considerBufferDefrag);
 }; // class HashGroupBy
+
+
+class HbasePushdownAggr : public GroupByAgg
+{
+public:
+
+  // constructor
+  HbasePushdownAggr(const ValueIdSet & aggregateExpr,
+                  TableDesc * tableDesc)
+       : GroupByAgg(NULL, aggregateExpr),
+         tableDesc_(tableDesc)
+  {}
+
+  virtual ~HbasePushdownAggr();
+
+  virtual Int32 getArity() const { return 0; }
+
+  virtual NABoolean isLogical () const { return FALSE;};
+  virtual NABoolean isPhysical() const { return TRUE;};
+
+  // get a printable string that identifies the operator
+  virtual const NAString getText() const;
+
+  virtual RelExpr * copyTopNode(RelExpr *derivedNode = NULL,
+				CollHeap* outHeap = 0);
+
+  virtual RelExpr * preCodeGen(Generator *generator,
+                               const ValueIdSet &externalInputs,
+                               ValueIdSet &pulledNewInputs);
+
+
+  // method to do code generation
+  virtual short codeGen(Generator*);
+
+private:
+  TableDesc *tableDesc_;
+}; // class HbasePushdownAggr
+
+class OrcPushdownAggr : public GroupByAgg
+{
+public:
+
+  // constructor
+  OrcPushdownAggr(const ValueIdSet & aggregateExpr,
+                  TableDesc * tableDesc)
+       : GroupByAgg(NULL, aggregateExpr),
+         tableDesc_(tableDesc)
+  {}
+
+  virtual ~OrcPushdownAggr();
+
+  virtual Int32 getArity() const { return 0; }
+
+  virtual NABoolean isLogical () const { return FALSE;};
+  virtual NABoolean isPhysical() const { return TRUE;};
+
+  // get a printable string that identifies the operator
+  virtual const NAString getText() const;
+
+  virtual RelExpr * copyTopNode(RelExpr *derivedNode = NULL,
+				CollHeap* outHeap = 0);
+
+  virtual RelExpr * preCodeGen(Generator *generator,
+                               const ValueIdSet &externalInputs,
+                               ValueIdSet &pulledNewInputs);
+
+
+  // method to do code generation
+  virtual short codeGen(Generator*);
+
+private:
+  TableDesc *tableDesc_;
+}; // class OrcPushdownAggr
 
 
 #endif /* RELGRBY_H */

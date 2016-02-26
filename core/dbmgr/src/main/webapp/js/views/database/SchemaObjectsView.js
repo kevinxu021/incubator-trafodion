@@ -209,6 +209,41 @@ define([
 	
 						}
 					}
+<<<<<<< HEAD
+				}
+				oDataTable = $('#db-objects-list-results').DataTable({
+					"oLanguage": {
+						"sEmptyTable": "There are no " + routeArgs.type
+					},
+					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
+					"bProcessing": true,
+					paging: bPaging,
+					"bAutoWidth": true,
+					"iDisplayLength" : 25, 
+					"sPaginationType": "full_numbers",
+					//"scrollY":        "800px",
+					"scrollCollapse": true,
+					//"bJQueryUI": true,
+					"aaData": aaData, 
+					"aoColumns" : aoColumns,
+					"aoColumnDefs": [ {
+						"aTargets": [ 0 ],
+						"mData": 0,
+						"mRender": function ( data, type, full ) {
+		            		 if(type == 'display') {
+		            			 var rowcontent = "<a href=\"#" + link + '&name=' + data ;
+		            			 if(schemaName != null)
+		            				 rowcontent += '&schema='+ schemaName;	            				 
+
+		            			 rowcontent += "\">" + data + "</a>";
+		            			 return rowcontent;                         
+		            		 }else { 
+		            			 return data;
+		            		 }
+		            	 }
+					},
+					{
+=======
 					
 					var aoColumnDefs = [];
 					aoColumnDefs.push({
@@ -229,6 +264,7 @@ define([
 						});
 					
 					aoColumnDefs.push({
+>>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 						"aTargets": [ 2 ],
 						"mData": 2,
 						"className" : "dbmgr-nowrap",
@@ -275,6 +311,62 @@ define([
 			            	 }
 						});
 					}
+<<<<<<< HEAD
+					],
+					/*aoColumns : [
+					             {"mData": 'Name', sClass: 'left', "sTitle": 'Name', 
+					            	 "mRender": function ( data, type, full ) {
+					            		 if(type == 'display') {
+					            			 var rowcontent = "<a href=\"#" + link + '&name=' + data ;
+					            			 if(schemaName != null)
+					            				 rowcontent += '&schema='+ schemaName;	            				 
+
+					            			 rowcontent += "\">" + data + "</a>";
+					            			 return rowcontent;                         
+					            		 }else { 
+					            			 return data;
+					            		 }
+					            	 }			        
+					             },
+					             {"mData": 'Owner', sClass: 'left', "sTitle": 'Owner'},	
+					             {"mData": 'CreateTime', sClass: 'left', "sTitle": 'Create Time',
+					            	 "mRender": function ( data, type, full ) {
+					            		 if(type == 'display') {
+					            			 return common.toServerLocalDateFromUtcMilliSeconds(data);                          
+					            		 }else { 
+					            			 return data;
+					            		 }
+					            	 }
+					             },			   
+					             {"mData": 'ModifiedTime', sClass: 'left', "sTitle": 'Modified Time',
+					            	 "mRender": function ( data, type, full ) {
+					            		 if(type == 'display') {
+					            			 return common.toServerLocalDateFromUtcMilliSeconds(data);                          
+					            		 }else { 
+					            			 return data;
+					            		 }
+					            	 }
+					             }
+					             ],*/
+				                 buttons: [
+				                           'copy','csv','excel','pdf','print'
+				                           ],					             
+					             fnDrawCallback: function(){
+					            	 $('#db-object-list-results td').css("white-space","nowrap");
+					             }
+				});
+
+
+				$('#db-objects-list-results td').css("white-space","nowrap");
+				$('#db-objects-list-results tbody').on( 'click', 'tr', function (e, a) {
+					var data = oDataTable.row(this).data();
+					if(data){
+						//sessionStorage.setItem(data['Name'], JSON.stringify(data));
+						var rowData = {};
+						rowData.data = data;
+						rowData.columns = aoColumns;
+						sessionStorage.setItem(data[0], JSON.stringify(rowData));	
+=======
 					if(routeArgs.type == 'procedures'){
 						aoColumnDefs.push({
 							"aTargets": [ 5 ],
@@ -305,6 +397,7 @@ define([
 			            		 }
 			            	 }
 						});
+>>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 					}
 					if(routeArgs.type == 'udfs'){
 						aoColumnDefs.push({

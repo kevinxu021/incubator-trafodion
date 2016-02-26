@@ -386,7 +386,7 @@ public:
           desc_struct *inTableDesc = NULL);
 
   NATable(BindWA *bindWA, const CorrName &corrName, NAMemory *heap,
-          struct hive_tbl_desc*);
+          struct hive_tbl_desc*, desc_struct *extTableDesc = NULL);
 
   virtual ~NATable();
 
@@ -501,6 +501,11 @@ public:
   NABoolean isOfflinePartition(const NAString &partitionName) const
   { return !partitionName.isNull() && !containsPartition(partitionName); }
 
+
+  // move relevant attributes from etTable to this.
+  // Currently, column and key info is moved.
+  short updateExtTableAttrs(NATable *etTable);
+
   const Int64 &getCreateTime() const            { return createTime_; }
   const Int64 &getRedefTime() const             { return redefTime_; }
   const Int64 &getCacheTime() const             { return cacheTime_; }
@@ -563,7 +568,7 @@ public:
 
   const char *getViewCheck() const              { return viewCheck_; }
 
-  NABoolean hasSaltedColumn();
+  NABoolean hasSaltedColumn() const;
 
   void setUpdatable( NABoolean value )
   {  value ? flags_ |= IS_UPDATABLE : flags_ &= ~IS_UPDATABLE; }
@@ -733,6 +738,11 @@ public:
   NABoolean isHistogramTable() const
   {  return (flags_ & IS_HISTOGRAM_TABLE) != 0; }
 
+  void setHasHiveExtTable( NABoolean value )
+  {  value ? flags_ |= HAS_HIVE_EXT_TABLE : flags_ &= ~HAS_HIVE_EXT_TABLE; }
+  NABoolean hasHiveExtTable() const
+  {  return (flags_ & HAS_HIVE_EXT_TABLE) != 0; }
+
   const CheckConstraintList &getCheckConstraints() const
                                                 { return checkConstraints_; }
   const AbstractRIConstraintList &getUniqueConstraints() const
@@ -827,6 +837,7 @@ public:
 		    { return qualifiedName_.isPartitionRangeSpecified(); }
 
   NABoolean isHiveTable() const { return isHive_; }
+  NABoolean isORC() const { return isORC_; }
 
   NABoolean isHbaseTable() const { return isHbase_; }
   NABoolean isHbaseCellTable() const { return isHbaseCell_; }
@@ -838,6 +849,7 @@ public:
 
   NABoolean isUserUpdatableSeabaseMDTable() const { return isUserUpdatableSeabaseMD_; }
 
+  void setIsORC(NABoolean v) { isORC_ = v; }
   void setIsHbaseTable(NABoolean v) { isHbase_ = v; }
   void setIsHbaseCellTable(NABoolean v) { isHbaseCell_ = v; }
   void setIsHbaseRowTable(NABoolean v) { isHbaseRow_ = v; }
@@ -951,8 +963,9 @@ private:
     IS_HISTOGRAM_TABLE        = 0x00200000,
     
     // synchronize transactions across multiple clusters for this table
-    SYNC_XN                   = 0x00080000
+    SYNC_XN                   = 0x00080000,
 
+    HAS_HIVE_EXT_TABLE        = 0x00100000
   };
     
   UInt32 flags_;
@@ -1153,6 +1166,7 @@ private:
 
   NABoolean isHive_;
   NABoolean isHbase_;
+  NABoolean isORC_;
   NABoolean isHbaseCell_;
   NABoolean isHbaseRow_;
   NABoolean isSeabase_;

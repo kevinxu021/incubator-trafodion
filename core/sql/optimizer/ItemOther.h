@@ -978,6 +978,8 @@ public:
   virtual ItemExpr * copyTopNode(ItemExpr *derivedNode = NULL,
 				 CollHeap* outHeap = 0);
 
+  virtual ItemExpr * cloneTopNode(CollHeap* outHeap=0);
+
   // A method for replacing VEGReference and VEGPredicate objects
   // with another expression that belongs to the VEG as well as to the
   // set of availableValues.
@@ -1010,6 +1012,10 @@ public:
   // MDAM related methods
   // Performs the MDAM tree walk.  See ItemExpr.h for a detailed description.
   DisjunctArray * mdamTreeWalk();
+
+
+  // remove non-pushabe predicates for ORC.
+  virtual ItemExpr* removeNonPushablePredicatesForORC();
 
 private:
 
@@ -1122,6 +1128,9 @@ public:
 					       CostScalar & minUec,
 					       CostScalar & maxUec);
 
+  // remove non-pushabe predicates for ORC.
+  virtual ItemExpr* removeNonPushablePredicatesForORC() { return this; }
+
 private:
 
   // Methods used by the code generator for replacing a reference
@@ -1203,6 +1212,9 @@ public:
   
   // method to do code generation
   short codeGen(Generator*);
+
+  ItemExpr* removeNonPushablePredicatesForORC();
+
  private:
   OptNormRangeSpec* range_;
 

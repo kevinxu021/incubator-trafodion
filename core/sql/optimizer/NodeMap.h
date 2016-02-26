@@ -45,6 +45,7 @@ class Generator;
 class PartitioningFunction;
 class HivePartitionAndBucketKey;
 class HHDFSStatsBase;
+class HHDFSListPartitionStats;
 
 //----------------------------------------------------------------
 //  Needed for passing CollIndex pointers as reference parameters.
@@ -195,13 +196,18 @@ struct HiveScanInfo
 {
    void print(FILE* ofd, const char* indent, const char* title) const;
 
-  HiveScanInfo(HHDFSFileStats* file=NULL, Int64 off=0, Int64 span=0, NABoolean loc=FALSE)
-     : file_(file), offset_(off), span_(span), isLocal_(loc) {}
+  HiveScanInfo(HHDFSFileStats* file=NULL, Int64 off=0, Int64 span=0, NABoolean loc=FALSE,
+               HHDFSListPartitionStats* partition=NULL,
+               const char *partColExplodedValues=NULL)
+       : file_(file), offset_(off), span_(span), isLocal_(loc),
+         partition_(partition), partColExplodedValues_(partColExplodedValues) {}
      
    HHDFSFileStats* file_;
    Int64 offset_;
    Int64 span_;
    NABoolean isLocal_;
+   HHDFSListPartitionStats* partition_;
+   const char *partColExplodedValues_;
 };
    
 class HiveNodeMapEntry : public NodeMapEntry {
@@ -209,14 +215,16 @@ class HiveNodeMapEntry : public NodeMapEntry {
 public:
 
    HiveNodeMapEntry(PartitionState state = ACTIVE, CollHeap* heap=0)
-    : NodeMapEntry(state), scanInfo_(heap, 0) {}
+    : NodeMapEntry(state), scanInfo_(heap, 0), filled_(0) {}
 
    HiveNodeMapEntry(const HiveNodeMapEntry&, CollHeap* heap=0);
 
    ~HiveNodeMapEntry() {}
 
-   void addScanInfo(HiveScanInfo info) 
-     { scanInfo_.insertAt(scanInfo_.entries(), info); }
+   void addScanInfo(HiveScanInfo info, Int64 filled = 0) 
+     { scanInfo_.insertAt(scanInfo_.entries(), info); filled_+= filled; }
+
+   void addOrUpdateScanInfo(HiveScanInfo info, Int64 filled = 0);
 
    HiveNodeMapEntry& operator=(const HiveNodeMapEntry& other);
 
@@ -225,8 +233,12 @@ public:
    
    LIST(HiveScanInfo)& getScanInfo() { return scanInfo_; }
 
+   Int64 getFilled() { return filled_; }
+
 protected:
    LIST(HiveScanInfo) scanInfo_;
+
+   Int64 filled_; // number of bytes filled in scanInfo_
 };
 
 class HBaseNodeMapEntry : public NodeMapEntry {
@@ -389,6 +401,9 @@ public:
   void display() const;
 
   void print( FILE* ofd = stdout,
+	      const char* indent = DEFAULT_INDENT,
+              const char* title = "NodeMap") const;
+  void printToLog(
 	      const char* indent = DEFAULT_INDENT,
               const char* title = "NodeMap") const;
 

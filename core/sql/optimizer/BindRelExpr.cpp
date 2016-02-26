@@ -1577,7 +1577,7 @@ NATable *BindWA::getNATable(CorrName& corrName,
   // For now, don't allow access through the Trafodion external name created for
   // native HIVE or HBASE objects unless the allowExternalTables flag is set.  
   // allowExternalTables is set for drop table and SHOWDDL statements.  
-  // TDB - may want to merge the Trafodion version with the native version.
+  // TBD - may want to merge the Trafodion version with the native version.
   if ((table) && table->isExternalTable() && (! bindWA->allowExternalTables()))
     {
       *CmpCommon::diags() << DgSqlCode(-4258)
@@ -1604,9 +1604,9 @@ NATable *BindWA::getNATable(CorrName& corrName,
       NATable *nativeNATable = bindWA->getSchemaDB()->getNATableDB()->
                                   get(externalCorrName, bindWA, inTableDescStruct);
   
-       // Compare column lists
-       // TBD - return what mismatches
-       if ( nativeNATable && !(table->getNAColumnArray() == nativeNATable->getNAColumnArray()))
+      // Compare column lists (user columns only)
+      // TBD - return what mismatches
+      if ( nativeNATable && !(table->getNAColumnArray().compare(nativeNATable->getNAColumnArray(), FALSE)))
          {
            *CmpCommon::diags() << DgSqlCode(-3078)
                                << DgString0(adjustedName)
@@ -4825,88 +4825,8 @@ RelExpr *RelRoot::bindNode(BindWA *bindWA)
     return this;
   }
 
-  if (isTrueRoot()) 
+  if (isTrueRoot())
     {
-      // if this is simple scalar aggregate on a seabase table
-      //  (of the form:  select count(*), sum(a) from t; )
-      // then transform it so it could be evaluated using hbase co-processor.
-      if ((CmpCommon::getDefault(HBASE_COPROCESSORS) == DF_ON) &&
-	  (child(0) && child(0)->getOperatorType() == REL_SCAN))
-	{
-          Scan * scan = (Scan*)child(0)->castToRelExpr();
-
-	  if ((getCompExprTree()) &&
-              (NOT hasOrderBy()) &&
-              (! getSelPredTree()) &&
-              (! scan->getSelPredTree()) &&
-	      (scan->selectionPred().isEmpty()) &&
-              ((scan->getTableName().getSpecialType() == ExtendedQualName::NORMAL_TABLE) ||
-	       (scan->getTableName().getSpecialType() == ExtendedQualName::INDEX_TABLE)) &&
-              !scan->getTableName().isPartitionNameSpecified() &&
-              !scan->getTableName().isPartitionRangeSpecified() &&
-              (NOT bindWA->inViewDefinition()))
-	    {
-              ItemExprList selList(bindWA->wHeap());
-              selList.insertTree(getCompExprTree());
-	      // for now, only count(*) can be co-proc'd
-              if ((selList.entries() == 1) &&
-                  (selList[0]->getOperatorType() == ITM_COUNT) &&
-		  (selList[0]->origOpType() == ITM_COUNT_STAR__ORIGINALLY))
-                {
-		  NATable *naTable = bindWA->getNATable(scan->getTableName());
-		  if (bindWA->errStatus()) 
-		    return this;
-
-		  if (((naTable->getObjectType() == COM_BASE_TABLE_OBJECT) ||
-		       (naTable->getObjectType() == COM_INDEX_OBJECT)) &&
-		      ((naTable->isSeabaseTable()) ||
-                       ((naTable->isHiveTable()) &&
-                        (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile()))))
-		    {
-		      Aggregate * agg = 
-			new(bindWA->wHeap()) Aggregate(ITM_COUNT,
-						       new (bindWA->wHeap()) SystemLiteral(1),
-						       FALSE /*i.e. not distinct*/,
-						       ITM_COUNT_STAR__ORIGINALLY,
-						       '!');
-		      agg->bindNode(bindWA);
-		      if (bindWA->errStatus())
-			{	  
-			  return this;
-			}
-
-		      ValueIdSet aggrSet;
-		      aggrSet.insert(agg->getValueId());
-		      ExeUtilExpr * eue = NULL;
-                      
-                      if (naTable->isSeabaseTable())
-                        eue = 
-                          new(CmpCommon::statementHeap())
-                          ExeUtilHbaseCoProcAggr(scan->getTableName(),
-                                                 aggrSet);
-                      else
-                        eue = 
-                          new(CmpCommon::statementHeap())
-                          ExeUtilOrcFastAggr(scan->getTableName(),
-                                             aggrSet);
-		      
-		      eue->bindNode(bindWA);
-		      if (bindWA->errStatus())
-			{	  
-			  return this;
-			}
-		      
-		      setChild(0, eue);
-
-                      removeCompExprTree();
-                      addCompExprTree(agg);
-
-		    } // if seabaseTable
-		} // count aggr
-	    }
-	} // coproc on
-
-
       if (child(0) && 
 	  ((child(0)->getOperatorType() == REL_INSERT) ||
 	   (child(0)->getOperatorType() == REL_UNARY_INSERT) ||
@@ -4914,22 +4834,22 @@ RelExpr *RelRoot::bindNode(BindWA *bindWA)
 	{
 	  Insert * ins = (Insert*)child(0)->castToRelExpr();
 	  if (ins->isNoRollback())
-          {
-            if ((CmpCommon::getDefault(AQR_WNR) 
-                 != DF_OFF) &&
-                (CmpCommon::getDefault(AQR_WNR_INSERT_CLEANUP)
-                 != DF_OFF))
-              ins->enableAqrWnrEmpty() = TRUE;
-          }
+            {
+              if ((CmpCommon::getDefault(AQR_WNR) 
+                   != DF_OFF) &&
+                  (CmpCommon::getDefault(AQR_WNR_INSERT_CLEANUP)
+                   != DF_OFF))
+                ins->enableAqrWnrEmpty() = TRUE;
+            }
           if (CmpCommon::transMode()->anyNoRollback())
-          {
-            // tbd - may need to integrate these two.
-            if ((CmpCommon::getDefault(AQR_WNR)
-                != DF_OFF) &&
-                (CmpCommon::getDefault(AQR_WNR_INSERT_CLEANUP)
-                != DF_OFF))
-              ins->enableAqrWnrEmpty() = TRUE;
-          }
+            {
+              // tbd - may need to integrate these two.
+              if ((CmpCommon::getDefault(AQR_WNR)
+                   != DF_OFF) &&
+                  (CmpCommon::getDefault(AQR_WNR_INSERT_CLEANUP)
+                   != DF_OFF))
+                ins->enableAqrWnrEmpty() = TRUE;
+            }
 	}
       
       // if lob is being extracted as chunks of string, then only one
@@ -4958,11 +4878,7 @@ RelExpr *RelRoot::bindNode(BindWA *bindWA)
 	      setChild(0, le);
 	 
 	    }
-	     
-
 	}
-	
-      
 
       processRownum(bindWA);
       
@@ -6398,7 +6314,6 @@ NABoolean RelRoot::checkPrivileges(BindWA* bindWA)
   //  SeqValList contains any sequences
   if (bindWA->getStoiList().entries() == 0 &&
       bindWA->getUdrStoiList().entries() == 0 &&
-      bindWA->getCoProcAggrList().entries() == 0 &&
       bindWA->getSeqValList().entries() == 0)
     return TRUE;
 
@@ -6545,71 +6460,6 @@ NABoolean RelRoot::checkPrivileges(BindWA* bindWA)
       }
     }  // for loop over UDRs
   }  // end if any UDRs.
-
-  // ==> Check privs on any CoprocAggrs used in the query.
-  for (Int32 i=0; i<(Int32)bindWA->getCoProcAggrList().entries(); i++)
-  {
-    RemoveNATableEntryFromCache = FALSE ;  // Initialize each time through loop
-    ExeUtilHbaseCoProcAggr *coProcAggr = (bindWA->getCoProcAggrList())[i];
-    NATable* tab = bindWA->getSchemaDB()->getNATableDB()->
-                                   get(coProcAggr->getCorrName(), bindWA, NULL);
-
-    Int32 numSecKeys = 0;
-
-    // Privilege info for the user/table combination is stored in the NATable
-    // object.
-    PrivMgrUserPrivs* pPrivInfo = tab->getPrivInfo();
-    PrivMgrUserPrivs privInfo;
-
-    // System metadata tables do not, by default, have privileges stored in the
-    // NATable structure.  Go ahead and retrieve them now. 
-    if (!pPrivInfo)
-    {
-      CmpSeabaseDDL cmpSBD(STMTHEAP);
-      if (cmpSBD.switchCompiler(CmpContextInfo::CMPCONTEXT_TYPE_META))
-      {
-        if (CmpCommon::diags()->getNumber(DgSqlCode::ERROR_) == 0)
-          *CmpCommon::diags() << DgSqlCode( -4400 );
-        return FALSE;
-      }
-      retcode = privInterface.getPrivileges( tab->objectUid().get_value(), 
-                                             tab->getObjectType(), thisUserID, 
-                                             privInfo);
-      cmpSBD.switchBackCompiler();
-
-      if (retcode != STATUS_GOOD)
-      {
-        bindWA->setFailedForPrivileges( TRUE );
-        RemoveNATableEntryFromCache = TRUE;
-        *CmpCommon::diags() << DgSqlCode( -1034 );
-        return FALSE;
-      }
-      pPrivInfo = &privInfo;
-    }
-
-    // Verify that the user has select priv
-    // Select priv is needed for EXPLAIN requests, so no special check is done
-    NABoolean insertQIKeys = FALSE; 
-    if (QI_enabled && (tab->getSecKeySet().entries()) > 0)
-      insertQIKeys = TRUE;
-    if (pPrivInfo->hasPriv(SELECT_PRIV))
-    {
-      // do this only if QI is enabled and object has security keys defined
-      if ( insertQIKeys )
-        findKeyAndInsertInOutputList(tab->getSecKeySet(), userHashValue, SELECT_PRIV );
-    }
-
-    // plan requires privilege but user has none, report an error
-    else
-    {
-       bindWA->setFailedForPrivileges( TRUE );
-       tab->setRemoveFromCacheBNC(TRUE); // To be removed by CmpMain before Compilation retry
-       *CmpCommon::diags()
-         << DgSqlCode( -4481 )
-         << DgString0( "SELECT" )
-         << DgString1( tab->getTableName().getQualifiedNameAsAnsiString() );
-    }
-  }  // for loop over coprocs
 
   // ==> Check privs on any sequence generators used in the query.
   for (Int32 i=0; i<(Int32)bindWA->getSeqValList().entries(); i++)
@@ -6929,7 +6779,8 @@ RelExpr *GroupByAgg::bindNode(BindWA *bindWA)
   }
   aggregateExpr_ += currScope->getUnresolvedAggregates();
   currScope->getUnresolvedAggregates().clear();
-  getRETDesc()->setGroupedFlag();
+  if (getRETDesc())
+    getRETDesc()->setGroupedFlag();
 
   return boundExpr;
 } // GroupByAgg::bindNode()
@@ -9097,15 +8948,16 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
 
   if (getTableDesc()->getNATable()->isHiveTable())
   {
-    if (partKeyCols.entries() > 0)
-      {
-        // Insert into partitioned tables would require computing the target
-        // partition directory name, something we don't support yet.
-        *CmpCommon::diags() << DgSqlCode(-4222)
-                            << DgString0("Insert into partitioned Hive tables");
-        bindWA->setErrStatus();
-        return this;
-      }
+    for (int c=0; c<fileset->getAllColumns().entries(); c++)
+      if (fileset->getAllColumns()[c]->isHivePartColumn())
+        {
+          // Insert into partitioned tables would require computing the target
+          // partition directory name, something we don't support yet.
+          *CmpCommon::diags() << DgSqlCode(-4222)
+                              << DgString0("Insert into partitioned Hive tables");
+          bindWA->setErrStatus();
+          return this;
+        }
 
     RelExpr * mychild = child(0);
 

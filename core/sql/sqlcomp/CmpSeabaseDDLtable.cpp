@@ -69,12 +69,14 @@ extern short CmpDescribeSeabaseTable (
                              NABoolean withoutSalt = FALSE,
                              NABoolean withoutDivisioning = FALSE,
                              NABoolean noTrailingSemi = FALSE,
+                             NABoolean noPrivs = FALSE,
 
                              // used to add or remove column definition from col list.
                              // valid for 'createLike' mode. Used for 'alter add/drop col'.
                              char * colName = NULL,
                              NABoolean isAdd = FALSE,
-                             const NAColumn * nacol = NULL);
+                             const NAColumn * nacol = NULL,
+                             Space *inSpace = NULL);
                              
 static bool checkSpecifiedPrivs(
    ElemDDLPrivActArray & privActsArray,  
@@ -459,7 +461,7 @@ short CmpSeabaseDDL::createSeabaseTableExternal(
   tableInfo->createTime = 0;
   tableInfo->redefTime = 0;
   tableInfo->objUID = 0;
-  tableInfo->isAudited = 0;
+  tableInfo->isAudited = 1;
   tableInfo->validDef = 1;
   tableInfo->hbaseCreateOptions = NULL;
   tableInfo->numSaltPartns = 0;
@@ -510,29 +512,88 @@ short CmpSeabaseDDL::createSeabaseTableExternal(
       return -1;
     }
 
+  ElemDDLColDefArray &colArray = createTableNode->getColDefArray();
+
   // convert column array from NATable into a ComTdbVirtTableColumnInfo struct
-  const NAColumnArray &naColArray = naTable->getNAColumnArray();
+  NAColumnArray naColArray;
+  const NAColumnArray &origColArray = naTable->getNAColumnArray();
+  NABoolean includeVirtHiveCols =
+    (CmpCommon::getDefault(HIVE_EXT_TABLE_INCLUDE_VIRT_COLS) == DF_ON);
+
+  // eliminate Hive virtual columns, unless requested via CQD
+  for (CollIndex c=0; c<origColArray.entries(); c++)
+    if (!origColArray[c]->isHiveVirtualColumn() || includeVirtHiveCols)
+      naColArray.insert(origColArray[c]);
+
   numCols = naColArray.entries();
+
+  // make sure all columns specified in colArray are part of naColArray
+  if (colArray.entries() > 0)
+    {
+      for (CollIndex colIndex = 0; colIndex < colArray.entries(); colIndex++)
+        {
+          const ElemDDLColDef *edcd = colArray[colIndex];          
+          
+          if (naColArray.getColumnPosition((NAString&)edcd->getColumnName()) < 0)
+            {
+              // not found. return error.
+              *CmpCommon::diags() << DgSqlCode(-1009) 
+                                  << DgColumnName(ToAnsiIdentifier(edcd->getColumnName()));
+	 
+              return -1;
+             }
+        }
+    }
+
   colInfoArray = new(STMTHEAP) ComTdbVirtTableColumnInfo[numCols];
+
   for (CollIndex index = 0; index < numCols; index++)
     {
       const NAColumn *naCol = naColArray[index];
+      const NAType * type = naCol->getType();
+      
+      // if colArray has been specified, then look for this column in
+      // that array and use the type specified there.
+      Int32 colIndex = -1;
+      if ((colArray.entries() > 0) &&
+          ((colIndex = colArray.getColumnIndex(naCol->getColName())) >= 0))
+        {
+          ElemDDLColDef *edcd = colArray[colIndex];
+          const NAType * edcdType = edcd->getColumnDataType();
 
+          // if external table column attrs are explicitly specified, then
+          // they must match source table column attrs.
+          if (NOT type->isCompatible(*edcdType))
+            {
+              *CmpCommon::diags()
+                << DgSqlCode(-1186)
+                << DgColumnName(ToAnsiIdentifier(naCol->getColName()))
+                << DgString0(edcdType->getTypeSQLname(TRUE/*terse*/))
+                << DgString1(type->getTypeSQLname(TRUE/*terse*/));
+ 
+              return -1;
+            }
+
+          type = edcdType;
+        }
+      
       // call:  CmpSeabaseDDL::getTypeInfo to get column details
-      retcode = getTypeInfo(naCol->getType(), alignedFormat, serializedOption,
-                   datatype, length, precision, scale, dtStart, dtEnd, upshifted, nullable,
-                   charset, collationSequence, hbaseColFlags);
-
+      retcode = getTypeInfo(type, alignedFormat, serializedOption,
+                            datatype, length, precision, scale, dtStart, dtEnd, 
+                            upshifted, nullable,
+                            charset, collationSequence, hbaseColFlags);
+      
       if (retcode)
         return -1;
-
+      
       colInfoArray[index].colName = naCol->getColName().data(); 
       colInfoArray[index].colNumber = index;
       colInfoArray[index].columnClass = COM_USER_COLUMN;
       colInfoArray[index].datatype = datatype;
       colInfoArray[index].length = length;
       colInfoArray[index].nullable = nullable;
-      colInfoArray[index].charset = (SQLCHARSET_CODE)CharInfo::getCharSetEnum(charset);
+      colInfoArray[index].charset = 
+        (SQLCHARSET_CODE)CharInfo::getCharSetEnum(charset);
       colInfoArray[index].precision = precision;
       colInfoArray[index].scale = scale;
       colInfoArray[index].dtStart = dtStart;
@@ -548,6 +609,30 @@ short CmpSeabaseDDL::createSeabaseTableExternal(
       colInfoArray[index].isOptional = FALSE;
       colInfoArray[index].colFlags = 0;
     }
+  
+  ElemDDLColRefArray &keyArray =
+    (createTableNode->getIsConstraintPKSpecified() ?
+     createTableNode->getPrimaryKeyColRefArray() :
+     (createTableNode->getStoreOption() == COM_KEY_COLUMN_LIST_STORE_OPTION ?
+      createTableNode->getKeyColumnArray() :
+      createTableNode->getPrimaryKeyColRefArray()));
+
+  ComTdbVirtTableKeyInfo * keyInfoArray = NULL;
+  Lng32 numKeys = 0;
+  numKeys = keyArray.entries();
+  if (numKeys > 0)
+    {
+      keyInfoArray = new(STMTHEAP) ComTdbVirtTableKeyInfo[numKeys];
+      if (buildKeyInfoArray(NULL, (NAColumnArray*)&naColArray, &keyArray, 
+                            colInfoArray, keyInfoArray, TRUE))
+        {
+          *CmpCommon::diags()
+            << DgSqlCode(-CAT_UNABLE_TO_CREATE_OBJECT)
+            << DgTableName(extTgtTableName);
+          
+          return -1;
+        }
+    }
 
   Int64 objUID = -1;
   cliRC = 0;
@@ -558,8 +643,8 @@ short CmpSeabaseDDL::createSeabaseTableExternal(
                            tableInfo,
                            numCols,
                            colInfoArray,
-                           0 /*numKeys*/,
-                           NULL /*keyInfoArray*/,
+                           numKeys,
+                           keyInfoArray,
                            0, NULL,
                            objUID /*returns generated UID*/))
     {
@@ -1776,7 +1861,9 @@ short CmpSeabaseDDL::createSeabaseTable2(
           return -1;
         }
 
-      if (buildKeyInfoArray(&colArray, &keyArray, colInfoArray, keyInfoArray, allowNullableUniqueConstr))
+      if (buildKeyInfoArray(&colArray, NULL,
+                            &keyArray, colInfoArray, keyInfoArray, 
+                            allowNullableUniqueConstr))
         {
           processReturn();
 
@@ -4421,7 +4508,7 @@ short CmpSeabaseDDL::alignedFormatTableAddDropColumn
                                     STMTHEAP,
                                     NULL,
                                     FALSE, FALSE, FALSE,
-                                    TRUE,
+                                    TRUE, FALSE,
                                     colName, isAdd, nacol);
   if (retcode)
     return -1;
@@ -5664,12 +5751,24 @@ void CmpSeabaseDDL::alterSeabaseTableAlterColumnDatatype(
   Lng32 cliRC = 0;
   Lng32 retcode = 0;
 
-  const NAString &tabName = alterColNode->getTableName();
+  NAString tabName = (NAString&)alterColNode->getTableName();
 
   ComObjectName tableName(tabName, COM_TABLE_NAME);
   ComAnsiNamePart currCatAnsiName(currCatName);
   ComAnsiNamePart currSchAnsiName(currSchName);
   tableName.applyDefaults(currCatAnsiName, currSchAnsiName);
+
+  if (alterColNode->isExternal())
+    {
+      // Convert the native name to its Trafodion form
+      tabName = ComConvertNativeNameToTrafName
+        (tableName.getCatalogNamePartAsAnsiString(),
+         tableName.getSchemaNamePartAsAnsiString(),
+         tableName.getObjectNamePartAsAnsiString());
+                               
+      ComObjectName adjustedName(tabName, COM_TABLE_NAME);
+      tableName = adjustedName;
+    }
 
   const NAString catalogNamePart = tableName.getCatalogNamePartAsAnsiString();
   const NAString schemaNamePart = tableName.getSchemaNamePartAsAnsiString(TRUE);

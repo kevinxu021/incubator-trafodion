@@ -113,12 +113,13 @@ struct ex_eye_catcher
 #define eye_UDR                                                     "UDR "
 #define eye_CANCEL                                                  "CNCL"
 #define eye_FAST_EXTRACT                                            "EXTR"
-#define eye_HDFS_SCAN                                            "HDFS"
-#define eye_HIVE_MD                                                "HVMD"
-#define eye_HBASE_ACCESS                                      "HBSA"
-#define eye_HBASE_COPROC_AGGR                       "HBCA"
+#define eye_HDFS_SCAN                                               "HDFS"
+#define eye_ORC_SCAN                                                "ORCS"
+#define eye_HIVE_MD                                                 "HVMD"
+#define eye_HBASE_ACCESS                                            "HBSA"
+#define eye_HBASE_COPROC_AGGR                                       "HBCA"
 #define eye_AQR_WNR_INS                                             "UAWI"
-#define eye_ORC_AGGR                                             "ORCA"
+#define eye_ORC_AGGR                                                "ORAG"
 
 // -----------------------------------------------------------------------
 // Template instantiation to produce a 64-bit pointer emulator class
@@ -315,9 +316,10 @@ public:
     ex_METADATA_UPGRADE = 147,
     ex_HBASE_LOAD = 148,
     ex_HBASE_UNLOAD = 149,
-    ex_ORC_AGGR    = 150,
-    ex_DDL_WITH_STATUS = 151,
-    ex_GET_QID = 152,
+    ex_ORC_SCAN    = 150,
+    ex_ORC_AGGR    = 151,
+    ex_DDL_WITH_STATUS = 152,
+    ex_GET_QID = 153,
     ex_LAST = 9999              // not used
   };
 

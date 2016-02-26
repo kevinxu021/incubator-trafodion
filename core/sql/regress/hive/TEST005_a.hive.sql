@@ -163,3 +163,79 @@ create external table tbl_gbk
 )
 row format delimited fields terminated by '\t'
 location '/user/hive/exttables/tbl_gbk';
+
+drop table hivenonp;
+create table hivenonp
+(
+    id    int,
+    col2  int,
+    p1    int,
+    p2    string,
+    p1t   timestamp,
+    p1d   date
+)
+row format delimited fields terminated by '|';
+
+drop table hivepi;
+create table hivepi
+(
+    id    int,
+    col2  int
+)
+partitioned by (p1 int)
+row format delimited fields terminated by '|';
+
+drop table hiveps;
+create table hiveps
+(
+    id    int,
+    col2  int
+)
+partitioned by (p2 string)
+row format delimited fields terminated by '|';
+
+drop table hivepis;
+create table hivepis
+(
+    id    int,
+    col2  int
+)
+partitioned by (p1 int, p2 string)
+row format delimited fields terminated by '|';
+
+drop table hivepts;
+create table hivepts
+(
+    id    int,
+    col2  int
+)
+partitioned by (p1t timestamp, p2 string)
+row format delimited fields terminated by '|';
+
+-- create partitioned Hive tables with ORC files
+drop table hivepio;
+create table hivepio
+(
+    id    int,
+    col2  int
+)
+partitioned by (p1 int)
+stored as orc;
+
+drop table hivepdo;
+create table hivepdo
+(
+    id    int,
+    col2  int
+)
+partitioned by (p1d date)
+stored as orc;
+
+drop table hivepiso;
+create table hivepiso
+(
+    id    int,
+    col2  int
+)
+partitioned by (p1 int, p2 string)
+stored as orc;

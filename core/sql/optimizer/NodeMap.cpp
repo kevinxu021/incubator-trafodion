@@ -363,7 +363,7 @@ NodeMapEntry::operator=(const NodeMapEntry& other)
 
 //=======================================================
 
-HiveNodeMapEntry::HiveNodeMapEntry(const HiveNodeMapEntry& other, CollHeap* heap ) : NodeMapEntry(other, heap), scanInfo_(other.scanInfo_, heap)
+HiveNodeMapEntry::HiveNodeMapEntry(const HiveNodeMapEntry& other, CollHeap* heap ) : NodeMapEntry(other, heap), scanInfo_(other.scanInfo_, heap), filled_(other.filled_)
 {
 }
 
@@ -372,6 +372,7 @@ HiveNodeMapEntry::operator=(const HiveNodeMapEntry& other)
 {
    NodeMapEntry::operator=(other);
    scanInfo_ = other.scanInfo_;
+   filled_ = other.filled_ ;
 
    return *this;
 }
@@ -2099,6 +2100,22 @@ NABoolean NodeMap::useLocalityForHiveScanInfo()
 
   return result;
 }
+ 
+void NodeMap::printToLog(const char* indent, const char* title) const
+{
+  NAString logFile = ActiveSchemaDB()->getDefaults().getValue(HIVE_HDFS_STATS_LOG_FILE);
+  FILE *ofd = NULL;
+
+  if (logFile.length())
+    {
+      ofd = fopen(logFile, "a");
+      if (ofd)
+        {
+          print(ofd, indent, title);
+          fclose(ofd);
+        }
+    }
+}
 
 void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
 {
@@ -2106,19 +2123,20 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
   NABoolean useLocality = useLocalityForHiveScanInfo();
   // distribute <n> files associated the hive scan among numESPs.
   HiveFileIterator i;
-  HHDFSStatsBase selectedStats;
 
-  CMPASSERT(type_ = HIVE);
-  hiveSearchKey->accumulateSelectedStats(selectedStats);
+  CMPASSERT(type_ == HIVE);
 
   // total byts per ESP
-  Int64 totalBytesPerESP = selectedStats.getTotalSize() / numESPs;
+  Int64 totalSize = hiveSearchKey->getTotalSize();
+  Int64 totalBytesPerESP = totalSize / numESPs;
 
   // To prevent the last ESP from processing only a few bytes in
   // the range [1 to numESPs-1], add extra byte of processing 
   // for all but last ESP, if necessary.
-  if ( selectedStats.getTotalSize() % numESPs != 0 )
+  if ( totalSize % numESPs != 0 )
     totalBytesPerESP++;
+
+  Int32 numOfBytesToRead = hiveSearchKey->getTotalBytesToReadPerRow();
 
   // Divide the data among numESPs. Alter the node map entry
   // in question with the hive file info.
@@ -2149,83 +2167,21 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
           p = (HHDFSListPartitionStats*)i.getPartStats();
           b = (HHDFSBucketStats*)i.getBucketStats();
           f = (HHDFSFileStats*)i.getFileStats();
-          Int64 offset = 0;
-          Int64 blockSize = f->getBlockSize();
 
-          for (Int64 b=0; b<f->getNumBlocks(); b++)
-            {
-              // find the host for the first replica of this block,
-              // the host id is also the SQ node id
-              HostId h = f->getHostId(0,b);
-              Int32 nodeNum = h;
-              Int32 partNum = nodeNum;
-              Int64 bytesToRead = MINOF(f->getTotalSize() - offset, blockSize);
-              NABoolean isLocal = TRUE;
-
-              if (partNum >= numESPs || partNum > numSQNodes)
-                {
-                  // we don't have ESPs covering this node,
-                  // assign a default partition
-                  // NOTE: If we have fewer ESPs than SQ nodes
-                  // we should really be doing AS, using affinity
-                  // TBD later.
-                  partNum = nextDefaultPartNum++;
-                  if (nextDefaultPartNum >= numESPs)
-                    nextDefaultPartNum = 0;
-                  isLocal = FALSE;
-                }
-
-              // if we have multiple ESPs per SQ node, pick the one with the
-              // smallest load so far
-              for (Int32 c=partNum; c < numESPs; c += numSQNodes)
-                if (espDistribution[c] < espDistribution[partNum])
-                  partNum = c;
-
-              HiveNodeMapEntry *e = (HiveNodeMapEntry*) getNodeMapEntry(partNum);
-              e->addScanInfo(HiveScanInfo(f, offset, bytesToRead, isLocal));
-
-              // do bookkeeping
-              espDistribution[partNum] += bytesToRead;
-              totalBytesAssigned += bytesToRead;
-
-              // increment offset for next block
-              offset += bytesToRead;
-            }
+          totalBytesAssigned += 
+          f->assignToESPs(espDistribution, this, numSQNodes, numESPs, numOfBytesToRead, p);
         }
 
       if (numESPs > 1)
         {
-#ifndef NDEBUG
-          NABoolean printNodeMap = FALSE;
-          NAString logFile = 
-            ActiveSchemaDB()->getDefaults().getValue(HIVE_HDFS_STATS_LOG_FILE);
-          FILE *ofd = NULL;
-
-          if (logFile.length())
-            {
-              ofd = fopen(logFile, "a");
-              if (ofd)
-                {
-                  printNodeMap = TRUE;
-                  print(ofd);
-                }
-            }
-          // for release code, would need to sandbox the ability to write
-          // files, e.g. to a fixed log directory
-#endif
+          printToLog();
 
           // balance things more by using 2nd and further replicas
           balanceScanInfos(hiveSearchKey,
                            totalBytesAssigned,
                            espDistribution);
 
-#ifndef NDEBUG
-          if (printNodeMap)
-            {
-              print(ofd, DEFAULT_INDENT, "Balanced NodeMap");
-              fclose(ofd);
-            }
-#endif
+          printToLog(DEFAULT_INDENT, "Balanced NodeMap");
         }
     } // use locality
   else
@@ -2242,70 +2198,17 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
       // get the first entry.
       HiveNodeMapEntry* entry = (HiveNodeMapEntry*)nmi.getEntry();
 
-      Int64 filled = 0;        // # of bytes filled already in the current entry
-      Int64 available = 0;     // # of bytes available from the current file
-      Int64 offset = 0;        // offset in the current file
-
-      NABoolean keepProcessCurrentFile = FALSE;
-         
-      while ( keepProcessCurrentFile || hiveSearchKey->getNextFile(i))
+      while ( hiveSearchKey->getNextFile(i))
         {
+          p = (HHDFSListPartitionStats*)i.getPartStats();
+          b = (HHDFSBucketStats*)i.getBucketStats();
+          f = (HHDFSFileStats*)i.getFileStats();
 
-          if ( !keepProcessCurrentFile ) {
-            p = (HHDFSListPartitionStats*)i.getPartStats();
-            b = (HHDFSBucketStats*)i.getBucketStats();
-            f = (HHDFSFileStats*)i.getFileStats();
-            available = f->getTotalSize();
-            offset = 0;
-          }
-
-          if ( filled + available <= totalBytesPerESP ) 
-            {
-              // The current file's contribution is not enough to 
-              // make a new split. Add it to the current split.
-              // 
-              // get the file name index into the fileStatsList array
-              // in bucket stats
-
-              entry->addScanInfo(HiveScanInfo(f, offset, available));
-
-
-              if ( filled + available == totalBytesPerESP ) 
-                {
-                  // The contribution is just right for the split. Need
-                  // to take all the and add it to the current node map entry, 
-                  // and start a new split.
-                  entry = (HiveNodeMapEntry*)(nmi.advanceAndGetEntry());
-
-                  filled = 0;
-                }
-              else
-                filled += available;
-
-              keepProcessCurrentFile = FALSE;
-
-            }
-          else
-            {
- 
-              // The contribution is more than what the current split can take.
-              // Add a portion of the contribution to the current split.
-              // Start a new split. 
-
-              Int64 portion = totalBytesPerESP - filled;
-
-              entry -> addScanInfo(HiveScanInfo(f, offset, portion));
-         
-              offset += portion;
-
-              entry = (HiveNodeMapEntry*)(nmi.advanceAndGetEntry());
-
-              filled = 0;
-              available -= portion;
-           
-              keepProcessCurrentFile = TRUE;
-            }
+          f->assignToESPs(&nmi, entry, totalBytesPerESP, numOfBytesToRead, p);
         } // while
+
+        printToLog(DEFAULT_INDENT, "NodeMap for non-locality assignment");
+
     } // end not using locality
 }
 
@@ -2551,8 +2454,8 @@ NodeMap::print(FILE* ofd, const char* indent, const char* title) const
 	fprintf(ofd,"%s %s is empty!!!  This is a bug!!!\n","    ",S);
 
       if ( type_ == NodeMap::HIVE) {
-        sprintf(S,"HiveNodeMapEntry[%3d(node%3d)] :",nodeIdx,entry->getNodeNumber());
-	 ((HiveNodeMapEntry*)entry)->print(ofd, "    ", S);
+        fprintf(ofd,"HiveNodeMapEntry[%d] (assigned to node %d) :\n",nodeIdx,entry->getNodeNumber());
+	 ((HiveNodeMapEntry*)entry)->print(ofd, "    ", "scanInfo: ");
       } else {
          sprintf(S,"NodeMapEntry[%3d] :",nodeIdx);
 	 entry->print(ofd, "    ", S);
@@ -2769,10 +2672,11 @@ HiveNodeMapEntry::print(FILE* ofd, const char* indent, const char* title) const
   BUMP_INDENT(indent);
 #pragma warn(1506)  // warning elimination
 
+  fprintf(ofd,"%s %s\n %s[total filled=%12ld]\n", NEW_INDENT, title, NEW_INDENT, filled_);
+
   for (CollIndex i=0; i<scanInfo_.entries(); i++) {
-     fprintf(ofd,"%s %s [offs=%12ld, span=%12ld, %s file=%s]\n",
+     fprintf(ofd,"%s [offs=%12ld, span=%12ld, %s file=%s]\n",
              NEW_INDENT,
-             title,
              scanInfo_[i].offset_,
              scanInfo_[i].span_,
              (scanInfo_[i].isLocal_ ? "loc" : "   "),
@@ -2781,3 +2685,17 @@ HiveNodeMapEntry::print(FILE* ofd, const char* indent, const char* title) const
 
 } // HiveNodeMapEntry::print()
 
+void HiveNodeMapEntry::addOrUpdateScanInfo(HiveScanInfo info, Int64 filled)
+{
+   Int32 ct = scanInfo_.entries();
+   if ( ct == 0 )
+     addScanInfo(info, filled);
+   else {
+      HiveScanInfo& lastInfo = scanInfo_[ct-1];
+      if ( lastInfo.offset_ + lastInfo.span_ == info.offset_ ) {
+         lastInfo.span_ += info.span_;
+         filled_ += filled;
+      } else
+        addScanInfo(info, filled);
+   }
+}
