@@ -283,7 +283,7 @@ PKG_BIN_OBJS ?= export/bin$(SQ_MBTYPE) export/include export/lib export/lib$(SQ_
 
 PKG_BIN_OBJS += trafci
 PKG_BIN_OBJS += export/limited-support-tools
-PKG_BIN_OBJS += LICENSE NOTICE
+PKG_BIN_OBJS += LICENSE NOTICE LICENSE_Esgyn
 
 PKG_BIN_DIRS ?= sql export
 PKG_BIN_DIRS += trafci
@@ -337,6 +337,9 @@ actually_package : pkglist-files pkglist-symlinks tmp/sqenv.sh
 LICENSE: ../../licenses/LICENSE-server
 	cp -f $? $@
 
+LICENSE_Esgyn: ../../licenses/Esgyn
+	cp -f $? $@
+
 ../../licenses/LICENSE-server:
 	cd $(@D) && $(MAKE) $(@F)
 
@@ -355,7 +358,7 @@ pkglist-files: pkglist-symlinks
 	find -L $(PKG_BIN_OBJS) -type d -o -type f | grep -v -xf pkglist-symlinks > $@
 
 # simple symlinks that point to filename (does not start with . or /)
-pkglist-symlinks: LICENSE NOTICE
+pkglist-symlinks: LICENSE NOTICE LICENSE_Esgyn
 	find $(PKG_BIN_OBJS) -lname '[^./]*' > $@
 
 #	Targets to tar/gzip the self installer

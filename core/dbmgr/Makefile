@@ -28,11 +28,14 @@ CP :=/bin/cp -fp
 
 all: dbmgr 
 
-dbmgr:package-tools
+dbmgr:package-tools LICENSE_Esgyn
 	bower install --config.cwd=src/main/webapp --config.interactive=false
 	$(MAVEN) install -DskipTests -P prod
 	-mkdir -p ../../${DISTRIBUTION_DIR}
 	mv target/$(DBMGR_TARNAME) ../../${DISTRIBUTION_DIR}
+
+LICENSE_Esgyn: ../../licenses/Esgyn
+	cp -f $? $@
 
 install-tools:
 	@echo "Installing Manageability tools required by DBMgr" 

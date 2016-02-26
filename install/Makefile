@@ -26,10 +26,13 @@ RELEASE_VER ?= 1.0.0_v002
 
 all: pkg-installer 
 
-pkg-installer: installer/LICENSE installer/NOTICE
+pkg-installer: installer/LICENSE installer/NOTICE installer/LICENSE_Esgyn
 	tar czf installer-$(RELEASE_VER).tar.gz installer
 
 installer/LICENSE: ../licenses/LICENSE-install
+	cp -f $? $@
+
+installer/LICENSE_Esgyn: ../licenses/Esgyn
 	cp -f $? $@
 
 ../licenses/LICENSE-install:

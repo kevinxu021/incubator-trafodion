@@ -31,7 +31,7 @@ GENVERS			    =./genvers
 
 all: build_all
 
-build_all: build_chk LICENSE NOTICE
+build_all: build_chk LICENSE NOTICE LICENSE_Esgyn
 	echo "$(MAVEN) site package -DskipTests"
 	echo "### For full Maven output, see file build_rest.log"
 	set -o pipefail && $(MAVEN) site package -DskipTests | tee build_rest.log | grep --line-buffered -E -e '^\[[^WId]' -e '^\[INFO\] B[Uu][Ii][Ll][Dd]' -e 'to compile'
@@ -51,6 +51,9 @@ clean:
 	$(RM) ../../${DISTRIBUTION_DIR}/$(BLD_TRAFODION_REST_TARNAME)
 
 LICENSE: ../../licenses/LICENSE-rest
+	cp -f $? $@
+
+LICENSE_Esgyn: ../../licenses/Esgyn
 	cp -f $? $@
 
 ../../licenses/LICENSE-rest:
