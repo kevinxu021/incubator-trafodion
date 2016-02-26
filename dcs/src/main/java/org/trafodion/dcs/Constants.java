@@ -92,7 +92,7 @@ public final class Constants {
     public static final String DCS_SERVER_USER_PROGRAM_COMMAND = "dcs.server.user.program.command";
 
     /** Default value for DCS server user program command */
-    public static final String DEFAULT_DCS_SERVER_USER_PROGRAM_COMMAND = "cd ${dcs.user.program.home};. sqenv.sh;mxosrvr -ZKHOST -RZ -ZKPNODE -CNGTO -ZKSTO -EADSCO -TCPADD -MAXHEAPPCT -STATISTICSINTERVAL -STATISTICSLIMIT -STATISTICSTYPE -STATISTICSENABLE -SQLPLAN -PORTMAPTOSECS -PORTBINDTOSECS";
+    public static final String DEFAULT_DCS_SERVER_USER_PROGRAM_COMMAND = "cd ${dcs.user.program.home};. sqenv.sh;mxosrvr -ZKHOST -RZ -ZKPNODE -CNGTO -ZKSTO -EADSCO -TCPADD -MAXHEAPPCT -STATISTICSINTERVAL -STATISTICSLIMIT -STATISTICSTYPE -STATISTICSENABLE -SQLPLAN -PORTMAPTOSECS -PORTBINDTOSECS -PUBLISHSTATSTOTSDB -OPENTSDURL";
 
     /** Configuration key for DCS server user program connecting timeout */
     public static final String DCS_SERVER_USER_PROGRAM_CONNECTING_TIMEOUT = "dcs.server.user.program.connecting.timeout";
@@ -176,6 +176,49 @@ public final class Constants {
      * Default value for DCS server user program to enable sql plans for queries
      */
     public static final String DEFAULT_DCS_SERVER_USER_PROGRAM_STATISTICS_SQLPLAN_ENABLE = "true";
+
+    /** Configuration key for DCS server user program to publish to openTSDB
+     */
+    public static final String DCS_SERVER_USER_PROGRAM_STATISTICS_OPENTSDB_ENABLE = "dcs.server.user.program.statistics.opentsdb.enabled";
+
+    /**
+     * T2 Driver Property key for DCS server user program to publish to 
+     * openTSDB for queries
+     */
+    public static final String PROPERTY_PUBLISH_STATS_TO_OPENTSDB = "publishStatsToTSDB";
+
+    /** Default value for DCS server user program publish opentsdb enable */
+public static final String DEFAULT_DCS_SERVER_USER_PROGRAM_STATISTICS_OPENTSDB_ENABLE = "false";
+
+    /** Configuration key for DCS server user program to specify host
+     *  of openTSDB
+     */
+    public static final String DCS_SERVER_USER_PROGRAM_OPENTSDB_HOST = "dcs.server.user.program.opentsdb.host";
+
+    /**
+     * T2 Driver Property key for DCS server user program to specify TSDB host 
+     * for queries
+     */
+    public static final String PROPERTY_OPENTSDB_HOST = "localhost";
+
+    /** Default value for DCS server user program specify host  
+     *  of opentsdb */
+    public static final String DEFAULT_DCS_SERVER_USER_PROGRAM_OPENTSDB_HOST = "localhost";
+
+    /** Configuration key for DCS server user program to specify port
+     *  of openTSDB
+     */
+    public static final String DCS_SERVER_USER_PROGRAM_OPENTSDB_PORT = "dcs.server.user.program.opentsdb.port";
+
+    /**
+     * T2 Driver Property key for DCS server user program to specify 
+     * opentsdb port 
+     */
+    public static final int PROPERTY_OPENTSDB_PORT = 4205;
+
+    /** Default value for DCS server user program specify port 
+     *  of opentsdb */
+    public static final int DEFAULT_DCS_SERVER_USER_PROGRAM_OPENTSDB_PORT = 4205;
 
     /** Configuration key for DCS server user program port map timeout seconds */
     public static final String DCS_SERVER_USER_PROGRAM_PORT_MAP_TIMEOUT_SECONDS = "dcs.server.user.program.port.map.timeout.seconds";

@@ -178,6 +178,9 @@ else
     <property>
      <name>dcs.zookeeper.property.clientPort</name> <value>$MY_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT_NUM</value>
     </property>
+    <property>
+     <name>dcs.server.user.program.opentsdb.port</name> <value>$MY_OPEN_TSDB_PORT</value>
+    </property>
   </configuration>
 EOF
 
@@ -520,8 +523,19 @@ else
 
       chmod +x $MGBLTY_HOME/bosun/bin/*
 
+      source $HOME/.trafodion
       export COMPRESSION=GZ
-      $MGBLTY_HOME/opentsdb/tools/create_table.sh 
+      all_tables=$MY_SQROOT/sql/scripts/all_tables.txt
+      #Get the list of hbase tables and check if mgblty tables already exist
+      echo "list" | $HBASE_HOME/bin/hbase shell > ${all_tables}
+      mgblty_tbls=`cat ${all_tables} |grep tsdb* |cut -f1 -d'['`
+      if [[ -z $mgblty_tbls ]]; then
+          $MGBLTY_HOME/opentsdb/tools/create_table.sh 
+      else
+          echo "Manageability tables ($mgblty_tbls) already exist"
+          mgblty_tbl_cnt=`echo $mgblty_tbls |wc -w`
+      fi
+      rm -rf ${all_tables}
       $MGBLTY_HOME/opentsdb/tools/register_metrics.sh
   else
       echo "Manageability Tar file does not exist" | tee -a ${MY_LOG_FILE}

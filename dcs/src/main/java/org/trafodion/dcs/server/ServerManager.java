@@ -85,6 +85,9 @@ public final class ServerManager implements Callable {
     private static String sqlplanEnable;
     private static int userProgPortMapToSecs;
     private static int userProgPortBindToSecs;
+    private static String publishStatsToOpenTSDB;
+    private static String tsdHost;
+    private static int tsdPort;
     private int maxRestartAttempts;
     private int retryIntervalMillis;
     private RetryCounterFactory retryCounterFactory;
@@ -194,7 +197,12 @@ public final class ServerManager implements Callable {
                     .replace("-PORTMAPTOSECS",
                             "-PORTMAPTOSECS " + userProgPortMapToSecs + " ")
                     .replace("-PORTBINDTOSECS",
-                            "-PORTBINDTOSECS " + userProgPortBindToSecs)
+                            "-PORTBINDTOSECS " + userProgPortBindToSecs + " ")
+                    .replace("-PUBLISHSTATSTOTSDB",
+                            "-PUBLISHSTATSTOTSDB " + publishStatsToOpenTSDB 
+                                   + " ")
+                    .replace("-OPENTSDURL",
+                            "-OPENTSDURL " + tsdHost+":" + tsdPort + " ")
                     .replace("&lt;", "<").replace("&amp;", "&")
                     .replace("&gt;", ">");
             scriptContext.setCommand(command);
@@ -340,6 +348,15 @@ public final class ServerManager implements Callable {
         this.sqlplanEnable = this.conf
                 .get(Constants.DCS_SERVER_USER_PROGRAM_STATISTICS_SQLPLAN_ENABLE,
                         Constants.DEFAULT_DCS_SERVER_USER_PROGRAM_STATISTICS_SQLPLAN_ENABLE);
+        this.publishStatsToOpenTSDB = this.conf.get(
+                Constants.DCS_SERVER_USER_PROGRAM_STATISTICS_OPENTSDB_ENABLE,
+                Constants.DEFAULT_DCS_SERVER_USER_PROGRAM_STATISTICS_OPENTSDB_ENABLE);
+        this.tsdHost = this.conf.get(
+                Constants.DCS_SERVER_USER_PROGRAM_OPENTSDB_HOST,
+                Constants.DEFAULT_DCS_SERVER_USER_PROGRAM_OPENTSDB_HOST);
+        this.tsdPort = this.conf.getInt(
+                Constants.DCS_SERVER_USER_PROGRAM_OPENTSDB_PORT,
+                Constants.DEFAULT_DCS_SERVER_USER_PROGRAM_OPENTSDB_PORT);
         this.userProgPortMapToSecs = this.conf
                 .getInt(Constants.DCS_SERVER_USER_PROGRAM_PORT_MAP_TIMEOUT_SECONDS,
                         Constants.DEFAULT_DCS_SERVER_USER_PROGRAM_PORT_MAP_TIMEOUT_SECONDS);

@@ -366,6 +366,13 @@
     </description>
   </property>
   <property>
+    <name>dcs.server.user.program.statistics.opentsdb.enabled</name>
+    <value>false</value>
+    <description>
+        Determines if statistics need to be published to opentsdb. The default is false. Set true to enable.
+    </description>
+  </property>
+  <property>
     <name>dcs.server.class.name</name>
     <value>org.trafodion.dcs.server.DcsServer</value>
     <description>

@@ -938,7 +938,8 @@ typedef struct _SRVR_GLOBAL_Def
 		bzero(m_ProcName,sizeof(m_ProcName));
 		m_bNewConnection = false;
 		m_bNewService = false;
-
+	        m_bPublishStatsToTSDB = false;
+		bzero(tsdURL,sizeof(tsdURL));
 		m_rule_wms_off = false;		// perf
 		m_rule_endstats_off = false;// perf
 
@@ -1140,6 +1141,7 @@ typedef struct _SRVR_GLOBAL_Def
 	short	m_aggr_stats_once;		// perf
 	statistics_type m_statisticsPubType;
 	bool	m_bStatisticsEnabled;
+	bool	m_bPublishStatsToTSDB;
 	int	m_iAggrInterval;
 	int	m_iQueryPubThreshold;
 	int	m_NodeId;
@@ -1147,6 +1149,7 @@ typedef struct _SRVR_GLOBAL_Def
     int     receiveThrId;
     SB_Thread::Errorcheck_Mutex *mutex; // mutex
 
+        char    tsdURL[256];
 	// Added for performance improvements
 	short	wmsActive;
 	char	segmentname[128];

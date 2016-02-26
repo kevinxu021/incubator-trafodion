@@ -20,10 +20,6 @@
 //
 // @@@ END COPYRIGHT @@@
 ********************************************************************/
-/*************************************************************************
-**************************************************************************/
-
-
 #include <dlfcn.h>
 
 #include <platform_ndcs.h>
@@ -56,10 +52,6 @@
 #include "CommonLogger.h"
 #include "zookeeper/zookeeper.h"
 #include "PubInterface.h"
-
-// +++ Move below to srvrGlobal if needed
-
-//ZK_GLOBAL_Def zkGlobals;
 
 zhandle_t *zh;
 
@@ -95,6 +87,8 @@ long initSessMemSize;
 int portMapToSecs = -1;
 int portBindToSecs = -1;
 bool bPlanEnabled = false;
+bool bPublishStatsToTSDB = false;
+char tsdurl[256];
 
 void watcher(zhandle_t *zzh, int type, int state, const char *path, void *watcherCtx);
 bool verifyPortAvailable(const char * idForPort, int portNumber);
@@ -131,11 +125,8 @@ static void free_String_vector(struct String_vector *v)
 void SQL_EXECDIRECT(SRVR_INIT_PARAM_Def* initParam);
 short SQL_EXECDIRECT_FETCH(SRVR_INIT_PARAM_Def* initParam);
 
-// void T7970N29_18JUN2010_SRV_0422 (void){}
-
 /******************* SLICE Header Fragment *******************/
 #include  <stdio.h>
-// void T7970N27_19FEB2010_ALF_SRV_0208 (void){}
 
 char errStrBuf1[141];
 char errStrBuf2[141];
@@ -203,6 +194,7 @@ try
 	regZnodeName[0] = '\x0';
 	zkHost[0] = '\x0';
 	zkRootNode[0] = '\x0';
+        tsdurl[0] = '\x0';
 
 	// Initialize seabed
 	int	sbResult;
@@ -294,7 +286,6 @@ catch(SB_Fatal_Excep sbfe)
 
 	char zkErrStr[2048];
 	stringstream zk_ip_port;
-//	zoo_set_debug_level(ZOO_LOG_LEVEL_DEBUG);
 	if( zkHost[0] == '\x0' && regZnodeName[0] == '\x0' )
 	{
 		sprintf(zkErrStr, "***** Cannot get Zookeeper properties or registered znode info from startup params");
@@ -305,8 +296,6 @@ catch(SB_Fatal_Excep sbfe)
 						   srvrObjRef,
 						   1,
 						   zkErrStr);
-		// exit(1);
-
 	}
 	else
 	{
@@ -331,7 +320,6 @@ catch(SB_Fatal_Excep sbfe)
 						   srvrObjRef,
 						   1,
 						   zkErrStr);
-		// exit(1);
 	}
 
 	bool found = false;
@@ -801,6 +789,10 @@ catch(SB_Fatal_Excep sbfe)
 								  srvrGlobal->nskProcessInfo.processId,
 								  ODBCMX_SERVICE, srvrGlobal->srvrObjRef,
 								  1, errStrBuf1);
+	if( strlen(tsdurl) > 0 )
+	{
+		strcpy( srvrGlobal->tsdURL, tsdurl );
+        }
 	if( stopOnDisconnect )
 		srvrGlobal->stopTypeFlag = STOP_WHEN_DISCONNECTED;
 	found = false;
@@ -1068,6 +1060,8 @@ BOOL getInitParamSrvr(int argc, char *argv[], SRVR_INIT_PARAM_Def &initParam, ch
 	queryPubThreshold = 60;
 	statisticsPubType = STATISTICS_AGGREGATED;
 	bStatisticsEnabled = false;
+	bPublishStatsToTSDB = false;
+	memset(tsdurl,0,sizeof(tsdurl));
 
 	initParam.EmsTimeout		= DEFAULT_EMS_TIMEOUT;
 	initParam.initIncSrvr		= DEFAULT_INIT_SRVR;
@@ -1079,7 +1073,7 @@ BOOL getInitParamSrvr(int argc, char *argv[], SRVR_INIT_PARAM_Def &initParam, ch
 	initParam.sql = NULL;
 	initParam.mute = false;//Dashboard testing - no 21036 message
 	initParam.ext_21036 = true; // new extended 21036 msg - for SRPQ
-    initParam.floatIP = false;  // bool which indicates if the script which binds the floating ip address needs to be run
+        initParam.floatIP = false;  // bool which indicates if the script which binds the floating ip address needs to be run
 
 	memset(initParam.neoODBC,0,sizeof(initParam.neoODBC));
 
@@ -1403,6 +1397,55 @@ BOOL getInitParamSrvr(int argc, char *argv[], SRVR_INIT_PARAM_Def &initParam, ch
 						bPlanEnabled = false;
 					else
 						bPlanEnabled = true;
+				}
+				else
+				{
+					argWrong = TRUE;
+					break;
+				}
+			}
+			else
+			{
+				argEmpty = TRUE;
+				break;
+			}
+		}
+                else
+		if (strcmp(arg, "-PUBLISHSTATSTOTSDB") == 0)
+		{
+			if (++count < argc && argv[count][0] != '-' )
+			{
+				char publishStatsToOpenTSDB[20];
+				if (strlen(argv[count]) < sizeof(publishStatsToOpenTSDB)-1)
+				{
+					memset(publishStatsToOpenTSDB,0,sizeof(publishStatsToOpenTSDB));
+					strcpy(publishStatsToOpenTSDB, argv[count]);
+					if (stricmp(publishStatsToOpenTSDB, "false") == 0)
+						bPublishStatsToTSDB = false;
+					else
+						bPublishStatsToTSDB = true;
+				}
+				else
+				{
+					argWrong = TRUE;
+					break;
+				}
+			}
+			else
+			{
+				argEmpty = TRUE;
+				break;
+			}
+
+		}
+                else
+		if (strcmp(arg, "-OPENTSDURL") == 0)
+		{
+			if (++count < argc && argv[count][0] != '-' )
+			{
+				if (strlen(argv[count]) < sizeof(tsdurl)-1)
+				{
+					strcpy(tsdurl, argv[count]);
 				}
 				else
 				{

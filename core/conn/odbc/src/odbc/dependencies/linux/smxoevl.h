@@ -521,7 +521,7 @@ EVENTDATA_TABLE eventDataMap[] =
 
 {ZMXO_EVT_KRYPTON_ERR,
    "A network component error <4> has occurred.\n",
-   "CEE Error Text: <5>.\n",
+   "CEE Error Text:Anu21 <5>.\n",
 
 
 
@@ -545,7 +545,7 @@ EVENTDATA_TABLE eventDataMap[] =
    NULL, NULL, NULL, NULL, NULL, NULL },
 
 {ZMXO_EVT_NSK_ERR,
-   "A NonStop Process Service error <4> has occurred. \n",
+   "A process service error <4> has occurred. \n",
 
 
 
@@ -1222,7 +1222,7 @@ EVENTDATA_TABLE eventDataMap[] =
 
 {ZMXO_EVT_CS_KRYPTON_ERR,
    "A network component error <4> has occurred.\n",
-   "CEE Error Text: <5>.\n",
+   "CEE Error Text: Anu20 <5>.\n",
 
 
 
@@ -1246,7 +1246,7 @@ EVENTDATA_TABLE eventDataMap[] =
    NULL, NULL, NULL, NULL, NULL, NULL },
 
 {ZMXO_EVT_CS_NSK_ERR,
-   "A NonStop Process Service error <4> has occurred. \n",
+   "A process service error <4> has occurred. \n",
 
 
 

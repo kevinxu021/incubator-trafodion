@@ -86,7 +86,6 @@
 #include "ResStatisticsSession.h"
 #include "ResStatisticsStatement.h"
 #include "ComDllload.h"
-//#include "QSExceptions.h"
 #include <dlfcn.h>
 #include "secsrvrmxo.h"
 
@@ -102,7 +101,6 @@ PerformanceMeasure *perf = 0;
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include "zookeeper/zookeeper.h"
-//extern ZK_GLOBAL_Def zkGlobals;
 
 #include <tr1/memory>
 #include <pthread.h>
@@ -130,7 +128,7 @@ extern int myNid;
 extern int myPid;
 extern string myProcName;
 extern bool bPlanEnabled;
-
+extern bool bPublishStatsToTSDB;
 
 extern long maxHeapPctExit;
 extern long initSessMemSize ;
@@ -188,9 +186,9 @@ short qrysrvc_ExecuteFinished(
 		);
 
 extern char zkHost[256];
-//extern void sendAggrStats(pub_struct_type pub_type, pSESSION_AGGREGATION pAggr_info);
+extern void initialize_curl();
+extern void cleanup_curl();
 extern void sendAggrStats(pub_struct_type pub_type, std::tr1::shared_ptr<SESSION_AGGREGATION> pAggr_info);
-//extern void sendSessionEnd(pSESSION_END pSession_info);
 extern void sendSessionEnd(std::tr1::shared_ptr<SESSION_END> pSession_info);
 extern void sendQueryStats(pub_struct_type pub_type, std::tr1::shared_ptr<STATEMENT_QUERYEXECUTION> pQuery_info);
 CEE_handle_def StatisticsTimerHandle;
@@ -208,13 +206,11 @@ typedef struct _REPOS_STATS
 #include "ndcsversion.h"
 
 
-//LCOV_EXCL_START
 // Needed for bypassing checks in compiler once component privileges have been tested
 // Internal calls - Defined in libcli.so
 
 void SQL_EXEC_SetParserFlagsForExSqlComp_Internal( /*IN*/ unsigned int flagbits);
 void SQL_EXEC_ResetParserFlagsForExSqlComp_Internal( /*IN*/ unsigned int flagbits);
-//LCOV_EXCL_STOP
 
 #define SKIP_COMPRIV_CHECK 0x100000
 
@@ -241,26 +237,20 @@ void SQL_EXEC_ResetParserFlagsForExSqlComp_Internal( /*IN*/ unsigned int flagbit
 using namespace SRVR;
 
 #include "ceercv.h"
-// #ifndef NSK_CLPS_LIB
-	#include "Transport.h"
-	#include "FileSystemSrvr.h"
-	#include "TCPIPSystemSrvr.h"
-	#include "odbcs_srvr_res.h"
-	#include "QSData.h"
-	#include "commonFunctions.h"
-// #endif
-
+#include "Transport.h"
+#include "FileSystemSrvr.h"
+#include "TCPIPSystemSrvr.h"
+#include "odbcs_srvr_res.h"
+#include "QSData.h"
+#include "commonFunctions.h"
 #include "NskUtil.h"
-//LCOV_EXCL_START
-extern void logError( short Code, short Severity, short Operation );
 
+extern void logError( short Code, short Severity, short Operation );
 extern char errStrBuf1[], errStrBuf2[], errStrBuf3[], errStrBuf4[], errStrBuf5[];
-//LCOV_EXCL_STOP
 
 extern ResStatisticsSession    *resStatSession;
 extern ResStatisticsStatement  *resStatStatement;
-extern struct					collect_info setinit;
-
+extern struct collect_info setinit;
 
 extern IDL_short tempSqlStmtType;
 extern bool informas;
@@ -306,7 +296,6 @@ class Repos_Queue
 {
 private:
     std::queue<T> my_queue;
-    //boost::condition_variable_any cond;
     pthread_cond_t cond;
     pthread_mutex_t my_mutex;
 
@@ -325,30 +314,25 @@ public:
     void push_task(const T & repos_stats)
     {
     //mutex lock
-        //boost::unique_lock<pthread_mutex_t> lock(my_mutex);
         pthread_mutex_lock(&my_mutex);
 
         my_queue.push(repos_stats);
         //Notify other threads
-        //cond.notify_one();
         pthread_cond_signal(&cond);
         pthread_mutex_unlock(&my_mutex);
     }
     T get_task()
     {
         //mutex lock
-        //boost::unique_lock<pthread_mutex_t> lock(my_mutex);
         pthread_mutex_lock(&my_mutex);
 
         if(my_queue.size()==0)
         {
             //if no task in the queue, waite for mutex
-            //cond.wait(lock);
             pthread_cond_wait(&cond,&my_mutex);
         }
         //point to head of the queue
         T repos_stats(my_queue.front());
-        //dequeue
         my_queue.pop();
         pthread_mutex_unlock(&my_mutex);
         return repos_stats;
@@ -369,6 +353,12 @@ static void* SessionWatchDog(void* arg)
 	SRVR_STMT_HDL *pSrvrStmt = NULL;
 	SQLCTX_HANDLE thread_context_handle = 0;
 	char tmpString[128];
+
+        //if opentsdb enabled then initialize curl and publish stats
+        if (srvrGlobal->m_bPublishStatsToTSDB)
+        {
+           initialize_curl();
+        } 
 
 	int rc = pthread_mutex_lock(&Thread_mutex);
 	if (rc != 0)
@@ -523,7 +513,6 @@ static void* SessionWatchDog(void* arg)
                 okToGo = false;
             }
         }
-
 		while(!record_session_done && okToGo)
 		{
 			REPOS_STATS repos_stats = repos_queue.get_task();
@@ -1455,7 +1444,8 @@ ImplInit (
 	if (!srvrGlobal->m_bStatisticsEnabled)
 		bPlanEnabled = false;
 	srvrGlobal->sqlPlan = bPlanEnabled;
-		
+
+	srvrGlobal->m_bPublishStatsToTSDB = bPublishStatsToTSDB;
 
 	CEE_TIMER_CREATE2(DEFAULT_AS_POLLING,0,ASTimerExpired,(CEE_tag_def)NULL, &srvrGlobal->ASTimerHandle,srvrGlobal->receiveThrId);
 
@@ -3700,7 +3690,6 @@ odbc_SQLSvc_InitializeDialogue_ame_(
 	static bool sessionWatchDogStarted = false;
 	if (srvrGlobal->m_bStatisticsEnabled && !sessionWatchDogStarted)
 	{
-		//boost::thread thrd(&SessionWatchDog);
 		pthread_t thrd;
 		pthread_create(&thrd, NULL, SessionWatchDog, NULL);
 		sessionWatchDogStarted = true;
@@ -9457,12 +9446,6 @@ void sendSessionEnd(std::tr1::shared_ptr<SESSION_END> pSession_info)
 	REPOS_STATS session_stats;
 	session_stats.m_pSessionStats = pSession_info;
 	session_stats.m_pub_type = PUB_TYPE_SESSION_END;
-	if (record_session_done)
-	{
-		//boost::thread thrd(&SessionWatchDog);
-		pthread_t thrd;
-		pthread_create(&thrd, NULL, SessionWatchDog, NULL);
-	}
 	repos_queue.push_task(session_stats);
 }
 
@@ -9471,12 +9454,6 @@ void sendAggrStats(pub_struct_type pub_type, std::tr1::shared_ptr<SESSION_AGGREG
 	REPOS_STATS aggr_stats;
 	aggr_stats.m_pAggr_stats = pAggr_info;
 	aggr_stats.m_pub_type = pub_type;
-	if (record_session_done)
-	{
-		//boost::thread thrd(&SessionWatchDog);
-		pthread_t thrd;
-		pthread_create(&thrd, NULL, SessionWatchDog, NULL);
-	}
 	repos_queue.push_task(aggr_stats);
 }
 
@@ -9485,12 +9462,6 @@ void sendQueryStats(pub_struct_type pub_type, std::tr1::shared_ptr<STATEMENT_QUE
 	REPOS_STATS query_stats;
 	query_stats.m_pQuery_stats = pQuery_info;
 	query_stats.m_pub_type = pub_type;
-	if (record_session_done)
-	{
-		//boost::thread thrd(&SessionWatchDog);
-		pthread_t thrd;
-		pthread_create(&thrd, NULL, SessionWatchDog, NULL);
-	}
 	repos_queue.push_task(query_stats);
 }
 
@@ -9557,5 +9528,9 @@ void SyncPublicationThread()
 				sleep(1);
 		}
 		pthread_mutex_unlock(&Thread_mutex);
+                if (srvrGlobal->m_bPublishStatsToTSDB)
+                {
+                   cleanup_curl();
+                } 
 	}
 }
