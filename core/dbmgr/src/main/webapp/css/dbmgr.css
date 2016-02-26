@@ -1,10 +1,9 @@
 /* @@@ START COPYRIGHT @@@
 * 
-*  (C) Copyright 2015 Esgyn Corporation
+*  (C) Copyright 2016 Esgyn Corporation
 *
 *  @@@ END COPYRIGHT @@@
 */
-
 .dbmgr-tools-form {
 	padding-left: 30px;
 	padding-top: 30px;
@@ -15,23 +14,25 @@
 }
 
 .dbmgr-tools-form .file {
-    position: relative;
-    display: inline-block;
-    background-image:url(../img/glass.png);
-    height:26px;
-    width:20px;
-    border: 1px solid black;
-    overflow: hidden;
+	position: relative;
+	display: inline-block;
+	background-image: url(../img/glass.png);
+	height: 26px;
+	width: 20px;
+	border: 1px solid black;
+	overflow: hidden;
 }
-.dbmgr-tools-form .file input {
-    position: absolute;
-    font-size: 100px;
-    right: 0;
-    top: 0;
-    opacity: 0;
-}
-.dbmgr-tools-form .file:hover {
 
+.dbmgr-tools-form .file input {
+	position: absolute;
+	font-size: 100px;
+	right: 0;
+	top: 0;
+	opacity: 0;
+}
+
+.dbmgr-tools-form .file:hover {
+	
 }
 
 #page-wrapper {
@@ -129,7 +130,6 @@
 		padding-left: 30px;
 		/*font-family: Courier New, Courier, monospace;*/
 	}
-
 	.navbar-default .dbmgr-title {
 		display: inline-block;
 		font-family: 'Open Sans', Arial, Helvetica, sans-serif;
@@ -153,27 +153,25 @@
 	.dbmgr-graph {
 		min-height: 125px;
 	}
+	.drilldown-container {
+		width: 850px;
+		height: 600px;
+		padding: 20px 15px 15px 15px;
+	}
 	.dbmgr-drilldown-graph {
 		min-height: 400px;
+		height: 500px;
+		width: 900px;
+		float: left;
 	}
-	/*	.navbar-default .navbar-nav>li>a {
-		color: white;
+	.drilldown-legend-selector {
+		border: 1px solid #ccc;
+		float: left;
+		width: 12px;
+		height: 12px;
+		margin-top: 5px;
+		margin-right: 5px;
 	}
-	.nav>li>a:hover, .nav>li>a:focus {
-		color: black;
-	}
-	.navbar-default .navbar-nav>li>a:hover, .navbar-default .navbar-nav>li>a:focus
-		{
-		color: black;
-		background-color: #e7e7e7;
-	}
-	.nav>li>a {
-		color: white;
-	}
-	.dbmgr-nav>li>a {
-		color: black;
-		background-color: #e7e7e7;
-	}*/
 	.mytooltip {
 		color: black;
 		width: 150px;
@@ -196,7 +194,7 @@
 	}
 	.dbmgr-table {
 		font-size: 13px !important;
-		width:100% !important;
+		width: 100% !important;
 	}
 	.dbmgr-table>tbody>tr>td, .table>tbody>tr>th, .table>tfoot>tr>td, .table>tfoot>tr>th,
 		.table>thead>tr>td, .table>thead>tr>th {

@@ -10,6 +10,12 @@
 >>
 >>get tables;
 
+Tables in Schema TRAFODION.COMPGENERAL_TEST023
+==============================================
+
+SB_HISTOGRAMS
+SB_HISTOGRAM_INTERVALS
+
 --- SQL operation complete.
 >>
 >>CREATE TABLE stest
@@ -27,13 +33,13 @@
 >>
 >>
 >>upsert using load into stest
-+>select
-+> x1+10*x2+100*x3+1000*x4+10000*x5,
-+> x2,
-+> x3
++>select 
++>  x1+10*x2+100*x3+1000*x4+10000*x5,
++>  x2,
++>  x3
 +>-- the from clause below creates 100,000 rows, the cross product of
-+>-- 5 copies of { 0, ... 9 }
-+> from (values(0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) T(x1)
++>-- 5 copies of { 0, ... 9 } 
++>  from (values(0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) T(x1)
 +>transpose 0,1,2,3,4,5,6,7,8,9 as x2
 +>transpose 0,1,2,3,4,5,6,7,8,9 as x3
 +>transpose 0,1,2,3,4,5,6,7,8,9 as x4
@@ -56,13 +62,13 @@
 --- SQL operation complete.
 >>
 >>upsert using load into stestc
-+>select
-+> x1 || x2 || x3 || x4 || x5,
-+> x2 || x4 || x1,
-+> x5 || x3
++>select 
++>  x1 || x2 || x3 || x4 || x5,
++>  x2 || x4 || x1,
++>  x5 || x3
 +>-- the from clause below creates 100,000 rows, the cross product of
 +>-- 5 copies of { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j' }
-+> from (values('a'),('b'),('c'),('d'),('e'),('f'),('g'),('h'),('i'),('j')) T(x1)
++>  from (values('a'),('b'),('c'),('d'),('e'),('f'),('g'),('h'),('i'),('j')) T(x1)
 +>transpose 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j' as x2
 +>transpose 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j' as x3
 +>transpose 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j' as x4
@@ -80,12 +86,14 @@
 Tables in Schema TRAFODION.COMPGENERAL_TEST023
 ==============================================
 
+SB_HISTOGRAMS
+SB_HISTOGRAM_INTERVALS
 STEST
 STESTC
 STEST_EMPTY
 
 --- SQL operation complete.
->> -- should be just stest, stest_empty, stestc; no sb_* tables yet
+>>  -- should be just stest, stest_empty, stestc; no sb_* tables yet
 >>
 >>?section ustat1p
 >>
@@ -98,18 +106,18 @@ STEST_EMPTY
 >>
 >>prepare s1 from
 +>select object_name,sample_name,reason,last_where_predicate
-+> from "_MD_".objects o join sb_persistent_samples s
-+> on o.object_uid = s.table_uid
-+> where object_name = ? and object_type = 'BT';
++>  from "_MD_".objects o join sb_persistent_samples s
++>   on o.object_uid = s.table_uid
++>  where object_name = ? and object_type = 'BT';
 
 --- SQL command prepared.
 >>
 >>execute s1 using 'STEST';
 
-OBJECT_NAME SAMPLE_NAME REASON LAST_WHERE_PREDICATE
-----------
+OBJECT_NAME                                                                                                                                                                                                                                                       SAMPLE_NAME                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           REASON  LAST_WHERE_PREDICATE
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  ------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-STEST TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn M
+STEST                                                                                                                                                                                                                                                             TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_92_1455818492_783992                                                                                                                                                                                                                                                                                                                                                                                                                                                        M                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
 
 --- 1 row(s) selected.
 >>-- should see one row
@@ -119,11 +127,13 @@ STEST TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn M
 Tables in Schema TRAFODION.COMPGENERAL_TEST023
 ==============================================
 
+SB_HISTOGRAMS
+SB_HISTOGRAM_INTERVALS
 SB_PERSISTENT_SAMPLES
 STEST
 STESTC
 STEST_EMPTY
-TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
+TRAF_SAMPLE_92_1455818492_783992
 
 --- SQL operation complete.
 >> -- should be stest, stest_empty, stestc, sb_persistent_samples + a sample table
@@ -138,21 +148,23 @@ TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
 Tables in Schema TRAFODION.COMPGENERAL_TEST023
 ==============================================
 
+SB_HISTOGRAMS
+SB_HISTOGRAM_INTERVALS
 SB_PERSISTENT_SAMPLES
 STEST
 STESTC
 STEST_EMPTY
-TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
+TRAF_SAMPLE_30_1455818531_792630
 
 --- SQL operation complete.
 >> -- should be stest, stest_empty, stestc, sb_persistent_samples + a different sample table
 >>
 >>execute s1 using 'STEST';
 
-OBJECT_NAME SAMPLE_NAME REASON LAST_WHERE_PREDICATE
-----------
+OBJECT_NAME                                                                                                                                                                                                                                                       SAMPLE_NAME                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           REASON  LAST_WHERE_PREDICATE
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  ------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-STEST TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn M
+STEST                                                                                                                                                                                                                                                             TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_30_1455818531_792630                                                                                                                                                                                                                                                                                                                                                                                                                                                        M                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
 
 --- 1 row(s) selected.
 >>-- should see one row
@@ -167,6 +179,8 @@ STEST TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn M
 Tables in Schema TRAFODION.COMPGENERAL_TEST023
 ==============================================
 
+SB_HISTOGRAMS
+SB_HISTOGRAM_INTERVALS
 SB_PERSISTENT_SAMPLES
 STEST
 STESTC
@@ -197,17 +211,17 @@ SB_PERSISTENT_SAMPLES
 STEST
 STESTC
 STEST_EMPTY
-TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
+TRAF_SAMPLE_95_1455818562_109795
 
 --- SQL operation complete.
 >> -- should be stest, stest_empty, stestc, sb_persistent_samples, sb_hist* + another sample table
 >>
 >>execute s1 using 'STEST';
 
-OBJECT_NAME SAMPLE_NAME REASON LAST_WHERE_PREDICATE
-----------
+OBJECT_NAME                                                                                                                                                                                                                                                       SAMPLE_NAME                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           REASON  LAST_WHERE_PREDICATE
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  ------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-STEST TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn I
+STEST                                                                                                                                                                                                                                                             TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_95_1455818562_109795                                                                                                                                                                                                                                                                                                                                                                                                                                                        I                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
 
 --- 1 row(s) selected.
 >>-- should see one row
@@ -228,52 +242,52 @@ SB_PERSISTENT_SAMPLES
 STEST
 STESTC
 STEST_EMPTY
-TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
+TRAF_SAMPLE_78_1455818587_983178
 
 --- SQL operation complete.
 >> -- should be stest, stest_empty, stestc, sb_persistent_samples, sb_hist* + another sample table
 >>
 >>execute s1 using 'STEST';
 
-OBJECT_NAME SAMPLE_NAME REASON LAST_WHERE_PREDICATE
-----------
+OBJECT_NAME                                                                                                                                                                                                                                                       SAMPLE_NAME                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           REASON  LAST_WHERE_PREDICATE
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  ------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-STEST TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn I
+STEST                                                                                                                                                                                                                                                             TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_78_1455818587_983178                                                                                                                                                                                                                                                                                                                                                                                                                                                        I                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
 
 --- 1 row(s) selected.
 >>-- should see one row
 >>
 >>-- change the data in the table and do an INCREMENTAL update stats
 >>insert into stest values (100000,1,1),
-+> (100001,1,1),
-+> (100002,1,1),
-+> (100003,1,1),
-+> (100004,1,1),
-+> (100005,1,1),
-+> (100006,1,1),
-+> (100007,1,1),
-+> (100008,1,1),
-+> (100009,1,1),
-+> (100010,2,1),
-+> (100011,2,1),
-+> (100012,2,1),
-+> (100013,2,1),
-+> (100014,2,1),
-+> (100015,2,1),
-+> (100016,2,1),
-+> (100017,2,1),
-+> (100018,2,1),
-+> (100019,2,1),
-+> (100020,3,1),
-+> (100021,3,1),
-+> (100022,3,1),
-+> (100023,3,1),
-+> (100024,3,1),
-+> (100025,3,1),
-+> (100026,3,1),
-+> (100027,3,1),
-+> (100028,3,1),
-+> (100029,3,1);
++>  (100001,1,1),
++>  (100002,1,1),
++>  (100003,1,1),
++>  (100004,1,1),
++>  (100005,1,1),
++>  (100006,1,1),
++>  (100007,1,1),
++>  (100008,1,1),
++>  (100009,1,1),
++>  (100010,2,1),
++>  (100011,2,1),
++>  (100012,2,1),
++>  (100013,2,1),
++>  (100014,2,1),
++>  (100015,2,1),
++>  (100016,2,1),
++>  (100017,2,1),
++>  (100018,2,1),
++>  (100019,2,1),
++>  (100020,3,1),
++>  (100021,3,1),
++>  (100022,3,1),
++>  (100023,3,1),
++>  (100024,3,1),
++>  (100025,3,1),
++>  (100026,3,1),
++>  (100027,3,1),
++>  (100028,3,1),
++>  (100029,3,1);
 
 --- 30 row(s) inserted.
 >>
@@ -292,10 +306,10 @@ STEST TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn I
 >>
 >>execute s1 using 'STEST';
 
-OBJECT_NAME SAMPLE_NAME REASON LAST_WHERE_PREDICATE
-----------
+OBJECT_NAME                                                                                                                                                                                                                                                       SAMPLE_NAME                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           REASON  LAST_WHERE_PREDICATE
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  ------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-STEST TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn I c1 >= 100000
+STEST                                                                                                                                                                                                                                                             TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_78_1455818587_983178                                                                                                                                                                                                                                                                                                                                                                                                                                                        I        c1 >= 100000                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
 
 --- 1 row(s) selected.
 >>
@@ -305,35 +319,35 @@ STEST TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn I c1 >= 100
 --- SQL operation complete.
 >>
 >>insert into stestc values ('naaaa','abc','ba'),
-+> ('naaab','abc','ba'),
-+> ('naaac','abc','ba'),
-+> ('naaad','abc','ba'),
-+> ('naaae','abc','ba'),
-+> ('naaaf','abc','ba'),
-+> ('naaag','abc','ba'),
-+> ('naaah','abc','ba'),
-+> ('naaai','abc','ba'),
-+> ('naaaj','abc','ba'),
-+> ('naaba','bhe','ba'),
-+> ('naabb','bhe','ba'),
-+> ('naabc','bhe','ba'),
-+> ('naabd','bhe','ba'),
-+> ('naabe','bhe','ba'),
-+> ('naabf','bhe','ba'),
-+> ('naabg','bhe','ba'),
-+> ('naabh','bhe','ba'),
-+> ('naabi','bhe','ba'),
-+> ('naabj','bhe','ba'),
-+> ('naaca','fib','ba'),
-+> ('naacb','fib','ba'),
-+> ('naacc','fib','ba'),
-+> ('naacd','fib','ba'),
-+> ('naace','fib','ba'),
-+> ('naacf','fib','ba'),
-+> ('naacg','fib','ba'),
-+> ('naach','fib','ba'),
-+> ('naaci','fib','ba'),
-+> ('naacj','fib','ba');
++>  ('naaab','abc','ba'),
++>  ('naaac','abc','ba'),
++>  ('naaad','abc','ba'),
++>  ('naaae','abc','ba'),
++>  ('naaaf','abc','ba'),
++>  ('naaag','abc','ba'),
++>  ('naaah','abc','ba'),
++>  ('naaai','abc','ba'),
++>  ('naaaj','abc','ba'),
++>  ('naaba','bhe','ba'),
++>  ('naabb','bhe','ba'),
++>  ('naabc','bhe','ba'),
++>  ('naabd','bhe','ba'),
++>  ('naabe','bhe','ba'),
++>  ('naabf','bhe','ba'),
++>  ('naabg','bhe','ba'),
++>  ('naabh','bhe','ba'),
++>  ('naabi','bhe','ba'),
++>  ('naabj','bhe','ba'),
++>  ('naaca','fib','ba'),
++>  ('naacb','fib','ba'),
++>  ('naacc','fib','ba'),
++>  ('naacd','fib','ba'),
++>  ('naace','fib','ba'),
++>  ('naacf','fib','ba'),
++>  ('naacg','fib','ba'),
++>  ('naach','fib','ba'),
++>  ('naaci','fib','ba'),
++>  ('naacj','fib','ba');
 
 --- 30 row(s) inserted.
 >>
@@ -352,17 +366,17 @@ SB_PERSISTENT_SAMPLES
 STEST
 STESTC
 STEST_EMPTY
-TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
-TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
+TRAF_SAMPLE_09_1455818640_272809
+TRAF_SAMPLE_78_1455818587_983178
 
 --- SQL operation complete.
 >>
 >>execute s1 using 'STESTC';
 
-OBJECT_NAME SAMPLE_NAME REASON LAST_WHERE_PREDICATE
-----------
+OBJECT_NAME                                                                                                                                                                                                                                                       SAMPLE_NAME                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           REASON  LAST_WHERE_PREDICATE
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  ------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-STESTC TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn I c1 >= 'naaaa'
+STESTC                                                                                                                                                                                                                                                            TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPLE_09_1455818640_272809                                                                                                                                                                                                                                                                                                                                                                                                                                                        I        c1 >= 'naaaa'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
 
 --- 1 row(s) selected.
 >>
@@ -387,8 +401,8 @@ SB_PERSISTENT_SAMPLES
 STEST
 STESTC
 STEST_EMPTY
-TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
-TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
+TRAF_SAMPLE_09_1455818640_272809
+TRAF_SAMPLE_78_1455818587_983178
 
 --- SQL operation complete.
 >> -- should be the same as previous "get tables"
@@ -413,8 +427,8 @@ SB_PERSISTENT_SAMPLES
 STEST
 STESTC
 STEST_EMPTY
-TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
-TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
+TRAF_SAMPLE_09_1455818640_272809
+TRAF_SAMPLE_78_1455818587_983178
 
 --- SQL operation complete.
 >> -- should be the same as previous "get tables"
@@ -442,8 +456,8 @@ SB_PERSISTENT_SAMPLES
 STEST
 STESTC
 STEST_EMPTY
-TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
-TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
+TRAF_SAMPLE_09_1455818640_272809
+TRAF_SAMPLE_78_1455818587_983178
 
 --- SQL operation complete.
 >> -- should be the same as previous "get tables"
@@ -453,19 +467,19 @@ TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
 
 *** ERROR[9200] UPDATE STATISTICS for table TRAFODION.COMPGENERAL_TEST023.STEST encountered an error (15001) from statement HSCursor::prepareRowsetInternal().
 
-*** ERROR[15001] A syntax error occurred at or before:
+*** ERROR[15001] A syntax error occurred at or before: 
 SELECT "C1", "C2", "C3", "_SALT_" FROM TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPL
-E_nn_nnnnnnnnnn_nnnnnn WHERE boats float idly FOR READ UNCOMMITTED ACCESS;
- ^ (zzz characters from start of SQL statement)
+E_78_1455818587_983178 WHERE  boats float idly FOR READ UNCOMMITTED ACCESS;
+                                        ^ (120 characters from start of SQL statement)
 
 *** ERROR[8822] The statement was not prepared.
 
 *** ERROR[9200] UPDATE STATISTICS for table TRAFODION.COMPGENERAL_TEST023.STEST encountered an error (15001) from statement POPULATE_FROM_QUERY.
 
-*** ERROR[15001] A syntax error occurred at or before:
+*** ERROR[15001] A syntax error occurred at or before: 
 SELECT "C1", "C2", "C3", "_SALT_" FROM TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPL
-E_nn_nnnnnnnnnn_nnnnnn WHERE boats float idly FOR READ UNCOMMITTED ACCESS;
- ^ (zzz characters from start of SQL statement)
+E_78_1455818587_983178 WHERE  boats float idly FOR READ UNCOMMITTED ACCESS;
+                                        ^ (120 characters from start of SQL statement)
 
 *** ERROR[8822] The statement was not prepared.
 
@@ -482,8 +496,8 @@ SB_PERSISTENT_SAMPLES
 STEST
 STESTC
 STEST_EMPTY
-TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
-TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
+TRAF_SAMPLE_09_1455818640_272809
+TRAF_SAMPLE_78_1455818587_983178
 
 --- SQL operation complete.
 >> -- should be the same as previous "get tables"
@@ -504,8 +518,8 @@ SB_PERSISTENT_SAMPLES
 STEST
 STESTC
 STEST_EMPTY
-TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
-TRAF_SAMPLE_nn_nnnnnnnnnn_nnnnnn
+TRAF_SAMPLE_09_1455818640_272809
+TRAF_SAMPLE_78_1455818587_983178
 
 --- SQL operation complete.
 >> -- should be the same as previous "get tables"
@@ -533,7 +547,7 @@ SB_HISTOGRAM_INTERVALS
 SB_PERSISTENT_SAMPLES
 
 --- SQL operation complete.
->> -- sample tables should be gone too
+>>  -- sample tables should be gone too
 >>
 >>drop schema compgeneral_test023 cascade;
 

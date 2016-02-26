@@ -66,3 +66,6 @@ Linux-x86_64/
 
 # mgblty
 /sql/scripts/mgblty_download/
+# derived license
+/LICENSE
+/NOTICE

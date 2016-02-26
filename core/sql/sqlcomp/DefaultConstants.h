@@ -709,6 +709,7 @@ enum DefaultConstants
                                             // CQDs are delimited by ","
   USTAT_MIN_CHAR_UEC_FOR_IS,     // minimum UEC for char type to use internal sort
   USTAT_MIN_DEC_BIN_UEC_FOR_IS,  // minimum UEC for binary types to use internal sort
+  USTAT_YOULL_LIKELY_BE_SORRY, // minimum row count where explicit NO SAMPLE clause is required
 
 
   // -------------------------------------------------------------------------
@@ -3789,6 +3790,14 @@ enum DefaultConstants
 
   // set to ON to aggressively allocate ESP per core
   AGGRESSIVE_ESP_ALLOCATION_PER_CORE,
+
+  // if ON, use older datetime value constructor in DatetimeValue::DatetimeValue
+  // Default is OFF. This cqd is used in case there are problems.
+  // It will be removed after testing is complete.
+  USE_OLD_DT_CONSTRUCTOR,
+
+  // real charset in the HIVE table
+  HIVE_FILE_CHARSET,
 
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!

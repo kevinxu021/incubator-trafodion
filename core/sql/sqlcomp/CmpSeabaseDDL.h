@@ -193,6 +193,14 @@ class CmpSeabaseDDL
        Lng32 textSubID,
        NAString &constrText);
   
+  static short createHistogramTables(
+    ExeCliInterface *cliInterface,
+    const NAString &schemaName,
+    const NABoolean ignoreIfExists,
+    NAString &tableNotCreated);
+
+  static std::vector<std::string> getHistogramTables();
+
   NABoolean isAuthorizationEnabled();
 
   short existsInHbase(const NAString &objName,
@@ -909,6 +917,7 @@ class CmpSeabaseDDL
      StmtDDLCreateSchema  * createSchemaNode,
      NAString             & currCatName);
 
+
   void cleanupObjectAfterError(
                                ExeCliInterface &cliInterface,
                                const NAString &catName, 
@@ -1151,7 +1160,8 @@ class CmpSeabaseDDL
                                 std::vector<std::string> &tablesCreated,
                                 std::vector<std::string> &tablesUpgraded);
 
-  void dropSeabaseAuthorization(ExeCliInterface *cliInterface);
+  void dropSeabaseAuthorization(ExeCliInterface *cliInterface, 
+                                NABoolean doCleanup = FALSE);
 
   NABoolean insertPrivMgrInfo(const Int64 objUID,
                               const NAString &objName,

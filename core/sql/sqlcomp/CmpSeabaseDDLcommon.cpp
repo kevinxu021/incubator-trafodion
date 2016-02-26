@@ -70,6 +70,7 @@
 #include "PrivMgrRoles.h"
 #include "ComUser.h"
 #include "ComMisc.h"
+#include "CmpSeabaseDDLmd.h"
 #include "hdfs.h"
 #include "StmtDDLAlterTableHDFSCache.h"
 
@@ -1069,6 +1070,19 @@ NABoolean CmpSeabaseDDL::isUserUpdatableSeabaseMD(const NAString &catName,
   return FALSE;
 }
 
+std::vector<std::string> CmpSeabaseDDL::getHistogramTables()
+{
+  Int32 numHistTables = sizeof(allMDHistInfo) / sizeof(MDTableInfo);
+  std::vector<std::string> histTables;
+  for (Int32 i = 0; i < numHistTables; i++)
+  {
+    const MDTableInfo &mdh = allMDHistInfo[i];
+    std::string tableName(mdh.newName);
+    histTables.push_back(tableName);
+  }
+  return histTables;
+}
+
 ExpHbaseInterface* CmpSeabaseDDL::allocEHI(const char * server, 
                                            const char * zkPort,
                                            NABoolean raiseError)
@@ -1442,7 +1456,7 @@ short CmpSeabaseDDL::validateVersions(NADefaults *defs,
       if (hbaseErrStr)
         *hbaseErrStr = (char*)GetCliGlobals()->getJniErrorStr().data();
 
-      retcode = -1394;
+      retcode = -1398;
       goto label_return;
     }
   else
@@ -7681,6 +7695,12 @@ short CmpSeabaseDDL::initSeabaseAuthorization(
   Lng32 cliRC = 0;
   NABoolean xnWasStartedHere = FALSE;
 
+  if (!ComUser::isRootUserID())
+  {
+    *CmpCommon::diags() << DgSqlCode(-CAT_NOT_AUTHORIZED);
+    return -1;
+  }
+
   if (beginXnIfNotInProgress(cliInterface, xnWasStartedHere))
   {
     SEABASEDDL_INTERNAL_ERROR("initialize authorization");
@@ -7713,6 +7733,17 @@ short CmpSeabaseDDL::initSeabaseAuthorization(
   }
   else
   {
+    // make sure authorization status is FALSE in compiler context 
+    GetCliGlobals()->currContext()->setAuthStateInCmpContexts(FALSE, FALSE);
+    
+    // If any tables were created, go drop them now.
+    // Ignore any returned errors
+    if (CmpCommon::getDefault(DDL_TRANSACTIONS) == DF_OFF)
+    {
+      bool doCleanup = true;
+      retcode = privInterface.dropAuthorizationMetadata(doCleanup);
+    }
+
     // Add an error if none yet defined in the diags area
     if ( CmpCommon::diags()->getNumber(DgSqlCode::ERROR_) == 0)
       SEABASEDDL_INTERNAL_ERROR("initialize authorization");
@@ -7724,10 +7755,18 @@ short CmpSeabaseDDL::initSeabaseAuthorization(
   return cliRC;
 }
 
-void CmpSeabaseDDL::dropSeabaseAuthorization(ExeCliInterface *cliInterface)
+void CmpSeabaseDDL::dropSeabaseAuthorization(
+  ExeCliInterface *cliInterface,
+  NABoolean doCleanup)
 {
   Lng32 cliRC = 0;
   NABoolean xnWasStartedHere = FALSE;
+
+  if (!ComUser::isRootUserID())
+  {
+    *CmpCommon::diags() << DgSqlCode(-CAT_NOT_AUTHORIZED);
+    return;
+  }
 
   if (beginXnIfNotInProgress(cliInterface, xnWasStartedHere))
   {
@@ -7742,7 +7781,7 @@ void CmpSeabaseDDL::dropSeabaseAuthorization(ExeCliInterface *cliInterface)
   PrivMgrCommands privInterface(std::string(privMDLoc.data()),
                                 std::string(privMgrMDLoc.data()), 
                                 CmpCommon::diags());
-  PrivStatus retcode = privInterface.dropAuthorizationMetadata(); 
+  PrivStatus retcode = privInterface.dropAuthorizationMetadata(doCleanup); 
   if (retcode == STATUS_ERROR)
   {
     cliRC = -1; 
@@ -8436,7 +8475,11 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
     }
   else if (ddlExpr->dropAuthorization())
     {
-      dropSeabaseAuthorization(&cliInterface);
+      dropSeabaseAuthorization(&cliInterface, FALSE);
+    }
+  else if (ddlExpr->cleanupAuth())
+    {
+       dropSeabaseAuthorization(&cliInterface, TRUE);
     }
   else if (ddlExpr->addSeqTable())
     {
@@ -9106,15 +9149,6 @@ bool CmpSeabaseDDL::dropOneTableorView(
 
 char buf [1000];
 
-Lng32 cliRC = cliInterface.holdAndSetCQD("TRAF_RELOAD_NATABLE_CACHE", "ON");
-
-   if (cliRC < 0)
-   {
-      cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
-      
-      return false;
-   }
-
 bool someObjectsCouldNotBeDropped = false;
 
 char volatileString[20] = {0};
@@ -9139,7 +9173,8 @@ char objectTypeString[20] = {0};
                volatileString,objectTypeString,objectName);
                
 // Save the current parserflags setting
-ULng32 savedParserFlags = Get_SqlParser_Flags(0xFFFFFFFF);
+   ULng32 savedParserFlags = Get_SqlParser_Flags(0xFFFFFFFF);
+   Lng32 cliRC = 0;
 
    try
    {            
@@ -9160,8 +9195,6 @@ ULng32 savedParserFlags = Get_SqlParser_Flags(0xFFFFFFFF);
    
    if (cliRC < 0 && cliRC != -CAT_OBJECT_DOES_NOT_EXIST_IN_TRAFODION)
       someObjectsCouldNotBeDropped = true;
-
-   cliRC = cliInterface.restoreCQD("TRAF_RELOAD_NATABLE_CACHE");
 
    return someObjectsCouldNotBeDropped;
    

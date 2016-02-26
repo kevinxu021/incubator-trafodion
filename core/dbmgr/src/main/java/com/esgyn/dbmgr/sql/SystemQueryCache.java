@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -12,6 +12,8 @@ public class SystemQueryCache {
 	public static final String GET_DCS_SERVERS = "GET_DCS_SERVERS";
 	public static final String GET_SERVICE_STATUS = "GET_SERVICE_STATUS";
 	public static final String GET_NODE_STATUS = "GET_NODE_STATUS";
+	public static final String GET_PROCESS_PSTACK = "GET_PROCESS_PSTACK";
+	public static final String GET_DCS_SUMMARY = "GET_DCS_SUMMARY";
 
 	public static final String SELECT_SCHEMAS = "SELECT_SCHEMAS";
 	public static final String SELECT_SCHEMA_ATTRIBUTES = "SELECT_SCHEMA_ATTRIBUTES";
@@ -38,6 +40,9 @@ public class SystemQueryCache {
 	public static final String SELECT_ROUTINE_ATTRIBUTES = "SELECT_ROUTINE_ATTRIBUTES";
 	public static final String SELECT_PROCDURES_IN_SCHEMA = "SELECT_PROCDURES_IN_SCHEMA";
 	public static final String SELECT_UDFS_IN_SCHEMA = "SELECT_UDFS_IN_SCHEMA";
+	public static final String GET_TABLE_USAGE = "GET_TABLE_USAGE";
+	public static final String GET_VIEW_USAGE = "GET_VIEW_USAGE";
+	public static final String GET_ROUTINE_USAGE = "GET_ROUTINE_USAGE";
 
 	public static final String SELECT_REPO_QUERIES = "SELECT_REPO_QUERIES";
 	public static final String SELECT_REPO_QUERY_DETAIL = "SELECT_REPO_QUERY_DETAIL";
@@ -63,8 +68,10 @@ public class SystemQueryCache {
 	public static final String OPENTSDB_FREE_MEMORY = "OPENTSDB_FREE_MEMORY";
 	public static final String OPENTSDB_NETWORK_IO = "OPENTSDB_NETWORK_IO";
 
+	public static final String OPENTSDB_CANARY_RESPONSE_DRILLDOWN = "OPENTSDB_CANARY_RESPONSE_DRILLDOWN";
 	public static final String OPENTSDB_CPU_LOAD_DRILLDOWN = "OPENTSDB_CPU_LOAD_DRILLDOWN";
 	public static final String OPENTSDB_IOWAITS_DRILLDOWN = "OPENTSDB_IOWAITS_DRILLDOWN";
+	public static final String OPENTSDB_TRANSACTION_STATS_DRILLDOWN = "OPENTSDB_TRANSACTION_STATS_DRILLDOWN";
 	public static final String OPENTSDB_DISK_SPACE_USED_DRILLDOWN = "OPENTSDB_DISK_SPACE_USED_DRILLDOWN";
 	public static final String OPENTSDB_GCTIME_DRILLDOWN = "OPENTSDB_GCTIME_DRILLDOWN";
 	public static final String OPENTSDB_REGION_MEMSTORE_SIZE_DRILLDOWN = "OPENTSDB_REGION_MEMSTORE_SIZE_DRILLDOWN";

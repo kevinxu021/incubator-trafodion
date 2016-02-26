@@ -30,10 +30,13 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.esgyn.dbmgr.common.RESTRequestException;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -72,7 +75,6 @@ public class RESTProcessor {
 		StringBuffer outputBuffer = new StringBuffer();
 		HttpURLConnection conn = null;
 		String urlString = "";
-
 		try {
 			SSLContext ssl_ctx = SSLContext.getInstance("TLS");
 			TrustManager[] trust_mgr = get_trust_mgr();
@@ -86,7 +88,7 @@ public class RESTProcessor {
 			RESTRequest a = mapper.readValue(jsonString, RESTRequest.class);
 
 			String uri = a.url;
-			urlString = a.url;
+			urlString = uri;
 
 			String parameterString = "";
 			if (a.parameters != null && a.parameters.size() > 0) {
@@ -121,7 +123,7 @@ public class RESTProcessor {
 				});
 			} else
 				conn = (HttpURLConnection) url.openConnection();
-
+			conn.setReadTimeout(60000);
 			conn.setRequestProperty("Accept", "application/json, application/text, text/plain");
 			if (a.authorization == null || a.authorization.length() == 0) {
 				a.authorization = userName + ":" + password;
@@ -172,7 +174,7 @@ public class RESTProcessor {
 					message = outputBuffer.toString();
 				}
 
-				throw new RuntimeException(a.url + ", Http Error: " + conn.getResponseCode() + ", " + message);
+				throw new RESTRequestException(a.url, Response.Status.fromStatusCode(conn.getResponseCode()), message);
 			}
 
 			BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
@@ -184,8 +186,16 @@ public class RESTProcessor {
 			}
 
 		} catch (Exception ex) {
-			_LOG.debug("Error processing the REST request " + urlString + " : " + ex.toString());
-			throw new Exception("Error processing the REST request " + urlString + " : " + ex.getMessage());
+			if (ex instanceof RESTRequestException) {
+				throw ex;
+			}
+			Status status = null;
+			try {
+				status = Response.Status.fromStatusCode(conn.getResponseCode());
+			} catch (Exception e) {
+				status = Status.INTERNAL_SERVER_ERROR;
+			}
+			throw new RESTRequestException(urlString, status, ex.getMessage());
 		} finally {
 
 			if (conn != null) {

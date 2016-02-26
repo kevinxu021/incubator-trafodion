@@ -20,7 +20,7 @@ public class EsgynDBMgrExceptionMapper implements ExceptionMapper<EsgynDBMgrExce
   @Override
   public Response toResponse(EsgynDBMgrException dbManagerException) {
 
-    return Response.status(dbManagerException.getStatus()).entity(dbManagerException.getMessage())
+		return Response.status(dbManagerException.getStatus()).entity(dbManagerException.toString())
         .type(MediaType.TEXT_PLAIN).build();
   }
 

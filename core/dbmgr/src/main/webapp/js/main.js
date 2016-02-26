@@ -1,8 +1,8 @@
-// @@@ START COPYRIGHT @@@
-//
-// (C) Copyright 2015 Esgyn Corporation
-//
-// @@@ END COPYRIGHT @@@
+//@@@ START COPYRIGHT @@@
+
+//(C) Copyright 2016 Esgyn Corporation
+
+//@@@ END COPYRIGHT @@@
 
 require.config({
 	packages: [{
@@ -43,47 +43,59 @@ require.config({
 		underscore: {
 			exports: '_'
 		},
-		morris: {
-			deps: ['jquery', 'raphael'],
-			exports: 'Morris'
-		},
-		raphael: {
-			deps: ['jquery'],
-			exports: 'Raphael'
-		},
 		metismenu: {
 			deps: ['jquery']
 		},
 		sbadmin2: {
 			deps:['jquery','metismenu']
 		},
-		dataTablesBootStrap: {
-			deps: ['datatables']
+		"datatables.net-bs": {
+			deps: ['datatables.net']
 		},
 		buttonsbootstrap: {
-			deps:['datatables']
+			deps:['datatables.net']
 		},
 		buttonsflash: {
-			deps:['datatables']
+			deps:['datatables.net']
 		},
 		buttonsprint: {
-			deps:['datatables']
+			deps:['datatables.net']
 		},
 		buttonshtml: {
-			deps:['datatables']
+			deps:['datatables.net']
 		},		
 		morrisdata: {
 			deps: ['morris']
 		},
 		pdfMakeLib :
-        {           
-            exports: 'pdfmake'
-        },
-        pdfmake : 
-        {
-            deps: ['pdfMakeLib'],
-            exports: 'pdfmake'
-        }
+		{           
+			exports: 'pdfmake'
+		},
+		pdfmake : 
+		{
+			deps: ['pdfMakeLib'],
+			exports: 'pdfmake'
+		},
+		flot : {
+			deps : ['jquery'],
+			exports: 'flot'
+		},
+		flottime : {
+			deps : ['flot'],
+			exports: 'flottime'
+		},
+		flotcanvas : {
+			deps : ['flot'],
+			exports: 'flotcanvas'
+		},
+		flotcrosshair : {
+			deps : ['flot'],
+			exports: 'flotcrosshair'
+		},
+		flotaxislabels : {
+			deps : ['flot'],
+			exports: 'flotaxislabels'
+		}		
 	},
 	paths: {
 		sbadmin2:'../bower_components/startbootstrap-sb-admin-2/dist/js/sb-admin-2',
@@ -96,26 +108,29 @@ require.config({
 		jqueryui: '../bower_components/jquery-ui/jquery-ui.min',
 		underscore: '../bower_components/underscore/underscore-min',
 		backbone: '../bower_components/backbone/backbone-min',
-		morris: '../bower_components/morrisjs/morris.min',
-		raphael: '../bower_components/raphael/raphael-min',
 		templates: '../templates',
 		metismenu: '../bower_components/metisMenu/dist/metisMenu',
 		jit: '../bower_components/jit/Jit/jit',
-		datatables: '../bower_components/datatables/media/js/jquery.dataTables.min',
-		datatablesBootStrap: '../bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap',
-		datatablesUI: '../bower_components/datatables-plugins/integration/jqueryui/dataTables.jqueryui',
-		tablebuttons: '../bower_components/datatables-buttons/js/dataTables.buttons',
-		buttonsbootstrap: '../bower_components/datatables-buttons/js/buttons.bootstrap',
-		buttonsflash: '../bower_components/datatables-buttons/js/buttons.flash',
-		buttonsprint: '../bower_components/datatables-buttons/js/buttons.print',
-		buttonshtml: '../bower_components/datatables-buttons/js/buttons.html5',
-		responsivetable: '../bower_components/datatables-responsive/js/dataTables.responsive',
+		"datatables.net": '../bower_components/datatables.net/js/jquery.dataTables.min',
+		"datatables.net-bs": '../bower_components/datatables.net-bs/js/dataTables.bootstrap.min',
+		"datatables.net-select": '../bower_components/datatables.net-select/js/dataTables.select.min',
+		"datatables.net-buttons": '../bower_components/datatables.net-buttons/js/dataTables.buttons.min',
+		buttonsbootstrap: '../bower_components/datatables.net-buttons-bs/js/buttons.bootstrap.min',
+		buttonsflash: '../bower_components/datatables.net-buttons/js/buttons.flash.min',
+		buttonsprint: '../bower_components/datatables.net-buttons/js/buttons.print.min',
+		buttonshtml: '../bower_components/datatables.net-buttons/js/buttons.html5.min',
+		responsivetable: '../bower_components/datatables.net-responsive/js/dataTables.responsive.min',
 		jstree: '../bower_components/jstree/dist/jstree',
 		moment: '../bower_components/moment/min/moment.min',
 		momenttimezone: '../bower_components/moment-timezone/builds/moment-timezone-with-data.min',
 		datetimepicker: '../bower_components/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min',
 		pdfmake: '../bower_components/pdfmake/build/vfs_fonts',
-		pdfMakeLib: '../bower_components/pdfmake/build/pdfmake.min'
+		pdfMakeLib: '../bower_components/pdfmake/build/pdfmake.min',
+		flot: '../bower_components/flot/jquery.flot',
+		flottime: '../bower_components/flot/jquery.flot.time',
+		flotcanvas: '../bower_components/flot/jquery.flot.canvas',
+		flotcrosshair: '../bower_components/flot/jquery.flot.crosshair',
+		flotaxislabels: '../bower_components/flot-axislabels/jquery.flot.axislabels'
 	}
 
 });

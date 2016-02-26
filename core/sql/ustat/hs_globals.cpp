@@ -3030,6 +3030,24 @@ Lng32 HSGlobalsClass::Initialize()
 
     HS_ASSERT(actualRowCount >= 0);
 
+    Int64 youWillLikelyBeSorry = 
+      ActiveSchemaDB()->getDefaults().getAsDouble(USTAT_YOULL_LIKELY_BE_SORRY);
+    if ((actualRowCount >= youWillLikelyBeSorry) &&
+       !(optFlags & SAMPLE_REQUESTED) &&
+       !(optFlags & IUS_OPT))
+      {
+        // attempt to do UPDATE STATISTICS on a big table without sampling,
+        // which could take a really long time
+        if ((optFlags & NO_SAMPLE) == 0)  // if explicit NO SAMPLE is missing
+          {
+            // raise an error on the chance that omitting the SAMPLE clause
+            // was accidental
+            HSFuncMergeDiags(-UERR_YOU_WILL_LIKELY_BE_SORRY);
+            retcode = -1;
+            HSHandleError(retcode);
+          }
+      }
+
 
                                              /*===================================*/
                                              /*=  DETERMINE "NECESSARY" COLUMNS  =*/
@@ -12058,12 +12076,18 @@ if ( x[0] == (unsigned char)255 && x[1] == (unsigned char)127 ) {
      LM->StartTimer(title);
   }
 
+  // An object to keep track of any new lowest and highest values so we
+  // can tweak interval boundaries if need be
+  HSHiLowValues<T> hiLowVal;
+
   insertFailCount = 0;
   valIter.init(insGroup);
   for (rowInx=1; rowInx<=numInsRows - insGroup->nullCount; rowInx++)
     {
       intervalIdx = findInterval(numNonNullIntervals, boundaryValues, valIter.val());
       if (intvlRC) intvlRC[intervalIdx]++;  // for logging
+
+      hiLowVal.findHiLowValues(valIter.val());
 
       CountingBloomFilter::INSERT_ENUM insert_status =
           cbf->insert((char*)valIter.dataRepPtr(), valIter.size(), intervalIdx, 
@@ -12130,6 +12154,59 @@ if ( x[0] == (unsigned char)255 && x[1] == (unsigned char)127 ) {
   retcode = estimateAndTestIUSStats(smplGroup, delGroup, insGroup,
                                     hist, cbf, numNonNullIntervals,
                                     scaleFactor, nullCount, intvlRC);
+
+  // If the adjusted histogram is judged worthy by estimateAndTestIUSStats, we next
+  // tweak the highest and lowest interval boundaries. If the sample data produced a
+  // value higher than the highest interval, we extend that interval's boundary to
+  // include it. Similarly on the low end. We don't attempt to shrink the intervals,
+  // though, if sample values were deleted. Instead we count on reversion to RUS
+  // if the rowcounts of those intervals get too small.
+  if ((retcode == 0) && (hiLowVal.seenAtLeastOneValue_))
+    {
+      T convertedBoundaryValue[1];  // a target for convertBoundaryOrMFVValue
+      
+      // highest interval -- the highest boundary is stored in 
+      // interval numNonNullIntervals
+  
+      // convert boundary to data type T
+      const HSDataBuffer & hiBoundary = hist->getIntBoundary(numNonNullIntervals);
+      convertBoundaryOrMFVValue(hiBoundary,
+                                smplGroup,
+                                0,
+                                convertedBoundaryValue,  
+                                format);
+          
+      if (hiLowVal.hiValue_ > convertedBoundaryValue[0])
+        {
+          // convert T back to what would be stored in the histogram
+          HSDataBuffer newHiBoundary;
+          Lng32 convertRC = setBufferValue(hiLowVal.hiValue_,
+                                           smplGroup,
+                                           newHiBoundary);
+          hist->setIntBoundary(numNonNullIntervals,newHiBoundary);
+        }
+
+      // lowest interval -- the low boundary is stored in interval 0
+      
+      // convert boundary to data type T
+      const HSDataBuffer & lowBoundary = hist->getIntBoundary(0);
+      convertBoundaryOrMFVValue(lowBoundary,
+                                smplGroup,
+                                0,
+                                convertedBoundaryValue,  
+                                format);
+          
+      if (hiLowVal.lowValue_ < convertedBoundaryValue[0])
+        {
+          // convert T back to what would be stored in the histogram
+          HSDataBuffer newLowBoundary;
+          Lng32 convertRC = setBufferValue(hiLowVal.lowValue_,
+                                           smplGroup,
+                                           newLowBoundary);
+          hist->setIntBoundary(0,newLowBoundary);
+        }
+    }
+
   if (intvlRC)
     NADELETEBASIC(intvlRC, STMTHEAP);
   return retcode;
@@ -12231,8 +12308,8 @@ Int32 HSGlobalsClass::estimateAndTestIUSStats(HSColGroupStruct* group,
   ///////////////////////////////////////////////////
   // fetch uec and rowcount per interval from cbf. 
   ///////////////////////////////////////////////////
-  UInt64* sampledIntvlRCs = new(STMTHEAP) UInt64[numNonNullIntervals+1];
-  UInt64* sampledIntvlUECs = new(STMTHEAP) UInt64[numNonNullIntervals+1];
+  UInt64* sampledIntvlRCs = new(STMTHEAP) UInt64[cbf->numBuckets()];
+  UInt64* sampledIntvlUECs = new(STMTHEAP) UInt64[cbf->numBuckets()];
 
 
   HSLogMan *LM = HSLogMan::Instance();

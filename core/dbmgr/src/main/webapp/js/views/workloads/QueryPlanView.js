@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -15,8 +15,8 @@ define([
         '../../../bower_components/codemirror/lib/codemirror',
         '../../../bower_components/codemirror/mode/sql/sql',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
+        'datatables.net',
+        'datatables.net-bs',
         'datetimepicker',
         'jqueryvalidate'
         ], function (BaseView, QueryPlanT, $, wHandler, serverHandler, moment, common, CodeMirror) {
@@ -85,7 +85,7 @@ define([
 					$(USED_TABLES_CONTAINER).css("height",$(this).height());
 				}
 			});
-			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "width": "95%", "height":"150px"});
+			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "width": "75%", "height":"150px"});
 			
 			this.processArgs(args);
 			
@@ -168,7 +168,6 @@ define([
 			$("#errorText").hide();
 			$(TEXT_PLAN_CONTAINER).hide();
 			var param = {sQuery : queryText, sControlStmts: "", sQueryID: queryID, sQueryType: queryType};
-
 
 			_this.showLoading();
 			serverHandler.explainQuery(param);

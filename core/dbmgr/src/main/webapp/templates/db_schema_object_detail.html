@@ -5,7 +5,7 @@
 				<div class="btn-group"
 					style="margin-bottom: 10px; margin-top: 10px;">
 					<button type="button"
-						class="btn btn-default btn-xs dropdown-toggle"
+						class="btn btn-primary btn-xs dropdown-toggle"
 						data-toggle="dropdown" style="height: 30px;">
 						Actions <span class="caret"></span>
 					</button>
@@ -35,44 +35,59 @@
 					  <li id="privileges-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-privileges-link" class="dbmgr-link-button" data-toggle="pill">Privileges</a></li>
 					  <li id="indexes-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-indexes-link" class="dbmgr-link-button" data-toggle="pill">Indexes</a></li>
 					  <li id="usages-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-usages-link" class="dbmgr-link-button" data-toggle="pill">Usage</a></li>
-                      <li><img id="loadingImg" style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></li>
+                      <li></li>
 					</ul>
 
 					<div id="object-details-container" class="tab-content">
 					    <div class="tab-pane fade in active" id="db-attributes-link">
+					    	<div id="attributes-spinner">Fetching attributes... <img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
 							<div>
 								<table id="db-object-attributes-container" class="dbmgr-table"></table>
 							</div>
+							<textarea id="db-object-attributes-error-text" readonly name="db-object-attributes-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 					    </div>
 					    <div class="tab-pane fade" id="db-columns-link">
+					    	<div id="columns-spinner">Fetching columns... <img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
 							<div id="db-object-columns-container" class="table-responsive">
 							</div>
+							<textarea id="db-object-columns-error-text" readonly name="db-object-columns-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 					    </div>
 					    <div class="tab-pane fade" id="db-regions-link">
+					    	<div id="regions-spinner">Fetching regions... <img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
 							<div id="db-object-regions-container" class="table-responsive">
 							</div>
+							<textarea id="db-object-regions-error-text" readonly name="db-object-regions-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 					    </div>
 					    <div class="tab-pane fade" id="db-statistics-link">
+					    	<div id="statistics-spinner">Fetching statistics... <img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
 							<div id="db-object-statistics-container" class="table-responsive">
 							</div>
+							<textarea id="db-object-statistics-error-text" readonly name="db-object-statistics-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 					    </div>
 					    <div class="tab-pane fade" id="db-ddl-link">
+					    	<div id="ddl-spinner">Fetching DDL... <img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
 							<div id ="db-object-ddl-container">
 								<textarea id="object-ddl-text" readonly name="object-ddl-text" spellcheck="false" rows="100" readonly class="textarea" style="font-family: Courier New, Courier, monospace;width: 95%; margin-bottom: 10px"></textarea>
 							</div>
+							<textarea id="db-object-ddl-error-text" readonly name="db-object-ddl-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 					    </div>
 					    <div class="tab-pane fade" id="db-privileges-link">
+					    	<div id="privileges-spinner">Fetching privileges... <img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
 							<div id ="db-object-privileges-container" class="table-responsive"></div>
+							<textarea id="db-object-privileges-error-text" readonly name="db-object-privileges-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 					    </div>
 					    <div class="tab-pane fade" id="db-usages-link">
+					    	<div id="usages-spinner">Fetching usage information... <img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
 							<div id ="db-object-usages-container" class="table-responsive"></div>
+							<textarea id="db-object-usages-error-text" readonly name="db-object-usages-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 					    </div>
 					    <div class="tab-pane fade" id="db-indexes-link">
+					    	<div id="indexes-spinner">Fetching indexes... <img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
 							<div id="db-object-indexes-container" class="table-responsive">
 							</div>
+							<textarea id="db-object-indexes-error-text" readonly name="db-object-indexes-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 					    </div>					    
 					</div>
-					<textarea id="db-object-error-text" readonly name="db-object-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 				</div>
 			</div>
 		</div>

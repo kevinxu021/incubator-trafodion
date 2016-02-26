@@ -118,7 +118,7 @@ fi
 cd $MY_SQROOT/sql/scripts
 
 # Check to make sure this is a real cluster
-if [ -n "$node_count" ] && [ $node_count -gt 1 ]; then
+if  [[ -n "$node_count" ]] && [[ "$node_count" -gt "1" ]]; then 
 
     GetSQcnfg
 
@@ -148,7 +148,7 @@ mkdir -p $MPI_TMPDIR
 mkdir -p $HOME/cbfs
 
 #If pdsh exists
-if [ -n "$node_count" ] && [ $node_count -gt 1 ]; then
+if  [[ -n "$node_count" ]] && [[ "$node_count" -gt "1" ]]; then    
     echo
     echo "Creating directories on cluster nodes"
 
@@ -188,6 +188,8 @@ fi
 
 ./gensqstatem2lenv > $SQETC_DIR/sqstatem2l.env
 
+cp ./traf_coprocessor.properties $SQETC_DIR/
+
 # Create configuration database tables
 rm -f sqconfig.db
 sqlite3 -init createConfigDb sqconfig.db <<eof 
@@ -225,7 +227,8 @@ if [ -f $SQESPENV_FILE ]; then
     fi
 fi
 
-if [ -n "$node_count" ] && [ $node_count -gt 1 ]; then
+if  [[ -n "$node_count" ]] && [[ "$node_count" -gt "1" ]]; then    
+    echo
     echo
     echo "Copying the generated files to all the nodes in the cluster"
     echo
@@ -238,6 +241,10 @@ if [ -n "$node_count" ] && [ $node_count -gt 1 ]; then
     echo "Copying $SQETC_DIR/ms.env to $SQETC_DIR of all the nodes"
     echo "$PDCP -w ${ExNodeList[@]} -x `uname -n` $SQETC_DIR/ms.env   $SQETC_DIR "
     $PDCP -w ${ExNodeList[@]} -x `uname -n` $SQETC_DIR/ms.env   $SQETC_DIR
+
+    echo "Copying $SQETC_DIR/traf_coprocessor.properties to $SQETC_DIR of all the nodes"
+    echo "$PDCP -w ${ExNodeList[@]} -x `uname -n` $SQETC_DIR/traf_coprocessor.properties   $SQETC_DIR "
+    $PDCP -w ${ExNodeList[@]} -x `uname -n` $SQETC_DIR/traf_coprocessor.properties   $SQETC_DIR
 
     echo
     echo "Copying $SQETC_DIR/seamonster.env to $SQETC_DIR of all the nodes"

@@ -1,8 +1,8 @@
-//@@@ START COPYRIGHT @@@
-
-//(C) Copyright 2015 Esgyn Corporation
-
-//@@@ END COPYRIGHT @@@
+// @@@ START COPYRIGHT @@@
+//
+// (C) Copyright 2016 Esgyn Corporation
+//
+// @@@ END COPYRIGHT @@@
 
 define([
         'views/BaseView',
@@ -15,8 +15,8 @@ define([
         '../../../bower_components/codemirror/lib/codemirror',
         '../../../bower_components/codemirror/mode/sql/sql',
         'jqueryui',
-        'datatables',
-        'datatablesBootStrap',
+        'datatables.net',
+        'datatables.net-bs',
         ], function (BaseView, WorkloadsT, $, wHandler, moment, common, refreshTimer, CodeMirror) {
 	'use strict';
 	var LOADING_SELECTOR = "#loadingImg",
@@ -82,8 +82,8 @@ define([
 		},
 		doResume: function(args){
 			$('#query-id').val(args);
-			queryID = args;
 			if(queryID != null && queryID != args){
+				queryID = args;
 				queryTextEditor.setValue('');
 				this.loadQueryText();
 			}

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- @@@ START COPYRIGHT @@@
  
-     (C) Copyright 2015 Esgyn Corporation
+     (C) Copyright 2016 Esgyn Corporation
  
      @@@ END COPYRIGHT @@@
 -->
@@ -13,6 +13,11 @@
 			<text><![CDATA[{"url":"http://%1$s/v1/servers/dcs/connections", "method":"get"}]]></text>
 		</query>
 		<query>
+			<!-- Get DCS summary -->
+			<name>GET_DCS_SUMMARY</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/servers/dcs/summary", "method":"get"}]]></text>
+		</query>
+		<query>
 			<!-- Get status of EsgynDB Services -->
 			<name>GET_SERVICE_STATUS</name>
 			<text><![CDATA[{"url":"http://%1$s/v1/servers", "method":"get"}]]></text>
@@ -22,6 +27,11 @@
 			<name>GET_NODE_STATUS</name>
 			<text><![CDATA[{"url":"http://%1$s/v1/servers/nodes", "method":"get"}]]></text>
 		</query>				
+		<query>
+			<!-- Get pstack of a process -->
+			<name>GET_PROCESS_PSTACK</name>
+			<text><![CDATA[{"url":"http://%1$s/v1/servers/pstack/program/%2$s", "method":"get"}]]></text>
+		</query>	
 		<query>
 			<!-- Fetch list of schemas -->
 			<name>SELECT_SCHEMAS</name>
@@ -216,7 +226,7 @@
 		<query>
 			<!-- Fetch list of columns for a schema object -->
 			<name>SELECT_OBJECT_COLUMNS</name>
-			<text><![CDATA[SELECT K.CONSTRAINT_TYPE as PRIMARY_KEY, C.COLUMN_NUMBER, C.COLUMN_NAME, SQL_DATA_TYPE,  
+			<text><![CDATA[SELECT CASE WHEN K.CONSTRAINT_TYPE = 'PRIMARY KEY' THEN 'P' ELSE '' END as PRIMARY_KEY, C.COLUMN_NUMBER, C.COLUMN_NAME, SQL_DATA_TYPE,  
 			    COLUMN_SIZE, COLUMN_PRECISION, COLUMN_SCALE, 
 			    CASE WHEN NULLABLE = 0 THEN 'NOT NULL'
 			        ELSE 'NULL'
@@ -438,6 +448,37 @@
 				]]></text>
 		</query>
 		<query>
+			<!-- Fetch list of objects referencing the given table -->
+			<name>GET_TABLE_USAGE</name>
+			<text><![CDATA[SELECT 'Used By' AS Usage_Type, Object_Name, 'View' AS Object_Type
+						FROM ( GET ALL VIEWS ON TABLE %1$s, no header) AS X(Object_Name)]]></text>
+		</query>
+		<query>
+			<!-- Fetch list of child views using the given view and the list of views and tables 
+				used by the given view -->
+			<name>GET_VIEW_USAGE</name>
+			<text><![CDATA[SELECT 'Used By' as Usage_Type, Object_Name, 'View' AS Object_Type
+				    FROM ( GET ALL VIEWS ON VIEW %1$s, no header) AS A(Object_Name)
+					UNION 
+					SELECT 'Uses' as Usage_Type,  Object_Name, 'Table' AS Object_Type
+					    FROM ( GET ALL TABLES IN VIEW %1$s, no header) AS B(Object_Name)
+					UNION 
+					SELECT 'Uses' as Usage_Type,  Object_Name, 'View' AS Object_Type
+				    FROM ( GET ALL VIEWS IN VIEW %1$s, no header) AS C(Object_Name)
+    			]]></text>
+		</query>
+		<query>
+			<!-- Fetch the library used by the routine -->
+			<name>GET_ROUTINE_USAGE</name>
+			<text><![CDATA[SELECT object_name, schema_name, 'Library' as Object_Type
+					FROM "_MD_".LIBRARIES_USAGE T1, 
+					"_MD_".OBJECTS T2 
+					WHERE T1.USED_UDR_UID = ?
+					AND T1.USING_LIBRARY_UID= T2.OBJECT_UID 
+					FOR READ UNCOMMITTED ACCESS 
+			]]></text>
+		</query>
+		<query>
 			<!-- Fetch list of historical workloads -->
 			<name>SELECT_REPO_QUERIES</name>
 			<text><![CDATA[SELECT [first %1$s] trim(query_id) as "Query ID", query_status AS "Status" ,
@@ -592,12 +633,17 @@
 		</query>
 		<query>
 			<name>OPENTSDB_NETWORK_IO_DRILLDOWN</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:%4$s-avg:proc.net.bytes{direction=*,host=*}", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:%4$s-avg:proc.net.bytes{direction=%5$s,host=*}", "method":"get"}]]></text>
 		</query>
 		
 		<query>
 			<name>OPENTSDB_CANARY_RESPONSE</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:esgyndb.canary.sqlconnect.time&m=avg:%4$s-avg:esgyndb.canary.sqlddl.time&m=avg:%4$s-avg:esgyndb.canary.sqlwrite.time&m=avg:%4$s-avg:esgyndb.canary.sqlread.time", "method":"get"}]]></text>		</query>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:esgyndb.canary.sqlconnect.time&m=avg:%4$s-avg:esgyndb.canary.sqlddl.time&m=avg:%4$s-avg:esgyndb.canary.sqlwrite.time&m=avg:%4$s-avg:esgyndb.canary.sqlread.time", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>OPENTSDB_CANARY_RESPONSE_DRILLDOWN</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:%5$s{host=*}", "method":"get"}]]></text>
+		</query>
 		<query>
 			<name>OPENTSDB_DISK_READS</name>
 			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:rate:%4$s-avg:iostat.disk.read_requests", "method":"get"}]]></text>
@@ -627,12 +673,16 @@
 			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:rate:%4$s-avg:esgyndb.dtm.txnaborts&m=sum:rate:%4$s-avg:esgyndb.dtm.txnbegins&m=sum:rate:%4$s-avg:esgyndb.dtm.txncommits", "method":"get"}]]></text>
 		</query>		
 		<query>
+			<name>OPENTSDB_TRANSACTION_STATS_DRILLDOWN</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:rate:%4$s-avg:%5$s{host=*}", "method":"get"}]]></text>
+		</query>
+		<query>
 			<name>OPENTSDB_DISK_SPACE_USED</name>
 			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:df.bytes.percentused", "method":"get"}]]></text>
 		</query>		
 		<query>
 			<name>OPENTSDB_DISK_SPACE_USED_DRILLDOWN</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:df.bytes.percentused{host=*}", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:df.bytes.percentused{host=*}", "method":"get"}]]></text>
 		</query>		
 		<query>
 			<name>OPENTSDB_STOREFILE_COUNT</name>

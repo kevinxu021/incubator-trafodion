@@ -100,7 +100,6 @@ public class QueryResource {
 			stmt1.close();
 
 			pstmt = connection.prepareStatement(queryText);
-			_LOG.debug(queryText);
 
 			js = executeQuery(pstmt, queryText);
 		} catch (Exception e) {
@@ -120,7 +119,8 @@ public class QueryResource {
 
 	public static TabularResult executeQuery(PreparedStatement pStmt, String queryText) throws EsgynDBMgrException {
 		ResultSet rs;
-		TabularResult js = new TabularResult();
+		TabularResult tResult = new TabularResult();
+		_LOG.debug(queryText);
 
 		try {
 
@@ -128,24 +128,24 @@ public class QueryResource {
 			if (hasResultSet) {
 				rs = pStmt.getResultSet();
 				if (queryText.trim().toLowerCase().startsWith("select") || rs.getMetaData().getColumnCount() > 1) {
-					js = Helper.convertResultSetToTabularResult(rs);
+					tResult = Helper.convertResultSetToTabularResult(rs);
 				} else {
-					js.isScalarResult = true;
-					js.columnNames = new String[] { "Output" };
-					js.resultArray = new ArrayList<Object[]>();
+					tResult.isScalarResult = true;
+					tResult.columnNames = new String[] { "Output" };
+					tResult.resultArray = new ArrayList<Object[]>();
 					StringBuilder sb = new StringBuilder();
 					while (rs.next()) {
 						sb.append(rs.getString(1) + System.getProperty("line.separator"));
 					}
 					Object[] output = new Object[] { sb.toString() };
-					js.resultArray.add(output);
+					tResult.resultArray.add(output);
 				}
 				rs.close();
 			} else {
 				int count = pStmt.getUpdateCount();
-				js.isScalarResult = true;
-				js.columnNames = new String[] { "Status" };
-				js.resultArray = new ArrayList<Object[]>();
+				tResult.isScalarResult = true;
+				tResult.columnNames = new String[] { "Status" };
+				tResult.resultArray = new ArrayList<Object[]>();
 				Object[] data = new Object[1];
 				if (queryText.toLowerCase().startsWith("insert") || queryText.toLowerCase().startsWith("upsert")
 						|| queryText.toLowerCase().startsWith("update")
@@ -154,13 +154,13 @@ public class QueryResource {
 				} else {
 					data[0] = "The statement completed successfully.";
 				}
-				js.resultArray.add(data);
+				tResult.resultArray.add(data);
 			}
 		} catch (Exception e) {
 			_LOG.error("Failed to execute query : " + e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
 		}
-		return js;
+		return tResult;
 	}
 
 	public static TabularResult executeAdminSQLQuery(String queryText) throws EsgynDBMgrException {

@@ -68,13 +68,15 @@ function removePassword {
 
  $TRAF_PDSH sudo chmod 777 $TRAF_CONFIG
  $TRAF_PDSH sudo sed -i '/TRAF_USER_PASSWORD\=/d' $TRAF_CONFIG
- $TRAF_PDSH sudo sed -i '/PASSWORD\=/d' $TRAF_CONFIG
+ $TRAF_PDSH sudo sed -i '/\<PASSWORD\>/d' $TRAF_CONFIG
  $TRAF_PDSH sudo chmod 777 $TRAF_CONFIG
 
 }
 
 function fixPermissions {
 
+#Change ownership of this file to be owned by traf user and traf group
+#Errors with JPS will happen if not modified 
 if [[ -d /tmp/hsperfdata_trafodion ]]; then 
    $TRAF_PDSH sudo chown -R $TRAF_USER.trafodion /tmp/hsperfdata_trafodion
 fi
@@ -101,9 +103,9 @@ do
                   exit -1
                fi
             else
-               supportedHBase=$(echo $version | grep "1.1.1" | wc -l)
+               supportedHBase=$(echo $version | grep "1.1.2" | wc -l)
                if [[ $supportedHBase -eq "0" ]]; then
-                  echo "***ERROR: HBase installed must be 1.1.1 on node $node"
+                  echo "***ERROR: HBase installed must be 1.1.2 on node $node"
                   exit -1
                fi
             fi
@@ -800,6 +802,9 @@ else
 fi
 
 echo "***INFO: Trafodion Mods ran successfully."
+
+#Get HBaseSite.xml information 
+$LOCAL_WORKDIR/parseHBaseSite.py
 
 #==============================================
 #Install Trafodion

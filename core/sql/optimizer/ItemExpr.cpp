@@ -10519,7 +10519,7 @@ ConstValue * ConstValue::castToConstValue(NABoolean & negate_it)
 
 Int32 ConstValue::getArity() const { return 0; }
 
-NAString ConstValue::getConstStr(NABoolean transformeNeeded) const
+NAString ConstValue::getConstStr(NABoolean transformNeeded) const
 {
   if (!textIsValidatedSQLLiteralInUTF8_ &&
       (*text_ == "<min>" || *text_ == "<max>"))
@@ -10547,7 +10547,7 @@ NAString ConstValue::getConstStr(NABoolean transformeNeeded) const
 
     // 4/8/96: added the Boolean switch so that displayable
     // and non-displayable version can be differed.
-    if ( transformeNeeded )
+    if ( transformNeeded )
       return chType->getCharSetAsPrefix() + getText();
     else
       return chType->getCharSetAsPrefix() + getTextForQuery(QUERY_FORMAT);
@@ -13423,6 +13423,8 @@ Translate::Translate(ItemExpr *valPtr, NAString* map_table_name)
     map_table_id_ = Translate::SJIS_TO_UTF8;
   else if ( _strcmpi(map_table_name->data(), "UTF8TOSJIS") == 0 )
     map_table_id_ = Translate::UTF8_TO_SJIS;
+  else if ( _strcmpi(map_table_name->data(), "GBKTOUTF8") == 0 )
+    map_table_id_ = Translate::GBK_TO_UTF8;
 
                 else
                   if ( _strcmpi(map_table_name->data(), "KANJITOISO88591") == 0 )
@@ -15055,4 +15057,75 @@ ConstValue* ItemExpr::evaluate(CollHeap* heap)
   }
 
   return result;
+}
+
+ItemExpr * ItmLagOlapFunction::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
+{
+    ItemExpr *result;
+
+    if (derivedNode == NULL)
+    {
+        switch (getArity()) { 
+           case 2:
+               result = new (outHeap) ItmLagOlapFunction(child(0), child(1));
+               break;
+           case 3:
+               result = new (outHeap) ItmLagOlapFunction(child(0), child(1), child(2));
+               break;
+           default:
+               CMPASSERT(FALSE);
+        }
+    }
+    else              
+        result = derivedNode;                 
+
+  return ItmSeqOlapFunction::copyTopNode(result, outHeap);
+}
+
+
+ItmLeadOlapFunction::~ItmLeadOlapFunction() {}
+
+ItemExpr * 
+ItmLeadOlapFunction::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
+{
+  ItemExpr *result;
+
+  if (derivedNode == NULL)
+    {
+     switch (getArity()) { 
+      case 2:
+         result = new (outHeap) ItmLeadOlapFunction(child(0), child(1));
+         break;
+      
+      case 1:
+      default:
+         result = new (outHeap) ItmLeadOlapFunction(child(0));
+         break;
+     }
+    }
+  else              
+    result = derivedNode;                 
+
+  ((ItmLeadOlapFunction*)result)->setOffset(getOffset());
+
+  return ItmSeqOlapFunction::copyTopNode(result, outHeap);
+}
+
+
+NABoolean ItmLeadOlapFunction::hasEquivalentProperties(ItemExpr * other)
+{
+  if (other == NULL)
+    return FALSE;
+
+  if (getOperatorType() != other->getOperatorType() ||
+        getArity() != other->getArity())
+    return FALSE;
+
+  //return getOffsetExpr()->hasEquivalentProperties(((ItmLeadOlapFunction*)other)->getOffsetExpr());
+  return TRUE;
+}
+
+ItemExpr *ItmLeadOlapFunction::transformOlapFunction(CollHeap *heap)
+{
+   return this;
 }

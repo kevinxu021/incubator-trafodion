@@ -11,51 +11,22 @@
 <title>EsgynDB Manager</title>
 
 <!-- Bootstrap Core CSS -->
-<link href="bower_components/bootswatch/flatly/bootstrap.min.css"
-	rel="stylesheet">
-<!-- <link href="bower_components/bootstrap/dist/css/bootstrap.min.css"
-	rel="stylesheet"> -->
+<link href="bower_components/bootswatch/flatly/bootstrap.min.css" rel="stylesheet">
+<!-- <link href="bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet"> -->
 
 <!-- MetisMenu CSS -->
-<link href="bower_components/metisMenu/dist/metisMenu.min.css"
-	rel="stylesheet">
+<link href="bower_components/metisMenu/dist/metisMenu.min.css" rel="stylesheet">
 
 <!-- Timeline CSS -->
-<link
-	href="bower_components/startbootstrap-sb-admin-2/dist/css/timeline.css"
-	rel="stylesheet">
+<link href="bower_components/startbootstrap-sb-admin-2/dist/css/timeline.css" rel="stylesheet">
 
 <!-- Custom CSS -->
-<link
-	href="bower_components/startbootstrap-sb-admin-2/dist/css/sb-admin-2.css"
-	rel="stylesheet">
-
-<!-- Morris Charts CSS -->
-<link href="bower_components/morrisjs/morris.css" rel="stylesheet">
+<link href="bower_components/startbootstrap-sb-admin-2/dist/css/sb-admin-2.css" rel="stylesheet">
 
 <!-- Custom Fonts -->
-<link href="bower_components/font-awesome/css/font-awesome.min.css"
-	rel="stylesheet" type="text/css">
+<link href="bower_components/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
 
-<link type="text/css" href="bower_components/jit/Jit/css/Spacetree.css"
-	rel="stylesheet" />
-<link type="text/css"
-	href="bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.css"
-	rel="stylesheet" />
-<link type="text/css"
-	href="bower_components/datatables-responsive/css/responsive.dataTables.scss"
-	rel="stylesheet" />
-<link type="text/css"
-	href="bower_components/jquery-ui/themes/flick/jquery-ui.min.css"
-	rel="stylesheet" />
-
-<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-<!--[if lt IE 9]>
-        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-    <![endif]-->
-
+<link type="text/css" href="bower_components/jquery-ui/themes/flick/jquery-ui.min.css" rel="stylesheet" />
 <link type="text/css" href="css/dbmgr.css" rel="stylesheet" />
 
 </head>
@@ -66,8 +37,9 @@
 		<div class="navbar-header">
 			<button type="button" class="navbar-toggle" data-toggle="collapse"
 				data-target=".navbar-collapse">
-				<span class="sr-only">Toggle navigation</span> <span class="icon-bar"></span>
-				<span class="icon-bar"></span> <span class="icon-bar"></span>
+				<span class="sr-only">Toggle navigation</span> <span
+					class="icon-bar"></span> <span class="icon-bar"></span> <span
+					class="icon-bar"></span>
 			</button>
 			<div style="display: inline-flex">
 				<!--<img id="title-img" src="img/DBMgr_Logo.png" alt="logo"/>-->
@@ -80,7 +52,7 @@
 		<div class="row">
 			<div class="col-md-4 col-md-offset-4">
 				<div class="login-panel panel panel-default"
-					style="margin-bottom: 150px;margin-left: auto;margin-right: auto;margin-top: 100px;width: 400px;">
+					style="margin-bottom: 150px; margin-left: auto; margin-right: auto; margin-top: 100px; width: 400px;">
 					<div class="panel-heading">
 						<header id="title-header">
 							<h1 style="text-align: center; font-size: 24px;">Login</h1>
@@ -90,24 +62,27 @@
 						<form id="login-form" role="form" onsubmit="return false">
 							<fieldset>
 								<div class="form-group">
-									<label for="username"><i class="glyphicon glyphicon-user"></i> Username</label>
-									<input name="username" id="username" class="form-control"
-										name="username"
-										style="height: 40px; font-size: 18px" autofocus>
+									<label for="username"><i
+										class="glyphicon glyphicon-user"></i> Username</label> 
+									<input
+										name="username" id="username" class="form-control"
+										style="height: 40px; font-size: 18px"
+										autofocus>
 								</div>
 								<div class="form-group">
-									<label for="password"><i class="glyphicon glyphicon-lock"></i> Password</label>
-									<input name="password" id="password" class="form-control"
-										name="password" type="password"
-										value="" style="height: 40px; font-size: 18px">
+									<label for="password"><i
+										class="glyphicon glyphicon-lock"></i> Password</label> 
+									<input
+										name="password" id="password" class="form-control"
+										type="password" value=""
+										style="height: 40px; font-size: 18px">
 								</div>
 								<!-- Change this to a button or input when using this as a form -->
-								<button id="loginBtn" class="btn btn-success btn-block" style="font-weight:bold">Login</button>
+								<button id="loginBtn" class="btn btn-success btn-block"
+									style="font-weight: bold">Login</button>
 							</fieldset>
-							<label id="login-error-text"
-								style="color: red; font-weight: 500; display: none"></label> <img
-								id="loadingImg" src="img/ajax-loader.gif"
-								style="padding-top: 5px; display: none" />
+							<label id="login-error-text" style="color: red; font-weight: 500; display: none"></label>
+							<div id="loadingImg">Authenticating the user... <img src="img/ajax-loader.gif" style="padding-top: 5px;" /></div>
 						</form>
 					</div>
 				</div>
@@ -120,7 +95,7 @@
 
 </body>
 <footer class="footer"
-	style="position: absolute; bottom: 40px; width: 100%; height: 60px;">
+	style="margin-top:40px;position:relative;width:100%; height: 60px;">
 	<div class="container">
 		<a title="EsgynDB Manager" href="/" class="dbmgr-login-footer">EsgynDB
 			Manager</a>
