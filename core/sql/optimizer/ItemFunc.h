@@ -116,8 +116,10 @@ public:
       olapPartitionBy_(NULL),
       olapOrderBy_(NULL),
       frameStart_(-INT_MAX),
-      frameEnd_(INT_MAX)
+      frameEnd_(INT_MAX),
+      isPushdown_(FALSE)
     { setOrigOpType(otypeSpecifiedByUser); }
+
   Aggregate(OperatorTypeEnum otype,
 	    ItemExpr *child0 = NULL,
 	    NABoolean isDistinct = FALSE,
@@ -133,8 +135,10 @@ public:
       olapPartitionBy_(NULL),
       olapOrderBy_(NULL),
       frameStart_(-INT_MAX),
-      frameEnd_(INT_MAX)
+      frameEnd_(INT_MAX),
+      isPushdown_(FALSE)
     {}
+
   Aggregate(OperatorTypeEnum otype,
 	    ItemExpr *child0,
 	    ItemExpr *child1,
@@ -151,7 +155,8 @@ public:
       olapPartitionBy_(NULL),
       olapOrderBy_(NULL),
       frameStart_(-INT_MAX),
-      frameEnd_(INT_MAX)
+      frameEnd_(INT_MAX),
+      isPushdown_(FALSE)
     {}
 
   // virtual destructor
@@ -327,7 +332,8 @@ public:
 
   virtual QR::ExprElement getQRExprElem() const;
 
-
+  NABoolean isPushdown() { return isPushdown_; }
+  void setIsPushdown(NABoolean v) { isPushdown_ = v; }
 
 private:
 
@@ -381,8 +387,10 @@ private:
 
   // true iff am top part of a rewritten aggregate
   NABoolean amTopPartOfAggr_;
-}; // class Aggregate
 
+  // set to TRUE if this aggr can be pushed down to hbase or orc layers
+  NABoolean isPushdown_;
+}; // class Aggregate
 
 // Variance -  Variance is an aggregate itemExpr derived from the
 // Aggregate class.  This class implements the compiler side of the Variance
@@ -626,6 +634,8 @@ public:
     { ItemExpr::generateCacheKey(cwa); }
 
   virtual QR::ExprElement getQRExprElem() const;
+
+  ItemExpr* removeNonPushablePredicatesForORC();
 
 private:
 

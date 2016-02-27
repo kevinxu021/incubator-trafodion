@@ -562,7 +562,7 @@ short CmpSeabaseDDL::processDDLandCreateDescs(
           return resetCQDs(hbaseSerialization, hbVal, -1);
         }
 
-      if (buildKeyInfoArray(&colArray, &keyArray, colInfoArray, keyInfoArray, FALSE,
+      if (buildKeyInfoArray(&colArray, NULL, &keyArray, colInfoArray, keyInfoArray, FALSE,
 			    &keyLength, CTXTHEAP))
 	{
 	  return resetCQDs(hbaseSerialization, hbVal, -1);
@@ -5698,6 +5698,7 @@ short CmpSeabaseDDL::buildColInfoArray(
 
 short CmpSeabaseDDL::buildKeyInfoArray(
                                        ElemDDLColDefArray *colArray,
+                                       NAColumnArray * nacolArray,
                                        ElemDDLColRefArray *keyArray,
                                        ComTdbVirtTableColumnInfo * colInfoArray,
                                        ComTdbVirtTableKeyInfo * keyInfoArray,
@@ -5718,8 +5719,21 @@ short CmpSeabaseDDL::buildKeyInfoArray(
       keyInfoArray[index].colName = col_name; //(*keyArray)[index]->getColumnName();
 
       keyInfoArray[index].keySeqNum = index+1;
+
+      if ((! colArray) && (! nacolArray))
+        {
+          // this col doesn't exist. Return error.
+          *CmpCommon::diags() << DgSqlCode(-1009)
+                              << DgColumnName(keyInfoArray[index].colName);
+          
+          return -1;
+        }
+         
+      NAString nas((*keyArray)[index]->getColumnName());
       keyInfoArray[index].tableColNum = (Lng32)
-        colArray->getColumnIndex((*keyArray)[index]->getColumnName());
+        (colArray ?
+         colArray->getColumnIndex((*keyArray)[index]->getColumnName()) :
+         nacolArray->getColumnPosition(nas));
 
       if (keyInfoArray[index].tableColNum == -1)
         {
@@ -5734,7 +5748,8 @@ short CmpSeabaseDDL::buildKeyInfoArray(
         ((*keyArray)[index]->getColumnOrdering() == COM_ASCENDING_ORDER ? 0 : 1);
       keyInfoArray[index].nonKeyCol = 0;
 
-      if ((colInfoArray[keyInfoArray[index].tableColNum].nullable != 0) &&
+      if ((colInfoArray) &&
+          (colInfoArray[keyInfoArray[index].tableColNum].nullable != 0) &&
           (NOT allowNullableUniqueConstr))
         {
           *CmpCommon::diags() << DgSqlCode(-CAT_CLUSTERING_KEY_COL_MUST_BE_NOT_NULL_NOT_DROP)

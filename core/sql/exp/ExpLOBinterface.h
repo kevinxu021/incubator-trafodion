@@ -39,6 +39,9 @@ class HdfsFileInfo
   Int64 getStartRow() { return startOffset_; }
   Int64 getNumRows() { return bytesToRead_; }
 
+  // used for partitioned Hive tables
+  const char *getPartColValues() const { return partColValues_; }
+
   Lng32 getFlags() { return flags_; }
 
   void setFileIsLocal(NABoolean v)
@@ -64,6 +67,24 @@ class HdfsFileInfo
   NABasicPtr  fileName_;
   Int64 startOffset_;
   Int64 bytesToRead_;
+  NABasicPtr partColValues_;
+};
+
+class HdfsColInfo
+{
+ public:
+  HdfsColInfo(char * cname, Lng32 cnum) :
+       colName_(cname), colNum_(cnum)
+  {}
+
+  char * colName() { return colName_; }
+  Lng32  colNumber() { return colNum_; }
+
+  Lng32 getFlags() { return flags_; }
+
+  Lng32 colNum_; // 0 based. Number of first col in file is 0.
+  Lng32 flags_;
+  NABasicPtr  colName_;
 };
 
 #include "ExpLOBaccess.h"

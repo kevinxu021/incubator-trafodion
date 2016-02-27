@@ -4448,7 +4448,8 @@ HTC_RetCode HTableClient_JNI::deleteRow(Int64 transID, HbaseStr &rowID, const LI
   tsRecentJMFromJNI = JavaMethods_[JM_DELETE].jm_full_name;
   jboolean j_asyncOperation = FALSE;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, 
-          JavaMethods_[JM_DELETE].methodID, j_tid, jba_rowID, j_cols, j_ts, j_asyncOperation, js_hbaseAuths);
+                                              JavaMethods_[JM_DELETE].methodID, j_tid, jba_rowID, j_cols, j_ts, j_asyncOperation,
+                                              js_hbaseAuths);
   if (hbs_)
     {
       hbs_->incMaxHbaseIOTime(hbs_->getHbaseTimer().stop());
@@ -6127,6 +6128,39 @@ jobjectArray convertToByteArrayObjectArray(const char **array,
    return j_objArray;
 }
 
+jobjectArray convertToByteArrayObjectArray(const TextVec &vec)
+{
+   int vecLen = vec.size();
+   int i = 0;
+   jobjectArray j_objArray = NULL;
+   for ( ; i < vec.size(); i++)
+   {
+       const Text &t = vec[i];
+     //       const HbaseStr *hbStr = &vec.at(i);
+       jbyteArray j_obj = jenv_->NewByteArray(t.size());
+       if (jenv_->ExceptionCheck())
+       {
+          if (j_objArray != NULL)
+             jenv_->DeleteLocalRef(j_objArray);
+          return NULL; 
+       }
+       jenv_->SetByteArrayRegion(j_obj, 0, t.size(), (const jbyte *)t.data());
+       if (j_objArray == NULL)
+       {
+          j_objArray = jenv_->NewObjectArray(vecLen,
+                 jenv_->GetObjectClass(j_obj), NULL);
+          if (jenv_->ExceptionCheck())
+          {
+             jenv_->DeleteLocalRef(j_obj);
+             return NULL;
+          }
+       }
+       jenv_->SetObjectArrayElement(j_objArray, i, (jobject)j_obj);
+       jenv_->DeleteLocalRef(j_obj);
+   }
+   return j_objArray;
+}
+
 jobjectArray convertToStringObjectArray(const TextVec &vec)
 {
    int vecLen = vec.size();
@@ -6235,6 +6269,27 @@ int convertStringObjectArrayToList(NAHeap *heap, jarray j_objArray,
         list.insert(new (heap) Text(str));
         jenv_->ReleaseStringUTFChars(j_str, str);        
     }
+    return arrayLen;
+}
+
+int convertLongObjectArrayToList(NAHeap *heap, jlongArray j_longArray, LIST(Int64)&list)
+{
+    if (j_longArray == NULL)
+        return 0;
+    int arrayLen = jenv_->GetArrayLength(j_longArray);
+    const char *str;
+    jboolean isCopy;
+
+    jlong *body = jenv_->GetLongArrayElements(j_longArray, NULL);
+
+    for (int i = 0; i < arrayLen; i++)
+    {
+        jlong x = body[i];
+        list.insert(Int64(body[i]));
+    }
+
+    jenv_->ReleaseLongArrayElements(j_longArray, body, NULL);
+
     return arrayLen;
 }
 

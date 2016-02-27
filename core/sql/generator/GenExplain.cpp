@@ -638,6 +638,16 @@ FileScan::addSpecificExplainInfo(ExplainTupleMaster *explainTuple,
       description += " ";
     }
 
+  if ((getTableDesc()->getNATable()->isHiveTable()) &&
+      (getTableDesc()->getNATable()->getClusteringIndex()->
+       getHHDFSTableStats()->isOrcFile()) &&
+      (orcListOfPPI().entries() > 0))
+    {
+      description += "orc_pred_pushdown: yes ";
+      description += "orc_search_arguments: ";
+      description += orcListOfPPI().getText();
+    }
+
   explainTuple->setDescription(description);
 
 //  explainTuple->setTableName(getTableName());
@@ -2299,24 +2309,5 @@ ExplainTuple *ExeUtilHBaseBulkUnLoad::addSpecificExplainInfo(ExplainTupleMaster 
   return explainTuple;
 }
 
-ExplainTuple *ExeUtilHbaseCoProcAggr::addSpecificExplainInfo(
-     ExplainTupleMaster *explainTuple, ComTdb *tdb, Generator *generator)
-{
-  NAString description;
-  char buf[64];
-  description += "rows_accessed: "; // #  rows accessed
-  sprintf(buf, "%g ", getEstRowsAccessed().getValue());
-  description += buf;
-  
-  if (!(((ComTdbHbaseCoProcAggr *)tdb)->
-        getHbasePerfAttributes()->cacheBlocks())) {
-    description += "cache_blocks: " ;
-    description += "OFF " ;
-  }
-
-  explainTuple->setDescription(description);
-
-  return explainTuple;
-}
 
 

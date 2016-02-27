@@ -433,6 +433,36 @@ define(['moment',
 
 				return result;
 			};
+			
+			this.calculateHeight = function(depth){
+				return Math.max(310,70*depth);
+			};
+			
+			
+			this.calculateWidth = function(tree, container){
+				var a=[];
+				this.traverseWidth(a, tree, 0);
+				var left=Math.max.apply(null, a);
+				var right=Math.min.apply(null, a); //only left is used, if precise position needed, we will use right value;
+				
+				return Math.max($(container).width(), left*2*70);
+			};
+			
+			
+			this.traverseWidth = function(arr, tree, i){						
+				if(tree&&tree.children){
+					if(tree.children.length==2){
+						this.traverseWidth(arr, tree.children[0], i+1);
+						this.traverseWidth(arr, tree.children[1], i-1);
+					} else {
+						arr.push(i);
+						this.traverseWidth(arr, tree.children[0],i);
+					}								
+				} else{
+					arr.push(i);
+				}
+				
+			};
 
 			this.calculateHeight = function(depth){
 				return Math.max(310,70*depth);
@@ -476,6 +506,8 @@ define(['moment',
 					//set distance between node and its children
 					levelDistance: 40,
 					siblingOffset: 100,
+				    width: this.calculateWidth(jsonData, container),						   
+				    height: this.calculateHeight(jsonData.treeDepth),
 					//set max levels to show. Useful when used with
 					//the request method for requesting trees of specific depth
 					levelsToShow: jsonData.treeDepth,

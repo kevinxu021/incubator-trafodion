@@ -149,5 +149,6 @@ CPPSRC := \
 	Triggers.cpp \
 	VEGTable.cpp \
 	HbaseSearchSpec.cpp \
-	vers_liboptimizer.cpp
+	vers_liboptimizer.cpp \
+	orcPushdownPredInfo.cpp
 

@@ -202,6 +202,8 @@ IndexDesc::IndexDesc(TableDesc *tdesc,
                                     = fileSet_->getPartitioningKeyColumns();
   for (i = 0; i < partitioningKeyColumns.entries(); i++)
     {
+
+NAColumn* p = partitioningKeyColumns[i];
       // which column of the index is this 
 #pragma nowarn(1506)   // warning elimination 
       ixColNumber = allColumns.index(partitioningKeyColumns[i]);
@@ -384,8 +386,16 @@ CostScalar IndexDesc::getEstimatedRecordsPerBlock() const
 
   const CostScalar recordsPerBlock = (blockSize / recordLength).getFloor();
 
-  if ((CmpCommon::getDefault(MODE_SEABASE) != DF_ON) ||
-      (NOT getPrimaryTableDesc()->getNATable()->isHbaseTable()))
+  NABoolean checkBlockSize = FALSE;
+
+  if (CmpCommon::getDefault(MODE_SEABASE) != DF_ON)
+    checkBlockSize = TRUE;
+  else
+  if ( getPrimaryTableDesc()->getNATable()->isHiveTable() &&
+       NOT getPrimaryTableDesc()->getNATable()->isORC() )
+    checkBlockSize = TRUE;
+
+  if ( checkBlockSize )
     {
       // A row can never be larger than a block:
       CMPASSERT( recordsPerBlock > csZero );
@@ -395,9 +405,10 @@ CostScalar IndexDesc::getEstimatedRecordsPerBlock() const
       // For an hbase table, there is no concept of a SQ like blocksize and
       // the record size can be very large.
       // For now, make recordsPerBlock as 1 if it becomes 0 or less.
-      // TBD TBD
+      // 
+      // For ORC tables, the concept of a block does not apply. Return 1 as well.
       if (recordsPerBlock <= csZero)
-	return (CostScalar)1;
+       return (CostScalar)1;
     }
 
   return recordsPerBlock;  
@@ -843,5 +854,12 @@ IndexProperty::compareIndexPromise(const IndexProperty *ixProp) const
        } 
      
     return INCOMPATIBLE;
+}
+  
+NABoolean IndexDesc::isSortedORCHive() const
+{
+   return getPartitioningKey().entries() > 0 &&
+          getIndexKey().entries() > 0 &&
+          getPrimaryTableDesc()->getNATable()->isORC();
 }
 // eof

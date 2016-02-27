@@ -46,13 +46,13 @@ import org.apache.hadoop.io.Text;
 
 import org.apache.hive.common.util.HiveTestUtils;
 
-import static org.junit.Assert.assertEquals;
-import org.junit.Before;
-import org.junit.Test;
 import static org.junit.Assert.assertNull;
+
+import org.apache.log4j.Logger;
 
 public class OrcFileRead 
 {
+    static Logger logger = Logger.getLogger(OrcFileRead.class.getName());;
 
     Configuration m_conf;
     Path m_file_path;
@@ -150,17 +150,25 @@ public class OrcFileRead
 
 	SearchArgument sarg = SearchArgumentFactory.newBuilder()
 	    .startAnd()
-	    .between("_aacol0", 5, 10)
+	    .lessThan("_col0", new Integer(10))
 	    .end()
 	    .build();
 
 	m_include_cols[1] = true;
 	m_include_cols[2] = true;
 	m_include_cols[6] = true;
-	m_rr = m_reader.rowsOptions(new Reader.Options()
-				    .include(m_include_cols)
-				    .searchArgument(sarg, new String[]{null, "_col0"})
-				    );
+
+	Reader.Options lv_ro = new Reader.Options();
+	lv_ro = lv_ro.include(m_include_cols);
+
+	String la_col_names[] = new String[m_types.size()];
+	la_col_names[0] = null;
+ 	for (int i = 0; i < m_fields.size(); i++) {
+	    la_col_names[i+1] = m_fields.get(i).getFieldName();
+	}
+	lv_ro = lv_ro.searchArgument(sarg, la_col_names);
+
+	m_rr = m_reader.rowsOptions(lv_ro);
 
 	return 0;
     }
@@ -189,7 +197,7 @@ public class OrcFileRead
 	System.out.println("Number of columns in the table: " + m_fields.size());
 
 	// Print the type info:
-	for (int i = 0; i < m_fields.size(); i++) {
+ 	for (int i = 0; i < m_fields.size(); i++) {
 	    System.out.println("Column " + i + " name: " + m_fields.get(i).getFieldName());
 	    ObjectInspector lv_foi = m_fields.get(i).getFieldObjectInspector();
 	    System.out.println("Column " + i + " type category: " + lv_foi.getCategory());

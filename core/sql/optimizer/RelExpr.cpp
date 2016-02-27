@@ -64,6 +64,7 @@
 #include "AppliedStatMan.h"
 #include "Generator.h"
 #include "CmpStatement.h"
+#include "HDFSHook.h"
 
 #define TEXT_DISPLAY_LENGTH 1001
 
@@ -855,6 +856,8 @@ RelExpr * RelExpr::copyTopNode(RelExpr *derivedNode,CollHeap* outHeap)
   result->costLimit_ = costLimit_;
 
   result->optHbaseAccessOptions_ = optHbaseAccessOptions_;
+
+  result->flags_ = flags_;
 
   return result;
 }
@@ -8091,6 +8094,52 @@ PlanPriority HashGroupBy::computeOperatorPriority
 }
 
 // -----------------------------------------------------------------------
+// member functions for class HbasePushdownAggr
+// -----------------------------------------------------------------------
+HbasePushdownAggr::~HbasePushdownAggr()
+{}
+
+const NAString HbasePushdownAggr::getText() const
+{
+  return "hbase_aggr";
+}
+
+RelExpr * HbasePushdownAggr::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
+{
+  RelExpr *result;
+
+  if (derivedNode == NULL)
+    result = new (outHeap) HbasePushdownAggr(aggregateExpr(), tableDesc_);
+  else
+    result = derivedNode;
+
+  return GroupByAgg::copyTopNode(result, outHeap);
+}
+
+// -----------------------------------------------------------------------
+// member functions for class OrcPushdownAggr
+// -----------------------------------------------------------------------
+OrcPushdownAggr::~OrcPushdownAggr()
+{}
+
+const NAString OrcPushdownAggr::getText() const
+{
+  return "orc_aggr";
+}
+
+RelExpr * OrcPushdownAggr::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
+{
+  RelExpr *result;
+
+  if (derivedNode == NULL)
+    result = new (outHeap) OrcPushdownAggr(aggregateExpr(), tableDesc_);
+  else
+    result = derivedNode;
+
+  return GroupByAgg::copyTopNode(result, outHeap);
+}
+
+// -----------------------------------------------------------------------
 // member functions for class Scan
 // -----------------------------------------------------------------------
 
@@ -9712,6 +9761,8 @@ RelExpr * FileScan::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
   result->setExecutorPredicates(getExecutorPredicates());
   result->retrievedCols_ = retrievedCols_;
 
+  result->orcListOfPPI_ = orcListOfPPI_;
+
   return Scan::copyTopNode(result, outHeap);
 }
 
@@ -9802,7 +9853,17 @@ const NAString FileScan::getText() const
   if (indexDesc_ == NULL OR indexDesc_->isClusteringIndex())
     {
       if (isHiveTable())
-	op += "hive_scan ";
+        {
+          NABoolean isOrc = 
+            (getTableDesc() && getTableDesc()->getNATable() ? 
+             getTableDesc()->getNATable()->getClusteringIndex()->
+             getHHDFSTableStats()->isOrcFile() : FALSE);
+
+          if (isOrc)
+            op += "orc_scan ";
+          else
+            op += "hive_scan ";
+        }
       else
 	op += "file_scan ";
     }
@@ -9860,7 +9921,7 @@ const NAString FileScan::getTypeText() const
 void FileScan::addLocalExpr(LIST(ExprNode *) &xlist,
 			    LIST(NAString) &llist) const
 {
-  if (getIndexDesc() != NULL)
+  if (getIndexDesc() != NULL && !isHiveTable())
     {
       const ValueIdList& keyColumns = getIndexDesc()->getIndexKey();
       xlist.insert(keyColumns.rebuildExprTree());
@@ -9991,6 +10052,18 @@ void FileScan::addLocalExpr(LIST(ExprNode *) &xlist,
     {
       xlist.insert(getEndKeyPred().rebuildExprTree());
       llist.insert("end_key");
+    }
+  if (hiveSearchKey_ &&
+      !hiveSearchKey_->getCompileTimePartColPreds().isEmpty())
+    {
+      xlist.insert(hiveSearchKey_->getCompileTimePartColPreds().rebuildExprTree());
+      llist.insert("part_elim_compiled");
+    }
+  if (hiveSearchKey_ &&
+      !hiveSearchKey_->getPartAndVirtColPreds().isEmpty())
+    {
+      xlist.insert(hiveSearchKey_->getPartAndVirtColPreds().rebuildExprTree());
+      llist.insert("part_elim_runtime");
     }
 
     // xlist.insert(retrievedCols_.rebuildExprTree(ITM_ITEM_LIST));
@@ -10234,140 +10307,6 @@ HbaseAccess::synthLogProp(NormWA * normWAPtr)
   RelExpr::synthLogProp(normWAPtr);
 
 } // HbaseAccess::synthLogProp()
-
-// -----------------------------------------------------------------------
-// methods for class HBaseAccessCoProcAggr
-// -----------------------------------------------------------------------
-
-HbaseAccessCoProcAggr::HbaseAccessCoProcAggr(CorrName &corrName,
-					     ValueIdSet &aggregateExpr,
-					     TableDesc *tableDesc,
-					     IndexDesc *idx,
-					     const NABoolean isReverseScan,
-					     const Cardinality& baseCardinality,
-					     StmtLevelAccessOptions& accessOptions,
-					     GroupAttributes * groupAttributesPtr,
-					     const ValueIdSet& selectionPredicates,
-					     const Disjuncts& disjuncts,
-					     CollHeap *oHeap)
-  : HbaseAccess(corrName, tableDesc, idx, 
-		isReverseScan, baseCardinality,
-		accessOptions, groupAttributesPtr,
-		selectionPredicates, disjuncts,
-                ValueIdSet(),
-		REL_HBASE_COPROC_AGGR),
-    aggregateExpr_(aggregateExpr)
-{
-  accessType_ = COPROC_AGGR_;
-
-}
-
-HbaseAccessCoProcAggr::HbaseAccessCoProcAggr(CorrName &corrName,
-					     ValueIdSet &aggregateExpr,
-					     CollHeap *oHeap)
-  : HbaseAccess(corrName, 
-		REL_HBASE_COPROC_AGGR,
-		oHeap),
-    aggregateExpr_(aggregateExpr)
-{
-  accessType_ = COPROC_AGGR_;
-}
-
-HbaseAccessCoProcAggr::HbaseAccessCoProcAggr( CollHeap *oHeap)
-  : HbaseAccess(REL_HBASE_COPROC_AGGR, oHeap)
-{
-  accessType_ = SELECT_;
-
-  uniqueHbaseOper_ = FALSE;
-  uniqueRowsetHbaseOper_ = FALSE;
-}
-
-//! HbaseAccessCoProcAggr::~HbaseAccessCoProcAggr Destructor 
-HbaseAccessCoProcAggr::~HbaseAccessCoProcAggr()
-{
-}
-
-//! HbaseAccessCoProcAggr::copyTopNode method 
-RelExpr * HbaseAccessCoProcAggr::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
-{
-  HbaseAccessCoProcAggr *result;
-
-  if (derivedNode == NULL)
-    result = new (outHeap) HbaseAccessCoProcAggr(outHeap);
-  else
-    result = (HbaseAccessCoProcAggr *) derivedNode;
-
-  result->aggregateExpr_ = aggregateExpr_;
-
-  return HbaseAccess::copyTopNode(result, outHeap);
-}
-
-const NAString HbaseAccessCoProcAggr::getText() const
-{
-  NAString op(CmpCommon::statementHeap());
-  NAString tname(getTableName().getText(),CmpCommon::statementHeap());
-
-  op += "hbase_coproc_aggr ";
-
-  return op + tname;
-}
-
-RelExpr *HbaseAccessCoProcAggr::bindNode(BindWA *bindWA)
-{
-  if (nodeIsBound())
-    {
-      bindWA->getCurrentScope()->setRETDesc(getRETDesc());
-      return this;
-    }
-
-  RelExpr * re = NULL;
-  re = HbaseAccess::bindNode(bindWA);
-  if (bindWA->errStatus())
-    return this;
-
-  return re;
-}
-
-void HbaseAccessCoProcAggr::getPotentialOutputValues(
-     ValueIdSet & outputValues) const
-{
-  outputValues.clear();
-
-  outputValues += aggregateExpr();
-} // HbaseAccessCoProcAggr::getPotentialOutputValues()
-
-PhysicalProperty*
-HbaseAccessCoProcAggr::synthPhysicalProperty(const Context* myContext,
-					     const Lng32     planNumber,
-                                             PlanWorkSpace  *pws)
-{
-  
-  //----------------------------------------------------------
-  // Create a node map with a single, active, wild-card entry.
-  //----------------------------------------------------------
-  NodeMap* myNodeMap = new(CmpCommon::statementHeap())
-    NodeMap(CmpCommon::statementHeap(),
-	    1,
-	    NodeMapEntry::ACTIVE);
-  
-  //------------------------------------------------------------
-  // Synthesize a partitioning function with a single partition.
-  //------------------------------------------------------------
-  PartitioningFunction* myPartFunc =
-    new(CmpCommon::statementHeap())
-    SinglePartitionPartitioningFunction(myNodeMap);
-  
-  PhysicalProperty * sppForMe =
-    new(CmpCommon::statementHeap())
-    PhysicalProperty(myPartFunc,
-                     EXECUTE_IN_MASTER,
-                     SOURCE_VIRTUAL_TABLE);
-  
-  // remove anything that's not covered by the group attributes
-  sppForMe->enforceCoverageByGroupAttributes (getGroupAttr()) ;
-  
-  return sppForMe;
-} //  HbaseAccessCoProcAggr::synthPhysicalProperty()
 
 // -----------------------------------------------------------------------
 // methods for class HbaseDelete

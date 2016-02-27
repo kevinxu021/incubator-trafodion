@@ -46,6 +46,7 @@
 #include "QRExprElement.h"
 #include "IndexDesc.h"
 #include "ComKeyMDAM.h"
+#include "orcPushdownPredInfo.h"
 
 // -----------------------------------------------------------------------
 // contents of this file
@@ -358,6 +359,11 @@ public:
 
 
   void transformOlapFunctions(CollHeap *wHeap);
+
+
+  // test if this is a constant, a host var, a dynamic or a cache parameter.
+  NABoolean isAConstantHostVarParameterOrFunc() ;
+  
 
  private:
   // This method has the code that is common to
@@ -986,6 +992,20 @@ public:
   // the top node of an expression tree or an entire tree
   ItemExpr * copyTree(CollHeap* outHeap=0);
 
+  // Clone the entire item tree to use as a scratchpad for some computation. The
+  // pointers to children itemExprs are copied, but the valueId is reset to zero.
+  // The default implementation calls cloneTopNode to clone this. 
+  virtual ItemExpr * cloneTree(CollHeap* outHeap=0);
+
+  // Clone this item expression only. Thus far, only VEGPredicate is known to 
+  // alter its ValueId after the copyTopNode() call and the valueId is significant 
+  // in maintaining the content of the vegPair lookup table correctly after 
+  // multiple ValueIdSet::replaceVEGExpressions() calls.  So there is a special 
+  // method VEGPredicate::cloneTopNode() that retains the same valueId after clone.
+  virtual ItemExpr * cloneTopNode(CollHeap* outHeap=0) 
+   { return copyTopNode(NULL, outHeap); };
+
+
   // Is this operator supported by the synthesis functions?
   virtual NABoolean synthSupportedOp() const { return FALSE; }
 
@@ -1219,7 +1239,20 @@ public:
   virtual Int32       getOutputDegree()     { return 1; }
   virtual ItemExpr *getOutputItem(UInt32 i) { return this; }
 
+  // remove non-pushabe predicates for ORC, default implementation.
+  virtual ItemExpr* removeNonPushablePredicatesForORC() { return NULL; }
+
+  // check if this item expr involves a column directly or indirectly
+  virtual NABoolean isInvolvingAColumn();
+
+  // remove non-pushabe predicates for ORC, default implementation, for binary item exprs
+  virtual ItemExpr* doBinaryRemoveNonPushablePredicatesForORC(NABoolean allowTrimOff);
+
+  virtual void generatePushdownListForORC(OrcPushdownPredInfoList&) {};
+
 protected:
+
+
   // ---------------------------------------------------------------------
   // This function does the real work of bind nodes for an expression.
   // It calls bindNode on the tree and then fills any incomplete

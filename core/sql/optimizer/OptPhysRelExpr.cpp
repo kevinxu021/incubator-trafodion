@@ -3696,8 +3696,9 @@ isOneToOneMatchHashPartitionJoinPossible(NestedJoin* nj,
     }
 
 
-    // Check whether this is hash2 partitioning. If not, return FALSE.
-    if ( leftPartFunc->castToHash2PartitioningFunction() == NULL )
+    // Check whether this is hash2 or hive partitioning. If not, return FALSE.
+    if ( leftPartFunc->castToHash2PartitioningFunction() == NULL &&
+         leftPartFunc->castToHivePartitioningFunction() == NULL )
        return NULL;
   }
 
@@ -3768,6 +3769,16 @@ ReqdPhysicalProperty* NestedJoin::genRightChildReqs(
                          NABoolean avoidNSquareOpens)
 {
   ReqdPhysicalProperty* rppForChild = NULL;
+
+  // Nested join into non sorted ORC hive tables is not allowed.
+  /*
+  if (child(1).getGroupAttr()->allHiveTables() )
+   {
+      if ( !((child(1)).getGroupAttr()->allHiveORCTablesSorted()) ) {
+         return NULL;
+      }
+   }
+  */
 
   // ---------------------------------------------------------------
   // spp should have been synthesized for child's optimal plan.
@@ -14509,12 +14520,6 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   NABoolean requiredESPsFixed = 
     partReq && partReq->castToFullySpecifiedPartitioningRequirement();
 
-  const HHDFSTableStats *tableStats = hiveSearchKey_->getHDFSTableStats();
-
-  // stats for partitions/buckets selected by predicates
-  HHDFSStatsBase selectedStats;
-
-  hiveSearchKey_->accumulateSelectedStats(selectedStats);
 
   // limit the number of ESPs to HIVE_NUM_ESPS_PER_DATANODE * nodes
   maxESPs = MAXOF(MINOF(numSQNodes*numESPsPerDataNode, maxESPs),1);
@@ -14536,8 +14541,10 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
     double numESPsBasedOnTotalSize = 1;
 
     // adjust minESPs based on HIVE_MIN_BYTES_PER_ESP_PARTITION CQD
-    if (bytesPerESP > 1.01)
-      numESPsBasedOnTotalSize = selectedStats.getTotalSize()/(bytesPerESP-1.0);
+    if (bytesPerESP > 1.01) {
+      Int64 totalSize = hiveSearchKey_->getTotalSize();
+      numESPsBasedOnTotalSize = totalSize/(bytesPerESP-1.0);
+    }
 
     if (numESPsBasedOnTotalSize >= maxESPs)
       numESPs = maxESPs;
@@ -14610,6 +14617,29 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
    
   NodeMap* myNodeMap = NULL;
 
+  //
+  // Setup partKeys_, iff the hive table is clustered, sorted and in ORC format. 
+  // such tables are created with the DDL similar to the following.
+  //
+  // create table store_sorted_orc
+  // (
+  //     s_store_sk                int,
+  //     s_store_id                string,
+  //    .. ...
+  // )
+  // clustered by (s_store_sk) sorted by (s_store_sk, s_rec_start_date, s_rec_end_date) into 2 buckets;
+  //
+  // Note that the clustered and the sorted by clause must appear together.
+  //
+  // We require ORC tables because it is possible to implement the search key through 
+  // ORC predicate pushdown.
+  //
+  // Inside the compiler, 
+  //     clustering columns: IndexDesc::getPartitioningKey()
+  //     sorted columns:     Indexdesc::getIndexKey()
+  //
+  NABoolean canUseSearchKey = indexDesc_->isSortedORCHive();
+ 
   if (numESPs > 1)
     {
       // create a HASH2 partitioning function with numESPs partitions
@@ -14659,6 +14689,23 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
       }
 
       myPartFunc->createPartitioningKeyPredicates();
+
+      if ( canUseSearchKey ) {
+          ValueIdSet externalInputs = getGroupAttr()->getCharacteristicInputs();
+          ValueIdSet dummySet;
+  
+          // Create and set the Searchkey for the index key (aka those columns in the sorted by clause):
+           partKeys_ =  new (CmpCommon::statementHeap())
+                           SearchKey(indexDesc_->getIndexKey(), 
+                                      indexDesc_->getOrderOfKeyValues(), // the order of the index key
+                                      externalInputs,
+                                      NOT getReverseScan(),
+                                      selectionPred(),
+                                      *disjunctsPtr_,
+                                      dummySet, // needed by interface but not used here
+                                      indexDesc_
+                                      );
+      }
     }
   else
     {
@@ -14671,16 +14718,61 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
         SinglePartitionPartitioningFunction(myNodeMap);
     }
 
-  // create a very simple physical property for now, no sort order
-  // and no partitioning key for now
-  sppForMe = new(CmpCommon::statementHeap()) PhysicalProperty(myPartFunc,
-                                                              location);
+  
+  if ( !canUseSearchKey ) {
+     // create a very simple physical property for now, no sort order
+     // and no partitioning key for now
+     sppForMe = new(CmpCommon::statementHeap()) PhysicalProperty(myPartFunc,
+                                                                 location);
+  } else {
+     sppForMe =
+       new(CmpCommon::statementHeap())
+       PhysicalProperty(sortOrderVEG,
+                        ESP_NO_SORT_SOT,
+                        NULL, /* no dp2 part func*/
+                        myPartFunc,
+                        EXECUTE_IN_MASTER_AND_ESP,
+                        SOURCE_VIRTUAL_TABLE);
 
-  //FILE* fd = fopen("nodemap.log", "a");
-  //myNodeMap->print(fd, "", "hiveNodeMap");
-  //fclose(fd);
 
-  return sppForMe;
+     // remove anything that's not covered by the group attributes
+     sppForMe->enforceCoverageByGroupAttributes (getGroupAttr()) ;
+   
+     // -----------------------------------------------------------------------
+     // Vector to put all costing data that is computed at synthesis time
+     // Make it a local variable for now. If we ever reach the end of
+     // this routine create a variable from the heap, initialize it with this,
+     // and then set the sppForMe slot.
+     // -----------------------------------------------------------------------
+     DP2CostDataThatDependsOnSPP dp2CostInfo;
+     // ---------------------------------------------------------------------
+     // Estimate the number of active partitions and other costing
+     // data that depends on SPP:
+     // ---------------------------------------------------------------------
+   
+     computeDP2CostDataThatDependsOnSPP(*myPartFunc   // in/out
+                                        ,dp2CostInfo //out
+                                        ,*indexDesc_ // in
+                                        ,*partKeys_ // in
+                                        ,*getGroupAttr() //in
+                                        ,*context // in
+                                        ,CmpCommon::statementHeap() // in
+                                        , *this
+                                        );
+   
+     DP2CostDataThatDependsOnSPP *dp2CostInfoPtr =
+       new HEAP DP2CostDataThatDependsOnSPP(dp2CostInfo);
+     sppForMe->setDP2CostThatDependsOnSPP(dp2CostInfoPtr);
+   
+     sppForMe->setCurrentCountOfCPUs(dp2CostInfo.getCountOfCPUsExecutingDP2s());
+   
+   
+     //FILE* fd = fopen("nodemap.log", "a");
+     //myNodeMap->print(fd, "", "hiveNodeMap");
+     //fclose(fd);
+   }
+   
+   return sppForMe;
 }
 
 RangePartitionBoundaries * createRangePartitionBoundariesFromStats 

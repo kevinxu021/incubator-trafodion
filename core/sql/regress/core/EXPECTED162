@@ -753,11 +753,11 @@ P_PROMO_SK   P_PROMO_ID            P_START_DATE_SK  P_END_DATE_SK  P_ITEM_SK    
           8  AAAAAAAAIAAAAAAA              2450350        2450409          304   1.0000000E+003                  1  eing                  Y                     N                     N                     N                     N                     N                     N                     N                     Offences feel only o  Unknown               N                   
           9  AAAAAAAAJAAAAAAA              2450192        2450248         3439   1.0000000E+003                  1  n st                  Y                     N                     N                     N                     N                     N                     N                     N                     External forces shal  Unknown               N                   
          10  AAAAAAAAKAAAAAAA              2450324        2450365         3314   1.0000000E+003                  1  bar                   N                     N                     N                     N                     N                     N                     N                     N                     Only local achieveme  Unknown               N                   
-         11  AAAAAAAALAAAAAAA                    ?              ?            ?   1.0000000E+003                  ?  ought                 ?                     ?                     ?                     ?                     N                     ?                     N                     N                     Teachers shall not m  Unknown               N                   
+         11  AAAAAAAALAAAAAAA                    ?              ?            ?   1.0000000E+003                  ?  ought                                                                                                         N                                           N                     N                     Teachers shall not m  Unknown               N                   
          12  AAAAAAAAMAAAAAAA              2450153        2450169         6688   1.0000000E+003                  1  able                  N                     N                     N                     N                     N                     N                     N                     N                     Also only times woul  Unknown               N                   
          13  AAAAAAAANAAAAAAA              2450316        2450365        11354   1.0000000E+003                  1  pri                   N                     N                     N                     N                     N                     N                     N                     N                     Years shall not go l  Unknown               N                   
          14  AAAAAAAAOAAAAAAA              2450236        2450282        14480   1.0000000E+003                  1  ese                   N                     N                     N                     N                     N                     N                     N                     N                     Adults would not del  Unknown               N                   
-         15  AAAAAAAAPAAAAAAA                    ?              ?            ?   1.0000000E+003                  ?  anti                  Y                     ?                     N                     N                     ?                     N                     N                     N                     Old elements would s  Unknown               N                   
+         15  AAAAAAAAPAAAAAAA                    ?              ?            ?   1.0000000E+003                  ?  anti                  Y                                           N                     N                                           N                     N                     N                     Old elements would s  Unknown               N                   
          16  AAAAAAAAABAAAAAA              2450342        2450351        11899   1.0000000E+003                  1  cally                 Y                     N                     N                     N                     N                     N                     N                     N                     Sudden, wooden theor  Unknown               N                   
          17  AAAAAAAABBAAAAAA              2450360        2450406        15529   1.0000000E+003                  1  ation                 Y                     N                     N                     N                     N                     N                     N                     N                     Almost old churches   Unknown               N                   
          18  AAAAAAAACBAAAAAA              2450581        2450592         8599   1.0000000E+003                  1  eing                  Y                     N                     N                     N                     N                     N                     N                     N                     National communities  Unknown               N                   
@@ -770,7 +770,7 @@ P_PROMO_SK   P_PROMO_ID            P_START_DATE_SK  P_END_DATE_SK  P_ITEM_SK    
          25  AAAAAAAAJBAAAAAA              2450757        2450780        16328   1.0000000E+003                  1  anti                  Y                     N                     N                     N                     N                     N                     N                     N                     Scenes might make hi  Unknown               N                   
          26  AAAAAAAAKBAAAAAA              2450528        2450545         8600   1.0000000E+003                  1  cally                 N                     N                     N                     N                     N                     N                     N                     N                     Legal discussions mu  Unknown               N                   
          27  AAAAAAAALBAAAAAA              2450849        2450879        15421   1.0000000E+003                  1  ation                 Y                     N                     N                     N                     N                     N                     N                     N                     Mental men go britis  Unknown               N                   
-         28  AAAAAAAAMBAAAAAA              2450816        2450856         1885                ?                  1  ?                     N                     N                     N                     N                     N                     ?                     N                     N                     Successful opportuni  Unknown               ?                   
+         28  AAAAAAAAMBAAAAAA              2450816        2450856         1885                ?                  1                        N                     N                     N                     N                     N                                           N                     N                     Successful opportuni  Unknown                                   
          29  AAAAAAAANBAAAAAA              2450696        2450732        14660   1.0000000E+003                  1  n st                  Y                     N                     N                     N                     N                     N                     N                     N                     Residential, necessa  Unknown               N                   
          30  AAAAAAAAOBAAAAAA              2450718        2450762        10987   1.0000000E+003                  1  bar                   N                     N                     N                     N                     N                     N                     N                     N                     Flowers used to stop  Unknown               N                   
          31  AAAAAAAAPBAAAAAA              2450848        2450880        11990   1.0000000E+003                  1  ought                 Y                     N                     N                     N                     N                     N                     N                     N                     Broad times might sa  Unknown               N                   
@@ -800,7 +800,7 @@ P_PROMO_SK   P_PROMO_ID            P_START_DATE_SK  P_END_DATE_SK  P_ITEM_SK    
          55  AAAAAAAAHDAAAAAA              2450622        2450677        12104   1.0000000E+003                  1  anti                  N                     N                     N                     N                     N                     N                     N                     N                     Recent, southern lis  Unknown               N                   
          56  AAAAAAAAIDAAAAAA              2450838        2450888        17563   1.0000000E+003                  1  cally                 Y                     N                     N                     N                     N                     N                     N                     N                     Procedures can call   Unknown               N                   
          57  AAAAAAAAJDAAAAAA              2450834        2450842        12247   1.0000000E+003                  1  ation                 Y                     N                     N                     N                     N                     N                     N                     N                     Hours discriminate t  Unknown               N                   
-         58  AAAAAAAAKDAAAAAA                    ?        2450797        12404   1.0000000E+003                  ?  eing                  Y                     N                     N                     N                     ?                     N                     ?                     ?                     ?                     ?                     ?                   
+         58  AAAAAAAAKDAAAAAA                    ?        2450797        12404   1.0000000E+003                  ?  eing                  Y                     N                     N                     N                                           N                                                                                                                                 
          59  AAAAAAAALDAAAAAA              2450273        2450322         5102   1.0000000E+003                  1  n st                  N                     N                     N                     N                     N                     N                     N                     N                     Strong samples parti  Unknown               N                   
          60  AAAAAAAAMDAAAAAA              2450646        2450676        12076   1.0000000E+003                  1  bar                   Y                     N                     N                     N                     N                     N                     N                     N                     Yards write too only  Unknown               N                   
          61  AAAAAAAANDAAAAAA              2450619        2450667        14864   1.0000000E+003                  1  ought                 Y                     N                     N                     N                     N                     N                     N                     N                     Necessary men shall   Unknown               N                   
@@ -813,7 +813,7 @@ P_PROMO_SK   P_PROMO_ID            P_START_DATE_SK  P_END_DATE_SK  P_ITEM_SK    
          68  AAAAAAAAEEAAAAAA              2450851        2450893         1210   1.0000000E+003                  1  eing                  Y                     N                     N                     N                     N                     N                     N                     N                     Reasonably additiona  Unknown               N                   
          69  AAAAAAAAFEAAAAAA              2450202        2450219         7471   1.0000000E+003                  1  n st                  N                     N                     N                     N                     N                     N                     N                     N                     All right able inter  Unknown               N                   
          70  AAAAAAAAGEAAAAAA              2450679        2450735         3571   1.0000000E+003                  1  bar                   Y                     N                     N                     N                     N                     N                     N                     N                     Commercial, cool cel  Unknown               N                   
-         71  AAAAAAAAHEAAAAAA              2450347              ?            ?                ?                  ?  ?                     Y                     ?                     N                     ?                     N                     N                     N                     N                     Impossible programme  ?                     ?                   
+         71  AAAAAAAAHEAAAAAA              2450347              ?            ?                ?                  ?                        Y                                           N                                           N                     N                     N                     N                     Impossible programme                                            
          72  AAAAAAAAIEAAAAAA              2450347        2450373         6662   1.0000000E+003                  1  able                  N                     N                     N                     N                     N                     N                     N                     N                     Beautiful, british t  Unknown               N                   
          73  AAAAAAAAJEAAAAAA              2450578        2450637         9032   1.0000000E+003                  1  pri                   Y                     N                     N                     N                     N                     N                     N                     N                     Tremendous, social t  Unknown               N                   
          74  AAAAAAAAKEAAAAAA              2450425        2450456        13904   1.0000000E+003                  1  ese                   N                     N                     N                     N                     N                     N                     N                     N                     Decent bodies grant   Unknown               N                   
@@ -843,7 +843,7 @@ P_PROMO_SK   P_PROMO_ID            P_START_DATE_SK  P_END_DATE_SK  P_ITEM_SK    
          98  AAAAAAAACGAAAAAA              2450384        2450387        10414   1.0000000E+003                  1  eing                  Y                     N                     N                     N                     N                     N                     N                     N                     Periods shall not ne  Unknown               N                   
          99  AAAAAAAADGAAAAAA              2450742        2450799         7544   1.0000000E+003                  1  n st                  Y                     N                     N                     N                     N                     N                     N                     N                     White, easy shoulder  Unknown               N                   
         100  AAAAAAAAEGAAAAAA              2450508        2450562        10645   1.0000000E+003                  1  bar                   N                     N                     N                     N                     N                     N                     N                     N                     Villages go more. Mi  Unknown               N                   
-        101  AAAAAAAAFGAAAAAA                    ?        2450811            ?                ?                  ?  ?                     ?                     N                     N                     ?                     ?                     ?                     N                     N                     Reports would make a  Unknown               N                   
+        101  AAAAAAAAFGAAAAAA                    ?        2450811            ?                ?                  ?                                              N                     N                                                                                       N                     N                     Reports would make a  Unknown               N                   
         102  AAAAAAAAGGAAAAAA              2450608        2450614         9614   1.0000000E+003                  1  able                  Y                     N                     N                     N                     N                     N                     N                     N                     Medieval fires may r  Unknown               N                   
         103  AAAAAAAAHGAAAAAA              2450499        2450525        12688   1.0000000E+003                  1  pri                   N                     N                     N                     N                     N                     N                     N                     N                     Still ready eyes wil  Unknown               N                   
         104  AAAAAAAAIGAAAAAA              2450276        2450293         2461   1.0000000E+003                  1  ese                   N                     N                     N                     N                     N                     N                     N                     N                     Years will sum alway  Unknown               N                   
@@ -938,8 +938,8 @@ P_PROMO_SK   P_PROMO_ID            P_START_DATE_SK  P_END_DATE_SK  P_ITEM_SK    
         193  AAAAAAAABMAAAAAA              2450259        2450309         8780   1.0000000E+003                  1  pri                   Y                     N                     N                     N                     N                     N                     N                     N                     Terms should not kno  Unknown               N                   
         194  AAAAAAAACMAAAAAA              2450664        2450723          289   1.0000000E+003                  1  ese                   Y                     N                     N                     N                     N                     N                     N                     N                     Cultural deaths coul  Unknown               N                   
         195  AAAAAAAADMAAAAAA              2450543        2450601         5167   1.0000000E+003                  1  anti                  N                     N                     N                     N                     N                     N                     N                     N                     Conventions make imm  Unknown               N                   
-        196  AAAAAAAAEMAAAAAA              2450315              ?            ?                ?                  1  ?                     Y                     ?                     ?                     N                     N                     ?                     ?                     N                     Able patients will l  ?                     ?                   
-        197  AAAAAAAAFMAAAAAA              2450299              ?        10550                ?                  1  ?                     ?                     N                     N                     N                     N                     ?                     ?                     ?                     ?                     Unknown               ?                   
+        196  AAAAAAAAEMAAAAAA              2450315              ?            ?                ?                  1                        Y                                                                 N                     N                                                                 N                     Able patients will l                                            
+        197  AAAAAAAAFMAAAAAA              2450299              ?        10550                ?                  1                                              N                     N                     N                     N                                                                                                             Unknown                                   
         198  AAAAAAAAGMAAAAAA              2450617        2450670        15439   1.0000000E+003                  1  eing                  Y                     N                     N                     N                     N                     N                     N                     N                     German, crude expect  Unknown               N                   
         199  AAAAAAAAHMAAAAAA              2450772        2450825         8587   1.0000000E+003                  1  n st                  N                     N                     N                     N                     N                     N                     N                     N                     Powerful, considerab  Unknown               N                   
         200  AAAAAAAAIMAAAAAA              2450215        2450237        12784   1.0000000E+003                  1  bar                   N                     N                     N                     N                     N                     N                     N                     N                     Arts attend. Further  Unknown               N                   
@@ -956,7 +956,7 @@ P_PROMO_SK   P_PROMO_ID            P_START_DATE_SK  P_END_DATE_SK  P_ITEM_SK    
         211  AAAAAAAADNAAAAAA              2450646        2450649         7508   1.0000000E+003                  1  ought                 Y                     N                     N                     N                     N                     N                     N                     N                     Public, running ladi  Unknown               N                   
         212  AAAAAAAAENAAAAAA              2450781        2450834        10768   1.0000000E+003                  1  able                  N                     N                     N                     N                     N                     N                     N                     N                     Good decades take. P  Unknown               N                   
         213  AAAAAAAAFNAAAAAA              2450403        2450415         6350   1.0000000E+003                  1  pri                   Y                     N                     N                     N                     N                     N                     N                     N                     However powerful cri  Unknown               N                   
-        214  AAAAAAAAGNAAAAAA                    ?        2450779            ?   1.0000000E+003                  ?  ?                     N                     ?                     ?                     ?                     ?                     ?                     N                     N                     Pupils will meet mil  Unknown               N                   
+        214  AAAAAAAAGNAAAAAA                    ?        2450779            ?   1.0000000E+003                  ?                        N                                                                                                                                   N                     N                     Pupils will meet mil  Unknown               N                   
         215  AAAAAAAAHNAAAAAA              2450235        2450252         5840   1.0000000E+003                  1  anti                  Y                     N                     N                     N                     N                     N                     N                     N                     Apparent, experience  Unknown               N                   
         216  AAAAAAAAINAAAAAA              2450885        2450898        13504   1.0000000E+003                  1  cally                 N                     N                     N                     N                     N                     N                     N                     N                     Large, necessary car  Unknown               N                   
         217  AAAAAAAAJNAAAAAA              2450265        2450316          466   1.0000000E+003                  1  ation                 N                     N                     N                     N                     N                     N                     N                     N                     Also splendid terms   Unknown               N                   
@@ -967,7 +967,7 @@ P_PROMO_SK   P_PROMO_ID            P_START_DATE_SK  P_END_DATE_SK  P_ITEM_SK    
         222  AAAAAAAAONAAAAAA              2450336        2450378          122   1.0000000E+003                  1  able                  Y                     N                     N                     N                     N                     N                     N                     N                     Ways help. Everywher  Unknown               N                   
         223  AAAAAAAAPNAAAAAA              2450671        2450721        11452   1.0000000E+003                  1  pri                   N                     N                     N                     N                     N                     N                     N                     N                     Earlier traditional   Unknown               N                   
         224  AAAAAAAAAOAAAAAA              2450135        2450140        13534   1.0000000E+003                  1  ese                   Y                     N                     N                     N                     N                     N                     N                     N                     Then general prefere  Unknown               N                   
-        225  AAAAAAAABOAAAAAA                    ?        2450434         6514   1.0000000E+003                  ?  anti                  ?                     N                     ?                     ?                     ?                     N                     ?                     ?                     Actual, very words u  ?                     ?                   
+        225  AAAAAAAABOAAAAAA                    ?        2450434         6514   1.0000000E+003                  ?  anti                                        N                                                                                       N                                                                 Actual, very words u                                            
         226  AAAAAAAACOAAAAAA              2450436        2450468         2848   1.0000000E+003                  1  cally                 N                     N                     N                     N                     N                     N                     N                     N                     Signs must drink cer  Unknown               N                   
         227  AAAAAAAADOAAAAAA              2450751        2450794         3697   1.0000000E+003                  1  ation                 N                     N                     N                     N                     N                     N                     N                     N                     Arms can find social  Unknown               N                   
         228  AAAAAAAAEOAAAAAA              2450337        2450354        11678   1.0000000E+003                  1  eing                  Y                     N                     N                     N                     N                     N                     N                     N                     Most basic walls use  Unknown               N                   
@@ -992,7 +992,7 @@ P_PROMO_SK   P_PROMO_ID            P_START_DATE_SK  P_END_DATE_SK  P_ITEM_SK    
         247  AAAAAAAAHPAAAAAA              2450100        2450145        12976   1.0000000E+003                  1  ation                 Y                     N                     N                     N                     N                     N                     N                     N                     Therefore distinguis  Unknown               N                   
         248  AAAAAAAAIPAAAAAA              2450824        2450853        12451   1.0000000E+003                  1  eing                  N                     N                     N                     N                     N                     N                     N                     N                     Other facts ensure l  Unknown               N                   
         249  AAAAAAAAJPAAAAAA              2450467        2450523         4195   1.0000000E+003                  1  n st                  Y                     N                     N                     N                     N                     N                     N                     N                     Wrong materials shou  Unknown               N                   
-        250  AAAAAAAAKPAAAAAA              2450606              ?            ?                ?                  1  ?                     ?                     N                     N                     ?                     ?                     ?                     N                     N                     Private, political m  Unknown               ?                   
+        250  AAAAAAAAKPAAAAAA              2450606              ?            ?                ?                  1                                              N                     N                                                                                       N                     N                     Private, political m  Unknown                                   
         251  AAAAAAAALPAAAAAA              2450150        2450181         9187   1.0000000E+003                  1  ought                 N                     N                     N                     N                     N                     N                     N                     N                     Other quarters used   Unknown               N                   
         252  AAAAAAAAMPAAAAAA              2450290        2450319         1292   1.0000000E+003                  1  able                  N                     N                     N                     N                     N                     N                     N                     N                     Small characters cou  Unknown               N                   
         253  AAAAAAAANPAAAAAA              2450337        2450364        13351   1.0000000E+003                  1  pri                   Y                     N                     N                     N                     N                     N                     N                     N                     Similar, true friend  Unknown               N                   
@@ -1157,396 +1157,396 @@ T_TIME
 >>
 >>select * from store ;
 
-S_STORE_SK   S_STORE_ID            S_REC_START_DATE            S_REC_END_DATE              S_CLOSED_DATE_SK  S_STORE_NAME          S_NUMBER_EMPLOYEES  S_FLOOR_SPACE  S_HOURS               S_MANAGER             S_MARKET_ID  S_GEOGRAPHY_CLASS     S_MARKET_DESC         S_MARKET_MANAGER      S_DIVISION_ID  S_DIVISION_NAME       S_COMPANY_ID  S_COMPANY_NAME        S_STREET_NUMBER       S_STREET_NAME         S_STREET_TYPE         S_SUITE_NUMBER        S_CITY                S_COUNTY              S_STATE               S_ZIP                 S_COUNTRY             S_GMT_OFFSET     S_TAX_PRECENTAGE
------------  --------------------  --------------------------  --------------------------  ----------------  --------------------  ------------------  -------------  --------------------  --------------------  -----------  --------------------  --------------------  --------------------  -------------  --------------------  ------------  --------------------  --------------------  --------------------  --------------------  --------------------  --------------------  --------------------  --------------------  --------------------  --------------------  ---------------  ----------------
+S_STORE_SK   S_STORE_ID            S_REC_START_DATE  S_REC_END_DATE  S_CLOSED_DATE_SK  S_STORE_NAME          S_NUMBER_EMPLOYEES  S_FLOOR_SPACE  S_HOURS               S_MANAGER             S_MARKET_ID  S_GEOGRAPHY_CLASS     S_MARKET_DESC         S_MARKET_MANAGER      S_DIVISION_ID  S_DIVISION_NAME       S_COMPANY_ID  S_COMPANY_NAME        S_STREET_NUMBER       S_STREET_NAME         S_STREET_TYPE         S_SUITE_NUMBER        S_CITY                S_COUNTY              S_STATE               S_ZIP                 S_COUNTRY             S_GMT_OFFSET     S_TAX_PRECENTAGE
+-----------  --------------------  ----------------  --------------  ----------------  --------------------  ------------------  -------------  --------------------  --------------------  -----------  --------------------  --------------------  --------------------  -------------  --------------------  ------------  --------------------  --------------------  --------------------  --------------------  --------------------  --------------------  --------------------  --------------------  --------------------  --------------------  ---------------  ----------------
 
-          1  AAAAAAAABAAAAAAA      1997-03-13 00:00:00.000000  ?                                    2451189  ought                                245        5250760  8AM-4PM               William Ward                    2  Unknown               Enough high areas st  Charles Bartley                   1  Unknown                          1  Unknown               767                   Spring                Wy                    Suite 250             Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    2.9999999E-002
-          2  AAAAAAAACAAAAAAA      1997-03-13 00:00:00.000000  2000-03-12 00:00:00.000000                 ?  able                                 236        5285950  8AM-4PM               Scott Smith                     8  Unknown               Parliamentary candid  David Lamontagne                  1  Unknown                          1  Unknown               255                   Sycamore              Dr.                   Suite 410             Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    2.9999999E-002
-          3  AAAAAAAACAAAAAAA      2000-03-13 00:00:00.000000  ?                                          ?  able                                 236        7557959  8AM-4PM               Scott Smith                     7  Unknown               Impossible, true arm  David Lamontagne                  1  Unknown                          1  Unknown               877                   Park Laurel           Road                  Suite T               Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    2.9999999E-002
-          4  AAAAAAAAEAAAAAAA      1997-03-13 00:00:00.000000  1999-03-13 00:00:00.000000           2451044  ese                                  218        9341467  8AM-4PM               Edwin Adams                     4  Unknown               Events would achieve  Thomas Pollack                    1  Unknown                          1  Unknown               27                    Lake                  Ln                    Suite 260             Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    2.9999999E-002
-          5  AAAAAAAAEAAAAAAA      1999-03-14 00:00:00.000000  2001-03-12 00:00:00.000000           2450910  anti                                 288        9078805  8AM-4PM               Edwin Adams                     8  Unknown               Events would achieve  Thomas Pollack                    1  Unknown                          1  Unknown               27                    Lee 6th               Court                 Suite 80              Fairview              Williamson County     TN                    35709                 United States         -5.0000000E+000    2.9999999E-002
-          6  AAAAAAAAEAAAAAAA      2001-03-13 00:00:00.000000  ?                                          ?  cally                                229        9026222  8AM-4PM               Edwin Adams                    10  Unknown               Events would achieve  Thomas Pollack                    1  Unknown                          1  Unknown               220                   6th                   Lane                  Suite 140             Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    2.9999999E-002
-          7  AAAAAAAAHAAAAAAA      1997-03-13 00:00:00.000000  ?                                          ?  ation                                297        8954883  8AM-4PM               David Thomas                    9  Unknown               Architects coul       Thomas Benton                     1  Unknown                          1  Unknown               811                   Lee                   Circle                Suite T               Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    9.9999997E-003
-          8  AAAAAAAAIAAAAAAA      1997-03-13 00:00:00.000000  2000-03-12 00:00:00.000000                 ?  eing                                 278        6995995  8AM-4PM               Brett Yates                     2  Unknown               Various bars make mo  Dean Morrison                     1  Unknown                          1  Unknown               226                   12th                  Lane                  Suite D               Fairview              Williamson County     TN                    35709                 United States         -5.0000000E+000    7.9999998E-002
-          9  AAAAAAAAIAAAAAAA      2000-03-13 00:00:00.000000  ?                                          ?  eing                                 271        6995995  8AM-4PM               Brett Yates                     2  Unknown               Formal, psychologica  Dean Morrison                     1  Unknown                          1  Unknown               226                   Hill                  Boulevard             Suite 190             Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    7.9999998E-002
-         10  AAAAAAAAKAAAAAAA      1997-03-13 00:00:00.000000  1999-03-13 00:00:00.000000                 ?  bar                                  294        9294113  8AM-4PM               Raymond Jacobs                  8  Unknown               Little expectations   Michael Wilson                    1  Unknown                          1  Unknown               175                   4th                   Court                 Suite C               Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    5.9999998E-002
-         11  AAAAAAAAKAAAAAAA      1999-03-14 00:00:00.000000  2001-03-12 00:00:00.000000                 ?  ought                                294        9294113  8AM-4PM               Raymond Jacobs                  6  Unknown               Mysterious employe    Michael Wilson                    1  Unknown                          1  Unknown               175                   Park Green            Court                 Suite 160             Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    1.0999999E-002
-         12  AAAAAAAAKAAAAAAA      2001-03-13 00:00:00.000000  ?                                          ?  ought                                294        5219562  8AM-12AM              Robert Thompson                 6  Unknown               Events develop i      Dustin Kelly                      1  Unknown                          1  Unknown               337                   College               Boulevard             Suite 100             Fairview              Williamson County     TN                    31904                 United States         -5.0000000E+000    9.9999997E-003
+          1  AAAAAAAABAAAAAAA            1997-03-13  ?                        2451189  ought                                245        5250760  8AM-4PM               William Ward                    2  Unknown               Enough high areas st  Charles Bartley                   1  Unknown                          1  Unknown               767                   Spring                Wy                    Suite 250             Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    2.9999999E-002
+          2  AAAAAAAACAAAAAAA            1997-03-13      2000-03-12                 ?  able                                 236        5285950  8AM-4PM               Scott Smith                     8  Unknown               Parliamentary candid  David Lamontagne                  1  Unknown                          1  Unknown               255                   Sycamore              Dr.                   Suite 410             Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    2.9999999E-002
+          3  AAAAAAAACAAAAAAA            2000-03-13  ?                              ?  able                                 236        7557959  8AM-4PM               Scott Smith                     7  Unknown               Impossible, true arm  David Lamontagne                  1  Unknown                          1  Unknown               877                   Park Laurel           Road                  Suite T               Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    2.9999999E-002
+          4  AAAAAAAAEAAAAAAA            1997-03-13      1999-03-13           2451044  ese                                  218        9341467  8AM-4PM               Edwin Adams                     4  Unknown               Events would achieve  Thomas Pollack                    1  Unknown                          1  Unknown               27                    Lake                  Ln                    Suite 260             Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    2.9999999E-002
+          5  AAAAAAAAEAAAAAAA            1999-03-14      2001-03-12           2450910  anti                                 288        9078805  8AM-4PM               Edwin Adams                     8  Unknown               Events would achieve  Thomas Pollack                    1  Unknown                          1  Unknown               27                    Lee 6th               Court                 Suite 80              Fairview              Williamson County     TN                    35709                 United States         -5.0000000E+000    2.9999999E-002
+          6  AAAAAAAAEAAAAAAA            2001-03-13  ?                              ?  cally                                229        9026222  8AM-4PM               Edwin Adams                    10  Unknown               Events would achieve  Thomas Pollack                    1  Unknown                          1  Unknown               220                   6th                   Lane                  Suite 140             Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    2.9999999E-002
+          7  AAAAAAAAHAAAAAAA            1997-03-13  ?                              ?  ation                                297        8954883  8AM-4PM               David Thomas                    9  Unknown               Architects coul       Thomas Benton                     1  Unknown                          1  Unknown               811                   Lee                   Circle                Suite T               Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    9.9999997E-003
+          8  AAAAAAAAIAAAAAAA            1997-03-13      2000-03-12                 ?  eing                                 278        6995995  8AM-4PM               Brett Yates                     2  Unknown               Various bars make mo  Dean Morrison                     1  Unknown                          1  Unknown               226                   12th                  Lane                  Suite D               Fairview              Williamson County     TN                    35709                 United States         -5.0000000E+000    7.9999998E-002
+          9  AAAAAAAAIAAAAAAA            2000-03-13  ?                              ?  eing                                 271        6995995  8AM-4PM               Brett Yates                     2  Unknown               Formal, psychologica  Dean Morrison                     1  Unknown                          1  Unknown               226                   Hill                  Boulevard             Suite 190             Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    7.9999998E-002
+         10  AAAAAAAAKAAAAAAA            1997-03-13      1999-03-13                 ?  bar                                  294        9294113  8AM-4PM               Raymond Jacobs                  8  Unknown               Little expectations   Michael Wilson                    1  Unknown                          1  Unknown               175                   4th                   Court                 Suite C               Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    5.9999998E-002
+         11  AAAAAAAAKAAAAAAA            1999-03-14      2001-03-12                 ?  ought                                294        9294113  8AM-4PM               Raymond Jacobs                  6  Unknown               Mysterious employe    Michael Wilson                    1  Unknown                          1  Unknown               175                   Park Green            Court                 Suite 160             Midway                Williamson County     TN                    31904                 United States         -5.0000000E+000    1.0999999E-001
+         12  AAAAAAAAKAAAAAAA            2001-03-13  ?                              ?  ought                                294        5219562  8AM-12AM              Robert Thompson                 6  Unknown               Events develop i      Dustin Kelly                      1  Unknown                          1  Unknown               337                   College               Boulevard             Suite 100             Fairview              Williamson County     TN                    31904                 United States         -5.0000000E+000    9.9999997E-003
 
 --- 12 row(s) selected.
 >>
->>select d_date from date_dim where d_date > cast('2099-01-01' as timestamp);
+>>select d_date from date_dim where d_date > cast('2099-01-01' as date);
 
 *** WARNING[6008] Statistics for column (D_DATE) from table HIVE.HIVE.DATE_DIM were not available. As a result, the access path chosen might not be the best possible.
 
-D_DATE                    
---------------------------
+D_DATE    
+----------
 
-2099-01-02 00:00:00.000000
-2099-01-03 00:00:00.000000
-2099-01-04 00:00:00.000000
-2099-01-05 00:00:00.000000
-2099-01-06 00:00:00.000000
-2099-01-07 00:00:00.000000
-2099-01-08 00:00:00.000000
-2099-01-09 00:00:00.000000
-2099-01-10 00:00:00.000000
-2099-01-11 00:00:00.000000
-2099-01-12 00:00:00.000000
-2099-01-13 00:00:00.000000
-2099-01-14 00:00:00.000000
-2099-01-15 00:00:00.000000
-2099-01-16 00:00:00.000000
-2099-01-17 00:00:00.000000
-2099-01-18 00:00:00.000000
-2099-01-19 00:00:00.000000
-2099-01-20 00:00:00.000000
-2099-01-21 00:00:00.000000
-2099-01-22 00:00:00.000000
-2099-01-23 00:00:00.000000
-2099-01-24 00:00:00.000000
-2099-01-25 00:00:00.000000
-2099-01-26 00:00:00.000000
-2099-01-27 00:00:00.000000
-2099-01-28 00:00:00.000000
-2099-01-29 00:00:00.000000
-2099-01-30 00:00:00.000000
-2099-01-31 00:00:00.000000
-2099-02-01 00:00:00.000000
-2099-02-02 00:00:00.000000
-2099-02-03 00:00:00.000000
-2099-02-04 00:00:00.000000
-2099-02-05 00:00:00.000000
-2099-02-06 00:00:00.000000
-2099-02-07 00:00:00.000000
-2099-02-08 00:00:00.000000
-2099-02-09 00:00:00.000000
-2099-02-10 00:00:00.000000
-2099-02-11 00:00:00.000000
-2099-02-12 00:00:00.000000
-2099-02-13 00:00:00.000000
-2099-02-14 00:00:00.000000
-2099-02-15 00:00:00.000000
-2099-02-16 00:00:00.000000
-2099-02-17 00:00:00.000000
-2099-02-18 00:00:00.000000
-2099-02-19 00:00:00.000000
-2099-02-20 00:00:00.000000
-2099-02-21 00:00:00.000000
-2099-02-22 00:00:00.000000
-2099-02-23 00:00:00.000000
-2099-02-24 00:00:00.000000
-2099-02-25 00:00:00.000000
-2099-02-26 00:00:00.000000
-2099-02-27 00:00:00.000000
-2099-02-28 00:00:00.000000
-2099-03-01 00:00:00.000000
-2099-03-02 00:00:00.000000
-2099-03-03 00:00:00.000000
-2099-03-04 00:00:00.000000
-2099-03-05 00:00:00.000000
-2099-03-06 00:00:00.000000
-2099-03-07 00:00:00.000000
-2099-03-08 00:00:00.000000
-2099-03-09 00:00:00.000000
-2099-03-10 00:00:00.000000
-2099-03-11 00:00:00.000000
-2099-03-12 00:00:00.000000
-2099-03-13 00:00:00.000000
-2099-03-14 00:00:00.000000
-2099-03-15 00:00:00.000000
-2099-03-16 00:00:00.000000
-2099-03-17 00:00:00.000000
-2099-03-18 00:00:00.000000
-2099-03-19 00:00:00.000000
-2099-03-20 00:00:00.000000
-2099-03-21 00:00:00.000000
-2099-03-22 00:00:00.000000
-2099-03-23 00:00:00.000000
-2099-03-24 00:00:00.000000
-2099-03-25 00:00:00.000000
-2099-03-26 00:00:00.000000
-2099-03-27 00:00:00.000000
-2099-03-28 00:00:00.000000
-2099-03-29 00:00:00.000000
-2099-03-30 00:00:00.000000
-2099-03-31 00:00:00.000000
-2099-04-01 00:00:00.000000
-2099-04-02 00:00:00.000000
-2099-04-03 00:00:00.000000
-2099-04-04 00:00:00.000000
-2099-04-05 00:00:00.000000
-2099-04-06 00:00:00.000000
-2099-04-07 00:00:00.000000
-2099-04-08 00:00:00.000000
-2099-04-09 00:00:00.000000
-2099-04-10 00:00:00.000000
-2099-04-11 00:00:00.000000
-2099-04-12 00:00:00.000000
-2099-04-13 00:00:00.000000
-2099-04-14 00:00:00.000000
-2099-04-15 00:00:00.000000
-2099-04-16 00:00:00.000000
-2099-04-17 00:00:00.000000
-2099-04-18 00:00:00.000000
-2099-04-19 00:00:00.000000
-2099-04-20 00:00:00.000000
-2099-04-21 00:00:00.000000
-2099-04-22 00:00:00.000000
-2099-04-23 00:00:00.000000
-2099-04-24 00:00:00.000000
-2099-04-25 00:00:00.000000
-2099-04-26 00:00:00.000000
-2099-04-27 00:00:00.000000
-2099-04-28 00:00:00.000000
-2099-04-29 00:00:00.000000
-2099-04-30 00:00:00.000000
-2099-05-01 00:00:00.000000
-2099-05-02 00:00:00.000000
-2099-05-03 00:00:00.000000
-2099-05-04 00:00:00.000000
-2099-05-05 00:00:00.000000
-2099-05-06 00:00:00.000000
-2099-05-07 00:00:00.000000
-2099-05-08 00:00:00.000000
-2099-05-09 00:00:00.000000
-2099-05-10 00:00:00.000000
-2099-05-11 00:00:00.000000
-2099-05-12 00:00:00.000000
-2099-05-13 00:00:00.000000
-2099-05-14 00:00:00.000000
-2099-05-15 00:00:00.000000
-2099-05-16 00:00:00.000000
-2099-05-17 00:00:00.000000
-2099-05-18 00:00:00.000000
-2099-05-19 00:00:00.000000
-2099-05-20 00:00:00.000000
-2099-05-21 00:00:00.000000
-2099-05-22 00:00:00.000000
-2099-05-23 00:00:00.000000
-2099-05-24 00:00:00.000000
-2099-05-25 00:00:00.000000
-2099-05-26 00:00:00.000000
-2099-05-27 00:00:00.000000
-2099-05-28 00:00:00.000000
-2099-05-29 00:00:00.000000
-2099-05-30 00:00:00.000000
-2099-05-31 00:00:00.000000
-2099-06-01 00:00:00.000000
-2099-06-02 00:00:00.000000
-2099-06-03 00:00:00.000000
-2099-06-04 00:00:00.000000
-2099-06-05 00:00:00.000000
-2099-06-06 00:00:00.000000
-2099-06-07 00:00:00.000000
-2099-06-08 00:00:00.000000
-2099-06-09 00:00:00.000000
-2099-06-10 00:00:00.000000
-2099-06-11 00:00:00.000000
-2099-06-12 00:00:00.000000
-2099-06-13 00:00:00.000000
-2099-06-14 00:00:00.000000
-2099-06-15 00:00:00.000000
-2099-06-16 00:00:00.000000
-2099-06-17 00:00:00.000000
-2099-06-18 00:00:00.000000
-2099-06-19 00:00:00.000000
-2099-06-20 00:00:00.000000
-2099-06-21 00:00:00.000000
-2099-06-22 00:00:00.000000
-2099-06-23 00:00:00.000000
-2099-06-24 00:00:00.000000
-2099-06-25 00:00:00.000000
-2099-06-26 00:00:00.000000
-2099-06-27 00:00:00.000000
-2099-06-28 00:00:00.000000
-2099-06-29 00:00:00.000000
-2099-06-30 00:00:00.000000
-2099-07-01 00:00:00.000000
-2099-07-02 00:00:00.000000
-2099-07-03 00:00:00.000000
-2099-07-04 00:00:00.000000
-2099-07-05 00:00:00.000000
-2099-07-06 00:00:00.000000
-2099-07-07 00:00:00.000000
-2099-07-08 00:00:00.000000
-2099-07-09 00:00:00.000000
-2099-07-10 00:00:00.000000
-2099-07-11 00:00:00.000000
-2099-07-12 00:00:00.000000
-2099-07-13 00:00:00.000000
-2099-07-14 00:00:00.000000
-2099-07-15 00:00:00.000000
-2099-07-16 00:00:00.000000
-2099-07-17 00:00:00.000000
-2099-07-18 00:00:00.000000
-2099-07-19 00:00:00.000000
-2099-07-20 00:00:00.000000
-2099-07-21 00:00:00.000000
-2099-07-22 00:00:00.000000
-2099-07-23 00:00:00.000000
-2099-07-24 00:00:00.000000
-2099-07-25 00:00:00.000000
-2099-07-26 00:00:00.000000
-2099-07-27 00:00:00.000000
-2099-07-28 00:00:00.000000
-2099-07-29 00:00:00.000000
-2099-07-30 00:00:00.000000
-2099-07-31 00:00:00.000000
-2099-08-01 00:00:00.000000
-2099-08-02 00:00:00.000000
-2099-08-03 00:00:00.000000
-2099-08-04 00:00:00.000000
-2099-08-05 00:00:00.000000
-2099-08-06 00:00:00.000000
-2099-08-07 00:00:00.000000
-2099-08-08 00:00:00.000000
-2099-08-09 00:00:00.000000
-2099-08-10 00:00:00.000000
-2099-08-11 00:00:00.000000
-2099-08-12 00:00:00.000000
-2099-08-13 00:00:00.000000
-2099-08-14 00:00:00.000000
-2099-08-15 00:00:00.000000
-2099-08-16 00:00:00.000000
-2099-08-17 00:00:00.000000
-2099-08-18 00:00:00.000000
-2099-08-19 00:00:00.000000
-2099-08-20 00:00:00.000000
-2099-08-21 00:00:00.000000
-2099-08-22 00:00:00.000000
-2099-08-23 00:00:00.000000
-2099-08-24 00:00:00.000000
-2099-08-25 00:00:00.000000
-2099-08-26 00:00:00.000000
-2099-08-27 00:00:00.000000
-2099-08-28 00:00:00.000000
-2099-08-29 00:00:00.000000
-2099-08-30 00:00:00.000000
-2099-08-31 00:00:00.000000
-2099-09-01 00:00:00.000000
-2099-09-02 00:00:00.000000
-2099-09-03 00:00:00.000000
-2099-09-04 00:00:00.000000
-2099-09-05 00:00:00.000000
-2099-09-06 00:00:00.000000
-2099-09-07 00:00:00.000000
-2099-09-08 00:00:00.000000
-2099-09-09 00:00:00.000000
-2099-09-10 00:00:00.000000
-2099-09-11 00:00:00.000000
-2099-09-12 00:00:00.000000
-2099-09-13 00:00:00.000000
-2099-09-14 00:00:00.000000
-2099-09-15 00:00:00.000000
-2099-09-16 00:00:00.000000
-2099-09-17 00:00:00.000000
-2099-09-18 00:00:00.000000
-2099-09-19 00:00:00.000000
-2099-09-20 00:00:00.000000
-2099-09-21 00:00:00.000000
-2099-09-22 00:00:00.000000
-2099-09-23 00:00:00.000000
-2099-09-24 00:00:00.000000
-2099-09-25 00:00:00.000000
-2099-09-26 00:00:00.000000
-2099-09-27 00:00:00.000000
-2099-09-28 00:00:00.000000
-2099-09-29 00:00:00.000000
-2099-09-30 00:00:00.000000
-2099-10-01 00:00:00.000000
-2099-10-02 00:00:00.000000
-2099-10-03 00:00:00.000000
-2099-10-04 00:00:00.000000
-2099-10-05 00:00:00.000000
-2099-10-06 00:00:00.000000
-2099-10-07 00:00:00.000000
-2099-10-08 00:00:00.000000
-2099-10-09 00:00:00.000000
-2099-10-10 00:00:00.000000
-2099-10-11 00:00:00.000000
-2099-10-12 00:00:00.000000
-2099-10-13 00:00:00.000000
-2099-10-14 00:00:00.000000
-2099-10-15 00:00:00.000000
-2099-10-16 00:00:00.000000
-2099-10-17 00:00:00.000000
-2099-10-18 00:00:00.000000
-2099-10-19 00:00:00.000000
-2099-10-20 00:00:00.000000
-2099-10-21 00:00:00.000000
-2099-10-22 00:00:00.000000
-2099-10-23 00:00:00.000000
-2099-10-24 00:00:00.000000
-2099-10-25 00:00:00.000000
-2099-10-26 00:00:00.000000
-2099-10-27 00:00:00.000000
-2099-10-28 00:00:00.000000
-2099-10-29 00:00:00.000000
-2099-10-30 00:00:00.000000
-2099-10-31 00:00:00.000000
-2099-11-01 00:00:00.000000
-2099-11-02 00:00:00.000000
-2099-11-03 00:00:00.000000
-2099-11-04 00:00:00.000000
-2099-11-05 00:00:00.000000
-2099-11-06 00:00:00.000000
-2099-11-07 00:00:00.000000
-2099-11-08 00:00:00.000000
-2099-11-09 00:00:00.000000
-2099-11-10 00:00:00.000000
-2099-11-11 00:00:00.000000
-2099-11-12 00:00:00.000000
-2099-11-13 00:00:00.000000
-2099-11-14 00:00:00.000000
-2099-11-15 00:00:00.000000
-2099-11-16 00:00:00.000000
-2099-11-17 00:00:00.000000
-2099-11-18 00:00:00.000000
-2099-11-19 00:00:00.000000
-2099-11-20 00:00:00.000000
-2099-11-21 00:00:00.000000
-2099-11-22 00:00:00.000000
-2099-11-23 00:00:00.000000
-2099-11-24 00:00:00.000000
-2099-11-25 00:00:00.000000
-2099-11-26 00:00:00.000000
-2099-11-27 00:00:00.000000
-2099-11-28 00:00:00.000000
-2099-11-29 00:00:00.000000
-2099-11-30 00:00:00.000000
-2099-12-01 00:00:00.000000
-2099-12-02 00:00:00.000000
-2099-12-03 00:00:00.000000
-2099-12-04 00:00:00.000000
-2099-12-05 00:00:00.000000
-2099-12-06 00:00:00.000000
-2099-12-07 00:00:00.000000
-2099-12-08 00:00:00.000000
-2099-12-09 00:00:00.000000
-2099-12-10 00:00:00.000000
-2099-12-11 00:00:00.000000
-2099-12-12 00:00:00.000000
-2099-12-13 00:00:00.000000
-2099-12-14 00:00:00.000000
-2099-12-15 00:00:00.000000
-2099-12-16 00:00:00.000000
-2099-12-17 00:00:00.000000
-2099-12-18 00:00:00.000000
-2099-12-19 00:00:00.000000
-2099-12-20 00:00:00.000000
-2099-12-21 00:00:00.000000
-2099-12-22 00:00:00.000000
-2099-12-23 00:00:00.000000
-2099-12-24 00:00:00.000000
-2099-12-25 00:00:00.000000
-2099-12-26 00:00:00.000000
-2099-12-27 00:00:00.000000
-2099-12-28 00:00:00.000000
-2099-12-29 00:00:00.000000
-2099-12-30 00:00:00.000000
-2099-12-31 00:00:00.000000
-2100-01-01 00:00:00.000000
+2099-01-02
+2099-01-03
+2099-01-04
+2099-01-05
+2099-01-06
+2099-01-07
+2099-01-08
+2099-01-09
+2099-01-10
+2099-01-11
+2099-01-12
+2099-01-13
+2099-01-14
+2099-01-15
+2099-01-16
+2099-01-17
+2099-01-18
+2099-01-19
+2099-01-20
+2099-01-21
+2099-01-22
+2099-01-23
+2099-01-24
+2099-01-25
+2099-01-26
+2099-01-27
+2099-01-28
+2099-01-29
+2099-01-30
+2099-01-31
+2099-02-01
+2099-02-02
+2099-02-03
+2099-02-04
+2099-02-05
+2099-02-06
+2099-02-07
+2099-02-08
+2099-02-09
+2099-02-10
+2099-02-11
+2099-02-12
+2099-02-13
+2099-02-14
+2099-02-15
+2099-02-16
+2099-02-17
+2099-02-18
+2099-02-19
+2099-02-20
+2099-02-21
+2099-02-22
+2099-02-23
+2099-02-24
+2099-02-25
+2099-02-26
+2099-02-27
+2099-02-28
+2099-03-01
+2099-03-02
+2099-03-03
+2099-03-04
+2099-03-05
+2099-03-06
+2099-03-07
+2099-03-08
+2099-03-09
+2099-03-10
+2099-03-11
+2099-03-12
+2099-03-13
+2099-03-14
+2099-03-15
+2099-03-16
+2099-03-17
+2099-03-18
+2099-03-19
+2099-03-20
+2099-03-21
+2099-03-22
+2099-03-23
+2099-03-24
+2099-03-25
+2099-03-26
+2099-03-27
+2099-03-28
+2099-03-29
+2099-03-30
+2099-03-31
+2099-04-01
+2099-04-02
+2099-04-03
+2099-04-04
+2099-04-05
+2099-04-06
+2099-04-07
+2099-04-08
+2099-04-09
+2099-04-10
+2099-04-11
+2099-04-12
+2099-04-13
+2099-04-14
+2099-04-15
+2099-04-16
+2099-04-17
+2099-04-18
+2099-04-19
+2099-04-20
+2099-04-21
+2099-04-22
+2099-04-23
+2099-04-24
+2099-04-25
+2099-04-26
+2099-04-27
+2099-04-28
+2099-04-29
+2099-04-30
+2099-05-01
+2099-05-02
+2099-05-03
+2099-05-04
+2099-05-05
+2099-05-06
+2099-05-07
+2099-05-08
+2099-05-09
+2099-05-10
+2099-05-11
+2099-05-12
+2099-05-13
+2099-05-14
+2099-05-15
+2099-05-16
+2099-05-17
+2099-05-18
+2099-05-19
+2099-05-20
+2099-05-21
+2099-05-22
+2099-05-23
+2099-05-24
+2099-05-25
+2099-05-26
+2099-05-27
+2099-05-28
+2099-05-29
+2099-05-30
+2099-05-31
+2099-06-01
+2099-06-02
+2099-06-03
+2099-06-04
+2099-06-05
+2099-06-06
+2099-06-07
+2099-06-08
+2099-06-09
+2099-06-10
+2099-06-11
+2099-06-12
+2099-06-13
+2099-06-14
+2099-06-15
+2099-06-16
+2099-06-17
+2099-06-18
+2099-06-19
+2099-06-20
+2099-06-21
+2099-06-22
+2099-06-23
+2099-06-24
+2099-06-25
+2099-06-26
+2099-06-27
+2099-06-28
+2099-06-29
+2099-06-30
+2099-07-01
+2099-07-02
+2099-07-03
+2099-07-04
+2099-07-05
+2099-07-06
+2099-07-07
+2099-07-08
+2099-07-09
+2099-07-10
+2099-07-11
+2099-07-12
+2099-07-13
+2099-07-14
+2099-07-15
+2099-07-16
+2099-07-17
+2099-07-18
+2099-07-19
+2099-07-20
+2099-07-21
+2099-07-22
+2099-07-23
+2099-07-24
+2099-07-25
+2099-07-26
+2099-07-27
+2099-07-28
+2099-07-29
+2099-07-30
+2099-07-31
+2099-08-01
+2099-08-02
+2099-08-03
+2099-08-04
+2099-08-05
+2099-08-06
+2099-08-07
+2099-08-08
+2099-08-09
+2099-08-10
+2099-08-11
+2099-08-12
+2099-08-13
+2099-08-14
+2099-08-15
+2099-08-16
+2099-08-17
+2099-08-18
+2099-08-19
+2099-08-20
+2099-08-21
+2099-08-22
+2099-08-23
+2099-08-24
+2099-08-25
+2099-08-26
+2099-08-27
+2099-08-28
+2099-08-29
+2099-08-30
+2099-08-31
+2099-09-01
+2099-09-02
+2099-09-03
+2099-09-04
+2099-09-05
+2099-09-06
+2099-09-07
+2099-09-08
+2099-09-09
+2099-09-10
+2099-09-11
+2099-09-12
+2099-09-13
+2099-09-14
+2099-09-15
+2099-09-16
+2099-09-17
+2099-09-18
+2099-09-19
+2099-09-20
+2099-09-21
+2099-09-22
+2099-09-23
+2099-09-24
+2099-09-25
+2099-09-26
+2099-09-27
+2099-09-28
+2099-09-29
+2099-09-30
+2099-10-01
+2099-10-02
+2099-10-03
+2099-10-04
+2099-10-05
+2099-10-06
+2099-10-07
+2099-10-08
+2099-10-09
+2099-10-10
+2099-10-11
+2099-10-12
+2099-10-13
+2099-10-14
+2099-10-15
+2099-10-16
+2099-10-17
+2099-10-18
+2099-10-19
+2099-10-20
+2099-10-21
+2099-10-22
+2099-10-23
+2099-10-24
+2099-10-25
+2099-10-26
+2099-10-27
+2099-10-28
+2099-10-29
+2099-10-30
+2099-10-31
+2099-11-01
+2099-11-02
+2099-11-03
+2099-11-04
+2099-11-05
+2099-11-06
+2099-11-07
+2099-11-08
+2099-11-09
+2099-11-10
+2099-11-11
+2099-11-12
+2099-11-13
+2099-11-14
+2099-11-15
+2099-11-16
+2099-11-17
+2099-11-18
+2099-11-19
+2099-11-20
+2099-11-21
+2099-11-22
+2099-11-23
+2099-11-24
+2099-11-25
+2099-11-26
+2099-11-27
+2099-11-28
+2099-11-29
+2099-11-30
+2099-12-01
+2099-12-02
+2099-12-03
+2099-12-04
+2099-12-05
+2099-12-06
+2099-12-07
+2099-12-08
+2099-12-09
+2099-12-10
+2099-12-11
+2099-12-12
+2099-12-13
+2099-12-14
+2099-12-15
+2099-12-16
+2099-12-17
+2099-12-18
+2099-12-19
+2099-12-20
+2099-12-21
+2099-12-22
+2099-12-23
+2099-12-24
+2099-12-25
+2099-12-26
+2099-12-27
+2099-12-28
+2099-12-29
+2099-12-30
+2099-12-31
+2100-01-01
 
 --- 365 row(s) selected.
 >>

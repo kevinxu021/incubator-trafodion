@@ -181,6 +181,8 @@ public:
   // of statement.
   // -----------------------------------------------------------------------
   CollHeap* wHeap();
+
+  NABoolean isSortedORCHive() const;
   
 private:
 
