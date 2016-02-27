@@ -109,15 +109,9 @@ define([
 						"sEmptyTable": "No active queries found."
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
-<<<<<<< HEAD
-					"bProcessing": true,
-					paging : bPaging, 
-					"bAutoWidth": true,
-=======
 					processing: true,
 					paging : bPaging, 
 					autoWidth: true,
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
 					stateSave: true,
@@ -147,15 +141,6 @@ define([
 					                		 else return data;
 					                	 }
 					                 }],
-<<<<<<< HEAD
-					                 buttons: [
-					                           'copy','csv','excel','pdf','print'
-					                           ],					                 
-
-					                           fnDrawCallback: function(){
-					                        	   //$('#query-results td').css("white-space","nowrap");
-					                           }
-=======
 					buttons: [
 	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
 	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
@@ -168,7 +153,6 @@ define([
 	                           fnDrawCallback: function(){
 	                        	   //$('#query-results td').css("white-space","nowrap");
 	                           }
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 				});
 
 				//$('#active-query-results td').css("white-space","nowrap");

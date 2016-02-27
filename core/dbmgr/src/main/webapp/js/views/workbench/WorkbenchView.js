@@ -138,10 +138,7 @@ define([
 			$(CONTROL_APPLY_BUTTON).on('click', this.controlApplyClicked);
 			$(OPTIONS_BTN).on('click', this.openFilterDialog);
 
-<<<<<<< HEAD
-=======
 			
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 			$(EXPLAIN_TREE).hide();
 			$(ERROR_TEXT).hide();
 			$(TOOLTIP_DIALOG).on('show.bs.modal', function () {
@@ -184,11 +181,7 @@ define([
 					queryTextEditor.setSize($(this).width(), $(this).height());
 				}
 			});
-<<<<<<< HEAD
-			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
-=======
 			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"120px"});
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 			
 			controlStmtEditor = CodeMirror.fromTextArea(document.getElementById("query-control-stmts"), {
 				mode: 'text/x-esgyndb',
@@ -425,11 +418,7 @@ define([
 							"sEmptyTable": "0 rows(s)"
 						},
 						dom:'lBftrip',
-<<<<<<< HEAD
-						"bProcessing": true,
-=======
 						processing: true,
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 						"iDisplayLength" : 25, 
 						"sPaginationType": "full_numbers",
 						"scrollCollapse": true,

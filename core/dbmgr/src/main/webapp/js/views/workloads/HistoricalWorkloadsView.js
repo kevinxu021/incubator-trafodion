@@ -329,15 +329,9 @@ define([
 						"sEmptyTable": "No queries found for selected time range/or filters."
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
-<<<<<<< HEAD
-					"bProcessing": true,
-					paging : bPaging, 
-					"bAutoWidth": false,
-=======
 					processing: true,
 					paging : bPaging, 
 					//autoWidth: true,
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
 					stateSave: true,

@@ -90,11 +90,8 @@ define([
 			_this = this;
 			routeArgs = args;
 			prevRouteArgs = args;
-<<<<<<< HEAD
-=======
 			pageStatus = {};
 
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 			schemaName = routeArgs.schema;
 			objectAttributes = sessionStorage.getItem(routeArgs.name);
 			if(objectAttributes != null){
@@ -125,10 +122,7 @@ define([
 				}
 			});
 			//$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
-<<<<<<< HEAD
-=======
 			$(ddlTextEditor.getWrapperElement()).css({"border" : "1px solid #eee"});
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 
@@ -161,10 +155,6 @@ define([
 			$(REFRESH_ACTION).on('click', this.doRefresh);
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
-<<<<<<< HEAD
-			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.showErrorMessage);
-			
-=======
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.on(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
 			dbHandler.on(dbHandler.FETCH_COLUMNS_ERROR, this.fetchColumnsError);
@@ -181,32 +171,14 @@ define([
 			dbHandler.on(dbHandler.FETCH_USAGE_SUCCESS, this.displayUsages);
 			dbHandler.on(dbHandler.FETCH_USAGE_ERROR, this.fetchUsagesError);
 
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 			if(prevRouteArgs.schema != routeArgs.schema || 
 					prevRouteArgs.name != routeArgs.name ||
 					prevRouteArgs.type != routeArgs.type ){
 				schemaName = routeArgs.schema;
-<<<<<<< HEAD
-				initialized = false;
-	        	if(ddlTextEditor)
-	        		ddlTextEditor.setValue("");
-			}	
-			
-			prevRouteArgs = args;
-
-			var TAB_LINK = $(OBJECT_DETAILS_CONTAINER+' .tab-pane.active');
-			if(TAB_LINK){
-				var selectedTab = '#'+TAB_LINK.attr('id');
-				if(selectedTab == ATTRIBUTES_SELECTOR || selectedTab == DDL_TEXT_SELECTOR || selectedTab == PRIVILEGES_SELECTOR){
-					//no-op
-				}else{
-					$(OBJECT_DETAILS_CONTAINER +' a:first').tab('show');
-=======
 				objectAttributes = sessionStorage.getItem(routeArgs.name);
 				if(objectAttributes != null){
 					sessionStorage.removeItem(routeArgs.name);
 					objectAttributes = JSON.parse(objectAttributes);
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 				}
 				_this.doReset();
 			}	

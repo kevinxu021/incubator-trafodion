@@ -41,22 +41,14 @@ define([
 		init: function(){
 			$('#navbar').hide();
 			_that = this;
-<<<<<<< HEAD
-			
-=======
 			$(SPINNER).hide();
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 			validator = $(LOGIN_FORM).validate({
 				rules: {
 					"username": { required: true },
 					"password": { required: true}
 				},
 				messages: {
-<<<<<<< HEAD
-					username: "Please enter your user name",
-=======
 					username: "Please enter a user name",
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 		                    	password: "Please provide a password"
 		                },
 				highlight: function(element) {

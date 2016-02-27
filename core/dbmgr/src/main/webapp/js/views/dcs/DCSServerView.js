@@ -154,24 +154,14 @@ define([
 
 				var bPaging = aaData.length > 25;
 
-<<<<<<< HEAD
-				oDataTable = $('#dcs-query-results').dataTable({
-=======
 				oDataTable = $('#dcs-query-results').DataTable({
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 					"oLanguage": {
 						"sEmptyTable": "There are no dcs servers"
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
-<<<<<<< HEAD
-					"bProcessing": true,
-					paging: bPaging,
-					//"bAutoWidth": true,
-=======
 					processing: true,
 					paging: bPaging,
 					//autoWidth: true,
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 					"iDisplayLength" : 25, 
 					"sPaginationType": "simple_numbers",
 					select: {style: 'single', items: 'row', info: false},

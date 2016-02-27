@@ -329,10 +329,6 @@ gv_float_external_interface=""
 gv_float_external_ip=""
 gv_float_internal_ip=""
 gv_port=0
-<<<<<<< HEAD
-awscmd="/usr/local/bin/aws ec2 --output text "
-=======
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 
 gv_ok=0
 gv_warn=1

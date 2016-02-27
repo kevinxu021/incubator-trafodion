@@ -463,23 +463,11 @@ define([
 						"sEmptyTable": "No log entries found for selected time range and/or filters."
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
-<<<<<<< HEAD
-					"bProcessing": true,
-					paging: bPaging,
-					"bProcessing": true,
-					//"bAutoWidth": true,
-					"iDisplayLength" : 25, 
-					"sPaginationType": "full_numbers",
-					//"scrollY":        "800px",
-					"scrollCollapse": true,
-					//"bJQueryUI": true,
-=======
 					processing: true,
 					paging: bPaging,
 					autoWidth: true,
 					"iDisplayLength" : 25, 
 					"sPaginationType": "full_numbers",
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 					"aaData": aaData, 
 					"aoColumns" : aoColumns,
 					stateSave: true,

@@ -118,59 +118,12 @@ define([
 						"sEmptyTable": "There are no schemas"
 					},
 					dom: '<"top"l<"clear">Bf>t<"bottom"rip>',
-<<<<<<< HEAD
-					"bProcessing": true,
-					paging: bPaging,
-					"bAutoWidth": true,
-=======
 					processing: true,
 					paging: bPaging,
 					autoWidth: true,
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 					"iDisplayLength" : 25, 
 					"sPaginationType": "simple_numbers",
 					"aaData": aaData, 
-<<<<<<< HEAD
-					//"aoColumns" : aoColumns,
-					aoColumns : [
-					             {"mData": 'Name', sClass: 'left', "sTitle": 'Name', 
-					            	 "mRender": function ( data, type, full ) {
-					            		 if(type == 'display') {
-					            			 var rowcontent = "<a href=\"#" + link + '?name=' + data ;
-					            			 rowcontent += "\">" + data + "</a>";
-					            			 return rowcontent;                         
-					            		 }else { 
-					            			 return data;
-					            		 }
-					            	 }			        
-					             },
-					             {"mData": 'Owner', sClass: 'left', "sTitle": 'Owner'},	
-					             {"mData": 'CreateTime', sClass: 'left', "sTitle": 'Create Time',
-					            	 "mRender": function ( data, type, full ) {
-					            		 if(type == 'display') {
-					            			 return common.toServerLocalDateFromUtcMilliSeconds(data);                        
-					            		 }else { 
-					            			 return data;
-					            		 }
-					            	 }
-					             },			   
-					             {"mData": 'ModifiedTime', sClass: 'left', "sTitle": 'Modified Time',
-					            	 "mRender": function ( data, type, full ) {
-					            		 if(type == 'display') {
-					            			 return common.toServerLocalDateFromUtcMilliSeconds(data);                        
-					            		 }else { 
-					            			 return data;
-					            		 }
-					            	 }
-					             }
-					             ],
-				                 buttons: [
-				                           'copy','csv','excel','pdf','print'
-				                           ],					             
-					             fnDrawCallback: function(){
-					            	 $('#db-object-list-results td').css("white-space","nowrap");
-					             }
-=======
 					"aoColumns" : aoColumns,
 					"aoColumnDefs": [ {
 						"aTargets": [ 0 ],
@@ -223,7 +176,6 @@ define([
 		             fnDrawCallback: function(){
 		            	 //$('#db-object-list-results td').css("white-space","nowrap");
 		             }
->>>>>>> 6a8ca78bfeae73b51ba6a11c9b731d4e4127cd79
 				});
 
 				$('#db-object-list-results tbody').on( 'click', 'td', function (e, a) {
