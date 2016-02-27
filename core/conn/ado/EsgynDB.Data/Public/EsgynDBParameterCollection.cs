@@ -192,7 +192,7 @@ namespace EsgynDB.Data
         public override bool Contains(object value)
         {
             object tmpVal = ((DbParameter)value).Value;
-            return this._parameters.Exists(x => tmpVal == x.Value || (tmpVal != null && x.Value != null && x.Value.Equals(tmpVal)));
+            return this._parameters.Exists(x => tmpVal != null && x.Value != null && x.Value.Equals(tmpVal));
         }
 
         /// <summary>
