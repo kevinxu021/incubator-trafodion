@@ -191,8 +191,7 @@ namespace EsgynDB.Data
         /// <exception cref="InvalidCastException">The parameter passed was not a EsgynDBParameter.</exception>
         public override bool Contains(object value)
         {
-            object tmpVal = ((DbParameter)value).Value;
-            return this._parameters.Exists(x => tmpVal != null && x.Value != null && x.Value.Equals(tmpVal));
+            return this._parameters.Contains((EsgynDBParameter)value);
         }
 
         /// <summary>
