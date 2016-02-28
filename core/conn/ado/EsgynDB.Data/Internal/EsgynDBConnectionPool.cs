@@ -1,52 +1,68 @@
 ﻿namespace EsgynDB.Data
 {
     using System.Collections.Generic;
+    using System.Collections;
 
     internal sealed class ConnectionPool
     {
-        private Queue<EsgynDBConnection> _idlePool;
+        private List<PooledConnection> _pool;
 
         private EsgynDBConnectionStringBuilder _builder;
 
         public ConnectionPool(EsgynDBConnectionStringBuilder builder)
         {
             this._builder = builder;
-
-            this._idlePool = new Queue<EsgynDBConnection>(this._builder.MaxPoolSize);
+            
+            this._pool = new List<PooledConnection>(this._builder.MaxPoolSize);
         }
 
-        public bool AddPooledConnection(EsgynDBConnection conn)
+        public bool ReturnConnection(EsgynDBConnection conn)
         {
-            if (this._idlePool.Count >= this._builder.MaxPoolSize)
+            PooledConnection pooledConn = _pool.Find(x => x.Connection == conn || x.RefConnection == conn);
+            if (pooledConn != null)
             {
-                this._idlePool.Dequeue().Close(true);
+                //Handle connection timeout in the future
+                pooledConn.Status = PooledConnection.AVAILABLE;
+                return true;
             }
-
-            this._idlePool.Enqueue(conn);
-
-            return true;
+            else
+            {
+                return false;
+            }
         }
 
-        public EsgynDBConnection GetPooledConnection()
+        public EsgynDBConnection GetConnection(EsgynDBConnection conn)
         {
-            EsgynDBConnection conn;
-
-            while (this._idlePool.Count > 0)
+            PooledConnection pooledConn = _pool.Find(x => x.Status == PooledConnection.AVAILABLE);
+            if (pooledConn != null)
             {
-                conn = this._idlePool.Dequeue();
+                pooledConn.Status = PooledConnection.IN_USE;
                 try
                 {
-                    conn.ResetIdleTimeout();
-                    return conn;
+                    pooledConn.RefConnection = conn;
+                    pooledConn.Connection.ResetIdleTimeout();
+                    return pooledConn.Connection;
                 }
                 catch
                 {
-                    conn.Close(true); // cleanup
-                    // return null
+                    pooledConn.Connection.Close(true);
+                    _pool.Remove(pooledConn);
                 }
             }
-
+            if(conn != null && _pool.Count < this._builder.MaxPoolSize)
+            {
+                 PooledConnection pc = new PooledConnection(conn);
+                 pc.Status = PooledConnection.IN_USE;
+                 this._pool.Add(pc);
+            }
+            else if (_pool.Count >= this._builder.MaxPoolSize)
+            {
+                EsgynDBException e = new EsgynDBException(EsgynDBMessage.PoolExhuasted, this._builder.MaxPoolSize);
+                EsgynDBException.ThrowException(conn, e); 
+                //waiting for connecting, done in the future
+            }
             return null;
         }
     }
+
 }
