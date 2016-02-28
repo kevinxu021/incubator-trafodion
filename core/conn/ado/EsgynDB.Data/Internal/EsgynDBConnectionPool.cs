@@ -37,8 +37,17 @@
             if (pooledConn != null)
             {
                 pooledConn.Status = PooledConnection.IN_USE;
-                pooledConn.RefConnection = conn;
-                return pooledConn.Connection;
+                try
+                {
+                    pooledConn.RefConnection = conn;
+                    pooledConn.Connection.ResetIdleTimeout();
+                    return pooledConn.Connection;
+                }
+                catch
+                {
+                    pooledConn.Connection.Close(true);
+                    _pool.Remove(pooledConn);
+                }
             }
             if(conn != null && _pool.Count < this._builder.MaxPoolSize)
             {
