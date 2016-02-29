@@ -34,10 +34,13 @@ endif
 .PHONY: all
 all: pkg-clients
 
-pkg-clients: clients/LICENSE clients/NOTICE
+pkg-clients: clients/LICENSE clients/NOTICE clients/LICENSE_Esgyn
 	tar -zcvf $(CLIENT_TAR) clients
 
 clients/LICENSE: ../../licenses/LICENSE-clients
+	cp -f $? $@
+
+clients/LICENSE_Esgyn: ../../licenses/Esgyn
 	cp -f $? $@
 
 ../../licenses/LICENSE-clients:

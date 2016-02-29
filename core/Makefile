@@ -97,7 +97,7 @@ rest: verhdr jdbc_jar
 odb: ndcs
 	cd conn/odb && $(MAKE) 2>&1 | sed -e "s/$$/	##(ODB)/" ; exit $${PIPESTATUS[0]}
 
-dbmgr: 
+dbmgr: jdbc_jar
 	cd dbmgr && $(MAKE) 2>&1 | sed -e "s/$$/	##(DBMGR)/" ; exit $${PIPESTATUS[0]}
 
 cleantests:

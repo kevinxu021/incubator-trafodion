@@ -31,7 +31,7 @@ GENVERS			    =./genvers
 
 all: build_all
 
-build_all: build_chk LICENSE NOTICE
+build_all: build_chk LICENSE NOTICE LICENSE_Esgyn
 	echo "$(MAVEN) site package -DskipTests"
 	echo "### For full Maven output, see file build_dcs.log"
 	set -o pipefail && $(MAVEN) site package -DskipTests | tee build_dcs.log | grep --line-buffered -E -e '^\[[^WId]' -e '^\[INFO\] B[Uu][Ii][Ll][Dd]' -e 'to compile'
@@ -45,6 +45,9 @@ build_chk:
 	@if [ $(MY_SQROOT)/export/include/SCMBuildStr.h -nt target/$(BLD_TRAFODION_DCS_TARNAME) ]; then echo "update manifest"; $(RM) -f target/$(BLD_TRAFODION_DCS_TARNAME); fi
 
 LICENSE: ../licenses/LICENSE-dcs
+	cp -f $? $@
+
+LICENSE_Esgyn: ../licenses/Esgyn
 	cp -f $? $@
 
 ../licenses/LICENSE-dcs:
