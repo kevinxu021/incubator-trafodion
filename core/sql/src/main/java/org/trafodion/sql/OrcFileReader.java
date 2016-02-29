@@ -152,6 +152,7 @@ public class OrcFileReader
                 break;
             case STARTAND:
                 builder.startAnd();
+//System.out.println("AND");
                 break;
             case STARTOR:
                 builder.startOr();
@@ -166,9 +167,11 @@ public class OrcFileReader
                 builder.equals(Bytes.toString(colName), Bytes.toString(oper));
                 break;
             case LESSTHAN:
+//System.out.println("< " + Bytes.toString(oper));
                 builder.lessThan(Bytes.toString(colName), Bytes.toString(oper));
                 break;
             case LESSTHANEQUALS:
+//System.out.println("<= " + Bytes.toString(oper));
                 builder.lessThanEquals(Bytes.toString(colName), Bytes.toString(oper));
                 break;
             case ISNULL:

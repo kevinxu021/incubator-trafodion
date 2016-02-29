@@ -6782,6 +6782,8 @@ RelExpr *GroupByAgg::bindNode(BindWA *bindWA)
   if (getRETDesc())
     getRETDesc()->setGroupedFlag();
 
+  feasibleToPushdownAggr_ = decideFeasibleToTransformForAggrPushdown();
+
   return boundExpr;
 } // GroupByAgg::bindNode()
 

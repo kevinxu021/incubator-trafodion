@@ -246,3 +246,45 @@ select cast(substring(description,
 where position('orc_search_arguments' in description)  > 0 ;
 
 execute xx;
+
+-- test NJ into a sorted ORC table
+
+cqd orc_pred_pushdown 'ON';
+
+prepare xx from select count(*) from hive.hive.customer_orc, hive.hive.store_sales_sorted_orc
+    where ss_sold_date_sk = c_customer_sk
+   and c_first_sales_date_sk = 4;
+
+explain xx;
+explain options 'f' xx;
+execute xx;
+
+-- test aggregates pushdown (orc)
+
+-- test aggregates pushdown
+cqd orc_aggr_pushdown 'ON';
+
+-- pushdown feasible
+prepare xx from
+select min(ss_sold_date_sk), max(ss_sold_date_sk)
+from hive.hive.store2_sales_orc;
+
+explain options 'f' xx;
+
+-- pushdown feasible
+prepare xx from
+select ss_sold_date_sk from hive.hive.store2_sales_orc where
+ss_sold_date_sk >
+(select count(*) from hive.hive.store2_sales_orc);
+
+explain options 'f' xx;
+
+
+-- pushdown not feasible due to distinct
+prepare xx from
+select
+count(distinct ss_sold_date_sk)
+from hive.hive.store2_sales_orc;
+
+explain options 'f' xx;
+

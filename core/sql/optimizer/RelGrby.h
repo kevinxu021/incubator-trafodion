@@ -111,7 +111,8 @@ public:
     parentRootSelectList_(NULL),
     isMarkedForElimination_(FALSE),
     aggDistElimRuleCreates_(FALSE),
-    groupByOnJoinRuleCreates_(FALSE)
+    groupByOnJoinRuleCreates_(FALSE),
+    feasibleToPushdownAggr_(FALSE)
   {}
 
   // constructor
@@ -128,7 +129,8 @@ public:
     parentRootSelectList_(NULL),
     isMarkedForElimination_(FALSE),
     aggDistElimRuleCreates_(FALSE),
-    groupByOnJoinRuleCreates_(FALSE)
+    groupByOnJoinRuleCreates_(FALSE),
+    feasibleToPushdownAggr_(FALSE)
   {}
 
   // virtual destructor
@@ -520,6 +522,17 @@ public:
                                     const ValueIdSet & externalInputs,
                                     ValueIdSet &pulledNewInputs);
 
+  NABoolean isFeasibleToTransformForAggrPushdown() { return feasibleToPushdownAggr_; };
+
+  NABoolean decideFeasibleToTransformForAggrPushdown();
+
+  NABoolean okToAttemptESPParallelism (
+            const Context* myContext, /*IN*/
+            PlanWorkSpace* pws, /*IN*/
+            Lng32& numOfESPs, /*IN,OUT*/
+            float& allowedDeviation, /*OUT*/
+            NABoolean& numOfESPsForced /*OUT*/);
+
   /*ExpTupleDesc::TupleDataFormat determineInternalFormat( const ValueIdList & valIdList,
                                                            RelExpr * relExpr,
                                                            NABoolean & resizeCifRecord,
@@ -622,6 +635,8 @@ private:
   NABoolean isMarkedForElimination_;
 
   ValueIdSet aggrExprsToBeDeleted_;
+
+  NABoolean feasibleToPushdownAggr_;
 };
 
 class SortGroupBy : public GroupByAgg

@@ -532,6 +532,43 @@ drop table time_dim_orc;
 create table time_dim_orc stored as orc as select * from time_dim 
   sort by t_time;
 
+drop table store_sales_sorted_orc;
+create table store_sales_sorted_orc
+(
+   ss_sold_date_sk           int,
+    ss_sold_time_sk           int,
+    ss_item_sk                int,
+    ss_customer_sk            int,
+    ss_cdemo_sk               int,
+    ss_hdemo_sk               int,
+    ss_addr_sk                int,
+    ss_store_sk               int,
+    ss_promo_sk               int,
+    ss_ticket_number          int,
+    ss_quantity               int,
+    ss_wholesale_cost         float,
+    ss_list_price             float,
+    ss_sales_price            float,
+    ss_ext_discount_amt       float,
+    ss_ext_sales_price        float,
+    ss_ext_wholesale_cost     float,
+    ss_ext_list_price         float,
+    ss_ext_tax                float,
+    ss_coupon_amt             float,
+    ss_net_paid               float,
+    ss_net_paid_inc_tax       float,
+    ss_net_profit             float
+)
+clustered by (ss_sold_date_sk)
+sorted by (ss_sold_date_sk, ss_sold_time_sk, ss_item_sk) into 8 buckets
+stored as ORC
+;
+
+set hive.enforce.bucketing = true;
+insert into table store_sales_sorted_orc 
+select * from store_sales sort by ss_sold_date_sk, ss_sold_time_sk, ss_item_sk;
+
+
 quit;
 
 EOF

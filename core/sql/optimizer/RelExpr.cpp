@@ -7522,6 +7522,8 @@ RelExpr * GroupByAgg::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
   result->selIndexInHaving_ = selIndexInHaving_;
   result->aggrExprsToBeDeleted_ = aggrExprsToBeDeleted_;
 
+  result->feasibleToPushdownAggr_ = feasibleToPushdownAggr_;
+
   return RelExpr::copyTopNode(result, outHeap);
 }
 
@@ -15582,3 +15584,105 @@ CostScalar RelExpr::getChild0Cardinality(const Context* context)
    return ch0RowCount;
 }
 
+NABoolean GroupByAgg::decideFeasibleToTransformForAggrPushdown()
+{
+  // if this is simple scalar aggregate on a seabase table
+  //  (of the form:  select count(*) from t; )
+  // or aggrs count(*), min, max on orc table,
+  // then transform it so it could be evaluated by hbase coproc
+  // or using ORC apis.
+  NABoolean aggrPushdown = FALSE;
+  Scan * scan = NULL;
+
+  if (child(0) && child(0)->getOperatorType() == REL_SCAN)
+    {
+      scan = (Scan*)child(0)->castToRelExpr();
+      
+      if ((NOT aggregateExpr().isEmpty()) &&
+          (groupExpr().isEmpty()) &&
+          (scan->selectionPred().isEmpty()) &&
+          (NOT scan->userSpecifiedPred()) &&
+          ((scan->getTableName().getSpecialType() == ExtendedQualName::NORMAL_TABLE) ||
+           (scan->getTableName().getSpecialType() == ExtendedQualName::INDEX_TABLE)) &&
+          !scan->getTableName().isPartitionNameSpecified() &&
+          !scan->getTableName().isPartitionRangeSpecified())
+        {
+          aggrPushdown = TRUE;
+        }
+    }
+
+  NABoolean isSeabase = FALSE;
+  NABoolean isOrc = FALSE;
+  if (aggrPushdown)
+    {
+      const NATable * naTable = scan->getTableDesc()->getNATable();
+      isSeabase = naTable->isSeabaseTable();
+      isOrc = ((naTable->isHiveTable()) &&
+               (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile()));
+      if (NOT (((naTable->getObjectType() == COM_BASE_TABLE_OBJECT) ||
+                (naTable->getObjectType() == COM_INDEX_OBJECT)) &&
+               ((naTable->isSeabaseTable()) || (isOrc))))
+        {
+          aggrPushdown = FALSE;
+        }
+
+      if ((aggrPushdown) &&
+          (((isSeabase) && (CmpCommon::getDefault(HBASE_COPROCESSORS) == DF_OFF)) ||
+           
+           ((isOrc) && (CmpCommon::getDefault(ORC_AGGR_PUSHDOWN) == DF_OFF))))
+        {
+          aggrPushdown = FALSE;
+        }
+
+      if (aggrPushdown && isSeabase && (NOT selectionPred().isEmpty()))
+        aggrPushdown = FALSE;
+    }
+  
+  if (aggrPushdown)
+    {
+      for (ValueId valId = aggregateExpr().init();
+	   (aggrPushdown && aggregateExpr().next(valId));
+	   aggregateExpr().advance(valId)) 
+        {
+          ItemExpr * ae = valId.getItemExpr();
+
+          if ((isOrc) &&
+              (NOT (((ae->getOperatorType() == ITM_COUNT) ||
+                     (ae->getOperatorType() == ITM_MIN) ||
+                     (ae->getOperatorType() == ITM_MAX) ||
+                     (ae->getOperatorType() == ITM_SUM) ||
+                     (ae->getOperatorType() == ITM_COUNT_NONULL)))))
+            {
+              aggrPushdown = FALSE;
+              continue;
+            }
+
+          // ORC either returns count of all rows or count of column values
+          // after removing null and duplicate values.
+          // It doesn't return a count with only null values removed.
+          if (ae->getOperatorType() == ITM_COUNT_NONULL)
+            {
+              aggrPushdown = FALSE;
+              continue;
+            }
+
+          const NAType &aggrType = valId.getType();
+          if (isOrc)
+            {
+              if (aggrType.getTypeQualifier() == NA_CHARACTER_TYPE)
+                continue;
+              
+              if ((aggrType.getTypeQualifier() == NA_NUMERIC_TYPE) &&
+                  (((NumericType&)aggrType).binaryPrecision()))
+                continue;
+
+              if (aggrType.getTypeQualifier() == NA_DATETIME_TYPE)
+                continue;
+             }
+
+          aggrPushdown = FALSE;
+        }
+    }
+
+   return aggrPushdown;
+}

@@ -11724,6 +11724,10 @@ Context* GroupByAgg::createContextForAChild(Context* myContext,
        // the skew-buster join due to the reason similar to the UD case.
    } // end if ok to try parallelism
 
+   if ( isFeasibleToTransformForAggrPushdown() )
+      rg.addNoEspExchangeRequirement();
+
+
   // ---------------------------------------------------------------------
   // Done adding all the requirements together, now see whether it worked
   // and give up if it is not possible to satisfy them
@@ -11781,6 +11785,20 @@ void GroupByAgg::addArrangementAndOrderRequirements(
 {
   // the default implementation is to do nothing
   // (works fine for hash groupby)
+}
+
+NABoolean GroupByAgg::okToAttemptESPParallelism (
+            const Context* myContext, /*IN*/
+            PlanWorkSpace* pws, /*IN*/
+            Lng32& numOfESPs, /*IN,OUT*/
+            float& allowedDeviation, /*OUT*/
+            NABoolean& numOfESPsForced /*OUT*/)
+{
+   if ( isFeasibleToTransformForAggrPushdown() )
+     return FALSE;
+
+   return RelExpr::okToAttemptESPParallelism(
+         myContext, pws, numOfESPs, allowedDeviation, numOfESPsForced );
 }
 
 //<pb>

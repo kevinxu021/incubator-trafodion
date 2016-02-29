@@ -1006,6 +1006,8 @@ public:
    { return copyTopNode(NULL, outHeap); };
 
 
+  ItemExpr * cloneTopNodeAndValueId(CollHeap* outHeap); 
+
   // Is this operator supported by the synthesis functions?
   virtual NABoolean synthSupportedOp() const { return FALSE; }
 
