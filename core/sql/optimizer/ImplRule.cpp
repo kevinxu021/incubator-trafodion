@@ -2823,7 +2823,7 @@ NABoolean NestedJoinRule::topMatch(RelExpr * relExpr,
   if (joinExpr->child(1).getGroupAttr()->allHiveTables() )
      {
           if ( !(joinExpr->child(1).getGroupAttr()->allHiveORCTablesSorted()) ) {
-                return NULL;
+                return FALSE;
           }
      }
 

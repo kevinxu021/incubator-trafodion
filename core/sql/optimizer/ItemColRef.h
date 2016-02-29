@@ -169,6 +169,8 @@ public:
   const ValueId &getComputedColumnExpr() { return computedColumnExpr_; }
   void setComputedColumnExpr(const ValueId &x) { computedColumnExpr_ = x; }
 
+  ItemExpr * cloneTopNode(CollHeap* outHeap) { return cloneTopNodeAndValueId(outHeap); };
+
 private:
 
   // the TableId for the table to which this column belongs
@@ -244,6 +246,9 @@ public:
   { return TRUE; }
 
   const NAFileSet * getNAFileSet() { return index_; }
+
+  ItemExpr * cloneTopNode(CollHeap* outHeap) { return cloneTopNodeAndValueId(outHeap); };
+
 private:
 
   // a pointer back to the NAFileSet structure
@@ -506,7 +511,7 @@ public:
   virtual ItemExpr * copyTopNode(ItemExpr *derivedNode = NULL,
 				 CollHeap* outHeap = 0);
 
-  ItemExpr * cloneTopNode(CollHeap* outHeap);
+  ItemExpr * cloneTopNode(CollHeap* outHeap) { return cloneTopNodeAndValueId(outHeap); };
 
   // can this base column be calculated from these values/group attributes
   virtual NABoolean isCovered(const ValueIdSet& newExternalInputs,
@@ -905,7 +910,7 @@ public:
   virtual ItemExpr * copyTopNode(ItemExpr *derivedNode = NULL,
 				 CollHeap* outHeap = 0);
 
-  ItemExpr * cloneTopNode(CollHeap* outHeap);
+  ItemExpr * cloneTopNode(CollHeap* outHeap) { return cloneTopNodeAndValueId(outHeap); };
 
   // get a printable string that identifies the operator
   const NAString getText() const;

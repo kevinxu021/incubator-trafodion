@@ -5400,21 +5400,7 @@ ItemExpr * VEGPredicate::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
   return ItemExpr::copyTopNode(result, outHeap);
 } // VEGPredicate::copyTopNode()
 
-ItemExpr * VEGPredicate::cloneTopNode(CollHeap* outHeap)
-{
-  ItemExpr* result = copyTopNode(NULL, outHeap);
-  result->setValueId(getValueId());
-  return result;
-}
-
-ItemExpr * HostVar::cloneTopNode(CollHeap* outHeap)
-{
-  ItemExpr* result = copyTopNode(NULL, outHeap);
-  result->setValueId(getValueId());
-  return result;
-}
-
-ItemExpr * ConstValue::cloneTopNode(CollHeap* outHeap)
+ItemExpr * ItemExpr::cloneTopNodeAndValueId(CollHeap* outHeap)
 {
   ItemExpr* result = copyTopNode(NULL, outHeap);
   result->setValueId(getValueId());
@@ -15299,10 +15285,12 @@ NABoolean BiRelat::isAPredicateBetweenColumnAndExpression()
   if ( !leftC || !rightC )
     return FALSE;
 
-  if ( leftC->isInvolvingAColumn() && rightC->isAConstantHostVarParameterOrFunc() )
+  if ( leftC->isInvolvingAColumn() && 
+       (rightC->isAConstantHostVarParameterOrFunc() || rightC->isInvolvingAColumn()))
     return TRUE;
 
-  if ( rightC->isInvolvingAColumn() && leftC->isAConstantHostVarParameterOrFunc() )
+  if ( rightC->isInvolvingAColumn() && 
+       ( leftC->isAConstantHostVarParameterOrFunc() ||  leftC->isInvolvingAColumn()))
     return TRUE;
 
   return FALSE;

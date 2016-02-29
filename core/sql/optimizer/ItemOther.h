@@ -978,7 +978,8 @@ public:
   virtual ItemExpr * copyTopNode(ItemExpr *derivedNode = NULL,
 				 CollHeap* outHeap = 0);
 
-  virtual ItemExpr * cloneTopNode(CollHeap* outHeap=0);
+  virtual ItemExpr * cloneTopNode(CollHeap* outHeap) 
+     { return cloneTopNodeAndValueId(outHeap); };
 
   // A method for replacing VEGReference and VEGPredicate objects
   // with another expression that belongs to the VEG as well as to the

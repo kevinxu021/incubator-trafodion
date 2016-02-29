@@ -3690,7 +3690,8 @@ RelExpr * HashJoin::preCodeGen(Generator * generator,
 void FileScan::processMinMaxKeys(Generator* generator, 
                                  ValueIdSet& pulledNewInputs,
                                  ValueIdSet& availableValues, 
-                                 NABoolean updateSearchKeyOnly
+                                 NABoolean updateSearchKeyOnly,
+                                 NABoolean filterOutMinMax 
                                 )
 {
     // impossible to satisfy such request.
@@ -3820,9 +3821,11 @@ void FileScan::processMinMaxKeys(Generator* generator,
 
                   }
 
-                  ConstValue* cv = dynamic_cast<ConstValue*>(currentBeg);
-                  if ( cv && ( cv->isMin() || cv->isMax() ) )
-                     currentBeg = NULL;
+                  if ( filterOutMinMax ) {
+                     ConstValue* cv = dynamic_cast<ConstValue*>(currentBeg);
+                     if ( cv && ( cv->isMin() || cv->isMax() ) )
+                        currentBeg = NULL;
+                  }
            
                   // Get the proper begin key (min or max) that came from
                   // the HashJoin
@@ -3902,10 +3905,11 @@ void FileScan::processMinMaxKeys(Generator* generator,
                      currentEnd = keyPred->child(1);
                   }
 
-                  ConstValue* cv = dynamic_cast<ConstValue*>(currentEnd);
-                  if ( cv && ( cv->isMin() || cv->isMax() ) )
-                     currentEnd = NULL;
-
+                  if ( filterOutMinMax ) {
+                     ConstValue* cv = dynamic_cast<ConstValue*>(currentEnd);
+                     if ( cv && ( cv->isMin() || cv->isMax() ) )
+                        currentEnd = NULL;
+                  }
            
                   // Get the proper end key (max or min) that came from
                   // the HashJoin
@@ -4231,7 +4235,7 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
            // beginKeyPred_ and endKeyPred_ to compute a narrowed version
            // of begin and end key. Here we set the last argument to FALSE
            // to side-effect begin/end key predicates only.
-           processMinMaxKeys(generator, pulledNewInputs, availableValues, FALSE);
+           processMinMaxKeys(generator, pulledNewInputs, availableValues, FALSE, TRUE);
 
            // Collect local predicates
            TableAnalysis* tableAnalysis = 
@@ -6002,20 +6006,25 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
 {
   RelExpr * newNode = this;
 
-  // if this is simple scalar aggregate on a seabase table
-  //  (of the form:  select count(*) from t; )
-  // or aggrs count(*), min, max on orc table,
-  // then transform it so it could be evaluated by hbase coproc
-  // or using ORC apis.
-  NABoolean aggrPushdown = FALSE;
-  Scan * scan = NULL;
+  // For transformed GroupByAgg such as OrcPushdownAggr, we do not
+  //   // need to look further.
+  if ( getArity() == 0 )
+    return this;
 
-  if (child(0) && 
-      ((child(0)->getOperatorType() == REL_FILE_SCAN) ||
-       (child(0)->getOperatorType() == REL_HBASE_ACCESS)))
+          
+  NABoolean aggrPushdown = FALSE;
+  Scan* scan = NULL;
+  RelExpr* childRelExpr = child(0)->castToRelExpr();
+
+  if ( childRelExpr && childRelExpr->getOperatorType() == REL_FIRST_N )
+    childRelExpr = childRelExpr->child(0)->castToRelExpr();
+
+  if (childRelExpr && 
+      ((childRelExpr->getOperatorType() == REL_FILE_SCAN) ||
+       (childRelExpr->getOperatorType() == REL_HBASE_ACCESS)))
     {
-      scan = (Scan*)child(0)->castToRelExpr();
-      
+      scan = (Scan*)childRelExpr;
+
       if ((NOT aggregateExpr().isEmpty()) &&
           (groupExpr().isEmpty()) &&
           (scan->selectionPred().isEmpty()) &&
@@ -6074,7 +6083,10 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
                      (ae->getOperatorType() == ITM_MIN) ||
                      (ae->getOperatorType() == ITM_MAX) ||
                      (ae->getOperatorType() == ITM_SUM) ||
-                     (ae->getOperatorType() == ITM_COUNT_NONULL)))))
+                     (ae->getOperatorType() == ITM_COUNT_NONULL)))
+               ) ||
+              (generator->preCodeGenParallelOperator())
+             )
             {
               aggrPushdown = FALSE;
               continue;
@@ -7192,12 +7204,17 @@ RelExpr * Exchange::preCodeGen(Generator * generator,
   bool needToRestoreESP = false;
   bool halloweenESPonLHS = generator->getHalloweenESPonLHS();
 
-  if (isEspExchange() && getBottomPartitioningFunction()->isPartitioned())
+  if (isEspExchange())
     {
       // Tell any child NJ that its Halloween blocking operator (SORT)
       // is operating in parallel.
       savedParallelSetting = generator->preCodeGenParallelOperator();
-      generator->setPreCodeGenParallelOperator(TRUE);
+
+      if ( getBottomPartitioningFunction()->isPartitioned())
+         generator->setPreCodeGenParallelOperator(TRUE);
+      else
+         generator->setPreCodeGenParallelOperator(FALSE);
+
       needToRestoreParallel = true;
     }
 
@@ -12282,7 +12299,7 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
     // Set the last argument to TRUE to side-effect the searchKey() only. TBT 
     // (to be tested)
     //
-    processMinMaxKeys(generator, pulledNewInputs, availableValues, TRUE);
+    processMinMaxKeys(generator, pulledNewInputs, availableValues, TRUE, FALSE);
 
     if (!processConstHBaseKeys(
            generator,
