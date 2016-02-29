@@ -4233,8 +4233,10 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
            // Process the min and max keys. The function will alter the
            // beginKeyPred_ and endKeyPred_ to compute a narrowed version
-           // of begin and end key. Here we set the last argument to FALSE
-           // to side-effect begin/end key predicates only.
+           // of begin and end key. Here we set the 2nd last argument to FALSE
+           // to side-effect begin/end key predicates only. The last argument,
+           // set to TRUE, indicates that we need to remove original predicates with
+           // min/max constants.
            processMinMaxKeys(generator, pulledNewInputs, availableValues, FALSE, TRUE);
 
            // Collect local predicates
@@ -12296,8 +12298,9 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
        myPartFunc->isAReplicationPartitioningFunction())
   {
     //
-    // Set the last argument to TRUE to side-effect the searchKey() only. TBT 
-    // (to be tested)
+    // Set the 2nd last argument to TRUE to side-effect the searchKey() only. The last
+    // argument is set to FALSE to indicate do not remove predicates containing min/max
+    // constants.
     //
     processMinMaxKeys(generator, pulledNewInputs, availableValues, TRUE, FALSE);
 
