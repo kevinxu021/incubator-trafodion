@@ -3463,6 +3463,7 @@ static NABoolean createNAColumns(desc_struct *column_desc_list	/*IN*/,
 	  colClass = USER_COLUMN;
 	  break;
         case 'A':
+        case 'C':
 	  colClass = USER_COLUMN;
 	  break;
         case 'M':  // MVs --
@@ -3538,14 +3539,16 @@ static NABoolean createNAColumns(desc_struct *column_desc_list	/*IN*/,
 			       defaultValue,
                                heading,
 			       column_desc->upshift,
-			       (column_desc->colclass == 'A'),
+			       ((column_desc->colclass == 'A') ||
+                                (column_desc->colclass == 'C')),
                                COM_UNKNOWN_DIRECTION,
                                FALSE,
                                NULL,
                                column_desc->stored_on_disk,
                                computed_column_text,
                                isSaltColumn,
-                               isDivisioningColumn);
+                               isDivisioningColumn,
+                               (column_desc->colclass == 'C'));
 	}
       else
         {
