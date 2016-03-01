@@ -34,18 +34,24 @@ import java.util.Arrays;
 import java.net.URI;
 import java.util.HashMap;
 import java.net.URISyntaxException;
-import org.apache.log4j.PropertyConfigurator;
-import org.apache.log4j.Logger;
-import org.apache.hadoop.hbase.util.PoolMap;
-import org.apache.hadoop.hbase.util.PoolMap.PoolType;
-
-import org.trafodion.sql.MTableClient;
 import java.util.concurrent.ExecutionException;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.log4j.PropertyConfigurator;
+import org.apache.log4j.Logger;
+import org.apache.hadoop.hbase.util.PoolMap;
+import org.apache.hadoop.hbase.util.PoolMap.PoolType;
+import org.apache.hadoop.hbase.util.Bytes; 
+
 import io.ampool.conf.Constants;
-import io.ampool.monarch.table.*;
+import io.ampool.monarch.table.MAdmin;
+import io.ampool.monarch.table.MConfiguration;
+import io.ampool.monarch.table.MTable;
+import io.ampool.monarch.table.MTableDescriptor;
+import io.ampool.monarch.table.MTableType;
+import io.ampool.monarch.table.MServerLocation;
+import io.ampool.monarch.table.Pair;
 import io.ampool.monarch.table.exceptions.*;
 import io.ampool.monarch.table.client.*;
 
@@ -54,6 +60,7 @@ import org.trafodion.sql.MTableClient;
 public class MonarchClient {
     static final int RANGE_PARTITIONED = 0;
     static final int HASH_PARTITIONED = 1;
+    static final int SALT_BYTES_LENGTH = 4;
     static Logger logger = Logger.getLogger(MonarchClient.class.getName());
     public static MConfiguration config = MConfiguration.create();
     String lastError;
@@ -448,7 +455,9 @@ public class MonarchClient {
       else
          desc.setMaxVersions(DtmConst.SSCC_MAX_DATA_VERSION);
 */
+      desc.setDiskPersistentEnabled(true);
       if (tableType == RANGE_PARTITIONED) {
+         desc.setTotalNumOfSplits(numSplits+1);
          desc.setTableType(MTableType.ORDERED_VERSIONED);
          HashMap<Integer, Pair<byte[], byte[]>> keySpace = new HashMap();
          byte[] startKey = null;
@@ -456,15 +465,11 @@ public class MonarchClient {
          int i = 0;
          if (beginEndKeys != null  && beginEndKeys.length != 0) {
             for (i = 0; i < beginEndKeys.length; i++) {
-                if (i == 0) 
-                   startKey = new byte[keyLength+1];
-                endKey = (byte[])beginEndKeys[i];
+                endKey = Bytes.incrementBytes((byte[])beginEndKeys[i],-1);  
                 keySpace.put(Integer.valueOf(i), new Pair(startKey, endKey));
-                startKey = new byte[keyLength+1];
-                System.arraycopy(endKey, 0, startKey, 0, endKey.length);
+                startKey = (byte[])beginEndKeys[i];
             }
-            endKey = new byte[keyLength];
-            Arrays.fill(endKey, (byte)0xff); 
+            endKey = null;
             keySpace.put(Integer.valueOf(i), new Pair(startKey, endKey));
             desc.setKeySpace(keySpace);
          } 
@@ -749,6 +754,8 @@ public class MonarchClient {
             boolean result = true;
             try {
                MTable table = MClientCacheFactory.getAnyInstance().getTable(tblName);
+               if (table == null)
+                  result = false;
             }
             catch (MTableNotExistsException e) {
                 result = false;

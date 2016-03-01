@@ -322,7 +322,7 @@ public class MTableClient {
                                  long minTS,
                                  long maxTS,
                                  String hbaseAuths)
-           throws IOException, Exception {
+           throws IOException {
      if (logger.isTraceEnabled()) logger.trace("Enter startScan() " + tableName + " txid: " + transID+ " CacheBlocks: " + cacheBlocks + " numCacheRows: " + numCacheRows + " Bulkread: " + useSnapshotScan);
 
      MScan scan;
@@ -446,6 +446,8 @@ public class MTableClient {
         preFetch = false;
      else
 */
+     if (table == null) 
+        throw new IOException("Table doesn't exist");
      scanner = table.getScanner(scan);
      preFetch = inPreFetch;
      if (preFetch)
@@ -1220,45 +1222,48 @@ public class MTableClient {
    }
 
    public ByteArrayList getEndKeys() throws IOException {
-       if (logger.isTraceEnabled()) logger.trace("Enter getEndKeys() " + tableName);
-            ByteArrayList result = new ByteArrayList();
-            if (table == null) {
-                return null;
-            }
-            byte[][] htableResult = table.getMTableLocationInfo().getEndKeys();
+      if (logger.isTraceEnabled()) logger.trace("Enter getEndKeys() " + tableName);
+      if (table == null) 
+         return null;
+      ByteArrayList result = new ByteArrayList();
+      //   byte[][] htableResult = table.getMTableLocationInfo().getEndKeys();
 
-            // transfer the MTable result to ByteArrayList
-            for (int i=0; i<htableResult.length; i++ ) {
-                if (logger.isTraceEnabled()) logger.trace("Inside getEndKeys(), result[i]: " + 
-                             htableResult[i]);
-                if (logger.isTraceEnabled()) logger.trace("Inside getEndKeys(), result[i]: " + 
-                             new String(htableResult[i]));
-                result.add(htableResult[i]);
-            }
+      Map<Integer, Pair<byte[], byte[]>> keySpace;
+      Pair<byte[], byte[]> startEndKey;
+      keySpace  = table.getTableDescriptor().getKeySpace();
 
-            if (logger.isTraceEnabled()) logger.trace("Exit getEndKeys(), result size: " + result.getSize());
-            return result;
+      System.out.println("Num of Key Spaces " + keySpace.size());
+        
+      // transfer the MTable result to ByteArrayList
+      for (int i=0; i<keySpace.size(); i++ ) {
+         startEndKey = keySpace.get(Integer.valueOf(i)); 
+         result.add(startEndKey.getSecond());
+     }
+
+     if (logger.isTraceEnabled()) logger.trace("Exit getEndKeys(), result size: " + result.getSize());
+     return result;
    }
 
    public ByteArrayList getStartKeys() throws IOException {
-       if (logger.isTraceEnabled()) logger.trace("Enter getStartKeys() " + tableName);
-       ByteArrayList result = new ByteArrayList();
-        if (table == null) {
-            return null;
-        }
-        byte[][] htableResult = table.getMTableLocationInfo().getStartKeys();
+      if (logger.isTraceEnabled()) logger.trace("Enter getStartKeys() " + tableName);
+      if (table == null) 
+         return null;
+      ByteArrayList result = new ByteArrayList();
+      //   byte[][] htableResult = table.getMTableLocationInfo().getEndKeys();
 
-        // transfer the MTable result to ByteArrayList
-        for (int i=0; i<htableResult.length; i++ ) {
-            if (logger.isTraceEnabled()) logger.trace("Inside getStartKeys(), result[i]: " + 
-                         htableResult[i]);
-            if (logger.isTraceEnabled()) logger.trace("Inside getStartKeys(), result[i]: " + 
-                         new String(htableResult[i]));
-            result.add(htableResult[i]);
-        }
+      Map<Integer, Pair<byte[], byte[]>> keySpace;
+      Pair<byte[], byte[]> startEndKey;
+      keySpace  = table.getTableDescriptor().getKeySpace();
 
-        if (logger.isTraceEnabled()) logger.trace("Exit getStartKeys(), result size: " + result.getSize());
-        return result;
+      System.out.println("Num of Key Spaces " + keySpace.size());
+        
+      // transfer the MTable result to ByteArrayList
+      for (int i=0; i<keySpace.size(); i++ ) {
+         startEndKey = keySpace.get(Integer.valueOf(i)); 
+         result.add(startEndKey.getSecond());
+      }
+      if (logger.isTraceEnabled()) logger.trace("Exit getStartKeys(), result size: " + result.getSize());
+      return result;
     }
 
     private void cleanScan()

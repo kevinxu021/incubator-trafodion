@@ -803,10 +803,11 @@
   <profiles>
     <!-- JDBC drivers needed for compile, but not site docs 
 	 This allows turning off dependency on command line (-P '!jdbc') -->
-    <profile>
+     <profile>
       <id>jdbc</id>
       <activation>
         <activeByDefault>true</activeByDefault>
+        <jdk>[1.8,)</jdk>
       </activation>
       <dependencies>
          <!-- JDBCT4 dependencies -->    
@@ -822,6 +823,9 @@
             <version>${jdbct2.version}</version>
          </dependency>
       </dependencies>
+      <properties>
+          <additionalparam>-Xdoclint:none</additionalparam>
+       </properties>
     </profile>
     <profile>
       <id>runSmallTests</id>

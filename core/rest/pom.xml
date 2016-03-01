@@ -709,7 +709,11 @@
       <id>jdbc</id>
       <activation>
         <activeByDefault>true</activeByDefault>
+         <jdk>[1.8,)</jdk>
       </activation>
+      <properties>
+          <additionalparam>-Xdoclint:none</additionalparam>
+      </properties>
       <dependencies>    
         <!-- JDBCT4 dependencies -->    
         <dependency>    

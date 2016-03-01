@@ -9734,18 +9734,11 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
 
       // Set the header.nodetype to either HASH2 or RANGE based on whether
       // the table is salted or not. 
-      if (isMonarchTable)
-        {
-          // TBD:Monarch: assembleDescs for Monarch table
-        }
-      else
-        {
-          ByteArrayList* bal = ehi->getRegionEndKeys(extNameForHbase);
+      ByteArrayList* bal = ehi->getRegionEndKeys(extNameForHbase);
           // create a list of region descriptors
-         ((table_desc_struct*)tableDesc)->hbase_regionkey_desc = 
+      ((table_desc_struct*)tableDesc)->hbase_regionkey_desc = 
              assembleDescs(bal, populateRegionDescAsRANGE, STMTHEAP);
-          delete bal;
-        }
+      delete bal;
 
       // if this is base table or index and hbase object doesn't exist, then this object
       // is corrupted.
@@ -9754,12 +9747,7 @@ desc_struct * CmpSeabaseDDL::getSeabaseUserTableDesc(const NAString &catName,
         {
           if (tableDesc->body.table_desc.objectType == COM_BASE_TABLE_OBJECT)
             {
-              if (isMonarchTable)
-                {
-                  // TBD:Monarch: detect if this already exists in storage 
-
-                } // Monarch table
-              else if (existsInHbase(extNameForHbase, ehi) == 0)
+                if (existsInHbase(extNameForHbase, ehi) == 0)
                 {
                   *CmpCommon::diags() << DgSqlCode(-4254)
                                       << DgString0(*extTableName);
