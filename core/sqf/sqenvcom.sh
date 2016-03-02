@@ -139,23 +139,26 @@ fi
 export MY_SQROOT=$PWD
 export SQ_HOME=$PWD
 
+# general Hadoop & TRX dependencies - not distro specific, choose one to build against
 export HBASE_TRXDIR=$MY_SQROOT/export/lib
-export HBASE_TRX_JAR=hbase-trx-cdh5_4-${TRAFODION_VER}.jar
-export DTM_COMMON_JAR=trafodion-dtm-${TRAFODION_VER}.jar
-export SQL_JAR=trafodion-sql-${TRAFODION_VER}.jar
-export UTIL_JAR=trafodion-utility-${TRAFODION_VER}.jar
+export HBASE_TRX_ID=hbase-trx-cdh5_4
+export HBASE_DEP_VER=1.0.0-cdh5.4.4
+HBVER=""
 if [[ "$HBASE_DISTRO" = "HDP" ]]; then
-    export HBASE_VERSION_ID=hdp2_3
-    export HBASE_TRX_JAR=hbase-trx-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
-    export DTM_COMMON_JAR=trafodion-dtm-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
-    export SQL_JAR=trafodion-sql-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
+    export HBASE_TRX_ID=hbase-trx-hdp2_3
+    HBVER="hdp2_3-"
 fi
 if [[ "$HBASE_DISTRO" = "APACHE" ]]; then
-    export HBASE_VERSION_ID=apache1_0_2
-    export HBASE_TRX_JAR=hbase-trx-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
-    export DTM_COMMON_JAR=trafodion-dtm-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
-    export SQL_JAR=trafodion-sql-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
+    export HBASE_TRX_ID=hbase-trx-apache1_0_2
+    HBVER="apache1_0_2-"
 fi
+export HBASE_TRX_JAR=${HBASE_TRX_ID}-${TRAFODION_VER}.jar
+export DTM_COMMON_JAR=trafodion-dtm-${HBVER}${TRAFODION_VER}.jar
+export SQL_JAR=trafodion-sql-${HBVER}${TRAFODION_VER}.jar
+export UTIL_JAR=trafodion-utility-${TRAFODION_VER}.jar
+# set common version to be consistent between shared lib and maven dependencies
+export THRIFT_DEP_VER=0.9.0
+export HIVE_DEP_VER=1.1.0
 
 # check for workstation env
 # want to make sure SQ_VIRTUAL_NODES is set in the shell running sqstart
@@ -249,12 +252,6 @@ if [[ -e $MY_SQROOT/sql/scripts/sw_env.sh ]]; then
   # native library directories and include directories
   export HADOOP_LIB_DIR=$YARN_HOME/lib/native
   export HADOOP_INC_DIR=$YARN_HOME/include
-  if [ -z $THRIFT_LIB_DIR ]; then
-    export THRIFT_LIB_DIR=$TOOLSDIR/thrift-0.9.0/lib
-  fi
-  if [ -z $THRIFT_INC_DIR ]; then
-    export THRIFT_INC_DIR=$TOOLSDIR/thrift-0.9.0/include
-  fi
   export CURL_INC_DIR=/usr/include
   export CURL_LIB_DIR=/usr/lib64
   # directories with jar files and list of jar files
@@ -290,10 +287,6 @@ elif [[ -d /opt/cloudera/parcels/CDH ]]; then
   # native library directories and include directories
   export HADOOP_LIB_DIR=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native
   export HADOOP_INC_DIR=/opt/cloudera/parcels/CDH/include
-
-  ### Thrift not supported on Cloudera yet (so use TOOLSDIR download)
-  export THRIFT_LIB_DIR=$TOOLSDIR/thrift-0.9.0/lib
-  export THRIFT_INC_DIR=$TOOLSDIR/thrift-0.9.0/include
 
 
   export CURL_INC_DIR=/usr/include
@@ -338,10 +331,6 @@ elif [[ -n "$(ls /usr/lib/hadoop/hadoop-*cdh*.jar 2>/dev/null)" ]]; then
   # native library directories and include directories
   export HADOOP_LIB_DIR=/usr/lib/hadoop/lib/native
   export HADOOP_INC_DIR=/usr/include
-
-  ### Thrift not supported on Cloudera yet (so use TOOLSDIR download)
-  export THRIFT_LIB_DIR=$TOOLSDIR/thrift-0.9.0/lib
-  export THRIFT_INC_DIR=$TOOLSDIR/thrift-0.9.0/include
 
 
   export CURL_INC_DIR=/usr/include
@@ -388,9 +377,6 @@ elif [[ -n "$(ls /etc/init.d/ambari* 2>/dev/null)" ]]; then
   # The supported HDP version, HDP 1.3 uses Hadoop 1
   export USE_HADOOP_1=1
 
-  ### Thrift not supported on Hortonworks yet (so use TOOLSDIR download)
-  export THRIFT_LIB_DIR=$TOOLSDIR/thrift-0.9.0/lib
-  export THRIFT_INC_DIR=$TOOLSDIR/thrift-0.9.0/include
   export CURL_INC_DIR=/usr/include
   export CURL_LIB_DIR=/usr/lib64
   lv_hbase_cp=`hbase classpath`
@@ -413,10 +399,10 @@ elif [[ -n "$(ls /etc/init.d/ambari* 2>/dev/null)" ]]; then
   export HIVE_JAR_DIRS="/usr/hdp/current/hive-client/lib"
   export HIVE_JAR_FILES="/usr/hdp/current/hadoop-mapreduce-client/hadoop-mapreduce-client-core*.jar"
 
-  export HBASE_VERSION_ID=hdp2_3
-  export HBASE_TRX_JAR=hbase-trx-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
-  export DTM_COMMON_JAR=trafodion-dtm-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
-  export SQL_JAR=trafodion-sql-${HBASE_VERSION_ID}-${TRAFODION_VER}.jar
+  HBVER=hdp2_3-
+  export HBASE_TRX_JAR=hbase-trx-${HBVER}${TRAFODION_VER}.jar
+  export DTM_COMMON_JAR=trafodion-dtm-${HBVER}${TRAFODION_VER}.jar
+  export SQL_JAR=trafodion-sql-${HBVER}${TRAFODION_VER}.jar
 
   # Configuration directories
 
@@ -454,9 +440,6 @@ elif [[ -d /opt/mapr ]]; then
     MAPR_HIVEDIR=$(echo /opt/mapr/hive/hive-*)
   fi
 
-  ### Thrift not supported on MapR (so use TOOLSDIR download)
-  export THRIFT_LIB_DIR=$TOOLSDIR/thrift-0.9.0/lib
-  export THRIFT_INC_DIR=$TOOLSDIR/thrift-0.9.0/include
   export CURL_INC_DIR=/usr/include
   export CURL_LIB_DIR=/usr/lib64
 
@@ -575,13 +558,6 @@ EOF
     echo "**** ERROR: Unable to determine location of HBase lib directory"
   fi
 
-  if [[ -d $TOOLSDIR/thrift-0.9.0 ]]; then
-    # this is mostly for a build environment, where we need
-    # thrift from TOOLSDIR
-    export THRIFT_LIB_DIR=$TOOLSDIR/thrift-0.9.0/lib
-    export THRIFT_INC_DIR=$TOOLSDIR/thrift-0.9.0/include
-  fi
-
   if [ -n "$HBASE_CNF_DIR" -a -n "$HADOOP_CNF_DIR" -a \
        -d $APACHE_HADOOP_HOME/lib -a -d $APACHE_HBASE_HOME/lib ]; then
     # We are on a system with Apache HBase, probably without a distro
@@ -637,6 +613,14 @@ EOF
   fi
 
 fi
+# Common for all distros
+if [[ -d $TOOLSDIR/thrift-${THRIFT_DEP_VER} ]]; then
+  # this is for a build environment, where we need
+  # thrift from TOOLSDIR
+  export THRIFT_LIB_DIR=$TOOLSDIR/thrift-${THRIFT_DEP_VER}/lib
+  export THRIFT_INC_DIR=$TOOLSDIR/thrift-${THRIFT_DEP_VER}/include
+fi
+
 
 # ---+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # end of customization variables
@@ -820,7 +804,7 @@ if [ -z $UDIS86 ]; then
   export UDIS86="${TOOLSDIR}/udis86-1.7.2"
 fi
 if [ -z $ICU ]; then
-  export ICU="${TOOLSDIR}/icu4.4"
+  export ICU="${TOOLSDIR}/icu4c_4.4"
 fi
 
 #######################
