@@ -678,13 +678,13 @@ ExFunctionCastType::ExFunctionCastType(OperatorTypeEnum oper_type,
 {
 };
 
-ExFunctionSVariance::ExFunctionSVariance(Attributes **attr, Space *space)
-  : ex_function_clause(ITM_VARIANCE, 4, attr, space)
+ExFunctionSVariance::ExFunctionSVariance(Attributes **attr, Space *space, bool type)
+  : type(type), ex_function_clause(ITM_VARIANCE, 4, attr, space)
 {
 };
 
-ExFunctionSStddev::ExFunctionSStddev(Attributes **attr, Space *space)
-  : ex_function_clause(ITM_STDDEV, 4, attr, space)
+ExFunctionSStddev::ExFunctionSStddev(Attributes **attr, Space *space, bool type)
+  :type(type), ex_function_clause(ITM_STDDEV, 4, attr, space)
 {
   
 };
@@ -5187,8 +5187,11 @@ ex_expr::exp_return_type ExFunctionSVariance::eval(char *op_data[],
     result = 0.0;
   }
   else {
-    result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal - 1);
-
+	if(type == false){
+	  result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal - 1);
+	}else{
+	   result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal);
+	}
     if(result < 0.0) {
       result = 0.0;
     }
@@ -5232,8 +5235,11 @@ ex_expr::exp_return_type ExFunctionSStddev::eval(char *op_data[],
   }
   else {
     short err = 0;
-    result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal - 1);
-
+	if(type == false){
+	   result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal - 1);
+	}else {
+       result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal);
+	}
     if(result < 0.0) {
       result = 0.0;
     } else {

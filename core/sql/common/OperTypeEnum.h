@@ -335,6 +335,10 @@ enum OperatorTypeEnum {
                         ITM_STDDEV = 2058,
                         ITM_VARIANCE = 2059,
                         ITM_BASECOL = 2060,  // no aggregate function
+						ITM_STDDEV_SAMP = 2061,
+						ITM_STDDEV_POP = 2062,
+						ITM_VARIANCE_SAMP = 2063,
+						ITM_VARIANCE_POP = 2064,
 
                         ITM_ONE_ROW = 2070,
                         ITM_ONE_TRUE = 2071,

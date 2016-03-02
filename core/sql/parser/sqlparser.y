@@ -1086,6 +1086,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_STABLE_ACCESS	/* Tandem extension */
 %token <tokval> TOK_STATUS
 %token <tokval> TOK_STDDEV              /* Tandem extension */
+%token <tokval> TOK_STDDEV_SAMP
+%token <tokval> TOK_STDDEV_POP
 %token <tokval> TOK_STOP                /* Tandem extension */
 %token <tokval> TOK_STORED
 %token <tokval> TOK_SQL
@@ -1168,6 +1170,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_VARBINARY
 %token <tokval> TOK_VARCHAR
 %token <tokval> TOK_VARIANCE            /* Tandem extension */
+%token <tokval> TOK_VARIANCE_SAMP
+%token <tokval> TOK_VARIANCE_POP
 %token <tokval> TOK_VARWCHAR
 %token <tokval> TOK_VARYING
 %token <tokval> TOK_VERSION
@@ -7268,7 +7272,7 @@ set_function_specification : set_function_type '(' set_quantifier value_expressi
 				 $$ = new (PARSERHEAP())
 				   Aggregate($1, $4, $3, ITM_COUNT, '!');
 			       }
-			     else if ($1 == ITM_VARIANCE || $1 == ITM_STDDEV)
+			     else if ($1 == ITM_VARIANCE || $1 == ITM_STDDEV || $1 == ITM_VARIANCE_SAMP || $1 == ITM_VARIANCE_POP || $1 == ITM_STDDEV_SAMP || $1 ==ITM_STDDEV_POP)
 			       $$ = new (PARSERHEAP()) Variance($1, $4, NULL, $3);
 			     else
 			       $$ = new (PARSERHEAP()) Aggregate($1, $4, $3);
@@ -7340,6 +7344,10 @@ set_function_type :   TOK_AVG 		{ $$ = ITM_AVG; }
                     | TOK_COUNT 	{ $$ = ITM_COUNT; }
                     | TOK_VARIANCE 	{ $$ = ITM_VARIANCE; }
                     | TOK_STDDEV 	{ $$ = ITM_STDDEV; }
+					| TOK_STDDEV_SAMP { $$ = ITM_STDDEV_SAMP;}
+					| TOK_STDDEV_POP  { $$ = ITM_STDDEV_POP;}
+					| TOK_VARIANCE_SAMP { $$ = ITM_VARIANCE_SAMP;}
+					| TOK_VARIANCE_POP  { $$ = ITM_VARIANCE_POP;}
 
 pivot_options : empty
                        {
@@ -33667,6 +33675,8 @@ nonreserved_func_word:  TOK_ABS
                       | TOK_SPACE
                       | TOK_SQRT
                       | TOK_STDDEV
+					  | TOK_STDDEV_SAMP
+					  | TOK_STDDEV_POP
                       | TOK_STOP
 			//                      | TOK_SYSDATE
                       | TOK_TAN
@@ -33686,6 +33696,8 @@ nonreserved_func_word:  TOK_ABS
 			//                      | TOK_UUID
 		      | TOK_USERNAMEINTTOEXT
                       | TOK_VARIANCE
+					  | TOK_VARIANCE_SAMP
+					  | TOK_VARIANCE_POP
                       | TOK_WEEK
                       | TOK_XMLAGG
                       | TOK_XMLELEMENT
