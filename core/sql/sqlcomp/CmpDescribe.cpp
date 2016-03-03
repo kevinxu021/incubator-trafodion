@@ -2295,6 +2295,9 @@ short CmpDescribeHiveTable (
     {
       NAColumn * nac = naTable->getNAColumnArray()[i];
 
+      if(nac->isHivePartColumn())
+          continue;
+
       if (!nac->isHiveVirtualColumn() || describeVirtCols)
         {
           const NAString &colName = nac->getColName();
@@ -2317,6 +2320,54 @@ short CmpDescribeHiveTable (
     }
 
   outputShortLine(space, "  )");
+
+  //show hive table partitions and buckets defination.
+  // this default schema name is what the Hive default schema is called in SeaHive
+   HiveMetaData* md = bindWA.getSchemaDB()->getNATableDB()->getHiveMetaDB();
+   NAString defSchema = ActiveSchemaDB()->getDefaults().getValue(HIVE_DEFAULT_SCHEMA);
+   defSchema.toUpper();
+   struct hive_tbl_desc* htbl;
+   NAString tableNameInt = dtName.getQualifiedNameObj().getObjectName();
+   NAString schemaNameInt = dtName.getQualifiedNameObj().getSchemaName();
+   if (dtName.getQualifiedNameObj().getUnqualifiedSchemaNameAsAnsiString() == defSchema)
+     schemaNameInt = md->getDefaultSchemaName();
+   // Hive stores names in lower case
+   // Right now, just downshift, could check for mixed case delimited
+   // identifiers at a later point, or wait until Hive supports delimited identifiers
+  schemaNameInt.toLower();
+  tableNameInt.toLower();
+  hive_tbl_desc* htd = md->getTableDesc(schemaNameInt, tableNameInt);
+  if( htd && htd->getPartKey() && type == 2)
+  {
+       NAString partStr = "  PARTITIONED BY (";
+       NAString colNameUpper;
+       for(hive_pkey_desc* hpd = htd->getPartKey(); hpd; hpd = hpd->next_)
+       {
+           colNameUpper = hpd->name_;
+           colNameUpper.toUpper();
+           partStr += colNameUpper;
+           partStr += ' ';
+           partStr += hpd->type_;
+           partStr += ",";
+       }
+       partStr[partStr.length()-1] = ')';
+       outputShortLine(space, partStr);
+  }
+  if(htd && htd->getBucketingKeys() && type == 2)
+  {
+       NAString bktStr = "  CLUSTERED BY (";
+       for(hive_bkey_desc* hbd = htd->getBucketingKeys(); hbd; hbd = hbd->next_)
+       {
+           bktStr += hbd->name_;
+           bktStr += ",";
+       }
+       bktStr[bktStr.length()-1] = ')';
+       outputShortLine(space, bktStr);
+       bktStr = "  INTO ";
+       bktStr += std::to_string((long long)(htd->sd_->buckets_)).c_str();
+       bktStr += " BUCKETS ";
+       outputShortLine(space, bktStr);
+  }
 
   if ((naTable->getClusteringIndex()) &&
       (naTable->isORC()) &&

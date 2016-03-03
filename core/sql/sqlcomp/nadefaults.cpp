@@ -4242,9 +4242,9 @@ void NADefaults::updateSystemParameters(NABoolean reInit)
       "DEF_NUM_BM_CHUNKS",
       "DEF_PHYSICAL_MEMORY_AVAILABLE", //returned in KB not bytes
       "DEF_TOTAL_MEMORY_AVAILABLE",		 //returned in KB not bytes
-      "DEF_VIRTUAL_MEMORY_AVAILABLE"
-      , "GEN_MAX_NUM_PART_DISK_ENTRIES"
-      , "USTAT_IUS_PERSISTENT_CBF_PATH"
+      "DEF_VIRTUAL_MEMORY_AVAILABLE",
+      "GEN_MAX_NUM_PART_DISK_ENTRIES",
+      "USTAT_IUS_PERSISTENT_CBF_PATH"
    }; //returned in KB not bytes
 
   char valuestr[WIDEST_CPUARCH_VALUE];

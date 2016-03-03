@@ -53,6 +53,7 @@ class NodeMap;
 class HiveNodeMapEntry;
 class NodeMapIterator;
 class HHDFSListPartitionStats;
+class OsimHHDFSStatsBase;
 
 typedef CollIndex HostId;
 typedef Int64 BucketNum;
@@ -116,6 +117,7 @@ private:
 
 class HHDFSStatsBase : public NABasicObject
 {
+  friend class OsimHHDFSStatsBase;
 public:
   HHDFSStatsBase() : numBlocks_(0),
                      numFiles_(0),
@@ -139,7 +141,9 @@ public:
   Int64 getEstimatedRowCount() const;
   Int64 getEstimatedRecordLength() const;
   void print(FILE *ofd, const char *msg);
-
+  
+  virtual OsimHHDFSStatsBase* osimSnapShot(){ return NULL; }
+  
 protected:
   Int64 numBlocks_;
   Int64 numFiles_;
@@ -148,10 +152,12 @@ protected:
   time_t modificationTS_; // last modification time of this object (file, partition/directory, bucket or table)
   Int64 sampledBytes_;
   Int64 sampledRows_;
+
 };
 
 class HHDFSFileStats : public HHDFSStatsBase
 {
+  friend class OsimHHDFSFileStats;
 public:
   HHDFSFileStats(NAMemory *heap) : heap_(heap),
                                    fileName_(heap),
@@ -193,6 +199,8 @@ public:
   // Assign all blocks in this to the entry (ESP). The ESP will access
   // all the blocks.
   virtual void assignToESPsRepN(HiveNodeMapEntry*& entry);
+  
+  virtual OsimHHDFSStatsBase* osimSnapShot();
 
 protected:
   NAString fileName_;
@@ -206,7 +214,7 @@ protected:
 
 class HHDFSORCFileStats : public HHDFSFileStats
 {
-
+  friend class OsimHHDFSORCFileStats;
 public:
   HHDFSORCFileStats(NAMemory *heap) : 
       HHDFSFileStats(heap),
@@ -227,6 +235,8 @@ public:
 
   // find the block number for the stripe with offset x
   Int64 findBlockForStripe(Int64 x);
+  
+  virtual OsimHHDFSStatsBase* osimSnapShot();
 
 protected:
   // Assign all stripes in this to ESPs, considering locality
@@ -261,6 +271,7 @@ protected:
 
 class HHDFSBucketStats : public HHDFSStatsBase
 {
+  friend class OsimHHDFSBucketStats;
 public:
   HHDFSBucketStats(NAMemory *heap) : heap_(heap), fileStatsList_(heap), scount_(0) {}
   ~HHDFSBucketStats();
@@ -280,6 +291,10 @@ public:
   void removeAt(CollIndex i);
   void print(FILE *ofd);
 
+  void addToList(HHDFSFileStats* st);
+  
+  virtual OsimHHDFSStatsBase* osimSnapShot();
+
 private:
 
   // list of files in this bucket
@@ -291,6 +306,7 @@ private:
 
 class HHDFSListPartitionStats : public HHDFSStatsBase
 {
+    friend class OsimHHDFSListPartitionStats;
 public:
   HHDFSListPartitionStats(NAMemory *heap) : heap_(heap), partitionDir_(heap),
     bucketStatsList_(heap),
@@ -324,6 +340,10 @@ public:
   Int32 determineBucketNum(const char *fileName);
   void print(FILE *ofd);
 
+  void addToList(HHDFSBucketStats* st);
+  
+  virtual OsimHHDFSStatsBase* osimSnapShot();
+
 private:
 
   // directory of the partition
@@ -350,6 +370,8 @@ private:
 class HHDFSTableStats : public HHDFSStatsBase
 {
   friend class HivePartitionAndBucketKey; // to be able to make a subarray of the partitions
+  friend class OsimHHDFSTableStats;
+  friend class OptimizerSimulator;
 public:
   HHDFSTableStats(NAMemory *heap) : currHdfsPort_(-1),
                                     fs_(NULL),
@@ -426,6 +448,9 @@ public:
 
   const NAString &tableDir() const { return tableDir_; }
 
+  void addToList(HHDFSListPartitionStats * st);
+  virtual OsimHHDFSStatsBase* osimSnapShot();
+  
 private:
   enum FileType
   {

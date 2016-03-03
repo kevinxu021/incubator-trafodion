@@ -28,7 +28,7 @@
 #include "ComCextdecs.h"
 #include "ExpORCinterface.h"
 #include "NodeMap.h"
-
+#include "OptimizerSimulator.h"
 // for DNS name resolution
 #include <netdb.h>
 
@@ -533,6 +533,22 @@ void HHDFSBucketStats::print(FILE *ofd)
   HHDFSStatsBase::print(ofd, "bucket");
 }
 
+void HHDFSBucketStats::addToList(HHDFSFileStats* st)
+{
+   fileStatsList_.insert(st);
+}
+
+OsimHHDFSStatsBase* HHDFSBucketStats::osimSnapShot()
+{
+    OsimHHDFSBucketStats* stats = new(STMTHEAP) OsimHHDFSBucketStats(NULL, this, STMTHEAP);
+
+    for(Int32 i = 0; i < fileStatsList_.entries(); i++)
+        stats->addEntry(fileStatsList_[i]->osimSnapShot());
+
+    return stats;
+}
+
+
 HHDFSListPartitionStats::~HHDFSListPartitionStats()
 {
   for (CollIndex b=0; b<=defaultBucketIdx_; b++)
@@ -809,6 +825,21 @@ void HHDFSListPartitionStats::print(FILE *ofd)
         bucketStatsList_[b]->print(ofd);
       }
   HHDFSStatsBase::print(ofd, "partition");
+}
+
+void HHDFSListPartitionStats::addToList(HHDFSBucketStats* st)
+{
+    bucketStatsList_.insertAt(bucketStatsList_.entries(), st);
+}
+
+OsimHHDFSStatsBase* HHDFSListPartitionStats::osimSnapShot()
+{
+    OsimHHDFSListPartitionStats* stats = new(STMTHEAP) OsimHHDFSListPartitionStats(NULL, this, STMTHEAP);
+
+    for(Int32 i = 0; i < bucketStatsList_.entries(); i++)
+        stats->addEntry(bucketStatsList_[i]->osimSnapShot());
+
+    return stats;
 }
 
 HHDFSTableStats::~HHDFSTableStats()
@@ -1138,6 +1169,22 @@ NABoolean HHDFSFileStats::splitsAllowed() const
   else
     return TRUE;
 }
+
+void HHDFSTableStats::addToList(HHDFSListPartitionStats* st)
+{
+    listPartitionStatsList_.insertAt(listPartitionStatsList_.entries(), st);
+}
+
+OsimHHDFSStatsBase* HHDFSTableStats::osimSnapShot()
+{
+    OsimHHDFSTableStats* stats = new(STMTHEAP) OsimHHDFSTableStats(NULL, this, STMTHEAP);
+
+    for(Int32 i = 0; i < listPartitionStatsList_.entries(); i++)
+        stats->addEntry(listPartitionStatsList_[i]->osimSnapShot());
+
+    return stats;
+}
+
 // Assign all blocks in this to ESPs, considering locality
 Int64 HHDFSFileStats::assignToESPs(Int64 *espDistribution,
                                    NodeMap* nodeMap,
@@ -1262,12 +1309,20 @@ void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi,
    }
 }
 
+<<<<<<< HEAD
 void HHDFSFileStats::assignToESPsRepN(HiveNodeMapEntry*& entry)
 {
    if ( totalSize_ > 0 ) {
       HiveScanInfo info(this, 0, totalSize_);
       entry->addScanInfo(info, totalSize_);
    }
+=======
+OsimHHDFSStatsBase* HHDFSFileStats::osimSnapShot()
+{
+    OsimHHDFSFileStats* stats = new(STMTHEAP) OsimHHDFSFileStats(NULL, this, STMTHEAP);
+
+    return stats;
+>>>>>>> 51f7996... osim for hive orc table
 }
 
 Int64 HHDFSORCFileStats::findBlockForStripe(Int64 offset)
@@ -1440,4 +1495,10 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
 
 }
 
+OsimHHDFSStatsBase* HHDFSORCFileStats::osimSnapShot()
+{
+    OsimHHDFSORCFileStats* stats = new(STMTHEAP) OsimHHDFSORCFileStats(NULL, this, STMTHEAP);
+
+    return stats;
+}
 
