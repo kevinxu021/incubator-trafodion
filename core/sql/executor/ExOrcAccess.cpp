@@ -718,11 +718,13 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 
 	    myInstNum_ = getGlobals()->getMyInstanceNumber();
 
-	    beginRangeNum_ =  
-	      *(Lng32*)orcAggrTdb().getHdfsFileRangeBeginList()->get(myInstNum_);
+	    if ( orcAggrTdb().getHdfsFileRangeBeginList()->get(myInstNum_) )
+	      beginRangeNum_ =  
+	         *(Lng32*)orcAggrTdb().getHdfsFileRangeBeginList()->get(myInstNum_);
 
-	    numRanges_ =  
-	      *(Lng32*)orcAggrTdb().getHdfsFileRangeNumList()->get(myInstNum_);
+	    if ( orcAggrTdb().getHdfsFileRangeNumList()->get(myInstNum_) )
+	      numRanges_ =  
+	        *(Lng32*)orcAggrTdb().getHdfsFileRangeNumList()->get(myInstNum_);
 
 	    currRangeNum_ = beginRangeNum_;
 
