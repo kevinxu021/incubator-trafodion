@@ -89,23 +89,24 @@ public:
   // ---------------------------------------------------------------------
 
   NAColumn(const char* colName,
-    Lng32 position,
-    NAType *type,
-    CollHeap *h,
-    const NATable* table = NULL,
-    ColumnClass columnClass = USER_COLUMN,
-    const ComColumnDefaultClass defaultClass = COM_NO_DEFAULT,
-    char* defaultValue = NULL,
-    char* heading = NULL,
-    NABoolean upshift = FALSE,
-    NABoolean addedColumn = FALSE,
-    ComColumnDirection colDirection = COM_UNKNOWN_DIRECTION,
-    NABoolean isOptional = FALSE,
-    char *routineParamType = NULL,
-    NABoolean storedOnDisk = TRUE,
-    char *computedColExpr = NULL,
-    NABoolean isSaltColumn = FALSE,
-    NABoolean isDivisioningColumn = FALSE)
+           Lng32 position,
+           NAType *type,
+           CollHeap *h,
+           const NATable* table = NULL,
+           ColumnClass columnClass = USER_COLUMN,
+           const ComColumnDefaultClass defaultClass = COM_NO_DEFAULT,
+           char* defaultValue = NULL,
+           char* heading = NULL,
+           NABoolean upshift = FALSE,
+           NABoolean addedColumn = FALSE,
+           ComColumnDirection colDirection = COM_UNKNOWN_DIRECTION,
+           NABoolean isOptional = FALSE,
+           char *routineParamType = NULL,
+           NABoolean storedOnDisk = TRUE,
+           char *computedColExpr = NULL,
+           NABoolean isSaltColumn = FALSE,
+           NABoolean isDivisioningColumn = FALSE,
+           NABoolean isAlteredColumn = FALSE)
   : heap_(h),
     colName_(colName, h),
     position_(position),
@@ -117,6 +118,7 @@ public:
     heading_(heading),
     upshift_(upshift),
     addedColumn_(addedColumn),
+    alteredColumn_(isAlteredColumn),
     keyKind_(NON_KEY),
     clusteringKeyOrdering_(NOT_ORDERED),
     isNotNullNondroppable_(NULL),
@@ -156,6 +158,7 @@ public:
     heading_(nac.heading_),
     upshift_(nac.upshift_),
     addedColumn_(nac.addedColumn_),
+    alteredColumn_(nac.alteredColumn_),
     keyKind_(nac.keyKind_),
     clusteringKeyOrdering_(nac.clusteringKeyOrdering_),
     isNotNullNondroppable_(nac.isNotNullNondroppable_),
@@ -245,6 +248,7 @@ public:
   inline const char* getComputedColumnExprString() const { return computedColumnExpression_; }
   inline NABoolean isStoredOnDisk() const       { return storedOnDisk_; }
   inline NABoolean isAddedColumn() const { return addedColumn_; }
+  inline NABoolean isAlteredColumn() const { return alteredColumn_; }
   inline NABoolean isSaltColumn() const        { return isSaltColumn_;}
   inline NABoolean isDivisioningColumn() const { return isDivisioningColumn_; }
   inline NABoolean isHivePartColumn() const { return virtualColumnType_ == HIVE_PART_COL; }
@@ -527,6 +531,11 @@ private:
   // Set to TRUE if this column was an added column.
   // ----------------------------------------------------
   NABoolean addedColumn_;
+
+  // ----------------------------------------------------
+  // Set to TRUE if this column was altered by datatype change
+  // ----------------------------------------------------
+  NABoolean alteredColumn_;
 
   // ----------------------------------------------------
   // Set to TRUE if there is a join predicate on this column.

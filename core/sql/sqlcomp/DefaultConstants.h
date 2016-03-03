@@ -3822,6 +3822,10 @@ enum DefaultConstants
   USTAT_COLLECT_VIRT_COL_STATS,
   HIVE_EXT_TABLE_INCLUDE_VIRT_COLS,
 
+  // By default only alter of varchar col length is supported.
+  // If this cqd is on, then other alters (name, datatype) are also supported.
+  TRAF_ALTER_COL_ATTRS,
+
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES
