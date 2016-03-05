@@ -455,7 +455,7 @@ public class MonarchClient {
       else
          desc.setMaxVersions(DtmConst.SSCC_MAX_DATA_VERSION);
 */
-      desc.setDiskPersistentEnabled(true);
+      desc.setDiskPersistenceEnabled(true);
       if (tableType == RANGE_PARTITIONED) {
          desc.setTotalNumOfSplits(numSplits+1);
          desc.setTableType(MTableType.ORDERED_VERSIONED);

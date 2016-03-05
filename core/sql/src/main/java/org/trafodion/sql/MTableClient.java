@@ -1232,8 +1232,6 @@ public class MTableClient {
       Pair<byte[], byte[]> startEndKey;
       keySpace  = table.getTableDescriptor().getKeySpace();
 
-      System.out.println("Num of Key Spaces " + keySpace.size());
-        
       // transfer the MTable result to ByteArrayList
       for (int i=0; i<keySpace.size(); i++ ) {
          startEndKey = keySpace.get(Integer.valueOf(i)); 
@@ -1255,8 +1253,6 @@ public class MTableClient {
       Pair<byte[], byte[]> startEndKey;
       keySpace  = table.getTableDescriptor().getKeySpace();
 
-      System.out.println("Num of Key Spaces " + keySpace.size());
-        
       // transfer the MTable result to ByteArrayList
       for (int i=0; i<keySpace.size(); i++ ) {
          startEndKey = keySpace.get(Integer.valueOf(i)); 
