@@ -192,15 +192,15 @@ define(['moment',
 				} else if (interval <= (3 * 24 * 60 * 60 * 1000)) {
 					offSetString = 'HH:mm'; // For 3 days, use every 1 hour
 				} else if (interval <= (1 * 7 * 24 * 60 * 60 * 1000)) {
-					offSetString = 'ddd HH:mm'; // For 1 week, use every 2 hours
+					offSetString = 'MM-DD'; // For 1 week, use every 2 hours
 				} else if (interval <= (2 * 7 * 24 * 60 * 60 * 1000)) {
-					offSetString = 'ddd HH:mm'; // For 2 weeks, use every 4 hours
+					offSetString = 'MM-DD'; // For 2 weeks, use every 4 hours
 				} else if (interval <= 1 * 31 * 24 * 60 * 60 * 1000) {
-					offSetString = 'ddd HH:mm'; // For 1 month use every 12 hours
+					offSetString = 'MM-DD'; // For 1 month use every 12 hours
 				} else if (interval <=  3 * 31 * 24 * 60 * 60 * 1000) {
-					offSetString = 'MM-DD HH:mm'; // For 3 months use every 1 day
+					offSetString = 'MM-DD'; // For 3 months use every 1 day
 				} else {
-					offSetString =  'MM-DD HH:mm'; // For longer than 3 months, use every 1 week
+					offSetString =  'MM-DD'; // For longer than 3 months, use every 1 week
 				}
 				if(isUtc !=null && isUtc == true)
 					return _this.toServerLocalDateFromUtcMilliSeconds(milliSeconds, offSetString);
