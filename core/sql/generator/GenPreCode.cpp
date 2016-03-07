@@ -6200,8 +6200,9 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
         }
       else
         {
+          FileScan* fScan = dynamic_cast<FileScan*>(scan);
           eue = new(CmpCommon::statementHeap())
-            OrcPushdownAggr(aggregateExpr(), scan->getTableDesc());
+            OrcPushdownAggr(aggregateExpr(), scan->getTableDesc(), fScan->getHiveSearchKey());
           if (NOT selectionPred().isEmpty())
             {
               eue->setSelectionPredicates(selectionPred());

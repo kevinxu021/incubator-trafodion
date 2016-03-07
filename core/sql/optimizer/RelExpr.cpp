@@ -8131,12 +8131,14 @@ const NAString OrcPushdownAggr::getText() const
 
 RelExpr * OrcPushdownAggr::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
 {
-  RelExpr *result;
+  OrcPushdownAggr *result;
 
   if (derivedNode == NULL)
-    result = new (outHeap) OrcPushdownAggr(aggregateExpr(), tableDesc_);
-  else
-    result = derivedNode;
+    result = new (outHeap) OrcPushdownAggr(aggregateExpr(), tableDesc_, hiveSearchKey_);
+  else  {
+    result = (OrcPushdownAggr*)derivedNode;
+    result->hiveSearchKey_ = hiveSearchKey_;
+  }
 
   return GroupByAgg::copyTopNode(result, outHeap);
 }
