@@ -78,7 +78,7 @@ define([
 	var renderedFlotCharts = {};
 	var chartsData = {};
 	var resizeTimer = null;
-
+	var drillDownChart = {};
 	var chartConfig = null;
 	var transConfig = null;
 
@@ -453,6 +453,8 @@ define([
 			if(lastUsedTimeRange == null){
 				lastUsedTimeRange = {};
 			}		
+			lastUsedTimeRange.startMsec = startTime.unix() * 1000;		
+			lastUsedTimeRange.endMsec = endTime.unix() * 1000;
 			lastUsedTimeRange.startTime = params.startTime;
 			lastUsedTimeRange.endTime = params.endTime;
 			lastUsedTimeRange.timeRange = $(FILTER_TIME_RANGE).val();
@@ -772,6 +774,8 @@ define([
 						colors : graphColors,
 						canvas: true,
 						xaxis : {
+							min: lastUsedTimeRange.startMsec,
+							max: lastUsedTimeRange.endMsec,
 							mode : "time", 
 							tickFormatter: function(val, axis) {
 								return common.formatGraphDateLabels(val, timeinterval);
@@ -797,6 +801,7 @@ define([
 							mode: "x"
 						},*/
 						lines: {
+							lineWidth: 2.5,
 							fill: false,
 						},
 						grid : {
@@ -900,7 +905,8 @@ define([
 			var metricConfig = chartConfig[result.metricName];
 			var tags = result.data.tags;
 			var keys = Object.keys(metricsData);
-			var plot = null;
+			drillDownChart= {};
+			drillDownChart.metricConfig = metricConfig;
 
 			$(DRILLDOWN_TITLE).text(metricConfig.chartTitle);
 			$(DRILLDOWN_SPINNER).hide();
@@ -916,13 +922,13 @@ define([
 				$(DRILLDOWN_CHART_CONTAINER).show();
 				$(DRILLDOWN_LEGEND).empty();
 
-				var plotData = [];
+				drillDownChart.plotData = [];
 				$.each(metricsData	[keys[0]], function(i, v){
 					var seriesData = {label: "", data:[], color: ""};
 					seriesData.label = result.data.tags[i];
 					seriesData.labelID = "lbl-" + i;
 					seriesData.color = graphColors[i];
-					plotData.push(seriesData);
+					drillDownChart.plotData.push(seriesData);
 				});
 
 				$.each(keys, function(index, value){
@@ -942,7 +948,7 @@ define([
 							yVal = Math.round(yVal);
 						}
 						//dataPoint.push(yVal);
-						plotData[i].data.push([xVal, yVal]);
+						drillDownChart.plotData[i].data.push([xVal, yVal]);
 					});
 					//metricConfig.toolTipTexts[xVal] = dataPoint;
 				});
@@ -955,9 +961,9 @@ define([
 							+ val + "</label> <label id='lbl-" + key + "' class='y-val-label'></label>");
 				});
 
-				$(DRILLDOWN_LEGEND).find("input").click(plotAccordingToChoices);
+				$(DRILLDOWN_LEGEND).find("input").click(_this.plotAccordingToChoices);
 
-				var flotOptions = {
+				drillDownChart.flotOptions = {
 						//colors : graphColors,
 						canvas: true,
 						axisLabels: {
@@ -973,6 +979,8 @@ define([
 						},
 						xaxis : {
 							mode : "time", 
+							min: lastUsedTimeRange.startMsec,
+							max: lastUsedTimeRange.endMsec,
 							tickFormatter: function(val, axis) {
 								return common.formatGraphDateLabels(val, timeinterval);
 							},
@@ -994,8 +1002,8 @@ define([
 							}
 						},	
 						lines: {
-							fill: false,
-							color: ["#3c8dbc", "#f56954"]
+							lineWidth: 2.5,
+							fill: false
 						},
 						grid : {
 							hoverable: true,
@@ -1034,103 +1042,101 @@ define([
 							}
 						}]
 				};
+				_this.plotAccordingToChoices();
 
-				//$.plot($(DRILLDOWN_CHART), plotData, flotOptions);
-				function plotAccordingToChoices(e) {
+				drillDownChart.updateLegendTimeout = null;
+				drillDownChart.latestPosition = null;
 
-					var data = [];
 
-					$(DRILLDOWN_LEGEND).find('#x-time').text('');
-					$(DRILLDOWN_LEGEND).find(".y-val-label").text('');
-
-					$(DRILLDOWN_LEGEND).find("input:checked").each(function () {
-						var key = $(this).attr("name");
-						if (key && plotData[key]) {
-							data.push(plotData[key]);
-						}
-					});
-
-					if (data.length > 0) {
-						plot = $.plot($(DRILLDOWN_CHART), data, flotOptions);
-					}else{
-						if(e != null) // At least one series should be selected. Cancel the click event.
-							e.preventDefault();
-					}
-				}
-
-				plotAccordingToChoices();
-
-				var updateLegendTimeout = null;
-				var latestPosition = null;
-
-				function updateLegend() {
-
-					updateLegendTimeout = null;
-
-					var pos = latestPosition;
-
-					var axes = plot.getAxes();
-					if (pos.x < axes.xaxis.min || pos.x > axes.xaxis.max ||
-							pos.y < axes.yaxis.min || pos.y > axes.yaxis.max) {
-						return;
-					}
-
-					var i, j, dataset = plot.getData();
-					for (i = 0; i < dataset.length; ++i) {
-
-						var series = dataset[i];
-
-						// Find the nearest points, x-wise
-
-						for (j = 0; j < series.data.length; ++j) {
-							if (series.data[j][0] > pos.x) {
-								break;
-							}
-						}
-
-						// Now Interpolate
-
-						var y, x,
-						p1 = series.data[j - 1],
-						p2 = series.data[j];
-
-						if (p1 == null) {
-							y = p2[1];
-							x = p2[0];
-						} else if (p2 == null) {
-							y = p1[1];
-							x = p1[0];
-						} else {
-							y = p1[1] + (p2[1] - p1[1]) * (pos.x - p1[0]) / (p2[0] - p1[0]);
-							x = p1[0] + (p2[0] - p1[0]) * (pos.x - p1[0]) / (p2[0] - p1[0]);
-						}
-
-						var nDecimals = 2;
-						if(metricConfig.ydecimals != null){
-							nDecimals = metricConfig.ydecimals;
-						}
-
-						var text = " =  ";
-						if(metricConfig.yvalformatter){
-							text += metricConfig.yvalformatter(y.toFixed(nDecimals));
-						}else{
-							text += y.toFixed(nDecimals);
-						}
-						if(metricConfig.yunit){
-							text += metricConfig.yunit;
-						}
-						$(DRILLDOWN_LEGEND).find('#x-time').text("Time :  " + common.toServerLocalDateFromMilliSeconds(x));
-						$(DRILLDOWN_LEGEND).find('#'+series.labelID).text(text);
-					}
-				}
 
 				$(DRILLDOWN_CHART).bind("plothover",  function (event, pos, item) {
-					latestPosition = pos;
-					if (!updateLegendTimeout) {
-						updateLegendTimeout = setTimeout(updateLegend, 50);
+					drillDownChart.latestPosition = pos;
+					if (!drillDownChart.updateLegendTimeout) {
+						drillDownChart.updateLegendTimeout = setTimeout(_this.updateLegend, 50);
 					}
 				});				
 			}			
+		},
+		plotAccordingToChoices: function(e) {
+
+			var data = [];
+
+			$(DRILLDOWN_LEGEND).find('#x-time').text('');
+			$(DRILLDOWN_LEGEND).find(".y-val-label").text('');
+
+			$(DRILLDOWN_LEGEND).find("input:checked").each(function () {
+				var key = $(this).attr("name");
+				if (key && drillDownChart.plotData[key]) {
+					data.push(drillDownChart.plotData[key]);
+				}
+			});
+
+			if (data.length > 0) {
+				drillDownChart.plot = $.plot($(DRILLDOWN_CHART), data, drillDownChart.flotOptions);
+			}else{
+				if(e != null) // At least one series should be selected. Cancel the click event.
+					e.preventDefault();
+			}
+		},
+		updateLegend: function() {
+
+			drillDownChart.updateLegendTimeout = null;
+
+			var pos = drillDownChart.latestPosition;
+
+			var axes = drillDownChart.plot.getAxes();
+			if (pos.x < axes.xaxis.min || pos.x > axes.xaxis.max ||
+					pos.y < axes.yaxis.min || pos.y > axes.yaxis.max) {
+				return;
+			}
+
+			var i, j, dataset = drillDownChart.plot.getData();
+			for (i = 0; i < dataset.length; ++i) {
+
+				var series = dataset[i];
+
+				// Find the nearest points, x-wise
+
+				for (j = 0; j < series.data.length; ++j) {
+					if (series.data[j][0] > pos.x) {
+						break;
+					}
+				}
+
+				// Now Interpolate
+
+				var y, x,
+				p1 = series.data[j - 1],
+				p2 = series.data[j];
+
+				if (p1 == null) {
+					y = p2[1];
+					x = p2[0];
+				} else if (p2 == null) {
+					y = p1[1];
+					x = p1[0];
+				} else {
+					y = p1[1] + (p2[1] - p1[1]) * (pos.x - p1[0]) / (p2[0] - p1[0]);
+					x = p1[0] + (p2[0] - p1[0]) * (pos.x - p1[0]) / (p2[0] - p1[0]);
+				}
+
+				var nDecimals = 2;
+				if(drillDownChart.metricConfig.ydecimals != null){
+					nDecimals = drillDownChart.metricConfig.ydecimals;
+				}
+
+				var text = " =  ";
+				if(drillDownChart.metricConfig.yvalformatter){
+					text += drillDownChart.metricConfig.yvalformatter(y.toFixed(nDecimals));
+				}else{
+					text += y.toFixed(nDecimals);
+				}
+				if(drillDownChart.metricConfig.yunit){
+					text += drillDownChart.metricConfig.yunit;
+				}
+				$(DRILLDOWN_LEGEND).find('#x-time').text("Time :  " + common.toServerLocalDateFromMilliSeconds(x));
+				$(DRILLDOWN_LEGEND).find('#'+series.labelID).text(text);
+			}
 		},
 		fetchDrilldownMetricError:function(jqXHR, res, error){
 			var metricConfig = chartConfig[jqXHR.metricName];
