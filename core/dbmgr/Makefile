@@ -34,8 +34,8 @@ dbmgr:ambari-view package-tools LICENSE_Esgyn
 	-mkdir -p ../../${DISTRIBUTION_DIR}
 	mv target/$(DBMGR_TARNAME) ../../${DISTRIBUTION_DIR}
 
-ambari-view: 
-    $(MAVEN) -f plugins/ambari-view/pom.xml
+ambari-view:  
+	$(MAVEN) install -f plugins/ambari-view/pom.xml
     
 LICENSE_Esgyn: ../../licenses/Esgyn
 	cp -f $? $@
