@@ -36,7 +36,7 @@ def deleteAllOldData():
 		logger.error("this is an OSError msg! %100s" % e1)
 	finally:
         	file_obj.close()
-		print("please track the log file "+log_name+" under path:"+LOG_DIR+" for the detail information.")
+		print("The command completed. Please check the log "+log_name+" for details")
 if __name__=="__main__":
 	deleteAllOldData()
 
