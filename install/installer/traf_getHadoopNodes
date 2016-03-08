@@ -28,7 +28,7 @@ TRAF_CONFIG=/etc/trafodion/trafodion_config
 echo "***INFO: Getting list of all $HADOOP_TYPE nodes"
 
 curlRC=0
-if [[ $HADOOP_TYPE == "cloudera" ]]; then
+if [ $HADOOP_TYPE == "cloudera" ]; then
    curl -k -su $ADMIN:$PASSWORD $URL/api/v10/hosts > tempFile
    curlRC=$?
    numberHadoopNodes=$(grep -r "hostname" tempFile | wc -l)
