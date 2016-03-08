@@ -593,6 +593,10 @@ if [[ "$HBASE_DISTRO" = "HDP" ]]; then
     HADOOP_TAR=hadoop-2.7.1.2.3.2.0-2950.tar.gz
 fi
 
+if [[ "$HBASE_DISTRO" = "CDH5.5" ]]; then
+    HADOOP_TAR=hadoop-2.6.0-cdh5.5.1.tar.gz   
+fi
+
 # Alternative: Use MariaDB (not validated)
 # MARIADB_MIRROR_URL=https://downloads.mariadb.org/f/mariadb-5.5.29/kvm-bintar-hardy-amd64/mariadb-5.5.29-linux-x86_64.tar.gz/from/http:/ftp.osuosl.org/pub/mariadb
 # MARIADB_TAR=mariadb-5.5.29-linux-x86_64.tar.gz
@@ -611,6 +615,11 @@ if [[ "$HBASE_DISTRO" = "HDP" ]]; then
    HIVE_TAR=${HIVE_PREFIX}.tar.gz
 fi
 
+if [[ "$HBASE_DISTRO" = "CDH5.5" ]]; then
+   HIVE_PREFIX=hive-1.1.0-cdh5.5.1
+   HIVE_TAR=${HIVE_PREFIX}.tar.gz
+fi
+
 HBASE_MIRROR_URL=http://archive.cloudera.com/cdh5/cdh/5
 HBASE_TAR=hbase-${HBASE_DEP_VER}.tar.gz
 if [[ "$HBASE_DISTRO" = "HDP" ]]; then
@@ -618,6 +627,10 @@ if [[ "$HBASE_DISTRO" = "HDP" ]]; then
 fi
 if [[ "$HBASE_DISTRO" = "APACHE" ]]; then
     HBASE_TAR=apache_hbase-1.0.2-bin.tar.gz
+fi
+ 
+if [[ "$HBASE_DISTRO" = "CDH5.5" ]]; then
+   HBASE_TAR=hbase-1.0.0-cdh5.5.1.tar.gz
 fi
 
 echo "Checking for existing Hadoop processes..."
@@ -744,6 +757,7 @@ EOF
   cat <<EOF >$MY_SW_SCRIPTS_DIR/sw_env.sh
 # Basic environment variables for Trafodion/Hadoop/Hive/HBase/MySQL setup
 export JAVA_HOME=${JAVA_HOME}
+export JAVA_LIBRARY_PATH=${LD_LIBRARY_PATH}
 export MY_SW_SCRIPTS_DIR=${MY_SW_SCRIPTS_DIR}
 export MY_SW_ROOT=${MY_SW_ROOT}
 export MYSQL_HOME=${MYSQL_HOME}

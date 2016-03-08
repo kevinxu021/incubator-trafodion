@@ -86,8 +86,10 @@ import org.apache.hadoop.hbase.client.Mutation;
 import java.util.ListIterator;
 import org.apache.hadoop.hbase.Cell;
 
-#ifdef HDP2.3
+#ifdefined HDP2.3 || CDH5.5
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
+#endif
+#ifdef HDP2.3
 import org.apache.hadoop.hbase.regionserver.Region;
 #endif
 
@@ -959,7 +961,7 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
             }
 
             @Override
-#ifdef HDP2.3
+#ifdefined HDP2.3 || CDH5.5
             public boolean next(List<Cell> result, ScannerContext scannerContext) throws IOException {
               if (LOG.isTraceEnabled()) LOG.trace("preCompact: call next with scannerContext limit " + scannerContext);
 #else
@@ -970,7 +972,7 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
                 boolean skip=false;
                 ConcurrentHashMap<String, Integer>  verCountByCol = new ConcurrentHashMap<String,Integer>();
                 try {
-#ifdef HDP2.3
+#ifdefined HDP2.3 || CDH5.5
   		    ret = s.next(result,scannerContext);
 #else
                     ret = s.next(result,limit);
