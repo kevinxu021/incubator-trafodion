@@ -46,7 +46,7 @@
 
 #include "OrcFileReader.h"
 
-typedef std::string Text;
+//typedef std::string Text;
 
 class ExpORCinterface : public NABasicObject
 {
@@ -63,14 +63,34 @@ class ExpORCinterface : public NABasicObject
   
   Lng32 init();
   
+  //////////////////////////////////////////////////////////////////
   // orcFileName:   location and name of orc file
   // startRowNum: first rownum to be returned. 
   // stopRowNum:  last rownum to be returned
-  //    Rownums start at 1 and stop at N. If N is -1, then all rows are to be returned.
+  //    Rownums start at 1 and stop at N. If N is -1, 
+  //   then all rows are to be returned.
+  // 
+  // numCols   : Number of columns to be returned 
+  //                         set it to -1 to get all the columns
+  //
+  // whichCol            : array containing the column numbers to be returned
+  //                        (Column numbers are zero based)
+  //
+  // ppiBuflen:   length of buffer containing PPI (pred pushdown info)
+  // ppiBuf:      buffer containing PPI
+  // Format of data in ppiBuf:
+  //   <numElems><type><nameLen><name><numOpers><opValLen><opVal>... 
+  //    4-bytes    4B     4B      nlB     4B         4B      ovl B
+  //////////////////////////////////////////////////////////////////
+
   Lng32 scanOpen(
                  char * orcFileName,
                  const Int64 startRowNum, 
-                 const Int64 stopRowNum);
+                 const Int64 stopRowNum,
+                 Lng32 numCols,
+                 Lng32 *whichCols,
+                 TextVec *ppiVec,
+                 TextVec *ppiAllCols);
 
   // orcRow:   pointer to buffer where ORC will return the row.
   //                Buffer is allocated by caller.
@@ -86,13 +106,30 @@ class ExpORCinterface : public NABasicObject
   //                         -ve num, if error
   //                          100: EOD
   //
-  Lng32 scanFetch(char* row, Int64 &rowLen, Int64 &rowNum, Lng32 &numCols);
+  Lng32 scanFetch(char** row, Int64 &rowLen, Int64 &rowNum, Lng32 &numCols);
 
   Lng32 scanClose();
 
-  Lng32 getRowCount(char * orcFileName, Int64 &count);
+  Lng32 open(char * orcFileName,
+             const Int64 startRowNum = 0, 
+             const Int64 stopRowNum = ULLONG_MAX,
+             Lng32 numCols = 0,
+             Lng32 * whichCols = NULL,
+             TextVec *ppiVec = NULL,
+             TextVec *ppiAllCols = NULL);
+
+  Lng32 close();
+
+  Lng32 getColStats(char * orcFileName, Lng32 colNum,
+                    ByteArrayList* &bal);
 
   char * getErrorText(Lng32 errEnum);
+
+  Lng32 getStripeInfo(const char* orcFileName,
+                      LIST(Int64)& numOfRowsInStripe,
+                      LIST(Int64)& offsetOfStripe,
+                      LIST(Int64)& totalBytesOfStripe);
+
 protected:
     
 private:

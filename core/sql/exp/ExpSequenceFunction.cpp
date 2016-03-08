@@ -234,7 +234,7 @@ ex_expr::exp_return_type ExpSequenceFunction::eval(char *op_data[],
   // is a constant set in the clause.
   //
   Int32 index;
-  if(getNumOperands() == 3) {
+  if(getNumOperands() >= 3) {
     if(attrs[2]->getNullFlag() && !op_data[-2 * MAX_OPERANDS + 2])
       // LCOV_EXCL_START
       index = -1;

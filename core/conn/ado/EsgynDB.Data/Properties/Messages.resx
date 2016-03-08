@@ -144,6 +144,9 @@
   <data name="ParameterCountMismatch" xml:space="preserve">
     <value>The provided parameters do not match the prepared statement.</value>
   </data>
+  <data name="PoolExhuasted" xml:space="preserve">
+    <value>Connection Pool is exhuasted with max pool size {0}, please try again later.</value>
+  </data>
   <data name="PortNotAvailable" xml:space="preserve">
     <value>No port available to launch additional servers.</value>
   </data>

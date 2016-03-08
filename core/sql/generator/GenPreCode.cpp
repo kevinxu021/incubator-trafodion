@@ -70,6 +70,10 @@
 #include "CmpSeabaseDDL.h"
 #include "NAExecTrans.h"
 #include "exp_function.h"
+
+#include "HDFSHook.h"
+#include "vegrewritepairs.h"
+
 #include "SqlParserGlobals.h"      // must be last #include
 
 extern ItemExpr * buildComparisonPred (	ItemExpr *, ItemExpr *, ItemExpr *,
@@ -103,7 +107,7 @@ extern ItemExpr * buildComparisonPred (	ItemExpr *, ItemExpr *, ItemExpr *,
 //         computed and supplied in this list.
 //
 // ValueIdList & listOfKeyExpr
-//    OUT: An assignment expression of the form <key column> = <value>
+//    OUT: A comparison expression of the form <key column> = <value>
 //         for each key column.
 //
 // -----------------------------------------------------------------------
@@ -3675,6 +3679,304 @@ RelExpr * HashJoin::preCodeGen(Generator * generator,
 
 } //  HashJoin::preCodeGen()
 
+ 
+ // Check to see if there are any MIN/MAX values coming from a
+ // HashJoin which could be used as begin/end key values for the
+ // leading key of this scan.  Don't consider doing this if this
+ // is a unique scan (can't improve on that) or if the leading
+ // key is already unique or if both the begin and end key are
+ // exclusive (min max are inclusive and no easy way to mix
+ // them).
+void FileScan::processMinMaxKeys(Generator* generator, 
+                                 ValueIdSet& pulledNewInputs,
+                                 ValueIdSet& availableValues, 
+                                 NABoolean updateSearchKeyOnly,
+                                 NABoolean filterOutMinMax 
+                                )
+{
+    // impossible to satisfy such request.
+    if ( !getSearchKey() && updateSearchKeyOnly )
+      return;
+
+    CollIndex leadKeyIdx = 0;
+    if (getIndexDesc()->getPrimaryTableDesc()->getNATable()->isHbaseTable() &
+        getIndexDesc()->getPrimaryTableDesc()->getNATable()->hasSaltedColumn()) 
+    { 
+       leadKeyIdx = 1;
+    }
+      
+
+      if (generator->getMinMaxKeys().entries() &&
+          (!getSearchKey() ||
+          (
+           (getSearchKey()->getBeginKeyValues()[leadKeyIdx] != getSearchKey()->getEndKeyValues()[leadKeyIdx]) &&
+           (!getSearchKey()->isBeginKeyExclusive() || !getSearchKey()->isEndKeyExclusive())
+          )
+          )
+         ) {
+
+        // The keys of the scan.
+        const ValueIdList &keys = getIndexDesc()->getIndexKey();
+        ValueId      minMaxKeyCol = keys[leadKeyIdx];
+        IndexColumn *ixCol = (IndexColumn *) (minMaxKeyCol.getItemExpr());
+        BaseColumn  *baseCol = NULL;
+        ValueId      underlyingCol;
+        NABoolean    needToComputeActualMinMax = FALSE;
+        ItemExpr    *computedColExpr = NULL;
+        
+        // The candidate values for min and max.
+        const ValueIdList &minMaxKeys = generator->getMinMaxKeys();
+    
+        CollIndex keyIdx = NULL_COLL_INDEX;
+
+        // Determine how min/max is related to begin/end.  depends
+        // on ordering (ASC vs DESC) and scan direction (forward vs
+        // reverse)
+        NABoolean ascKey = 
+          getIndexDesc()->getNAFileSet()->getIndexKeyColumns().isAscending(leadKeyIdx);
+
+        if(getReverseScan())
+          ascKey = !ascKey;
+
+        // If the leading key column is a divisioning column, then
+        // look for min/max values of an underlying column
+        GenAssert(ixCol->getOperatorType() == ITM_INDEXCOLUMN,
+                  "unexpected object type");
+        baseCol = 
+          (BaseColumn *) (((IndexColumn *) ixCol)->getDefinition().getItemExpr());
+        GenAssert(baseCol->getOperatorType() == ITM_BASECOLUMN,
+                  "unexpected object type");
+        if (baseCol->getNAColumn()->isDivisioningColumn()) {
+          ValueIdSet underlyingCols;
+          baseCol->getUnderlyingColumnsForCC(underlyingCols);
+
+          if (underlyingCols.entries() == 1) {
+            // We have a leading division column that's computed from
+            // 1 base column, now get the underlying column and the
+            // divisioning expression
+            needToComputeActualMinMax = TRUE;
+            underlyingCols.getFirst(minMaxKeyCol);
+            computedColExpr = baseCol->getComputedColumnExpr().getItemExpr();
+            BaseColumn  *underlyingBaseCol =
+              (BaseColumn *) minMaxKeyCol.getItemExpr();
+            GenAssert(underlyingBaseCol->getOperatorType() == ITM_BASECOLUMN,
+                      "unexpected object type");
+            // the computed column expression has been rewritten to use
+            // VEGRefs, so get the corresponding VEGRef for the underlying column
+            underlyingCol = underlyingBaseCol->getTableDesc()->
+              getColumnVEGList()[underlyingBaseCol->getColNumber()];
+          }
+        }
+
+        // Check all the candidate values.  If any one of them matches
+        // the leading key of this scan, then select it for use in the
+        // begin/end key value of the leading key.
+
+        // Scalar min/max functions cause an exponential growth when
+        // combined with each other, see ItmScalarMinMax::codeGen()
+        Int32 limitItems = 3 ; // use at most 3
+
+
+        CollHeap* gheap = generator->wHeap();
+
+        for(CollIndex i = 0; i < minMaxKeys.entries() && limitItems; i++) {
+          ValueId mmKeyId = minMaxKeys[i];
+          if(mmKeyId != NULL_VALUE_ID) {
+            ItemExpr *mmItem = mmKeyId.getItemExpr();
+      
+            if (mmItem->getOperatorType() == ITM_VEG_PREDICATE) {
+              VEGPredicate *vPred = (VEGPredicate *)mmItem;
+              const ValueIdSet &members = vPred->getVEG()->getAllValues();
+
+              if (members.contains(minMaxKeyCol)) {
+
+                // some other operator is producing min/max values
+                // for our leading key column, now check whether we
+                // can use them
+
+                keyIdx = i;
+
+                // Indicate in the 'will use' list that we will use these
+                // min/max values.  This will indicate to the HashJoin that
+                // it should produce these values.
+                generator->getWillUseMinMaxKeys()[keyIdx] =
+                  generator->getMinMaxKeys()[keyIdx];
+                addMinMaxHJColumn(baseCol->getValueId());
+
+                limitItems-- ; // one more is used
+
+                // If we can use a min/max value for the begin key, do so...
+                if(!getSearchKey() || !getSearchKey()->isBeginKeyExclusive()) {
+
+                  ItemExpr *keyPred = NULL;
+                  ItemExpr *currentBeg = NULL;
+
+                  if ( updateSearchKeyOnly ) {
+                     CMPASSERT(getSearchKey());
+                     currentBeg = (getSearchKey()->getBeginKeyValues()[leadKeyIdx]).getItemExpr();
+                  } else
+                  if ( !getBeginKeyPred().isEmpty() ) {
+                     keyPred = getBeginKeyPred()[leadKeyIdx].getItemExpr();
+                     currentBeg = keyPred->child(1);
+
+                  }
+
+                  if ( filterOutMinMax ) {
+                     ConstValue* cv = dynamic_cast<ConstValue*>(currentBeg);
+                     if ( cv && ( cv->isMin() || cv->isMax() ) )
+                        currentBeg = NULL;
+                  }
+           
+                  // Get the proper begin key (min or max) that came from
+                  // the HashJoin
+                  ValueId hashJoinBeg = (ascKey ?
+                                         generator->getMinVals()[keyIdx] :
+                                         generator->getMaxVals()[keyIdx]);
+
+                  // Construct an expression which determines at runtime
+                  // which BK to use.  Either the existing one or the one
+                  // coming from HashJoin whichever is larger (smaller).
+                  // 
+                  ItemExpr *newBeg = hashJoinBeg.getItemExpr();
+
+                  if (needToComputeActualMinMax) {
+                    ValueIdMap divExprMap;
+                    ValueId computedBeg;
+
+                    // If hashJoinBeg is :sysHV1 and the computed column
+                    // expression is A/100, then the begin value for
+                    // the computed column is :sysHV1/100. Do this
+                    // rewrite by using a ValueIdMap
+                    divExprMap.addMapEntry(underlyingCol, hashJoinBeg);
+                    divExprMap.rewriteValueIdDown(computedColExpr->getValueId(),
+                                                  computedBeg);
+                    newBeg = computedBeg.getItemExpr();
+                  }
+
+                  if ( currentBeg ) {
+                     newBeg = new (generator->wHeap())
+                       ItmScalarMinMax((ascKey ? ITM_SCALAR_MAX : ITM_SCALAR_MIN),
+                                       currentBeg, 
+                                       newBeg);
+                     newBeg->synthTypeAndValueId(TRUE);
+
+                     if ( updateSearchKeyOnly )
+                        searchKey()->setBeginKeyValue(leadKeyIdx, newBeg->getValueId());
+                     else
+                        // Replace the RHS of the key pred.
+                        keyPred->child(1) = newBeg->getValueId();
+                  } else {
+                     // No begin key even exists before.
+                     //
+                     // create a new expression: 
+                     //       (ascKey) ? minMaxKeyCol >= newBeg : 
+                     //                  minMaxKeyCOl <= newBeg
+                     if ( ascKey )
+                        newBeg = new (gheap) BiRelat(ITM_GREATER_EQ, ixCol, newBeg);
+                     else
+                        newBeg = new (gheap) BiRelat(ITM_LESS_EQ, ixCol, newBeg);
+
+                     newBeg->synthTypeAndValueId(TRUE);
+
+                     beginKeyPred_.insert(newBeg->getValueId());
+                  }
+
+
+                  // The value coming from the HashJoin must be in out inputs.
+                  getGroupAttr()->addCharacteristicInputs(hashJoinBeg);
+
+                  // And we must pull those values from the HashJoin.
+                  pulledNewInputs += hashJoinBeg;
+                  availableValues += hashJoinBeg;
+                }
+
+                // If we can use a min/max value for the end key, do so...
+                if(!getSearchKey() || !getSearchKey()->isEndKeyExclusive()) {
+
+                  ItemExpr *keyPred = NULL;
+                  ItemExpr *currentEnd = NULL;
+
+                  if ( updateSearchKeyOnly ) {
+                     CMPASSERT(getSearchKey());
+                     currentEnd = (getSearchKey()->getEndKeyValues()[leadKeyIdx]).getItemExpr();
+                  } else
+                  if ( !getEndKeyPred().isEmpty() ) {
+                     keyPred = getEndKeyPred()[leadKeyIdx].getItemExpr();
+                     currentEnd = keyPred->child(1);
+                  }
+
+                  if ( filterOutMinMax ) {
+                     ConstValue* cv = dynamic_cast<ConstValue*>(currentEnd);
+                     if ( cv && ( cv->isMin() || cv->isMax() ) )
+                        currentEnd = NULL;
+                  }
+           
+                  // Get the proper end key (max or min) that came from
+                  // the HashJoin
+                  ValueId hashJoinEnd = (ascKey ?
+                                         generator->getMaxVals()[keyIdx] :
+                                         generator->getMinVals()[keyIdx]);
+
+                  // Construct an expression which determines at runtime
+                  // which EK to use.  Either the existing one or the one
+                  // coming from HashJoin whichever is smaller (larger).
+                  // 
+                  ItemExpr *newEnd = hashJoinEnd.getItemExpr();
+
+                  if (needToComputeActualMinMax) {
+                    ValueIdMap divExprMap;
+                    ValueId computedEnd;
+
+                    divExprMap.addMapEntry(underlyingCol, hashJoinEnd);
+                    divExprMap.rewriteValueIdDown(computedColExpr->getValueId(),
+                                                  computedEnd);
+                    newEnd = computedEnd.getItemExpr();
+                  }
+
+                  if ( currentEnd ) {
+                     newEnd = new (generator->wHeap())
+                       ItmScalarMinMax((ascKey ? ITM_SCALAR_MIN : ITM_SCALAR_MAX),
+                                       currentEnd, 
+                                       newEnd);
+                     newEnd->synthTypeAndValueId();
+
+                     // Replace the RHS of the key pred.
+                     if ( updateSearchKeyOnly )
+                        searchKey()->setEndKeyValue(leadKeyIdx, newEnd->getValueId());
+                     else
+                        keyPred->child(1) = newEnd->getValueId();
+                  } else {
+
+                     // No end key even exists before.
+                     //
+                     // create a new expression: 
+                     //       (ascKey) ? minMaxKeyCol <= newBeg : 
+                     //                  minMaxKeyCOl >= newBeg
+                     if ( ascKey )
+                        newEnd = new (gheap) BiRelat(ITM_LESS_EQ, ixCol, newEnd);
+                     else
+                        newEnd = new (gheap) BiRelat(ITM_GREATER_EQ, ixCol, newEnd);
+
+                     newEnd->synthTypeAndValueId(TRUE);
+
+                     endKeyPred_.insert(newEnd->getValueId());
+                  }
+
+
+                  // The value coming from the HashJoin must be in out inputs.
+                  getGroupAttr()->addCharacteristicInputs(hashJoinEnd);
+
+                  // And we must pull those values from the HashJoin.
+                  pulledNewInputs += hashJoinEnd;
+                  availableValues += hashJoinEnd;
+                }
+              }
+            }
+          }
+        }
+      }
+}
+
 RelExpr * FileScan::preCodeGen(Generator * generator,
 			       const ValueIdSet & externalInputs,
 			       ValueIdSet &pulledNewInputs)
@@ -3893,207 +4195,112 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
                       replicatePredicates);
       }
 
-      // Check to see if there are any MIN/MAX values coming from a
-      // HashJoin which could be used as begin/end key values for the
-      // leading key of this scan.  Don't consider doing this if this
-      // is a unique scan (can't improve on that) or if the leading
-      // key is already unique or if both the begin and end key are
-      // exclusive (min max are inclusive and no easy way to mix
-      // them).
-      if (generator->getMinMaxKeys().entries() &&
-         (getSearchKey()->getBeginKeyValues()[0] !=
-          getSearchKey()->getEndKeyValues()[0]) &&
-         (!getSearchKey()->isBeginKeyExclusive() ||
-          !getSearchKey()->isEndKeyExclusive())) {
-
-        // The keys of the scan.
-        const ValueIdList &keys = getIndexDesc()->getIndexKey();
-        ValueId      minMaxKeyCol = keys[0];
-        IndexColumn *ixCol = (IndexColumn *) (minMaxKeyCol.getItemExpr());
-        BaseColumn  *baseCol = NULL;
-        ValueId      underlyingCol;
-        NABoolean    needToComputeActualMinMax = FALSE;
-        ItemExpr    *computedColExpr = NULL;
-        
-        // The candidate values for min and max.
-        const ValueIdList &minMaxKeys = generator->getMinMaxKeys();
-    
-        CollIndex keyIdx = NULL_COLL_INDEX;
-
-        // Determine how min/max is related to begin/end.  depends
-        // on ordering (ASC vs DESC) and scan direction (forward vs
-        // reverse)
-        NABoolean ascKey = 
-          getIndexDesc()->getNAFileSet()->getIndexKeyColumns().isAscending(0);
-
-        if(getReverseScan())
-          ascKey = !ascKey;
-
-        // If the leading key column is a divisioning column, then
-        // look for min/max values of an underlying column
-        GenAssert(ixCol->getOperatorType() == ITM_INDEXCOLUMN,
-                  "unexpected object type");
-        baseCol = 
-          (BaseColumn *) (((IndexColumn *) ixCol)->getDefinition().getItemExpr());
-        GenAssert(baseCol->getOperatorType() == ITM_BASECOLUMN,
-                  "unexpected object type");
-        if (baseCol->getNAColumn()->isDivisioningColumn()) {
-          ValueIdSet underlyingCols;
-          baseCol->getUnderlyingColumnsForCC(underlyingCols);
-
-          if (underlyingCols.entries() == 1) {
-            // We have a leading division column that's computed from
-            // 1 base column, now get the underlying column and the
-            // divisioning expression
-            needToComputeActualMinMax = TRUE;
-            underlyingCols.getFirst(minMaxKeyCol);
-            computedColExpr = baseCol->getComputedColumnExpr().getItemExpr();
-            BaseColumn  *underlyingBaseCol =
-              (BaseColumn *) minMaxKeyCol.getItemExpr();
-            GenAssert(underlyingBaseCol->getOperatorType() == ITM_BASECOLUMN,
-                      "unexpected object type");
-            // the computed column expression has been rewritten to use
-            // VEGRefs, so get the corresponding VEGRef for the underlying column
-            underlyingCol = underlyingBaseCol->getTableDesc()->
-              getColumnVEGList()[underlyingBaseCol->getColNumber()];
-          }
-        }
-
-        // Check all the candidate values.  If any one of them matches
-        // the leading key of this scan, then select it for use in the
-        // begin/end key value of the leading key.
-
-        // Scalar min/max functions cause an exponential growth when
-        // combined with each other, see ItmScalarMinMax::codeGen()
-        Int32 limitItems = 3 ; // use at most 3
-
-        for(CollIndex i = 0; i < minMaxKeys.entries() && limitItems; i++) {
-          ValueId mmKeyId = minMaxKeys[i];
-          if(mmKeyId != NULL_VALUE_ID) {
-            ItemExpr *mmItem = mmKeyId.getItemExpr();
-      
-            if (mmItem->getOperatorType() == ITM_VEG_PREDICATE) {
-              VEGPredicate *vPred = (VEGPredicate *)mmItem;
-              const ValueIdSet &members = vPred->getVEG()->getAllValues();
-
-              if (members.contains(minMaxKeyCol)) {
-
-                // some other operator is producing min/max values
-                // for our leading key column, now check whether we
-                // can use them
-
-                keyIdx = i;
-
-                // Indicate in the 'will use' list that we will use these
-                // min/max values.  This will indicate to the HashJoin that
-                // it should produce these values.
-                generator->getWillUseMinMaxKeys()[keyIdx] =
-                  generator->getMinMaxKeys()[keyIdx];
-                addMinMaxHJColumn(baseCol->getValueId());
-
-                limitItems-- ; // one more is used
-
-                // If we can use a min/max value for the begin key, do so...
-                if(!getSearchKey()->isBeginKeyExclusive()) {
-                  ItemExpr *keyPred = getBeginKeyPred()[0].getItemExpr();
-                  ItemExpr *currentBeg = keyPred->child(1);
-
-                  // Get the proper begin key (min or max) that came from
-                  // the HashJoin
-                  ValueId hashJoinBeg = (ascKey ?
-                                         generator->getMinVals()[keyIdx] :
-                                         generator->getMaxVals()[keyIdx]);
-
-                  // Construct an expression which determines at runtime
-                  // which BK to use.  Either the existing one or the one
-                  // coming from HashJoin whichever is larger (smaller).
-                  // 
-                  ItemExpr *newBeg = hashJoinBeg.getItemExpr();
-
-                  if (needToComputeActualMinMax) {
-                    ValueIdMap divExprMap;
-                    ValueId computedBeg;
-
-                    // If hashJoinBeg is :sysHV1 and the computed column
-                    // expression is A/100, then the begin value for
-                    // the computed column is :sysHV1/100. Do this
-                    // rewrite by using a ValueIdMap
-                    divExprMap.addMapEntry(underlyingCol, hashJoinBeg);
-                    divExprMap.rewriteValueIdDown(computedColExpr->getValueId(),
-                                                  computedBeg);
-                    newBeg = computedBeg.getItemExpr();
-                  }
-
-                  newBeg = new (generator->wHeap())
-                    ItmScalarMinMax((ascKey ? ITM_SCALAR_MAX : ITM_SCALAR_MIN),
-                                    currentBeg, 
-                                    newBeg);
-                  newBeg->synthTypeAndValueId();
-                  // Replace the RHS of the key pred.
-                  keyPred->child(1) = newBeg->getValueId();
-
-                  // The value coming from the HashJoin must be in out inputs.
-                  getGroupAttr()->addCharacteristicInputs(hashJoinBeg);
-
-                  // And we must pull those values from the HashJoin.
-                  pulledNewInputs += hashJoinBeg;
-                  availableValues += hashJoinBeg;
-                }
-
-                // If we can use a min/max value for the end key, do so...
-                if(!getSearchKey()->isEndKeyExclusive()) {
-                  ItemExpr *keyPred = getEndKeyPred()[0].getItemExpr();
-                  ItemExpr *currentEnd = keyPred->child(1);
-
-                  // Get the proper end key (max or min) that came from
-                  // the HashJoin
-                  ValueId hashJoinEnd = (ascKey ?
-                                         generator->getMaxVals()[keyIdx] :
-                                         generator->getMinVals()[keyIdx]);
-
-                  // Construct an expression which determines at runtime
-                  // which EK to use.  Either the existing one or the one
-                  // coming from HashJoin whichever is smaller (larger).
-                  // 
-                  ItemExpr *newEnd = hashJoinEnd.getItemExpr();
-
-                  if (needToComputeActualMinMax) {
-                    ValueIdMap divExprMap;
-                    ValueId computedEnd;
-
-                    divExprMap.addMapEntry(underlyingCol, hashJoinEnd);
-                    divExprMap.rewriteValueIdDown(computedColExpr->getValueId(),
-                                                  computedEnd);
-                    newEnd = computedEnd.getItemExpr();
-                  }
-
-                  newEnd = new (generator->wHeap())
-                    ItmScalarMinMax((ascKey ? ITM_SCALAR_MIN : ITM_SCALAR_MAX),
-                                    currentEnd, 
-                                    newEnd);
-                  newEnd->synthTypeAndValueId();
-
-                  // Replace the RHS of the key pred.
-                  keyPred->child(1) = newEnd->getValueId();
-
-                  // The value coming from the HashJoin must be in out inputs.
-                  getGroupAttr()->addCharacteristicInputs(hashJoinEnd);
-
-                  // And we must pull those values from the HashJoin.
-                  pulledNewInputs += hashJoinEnd;
-                  availableValues += hashJoinEnd;
-                }
-              }
-            }
-          }
-        }
-      }
+      // code move to HbaseAccess::preCodeGen() to side-effect the search key.
+      //processMinMaxKeys(generator, pulledNewInputs, availableValues);
     }
   else
     {
       // Hive table scan (HBase scan has executor preds set up already)
-      if (isHiveTable())
-        setExecutorPredicates(selectionPred());
+      if (isHiveTable()) {
+
+        const HHDFSTableStats* hTabStats = getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
+
+
+        if ( getSearchKey() && getDoUseSearchKey() ) {
+       
+          NABoolean replicatePredicates = TRUE;
+          generateKeyExpr(getGroupAttr()->getCharacteristicInputs(),
+                             getIndexDesc()->getIndexKey(),
+                             getSearchKey()->getBeginKeyValues(),
+                             beginKeyPred_,
+                             generator,
+                             replicatePredicates);
+          generateKeyExpr(getGroupAttr()->getCharacteristicInputs(),
+                             getIndexDesc()->getIndexKey(),
+                             getSearchKey()->getEndKeyValues(),
+                             endKeyPred_,
+                             generator,
+                             replicatePredicates);
+        }
+
+        hiveSearchKey_->replaceVEGExpressions(
+             availableValues,
+             getGroupAttr()->getCharacteristicInputs(),
+             &vegPairs); // to be side-affected
+
+        if (( hTabStats->isOrcFile() ) &&
+            (CmpCommon::getDefault(ORC_PRED_PUSHDOWN) == DF_ON) ) {
+
+           // Process the min and max keys. The function will alter the
+           // beginKeyPred_ and endKeyPred_ to compute a narrowed version
+           // of begin and end key. Here we set the 2nd last argument to FALSE
+           // to side-effect begin/end key predicates only. The last argument,
+           // set to TRUE, indicates that we need to remove original predicates with
+           // min/max constants.
+           processMinMaxKeys(generator, pulledNewInputs, availableValues, FALSE, TRUE);
+
+           // Collect local predicates
+           TableAnalysis* tableAnalysis = 
+                getGroupAttr()->getGroupAnalysis()->getNodeAnalysis()->getTableAnalysis();
+
+           ValueIdSet locals(tableAnalysis->getLocalPreds());
+   
+           ValueIdSet externalInputs; // not used yet
+           ValueIdSet orcPushdownPreds;
+
+           // remove any predicates referencing min and max from locals
+           //
+           // do it first for the beginKeyPred_
+           ValueIdSet minMaxPreds;
+
+           // make a copy
+           ValueIdSet beginKeyPredCopy(beginKeyPred_);
+
+           // collect  min and max constants
+           beginKeyPredCopy.findAllReferencingMinMaxConstants(minMaxPreds);
+
+           // rmove any predicates involving the min and max constants
+           beginKeyPredCopy -= minMaxPreds;
+     
+           // add the remaining to the ORC push-down set
+           locals += beginKeyPredCopy;
+
+           // do it next for the endKeyPred_
+           minMaxPreds.clear();
+
+           ValueIdSet endKeyPredCopy(endKeyPred_);
+           endKeyPredCopy.findAllReferencingMinMaxConstants(minMaxPreds);
+
+           endKeyPredCopy -= minMaxPreds;
+     
+           locals += endKeyPredCopy;
+
+           locals.replaceVEGExpressions (
+   	                 availableValues,
+   	                 getGroupAttr()->getCharacteristicInputs(),
+   	                 FALSE, // no need for key predicate generation here
+                            &vegPairs, // to be side-affected
+                            TRUE);
+   
+           locals -= hiveSearchKey_->getPartAndVirtColPreds();
+   
+           hiveSearchKey_->makeHiveOrcPushdownPredicates(
+                   locals, 
+                   getGroupAttr()->getCharacteristicInputs(), 
+                   getIndexDesc(), 
+                   orcPushdownPreds);
+
+           orcPushdownPreds.generatePushdownListForORC(orcListOfPPI_);
+
+           // include begin/end key predicates in executor predicates
+           ValueIdSet execPred(selectionPred());
+           execPred += beginKeyPredCopy;
+           execPred += endKeyPredCopy;
+           setExecutorPredicates(execPred);
+
+        } else
+           setExecutorPredicates(selectionPred());
+      }
 
       // Rebuild the executor  predicate tree
       executorPred().replaceVEGExpressions
@@ -4103,9 +4310,14 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 	 &vegPairs,
 	 TRUE);
 
-      if (isHiveTable())
-	// assign individual files and blocks to each ESPs
+      if (isHiveTable()) {
+        // subtract predicates that are handled by hiveSearchKey_
+        executorPredicates_ -= hiveSearchKey_->getCompileTimePartColPreds();
+        executorPredicates_ -= hiveSearchKey_->getPartAndVirtColPreds();
+
+	// assign individual files and blocks or stripes to each ESPs
 	((NodeMap *) getPartFunc()->getNodeMap())->assignScanInfos(hiveSearchKey_);
+      }
     }
 
   // Selection predicates are not needed anymore:
@@ -5770,6 +5982,253 @@ RelExpr * HashGroupBy::preCodeGen(Generator * generator,
 
 }
 
+RelExpr * HbasePushdownAggr::preCodeGen(Generator * generator,
+                                        const ValueIdSet & externalInputs,
+                                        ValueIdSet &pulledNewInputs)
+{
+  if (nodeIsPreCodeGenned())
+    return this;
+  
+  return GroupByAgg::preCodeGen(generator, externalInputs, pulledNewInputs);
+}
+
+RelExpr * OrcPushdownAggr::preCodeGen(Generator * generator,
+                                      const ValueIdSet & externalInputs,
+                                      ValueIdSet &pulledNewInputs)
+{
+  if (nodeIsPreCodeGenned())
+    return this;
+  
+  return GroupByAgg::preCodeGen(generator, externalInputs, pulledNewInputs);
+}
+
+RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
+                                              const ValueIdSet & externalInputs,
+                                              ValueIdSet &pulledNewInputs)
+{
+  RelExpr * newNode = this;
+
+  // For transformed GroupByAgg such as OrcPushdownAggr, we do not
+  //   // need to look further.
+  if ( getArity() == 0 )
+    return this;
+
+          
+  NABoolean aggrPushdown = FALSE;
+  Scan* scan = NULL;
+  RelExpr* childRelExpr = child(0)->castToRelExpr();
+
+  if ( childRelExpr && childRelExpr->getOperatorType() == REL_FIRST_N )
+    childRelExpr = childRelExpr->child(0)->castToRelExpr();
+
+  if (childRelExpr && 
+      ((childRelExpr->getOperatorType() == REL_FILE_SCAN) ||
+       (childRelExpr->getOperatorType() == REL_HBASE_ACCESS)))
+    {
+      scan = (Scan*)childRelExpr;
+
+      if ((NOT aggregateExpr().isEmpty()) &&
+          (groupExpr().isEmpty()) &&
+          (scan->selectionPred().isEmpty()) &&
+          (NOT scan->userSpecifiedPred()) &&
+          ((scan->getTableName().getSpecialType() == ExtendedQualName::NORMAL_TABLE) ||
+           (scan->getTableName().getSpecialType() == ExtendedQualName::INDEX_TABLE)) &&
+          !scan->getTableName().isPartitionNameSpecified() &&
+          !scan->getTableName().isPartitionRangeSpecified())
+        {
+          aggrPushdown = TRUE;
+        }
+    }
+
+  NABoolean isSeabase = FALSE;
+  NABoolean isOrc = FALSE;
+  if (aggrPushdown)
+    {
+      const NATable * naTable = scan->getTableDesc()->getNATable();
+      isSeabase = naTable->isSeabaseTable();
+      isOrc = ((naTable->isHiveTable()) &&
+               (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile()));
+      if (NOT (((naTable->getObjectType() == COM_BASE_TABLE_OBJECT) ||
+                (naTable->getObjectType() == COM_INDEX_OBJECT)) &&
+               ((naTable->isSeabaseTable()) || (isOrc))))
+        {
+          aggrPushdown = FALSE;
+        }
+
+      if ((aggrPushdown) &&
+          (((isSeabase) && (CmpCommon::getDefault(HBASE_COPROCESSORS) == DF_OFF)) ||
+           
+           ((isOrc) && (CmpCommon::getDefault(ORC_AGGR_PUSHDOWN) == DF_OFF))))
+        {
+          aggrPushdown = FALSE;
+        }
+
+      if (aggrPushdown && isSeabase && (NOT selectionPred().isEmpty()))
+        aggrPushdown = FALSE;
+    }
+  
+  if (aggrPushdown)
+    {
+      for (ValueId valId = aggregateExpr().init();
+	   (aggrPushdown && aggregateExpr().next(valId));
+	   aggregateExpr().advance(valId)) 
+        {
+          ItemExpr * ae = valId.getItemExpr();
+          if ((isSeabase) &&
+              (ae->getOperatorType() == ITM_COUNT) &&
+              (ae->origOpType() == ITM_COUNT_STAR__ORIGINALLY) &&
+              (NOT generator->preCodeGenParallelOperator()))
+            continue;
+
+          if ((isOrc) &&
+              (NOT (((ae->getOperatorType() == ITM_COUNT) ||
+                     (ae->getOperatorType() == ITM_MIN) ||
+                     (ae->getOperatorType() == ITM_MAX) ||
+                     (ae->getOperatorType() == ITM_SUM) ||
+                     (ae->getOperatorType() == ITM_COUNT_NONULL)))
+               ) ||
+              (generator->preCodeGenParallelOperator())
+             )
+            {
+              aggrPushdown = FALSE;
+              continue;
+            }
+
+          // ORC either returns count of all rows or count of column values
+          // after removing null and duplicate values.
+          // It doesn't return a count with only null values removed.
+          if (ae->getOperatorType() == ITM_COUNT_NONULL)
+            {
+              aggrPushdown = FALSE;
+              continue;
+            }
+
+          const NAType &aggrType = valId.getType();
+          if (isOrc)
+            {
+              if (aggrType.getTypeQualifier() == NA_CHARACTER_TYPE)
+                continue;
+              
+              if ((aggrType.getTypeQualifier() == NA_NUMERIC_TYPE) &&
+                  (((NumericType&)aggrType).binaryPrecision()))
+                continue;
+
+              if (aggrType.getTypeQualifier() == NA_DATETIME_TYPE)
+                continue;
+             }
+
+          aggrPushdown = FALSE;
+        }
+    }
+  
+  if (aggrPushdown)
+    {
+      ValueIdSet aggrSet;
+      for (ValueId valId = aggregateExpr().init();
+	   (aggrPushdown && aggregateExpr().next(valId));
+	   aggregateExpr().advance(valId)) 
+        {
+          Aggregate * origAgg = (Aggregate*)valId.getItemExpr();
+          origAgg->setIsPushdown(TRUE);
+
+          if (isOrc)
+            {
+              const NAType *myType = &origAgg->getValueId().getType();
+              const NAType *childType = 
+                &origAgg->child(0)->getValueId().getType();
+              NAType * orcAggrType = NULL;
+              if (childType->getTypeQualifier() == NA_NUMERIC_TYPE)
+                {
+                  NumericType *nType = (NumericType*)childType;
+                  if (nType->binaryPrecision())
+                    {
+                      if (nType->isExact())
+                        {
+                          orcAggrType = 
+                            new(generator->wHeap()) SQLLargeInt(TRUE, TRUE);
+                        }
+                      else
+                        {
+                          orcAggrType = 
+                            new(generator->wHeap()) SQLDoublePrecision(TRUE);
+                        }
+                    }
+                }
+              else if (childType->getTypeQualifier() == NA_DATETIME_TYPE)
+                {
+                  DatetimeType *dType = (DatetimeType*)childType;
+
+                  orcAggrType =
+                    new(generator->wHeap()) SQLChar(dType->getDisplayLength(), TRUE);
+                }
+
+              if (! orcAggrType)
+                {
+                  orcAggrType = myType->newCopy(generator->wHeap());
+                  orcAggrType->setSQLnullFlag();
+                }
+
+              ItemExpr * orcAggrArg = 
+                new (generator->wHeap()) NATypeToItem((NAType*)orcAggrType);
+              orcAggrArg->bindNode(generator->getBindWA());
+              if (generator->getBindWA()->errStatus())
+                return this;
+              
+              origAgg->setOriginalChild(origAgg->child(0));
+
+              if (childType->getTypeQualifier() == NA_DATETIME_TYPE)
+                {
+                  DatetimeType *dType = (DatetimeType*)childType;
+
+                  orcAggrArg = new(generator->wHeap()) Cast(orcAggrArg, dType);
+                  orcAggrArg->bindNode(generator->getBindWA());
+                  if (generator->getBindWA()->errStatus())
+                    return this;
+                 }
+              
+              origAgg->setChild(0, orcAggrArg);
+            }
+          
+        } // for
+
+      RelExpr * eue = NULL;
+      if (isSeabase)
+        {
+          eue = 
+            new(CmpCommon::statementHeap())
+            HbasePushdownAggr(aggregateExpr(), scan->getTableDesc());
+        }
+      else
+        {
+          FileScan* fScan = dynamic_cast<FileScan*>(scan);
+          eue = new(CmpCommon::statementHeap())
+            OrcPushdownAggr(aggregateExpr(), scan->getTableDesc(), fScan->getHiveSearchKey());
+          if (NOT selectionPred().isEmpty())
+            {
+              eue->setSelectionPredicates(selectionPred());
+            }
+        }
+
+      eue->setEstRowsUsed(getEstRowsUsed());
+      eue->setMaxCardEst(getMaxCardEst());
+      eue->setInputCardinality(getInputCardinality());
+      eue->setPhysicalProperty(scan->getPhysicalProperty());
+      eue->setGroupAttr(getGroupAttr());
+
+      newNode = eue->bindNode(generator->getBindWA());
+      if (generator->getBindWA()->errStatus())
+        return NULL;
+      
+      newNode = newNode->preCodeGen
+        (generator,
+         getGroupAttr()->getCharacteristicInputs(),
+         pulledNewInputs);
+
+    } // aggrPushdown
+  
+  return newNode;
+}
+
 RelExpr * GroupByAgg::preCodeGen(Generator * generator,
 				 const ValueIdSet & externalInputs,
 				 ValueIdSet &pulledNewInputs)
@@ -5785,12 +6244,16 @@ RelExpr * GroupByAgg::preCodeGen(Generator * generator,
   // Resolve the VEGReferences and VEGPredicates, if any, that appear
   // in the Characteristic Inputs, in terms of the externalInputs.
   getGroupAttr()->resolveCharacteristicInputs(externalInputs);
-  // My Characteristic Inputs become the external inputs for my child.
-  child(0) = child(0)->preCodeGen(generator,
-				  getGroupAttr()->getCharacteristicInputs(),
-				  pulledNewInputs);
-  if (! child(0).getPtr())
-    return NULL;
+
+  if (child(0))
+    {
+      // My Characteristic Inputs become the external inputs for my child.
+      child(0) = child(0)->preCodeGen(generator,
+                                      getGroupAttr()->getCharacteristicInputs(),
+                                      pulledNewInputs);
+      if (! child(0).getPtr())
+        return NULL;
+    }
 
   if ((getOperatorType() == REL_SHORTCUT_GROUPBY)
       && (getFirstNRows() == 1))
@@ -5903,6 +6366,13 @@ RelExpr * GroupByAgg::preCodeGen(Generator * generator,
       generator->incrBMOsMemory(getEstimatedRunTimeMemoryUsage(TRUE));
 
   }
+
+  RelExpr * apdExpr = transformForAggrPushdown
+    (generator, externalInputs, pulledNewInputs);
+  if (! apdExpr)
+    return NULL;
+  else if (apdExpr != this)
+    return apdExpr;
 
   markAsPreCodeGenned();
 
@@ -6737,12 +7207,17 @@ RelExpr * Exchange::preCodeGen(Generator * generator,
   bool needToRestoreESP = false;
   bool halloweenESPonLHS = generator->getHalloweenESPonLHS();
 
-  if (isEspExchange() && getBottomPartitioningFunction()->isPartitioned())
+  if (isEspExchange())
     {
       // Tell any child NJ that its Halloween blocking operator (SORT)
       // is operating in parallel.
       savedParallelSetting = generator->preCodeGenParallelOperator();
-      generator->setPreCodeGenParallelOperator(TRUE);
+
+      if ( getBottomPartitioningFunction()->isPartitioned())
+         generator->setPreCodeGenParallelOperator(TRUE);
+      else
+         generator->setPreCodeGenParallelOperator(FALSE);
+
       needToRestoreParallel = true;
     }
 
@@ -10175,7 +10650,7 @@ void VEGRewritePairs::VEGRewritePair::print(FILE *ofd) const
 #pragma nowarn(1506)   // warning elimination
     reId = CollIndex(rewritten_);
 #pragma warn(1506)  // warning elimination
-  fprintf(ofd,"<%d, %d>",orId,reId);
+  fprintf(ofd,"<%d, %d>\n",orId,reId);
 }
 
 
@@ -10197,6 +10672,8 @@ void VEGRewritePairs::print( FILE* ofd,
       iter.getNext(key, value);
       value->print(ofd);
     }
+
+  fflush(ofd);
 }
 
 // PhysTranspose::preCodeGen() -------------------------------------------
@@ -11816,9 +12293,18 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
 
   // use const HBase keys only if we don't have to add
   // partitioning key predicates
+  ValueIdSet availableValues(externalInputs);
   if ( myPartFunc == NULL ||
        !myPartFunc->isPartitioned() ||
        myPartFunc->isAReplicationPartitioningFunction())
+  {
+    //
+    // Set the 2nd last argument to TRUE to side-effect the searchKey() only. The last
+    // argument is set to FALSE to indicate do not remove predicates containing min/max
+    // constants.
+    //
+    processMinMaxKeys(generator, pulledNewInputs, availableValues, TRUE, FALSE);
+
     if (!processConstHBaseKeys(
            generator,
            this,
@@ -11829,8 +12315,9 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
            listOfUniqueRows_,
            listOfRangeRows_))
       return NULL;
+  }
 
-  if (! FileScan::preCodeGen(generator,externalInputs,pulledNewInputs))
+  if (! FileScan::preCodeGen(generator,availableValues,pulledNewInputs))
     return NULL;
 
   //compute isUnique:
@@ -12057,71 +12544,5 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
   return this;
 }
 
-RelExpr * HbaseAccessCoProcAggr::preCodeGen(Generator * generator,
-					    const ValueIdSet & externalInputs,
-					    ValueIdSet &pulledNewInputs)
-{
-  if (nodeIsPreCodeGenned())
-    return this;
+void VEGRewritePairs::display() const { print(); }
 
-  if (! HbaseAccess::preCodeGen(generator,externalInputs,pulledNewInputs))
-    return NULL;
-
-  // Rebuild the aggregate expressions tree
-  ValueIdSet availableValues;
-  getInputValuesFromParentAndChildren(availableValues);
-  aggregateExpr().replaceVEGExpressions
-                     (availableValues,
-  	 	      getGroupAttr()->getCharacteristicInputs());
-
-  markAsPreCodeGenned();
-  
-  // Done.
-  return this;
-}
-
-RelExpr * ExeUtilHbaseCoProcAggr::preCodeGen(Generator * generator,
-					    const ValueIdSet & externalInputs,
-					    ValueIdSet &pulledNewInputs)
-{
-  if (nodeIsPreCodeGenned())
-    return this;
-
-  if (! ExeUtilExpr::preCodeGen(generator,externalInputs,pulledNewInputs))
-    return NULL;
-
-  // Rebuild the aggregate expressions tree
-  ValueIdSet availableValues;
-  getInputValuesFromParentAndChildren(availableValues);
-  aggregateExpr().replaceVEGExpressions
-                     (availableValues,
-  	 	      getGroupAttr()->getCharacteristicInputs());
-
-  markAsPreCodeGenned();
-  
-  // Done.
-  return this;
-}
-
-RelExpr * ExeUtilOrcFastAggr::preCodeGen(Generator * generator,
-                                         const ValueIdSet & externalInputs,
-                                         ValueIdSet &pulledNewInputs)
-{
-  if (nodeIsPreCodeGenned())
-    return this;
-
-  if (! ExeUtilExpr::preCodeGen(generator,externalInputs,pulledNewInputs))
-    return NULL;
-
-  // Rebuild the aggregate expressions tree
-  ValueIdSet availableValues;
-  getInputValuesFromParentAndChildren(availableValues);
-  aggregateExpr().replaceVEGExpressions
-                     (availableValues,
-  	 	      getGroupAttr()->getCharacteristicInputs());
-
-  markAsPreCodeGenned();
-  
-  // Done.
-  return this;
-}

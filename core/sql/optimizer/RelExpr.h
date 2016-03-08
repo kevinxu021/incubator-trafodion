@@ -1377,6 +1377,12 @@ public:
   NABoolean isParentRoot()
   {  return ((flags_ & PARENT_IS_ROOT) != 0); }
 
+  // set if user specified predicate was added during Scan creation.
+  void setUserSpecifiedPred(NABoolean val)
+  { (val ? (flags_ |= USER_SPEC_PRED) : (flags_ &= ~USER_SPEC_PRED)); }
+  NABoolean userSpecifiedPred()
+  { return ((flags_ & USER_SPEC_PRED) != 0); }
+
   virtual int getCifBMOWeight()
   {
     return 1;
@@ -1396,6 +1402,7 @@ private:
   enum Flags {
     EXPAND_SHORT_ROWS  = 0x00000001     // expand short rows when added columns
    ,PARENT_IS_ROOT     = 0x00000002     // compressed internal format
+   ,USER_SPEC_PRED     = 0x00000004     // pred was specified by user
   };
 
   // every relational expression node has the ability to perform

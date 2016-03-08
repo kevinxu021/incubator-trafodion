@@ -156,6 +156,11 @@ define(['moment',
 					return "";
 				return number.toString().replace(/,/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 			};
+			this.formatNumberRoundWithCommas = function(number) {
+				if(number == null)
+					return "";
+				return Math.round(number).toString().replace(/,/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+			};
 
 			this.toUTCFromMilliSeconds = function(milliSeconds) {
 				if (milliSeconds != null) {
@@ -187,15 +192,15 @@ define(['moment',
 				} else if (interval <= (3 * 24 * 60 * 60 * 1000)) {
 					offSetString = 'HH:mm'; // For 3 days, use every 1 hour
 				} else if (interval <= (1 * 7 * 24 * 60 * 60 * 1000)) {
-					offSetString = 'ddd HH:mm'; // For 1 week, use every 2 hours
+					offSetString = 'MM-DD'; // For 1 week, use every 2 hours
 				} else if (interval <= (2 * 7 * 24 * 60 * 60 * 1000)) {
-					offSetString = 'ddd HH:mm'; // For 2 weeks, use every 4 hours
+					offSetString = 'MM-DD'; // For 2 weeks, use every 4 hours
 				} else if (interval <= 1 * 31 * 24 * 60 * 60 * 1000) {
-					offSetString = 'ddd HH:mm'; // For 1 month use every 12 hours
+					offSetString = 'MM-DD'; // For 1 month use every 12 hours
 				} else if (interval <=  3 * 31 * 24 * 60 * 60 * 1000) {
-					offSetString = 'MM-DD HH:mm'; // For 3 months use every 1 day
+					offSetString = 'MM-DD'; // For 3 months use every 1 day
 				} else {
-					offSetString =  'MM-DD HH:mm'; // For longer than 3 months, use every 1 week
+					offSetString =  'MM-DD'; // For longer than 3 months, use every 1 week
 				}
 				if(isUtc !=null && isUtc == true)
 					return _this.toServerLocalDateFromUtcMilliSeconds(milliSeconds, offSetString);
@@ -428,6 +433,36 @@ define(['moment',
 
 				return result;
 			};
+			
+			this.calculateHeight = function(depth){
+				return Math.max(310,70*depth);
+			};
+			
+			
+			this.calculateWidth = function(tree, container){
+				var a=[];
+				this.traverseWidth(a, tree, 0);
+				var left=Math.max.apply(null, a);
+				var right=Math.min.apply(null, a); //only left is used, if precise position needed, we will use right value;
+				
+				return Math.max($(container).width(), left*2*70);
+			};
+			
+			
+			this.traverseWidth = function(arr, tree, i){						
+				if(tree&&tree.children){
+					if(tree.children.length==2){
+						this.traverseWidth(arr, tree.children[0], i+1);
+						this.traverseWidth(arr, tree.children[1], i-1);
+					} else {
+						arr.push(i);
+						this.traverseWidth(arr, tree.children[0],i);
+					}								
+				} else{
+					arr.push(i);
+				}
+				
+			};
 
 			this.calculateHeight = function(depth){
 				return Math.max(310,70*depth);
@@ -471,6 +506,8 @@ define(['moment',
 					//set distance between node and its children
 					levelDistance: 40,
 					siblingOffset: 100,
+				    width: this.calculateWidth(jsonData, container),						   
+				    height: this.calculateHeight(jsonData.treeDepth),
 					//set max levels to show. Useful when used with
 					//the request method for requesting trees of specific depth
 					levelsToShow: jsonData.treeDepth,

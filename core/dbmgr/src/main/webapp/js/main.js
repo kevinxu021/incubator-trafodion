@@ -91,7 +91,11 @@ require.config({
 		flotcrosshair : {
 			deps : ['flot'],
 			exports: 'flotcrosshair'
-		}
+		},
+		flotaxislabels : {
+			deps : ['flot'],
+			exports: 'flotaxislabels'
+		}		
 	},
 	paths: {
 		sbadmin2:'../bower_components/startbootstrap-sb-admin-2/dist/js/sb-admin-2',
@@ -126,6 +130,7 @@ require.config({
 		flottime: '../bower_components/flot/jquery.flot.time',
 		flotcanvas: '../bower_components/flot/jquery.flot.canvas',
 		flotcrosshair: '../bower_components/flot/jquery.flot.crosshair',
+		flotaxislabels: '../bower_components/flot-axislabels/jquery.flot.axislabels'
 	}
 
 });

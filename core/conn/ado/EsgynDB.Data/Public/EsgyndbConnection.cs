@@ -398,7 +398,7 @@ namespace EsgynDB.Data
                         // pool the connection
                         if (!forceClose && this.ConnectionStringBuilder.MaxPoolSize > 0)
                         {
-                            EsgynDBConnection._connPools[this.ConnectionStringBuilder.ConnectionString].AddPooledConnection(this);
+                            EsgynDBConnection._connPools[this.ConnectionStringBuilder.ConnectionString].ReturnConnection(this);
 
                             while (this.Commands.Count > 0)
                             {
@@ -532,7 +532,7 @@ namespace EsgynDB.Data
                     pool = EsgynDBConnection._connPools[connectionString];
                 }
 
-                EsgynDBConnection conn = pool.GetPooledConnection();
+                EsgynDBConnection conn = pool.GetConnection(this);
                 if (conn != null)
                 {
                     CopyProperties(conn);

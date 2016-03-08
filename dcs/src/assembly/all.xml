@@ -36,8 +36,9 @@
   <fileSets>
     <fileSet>
       <includes>
-        <include>${project.basedir}/NOTICE.txt</include>
-        <include>${project.basedir}/LICENSE.txt</include>
+        <include>${project.basedir}/NOTICE</include>
+        <include>${project.basedir}/LICENSE</include>
+        <include>${project.basedir}/LICENSE_Esgyn</include>
       </includes>
     </fileSet>
     <fileSet>

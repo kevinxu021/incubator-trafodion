@@ -53,6 +53,12 @@ void computeAndAddSelParamIfPossible(
     if ( hist == NULL )
        return;
 
+    // Predicates on Hive partition columns should not be
+    // parameterized, because this prevents us from eliminating
+    // partitions at compile time.
+    if (base->getNAColumn()->isHivePartColumn())
+      return;
+
     CostScalar sel;
     NABoolean canComputeSelectivity = hist -> computeSelectivityForEquality(
             val, cStatsPtr->getRowcount(), cStatsPtr->getTotalUec(),

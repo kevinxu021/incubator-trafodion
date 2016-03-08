@@ -158,6 +158,7 @@ if [ $? != 0 ]; then
 fi
 sudo su $HDFS_USER --command "$HADOOP_BIN_PATH/hadoop fs -chown -R $TRAF_USER:trafodion /lobs"
 
+
 #Create Backup directory 
 sudo su $HDFS_USER --command "$HADOOP_BIN_PATH/hadoop fs -mkdir /trafodion_backups" 2> $HOME/traf_temp_output
 if [ $? != 0 ]; then

@@ -27,6 +27,7 @@
 #include "CmpCommon.h"
 
 class HiveClient_JNI;
+class HiveMetaData;
 
 static char* strduph(const char *s, CollHeap* h) {
   char *d = new (h) char[strlen (s) + 1];   // Space for length plus nul
@@ -125,11 +126,11 @@ struct hive_sd_desc
 {
    enum sd_desc_kind { TABLE_SD = 'T', PARTN_SD = 'P' };
    Int32 sdID_;
-   char* location_;
+   const char* location_;
    Int64 creationTS_;
    Int32 buckets_;
-   char* inputFormat_;
-   char* outputFormat_;
+   const char* inputFormat_;
+   const char* outputFormat_;
    char kind_;
    struct hive_column_desc* column_;
    struct hive_skey_desc* skey_;
@@ -138,6 +139,8 @@ struct hive_sd_desc
    char fieldTerminator_;
    char recordTerminator_;
 
+   const char *partitionColValues_;
+
    struct hive_sd_desc* next_;
 
    hive_sd_desc(Int32 sdID, const char* loc, Int64 creationTS, Int32 buckets,
@@ -145,7 +148,9 @@ struct hive_sd_desc
                 struct hive_column_desc* column,
                 struct hive_skey_desc* skey,
                 struct hive_bkey_desc* bkey,
-                char fieldTerminator, char recordTerminator
+                char fieldTerminator,
+                char recordTerminator,
+                const char *pColVals
                 )
 
         : sdID_(sdID), buckets_(buckets), kind_(knd), column_(column),
@@ -157,6 +162,10 @@ struct hive_sd_desc
      location_ = strduph(loc, CmpCommon::contextHeap());
      inputFormat_ = strduph(ift, CmpCommon::contextHeap()); 
      outputFormat_= strduph(of, CmpCommon::contextHeap());
+     if (pColVals)
+       partitionColValues_ = strduph(pColVals, CmpCommon::contextHeap());
+     else
+       partitionColValues_ = NULL;
    }
 
   ~hive_sd_desc();
@@ -169,6 +178,8 @@ struct hive_sd_desc
    NABoolean isTextFile() const;
    NABoolean isTrulyText() const 
      { return !isSequenceFile() && isTextFile(); };
+   NABoolean sdsAreCompatible(HiveMetaData *md,
+                              const hive_sd_desc *partnDesc) const;
 };
 
 struct hive_tbl_desc
