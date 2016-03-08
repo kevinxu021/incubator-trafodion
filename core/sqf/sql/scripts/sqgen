@@ -118,7 +118,7 @@ fi
 cd $MY_SQROOT/sql/scripts
 
 # Check to make sure this is a real cluster
-if  [[ -n "$node_count" ]] && [[ "$node_count" -gt "1" ]]; then
+if  [[ -n "$node_count" ]] && [[ "$node_count" -gt "1" ]]; then 
 
     GetSQcnfg
 
@@ -229,6 +229,7 @@ fi
 
 if  [[ -n "$node_count" ]] && [[ "$node_count" -gt "1" ]]; then    
     echo
+    echo
     echo "Copying the generated files to all the nodes in the cluster"
     echo
     echo "Copying $SQCLUSTERCONF_FILE to $MPI_TMPDIR of all the nodes"
@@ -240,6 +241,10 @@ if  [[ -n "$node_count" ]] && [[ "$node_count" -gt "1" ]]; then
     echo "Copying $SQETC_DIR/ms.env to $SQETC_DIR of all the nodes"
     echo "$PDCP -w ${ExNodeList[@]} -x `uname -n` $SQETC_DIR/ms.env   $SQETC_DIR "
     $PDCP -w ${ExNodeList[@]} -x `uname -n` $SQETC_DIR/ms.env   $SQETC_DIR
+
+    echo "Copying $SQETC_DIR/traf_coprocessor.properties to $SQETC_DIR of all the nodes"
+    echo "$PDCP -w ${ExNodeList[@]} -x `uname -n` $SQETC_DIR/traf_coprocessor.properties   $SQETC_DIR "
+    $PDCP -w ${ExNodeList[@]} -x `uname -n` $SQETC_DIR/traf_coprocessor.properties   $SQETC_DIR
 
     echo
     echo "Copying $SQETC_DIR/seamonster.env to $SQETC_DIR of all the nodes"

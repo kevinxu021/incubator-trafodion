@@ -456,7 +456,7 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_GET_REGION_STATS       ].jm_name      = "getRegionStats";
     JavaMethods_[JM_GET_REGION_STATS       ].jm_signature = "(Ljava/lang/String;)Lorg/trafodion/sql/ByteArrayList;";
     JavaMethods_[JM_COPY       ].jm_name      = "copy";
-    JavaMethods_[JM_COPY       ].jm_signature = "(Ljava/lang/String;Ljava/lang/String;)Z";
+    JavaMethods_[JM_COPY       ].jm_signature = "(Ljava/lang/String;Ljava/lang/String;Z)Z";
     JavaMethods_[JM_EXISTS     ].jm_name      = "exists";
     JavaMethods_[JM_EXISTS     ].jm_signature = "(Ljava/lang/String;)Z";
     JavaMethods_[JM_GRANT      ].jm_name      = "grant";
@@ -1543,9 +1543,11 @@ ByteArrayList* HBaseClient_JNI::getRegionStats(const char* tblName)
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-HBC_RetCode HBaseClient_JNI::copy(const char* currTblName, const char* oldTblName)
+HBC_RetCode HBaseClient_JNI::copy(const char* srcTblName, 
+                                  const char* tgtTblName,
+                                  NABoolean force)
 {
-  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::copy(%s,%s) called.", currTblName, oldTblName);
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::copy(%s,%s) called.", srcTblName, tgtTblName);
   if (jenv_ == NULL)
      if (initJVM() != JOI_OK)
          return HBC_ERROR_INIT_PARAM;
@@ -1554,28 +1556,31 @@ HBC_RetCode HBaseClient_JNI::copy(const char* currTblName, const char* oldTblNam
      getExceptionDetails();
      return HBC_ERROR_DROP_EXCEPTION;
   }
-  jstring js_currTblName = jenv_->NewStringUTF(currTblName);
-  if (js_currTblName == NULL) 
+  jstring js_srcTblName = jenv_->NewStringUTF(srcTblName);
+  if (js_srcTblName == NULL) 
   {
     GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_DROP_PARAM));
     jenv_->PopLocalFrame(NULL);
     return HBC_ERROR_DROP_PARAM;
   }
 
-  jstring js_oldTblName = jenv_->NewStringUTF(oldTblName);
-  if (js_oldTblName == NULL) 
+  jstring js_tgtTblName = jenv_->NewStringUTF(tgtTblName);
+  if (js_tgtTblName == NULL) 
   {
     GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_DROP_PARAM));
     jenv_->PopLocalFrame(NULL);
     return HBC_ERROR_DROP_PARAM;
   }
 
+  jboolean j_force = force;
   tsRecentJMFromJNI = JavaMethods_[JM_COPY].jm_full_name;
-  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_COPY].methodID, js_currTblName, js_oldTblName);
+  jboolean jresult = jenv_->CallBooleanMethod(
+       javaObj_, JavaMethods_[JM_COPY].methodID, 
+       js_srcTblName, js_tgtTblName, j_force);
 
-  jenv_->DeleteLocalRef(js_currTblName);  
+  jenv_->DeleteLocalRef(js_srcTblName);  
 
-  jenv_->DeleteLocalRef(js_oldTblName);  
+  jenv_->DeleteLocalRef(js_tgtTblName);  
 
   if (jenv_->ExceptionCheck())
   {
@@ -4448,7 +4453,8 @@ HTC_RetCode HTableClient_JNI::deleteRow(Int64 transID, HbaseStr &rowID, const LI
   tsRecentJMFromJNI = JavaMethods_[JM_DELETE].jm_full_name;
   jboolean j_asyncOperation = FALSE;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, 
-          JavaMethods_[JM_DELETE].methodID, j_tid, jba_rowID, j_cols, j_ts, j_asyncOperation, js_hbaseAuths);
+                                              JavaMethods_[JM_DELETE].methodID, j_tid, jba_rowID, j_cols, j_ts, j_asyncOperation,
+                                              js_hbaseAuths);
   if (hbs_)
     {
       hbs_->incMaxHbaseIOTime(hbs_->getHbaseTimer().stop());
@@ -6127,6 +6133,39 @@ jobjectArray convertToByteArrayObjectArray(const char **array,
    return j_objArray;
 }
 
+jobjectArray convertToByteArrayObjectArray(const TextVec &vec)
+{
+   int vecLen = vec.size();
+   int i = 0;
+   jobjectArray j_objArray = NULL;
+   for ( ; i < vec.size(); i++)
+   {
+       const Text &t = vec[i];
+     //       const HbaseStr *hbStr = &vec.at(i);
+       jbyteArray j_obj = jenv_->NewByteArray(t.size());
+       if (jenv_->ExceptionCheck())
+       {
+          if (j_objArray != NULL)
+             jenv_->DeleteLocalRef(j_objArray);
+          return NULL; 
+       }
+       jenv_->SetByteArrayRegion(j_obj, 0, t.size(), (const jbyte *)t.data());
+       if (j_objArray == NULL)
+       {
+          j_objArray = jenv_->NewObjectArray(vecLen,
+                 jenv_->GetObjectClass(j_obj), NULL);
+          if (jenv_->ExceptionCheck())
+          {
+             jenv_->DeleteLocalRef(j_obj);
+             return NULL;
+          }
+       }
+       jenv_->SetObjectArrayElement(j_objArray, i, (jobject)j_obj);
+       jenv_->DeleteLocalRef(j_obj);
+   }
+   return j_objArray;
+}
+
 jobjectArray convertToStringObjectArray(const TextVec &vec)
 {
    int vecLen = vec.size();
@@ -6235,6 +6274,27 @@ int convertStringObjectArrayToList(NAHeap *heap, jarray j_objArray,
         list.insert(new (heap) Text(str));
         jenv_->ReleaseStringUTFChars(j_str, str);        
     }
+    return arrayLen;
+}
+
+int convertLongObjectArrayToList(NAHeap *heap, jlongArray j_longArray, LIST(Int64)&list)
+{
+    if (j_longArray == NULL)
+        return 0;
+    int arrayLen = jenv_->GetArrayLength(j_longArray);
+    const char *str;
+    jboolean isCopy;
+
+    jlong *body = jenv_->GetLongArrayElements(j_longArray, NULL);
+
+    for (int i = 0; i < arrayLen; i++)
+    {
+        jlong x = body[i];
+        list.insert(Int64(body[i]));
+    }
+
+    jenv_->ReleaseLongArrayElements(j_longArray, body, NULL);
+
     return arrayLen;
 }
 

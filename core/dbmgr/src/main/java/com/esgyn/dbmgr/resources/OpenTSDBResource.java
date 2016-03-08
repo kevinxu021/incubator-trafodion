@@ -56,6 +56,8 @@ public class OpenTSDBResource {
 		String startTimeStr = "";
 		String endTimeStr = "";
 		String tagName = "host";
+		String seriesName = "";
+
 		boolean isDrilldown = false;
 
 		try {
@@ -70,7 +72,10 @@ public class OpenTSDBResource {
 					metricName = obj.get("metricName").textValue();
 				}
 				if (obj.get("tagName") != null) {
-					metricName = obj.get("tagName").textValue();
+					tagName = obj.get("tagName").textValue();
+				}
+				if (obj.get("seriesName") != null) {
+					seriesName = obj.get("seriesName").textValue();
 				}
 				isDrilldown = obj.get("isDrilldown").booleanValue();
 			}
@@ -95,8 +100,15 @@ public class OpenTSDBResource {
 						startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "transactions":
-				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_TRANSACTION_STATS),
-						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset);
+				String tsdMetricName = "esgyndb.dtm.txncommits";
+				if (seriesName.equals("#Begins")) {
+					tsdMetricName = "esgyndb.dtm.txnbegins";
+				} else if (seriesName.equals("#Aborts")) {
+					tsdMetricName = "esgyndb.dtm.txnaborts";
+				}
+				url = String.format(
+						SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_TRANSACTION_STATS_DRILLDOWN),
+						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset, tsdMetricName);
 				break;
 			case "cpuload":
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_CPU_LOAD_DRILLDOWN),
@@ -109,8 +121,9 @@ public class OpenTSDBResource {
 						startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "networkio":
+				String direction = (seriesName != null && seriesName.equals("Network In")) ? "in" : "out";
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_NETWORK_IO_DRILLDOWN),
-						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset);
+						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset, direction);
 				break;
 			case "useddiskspace":
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_DISK_SPACE_USED_DRILLDOWN),
@@ -134,8 +147,16 @@ public class OpenTSDBResource {
 						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset);
 				break;
 			case "canary":
-				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_CANARY_RESPONSE),
-						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset);
+				String canMetricName = "esgyndb.canary.sqlconnect.time";
+				if (seriesName.equals("DDL Time")) {
+					canMetricName = "esgyndb.canary.sqlddl.time";
+				} else if (seriesName.equals("Write Time")) {
+					canMetricName = "esgyndb.canary.sqlwrite.time";
+				} else if (seriesName.equals("Read Time")) {
+					canMetricName = "esgyndb.canary.sqlread.time";
+				}
+				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_CANARY_RESPONSE_DRILLDOWN),
+						openTSDBUri, startTimeStr, endTimeStr, downSampleOffset, canMetricName);
 				break;
 			case "jvmgctime":
 				url = String.format(SystemQueryCache.getQueryText(SystemQueryCache.OPENTSDB_GCTIME_DRILLDOWN),
@@ -152,8 +173,9 @@ public class OpenTSDBResource {
 			return getMetricsbyTag(servletRequest, servletResponse, url, tagName);
 
 		} catch (Exception ex) {
-			_LOG.error("Failed to fetch metric " + metricName + " : " + ex.getMessage());
-			throw new EsgynDBMgrException(ex.getMessage());
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to fetch metric " + metricName, ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
 		}
 	}
 
@@ -257,13 +279,14 @@ public class OpenTSDBResource {
 			return getMetrics(servletRequest, servletResponse, url);
 
 		} catch (Exception ex) {
-			_LOG.error("Failed to fetch metric " + metricName + " : " + ex.getMessage());
-			throw new EsgynDBMgrException(ex.getMessage());
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to fetch metric " + metricName, ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
 		}
 	}
 
 	private String getMetric(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String url)
-			throws EsgynDBMgrException {
+			throws Exception {
 		JsonFactory factory = new JsonFactory();
 		ObjectMapper mapper = new ObjectMapper(factory);
 		Session soc = SessionModel.getSession(servletRequest, servletResponse);
@@ -279,9 +302,8 @@ public class OpenTSDBResource {
 			else
 				return nodeValue;
 
-		} catch (Exception ex) {
-			_LOG.error("Failed to fetch metric : " + ex.getMessage());
-			throw new EsgynDBMgrException(ex.getMessage());
+		} finally {
+
 		}
 	}
 
@@ -291,7 +313,7 @@ public class OpenTSDBResource {
 	 * and an array of datapoints for each of the metric
 	 */
 	private TreeMap<String, Object> getMetrics(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
-			String url) throws EsgynDBMgrException {
+			String url) throws Exception {
 		JsonFactory factory = new JsonFactory();
 		ObjectMapper mapper = new ObjectMapper(factory);
 		Session soc = SessionModel.getSession(servletRequest, servletResponse);
@@ -334,9 +356,7 @@ public class OpenTSDBResource {
 			}
 			return resultMetrics;
 
-		} catch (Exception ex) {
-			_LOG.error("Failed to fetch metric : " + ex.getMessage());
-			throw new EsgynDBMgrException(ex.getMessage());
+		} finally {
 		}
 	}
 

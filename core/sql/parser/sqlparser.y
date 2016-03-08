@@ -7713,6 +7713,18 @@ olap_sequence_function : set_function_specification TOK_OVER '('
                           SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
                         }
 // end of OLAP LEAD function()
+// start of OLAP LAG function()
+                       |TOK_LAG '(' value_expression ','  value_expression ','  value_expression ')'  TOK_OVER '('
+                         opt_olap_part_clause
+                         opt_olap_order_clause ')'
+                         {
+                             //3rd value_expression is default value    
+                              ItmLagOlapFunction* lagExpr =
+                                                       new (PARSERHEAP()) ItmLagOlapFunction($3, $5, $7);
+                             lagExpr->setOLAPInfo($11, $12);
+                             $$=lagExpr;
+                             SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                         }
                        |TOK_LAG '(' value_expression ','  value_expression ')'  TOK_OVER '('
                          opt_olap_part_clause
                          opt_olap_order_clause ')'
@@ -7723,6 +7735,21 @@ olap_sequence_function : set_function_specification TOK_OVER '('
                              $$=lagExpr;
                              SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
                          }
+                       |TOK_LAG '(' value_expression  ')'  TOK_OVER '('
+                          opt_olap_part_clause
+                          opt_olap_order_clause ')'
+                          {    
+                               //default offset is 1;
+                               NAString * defaultOffset = new (PARSERHEAP()) NAString("1");
+                               ItemExpr * offsetExpr = literalOfNumericNoScale(defaultOffset);
+                               if (!offsetExpr) YYERROR;   
+                               ItmLagOlapFunction* lagExpr =
+                                                        new (PARSERHEAP()) ItmLagOlapFunction($3, offsetExpr);
+                              lagExpr->setOLAPInfo($7, $8);
+                              $$=lagExpr;
+                              SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                          }
+// end of OLAP LAG function()
 
 
 opt_olap_part_clause   : empty
@@ -25083,6 +25110,13 @@ create_table_as_token: TOK_AS
 table_definition_body : table_element_list
                       | like_definition
                       | external_table_definition
+                      | table_element_list external_table_definition
+                        {
+                          $$ = new (PARSERHEAP())
+                            ElemDDLList(
+                                 $1 /*table_elements*/,
+                                 $2 /*table_element*/);
+                        }
 
 /* type pElemDDL */
 table_element_list : '(' table_elements ')'
@@ -31196,6 +31230,21 @@ alter_table_statement : TOK_ALTER optional_ghost TOK_TABLE ddl_qualified_name
                                     }
                                   delete $4 /*ddl_qualified_name*/;
                                 }
+                        | TOK_ALTER TOK_EXTERNAL TOK_TABLE ddl_qualified_name
+                                alter_table_action 
+                                {
+                                  $$ = $5 /*alter_table_action*/;
+                                  $$->setIsExternal(TRUE);
+                                  $$->castToStmtDDLAlterTable()->
+                                    setTableName(QualifiedName (*$4 /*ddl_qualified_name*/, 
+                                                  PARSERHEAP()));
+				  if($$->castToStmtDDLAlterTableAddColumn())
+                                    {
+				      $$->castToStmtDDLAlterTableAddColumn()->
+					synthesize();
+                                    }
+                                  delete $4 /*ddl_qualified_name*/;
+                                }
                        | TOK_ALTER optional_ghost TOK_TABLE ddl_qualified_name
                                 is_not_droppable
                                 {
@@ -31541,13 +31590,11 @@ alter_table_column_clause : TOK_COLUMN identifier heading
                                 }
 
 // type pStmtDDL
-alter_table_alter_column_datatype : TOK_ALTER TOK_COLUMN column_name predefined_type
+alter_table_alter_column_datatype : TOK_ALTER TOK_COLUMN column_definition
 				{
                                   $$ = new (PARSERHEAP())
                                     StmtDDLAlterTableAlterColumnDatatype(
-                                         *$3, // column name
-                                         $4 );
-                                  delete $3;
+                                         $3 /* column definition */);
                                   restoreInferCharsetState();
 				}
 

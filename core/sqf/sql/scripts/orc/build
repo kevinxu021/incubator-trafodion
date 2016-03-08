@@ -22,3 +22,4 @@
 #
 
 $JAVA_HOME/bin/javac -d . -g OrcFileRead.java
+$JAVA_HOME/bin/javac -d . -g TestOrcFileReader.java

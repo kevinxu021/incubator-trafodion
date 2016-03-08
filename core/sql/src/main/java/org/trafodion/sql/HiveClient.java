@@ -35,6 +35,7 @@ import org.apache.hadoop.util.StringUtils;
 
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.UnknownDBException;
@@ -97,6 +98,7 @@ public class HiveClient {
     }
 
     public boolean close() {
+	if (logger.isDebugEnabled()) logger.debug("HiveClient.close called.");
         hmsClient.close();
         return true;
     }
@@ -111,6 +113,8 @@ public class HiveClient {
     public String getHiveTableString(String schName, String tblName)
         throws MetaException, TException {
         Table table;
+        String result;
+
         if (logger.isDebugEnabled()) logger.debug("HiveClient.getHiveTableString(" + schName + " , " + 
                      tblName + ") called.");
         try {
@@ -121,7 +125,15 @@ public class HiveClient {
             return new String("");
         }
         if (logger.isDebugEnabled()) logger.debug("HiveTable is " + table.toString());
-        return table.toString() ;
+        result = table.toString();
+        if (table.isSetPartitionKeys()) {
+            // append the string representation of each partition
+            // to the table string
+            List<Partition> partns = hmsClient.listPartitions(schName, tblName, (short) 9999);
+            for (int i=0; i < partns.size(); i++)
+                result = result + ", " + partns.get(i).toString();
+        }
+        return result;
     }
 
     public long getRedefTime(String schName, String tblName)
@@ -131,9 +143,10 @@ public class HiveClient {
                      tblName + ") called.");
         try {
             table = hmsClient.getTable(schName, tblName);
-            if (logger.isDebugEnabled()) logger.debug("getTable returns null for " + schName + "." + tblName + ".");
-            if (table == null)
+            if (table == null) {
+		if (logger.isDebugEnabled()) logger.debug("getTable returns null for " + schName + "." + tblName + ".");
                 return 0;
+	    }
         }
         catch (NoSuchObjectException x) {
             if (logger.isDebugEnabled()) logger.debug("Hive table no longer exists.");

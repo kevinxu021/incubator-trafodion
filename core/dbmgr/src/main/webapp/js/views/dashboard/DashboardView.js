@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -24,7 +24,8 @@ define([
         'flot',
         'flottime',
         'flotcanvas',
-        'flotcrosshair'
+        'flotcrosshair',
+        'flotaxislabels'
         ], function (BaseView, DashboardT, dashboardHandler, serverHandler, $, common, moment, refreshTimer, timeRangeView) {
 	'use strict';
 
@@ -38,6 +39,8 @@ define([
 	GRID_DRILLDOWN_CONTAINER = '#grid-drilldown-container',
 	NODES_ERROR_TEXT = '#nodes-error-text',
 
+	CANARY_DRILLDOWN_BTN = '#canary-drilldown-btn',
+	TRANSACTIONS_DRILLDOWN_BTN = '#transactions-drilldown-btn',
 	IOWAITS_DRILLDOWN_BTN = '#iowaits-drilldown-btn',
 	DISK_SPACE_DRILLDOWN_BTN = '#useddiskspace-drilldown-btn',
 	JVMGC_DRILLDOWN_BTN = '#jvmgctime-drilldown-btn',
@@ -55,6 +58,9 @@ define([
 	DRILLDOWN_CHART = '#metrics-drilldown-chart',
 	DRILLDOWN_ERROR_CONTAINER= '#metrics-drilldown-error-text',
 	DRILLDOWN_LEGEND = '#metrics-drilldown-legend',
+	DRILLDOWN_METRICNAME = '#metric-name-holder',
+	DRILLDOWN_SERIES_CONTAINER = '#metric-series-select-container',
+	SERIES_SELECTOR = '#seriesSelect',
 	FILTER_DIALOG = '#filterDialog',
 	FILTER_FORM = '#filter-form',
 	FILTER_APPLY_BUTTON = "#filterApplyButton",
@@ -72,7 +78,7 @@ define([
 	var renderedFlotCharts = {};
 	var chartsData = {};
 	var resizeTimer = null;
-	
+	var drillDownChart = {};
 	var chartConfig = null;
 	var transConfig = null;
 
@@ -122,6 +128,7 @@ define([
 						ylabels: ["#Aborts", "#Begins", "#Commits"], // 3series, so 3 labels
 						yunit: "",
 						ydecimals: 0,
+						yvalround: true,
 						yvalformatter: common.formatNumberWithComma,
 						spinner:"#transactions-spinner", 
 						graphcontainer:"transactions-chart", 
@@ -203,7 +210,7 @@ define([
 						errorcontainer:"#freememory-error-text"
 					},
 					networkio:{
-						chartTitle: "Network IO.",
+						chartTitle: "Network IO",
 						chartType: "Line",
 						xtimemultiplier: 1000,
 						ylabels: ["Network In", "Network Out"],
@@ -232,9 +239,11 @@ define([
 			refreshTimer.setRefreshInterval(0.5);
 			timeRangeView.setTimeRange(1);
 			$(window).on('resize', this.onResize);
-			
+
 			if(common.isEnterprise()){
 				$('.dbmgr-ent').show();
+				$(CANARY_DRILLDOWN_BTN).on('click', this.canaryDrillDown);
+				$(TRANSACTIONS_DRILLDOWN_BTN).on('click', this.transactionsDrillDown);
 				$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
 				$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
 				$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
@@ -250,19 +259,19 @@ define([
 					$("#"+chartConfig[v].graphcontainer).bind("plothover", function (event, pos, item) {
 
 						var cPlot = renderedFlotCharts[v];
-						
+
 						if (item) {
 							$("#"+chartConfig[v].graphcontainer + '-tooltip').remove();
 							var x = item.datapoint[0],
 							y = item.datapoint[1].toFixed(2);
 							var content = "Time :  " + common.toServerLocalDateFromMilliSeconds(x);
-							
+
 							var dataset = cPlot.getData();
 							var nDecimals = 2;
 							if(chartConfig[v].ydecimals != null){
 								nDecimals = chartConfig[v].ydecimals;
 							}
-							
+
 							for (var i = 0; i < dataset.length; ++i) {
 								var series = dataset[i];
 								for (var j = 0; j < series.data.length; ++j) {
@@ -288,9 +297,19 @@ define([
 					});
 				});
 
-				$(DRILLDOWN_DIALOG).on('show.bs.modal', function(event, ab){
+				$(DRILLDOWN_DIALOG).on('shown.bs.modal', function(event, ab){
 					$(DRILLDOWN_CHART).empty();
-					$(DRILLDOWN_SPINNER).show();
+					var metricName = $(DRILLDOWN_METRICNAME).text();
+					if(metricName != "nodestatus"){
+						$(DRILLDOWN_SPINNER).show();
+						dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
+					}else{
+						$(DRILLDOWN_SERIES_CONTAINER).hide();
+					}
+				});
+				$(SERIES_SELECTOR).on('change', function(){
+					var metricName = $(DRILLDOWN_METRICNAME).text();
+					dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
 				});
 
 				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
@@ -338,6 +357,8 @@ define([
 
 			if(common.isEnterprise()){
 				$('.dbmgr-ent').show();
+				$(CANARY_DRILLDOWN_BTN).on('click', this.canaryDrillDown);
+				$(TRANSACTIONS_DRILLDOWN_BTN).on('click', this.transactionsDrillDown);
 				$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
 				$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
 				$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
@@ -372,6 +393,8 @@ define([
 			serverHandler.off(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
 
 			if(common.isEnterprise()){
+				$(CANARY_DRILLDOWN_BTN).off('click', this.canaryDrillDown);
+				$(TRANSACTIONS_DRILLDOWN_BTN).off('click', this.transactionsDrillDown);
 				$(IOWAITS_DRILLDOWN_BTN).off('click',this.iowaitsDrillDown);
 				$(DISK_SPACE_DRILLDOWN_BTN).off('click',this.diskspaceDrillDown);
 				$(JVMGC_DRILLDOWN_BTN).off('click',this.jvmGCDrillDown);
@@ -430,6 +453,8 @@ define([
 			if(lastUsedTimeRange == null){
 				lastUsedTimeRange = {};
 			}		
+			lastUsedTimeRange.startMsec = startTime.unix() * 1000;		
+			lastUsedTimeRange.endMsec = endTime.unix() * 1000;
 			lastUsedTimeRange.startTime = params.startTime;
 			lastUsedTimeRange.endTime = params.endTime;
 			lastUsedTimeRange.timeRange = $(FILTER_TIME_RANGE).val();
@@ -438,6 +463,9 @@ define([
 			params.isDrilldown = isDrilldown ? isDrilldown : false;
 			params.timeinterval = endTime - startTime;
 			timeinterval = params.timeinterval;
+			if($(SERIES_SELECTOR)){
+				params.seriesName = $(SERIES_SELECTOR+' option:selected').text();
+			}
 			return params;
 		},
 		resetFilter: function(){
@@ -733,6 +761,9 @@ define([
 						if(yVal < 0){
 							yVal = 0;
 						}
+						if(metricConfig.yvalround == true){
+							yVal = Math.round(yVal);
+						}
 						//dataPoint.push(yVal);
 						plotData[i].push([xVal, yVal]);
 					});
@@ -743,12 +774,15 @@ define([
 						colors : graphColors,
 						canvas: true,
 						xaxis : {
+							min: lastUsedTimeRange.startMsec,
+							max: lastUsedTimeRange.endMsec,
 							mode : "time", 
 							tickFormatter: function(val, axis) {
 								return common.formatGraphDateLabels(val, timeinterval);
 							},
 						},
 						yaxis :{
+							min: 0,
 							show:true,
 							tickFormatter: function(val, axis){
 								if(metricConfig.yLabelFormat){
@@ -767,6 +801,7 @@ define([
 							mode: "x"
 						},*/
 						lines: {
+							lineWidth: 2.5,
 							fill: false,
 						},
 						grid : {
@@ -811,16 +846,12 @@ define([
 					$(metricConfig.errorcontainer).text(jqXHR.responseText);     
 				}				
 			}
-		},		
-
-		showErrorMessage: function (jqXHR) {
-			_this.hideLoading();
-			$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
-			$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
-			$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
-			$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
-			$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
-
+		},
+		canaryDrillDown: function(){
+			_this.displayDetails('canary');
+		},
+		transactionsDrillDown: function(){
+			_this.displayDetails('transactions');
 		},
 		iowaitsDrillDown: function(){
 			_this.displayDetails('iowaits');
@@ -849,6 +880,8 @@ define([
 		nodeStatusDrillDown: function(){
 			$(DRILLDOWN_DIALOG).modal('show');
 			$(DRILLDOWN_TITLE).text("Node Status");
+			$(DRILLDOWN_METRICNAME).text("nodestatus");
+			$(DRILLDOWN_SERIES_CONTAINER).hide();
 			$(DRILLDOWN_SPINNER).hide();
 			$(DRILLDOWN_CHART_CONTAINER).hide();
 			$(GRID_DRILLDOWN_CONTAINER).show();
@@ -856,15 +889,24 @@ define([
 		},
 		displayDetails: function(metricName){
 			$(DRILLDOWN_DIALOG).modal('show');
+			$(DRILLDOWN_SERIES_CONTAINER).show();
+			$(DRILLDOWN_METRICNAME).text(metricName);
+			$(DRILLDOWN_TITLE).text(chartConfig[metricName]);
+			var seriesSelector = $(SERIES_SELECTOR);
+			seriesSelector.empty();
+			var metricConfig = chartConfig[metricName];
+			$.each(metricConfig.ylabels, function(i, v){
+				seriesSelector.append($("<option></option>").val(i).html(v));
+			});
 			$(GRID_DRILLDOWN_CONTAINER).hide();
-			dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
 		},
 		fetchDrilldownMetricSuccess:function(result){
 			var metricsData = JSON.parse(result.data.metrics);
 			var metricConfig = chartConfig[result.metricName];
 			var tags = result.data.tags;
 			var keys = Object.keys(metricsData);
-			var plot = null;
+			drillDownChart= {};
+			drillDownChart.metricConfig = metricConfig;
 
 			$(DRILLDOWN_TITLE).text(metricConfig.chartTitle);
 			$(DRILLDOWN_SPINNER).hide();
@@ -880,12 +922,13 @@ define([
 				$(DRILLDOWN_CHART_CONTAINER).show();
 				$(DRILLDOWN_LEGEND).empty();
 
-				var plotData = [];
+				drillDownChart.plotData = [];
 				$.each(metricsData	[keys[0]], function(i, v){
 					var seriesData = {label: "", data:[], color: ""};
 					seriesData.label = result.data.tags[i];
+					seriesData.labelID = "lbl-" + i;
 					seriesData.color = graphColors[i];
-					plotData.push(seriesData);
+					drillDownChart.plotData.push(seriesData);
 				});
 
 				$.each(keys, function(index, value){
@@ -901,25 +944,31 @@ define([
 						if(yVal < 0){
 							yVal = 0;
 						}
+						if(metricConfig.yvalround == true){
+							yVal = Math.round(yVal);
+						}
 						//dataPoint.push(yVal);
-						plotData[i].data.push([xVal, yVal]);
+						drillDownChart.plotData[i].data.push([xVal, yVal]);
 					});
 					//metricConfig.toolTipTexts[xVal] = dataPoint;
 				});
-				
+
 				$(DRILLDOWN_LEGEND).append("<br/><label id='x-time'></label>");
 				$.each(result.data.tags, function(key, val) {
 					$(DRILLDOWN_LEGEND).append("<br/><input type='checkbox' name='" + key +
-						"' checked='checked' id='id" + key + "'><span class='drilldown-legend-selector' style='background-color:"+  graphColors[key] + ";'></span></input>" +
-						"<label for='id" + key + "'>"
-						+ val + "</label> <label id='v" + key + "' class='y-val-label'></label>");
+							"' checked='checked' id='id" + key + "'><span class='drilldown-legend-selector' style='background-color:"+  graphColors[key] + ";'></span></input>" +
+							"<label for='id" + key + "'>"
+							+ val + "</label> <label id='lbl-" + key + "' class='y-val-label'></label>");
 				});
 
-				$(DRILLDOWN_LEGEND).find("input").click(plotAccordingToChoices);
-				
-				var flotOptions = {
+				$(DRILLDOWN_LEGEND).find("input").click(_this.plotAccordingToChoices);
+
+				drillDownChart.flotOptions = {
 						//colors : graphColors,
 						canvas: true,
+						axisLabels: {
+							show: true
+						},
 						legend: {
 							show: false,
 							/*noColumns: 1,
@@ -930,11 +979,14 @@ define([
 						},
 						xaxis : {
 							mode : "time", 
+							min: lastUsedTimeRange.startMsec,
+							max: lastUsedTimeRange.endMsec,
 							tickFormatter: function(val, axis) {
 								return common.formatGraphDateLabels(val, timeinterval);
 							},
 						},
 						yaxis :{
+							min: 0,
 							show:true,
 							tickFormatter: function(val, axis){
 								if(metricConfig.yLabelFormat){
@@ -950,8 +1002,8 @@ define([
 							}
 						},	
 						lines: {
-							fill: false,
-							color: ["#3c8dbc", "#f56954"]
+							lineWidth: 2.5,
+							fill: false
 						},
 						grid : {
 							hoverable: true,
@@ -961,6 +1013,11 @@ define([
 							autoHighlight: false
 						},
 						yaxes:[{
+							position: 'left',
+							axisLabel: (metricConfig.yunit ? metricConfig.yunit : ""),
+							axisLabelPadding: 10,
+							axisLabelColour: 'red',
+							axisLabelFontSizePixels: 13,
 							tickLength:5,
 							font: {
 								size: 12,
@@ -971,6 +1028,10 @@ define([
 							}
 						}],
 						xaxes:[{
+							axisLabel: 'Time',
+							axisLabelPadding: 10,
+							axisLabelColour: 'red',
+							axisLabelFontSizePixels: 13,
 							tickLength : 5,
 							font: {
 								size: 12,
@@ -981,105 +1042,104 @@ define([
 							}
 						}]
 				};
+				_this.plotAccordingToChoices();
 
-				//$.plot($(DRILLDOWN_CHART), plotData, flotOptions);
-				function plotAccordingToChoices() {
+				drillDownChart.updateLegendTimeout = null;
+				drillDownChart.latestPosition = null;
 
-					var data = [];
 
-					$(DRILLDOWN_LEGEND).find('#x-time').text('');
-					$(DRILLDOWN_LEGEND).find(".y-val-label").text('');
-					
-					$(DRILLDOWN_LEGEND).find("input:checked").each(function () {
-						var key = $(this).attr("name");
-						if (key && plotData[key]) {
-							data.push(plotData[key]);
-						}
-					});
-
-					if (data.length > 0) {
-						plot = $.plot($(DRILLDOWN_CHART), data, flotOptions);
-					}
-				}
-
-				plotAccordingToChoices();
-				
-				var updateLegendTimeout = null;
-				var latestPosition = null;
-
-				function updateLegend() {
-
-					updateLegendTimeout = null;
-
-					var pos = latestPosition;
-
-					var axes = plot.getAxes();
-					if (pos.x < axes.xaxis.min || pos.x > axes.xaxis.max ||
-						pos.y < axes.yaxis.min || pos.y > axes.yaxis.max) {
-						return;
-					}
-
-					var i, j, dataset = plot.getData();
-					for (i = 0; i < dataset.length; ++i) {
-
-						var series = dataset[i];
-
-						// Find the nearest points, x-wise
-
-						for (j = 0; j < series.data.length; ++j) {
-							if (series.data[j][0] > pos.x) {
-								break;
-							}
-						}
-
-						// Now Interpolate
-
-						var y, x,
-							p1 = series.data[j - 1],
-							p2 = series.data[j];
-
-						if (p1 == null) {
-							y = p2[1];
-							x = p2[0];
-						} else if (p2 == null) {
-							y = p1[1];
-							x = p1[0];
-						} else {
-							y = p1[1] + (p2[1] - p1[1]) * (pos.x - p1[0]) / (p2[0] - p1[0]);
-							x = p1[0] + (p2[0] - p1[0]) * (pos.x - p1[0]) / (p2[0] - p1[0]);
-						}
-
-						var nDecimals = 2;
-						if(metricConfig.ydecimals != null){
-							nDecimals = metricConfig.ydecimals;
-						}
-						
-						var text = " =  ";
-						if(metricConfig.yvalformatter){
-							text += metricConfig.yvalformatter(y.toFixed(nDecimals));
-						}else{
-							text += y.toFixed(nDecimals);
-						}
-						if(metricConfig.yunit){
-							text += metricConfig.yunit;
-						}
-						$(DRILLDOWN_LEGEND).find('#x-time').text("Time :  " + common.toServerLocalDateFromMilliSeconds(x));
-						$(DRILLDOWN_LEGEND).find('#v'+i).text(text);
-					}
-				}
 
 				$(DRILLDOWN_CHART).bind("plothover",  function (event, pos, item) {
-					latestPosition = pos;
-					if (!updateLegendTimeout) {
-						updateLegendTimeout = setTimeout(updateLegend, 50);
+					drillDownChart.latestPosition = pos;
+					if (!drillDownChart.updateLegendTimeout) {
+						drillDownChart.updateLegendTimeout = setTimeout(_this.updateLegend, 50);
 					}
 				});				
 			}			
 		},
+		plotAccordingToChoices: function(e) {
+
+			var data = [];
+
+			$(DRILLDOWN_LEGEND).find('#x-time').text('');
+			$(DRILLDOWN_LEGEND).find(".y-val-label").text('');
+
+			$(DRILLDOWN_LEGEND).find("input:checked").each(function () {
+				var key = $(this).attr("name");
+				if (key && drillDownChart.plotData[key]) {
+					data.push(drillDownChart.plotData[key]);
+				}
+			});
+
+			if (data.length > 0) {
+				drillDownChart.plot = $.plot($(DRILLDOWN_CHART), data, drillDownChart.flotOptions);
+			}else{
+				if(e != null) // At least one series should be selected. Cancel the click event.
+					e.preventDefault();
+			}
+		},
+		updateLegend: function() {
+
+			drillDownChart.updateLegendTimeout = null;
+
+			var pos = drillDownChart.latestPosition;
+
+			var axes = drillDownChart.plot.getAxes();
+			if (pos.x < axes.xaxis.min || pos.x > axes.xaxis.max ||
+					pos.y < axes.yaxis.min || pos.y > axes.yaxis.max) {
+				return;
+			}
+
+			var i, j, dataset = drillDownChart.plot.getData();
+			for (i = 0; i < dataset.length; ++i) {
+
+				var series = dataset[i];
+
+				// Find the nearest points, x-wise
+
+				for (j = 0; j < series.data.length; ++j) {
+					if (series.data[j][0] > pos.x) {
+						break;
+					}
+				}
+
+				// Now Interpolate
+
+				var y, x,
+				p1 = series.data[j - 1],
+				p2 = series.data[j];
+
+				if (p1 == null) {
+					y = p2[1];
+					x = p2[0];
+				} else if (p2 == null) {
+					y = p1[1];
+					x = p1[0];
+				} else {
+					y = p1[1] + (p2[1] - p1[1]) * (pos.x - p1[0]) / (p2[0] - p1[0]);
+					x = p1[0] + (p2[0] - p1[0]) * (pos.x - p1[0]) / (p2[0] - p1[0]);
+				}
+
+				var nDecimals = 2;
+				if(drillDownChart.metricConfig.ydecimals != null){
+					nDecimals = drillDownChart.metricConfig.ydecimals;
+				}
+
+				var text = " =  ";
+				if(drillDownChart.metricConfig.yvalformatter){
+					text += drillDownChart.metricConfig.yvalformatter(y.toFixed(nDecimals));
+				}else{
+					text += y.toFixed(nDecimals);
+				}
+				if(drillDownChart.metricConfig.yunit){
+					text += drillDownChart.metricConfig.yunit;
+				}
+				$(DRILLDOWN_LEGEND).find('#x-time').text("Time :  " + common.toServerLocalDateFromMilliSeconds(x));
+				$(DRILLDOWN_LEGEND).find('#'+series.labelID).text(text);
+			}
+		},
 		fetchDrilldownMetricError:function(jqXHR, res, error){
 			var metricConfig = chartConfig[jqXHR.metricName];
-			$(DRILLDOWN_TITLE).text(metricConfig.chartTitle);
-
 			$(DRILLDOWN_SPINNER).hide();
 			$(DRILLDOWN_CHART_CONTAINER).hide();
 

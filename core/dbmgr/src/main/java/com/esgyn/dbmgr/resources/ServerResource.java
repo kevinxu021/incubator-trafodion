@@ -234,8 +234,9 @@ public class ServerResource {
 			result = processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 
 		} catch (Exception ex) {
-			_LOG.error("Failed to fetch dcs connections : " + ex.getMessage());
-			throw new EsgynDBMgrException(ex.getMessage());
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to fetch dcs connections", ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
 		}
 		return result;
 	}
@@ -259,8 +260,9 @@ public class ServerResource {
 			result = RESTProcessor.getRestOutput(uri, soc.getUsername(), soc.getPassword());
 
 		} catch (Exception ex) {
-			_LOG.error("Failed to fetch dcs connections : " + ex.getMessage());
-			throw new EsgynDBMgrException(ex.getMessage());
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to fetch dcs summary", ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
 		}
 		return result;
 	}
@@ -284,8 +286,9 @@ public class ServerResource {
 			result = processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 
 		} catch (Exception ex) {
-			_LOG.error("Failed to get status of esgyndb services : " + ex.getMessage());
-			throw new EsgynDBMgrException(ex.getMessage());
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to get status of EsgynDB services", ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
 		}
 		return result;
 	}
@@ -309,8 +312,9 @@ public class ServerResource {
 			result = processRESTRequest(uri, soc.getUsername(), soc.getPassword());
 
 		} catch (Exception ex) {
-			_LOG.error("Failed to get status of nodes : " + ex.getMessage());
-			throw new EsgynDBMgrException(ex.getMessage());
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to get status of EsgynDB nodes", ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
 		}
 		return result;
 	}
@@ -342,9 +346,9 @@ public class ServerResource {
 			return result;
 
 		} catch (Exception ex) {
-			_LOG.error("Failed to get pstack : " + ex.getMessage());
-			throw new EsgynDBMgrException("Failed to get pstack : " + ex.getMessage());
-
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to get pstack", ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
 		}
 	}
 

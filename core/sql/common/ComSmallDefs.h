@@ -562,6 +562,7 @@ enum ComColumnClass { COM_UNKNOWN_CLASS
                     , COM_USER_COLUMN
                     , COM_ADDED_USER_COLUMN
                     , COM_MV_SYSTEM_ADDED_COLUMN
+                    , COM_ALTERED_USER_COLUMN
                     };
 
 #define COM_UNKNOWN_CLASS_LIT               "  "
@@ -569,6 +570,7 @@ enum ComColumnClass { COM_UNKNOWN_CLASS
 #define COM_USER_COLUMN_LIT                 "U "
 #define COM_ADDED_USER_COLUMN_LIT           "A "
 #define COM_MV_SYSTEM_ADDED_COLUMN_LIT      "M "
+#define COM_ALTERED_USER_COLUMN_LIT         "C "
 
 enum ComColumnDefaultClass { COM_CURRENT_DEFAULT
                            , COM_NO_DEFAULT
@@ -1863,6 +1865,47 @@ enum ComAuthenticationType{
 #ifndef COM_TEXT__TEXT__MD_COL_MAX_SIZE
 #define COM_TEXT__TEXT__MD_COL_MAX_SIZE 3000
 #endif // ! defined(COM_TEXT__TEXT__MD_COL_MAX_SIZE)
+
+#define COL_MAX_CATALOG_LEN 256
+#define COL_MAX_SCHEMA_LEN 256
+#define COL_MAX_TABLE_LEN 256
+#define COL_MAX_COLUMN_LEN 256
+#define COL_MAX_EXT_LEN 1024
+#define COL_MAX_LIB_LEN 512
+#define COL_MAX_ATTRIBUTE_LEN 3
+#define MAX_HBASE_NAME_LEN 255
+
+// enum OrcPushdownOperatorType and  orcPushdownOperatorTypeStr[] must
+// remain in sync with each other.
+// They also need to be in sync with 'private static final' vars with 
+// corresponding names declared in OrcFileReader.java.
+enum OrcPushdownOperatorType 
+  {
+    UNKNOWN_OPER = 0,
+    STARTAND,
+    STARTOR,
+    STARTNOT,
+    END,
+    EQUALS,
+    LESSTHAN, 
+    LESSTHANEQUALS,
+    ISNULL,
+    IN
+  };
+
+static const char * const orcPushdownOperatorTypeStr[] =
+  {
+    "UNKNOWN_OPER",
+    "STARTAND",
+    "STARTOR",
+    "STARTNOT",
+    "END",
+    "EQUALS",
+    "LESSTHAN",
+    "LESSTHANEQUALS",
+    "ISNULL",
+    "IN"
+  };
 
 //
 // Definition of class ComUID

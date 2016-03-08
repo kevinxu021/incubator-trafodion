@@ -68,7 +68,7 @@ function removePassword {
 
  $TRAF_PDSH sudo chmod 777 $TRAF_CONFIG
  $TRAF_PDSH sudo sed -i '/TRAF_USER_PASSWORD\=/d' $TRAF_CONFIG
- $TRAF_PDSH sudo sed -i '/PASSWORD\=/d' $TRAF_CONFIG
+ $TRAF_PDSH sudo sed -i '/\<PASSWORD\>/d' $TRAF_CONFIG
  $TRAF_PDSH sudo chmod 777 $TRAF_CONFIG
 
 }
@@ -802,6 +802,9 @@ else
 fi
 
 echo "***INFO: Trafodion Mods ran successfully."
+
+#Get HBaseSite.xml information 
+$LOCAL_WORKDIR/parseHBaseSite.py
 
 #==============================================
 #Install Trafodion

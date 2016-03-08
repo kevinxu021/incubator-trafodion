@@ -49,6 +49,7 @@
 #include "ExprNode.h"
 #include "CostScalar.h"
 #include "ClusteredBitmap.h"
+//#include "orcPushdownPredInfo.h"
 
 // -----------------------------------------------------------------------
 // contents of this file
@@ -82,6 +83,7 @@ class TableDesc;
 class IndexDesc;
 class ConstValue;
 class NATable;
+class OrcPushdownPredInfoList;
 
 ////////////////////
 class QueryAnalysis;
@@ -1402,6 +1404,12 @@ public:
 
   void findAllReferencedIndexCols(ValueIdSet & result) const;
 
+  // This method finds all constants referenced directly or indirectly
+  // via this ValueIdSet. This includes degging into VEGs and recursively
+  void findAllReferencingMinMaxConstants(ValueIdSet & result) const;
+
+  void findMinMaxConstants(ValueIdSet& result) const;
+
   // -----------------------------------------------------------------------
   // ValueIdSet::findAllEqualityCols()
   //
@@ -1484,6 +1492,11 @@ public:
   // OLAP LEAD function for each element (as the child of LEAD) in input, 
   // and save the new function in result
   void addOlapLeadFuncs(const ValueIdSet& input, ValueIdSet& result);
+  // generate push down list for ORC, based on the veg-replaced push down 
+  // predicates contained in this ValueIdSet. This member function is called
+  // during preCodeGen for Hive scan.
+  void generatePushdownListForORC(OrcPushdownPredInfoList&);
+
 
 /////////////////////////////////////////////////////////////
 

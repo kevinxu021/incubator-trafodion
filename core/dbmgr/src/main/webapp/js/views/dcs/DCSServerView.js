@@ -94,6 +94,7 @@ define([
 			_that.showLoading();
 			$(SUMMARY_LOADING_SELECTOR).show();
 			$(ERROR_CONTAINER).hide();
+			$(SUMMARY_ERROR_CONTAINER).hide();
 			serverHandler.fetchDcsServers();
 			serverHandler.fetchDcsSummary();
 		},
@@ -108,6 +109,8 @@ define([
 	        	$(PSTACK_LOADING_SELECTOR).show();
 	        	$(PSTACK_DAILOG_LABEL).text("PStack for " + processName);
 				serverHandler.getPStack(processID, processName);
+			}else{
+				alert("No master executed process selected. Please select a master executor process from the list and try again.");
 			}
 		},
 		displayPStack: function(result){

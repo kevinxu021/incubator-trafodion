@@ -190,6 +190,8 @@ create external table "baseball" for hbase."_CELL_"."baseball";
 execute get_hb_schemas;
 
 -- Verify tables were created
+invoke trafodion."_HB__ROW__"."baseball";
+invoke trafodion."_HB__CELL__"."baseball";
 showddl trafodion."_HB__ROW__"."baseball";
 showddl trafodion."_HB__CELL__"."baseball";
 
