@@ -97,6 +97,7 @@ require.config({
 		sbadmin2:'../bower_components/startbootstrap-sb-admin-2/dist/js/sb-admin-2',
 		text: '../bower_components/text/text',
 		bootstrap:'../bower_components/bootstrap/dist/js/bootstrap.min',
+		bootstrapNotify:'../bower_components/remarkable-bootstrap-notify/dist/bootstrap-notify.min',
 		jquery: '../bower_components/jquery/dist/jquery.min',
 		jquerycookie: '../bower_components/jquery.cookie/jquery.cookie',
 		jquerylocalize: '../bower_components/jquery-localize-i18n/dist/jquery.localize.min',
