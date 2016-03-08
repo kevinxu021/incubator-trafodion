@@ -14,7 +14,7 @@
 		<traf-jdbc-version>${env.TRAFODION_VER}</traf-jdbc-version>
 		<jackson-version>2.6.1</jackson-version>
 		<logback-version>1.0.0</logback-version>
-		<asciidoctor.version>1.5.3</asciidoctor.version>
+         	<asciidoctor.version>1.5.3</asciidoctor.version> 
 		<jruby.version>1.7.20.1</jruby.version>
 		<maven.build.timestamp.format>ddMMMyyyy</maven.build.timestamp.format>
 	</properties>
@@ -174,16 +174,22 @@
 			<!-- The development profile is active by default -->
 			<activation>
 				<activeByDefault>true</activeByDefault>
+                                 <jdk>[1.8,)</jdk>
 			</activation>
 			<properties>
 				<env.TRAFODION_VER>2.1.0</env.TRAFODION_VER>
+                                <additionalparam>-Xdoclint:none</additionalparam>
 			</properties>
 		</profile>
 		<!-- The configuration of the production profile -->
 		<profile>
 			<id>prod</id>
-			<properties>
-			</properties>
+                           <activation>
+                              <jdk>[1.8,)</jdk>
+                           </activation>
+                           <properties>
+                              <additionalparam>-Xdoclint:none</additionalparam>
+			   </properties>
 		</profile>
 	</profiles>
 	<build>
@@ -213,6 +219,10 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+                                <configuration>
+                                   <source>1.8</source>
+                                   <target>1.8</target>
+                                </configuration>
 				<version>2.5.1</version>
 				<inherited>true</inherited>
 			</plugin>
