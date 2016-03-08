@@ -2774,8 +2774,6 @@ public:
 };
 
 class SQLEXP_LIB_FUNC  ExFunctionSStddev : public ex_function_clause {
-private:
-  bool type;
 public:
   NA_EIDPROC
   ExFunctionSStddev(Attributes **attr, Space *space, bool type );

@@ -66,6 +66,12 @@ NABoolean OperatorType::match(OperatorTypeEnum wildcard) const
 	    case ITM_COUNT:
 	    case ITM_COUNT_NONULL:
 	    case ITM_STDDEV:
+		case ITM_STDDEV_SAMP:
+		case ITM_STDDEV_POP:
+		case ITM_VARIANCE_SAMP:
+		  return TRUE;
+		case ITM_VARIANCE_POP:
+		  return TRUE;
 	    case ITM_VARIANCE:
 	    //##? Do we want to add Austin group's Sequence-Functions here
 	    //##? (moving and running sums, counts, averages, etc) ?

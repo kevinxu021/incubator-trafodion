@@ -329,7 +329,11 @@ enum ComMVColType {  COM_MVCOL_GROUPBY
 #define   COM_MIN_LIT            "MIN "
 #define   COM_MAX_LIT            "MAX "
 #define   COM_VARIANCE_LIT       "VAR "
+#define   COM_VARIANCE_SAMP_LIT  "VAR_SAMP "
+#define   COM_VARIANCE_POP_LIT   "VAR_POP "
 #define   COM_STDDEV_LIT         "STD "
+#define   COM_STDDEV_SAMP_LIT    "STD_SAMP "
+#define   COM_STDDEV_POP_LIT     "STD_POP "
 #define   COM_BASECOL_LIT        "BCL "
 #define   COM_UNKNOWN_AGG_LIT    "    "
 

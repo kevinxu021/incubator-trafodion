@@ -7272,7 +7272,7 @@ set_function_specification : set_function_type '(' set_quantifier value_expressi
 				 $$ = new (PARSERHEAP())
 				   Aggregate($1, $4, $3, ITM_COUNT, '!');
 			       }
-			     else if ($1 == ITM_VARIANCE || $1 == ITM_STDDEV || $1 == ITM_VARIANCE_SAMP || $1 == ITM_VARIANCE_POP || $1 == ITM_STDDEV_SAMP || $1 ==ITM_STDDEV_POP)
+			     else if ($1 == ITM_VARIANCE || $1 == ITM_STDDEV || $1 == ITM_VARIANCE_SAMP || $1 == ITM_VARIANCE_POP || $1 == ITM_STDDEV_SAMP || $1 == ITM_STDDEV_POP) 
 			       $$ = new (PARSERHEAP()) Variance($1, $4, NULL, $3);
 			     else
 			       $$ = new (PARSERHEAP()) Aggregate($1, $4, $3);
@@ -7280,7 +7280,7 @@ set_function_specification : set_function_type '(' set_quantifier value_expressi
               | set_function_type '(' set_quantifier value_expression ',' 
                                                      value_expression ')'
 			   {
-			     if ($1 == ITM_VARIANCE || $1 == ITM_STDDEV)
+			     if ($1 == ITM_VARIANCE || $1 == ITM_STDDEV || $1 == ITM_VARIANCE_SAMP || $1 == ITM_VARIANCE_POP || $1 == ITM_STDDEV_SAMP || $1 == ITM_STDDEV_POP)
 			       $$ = new (PARSERHEAP()) Variance($1, $4, $6, $3);
 			     else
 			       {

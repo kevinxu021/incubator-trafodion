@@ -1179,6 +1179,8 @@ static NABoolean tokIsFuncOrParenKeyword(const NAString &sqlText,
 	"SINH ",               // Tandem-extension
 	"SQRT ",               // Tandem-extension
 	"STDDEV ",             // Tandem-extension
+	"STDDEV_SAMP ", 	   // Tandem-extension
+	"STDEEV_POP ",         // Tandem-extension
 	"SUBSTRING ",          // ANSI
 	"SUM ",                // ANSI
 	"TAN ",                // Tandem-extension
@@ -1194,6 +1196,8 @@ static NABoolean tokIsFuncOrParenKeyword(const NAString &sqlText,
 	"USER ",               // ANSI
 	"VARCHAR ",            // Datatype with scales/precisions/length
 	"VARIANCE ",           // Tandem-extension
+	"VARIANCE_SAMP ",      // Tandem_extension
+	"VARIANCE_POP ",       // Tandem_extension
 	"VARNCHAR ",           // Datatype with scales/precisions/length
 	"VARYING ",            // Datatype with scales/precisions/length
 	"WEEK ",               // Tandem-extension

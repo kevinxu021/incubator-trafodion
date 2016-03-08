@@ -6104,7 +6104,15 @@ const NAType *ItmSeqRunningFunction::synthesizeType()
        break;
 
      case ITM_RUNNING_SDEV:
+     case ITM_RUNNING_SDEV_SAMP:
+     case ITM_RUNNING_SDEV_POP:
      case ITM_RUNNING_VARIANCE:
+       result = new HEAP SQLDoublePrecision(TRUE); // See ScalarVariance::synthesizeType()
+       break;
+     case ITM_RUNNING_VARIANCE_SAMP:
+       result = new HEAP SQLDoublePrecision(TRUE); // See ScalarVariance::synthesizeType()
+       break;
+     case ITM_RUNNING_VARIANCE_POP:
        result = new HEAP SQLDoublePrecision(TRUE); // See ScalarVariance::synthesizeType()
        break;
 
@@ -6168,7 +6176,15 @@ const NAType *ItmSeqOlapFunction::synthesizeType()
        break;
 
      case ITM_OLAP_SDEV:
+     case ITM_OLAP_SDEV_SAMP:
+     case ITM_OLAP_SDEV_POP:
      case ITM_OLAP_VARIANCE:
+       result = new HEAP SQLDoublePrecision(TRUE); 
+       break;
+     case ITM_OLAP_VARIANCE_SAMP:
+       result = new HEAP SQLDoublePrecision(TRUE); 
+       break;
+     case ITM_OLAP_VARIANCE_POP:
        result = new HEAP SQLDoublePrecision(TRUE); 
        break;
 
@@ -6266,7 +6282,15 @@ const NAType *ItmSeqMovingFunction::synthesizeType()
        break;
 
     case ITM_MOVING_SDEV:
+    case ITM_MOVING_SDEV_SAMP:
+    case ITM_MOVING_SDEV_POP:
     case ITM_MOVING_VARIANCE:
+       result = new HEAP SQLDoublePrecision(TRUE); // See ScalarVariance::synthesizeType()
+       break;
+    case ITM_MOVING_VARIANCE_SAMP:
+       result = new HEAP SQLDoublePrecision(TRUE); // See ScalarVariance::synthesizeType()
+       break;
+    case ITM_MOVING_VARIANCE_POP:
        result = new HEAP SQLDoublePrecision(TRUE); // See ScalarVariance::synthesizeType()
        break;
 

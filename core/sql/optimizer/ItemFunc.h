@@ -3924,6 +3924,14 @@ public:
 	return "Scalar Variance";
       case ITM_STDDEV:
 	return "Scalar Stddev";
+      case ITM_VARIANCE_SAMP:
+	return "Scalar Variance Samp";
+      case ITM_STDDEV_SAMP:
+	return "Scalar Stddev Samp";
+      case ITM_VARIANCE_POP:
+	return "Scalar Variance Pop";
+      case ITM_STDDEV_POP:
+	return "Scalar Stddev Pop";
       default:
 	return "Unknown Scalar Variance Function";
       }

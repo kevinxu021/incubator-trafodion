@@ -120,7 +120,17 @@ void MavRelRootBuilder::init()
 
 	case ITM_AVG:
 	case ITM_STDDEV:
+	case ITM_STDDEV_SAMP:
+	case ITM_STDDEV_POP:
 	case ITM_VARIANCE:
+	  // Use the SYS_CALC COUNT and SUM columns, done in phase3.
+	  otherCols_.insert(currentCol);
+	  break;
+	case ITM_VARIANCE_SAMP:
+	  // Use the SYS_CALC COUNT and SUM columns, done in phase3.
+	  otherCols_.insert(currentCol);
+	  break;
+	case ITM_VARIANCE_POP:
 	  // Use the SYS_CALC COUNT and SUM columns, done in phase3.
 	  otherCols_.insert(currentCol);
 	  break;
@@ -308,7 +318,17 @@ void MavRelRootBuilder::fixDeltaColumns(RelExpr   *mvSelectTree,
 	case ITM_AVG:
 	case ITM_DIVIDE:
 	case ITM_VARIANCE:
+	case ITM_VARIANCE_SAMP:
+	case ITM_VARIANCE_POP:
 	case ITM_STDDEV:
+	  // Remove these expressions from the select list.
+	  selectListExpr = NULL;
+	  break;
+	case ITM_STDDEV_SAMP:
+	  // Remove these expressions from the select list.
+	  selectListExpr = NULL;
+	  break;
+	case ITM_STDDEV_POP:
 	  // Remove these expressions from the select list.
 	  selectListExpr = NULL;
 	  break;
@@ -442,7 +462,27 @@ RelRoot *MavRelRootBuilder::buildRootForDelta(RelExpr *topNode)
 	break;
 
       case ITM_STDDEV:
+	  case ITM_STDDEV_SAMP:
+	  case ITM_STDDEV_POP:
       case ITM_VARIANCE:
+	sum2DepCol = buildDepColExpr(emptyCorrName, currentMavColumn->getDepCol3());
+
+	newColExpr = new(heap_)
+	  ScalarVariance(currentMavColumn->getOperatorType(),
+	                 new(heap_) Cast(sum2DepCol,  desiredType), 
+			 new(heap_) Cast(sumDepCol,   desiredType), 
+			 new(heap_) Cast(countDepCol, desiredType));
+	break;
+      case ITM_VARIANCE_SAMP:
+	sum2DepCol = buildDepColExpr(emptyCorrName, currentMavColumn->getDepCol3());
+
+	newColExpr = new(heap_)
+	  ScalarVariance(currentMavColumn->getOperatorType(),
+	                 new(heap_) Cast(sum2DepCol,  desiredType), 
+			 new(heap_) Cast(sumDepCol,   desiredType), 
+			 new(heap_) Cast(countDepCol, desiredType));
+	break;
+      case ITM_VARIANCE_POP:
 	sum2DepCol = buildDepColExpr(emptyCorrName, currentMavColumn->getDepCol3());
 
 	newColExpr = new(heap_)
