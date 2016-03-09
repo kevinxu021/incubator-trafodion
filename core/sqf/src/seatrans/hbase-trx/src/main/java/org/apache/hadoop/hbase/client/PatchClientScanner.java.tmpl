@@ -69,7 +69,7 @@ public class PatchClientScanner extends ClientScanner {
     super(conf, scan, tableName, connection, rpcFactory, controllerFactory, pool, primaryOperationTimeout);
   }
 
-#ifndef HDP2.3
+#ifdefined CDH5.4 || APACHE 
   @Override
   protected void loadCache() throws IOException {
 	    Result[] values = null;

@@ -7,9 +7,11 @@
 define(['moment',
         'momenttimezone',
         'jquery',
+        'handlers/EventDispatcher',
+        'bootstrapNotify',
         'jit'
         ],
-        function(moment, momenttimezone, $) {
+        function(moment, momenttimezone, $,EventDispatcher) {
 	"use strict";
 
 	return (function() {
@@ -17,6 +19,8 @@ define(['moment',
 		function Common() {
 
 			// var _isoDateFormat='yyyy-MM-dd HH:mm:ss'
+			this.MESSAGE_COUNT=0;
+			var dispatcher = new EventDispatcher();
 			this.ISODateFormat = 'YYYY-MM-DD HH:mm:ss';
 			var _this = this;
 			this.serverTimeZone = null;
@@ -24,6 +28,10 @@ define(['moment',
 			this.dcsMasterInfoUri = "";
 			this.systemType = 0;
 			this.serverConfigLoaded = false;
+			this.NOFITY_MESSAGE = 'nofigyMessage';
+			this.MESSAGE_LIST=new Array();
+			this.popupIndex;
+			this.redirectFlag=false;
 
 			this.sqlKeywords = "alter and as asc between by count create cqd delete desc distinct drop from group having in insert into is join like not on or order select set table union update values where ";
 
@@ -192,21 +200,57 @@ define(['moment',
 				} else if (interval <= (3 * 24 * 60 * 60 * 1000)) {
 					offSetString = 'HH:mm'; // For 3 days, use every 1 hour
 				} else if (interval <= (1 * 7 * 24 * 60 * 60 * 1000)) {
-					offSetString = 'ddd HH:mm'; // For 1 week, use every 2 hours
+					offSetString = 'MM-DD'; // For 1 week, use every 2 hours
 				} else if (interval <= (2 * 7 * 24 * 60 * 60 * 1000)) {
-					offSetString = 'ddd HH:mm'; // For 2 weeks, use every 4 hours
+					offSetString = 'MM-DD'; // For 2 weeks, use every 4 hours
 				} else if (interval <= 1 * 31 * 24 * 60 * 60 * 1000) {
-					offSetString = 'ddd HH:mm'; // For 1 month use every 12 hours
+					offSetString = 'MM-DD'; // For 1 month use every 12 hours
 				} else if (interval <=  3 * 31 * 24 * 60 * 60 * 1000) {
-					offSetString = 'MM-DD HH:mm'; // For 3 months use every 1 day
+					offSetString = 'MM-DD'; // For 3 months use every 1 day
 				} else {
-					offSetString =  'MM-DD HH:mm'; // For longer than 3 months, use every 1 week
+					offSetString =  'MM-DD'; // For longer than 3 months, use every 1 week
 				}
 				if(isUtc !=null && isUtc == true)
 					return _this.toServerLocalDateFromUtcMilliSeconds(milliSeconds, offSetString);
 				return _this.toServerLocalDateFromMilliSeconds(milliSeconds, offSetString);
 			},
-
+			this.toTimeDifferenceFromLocalDate=function(start,end){
+				//JavaScript函数：
+				var minute = 1000 * 60;
+				var hour = minute * 60;
+				var day = hour * 24;
+				var halfamonth = day * 15;
+				var month = day * 30;
+				function getDateDiff(dateTimeStamp){
+				var now = new Date().getTime();
+				var diffValue = now - dateTimeStamp;
+				if(diffValue < 0){
+				 alert("end date could not be earlier than start date ！");
+				 }
+				var monthC =diffValue/month;
+				var weekC =diffValue/(7*day);
+				var dayC =diffValue/day;
+				var hourC =diffValue/hour;
+				var minC =diffValue/minute;
+				if(monthC>=1){
+				 result=parseInt(monthC) + "months ago";
+				 }
+				 else if(weekC>=1){
+				 result=parseInt(weekC) + "weeks ago";
+				 }
+				 else if(dayC>=1){
+				 result=parseInt(dayC) +"days ago";
+				 }
+				 else if(hourC>=1){
+				 result=parseInt(hourC) +"hours ago";
+				 }
+				 else if(minC>=1){
+				 result=parseInt(minC) +"minutes ago";
+				 }else
+				 result="right now";
+				return result;
+				}
+			},
 			this.toServerLocalDateFromMilliSeconds = function(milliSeconds, formatString) {
 				if (milliSeconds != null) {
 					//return moment(utcMilliSeconds + (_this.serverUtcOffset)).local().format('YYYY-MM-DD HH:mm:ss');
@@ -467,7 +511,17 @@ define(['moment',
 			this.calculateHeight = function(depth){
 				return Math.max(310,70*depth);
 			};
+			
+			this.on = function(eventName, callback) {
+				dispatcher.on(eventName, callback);
+			};
+			this.off = function (eventName, callback) {
+				dispatcher.off(eventName, callback);
+			};
 
+			this.fire = function(eventName, eventInfo) {
+				dispatcher.fire(eventName, eventInfo);
+			};
 
 			this.calculateWidth = function(tree, container){
 				var a=[];

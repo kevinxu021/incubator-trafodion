@@ -752,6 +752,7 @@ public class OrcFileReader
     }
 
     // Dumps the contents of the file as ByteBuffer.
+    // For testing only
     public void readFile_ByteBuffer() throws Exception 
     {
 
@@ -763,7 +764,7 @@ public class OrcFileReader
 
 	seeknSync(0);
 	while (m_rr.hasNext()) {
-	    byte[] lv_row_ba = new byte[4096];
+	    byte[] lv_row_ba = new byte[32768];
 	    lv_row_buffer = ByteBuffer.wrap(lv_row_ba);
 	    lv_row = (OrcStruct) m_rr.next(lv_row);
 	    for (int i = 0; i < m_fields.size(); i++) {
@@ -783,6 +784,7 @@ public class OrcFileReader
     }
 
     // returns the next row as a byte array
+    // For testing only
     public byte[] fetchNextRow() throws Exception 
     {
 
@@ -793,7 +795,7 @@ public class OrcFileReader
 	}
 
 	OrcStruct lv_row = (OrcStruct) m_rr.next(null);
-	byte[] lv_row_ba = new byte[4096];
+	byte[] lv_row_ba = new byte[32768];
 
 	int lv_filled_bytes = fillNextRow(lv_row_ba,
 					  0,
@@ -805,6 +807,7 @@ public class OrcFileReader
     }
 
     // returns the next row as a byte array from the Vectorized buffer
+    // For testing only
     public byte[] fetchNextRowFromVector() throws Exception 
     {
 
@@ -816,7 +819,7 @@ public class OrcFileReader
 	    return null;
 	}
 
-	byte[] lv_row_ba = new byte[4096];
+	byte[] lv_row_ba = new byte[32768];
 
 	int lv_filled_bytes = fillNextRowFromVector(lv_row_ba,
 						    0);
