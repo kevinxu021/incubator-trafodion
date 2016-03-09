@@ -4728,7 +4728,7 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       Int32 numBuckets = hvt_desc->getSDs()->buckets_;
 
       if (numBuckets>1 && bucketingKeyColumns.entries()>0) {
-         if ( CmpCommon::getDefault(HIVE_USE_HASH2_AS_PARTFUNCION) == DF_ON )
+         if ( CmpCommon::getDefault(HIVE_USE_HASH2_AS_PARTFUNCTION) == DF_ON )
             partFunc = createHash2PartitioningFunction
                           (numBuckets, bucketingKeyColumns, nodeMap, heap);
          else

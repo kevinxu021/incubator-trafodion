@@ -1139,23 +1139,6 @@ NABoolean FileScanRule::topMatch(RelExpr * relExpr, Context *context)
       // Hive table scan executes in master or ESP
       if (rppForMe->executeInDP2())
         return FALSE;
-
-      // The following two if tests were commented out to support NJs into Hive 
-      // tables.
-      //
-      // The Hive scan can handle only fuzzy and single partition requests for now
-      //if (partReq &&
-      //    ! partReq->isRequirementExactlyOne() &&
-      //    ! partReq->isRequirementFuzzy())
-      //  return FALSE;
-
-      //// A hive scan doesn't have a partitioning key for now (change that later)
-      ////
-      //if (partReq &&
-      //    partReq->partitioningKeyIsSpecified() &&
-      //    ! partReq->isRequirementExactlyOne())
-      //  return FALSE;
-
     }
   else
     {
@@ -2823,7 +2806,10 @@ NABoolean NestedJoinRule::topMatch(RelExpr * relExpr,
   if (joinExpr->child(1).getGroupAttr()->allHiveTables() )
      {
           if ( !(joinExpr->child(1).getGroupAttr()->allHiveORCTablesSorted()) ) {
-                return FALSE;
+               return FALSE;
+          } else {
+             if ( CmpCommon::getDefault(ORC_NJS) != DF_ON ) 
+                 return FALSE;
           }
      }
 

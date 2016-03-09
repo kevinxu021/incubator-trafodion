@@ -5202,6 +5202,15 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
 
       case 4:
       childIndex = 0;
+
+/*
+      if ( getGroupId() == 7 && myContext->getReqdPhysicalProperty() &&
+           myContext->getReqdPhysicalProperty()->getPlanExecutionLocation() != EXECUTE_IN_MASTER) {
+         int x = 1;
+         x++;
+      }
+*/
+
     // -------------------------------------------------------------------
     // Case 4: Plan 2, child 0
     // +++++++++++++++++++++++
@@ -14674,7 +14683,7 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
              ->getClusteringIndex() ->getPartitioningFunction();
 
       NABoolean useHash2Only = 
-         CmpCommon::getDefault(HIVE_USE_HASH2_AS_PARTFUNCION) == DF_ON;
+         CmpCommon::getDefault(HIVE_USE_HASH2_AS_PARTFUNCTION) == DF_ON;
 
       if ( useHash2Only || 
            tableStats->getNumOfConsistentBuckets() == 0 || pf==NULL ) 
