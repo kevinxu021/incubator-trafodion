@@ -250,6 +250,7 @@ execute xx;
 -- test NJ into a sorted ORC table
 
 cqd orc_pred_pushdown 'ON';
+cqd orc_njs 'ON';
 
 prepare xx from select count(*) from hive.hive.customer_orc, hive.hive.store_sales_sorted_orc
     where ss_sold_date_sk = c_customer_sk
@@ -258,6 +259,8 @@ prepare xx from select count(*) from hive.hive.customer_orc, hive.hive.store_sal
 explain xx;
 explain options 'f' xx;
 execute xx;
+
+cqd orc_njs reset;
 
 -- test aggregates pushdown (orc)
 

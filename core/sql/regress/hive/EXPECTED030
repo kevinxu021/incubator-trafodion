@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Thu Mar  3 19:18:13 2016
+-- Definition current  Wed Mar  9 15:49:50 2016
 
   (
     S_STORE_SK                       INT
@@ -955,10 +955,9 @@ NUM_HITS    NUM_PARAMS
 NUM_HITS    NUM_PARAMS
 ----------  ----------
 
-         0           1
-         0           1
+         1           1
 
---- 2 row(s) selected.
+--- 1 row(s) selected.
 >>
 >>
 >>-- test external table attributes
@@ -975,7 +974,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Thu Mar  3 19:18:42 2016
+-- Definition current  Wed Mar  9 15:50:12 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1026,7 +1025,7 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212323792722966035
+PLAN_ID .................. 212324298613109239
 ROWS_OUT ............. 1,698
 EST_TOTAL_COST ........... 1.21
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
@@ -1139,7 +1138,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212323792723665584
+PLAN_ID .................. 212324298613987502
 ROWS_OUT ......... 2,880,401
 EST_TOTAL_COST ........... 1.77
 STATEMENT ................ select *
@@ -1303,11 +1302,13 @@ DESCRIPTION
 +>   d_current_year varchar(100 bytes) character set utf8)
 +>  for hive.hive.date_dim_orc primary key (d_date);
 
---- SQL operation complete.
+*** ERROR[1390] Object TRAFODION."_HV_HIVE_".DATE_DIM_ORC already exists in Trafodion.
+
+--- SQL operation failed with errors.
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Thu Mar  3 19:18:45 2016
+-- Definition current  Wed Mar  9 15:50:15 2016
 
   (
     D_DATE_SK                        INT
@@ -1375,7 +1376,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212323792727143807
+PLAN_ID .................. 212324298616706848
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1479,7 +1480,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Thu Mar  3 19:18:48 2016
+-- Definition current  Wed Mar  9 15:50:18 2016
 
   (
     D_DATE_SK                        INT
@@ -1547,7 +1548,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212323792729665777
+PLAN_ID .................. 212324298619245641
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1721,6 +1722,9 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK <cast(cast
 >>cqd orc_pred_pushdown 'ON';
 
 --- SQL operation complete.
+>>cqd orc_njs 'ON';
+
+--- SQL operation complete.
 >>
 >>prepare xx from select count(*) from hive.hive.customer_orc, hive.hive.store_sales_sorted_orc
 +>    where ss_sold_date_sk = c_customer_sk
@@ -1739,7 +1743,7 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK <cast(cast
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-PLAN_ID .................. 212323792738290890
+PLAN_ID .................. 212324298628502503
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 4.66
 STATEMENT ................ select count(*)
@@ -1781,6 +1785,7 @@ DESCRIPTION
   VOLATILE_TABLE_FIND_SUI  SYSTEM
   GEN_HSHJ_MIN_MAX_OPT ... ON
   ORC_PRED_PUSHDOWN ...... ON
+  ORC_NJS ................ ON
   select_list ............ count(1 )
   input_variables ........ %(4)
 
@@ -1903,6 +1908,10 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
                    0
 
 --- 1 row(s) selected.
+>>
+>>cqd orc_njs reset;
+
+--- SQL operation complete.
 >>
 >>-- test aggregates pushdown (orc)
 >>

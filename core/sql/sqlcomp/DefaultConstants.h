@@ -3375,7 +3375,7 @@ enum DefaultConstants
   HDFS_IO_RANGE_TAIL,
   HIVE_METADATA_REFRESH_INTERVAL,
 
-  HIVE_USE_HASH2_AS_PARTFUNCION,
+  HIVE_USE_HASH2_AS_PARTFUNCTION,
 
   MODE_SEAHIVE,
   HIVE_CATALOG,
@@ -3825,6 +3825,9 @@ enum DefaultConstants
   // By default only alter of varchar col length is supported.
   // If this cqd is on, then other alters (name, datatype) are also supported.
   TRAF_ALTER_COL_ATTRS,
+
+  // enable/disable NJs into ORC tables
+  ORC_NJS,
 
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
