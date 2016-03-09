@@ -684,9 +684,10 @@ public class MTableClient {
       }
   
       if (cellsPerRow == null ||
-           (cellsPerRow != null && rowsReturned > cellsPerRow.length))
+           (cellsPerRow != null && rowsReturned > cellsPerRow.length)) {
          cellsPerRow = new int[rowsReturned];
-
+         rowKeys = new byte[rowsReturned][];
+      }
       List<MCell> cells;         
       MCell cell;
       int cellNum = 0;
@@ -698,6 +699,7 @@ public class MTableClient {
          if ((cellNum + numColsReturned) > numTotalCells)
             throw new IOException("Insufficient cell array pre-allocated");
          cellsPerRow[rowNum] = numColsReturned;
+         rowKeys[rowNum] = result[rowNum].getRowId();
          for (int colNum = 0 ; colNum < numColsReturned ; colNum++, cellNum++) { 
             cell = cells.get(colNum);
             cellsValBuffer[cellNum] = cell.getValueArray();

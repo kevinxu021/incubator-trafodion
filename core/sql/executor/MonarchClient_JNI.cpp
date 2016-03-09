@@ -2859,15 +2859,6 @@ MC_RetCode MonarchClient_JNI::checkAndDeleteRow(NAHeap *heap,
         return MC_ERROR_DELETEROW_PARAM;
      }
   }  
-  jbyteArray jba_columnToCheck = jenv_->NewByteArray(columnToCheck.len);
-  if (jba_columnToCheck == NULL) {
-     GetCliGlobals()->setJniErrorStr(getErrorText(MC_ERROR_CHECKANDDELETEROW_PARAM));
-    if (mtc != NULL)
-        NADELETE(mtc, MTableClient_JNI, heap);
-     jenv_->PopLocalFrame(NULL);
-     return MC_ERROR_CHECKANDDELETEROW_PARAM;
-  }
-  jenv_->SetByteArrayRegion(jba_columnToCheck, 0, columnToCheck.len, (const jbyte*)columnToCheck.val);
   jbyteArray jba_columnValToCheck = jenv_->NewByteArray(columnValToCheck.len);
   if (jba_columnValToCheck == NULL) {
      GetCliGlobals()->setJniErrorStr(getErrorText(MC_ERROR_CHECKANDDELETEROW_PARAM));
@@ -2909,7 +2900,6 @@ MC_RetCode MonarchClient_JNI::checkAndDeleteRow(NAHeap *heap,
 					      j_tid,
 					      jba_rowID, 
                                               j_cols,
-					      jba_columnToCheck,
 					      jba_columnValToCheck,
 					      j_ts,
 					      j_asyncOperation,
