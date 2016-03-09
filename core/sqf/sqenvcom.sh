@@ -483,19 +483,6 @@ EOF
   APACHE_HBASE_HOME=
   APACHE_HIVE_HOME=
 
-  if [ -f $HADOOP_PREFIX/etc/hadoop/core-site.xml ]; then
-    APACHE_HADOOP_HOME=$HADOOP_PREFIX
-    export HADOOP_CNF_DIR=$HADOOP_PREFIX/etc/hadoop
-  fi
-  if [ -f $HBASE_HOME/conf/hbase-site.xml ]; then
-    [[ $SQ_VERBOSE == 1 ]] && echo "HBASE_HOME is set to $HBASE_HOME, this is vanilla Apache"
-    APACHE_HBASE_HOME=$HBASE_HOME
-    export HBASE_CNF_DIR=$
-  fi
-
-  APACHE_HIVE_HOME=$HIVE_HOME
-  export HIVE_CNF_DIR=$HIVE_HOME/conf
-
   for cp in `echo $CLASSPATH | sed 's/:/ /g'`
   do
     if [ -f $cp/core-site.xml ]; then
@@ -512,6 +499,20 @@ EOF
       APACHE_HIVE_HOME=`dirname $cp`
     fi
   done
+  
+  if [ -f $HADOOP_PREFIX/etc/hadoop/core-site.xml ]; then
+    APACHE_HADOOP_HOME=$HADOOP_PREFIX
+    export HADOOP_CNF_DIR=$HADOOP_PREFIX/etc/hadoop
+  fi
+  if [ -f $HBASE_HOME/conf/hbase-site.xml ]; then
+    [[ $SQ_VERBOSE == 1 ]] && echo "HBASE_HOME is set to $HBASE_HOME, this is vanilla Apache"
+    APACHE_HBASE_HOME=$HBASE_HOME
+    export HBASE_CNF_DIR=$
+  fi
+
+  APACHE_HIVE_HOME=$HIVE_HOME
+  export HIVE_CNF_DIR=$HIVE_HOME/conf
+
 
   # sometimes, conf file and lib files don't have the same parent,
   # try to handle some common cases, where the libs are under /usr/lib
@@ -563,27 +564,12 @@ EOF
                             $APACHE_HADOOP_HOME/share/hadoop/hdfs"
     export HADOOP_JAR_FILES=
 
-
-    export HBASE_JAR_FILES="$APACHE_HBASE_HOME/lib/hbase-common-*.jar
-                            $APACHE_HBASE_HOME/lib/hbase-client-*.jar
-                            $APACHE_HBASE_HOME/lib/hbase-server-*.jar
-                            $APACHE_HBASE_HOME/lib/hbase-protocol-*.jar
-                            $APACHE_HBASE_HOME/lib/hbase-examples-*.jar
-                            $APACHE_HBASE_HOME/lib/htrace-core-*.jar
-                            $APACHE_HBASE_HOME/lib/zookeeper-*.jar
-                            $APACHE_HBASE_HOME/lib/protobuf-*.jar
-                            $APACHE_HBASE_HOME/lib/snappy-java-*.jar
-                            $APACHE_HBASE_HOME/lib/high-scale-lib-*.jar
-                            $APACHE_HBASE_HOME/lib/hbase-hadoop-compat-*-hadoop2.jar "
-
     export HIVE_JAR_DIRS="$APACHE_HIVE_HOME/lib"
-
-    export HBASE_TRX_JAR=hbase-trx-hbase_98_4-${TRAFODION_VER}.jar
 
     #hbase classpath captures all the right set of jars hbase is using.
     #this also includes the trx jar that gets installed as part of install.
     #Additional testing needed.Including it here for future validation.
-    lv_hbase_cp=`hbase classpath`
+    lv_hbase_cp=`${HBASE_HOME}/bin/hbase classpath`
 
     # end of code for Apache Hadoop/HBase installation w/o distro
   else
