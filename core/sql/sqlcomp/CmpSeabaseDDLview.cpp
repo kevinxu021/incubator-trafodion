@@ -949,8 +949,10 @@ void CmpSeabaseDDL::createSeabaseView(
     }
 
   CorrName cn(objectNamePart, STMTHEAP, schemaNamePart, catalogNamePart);
-  ActiveSchemaDB()->getNATableDB()->removeNATable(cn,
-    NATableDB::REMOVE_MINE_ONLY, COM_VIEW_OBJECT);
+  ActiveSchemaDB()->getNATableDB()->removeNATable
+    (cn,
+     ComQiScope::REMOVE_MINE_ONLY, COM_VIEW_OBJECT,
+     createViewNode->ddlXns(), FALSE);
 
   deallocEHI(ehi); 
   processReturn();
@@ -1104,7 +1106,8 @@ void CmpSeabaseDDL::dropSeabaseView(
 	  char * viewName = vi->get(0);
 	  
 	  if (dropSeabaseObject(ehi, viewName,
-				 currCatName, currSchName, COM_VIEW_OBJECT))
+                                currCatName, currSchName, COM_VIEW_OBJECT,
+                                dropViewNode->ddlXns()))
 	    {
 	      deallocEHI(ehi); 
 
@@ -1116,7 +1119,8 @@ void CmpSeabaseDDL::dropSeabaseView(
     }
 
   if (dropSeabaseObject(ehi, tabName,
-			 currCatName, currSchName, COM_VIEW_OBJECT))
+                        currCatName, currSchName, COM_VIEW_OBJECT,
+                        dropViewNode->ddlXns()))
     {
       deallocEHI(ehi); 
 
@@ -1127,8 +1131,10 @@ void CmpSeabaseDDL::dropSeabaseView(
 
   // clear view definition from my cache only. 
   CorrName cn(objectNamePart, STMTHEAP, schemaNamePart, catalogNamePart);
-  ActiveSchemaDB()->getNATableDB()->removeNATable(cn,
-    NATableDB::REMOVE_MINE_ONLY, COM_VIEW_OBJECT);
+  ActiveSchemaDB()->getNATableDB()->removeNATable
+    (cn,
+     ComQiScope::REMOVE_MINE_ONLY, COM_VIEW_OBJECT,
+     dropViewNode->ddlXns(), FALSE);
 
   // clear view from all other caches here. This compensates for a 
   // scenario where the object UID is not available in removeNATable, 
@@ -1154,8 +1160,10 @@ void CmpSeabaseDDL::dropSeabaseView(
                   STMTHEAP,
                   tablesRefdList[i].schemaName,
                   tablesRefdList[i].catalogName);
-      ActiveSchemaDB()->getNATableDB()->removeNATable(cn,
-        NATableDB::REMOVE_FROM_ALL_USERS, COM_BASE_TABLE_OBJECT);
+      ActiveSchemaDB()->getNATableDB()->removeNATable
+        (cn,
+         ComQiScope::REMOVE_FROM_ALL_USERS, COM_BASE_TABLE_OBJECT,
+         dropViewNode->ddlXns(), FALSE);
     }
 
   deallocEHI(ehi); 
@@ -1405,7 +1413,11 @@ short CmpSeabaseDDL::dropMetadataViews(ExeCliInterface * cliInterface)
         return -1;
 
       cliRC = cliInterface->executeImmediate(queryBuf);
-      if (cliRC < 0)
+      if (cliRC == -1389) // does not exist, ignore
+        {
+          cliRC = 0;
+        }
+      else if (cliRC < 0)
 	{
 	  cliInterface->retrieveSQLDiagnostics(CmpCommon::diags());
 	}
