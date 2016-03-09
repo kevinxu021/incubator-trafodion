@@ -649,7 +649,7 @@ else
   echo
   echo "Checking Java version..."
 
-  # check JAVA_HOME and Java version (1.6 or 1.7)
+  # check JAVA_HOME and Java version (1.6 or 1.7 or 1.8)
   if [ -n $JAVA_HOME ]; then
     if [ `expr "${JAVA_HOME}" : ".*_32"` -gt 0 ]; then
       echo "Using a 32 bit Java environment, JAVA_HOME=${JAVA_HOME}"
@@ -710,16 +710,21 @@ else
   (${JAVA_EXE} -version 2>&1) | grep '1.6' >/dev/null
   if [ $? -ne 0 ]; then
     (${JAVA_EXE} -version 2>&1) | grep '1.7' >/dev/null
-    if [ $? -ne 0 ]; then
+   if [ $? -ne 0 ]; then
+     (${JAVA_EXE} -version 2>&1) | grep '1.8' >/dev/null
+     if [ $? -ne 0 ]; then
       echo '**** ERROR:'
       cat <<EOF
-      Please make sure you are using the Java 1.6 or 1.7 SDK.
+      Please make sure you are using the Java 1.6, 1.7 or 1.8 SDK.
       Otherwise, download it into ${MY_SW_ROOT}, extract it and
       make a symbolic link ${MY_SW_ROOT}/java that points  to it and
       export JAVA_HOME=${MY_SW_ROOT}/java
 EOF
       echo exiting...
       exit 1
+     else
+      echo "Java version 1.8 is ok"
+     fi
     else
       echo "Java version 1.7 is ok"
     fi
