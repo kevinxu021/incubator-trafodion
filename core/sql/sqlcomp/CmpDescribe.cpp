@@ -186,6 +186,7 @@ static short CmpDescribeTransaction(
 
 short CmpDescribeHiveTable ( 
                              const CorrName  &dtName,
+                             short type, // 1, invoke. 2, showddl. 3, createLike
                              char* &outbuf,
                              ULng32 &outbuflen,
                              CollHeap *heap);
@@ -201,12 +202,16 @@ short CmpDescribeSeabaseTable (
                              NABoolean withoutSalt = FALSE,
                              NABoolean withoutDivisioning = FALSE,
                              NABoolean noTrailingSemi = FALSE,
+                             NABoolean noPrivs = FALSE,
 
-                             // used to add or remove column definition from col list.
-                             // valid for 'createLike' mode. Used for 'alter add/drop col'.
+                             // used to add,rem,alter column definition from col list.
+                             // valid for 'createLike' mode. 
+                             // Used for 'alter add/drop/alter col'.
                              char * colName = NULL,
-                             NABoolean isAdd = FALSE,
-                             const NAColumn * nacol = NULL);
+                             short ada = 0, // 0,add. 1,drop. 2,alter
+                             const NAColumn * nacol = NULL,
+                             const NAType * natype = NULL,
+                             Space *inSpace = NULL);
 
 short CmpDescribeSequence ( 
                              const CorrName  &dtName,
@@ -231,6 +236,14 @@ static short CmpDescribeSchemaHDFSCache(
        char *&outbuf, 
        ULng32 &outbuflen, 
        NAMemory *heap);
+
+short cmpDisplayPrimaryKey(const NAColumnArray & naColArr,
+                                  Lng32 numKeys,
+                                  NABoolean displaySystemCols,
+                                  Space &space, char * buf, 
+                                  NABoolean displayCompact,
+                                  NABoolean displayAscDesc,
+                                  NABoolean displayParens);
 
 // The real Ark catalog manager returns all object names as three-part
 // identifiers, properly delimited where necessary.
@@ -876,12 +889,15 @@ short CmpDescribe(const char *query, const RelExpr *queryExpr,
   // check if this is a hive table. If so, describe using hive info from NATable.
   // For now, schemaName of HIVE indicates a hive table.
   // Need to fix that at a later time when multiple hive schemas are supported.
-  if ((d->getFormat() == Describe::INVOKE_) &&
+  if (((d->getFormat() == Describe::INVOKE_) ||
+       (d->getFormat() == Describe::LONG_)) &&
       (d->getDescribedTableName().isHive()) &&
       (!d->getDescribedTableName().isSpecialTable()))
     {
       rc = 
-        CmpDescribeHiveTable(d->getDescribedTableName(), outbuf, outbuflen, heap);
+        CmpDescribeHiveTable(d->getDescribedTableName(), 
+                             (d->getFormat() == Describe::INVOKE_ ? 1 : 2),
+                             outbuf, outbuflen, heap);
       goto finally;  // we are done
     }
 
@@ -2241,6 +2257,7 @@ static NAString CmpDescribe_ptiToInfCS(const NAString &inputInLatin1)
 
 short CmpDescribeHiveTable ( 
                              const CorrName  &dtName,
+                             short type, // 1, invoke. 2, showddl. 3, createLike
                              char* &outbuf,
                              ULng32 &outbuflen,
                              CollHeap *heap)
@@ -2262,6 +2279,9 @@ short CmpDescribeHiveTable (
   if (NOT naTable->isHiveTable())
     return -1;
 
+  if (NOT ((type == 1) || (type == 2)))
+    return -1;
+
   char * buf = new (heap) char[15000];
   CMPASSERT(buf);
 
@@ -2273,49 +2293,126 @@ short CmpDescribeHiveTable (
   // emit an initial newline
   outputShortLine(space, " ");
 
-  sprintf(buf,  "-- Definition of hive table %s\n"
-          "-- Definition current  %s",
-          tableName.data(), ctime(&tp));
-  outputShortLine(space, buf);
-  
+  if (type == 1)
+    {
+      sprintf(buf,  "-- Definition of hive table %s\n"
+              "-- Definition current  %s",
+              tableName.data(), ctime(&tp));
+      outputShortLine(space, buf);
+    }
+  else if (type == 2)
+    {
+      outputShortLine(space,"/* Hive DDL */");
+
+      sprintf(buf,  "CREATE TABLE %s",
+              tableName.data());
+      outputShortLine(space, buf);
+    }
+
   outputShortLine(space, "  ( ");
 
+  Int32 numPrintedCols = 0;
+  NABoolean describeVirtCols =
+    (CmpCommon::getDefault(HIVE_DESCRIBE_VIRT_COLS) == DF_ON);
   for (Int32 i = 0; i < (Int32)naTable->getColumnCount(); i++)
     {
       NAColumn * nac = naTable->getNAColumnArray()[i];
 
-      const NAString &colName = nac->getColName();
+      if (!nac->isHiveVirtualColumn() || describeVirtCols)
+        {
+          const NAString &colName = nac->getColName();
+          const NAType * nat = nac->getType();
 
-      sprintf(buf, "%-*s ", CM_SIM_NAME_LEN,
-              ANSI_ID(colName.data()));
-      
-      const NAType * nat = nac->getType();
+          sprintf(buf, "%-*s ", CM_SIM_NAME_LEN,
+                  ANSI_ID(colName.data()));
 
-      NAString nas;
-      ((NAType*)nat)->getMyTypeAsText(&nas, FALSE);
-      
-      sprintf(&buf[strlen(buf)], "%s", nas.data());
+          NAString nas;
+          if (type == 1)
+            ((NAType*)nat)->getMyTypeAsText(&nas, FALSE);
+          else
+            ((NAType*)nat)->getMyTypeAsHiveText(&nas);
 
-      NAString colString(buf);
-      Int32 j = i;
-      outputColumnLine(space, colString, j);
+          sprintf(&buf[strlen(buf)], "%s", nas.data());
+
+          NAString colString(buf);
+          outputColumnLine(space, colString, numPrintedCols);
+        }
     }
 
   outputShortLine(space, "  )");
 
+  if ((naTable->getClusteringIndex()) &&
+      (naTable->isORC()) &&
+      (naTable->hasHiveExtTable()) &&
+      (type == 1))
+    {
+      NAFileSet * naf = naTable->getClusteringIndex();
+      
+      sprintf(buf,  "  PRIMARY KEY ");
+      
+      cmpDisplayPrimaryKey(naf->getIndexKeyColumns(), 
+                           naf->getIndexKeyColumns().entries(),
+                           FALSE,
+                           space, buf, TRUE, TRUE, TRUE);
+    } // if
+  
   const HHDFSTableStats* hTabStats = 
     naTable->getClusteringIndex()->getHHDFSTableStats();
   if (hTabStats->isOrcFile())
     {
-      outputShortLine(space, "   /* stored as orc */");
+      if (type == 1)
+        outputShortLine(space, "  /* stored as orc */");
+      else
+        outputShortLine(space, "  stored as orc ");
     }
   else if (hTabStats->isTextFile())
     {
-      outputShortLine(space, "   /* stored as text */");
+      if (type == 1)
+        outputShortLine(space, "  /* stored as text */");
+      else
+        outputShortLine(space, "  stored as textfile ");
     }
   else if (hTabStats->isSequenceFile())
     {
-      outputShortLine(space, "   /* stored as sequence */");
+      if (type == 1)
+        outputShortLine(space, "  /* stored as sequence */");
+      else
+        outputShortLine(space, "  stored as sequence ");
+    }
+
+  if (type == 2)
+    outputShortLine(space, ";");
+
+  // if this hive table has an associated external table, show ddl
+  // for that external table.
+  if ((naTable->hasHiveExtTable()) &&
+      (type == 2))
+    {
+      char * dummyBuf;
+      ULng32 dummyLen;
+      
+      NAString extName = ComConvertNativeNameToTrafName(
+           dtName.getQualifiedNameObj().getCatalogName(),
+           dtName.getQualifiedNameObj().getSchemaName(),
+           dtName.getQualifiedNameObj().getObjectName());
+      
+      QualifiedName qn(extName, 3);
+      CorrName cn(qn);
+
+      outputShortLine(space," ");
+      outputShortLine(space,"/* Trafodion DDL */");
+ 
+      short rc = CmpDescribeSeabaseTable(cn, 
+                                         type,
+                                         dummyBuf, dummyLen, heap, 
+                                         NULL, 
+                                         TRUE, FALSE, FALSE, TRUE, TRUE,
+                                         NULL, FALSE, NULL, NULL, &space);
+
+      //      sprintf(buf, "  FOR %s", dtName.getQualifiedNameAsString().data());
+      //      outputShortLine(space, buf);
+      
+      outputShortLine(space, ";");
     }
 
   outbuflen = space.getAllocatedSpaceSize();
@@ -2328,26 +2425,37 @@ short CmpDescribeHiveTable (
 }
 
 // type:  1, invoke. 2, showddl. 3, create_like
-static short cmpDisplayColumn(const NAColumn *nac,
-                              short type,
-                              Space &space, char * buf,
-                              Lng32 &ii,
-                              NABoolean namesOnly,
-                              NABoolean &identityCol,
-                              NABoolean isExternalTable,
-                              NABoolean isAlignedRowFormat)
+short cmpDisplayColumn(const NAColumn *nac,
+                       char * inColName,
+                       const NAType *inNAT,
+                       short displayType,
+                       Space *inSpace,
+                       char * buf,
+                       Lng32 &ii,
+                       NABoolean namesOnly,
+                       NABoolean &identityCol,
+                       NABoolean isExternalTable,
+                       NABoolean isAlignedRowFormat)
 {
+  Space lSpace;
+  
+  Space * space;
+  if (inSpace)
+    space = inSpace;
+  else
+    space = &lSpace;
+
   identityCol = FALSE;
   
-  const NAString &colName = nac->getColName();
+  NAString colName(inColName ? inColName : nac->getColName());
   NATable * naTable = (NATable*)nac->getNATable();
 
   NAString colFam;
-  if ((nac->getNATable()->isSQLMXAlignedTable()) || 
+  if ((nac->getNATable() && nac->getNATable()->isSQLMXAlignedTable()) || 
       (nac->getHbaseColFam() == SEABASE_DEFAULT_COL_FAMILY) ||
       isExternalTable)
     colFam = "";
-  else if (nac->getNATable()->isSeabaseTable())
+  else if (nac->getNATable() && nac->getNATable()->isSeabaseTable())
     {
       int index = 0;
       CmpSeabaseDDL::extractTrafColFam(nac->getHbaseColFam(), index);
@@ -2360,7 +2468,7 @@ static short cmpDisplayColumn(const NAColumn *nac,
       colFam += ".";
     }
 
-  if (type == 3)
+  if (displayType == 3)
     {
       NAString quotedColName = "\"";
       quotedColName += colName.data(); 
@@ -2382,12 +2490,12 @@ static short cmpDisplayColumn(const NAColumn *nac,
     {
       NAString colString(buf);
       Int32 j = ii;
-      outputColumnLine(space, colString, j);
+      outputColumnLine(*space, colString, j);
       
       return 0;
     }
   
-  const NAType * nat = nac->getType();
+  const NAType * nat = (inNAT ? inNAT : nac->getType());
   
   NAString nas;
   ((NAType*)nat)->getMyTypeAsText(&nas, FALSE);
@@ -2423,7 +2531,7 @@ static short cmpDisplayColumn(const NAColumn *nac,
         defVal = "GENERATED ALWAYS AS IDENTITY";
       
       NAString idOptions;
-      if ((type != 1) && (nac->getNATable()->getSGAttributes()))
+      if ((displayType != 1) && (nac->getNATable()->getSGAttributes()))
         nac->getNATable()->getSGAttributes()->display(NULL, &idOptions, TRUE);
       
       if (NOT idOptions.isNull())
@@ -2458,35 +2566,43 @@ static short cmpDisplayColumn(const NAColumn *nac,
   
   char * sqlmxRegr = getenv("SQLMX_REGRESS");
   if ((! sqlmxRegr) ||
-      (type == 3))
+      (displayType == 3))
     {
       if ((NOT isAlignedRowFormat) &&
             CmpSeabaseDDL::isSerialized(nac->getHbaseColFlags()))
         attrStr += " SERIALIZED";
       else if ((CmpCommon::getDefault(HBASE_SERIALIZATION) == DF_ON) ||
-                (type == 3))
+                (displayType == 3))
         attrStr += " NOT SERIALIZED";
     }
   
-  if (nac->isAddedColumn())
+  if (displayType != 3)
     {
-      attrStr += " /* added col */ ";
+      if (nac->isAlteredColumn())
+        {
+          attrStr += " /*altered_col*/ ";
+        }
+      else if (nac->isAddedColumn())
+        {
+          attrStr += " /*added_col*/ ";
+        }
     }
-  
+
   sprintf(&buf[strlen(buf)], "%s %s", 
           nas.data(), 
           attrStr.data());
   
   NAString colString(buf);
   Int32 j = ii;
-  outputColumnLine(space, colString, j);
+  if (inSpace)
+    outputColumnLine(*space, colString, j);
 
   return 0;
 }
 
 // type:  1, invoke. 2, showddl. 3, create_like
 short cmpDisplayColumns(const NAColumnArray & naColArr,
-                        short type,
+                        short displayType,
                         Space &space, char * buf, 
                         NABoolean displaySystemCols,
                         NABoolean namesOnly,
@@ -2494,8 +2610,9 @@ short cmpDisplayColumns(const NAColumnArray & naColArr,
                         NABoolean isExternalTable,
 			NABoolean isAlignedRowFormat,
                         char * inColName = NULL,
-                        NABoolean isAdd = FALSE,
-                        const NAColumn * nacol = NULL)
+                        short ada = 0, // 0,add. 1,drop. 2,alter
+                        const NAColumn * nacol = NULL,
+                        const NAType * natype = NULL)
 {
   Lng32 ii = 0;
   identityColPos = -1;
@@ -2512,14 +2629,25 @@ short cmpDisplayColumns(const NAColumnArray & naColArr,
 
       const NAString &colName = nac->getColName();
 
-      if ((inColName) && (NOT isAdd))
+      if ((inColName) && (ada == 1))
         {
           if (colName == inColName) // remove this column
             continue;
         }
       
-       if (cmpDisplayColumn(nac, type, space, buf, ii, namesOnly, identityCol, isExternalTable, isAlignedRowFormat))
-        return -1;
+      if ((inColName) && (colName == inColName) &&
+          (ada == 2) && (nacol) && (natype))
+        {
+          if (cmpDisplayColumn(nac, NULL, natype, displayType, &space, buf, ii, namesOnly, identityCol, 
+                               isExternalTable, isAlignedRowFormat))
+            return -1;
+        }
+      else
+        {
+          if (cmpDisplayColumn(nac, NULL, NULL, displayType, &space, buf, ii, namesOnly, identityCol, 
+                               isExternalTable, isAlignedRowFormat))
+            return -1;
+        }
 
       if (identityCol)
         identityColPos = i;
@@ -2527,31 +2655,36 @@ short cmpDisplayColumns(const NAColumnArray & naColArr,
       ii++;
     }
 
-  if ((inColName) && (isAdd) && (nacol))
+  if ((inColName) && (ada == 0) && (nacol))
     {
-      if (cmpDisplayColumn(nacol, type, space, buf, ii, namesOnly, identityCol, isExternalTable, isAlignedRowFormat))
+      if (cmpDisplayColumn(nacol, NULL, NULL, displayType, &space, buf, ii, namesOnly, identityCol, 
+                           isExternalTable, isAlignedRowFormat))
         return -1;
     }
 
   return 0;
 }
 
-static short cmpDisplayPrimaryKey(const NAColumnArray & naColArr,
-                                  Lng32 numKeys,
-                                  NABoolean displaySystemCols,
-                                  Space &space, char * buf, 
-                                  NABoolean displayCompact,
-                                  NABoolean displayAscDesc)
+short cmpDisplayPrimaryKey(const NAColumnArray & naColArr,
+                           Lng32 numKeys,
+                           NABoolean displaySystemCols,
+                           Space &space, char * buf, 
+                           NABoolean displayCompact,
+                           NABoolean displayAscDesc,
+                           NABoolean displayParens)
 {
   if (numKeys > 0)
     {
-      if (displayCompact)
-        sprintf(&buf[strlen(buf)],  "(");
-      else
+      if (displayParens)
         {
-          outputShortLine(space, "  ( ");
+          if (displayCompact)
+            sprintf(&buf[strlen(buf)],  "(");
+          else
+            {
+              outputShortLine(space, "  ( ");
+            }
         }
-      
+
       NABoolean isFirst = TRUE;
       Int32 j = -1;
       for (Int32 jj = 0; jj < numKeys; jj++)
@@ -2568,12 +2701,14 @@ static short cmpDisplayPrimaryKey(const NAColumnArray & naColArr,
           
           const NAString &keyName = nac->getColName();
           if (displayCompact)
-            sprintf(&buf[strlen(buf)], "%s%s%s", 
-                    (NOT isFirst ? ", " : ""),
-                    ANSI_ID(keyName.data()),
-                    (displayAscDesc ?
-                     (! naColArr.isAscending(jj) ? " DESC" : " ASC") :
-                     " "));
+            {
+              sprintf(&buf[strlen(buf)], "%s%s%s", 
+                      (NOT isFirst ? ", " : ""),
+                      ANSI_ID(keyName.data()),
+                      (displayAscDesc ?
+                       (! naColArr.isAscending(jj) ? " DESC" : " ASC") :
+                       " "));
+            }
           else
             {
               sprintf(buf, "%s%s", 
@@ -2588,15 +2723,18 @@ static short cmpDisplayPrimaryKey(const NAColumnArray & naColArr,
 
           isFirst = FALSE;
         } // for
-      
-      if (displayCompact)
+
+      if (displayParens)
         {
-          sprintf(&buf[strlen(buf)],  ")");
-          outputLine(space, buf, 2);
-        }
-      else
-        {
-          outputShortLine(space, "  )");
+          if (displayCompact)
+            {
+              sprintf(&buf[strlen(buf)],  ")");
+              outputLine(space, buf, 2);
+            }
+          else
+            {
+              outputShortLine(space, "  )");
+            }
         }
     } // if
   
@@ -2616,12 +2754,18 @@ short CmpDescribeSeabaseTable (
                                NABoolean withoutSalt,
                                NABoolean withoutDivisioning,
                                NABoolean noTrailingSemi,
+                               NABoolean noPrivs,
                                char * colName,
-                               NABoolean isAdd,
-                               const NAColumn * nacol)
+                               short ada,
+                               const NAColumn * nacol,
+                               const NAType * natype,
+                               Space *inSpace)
 {
   const NAString& tableName =
     dtName.getQualifiedNameObj().getQualifiedNameAsAnsiString(TRUE);
+
+  const NAString& objectName =
+    dtName.getQualifiedNameObj().getObjectName();
  
   if (CmpCommon::context()->isUninitializedSeabase())
      {
@@ -2655,28 +2799,54 @@ short CmpDescribeSeabaseTable (
   NABoolean isExternalTable = naTable->isExternalTable();
   ComStorageType storageType = naTable->storageType();
 
+  NABoolean isExternalHbaseTable = FALSE;
+  NABoolean isExternalHiveTable = FALSE;
+  NAString extName;
+  if (isExternalTable)
+    {
+      extName = ComConvertTrafNameToNativeName(
+           dtName.getQualifiedNameObj().getCatalogName(),
+           dtName.getQualifiedNameObj().getUnqualifiedSchemaNameAsAnsiString(),
+           dtName.getQualifiedNameObj().getUnqualifiedObjectNameAsAnsiString());
+
+      QualifiedName qn(extName, 3);
+      if (qn.getCatalogName() == HBASE_SYSTEM_CATALOG)
+        isExternalHbaseTable = TRUE;
+      else if (qn.getCatalogName() == HIVE_SYSTEM_CATALOG)
+        isExternalHiveTable = TRUE;
+    }
+  
   char * buf = new (heap) char[15000];
   CMPASSERT(buf);
 
   time_t tp;
   time(&tp);
   
-  Space space;
+  Space lSpace;
+  
+  Space * space;
+  if (inSpace)
+    space = inSpace;
+  else
+    space = &lSpace;
 
   char * sqlmxRegr = getenv("SQLMX_REGRESS");
 
   NABoolean displayPrivilegeGrants = TRUE;
   if (((CmpCommon::getDefault(SHOWDDL_DISPLAY_PRIVILEGE_GRANTS) == DF_SYSTEM) && sqlmxRegr) ||
-       (CmpCommon::getDefault(SHOWDDL_DISPLAY_PRIVILEGE_GRANTS) == DF_OFF))
+      (CmpCommon::getDefault(SHOWDDL_DISPLAY_PRIVILEGE_GRANTS) == DF_OFF) ||
+      (noPrivs) ||
+      (isExternalTable))
     displayPrivilegeGrants = FALSE;
- 
+
   // display syscols for invoke if not running regrs
+  //
   NABoolean displaySystemCols = ((!sqlmxRegr) && (type == 1));
 
   NABoolean isView = (naTable->getViewText() ? TRUE : FALSE);
 
   // emit an initial newline
-  outputShortLine(space, " ");
+  outputShortLine(*space, " ");
 
   // Used for context switches
   CmpSeabaseDDL cmpSBD((NAHeap*)heap);
@@ -2740,7 +2910,7 @@ short CmpDescribeSeabaseTable (
       viewtext = viewtext.strip(NAString::trailing, ';');
       viewtext += " ;";
 
-      outputLongLine(space, viewtext, 0);
+      outputLongLine(*space, viewtext, 0);
 
       // Display grant statements
       if (CmpCommon::context()->isAuthorizationEnabled() && displayPrivilegeGrants)
@@ -2762,16 +2932,16 @@ short CmpDescribeSeabaseTable (
  
         if (privInterface.describePrivileges(objectInfo, privilegeText))
         {
-          outputShortLine(space, " ");
-          outputLine(space, privilegeText.c_str(), 0);
+          outputShortLine(*space, " ");
+          outputLine(*space, privilegeText.c_str(), 0);
         }
 
         cmpSBD.switchBackCompiler();
       }
 
-      outbuflen = space.getAllocatedSpaceSize();
+      outbuflen = space->getAllocatedSpaceSize();
       outbuf = new (heap) char[outbuflen];
-      space.makeContiguous(outbuf, outbuflen);
+      space->makeContiguous(outbuf, outbuflen);
       
       NADELETEBASIC(buf, heap);
       
@@ -2789,26 +2959,36 @@ short CmpDescribeSeabaseTable (
                 "-- Definition current  %s",
                 ((storageType == COM_STORAGE_MONARCH) ? "Monarch" : "Trafodion"),
                 (isVolatile ? " volatile " : isExternalTable ? " external " : " "), 
-                tableName.data(), ctime(&tp));
-      outputShortLine(space, buf);
+                tableName.data(),
+                ctime(&tp));
+      outputShortLine(*space, buf);
     }
   else if (type == 2)
     {
       sprintf(buf,  "CREATE%sTABLE %s",
               (isVolatile ? " VOLATILE " : isExternalTable ? " EXTERNAL " : " "), 
-              tableName.data());
-      outputShortLine(space, buf);
+              (isExternalTable ? objectName.data() : tableName.data()));
+      outputShortLine(*space, buf);
     }
 
   Lng32 identityColPos = -1;
-  outputShortLine(space, "  ( ");
-  cmpDisplayColumns(naTable->getNAColumnArray(), 
-                    type, space, buf, 
-		    displaySystemCols, 
-		    FALSE,
-                    identityColPos,
-                    isExternalTable, naTable->isSQLMXAlignedTable(),
-                    colName, isAdd, nacol);
+  NABoolean closeParan = FALSE;
+  if ((NOT isExternalTable) ||
+      ((isExternalTable) && 
+       ((isExternalHbaseTable && (type == 1)) ||
+        (isExternalHiveTable))))
+    {
+      outputShortLine(*space, "  ( ");
+      cmpDisplayColumns(naTable->getNAColumnArray(), 
+                        type, *space, buf, 
+                        displaySystemCols, 
+                        FALSE,
+                        identityColPos,
+                        isExternalTable, naTable->isSQLMXAlignedTable(),
+                        colName, ada, nacol, natype);
+
+      closeParan = TRUE;
+    }
 
   Int32 nonSystemKeyCols = 0;
   NABoolean isStoreBy = FALSE;
@@ -2854,7 +3034,7 @@ short CmpDescribeSeabaseTable (
     isStoreBy = FALSE;
 
   if (type == 1)
-    outputShortLine(space, "  )");
+    outputShortLine(*space, "  )");
 
   Lng32 numBTpkeys = 0;
 
@@ -2864,12 +3044,11 @@ short CmpDescribeSeabaseTable (
   NABoolean isAligned = naTable->isSQLMXAlignedTable();
   ComReplType xnRepl = naTable->xnRepl();
 
-  NABoolean closeParan = FALSE;
   if ((type == 3) && (pkeyStr))
     {
-      outputShortLine(space, " , PRIMARY KEY ");
+      outputShortLine(*space, " , PRIMARY KEY ");
       
-      outputLine(space, pkeyStr, 2);
+      outputLine(*space, pkeyStr, 2);
     }
   else
     {
@@ -2888,14 +3067,14 @@ short CmpDescribeSeabaseTable (
           cmpDisplayPrimaryKey(naf->getIndexKeyColumns(), 
                                naf->getIndexKeyColumns().entries(),
                                displaySystemCols,
-                               space, buf, TRUE, TRUE);
+                               *space, buf, TRUE, TRUE, TRUE);
         } // if
     }
 
   if (type != 1)
     {
-      if (NOT closeParan)
-        outputShortLine(space, "  )");
+      if (closeParan)
+        outputShortLine(*space, "  )");
       if (isStoreBy)
         {
           sprintf(buf,  "  STORE BY ");
@@ -2903,7 +3082,7 @@ short CmpDescribeSeabaseTable (
           cmpDisplayPrimaryKey(naf->getIndexKeyColumns(), 
                                naf->getIndexKeyColumns().entries(),
                                displaySystemCols,
-                               space, buf, TRUE, TRUE);
+                               *space, buf, TRUE, TRUE, TRUE);
         }
       
       if ((isSalted) && !withoutSalt)
@@ -2927,7 +3106,7 @@ short CmpDescribeSeabaseTable (
               saltString += buf;
             }
             
-          outputShortLine(space, saltString.data());
+          outputShortLine(*space, saltString.data());
 
           ValueIdList saltCols;
 
@@ -2969,7 +3148,7 @@ short CmpDescribeSeabaseTable (
                   sc += ANSI_ID(bc->getColName().data());
                 }
               sc += ")";
-              outputShortLine(space, sc.data());
+              outputShortLine(*space, sc.data());
             }
         }
       else if ((NOT isSalted) && (withPartns))
@@ -2988,13 +3167,13 @@ short CmpDescribeSeabaseTable (
             return -1;
 
           if (!splitText.isNull())
-            outputShortLine(space, splitText.data());
+            outputShortLine(*space, splitText.data());
 
           if (currPartitions > 1)
             {
               sprintf(buf,  "  /* ACTUAL REGIONS %d */", currPartitions);
               
-              outputShortLine(space, buf);
+              outputShortLine(*space, buf);
             }
         }
 
@@ -3010,7 +3189,7 @@ short CmpDescribeSeabaseTable (
               if (!divisioningExprAscOrders[d])
                 divByClause += " DESC";
             }
-          outputShortLine(space, divByClause.data());
+          outputShortLine(*space, divByClause.data());
           divByClause = "     NAMED AS (";
 
           NAFileSet * naf = naTable->getClusteringIndex();
@@ -3032,12 +3211,13 @@ short CmpDescribeSeabaseTable (
             }
 
           divByClause += "))";
-          outputShortLine(space, divByClause.data());
+          outputShortLine(*space, divByClause.data());
         }
 
       NABoolean attributesSet = FALSE;
       char attrs[2000];
       if (((NOT sqlmxRegr) && ((NOT isAudited) || (isAligned))) ||
+          ((sqlmxRegr) && (type == 3) && ((NOT isAudited) || (isAligned))) ||
           ((NOT naTable->defaultColFam().isNull()) && 
            (naTable->defaultColFam() != SEABASE_DEFAULT_COL_FAMILY)))
         {
@@ -3054,7 +3234,7 @@ short CmpDescribeSeabaseTable (
               strcat(attrs, naTable->defaultColFam());
               strcat(attrs, "' ");
             }
-          outputShortLine(space, attrs);
+          outputShortLine(*space, attrs);
 
           attributesSet = TRUE;
         }
@@ -3072,7 +3252,7 @@ short CmpDescribeSeabaseTable (
           else if (xnRepl == COM_REPL_ASYNC)
             strcat(attrs, "ASYNCHRONOUS REPLICATION ");
 
-          outputShortLine(space, attrs);
+          outputShortLine(*space, attrs);
         }
 
       if (storageType == COM_STORAGE_MONARCH) {
@@ -3086,8 +3266,8 @@ short CmpDescribeSeabaseTable (
       if (!isView && (naTable->hbaseCreateOptions()) &&
           (naTable->hbaseCreateOptions()->entries() > 0))
         {
-          outputShortLine(space, "  HBASE_OPTIONS ");
-          outputShortLine(space, "  ( ");
+          outputShortLine(*space, "  HBASE_OPTIONS ");
+          outputShortLine(*space, "  ( ");
           
           for (Lng32 i = 0; i < naTable->hbaseCreateOptions()->entries(); i++)
             {
@@ -3098,14 +3278,20 @@ short CmpDescribeSeabaseTable (
                 comma = TRUE;
               sprintf(buf, "    %s = '%s'%s", hco->key().data(), hco->val().data(),
                       (comma ? "," : " "));
-              outputShortLine(space, buf);
+              outputShortLine(*space, buf);
             }
 
-          outputShortLine(space, "  ) ");
+          outputShortLine(*space, "  ) ");
+        }
+
+      if (isExternalTable)
+        {
+          sprintf(buf, "  FOR %s", extName.data());
+          outputShortLine(*space, buf);
         }
 
       if (NOT noTrailingSemi)
-        outputShortLine(space, ";");
+        outputShortLine(*space, ";");
     }
 
   // showddl internal sequences created for identity cols
@@ -3122,11 +3308,11 @@ short CmpDescribeSeabaseTable (
       CorrName csn(seqName, STMTHEAP,
                    dtName.getQualifiedNameObj().getSchemaName(), 
                    dtName.getQualifiedNameObj().getCatalogName());
-      outputLine(space, "\n-- The following sequence is a system created sequence --", 0);
+      outputLine(*space, "\n-- The following sequence is a system created sequence --", 0);
       
       char * dummyBuf;
       ULng32 dummyLen;
-      CmpDescribeSequence(csn, dummyBuf, dummyLen, STMTHEAP, &space);
+      CmpDescribeSequence(csn, dummyBuf, dummyLen, STMTHEAP, &*space);
     }
 
   if (((type == 1) && (NOT sqlmxRegr)) || (type == 2))
@@ -3159,7 +3345,7 @@ short CmpDescribeSeabaseTable (
 		      vu,
 		      indexName.data(),
 		      ctime(&tp));
-	      outputShortLine(space, buf);
+	      outputShortLine(*space, buf);
 	    }
 	  else
 	    {
@@ -3172,7 +3358,7 @@ short CmpDescribeSeabaseTable (
 
 	      if (NOT naf->isCreatedExplicitly())
 		{
-		  outputLine(space, "\n-- The following index is a system created index --", 0);
+		  outputLine(*space, "\n-- The following index is a system created index --", 0);
 		}
 
 	      sprintf(buf,  "%sCREATE%sINDEX %s ON %s",
@@ -3180,24 +3366,24 @@ short CmpDescribeSeabaseTable (
 		      vu,
 		      indexName.data(),
 		      tableName.data());
-	      outputLine(space, buf, 0);
+	      outputLine(*space, buf, 0);
 	    }
 	  
 	  if (type == 1)
 	    {
               Lng32 dummy;
-	      outputShortLine(space, "  ( ");
+	      outputShortLine(*space, "  ( ");
 	      cmpDisplayColumns(naf->getAllColumns(), 
-                                type, space, buf,
+                                type, *space, buf,
 				displaySystemCols,
 				(type == 2),
                                 dummy,
                                 isExternalTable,
                                 isAligned);
-	      outputShortLine(space, "  )");
+	      outputShortLine(*space, "  )");
 	      
 	      sprintf(buf,  "  PRIMARY KEY ");
-	      outputShortLine(space, buf);
+	      outputShortLine(*space, buf);
 	    }
 	  
 	  Lng32 numIndexCols = ((type == 1) ? 
@@ -3210,7 +3396,7 @@ short CmpDescribeSeabaseTable (
 
 	  cmpDisplayPrimaryKey(naf->getIndexKeyColumns(), numIndexCols, 
 			       displaySystemCols,
-			       space, buf, FALSE, TRUE);
+			       *space, buf, FALSE, TRUE, TRUE);
 
           if ((NOT sqlmxRegr) && isAligned)
           {
@@ -3218,14 +3404,14 @@ short CmpDescribeSeabaseTable (
              strcpy(attrs, " ATTRIBUTES ");
              if (isAligned)
                 strcat(attrs, "ALIGNED FORMAT ");
-             outputShortLine(space, attrs);
+             outputShortLine(*space, attrs);
           }
 
           if ((naf->hbaseCreateOptions()) && (type == 2) &&
                (naf->hbaseCreateOptions()->entries() > 0))
            {
-             outputShortLine(space, "  HBASE_OPTIONS ");
-             outputShortLine(space, "  ( ");
+             outputShortLine(*space, "  HBASE_OPTIONS ");
+             outputShortLine(*space, "  ( ");
           
              for (Lng32 i = 0; i < naf->hbaseCreateOptions()->entries(); i++)
              {
@@ -3235,17 +3421,17 @@ short CmpDescribeSeabaseTable (
                   ',' : ' ') ;
                sprintf(buf, "    %s = '%s'%c", hco->key().data(), 
                        hco->val().data(),separator);
-               outputShortLine(space, buf);
+               outputShortLine(*space, buf);
              }
 
-             outputShortLine(space, "  ) ");
+             outputShortLine(*space, "  ) ");
            }
 
           if ((naf->numSaltPartns() > 0) && (type == 2))
-            outputShortLine(space, " SALT LIKE TABLE ");
+            outputShortLine(*space, " SALT LIKE TABLE ");
 	  
 	  if (type == 2)
-	    outputShortLine(space, ";");
+	    outputShortLine(*space, ";");
 	  
 	} // for
 
@@ -3273,7 +3459,7 @@ short CmpDescribeSeabaseTable (
               sprintf(buf,  "\nALTER TABLE %s ADD CONSTRAINT %s UNIQUE ",
                       ansiTableName.data(),
                       ansiConstrName.data());
-              outputLine(space, buf, 0);
+              outputLine(*space, buf, 0);
 
               NAColumnArray nacarr;
 
@@ -3285,9 +3471,9 @@ short CmpDescribeSeabaseTable (
               cmpDisplayPrimaryKey(nacarr, 
                                    uniqConstr->keyColumns().entries(),
                                    FALSE,
-                                   space, &buf[strlen(buf)], FALSE, FALSE);
+                                   *space, &buf[strlen(buf)], FALSE, FALSE, TRUE);
 
-              outputShortLine(space, ";");
+              outputShortLine(*space, ";");
             } // for
 
           const AbstractRIConstraintList &refList = naTable->getRefConstraints();
@@ -3318,7 +3504,7 @@ short CmpDescribeSeabaseTable (
               sprintf(buf,  "\nALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY ",
                       ansiTableName.data(),
                       ansiConstrName.data());
-              outputLine(space, buf, 0);
+              outputLine(*space, buf, 0);
 
               NAColumnArray nacarr;
 
@@ -3330,13 +3516,13 @@ short CmpDescribeSeabaseTable (
               cmpDisplayPrimaryKey(nacarr, 
                                    refConstr->keyColumns().entries(),
                                    FALSE,
-                                   space, &buf[strlen(buf)], FALSE, FALSE);
+                                   *space, &buf[strlen(buf)], FALSE, FALSE, TRUE);
 
               const NAString& ansiOtherTableName = 
                 uniqueConstraintReferencedByMe.getTableName().getQualifiedNameAsAnsiString(TRUE);             
               sprintf(buf,  " REFERENCES %s ",
                       ansiOtherTableName.data());
-              outputLine(space, buf, 0);
+              outputLine(*space, buf, 0);
 
               AbstractRIConstraint * otherConstr = 
                 refConstr->findConstraint(&bindWA, refConstr->getUniqueConstraintReferencedByMe());
@@ -3350,14 +3536,14 @@ short CmpDescribeSeabaseTable (
               cmpDisplayPrimaryKey(nacarr2, 
                                    otherConstr->keyColumns().entries(),
                                    FALSE,
-                                   space, &buf[strlen(buf)], FALSE, FALSE);
+                                   *space, &buf[strlen(buf)], FALSE, FALSE, TRUE);
 
               if (NOT refConstr->getIsEnforced())
                 {
-                  outputShortLine(space, " NOT ENFORCED ");
+                  outputShortLine(*space, " NOT ENFORCED ");
                 }
 
-              outputShortLine(space, ";");
+              outputShortLine(*space, ";");
             } // for
 
       const CheckConstraintList &checkList = naTable->getCheckConstraints();
@@ -3373,7 +3559,7 @@ short CmpDescribeSeabaseTable (
                   tableName.data(),
                   ansiConstrName.data(), 
                   checkConstr->getConstraintText().data());
-          outputLine(space, buf, 0);
+          outputLine(*space, buf, 0);
           
         } // for
 
@@ -3403,17 +3589,17 @@ short CmpDescribeSeabaseTable (
  
       if (privInterface.describePrivileges(objectInfo, privilegeText))
       {
-        outputShortLine(space, " ");
-        outputLine(space, privilegeText.c_str(), 0);
+        outputShortLine(*space, " ");
+        outputLine(*space, privilegeText.c_str(), 0);
       }
 
       cmpSBD.switchBackCompiler();
     }
   }
 
-  outbuflen = space.getAllocatedSpaceSize();
+  outbuflen = space->getAllocatedSpaceSize();
   outbuf = new (heap) char[outbuflen];
-  space.makeContiguous(outbuf, outbuflen);
+  space->makeContiguous(outbuf, outbuflen);
   
   NADELETEBASIC(buf, heap);
 

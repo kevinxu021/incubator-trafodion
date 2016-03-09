@@ -41,7 +41,7 @@ export PDCP_HADOOP_NODES="$PDCP $MY_HADOOP_NODES"
 cd $UNTAR_DIR
 
 PORT=`echo $URL | sed 's/.*://'`
-AMBARI_HOST=$(echo $URL | sed 's@:.*@@')
+AMBARI_HOST=$(echo $URL | sed 's@.*://@@' | sed 's@:.*@@')
 echo "export AMBARI_HOST=\"$AMBARI_HOST\"" >> $TRAF_CONFIG
 sudo chmod 777 $TRAF_CONFIG
 source $TRAF_CONFIG

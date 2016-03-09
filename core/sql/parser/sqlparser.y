@@ -2929,6 +2929,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <boolean>   	       optional_validate_clause
 %type <extractType>            extract_type
 %type <boolean>                optional_if_not_exists_clause
+%type <boolean>                optional_if_exists_clause
 
 %type <uint>                    merge_stmt_start_tokens
 %type <relx>                   merge_stmt_using_clause
@@ -7716,6 +7717,18 @@ olap_sequence_function : set_function_specification TOK_OVER '('
                           SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
                         }
 // end of OLAP LEAD function()
+// start of OLAP LAG function()
+                       |TOK_LAG '(' value_expression ','  value_expression ','  value_expression ')'  TOK_OVER '('
+                         opt_olap_part_clause
+                         opt_olap_order_clause ')'
+                         {
+                             //3rd value_expression is default value    
+                              ItmLagOlapFunction* lagExpr =
+                                                       new (PARSERHEAP()) ItmLagOlapFunction($3, $5, $7);
+                             lagExpr->setOLAPInfo($11, $12);
+                             $$=lagExpr;
+                             SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                         }
                        |TOK_LAG '(' value_expression ','  value_expression ')'  TOK_OVER '('
                          opt_olap_part_clause
                          opt_olap_order_clause ')'
@@ -7726,6 +7739,21 @@ olap_sequence_function : set_function_specification TOK_OVER '('
                              $$=lagExpr;
                              SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
                          }
+                       |TOK_LAG '(' value_expression  ')'  TOK_OVER '('
+                          opt_olap_part_clause
+                          opt_olap_order_clause ')'
+                          {    
+                               //default offset is 1;
+                               NAString * defaultOffset = new (PARSERHEAP()) NAString("1");
+                               ItemExpr * offsetExpr = literalOfNumericNoScale(defaultOffset);
+                               if (!offsetExpr) YYERROR;   
+                               ItmLagOlapFunction* lagExpr =
+                                                        new (PARSERHEAP()) ItmLagOlapFunction($3, offsetExpr);
+                              lagExpr->setOLAPInfo($7, $8);
+                              $$=lagExpr;
+                              SqlParser_CurrentParser->setTopHasOlapFunctions(TRUE);
+                          }
+// end of OLAP LAG function()
 
 
 opt_olap_part_clause   : empty
@@ -23712,7 +23740,7 @@ external_user_identifier : identifier
 
 /* type pStmtDDL */
 
-routine_definition : TOK_CREATE TOK_PROCEDURE ddl_qualified_name
+routine_definition : TOK_CREATE TOK_PROCEDURE optional_if_not_exists_clause ddl_qualified_name
                         routine_params_list_clause
                         optional_create_routine_attribute_list
                         optional_by_auth_identifier
@@ -23720,22 +23748,23 @@ routine_definition : TOK_CREATE TOK_PROCEDURE ddl_qualified_name
                                   QualifiedName noActionQualName(PARSERHEAP());
                                   StmtDDLCreateRoutine *pNode =
                                     new (PARSERHEAP()) StmtDDLCreateRoutine
-                                    ( *$3  // ddl_qualified_name of SPJs
+                                    ( *$4  // ddl_qualified_name of SPJs
                                     , noActionQualName
-                                    , $4   // ElemDDLNode *  routine_params_list_clause
+                                    , $5   // ElemDDLNode *  routine_params_list_clause
                                     , NULL // ElemDDLNode *  optional_routine_returns_clause
                                     , NULL // ElemDDLNode *  optional_passthrough_inputs_clause
-                                    , $5   // ElemDDLNode *  optional_create_routine_attribute_list
+                                    , $6   // ElemDDLNode *  optional_create_routine_attribute_list
                                     , COM_PROCEDURE_TYPE // ComRoutineType
                                     , PARSERHEAP()
                                     );
-                                  pNode->setOwner($6/*optional_by_auth_identifier*/);
+                                  pNode->setCreateIfNotExists($3);
+                                  pNode->setOwner($7/*optional_by_auth_identifier*/);
                                   pNode->synthesize();
                                   $$ = pNode;
-                                  delete $3;  // ddl_qualified_name of routine
+                                  delete $4;  // ddl_qualified_name of routine
                                 }
 
-  | TOK_CREATE create_scalar_function_tokens ddl_qualified_name
+  | TOK_CREATE create_scalar_function_tokens optional_if_not_exists_clause ddl_qualified_name
     routine_params_list_clause
     optional_routine_returns_clause
     optional_passthrough_inputs_clause
@@ -23744,21 +23773,23 @@ routine_definition : TOK_CREATE TOK_PROCEDURE ddl_qualified_name
       QualifiedName noActionQualName(PARSERHEAP());
       StmtDDLCreateRoutine *pNode =
         new (PARSERHEAP()) StmtDDLCreateRoutine
-        ( *$3 // ddl_qualified_name of scalar function
+        ( *$4 // ddl_qualified_name of scalar function
           , noActionQualName
-          , $4  // ElemDDLNode *  routine_params_list_clause
-          , $5  // ElemDDLNode *  optional_routine_returns_clause
-          , $6  // ElemDDLNode *  optional_passthrough_inputs_clause
-          , $7  // ElemDDLNode *  optional_create_function_attribute_list
+          , $5  // ElemDDLNode *  routine_params_list_clause
+          , $6  // ElemDDLNode *  optional_routine_returns_clause
+          , $7  // ElemDDLNode *  optional_passthrough_inputs_clause
+          , $8  // ElemDDLNode *  optional_create_function_attribute_list
           , COM_SCALAR_UDF_TYPE // ComRoutineType create_scalar_function_tokens
           , PARSERHEAP()
           );
+      pNode->setCreateIfNotExists($3); 
       pNode->synthesize();
       $$ = pNode;
-      delete $3;  // ddl_qualified_name of routine
+      delete $4;  // ddl_qualified_name of routine
     }
 
-  | TOK_CREATE table_mapping_function_tokens ddl_qualified_name
+  | TOK_CREATE table_mapping_function_tokens optional_if_not_exists_clause 
+    ddl_qualified_name
     routine_params_list_clause
     optional_routine_returns_clause
     optional_passthrough_inputs_clause
@@ -23768,41 +23799,44 @@ routine_definition : TOK_CREATE TOK_PROCEDURE ddl_qualified_name
       QualifiedName noActionQualName(PARSERHEAP());
       StmtDDLCreateRoutine *pNode =
         new (PARSERHEAP()) StmtDDLCreateRoutine
-        ( *$3 // ddl_qualified_name of scalar function
+        ( *$4 // ddl_qualified_name of scalar function
           , noActionQualName
-          , $4  // ElemDDLNode *  routine_params_list_clause
-          , $5  // ElemDDLNode *  optional_routine_returns_clause
-          , $6  // ElemDDLNode *  optional_passthrough_inputs_clause
-          , $7  // ElemDDLNode *  optional_create_function_attribute_list
+          , $5  // ElemDDLNode *  routine_params_list_clause
+          , $6  // ElemDDLNode *  optional_routine_returns_clause
+          , $7  // ElemDDLNode *  optional_passthrough_inputs_clause
+          , $8  // ElemDDLNode *  optional_create_function_attribute_list
           , COM_TABLE_UDF_TYPE // ComRoutineType table_mapping_function_tokens
           , PARSERHEAP()
           );
-      pNode->setOwner($8/*optional_by_auth_identifier*/);
+      pNode->setCreateIfNotExists($3);
+      pNode->setOwner($9/*optional_by_auth_identifier*/);
       pNode->synthesize();
       $$ = pNode;
-      delete $3;  // ddl_qualified_name of routine
+      delete $4;  // ddl_qualified_name of routine
     }
 
-  | TOK_CREATE universal_function_tokens ddl_qualified_name
+  | TOK_CREATE universal_function_tokens optional_if_not_exists_clause 
+    ddl_qualified_name
     universal_function_param_clause
     optional_create_function_attribute_list
     {
       QualifiedName noActionQualName(PARSERHEAP());
       StmtDDLCreateRoutine *pNode =
         new (PARSERHEAP()) StmtDDLCreateRoutine
-        ( *$3  // ddl_qualified_name of universal function
+        ( *$4  // ddl_qualified_name of universal function
           , noActionQualName
           , NULL // ElemDDLNode * optional_routine_params_list
           , NULL // ElemDDLNode * optional_routine_returns_clause
           , NULL // ElemDDLNode * optional_passthrough_inputs_clause
-          , $5   // ElemDDLNode * optional_create_function_attribute_list
+          , $6   // ElemDDLNode * optional_create_function_attribute_list
           , COM_UNIVERSAL_UDF_TYPE // ComRoutineType universal_function_tokens
           , PARSERHEAP()
           );
-      pNode->setUudfParamKindList($4); // universal_function_param_clause
+      pNode->setCreateIfNotExists($3);
+      pNode->setUudfParamKindList($5); // universal_function_param_clause
       pNode->synthesize();
       $$ = pNode;
-      delete $3;  // ddl_qualified_name of routine
+      delete $4;  // ddl_qualified_name of routine
     }
 
 /* type routineTypeEnum */
@@ -25007,6 +25041,17 @@ optional_if_not_exists_clause :
                     $$ = TRUE;
                   }
 
+/* type boolean */
+optional_if_exists_clause :
+          empty
+            {
+               $$ = FALSE;
+             }
+          | TOK_IF TOK_EXISTS
+             {
+               $$ = TRUE;
+             }
+
 
 create_table_as_attr_list_start: empty
 	           {
@@ -25072,6 +25117,13 @@ create_table_as_token: TOK_AS
 table_definition_body : table_element_list
                       | like_definition
                       | external_table_definition
+                      | table_element_list external_table_definition
+                        {
+                          $$ = new (PARSERHEAP())
+                            ElemDDLList(
+                                 $1 /*table_elements*/,
+                                 $2 /*table_element*/);
+                        }
 
 /* type pElemDDL */
 table_element_list : '(' table_elements ')'
@@ -31202,6 +31254,21 @@ alter_table_statement : TOK_ALTER optional_ghost TOK_TABLE ddl_qualified_name
                                     }
                                   delete $4 /*ddl_qualified_name*/;
                                 }
+                        | TOK_ALTER TOK_EXTERNAL TOK_TABLE ddl_qualified_name
+                                alter_table_action 
+                                {
+                                  $$ = $5 /*alter_table_action*/;
+                                  $$->setIsExternal(TRUE);
+                                  $$->castToStmtDDLAlterTable()->
+                                    setTableName(QualifiedName (*$4 /*ddl_qualified_name*/, 
+                                                  PARSERHEAP()));
+				  if($$->castToStmtDDLAlterTableAddColumn())
+                                    {
+				      $$->castToStmtDDLAlterTableAddColumn()->
+					synthesize();
+                                    }
+                                  delete $4 /*ddl_qualified_name*/;
+                                }
                        | TOK_ALTER optional_ghost TOK_TABLE ddl_qualified_name
                                 is_not_droppable
                                 {
@@ -31547,13 +31614,11 @@ alter_table_column_clause : TOK_COLUMN identifier heading
                                 }
 
 // type pStmtDDL
-alter_table_alter_column_datatype : TOK_ALTER TOK_COLUMN column_name predefined_type
+alter_table_alter_column_datatype : TOK_ALTER TOK_COLUMN column_definition
 				{
                                   $$ = new (PARSERHEAP())
                                     StmtDDLAlterTableAlterColumnDatatype(
-                                         *$3, // column name
-                                         $4 );
-                                  delete $3;
+                                         $3 /* column definition */);
                                   restoreInferCharsetState();
 				}
 
@@ -32218,20 +32283,22 @@ drop_routine_type_tokens : TOK_FUNCTION { $$ = COM_UNKNOWN_ROUTINE_TYPE; }
                          | TOK_PROCEDURE { $$ = COM_PROCEDURE_TYPE; }
 
 /* type pStmtDDL */
-drop_routine_statement : TOK_DROP drop_routine_type_tokens ddl_qualified_name
+drop_routine_statement : TOK_DROP drop_routine_type_tokens optional_if_exists_clause
+                         ddl_qualified_name
                          optional_cleanup  optional_drop_behavior
                          optional_validate optional_logfile
                 {
                   $$ = SqlParserAux_buildDropRoutine
                     ( $2  // in - ComRoutineType drop_routine_type_tokens
-                    , $3  // in - QualifiedName * ddl_qualified_name of routine - deep copy
-                    , $4  // in - NABoolean       optional_cleanup
-                    , $5  // in - ComDropBehavior optional_drop_behavior
-                    , $6  // in - NABoolean       optional_validate
-                    , $7  // in - NAString      * optional_logfile              - deep copy
+                    , $4  // in - QualifiedName * ddl_qualified_name of routine - deep copy
+                    , $5  // in - NABoolean       optional_cleanup
+                    , $6  // in - ComDropBehavior optional_drop_behavior
+                    , $7  // in - NABoolean       optional_validate
+                    , $8  // in - NAString      * optional_logfile              - deep copy
+                    , $3  // in - NABoolean       optional_if_exists_clause
                     );
-                  delete $3; // ddl_qualified_name of routine
-                  if ($7) delete $7; // optional_logfile
+                  delete $4; // ddl_qualified_name of routine
+                  if ($8) delete $8; // optional_logfile
                   if ($$ EQU NULL) { yyerror(""); YYERROR; } // Error: internal syntax only!
                 }
 

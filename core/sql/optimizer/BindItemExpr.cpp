@@ -5132,6 +5132,8 @@ ItemExpr *Aggregate::bindNode(BindWA *bindWA)
 
   context->aggScope() = NULL;					  // AggBind#6
 
+  ItemExpr * childExpr = child(0);
+
   // If there is an Sequence operator for OLAP functions, then add
   // this non-OLAP Aggregate to the outputs of the Sequence operator.
   // All outputs of the Sequence operator have an NotCovered on top of
@@ -7480,19 +7482,6 @@ ItemExpr *ColReference::bindNode(BindWA *bindWA)
       // this return has been there for a long time.
       // No idea what the code below it is doing since it will never be reached.
       return getValueId().getItemExpr();
-      
-      // In case the first time this Colreference was seen it was on
-      // left side of a set clause
-      NAColumn *nacol = getValueId().getNAColumn(TRUE/*okIfNotColumn*/);
-      const NATable * naTable = nacol->getNATable();
-      NAString fileName( naTable->getViewText() ?
-                         (NAString)naTable->getViewFileName() :
-                         naTable->getClusteringIndex()->
-                         getFileSetName().getQualifiedNameAsString(),
-                         bindWA->wHeap());
-      
-      bindWA->setColumnRefsInStoi(fileName.data(),nacol->getPosition());
-      
     }
   
   // In mode_special_4,
@@ -12511,52 +12500,6 @@ ItemExpr *ItmSequenceFunction::bindNode(BindWA *bindWA)
   else
     return getValueId().getItemExpr();
 }
-//-------------------------------------------------------------------------
-//
-// member functions for class ItmLagOlapFunction
-//
-//-------------------------------------------------------------------------
-
-ItemExpr * ItmLagOlapFunction::bindNode(BindWA * bindWA)
-{
-   // the offset expr must be a non-negative integer
-   NABoolean offsetOK = FALSE;
-   Int64 value = 0;
-
-   if ( getArity() > 1) 
-   {
-      if ( child(1)->getOperatorType() == ITM_CONSTANT ) 
-      {
-         ConstValue* cv = (ConstValue*)getChild(1);
-         if ( cv->canGetExactNumericValue() )
-         {
-            value = cv->getExactNumericValue();
-            if ( value >= 0 ) {
-               offsetOK = TRUE;
-               offset_ = (Int32)value;
-            }
-         }
-      }
-
-   } else { 
-
-      if ( offset_ >= 0 )
-        offsetOK = TRUE;
-   }
-
-   if ( !offsetOK ) {
-
-      *CmpCommon::diags() << DgSqlCode(-4249) << DgString0("LAG");
-
-      if ( bindWA )
-          bindWA->setErrStatus();
-
-      return this;
-   }
-
-   ItemExpr * result = ItmSeqOlapFunction::bindNode(bindWA);
-   return result;
-}
 
 //-------------------------------------------------------------------------
 //
@@ -13122,4 +13065,5 @@ NABoolean RowNumFunc::canBeUsedInGBorOB(NABoolean setErr)
 
   return FALSE;
 }
+
 

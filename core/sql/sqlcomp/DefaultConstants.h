@@ -3798,6 +3798,33 @@ enum DefaultConstants
 
   // real charset in the HIVE table
   HIVE_FILE_CHARSET,
+  // OFF: no pushdown, evaluated using traditional way (scan and aggr).
+  // ON: transform in preCodeGen, eval in ORC layer
+  ORC_AGGR_PUSHDOWN,
+
+  // pushdown column list to orc
+  ORC_COLUMNS_PUSHDOWN,
+
+  // pushdown preds to ORC layer
+  ORC_PRED_PUSHDOWN,
+
+  // vectorized rows batch scan
+  ORC_VECTORIZED_SCAN,
+
+  // use info from external table created on this orc table
+  ORC_USE_EXT_TABLE_ATTRS,
+
+  // include Hive virtual cols in DESCRIBE
+  HIVE_DESCRIBE_VIRT_COLS,
+  // Hive partition elimination at compile/run time
+  HIVE_PARTITION_ELIMINATION_CT,
+  HIVE_PARTITION_ELIMINATION_RT,
+  USTAT_COLLECT_VIRT_COL_STATS,
+  HIVE_EXT_TABLE_INCLUDE_VIRT_COLS,
+
+  // By default only alter of varchar col length is supported.
+  // If this cqd is on, then other alters (name, datatype) are also supported.
+  TRAF_ALTER_COL_ATTRS,
 
   MONARCH_LOCATOR_ADDRESS,
   MONARCH_LOCATOR_PORT,

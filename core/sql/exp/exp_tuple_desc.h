@@ -907,6 +907,7 @@ public:
     return ( tdf == SQLMX_ALIGNED_FORMAT );
   }
 
+
   void display(const char* title = NULL);
 
   // ---------------------------------------------------------------------

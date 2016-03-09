@@ -510,7 +510,6 @@ public:
     LOB_EXTRACT_              = 26,
     LOB_SHOWDDL_              = 27,
     HBASE_DDL_                = 28,
-    HBASE_COPROC_AGGR_        = 29,
     WNR_INSERT_               = 30,
     METADATA_UPGRADE_         = 31,
     HBASE_LOAD_               = 32,
@@ -518,8 +517,7 @@ public:
     AUTHORIZATION_            = 34,
     HBASE_UNLOAD_             = 35,
     HBASE_UNLOAD_TASK_        = 36,
-    ORC_FAST_AGGR_            = 37,
-    GET_QID_                         = 38
+    GET_QID_                  = 37
   };
 
   ExeUtilExpr(ExeUtilType type,
@@ -2088,94 +2086,6 @@ public:
 private:
   ConstStringList * csl_;
   DDLtype type_;
-};
-
-class ExeUtilHbaseCoProcAggr : public ExeUtilExpr
-{
- public:
- ExeUtilHbaseCoProcAggr(const CorrName &corrName,
-			ValueIdSet &aggregateExpr,
-			CollHeap *oHeap = CmpCommon::statementHeap())
-   : ExeUtilExpr(HBASE_COPROC_AGGR_, corrName,
-		 NULL, NULL, 
-		 NULL, CharInfo::UnknownCharSet, oHeap),
-     aggregateExpr_(aggregateExpr),
-     corrName_(corrName),
-     estRowsAccessed_(-1.0)
-  {
-  };
-
-  virtual RelExpr * copyTopNode(RelExpr *derivedNode = NULL,
-				CollHeap* outHeap = 0);
-  
-  virtual NABoolean producesOutput() { return TRUE; }
-  
-  virtual void getPotentialOutputValues(ValueIdSet & outputValues) const;
-
-  virtual RelExpr * bindNode(BindWA *bindWAPtr);
-
-  RelExpr * preCodeGen(Generator * generator,
-		       const ValueIdSet & externalInputs,
-		       ValueIdSet &pulledNewInputs);
-  
-  // method to do code generation
-  virtual short codeGen(Generator*);
-
-  ValueIdSet &aggregateExpr() { return aggregateExpr_; }
-  const ValueIdSet &aggregateExpr() const { return aggregateExpr_; }
-
-  CorrName& getCorrName() { return corrName_; }
-
-  virtual ExplainTuple * addSpecificExplainInfo(
-       ExplainTupleMaster *explainTuple, ComTdb *tdb, 
-       Generator *generator);
-
-  inline const CostScalar getEstRowsAccessed() const 
-    { return estRowsAccessed_; }
-  inline void setEstRowsAccessed(CostScalar r)  { estRowsAccessed_ = r; }
-
- private:
-  ValueIdSet aggregateExpr_;
-  CorrName corrName_;
-  CostScalar estRowsAccessed_;
-  
-};
-
-class ExeUtilOrcFastAggr : public ExeUtilExpr
-{
- public:
- ExeUtilOrcFastAggr(const CorrName &corrName,
-                    ValueIdSet &aggregateExpr,
-                    CollHeap *oHeap = CmpCommon::statementHeap())
-   : ExeUtilExpr(ORC_FAST_AGGR_, corrName,
-		 NULL, NULL, 
-		 NULL, CharInfo::UnknownCharSet, oHeap),
-    aggregateExpr_(aggregateExpr)
-    {
-    };
-  
-  virtual RelExpr * copyTopNode(RelExpr *derivedNode = NULL,
-				CollHeap* outHeap = 0);
-  
-  virtual NABoolean producesOutput() { return TRUE; }
-  
-  virtual void getPotentialOutputValues(ValueIdSet & outputValues) const;
-
-  virtual RelExpr * bindNode(BindWA *bindWAPtr);
-
-  RelExpr * preCodeGen(Generator * generator,
-		       const ValueIdSet & externalInputs,
-		       ValueIdSet &pulledNewInputs);
-  
-  // method to do code generation
-  virtual short codeGen(Generator*);
-
-  ValueIdSet &aggregateExpr() { return aggregateExpr_; }
-  const ValueIdSet &aggregateExpr() const { return aggregateExpr_; }
-
- private:
-  ValueIdSet aggregateExpr_;
-  
 };
 
 class ExeUtilMetadataUpgrade : public ExeUtilExpr

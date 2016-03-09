@@ -4723,6 +4723,9 @@ NABoolean GroupBySplitRule::topMatch(RelExpr * expr,
   if (NOT bef->isNotAPartialGroupBy())
     return FALSE;
 
+  if ( bef->isFeasibleToTransformForAggrPushdown() )
+    return FALSE;
+
   // ---------------------------------------------------------------------
   // Examine the aggregate functions. If any one of them cannot be
   // evaluated in stages, such as a partial aggregation followed

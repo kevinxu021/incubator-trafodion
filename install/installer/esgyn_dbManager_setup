@@ -191,10 +191,7 @@ fi
 
 function getZookeeperNodes {
 
-lineNumber=$(grep -n "zookeeper\.quorum" $TRAF_WORKDIR/hbase-site.xml | sed 's/\:.*//')
-lineNumber=$((lineNumber+1))
-
-ZOOKEEPER_NODES=$(sed "$lineNumber!d" $TRAF_WORKDIR/hbase-site.xml | sed 's/\/value.*//' | sed 's/.*>//' | sed 's/.$//')
+source /etc/trafodion/trafodion_config
 
 ZOO_NODES=$(echo $ZOOKEEPER_NODES | tr "," "\n")
 
@@ -368,6 +365,13 @@ zooKeeperNodes="tsd.storage.hbase.zk_quorum = $ZOOKEEPER_NODES"
 sudo sed -i -e "s/tsd.storage.hbase.zk.quorum = localhost:2181/$zooKeeperNodes/g" $OPENTSDB_CONFIG
 sudo sed -i -e "s@TIMEZONE_NAME@$TIME_ZONE@g" $OPENTSDB_CONFIG
 
+if [[ $HADOOP_TYPE == "hortonworks" ]]; then
+   oldHbaseRoot="tsd.storage.hbase.zk_basedir = /hbase"
+   hbaseRoot="tsd.storage.hbase.zk_basedir = /hbase-unsecure"
+
+   sudo sed -i -e "s#$oldHbaseRoot#$hbaseRoot#g" $OPENTSDB_CONFIG
+fi
+
 if [[ $node_count -ne "1" ]]; then
    sudo su $TRAF_USER --command "$TRAF_PDCP $OPENTSDB_CONFIG $OPENTSDB_CONFIG"
 fi
@@ -378,6 +382,11 @@ function editStartStop {
 
 START_STOP="$SQ_ROOT/mgblty/tcollector/startstop"
 TRAF_CANARY="$SQ_ROOT/mgblty/tcollector/collectors/300/trafcanqry.py"
+HBASE_COLLECTOR="$SQ_ROOT/mgblty/tcollector/collectors/0/hbase_master.py"
+REGIONSERVER_COLLECTOR="$SQ_ROOT/mgblty/tcollector/collectors/0/hbase_regionserver.py"
+defaultHBaseInfoPort="60010"
+defaultRegionServerInfoPort="60030"
+
 
 echo "***INFO: Editing TCollector startstop script with TSD_HOST and TSD_PORT"
 
@@ -390,6 +399,11 @@ do
    ssh -q -n $node sudo sed -i -e "s/TSD_PORT=5242/$TSD_PORT_STR/g" $START_STOP
 
    ssh -q -n $node sudo sed -i -e "s@DCS_MASTER_HOST:DCS_PORT@$DCS_MASTER_HOST:$DCS_PORT@" $TRAF_CANARY
+  
+   ssh -q -n $node sudo sed -i -e "s#$defaultHBaseInfoPort#$HBASE_MASTER_INFO_PORT#g" $HBASE_COLLECTOR
+     
+   ssh -q -n $node sudo sed -i -e "s#$defaultRegionServerInfoPort#$REGIONSERVER_INFO_PORT#g" $REGIONSERVER_COLLECTOR
+
 
 done
 
@@ -432,7 +446,7 @@ sudo sed -i "s/$formerName/$newName/g" $logLocation
 }
 
 function configureDBM {
-
+source $TRAF_CONFIG
 export DM_HTTP_PORT="4205"
 export DM_HTTPS_PORT="4206"
 export REST_PORT="4200"

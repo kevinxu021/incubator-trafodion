@@ -53,6 +53,7 @@ ExpORCinterface::~ExpORCinterface()
 {
   // close. Ignore errors.
   scanClose();
+  NADELETE(ofr_, OrcFileReader, heap_);
 }
 
 Lng32 ExpORCinterface::init()
@@ -62,30 +63,67 @@ Lng32 ExpORCinterface::init()
   return 0;
 }
 
-Lng32 ExpORCinterface::scanOpen(
-                                char * orcFileName,
-                                const Int64 startRowNum, 
-                                const Int64 stopRowNum)
+Lng32 ExpORCinterface::open(char * orcFileName,
+                            const Int64 startRowNum, 
+                            const Int64 stopRowNum,
+                            Lng32 numCols,
+                            Lng32 * whichCols,
+                            TextVec *ppiVec,
+                            TextVec *ppiAllCols)
 {
-  OFR_RetCode rc = ofr_->open(orcFileName);
+  OFR_RetCode rc = 
+    (numCols == 0 
+     ? ofr_->open(orcFileName, startRowNum, stopRowNum, 
+                  numCols, whichCols,
+                  ppiVec,
+                  ppiAllCols) 
+     : ofr_->open(orcFileName, startRowNum, stopRowNum, 
+                  numCols, whichCols,
+                  ppiVec,
+                  ppiAllCols));
   if (rc != OFR_OK)
     return -rc;
 
-  startRowNum_ = startRowNum;
-  currRowNum_  = startRowNum;
-  stopRowNum_  = stopRowNum;
-
-  rc = ofr_->seeknSync(startRowNum);
-  if (rc != OFR_OK)
-    return -rc;
-  
   return 0;
 }
 
-Lng32 ExpORCinterface::scanFetch(char* row, Int64 &rowLen, Int64 &rowNum,
+Lng32 ExpORCinterface::scanOpen(
+                                char * orcFileName,
+                                const Int64 startRowNum, 
+                                const Int64 stopRowNum,
+                                Lng32 numCols,
+                                Lng32 * whichCols,
+                                TextVec *ppiVec,
+                                TextVec *ppiAllCols)
+{
+  Lng32 rc0 = open(orcFileName, startRowNum, stopRowNum,
+                   numCols, whichCols, ppiVec, ppiAllCols);
+  if (rc0)
+    {
+      if (rc0 == -OFR_ERROR_FILE_NOT_FOUND_EXCEPTION)
+        {
+          startRowNum_ = -1;
+          return 0;
+        }
+      
+      return rc0;
+    }
+
+  // Since the actual value of startRowNum (aka offset) and stopRowNum(aka length)
+  // have been used during the open call above, we do not need to use these two
+  // variables here.
+  startRowNum_ = 0; // startRowNum;
+  currRowNum_  = startRowNum_;
+  stopRowNum_  = -1; // stopRowNum;
+
+  return 0;
+}
+
+Lng32 ExpORCinterface::scanFetch(char** row, Int64 &rowLen, Int64 &rowNum,
                                  Lng32 &numCols)
 { 
-  if ((stopRowNum_ != -1) && (currRowNum_ > stopRowNum_))
+  if ((startRowNum_ == -1) ||
+      ((stopRowNum_ != -1) && (currRowNum_ > stopRowNum_)))
     return 100;
   
   OFR_RetCode rc = ofr_->fetchNextRow(row, rowLen, rowNum, numCols);
@@ -95,12 +133,15 @@ Lng32 ExpORCinterface::scanFetch(char* row, Int64 &rowLen, Int64 &rowNum,
   if (rc != OFR_OK)
     return -rc;
   
+  if ((rowLen <= 0) || (numCols <= 0))
+    return -OFR_UNKNOWN_ERROR;
+
   currRowNum_++;
   
   return 0;
 }
 
-Lng32 ExpORCinterface::scanClose()
+Lng32 ExpORCinterface::close()
 {
   OFR_RetCode rc = ofr_->close();
   if (rc != OFR_OK)
@@ -109,22 +150,20 @@ Lng32 ExpORCinterface::scanClose()
   return 0;
 }
 
-Lng32 ExpORCinterface::getRowCount(char * orcFileName, Int64 &count)
+Lng32 ExpORCinterface::scanClose()
 {
-  count = 0;
+  return close();
+}
 
-  OFR_RetCode rc = ofr_->open(orcFileName);
-  if (rc != OFR_OK)
-    return -rc;
+Lng32 ExpORCinterface::getColStats(char * orcFileName, Lng32 colNum,
+                                   ByteArrayList* &bal)
+{
+  bal = NULL;
 
-  rc = ofr_->getRowCount(count);
-  if (rc != OFR_OK)
-    return -rc;
+  bal = ofr_->getColStats(colNum);
+  if (bal == NULL)
+   return -OFR_UNKNOWN_ERROR;
  
-  rc = ofr_->close();
-  if (rc != OFR_OK)
-    return -rc;
-
   return 0;
 }
 
@@ -133,4 +172,22 @@ char * ExpORCinterface::getErrorText(Lng32 errEnum)
   return ofr_->getErrorText((OFR_RetCode)errEnum);
 }
 
+Lng32 ExpORCinterface::getStripeInfo(const char* orcFileName, 
+                                     LIST(Int64)& numOfRowsInStripe,
+                                     LIST(Int64)& offsetOfStripe,
+                                     LIST(Int64)& totalBytesOfStripe)
+{
+  OFR_RetCode rc = ofr_->open(orcFileName);
+  if (rc != OFR_OK)
+    return -rc;
 
+  rc = ofr_->getStripeInfo(numOfRowsInStripe, offsetOfStripe, totalBytesOfStripe);
+  if (rc != OFR_OK)
+    return -rc;
+
+  rc = ofr_->close();
+  if (rc != OFR_OK)
+    return -rc;
+
+  return 0;
+}

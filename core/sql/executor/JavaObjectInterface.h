@@ -31,7 +31,6 @@
 #include <sys/syscall.h>
 #include "jni.h"
 #include "Platform.h"
-
 #ifndef SEQ_TESTING
 #include "ex_god.h"
 #endif

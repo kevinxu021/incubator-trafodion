@@ -393,14 +393,6 @@ const NAString ExeUtilExpr::getText() const
       result = "LOB_EXTRACT";
       break;
       
-    case HBASE_COPROC_AGGR_:
-      result = "HBASE_COPROC_AGGR";
-      break;
-      
-    case ORC_FAST_AGGR_:
-      result = "ORC_FAST_AGGR";
-      break;
-      
     case WNR_INSERT_:
       result = "NO_ROLLBACK_INSERT";
       break;
@@ -3945,6 +3937,13 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
 
       qualObjName_ = dropTableNode->getTableNameAsQualifiedName();
 
+      // Normally, when a drop table is executed and DDL transactions is not
+      // enabled, a user started transaction is not allow.  However, when a
+      // session ends, a call is made to drop a volatile table, this drop should
+      // succeed. Make this type of delete to allow transactions
+      if (dropTableNode->isVolatile())
+        hbaseDDLNoUserXn_ = TRUE;
+
       // Drops of Hive and HBase external tables are allowed 
       if (qualObjName_.isHive() || (qualObjName_.isHbase()))
         {
@@ -5498,115 +5497,6 @@ RelExpr * ExeUtilLobShowddl::bindNode(BindWA *bindWA)
   return boundExpr;
 }
 
-
-// -----------------------------------------------------------------------
-// Member functions for class ExeUtilHbaseCoProcAggr
-// -----------------------------------------------------------------------
-RelExpr * ExeUtilHbaseCoProcAggr::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
-{
-  ExeUtilHbaseCoProcAggr *result;
-
-  if (derivedNode == NULL)
-  {
-    result = new (outHeap) 
-      ExeUtilHbaseCoProcAggr(getTableName(), aggregateExpr(), outHeap);
-    result->setEstRowsAccessed(getEstRowsAccessed());
-  }
-  else
-    result = (ExeUtilHbaseCoProcAggr *) derivedNode;
-
-  return ExeUtilExpr::copyTopNode(result, outHeap);
-}
-
-RelExpr * ExeUtilHbaseCoProcAggr::bindNode(BindWA *bindWA)
-{
-  if (nodeIsBound()) {
-    bindWA->getCurrentScope()->setRETDesc(getRETDesc());
-    return this;
-  }
-
-  NATable *naTable = NULL;
-
-  naTable = bindWA->getNATable(getTableName());
-  if (bindWA->errStatus())
-    return this;
-
-  RelExpr * boundExpr = ExeUtilExpr::bindNode(bindWA);
-  if (bindWA->errStatus())
-    return NULL;
-
-  // Allocate a TableDesc and attach it to this.
-  //
-  setUtilTableDesc(bindWA->createTableDesc(naTable, getTableName()));
-  if (bindWA->errStatus())
-    return this;
-
-  // BindWA keeps list of coprocessors used, so privileges can be checked.
-  bindWA->insertCoProcAggr(this);
-
-  CostScalar rowsAccessed(naTable->estimateHBaseRowCount());
-  setEstRowsAccessed(rowsAccessed);
-
-  return boundExpr;
-}
-
-void ExeUtilHbaseCoProcAggr::getPotentialOutputValues(
-						      ValueIdSet & outputValues) const
-{
-  outputValues.clear();
-  
-  outputValues += aggregateExpr();
-} // HbaseAccessCoProcAggr::getPotentialOutputValues()
-
-// -----------------------------------------------------------------------
-// Member functions for class ExeUtilOrcFastAggr
-// -----------------------------------------------------------------------
-RelExpr * ExeUtilOrcFastAggr::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
-{
-  ExeUtilOrcFastAggr *result;
-
-  if (derivedNode == NULL)
-    result = new (outHeap) 
-      ExeUtilOrcFastAggr(getTableName(), aggregateExpr(), outHeap);
-  else
-    result = (ExeUtilOrcFastAggr *) derivedNode;
-
-  return ExeUtilExpr::copyTopNode(result, outHeap);
-}
-
-RelExpr * ExeUtilOrcFastAggr::bindNode(BindWA *bindWA)
-{
-  if (nodeIsBound()) {
-    bindWA->getCurrentScope()->setRETDesc(getRETDesc());
-    return this;
-  }
-
-  NATable *naTable = NULL;
-
-  naTable = bindWA->getNATable(getTableName());
-  if (bindWA->errStatus())
-    return this;
-
-  RelExpr * boundExpr = ExeUtilExpr::bindNode(bindWA);
-  if (bindWA->errStatus())
-    return NULL;
-
-  // Allocate a TableDesc and attach it to this.
-  //
-  setUtilTableDesc(bindWA->createTableDesc(naTable, getTableName()));
-  if (bindWA->errStatus())
-    return this;
-
-  return boundExpr;
-}
-
-void ExeUtilOrcFastAggr::getPotentialOutputValues(
-						      ValueIdSet & outputValues) const
-{
-  outputValues.clear();
-  
-  outputValues += aggregateExpr();
-} // ExeUtilOrcFastAggr::getPotentialOutputValues()
 
 // -----------------------------------------------------------------------
 // Member functions for class ExeUtilHbaseDDL

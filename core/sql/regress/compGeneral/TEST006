@@ -58,7 +58,7 @@ drop table x3 cascade;
 drop mv mvx cascade;
 drop table t006tao;
 drop table t006_employees;
-
+drop table t006taoc;
 
 ?section create_tables
 
@@ -629,4 +629,61 @@ over(partition by a order by a)
 from t006taoc <<+ cardinality 10e6 >>
 order by 1, 2, 3
 ;
+
+select emp_name, dept_name, salary_amt,
+lead(salary_amt, 5-3, cast(0 as DECIMAL (8,2))) over (partition by dept_name order by emp_name)
+from t006_employees;
+
+-- LAG() Function Tests --
+-- default offset of LAG() is 1.
+select emp_name, dept_name, salary_amt, 
+lag(salary_amt) over (partition by dept_name order by emp_name)
+from T006_EMPLOYEES;
+
+select emp_name, dept_name, salary_amt, 
+lag(salary_amt, 0) over (partition by dept_name order by emp_name)
+from T006_EMPLOYEES;
+
+-- negative offset is flipped
+select emp_name, dept_name, salary_amt, 
+lag(salary_amt, -2) over (partition by dept_name order by emp_name)
+from T006_EMPLOYEES;
+
+prepare xx from select emp_name, dept_name, salary_amt, 
+lag(salary_amt, CAST(? as INT)) over (partition by dept_name order by emp_name)
+from T006_EMPLOYEES;
+execute xx using 2;
+
+select emp_name, dept_name, salary_amt, 
+lag(salary_amt, 3) over (partition by dept_name order by emp_name),
+lead(salary_amt, 2) over (partition by dept_name order by emp_name)
+from T006_EMPLOYEES;
+
+select emp_name, dept_name, salary_amt, 
+lag(salary_amt, 3) over (partition by dept_name order by emp_name),
+lag(salary_amt, 2) over (partition by dept_name order by emp_name)
+from T006_EMPLOYEES;
+
+select emp_name, dept_name, salary_amt,
+lag(salary_amt, 5-3, cast(0 as DECIMAL (8,2))) over (partition by dept_name order by emp_name)
+from t006_employees;
+
+select a, b, c,
+lag(b, 2) over(partition by a order by a),
+max(c) over(partition by a order by a)
+from t006tao;
+
+select emp_name, dept_name, salary_amt, 
+lag(salary_amt, 3) over (partition by dept_name order by emp_name),
+max(salary_amt) over (partition by dept_name)
+from T006_EMPLOYEES;
+
+select a, b, lag(b, 2) 
+over(partition by a order by a)
+from t006taoc <<+ cardinality 10e6 >>
+order by 1, 2, 3;
+
+select emp_name, dept_name, salary_amt, 
+lag(salary_amt, 3) over (partition by dept_name order by emp_name)
+from T006_EMPLOYEES <<+ cardinality 10e6 >> order by emp_name;
 

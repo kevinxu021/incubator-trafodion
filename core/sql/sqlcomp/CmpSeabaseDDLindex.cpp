@@ -1273,7 +1273,7 @@ void CmpSeabaseDDL::populateSeabaseIndex(
       NABoolean hasPriv = TRUE;
       if ( !privs->hasSelectPriv() )
         {
-           hasPriv == FALSE;
+           hasPriv = FALSE;
            *CmpCommon::diags() << DgSqlCode( -4481 )
                                << DgString0( "SELECT" )
                                << DgString1( extTableName.data());
@@ -1281,12 +1281,12 @@ void CmpSeabaseDDL::populateSeabaseIndex(
 
       if ( !privs->hasInsertPriv() )
         {   
-           hasPriv == FALSE;
+           hasPriv = FALSE;
            *CmpCommon::diags() << DgSqlCode( -4481 )
                                << DgString0( "INSERT" )
                                << DgString1( extTableName.data());
         }   
-      if (hasPriv == FALSE)
+      if (!hasPriv)
       {
          processReturn();
 

@@ -68,6 +68,11 @@ NABoolean NAColumn::operator==(const NAColumn& other) const
 	  (*getType() == *other.getType()));
 }
 
+NABoolean NAColumn::operator==(const NAString& otherColName) const
+{
+  return (getColName() == otherColName);
+}
+
 void NAColumn::deepDelete()
 {
   if(defaultValue_)
@@ -800,7 +805,6 @@ void NAColumn::resetAfterStatement()
   return;
 }
 
-// LCOV_EXCL_START :dd
 NABoolean NAColumnArray::operator==(const NAColumnArray &other) const
 {
   if (entries() != other.entries())
@@ -815,7 +819,37 @@ NABoolean NAColumnArray::operator==(const NAColumnArray &other) const
     }
   return TRUE;
 }
-// LCOV_EXCL_STOP
+
+NABoolean NAColumnArray::compare(const NAColumnArray &other,
+                                 NABoolean compareSystemCols) const
+{
+  CollIndex thisCol = 0;
+  CollIndex otherCol = 0;
+  CollIndex numCols = entries();
+
+  while (thisCol < numCols)
+    {
+      if (!compareSystemCols)
+        {
+          // skip over system columns in both this and other
+          while (thisCol < numCols && at(thisCol)->isSystemColumn())
+            thisCol++;
+          while (otherCol < other.entries() && other.at(otherCol)->isSystemColumn())
+            otherCol++;
+        }
+
+      if (thisCol < numCols)
+        if (otherCol >= other.entries())
+          return FALSE;
+        else if (NOT (*at(thisCol) == *other.at(otherCol)))
+                 return FALSE;
+
+      thisCol++;
+      otherCol++;
+    }
+
+  return TRUE;
+}
 
 Int32 NAColumnArray::getTotalStorageSize() const
 {
@@ -838,9 +872,28 @@ Int32 NAColumnArray::getColumnPosition(NAColumn& nc) const
   return -1;
 }
 
+Int32 NAColumnArray::getColumnPosition(NAString& nc) const
+{
+  for (CollIndex j = 0; j < entries(); j++) {
+    if ( (* at(j)) == nc )  // compare via NAColumn::operator==()
+      return j;
+  }
+  return -1;
+}
+
 NAString NAColumnArray::getColumnNamesAsString(char separator) const
 {
    return getColumnNamesAsString(separator, entries());
+}
+
+void NAColumnArray::display() const
+{
+   print();
+}
+
+void NAColumn::display() 
+{
+   print();
 }
 
 NAString NAColumnArray::getColumnNamesAsString(char separator, UInt32 ct) const

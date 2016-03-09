@@ -1963,22 +1963,28 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
 
   DDkwd__(HIVE_DEFAULT_CHARSET,            (char *)SQLCHARSETSTRING_UTF8),
   DD_____(HIVE_DEFAULT_SCHEMA,                  "HIVE"),
+  DDkwd__(HIVE_DESCRIBE_VIRT_COLS,              "OFF"),
+  DDkwd__(HIVE_EXT_TABLE_INCLUDE_VIRT_COLS,     "OFF"),
   DD_____(HIVE_FILE_CHARSET,                    ""),
   DD_____(HIVE_FILE_NAME,     "/hive/tpcds/customer/customer.dat" ),
   DD_____(HIVE_HDFS_STATS_LOG_FILE,             ""),
   DDint__(HIVE_LIB_HDFS_PORT_OVERRIDE,          "-1"),
   DDint__(HIVE_LOCALITY_BALANCE_LEVEL,          "0"),
   DDui___(HIVE_MAX_ESPS,                        "9999"),
-  DDui___(HIVE_MAX_STRING_LENGTH,               "32000"),
+  // Set to one byte less than QUERY_CACHE_MAX_CHAR_LEN so that hive queries with
+  // string literals can be cached.
+  DDui___(HIVE_MAX_STRING_LENGTH,               "31999"), 
   DDkwd__(HIVE_METADATA_JAVA_ACCESS,            "ON"),
   DDint__(HIVE_METADATA_REFRESH_INTERVAL,       "0"),
   DDflt0_(HIVE_MIN_BYTES_PER_ESP_PARTITION,     "67108864"),
   DDui___(HIVE_NUM_ESPS_PER_DATANODE,           "2"),
   DDpct__(HIVE_NUM_ESPS_ROUND_DEVIATION,        "34"),
+  DDkwd__(HIVE_PARTITION_ELIMINATION_CT,        "OFF"),
+  DDkwd__(HIVE_PARTITION_ELIMINATION_RT,        "ON"),
   DDkwd__(HIVE_SORT_HDFS_HOSTS,                 "ON"),
   DD_____(HIVE_USE_FAKE_SQ_NODE_NAMES,          "" ),
   DDkwd__(HIVE_USE_FAKE_TABLE_DESC,             "OFF"),
-  DDkwd__(HIVE_USE_HASH2_AS_PARTFUNCION,        "ON"),
+  DDkwd__(HIVE_USE_HASH2_AS_PARTFUNCION,        "SYSTEM"),
   DDkwd__(HIVE_VIEWS,                           "OFF"),
 
  // -------------------------------------------------------------------------
@@ -2738,6 +2744,12 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   //OPTS_PUSH_DOWN_DAM made external RV 06/21/01 CR 10-010425-2440
   DDui___(OPTS_PUSH_DOWN_DAM,                   "0"),
 
+  DDkwd__(ORC_AGGR_PUSHDOWN,                    "ON"),
+  DDkwd__(ORC_COLUMNS_PUSHDOWN,                 "ON"),
+  DDkwd__(ORC_PRED_PUSHDOWN,                    "ON"),
+  DDkwd__(ORC_USE_EXT_TABLE_ATTRS,              "OFF"),
+  DDkwd__(ORC_VECTORIZED_SCAN,                  "ON"),
+
   DDkwd__(ORDERED_HASH_JOIN_CONTROL,            "ON"),
  SDDkwd__(OR_OPTIMIZATION,                      "ON"),
   DDkwd__(OR_PRED_ADD_BLOCK_TO_IN_LIST,         "ON"),
@@ -3302,9 +3314,9 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDint__(TEST_PASS_TWO_ASSERT_TASK_NUMBER,	"-1"),
 
  XDDintN2(TIMEOUT,				"6000"),
-
-  DDflt0_(TMUDF_CARDINALITY_FACTOR, "1"),
-  DDflt0_(TMUDF_LEAF_CARDINALITY, "1"),
+ 
+ DDflt0_(TMUDF_CARDINALITY_FACTOR, "1"),
+ DDflt0_(TMUDF_LEAF_CARDINALITY, "1"),
 
   DDkwd__(TOTAL_RESOURCE_COSTING,               "ON"),
 
@@ -3315,6 +3327,8 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDkwd__(TRAF_ALLOW_ESP_COLOCATION,             "OFF"),   
 
  DDkwd__(TRAF_ALLOW_SELF_REF_CONSTR,                 "ON"),   
+
+ DDkwd__(TRAF_ALTER_COL_ATTRS,                 "ON"),   
 
  DDkwd__(TRAF_BLOB_AS_VARCHAR,                 "ON"), //set to OFF to enable Lobs support  
 
@@ -3328,7 +3342,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
 
  DDkwd__(TRAF_DEFAULT_COL_CHARSET,            (char *)SQLCHARSETSTRING_ISO88591),
  
- DDkwd__(TRAF_ENABLE_ORC_FORMAT,                 "OFF"),   
+ DDkwd__(TRAF_ENABLE_ORC_FORMAT,                 "ON"),   
 
   DDkwd__(TRAF_INDEX_ALIGNED_ROW_FORMAT,        "ON"),   
   DDkwd__(TRAF_INDEX_CREATE_OPT,          "OFF"),
@@ -3477,7 +3491,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
 // Specify the number of partitions before invoking parallel label operations
   DDui1__(USE_PARALLEL_FOR_NUM_PARTITIONS,       "32"),
 
-  DDkwd__(USTAT_ADD_SALTED_KEY_PREFIXES_FOR_MC, "OFF"),  // When ON, generate MCs for primary key prefixes as well as full key
+  DDkwd__(USTAT_ADD_SALTED_KEY_PREFIXES_FOR_MC, "ON"),   // When ON, generate MCs for primary key prefixes as well as full key
                                                          //   of salted table when ON EVERY KEY or ON EVERY COLUMN is specified.
   DDkwd__(USTAT_ATTEMPT_ESP_PARALLELISM,        "ON"),   // for reading column values
   DDui___(USTAT_AUTOMATION_INTERVAL,            "0"),
@@ -3502,6 +3516,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDkwd__(USTAT_COLLECT_FILE_STATS,             "ON"), // do we collect file stats
 
   DDkwd__(USTAT_COLLECT_MC_SKEW_VALUES,         "OFF"),
+  DDkwd__(USTAT_COLLECT_VIRT_COL_STATS,         "OFF"),
 
   DD_____(USTAT_CQDS_ALLOWED_FOR_SPAWNED_COMPILERS, ""), // list of CQDs that can be pushed to seconday compilers
                                                          // CQDs are delimited by ","
@@ -6771,6 +6786,12 @@ DefaultToken NADefaults::token(Int32 attrEnum,
     case AUTO_QUERY_RETRY:
       if (tok == DF_ON ||
 	  tok == DF_OFF ||
+	  tok == DF_SYSTEM)
+	isValid = TRUE;
+      break;
+
+    case HIVE_USE_HASH2_AS_PARTFUNCION:
+      if (tok == DF_ON ||
 	  tok == DF_SYSTEM)
 	isValid = TRUE;
       break;

@@ -107,7 +107,7 @@ class HbaseCreateOption : public NABasicObject
   NAText val_;
 };
 
-  class HbaseAccessOptions : public NABasicObject
+class HbaseAccessOptions : public NABasicObject
   {
   public:
   HbaseAccessOptions() :

@@ -46,6 +46,8 @@ define([
 		template:  _.template(QueryPlanT),
 
 		doInit: function (args){
+			this.currentURL = window.location.hash;
+			common.redirectFlag=false;
 			_this = this;
 
 			$('.panel-heading span.dbmgr-collapsible').on("click", function (e) {
@@ -85,7 +87,7 @@ define([
 					$(USED_TABLES_CONTAINER).css("height",$(this).height());
 				}
 			});
-			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "width": "95%", "height":"150px"});
+			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "width": "75%", "height":"150px"});
 			
 			this.processArgs(args);
 			
@@ -107,10 +109,11 @@ define([
 
 		},
 		doResume: function(args){
+			common.redirectFlag=false;
 			$(REFRESH_MENU).on('click', this.fetchExplainPlan);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
-			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			/*wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
 			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
 			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 			if(queryID == null || queryID != args){
@@ -119,10 +122,11 @@ define([
 			}
 		},
 		doPause: function(){
+			common.redirectFlag=true;
 			$(REFRESH_MENU).off('click', this.fetchExplainPlan);
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
-			wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			/*wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
 			serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
 			serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 		},
@@ -243,10 +247,24 @@ define([
 			wHandler.cancelQuery(queryID);
 		},
 		cancelQuerySuccess:function(){
-			alert('The cancel query request has been submitted');
+			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL};
+			if(common.redirectFlag==false){
+				_this.popupNotificationMessage(msgObj);
+			}else{
+				
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
+			/*alert('The cancel query request has been submitted');*/
 		},
 		cancelQueryError:function(jqXHR){
-			alert(jqXHR.responseText);
+			var msgObj={msg:jqXHR.responseText,tag:"success",url:_this.currentURL};
+			if(common.redirectFlag==false){
+				_this.popupNotificationMessage(msgObj);
+			}else{
+				
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
+			/*alert(jqXHR.responseText);*/
 		},        
 
 	});
