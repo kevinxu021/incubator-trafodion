@@ -3261,7 +3261,7 @@ short CmpDescribeSeabaseTable (
             attributesSet = TRUE;
          }
          strcat(attrs, "STORAGE MONARCH ");
-         outputShortLine(space, attrs);
+         outputShortLine(*space, attrs);
       }
       if (!isView && (naTable->hbaseCreateOptions()) &&
           (naTable->hbaseCreateOptions()->entries() > 0))

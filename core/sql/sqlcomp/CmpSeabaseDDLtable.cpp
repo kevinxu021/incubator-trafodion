@@ -4526,8 +4526,9 @@ short CmpSeabaseDDL::cloneHbaseTable(
   HbaseStr clonedHbaseTable;
   clonedHbaseTable.val = (char*)clonedTable.data();
   clonedHbaseTable.len = clonedTable.length();
-
-  ExpHbaseInterface * ehi = (inEHI ? inEHI : allocEHI());
+  //TBD:Monarch
+  NABoolean isMonarchTable = FALSE;
+  ExpHbaseInterface * ehi = (inEHI ? inEHI : allocEHI(isMonarchTable));
 
   // copy hbaseTable as clonedHbaseTable
   if (ehi->copy(hbaseTable, clonedHbaseTable, TRUE))
@@ -5773,7 +5774,7 @@ short CmpSeabaseDDL::alignedFormatTableDropColumn
   tempTable += "_";
   tempTable += str_ltoa(objUID, objUIDbuf);
 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(naTable->isMonarch());
   ExeCliInterface cliInterface
     (STMTHEAP, NULL, NULL, 
      CmpCommon::context()->sqlSession()->getParentQid());
@@ -5923,7 +5924,7 @@ short CmpSeabaseDDL::alignedFormatTableAlterColumn
   tempTable += "_";
   tempTable += str_ltoa(objUID, objUIDbuf);
 
-  ExpHbaseInterface * ehi = allocEHI();
+  ExpHbaseInterface * ehi = allocEHI(naTable->isMonarch());
   ExeCliInterface cliInterface
     (STMTHEAP, NULL, NULL, 
      CmpCommon::context()->sqlSession()->getParentQid());

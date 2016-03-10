@@ -740,6 +740,7 @@ Lng32 ExpHbaseInterface_JNI::copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
     return HBASE_ACCESS_SUCCESS;
   else
     return -HBASE_COPY_ERROR;
+  }
 }
 
 //----------------------------------------------------------------------------
