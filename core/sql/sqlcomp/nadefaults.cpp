@@ -1984,7 +1984,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDkwd__(HIVE_SORT_HDFS_HOSTS,                 "ON"),
   DD_____(HIVE_USE_FAKE_SQ_NODE_NAMES,          "" ),
   DDkwd__(HIVE_USE_FAKE_TABLE_DESC,             "OFF"),
-  DDkwd__(HIVE_USE_HASH2_AS_PARTFUNCTION,       "SYSTEM"),
+  DDkwd__(HIVE_USE_HASH2_AS_PARTFUNCTION,       "ON"),
   DDkwd__(HIVE_VIEWS,                           "OFF"),
 
  // -------------------------------------------------------------------------
