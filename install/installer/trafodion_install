@@ -257,7 +257,7 @@ export TRAF_USER="trafodion"
 #Prechecks 
 #Check if HBase is up
 
-./checkHBase
+$LOCAL_WORKDIR/checkHBase
 
 if [[ "$?" -ne "0" ]]; then
    exit -1
