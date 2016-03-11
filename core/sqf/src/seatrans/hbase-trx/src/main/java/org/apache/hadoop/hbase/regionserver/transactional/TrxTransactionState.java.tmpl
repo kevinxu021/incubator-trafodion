@@ -70,7 +70,7 @@ import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.ScanQueryMatcher;
 import org.apache.hadoop.hbase.regionserver.ScanType;
 import org.apache.hadoop.hbase.regionserver.ScanInfo;
-#ifdef HDP2.3
+#ifdefined HDP2.3 || CDH5.5
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
 #endif
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
@@ -709,7 +709,7 @@ public class TrxTransactionState  extends TransactionState{
          * @param limit
          * @return true if there are more rows, false if scanner is done
          */
-#ifndef HDP2.3
+#ifdefined APACHE || CDH5.4
         @Override
 #endif
         public synchronized boolean next(final List<Cell> outResult, final int limit) throws IOException {          	
@@ -780,7 +780,7 @@ public class TrxTransactionState  extends TransactionState{
         public synchronized boolean next(final List<Cell> results) throws IOException {
           return next(results, -1);
         }
-#ifdef HDP2.3
+#ifdefined HDP2.3 || CDH5.5
        @Override
        public boolean next(List<Cell> results, ScannerContext scannerContext) throws IOException {
            return next(results, -1);

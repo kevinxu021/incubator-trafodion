@@ -5578,7 +5578,7 @@ Lng32 HSGlobalsClass::CollectStatistics()
     //The sample table for SQLMP tables are always single partition. Whereas for
     //SQLMX, the table may be partitioned based on the HIST_SCRATCH_VOL cqd.
     if ((sampleTableUsed && tableFormat == SQLMP) ||
-        (NOT sampleTableUsed && objDef->getNumPartitions() == 1))
+        (NOT sampleTableUsed && (objDef->getNumPartitions() == 1) && isHbaseTable))
       {
         HSFuncExecQuery("CONTROL QUERY DEFAULT ATTEMPT_ESP_PARALLELISM 'OFF'");
       }

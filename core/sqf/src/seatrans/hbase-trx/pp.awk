@@ -2,25 +2,31 @@
 #  If the file f1 contains the following, run this script
 #  as follows:    
 #   awk -f pp.awk -v distro=HDP2.3 f1 > f2
-#  contents of  file f1:
-#  #ifdef HDP2.3
-#  this is HDP2.3 specific code
-#  #else
-#  this is other than HDP2.3 code
-#  #endif
 #
-#  #ifndef HDP2.3
-#  this is other than HDP2.3 code partof ifndef
-#  #else
-#  this is HDP2.3 code part of ifndef else
+#  contents of  file f1:
+#   #ifdef HDP2.3
+#   this is HDP2.3 specific code
+#   #else
+#   this is anything other then  HDP2.3 code
 #   #endif
 #
-#  this is common code
-#  this is common code 2
+#   #ifndef HDP2.3
+#   this is anything other than HDP2.3 code partof ifndef construct
+#   #else
+#   this is HDP2.3 code part of ifndef else construct
+#   #endif
 #
-#  #ifdef CDH1.0
-#  this is CDH specific code
-#  #endif
+#   this is common code for all cases
+#
+#   #ifdef CDH5.4
+#   this is CDH5.4 specific code
+#   #endif
+#
+#   #ifdefined CDH5.5 || HDP2.3
+#   this is common CDH5.5 or HDP2.3
+#   #else
+#   this is anything other than CDH5.5 or HDP2.3 code
+#   #endif
 
 BEGIN{
 printline=1      #print current line or not.
@@ -30,6 +36,7 @@ ifdefpattern = "#ifdef"
 endifpattern = "#endif"
 elsepattern = "#else"
 ifndefpattern = "#ifndef"
+ifdefinedpattern = "#ifdefined"
 #distro passed in as argument
 }
 {
@@ -82,11 +89,13 @@ ifndefpattern = "#ifndef"
      {
        printline = 0
        matchBegun = 1
+       unmatchBegun = 0
      }
      else
      {
       printline = 0
       unmatchBegun = 1
+      matchBegun = 0
      }
    }
  if($0 ~ ifndefpattern)
@@ -95,13 +104,31 @@ ifndefpattern = "#ifndef"
     {
       printline = 0
       unmatchBegun = 1
+      matchBegun = 0
     }
     else
     {
      printline = 0
      matchBegun = 1
+     unmatchBegun = 0
     }
   }
+  if($0 ~ ifdefinedpattern)
+  {
+    if(($2 ~ distro) || ($4 ~ distro))
+    {
+      printline = 0
+      matchBegun = 1
+      unmatchBegun = 0
+    }
+    else
+    {
+      printline = 0
+      unmatchBegun = 1
+      matchBegun = 0
+    }
+  }
+
 ######################
 # This section is final printing based on flags
 ######################

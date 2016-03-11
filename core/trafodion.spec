@@ -74,8 +74,6 @@ Requires: perl-version
 Requires: python
 Requires: readline
 Requires: sqlite
-Requires: tcl
-Requires: unixODBC
 Requires: zlib
 
 %description
