@@ -40,9 +40,7 @@ function backupRestore {
 
 source $TRAF_CONFIG
 
-touch $BACKUP_USER
-
-echo "## Allow $BACKUP_USER id to run commands needed for backup and restore" >> $BACKUP_USER
+echo "## Allow $BACKUP_USER id to run commands needed for backup and restore" > $BACKUP_USER
 echo "%$BACKUP_USER ALL =(hbase) NOPASSWD: /usr/bin/hbase" >> $BACKUP_USER
 
 }
