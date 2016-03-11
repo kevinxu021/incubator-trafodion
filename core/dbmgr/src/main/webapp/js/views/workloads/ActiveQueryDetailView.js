@@ -43,7 +43,7 @@ define([
 			_this = this;
 			$('#query-id').val(args);
 			queryID = args;
-			
+			this.pageIdentifier="active";
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
 			}
@@ -69,8 +69,8 @@ define([
 			this.loadQueryText();
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
-			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			wHandler.on(wHandler.ACTIVE_CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.ACTIVE_CANCEL_QUERY_ERROR, this.cancelQueryError);
 			refreshTimer.init();
 			
 			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
@@ -134,25 +134,24 @@ define([
 			$(LOADING_SELECTOR).hide();
 		},
 		cancelQuery: function(){
-			wHandler.cancelQuery(queryID);
+			wHandler.cancelQuery(queryID,_this.pageIdentifier);
 		},
 		cancelQuerySuccess:function(){
 			/*alert('The cancel query request has been submitted');*/
-			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL};
+			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully!"};
 			if(common.redirectFlag==false){
-				_this.popupNotificationMessage(msgObj);
+				_this.popupNotificationMessage(null,msgObj);
 			}else{
 				
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 			}
-			_this.fetchRepositoryQueryDetail();
 			_this.fetchActiveQueryDetail();
 		},
 		cancelQueryError:function(jqXHR){
 			/*alert(jqXHR.responseText);*/
-			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL};
+			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
 			if(common.redirectFlag==false){
-				_this.popupNotificationMessage(msgObj);
+				_this.popupNotificationMessage(null,msgObj);
 			}else{
 				
 				common.fire(common.NOFITY_MESSAGE,msgObj);
@@ -365,9 +364,9 @@ define([
 					var patt = new RegExp('ERROR\[8923\]'); 
 					if (!patt.test(jqXHR.responseText)){
 						/*alert(jqXHR.responseText);*/
-						var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL};
+						var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Fetch active query failed."};
 						if(common.redirectFlag==false){
-							_this.popupNotificationMessage(msgObj);
+							_this.popupNotificationMessage(null,msgObj);
 						}else{
 							
 							common.fire(common.NOFITY_MESSAGE,msgObj);

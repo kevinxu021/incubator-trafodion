@@ -32,6 +32,8 @@ define(['moment',
 			this.MESSAGE_LIST=new Array();
 			this.popupIndex;
 			this.redirectFlag=false;
+			this.isAllNotificationInserted=false;
+			this.hideNotifications=null;
 
 			this.sqlKeywords = "alter and as asc between by count create cqd delete desc distinct drop from group having in insert into is join like not on or order select set table union update values where ";
 
@@ -164,11 +166,6 @@ define(['moment',
 					return "";
 				return number.toString().replace(/,/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 			};
-			this.formatNumberRoundWithCommas = function(number) {
-				if(number == null)
-					return "";
-				return Math.round(number).toString().replace(/,/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-			};
 
 			this.toUTCFromMilliSeconds = function(milliSeconds) {
 				if (milliSeconds != null) {
@@ -200,56 +197,47 @@ define(['moment',
 				} else if (interval <= (3 * 24 * 60 * 60 * 1000)) {
 					offSetString = 'HH:mm'; // For 3 days, use every 1 hour
 				} else if (interval <= (1 * 7 * 24 * 60 * 60 * 1000)) {
-					offSetString = 'MM-DD'; // For 1 week, use every 2 hours
+					offSetString = 'ddd HH:mm'; // For 1 week, use every 2 hours
 				} else if (interval <= (2 * 7 * 24 * 60 * 60 * 1000)) {
-					offSetString = 'MM-DD'; // For 2 weeks, use every 4 hours
+					offSetString = 'ddd HH:mm'; // For 2 weeks, use every 4 hours
 				} else if (interval <= 1 * 31 * 24 * 60 * 60 * 1000) {
-					offSetString = 'MM-DD'; // For 1 month use every 12 hours
+					offSetString = 'ddd HH:mm'; // For 1 month use every 12 hours
 				} else if (interval <=  3 * 31 * 24 * 60 * 60 * 1000) {
-					offSetString = 'MM-DD'; // For 3 months use every 1 day
+					offSetString = 'MM-DD HH:mm'; // For 3 months use every 1 day
 				} else {
-					offSetString =  'MM-DD'; // For longer than 3 months, use every 1 week
+					offSetString =  'MM-DD HH:mm'; // For longer than 3 months, use every 1 week
 				}
 				if(isUtc !=null && isUtc == true)
 					return _this.toServerLocalDateFromUtcMilliSeconds(milliSeconds, offSetString);
 				return _this.toServerLocalDateFromMilliSeconds(milliSeconds, offSetString);
 			},
 			this.toTimeDifferenceFromLocalDate=function(start,end){
-				//JavaScript函数：
 				var minute = 1000 * 60;
 				var hour = minute * 60;
 				var day = hour * 24;
-				var halfamonth = day * 15;
+				var week=day * 7;
 				var month = day * 30;
-				function getDateDiff(dateTimeStamp){
-				var now = new Date().getTime();
-				var diffValue = now - dateTimeStamp;
-				if(diffValue < 0){
+				var year=month * 12;
+				var now = new Date();
+				var diff = end - start;
+				var timeAgo;
+				if(diff < 0){
 				 alert("end date could not be earlier than start date ！");
 				 }
-				var monthC =diffValue/month;
-				var weekC =diffValue/(7*day);
-				var dayC =diffValue/day;
-				var hourC =diffValue/hour;
-				var minC =diffValue/minute;
-				if(monthC>=1){
-				 result=parseInt(monthC) + "months ago";
-				 }
-				 else if(weekC>=1){
-				 result=parseInt(weekC) + "weeks ago";
-				 }
-				 else if(dayC>=1){
-				 result=parseInt(dayC) +"days ago";
-				 }
-				 else if(hourC>=1){
-				 result=parseInt(hourC) +"hours ago";
-				 }
-				 else if(minC>=1){
-				 result=parseInt(minC) +"minutes ago";
-				 }else
-				 result="right now";
-				return result;
+				if(minute<diff<60*minute){
+					timeAgo=(diff/minute).toFixed(0) +' minutes ago';
+				}else if(diff<day){
+					timeAgo=(diff/hour).toFixed(0) +' hours ago';
+				}else if(diff<week){
+					timeAgo=(diff/day).toFixed(0) +' days ago';
+				}else if(diff<month){
+					timeAgo=(diff/(week)).toFixed(0) +' weeks ago';
+				}else if(diff<year){
+					timeAgo=(diff/(month)).toFixed(0) +' months ago';
+				}else{
+					timeAgo=(diff/(year)).toFixed(0) +' years ago';
 				}
+				return timeAgo;
 			},
 			this.toServerLocalDateFromMilliSeconds = function(milliSeconds, formatString) {
 				if (milliSeconds != null) {
@@ -477,36 +465,6 @@ define(['moment',
 
 				return result;
 			};
-			
-			this.calculateHeight = function(depth){
-				return Math.max(310,70*depth);
-			};
-			
-			
-			this.calculateWidth = function(tree, container){
-				var a=[];
-				this.traverseWidth(a, tree, 0);
-				var left=Math.max.apply(null, a);
-				var right=Math.min.apply(null, a); //only left is used, if precise position needed, we will use right value;
-				
-				return Math.max($(container).width(), left*2*70);
-			};
-			
-			
-			this.traverseWidth = function(arr, tree, i){						
-				if(tree&&tree.children){
-					if(tree.children.length==2){
-						this.traverseWidth(arr, tree.children[0], i+1);
-						this.traverseWidth(arr, tree.children[1], i-1);
-					} else {
-						arr.push(i);
-						this.traverseWidth(arr, tree.children[0],i);
-					}								
-				} else{
-					arr.push(i);
-				}
-				
-			};
 
 			this.calculateHeight = function(depth){
 				return Math.max(310,70*depth);
@@ -560,8 +518,6 @@ define(['moment',
 					//set distance between node and its children
 					levelDistance: 40,
 					siblingOffset: 100,
-				    width: this.calculateWidth(jsonData, container),						   
-				    height: this.calculateHeight(jsonData.treeDepth),
 					//set max levels to show. Useful when used with
 					//the request method for requesting trees of specific depth
 					levelsToShow: jsonData.treeDepth,

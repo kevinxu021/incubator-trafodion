@@ -49,7 +49,7 @@ define([
 			this.currentURL = window.location.hash;
 			common.redirectFlag=false;
 			_this = this;
-
+			this.pageIdentifier="queryPlan";
 			$('.panel-heading span.dbmgr-collapsible').on("click", function (e) {
 		        if ($(this).hasClass('panel-collapsed')) {
 		                // expand the panel
@@ -100,8 +100,8 @@ define([
 	        	});
 			$(REFRESH_MENU).on('click', this.fetchExplainPlan);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
-			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			wHandler.on(wHandler.PLAN_CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.PLAN_CANCEL_QUERY_ERROR, this.cancelQueryError);
 			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
 			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 
@@ -244,12 +244,12 @@ define([
         	});
         },
 		cancelQuery: function(){
-			wHandler.cancelQuery(queryID);
+			wHandler.cancelQuery(queryID,_this.pageIdentifier);
 		},
 		cancelQuerySuccess:function(){
-			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL};
+			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully!"};
 			if(common.redirectFlag==false){
-				_this.popupNotificationMessage(msgObj);
+				_this.popupNotificationMessage(null,msgObj);
 			}else{
 				
 				common.fire(common.NOFITY_MESSAGE,msgObj);
@@ -257,9 +257,9 @@ define([
 			/*alert('The cancel query request has been submitted');*/
 		},
 		cancelQueryError:function(jqXHR){
-			var msgObj={msg:jqXHR.responseText,tag:"success",url:_this.currentURL};
+			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
 			if(common.redirectFlag==false){
-				_this.popupNotificationMessage(msgObj);
+				_this.popupNotificationMessage(null,msgObj);
 			}else{
 				
 				common.fire(common.NOFITY_MESSAGE,msgObj);
