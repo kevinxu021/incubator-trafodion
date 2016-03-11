@@ -32,6 +32,8 @@ define(['moment',
 			this.MESSAGE_LIST=new Array();
 			this.popupIndex;
 			this.redirectFlag=false;
+			this.isAllNotificationInserted=false;
+			this.hideNotifications=null;
 
 			this.sqlKeywords = "alter and as asc between by count create cqd delete desc distinct drop from group having in insert into is join like not on or order select set table union update values where ";
 
@@ -215,41 +217,32 @@ define(['moment',
 				return _this.toServerLocalDateFromMilliSeconds(milliSeconds, offSetString);
 			},
 			this.toTimeDifferenceFromLocalDate=function(start,end){
-				//JavaScript函数：
 				var minute = 1000 * 60;
 				var hour = minute * 60;
 				var day = hour * 24;
-				var halfamonth = day * 15;
+				var week=day * 7;
 				var month = day * 30;
-				function getDateDiff(dateTimeStamp){
-				var now = new Date().getTime();
-				var diffValue = now - dateTimeStamp;
-				if(diffValue < 0){
+				var year=month * 12;
+				var now = new Date();
+				var diff = end - start;
+				var timeAgo;
+				if(diff < 0){
 				 alert("end date could not be earlier than start date ！");
 				 }
-				var monthC =diffValue/month;
-				var weekC =diffValue/(7*day);
-				var dayC =diffValue/day;
-				var hourC =diffValue/hour;
-				var minC =diffValue/minute;
-				if(monthC>=1){
-				 result=parseInt(monthC) + "months ago";
-				 }
-				 else if(weekC>=1){
-				 result=parseInt(weekC) + "weeks ago";
-				 }
-				 else if(dayC>=1){
-				 result=parseInt(dayC) +"days ago";
-				 }
-				 else if(hourC>=1){
-				 result=parseInt(hourC) +"hours ago";
-				 }
-				 else if(minC>=1){
-				 result=parseInt(minC) +"minutes ago";
-				 }else
-				 result="right now";
-				return result;
+				if(minute<diff<60*minute){
+					timeAgo=(diff/minute).toFixed(0) +' minutes ago';
+				}else if(diff<day){
+					timeAgo=(diff/hour).toFixed(0) +' hours ago';
+				}else if(diff<week){
+					timeAgo=(diff/day).toFixed(0) +' days ago';
+				}else if(diff<month){
+					timeAgo=(diff/(week)).toFixed(0) +' weeks ago';
+				}else if(diff<year){
+					timeAgo=(diff/(month)).toFixed(0) +' months ago';
+				}else{
+					timeAgo=(diff/(year)).toFixed(0) +' years ago';
 				}
+				return timeAgo;
 			},
 			this.toServerLocalDateFromMilliSeconds = function(milliSeconds, formatString) {
 				if (milliSeconds != null) {
