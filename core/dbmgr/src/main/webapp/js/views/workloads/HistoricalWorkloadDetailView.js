@@ -41,6 +41,7 @@ define([
 		doInit: function (args){
 			common.redirectFlag=false;
 			_this = this;
+			this.pageIdentifier="historical";
 			$('#query-id').val(args);
 			queryID = args;
 			this.currentURL = window.location.hash;
@@ -69,8 +70,8 @@ define([
 			this.loadQueryText();
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
-			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			wHandler.on(wHandler.HISTORICAL_CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.HISTORICAL_CANCEL_QUERY_ERROR, this.cancelQueryError);
 			$(REFRESH_MENU).on('click', this.fetchRepositoryQueryDetail);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
@@ -153,12 +154,12 @@ define([
 		cancelQuery: function(){
 			var queryStatus = $('#query-status').val();
 			if(queryStatus == 'EXECUTING'){
-				wHandler.cancelQuery(queryID);
+				wHandler.cancelQuery(queryID,_this.pageIdentifier);
 			}else {
 				/*alert("The query is not in executing state. Cannot cancel the query.");*/
-				var msgObj={msg:'The query is not in executing state. Cannot cancel the query.',tag:"warning",url:_this.currentURL};
+				var msgObj={msg:'The query is not in executing state. Cannot cancel the query.',tag:"warning",url:_this.currentURL,shortMsg:"The query is not in executing state."};
 				if(common.redirectFlag==false){
-					_this.popupNotificationMessage(msgObj);
+					_this.popupNotificationMessage(null,msgObj);
 				}else{
 					
 					common.fire(common.NOFITY_MESSAGE,msgObj);
@@ -167,9 +168,9 @@ define([
 		},
 		cancelQuerySuccess:function(data){
 			/*alert('The cancel query request has been submitted');*/
-			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL};
+			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully!"};
 			if(common.redirectFlag==false){
-				_this.popupNotificationMessage(msgObj);
+				_this.popupNotificationMessage(null,msgObj);
 			}else{
 				
 				common.fire(common.NOFITY_MESSAGE,msgObj);
@@ -179,9 +180,9 @@ define([
 		},
 		cancelQueryError:function(jqXHR){
 			/*alert(jqXHR.responseText);*/
-			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL};
+			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
 			if(common.redirectFlag==false){
-				_this.popupNotificationMessage(msgObj);
+				_this.popupNotificationMessage(null,msgObj);
 			}else{
 				
 				common.fire(common.NOFITY_MESSAGE,msgObj);
