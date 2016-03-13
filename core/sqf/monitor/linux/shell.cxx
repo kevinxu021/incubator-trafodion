@@ -4569,6 +4569,15 @@ bool start_monitor( char *cmd_tail, bool warmstart, bool reintegrate )
     // Ensure that we are on a node that is part of the configuration
     char mynode[MPI_MAX_PROCESSOR_NAME];
     gethostname(mynode, MPI_MAX_PROCESSOR_NAME);
+    if(!VirtualNodes)  // for VirtualNodes, it use same gethostname, so do not tolower
+    {
+      char *tmpptr = mynode;
+      while ( *tmpptr )
+      {
+        *tmpptr = tolower( *tmpptr );
+        tmpptr++;
+      }
+    }
     bool nodeInConfig = false;
     for ( i = 0; i < NumNodes; i++ )
     {
@@ -6138,6 +6147,12 @@ int main (int argc, char *argv[])
     else
     {
         gethostname(MyNode, MPI_MAX_PROCESSOR_NAME);
+        char *tmpptr = MyNode;
+        while ( *tmpptr )
+        {
+            *tmpptr = (char)tolower( *tmpptr );
+            tmpptr++;
+        }
         if ( !load_nodes() )
         {
             exit (1);
