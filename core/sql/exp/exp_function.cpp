@@ -690,13 +690,13 @@ ExFunctionSStddev::ExFunctionSStddev(Attributes **attr, Space *space)
 };
 
 ExFunctionSStddev::ExFunctionSStddev(OperatorTypeEnum oper_type, Attributes **attr, Space *space)
-  : ex_function_clause(oper_type, 4, attr, space)
+  :type(oper_type), ex_function_clause(oper_type, 4, attr, space)
 {
 
 };
 
 ExFunctionSVariance::ExFunctionSVariance(OperatorTypeEnum oper_type, Attributes **attr, Space *space)
-  : ex_function_clause(oper_type, 4, attr, space)
+  :type(oper_type), ex_function_clause(oper_type, 4, attr, space)
 {
 };
 
@@ -5198,7 +5198,7 @@ ex_expr::exp_return_type ExFunctionSVariance::eval(char *op_data[],
     result = 0.0;
   }
   else {
-    switch(getOperatorType())
+    switch(type)
 	 {
 	 case ITM_VARIANCE:
 	  result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal - 1);
@@ -5253,7 +5253,7 @@ ex_expr::exp_return_type ExFunctionSStddev::eval(char *op_data[],
   }
   else {
     short err = 0;
-    switch(getOperatorType())
+    switch(type)
 	 {
 	 case ITM_STDDEV:
 	  result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal - 1);

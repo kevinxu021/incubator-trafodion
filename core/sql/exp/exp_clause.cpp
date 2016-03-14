@@ -839,7 +839,7 @@ NA_EIDPROC char *ex_clause::findVTblPtr(short classID)
 	case ex_clause::FUNC_STDDEV_SAMP_ID:
       GetVTblPtr(vtblPtr, ExFunctionSStddev);
 	  break;
-	case ex_clause::FUNC_STDDEV_POP_ID):
+	case ex_clause::FUNC_STDDEV_POP_ID:
       GetVTblPtr(vtblPtr, ExFunctionSStddev);
 	  break;
     case ex_clause::FUNC_RAISE_ERROR_ID:

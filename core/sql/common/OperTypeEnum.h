@@ -465,6 +465,10 @@ enum OperatorTypeEnum {
                         ITM_OLAP_LEAD = 2176,
                         ITM_OLAP_LAG = 2177,
 
+						ITM_OLAP_SDEV_SAMP = 2178,
+						ITM_OLAP_SDEV_POP = 2179,
+						ITM_OLAP_VARIANCE_SAMP = 2180,
+						ITM_OLAP_VARIANCE_POP = 2181,
                         // numeric functions
                         ITM_ABS = 2200,
                         ITM_CEIL = 2201,

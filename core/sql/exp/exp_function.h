@@ -2739,10 +2739,12 @@ private:
 
 class SQLEXP_LIB_FUNC  ExFunctionSVariance : public ex_function_clause {
 private:
-  bool type;
+  OperatorTypeEnum type;
 public:
   NA_EIDPROC
-  ExFunctionSVariance(Attributes **attr, Space *space, bool type);
+  ExFunctionSVariance(Attributes **attr, Space *space);
+  NA_EIDPROC
+  ExFunctionSVariance(OperatorTypeEnum type, Attributes **attr, Space *space);
 
   NA_EIDPROC
   ExFunctionSVariance();
@@ -2774,9 +2776,13 @@ public:
 };
 
 class SQLEXP_LIB_FUNC  ExFunctionSStddev : public ex_function_clause {
+private:
+  OperatorTypeEnum type;
 public:
   NA_EIDPROC
-  ExFunctionSStddev(Attributes **attr, Space *space, bool type );
+  ExFunctionSStddev(Attributes **attr, Space *space);
+  NA_EIDPROC
+  ExFunctionSStddev(OperatorTypeEnum type, Attributes **attr, Space *space);
 
   NA_EIDPROC
   ExFunctionSStddev();
