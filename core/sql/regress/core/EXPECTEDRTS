@@ -50,7 +50,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 4    .    5    root                                                  2.00E+000
 3    .    4    esp_exchange                    1:2(hash2)            2.00E+000
 2    .    3    hash_groupby                                          2.00E+000
-1    .    2    esp_exchange                    2(hash2):2(hash2)     1.00E+002
+1    .    2    esp_exchange                    2(hash2):1            1.00E+002
 .    .    1    trafodion_scan                  TSTAT                 1.00E+002
 
 --- SQL operation complete.
@@ -1900,7 +1900,7 @@ LC   RC   Id   PaId ExId Frag TDB Name                 DOP     Dispatches      O
 3    .    4    5    2    2    EX_SEND_TOP              4               18                871                100                  4
 2    .    3    4    2    3    EX_SEND_BOTTOM           4               30                241                100                  4
 1    .    2    3    2    3    EX_SPLIT_BOTTOM          2                8                 29                100                  4 1720
-.    .    1    2    1    3    EX_TRAF_KEY_SELECT       6               12              4,350                100                  4 TRAFODION.SCH.TSTAT|4|120
+.    .    1    2    1    3    EX_TRAF_SELECT           6               12              4,350                100                  4 TRAFODION.SCH.TSTAT|4|120
 
 --- SQL operation complete.
 >>get statistics for QID MXID11000021046212322113714480769000000000206U3333300_478_S1 ;
@@ -1949,7 +1949,7 @@ LC   RC   Id   PaId ExId Frag TDB Name                 DOP     Dispatches      O
 3    .    4    5    2    2    EX_SEND_TOP              4               18                871                100                  4
 2    .    3    4    2    3    EX_SEND_BOTTOM           4               30                241                100                  4
 1    .    2    3    2    3    EX_SPLIT_BOTTOM          2                8                 29                100                  4 1720
-.    .    1    2    1    3    EX_TRAF_KEY_SELECT       6               12              4,350                100                  4 TRAFODION.SCH.TSTAT|4|120
+.    .    1    2    1    3    EX_TRAF_SELECT           6               12              4,350                100                  4 TRAFODION.SCH.TSTAT|4|120
 
 --- SQL operation complete.
 >>log;
@@ -2404,7 +2404,7 @@ LC   RC   Id   PaId ExId Frag TDB Name                 DOP     Dispatches      O
 3    .    4    5    2    2    EX_SEND_TOP              4               18                871                100                  4
 2    .    3    4    2    3    EX_SEND_BOTTOM           4               30                241                100                  4
 1    .    2    3    2    3    EX_SPLIT_BOTTOM          2                8                 29                100                  4 1720
-.    .    1    2    1    3    EX_TRAF_KEY_SELECT       6               12              4,350                100                  4 TRAFODION.SCH.TSTAT|4|120
+.    .    1    2    1    3    EX_TRAF_SELECT           6               12              4,350                100                  4 TRAFODION.SCH.TSTAT|4|120
 
 --- SQL operation complete.
 >>get statistics for QID MXID11000021046212322113714480769000000000206U3333300_478_S1 DEFAULT;
@@ -2453,7 +2453,7 @@ LC   RC   Id   PaId ExId Frag TDB Name                 DOP     Dispatches      O
 3    .    4    5    2    2    EX_SEND_TOP              4               18                871                100                  4
 2    .    3    4    2    3    EX_SEND_BOTTOM           4               30                241                100                  4
 1    .    2    3    2    3    EX_SPLIT_BOTTOM          2                8                 29                100                  4 1720
-.    .    1    2    1    3    EX_TRAF_KEY_SELECT       6               12              4,350                100                  4 TRAFODION.SCH.TSTAT|4|120
+.    .    1    2    1    3    EX_TRAF_SELECT           6               12              4,350                100                  4 TRAFODION.SCH.TSTAT|4|120
 
 --- SQL operation complete.
 >>log;
@@ -2503,7 +2503,7 @@ LC   RC   Id   PaId ExId Frag TDB Name                 DOP     Dispatches      O
 3    .    4    5    2    2    EX_SEND_TOP              4               18                871                100                  4
 2    .    3    4    2    3    EX_SEND_BOTTOM           4               10                241                100                  4
 1    .    2    3    2    3    EX_SPLIT_BOTTOM          2                6                 29                100                  4 1720
-.    .    1    2    1    3    EX_TRAF_KEY_SELECT       2                4              1,450                100                  4 TRAFODION.SCH.TSTAT|4|120
+.    .    1    2    1    3    EX_TRAF_SELECT           2                4              1,450                100                  4 TRAFODION.SCH.TSTAT|4|120
 
 --- SQL operation complete.
 >>get statistics for qid current accumulated ;
@@ -2747,7 +2747,7 @@ LC   RC   Id   PaId ExId Frag TDB Name                 DOP     Dispatches      O
 3    .    4    5    2    2    EX_SEND_TOP              4               18                871                100                  4
 2    .    3    4    2    3    EX_SEND_BOTTOM           4               10                241                100                  4
 1    .    2    3    2    3    EX_SPLIT_BOTTOM          2                6                 29                100                  4 1720
-.    .    1    2    1    3    EX_TRAF_KEY_SELECT       2                4              1,450                100                  4 TRAFODION.SCH.TSTAT|4|120
+.    .    1    2    1    3    EX_TRAF_SELECT           2                4              1,450                100                  4 TRAFODION.SCH.TSTAT|4|120
 
 --- SQL operation complete.
 >>set session default statistics_view_type 'default' ;
@@ -2799,7 +2799,7 @@ LC   RC   Id   PaId ExId Frag TDB Name                 DOP     Dispatches      O
 3    .    4    5    2    2    EX_SEND_TOP              4               18                871                100                  4
 2    .    3    4    2    3    EX_SEND_BOTTOM           4               10                241                100                  4
 1    .    2    3    2    3    EX_SPLIT_BOTTOM          2                6                 29                100                  4 1720
-.    .    1    2    1    3    EX_TRAF_KEY_SELECT       2                4              1,450                100                  4 TRAFODION.SCH.TSTAT|4|120
+.    .    1    2    1    3    EX_TRAF_SELECT           2                4              1,450                100                  4 TRAFODION.SCH.TSTAT|4|120
 
 --- SQL operation complete.
 >>set session default statistics_view_type 'accumulated' ;
