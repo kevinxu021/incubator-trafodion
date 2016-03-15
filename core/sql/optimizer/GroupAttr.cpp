@@ -2913,6 +2913,9 @@ GroupAttributes::getNonEssentialCharacteristicOutputs(ValueIdSet & vset) const
 
 NABoolean GroupAttributes::allHiveTables()
 {
+  if ( availableBtreeIndexes_.entries() == 0 )
+     return FALSE;
+
   for (CollIndex i = 0; i < availableBtreeIndexes_.entries(); i++)
   {
     IndexDesc* iDesc = availableBtreeIndexes_[i];

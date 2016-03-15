@@ -3375,7 +3375,7 @@ enum DefaultConstants
   HDFS_IO_RANGE_TAIL,
   HIVE_METADATA_REFRESH_INTERVAL,
 
-  HIVE_USE_HASH2_AS_PARTFUNCION,
+  HIVE_USE_HASH2_AS_PARTFUNCTION,
 
   MODE_SEAHIVE,
   HIVE_CATALOG,
@@ -3829,6 +3829,8 @@ enum DefaultConstants
   // if ON, upsert into the table will use the default value for the omitted columns
   // with default value 
   TRAF_UPSERT_WITH_INSERT_DEFAULT_SEMANTICS,
+  // enable/disable NJs into ORC tables
+  ORC_NJS,
 
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!

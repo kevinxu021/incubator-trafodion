@@ -58,6 +58,9 @@ Options:
    --check              Check for show stoppers only and exit
    -h | --help          Display this help information
 
+   no options:          re-install with the default locations. 
+                        The old tpcds data is removed. 
+
 Set environment variable MY_LOCAL_SW_DIST to the directory of a local
 copy of the TPC-DS zip file, if possible.
 
@@ -66,6 +69,24 @@ EOF
 
 FORCE=""
 CHECKONLY=""
+
+if [ $# -eq 0 ]; then
+    MY_SW_PARENT=$MY_SQROOT/sql
+    MY_SW_ROOT=$MY_SW_PARENT/local_hadoop
+    MY_DATA_DIR=${MY_SW_ROOT}/data
+    MY_LOG_FILE=${MY_SW_ROOT}/log/install_local_hadoop_$(date +%F_%T).log
+    MY_SW_SCRIPTS_DIR=$MY_SW_PARENT/scripts
+
+    MY_TPCDS_UNPACK_DIR=$MY_SW_ROOT/tpcds
+    MY_TPCDS_DATA_DIR=$MY_DATA_DIR/tpcds
+    MY_LOG_FILE=$MY_LOG_FILE 
+    MY_HDFS_CMD=${MY_SW_SCRIPTS_DIR}/swhdfs
+    MY_HIVE_CMD=${MY_SW_SCRIPTS_DIR}/swhive
+    FORCE="true"
+
+    rm -fr $MY_SW_ROOT/tpcds
+    rm -fr $MY_SW_ROOT/data/tpcds
+fi
 
 while [ $# -gt 0 ];
 do
@@ -567,6 +588,77 @@ stored as ORC
 set hive.enforce.bucketing = true;
 insert into table store_sales_sorted_orc 
 select * from store_sales sort by ss_sold_date_sk, ss_sold_time_sk, ss_item_sk;
+
+drop table date_dim_orc_bucketed;
+create external table date_dim_orc_bucketed
+(
+    d_date_sk                 int,
+    d_date_id                 string,
+    d_date                    date,
+    d_month_seq               int,
+    d_week_seq                int,
+    d_quarter_seq             int,
+    d_year                    int,
+    d_dow                     int,
+    d_moy                     int,
+    d_dom                     int,
+    d_qoy                     int,
+    d_fy_year                 int,
+    d_fy_quarter_seq          int,
+    d_fy_week_seq             int,
+    d_day_name                string,
+    d_quarter_name            string,
+    d_holiday                 string,
+    d_weekend                 string,
+    d_following_holiday       string,
+    d_first_dom               int,
+    d_last_dom                int,
+    d_same_day_ly             int,
+    d_same_day_lq             int,
+    d_current_day             string,
+    d_current_week            string,
+    d_current_month           string,
+    d_current_quarter         string,
+    d_current_year            string 
+)
+clustered by (d_date_sk) into 8 buckets
+stored as ORC
+location '/hive/tpcds/date_dim_orc_bucketed';
+
+set hive.enforce.bucketing = true;
+insert into table date_dim_orc_bucketed
+select * from date_dim;
+
+
+drop table customer_orc_bucketed;
+create table customer_orc_bucketed
+(
+    c_customer_sk             int,
+    c_customer_id             string,
+    c_current_cdemo_sk        int,
+    c_current_hdemo_sk        int,
+    c_current_addr_sk         int,
+    c_first_shipto_date_sk    int,
+    c_first_sales_date_sk     int,
+    c_salutation              string,
+    c_first_name              string,
+    c_last_name               string,
+    c_preferred_cust_flag     string,
+    c_birth_day               int,
+    c_birth_month             int,
+    c_birth_year              int,
+    c_birth_country           string,
+    c_login                   string,
+    c_email_address           string,
+    c_last_review_date        string
+)
+clustered by (c_customer_sk) into 8 buckets
+stored as ORC
+location '/hive/tpcds/customer_orc_bucketed';
+
+set hive.enforce.bucketing = true;
+insert into table customer_orc_bucketed
+select * from customer;
 
 
 quit;

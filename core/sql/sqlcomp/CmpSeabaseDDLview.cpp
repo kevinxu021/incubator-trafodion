@@ -299,8 +299,7 @@ short CmpSeabaseDDL::updateViewUsage(StmtDDLCreateView * createViewParseNode,
 
       // do not put hive objects in view usage list.
       if ((CmpCommon::getDefault(HIVE_VIEWS) == DF_ON) &&
-          (catalogNamePart == HIVE_SYSTEM_CATALOG) &&
-          (schemaNamePart == HIVE_SYSTEM_SCHEMA))
+          (catalogNamePart == HIVE_SYSTEM_CATALOG))
         continue;
 
       char objType[10];

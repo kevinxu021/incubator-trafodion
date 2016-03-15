@@ -26,11 +26,9 @@ define([
 
 		pageWrapper: null,
 		
+		pageIdentifier:null,
+		
 		currentURL:null,
-		
-		isAllNotificationInserted:false,
-		
-		hideNotifications:null,
 
 		/*initialize: function () {
 
@@ -150,27 +148,13 @@ define([
 		},
 		refreshTimeDiff:function(){
 			var current = new Date();
-			var diffList=new Array();
 			for(var i=0;i<common.MESSAGE_LIST.length;i++){
-				var diff=current-common.MESSAGE_LIST[i].time;
-				var timeAgo=null;
-				if(1<diff/(60*1000)<60){
-					timeAgo=(diff/(60*1000)).toFixed(0) +' minutes ago';
-				}else if(diff/(24*3600*1000)<1){
-					timeAgo=(diff/(3600*1000)).toFixed(0) +' hours ago';
-				}else if(diff/(7*24*3600*1000)<1){
-					timeAgo=(diff/(24*3600*1000)).toFixed(0) +' days ago';
-				}else if(diff/(30*7*24*3600*1000)<1){
-					timeAgo=(diff/(7*24*3600*1000)).toFixed(0) +' weeks ago';
-				}else if(diff/(12*30*7*24*1000)<1){
-					timeAgo=(diff/(30*7*24*1000)).toFixed(0) +' months ago';
-				}else{
-					timeAgo=(diff/(12*30*7*24*1000)).toFixed(0) +' years ago';
-				}
+				var timeAgo = common.toTimeDifferenceFromLocalDate(common.MESSAGE_LIST[i].time,current);
 				$("span.timeAgo").eq(i).text(timeAgo);
 			}
 		},
 		collectNewNotifyMessage:function(obj){
+			$("#notifyMenu>ul>div").remove();
 			common.MESSAGE_COUNT++;
 			var currentTime=new Date();
 			var interval=setInterval(__this.flashBackground,1000);
@@ -178,74 +162,99 @@ define([
 			setTimeout(function(){clearInterval(interval)},5000);
 			//remove the empty li.
 			if($("#notifyMenu>ul>li>a>strong").text().trim()=='empty'){
-				$("#notifyMenu>ul>li").remove();			
+				$("#notifyMenu>ul>li").remove();
 			}
 			//check whether there is number already.
-			if($("#notifyMenu>a>i>small").text().length!=0){
+			/*if($("#notifyMenu>a>i>small").text().length!=0){
 				$("#notifyMenu>a>i>small").text(common.MESSAGE_COUNT);
 			}else{
 				$("#notifyMenu>a>i").eq(0).append("<small>"+common.MESSAGE_COUNT+"</small>");
-			}
+			}*/
 			//sometimes the response will be undefined.
 			if(common.MESSAGE_COUNT>4){
-				if(_this.isAllNotificationInserted==false){
-					_this.isAllNotificationInserted=true;
+				if(common.isAllNotificationInserted==false){
+					common.isAllNotificationInserted=true;
 					$("#notifyMenu>ul").append('<li id="allNotification"><a class="text-center active"><strong>See All Notifications</strong><i class="fa fa-angle-right"></i></a></li>');
 				}
 				if(obj.msg!=undefined){
-									$("#notifyMenu>ul").prepend('<li style="display: none;"><a class="active"><div class="notifyDetail"><i class="fa fa-tasks fa-fw"></i><i>'+ obj.msg.substr(0,20)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">×</button></div></a></li><li class="divider" style="display: none;"></li>');
+									$("#notifyMenu>ul").prepend('<li style="display: none;"><a class="active"><div class="notifyDetail"><i class="fa fa-tasks fa-fw"></i><i>'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">×</button></div></a></li><li class="divider" style="display: none;"></li>');
 								}else{
 									obj.msg="there is no response for current request!";
-									$("#notifyMenu>ul").prepend('<li style="display: none;"><a class="active"><div  class="notifyDetail"><i class="fa fa-tasks fa-fw"></i><i>'+ obj.msg.substr(0,20)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">×</button></div></a></li><li class="divider" style="display: none;"></li>');
+									obj.shortMsg="there is no response for current request!";
+									$("#notifyMenu>ul").prepend('<li style="display: none;"><a class="active"><div  class="notifyDetail"><i class="fa fa-tasks fa-fw"></i><i>'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">×</button></div></a></li><li class="divider" style="display: none;"></li>');
 								}
 			}else{
 				if(obj.msg!=undefined){
 					
-					$("#notifyMenu>ul").prepend('<li><a class="active"><div class="notifyDetail"><i class="fa fa-tasks fa-fw"></i><i">'+ obj.msg.substr(0,20)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">×</button></div></a></li><li class="divider"></li>');
+					$("#notifyMenu>ul").prepend('<li><a class="active"><div class="notifyDetail"><i class="fa fa-tasks fa-fw"></i><i">'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">×</button></div></a></li><li class="divider"></li>');
 				}else{
 					obj.msg="there is no response for current request!";
-					$("#notifyMenu>ul").prepend('<li><a class="active"><div class="notifyDetail"><i class="fa fa-tasks fa-fw"></i><i">'+ obj.msg.substr(0,20)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">×</button></div></a></li><li class="divider"></li>');
+					obj.shortMsg="there is no response!";
+					$("#notifyMenu>ul").prepend('<li><a class="active"><div class="notifyDetail"><i class="fa fa-tasks fa-fw"></i><i">'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">×</button></div></a></li><li class="divider"></li>');
 				}
 			}
 			common.MESSAGE_LIST.splice(0,0,{msg:obj.msg,tag:obj.tag,url:obj.url,time:currentTime});
 			$(".notifyDetail").unbind().on("click",__this.popupNotificationMessage);
 			$(".close").unbind().on("click",__this.removeNotificationMessage);
-			$("#allNotification").unbind().on("click",__this.showAllNotifications);
+			if($("#allNotification").text().indexOf("All")>0){
+				//showed part of notifications
+				common.hideNotifications=$("#notifyMenu>ul>li[style='display: none;']");
+				$("#allNotification").unbind().on("click",__this.showAllNotifications);
+			}else if($("#allNotification").text().indexOf("Part")>0){
+				//showed all of notifications
+				$("#notifyMenu>ul>li").eq(0).add($("#notifyMenu>ul>li").eq(1)).show();
+				common.hideNotifications=common.hideNotifications.add($("#notifyMenu>ul>li").eq(0)).add($("#notifyMenu>ul>li").eq(1));
+				$("#allNotification").unbind().on("click",__this.showPartOfNotifications);
+				if(common.MESSAGE_COUNT>7){
+					$("#notifyMenu>ul").attr("style","overflow:scroll;height:400px;width:450px");
+				}
+			}
+			$("#notifyMenu>ul").prepend('<div class="panel-heading" style="text-align: center;border: 1px solid #e5e5e5;padding-top: 5px;color: #7b8a8b;">Total Count '+common.MESSAGE_COUNT+'</div>');
 		},
-		showAllNotifications:function(){
+		showAllNotifications:function(event){
 			/*$("#notifyMenu").attr("class","dropdown active open");*/
-			_this.hideNotifications= $("#notifyMenu>ul>li[style='display: none;']");
 			$("#notifyMenu>ul>li").show();
 			$("#allNotification>a>strong").text("See Part of Notifications");
-			$("#allNotification").unbind().on("click",__this.hidePartOfNotifications);
+			$("#allNotification").unbind().on("click",__this.showPartOfNotifications);
+			if(common.MESSAGE_COUNT>7){
+				$("#notifyMenu>ul").attr("style","overflow:scroll;height:400px;width:450px");
+			}
+			event.stopPropagation();
 		},
-		hidePartOfNotifications:function(){
+		showPartOfNotifications:function(event){
 			/*$("#notifyMenu").attr("class","dropdown active open");*/
-			_this.hideNotifications.hide();
+			$("#notifyMenu>ul").attr("style","width:450px");
+			common.hideNotifications.hide();
 			$("#allNotification>a>strong").text("See All Notifications");
 			$("#allNotification").unbind().on("click",__this.showAllNotifications);
+			event.stopPropagation();
 		},
-		removeNotificationMessage:function(index){
+		removeNotificationMessage:function(event,index){
 			var i;
-			if($.type(index)=="object"){
+			if($.type(event)=="object"){
 				//triggered by the panel x mark.
 				i=$(this).closest("li").index();
-			}else{
+			}/*else{
 				//triggered by the popup x mark.
 				i=index;
-			}
+			}*/
 			common.MESSAGE_COUNT--;
-			$("#notifyMenu>a>i>small").text(common.MESSAGE_COUNT);
-			$("#notifyMenu>ul>li").eq(i).remove();
-			$("#notifyMenu>ul>li").eq(i).remove();
-			common.MESSAGE_LIST.splice(common.MESSAGE_LIST[i/2],1);
+			if(common.MESSAGE_COUNT<=7){
+				$("#notifyMenu>ul").attr("style","width:450px");
+			}
+			$("#notifyMenu>ul>div").text("Total Count " + common.MESSAGE_COUNT);
+			$("#notifyMenu>ul>li").eq(i-1).remove();
+			$("#notifyMenu>ul>li").eq(i-1).remove();
+			common.MESSAGE_LIST.splice(common.MESSAGE_LIST[(i-1)/2],1);
 			//if the removed element is display:block, redefine the hide and show notifications
 			if(this.parentElement.style.display==""){
 				__this.redefineShowHideNotifications();
 			}
 			if($("#notifyMenu>ul>li [class!='divider']").length==0){
-				$("#notifyMenu>ul").prepend('<li><a class="text-center active" href="#"><i class="fa fa-angle-left"></i><strong>empty </strong><i class="fa fa-angle-right"></i></a></li>');
+				$("#notifyMenu>ul>div").remove();
+				$("#notifyMenu>ul").prepend('<li><a class="text-center active"><i class="fa fa-angle-left"></i><strong>empty </strong><i class="fa fa-angle-right"></i></a></li>');
 			}
+			event.stopPropagation();
 		},
 		redefineShowHideNotifications:function(){
 			//remove "all notification" li
@@ -254,15 +263,19 @@ define([
 			var showList=elementList.slice(length-9);
 			//get the four show elements
 			showList.show();
-			_this.hideNotifications = elementList.splice(length-9,9);
+			if($("#notifyMenu>ul>li[style='display: none;']").length==0){
+				$("#allNotification").remove();
+				common.isAllNotificationInserted=false;
+			}
 		},
-		popupNotificationMessage:function(obj){
-			if(obj.msg==undefined){
+		popupNotificationMessage:function(event,obj){
+			if(event!=null){
 				//this for redirect case
 				var i=$(this).closest("li").index();
+				event.stopPropagation();
 				//used to remove the notification from popup.
-				common.popupIndex=i/2;
-				obj=common.MESSAGE_LIST[i/2];
+				common.popupIndex=(i-1)/2;
+				obj=common.MESSAGE_LIST[(i-1)/2];
 			}
 			//this is for no redirect
 			$.notify({message: obj.msg,
@@ -282,7 +295,7 @@ define([
 				}});
 		},
 		removeNotificationFromPopup:function(){
-			__this.removeNotificationMessage(common.popupIndex*2);
+			/*__this.removeNotificationMessage(common.popupIndex*2);*/
 		},
 		remove: function(){
 			_this.refreshTimer.stop();
