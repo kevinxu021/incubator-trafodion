@@ -214,11 +214,11 @@ public static final String DEFAULT_DCS_SERVER_USER_PROGRAM_STATISTICS_OPENTSDB_E
      * T2 Driver Property key for DCS server user program to specify 
      * opentsdb port 
      */
-    public static final int PROPERTY_OPENTSDB_PORT = 4205;
+    public static final int PROPERTY_OPENTSDB_PORT = 5242;
 
     /** Default value for DCS server user program specify port 
      *  of opentsdb */
-    public static final int DEFAULT_DCS_SERVER_USER_PROGRAM_OPENTSDB_PORT = 4205;
+    public static final int DEFAULT_DCS_SERVER_USER_PROGRAM_OPENTSDB_PORT = 5242;
 
     /** Configuration key for DCS server user program port map timeout seconds */
     public static final String DCS_SERVER_USER_PROGRAM_PORT_MAP_TIMEOUT_SECONDS = "dcs.server.user.program.port.map.timeout.seconds";

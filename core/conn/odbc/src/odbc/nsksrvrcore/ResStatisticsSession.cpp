@@ -370,8 +370,6 @@ void ResStatisticsSession::accumulateStatistics(passSession *ps)
 	}
 	totalOdbcElapseTime = totalOdbcElapseTime + ps->odbcElapseTime;
 	totalOdbcExecutionTime = totalOdbcExecutionTime + ps->odbcExecutionTime;
-	//totalSqlExecutionTime = totalSqlExecutionTime + ps->SqlExecutionTime;
-	//totalSqlElapseTime = totalSqlElapsedTime + ps->SqlElapsedTime;
 	totalErrors = totalErrors + ps->errorStatement;
 	totalWarnings = totalWarnings + ps->warningStatement;
 }
@@ -419,14 +417,14 @@ void ResStatisticsSession::accumulateStatistics(const ResStatistics * const pRes
 	sessWlStats.aggrStats.LockWaits				+= pResStatsStmt->LockWaits;					//AGGREG
 	sessWlStats.aggrStats.LockEscalation		+= pResStatsStmt->Escalations;					//AGGREG
 	sessWlStats.aggrStats.TotalExecutes++;
-	sessWlStats.aggrStats.totalSelects			= totalSelectStatements;
-	sessWlStats.aggrStats.totalInserts			= totalInsertStatements;
-	sessWlStats.aggrStats.totalUpdates			= totalUpdateStatements;
-	sessWlStats.aggrStats.totalDeletes			= totalDeleteStatements;
-	sessWlStats.aggrStats.totalDDLs				= totalDDLStatements;
-	sessWlStats.aggrStats.totalUtils			= totalUtilStatements;
-	sessWlStats.aggrStats.totalCatalogs			= totalCatalogStatements;
-	sessWlStats.aggrStats.totalOthers			= totalOtherStatements;
+	sessWlStats.aggrStats.totalSelects		= totalSelectStatements;
+	sessWlStats.aggrStats.totalInserts		= totalInsertStatements;
+	sessWlStats.aggrStats.totalUpdates		= totalUpdateStatements;
+	sessWlStats.aggrStats.totalDeletes		= totalDeleteStatements;
+	sessWlStats.aggrStats.totalDDLs			= totalDDLStatements;
+	sessWlStats.aggrStats.totalUtils		= totalUtilStatements;
+	sessWlStats.aggrStats.totalCatalogs		= totalCatalogStatements;
+	sessWlStats.aggrStats.totalOthers		= totalOtherStatements;
 	sessWlStats.aggrStats.totalSelectErrors		= totalSelectErrors;
 	sessWlStats.aggrStats.totalInsertErrors		= totalInsertErrors;
 	sessWlStats.aggrStats.totalUpdateErrors		= totalUpdateErrors;
@@ -435,7 +433,7 @@ void ResStatisticsSession::accumulateStatistics(const ResStatistics * const pRes
 	sessWlStats.aggrStats.totalUtilErrors		= totalUtilErrors;
 	sessWlStats.aggrStats.totalCatalogErrors	= totalCatalogErrors;
 	sessWlStats.aggrStats.totalOtherErrors		= totalOtherErrors;
-	sessWlStats.aggrStats.NumRowsIUD			= (totalInsertStatements+totalUpdateStatements+totalDeleteStatements);
+	sessWlStats.aggrStats.NumRowsIUD		= (totalInsertStatements+totalUpdateStatements+totalDeleteStatements);
 
 }
 
@@ -512,7 +510,7 @@ std::tr1::shared_ptr<SESSION_AGGREGATION> ResStatisticsSession::getAggrStats()
 	pAggr_info->m_role_name = srvrGlobal->QSRoleName;
 	pAggr_info->m_client_name = srvrGlobal->ClientComputerName;
 	pAggr_info->m_application_name = srvrGlobal->ApplicationName;
-    UpdateStringText(pAggr_info->m_application_name);
+        UpdateStringText(pAggr_info->m_application_name);
 	pAggr_info->m_client_user_name = resCollectinfo.clientUserName;
 	pAggr_info->m_total_est_rows_accessed = sessWlStats.aggrStats.EstimatedRowsAccessed;
 	pAggr_info->m_total_est_rows_used = sessWlStats.aggrStats.EstimatedRowsUsed;
@@ -572,44 +570,44 @@ void publishAggrStatsToTSDB(std::tr1::shared_ptr<SESSION_AGGREGATION> pAggr_info
 		 switch (ic)
 		 {
 		     case 0:
-		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.delta_rows_retrieved\"" << ",";
-	                cc << "\"value\":" << pAggr_info->m_delta_rows_retrieved << ",";
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_rows_retrieved\"" << ",";
+	                cc << "\"value\":" << pAggr_info->m_total_rows_retrieved << ",";
 		        break;
 		     case 1:
-		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.delta_num_rows_iud\"" << ",";
-		        cc << "\"value\":" << pAggr_info->m_delta_num_rows_iud << ",";
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_num_rows_iud\"" << ",";
+		        cc << "\"value\":" << pAggr_info->m_total_num_rows_iud << ",";
 		        break;
 		     case 2:
-		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.delta_total_selects\"" << ",";
-		        cc << "\"value\":" << pAggr_info->m_delta_total_selects << ",";
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_selects\"" << ",";
+		        cc << "\"value\":" << pAggr_info->m_total_selects << ",";
 		        break;
 		     case 3:
-		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.delta_total_inserts\"" << ",";
-		        cc <<  "\"value\":" << pAggr_info->m_delta_total_inserts << ",";
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_inserts\"" << ",";
+		        cc <<  "\"value\":" << pAggr_info->m_total_inserts << ",";
 		        break;
 		     case 4:
-		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.delta_total_updates\"" << ",";
-		        cc <<  "\"value\":" << pAggr_info->m_delta_total_updates << ",";
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_updates\"" << ",";
+		        cc <<  "\"value\":" << pAggr_info->m_total_updates << ",";
 		        break;
 		    case 5:
-		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.delta_total_deletes\"" << ",";
-		        cc << "\"value\":" << pAggr_info->m_delta_total_deletes << ",";
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_deletes\"" << ",";
+		        cc << "\"value\":" << pAggr_info->m_total_deletes << ",";
 		        break;
 		     case 6:
-		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.delta_total_ddl_stmts\"" << ",";
-		        cc << "\"value\":" << pAggr_info->m_delta_total_ddl_stmts << ",";
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_ddl_stmts\"" << ",";
+		        cc << "\"value\":" << pAggr_info->m_total_ddl_stmts << ",";
 		        break;
 		     case 7:
-		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.delta_total_util_stmts\"" << ",";
-		        cc << "\"value\":" << pAggr_info->m_delta_total_util_stmts << ",";
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_util_stmts\"" << ",";
+		        cc << "\"value\":" << pAggr_info->m_total_util_stmts << ",";
 		        break;
 		     case 8:
-		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.delta_total_catalog_stmts\"" << ",";
-		        cc << "\"value\":" << pAggr_info->m_delta_total_catalog_stmts << ",";
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_catalog_stmts\"" << ",";
+		        cc << "\"value\":" << pAggr_info->m_total_catalog_stmts << ",";
 		        break;
 		     case 9:
-		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.delta_total_other_stmts\"" << ",";
-		        cc << "\"value\":" << pAggr_info->m_delta_total_other_stmts << ",";
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_other_stmts\"" << ",";
+		        cc << "\"value\":" << pAggr_info->m_total_other_stmts << ",";
 		        break;
 		     default:
 		        break;
