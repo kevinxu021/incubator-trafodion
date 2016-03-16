@@ -2335,6 +2335,11 @@ enum DefaultConstants
   // Percentage of intervals to be used for representing gaps.
   USTAT_GAP_PERCENT,
 
+  // Controls whether to query Hive ORC column statistics whe constructing
+  // fake histograms for ORC files (and therefore creating a less fake
+  // histogram)
+  USTAT_GENERATE_ORC_HISTOGRAM,
+
   // Create a separate interval in a column's histogram for any distinct value
   // that has a frequency exceeding this percentage of the total row count for
   // the table.

@@ -1179,7 +1179,8 @@ short CmpSeabaseMDcleanup::cleanupOrphanHbaseEntries(ExeCliInterface *cliInterfa
       char cBuf[1000];
       
       Int32 len = 0;
-      char * c = bal->getEntry(i, cBuf, 1000, len);
+      char * c = cBuf;
+      BAL_RetCode brc = bal->getEntry(i, cBuf, 1000, len);
       c[len] = 0;
       
       Lng32 numParts = 0;

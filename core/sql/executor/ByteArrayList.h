@@ -43,6 +43,7 @@ typedef enum {
  ,BAL_ERROR_ADD_PARAM = BAL_FIRST
  ,BAL_ERROR_ADD_EXCEPTION
  ,BAL_ERROR_GET_EXCEPTION
+ ,BAL_ERROR_TOO_SHORT
  ,BAL_LAST
 } BAL_RetCode;
 
@@ -75,7 +76,7 @@ public:
 
   Int32 getSize();
   Int32 getEntrySize(Int32 i);
-  char* getEntry(Int32 i, char* buf, Int32 bufLen, Int32& dataLen);
+  BAL_RetCode getEntry(Int32 i, char* buf, Int32 bufLen, Int32& dataLen);
 
 
 private:  
