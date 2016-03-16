@@ -49,13 +49,10 @@ if [[ $HADOOP_TYPE == "hortonworks" ]]; then
    curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters/$CLUSTER_NAME/services/HDFS > tempFileHDFS
    curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters/$CLUSTER_NAME/services/HBASE > tempFileHBase
    curlRC=$?
-   numberHadoopNodes=$(grep -r "host_name" tempFile | wc -l)
    grep -r "host_name" tempFile > tempFile2
       
-   numberHadoopNodes=$(grep -r "host_name" tempFileHDFS | wc -l)
    grep -r "host_name" tempFileHDFS > tempFileHDFS2
 
-   numberHadoopNodes=$(grep -r "host_name" tempFileHBase | wc -l)
    grep -r "host_name" tempFileHBase > tempFileHBase2
  
    if [ -d /usr/lib/hbase/lib ]; then
