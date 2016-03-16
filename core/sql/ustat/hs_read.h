@@ -59,8 +59,9 @@ Lng32 FetchHistograms( const QualifiedName & qualifiedName
                     , Int64 & histModTime
                     , Int64 & statsTime
                     , NABoolean & allFakeStats
-                    , const NABoolean preFetch=FALSE
-                    , Int64 createStatsSize=0
+                    , const NABoolean preFetch
+                    , Int64 createStatsSize
+                    , NABoolean isORC
                     );
 
 /******************************************************************************/
