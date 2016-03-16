@@ -33,6 +33,8 @@ export PDSH_SSH_CMD="ssh -q -n %h"
 export PDCP="pdcp -R ssh"
 export PDSH_HADOOP_NODES="$PDSH $MY_HADOOP_NODES $PDSH_SSH_CMD"
 export PDCP_HADOOP_NODES="$PDCP $MY_HADOOP_NODES"
+export HDFS_NODE=$(echo $HDFS_NODES | head -n1 | awk '{print $1;}')
+export HBASE_NODE=$(echo $HBASE_NODES | head -n1 | awk '{print $1;}')
 #=====================================
 # copy Trafodion trx jar to Cloudera's plugins directory on all nodes
 
