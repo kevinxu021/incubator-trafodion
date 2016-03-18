@@ -229,7 +229,7 @@ define(['moment',
 				if(diff < 0){
 				 alert("end date could not be earlier than start date ！");
 				 }
-				if(minute<diff<60*minute){
+				if(minute<diff && diff<60*minute){
 					timeAgo=(diff/minute).toFixed(0) +' minutes ago';
 				}else if(diff<day){
 					timeAgo=(diff/hour).toFixed(0) +' hours ago';
