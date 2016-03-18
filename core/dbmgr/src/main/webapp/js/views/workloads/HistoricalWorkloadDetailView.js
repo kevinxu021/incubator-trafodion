@@ -168,7 +168,7 @@ define([
 		},
 		cancelQuerySuccess:function(data){
 			/*alert('The cancel query request has been submitted');*/
-			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully!"};
+			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully."};
 			if(common.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{
@@ -181,6 +181,14 @@ define([
 		cancelQueryError:function(jqXHR){
 			/*alert(jqXHR.responseText);*/
 			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
+			if(jqXHR.responseText==undefined){
+				msgObj.msg="the response was null."
+				msgObj.shortMsg="the response was null."
+			}
+			if(jqXHR.statusText=="abort"){
+				msgObj.msg="the request was aborted."
+				msgObj.shortMsg="the request was aborted."
+			}
 			if(common.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{
