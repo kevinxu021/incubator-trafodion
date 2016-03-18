@@ -588,7 +588,8 @@ void HistogramCache::createColStatsList
                     statsTime,
                     allFakeStats,//set to TRUE if all columns have default stats
                     preFetch,
-                    (Int64) CURRSTMT_OPTDEFAULTS->histDefaultSampleSize()
+                    (Int64) CURRSTMT_OPTDEFAULTS->histDefaultSampleSize(),
+                    table.isORC()
                     );   
      
   }

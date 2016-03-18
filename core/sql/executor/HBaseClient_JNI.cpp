@@ -43,6 +43,7 @@ static const char* const balErrorEnumStr[] =
   "JNI NewStringUTF() in add() for writing."  // BAL_ERROR_ADD_PARAM
  ,"Java exception in add() for writing."      // BAL_ERROR_ADD_EXCEPTION
  ,"Java exception in get() for reading."      // BAL_ERROR_GET_EXCEPTION
+ ,"Target buffer too short on getEntry()."    // BAL_ERROR_TOO_SHORT
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -53,7 +54,7 @@ char* ByteArrayList::getErrorText(BAL_RetCode errEnum)
   if (errEnum < (BAL_RetCode)JOI_LAST)
     return JavaObjectInterface::getErrorText((JOI_RetCode)errEnum);
   else    
-    return (char*)balErrorEnumStr[errEnum-BAL_FIRST-1];
+    return (char*)balErrorEnumStr[errEnum-BAL_FIRST];
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -215,8 +216,10 @@ Int32 ByteArrayList::getEntrySize(Int32 i)
 }
 
 
-char* ByteArrayList::getEntry(Int32 i, char* buf, Int32 bufLen, Int32& datalen)
+BAL_RetCode ByteArrayList::getEntry(Int32 i, char* buf, Int32 bufLen, Int32& datalen)
 {
+  BAL_RetCode rc = BAL_OK;  // assume success
+
   datalen = 0;
 
   jint jidx = i;  
@@ -228,7 +231,7 @@ char* ByteArrayList::getEntry(Int32 i, char* buf, Int32 bufLen, Int32& datalen)
   {
     getExceptionDetails();
     logError(CAT_SQL_HBASE, __FILE__, __LINE__);
-    return NULL;
+    return BAL_ERROR_GET_EXCEPTION;
   }
 
   if (jBuffer != NULL) {
@@ -236,15 +239,14 @@ char* ByteArrayList::getEntry(Int32 i, char* buf, Int32 bufLen, Int32& datalen)
     datalen = jenv_->GetArrayLength(jBuffer);
 
     if (datalen > bufLen)
-      // call setJniErrorStr?
-      return NULL;
-
-    jenv_->GetByteArrayRegion(jBuffer, 0, datalen, (jbyte*)buf);
+      rc = BAL_ERROR_TOO_SHORT;  // data won't fit in the buffer provided; don't move it
+    else
+      jenv_->GetByteArrayRegion(jBuffer, 0, datalen, (jbyte*)buf);
 
     jenv_->DeleteLocalRef(jBuffer);
   }
 
-  return buf;
+  return rc;
 }
 // ===========================================================================
 // ===== Class HBaseClient_JNI

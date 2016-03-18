@@ -3532,6 +3532,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDflt0_(USTAT_FREQ_SIZE_PERCENT,              "0.5"),  // >100 effectively disables
   DDflt0_(USTAT_GAP_PERCENT,                    "10.0"),
   DDflt0_(USTAT_GAP_SIZE_MULTIPLIER,            "1.5"),
+  DDkwd__(USTAT_GENERATE_ORC_HISTOGRAM,         "OFF"),
   DDui___(USTAT_HBASE_SAMPLE_RETURN_INTERVAL,   "10000000"), // Avoid scanner timeout by including on average at
                                                              //   least one row per this many when sampling within HBase.
   DDflt0_(USTAT_INCREMENTAL_FALSE_PROBABILITY,   "0.01"),
@@ -4073,6 +4074,7 @@ NADefaults::NADefaults(NAMemory * h)
   setFlagOn(COMPRESSED_INTERNAL_FORMAT, DEFAULT_ALLOWS_SEPARATE_SYSTEM);
   setFlagOn(COMPRESSED_INTERNAL_FORMAT_BMO, DEFAULT_ALLOWS_SEPARATE_SYSTEM);
   setFlagOn(HBASE_SMALL_SCANNER, DEFAULT_ALLOWS_SEPARATE_SYSTEM);
+  setFlagOn(HIVE_USE_HASH2_AS_PARTFUNCTION, DEFAULT_ALLOWS_SEPARATE_SYSTEM);
 }
 
 NADefaults::~NADefaults()
