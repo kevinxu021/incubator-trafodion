@@ -2714,7 +2714,7 @@ SqlBufferBase * sql_buffer_pool::getBuffer(Lng32 freeSpace,
 #pragma warning (disable : 4018)   //warning elimination
 	  if (freeSpace > 0)
 	    neededStaticBufferSize = 
-	      MINOF((Lng32) SqlBufferNeededSize(
+	      MAXOF((Lng32) SqlBufferNeededSize(
 		   10,
 		   freeSpace,
 		   bufType_),

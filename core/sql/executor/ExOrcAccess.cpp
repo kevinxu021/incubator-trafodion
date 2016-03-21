@@ -908,12 +908,21 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
             else
               {
                 memset(orcAggrLoc, ' ', attr->getLength());
+                BAL_RetCode brc = BAL_OK;
                 if (step_ == ORC_AGGR_MIN)
-                  bal_->getEntry(3, orcAggrLoc, attr->getLength(), len);
+                  brc = bal_->getEntry(3, orcAggrLoc, attr->getLength(), len);
                 else if (step_ == ORC_AGGR_MAX)
-                  bal_->getEntry(4, orcAggrLoc, attr->getLength(), len);
+                  brc = bal_->getEntry(4, orcAggrLoc, attr->getLength(), len);
                 else if (step_ == ORC_AGGR_SUM)
-                  bal_->getEntry(5, orcAggrLoc, attr->getLength(), len);
+                  brc = bal_->getEntry(5, orcAggrLoc, attr->getLength(), len);
+
+                if (brc != BAL_OK)
+                  {
+                    setupError(EXE_ERROR_FROM_LOB_INTERFACE, brc, "ByteArray", "getEntry", 
+                               bal_->getErrorText(brc));
+                    step_ = HANDLE_ERROR;
+                    break;
+                  }
 
                 if (attr->getVCIndicatorLength() > 0)
                   {

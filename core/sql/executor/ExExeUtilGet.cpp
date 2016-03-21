@@ -3081,9 +3081,10 @@ short ExExeUtilGetHbaseObjectsTcb::work()
               }
 
             Int32 len = 0;
-            hbaseName_ = bal_->getEntry(currIndex_, hbaseNameBuf_, 
-                                        ComMAX_3_PART_EXTERNAL_UTF8_NAME_LEN_IN_BYTES+6, 
-                                        len);
+            BAL_RetCode brc = bal_->getEntry(currIndex_, hbaseNameBuf_, 
+                                             ComMAX_3_PART_EXTERNAL_UTF8_NAME_LEN_IN_BYTES+6, 
+                                             len);
+            hbaseName_ = hbaseNameBuf_; 
             hbaseName_[len] = 0;
             
             Lng32 numParts = 0;
@@ -5491,8 +5492,8 @@ short ExExeUtilRegionStatsTcb::populateStats
   
   char regionInfoBuf[5000];
   Int32 len = 0;
-  char * regionInfo =
-    regionInfoList_->getEntry
+  char * regionInfo = regionInfoBuf;
+  BAL_RetCode brc = regionInfoList_->getEntry
     (currIndex, regionInfoBuf, 5000, len);
   regionInfo[len] = 0;
   

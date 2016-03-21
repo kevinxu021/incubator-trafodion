@@ -10689,7 +10689,7 @@ desc_struct* assembleDescs(ByteArrayList* bal, populateFuncT func, NAMemory* hea
          buf = new (heap) char[len];
          Int32 datalen;
   
-         if ( !bal->getEntry(i, buf, len, datalen) || datalen != len ) {
+         if ( bal->getEntry(i, buf, len, datalen) != BAL_OK || datalen != len ) {
             return NULL;
          }
       } else
