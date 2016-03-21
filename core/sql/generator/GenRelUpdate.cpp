@@ -1342,7 +1342,11 @@ short HbaseDelete::codeGen(Generator * generator)
       if (getTableDesc()->getNATable()->isMonarch())
         {
           hbasescan_tdb->setStorageType(COM_STORAGE_MONARCH);
-        }
+
+          // TEMP_MONARCH Async operations are not working with monarch.
+          // turn them off until it is fixed.
+          hbasescan_tdb->setAsyncOperations(FALSE);
+         }
     }
 
   if (keyInfo && getSearchKey() && getSearchKey()->isUnique())
@@ -2901,7 +2905,7 @@ short HbaseInsert::codeGen(Generator *generator)
   generator->initTdbFields(hbasescan_tdb);
 
   if ((CmpCommon::getDefault(HBASE_ASYNC_OPERATIONS) == DF_ON)
-           && getInliningInfo().isIMGU())
+      && getInliningInfo().isIMGU())
     hbasescan_tdb->setAsyncOperations(TRUE);
 
   if (preCondExpr)
@@ -2917,6 +2921,10 @@ short HbaseInsert::codeGen(Generator *generator)
       if (getTableDesc()->getNATable()->isMonarch())
         {
           hbasescan_tdb->setStorageType(COM_STORAGE_MONARCH);
+
+          // TEMP_MONARCH Async operations are not working with monarch.
+          // turn them off until it is fixed.
+          hbasescan_tdb->setAsyncOperations(FALSE);
         }
  
       if (isAlignedFormat)

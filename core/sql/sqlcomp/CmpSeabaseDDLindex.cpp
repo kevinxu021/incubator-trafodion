@@ -551,11 +551,6 @@ void CmpSeabaseDDL::createSeabaseIndex(
       return;
     }
 
-  NABoolean isMonarch = naTable->isMonarch();
-  ExpHbaseInterface * ehi = allocEHI(isMonarch);
-  if (ehi == NULL)
-    return;
-
   NAString &indexColFam = naTable->defaultColFam();
   NAString trafColFam;
   if (indexColFam != SEABASE_DEFAULT_COL_FAMILY)
@@ -621,6 +616,22 @@ void CmpSeabaseDDL::createSeabaseIndex(
   ParDDLFileAttrsCreateIndex &fileAttribs =
     createIndexNode->getFileAttributes();
 
+  if ((fileAttribs.isStorageTypeSpecified()) &&
+      (naTable->storageType() != fileAttribs.storageType()))
+    {
+      // error. Base table and index must be on the same storage.
+      *CmpCommon::diags() << DgSqlCode(-3242)
+                          << DgString0("Base table and index must be on the same storage.");
+      processReturn();
+      return;
+    }
+  const ComStorageType storageType = naTable->storageType();
+  NABoolean isMonarch = (storageType == COM_STORAGE_MONARCH);
+
+  ExpHbaseInterface * ehi = allocEHI(isMonarch);
+  if (ehi == NULL)
+    return;
+
   NABoolean alignedFormat = FALSE;
   if (fileAttribs.isRowFormatSpecified() == TRUE)
     {
@@ -641,11 +652,14 @@ void CmpSeabaseDDL::createSeabaseIndex(
         alignedFormat = TRUE;
     }
   else
-  if (naTable->isSQLMXAlignedTable())
-    alignedFormat = TRUE;
+    if (naTable->isSQLMXAlignedTable())
+      alignedFormat = TRUE;
 
   if (alignedFormatNotAllowed)
      alignedFormat = FALSE;
+
+  if (isMonarch)
+    alignedFormat = FALSE;
 
   if ((naTable->hasSecondaryIndexes()) &&
       (NOT createIndexNode->isVolatile()))
@@ -941,10 +955,54 @@ void CmpSeabaseDDL::createSeabaseIndex(
 
   endXnIfStartedHere(&cliInterface, xnWasStartedHere, 0);
 
-  if (createHbaseTable(ehi, &hbaseIndex, trafColFam.data(),
-                       &hbaseCreateOptions,
-                       numSplits, keyLength, 
-                       encodedKeysBuffer) == -1)
+  HbaseStr hbaseTable;
+  hbaseTable.val = (char*)extNameForHbase.data();
+  hbaseTable.len = extNameForHbase.length();
+  if (isMonarch)
+    {
+      NAList<HbaseStr> monarchCols;
+      for (Lng32 i = 0; i < totalColCount; i++)
+        //      for (Lng32 i = 0; i < indexColRefArray.entries(); i++)
+        {
+          NAString * nas = new(STMTHEAP) NAString();
+          
+          NAString colFam(colInfoArray[i].hbaseColFam);
+          *nas = colFam; 
+          *nas += ":";
+
+          char * colQualPtr = (char*)colInfoArray[i].hbaseColQual;
+          Lng32 colQualLen = strlen(colQualPtr);
+          if (colQualPtr[0] == '@')
+            {
+              *nas += "@";
+              colQualPtr++;
+              colQualLen--;
+            }
+
+          NAString colQual;
+          HbaseAccess::convNumToId(colQualPtr, colQualLen, colQual);
+          *nas += colQual;
+          
+          HbaseStr hbs;
+          hbs.val = (char*)nas->data();
+          hbs.len = nas->length();
+          
+          monarchCols.insert(hbs);
+        }
+      
+      retcode = createMonarchTable(
+           ehi, &hbaseTable, 
+           MonarchTableType::RANGE_PARTITIONED, monarchCols,
+           &hbaseCreateOptions, 
+           numSplits, keyLength,
+           encodedKeysBuffer);
+    }
+  else
+    retcode = createHbaseTable(ehi, &hbaseIndex, trafColFam.data(),
+                               &hbaseCreateOptions,
+                               numSplits, keyLength, 
+                               encodedKeysBuffer);
+  if (retcode < 0)
     {
       goto label_error_drop_index;
     }

@@ -1404,6 +1404,9 @@ ParDDLFileAttrsCreateIndex::copy(const ParDDLFileAttrsCreateIndex &rhs)
   isRowFormatSpec_      = rhs.isRowFormatSpec_;
   eRowFormat_           = rhs.eRowFormat_;
 
+  isStorageTypeSpec_ = rhs.isStorageTypeSpec_;
+  storageType_ = rhs.storageType_;
+
 } // ParDDLFileAttrsCreateIndex::copy()
 
 //
@@ -1506,6 +1509,8 @@ ParDDLFileAttrsCreateIndex::initializeDataMembers()
   // { ALIGNED | PACKED } FORMAT
   eRowFormat_ = ElemDDLFileAttrRowFormat::eUNSPECIFIED;
 
+  storageType_ = COM_STORAGE_HBASE;
+
 } // ParDDLFileAttrsCreateIndex::initializeDataMembers()
 
 //
@@ -1553,6 +1558,8 @@ ParDDLFileAttrsCreateIndex::resetAllIsSpecDataMembers()
   // { ALIGNED | PACKED } FORMAT
   isRowFormatSpec_              = FALSE;
 
+  isStorageTypeSpec_                     = FALSE;
+
 } // ParDDLFileAttrsCreateIndex::resetAllIsSpecDataMembers()
 
 //
@@ -1579,8 +1586,24 @@ ParDDLFileAttrsCreateIndex::setFileAttr(ElemDDLFileAttr * pFileAttr)
       extentsToAllocate_ = pAlloc->getExtentsToAllocate();
     }
     break;
-
-  case ELM_FILE_ATTR_AUDIT_ELEM :
+    
+  case ELM_FILE_ATTR_STORAGE_TYPE_ELEM :
+    if (isStorageTypeSpec_)
+      {
+        // Duplicate sync xn phrases.
+        *SqlParser_Diags << DgSqlCode(-3183)
+                         << DgString0("storage");
+      }
+    isStorageTypeSpec_ = TRUE;
+    ComASSERT(pFileAttr->castToElemDDLFileAttrStorageType() NEQ NULL);
+    {
+      ElemDDLFileAttrStorageType * pStorageType =
+        pFileAttr->castToElemDDLFileAttrStorageType();
+      storageType_ = pStorageType->storageType();
+    }
+    break;
+    
+   case ELM_FILE_ATTR_AUDIT_ELEM :
     //
     // The grammar productions allow the [no]audit phrase to appear
     // within a Create Index statement (syntactically).  Enforces
@@ -2180,7 +2203,7 @@ ParDDLFileAttrsCreateTable::setFileAttr(ElemDDLFileAttr * pFileAttr)
       {
         // Duplicate sync xn phrases.
         *SqlParser_Diags << DgSqlCode(-3183)
-                         << DgString0("replication");
+                         << DgString0("storage");
       }
     isStorageTypeSpec_ = TRUE;
     ComASSERT(pFileAttr->castToElemDDLFileAttrStorageType() NEQ NULL);

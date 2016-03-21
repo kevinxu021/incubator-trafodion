@@ -3264,9 +3264,17 @@ short HbaseAccess::codeGen(Generator * generator)
     new(space) ComTdbHbaseAccess::HbasePerfAttributes();
   if (CmpCommon::getDefault(COMP_BOOL_184) == DF_ON)
     hbpa->setUseMinMdamProbeSize(TRUE);
+
+  Float32 samplePerc = samplePercent();
+
+  // TEMP_MONARCH Sample not supported with monarch tables.
+  if (getTableDesc()->getNATable()->isSeabaseTable() &&
+      getTableDesc()->getNATable()->isMonarch())
+    samplePerc = 0;
+
   generator->setHBaseNumCacheRows(MAXOF(getEstRowsAccessed().getValue(),
                                         getMaxCardEst().getValue()), 
-                                  hbpa, samplePercent()) ;
+                                  hbpa, samplePerc) ;
   generator->setHBaseCacheBlocks(computedHBaseRowSizeFromMetaData,
                                  getEstRowsAccessed().getValue(),hbpa);
 
@@ -3384,7 +3392,7 @@ short HbaseAccess::codeGen(Generator * generator)
 		      server,
                       zkPort,
 		      hbpa,
-		      samplePercent(),
+		      samplePerc,
 		      snapAttrs,
 
                       hbo

@@ -3339,10 +3339,10 @@ short CmpDescribeSeabaseTable (
 	      if (naf->uniqueIndex())
 		strcat(vu, "unique ");
 
-	      sprintf(buf,  "\n-- Definition of%sTrafodion%sindex %s\n"
+	      sprintf(buf,  "\n-- Definition of%s%s%sindex %s\n"
 		      "-- Definition current  %s",
 		      ((NOT naf->isCreatedExplicitly()) ? " implicit " : " "),
-		      vu,
+                      ((storageType == COM_STORAGE_MONARCH) ? "Monarch" : "Trafodion"),		      vu,
 		      indexName.data(),
 		      ctime(&tp));
 	      outputShortLine(*space, buf);
