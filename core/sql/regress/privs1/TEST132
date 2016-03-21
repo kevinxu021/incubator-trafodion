@@ -51,7 +51,7 @@ exit;
 ?section clean_up
 set schema t132sch;
 drop sequence t132_team_number_sequence;
-drop schema t132sch cascade;
+cleanup schema t132sch;
 
 ?section set_up
 create shared schema t132sch;
@@ -121,8 +121,8 @@ get libraries in schema t132sch;
 
 set schema t132sch;
 set parserflags 1;
-set parserflags 131072;
-cqd DDL_TRANSACTIONS 'ON';
+--set parserflags 131072;
+--cqd DDL_TRANSACTIONS 'ON';
 
 get tables;
 
@@ -190,11 +190,11 @@ select count(*) from table (index_table t132t1_ndx1);
 select count(*) from table (index_table t132t2_ndx1);
 select count(*) from table (index_table t132t3_ndx1);
 
-drop index t132t1_ndx1;
+cleanup index t132t1_ndx1;
 create index t132t1_ndx1 on t132t1 (c2) no populate;
-drop index t132t2_ndx1;
+cleanup index t132t2_ndx1;
 create index t132t2_ndx1 on t132t2 (c2) no populate;
-drop index t132t3_ndx1;
+cleanup index t132t3_ndx1;
 create index t132t3_ndx1 on t132t3 (c2) no populate;
 
 ?section test_show

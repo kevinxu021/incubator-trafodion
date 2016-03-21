@@ -71,7 +71,7 @@
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... NOT NAMED
-PLAN_ID .................. 212321106837120815
+PLAN_ID .................. 212323099213448487
 ROWS_OUT ................. 3
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t1311k where uniq >2 and uniq <5;
@@ -102,7 +102,7 @@ DESCRIPTION
   SCHEMA ................. T131SCH
   HBASE_SMALL_SCANNER .... SYSTEM
   GENERATE_EXPLAIN ....... ON
-  ObjectUIDs ............. 6569714930762029600
+  ObjectUIDs ............. 219078498588616170
   select_list ............ TRAFODION.T131SCH.T1311K.UNIQ,
                              TRAFODION.T131SCH.T1311K.C1000,
                              TRAFODION.T131SCH.T1311K.STR1
@@ -138,7 +138,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... NOT NAMED
-PLAN_ID .................. 212321106837208060
+PLAN_ID .................. 212323099213574943
 ROWS_OUT ................ 97
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t1311k where uniq >2 and uniq <99;
@@ -169,7 +169,7 @@ DESCRIPTION
   SCHEMA ................. T131SCH
   HBASE_SMALL_SCANNER .... SYSTEM
   GENERATE_EXPLAIN ....... ON
-  ObjectUIDs ............. 6569714930762029600
+  ObjectUIDs ............. 219078498588616170
   select_list ............ TRAFODION.T131SCH.T1311K.UNIQ,
                              TRAFODION.T131SCH.T1311K.C1000,
                              TRAFODION.T131SCH.T1311K.STR1
@@ -317,7 +317,7 @@ UNIQ         C1000
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... NOT NAMED
-PLAN_ID .................. 212321106837369355
+PLAN_ID .................. 212323099213740324
 ROWS_OUT ................ 29
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t1311k where uniq >2 and uniq <30;
@@ -348,7 +348,7 @@ DESCRIPTION
   SCHEMA ................. T131SCH
   HBASE_SMALL_SCANNER .... SYSTEM
   GENERATE_EXPLAIN ....... ON
-  ObjectUIDs ............. 6569714930762029600
+  ObjectUIDs ............. 219078498588616170
   select_list ............ TRAFODION.T131SCH.T1311K.UNIQ,
                              TRAFODION.T131SCH.T1311K.C1000,
                              TRAFODION.T131SCH.T1311K.STR1
@@ -384,7 +384,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... NOT NAMED
-PLAN_ID .................. 212321106838405209
+PLAN_ID .................. 212323099214839361
 ROWS_OUT ................ 29
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select * from t1311kbis where uniq >2 and uniq <30;
@@ -415,7 +415,7 @@ DESCRIPTION
   SCHEMA ................. T131SCH
   HBASE_SMALL_SCANNER .... SYSTEM
   GENERATE_EXPLAIN ....... ON
-  ObjectUIDs ............. 6569714930762031952
+  ObjectUIDs ............. 219078498588617949
   select_list ............ TRAFODION.T131SCH.T1311KBIS.UNIQ,
                              TRAFODION.T131SCH.T1311KBIS.C1000,
                              TRAFODION.T131SCH.T1311KBIS.STR1
