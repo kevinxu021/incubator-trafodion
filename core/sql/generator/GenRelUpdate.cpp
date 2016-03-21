@@ -1195,9 +1195,16 @@ short HbaseDelete::codeGen(Generator * generator)
     tablename = 
       space->AllocateAndCopyToAlignedSpace(
 					   GenGetQualifiedName(getTableName()), 0);
-
-  NAString serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
-  NAString zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  NAString serverNAS;
+  NAString zkPortNAS;
+  if (getTableDesc()->getNATable()->isMonarch()) {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_ADDRESS);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_PORT);
+  }
+  else {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  }
   char * server = space->allocateAlignedSpace(serverNAS.length() + 1);
   strcpy(server, serverNAS.data());
   char * zkPort = space->allocateAlignedSpace(zkPortNAS.length() + 1);
@@ -2100,10 +2107,17 @@ short HbaseUpdate::codeGen(Generator * generator)
   if (! tablename)
     tablename = 
       space->AllocateAndCopyToAlignedSpace(
-					   GenGetQualifiedName(getTableName()), 0);
-
-  NAString serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
-  NAString zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  					   GenGetQualifiedName(getTableName()), 0);
+  NAString serverNAS;
+  NAString zkPortNAS;
+  if (getTableDesc()->getNATable()->isMonarch()) {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_ADDRESS);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_PORT);
+  }
+  else {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  }
   char * server = space->allocateAlignedSpace(serverNAS.length() + 1);
   strcpy(server, serverNAS.data());
   char * zkPort = space->allocateAlignedSpace(zkPortNAS.length() + 1);
@@ -2803,8 +2817,16 @@ short HbaseInsert::codeGen(Generator *generator)
 						       GenGetQualifiedName(getIndexDesc()->getIndexName()), 0);
     }
 
-  NAString serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
-  NAString zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  NAString serverNAS;
+  NAString zkPortNAS;
+  if (getTableDesc()->getNATable()->isMonarch()) {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_ADDRESS);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_PORT);
+  }
+  else {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  }
   char * server = space->allocateAlignedSpace(serverNAS.length() + 1);
   strcpy(server, serverNAS.data());
   char * zkPort = space->allocateAlignedSpace(zkPortNAS.length() + 1);

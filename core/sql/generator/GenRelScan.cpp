@@ -3206,8 +3206,16 @@ short HbaseAccess::codeGen(Generator * generator)
                 getDefault(TRAF_TABLE_SNAPSHOT_SCAN_TABLE_SIZE_THRESHOLD)*1024*1024)
     latestSnpSupport = latest_snp_small_table;
 
-  NAString serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
-  NAString zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  NAString serverNAS;
+  NAString zkPortNAS;
+  if (getTableDesc()->getNATable()->isMonarch()) {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_ADDRESS);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(MONARCH_LOCATOR_PORT);
+  }
+  else {
+     serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
+     zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
+  }
   char * server = space->allocateAlignedSpace(serverNAS.length() + 1);
   strcpy(server, serverNAS.data());
   char * zkPort = space->allocateAlignedSpace(zkPortNAS.length() + 1);
