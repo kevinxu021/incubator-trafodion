@@ -6673,7 +6673,7 @@ short CmpSeabaseDDL::dropSeabaseStats(ExeCliInterface *cliInterface,
               catName, schName, HBASE_HIST_NAME, tableUID);
 
   cliRC = cliInterface->executeImmediate(buf);
-  
+
   // If the histogram table does not exist, don't bother checking
   // the histogram intervals table. 
   //
@@ -8626,6 +8626,7 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
   if ((ddlNode && ddlNode->castToStmtDDLNode() &&
        ddlNode->castToStmtDDLNode()->ddlXns()) &&
       ((ddlNode->getOperatorType() == DDL_CLEANUP_OBJECTS) ||
+    //(ddlNode->getOperatorType() == DDL_DROP_SCHEMA) ||
        (ddlNode->getOperatorType() == DDL_ALTER_TABLE_DROP_COLUMN) ||
        (ddlNode->getOperatorType() ==  DDL_ALTER_TABLE_ALTER_COLUMN_DATATYPE)))
     {
