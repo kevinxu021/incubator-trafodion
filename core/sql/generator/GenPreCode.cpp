@@ -4716,19 +4716,6 @@ RelExpr * UpdateCursor::preCodeGen(Generator * generator,
     {
       ItemExpr * item_expr = val_id.getItemExpr();
 
-      if (isMerge())
-	{
-	  // column being updated must be from the same table that is being
-	  // updated.
-	  if (((BaseColumn *)(item_expr->child(0)->castToItemExpr()))->getTableDesc() !=
-	      getTableDesc())
-	    {
-	      *CmpCommon::diags() << DgSqlCode(-3241)
-				  << DgString0("Invalid column being updated.");
-	      GenExit();
-	    }
-	}
-
       for (short i = 0; i < getTableDesc()->getNATable()->getKeyCount(); i++)
 	{
 	  const char * key_colname = key_column_array[i]->getColName();
@@ -6013,9 +6000,8 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
   if ( getArity() == 0 )
     return this;
 
-          
   NABoolean aggrPushdown = FALSE;
-  Scan* scan = NULL;
+  FileScan* scan = NULL;
   RelExpr* childRelExpr = child(0)->castToRelExpr();
 
   if ( childRelExpr && childRelExpr->getOperatorType() == REL_FIRST_N )
@@ -6025,12 +6011,14 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
       ((childRelExpr->getOperatorType() == REL_FILE_SCAN) ||
        (childRelExpr->getOperatorType() == REL_HBASE_ACCESS)))
     {
-      scan = (Scan*)childRelExpr;
+      scan = (FileScan*)childRelExpr;
 
       if ((NOT aggregateExpr().isEmpty()) &&
           (groupExpr().isEmpty()) &&
           (scan->selectionPred().isEmpty()) &&
+          (scan->executorPred().isEmpty()) &&
           (NOT scan->userSpecifiedPred()) &&
+          (NOT scan->isSampleScan()) &&
           ((scan->getTableName().getSpecialType() == ExtendedQualName::NORMAL_TABLE) ||
            (scan->getTableName().getSpecialType() == ExtendedQualName::INDEX_TABLE)) &&
           !scan->getTableName().isPartitionNameSpecified() &&
@@ -11989,7 +11977,7 @@ NABoolean HbaseAccess::isHbaseFilterPredV2(Generator * generator, ItemExpr * ie,
   }
   //check if not an added column with default non null
   if ((foundBinary || foundUnary)&& (NOT hbaseLookupPred)){
-        if (colVID.isAddedColumnWithNonNullDefault()){
+        if (colVID.isColumnWithNonNullNonCurrentDefault()){
             foundBinary=FALSE;
             foundUnary=FALSE;
         }
@@ -12447,7 +12435,7 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
           {
             if (originExePreds->isNotNullable(vid)){// it is non nullable
                 OperatorTypeEnum operatorType = vid.getItemExpr()->getOperatorType();
-                if ((operatorType == ITM_BASECOLUMN || operatorType == ITM_INDEXCOLUMN) && !vid.isAddedColumnWithNonNullDefault()){//check if  added and  with default... notgood
+                if ((operatorType == ITM_BASECOLUMN || operatorType == ITM_INDEXCOLUMN) && !vid.isColumnWithNonNullNonCurrentDefault()){//check if with non null or non current default... notgood
                     needAddingNonNullableColumn = false; // we found one column meeting all criteria
                     break;
                 }

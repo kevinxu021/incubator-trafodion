@@ -4794,7 +4794,7 @@ Lng32 HSinsertEmptyHist::insert()
 #else // NA_USTAT_USE_STATIC not defined, use dynamic query
     char sbuf[25];
     NAString qry = "SELECT HISTOGRAM_ID, COL_POSITION, COLUMN_NUMBER, COLCOUNT, "
-                          "cast(READ_TIME as char(19)), REASON "
+                          "cast(READ_TIME as char(19) character set iso88591), REASON "
                    "FROM ";
     qry.append(histTable_);
     qry.append(    " WHERE TABLE_UID = ");
@@ -5511,7 +5511,7 @@ static char ppStmtText[] =
 "          when LEFT_CHILD_SEQ_NUM is null then"
 "            '.  '"
 "          else"
-"            cast(cast(LEFT_CHILD_SEQ_NUM as numeric(3)) as char(3))"
+"            cast(cast(LEFT_CHILD_SEQ_NUM as numeric(3)) as char(3) character set iso88591)"
 "        end"
 ""
 // RIGHT CHILD
@@ -5519,11 +5519,11 @@ static char ppStmtText[] =
 "          when RIGHT_CHILD_SEQ_NUM is null then"
 "            '.  '"
 "          else"
-"            cast(cast(RIGHT_CHILD_SEQ_NUM as numeric(3)) as char(3))"
+"            cast(cast(RIGHT_CHILD_SEQ_NUM as numeric(3)) as char(3) character set iso88591)"
 "        end"
 ""
 // SEQUENCE NUMBER
-"      , cast(cast(SEQ_NUM as numeric(3)) as char(3))"
+"      , cast(cast(SEQ_NUM as numeric(3)) as char(3) character set iso88591)"
 ""
 // OPERATOR
 "      , cast(substring(lower(OPERATOR) from 1 for 20) as char(20))"
@@ -5754,13 +5754,13 @@ static char ppStmtText[] =
 "            from 1 for 20) as char(20))"
 ""
 // CARDINALITY
-"      , CAST(CARDINALITY AS CHAR(11))"
+"      , CAST(CARDINALITY AS CHAR(11) character set iso88591)"
 ""
 // OPERATOR COST
-"      , CAST(OPERATOR_COST AS CHAR(11))"
+"      , CAST(OPERATOR_COST AS CHAR(11) character set iso88591)"
 ""
 // TOTAL COST
-"      , CAST(TOTAL_COST AS CHAR(11))"
+"      , CAST(TOTAL_COST AS CHAR(11) character set iso88591)"
 ""
 "        FROM TABLE(EXPLAIN(NULL, '";
 
@@ -5782,6 +5782,8 @@ Lng32 printPlan(SQLSTMT_ID *stmt)
       } row;
 
     HSLogMan *LM = HSLogMan::Instance();
+
+    HSFuncExecQuery("CQD DEFAULT_CHARSET 'ISO88591'"); // to avoid buffer overruns in row
 
     NAString ppStmtStr = ppStmtText;
     ppStmtStr.append((char *)stmt->identifier).append("')) ORDER BY SEQ_NUM DESC;");
@@ -5826,11 +5828,15 @@ Lng32 printPlan(SQLSTMT_ID *stmt)
             LM->Log(LM->msg);
           }
         else if (retcode != 100)
-          HSLogError(retcode);
+          {
+            HSFuncExecQuery("CQD DEFAULT_CHARSET RESET");
+            HSLogError(retcode);
+          }
       }
 
     // ppStmtId will be closed by ~HSCursor if closeStmtNeeded_ is set.
 
+    HSFuncExecQuery("CQD DEFAULT_CHARSET RESET");
     return retcode;
   }
 
