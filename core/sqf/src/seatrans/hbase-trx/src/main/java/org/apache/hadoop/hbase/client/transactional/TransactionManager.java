@@ -645,7 +645,9 @@ public class TransactionManager {
      */
     public Integer doPrepareX(final byte[] regionName, final long transactionId, final int participantNum, final TransactionRegionLocation location)
           throws IOException, CommitUnsuccessfulException {
-       if (LOG.isTraceEnabled()) LOG.trace("doPrepareX -- ENTRY txid: " + transactionId );
+       if (LOG.isTraceEnabled()) LOG.trace("doPrepareX -- ENTRY txid: " + transactionId
+                                                                        + " RegionName " + Bytes.toString(regionName)
+                                                                        + " TableName " + table.toString() );
        int commitStatus = 0;
        boolean refresh = false;
        boolean retry = false;
@@ -667,7 +669,7 @@ public class TransactionManager {
                    builder.setTransactionId(transactionId);
                    builder.setRegionName(ByteString.copyFromUtf8(Bytes.toString(regionName)));
                    builder.setParticipantNum(participantNum);
-
+                   builder.setDropTableRecorded(location.isTableRecodedDropped());
                    instance.commitRequest(controller, builder.build(), rpcCallback);
                    return rpcCallback.get();
                 }
@@ -915,7 +917,9 @@ public class TransactionManager {
 
        } while (retryCount < RETRY_ATTEMPTS && retry == true);
        }
-       if (LOG.isTraceEnabled()) LOG.trace("commitStatus for transId(" + transactionId + "): " + commitStatus);
+       if (LOG.isTraceEnabled()) LOG.trace("commitStatus for transId(" + transactionId + "): " + commitStatus 
+                                                                       + " TableName " + table.toString()
+                                                                       + " Region Name " + Bytes.toString(regionName));
        boolean canCommit = true;
        boolean readOnly = false;
 
@@ -965,7 +969,7 @@ public class TransactionManager {
      * Return  : Ignored
      * Purpose : Call abort for a given regionserver
      */
-    public Integer doAbortX(final byte[] regionName, final long transactionId, final int participantNum) throws IOException{
+    public Integer doAbortX(final byte[] regionName, final long transactionId, final int participantNum, final boolean dropTableRecorded) throws IOException{
         if(LOG.isDebugEnabled()) LOG.debug("doAbortX -- ENTRY txID: " + transactionId + " participantNum "
                         + participantNum + " region " + regionName.toString());
         boolean retry = false;
@@ -989,6 +993,7 @@ public class TransactionManager {
                 builder.setTransactionId(transactionId);
                 builder.setParticipantNum(participantNum);
                 builder.setRegionName(ByteString.copyFromUtf8(Bytes.toString(regionName)));
+                builder.setDropTableRecorded(dropTableRecorded);
                 instance.abortTransaction(controller, builder.build(), rpcCallback);
                 return rpcCallback.get();
               }
@@ -1884,6 +1889,12 @@ public class TransactionManager {
         //requests is recorded, then those tables need to disabled as part of prepare.
         if(transactionState.hasDDLTx())
         {
+            if (LOG.isTraceEnabled()) LOG.trace("prepareCommit process DDL operations, txid: " + transactionState.getTransactionId());
+
+            //since DDL is involved, mark this prepare allReadOnly as false.
+            //There are cases such as initialize drop, that only has DDL operations. 
+             allReadOnly = false;
+
             //if tables were created, then nothing else needs to be done.
             //if tables were recorded dropped, then they need to be disabled.
             //Disabled tables will ultimately be deleted in commit phase.
@@ -2008,7 +2019,7 @@ public class TransactionManager {
                   public Integer call() throws CommitUnsuccessfulException, IOException {
 
                       return doAbortX(location.getRegionInfo().getRegionName(),
-                              transactionState.getTransactionId(), participantNum);
+                              transactionState.getTransactionId(), participantNum, location.isTableRecodedDropped());
                   }
               });
               completedList.add(location);
@@ -2161,6 +2172,10 @@ public class TransactionManager {
                 //return; //Do not return here. This thread should continue servicing DDL operations.
             }
 
+            if (LOG.isDebugEnabled()) LOG.debug("doCommit() [" + transactionState.getTransactionId()
+                              + "] performing commit DDL");
+
+
             try{
                 doCommitDDL(transactionState);
 
@@ -2173,6 +2188,8 @@ public class TransactionManager {
 
     public void doCommitDDL(final TransactionState transactionState) throws UnsuccessfulDDLException
     {
+      
+        if (LOG.isTraceEnabled()) LOG.trace("doCommitDDL  ENTRY [" + transactionState.getTransactionId() + "]"); 
 
         //if tables were created, then nothing else needs to be done.
         //if tables were recorded dropped, then they need to be physically dropped.
@@ -2299,6 +2316,9 @@ public class TransactionManager {
             }
         }
     }while (retryCount < RETRY_ATTEMPTS && retry == true);
+
+    if (LOG.isTraceEnabled()) LOG.trace("doCommitDDL  EXIT [" + transactionState.getTransactionId() + "]");
+
 }
 
 
@@ -2366,7 +2386,7 @@ public class TransactionManager {
 
                threadPool.submit(new TransactionManagerCallable(transactionState, location, pSTRConfig.getPeerConnections().get(location.peerId)) {
                  public Integer call() throws IOException {
-                    return doAbortX(regionName, transactionState.getTransactionId(), participantNum);
+                    return doAbortX(regionName, transactionState.getTransactionId(), participantNum, location.isTableRecodedDropped());
                  }
                });
             } catch (IllegalArgumentException iae) {
@@ -3007,6 +3027,15 @@ public class TransactionManager {
 
             // Set transaction state object as participating in ddl transaction.
             transactionState.setDDLTx(true);
+           
+            // Also set a flag in all current participating regions belonging to this table
+            // to indicate this table is recorded for drop.
+            for(TransactionRegionLocation trl : transactionState.getParticipatingRegions())
+            {
+                if(trl.getRegionInfo().getTable().toString().compareTo(tblName) == 0)
+                	trl.setTableRecordedDropped();
+            }
+
         }
         catch (Exception e) {
             LOG.error("dropTable Exception TxId: " + transactionState.getTransactionId() + "TableName:" + tblName + "Exception: " + e);
@@ -3023,11 +3052,11 @@ public class TransactionManager {
         }
         catch (TableNotEnabledException e) {
             //If table is not enabled, no need to throw exception. Continue.
-            if (LOG.isTraceEnabled()) LOG.trace("deleteTable , TableNotEnabledException. This could be a expected exception.  Step: disableTable, TxId: " +
-                transactionState.getTransactionId() + "TableName" + tblName + "Exception: " + e);
+            //if (LOG.isTraceEnabled()) LOG.trace("deleteTable , TableNotEnabledException. This is a expected exception.  Step: disableTable, TxId: " +
+            //    transactionState.getTransactionId() + "TableName" + tblName + "Exception: " + e);
         }
         catch (Exception e) {
-            LOG.error("deleteTable Exception TxId: " + transactionState.getTransactionId() + "TableName" + tblName + "Exception: " + e);
+            LOG.error("deleteTable Exception TxId: " + transactionState.getTransactionId() + " TableName " + tblName + " Exception: " + e);
             throw e;
         }
 
@@ -3035,7 +3064,7 @@ public class TransactionManager {
             hbadmin.deleteTable(tblName);
         }
         catch (Exception e) {
-            LOG.error("deleteTable Exception TxId: " + transactionState.getTransactionId() + "TableName" + tblName  + "Exception: " + e);
+            LOG.error("deleteTable Exception TxId: " + transactionState.getTransactionId() + " TableName " + tblName  + " Exception: " + e);
             throw e;
         }
     }
@@ -3043,12 +3072,13 @@ public class TransactionManager {
     //Called only by Abort processing.
     public void enableTable(final TransactionState transactionState, String tblName)
             throws Exception{
-        if (LOG.isTraceEnabled()) LOG.trace("enableTable ENTRY, TxID: " + transactionState.getTransactionId() + "tableName" + tblName);
+        if (LOG.isTraceEnabled()) LOG.trace("enableTable ENTRY, TxID: " + transactionState.getTransactionId() + " tableName " + tblName);
         try {
             hbadmin.enableTable(tblName);
         }
         catch (Exception e) {
-            LOG.error("enableTable Exception TxId: " + transactionState.getTransactionId() + "TableName" + tblName + "Exception: " + e);
+            //LOG.error("enableTable Exception TxId: " + transactionState.getTransactionId() + " TableName " + tblName + "Exception: " + e);
+        	//Let the caller log this and handle exception. Some scenarios this exception is expected.
             throw e;
         }
     }
@@ -3071,7 +3101,7 @@ public class TransactionManager {
             hbadmin.close();
         }
         catch (Exception e) {
-            LOG.error("truncateTable Exception TxId: " + transactionState.getTransactionId() + "TableName" + tblName+  "Exception: " + e);
+            LOG.error("truncateTable Exception TxId: " + transactionState.getTransactionId() + " TableName " + tblName+  "Exception: " + e);
             throw e;
         }
     }
@@ -3079,14 +3109,17 @@ public class TransactionManager {
     //Called only by DoPrepare.
     public void disableTable(final TransactionState transactionState, String tblName)
             throws Exception{
-        if (LOG.isTraceEnabled()) LOG.trace("disableTable ENTRY, TxID: " + transactionState.getTransactionId() + "tableName" + tblName);
+        if (LOG.isTraceEnabled()) LOG.trace("disableTable ENTRY, TxID: " + transactionState.getTransactionId() + " tableName " + tblName);
         try {
             hbadmin.disableTable(tblName);
         }
         catch (Exception e) {
-            LOG.error("disableTable Exception TxId: " + transactionState.getTransactionId() + "TableName" + tblName + "Exception: " + e);
+            //LOG.error("disableTable Exception TxId: " + transactionState.getTransactionId() + " TableName " + tblName + "Exception: " + e);
+            //Let the caller handle this exception since table being disabled could be redundant many times.
             throw e;
         }
+        if (LOG.isTraceEnabled()) LOG.trace("disableTable EXIT, TxID: " + transactionState.getTransactionId() + " tableName " + tblName);
+
     }
 
     /**

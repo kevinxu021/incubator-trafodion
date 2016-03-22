@@ -3831,6 +3831,9 @@ enum DefaultConstants
   // If this cqd is on, then other alters (name, datatype) are also supported.
   TRAF_ALTER_COL_ATTRS,
 
+  // if ON, upsert into the table will use the default value for the omitted columns
+  // with default value 
+  TRAF_UPSERT_WITH_INSERT_DEFAULT_SEMANTICS,
   // enable/disable NJs into ORC tables
   ORC_NJS,
 
