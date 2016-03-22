@@ -6000,9 +6000,8 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
   if ( getArity() == 0 )
     return this;
 
-          
   NABoolean aggrPushdown = FALSE;
-  Scan* scan = NULL;
+  FileScan* scan = NULL;
   RelExpr* childRelExpr = child(0)->castToRelExpr();
 
   if ( childRelExpr && childRelExpr->getOperatorType() == REL_FIRST_N )
@@ -6012,12 +6011,14 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
       ((childRelExpr->getOperatorType() == REL_FILE_SCAN) ||
        (childRelExpr->getOperatorType() == REL_HBASE_ACCESS)))
     {
-      scan = (Scan*)childRelExpr;
+      scan = (FileScan*)childRelExpr;
 
       if ((NOT aggregateExpr().isEmpty()) &&
           (groupExpr().isEmpty()) &&
           (scan->selectionPred().isEmpty()) &&
+          (scan->executorPred().isEmpty()) &&
           (NOT scan->userSpecifiedPred()) &&
+          (NOT scan->isSampleScan()) &&
           ((scan->getTableName().getSpecialType() == ExtendedQualName::NORMAL_TABLE) ||
            (scan->getTableName().getSpecialType() == ExtendedQualName::INDEX_TABLE)) &&
           !scan->getTableName().isPartitionNameSpecified() &&
