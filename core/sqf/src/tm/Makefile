@@ -117,6 +117,7 @@ TMOBJS		= $(OUTDIR)/tmregistry.o \
 		      $(OUTDIR)/tmtxstats.o \
 		      $(OUTDIR)/tmstats.o \
 		      $(OUTDIR)/tmthreadeg.o \
+                      $(OUTDIR)/tmlockthread.o \
 		      $(OUTDIR)/verstm.o   \
 	    	  $(OUTDIR)/xaglob.o \
 		      $(OUTDIR)/tmxidmap.o \
