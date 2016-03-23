@@ -230,6 +230,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.GetTransactionalRequest.Builder builder = GetTransactionalRequest.newBuilder();            
         builder.setGet(ProtobufUtil.toGet(get));
         builder.setTransactionId(transactionState.getTransactionId());
+        builder.setStartId(transactionState.getStartId());
         builder.setRegionName(ByteString.copyFromUtf8(regionName));
    
         instance.get(controller, builder.build(), rpcCallback);
@@ -314,6 +315,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
           public DeleteTransactionalResponse call(TrxRegionService instance) throws IOException {
             org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.DeleteTransactionalRequest.Builder builder = DeleteTransactionalRequest.newBuilder();      
             builder.setTransactionId(transactionState.getTransactionId());
+            builder.setStartId(transactionState.getStartId());
             builder.setRegionName(ByteString.copyFromUtf8(regionName));
             
             MutationProto m1 = ProtobufUtil.toMutation(MutationType.DELETE, delete);
@@ -401,6 +403,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
       public PutTransactionalResponse call(TrxRegionService instance) throws IOException {
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PutTransactionalRequest.Builder builder = PutTransactionalRequest.newBuilder();
         builder.setTransactionId(transactionState.getTransactionId());
+        builder.setStartId(transactionState.getStartId());
         builder.setRegionName(ByteString.copyFromUtf8(regionName));
   
         
@@ -488,6 +491,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
       public CheckAndDeleteResponse call(TrxRegionService instance) throws IOException {
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CheckAndDeleteRequest.Builder builder = CheckAndDeleteRequest.newBuilder();
         builder.setTransactionId(transactionState.getTransactionId());
+        builder.setStartId(transactionState.getStartId());
         builder.setRegionName(ByteString.copyFromUtf8(regionName));
         builder.setRow(HBaseZeroCopyByteString.wrap(row));
         if(family != null)
@@ -580,6 +584,8 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
       public CheckAndPutResponse call(TrxRegionService instance) throws IOException {
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CheckAndPutRequest.Builder builder = CheckAndPutRequest.newBuilder();
         builder.setTransactionId(transactionState.getTransactionId());
+        if (LOG.isTraceEnabled()) LOG.trace("checkAndPut, seting request startid: " + transactionState.getStartId());
+        builder.setStartId(transactionState.getStartId());
         builder.setRegionName(ByteString.copyFromUtf8(regionName));
         builder.setRow(HBaseZeroCopyByteString.wrap(row));
         if (family != null)
@@ -700,6 +706,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
    	      public DeleteMultipleTransactionalResponse call(TrxRegionService instance) throws IOException {
    	        org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.DeleteMultipleTransactionalRequest.Builder builder = DeleteMultipleTransactionalRequest.newBuilder();
    	        builder.setTransactionId(transactionState.getTransactionId());
+            builder.setStartId(transactionState.getStartId());
    	        builder.setRegionName(ByteString.copyFromUtf8(regionName));
 
    	        for(Delete delete : rowsInSameRegion) {
@@ -808,6 +815,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
 	      public PutMultipleTransactionalResponse call(TrxRegionService instance) throws IOException {
 	        org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PutMultipleTransactionalRequest.Builder builder = PutMultipleTransactionalRequest.newBuilder();
 	        builder.setTransactionId(transactionState.getTransactionId());
+            builder.setStartId(transactionState.getStartId());
 	        builder.setRegionName(ByteString.copyFromUtf8(regionName));
 
 	        for (Put put : rowsInSameRegion){
