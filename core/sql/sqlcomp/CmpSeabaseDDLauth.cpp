@@ -980,7 +980,7 @@ void CmpSeabaseDDLuser::unregisterUser(StmtDDLRegisterUser * pNode)
                       std::string(privMgrMDLoc.data()),
                       CmpCommon::diags());
     
-    if (role.isAuthorizationEnabled() &&
+    if (CmpCommon::context()->isAuthorizationEnabled() &&
         role.isUserGrantedAnyRole(getAuthID()))
     {
        *CmpCommon::diags() << DgSqlCode(-CAT_NO_UNREG_USER_GRANTED_ROLES);
@@ -1300,26 +1300,27 @@ void CmpSeabaseDDLuser::verifyAuthority(bool isRemapUser)
 
 {
 
-int32_t currentUser = ComUser::getCurrentUser();
+   // If authorization is not enabled, just return with no error
+   if (!CmpCommon::context()->isAuthorizationEnabled())
+     return;
 
-// Root user has authority to manage users.
+   int32_t currentUser = ComUser::getCurrentUser();
+
+   // Root user has authority to manage users.
    if (currentUser == ComUser::getRootUserID())
       return;
       
-// Verify authorization is enabled.  If not, no restrictions.
-NAString systemCatalog = CmpSeabaseDDL::getSystemCatalogStatic();
-std::string privMDLoc(systemCatalog.data());
+   // Verify authorization is enabled.  If not, no restrictions.
+   NAString systemCatalog = CmpSeabaseDDL::getSystemCatalogStatic();
+   std::string privMDLoc(systemCatalog.data());
   
    privMDLoc += std::string(".\"") +
                 std::string(SEABASE_PRIVMGR_SCHEMA) +
                 std::string("\"");
                 
-PrivMgrComponentPrivileges componentPrivileges(privMDLoc,CmpCommon::diags());
+   PrivMgrComponentPrivileges componentPrivileges(privMDLoc,CmpCommon::diags());
 
-    if (!componentPrivileges.isAuthorizationEnabled())
-       return;
-
-// Authorization enabled.  See if non-root user has authority to manage users.       
+   // See if non-root user has authority to manage users.       
    if (componentPrivileges.hasSQLPriv(currentUser,SQLOperation::MANAGE_USERS,true))
    {
       if (!isRemapUser)
@@ -1328,7 +1329,7 @@ PrivMgrComponentPrivileges componentPrivileges(privMDLoc,CmpCommon::diags());
          return;
    }   
            
-// No authority.  We're outta here.
+   // No authority.  We're outta here.
    *CmpCommon::diags() << DgSqlCode(-CAT_NOT_AUTHORIZED);
    UserException excp (NULL, 0);
    throw excp;
@@ -1374,6 +1375,13 @@ CmpSeabaseDDLrole::CmpSeabaseDDLrole()
 void CmpSeabaseDDLrole::createRole(StmtDDLCreateRole * pNode)
    
 {
+
+   // Don't allow roles to be created unless authorization is enabled
+   if (!CmpCommon::context()->isAuthorizationEnabled())
+   {
+     *CmpCommon::diags() << DgSqlCode(-CAT_AUTHORIZATION_NOT_ENABLED);
+     return;
+   }
 
 // Set up a global try/catch loop to catch unexpected errors
    try
@@ -1464,18 +1472,15 @@ void CmpSeabaseDDLrole::createRole(StmtDDLCreateRole * pNode)
       PrivMgrRoles roles(std::string(MDSchema_.data()),std::string(privMgrMDLoc),
                          CmpCommon::diags());
       
-      if (roles.isAuthorizationEnabled())
-      { 
-         PrivStatus privStatus = roles.grantRoleToCreator(roleID,
-                                                          getAuthDbName().data(),
-                                                          getAuthCreator(),
-                                                          creatorUsername);
-         if (privStatus != PrivStatus::STATUS_GOOD)
-         {
-            SEABASEDDL_INTERNAL_ERROR("Unable to grant role to role administrator");
-            return;
-         }
-      }      
+      PrivStatus privStatus = roles.grantRoleToCreator(roleID,
+                                                       getAuthDbName().data(),
+                                                       getAuthCreator(),
+                                                        creatorUsername);
+      if (privStatus != PrivStatus::STATUS_GOOD)
+      {
+         SEABASEDDL_INTERNAL_ERROR("Unable to grant role to role administrator");
+         return;
+      }
    }
    catch (...)
    {
@@ -1571,8 +1576,11 @@ bool CmpSeabaseDDLrole::describe(
     
       roleText += ";\n";
       
-      // See if authorization is enable.  If so, need to list any grants of this
+      // See if authorization is enabled.  If so, need to list any grants of this
       // role.  Otherwise, we are outta here.
+      if (!CmpCommon::context()->isAuthorizationEnabled())
+         return true;
+
       NAString privMgrMDLoc;
 
       CONCAT_CATSCH(privMgrMDLoc,systemCatalog_.data(),SEABASE_PRIVMGR_SCHEMA);
@@ -1580,8 +1588,6 @@ bool CmpSeabaseDDLrole::describe(
       PrivMgrRoles roles(std::string(MDSchema_.data()),std::string(privMgrMDLoc),
                          CmpCommon::diags());
     
-      if (!roles.isAuthorizationEnabled())
-         return true;
          
       std::vector<std::string> granteeNames;
       std::vector<int32_t> grantDepths;
@@ -1712,7 +1718,9 @@ void CmpSeabaseDDLrole::dropRole(StmtDDLCreateRole * pNode)
       PrivMgrRoles role(std::string(MDSchema_.data()),std::string(privMgrMDLoc),
                         CmpCommon::diags());
       
-      if (role.isAuthorizationEnabled())
+      // If authorization is not enabled and a role has been defined, skip
+      // looking for dependencies and just remove the role from auths.
+      if (CmpCommon::context()->isAuthorizationEnabled())
       {
          //TODO: Could support a CASCADE option that would clean up
          // grants and dependent objects.
@@ -1903,30 +1911,30 @@ void CmpSeabaseDDLrole::verifyAuthority()
 
 {
 
-int32_t currentUser = ComUser::getCurrentUser();
+  // If authorization is not enabled then role has privilege, just return
+  if (!CmpCommon::context()->isAuthorizationEnabled())
+    return;
 
-// Root user has authority to manage roles.
+   int32_t currentUser = ComUser::getCurrentUser();
+
+   // Root user has authority to manage roles.
    if (currentUser == ComUser::getRootUserID())
       return;
       
-// Verify authorization is enabled.  If not, no restrictions.
-NAString systemCatalog = CmpSeabaseDDL::getSystemCatalogStatic();
-std::string privMDLoc(systemCatalog.data());
+   NAString systemCatalog = CmpSeabaseDDL::getSystemCatalogStatic();
+   std::string privMDLoc(systemCatalog.data());
   
    privMDLoc += std::string(".\"") +
                 std::string(SEABASE_PRIVMGR_SCHEMA) +
                 std::string("\"");
                 
-PrivMgrComponentPrivileges componentPrivileges(privMDLoc,CmpCommon::diags());
+   PrivMgrComponentPrivileges componentPrivileges(privMDLoc,CmpCommon::diags());
 
-    if (!componentPrivileges.isAuthorizationEnabled())
-       return;
-
-// Authorization enabled.  See if non-root user has authority to manage roles.       
+   // Authorization enabled.  See if non-root user has authority to manage roles.       
    if (componentPrivileges.hasSQLPriv(currentUser,SQLOperation::MANAGE_ROLES,true))
       return;   
        
-// No authority.  We're outta here.
+   // No authority.  We're outta here.
    *CmpCommon::diags() << DgSqlCode(-CAT_NOT_AUTHORIZED);
    UserException excp (NULL, 0);
    throw excp;

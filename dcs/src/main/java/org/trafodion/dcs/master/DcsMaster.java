@@ -59,7 +59,6 @@ public class DcsMaster implements Runnable {
     private int port;
     private int portRange;
     private InfoServer infoServer;
-    private DcsRest restServer;
     private String serverName;
     private int infoPort;
     private long startTime;

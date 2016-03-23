@@ -1985,6 +1985,7 @@ desc_struct * Generator::createVirtualTableDesc(
   index_desc->body.indexes_desc.tablename = table_desc->body.table_desc.tablename;
   index_desc->body.indexes_desc.indexname = table_desc->body.table_desc.tablename;
   index_desc->body.indexes_desc.keytag = 0; // primary index
+  index_desc->body.indexes_desc.indexUID = 0;
   index_desc->body.indexes_desc.record_length = table_desc->body.table_desc.record_length;
   index_desc->body.indexes_desc.colcount = table_desc->body.table_desc.colcount;
   index_desc->body.indexes_desc.isVerticalPartition = 0;
@@ -1997,16 +1998,18 @@ desc_struct * Generator::createVirtualTableDesc(
   index_desc->body.indexes_desc.rowFormat = table_desc->body.table_desc.rowFormat;
   if (tableInfo)
   {
-      index_desc->body.indexes_desc.numSaltPartns = tableInfo->numSaltPartns;
-      index_desc->body.indexes_desc.numInitialSaltRegions = tableInfo->numInitialSaltRegions;
-      if (tableInfo->hbaseSplitClause)
-      {
-        index_desc->body.indexes_desc.hbaseSplitClause  = 
-          new HEAP char[strlen(tableInfo->hbaseSplitClause) + 1];
-        strcpy(index_desc->body.indexes_desc.hbaseSplitClause, 
-               tableInfo->hbaseSplitClause);
-      }
-      if (tableInfo->hbaseCreateOptions)
+    index_desc->body.indexes_desc.indexUID = tableInfo->objUID;
+    
+    index_desc->body.indexes_desc.numSaltPartns = tableInfo->numSaltPartns;
+    index_desc->body.indexes_desc.numInitialSaltRegions = tableInfo->numInitialSaltRegions;
+    if (tableInfo->hbaseSplitClause)
+    {
+      index_desc->body.indexes_desc.hbaseSplitClause  = 
+        new HEAP char[strlen(tableInfo->hbaseSplitClause) + 1];
+      strcpy(index_desc->body.indexes_desc.hbaseSplitClause, 
+             tableInfo->hbaseSplitClause);
+    }
+    if (tableInfo->hbaseCreateOptions)
       {
         index_desc->body.indexes_desc.hbaseCreateOptions  = 
           new HEAP char[strlen(tableInfo->hbaseCreateOptions) + 1];
@@ -2014,7 +2017,7 @@ desc_struct * Generator::createVirtualTableDesc(
                tableInfo->hbaseCreateOptions);
       }
   }
-
+  
   if (numIndexes > 0)
     {
       desc_struct * prev_desc = index_desc;
@@ -2030,6 +2033,7 @@ desc_struct * Generator::createVirtualTableDesc(
 	  curr_index_desc->body.indexes_desc.indexname = new HEAP char[strlen(indexInfo[i].indexName)+1];
 	  strcpy(curr_index_desc->body.indexes_desc.indexname, indexInfo[i].indexName);
 
+          curr_index_desc->body.indexes_desc.indexUID = indexInfo[i].indexUID;
 	  curr_index_desc->body.indexes_desc.keytag = indexInfo[i].keytag;
 	  curr_index_desc->body.indexes_desc.unique = indexInfo[i].isUnique;
 	  curr_index_desc->body.indexes_desc.isCreatedExplicitly = indexInfo[i].isExplicit;
@@ -3159,9 +3163,15 @@ void Generator::setHBaseSmallScanner(Int32 hbaseRowSize, double estRowsAccessed,
 {
   if (CmpCommon::getDefault(HBASE_SMALL_SCANNER) == DF_SYSTEM)
   {
-    if((hbaseRowSize*estRowsAccessed)<hbaseBlockSize)
+    if(((hbaseRowSize*estRowsAccessed)<hbaseBlockSize) && (estRowsAccessed>0))//added estRowsAccessed > 0 because MDAM costing is not populating this field correctly
         hbpa->setUseSmallScanner(TRUE);
+    hbpa->setUseSmallScannerForProbes(TRUE);
   }else if (CmpCommon::getDefault(HBASE_SMALL_SCANNER) == DF_ON)
+  {
       hbpa->setUseSmallScanner(TRUE);
+      hbpa->setUseSmallScannerForProbes(TRUE);
+  }
+  hbpa->setMaxNumRowsPerHbaseBlock(hbaseBlockSize/hbaseRowSize);
 }
+
 

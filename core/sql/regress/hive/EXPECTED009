@@ -83,6 +83,7 @@ CREATE EXTERNAL TABLE CUSTOMER
       COLLATE DEFAULT DEFAULT NULL
   )
   FOR HIVE.HIVE.CUSTOMER
+ ATTRIBUTES NO AUDIT
 ;
 
 --- SQL operation complete.
@@ -126,6 +127,7 @@ CREATE EXTERNAL TABLE ITEM
       COLLATE DEFAULT DEFAULT NULL
   )
   FOR HIVE.HIVE.ITEM
+ ATTRIBUTES NO AUDIT
 ;
 
 --- SQL operation complete.
@@ -167,6 +169,7 @@ CREATE EXTERNAL TABLE PROMOTION
       COLLATE DEFAULT DEFAULT NULL
   )
   FOR HIVE.HIVE.PROMOTION
+ ATTRIBUTES NO AUDIT
 ;
 
 --- SQL operation complete.
@@ -197,6 +200,7 @@ CREATE EXTERNAL TABLE T009T1
   , C                                INT DEFAULT NULL
   )
   FOR HIVE.SCH_T009.T009T1
+ ATTRIBUTES NO AUDIT
 ;
 
 --- SQL operation complete.
@@ -209,6 +213,7 @@ CREATE EXTERNAL TABLE T009T2
   , C                                INT DEFAULT NULL
   )
   FOR HIVE.SCH_T009.T009T2
+ ATTRIBUTES NO AUDIT
 ;
 
 --- SQL operation complete.
@@ -526,6 +531,8 @@ _HB__CELL__
   , COLUMN_DETAILS                   VARCHAR(10000) CHARACTER SET ISO88591
       COLLATE DEFAULT DEFAULT NULL NOT NULL NOT DROPPABLE
   )
+ ATTRIBUTES NO AUDIT
+;
 
 --- SQL operation complete.
 >>invoke trafodion."_HB__CELL__"."baseball";
@@ -545,6 +552,8 @@ _HB__CELL__
   , COL_VALUE                        VARCHAR(1000) CHARACTER SET ISO88591
       COLLATE DEFAULT DEFAULT NULL NOT NULL NOT DROPPABLE
   )
+ ATTRIBUTES NO AUDIT
+;
 
 --- SQL operation complete.
 >>showddl trafodion."_HB__ROW__"."baseball";
