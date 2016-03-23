@@ -418,7 +418,9 @@ CoprocessorService, Coprocessor {
                                 nextLogSequenceId.getAndIncrement(),
                                 nextLogSequenceId,
                                 m_Region.getRegionInfo(),
-                                m_Region.getTableDesc(), tHLog, configuredEarlyLogging,
+                                m_Region.getTableDesc(),
+                                tHLog,
+                                configuredEarlyLogging,
                                 startId);
 //                                nextSsccSequenceId.getAndIncrement());
 

@@ -1836,6 +1836,7 @@ drop the default context
 8963 ZZZZZ 99999 BEGINNER MAJOR DBADMIN UNLOAD encountered a backup TSE switch.
 8964 ZZZZZ 99999 BEGINNER MAJOR DBADMIN LOAD is not currently supported with non empty tables.
 8965 ZZZZZ 99999 BEGINNER MAJOR DBADMIN File $0~String0 already exists.
+8966 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Unable to create partition $0~String0 for partitioned Hive table. Details: $1~String1.
 9200 ZZZZZ 99999 ADVANCED MAJOR DIALOUT UPDATE STATISTICS for table $0~CatalogName.$1~SchemaName.$2~TableName encountered an error$3~string2 from statement $4~string0.
 9201 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Unable to DROP object $0~string0.
 9202 ZZZZZ 99999 BEGINNER INFRM DBADMIN UPDATE STATISTICS has located previously generated histograms that are not being regenerated. This may affect the plans that will be generated. Missing columns lists are $0~string0.

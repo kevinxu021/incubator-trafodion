@@ -72,6 +72,9 @@ public class TransactionState {
 
     protected static final Log LOG = LogFactory.getLog(TransactionState.class);
 
+    protected long startId_;
+    protected long commitSequenceId;
+
     /** Current commit progress */
     public enum CommitProgress {
         /** Initial status, still performing operations. */
@@ -120,7 +123,7 @@ public class TransactionState {
     public static byte TS_TRAFODION_TXN_TAG_TYPE = 41;
 
     public TransactionState(final long transactionId, final long rLogStartSequenceId, AtomicLong hlogSeqId, final HRegionInfo regionInfo,
-                                                 HTableDescriptor htd, WAL hLog, boolean logging) {
+                                                 HTableDescriptor htd, WAL hLog, boolean logging, final long startId) {
         Tag transactionalTag = null;
         if (LOG.isTraceEnabled()) LOG.trace("Create TS object for " + transactionId + " early logging " + logging);
         this.transactionId = transactionId;
@@ -138,6 +141,7 @@ public class TransactionState {
            transactionalTag = this.formTransactionalContextTag(TS_COMMIT_REQUEST);
         }
         tagList.add(transactionalTag);
+        setStartId(startId);
     }
 
     public HTableDescriptor getTableDesc() {
@@ -190,6 +194,17 @@ public class TransactionState {
         }
     }
 
+   // Same as updateLatestTimestamp except there is no test for isLatestTimestamp()
+   public  static void unconditionalUpdateLatestTimestamp(final Collection<List<Cell>> kvsCollection, final long time) {
+       byte[] timeBytes = Bytes.toBytes(time);
+       // HAVE to manually set the KV timestamps
+       for (List<Cell> kvs : kvsCollection) {
+           for (Cell cell : kvs) {
+             KeyValue kv = KeyValueUtil.ensureKeyValue(cell);
+             kv.updateLatestStamp(timeBytes);
+           }
+       }
+   }
     /**
      * Get the originating node of the transaction.
      *
@@ -259,6 +274,33 @@ public class TransactionState {
 
     public Object getXaOperationObject() {
        return xaOperation;
+    }
+
+    public void setStartId(long startId)
+    {
+        startId_ = startId;
+    }
+
+    public long getStartId()
+    {
+        return startId_;
+    }
+
+    /**
+     * Get the commitId for this transaction.
+     * 
+     * @return Return the commitSequenceId.
+     */
+    public synchronized long getCommitId() {
+        return commitSequenceId;
+    }
+
+    /**
+     * Set the commitId for this transaction.
+     * 
+     */
+    public synchronized void setCommitId(final long Id) {
+        this.commitSequenceId = Id;
     }
 
     /**

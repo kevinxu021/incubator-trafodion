@@ -57,7 +57,8 @@ message AbortTransactionMultipleResponse {
 
 message BeginTransactionRequest{
   required int64 transactionId = 1;
-  required bytes regionName = 2;
+  required int64 startId = 2;
+  required bytes regionName = 3;
 }
 
 message BeginTransactionResponse {
@@ -68,8 +69,9 @@ message BeginTransactionResponse {
 message CommitRequest{
   required bytes regionName = 1;
   required int64 transactionId = 2;
-  required int32 participantNum = 3;
-  optional bool ignoreUnknownTransactionException = 4;
+  required int64 commitId = 3;
+  required int32 participantNum = 4;
+  optional bool ignoreUnknownTransactionException = 5;
 }
 
 message CommitResponse {
@@ -80,8 +82,9 @@ message CommitResponse {
 message CommitMultipleRequest{
   repeated bytes regionName = 1;
   required int64 transactionId = 2;
-  required int32 participantNum = 3;
-  optional bool ignoreUnknownTransactionException = 4;
+  required int64 commitId = 3;
+  required int32 participantNum = 4;
+  optional bool ignoreUnknownTransactionException = 5;
 }
 
 message CommitMultipleResponse {
@@ -117,7 +120,8 @@ message CommitRequestMultipleResponse {
 message CommitIfPossibleRequest{
   required bytes regionName = 1;
   required int64 transactionId = 2;
-  required int32 participantNum = 3;
+  required int64 commitId = 3;
+  required int32 participantNum = 4;
 }
 
 message CommitIfPossibleResponse {
@@ -127,12 +131,13 @@ message CommitIfPossibleResponse {
 
 message CheckAndDeleteRequest {
   required int64 transactionId = 1;
-  required bytes regionName = 2;
-  required bytes row = 3;
-  required bytes family = 4;
-  required bytes qualifier = 5;
-  required bytes value = 6;
-  required MutationProto delete = 7;
+  required int64 startId = 2;
+  required bytes regionName = 3;
+  required bytes row = 4;
+  required bytes family = 5;
+  required bytes qualifier = 6;
+  required bytes value = 7;
+  required MutationProto delete = 8;
 }
 
 message CheckAndDeleteResponse {
@@ -143,12 +148,13 @@ message CheckAndDeleteResponse {
 
 message CheckAndPutRequest {
   required int64 transactionId = 1;
-  required bytes regionName = 2;
-  required bytes row = 3;
-  required bytes family = 4;
-  required bytes qualifier = 5;
-  required bytes value = 6;
-  required MutationProto put = 7;
+  required int64 startId = 2;
+  required bytes regionName = 3;
+  required bytes row = 4;
+  required bytes family = 5;
+  required bytes qualifier = 6;
+  required bytes value = 7;
+  required MutationProto put = 8;
 }
 
 message CheckAndPutResponse {
@@ -170,8 +176,9 @@ message CloseScannerResponse {
 
 message DeleteMultipleTransactionalRequest {
   required int64 transactionId = 1;
-  required bytes regionName = 2;
-  repeated MutationProto delete = 3;
+  required int64 startId = 2;
+  required bytes regionName = 3;
+  repeated MutationProto delete = 4;
 }
 
 message DeleteMultipleTransactionalResponse {
@@ -182,8 +189,9 @@ message DeleteMultipleTransactionalResponse {
 
 message DeleteTransactionalRequest {
   required int64 transactionId = 1;
-  required bytes regionName = 2;
-  required MutationProto delete = 3;
+  required int64 startId = 2;
+  required bytes regionName = 3;
+  required MutationProto delete = 4;
 }
 
 message DeleteTransactionalResponse {
@@ -194,8 +202,9 @@ message DeleteTransactionalResponse {
 
 message GetTransactionalRequest {
   required int64 transactionId = 1;
-  required bytes regionName = 2;
-  required Get get = 3;
+  required int64 startId = 2;
+  required bytes regionName = 3;
+  required Get get = 4;
 }
 
 message GetTransactionalResponse {
@@ -206,8 +215,9 @@ message GetTransactionalResponse {
 
 message OpenScannerRequest {
   required int64 transactionId = 1;
-  required bytes regionName = 2;
-  required Scan scan = 3;
+  required int64 startId = 2;
+  required bytes regionName = 3;
+  required Scan scan = 4;
 }
 
 message OpenScannerResponse {
@@ -218,11 +228,12 @@ message OpenScannerResponse {
 
 message PerformScanRequest {
   required int64 transactionId = 1;
-  required bytes regionName = 2;
-  required int64 scannerId = 3;
-  required int32 numberOfRows = 4;
-  required bool  closeScanner = 5;
-  required int64 nextCallSeq = 6;
+  required int64 startId = 2;
+  required bytes regionName = 3;
+  required int64 scannerId = 4;
+  required int32 numberOfRows = 5;
+  required bool  closeScanner = 6;
+  required int64 nextCallSeq = 7;
 }
 
 message PerformScanResponse {
@@ -236,8 +247,9 @@ message PerformScanResponse {
 
 message PutTransactionalRequest {
   required int64 transactionId = 1;
-  required bytes regionName = 2;
-  required MutationProto put = 3;
+  required int64 startId = 2;
+  required bytes regionName = 3;
+  required MutationProto put = 4;
 }
 
 message PutTransactionalResponse {
@@ -248,8 +260,9 @@ message PutTransactionalResponse {
 
 message PutMultipleTransactionalRequest {
   required int64 transactionId = 1;
-  required bytes regionName = 2;
-  repeated MutationProto put = 3;
+  required int64 startId = 2;
+  required bytes regionName = 3;
+  repeated MutationProto put = 4;
 }
 
 message PutMultipleTransactionalResponse {
@@ -332,9 +345,11 @@ message TransactionalAggregateRequest {
    */
   required bytes regionName = 1;
   required int64 transactionId = 2;
-  required string interpreter_class_name = 3;
-  required Scan scan = 4;
-  optional bytes  interpreter_specific_bytes = 5;
+  required int64 startId = 3;
+  required string interpreter_class_name = 4;
+  required Scan scan = 5;
+  optional bytes  interpreter_specific_bytes = 6;
+  
 }
 
 message TransactionalAggregateResponse {

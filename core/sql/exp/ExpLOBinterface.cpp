@@ -194,7 +194,7 @@ Lng32 ExpLOBinterfaceEmptyDirectory(
                    blockSize
                    );
 
-  if (err != LOB_OPER_OK)
+  if (err != LOB_OPER_OK && err != LOB_DATA_FILE_NOT_FOUND_ERROR)
     return -(short)err;
   else
     return 0;

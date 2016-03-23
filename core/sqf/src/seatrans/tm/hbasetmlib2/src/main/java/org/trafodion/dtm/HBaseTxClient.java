@@ -95,7 +95,8 @@ public class HBaseTxClient {
    private int stallWhere;
    private IdTm idServer;
    private static final int ID_TM_SERVER_TIMEOUT = 1000;
-   private static boolean bSynchronized=false;
+   private static boolean bSynchronized = false;
+   private static boolean recoveryToPitMode = false;
    protected static Map<Integer, TmAuditTlog> peer_tLogs;
    private static int myClusterId;
    private static boolean synchronousWrites;
@@ -142,6 +143,12 @@ public class HBaseTxClient {
       this.dtmID = 0;
       this.useRecovThread = false;
       this.stallWhere = 0;
+
+      String usePIT = System.getenv("TM_USE_PIT_RECOVERY");
+      if( usePIT != null)
+      {
+          this.recoveryToPitMode = (Integer.parseInt(usePIT) == 1) ? true : false;
+      }
 
       synchronousWrites = false;
       try {
@@ -255,6 +262,13 @@ public class HBaseTxClient {
       this.useRecovThread = false;
       this.stallWhere = 0;
       this.useDDLTrans = false;
+
+      String usePIT = System.getenv("TM_USE_PIT_RECOVERY");
+      if( usePIT != null)
+      {
+          this.recoveryToPitMode = (Integer.parseInt(usePIT) == 1) ? true : false;
+      }
+
       String useSSCC = System.getenv("TM_USE_SSCC");
       TRANSACTION_ALGORITHM = AlgorithmType.MVCC;
       if (useSSCC != null)
@@ -755,7 +769,8 @@ public class HBaseTxClient {
 
        // Set the commitId
        IdTmId commitId = null;
-       if (TRANSACTION_ALGORITHM == AlgorithmType.SSCC) {
+       long commitIdVal = -1;
+       if (recoveryToPitMode || (TRANSACTION_ALGORITHM == AlgorithmType.SSCC)) {
           try {
              commitId = new IdTmId();
              if (LOG.isTraceEnabled()) LOG.trace("doCommit getting new commitId");
@@ -765,9 +780,8 @@ public class HBaseTxClient {
              LOG.error("doCommit: IdTm threw exception " + exc);
              throw new CommitUnsuccessfulException("doCommit: IdTm threw exception " + exc);
           }
+          commitIdVal = commitId.val;
        }
-
-       final long commitIdVal = (TRANSACTION_ALGORITHM == AlgorithmType.SSCC) ? commitId.val : -1;
        if (LOG.isTraceEnabled()) LOG.trace("doCommit setting commitId (" + commitIdVal + ") for tx: " + ts.getTransactionId());
        ts.setCommitId(commitIdVal);
 
@@ -857,6 +871,7 @@ public class HBaseTxClient {
        }
 
        try {
+          if (LOG.isTraceEnabled()) LOG.trace("HBaseTxClient:doCommit, calling trxManager.doCommit(" + ts.getTransactionId() + ")" );
           trxManager.doCommit(ts);
        } catch (CommitUnsuccessfulException e) {
           LOG.error("Returning from HBaseTxClient:doCommit, transaction: " + transactionId
