@@ -698,6 +698,9 @@ short BoolResult::codeGen(Generator * generator)
   while (rightMost->getOperatorType() == ITM_ITEM_LIST)
     rightMost = rightMost->child(1);
 
+  if (rightMost->getOperatorType() == ITM_RANGE_SPEC_FUNC)
+    rightMost = rightMost->child(1);
+
   if (generator->getExpGenerator()->genItemExpr(this, &attr, 1, -1) == 1)
     return 0;
   

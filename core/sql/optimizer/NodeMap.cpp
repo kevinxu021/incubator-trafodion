@@ -2156,6 +2156,13 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
       Int64 *espDistribution = new(CmpCommon::statementHeap()) Int64[numESPs];
       Int32 numSQNodes = HHDFSMasterHostList::getNumSQNodes();
 
+      if (numSQNodes == 0)
+        {
+          HHDFSMasterHostList::initializeWithSeaQuestNodes();
+          numSQNodes = HHDFSMasterHostList::getNumSQNodes();
+          CMPASSERT(numSQNodes > 0);
+        }
+
       for (Int32 k=0; k < numESPs; k++)
         {
           espDistribution[k] = 0;

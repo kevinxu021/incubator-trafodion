@@ -61,11 +61,17 @@ import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
+import org.apache.hadoop.hbase.regionserver.transactional.IdTm;
+import org.apache.hadoop.hbase.regionserver.transactional.IdTmException;
+import org.apache.hadoop.hbase.regionserver.transactional.IdTmId;
+
 public class TrxTableClient {
 
   static String regionname = "RegionName";
   static HTable ht = null;
   static long id = 1L;
+  static long startIdVal = 1L;
+  static long commitIdVal = 1L;
   static long scannerId = 0L;
   static boolean checkResult = false;
   static boolean hasMore = false;
@@ -83,6 +89,8 @@ public class TrxTableClient {
   static Pair<byte[][], byte[][]> startEndKeys = null;
 
   private static final String TABLE_NAME = "table1";
+  private static IdTm idServer;
+  private static final int ID_TM_SERVER_TIMEOUT = 1000;
 
   private static final byte[] FAMILY = Bytes.toBytes("family");
   private static final byte[] FAMILYBAD = Bytes.toBytes("familybad");
@@ -167,9 +175,41 @@ public class TrxTableClient {
           
         System.out.println("\t\t" + region.getRegionNameAsString());
      }
+     try {
+        idServer = new IdTm(false);
+     }
+     catch (Exception e){
+    	 System.out.println("Exception creating new IdTm: " + e);
+     }
+     IdTmId startId;
+     try {
+        startId = new IdTmId();
+        System.out.println("initialize() getting new startId");
+        idServer.id(ID_TM_SERVER_TIMEOUT, startId);
+        System.out.println("initialize() idServer.id returned: " + startId.val);
+     } catch (IdTmException exc) {
+    	 System.out.println("initialize()  : IdTm threw exception " + exc);
+        throw new IdTmException("initialize() : IdTm threw exception " + exc);
+     }
+     startIdVal = startId.val;
   }
 
-  static public void testAbortTransaction() throws IOException {
+  static public long getIdTmVal() throws Exception {
+     IdTmId LvId;
+	 try {
+	   LvId = new IdTmId();
+	   System.out.println("getIdTmVal getting new Id");
+	   idServer.id(ID_TM_SERVER_TIMEOUT, LvId);
+	   System.out.println("getIdTmVal idServer.id returned: " + LvId.val);
+	   return LvId.val;
+	 } catch (IdTmException exc) {
+       System.out.println("getIdTmVal : IdTm threw exception " + exc);
+	   throw new IdTmException("getIdTmVal : IdTm threw exception " + exc);
+	 }
+  }
+
+    	
+    static public void testAbortTransaction() throws IOException {
 
     System.out.println("Starting testAbortTransaction");
 
@@ -183,6 +223,7 @@ public class TrxTableClient {
       public AbortTransactionResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.AbortTransactionRequest.Builder builder = AbortTransactionRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setParticipantNum(1);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
         
         instance.abortTransaction(controller, builder.build(), rpcCallback);
@@ -214,7 +255,14 @@ public class TrxTableClient {
 
   static public void testBeginTransaction() throws IOException {
 
-    System.out.println("Starting testBeginTransaction");
+    System.out.println("Starting testBeginTransaction with Id " + id);
+
+    try{
+    	startIdVal = getIdTmVal();
+    }
+    catch (Exception e){
+        System.out.println("getIdTmVal threw exception " + e);    	
+    }
 
     Batch.Call<TrxRegionService, BeginTransactionResponse> callable = 
         new Batch.Call<TrxRegionService, BeginTransactionResponse>() {
@@ -226,6 +274,7 @@ public class TrxTableClient {
       public BeginTransactionResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.BeginTransactionRequest.Builder builder = BeginTransactionRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
         
         instance.beginTransaction(controller, builder.build(), rpcCallback);
@@ -259,6 +308,7 @@ public class TrxTableClient {
       public CheckAndDeleteResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CheckAndDeleteRequest.Builder builder = CheckAndDeleteRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
         builder.setRow(HBaseZeroCopyByteString.wrap(ROW1));
         builder.setFamily(HBaseZeroCopyByteString.wrap(FAMILY));
@@ -311,6 +361,7 @@ public class TrxTableClient {
       public CheckAndDeleteResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CheckAndDeleteRequest.Builder builder = CheckAndDeleteRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
         builder.setRow(HBaseZeroCopyByteString.wrap(ROW1));
         builder.setFamily(HBaseZeroCopyByteString.wrap(FAMILY));
@@ -362,6 +413,7 @@ public class TrxTableClient {
       public CheckAndDeleteResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CheckAndDeleteRequest.Builder builder = CheckAndDeleteRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
         builder.setRow(HBaseZeroCopyByteString.wrap(ROW2));
         builder.setFamily(HBaseZeroCopyByteString.wrap(FAMILY));
@@ -414,12 +466,13 @@ public class TrxTableClient {
       public CheckAndPutResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CheckAndPutRequest.Builder builder = CheckAndPutRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
         builder.setRow(HBaseZeroCopyByteString.wrap(ROW1));
         builder.setFamily(HBaseZeroCopyByteString.wrap(FAMILY));
         builder.setQualifier(HBaseZeroCopyByteString.wrap(QUAL_A));
         builder.setValue(HBaseZeroCopyByteString.wrap(emptyVal));
-        Put p = new Put(ROW1).add(FAMILY, QUAL_A, Bytes.toBytes(1));
+        Put p = new Put(ROW1, startIdVal).add(FAMILY, QUAL_A, Bytes.toBytes(1));
         MutationProto m1 = ProtobufUtil.toMutation(MutationType.PUT, p);
         builder.setPut(m1);
         
@@ -463,12 +516,13 @@ public class TrxTableClient {
       public CheckAndPutResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CheckAndPutRequest.Builder builder = CheckAndPutRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
         builder.setRow(HBaseZeroCopyByteString.wrap(ROW1));
         builder.setFamily(HBaseZeroCopyByteString.wrap(FAMILY));
         builder.setQualifier(HBaseZeroCopyByteString.wrap(QUAL_A));
         builder.setValue(HBaseZeroCopyByteString.wrap(VALUE1));
-        Put p = new Put(ROW1).add(FAMILY, QUAL_B, Bytes.toBytes(2));
+        Put p = new Put(ROW1, startIdVal).add(FAMILY, QUAL_B, Bytes.toBytes(2));
         MutationProto m1 = ProtobufUtil.toMutation(MutationType.PUT, p);
         builder.setPut(m1);
         
@@ -512,12 +566,13 @@ public class TrxTableClient {
       public CheckAndPutResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CheckAndPutRequest.Builder builder = CheckAndPutRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
         builder.setRow(HBaseZeroCopyByteString.wrap(ROW1));
         builder.setFamily(HBaseZeroCopyByteString.wrap(FAMILY));
         builder.setQualifier(HBaseZeroCopyByteString.wrap(QUAL_A));
         builder.setValue(HBaseZeroCopyByteString.wrap(VALUE1));
-        Put p = new Put(ROW2).add(FAMILY, QUAL_A, Bytes.toBytes(1));
+        Put p = new Put(ROW2, startIdVal).add(FAMILY, QUAL_A, Bytes.toBytes(1));
         MutationProto m1 = ProtobufUtil.toMutation(MutationType.PUT, p);
         builder.setPut(m1);
         
@@ -561,12 +616,13 @@ public class TrxTableClient {
       public CheckAndPutResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CheckAndPutRequest.Builder builder = CheckAndPutRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
         builder.setRow(HBaseZeroCopyByteString.wrap(ROW2));
         builder.setFamily(HBaseZeroCopyByteString.wrap(FAMILY));
         builder.setQualifier(HBaseZeroCopyByteString.wrap(QUAL_A));
         builder.setValue(HBaseZeroCopyByteString.wrap(VALUE2));
-        Put p = new Put(ROW2).add(FAMILY, QUAL_A, Bytes.toBytes(2));
+        Put p = new Put(ROW2, startIdVal).add(FAMILY, QUAL_A, Bytes.toBytes(2));
         MutationProto m1 = ProtobufUtil.toMutation(MutationType.PUT, p);
         builder.setPut(m1);
         
@@ -640,7 +696,14 @@ public class TrxTableClient {
 
   static public void testCommit() throws IOException {
 
-    System.out.println("Starting testCommit");
+    System.out.println("Starting testCommit for transid " + id);
+
+    try{
+       commitIdVal = getIdTmVal();
+    }
+    catch (Exception e){
+        System.out.println("getIdTmVal threw exception " + e);    	
+    }
 
     Batch.Call<TrxRegionService, CommitResponse> callable = 
         new Batch.Call<TrxRegionService, CommitResponse>() {
@@ -653,7 +716,8 @@ public class TrxTableClient {
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CommitRequest.Builder builder = CommitRequest.newBuilder();        
         builder.setTransactionId(id);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
-        
+        builder.setParticipantNum(1);
+        builder.setCommitId(commitIdVal);
         instance.commit(controller, builder.build(), rpcCallback);
         return rpcCallback.get();        
       }
@@ -683,7 +747,7 @@ public class TrxTableClient {
 
   static public void testCommitRequest() throws IOException {
 
-    System.out.println("Starting testCommitRequest");
+    System.out.println("Starting testCommitRequest for transid " + id);
 
     Batch.Call<TrxRegionService, CommitRequestResponse> callable = 
         new Batch.Call<TrxRegionService, CommitRequestResponse>() {
@@ -696,6 +760,7 @@ public class TrxTableClient {
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CommitRequestRequest.Builder builder = CommitRequestRequest.newBuilder();        
         builder.setTransactionId(id);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
+        builder.setParticipantNum(1);
         
         instance.commitRequest(controller, builder.build(), rpcCallback);
         return rpcCallback.get();        
@@ -765,6 +830,7 @@ public class TrxTableClient {
       public DeleteTransactionalResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.DeleteTransactionalRequest.Builder builder = DeleteTransactionalRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
 
         Delete d = new Delete(ROW1);
@@ -801,6 +867,7 @@ public class TrxTableClient {
       public DeleteMultipleTransactionalResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.DeleteMultipleTransactionalRequest.Builder builder = DeleteMultipleTransactionalRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
 
         Delete d1 = new Delete(ROW1);
@@ -855,6 +922,7 @@ public class TrxTableClient {
         Get get = new Get(ROW1).addColumn(FAMILY, QUAL_A);
         builder.setGet(ProtobufUtil.toGet(get));
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
         
         instance.get(controller, builder.build(), rpcCallback);
@@ -894,9 +962,10 @@ public class TrxTableClient {
       public PutTransactionalResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PutTransactionalRequest.Builder builder = PutTransactionalRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
 
-        Put p = new Put(ROW1).add(FAMILY, QUAL_A, Bytes.toBytes(1));
+        Put p = new Put(ROW1, startIdVal).add(FAMILY, QUAL_A, Bytes.toBytes(1));
         MutationProto m1 = ProtobufUtil.toMutation(MutationType.PUT, p);
         builder.setPut(m1);
         
@@ -931,9 +1000,10 @@ public class TrxTableClient {
       public PutTransactionalResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PutTransactionalRequest.Builder builder = PutTransactionalRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
 
-        Put p = new Put(ROW1).add(FAMILY, QUAL_A, Bytes.toBytes(1));
+        Put p = new Put(ROW1, startIdVal).add(FAMILY, QUAL_A, Bytes.toBytes(1));
         MutationProto m1 = ProtobufUtil.toMutation(MutationType.PUT, p);
         builder.setPut(m1);
         
@@ -967,9 +1037,10 @@ public class TrxTableClient {
       public PutTransactionalResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PutTransactionalRequest.Builder builder = PutTransactionalRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
 
-        Put p = new Put(ROW2).add(FAMILY, QUAL_A, Bytes.toBytes(1));
+        Put p = new Put(ROW2, startIdVal).add(FAMILY, QUAL_A, Bytes.toBytes(1));
         MutationProto m1 = ProtobufUtil.toMutation(MutationType.PUT, p);
         builder.setPut(m1);
         
@@ -1003,9 +1074,10 @@ public class TrxTableClient {
       public PutTransactionalResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PutTransactionalRequest.Builder builder = PutTransactionalRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
 
-        Put p = new Put(ROW3).add(FAMILY, QUAL_A, Bytes.toBytes(1));
+        Put p = new Put(ROW3, startIdVal).add(FAMILY, QUAL_A, Bytes.toBytes(1));
         MutationProto m1 = ProtobufUtil.toMutation(MutationType.PUT, p);
         builder.setPut(m1);
         
@@ -1039,9 +1111,10 @@ public class TrxTableClient {
       public PutTransactionalResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PutTransactionalRequest.Builder builder = PutTransactionalRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
 
-        Put p = new Put(ROW4).add(FAMILY, QUAL_A, Bytes.toBytes(1));
+        Put p = new Put(ROW4, startIdVal).add(FAMILY, QUAL_A, Bytes.toBytes(1));
         MutationProto m1 = ProtobufUtil.toMutation(MutationType.PUT, p);
         builder.setPut(m1);
         
@@ -1075,9 +1148,10 @@ public class TrxTableClient {
       public PutTransactionalResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PutTransactionalRequest.Builder builder = PutTransactionalRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
 
-        Put p = new Put(ROW5).add(FAMILY, QUAL_A, Bytes.toBytes(1));
+        Put p = new Put(ROW5, startIdVal).add(FAMILY, QUAL_A, Bytes.toBytes(1));
         MutationProto m1 = ProtobufUtil.toMutation(MutationType.PUT, p);
         builder.setPut(m1);
         
@@ -1111,9 +1185,10 @@ public class TrxTableClient {
       public PutTransactionalResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PutTransactionalRequest.Builder builder = PutTransactionalRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
 
-        Put p = new Put(ROW6).add(FAMILY, QUAL_A, Bytes.toBytes(1));
+        Put p = new Put(ROW6, startIdVal).add(FAMILY, QUAL_A, Bytes.toBytes(1));
         MutationProto m1 = ProtobufUtil.toMutation(MutationType.PUT, p);
         builder.setPut(m1);
         
@@ -1147,9 +1222,10 @@ public class TrxTableClient {
       public PutTransactionalResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PutTransactionalRequest.Builder builder = PutTransactionalRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
 
-        Put p = new Put(ROW1).add(FAMILYBAD, QUAL_A, Bytes.toBytes(1));
+        Put p = new Put(ROW1, startIdVal).add(FAMILYBAD, QUAL_A, Bytes.toBytes(1));
         MutationProto m1 = ProtobufUtil.toMutation(MutationType.PUT, p);
         builder.setPut(m1);
         
@@ -1183,9 +1259,10 @@ public class TrxTableClient {
       public PutMultipleTransactionalResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PutMultipleTransactionalRequest.Builder builder = PutMultipleTransactionalRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
 
-        Put p = new Put(ROW1).add(FAMILY, QUAL_A, Bytes.toBytes(1));
+        Put p = new Put(ROW1, startIdVal).add(FAMILY, QUAL_A, Bytes.toBytes(1));
         MutationProto m1 = ProtobufUtil.toMutation(MutationType.PUT, p);
         builder.addPut(m1);
         
@@ -1219,6 +1296,7 @@ public class TrxTableClient {
       public PerformScanResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PerformScanRequest.Builder builder = PerformScanRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
         builder.setScannerId(0);
         builder.setNumberOfRows(3);
@@ -1289,6 +1367,7 @@ public class TrxTableClient {
       public OpenScannerResponse call(TrxRegionService instance) throws IOException {        
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.OpenScannerRequest.Builder builder = OpenScannerRequest.newBuilder();        
         builder.setTransactionId(id);
+        builder.setStartId(startIdVal);
         builder.setRegionName(ByteString.copyFromUtf8(regionname));
 
         Scan scan = new Scan();

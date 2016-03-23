@@ -5096,7 +5096,8 @@ char * ExpGenerator::placeConstants(AListNode *list, Int32 length)
   return area;
 }
 
-NABoolean GenEvalPredicate(ItemExpr * rootPtr)
+ex_expr::exp_return_type ExpGenerator::genEvalPredicate(ItemExpr * rootPtr,
+                                                        ComDiagsArea *diagsArea)
 {
   // set up binder/generator stuff so expressions could be generated.
   InitSchemaDB();
@@ -5123,11 +5124,7 @@ NABoolean GenEvalPredicate(ItemExpr * rootPtr)
 
   ex_expr * expr = 0;
 
-  ItemExpr * boolResult = new(generator.wHeap()) BoolResult(rootPtr);
-
-  boolResult->bindNode(generator.getBindWA());
-
-  expGen.generateExpr(boolResult->getValueId(),
+  expGen.generateExpr(rootPtr->getValueId(),
 		      ex_expr::exp_SCAN_PRED,
 		      &expr);
 
@@ -5144,12 +5141,13 @@ NABoolean GenEvalPredicate(ItemExpr * rootPtr)
 
   atp_struct * workAtp = dp2Expr->getWorkAtp();
 
+  // set the diagsArea for the caller to get warnings and errors
+  if (workAtp->getDiagsArea() != diagsArea)
+     workAtp->setDiagsArea(diagsArea);
+
   generator.removeAll();
 
-  if (dp2Expr->getExpr()->eval(workAtp, 0) == ex_expr::EXPR_TRUE)
-    return TRUE;
-  else
-    return FALSE;
+  return dp2Expr->getExpr()->eval(workAtp, 0);
 }
 
 short ExpGenerator::generateSamplingExpr(const ValueId &valId, ex_expr **expr,

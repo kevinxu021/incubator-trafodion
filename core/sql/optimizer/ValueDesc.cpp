@@ -56,12 +56,10 @@
 #include "ItemOther.h"
 #include "ComDefs.h"
 #include "OptimizerSimulator.h"
-//////////////////////////////
 #include "Analyzer.h"
-//////////////////////////////
-//
 #include "NATable.h"
 #include "EncodedKeyValue.h"
+#include "GenExpGenerator.h"
 
 #include "SqlParserGlobals.h"		// must be last #include
 
@@ -4263,6 +4261,86 @@ NABoolean ValueIdSet::getReferencedPredicates (const ValueIdSet & outerReference
       }
   }
   return found;
+}
+
+ex_expr::exp_return_type ValueIdSet::evalPredsAtCompileTime(
+     ComDiagsArea *da,
+     ValueIdMap *rewrite,
+     NABoolean replaceVEGPreds) const
+{
+  ValueIdSet rewrittenPreds;
+  ItemExpr *predTree = NULL;
+
+  if (replaceVEGPreds)
+    {
+      // if we ask to replace VEGPreds, rewrite must be specified
+      DCMPASSERT(rewrite);
+
+      ValueIdMap extendedRewrite(*rewrite);
+      // Any VEGRefs in the expression must be rewritten to constants
+      // in the provided rewrite. However, VEGPreds aren't so easy.
+      //
+      // This logic looks for rewrites of the form VEGRef ==> const1
+      // and then enables another rewrite of the corresponding VEGPred
+      // into the expression "const1 = const2", IF the VEG contains
+      // a constant const2.
+      //
+      // Example: WHERE VEGPred(col1 = 10) or VEGRef(col2) > 20
+      //
+      // Our rewrite says VEGRef(col1) ==> 5
+      //                  VEGRef(col2) ==> 22
+      //
+      // We will add a third rewrite: VEGPred(col1 = 10) ==> (5 = 10)
+      //
+      // This will rewrite the WHERE predicate into
+      //    (5 = 10) or (22 > 20)
+
+      CollIndex numOrigRewrites = extendedRewrite.getTopValues().entries();
+
+      for (CollIndex i=0; i<numOrigRewrites; i++)
+        {
+          if (extendedRewrite.getTopValues()[i].getItemExpr()->
+              getOperatorType() == ITM_VEG_REFERENCE)
+            {
+              // we found a rewrite VEGRef ==> const1
+              // (don't take the "const1" too literally, could be an expr)
+              VEG *veg = static_cast<VEGReference *>(
+                   extendedRewrite.getTopValues()[i].getItemExpr())->getVEG();
+
+              // now look for a constant const2 in the VEG
+              ValueId const2 = veg->getAConstant();
+              if (const2 != NULL_VALUE_ID)
+                {
+                  ValueId const1 = extendedRewrite.getBottomValues()[i];
+                  ItemExpr *const1EqConst2 = new(CmpCommon::statementHeap())
+                    BiRelat(ITM_EQUAL,
+                            const1.getItemExpr(),
+                            const2.getItemExpr());
+
+                  const1EqConst2->synthTypeAndValueId();
+                  // add a new rewrite VEGPred ==> const1 = const2
+                  extendedRewrite.addMapEntry(
+                       veg->getVEGPredicate()->getValueId(),
+                       const1EqConst2->getValueId());
+                } // rewrite entry is a VEGReference with a const in it
+            } // rewrite entry is a VEGReference
+        } // loop over rewrite entries
+      extendedRewrite.rewriteValueIdSetDown(*this,
+                                            rewrittenPreds);
+    }
+  else if (rewrite)
+    // perform the rewrite (sans VEGPred logic), if one was requested
+    rewrite->rewriteValueIdSetDown(*this,
+                                   rewrittenPreds);
+  else
+    rewrittenPreds = *this;
+
+
+  // convert to an AND tree, map NULL to FALSE
+  predTree = rewrittenPreds.rebuildExprTree(ITM_AND, FALSE, TRUE);
+
+  // do the actual evaluation
+  return ExpGenerator::genEvalPredicate(predTree, da);
 }
 
 // ---------------------------------------------------------------------

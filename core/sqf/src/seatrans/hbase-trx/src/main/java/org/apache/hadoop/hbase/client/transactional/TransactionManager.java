@@ -150,6 +150,7 @@ public class TransactionManager {
   private HBaseAdmin hbadmin;
   private TmDDL tmDDL;
   private boolean batchRSMetricsFlag = false;
+  private boolean recoveryToPitMode = false;
   Configuration     config;
 
   public static final int HBASE_NAME = 0;
@@ -189,6 +190,7 @@ public class TransactionManager {
   private static final int ID_TM_SERVER_TIMEOUT = 1000;
   private static final int ABORT_EXCEPTION_DELAY = 30000;
   private static final int ABORT_EXCEPTION_RETIRES = 30;
+  private boolean recoverToPitMode = false;
 
   private Map<String,Long> batchRSMetrics = new ConcurrentHashMap<String, Long>();
   private long regions = 0;
@@ -316,6 +318,7 @@ public class TransactionManager {
                     public CommitResponse call(TrxRegionService instance) throws IOException {
                       org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CommitRequest.Builder builder = CommitRequest.newBuilder();
                       builder.setTransactionId(transactionId);
+                      builder.setCommitId(commitId);
                       builder.setParticipantNum(participantNum);
                       builder.setRegionName(ByteString.copyFromUtf8(Bytes.toString(regionName))); //ByteString.copyFromUtf8(Bytes.toString(regionName)));
                       builder.setIgnoreUnknownTransactionException(ignoreUnknownTransaction);
@@ -338,9 +341,8 @@ public class TransactionManager {
                   throw new Exception(msg);
                }
                if(result.size() == 0) {
-                  if(LOG.isTraceEnabled()) LOG.trace("doCommitX,received incorrect result size: " + result.size() + " txid: "
-                        + transactionId + " location: " + location.getRegionInfo().getRegionNameAsString());
-                  
+                  LOG.error("doCommitX, received incorrect result size: " + result.size() + " txid: "
+                       + transactionId + " location: " + location.getRegionInfo().getRegionNameAsString());
                   refresh = true;
                   retry = true;
                   //if transaction for DDL operation, it is possible this table is disabled
@@ -685,7 +687,7 @@ public class TransactionManager {
              }
 
              if(result.size() == 0)  {
-                LOG.error("doPrepareX, received incorrect result size: " + result.size());
+                LOG.error("doPrepareX(MVCC), received incorrect result size: " + result.size());
                 refresh = true;
                 retry = true;
              }
@@ -846,7 +848,7 @@ public class TransactionManager {
              }
 
              if(result.size() != 1)  {
-                LOG.error("doPrepareX, received incorrect result size: " + result.size());
+                LOG.error("doPrepareX (SSCC), received incorrect result size: " + result.size());
                 refresh = true;
                 retry = true;
              }
@@ -1550,6 +1552,12 @@ public class TransactionManager {
         String useSSCC = System.getenv("TM_USE_SSCC");
         String batchRSMetricStr = System.getenv("TM_BATCH_RS_METRICS");
         String batchRS = System.getenv("TM_BATCH_REGIONSERVER");
+        String usePIT = System.getenv("TM_USE_PIT_RECOVERY");
+
+        if( usePIT != null){
+           this.recoveryToPitMode = (Integer.parseInt(usePIT) == 1) ? true : false;
+        }
+        if (LOG.isTraceEnabled()) LOG.trace("TM_USE_PIT_RECOVERY: " + this.recoveryToPitMode);
 
         if (batchRSMetricStr != null)
                 batchRSMetricsFlag = (Integer.parseInt(batchRSMetricStr) == 1) ? true : false;
@@ -1627,7 +1635,8 @@ public class TransactionManager {
       long startIdVal = -1;
 
       // Set the startid
-      if (ts.islocalTransaction() && (TRANSACTION_ALGORITHM == AlgorithmType.SSCC)) {
+      if (ts.islocalTransaction() && 
+         ((TRANSACTION_ALGORITHM == AlgorithmType.SSCC) || (recoveryToPitMode))) {
          IdTmId startId;
          try {
             startId = new IdTmId();
@@ -1978,7 +1987,6 @@ public class TransactionManager {
       if(LOG.isTraceEnabled()) LOG.trace("retryCommit -- ENTRY -- txid: " + transactionState.getTransactionId());
       synchronized(transactionState.getRetryRegions()) {
           List<TransactionRegionLocation> completedList = new ArrayList<TransactionRegionLocation>();
-          final long commitIdVal = (TRANSACTION_ALGORITHM == AlgorithmType.SSCC) ? transactionState.getCommitId() : -1;
           int loopCount = 0;
           for (TransactionRegionLocation location : transactionState.getRetryRegions()) {
             loopCount++;
@@ -1991,7 +1999,7 @@ public class TransactionManager {
 
                     return doCommitX(location.getRegionInfo().getRegionName(),
                             transactionState.getTransactionId(),
-                            commitIdVal,
+                            transactionState.getCommitId(),
                             participantNum,
                             ignoreUnknownTransaction);
                 }
@@ -2054,9 +2062,7 @@ public class TransactionManager {
         if (batchRegionServer && (TRANSACTION_ALGORITHM == AlgorithmType.MVCC)) {
           try {
              if (LOG.isTraceEnabled()) LOG.trace("Committing [" + transactionState.getTransactionId() +
-                      "] ignoreUnknownTransaction: " + ignoreUnknownTransaction);
-             // Set the commitId
-             transactionState.setCommitId(-1); // Dummy for MVCC
+                      "] with commitId: " + transactionState.getCommitId() + ", ignoreUnknownTransaction: " + ignoreUnknownTransaction);
 
              ServerName servername;
              List<TransactionRegionLocation> regionList;
@@ -2089,8 +2095,11 @@ public class TransactionManager {
                         if (LOG.isTraceEnabled()) LOG.trace("before doCommit() ["
                                         + transactionState.getTransactionId()
                                         + "] ignoreUnknownTransaction: " + ignoreUnknownTransaction);
-                        return doCommitX(entry.getValue(), transactionState.getTransactionId(),
-                                      transactionState.getCommitId(), lv_participant, ignoreUnknownTransaction);
+                        return doCommitX(entry.getValue(),
+                                           transactionState.getTransactionId(),
+                                           transactionState.getCommitId(),
+                                           lv_participant,
+                                           ignoreUnknownTransaction);
                      }
                   });
              }
@@ -2114,7 +2123,8 @@ public class TransactionManager {
         if (LOG.isTraceEnabled()) LOG.trace("Committing [" + transactionState.getTransactionId() +
                       "] ignoreUnknownTransactionn: " + ignoreUnknownTransaction);
 
-        if (LOG.isTraceEnabled()) LOG.trace("sending commits for ts: " + transactionState);
+        if (LOG.isTraceEnabled()) LOG.trace("sending commits for ts: " + transactionState + ", with commitId: " 
+        + transactionState.getCommitId());
         try {
            int participants = transactionState.participatingRegions.size() - transactionState.regionsToIgnore.size();
            if (LOG.isTraceEnabled()) LOG.trace("Committing [" + transactionState.getTransactionId() + "] with " + participants + " participants" );
@@ -2134,7 +2144,8 @@ public class TransactionManager {
               threadPool.submit(new TransactionManagerCallable(transactionState, location, pSTRConfig.getPeerConnections().get(location.peerId)) {
                  public Integer call() throws CommitUnsuccessfulException, IOException {
                     if (LOG.isDebugEnabled()) LOG.debug("before doCommit() [" + transactionState.getTransactionId()
-                              + "] participantNum " + participantNum + " ignoreUnknownTransaction: " + ignoreUnknownTransaction);
+                              + "], commitId : " + transactionState.getCommitId() + " participantNum " + participantNum
+                              + " ignoreUnknownTransaction: " + ignoreUnknownTransaction);
                     return doCommitX(regionName,
                             transactionState.getTransactionId(),
                             transactionState.getCommitId(),
@@ -3056,7 +3067,7 @@ public class TransactionManager {
             //    transactionState.getTransactionId() + "TableName" + tblName + "Exception: " + e);
         }
         catch (Exception e) {
-            LOG.error("deleteTable Exception TxId: " + transactionState.getTransactionId() + " TableName " + tblName + " Exception: " + e);
+            LOG.error("deleteTable Exception TxId: " + transactionState.getTransactionId() + "TableName" + tblName + "Exception: " + e);
             throw e;
         }
 
@@ -3064,7 +3075,7 @@ public class TransactionManager {
             hbadmin.deleteTable(tblName);
         }
         catch (Exception e) {
-            LOG.error("deleteTable Exception TxId: " + transactionState.getTransactionId() + " TableName " + tblName  + " Exception: " + e);
+            LOG.error("deleteTable Exception TxId: " + transactionState.getTransactionId() + "TableName" + tblName  + "Exception: " + e);
             throw e;
         }
     }

@@ -251,7 +251,7 @@ sql/.project:
 	cd sql  && $(MAVEN) eclipse:eclipse
 
 sqf/src/seatrans/hbase-trx/.project:
-	cd sqf/src/seatrans/hbase-trx && $(MAVEN) eclipse:eclipse
+	cd sqf/src/seatrans/hbase-trx && $(MAVEN) -f pom.xml.apache eclipse:eclipse
 
 .project:
 	cp sqf/export/limited-support-tools/eclipse.project .project
