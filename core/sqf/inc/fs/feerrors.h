@@ -95,6 +95,9 @@ enum {
   FEMOUNTINPROG                = fe_base + 64,    // mount is in progress on this device
   FESPECONLY                   = fe_base + 65,    // Only special requests permitted
   FEDEVDOWN                    = fe_base + 66,    // Device is down
+  FETMLOCKED                   = fe_base + 67,    // TM is locked for snapshot
+  FETMLOCKFAILED               = fe_base + 68,    // TM lock request failed
+  FETMALREADYLOCKED            = fe_base + 69,    // TM is already locked
   FECONTINUE                   = fe_base + 70,    // Continue file operation
   FEDUPREC                     = fe_base + 71,    // Duplicate record encountered
   FEBADPART                    = fe_base + 72,    // Attempted access to a nonexistent partition or a partition to which access is invalid

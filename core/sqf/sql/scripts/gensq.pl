@@ -622,9 +622,11 @@ sub genDTM {
     printScript(1, "set DTM_RUN_MODE=2\n");
     printScript(1, "set SQ_AUDITSVC_READY=1\n");
     printScript(1, "set DTM_TLOG_PER_TM=1\n");
+    printScript(1, "set TRAF_TM_LOCKED=0\n");
     addDbClusterData("DTM_RUN_MODE", "2");
     addDbClusterData("SQ_AUDITSVC_READY", "1");
     addDbClusterData("DTM_TLOG_PER_TM", "1");
+    addDbClusterData("TRAF_TM_LOCKED", "0");
     genSQShellExit();
 
     for ($i=0; $i < $gdNumNodes; $i++) {

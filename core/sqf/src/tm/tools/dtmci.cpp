@@ -1497,7 +1497,17 @@ int main(int argc, char *argv[])
         get_cmd(lp_inputstr, lp_nextcmd);
 
         // Process commands:
-        if (!strcmp(lp_nextcmd, "l") || !strcmp(lp_nextcmd, "list"))
+        if (!strcmp(lp_nextcmd, "lock"))
+	{
+	  short lv_error = DTM_LOCKTM();
+	  cout<<"LOCKTM returned error "<<lv_error<<endl; 
+	}
+	else if (!strcmp(lp_nextcmd, "unlock"))
+	{
+	   short lv_error = DTM_UNLOCKTM();
+	   cout<<"UNLOCKTM returned error "<<lv_error<<endl;
+	}
+        else if (!strcmp(lp_nextcmd, "l") || !strcmp(lp_nextcmd, "list"))
         {
             get_cmd(lp_inputstr, lp_nextcmd);
             if (lp_nextcmd[0] == '\0')
