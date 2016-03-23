@@ -190,6 +190,17 @@ NABoolean NAFileSet::containsPartition(const NAString &partitionName) const
          partFunc_->getNodeMap()->containsPartition(partitionName);
 }
 
+Int32 NAFileSet::numHivePartCols() const
+{
+  Int32 result = 0;
+
+  for (CollIndex i=0; i<allColumns_.entries(); i++)
+    if (allColumns_[i]->isHivePartColumn())
+      result++;
+
+  return result;
+}
+
 NABoolean NAFileSet::isSyskeyLeading() const
 {
   return (indexKeyColumns_.entries() > 0 &&

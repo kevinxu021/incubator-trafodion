@@ -307,6 +307,7 @@ MY_DERBY_DATA_DIR=${MY_DATA_DIR}/derby
 MY_HADOOP_DATA_DIR=${MY_DATA_DIR}/hadoop
 MY_HIVE_DATA_DIR=${MY_DATA_DIR}/hive
 MY_HBASE_DATA_DIR=${MY_DATA_DIR}/hbase
+MY_ZOOKEEPER_DATA_DIR=${MY_DATA_DIR}/zookeeper
 
 # Administrator and Hive user name for MySQL installation
 MY_SQL_ADMIN=root
@@ -1554,7 +1555,7 @@ else
  </property>
  <property>
     <name>hbase.zookeeper.property.dataDir</name>
-    <value>${MY_SW_ROOT}/hdfs://${MY_HOST_1}:${MY_HADOOP_HDFS_PORT_NUM}/zookeeper</value>
+    <value>${MY_ZOOKEEPER_DATA_DIR}</value>
   </property>
   <property>
     <name>hbase.master.port</name>

@@ -61,6 +61,7 @@ FastExtract::FastExtract(const FastExtract & other)
   selectList_ = other.selectList_;
   isSequenceFile_ = other.isSequenceFile_;
   overwriteHiveTable_ = other.overwriteHiveTable_;
+  hiveNATable_ = other.hiveNATable_;
 }
 
 //! FastExtract::~FastExtract Destructor
@@ -98,6 +99,7 @@ RelExpr * FastExtract::copyTopNode(RelExpr *derivedNode,
   result->recordSeparator_ = recordSeparator_ ;
   result->selectList_ = selectList_;
   result->isSequenceFile_ = isSequenceFile_;
+  result->hiveNATable_ = hiveNATable_;
 
   return RelExpr::copyTopNode(result, outHeap);
 }
@@ -124,6 +126,12 @@ void FastExtract::addLocalExpr(LIST(ExprNode *) &xlist,
   {
     xlist.insert(selectList_.rebuildExprTree());
     llist.insert("select_list");
+  }
+
+  if (NOT partStringExpr_.isEmpty())
+  {
+    xlist.insert(partStringExpr_.rebuildExprTree());
+    llist.insert("partition_string");
   }
 
   RelExpr::addLocalExpr(xlist,llist);
