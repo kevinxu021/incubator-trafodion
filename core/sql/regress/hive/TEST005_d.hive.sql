@@ -21,8 +21,7 @@
 
 -- use dynamic partition column syntax
 set hive.exec.dynamic.partition.mode=nonstrict;
-set hive.enforce.bucketing = true;  
-insert overwrite table customer_bp partition (c_preferred_cust_flag) 
+insert overwrite table customer_p partition (c_preferred_cust_flag) 
 select
     c_customer_sk,
     c_customer_id,
@@ -43,7 +42,8 @@ select
     c_last_review_date,
     c_preferred_cust_flag -- part col must be last
 from customer_ddl
-where c_customer_sk < 20000;
+where c_customer_sk < 20000
+      and c_preferred_cust_flag in ('Y', 'N');
 
 insert overwrite table tbl_utf8p partition (translator) 
 select *

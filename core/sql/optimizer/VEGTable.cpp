@@ -44,9 +44,8 @@
 #include "ItemColRef.h" 
 #include "ItemFunc.h"
 #include "VEGTable.h"
+#include "GenExpGenerator.h"
 
-
-extern NABoolean GenEvalPredicate(ItemExpr * rootPtr);
 
 // -----------------------------------------------------------------------
 // static processMultipleConstValuesInVEG()
@@ -117,7 +116,10 @@ static ItemExpr * processMultipleConstValuesInVEG(const ValueIdSet & vegSet)
 	    } // not firstTime
 	} // for
 
-      if (GenEvalPredicate(rootPtr) == FALSE)
+      rootPtr = new(CmpCommon::statementHeap()) BoolResult(rootPtr);
+      rootPtr->synthTypeAndValueId();
+
+      if (ExpGenerator::genEvalPredicate(rootPtr, NULL) == ex_expr::EXPR_FALSE)
 	{
 	  rootPtr = new(CmpCommon::statementHeap()) BoolVal(ITM_RETURN_FALSE);
 	  rootPtr->synthTypeAndValueId(); 

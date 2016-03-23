@@ -14874,12 +14874,6 @@ ItemExpr * RangeSpecRef::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
   return ItemExpr::copyTopNode(result, outHeap);
 }
 
-short RangeSpecRef::codeGen(Generator* generator)
-{
-  child(1)->codeGen(generator);
-  return 0;
-}
-
 void RangeSpecRef::unparse(NAString &result,
                            PhaseEnum phase,
                            UnparseFormatEnum form,

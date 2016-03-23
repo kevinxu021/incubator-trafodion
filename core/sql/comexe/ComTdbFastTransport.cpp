@@ -45,6 +45,7 @@ ComTdbFastExtract::ComTdbFastExtract(
                      char * targetName,
                      char * hdfsHost,
                      Lng32 hdfsPort,
+                     char * hiveSchemaName,
                      char * hiveTableName,
                      char * delimiter,
                      char * header,
@@ -59,15 +60,19 @@ ComTdbFastExtract::ComTdbFastExtract(
                      ULng32 outputBufferSize,
                      UInt16 numIOBuffers,
                      UInt16 ioTimeout,
+                     UInt32 maxOpenPartitions,
                      ex_expr *inputExpr,
                      ex_expr *outputExpr,
+                     ex_expr *partStringExpr,
                      ULng32 requestRowLen,
                      ULng32 outputRowLen,
+                     ULng32 partStringRowLen,
                      ex_expr * childDataExpr,
                      ComTdb * childTdb,
                      Space *space,
                      unsigned short childDataTuppIndex,
                      unsigned short cnvChildDataTuppIndex,
+                     unsigned short partStringTuppIndex,
                      ULng32 childDataRowLen,
                      Int64 hdfBuffSize,
                      Int16 replication
@@ -87,17 +92,22 @@ ComTdbFastExtract::ComTdbFastExtract(
   workCriDesc_(workCriDesc),
   inputExpr_(inputExpr),
   outputExpr_(outputExpr),
+  partStringExpr_(partStringExpr),
   requestRowLen_(requestRowLen),
   outputRowLen_(outputRowLen),
+  partStringRowLen_(partStringRowLen),
   childDataExpr_(childDataExpr),
   childTdb_(childTdb),
   childDataTuppIndex_(childDataTuppIndex),
   cnvChildDataTuppIndex_(cnvChildDataTuppIndex),
+  partStringTuppIndex_(partStringTuppIndex),
   numIOBuffers_(numIOBuffers),
+  hiveSchemaName_(hiveSchemaName),
   hiveTableName_(hiveTableName),
   hdfsIOBufferSize_(hdfBuffSize),
   hdfsReplication_(replication),
   ioTimeout_(ioTimeout),
+  maxOpenPartitions_(maxOpenPartitions),
   childDataRowLen_(childDataRowLen)
 {
 
@@ -118,8 +128,10 @@ Long ComTdbFastExtract::pack(void *space)
   workCriDesc_.pack(space);
   inputExpr_.pack(space);
   outputExpr_.pack(space);
+  partStringExpr_.pack(space);
   childDataExpr_.pack(space);
   childTdb_.pack(space);
+  hiveSchemaName_.pack(space);
   hiveTableName_.pack(space);
   hdfsHostName_.pack(space);
 
@@ -137,8 +149,10 @@ Lng32 ComTdbFastExtract::unpack(void *base, void *reallocator)
   if (workCriDesc_.unpack(base, reallocator)) return -1;
   if (inputExpr_.unpack(base, reallocator)) return -1;
   if (outputExpr_.unpack(base, reallocator)) return -1;
+  if (partStringExpr_.unpack(base, reallocator)) return -1;
   if (childDataExpr_.unpack(base, reallocator)) return -1;
   if (childTdb_.unpack(base,reallocator))  return -1;
+  if (hiveSchemaName_.unpack(base)) return -1;
   if (hiveTableName_.unpack(base)) return -1;
   if (hdfsHostName_.unpack(base)) return -1;
 
@@ -188,6 +202,19 @@ void ComTdbFastExtract::displayContents(Space *space, ULng32 flag)
    str_sprintf(buf,"hdfsPortNum = %d", hdfsPortNum_);
    space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(UInt16));
 
+   if (hiveSchemaName_)
+   {
+         char *s = hiveSchemaName_;
+         str_sprintf(buf, "hiveSchemaName = %s", s);
+	 space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sz);
+   }
+   if (hiveTableName_)
+   {
+         char *s = hiveTableName_;
+         str_sprintf(buf, "hiveTableName = %s%s", s,
+                     (partStringExpr_.isNull() ? "" : " (partitioned)"));
+	 space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sz);
+   }
    if (delimiter_)
    {
 	 char *s = delimiter_;
@@ -218,6 +245,12 @@ void ComTdbFastExtract::displayContents(Space *space, ULng32 flag)
 
    str_sprintf(buf,"numIOBuffers = %d", numIOBuffers_);
    space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(UInt16));
+
+   if (maxOpenPartitions_ > 0)
+   {
+         str_sprintf(buf,"maxOpenPartitions = %d", maxOpenPartitions_);
+         space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sz);
+   }
 
   } // if (flag & 0x00000008)
 

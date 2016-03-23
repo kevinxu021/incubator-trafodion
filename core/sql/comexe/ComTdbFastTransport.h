@@ -85,6 +85,7 @@ public:
     char * targetName,
     char * hdfsHost,
     Lng32 hdfsPort,
+    char * hiveSchemaName,
     char * hiveTableName,
     char * delimiter,
     char * header,
@@ -99,15 +100,19 @@ public:
     ULng32 outputBufferSize,
     UInt16 numIOBuffers,
     UInt16 ioTimeout,
+    UInt32 maxOpenPartitions,
     ex_expr *inputExpr,
     ex_expr *outputExpr,
+    ex_expr *partStringExpr,
     ULng32 requestRowLen,
     ULng32 outputRowLen,
+    ULng32 partStringRowLen,
     ex_expr * childDataExprs,
     ComTdb * childTdb,
     Space *space,
     unsigned short childDataTuppIndex,
     unsigned short cnvChildDataTuppIndex,
+    unsigned short partStringTuppIndex,
     ULng32 cnvChildDataRowLen,
     Int64 hdfBuffSize,
     Int16 replication
@@ -184,7 +189,10 @@ public:
   NA_EIDPROC
   virtual Int32 numExpressions() const
   {
-    return 3;
+    if (partStringExpr_.isNull())
+      return 3;
+    else
+      return 4;
   }
   NA_EIDPROC
   virtual const char *getExpressionName(Int32 pos) const
@@ -195,6 +203,8 @@ public:
       return "outputExpr_";
     else if (pos == 2)
       return( "childDataExpr_" );
+    else if (pos == 3)
+      return "partStringExpr_";
     else
       return NULL;
   }
@@ -208,6 +218,8 @@ public:
       return outputExpr_;
     else if (pos == 2)
       return childDataExpr_;
+    else if (pos == 3)
+      return partStringExpr_;
     else
       return NULL;
   }
@@ -369,13 +381,14 @@ public:
   NA_EIDPROC inline const char *getHdfsHostName() const { return hdfsHostName_; }
   NA_EIDPROC inline const Int32 getHdfsPortNum() const {return (Int32)hdfsPortNum_;}
   NA_EIDPROC inline const char *getHiveTableName() const { return hiveTableName_; }
+  NA_EIDPROC inline const char *getHiveSchemaName() const { return hiveSchemaName_; }
   NA_EIDPROC inline const char *getHeader() const { return header_; }
   NA_EIDPROC inline const char *getNullString() const { return nullString_; }
   NA_EIDPROC inline const char *getDelimiter() const { return delimiter_; }
   NA_EIDPROC inline const char *getRecordSeparator() const
   { return recordSeparator_; }
 
-  NA_EIDPROC Int32 getNumIOBuffers() {return (Int32)numIOBuffers_;}
+  NA_EIDPROC Int32 getNumIOBuffers() const {return (Int32)numIOBuffers_;}
   NA_EIDPROC Int32 getIoTimeout() {return (Int32)ioTimeout_;}
   Int64 getHdfsIoBufferSize() const
   {
@@ -400,6 +413,10 @@ public:
   {
     return childDataRowLen_;
   }
+  UInt32 getPartStringRowLen() const
+  {
+    return partStringRowLen_;
+  }
 
 
 protected:
@@ -410,26 +427,30 @@ protected:
   NABasicPtr   recordSeparator_;                             // 32 - 39
   ExExprPtr    inputExpr_;                                   // 40 - 47
   ExExprPtr    outputExpr_;                                  // 48 - 55
-  ExExprPtr    childDataExpr_;                               // 56 - 63
-  ComTdbPtr    childTdb_;                                    // 64 - 71
-  ExCriDescPtr workCriDesc_;                                 // 72 - 79
-  UInt32       flags_;                                       // 80 - 83
-  UInt32       requestRowLen_;                               // 84 - 87
-  UInt32       outputRowLen_;                                // 88 - 91
-  UInt16       childDataTuppIndex_;                          // 92 - 93
-  UInt16       cnvChildDataTuppIndex_;                       // 94 - 95
-  UInt16       numIOBuffers_;				     // 96 - 97
-  Int16        hdfsReplication_;                             // 98 - 99
-  Int32        hdfsPortNum_;                                 // 100 - 103
-  NABasicPtr   hiveTableName_;                               // 104 - 111
-  Int64        hdfsIOBufferSize_;                            // 112 - 120
-  NABasicPtr   hdfsHostName_  ;                              // 121 - 127
-  UInt16       ioTimeout_;                                   // 128 - 129
-  UInt16       filler_;                                      // 130 - 131
-  UInt32       childDataRowLen_;                             // 132 - 135
+  ExExprPtr    partStringExpr_;                              // 56 - 63
+  ExExprPtr    childDataExpr_;                               // 64 - 71
+  ComTdbPtr    childTdb_;                                    // 72 - 79
+  ExCriDescPtr workCriDesc_;                                 // 80 - 87
+  UInt32       flags_;                                       // 88 - 91
+  UInt32       requestRowLen_;                               // 92 - 95
+  UInt32       outputRowLen_;                                // 96 - 99
+  UInt32       partStringRowLen_;                            // 100 - 103
+  UInt16       childDataTuppIndex_;                          // 104 - 105
+  UInt16       cnvChildDataTuppIndex_;                       // 106 - 107
+  UInt16       partStringTuppIndex_;                         // 108 - 109
+  UInt16       numIOBuffers_;				     // 110 - 111
+  Int32        hdfsPortNum_;                                 // 112 - 115
+  NABasicPtr   hiveSchemaName_;                              // 116 - 123
+  NABasicPtr   hiveTableName_;                               // 124 - 131
+  Int64        hdfsIOBufferSize_;                            // 132 - 139
+  NABasicPtr   hdfsHostName_  ;                              // 140 - 147
+  UInt16       ioTimeout_;                                   // 148 - 149
+  Int16        hdfsReplication_;                             // 150 - 151
+  UInt32       maxOpenPartitions_;                           // 152 - 155
+  UInt32       childDataRowLen_;                             // 156 - 159
   
   // Make sure class size is a multiple of 8
-  char fillerComTdbFastTransport_[8];                       // 136 -143
+  char fillerComTdbFastTransport_[8];                        // 160 - 167
 
 };
 

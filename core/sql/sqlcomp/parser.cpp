@@ -1281,6 +1281,38 @@ ItemExpr *Parser::getItemExprTree(const char * str,
   return (ItemExpr *)et;
 }
 
+ItemExpr *Parser::getItemExprTree(const char * str,
+				  UInt32 len,
+				  CharInfo::CharSet strCharSet,
+                                  const ItemExprList &params)
+{
+  ItemExpr *firstSix[6];
+  ItemExprList remainder(CmpCommon::statementHeap());
+  CollIndex i = 0;
+
+  while (i<6 && i<params.entries())
+    {
+      firstSix[i] = params[i];
+      i++;
+    }
+
+  while (i<6)
+    firstSix[i++] = NULL;
+
+  while (i<params.entries())
+    remainder.insert(params[i]);
+
+  return getItemExprTree(str, len, strCharSet,
+                         params.entries(),
+                         firstSix[0],
+                         firstSix[1],
+                         firstSix[2],
+                         firstSix[3],
+                         firstSix[4],
+                         firstSix[5],
+                         &remainder);
+}
+
 ItemExpr *Parser::get_w_ItemExprTree(const NAWchar * str,
 				  UInt32 len,
 				  Int32 num_params,

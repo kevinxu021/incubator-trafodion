@@ -8950,17 +8950,6 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
 
   if (getTableDesc()->getNATable()->isHiveTable())
   {
-    for (int c=0; c<fileset->getAllColumns().entries(); c++)
-      if (fileset->getAllColumns()[c]->isHivePartColumn())
-        {
-          // Insert into partitioned tables would require computing the target
-          // partition directory name, something we don't support yet.
-          *CmpCommon::diags() << DgSqlCode(-4222)
-                              << DgString0("Insert into partitioned Hive tables");
-          bindWA->setErrStatus();
-          return this;
-        }
-
     RelExpr * mychild = child(0);
 
     const HHDFSTableStats* hTabStats = 
@@ -8984,8 +8973,6 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
     // at least for this process
     ((NATable*)(getTableDesc()->getNATable()))->setClearHDFSStatsAfterStmt(TRUE);
 
-    // inserting into tables with multiple partitions is not yet supported
-    CMPASSERT(hTabStats->entries() == 1);
     hiveTablePath = (*hTabStats)[0]->getDirName();
     result = ((HHDFSTableStats* )hTabStats)->splitLocation
       (hiveTablePath, hostName, hdfsPort, tableDir) ;       
@@ -8996,7 +8983,6 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
         return this;
     }
      
-    //    NABoolean isSequenceFile = (*hTabStats)[0]->isSequenceFile();
     const NABoolean isSequenceFile = hTabStats->isSequenceFile();
     
     RelExpr * unloadRelExpr =
@@ -9017,8 +9003,24 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
     ((FastExtract*)boundUnloadRelExpr)->setDelimiter(fldSep);
     ((FastExtract*)boundUnloadRelExpr)->setOverwriteHiveTable(getOverwriteHiveTable());
     ((FastExtract*)boundUnloadRelExpr)->setSequenceFile(isSequenceFile);
+    ((FastExtract*)boundUnloadRelExpr)->setHiveNATable(getTableDesc()->getNATable());
     if (getOverwriteHiveTable())
     {
+      if (getTableDesc()->getNATable()->getClusteringIndex()->numHivePartCols() > 0)
+      {
+        // INSERT OVERWRITE TABLE is not supported for partitioned Hive tables.
+        // Hive selectively overwrites partitions that are touched by this statement
+        // (when using dynamic partition insert, which is the equivalent of
+        // a Trafodion insert into a partition table). Our design of making a
+        // UNION node to clear the table at compile time won't work with the need
+        // to empty partitions dynamically. Note: We could potentially allow this
+        // if we had compile time constants for all partitioning columns...
+        *CmpCommon::diags() << DgSqlCode(-4223)
+                            << DgString0("INSERT OVERWRITE TABLE into partitioned Hive tables is");
+        bindWA->setErrStatus();
+        return NULL;
+      }
+
       RelExpr * newRelExpr =  new (bindWA->wHeap())
         ExeUtilFastDelete(getTableName(),
                           NULL,

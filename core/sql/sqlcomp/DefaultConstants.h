@@ -3837,6 +3837,9 @@ enum DefaultConstants
   // enable/disable NJs into ORC tables
   ORC_NJS,
 
+  // max # of open partitions/TCB for a partitioned Hive insert
+  FAST_EXTRACT_MAX_PARTITIONS,
+
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES

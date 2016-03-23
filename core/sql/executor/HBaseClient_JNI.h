@@ -640,6 +640,7 @@ typedef enum {
  ,HVC_ERROR_HDFS_WRITE_EXCEPTION
  ,HVC_ERROR_HDFS_CLOSE_EXCEPTION
  ,HVC_ERROR_EXECHIVESQL_EXCEPTION
+ ,HVC_ERROR_CREATEHIVEPART_EXCEPTION
  ,HVC_LAST
 } HVC_RetCode;
 
@@ -676,6 +677,9 @@ public:
   HVC_RetCode hdfsWrite(const char* data, Int64 len);
   HVC_RetCode hdfsClose();
   HVC_RetCode executeHiveSQL(const char* hiveSQL);
+  HVC_RetCode createHiveTablePartition(const char *schemaName,
+                                       const char *tableName,
+                                       const char *partitionString);
   // Get the error description.
   virtual char* getErrorText(HVC_RetCode errEnum);
   
@@ -706,6 +710,7 @@ private:
    ,JM_HDFS_WRITE
    ,JM_HDFS_CLOSE
    ,JM_EXEC_HIVE_SQL
+   ,JM_CREATE_HIVE_PART
    ,JM_LAST
   };
   static jclass          javaClass_; 

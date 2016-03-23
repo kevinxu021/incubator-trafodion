@@ -181,6 +181,7 @@ public:
   Lng32 numInitialSaltRegions() const { return numInitialSaltRegions_; } 
   NAList<HbaseCreateOption*> * hbaseCreateOptions() const
     { return hbaseCreateOptions_;}
+  Int32 numHivePartCols() const;
 
   Lng32 numMaxVersions() const { return numMaxVersions_; } 
 
