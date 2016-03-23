@@ -78,14 +78,10 @@ public class SsccTransactionState extends TransactionState{
     private List<Scan> scans = Collections.synchronizedList(new LinkedList<Scan>());
     private Map<String, byte[]> colUpdatedByTransaction = new HashMap<String, byte[]>();  
 
-    private long commitSequenceId;
-    private long startId_;
-
     public SsccTransactionState(final long transactionId, final long rLogStartSequenceId, AtomicLong hlogSeqId, final HRegionInfo regionInfo,
                                                  HTableDescriptor htd, WAL hLog, boolean logging, long SsccSequenceId) {
 
-        super(transactionId,rLogStartSequenceId,hlogSeqId,regionInfo,htd,hLog,logging);
-        setStartId(SsccSequenceId);
+        super(transactionId,rLogStartSequenceId,hlogSeqId,regionInfo,htd,hLog,logging,SsccSequenceId);
         if(LOG.isTraceEnabled()) LOG.trace("SsccTransactionState : new state object for transid: " + transactionId + " with sequence: " + SsccSequenceId + " complete");
     }
 
@@ -159,23 +155,6 @@ public class SsccTransactionState extends TransactionState{
     }
 
     /**
-     * Get the commitId for this transaction.
-     * 
-     * @return Return the commitSequenceId.
-     */
-    public synchronized long getCommitId() {
-        return commitSequenceId;
-    }
-
-    /**
-     * Set the commitId for this transaction.
-     * 
-     */
-    public synchronized void setCommitId(final long Id) {
-        this.commitSequenceId = Id;
-    }
-
-    /**
      * return true if the transaction perform write operations: put or delete.
      *
      */
@@ -189,16 +168,6 @@ public class SsccTransactionState extends TransactionState{
     {
         return status.getTimestamp() == startId
             && SsccConst.isDeleteStatus(CellUtil.cloneValue(status));        
-    }
-
-    public void setStartId(long startId)
-    {
-        startId_ = startId;
-    }
-
-    public long getStartId()
-    {
-        return startId_;
     }
 
     /**

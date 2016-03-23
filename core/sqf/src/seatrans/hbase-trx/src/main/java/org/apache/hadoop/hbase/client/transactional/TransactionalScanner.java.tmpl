@@ -191,6 +191,7 @@ public class TransactionalScanner extends AbstractClientScanner {
 
       TrxRegionProtos.OpenScannerRequest.Builder requestBuilder = OpenScannerRequest.newBuilder();
       requestBuilder.setTransactionId(ts.getTransactionId());
+      requestBuilder.setStartId(ts.getStartId());
       requestBuilder.setRegionName(ByteString.copyFromUtf8(currentRegion.getRegionNameAsString()));
       requestBuilder.setScan(ProtobufUtil.toScan(scan));
       TrxRegionProtos.OpenScannerRequest openRequest = requestBuilder.build();
@@ -234,6 +235,7 @@ public class TransactionalScanner extends AbstractClientScanner {
                 final long nextCallSeqInput = this.nextCallSeq;
                 TrxRegionProtos.PerformScanRequest.Builder requestBuilder = PerformScanRequest.newBuilder();
                 requestBuilder.setTransactionId(ts.getTransactionId());
+                requestBuilder.setStartId(ts.getStartId());
                 requestBuilder.setRegionName(ByteString.copyFromUtf8(currentRegion.getRegionNameAsString()));
                 requestBuilder.setScannerId(scannerID);
                 requestBuilder.setNumberOfRows(nbRows);
