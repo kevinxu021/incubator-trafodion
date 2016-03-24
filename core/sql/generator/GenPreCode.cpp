@@ -5120,7 +5120,7 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
       GenExit();
     }
 
-  if  (producesOutputs())
+  if  (producesOutputs()) 
     {
       retColRefSet_ = getIndexDesc()->getIndexColumns();
     }
@@ -5187,6 +5187,15 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
           // value is needed to retrieve a row. 
           HbaseAccess::addColReferenceFromVIDlist(getIndexDesc()->getIndexKey(), retColRefSet_);
         }
+
+      if (getTableDesc()->getNATable()->hasLobColumn())
+        {
+          for (Lng32 i = 0; i < getIndexDesc()->getIndexColumns().entries(); i++)
+            {
+              const ValueId vid = getIndexDesc()->getIndexColumns()[i];
+              retColRefSet_.insert(vid);
+            }
+        }
     }
 
   NABoolean inlinedActions = FALSE;
@@ -5212,8 +5221,9 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
      uniqueHbaseOper() = FALSE;
      if ((generator->oltOptInfo()->multipleRowsReturned()) &&
 	  (CmpCommon::getDefault(HBASE_ROWSET_VSBB_OPT) == DF_ON) &&
-	  (NOT generator->isRIinliningForTrafIUD()))
-	 uniqueRowsetHbaseOper() = TRUE;
+         (NOT generator->isRIinliningForTrafIUD()) &&
+         (NOT getTableDesc()->getNATable()->hasLobColumn()))
+       uniqueRowsetHbaseOper() = TRUE;
   }
   else
   if (isUnique)
@@ -5230,7 +5240,8 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
 	{
 	  if ((generator->oltOptInfo()->multipleRowsReturned()) &&
 	      (CmpCommon::getDefault(HBASE_ROWSET_VSBB_OPT) == DF_ON) &&
-	      (NOT generator->isRIinliningForTrafIUD()))
+	      (NOT generator->isRIinliningForTrafIUD()) &&
+              (NOT getTableDesc()->getNATable()->hasLobColumn()))
 	    uniqueRowsetHbaseOper() = TRUE;
 	  else if ((NOT generator->oltOptInfo()->multipleRowsReturned()) &&
 		   (listOfDelUniqueRows_.entries() == 0))
@@ -5242,13 +5253,22 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
 	    }
 	}
     }
-  else if (producesOutputs())
+
+  if ((producesOutputs()) &&
+      ((NOT isUnique) || (getUpdateCKorUniqueIndexKey())))
     {
       // Cannot do olt msg opt if:
       //   -- values are to be returned and unique operation is not being used.
+      //   -- or this delete was transformed from an update of pkey/index key
       // set an indication that multiple rows will be returned.
       generator->oltOptInfo()->setMultipleRowsReturned(TRUE);
       generator->oltOptInfo()->setOltCliOpt(FALSE);
+    }
+
+  if (getTableDesc()->getNATable()->hasLobColumn())
+    {
+      canDoCheckAndUpdel() = FALSE;
+      uniqueRowsetHbaseOper() = FALSE;
     }
 
   generator->setUpdSavepointOnError(FALSE);
@@ -5292,7 +5312,7 @@ RelExpr * HbaseDelete::preCodeGen(Generator * generator,
 
   // flag for hbase tables
   generator->setHdfsAccess(TRUE);
-
+  
   markAsPreCodeGenned();
 
   return this;  

@@ -338,11 +338,13 @@ public class SplitBalanceHelper {
           List<String> trafTables = ZKUtil.listChildrenNoWatch(zkw, zSplitBalPathNoSlash);
           List<String> hbaseTables = ZKUtil.listChildrenNoWatch(zkw, SplitBalanceHelper.zkTable);
           
-          for(String tableName : trafTables) {
+          if(trafTables != null && hbaseTables != null)  {
+            for(String tableName : trafTables) {
               if(!hbaseTables.contains(tableName)) {
                   LOG.info("zkCleanup, removing " + zSplitBalPath + tableName);
                   ZKUtil.deleteNodeRecursively(zkw, zSplitBalPath + tableName);
               }
+            }
           }
       } catch(KeeperException ke) {
           if(LOG.isErrorEnabled()) LOG.error("zkCleanup error, please check your ZooKeeper: " + ke);

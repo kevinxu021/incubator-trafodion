@@ -471,29 +471,6 @@ static size_t indexLastNewline(const NAString & text,
   return newlinePos;
 }
 
-NAString &replaceAll(NAString &source, NAString &searchFor,
-                     NAString &replaceWith)
-{
-  size_t indexOfReplace = NA_NPOS;
-  indexOfReplace = source.index(searchFor);
-  if (indexOfReplace != NA_NPOS)
-    {
-      // Replace all occurences of searchFor with replaceWith. When no
-      // more occurences are found or end of string is reached, index()
-      // will return NA_NPOS.
-      while (indexOfReplace != NA_NPOS)
-        {
-          source.replace(indexOfReplace, searchFor.length(), 
-                         replaceWith);
-          // Find index of next occurence to replace.
-          indexOfReplace = 
-            source.index(searchFor, indexOfReplace + replaceWith.length()); 
-        }
-    }
-
-  return source;
-}
-
 static Int32 displayDefaultValue(const char * defVal, const char * colName,
                                  NAString &displayableDefVal)
 {
@@ -2840,7 +2817,7 @@ short CmpDescribeSeabaseTable (
 
   // display syscols for invoke if not running regrs
   //
-  NABoolean displaySystemCols = ((!sqlmxRegr) && (type == 1));
+  NABoolean displaySystemCols = (type == 1);
 
   NABoolean isView = (naTable->getViewText() ? TRUE : FALSE);
 
@@ -3052,8 +3029,7 @@ short CmpDescribeSeabaseTable (
     {
       if ((naTable->getClusteringIndex()) &&
           (nonSystemKeyCols > 0) &&
-          (NOT isStoreBy) &&
-          (((type == 1) && (! sqlmxRegr)) || (type != 1)))
+          (NOT isStoreBy))
         {
           numBTpkeys = naf->getIndexKeyColumns().entries();
           
@@ -3214,7 +3190,7 @@ short CmpDescribeSeabaseTable (
 
       NABoolean attributesSet = FALSE;
       char attrs[2000];
-      if (((NOT sqlmxRegr) && ((NOT isAudited) || (isAligned))) ||
+      if ((((NOT isAudited) || (isAligned))) ||
           ((sqlmxRegr) && (type == 3) && ((NOT isAudited) || (isAligned))) ||
           ((NOT naTable->defaultColFam().isNull()) && 
            (naTable->defaultColFam() != SEABASE_DEFAULT_COL_FAMILY)))

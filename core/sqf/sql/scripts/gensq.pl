@@ -488,24 +488,7 @@ sub genComponentWait {
     printScript(1, "fi\n");
 }
 
-sub genLOBConfig {
 
-    # Generate sqconfig.db config for LOB.
-    # This allows the process startup daemon (pstartd)
-    # to start it up after a node failure.
-    for ($i=0; $i < $gdNumNodes; $i++) {
-	my $l_progname="mxlobsrvr";
-	my $l_procargs="";
-	my $l_procname="\$ZLOBSRV$i";
-	my $l_procname_config = sprintf('$ZLOBSRV%d', $i);
-	my $l_stdout="stdout_\$ZLOBSRV_$i";
-	addDbProcData($l_procname_config, "PERSIST_RETRIES", "10,60");
-	addDbProcData($l_procname_config, "PERSIST_ZONES", $i);
-	addDbPersistProc($l_procname_config, $i, 1);
-	addDbProcDef( $ProcessType_Generic, $l_procname_config, $i, $l_progname, $l_stdout, $l_procargs);
-    }
-
-}
 
 sub genServiceMonitor {
     if ($SQ_SRVMON > 0) {
@@ -671,6 +654,24 @@ sub genDTM {
     printScript(1, "sqr_stat=\$\?\n");
     printScript(1, "done\n");
     printScript(1, "echo \"The Transaction Service is Ready.\"\n");
+}
+sub genLOBConfig {
+
+    # Generate sqconfig.db config for LOB.
+    # This allows the process startup daemon (pstartd)
+    # to start it up after a node failure.
+    for ($i=0; $i < $gdNumNodes; $i++) {
+	my $l_progname="mxlobsrvr";
+	my $l_procargs="";
+	my $l_procname="\$ZLOBSRV$i";
+	my $l_procname_config = sprintf('$ZLOBSRV%d', $i);
+	my $l_stdout="stdout_\$ZLOBSRV_$i";
+	addDbProcData($l_procname_config, "PERSIST_RETRIES", "10,60");
+	addDbProcData($l_procname_config, "PERSIST_ZONES", $i);
+	addDbPersistProc($l_procname_config, $i, 1);
+	addDbProcDef( $ProcessType_Generic, $l_procname_config, $i, $l_progname, $l_stdout, $l_procargs);
+    }
+
 }
 
 sub genSSMPCommand {

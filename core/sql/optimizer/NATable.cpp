@@ -4482,6 +4482,7 @@ NABoolean createNAFileSets(desc_struct * table_desc       /*IN*/,
                   files_desc ? files_desc->body.files_desc.fileCode : 0,
 		  (indexes_desc->body.indexes_desc.isVolatile != 0),
 		  (indexes_desc->body.indexes_desc.isInMemoryObjectDefn != 0),
+                  indexes_desc->body.indexes_desc.indexUID,
                   indexes_desc->body.indexes_desc.keys_desc,
                   NULL, // no Hive stats
                   indexes_desc->body.indexes_desc.numSaltPartns,
@@ -4841,6 +4842,7 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
                   0, // file code
 		  0, // not a volatile
 		  0, // inMemObjectDefn
+                  0,
                   NULL, // indexes_desc->body.indexes_desc.keys_desc,
                   hiveHDFSTableStats,
                   0, // saltPartns
@@ -5735,7 +5737,8 @@ NATable::NATable(BindWA *bindWA,
 
   if(postCreateNATableWarnings != preCreateNATableWarnings)
     tableConstructionHadWarnings_=TRUE;
-
+  const char *lobHdfsServer = CmpCommon::getDefaultString(LOB_HDFS_SERVER);
+  Int32 lobHdfsPort = (Lng32)CmpCommon::getDefaultNumeric(LOB_HDFS_PORT);
   if (hasLobColumn())
     {
       // read lob related information from lob metadata
@@ -5775,7 +5778,7 @@ NATable::NATable(BindWA *bindWA,
 	 LOB_CLI_SELECT_CURSOR,
 	 lobNumList,
 	 lobTypList,
-	 lobLocList,0);
+	 lobLocList,(char *)lobHdfsServer,lobHdfsPort,0);
       
       if (cliRC == 0)
 	{
@@ -7766,12 +7769,30 @@ ExtendedQualName::SpecialTableType NATable::getTableType()
   return qualifiedName_.getSpecialType();
 }
 
-NABoolean NATable::hasSaltedColumn() const
+NABoolean NATable::hasSaltedColumn(Lng32 * saltColPos) const
 {
   for (CollIndex i=0; i<colArray_.entries(); i++ )
   {
     if ( colArray_[i]->isSaltColumn() ) 
-      return TRUE;
+      {
+        if (saltColPos)
+          *saltColPos = i;
+        return TRUE;
+      }
+  }
+  return FALSE;
+}
+
+NABoolean NATable::hasDivisioningColumn(Lng32 * divColPos)
+{
+  for (CollIndex i=0; i<colArray_.entries(); i++ )
+  {
+    if ( colArray_[i]->isDivisioningColumn() ) 
+      {
+        if (divColPos)
+          *divColPos = i;
+        return TRUE;
+      }
   }
   return FALSE;
 }

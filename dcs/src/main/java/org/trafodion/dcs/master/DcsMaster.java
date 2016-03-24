@@ -40,7 +40,6 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.Stat;
 import org.trafodion.dcs.Constants;
 import org.trafodion.dcs.master.listener.ListenerService;
-import org.trafodion.dcs.rest.DcsRest;
 import org.trafodion.dcs.util.DcsConfiguration;
 import org.trafodion.dcs.util.DcsNetworkConfiguration;
 import org.trafodion.dcs.util.InfoServer;
@@ -59,7 +58,6 @@ public class DcsMaster implements Runnable {
     private int port;
     private int portRange;
     private InfoServer infoServer;
-    private DcsRest restServer;
     private String serverName;
     private int infoPort;
     private long startTime;

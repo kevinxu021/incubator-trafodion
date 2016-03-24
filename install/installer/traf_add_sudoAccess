@@ -74,7 +74,6 @@ fi
 #Main
 echo "***INFO: Creating $TRAF_USER sudo access file"
 echo
-touch trafodion 
 
 if [[ "$ENABLE_HA" == "true" ]]; then
    haSudoAdd
