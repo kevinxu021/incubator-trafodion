@@ -199,7 +199,7 @@ bool init_pnode_map( void )
          if (((downNodeList != NULL) && 
 	    (strstr(downNodeString.c_str(),downNodeToFind.c_str()))) ||
             ( downNodeName != NULL && 
-             !CPNodeConfigContainer::hostnamecmp( downNodeName, pnodeConfig->GetName() ) )
+             !CPNodeConfigContainer::hostnamecmp( downNodeName, pnodeConfig->GetName() ) ))
          {
              nodeState = StateDown;
          }

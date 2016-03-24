@@ -365,7 +365,7 @@ bool CmpSeabaseDDLauth::isUserID(Int32 authID)
 //    authName
 //    authID
 // ----------------------------------------------------------------------------
-void CmpSeabaseDDLauth::createStandardAuth(
+bool CmpSeabaseDDLauth::createStandardAuth(
    const std::string authName,
    const int32_t authID)
 { 
@@ -380,7 +380,7 @@ void CmpSeabaseDDLauth::createStandardAuth(
   { 
     *CmpCommon::diags() << DgSqlCode(-CAT_ROLE_NOT_EXIST)
                         << DgString0(authName.data());
-    return;
+    return false;
   }
   setAuthDbName(authName.c_str());
   if (getAuthType() == COM_USER_CLASS)
@@ -396,7 +396,7 @@ void CmpSeabaseDDLauth::createStandardAuth(
 
   // Make sure authorization ID has not already been registered
   if (authExists(getAuthDbName(),false))
-    return;
+    return false;
 
   Int32 newAuthID = (authID == NA_UserIdDefault) ? getUniqueID() : authID;
   setAuthID(newAuthID);
@@ -404,6 +404,7 @@ void CmpSeabaseDDLauth::createStandardAuth(
 
   // Add the role to AUTHS table
   insertRow();
+  return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -1500,12 +1501,12 @@ void CmpSeabaseDDLrole::createRole(StmtDDLCreateRole * pNode)
 //    authName
 //    authID
 // ----------------------------------------------------------------------------
-void CmpSeabaseDDLrole::createStandardRole(
+bool CmpSeabaseDDLrole::createStandardRole(
    const std::string authName,
    const int32_t authID)
 {
   setAuthType(COM_ROLE_CLASS);  // we are a user
-  createStandardAuth(authName, authID);
+  return createStandardAuth(authName, authID);
 }
 
 // -----------------------------------------------------------------------------

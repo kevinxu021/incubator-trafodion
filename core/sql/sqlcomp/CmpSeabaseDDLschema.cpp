@@ -809,7 +809,7 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
        dirtiedMetadata = TRUE;
        if (dropOneTable(cliInterface,(char*)catName.data(),
                         (char*)schName.data(),(char*)objName.data(),
-                        isVolatile, dropSchemaNode->ddlXns()))
+                        isVolatile, FALSE, dropSchemaNode->ddlXns()))
           someObjectsCouldNotBeDropped = true;
      }
    }

@@ -376,13 +376,6 @@ Local_IO_To_Monitor::Local_IO_To_Monitor(int pv_pid)
         tmpptr++;
     }
 
-    char *tmpptr = la_node_name;
-    while ( *tmpptr )
-    {
-        *tmpptr = (char)tolower( *tmpptr);
-        tmpptr++;
-    }
-
     char *lp_nodes = getenv("SQ_VIRTUAL_NODES");
     if (lp_nodes != NULL) 
     {

@@ -209,31 +209,6 @@ PrivStatus PrivMgrMDAdmin::initializeComponentPrivileges()
                                                              description,
                                                              DB__ROOTID,DB__ROOTName,-1, 
                                                              componentExists);
-      return STATUS_ERROR;
-  }
-}
-      
-// Component is registered, now create all the operations associated with
-// the component.  A grant from the system to the grantee (DB__ROOT) will
-// be added for each operation.                                         
-                                
-PrivMgrComponentOperations componentOperations(metadataLocation_,pDiags_);
-std::vector<std::string> operationCodes;
-
-int32_t DB__ROOTID = ComUser::getRootUserID();
-std::string DB__ROOTName(ComUser::getRootUserName());
-
-   for (SQLOperation operation = SQLOperation::FIRST_OPERATION;
-        static_cast<int>(operation) <= static_cast<int>(SQLOperation::LAST_OPERATION); 
-        operation = static_cast<SQLOperation>(static_cast<int>(operation) + 1))
-   {
-      const char *codePtr = PrivMgr::getSQLOperationCode(operation);
-      privStatus = componentOperations.createOperationInternal(SQL_OPERATIONS_COMPONENT_UID,
-                                                               PrivMgr::getSQLOperationName(operation),
-                                                               codePtr,true,
-                                                               PrivMgr::getSQLOperationDescription(operation),
-                                                               DB__ROOTID,DB__ROOTName,-1,
-                                                               componentExists);
                                                        
     // Go ahead and continue even if unsuccessful in creating the operation
     if (privStatus == STATUS_GOOD)
@@ -263,7 +238,7 @@ std::string DB__ROOTName(ComUser::getRootUserName());
   // Grant privileges to DB__ROOTROLE WITH GRANT OPTION                                      
   PrivMgrComponentPrivileges componentPrivileges(metadataLocation_,pDiags_);
    privStatus = componentPrivileges.grantPrivilegeInternal(SQL_OPERATIONS_COMPONENT_UID,
-                                                           operationCodes,
+                                                           rootRoleList,
                                                            ComUser::getRootUserID(),
                                                            ComUser::getRootUserName(),
                                                            ROOT_ROLE_ID,
