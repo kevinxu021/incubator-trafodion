@@ -452,7 +452,7 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_DROP       ].jm_name      = "drop";
     JavaMethods_[JM_DROP       ].jm_signature = "(Ljava/lang/String;J)Z";
     JavaMethods_[JM_DROP_ALL       ].jm_name      = "dropAll";
-    JavaMethods_[JM_DROP_ALL       ].jm_signature = "(Ljava/lang/String;)Z";
+    JavaMethods_[JM_DROP_ALL       ].jm_signature = "(Ljava/lang/String;J)Z";
     JavaMethods_[JM_LIST_ALL       ].jm_name      = "listAll";
     JavaMethods_[JM_LIST_ALL       ].jm_signature = "(Ljava/lang/String;)Lorg/trafodion/sql/ByteArrayList;";
     JavaMethods_[JM_GET_REGION_STATS       ].jm_name      = "getRegionStats";
@@ -460,7 +460,7 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_COPY       ].jm_name      = "copy";
     JavaMethods_[JM_COPY       ].jm_signature = "(Ljava/lang/String;Ljava/lang/String;Z)Z";
     JavaMethods_[JM_EXISTS     ].jm_name      = "exists";
-    JavaMethods_[JM_EXISTS     ].jm_signature = "(Ljava/lang/String;)Z";
+    JavaMethods_[JM_EXISTS     ].jm_signature = "(Ljava/lang/String;J)Z";
     JavaMethods_[JM_GRANT      ].jm_name      = "grant";
     JavaMethods_[JM_GRANT      ].jm_signature = "([B[B[Ljava/lang/Object;)Z";
     JavaMethods_[JM_REVOKE     ].jm_name      = "revoke";
@@ -1381,7 +1381,7 @@ HBC_RetCode HBaseClient_JNI::drop(const char* fileName, JNIEnv* jenv, Int64 tran
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-HBC_RetCode HBaseClient_JNI::dropAll(const char* pattern, bool async)
+HBC_RetCode HBaseClient_JNI::dropAll(const char* pattern, bool async, Int64 transID)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::dropAll(%s) called.", pattern);
 
@@ -1405,9 +1405,11 @@ HBC_RetCode HBaseClient_JNI::dropAll(const char* pattern, bool async)
     return HBC_ERROR_DROP_PARAM;
   }
 
+  jlong j_tid = transID;  
+
   // boolean drop(java.lang.String);
   tsRecentJMFromJNI = JavaMethods_[JM_DROP_ALL].jm_full_name;
-  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_DROP_ALL].methodID, js_pattern);
+  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_DROP_ALL].methodID, js_pattern, j_tid);
 
   jenv_->DeleteLocalRef(js_pattern);  
 
@@ -1606,7 +1608,7 @@ HBC_RetCode HBaseClient_JNI::copy(const char* srcTblName,
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-HBC_RetCode HBaseClient_JNI::exists(const char* fileName)
+HBC_RetCode HBaseClient_JNI::exists(const char* fileName, Int64 transID)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::exists(%s) called.", fileName);
   if (jenv_ == NULL)
@@ -1625,9 +1627,11 @@ HBC_RetCode HBaseClient_JNI::exists(const char* fileName)
     return HBC_ERROR_EXISTS_PARAM;
   }
 
+  jlong j_tid = transID;  
+
   // boolean exists(java.lang.String);
   tsRecentJMFromJNI = JavaMethods_[JM_EXISTS].jm_full_name;
-  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_EXISTS].methodID, js_fileName);
+  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_EXISTS].methodID, js_fileName, j_tid);
 
   jenv_->DeleteLocalRef(js_fileName);  
 
@@ -4824,6 +4828,7 @@ static const char* const hvcErrorEnumStr[] =
  ,"java exception in hdfsWrite()."
  ,"java exception in hdfsclose()."
  ,"java exception in executeHiveSQL()."
+ ,"java exception in createHiveTablePartition()."
 };
 
 
@@ -4923,8 +4928,10 @@ HVC_RetCode HiveClient_JNI::init()
     JavaMethods_[JM_HDFS_WRITE       ].jm_signature = "([BJ)Z";
     JavaMethods_[JM_HDFS_CLOSE       ].jm_name      = "hdfsClose";
     JavaMethods_[JM_HDFS_CLOSE       ].jm_signature = "()Z";
-    JavaMethods_[JM_EXEC_HIVE_SQL].jm_name = "executeHiveSQL";
-    JavaMethods_[JM_EXEC_HIVE_SQL].jm_signature = "(Ljava/lang/String;)V";
+    JavaMethods_[JM_EXEC_HIVE_SQL    ].jm_name      = "executeHiveSQL";
+    JavaMethods_[JM_EXEC_HIVE_SQL    ].jm_signature = "(Ljava/lang/String;)V";
+    JavaMethods_[JM_CREATE_HIVE_PART ].jm_name      = "createHiveTablePartition";
+    JavaMethods_[JM_CREATE_HIVE_PART ].jm_signature = "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V";
     rc = (HVC_RetCode)JavaObjectInterface::init(className, javaClass_, JavaMethods_, (Int32)JM_LAST, javaMethodsInitialized_);
     javaMethodsInitialized_ = TRUE;
     pthread_mutex_unlock(&javaMethodsInitMutex_);
@@ -5292,6 +5299,60 @@ HVC_RetCode HiveClient_JNI::executeHiveSQL(const char* hiveSQL)
   
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, 
        "Exit HiveClient_JNI::executeHiveSQL(%s) called.", hiveSQL);
+  jenv_->PopLocalFrame(NULL);
+  return HVC_OK;
+}
+
+HVC_RetCode HiveClient_JNI::createHiveTablePartition(const char *schemaName,
+                                                     const char *tableName,
+                                                     const char *partitionString)
+{
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG,
+                "Enter HiveClient_JNI::createHiveTablePartition(\"%s\",\"%s\",\"%s\") called.",
+                schemaName, tableName, partitionString);
+  if (jenv_ == NULL)
+     if (initJVM() != JOI_OK)
+         return HVC_ERROR_INIT_PARAM;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+    getExceptionDetails();
+    return HVC_ERROR_CREATEHIVEPART_EXCEPTION;
+  }
+
+  jstring js_schemaName = jenv_->NewStringUTF(schemaName);
+  jstring js_tableName = jenv_->NewStringUTF(tableName);
+  jstring js_partitionString = jenv_->NewStringUTF(partitionString);
+  if (js_schemaName == NULL ||
+      js_tableName == NULL ||
+      js_partitionString == NULL)
+  {
+    GetCliGlobals()->setJniErrorStr(getErrorText(HVC_ERROR_CREATEHIVEPART_EXCEPTION));
+    jenv_->PopLocalFrame(NULL);
+    return HVC_ERROR_CREATEHIVEPART_EXCEPTION;
+  }
+
+  tsRecentJMFromJNI = JavaMethods_[JM_CREATE_HIVE_PART].jm_full_name;
+  jenv_->CallVoidMethod(javaObj_,
+                        JavaMethods_[JM_CREATE_HIVE_PART].methodID,
+                        js_schemaName,
+                        js_tableName,
+                        js_partitionString);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "HiveClient_JNI::createHiveTablePartition()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return HVC_ERROR_CREATEHIVEPART_EXCEPTION;
+  }
+
+  jenv_->DeleteLocalRef(js_schemaName);
+  jenv_->DeleteLocalRef(js_tableName);
+  jenv_->DeleteLocalRef(js_partitionString);
+  
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, 
+       "Exit HiveClient_JNI::createHiveTablePartition() called.");
   jenv_->PopLocalFrame(NULL);
   return HVC_OK;
 }

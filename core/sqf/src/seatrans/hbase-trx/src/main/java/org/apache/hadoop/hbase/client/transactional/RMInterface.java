@@ -105,6 +105,7 @@ public class RMInterface {
     private TransactionalTableClient ttable = null;
     private boolean bSynchronized=false;
     private boolean asyncCalls = false;
+    private boolean recoveryToPitMode = false;
     private ExecutorService threadPool;
     private CompletionService<Integer> compPool;
     private int intThreads = 16;
@@ -154,6 +155,13 @@ public class RMInterface {
 					    + " tableName: " + tableName
 					    + " synchronized: " + pb_synchronized);
         bSynchronized = pb_synchronized;
+
+        String usePIT = System.getenv("TM_USE_PIT_RECOVERY");
+        if( usePIT != null)
+        {
+            recoveryToPitMode = (Integer.parseInt(usePIT) == 1) ? true : false;
+        }
+
         transactionAlgorithm = AlgorithmType.MVCC;
         String envset = System.getenv("TM_USE_SSCC");
         if( envset != null)
@@ -335,7 +343,7 @@ public class RMInterface {
            long startIdVal = -1;
 
            // Set the startid
-           if (transactionAlgorithm == AlgorithmType.SSCC) {
+           if ((recoveryToPitMode)  || (transactionAlgorithm == AlgorithmType.SSCC)) {
               IdTmId startId;
               try {
                  startId = new IdTmId();
@@ -515,6 +523,17 @@ public class RMInterface {
     // Not used?
     static public synchronized void unregisterTransaction(TransactionState ts) {
         mapTransactionStates.remove(ts.getTransactionId());
+    }
+
+    public synchronized TransactionState getTransactionState(final long transactionID) throws IOException {
+        if (LOG.isTraceEnabled()) LOG.trace("getTransactionState txid: " + transactionID);
+        TransactionState ts = mapTransactionStates.get(transactionID);
+        if (ts == null) {
+            if (LOG.isTraceEnabled()) LOG.trace("TransactionState for txid: " + transactionID + " not found; throwing IOException");
+        	throw new IOException("TransactionState for txid: " + transactionID + " not found" );
+        }
+        if (LOG.isTraceEnabled()) LOG.trace("EXIT getTransactionState");
+        return ts;
     }
 
     public synchronized Result get(final long transactionID, final Get get) throws IOException {

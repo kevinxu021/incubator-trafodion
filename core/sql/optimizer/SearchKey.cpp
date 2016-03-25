@@ -2868,7 +2868,33 @@ int HivePartitionAndBucketKey::computeActivePartitions()
 
           if (!compileTimePartColPreds_.isEmpty())
             {
-              // TBD: try to eliminate the partition at compile time
+              // make a map that maps partition columns to the values
+              // of these partition columns for this partition
+              ValueIdMap colsToConsts(hivePartColList_, colValuesList);
+              ComDiagsArea da;
+
+              // evaluate this rewritten predicate at compile time
+              NABoolean predIsTrue =
+                compileTimePartColPreds_.evalPredsAtCompileTime(
+                   &da,
+                   &colsToConsts,
+                   TRUE);
+
+              if (da.getNumber() == 0)
+                {
+                  if (!predIsTrue)
+                    // no errors or warnings, predicate is FALSE
+                    partitionIsEliminated = TRUE;
+                }
+              else
+                {
+                  // we should not see errors or warnings, but if
+                  // there are some then we assume the partition
+                  // qualifies and also do partition elimination
+                  // at runtime
+                  DCMPASSERT(da.getNumber() == 0);
+                  partAndVirtColPreds_ += compileTimePartColPreds_;
+                }
             }
 
           if (!partitionIsEliminated)
@@ -2896,6 +2922,7 @@ int HivePartitionAndBucketKey::computeActivePartitions()
               result--;
             }
         } // loop over list partitions
+
       return result;
     } // table is partitioned
 }

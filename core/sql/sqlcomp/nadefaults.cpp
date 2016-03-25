@@ -1415,8 +1415,9 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
  // upper and lower limit (2,10) must be in sync with error values in 
  //ExFastTransport.cpp
   DDkwd__(FAST_EXTRACT_DIAGS,			"OFF"),
-  DDui2_10(FAST_EXTRACT_IO_BUFFERS,             "6"),
+  DDui2_10(FAST_EXTRACT_IO_BUFFERS,             "1"),
   DDui___(FAST_EXTRACT_IO_TIMEOUT_SEC,          "60"),
+  DDui___(FAST_EXTRACT_MAX_PARTITIONS,          "64"),
   DDkwd__(FAST_REPLYDATA_MOVE,			"ON"),
  SDDkwd__(FFDC_DIALOUTS_FOR_MXCMP,		"OFF"),
   DDkwd__(FIND_COMMON_SUBEXPRS_IN_OR,		"ON"),
@@ -1969,7 +1970,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DD_____(HIVE_FILE_NAME,     "/hive/tpcds/customer/customer.dat" ),
   DD_____(HIVE_HDFS_STATS_LOG_FILE,             ""),
   DDint__(HIVE_LIB_HDFS_PORT_OVERRIDE,          "-1"),
-  DDint__(HIVE_LOCALITY_BALANCE_LEVEL,          "0"),
+  DDint__(HIVE_LOCALITY_BALANCE_LEVEL,          "3"),
   DDui___(HIVE_MAX_ESPS,                        "9999"),
   // Set to one byte less than QUERY_CACHE_MAX_CHAR_LEN so that hive queries with
   // string literals can be cached.
@@ -1979,7 +1980,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDflt0_(HIVE_MIN_BYTES_PER_ESP_PARTITION,     "67108864"),
   DDui___(HIVE_NUM_ESPS_PER_DATANODE,           "2"),
   DDpct__(HIVE_NUM_ESPS_ROUND_DEVIATION,        "34"),
-  DDkwd__(HIVE_PARTITION_ELIMINATION_CT,        "OFF"),
+  DDkwd__(HIVE_PARTITION_ELIMINATION_CT,        "ON"),
   DDkwd__(HIVE_PARTITION_ELIMINATION_RT,        "ON"),
   DDkwd__(HIVE_SORT_HDFS_HOSTS,                 "ON"),
   DD_____(HIVE_USE_FAKE_SQ_NODE_NAMES,          "" ),
@@ -2084,12 +2085,16 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   // precision but degraded performance.
   SDDkwd__(LIMIT_MAX_NUMERIC_PRECISION,		"SYSTEM"),
 
+ // Size in bytes  used to perform garbage collection  to lob data file 
+  // default size is 5GB   . Change to adjust disk usage. 
+  DDint__(LOB_GC_LIMIT_SIZE,            "5000"),
+  
   DDint__(LOB_HDFS_PORT,                       "0"),
   DD_____(LOB_HDFS_SERVER,                 "default"), 
-   
+ 
    // Size of memoryin bytes  used to perform I/O to lob data file 
   // default size is 512MB   . Change to adjust memory usage. 
-  DDint__(LOB_MAX_CHUNK_MEM_SIZE,            "536870912"), 
+  DDint__(LOB_MAX_CHUNK_MEM_SIZE,            "512"), 
   // default size is 10 G  (10000 M)
   DDint__(LOB_MAX_SIZE,                         "10000"),
   // default size is 32000. Change this to extract more data into memory.
@@ -3313,28 +3318,30 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDint__(TEST_PASS_ONE_ASSERT_TASK_NUMBER,	"-1"),
   DDint__(TEST_PASS_TWO_ASSERT_TASK_NUMBER,	"-1"),
 
- XDDintN2(TIMEOUT,				"6000"),
+  XDDintN2(TIMEOUT,				"6000"),
  
- DDflt0_(TMUDF_CARDINALITY_FACTOR, "1"),
- DDflt0_(TMUDF_LEAF_CARDINALITY, "1"),
+  DDflt0_(TMUDF_CARDINALITY_FACTOR, "1"),
+  DDflt0_(TMUDF_LEAF_CARDINALITY, "1"),
 
   DDkwd__(TOTAL_RESOURCE_COSTING,               "ON"),
-
+ 
   DDint__(TRAF_ALIGNED_FORMAT_ADD_COL_METHOD,	"2"),
-
- DDkwd__(TRAF_ALIGNED_ROW_FORMAT,                 "OFF"),   
-
+ 
+  DDkwd__(TRAF_ALIGNED_ROW_FORMAT,                 "OFF"),   
+ 
   DDkwd__(TRAF_ALLOW_ESP_COLOCATION,             "OFF"),   
+ 
+  DDkwd__(TRAF_ALLOW_RESERVED_COLNAMES,          "OFF"),   
+ 
+  DDkwd__(TRAF_ALLOW_SELF_REF_CONSTR,                 "ON"),   
 
- DDkwd__(TRAF_ALLOW_SELF_REF_CONSTR,                 "ON"),   
+  DDkwd__(TRAF_ALTER_COL_ATTRS,                 "ON"),   
 
- DDkwd__(TRAF_ALTER_COL_ATTRS,                 "ON"),   
+  DDkwd__(TRAF_BLOB_AS_VARCHAR,                 "ON"), //set to OFF to enable Lobs support  
 
- DDkwd__(TRAF_BLOB_AS_VARCHAR,                 "ON"), //set to OFF to enable Lobs support  
+  DDkwd__(TRAF_BOOTSTRAP_MD_MODE,                            "OFF"),   
 
- DDkwd__(TRAF_BOOTSTRAP_MD_MODE,                            "OFF"),   
-
- DDkwd__(TRAF_CLOB_AS_VARCHAR,                 "ON"), //set to OFF to enable Lobs support  
+  DDkwd__(TRAF_CLOB_AS_VARCHAR,                 "ON"), //set to OFF to enable Lobs support  
 
   DDkwd__(TRAF_COL_LENGTH_IS_CHAR,                 "ON"),   
 
@@ -3419,6 +3426,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDkwd__(TRAF_UPSERT_ADJUST_PARAMS,                   "OFF"),
   DDkwd__(TRAF_UPSERT_AUTO_FLUSH,                      "OFF"),
   DDint__(TRAF_UPSERT_WB_SIZE,                         "2097152"),
+  DDkwd__(TRAF_UPSERT_WITH_INSERT_DEFAULT_SEMANTICS,   "OFF"),
   DDkwd__(TRAF_UPSERT_WRITE_TO_WAL,                    "OFF"),
 
   DDkwd__(TRAF_USE_RWRS_FOR_MD_INSERT,                   "ON"),
@@ -7007,6 +7015,10 @@ DefaultToken NADefaults::token(Int32 attrEnum,
       if (tok >=0  && tok <= 512000)
 	isValid = TRUE;
       break;
+
+    case LOB_GC_LIMIT_SIZE:
+      if (tok >= 0 )
+        isValid=TRUE;
 
     case TRAF_TRANS_TYPE:
       if (tok  == DF_MVCC || tok == DF_SSCC)

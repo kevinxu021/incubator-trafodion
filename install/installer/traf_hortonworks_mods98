@@ -43,7 +43,6 @@ cd $UNTAR_DIR
 PORT=`echo $URL | sed 's/.*://'`
 AMBARI_HOST=$(echo $URL | sed 's@.*://@@' | sed 's@:.*@@')
 HDFS_NODE=$(echo $HDFS_NODES | head -n1 | awk '{print $1;}')
-echo $HDFS_NODE
 HBASE_NODE=$(echo $HBASE_NODES | head -n1 | awk '{print $1;}')
 echo "export AMBARI_HOST=\"$AMBARI_HOST\"" >> $TRAF_CONFIG
 echo "export HDFS_NODE=\"$HDFS_NODE\"" >> $TRAF_CONFIG
@@ -54,15 +53,15 @@ source $TRAF_CONFIG
 #determine java version and choose corresponding jar files
 if [[ $CDH_5_3_HDP_2_2_SUPPORT == "N" ]]; then
    if [[ $HDP_2_3_SUPPORT == "Y" ]]; then
-      hbase_trx_jar="hbase-trx-hdp2_3-${TRAF_VERSION}.jar"
+      hbase_trx_jar="hbase-trx-hdp2_3-*.jar"
    else
-      hbase_trx_jar="hbase-trx-hdp2_1-${TRAF_VERSION}.jar"
+      hbase_trx_jar="hbase-trx-hdp2_1-*.jar"
    fi
 else
-   hbase_trx_jar="hbase-trx-hdp2_2-${TRAF_VERSION}.jar"
+   hbase_trx_jar="hbase-trx-hdp2_2-*.jar"
 fi
 
-traf_util_jar="trafodion-utility-${TRAF_VERSION}.jar"
+traf_util_jar="trafodion-utility-*.jar"
 
 
 # The permissions the Trafodion build process creates on the hbase-trx jar

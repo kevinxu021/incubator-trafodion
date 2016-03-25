@@ -60,7 +60,9 @@ static bool dropOneTable(
    const char * catalogName, 
    const char * schemaName, 
    const char * objectName,
-   bool isVolatile);
+   bool isVolatile,
+   bool ifExists,
+   bool ddlXns);
    
 static bool transferObjectPrivs(
    const char * systemCatalogName, 
@@ -98,7 +100,7 @@ static bool transferObjectPrivs(
 // *                                                                           *
 // * Returns: status
 // *                                                                           *
-// *   0: Schema was added                                                      *
+// *   0: Schema was added                                                     *
 // *  -1: Schema was not added.  A CLI error is put into the diags area.       *
 // *   1: Schema already exists and ignoreIfExists is specified.               *
 // *      No error is added to the diags area.                                 *
@@ -443,6 +445,7 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
    int32_t rowCount = 0;
    bool someObjectsCouldNotBeDropped = false;
    Queue * objectsQueue = NULL;
+   Queue * otherObjectsQueue = NULL;
 
    NABoolean dirtiedMetadata = FALSE;
 
@@ -498,6 +501,8 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
 
    // select objects in the schema to drop, don't return PRIMARY_KEY_CONSTRAINTS,
    // they always get removed when the parent table is dropped.
+   // Filter out the LOB depenedent tables too - they will get dropped when 
+   //the main LOB table is dropped. 
    str_sprintf(query,"SELECT TRIM(object_name), TRIM(object_type) "
                      "FROM %s.\"%s\".%s "
                      "WHERE catalog_name = '%s' AND schema_name = '%s' AND "
@@ -535,6 +540,7 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
      }
    }
 
+#ifdef __ignore
    // Drop histogram tables first
    objectsQueue->position();
    for (size_t i = 0; i < objectsQueue->numEntries(); i++)
@@ -547,12 +553,13 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
        dirtiedMetadata = TRUE;
        if (dropOneTable(cliInterface,(char*)catName.data(),
                         (char*)schName.data(),(char*)objName.data(),
-                         isVolatile))
+                        isVolatile, FALSE,dropSchemaNode->ddlXns()))
           someObjectsCouldNotBeDropped = true;
      }
    }
+#endif
 
-   // Drop libraries, procedures (SPJs), UDFs (functions), and views 
+   // Drop procedures (SPJs), UDFs (functions), and views 
     objectsQueue->position();
     for (int idx = 0; idx < objectsQueue->numEntries(); idx++)
     {
@@ -575,14 +582,9 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
           case COM_REFERENTIAL_CONSTRAINT_OBJECT:
           case COM_SEQUENCE_GENERATOR_OBJECT:
           case COM_UNIQUE_CONSTRAINT_OBJECT:
-          {
-             continue;
-          }
           case COM_LIBRARY_OBJECT:
           {
-             objectTypeString = "LIBRARY";
-             cascade = "CASCADE";
-             break;
+             continue;
           }
 
           // If the library where procedures and functions reside is dropped
@@ -633,30 +635,85 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
           someObjectsCouldNotBeDropped = true;
    } 
 
+   // Drop libraries in the schema
+   objectsQueue->position();
+   for (int idx = 0; idx < objectsQueue->numEntries(); idx++)
+   {
+      OutputInfo * vi = (OutputInfo*)objectsQueue->getNext();
+
+      char * objName = vi->get(0);
+      NAString objType = vi->get(1);
+
+      if (objType == COM_LIBRARY_OBJECT_LIT)
+      {
+         char buf [1000];
+
+         dirtiedMetadata = TRUE;
+         str_sprintf(buf, "DROP LIBRARY \"%s\".\"%s\".\"%s\" CASCADE",
+                     (char*)catName.data(), (char*)schName.data(), objName);
+         cliRC = cliInterface.executeImmediate(buf);
+
+         if (cliRC < 0 && cliRC != -CAT_OBJECT_DOES_NOT_EXIST_IN_TRAFODION)
+            someObjectsCouldNotBeDropped = true;
+      }
+   }
+
    // Drop all tables in the schema.  This will also drop any associated constraints. 
 
    objectsQueue->position();
    for (int idx = 0; idx < objectsQueue->numEntries(); idx++)
-   {
-      OutputInfo * vi = (OutputInfo*)objectsQueue->getNext(); 
+     {
+       OutputInfo * vi = (OutputInfo*)objectsQueue->getNext(); 
 
-      NAString objName = vi->get(0);
-      NAString objType = vi->get(1);
+       NAString objName = vi->get(0);
+       NAString objType = vi->get(1);
 
-      // drop user objects first
-      if (objType == COM_BASE_TABLE_OBJECT_LIT)
-      {
-         // histogram tables have already been dropped
-         if (!isHistogramTable(objName))
-         {
-            dirtiedMetadata = TRUE;
-            if (dropOneTable(cliInterface,(char*)catName.data(), 
-                             (char*)schName.data(),(char*)objName.data(),
-                             isVolatile))
-               someObjectsCouldNotBeDropped = true;
-         }
-      } 
-   } 
+       // drop user objects first
+       if (objType == COM_BASE_TABLE_OBJECT_LIT) 
+	 {
+	   // histogram tables have already been dropped
+	   // Avoid any tables that match LOB dependent tablenames.
+	   // (there is no special type for these tables) 
+	   if (!isHistogramTable(objName) && !isLOBDependentNameMatch(objName))
+	     {
+	       dirtiedMetadata = TRUE;
+	       if (dropOneTable(cliInterface,(char*)catName.data(), 
+				(char*)schName.data(),(char*)objName.data(),
+				isVolatile, FALSE,dropSchemaNode->ddlXns()))
+		 someObjectsCouldNotBeDropped = true;
+	     }
+	 } 
+     } 
+
+   // If there are any user tables having the LOB dependent name pattern, they
+   // will still be around. Drop those. The real LOB dependent tables, would
+   //have been dropped in the previous step 
+  
+
+    objectsQueue->position();
+   for (int idx = 0; idx < objectsQueue->numEntries(); idx++)
+     {
+       OutputInfo * vi = (OutputInfo*)objectsQueue->getNext(); 
+
+       NAString objName = vi->get(0);
+       NAString objType = vi->get(1);
+
+       if (objType == COM_BASE_TABLE_OBJECT_LIT)
+	 {
+	   if (!isHistogramTable(objName) && isLOBDependentNameMatch(objName))
+	     {
+	       dirtiedMetadata = TRUE;
+	       // Pass in TRUE for "ifExists" since the lobDependent tables 
+	       // would have already been dropped and we don't want those to 
+	       // raise errors. We just want to catch any user tables that 
+	       // happen to have the same name patterns.
+	       if (dropOneTable(cliInterface,(char*)catName.data(), 
+				(char*)schName.data(),(char*)objName.data(),
+				isVolatile,TRUE, dropSchemaNode->ddlXns()))
+		 someObjectsCouldNotBeDropped = true;
+	     }
+	 } 
+     } 
  
    // Drop any remaining indexes.
 
@@ -670,17 +727,17 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
                  (char*)catName.data(),(char*)schName.data(), 
                  COM_INDEX_OBJECT_LIT);
    
-   cliRC = cliInterface.fetchAllRows(objectsQueue,query,0,FALSE,FALSE,TRUE);
+   cliRC = cliInterface.fetchAllRows(otherObjectsQueue,query,0,FALSE,FALSE,TRUE);
    if (cliRC < 0)
    {
       cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
       goto label_error;
    }
 
-   objectsQueue->position();
-   for (int idx = 0; idx < objectsQueue->numEntries(); idx++)
+   otherObjectsQueue->position();
+   for (int idx = 0; idx < otherObjectsQueue->numEntries(); idx++)
    {
-      OutputInfo * vi = (OutputInfo*)objectsQueue->getNext(); 
+      OutputInfo * vi = (OutputInfo*)otherObjectsQueue->getNext(); 
 
       char * objName = vi->get(0);
       NAString objType = vi->get(1);
@@ -711,17 +768,17 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
                (char*)catName.data(),(char*)schName.data(), 
                COM_SEQUENCE_GENERATOR_OBJECT_LIT);
   
-   cliRC = cliInterface.fetchAllRows(objectsQueue,query,0,FALSE,FALSE,TRUE);
+   cliRC = cliInterface.fetchAllRows(otherObjectsQueue,query,0,FALSE,FALSE,TRUE);
    if (cliRC < 0)
    {
       cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
       goto label_error;
    }
 
-   objectsQueue->position();
-   for (int idx = 0; idx < objectsQueue->numEntries(); idx++)
+   otherObjectsQueue->position();
+   for (int idx = 0; idx < otherObjectsQueue->numEntries(); idx++)
    {
-      OutputInfo * vi = (OutputInfo*)objectsQueue->getNext(); 
+      OutputInfo * vi = (OutputInfo*)otherObjectsQueue->getNext(); 
 
       char * objName = vi->get(0);
       NAString objType = vi->get(1);
@@ -740,12 +797,29 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
       }  
    }  
 
+   // Drop histogram tables last
+   objectsQueue->position();
+   for (size_t i = 0; i < objectsQueue->numEntries(); i++)
+   {
+     OutputInfo * vi = (OutputInfo*)objectsQueue->getNext(); 
+     NAString objName = vi->get(0);
+
+     if (isHistogramTable(objName))
+     {
+       dirtiedMetadata = TRUE;
+       if (dropOneTable(cliInterface,(char*)catName.data(),
+                        (char*)schName.data(),(char*)objName.data(),
+                        isVolatile, FALSE, dropSchemaNode->ddlXns()))
+          someObjectsCouldNotBeDropped = true;
+     }
+   }
+
    // For volatile schemas, sometimes only the objects get dropped.    
    // If the dropObjectsOnly flag is set, just exit now, we are done.
    if (dropSchemaNode->dropObjectsOnly())
       return;
 
-   // Verify all objects in the schema have been dropped.   
+  // Verify all objects in the schema have been dropped. 
    str_sprintf(query,"SELECT COUNT(*) "
                      "FROM %s.\"%s\".%s "
                      "WHERE catalog_name = '%s' AND schema_name = '%s' AND "
@@ -764,7 +838,7 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
    
    if (rowCount > 0)
    {
-      CmpCommon::diags()->clear();
+     CmpCommon::diags()->clear();
       
       *CmpCommon::diags() << DgSqlCode(-CAT_UNABLE_TO_DROP_SCHEMA)
                           << DgSchemaName(catName + "." + schName);
@@ -1229,7 +1303,9 @@ static bool dropOneTable(
    const char * catalogName, 
    const char * schemaName, 
    const char * objectName,
-   bool isVolatile)
+   bool isVolatile,
+   bool ifExists,
+   bool ddlXns)
    
 {
 
@@ -1238,17 +1314,23 @@ char buf [1000];
 bool someObjectsCouldNotBeDropped = false;
 
 char volatileString[20] = {0};
+ char ifExistsString[20] = {0};
 Lng32 cliRC = 0;
+
+
 
    if (isVolatile)
       strcpy(volatileString,"VOLATILE");
+
+   if (ifExists)
+     strcpy(ifExistsString,"IF EXISTS");
 
    if (ComIsTrafodionExternalSchemaName(schemaName))
      str_sprintf(buf,"DROP EXTERNAL TABLE \"%s\" FOR \"%s\".\"%s\".\"%s\" CASCADE",
                  objectName,catalogName,schemaName,objectName);
    else
-     str_sprintf(buf,"DROP %s TABLE \"%s\".\"%s\".\"%s\" CASCADE",
-                 volatileString,catalogName,schemaName,objectName);
+     str_sprintf(buf,"DROP %s %s TABLE  \"%s\".\"%s\".\"%s\" CASCADE",
+                 volatileString, ifExistsString, catalogName,schemaName,objectName);
  
 ULng32 savedParserFlags = Get_SqlParser_Flags(0xFFFFFFFF);
 
@@ -1275,8 +1357,10 @@ ULng32 savedParserFlags = Get_SqlParser_Flags(0xFFFFFFFF);
 // remove NATable entry for this table
    CorrName cn(objectName,STMTHEAP,schemaName,catalogName);
 
-   ActiveSchemaDB()->getNATableDB()->removeNATable(cn,
-     NATableDB::REMOVE_FROM_ALL_USERS, COM_BASE_TABLE_OBJECT);
+   ActiveSchemaDB()->getNATableDB()->removeNATable
+     (cn,
+      ComQiScope::REMOVE_FROM_ALL_USERS, COM_BASE_TABLE_OBJECT,
+      ddlXns, FALSE);
 
    return someObjectsCouldNotBeDropped;
    

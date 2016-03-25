@@ -2266,13 +2266,15 @@ short OrcPushdownAggr::codeGen(Generator * generator)
   queue_index upqueuelength = (queue_index)getDefault(GEN_DPSO_SIZE_UP);
   queue_index downqueuelength = (queue_index)getDefault(GEN_DPSO_SIZE_DOWN);
   Int32 numBuffers = getDefault(GEN_DPUO_NUM_BUFFERS);
+  Int32 numPartCols =
+    tableDesc_->getClusteringIndex()->getNAFileSet()->numHivePartCols();
 
   char * tablename = 
     space->AllocateAndCopyToAlignedSpace(
          GenGetQualifiedName(
               tableDesc_->getClusteringIndex()->
               getNAFileSet()->getFileSetName()), 0);
-  
+
   ComTdbOrcFastAggr *aggr_tdb = new(space) 
     ComTdbOrcFastAggr(
 		      tablename,
@@ -2297,7 +2299,8 @@ short OrcPushdownAggr::codeGen(Generator * generator)
 		      downqueuelength,
 		      upqueuelength,
 		      numBuffers,
-		      buffersize
+		      buffersize,
+                      numPartCols
 		      );
 
   generator->initTdbFields(aggr_tdb);

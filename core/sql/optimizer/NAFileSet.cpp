@@ -75,6 +75,7 @@ NAFileSet::NAFileSet(const QualifiedName & fileSetName,
                      Lng32 fileCode,
 		     NABoolean isVolatile,
 		     NABoolean inMemObjectDefn,
+                     Int64 indexUID,
                      desc_struct *keysDesc,
                      HHDFSTableStats *hHDFSTableStats,
                      Lng32 numSaltPartns,
@@ -115,6 +116,7 @@ NAFileSet::NAFileSet(const QualifiedName & fileSetName,
            thisRemoteIndexGone_(FALSE),
            isDecoupledRangePartitioned_(isDecoupledRangePartitioned),
            fileCode_(fileCode),
+           indexUID_(indexUID),
            keysDesc_(keysDesc),
            hHDFSTableStats_(hHDFSTableStats),
            numSaltPartns_(numSaltPartns),
@@ -188,6 +190,17 @@ NABoolean NAFileSet::containsPartition(const NAString &partitionName) const
 { 
   return partFunc_ &&
          partFunc_->getNodeMap()->containsPartition(partitionName);
+}
+
+Int32 NAFileSet::numHivePartCols() const
+{
+  Int32 result = 0;
+
+  for (CollIndex i=0; i<allColumns_.entries(); i++)
+    if (allColumns_[i]->isHivePartColumn())
+      result++;
+
+  return result;
 }
 
 NABoolean NAFileSet::isSyskeyLeading() const

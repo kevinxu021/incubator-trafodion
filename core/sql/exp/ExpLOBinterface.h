@@ -119,9 +119,7 @@ Lng32 ExpLOBinterfaceDrop(void * lobGlob,
 			  char * lobName,
 			  char * lobLoc);
 
-Lng32 ExpLOBInterfacePurgedata(void * lobGlob, 
-			       char * lobHdfsServer ,
-			       Lng32 lobHdfsPort ,
+Lng32 ExpLOBInterfacePurgedata(void * lobGlob, 			      
 			       char * lobName,
 			       char * lobLoc);
 
@@ -156,7 +154,7 @@ Lng32 ExpLOBInterfaceInsert(void * lobGlob,
 
 			    Lng32 handleLen,
 			    char * lobHandle,
-			    Int64 * outHandleLen,
+			    Int32 * outHandleLen,
 			    char * outLobHandle,
 
 			    Int64 blackBoxLen,
@@ -177,6 +175,7 @@ Lng32 ExpLOBInterfaceInsert(void * lobGlob,
 			    Int64  srcLobLen  = 0,
 			    Int64 lobMaxSize = 0,
 			    Int64 lobMaxChunkMemSize = 0,
+                            Int64 lobGCLimit = 0,
 			    int    bufferSize = 0,
 			    short  replication =0,
 			    int    blocksize=0
@@ -189,7 +188,7 @@ Lng32 ExpLOBInterfaceUpdate(void * lobGlob,
 			    char * lobLocation,
 			    Lng32 handleLen,
 			    char * lobHandle,
-			    Int64 *outHandleLen,
+			    Int32 *outHandleLen,
 			    char * outLobHandle,
 			    Int64 &requestTag,
 			    Int64 xnId,	
@@ -209,7 +208,8 @@ Lng32 ExpLOBInterfaceUpdate(void * lobGlob,
 			    Int64 srcDescKey, 
 			    Int64 srcDescTS,
 			    Int64 lobMaxSize = 0,
-			    Int64 lobMaxChunkMemSize = 0);
+			    Int64 lobMaxChunkMemSize = 0,
+                            Int64 lobGCLimit = 0);
 
 Lng32 ExpLOBInterfaceUpdateAppend(void * lobGlob, 
 				  char * lobHdfsServer ,
@@ -218,7 +218,7 @@ Lng32 ExpLOBInterfaceUpdateAppend(void * lobGlob,
 				  char * lobLocation,
 				  Lng32 handleLen,
 				  char * lobHandle,
-				  Int64 *outHandleLen,
+				  Int32 *outHandleLen,
 				  char * outLobHandle,
 				  Int64 &requestTag,
 				  Int64 xnId,	
@@ -238,7 +238,8 @@ Lng32 ExpLOBInterfaceUpdateAppend(void * lobGlob,
 				  Int64 srcDescKey, 
 				  Int64 srcDescTS,
 				  Int64 lobMaxSize = 0,
-				  Int64 lobMaxChunkMemSize = 0
+				  Int64 lobMaxChunkMemSize = 0,
+                                  Int64 lobGCLimit = 0
 				  );
 
 Lng32 ExpLOBInterfaceDelete(void * lobGlob, 
@@ -281,7 +282,7 @@ Lng32 ExpLOBInterfaceSelectCursor(void * lobGlob,
 				  char * lobHdfsServer,
 				  Lng32 lobHdfsPort,
 
-				  Int64 handleLen,  
+				  Int32 handleLen,  
 				  char * lobHandle,
 				  Int64 cusrorBytes,
 				  char *cursorId,
@@ -306,6 +307,11 @@ Lng32 ExpLOBinterfaceStats(void * lobGlob,
 			   Lng32 lobHdfsPort = 0);
 
 char * getLobErrStr(Lng32 errEnum);
+
+Lng32 ExpLOBinterfacePerformGC(void *& lobGlob, char *lobName,void *descChunksArray, Int32 numEntries, char *hdfsServer, Int32 hdfsPort,char *LOBlOC,Int64 lobMaxChunkMemSize);
+Lng32 ExpLOBinterfaceRestoreLobDataFile(void *& lobGlob, char *hdfsServer, Int32 hdfsPort,char *lobLoc,char *lobName);
+Lng32 ExpLOBinterfacePurgeBackupLobDataFile(void *& lobGlob,  char *hdfsServer, Int32 hdfsPort,char *lobLoc,char *lobName);
+
 
 Lng32 ExpLOBinterfaceEmptyDirectory(void * lobGlob,
                             char * lobName,

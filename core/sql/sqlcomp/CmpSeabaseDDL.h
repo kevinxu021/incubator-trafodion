@@ -165,7 +165,7 @@ class CmpSeabaseDDL
   static NABoolean isHbase(const NAString &catName);
 
   static bool isHistogramTable(const NAString &tabName);
-
+  static NABoolean isLOBDependentNameMatch(const NAString &name);
   static NABoolean isSeabaseMD(const NAString &catName,
 			       const NAString &schName,
 			       const NAString &objName);
@@ -411,6 +411,8 @@ class CmpSeabaseDDL
 
   ExpHbaseInterface* allocEHI(NADefaults * defs = NULL);
   
+  short ddlInvalidateNATables();
+
   void deallocEHI(ExpHbaseInterface* &ehi);
   void dropLOBHdfsFiles();
 
@@ -506,7 +508,8 @@ class CmpSeabaseDDL
                          const int numSplits = 0,
                          const int keyLength = 0,
                          char **encodedKeysBuffer = NULL,
-			 NABoolean doRetry = TRUE);
+			 NABoolean doRetry = FALSE,
+                         NABoolean ddlXns = FALSE);
 
   short createHbaseTable(ExpHbaseInterface *ehi, 
 			 HbaseStr *table,
@@ -515,15 +518,18 @@ class CmpSeabaseDDL
                          const int numSplits = 0,
                          const int keyLength = 0,
                          char **encodedKeysBuffer = NULL,
-			 NABoolean doRetry = TRUE);
+			 NABoolean doRetry = TRUE,
+                         NABoolean ddlXns = FALSE);
 
   short alterHbaseTable(ExpHbaseInterface *ehi,
                         HbaseStr *table,
                         NAList<NAString> &allColFams,
-                        NAList<HbaseCreateOption*> * hbaseCreateOptions);
+                        NAList<HbaseCreateOption*> * hbaseCreateOptions,
+                        NABoolean ddlXns);
 
   short dropHbaseTable(ExpHbaseInterface *ehi, 
-		       HbaseStr *table, NABoolean asyncDrop = FALSE);
+		       HbaseStr *table, NABoolean asyncDrop,
+                       NABoolean ddlXns);
 
   short copyHbaseTable(ExpHbaseInterface *ehi, 
 		       HbaseStr *currTable, HbaseStr* oldTable);
@@ -542,6 +548,7 @@ class CmpSeabaseDDL
 			  const NAString &objName,
 			  NAString &currCatName, NAString &currSchName,
 			  const ComObjectType objType,
+                          NABoolean ddlXns,
 			  NABoolean dropFromMD = TRUE,
 			  NABoolean dropFromHbase = TRUE);
   
@@ -642,6 +649,12 @@ class CmpSeabaseDDL
                       Int64 objectUID,
                       Queue * &usingViewsQueue);
   
+  short getAllUsingViews(ExeCliInterface *cliInterface,
+                         NAString &catName,
+                         NAString &schName,
+                         NAString &objName,
+                         Queue * &usingViewsQueue);
+
   void handleDDLCreateAuthorizationError(
      int32_t SQLErrorCode,
      const NAString & catalogName, 
@@ -746,7 +759,8 @@ class CmpSeabaseDDL
                         Int64 objUID, 
                         ComTextType textType, 
                         Lng32 subID, 
-                        NAString &text);
+                        NAString &text,
+                        NABoolean withDelete = FALSE); // del before ins
 
   short deleteFromTextTable(ExeCliInterface *cliInterface,
                             Int64 objUID, 
@@ -927,7 +941,8 @@ class CmpSeabaseDDL
                                const NAString &catName, 
                                const NAString &schName,
                                const NAString &objName,
-                               const ComObjectType objectType);
+                               const ComObjectType objectType,
+                               NABoolean ddlXns);
   
   short createSeabaseTable2(
                             ExeCliInterface &cliInterface,
@@ -1015,6 +1030,7 @@ class CmpSeabaseDDL
        ComObjectName &tableName,
        ComAnsiNamePart &currCatAnsiName,
        ComAnsiNamePart &currSchAnsiName,
+       StmtDDLNode * ddlNode,
        StmtDDLAddConstraintPK * pkConstr,
        StmtDDLAddConstraintUniqueArray &uniqueConstrArr,
        StmtDDLAddConstraintRIArray &riConstrArr,
@@ -1030,44 +1046,79 @@ class CmpSeabaseDDL
                            const NATable * naTable,
                            Lng32 dropColNum);
 
-  short alignedFormatTableDropColumn
-  (
+  short alignedFormatTableDropColumn(
        const NAString &catalogNamePart,
        const NAString &schemaNamePart,
        const NAString &objectNamePart,
        const NATable * naTable,
        const NAString &altColName,
-       ElemDDLColDef *pColDef);
- 
+       ElemDDLColDef *pColDef,
+       NABoolean ddlXns,
+       NAList<NAString> &viewNameList,
+       NAList<NAString> &viewDefnList);
+  
+ short hbaseFormatTableDropColumn(
+      ExpHbaseInterface *ehi,
+      const NAString &catalogNamePart,
+      const NAString &schemaNamePart,
+      const NAString &objectNamePart,
+      const NATable * naTable,
+      const NAString &altColName,
+      const NAColumn * nacol,
+      NABoolean ddlXns,
+      NAList<NAString> &viewNameList,
+      NAList<NAString> &viewDefnList);
+  
   void alterSeabaseTableDropColumn(
        StmtDDLAlterTableDropColumn * alterDropColNode,
        NAString &currCatName, NAString &currSchName);
   
-  short recreateViews(ExeCliInterface &cliInterface,
-                      NAList<NAString> &viewNameList,
-                      NAList<NAString> &viewDefnList);
+  short saveAndDropUsingViews(Int64 objUID,
+                              ExeCliInterface *cliInterface,
+                              NAList<NAString> &viewNameList,
+                              NAList<NAString> &viewDefnList);
+  
+  short recreateUsingViews(ExeCliInterface *cliInterface,
+                           NAList<NAString> &viewNameList,
+                           NAList<NAString> &viewDefnList,
+                           NABoolean ddlXns);
 
   void alterSeabaseTableAlterIdentityColumn(
        StmtDDLAlterTableAlterColumnSetSGOption * alterIdentityColNode,
        NAString &currCatName, NAString &currSchName);
   
-  short alignedFormatTableAlterColumn
+  short mdOnlyAlterColumnAttr(
+       const NAString &catalogNamePart, const NAString &schemaNamePart,
+       const NAString &objectNamePart,
+       const NATable * naTable, const NAColumn * naCol, NAType * newType,
+       StmtDDLAlterTableAlterColumnDatatype * alterColNode,
+       NAList<NAString> &viewNameList,
+       NAList<NAString> &viewDefnList);
+  
+  short hbaseFormatTableAlterColumnAttr(
+       const NAString &catalogNamePart, const NAString &schemaNamePart,
+       const NAString &objectNamePart,
+       const NATable * naTable, const NAColumn * naCol, NAType * newType,
+       StmtDDLAlterTableAlterColumnDatatype * alterColNode);
+  
+  short alignedFormatTableAlterColumnAttr
   (
        const NAString &catalogNamePart,
        const NAString &schemaNamePart,
        const NAString &objectNamePart,
        const NATable * naTable,
        const NAString &altColName,
-       ElemDDLColDef *pColDef);
-  
-  short alterColumnAttr(
-       const NAString &catalogNamePart, const NAString &schemaNamePart,
-       const NAString &objectNamePart,
-       const NATable * naTable, const NAColumn * naCol, NAType * newType,
-       StmtDDLAlterTableAlterColumnDatatype * alterColNode);
+       ElemDDLColDef *pColDef,
+       NABoolean ddlXns,
+       NAList<NAString> &viewNameList,
+       NAList<NAString> &viewDefnList);
   
   void alterSeabaseTableAlterColumnDatatype(
        StmtDDLAlterTableAlterColumnDatatype * alterColumnDatatype,
+       NAString &currCatName, NAString &currSchName);
+  
+  void alterSeabaseTableAlterColumnRename(
+       StmtDDLAlterTableAlterColumnRename * alterColumnDatatype,
        NAString &currCatName, NAString &currSchName);
   
   void alterSeabaseTableAddPKeyConstraint(
@@ -1152,6 +1203,13 @@ class CmpSeabaseDDL
   void dropSeabaseRoutine(StmtDDLDropRoutine  * dropRoutineNode,
                           NAString &currCatName, NAString &currSchName);
 
+  short createSeabaseLibmgr(ExeCliInterface * cliInterface);
+  short upgradeSeabaseLibmgr(ExeCliInterface * inCliInterface);
+  short dropSeabaseLibmgr(ExeCliInterface *inCliInterface);
+  short createLibmgrProcs(ExeCliInterface * cliInterface);
+  short grantLibmgrPrivs(ExeCliInterface *cliInterface);
+
+
   void createSeabaseSequence(StmtDDLCreateSequence  * createSequenceNode,
 			     NAString &currCatName, NAString &currSchName);
 
@@ -1192,18 +1250,20 @@ class CmpSeabaseDDL
                                   NAString &currCatName, NAString &currSchName);
 
   void alterSeabaseSchemaHDFSCache(StmtDDLAlterSchemaHDFSCache * alterSchemaHdfsCache);
-  void initSeabaseMD();
-  void dropSeabaseMD();
+  
+  void initSeabaseMD(NABoolean ddlXns);
+  void dropSeabaseMD(NABoolean ddlXns);
   void createSeabaseMDviews();
   void dropSeabaseMDviews();
   void createSeabaseSeqTable();
   void createSeabaseSchemaObjects();
   void updateVersion();
 
-  short createPrivMgrRepos(ExeCliInterface *cliInterface);
+  short createPrivMgrRepos(ExeCliInterface *cliInterface, NABoolean ddlXns);
   short initSeabaseAuthorization(ExeCliInterface *cliInterface,
-                                std::vector<std::string> &tablesCreated,
-                                std::vector<std::string> &tablesUpgraded);
+                                 NABoolean ddlXns,
+                                 std::vector<std::string> &tablesCreated,
+                                 std::vector<std::string> &tablesUpgraded);
 
   void dropSeabaseAuthorization(ExeCliInterface *cliInterface, 
                                 NABoolean doCleanup = FALSE);
@@ -1220,7 +1280,7 @@ class CmpSeabaseDDL
                               const ComObjectType objType);
 
 
-  short dropSeabaseObjectsFromHbase(const char * pattern);
+  short dropSeabaseObjectsFromHbase(const char * pattern, NABoolean ddlXns);
   short updateSeabaseAuths(ExeCliInterface * cliInterface, const char * sysCat);
 
   short truncateHbaseTable(const NAString &catalogNamePart, 
@@ -1374,7 +1434,7 @@ class CmpSeabaseDDL
                          NAString& hco); // out
   
 
-    private:
+private:
   enum
   {
     NUM_MAX_PARAMS = 20

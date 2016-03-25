@@ -205,6 +205,9 @@ protected:
   inline ex_expr *mergeInsertExpr() const 
     { return hbaseAccessTdb().mergeInsertExpr_; }
 
+  inline ex_expr *lobDelExpr() const 
+    { return hbaseAccessTdb().mergeInsertExpr_; }
+
   inline ex_expr *mergeInsertRowIdExpr() const 
     { return hbaseAccessTdb().mergeInsertRowIdExpr_; }
 
@@ -332,6 +335,7 @@ protected:
 
   short createDirectRowBuffer(UInt16 tuppIndex, char * tuppRow, 
                         Queue * listOfColNames,
+                        Queue * listOfOmittedColNames,
 			NABoolean isUpdate = FALSE,
 			std::vector<UInt32> * posVec = NULL,
 			double sampleRate = 0.0);
