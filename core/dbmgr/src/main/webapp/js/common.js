@@ -34,6 +34,11 @@ define(['moment',
 			this.redirectFlag=false;
 			this.isAllNotificationInserted=false;
 			this.hideNotifications=null;
+			this.commonTimeRange=null;
+			this.START_TIME_PICKER = '#startdatetimepicker';
+			this.END_TIME_PICKER = '#enddatetimepicker';
+			this.DATE_FORMAT = 'YYYY-MM-DD HH:mm:ss';
+			this.DATE_FORMAT_ZONE = this.DATE_FORMAT + ' z';
 
 			this.sqlKeywords = "alter and as asc between by count create cqd delete desc distinct drop from group having in insert into is join like not on or order select set table union update values where ";
 
@@ -229,7 +234,9 @@ define(['moment',
 				if(diff < 0){
 				 alert("end date could not be earlier than start date ！");
 				 }
-				if(minute<diff && diff<60*minute){
+				if(diff<minute){
+					timeAgo=(diff/minute).toFixed(0) +' minutes ago';
+				}else if(diff<60*minute){
 					timeAgo=(diff/minute).toFixed(0) +' minutes ago';
 				}else if(diff<day){
 					timeAgo=(diff/hour).toFixed(0) +' hours ago';
@@ -272,7 +279,16 @@ define(['moment',
 			this.getBrowserTimeZoneOffset = function() {
 				return moment().zone() * 60 * 1000;
 			},
-
+			this.getCommonTimeRange=function(selection){
+				switch (selection) {
+				case "0":
+					_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0"};
+					break;
+				default:
+					_this.commonTimeRange={startTime:null,endTime:null,timeRangeTag:selection};
+					break;
+				}
+			},
 			this.bytesToSize = function(bytes) {
 				var units = [ 'bytes', 'KB', 'MB', 'GB', 'TB' ];
 				if (bytes <= 0)

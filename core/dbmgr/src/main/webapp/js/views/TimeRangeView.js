@@ -77,9 +77,14 @@ define([
 				_this.updateFilter();
 			}
 		},
-		updateFilter: function() {
-			var sel = $(TIME_RANGE).val();
-			switch(sel){
+		updateFilter: function(selection) {
+			if(selection==null){
+				selection = $(TIME_RANGE).val();
+			}else{
+				$(TIME_RANGE).val(selection);
+			}
+				
+			switch(selection){
 			case "1":
 				$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
 				$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
@@ -155,6 +160,37 @@ define([
 		}, 
 
 		init: function(){
+			this.bindAllInitialEvents();
+			$(TIME_RANGE).val(-1);
+			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			this.initialTimeRangePicker();
+			_timeRangeControl.bindEvent();
+		},
+
+		pause: function(){
+			_timeRangeControl.unBindEvent();
+		},
+
+		resume: function(){
+			_timeRangeControl.bindEvent();
+			this.initialTimeRangePicker();
+		},
+		initialTimeRangePicker:function(){
+			if(common.commonTimeRange==null){
+				$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
+				$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
+			}else{
+				if(common.commonTimeRange.timeRangeTag=="0"){
+					$(START_TIME_PICKER).data("DateTimePicker").date(common.commonTimeRange.startTime);
+					$(END_TIME_PICKER).data("DateTimePicker").date(common.commonTimeRange.endTime);
+				}else{
+					this.updateFilter(common.commonTimeRange.timeRangeTag);
+				}
+				$(TIME_RANGE).val(common.commonTimeRange.timeRangeTag)
+			}
+		},
+		bindAllInitialEvents:function(){
 			validator = $(FILTER_FORM).validate({
 				rules: {
 					"filter-start-time": { required: true, validateStartTime: true },
@@ -176,8 +212,6 @@ define([
 					}
 				}
 			});
-			$(TIME_RANGE).val(-1);
-
 			$(FILTER_FORM).bind('change', function() {
 				if($(this).validate().checkForm()) {
 					$(FILTER_APPLY_BUTTON).attr('disabled', false);
@@ -191,13 +225,6 @@ define([
 					validator.resetForm(); //cancel clicked
 				}
 			});	
-
-			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
-			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
-			
-			$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
-			$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
-
 			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
 				$(FILTER_START_TIME).prop("disabled", false);
 				$(FILTER_END_TIME).prop("disabled", false);
@@ -214,16 +241,6 @@ define([
 					$(this).val(_this.currentSelection);	
 				}
 			});
-
-			_timeRangeControl.bindEvent();
-		},
-
-		pause: function(){
-			_timeRangeControl.unBindEvent();
-		},
-
-		resume: function(){
-			_timeRangeControl.bindEvent();
 		},
 		parseInputDate:function(date){
 			return moment.tz(date, DATE_FORMAT_ZONE, common.serverTimeZone);
