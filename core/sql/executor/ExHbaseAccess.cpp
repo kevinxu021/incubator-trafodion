@@ -2554,6 +2554,7 @@ short ExHbaseAccessTcb::copyRowIDToDirectBuffer(HbaseStr &rowID)
 short ExHbaseAccessTcb::createDirectRowBuffer( UInt16 tuppIndex, 
                  char * tuppRow,
                   Queue * listOfColNames, 
+                  Queue * listOfOmittedColNames,
                   NABoolean isUpdate,
                   std::vector<UInt32> * posVec,
                   double samplingRate )
@@ -2592,7 +2593,8 @@ short ExHbaseAccessTcb::createDirectRowBuffer( UInt16 tuppIndex,
   Attributes * attr;
   int numCols = 0;
   short *numColsPtr;
-
+  char *str_1;
+  NABoolean omittedColFound;
   allocateDirectRowBufferForJNI(rowTD->numAttrs());
 
   BYTE *rowCurPtr = (BYTE *)row_.val;
@@ -2600,9 +2602,12 @@ short ExHbaseAccessTcb::createDirectRowBuffer( UInt16 tuppIndex,
   row_.len += sizeof(short);
   rowCurPtr += sizeof(short);
   listOfColNames->position();
+
   for (Lng32 i = 0; i <  rowTD->numAttrs(); i++)
     {
+       
     Attributes * attr;
+   
       if (!posVec)
         attr = rowTD->getAttr(i);
       else
@@ -2616,6 +2621,21 @@ short ExHbaseAccessTcb::createDirectRowBuffer( UInt16 tuppIndex,
          {
            extractColNameFields((char*)listOfColNames->getCurr(),
                                 colNameLen, colName);
+           if (listOfOmittedColNames != NULL) {
+              omittedColFound = FALSE;            
+              listOfOmittedColNames->position();
+              while ((str_1 = (char *)listOfOmittedColNames->getNext()) != NULL) {
+                 str = (char*)listOfColNames->getCurr();
+                 if (memcmp(str, str_1, colNameLen+2) == 0) {
+                    omittedColFound = TRUE;
+                    break;
+                 }
+              }
+              if (omittedColFound) {
+                 listOfColNames->advance();
+                 continue ;
+              }
+           }
          }
          else
          {

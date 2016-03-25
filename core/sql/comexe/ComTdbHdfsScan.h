@@ -138,7 +138,7 @@ class ComTdbHdfsScan : public ComTdb
   UInt16 filler2_;                                            // 198 - 199
   Int32 partColsRowLength_;                                   // 200 - 203
   Int32 virtColsRowLength_;                                   // 204 - 207
-  UInt32 filler0_;                                            // 208 - 211
+  Int32 numPartCols_;                                         // 208 - 211
   ExExprPtr partElimExpr_;                                    // 212 - 219
   char fillersComTdbHdfsScan1_[16];                           // 220 - 235
 
@@ -174,6 +174,7 @@ public:
                  char columnDelimiter,
 		 Int64 hdfsBufSize,
                  UInt32 rangeTailIOSize,
+                 Int32 numPartCols,
 		 Int64 hdfsSqlMaxRecLen,
                  Int64 outputRowLength,
 		 Int64 asciiRowLen,
@@ -452,6 +453,7 @@ public:
        char columnDelimiter,
        Int64 hdfsBufSize,
        UInt32 rangeTailIOSize,
+       Int32 numPartCols,
        Queue * tdbListOfOrcPPI,
        Int64 hdfsSqlMaxRecLen,
        Int64 outputRowLength,
@@ -576,7 +578,8 @@ public:
                 queue_index down,
                 queue_index up,
                 Int32  numBuffers,
-                UInt32  bufferSize
+                UInt32  bufferSize,
+                Int32 numPartCols
                 );
   
   ~ComTdbOrcFastAggr();

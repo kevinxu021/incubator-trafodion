@@ -525,40 +525,43 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                    openType //
                    );
                 
-                // preopen next range. 
-                Lng32 nextRange = getAndInitNextSelectedRange(true);
-                if (nextRange >= 0) 
+                if (retcode >= 0)
                   {
-                    hdfo = (HdfsFileInfo*)
-                      hdfsScanTdb().getHdfsFileInfoList()->get(nextRange);
-                
-                    sprintf(cursorId, "%d", nextRange);
-                    openType = 1; // preOpen
-                
-                    retcode = ExpLOBInterfaceSelectCursor
-                      (lobGlob_,
-                       hdfo->fileName(),
-                       NULL, //(char*)"",
-                       (Lng32)Lob_External_HDFS_File,
-                       hdfsScanTdb().hostName_,
-                       hdfsScanTdb().port_,
-                       0, NULL,//handle not relevant for non lob access
-                       hdfo->getBytesToRead(), // max bytes
-                       cursorId, 
-                           
-                       requestTag_, Lob_Memory,
-                       0, // not check status
-                       (NOT hdfsScanTdb().hdfsPrefetch()),  //1, // waited op
-                           
-                       hdfo->getStartOffset(), 
-                       hdfsScanBufMaxSize_,
-                       bytesRead_,
-                       NULL,
-                       1,// open
-                       openType
-                       );
-                  } 
-              }
+                    // preopen next range. 
+                    Lng32 nextRange = getAndInitNextSelectedRange(true);
+                    if (nextRange >= 0) 
+                      {
+                        hdfo = (HdfsFileInfo*)
+                          hdfsScanTdb().getHdfsFileInfoList()->get(nextRange);
+
+                        sprintf(cursorId, "%d", nextRange);
+                        openType = 1; // preOpen
+
+                        retcode = ExpLOBInterfaceSelectCursor
+                          (lobGlob_,
+                           hdfo->fileName(),
+                           NULL, //(char*)"",
+                           (Lng32)Lob_External_HDFS_File,
+                           hdfsScanTdb().hostName_,
+                           hdfsScanTdb().port_,
+                           0, NULL,//handle not relevant for non lob access
+                           hdfo->getBytesToRead(), // max bytes
+                           cursorId,
+
+                           requestTag_, Lob_Memory,
+                           0, // not check status
+                           (NOT hdfsScanTdb().hdfsPrefetch()),  //1, // waited op
+
+                           hdfo->getStartOffset(),
+                           hdfsScanBufMaxSize_,
+                           bytesRead_,
+                           NULL,
+                           1,// open
+                           openType
+                           );
+                      } // tried to open next range
+                  } // successfully opened primary range
+              } // not a sequence file
                 
             if (retcode < 0)
               {

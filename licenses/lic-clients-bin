@@ -1,7 +1,8 @@
 ===============================================================================
 The binary distribution of Apache Trafodion bundles OpenSSL software. Specifically,
-the Linux ODBC driver is statically linked with OpenSSL libraries. OpenSSL is
-available under a BSD like license. (http://www.openssl.org/)
+the Linux ODBC driver is statically linked with OpenSSL libraries. 
+
+OpenSSL is available under a BSD like license. (http://www.openssl.org/)
 
 
     LICENSE ISSUES
@@ -163,15 +164,5 @@ MIT like license. (http://site.icu-project.org/)
   Except as contained in this notice, the name of a copyright holder shall not be
   used in advertising or otherwise to promote the sale, use or other dealings in
   this Software without prior written authorization of the copyright holder.
-
-+++++++++++++++++++++++++++++
-
-To Do:
-
-Investigate and document third-pary licenses for SW bundled with binaries
-for client component:
-
-win-odbc
-  TFODBC64-*.exe
 
 +++++++++++++++++++++++++++++

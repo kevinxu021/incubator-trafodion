@@ -426,10 +426,15 @@ else
          fi
        done
     fi
-    export PATH=$PATH:$JAVA_HOME/bin
+    hadoopPath="$HADOOP_PATH"
+    hadoopBinPath="$HADOOP_BIN_PATH"
+
+    export PATH="$PATH:$JAVA_HOME/bin"
     sudo chmod 777 $TRAF_CONFIG
     sed -i '/PATH\=/d' $TRAF_CONFIG
     echo "export PATH=\"$PATH\"" >>$TRAF_CONFIG
+    echo "export HADOOP_BIN_PATH=\"$hadoopBinPath\"" >>$TRAF_CONFIG
+    echo "export HADOOP_PATH=\"$hadoopPath\"" >>$TRAF_CONFIG
     sudo chmod 777 $TRAF_CONFIG
     source $TRAF_CONFIG
 fi
@@ -652,10 +657,10 @@ function checkClouderaVersion {
 if [[ $CDH_5_3_HDP_2_2_SUPPORT == "N" ]]; then
    #Check that Cloudera 5.2 or 5.3 are not installed.
    if [[ "$CDH_5_4_SUPPORT" == "Y" ]] || [[ "$CDH_5_5_SUPPORT" == "Y" ]]; then
-      nameOfVersion=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/.*\-//' | grep cdh5.[4-5].*)
+      nameOfVersion=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/.*\-//' | grep cdh5.[4-6].*)
       #Check that Cloudera 5.[n>4].* is not installed.
       if [[ -z $nameOfVersion ]]; then
-         versionInstalled=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/.*\-//' | grep cdh[6-9].[0-9].* | wc -l)
+         versionInstalled=$(ssh -q -n $node grep "Version" $HOME/hbaseVersion.txt | sed 's/,.*//' | sed 's/.*\-//' | grep cdh[5-9].[7-9].* | wc -l)
          if [[ $versionInstalled -gt "0" ]]; then
             errorFound=1
             echo "HADOOP VERSION" >> $ERROR_LOG
@@ -691,7 +696,6 @@ else
 fi
 
 echo "***INFO: nameOfVersion=$nameOfVersion"
-echo "here"
 sudo chmod 777 $TRAF_CONFIG
 source $TRAF_CONFIG
 

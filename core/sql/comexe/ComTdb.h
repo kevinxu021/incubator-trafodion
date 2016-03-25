@@ -1004,6 +1004,7 @@ class ComTdbVirtTableIndexInfo : public ComTdbVirtTableBase
 
   const char * baseTableName;
   const char * indexName;
+  Int64 indexUID;
   Lng32 keytag;
   Lng32 isUnique;
   Lng32 isExplicit;
