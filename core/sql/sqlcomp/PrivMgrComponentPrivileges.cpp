@@ -875,7 +875,7 @@ PrivStatus PrivMgrComponentPrivileges::grantPrivilegeInternal(
    {
       row.operationCode_ = operationCodes[oc];
 
-      if (checkExistence && 
+      if (checkExistence &&
           grantExists(componentUIDString, row.operationCode_, row.grantorID_,
                       row.granteeID_, row.grantDepth_))
          continue;

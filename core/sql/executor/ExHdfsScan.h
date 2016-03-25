@@ -160,10 +160,12 @@ protected:
   , OPEN_HDFS_CURSOR
   , GET_HDFS_DATA
   , CLOSE_HDFS_CURSOR
+  , CLOSE_ALL_HDFS_CURSORS
   , PROCESS_HDFS_ROW
   , RETURN_ROW
   , REPOS_HDFS_DATA
   ,CLOSE_FILE
+  ,CLOSE_ALL_FILES
   ,ERROR_CLOSE_FILE
   ,COLLECT_STATS
   , HANDLE_ERROR
@@ -279,6 +281,8 @@ protected:
   Lng32 numRanges_;
   Lng32 currRangeNum_;
   Lng32 nextDelimRangeNum_;
+  Lng32 preOpenedRangeNum_;    // pre-opened range
+  Lng32 leftOpenRangeNum_;     // file left open, next range has same file
   char *endOfRequestedRange_ ; // helps rows span ranges.
   char * hdfsFileName_;
   SequenceFileReader* sequenceFileReader_;

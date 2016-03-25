@@ -50,6 +50,7 @@
 #include "tmglobals.h"
 #include "tmtimer.h"
 #include "tmthreadeg.h"
+#include "tmlockthread.h"
 
 #include "tminfo.h"
 #include "tmrecov.h"
@@ -74,8 +75,6 @@ TM_Info           gv_tm_info;
 SB_Int64_Type     gv_wait_interval = TM_DEFAULT_WAIT_INTERVAL;
 
 CTmThreadExample  *gp_tmExampleThread;
-
-
 // ---------------------------------------------------------------
 // misc helper routines
 // ---------------------------------------------------------------
@@ -174,6 +173,8 @@ int tm_initialize_rsp_hdr(short rsp_type, Tm_Rsp_Msg_Type *pp_rsp)
    return FEOK;
 }
 
+
+
 // ----------------------------------------------------------------
 // tm_start_auditThread
 // Purpose : Start the audit thread.  
@@ -266,6 +267,32 @@ void tm_start_exampleThread()
          lv_name, (void *) gp_tmExampleThread));
 } //tm_start_exampleThread
 
+// ----------------------------------------------------------------
+// tm_start_lockThread
+// Purpose : Start the lock thread.
+// ----------------------------------------------------------------
+void tm_start_lockThread()
+{
+   char lv_name[20];
+   CTmLockThread *lp_tmLockThread = NULL;
+   
+   TMTrace(2, ("tm_start_lockThread ENTRY\n")); 
+
+   // Instantiate thread object
+   sprintf(lv_name, "lockTh");
+   lp_tmLockThread = new CTmLockThread(lockThread_main, -2, (const char *) &lv_name);
+   if (!lp_tmLockThread)
+   {
+      tm_log_event(DTM_TMTIMER_FAILED, SQ_LOG_CRIT, "DTM_TMTIMER_FAILED");
+      TMTrace(1, ("tm_start_lockThread - Failed to instantiate lock thread object\n"));
+      abort();
+   }
+   else
+      gv_tm_info.tmLock(lp_tmLockThread);
+
+   TMTrace(2, ("tm_start_lockThread EXIT. Lock thread %s(%p) started.\n", 
+         lv_name, (void *) lp_tmLockThread));
+} //tm_start_lockThread
 
 // ---------------------------------------------------------
 // tm_send_reply
@@ -476,8 +503,8 @@ void tm_process_req_requestregioninfo(CTmTxMessage * pp_msg)
        TM_Txid_legacy lv_transid;
    } u;
 
-   char res_array[10], tname[300], ername[50], rname[100], offline[20], regid[200], hostname[200], port[100];
-   res_array[9] = '\0', tname[299] = '\0', ername[49] = '\0', rname[99] = '\0', offline[19] = '\0';
+   char tname[300], ername[50], rname[100], offline[20], regid[200], hostname[200], port[100];
+   tname[299] = '\0', ername[49] = '\0', rname[99] = '\0', offline[19] = '\0';
    regid[199]= '\0', hostname[199]='\0', port[99]='\0';
 
    TMTrace(2, ("tm_process_req_requestregioninfo ENTRY.\n"));
@@ -747,6 +774,16 @@ void tm_process_req_end(CTmTxMessage * pp_msg)
     
    TMTrace(1, ("tm_process_req_end, ID %d ENTRY\n", lp_transid->iv_seq_num));
 
+   // If the TM is locked, do not allow an ENDTRANSACTION
+   if (gv_tm_info.tm_locked())
+   {
+       short lv_replyCode = FETMLOCKED;
+       TMTrace(1, ("tm_process_req_end EXIT LOCKED replying with error %d.\n", lv_replyCode));
+       pp_msg->reply(lv_replyCode);
+       delete pp_msg;
+       return;
+   }
+   
     if (!tm_up_check(pp_msg))
        return;
  
@@ -1102,6 +1139,37 @@ void tm_process_req_leadtm(CTmTxMessage *pp_msg)
    TMTrace(2, ("tm_process_req_leadtm EXIT.\n"));
 } //tm_process_req_leadtm
 
+// ---------------------------------------------------------------
+// tm_process_req_locktm
+// Purpose : Queue a lock request to the lock thread
+// ----------------------------------------------------------------
+void tm_process_req_locktm(CTmTxMessage *pp_msg)
+{
+   short lv_error = FEOK;
+   TMTrace(2, ("tm_process_req_locktm ENTRY.\n"));
+
+   // Queue locktm to the lock thread for execution.
+   // reply and delete happen down in the chain
+   gv_tm_info.addLockEvent(pp_msg, 0 /*execute now*/);
+
+   TMTrace(2, ("tm_process_req_locktm EXIT with error %d.\n", lv_error));
+} //tm_process_req_locktm
+
+// ----------------------------------------------------------------
+// tm_process_req_unlocktm
+// Purpose : Queue an unlock request to the lock thread
+// ----------------------------------------------------------------
+void tm_process_req_unlocktm(CTmTxMessage *pp_msg)
+{
+   short lv_error = FEOK;
+   TMTrace(2, ("tm_process_req_unlocktm ENTRY.\n"));
+
+   // Queue unlocktm to the lock thread for execution.
+   // reply and delete happen down in the chain
+   gv_tm_info.addLockEvent(pp_msg, 0 /*execute now*/);
+ 
+   TMTrace(2, ("tm_process_req_unlocktm EXIT with error %d.\n", lv_error));
+} //tm_process_req_unlocktm
 
 // -----------------------------------------------------------------
 // tm_process_req_enabletrans
@@ -1422,7 +1490,7 @@ void tm_process_req_ax_reg (CTmTxMessage * pp_msg)
                     lv_nid, lv_pid, lv_ptype));
             tm_log_event(DTM_AX_REG_XARM_NOTSUPPORTED, SQ_LOG_CRIT, "DTM_AX_REG_XARM_NOTSUPPORTED", 
                 -1,pp_msg->request()->u.iv_ax_reg.iv_rmid,-1,pp_msg->msgid(),
-                -1,-1,-1,-1,-1,-1,-1,-1,lv_pid,lv_ptype,NULL,lv_nid);
+                -1,-1,-1,-1,-1,-1,-1,-1,lv_pid,lv_ptype,0,lv_nid);
             pp_msg->reply(FENOTFOUND);
             delete pp_msg;
             return;
@@ -2120,8 +2188,6 @@ void tm_originating_sync_abort(int32 pv_tag)
 // ---------------------------------------------------------------------------
 void tm_process_node_down_msg(int32 pv_nid)
 {
-    int32 lv_error = 0;
-
     gv_tm_info.close_tm(pv_nid); 
     TMTrace(2, ("tm_process_node_down_msg ENTRY, nid %d\n", pv_nid));
     tm_log_event(DTM_NODEDOWN, SQ_LOG_INFO, "DTM_NODEDOWN", 
@@ -2147,7 +2213,7 @@ void tm_process_node_down_msg(int32 pv_nid)
         // transaction has now yet been enabled.  
     {
         gv_tm_info.ClusterRecov(new TM_Recov(gv_tm_info.rm_wait_time()));
-        lv_error = gv_tm_info.ClusterRecov()->initiate_start_sync();
+        gv_tm_info.ClusterRecov()->initiate_start_sync();
     }
     else 
     {       
@@ -2245,7 +2311,6 @@ void tm_abort_all_transactions(bool pv_shutdown)
 void tm_process_registry_change(MS_Mon_Change_def *pp_change )
 {
     int32 lv_value; 
-    bool lv_success = false;
     char lv_regKeyText[1024];
     char *lp_regKeyText = (char *) &lv_regKeyText;
 
@@ -2306,7 +2371,7 @@ void tm_process_registry_change(MS_Mon_Change_def *pp_change )
         lv_value = atoi (pp_change->value);
         bool lv_tm_stats = ((lv_value == 0)?false:true);
         gv_tm_info.stats()->initialize(lv_tm_stats, gv_tm_info.stats()->collectInterval());
-        lv_success = gv_tm_info.threadPool()->setConfig(lv_tm_stats);
+        gv_tm_info.threadPool()->setConfig(lv_tm_stats);
         // Add other pools here
     }
     // Configure thread pool
@@ -2314,38 +2379,38 @@ void tm_process_registry_change(MS_Mon_Change_def *pp_change )
     {
         lv_value = atoi (pp_change->value);
         if (lv_value >= 1)
-           lv_success = gv_tm_info.threadPool()->setConfig(gv_tm_info.tm_stats(), lv_value);
+           gv_tm_info.threadPool()->setConfig(gv_tm_info.tm_stats(), lv_value);
     }
     else if (strcmp(pp_change->key, DTM_STEADYSTATE_LOW_THREADS) == 0)
     {
         lv_value = atoi (pp_change->value);
         if (lv_value >= 0)
-           lv_success = gv_tm_info.threadPool()->setConfig(gv_tm_info.tm_stats(), -1, lv_value);
+           gv_tm_info.threadPool()->setConfig(gv_tm_info.tm_stats(), -1, lv_value);
     }
     else if (strcmp(pp_change->key, DTM_STEADYSTATE_HIGH_THREADS) == 0)
     {
         lv_value = atoi (pp_change->value);
         if (lv_value >= 0)
-           lv_success = gv_tm_info.threadPool()->setConfig(gv_tm_info.tm_stats(), -1, -1, lv_value);
+           gv_tm_info.threadPool()->setConfig(gv_tm_info.tm_stats(), -1, -1, lv_value);
     }
     // Configure transaction pool
     else if (strcmp(pp_change->key, DTM_MAX_NUM_TRANS) == 0)
     {
         lv_value = atoi (pp_change->value);
         if (lv_value >= 1)
-           lv_success = gv_tm_info.transactionPool()->setConfig(gv_tm_info.tm_stats(), lv_value);
+           gv_tm_info.transactionPool()->setConfig(gv_tm_info.tm_stats(), lv_value);
     }
     else if (strcmp(pp_change->key, DTM_STEADYSTATE_LOW_TRANS) == 0)
     {
         lv_value = atoi (pp_change->value);
         if (lv_value >= 0)
-           lv_success = gv_tm_info.transactionPool()->setConfig(gv_tm_info.tm_stats(), -1, lv_value);
+           gv_tm_info.transactionPool()->setConfig(gv_tm_info.tm_stats(), -1, lv_value);
     }
     else if (strcmp(pp_change->key, DTM_STEADYSTATE_HIGH_TRANS) == 0)
     {
         lv_value = atoi (pp_change->value);
         if (lv_value >= 0)
-           lv_success = gv_tm_info.transactionPool()->setConfig(gv_tm_info.tm_stats(), -1, -1, lv_value);
+           gv_tm_info.transactionPool()->setConfig(gv_tm_info.tm_stats(), -1, -1, lv_value);
     }
     else if (strcmp(pp_change->key, DTM_CP_INTERVAL) == 0)
     {
@@ -2815,7 +2880,7 @@ void tm_process_msg(BMS_SRE *pp_sre)
     Tm_Broadcast_Rsp_Type *lp_br_rsp; 
     Tm_Perf_Stats_Req_Type *lp_ps_req;
     Tm_Perf_Stats_Rsp_Type *lp_ps_rsp; 
-    Tm_Sys_Status_Req_Type *lp_ss_req;
+    //Tm_Sys_Status_Req_Type *lp_ss_req;
     Tm_Sys_Status_Rsp_Type *lp_ss_rsp;
     Tm_RolloverCP_Req_Type *lp_rc_req;
     Tm_RolloverCP_Rsp_Type *lp_rc_rsp;
@@ -2927,7 +2992,7 @@ void tm_process_msg(BMS_SRE *pp_sre)
     }
     case TM_MSG_TYPE_CALLSTATUSSYSTEM:
     {
-         lp_ss_req = (Tm_Sys_Status_Req_Type *) la_recv_buffer;
+         //lp_ss_req = (Tm_Sys_Status_Req_Type *) la_recv_buffer;
          lp_ss_rsp = (Tm_Sys_Status_Rsp_Type *) la_send_buffer;
 
          TM_STATUSSYS *lp_system_status =  new TM_STATUSSYS();
@@ -2948,7 +3013,7 @@ void tm_process_msg(BMS_SRE *pp_sre)
     }
     case TM_MSG_TYPE_STATUSSYSTEM:
     {
-         lp_ss_req = (Tm_Sys_Status_Req_Type *) la_recv_buffer;
+         //lp_ss_req = (Tm_Sys_Status_Req_Type *) la_recv_buffer;
          lp_ss_rsp = (Tm_Sys_Status_Rsp_Type *) la_send_buffer;
 
          tm_fill_sys_status_buffer(lp_ss_rsp);
@@ -3149,6 +3214,12 @@ void tm_process_msg(BMS_SRE *pp_sre)
     case TM_MSG_TYPE_DISABLETRANS:
         tm_process_req_disabletrans (lp_msg);
         break;
+    case TM_MSG_TYPE_LOCKTM:
+        tm_process_req_locktm (lp_msg);
+        break;
+    case TM_MSG_TYPE_UNLOCKTM:
+        tm_process_req_unlocktm (lp_msg);
+        break;
     case TM_MSG_TYPE_DRAINTRANS:
         tm_process_req_draintrans (lp_msg);
         break;
@@ -3162,6 +3233,14 @@ void tm_process_msg(BMS_SRE *pp_sre)
     case (TM_MSG_TYPE_DISABLETRANS + TM_TM_MSG_OFFSET):
         // Non-lead TM disableTrans arriving from lead TM
         gv_tm_info.disableTrans(lp_msg);
+        break;
+	 case (TM_MSG_TYPE_LOCKTM + TM_TM_MSG_OFFSET):
+        // Non-lead TM lock arriving from lead TM
+	tm_process_req_locktm (lp_msg);
+        break;
+    case (TM_MSG_TYPE_UNLOCKTM + TM_TM_MSG_OFFSET):
+        // Non-lead TM unlock arriving from lead TM
+        tm_process_req_unlocktm (lp_msg);
         break;
     case (TM_MSG_TXINTERNAL_SHUTDOWNP1_WAIT + TM_TM_MSG_OFFSET):
         // Non-lead TM ShutdownPhase1Wait arriving from lead TM
@@ -3333,6 +3412,7 @@ void tm_main_initialize()
      //Start example thread
      //tm_start_exampleThread();
 
+     tm_start_lockThread();
      tm_start_auditThread();
 
      // Initialize the XA TM Library
@@ -3394,7 +3474,7 @@ int main(int argc, char *argv[])
     msg_mon_get_my_info2(&lv_my_nid, // mon node-id
                          &lv_my_pid, // mon process-id
                          NULL,       // mon name
-                         NULL,       // mon name-len
+                         0,       // mon name-len
                          NULL,       // mon process-type
                          NULL,       // mon zone-id
                          NULL,       // os process-id

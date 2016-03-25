@@ -3790,6 +3790,7 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
   NABoolean alterIdentityCol = FALSE;
   NABoolean alterColDatatype = FALSE;
   NABoolean alterAttr = FALSE;
+  NABoolean alterColRename = FALSE;
   NABoolean externalTable = FALSE;
   NABoolean alterHdfsCache = FALSE;  
   NABoolean isAlterSchemaHDFSCache = FALSE;  
@@ -3816,6 +3817,11 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
     isHbase_ = TRUE;
     hbaseDDLNoUserXn_ = TRUE;
   }
+  else if (createLibmgr() || dropLibmgr() || upgradeLibmgr())
+    {
+      isHbase_ = TRUE;
+      hbaseDDLNoUserXn_ = TRUE;
+    }
   else if (createRepos() || dropRepos() || upgradeRepos())
     {
       isHbase_ = TRUE;
@@ -4009,7 +4015,9 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
          alterIdentityCol = TRUE;
       else if (getExprNode()->castToStmtDDLNode()->castToStmtDDLAlterTableAlterColumnDatatype())
          alterColDatatype = TRUE;
-      else if (getExprNode()->castToStmtDDLNode()->castToStmtDDLAlterTableHBaseOptions())
+       else if (getExprNode()->castToStmtDDLNode()->castToStmtDDLAlterTableAlterColumnRename())
+         alterColRename = TRUE;
+       else if (getExprNode()->castToStmtDDLNode()->castToStmtDDLAlterTableHBaseOptions())
          alterHBaseOptions = TRUE;
       else if (getExprNode()->castToStmtDDLNode()->castToStmtDDLAlterTableAttribute())
         {
@@ -4229,7 +4237,7 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
          (isCreate_ || isDrop_ || purgedataHbase_ ||
           (isAlter_ && (alterAddCol || alterDropCol || alterDisableIndex || alterEnableIndex || 
 			alterAddConstr || alterDropConstr || alterRenameTable ||
-                        alterIdentityCol || alterColDatatype ||
+                        alterIdentityCol || alterColDatatype || alterColRename ||
                         alterHdfsCache ||
                         alterHBaseOptions || alterAttr | otherAlters)))))
       {

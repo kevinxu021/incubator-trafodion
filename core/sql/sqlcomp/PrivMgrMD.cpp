@@ -154,9 +154,9 @@ PrivMgrMDAdmin::~PrivMgrMDAdmin()
 PrivStatus PrivMgrMDAdmin::initializeComponentPrivileges()
 
 {
-  std::string traceMsg;
-  log(__FILE__, "initializing component privileges", -1);
-  PrivStatus privStatus = STATUS_GOOD;
+   std::string traceMsg;
+   log(__FILE__, "initializing component privileges", -1);
+   PrivStatus privStatus = STATUS_GOOD;
 
   // First register the component.
   PrivMgrComponents components(metadataLocation_,pDiags_);
@@ -237,19 +237,21 @@ PrivStatus PrivMgrMDAdmin::initializeComponentPrivileges()
    
   // Grant privileges to DB__ROOTROLE WITH GRANT OPTION                                      
   PrivMgrComponentPrivileges componentPrivileges(metadataLocation_,pDiags_);
-  privStatus = componentPrivileges.grantPrivilegeInternal(SQL_OPERATIONS_COMPONENT_UID,
-                                                          rootRoleList,
-                                                          ComUser::getRootUserID(),
-                                                          ComUser::getRootUserName(),
-                                                          ROOT_ROLE_ID,
-                                                          DB__ROOTROLE,-1,
-                                                          componentExists);
-  if (privStatus != STATUS_GOOD)
-  {
-     traceMsg = "ERROR unable to grant DB__ROOTROLE to components";
-     log(__FILE__, traceMsg, -1);
-     return privStatus;
-  }
+   privStatus = componentPrivileges.grantPrivilegeInternal(SQL_OPERATIONS_COMPONENT_UID,
+                                                           rootRoleList,
+                                                           ComUser::getRootUserID(),
+                                                           ComUser::getRootUserName(),
+                                                           ROOT_ROLE_ID,
+                                                           DB__ROOTROLE,-1,
+                                                           componentExists);
+                                                           
+   if (privStatus != STATUS_GOOD)
+   {
+      traceMsg = "ERROR unable to grant DB__ROOTROLE to components";
+      log(__FILE__, traceMsg, -1);
+      return privStatus;
+   }
+                                      
                                       
   // Grant privileges to PUBLIC
   privStatus = componentPrivileges.grantPrivilegeInternal(SQL_OPERATIONS_COMPONENT_UID,
@@ -396,7 +398,6 @@ PrivStatus PrivMgrMDAdmin::initializeMetadata (
   //     If doesn't need upgrading - done
   //     else - upgrade table 
   bool populateObjectPrivs = false;
-  bool populateRoleGrants = false;
 
   try
   {
@@ -439,8 +440,6 @@ PrivStatus PrivMgrMDAdmin::initializeMetadata (
 
         if (tableDefinition.tableName == PRIVMGR_OBJECT_PRIVILEGES)
           populateObjectPrivs = true;
-        if (tableDefinition.tableName == PRIVMGR_ROLE_USAGE)
-          populateRoleGrants = true;
       }
 
       // upgrade tables
@@ -460,7 +459,7 @@ PrivStatus PrivMgrMDAdmin::initializeMetadata (
     // populate metadata tables
     PrivStatus privStatus = updatePrivMgrMetadata
       (objectsLocation,authsLocation,
-       populateObjectPrivs,populateRoleGrants);
+       populateObjectPrivs);
 
     // if error occurs, drop tables already created
     if (privStatus == STATUS_ERROR)
@@ -616,16 +615,28 @@ PrivStatus PrivMgrMDAdmin::dropMetadata (
     cliInterface.retrieveSQLDiagnostics(pDiags_);
     retcode = STATUS_ERROR;
   }
+
   CmpSeabaseDDLrole role;
-    
-  role.dropStandardRole(DB__ROOTROLE);
-  role.dropStandardRole(DB__HIVEROLE);
-  role.dropStandardRole(DB__HBASEROLE);
-  role.dropStandardRole(DB__ADMINROLE);
-  role.dropStandardRole(DB__SERVICESROLE);
-    
-  log(__FILE__, "dropped roles DB__ROOTROLE, DB_HIVEROLE, DB_HBASEROLE", -1);
-   
+  std::vector<std::string> rolesCreated;
+  int32_t numberRoles = sizeof(systemRoles)/sizeof(SystemRolesStruct);
+  for (int32_t i = 0; i < numberRoles; i++)
+  {
+    const SystemRolesStruct &roleDefinition = systemRoles[i];
+
+    // special Auth includes roles that are not registered in the metadata
+    if (roleDefinition.isSpecialAuth)
+      continue;
+
+    role.dropStandardRole(roleDefinition.roleName);
+  }
+
+  int32_t actualSize = 0;
+  char buf[500];
+  ComUser::getRoleList(buf, actualSize, 500);
+  buf[actualSize] = 0;
+  traceMsg = "dropped roles: ";
+  traceMsg + buf;
+  log(__FILE__, traceMsg,  -1);
 
 //TODO: should notify QI
   log (__FILE__, "*** drop authorization completed ***", -1);
@@ -1279,7 +1290,6 @@ int32_t diagsMark = pDiags_->mark();
   return true;
 }
 
-
 // ----------------------------------------------------------------------------
 // method: compareTableDefs
 //
@@ -1530,8 +1540,8 @@ static int32_t renameTable (
 PrivStatus PrivMgrMDAdmin::updatePrivMgrMetadata(
    const std::string &objectsLocation,
    const std::string &authsLocation,
-   const bool shouldPopulateObjectPrivs,
-   const bool shouldPopulateRoleGrants)
+   const bool shouldPopulateObjectPrivs)
+   
 {
    std::string traceMsg;
    PrivStatus privStatus = STATUS_GOOD;
@@ -1544,27 +1554,54 @@ PrivStatus PrivMgrMDAdmin::updatePrivMgrMetadata(
          return STATUS_ERROR;
    }
    
-    
+   // Create any roles.  If this is an upgrade operation, some roles may
+   // already exist, just create any new roles. If this is an initialize
+   // operation, than all system roles are created.
    CmpSeabaseDDLrole role;
-    
-   role.createStandardRole(DB__ROOTROLE,ROOT_ROLE_ID);
-   role.createStandardRole(DB__HIVEROLE,HIVE_ROLE_ID);
-   role.createStandardRole(DB__HBASEROLE,HBASE_ROLE_ID);
-   role.createStandardRole(DB__ADMINROLE, NA_UserIdDefault);
-   role.createStandardRole(DB__SERVICESROLE, NA_UserIdDefault);
-   log(__FILE__, "created roles DB__ROOTROLE, DB__HIVEROLE, and DB__HBASEROLE", -1);
+   std::vector<std::string> rolesCreated;
+   int32_t numberRoles = sizeof(systemRoles)/sizeof(SystemRolesStruct);
+   for (int32_t i = 0; i < numberRoles; i++)
+   {
+     const SystemRolesStruct &roleDefinition = systemRoles[i];
+
+     // special Auth includes roles that are not registered in the metadata
+     if (roleDefinition.isSpecialAuth)
+       continue;
+
+     // returns true is role was created, false if it already existed
+     if (role.createStandardRole(roleDefinition.roleName, roleDefinition.roleID))
+       rolesCreated.push_back(roleDefinition.roleName);
+   }
+
+   // Report the number roles created
+   traceMsg = "created roles ";
+   char buf[MAX_AUTHNAME_LEN + 5];
+   char sep = ' ';
+   for (size_t i = 0; i < rolesCreated.size(); i++)
+   {
+      sprintf(buf, "%c'%s' ", sep, rolesCreated[i].c_str());
+      traceMsg.append(buf);
+      sep = ',';
+   }
+   log(__FILE__, traceMsg, -1);
    
-   if (shouldPopulateRoleGrants)
+   if (rolesCreated.size() > 0)
    {
       PrivMgrRoles role(" ",metadataLocation_,pDiags_);
                         
-      privStatus = role.populateCreatorGrants(authsLocation);
+      privStatus = role.populateCreatorGrants(authsLocation, rolesCreated);
       if (privStatus != STATUS_GOOD)
          return STATUS_ERROR;
    }
+ 
+   // If someone initializes authorization, creates some roles, then drops 
+   // authorization, these roles exist in th system metadata (e.g. AUTHS table)
+   // but all usages are lost, including the initial creator grants.
+   // See if there are any roles that exist in AUTHS but do not have creator 
+   // grants - probably should add creator grants.
+   // TBD
     
    privStatus = initializeComponentPrivileges();
-   
    if (privStatus != STATUS_GOOD)
       return STATUS_ERROR;
       
