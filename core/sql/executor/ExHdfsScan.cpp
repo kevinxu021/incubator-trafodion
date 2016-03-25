@@ -96,6 +96,8 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   , exception_(FALSE)
   , checkRangeDelimiter_(FALSE)
   , nextDelimRangeNum_(-1)
+  , preOpenedRangeNum_(-1)
+  , leftOpenRangeNum_(-1)
 {
   Space * space = (glob ? glob->getSpace() : 0);
   CollHeap * heap = (glob ? glob->getDefaultHeap() : 0);
@@ -434,7 +436,9 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	      *(Lng32*)hdfsScanTdb().getHdfsFileRangeNumList()->get(myInstNum_);
 
 	    currRangeNum_ = beginRangeNum_;
-            nextDelimRangeNum_ = -1;
+            nextDelimRangeNum_   =
+              preOpenedRangeNum_ =
+              leftOpenRangeNum_  = -1;
 
 	    hdfsScanBufMaxSize_ = hdfsScanTdb().hdfsBufSize_;
 
@@ -502,6 +506,15 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	    else
 	      {
                 openType = 2; // must open
+
+                if (preOpenedRangeNum_ == currRangeNum_)
+                  // we pre-opened this file before
+                  preOpenedRangeNum_ = -1;
+                if (leftOpenRangeNum_ == currRangeNum_)
+                  // this file was already open from the last round
+                  // should we even open it here??
+                  leftOpenRangeNum_ = -1;
+                
                 retcode = ExpLOBInterfaceSelectCursor
                   (lobGlob_,
                    hdfsFileName_, //hdfsScanTdb().hdfsFileName_,
@@ -524,7 +537,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                    1, // open
                    openType //
                    );
-                
+
                 if (retcode >= 0)
                   {
                     // preopen next range. 
@@ -559,6 +572,9 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                            1,// open
                            openType
                            );
+
+                        if (retcode >= 0)
+                          preOpenedRangeNum_ = nextRange;
                       } // tried to open next range
                   } // successfully opened primary range
               } // not a sequence file
@@ -951,7 +967,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                 {
                   if ((pentry_down->downState.request == ex_queue::GET_N) &&
                       (pentry_down->downState.requestValue == matches_))
-                    step_ = CLOSE_HDFS_CURSOR;
+                    step_ = CLOSE_ALL_HDFS_CURSORS;
                   else
                     step_ = PROCESS_HDFS_ROW;
 
@@ -1018,7 +1034,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	        {
 	          if ((pentry_down->downState.request == ex_queue::GET_N) &&
 	              (pentry_down->downState.requestValue == matches_))
-	            step_ = CLOSE_FILE;
+	            step_ = CLOSE_ALL_HDFS_CURSORS;
 	          else
 	            step_ = PROCESS_HDFS_ROW;
 
@@ -1085,7 +1101,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
           if (((pentry_down->downState.request == ex_queue::GET_N) &&
                (pentry_down->downState.requestValue == matches_)) ||
               (pentry_down->downState.request == ex_queue::GET_NOMORE))
-              step_ = CLOSE_HDFS_CURSOR;
+              step_ = CLOSE_ALL_HDFS_CURSORS;
           else
 	     step_ = PROCESS_HDFS_ROW;
 	  break;
@@ -1143,6 +1159,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	    break;
 	  }
 	case CLOSE_HDFS_CURSOR:
+        case CLOSE_ALL_HDFS_CURSORS:
 	  {
 	    retcode = 0;
 	    if (isSequenceFile())
@@ -1160,47 +1177,81 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	      }
 	    else
 	      {
-                retcode = ExpLOBInterfaceSelectCursor
-                  (lobGlob_,
-                   hdfsFileName_, 
-                   NULL,
-                   (Lng32)Lob_External_HDFS_File,
-                   hdfsScanTdb().hostName_,
-                   hdfsScanTdb().port_,
-                   0,NULL, //handle not relevant for non lob access
-                   0, cursorId_,
-		       
-                   requestTag_, Lob_Memory,
-                   0, // not check status
-                   (NOT hdfsScanTdb().hdfsPrefetch()),  //1, // waited op
-		       
-                   0, 
-                   hdfsScanBufMaxSize_,
-                   bytesRead_,
-                   hdfsScanBuffer_,
-                   3, // close
-                   0); // openType, not applicable for close
-                
-	        if (retcode < 0)
-	          {
-		    Lng32 cliError = 0;
-		    
-		    Lng32 intParam1 = -retcode;
-		    ComDiagsArea * diagsArea = NULL;
-		    ExRaiseSqlError(getHeap(), &diagsArea, 
-                                    (ExeErrorCode)(EXE_ERROR_FROM_LOB_INTERFACE), NULL, 
-                                    &intParam1, 
-                                    &cliError, 
-                                    NULL, 
-                                    "HDFS",
-                                    (char*)"ExpLOBInterfaceSelectCursor/close",
-                                    getLobErrStr(intParam1));
-		    pentry_down->setDiagsArea(diagsArea);
-		    step_ = HANDLE_ERROR;
-		    break;
-	          }
+                // there are two possible cursors to close, indicated by i:
+                // 0: The main cursor we have been scanning
+                // 1: A cursor on a file that we pre-opened but didn't get to yet
+                //    (only if we are at the end and are closing all cursors)
+                int numCases = 1;
+
+                if (step_ == CLOSE_ALL_HDFS_CURSORS)
+                  numCases = 2;
+
+                for (int i=0; i<numCases; i++)
+                  {
+                    char *lobFileToClose = NULL;
+                    Lng32 rangeToClose = -1;
+
+                    if (i == 0)
+                      {
+                        lobFileToClose = hdfsFileName_;
+                        rangeToClose = currRangeNum_;
+                      }
+                    else if (i == 1 && preOpenedRangeNum_ >= 0)
+                      {
+                        lobFileToClose =
+                          ((HdfsFileInfo*) (hdfsScanTdb().getHdfsFileInfoList()->get(preOpenedRangeNum_)))->fileName();
+                        rangeToClose = preOpenedRangeNum_;
+                      }
+
+                    if (!lobFileToClose)
+                      break;
+                      
+                    sprintf(cursorId, "%d", rangeToClose);
+                    retcode = ExpLOBInterfaceSelectCursor
+                      (lobGlob_,
+                       lobFileToClose, 
+                       NULL,
+                       (Lng32)Lob_External_HDFS_File,
+                       hdfsScanTdb().hostName_,
+                       hdfsScanTdb().port_,
+                       0,NULL, //handle not relevant for non lob access
+                       0,
+                       cursorId,
+                       requestTag_, // not relevant
+                       Lob_Memory,
+                       0, // not check status
+                       (NOT hdfsScanTdb().hdfsPrefetch()),  //1, // waited op
+                       0, 
+                       0,
+                       bytesRead_, // dummy
+                       NULL,
+                       3, // close
+                       0); // openType, not applicable for close
+
+                    if (retcode < 0)
+                      {
+                        Lng32 cliError = 0;
+
+                        Lng32 intParam1 = -retcode;
+                        ComDiagsArea * diagsArea = NULL;
+                        ExRaiseSqlError(getHeap(), &diagsArea, 
+                                        (ExeErrorCode)(EXE_ERROR_FROM_LOB_INTERFACE), NULL, 
+                                        &intParam1, 
+                                        &cliError, 
+                                        NULL, 
+                                        "HDFS",
+                                        (char*)"ExpLOBInterfaceSelectCursor/close",
+                                        getLobErrStr(intParam1));
+                        pentry_down->setDiagsArea(diagsArea);
+                        step_ = HANDLE_ERROR;
+                        break;
+                      }
+                  } // for
               }
+            if (step_ == CLOSE_HDFS_CURSOR)
               step_ = CLOSE_FILE;
+            else
+              step_ = CLOSE_ALL_FILES;
 	  }
 	  break;
 	case HANDLE_EXCEPTION:
@@ -1283,6 +1334,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	  }
 
 	case CLOSE_FILE:
+	case CLOSE_ALL_FILES:
 	case ERROR_CLOSE_FILE:
 	  {
 	    if (getStatsEntry())
@@ -1318,39 +1370,76 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
             {   
                 hdfo = (HdfsFileInfo*) hdfsScanTdb().getHdfsFileInfoList()->get(nextRange);
                 if (strcmp(hdfsFileName_, hdfo->fileName()) == 0) 
+                  {
                     closeFile = false;
+                    leftOpenRangeNum_ = currRangeNum_;
+                  }
             }
 
             if (closeFile) 
             {
-                retcode = ExpLOBinterfaceCloseFile
-                  (lobGlob_,
-                   hdfsFileName_,
-                   NULL, 
-                   (Lng32)Lob_External_HDFS_File,
-                   hdfsScanTdb().hostName_,
-                   hdfsScanTdb().port_);
+              // there are three possible files to close, indicated by i:
+              // 0: The main file we have been scanning
+              // 1: A file that we pre-opened but didn't get to yet
+              //    (only when closing all files)
+              // 2: A file that was left open from a previous range
+              //    (only when closing all files)
+              int numCases = 1;
 
-                if ((step_ == CLOSE_FILE) &&
-                    (retcode < 0))
-                  {
-                    Lng32 cliError = 0;
-                    
-                    Lng32 intParam1 = -retcode;
-                    ComDiagsArea * diagsArea = NULL;
-                    ExRaiseSqlError(getHeap(), &diagsArea, 
-                                    (ExeErrorCode)(EXE_ERROR_FROM_LOB_INTERFACE), NULL, 
-                                    &intParam1, 
-                                    &cliError, 
-                                    NULL, 
-                                    "HDFS",
-                                    (char*)"ExpLOBinterfaceCloseFile",
-                                    getLobErrStr(intParam1));
-                    pentry_down->setDiagsArea(diagsArea);
-                  }
-                if (ehi_)
-                 retcode = ehi_->hdfsClose();
-            } 
+              if (step_ != CLOSE_FILE)
+                numCases = 3;
+
+              for (int i=0; i<numCases; i++)
+                {
+                  char *lobFileToClose = NULL;
+
+                  if (i == 0)
+                    lobFileToClose = hdfsFileName_;
+                  else if (i == 1 && preOpenedRangeNum_ >= 0)
+                    {
+                      lobFileToClose =
+                        ((HdfsFileInfo*) (hdfsScanTdb().getHdfsFileInfoList()->get(preOpenedRangeNum_)))->fileName();
+                      preOpenedRangeNum_ = -1;
+                    }
+                  else if (i == 2 && leftOpenRangeNum_ >= 0)
+                    {
+                      lobFileToClose =
+                        ((HdfsFileInfo*) (hdfsScanTdb().getHdfsFileInfoList()->get(leftOpenRangeNum_)))->fileName();
+                      leftOpenRangeNum_ = -1;
+                    }
+
+                  if (!lobFileToClose)
+                    break;
+
+                  retcode = ExpLOBinterfaceCloseFile
+                    (lobGlob_,
+                     lobFileToClose,
+                     NULL, 
+                     (Lng32)Lob_External_HDFS_File,
+                     hdfsScanTdb().hostName_,
+                     hdfsScanTdb().port_);
+
+                  if ((step_ != ERROR_CLOSE_FILE) &&
+                      (retcode < 0))
+                    {
+                      Lng32 cliError = 0;
+
+                      Lng32 intParam1 = -retcode;
+                      ComDiagsArea * diagsArea = NULL;
+                      ExRaiseSqlError(getHeap(), &diagsArea, 
+                                      (ExeErrorCode)(EXE_ERROR_FROM_LOB_INTERFACE), NULL, 
+                                      &intParam1, 
+                                      &cliError, 
+                                      NULL, 
+                                      "HDFS",
+                                      (char*)"ExpLOBinterfaceCloseFile",
+                                      getLobErrStr(intParam1));
+                      pentry_down->setDiagsArea(diagsArea);
+                    }
+                } // for
+              if (ehi_)
+                retcode = ehi_->hdfsClose();
+            }
 	    if (step_ == CLOSE_FILE)
 	      {
                 if (nextDelimRangeNum_ >= 0)
