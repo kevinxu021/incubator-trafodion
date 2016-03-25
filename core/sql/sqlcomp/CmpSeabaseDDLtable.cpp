@@ -2329,8 +2329,14 @@ short CmpSeabaseDDL::createSeabaseTable2(
 
             monarchCols.insert(hbs);
           }
-        
-        retcode = createMonarchTable(ehi, &hbaseTable, MonarchTableType::RANGE_PARTITIONED, monarchCols,
+    
+        MonarchTableType tableType;
+        if (implicitPK || explicitSyskeySpecified)
+           tableType = MonarchTableType::HASH_PARTITIONED; 
+        else
+           tableType = MonarchTableType::RANGE_PARTITIONED;
+   
+        retcode = createMonarchTable(ehi, &hbaseTable, tableType, monarchCols,
                                  &hbaseCreateOptions, 
                                  numSplits, keyLength,
                                  encodedKeysBuffer);

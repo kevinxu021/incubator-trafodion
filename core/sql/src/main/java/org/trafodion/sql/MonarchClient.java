@@ -464,19 +464,23 @@ public class MonarchClient {
          byte[] endKey;
          int i = 0;
          if (beginEndKeys != null  && beginEndKeys.length != 0) {
-            for (i = 0; i < beginEndKeys.length; i++) {
-                endKey = Bytes.incrementBytes((byte[])beginEndKeys[i],-1);  
+             for (i = 0; i < beginEndKeys.length; i++) {
+                if (i == 0)
+                   startKey = new byte[keyLength+1];
+                endKey = (byte[])beginEndKeys[i];
                 keySpace.put(Integer.valueOf(i), new Pair(startKey, endKey));
-                startKey = (byte[])beginEndKeys[i];
-            }
-            endKey = null;
-            keySpace.put(Integer.valueOf(i), new Pair(startKey, endKey));
-            desc.setKeySpace(keySpace);
-         } 
+                startKey = new byte[keyLength+1];
+                System.arraycopy(endKey, 0, startKey, 0, endKey.length);
+             }
+             endKey = new byte[keyLength];
+             Arrays.fill(endKey, (byte)0xff);
+             keySpace.put(Integer.valueOf(i), new Pair(startKey, endKey));
+             desc.setKeySpace(keySpace);
+         }
       }
       else {
          desc.setTableType(MTableType.UNORDERED);
-         desc.setTotalNumOfSplits(numSplits);
+         //desc.setTotalNumOfSplits(numSplits);
       }
 /* 
       if (transID != 0) 

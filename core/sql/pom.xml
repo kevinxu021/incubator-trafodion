@@ -91,7 +91,7 @@
    <dependency>
       <groupId>io.ampool</groupId>
       <artifactId>ampool-core</artifactId>
-      <version>0.3.3.1-SNAPSHOT</version>
+      <version>0.3.3.3-SNAPSHOT</version>
       <scope>compile</scope>
     </dependency>
   </dependencies>
