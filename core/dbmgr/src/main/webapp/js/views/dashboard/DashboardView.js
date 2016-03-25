@@ -108,6 +108,148 @@ define([
 			_this.initVariables();
 			refreshTimer.init();
 			timeRangeView.init();
+			this.configAllchart();
+			
+
+			$(REFRESH_ACTION).on('click', this.refreshPage);
+			$(SERVICES_ERROR_TEXT).hide();
+			$(NODES_ERROR_TEXT).hide();
+
+			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
+			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
+			serverHandler.on(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
+			serverHandler.on(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
+
+			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimer.eventAgg.on(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);
+			timeRangeView.eventAgg.on(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
+			refreshTimer.setRefreshInterval(0.5);
+			timeRangeView.setTimeRange(1);
+			$(window).on('resize', this.onResize);
+			
+			this.bindEnterpriseEvents();
+			this.bindOtherInitialEvents();
+			this.refreshPage();
+		},
+		doResume: function(){
+			$(REFRESH_ACTION).on('click', this.refreshPage);
+			$(SERVICES_ERROR_TEXT).hide();
+			$('#nodes-error-text').hide();
+			$(window).on('resize', this.onResize);
+			refreshTimer.resume();
+			timeRangeView.resume();
+
+			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimer.eventAgg.on(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);	
+			timeRangeView.eventAgg.on(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
+
+			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
+			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
+			serverHandler.on(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
+			serverHandler.on(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
+
+			this.bindEnterpriseEvents();
+			this.refreshPage();
+		},
+		doPause: function(){
+			this.storeCommonTimeRange();
+			$(window).off('resize', this.onResize);
+			refreshTimer.pause();
+			timeRangeView.pause();
+			$(REFRESH_ACTION).off('click', this.refreshPage);
+			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimer.eventAgg.off(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);	
+			timeRangeView.eventAgg.off(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
+
+			serverHandler.off(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
+			serverHandler.off(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
+			serverHandler.off(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
+			serverHandler.off(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
+			
+			this.unbindEnterpriseEvents();
+			
+
+		},
+		bindOtherInitialEvents:function(){
+			if(common.isEnterprise()){
+				$(DRILLDOWN_DIALOG).on('shown.bs.modal', function(event, ab){
+					$(DRILLDOWN_CHART).empty();
+					var metricName = $(DRILLDOWN_METRICNAME).text();
+					if(metricName != "nodestatus"){
+						$(DRILLDOWN_SPINNER).show();
+						dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
+					}else{
+						$(DRILLDOWN_SERIES_CONTAINER).hide();
+					}
+				});
+				$(SERIES_SELECTOR).on('change', function(){
+					var metricName = $(DRILLDOWN_METRICNAME).text();
+					dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
+				});
+			}
+
+
+			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
+				if(lastUsedTimeRange == null){
+					lastUsedTimeRange = {};
+					var startTime = $(START_TIME_PICKER).data("DateTimePicker").date();
+					var endTime = $(END_TIME_PICKER).data("DateTimePicker").date();
+
+					lastUsedTimeRange.startTime = startTime.format('YYYY/MM/DD-HH:mm:ss');
+					lastUsedTimeRange.endTime = endTime.format('YYYY/MM/DD-HH:mm:ss');
+				}
+			});
+
+			$(FILTER_DIALOG).on('hide.bs.modal', function (e, v) {
+				if(document.activeElement != $(FILTER_APPLY_BUTTON)[0]){
+					_this.resetFilter(); //cancel clicked
+				}
+			});	
+		},
+		unbindEnterpriseEvents:function(){
+			if(common.isEnterprise()){
+				$(CANARY_DRILLDOWN_BTN).off('click', this.canaryDrillDown);
+				$(TRANSACTIONS_DRILLDOWN_BTN).off('click', this.transactionsDrillDown);
+				$(IOWAITS_DRILLDOWN_BTN).off('click',this.iowaitsDrillDown);
+				$(DISK_SPACE_DRILLDOWN_BTN).off('click',this.diskspaceDrillDown);
+				$(JVMGC_DRILLDOWN_BTN).off('click',this.jvmGCDrillDown);
+				$(RSERVER_MEMORY_DRILLDOWN_BTN).off('click',this.rserverMemoryDrillDown);
+				$(MEMSTORE_DRILLDOWN_BTN).off('click',this.memStoreDrillDown);
+				$(CPULOAD_DRILLDOWN_BTN).off('click',this.cpuLoadDrillDown);
+				$(FREEMEM_DRILLDOWN_BTN).off('click',this.freeMemoryDrillDown);
+				$(NETWORKIO_DRILLDOWN_BTN).off('click',this.networkIODrillDown);
+				$(NODES_DRILLDOWN_BTN).off('click',this.nodeStatusDrillDown);
+
+				dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
+				dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
+				dashboardHandler.off(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
+				dashboardHandler.off(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
+			}
+		},
+		bindEnterpriseEvents:function(){
+			if(common.isEnterprise()){
+				$('.dbmgr-ent').show();
+				$(CANARY_DRILLDOWN_BTN).on('click', this.canaryDrillDown);
+				$(TRANSACTIONS_DRILLDOWN_BTN).on('click', this.transactionsDrillDown);
+				$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
+				$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
+				$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
+				$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
+				$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
+				$(CPULOAD_DRILLDOWN_BTN).on('click',this.cpuLoadDrillDown);
+				$(FREEMEM_DRILLDOWN_BTN).on('click',this.freeMemoryDrillDown);
+				$(NETWORKIO_DRILLDOWN_BTN).on('click',this.networkIODrillDown);
+				$(NODES_DRILLDOWN_BTN).on('click',this.nodeStatusDrillDown);
+
+				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
+				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
+				dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
+				dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
+			}else{
+				$('.dbmgr-ent').hide();
+			}
+		},
+		configAllchart:function(){
 			chartConfig =  {
 					canary:{
 						chartTitle: "Canary Response Time",
@@ -223,194 +365,48 @@ define([
 					}
 
 			};
+			$.each(Object.getOwnPropertyNames(chartConfig), function(k, v){
 
-			$(REFRESH_ACTION).on('click', this.refreshPage);
-			$(SERVICES_ERROR_TEXT).hide();
-			$(NODES_ERROR_TEXT).hide();
+				$("#"+chartConfig[v].graphcontainer).bind("plothover", function (event, pos, item) {
 
-			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
-			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
-			serverHandler.on(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
-			serverHandler.on(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
+					var cPlot = renderedFlotCharts[v];
 
-			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
-			refreshTimer.eventAgg.on(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);
-			timeRangeView.eventAgg.on(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
-			refreshTimer.setRefreshInterval(0.5);
-			timeRangeView.setTimeRange(1);
-			$(window).on('resize', this.onResize);
+					if (item) {
+						$("#"+chartConfig[v].graphcontainer + '-tooltip').remove();
+						var x = item.datapoint[0],
+						y = item.datapoint[1].toFixed(2);
+						var content = "Time :  " + common.toServerLocalDateFromMilliSeconds(x);
 
-			if(common.isEnterprise()){
-				$('.dbmgr-ent').show();
-				$(CANARY_DRILLDOWN_BTN).on('click', this.canaryDrillDown);
-				$(TRANSACTIONS_DRILLDOWN_BTN).on('click', this.transactionsDrillDown);
-				$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
-				$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
-				$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
-				$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
-				$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
-				$(CPULOAD_DRILLDOWN_BTN).on('click',this.cpuLoadDrillDown);
-				$(FREEMEM_DRILLDOWN_BTN).on('click',this.freeMemoryDrillDown);
-				$(NETWORKIO_DRILLDOWN_BTN).on('click',this.networkIODrillDown);
-				$(NODES_DRILLDOWN_BTN).on('click',this.nodeStatusDrillDown);
-
-				$.each(Object.getOwnPropertyNames(chartConfig), function(k, v){
-
-					$("#"+chartConfig[v].graphcontainer).bind("plothover", function (event, pos, item) {
-
-						var cPlot = renderedFlotCharts[v];
-
-						if (item) {
-							$("#"+chartConfig[v].graphcontainer + '-tooltip').remove();
-							var x = item.datapoint[0],
-							y = item.datapoint[1].toFixed(2);
-							var content = "Time :  " + common.toServerLocalDateFromMilliSeconds(x);
-
-							var dataset = cPlot.getData();
-							var nDecimals = 2;
-							if(chartConfig[v].ydecimals != null){
-								nDecimals = chartConfig[v].ydecimals;
-							}
-
-							for (var i = 0; i < dataset.length; ++i) {
-								var series = dataset[i];
-								for (var j = 0; j < series.data.length; ++j) {
-									if(series.data[j][0] == x){
-										var text = chartConfig[v].ylabels[i] + " :  ";
-										if(chartConfig[v].yvalformatter){
-											text += chartConfig[v].yvalformatter(series.data[j][1].toFixed(nDecimals));
-										}else{
-											text += series.data[j][1].toFixed(nDecimals);
-										}
-										if(chartConfig[v].yunit){
-											text += chartConfig[v].yunit;
-										}
-										content = content +  '<br/>' + text; 
-									}
-								}
-							}
-							common.showTooltip(pos.pageX, pos.pageY, content, chartConfig[v].graphcontainer + '-tooltip');
-						} else {
-							$("#"+chartConfig[v].graphcontainer + '-tooltip').remove();
+						var dataset = cPlot.getData();
+						var nDecimals = 2;
+						if(chartConfig[v].ydecimals != null){
+							nDecimals = chartConfig[v].ydecimals;
 						}
 
-					});
-				});
-
-				$(DRILLDOWN_DIALOG).on('shown.bs.modal', function(event, ab){
-					$(DRILLDOWN_CHART).empty();
-					var metricName = $(DRILLDOWN_METRICNAME).text();
-					if(metricName != "nodestatus"){
-						$(DRILLDOWN_SPINNER).show();
-						dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
-					}else{
-						$(DRILLDOWN_SERIES_CONTAINER).hide();
+						for (var i = 0; i < dataset.length; ++i) {
+							var series = dataset[i];
+							for (var j = 0; j < series.data.length; ++j) {
+								if(series.data[j][0] == x){
+									var text = chartConfig[v].ylabels[i] + " :  ";
+									if(chartConfig[v].yvalformatter){
+										text += chartConfig[v].yvalformatter(series.data[j][1].toFixed(nDecimals));
+									}else{
+										text += series.data[j][1].toFixed(nDecimals);
+									}
+									if(chartConfig[v].yunit){
+										text += chartConfig[v].yunit;
+									}
+									content = content +  '<br/>' + text; 
+								}
+							}
+						}
+						common.showTooltip(pos.pageX, pos.pageY, content, chartConfig[v].graphcontainer + '-tooltip');
+					} else {
+						$("#"+chartConfig[v].graphcontainer + '-tooltip').remove();
 					}
+
 				});
-				$(SERIES_SELECTOR).on('change', function(){
-					var metricName = $(DRILLDOWN_METRICNAME).text();
-					dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
-				});
-
-				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
-				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
-				dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
-				dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
-			}else{
-				$('.dbmgr-ent').hide();
-			}
-
-			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
-				if(lastUsedTimeRange == null){
-					lastUsedTimeRange = {};
-					var startTime = $(START_TIME_PICKER).data("DateTimePicker").date();
-					var endTime = $(END_TIME_PICKER).data("DateTimePicker").date();
-
-					lastUsedTimeRange.startTime = startTime.format('YYYY/MM/DD-HH:mm:ss');
-					lastUsedTimeRange.endTime = endTime.format('YYYY/MM/DD-HH:mm:ss');
-				}
 			});
-
-			$(FILTER_DIALOG).on('hide.bs.modal', function (e, v) {
-				if(document.activeElement != $(FILTER_APPLY_BUTTON)[0]){
-					_this.resetFilter(); //cancel clicked
-				}
-			});	
-			this.refreshPage();
-		},
-		doResume: function(){
-			$(REFRESH_ACTION).on('click', this.refreshPage);
-			$(SERVICES_ERROR_TEXT).hide();
-			$('#nodes-error-text').hide();
-			$(window).on('resize', this.onResize);
-			refreshTimer.resume();
-			timeRangeView.resume();
-
-			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
-			refreshTimer.eventAgg.on(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);	
-			timeRangeView.eventAgg.on(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
-
-			serverHandler.on(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
-			serverHandler.on(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
-			serverHandler.on(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
-			serverHandler.on(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
-
-			if(common.isEnterprise()){
-				$('.dbmgr-ent').show();
-				$(CANARY_DRILLDOWN_BTN).on('click', this.canaryDrillDown);
-				$(TRANSACTIONS_DRILLDOWN_BTN).on('click', this.transactionsDrillDown);
-				$(IOWAITS_DRILLDOWN_BTN).on('click',this.iowaitsDrillDown);
-				$(DISK_SPACE_DRILLDOWN_BTN).on('click',this.diskspaceDrillDown);
-				$(JVMGC_DRILLDOWN_BTN).on('click',this.jvmGCDrillDown);
-				$(RSERVER_MEMORY_DRILLDOWN_BTN).on('click',this.rserverMemoryDrillDown);
-				$(MEMSTORE_DRILLDOWN_BTN).on('click',this.memStoreDrillDown);
-				$(CPULOAD_DRILLDOWN_BTN).on('click',this.cpuLoadDrillDown);
-				$(FREEMEM_DRILLDOWN_BTN).on('click',this.freeMemoryDrillDown);
-				$(NETWORKIO_DRILLDOWN_BTN).on('click',this.networkIODrillDown);
-				$(NODES_DRILLDOWN_BTN).on('click',this.nodeStatusDrillDown);
-
-				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
-				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
-				dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
-				dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
-			}else{
-				$('.dbmgr-ent').hide();
-			}
-			this.refreshPage();
-		},
-		doPause: function(){
-			$(window).off('resize', this.onResize);
-			refreshTimer.pause();
-			timeRangeView.pause();
-			$(REFRESH_ACTION).off('click', this.refreshPage);
-			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
-			refreshTimer.eventAgg.off(refreshTimer.events.INTERVAL_CHANGED, this.refreshIntervalChanged);	
-			timeRangeView.eventAgg.off(timeRangeView.events.TIME_RANGE_CHANGED, this.timeRangeChanged);
-
-			serverHandler.off(serverHandler.FETCH_SERVICES_SUCCESS, this.fetchServicesSuccess);
-			serverHandler.off(serverHandler.FETCH_SERVICES_ERROR, this.fetchServicesError); 
-			serverHandler.off(serverHandler.FETCH_NODES_SUCCESS, this.fetchNodesSuccess);
-			serverHandler.off(serverHandler.FETCH_NODES_ERROR, this.fetchNodesError); 
-
-			if(common.isEnterprise()){
-				$(CANARY_DRILLDOWN_BTN).off('click', this.canaryDrillDown);
-				$(TRANSACTIONS_DRILLDOWN_BTN).off('click', this.transactionsDrillDown);
-				$(IOWAITS_DRILLDOWN_BTN).off('click',this.iowaitsDrillDown);
-				$(DISK_SPACE_DRILLDOWN_BTN).off('click',this.diskspaceDrillDown);
-				$(JVMGC_DRILLDOWN_BTN).off('click',this.jvmGCDrillDown);
-				$(RSERVER_MEMORY_DRILLDOWN_BTN).off('click',this.rserverMemoryDrillDown);
-				$(MEMSTORE_DRILLDOWN_BTN).off('click',this.memStoreDrillDown);
-				$(CPULOAD_DRILLDOWN_BTN).off('click',this.cpuLoadDrillDown);
-				$(FREEMEM_DRILLDOWN_BTN).off('click',this.freeMemoryDrillDown);
-				$(NETWORKIO_DRILLDOWN_BTN).off('click',this.networkIODrillDown);
-				$(NODES_DRILLDOWN_BTN).off('click',this.nodeStatusDrillDown);
-
-				dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
-				dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
-				dashboardHandler.off(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
-				dashboardHandler.off(dashboardHandler.DRILLDOWN_METRIC_ERROR, this.fetchDrilldownMetricError);
-			}
-
 		},
 		onResize: function () {
 			clearTimeout(resizeTimer);
@@ -431,6 +427,10 @@ define([
 					}
 				});
 			}
+		},
+		storeCommonTimeRange:function(){
+			var selection = $(FILTER_TIME_RANGE).val();
+			common.getCommonTimeRange(selection);
 		},
 		timeRangeChanged: function(){
 			refreshTimer.restart();
