@@ -653,11 +653,13 @@ public class MTableClient {
          return 0; 
       int rowsReturned = result.length;
  // This FOR loop should be removed when ampool fixes the result array length issue
+      if (fetchType == SCAN_FETCH) { 
       for (int rowNum = 0; rowNum < result.length ; rowNum++) {
           if (result[rowNum] == null) {
               rowsReturned = rowNum;
               break;
           }
+        }
       }
       int numTotalCells = 0;
 
@@ -694,6 +696,10 @@ public class MTableClient {
       boolean colFound = false;
       for (int rowNum = 0; rowNum < rowsReturned ; rowNum++)
       {
+         if (result[rowNum] == null) {
+            cellsPerRow[rowNum] = 0;
+            continue;
+         } 
          cells = result[rowNum].getCells();
          numColsReturned = cells.size();
          if ((cellNum + numColsReturned) > numTotalCells)
