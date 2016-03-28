@@ -2330,13 +2330,9 @@ void ItemExpr::computeKwdAndFlags( NAString &kwd,
 	case ITM_STDDEV_SAMP:
 	case ITM_STDDEV_POP:
     case ITM_SUBSTR:
+	case ITM_VARIANCE_SAMP:
+	case ITM_VARIANCE_POP:
     case ITM_VARIANCE:
-      prefixFns = TRUE;
-      break;
-    case ITM_VARIANCE_SAMP:
-      prefixFns = TRUE;
-      break;
-    case ITM_VARIANCE_POP:
       prefixFns = TRUE;
       break;
 

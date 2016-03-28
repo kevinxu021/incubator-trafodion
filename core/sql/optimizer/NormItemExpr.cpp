@@ -5149,15 +5149,11 @@ void ItmSeqOlapFunction::transformNode(NormWA & normWARef,
     case ITM_OLAP_VARIANCE:
     case ITM_OLAP_VARIANCE_SAMP:
     case ITM_OLAP_VARIANCE_POP:
+  	case ITM_OLAP_SDEV_SAMP:
+	case ITM_OLAP_SDEV_POP:
     case ITM_OLAP_SDEV:
       tfm = transformOlapVariance(normWARef.wHeap());
       break;
-	case ITM_OLAP_SDEV_SAMP:
-      tfm = transformOlapVariance(normWARef.wHeap());
-	  break;
-	case ITM_OLAP_SDEV_POP:
-      tfm = transformOlapVariance(normWARef.wHeap());
-	  break;
 
     case ITM_OLAP_AVG:
       tfm = transformOlapAvg(normWARef.wHeap());
@@ -5235,16 +5231,13 @@ ItemExpr * ItmSeqOlapFunction::transformOlapVariance(CollHeap *wHeap)
    newOp = ITM_VARIANCE_POP;
   }
   else if (getOperatorType() == ITM_OLAP_SDEV_SAMP){
-   CMPASSERT (getOperatorType() == ITM_OLAP_SDEV_SAMP);
    newOp = ITM_STDDEV_SAMP;
   }
   else if (getOperatorType() == ITM_OLAP_SDEV_POP){
-   CMPASSERT (getOperatorType() == ITM_OLAP_SDEV_POP);
    newOp = ITM_STDDEV_POP;
   }
   else
   {
-   CMPASSERT (getOperatorType() == ITM_OLAP_SDEV);
    newOp = ITM_STDDEV;
   }
   ItemExpr *result = new (wHeap)

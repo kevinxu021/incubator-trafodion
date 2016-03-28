@@ -2738,8 +2738,6 @@ private:
 };
 
 class SQLEXP_LIB_FUNC  ExFunctionSVariance : public ex_function_clause {
-private:
-  OperatorTypeEnum type;
 public:
   NA_EIDPROC
   ExFunctionSVariance(Attributes **attr, Space *space);
@@ -2776,8 +2774,6 @@ public:
 };
 
 class SQLEXP_LIB_FUNC  ExFunctionSStddev : public ex_function_clause {
-private:
-  OperatorTypeEnum type;
 public:
   NA_EIDPROC
   ExFunctionSStddev(Attributes **attr, Space *space);

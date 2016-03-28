@@ -7280,7 +7280,7 @@ set_function_specification : set_function_type '(' set_quantifier value_expressi
               | set_function_type '(' set_quantifier value_expression ',' 
                                                      value_expression ')'
 			   {
-			     if ($1 == ITM_VARIANCE || $1 == ITM_STDDEV || $1 == ITM_VARIANCE_SAMP || $1 == ITM_VARIANCE_POP || $1 == ITM_STDDEV_SAMP || $1 == ITM_STDDEV_POP)
+			     if ($1 == ITM_VARIANCE || $1 == ITM_STDDEV)
 			       $$ = new (PARSERHEAP()) Variance($1, $4, $6, $3);
 			     else
 			       {

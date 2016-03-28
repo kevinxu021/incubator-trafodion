@@ -678,26 +678,15 @@ ExFunctionCastType::ExFunctionCastType(OperatorTypeEnum oper_type,
 {
 };
 
-ExFunctionSVariance::ExFunctionSVariance(Attributes **attr, Space *space)
-  : ex_function_clause(ITM_VARIANCE, 4, attr, space)
+ExFunctionSVariance::ExFunctionSVariance(OperTypeEnum oper_type, Attributes **attr, Space *space)
+  : ex_function_clause(oper_type, 4, attr, space)
 {
 };
 
-ExFunctionSStddev::ExFunctionSStddev(Attributes **attr, Space *space)
-  : ex_function_clause(ITM_STDDEV, 4, attr, space)
+ExFunctionSStddev::ExFunctionSStddev(OperTypeEnum oper_type, Attributes **attr, Space *space)
+  : ex_function_clause(oper_type, 4, attr, space)
 {
   
-};
-
-ExFunctionSStddev::ExFunctionSStddev(OperatorTypeEnum oper_type, Attributes **attr, Space *space)
-  :type(oper_type), ex_function_clause(oper_type, 4, attr, space)
-{
-
-};
-
-ExFunctionSVariance::ExFunctionSVariance(OperatorTypeEnum oper_type, Attributes **attr, Space *space)
-  :type(oper_type), ex_function_clause(oper_type, 4, attr, space)
-{
 };
 
 ExpRaiseErrorFunction::ExpRaiseErrorFunction (Attributes **attr, 
@@ -5198,11 +5187,9 @@ ex_expr::exp_return_type ExFunctionSVariance::eval(char *op_data[],
     result = 0.0;
   }
   else {
-    switch(type)
+    switch(getOperType())
 	 {
 	 case ITM_VARIANCE:
-	  result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal - 1);
-	  break;
 	 case ITM_VARIANCE_SAMP:
 	  result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal - 1);
 	  break;
@@ -5253,11 +5240,9 @@ ex_expr::exp_return_type ExFunctionSStddev::eval(char *op_data[],
   }
   else {
     short err = 0;
-    switch(type)
+    switch(getOperType())
 	 {
 	 case ITM_STDDEV:
-	  result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal - 1);
-	  break;
 	 case ITM_STDDEV_SAMP:
 	  result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal - 1);
 	  break;
