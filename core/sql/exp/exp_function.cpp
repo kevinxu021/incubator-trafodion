@@ -678,12 +678,12 @@ ExFunctionCastType::ExFunctionCastType(OperatorTypeEnum oper_type,
 {
 };
 
-ExFunctionSVariance::ExFunctionSVariance(OperTypeEnum oper_type, Attributes **attr, Space *space)
+ExFunctionSVariance::ExFunctionSVariance(OperatorTypeEnum oper_type, Attributes **attr, Space *space)
   : ex_function_clause(oper_type, 4, attr, space)
 {
 };
 
-ExFunctionSStddev::ExFunctionSStddev(OperTypeEnum oper_type, Attributes **attr, Space *space)
+ExFunctionSStddev::ExFunctionSStddev(OperatorTypeEnum oper_type, Attributes **attr, Space *space)
   : ex_function_clause(oper_type, 4, attr, space)
 {
   
