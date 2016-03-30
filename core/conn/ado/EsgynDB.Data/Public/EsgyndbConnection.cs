@@ -38,6 +38,8 @@ namespace EsgynDB.Data
 
         //to sycronize Fetch, Execute, Disconnect. Each connection obj has isolated lock.
         internal readonly List<String> dataAccessLock = new List<String>();
+        //lock for access to DCSMaster server
+        internal static readonly List<String> asSrvrLock = new List<String>();
 
         static EsgynDBConnection()
         {
@@ -389,36 +391,54 @@ namespace EsgynDB.Data
             try
             {
 
-                lock (this.dataAccessLock)
+                lock (asSrvrLock)
                 {
                     // unless we need to force close the connection in the pool, ignore requests if the connection is already
                     // marked as closed
                     if (this.State != ConnectionState.Closed || forceClose)
                     {
                         // pool the connection
-                        if (!forceClose && this.ConnectionStringBuilder.MaxPoolSize > 0)
+                        if (this.ConnectionStringBuilder.MaxPoolSize > 0)
                         {
-                            EsgynDBConnection._connPools[this.ConnectionStringBuilder.ConnectionString].ReturnConnection(this);
+                            if (!forceClose)
+                            {
+                                EsgynDBConnection._connPools[this.ConnectionStringBuilder.ConnectionString].ReturnConnection(this);
+                            }
+                            else
+                            {
+                                EsgynDBConnection._connPools[this.ConnectionStringBuilder.ConnectionString].RemoveConnection(this);
+                            }
 
                             while (this.Commands.Count > 0)
                             {
-                                this.RemoveCommand(this.Commands[0]);
+                                try
+                                {
+                                    this.RemoveCommand(this.Commands[0]);
+                                }
+                                catch
+                                {
+                                    //Doesn't matter if got any error
+                                }
+                                
                             }
                         }
+                        
                         // close the connection
-                        else if (!this.Network.IsClosed)
+                        if ((forceClose || this.ConnectionStringBuilder.MaxPoolSize <= 0) && !this.Network.IsClosed)
                         {
                             // note that we are not checking for an active transaction
                             // just let them disconnect even if we have a transaction in progress
                             this.Disconnect();
                         }
-
-                        this.SetState(ConnectionState.Closed);
                     }
                 }
             }
             catch
             { //close should never throw an exception
+            }
+            finally
+            {
+                this.SetState(ConnectionState.Closed);
             }
         }
 
@@ -520,31 +540,37 @@ namespace EsgynDB.Data
             string connectionString = this.ConnectionStringBuilder.ConnectionString;
             ConnectionPool pool;
             Monitor.Enter(EsgynDBConnection._connPools);
-            if (this.ConnectionStringBuilder.MaxPoolSize > 0)
+            try
             {
-                if (!EsgynDBConnection._connPools.ContainsKey(connectionString))
+                if (this.ConnectionStringBuilder.MaxPoolSize > 0)
                 {
-                    pool = new ConnectionPool(this.ConnectionStringBuilder);
-                    EsgynDBConnection._connPools.Add(connectionString, pool);
-                }
-                else
-                {
-                    pool = EsgynDBConnection._connPools[connectionString];
-                }
-
-                EsgynDBConnection conn = pool.GetConnection(this);
-                if (conn != null)
-                {
-                    CopyProperties(conn);
-                    foreach(EsgynDBCommand cmd in Commands){
-                            cmd.Connection = this;
+                    if (!EsgynDBConnection._connPools.ContainsKey(connectionString))
+                    {
+                        pool = new ConnectionPool(this.ConnectionStringBuilder);
+                        EsgynDBConnection._connPools.Add(connectionString, pool);
                     }
-                    initialized = true;
+                    else
+                    {
+                        pool = EsgynDBConnection._connPools[connectionString];
+                    }
 
+                    EsgynDBConnection conn = pool.GetConnection(this);
+                    if (conn != null)
+                    {
+                        CopyProperties(conn);
+                        foreach (EsgynDBCommand cmd in Commands)
+                        {
+                            cmd.Connection = this;
+                        }
+                        initialized = true;
+
+                    }
                 }
             }
-            Monitor.Exit(EsgynDBConnection._connPools);
-
+            finally
+            {
+                Monitor.Exit(EsgynDBConnection._connPools);
+            }
 
             if (!initialized)
             {

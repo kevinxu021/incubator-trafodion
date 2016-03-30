@@ -346,6 +346,7 @@ namespace EsgynDB.Data
                 EsgynDBException.ThrowException(this._connection, new InvalidOperationException(msg));
             }
 
+            bool forceClose = false;
             try
             {
                 length = message.PrepareMessageParams(this._encoder);
@@ -448,16 +449,17 @@ namespace EsgynDB.Data
             }
             catch (EsgynDBException)
             {
-                this._connection.SetState(ConnectionState.Closed);
+                forceClose = true;
                 throw;
             }
             catch (CommunicationsFailureException)
             {
+                forceClose = true;
                 throw;
             }
             catch (Exception e)
             {
-
+                forceClose = true;
                 if (e.InnerException != null && typeof(SocketException) == e.InnerException.GetType())
                 {
                     SocketException se = (SocketException)e.InnerException;
@@ -466,11 +468,14 @@ namespace EsgynDB.Data
                         this._connection.Cancel();
                     }
                 }
-                this._connection.SetState(ConnectionState.Closed);
                 EsgynDBException.ThrowException(this._connection, new CommunicationsFailureException(e));
             }
             finally
             {
+                if (forceClose)
+                {
+                    this._connection.Close(true);
+                }
                 Monitor.Exit(this._ds);
             }
         }
@@ -605,8 +610,14 @@ namespace EsgynDB.Data
         {
             EsgynDBConnection connection = (EsgynDBConnection)source;
             Monitor.Enter(connection);
-            connection.Close();
-            Monitor.Exit(connection);
+            try
+            {
+                connection.Close();
+            }
+            finally
+            {
+                Monitor.Exit(connection);
+            }
             this.isIdleTimeout = true;
         }
     }
