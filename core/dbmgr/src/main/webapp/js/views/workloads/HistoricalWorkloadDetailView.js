@@ -195,6 +195,7 @@ define([
 				
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 			}
+			_this.fetchRepositoryQueryDetail();
 		},  
 		explainQuery: function(){
 			var queryText = queryTextEditor.getValue(); //$('#query-text').text();
