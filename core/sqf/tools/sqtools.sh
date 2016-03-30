@@ -318,7 +318,6 @@ function run_util {
     fi
     echo "--------------------------------------"
 }
-
 # check the startup log and sort the interesting even chronologically
 function sqchksl {
     setup_sqpdsh
