@@ -341,10 +341,11 @@ A1           C1           B1
 >>invoke t116t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T116T1
--- Definition current  Fri Mar 25 15:21:10 2016
+-- Definition current  Wed Mar 30 15:13:41 2016
 
   (
-    A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
+    SYSKEY                           LARGEINT NO DEFAULT NOT NULL NOT DROPPABLE
+  , A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
   , B                                VARCHAR(2) CHARACTER SET ISO88591 COLLATE
       DEFAULT DEFAULT NULL
   , C                                VARCHAR(4 CHARS) CHARACTER SET UTF8
@@ -358,10 +359,11 @@ A1           C1           B1
 >>invoke t116t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T116T1
--- Definition current  Fri Mar 25 15:21:10 2016
+-- Definition current  Wed Mar 30 15:13:41 2016
 
   (
-    A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
+    SYSKEY                           LARGEINT NO DEFAULT NOT NULL NOT DROPPABLE
+  , A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
   , B                                VARCHAR(2) CHARACTER SET ISO88591 COLLATE
       DEFAULT DEFAULT NULL
   , C                                VARCHAR(4 CHARS) CHARACTER SET UTF8
@@ -372,7 +374,7 @@ A1           C1           B1
 >>invoke t116v1;
 
 -- Definition of Trafodion view TRAFODION.SCH.T116V1
--- Definition current  Fri Mar 25 15:21:10 2016
+-- Definition current  Wed Mar 30 15:13:42 2016
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -389,10 +391,11 @@ A1           C1           B1
 >>invoke t116t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T116T1
--- Definition current  Fri Mar 25 15:21:14 2016
+-- Definition current  Wed Mar 30 15:13:49 2016
 
   (
-    A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
+    SYSKEY                           LARGEINT NO DEFAULT NOT NULL NOT DROPPABLE
+  , A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
   , B                                VARCHAR(3) CHARACTER SET ISO88591 COLLATE
       DEFAULT DEFAULT NULL /*altered_col*/
   , C                                VARCHAR(4 CHARS) CHARACTER SET UTF8
@@ -403,11 +406,11 @@ A1           C1           B1
 >>invoke t116v1;
 
 -- Definition of Trafodion view TRAFODION.SCH.T116V1
--- Definition current  Fri Mar 25 15:21:14 2016
+-- Definition current  Wed Mar 30 15:13:50 2016
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
-  , B                                VARCHAR(2) CHARACTER SET ISO88591 COLLATE
+  , B                                VARCHAR(3) CHARACTER SET ISO88591 COLLATE
       DEFAULT DEFAULT NULL
   , C                                VARCHAR(4 CHARS) CHARACTER SET UTF8
       COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -420,10 +423,11 @@ A1           C1           B1
 >>invoke t116t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T116T1
--- Definition current  Fri Mar 25 15:21:18 2016
+-- Definition current  Wed Mar 30 15:13:54 2016
 
   (
-    A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
+    SYSKEY                           LARGEINT NO DEFAULT NOT NULL NOT DROPPABLE
+  , A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
   , B                                VARCHAR(3) CHARACTER SET ISO88591 COLLATE
       DEFAULT DEFAULT NULL /*altered_col*/
   , C                                VARCHAR(4 CHARS) CHARACTER SET UTF8
@@ -434,11 +438,11 @@ A1           C1           B1
 >>invoke t116v1;
 
 -- Definition of Trafodion view TRAFODION.SCH.T116V1
--- Definition current  Fri Mar 25 15:21:18 2016
+-- Definition current  Wed Mar 30 15:13:55 2016
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
-  , B                                VARCHAR(2) CHARACTER SET ISO88591 COLLATE
+  , B                                VARCHAR(3) CHARACTER SET ISO88591 COLLATE
       DEFAULT DEFAULT NULL
   , C                                VARCHAR(4 CHARS) CHARACTER SET UTF8
       COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -452,10 +456,11 @@ A1           C1           B1
 >>invoke t116t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T116T1
--- Definition current  Fri Mar 25 15:21:18 2016
+-- Definition current  Wed Mar 30 15:13:55 2016
 
   (
-    A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
+    SYSKEY                           LARGEINT NO DEFAULT NOT NULL NOT DROPPABLE
+  , A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
   , B                                VARCHAR(3) CHARACTER SET ISO88591 COLLATE
       DEFAULT DEFAULT NULL /*altered_col*/
   , C                                VARCHAR(4 CHARS) CHARACTER SET UTF8
@@ -466,11 +471,11 @@ A1           C1           B1
 >>invoke t116v1;
 
 -- Definition of Trafodion view TRAFODION.SCH.T116V1
--- Definition current  Fri Mar 25 15:21:18 2016
+-- Definition current  Wed Mar 30 15:13:55 2016
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
-  , B                                VARCHAR(2) CHARACTER SET ISO88591 COLLATE
+  , B                                VARCHAR(3) CHARACTER SET ISO88591 COLLATE
       DEFAULT DEFAULT NULL
   , C                                VARCHAR(4 CHARS) CHARACTER SET UTF8
       COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -483,10 +488,11 @@ A1           C1           B1
 >>invoke t116t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T116T1
--- Definition current  Fri Mar 25 15:21:19 2016
+-- Definition current  Wed Mar 30 15:14:05 2016
 
   (
-    A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
+    SYSKEY                           LARGEINT NO DEFAULT NOT NULL NOT DROPPABLE
+  , A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
   , B                                VARCHAR(4) CHARACTER SET ISO88591 COLLATE
       DEFAULT DEFAULT NULL /*altered_col*/
   , C                                VARCHAR(4 CHARS) CHARACTER SET UTF8
@@ -497,11 +503,11 @@ A1           C1           B1
 >>invoke t116v1;
 
 -- Definition of Trafodion view TRAFODION.SCH.T116V1
--- Definition current  Fri Mar 25 15:21:19 2016
+-- Definition current  Wed Mar 30 15:14:06 2016
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
-  , B                                VARCHAR(2) CHARACTER SET ISO88591 COLLATE
+  , B                                VARCHAR(4) CHARACTER SET ISO88591 COLLATE
       DEFAULT DEFAULT NULL
   , C                                VARCHAR(4 CHARS) CHARACTER SET UTF8
       COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -515,10 +521,11 @@ A1           C1           B1
 >>invoke t116t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T116T1
--- Definition current  Fri Mar 25 15:21:23 2016
+-- Definition current  Wed Mar 30 15:14:09 2016
 
   (
-    A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
+    SYSKEY                           LARGEINT NO DEFAULT NOT NULL NOT DROPPABLE
+  , A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
   , B                                VARCHAR(3) CHARACTER SET ISO88591 COLLATE
       DEFAULT DEFAULT NULL /*altered_col*/
   , C                                VARCHAR(4 CHARS) CHARACTER SET UTF8
@@ -529,11 +536,11 @@ A1           C1           B1
 >>invoke t116v1;
 
 -- Definition of Trafodion view TRAFODION.SCH.T116V1
--- Definition current  Fri Mar 25 15:21:23 2016
+-- Definition current  Wed Mar 30 15:14:10 2016
 
   (
     A                                INT NO DEFAULT NOT NULL NOT DROPPABLE
-  , B                                VARCHAR(2) CHARACTER SET ISO88591 COLLATE
+  , B                                VARCHAR(3) CHARACTER SET ISO88591 COLLATE
       DEFAULT DEFAULT NULL
   , C                                VARCHAR(4 CHARS) CHARACTER SET UTF8
       COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -587,10 +594,11 @@ End of MXCI Session
 >>invoke t116t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T116T1
--- Definition current  Fri Mar 25 15:21:41 2016
+-- Definition current  Wed Mar 30 15:14:29 2016
 
   (
-    A                                INT DEFAULT NULL
+    SYSKEY                           LARGEINT NO DEFAULT NOT NULL NOT DROPPABLE
+  , A                                INT DEFAULT NULL
   )
 
 --- SQL operation complete.

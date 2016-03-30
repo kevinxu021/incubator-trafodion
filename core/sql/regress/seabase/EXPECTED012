@@ -55,6 +55,7 @@
       DEFAULT DEFAULT NULL
   , G                                NUMERIC(5, 2) DEFAULT NULL
   )
+  PRIMARY KEY (A DESC)
 
 --- SQL operation complete.
 >>
