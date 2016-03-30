@@ -46,14 +46,18 @@ exit;
 
 -- remove messed up table
 cleanup table "_HV_SCH_T009_".t009t1;
--- remove schemas from Trafodion
-drop schema if exists "_HV_HIVE_" cascade;
+drop external table if exists t009t2 hive.sch_t009.t009t2;
 drop schema if exists "_HV_SCH_T009_" cascade;
 drop schema if exists hive_t009 cascade;
 
 -- remove data from hdfs
 sh regrhadoop.ksh fs -rm   /user/hive/exttables/t009t1/*;
 sh regrhadoop.ksh fs -rm   /user/hive/exttables/t009t2/*;
+
+-- Remove external hive tables used by this test
+drop external table if exists customer for hive.hive,customer;
+drop external table if exists item for hive.hive.item;
+drop external table if exists promotion for hive.hive.promotion;
 
 -- drop hbase tables
 drop schema if exists "_HB__ROW__" cascade;
@@ -78,10 +82,6 @@ reset parserflags 131072;
 sh regrhive.ksh -v -f $REGRTSTDIR/TEST009_a.hive.sql &> $REGRRUNDIR/LOG009_a.hive.log;
 sh regrhbase.ksh $REGRTSTDIR/TEST009_create_hbase_objects.hbase &> $REGRRUNDIR/LOG009_create_hbase_tables.log ;
 
--- make sure external schemas exist in Trafodion
-execute get_hv_schemas;
-execute get_hb_schemas;
-
 ?section set_up
 prepare get_hv_schemas from
 select schema_name from "_MD_".objects
@@ -97,7 +97,7 @@ create external table customer for hive.hive.customer;
 create external table item for hive.hive.item;
 create external table promotion for hive.hive.promotion;
 
--- should create an schema called "_HV_HIVE_"
+-- should see a schema called "_HV_HIVE_"
 execute get_hv_schemas;
 
 -- Verify tables were created
@@ -130,7 +130,6 @@ create table hive_customer like hive.hive.customer;
 create table newtable1 like hive.hive.customer;
 create table newtable2 like customer;
 create table newtable3 (a int);
-get tables;
 
 -- test creates with a different default schema
 create schema hive_t009;
