@@ -164,6 +164,7 @@ define([
 				
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 			}
+			_this.fetchActiveQueryDetail();
 		},
 		timerBeeped: function(){
 			_this.fetchActiveQueryDetail();
