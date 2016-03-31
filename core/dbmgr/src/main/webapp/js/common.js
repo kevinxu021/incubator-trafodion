@@ -19,6 +19,7 @@ define(['moment',
 		function Common() {
 
 			// var _isoDateFormat='yyyy-MM-dd HH:mm:ss'
+			var REFRESH_INTERVAL = '#refreshInterval';
 			this.MESSAGE_COUNT=0;
 			var dispatcher = new EventDispatcher();
 			this.ISODateFormat = 'YYYY-MM-DD HH:mm:ss';
@@ -280,12 +281,17 @@ define(['moment',
 				return moment().zone() * 60 * 1000;
 			},
 			this.getCommonTimeRange=function(selection){
+				var isAutoRefresh=$(REFRESH_INTERVAL).val();
 				switch (selection) {
 				case "0":
 					_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0"};
 					break;
 				default:
-					_this.commonTimeRange={startTime:null,endTime:null,timeRangeTag:selection};
+					if(isAutoRefresh==""){
+						_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0"};	
+					}else{
+						_this.commonTimeRange={startTime:null,endTime:null,timeRangeTag:selection};
+					}
 					break;
 				}
 			},

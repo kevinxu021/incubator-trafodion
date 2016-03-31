@@ -180,6 +180,7 @@ define([
 			if(common.commonTimeRange==null){
 				$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
 				$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
+				$(TIME_RANGE).val("1");
 			}else{
 				if(common.commonTimeRange.timeRangeTag=="0"){
 					$(START_TIME_PICKER).data("DateTimePicker").date(common.commonTimeRange.startTime);
