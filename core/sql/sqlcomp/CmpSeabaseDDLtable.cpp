@@ -496,7 +496,7 @@ short CmpSeabaseDDL::createSeabaseTableExternal(
 
   if (isAuthorizationEnabled())
     {
-      if (srcTableName.isExternalHive())
+      if (tgtTableName.isExternalHive())
         {
           tableInfo->objOwnerID = HIVE_ROLE_ID;
           tableInfo->schemaOwnerID = HIVE_ROLE_ID;
