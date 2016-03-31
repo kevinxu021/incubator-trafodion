@@ -426,9 +426,12 @@ namespace EsgynDB.Data
                         // close the connection
                         if ((forceClose || this.ConnectionStringBuilder.MaxPoolSize <= 0) && !this.Network.IsClosed)
                         {
-                            // note that we are not checking for an active transaction
-                            // just let them disconnect even if we have a transaction in progress
-                            this.Disconnect();
+                            lock (this.dataAccessLock)
+                            {
+                                // note that we are not checking for an active transaction
+                                // just let them disconnect even if we have a transaction in progress
+                                this.Disconnect();
+                            }
                         }
                     }
                 }

@@ -56,6 +56,7 @@ namespace EsgynDB.Data
         internal bool IsClosed
         {
             get { return this._isClosed; }
+            set { this._isClosed = value; }
         }
 
         internal EsgynDBNetwork(EsgynDBConnection conn)
@@ -467,6 +468,8 @@ namespace EsgynDB.Data
                     {
                         this._connection.Cancel();
                     }
+                    //Mark network as closed while has socket issue in case of disconnect -> doIO ->disconnect
+                    this._connection.Network.IsClosed = true;
                 }
                 EsgynDBException.ThrowException(this._connection, new CommunicationsFailureException(e));
             }
@@ -612,7 +615,7 @@ namespace EsgynDB.Data
             Monitor.Enter(connection);
             try
             {
-                connection.Close();
+                connection.Close(true);
             }
             finally
             {
