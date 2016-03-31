@@ -1188,10 +1188,139 @@ Lng32 FetchHistograms( const QualifiedName & qualifiedName
                                               /*==============================*/
   
   bool generateHistogramForORC = isORC && 
-      (CmpCommon::getDefault(USTAT_GENERATE_ORC_HISTOGRAM) == DF_ON);
+      (CmpCommon::getDefault(USTAT_GENERATE_ORC_HISTOGRAM) == DF_ON) &&
+      (CmpCommon::getDefault(USTAT_FETCHCOUNT_ACTIVE) != DF_ON); // to stop recursion
 
-  // TODO: Refactor the ORC histogram logic so we fetch all the values in a single query
-  // instead of one query per column. (The latter has proven too slow.)
+  Int64 fetchedRowCount = 0;
+
+  struct HighLowValue
+    {
+      NAWchar lowValue_[100];
+      NAWchar highValue_[100];
+    };
+
+  HighLowValue highLowValue[numCols];
+
+  if (generateHistogramForORC)
+    {
+      // For ORC files, we can read the statistics from the ORC file itself to
+      // construct a one-interval histogram. We do this in one query for speed.
+      // Experiments doing a separate query for each column were woefully slow.
+
+      // prevent recursion (finding stats for a query that is finding stats)
+      HSFuncExecQuery("CONTROL QUERY DEFAULT USTAT_FETCHCOUNT_ACTIVE 'ON'");
+
+      // Using SUBSTRING in the query will turn off ORC aggr optimizations,
+      // so we use the CQD instead. We save the old value here.
+      Lng32 oldHiveMaxStringLength =
+       (ActiveSchemaDB()->getDefaults()).getAsLong(HIVE_MAX_STRING_LENGTH); 
+      HSFuncExecQuery("CONTROL QUERY DEFAULT HIVE_MAX_STRING_LENGTH '120'");
+
+      // obtain column statistics
+      NAString query = "SELECT COUNT(*),";  
+      
+      for (k = 0; k < numCols; k++)
+        {
+          const NAColumn * col = colArray[k];
+          if ((col->isHivePartColumn()) ||  // if it's a partitioning column
+              (col->isHiveVirtualColumn())) // or a virtual column
+            {
+              // Just use defaults for these columns. The CAST is needed so we
+              // get a length field back, as with the other columns. (We get
+              // a fixed length CHAR back without the CAST.)
+              //                  lowValue                      highValue
+              query += "CAST(_UCS2'(>)' AS VARCHAR(6)),CAST(_UCS2'(<)' AS VARCHAR(6))";
+            }
+          else
+            {
+              const NAType * natype = col->getType(); 
+              NABuiltInTypeEnum type = natype->getTypeQualifier();
+              if (type == NA_NUMERIC_TYPE)
+                {
+                  query += "_UCS2'(' || TRIM(CAST(MIN(";
+                  query += colArray[k]->getColName();
+                  query += ") AS CHAR(30) CHARACTER SET UCS2)) || _UCS2')', _UCS2'(' || TRIM(CAST(MAX(";
+                  query += colArray[k]->getColName();
+                  query += ") AS CHAR(30) CHARACTER SET UCS2)) || _UCS2')'";
+                }
+              else if (type == NA_DATETIME_TYPE)
+                {
+                  // TODO: Right now assumes DATE, but it could be TIMESTAMP or TIME
+                  query += "_UCS2'(DATE ''' || TRIM(CAST(MIN(";
+                  query += colArray[k]->getColName();
+                  query += ") AS CHAR(30) CHARACTER SET UCS2)) || _UCS2''')', _UCS2'(DATE ''' || TRIM(CAST(MAX(";
+                  query += colArray[k]->getColName();
+                  query += ") AS CHAR(30) CHARACTER SET UCS2)) || _UCS2''')'";  // later, add aggregates for UEC
+                }
+              else // assume character type
+                {
+                  // TODO: Right now assumes UTF8, but it could be different (there are CQDs for this)
+                  query += "_UCS2'(''' || TRANSLATE(MIN(";
+                  query += colArray[k]->getColName();
+                  query += ") USING UTF8TOUCS2) || _UCS2''')', _UCS2'(''' || TRANSLATE(MAX(";
+                  query += colArray[k]->getColName();
+                  query += ") USING UTF8TOUCS2) || _UCS2''')'";  // later, add aggregates for UEC
+                }
+            }
+
+          if (k < numCols - 1)
+            query += ",";
+        } 
+            
+      query += " FROM ";      
+      query += getTableName(tabDef->getObjectFullName(), tabDef->getNameSpace());
+
+      HSCursor statsStmt(STMTHEAP, "FH_GET_ORC_STATS");
+      retcode = statsStmt.prepareQuery(query.data(), 0, 2*numCols + 1);
+      HSLogError(retcode);
+      if (retcode < 0)
+        {
+          if (LM->LogNeeded())
+            LM->Log("Failed to prepare query to fetch ORC file column stats");
+          return retcode;
+        }
+
+      retcode = statsStmt.open();
+      if (retcode < 0)
+        {
+          if (LM->LogNeeded())
+            LM->Log("Failed to open cursor to fetch ORC file column stats");
+          return retcode;
+        }
+
+      void * wcharPtrs[2*numCols];
+
+      for (k = 0; k < numCols; k++)
+        {
+          // to insure null termination after fetch
+          memset(highLowValue[k].lowValue_,0,sizeof(highLowValue[k].lowValue_));
+          memset(highLowValue[k].highValue_,0,sizeof(highLowValue[k].highValue_));
+          wcharPtrs[2*k] = highLowValue[k].lowValue_;
+          wcharPtrs[2*k+1] = highLowValue[k].highValue_;
+        }  
+
+      retcode = statsStmt.fetchV(2*numCols + 1,
+                   &fetchedRowCount, 
+                   wcharPtrs
+                  );
+
+      if (retcode < 0)
+        {
+          if (LM->LogNeeded())
+            LM->Log("Failed to fetch ORC file column stats");
+          return retcode;
+        }
+
+      // note that the statement will be closed by the HSCursor destructor
+                  
+      char resetCQD[100];
+      snprintf(resetCQD, sizeof(resetCQD), 
+               "CQD HIVE_MAX_STRING_LENGTH '%d'", 
+               oldHiveMaxStringLength);
+      HSFuncExecQuery(resetCQD);
+      HSFuncExecQuery("CONTROL QUERY DEFAULT USTAT_FETCHCOUNT_ACTIVE 'OFF'");
+    }
+
 
   for (k = 0; k < numCols; k++)
     {
@@ -1199,6 +1328,13 @@ Lng32 FetchHistograms( const QualifiedName & qualifiedName
         {
           double fakeRowCount = defaultFakeRowCount;
           double fakeUec = defaultFakeUec;
+
+          if (generateHistogramForORC)
+            {
+              fakeRowCount = fetchedRowCount;
+              if (fakeUec > fakeRowCount)
+                fakeUec = fakeRowCount;
+            }
 
           TotalHistogramDBG++;
 
@@ -1214,104 +1350,13 @@ Lng32 FetchHistograms( const QualifiedName & qualifiedName
               NAWchar * lowValue = (NAWchar *)L"(>)";
               NAWchar * highValue = (NAWchar *)L"(<)";
 
-              if  ((generateHistogramForORC) &&   // if we want to generate an ORC histogram
-                   !(colArray[k]->isHivePartColumn()) &&  // and it's not a partitioning column
-                   !(colArray[k]->isHiveVirtualColumn()) &&  // and it's not a virtual column
-                   // and we aren't recursing in obtaining fake histograms
-                   (CmpCommon::getDefault(USTAT_FETCHCOUNT_ACTIVE) != DF_ON))
+              if (generateHistogramForORC) // if we want to generate an ORC histogram
                 {
                   // use the column statistics in the ORC file to create a one-interval
                   // histogram for this column
 
-                  // prevent recursion (finding stats for a query that is finding stats)
-                  HSFuncExecQuery("CONTROL QUERY DEFAULT USTAT_FETCHCOUNT_ACTIVE 'ON'");
-                  // TODO: capture existing value of this CQD so we can reset it  
-                  HSFuncExecQuery("CONTROL QUERY DEFAULT HIVE_MAX_STRING_LENGTH '120'");               
-
-                  // obtain column statistics
-                  NAString query = "SELECT COUNT(*),";
-
-                  // TODO: Try to find a less complicated way to get things formatted so
-                  // we don't have to write special-case code for every possible datatype
-                  const NAColumn * col = colArray[k];
-                  const NAType * natype = col->getType(); 
-                  NABuiltInTypeEnum type = natype->getTypeQualifier();
-                  if (type == NA_NUMERIC_TYPE)
-                    {
-                      query += "_UCS2'(' || TRIM(CAST(MIN(";
-                      query += colArray[k]->getColName();
-                      query += ") AS CHAR(30) CHARACTER SET UCS2)) || _UCS2')', _UCS2'(' || TRIM(CAST(MAX(";
-                      query += colArray[k]->getColName();
-                      query += ") AS CHAR(30) CHARACTER SET UCS2)) || _UCS2')' FROM ";
-                    }
-                  else if (type == NA_DATETIME_TYPE)
-                    {
-                      // TODO: Right now assumes DATE, but it could be TIMESTAMP or TIME
-                      query += "_UCS2'(DATE ''' || TRIM(CAST(MIN(";
-                      query += colArray[k]->getColName();
-                      query += ") AS CHAR(30) CHARACTER SET UCS2)) || _UCS2''')', _UCS2'(DATE ''' || TRIM(CAST(MAX(";
-                      query += colArray[k]->getColName();
-                      query += ") AS CHAR(30) CHARACTER SET UCS2)) || _UCS2''')' FROM ";  // later, add aggregates for UEC
-                    }
-                  else // assume character type
-                    {
-                      // TODO: Right now assumes UTF8, but it could be different (there are CQDs for this)
-                      query += "_UCS2'(''' || TRANSLATE(MIN(";
-                      query += colArray[k]->getColName();
-                      query += ") USING UTF8TOUCS2) || _UCS2''')', _UCS2'(''' || TRANSLATE(MAX(";
-                      query += colArray[k]->getColName();
-                      query += ") USING UTF8TOUCS2) || _UCS2''')' FROM ";  // later, add aggregates for UEC
-                    }
-                  
-                  query += getTableName(tabDef->getObjectFullName(), tabDef->getNameSpace());
-
-                  HSCursor statsStmt(STMTHEAP, "FH_GET_ORC_STATS");
-                  retcode = statsStmt.prepareQuery(query.data(), 0, 3);
-                  HSLogError(retcode);
-                  if (retcode < 0)
-                    {
-                      if (LM->LogNeeded())
-                        LM->Log("Failed to prepare query to fetch ORC file column stats");
-                      return retcode;
-                    }
-
-                  retcode = statsStmt.open();
-                  if (retcode < 0)
-                    {
-                      if (LM->LogNeeded())
-                        LM->Log("Failed to open cursor to fetch ORC file column stats");
-                      return retcode;
-                    }
-
-                  NAWchar minValue[100];
-                  NAWchar maxValue[100];
-                  Int64 fetchedRowCount = 0;
-
-                  // to insure null termination after fetch
-                  memset(minValue,0,sizeof(minValue));
-                  memset(maxValue,0,sizeof(maxValue));
-
-                  retcode = statsStmt.fetch(3,
-                               (void *)&fetchedRowCount, 
-                               (void *)minValue,
-                               (void *)maxValue
-                              );
-
-                  if (retcode < 0)
-                    {
-                      if (LM->LogNeeded())
-                        LM->Log("Failed to fetch ORC file column stats");
-                      return retcode;
-                    }
-
-                  lowValue = &minValue[1];  // skip over 2-byte length fields
-                  highValue = &maxValue[1];
-                  
-                  // note that the statement will be closed by the HSCursor destructor
-                  
-                  // TODO: shoudn't RESET if the CQD was already in force
-                  HSFuncExecQuery("CONTROL QUERY DEFAULT HIVE_MAX_STRING_LENGTH RESET");
-                  HSFuncExecQuery("CONTROL QUERY DEFAULT USTAT_FETCHCOUNT_ACTIVE 'OFF'");
+                  lowValue = &highLowValue[k].lowValue_[1];  // skip over 2-byte length fields
+                  highValue = &highLowValue[k].highValue_[1];             
                 }
 
               // soln 10-030307-4739 Selectivity too low when comparing CHAR(1)
