@@ -1302,9 +1302,7 @@ DESCRIPTION
 +>   d_current_year varchar(100 bytes) character set utf8)
 +>  for hive.hive.date_dim_orc primary key (d_date);
 
-*** ERROR[1390] Object TRAFODION."_HV_HIVE_".DATE_DIM_ORC already exists in Trafodion.
-
---- SQL operation failed with errors.
+--- SQL operation complete.
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
@@ -1856,11 +1854,57 @@ DESCRIPTION
                              HIVE.CUSTOMER_ORC.C_CUSTOMER_SK),
                              (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_TIME_SK =
                              <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_ITEM_SK =
+                             <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_CUSTOMER_S
+                             K = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_CDEMO_
+                             SK = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_HDEMO
+                             _SK = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_ADDR
+                             _SK = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_STOR
+                             E_SK = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_PRO
+                             MO_SK = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_TI
+                             CKET_NUMBER = <min>), (HIVE.STORE_SALES_SORTED_ORC
+                             .SS_QUANTITY = <min>), (HIVE.STORE_SALES_SORTED_OR
+                             C.SS_WHOLESALE_COST = <min>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_LIST_PRICE =
+                             <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_SALES_PRIC
+                             E = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_DI
+                             SCOUNT_AMT = <min>), (HIVE.STORE_SALES_SORTED_ORC.
+                             SS_EXT_SALES_PRICE = <min>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_WHOLESALE_COST
+                             = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_LIST
+                             _PRICE = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_E
+                             XT_TAX = <min>), (HIVE.STORE_SALES_SORTED_ORC.SS_C
+                             OUPON_AMT = <min>), (HIVE.STORE_SALES_SORTED_ORC.S
+                             S_NET_PAID = <min>), (HIVE.STORE_SALES_SORTED_ORC.
+                             SS_NET_PAID_INC_TAX = <min>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_NET_PROFIT =
                              <min>)
   end_key ................ (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK =
                              HIVE.CUSTOMER_ORC.C_CUSTOMER_SK),
                              (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_TIME_SK =
                              <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_ITEM_SK =
+                             <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_CUSTOMER_S
+                             K = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_CDEMO_
+                             SK = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_HDEMO
+                             _SK = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_ADDR
+                             _SK = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_STOR
+                             E_SK = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_PRO
+                             MO_SK = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_TI
+                             CKET_NUMBER = <max>), (HIVE.STORE_SALES_SORTED_ORC
+                             .SS_QUANTITY = <max>), (HIVE.STORE_SALES_SORTED_OR
+                             C.SS_WHOLESALE_COST = <max>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_LIST_PRICE =
+                             <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_SALES_PRIC
+                             E = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_DI
+                             SCOUNT_AMT = <max>), (HIVE.STORE_SALES_SORTED_ORC.
+                             SS_EXT_SALES_PRICE = <max>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_WHOLESALE_COST
+                             = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_EXT_LIST
+                             _PRICE = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_E
+                             XT_TAX = <max>), (HIVE.STORE_SALES_SORTED_ORC.SS_C
+                             OUPON_AMT = <max>), (HIVE.STORE_SALES_SORTED_ORC.S
+                             S_NET_PAID = <max>), (HIVE.STORE_SALES_SORTED_ORC.
+                             SS_NET_PAID_INC_TAX = <max>),
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_NET_PROFIT =
                              <max>)
 
 

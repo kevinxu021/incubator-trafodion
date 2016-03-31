@@ -497,6 +497,10 @@ public:
   void setForceIndexInfo() { forcedIndexInfo_ = TRUE; }
   void resetForceIndexInfo() { forcedIndexInfo_ = FALSE; }
   NABoolean isIndexInfoForced() const { return forcedIndexInfo_; }
+
+  // methods specific for Hive tables
+  void createUniquenessConstraintsForHiveTable();
+
   // ---------------------------------------------------------------------
   // Vertical Partitioning related methods
   // ---------------------------------------------------------------------

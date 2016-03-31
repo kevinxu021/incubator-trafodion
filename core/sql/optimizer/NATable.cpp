@@ -3759,8 +3759,8 @@ static NABoolean createNAColumns(struct hive_column_desc* hcolumn /*IN*/,
        // ------------------------------------------------
        switch (v)
          {
-         case 0:
-           virtColName = "INPUT__FILE__NAME";
+         case 0: // INPUT__FILE__NAME
+           virtColName = NATable::getNameOfInputFileCol();
            // VARCHAR(1024 BYTES) CHARACTER SET UTF8
            virtType = new(heap) SQLVarChar(CharLenInfo(4096, 4096),
                                            FALSE, // not NULL
@@ -3768,17 +3768,17 @@ static NABoolean createNAColumns(struct hive_column_desc* hcolumn /*IN*/,
                                            FALSE, // case sensitive
                                            CharInfo::UTF8);
            break;
-         case 1:
-           virtColName = "BLOCK__OFFSET__INSIDE__FILE";
+         case 1: // BLOCK__OFFSET__INSIDE__FILE
+           virtColName = NATable::getNameOfBlockOffsetCol();
            virtType = new(heap) SQLLargeInt(TRUE, FALSE);
            virtColType = NAColumn::HIVE_VIRT_ROW_COL;
            break;
-         case 2:
-           virtColName = "INPUT__RANGE__NUMBER";
+         case 2: // INPUT__RANGE__NUMBER
+           virtColName = NATable::getNameOfInputRangeCol();
            virtType = new(heap) SQLInt(TRUE, FALSE);
            break;
-         case 3:
-           virtColName = "ROW__NUMBER__IN__RANGE";
+         case 3: // ROW__NUMBER__IN__RANGE
+           virtColName = NATable::getNameOfRowInRangeCol();
            virtType = new(heap) SQLLargeInt(TRUE, FALSE);
            virtColType = NAColumn::HIVE_VIRT_ROW_COL;
            break;
@@ -3830,6 +3830,75 @@ NABoolean createNAKeyColumns(desc_struct *keys_desc_list	/*IN*/,
     } // end while (keys_desc)
 
   return FALSE;
+}
+
+static void createHiveKeyColumns(const NAColumnArray &colArray  /*IN*/,
+                                 const hive_skey_desc *hsk_desc /*IN*/,
+                                 NAColumnArray &keyColArray     /*OUT*/,
+                                 CollHeap *heap	                /*IN*/)
+{
+  // There are two candidate keys in the virtual columns, the real
+  // columns do not have a unique key. Pick one of them, based on
+  // CQD HIVE_USE_PERSISTENT_KEY:
+  //
+  // ON:  (INPUT__FILE__NAME, BLOCK__OFFSET__INSIDE__FILE)
+  // OFF: (INPUT__RANGE__NUMBER, ROW__NUMBER__IN__RANGE)
+  //
+  // The persistent key is much longer, but persists across different
+  // scans. The non-persistent key is shorter, but can't be used for
+  // a self join.
+
+  // If CQD HIVE_USE_SORT_COLS_IN_KEY is ON, and if the table is a
+  // sorted bucketed table, then add these sort columns to the key.
+  // They are not needed for uniqueness, but they could define a
+  // sort order, if a few conditions are met (we currently don't
+  // check those, so this function is not yet enabled).
+
+  NAColumn *indexColumn;
+  const char *colName;
+  NABoolean persistentKey =
+    (CmpCommon::getDefault(HIVE_USE_PERSISTENT_KEY) != DF_OFF);
+
+  if (CmpCommon::getDefault(HIVE_USE_SORT_COLS_IN_KEY) == DF_ON)
+    {
+      // To use a sort order, we have to ensure that we have one ESP per
+      // (sorted) file to read. This would have to be done in the
+      // FileScanRule.
+
+      while (hsk_desc)
+        {
+          NAString colName(hsk_desc->name_);
+          colName.toUpper();
+
+          NAColumn* sortKeyColumn = colArray.getColumn(colName);
+
+          if (sortKeyColumn)
+            {
+              keyColArray.insert(sortKeyColumn);
+              sortKeyColumn->setClusteringKey(ASCENDING);
+            }
+
+          hsk_desc = hsk_desc->next_;
+        }
+    }
+
+  for (int i=0; i<2; i++)
+    {
+      if (persistentKey)
+        if (i == 0)
+          colName = NATable::getNameOfInputFileCol();
+        else
+          colName = NATable::getNameOfBlockOffsetCol();
+      else
+        if (i == 0)
+          colName = NATable::getNameOfInputRangeCol();
+        else
+          colName = NATable::getNameOfRowInRangeCol();
+
+      indexColumn = colArray.getColumn(colName);
+      keyColArray.insert(indexColumn);
+      indexColumn->setClusteringKey(ASCENDING);
+    }
 }
 
 // ************************************************************************
@@ -4622,29 +4691,14 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
 	} // end while (hvk_desc)
 
       const hive_skey_desc *hsk_desc = hvt_desc->getSortKeys();
-      if ( hsk_desc == NULL ) {
-         // assume all columns are index key columns
-          for (CollIndex i=0; i<colArray.entries(); i++ )
-	     indexKeyColumns.insert(colArray[i]);
-      } else {
-        while (hsk_desc)
-        {
-          NAString colName(hsk_desc->name_);
-          colName.toUpper();
 
-          NAColumn* sortKeyColumn = colArray.getColumn(colName);
-
-          if ( sortKeyColumn ) {
-
-               indexKeyColumns.insert(sortKeyColumn);
-               indexKeyColumns.setAscending(indexKeyColumns.entries() - 1,
-                                            hsk_desc->orderInt_);
-          }
-
-          hsk_desc = hsk_desc->next_;
-        } // end while (hsk_desc)
-      }
-
+      // Hive tables don't enforce a unique key, but we can pick virtual
+      // columns to form a unique key (this can also be used internally,
+      // e.g. for subquery unnesting).
+      createHiveKeyColumns(colArray,
+                           hsk_desc,
+                           indexKeyColumns,
+                           CmpCommon::statementHeap());
 
       // ---------------------------------------------------------------------
       // Loop over the non key columns. 
@@ -4714,6 +4768,21 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       // files, e.g. to a fixed log directory
 #endif
 
+      // temporary kludge until virtual columns for ORC are supported
+      // NOTE: This can procuce incorrect results, see Mantis-230!!!
+      // See Mantis-269.
+      if (isORC)
+        {
+          indexKeyColumns.clear();
+
+          // assume all non-virtual columns are index key columns
+          // (but no guarantee for uniqueness)
+          for (CollIndex i=0; i<colArray.entries(); i++)
+            if (!colArray[i]->isHiveVirtualColumn())
+	     indexKeyColumns.insert(colArray[i]);
+        }
+
+      // end of temporary kludge
 
       // Create a node map for partitioning function.
       NodeMap* nodeMap = new (heap) NodeMap(heap, NodeMap::HIVE);
