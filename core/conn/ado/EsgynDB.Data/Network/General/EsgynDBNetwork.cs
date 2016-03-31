@@ -475,11 +475,11 @@ namespace EsgynDB.Data
             }
             finally
             {
+                Monitor.Exit(this._ds);
                 if (forceClose)
                 {
                     this._connection.Close(true);
                 }
-                Monitor.Exit(this._ds);
             }
         }
 

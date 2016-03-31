@@ -409,6 +409,7 @@ namespace EsgynDB.Data
                                 EsgynDBConnection._connPools[this.ConnectionStringBuilder.ConnectionString].RemoveConnection(this);
                             }
 
+
                             while (this.Commands.Count > 0)
                             {
                                 try
@@ -417,10 +418,11 @@ namespace EsgynDB.Data
                                 }
                                 catch
                                 {
+                                    this.Commands.RemoveAt(0);
                                     //Doesn't matter if got any error
                                 }
-                                
                             }
+                            
                         }
                         
                         // close the connection
