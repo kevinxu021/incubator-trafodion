@@ -383,6 +383,15 @@ namespace EsgynDB.Data
 
         internal void Close(bool forceClose)
         {
+            Close(forceClose, true);
+        }
+
+        /// <summary>
+        /// Disconnect will call doIO
+        /// If doIO has any network issue, it can't continue to disconnect server throught IO.
+        /// </summary>
+        internal void Close(bool forceClose, bool disconnectSrvrSide)
+        {
             if (EsgynDBTrace.IsPublicEnabled)
             {
                 EsgynDBTrace.Trace(this, TraceLevel.Public, forceClose);
@@ -390,7 +399,6 @@ namespace EsgynDB.Data
 
             try
             {
-
                 lock (asSrvrLock)
                 {
                     // unless we need to force close the connection in the pool, ignore requests if the connection is already
@@ -426,7 +434,7 @@ namespace EsgynDB.Data
                         }
                         
                         // close the connection
-                        if ((forceClose || this.ConnectionStringBuilder.MaxPoolSize <= 0) && !this.Network.IsClosed)
+                        if ((forceClose || this.ConnectionStringBuilder.MaxPoolSize <= 0) && !this.Network.IsClosed && disconnectSrvrSide)
                         {
                             lock (this.dataAccessLock)
                             {

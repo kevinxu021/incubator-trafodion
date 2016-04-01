@@ -478,7 +478,7 @@ namespace EsgynDB.Data
                 Monitor.Exit(this._ds);
                 if (forceClose)
                 {
-                    this._connection.Close(true);
+                    this._connection.Close(true, false);
                 }
             }
         }
