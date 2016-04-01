@@ -2802,6 +2802,20 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
       // removed preds for the next step
       partAndVirtColPreds_ = compileTimePartColPreds_;
       compileTimePartColPreds_.removeUnCoveredExprs(availableValues);
+
+      // a VEGPred(partcol, <other values>) will still be in
+      // compileTimePartColPreds_, but we can only evaluate it at
+      // compile time if it also contains a constant
+      for (ValueId q=compileTimePartColPreds_.init();
+           compileTimePartColPreds_.next(q);
+           compileTimePartColPreds_.advance(q))
+        {
+          if (q.getItemExpr()->getOperatorType() == ITM_VEG_PREDICATE)
+            // Remove the VEGPredicate if the VEG doesn't contain a constant
+            if (static_cast<VEGPredicate *>(q.getItemExpr())->
+                        getVEG()->getAConstant(FALSE) == NULL_VALUE_ID)
+              compileTimePartColPreds_ -= q;
+        }
       partAndVirtColPreds_ -= compileTimePartColPreds_;
 
       // now add characteristic inputs and virtual file columns

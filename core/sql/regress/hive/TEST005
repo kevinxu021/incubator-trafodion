@@ -107,6 +107,7 @@ insert overwrite table hive.hive.hivepi  select id, col2, p1 from hive.hive.hive
 select * from hivepi;
 select count(*) from hivepis;
 select * from hivepts where p2 = 'two';
+select * from hivepi join hivepis on hivepi.p1 = hivepis.p1;
 
 -- insert some data and add one more partition
 sh regrhive.ksh -v -f $REGRTSTDIR/TEST005_b.hive.sql;

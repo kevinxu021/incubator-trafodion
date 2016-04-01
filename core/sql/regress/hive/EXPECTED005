@@ -130,6 +130,30 @@ ID           COL2         P1T                         P2
         222          222  2002-02-02 02:34:56.789012  two                             
 
 --- 3 row(s) selected.
+>>select * from hivepi join hivepis on hivepi.p1 = hivepis.p1;
+
+ID           COL2         P1           ID           COL2         P1           P2
+-----------  -----------  -----------  -----------  -----------  -----------  --------------------------------
+
+          1            1            1            1            1            1  one                             
+         11           11            1            1            1            1  one                             
+          1            1            1           11           11            1  one                             
+         11           11            1           11           11            1  one                             
+          2            2            2            2            2            2  two                             
+        222          222            2            2            2            2  two                             
+         22           22            2            2            2            2  two                             
+          2            2            2           22           22            2  two                             
+        222          222            2           22           22            2  two                             
+         22           22            2           22           22            2  two                             
+          2            2            2          222          222            2  two                             
+        222          222            2          222          222            2  two                             
+         22           22            2          222          222            2  two                             
+         34           34            3           34           34            3  four                            
+          3            3            3           34           34            3  four                            
+         34           34            3            3            3            3  three                           
+          3            3            3            3            3            3  three                           
+
+--- 17 row(s) selected.
 >>
 >>-- insert some data and add one more partition
 >>sh regrhive.ksh -v -f $REGRTSTDIR/TEST005_b.hive.sql;
