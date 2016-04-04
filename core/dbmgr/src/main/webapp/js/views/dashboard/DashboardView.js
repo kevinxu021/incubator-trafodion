@@ -175,6 +175,7 @@ define([
 				$(DRILLDOWN_DIALOG).on('shown.bs.modal', function(event, ab){
 					$(DRILLDOWN_CHART).empty();
 					var metricName = $(DRILLDOWN_METRICNAME).text();
+					$(DRILLDOWN_CHART_CONTAINER).hide();
 					if(metricName != "nodestatus"){
 						$(DRILLDOWN_SPINNER).show();
 						dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
@@ -600,7 +601,7 @@ define([
 					                 buttons: [
 					                           { extend : 'copy', exportOptions: { columns: [0, 1, 2, 3] } },
 					                           { extend : 'csv', exportOptions: { columns: [0, 1, 2, 3] } },
-					                           { extend : 'excel', exportOptions: {  columns: [0, 1, 2, 3] } },
+					                           //{ extend : 'excel', exportOptions: {  columns: [0, 1, 2, 3] } },
 					                           { extend : 'pdfHtml5', exportOptions: { columns: [0, 1, 2, 3] }, title: 'Service Status' },
 					                           { extend : 'print', exportOptions: { columns: [0, 1, 2, 3] }, title: 'Service Status' }
 					                           ],					                 
@@ -629,7 +630,11 @@ define([
 			$(SERVICES_ERROR_TEXT).show();
 			if (jqXHR.responseText) {
 				$(SERVICES_ERROR_TEXT).text(jqXHR.responseText);     
-			}       	
+			}else{
+        		if(jqXHR.status != null && jqXHR.status == 0) {
+        			$(SERVICES_ERROR_TEXT).text("Error : Unable to communicate with the server.");
+        		}
+        	}       	
 		},
 		fetchNodes: function () {
 			$(NODES_SPINNER).show();
@@ -705,7 +710,7 @@ define([
 							                 buttons: [
 							                           { extend : 'copy', exportOptions: { columns: [0, 1] } },
 							                           { extend : 'csv', exportOptions: { columns: [0, 1] } },
-							                           { extend : 'excel', exportOptions: { columns: [0, 1] } },
+							                           //{ extend : 'excel', exportOptions: { columns: [0, 1] } },
 							                           { extend : 'pdfHtml5', exportOptions: { columns: [0, 1] }, title: 'Node Status' },
 							                           { extend : 'print', exportOptions: { columns: [0, 1] }, title: 'Node Status' }
 							                           ],					                 
@@ -727,7 +732,11 @@ define([
 					$(NODES_ERROR_TEXT).text("Node information is not available.");
 				}else
 					$(NODES_ERROR_TEXT).text(jqXHR.responseText);     
-			}
+			}else{
+        		if(jqXHR.status != null && jqXHR.status == 0) {
+        			$(NODES_ERROR_TEXT).text("Error : Unable to communicate with the server.");
+        		}
+        	}
 		},
 		fetchSummaryMetricSuccess: function(result){
 			var keys = Object.keys(result.data);
@@ -844,7 +853,11 @@ define([
 				$(metricConfig.errorcontainer).show();
 				if (jqXHR.responseText) {
 					$(metricConfig.errorcontainer).text(jqXHR.responseText);     
-				}				
+				}else{
+	        		if(jqXHR.status != null && jqXHR.status == 0) {
+	        			$(metricConfig.errorcontainer).text("Error : Unable to communicate with the server.");
+	        		}
+	        	}				
 			}
 		},
 		canaryDrillDown: function(){
@@ -891,7 +904,7 @@ define([
 			$(DRILLDOWN_DIALOG).modal('show');
 			$(DRILLDOWN_SERIES_CONTAINER).show();
 			$(DRILLDOWN_METRICNAME).text(metricName);
-			$(DRILLDOWN_TITLE).text(chartConfig[metricName]);
+			$(DRILLDOWN_TITLE).text(metricName);
 			var seriesSelector = $(SERIES_SELECTOR);
 			seriesSelector.empty();
 			var metricConfig = chartConfig[metricName];
@@ -1146,7 +1159,11 @@ define([
 			if (jqXHR.responseText) {
 				$(DRILLDOWN_ERROR_CONTAINER).text(jqXHR.responseText);     
 				$(DRILLDOWN_ERROR_CONTAINER).show();
-			}				
+			}else{
+        		if(jqXHR.status != null && jqXHR.status == 0) {
+        			$(DRILLDOWN_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+        		}
+        	}				
 		}
 	});
 
