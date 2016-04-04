@@ -74,15 +74,16 @@ public class ServerResource {
 			objNode.put("user", usr);
 			objNode.put("status", "OK");
 			objNode.put("sessionTimeoutMinutes", configResource.getSessionTimeoutMinutes());
-			objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
-			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
-			objNode.put("dcsMasterInfoUri", configResource.getDcsMasterInfoUri());
-			objNode.put("enableAlerts", configResource.isAlertsEnabled());
 			if (Helper.isEnterpriseEdition()) {
 				objNode.put("systemType", 1);
 			}
 
 			objNode.put("systemVersion", ConfigurationResource.getSystemVersion());
+
+			objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
+			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
+			objNode.put("dcsMasterInfoUri", configResource.getDcsMasterInfoUri());
+			objNode.put("enableAlerts", configResource.isAlertsEnabled());
 
 			Session content = new Session(usr, pwd, new DateTime(DateTimeZone.UTC));
 			SessionModel.putSessionObject(key, content);
