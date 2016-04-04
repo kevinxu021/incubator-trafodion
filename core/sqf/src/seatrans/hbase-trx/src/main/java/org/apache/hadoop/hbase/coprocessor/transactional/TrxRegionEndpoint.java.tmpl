@@ -83,6 +83,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.util.ProtoUtil;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionPersist;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionStateMsg;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg;
 import com.google.protobuf.CodedInputStream;
 
 import org.apache.commons.logging.Log;
@@ -346,6 +347,8 @@ CoprocessorService, Coprocessor {
   private AtomicBoolean blockNewTrans = new AtomicBoolean(false);
   private boolean configuredEarlyLogging = false;
   private boolean configuredConflictReinstate = false;
+  private boolean configuredPITRecovery = false;
+  private boolean configuredPITRecoveryHA = false;
   private static Object zkRecoveryCheckLock = new Object();
   private static ZooKeeperWatcher zkw1 = null;
   String lv_hostName;
@@ -424,6 +427,16 @@ CoprocessorService, Coprocessor {
   static ConcurrentHashMap<String, Object> transactionsEPCPMap;
   STRConfig pSTRConfig;
   // boolean skip = true;
+  
+  // PIT Mutation Capturer
+  ByteArrayOutputStream mutationOutput;
+  HFileWriterV2 mutationWriter;
+  long mutationCount;
+  long mutationTotalCount;
+  long mutationSet;
+  long currentFileKey = -1;
+  long smallestCommitId = -1;
+  private Object mutationOpLock = new Object();
 
   // TrxRegionService methods
     
@@ -3675,6 +3688,11 @@ CoprocessorService, Coprocessor {
     this.configuredConflictReinstate = tmp_env.getConfiguration().getBoolean("hbase.regionserver.region.transactional.conflictreinstate", false);
     if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: conflict reinstate  setting is " + this.configuredConflictReinstate +
                   "\nTrxRegionEndpoint coprocessor: get the reference from Region CoprocessorEnvironment ");
+    
+    this.configuredPITRecovery = tmp_env.getConfiguration().getBoolean("hbase.regionserver.region.transactional.pit", false);
+    if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: PIT Recovery setting is " + this.configuredPITRecovery +
+		  " PIT Recovery HA setting is " +  this.configuredPITRecoveryHA +
+                  "\nTrxRegionEndpoint coprocessor: get the reference from Region CoprocessorEnvironment ");
 
     if (tmp_env.getSharedData().isEmpty())
        if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: shared map is empty ");
@@ -3785,6 +3803,13 @@ CoprocessorService, Coprocessor {
   public void stop(CoprocessorEnvironment env) throws IOException {
     if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: stop ");
     stoppable.stop("stop() TrxRegionEndpoint");
+    
+    // PIT: close mutation file if any
+    
+    if (configuredPITRecovery) {
+	  if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: stop and close mutation file if any in PIT mode");
+          mutationBufferOp(4, null, null);
+    }
 
     transactionsEPCPMap.remove(this.m_Region.getRegionInfo().getRegionNameAsString()+trxkeyEPCPinstance);
 
@@ -4112,6 +4137,14 @@ CoprocessorService, Coprocessor {
 					   + ", region " + regionInfo.getRegionNameAsString() 
 					   + ", Redrive commit with number of edit kvs list size " + num
 					   );
+      // PIT, for this in-doubt txn w/o conflict reinstatment
+      try {
+      int iPut = 0;
+      int iDelete = 0;
+      TransactionMutationMsg.Builder tmBuilder =  TransactionMutationMsg.newBuilder();
+      tmBuilder.setTxId(transactionId);
+      tmBuilder.setStartId(startId);
+      tmBuilder.setCommitId(commitId);
       for ( int i = 0; i < num; i++){
          b = editList.get(i);
          if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: commit -"
@@ -4160,6 +4193,12 @@ CoprocessorService, Coprocessor {
                           + ", Trafodion Recovery: Executing put caught an exception " + e.toString());
                  throw new IOException(e.toString());
               }
+              // PIT
+	      if (configuredPITRecoveryHA) {
+                  tmBuilder.addPutOrDel(true);
+                  tmBuilder.addPut(ProtobufUtil.toMutation(MutationType.PUT, new Put(put)));
+	          iPut++;
+	      }
      	     } else if (CellUtil.isDelete(kv))  {
      	        if (this.useCommitIdInCells == false) {
                    del = new Delete(CellUtil.cloneRow(kv), kv.getTimestamp());
@@ -4181,20 +4220,35 @@ CoprocessorService, Coprocessor {
                    }
      	        }
                 //state.addDelete(del);  // no need to add since add has been done in constructInDoubtTransactions
-               try {
-                 m_Region.delete(del);
-               }
-               catch (Exception e) {
+                try {
+                   m_Region.delete(del);
+                }
+                catch (Exception e) {
                   LOG.warn("TrxRegionEndpoint coprocessor: commit -" 
                            + " txId " + transactionId + " commitId " + commitId
                            + ", Trafodion Recovery: Executing delete caught an exception " + e.toString());
                   throw new IOException(e.toString());
-               }
+                }
+                // PIT
+	        if (configuredPITRecoveryHA) {
+                   tmBuilder.addPutOrDel(false);
+                   tmBuilder.addDelete(ProtobufUtil.toMutation(MutationType.DELETE, new Delete(del)));
+	           iDelete++;
+	        }
              }
           } // synchronized reply edits
         } // for WALEdit
       } // for ediList
-    }  // reinstated transactions
+      // PIT for non-ts reinstated txn, here we don't have a ts re-created as configuredConflictReinstate is FALSE
+      //       just directly construct the mutation buffer and append (~ replayCommittedTxn in Observer)
+      if (configuredPITRecoveryHA) mutationBufferOp(2, null, tmBuilder);
+      } catch(IOException e) {
+          StringWriter sw = new StringWriter();
+          PrintWriter pw = new PrintWriter(sw);
+          e.printStackTrace(pw);
+          LOG.error(sw.toString());
+      }
+    }  // an in-doubt reinstated transaction, but no ts constructed
     else { // either non-reinstated transaction, or reinstate transaction with conflict reinstate TRUE (write from TS write ordering)
 
       // If useCommitIdInCells is true, we use the commitId as the timestamp, otherwise
@@ -4326,6 +4380,10 @@ CoprocessorService, Coprocessor {
          }
          writeOrderIndex++;
        }
+       // PIT: this transaction has committed, so that's append the committed mutations into mutation buffer
+       //         this is for normal phase 2 commit and for special reinstated txn during recovery (since we reconstruct ts)
+       if (configuredPITRecovery) txnMutationBuilder(state);
+       
     } // normal transactions
 
     // Now write a commit edit to HLOG
@@ -4333,7 +4391,7 @@ CoprocessorService, Coprocessor {
     List<Tag> tagList = new ArrayList<Tag>();
     if (state.hasWrite() || state.isReinstated()) {
          if (!state.getFullEditInCommit()) {
-            commitTag = state.formTransactionalContextTag(TS_COMMIT);
+            commitTag = state.formTransactionalContextTag(TS_COMMIT, commitId);
             tagList.add(commitTag);
             WALEdit e1 = state.getEdit();
             WALEdit e = new WALEdit();
@@ -4385,7 +4443,7 @@ CoprocessorService, Coprocessor {
          } // not full edit write in commit record during phase 2
         else { //do this for  rollover case
            if (LOG.isTraceEnabled()) LOG.trace("TRAF RCOV endpoint CP:commit -- HLOG rollover txId: " + transactionId);
-           commitTag = state.formTransactionalContextTag(TS_CONTROL_POINT_COMMIT);
+           commitTag = state.formTransactionalContextTag(TS_CONTROL_POINT_COMMIT, commitId);
            tagList.add(commitTag);
            WALEdit e1 = state.getEdit();
            WALEdit e = new WALEdit();
@@ -5748,7 +5806,7 @@ CoprocessorService, Coprocessor {
     //                                      state.getTransactionId(),
     //                                    m_Region.getTableDesc());
        if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: abortTransaction - abort write to HLOG");
-       Tag abortTag = state.formTransactionalContextTag(TS_ABORT);
+       Tag abortTag = state.formTransactionalContextTag(TS_ABORT, state.getStartId());
        List<Tag> tagList = new ArrayList<Tag>();
        tagList.add(abortTag);
 
@@ -6603,5 +6661,335 @@ CoprocessorService, Coprocessor {
   public void setNewTrans(boolean value) {
     blockNewTrans.set(value);
    }
+   
+  
+  // Transactional Mutation Capturer
+   
+  public void txnMutationBuilder(TrxTransactionState ts) throws IOException {
+      
+      // build a tsBuild based input argument: Trx Transaction State
+      int iPut = 0;
+      int iDelete = 0;
+      
+      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationTSBuilder -- Transaction Id " + ts.getTransactionId());
+
+      try {
+	  
+      TransactionMutationMsg.Builder tmBuilder =  TransactionMutationMsg.newBuilder();
+      tmBuilder.setTxId(ts.getTransactionId());
+      tmBuilder.setStartId(ts.getStartId());
+      tmBuilder.setCommitId(ts.getCommitId());
+      
+      // since mutation write is non-force, Region Oberserver may need to get commit-id from ts supplied by TLOG
+      // interface to generate mutation for in-doubt txn. Also commit HLOG record should also include commit-id
+      // to build correct mutation (may need a different type of mutation KVs)
+
+      for (WriteAction wa : ts.getWriteOrdering()) {
+          if (wa.getPut() != null) {
+              tmBuilder.addPutOrDel(true);
+              tmBuilder.addPut(ProtobufUtil.toMutation(MutationType.PUT, new Put(wa.getPut())));
+	      iPut++;
+          }
+          else {
+              tmBuilder.addPutOrDel(false);
+              tmBuilder.addDelete(ProtobufUtil.toMutation(MutationType.DELETE, new Delete(wa.getDelete())));
+	      iDelete++;
+          }
+      } // for WriteAction loop
+      
+      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationTSBuilder -- Transaction Id " + ts.getTransactionId() + 
+	                       " has " + iPut + " put " + iDelete + " delete ");
+      
+      // now just append the mutation into the output buffer
+      mutationBufferOp(2, null, tmBuilder);
+      
+      } catch(IOException e) {
+          StringWriter sw = new StringWriter();
+          PrintWriter pw = new PrintWriter(sw);
+          e.printStackTrace(pw);
+          LOG.error(sw.toString());
+      }
+
+  }
+  
+  public void mutationBufferOp(int op, Path writePath, TransactionMutationMsg.Builder tmBuilder)  throws IOException {
+      
+      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationBufferOp: operation " + op);
+      
+      synchronized (mutationOpLock) {
+          try {
+      
+          switch (op) {
+	      case 1: { // create the mutation file based on passed writePath
+	          mutationWriterAction(1 /* reset output stream */, writePath, null);
+		  break;
+              }
+	      case 2: { // append mutation into local buffer
+                  if (currentFileKey == -1) { // need to new mutation file 
+                      mutationWriterAction(1 /* reset output stream */, null, null); // creat mutation file based on snapshot meta
+                  } 
+                  mutationWriterAction(4 /* append */, null, tmBuilder);
+		  // when certain criteria are hit, do action 2 to append local buffer into writer
+		  // if (...) mutationWriterAction(2 /* flush current mutation buffer */, null, null);
+		  break;
+              }
+	      case 3: { // append local mutation buffer to writer      
+                  mutationWriterAction(2 /* flush current mutation buffer */, null, null);
+		  break;
+              }
+	      case 4: { // append local buffer to writer and close current mutation file
+	          mutationWriterAction(2 /* mutation writer append to flush current buffer */, null, null );  
+	          mutationWriterAction(3 /* close mutation file */, null, null );
+		  break;
+              }
+	      case 5: { // op 4 + new next mutation file immediately
+	          mutationWriterAction(2 /* mutation writer append to flush current buffer */, null, null );  
+	          mutationWriterAction(3 /* close mutation file */, null, null );  
+	          mutationWriterAction(1 /* new mutation file and writer */, null, null );
+		  break;
+	      }   
+	      default: {
+	          if(LOG.isTraceEnabled()) LOG.trace("PIT mutationBufferOp: invalid operation " + op);
+              }
+	  } // switch
+          } catch(Exception e) {
+              StringWriter sw = new StringWriter();
+              PrintWriter pw = new PrintWriter(sw);
+              e.printStackTrace(pw);
+              LOG.error(sw.toString());
+          } 
+      } // synchronized   
+  }
+  
+  public void mutationWriterAction(int action, Path writePath, TransactionMutationMsg.Builder tmBuilder) throws IOException {
+   
+      byte [] bSet;
+      byte [] bKey;
+      
+      // critical section for output mutation cache
+      
+      // Need a set of variables to control the cache
+      // 1) mutationOutput: a buffer (ByteaArrayOutputStream) to hole the mutations (cells of KVs)
+      // 2) mutationCount: a long to indicate how many txn (separated by delimiter) in this KV
+      // 3) mutationSet: a long to record the key for the KV (multiple cells of multiple ttxns) to be written into the mutationWriter
+      // 4) mutationPath: a path to hold the current mutationn filename (from/to the meta)
+      
+      // single output buffer first, then switch to double buffering
+      
+      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: action " + action);
+      
+      try {
+      
+      switch (action) {
+	  case 1: { // create next transactional mutation file and associated HBaseWriter
+
+	      // 1.1) reconstruct next filename (regionNameAsString + current timeMill + sequence number)
+	      // 1.2) delete possible file with the same name
+	      // 1.3) create next file
+	      // 1.4) log a record for next file creation, location, and related info into meta
+	      // 1.5) currentFileKey = ts returned from meta record creation (i.e. a commitId from idtmServer)
+	      
+	      // use "region-name-toString + current time" to form the filename
+	      // put into /mnt/sstung/advent2/...
+	      
+	      writePath = new Path("mnt/sstung/tmp/" + 
+	              regionInfo.getRegionNameAsString() + Long.toString(EnvironmentEdgeManager.currentTime()));
+	      
+	      // 2.1) create writer (~ action 1) 
+	      mutationWriter = (HFileWriterV2) HFile.getWriterFactory(config,
+			new CacheConfig(config)).withPath(fs, writePath).withFileContext(context).create();
+              mutationOutput = new ByteArrayOutputStream(); // reset the buffering
+	      mutationCount = 0;
+	      mutationTotalCount = 0;
+	      smallestCommitId = -1;
+	      mutationSet = 0;
+	  
+	      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: create " + action + " Path " + writePath);
+	      break;
+          }
+	  case 2: { // append and write output buffer out
+	      // for the key by a sequence incremental number (mutationSet), the number is reset when rollover
+	      if (mutationCount > 0) {
+	          bSet = Bytes.toBytes (mutationSet);
+	          bKey = concat(Bytes.toBytes(COMMITTED_TXNS_KEY), bSet);
+                  byte [] firstByte = mutationOutput.toByteArray();
+                  mutationWriter.append(new KeyValue(bKey, Bytes.toBytes("cf"), Bytes.toBytes("qual"), firstByte));
+	          if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: action flush " + action +
+		         " mutationCount " + mutationCount + " mutationSet " + mutationSet + 
+		         " mutations size " + firstByte.length );
+	      
+	          mutationOutput = new ByteArrayOutputStream(); // reset the buffer for next KV (batch of TSBuilder cells)
+	          mutationCount = 0;
+	          mutationSet++;
+		  mutationTotalCount++;
+	      }
+	      else {
+		  if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: append, no mutation no flush & no close");
+	      }
+	      break;
+          }
+	  case 3: { // close  transactional mutation file, driven by chore thread (timer), preClose, preFlush, snapshot req      
+	      // close transactional mutation file, driven by chore thread (timer), preClose, preFlush, snapshot req
+	      // close the writer to force content to be written to disk and make mutation immutable
+	      // set currentFileKey = -1 (so next mutation append will have to create the next file and writer)
+	      mutationWriter.close();
+	      currentFileKey = -1;
+	      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: close " + action);
+              break;
+	  }
+	  case 4: { // append the mutation into output buffer with delimeter
+              tmBuilder.build().writeDelimitedTo(mutationOutput);
+	      if ((smallestCommitId == -1) || (smallestCommitId > tmBuilder.getCommitId()))
+		             smallestCommitId = tmBuilder.getCommitId();
+	      mutationCount++;
+	      mutationTotalCount++;
+	      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: buffered " + action +
+		         " mutationCount " + mutationCount + " mutationSet " + mutationSet);
+              break;
+	  }
+	  default: { // bad parameter
+	      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationAction: invalid action " + action);
+	  }
+      } // switch     
+      } catch(IOException e) {
+          StringWriter sw = new StringWriter();
+          PrintWriter pw = new PrintWriter(sw);
+          e.printStackTrace(pw);
+          LOG.error(sw.toString());
+      }
+  }
+  
+  public void addPut(TransactionMutationMsg.Builder tmBuilder, Put put) throws IOException {
+      try {
+         tmBuilder.addPut(ProtobufUtil.toMutation(MutationType.PUT, new Put(put)));
+      } catch(IOException e) {
+          StringWriter sw = new StringWriter();
+          PrintWriter pw = new PrintWriter(sw);
+          e.printStackTrace(pw);
+          LOG.error(sw.toString());
+      }
+  }
+  
+  // concatenate several byte[]
+  byte[] concat(byte[]...arrays) {
+       // Determine the length of the result byte array
+       int totalLength = 0;
+       for (int i = 0; i < arrays.length; i++)  {
+           totalLength += arrays[i].length;
+       }
+
+       // create the result array
+       byte[] result = new byte[totalLength];
+
+       // copy the source arrays into the result array
+       int currentIndex = 0;
+       for (int i = 0; i < arrays.length; i++)  {
+           System.arraycopy(arrays[i], 0, result, currentIndex, arrays[i].length);
+           currentIndex += arrays[i].length;
+       }
+       return result;
+  }
+   
+  public void mutationReaderFile(Path readPath) throws IOException {
+ 
+  // this methid is invoked by the replay engine after a mutation file is included in the replay file set
+  
+      try { 
+	  
+	  long sid;
+	  long cid;
+	  
+	  if(LOG.isTraceEnabled()) LOG.trace("PIT mutationReaderFile " + readPath + " start ");
+	  
+          HFile.Reader reader = HFile.createReader(fs, readPath, new CacheConfig(config), config);
+          HFileScanner scanner = reader.getScanner(true, false);
+          boolean hasKVs = scanner.seekTo(); // get to the beginning position
+	  
+	  while (hasKVs) {
+              //KeyValue firstVal = scanner.getKeyValue();
+              Cell tmVal = scanner.getKeyValue();
+
+	      ByteArrayInputStream input = new ByteArrayInputStream(CellUtil.cloneValue(tmVal));
+              TransactionMutationMsg tmm  = TransactionMutationMsg.parseDelimitedFrom(input);
+	      while (tmm != null) {
+		  // if tsm.getCommitId() is NOT within the desired range, then skip this record
+		  // Note. the commitID will not be in a monotonic increasing order inside the mutation files due to concurrency/delay
+		  // the smallest commitId within a file will be logged into mutation meta to filter out unnecessary mutation files
+		  if(LOG.isTraceEnabled()) LOG.trace("PIT mutationRead: transaction id " + tmm.getTxId());
+		  sid = tmm.getStartId();
+		  cid = tmm.getCommitId();
+
+                  List<Boolean> putOrDel = tmm.getPutOrDelList();
+                  List<MutationProto> putProtos = tmm.getPutList();
+                  List<MutationProto> deleteProtos = tmm.getDeleteList();
+		  // the two lists are to contain the mutations to be replayed in the table level
+		  // Note. Only committed mutations will be in the mutation file.
+		  List<Put> puts = Collections.synchronizedList(new ArrayList<Put>());
+                  List<Delete> deletes = Collections.synchronizedList(new ArrayList<Delete>());
+
+                  int putIndex = 0;
+                  int deleteIndex = 0;
+		  for (Boolean put : putOrDel) {
+                      if (put) {
+                          Put writePut = ProtobufUtil.toPut(putProtos.get(putIndex++));
+			  puts.add(writePut);
+                      }
+                      else {
+                          Delete writeDelete = ProtobufUtil.toDelete(deleteProtos.get(deleteIndex++));
+			  deletes.add(writeDelete);
+                      }
+                      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationRead -- Transaction Id " + tmm.getTxId() + " has " +
+			                 putIndex + " put " + deleteIndex + " delete ");
+                      // complete current transaction's mutations    
+		      // mutationReplay(puts, deletes); // here is replay transaction by transaction (may just use HBase client API)
+      
+                  }
+                  tmm  = TransactionMutationMsg.parseDelimitedFrom(input);
+      
+	      } // more than one tsm inside a KV
+	      
+	      // has processed on KV, can invoke client put/delete call to replay
+	      
+              hasKVs = scanner.next();
+	  } // still has KVs not processed in current reader
+	  
+      } catch(IOException e) {
+          StringWriter sw = new StringWriter();
+          PrintWriter pw = new PrintWriter(sw);
+          e.printStackTrace(pw);
+          LOG.error(sw.toString());
+      }	 
+      if(LOG.isTraceEnabled()) LOG.trace("mutationReaderFile " + readPath + " complete ");
+       
+  }
+   
+  public void mutationReplay(List<Put> puts, List<Delete> deletes) throws IOException {
+      
+      // only for local instance
+      // peer may require a "connection" or "peerId" argument
+      // Use peer connection to get peer table (Interface Table)
+      // use primitive HBase Table interface to replay committed puts or deletes in a batch way
+
+
+      // peerTable is from 
+      // Connection connection = ConnectionFactory.createConnection(peerConfig);or use xdc Config peer's connection
+      // Table peerTable = connection.getTable(TableName from regionInfo);
+      // can dircetly invoke table.put or table.delete with list of put or delete here to peer (i.e. the catching-up side)
+      
+      try {
+        
+      // peerTable.put(puts);
+      // peerTable.delete(deletes);
+
+      } catch(Exception e) {
+          StringWriter sw = new StringWriter();
+          PrintWriter pw = new PrintWriter(sw);
+          e.printStackTrace(pw);
+          LOG.error(sw.toString());
+      }      
+      
+  }
+   
 }
+
 //1}
