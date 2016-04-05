@@ -235,6 +235,13 @@ sudo su $TRAF_USER --command "chmod 777 $CREATE_TABLE"
 
 sudo su $TRAF_USER --command "$TRAF_PDSH $CREATE_TABLE"
 
+if [[ $? -ne "0" ]]; then
+   echo "***ERROR: Unable to create openTSDB Tables"
+   echo "***ERROR: Exiting..."
+   exit -1
+fi
+
+
 }
 
 function registerMetrics {
@@ -247,6 +254,13 @@ sudo su $TRAF_USER --command "echo 'source /etc/trafodion/trafodion_config' | ca
 sudo su $TRAF_USER --command "chmod 777 $CREATE_METRICS"
 
 sudo su $TRAF_USER --command "$CREATE_METRICS"
+
+
+if [[ $? -ne "0" ]]; then
+   echo "***ERROR: Register Metrics Failed"
+   echo "***ERROR: Exiting..."
+   exit -1
+fi
 
 }
 

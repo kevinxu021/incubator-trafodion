@@ -454,43 +454,22 @@ Lng32 CreateHistTables (const HSGlobalsClass* hsGlobal)
 Lng32 CreateSeabasePersSamples(const HSGlobalsClass* hsGlobal)
   {
     HSLogMan *LM = HSLogMan::Instance();
-    if (LM->LogNeeded())
-      {
-        snprintf(LM->msg, sizeof(LM->msg), "Creating %s table for schema %s on demand.",
-                         HBASE_PERS_SAMP_NAME, hsGlobal->catSch->data());
-        LM->Log(LM->msg);
-      }
+    Lng32 retcode = 0;
+    ComObjectName tableName(hsGlobal->hsperssamp_table->data());
+    HSSqTableDef sampleDef(tableName, ANSI_TABLE);
+    if (!sampleDef.objExists()) //DROP existing sample table
+    {
+      if (LM->LogNeeded())
+        {
+          snprintf(LM->msg, sizeof(LM->msg), "Creating %s table for schema %s on demand.",
+                           HBASE_PERS_SAMP_NAME, hsGlobal->catSch->data());
+          LM->Log(LM->msg);
+        }
 
-    NAString ddl = "CREATE TABLE IF NOT EXISTS ";
-    ddl.append(hsGlobal->hsperssamp_table->data())
-       .append(" (  TABLE_UID             LARGEINT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , REQUESTED_SAMPLE_ROWS LARGEINT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , ACTUAL_SAMPLE_ROWS    LARGEINT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , SAMPLING_RATIO        DOUBLE PRECISION NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , CREATE_TIME           TIMESTAMP(0) NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , REASON                CHAR(1) CHARACTER SET UCS2 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , SAMPLE_NAME           VARCHAR(250) CHARACTER SET UCS2 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , LAST_WHERE_PREDICATE  VARCHAR(250) CHARACTER SET UCS2 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , UPDATE_START_TIME      TIMESTAMP(0) NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , UPDATER_INFO        VARCHAR(128) CHARACTER SET ISO88591 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , V1                    VARCHAR(250) CHARACTER SET UCS2 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , V2                    VARCHAR(250) CHARACTER SET UCS2 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , constraint "HBASE_PERS_SAMP_PK" primary key"
-              "     (TABLE_UID ASC)"
-               " ) ;");
-
-    LM->StartTimer("Create Trafodion PERSISTENT_SAMPLES table");
-    Lng32 retcode = HSFuncExecDDL(ddl.data(), - UERR_INTERNAL_ERROR, NULL,
-                                    "Create Trafodion persistent samples table", NULL);
-    LM->StopTimer();
-    if (retcode < 0 && LM->LogNeeded())
-      {
-        snprintf(LM->msg, sizeof(LM->msg), "Creation of %s failed.", HBASE_PERS_SAMP_NAME);
-        LM->Log(LM->msg);
-      }
-
+      retcode = CreateHistTables(hsGlobal);
+    }
     return retcode;
-  }
+}
 
 /***********************************************/
 /* METHOD:  HSSample create() member function  */
@@ -6199,6 +6178,27 @@ Lng32 HSCursor::fetch(Lng32 numResults,
                                  out22, NULL, out23, NULL, out24, NULL,
                                  out25, NULL);
   lastFetchReturned100_ = (retcode == 100);
+  return retcode;
+}
+
+Lng32 HSCursor::fetchV(Lng32 numResults, Int64 * int64result, void * wcharResults[])
+{
+  Lng32 retcode = 0;
+
+  retcode = SQL_EXEC_SetDescItem(outputDesc_, 1, SQLDESC_VAR_PTR,
+                                    (Long)int64result, 0);
+  HSHandleError(retcode);
+
+  for (int i = 2; i <= numResults; i++)
+    {
+      retcode = SQL_EXEC_SetDescItem(outputDesc_, i, SQLDESC_VAR_PTR,
+                                    (Long)(wcharResults[i-2]), 0);
+      HSHandleError(retcode);
+    }
+
+  retcode = SQL_EXEC_Fetch(stmt_, outputDesc_, 0); 
+  HSHandleError(retcode); 
+
   return retcode;
 }
 

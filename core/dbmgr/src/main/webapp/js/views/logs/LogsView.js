@@ -115,6 +115,7 @@ define([
 			if(common.commonTimeRange==null){
 				$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
 				$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
+				$(FILTER_TIME_RANGE).val("1");
 			}else{
 				if(common.commonTimeRange.timeRangeTag=="0"){
 					$(START_TIME_PICKER).data("DateTimePicker").date(common.commonTimeRange.startTime);
@@ -122,9 +123,8 @@ define([
 				}else{
 					_this.updateFilter(common.commonTimeRange.timeRangeTag);
 				}
+				$(FILTER_TIME_RANGE).val(common.commonTimeRange.timeRangeTag);
 			}
-			$(FILTER_TIME_RANGE).val(common.commonTimeRange.timeRangeTag);
-
 			lastAppliedFilters =  _this.getFilterParams();
 		},
 		initialDcsLogsLink:function(){
@@ -524,7 +524,7 @@ define([
 					buttons: [
 	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
 	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                          // { extend : 'excel', exportOptions: { columns: ':visible' } },
 	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 	                        	   title: 'Logs' } ,
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Logs' }

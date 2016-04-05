@@ -167,7 +167,7 @@ if [ $? != 0 ]; then
       exit -1
    fi
 fi
-ssh -q -n $HDFS_NODE 'sudo su' "$HDFS_USER" '--command "' "$HADOOP_BIN_PATH"'/hadoop fs -chown -R $TRAF_USER:trafodion /bulkload"'
+ssh -q -n $HDFS_NODE 'sudo su' "$HDFS_USER" '--command "' "$HADOOP_BIN_PATH"'/hadoop fs -chown -R '"$TRAF_USER"':trafodion /bulkload"'
 
 # Create lobs directory
 ssh -q -n $HDFS_NODE 'sudo su' "$HDFS_USER" '--command "'"$HADOOP_BIN_PATH"'/hadoop fs -mkdir /lobs" 2> $HOME/traf_temp_output'
@@ -180,7 +180,7 @@ if [ $? != 0 ]; then
       exit -1
    fi
 fi
-ssh -q -n $HDFS_NODE 'sudo su' "$HDFS_USER" '--command "'"$HADOOP_BIN_PATH"'/hadoop fs -chown -R $TRAF_USER:trafodion /lobs"'
+ssh -q -n $HDFS_NODE 'sudo su' "$HDFS_USER" '--command "'"$HADOOP_BIN_PATH"'/hadoop fs -chown -R '"$TRAF_USER"':trafodion /lobs"'
 
 
 #Create Backup directory 
@@ -194,7 +194,7 @@ if [ $? != 0 ]; then
       exit -1
    fi
 fi
-ssh -q -n $HDFS_NODE 'sudo su' "$HDFS_USER" '--command "'"$HADOOP_BIN_PATH"'/hadoop fs -chown -R $TRAF_USER:trafodion /trafodion_backups"'
+ssh -q -n $HDFS_NODE 'sudo su' "$HDFS_USER" '--command "'"$HADOOP_BIN_PATH"'/hadoop fs -chown -R '"$TRAF_USER"':trafodion /trafodion_backups"'
 
 ssh -q -n $HDFS_NODE 'sudo su' "$HDFS_USER" '--command "' "$HADOOP_BIN_PATH"'/hadoop fs -chmod 777 /trafodion_backups"'
 #=====================================
@@ -414,7 +414,7 @@ if [ $node_count -ne 1 ]; then
    cp $TRAF_CONFIG $LOCAL_WORKDIR
    $TRAF_PDCP $LOCAL_WORKDIR/$TRAF_CONFIG_FILE $HOME
    $TRAF_PDSH sudo mkdir -p $TRAF_CONFIG_DIR
-   $TRAF_PDSH sudo cp -rf$HOME/$TRAF_CONFIG_FILE $TRAF_CONFIG_DIR
+   $TRAF_PDSH sudo cp -rf $HOME/$TRAF_CONFIG_FILE $TRAF_CONFIG_DIR
    $TRAF_PDSH sudo chmod 777 $TRAF_CONFIG
 fi
 

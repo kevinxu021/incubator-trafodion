@@ -19,14 +19,6 @@
 >>sh regrhive.ksh -v -f $REGRTSTDIR/TEST009_a.hive.sql &> $REGRRUNDIR/LOG009_a.hive.log;
 >>sh regrhbase.ksh $REGRTSTDIR/TEST009_create_hbase_objects.hbase &> $REGRRUNDIR/LOG009_create_hbase_tables.log ;
 >>
->>-- make sure external schemas exist in Trafodion
->>execute get_hv_schemas;
-
---- 0 row(s) selected.
->>execute get_hb_schemas;
-
---- 0 row(s) selected.
->>
 >>obey TEST009(test_hive1);
 >>-- create external tables for precreated tables
 >>create external table customer for hive.hive.customer;
@@ -39,7 +31,7 @@
 
 --- SQL operation complete.
 >>
->>-- should create an schema called "_HV_HIVE_"
+>>-- should see a schema called "_HV_HIVE_"
 >>execute get_hv_schemas;
 
 SCHEMA_NAME
@@ -83,7 +75,6 @@ CREATE EXTERNAL TABLE CUSTOMER
       COLLATE DEFAULT DEFAULT NULL
   )
   FOR HIVE.HIVE.CUSTOMER
- ATTRIBUTES NO AUDIT
 ;
 
 --- SQL operation complete.
@@ -127,7 +118,6 @@ CREATE EXTERNAL TABLE ITEM
       COLLATE DEFAULT DEFAULT NULL
   )
   FOR HIVE.HIVE.ITEM
- ATTRIBUTES NO AUDIT
 ;
 
 --- SQL operation complete.
@@ -169,7 +159,6 @@ CREATE EXTERNAL TABLE PROMOTION
       COLLATE DEFAULT DEFAULT NULL
   )
   FOR HIVE.HIVE.PROMOTION
- ATTRIBUTES NO AUDIT
 ;
 
 --- SQL operation complete.
@@ -200,7 +189,6 @@ CREATE EXTERNAL TABLE T009T1
   , C                                INT DEFAULT NULL
   )
   FOR HIVE.SCH_T009.T009T1
- ATTRIBUTES NO AUDIT
 ;
 
 --- SQL operation complete.
@@ -213,7 +201,6 @@ CREATE EXTERNAL TABLE T009T2
   , C                                INT DEFAULT NULL
   )
   FOR HIVE.SCH_T009.T009T2
- ATTRIBUTES NO AUDIT
 ;
 
 --- SQL operation complete.
@@ -311,16 +298,6 @@ A            B            C
 *** ERROR[1118] Creating object TRAFODION."_HV_HIVE_".NEWTABLE3 is not allowed in a reserved system schema.
 
 --- SQL operation failed with errors.
->>get tables;
-
-Tables in Schema TRAFODION._HV_HIVE_
-====================================
-
-CUSTOMER
-ITEM
-PROMOTION
-
---- SQL operation complete.
 >>
 >>-- test creates with a different default schema
 >>create schema hive_t009;
@@ -375,6 +352,7 @@ Tables in Schema TRAFODION.HIVE_T009
 
 SB_HISTOGRAMS
 SB_HISTOGRAM_INTERVALS
+SB_PERSISTENT_SAMPLES
 T009T1
 
 --- SQL operation complete.
@@ -523,7 +501,7 @@ _HB__CELL__
 >>invoke trafodion."_HB__ROW__"."baseball";
 
 -- Definition of Trafodion external table TRAFODION."_HB__ROW__"."baseball"
--- Definition current  Sat Feb 20 08:37:38 2016
+-- Definition current  Thu Mar 24 21:13:21 2016
 
   (
     ROW_ID                           VARCHAR(100) CHARACTER SET ISO88591
@@ -531,14 +509,12 @@ _HB__CELL__
   , COLUMN_DETAILS                   VARCHAR(10000) CHARACTER SET ISO88591
       COLLATE DEFAULT DEFAULT NULL NOT NULL NOT DROPPABLE
   )
- ATTRIBUTES NO AUDIT
-;
 
 --- SQL operation complete.
 >>invoke trafodion."_HB__CELL__"."baseball";
 
 -- Definition of Trafodion external table TRAFODION."_HB__CELL__"."baseball"
--- Definition current  Sat Feb 20 08:37:39 2016
+-- Definition current  Thu Mar 24 21:13:22 2016
 
   (
     ROW_ID                           VARCHAR(100) CHARACTER SET ISO88591
@@ -552,8 +528,6 @@ _HB__CELL__
   , COL_VALUE                        VARCHAR(1000) CHARACTER SET ISO88591
       COLLATE DEFAULT DEFAULT NULL NOT NULL NOT DROPPABLE
   )
- ATTRIBUTES NO AUDIT
-;
 
 --- SQL operation complete.
 >>showddl trafodion."_HB__ROW__"."baseball";

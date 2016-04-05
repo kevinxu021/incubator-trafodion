@@ -496,7 +496,7 @@ short CmpSeabaseDDL::createSeabaseTableExternal(
 
   if (isAuthorizationEnabled())
     {
-      if (srcTableName.isExternalHive())
+      if (tgtTableName.isExternalHive())
         {
           tableInfo->objOwnerID = HIVE_ROLE_ID;
           tableInfo->schemaOwnerID = HIVE_ROLE_ID;
@@ -2924,7 +2924,7 @@ short CmpSeabaseDDL::dropSeabaseTable2(
   const NAString extTableName = tableName.getExternalName(TRUE);
   const NAString extNameForHbase = catalogNamePart + "." + schemaNamePart + "." + objectNamePart;
 
-  // allowExternalTables: true to allow an NATable entry to be created for an external table
+  // allowExternalTables: true to allow an NATable entry to be dropped for an external table
   BindWA bindWA(ActiveSchemaDB(), CmpCommon::context(), FALSE/*inDDL*/);
   bindWA.setAllowExternalTables(TRUE);
  
@@ -3106,7 +3106,6 @@ short CmpSeabaseDDL::dropSeabaseTable2(
 
   NATable *naTable = bindWA.getNATable(cn); 
  
-  const NAColumnArray &nacolArr =  naTable->getNAColumnArray();
   // Restore parser flags settings to what they originally were
   Set_SqlParser_Flags (savedParserFlags);
 
@@ -3698,6 +3697,7 @@ short CmpSeabaseDDL::dropSeabaseTable2(
 
   // If blob/clob columns are present, drop all the dependent files.
 
+  const NAColumnArray &nacolArr =  naTable->getNAColumnArray();
   Lng32 numCols = nacolArr.entries();
   
   // if this table has lob columns, drop the lob files

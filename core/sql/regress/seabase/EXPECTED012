@@ -41,7 +41,7 @@
 >>invoke t012t1;
 
 -- Definition of Trafodion table TRAFODION.SCH.T012T1
--- Definition current  Thu Feb 25 09:14:19 2016
+-- Definition current  Fri Mar 25 15:31:20 2016
 
   (
     A                                SMALLINT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -65,7 +65,7 @@
 >>invoke t012v1;
 
 -- Definition of Trafodion view TRAFODION.SCH.T012V1
--- Definition current  Thu Feb 25 09:14:22 2016
+-- Definition current  Fri Mar 25 15:31:23 2016
 
   (
     A                                SMALLINT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -284,6 +284,7 @@ Tables in Schema TRAFODION.ZSCHEMA
 
 SB_HISTOGRAMS
 SB_HISTOGRAM_INTERVALS
+SB_PERSISTENT_SAMPLES
 T012T11
 T012T12
 

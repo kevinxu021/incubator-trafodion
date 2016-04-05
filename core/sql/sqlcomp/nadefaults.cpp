@@ -1293,7 +1293,7 @@ SDDui___(CYCLIC_ESP_PLACEMENT,                  "1"),
   DDSint__(ESP_ASSIGN_DEPTH,                    "0"),
 
   DDSint__(ESP_FIXUP_PRIORITY_DELTA,            "0"),
-  DDSint__(ESP_IDLE_TIMEOUT,                    "0"),
+  DDint__(ESP_IDLE_TIMEOUT,                    "1800"), // To match with set session defaults value
   DDkwd__(ESP_MULTI_FRAGMENTS,			"ON"),
   DDkwd__(ESP_MULTI_FRAGMENT_QUOTAS,		"ON"),
   DDui1500_4000(ESP_MULTI_FRAGMENT_QUOTA_VM,	"4000"),
@@ -1986,6 +1986,8 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DD_____(HIVE_USE_FAKE_SQ_NODE_NAMES,          "" ),
   DDkwd__(HIVE_USE_FAKE_TABLE_DESC,             "OFF"),
   DDkwd__(HIVE_USE_HASH2_AS_PARTFUNCTION,       "ON"),
+  DDkwd__(HIVE_USE_PERSISTENT_KEY,              "OFF"),
+  DDkwd__(HIVE_USE_SORT_COLS_IN_KEY,            "OFF"),
   DDkwd__(HIVE_VIEWS,                           "OFF"),
 
  // -------------------------------------------------------------------------

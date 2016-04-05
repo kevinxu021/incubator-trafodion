@@ -255,6 +255,7 @@ define([
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 			}
 			/*alert('The cancel query request has been submitted');*/
+			_this.fetchExplainPlan();
 		},
 		cancelQueryError:function(jqXHR){
 			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
@@ -273,6 +274,7 @@ define([
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 			}
 			/*alert(jqXHR.responseText);*/
+			_this.fetchExplainPlan();
 		},        
 
 	});

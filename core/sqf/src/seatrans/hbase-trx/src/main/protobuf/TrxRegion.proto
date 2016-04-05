@@ -386,6 +386,16 @@ message TransactionStateMsg {
   required int32 commitProgress = 11;
 }
 
+message TransactionMutationMsg {
+  required int64 txId = 1;
+  repeated MutationProto put = 2;
+  repeated MutationProto delete = 3;
+  repeated bool putOrDel = 4;
+  required int64 startId = 5;
+  required int64 commitId = 6;
+  optional int32 xdcMode = 7;
+}
+
 service TrxRegionService {
   rpc abortTransaction(AbortTransactionRequest)
     returns(AbortTransactionResponse);
