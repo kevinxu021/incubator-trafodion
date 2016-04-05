@@ -349,10 +349,8 @@ ExWorkProcRetcode ExOrcScanTcb::work()
                 orcNumRows_ = hdfo_->getNumRows();
                 sprintf(cursorId_, "%d", currRangeNum_);
 
-                if (orcNumRows_ == -1) // select all rows
-                  orcStopRowNum_ = -1;
-                else
-                  orcStopRowNum_ = orcNumRows_;
+                orcStopRowNum_ = orcNumRows_; // the length of the stripe to access.
+                                              // -1 to pick all rows
 
                 step_ = OPEN_ORC_CURSOR;
               }
@@ -751,10 +749,8 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 
             sprintf(cursorId_, "%d", currRangeNum_);
 
-            if (orcNumRows_ == -1) // select all rows
-              orcStopRowNum_ = -1;
-            else
-              orcStopRowNum_ = orcNumRows_;
+            orcStopRowNum_ = orcNumRows_; // the length of the stripe to access.
+                                          // -1 to access all rows.
 
             orcAggrTdb().getAggrTypeList()->position();
             orcAggrTdb().getHdfsColInfoList()->position();
