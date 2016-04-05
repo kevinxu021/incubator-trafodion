@@ -429,7 +429,7 @@ define([
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
-					          { extend : 'excel', exportOptions: { columns: ':visible' } },
+					         // { extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Schema level privilges for " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Schema level privilges for " + routeArgs.name }
 					          ],					             

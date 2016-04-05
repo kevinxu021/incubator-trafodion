@@ -3,6 +3,10 @@
 export timestamp=$(date +%F-%H-%M-%S)
 export YUM_LOG=/var/log/trafodion/trafodion_yum_$timestamp.log
 export ZYPP_LOG=/var/log/trafodion/trafodion_zypp_$timestamp.log
+export hadoop_path=$HADOOP_PATH
+echo $hadoop_path
+export hadoop_bin_path=$HADOOP_BIN_PATH
+echo $hadoop_bin_path
 
 TRAF_CONFIG="/etc/trafodion/trafodion_config"
 source $TRAF_CONFIG
@@ -231,6 +235,13 @@ sudo su $TRAF_USER --command "chmod 777 $CREATE_TABLE"
 
 sudo su $TRAF_USER --command "$TRAF_PDSH $CREATE_TABLE"
 
+if [[ $? -ne "0" ]]; then
+   echo "***ERROR: Unable to create openTSDB Tables"
+   echo "***ERROR: Exiting..."
+   exit -1
+fi
+
+
 }
 
 function registerMetrics {
@@ -243,6 +254,13 @@ sudo su $TRAF_USER --command "echo 'source /etc/trafodion/trafodion_config' | ca
 sudo su $TRAF_USER --command "chmod 777 $CREATE_METRICS"
 
 sudo su $TRAF_USER --command "$CREATE_METRICS"
+
+
+if [[ $? -ne "0" ]]; then
+   echo "***ERROR: Register Metrics Failed"
+   echo "***ERROR: Exiting..."
+   exit -1
+fi
 
 }
 
@@ -477,6 +495,17 @@ $TRAF_PDSH sudo chmod -R 755 $DBMGR_INSTALL_DIR
 
 }
 
+function setHadoopPath {
+
+sudo chmod 777 $TRAF_CONFIG
+echo "export HADOOP_PATH=\"$hadoop_path\"" >> $TRAF_CONFIG
+echo "export HADOOP_BIN_PATH=\"$hadoop_bin_path\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+source $TRAF_CONFIG
+
+
+}
+
 #================================================
 
 #Main
@@ -514,3 +543,5 @@ editLogBack
 configureDBM
 
 changePermissions
+
+setHadoopPath

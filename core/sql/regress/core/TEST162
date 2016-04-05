@@ -63,7 +63,7 @@ select t_time from time_dim where t_time > 100 and t_time < 200 ;
 
 select * from store ; 
 
-select d_date from date_dim where d_date > cast('2099-01-01' as timestamp);
+select d_date from date_dim where d_date > cast('2099-01-01' as date);
 
 select [first 10] i_item_desc from item ;
 

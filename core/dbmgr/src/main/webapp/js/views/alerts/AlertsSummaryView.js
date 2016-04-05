@@ -55,7 +55,65 @@ define([
 
 		doInit: function (){
 			_this = this;
+			
+			this.bindInitialEvents();
+			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			this.initialTimeRangePicker();
+			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
+			$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 
+			serverHandler.on(serverHandler.FETCH_ALERTS_LIST_SUCCESS, this.displayResults);
+			serverHandler.on(serverHandler.FETCH_ALERTS_LIST_ERROR, this.showErrorMessage);
+			$(REFRESH_MENU).on('click', this.fetchAlertsSummary);
+			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
+			$(OPEN_FILTER).on('click', this.filterButtonClicked);
+			refreshTimerView.init();
+			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
+			refreshTimerView.setRefreshInterval(1);
+			this.fetchAlertsSummary();
+		},
+		doResume: function(){
+			this.initialTimeRangePicker();
+			serverHandler.on(serverHandler.FETCH_ALERTS_LIST_SUCCESS, this.displayResults);
+			serverHandler.on(serverHandler.FETCH_ALERTS_LIST_ERROR, this.showErrorMessage);			
+			$(REFRESH_MENU).on('click', this.fetchAlertsSummary);
+			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
+			$(OPEN_FILTER).on('click', this.filterButtonClicked);
+			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
+			this.fetchAlertsSummary();
+		},
+		doPause: function(){
+			this.storeCommonTimeRange();
+			serverHandler.off(serverHandler.FETCH_ALERTS_LIST_SUCCESS, this.displayResults);
+			serverHandler.off(serverHandler.FETCH_ALERTS_LIST_ERROR, this.showErrorMessage);			
+			$(REFRESH_MENU).off('click', this.fetchLogs);
+			$(FILTER_APPLY_BUTTON).off('click', this.filterApplyClicked);
+			$(OPEN_FILTER).off('click', this.filterButtonClicked);
+			refreshTimerView.eventAgg.off(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimerView.eventAgg.off(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
+		},
+		initialTimeRangePicker:function(){
+			if(common.commonTimeRange==null){
+				$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
+				$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
+				$(FILTER_TIME_RANGE).val("1");
+			}else{
+				if(common.commonTimeRange.timeRangeTag=="0"){
+					$(START_TIME_PICKER).data("DateTimePicker").date(common.commonTimeRange.startTime);
+					$(END_TIME_PICKER).data("DateTimePicker").date(common.commonTimeRange.endTime);
+				}else{
+					_this.updateFilter(common.commonTimeRange.timeRangeTag);
+				}
+				$(FILTER_TIME_RANGE).val(common.commonTimeRange.timeRangeTag);
+			}
+			lastAppliedFilters =  _this.getFilterParams();
+		},
+		bindInitialEvents:function(){
 			$.validator.addMethod("validateCustomStartTime", function(value, element) {
 				var timeRange = $(FILTER_TIME_RANGE).val();
 				if(timeRange == '0'){
@@ -91,7 +149,6 @@ define([
 				return true;
 
 			}, "* Invalid Date Time and/or Start Time is greater than End Time");
-
 			validator = $(FILTER_FORM).validate({
 				rules: {
 					"filter-start-time": { required: false, validateCustomStartTime: true, validateStartAndEndTimes: true },
@@ -121,12 +178,6 @@ define([
 					$(FILTER_APPLY_BUTTON).attr('disabled', true);
 				}
 			});
-
-			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
-			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
-			$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
-			$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
-
 			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
 				_this.updateFilter();
 			});
@@ -170,36 +221,6 @@ define([
 					$('#filter-end-time').prop("disabled", false);
 				}
 			});
-
-			serverHandler.on(serverHandler.FETCH_ALERTS_LIST_SUCCESS, this.displayResults);
-			serverHandler.on(serverHandler.FETCH_ALERTS_LIST_ERROR, this.showErrorMessage);
-			$(REFRESH_MENU).on('click', this.fetchAlertsSummary);
-			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
-			$(OPEN_FILTER).on('click', this.filterButtonClicked);
-			refreshTimerView.init();
-			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
-			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
-			refreshTimerView.setRefreshInterval(1);
-			this.fetchAlertsSummary();
-		},
-		doResume: function(){
-			serverHandler.on(serverHandler.FETCH_ALERTS_LIST_SUCCESS, this.displayResults);
-			serverHandler.on(serverHandler.FETCH_ALERTS_LIST_ERROR, this.showErrorMessage);			
-			$(REFRESH_MENU).on('click', this.fetchAlertsSummary);
-			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
-			$(OPEN_FILTER).on('click', this.filterButtonClicked);
-			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
-			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
-			this.fetchAlertsSummary();
-		},
-		doPause: function(){
-			serverHandler.off(serverHandler.FETCH_ALERTS_LIST_SUCCESS, this.displayResults);
-			serverHandler.off(serverHandler.FETCH_ALERTS_LIST_ERROR, this.showErrorMessage);			
-			$(REFRESH_MENU).off('click', this.fetchLogs);
-			$(FILTER_APPLY_BUTTON).off('click', this.filterApplyClicked);
-			$(OPEN_FILTER).off('click', this.filterButtonClicked);
-			refreshTimerView.eventAgg.off(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
-			refreshTimerView.eventAgg.off(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
@@ -207,8 +228,12 @@ define([
 		hideLoading: function () {
 			$(LOADING_SELECTOR).hide();
 		},
-		updateFilter: function(){
-			var selection = $(FILTER_TIME_RANGE).val();
+		updateFilter: function(selection){
+			if(selection==null){
+				selection = $(FILTER_TIME_RANGE).val();
+			}else{
+				$(FILTER_TIME_RANGE).val(selection);
+			}
 			switch(selection){
 			case "-1":
 				$('#startdatetimepicker').data("DateTimePicker").clear();
@@ -234,6 +259,12 @@ define([
 				$('#filter-start-time').prop("disabled", true);
 				$('#filter-end-time').prop("disabled", true);
 				break;
+			case "128":
+				$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'week'));
+				$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
+				$('#filter-start-time').prop("disabled", true);
+				$('#filter-end-time').prop("disabled", true);
+				break;
 			case "0":
 				$('#filter-start-time').prop("disabled", false);
 				$('#filter-end-time').prop("disabled", false);
@@ -247,6 +278,16 @@ define([
 					$(TIME_RANGE_LABEL).text('Time Range : ' +  $(START_TIME_PICKER).data("DateTimePicker").date().format(DATE_FORMAT_ZONE) + ' - ' +  $(END_TIME_PICKER).data("DateTimePicker").date().format(DATE_FORMAT_ZONE));
 				}else{
 					$(TIME_RANGE_LABEL).text('Time Range : <All time ranges included>' );
+				}
+			}
+		},
+		storeCommonTimeRange:function(){
+			var selection = $(FILTER_TIME_RANGE).val();
+			if(selection != null) {
+				if(selection != '-1'){
+					common.getCommonTimeRange(selection);
+				}else{
+					common.getCommonTimeRange("1");
 				}
 			}
 		},
@@ -431,7 +472,7 @@ define([
 					buttons: [
 	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
 	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                           //{ extend : 'excel', exportOptions: { columns: ':visible' } },
 	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 	                        	   title: 'Alerts' } ,
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Alerts' }

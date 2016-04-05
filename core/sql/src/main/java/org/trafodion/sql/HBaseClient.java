@@ -688,6 +688,8 @@ public class HBaseClient {
               table.dropTable(tblName, transID);
            }
            else {
+               if (! admin.isTableEnabled(tblName))
+                   admin.enableTable(tblName);
               admin.disableTable(tblName);
               admin.deleteTable(tblName);
               admin.close();
@@ -701,7 +703,7 @@ public class HBaseClient {
         return cleanupCache(tblName);
     }
 
-    public boolean dropAll(String pattern) 
+    public boolean dropAll(String pattern, long transID) 
              throws MasterNotRunningException, IOException {
             if (logger.isDebugEnabled()) logger.debug("HBaseClient.dropAll(" + pattern + ") called.");
             HBaseAdmin admin = new HBaseAdmin(config);
@@ -717,14 +719,32 @@ public class HBaseClient {
                 int idx = tblName.indexOf("TRAFODION._DTM_");
                 if (idx == 0)
                     continue;
+
+                try {
+                    if(transID != 0) {
+                        //                        System.out.println("tblName " + tblName);
+                        table.dropTable(tblName, transID);
+                    }
+                    else {
+                        if (! admin.isTableEnabled(tblName))
+                            admin.enableTable(tblName);
+                        
+                        admin.disableTable(tblName);
+                        admin.deleteTable(tblName);
+                    }
+                }
                 
-                //                System.out.println(tblName);
-                admin.disableTable(tblName);
-                admin.deleteTable(tblName);
-	    }
- 	    
+                catch (IOException e) {
+                    if (logger.isDebugEnabled()) logger.debug("HbaseClient.dropAll  error" + e);
+                    throw e;
+                }
+                
+                cleanupCache(tblName);
+            }
+
             admin.close();
-            return cleanup();
+            //            return cleanup();
+            return true;
     }
 
     public ByteArrayList listAll(String pattern) 
@@ -805,12 +825,12 @@ public class HBaseClient {
             return regionInfo;
     }
 
-    public boolean copy(String currTblName, String oldTblName)
+    public boolean copy(String srcTblName, String tgtTblName, boolean force)
 	throws MasterNotRunningException, IOException, SnapshotCreationException, InterruptedException {
-            if (logger.isDebugEnabled()) logger.debug("HBaseClient.copy(" + currTblName + oldTblName + ") called.");
+            if (logger.isDebugEnabled()) logger.debug("HBaseClient.copy(" + srcTblName + tgtTblName + ") called.");
             HBaseAdmin admin = new HBaseAdmin(config);
 	    
-	    String snapshotName = currTblName + "_SNAPSHOT";
+	    String snapshotName = srcTblName + "_SNAPSHOT";
 	    
 	    List<SnapshotDescription> l = new ArrayList<SnapshotDescription>(); 
 	    //	    l = admin.listSnapshots(snapshotName);
@@ -818,33 +838,30 @@ public class HBaseClient {
 	    if (! l.isEmpty())
 		{
 		    for (SnapshotDescription sd : l) {
-			//			System.out.println("here 1");
-			//			System.out.println(snapshotName);
-			//			System.out.println(sd.getName());
 			if (sd.getName().compareTo(snapshotName) == 0)
 			    {
-				//				System.out.println("here 2");
-				//			    admin.enableTable(snapshotName);
-				//				System.out.println("here 3");
 				admin.deleteSnapshot(snapshotName);
-				//				System.out.println("here 4");
 			    }
 		    }
 		}
-	    //	    System.out.println(snapshotName);
-	    if (! admin.isTableDisabled(currTblName))
-		admin.disableTable(currTblName);
-	    //	    System.out.println("here 5");
-	    admin.snapshot(snapshotName, currTblName);
-	    admin.cloneSnapshot(snapshotName, oldTblName);
+
+            if ((force == true) &&
+                (admin.tableExists(tgtTblName))) {
+                admin.disableTable(tgtTblName);
+                admin.deleteTable(tgtTblName);
+            }
+                
+	    if (! admin.isTableDisabled(srcTblName))
+		admin.disableTable(srcTblName);
+	    admin.snapshot(snapshotName, srcTblName);
+	    admin.cloneSnapshot(snapshotName, tgtTblName);
 	    admin.deleteSnapshot(snapshotName);
-	    //	    System.out.println("here 6");
-	    admin.enableTable(currTblName);
+	    admin.enableTable(srcTblName);
             admin.close();
             return true;
     }
 
-    public boolean exists(String tblName)  
+    public boolean exists(String tblName, long transID)  
            throws MasterNotRunningException, IOException {
             if (logger.isDebugEnabled()) logger.debug("HBaseClient.exists(" + tblName + ") called.");
             HBaseAdmin admin = new HBaseAdmin(config);
@@ -1782,6 +1799,7 @@ public class HBaseClient {
         admin.close();
         return true;
     }
+
     HTableDescriptor desc = new HTableDescriptor(tn);
     HColumnDescriptor colDesc = new HColumnDescriptor(famName);
     // A counter table is non-DTM-transactional.

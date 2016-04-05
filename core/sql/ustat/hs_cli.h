@@ -904,6 +904,9 @@ public:
               void* out19 = NULL, void* out20 = NULL, void* out21 = NULL,
               void* out22 = NULL, void* out23 = NULL, void* out24 = NULL,
               void* out25 = NULL);
+  // the next one is used when the result set is an Int64 followed by 
+  // numResults - 1 NAWchars
+  Lng32 fetchV(Lng32 numResults, Int64 * int64result, void * wcharResults[]);
   Lng32 close();
 
   SQLSTMT_ID* getStmt() {return stmt_;}

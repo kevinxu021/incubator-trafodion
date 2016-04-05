@@ -1,3 +1,4 @@
+bosun.email.sent_failed
 bosun.email.sent
 df.bytes.free 
 df.bytes.percentused 

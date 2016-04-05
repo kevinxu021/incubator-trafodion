@@ -11,12 +11,16 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.Properties;
 
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.esgyn.dbmgr.common.JdbcHelper;
 import com.esgyn.dbmgr.model.DBMgrConfig;
 import com.esgyn.dbmgr.sql.SystemQueries;
 import com.esgyn.dbmgr.sql.SystemQueryCache;
@@ -28,7 +32,7 @@ public class ConfigurationResource {
 	private static Properties xmlConfig = new Properties();
 	private static String serverTimeZone = "UTC";
 	private static long serverUTCOffset = 0;
-	private static String systemVersion = "";
+	private static String systemVersion = null;
 
 	public static int getMaxPoolSize() {
 		String maxSize = xmlConfig.getProperty("maxPoolSize", "2");
@@ -141,6 +145,9 @@ public class ConfigurationResource {
 		return alertsEnabled;
 	}
 	public static String getSystemVersion() {
+		if(ConfigurationResource.systemVersion == null){
+			GetSystemProperties();
+		}
 		return ConfigurationResource.systemVersion;
 	}
 
@@ -266,5 +273,44 @@ public class ConfigurationResource {
 
 		SystemQueryCache.setSystemQueryies(systemQueries);
 	}
+
+	private static void GetSystemProperties() {
+		Connection connection = null;
+
+		try {
+			connection = JdbcHelper.getInstance().getAdminConnection();
+
+			Statement stmt = connection.createStatement();
+			ResultSet rs = stmt.executeQuery("info system");
+			while (rs.next()) {
+				ConfigurationResource.setServerTimeZone(rs.getString("TM_ZONE"));
+				ConfigurationResource.setServerUTCOffset(rs.getLong("TM_GMTOFF_SEC"));
+				break;
+			}
+			rs = stmt.executeQuery("get version of software");
+			if (rs.next()) {
+				String version = rs.getString(1);
+				String[] versionparts = version.split(":");
+				ConfigurationResource
+						.setSystemVersion(versionparts.length > 1 ? versionparts[1].trim() : versionparts[0]);
+			}
+			rs.close();
+			stmt.close();
+
+		} catch (Exception e) {
+			_LOG.error(e.getMessage());
+			System.out.println("Cannot open an admin connection : " + e.getMessage());
+		} finally {
+
+			try {
+				if (connection != null) {
+					connection.close();
+				}
+			} catch (Exception ex) {
+
+			}
+		}
+	}
+
 
 }

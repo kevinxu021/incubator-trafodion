@@ -193,11 +193,48 @@ short FileScan::codeGen(Generator * generator)
   return 0;
 }
 
-int HbaseAccess::createAsciiColAndCastExpr(Generator * generator,
-						  const NAType &givenType,
-						  ItemExpr *&asciiValue,
-						  ItemExpr *&castValue)
+int HbaseAccess::createAsciiColAndCastExprNative(Generator * generator,
+                                                 const NAType &givenType,
+                                                 ItemExpr *&asciiValue,
+                                                 ItemExpr *&castValue)
 {
+  int result = 0;
+  asciiValue = NULL;
+  castValue = NULL;
+  CollHeap * h = generator->wHeap();
+
+  // if this is an upshifted datatype, remove the upshift attr.
+  // We dont want to upshift data during retrievals or while building keys.
+  // Data is only upshifted during insert or updates.
+  const NAType * newGivenType = &givenType;
+  if (newGivenType->getTypeQualifier() == NA_CHARACTER_TYPE &&
+      ((CharType *)newGivenType)->isUpshifted())
+    {
+      newGivenType = newGivenType->newCopy(h);
+      ((CharType*)newGivenType)->setUpshifted(FALSE);
+    }
+
+  asciiValue = new (h) NATypeToItem(newGivenType->newCopy(h));
+  castValue = new(h) Cast(asciiValue, newGivenType); 
+  if (newGivenType->getTypeQualifier() == NA_INTERVAL_TYPE)
+    ((Cast*)castValue)->setAllowSignInInterval(TRUE);
+  
+  if (castValue && asciiValue)
+    result = 1;
+
+  return result;
+}
+
+int HbaseAccess::createAsciiColAndCastExpr(Generator * generator,
+                                           const NAType &givenType,
+                                           ItemExpr *&asciiValue,
+                                           ItemExpr *&castValue,
+                                           NABoolean isOrc)
+{
+  if (isOrc)
+    return createAsciiColAndCastExprNative
+      (generator, givenType, asciiValue, castValue);
+
   int result = 0;
   asciiValue = NULL;
   castValue = NULL;
@@ -232,7 +269,7 @@ int HbaseAccess::createAsciiColAndCastExpr(Generator * generator,
   // HIVE_FILE_CHARSET can only be empty or GBK
   else if (  needTranslate == TRUE )
   {
-      asciiType =  new (h) SQLVarChar(sizeof(Int64)/2, newGivenType->supportsSQLnull(),
+      asciiType =  new (h) SQLVarChar(sizeof(Int64), newGivenType->supportsSQLnull(),
                                       FALSE, FALSE, CharInfo::GBK);
   }
   else
@@ -324,13 +361,16 @@ int HbaseAccess::createAsciiColAndCastExpr2(Generator * generator,
 }
 
 short FileScan::genForTextAndSeq(Generator * generator,
-                                Queue * &hdfsFileInfoList,
-                                Queue * &hdfsFileRangeBeginList,
-                                Queue * &hdfsFileRangeNumList,
-                                char* &hdfsHostName,
-                                Int32 &hdfsPort,
-                                NABoolean &useCursorMulti,
-                                NABoolean &doSplitFileOpt)
+                                 Queue * &hdfsFileInfoList,
+                                 Queue * &hdfsFileRangeBeginList,
+                                 Queue * &hdfsFileRangeNumList,
+                                 char* &hdfsHostName,
+                                 Int32 &hdfsPort,
+                                 NABoolean &useCursorMulti,
+                                 NABoolean &doSplitFileOpt,
+                                 ExpTupleDesc *partCols,
+                                 int partColValuesLen,
+                                 const HivePartitionAndBucketKey *hiveSearchKey)
 {
   Space * space          = generator->getSpace();
 
@@ -425,9 +465,18 @@ short FileScan::genForTextAndSeq(Generator * generator,
 	      hfi.bytesToRead_ = span;
 	      hfi.fileName_ = fnameInList;
 	      
+              if (partColValuesLen > 0)
+                {
+                  hfi.partColValues_ =
+                    space->allocateAndCopyToAlignedSpace(
+                         hiveSearchKey->getExplodedPartColValues(
+                              scanInfo[j].partition_->getPartIndex()),
+                         partColValuesLen);
+                }
+	      
 	      char * hfiInList = space->allocateAndCopyToAlignedSpace
 		((char*)&hfi, sizeof(HdfsFileInfo));
-	      
+
 	      hdfsFileInfoList->insert((char*)hfiInList);
 	    } // for
 
@@ -454,13 +503,19 @@ short FileScan::genForTextAndSeq(Generator * generator,
 }
 
 short FileScan::genForOrc(Generator * generator,
-                         const HHDFSTableStats* hTabStats,
-                         const PartitioningFunction * mypart,
-                         Queue * &hdfsFileInfoList,
-                         Queue * &hdfsFileRangeBeginList,
-                         Queue * &hdfsFileRangeNumList,
-                         char* &hdfsHostName,
-                         Int32 &hdfsPort)
+                          const HHDFSTableStats* hTabStats,
+                          const PartitioningFunction * mypart,
+                          NAList<OrcPushdownPredInfo> *listOfOrcPPI,
+                          Queue * &hdfsFileInfoList,
+                          Queue * &hdfsFileRangeBeginList,
+                          Queue * &hdfsFileRangeNumList,
+                          Queue * &tdbListOfOrcPPI,
+                          ValueIdList &orcOperVIDlist,
+                          char* &hdfsHostName,
+                          Int32 &hdfsPort,
+                          ExpTupleDesc *partCols,
+                          int partColValuesLen,
+                          const HivePartitionAndBucketKey *hiveSearchKey)
 {
   Space * space          = generator->getSpace();
 
@@ -472,7 +527,7 @@ short FileScan::genForOrc(Generator * generator,
   hdfsFileInfoList = new(space) Queue(space);
   hdfsFileRangeBeginList = new(space) Queue(space);
   hdfsFileRangeNumList = new(space) Queue(space);
-
+ 
   const NodeMap* nmap = (mypart ? mypart->getNodeMap() : NULL);
 
   NABoolean emptyScan = FALSE;
@@ -497,94 +552,52 @@ short FileScan::genForOrc(Generator * generator,
   if (emptyScan)
     {
       const char * fname = hTabStats->tableDir();
-      
-      if (hTabStats->entries() > 0)
+      HiveFileIterator it;
+
+      while (hiveSearchKey->getNextFile(it))
         {
-          const HHDFSListPartitionStats * ps = (*hTabStats)[0];
+          const HHDFSListPartitionStats * ps = it.getPartStats();
+          const HHDFSFileStats * fs = it.getFileStats();
 
-          if (ps->entries() > 0)
-            {
-              const HHDFSBucketStats * bs = (*ps)[0];
-              if (bs->entries() > 0)
-                {
-                  for (Lng32 i = 0; i < bs->entries(); i++)
-                    {
-                      const HHDFSFileStats * fs = (*bs)[i];
-
-                      char * fnameInList = 
-                        space->allocateAndCopyToAlignedSpace
-                        (fs->getFileName().data(), fs->getFileName().length(), 0);
-                      
-                      HdfsFileInfo hfi;
-                      hfi.flags_ = 0;
-                      hfi.entryNum_ = 0;
-                      
-                      hfi.startOffset_ = 1; // start at rownum 1.
-                      hfi.bytesToRead_ = -1; // stop at last row.
-                      hfi.fileName_ = fnameInList;
-                       
-                      char * hfiInList = space->allocateAndCopyToAlignedSpace
-                        ((char*)&hfi, sizeof(HdfsFileInfo));
-                      
-                      hdfsFileInfoList->insert((char*)hfiInList);
-                      
-                      beginRangeNum = 0;
-                      numRanges = 1;
-                      
-                      beginRangeInList = 
-                        space->allocateAndCopyToAlignedSpace
-                        ((char *)&beginRangeNum, sizeof(beginRangeNum), 0);
-                      
-                      numRangeInList = 
-                        space->allocateAndCopyToAlignedSpace
-                        ((char *)&numRanges, sizeof(numRanges), 0);
-                      
-                      hdfsFileRangeBeginList->insert(beginRangeInList);
-                      hdfsFileRangeNumList->insert(numRangeInList);
-                    } // for
-
-                } // if bs
-            } // if ps
-
-        } // if hTabStats
-
-      if (hdfsFileInfoList->entries() == 0)
-        {
-          // append "000000_0" to fname
-          NAString fnameStr(fname);
-          fnameStr += "/000000_0";
-          
           char * fnameInList = 
             space->allocateAndCopyToAlignedSpace
-            (fnameStr.data(), fnameStr.length(), 0);
-          
+            (fs->getFileName().data(), fs->getFileName().length(), 0);
+
           HdfsFileInfo hfi;
           hfi.flags_ = 0;
           hfi.entryNum_ = 0;
-          
+
           hfi.startOffset_ = 1; // start at rownum 1.
           hfi.bytesToRead_ = -1; // stop at last row.
           hfi.fileName_ = fnameInList;
-          
+
+          if (partColValuesLen > 0)
+            {
+              hfi.partColValues_ =
+                space->allocateAndCopyToAlignedSpace(
+                     hiveSearchKey->getExplodedPartColValues(ps->getPartIndex()),
+                     partColValuesLen);
+            }
+
           char * hfiInList = space->allocateAndCopyToAlignedSpace
             ((char*)&hfi, sizeof(HdfsFileInfo));
-          
+
           hdfsFileInfoList->insert((char*)hfiInList);
 
           beginRangeNum = 0;
           numRanges = 1;
-          
+
           beginRangeInList = 
             space->allocateAndCopyToAlignedSpace
             ((char *)&beginRangeNum, sizeof(beginRangeNum), 0);
-          
+
           numRangeInList = 
             space->allocateAndCopyToAlignedSpace
             ((char *)&numRanges, sizeof(numRanges), 0);
-          
+
           hdfsFileRangeBeginList->insert(beginRangeInList);
           hdfsFileRangeNumList->insert(numRangeInList);
-        }
+        } // while
     }
 
   if  ((NOT emptyScan) &&
@@ -618,10 +631,18 @@ short FileScan::genForOrc(Generator * generator,
 	      hfi.entryNum_ = entryNum;
 	      entryNum++;
 
-              // for now, scan all rows.
-	      hfi.startOffset_ = 1; // startRowNum
-	      hfi.bytesToRead_ = -1; // numRows
+	      hfi.startOffset_ = startRowNum; // used to be 1 to scan all rows
+	      hfi.bytesToRead_ = numRows;     // used to be -1 to scan all rows
 	      hfi.fileName_ = fnameInList;
+	      
+              if (partColValuesLen > 0)
+                {
+                  hfi.partColValues_ =
+                    space->allocateAndCopyToAlignedSpace(
+                         hiveSearchKey->getExplodedPartColValues(
+                              scanInfo[j].partition_->getPartIndex()),
+                         partColValuesLen);
+                }
 	      
 	      char * hfiInList = space->allocateAndCopyToAlignedSpace
 		((char*)&hfi, sizeof(HdfsFileInfo));
@@ -642,7 +663,121 @@ short FileScan::genForOrc(Generator * generator,
 	} // for nodemap
     } // if hive
 
+  tdbListOfOrcPPI = NULL;
+  if (listOfOrcPPI && (listOfOrcPPI->entries() > 0))
+    {
+      tdbListOfOrcPPI = new(space) Queue(space);
+      
+      for (Lng32 i = 0; i < listOfOrcPPI->entries(); i++)
+        {
+          OrcPushdownPredInfo &ppi = (*listOfOrcPPI)[i];
+          OrcPushdownOperatorType type = ppi.getType();
+         
+          ValueId &colValId = ppi.colValId();
+          char * colName = NULL;
+          if (colValId != NULL_VALUE_ID)
+            {
+              ItemExpr * ie = colValId.getItemExpr();
+              
+              NAColumn * nac = NULL;
+              if (ie->getOperatorType() == ITM_BASECOLUMN)
+                {
+                  nac = ((BaseColumn*)ie)->getNAColumn();
+                }
+              else if (ie->getOperatorType() == ITM_INDEXCOLUMN)
+                {
+                  nac = ((IndexColumn*)ie)->getNAColumn();
+                }
+
+              if (nac)
+                colName =
+                  space->allocateAndCopyToAlignedSpace
+                  (nac->getColName().data(), nac->getColName().length(), 0);
+            }
+
+          ValueId &operValId = ppi.operValId();
+          Lng32 operAttrIndex = -1;
+          if (operValId != NULL_VALUE_ID)
+            {
+              operAttrIndex = orcOperVIDlist.entries();
+
+              const NAType &typ = operValId.getType();
+              Lng32 dl = typ.getDisplayLength();
+              
+              if (typ.getTypeQualifier() != NA_CHARACTER_TYPE)
+                {
+                  NAType * newTyp = new (generator->wHeap())
+                    SQLVarChar(dl, typ.supportsSQLnull());
+                  
+                  ItemExpr * c = new(generator->wHeap()) 
+                    Cast(operValId.getItemExpr(), newTyp);
+                  c = c->bindNode(generator->getBindWA());
+                  c = c->preCodeGen(generator);
+                  operValId = c->getValueId();
+                }
+                
+              orcOperVIDlist.insert(operValId);
+            }
+
+          ComTdbOrcPPI * tdbPPI = 
+            new(space) ComTdbOrcPPI(type, colName, operAttrIndex);
+          tdbListOfOrcPPI->insert(tdbPPI);
+        } // for
+
+    }
+  
   return 0;
+}
+
+char * FileScan::genExplodedHivePartKeyVals(Generator *generator,
+                                            ExpTupleDesc *partCols,
+                                            const ValueIdList &valList)
+{
+  char *tgt = generator->getSpace()->allocateAlignedSpace(
+                                             partCols->tupleDataLength());
+  int numPartCols = partCols->numAttrs();
+
+  GenAssert(valList.entries() == numPartCols,
+            "Number of Hive part key cols must match col value list");
+
+  for (int pc=0; pc<numPartCols; pc++)
+    {
+      NABoolean dummy;
+      ConstValue *cv = valList[pc].getItemExpr()->castToConstValue(dummy);
+      GenAssert(cv, "Hive part col constant not found");
+      GenAssert(!dummy, "Negate not allowed in part col const");
+      const NAType &srcType = cv->getValueId().getType();
+      int srcNullIndOffset;
+      int srcVcLenOffset;
+      int srcDataOffset;
+      Attributes *attr = partCols->getAttr(pc);
+      const char *src = static_cast<char *>(cv->getConstValue());
+
+      // get the data layout of the binary buffer in the constant value
+      cv->getOffsetsInBuffer(srcNullIndOffset, srcVcLenOffset, srcDataOffset);
+
+      // move null indicator, VC length indicator, data separately because
+      // of alignment issues, even though the types of source and target match
+      if (attr->getNullFlag())
+        {
+          memcpy(&tgt[attr->getNullIndOffset()],
+                 &src[srcNullIndOffset],
+                 attr->getNullIndicatorLength());
+        }
+
+      if (attr->isVariableLength())
+        {
+          GenAssert(srcVcLenOffset >= 0,
+                    "Fixed char to varchar in genExplodedHivePartKeyVals");
+          memcpy(&tgt[attr->getVCLenIndOffset()],
+                 &src[srcVcLenOffset],
+                 attr->getVCIndicatorLength());
+        }
+
+      memcpy(&tgt[attr->getOffset()], &src[srcDataOffset], attr->getLength());
+    }
+
+  return tgt;
 }
 
 /*
@@ -703,57 +838,100 @@ short FileScan::codeGenForHive(Generator * generator)
   ValueIdSet outputCols =
     getGroupAttr()->getCharacteristicOutputs();
   outputCols -= getGroupAttr()->getCharacteristicInputs();
-  const ValueIdList& hdfsVals = getIndexDesc()->getIndexColumns();
+  const ValueIdList& allHdfsVals = getIndexDesc()->getIndexColumns();
+  const HHDFSTableStats* hTabStats = 
+    getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
+
+  NABoolean isOrc = hTabStats->isOrcFile();
+
   ValueIdList neededHdfsVals;
   ValueIdList executorPredVals;
   ValueIdList projectExprOnlyVals;
+  ValueIdList partCols;
+  ValueIdList virtCols;
   ValueId dummyVal;
   Int16 *convertSkipList = NULL;
   NABoolean inExecutorPred = FALSE;
   NABoolean inProjExpr = FALSE;
-  convertSkipList = new(space) Int16[hdfsVals.entries()];
+  int numPartColsUsed = 0;
+  int numVirtColsUsed = 0;
+  convertSkipList = new(space) Int16[allHdfsVals.entries()];
 
-  for (CollIndex i = 0; i < hdfsVals.entries(); i++)
+  for (CollIndex i = 0; i < allHdfsVals.entries(); i++)
   {
-    if (outputCols.referencesTheGivenValue(hdfsVals[i],dummyVal))
-      inProjExpr = TRUE ;
-    else
-      inProjExpr = FALSE;
+    NAColumn *nac =
+      static_cast<IndexColumn *>(allHdfsVals[i].getItemExpr())->getNAColumn();
+    NABoolean isPartCol = nac->isHivePartColumn();
+    NABoolean isVirtCol = nac->isHiveVirtualColumn();
 
-    if (executorPred().referencesTheGivenValue(hdfsVals[i],dummyVal))
-      inExecutorPred = TRUE;
-    else
-      inExecutorPred = FALSE;
+    inProjExpr = outputCols.referencesTheGivenValue(allHdfsVals[i],dummyVal);
+    inExecutorPred = executorPred().referencesTheGivenValue(allHdfsVals[i],dummyVal);
     
-    if (inExecutorPred && inProjExpr)
-    {
-      convertSkipList[i] = 1;
-      neededHdfsVals.insert(hdfsVals[i]);
-      executorPredVals.insert(hdfsVals[i]);
-    }
-    else if (inExecutorPred && !inProjExpr)
-    {
-      convertSkipList[i] = 2;   
-      neededHdfsVals.insert(hdfsVals[i]);
-      executorPredVals.insert(hdfsVals[i]);
-    }
-    else if (!inExecutorPred && inProjExpr)
-    {
-      convertSkipList[i] = 3;   
-      neededHdfsVals.insert(hdfsVals[i]);
-      projectExprOnlyVals.insert(hdfsVals[i]);
-    }
+    if (!isPartCol && !isVirtCol)
+      {
+        // a regular column that is stored in HDFS file and is
+        // returned in the first tupp after the input values
+        if (inExecutorPred && inProjExpr)
+          {
+            convertSkipList[i] = 1;
+            neededHdfsVals.insert(allHdfsVals[i]);
+            executorPredVals.insert(allHdfsVals[i]);
+          }
+        else if (inExecutorPred && !inProjExpr)
+          {
+            convertSkipList[i] = 2;   
+            neededHdfsVals.insert(allHdfsVals[i]);
+            executorPredVals.insert(allHdfsVals[i]);
+          }
+        else if (!inExecutorPred && inProjExpr)
+          {
+            convertSkipList[i] = 3;   
+            neededHdfsVals.insert(allHdfsVals[i]);
+            projectExprOnlyVals.insert(allHdfsVals[i]);
+          }
+        else if (CmpCommon::getDefault(ORC_COLUMNS_PUSHDOWN) == DF_OFF)
+          {
+            neededHdfsVals.insert(allHdfsVals[i]);
+            // convertSkipList[i] remains at 0
+          }
+        // else the column is used neither in SELECT nor WHERE
+        // and convertSkipList[i] remains at 0
+      }
     else
-    {
-      convertSkipList[i] = 0;    
-    }
-    
+      {
+        // A partitioning or virtual file column that is returned
+        // (if needed) in the second or third tupp after the inputs.
+        // Note that we only create the tupp if at least one of the
+        // columns is referenced. If we create the tupp, then we
+        // create all the columns, not only the used ones, for
+        // simplicity.
+        if (isPartCol)
+          {
+            partCols.insert(allHdfsVals[i]);
+            if (inProjExpr || inExecutorPred ||
+                !hiveSearchKey_->getPartAndVirtColPreds().isEmpty())
+              numPartColsUsed++;
+          }
+
+        if (isVirtCol)
+          {
+            virtCols.insert(allHdfsVals[i]);
+            if (inProjExpr || inExecutorPred)
+              {
+                GenAssert(!isOrc, "ORC virtual columns not yet supported");
+                numVirtColsUsed++;
+              }
+          }
+        // convertSkipList[i] remains at 0
+      }
   }
 
   ex_expr *executor_expr = 0;
   ex_expr *proj_expr = 0;
   ex_expr *convert_expr = 0;
   ex_expr *project_convert_expr = 0;
+  ex_expr *orcOperExpr = NULL;
+  ex_expr *part_elim_expr = NULL;
 
   // set flag to enable pcode for indirect varchar
   NABoolean vcflag = exp_gen->handleIndirectVC();
@@ -772,40 +950,82 @@ short FileScan::codeGenForHive(Generator * generator)
   // <-- returned row to parent ---->
   //
   // input data:        the atp input to this node by its parent. 
-  // sql table row:     tupp where the row read from sql table is moved.
+  // SQL table row:     tupp where the row read from sql table is moved,
+  //                    using proj_expr.
   //
-  // Input to child:    I tupps
+  // Work ATP layout:
+  //
+  // For performance reasons, we process the columns in two parts, first those
+  // columns that are referenced in executor predicates, so we can evaluate the
+  // predicate. Then, the remaining columns needed as outputs, if any.
+  //
+  // |-------+------+----------------+---------------+-----------+-----------+-----------|
+  // | const | temp | proj only cols | exe pred cols | ascii row | part cols | virt cols |
+  // |   0   |   1  |        2       |       3       |      4    |     5     |     6     |
+  // |-------+------+----------------+---------------+-----------+-----------+-----------|
+  //
+  // proj only cols:    Columns needed as output, but not referenced by
+  //                    any executor predicate. This tupp is computed by
+  //                    project_convert_expr. Aligned format.
+  //                    ValueIdList: projectExprOnlyCastVids, projectExprOnlyVals
+  // exe pred cols:     Columns referenced by an executor predicate, cast to
+  //                    the Trafodion data type. This tupp is computed by
+  //                    convert_expr. The executor predicate is evaluated on
+  //                    this tupp. Aligned format.
+  //                    ValueIdList: executorPredCastVids, executorPredVals
+  // ascii row:         Row as read from the Hive file, e.g. a delimited
+  //                    text file row. Exploded format with indirection for
+  //                    varchar values (pointers instead of actual chars).
+  //                    ValueIdList: asciiVids
+  // partition cols:    Partitioning columns of Hive table, only for
+  //                    partitioned tables and only if requested. These
+  //                    values are in exploded format and are generated at
+  //                    compile time and stored in HdfsFileInfo. Exploded format.
+  //                    ValueIdList: partCols
+  // vitual cols:       Hive and Trafodion virtual columns, like file name
+  //                    and offset within file, only if requested. These values
+  //                    are in exploded format and are generated when we switch
+  //                    from one scan range to the next or (for some columns)
+  //                    for every row in the work method. Exploded format.
+  //                    ValueIdList: virtCols
   //
   ////////////////////////////////////////////////////////////////////////////
 
   ex_cri_desc * given_desc 
     = generator->getCriDesc(Generator::DOWN);
   Int32 returned_atp_index = given_desc->noTuples();
-
+  ULng32 returnedRowlen = 0;
+  MapTable * returnedMapTable = 0;
   ex_cri_desc * returned_desc = NULL;
-  // cri descriptor for work atp has 1 entry:
-  // (plus the first two entries for consts and temps).
-  // Entry 1(index #2) is the target of the convertExpr and contains the 
-  // hdfs row in aligned format, with each column in binary representation. 
-  // The 'where' predicate is evaluated here, and this entry is the source
-  // for the project expr.
-  // Entry 2(index #3) is the source for the convertExpr. It contains the hdfs
-  // row in exploded format, with each column in ascii representation. It is 
-  // pointed tobu work_atp_index + 1
 
+  // variables for work ATP
   const Int32 work_atp = 1;
   const Int32 projectOnlyTuppIndex = 2;
   const Int32 executorPredTuppIndex = 3;
   const Int32 asciiTuppIndex = 4;
+  const Int32 orcOperTuppIndex = 5;
+  const Int32 origTuppIndex = 6;
+  const Int32 partColTuppIndex = 7;
+  const Int32 virtColTuppIndex = 8;
+  const Int32 numWorkATPTupps = 9;
   ULng32 asciiRowLen; 
+  ULng32 partColRowLen = 0;
+  ULng32 virtColRowLen = 0;
   ExpTupleDesc * asciiTupleDesc = 0;
 
-  ex_cri_desc * work_cri_desc = NULL;
-  work_cri_desc = new(space) ex_cri_desc(5, space);
-  returned_desc = new(space) ex_cri_desc(given_desc->noTuples() + 1, space);
+  ULng32 orcOperLength = 0;
 
-  ExpTupleDesc::TupleDataFormat asciiRowFormat = ExpTupleDesc::SQLARK_EXPLODED_FORMAT;
-  ExpTupleDesc::TupleDataFormat hdfsRowFormat = ExpTupleDesc::SQLMX_ALIGNED_FORMAT;
+  ExpTupleDesc * origTupleDesc = 0;
+
+  ex_cri_desc * work_cri_desc = NULL;
+
+  work_cri_desc = new(space) ex_cri_desc(numWorkATPTupps, space);
+  returned_desc = new(space) ex_cri_desc(returned_atp_index + 1, space);
+
+  ExpTupleDesc::TupleDataFormat asciiRowFormat   = ExpTupleDesc::SQLARK_EXPLODED_FORMAT;
+  ExpTupleDesc::TupleDataFormat hdfsRowFormat    = ExpTupleDesc::SQLMX_ALIGNED_FORMAT;
+  ExpTupleDesc::TupleDataFormat partColRowFormat = ExpTupleDesc::SQLARK_EXPLODED_FORMAT;
+  ExpTupleDesc::TupleDataFormat virtColRowFormat = ExpTupleDesc::SQLARK_EXPLODED_FORMAT;
   ValueIdList asciiVids;
   ValueIdList executorPredCastVids;
   ValueIdList projectExprOnlyCastVids;
@@ -826,13 +1046,13 @@ short FileScan::codeGenForHive(Generator * generator)
   //   account for this when we generate the move expression
   //   by making sure that the output ValueIds created during
   //   binding refer to the outputs of the move expression
-
-  for (int ii = 0; ii < (int)hdfsVals.entries();ii++)
+  ValueIdList origExprVids;
+  for (int ii = 0; ii < (int)allHdfsVals.entries();ii++)
   {
     if (convertSkipList[ii] == 0)
       continue;
 
-    const NAType &givenType = hdfsVals[ii].getType();
+    const NAType &givenType = allHdfsVals[ii].getType();
     int res;    
     ItemExpr *asciiValue = NULL;
     ItemExpr *castValue = NULL;
@@ -841,7 +1061,8 @@ short FileScan::codeGenForHive(Generator * generator)
 				    generator,        // for heap
 				    givenType,         // [IN] Actual type of HDFS column
 				    asciiValue,         // [OUT] Returned expression for ascii rep.
-				    castValue        // [OUT] Returned expression for binary rep.
+				    castValue,        // [OUT] Returned expression for binary rep.
+                                    isOrc
                                     );
      
     GenAssert(res == 1 && asciiValue != NULL && castValue != NULL,
@@ -857,10 +1078,12 @@ short FileScan::codeGenForHive(Generator * generator)
     else
       projectExprOnlyCastVids.insert(castValue->getValueId());
 
+    origExprVids.insert(allHdfsVals[ii]);
+
     orcRowLen += sizeof(Lng32);
     orcRowLen += givenType.getDisplayLength();
 
-  } // for (ii = 0; ii < hdfsVals; ii++)
+  } // for (ii = 0; ii < allHdfsVals; ii++)
     
 
   // Add ascii columns to the MapTable. After this call the MapTable
@@ -877,8 +1100,24 @@ short FileScan::codeGenForHive(Generator * generator)
   // Add the tuple descriptor for reply values to the work ATP
   work_cri_desc->setTupleDescriptor(asciiTuppIndex, asciiTupleDesc);
   
+  // Add ascii columns to the MapTable. After this call the MapTable
+  // has ascii values in the work ATP at index asciiTuppIndex.
+  ULng32 origRowLen; 
+  exp_gen->processValIdList(
+       origExprVids,                             // [IN] ValueIdList
+       asciiRowFormat,                        // [IN] tuple data format
+       origRowLen,                           // [OUT] tuple length 
+       work_atp,                              // [IN] atp number
+       origTuppIndex,                        // [IN] index into atp
+       &origTupleDesc,                       // [optional OUT] tuple desc
+       ExpTupleDesc::LONG_FORMAT);             // [optional IN] desc format
+    
+  // Add the tuple descriptor for reply values to the work ATP
+  work_cri_desc->setTupleDescriptor(origTuppIndex, origTupleDesc);
+  
   ExpTupleDesc * tuple_desc = 0;
   ExpTupleDesc * hdfs_desc = 0;
+  ExpTupleDesc * part_cols_desc = 0;
   ULng32 executorPredColsRecLength; 
   ULng32 projectOnlyColsRecLength;
   ExpHdrInfo hdrInfo;
@@ -924,6 +1163,51 @@ short FileScan::codeGenForHive(Generator * generator)
   
   // We can now remove all appended map tables
   generator->removeAll(last_map_table);
+
+  // describe partition columns, if used
+  if (numPartColsUsed > 0)
+    {
+      exp_gen->processValIdList(
+           partCols,
+           partColRowFormat,
+           partColRowLen,
+           work_atp,
+           partColTuppIndex,
+           &part_cols_desc,
+           ExpTupleDesc::LONG_FORMAT);
+
+      work_cri_desc->setTupleDescriptor(partColTuppIndex,
+                                        part_cols_desc);
+    }
+
+  // describe virtual columns, if used
+  if (numVirtColsUsed > 0)
+    {
+      exp_gen->processValIdList(
+           virtCols,
+           virtColRowFormat,
+           virtColRowLen,
+           work_atp,
+           virtColTuppIndex,
+           &tuple_desc,
+           ExpTupleDesc::LONG_FORMAT);
+
+      work_cri_desc->setTupleDescriptor(virtColTuppIndex,
+                                        tuple_desc);
+    }
+
+  // Generate partition elimination expression, if present. Partition elimination
+  // predicates can access partition colum values and virtual column values that
+  // depend on the file name only (i.e. they are evaluated once per scan range
+  // of a file, not once per partition).
+  if (! hiveSearchKey_->getPartAndVirtColPreds().isEmpty())
+    {
+      ItemExpr * partElimTree =
+        hiveSearchKey_->getPartAndVirtColPreds().rebuildExprTree(ITM_AND,TRUE,TRUE);
+      exp_gen->generateExpr(partElimTree->getValueId(), ex_expr::exp_SCAN_PRED,
+			    &part_elim_expr);
+      generator->restoreGenLeanExpr();
+    }
 
   // Append a new map table and
   // add all columns from this table to it. All map tables (incl this
@@ -972,22 +1256,13 @@ short FileScan::codeGenForHive(Generator * generator)
 			    &executor_expr);
       generator->restoreGenLeanExpr();
     }
-  
-  // Return the projected retrieved row.
-  ValueIdList rvidl;
-  for (ValueId valId = outputCols.init();
-       outputCols.next(valId);
-       outputCols.advance(valId))
-    {
-      rvidl.insert(valId);
-    }
- 
-  ULng32 returnedRowlen = 0;
-  MapTable * returnedMapTable = 0;
 
+  // Return the projected retrieved row.
+  ValueIdList rvidl(outputCols);
+ 
   exp_gen->generateContiguousMoveExpr(rvidl, TRUE /*add conv nodes*/,
                                       0 /*atp*/, returned_atp_index,
-                                      ExpTupleDesc::SQLMX_ALIGNED_FORMAT,
+                                      hdfsRowFormat,
                                       returnedRowlen,
                                       &proj_expr, 
                                       &tuple_desc,
@@ -1002,12 +1277,8 @@ short FileScan::codeGenForHive(Generator * generator)
   generator->restoreGenLeanExpr();
 
   // describe the returned row.
-  if (returned_desc)
-  {
-    returned_desc->setTupleDescriptor(returned_desc->noTuples() - 1,
-                                      tuple_desc);
-    returned_atp_index = returned_desc->noTuples() - 1 ;
-  }
+  returned_desc->setTupleDescriptor(returned_atp_index,
+                                    tuple_desc);
 
   // done with expressions at this operator. Remove the appended map tables.
   generator->removeAll(last_map_table);
@@ -1022,11 +1293,11 @@ short FileScan::codeGenForHive(Generator * generator)
   
   // Now we can start preparing data that goes in the TDB.
 
-  const HHDFSTableStats* hTabStats = 
-    getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
   Queue * hdfsFileInfoList = NULL;
   Queue * hdfsFileRangeBeginList = NULL;
   Queue * hdfsFileRangeNumList = NULL;
+  Queue * hdfsColInfoList = NULL;
+  Queue * hdfsAllColInfoList = NULL;
   Int64 expirationTimestamp = 0;
   char * hdfsHostName = NULL;
   Int32 hdfsPort = 0;
@@ -1054,20 +1325,98 @@ short FileScan::codeGenForHive(Generator * generator)
   NABoolean useCursorMulti = FALSE;
   NABoolean doSplitFileOpt = FALSE;
 
+  Queue * tdbListOfOrcPPI = NULL;
   if ((hTabStats->isTextFile()) || (hTabStats->isSequenceFile()))
     {
       genForTextAndSeq(generator, 
                        hdfsFileInfoList, hdfsFileRangeBeginList, hdfsFileRangeNumList,
                        hdfsHostName, hdfsPort,
-                       useCursorMulti, doSplitFileOpt);
+                       useCursorMulti, doSplitFileOpt,
+                       part_cols_desc, partColRowLen, hiveSearchKey_);
     }
-  else if (hTabStats->isOrcFile())
+  else if (isOrc)
     {
+      ValueIdList orcOperVIDlist;
       genForOrc(generator, 
                 hTabStats,
                 getPhysicalProperty()->getPartitioningFunction(),
+                &orcListOfPPI(),
                 hdfsFileInfoList, hdfsFileRangeBeginList, hdfsFileRangeNumList,
-                hdfsHostName, hdfsPort);
+                tdbListOfOrcPPI,
+                orcOperVIDlist,
+                hdfsHostName, hdfsPort,
+                part_cols_desc, partColRowLen, hiveSearchKey_);
+
+      hdfsColInfoList = new(space) Queue(space);
+      for (int i = 0; i < neededHdfsVals.entries(); i++)
+        {
+          ValueId &vid = neededHdfsVals[i];
+          ItemExpr * ie = vid.getItemExpr();
+
+          NAColumn * nac = NULL;
+          if (ie->getOperatorType() == ITM_BASECOLUMN)
+            {
+              nac = ((BaseColumn*)ie)->getNAColumn();
+            }
+          else if (ie->getOperatorType() == ITM_INDEXCOLUMN)
+            {
+              nac = ((IndexColumn*)ie)->getNAColumn();
+            }
+          else
+            continue;
+
+          char * cnameInList = 
+            space->allocateAndCopyToAlignedSpace
+            (nac->getColName().data(), nac->getColName().length(), 0);
+          
+          // orc col numbers are 1 based
+          HdfsColInfo hco(cnameInList, nac->getPosition()+1);
+          char * hcoInList = space->allocateAndCopyToAlignedSpace
+            ((char*)&hco, sizeof(HdfsColInfo));
+          hdfsColInfoList->insert(hcoInList);
+        }
+
+      if (orcOperVIDlist.entries() > 0)
+        {
+          ExpTupleDesc * orcOperTupleDesc = NULL;
+          exp_gen->generateContiguousMoveExpr(
+               orcOperVIDlist, -1,
+               work_atp, orcOperTuppIndex, 
+               ExpTupleDesc::SQLARK_EXPLODED_FORMAT,
+               orcOperLength,
+               &orcOperExpr,
+               &orcOperTupleDesc,
+               ExpTupleDesc::LONG_FORMAT);
+
+          work_cri_desc->setTupleDescriptor(orcOperTuppIndex, orcOperTupleDesc);
+        }
+
+      if (orcListOfPPI().entries() > 0)
+        {
+          hdfsAllColInfoList = new(space) Queue(space);
+          for (int i = 0; i < allHdfsVals.entries(); i++)
+            {
+              const ValueId &vid = allHdfsVals[i];
+              ItemExpr * ie = vid.getItemExpr();
+              
+              NAColumn * nac = NULL;
+              if (ie->getOperatorType() == ITM_BASECOLUMN)
+                {
+                  nac = ((BaseColumn*)ie)->getNAColumn();
+                }
+              else if (ie->getOperatorType() == ITM_INDEXCOLUMN)
+                {
+                  nac = ((IndexColumn*)ie)->getNAColumn();
+                }
+              else
+                continue;
+              
+              char * cnameInList = 
+                space->allocateAndCopyToAlignedSpace
+                (nac->getColName().data(), nac->getColName().length(), 0);
+              hdfsAllColInfoList->insert(cnameInList);
+            } // for
+        }
     }
 
   // set expiration timestamp
@@ -1133,48 +1482,118 @@ if (hTabStats->isOrcFile())
     space->AllocateAndCopyToAlignedSpace(GenGetQualifiedName(getIndexDesc()->getNAFileSet()->getFileSetName()), 0);
 
   // create hdfsscan_tdb
-  ComTdbHdfsScan *hdfsscan_tdb = new(space) 
-    ComTdbHdfsScan(
-		   tablename,
-                   type,
-		   executor_expr,
-		   proj_expr,
-		   convert_expr,
-                   project_convert_expr,
-		   hdfsVals.entries(),      // size of convertSkipList
-		   convertSkipList,
-		   hdfsHostName, 
-		   hdfsPort,      
-		   hdfsFileInfoList,
-		   hdfsFileRangeBeginList,
-		   hdfsFileRangeNumList,
-		   hTabStats->getRecordTerminator(),  // recordDelimiter
-		   hTabStats->getFieldTerminator(),   // columnDelimiter,
-		   hdfsBufSize,
-                   rangeTailIOSize,
-		   executorPredColsRecLength,
-		   returnedRowlen,
-		   asciiRowLen,
-                   projectOnlyColsRecLength,
-		   returned_atp_index, 
-		   asciiTuppIndex,
-		   executorPredTuppIndex,
-                   projectOnlyTuppIndex,
-		   work_cri_desc,
-		   given_desc,
-		   returned_desc,
-		   downqueuelength,
-		   upqueuelength,
-		   (Cardinality)getEstRowsAccessed().getValue(),
-		   numBuffers,
-		   buffersize,
-		   errCountTab,
-		   logLocation,
-		   errCountRowId 
-		   );
-
+  ComTdbHdfsScan *hdfsscan_tdb = NULL;
+  if (hTabStats->isOrcFile())
+    hdfsscan_tdb = new(space)
+      ComTdbOrcScan
+      (
+           tablename,
+           type,
+           executor_expr,
+           proj_expr,
+           convert_expr,
+           project_convert_expr,
+           part_elim_expr,
+           orcOperExpr,
+           allHdfsVals.entries(),      // size of convertSkipList
+           convertSkipList,
+           hdfsHostName, 
+           hdfsPort,      
+           hdfsFileInfoList,
+           hdfsFileRangeBeginList,
+           hdfsFileRangeNumList,
+           hdfsColInfoList,
+           hdfsAllColInfoList,
+           hTabStats->getRecordTerminator(),  // recordDelimiter
+           hTabStats->getFieldTerminator(),   // columnDelimiter,
+           hdfsBufSize,
+           rangeTailIOSize,
+           partCols.entries(),
+           tdbListOfOrcPPI,
+           executorPredColsRecLength,
+           returnedRowlen,
+           asciiRowLen,
+           projectOnlyColsRecLength,
+           partColRowLen,
+           virtColRowLen,
+           orcOperLength,
+           returned_atp_index, 
+           asciiTuppIndex,
+           executorPredTuppIndex,
+           projectOnlyTuppIndex,
+           partColTuppIndex,
+           virtColTuppIndex,
+           orcOperTuppIndex,
+           work_cri_desc,
+           given_desc,
+           returned_desc,
+           downqueuelength,
+           upqueuelength,
+           (Cardinality)getEstRowsAccessed().getValue(),
+           numBuffers,
+           buffersize,
+           errCountTab,
+           logLocation,
+           errCountRowId 
+       );
+  else
+    hdfsscan_tdb = new(space)
+      ComTdbHdfsScan
+      (
+           tablename,
+           type,
+           executor_expr,
+           proj_expr,
+           convert_expr,
+           project_convert_expr,
+           part_elim_expr,
+           allHdfsVals.entries(),      // size of convertSkipList
+           convertSkipList,
+           hdfsHostName, 
+           hdfsPort,      
+           hdfsFileInfoList,
+           hdfsFileRangeBeginList,
+           hdfsFileRangeNumList,
+           hdfsColInfoList,
+           hTabStats->getRecordTerminator(),  // recordDelimiter
+           hTabStats->getFieldTerminator(),   // columnDelimiter,
+           hdfsBufSize,
+           rangeTailIOSize,
+           partCols.entries(),
+           executorPredColsRecLength,
+           returnedRowlen,
+           asciiRowLen,
+           projectOnlyColsRecLength,
+           partColRowLen,
+           virtColRowLen,
+           returned_atp_index, 
+           asciiTuppIndex,
+           executorPredTuppIndex,
+           projectOnlyTuppIndex,
+           origTuppIndex,
+           partColTuppIndex,
+           virtColTuppIndex,
+           work_cri_desc,
+           given_desc,
+           returned_desc,
+           downqueuelength,
+           upqueuelength,
+           (Cardinality)getEstRowsAccessed().getValue(),
+           numBuffers,
+           buffersize,
+           errCountTab,
+           logLocation,
+           errCountRowId 
+       );
+  
   generator->initTdbFields(hdfsscan_tdb);
 
+  if ((hTabStats->isOrcFile()) &&
+      (CmpCommon::getDefault(ORC_VECTORIZED_SCAN) == DF_ON))
+    {
+      ((ComTdbOrcScan*)hdfsscan_tdb)->setVectorizedScan(TRUE);
+    }
+    
   hdfsscan_tdb->setUseCursorMulti(useCursorMulti);
 
   hdfsscan_tdb->setDoSplitFileOpt(doSplitFileOpt);
@@ -3009,229 +3428,6 @@ short HbaseAccess::codeGen(Generator * generator)
     {
       hbasescan_tdb->setReadUncommittedScan(TRUE);
     }
-
-  if(!generator->explainDisabled()) {
-    generator->setExplainTuple(
-       addExplainInfo(hbasescan_tdb, 0, 0, generator));
-  }
-
-  if ((generator->computeStats()) && 
-      (generator->collectStatsType() == ComTdb::PERTABLE_STATS
-      || generator->collectStatsType() == ComTdb::OPERATOR_STATS))
-    {
-      hbasescan_tdb->setPertableStatsTdbId((UInt16)generator->
-					   getPertableStatsTdbId());
-    }
-
-  generator->setCriDesc(givenDesc, Generator::DOWN);
-  generator->setCriDesc(returnedDesc, Generator::UP);
-  generator->setGenObj(this, hbasescan_tdb);
-
-  return 0;
-}
-
-short HbaseAccessCoProcAggr::codeGen(Generator * generator)
-{
-  Space * space          = generator->getSpace();
-  ExpGenerator * expGen = generator->getExpGenerator();
-
-  // allocate a map table for the retrieved columns
-  //  generator->appendAtEnd();
-  MapTable * last_map_table = generator->getLastMapTable();
- 
-  ex_expr *scanExpr = 0;
-  ex_expr *proj_expr = 0;
-  ex_expr *convert_expr = NULL;
-
-  ex_cri_desc * givenDesc 
-    = generator->getCriDesc(Generator::DOWN);
-
-  ex_cri_desc * returnedDesc = NULL;
-
-  const Int32 work_atp = 1;
-  const Int32 convertTuppIndex = 2;
-  const Int32 rowIdTuppIndex = 3;
-  const Int32 asciiTuppIndex = 4;
-  const Int32 rowIdAsciiTuppIndex = 5;
-  const Int32 keyTuppIndex = 6;
-
-  ULng32 asciiRowLen; 
-  ExpTupleDesc * asciiTupleDesc = 0;
-  ExpTupleDesc * convertTupleDesc = NULL;
-
-  ex_cri_desc * work_cri_desc = NULL;
-  work_cri_desc = new(space) ex_cri_desc(7, space);
-
-  returnedDesc = new(space) ex_cri_desc(givenDesc->noTuples() + 1, space);
-
-  ExpTupleDesc::TupleDataFormat asciiRowFormat = 
-    ExpTupleDesc::SQLARK_EXPLODED_FORMAT;
-  ExpTupleDesc::TupleDataFormat hbaseRowFormat = 
-    ExpTupleDesc::SQLMX_ALIGNED_FORMAT;
-  ValueIdList asciiVids;
-  ValueIdList executorPredCastVids;
-  ValueIdList convertExprCastVids;
-
-  NABoolean addDefaultValues = TRUE;
-  NABoolean hasAddedColumns = FALSE;
-  if (getTableDesc()->getNATable()->hasAddedColumn())
-    hasAddedColumns = TRUE;
-
-  // build key information
-  keyRangeGen * keyInfo = 0;
-  NABoolean reverseScan = getReverseScan(); 
-
-  expGen->buildKeyInfo(&keyInfo, // out
-		       generator,
-		       getIndexDesc()->getNAFileSet()->getIndexKeyColumns(),
-		       getIndexDesc()->getIndexKey(),
-		       getBeginKeyPred(),
-		       (searchKey() && searchKey()->isUnique() ? NULL : getEndKeyPred()),
-		       searchKey(),
-		       getMdamKeyPtr(),
-		       reverseScan,
-		       0,
-		       ExpTupleDesc::SQLMX_KEY_FORMAT);
-
-  //  const ValueIdList &retColumnList = getIndexDesc()->getIndexColumns();
-  const ValueIdList &retColumnList = retColRefSet_;
-
-  // generate explain selection expression, if present
-  if (! executorPred().isEmpty())
-    {
-      ItemExpr * newPredTree = executorPred().rebuildExprTree(ITM_AND,TRUE,TRUE);
-      expGen->generateExpr(newPredTree->getValueId(), ex_expr::exp_SCAN_PRED,
-			   &scanExpr);
-    }
-
-  Cardinality expectedRows = (Cardinality) getEstRowsUsed().getValue();
-  ULng32 buffersize = 3 * getDefault(GEN_DPSO_BUFFER_SIZE);
-  queue_index upqueuelength = (queue_index)getDefault(GEN_DPSO_SIZE_UP);
-  queue_index downqueuelength = (queue_index)getDefault(GEN_DPSO_SIZE_DOWN);
-  Int32 numBuffers = getDefault(GEN_DPUO_NUM_BUFFERS);
-
-  // Compute the buffer size based on upqueue size and row size.
-  // Try to get enough buffer space to hold twice as many records
-  // as the up queue.
-  //
-  // This should be more sophisticate than this, and should maybe be done
-  // within the buffer class, but for now this will do.
-  // 
-  ULng32 cbuffersize = 
-    SqlBufferNeededSize((upqueuelength * 2 / numBuffers),
-			1000); //returnedRowlen);
-  // But use at least the default buffer size.
-  //
-  buffersize = buffersize > cbuffersize ? buffersize : cbuffersize;
-  
-  // Always get the index name -- it will be the base tablename for
-  // primary access.
-  char * tablename = NULL;
-
-  tablename = 
-      space->AllocateAndCopyToAlignedSpace(
-					   GenGetQualifiedName(getTableName()), 0);
-  
-  NAString serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
-  NAString zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
-  char * server = space->allocateAlignedSpace(serverNAS.length() + 1);
-  strcpy(server, serverNAS.data());
-  char * zkPort = space->allocateAlignedSpace(zkPortNAS.length() + 1);
-  strcpy(zkPort, zkPortNAS.data());
-
-  ComTdbHbaseAccess::HbasePerfAttributes * hbpa =
-    new(space) ComTdbHbaseAccess::HbasePerfAttributes();
-  if (CmpCommon::getDefault(HBASE_CACHE_BLOCKS) == DF_ON)
-    hbpa->setCacheBlocks(TRUE);
-  hbpa->setNumCacheRows(CmpCommon::getDefaultNumeric(HBASE_NUM_CACHE_ROWS_MIN));
-
-  // create hdfsscan_tdb
-  ComTdbHbaseAccess *hbasescan_tdb = new(space) 
-    ComTdbHbaseAccess(
-		      ComTdbHbaseAccess::COPROC_,
-		      tablename,
-
-		      NULL, // convert_expr,
-		      NULL, // scanExpr,
-		      NULL, // rowIdExpr,
-		      NULL, // updateExpr
-		      NULL, // mergeInsertExpr
-		      NULL, // mergeInsertRowIdExpr
-		      NULL, // mergeUpdScanExpr
-		      NULL, // projExpr
-		      NULL, // returnedUpdatedExpr
-		      NULL, // returnMergeUpdateExpr
-		      NULL, // encodedKeyExpr, 
-		      NULL, // keyColValExpr
-		      NULL, // hbaseFilterExpr
-                      NULL, // hbTagExpr
-
-		      0, // asciiRowLen,
-		      0, // convertRowLen,
-		      0, // updateRowLen
-		      0, // mergeInsertRowLen
-		      0, // fetchedRowLen
-		      0, // returnedRowLen
-
-		      0, // rowIdLength,
-		      0, // convertRowLen,
-		      0, // rowIdAsciiRowLen,
-		      0, 
-		      0, // keyColValLen
-		      0, // hbaseFilterValLen
-                      0, // hbTagRowLen
-
-		      0, // asciiTuppIndex,
-		      0, // convertTuppIndex,
-		      0, // updateTuppIndex
-		      0, // mergeInsertTuppIndex
-		      0, // mergeInsertRowIdTuppIndex
-		      0, // returnedFetchedTuppIndex
-		      0, // returnedUpdatedTuppIndex
-
-		      0, // rowIdTuppIndex,
-		      0, // returnedDesc->noTuples()-1,
-		      0, // rowIdAsciiTuppIndex,
-		      0, // keyTuppIndex,
-		      0, // keyColValTuppIndex
-		      0, // hbaseFilterValTuppIndex
-
-                      0, // hbaseTimestampTuppIndex
-                      0, // hbaseVersionTuppIndex
-                      0, // hbTagTuppIndex
-
-		      NULL, // tdbListOfRangeRows,
-		      NULL, // tdbListOfUniqueRows,
-		      NULL, // listOfFetchedColNames,
-		      NULL,
-		      NULL,
-
-		      NULL, // keyInfo,
-		      NULL,
-
-		      work_cri_desc,
-		      givenDesc,
-		      returnedDesc,
-		      downqueuelength,
-		      upqueuelength,
-                      expectedRows,
-		      numBuffers,
-		      buffersize,
-
-		      server,
-                      zkPort,
-		      hbpa
-		      );
-
-  generator->initTdbFields(hbasescan_tdb);
-
-  if (getTableDesc()->getNATable()->isSeabaseTable())
-  {
-    hbasescan_tdb->setSQHbaseTable(TRUE);
-    if (getTableDesc()->getNATable()->isEnabledForDDLQI())
-      generator->objectUids().insert(
-        getTableDesc()->getNATable()->objectUid().get_value());
-  }
 
   if(!generator->explainDisabled()) {
     generator->setExplainTuple(

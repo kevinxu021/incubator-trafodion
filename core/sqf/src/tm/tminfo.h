@@ -34,6 +34,7 @@
 #include "tmauditobj.h"
 #include "tmtimer.h"
 #include "tmtxthread.h"
+#include "tmlockthread.h"
 #include "tmpool.h"
 //#include "tmlibmsg.h"
 #include "tmlogging.h"
@@ -161,6 +162,7 @@ class TM_Info
        int32            iv_sync_otag;
        bool             iv_TSE_xa_start;
        bool             iv_earlyCommitReply;
+       bool             iv_tm_locked;
        // Audit and control points
        bool             iv_write_cp;
        bool             iv_initiate_cp;
@@ -231,6 +233,7 @@ class TM_Info
        // Timer thread
        CTmTimer *ip_tmTimer; 
        CTmAuditObj *ip_tmAuditObj; 
+       CTmLockThread     *ip_tmLock;
 
        // iv_syncDataList is an array of TM_MAPs. Each entry is a Tm_Tx_Sync_Data.
        TM_MAP           iv_syncDataList[MAX_NODES]; 
@@ -280,6 +283,9 @@ class TM_Info
        void set_recovery_start(int32 pv_nid);
        void set_recovery_end(int32 pv_nid);
 
+       bool tm_locked() {return iv_tm_locked;}
+       void tm_locked(bool pv_tm_locked) {iv_tm_locked = pv_tm_locked;}
+       
        // Locking for serialization
        void lock();
        void unlock();
@@ -569,11 +575,19 @@ class TM_Info
        void cancelTMRestartEvent(int32 pv_nid);
        CTmTimerEvent * addTMRecoveryWait(int32 pvnid, int32 pv_delay);
 
+       // lock related
+       CTmLockThread *tmLock() {return ip_tmLock;}
+       void tmLock(CTmLockThread *pp_lock) {ip_tmLock = pp_lock;}
+       CTmTimerEvent * addLockEvent(CTmTxMessage *pp_msg, int pv_delayInterval);
+	      
        int32 sendAllTMs(CTmTxMessage * pp_msg);
        int32 attachRm(CTmTxMessage * pp_msg);
        void set_txnsvc_ready(int32 pv_ready);
        int32 enableTrans(CTmTxMessage * pp_msg);
        int32 disableTrans(CTmTxMessage * pp_msg);
+       void lockTm (CTmTxMessage * pp_msg);
+       void unlockTm(CTmTxMessage * pp_msg, bool pv_reply = true);
+       bool drainAndHoldTxs();
        int32 drainTrans(CTmTxMessage * pp_msg);
        void addShutdownPhase1WaitEvent(CTmTxMessage * pp_msg);
        void cancelShutdownPhase1WaitEvent();

@@ -222,6 +222,7 @@ Tables in Schema TRAFODION.T132SCH
 
 SB_HISTOGRAMS
 SB_HISTOGRAM_INTERVALS
+SB_PERSISTENT_SAMPLES
 
 --- SQL operation complete.
 >>
@@ -263,6 +264,7 @@ Tables in Schema TRAFODION.T132SCH
 
 SB_HISTOGRAMS
 SB_HISTOGRAM_INTERVALS
+SB_PERSISTENT_SAMPLES
 T132T1
 T132T2
 T132T3
@@ -635,6 +637,7 @@ Tables in Schema TRAFODION.T132SCH
 
 SB_HISTOGRAMS
 SB_HISTOGRAM_INTERVALS
+SB_PERSISTENT_SAMPLES
 
 --- SQL operation complete.
 >>
@@ -875,7 +878,7 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
 >>invoke t132_games;
 
 -- Definition of Trafodion table TRAFODION.T132SCH.T132_GAMES
--- Definition current  Sat Feb 13 01:27:45 2016
+-- Definition current  Thu Feb 25 11:15:40 2016
 
   (
     HOME_TEAM_NUMBER                 INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -886,12 +889,13 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
   , GAME_LOCATION                    VARCHAR(50) CHARACTER SET ISO88591 COLLATE
       DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
   )
+  PRIMARY KEY (GAME_NUMBER ASC)
 
 --- SQL operation complete.
 >>invoke t132_teams;
 
 -- Definition of Trafodion table TRAFODION.T132SCH.T132_TEAMS
--- Definition current  Sat Feb 13 01:27:47 2016
+-- Definition current  Thu Feb 25 11:15:42 2016
 
   (
     TEAM_NUMBER                      INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -902,12 +906,13 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
   , TEAM_CONTACT_NUMBER              CHAR(10) CHARACTER SET ISO88591 COLLATE
       DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
   )
+  PRIMARY KEY (TEAM_NUMBER ASC)
 
 --- SQL operation complete.
 >>invoke t132_giants_games;
 
 -- Definition of Trafodion view TRAFODION.T132SCH.T132_GIANTS_GAMES
--- Definition current  Sat Feb 13 01:27:49 2016
+-- Definition current  Thu Feb 25 11:15:43 2016
 
   (
     GAME_NUMBER                      INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -921,7 +926,7 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
 >>invoke t132_home_teams_games;
 
 -- Definition of Trafodion view TRAFODION.T132SCH.T132_HOME_TEAMS_GAMES
--- Definition current  Sat Feb 13 01:27:50 2016
+-- Definition current  Thu Feb 25 11:15:45 2016
 
   (
     TEAM_NUMBER                      INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -991,7 +996,7 @@ ALTER TABLE TRAFODION.T132SCH.T132_GAMES ADD CONSTRAINT
 >>invoke t132_games;
 
 -- Definition of Trafodion table TRAFODION.T132SCH.T132_GAMES
--- Definition current  Sat Feb 13 01:28:08 2016
+-- Definition current  Thu Feb 25 11:16:00 2016
 
   (
     HOME_TEAM_NUMBER                 INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1002,6 +1007,7 @@ ALTER TABLE TRAFODION.T132SCH.T132_GAMES ADD CONSTRAINT
   , GAME_LOCATION                    VARCHAR(50) CHARACTER SET ISO88591 COLLATE
       DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
   )
+  PRIMARY KEY (GAME_NUMBER ASC)
 
 --- SQL operation complete.
 >>invoke t132_teams;
@@ -1185,7 +1191,7 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
 >>invoke t132_games;
 
 -- Definition of Trafodion table TRAFODION.T132SCH.T132_GAMES
--- Definition current  Sat Feb 13 01:28:45 2016
+-- Definition current  Thu Feb 25 11:16:33 2016
 
   (
     HOME_TEAM_NUMBER                 INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1196,12 +1202,13 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
   , GAME_LOCATION                    VARCHAR(50) CHARACTER SET ISO88591 COLLATE
       DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
   )
+  PRIMARY KEY (GAME_NUMBER ASC)
 
 --- SQL operation complete.
 >>invoke t132_teams;
 
 -- Definition of Trafodion table TRAFODION.T132SCH.T132_TEAMS
--- Definition current  Sat Feb 13 01:28:45 2016
+-- Definition current  Thu Feb 25 11:16:33 2016
 
   (
     TEAM_NUMBER                      INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1212,12 +1219,13 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
   , TEAM_CONTACT_NUMBER              CHAR(10) CHARACTER SET ISO88591 COLLATE
       DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
   )
+  PRIMARY KEY (TEAM_NUMBER ASC)
 
 --- SQL operation complete.
 >>invoke t132_giants_games;
 
 -- Definition of Trafodion view TRAFODION.T132SCH.T132_GIANTS_GAMES
--- Definition current  Sat Feb 13 01:28:45 2016
+-- Definition current  Thu Feb 25 11:16:33 2016
 
   (
     GAME_NUMBER                      INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1231,7 +1239,7 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
 >>invoke t132_home_teams_games;
 
 -- Definition of Trafodion view TRAFODION.T132SCH.T132_HOME_TEAMS_GAMES
--- Definition current  Sat Feb 13 01:28:45 2016
+-- Definition current  Thu Feb 25 11:16:33 2016
 
   (
     TEAM_NUMBER                      INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1311,7 +1319,7 @@ ALTER TABLE TRAFODION.T132SCH.T132_TEAMS ADD CONSTRAINT
 >>invoke t132_teams;
 
 -- Definition of Trafodion table TRAFODION.T132SCH.T132_TEAMS
--- Definition current  Sat Feb 13 01:29:10 2016
+-- Definition current  Thu Feb 25 11:16:51 2016
 
   (
     TEAM_NUMBER                      INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1322,6 +1330,7 @@ ALTER TABLE TRAFODION.T132SCH.T132_TEAMS ADD CONSTRAINT
   , TEAM_CONTACT_NUMBER              CHAR(10) CHARACTER SET ISO88591 COLLATE
       DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
   )
+  PRIMARY KEY (TEAM_NUMBER ASC)
 
 --- SQL operation complete.
 >>invoke t132_giants_games;
@@ -1459,7 +1468,7 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
 >>invoke t132_games;
 
 -- Definition of Trafodion table TRAFODION.T132SCH.T132_GAMES
--- Definition current  Sat Feb 13 01:29:32 2016
+-- Definition current  Thu Feb 25 11:17:10 2016
 
   (
     HOME_TEAM_NUMBER                 INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1470,12 +1479,13 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
   , GAME_LOCATION                    VARCHAR(50) CHARACTER SET ISO88591 COLLATE
       DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
   )
+  PRIMARY KEY (GAME_NUMBER ASC)
 
 --- SQL operation complete.
 >>invoke t132_teams;
 
 -- Definition of Trafodion table TRAFODION.T132SCH.T132_TEAMS
--- Definition current  Sat Feb 13 01:29:32 2016
+-- Definition current  Thu Feb 25 11:17:10 2016
 
   (
     TEAM_NUMBER                      INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1486,12 +1496,13 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
   , TEAM_CONTACT_NUMBER              CHAR(10) CHARACTER SET ISO88591 COLLATE
       DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
   )
+  PRIMARY KEY (TEAM_NUMBER ASC)
 
 --- SQL operation complete.
 >>invoke t132_giants_games;
 
 -- Definition of Trafodion view TRAFODION.T132SCH.T132_GIANTS_GAMES
--- Definition current  Sat Feb 13 01:29:32 2016
+-- Definition current  Thu Feb 25 11:17:10 2016
 
   (
     GAME_NUMBER                      INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1505,7 +1516,7 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
 >>invoke t132_home_teams_games;
 
 -- Definition of Trafodion view TRAFODION.T132SCH.T132_HOME_TEAMS_GAMES
--- Definition current  Sat Feb 13 01:29:32 2016
+-- Definition current  Thu Feb 25 11:17:10 2016
 
   (
     TEAM_NUMBER                      INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1618,7 +1629,7 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
 >>invoke t132_games;
 
 -- Definition of Trafodion table TRAFODION.T132SCH.T132_GAMES
--- Definition current  Sat Feb 13 01:29:53 2016
+-- Definition current  Thu Feb 25 11:17:27 2016
 
   (
     HOME_TEAM_NUMBER                 INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1629,12 +1640,13 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
   , GAME_LOCATION                    VARCHAR(50) CHARACTER SET ISO88591 COLLATE
       DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
   )
+  PRIMARY KEY (GAME_NUMBER ASC)
 
 --- SQL operation complete.
 >>invoke t132_teams;
 
 -- Definition of Trafodion table TRAFODION.T132SCH.T132_TEAMS
--- Definition current  Sat Feb 13 01:29:53 2016
+-- Definition current  Thu Feb 25 11:17:27 2016
 
   (
     TEAM_NUMBER                      INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1645,12 +1657,13 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
   , TEAM_CONTACT_NUMBER              CHAR(10) CHARACTER SET ISO88591 COLLATE
       DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
   )
+  PRIMARY KEY (TEAM_NUMBER ASC)
 
 --- SQL operation complete.
 >>invoke t132_giants_games;
 
 -- Definition of Trafodion view TRAFODION.T132SCH.T132_GIANTS_GAMES
--- Definition current  Sat Feb 13 01:29:53 2016
+-- Definition current  Thu Feb 25 11:17:27 2016
 
   (
     GAME_NUMBER                      INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1664,7 +1677,7 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
 >>invoke t132_home_teams_games;
 
 -- Definition of Trafodion view TRAFODION.T132SCH.T132_HOME_TEAMS_GAMES
--- Definition current  Sat Feb 13 01:29:53 2016
+-- Definition current  Thu Feb 25 11:17:27 2016
 
   (
     TEAM_NUMBER                      INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1777,7 +1790,7 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
 >>invoke t132_games;
 
 -- Definition of Trafodion table TRAFODION.T132SCH.T132_GAMES
--- Definition current  Sat Feb 13 01:30:13 2016
+-- Definition current  Thu Feb 25 11:17:44 2016
 
   (
     HOME_TEAM_NUMBER                 INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1788,12 +1801,13 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
   , GAME_LOCATION                    VARCHAR(50) CHARACTER SET ISO88591 COLLATE
       DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
   )
+  PRIMARY KEY (GAME_NUMBER ASC)
 
 --- SQL operation complete.
 >>invoke t132_teams;
 
 -- Definition of Trafodion table TRAFODION.T132SCH.T132_TEAMS
--- Definition current  Sat Feb 13 01:30:13 2016
+-- Definition current  Thu Feb 25 11:17:44 2016
 
   (
     TEAM_NUMBER                      INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1804,12 +1818,13 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
   , TEAM_CONTACT_NUMBER              CHAR(10) CHARACTER SET ISO88591 COLLATE
       DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE
   )
+  PRIMARY KEY (TEAM_NUMBER ASC)
 
 --- SQL operation complete.
 >>invoke t132_giants_games;
 
 -- Definition of Trafodion view TRAFODION.T132SCH.T132_GIANTS_GAMES
--- Definition current  Sat Feb 13 01:30:13 2016
+-- Definition current  Thu Feb 25 11:17:44 2016
 
   (
     GAME_NUMBER                      INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1823,7 +1838,7 @@ CREATE SEQUENCE TRAFODION.T132SCH.T132_TEAM_NUMBER_SEQUENCE
 >>invoke t132_home_teams_games;
 
 -- Definition of Trafodion view TRAFODION.T132SCH.T132_HOME_TEAMS_GAMES
--- Definition current  Sat Feb 13 01:30:13 2016
+-- Definition current  Thu Feb 25 11:17:44 2016
 
   (
     TEAM_NUMBER                      INT NO DEFAULT NOT NULL NOT DROPPABLE
@@ -1868,6 +1883,7 @@ Tables in Schema TRAFODION.T132SCH
 
 SB_HISTOGRAMS
 SB_HISTOGRAM_INTERVALS
+SB_PERSISTENT_SAMPLES
 
 --- SQL operation complete.
 >>
@@ -1891,6 +1907,7 @@ Tables in Schema TRAFODION.T132SCH
 
 SB_HISTOGRAMS
 SB_HISTOGRAM_INTERVALS
+SB_PERSISTENT_SAMPLES
 T132T1
 T132T2
 
@@ -1991,26 +2008,26 @@ End of MXCI Session
 >>showstats for table t132t1 on every column;
 
 Histogram data for Table TRAFODION.T132SCH.T132T1
-Table ID: 8532722397900169867
+Table ID: 9082725574613497403
 
    Hist ID # Ints    Rowcount         UEC Colname(s)
 ========== ====== =========== =========== ===========================
- 835649386      8           8           8 SYSKEY
- 835649383      8           8           8 C1
- 835649376      8           8           8 C2
+1275314956      8           8           8 SYSKEY
+1275314953      8           8           8 C1
+1275314946      8           8           8 C2
 
 
 --- SQL operation complete.
 >>showstats for table t132t2 on every column;
 
 Histogram data for Table TRAFODION.T132SCH.T132T2
-Table ID: 8532722397900169937
+Table ID: 9082725574613497462
 
    Hist ID # Ints    Rowcount         UEC Colname(s)
 ========== ====== =========== =========== ===========================
- 839319130      8           8           8 SYSKEY
- 839319125      8           8           8 C1
- 839319120      8           8           8 C2
+1278381713      8           8           8 SYSKEY
+1278381708      8           8           8 C1
+1278381703      8           8           8 C2
 
 
 --- SQL operation complete.
@@ -2116,26 +2133,26 @@ MANAGE_STATISTICS
 >>showstats for table t132t1 on every column;
 
 Histogram data for Table TRAFODION.T132SCH.T132T1
-Table ID: 8532722397900169867
+Table ID: 9082725574613497403
 
    Hist ID # Ints    Rowcount         UEC Colname(s)
 ========== ====== =========== =========== ===========================
- 835649387      8           8           8 SYSKEY
- 835649382      8           8           8 C1
- 835649377      8           8           8 C2
+1275314957      8           8           8 SYSKEY
+1275314952      8           8           8 C1
+1275314947      8           8           8 C2
 
 
 --- SQL operation complete.
 >>showstats for table t132t2 on every column;
 
 Histogram data for Table TRAFODION.T132SCH.T132T2
-Table ID: 8532722397900169937
+Table ID: 9082725574613497462
 
    Hist ID # Ints    Rowcount         UEC Colname(s)
 ========== ====== =========== =========== ===========================
- 839319131      8           8           8 SYSKEY
- 839319124      8           8           8 C1
- 839319121      8           8           8 C2
+1278381712      8           8           8 SYSKEY
+1278381709      8           8           8 C1
+1278381702      8           8           8 C2
 
 
 --- SQL operation complete.
@@ -2196,13 +2213,13 @@ CREATE TABLE TRAFODION.T132SCH.T132T1
 >>showstats for table t132t1 on every column;
 
 Histogram data for Table TRAFODION.T132SCH.T132T1
-Table ID: 8532722397900169867
+Table ID: 9082725574613497403
 
    Hist ID # Ints    Rowcount         UEC Colname(s)
 ========== ====== =========== =========== ===========================
- 835649387      8           8           8 SYSKEY
- 835649382      8           8           8 C1
- 835649377      8           8           8 C2
+1275314957      8           8           8 SYSKEY
+1275314952      8           8           8 C1
+1275314947      8           8           8 C2
 
 
 --- SQL operation complete.

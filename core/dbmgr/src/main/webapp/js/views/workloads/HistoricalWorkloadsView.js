@@ -133,6 +133,12 @@ define([
 					$(FILTER_START_TIME).prop("disabled", true);
 					$(FILTER_END_TIME).prop("disabled", true);
 					break;
+				case "128":
+					$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'week'));
+					$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
+					$(FILTER_START_TIME).prop("disabled", true);
+					$(FILTER_END_TIME).prop("disabled", true);
+					break;	
 				case "0":
 					$(FILTER_START_TIME).prop("disabled", false);
 					$(FILTER_END_TIME).prop("disabled", false);
@@ -405,7 +411,7 @@ define([
 					buttons: [
 	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
 	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                          // { extend : 'excel', exportOptions: { columns: ':visible' } },
 	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 	                        	   title: 'Historical Workloads' } ,
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Historical Workloads' }

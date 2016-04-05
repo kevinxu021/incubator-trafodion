@@ -127,7 +127,7 @@
 	}*/
 	.CodeMirror pre {
 		padding: 0 4px; /* Horizontal padding of content */
-		padding-left: 30px;
+		/*padding-left: 30px;*/
 		/*font-family: Courier New, Courier, monospace;*/
 	}
 	.navbar-default .dbmgr-title {
@@ -161,7 +161,7 @@
 	.dbmgr-drilldown-graph {
 		min-height: 400px;
 		height: 500px;
-		width: 900px;
+		width: 75%;
 		float: left;
 	}
 	.drilldown-legend-selector {

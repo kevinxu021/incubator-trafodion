@@ -2099,6 +2099,85 @@ short DTM_DISABLETRANSACTIONS(int32 pv_shutdown_level)
     return lv_error;
 } // DTM_DISABLETRANSACTIONS
 
+// -----------------------------------------------------------------
+// lock_helper
+// Purpose - Common code for LOCKTM and UNLOCKTM        
+// -----------------------------------------------------------------
+short lock_helper(short req_type)
+{
+    short           lv_error = FEOK;
+    int32           lv_leadTM = -1;
+    Tm_Req_Msg_Type lv_req;
+    Tm_Rsp_Msg_Type lv_rsp;
+
+    memset(&lv_rsp, 0, sizeof(lv_rsp));
+
+    TMlibTrace(("TMLIB_TRACE : lock_helper ENTRY.\n"), 2);
+    if (!gv_tmlib.is_initialized())
+        gv_tmlib.initialize();
+
+    // instantiate a gp_trans_thr object for this thread if needed.
+    if (gp_trans_thr == NULL)
+       gp_trans_thr = new TMLIB_ThreadTxn_Object();
+
+    // First get the Lead TM node number.
+    tmlib_init_req_hdr(TM_MSG_TYPE_LEADTM, &lv_req);
+    lv_error = gv_tmlib.send_tm(&lv_req, &lv_rsp, gv_tmlib.iv_my_nid);
+    if (lv_error)
+    {
+        TMlibTrace(("TMLIB_TRACE : lock_helper EXIT - Get LeadTM returned error %d\n", lv_error), 1);
+        return lv_error;
+    }
+
+    lv_leadTM = lv_rsp.u.iv_leadtm.iv_node;
+
+    // Now we can send the lock request to the Lead TM
+    tmlib_init_req_hdr(req_type, &lv_req);
+    lv_error = gv_tmlib.send_tm(&lv_req, &lv_rsp, lv_leadTM);
+    if (lv_error)
+    {
+        TMlibTrace(("TMLIB_TRACE : lock_helper EXIT returned error %d\n", lv_error), 1);
+        return lv_error;
+    }
+
+    lv_error = lv_rsp.iv_msg_hdr.miv_err.error;
+    TMlibTrace(("TMLIB_TRACE : lock_helper EXIT returned error %d\n", lv_error), 1);
+    return lv_error;
+}
+// -----------------------------------------------------------------
+// DTM_LOCKTM
+// Purpose - Request DTMs to lock themselves
+// Returns FEOK if successful
+//           
+// -----------------------------------------------------------------
+short DTM_LOCKTM()
+{
+    short           lv_error = FEOK;
+    TMlibTrace(("TMLIB_TRACE : DTM_LOCKTM ENTRY.\n"), 2);
+
+    lv_error = lock_helper(TM_MSG_TYPE_LOCKTM);
+    
+    TMlibTrace(("TMLIB_TRACE : DTM_LOCKTM EXIT with error %d\n", lv_error), 2);
+    return lv_error;
+} // DTM_LOCKTM
+
+// -----------------------------------------------------------------
+// DTM_UNLOCKTM
+// Purpose - Request DTMs to unlock themselves
+// Returns FEOK if successful
+//           
+// -----------------------------------------------------------------
+short DTM_UNLOCKTM()
+{
+    short           lv_error = FEOK;
+    TMlibTrace(("TMLIB_TRACE : DTM_UNLOCKTM ENTRY.\n"), 2);
+
+    lv_error = lock_helper(TM_MSG_TYPE_UNLOCKTM);
+    
+    TMlibTrace(("TMLIB_TRACE : DTM_UNLOCKTM EXIT with error %d\n", lv_error), 2);
+    return lv_error;
+  
+} // DTM_UNLOCKTM
 
 // -----------------------------------------------------------------
 // DTM_DRAINTRANSACTIONS
@@ -2746,21 +2825,20 @@ bool TMLIB::phandle_get(TPT_PTR(pp_phandle), int pv_node)
 
 void TMLIB::phandle_set (TPT_PTR(pp_phandle), int pv_node)
 {
-    short lv_error = 0;
 
     ia_tm_phandle[pv_node].iv_phandle = *pp_phandle;
     ia_tm_phandle[pv_node].iv_open = true;
     
     //call decompose to get out the nid/pid
-    lv_error = XPROCESSHANDLE_DECOMPOSE_(pp_phandle, 
+    XPROCESSHANDLE_DECOMPOSE_(pp_phandle, 
                                           NULL, // node - already know it
                                           &ia_tm_phandle[pv_node].iv_pid, // pid
                                           NULL, // don't care
                                           NULL, // don't care
+                                          0, // don't care
                                           NULL, // don't care
                                           NULL, // don't care
-                                          NULL, // don't care
-                                          NULL, // don't care
+                                          0, // don't care
                                           NULL, // don't care
                                           NULL); //sdon't care
 
@@ -2770,7 +2848,6 @@ void TMLIB::phandle_set (TPT_PTR(pp_phandle), int pv_node)
 
 void TMLIB::initialize()
 {
-   int lv_err = 0;
    msg_mon_get_process_info(NULL, &iv_my_nid,
                                     &iv_my_pid);
 
@@ -2782,7 +2859,7 @@ void TMLIB::initialize()
     //TODO: switch the following call to msg_mon_get_node_info2 when available.
     // This call has been changed so that the node count includes spare nodes, so 
     // will give the wrong value for iv_node_count.
-    lv_err = msg_mon_get_node_info(&iv_node_count, MAX_NODES, NULL);
+    msg_mon_get_node_info(&iv_node_count, MAX_NODES, NULL);
     is_initialized(true);
     // We don't use gv_tmlib_initialized but set it here just to keep things aligned.
     gv_tmlib_initialized = true;
@@ -3158,11 +3235,10 @@ short TMLIB::setupJNI()
 ///////////////////////////////////////////////
 short TMLIB::initConnection(short pv_nid)
 {
-   jboolean jresult = 0;
   jthrowable exc;
   jshort   jdtmid = pv_nid;
   //sleep(30);
-  jresult = _tlp_jenv->CallBooleanMethod(javaObj_, TMLibJavaMethods_[JM_INIT1].methodID, jdtmid);
+  _tlp_jenv->CallBooleanMethod(javaObj_, TMLibJavaMethods_[JM_INIT1].methodID, jdtmid);
   exc = _tlp_jenv->ExceptionOccurred();
   if(exc) {
     _tlp_jenv->ExceptionDescribe();
@@ -3268,7 +3344,7 @@ short TMLIB::abortTransactionLocal(long transactionID)
 //----------------------------------------------------------------------------
 bool DTM_LOCALTRANSACTION(int32 *pp_node, int32 *pp_seqnum)
 {
-
+   TMlibTrace(("TMLIB_TRACE : DTM_LOCALTRANSACTION ENTRY\n"), 1);
    // instantiate a gp_trans_thr object for this thread if needed.
    if (gp_trans_thr == NULL)
       gp_trans_thr = new TMLIB_ThreadTxn_Object();

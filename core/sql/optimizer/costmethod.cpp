@@ -4712,12 +4712,18 @@ if (CURRSTMT_OPTDEFAULTS->optimizerHeuristic2()) {//#ifndef NDEBUG
   {
     pfp = stdout;
     fprintf(pfp,"FILESCAN::computeOperatorCost()\n");
+    fprintf(pfp,"table name: %s\n", p->getIndexDesc()->getExtIndexName().data());
     costPtr->print(pfp);
     fprintf(pfp, "Elapsed time: ");
-    fprintf(pfp,"%f", costPtr->
+    fprintf(pfp,"%f\n", costPtr->
             convertToElapsedTime(
                  myContext->getReqdPhysicalProperty()).
             value());
+    fprintf(pfp, "from scanOptimizer:\n");
+    fprintf(pfp, "   probes=%lf\n", scanOptimizer->getProbes().getValue());
+    fprintf(pfp, "   succ probes=%lf\n", scanOptimizer->getSuccessfulProbes().getValue());
+    fprintf(pfp, "   unique probes=%lf\n", scanOptimizer->getUniqueProbes().getValue());
+    fprintf(pfp, "   tuples processed=%lf\n", scanOptimizer->getTuplesProcessed().getValue());
     fprintf(pfp,"\n");
   }
 #endif

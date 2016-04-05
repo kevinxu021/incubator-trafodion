@@ -31,7 +31,7 @@ GENVERS			    =./genvers
 
 all: build_all
 
-build_all: build_chk LICENSE NOTICE
+build_all: build_chk LICENSE NOTICE LICENSE_Esgyn
 	echo "$(MAVEN) site package -DskipTests"
 	echo "### For full Maven output, see file build_dcs.log"
 	set -o pipefail && $(MAVEN) site package -DskipTests | tee build_dcs.log | grep --line-buffered -E -e '^\[[^WId]' -e '^\[INFO\] B[Uu][Ii][Ll][Dd]' -e 'to compile'
@@ -47,11 +47,16 @@ build_chk:
 LICENSE: ../licenses/LICENSE-dcs
 	cp -f $? $@
 
+LICENSE_Esgyn: ../licenses/Esgyn
+	cp -f $? $@
+
 ../licenses/LICENSE-dcs:
 	cd $(@D) && $(MAKE) $(@F)
 
 NOTICE: ../NOTICE
 	cp -f $? $@
+	# Add notice file from jython 2.5.3
+	cat ../licenses/not-dcs-bin >> $@
 
 clean:
 	-$(MAVEN) clean | grep ERROR

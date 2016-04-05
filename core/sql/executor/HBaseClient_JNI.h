@@ -39,12 +39,7 @@
 // forward declare
 class ExHbaseAccessStats;
 
-using namespace apache::hadoop::hbase::thrift;
-
-namespace {
-  typedef std::vector<Text> TextVec;
-}
-
+#include "ByteArrayList.h"
 
 class ContextCli;
 
@@ -56,70 +51,6 @@ typedef enum {
   HBC_Req_Shutdown = 0
  ,HBC_Req_Drop
 } HBaseClientReqType;
-
-// ===========================================================================
-// ===== The ByteArrayList class implements access to the Java 
-// ===== ByteArrayList class.
-// ===========================================================================
-
-typedef enum {
-  BAL_OK     = JOI_OK
- ,BAL_FIRST  = JOI_LAST
- ,BAL_ERROR_ADD_PARAM = BAL_FIRST
- ,BAL_ERROR_ADD_EXCEPTION
- ,BAL_ERROR_GET_EXCEPTION
- ,BAL_LAST
-} BAL_RetCode;
-
-class ByteArrayList : public JavaObjectInterface
-{
-public:
-  ByteArrayList(NAHeap *heap, jobject jObj = NULL)
-    :  JavaObjectInterface(heap, jObj)
-  {}
-
-  // Destructor
-  virtual ~ByteArrayList();
-  
-  // Initialize JVM and all the JNI configuration.
-  // Must be called.
-  BAL_RetCode    init();
-  
-  BAL_RetCode add(const Text& str);
-    
-  // Add a Text vector.
-  BAL_RetCode add(const TextVec& vec);
-
-  BAL_RetCode addElement(const char * data, int keyLength);
-    
-  // Get a Text element
-  Text* get(Int32 i);
-
-  // Get the error description.
-  virtual char* getErrorText(BAL_RetCode errEnum);
-
-  Int32 getSize();
-  Int32 getEntrySize(Int32 i);
-  char* getEntry(Int32 i, char* buf, Int32 bufLen, Int32& dataLen);
-
-
-private:  
-  enum JAVA_METHODS {
-    JM_CTOR = 0, 
-    JM_ADD,
-    JM_GET,
-    JM_GETSIZE,
-    JM_GETENTRY,
-    JM_GETENTRYSIZE,
-    JM_LAST
-  };
-  
-  static jclass          javaClass_;  
-  static JavaMethodInit* JavaMethods_;
-  static bool javaMethodsInitialized_;
-  // this mutex protects both JaveMethods_ and javaClass_ initialization
-  static pthread_mutex_t javaMethodsInitMutex_;
-};
 
 class HBaseClientRequest
 {
@@ -523,13 +454,14 @@ public:
   HBC_RetCode registerTruncateOnAbort(const char* fileName, Int64 transID);
   HBC_RetCode drop(const char* fileName, bool async, Int64 transID);
   HBC_RetCode drop(const char* fileName, JNIEnv* jenv, Int64 transID); // thread specific
-  HBC_RetCode dropAll(const char* pattern, bool async);
-  HBC_RetCode copy(const char* currTblName, const char* oldTblName);
+  HBC_RetCode dropAll(const char* pattern, bool async, Int64 transID);
+  HBC_RetCode copy(const char* srcTblName, const char* tgtTblName,
+                   NABoolean force);
   ByteArrayList* listAll(const char* pattern);
   ByteArrayList* getRegionStats(const char* tblName);
   static HBC_RetCode flushAllTablesStatic();
   HBC_RetCode flushAllTables();
-  HBC_RetCode exists(const char* fileName);
+  HBC_RetCode exists(const char* fileName, Int64 transID);
   HBC_RetCode grant(const Text& user, const Text& tableName, const TextVec& actionCodes); 
   HBC_RetCode revoke(const Text& user, const Text& tableName, const TextVec& actionCodes);
   HBC_RetCode estimateRowCount(const char* tblName, Int32 partialRowSize,
@@ -708,6 +640,7 @@ typedef enum {
  ,HVC_ERROR_HDFS_WRITE_EXCEPTION
  ,HVC_ERROR_HDFS_CLOSE_EXCEPTION
  ,HVC_ERROR_EXECHIVESQL_EXCEPTION
+ ,HVC_ERROR_CREATEHIVEPART_EXCEPTION
  ,HVC_LAST
 } HVC_RetCode;
 
@@ -744,6 +677,9 @@ public:
   HVC_RetCode hdfsWrite(const char* data, Int64 len);
   HVC_RetCode hdfsClose();
   HVC_RetCode executeHiveSQL(const char* hiveSQL);
+  HVC_RetCode createHiveTablePartition(const char *schemaName,
+                                       const char *tableName,
+                                       const char *partitionString);
   // Get the error description.
   virtual char* getErrorText(HVC_RetCode errEnum);
   
@@ -774,6 +710,7 @@ private:
    ,JM_HDFS_WRITE
    ,JM_HDFS_CLOSE
    ,JM_EXEC_HIVE_SQL
+   ,JM_CREATE_HIVE_PART
    ,JM_LAST
   };
   static jclass          javaClass_; 
@@ -869,11 +806,13 @@ jobjectArray convertToByteArrayObjectArray(const LIST(NAString) &vec);
 jobjectArray convertToByteArrayObjectArray(const LIST(HbaseStr) &vec);
 jobjectArray convertToByteArrayObjectArray(const char **array,
                    int numElements, int elementLen);
+jobjectArray convertToByteArrayObjectArray(const TextVec &vec);
 jobjectArray convertToStringObjectArray(const TextVec &vec);
 jobjectArray convertToStringObjectArray(const HBASE_NAMELIST& nameList);
 jobjectArray convertToStringObjectArray(const NAText *text, int arrayLen);
-int convertStringObjectArrayToList(NAHeap *heap, jarray j_objArray, 
-                                         LIST(Text *)&list);
+int convertStringObjectArrayToList(NAHeap *heap, jarray j_objArray, LIST(Text *)&list);
+int convertLongObjectArrayToList(NAHeap *heap, jlongArray j_longArray, LIST(Int64)&list);
+
 #endif
 
 

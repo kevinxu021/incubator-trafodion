@@ -55,6 +55,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.client.coprocessor.AggregationClient;
 import org.apache.hadoop.hbase.client.transactional.RMInterface;
 import org.apache.hadoop.hbase.client.transactional.TransactionalAggregationClient;
+import org.apache.hadoop.hbase.client.transactional.TransactionalTable;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
 
 import org.apache.log4j.Logger;
@@ -1961,18 +1962,22 @@ public class HTableClient {
                           throws IOException, Throwable {
 
 		    Configuration customConf = table.getConfiguration();
-                    long rowCount = 0;
+            long rowCount = 0;
 
-                    if (transID > 0) {
+            if (transID > 0) {
 		      TransactionalAggregationClient aggregationClient = 
-                          new TransactionalAggregationClient(customConf);
+              new TransactionalAggregationClient(customConf);
 		      Scan scan = new Scan();
 		      scan.addFamily(colFamily);
 		      scan.setCacheBlocks(false);
 		      final ColumnInterpreter<Long, Long, EmptyMsg, LongMsg, LongMsg> ci =
-			new LongColumnInterpreter();
+              new LongColumnInterpreter();
 		      byte[] tname = getTableName().getBytes();
-		      rowCount = aggregationClient.rowCount(transID, 
+              TransactionalTable lv_ttable = new TransactionalTable(getTableName());
+              TransactionState ts = table.registerTransaction(lv_ttable, transID, startRowID, 0);
+
+//              TransactionState ts = table.getTransactionState(transID);
+		      rowCount = aggregationClient.rowCount(transID, ts.getStartId(),
                         org.apache.hadoop.hbase.TableName.valueOf(getTableName()),
                         ci,
                         scan);

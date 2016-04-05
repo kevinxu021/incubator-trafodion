@@ -250,7 +250,8 @@ Lng32  ExpHbaseInterface::fetchAllRows(
   return retcode;
 }
 
-Lng32 ExpHbaseInterface::copy(HbaseStr &currTblName, HbaseStr &oldTblName)
+Lng32 ExpHbaseInterface::copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
+                              NABoolean force)
 {
   return -HBASE_COPY_ERROR;
 }
@@ -551,15 +552,22 @@ Lng32 ExpHbaseInterface_JNI::drop(HbaseStr &tblName, NABoolean async, NABoolean 
 }
 
 //----------------------------------------------------------------------------
-Lng32 ExpHbaseInterface_JNI::dropAll(const char * pattern, NABoolean async)
+Lng32 ExpHbaseInterface_JNI::dropAll(const char * pattern, NABoolean async, 
+                                     NABoolean noXn)
 {
   if (client_ == NULL)
   {
     if (init(hbs_) != HBASE_ACCESS_SUCCESS)
       return -HBASE_ACCESS_ERROR;
   }
+
+  Int64 transID;
+  if (noXn)
+    transID = 0;
+  else
+    transID = getTransactionIDFromContext();
     
-  retCode_ = client_->dropAll(pattern, async);
+  retCode_ = client_->dropAll(pattern, async, transID);
 
   //close();
   if (retCode_ == HBC_OK)
@@ -585,7 +593,8 @@ ByteArrayList* ExpHbaseInterface_JNI::listAll(const char * pattern)
 }
 
 //----------------------------------------------------------------------------
-Lng32 ExpHbaseInterface_JNI::copy(HbaseStr &currTblName, HbaseStr &oldTblName)
+Lng32 ExpHbaseInterface_JNI::copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
+                                  NABoolean force)
 {
   if (client_ == NULL)
   {
@@ -593,7 +602,7 @@ Lng32 ExpHbaseInterface_JNI::copy(HbaseStr &currTblName, HbaseStr &oldTblName)
       return -HBASE_ACCESS_ERROR;
   }
     
-  retCode_ = client_->copy(currTblName.val, oldTblName.val);
+  retCode_ = client_->copy(srcTblName.val, tgtTblName.val, force);
 
   if (retCode_ == HBC_OK)
     return HBASE_ACCESS_SUCCESS;
@@ -610,7 +619,10 @@ Lng32 ExpHbaseInterface_JNI::exists(HbaseStr &tblName)
       return -HBASE_ACCESS_ERROR;
   }
     
-  retCode_ = client_->exists(tblName.val); 
+  Int64 transID;
+  transID = getTransactionIDFromContext();  
+
+  retCode_ = client_->exists(tblName.val, transID); 
   //close();
   if (retCode_ == HBC_OK)
     return -1;   // Found.
@@ -664,11 +676,13 @@ Lng32 ExpHbaseInterface_JNI::scanOpen(
       Lng32 kk = 0;
     }
 
+  // if this scan is running under a transaction, pass that
+  // transid even if noXn is set. This will ensure that selected
+  // rows are returned from the transaction cache instead of underlying
+  // storage engine.
   Int64 transID;
-  if (noXn)
-    transID = 0;
-  else
-    transID = getTransactionIDFromContext();
+  transID = getTransactionIDFromContext();  
+
   retCode_ = htc_->startScan(transID, startRow, stopRow, columns, timestamp, 
                              cacheBlocks,
                              smallScanner,

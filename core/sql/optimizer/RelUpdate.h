@@ -928,6 +928,7 @@ private:
   // LeafDelete (IM). Only insert/delete if TRUE
   ItemExpr *preconditionTree_;
   ValueIdSet precondition_;
+ 
 
 };
 
@@ -1148,7 +1149,8 @@ public:
     baseColRefs_ = val;
   }
 
-  NABoolean isUpsertThatNeedsMerge() const;
+  NABoolean isUpsertThatNeedsMerge(NABoolean isAlignedRowFormat, NABoolean omittedDefaultCols,
+                                   NABoolean omittedCurrentDefaultCols) const;
   RelExpr* xformUpsertToMerge(BindWA *bindWA) ;
 
 protected:
@@ -1451,6 +1453,7 @@ public:
 
   ItemExpr * insertCols() {return insertCols_;}
   virtual ItemExpr * insertValues() { return insertValues_;}
+
   NABoolean xformedUpsert() {return xformedUpsert_;}
   void setXformedUpsert() {xformedUpsert_ = TRUE;}
 private:

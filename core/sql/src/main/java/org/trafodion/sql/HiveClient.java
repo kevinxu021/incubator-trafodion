@@ -35,9 +35,11 @@ import org.apache.hadoop.util.StringUtils;
 
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.UnknownDBException;
+import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
 // These are needed for the DDL_TIME constant. This class is different in Hive 0.10.
 // We use Java reflection instead of importing the class statically. 
 // For Hive 0.9 or lower
@@ -97,6 +99,7 @@ public class HiveClient {
     }
 
     public boolean close() {
+	if (logger.isDebugEnabled()) logger.debug("HiveClient.close called.");
         hmsClient.close();
         return true;
     }
@@ -111,6 +114,8 @@ public class HiveClient {
     public String getHiveTableString(String schName, String tblName)
         throws MetaException, TException {
         Table table;
+        String result;
+
         if (logger.isDebugEnabled()) logger.debug("HiveClient.getHiveTableString(" + schName + " , " + 
                      tblName + ") called.");
         try {
@@ -121,7 +126,15 @@ public class HiveClient {
             return new String("");
         }
         if (logger.isDebugEnabled()) logger.debug("HiveTable is " + table.toString());
-        return table.toString() ;
+        result = table.toString();
+        if (table.isSetPartitionKeys()) {
+            // append the string representation of each partition
+            // to the table string
+            List<Partition> partns = hmsClient.listPartitions(schName, tblName, (short) 9999);
+            for (int i=0; i < partns.size(); i++)
+                result = result + ", " + partns.get(i).toString();
+        }
+        return result;
     }
 
     public long getRedefTime(String schName, String tblName)
@@ -131,9 +144,10 @@ public class HiveClient {
                      tblName + ") called.");
         try {
             table = hmsClient.getTable(schName, tblName);
-            if (logger.isDebugEnabled()) logger.debug("getTable returns null for " + schName + "." + tblName + ".");
-            if (table == null)
+            if (table == null) {
+		if (logger.isDebugEnabled()) logger.debug("getTable returns null for " + schName + "." + tblName + ".");
                 return 0;
+	    }
         }
         catch (NoSuchObjectException x) {
             if (logger.isDebugEnabled()) logger.debug("Hive table no longer exists.");
@@ -149,6 +163,21 @@ public class HiveClient {
             String rfTime = table.getParameters().get(ddlTimeConst);
             if (rfTime != null)
                 redefTime = Long.parseLong(rfTime);
+        }
+        
+        if (!table.getPartitionKeys().isEmpty()) {
+        	// for a partitioned table, loop through the partitions and find
+        	// the one that was created last
+        	List<String> partNames = hmsClient.listPartitionNames(schName,tblName,(short) 1000);
+        	
+        	for (String partName : partNames) {
+        		int partCreateTime =
+        				hmsClient.getPartition(schName, tblName, partName).getCreateTime();
+        		
+        		if (partCreateTime > redefTime)
+        			redefTime = partCreateTime;
+        	}
+        	
         }
         if (logger.isDebugEnabled()) logger.debug("RedefTime is " + redefTime);
         return redefTime ;
@@ -298,4 +327,35 @@ public class HiveClient {
 	  throw e;
       }
   }
+
+  // Create a partition for an existing Hive table
+  //  schemaName:      Name of Hive database or default schema "default"
+  //  tableName:       Name of Hive table
+  //  partitionString: Partition column values as in the directory name,
+  //                   e.g. "p1=1,p2=two"
+  public void createHiveTablePartition(String schemaName,
+                                       String tableName,
+                                       String partitionString) throws Exception
+  {
+    if (logger.isDebugEnabled()) logger.debug("HiveClient.createHiveTablePartition(" + schemaName
+                                              + ", " + tableName
+                                              + ", " + partitionString + ") - started" );
+    try
+    {
+      hmsClient.appendPartition(schemaName, tableName, partitionString);
+    }
+    catch (AlreadyExistsException ae)
+    {
+      if (logger.isDebugEnabled()) logger.debug("HiveClient.createHiveTablePartition() -- already exists");
+      // do nothing, partition is already created
+    }
+    catch (Exception e)
+    {
+      if (logger.isDebugEnabled()) logger.debug("HiveClient.createHiveTablePartition() -- exception: " + e);
+      throw e;
+    }
+    if (logger.isDebugEnabled()) logger.debug("HiveClient.createHiveTablePartition() - success");
+    
+  }
+                                            
 }

@@ -9676,10 +9676,11 @@ void MDAMOptimalDisjunctPrefixWA::updateMinPrefix()
 
     // factor in the # of partitions (scm compares at the 
     // per-partition base)
+    
     CostScalar numActivePartitions;
-    if (CmpCommon::getDefault(NCM_HBASE_COSTING) == DF_ON)
-      numActivePartitions  = 
-        optimizer_.getEstNumActivePartitionsAtRuntimeForHbaseRegions();
+    if ( optimizer_.getFileScan().isHbaseTable() && (CmpCommon::getDefault(NCM_HBASE_COSTING) == DF_ON))
+       numActivePartitions  = 
+          optimizer_.getEstNumActivePartitionsAtRuntimeForHbaseRegions();
      else
        numActivePartitions = optimizer_.getEstNumActivePartitionsAtRuntime();
 

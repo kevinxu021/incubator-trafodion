@@ -174,6 +174,7 @@ define([
 				lineWrapping: true,
 				matchBrackets : true,
 				autofocus: true,
+				styleSelectedText: true,
 				extraKeys: {"Ctrl-Space": "autocomplete"}
 			});
 			$(queryTextEditor.getWrapperElement()).resizable({
@@ -187,7 +188,7 @@ define([
 				mode: 'text/x-esgyndb',
 				indentWithTabs: true,
 				smartIndent: true,
-				lineNumbers: true,
+				lineNumbers: false,
 				lineWrapping: true,
 				matchBrackets : true,
 				autofocus: true,
@@ -207,7 +208,7 @@ define([
 				mode: 'text/x-esgyndb',
 				indentWithTabs: true,
 				smartIndent: true,
-				lineNumbers: true,
+				lineNumbers: false,
 				lineWrapping: true,
 				matchBrackets : true,
 				autofocus: true,
@@ -336,8 +337,12 @@ define([
 		},
 		explainQuery: function () {
 			var queryText = $(QUERY_TEXT).val();
-			if(queryTextEditor)
-				queryText = queryTextEditor.getValue();
+			if(queryTextEditor){
+				queryText = queryTextEditor.getSelection();
+				if(queryText.length == 0){
+					queryText = queryTextEditor.getValue();
+				}
+			}
 
 			if(queryText == null || queryText.length == 0){
 				alert('Query text cannot be empty.');
@@ -359,8 +364,12 @@ define([
 
 		executeQuery: function () {
 			var queryText = $(QUERY_TEXT).val();
-			if(queryTextEditor)
-				queryText = queryTextEditor.getValue();
+			if(queryTextEditor){
+				queryText = queryTextEditor.getSelection();
+				if(queryText.length == 0){
+					queryText = queryTextEditor.getValue();
+				}
+			}
 
 			if(queryText == null || queryText.length == 0){
 				alert('Query text cannot be empty.');
@@ -428,7 +437,7 @@ define([
 						buttons: [
 		                           { extend : 'copy', exportOptions: { columns: ':visible' } },
 		                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-		                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+		                           //{ extend : 'excel', exportOptions: { columns: ':visible' } },
 		                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 		                        	   title: 'Query Workbench' } ,
 		                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Query Workbench' }

@@ -1409,6 +1409,12 @@ ElemDDLNode::castToStmtDDLAlterTableAlterColumnDatatype()
   return NULL;
 }
 
+StmtDDLAlterTableAlterColumnRename *
+ElemDDLNode::castToStmtDDLAlterTableAlterColumnRename()
+{
+  return NULL;
+}
+
 StmtDDLAlterTableAlterColumnSetSGOption *
 ElemDDLNode::castToStmtDDLAlterTableAlterColumnSetSGOption()
 {

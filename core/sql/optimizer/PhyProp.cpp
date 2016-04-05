@@ -57,6 +57,25 @@ void PhysicalProperty::print(FILE* ofd,
 			     const char * /* prefix */,
 			     const char * /* suffix */) const
 {
+
+/*
+  fprintf(ofd,"%s--Partitioning-Function----------------\n",NEW_INDENT);
+  fprintf(ofd,"%s%s (%d)\n",
+          NEW_INDENT, title, getPartitioningFunctionType());
+  
+  ValueIdList  sortKey_;       
+  SortOrderTypeEnum sortOrderType_;
+
+  PartitioningFunction * actualPartFunc_;
+
+  PlanExecutionEnum  location_;
+*/
+
+}
+
+void PhysicalProperty::display()
+{
+   print();
 }
 
 // Checked during SQ M5. This function is not used at all. 
