@@ -41,6 +41,7 @@ import org.apache.zookeeper.ZooKeeper;
 
 import org.trafodion.dcs.util.*;
 import org.trafodion.dcs.Constants;
+import org.trafodion.dcs.master.mapping.DefinedMapping;
 import org.trafodion.dcs.zookeeper.ZkClient;
 
 class ConnectReply {
@@ -48,6 +49,7 @@ class ConnectReply {
     
     private ZkClient zkc = null;
     private String parentZnode = "";
+    private DefinedMapping mapping = null;
     
     private GetObjRefException exception = null;
     private Integer dialogueId = 0;
@@ -67,9 +69,10 @@ class ConnectReply {
     
     private  Random random = null;
     
-    ConnectReply(ZkClient zkc,String parentZnode){
+    ConnectReply(ZkClient zkc,String parentZnode, DefinedMapping mapping){
         this.zkc = zkc;
         this.parentZnode = parentZnode;
+        this.mapping = mapping;
         exception = new GetObjRefException();
         versionList = new VersionList();
         random = new Random();

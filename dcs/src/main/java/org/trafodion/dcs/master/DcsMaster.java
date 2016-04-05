@@ -22,6 +22,8 @@ under the License.
  */
 package org.trafodion.dcs.master;
 
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -41,6 +43,7 @@ import org.apache.zookeeper.data.Stat;
 import org.trafodion.dcs.Constants;
 import org.trafodion.dcs.master.listener.ListenerService;
 import org.trafodion.dcs.rest.DcsRest;
+import org.trafodion.dcs.util.Bytes;
 import org.trafodion.dcs.util.DcsConfiguration;
 import org.trafodion.dcs.util.DcsNetworkConfiguration;
 import org.trafodion.dcs.util.InfoServer;
@@ -131,6 +134,9 @@ public class DcsMaster implements Runnable {
             System.exit(1);
         }
 
+        metrics = new Metrics();
+        startTime = System.currentTimeMillis();
+
         try {
             // Create the persistent DCS znodes
             Stat stat = zkc.exists(parentZnode, false);
@@ -187,6 +193,20 @@ public class DcsMaster implements Runnable {
                         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
                         CreateMode.PERSISTENT);
             }
+            
+            stat = zkc.exists(parentZnode
+                    + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT,
+                    false);
+            if (stat == null) {
+                zkc.create(parentZnode
+                        + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT,
+                        new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                        CreateMode.PERSISTENT);
+            }
+            processSLA(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS);
+            processProfile(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES);
+            processMapping(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS);
+            
         } catch (KeeperException.NodeExistsException e) {
             // do nothing...some other server has created znodes
         } catch (Exception e) {
@@ -194,16 +214,13 @@ public class DcsMaster implements Runnable {
             System.exit(0);
         }
 
-        metrics = new Metrics();
-        startTime = System.currentTimeMillis();
-
         try {
             netConf = new DcsNetworkConfiguration(conf);
             serverName = netConf.getHostName();
 	    if (serverName == null) {
                 LOG.error("DNS Interface [" + conf.get(Constants.DCS_DNS_INTERFACE, Constants.DEFAULT_DCS_DNS_INTERFACE)
 	    			+ "] configured in dcs.site.xml is not found!");
-		System.exit(1);
+                System.exit(1);
             }
 
             // Wait to become the leader of all DcsMasters
@@ -262,6 +279,114 @@ public class DcsMaster implements Runnable {
                 pool.shutdown();
             System.exit(0);
         }
+    }
+    private void processSLA(String path) throws KeeperException, InterruptedException, Exception{
+        Stat stat = null;
+        List<String> children = null;
+        
+        stat = zkc.exists(path, false);
+        if (stat == null) {
+            zkc.create(path,
+                    new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                    CreateMode.PERSISTENT);
+            stat = zkc.exists(path, false);
+        }
+        if (stat == null) {
+            LOG.error("Node [" + path + "] does not exist!");
+            throw new Exception("Node [" + path + "] does not exist!");
+        }
+        children = zkc.getChildren(path, null);
+        if( ! children.isEmpty()){ 
+            for(String child : children) {
+                if(child.equals(Constants.DEFAULT_WMS_SLA_NAME))
+                    return;
+            }
+        } 
+        createDefaultSLA(path + "/" + Constants.DEFAULT_WMS_SLA_NAME );
+    }
+    private void createDefaultSLA(String path) throws KeeperException, InterruptedException{
+            
+        byte data[] = Bytes.toBytes(String.format("%s=%s:%s=%d:%s=%s:%s=%s:%s=%s:%s=%s:%s=%d",
+                    Constants.IS_DEFAULT,"yes",
+                    Constants.PRIORITY, 5, 
+                    Constants.LIMIT, "",
+                    Constants.THROUGHPUT, "",
+                    Constants.ON_CONNECT_PROFILE, Constants.DEFAULT_WMS_PROFILE_NAME,
+                    Constants.ON_DISCONNECT_PROFILE, Constants.DEFAULT_WMS_PROFILE_NAME,
+                    Constants.LAST_UPDATE, startTime
+                    ));
+        
+        zkc.create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    }
+    private void processProfile(String path) throws KeeperException, InterruptedException, Exception{
+        Stat stat = null;
+        List<String> children = null;
+        
+        stat = zkc.exists(path, false);
+        if (stat == null) {
+            zkc.create(path,
+                    new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                    CreateMode.PERSISTENT);
+            stat = zkc.exists(path, false);
+        }
+        if (stat == null) {
+            LOG.error("Node [" + path + "] does not exist!");
+            throw new Exception("Node [" + path + "] does not exist!");
+        }
+        children = zkc.getChildren(path, null);
+        if( ! children.isEmpty()){ 
+            for(String child : children) {
+                if(child.equals(Constants.DEFAULT_WMS_PROFILE_NAME))
+                    return;
+            }
+        } 
+        createDefaultProfile(path + "/" + Constants.DEFAULT_WMS_PROFILE_NAME );
+    }
+    private void createDefaultProfile(String path) throws KeeperException, InterruptedException{
+        
+        byte data[] = Bytes.toBytes(String.format("%s=%s:%s=%d",
+                Constants.IS_DEFAULT,"yes",
+                Constants.LAST_UPDATE, startTime
+                ));
+        zkc.create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    }
+    private void processMapping(String path) throws KeeperException, InterruptedException, Exception{
+        Stat stat = null;
+        List<String> children = null;
+        
+        stat = zkc.exists(path, false);
+        if (stat == null) {
+            zkc.create(path,
+                    new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                    CreateMode.PERSISTENT);
+            stat = zkc.exists(path, false);
+        }
+        if (stat == null) {
+            LOG.error("Node [" + path + "] does not exist!");
+            throw new Exception("Node [" + path + "] does not exist!");
+        }
+        children = zkc.getChildren(path, null);
+        if( ! children.isEmpty()){ 
+            for(String child : children) {
+                if(child.equals(Constants.DEFAULT_WMS_MAPPING_NAME))
+                    return;
+            }
+        } 
+        createDefaultMapping(path + "/" + Constants.DEFAULT_WMS_MAPPING_NAME );
+    }
+    private void createDefaultMapping(String path) throws KeeperException, InterruptedException{
+        
+        byte data[] = Bytes.toBytes(String.format("%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%d:%s=%s",
+                Constants.IS_ACTIVE,"yes",
+                Constants.SLA,Constants.DEFAULT_WMS_SLA_NAME,
+                Constants.USER_NAME, "",
+                Constants.APPLICATION_NAME, "",
+                Constants.SESSION_NAME, "",
+                Constants.ROLE_NAME, "", 
+                Constants.LAST_UPDATE, startTime,
+                Constants.ORDER_NUMBER, Constants.DEFAULT_ORDER_NUMBER
+                ));
+        zkc.create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
 
     public String getServerName() {

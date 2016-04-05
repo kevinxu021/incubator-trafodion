@@ -245,6 +245,15 @@ public final class Constants {
             + "/running";
     public static final String DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED = DEFAULT_ZOOKEEPER_ZNODE_SERVERS
             + "/registered";
+    
+    /** Parameter name for the root wms dir in ZK for this cluster */
+    public static final String DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT = "/wms";
+    public static final String DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS = DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT
+    		+ "/slas";
+    public static final String DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES = DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT
+    		+ "/profiles";
+    public static final String DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS = DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT
+            + "/mappings";
 
     /**
      * Parameter name for the limit on concurrent client-side zookeeper
@@ -559,6 +568,31 @@ public final class Constants {
     /** Default DcsMaster Floating IP external IP address */
     public static final String DEFAULT_DCS_MASTER_FLOATING_IP_EXTERNAL_IP_ADDRESS = "default";
 
+    /** WMS value for WMS Default SLA name */
+    public static final String DEFAULT_WMS_SLA_NAME = "defaultSLA";
+    /** WMS value for WMS Default Profile name */
+    public static final String DEFAULT_WMS_PROFILE_NAME = "defaultProfile";
+    /** WMS value for WMS Default Mapping name */
+    public static final String DEFAULT_WMS_MAPPING_NAME = "defaultMapping";
+    /** WMS key names for properties SLA, Profile and Mapping*/
+    public static final String IS_DEFAULT = "isDefault";
+    public static final String IS_ACTIVE = "isActive";
+    public static final String PRIORITY = "priority";
+    public static final String LIMIT = "limit";
+    public static final String THROUGHPUT = "throughput";
+    public static final String USER_NAME = "userName";
+    public static final String APPLICATION_NAME = "applicationName";
+    public static final String SESSION_NAME = "sessionName"; 
+    public static final String ROLE_NAME = "roleName";
+    public static final String ON_CONNECT_PROFILE = "onConnectProfile";
+    public static final String ON_DISCONNECT_PROFILE = "onDisconnectProfile"; 
+    public static final String LAST_UPDATE = "lastUpdate"; 
+    public static final String SLA = "sla"; 
+    public static final String ORDER_NUMBER = "orderNumber"; 
+    public static final String CQD = "cqd"; 
+    
+    public static final String DEFAULT_ORDER_NUMBER = "99"; 
+    
     private Constants() {
         // Can't be instantiated with this ctor.
     }
