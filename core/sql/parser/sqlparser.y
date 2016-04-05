@@ -1292,6 +1292,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_HASH2               /* Tandem extension */
 %token <tokval> TOK_HASHPARTFUNC        /* Tandem extension */
 %token <tokval> TOK_HASH2PARTFUNC       /* Tandem extension */
+%token <tokval> TOK_HIVEPARTFUNC        /* Tandem extension */
 %token <tokval> TOK_HEADING             /* Tandem extension */
 %token <tokval> TOK_HEADINGS            /* Tandem extension */
 %token <tokval> TOK_ICOMPRESS           /* Tandem extension */
@@ -9683,6 +9684,17 @@ misc_function :
                                                  Cast($5, new (PARSERHEAP())
                                                       SQLInt(FALSE, FALSE)));
                                 }
+
+     | TOK_HIVEPARTFUNC '(' value_expression_list TOK_FOR value_expression ')'
+                                {
+                                  $$ = new (PARSERHEAP())
+                                    Modulus(new (PARSERHEAP())
+                                                 HiveHash($3),
+                                                 new (PARSERHEAP())
+                                                 Cast($5, new (PARSERHEAP())
+                                                      SQLInt(FALSE, FALSE)));
+                                }
+
      | TOK_RRPARTFUNC '(' value_expression TOK_FOR value_expression ')'
                                 {
                              /*   $$ = new (PARSERHEAP())
@@ -33692,6 +33704,7 @@ nonreserved_func_word:  TOK_ABS
                       | TOK_FN
                       | TOK_GREATEST
                       | TOK_HASHPARTFUNC
+                      | TOK_HIVEPARTFUNC
                       | TOK_HASH2PARTFUNC
                       | TOK_HBASE_AUTHS
                       | TOK_HBASE_VISIBILITY

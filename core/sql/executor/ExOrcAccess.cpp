@@ -352,7 +352,7 @@ ExWorkProcRetcode ExOrcScanTcb::work()
                 if (orcNumRows_ == -1) // select all rows
                   orcStopRowNum_ = -1;
                 else
-                  orcStopRowNum_ = orcStartRowNum_ + orcNumRows_ - 1;
+                  orcStopRowNum_ = orcNumRows_;
 
                 step_ = OPEN_ORC_CURSOR;
               }
@@ -754,7 +754,7 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
             if (orcNumRows_ == -1) // select all rows
               orcStopRowNum_ = -1;
             else
-              orcStopRowNum_ = orcStartRowNum_ + orcNumRows_ - 1;
+              orcStopRowNum_ = orcNumRows_;
 
             orcAggrTdb().getAggrTypeList()->position();
             orcAggrTdb().getHdfsColInfoList()->position();

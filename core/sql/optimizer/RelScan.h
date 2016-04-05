@@ -878,7 +878,8 @@ public:
                          Int32 &hdfsPort,
                          ExpTupleDesc *partCols,
                          int partColValuesLen,
-                         const HivePartitionAndBucketKey *hiveSearchKey);
+                         const HivePartitionAndBucketKey *hiveSearchKey,
+                         NABoolean isForFastAggr = FALSE);
   static char * genExplodedHivePartKeyVals(Generator *generator,
                                            ExpTupleDesc *partCols,
                                            const ValueIdList &valList);
