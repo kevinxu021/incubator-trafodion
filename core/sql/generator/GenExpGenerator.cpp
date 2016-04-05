@@ -1257,6 +1257,8 @@ short ExpGenerator::generateAggrExpr(const ValueIdSet &val_id_set,
 
 	case ITM_COUNT:
 	case ITM_COUNT_NONULL:
+	case ITM_ORC_MAX_NV:
+	case ITM_ORC_SUM_NV:
 	  {
 	    generator->getMapInfo(val_id)->codeGenerated();
             newExpr = new(wHeap())
@@ -1423,6 +1425,8 @@ short ExpGenerator::generateAggrExpr(const ValueIdSet &val_id_set,
 
 	    case ITM_COUNT:
 	    case ITM_COUNT_NONULL:
+	    case ITM_ORC_MAX_NV:
+	    case ITM_ORC_SUM_NV:
 	    case ITM_ONE_TRUE:
 	    case ITM_ANY_TRUE:
 	    case ITM_ANY_TRUE_MAX:
@@ -1503,6 +1507,7 @@ short ExpGenerator::generateAggrExpr(const ValueIdSet &val_id_set,
   	  break;
 
 	case ITM_MAX:
+	case ITM_ORC_MAX_NV:
 	  {
 	    if (case_ == 1)
 	      {
@@ -1576,6 +1581,7 @@ short ExpGenerator::generateAggrExpr(const ValueIdSet &val_id_set,
 	  //        else SUM = 1;
 	  //
 	case ITM_COUNT:
+	case ITM_ORC_SUM_NV:
 	  {
 	    NAType *sumType
 	      = item_expr->getValueId().getType().newCopy(wHeap());

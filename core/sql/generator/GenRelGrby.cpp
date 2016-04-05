@@ -2137,7 +2137,9 @@ short OrcPushdownAggr::codeGen(Generator * generator)
       if (NOT ((a->getOperatorType() == ITM_COUNT) ||
                (a->getOperatorType() == ITM_MIN) ||
                (a->getOperatorType() == ITM_MAX) ||
-               (a->getOperatorType() == ITM_SUM)))
+               (a->getOperatorType() == ITM_SUM) ||
+               (a->getOperatorType() == ITM_ORC_MAX_NV) ||
+               (a->getOperatorType() == ITM_ORC_SUM_NV)  ))
         {
 	  GenAssert(0, "This aggr not yet supported for fast ORC execution.");
         }
@@ -2153,7 +2155,9 @@ short OrcPushdownAggr::codeGen(Generator * generator)
       else if ((a->getOperatorType() == ITM_COUNT_NONULL) ||
                (a->getOperatorType() == ITM_MIN) ||
                (a->getOperatorType() == ITM_MAX) ||
-               (a->getOperatorType() == ITM_SUM))
+               (a->getOperatorType() == ITM_SUM) ||
+               (a->getOperatorType() == ITM_ORC_MAX_NV) ||
+               (a->getOperatorType() == ITM_ORC_SUM_NV))
         {
           ItemExpr * ie = a->getOriginalChild();
           NAColumn *nac = NULL;
@@ -2193,6 +2197,10 @@ short OrcPushdownAggr::codeGen(Generator * generator)
         aggrType = ComTdbOrcFastAggr::COUNT_;
       else if (a->getOperatorType() == ITM_SUM)
         aggrType = ComTdbOrcFastAggr::SUM_;
+      else if (a->getOperatorType() == ITM_ORC_MAX_NV)
+        aggrType = ComTdbOrcFastAggr::ORC_NV_LOWER_BOUND_;
+      else if (a->getOperatorType() == ITM_ORC_SUM_NV)
+        aggrType = ComTdbOrcFastAggr::ORC_NV_UPPER_BOUND_;
 
       aggrTypeInList = space->allocateAndCopyToAlignedSpace
 	((char*)&aggrType, sizeof(aggrType), 0);
@@ -2204,11 +2212,23 @@ short OrcPushdownAggr::codeGen(Generator * generator)
       listOfAggrColNames->insert(hcoInList);
 
       if ((a->getOperatorType() == ITM_COUNT) ||
-          (a->getOperatorType() == ITM_COUNT_NONULL))
+          (a->getOperatorType() == ITM_COUNT_NONULL) ||
+          (a->getOperatorType() == ITM_ORC_SUM_NV))
         {
+          // the count for ORC files is the sum of the counts of
+          // each stripe; the upper bound on number of values for
+          // ORC files is the sum of the unique count in each stripe
           a->setOrigOpType(a->getOperatorType());
           a->setOperatorType(ITM_SUM);
         }
+      else if (a->getOperatorType() == ITM_ORC_MAX_NV)
+        {
+          // the lower bound on number of values for ORC files is
+          // the max of the unique count in each stripe
+          a->setOrigOpType(a->getOperatorType());
+          a->setOperatorType(ITM_MAX);
+        }
+      
     } // for
   
   // generate aggregate expression 

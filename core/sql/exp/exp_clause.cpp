@@ -1141,6 +1141,9 @@ NA_EIDPROC const char * getOperTypeEnumAsString(Int16 /*OperatorTypeEnum*/ ote)
 
     case ITM_PIVOT_GROUP: return "ITM_PIVOT_GROUP";
 
+    case ITM_ORC_MAX_NV: return "ITM_ORC_MAX_NV";
+    case ITM_ORC_SUM_NV: return "ITM_ORC_SUM_NV";
+
     // LCOV_EXCL_STOP
     case ITM_AGGR_MIN_MAX: return "ITM_AGGR_MIN_MAX";
 

@@ -5054,6 +5054,21 @@ ItemExpr *Aggregate::bindNode(BindWA *bindWA)
     }
   }
 
+  if (getOperatorType() == ITM_ORC_MAX_NV ||
+      getOperatorType() == ITM_ORC_SUM_NV)
+  {
+    // restrict these aggregates to column references of Hive ORC tables for now
+    if (child(0)->getOperatorType() != ITM_BASECOLUMN)
+    {
+      *CmpCommon::diags() << DgSqlCode(-4370) << DgString0(getTextUpper());
+      bindWA->setErrStatus();
+      return NULL;
+    }
+
+    // TODO: Add logic to check for Hive ORC table
+
+  } 
+
   context->colRefInAgg() = FALSE;
   context->inAggregate() = FALSE;
 

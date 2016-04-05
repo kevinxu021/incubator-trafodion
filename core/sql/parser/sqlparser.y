@@ -908,6 +908,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_ONLY
 %token <tokval> TOK_OPEN
 %token <tokval> TOK_OR
+%token <tokval> TOK_ORC_MAX_NV
+%token <tokval> TOK_ORC_SUM_NV
 %token <tokval> TOK_ORDER
 %token <tokval> TOK_ORDERED
 %token <tokval> TOK_OS_USERID
@@ -7342,6 +7344,12 @@ set_function_type :   TOK_AVG 		{ $$ = ITM_AVG; }
                     | TOK_COUNT 	{ $$ = ITM_COUNT; }
                     | TOK_VARIANCE 	{ $$ = ITM_VARIANCE; }
                     | TOK_STDDEV 	{ $$ = ITM_STDDEV; }
+                      // max of ColumnStatistics getNumberOfValues 
+                      // across all stripes of an ORC file
+                    | TOK_ORC_MAX_NV  { $$ = ITM_ORC_MAX_NV; }
+                      // sum of ColumnStatistics getNumberOfValues 
+                      // across all stripes of an ORC file
+                    | TOK_ORC_SUM_NV  { $$ = ITM_ORC_SUM_NV; }
 
 pivot_options : empty
                        {
