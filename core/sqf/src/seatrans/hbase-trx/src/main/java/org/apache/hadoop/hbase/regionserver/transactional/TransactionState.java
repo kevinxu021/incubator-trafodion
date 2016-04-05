@@ -134,14 +134,14 @@ public class TransactionState {
         this.tabledescriptor = htd;
         this.earlyLogging = logging;
         this.tHLog = hLog;
+        setStartId(startId);
         if (earlyLogging) {
-           transactionalTag = this.formTransactionalContextTag(TS_ACTIVE);
+           transactionalTag = this.formTransactionalContextTag(TS_ACTIVE, startId);
         }
         else {
-           transactionalTag = this.formTransactionalContextTag(TS_COMMIT_REQUEST);
+           transactionalTag = this.formTransactionalContextTag(TS_COMMIT_REQUEST, startId);
         }
         tagList.add(transactionalTag);
-        setStartId(startId);
     }
 
     public HTableDescriptor getTableDesc() {
@@ -168,14 +168,15 @@ public class TransactionState {
        return result;
     }
 
-    public Tag formTransactionalContextTag(int transactionalOp) {
+    public Tag formTransactionalContextTag(int transactionalOp, long ts) {
         byte[] tid = Bytes.toBytes (this.transactionId);
         byte[] logSeqId = Bytes.toBytes(this.hLogStartSequenceId);
         byte[] type = Bytes.toBytes(transactionalOp);
         int vers = 1;
         byte[] version = Bytes.toBytes(vers);
+        byte[] tsId = Bytes.toBytes(ts);
 
-        byte[] tagBytes = concat(version, type, tid, logSeqId);
+        byte[] tagBytes = concat(version, type, tid, logSeqId, tsId);
         byte tagType = TS_TRAFODION_TXN_TAG_TYPE;
         Tag tag = new Tag(tagType, tagBytes);
         return tag;

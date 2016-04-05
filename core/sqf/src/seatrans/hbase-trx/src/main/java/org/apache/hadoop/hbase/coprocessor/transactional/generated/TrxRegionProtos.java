@@ -38516,6 +38516,1571 @@ public final class TrxRegionProtos {
     // @@protoc_insertion_point(class_scope:TransactionStateMsg)
   }
 
+  public interface TransactionMutationMsgOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // required int64 txId = 1;
+    /**
+     * <code>required int64 txId = 1;</code>
+     */
+    boolean hasTxId();
+    /**
+     * <code>required int64 txId = 1;</code>
+     */
+    long getTxId();
+
+    // repeated .MutationProto put = 2;
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> 
+        getPutList();
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getPut(int index);
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    int getPutCount();
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
+        getPutOrBuilderList();
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getPutOrBuilder(
+        int index);
+
+    // repeated .MutationProto delete = 3;
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> 
+        getDeleteList();
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getDelete(int index);
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    int getDeleteCount();
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
+        getDeleteOrBuilderList();
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getDeleteOrBuilder(
+        int index);
+
+    // repeated bool putOrDel = 4;
+    /**
+     * <code>repeated bool putOrDel = 4;</code>
+     */
+    java.util.List<java.lang.Boolean> getPutOrDelList();
+    /**
+     * <code>repeated bool putOrDel = 4;</code>
+     */
+    int getPutOrDelCount();
+    /**
+     * <code>repeated bool putOrDel = 4;</code>
+     */
+    boolean getPutOrDel(int index);
+
+    // required int64 startId = 5;
+    /**
+     * <code>required int64 startId = 5;</code>
+     */
+    boolean hasStartId();
+    /**
+     * <code>required int64 startId = 5;</code>
+     */
+    long getStartId();
+
+    // required int64 commitId = 6;
+    /**
+     * <code>required int64 commitId = 6;</code>
+     */
+    boolean hasCommitId();
+    /**
+     * <code>required int64 commitId = 6;</code>
+     */
+    long getCommitId();
+
+    // optional int32 xdcMode = 7;
+    /**
+     * <code>optional int32 xdcMode = 7;</code>
+     */
+    boolean hasXdcMode();
+    /**
+     * <code>optional int32 xdcMode = 7;</code>
+     */
+    int getXdcMode();
+  }
+  /**
+   * Protobuf type {@code TransactionMutationMsg}
+   */
+  public static final class TransactionMutationMsg extends
+      com.google.protobuf.GeneratedMessage
+      implements TransactionMutationMsgOrBuilder {
+    // Use TransactionMutationMsg.newBuilder() to construct.
+    private TransactionMutationMsg(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private TransactionMutationMsg(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final TransactionMutationMsg defaultInstance;
+    public static TransactionMutationMsg getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public TransactionMutationMsg getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private TransactionMutationMsg(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 8: {
+              bitField0_ |= 0x00000001;
+              txId_ = input.readInt64();
+              break;
+            }
+            case 18: {
+              if (!((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
+                put_ = new java.util.ArrayList<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto>();
+                mutable_bitField0_ |= 0x00000002;
+              }
+              put_.add(input.readMessage(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.PARSER, extensionRegistry));
+              break;
+            }
+            case 26: {
+              if (!((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
+                delete_ = new java.util.ArrayList<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto>();
+                mutable_bitField0_ |= 0x00000004;
+              }
+              delete_.add(input.readMessage(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.PARSER, extensionRegistry));
+              break;
+            }
+            case 32: {
+              if (!((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
+                putOrDel_ = new java.util.ArrayList<java.lang.Boolean>();
+                mutable_bitField0_ |= 0x00000008;
+              }
+              putOrDel_.add(input.readBool());
+              break;
+            }
+            case 34: {
+              int length = input.readRawVarint32();
+              int limit = input.pushLimit(length);
+              if (!((mutable_bitField0_ & 0x00000008) == 0x00000008) && input.getBytesUntilLimit() > 0) {
+                putOrDel_ = new java.util.ArrayList<java.lang.Boolean>();
+                mutable_bitField0_ |= 0x00000008;
+              }
+              while (input.getBytesUntilLimit() > 0) {
+                putOrDel_.add(input.readBool());
+              }
+              input.popLimit(limit);
+              break;
+            }
+            case 40: {
+              bitField0_ |= 0x00000002;
+              startId_ = input.readInt64();
+              break;
+            }
+            case 48: {
+              bitField0_ |= 0x00000004;
+              commitId_ = input.readInt64();
+              break;
+            }
+            case 56: {
+              bitField0_ |= 0x00000008;
+              xdcMode_ = input.readInt32();
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
+          put_ = java.util.Collections.unmodifiableList(put_);
+        }
+        if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
+          delete_ = java.util.Collections.unmodifiableList(delete_);
+        }
+        if (((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
+          putOrDel_ = java.util.Collections.unmodifiableList(putOrDel_);
+        }
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.internal_static_TransactionMutationMsg_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.internal_static_TransactionMutationMsg_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg.class, org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<TransactionMutationMsg> PARSER =
+        new com.google.protobuf.AbstractParser<TransactionMutationMsg>() {
+      public TransactionMutationMsg parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new TransactionMutationMsg(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<TransactionMutationMsg> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    // required int64 txId = 1;
+    public static final int TXID_FIELD_NUMBER = 1;
+    private long txId_;
+    /**
+     * <code>required int64 txId = 1;</code>
+     */
+    public boolean hasTxId() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>required int64 txId = 1;</code>
+     */
+    public long getTxId() {
+      return txId_;
+    }
+
+    // repeated .MutationProto put = 2;
+    public static final int PUT_FIELD_NUMBER = 2;
+    private java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> put_;
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> getPutList() {
+      return put_;
+    }
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    public java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
+        getPutOrBuilderList() {
+      return put_;
+    }
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    public int getPutCount() {
+      return put_.size();
+    }
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getPut(int index) {
+      return put_.get(index);
+    }
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getPutOrBuilder(
+        int index) {
+      return put_.get(index);
+    }
+
+    // repeated .MutationProto delete = 3;
+    public static final int DELETE_FIELD_NUMBER = 3;
+    private java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> delete_;
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> getDeleteList() {
+      return delete_;
+    }
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    public java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
+        getDeleteOrBuilderList() {
+      return delete_;
+    }
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    public int getDeleteCount() {
+      return delete_.size();
+    }
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getDelete(int index) {
+      return delete_.get(index);
+    }
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getDeleteOrBuilder(
+        int index) {
+      return delete_.get(index);
+    }
+
+    // repeated bool putOrDel = 4;
+    public static final int PUTORDEL_FIELD_NUMBER = 4;
+    private java.util.List<java.lang.Boolean> putOrDel_;
+    /**
+     * <code>repeated bool putOrDel = 4;</code>
+     */
+    public java.util.List<java.lang.Boolean>
+        getPutOrDelList() {
+      return putOrDel_;
+    }
+    /**
+     * <code>repeated bool putOrDel = 4;</code>
+     */
+    public int getPutOrDelCount() {
+      return putOrDel_.size();
+    }
+    /**
+     * <code>repeated bool putOrDel = 4;</code>
+     */
+    public boolean getPutOrDel(int index) {
+      return putOrDel_.get(index);
+    }
+
+    // required int64 startId = 5;
+    public static final int STARTID_FIELD_NUMBER = 5;
+    private long startId_;
+    /**
+     * <code>required int64 startId = 5;</code>
+     */
+    public boolean hasStartId() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>required int64 startId = 5;</code>
+     */
+    public long getStartId() {
+      return startId_;
+    }
+
+    // required int64 commitId = 6;
+    public static final int COMMITID_FIELD_NUMBER = 6;
+    private long commitId_;
+    /**
+     * <code>required int64 commitId = 6;</code>
+     */
+    public boolean hasCommitId() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>required int64 commitId = 6;</code>
+     */
+    public long getCommitId() {
+      return commitId_;
+    }
+
+    // optional int32 xdcMode = 7;
+    public static final int XDCMODE_FIELD_NUMBER = 7;
+    private int xdcMode_;
+    /**
+     * <code>optional int32 xdcMode = 7;</code>
+     */
+    public boolean hasXdcMode() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>optional int32 xdcMode = 7;</code>
+     */
+    public int getXdcMode() {
+      return xdcMode_;
+    }
+
+    private void initFields() {
+      txId_ = 0L;
+      put_ = java.util.Collections.emptyList();
+      delete_ = java.util.Collections.emptyList();
+      putOrDel_ = java.util.Collections.emptyList();
+      startId_ = 0L;
+      commitId_ = 0L;
+      xdcMode_ = 0;
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      if (!hasTxId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasStartId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasCommitId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      for (int i = 0; i < getPutCount(); i++) {
+        if (!getPut(i).isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+      }
+      for (int i = 0; i < getDeleteCount(); i++) {
+        if (!getDelete(i).isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+      }
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeInt64(1, txId_);
+      }
+      for (int i = 0; i < put_.size(); i++) {
+        output.writeMessage(2, put_.get(i));
+      }
+      for (int i = 0; i < delete_.size(); i++) {
+        output.writeMessage(3, delete_.get(i));
+      }
+      for (int i = 0; i < putOrDel_.size(); i++) {
+        output.writeBool(4, putOrDel_.get(i));
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeInt64(5, startId_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeInt64(6, commitId_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeInt32(7, xdcMode_);
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(1, txId_);
+      }
+      for (int i = 0; i < put_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, put_.get(i));
+      }
+      for (int i = 0; i < delete_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(3, delete_.get(i));
+      }
+      {
+        int dataSize = 0;
+        dataSize = 1 * getPutOrDelList().size();
+        size += dataSize;
+        size += 1 * getPutOrDelList().size();
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(5, startId_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(6, commitId_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(7, xdcMode_);
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code TransactionMutationMsg}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsgOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.internal_static_TransactionMutationMsg_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.internal_static_TransactionMutationMsg_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg.class, org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg.Builder.class);
+      }
+
+      // Construct using org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          getPutFieldBuilder();
+          getDeleteFieldBuilder();
+        }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
+
+      public Builder clear() {
+        super.clear();
+        txId_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        if (putBuilder_ == null) {
+          put_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+        } else {
+          putBuilder_.clear();
+        }
+        if (deleteBuilder_ == null) {
+          delete_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000004);
+        } else {
+          deleteBuilder_.clear();
+        }
+        putOrDel_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000008);
+        startId_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000010);
+        commitId_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000020);
+        xdcMode_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000040);
+        return this;
+      }
+
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.internal_static_TransactionMutationMsg_descriptor;
+      }
+
+      public org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg getDefaultInstanceForType() {
+        return org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg.getDefaultInstance();
+      }
+
+      public org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg build() {
+        org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg buildPartial() {
+        org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg result = new org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.txId_ = txId_;
+        if (putBuilder_ == null) {
+          if (((bitField0_ & 0x00000002) == 0x00000002)) {
+            put_ = java.util.Collections.unmodifiableList(put_);
+            bitField0_ = (bitField0_ & ~0x00000002);
+          }
+          result.put_ = put_;
+        } else {
+          result.put_ = putBuilder_.build();
+        }
+        if (deleteBuilder_ == null) {
+          if (((bitField0_ & 0x00000004) == 0x00000004)) {
+            delete_ = java.util.Collections.unmodifiableList(delete_);
+            bitField0_ = (bitField0_ & ~0x00000004);
+          }
+          result.delete_ = delete_;
+        } else {
+          result.delete_ = deleteBuilder_.build();
+        }
+        if (((bitField0_ & 0x00000008) == 0x00000008)) {
+          putOrDel_ = java.util.Collections.unmodifiableList(putOrDel_);
+          bitField0_ = (bitField0_ & ~0x00000008);
+        }
+        result.putOrDel_ = putOrDel_;
+        if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.startId_ = startId_;
+        if (((from_bitField0_ & 0x00000020) == 0x00000020)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        result.commitId_ = commitId_;
+        if (((from_bitField0_ & 0x00000040) == 0x00000040)) {
+          to_bitField0_ |= 0x00000008;
+        }
+        result.xdcMode_ = xdcMode_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg) {
+          return mergeFrom((org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg other) {
+        if (other == org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg.getDefaultInstance()) return this;
+        if (other.hasTxId()) {
+          setTxId(other.getTxId());
+        }
+        if (putBuilder_ == null) {
+          if (!other.put_.isEmpty()) {
+            if (put_.isEmpty()) {
+              put_ = other.put_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+            } else {
+              ensurePutIsMutable();
+              put_.addAll(other.put_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.put_.isEmpty()) {
+            if (putBuilder_.isEmpty()) {
+              putBuilder_.dispose();
+              putBuilder_ = null;
+              put_ = other.put_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+              putBuilder_ = 
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                   getPutFieldBuilder() : null;
+            } else {
+              putBuilder_.addAllMessages(other.put_);
+            }
+          }
+        }
+        if (deleteBuilder_ == null) {
+          if (!other.delete_.isEmpty()) {
+            if (delete_.isEmpty()) {
+              delete_ = other.delete_;
+              bitField0_ = (bitField0_ & ~0x00000004);
+            } else {
+              ensureDeleteIsMutable();
+              delete_.addAll(other.delete_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.delete_.isEmpty()) {
+            if (deleteBuilder_.isEmpty()) {
+              deleteBuilder_.dispose();
+              deleteBuilder_ = null;
+              delete_ = other.delete_;
+              bitField0_ = (bitField0_ & ~0x00000004);
+              deleteBuilder_ = 
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                   getDeleteFieldBuilder() : null;
+            } else {
+              deleteBuilder_.addAllMessages(other.delete_);
+            }
+          }
+        }
+        if (!other.putOrDel_.isEmpty()) {
+          if (putOrDel_.isEmpty()) {
+            putOrDel_ = other.putOrDel_;
+            bitField0_ = (bitField0_ & ~0x00000008);
+          } else {
+            ensurePutOrDelIsMutable();
+            putOrDel_.addAll(other.putOrDel_);
+          }
+          onChanged();
+        }
+        if (other.hasStartId()) {
+          setStartId(other.getStartId());
+        }
+        if (other.hasCommitId()) {
+          setCommitId(other.getCommitId());
+        }
+        if (other.hasXdcMode()) {
+          setXdcMode(other.getXdcMode());
+        }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        if (!hasTxId()) {
+          
+          return false;
+        }
+        if (!hasStartId()) {
+          
+          return false;
+        }
+        if (!hasCommitId()) {
+          
+          return false;
+        }
+        for (int i = 0; i < getPutCount(); i++) {
+          if (!getPut(i).isInitialized()) {
+            
+            return false;
+          }
+        }
+        for (int i = 0; i < getDeleteCount(); i++) {
+          if (!getDelete(i).isInitialized()) {
+            
+            return false;
+          }
+        }
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      // required int64 txId = 1;
+      private long txId_ ;
+      /**
+       * <code>required int64 txId = 1;</code>
+       */
+      public boolean hasTxId() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>required int64 txId = 1;</code>
+       */
+      public long getTxId() {
+        return txId_;
+      }
+      /**
+       * <code>required int64 txId = 1;</code>
+       */
+      public Builder setTxId(long value) {
+        bitField0_ |= 0x00000001;
+        txId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 txId = 1;</code>
+       */
+      public Builder clearTxId() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        txId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // repeated .MutationProto put = 2;
+      private java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> put_ =
+        java.util.Collections.emptyList();
+      private void ensurePutIsMutable() {
+        if (!((bitField0_ & 0x00000002) == 0x00000002)) {
+          put_ = new java.util.ArrayList<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto>(put_);
+          bitField0_ |= 0x00000002;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilder<
+          org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> putBuilder_;
+
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> getPutList() {
+        if (putBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(put_);
+        } else {
+          return putBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public int getPutCount() {
+        if (putBuilder_ == null) {
+          return put_.size();
+        } else {
+          return putBuilder_.getCount();
+        }
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getPut(int index) {
+        if (putBuilder_ == null) {
+          return put_.get(index);
+        } else {
+          return putBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder setPut(
+          int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
+        if (putBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensurePutIsMutable();
+          put_.set(index, value);
+          onChanged();
+        } else {
+          putBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder setPut(
+          int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
+        if (putBuilder_ == null) {
+          ensurePutIsMutable();
+          put_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          putBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder addPut(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
+        if (putBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensurePutIsMutable();
+          put_.add(value);
+          onChanged();
+        } else {
+          putBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder addPut(
+          int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
+        if (putBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensurePutIsMutable();
+          put_.add(index, value);
+          onChanged();
+        } else {
+          putBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder addPut(
+          org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
+        if (putBuilder_ == null) {
+          ensurePutIsMutable();
+          put_.add(builderForValue.build());
+          onChanged();
+        } else {
+          putBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder addPut(
+          int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
+        if (putBuilder_ == null) {
+          ensurePutIsMutable();
+          put_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          putBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder addAllPut(
+          java.lang.Iterable<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> values) {
+        if (putBuilder_ == null) {
+          ensurePutIsMutable();
+          super.addAll(values, put_);
+          onChanged();
+        } else {
+          putBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder clearPut() {
+        if (putBuilder_ == null) {
+          put_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+          onChanged();
+        } else {
+          putBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder removePut(int index) {
+        if (putBuilder_ == null) {
+          ensurePutIsMutable();
+          put_.remove(index);
+          onChanged();
+        } else {
+          putBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder getPutBuilder(
+          int index) {
+        return getPutFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getPutOrBuilder(
+          int index) {
+        if (putBuilder_ == null) {
+          return put_.get(index);  } else {
+          return putBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
+           getPutOrBuilderList() {
+        if (putBuilder_ != null) {
+          return putBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(put_);
+        }
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder addPutBuilder() {
+        return getPutFieldBuilder().addBuilder(
+            org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder addPutBuilder(
+          int index) {
+        return getPutFieldBuilder().addBuilder(
+            index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder> 
+           getPutBuilderList() {
+        return getPutFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilder<
+          org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
+          getPutFieldBuilder() {
+        if (putBuilder_ == null) {
+          putBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+              org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder>(
+                  put_,
+                  ((bitField0_ & 0x00000002) == 0x00000002),
+                  getParentForChildren(),
+                  isClean());
+          put_ = null;
+        }
+        return putBuilder_;
+      }
+
+      // repeated .MutationProto delete = 3;
+      private java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> delete_ =
+        java.util.Collections.emptyList();
+      private void ensureDeleteIsMutable() {
+        if (!((bitField0_ & 0x00000004) == 0x00000004)) {
+          delete_ = new java.util.ArrayList<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto>(delete_);
+          bitField0_ |= 0x00000004;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilder<
+          org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> deleteBuilder_;
+
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> getDeleteList() {
+        if (deleteBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(delete_);
+        } else {
+          return deleteBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public int getDeleteCount() {
+        if (deleteBuilder_ == null) {
+          return delete_.size();
+        } else {
+          return deleteBuilder_.getCount();
+        }
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getDelete(int index) {
+        if (deleteBuilder_ == null) {
+          return delete_.get(index);
+        } else {
+          return deleteBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder setDelete(
+          int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
+        if (deleteBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureDeleteIsMutable();
+          delete_.set(index, value);
+          onChanged();
+        } else {
+          deleteBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder setDelete(
+          int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
+        if (deleteBuilder_ == null) {
+          ensureDeleteIsMutable();
+          delete_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          deleteBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder addDelete(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
+        if (deleteBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureDeleteIsMutable();
+          delete_.add(value);
+          onChanged();
+        } else {
+          deleteBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder addDelete(
+          int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
+        if (deleteBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureDeleteIsMutable();
+          delete_.add(index, value);
+          onChanged();
+        } else {
+          deleteBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder addDelete(
+          org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
+        if (deleteBuilder_ == null) {
+          ensureDeleteIsMutable();
+          delete_.add(builderForValue.build());
+          onChanged();
+        } else {
+          deleteBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder addDelete(
+          int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
+        if (deleteBuilder_ == null) {
+          ensureDeleteIsMutable();
+          delete_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          deleteBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder addAllDelete(
+          java.lang.Iterable<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> values) {
+        if (deleteBuilder_ == null) {
+          ensureDeleteIsMutable();
+          super.addAll(values, delete_);
+          onChanged();
+        } else {
+          deleteBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder clearDelete() {
+        if (deleteBuilder_ == null) {
+          delete_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000004);
+          onChanged();
+        } else {
+          deleteBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder removeDelete(int index) {
+        if (deleteBuilder_ == null) {
+          ensureDeleteIsMutable();
+          delete_.remove(index);
+          onChanged();
+        } else {
+          deleteBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder getDeleteBuilder(
+          int index) {
+        return getDeleteFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getDeleteOrBuilder(
+          int index) {
+        if (deleteBuilder_ == null) {
+          return delete_.get(index);  } else {
+          return deleteBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
+           getDeleteOrBuilderList() {
+        if (deleteBuilder_ != null) {
+          return deleteBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(delete_);
+        }
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder addDeleteBuilder() {
+        return getDeleteFieldBuilder().addBuilder(
+            org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder addDeleteBuilder(
+          int index) {
+        return getDeleteFieldBuilder().addBuilder(
+            index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder> 
+           getDeleteBuilderList() {
+        return getDeleteFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilder<
+          org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
+          getDeleteFieldBuilder() {
+        if (deleteBuilder_ == null) {
+          deleteBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+              org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder>(
+                  delete_,
+                  ((bitField0_ & 0x00000004) == 0x00000004),
+                  getParentForChildren(),
+                  isClean());
+          delete_ = null;
+        }
+        return deleteBuilder_;
+      }
+
+      // repeated bool putOrDel = 4;
+      private java.util.List<java.lang.Boolean> putOrDel_ = java.util.Collections.emptyList();
+      private void ensurePutOrDelIsMutable() {
+        if (!((bitField0_ & 0x00000008) == 0x00000008)) {
+          putOrDel_ = new java.util.ArrayList<java.lang.Boolean>(putOrDel_);
+          bitField0_ |= 0x00000008;
+         }
+      }
+      /**
+       * <code>repeated bool putOrDel = 4;</code>
+       */
+      public java.util.List<java.lang.Boolean>
+          getPutOrDelList() {
+        return java.util.Collections.unmodifiableList(putOrDel_);
+      }
+      /**
+       * <code>repeated bool putOrDel = 4;</code>
+       */
+      public int getPutOrDelCount() {
+        return putOrDel_.size();
+      }
+      /**
+       * <code>repeated bool putOrDel = 4;</code>
+       */
+      public boolean getPutOrDel(int index) {
+        return putOrDel_.get(index);
+      }
+      /**
+       * <code>repeated bool putOrDel = 4;</code>
+       */
+      public Builder setPutOrDel(
+          int index, boolean value) {
+        ensurePutOrDelIsMutable();
+        putOrDel_.set(index, value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated bool putOrDel = 4;</code>
+       */
+      public Builder addPutOrDel(boolean value) {
+        ensurePutOrDelIsMutable();
+        putOrDel_.add(value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated bool putOrDel = 4;</code>
+       */
+      public Builder addAllPutOrDel(
+          java.lang.Iterable<? extends java.lang.Boolean> values) {
+        ensurePutOrDelIsMutable();
+        super.addAll(values, putOrDel_);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated bool putOrDel = 4;</code>
+       */
+      public Builder clearPutOrDel() {
+        putOrDel_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000008);
+        onChanged();
+        return this;
+      }
+
+      // required int64 startId = 5;
+      private long startId_ ;
+      /**
+       * <code>required int64 startId = 5;</code>
+       */
+      public boolean hasStartId() {
+        return ((bitField0_ & 0x00000010) == 0x00000010);
+      }
+      /**
+       * <code>required int64 startId = 5;</code>
+       */
+      public long getStartId() {
+        return startId_;
+      }
+      /**
+       * <code>required int64 startId = 5;</code>
+       */
+      public Builder setStartId(long value) {
+        bitField0_ |= 0x00000010;
+        startId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 startId = 5;</code>
+       */
+      public Builder clearStartId() {
+        bitField0_ = (bitField0_ & ~0x00000010);
+        startId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // required int64 commitId = 6;
+      private long commitId_ ;
+      /**
+       * <code>required int64 commitId = 6;</code>
+       */
+      public boolean hasCommitId() {
+        return ((bitField0_ & 0x00000020) == 0x00000020);
+      }
+      /**
+       * <code>required int64 commitId = 6;</code>
+       */
+      public long getCommitId() {
+        return commitId_;
+      }
+      /**
+       * <code>required int64 commitId = 6;</code>
+       */
+      public Builder setCommitId(long value) {
+        bitField0_ |= 0x00000020;
+        commitId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 commitId = 6;</code>
+       */
+      public Builder clearCommitId() {
+        bitField0_ = (bitField0_ & ~0x00000020);
+        commitId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // optional int32 xdcMode = 7;
+      private int xdcMode_ ;
+      /**
+       * <code>optional int32 xdcMode = 7;</code>
+       */
+      public boolean hasXdcMode() {
+        return ((bitField0_ & 0x00000040) == 0x00000040);
+      }
+      /**
+       * <code>optional int32 xdcMode = 7;</code>
+       */
+      public int getXdcMode() {
+        return xdcMode_;
+      }
+      /**
+       * <code>optional int32 xdcMode = 7;</code>
+       */
+      public Builder setXdcMode(int value) {
+        bitField0_ |= 0x00000040;
+        xdcMode_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int32 xdcMode = 7;</code>
+       */
+      public Builder clearXdcMode() {
+        bitField0_ = (bitField0_ & ~0x00000040);
+        xdcMode_ = 0;
+        onChanged();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:TransactionMutationMsg)
+    }
+
+    static {
+      defaultInstance = new TransactionMutationMsg(true);
+      defaultInstance.initFields();
+    }
+
+    // @@protoc_insertion_point(class_scope:TransactionMutationMsg)
+  }
+
   /**
    * Protobuf service {@code TrxRegionService}
    */
@@ -40976,6 +42541,11 @@ public final class TrxRegionProtos {
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_TransactionStateMsg_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_TransactionMutationMsg_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_TransactionMutationMsg_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -41122,62 +42692,66 @@ public final class TrxRegionProtos {
       "\010\022\023\n\013txnsToCheck\030\005 \003(\003\022\023\n\013startSeqNum\030\006 " +
       "\002(\003\022\016\n\006seqNum\030\007 \002(\003\022\020\n\010logSeqId\030\010 \002(\003\022\022\n" +
       "\nreinstated\030\t \002(\010\022\016\n\006status\030\n \002(\005\022\026\n\016com" +
-      "mitProgress\030\013 \002(\0052\262\020\n\020TrxRegionService\022G" +
-      "\n\020abortTransaction\022\030.AbortTransactionReq" +
-      "uest\032\031.AbortTransactionResponse\022_\n\030abort",
-      "TransactionMultiple\022 .AbortTransactionMu" +
-      "ltipleRequest\032!.AbortTransactionMultiple" +
-      "Response\022G\n\020beginTransaction\022\030.BeginTran" +
-      "sactionRequest\032\031.BeginTransactionRespons" +
-      "e\022A\n\016checkAndDelete\022\026.CheckAndDeleteRequ" +
-      "est\032\027.CheckAndDeleteResponse\0228\n\013checkAnd" +
-      "Put\022\023.CheckAndPutRequest\032\024.CheckAndPutRe" +
-      "sponse\022;\n\014closeScanner\022\024.CloseScannerReq" +
-      "uest\032\025.CloseScannerResponse\022)\n\006commit\022\016." +
-      "CommitRequest\032\017.CommitResponse\022G\n\020commit",
-      "IfPossible\022\030.CommitIfPossibleRequest\032\031.C" +
-      "ommitIfPossibleResponse\022V\n\025commitRequest" +
-      "Multiple\022\035.CommitRequestMultipleRequest\032" +
-      "\036.CommitRequestMultipleResponse\022A\n\016commi" +
-      "tMultiple\022\026.CommitMultipleRequest\032\027.Comm" +
-      "itMultipleResponse\022>\n\rcommitRequest\022\025.Co" +
-      "mmitRequestRequest\032\026.CommitRequestRespon" +
-      "se\022C\n\006delete\022\033.DeleteTransactionalReques" +
-      "t\032\034.DeleteTransactionalResponse\022[\n\016delet" +
-      "eMultiple\022#.DeleteMultipleTransactionalR",
-      "equest\032$.DeleteMultipleTransactionalResp" +
-      "onse\022:\n\003get\022\030.GetTransactionalRequest\032\031." +
-      "GetTransactionalResponse\0228\n\013performScan\022" +
-      "\023.PerformScanRequest\032\024.PerformScanRespon" +
-      "se\0228\n\013openScanner\022\023.OpenScannerRequest\032\024" +
-      ".OpenScannerResponse\022:\n\003put\022\030.PutTransac" +
-      "tionalRequest\032\031.PutTransactionalResponse" +
-      "\022R\n\013putMultiple\022 .PutMultipleTransaction" +
-      "alRequest\032!.PutMultipleTransactionalResp" +
-      "onse\022D\n\017recoveryRequest\022\027.RecoveryReques",
-      "tRequest\032\030.RecoveryRequestResponse\022<\n\021de" +
-      "leteTlogEntries\022\022.TlogDeleteRequest\032\023.Tl" +
-      "ogDeleteResponse\0220\n\007putTlog\022\021.TlogWriteR" +
-      "equest\032\022.TlogWriteResponse\022w\n\036getTransac" +
-      "tionStatesPriorToAsn\022).TlogTransactionSt" +
-      "atesFromIntervalRequest\032*.TlogTransactio" +
-      "nStatesFromIntervalResponse\022I\n\006GetMax\022\036." +
+      "mitProgress\030\013 \002(\005\"\251\001\n\026TransactionMutatio" +
+      "nMsg\022\014\n\004txId\030\001 \002(\003\022\033\n\003put\030\002 \003(\0132\016.Mutati" +
+      "onProto\022\036\n\006delete\030\003 \003(\0132\016.MutationProto\022",
+      "\020\n\010putOrDel\030\004 \003(\010\022\017\n\007startId\030\005 \002(\003\022\020\n\010co" +
+      "mmitId\030\006 \002(\003\022\017\n\007xdcMode\030\007 \001(\0052\262\020\n\020TrxReg" +
+      "ionService\022G\n\020abortTransaction\022\030.AbortTr" +
+      "ansactionRequest\032\031.AbortTransactionRespo" +
+      "nse\022_\n\030abortTransactionMultiple\022 .AbortT" +
+      "ransactionMultipleRequest\032!.AbortTransac" +
+      "tionMultipleResponse\022G\n\020beginTransaction" +
+      "\022\030.BeginTransactionRequest\032\031.BeginTransa" +
+      "ctionResponse\022A\n\016checkAndDelete\022\026.CheckA" +
+      "ndDeleteRequest\032\027.CheckAndDeleteResponse",
+      "\0228\n\013checkAndPut\022\023.CheckAndPutRequest\032\024.C" +
+      "heckAndPutResponse\022;\n\014closeScanner\022\024.Clo" +
+      "seScannerRequest\032\025.CloseScannerResponse\022" +
+      ")\n\006commit\022\016.CommitRequest\032\017.CommitRespon" +
+      "se\022G\n\020commitIfPossible\022\030.CommitIfPossibl" +
+      "eRequest\032\031.CommitIfPossibleResponse\022V\n\025c" +
+      "ommitRequestMultiple\022\035.CommitRequestMult" +
+      "ipleRequest\032\036.CommitRequestMultipleRespo" +
+      "nse\022A\n\016commitMultiple\022\026.CommitMultipleRe" +
+      "quest\032\027.CommitMultipleResponse\022>\n\rcommit",
+      "Request\022\025.CommitRequestRequest\032\026.CommitR" +
+      "equestResponse\022C\n\006delete\022\033.DeleteTransac" +
+      "tionalRequest\032\034.DeleteTransactionalRespo" +
+      "nse\022[\n\016deleteMultiple\022#.DeleteMultipleTr" +
+      "ansactionalRequest\032$.DeleteMultipleTrans" +
+      "actionalResponse\022:\n\003get\022\030.GetTransaction" +
+      "alRequest\032\031.GetTransactionalResponse\0228\n\013" +
+      "performScan\022\023.PerformScanRequest\032\024.Perfo" +
+      "rmScanResponse\0228\n\013openScanner\022\023.OpenScan" +
+      "nerRequest\032\024.OpenScannerResponse\022:\n\003put\022",
+      "\030.PutTransactionalRequest\032\031.PutTransacti" +
+      "onalResponse\022R\n\013putMultiple\022 .PutMultipl" +
+      "eTransactionalRequest\032!.PutMultipleTrans" +
+      "actionalResponse\022D\n\017recoveryRequest\022\027.Re" +
+      "coveryRequestRequest\032\030.RecoveryRequestRe" +
+      "sponse\022<\n\021deleteTlogEntries\022\022.TlogDelete" +
+      "Request\032\023.TlogDeleteResponse\0220\n\007putTlog\022" +
+      "\021.TlogWriteRequest\032\022.TlogWriteResponse\022w" +
+      "\n\036getTransactionStatesPriorToAsn\022).TlogT" +
+      "ransactionStatesFromIntervalRequest\032*.Tl",
+      "ogTransactionStatesFromIntervalResponse\022" +
+      "I\n\006GetMax\022\036.TransactionalAggregateReques" +
+      "t\032\037.TransactionalAggregateResponse\022I\n\006Ge" +
+      "tMin\022\036.TransactionalAggregateRequest\032\037.T" +
+      "ransactionalAggregateResponse\022I\n\006GetSum\022" +
+      "\036.TransactionalAggregateRequest\032\037.Transa" +
+      "ctionalAggregateResponse\022L\n\tGetRowNum\022\036." +
       "TransactionalAggregateRequest\032\037.Transact" +
-      "ionalAggregateResponse\022I\n\006GetMin\022\036.Trans" +
+      "ionalAggregateResponse\022I\n\006GetAvg\022\036.Trans" +
       "actionalAggregateRequest\032\037.Transactional",
-      "AggregateResponse\022I\n\006GetSum\022\036.Transactio" +
+      "AggregateResponse\022I\n\006GetStd\022\036.Transactio" +
       "nalAggregateRequest\032\037.TransactionalAggre" +
-      "gateResponse\022L\n\tGetRowNum\022\036.Transactiona" +
+      "gateResponse\022L\n\tGetMedian\022\036.Transactiona" +
       "lAggregateRequest\032\037.TransactionalAggrega" +
-      "teResponse\022I\n\006GetAvg\022\036.TransactionalAggr" +
-      "egateRequest\032\037.TransactionalAggregateRes" +
-      "ponse\022I\n\006GetStd\022\036.TransactionalAggregate" +
-      "Request\032\037.TransactionalAggregateResponse" +
-      "\022L\n\tGetMedian\022\036.TransactionalAggregateRe" +
-      "quest\032\037.TransactionalAggregateResponseBS",
-      "\n;org.apache.hadoop.hbase.coprocessor.tr" +
-      "ansactional.generatedB\017TrxRegionProtosH\001" +
-      "\210\001\001"
+      "teResponseBS\n;org.apache.hadoop.hbase.co" +
+      "processor.transactional.generatedB\017TrxRe" +
+      "gionProtosH\001\210\001\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -41472,6 +43046,12 @@ public final class TrxRegionProtos {
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_TransactionStateMsg_descriptor,
               new java.lang.String[] { "TxId", "Put", "Delete", "PutOrDel", "TxnsToCheck", "StartSeqNum", "SeqNum", "LogSeqId", "Reinstated", "Status", "CommitProgress", });
+          internal_static_TransactionMutationMsg_descriptor =
+            getDescriptor().getMessageTypes().get(48);
+          internal_static_TransactionMutationMsg_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_TransactionMutationMsg_descriptor,
+              new java.lang.String[] { "TxId", "Put", "Delete", "PutOrDel", "StartId", "CommitId", "XdcMode", });
           return null;
         }
       };
