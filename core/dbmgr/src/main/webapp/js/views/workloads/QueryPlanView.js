@@ -46,8 +46,10 @@ define([
 		template:  _.template(QueryPlanT),
 
 		doInit: function (args){
+			this.currentURL = window.location.hash;
+			common.redirectFlag=false;
 			_this = this;
-
+			this.pageIdentifier="queryPlan";
 			$('.panel-heading span.dbmgr-collapsible').on("click", function (e) {
 		        if ($(this).hasClass('panel-collapsed')) {
 		                // expand the panel
@@ -98,8 +100,8 @@ define([
 	        	});
 			$(REFRESH_MENU).on('click', this.fetchExplainPlan);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
-			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			wHandler.on(wHandler.PLAN_CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.PLAN_CANCEL_QUERY_ERROR, this.cancelQueryError);
 			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
 			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 
@@ -107,10 +109,11 @@ define([
 
 		},
 		doResume: function(args){
+			common.redirectFlag=false;
 			$(REFRESH_MENU).on('click', this.fetchExplainPlan);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
-			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			/*wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
 			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
 			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 			if(queryID == null || queryID != args){
@@ -119,10 +122,11 @@ define([
 			}
 		},
 		doPause: function(){
+			common.redirectFlag=true;
 			$(REFRESH_MENU).off('click', this.fetchExplainPlan);
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
-			wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			/*wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
 			serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
 			serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 		},
@@ -240,13 +244,37 @@ define([
         	});
         },
 		cancelQuery: function(){
-			wHandler.cancelQuery(queryID);
+			wHandler.cancelQuery(queryID,_this.pageIdentifier);
 		},
 		cancelQuerySuccess:function(){
-			alert('The cancel query request has been submitted');
+			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully."};
+			if(common.redirectFlag==false){
+				_this.popupNotificationMessage(null,msgObj);
+			}else{
+				
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
+			/*alert('The cancel query request has been submitted');*/
+			_this.fetchExplainPlan();
 		},
 		cancelQueryError:function(jqXHR){
-			alert(jqXHR.responseText);
+			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
+			if(jqXHR.responseText==undefined){
+				msgObj.msg="the response was null."
+				msgObj.shortMsg="the response was null."
+			}
+			if(jqXHR.statusText=="abort"){
+				msgObj.msg="the request was aborted."
+				msgObj.shortMsg="the request was aborted."
+			}
+			if(common.redirectFlag==false){
+				_this.popupNotificationMessage(null,msgObj);
+			}else{
+				
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
+			/*alert(jqXHR.responseText);*/
+			_this.fetchExplainPlan();
 		},        
 
 	});

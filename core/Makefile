@@ -35,7 +35,7 @@ include macros.gmk
 # Server-side only
 
 # Default target (all components)
-all: $(MPI_TARGET) dbsecurity foundation jdbc_jar $(SEAMONSTER_TARGET) ndcs ci jdbc_type2_jar dcs rest odb dbmgr
+all: $(MPI_TARGET) dbsecurity foundation jdbc_jar $(SEAMONSTER_TARGET) ndcs ci jdbc_type2_jar dcs rest odb dbmgr lib_mgmt
 
 package: pkg-product pkg-client 
 
@@ -97,7 +97,7 @@ rest: verhdr jdbc_jar
 odb: ndcs
 	cd conn/odb && $(MAKE) 2>&1 | sed -e "s/$$/	##(ODB)/" ; exit $${PIPESTATUS[0]}
 
-dbmgr: 
+dbmgr: jdbc_jar
 	cd dbmgr && $(MAKE) 2>&1 | sed -e "s/$$/	##(DBMGR)/" ; exit $${PIPESTATUS[0]}
 
 cleantests:
@@ -251,7 +251,7 @@ sql/.project:
 	cd sql  && $(MAVEN) eclipse:eclipse
 
 sqf/src/seatrans/hbase-trx/.project:
-	cd sqf/src/seatrans/hbase-trx && $(MAVEN) eclipse:eclipse
+	cd sqf/src/seatrans/hbase-trx && $(MAVEN) -f pom.xml.apache eclipse:eclipse
 
 .project:
 	cp sqf/export/limited-support-tools/eclipse.project .project
@@ -266,3 +266,6 @@ eclipseclean:
 
 trafinstall:
 	cd $(MY_SQROOT)/sql/scripts && install_traf_components
+
+lib_mgmt:
+	cd sql/lib_mgmt && $(MAKE) all

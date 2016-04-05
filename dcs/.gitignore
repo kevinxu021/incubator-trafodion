@@ -2,3 +2,6 @@ mvn.out
 target/*
 /target/
 *.log
+/LICENSE
+/LICENSE_Esgyn
+/NOTICE

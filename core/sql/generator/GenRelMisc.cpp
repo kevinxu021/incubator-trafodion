@@ -513,6 +513,17 @@ short DDLExpr::codeGen(Generator * generator)
     {
       if (NOT isHbase_)
 	generator->setTransactionFlag(-1);
+      else if (getExprNode() && 
+               getExprNode()->castToStmtDDLNode()->ddlXns() &&
+               (NOT hbaseDDLNoUserXn_))
+        {
+          // treat like a transactional IUD operation which need to be
+          // aborted in case of an error.
+          generator->setFoundAnUpdate(TRUE);
+	  generator->setUpdAbortOnError(TRUE);
+          
+          generator->setTransactionFlag(-1);
+        }
       else if (NOT hbaseDDLNoUserXn_) 
 	generator->setTransactionFlag(-1);
     }
@@ -2509,8 +2520,6 @@ short RelRoot::codeGen(Generator * generator)
 	   if (CmpCommon::getDefault(EXE_UTIL_RWRS) == DF_ON)
 	     root_tdb->setExeUtilRwrs(TRUE);
 	}
-       else if (exeUtil->getExeUtilType() == ExeUtilExpr::HBASE_COPROC_AGGR_)
-          root_tdb->setQueryType(ComTdbRoot::SQL_SELECT_NON_UNIQUE);
        else if (exeUtil->getExeUtilType() == ExeUtilExpr::HBASE_LOAD_)
        {
          root_tdb->setSubqueryType(ComTdbRoot::SQL_STMT_HBASE_LOAD);
@@ -2735,7 +2744,7 @@ short RelRoot::codeGen(Generator * generator)
 	{
 	  root_tdb->setUpdErrorOnError(-1);
 	}
-    }
+    } // transactionNeeded
 
   if ((oltOptLean()) &&
       (doOltQryOpt))

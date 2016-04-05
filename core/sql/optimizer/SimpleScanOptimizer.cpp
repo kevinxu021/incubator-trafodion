@@ -1362,7 +1362,7 @@ SimpleFileScanOptimizer::categorizeMultiProbes(NABoolean *isAnIndexJoin)
   // partition only or for the group of partitions providing results for
   // the same ESP.
   //
-  if (CmpCommon::getDefault(NCM_HBASE_COSTING) == DF_ON)
+  if (getFileScan().isHbaseTable() && CmpCommon::getDefault(NCM_HBASE_COSTING) == DF_ON)
     probes_ = (getRepeatCount() *
                getEstNumActivePartitionsAtRuntimeForHbaseRegions()).minCsOne();
   else
@@ -1517,7 +1517,7 @@ SimpleFileScanOptimizer::categorizeProbes(CostScalar& successfulProbes /* out */
     if (allPredHaveConstExpr)
     {
       successfulProbes = probes;
-      if (CmpCommon::getDefault(NCM_HBASE_COSTING) == DF_ON)
+      if (getFileScan().isHbaseTable() && CmpCommon::getDefault(NCM_HBASE_COSTING) == DF_ON)
         uniqueSuccProbes = getEstNumActivePartitionsAtRuntimeForHbaseRegions();
       else
         uniqueSuccProbes = getNumActivePartitions();

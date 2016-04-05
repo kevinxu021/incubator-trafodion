@@ -113,6 +113,7 @@ CPPSRC := Allocator.cpp \
 	TupleSpace.cpp \
 	UdrExeIpc.cpp \
         ExHdfsScan.cpp \
+	ExOrcAccess.cpp \
         JavaObjectInterface.cpp \
         SequenceFileReader.cpp \
         OrcFileReader.cpp \

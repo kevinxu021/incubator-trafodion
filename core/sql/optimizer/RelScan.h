@@ -50,6 +50,7 @@
 #include "SchemaDB.h"
 #include "HbaseSearchSpec.h"
 #include "OptHints.h"
+#include "orcPushdownPredInfo.h"
 #include <vector>
 
 // -----------------------------------------------------------------------
@@ -496,6 +497,10 @@ public:
   void setForceIndexInfo() { forcedIndexInfo_ = TRUE; }
   void resetForceIndexInfo() { forcedIndexInfo_ = FALSE; }
   NABoolean isIndexInfoForced() const { return forcedIndexInfo_; }
+
+  // methods specific for Hive tables
+  void createUniquenessConstraintsForHiveTable();
+
   // ---------------------------------------------------------------------
   // Vertical Partitioning related methods
   // ---------------------------------------------------------------------
@@ -844,23 +849,43 @@ public:
                                ValueIdSet &pulledNewInputs);
   virtual short codeGen(Generator*);
 
+  // process min max keys
+  virtual void processMinMaxKeys(Generator* generator, 
+                                 ValueIdSet& pulledNewInputs,
+                                 ValueIdSet& availableValues,
+                                 NABoolean updateSearchKeyOnly,
+                                 NABoolean filterOutMinMax 
+                                );
+
   short codeGenForHive(Generator*);
   short genForTextAndSeq(Generator * generator,
-                             Queue * &hdfsFileInfoList,
-                             Queue * &hdfsFileRangeBeginList,
-                             Queue * &hdfsFileRangeNumList,
-                             char* &hdfsHostName,
-                             Int32 &hdfsPort,
-                             NABoolean &doMultiCursor,
-                             NABoolean &doSplitFileOpt);
-  static short genForOrc(Generator * generator,
-                         const HHDFSTableStats* hTabStats,
-                         const PartitioningFunction * mypart,
                          Queue * &hdfsFileInfoList,
                          Queue * &hdfsFileRangeBeginList,
                          Queue * &hdfsFileRangeNumList,
                          char* &hdfsHostName,
-                         Int32 &hdfsPort);
+                         Int32 &hdfsPort,
+                         NABoolean &doMultiCursor,
+                         NABoolean &doSplitFileOpt,
+                         ExpTupleDesc *partCols,
+                         int partColValuesLen,
+                         const HivePartitionAndBucketKey *hiveSearchKey);
+  static short genForOrc(Generator * generator,
+                         const HHDFSTableStats* hTabStats,
+                         const PartitioningFunction * mypart,
+                         NAList<OrcPushdownPredInfo> *listOfOrcPPI,
+                         Queue * &hdfsFileInfoList,
+                         Queue * &hdfsFileRangeBeginList,
+                         Queue * &hdfsFileRangeNumList,
+                         Queue * &tdbListOfOrcPPI,
+                         ValueIdList &orcOperVIDlist,
+                         char* &hdfsHostName,
+                         Int32 &hdfsPort,
+                         ExpTupleDesc *partCols,
+                         int partColValuesLen,
+                         const HivePartitionAndBucketKey *hiveSearchKey);
+  static char * genExplodedHivePartKeyVals(Generator *generator,
+                                           ExpTupleDesc *partCols,
+                                           const ValueIdList &valList);
   
  static desc_struct *createHbaseTableDesc(const char * table_name);
 
@@ -1013,6 +1038,7 @@ public:
 
   Int32 getComputedNumOfActivePartiions()  const { return computedNumOfActivePartitions_; }
 
+  OrcPushdownPredInfoList &orcListOfPPI() { return orcListOfPPI_;}
 private:
 
 
@@ -1102,6 +1128,8 @@ private:
   // number of active partitions computed only from the Range Part Func
   // and the search key (partKey_)
   Int32 computedNumOfActivePartitions_;
+
+  OrcPushdownPredInfoList orcListOfPPI_;
 
 }; // class FileScan
 
@@ -1337,12 +1365,18 @@ public:
 
   virtual NABoolean isHbaseScan() { return TRUE; }
 
+  static int createAsciiColAndCastExprNative(Generator * generator,
+                                             const NAType &givenType,
+                                             ItemExpr *&asciiValue,
+                                             ItemExpr *&castValue);
+
   static int createAsciiColAndCastExpr(Generator * generator,
 				       const NAType &givenType,
 				       ItemExpr *&asciiValue,
-				       ItemExpr *&castValue);
-
- static int createAsciiColAndCastExpr2(Generator * generator,
+				       ItemExpr *&castValue,
+                                       NABoolean isOrc = FALSE);
+  
+  static int createAsciiColAndCastExpr2(Generator * generator,
 				       ItemExpr * colNode,
 				       const NAType &givenType,
 				       ItemExpr *&asciiValue,
@@ -1498,71 +1532,6 @@ public:
   SNPType snpType_;
 
 }; // class HbaseAccess
-
-// NOTE: this class is currently not being used.
-class HbaseAccessCoProcAggr : public HbaseAccess
-{
-public:
-  HbaseAccessCoProcAggr(CorrName &corrName,
-			ValueIdSet &aggrExpr,
-			TableDesc *tableDesc,
-			IndexDesc *indexDesc,
-			const NABoolean isReverseScan,
-			const Cardinality& baseCardinality,
-			StmtLevelAccessOptions& accessOptions,
-			GroupAttributes * groupAttributesPtr,
-			const ValueIdSet& selectionPredicates,
-			const Disjuncts& disjuncts,
-			CollHeap *oHeap = CmpCommon::statementHeap());
-
-  HbaseAccessCoProcAggr(CorrName &corrName,
-			ValueIdSet &aggrExpr,
-			CollHeap *oHeap = CmpCommon::statementHeap());
-
-  HbaseAccessCoProcAggr(CollHeap *oHeap = CmpCommon::statementHeap());
- 
-  // destructors
-  //! ~HbaseAccess Destructor
-  virtual ~HbaseAccessCoProcAggr();
-
-  virtual RelExpr *bindNode(BindWA *bindWAPtr);
-
-  //used to retrieve the operator type
-  virtual const NAString getText() const;
-
-  //  method to do preCode generation
-  virtual RelExpr * preCodeGen(Generator * generator,
-                               const ValueIdSet & externalInputs,
-                               ValueIdSet &pulledNewInputs);
-
-  //! codeGen method
-  // virtual method used by the generator to generate the node
-  virtual short codeGen(Generator*);
-
-  //! copyTopNode
-  //  used to create an Almost complete copy of the node
-  virtual RelExpr * copyTopNode(RelExpr *derivedNode = NULL,
-                                CollHeap* outHeap = 0);
-
-  virtual void getPotentialOutputValues(ValueIdSet & outputValues) const;
-
-  virtual PhysicalProperty *synthPhysicalProperty(const Context *context,
-						  const Lng32     planNumber,
-                                                  PlanWorkSpace  *pws);
-  
-  virtual NABoolean isLogical() const { return TRUE; }
-  virtual NABoolean isPhysical() const { return TRUE; }
-  
-  ValueIdSet &aggregateExpr() { return aggregateExpr_; }
-  const ValueIdSet &aggregateExpr() const { return aggregateExpr_; }
- protected:
-
-  // list of columns that need to be retrieved from hbase. These are used
-  // in executor preds, update/merge expressions or returned back as output
-  // values.
-  ValueIdSet aggregateExpr_;
-
-}; // class HbaseAccessCoProcAggr
 
 // -----------------------------------------------------------------------
 // The Describe class represents scan on a 'virtual' table that contains

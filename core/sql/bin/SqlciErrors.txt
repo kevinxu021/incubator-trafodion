@@ -145,7 +145,7 @@
 1143 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Validation of constraint $0~ConstraintName failed; incompatible data exists in referencing base table $1~TableName and referenced base table $2~String0.  To display the data that violates the constraint, please use the following DML statement: $3~String1
 1144 ZZZZZ 99999 BEGINNER MAJOR DBADMIN A quoted string was expected in first key clause for column $0~ColumnName on table $1~TableName, but the value detected is ($2~String0).
 1145 3D000 99999 BEGINNER MAJOR DBADMIN The catalog name $0~CatalogName is reserved for SQL metadata.
-1146 ZZZZZ 99999 BEGINNER MINOR DBADMIN Object $0~TableName could not be altered because it is not a $1~String0.
+1146 ZZZZZ 99999 BEGINNER MINOR DBADMIN Object $0~String0 could not be altered because it either does not exist or is not a table.
 1147 ZZZZZ 99999 BEGINNER MINOR DBADMIN System-generated column $0~ColumnName of base table $1~TableName cannot appear in a unique or primary key constraint definition.
 1148 23000 99999 BEGINNER MINOR DBADMIN System-generated column $0~ColumnName of base table $1~TableName cannot appear in a referential integrity constraint definition.
 1149 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Column $0~ColumnName does not exist in table $1~TableName.
@@ -249,8 +249,8 @@
 1252 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The existing index $0~TableName to be used by a unique or primary constraint has not been populated.  Please populate the index and then try to add the constraint again.
 1253 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU ---- Msg text will be merged in.  ------   
 1254 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Duplicate unique constraints are not allowed with same set of columns.
-1255 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU ---- Msg text will be merged in ------  
-1256 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU ---- Msg text will be merged in ------  
+1255 ZZZZZ 99999 BEGINNER MINOR DBADMIN Constraint $0~String0 is the clustering key constraint for table $1~String1 and cannot be dropped.
+1256 ZZZZZ 99999 BEGINNER MINOR DBADMIN PRIMARY KEY constraint cannot be added since table $0~String0 already has a user specified clustering key. 
 1257 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU ---- Msg text will be merged in ------  
 1258 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU ---- Msg text will be merged in ------  
 1259 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU ---- Msg text will be merged in ------  
@@ -263,6 +263,7 @@
 1266 ZZZZZ 99999 BEGINNER MINOR DBADMIN Only EXECUTE privilege is supported for a procedure or routine.
 1267 ZZZZZ 99999 BEGINNER MINOR DBADMIN $0~string0 privilege is incompatible with this object type.
 1268 ZZZZZ 99999 BEGINNER MINOR DBADMIN Duplicate columns are not allowed in a GRANT or REVOKE statement.
+1269 ZZZZZ 99999 BEGINNER MINOR DBADMIN Column name $0~String0 is reserved for internal system usage. It cannot be specified as a user column.
 1270 ZZZZZ 99999 BEGINNER MAJOR DBADMIN ALLOCATE or DEALLOCATE failed for object $0~TableName due to file error $1~Int0 on $2~String0.
 1271 ZZZZZ 99999 BEGINNER MAJOR DBADMIN ALLOCATE failed for object $0~TableName because the number of extents to be allocated ($1~Int0) is greater than the MAXEXTENTS for a partition of the object.
 1272 ZZZZZ 99999 BEGINNER CRTCL DIALOUT The system is not licensed for use of SQL format tables.
@@ -409,6 +410,7 @@
 1428 ZZZZZ 99999 BEGINNER MINOR DBADMIN Metadata definitions could not be created and preloaded in global MDdescInfo struct. Make sure that metadata table definition syntax is correct.
 1429 ZZZZZ 99999 BEGINNER MINOR DBADMIN Inserts into _ROW_ format external hbase tables can only use the VALUES clause and must use the column_create function to create values.
 1430 3F000 99999 BEGINNER MAJOR DBADMIN A schema name that starts and ends with an "_"(underscore) is reserved for internal usage. It cannot be used to create a user schema.
+1431 ZZZZZ 99999 BEGINNER MINOR DBADMIN Object $0~String0 exists in HBase. This could be due to a concurrent transactional ddl operation in progress on this table.
 1500 ZZZZZ 99999 ADVANCED CRTCL DIALOUT The CATSYS - CAT_REFERENCES system schema relationship for catalog $0~CatalogName might be corrupt.
 1501 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU --- unused as of 5/7/12 ---
 1502 ZZZZZ 99999 ADVANCED CRTCL DIALOUT The OBJECTS - REPLICAS definition schema relationship for $0~String0 $1~TableName might be corrupt.
@@ -801,7 +803,7 @@ $1~String1 --------------------------------
 3049 42000 99999 BEGINNER MAJOR DBADMIN Host variables, such as $0~string0, are not allowed in a dynamic compilation.
 3050 42000 99999 BEGINNER MAJOR DBADMIN The constraint must have the same catalog and schema as the specified table.
 3051 42000 99999 BEGINNER MAJOR DBADMIN Duplicate HEADING clauses were specified in column definition $0~ColumnName.
-3052 42000 99999 BEGINNER MAJOR DBADMIN Duplicate NOT NULL clauses were specified in column definition $0~ColumnName.
+3052 42000 99999 BEGINNER MAJOR DBADMIN Duplicate $0~String0 clauses were specified in column definition $0~ColumnName.
 3053 42000 99999 BEGINNER MAJOR DBADMIN Duplicate PRIMARY KEY clauses were specified in column definition $0~ColumnName.
 3054 42000 99999 BEGINNER MAJOR DBADMIN The NOT DROPPABLE clause is allowed only in PRIMARY KEY and NOT NULL constraint definitions.
 3055 42000 99999 BEGINNER MAJOR DBADMIN Duplicate DELETE rules were specified.
@@ -1281,6 +1283,7 @@ $1~String1 --------------------------------
 4223 42000 99999 BEGINNER MAJOR DBADMIN $0~String0 not supported in this software version.
 4224 42000 99999 BEGINNER MAJOR DBADMIN The directory $0~String0 is not a valid Hive location.
 4225 42000 99999 BEGINNER MAJOR DBADMIN Number of column families cannot exceed 32.
+4226 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Unable to obtain the partition column values for table $0~TableName, partition $1~Int0, column $2~Int1 with values $3~String0. Details: $4~String1.
 4240 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Expression $0~string0 in the DIVISION BY clause references columns other than clustering key columns.
 4241 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The value $0~string0 is not supported at this place in the DIVISION BY clause, only constants are allowed.
 4242 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The value $0~string0 is not supported at this place in the DIVISION BY clause, only key columns are allowed.
@@ -1834,6 +1837,7 @@ drop the default context
 8963 ZZZZZ 99999 BEGINNER MAJOR DBADMIN UNLOAD encountered a backup TSE switch.
 8964 ZZZZZ 99999 BEGINNER MAJOR DBADMIN LOAD is not currently supported with non empty tables.
 8965 ZZZZZ 99999 BEGINNER MAJOR DBADMIN File $0~String0 already exists.
+8966 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Unable to create partition $0~String0 for partitioned Hive table. Details: $1~String1.
 9200 ZZZZZ 99999 ADVANCED MAJOR DIALOUT UPDATE STATISTICS for table $0~CatalogName.$1~SchemaName.$2~TableName encountered an error$3~string2 from statement $4~string0.
 9201 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Unable to DROP object $0~string0.
 9202 ZZZZZ 99999 BEGINNER INFRM DBADMIN UPDATE STATISTICS has located previously generated histograms that are not being regenerated. This may affect the plans that will be generated. Missing columns lists are $0~string0.

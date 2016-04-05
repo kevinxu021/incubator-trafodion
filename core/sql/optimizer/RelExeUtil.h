@@ -99,9 +99,14 @@ public:
 		       ValueIdSet &pulledNewInputs);
   virtual short codeGen(Generator*);
 
+  // no return from this method, the atp and atpindex is changed to
+  // returned atp (= 0) and returned atp index (last entry of returnedDesc).
+  // If noAtpOrIndexChange flag is set, then they are not changed.
   short processOutputRow(Generator * generator,
-                         const Int32 work_atp, const Int32 output_row_atp_index,
-                         ex_cri_desc * returnedDesc);
+                         const Int32 work_atp, 
+                         const Int32 output_row_atp_index,
+                         ex_cri_desc * returnedDesc,
+                         NABoolean noAtpOrIndexChange = FALSE);
 
   // The set of values that I can potentially produce as output.
   virtual void getPotentialOutputValues(ValueIdSet & vs) const;
@@ -197,6 +202,14 @@ public:
 // -----------------------------------------------------------------------
 class DDLExpr : public GenericUtilExpr
 {
+  void setDDLXns(NABoolean v)
+  {
+    if (v)
+      ddlXns_ = (CmpCommon::getDefault(DDL_TRANSACTIONS) == DF_ON);
+    else
+      ddlXns_ = FALSE;
+  }
+
 public:
   DDLExpr(ExprNode * ddlNode,
 	  char * ddlStmtText,
@@ -234,6 +247,8 @@ public:
   {
     if (explObjName)
       explObjName_ = *explObjName;
+
+    setDDLXns(TRUE);
   };
 
  DDLExpr(NABoolean initHbase, NABoolean dropHbase,
@@ -273,6 +288,8 @@ public:
     
     if (dropMDviews)
       setDropMDViews(TRUE);
+
+    setDDLXns(TRUE);
   };
 
  DDLExpr(NABoolean purgedataHbase,
@@ -306,6 +323,8 @@ public:
   {
     purgedataTableName_ = purgedataTableName;
     qualObjName_ = purgedataTableName.getQualifiedNameObj();
+
+    setDDLXns(TRUE);
   };
 
   virtual RelExpr * copyTopNode(RelExpr *derivedNode = NULL,
@@ -386,6 +405,18 @@ public:
   {(v ? flags_ |= GET_MD_VERSION : flags_ &= ~GET_MD_VERSION); }
   NABoolean getMDVersion() { return (flags_ & GET_MD_VERSION) != 0;}
 
+  void setCreateLibmgr(NABoolean v)
+  {(v ? flags_ |= CREATE_LIBMGR : flags_ &= ~CREATE_LIBMGR); }
+  NABoolean createLibmgr() { return (flags_ & CREATE_LIBMGR) != 0;}
+
+  void setDropLibmgr(NABoolean v)
+  {(v ? flags_ |= DROP_LIBMGR : flags_ &= ~DROP_LIBMGR); }
+  NABoolean dropLibmgr() { return (flags_ & DROP_LIBMGR) != 0;}
+
+  void setUpgradeLibmgr(NABoolean v)
+  {(v ? flags_ |= UPGRADE_LIBMGR : flags_ &= ~UPGRADE_LIBMGR); }
+  NABoolean upgradeLibmgr() { return (flags_ & UPGRADE_LIBMGR) != 0;}
+
   void setCreateRepos(NABoolean v)
   {(v ? flags_ |= CREATE_REPOS : flags_ &= ~CREATE_REPOS); }
   NABoolean createRepos() { return (flags_ & CREATE_REPOS) != 0;}
@@ -402,6 +433,8 @@ public:
   {(v ? flags_ |= CLEANUP_AUTH : flags_ &= ~CLEANUP_AUTH); }
   NABoolean cleanupAuth() { return (flags_ & CLEANUP_AUTH) != 0;}
 
+  NABoolean ddlXns() { return ddlXns_; }
+
  protected:
   enum Flags
   {
@@ -411,7 +444,10 @@ public:
     CREATE_REPOS            = 0x0008,
     DROP_REPOS              = 0x0010,
     UPGRADE_REPOS           = 0x0020,
-    CLEANUP_AUTH            = 0X0040  
+    CLEANUP_AUTH            = 0X0040,
+    CREATE_LIBMGR           = 0x0080,
+    DROP_LIBMGR             = 0x0100,
+    UPGRADE_LIBMGR          = 0x0200
   };
 
   // see method processSpecialDDL in sqlcomp/parser.cpp
@@ -472,6 +508,11 @@ public:
   NABoolean returnStatus_;
 
   UInt32 flags_;
+
+  // if TRUE, ddl transactions are enabled. Actual operation may
+  // run under one transaction or multiple transactions.
+  // Details in sqlcomp/CmpSeabaseDDL*.cpp.
+  NABoolean ddlXns_;
 };
 
 // -----------------------------------------------------------------------
@@ -510,7 +551,6 @@ public:
     LOB_EXTRACT_              = 26,
     LOB_SHOWDDL_              = 27,
     HBASE_DDL_                = 28,
-    HBASE_COPROC_AGGR_        = 29,
     WNR_INSERT_               = 30,
     METADATA_UPGRADE_         = 31,
     HBASE_LOAD_               = 32,
@@ -518,8 +558,7 @@ public:
     AUTHORIZATION_            = 34,
     HBASE_UNLOAD_             = 35,
     HBASE_UNLOAD_TASK_        = 36,
-    ORC_FAST_AGGR_            = 37,
-    GET_QID_                         = 38
+    GET_QID_                  = 37
   };
 
   ExeUtilExpr(ExeUtilType type,
@@ -2087,94 +2126,6 @@ public:
 private:
   ConstStringList * csl_;
   DDLtype type_;
-};
-
-class ExeUtilHbaseCoProcAggr : public ExeUtilExpr
-{
- public:
- ExeUtilHbaseCoProcAggr(const CorrName &corrName,
-			ValueIdSet &aggregateExpr,
-			CollHeap *oHeap = CmpCommon::statementHeap())
-   : ExeUtilExpr(HBASE_COPROC_AGGR_, corrName,
-		 NULL, NULL, 
-		 NULL, CharInfo::UnknownCharSet, oHeap),
-     aggregateExpr_(aggregateExpr),
-     corrName_(corrName),
-     estRowsAccessed_(-1.0)
-  {
-  };
-
-  virtual RelExpr * copyTopNode(RelExpr *derivedNode = NULL,
-				CollHeap* outHeap = 0);
-  
-  virtual NABoolean producesOutput() { return TRUE; }
-  
-  virtual void getPotentialOutputValues(ValueIdSet & outputValues) const;
-
-  virtual RelExpr * bindNode(BindWA *bindWAPtr);
-
-  RelExpr * preCodeGen(Generator * generator,
-		       const ValueIdSet & externalInputs,
-		       ValueIdSet &pulledNewInputs);
-  
-  // method to do code generation
-  virtual short codeGen(Generator*);
-
-  ValueIdSet &aggregateExpr() { return aggregateExpr_; }
-  const ValueIdSet &aggregateExpr() const { return aggregateExpr_; }
-
-  CorrName& getCorrName() { return corrName_; }
-
-  virtual ExplainTuple * addSpecificExplainInfo(
-       ExplainTupleMaster *explainTuple, ComTdb *tdb, 
-       Generator *generator);
-
-  inline const CostScalar getEstRowsAccessed() const 
-    { return estRowsAccessed_; }
-  inline void setEstRowsAccessed(CostScalar r)  { estRowsAccessed_ = r; }
-
- private:
-  ValueIdSet aggregateExpr_;
-  CorrName corrName_;
-  CostScalar estRowsAccessed_;
-  
-};
-
-class ExeUtilOrcFastAggr : public ExeUtilExpr
-{
- public:
- ExeUtilOrcFastAggr(const CorrName &corrName,
-                    ValueIdSet &aggregateExpr,
-                    CollHeap *oHeap = CmpCommon::statementHeap())
-   : ExeUtilExpr(ORC_FAST_AGGR_, corrName,
-		 NULL, NULL, 
-		 NULL, CharInfo::UnknownCharSet, oHeap),
-    aggregateExpr_(aggregateExpr)
-    {
-    };
-  
-  virtual RelExpr * copyTopNode(RelExpr *derivedNode = NULL,
-				CollHeap* outHeap = 0);
-  
-  virtual NABoolean producesOutput() { return TRUE; }
-  
-  virtual void getPotentialOutputValues(ValueIdSet & outputValues) const;
-
-  virtual RelExpr * bindNode(BindWA *bindWAPtr);
-
-  RelExpr * preCodeGen(Generator * generator,
-		       const ValueIdSet & externalInputs,
-		       ValueIdSet &pulledNewInputs);
-  
-  // method to do code generation
-  virtual short codeGen(Generator*);
-
-  ValueIdSet &aggregateExpr() { return aggregateExpr_; }
-  const ValueIdSet &aggregateExpr() const { return aggregateExpr_; }
-
- private:
-  ValueIdSet aggregateExpr_;
-  
 };
 
 class ExeUtilMetadataUpgrade : public ExeUtilExpr

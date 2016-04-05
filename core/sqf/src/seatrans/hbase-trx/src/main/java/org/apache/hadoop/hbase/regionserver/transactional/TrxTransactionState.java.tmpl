@@ -70,7 +70,7 @@ import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.ScanQueryMatcher;
 import org.apache.hadoop.hbase.regionserver.ScanType;
 import org.apache.hadoop.hbase.regionserver.ScanInfo;
-#ifdef HDP2.3
+#ifdefined HDP2.3 || CDH5.5
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
 #endif
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
@@ -162,34 +162,61 @@ public class TrxTransactionState  extends TransactionState{
     private List<WriteAction> writeOrdering = Collections.synchronizedList(new LinkedList<WriteAction>());
     private Set<TrxTransactionState> transactionsToCheck = Collections.synchronizedSet(new HashSet<TrxTransactionState>());
     private WALEdit e;
+    private boolean dropTableRecorded;
     
     public TrxTransactionState(final long transactionId, final long rLogStartSequenceId, AtomicLong hlogSeqId, final HRegionInfo regionInfo,
-                                                 HTableDescriptor htd, WAL hLog, boolean logging) {
-        super(transactionId,rLogStartSequenceId,hlogSeqId,regionInfo,htd,hLog,logging);
+                                                 HTableDescriptor htd, WAL hLog, boolean logging, final long startId) {
+        super(transactionId,rLogStartSequenceId,hlogSeqId,regionInfo,htd,hLog,logging,startId);
         this.e = new WALEdit();
+        dropTableRecorded = false;
     }
 
+    public void setDropTableRecorded(boolean dropTableRecord) {
+        if (LOG.isTraceEnabled()) LOG.trace("setDropTableRecorded:" + dropTableRecord + " Region " + regionInfo.getRegionNameAsString());
+        dropTableRecorded = dropTableRecord;
+    }
+    
+    public void resetDropTableRecorded() {
+        if (LOG.isTraceEnabled()) LOG.trace("resetDropTableRecorded,  Region :" + regionInfo.getRegionNameAsString());
+        dropTableRecorded = false;
+    }
+    
+    public boolean dropTableRecorded() {
+        return dropTableRecorded;
+    }
+    
+    
     public synchronized void addRead(final byte[] rowKey) {
         scans.add(new ScanRange(rowKey, rowKey));
     }
 
-    public synchronized void addWrite(final Put write) {
-        if (LOG.isTraceEnabled()) LOG.trace("addWrite -- ENTRY: write: " + write.toString());
+    public synchronized void addWrite(final Put put, final boolean useStartId) {
+        if (LOG.isTraceEnabled()) LOG.trace("addWrite -- ENTRY: useStartId: " + useStartId + " put: " + put.toString());
         WriteAction waction;
         KeyValue kv;
         WALEdit e1 = new WALEdit();
-        updateLatestTimestamp(write.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTime());
+        // If useStartId is true we use the startId as the timestamp,
+        // otherwise we use the current timestamp
+        long now;
+        if (useStartId == true) {
+           now = getStartId();
+           unconditionalUpdateLatestTimestamp(put.getFamilyCellMap().values(), now);
+        }
+        else {
+           now = EnvironmentEdgeManager.currentTime();
+           updateLatestTimestamp(put.getFamilyCellMap().values(), now);
+        }
         // Adding read scan on a write action
-	addRead(new WriteAction(write).getRow());
+        addRead(new WriteAction(put).getRow());
 
         ListIterator<WriteAction> writeOrderIter = writeOrdering.listIterator();
-        writeOrderIter.add(waction = new WriteAction(write));
+        writeOrderIter.add(waction = new WriteAction(put));
 
         if (this.earlyLogging) { // immeditaely write edit out to HLOG during DML (actve transaction state)
            for (Cell value : waction.getCells()) {
              //KeyValue kv = KeyValueUtil.ensureKeyValue(value);
              kv = KeyValue.cloneAndAddTags(value, tagList);
-             //if (LOG.isTraceEnabled()) LOG.trace("KV hex dump " + Hex.encodeHexString(kv.getValueArray() /*kv.getBuffer()*/));
+             if (LOG.isTraceEnabled()) LOG.trace("addWrite kv hex dump " + Hex.encodeHexString(kv.getValueArray() /*kv.getBuffer()*/));
              e1.add(kv);
              e.add(kv);
             }
@@ -197,7 +224,7 @@ public class TrxTransactionState  extends TransactionState{
            //long txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
            //         e1, new ArrayList<UUID>(), EnvironmentEdgeManager.currentTimeMillis(), this.tabledescriptor,
            //         this.logSeqId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
-           	final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(), this.regionInfo.getTable(), EnvironmentEdgeManager.currentTime());;
+           	final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(), this.regionInfo.getTable(), now);
       	 	long txid = this.tHLog.append(this.tabledescriptor,this.regionInfo, wk , e1,
       	 			this.logSeqId, false, null);
            //if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery: Y11 write edit to HLOG during put with txid " + txid + " ts flush id " + this.flushTxId);
@@ -211,6 +238,10 @@ public class TrxTransactionState  extends TransactionState{
         else { // edits are buffered in ts and written out to HLOG in phase 1
             for (Cell value : waction.getCells()) {
              kv = KeyValue.cloneAndAddTags(value, tagList);
+             if (LOG.isTraceEnabled()) LOG.trace("addWrite kv hex dump "
+              + " key: " + Hex.encodeHexString(Bytes.toBytes(kv.getKeyString())) 
+              + " timestamp: " + kv.getTimestamp() 
+              + Hex.encodeHexString(kv.getValueArray() /*kv.getBuffer()*/));
              e.add(kv);
              }
         }
@@ -225,15 +256,24 @@ public class TrxTransactionState  extends TransactionState{
        return writeOrdering.size();
     }
 
-    public synchronized void addDelete(final Delete delete) {
-        if (LOG.isTraceEnabled()) LOG.trace("addDelete -- ENTRY: delete: " + delete.toString());
+    public synchronized void addDelete(final Delete delete, final boolean useStartId) {
+        if (LOG.isTraceEnabled()) LOG.trace("addDelete -- ENTRY: useStartId: " + useStartId + " delete: " + delete.toString());
 
         WriteAction waction;
         WALEdit e1  = new WALEdit();
-        long now = EnvironmentEdgeManager.currentTime();
-        updateLatestTimestamp(delete.getFamilyCellMap().values(), now);
-        if (delete.getTimeStamp() == HConstants.LATEST_TIMESTAMP) {
-            delete.setTimestamp(now);
+        // If useStartId is true we use the startId as the timestamp,
+        // otherwise we use the current timestamp
+        long now;
+        if (useStartId == true) {
+           now = getStartId();
+           unconditionalUpdateLatestTimestamp(delete.getFamilyCellMap().values(), now);
+        }
+        else {
+           now = EnvironmentEdgeManager.currentTime();
+           updateLatestTimestamp(delete.getFamilyCellMap().values(), now);
+           if (delete.getTimeStamp() == HConstants.LATEST_TIMESTAMP) {
+              delete.setTimestamp(now);
+           }
         }
         deletes.add(delete);
 
@@ -250,7 +290,7 @@ public class TrxTransactionState  extends TransactionState{
            //long txid = this.tHLog.appendNoSync(this.regionInfo, this.regionInfo.getTable(),
            //         e1, new ArrayList<UUID>(), EnvironmentEdgeManager.currentTimeMillis(), this.tabledescriptor,
            //         this.logSeqId, false, HConstants.NO_NONCE, HConstants.NO_NONCE);
-           final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(), this.regionInfo.getTable(), EnvironmentEdgeManager.currentTime());;
+           final WALKey wk = new WALKey(this.regionInfo.getEncodedNameAsBytes(), this.regionInfo.getTable(), now);
       	   long txid = this.tHLog.append(this.tabledescriptor,this.regionInfo, wk , e1,
       			 this.logSeqId, false, null);
                     //if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery: Y00 write edit to HLOG during delete with txid " + txid + " ts flush id " + this.flushTxId);
@@ -334,6 +374,7 @@ public class TrxTransactionState  extends TransactionState{
       clearDeletes();
       clearTags();
       clearWALEdit();
+      dropTableRecorded = false;
     }
 
     public void clearTransactionsToCheck() {
@@ -709,7 +750,7 @@ public class TrxTransactionState  extends TransactionState{
          * @param limit
          * @return true if there are more rows, false if scanner is done
          */
-#ifndef HDP2.3
+#ifdefined APACHE || CDH5.4
         @Override
 #endif
         public synchronized boolean next(final List<Cell> outResult, final int limit) throws IOException {          	
@@ -780,7 +821,7 @@ public class TrxTransactionState  extends TransactionState{
         public synchronized boolean next(final List<Cell> results) throws IOException {
           return next(results, -1);
         }
-#ifdef HDP2.3
+#ifdefined HDP2.3 || CDH5.5
        @Override
        public boolean next(List<Cell> results, ScannerContext scannerContext) throws IOException {
            return next(results, -1);

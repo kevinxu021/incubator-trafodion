@@ -2335,6 +2335,11 @@ enum DefaultConstants
   // Percentage of intervals to be used for representing gaps.
   USTAT_GAP_PERCENT,
 
+  // Controls whether to query Hive ORC column statistics whe constructing
+  // fake histograms for ORC files (and therefore creating a less fake
+  // histogram)
+  USTAT_GENERATE_ORC_HISTOGRAM,
+
   // Create a separate interval in a column's histogram for any distinct value
   // that has a frequency exceeding this percentage of the total row count for
   // the table.
@@ -3297,6 +3302,7 @@ enum DefaultConstants
 
   LOB_HDFS_SERVER,
   LOB_HDFS_PORT,
+  LOB_GC_LIMIT_SIZE,
 
   // Should the DISK POOL be turned on when replicating the DDL using COPY DDL
   REPLICATE_DISK_POOL,
@@ -3375,7 +3381,7 @@ enum DefaultConstants
   HDFS_IO_RANGE_TAIL,
   HIVE_METADATA_REFRESH_INTERVAL,
 
-  HIVE_USE_HASH2_AS_PARTFUNCION,
+  HIVE_USE_HASH2_AS_PARTFUNCTION,
 
   MODE_SEAHIVE,
   HIVE_CATALOG,
@@ -3798,6 +3804,51 @@ enum DefaultConstants
 
   // real charset in the HIVE table
   HIVE_FILE_CHARSET,
+  // OFF: no pushdown, evaluated using traditional way (scan and aggr).
+  // ON: transform in preCodeGen, eval in ORC layer
+  ORC_AGGR_PUSHDOWN,
+
+  // pushdown column list to orc
+  ORC_COLUMNS_PUSHDOWN,
+
+  // pushdown preds to ORC layer
+  ORC_PRED_PUSHDOWN,
+
+  // vectorized rows batch scan
+  ORC_VECTORIZED_SCAN,
+
+  // use info from external table created on this orc table
+  ORC_USE_EXT_TABLE_ATTRS,
+
+  // include Hive virtual cols in DESCRIBE
+  HIVE_DESCRIBE_VIRT_COLS,
+  // Hive partition elimination at compile/run time
+  HIVE_PARTITION_ELIMINATION_CT,
+  HIVE_PARTITION_ELIMINATION_RT,
+  USTAT_COLLECT_VIRT_COL_STATS,
+  HIVE_EXT_TABLE_INCLUDE_VIRT_COLS,
+
+  // By default only alter of varchar col length is supported.
+  // If this cqd is on, then other alters (name, datatype) are also supported.
+  TRAF_ALTER_COL_ATTRS,
+
+  // if set, let users create system reserved names. Default is OFF.
+  // This cqd should only be used to debug or if system column names are
+  // REALLY needed by users.
+  // Currently syskey, _salt_, _division_.
+  TRAF_ALLOW_RESERVED_COLNAMES,
+
+   // if ON, upsert into the table will use the default value for the omitted columns
+  // with default value 
+  TRAF_UPSERT_WITH_INSERT_DEFAULT_SEMANTICS,
+  // enable/disable NJs into ORC tables
+  ORC_NJS,
+
+  // max # of open partitions/TCB for a partitioned Hive insert
+  FAST_EXTRACT_MAX_PARTITIONS,
+
+  HIVE_USE_PERSISTENT_KEY,
+  HIVE_USE_SORT_COLS_IN_KEY,
 
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!

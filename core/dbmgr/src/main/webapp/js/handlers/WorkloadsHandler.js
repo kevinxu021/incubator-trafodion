@@ -21,8 +21,12 @@ define(['handlers/EventDispatcher'],
 				this.FETCH_REPO_QUERY_DETAIL_ERROR = 'fetchRepoQDetailError';
 				this.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS = 'fetchActiveQDetailSuccess';
 				this.FETCH_ACTIVE_QUERY_DETAIL_ERROR = 'fetchActiveQDetailError';
-				this.CANCEL_QUERY_SUCCESS = 'cancelQuerySuccess';
-				this.CANCEL_QUERY_ERROR = 'cancelQueryError';
+				this.ACTIVE_CANCEL_QUERY_SUCCESS = 'activeCancelQuerySuccess';
+				this.ACTIVE_CANCEL_QUERY_ERROR = 'activeCancelQueryError';
+				this.HISTORICAL_CANCEL_QUERY_SUCCESS = 'historicalCancelQuerySuccess';
+				this.HISTORICAL_CANCEL_QUERY_ERROR = 'historicalCancelQueryError';
+				this.PLAN_CANCEL_QUERY_SUCCESS = 'planCancelQuerySuccess';
+				this.PLAN_CANCEL_QUERY_ERROR = 'planCancelQueryError';
 
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
@@ -76,7 +80,7 @@ define(['handlers/EventDispatcher'],
 					});
 				};
 
-				this.cancelQuery = function(queryID){
+				this.cancelQuery = function(queryID,pageIdentifier){
 
 					var xhr = xhrs["cancel_query"];
 					if(xhr && xhr.readyState !=4){
@@ -92,10 +96,31 @@ define(['handlers/EventDispatcher'],
 							403 : _this.sessionTimeout
 						},
 						success: function(data){
-							dispatcher.fire(_this.CANCEL_QUERY_SUCCESS, data);
+							switch (pageIdentifier) {
+								case "active":
+									dispatcher.fire(_this.ACTIVE_CANCEL_QUERY_SUCCESS, data);
+									break;
+								case "historical":
+									dispatcher.fire(_this.HISTORICAL_CANCEL_QUERY_SUCCESS, data);
+									break;
+								case "queryPlan":
+									dispatcher.fire(_this.PLAN_CANCEL_QUERY_SUCCESS, data);
+									break;
+								}
+							
 						},
 						error:function(jqXHR, res, error){
-							dispatcher.fire(_this.CANCEL_QUERY_ERROR, jqXHR, res, error);
+							switch (pageIdentifier) {
+							case "active":
+								dispatcher.fire(_this.ACTIVE_CANCEL_QUERY_ERROR, jqXHR, res, error);
+								break;
+							case "historical":
+								dispatcher.fire(_this.HISTORICAL_CANCEL_QUERY_ERROR, jqXHR, res, error);
+								break;
+							case "queryPlan":
+								dispatcher.fire(_this.PLAN_CANCEL_QUERY_ERROR, jqXHR, res, error);
+								break;
+							}
 						}
 					});
 				};            

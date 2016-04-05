@@ -46,6 +46,7 @@ public class TransactionRegionLocation extends HRegionLocation {
    */
 
     public int peerId;
+    public boolean tableRecordedDropped;
 
     public TransactionRegionLocation(HRegionInfo regionInfo, ServerName servName) 
     {
@@ -55,7 +56,18 @@ public class TransactionRegionLocation extends HRegionLocation {
     public TransactionRegionLocation(HRegionInfo regionInfo, ServerName servName, int pv_peerId) {
 	super(regionInfo, servName);
 	peerId = pv_peerId;
+	tableRecordedDropped = false;
   }
+    
+    public void setTableRecordedDropped()
+    {
+    	tableRecordedDropped = true;
+    	if (LOG.isTraceEnabled()) LOG.trace("Table recorded dropped for region:" + super.getRegionInfo());
+    }
+    public boolean isTableRecodedDropped()
+    {
+    	return tableRecordedDropped;
+    }
 
    @Override
    public int compareTo(HRegionLocation o) {

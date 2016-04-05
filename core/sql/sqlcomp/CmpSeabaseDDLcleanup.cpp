@@ -234,7 +234,9 @@ short CmpSeabaseMDcleanup::validateInputValues(
                                     inObjType.data(),
                                     outObjType, objectOwner_);
       if ((objUID_ == -1) && // not found
-          (inObjType != COM_UNKNOWN_OBJECT_LIT)) // type explicitly specified
+          (inObjType != COM_UNKNOWN_OBJECT_LIT &&
+           inObjType != COM_PRIVATE_SCHEMA_OBJECT_LIT &&
+           inObjType != COM_SHARED_SCHEMA_OBJECT_LIT)) // type explicitly specified
         {
           // check if there is another object type with the same name.
           objUID_ = getCleanupObjectUID(cliInterface,
@@ -493,7 +495,7 @@ short CmpSeabaseMDcleanup::deleteMDentries(ExeCliInterface *cliInterface)
   // fail to delete the base table row. Right now OBJECTS is the only metadata
   // table with an index, so this is the only place we need to take this precaution.
 
-  cliRC = cliInterface->holdAndSetCQD("HIDE_INDEXES","ALL",CmpCommon::diags());
+  cliRC = cliInterface->holdAndSetCQD("HIDE_INDEXES","ALL", NULL);
   if (cliRC < 0)
     {
       if (processCleanupErrors(cliInterface, errorSeen))
@@ -514,7 +516,7 @@ short CmpSeabaseMDcleanup::deleteMDentries(ExeCliInterface *cliInterface)
  
   // Restore previous setting of CQD HIDE_INDEXES
 
-  cliRC = cliInterface->restoreCQD("HIDE_INDEXES",CmpCommon::diags());
+  cliRC = cliInterface->restoreCQD("HIDE_INDEXES", NULL);
   if (cliRC < 0)
     {
       if (processCleanupErrors(cliInterface, errorSeen))
@@ -815,7 +817,8 @@ short CmpSeabaseMDcleanup::dropLOBs(ExeCliInterface *cliInterface)
     return 0;
 
   NAString newSchName = "\"" + catName_ + "\"" + "." + "\"" + schName_ + "\"";
-
+  const char *lobHdfsServer = CmpCommon::getDefaultString(LOB_HDFS_SERVER);
+  Int32 lobHdfsPort = (Lng32)CmpCommon::getDefaultNumeric(LOB_HDFS_PORT);
   cliRC = SQL_EXEC_LOBddlInterface((char*)newSchName.data(),
                                    newSchName.length(),
                                    objUID_,
@@ -823,7 +826,9 @@ short CmpSeabaseMDcleanup::dropLOBs(ExeCliInterface *cliInterface)
                                    LOB_CLI_CLEANUP,
                                    lobNumList_,
                                    lobTypList_,
-                                   lobLocList_,0);
+                                   lobLocList_,
+                                   (char *)lobHdfsServer,
+                                   lobHdfsPort,0);
 
   return 0;
 }
@@ -928,11 +933,15 @@ void CmpSeabaseMDcleanup::cleanupSchemaObjects(ExeCliInterface *cliInterface)
               return;
           }      
         CorrName cn(objName_, STMTHEAP, schName_, catName_);
-        ActiveSchemaDB()->getNATableDB()->removeNATable(
-                                                        cn,
-                                                        NATableDB::REMOVE_FROM_ALL_USERS,
-                                                        COM_BASE_TABLE_OBJECT);
+        ActiveSchemaDB()->getNATableDB()->removeNATable
+          (
+               cn,
+               ComQiScope::REMOVE_FROM_ALL_USERS,
+               COM_BASE_TABLE_OBJECT,
+               FALSE, FALSE
+           );
       }
+      schObjList->advance();
    }
 
   // Now drop remaining objects
@@ -1089,7 +1098,7 @@ short CmpSeabaseMDcleanup::cleanupOrphanObjectsEntries(ExeCliInterface *cliInter
   NABoolean errorSeen = FALSE;
 
   // find out all entries which do not have corresponsing hbase objects
-  str_sprintf(query, "select object_uid, trim(catalog_name) || '.'  || trim(schema_name) || '.' || trim(object_name)  from %s.\"%s\".%s where catalog_name = '%s' and schema_name not in ( '_MD_', '_REPOS_', 'PRIVMGR_MD') and (object_type = 'BT' or object_type = 'IX') ",
+  str_sprintf(query, "select object_uid, trim(catalog_name) || '.'  || trim(schema_name) || '.' || trim(object_name)  from %s.\"%s\".%s where catalog_name = '%s' and schema_name not in ( '_MD_', '_REPOS_', '_PRIVMGR_MD_') and schema_name not like '|_HV|_%%|_' escape '|'  and schema_name not like '|_HB|_%%|_' escape '|' and (object_type = 'BT' or object_type = 'IX') ",
               getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS,
               getSystemCatalog());
   cliRC = cliInterface->fetchRowsPrologue(query);
@@ -1179,7 +1188,8 @@ short CmpSeabaseMDcleanup::cleanupOrphanHbaseEntries(ExeCliInterface *cliInterfa
       char cBuf[1000];
       
       Int32 len = 0;
-      char * c = bal->getEntry(i, cBuf, 1000, len);
+      char * c = cBuf;
+      BAL_RetCode brc = bal->getEntry(i, cBuf, 1000, len);
       c[len] = 0;
       
       Lng32 numParts = 0;
@@ -1269,7 +1279,7 @@ short CmpSeabaseMDcleanup::cleanupInconsistentObjectsEntries(ExeCliInterface *cl
     }      
 
   // find out all entries that exist in OBJECTS but not in OBJECTS_UNIQ_IDX
-  str_sprintf(query, "select object_uid, trim(catalog_name) || '.'  || trim(schema_name) || '.' || trim(object_name)  from %s.\"%s\".%s  where catalog_name = '%s' and schema_name not in ( '_MD_', '_REPOS_', 'PRIVMGR_MD') and object_uid not in (select \"OBJECT_UID@\"  from table(index_table %s.\"%s\".%s))",
+  str_sprintf(query, "select object_uid, trim(catalog_name) || '.'  || trim(schema_name) || '.' || trim(object_name)  from %s.\"%s\".%s  where catalog_name = '%s' and schema_name not in ( '_MD_', '_REPOS_', '_PRIVMGR_MD_') and object_uid not in (select \"OBJECT_UID@\"  from table(index_table %s.\"%s\".%s))",
               getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS,
               getSystemCatalog(),
               getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS_UNIQ_IDX);
@@ -1300,7 +1310,7 @@ short CmpSeabaseMDcleanup::cleanupInconsistentObjectsEntries(ExeCliInterface *cl
         return -1;
     }      
 
-  str_sprintf(query, "select \"OBJECT_UID@\", trim(catalog_name) || '.'  || trim(schema_name) || '.' || trim(object_name)  from table(index_table %s.\"%s\".%s)  where catalog_name = '%s' and schema_name not in ( '_MD_', '_REPOS_', 'PRIVMGR_MD') and \"OBJECT_UID@\" not in (select object_uid from %s.\"%s\".%s)",
+  str_sprintf(query, "select \"OBJECT_UID@\", trim(catalog_name) || '.'  || trim(schema_name) || '.' || trim(object_name)  from table(index_table %s.\"%s\".%s)  where catalog_name = '%s' and schema_name not in ( '_MD_', '_REPOS_', '_PRIVMGR_MD_') and \"OBJECT_UID@\" not in (select object_uid from %s.\"%s\".%s)",
               getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS_UNIQ_IDX,
               getSystemCatalog(),
               getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS);
@@ -1833,7 +1843,7 @@ void CmpSeabaseMDcleanup::cleanupObjects(StmtDDLCleanupObjects * stmtCleanupNode
       hbaseObject.len = extNameForHbase_.length();
       
       // drop this object from hbase
-      cliRC = dropHbaseTable(ehi, &hbaseObject, FALSE);
+      cliRC = dropHbaseTable(ehi, &hbaseObject, FALSE, FALSE);
       if (cliRC)
           if (stopOnError_)
             goto label_return;
@@ -1869,10 +1879,12 @@ void CmpSeabaseMDcleanup::cleanupObjects(StmtDDLCleanupObjects * stmtCleanupNode
   if (NOT (catName_.isNull() || schName_.isNull() || objName_.isNull()))
     {
       CorrName cn(objName_, STMTHEAP, schName_, catName_);
-      ActiveSchemaDB()->getNATableDB()->removeNATable(
-                                                      cn,
-                                                      NATableDB::REMOVE_FROM_ALL_USERS, 
-                                                      COM_BASE_TABLE_OBJECT);
+      ActiveSchemaDB()->getNATableDB()->removeNATable
+        (
+             cn,
+             ComQiScope::REMOVE_FROM_ALL_USERS, 
+             COM_BASE_TABLE_OBJECT,
+             FALSE, FALSE);
     }
 
   return;
@@ -1882,10 +1894,11 @@ void CmpSeabaseMDcleanup::cleanupObjects(StmtDDLCleanupObjects * stmtCleanupNode
       (NOT extNameForHbase_.isNull()))
     {
       CorrName cn(objName_, STMTHEAP, schName_, catName_);
-      ActiveSchemaDB()->getNATableDB()->removeNATable(
-                                                      cn,
-                                                      NATableDB::REMOVE_FROM_ALL_USERS, 
-                                                      COM_BASE_TABLE_OBJECT);
+      ActiveSchemaDB()->getNATableDB()->removeNATable
+        (cn,
+         ComQiScope::REMOVE_FROM_ALL_USERS, 
+         COM_BASE_TABLE_OBJECT,
+         FALSE, FALSE);
     }
 
  label_return:

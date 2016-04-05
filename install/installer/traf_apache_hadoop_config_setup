@@ -476,7 +476,7 @@ echo "export REST_BUILD=\"$REST_BUILD\"" >> $LOCAL_TRAF_CONFIG
 
 #Check if install_features file exists
 if [[ -z $TRAF_BUILD ]]; then
-   TRAF_BUILD=$(tar -tf $TRAF_PACKAGE | grep "trafodion_server")
+   TRAF_BUILD=$(tar -tf $TRAF_PACKAGE | grep "trafodion_.*server")
    tar -xzf $TRAF_PACKAGE --directory $LOCAL_WORKDIR
 fi
 

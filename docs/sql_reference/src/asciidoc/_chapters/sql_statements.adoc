@@ -1086,7 +1086,7 @@ control-default-option is:
 * `_attribute_`
 +
 is a character string that represents an attribute name. For descriptions of these attributes,
-see <<Control_Query_Default_Attributes,Control Query Default (CQD) Attributes>>.
+see the http://trafodion.incubator.apache.org/docs/cqd_reference/index.html[Trafodion Control Query Default (CQD) Reference Guide].
 
 * `_attr-value_`
 +
@@ -1123,16 +1123,16 @@ EXECUTE y;                              -- uses MYSCHEMA;
 [[control_query_default_examples]]
 === Examples of CONTROL QUERY DEFAULT
 
-* Change the maximum supported length of the column names to 200 for the current process:
+* Increase the cache refresh time for the histogram cache to two hours (7,200 minutes).
 +
 ```
-CONTROL QUERY DEFAULT HBASE_MAX_COLUMN_NAME_LENGTH '200';
+CONTROL QUERY DEFAULT CACHE_HISTOGRAMS_REFRESH_INTERVAL '7200';
 ```
 
-* Reset the HBASE_MAX_COLUMN_NAME_LENGTH attribute to its initial value in the current process:
+* Reset the CACHE_HISTOGRAMS_REFRESH_INTERVAL attribute to its initial value in the current process:
 +
 ```
-CONTROL QUERY DEFAULT HBASE_MAX_COLUMN_NAME_LENGTH RESET;
+CONTROL QUERY DEFAULT CACHE_HISTOGRAMS_REFRESH_INTERVAL RESET;
 ```
 
 <<<
@@ -7444,8 +7444,8 @@ see the <<control_query default_statement,Control Query Default Statement>>.
 * `_attribute-name_[, MATCH {FULL | PARTIAL }]`
 +
 displays only the defaults that match, either fully or partially, the _attribute_ used in CONTROL QUERY DEFAULT
-statements. The match is not case-sensitive. For descriptions of these attributes, see
-<<control_query_default_attributes,CONTROL QUERY (CQD) DEFAULT Attributes>>.
+statements. The match is not case-sensitive. For descriptions of these attributes, see the
+http://trafodion.incubator.apache.org/docs/cqd_reference/index.html[Trafodion Control Query Default (CQD) Reference Guide].
 +
 MATCH FULL specifies that _attribute-name_ must be the same as the attribute name used in a control query default
 statement. match partial specifies that _attribute-name_ must be included in the attribute name used in a control

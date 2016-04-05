@@ -4517,7 +4517,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ---- ---- ---- --------------------  --------  --------------------  ---------
 
 1    .    2    root                                                  1.00E+000
-.    .    1    hbase_coproc_aggr                                     1.00E+000
+.    .    1    hbase_aggr                                            1.00E+000
 
 --- SQL operation complete.
 >>

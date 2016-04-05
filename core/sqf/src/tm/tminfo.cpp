@@ -91,6 +91,7 @@ TM_Info::TM_Info()
    iv_threadModel = none;
    iv_shutdown_level = MS_Mon_ShutdownLevel_Undefined;
 
+   iv_tm_locked = false;
    iv_audit_seqno = 0;
    iv_audit_mode = TM_BUFFER_AUDIT_MODE; // M10+ default.
    iv_perf_stats = TM_PERF_STATS_OFF;
@@ -148,6 +149,7 @@ TM_Info::TM_Info()
 
    ip_tmAuditObj = NULL;
    ip_tmTimer = NULL;
+   ip_tmLock = NULL;
 
    iv_trans_hung_retry_interval = TRANS_HUNG_RETRY_INTERVAL;
    iv_timerDefaultWaitTime = TIMERTHREAD_WAIT;
@@ -253,7 +255,7 @@ void TM_Info::initialize()
    // iv_mat.initialize_adp();
     iv_lead_tm = false;
     iv_lead_tm_takeover = false;
-
+        
     // get stall directive from registry
     lv_error = tm_reg_get(MS_Mon_ConfigType_Cluster, 
                   (char *) CLUSTER_GROUP, (char *) DTM_STALL_PHASE_2, la_value);
@@ -420,6 +422,29 @@ void TM_Info::initialize()
       TMTrace (1, ("TM Tracing is on, trace level %d.\n", iv_trace_level));
     }
 
+
+    // see if we should come up in locked state
+    lv_error = tm_reg_get(MS_Mon_ConfigType_Cluster, 
+                  (char *) CLUSTER_GROUP, (char *) "TRAF_TM_LOCKED", la_value);
+		  
+    if (lv_error == 0)
+    {
+        iv_tm_locked = atoi (la_value);
+	if (iv_tm_locked)
+	{
+	  TMTrace (1, ("TM is locked.\n"));
+	}
+	else
+	{
+	  TMTrace (1, ("TM is unlocked.\n"));
+	}
+    }
+    else
+    {
+        TMTrace (1, ("TM is unlocked.\n"));
+        iv_tm_locked = 0;   // Turn it off if unset
+    }
+        
     // Get DTM_TM_STATS
     lv_error = tm_reg_get(MS_Mon_ConfigType_Cluster, 
                           (char *) CLUSTER_GROUP, (char *) DTM_TM_STATS, 
@@ -4670,6 +4695,33 @@ CTmTimerEvent * TM_Info::addTimerEvent(CTmTxMessage *pp_msg, int pv_delayInterva
    return lp_timerEvent;
 } // TM_Info::addTimerEvent
 
+// ----------------------------------------------------------------------------
+// TM_Info::addLockEvent
+// Purpose : Wrapper to simplify the addition of lock events to the lock 
+// threads event queue.  
+// ----------------------------------------------------------------------------
+CTmTimerEvent * TM_Info::addLockEvent(CTmTxMessage *pp_msg, int pv_delayInterval)
+{
+   TMTrace (2, ("TM_Info::addLockEvent : ENTRY, msg type %d, delay %d\n", 
+                pp_msg->requestType(), pv_delayInterval));
+		   
+   CTmTimerEvent *lp_timerEvent = new CTmTimerEvent(pp_msg, pv_delayInterval);
+   CTmLockThread *lock_thread = tmLock();
+	 
+   if (lock_thread)
+   {
+        tmLock()->eventQ_push((CTmEvent *) lp_timerEvent);
+   }
+   else
+   {
+       TMTrace (2, ("TM_Info::addLockEvent : NULL THREAD\n"));
+       delete lp_timerEvent;
+       lp_timerEvent = NULL;
+   }
+
+   return lp_timerEvent;
+} // TM_Info::addTimerEvent
+
 
 // ----------------------------------------------------------------------------
 // TM_Info::addTMRestartRetry
@@ -5099,6 +5151,223 @@ int32 TM_Info::disableTrans(CTmTxMessage * pp_msg)
     return lv_error;
 } //TM_Info::disableTrans
 
+// ----------------------------------------------------------------------------
+// TM_Info::unlockTm
+// Purpose : The LDTM will send an unlock request to all TMs.  If successful, it
+//           will change it's internal state and set a persistent flag
+// ----------------------------------------------------------------------------
+void TM_Info::unlockTm(CTmTxMessage * pp_msg, bool pv_reply)
+{
+    int32 lv_error = FEOK;
+
+    TMTrace (2, ("TM_Info::unlockTm : ENTRY.\n"));
+
+    // If the state is unlocked, then all others are unlocked since 
+    // we change the actual internal state as the last thing. If failures occurred,
+    // then the lead would not have changed its state.
+    if (iv_tm_locked == false)
+    {
+        TMTrace (1, ("TM_Info::unlockTm: EXIT - TM already unlocked.\n"));
+    }
+    else if (iv_lead_tm)
+    {
+       // send unlock to all TMs
+       lv_error = sendAllTMs(pp_msg);
+       
+       // if the unlock was successful, set the persistent flag
+       if (lv_error == FEOK)
+       {
+          lv_error = tm_reg_set(MS_Mon_ConfigType_Cluster, 
+                             (char *) "CLUSTER", (char *) "TRAF_TM_LOCKED",
+                             (char *) "0");
+       }
+       if (lv_error)
+       {
+          TMTrace (1, ("TM_Info::unlockTm: EXIT - Error %d.\n", lv_error));
+	  // this will force a retry. Return back to lib to give it a chance to 
+	  // resolve before retry
+          lv_error = FETMLOCKFAILED; 
+       }        
+    }
+
+    if (!lv_error)
+      iv_tm_locked=false;
+    
+    // waited request.  Non LDTM replies to LDTM, and LDTM replies to requester.
+    if (pv_reply)
+      pp_msg->reply(lv_error);
+    
+    TMTrace (2, ("TM_Info::unlockTm : EXIT, error %d.\n", lv_error));
+} //TM_Info::unlockTm
+
+
+// ----------------------------------------------------------------------------
+// TM_Info::lockTm
+// Purpose : Send a lock message to all TMs.  Each TM will drain the existing
+//           transactions that are already in phase 1 and phase 2
+// ----------------------------------------------------------------------------
+void TM_Info::lockTm(CTmTxMessage * pp_msg)
+{
+    int32 lv_error = FEOK;
+    int32 lv_retries = 0;
+    bool  lv_tm_locked = false;
+    char  la_value[9];
+    
+    TMTrace (2, ("TM_Info::lockTm : ENTRY\n"));
+
+    // if the LDTM is already locked, then no need to resend
+    if (iv_tm_locked == true)
+    {
+        lv_error = tm_reg_get(MS_Mon_ConfigType_Cluster, 
+                  (char *) CLUSTER_GROUP, (char *) "TRAF_TM_LOCKED", la_value);
+		  
+        if (lv_error == 0)
+           lv_tm_locked = atoi (la_value);
+        if (lv_tm_locked)
+	{
+	   TMTrace (3, ("TM_Info::lockTm: TMs already locked.\n"));
+	   lv_error = FETMALREADYLOCKED;
+	} 
+    }
+    
+    // if we aren't locked, then go ahead and lock all TMs
+    if (!lv_error)
+    {
+        // start blocking phase 1 otherwise we could drain forever
+       iv_tm_locked = true;
+       
+       // Lead TM waits here for all other TMs to complete disableTrans here
+       if (iv_lead_tm)
+       {     
+#ifdef debug_mode	 
+          // TESTPOINT-BEGIN
+          int lv_lock_lead_fail = 0;
+          ms_getenv_int("TM_LOCK_LEAD_FAIL", &lv_lock_lead_fail);
+          TMTrace(1, ("TM_Info::lockTm - TM_LOCK_LEAD_FAIL %d.\n", lv_lock_lead_fail));
+          if (lv_lock_lead_fail == 1)
+	      abort();     
+          // TESTPOINT-END
+#endif
+          lv_error = sendAllTMs(pp_msg);
+          if (lv_error == FEOK)
+          {
+             lv_tm_locked = false;
+             while ((!lv_tm_locked) && (lv_retries++ < 100))
+	     {
+	        lv_tm_locked = drainAndHoldTxs();
+                if (!lv_tm_locked)
+	          SB_Thread::Sthr::sleep  (1000); // sleep 1 second
+	     }
+	 
+	     if (!lv_tm_locked)
+	         lv_error = FETMLOCKFAILED;
+	     else
+                 lv_error = tm_reg_set(MS_Mon_ConfigType_Cluster, 
+                             (char *) "CLUSTER", (char *) "TRAF_TM_LOCKED",
+                             (char *) "1");
+          }
+      
+          if (lv_error)
+          {  
+	      unlockTm(pp_msg, false);  // don't really care about the error since this is the most we can do.
+              iv_tm_locked = false;  
+              TMTrace(1, ("TM_Info::lockTm - Error %d returned by sendAllTMs or tm_reg_set.\n", lv_error));
+          }
+          else
+	      TMTrace (3, ("TM_Info::lockTm: TMs successfully locked.\n"));
+       }
+      // non lead DTMs need to drain, hold, and reply back to lead
+       else
+       {
+#ifdef debug_mode	 
+          // TESTPOINT-BEGIN
+          int lv_lock_nonlead_fail = 0;
+          ms_getenv_int("TM_LOCK_NONLEAD_FAIL", &lv_lock_nonlead_fail);
+	  TMTrace(1, ("TM_Info::lockTm - TM_LOCK_NONLEAD_FAIL %d.\n", lv_lock_nonlead_fail));
+          if (lv_lock_nonlead_fail == 1)
+	     abort(); 
+          // TESTPOINT-END
+#endif
+
+	 lv_tm_locked = false;
+         while ((!lv_tm_locked) && (lv_retries++ < 100))
+	 {
+	    lv_tm_locked = drainAndHoldTxs();
+            if (!lv_tm_locked)
+	      SB_Thread::Sthr::sleep  (1000); // sleep 1 second
+	 }
+	 
+	 // We exhausted our retries and were unable to lock.
+	 if (!lv_tm_locked)
+	 {
+	   iv_tm_locked = false;
+	   lv_error = FETMLOCKFAILED;
+	 }
+	      
+       }
+    }
+    
+    pp_msg->reply(lv_error); 
+    
+    TMTrace(2, ("TM_Info::lockTm : EXIT, error %d.\n", lv_error));
+}
+   
+   
+// ----------------------------------------------------------------------------
+// TM_Info::drainAndHoldTxs
+// Purpose : Check our transaction list and determine if we need to wait
+// Returns true is we can lock and false if we cannot
+// ----------------------------------------------------------------------------
+bool TM_Info::drainAndHoldTxs()
+{
+    int32 lv_drain_count = 0;
+    TMTrace (2, ("TM_Info::drainAndHoldTxs : ENTRY\n"));
+
+#ifdef debug_mode    
+    // TESTPOINT-BEGIN
+    static int lv_tp = 10;
+    int lv_lock_drain_tp = 0;
+    ms_getenv_int("TM_LOCK_DRAIN_TP", &lv_lock_drain_tp);
+    if ((lv_lock_drain_tp == 1) && (lv_tp > 0))
+    {
+       TMTrace (2, ("TM_Info::drainAndHoldTxs : TESTPOINT EXIT with drain count of %d\n", lv_tp--));
+       return false;
+    }
+    // TESTPOINT-END
+#endif
+
+    CTmTxBase *lp_tx = (CTmTxBase *) getFirst_tx();
+
+    while (lp_tx != NULL)
+    {
+        // transactionsn to drain/wait for
+        if (lp_tx->tx_state() == TM_TX_STATE_COMMITTED ||
+                  lp_tx->tx_state() == TM_TX_STATE_ABORTING ||
+                  lp_tx->tx_state() == TM_TX_STATE_ABORTED ||
+                  lp_tx->tx_state() == TM_TX_STATE_FORGETTING ||
+                  lp_tx->tx_state() == TM_TX_STATE_ABORTING_PART2 ||
+                  lp_tx->tx_state() == TM_TX_STATE_FORGETTING_HEUR ||
+                  lp_tx->tx_state() == TM_TX_STATE_FORGOTTEN_HEUR ||
+                  lp_tx->tx_state() == TM_TX_STATE_COMMITTING ||
+                  lp_tx->tx_state() == TM_TX_STATE_PREPARING ||
+                  lp_tx->tx_state() == TM_TX_STATE_PREPARED)
+	{
+	  // nothing to do other than wait.
+	   lv_drain_count++;
+	}
+        lp_tx = (CTmTxBase*) getNext_tx();
+    }
+   getEnd_tx();
+   
+   TMTrace (2, ("TM_Info::drainAndHoldTxs : EXIT with drain count of %d\n", lv_drain_count));
+   // we are no longer waiting on anything so we can let it go
+   if (lv_drain_count == 0)
+     return true;
+   
+   // still waiting for the drain
+   return false;
+   
+}
 
 // --------------------------------------------------------------
 // TM_Info::addShutdownPhase1WaitEvent

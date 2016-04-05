@@ -40,6 +40,16 @@ public final class TrxRegionProtos {
      * <code>required int32 participantNum = 3;</code>
      */
     int getParticipantNum();
+
+    // required bool dropTableRecorded = 4;
+    /**
+     * <code>required bool dropTableRecorded = 4;</code>
+     */
+    boolean hasDropTableRecorded();
+    /**
+     * <code>required bool dropTableRecorded = 4;</code>
+     */
+    boolean getDropTableRecorded();
   }
   /**
    * Protobuf type {@code AbortTransactionRequest}
@@ -105,6 +115,11 @@ public final class TrxRegionProtos {
             case 24: {
               bitField0_ |= 0x00000004;
               participantNum_ = input.readInt32();
+              break;
+            }
+            case 32: {
+              bitField0_ |= 0x00000008;
+              dropTableRecorded_ = input.readBool();
               break;
             }
           }
@@ -195,10 +210,27 @@ public final class TrxRegionProtos {
       return participantNum_;
     }
 
+    // required bool dropTableRecorded = 4;
+    public static final int DROPTABLERECORDED_FIELD_NUMBER = 4;
+    private boolean dropTableRecorded_;
+    /**
+     * <code>required bool dropTableRecorded = 4;</code>
+     */
+    public boolean hasDropTableRecorded() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>required bool dropTableRecorded = 4;</code>
+     */
+    public boolean getDropTableRecorded() {
+      return dropTableRecorded_;
+    }
+
     private void initFields() {
       regionName_ = com.google.protobuf.ByteString.EMPTY;
       transactionId_ = 0L;
       participantNum_ = 0;
+      dropTableRecorded_ = false;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -217,6 +249,10 @@ public final class TrxRegionProtos {
         memoizedIsInitialized = 0;
         return false;
       }
+      if (!hasDropTableRecorded()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
       memoizedIsInitialized = 1;
       return true;
     }
@@ -232,6 +268,9 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         output.writeInt32(3, participantNum_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeBool(4, dropTableRecorded_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -253,6 +292,10 @@ public final class TrxRegionProtos {
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(3, participantNum_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(4, dropTableRecorded_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -376,6 +419,8 @@ public final class TrxRegionProtos {
         bitField0_ = (bitField0_ & ~0x00000002);
         participantNum_ = 0;
         bitField0_ = (bitField0_ & ~0x00000004);
+        dropTableRecorded_ = false;
+        bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
 
@@ -416,6 +461,10 @@ public final class TrxRegionProtos {
           to_bitField0_ |= 0x00000004;
         }
         result.participantNum_ = participantNum_;
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000008;
+        }
+        result.dropTableRecorded_ = dropTableRecorded_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -441,6 +490,9 @@ public final class TrxRegionProtos {
         if (other.hasParticipantNum()) {
           setParticipantNum(other.getParticipantNum());
         }
+        if (other.hasDropTableRecorded()) {
+          setDropTableRecorded(other.getDropTableRecorded());
+        }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
       }
@@ -455,6 +507,10 @@ public final class TrxRegionProtos {
           return false;
         }
         if (!hasParticipantNum()) {
+          
+          return false;
+        }
+        if (!hasDropTableRecorded()) {
           
           return false;
         }
@@ -578,6 +634,39 @@ public final class TrxRegionProtos {
       public Builder clearParticipantNum() {
         bitField0_ = (bitField0_ & ~0x00000004);
         participantNum_ = 0;
+        onChanged();
+        return this;
+      }
+
+      // required bool dropTableRecorded = 4;
+      private boolean dropTableRecorded_ ;
+      /**
+       * <code>required bool dropTableRecorded = 4;</code>
+       */
+      public boolean hasDropTableRecorded() {
+        return ((bitField0_ & 0x00000008) == 0x00000008);
+      }
+      /**
+       * <code>required bool dropTableRecorded = 4;</code>
+       */
+      public boolean getDropTableRecorded() {
+        return dropTableRecorded_;
+      }
+      /**
+       * <code>required bool dropTableRecorded = 4;</code>
+       */
+      public Builder setDropTableRecorded(boolean value) {
+        bitField0_ |= 0x00000008;
+        dropTableRecorded_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required bool dropTableRecorded = 4;</code>
+       */
+      public Builder clearDropTableRecorded() {
+        bitField0_ = (bitField0_ & ~0x00000008);
+        dropTableRecorded_ = false;
         onChanged();
         return this;
       }
@@ -2382,13 +2471,23 @@ public final class TrxRegionProtos {
      */
     long getTransactionId();
 
-    // required bytes regionName = 2;
+    // required int64 startId = 2;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    boolean hasStartId();
+    /**
+     * <code>required int64 startId = 2;</code>
+     */
+    long getStartId();
+
+    // required bytes regionName = 3;
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     boolean hasRegionName();
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required bytes regionName = 3;</code>
      */
     com.google.protobuf.ByteString getRegionName();
   }
@@ -2448,8 +2547,13 @@ public final class TrxRegionProtos {
               transactionId_ = input.readInt64();
               break;
             }
-            case 18: {
+            case 16: {
               bitField0_ |= 0x00000002;
+              startId_ = input.readInt64();
+              break;
+            }
+            case 26: {
+              bitField0_ |= 0x00000004;
               regionName_ = input.readBytes();
               break;
             }
@@ -2509,17 +2613,33 @@ public final class TrxRegionProtos {
       return transactionId_;
     }
 
-    // required bytes regionName = 2;
-    public static final int REGIONNAME_FIELD_NUMBER = 2;
-    private com.google.protobuf.ByteString regionName_;
+    // required int64 startId = 2;
+    public static final int STARTID_FIELD_NUMBER = 2;
+    private long startId_;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
      */
-    public boolean hasRegionName() {
+    public boolean hasStartId() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    public long getStartId() {
+      return startId_;
+    }
+
+    // required bytes regionName = 3;
+    public static final int REGIONNAME_FIELD_NUMBER = 3;
+    private com.google.protobuf.ByteString regionName_;
+    /**
+     * <code>required bytes regionName = 3;</code>
+     */
+    public boolean hasRegionName() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     public com.google.protobuf.ByteString getRegionName() {
       return regionName_;
@@ -2527,6 +2647,7 @@ public final class TrxRegionProtos {
 
     private void initFields() {
       transactionId_ = 0L;
+      startId_ = 0L;
       regionName_ = com.google.protobuf.ByteString.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
@@ -2535,6 +2656,10 @@ public final class TrxRegionProtos {
       if (isInitialized != -1) return isInitialized == 1;
 
       if (!hasTransactionId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasStartId()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -2553,7 +2678,10 @@ public final class TrxRegionProtos {
         output.writeInt64(1, transactionId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, regionName_);
+        output.writeInt64(2, startId_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeBytes(3, regionName_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -2570,7 +2698,11 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, regionName_);
+          .computeInt64Size(2, startId_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(3, regionName_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -2690,8 +2822,10 @@ public final class TrxRegionProtos {
         super.clear();
         transactionId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000001);
-        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        startId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
+        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000004);
         return this;
       }
 
@@ -2727,6 +2861,10 @@ public final class TrxRegionProtos {
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
+        result.startId_ = startId_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
         result.regionName_ = regionName_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
@@ -2747,6 +2885,9 @@ public final class TrxRegionProtos {
         if (other.hasTransactionId()) {
           setTransactionId(other.getTransactionId());
         }
+        if (other.hasStartId()) {
+          setStartId(other.getStartId());
+        }
         if (other.hasRegionName()) {
           setRegionName(other.getRegionName());
         }
@@ -2756,6 +2897,10 @@ public final class TrxRegionProtos {
 
       public final boolean isInitialized() {
         if (!hasTransactionId()) {
+          
+          return false;
+        }
+        if (!hasStartId()) {
           
           return false;
         }
@@ -2818,37 +2963,70 @@ public final class TrxRegionProtos {
         return this;
       }
 
-      // required bytes regionName = 2;
-      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      // required int64 startId = 2;
+      private long startId_ ;
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
        */
-      public boolean hasRegionName() {
+      public boolean hasStartId() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
+       */
+      public long getStartId() {
+        return startId_;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder setStartId(long value) {
+        bitField0_ |= 0x00000002;
+        startId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder clearStartId() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        startId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // required bytes regionName = 3;
+      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>required bytes regionName = 3;</code>
+       */
+      public boolean hasRegionName() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>required bytes regionName = 3;</code>
        */
       public com.google.protobuf.ByteString getRegionName() {
         return regionName_;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder setRegionName(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000002;
+  bitField0_ |= 0x00000004;
         regionName_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder clearRegionName() {
-        bitField0_ = (bitField0_ & ~0x00000002);
+        bitField0_ = (bitField0_ & ~0x00000004);
         regionName_ = getDefaultInstance().getRegionName();
         onChanged();
         return this;
@@ -3440,23 +3618,33 @@ public final class TrxRegionProtos {
      */
     long getTransactionId();
 
-    // required int32 participantNum = 3;
+    // required int64 commitId = 3;
     /**
-     * <code>required int32 participantNum = 3;</code>
+     * <code>required int64 commitId = 3;</code>
+     */
+    boolean hasCommitId();
+    /**
+     * <code>required int64 commitId = 3;</code>
+     */
+    long getCommitId();
+
+    // required int32 participantNum = 4;
+    /**
+     * <code>required int32 participantNum = 4;</code>
      */
     boolean hasParticipantNum();
     /**
-     * <code>required int32 participantNum = 3;</code>
+     * <code>required int32 participantNum = 4;</code>
      */
     int getParticipantNum();
 
-    // optional bool ignoreUnknownTransactionException = 4;
+    // optional bool ignoreUnknownTransactionException = 5;
     /**
-     * <code>optional bool ignoreUnknownTransactionException = 4;</code>
+     * <code>optional bool ignoreUnknownTransactionException = 5;</code>
      */
     boolean hasIgnoreUnknownTransactionException();
     /**
-     * <code>optional bool ignoreUnknownTransactionException = 4;</code>
+     * <code>optional bool ignoreUnknownTransactionException = 5;</code>
      */
     boolean getIgnoreUnknownTransactionException();
   }
@@ -3523,11 +3711,16 @@ public final class TrxRegionProtos {
             }
             case 24: {
               bitField0_ |= 0x00000004;
-              participantNum_ = input.readInt32();
+              commitId_ = input.readInt64();
               break;
             }
             case 32: {
               bitField0_ |= 0x00000008;
+              participantNum_ = input.readInt32();
+              break;
+            }
+            case 40: {
+              bitField0_ |= 0x00000010;
               ignoreUnknownTransactionException_ = input.readBool();
               break;
             }
@@ -3603,33 +3796,49 @@ public final class TrxRegionProtos {
       return transactionId_;
     }
 
-    // required int32 participantNum = 3;
-    public static final int PARTICIPANTNUM_FIELD_NUMBER = 3;
-    private int participantNum_;
+    // required int64 commitId = 3;
+    public static final int COMMITID_FIELD_NUMBER = 3;
+    private long commitId_;
     /**
-     * <code>required int32 participantNum = 3;</code>
+     * <code>required int64 commitId = 3;</code>
      */
-    public boolean hasParticipantNum() {
+    public boolean hasCommitId() {
       return ((bitField0_ & 0x00000004) == 0x00000004);
     }
     /**
-     * <code>required int32 participantNum = 3;</code>
+     * <code>required int64 commitId = 3;</code>
+     */
+    public long getCommitId() {
+      return commitId_;
+    }
+
+    // required int32 participantNum = 4;
+    public static final int PARTICIPANTNUM_FIELD_NUMBER = 4;
+    private int participantNum_;
+    /**
+     * <code>required int32 participantNum = 4;</code>
+     */
+    public boolean hasParticipantNum() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>required int32 participantNum = 4;</code>
      */
     public int getParticipantNum() {
       return participantNum_;
     }
 
-    // optional bool ignoreUnknownTransactionException = 4;
-    public static final int IGNOREUNKNOWNTRANSACTIONEXCEPTION_FIELD_NUMBER = 4;
+    // optional bool ignoreUnknownTransactionException = 5;
+    public static final int IGNOREUNKNOWNTRANSACTIONEXCEPTION_FIELD_NUMBER = 5;
     private boolean ignoreUnknownTransactionException_;
     /**
-     * <code>optional bool ignoreUnknownTransactionException = 4;</code>
+     * <code>optional bool ignoreUnknownTransactionException = 5;</code>
      */
     public boolean hasIgnoreUnknownTransactionException() {
-      return ((bitField0_ & 0x00000008) == 0x00000008);
+      return ((bitField0_ & 0x00000010) == 0x00000010);
     }
     /**
-     * <code>optional bool ignoreUnknownTransactionException = 4;</code>
+     * <code>optional bool ignoreUnknownTransactionException = 5;</code>
      */
     public boolean getIgnoreUnknownTransactionException() {
       return ignoreUnknownTransactionException_;
@@ -3638,6 +3847,7 @@ public final class TrxRegionProtos {
     private void initFields() {
       regionName_ = com.google.protobuf.ByteString.EMPTY;
       transactionId_ = 0L;
+      commitId_ = 0L;
       participantNum_ = 0;
       ignoreUnknownTransactionException_ = false;
     }
@@ -3651,6 +3861,10 @@ public final class TrxRegionProtos {
         return false;
       }
       if (!hasTransactionId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasCommitId()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -3672,10 +3886,13 @@ public final class TrxRegionProtos {
         output.writeInt64(2, transactionId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeInt32(3, participantNum_);
+        output.writeInt64(3, commitId_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        output.writeBool(4, ignoreUnknownTransactionException_);
+        output.writeInt32(4, participantNum_);
+      }
+      if (((bitField0_ & 0x00000010) == 0x00000010)) {
+        output.writeBool(5, ignoreUnknownTransactionException_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -3696,11 +3913,15 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(3, participantNum_);
+          .computeInt64Size(3, commitId_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(4, ignoreUnknownTransactionException_);
+          .computeInt32Size(4, participantNum_);
+      }
+      if (((bitField0_ & 0x00000010) == 0x00000010)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(5, ignoreUnknownTransactionException_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -3822,10 +4043,12 @@ public final class TrxRegionProtos {
         bitField0_ = (bitField0_ & ~0x00000001);
         transactionId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
-        participantNum_ = 0;
+        commitId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000004);
-        ignoreUnknownTransactionException_ = false;
+        participantNum_ = 0;
         bitField0_ = (bitField0_ & ~0x00000008);
+        ignoreUnknownTransactionException_ = false;
+        bitField0_ = (bitField0_ & ~0x00000010);
         return this;
       }
 
@@ -3865,9 +4088,13 @@ public final class TrxRegionProtos {
         if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
           to_bitField0_ |= 0x00000004;
         }
-        result.participantNum_ = participantNum_;
+        result.commitId_ = commitId_;
         if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
           to_bitField0_ |= 0x00000008;
+        }
+        result.participantNum_ = participantNum_;
+        if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
+          to_bitField0_ |= 0x00000010;
         }
         result.ignoreUnknownTransactionException_ = ignoreUnknownTransactionException_;
         result.bitField0_ = to_bitField0_;
@@ -3892,6 +4119,9 @@ public final class TrxRegionProtos {
         if (other.hasTransactionId()) {
           setTransactionId(other.getTransactionId());
         }
+        if (other.hasCommitId()) {
+          setCommitId(other.getCommitId());
+        }
         if (other.hasParticipantNum()) {
           setParticipantNum(other.getParticipantNum());
         }
@@ -3908,6 +4138,10 @@ public final class TrxRegionProtos {
           return false;
         }
         if (!hasTransactionId()) {
+          
+          return false;
+        }
+        if (!hasCommitId()) {
           
           return false;
         }
@@ -4006,67 +4240,100 @@ public final class TrxRegionProtos {
         return this;
       }
 
-      // required int32 participantNum = 3;
-      private int participantNum_ ;
+      // required int64 commitId = 3;
+      private long commitId_ ;
       /**
-       * <code>required int32 participantNum = 3;</code>
+       * <code>required int64 commitId = 3;</code>
        */
-      public boolean hasParticipantNum() {
+      public boolean hasCommitId() {
         return ((bitField0_ & 0x00000004) == 0x00000004);
       }
       /**
-       * <code>required int32 participantNum = 3;</code>
+       * <code>required int64 commitId = 3;</code>
+       */
+      public long getCommitId() {
+        return commitId_;
+      }
+      /**
+       * <code>required int64 commitId = 3;</code>
+       */
+      public Builder setCommitId(long value) {
+        bitField0_ |= 0x00000004;
+        commitId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 commitId = 3;</code>
+       */
+      public Builder clearCommitId() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        commitId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // required int32 participantNum = 4;
+      private int participantNum_ ;
+      /**
+       * <code>required int32 participantNum = 4;</code>
+       */
+      public boolean hasParticipantNum() {
+        return ((bitField0_ & 0x00000008) == 0x00000008);
+      }
+      /**
+       * <code>required int32 participantNum = 4;</code>
        */
       public int getParticipantNum() {
         return participantNum_;
       }
       /**
-       * <code>required int32 participantNum = 3;</code>
+       * <code>required int32 participantNum = 4;</code>
        */
       public Builder setParticipantNum(int value) {
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         participantNum_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required int32 participantNum = 3;</code>
+       * <code>required int32 participantNum = 4;</code>
        */
       public Builder clearParticipantNum() {
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000008);
         participantNum_ = 0;
         onChanged();
         return this;
       }
 
-      // optional bool ignoreUnknownTransactionException = 4;
+      // optional bool ignoreUnknownTransactionException = 5;
       private boolean ignoreUnknownTransactionException_ ;
       /**
-       * <code>optional bool ignoreUnknownTransactionException = 4;</code>
+       * <code>optional bool ignoreUnknownTransactionException = 5;</code>
        */
       public boolean hasIgnoreUnknownTransactionException() {
-        return ((bitField0_ & 0x00000008) == 0x00000008);
+        return ((bitField0_ & 0x00000010) == 0x00000010);
       }
       /**
-       * <code>optional bool ignoreUnknownTransactionException = 4;</code>
+       * <code>optional bool ignoreUnknownTransactionException = 5;</code>
        */
       public boolean getIgnoreUnknownTransactionException() {
         return ignoreUnknownTransactionException_;
       }
       /**
-       * <code>optional bool ignoreUnknownTransactionException = 4;</code>
+       * <code>optional bool ignoreUnknownTransactionException = 5;</code>
        */
       public Builder setIgnoreUnknownTransactionException(boolean value) {
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000010;
         ignoreUnknownTransactionException_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>optional bool ignoreUnknownTransactionException = 4;</code>
+       * <code>optional bool ignoreUnknownTransactionException = 5;</code>
        */
       public Builder clearIgnoreUnknownTransactionException() {
-        bitField0_ = (bitField0_ & ~0x00000008);
+        bitField0_ = (bitField0_ & ~0x00000010);
         ignoreUnknownTransactionException_ = false;
         onChanged();
         return this;
@@ -4662,23 +4929,33 @@ public final class TrxRegionProtos {
      */
     long getTransactionId();
 
-    // required int32 participantNum = 3;
+    // required int64 commitId = 3;
     /**
-     * <code>required int32 participantNum = 3;</code>
+     * <code>required int64 commitId = 3;</code>
+     */
+    boolean hasCommitId();
+    /**
+     * <code>required int64 commitId = 3;</code>
+     */
+    long getCommitId();
+
+    // required int32 participantNum = 4;
+    /**
+     * <code>required int32 participantNum = 4;</code>
      */
     boolean hasParticipantNum();
     /**
-     * <code>required int32 participantNum = 3;</code>
+     * <code>required int32 participantNum = 4;</code>
      */
     int getParticipantNum();
 
-    // optional bool ignoreUnknownTransactionException = 4;
+    // optional bool ignoreUnknownTransactionException = 5;
     /**
-     * <code>optional bool ignoreUnknownTransactionException = 4;</code>
+     * <code>optional bool ignoreUnknownTransactionException = 5;</code>
      */
     boolean hasIgnoreUnknownTransactionException();
     /**
-     * <code>optional bool ignoreUnknownTransactionException = 4;</code>
+     * <code>optional bool ignoreUnknownTransactionException = 5;</code>
      */
     boolean getIgnoreUnknownTransactionException();
   }
@@ -4748,11 +5025,16 @@ public final class TrxRegionProtos {
             }
             case 24: {
               bitField0_ |= 0x00000002;
-              participantNum_ = input.readInt32();
+              commitId_ = input.readInt64();
               break;
             }
             case 32: {
               bitField0_ |= 0x00000004;
+              participantNum_ = input.readInt32();
+              break;
+            }
+            case 40: {
+              bitField0_ |= 0x00000008;
               ignoreUnknownTransactionException_ = input.readBool();
               break;
             }
@@ -4838,33 +5120,49 @@ public final class TrxRegionProtos {
       return transactionId_;
     }
 
-    // required int32 participantNum = 3;
-    public static final int PARTICIPANTNUM_FIELD_NUMBER = 3;
-    private int participantNum_;
+    // required int64 commitId = 3;
+    public static final int COMMITID_FIELD_NUMBER = 3;
+    private long commitId_;
     /**
-     * <code>required int32 participantNum = 3;</code>
+     * <code>required int64 commitId = 3;</code>
      */
-    public boolean hasParticipantNum() {
+    public boolean hasCommitId() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required int32 participantNum = 3;</code>
+     * <code>required int64 commitId = 3;</code>
+     */
+    public long getCommitId() {
+      return commitId_;
+    }
+
+    // required int32 participantNum = 4;
+    public static final int PARTICIPANTNUM_FIELD_NUMBER = 4;
+    private int participantNum_;
+    /**
+     * <code>required int32 participantNum = 4;</code>
+     */
+    public boolean hasParticipantNum() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>required int32 participantNum = 4;</code>
      */
     public int getParticipantNum() {
       return participantNum_;
     }
 
-    // optional bool ignoreUnknownTransactionException = 4;
-    public static final int IGNOREUNKNOWNTRANSACTIONEXCEPTION_FIELD_NUMBER = 4;
+    // optional bool ignoreUnknownTransactionException = 5;
+    public static final int IGNOREUNKNOWNTRANSACTIONEXCEPTION_FIELD_NUMBER = 5;
     private boolean ignoreUnknownTransactionException_;
     /**
-     * <code>optional bool ignoreUnknownTransactionException = 4;</code>
+     * <code>optional bool ignoreUnknownTransactionException = 5;</code>
      */
     public boolean hasIgnoreUnknownTransactionException() {
-      return ((bitField0_ & 0x00000004) == 0x00000004);
+      return ((bitField0_ & 0x00000008) == 0x00000008);
     }
     /**
-     * <code>optional bool ignoreUnknownTransactionException = 4;</code>
+     * <code>optional bool ignoreUnknownTransactionException = 5;</code>
      */
     public boolean getIgnoreUnknownTransactionException() {
       return ignoreUnknownTransactionException_;
@@ -4873,6 +5171,7 @@ public final class TrxRegionProtos {
     private void initFields() {
       regionName_ = java.util.Collections.emptyList();
       transactionId_ = 0L;
+      commitId_ = 0L;
       participantNum_ = 0;
       ignoreUnknownTransactionException_ = false;
     }
@@ -4882,6 +5181,10 @@ public final class TrxRegionProtos {
       if (isInitialized != -1) return isInitialized == 1;
 
       if (!hasTransactionId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasCommitId()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -4903,10 +5206,13 @@ public final class TrxRegionProtos {
         output.writeInt64(2, transactionId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeInt32(3, participantNum_);
+        output.writeInt64(3, commitId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeBool(4, ignoreUnknownTransactionException_);
+        output.writeInt32(4, participantNum_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeBool(5, ignoreUnknownTransactionException_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -4932,11 +5238,15 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(3, participantNum_);
+          .computeInt64Size(3, commitId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(4, ignoreUnknownTransactionException_);
+          .computeInt32Size(4, participantNum_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(5, ignoreUnknownTransactionException_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -5058,10 +5368,12 @@ public final class TrxRegionProtos {
         bitField0_ = (bitField0_ & ~0x00000001);
         transactionId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
-        participantNum_ = 0;
+        commitId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000004);
-        ignoreUnknownTransactionException_ = false;
+        participantNum_ = 0;
         bitField0_ = (bitField0_ & ~0x00000008);
+        ignoreUnknownTransactionException_ = false;
+        bitField0_ = (bitField0_ & ~0x00000010);
         return this;
       }
 
@@ -5102,9 +5414,13 @@ public final class TrxRegionProtos {
         if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
           to_bitField0_ |= 0x00000002;
         }
-        result.participantNum_ = participantNum_;
+        result.commitId_ = commitId_;
         if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
           to_bitField0_ |= 0x00000004;
+        }
+        result.participantNum_ = participantNum_;
+        if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
+          to_bitField0_ |= 0x00000008;
         }
         result.ignoreUnknownTransactionException_ = ignoreUnknownTransactionException_;
         result.bitField0_ = to_bitField0_;
@@ -5136,6 +5452,9 @@ public final class TrxRegionProtos {
         if (other.hasTransactionId()) {
           setTransactionId(other.getTransactionId());
         }
+        if (other.hasCommitId()) {
+          setCommitId(other.getCommitId());
+        }
         if (other.hasParticipantNum()) {
           setParticipantNum(other.getParticipantNum());
         }
@@ -5148,6 +5467,10 @@ public final class TrxRegionProtos {
 
       public final boolean isInitialized() {
         if (!hasTransactionId()) {
+          
+          return false;
+        }
+        if (!hasCommitId()) {
           
           return false;
         }
@@ -5282,67 +5605,100 @@ public final class TrxRegionProtos {
         return this;
       }
 
-      // required int32 participantNum = 3;
-      private int participantNum_ ;
+      // required int64 commitId = 3;
+      private long commitId_ ;
       /**
-       * <code>required int32 participantNum = 3;</code>
+       * <code>required int64 commitId = 3;</code>
        */
-      public boolean hasParticipantNum() {
+      public boolean hasCommitId() {
         return ((bitField0_ & 0x00000004) == 0x00000004);
       }
       /**
-       * <code>required int32 participantNum = 3;</code>
+       * <code>required int64 commitId = 3;</code>
+       */
+      public long getCommitId() {
+        return commitId_;
+      }
+      /**
+       * <code>required int64 commitId = 3;</code>
+       */
+      public Builder setCommitId(long value) {
+        bitField0_ |= 0x00000004;
+        commitId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 commitId = 3;</code>
+       */
+      public Builder clearCommitId() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        commitId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // required int32 participantNum = 4;
+      private int participantNum_ ;
+      /**
+       * <code>required int32 participantNum = 4;</code>
+       */
+      public boolean hasParticipantNum() {
+        return ((bitField0_ & 0x00000008) == 0x00000008);
+      }
+      /**
+       * <code>required int32 participantNum = 4;</code>
        */
       public int getParticipantNum() {
         return participantNum_;
       }
       /**
-       * <code>required int32 participantNum = 3;</code>
+       * <code>required int32 participantNum = 4;</code>
        */
       public Builder setParticipantNum(int value) {
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         participantNum_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required int32 participantNum = 3;</code>
+       * <code>required int32 participantNum = 4;</code>
        */
       public Builder clearParticipantNum() {
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000008);
         participantNum_ = 0;
         onChanged();
         return this;
       }
 
-      // optional bool ignoreUnknownTransactionException = 4;
+      // optional bool ignoreUnknownTransactionException = 5;
       private boolean ignoreUnknownTransactionException_ ;
       /**
-       * <code>optional bool ignoreUnknownTransactionException = 4;</code>
+       * <code>optional bool ignoreUnknownTransactionException = 5;</code>
        */
       public boolean hasIgnoreUnknownTransactionException() {
-        return ((bitField0_ & 0x00000008) == 0x00000008);
+        return ((bitField0_ & 0x00000010) == 0x00000010);
       }
       /**
-       * <code>optional bool ignoreUnknownTransactionException = 4;</code>
+       * <code>optional bool ignoreUnknownTransactionException = 5;</code>
        */
       public boolean getIgnoreUnknownTransactionException() {
         return ignoreUnknownTransactionException_;
       }
       /**
-       * <code>optional bool ignoreUnknownTransactionException = 4;</code>
+       * <code>optional bool ignoreUnknownTransactionException = 5;</code>
        */
       public Builder setIgnoreUnknownTransactionException(boolean value) {
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000010;
         ignoreUnknownTransactionException_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>optional bool ignoreUnknownTransactionException = 4;</code>
+       * <code>optional bool ignoreUnknownTransactionException = 5;</code>
        */
       public Builder clearIgnoreUnknownTransactionException() {
-        bitField0_ = (bitField0_ & ~0x00000008);
+        bitField0_ = (bitField0_ & ~0x00000010);
         ignoreUnknownTransactionException_ = false;
         onChanged();
         return this;
@@ -5972,6 +6328,16 @@ public final class TrxRegionProtos {
      * <code>required int32 participantNum = 3;</code>
      */
     int getParticipantNum();
+
+    // required bool dropTableRecorded = 4;
+    /**
+     * <code>required bool dropTableRecorded = 4;</code>
+     */
+    boolean hasDropTableRecorded();
+    /**
+     * <code>required bool dropTableRecorded = 4;</code>
+     */
+    boolean getDropTableRecorded();
   }
   /**
    * Protobuf type {@code CommitRequestRequest}
@@ -6037,6 +6403,11 @@ public final class TrxRegionProtos {
             case 24: {
               bitField0_ |= 0x00000004;
               participantNum_ = input.readInt32();
+              break;
+            }
+            case 32: {
+              bitField0_ |= 0x00000008;
+              dropTableRecorded_ = input.readBool();
               break;
             }
           }
@@ -6127,10 +6498,27 @@ public final class TrxRegionProtos {
       return participantNum_;
     }
 
+    // required bool dropTableRecorded = 4;
+    public static final int DROPTABLERECORDED_FIELD_NUMBER = 4;
+    private boolean dropTableRecorded_;
+    /**
+     * <code>required bool dropTableRecorded = 4;</code>
+     */
+    public boolean hasDropTableRecorded() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>required bool dropTableRecorded = 4;</code>
+     */
+    public boolean getDropTableRecorded() {
+      return dropTableRecorded_;
+    }
+
     private void initFields() {
       regionName_ = com.google.protobuf.ByteString.EMPTY;
       transactionId_ = 0L;
       participantNum_ = 0;
+      dropTableRecorded_ = false;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -6149,6 +6537,10 @@ public final class TrxRegionProtos {
         memoizedIsInitialized = 0;
         return false;
       }
+      if (!hasDropTableRecorded()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
       memoizedIsInitialized = 1;
       return true;
     }
@@ -6164,6 +6556,9 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         output.writeInt32(3, participantNum_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeBool(4, dropTableRecorded_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -6185,6 +6580,10 @@ public final class TrxRegionProtos {
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(3, participantNum_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(4, dropTableRecorded_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -6308,6 +6707,8 @@ public final class TrxRegionProtos {
         bitField0_ = (bitField0_ & ~0x00000002);
         participantNum_ = 0;
         bitField0_ = (bitField0_ & ~0x00000004);
+        dropTableRecorded_ = false;
+        bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
 
@@ -6348,6 +6749,10 @@ public final class TrxRegionProtos {
           to_bitField0_ |= 0x00000004;
         }
         result.participantNum_ = participantNum_;
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000008;
+        }
+        result.dropTableRecorded_ = dropTableRecorded_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -6373,6 +6778,9 @@ public final class TrxRegionProtos {
         if (other.hasParticipantNum()) {
           setParticipantNum(other.getParticipantNum());
         }
+        if (other.hasDropTableRecorded()) {
+          setDropTableRecorded(other.getDropTableRecorded());
+        }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
       }
@@ -6387,6 +6795,10 @@ public final class TrxRegionProtos {
           return false;
         }
         if (!hasParticipantNum()) {
+          
+          return false;
+        }
+        if (!hasDropTableRecorded()) {
           
           return false;
         }
@@ -6510,6 +6922,39 @@ public final class TrxRegionProtos {
       public Builder clearParticipantNum() {
         bitField0_ = (bitField0_ & ~0x00000004);
         participantNum_ = 0;
+        onChanged();
+        return this;
+      }
+
+      // required bool dropTableRecorded = 4;
+      private boolean dropTableRecorded_ ;
+      /**
+       * <code>required bool dropTableRecorded = 4;</code>
+       */
+      public boolean hasDropTableRecorded() {
+        return ((bitField0_ & 0x00000008) == 0x00000008);
+      }
+      /**
+       * <code>required bool dropTableRecorded = 4;</code>
+       */
+      public boolean getDropTableRecorded() {
+        return dropTableRecorded_;
+      }
+      /**
+       * <code>required bool dropTableRecorded = 4;</code>
+       */
+      public Builder setDropTableRecorded(boolean value) {
+        bitField0_ |= 0x00000008;
+        dropTableRecorded_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required bool dropTableRecorded = 4;</code>
+       */
+      public Builder clearDropTableRecorded() {
+        bitField0_ = (bitField0_ & ~0x00000008);
+        dropTableRecorded_ = false;
         onChanged();
         return this;
       }
@@ -8570,13 +9015,23 @@ public final class TrxRegionProtos {
      */
     long getTransactionId();
 
-    // required int32 participantNum = 3;
+    // required int64 commitId = 3;
     /**
-     * <code>required int32 participantNum = 3;</code>
+     * <code>required int64 commitId = 3;</code>
+     */
+    boolean hasCommitId();
+    /**
+     * <code>required int64 commitId = 3;</code>
+     */
+    long getCommitId();
+
+    // required int32 participantNum = 4;
+    /**
+     * <code>required int32 participantNum = 4;</code>
      */
     boolean hasParticipantNum();
     /**
-     * <code>required int32 participantNum = 3;</code>
+     * <code>required int32 participantNum = 4;</code>
      */
     int getParticipantNum();
   }
@@ -8643,6 +9098,11 @@ public final class TrxRegionProtos {
             }
             case 24: {
               bitField0_ |= 0x00000004;
+              commitId_ = input.readInt64();
+              break;
+            }
+            case 32: {
+              bitField0_ |= 0x00000008;
               participantNum_ = input.readInt32();
               break;
             }
@@ -8718,17 +9178,33 @@ public final class TrxRegionProtos {
       return transactionId_;
     }
 
-    // required int32 participantNum = 3;
-    public static final int PARTICIPANTNUM_FIELD_NUMBER = 3;
-    private int participantNum_;
+    // required int64 commitId = 3;
+    public static final int COMMITID_FIELD_NUMBER = 3;
+    private long commitId_;
     /**
-     * <code>required int32 participantNum = 3;</code>
+     * <code>required int64 commitId = 3;</code>
      */
-    public boolean hasParticipantNum() {
+    public boolean hasCommitId() {
       return ((bitField0_ & 0x00000004) == 0x00000004);
     }
     /**
-     * <code>required int32 participantNum = 3;</code>
+     * <code>required int64 commitId = 3;</code>
+     */
+    public long getCommitId() {
+      return commitId_;
+    }
+
+    // required int32 participantNum = 4;
+    public static final int PARTICIPANTNUM_FIELD_NUMBER = 4;
+    private int participantNum_;
+    /**
+     * <code>required int32 participantNum = 4;</code>
+     */
+    public boolean hasParticipantNum() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>required int32 participantNum = 4;</code>
      */
     public int getParticipantNum() {
       return participantNum_;
@@ -8737,6 +9213,7 @@ public final class TrxRegionProtos {
     private void initFields() {
       regionName_ = com.google.protobuf.ByteString.EMPTY;
       transactionId_ = 0L;
+      commitId_ = 0L;
       participantNum_ = 0;
     }
     private byte memoizedIsInitialized = -1;
@@ -8749,6 +9226,10 @@ public final class TrxRegionProtos {
         return false;
       }
       if (!hasTransactionId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasCommitId()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -8770,7 +9251,10 @@ public final class TrxRegionProtos {
         output.writeInt64(2, transactionId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeInt32(3, participantNum_);
+        output.writeInt64(3, commitId_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeInt32(4, participantNum_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -8791,7 +9275,11 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(3, participantNum_);
+          .computeInt64Size(3, commitId_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(4, participantNum_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -8913,8 +9401,10 @@ public final class TrxRegionProtos {
         bitField0_ = (bitField0_ & ~0x00000001);
         transactionId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
-        participantNum_ = 0;
+        commitId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000004);
+        participantNum_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
 
@@ -8954,6 +9444,10 @@ public final class TrxRegionProtos {
         if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
           to_bitField0_ |= 0x00000004;
         }
+        result.commitId_ = commitId_;
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000008;
+        }
         result.participantNum_ = participantNum_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
@@ -8977,6 +9471,9 @@ public final class TrxRegionProtos {
         if (other.hasTransactionId()) {
           setTransactionId(other.getTransactionId());
         }
+        if (other.hasCommitId()) {
+          setCommitId(other.getCommitId());
+        }
         if (other.hasParticipantNum()) {
           setParticipantNum(other.getParticipantNum());
         }
@@ -8990,6 +9487,10 @@ public final class TrxRegionProtos {
           return false;
         }
         if (!hasTransactionId()) {
+          
+          return false;
+        }
+        if (!hasCommitId()) {
           
           return false;
         }
@@ -9088,34 +9589,67 @@ public final class TrxRegionProtos {
         return this;
       }
 
-      // required int32 participantNum = 3;
-      private int participantNum_ ;
+      // required int64 commitId = 3;
+      private long commitId_ ;
       /**
-       * <code>required int32 participantNum = 3;</code>
+       * <code>required int64 commitId = 3;</code>
        */
-      public boolean hasParticipantNum() {
+      public boolean hasCommitId() {
         return ((bitField0_ & 0x00000004) == 0x00000004);
       }
       /**
-       * <code>required int32 participantNum = 3;</code>
+       * <code>required int64 commitId = 3;</code>
+       */
+      public long getCommitId() {
+        return commitId_;
+      }
+      /**
+       * <code>required int64 commitId = 3;</code>
+       */
+      public Builder setCommitId(long value) {
+        bitField0_ |= 0x00000004;
+        commitId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 commitId = 3;</code>
+       */
+      public Builder clearCommitId() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        commitId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // required int32 participantNum = 4;
+      private int participantNum_ ;
+      /**
+       * <code>required int32 participantNum = 4;</code>
+       */
+      public boolean hasParticipantNum() {
+        return ((bitField0_ & 0x00000008) == 0x00000008);
+      }
+      /**
+       * <code>required int32 participantNum = 4;</code>
        */
       public int getParticipantNum() {
         return participantNum_;
       }
       /**
-       * <code>required int32 participantNum = 3;</code>
+       * <code>required int32 participantNum = 4;</code>
        */
       public Builder setParticipantNum(int value) {
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         participantNum_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required int32 participantNum = 3;</code>
+       * <code>required int32 participantNum = 4;</code>
        */
       public Builder clearParticipantNum() {
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000008);
         participantNum_ = 0;
         onChanged();
         return this;
@@ -9697,67 +10231,77 @@ public final class TrxRegionProtos {
      */
     long getTransactionId();
 
-    // required bytes regionName = 2;
+    // required int64 startId = 2;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    boolean hasStartId();
+    /**
+     * <code>required int64 startId = 2;</code>
+     */
+    long getStartId();
+
+    // required bytes regionName = 3;
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     boolean hasRegionName();
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required bytes regionName = 3;</code>
      */
     com.google.protobuf.ByteString getRegionName();
 
-    // required bytes row = 3;
+    // required bytes row = 4;
     /**
-     * <code>required bytes row = 3;</code>
+     * <code>required bytes row = 4;</code>
      */
     boolean hasRow();
     /**
-     * <code>required bytes row = 3;</code>
+     * <code>required bytes row = 4;</code>
      */
     com.google.protobuf.ByteString getRow();
 
-    // required bytes family = 4;
+    // required bytes family = 5;
     /**
-     * <code>required bytes family = 4;</code>
+     * <code>required bytes family = 5;</code>
      */
     boolean hasFamily();
     /**
-     * <code>required bytes family = 4;</code>
+     * <code>required bytes family = 5;</code>
      */
     com.google.protobuf.ByteString getFamily();
 
-    // required bytes qualifier = 5;
+    // required bytes qualifier = 6;
     /**
-     * <code>required bytes qualifier = 5;</code>
+     * <code>required bytes qualifier = 6;</code>
      */
     boolean hasQualifier();
     /**
-     * <code>required bytes qualifier = 5;</code>
+     * <code>required bytes qualifier = 6;</code>
      */
     com.google.protobuf.ByteString getQualifier();
 
-    // required bytes value = 6;
+    // required bytes value = 7;
     /**
-     * <code>required bytes value = 6;</code>
+     * <code>required bytes value = 7;</code>
      */
     boolean hasValue();
     /**
-     * <code>required bytes value = 6;</code>
+     * <code>required bytes value = 7;</code>
      */
     com.google.protobuf.ByteString getValue();
 
-    // required .MutationProto delete = 7;
+    // required .MutationProto delete = 8;
     /**
-     * <code>required .MutationProto delete = 7;</code>
+     * <code>required .MutationProto delete = 8;</code>
      */
     boolean hasDelete();
     /**
-     * <code>required .MutationProto delete = 7;</code>
+     * <code>required .MutationProto delete = 8;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getDelete();
     /**
-     * <code>required .MutationProto delete = 7;</code>
+     * <code>required .MutationProto delete = 8;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getDeleteOrBuilder();
   }
@@ -9817,34 +10361,39 @@ public final class TrxRegionProtos {
               transactionId_ = input.readInt64();
               break;
             }
-            case 18: {
+            case 16: {
               bitField0_ |= 0x00000002;
-              regionName_ = input.readBytes();
+              startId_ = input.readInt64();
               break;
             }
             case 26: {
               bitField0_ |= 0x00000004;
-              row_ = input.readBytes();
+              regionName_ = input.readBytes();
               break;
             }
             case 34: {
               bitField0_ |= 0x00000008;
-              family_ = input.readBytes();
+              row_ = input.readBytes();
               break;
             }
             case 42: {
               bitField0_ |= 0x00000010;
-              qualifier_ = input.readBytes();
+              family_ = input.readBytes();
               break;
             }
             case 50: {
               bitField0_ |= 0x00000020;
-              value_ = input.readBytes();
+              qualifier_ = input.readBytes();
               break;
             }
             case 58: {
+              bitField0_ |= 0x00000040;
+              value_ = input.readBytes();
+              break;
+            }
+            case 66: {
               org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder subBuilder = null;
-              if (((bitField0_ & 0x00000040) == 0x00000040)) {
+              if (((bitField0_ & 0x00000080) == 0x00000080)) {
                 subBuilder = delete_.toBuilder();
               }
               delete_ = input.readMessage(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.PARSER, extensionRegistry);
@@ -9852,7 +10401,7 @@ public final class TrxRegionProtos {
                 subBuilder.mergeFrom(delete_);
                 delete_ = subBuilder.buildPartial();
               }
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000080;
               break;
             }
           }
@@ -9911,103 +10460,119 @@ public final class TrxRegionProtos {
       return transactionId_;
     }
 
-    // required bytes regionName = 2;
-    public static final int REGIONNAME_FIELD_NUMBER = 2;
-    private com.google.protobuf.ByteString regionName_;
+    // required int64 startId = 2;
+    public static final int STARTID_FIELD_NUMBER = 2;
+    private long startId_;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
      */
-    public boolean hasRegionName() {
+    public boolean hasStartId() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    public long getStartId() {
+      return startId_;
+    }
+
+    // required bytes regionName = 3;
+    public static final int REGIONNAME_FIELD_NUMBER = 3;
+    private com.google.protobuf.ByteString regionName_;
+    /**
+     * <code>required bytes regionName = 3;</code>
+     */
+    public boolean hasRegionName() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     public com.google.protobuf.ByteString getRegionName() {
       return regionName_;
     }
 
-    // required bytes row = 3;
-    public static final int ROW_FIELD_NUMBER = 3;
+    // required bytes row = 4;
+    public static final int ROW_FIELD_NUMBER = 4;
     private com.google.protobuf.ByteString row_;
     /**
-     * <code>required bytes row = 3;</code>
+     * <code>required bytes row = 4;</code>
      */
     public boolean hasRow() {
-      return ((bitField0_ & 0x00000004) == 0x00000004);
+      return ((bitField0_ & 0x00000008) == 0x00000008);
     }
     /**
-     * <code>required bytes row = 3;</code>
+     * <code>required bytes row = 4;</code>
      */
     public com.google.protobuf.ByteString getRow() {
       return row_;
     }
 
-    // required bytes family = 4;
-    public static final int FAMILY_FIELD_NUMBER = 4;
+    // required bytes family = 5;
+    public static final int FAMILY_FIELD_NUMBER = 5;
     private com.google.protobuf.ByteString family_;
     /**
-     * <code>required bytes family = 4;</code>
+     * <code>required bytes family = 5;</code>
      */
     public boolean hasFamily() {
-      return ((bitField0_ & 0x00000008) == 0x00000008);
+      return ((bitField0_ & 0x00000010) == 0x00000010);
     }
     /**
-     * <code>required bytes family = 4;</code>
+     * <code>required bytes family = 5;</code>
      */
     public com.google.protobuf.ByteString getFamily() {
       return family_;
     }
 
-    // required bytes qualifier = 5;
-    public static final int QUALIFIER_FIELD_NUMBER = 5;
+    // required bytes qualifier = 6;
+    public static final int QUALIFIER_FIELD_NUMBER = 6;
     private com.google.protobuf.ByteString qualifier_;
     /**
-     * <code>required bytes qualifier = 5;</code>
+     * <code>required bytes qualifier = 6;</code>
      */
     public boolean hasQualifier() {
-      return ((bitField0_ & 0x00000010) == 0x00000010);
+      return ((bitField0_ & 0x00000020) == 0x00000020);
     }
     /**
-     * <code>required bytes qualifier = 5;</code>
+     * <code>required bytes qualifier = 6;</code>
      */
     public com.google.protobuf.ByteString getQualifier() {
       return qualifier_;
     }
 
-    // required bytes value = 6;
-    public static final int VALUE_FIELD_NUMBER = 6;
+    // required bytes value = 7;
+    public static final int VALUE_FIELD_NUMBER = 7;
     private com.google.protobuf.ByteString value_;
     /**
-     * <code>required bytes value = 6;</code>
+     * <code>required bytes value = 7;</code>
      */
     public boolean hasValue() {
-      return ((bitField0_ & 0x00000020) == 0x00000020);
+      return ((bitField0_ & 0x00000040) == 0x00000040);
     }
     /**
-     * <code>required bytes value = 6;</code>
+     * <code>required bytes value = 7;</code>
      */
     public com.google.protobuf.ByteString getValue() {
       return value_;
     }
 
-    // required .MutationProto delete = 7;
-    public static final int DELETE_FIELD_NUMBER = 7;
+    // required .MutationProto delete = 8;
+    public static final int DELETE_FIELD_NUMBER = 8;
     private org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto delete_;
     /**
-     * <code>required .MutationProto delete = 7;</code>
+     * <code>required .MutationProto delete = 8;</code>
      */
     public boolean hasDelete() {
-      return ((bitField0_ & 0x00000040) == 0x00000040);
+      return ((bitField0_ & 0x00000080) == 0x00000080);
     }
     /**
-     * <code>required .MutationProto delete = 7;</code>
+     * <code>required .MutationProto delete = 8;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getDelete() {
       return delete_;
     }
     /**
-     * <code>required .MutationProto delete = 7;</code>
+     * <code>required .MutationProto delete = 8;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getDeleteOrBuilder() {
       return delete_;
@@ -10015,6 +10580,7 @@ public final class TrxRegionProtos {
 
     private void initFields() {
       transactionId_ = 0L;
+      startId_ = 0L;
       regionName_ = com.google.protobuf.ByteString.EMPTY;
       row_ = com.google.protobuf.ByteString.EMPTY;
       family_ = com.google.protobuf.ByteString.EMPTY;
@@ -10028,6 +10594,10 @@ public final class TrxRegionProtos {
       if (isInitialized != -1) return isInitialized == 1;
 
       if (!hasTransactionId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasStartId()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -10070,22 +10640,25 @@ public final class TrxRegionProtos {
         output.writeInt64(1, transactionId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, regionName_);
+        output.writeInt64(2, startId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeBytes(3, row_);
+        output.writeBytes(3, regionName_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        output.writeBytes(4, family_);
+        output.writeBytes(4, row_);
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        output.writeBytes(5, qualifier_);
+        output.writeBytes(5, family_);
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
-        output.writeBytes(6, value_);
+        output.writeBytes(6, qualifier_);
       }
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
-        output.writeMessage(7, delete_);
+        output.writeBytes(7, value_);
+      }
+      if (((bitField0_ & 0x00000080) == 0x00000080)) {
+        output.writeMessage(8, delete_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -10102,27 +10675,31 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, regionName_);
+          .computeInt64Size(2, startId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(3, row_);
+          .computeBytesSize(3, regionName_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(4, family_);
+          .computeBytesSize(4, row_);
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(5, qualifier_);
+          .computeBytesSize(5, family_);
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(6, value_);
+          .computeBytesSize(6, qualifier_);
       }
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(7, delete_);
+          .computeBytesSize(7, value_);
+      }
+      if (((bitField0_ & 0x00000080) == 0x00000080)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(8, delete_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -10243,22 +10820,24 @@ public final class TrxRegionProtos {
         super.clear();
         transactionId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000001);
-        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        startId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
-        row_ = com.google.protobuf.ByteString.EMPTY;
+        regionName_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000004);
-        family_ = com.google.protobuf.ByteString.EMPTY;
+        row_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000008);
-        qualifier_ = com.google.protobuf.ByteString.EMPTY;
+        family_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000010);
-        value_ = com.google.protobuf.ByteString.EMPTY;
+        qualifier_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000020);
+        value_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000040);
         if (deleteBuilder_ == null) {
           delete_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance();
         } else {
           deleteBuilder_.clear();
         }
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000080);
         return this;
       }
 
@@ -10294,25 +10873,29 @@ public final class TrxRegionProtos {
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
-        result.regionName_ = regionName_;
+        result.startId_ = startId_;
         if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
           to_bitField0_ |= 0x00000004;
         }
-        result.row_ = row_;
+        result.regionName_ = regionName_;
         if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
           to_bitField0_ |= 0x00000008;
         }
-        result.family_ = family_;
+        result.row_ = row_;
         if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
           to_bitField0_ |= 0x00000010;
         }
-        result.qualifier_ = qualifier_;
+        result.family_ = family_;
         if (((from_bitField0_ & 0x00000020) == 0x00000020)) {
           to_bitField0_ |= 0x00000020;
         }
-        result.value_ = value_;
+        result.qualifier_ = qualifier_;
         if (((from_bitField0_ & 0x00000040) == 0x00000040)) {
           to_bitField0_ |= 0x00000040;
+        }
+        result.value_ = value_;
+        if (((from_bitField0_ & 0x00000080) == 0x00000080)) {
+          to_bitField0_ |= 0x00000080;
         }
         if (deleteBuilder_ == null) {
           result.delete_ = delete_;
@@ -10338,6 +10921,9 @@ public final class TrxRegionProtos {
         if (other.hasTransactionId()) {
           setTransactionId(other.getTransactionId());
         }
+        if (other.hasStartId()) {
+          setStartId(other.getStartId());
+        }
         if (other.hasRegionName()) {
           setRegionName(other.getRegionName());
         }
@@ -10362,6 +10948,10 @@ public final class TrxRegionProtos {
 
       public final boolean isInitialized() {
         if (!hasTransactionId()) {
+          
+          return false;
+        }
+        if (!hasStartId()) {
           
           return false;
         }
@@ -10448,198 +11038,231 @@ public final class TrxRegionProtos {
         return this;
       }
 
-      // required bytes regionName = 2;
-      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      // required int64 startId = 2;
+      private long startId_ ;
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
        */
-      public boolean hasRegionName() {
+      public boolean hasStartId() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
+       */
+      public long getStartId() {
+        return startId_;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder setStartId(long value) {
+        bitField0_ |= 0x00000002;
+        startId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder clearStartId() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        startId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // required bytes regionName = 3;
+      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>required bytes regionName = 3;</code>
+       */
+      public boolean hasRegionName() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>required bytes regionName = 3;</code>
        */
       public com.google.protobuf.ByteString getRegionName() {
         return regionName_;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder setRegionName(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000002;
+  bitField0_ |= 0x00000004;
         regionName_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder clearRegionName() {
-        bitField0_ = (bitField0_ & ~0x00000002);
+        bitField0_ = (bitField0_ & ~0x00000004);
         regionName_ = getDefaultInstance().getRegionName();
         onChanged();
         return this;
       }
 
-      // required bytes row = 3;
+      // required bytes row = 4;
       private com.google.protobuf.ByteString row_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required bytes row = 3;</code>
+       * <code>required bytes row = 4;</code>
        */
       public boolean hasRow() {
-        return ((bitField0_ & 0x00000004) == 0x00000004);
+        return ((bitField0_ & 0x00000008) == 0x00000008);
       }
       /**
-       * <code>required bytes row = 3;</code>
+       * <code>required bytes row = 4;</code>
        */
       public com.google.protobuf.ByteString getRow() {
         return row_;
       }
       /**
-       * <code>required bytes row = 3;</code>
+       * <code>required bytes row = 4;</code>
        */
       public Builder setRow(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000004;
+  bitField0_ |= 0x00000008;
         row_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes row = 3;</code>
+       * <code>required bytes row = 4;</code>
        */
       public Builder clearRow() {
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000008);
         row_ = getDefaultInstance().getRow();
         onChanged();
         return this;
       }
 
-      // required bytes family = 4;
+      // required bytes family = 5;
       private com.google.protobuf.ByteString family_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required bytes family = 4;</code>
+       * <code>required bytes family = 5;</code>
        */
       public boolean hasFamily() {
-        return ((bitField0_ & 0x00000008) == 0x00000008);
+        return ((bitField0_ & 0x00000010) == 0x00000010);
       }
       /**
-       * <code>required bytes family = 4;</code>
+       * <code>required bytes family = 5;</code>
        */
       public com.google.protobuf.ByteString getFamily() {
         return family_;
       }
       /**
-       * <code>required bytes family = 4;</code>
+       * <code>required bytes family = 5;</code>
        */
       public Builder setFamily(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000008;
+  bitField0_ |= 0x00000010;
         family_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes family = 4;</code>
+       * <code>required bytes family = 5;</code>
        */
       public Builder clearFamily() {
-        bitField0_ = (bitField0_ & ~0x00000008);
+        bitField0_ = (bitField0_ & ~0x00000010);
         family_ = getDefaultInstance().getFamily();
         onChanged();
         return this;
       }
 
-      // required bytes qualifier = 5;
+      // required bytes qualifier = 6;
       private com.google.protobuf.ByteString qualifier_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required bytes qualifier = 5;</code>
+       * <code>required bytes qualifier = 6;</code>
        */
       public boolean hasQualifier() {
-        return ((bitField0_ & 0x00000010) == 0x00000010);
+        return ((bitField0_ & 0x00000020) == 0x00000020);
       }
       /**
-       * <code>required bytes qualifier = 5;</code>
+       * <code>required bytes qualifier = 6;</code>
        */
       public com.google.protobuf.ByteString getQualifier() {
         return qualifier_;
       }
       /**
-       * <code>required bytes qualifier = 5;</code>
+       * <code>required bytes qualifier = 6;</code>
        */
       public Builder setQualifier(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000010;
+  bitField0_ |= 0x00000020;
         qualifier_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes qualifier = 5;</code>
+       * <code>required bytes qualifier = 6;</code>
        */
       public Builder clearQualifier() {
-        bitField0_ = (bitField0_ & ~0x00000010);
+        bitField0_ = (bitField0_ & ~0x00000020);
         qualifier_ = getDefaultInstance().getQualifier();
         onChanged();
         return this;
       }
 
-      // required bytes value = 6;
+      // required bytes value = 7;
       private com.google.protobuf.ByteString value_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required bytes value = 6;</code>
+       * <code>required bytes value = 7;</code>
        */
       public boolean hasValue() {
-        return ((bitField0_ & 0x00000020) == 0x00000020);
+        return ((bitField0_ & 0x00000040) == 0x00000040);
       }
       /**
-       * <code>required bytes value = 6;</code>
+       * <code>required bytes value = 7;</code>
        */
       public com.google.protobuf.ByteString getValue() {
         return value_;
       }
       /**
-       * <code>required bytes value = 6;</code>
+       * <code>required bytes value = 7;</code>
        */
       public Builder setValue(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000020;
+  bitField0_ |= 0x00000040;
         value_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes value = 6;</code>
+       * <code>required bytes value = 7;</code>
        */
       public Builder clearValue() {
-        bitField0_ = (bitField0_ & ~0x00000020);
+        bitField0_ = (bitField0_ & ~0x00000040);
         value_ = getDefaultInstance().getValue();
         onChanged();
         return this;
       }
 
-      // required .MutationProto delete = 7;
+      // required .MutationProto delete = 8;
       private org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto delete_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> deleteBuilder_;
       /**
-       * <code>required .MutationProto delete = 7;</code>
+       * <code>required .MutationProto delete = 8;</code>
        */
       public boolean hasDelete() {
-        return ((bitField0_ & 0x00000040) == 0x00000040);
+        return ((bitField0_ & 0x00000080) == 0x00000080);
       }
       /**
-       * <code>required .MutationProto delete = 7;</code>
+       * <code>required .MutationProto delete = 8;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getDelete() {
         if (deleteBuilder_ == null) {
@@ -10649,7 +11272,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>required .MutationProto delete = 7;</code>
+       * <code>required .MutationProto delete = 8;</code>
        */
       public Builder setDelete(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
         if (deleteBuilder_ == null) {
@@ -10661,11 +11284,11 @@ public final class TrxRegionProtos {
         } else {
           deleteBuilder_.setMessage(value);
         }
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000080;
         return this;
       }
       /**
-       * <code>required .MutationProto delete = 7;</code>
+       * <code>required .MutationProto delete = 8;</code>
        */
       public Builder setDelete(
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
@@ -10675,15 +11298,15 @@ public final class TrxRegionProtos {
         } else {
           deleteBuilder_.setMessage(builderForValue.build());
         }
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000080;
         return this;
       }
       /**
-       * <code>required .MutationProto delete = 7;</code>
+       * <code>required .MutationProto delete = 8;</code>
        */
       public Builder mergeDelete(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
         if (deleteBuilder_ == null) {
-          if (((bitField0_ & 0x00000040) == 0x00000040) &&
+          if (((bitField0_ & 0x00000080) == 0x00000080) &&
               delete_ != org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance()) {
             delete_ =
               org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.newBuilder(delete_).mergeFrom(value).buildPartial();
@@ -10694,11 +11317,11 @@ public final class TrxRegionProtos {
         } else {
           deleteBuilder_.mergeFrom(value);
         }
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000080;
         return this;
       }
       /**
-       * <code>required .MutationProto delete = 7;</code>
+       * <code>required .MutationProto delete = 8;</code>
        */
       public Builder clearDelete() {
         if (deleteBuilder_ == null) {
@@ -10707,19 +11330,19 @@ public final class TrxRegionProtos {
         } else {
           deleteBuilder_.clear();
         }
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000080);
         return this;
       }
       /**
-       * <code>required .MutationProto delete = 7;</code>
+       * <code>required .MutationProto delete = 8;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder getDeleteBuilder() {
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000080;
         onChanged();
         return getDeleteFieldBuilder().getBuilder();
       }
       /**
-       * <code>required .MutationProto delete = 7;</code>
+       * <code>required .MutationProto delete = 8;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getDeleteOrBuilder() {
         if (deleteBuilder_ != null) {
@@ -10729,7 +11352,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>required .MutationProto delete = 7;</code>
+       * <code>required .MutationProto delete = 8;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
@@ -11410,67 +12033,77 @@ public final class TrxRegionProtos {
      */
     long getTransactionId();
 
-    // required bytes regionName = 2;
+    // required int64 startId = 2;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    boolean hasStartId();
+    /**
+     * <code>required int64 startId = 2;</code>
+     */
+    long getStartId();
+
+    // required bytes regionName = 3;
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     boolean hasRegionName();
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required bytes regionName = 3;</code>
      */
     com.google.protobuf.ByteString getRegionName();
 
-    // required bytes row = 3;
+    // required bytes row = 4;
     /**
-     * <code>required bytes row = 3;</code>
+     * <code>required bytes row = 4;</code>
      */
     boolean hasRow();
     /**
-     * <code>required bytes row = 3;</code>
+     * <code>required bytes row = 4;</code>
      */
     com.google.protobuf.ByteString getRow();
 
-    // required bytes family = 4;
+    // required bytes family = 5;
     /**
-     * <code>required bytes family = 4;</code>
+     * <code>required bytes family = 5;</code>
      */
     boolean hasFamily();
     /**
-     * <code>required bytes family = 4;</code>
+     * <code>required bytes family = 5;</code>
      */
     com.google.protobuf.ByteString getFamily();
 
-    // required bytes qualifier = 5;
+    // required bytes qualifier = 6;
     /**
-     * <code>required bytes qualifier = 5;</code>
+     * <code>required bytes qualifier = 6;</code>
      */
     boolean hasQualifier();
     /**
-     * <code>required bytes qualifier = 5;</code>
+     * <code>required bytes qualifier = 6;</code>
      */
     com.google.protobuf.ByteString getQualifier();
 
-    // required bytes value = 6;
+    // required bytes value = 7;
     /**
-     * <code>required bytes value = 6;</code>
+     * <code>required bytes value = 7;</code>
      */
     boolean hasValue();
     /**
-     * <code>required bytes value = 6;</code>
+     * <code>required bytes value = 7;</code>
      */
     com.google.protobuf.ByteString getValue();
 
-    // required .MutationProto put = 7;
+    // required .MutationProto put = 8;
     /**
-     * <code>required .MutationProto put = 7;</code>
+     * <code>required .MutationProto put = 8;</code>
      */
     boolean hasPut();
     /**
-     * <code>required .MutationProto put = 7;</code>
+     * <code>required .MutationProto put = 8;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getPut();
     /**
-     * <code>required .MutationProto put = 7;</code>
+     * <code>required .MutationProto put = 8;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getPutOrBuilder();
   }
@@ -11530,34 +12163,39 @@ public final class TrxRegionProtos {
               transactionId_ = input.readInt64();
               break;
             }
-            case 18: {
+            case 16: {
               bitField0_ |= 0x00000002;
-              regionName_ = input.readBytes();
+              startId_ = input.readInt64();
               break;
             }
             case 26: {
               bitField0_ |= 0x00000004;
-              row_ = input.readBytes();
+              regionName_ = input.readBytes();
               break;
             }
             case 34: {
               bitField0_ |= 0x00000008;
-              family_ = input.readBytes();
+              row_ = input.readBytes();
               break;
             }
             case 42: {
               bitField0_ |= 0x00000010;
-              qualifier_ = input.readBytes();
+              family_ = input.readBytes();
               break;
             }
             case 50: {
               bitField0_ |= 0x00000020;
-              value_ = input.readBytes();
+              qualifier_ = input.readBytes();
               break;
             }
             case 58: {
+              bitField0_ |= 0x00000040;
+              value_ = input.readBytes();
+              break;
+            }
+            case 66: {
               org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder subBuilder = null;
-              if (((bitField0_ & 0x00000040) == 0x00000040)) {
+              if (((bitField0_ & 0x00000080) == 0x00000080)) {
                 subBuilder = put_.toBuilder();
               }
               put_ = input.readMessage(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.PARSER, extensionRegistry);
@@ -11565,7 +12203,7 @@ public final class TrxRegionProtos {
                 subBuilder.mergeFrom(put_);
                 put_ = subBuilder.buildPartial();
               }
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000080;
               break;
             }
           }
@@ -11624,103 +12262,119 @@ public final class TrxRegionProtos {
       return transactionId_;
     }
 
-    // required bytes regionName = 2;
-    public static final int REGIONNAME_FIELD_NUMBER = 2;
-    private com.google.protobuf.ByteString regionName_;
+    // required int64 startId = 2;
+    public static final int STARTID_FIELD_NUMBER = 2;
+    private long startId_;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
      */
-    public boolean hasRegionName() {
+    public boolean hasStartId() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    public long getStartId() {
+      return startId_;
+    }
+
+    // required bytes regionName = 3;
+    public static final int REGIONNAME_FIELD_NUMBER = 3;
+    private com.google.protobuf.ByteString regionName_;
+    /**
+     * <code>required bytes regionName = 3;</code>
+     */
+    public boolean hasRegionName() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     public com.google.protobuf.ByteString getRegionName() {
       return regionName_;
     }
 
-    // required bytes row = 3;
-    public static final int ROW_FIELD_NUMBER = 3;
+    // required bytes row = 4;
+    public static final int ROW_FIELD_NUMBER = 4;
     private com.google.protobuf.ByteString row_;
     /**
-     * <code>required bytes row = 3;</code>
+     * <code>required bytes row = 4;</code>
      */
     public boolean hasRow() {
-      return ((bitField0_ & 0x00000004) == 0x00000004);
+      return ((bitField0_ & 0x00000008) == 0x00000008);
     }
     /**
-     * <code>required bytes row = 3;</code>
+     * <code>required bytes row = 4;</code>
      */
     public com.google.protobuf.ByteString getRow() {
       return row_;
     }
 
-    // required bytes family = 4;
-    public static final int FAMILY_FIELD_NUMBER = 4;
+    // required bytes family = 5;
+    public static final int FAMILY_FIELD_NUMBER = 5;
     private com.google.protobuf.ByteString family_;
     /**
-     * <code>required bytes family = 4;</code>
+     * <code>required bytes family = 5;</code>
      */
     public boolean hasFamily() {
-      return ((bitField0_ & 0x00000008) == 0x00000008);
+      return ((bitField0_ & 0x00000010) == 0x00000010);
     }
     /**
-     * <code>required bytes family = 4;</code>
+     * <code>required bytes family = 5;</code>
      */
     public com.google.protobuf.ByteString getFamily() {
       return family_;
     }
 
-    // required bytes qualifier = 5;
-    public static final int QUALIFIER_FIELD_NUMBER = 5;
+    // required bytes qualifier = 6;
+    public static final int QUALIFIER_FIELD_NUMBER = 6;
     private com.google.protobuf.ByteString qualifier_;
     /**
-     * <code>required bytes qualifier = 5;</code>
+     * <code>required bytes qualifier = 6;</code>
      */
     public boolean hasQualifier() {
-      return ((bitField0_ & 0x00000010) == 0x00000010);
+      return ((bitField0_ & 0x00000020) == 0x00000020);
     }
     /**
-     * <code>required bytes qualifier = 5;</code>
+     * <code>required bytes qualifier = 6;</code>
      */
     public com.google.protobuf.ByteString getQualifier() {
       return qualifier_;
     }
 
-    // required bytes value = 6;
-    public static final int VALUE_FIELD_NUMBER = 6;
+    // required bytes value = 7;
+    public static final int VALUE_FIELD_NUMBER = 7;
     private com.google.protobuf.ByteString value_;
     /**
-     * <code>required bytes value = 6;</code>
+     * <code>required bytes value = 7;</code>
      */
     public boolean hasValue() {
-      return ((bitField0_ & 0x00000020) == 0x00000020);
+      return ((bitField0_ & 0x00000040) == 0x00000040);
     }
     /**
-     * <code>required bytes value = 6;</code>
+     * <code>required bytes value = 7;</code>
      */
     public com.google.protobuf.ByteString getValue() {
       return value_;
     }
 
-    // required .MutationProto put = 7;
-    public static final int PUT_FIELD_NUMBER = 7;
+    // required .MutationProto put = 8;
+    public static final int PUT_FIELD_NUMBER = 8;
     private org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto put_;
     /**
-     * <code>required .MutationProto put = 7;</code>
+     * <code>required .MutationProto put = 8;</code>
      */
     public boolean hasPut() {
-      return ((bitField0_ & 0x00000040) == 0x00000040);
+      return ((bitField0_ & 0x00000080) == 0x00000080);
     }
     /**
-     * <code>required .MutationProto put = 7;</code>
+     * <code>required .MutationProto put = 8;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getPut() {
       return put_;
     }
     /**
-     * <code>required .MutationProto put = 7;</code>
+     * <code>required .MutationProto put = 8;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getPutOrBuilder() {
       return put_;
@@ -11728,6 +12382,7 @@ public final class TrxRegionProtos {
 
     private void initFields() {
       transactionId_ = 0L;
+      startId_ = 0L;
       regionName_ = com.google.protobuf.ByteString.EMPTY;
       row_ = com.google.protobuf.ByteString.EMPTY;
       family_ = com.google.protobuf.ByteString.EMPTY;
@@ -11741,6 +12396,10 @@ public final class TrxRegionProtos {
       if (isInitialized != -1) return isInitialized == 1;
 
       if (!hasTransactionId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasStartId()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -11783,22 +12442,25 @@ public final class TrxRegionProtos {
         output.writeInt64(1, transactionId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, regionName_);
+        output.writeInt64(2, startId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeBytes(3, row_);
+        output.writeBytes(3, regionName_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        output.writeBytes(4, family_);
+        output.writeBytes(4, row_);
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        output.writeBytes(5, qualifier_);
+        output.writeBytes(5, family_);
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
-        output.writeBytes(6, value_);
+        output.writeBytes(6, qualifier_);
       }
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
-        output.writeMessage(7, put_);
+        output.writeBytes(7, value_);
+      }
+      if (((bitField0_ & 0x00000080) == 0x00000080)) {
+        output.writeMessage(8, put_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -11815,27 +12477,31 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, regionName_);
+          .computeInt64Size(2, startId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(3, row_);
+          .computeBytesSize(3, regionName_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(4, family_);
+          .computeBytesSize(4, row_);
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(5, qualifier_);
+          .computeBytesSize(5, family_);
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(6, value_);
+          .computeBytesSize(6, qualifier_);
       }
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(7, put_);
+          .computeBytesSize(7, value_);
+      }
+      if (((bitField0_ & 0x00000080) == 0x00000080)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(8, put_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -11956,22 +12622,24 @@ public final class TrxRegionProtos {
         super.clear();
         transactionId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000001);
-        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        startId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
-        row_ = com.google.protobuf.ByteString.EMPTY;
+        regionName_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000004);
-        family_ = com.google.protobuf.ByteString.EMPTY;
+        row_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000008);
-        qualifier_ = com.google.protobuf.ByteString.EMPTY;
+        family_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000010);
-        value_ = com.google.protobuf.ByteString.EMPTY;
+        qualifier_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000020);
+        value_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000040);
         if (putBuilder_ == null) {
           put_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance();
         } else {
           putBuilder_.clear();
         }
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000080);
         return this;
       }
 
@@ -12007,25 +12675,29 @@ public final class TrxRegionProtos {
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
-        result.regionName_ = regionName_;
+        result.startId_ = startId_;
         if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
           to_bitField0_ |= 0x00000004;
         }
-        result.row_ = row_;
+        result.regionName_ = regionName_;
         if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
           to_bitField0_ |= 0x00000008;
         }
-        result.family_ = family_;
+        result.row_ = row_;
         if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
           to_bitField0_ |= 0x00000010;
         }
-        result.qualifier_ = qualifier_;
+        result.family_ = family_;
         if (((from_bitField0_ & 0x00000020) == 0x00000020)) {
           to_bitField0_ |= 0x00000020;
         }
-        result.value_ = value_;
+        result.qualifier_ = qualifier_;
         if (((from_bitField0_ & 0x00000040) == 0x00000040)) {
           to_bitField0_ |= 0x00000040;
+        }
+        result.value_ = value_;
+        if (((from_bitField0_ & 0x00000080) == 0x00000080)) {
+          to_bitField0_ |= 0x00000080;
         }
         if (putBuilder_ == null) {
           result.put_ = put_;
@@ -12051,6 +12723,9 @@ public final class TrxRegionProtos {
         if (other.hasTransactionId()) {
           setTransactionId(other.getTransactionId());
         }
+        if (other.hasStartId()) {
+          setStartId(other.getStartId());
+        }
         if (other.hasRegionName()) {
           setRegionName(other.getRegionName());
         }
@@ -12075,6 +12750,10 @@ public final class TrxRegionProtos {
 
       public final boolean isInitialized() {
         if (!hasTransactionId()) {
+          
+          return false;
+        }
+        if (!hasStartId()) {
           
           return false;
         }
@@ -12161,198 +12840,231 @@ public final class TrxRegionProtos {
         return this;
       }
 
-      // required bytes regionName = 2;
-      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      // required int64 startId = 2;
+      private long startId_ ;
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
        */
-      public boolean hasRegionName() {
+      public boolean hasStartId() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
+       */
+      public long getStartId() {
+        return startId_;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder setStartId(long value) {
+        bitField0_ |= 0x00000002;
+        startId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder clearStartId() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        startId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // required bytes regionName = 3;
+      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>required bytes regionName = 3;</code>
+       */
+      public boolean hasRegionName() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>required bytes regionName = 3;</code>
        */
       public com.google.protobuf.ByteString getRegionName() {
         return regionName_;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder setRegionName(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000002;
+  bitField0_ |= 0x00000004;
         regionName_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder clearRegionName() {
-        bitField0_ = (bitField0_ & ~0x00000002);
+        bitField0_ = (bitField0_ & ~0x00000004);
         regionName_ = getDefaultInstance().getRegionName();
         onChanged();
         return this;
       }
 
-      // required bytes row = 3;
+      // required bytes row = 4;
       private com.google.protobuf.ByteString row_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required bytes row = 3;</code>
+       * <code>required bytes row = 4;</code>
        */
       public boolean hasRow() {
-        return ((bitField0_ & 0x00000004) == 0x00000004);
+        return ((bitField0_ & 0x00000008) == 0x00000008);
       }
       /**
-       * <code>required bytes row = 3;</code>
+       * <code>required bytes row = 4;</code>
        */
       public com.google.protobuf.ByteString getRow() {
         return row_;
       }
       /**
-       * <code>required bytes row = 3;</code>
+       * <code>required bytes row = 4;</code>
        */
       public Builder setRow(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000004;
+  bitField0_ |= 0x00000008;
         row_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes row = 3;</code>
+       * <code>required bytes row = 4;</code>
        */
       public Builder clearRow() {
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000008);
         row_ = getDefaultInstance().getRow();
         onChanged();
         return this;
       }
 
-      // required bytes family = 4;
+      // required bytes family = 5;
       private com.google.protobuf.ByteString family_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required bytes family = 4;</code>
+       * <code>required bytes family = 5;</code>
        */
       public boolean hasFamily() {
-        return ((bitField0_ & 0x00000008) == 0x00000008);
+        return ((bitField0_ & 0x00000010) == 0x00000010);
       }
       /**
-       * <code>required bytes family = 4;</code>
+       * <code>required bytes family = 5;</code>
        */
       public com.google.protobuf.ByteString getFamily() {
         return family_;
       }
       /**
-       * <code>required bytes family = 4;</code>
+       * <code>required bytes family = 5;</code>
        */
       public Builder setFamily(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000008;
+  bitField0_ |= 0x00000010;
         family_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes family = 4;</code>
+       * <code>required bytes family = 5;</code>
        */
       public Builder clearFamily() {
-        bitField0_ = (bitField0_ & ~0x00000008);
+        bitField0_ = (bitField0_ & ~0x00000010);
         family_ = getDefaultInstance().getFamily();
         onChanged();
         return this;
       }
 
-      // required bytes qualifier = 5;
+      // required bytes qualifier = 6;
       private com.google.protobuf.ByteString qualifier_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required bytes qualifier = 5;</code>
+       * <code>required bytes qualifier = 6;</code>
        */
       public boolean hasQualifier() {
-        return ((bitField0_ & 0x00000010) == 0x00000010);
+        return ((bitField0_ & 0x00000020) == 0x00000020);
       }
       /**
-       * <code>required bytes qualifier = 5;</code>
+       * <code>required bytes qualifier = 6;</code>
        */
       public com.google.protobuf.ByteString getQualifier() {
         return qualifier_;
       }
       /**
-       * <code>required bytes qualifier = 5;</code>
+       * <code>required bytes qualifier = 6;</code>
        */
       public Builder setQualifier(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000010;
+  bitField0_ |= 0x00000020;
         qualifier_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes qualifier = 5;</code>
+       * <code>required bytes qualifier = 6;</code>
        */
       public Builder clearQualifier() {
-        bitField0_ = (bitField0_ & ~0x00000010);
+        bitField0_ = (bitField0_ & ~0x00000020);
         qualifier_ = getDefaultInstance().getQualifier();
         onChanged();
         return this;
       }
 
-      // required bytes value = 6;
+      // required bytes value = 7;
       private com.google.protobuf.ByteString value_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required bytes value = 6;</code>
+       * <code>required bytes value = 7;</code>
        */
       public boolean hasValue() {
-        return ((bitField0_ & 0x00000020) == 0x00000020);
+        return ((bitField0_ & 0x00000040) == 0x00000040);
       }
       /**
-       * <code>required bytes value = 6;</code>
+       * <code>required bytes value = 7;</code>
        */
       public com.google.protobuf.ByteString getValue() {
         return value_;
       }
       /**
-       * <code>required bytes value = 6;</code>
+       * <code>required bytes value = 7;</code>
        */
       public Builder setValue(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000020;
+  bitField0_ |= 0x00000040;
         value_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes value = 6;</code>
+       * <code>required bytes value = 7;</code>
        */
       public Builder clearValue() {
-        bitField0_ = (bitField0_ & ~0x00000020);
+        bitField0_ = (bitField0_ & ~0x00000040);
         value_ = getDefaultInstance().getValue();
         onChanged();
         return this;
       }
 
-      // required .MutationProto put = 7;
+      // required .MutationProto put = 8;
       private org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto put_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> putBuilder_;
       /**
-       * <code>required .MutationProto put = 7;</code>
+       * <code>required .MutationProto put = 8;</code>
        */
       public boolean hasPut() {
-        return ((bitField0_ & 0x00000040) == 0x00000040);
+        return ((bitField0_ & 0x00000080) == 0x00000080);
       }
       /**
-       * <code>required .MutationProto put = 7;</code>
+       * <code>required .MutationProto put = 8;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getPut() {
         if (putBuilder_ == null) {
@@ -12362,7 +13074,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>required .MutationProto put = 7;</code>
+       * <code>required .MutationProto put = 8;</code>
        */
       public Builder setPut(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
         if (putBuilder_ == null) {
@@ -12374,11 +13086,11 @@ public final class TrxRegionProtos {
         } else {
           putBuilder_.setMessage(value);
         }
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000080;
         return this;
       }
       /**
-       * <code>required .MutationProto put = 7;</code>
+       * <code>required .MutationProto put = 8;</code>
        */
       public Builder setPut(
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
@@ -12388,15 +13100,15 @@ public final class TrxRegionProtos {
         } else {
           putBuilder_.setMessage(builderForValue.build());
         }
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000080;
         return this;
       }
       /**
-       * <code>required .MutationProto put = 7;</code>
+       * <code>required .MutationProto put = 8;</code>
        */
       public Builder mergePut(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
         if (putBuilder_ == null) {
-          if (((bitField0_ & 0x00000040) == 0x00000040) &&
+          if (((bitField0_ & 0x00000080) == 0x00000080) &&
               put_ != org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance()) {
             put_ =
               org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.newBuilder(put_).mergeFrom(value).buildPartial();
@@ -12407,11 +13119,11 @@ public final class TrxRegionProtos {
         } else {
           putBuilder_.mergeFrom(value);
         }
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000080;
         return this;
       }
       /**
-       * <code>required .MutationProto put = 7;</code>
+       * <code>required .MutationProto put = 8;</code>
        */
       public Builder clearPut() {
         if (putBuilder_ == null) {
@@ -12420,19 +13132,19 @@ public final class TrxRegionProtos {
         } else {
           putBuilder_.clear();
         }
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000080);
         return this;
       }
       /**
-       * <code>required .MutationProto put = 7;</code>
+       * <code>required .MutationProto put = 8;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder getPutBuilder() {
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000080;
         onChanged();
         return getPutFieldBuilder().getBuilder();
       }
       /**
-       * <code>required .MutationProto put = 7;</code>
+       * <code>required .MutationProto put = 8;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getPutOrBuilder() {
         if (putBuilder_ != null) {
@@ -12442,7 +13154,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>required .MutationProto put = 7;</code>
+       * <code>required .MutationProto put = 8;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
@@ -14260,37 +14972,47 @@ public final class TrxRegionProtos {
      */
     long getTransactionId();
 
-    // required bytes regionName = 2;
+    // required int64 startId = 2;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    boolean hasStartId();
+    /**
+     * <code>required int64 startId = 2;</code>
+     */
+    long getStartId();
+
+    // required bytes regionName = 3;
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     boolean hasRegionName();
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required bytes regionName = 3;</code>
      */
     com.google.protobuf.ByteString getRegionName();
 
-    // repeated .MutationProto delete = 3;
+    // repeated .MutationProto delete = 4;
     /**
-     * <code>repeated .MutationProto delete = 3;</code>
+     * <code>repeated .MutationProto delete = 4;</code>
      */
     java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> 
         getDeleteList();
     /**
-     * <code>repeated .MutationProto delete = 3;</code>
+     * <code>repeated .MutationProto delete = 4;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getDelete(int index);
     /**
-     * <code>repeated .MutationProto delete = 3;</code>
+     * <code>repeated .MutationProto delete = 4;</code>
      */
     int getDeleteCount();
     /**
-     * <code>repeated .MutationProto delete = 3;</code>
+     * <code>repeated .MutationProto delete = 4;</code>
      */
     java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
         getDeleteOrBuilderList();
     /**
-     * <code>repeated .MutationProto delete = 3;</code>
+     * <code>repeated .MutationProto delete = 4;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getDeleteOrBuilder(
         int index);
@@ -14351,15 +15073,20 @@ public final class TrxRegionProtos {
               transactionId_ = input.readInt64();
               break;
             }
-            case 18: {
+            case 16: {
               bitField0_ |= 0x00000002;
-              regionName_ = input.readBytes();
+              startId_ = input.readInt64();
               break;
             }
             case 26: {
-              if (!((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
+              bitField0_ |= 0x00000004;
+              regionName_ = input.readBytes();
+              break;
+            }
+            case 34: {
+              if (!((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
                 delete_ = new java.util.ArrayList<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto>();
-                mutable_bitField0_ |= 0x00000004;
+                mutable_bitField0_ |= 0x00000008;
               }
               delete_.add(input.readMessage(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.PARSER, extensionRegistry));
               break;
@@ -14372,7 +15099,7 @@ public final class TrxRegionProtos {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e.getMessage()).setUnfinishedMessage(this);
       } finally {
-        if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
+        if (((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
           delete_ = java.util.Collections.unmodifiableList(delete_);
         }
         this.unknownFields = unknownFields.build();
@@ -14423,52 +15150,68 @@ public final class TrxRegionProtos {
       return transactionId_;
     }
 
-    // required bytes regionName = 2;
-    public static final int REGIONNAME_FIELD_NUMBER = 2;
-    private com.google.protobuf.ByteString regionName_;
+    // required int64 startId = 2;
+    public static final int STARTID_FIELD_NUMBER = 2;
+    private long startId_;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
      */
-    public boolean hasRegionName() {
+    public boolean hasStartId() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    public long getStartId() {
+      return startId_;
+    }
+
+    // required bytes regionName = 3;
+    public static final int REGIONNAME_FIELD_NUMBER = 3;
+    private com.google.protobuf.ByteString regionName_;
+    /**
+     * <code>required bytes regionName = 3;</code>
+     */
+    public boolean hasRegionName() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     public com.google.protobuf.ByteString getRegionName() {
       return regionName_;
     }
 
-    // repeated .MutationProto delete = 3;
-    public static final int DELETE_FIELD_NUMBER = 3;
+    // repeated .MutationProto delete = 4;
+    public static final int DELETE_FIELD_NUMBER = 4;
     private java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> delete_;
     /**
-     * <code>repeated .MutationProto delete = 3;</code>
+     * <code>repeated .MutationProto delete = 4;</code>
      */
     public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> getDeleteList() {
       return delete_;
     }
     /**
-     * <code>repeated .MutationProto delete = 3;</code>
+     * <code>repeated .MutationProto delete = 4;</code>
      */
     public java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
         getDeleteOrBuilderList() {
       return delete_;
     }
     /**
-     * <code>repeated .MutationProto delete = 3;</code>
+     * <code>repeated .MutationProto delete = 4;</code>
      */
     public int getDeleteCount() {
       return delete_.size();
     }
     /**
-     * <code>repeated .MutationProto delete = 3;</code>
+     * <code>repeated .MutationProto delete = 4;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getDelete(int index) {
       return delete_.get(index);
     }
     /**
-     * <code>repeated .MutationProto delete = 3;</code>
+     * <code>repeated .MutationProto delete = 4;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getDeleteOrBuilder(
         int index) {
@@ -14477,6 +15220,7 @@ public final class TrxRegionProtos {
 
     private void initFields() {
       transactionId_ = 0L;
+      startId_ = 0L;
       regionName_ = com.google.protobuf.ByteString.EMPTY;
       delete_ = java.util.Collections.emptyList();
     }
@@ -14486,6 +15230,10 @@ public final class TrxRegionProtos {
       if (isInitialized != -1) return isInitialized == 1;
 
       if (!hasTransactionId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasStartId()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -14510,10 +15258,13 @@ public final class TrxRegionProtos {
         output.writeInt64(1, transactionId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, regionName_);
+        output.writeInt64(2, startId_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeBytes(3, regionName_);
       }
       for (int i = 0; i < delete_.size(); i++) {
-        output.writeMessage(3, delete_.get(i));
+        output.writeMessage(4, delete_.get(i));
       }
       getUnknownFields().writeTo(output);
     }
@@ -14530,11 +15281,15 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, regionName_);
+          .computeInt64Size(2, startId_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(3, regionName_);
       }
       for (int i = 0; i < delete_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(3, delete_.get(i));
+          .computeMessageSize(4, delete_.get(i));
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -14655,11 +15410,13 @@ public final class TrxRegionProtos {
         super.clear();
         transactionId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000001);
-        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        startId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
+        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000004);
         if (deleteBuilder_ == null) {
           delete_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000004);
+          bitField0_ = (bitField0_ & ~0x00000008);
         } else {
           deleteBuilder_.clear();
         }
@@ -14698,11 +15455,15 @@ public final class TrxRegionProtos {
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
+        result.startId_ = startId_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
         result.regionName_ = regionName_;
         if (deleteBuilder_ == null) {
-          if (((bitField0_ & 0x00000004) == 0x00000004)) {
+          if (((bitField0_ & 0x00000008) == 0x00000008)) {
             delete_ = java.util.Collections.unmodifiableList(delete_);
-            bitField0_ = (bitField0_ & ~0x00000004);
+            bitField0_ = (bitField0_ & ~0x00000008);
           }
           result.delete_ = delete_;
         } else {
@@ -14727,6 +15488,9 @@ public final class TrxRegionProtos {
         if (other.hasTransactionId()) {
           setTransactionId(other.getTransactionId());
         }
+        if (other.hasStartId()) {
+          setStartId(other.getStartId());
+        }
         if (other.hasRegionName()) {
           setRegionName(other.getRegionName());
         }
@@ -14734,7 +15498,7 @@ public final class TrxRegionProtos {
           if (!other.delete_.isEmpty()) {
             if (delete_.isEmpty()) {
               delete_ = other.delete_;
-              bitField0_ = (bitField0_ & ~0x00000004);
+              bitField0_ = (bitField0_ & ~0x00000008);
             } else {
               ensureDeleteIsMutable();
               delete_.addAll(other.delete_);
@@ -14747,7 +15511,7 @@ public final class TrxRegionProtos {
               deleteBuilder_.dispose();
               deleteBuilder_ = null;
               delete_ = other.delete_;
-              bitField0_ = (bitField0_ & ~0x00000004);
+              bitField0_ = (bitField0_ & ~0x00000008);
               deleteBuilder_ = 
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getDeleteFieldBuilder() : null;
@@ -14762,6 +15526,10 @@ public final class TrxRegionProtos {
 
       public final boolean isInitialized() {
         if (!hasTransactionId()) {
+          
+          return false;
+        }
+        if (!hasStartId()) {
           
           return false;
         }
@@ -14830,49 +15598,82 @@ public final class TrxRegionProtos {
         return this;
       }
 
-      // required bytes regionName = 2;
-      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      // required int64 startId = 2;
+      private long startId_ ;
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
        */
-      public boolean hasRegionName() {
+      public boolean hasStartId() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
+       */
+      public long getStartId() {
+        return startId_;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder setStartId(long value) {
+        bitField0_ |= 0x00000002;
+        startId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder clearStartId() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        startId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // required bytes regionName = 3;
+      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>required bytes regionName = 3;</code>
+       */
+      public boolean hasRegionName() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>required bytes regionName = 3;</code>
        */
       public com.google.protobuf.ByteString getRegionName() {
         return regionName_;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder setRegionName(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000002;
+  bitField0_ |= 0x00000004;
         regionName_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder clearRegionName() {
-        bitField0_ = (bitField0_ & ~0x00000002);
+        bitField0_ = (bitField0_ & ~0x00000004);
         regionName_ = getDefaultInstance().getRegionName();
         onChanged();
         return this;
       }
 
-      // repeated .MutationProto delete = 3;
+      // repeated .MutationProto delete = 4;
       private java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> delete_ =
         java.util.Collections.emptyList();
       private void ensureDeleteIsMutable() {
-        if (!((bitField0_ & 0x00000004) == 0x00000004)) {
+        if (!((bitField0_ & 0x00000008) == 0x00000008)) {
           delete_ = new java.util.ArrayList<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto>(delete_);
-          bitField0_ |= 0x00000004;
+          bitField0_ |= 0x00000008;
          }
       }
 
@@ -14880,7 +15681,7 @@ public final class TrxRegionProtos {
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> deleteBuilder_;
 
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> getDeleteList() {
         if (deleteBuilder_ == null) {
@@ -14890,7 +15691,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public int getDeleteCount() {
         if (deleteBuilder_ == null) {
@@ -14900,7 +15701,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getDelete(int index) {
         if (deleteBuilder_ == null) {
@@ -14910,7 +15711,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public Builder setDelete(
           int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
@@ -14927,7 +15728,7 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public Builder setDelete(
           int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
@@ -14941,7 +15742,7 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public Builder addDelete(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
         if (deleteBuilder_ == null) {
@@ -14957,7 +15758,7 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public Builder addDelete(
           int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
@@ -14974,7 +15775,7 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public Builder addDelete(
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
@@ -14988,7 +15789,7 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public Builder addDelete(
           int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
@@ -15002,7 +15803,7 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public Builder addAllDelete(
           java.lang.Iterable<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> values) {
@@ -15016,12 +15817,12 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public Builder clearDelete() {
         if (deleteBuilder_ == null) {
           delete_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000004);
+          bitField0_ = (bitField0_ & ~0x00000008);
           onChanged();
         } else {
           deleteBuilder_.clear();
@@ -15029,7 +15830,7 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public Builder removeDelete(int index) {
         if (deleteBuilder_ == null) {
@@ -15042,14 +15843,14 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder getDeleteBuilder(
           int index) {
         return getDeleteFieldBuilder().getBuilder(index);
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getDeleteOrBuilder(
           int index) {
@@ -15059,7 +15860,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
            getDeleteOrBuilderList() {
@@ -15070,14 +15871,14 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder addDeleteBuilder() {
         return getDeleteFieldBuilder().addBuilder(
             org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance());
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder addDeleteBuilder(
           int index) {
@@ -15085,7 +15886,7 @@ public final class TrxRegionProtos {
             index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance());
       }
       /**
-       * <code>repeated .MutationProto delete = 3;</code>
+       * <code>repeated .MutationProto delete = 4;</code>
        */
       public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder> 
            getDeleteBuilderList() {
@@ -15098,7 +15899,7 @@ public final class TrxRegionProtos {
           deleteBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
               org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder>(
                   delete_,
-                  ((bitField0_ & 0x00000004) == 0x00000004),
+                  ((bitField0_ & 0x00000008) == 0x00000008),
                   getParentForChildren(),
                   isClean());
           delete_ = null;
@@ -15874,27 +16675,37 @@ public final class TrxRegionProtos {
      */
     long getTransactionId();
 
-    // required bytes regionName = 2;
+    // required int64 startId = 2;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    boolean hasStartId();
+    /**
+     * <code>required int64 startId = 2;</code>
+     */
+    long getStartId();
+
+    // required bytes regionName = 3;
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     boolean hasRegionName();
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required bytes regionName = 3;</code>
      */
     com.google.protobuf.ByteString getRegionName();
 
-    // required .MutationProto delete = 3;
+    // required .MutationProto delete = 4;
     /**
-     * <code>required .MutationProto delete = 3;</code>
+     * <code>required .MutationProto delete = 4;</code>
      */
     boolean hasDelete();
     /**
-     * <code>required .MutationProto delete = 3;</code>
+     * <code>required .MutationProto delete = 4;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getDelete();
     /**
-     * <code>required .MutationProto delete = 3;</code>
+     * <code>required .MutationProto delete = 4;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getDeleteOrBuilder();
   }
@@ -15954,14 +16765,19 @@ public final class TrxRegionProtos {
               transactionId_ = input.readInt64();
               break;
             }
-            case 18: {
+            case 16: {
               bitField0_ |= 0x00000002;
-              regionName_ = input.readBytes();
+              startId_ = input.readInt64();
               break;
             }
             case 26: {
+              bitField0_ |= 0x00000004;
+              regionName_ = input.readBytes();
+              break;
+            }
+            case 34: {
               org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder subBuilder = null;
-              if (((bitField0_ & 0x00000004) == 0x00000004)) {
+              if (((bitField0_ & 0x00000008) == 0x00000008)) {
                 subBuilder = delete_.toBuilder();
               }
               delete_ = input.readMessage(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.PARSER, extensionRegistry);
@@ -15969,7 +16785,7 @@ public final class TrxRegionProtos {
                 subBuilder.mergeFrom(delete_);
                 delete_ = subBuilder.buildPartial();
               }
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000008;
               break;
             }
           }
@@ -16028,39 +16844,55 @@ public final class TrxRegionProtos {
       return transactionId_;
     }
 
-    // required bytes regionName = 2;
-    public static final int REGIONNAME_FIELD_NUMBER = 2;
-    private com.google.protobuf.ByteString regionName_;
+    // required int64 startId = 2;
+    public static final int STARTID_FIELD_NUMBER = 2;
+    private long startId_;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
      */
-    public boolean hasRegionName() {
+    public boolean hasStartId() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    public long getStartId() {
+      return startId_;
+    }
+
+    // required bytes regionName = 3;
+    public static final int REGIONNAME_FIELD_NUMBER = 3;
+    private com.google.protobuf.ByteString regionName_;
+    /**
+     * <code>required bytes regionName = 3;</code>
+     */
+    public boolean hasRegionName() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     public com.google.protobuf.ByteString getRegionName() {
       return regionName_;
     }
 
-    // required .MutationProto delete = 3;
-    public static final int DELETE_FIELD_NUMBER = 3;
+    // required .MutationProto delete = 4;
+    public static final int DELETE_FIELD_NUMBER = 4;
     private org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto delete_;
     /**
-     * <code>required .MutationProto delete = 3;</code>
+     * <code>required .MutationProto delete = 4;</code>
      */
     public boolean hasDelete() {
-      return ((bitField0_ & 0x00000004) == 0x00000004);
+      return ((bitField0_ & 0x00000008) == 0x00000008);
     }
     /**
-     * <code>required .MutationProto delete = 3;</code>
+     * <code>required .MutationProto delete = 4;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getDelete() {
       return delete_;
     }
     /**
-     * <code>required .MutationProto delete = 3;</code>
+     * <code>required .MutationProto delete = 4;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getDeleteOrBuilder() {
       return delete_;
@@ -16068,6 +16900,7 @@ public final class TrxRegionProtos {
 
     private void initFields() {
       transactionId_ = 0L;
+      startId_ = 0L;
       regionName_ = com.google.protobuf.ByteString.EMPTY;
       delete_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance();
     }
@@ -16077,6 +16910,10 @@ public final class TrxRegionProtos {
       if (isInitialized != -1) return isInitialized == 1;
 
       if (!hasTransactionId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasStartId()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -16103,10 +16940,13 @@ public final class TrxRegionProtos {
         output.writeInt64(1, transactionId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, regionName_);
+        output.writeInt64(2, startId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeMessage(3, delete_);
+        output.writeBytes(3, regionName_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeMessage(4, delete_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -16123,11 +16963,15 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, regionName_);
+          .computeInt64Size(2, startId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(3, delete_);
+          .computeBytesSize(3, regionName_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(4, delete_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -16248,14 +17092,16 @@ public final class TrxRegionProtos {
         super.clear();
         transactionId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000001);
-        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        startId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
+        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000004);
         if (deleteBuilder_ == null) {
           delete_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance();
         } else {
           deleteBuilder_.clear();
         }
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
 
@@ -16291,9 +17137,13 @@ public final class TrxRegionProtos {
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
-        result.regionName_ = regionName_;
+        result.startId_ = startId_;
         if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
           to_bitField0_ |= 0x00000004;
+        }
+        result.regionName_ = regionName_;
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000008;
         }
         if (deleteBuilder_ == null) {
           result.delete_ = delete_;
@@ -16319,6 +17169,9 @@ public final class TrxRegionProtos {
         if (other.hasTransactionId()) {
           setTransactionId(other.getTransactionId());
         }
+        if (other.hasStartId()) {
+          setStartId(other.getStartId());
+        }
         if (other.hasRegionName()) {
           setRegionName(other.getRegionName());
         }
@@ -16331,6 +17184,10 @@ public final class TrxRegionProtos {
 
       public final boolean isInitialized() {
         if (!hasTransactionId()) {
+          
+          return false;
+        }
+        if (!hasStartId()) {
           
           return false;
         }
@@ -16401,54 +17258,87 @@ public final class TrxRegionProtos {
         return this;
       }
 
-      // required bytes regionName = 2;
-      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      // required int64 startId = 2;
+      private long startId_ ;
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
        */
-      public boolean hasRegionName() {
+      public boolean hasStartId() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
+       */
+      public long getStartId() {
+        return startId_;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder setStartId(long value) {
+        bitField0_ |= 0x00000002;
+        startId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder clearStartId() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        startId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // required bytes regionName = 3;
+      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>required bytes regionName = 3;</code>
+       */
+      public boolean hasRegionName() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>required bytes regionName = 3;</code>
        */
       public com.google.protobuf.ByteString getRegionName() {
         return regionName_;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder setRegionName(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000002;
+  bitField0_ |= 0x00000004;
         regionName_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder clearRegionName() {
-        bitField0_ = (bitField0_ & ~0x00000002);
+        bitField0_ = (bitField0_ & ~0x00000004);
         regionName_ = getDefaultInstance().getRegionName();
         onChanged();
         return this;
       }
 
-      // required .MutationProto delete = 3;
+      // required .MutationProto delete = 4;
       private org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto delete_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> deleteBuilder_;
       /**
-       * <code>required .MutationProto delete = 3;</code>
+       * <code>required .MutationProto delete = 4;</code>
        */
       public boolean hasDelete() {
-        return ((bitField0_ & 0x00000004) == 0x00000004);
+        return ((bitField0_ & 0x00000008) == 0x00000008);
       }
       /**
-       * <code>required .MutationProto delete = 3;</code>
+       * <code>required .MutationProto delete = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getDelete() {
         if (deleteBuilder_ == null) {
@@ -16458,7 +17348,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>required .MutationProto delete = 3;</code>
+       * <code>required .MutationProto delete = 4;</code>
        */
       public Builder setDelete(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
         if (deleteBuilder_ == null) {
@@ -16470,11 +17360,11 @@ public final class TrxRegionProtos {
         } else {
           deleteBuilder_.setMessage(value);
         }
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         return this;
       }
       /**
-       * <code>required .MutationProto delete = 3;</code>
+       * <code>required .MutationProto delete = 4;</code>
        */
       public Builder setDelete(
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
@@ -16484,15 +17374,15 @@ public final class TrxRegionProtos {
         } else {
           deleteBuilder_.setMessage(builderForValue.build());
         }
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         return this;
       }
       /**
-       * <code>required .MutationProto delete = 3;</code>
+       * <code>required .MutationProto delete = 4;</code>
        */
       public Builder mergeDelete(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
         if (deleteBuilder_ == null) {
-          if (((bitField0_ & 0x00000004) == 0x00000004) &&
+          if (((bitField0_ & 0x00000008) == 0x00000008) &&
               delete_ != org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance()) {
             delete_ =
               org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.newBuilder(delete_).mergeFrom(value).buildPartial();
@@ -16503,11 +17393,11 @@ public final class TrxRegionProtos {
         } else {
           deleteBuilder_.mergeFrom(value);
         }
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         return this;
       }
       /**
-       * <code>required .MutationProto delete = 3;</code>
+       * <code>required .MutationProto delete = 4;</code>
        */
       public Builder clearDelete() {
         if (deleteBuilder_ == null) {
@@ -16516,19 +17406,19 @@ public final class TrxRegionProtos {
         } else {
           deleteBuilder_.clear();
         }
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
       /**
-       * <code>required .MutationProto delete = 3;</code>
+       * <code>required .MutationProto delete = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder getDeleteBuilder() {
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         onChanged();
         return getDeleteFieldBuilder().getBuilder();
       }
       /**
-       * <code>required .MutationProto delete = 3;</code>
+       * <code>required .MutationProto delete = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getDeleteOrBuilder() {
         if (deleteBuilder_ != null) {
@@ -16538,7 +17428,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>required .MutationProto delete = 3;</code>
+       * <code>required .MutationProto delete = 4;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
@@ -17322,27 +18212,37 @@ public final class TrxRegionProtos {
      */
     long getTransactionId();
 
-    // required bytes regionName = 2;
+    // required int64 startId = 2;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    boolean hasStartId();
+    /**
+     * <code>required int64 startId = 2;</code>
+     */
+    long getStartId();
+
+    // required bytes regionName = 3;
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     boolean hasRegionName();
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required bytes regionName = 3;</code>
      */
     com.google.protobuf.ByteString getRegionName();
 
-    // required .Get get = 3;
+    // required .Get get = 4;
     /**
-     * <code>required .Get get = 3;</code>
+     * <code>required .Get get = 4;</code>
      */
     boolean hasGet();
     /**
-     * <code>required .Get get = 3;</code>
+     * <code>required .Get get = 4;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get getGet();
     /**
-     * <code>required .Get get = 3;</code>
+     * <code>required .Get get = 4;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.GetOrBuilder getGetOrBuilder();
   }
@@ -17402,14 +18302,19 @@ public final class TrxRegionProtos {
               transactionId_ = input.readInt64();
               break;
             }
-            case 18: {
+            case 16: {
               bitField0_ |= 0x00000002;
-              regionName_ = input.readBytes();
+              startId_ = input.readInt64();
               break;
             }
             case 26: {
+              bitField0_ |= 0x00000004;
+              regionName_ = input.readBytes();
+              break;
+            }
+            case 34: {
               org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get.Builder subBuilder = null;
-              if (((bitField0_ & 0x00000004) == 0x00000004)) {
+              if (((bitField0_ & 0x00000008) == 0x00000008)) {
                 subBuilder = get_.toBuilder();
               }
               get_ = input.readMessage(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get.PARSER, extensionRegistry);
@@ -17417,7 +18322,7 @@ public final class TrxRegionProtos {
                 subBuilder.mergeFrom(get_);
                 get_ = subBuilder.buildPartial();
               }
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000008;
               break;
             }
           }
@@ -17476,39 +18381,55 @@ public final class TrxRegionProtos {
       return transactionId_;
     }
 
-    // required bytes regionName = 2;
-    public static final int REGIONNAME_FIELD_NUMBER = 2;
-    private com.google.protobuf.ByteString regionName_;
+    // required int64 startId = 2;
+    public static final int STARTID_FIELD_NUMBER = 2;
+    private long startId_;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
      */
-    public boolean hasRegionName() {
+    public boolean hasStartId() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    public long getStartId() {
+      return startId_;
+    }
+
+    // required bytes regionName = 3;
+    public static final int REGIONNAME_FIELD_NUMBER = 3;
+    private com.google.protobuf.ByteString regionName_;
+    /**
+     * <code>required bytes regionName = 3;</code>
+     */
+    public boolean hasRegionName() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     public com.google.protobuf.ByteString getRegionName() {
       return regionName_;
     }
 
-    // required .Get get = 3;
-    public static final int GET_FIELD_NUMBER = 3;
+    // required .Get get = 4;
+    public static final int GET_FIELD_NUMBER = 4;
     private org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get get_;
     /**
-     * <code>required .Get get = 3;</code>
+     * <code>required .Get get = 4;</code>
      */
     public boolean hasGet() {
-      return ((bitField0_ & 0x00000004) == 0x00000004);
+      return ((bitField0_ & 0x00000008) == 0x00000008);
     }
     /**
-     * <code>required .Get get = 3;</code>
+     * <code>required .Get get = 4;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get getGet() {
       return get_;
     }
     /**
-     * <code>required .Get get = 3;</code>
+     * <code>required .Get get = 4;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.GetOrBuilder getGetOrBuilder() {
       return get_;
@@ -17516,6 +18437,7 @@ public final class TrxRegionProtos {
 
     private void initFields() {
       transactionId_ = 0L;
+      startId_ = 0L;
       regionName_ = com.google.protobuf.ByteString.EMPTY;
       get_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get.getDefaultInstance();
     }
@@ -17525,6 +18447,10 @@ public final class TrxRegionProtos {
       if (isInitialized != -1) return isInitialized == 1;
 
       if (!hasTransactionId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasStartId()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -17551,10 +18477,13 @@ public final class TrxRegionProtos {
         output.writeInt64(1, transactionId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, regionName_);
+        output.writeInt64(2, startId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeMessage(3, get_);
+        output.writeBytes(3, regionName_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeMessage(4, get_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -17571,11 +18500,15 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, regionName_);
+          .computeInt64Size(2, startId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(3, get_);
+          .computeBytesSize(3, regionName_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(4, get_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -17696,14 +18629,16 @@ public final class TrxRegionProtos {
         super.clear();
         transactionId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000001);
-        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        startId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
+        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000004);
         if (getBuilder_ == null) {
           get_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get.getDefaultInstance();
         } else {
           getBuilder_.clear();
         }
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
 
@@ -17739,9 +18674,13 @@ public final class TrxRegionProtos {
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
-        result.regionName_ = regionName_;
+        result.startId_ = startId_;
         if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
           to_bitField0_ |= 0x00000004;
+        }
+        result.regionName_ = regionName_;
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000008;
         }
         if (getBuilder_ == null) {
           result.get_ = get_;
@@ -17767,6 +18706,9 @@ public final class TrxRegionProtos {
         if (other.hasTransactionId()) {
           setTransactionId(other.getTransactionId());
         }
+        if (other.hasStartId()) {
+          setStartId(other.getStartId());
+        }
         if (other.hasRegionName()) {
           setRegionName(other.getRegionName());
         }
@@ -17779,6 +18721,10 @@ public final class TrxRegionProtos {
 
       public final boolean isInitialized() {
         if (!hasTransactionId()) {
+          
+          return false;
+        }
+        if (!hasStartId()) {
           
           return false;
         }
@@ -17849,54 +18795,87 @@ public final class TrxRegionProtos {
         return this;
       }
 
-      // required bytes regionName = 2;
-      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      // required int64 startId = 2;
+      private long startId_ ;
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
        */
-      public boolean hasRegionName() {
+      public boolean hasStartId() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
+       */
+      public long getStartId() {
+        return startId_;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder setStartId(long value) {
+        bitField0_ |= 0x00000002;
+        startId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder clearStartId() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        startId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // required bytes regionName = 3;
+      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>required bytes regionName = 3;</code>
+       */
+      public boolean hasRegionName() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>required bytes regionName = 3;</code>
        */
       public com.google.protobuf.ByteString getRegionName() {
         return regionName_;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder setRegionName(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000002;
+  bitField0_ |= 0x00000004;
         regionName_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder clearRegionName() {
-        bitField0_ = (bitField0_ & ~0x00000002);
+        bitField0_ = (bitField0_ & ~0x00000004);
         regionName_ = getDefaultInstance().getRegionName();
         onChanged();
         return this;
       }
 
-      // required .Get get = 3;
+      // required .Get get = 4;
       private org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get get_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.GetOrBuilder> getBuilder_;
       /**
-       * <code>required .Get get = 3;</code>
+       * <code>required .Get get = 4;</code>
        */
       public boolean hasGet() {
-        return ((bitField0_ & 0x00000004) == 0x00000004);
+        return ((bitField0_ & 0x00000008) == 0x00000008);
       }
       /**
-       * <code>required .Get get = 3;</code>
+       * <code>required .Get get = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get getGet() {
         if (getBuilder_ == null) {
@@ -17906,7 +18885,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>required .Get get = 3;</code>
+       * <code>required .Get get = 4;</code>
        */
       public Builder setGet(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get value) {
         if (getBuilder_ == null) {
@@ -17918,11 +18897,11 @@ public final class TrxRegionProtos {
         } else {
           getBuilder_.setMessage(value);
         }
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         return this;
       }
       /**
-       * <code>required .Get get = 3;</code>
+       * <code>required .Get get = 4;</code>
        */
       public Builder setGet(
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get.Builder builderForValue) {
@@ -17932,15 +18911,15 @@ public final class TrxRegionProtos {
         } else {
           getBuilder_.setMessage(builderForValue.build());
         }
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         return this;
       }
       /**
-       * <code>required .Get get = 3;</code>
+       * <code>required .Get get = 4;</code>
        */
       public Builder mergeGet(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get value) {
         if (getBuilder_ == null) {
-          if (((bitField0_ & 0x00000004) == 0x00000004) &&
+          if (((bitField0_ & 0x00000008) == 0x00000008) &&
               get_ != org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get.getDefaultInstance()) {
             get_ =
               org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get.newBuilder(get_).mergeFrom(value).buildPartial();
@@ -17951,11 +18930,11 @@ public final class TrxRegionProtos {
         } else {
           getBuilder_.mergeFrom(value);
         }
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         return this;
       }
       /**
-       * <code>required .Get get = 3;</code>
+       * <code>required .Get get = 4;</code>
        */
       public Builder clearGet() {
         if (getBuilder_ == null) {
@@ -17964,19 +18943,19 @@ public final class TrxRegionProtos {
         } else {
           getBuilder_.clear();
         }
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
       /**
-       * <code>required .Get get = 3;</code>
+       * <code>required .Get get = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get.Builder getGetBuilder() {
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         onChanged();
         return getGetFieldBuilder().getBuilder();
       }
       /**
-       * <code>required .Get get = 3;</code>
+       * <code>required .Get get = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.GetOrBuilder getGetOrBuilder() {
         if (getBuilder_ != null) {
@@ -17986,7 +18965,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>required .Get get = 3;</code>
+       * <code>required .Get get = 4;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Get.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.GetOrBuilder> 
@@ -18770,27 +19749,37 @@ public final class TrxRegionProtos {
      */
     long getTransactionId();
 
-    // required bytes regionName = 2;
+    // required int64 startId = 2;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    boolean hasStartId();
+    /**
+     * <code>required int64 startId = 2;</code>
+     */
+    long getStartId();
+
+    // required bytes regionName = 3;
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     boolean hasRegionName();
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required bytes regionName = 3;</code>
      */
     com.google.protobuf.ByteString getRegionName();
 
-    // required .Scan scan = 3;
+    // required .Scan scan = 4;
     /**
-     * <code>required .Scan scan = 3;</code>
+     * <code>required .Scan scan = 4;</code>
      */
     boolean hasScan();
     /**
-     * <code>required .Scan scan = 3;</code>
+     * <code>required .Scan scan = 4;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan getScan();
     /**
-     * <code>required .Scan scan = 3;</code>
+     * <code>required .Scan scan = 4;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.ScanOrBuilder getScanOrBuilder();
   }
@@ -18850,14 +19839,19 @@ public final class TrxRegionProtos {
               transactionId_ = input.readInt64();
               break;
             }
-            case 18: {
+            case 16: {
               bitField0_ |= 0x00000002;
-              regionName_ = input.readBytes();
+              startId_ = input.readInt64();
               break;
             }
             case 26: {
+              bitField0_ |= 0x00000004;
+              regionName_ = input.readBytes();
+              break;
+            }
+            case 34: {
               org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.Builder subBuilder = null;
-              if (((bitField0_ & 0x00000004) == 0x00000004)) {
+              if (((bitField0_ & 0x00000008) == 0x00000008)) {
                 subBuilder = scan_.toBuilder();
               }
               scan_ = input.readMessage(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.PARSER, extensionRegistry);
@@ -18865,7 +19859,7 @@ public final class TrxRegionProtos {
                 subBuilder.mergeFrom(scan_);
                 scan_ = subBuilder.buildPartial();
               }
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000008;
               break;
             }
           }
@@ -18924,39 +19918,55 @@ public final class TrxRegionProtos {
       return transactionId_;
     }
 
-    // required bytes regionName = 2;
-    public static final int REGIONNAME_FIELD_NUMBER = 2;
-    private com.google.protobuf.ByteString regionName_;
+    // required int64 startId = 2;
+    public static final int STARTID_FIELD_NUMBER = 2;
+    private long startId_;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
      */
-    public boolean hasRegionName() {
+    public boolean hasStartId() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    public long getStartId() {
+      return startId_;
+    }
+
+    // required bytes regionName = 3;
+    public static final int REGIONNAME_FIELD_NUMBER = 3;
+    private com.google.protobuf.ByteString regionName_;
+    /**
+     * <code>required bytes regionName = 3;</code>
+     */
+    public boolean hasRegionName() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     public com.google.protobuf.ByteString getRegionName() {
       return regionName_;
     }
 
-    // required .Scan scan = 3;
-    public static final int SCAN_FIELD_NUMBER = 3;
+    // required .Scan scan = 4;
+    public static final int SCAN_FIELD_NUMBER = 4;
     private org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan scan_;
     /**
-     * <code>required .Scan scan = 3;</code>
+     * <code>required .Scan scan = 4;</code>
      */
     public boolean hasScan() {
-      return ((bitField0_ & 0x00000004) == 0x00000004);
+      return ((bitField0_ & 0x00000008) == 0x00000008);
     }
     /**
-     * <code>required .Scan scan = 3;</code>
+     * <code>required .Scan scan = 4;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan getScan() {
       return scan_;
     }
     /**
-     * <code>required .Scan scan = 3;</code>
+     * <code>required .Scan scan = 4;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.ScanOrBuilder getScanOrBuilder() {
       return scan_;
@@ -18964,6 +19974,7 @@ public final class TrxRegionProtos {
 
     private void initFields() {
       transactionId_ = 0L;
+      startId_ = 0L;
       regionName_ = com.google.protobuf.ByteString.EMPTY;
       scan_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.getDefaultInstance();
     }
@@ -18973,6 +19984,10 @@ public final class TrxRegionProtos {
       if (isInitialized != -1) return isInitialized == 1;
 
       if (!hasTransactionId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasStartId()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -18999,10 +20014,13 @@ public final class TrxRegionProtos {
         output.writeInt64(1, transactionId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, regionName_);
+        output.writeInt64(2, startId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeMessage(3, scan_);
+        output.writeBytes(3, regionName_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeMessage(4, scan_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -19019,11 +20037,15 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, regionName_);
+          .computeInt64Size(2, startId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(3, scan_);
+          .computeBytesSize(3, regionName_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(4, scan_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -19144,14 +20166,16 @@ public final class TrxRegionProtos {
         super.clear();
         transactionId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000001);
-        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        startId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
+        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000004);
         if (scanBuilder_ == null) {
           scan_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.getDefaultInstance();
         } else {
           scanBuilder_.clear();
         }
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
 
@@ -19187,9 +20211,13 @@ public final class TrxRegionProtos {
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
-        result.regionName_ = regionName_;
+        result.startId_ = startId_;
         if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
           to_bitField0_ |= 0x00000004;
+        }
+        result.regionName_ = regionName_;
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000008;
         }
         if (scanBuilder_ == null) {
           result.scan_ = scan_;
@@ -19215,6 +20243,9 @@ public final class TrxRegionProtos {
         if (other.hasTransactionId()) {
           setTransactionId(other.getTransactionId());
         }
+        if (other.hasStartId()) {
+          setStartId(other.getStartId());
+        }
         if (other.hasRegionName()) {
           setRegionName(other.getRegionName());
         }
@@ -19227,6 +20258,10 @@ public final class TrxRegionProtos {
 
       public final boolean isInitialized() {
         if (!hasTransactionId()) {
+          
+          return false;
+        }
+        if (!hasStartId()) {
           
           return false;
         }
@@ -19297,54 +20332,87 @@ public final class TrxRegionProtos {
         return this;
       }
 
-      // required bytes regionName = 2;
-      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      // required int64 startId = 2;
+      private long startId_ ;
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
        */
-      public boolean hasRegionName() {
+      public boolean hasStartId() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
+       */
+      public long getStartId() {
+        return startId_;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder setStartId(long value) {
+        bitField0_ |= 0x00000002;
+        startId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder clearStartId() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        startId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // required bytes regionName = 3;
+      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>required bytes regionName = 3;</code>
+       */
+      public boolean hasRegionName() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>required bytes regionName = 3;</code>
        */
       public com.google.protobuf.ByteString getRegionName() {
         return regionName_;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder setRegionName(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000002;
+  bitField0_ |= 0x00000004;
         regionName_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder clearRegionName() {
-        bitField0_ = (bitField0_ & ~0x00000002);
+        bitField0_ = (bitField0_ & ~0x00000004);
         regionName_ = getDefaultInstance().getRegionName();
         onChanged();
         return this;
       }
 
-      // required .Scan scan = 3;
+      // required .Scan scan = 4;
       private org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan scan_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.ScanOrBuilder> scanBuilder_;
       /**
-       * <code>required .Scan scan = 3;</code>
+       * <code>required .Scan scan = 4;</code>
        */
       public boolean hasScan() {
-        return ((bitField0_ & 0x00000004) == 0x00000004);
+        return ((bitField0_ & 0x00000008) == 0x00000008);
       }
       /**
-       * <code>required .Scan scan = 3;</code>
+       * <code>required .Scan scan = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan getScan() {
         if (scanBuilder_ == null) {
@@ -19354,7 +20422,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>required .Scan scan = 3;</code>
+       * <code>required .Scan scan = 4;</code>
        */
       public Builder setScan(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan value) {
         if (scanBuilder_ == null) {
@@ -19366,11 +20434,11 @@ public final class TrxRegionProtos {
         } else {
           scanBuilder_.setMessage(value);
         }
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         return this;
       }
       /**
-       * <code>required .Scan scan = 3;</code>
+       * <code>required .Scan scan = 4;</code>
        */
       public Builder setScan(
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.Builder builderForValue) {
@@ -19380,15 +20448,15 @@ public final class TrxRegionProtos {
         } else {
           scanBuilder_.setMessage(builderForValue.build());
         }
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         return this;
       }
       /**
-       * <code>required .Scan scan = 3;</code>
+       * <code>required .Scan scan = 4;</code>
        */
       public Builder mergeScan(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan value) {
         if (scanBuilder_ == null) {
-          if (((bitField0_ & 0x00000004) == 0x00000004) &&
+          if (((bitField0_ & 0x00000008) == 0x00000008) &&
               scan_ != org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.getDefaultInstance()) {
             scan_ =
               org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.newBuilder(scan_).mergeFrom(value).buildPartial();
@@ -19399,11 +20467,11 @@ public final class TrxRegionProtos {
         } else {
           scanBuilder_.mergeFrom(value);
         }
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         return this;
       }
       /**
-       * <code>required .Scan scan = 3;</code>
+       * <code>required .Scan scan = 4;</code>
        */
       public Builder clearScan() {
         if (scanBuilder_ == null) {
@@ -19412,19 +20480,19 @@ public final class TrxRegionProtos {
         } else {
           scanBuilder_.clear();
         }
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
       /**
-       * <code>required .Scan scan = 3;</code>
+       * <code>required .Scan scan = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.Builder getScanBuilder() {
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         onChanged();
         return getScanFieldBuilder().getBuilder();
       }
       /**
-       * <code>required .Scan scan = 3;</code>
+       * <code>required .Scan scan = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.ScanOrBuilder getScanOrBuilder() {
         if (scanBuilder_ != null) {
@@ -19434,7 +20502,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>required .Scan scan = 3;</code>
+       * <code>required .Scan scan = 4;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.ScanOrBuilder> 
@@ -20115,53 +21183,63 @@ public final class TrxRegionProtos {
      */
     long getTransactionId();
 
-    // required bytes regionName = 2;
+    // required int64 startId = 2;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    boolean hasStartId();
+    /**
+     * <code>required int64 startId = 2;</code>
+     */
+    long getStartId();
+
+    // required bytes regionName = 3;
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     boolean hasRegionName();
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required bytes regionName = 3;</code>
      */
     com.google.protobuf.ByteString getRegionName();
 
-    // required int64 scannerId = 3;
+    // required int64 scannerId = 4;
     /**
-     * <code>required int64 scannerId = 3;</code>
+     * <code>required int64 scannerId = 4;</code>
      */
     boolean hasScannerId();
     /**
-     * <code>required int64 scannerId = 3;</code>
+     * <code>required int64 scannerId = 4;</code>
      */
     long getScannerId();
 
-    // required int32 numberOfRows = 4;
+    // required int32 numberOfRows = 5;
     /**
-     * <code>required int32 numberOfRows = 4;</code>
+     * <code>required int32 numberOfRows = 5;</code>
      */
     boolean hasNumberOfRows();
     /**
-     * <code>required int32 numberOfRows = 4;</code>
+     * <code>required int32 numberOfRows = 5;</code>
      */
     int getNumberOfRows();
 
-    // required bool closeScanner = 5;
+    // required bool closeScanner = 6;
     /**
-     * <code>required bool closeScanner = 5;</code>
+     * <code>required bool closeScanner = 6;</code>
      */
     boolean hasCloseScanner();
     /**
-     * <code>required bool closeScanner = 5;</code>
+     * <code>required bool closeScanner = 6;</code>
      */
     boolean getCloseScanner();
 
-    // required int64 nextCallSeq = 6;
+    // required int64 nextCallSeq = 7;
     /**
-     * <code>required int64 nextCallSeq = 6;</code>
+     * <code>required int64 nextCallSeq = 7;</code>
      */
     boolean hasNextCallSeq();
     /**
-     * <code>required int64 nextCallSeq = 6;</code>
+     * <code>required int64 nextCallSeq = 7;</code>
      */
     long getNextCallSeq();
   }
@@ -20221,28 +21299,33 @@ public final class TrxRegionProtos {
               transactionId_ = input.readInt64();
               break;
             }
-            case 18: {
+            case 16: {
               bitField0_ |= 0x00000002;
-              regionName_ = input.readBytes();
+              startId_ = input.readInt64();
               break;
             }
-            case 24: {
+            case 26: {
               bitField0_ |= 0x00000004;
-              scannerId_ = input.readInt64();
+              regionName_ = input.readBytes();
               break;
             }
             case 32: {
               bitField0_ |= 0x00000008;
-              numberOfRows_ = input.readInt32();
+              scannerId_ = input.readInt64();
               break;
             }
             case 40: {
               bitField0_ |= 0x00000010;
-              closeScanner_ = input.readBool();
+              numberOfRows_ = input.readInt32();
               break;
             }
             case 48: {
               bitField0_ |= 0x00000020;
+              closeScanner_ = input.readBool();
+              break;
+            }
+            case 56: {
+              bitField0_ |= 0x00000040;
               nextCallSeq_ = input.readInt64();
               break;
             }
@@ -20302,81 +21385,97 @@ public final class TrxRegionProtos {
       return transactionId_;
     }
 
-    // required bytes regionName = 2;
-    public static final int REGIONNAME_FIELD_NUMBER = 2;
-    private com.google.protobuf.ByteString regionName_;
+    // required int64 startId = 2;
+    public static final int STARTID_FIELD_NUMBER = 2;
+    private long startId_;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
      */
-    public boolean hasRegionName() {
+    public boolean hasStartId() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    public long getStartId() {
+      return startId_;
+    }
+
+    // required bytes regionName = 3;
+    public static final int REGIONNAME_FIELD_NUMBER = 3;
+    private com.google.protobuf.ByteString regionName_;
+    /**
+     * <code>required bytes regionName = 3;</code>
+     */
+    public boolean hasRegionName() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     public com.google.protobuf.ByteString getRegionName() {
       return regionName_;
     }
 
-    // required int64 scannerId = 3;
-    public static final int SCANNERID_FIELD_NUMBER = 3;
+    // required int64 scannerId = 4;
+    public static final int SCANNERID_FIELD_NUMBER = 4;
     private long scannerId_;
     /**
-     * <code>required int64 scannerId = 3;</code>
+     * <code>required int64 scannerId = 4;</code>
      */
     public boolean hasScannerId() {
-      return ((bitField0_ & 0x00000004) == 0x00000004);
+      return ((bitField0_ & 0x00000008) == 0x00000008);
     }
     /**
-     * <code>required int64 scannerId = 3;</code>
+     * <code>required int64 scannerId = 4;</code>
      */
     public long getScannerId() {
       return scannerId_;
     }
 
-    // required int32 numberOfRows = 4;
-    public static final int NUMBEROFROWS_FIELD_NUMBER = 4;
+    // required int32 numberOfRows = 5;
+    public static final int NUMBEROFROWS_FIELD_NUMBER = 5;
     private int numberOfRows_;
     /**
-     * <code>required int32 numberOfRows = 4;</code>
+     * <code>required int32 numberOfRows = 5;</code>
      */
     public boolean hasNumberOfRows() {
-      return ((bitField0_ & 0x00000008) == 0x00000008);
+      return ((bitField0_ & 0x00000010) == 0x00000010);
     }
     /**
-     * <code>required int32 numberOfRows = 4;</code>
+     * <code>required int32 numberOfRows = 5;</code>
      */
     public int getNumberOfRows() {
       return numberOfRows_;
     }
 
-    // required bool closeScanner = 5;
-    public static final int CLOSESCANNER_FIELD_NUMBER = 5;
+    // required bool closeScanner = 6;
+    public static final int CLOSESCANNER_FIELD_NUMBER = 6;
     private boolean closeScanner_;
     /**
-     * <code>required bool closeScanner = 5;</code>
+     * <code>required bool closeScanner = 6;</code>
      */
     public boolean hasCloseScanner() {
-      return ((bitField0_ & 0x00000010) == 0x00000010);
+      return ((bitField0_ & 0x00000020) == 0x00000020);
     }
     /**
-     * <code>required bool closeScanner = 5;</code>
+     * <code>required bool closeScanner = 6;</code>
      */
     public boolean getCloseScanner() {
       return closeScanner_;
     }
 
-    // required int64 nextCallSeq = 6;
-    public static final int NEXTCALLSEQ_FIELD_NUMBER = 6;
+    // required int64 nextCallSeq = 7;
+    public static final int NEXTCALLSEQ_FIELD_NUMBER = 7;
     private long nextCallSeq_;
     /**
-     * <code>required int64 nextCallSeq = 6;</code>
+     * <code>required int64 nextCallSeq = 7;</code>
      */
     public boolean hasNextCallSeq() {
-      return ((bitField0_ & 0x00000020) == 0x00000020);
+      return ((bitField0_ & 0x00000040) == 0x00000040);
     }
     /**
-     * <code>required int64 nextCallSeq = 6;</code>
+     * <code>required int64 nextCallSeq = 7;</code>
      */
     public long getNextCallSeq() {
       return nextCallSeq_;
@@ -20384,6 +21483,7 @@ public final class TrxRegionProtos {
 
     private void initFields() {
       transactionId_ = 0L;
+      startId_ = 0L;
       regionName_ = com.google.protobuf.ByteString.EMPTY;
       scannerId_ = 0L;
       numberOfRows_ = 0;
@@ -20396,6 +21496,10 @@ public final class TrxRegionProtos {
       if (isInitialized != -1) return isInitialized == 1;
 
       if (!hasTransactionId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasStartId()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -20430,19 +21534,22 @@ public final class TrxRegionProtos {
         output.writeInt64(1, transactionId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, regionName_);
+        output.writeInt64(2, startId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeInt64(3, scannerId_);
+        output.writeBytes(3, regionName_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        output.writeInt32(4, numberOfRows_);
+        output.writeInt64(4, scannerId_);
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        output.writeBool(5, closeScanner_);
+        output.writeInt32(5, numberOfRows_);
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
-        output.writeInt64(6, nextCallSeq_);
+        output.writeBool(6, closeScanner_);
+      }
+      if (((bitField0_ & 0x00000040) == 0x00000040)) {
+        output.writeInt64(7, nextCallSeq_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -20459,23 +21566,27 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, regionName_);
+          .computeInt64Size(2, startId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt64Size(3, scannerId_);
+          .computeBytesSize(3, regionName_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(4, numberOfRows_);
+          .computeInt64Size(4, scannerId_);
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(5, closeScanner_);
+          .computeInt32Size(5, numberOfRows_);
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt64Size(6, nextCallSeq_);
+          .computeBoolSize(6, closeScanner_);
+      }
+      if (((bitField0_ & 0x00000040) == 0x00000040)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(7, nextCallSeq_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -20595,16 +21706,18 @@ public final class TrxRegionProtos {
         super.clear();
         transactionId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000001);
-        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        startId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
-        scannerId_ = 0L;
+        regionName_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000004);
-        numberOfRows_ = 0;
+        scannerId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000008);
-        closeScanner_ = false;
+        numberOfRows_ = 0;
         bitField0_ = (bitField0_ & ~0x00000010);
-        nextCallSeq_ = 0L;
+        closeScanner_ = false;
         bitField0_ = (bitField0_ & ~0x00000020);
+        nextCallSeq_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000040);
         return this;
       }
 
@@ -20640,21 +21753,25 @@ public final class TrxRegionProtos {
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
-        result.regionName_ = regionName_;
+        result.startId_ = startId_;
         if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
           to_bitField0_ |= 0x00000004;
         }
-        result.scannerId_ = scannerId_;
+        result.regionName_ = regionName_;
         if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
           to_bitField0_ |= 0x00000008;
         }
-        result.numberOfRows_ = numberOfRows_;
+        result.scannerId_ = scannerId_;
         if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
           to_bitField0_ |= 0x00000010;
         }
-        result.closeScanner_ = closeScanner_;
+        result.numberOfRows_ = numberOfRows_;
         if (((from_bitField0_ & 0x00000020) == 0x00000020)) {
           to_bitField0_ |= 0x00000020;
+        }
+        result.closeScanner_ = closeScanner_;
+        if (((from_bitField0_ & 0x00000040) == 0x00000040)) {
+          to_bitField0_ |= 0x00000040;
         }
         result.nextCallSeq_ = nextCallSeq_;
         result.bitField0_ = to_bitField0_;
@@ -20675,6 +21792,9 @@ public final class TrxRegionProtos {
         if (other == org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PerformScanRequest.getDefaultInstance()) return this;
         if (other.hasTransactionId()) {
           setTransactionId(other.getTransactionId());
+        }
+        if (other.hasStartId()) {
+          setStartId(other.getStartId());
         }
         if (other.hasRegionName()) {
           setRegionName(other.getRegionName());
@@ -20697,6 +21817,10 @@ public final class TrxRegionProtos {
 
       public final boolean isInitialized() {
         if (!hasTransactionId()) {
+          
+          return false;
+        }
+        if (!hasStartId()) {
           
           return false;
         }
@@ -20775,169 +21899,202 @@ public final class TrxRegionProtos {
         return this;
       }
 
-      // required bytes regionName = 2;
-      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      // required int64 startId = 2;
+      private long startId_ ;
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
        */
-      public boolean hasRegionName() {
+      public boolean hasStartId() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
+       */
+      public long getStartId() {
+        return startId_;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder setStartId(long value) {
+        bitField0_ |= 0x00000002;
+        startId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder clearStartId() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        startId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // required bytes regionName = 3;
+      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>required bytes regionName = 3;</code>
+       */
+      public boolean hasRegionName() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>required bytes regionName = 3;</code>
        */
       public com.google.protobuf.ByteString getRegionName() {
         return regionName_;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder setRegionName(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000002;
+  bitField0_ |= 0x00000004;
         regionName_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder clearRegionName() {
-        bitField0_ = (bitField0_ & ~0x00000002);
+        bitField0_ = (bitField0_ & ~0x00000004);
         regionName_ = getDefaultInstance().getRegionName();
         onChanged();
         return this;
       }
 
-      // required int64 scannerId = 3;
+      // required int64 scannerId = 4;
       private long scannerId_ ;
       /**
-       * <code>required int64 scannerId = 3;</code>
+       * <code>required int64 scannerId = 4;</code>
        */
       public boolean hasScannerId() {
-        return ((bitField0_ & 0x00000004) == 0x00000004);
+        return ((bitField0_ & 0x00000008) == 0x00000008);
       }
       /**
-       * <code>required int64 scannerId = 3;</code>
+       * <code>required int64 scannerId = 4;</code>
        */
       public long getScannerId() {
         return scannerId_;
       }
       /**
-       * <code>required int64 scannerId = 3;</code>
+       * <code>required int64 scannerId = 4;</code>
        */
       public Builder setScannerId(long value) {
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         scannerId_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required int64 scannerId = 3;</code>
+       * <code>required int64 scannerId = 4;</code>
        */
       public Builder clearScannerId() {
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000008);
         scannerId_ = 0L;
         onChanged();
         return this;
       }
 
-      // required int32 numberOfRows = 4;
+      // required int32 numberOfRows = 5;
       private int numberOfRows_ ;
       /**
-       * <code>required int32 numberOfRows = 4;</code>
+       * <code>required int32 numberOfRows = 5;</code>
        */
       public boolean hasNumberOfRows() {
-        return ((bitField0_ & 0x00000008) == 0x00000008);
+        return ((bitField0_ & 0x00000010) == 0x00000010);
       }
       /**
-       * <code>required int32 numberOfRows = 4;</code>
+       * <code>required int32 numberOfRows = 5;</code>
        */
       public int getNumberOfRows() {
         return numberOfRows_;
       }
       /**
-       * <code>required int32 numberOfRows = 4;</code>
+       * <code>required int32 numberOfRows = 5;</code>
        */
       public Builder setNumberOfRows(int value) {
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000010;
         numberOfRows_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required int32 numberOfRows = 4;</code>
+       * <code>required int32 numberOfRows = 5;</code>
        */
       public Builder clearNumberOfRows() {
-        bitField0_ = (bitField0_ & ~0x00000008);
+        bitField0_ = (bitField0_ & ~0x00000010);
         numberOfRows_ = 0;
         onChanged();
         return this;
       }
 
-      // required bool closeScanner = 5;
+      // required bool closeScanner = 6;
       private boolean closeScanner_ ;
       /**
-       * <code>required bool closeScanner = 5;</code>
+       * <code>required bool closeScanner = 6;</code>
        */
       public boolean hasCloseScanner() {
-        return ((bitField0_ & 0x00000010) == 0x00000010);
+        return ((bitField0_ & 0x00000020) == 0x00000020);
       }
       /**
-       * <code>required bool closeScanner = 5;</code>
+       * <code>required bool closeScanner = 6;</code>
        */
       public boolean getCloseScanner() {
         return closeScanner_;
       }
       /**
-       * <code>required bool closeScanner = 5;</code>
+       * <code>required bool closeScanner = 6;</code>
        */
       public Builder setCloseScanner(boolean value) {
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000020;
         closeScanner_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bool closeScanner = 5;</code>
+       * <code>required bool closeScanner = 6;</code>
        */
       public Builder clearCloseScanner() {
-        bitField0_ = (bitField0_ & ~0x00000010);
+        bitField0_ = (bitField0_ & ~0x00000020);
         closeScanner_ = false;
         onChanged();
         return this;
       }
 
-      // required int64 nextCallSeq = 6;
+      // required int64 nextCallSeq = 7;
       private long nextCallSeq_ ;
       /**
-       * <code>required int64 nextCallSeq = 6;</code>
+       * <code>required int64 nextCallSeq = 7;</code>
        */
       public boolean hasNextCallSeq() {
-        return ((bitField0_ & 0x00000020) == 0x00000020);
+        return ((bitField0_ & 0x00000040) == 0x00000040);
       }
       /**
-       * <code>required int64 nextCallSeq = 6;</code>
+       * <code>required int64 nextCallSeq = 7;</code>
        */
       public long getNextCallSeq() {
         return nextCallSeq_;
       }
       /**
-       * <code>required int64 nextCallSeq = 6;</code>
+       * <code>required int64 nextCallSeq = 7;</code>
        */
       public Builder setNextCallSeq(long value) {
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000040;
         nextCallSeq_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required int64 nextCallSeq = 6;</code>
+       * <code>required int64 nextCallSeq = 7;</code>
        */
       public Builder clearNextCallSeq() {
-        bitField0_ = (bitField0_ & ~0x00000020);
+        bitField0_ = (bitField0_ & ~0x00000040);
         nextCallSeq_ = 0L;
         onChanged();
         return this;
@@ -22148,27 +23305,37 @@ public final class TrxRegionProtos {
      */
     long getTransactionId();
 
-    // required bytes regionName = 2;
+    // required int64 startId = 2;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    boolean hasStartId();
+    /**
+     * <code>required int64 startId = 2;</code>
+     */
+    long getStartId();
+
+    // required bytes regionName = 3;
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     boolean hasRegionName();
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required bytes regionName = 3;</code>
      */
     com.google.protobuf.ByteString getRegionName();
 
-    // required .MutationProto put = 3;
+    // required .MutationProto put = 4;
     /**
-     * <code>required .MutationProto put = 3;</code>
+     * <code>required .MutationProto put = 4;</code>
      */
     boolean hasPut();
     /**
-     * <code>required .MutationProto put = 3;</code>
+     * <code>required .MutationProto put = 4;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getPut();
     /**
-     * <code>required .MutationProto put = 3;</code>
+     * <code>required .MutationProto put = 4;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getPutOrBuilder();
   }
@@ -22228,14 +23395,19 @@ public final class TrxRegionProtos {
               transactionId_ = input.readInt64();
               break;
             }
-            case 18: {
+            case 16: {
               bitField0_ |= 0x00000002;
-              regionName_ = input.readBytes();
+              startId_ = input.readInt64();
               break;
             }
             case 26: {
+              bitField0_ |= 0x00000004;
+              regionName_ = input.readBytes();
+              break;
+            }
+            case 34: {
               org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder subBuilder = null;
-              if (((bitField0_ & 0x00000004) == 0x00000004)) {
+              if (((bitField0_ & 0x00000008) == 0x00000008)) {
                 subBuilder = put_.toBuilder();
               }
               put_ = input.readMessage(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.PARSER, extensionRegistry);
@@ -22243,7 +23415,7 @@ public final class TrxRegionProtos {
                 subBuilder.mergeFrom(put_);
                 put_ = subBuilder.buildPartial();
               }
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000008;
               break;
             }
           }
@@ -22302,39 +23474,55 @@ public final class TrxRegionProtos {
       return transactionId_;
     }
 
-    // required bytes regionName = 2;
-    public static final int REGIONNAME_FIELD_NUMBER = 2;
-    private com.google.protobuf.ByteString regionName_;
+    // required int64 startId = 2;
+    public static final int STARTID_FIELD_NUMBER = 2;
+    private long startId_;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
      */
-    public boolean hasRegionName() {
+    public boolean hasStartId() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    public long getStartId() {
+      return startId_;
+    }
+
+    // required bytes regionName = 3;
+    public static final int REGIONNAME_FIELD_NUMBER = 3;
+    private com.google.protobuf.ByteString regionName_;
+    /**
+     * <code>required bytes regionName = 3;</code>
+     */
+    public boolean hasRegionName() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     public com.google.protobuf.ByteString getRegionName() {
       return regionName_;
     }
 
-    // required .MutationProto put = 3;
-    public static final int PUT_FIELD_NUMBER = 3;
+    // required .MutationProto put = 4;
+    public static final int PUT_FIELD_NUMBER = 4;
     private org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto put_;
     /**
-     * <code>required .MutationProto put = 3;</code>
+     * <code>required .MutationProto put = 4;</code>
      */
     public boolean hasPut() {
-      return ((bitField0_ & 0x00000004) == 0x00000004);
+      return ((bitField0_ & 0x00000008) == 0x00000008);
     }
     /**
-     * <code>required .MutationProto put = 3;</code>
+     * <code>required .MutationProto put = 4;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getPut() {
       return put_;
     }
     /**
-     * <code>required .MutationProto put = 3;</code>
+     * <code>required .MutationProto put = 4;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getPutOrBuilder() {
       return put_;
@@ -22342,6 +23530,7 @@ public final class TrxRegionProtos {
 
     private void initFields() {
       transactionId_ = 0L;
+      startId_ = 0L;
       regionName_ = com.google.protobuf.ByteString.EMPTY;
       put_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance();
     }
@@ -22351,6 +23540,10 @@ public final class TrxRegionProtos {
       if (isInitialized != -1) return isInitialized == 1;
 
       if (!hasTransactionId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasStartId()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -22377,10 +23570,13 @@ public final class TrxRegionProtos {
         output.writeInt64(1, transactionId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, regionName_);
+        output.writeInt64(2, startId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeMessage(3, put_);
+        output.writeBytes(3, regionName_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeMessage(4, put_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -22397,11 +23593,15 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, regionName_);
+          .computeInt64Size(2, startId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(3, put_);
+          .computeBytesSize(3, regionName_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(4, put_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -22522,14 +23722,16 @@ public final class TrxRegionProtos {
         super.clear();
         transactionId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000001);
-        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        startId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
+        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000004);
         if (putBuilder_ == null) {
           put_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance();
         } else {
           putBuilder_.clear();
         }
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
 
@@ -22565,9 +23767,13 @@ public final class TrxRegionProtos {
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
-        result.regionName_ = regionName_;
+        result.startId_ = startId_;
         if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
           to_bitField0_ |= 0x00000004;
+        }
+        result.regionName_ = regionName_;
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000008;
         }
         if (putBuilder_ == null) {
           result.put_ = put_;
@@ -22593,6 +23799,9 @@ public final class TrxRegionProtos {
         if (other.hasTransactionId()) {
           setTransactionId(other.getTransactionId());
         }
+        if (other.hasStartId()) {
+          setStartId(other.getStartId());
+        }
         if (other.hasRegionName()) {
           setRegionName(other.getRegionName());
         }
@@ -22605,6 +23814,10 @@ public final class TrxRegionProtos {
 
       public final boolean isInitialized() {
         if (!hasTransactionId()) {
+          
+          return false;
+        }
+        if (!hasStartId()) {
           
           return false;
         }
@@ -22675,54 +23888,87 @@ public final class TrxRegionProtos {
         return this;
       }
 
-      // required bytes regionName = 2;
-      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      // required int64 startId = 2;
+      private long startId_ ;
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
        */
-      public boolean hasRegionName() {
+      public boolean hasStartId() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
+       */
+      public long getStartId() {
+        return startId_;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder setStartId(long value) {
+        bitField0_ |= 0x00000002;
+        startId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder clearStartId() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        startId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // required bytes regionName = 3;
+      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>required bytes regionName = 3;</code>
+       */
+      public boolean hasRegionName() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>required bytes regionName = 3;</code>
        */
       public com.google.protobuf.ByteString getRegionName() {
         return regionName_;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder setRegionName(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000002;
+  bitField0_ |= 0x00000004;
         regionName_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder clearRegionName() {
-        bitField0_ = (bitField0_ & ~0x00000002);
+        bitField0_ = (bitField0_ & ~0x00000004);
         regionName_ = getDefaultInstance().getRegionName();
         onChanged();
         return this;
       }
 
-      // required .MutationProto put = 3;
+      // required .MutationProto put = 4;
       private org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto put_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> putBuilder_;
       /**
-       * <code>required .MutationProto put = 3;</code>
+       * <code>required .MutationProto put = 4;</code>
        */
       public boolean hasPut() {
-        return ((bitField0_ & 0x00000004) == 0x00000004);
+        return ((bitField0_ & 0x00000008) == 0x00000008);
       }
       /**
-       * <code>required .MutationProto put = 3;</code>
+       * <code>required .MutationProto put = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getPut() {
         if (putBuilder_ == null) {
@@ -22732,7 +23978,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>required .MutationProto put = 3;</code>
+       * <code>required .MutationProto put = 4;</code>
        */
       public Builder setPut(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
         if (putBuilder_ == null) {
@@ -22744,11 +23990,11 @@ public final class TrxRegionProtos {
         } else {
           putBuilder_.setMessage(value);
         }
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         return this;
       }
       /**
-       * <code>required .MutationProto put = 3;</code>
+       * <code>required .MutationProto put = 4;</code>
        */
       public Builder setPut(
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
@@ -22758,15 +24004,15 @@ public final class TrxRegionProtos {
         } else {
           putBuilder_.setMessage(builderForValue.build());
         }
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         return this;
       }
       /**
-       * <code>required .MutationProto put = 3;</code>
+       * <code>required .MutationProto put = 4;</code>
        */
       public Builder mergePut(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
         if (putBuilder_ == null) {
-          if (((bitField0_ & 0x00000004) == 0x00000004) &&
+          if (((bitField0_ & 0x00000008) == 0x00000008) &&
               put_ != org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance()) {
             put_ =
               org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.newBuilder(put_).mergeFrom(value).buildPartial();
@@ -22777,11 +24023,11 @@ public final class TrxRegionProtos {
         } else {
           putBuilder_.mergeFrom(value);
         }
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         return this;
       }
       /**
-       * <code>required .MutationProto put = 3;</code>
+       * <code>required .MutationProto put = 4;</code>
        */
       public Builder clearPut() {
         if (putBuilder_ == null) {
@@ -22790,19 +24036,19 @@ public final class TrxRegionProtos {
         } else {
           putBuilder_.clear();
         }
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
       /**
-       * <code>required .MutationProto put = 3;</code>
+       * <code>required .MutationProto put = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder getPutBuilder() {
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         onChanged();
         return getPutFieldBuilder().getBuilder();
       }
       /**
-       * <code>required .MutationProto put = 3;</code>
+       * <code>required .MutationProto put = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getPutOrBuilder() {
         if (putBuilder_ != null) {
@@ -22812,7 +24058,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>required .MutationProto put = 3;</code>
+       * <code>required .MutationProto put = 4;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
@@ -23596,37 +24842,47 @@ public final class TrxRegionProtos {
      */
     long getTransactionId();
 
-    // required bytes regionName = 2;
+    // required int64 startId = 2;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    boolean hasStartId();
+    /**
+     * <code>required int64 startId = 2;</code>
+     */
+    long getStartId();
+
+    // required bytes regionName = 3;
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     boolean hasRegionName();
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required bytes regionName = 3;</code>
      */
     com.google.protobuf.ByteString getRegionName();
 
-    // repeated .MutationProto put = 3;
+    // repeated .MutationProto put = 4;
     /**
-     * <code>repeated .MutationProto put = 3;</code>
+     * <code>repeated .MutationProto put = 4;</code>
      */
     java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> 
         getPutList();
     /**
-     * <code>repeated .MutationProto put = 3;</code>
+     * <code>repeated .MutationProto put = 4;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getPut(int index);
     /**
-     * <code>repeated .MutationProto put = 3;</code>
+     * <code>repeated .MutationProto put = 4;</code>
      */
     int getPutCount();
     /**
-     * <code>repeated .MutationProto put = 3;</code>
+     * <code>repeated .MutationProto put = 4;</code>
      */
     java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
         getPutOrBuilderList();
     /**
-     * <code>repeated .MutationProto put = 3;</code>
+     * <code>repeated .MutationProto put = 4;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getPutOrBuilder(
         int index);
@@ -23687,15 +24943,20 @@ public final class TrxRegionProtos {
               transactionId_ = input.readInt64();
               break;
             }
-            case 18: {
+            case 16: {
               bitField0_ |= 0x00000002;
-              regionName_ = input.readBytes();
+              startId_ = input.readInt64();
               break;
             }
             case 26: {
-              if (!((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
+              bitField0_ |= 0x00000004;
+              regionName_ = input.readBytes();
+              break;
+            }
+            case 34: {
+              if (!((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
                 put_ = new java.util.ArrayList<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto>();
-                mutable_bitField0_ |= 0x00000004;
+                mutable_bitField0_ |= 0x00000008;
               }
               put_.add(input.readMessage(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.PARSER, extensionRegistry));
               break;
@@ -23708,7 +24969,7 @@ public final class TrxRegionProtos {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e.getMessage()).setUnfinishedMessage(this);
       } finally {
-        if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
+        if (((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
           put_ = java.util.Collections.unmodifiableList(put_);
         }
         this.unknownFields = unknownFields.build();
@@ -23759,52 +25020,68 @@ public final class TrxRegionProtos {
       return transactionId_;
     }
 
-    // required bytes regionName = 2;
-    public static final int REGIONNAME_FIELD_NUMBER = 2;
-    private com.google.protobuf.ByteString regionName_;
+    // required int64 startId = 2;
+    public static final int STARTID_FIELD_NUMBER = 2;
+    private long startId_;
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
      */
-    public boolean hasRegionName() {
+    public boolean hasStartId() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required bytes regionName = 2;</code>
+     * <code>required int64 startId = 2;</code>
+     */
+    public long getStartId() {
+      return startId_;
+    }
+
+    // required bytes regionName = 3;
+    public static final int REGIONNAME_FIELD_NUMBER = 3;
+    private com.google.protobuf.ByteString regionName_;
+    /**
+     * <code>required bytes regionName = 3;</code>
+     */
+    public boolean hasRegionName() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>required bytes regionName = 3;</code>
      */
     public com.google.protobuf.ByteString getRegionName() {
       return regionName_;
     }
 
-    // repeated .MutationProto put = 3;
-    public static final int PUT_FIELD_NUMBER = 3;
+    // repeated .MutationProto put = 4;
+    public static final int PUT_FIELD_NUMBER = 4;
     private java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> put_;
     /**
-     * <code>repeated .MutationProto put = 3;</code>
+     * <code>repeated .MutationProto put = 4;</code>
      */
     public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> getPutList() {
       return put_;
     }
     /**
-     * <code>repeated .MutationProto put = 3;</code>
+     * <code>repeated .MutationProto put = 4;</code>
      */
     public java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
         getPutOrBuilderList() {
       return put_;
     }
     /**
-     * <code>repeated .MutationProto put = 3;</code>
+     * <code>repeated .MutationProto put = 4;</code>
      */
     public int getPutCount() {
       return put_.size();
     }
     /**
-     * <code>repeated .MutationProto put = 3;</code>
+     * <code>repeated .MutationProto put = 4;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getPut(int index) {
       return put_.get(index);
     }
     /**
-     * <code>repeated .MutationProto put = 3;</code>
+     * <code>repeated .MutationProto put = 4;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getPutOrBuilder(
         int index) {
@@ -23813,6 +25090,7 @@ public final class TrxRegionProtos {
 
     private void initFields() {
       transactionId_ = 0L;
+      startId_ = 0L;
       regionName_ = com.google.protobuf.ByteString.EMPTY;
       put_ = java.util.Collections.emptyList();
     }
@@ -23822,6 +25100,10 @@ public final class TrxRegionProtos {
       if (isInitialized != -1) return isInitialized == 1;
 
       if (!hasTransactionId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasStartId()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -23846,10 +25128,13 @@ public final class TrxRegionProtos {
         output.writeInt64(1, transactionId_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, regionName_);
+        output.writeInt64(2, startId_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeBytes(3, regionName_);
       }
       for (int i = 0; i < put_.size(); i++) {
-        output.writeMessage(3, put_.get(i));
+        output.writeMessage(4, put_.get(i));
       }
       getUnknownFields().writeTo(output);
     }
@@ -23866,11 +25151,15 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, regionName_);
+          .computeInt64Size(2, startId_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(3, regionName_);
       }
       for (int i = 0; i < put_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(3, put_.get(i));
+          .computeMessageSize(4, put_.get(i));
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -23991,11 +25280,13 @@ public final class TrxRegionProtos {
         super.clear();
         transactionId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000001);
-        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        startId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
+        regionName_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000004);
         if (putBuilder_ == null) {
           put_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000004);
+          bitField0_ = (bitField0_ & ~0x00000008);
         } else {
           putBuilder_.clear();
         }
@@ -24034,11 +25325,15 @@ public final class TrxRegionProtos {
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
+        result.startId_ = startId_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
         result.regionName_ = regionName_;
         if (putBuilder_ == null) {
-          if (((bitField0_ & 0x00000004) == 0x00000004)) {
+          if (((bitField0_ & 0x00000008) == 0x00000008)) {
             put_ = java.util.Collections.unmodifiableList(put_);
-            bitField0_ = (bitField0_ & ~0x00000004);
+            bitField0_ = (bitField0_ & ~0x00000008);
           }
           result.put_ = put_;
         } else {
@@ -24063,6 +25358,9 @@ public final class TrxRegionProtos {
         if (other.hasTransactionId()) {
           setTransactionId(other.getTransactionId());
         }
+        if (other.hasStartId()) {
+          setStartId(other.getStartId());
+        }
         if (other.hasRegionName()) {
           setRegionName(other.getRegionName());
         }
@@ -24070,7 +25368,7 @@ public final class TrxRegionProtos {
           if (!other.put_.isEmpty()) {
             if (put_.isEmpty()) {
               put_ = other.put_;
-              bitField0_ = (bitField0_ & ~0x00000004);
+              bitField0_ = (bitField0_ & ~0x00000008);
             } else {
               ensurePutIsMutable();
               put_.addAll(other.put_);
@@ -24083,7 +25381,7 @@ public final class TrxRegionProtos {
               putBuilder_.dispose();
               putBuilder_ = null;
               put_ = other.put_;
-              bitField0_ = (bitField0_ & ~0x00000004);
+              bitField0_ = (bitField0_ & ~0x00000008);
               putBuilder_ = 
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getPutFieldBuilder() : null;
@@ -24098,6 +25396,10 @@ public final class TrxRegionProtos {
 
       public final boolean isInitialized() {
         if (!hasTransactionId()) {
+          
+          return false;
+        }
+        if (!hasStartId()) {
           
           return false;
         }
@@ -24166,49 +25468,82 @@ public final class TrxRegionProtos {
         return this;
       }
 
-      // required bytes regionName = 2;
-      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      // required int64 startId = 2;
+      private long startId_ ;
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
        */
-      public boolean hasRegionName() {
+      public boolean hasStartId() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required int64 startId = 2;</code>
+       */
+      public long getStartId() {
+        return startId_;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder setStartId(long value) {
+        bitField0_ |= 0x00000002;
+        startId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 startId = 2;</code>
+       */
+      public Builder clearStartId() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        startId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // required bytes regionName = 3;
+      private com.google.protobuf.ByteString regionName_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>required bytes regionName = 3;</code>
+       */
+      public boolean hasRegionName() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>required bytes regionName = 3;</code>
        */
       public com.google.protobuf.ByteString getRegionName() {
         return regionName_;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder setRegionName(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000002;
+  bitField0_ |= 0x00000004;
         regionName_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required bytes regionName = 2;</code>
+       * <code>required bytes regionName = 3;</code>
        */
       public Builder clearRegionName() {
-        bitField0_ = (bitField0_ & ~0x00000002);
+        bitField0_ = (bitField0_ & ~0x00000004);
         regionName_ = getDefaultInstance().getRegionName();
         onChanged();
         return this;
       }
 
-      // repeated .MutationProto put = 3;
+      // repeated .MutationProto put = 4;
       private java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> put_ =
         java.util.Collections.emptyList();
       private void ensurePutIsMutable() {
-        if (!((bitField0_ & 0x00000004) == 0x00000004)) {
+        if (!((bitField0_ & 0x00000008) == 0x00000008)) {
           put_ = new java.util.ArrayList<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto>(put_);
-          bitField0_ |= 0x00000004;
+          bitField0_ |= 0x00000008;
          }
       }
 
@@ -24216,7 +25551,7 @@ public final class TrxRegionProtos {
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> putBuilder_;
 
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> getPutList() {
         if (putBuilder_ == null) {
@@ -24226,7 +25561,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public int getPutCount() {
         if (putBuilder_ == null) {
@@ -24236,7 +25571,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getPut(int index) {
         if (putBuilder_ == null) {
@@ -24246,7 +25581,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public Builder setPut(
           int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
@@ -24263,7 +25598,7 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public Builder setPut(
           int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
@@ -24277,7 +25612,7 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public Builder addPut(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
         if (putBuilder_ == null) {
@@ -24293,7 +25628,7 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public Builder addPut(
           int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
@@ -24310,7 +25645,7 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public Builder addPut(
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
@@ -24324,7 +25659,7 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public Builder addPut(
           int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
@@ -24338,7 +25673,7 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public Builder addAllPut(
           java.lang.Iterable<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> values) {
@@ -24352,12 +25687,12 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public Builder clearPut() {
         if (putBuilder_ == null) {
           put_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000004);
+          bitField0_ = (bitField0_ & ~0x00000008);
           onChanged();
         } else {
           putBuilder_.clear();
@@ -24365,7 +25700,7 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public Builder removePut(int index) {
         if (putBuilder_ == null) {
@@ -24378,14 +25713,14 @@ public final class TrxRegionProtos {
         return this;
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder getPutBuilder(
           int index) {
         return getPutFieldBuilder().getBuilder(index);
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getPutOrBuilder(
           int index) {
@@ -24395,7 +25730,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
            getPutOrBuilderList() {
@@ -24406,14 +25741,14 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder addPutBuilder() {
         return getPutFieldBuilder().addBuilder(
             org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance());
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder addPutBuilder(
           int index) {
@@ -24421,7 +25756,7 @@ public final class TrxRegionProtos {
             index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance());
       }
       /**
-       * <code>repeated .MutationProto put = 3;</code>
+       * <code>repeated .MutationProto put = 4;</code>
        */
       public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder> 
            getPutBuilderList() {
@@ -24434,7 +25769,7 @@ public final class TrxRegionProtos {
           putBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
               org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder>(
                   put_,
-                  ((bitField0_ & 0x00000004) == 0x00000004),
+                  ((bitField0_ & 0x00000008) == 0x00000008),
                   getParentForChildren(),
                   isClean());
           put_ = null;
@@ -32577,42 +33912,52 @@ public final class TrxRegionProtos {
      */
     long getTransactionId();
 
-    // required string interpreter_class_name = 3;
+    // required int64 startId = 3;
     /**
-     * <code>required string interpreter_class_name = 3;</code>
+     * <code>required int64 startId = 3;</code>
+     */
+    boolean hasStartId();
+    /**
+     * <code>required int64 startId = 3;</code>
+     */
+    long getStartId();
+
+    // required string interpreter_class_name = 4;
+    /**
+     * <code>required string interpreter_class_name = 4;</code>
      */
     boolean hasInterpreterClassName();
     /**
-     * <code>required string interpreter_class_name = 3;</code>
+     * <code>required string interpreter_class_name = 4;</code>
      */
     java.lang.String getInterpreterClassName();
     /**
-     * <code>required string interpreter_class_name = 3;</code>
+     * <code>required string interpreter_class_name = 4;</code>
      */
     com.google.protobuf.ByteString
         getInterpreterClassNameBytes();
 
-    // required .Scan scan = 4;
+    // required .Scan scan = 5;
     /**
-     * <code>required .Scan scan = 4;</code>
+     * <code>required .Scan scan = 5;</code>
      */
     boolean hasScan();
     /**
-     * <code>required .Scan scan = 4;</code>
+     * <code>required .Scan scan = 5;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan getScan();
     /**
-     * <code>required .Scan scan = 4;</code>
+     * <code>required .Scan scan = 5;</code>
      */
     org.apache.hadoop.hbase.protobuf.generated.ClientProtos.ScanOrBuilder getScanOrBuilder();
 
-    // optional bytes interpreter_specific_bytes = 5;
+    // optional bytes interpreter_specific_bytes = 6;
     /**
-     * <code>optional bytes interpreter_specific_bytes = 5;</code>
+     * <code>optional bytes interpreter_specific_bytes = 6;</code>
      */
     boolean hasInterpreterSpecificBytes();
     /**
-     * <code>optional bytes interpreter_specific_bytes = 5;</code>
+     * <code>optional bytes interpreter_specific_bytes = 6;</code>
      */
     com.google.protobuf.ByteString getInterpreterSpecificBytes();
   }
@@ -32677,14 +34022,19 @@ public final class TrxRegionProtos {
               transactionId_ = input.readInt64();
               break;
             }
-            case 26: {
+            case 24: {
               bitField0_ |= 0x00000004;
-              interpreterClassName_ = input.readBytes();
+              startId_ = input.readInt64();
               break;
             }
             case 34: {
+              bitField0_ |= 0x00000008;
+              interpreterClassName_ = input.readBytes();
+              break;
+            }
+            case 42: {
               org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.Builder subBuilder = null;
-              if (((bitField0_ & 0x00000008) == 0x00000008)) {
+              if (((bitField0_ & 0x00000010) == 0x00000010)) {
                 subBuilder = scan_.toBuilder();
               }
               scan_ = input.readMessage(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.PARSER, extensionRegistry);
@@ -32692,11 +34042,11 @@ public final class TrxRegionProtos {
                 subBuilder.mergeFrom(scan_);
                 scan_ = subBuilder.buildPartial();
               }
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000010;
               break;
             }
-            case 42: {
-              bitField0_ |= 0x00000010;
+            case 50: {
+              bitField0_ |= 0x00000020;
               interpreterSpecificBytes_ = input.readBytes();
               break;
             }
@@ -32788,17 +34138,33 @@ public final class TrxRegionProtos {
       return transactionId_;
     }
 
-    // required string interpreter_class_name = 3;
-    public static final int INTERPRETER_CLASS_NAME_FIELD_NUMBER = 3;
-    private java.lang.Object interpreterClassName_;
+    // required int64 startId = 3;
+    public static final int STARTID_FIELD_NUMBER = 3;
+    private long startId_;
     /**
-     * <code>required string interpreter_class_name = 3;</code>
+     * <code>required int64 startId = 3;</code>
      */
-    public boolean hasInterpreterClassName() {
+    public boolean hasStartId() {
       return ((bitField0_ & 0x00000004) == 0x00000004);
     }
     /**
-     * <code>required string interpreter_class_name = 3;</code>
+     * <code>required int64 startId = 3;</code>
+     */
+    public long getStartId() {
+      return startId_;
+    }
+
+    // required string interpreter_class_name = 4;
+    public static final int INTERPRETER_CLASS_NAME_FIELD_NUMBER = 4;
+    private java.lang.Object interpreterClassName_;
+    /**
+     * <code>required string interpreter_class_name = 4;</code>
+     */
+    public boolean hasInterpreterClassName() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>required string interpreter_class_name = 4;</code>
      */
     public java.lang.String getInterpreterClassName() {
       java.lang.Object ref = interpreterClassName_;
@@ -32815,7 +34181,7 @@ public final class TrxRegionProtos {
       }
     }
     /**
-     * <code>required string interpreter_class_name = 3;</code>
+     * <code>required string interpreter_class_name = 4;</code>
      */
     public com.google.protobuf.ByteString
         getInterpreterClassNameBytes() {
@@ -32831,39 +34197,39 @@ public final class TrxRegionProtos {
       }
     }
 
-    // required .Scan scan = 4;
-    public static final int SCAN_FIELD_NUMBER = 4;
+    // required .Scan scan = 5;
+    public static final int SCAN_FIELD_NUMBER = 5;
     private org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan scan_;
     /**
-     * <code>required .Scan scan = 4;</code>
+     * <code>required .Scan scan = 5;</code>
      */
     public boolean hasScan() {
-      return ((bitField0_ & 0x00000008) == 0x00000008);
+      return ((bitField0_ & 0x00000010) == 0x00000010);
     }
     /**
-     * <code>required .Scan scan = 4;</code>
+     * <code>required .Scan scan = 5;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan getScan() {
       return scan_;
     }
     /**
-     * <code>required .Scan scan = 4;</code>
+     * <code>required .Scan scan = 5;</code>
      */
     public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.ScanOrBuilder getScanOrBuilder() {
       return scan_;
     }
 
-    // optional bytes interpreter_specific_bytes = 5;
-    public static final int INTERPRETER_SPECIFIC_BYTES_FIELD_NUMBER = 5;
+    // optional bytes interpreter_specific_bytes = 6;
+    public static final int INTERPRETER_SPECIFIC_BYTES_FIELD_NUMBER = 6;
     private com.google.protobuf.ByteString interpreterSpecificBytes_;
     /**
-     * <code>optional bytes interpreter_specific_bytes = 5;</code>
+     * <code>optional bytes interpreter_specific_bytes = 6;</code>
      */
     public boolean hasInterpreterSpecificBytes() {
-      return ((bitField0_ & 0x00000010) == 0x00000010);
+      return ((bitField0_ & 0x00000020) == 0x00000020);
     }
     /**
-     * <code>optional bytes interpreter_specific_bytes = 5;</code>
+     * <code>optional bytes interpreter_specific_bytes = 6;</code>
      */
     public com.google.protobuf.ByteString getInterpreterSpecificBytes() {
       return interpreterSpecificBytes_;
@@ -32872,6 +34238,7 @@ public final class TrxRegionProtos {
     private void initFields() {
       regionName_ = com.google.protobuf.ByteString.EMPTY;
       transactionId_ = 0L;
+      startId_ = 0L;
       interpreterClassName_ = "";
       scan_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.getDefaultInstance();
       interpreterSpecificBytes_ = com.google.protobuf.ByteString.EMPTY;
@@ -32886,6 +34253,10 @@ public final class TrxRegionProtos {
         return false;
       }
       if (!hasTransactionId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasStartId()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -32915,13 +34286,16 @@ public final class TrxRegionProtos {
         output.writeInt64(2, transactionId_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeBytes(3, getInterpreterClassNameBytes());
+        output.writeInt64(3, startId_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        output.writeMessage(4, scan_);
+        output.writeBytes(4, getInterpreterClassNameBytes());
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        output.writeBytes(5, interpreterSpecificBytes_);
+        output.writeMessage(5, scan_);
+      }
+      if (((bitField0_ & 0x00000020) == 0x00000020)) {
+        output.writeBytes(6, interpreterSpecificBytes_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -32942,15 +34316,19 @@ public final class TrxRegionProtos {
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(3, getInterpreterClassNameBytes());
+          .computeInt64Size(3, startId_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(4, scan_);
+          .computeBytesSize(4, getInterpreterClassNameBytes());
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(5, interpreterSpecificBytes_);
+          .computeMessageSize(5, scan_);
+      }
+      if (((bitField0_ & 0x00000020) == 0x00000020)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(6, interpreterSpecificBytes_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -33073,16 +34451,18 @@ public final class TrxRegionProtos {
         bitField0_ = (bitField0_ & ~0x00000001);
         transactionId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
-        interpreterClassName_ = "";
+        startId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000004);
+        interpreterClassName_ = "";
+        bitField0_ = (bitField0_ & ~0x00000008);
         if (scanBuilder_ == null) {
           scan_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.getDefaultInstance();
         } else {
           scanBuilder_.clear();
         }
-        bitField0_ = (bitField0_ & ~0x00000008);
-        interpreterSpecificBytes_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000010);
+        interpreterSpecificBytes_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000020);
         return this;
       }
 
@@ -33122,17 +34502,21 @@ public final class TrxRegionProtos {
         if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
           to_bitField0_ |= 0x00000004;
         }
-        result.interpreterClassName_ = interpreterClassName_;
+        result.startId_ = startId_;
         if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
           to_bitField0_ |= 0x00000008;
+        }
+        result.interpreterClassName_ = interpreterClassName_;
+        if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
+          to_bitField0_ |= 0x00000010;
         }
         if (scanBuilder_ == null) {
           result.scan_ = scan_;
         } else {
           result.scan_ = scanBuilder_.build();
         }
-        if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
-          to_bitField0_ |= 0x00000010;
+        if (((from_bitField0_ & 0x00000020) == 0x00000020)) {
+          to_bitField0_ |= 0x00000020;
         }
         result.interpreterSpecificBytes_ = interpreterSpecificBytes_;
         result.bitField0_ = to_bitField0_;
@@ -33157,8 +34541,11 @@ public final class TrxRegionProtos {
         if (other.hasTransactionId()) {
           setTransactionId(other.getTransactionId());
         }
+        if (other.hasStartId()) {
+          setStartId(other.getStartId());
+        }
         if (other.hasInterpreterClassName()) {
-          bitField0_ |= 0x00000004;
+          bitField0_ |= 0x00000008;
           interpreterClassName_ = other.interpreterClassName_;
           onChanged();
         }
@@ -33178,6 +34565,10 @@ public final class TrxRegionProtos {
           return false;
         }
         if (!hasTransactionId()) {
+          
+          return false;
+        }
+        if (!hasStartId()) {
           
           return false;
         }
@@ -33316,16 +34707,49 @@ public final class TrxRegionProtos {
         return this;
       }
 
-      // required string interpreter_class_name = 3;
-      private java.lang.Object interpreterClassName_ = "";
+      // required int64 startId = 3;
+      private long startId_ ;
       /**
-       * <code>required string interpreter_class_name = 3;</code>
+       * <code>required int64 startId = 3;</code>
        */
-      public boolean hasInterpreterClassName() {
+      public boolean hasStartId() {
         return ((bitField0_ & 0x00000004) == 0x00000004);
       }
       /**
-       * <code>required string interpreter_class_name = 3;</code>
+       * <code>required int64 startId = 3;</code>
+       */
+      public long getStartId() {
+        return startId_;
+      }
+      /**
+       * <code>required int64 startId = 3;</code>
+       */
+      public Builder setStartId(long value) {
+        bitField0_ |= 0x00000004;
+        startId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 startId = 3;</code>
+       */
+      public Builder clearStartId() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        startId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // required string interpreter_class_name = 4;
+      private java.lang.Object interpreterClassName_ = "";
+      /**
+       * <code>required string interpreter_class_name = 4;</code>
+       */
+      public boolean hasInterpreterClassName() {
+        return ((bitField0_ & 0x00000008) == 0x00000008);
+      }
+      /**
+       * <code>required string interpreter_class_name = 4;</code>
        */
       public java.lang.String getInterpreterClassName() {
         java.lang.Object ref = interpreterClassName_;
@@ -33339,7 +34763,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>required string interpreter_class_name = 3;</code>
+       * <code>required string interpreter_class_name = 4;</code>
        */
       public com.google.protobuf.ByteString
           getInterpreterClassNameBytes() {
@@ -33355,53 +34779,53 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>required string interpreter_class_name = 3;</code>
+       * <code>required string interpreter_class_name = 4;</code>
        */
       public Builder setInterpreterClassName(
           java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000004;
+  bitField0_ |= 0x00000008;
         interpreterClassName_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required string interpreter_class_name = 3;</code>
+       * <code>required string interpreter_class_name = 4;</code>
        */
       public Builder clearInterpreterClassName() {
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000008);
         interpreterClassName_ = getDefaultInstance().getInterpreterClassName();
         onChanged();
         return this;
       }
       /**
-       * <code>required string interpreter_class_name = 3;</code>
+       * <code>required string interpreter_class_name = 4;</code>
        */
       public Builder setInterpreterClassNameBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000004;
+  bitField0_ |= 0x00000008;
         interpreterClassName_ = value;
         onChanged();
         return this;
       }
 
-      // required .Scan scan = 4;
+      // required .Scan scan = 5;
       private org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan scan_ = org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.ScanOrBuilder> scanBuilder_;
       /**
-       * <code>required .Scan scan = 4;</code>
+       * <code>required .Scan scan = 5;</code>
        */
       public boolean hasScan() {
-        return ((bitField0_ & 0x00000008) == 0x00000008);
+        return ((bitField0_ & 0x00000010) == 0x00000010);
       }
       /**
-       * <code>required .Scan scan = 4;</code>
+       * <code>required .Scan scan = 5;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan getScan() {
         if (scanBuilder_ == null) {
@@ -33411,7 +34835,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>required .Scan scan = 4;</code>
+       * <code>required .Scan scan = 5;</code>
        */
       public Builder setScan(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan value) {
         if (scanBuilder_ == null) {
@@ -33423,11 +34847,11 @@ public final class TrxRegionProtos {
         } else {
           scanBuilder_.setMessage(value);
         }
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000010;
         return this;
       }
       /**
-       * <code>required .Scan scan = 4;</code>
+       * <code>required .Scan scan = 5;</code>
        */
       public Builder setScan(
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.Builder builderForValue) {
@@ -33437,15 +34861,15 @@ public final class TrxRegionProtos {
         } else {
           scanBuilder_.setMessage(builderForValue.build());
         }
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000010;
         return this;
       }
       /**
-       * <code>required .Scan scan = 4;</code>
+       * <code>required .Scan scan = 5;</code>
        */
       public Builder mergeScan(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan value) {
         if (scanBuilder_ == null) {
-          if (((bitField0_ & 0x00000008) == 0x00000008) &&
+          if (((bitField0_ & 0x00000010) == 0x00000010) &&
               scan_ != org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.getDefaultInstance()) {
             scan_ =
               org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.newBuilder(scan_).mergeFrom(value).buildPartial();
@@ -33456,11 +34880,11 @@ public final class TrxRegionProtos {
         } else {
           scanBuilder_.mergeFrom(value);
         }
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000010;
         return this;
       }
       /**
-       * <code>required .Scan scan = 4;</code>
+       * <code>required .Scan scan = 5;</code>
        */
       public Builder clearScan() {
         if (scanBuilder_ == null) {
@@ -33469,19 +34893,19 @@ public final class TrxRegionProtos {
         } else {
           scanBuilder_.clear();
         }
-        bitField0_ = (bitField0_ & ~0x00000008);
+        bitField0_ = (bitField0_ & ~0x00000010);
         return this;
       }
       /**
-       * <code>required .Scan scan = 4;</code>
+       * <code>required .Scan scan = 5;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.Builder getScanBuilder() {
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000010;
         onChanged();
         return getScanFieldBuilder().getBuilder();
       }
       /**
-       * <code>required .Scan scan = 4;</code>
+       * <code>required .Scan scan = 5;</code>
        */
       public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.ScanOrBuilder getScanOrBuilder() {
         if (scanBuilder_ != null) {
@@ -33491,7 +34915,7 @@ public final class TrxRegionProtos {
         }
       }
       /**
-       * <code>required .Scan scan = 4;</code>
+       * <code>required .Scan scan = 5;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.Scan.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.ScanOrBuilder> 
@@ -33507,37 +34931,37 @@ public final class TrxRegionProtos {
         return scanBuilder_;
       }
 
-      // optional bytes interpreter_specific_bytes = 5;
+      // optional bytes interpreter_specific_bytes = 6;
       private com.google.protobuf.ByteString interpreterSpecificBytes_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>optional bytes interpreter_specific_bytes = 5;</code>
+       * <code>optional bytes interpreter_specific_bytes = 6;</code>
        */
       public boolean hasInterpreterSpecificBytes() {
-        return ((bitField0_ & 0x00000010) == 0x00000010);
+        return ((bitField0_ & 0x00000020) == 0x00000020);
       }
       /**
-       * <code>optional bytes interpreter_specific_bytes = 5;</code>
+       * <code>optional bytes interpreter_specific_bytes = 6;</code>
        */
       public com.google.protobuf.ByteString getInterpreterSpecificBytes() {
         return interpreterSpecificBytes_;
       }
       /**
-       * <code>optional bytes interpreter_specific_bytes = 5;</code>
+       * <code>optional bytes interpreter_specific_bytes = 6;</code>
        */
       public Builder setInterpreterSpecificBytes(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000010;
+  bitField0_ |= 0x00000020;
         interpreterSpecificBytes_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>optional bytes interpreter_specific_bytes = 5;</code>
+       * <code>optional bytes interpreter_specific_bytes = 6;</code>
        */
       public Builder clearInterpreterSpecificBytes() {
-        bitField0_ = (bitField0_ & ~0x00000010);
+        bitField0_ = (bitField0_ & ~0x00000020);
         interpreterSpecificBytes_ = getDefaultInstance().getInterpreterSpecificBytes();
         onChanged();
         return this;
@@ -37092,6 +38516,1571 @@ public final class TrxRegionProtos {
     // @@protoc_insertion_point(class_scope:TransactionStateMsg)
   }
 
+  public interface TransactionMutationMsgOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // required int64 txId = 1;
+    /**
+     * <code>required int64 txId = 1;</code>
+     */
+    boolean hasTxId();
+    /**
+     * <code>required int64 txId = 1;</code>
+     */
+    long getTxId();
+
+    // repeated .MutationProto put = 2;
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> 
+        getPutList();
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getPut(int index);
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    int getPutCount();
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
+        getPutOrBuilderList();
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getPutOrBuilder(
+        int index);
+
+    // repeated .MutationProto delete = 3;
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> 
+        getDeleteList();
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getDelete(int index);
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    int getDeleteCount();
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
+        getDeleteOrBuilderList();
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getDeleteOrBuilder(
+        int index);
+
+    // repeated bool putOrDel = 4;
+    /**
+     * <code>repeated bool putOrDel = 4;</code>
+     */
+    java.util.List<java.lang.Boolean> getPutOrDelList();
+    /**
+     * <code>repeated bool putOrDel = 4;</code>
+     */
+    int getPutOrDelCount();
+    /**
+     * <code>repeated bool putOrDel = 4;</code>
+     */
+    boolean getPutOrDel(int index);
+
+    // required int64 startId = 5;
+    /**
+     * <code>required int64 startId = 5;</code>
+     */
+    boolean hasStartId();
+    /**
+     * <code>required int64 startId = 5;</code>
+     */
+    long getStartId();
+
+    // required int64 commitId = 6;
+    /**
+     * <code>required int64 commitId = 6;</code>
+     */
+    boolean hasCommitId();
+    /**
+     * <code>required int64 commitId = 6;</code>
+     */
+    long getCommitId();
+
+    // optional int32 xdcMode = 7;
+    /**
+     * <code>optional int32 xdcMode = 7;</code>
+     */
+    boolean hasXdcMode();
+    /**
+     * <code>optional int32 xdcMode = 7;</code>
+     */
+    int getXdcMode();
+  }
+  /**
+   * Protobuf type {@code TransactionMutationMsg}
+   */
+  public static final class TransactionMutationMsg extends
+      com.google.protobuf.GeneratedMessage
+      implements TransactionMutationMsgOrBuilder {
+    // Use TransactionMutationMsg.newBuilder() to construct.
+    private TransactionMutationMsg(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private TransactionMutationMsg(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final TransactionMutationMsg defaultInstance;
+    public static TransactionMutationMsg getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public TransactionMutationMsg getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private TransactionMutationMsg(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 8: {
+              bitField0_ |= 0x00000001;
+              txId_ = input.readInt64();
+              break;
+            }
+            case 18: {
+              if (!((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
+                put_ = new java.util.ArrayList<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto>();
+                mutable_bitField0_ |= 0x00000002;
+              }
+              put_.add(input.readMessage(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.PARSER, extensionRegistry));
+              break;
+            }
+            case 26: {
+              if (!((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
+                delete_ = new java.util.ArrayList<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto>();
+                mutable_bitField0_ |= 0x00000004;
+              }
+              delete_.add(input.readMessage(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.PARSER, extensionRegistry));
+              break;
+            }
+            case 32: {
+              if (!((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
+                putOrDel_ = new java.util.ArrayList<java.lang.Boolean>();
+                mutable_bitField0_ |= 0x00000008;
+              }
+              putOrDel_.add(input.readBool());
+              break;
+            }
+            case 34: {
+              int length = input.readRawVarint32();
+              int limit = input.pushLimit(length);
+              if (!((mutable_bitField0_ & 0x00000008) == 0x00000008) && input.getBytesUntilLimit() > 0) {
+                putOrDel_ = new java.util.ArrayList<java.lang.Boolean>();
+                mutable_bitField0_ |= 0x00000008;
+              }
+              while (input.getBytesUntilLimit() > 0) {
+                putOrDel_.add(input.readBool());
+              }
+              input.popLimit(limit);
+              break;
+            }
+            case 40: {
+              bitField0_ |= 0x00000002;
+              startId_ = input.readInt64();
+              break;
+            }
+            case 48: {
+              bitField0_ |= 0x00000004;
+              commitId_ = input.readInt64();
+              break;
+            }
+            case 56: {
+              bitField0_ |= 0x00000008;
+              xdcMode_ = input.readInt32();
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
+          put_ = java.util.Collections.unmodifiableList(put_);
+        }
+        if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
+          delete_ = java.util.Collections.unmodifiableList(delete_);
+        }
+        if (((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
+          putOrDel_ = java.util.Collections.unmodifiableList(putOrDel_);
+        }
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.internal_static_TransactionMutationMsg_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.internal_static_TransactionMutationMsg_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg.class, org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<TransactionMutationMsg> PARSER =
+        new com.google.protobuf.AbstractParser<TransactionMutationMsg>() {
+      public TransactionMutationMsg parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new TransactionMutationMsg(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<TransactionMutationMsg> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    // required int64 txId = 1;
+    public static final int TXID_FIELD_NUMBER = 1;
+    private long txId_;
+    /**
+     * <code>required int64 txId = 1;</code>
+     */
+    public boolean hasTxId() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>required int64 txId = 1;</code>
+     */
+    public long getTxId() {
+      return txId_;
+    }
+
+    // repeated .MutationProto put = 2;
+    public static final int PUT_FIELD_NUMBER = 2;
+    private java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> put_;
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> getPutList() {
+      return put_;
+    }
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    public java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
+        getPutOrBuilderList() {
+      return put_;
+    }
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    public int getPutCount() {
+      return put_.size();
+    }
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getPut(int index) {
+      return put_.get(index);
+    }
+    /**
+     * <code>repeated .MutationProto put = 2;</code>
+     */
+    public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getPutOrBuilder(
+        int index) {
+      return put_.get(index);
+    }
+
+    // repeated .MutationProto delete = 3;
+    public static final int DELETE_FIELD_NUMBER = 3;
+    private java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> delete_;
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> getDeleteList() {
+      return delete_;
+    }
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    public java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
+        getDeleteOrBuilderList() {
+      return delete_;
+    }
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    public int getDeleteCount() {
+      return delete_.size();
+    }
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getDelete(int index) {
+      return delete_.get(index);
+    }
+    /**
+     * <code>repeated .MutationProto delete = 3;</code>
+     */
+    public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getDeleteOrBuilder(
+        int index) {
+      return delete_.get(index);
+    }
+
+    // repeated bool putOrDel = 4;
+    public static final int PUTORDEL_FIELD_NUMBER = 4;
+    private java.util.List<java.lang.Boolean> putOrDel_;
+    /**
+     * <code>repeated bool putOrDel = 4;</code>
+     */
+    public java.util.List<java.lang.Boolean>
+        getPutOrDelList() {
+      return putOrDel_;
+    }
+    /**
+     * <code>repeated bool putOrDel = 4;</code>
+     */
+    public int getPutOrDelCount() {
+      return putOrDel_.size();
+    }
+    /**
+     * <code>repeated bool putOrDel = 4;</code>
+     */
+    public boolean getPutOrDel(int index) {
+      return putOrDel_.get(index);
+    }
+
+    // required int64 startId = 5;
+    public static final int STARTID_FIELD_NUMBER = 5;
+    private long startId_;
+    /**
+     * <code>required int64 startId = 5;</code>
+     */
+    public boolean hasStartId() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>required int64 startId = 5;</code>
+     */
+    public long getStartId() {
+      return startId_;
+    }
+
+    // required int64 commitId = 6;
+    public static final int COMMITID_FIELD_NUMBER = 6;
+    private long commitId_;
+    /**
+     * <code>required int64 commitId = 6;</code>
+     */
+    public boolean hasCommitId() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>required int64 commitId = 6;</code>
+     */
+    public long getCommitId() {
+      return commitId_;
+    }
+
+    // optional int32 xdcMode = 7;
+    public static final int XDCMODE_FIELD_NUMBER = 7;
+    private int xdcMode_;
+    /**
+     * <code>optional int32 xdcMode = 7;</code>
+     */
+    public boolean hasXdcMode() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>optional int32 xdcMode = 7;</code>
+     */
+    public int getXdcMode() {
+      return xdcMode_;
+    }
+
+    private void initFields() {
+      txId_ = 0L;
+      put_ = java.util.Collections.emptyList();
+      delete_ = java.util.Collections.emptyList();
+      putOrDel_ = java.util.Collections.emptyList();
+      startId_ = 0L;
+      commitId_ = 0L;
+      xdcMode_ = 0;
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      if (!hasTxId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasStartId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasCommitId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      for (int i = 0; i < getPutCount(); i++) {
+        if (!getPut(i).isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+      }
+      for (int i = 0; i < getDeleteCount(); i++) {
+        if (!getDelete(i).isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+      }
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeInt64(1, txId_);
+      }
+      for (int i = 0; i < put_.size(); i++) {
+        output.writeMessage(2, put_.get(i));
+      }
+      for (int i = 0; i < delete_.size(); i++) {
+        output.writeMessage(3, delete_.get(i));
+      }
+      for (int i = 0; i < putOrDel_.size(); i++) {
+        output.writeBool(4, putOrDel_.get(i));
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeInt64(5, startId_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeInt64(6, commitId_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeInt32(7, xdcMode_);
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(1, txId_);
+      }
+      for (int i = 0; i < put_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, put_.get(i));
+      }
+      for (int i = 0; i < delete_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(3, delete_.get(i));
+      }
+      {
+        int dataSize = 0;
+        dataSize = 1 * getPutOrDelList().size();
+        size += dataSize;
+        size += 1 * getPutOrDelList().size();
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(5, startId_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(6, commitId_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(7, xdcMode_);
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code TransactionMutationMsg}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsgOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.internal_static_TransactionMutationMsg_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.internal_static_TransactionMutationMsg_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg.class, org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg.Builder.class);
+      }
+
+      // Construct using org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          getPutFieldBuilder();
+          getDeleteFieldBuilder();
+        }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
+
+      public Builder clear() {
+        super.clear();
+        txId_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        if (putBuilder_ == null) {
+          put_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+        } else {
+          putBuilder_.clear();
+        }
+        if (deleteBuilder_ == null) {
+          delete_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000004);
+        } else {
+          deleteBuilder_.clear();
+        }
+        putOrDel_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000008);
+        startId_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000010);
+        commitId_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000020);
+        xdcMode_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000040);
+        return this;
+      }
+
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.internal_static_TransactionMutationMsg_descriptor;
+      }
+
+      public org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg getDefaultInstanceForType() {
+        return org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg.getDefaultInstance();
+      }
+
+      public org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg build() {
+        org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg buildPartial() {
+        org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg result = new org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.txId_ = txId_;
+        if (putBuilder_ == null) {
+          if (((bitField0_ & 0x00000002) == 0x00000002)) {
+            put_ = java.util.Collections.unmodifiableList(put_);
+            bitField0_ = (bitField0_ & ~0x00000002);
+          }
+          result.put_ = put_;
+        } else {
+          result.put_ = putBuilder_.build();
+        }
+        if (deleteBuilder_ == null) {
+          if (((bitField0_ & 0x00000004) == 0x00000004)) {
+            delete_ = java.util.Collections.unmodifiableList(delete_);
+            bitField0_ = (bitField0_ & ~0x00000004);
+          }
+          result.delete_ = delete_;
+        } else {
+          result.delete_ = deleteBuilder_.build();
+        }
+        if (((bitField0_ & 0x00000008) == 0x00000008)) {
+          putOrDel_ = java.util.Collections.unmodifiableList(putOrDel_);
+          bitField0_ = (bitField0_ & ~0x00000008);
+        }
+        result.putOrDel_ = putOrDel_;
+        if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.startId_ = startId_;
+        if (((from_bitField0_ & 0x00000020) == 0x00000020)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        result.commitId_ = commitId_;
+        if (((from_bitField0_ & 0x00000040) == 0x00000040)) {
+          to_bitField0_ |= 0x00000008;
+        }
+        result.xdcMode_ = xdcMode_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg) {
+          return mergeFrom((org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg other) {
+        if (other == org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg.getDefaultInstance()) return this;
+        if (other.hasTxId()) {
+          setTxId(other.getTxId());
+        }
+        if (putBuilder_ == null) {
+          if (!other.put_.isEmpty()) {
+            if (put_.isEmpty()) {
+              put_ = other.put_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+            } else {
+              ensurePutIsMutable();
+              put_.addAll(other.put_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.put_.isEmpty()) {
+            if (putBuilder_.isEmpty()) {
+              putBuilder_.dispose();
+              putBuilder_ = null;
+              put_ = other.put_;
+              bitField0_ = (bitField0_ & ~0x00000002);
+              putBuilder_ = 
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                   getPutFieldBuilder() : null;
+            } else {
+              putBuilder_.addAllMessages(other.put_);
+            }
+          }
+        }
+        if (deleteBuilder_ == null) {
+          if (!other.delete_.isEmpty()) {
+            if (delete_.isEmpty()) {
+              delete_ = other.delete_;
+              bitField0_ = (bitField0_ & ~0x00000004);
+            } else {
+              ensureDeleteIsMutable();
+              delete_.addAll(other.delete_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.delete_.isEmpty()) {
+            if (deleteBuilder_.isEmpty()) {
+              deleteBuilder_.dispose();
+              deleteBuilder_ = null;
+              delete_ = other.delete_;
+              bitField0_ = (bitField0_ & ~0x00000004);
+              deleteBuilder_ = 
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                   getDeleteFieldBuilder() : null;
+            } else {
+              deleteBuilder_.addAllMessages(other.delete_);
+            }
+          }
+        }
+        if (!other.putOrDel_.isEmpty()) {
+          if (putOrDel_.isEmpty()) {
+            putOrDel_ = other.putOrDel_;
+            bitField0_ = (bitField0_ & ~0x00000008);
+          } else {
+            ensurePutOrDelIsMutable();
+            putOrDel_.addAll(other.putOrDel_);
+          }
+          onChanged();
+        }
+        if (other.hasStartId()) {
+          setStartId(other.getStartId());
+        }
+        if (other.hasCommitId()) {
+          setCommitId(other.getCommitId());
+        }
+        if (other.hasXdcMode()) {
+          setXdcMode(other.getXdcMode());
+        }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        if (!hasTxId()) {
+          
+          return false;
+        }
+        if (!hasStartId()) {
+          
+          return false;
+        }
+        if (!hasCommitId()) {
+          
+          return false;
+        }
+        for (int i = 0; i < getPutCount(); i++) {
+          if (!getPut(i).isInitialized()) {
+            
+            return false;
+          }
+        }
+        for (int i = 0; i < getDeleteCount(); i++) {
+          if (!getDelete(i).isInitialized()) {
+            
+            return false;
+          }
+        }
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      // required int64 txId = 1;
+      private long txId_ ;
+      /**
+       * <code>required int64 txId = 1;</code>
+       */
+      public boolean hasTxId() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>required int64 txId = 1;</code>
+       */
+      public long getTxId() {
+        return txId_;
+      }
+      /**
+       * <code>required int64 txId = 1;</code>
+       */
+      public Builder setTxId(long value) {
+        bitField0_ |= 0x00000001;
+        txId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 txId = 1;</code>
+       */
+      public Builder clearTxId() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        txId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // repeated .MutationProto put = 2;
+      private java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> put_ =
+        java.util.Collections.emptyList();
+      private void ensurePutIsMutable() {
+        if (!((bitField0_ & 0x00000002) == 0x00000002)) {
+          put_ = new java.util.ArrayList<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto>(put_);
+          bitField0_ |= 0x00000002;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilder<
+          org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> putBuilder_;
+
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> getPutList() {
+        if (putBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(put_);
+        } else {
+          return putBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public int getPutCount() {
+        if (putBuilder_ == null) {
+          return put_.size();
+        } else {
+          return putBuilder_.getCount();
+        }
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getPut(int index) {
+        if (putBuilder_ == null) {
+          return put_.get(index);
+        } else {
+          return putBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder setPut(
+          int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
+        if (putBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensurePutIsMutable();
+          put_.set(index, value);
+          onChanged();
+        } else {
+          putBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder setPut(
+          int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
+        if (putBuilder_ == null) {
+          ensurePutIsMutable();
+          put_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          putBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder addPut(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
+        if (putBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensurePutIsMutable();
+          put_.add(value);
+          onChanged();
+        } else {
+          putBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder addPut(
+          int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
+        if (putBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensurePutIsMutable();
+          put_.add(index, value);
+          onChanged();
+        } else {
+          putBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder addPut(
+          org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
+        if (putBuilder_ == null) {
+          ensurePutIsMutable();
+          put_.add(builderForValue.build());
+          onChanged();
+        } else {
+          putBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder addPut(
+          int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
+        if (putBuilder_ == null) {
+          ensurePutIsMutable();
+          put_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          putBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder addAllPut(
+          java.lang.Iterable<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> values) {
+        if (putBuilder_ == null) {
+          ensurePutIsMutable();
+          super.addAll(values, put_);
+          onChanged();
+        } else {
+          putBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder clearPut() {
+        if (putBuilder_ == null) {
+          put_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000002);
+          onChanged();
+        } else {
+          putBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public Builder removePut(int index) {
+        if (putBuilder_ == null) {
+          ensurePutIsMutable();
+          put_.remove(index);
+          onChanged();
+        } else {
+          putBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder getPutBuilder(
+          int index) {
+        return getPutFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getPutOrBuilder(
+          int index) {
+        if (putBuilder_ == null) {
+          return put_.get(index);  } else {
+          return putBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
+           getPutOrBuilderList() {
+        if (putBuilder_ != null) {
+          return putBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(put_);
+        }
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder addPutBuilder() {
+        return getPutFieldBuilder().addBuilder(
+            org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder addPutBuilder(
+          int index) {
+        return getPutFieldBuilder().addBuilder(
+            index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .MutationProto put = 2;</code>
+       */
+      public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder> 
+           getPutBuilderList() {
+        return getPutFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilder<
+          org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
+          getPutFieldBuilder() {
+        if (putBuilder_ == null) {
+          putBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+              org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder>(
+                  put_,
+                  ((bitField0_ & 0x00000002) == 0x00000002),
+                  getParentForChildren(),
+                  isClean());
+          put_ = null;
+        }
+        return putBuilder_;
+      }
+
+      // repeated .MutationProto delete = 3;
+      private java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> delete_ =
+        java.util.Collections.emptyList();
+      private void ensureDeleteIsMutable() {
+        if (!((bitField0_ & 0x00000004) == 0x00000004)) {
+          delete_ = new java.util.ArrayList<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto>(delete_);
+          bitField0_ |= 0x00000004;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilder<
+          org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> deleteBuilder_;
+
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> getDeleteList() {
+        if (deleteBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(delete_);
+        } else {
+          return deleteBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public int getDeleteCount() {
+        if (deleteBuilder_ == null) {
+          return delete_.size();
+        } else {
+          return deleteBuilder_.getCount();
+        }
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto getDelete(int index) {
+        if (deleteBuilder_ == null) {
+          return delete_.get(index);
+        } else {
+          return deleteBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder setDelete(
+          int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
+        if (deleteBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureDeleteIsMutable();
+          delete_.set(index, value);
+          onChanged();
+        } else {
+          deleteBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder setDelete(
+          int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
+        if (deleteBuilder_ == null) {
+          ensureDeleteIsMutable();
+          delete_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          deleteBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder addDelete(org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
+        if (deleteBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureDeleteIsMutable();
+          delete_.add(value);
+          onChanged();
+        } else {
+          deleteBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder addDelete(
+          int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto value) {
+        if (deleteBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureDeleteIsMutable();
+          delete_.add(index, value);
+          onChanged();
+        } else {
+          deleteBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder addDelete(
+          org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
+        if (deleteBuilder_ == null) {
+          ensureDeleteIsMutable();
+          delete_.add(builderForValue.build());
+          onChanged();
+        } else {
+          deleteBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder addDelete(
+          int index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder builderForValue) {
+        if (deleteBuilder_ == null) {
+          ensureDeleteIsMutable();
+          delete_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          deleteBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder addAllDelete(
+          java.lang.Iterable<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto> values) {
+        if (deleteBuilder_ == null) {
+          ensureDeleteIsMutable();
+          super.addAll(values, delete_);
+          onChanged();
+        } else {
+          deleteBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder clearDelete() {
+        if (deleteBuilder_ == null) {
+          delete_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000004);
+          onChanged();
+        } else {
+          deleteBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public Builder removeDelete(int index) {
+        if (deleteBuilder_ == null) {
+          ensureDeleteIsMutable();
+          delete_.remove(index);
+          onChanged();
+        } else {
+          deleteBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder getDeleteBuilder(
+          int index) {
+        return getDeleteFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder getDeleteOrBuilder(
+          int index) {
+        if (deleteBuilder_ == null) {
+          return delete_.get(index);  } else {
+          return deleteBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public java.util.List<? extends org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
+           getDeleteOrBuilderList() {
+        if (deleteBuilder_ != null) {
+          return deleteBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(delete_);
+        }
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder addDeleteBuilder() {
+        return getDeleteFieldBuilder().addBuilder(
+            org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder addDeleteBuilder(
+          int index) {
+        return getDeleteFieldBuilder().addBuilder(
+            index, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .MutationProto delete = 3;</code>
+       */
+      public java.util.List<org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder> 
+           getDeleteBuilderList() {
+        return getDeleteFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilder<
+          org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder> 
+          getDeleteFieldBuilder() {
+        if (deleteBuilder_ == null) {
+          deleteBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+              org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.Builder, org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProtoOrBuilder>(
+                  delete_,
+                  ((bitField0_ & 0x00000004) == 0x00000004),
+                  getParentForChildren(),
+                  isClean());
+          delete_ = null;
+        }
+        return deleteBuilder_;
+      }
+
+      // repeated bool putOrDel = 4;
+      private java.util.List<java.lang.Boolean> putOrDel_ = java.util.Collections.emptyList();
+      private void ensurePutOrDelIsMutable() {
+        if (!((bitField0_ & 0x00000008) == 0x00000008)) {
+          putOrDel_ = new java.util.ArrayList<java.lang.Boolean>(putOrDel_);
+          bitField0_ |= 0x00000008;
+         }
+      }
+      /**
+       * <code>repeated bool putOrDel = 4;</code>
+       */
+      public java.util.List<java.lang.Boolean>
+          getPutOrDelList() {
+        return java.util.Collections.unmodifiableList(putOrDel_);
+      }
+      /**
+       * <code>repeated bool putOrDel = 4;</code>
+       */
+      public int getPutOrDelCount() {
+        return putOrDel_.size();
+      }
+      /**
+       * <code>repeated bool putOrDel = 4;</code>
+       */
+      public boolean getPutOrDel(int index) {
+        return putOrDel_.get(index);
+      }
+      /**
+       * <code>repeated bool putOrDel = 4;</code>
+       */
+      public Builder setPutOrDel(
+          int index, boolean value) {
+        ensurePutOrDelIsMutable();
+        putOrDel_.set(index, value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated bool putOrDel = 4;</code>
+       */
+      public Builder addPutOrDel(boolean value) {
+        ensurePutOrDelIsMutable();
+        putOrDel_.add(value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated bool putOrDel = 4;</code>
+       */
+      public Builder addAllPutOrDel(
+          java.lang.Iterable<? extends java.lang.Boolean> values) {
+        ensurePutOrDelIsMutable();
+        super.addAll(values, putOrDel_);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated bool putOrDel = 4;</code>
+       */
+      public Builder clearPutOrDel() {
+        putOrDel_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000008);
+        onChanged();
+        return this;
+      }
+
+      // required int64 startId = 5;
+      private long startId_ ;
+      /**
+       * <code>required int64 startId = 5;</code>
+       */
+      public boolean hasStartId() {
+        return ((bitField0_ & 0x00000010) == 0x00000010);
+      }
+      /**
+       * <code>required int64 startId = 5;</code>
+       */
+      public long getStartId() {
+        return startId_;
+      }
+      /**
+       * <code>required int64 startId = 5;</code>
+       */
+      public Builder setStartId(long value) {
+        bitField0_ |= 0x00000010;
+        startId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 startId = 5;</code>
+       */
+      public Builder clearStartId() {
+        bitField0_ = (bitField0_ & ~0x00000010);
+        startId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // required int64 commitId = 6;
+      private long commitId_ ;
+      /**
+       * <code>required int64 commitId = 6;</code>
+       */
+      public boolean hasCommitId() {
+        return ((bitField0_ & 0x00000020) == 0x00000020);
+      }
+      /**
+       * <code>required int64 commitId = 6;</code>
+       */
+      public long getCommitId() {
+        return commitId_;
+      }
+      /**
+       * <code>required int64 commitId = 6;</code>
+       */
+      public Builder setCommitId(long value) {
+        bitField0_ |= 0x00000020;
+        commitId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 commitId = 6;</code>
+       */
+      public Builder clearCommitId() {
+        bitField0_ = (bitField0_ & ~0x00000020);
+        commitId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // optional int32 xdcMode = 7;
+      private int xdcMode_ ;
+      /**
+       * <code>optional int32 xdcMode = 7;</code>
+       */
+      public boolean hasXdcMode() {
+        return ((bitField0_ & 0x00000040) == 0x00000040);
+      }
+      /**
+       * <code>optional int32 xdcMode = 7;</code>
+       */
+      public int getXdcMode() {
+        return xdcMode_;
+      }
+      /**
+       * <code>optional int32 xdcMode = 7;</code>
+       */
+      public Builder setXdcMode(int value) {
+        bitField0_ |= 0x00000040;
+        xdcMode_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int32 xdcMode = 7;</code>
+       */
+      public Builder clearXdcMode() {
+        bitField0_ = (bitField0_ & ~0x00000040);
+        xdcMode_ = 0;
+        onChanged();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:TransactionMutationMsg)
+    }
+
+    static {
+      defaultInstance = new TransactionMutationMsg(true);
+      defaultInstance.initFields();
+    }
+
+    // @@protoc_insertion_point(class_scope:TransactionMutationMsg)
+  }
+
   /**
    * Protobuf service {@code TrxRegionService}
    */
@@ -39552,6 +42541,11 @@ public final class TrxRegionProtos {
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_TransactionStateMsg_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_TransactionMutationMsg_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_TransactionMutationMsg_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -39562,190 +42556,202 @@ public final class TrxRegionProtos {
   static {
     java.lang.String[] descriptorData = {
       "\n\017TrxRegion.proto\032\013HBase.proto\032\023ClusterS" +
-      "tatus.proto\032\014Client.proto\"\\\n\027AbortTransa" +
+      "tatus.proto\032\014Client.proto\"w\n\027AbortTransa" +
       "ctionRequest\022\022\n\nregionName\030\001 \002(\014\022\025\n\rtran" +
-      "sactionId\030\002 \002(\003\022\026\n\016participantNum\030\003 \002(\005\"" +
-      "C\n\030AbortTransactionResponse\022\021\n\texception" +
-      "\030\001 \001(\t\022\024\n\014hasException\030\002 \001(\010\"d\n\037AbortTra" +
-      "nsactionMultipleRequest\022\022\n\nregionName\030\001 " +
-      "\003(\014\022\025\n\rtransactionId\030\002 \002(\003\022\026\n\016participan" +
-      "tNum\030\003 \002(\005\"K\n AbortTransactionMultipleRe" +
-      "sponse\022\021\n\texception\030\001 \003(\t\022\024\n\014hasExceptio",
-      "n\030\002 \001(\010\"D\n\027BeginTransactionRequest\022\025\n\rtr" +
-      "ansactionId\030\001 \002(\003\022\022\n\nregionName\030\002 \002(\014\"C\n" +
-      "\030BeginTransactionResponse\022\021\n\texception\030\001" +
-      " \001(\t\022\024\n\014hasException\030\002 \001(\010\"}\n\rCommitRequ" +
-      "est\022\022\n\nregionName\030\001 \002(\014\022\025\n\rtransactionId" +
-      "\030\002 \002(\003\022\026\n\016participantNum\030\003 \002(\005\022)\n!ignore" +
-      "UnknownTransactionException\030\004 \001(\010\"9\n\016Com" +
-      "mitResponse\022\021\n\texception\030\001 \001(\t\022\024\n\014hasExc" +
-      "eption\030\002 \001(\010\"\205\001\n\025CommitMultipleRequest\022\022" +
-      "\n\nregionName\030\001 \003(\014\022\025\n\rtransactionId\030\002 \002(",
-      "\003\022\026\n\016participantNum\030\003 \002(\005\022)\n!ignoreUnkno" +
-      "wnTransactionException\030\004 \001(\010\"A\n\026CommitMu" +
-      "ltipleResponse\022\021\n\texception\030\001 \003(\t\022\024\n\014has" +
-      "Exception\030\002 \001(\010\"Y\n\024CommitRequestRequest\022" +
-      "\022\n\nregionName\030\001 \002(\014\022\025\n\rtransactionId\030\002 \002" +
-      "(\003\022\026\n\016participantNum\030\003 \002(\005\"P\n\025CommitRequ" +
-      "estResponse\022\016\n\006result\030\001 \002(\005\022\021\n\texception" +
-      "\030\002 \001(\t\022\024\n\014hasException\030\003 \001(\010\"a\n\034CommitRe" +
-      "questMultipleRequest\022\022\n\nregionName\030\001 \003(\014" +
-      "\022\025\n\rtransactionId\030\002 \002(\003\022\026\n\016participantNu",
-      "m\030\003 \002(\005\"X\n\035CommitRequestMultipleResponse" +
-      "\022\016\n\006result\030\001 \003(\005\022\021\n\texception\030\002 \003(\t\022\024\n\014h" +
-      "asException\030\003 \001(\010\"\\\n\027CommitIfPossibleReq" +
-      "uest\022\022\n\nregionName\030\001 \002(\014\022\025\n\rtransactionI" +
-      "d\030\002 \002(\003\022\026\n\016participantNum\030\003 \002(\005\"C\n\030Commi" +
-      "tIfPossibleResponse\022\021\n\texception\030\001 \001(\t\022\024" +
-      "\n\014hasException\030\002 \001(\010\"\241\001\n\025CheckAndDeleteR" +
-      "equest\022\025\n\rtransactionId\030\001 \002(\003\022\022\n\nregionN" +
-      "ame\030\002 \002(\014\022\013\n\003row\030\003 \002(\014\022\016\n\006family\030\004 \002(\014\022\021" +
-      "\n\tqualifier\030\005 \002(\014\022\r\n\005value\030\006 \002(\014\022\036\n\006dele",
-      "te\030\007 \002(\0132\016.MutationProto\"Q\n\026CheckAndDele" +
-      "teResponse\022\016\n\006result\030\001 \002(\010\022\021\n\texception\030" +
-      "\002 \001(\t\022\024\n\014hasException\030\003 \001(\010\"\233\001\n\022CheckAnd" +
-      "PutRequest\022\025\n\rtransactionId\030\001 \002(\003\022\022\n\nreg" +
-      "ionName\030\002 \002(\014\022\013\n\003row\030\003 \002(\014\022\016\n\006family\030\004 \002" +
-      "(\014\022\021\n\tqualifier\030\005 \002(\014\022\r\n\005value\030\006 \002(\014\022\033\n\003" +
-      "put\030\007 \002(\0132\016.MutationProto\"N\n\023CheckAndPut" +
+      "sactionId\030\002 \002(\003\022\026\n\016participantNum\030\003 \002(\005\022" +
+      "\031\n\021dropTableRecorded\030\004 \002(\010\"C\n\030AbortTrans" +
+      "actionResponse\022\021\n\texception\030\001 \001(\t\022\024\n\014has" +
+      "Exception\030\002 \001(\010\"d\n\037AbortTransactionMulti" +
+      "pleRequest\022\022\n\nregionName\030\001 \003(\014\022\025\n\rtransa" +
+      "ctionId\030\002 \002(\003\022\026\n\016participantNum\030\003 \002(\005\"K\n" +
+      " AbortTransactionMultipleResponse\022\021\n\texc",
+      "eption\030\001 \003(\t\022\024\n\014hasException\030\002 \001(\010\"U\n\027Be" +
+      "ginTransactionRequest\022\025\n\rtransactionId\030\001" +
+      " \002(\003\022\017\n\007startId\030\002 \002(\003\022\022\n\nregionName\030\003 \002(" +
+      "\014\"C\n\030BeginTransactionResponse\022\021\n\texcepti" +
+      "on\030\001 \001(\t\022\024\n\014hasException\030\002 \001(\010\"\217\001\n\rCommi" +
+      "tRequest\022\022\n\nregionName\030\001 \002(\014\022\025\n\rtransact" +
+      "ionId\030\002 \002(\003\022\020\n\010commitId\030\003 \002(\003\022\026\n\016partici" +
+      "pantNum\030\004 \002(\005\022)\n!ignoreUnknownTransactio" +
+      "nException\030\005 \001(\010\"9\n\016CommitResponse\022\021\n\tex" +
+      "ception\030\001 \001(\t\022\024\n\014hasException\030\002 \001(\010\"\227\001\n\025",
+      "CommitMultipleRequest\022\022\n\nregionName\030\001 \003(" +
+      "\014\022\025\n\rtransactionId\030\002 \002(\003\022\020\n\010commitId\030\003 \002" +
+      "(\003\022\026\n\016participantNum\030\004 \002(\005\022)\n!ignoreUnkn" +
+      "ownTransactionException\030\005 \001(\010\"A\n\026CommitM" +
+      "ultipleResponse\022\021\n\texception\030\001 \003(\t\022\024\n\014ha" +
+      "sException\030\002 \001(\010\"t\n\024CommitRequestRequest" +
+      "\022\022\n\nregionName\030\001 \002(\014\022\025\n\rtransactionId\030\002 " +
+      "\002(\003\022\026\n\016participantNum\030\003 \002(\005\022\031\n\021dropTable" +
+      "Recorded\030\004 \002(\010\"P\n\025CommitRequestResponse\022" +
+      "\016\n\006result\030\001 \002(\005\022\021\n\texception\030\002 \001(\t\022\024\n\014ha",
+      "sException\030\003 \001(\010\"a\n\034CommitRequestMultipl" +
+      "eRequest\022\022\n\nregionName\030\001 \003(\014\022\025\n\rtransact" +
+      "ionId\030\002 \002(\003\022\026\n\016participantNum\030\003 \002(\005\"X\n\035C" +
+      "ommitRequestMultipleResponse\022\016\n\006result\030\001" +
+      " \003(\005\022\021\n\texception\030\002 \003(\t\022\024\n\014hasException\030" +
+      "\003 \001(\010\"n\n\027CommitIfPossibleRequest\022\022\n\nregi" +
+      "onName\030\001 \002(\014\022\025\n\rtransactionId\030\002 \002(\003\022\020\n\010c" +
+      "ommitId\030\003 \002(\003\022\026\n\016participantNum\030\004 \002(\005\"C\n" +
+      "\030CommitIfPossibleResponse\022\021\n\texception\030\001" +
+      " \001(\t\022\024\n\014hasException\030\002 \001(\010\"\262\001\n\025CheckAndD",
+      "eleteRequest\022\025\n\rtransactionId\030\001 \002(\003\022\017\n\007s" +
+      "tartId\030\002 \002(\003\022\022\n\nregionName\030\003 \002(\014\022\013\n\003row\030" +
+      "\004 \002(\014\022\016\n\006family\030\005 \002(\014\022\021\n\tqualifier\030\006 \002(\014" +
+      "\022\r\n\005value\030\007 \002(\014\022\036\n\006delete\030\010 \002(\0132\016.Mutati" +
+      "onProto\"Q\n\026CheckAndDeleteResponse\022\016\n\006res" +
+      "ult\030\001 \002(\010\022\021\n\texception\030\002 \001(\t\022\024\n\014hasExcep" +
+      "tion\030\003 \001(\010\"\254\001\n\022CheckAndPutRequest\022\025\n\rtra" +
+      "nsactionId\030\001 \002(\003\022\017\n\007startId\030\002 \002(\003\022\022\n\nreg" +
+      "ionName\030\003 \002(\014\022\013\n\003row\030\004 \002(\014\022\016\n\006family\030\005 \002" +
+      "(\014\022\021\n\tqualifier\030\006 \002(\014\022\r\n\005value\030\007 \002(\014\022\033\n\003",
+      "put\030\010 \002(\0132\016.MutationProto\"N\n\023CheckAndPut" +
       "Response\022\016\n\006result\030\001 \002(\010\022\021\n\texception\030\002 " +
       "\001(\t\022\024\n\014hasException\030\003 \001(\010\"S\n\023CloseScanne" +
-      "rRequest\022\025\n\rtransactionId\030\001 \002(\003\022\022\n\nregio",
+      "rRequest\022\025\n\rtransactionId\030\001 \002(\003\022\022\n\nregio" +
       "nName\030\002 \002(\014\022\021\n\tscannerId\030\003 \002(\003\"?\n\024CloseS" +
       "cannerResponse\022\021\n\texception\030\001 \001(\t\022\024\n\014has" +
-      "Exception\030\002 \001(\010\"o\n\"DeleteMultipleTransac" +
-      "tionalRequest\022\025\n\rtransactionId\030\001 \002(\003\022\022\n\n" +
-      "regionName\030\002 \002(\014\022\036\n\006delete\030\003 \003(\0132\016.Mutat" +
-      "ionProto\"g\n#DeleteMultipleTransactionalR" +
-      "esponse\022\027\n\006result\030\001 \001(\0132\007.Result\022\021\n\texce" +
-      "ption\030\002 \001(\t\022\024\n\014hasException\030\003 \001(\010\"g\n\032Del" +
-      "eteTransactionalRequest\022\025\n\rtransactionId" +
-      "\030\001 \002(\003\022\022\n\nregionName\030\002 \002(\014\022\036\n\006delete\030\003 \002",
-      "(\0132\016.MutationProto\"_\n\033DeleteTransactiona" +
-      "lResponse\022\027\n\006result\030\001 \001(\0132\007.Result\022\021\n\tex" +
-      "ception\030\002 \001(\t\022\024\n\014hasException\030\003 \001(\010\"W\n\027G" +
-      "etTransactionalRequest\022\025\n\rtransactionId\030" +
-      "\001 \002(\003\022\022\n\nregionName\030\002 \002(\014\022\021\n\003get\030\003 \002(\0132\004" +
-      ".Get\"\\\n\030GetTransactionalResponse\022\027\n\006resu" +
-      "lt\030\001 \001(\0132\007.Result\022\021\n\texception\030\002 \001(\t\022\024\n\014" +
-      "hasException\030\003 \001(\010\"T\n\022OpenScannerRequest" +
-      "\022\025\n\rtransactionId\030\001 \002(\003\022\022\n\nregionName\030\002 " +
-      "\002(\014\022\023\n\004scan\030\003 \002(\0132\005.Scan\"Q\n\023OpenScannerR",
-      "esponse\022\021\n\tscannerId\030\001 \002(\003\022\021\n\texception\030" +
-      "\002 \001(\t\022\024\n\014hasException\030\003 \001(\010\"\223\001\n\022PerformS" +
-      "canRequest\022\025\n\rtransactionId\030\001 \002(\003\022\022\n\nreg" +
-      "ionName\030\002 \002(\014\022\021\n\tscannerId\030\003 \002(\003\022\024\n\014numb" +
-      "erOfRows\030\004 \002(\005\022\024\n\014closeScanner\030\005 \002(\010\022\023\n\013" +
-      "nextCallSeq\030\006 \002(\003\"\214\001\n\023PerformScanRespons" +
-      "e\022\027\n\006result\030\001 \003(\0132\007.Result\022\r\n\005count\030\002 \002(" +
-      "\003\022\023\n\013nextCallSeq\030\003 \002(\003\022\017\n\007hasMore\030\004 \002(\010\022" +
-      "\021\n\texception\030\005 \001(\t\022\024\n\014hasException\030\006 \001(\010" +
-      "\"a\n\027PutTransactionalRequest\022\025\n\rtransacti",
-      "onId\030\001 \002(\003\022\022\n\nregionName\030\002 \002(\014\022\033\n\003put\030\003 " +
-      "\002(\0132\016.MutationProto\"\\\n\030PutTransactionalR" +
-      "esponse\022\027\n\006result\030\001 \001(\0132\007.Result\022\021\n\texce" +
-      "ption\030\002 \001(\t\022\024\n\014hasException\030\003 \001(\010\"i\n\037Put" +
-      "MultipleTransactionalRequest\022\025\n\rtransact" +
-      "ionId\030\001 \002(\003\022\022\n\nregionName\030\002 \002(\014\022\033\n\003put\030\003" +
+      "Exception\030\002 \001(\010\"\200\001\n\"DeleteMultipleTransa" +
+      "ctionalRequest\022\025\n\rtransactionId\030\001 \002(\003\022\017\n" +
+      "\007startId\030\002 \002(\003\022\022\n\nregionName\030\003 \002(\014\022\036\n\006de" +
+      "lete\030\004 \003(\0132\016.MutationProto\"g\n#DeleteMult",
+      "ipleTransactionalResponse\022\027\n\006result\030\001 \001(" +
+      "\0132\007.Result\022\021\n\texception\030\002 \001(\t\022\024\n\014hasExce" +
+      "ption\030\003 \001(\010\"x\n\032DeleteTransactionalReques" +
+      "t\022\025\n\rtransactionId\030\001 \002(\003\022\017\n\007startId\030\002 \002(" +
+      "\003\022\022\n\nregionName\030\003 \002(\014\022\036\n\006delete\030\004 \002(\0132\016." +
+      "MutationProto\"_\n\033DeleteTransactionalResp" +
+      "onse\022\027\n\006result\030\001 \001(\0132\007.Result\022\021\n\texcepti" +
+      "on\030\002 \001(\t\022\024\n\014hasException\030\003 \001(\010\"h\n\027GetTra" +
+      "nsactionalRequest\022\025\n\rtransactionId\030\001 \002(\003" +
+      "\022\017\n\007startId\030\002 \002(\003\022\022\n\nregionName\030\003 \002(\014\022\021\n",
+      "\003get\030\004 \002(\0132\004.Get\"\\\n\030GetTransactionalResp" +
+      "onse\022\027\n\006result\030\001 \001(\0132\007.Result\022\021\n\texcepti" +
+      "on\030\002 \001(\t\022\024\n\014hasException\030\003 \001(\010\"e\n\022OpenSc" +
+      "annerRequest\022\025\n\rtransactionId\030\001 \002(\003\022\017\n\007s" +
+      "tartId\030\002 \002(\003\022\022\n\nregionName\030\003 \002(\014\022\023\n\004scan" +
+      "\030\004 \002(\0132\005.Scan\"Q\n\023OpenScannerResponse\022\021\n\t" +
+      "scannerId\030\001 \002(\003\022\021\n\texception\030\002 \001(\t\022\024\n\014ha" +
+      "sException\030\003 \001(\010\"\244\001\n\022PerformScanRequest\022" +
+      "\025\n\rtransactionId\030\001 \002(\003\022\017\n\007startId\030\002 \002(\003\022" +
+      "\022\n\nregionName\030\003 \002(\014\022\021\n\tscannerId\030\004 \002(\003\022\024",
+      "\n\014numberOfRows\030\005 \002(\005\022\024\n\014closeScanner\030\006 \002" +
+      "(\010\022\023\n\013nextCallSeq\030\007 \002(\003\"\214\001\n\023PerformScanR" +
+      "esponse\022\027\n\006result\030\001 \003(\0132\007.Result\022\r\n\005coun" +
+      "t\030\002 \002(\003\022\023\n\013nextCallSeq\030\003 \002(\003\022\017\n\007hasMore\030" +
+      "\004 \002(\010\022\021\n\texception\030\005 \001(\t\022\024\n\014hasException" +
+      "\030\006 \001(\010\"r\n\027PutTransactionalRequest\022\025\n\rtra" +
+      "nsactionId\030\001 \002(\003\022\017\n\007startId\030\002 \002(\003\022\022\n\nreg" +
+      "ionName\030\003 \002(\014\022\033\n\003put\030\004 \002(\0132\016.MutationPro" +
+      "to\"\\\n\030PutTransactionalResponse\022\027\n\006result" +
+      "\030\001 \001(\0132\007.Result\022\021\n\texception\030\002 \001(\t\022\024\n\014ha",
+      "sException\030\003 \001(\010\"z\n\037PutMultipleTransacti" +
+      "onalRequest\022\025\n\rtransactionId\030\001 \002(\003\022\017\n\007st" +
+      "artId\030\002 \002(\003\022\022\n\nregionName\030\003 \002(\014\022\033\n\003put\030\004" +
       " \003(\0132\016.MutationProto\"d\n PutMultipleTrans" +
       "actionalResponse\022\027\n\006result\030\001 \001(\0132\007.Resul" +
       "t\022\021\n\texception\030\002 \001(\t\022\024\n\014hasException\030\003 \001" +
-      "(\010\"Q\n\026RecoveryRequestRequest\022\025\n\rtransact",
+      "(\010\"Q\n\026RecoveryRequestRequest\022\025\n\rtransact" +
       "ionId\030\001 \002(\003\022\022\n\nregionName\030\002 \002(\014\022\014\n\004tmId\030" +
       "\003 \002(\005\"R\n\027RecoveryRequestResponse\022\016\n\006resu" +
-      "lt\030\001 \003(\003\022\021\n\texception\030\002 \001(\t\022\024\n\014hasExcept" +
+      "lt\030\001 \003(\003\022\021\n\texception\030\002 \001(\t\022\024\n\014hasExcept",
       "ion\030\003 \001(\010\"~\n\021TlogDeleteRequest\022\022\n\nregion" +
       "Name\030\001 \002(\014\022\025\n\rtransactionId\030\002 \002(\003\022\023\n\004sca" +
       "n\030\003 \002(\0132\005.Scan\022\023\n\013auditSeqNum\030\004 \002(\003\022\024\n\014a" +
       "geCommitted\030\005 \002(\010\"e\n\022TlogDeleteResponse\022" +
       "\027\n\006result\030\001 \003(\0132\007.Result\022\r\n\005count\030\002 \002(\003\022" +
       "\021\n\texception\030\003 \001(\t\022\024\n\014hasException\030\004 \001(\010" +
-      "\"\273\001\n\020TlogWriteRequest\022\022\n\nregionName\030\001 \002(",
+      "\"\273\001\n\020TlogWriteRequest\022\022\n\nregionName\030\001 \002(" +
       "\014\022\025\n\rtransactionId\030\002 \002(\003\022\033\n\003put\030\003 \002(\0132\016." +
       "MutationProto\022\013\n\003row\030\004 \002(\014\022\016\n\006family\030\005 \002" +
-      "(\014\022\021\n\tqualifier\030\006 \002(\014\022\r\n\005value\030\007 \002(\014\022\020\n\010" +
+      "(\014\022\021\n\tqualifier\030\006 \002(\014\022\r\n\005value\030\007 \002(\014\022\020\n\010",
       "commitId\030\010 \002(\003\022\016\n\006forced\030\t \001(\010\"L\n\021TlogWr" +
       "iteResponse\022\016\n\006result\030\001 \003(\003\022\021\n\texception" +
       "\030\002 \001(\t\022\024\n\014hasException\030\003 \001(\010\"\321\001\n(TlogTra" +
       "nsactionStatesFromIntervalRequest\022\022\n\nreg" +
       "ionName\030\001 \002(\014\022\025\n\rtransactionId\030\002 \002(\003\022\021\n\t" +
       "clusterId\030\003 \002(\003\022\023\n\013auditSeqNum\030\004 \002(\003\022\021\n\t" +
-      "scannerId\030\005 \002(\003\022\024\n\014numberOfRows\030\006 \002(\005\022\023\n",
+      "scannerId\030\005 \002(\003\022\024\n\014numberOfRows\030\006 \002(\005\022\023\n" +
       "\013nextCallSeq\030\007 \002(\003\022\024\n\014closeScanner\030\010 \002(\010" +
       "\"\242\001\n)TlogTransactionStatesFromIntervalRe" +
-      "sponse\022\027\n\006result\030\001 \003(\0132\007.Result\022\r\n\005count" +
+      "sponse\022\027\n\006result\030\001 \003(\0132\007.Result\022\r\n\005count",
       "\030\002 \002(\003\022\023\n\013nextCallSeq\030\003 \002(\003\022\017\n\007hasMore\030\004" +
       " \002(\010\022\021\n\texception\030\005 \001(\t\022\024\n\014hasException\030" +
-      "\006 \001(\010\"\243\001\n\035TransactionalAggregateRequest\022" +
+      "\006 \001(\010\"\264\001\n\035TransactionalAggregateRequest\022" +
       "\022\n\nregionName\030\001 \002(\014\022\025\n\rtransactionId\030\002 \002" +
-      "(\003\022\036\n\026interpreter_class_name\030\003 \002(\t\022\023\n\004sc" +
-      "an\030\004 \002(\0132\005.Scan\022\"\n\032interpreter_specific_" +
-      "bytes\030\005 \001(\014\"I\n\036TransactionalAggregateRes",
-      "ponse\022\022\n\nfirst_part\030\003 \003(\014\022\023\n\013second_part" +
-      "\030\004 \001(\014\"c\n\022TransactionPersist\022\016\n\006txById\030\001" +
-      " \003(\003\022\024\n\014seqNoListSeq\030\002 \003(\003\022\024\n\014seqNoListT" +
-      "xn\030\003 \003(\003\022\021\n\tnextSeqId\030\004 \002(\003\"\372\001\n\023Transact" +
-      "ionStateMsg\022\014\n\004txId\030\001 \002(\003\022\033\n\003put\030\002 \003(\0132\016" +
-      ".MutationProto\022\036\n\006delete\030\003 \003(\0132\016.Mutatio" +
-      "nProto\022\020\n\010putOrDel\030\004 \003(\010\022\023\n\013txnsToCheck\030" +
-      "\005 \003(\003\022\023\n\013startSeqNum\030\006 \002(\003\022\016\n\006seqNum\030\007 \002" +
-      "(\003\022\020\n\010logSeqId\030\010 \002(\003\022\022\n\nreinstated\030\t \002(\010" +
-      "\022\016\n\006status\030\n \002(\005\022\026\n\016commitProgress\030\013 \002(\005",
-      "2\262\020\n\020TrxRegionService\022G\n\020abortTransactio" +
-      "n\022\030.AbortTransactionRequest\032\031.AbortTrans" +
-      "actionResponse\022_\n\030abortTransactionMultip" +
-      "le\022 .AbortTransactionMultipleRequest\032!.A" +
-      "bortTransactionMultipleResponse\022G\n\020begin" +
-      "Transaction\022\030.BeginTransactionRequest\032\031." +
-      "BeginTransactionResponse\022A\n\016checkAndDele" +
-      "te\022\026.CheckAndDeleteRequest\032\027.CheckAndDel" +
-      "eteResponse\0228\n\013checkAndPut\022\023.CheckAndPut" +
-      "Request\032\024.CheckAndPutResponse\022;\n\014closeSc",
-      "anner\022\024.CloseScannerRequest\032\025.CloseScann" +
-      "erResponse\022)\n\006commit\022\016.CommitRequest\032\017.C" +
-      "ommitResponse\022G\n\020commitIfPossible\022\030.Comm" +
-      "itIfPossibleRequest\032\031.CommitIfPossibleRe" +
-      "sponse\022V\n\025commitRequestMultiple\022\035.Commit" +
-      "RequestMultipleRequest\032\036.CommitRequestMu" +
-      "ltipleResponse\022A\n\016commitMultiple\022\026.Commi" +
-      "tMultipleRequest\032\027.CommitMultipleRespons" +
-      "e\022>\n\rcommitRequest\022\025.CommitRequestReques" +
-      "t\032\026.CommitRequestResponse\022C\n\006delete\022\033.De",
-      "leteTransactionalRequest\032\034.DeleteTransac" +
-      "tionalResponse\022[\n\016deleteMultiple\022#.Delet" +
-      "eMultipleTransactionalRequest\032$.DeleteMu" +
-      "ltipleTransactionalResponse\022:\n\003get\022\030.Get" +
-      "TransactionalRequest\032\031.GetTransactionalR" +
-      "esponse\0228\n\013performScan\022\023.PerformScanRequ" +
-      "est\032\024.PerformScanResponse\0228\n\013openScanner" +
-      "\022\023.OpenScannerRequest\032\024.OpenScannerRespo" +
-      "nse\022:\n\003put\022\030.PutTransactionalRequest\032\031.P" +
-      "utTransactionalResponse\022R\n\013putMultiple\022 ",
-      ".PutMultipleTransactionalRequest\032!.PutMu" +
-      "ltipleTransactionalResponse\022D\n\017recoveryR" +
-      "equest\022\027.RecoveryRequestRequest\032\030.Recove" +
-      "ryRequestResponse\022<\n\021deleteTlogEntries\022\022" +
-      ".TlogDeleteRequest\032\023.TlogDeleteResponse\022" +
-      "0\n\007putTlog\022\021.TlogWriteRequest\032\022.TlogWrit" +
-      "eResponse\022w\n\036getTransactionStatesPriorTo" +
-      "Asn\022).TlogTransactionStatesFromIntervalR" +
-      "equest\032*.TlogTransactionStatesFromInterv" +
-      "alResponse\022I\n\006GetMax\022\036.TransactionalAggr",
-      "egateRequest\032\037.TransactionalAggregateRes" +
-      "ponse\022I\n\006GetMin\022\036.TransactionalAggregate" +
-      "Request\032\037.TransactionalAggregateResponse" +
-      "\022I\n\006GetSum\022\036.TransactionalAggregateReque" +
-      "st\032\037.TransactionalAggregateResponse\022L\n\tG" +
-      "etRowNum\022\036.TransactionalAggregateRequest" +
-      "\032\037.TransactionalAggregateResponse\022I\n\006Get" +
-      "Avg\022\036.TransactionalAggregateRequest\032\037.Tr" +
-      "ansactionalAggregateResponse\022I\n\006GetStd\022\036" +
-      ".TransactionalAggregateRequest\032\037.Transac",
-      "tionalAggregateResponse\022L\n\tGetMedian\022\036.T" +
-      "ransactionalAggregateRequest\032\037.Transacti" +
-      "onalAggregateResponseBS\n;org.apache.hado" +
-      "op.hbase.coprocessor.transactional.gener" +
-      "atedB\017TrxRegionProtosH\001\210\001\001"
+      "(\003\022\017\n\007startId\030\003 \002(\003\022\036\n\026interpreter_class" +
+      "_name\030\004 \002(\t\022\023\n\004scan\030\005 \002(\0132\005.Scan\022\"\n\032inte" +
+      "rpreter_specific_bytes\030\006 \001(\014\"I\n\036Transact" +
+      "ionalAggregateResponse\022\022\n\nfirst_part\030\003 \003" +
+      "(\014\022\023\n\013second_part\030\004 \001(\014\"c\n\022TransactionPe" +
+      "rsist\022\016\n\006txById\030\001 \003(\003\022\024\n\014seqNoListSeq\030\002 ",
+      "\003(\003\022\024\n\014seqNoListTxn\030\003 \003(\003\022\021\n\tnextSeqId\030\004" +
+      " \002(\003\"\372\001\n\023TransactionStateMsg\022\014\n\004txId\030\001 \002" +
+      "(\003\022\033\n\003put\030\002 \003(\0132\016.MutationProto\022\036\n\006delet" +
+      "e\030\003 \003(\0132\016.MutationProto\022\020\n\010putOrDel\030\004 \003(" +
+      "\010\022\023\n\013txnsToCheck\030\005 \003(\003\022\023\n\013startSeqNum\030\006 " +
+      "\002(\003\022\016\n\006seqNum\030\007 \002(\003\022\020\n\010logSeqId\030\010 \002(\003\022\022\n" +
+      "\nreinstated\030\t \002(\010\022\016\n\006status\030\n \002(\005\022\026\n\016com" +
+      "mitProgress\030\013 \002(\005\"\251\001\n\026TransactionMutatio" +
+      "nMsg\022\014\n\004txId\030\001 \002(\003\022\033\n\003put\030\002 \003(\0132\016.Mutati" +
+      "onProto\022\036\n\006delete\030\003 \003(\0132\016.MutationProto\022",
+      "\020\n\010putOrDel\030\004 \003(\010\022\017\n\007startId\030\005 \002(\003\022\020\n\010co" +
+      "mmitId\030\006 \002(\003\022\017\n\007xdcMode\030\007 \001(\0052\262\020\n\020TrxReg" +
+      "ionService\022G\n\020abortTransaction\022\030.AbortTr" +
+      "ansactionRequest\032\031.AbortTransactionRespo" +
+      "nse\022_\n\030abortTransactionMultiple\022 .AbortT" +
+      "ransactionMultipleRequest\032!.AbortTransac" +
+      "tionMultipleResponse\022G\n\020beginTransaction" +
+      "\022\030.BeginTransactionRequest\032\031.BeginTransa" +
+      "ctionResponse\022A\n\016checkAndDelete\022\026.CheckA" +
+      "ndDeleteRequest\032\027.CheckAndDeleteResponse",
+      "\0228\n\013checkAndPut\022\023.CheckAndPutRequest\032\024.C" +
+      "heckAndPutResponse\022;\n\014closeScanner\022\024.Clo" +
+      "seScannerRequest\032\025.CloseScannerResponse\022" +
+      ")\n\006commit\022\016.CommitRequest\032\017.CommitRespon" +
+      "se\022G\n\020commitIfPossible\022\030.CommitIfPossibl" +
+      "eRequest\032\031.CommitIfPossibleResponse\022V\n\025c" +
+      "ommitRequestMultiple\022\035.CommitRequestMult" +
+      "ipleRequest\032\036.CommitRequestMultipleRespo" +
+      "nse\022A\n\016commitMultiple\022\026.CommitMultipleRe" +
+      "quest\032\027.CommitMultipleResponse\022>\n\rcommit",
+      "Request\022\025.CommitRequestRequest\032\026.CommitR" +
+      "equestResponse\022C\n\006delete\022\033.DeleteTransac" +
+      "tionalRequest\032\034.DeleteTransactionalRespo" +
+      "nse\022[\n\016deleteMultiple\022#.DeleteMultipleTr" +
+      "ansactionalRequest\032$.DeleteMultipleTrans" +
+      "actionalResponse\022:\n\003get\022\030.GetTransaction" +
+      "alRequest\032\031.GetTransactionalResponse\0228\n\013" +
+      "performScan\022\023.PerformScanRequest\032\024.Perfo" +
+      "rmScanResponse\0228\n\013openScanner\022\023.OpenScan" +
+      "nerRequest\032\024.OpenScannerResponse\022:\n\003put\022",
+      "\030.PutTransactionalRequest\032\031.PutTransacti" +
+      "onalResponse\022R\n\013putMultiple\022 .PutMultipl" +
+      "eTransactionalRequest\032!.PutMultipleTrans" +
+      "actionalResponse\022D\n\017recoveryRequest\022\027.Re" +
+      "coveryRequestRequest\032\030.RecoveryRequestRe" +
+      "sponse\022<\n\021deleteTlogEntries\022\022.TlogDelete" +
+      "Request\032\023.TlogDeleteResponse\0220\n\007putTlog\022" +
+      "\021.TlogWriteRequest\032\022.TlogWriteResponse\022w" +
+      "\n\036getTransactionStatesPriorToAsn\022).TlogT" +
+      "ransactionStatesFromIntervalRequest\032*.Tl",
+      "ogTransactionStatesFromIntervalResponse\022" +
+      "I\n\006GetMax\022\036.TransactionalAggregateReques" +
+      "t\032\037.TransactionalAggregateResponse\022I\n\006Ge" +
+      "tMin\022\036.TransactionalAggregateRequest\032\037.T" +
+      "ransactionalAggregateResponse\022I\n\006GetSum\022" +
+      "\036.TransactionalAggregateRequest\032\037.Transa" +
+      "ctionalAggregateResponse\022L\n\tGetRowNum\022\036." +
+      "TransactionalAggregateRequest\032\037.Transact" +
+      "ionalAggregateResponse\022I\n\006GetAvg\022\036.Trans" +
+      "actionalAggregateRequest\032\037.Transactional",
+      "AggregateResponse\022I\n\006GetStd\022\036.Transactio" +
+      "nalAggregateRequest\032\037.TransactionalAggre" +
+      "gateResponse\022L\n\tGetMedian\022\036.Transactiona" +
+      "lAggregateRequest\032\037.TransactionalAggrega" +
+      "teResponseBS\n;org.apache.hadoop.hbase.co" +
+      "processor.transactional.generatedB\017TrxRe" +
+      "gionProtosH\001\210\001\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -39757,7 +42763,7 @@ public final class TrxRegionProtos {
           internal_static_AbortTransactionRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_AbortTransactionRequest_descriptor,
-              new java.lang.String[] { "RegionName", "TransactionId", "ParticipantNum", });
+              new java.lang.String[] { "RegionName", "TransactionId", "ParticipantNum", "DropTableRecorded", });
           internal_static_AbortTransactionResponse_descriptor =
             getDescriptor().getMessageTypes().get(1);
           internal_static_AbortTransactionResponse_fieldAccessorTable = new
@@ -39781,7 +42787,7 @@ public final class TrxRegionProtos {
           internal_static_BeginTransactionRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_BeginTransactionRequest_descriptor,
-              new java.lang.String[] { "TransactionId", "RegionName", });
+              new java.lang.String[] { "TransactionId", "StartId", "RegionName", });
           internal_static_BeginTransactionResponse_descriptor =
             getDescriptor().getMessageTypes().get(5);
           internal_static_BeginTransactionResponse_fieldAccessorTable = new
@@ -39793,7 +42799,7 @@ public final class TrxRegionProtos {
           internal_static_CommitRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_CommitRequest_descriptor,
-              new java.lang.String[] { "RegionName", "TransactionId", "ParticipantNum", "IgnoreUnknownTransactionException", });
+              new java.lang.String[] { "RegionName", "TransactionId", "CommitId", "ParticipantNum", "IgnoreUnknownTransactionException", });
           internal_static_CommitResponse_descriptor =
             getDescriptor().getMessageTypes().get(7);
           internal_static_CommitResponse_fieldAccessorTable = new
@@ -39805,7 +42811,7 @@ public final class TrxRegionProtos {
           internal_static_CommitMultipleRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_CommitMultipleRequest_descriptor,
-              new java.lang.String[] { "RegionName", "TransactionId", "ParticipantNum", "IgnoreUnknownTransactionException", });
+              new java.lang.String[] { "RegionName", "TransactionId", "CommitId", "ParticipantNum", "IgnoreUnknownTransactionException", });
           internal_static_CommitMultipleResponse_descriptor =
             getDescriptor().getMessageTypes().get(9);
           internal_static_CommitMultipleResponse_fieldAccessorTable = new
@@ -39817,7 +42823,7 @@ public final class TrxRegionProtos {
           internal_static_CommitRequestRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_CommitRequestRequest_descriptor,
-              new java.lang.String[] { "RegionName", "TransactionId", "ParticipantNum", });
+              new java.lang.String[] { "RegionName", "TransactionId", "ParticipantNum", "DropTableRecorded", });
           internal_static_CommitRequestResponse_descriptor =
             getDescriptor().getMessageTypes().get(11);
           internal_static_CommitRequestResponse_fieldAccessorTable = new
@@ -39841,7 +42847,7 @@ public final class TrxRegionProtos {
           internal_static_CommitIfPossibleRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_CommitIfPossibleRequest_descriptor,
-              new java.lang.String[] { "RegionName", "TransactionId", "ParticipantNum", });
+              new java.lang.String[] { "RegionName", "TransactionId", "CommitId", "ParticipantNum", });
           internal_static_CommitIfPossibleResponse_descriptor =
             getDescriptor().getMessageTypes().get(15);
           internal_static_CommitIfPossibleResponse_fieldAccessorTable = new
@@ -39853,7 +42859,7 @@ public final class TrxRegionProtos {
           internal_static_CheckAndDeleteRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_CheckAndDeleteRequest_descriptor,
-              new java.lang.String[] { "TransactionId", "RegionName", "Row", "Family", "Qualifier", "Value", "Delete", });
+              new java.lang.String[] { "TransactionId", "StartId", "RegionName", "Row", "Family", "Qualifier", "Value", "Delete", });
           internal_static_CheckAndDeleteResponse_descriptor =
             getDescriptor().getMessageTypes().get(17);
           internal_static_CheckAndDeleteResponse_fieldAccessorTable = new
@@ -39865,7 +42871,7 @@ public final class TrxRegionProtos {
           internal_static_CheckAndPutRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_CheckAndPutRequest_descriptor,
-              new java.lang.String[] { "TransactionId", "RegionName", "Row", "Family", "Qualifier", "Value", "Put", });
+              new java.lang.String[] { "TransactionId", "StartId", "RegionName", "Row", "Family", "Qualifier", "Value", "Put", });
           internal_static_CheckAndPutResponse_descriptor =
             getDescriptor().getMessageTypes().get(19);
           internal_static_CheckAndPutResponse_fieldAccessorTable = new
@@ -39889,7 +42895,7 @@ public final class TrxRegionProtos {
           internal_static_DeleteMultipleTransactionalRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_DeleteMultipleTransactionalRequest_descriptor,
-              new java.lang.String[] { "TransactionId", "RegionName", "Delete", });
+              new java.lang.String[] { "TransactionId", "StartId", "RegionName", "Delete", });
           internal_static_DeleteMultipleTransactionalResponse_descriptor =
             getDescriptor().getMessageTypes().get(23);
           internal_static_DeleteMultipleTransactionalResponse_fieldAccessorTable = new
@@ -39901,7 +42907,7 @@ public final class TrxRegionProtos {
           internal_static_DeleteTransactionalRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_DeleteTransactionalRequest_descriptor,
-              new java.lang.String[] { "TransactionId", "RegionName", "Delete", });
+              new java.lang.String[] { "TransactionId", "StartId", "RegionName", "Delete", });
           internal_static_DeleteTransactionalResponse_descriptor =
             getDescriptor().getMessageTypes().get(25);
           internal_static_DeleteTransactionalResponse_fieldAccessorTable = new
@@ -39913,7 +42919,7 @@ public final class TrxRegionProtos {
           internal_static_GetTransactionalRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_GetTransactionalRequest_descriptor,
-              new java.lang.String[] { "TransactionId", "RegionName", "Get", });
+              new java.lang.String[] { "TransactionId", "StartId", "RegionName", "Get", });
           internal_static_GetTransactionalResponse_descriptor =
             getDescriptor().getMessageTypes().get(27);
           internal_static_GetTransactionalResponse_fieldAccessorTable = new
@@ -39925,7 +42931,7 @@ public final class TrxRegionProtos {
           internal_static_OpenScannerRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_OpenScannerRequest_descriptor,
-              new java.lang.String[] { "TransactionId", "RegionName", "Scan", });
+              new java.lang.String[] { "TransactionId", "StartId", "RegionName", "Scan", });
           internal_static_OpenScannerResponse_descriptor =
             getDescriptor().getMessageTypes().get(29);
           internal_static_OpenScannerResponse_fieldAccessorTable = new
@@ -39937,7 +42943,7 @@ public final class TrxRegionProtos {
           internal_static_PerformScanRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_PerformScanRequest_descriptor,
-              new java.lang.String[] { "TransactionId", "RegionName", "ScannerId", "NumberOfRows", "CloseScanner", "NextCallSeq", });
+              new java.lang.String[] { "TransactionId", "StartId", "RegionName", "ScannerId", "NumberOfRows", "CloseScanner", "NextCallSeq", });
           internal_static_PerformScanResponse_descriptor =
             getDescriptor().getMessageTypes().get(31);
           internal_static_PerformScanResponse_fieldAccessorTable = new
@@ -39949,7 +42955,7 @@ public final class TrxRegionProtos {
           internal_static_PutTransactionalRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_PutTransactionalRequest_descriptor,
-              new java.lang.String[] { "TransactionId", "RegionName", "Put", });
+              new java.lang.String[] { "TransactionId", "StartId", "RegionName", "Put", });
           internal_static_PutTransactionalResponse_descriptor =
             getDescriptor().getMessageTypes().get(33);
           internal_static_PutTransactionalResponse_fieldAccessorTable = new
@@ -39961,7 +42967,7 @@ public final class TrxRegionProtos {
           internal_static_PutMultipleTransactionalRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_PutMultipleTransactionalRequest_descriptor,
-              new java.lang.String[] { "TransactionId", "RegionName", "Put", });
+              new java.lang.String[] { "TransactionId", "StartId", "RegionName", "Put", });
           internal_static_PutMultipleTransactionalResponse_descriptor =
             getDescriptor().getMessageTypes().get(35);
           internal_static_PutMultipleTransactionalResponse_fieldAccessorTable = new
@@ -40021,7 +43027,7 @@ public final class TrxRegionProtos {
           internal_static_TransactionalAggregateRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_TransactionalAggregateRequest_descriptor,
-              new java.lang.String[] { "RegionName", "TransactionId", "InterpreterClassName", "Scan", "InterpreterSpecificBytes", });
+              new java.lang.String[] { "RegionName", "TransactionId", "StartId", "InterpreterClassName", "Scan", "InterpreterSpecificBytes", });
           internal_static_TransactionalAggregateResponse_descriptor =
             getDescriptor().getMessageTypes().get(45);
           internal_static_TransactionalAggregateResponse_fieldAccessorTable = new
@@ -40040,6 +43046,12 @@ public final class TrxRegionProtos {
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_TransactionStateMsg_descriptor,
               new java.lang.String[] { "TxId", "Put", "Delete", "PutOrDel", "TxnsToCheck", "StartSeqNum", "SeqNum", "LogSeqId", "Reinstated", "Status", "CommitProgress", });
+          internal_static_TransactionMutationMsg_descriptor =
+            getDescriptor().getMessageTypes().get(48);
+          internal_static_TransactionMutationMsg_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_TransactionMutationMsg_descriptor,
+              new java.lang.String[] { "TxId", "Put", "Delete", "PutOrDel", "StartId", "CommitId", "XdcMode", });
           return null;
         }
       };

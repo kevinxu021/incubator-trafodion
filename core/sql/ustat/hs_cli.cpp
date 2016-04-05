@@ -454,43 +454,22 @@ Lng32 CreateHistTables (const HSGlobalsClass* hsGlobal)
 Lng32 CreateSeabasePersSamples(const HSGlobalsClass* hsGlobal)
   {
     HSLogMan *LM = HSLogMan::Instance();
-    if (LM->LogNeeded())
-      {
-        snprintf(LM->msg, sizeof(LM->msg), "Creating %s table for schema %s on demand.",
-                         HBASE_PERS_SAMP_NAME, hsGlobal->catSch->data());
-        LM->Log(LM->msg);
-      }
+    Lng32 retcode = 0;
+    ComObjectName tableName(hsGlobal->hsperssamp_table->data());
+    HSSqTableDef sampleDef(tableName, ANSI_TABLE);
+    if (!sampleDef.objExists()) //DROP existing sample table
+    {
+      if (LM->LogNeeded())
+        {
+          snprintf(LM->msg, sizeof(LM->msg), "Creating %s table for schema %s on demand.",
+                           HBASE_PERS_SAMP_NAME, hsGlobal->catSch->data());
+          LM->Log(LM->msg);
+        }
 
-    NAString ddl = "CREATE TABLE IF NOT EXISTS ";
-    ddl.append(hsGlobal->hsperssamp_table->data())
-       .append(" (  TABLE_UID             LARGEINT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , REQUESTED_SAMPLE_ROWS LARGEINT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , ACTUAL_SAMPLE_ROWS    LARGEINT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , SAMPLING_RATIO        DOUBLE PRECISION NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , CREATE_TIME           TIMESTAMP(0) NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , REASON                CHAR(1) CHARACTER SET UCS2 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , SAMPLE_NAME           VARCHAR(250) CHARACTER SET UCS2 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , LAST_WHERE_PREDICATE  VARCHAR(250) CHARACTER SET UCS2 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , UPDATE_START_TIME      TIMESTAMP(0) NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , UPDATER_INFO        VARCHAR(128) CHARACTER SET ISO88591 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , V1                    VARCHAR(250) CHARACTER SET UCS2 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , V2                    VARCHAR(250) CHARACTER SET UCS2 COLLATE DEFAULT NO DEFAULT NOT NULL NOT DROPPABLE NOT SERIALIZED"
-               "  , constraint "HBASE_PERS_SAMP_PK" primary key"
-              "     (TABLE_UID ASC)"
-               " ) ;");
-
-    LM->StartTimer("Create Trafodion PERSISTENT_SAMPLES table");
-    Lng32 retcode = HSFuncExecDDL(ddl.data(), - UERR_INTERNAL_ERROR, NULL,
-                                    "Create Trafodion persistent samples table", NULL);
-    LM->StopTimer();
-    if (retcode < 0 && LM->LogNeeded())
-      {
-        snprintf(LM->msg, sizeof(LM->msg), "Creation of %s failed.", HBASE_PERS_SAMP_NAME);
-        LM->Log(LM->msg);
-      }
-
+      retcode = CreateHistTables(hsGlobal);
+    }
     return retcode;
-  }
+}
 
 /***********************************************/
 /* METHOD:  HSSample create() member function  */
@@ -4815,7 +4794,7 @@ Lng32 HSinsertEmptyHist::insert()
 #else // NA_USTAT_USE_STATIC not defined, use dynamic query
     char sbuf[25];
     NAString qry = "SELECT HISTOGRAM_ID, COL_POSITION, COLUMN_NUMBER, COLCOUNT, "
-                          "cast(READ_TIME as char(19)), REASON "
+                          "cast(READ_TIME as char(19) character set iso88591), REASON "
                    "FROM ";
     qry.append(histTable_);
     qry.append(    " WHERE TABLE_UID = ");
@@ -5532,7 +5511,7 @@ static char ppStmtText[] =
 "          when LEFT_CHILD_SEQ_NUM is null then"
 "            '.  '"
 "          else"
-"            cast(cast(LEFT_CHILD_SEQ_NUM as numeric(3)) as char(3))"
+"            cast(cast(LEFT_CHILD_SEQ_NUM as numeric(3)) as char(3) character set iso88591)"
 "        end"
 ""
 // RIGHT CHILD
@@ -5540,11 +5519,11 @@ static char ppStmtText[] =
 "          when RIGHT_CHILD_SEQ_NUM is null then"
 "            '.  '"
 "          else"
-"            cast(cast(RIGHT_CHILD_SEQ_NUM as numeric(3)) as char(3))"
+"            cast(cast(RIGHT_CHILD_SEQ_NUM as numeric(3)) as char(3) character set iso88591)"
 "        end"
 ""
 // SEQUENCE NUMBER
-"      , cast(cast(SEQ_NUM as numeric(3)) as char(3))"
+"      , cast(cast(SEQ_NUM as numeric(3)) as char(3) character set iso88591)"
 ""
 // OPERATOR
 "      , cast(substring(lower(OPERATOR) from 1 for 20) as char(20))"
@@ -5775,13 +5754,13 @@ static char ppStmtText[] =
 "            from 1 for 20) as char(20))"
 ""
 // CARDINALITY
-"      , CAST(CARDINALITY AS CHAR(11))"
+"      , CAST(CARDINALITY AS CHAR(11) character set iso88591)"
 ""
 // OPERATOR COST
-"      , CAST(OPERATOR_COST AS CHAR(11))"
+"      , CAST(OPERATOR_COST AS CHAR(11) character set iso88591)"
 ""
 // TOTAL COST
-"      , CAST(TOTAL_COST AS CHAR(11))"
+"      , CAST(TOTAL_COST AS CHAR(11) character set iso88591)"
 ""
 "        FROM TABLE(EXPLAIN(NULL, '";
 
@@ -5803,6 +5782,8 @@ Lng32 printPlan(SQLSTMT_ID *stmt)
       } row;
 
     HSLogMan *LM = HSLogMan::Instance();
+
+    HSFuncExecQuery("CQD DEFAULT_CHARSET 'ISO88591'"); // to avoid buffer overruns in row
 
     NAString ppStmtStr = ppStmtText;
     ppStmtStr.append((char *)stmt->identifier).append("')) ORDER BY SEQ_NUM DESC;");
@@ -5847,11 +5828,15 @@ Lng32 printPlan(SQLSTMT_ID *stmt)
             LM->Log(LM->msg);
           }
         else if (retcode != 100)
-          HSLogError(retcode);
+          {
+            HSFuncExecQuery("CQD DEFAULT_CHARSET RESET");
+            HSLogError(retcode);
+          }
       }
 
     // ppStmtId will be closed by ~HSCursor if closeStmtNeeded_ is set.
 
+    HSFuncExecQuery("CQD DEFAULT_CHARSET RESET");
     return retcode;
   }
 
@@ -6193,6 +6178,27 @@ Lng32 HSCursor::fetch(Lng32 numResults,
                                  out22, NULL, out23, NULL, out24, NULL,
                                  out25, NULL);
   lastFetchReturned100_ = (retcode == 100);
+  return retcode;
+}
+
+Lng32 HSCursor::fetchV(Lng32 numResults, Int64 * int64result, void * wcharResults[])
+{
+  Lng32 retcode = 0;
+
+  retcode = SQL_EXEC_SetDescItem(outputDesc_, 1, SQLDESC_VAR_PTR,
+                                    (Long)int64result, 0);
+  HSHandleError(retcode);
+
+  for (int i = 2; i <= numResults; i++)
+    {
+      retcode = SQL_EXEC_SetDescItem(outputDesc_, i, SQLDESC_VAR_PTR,
+                                    (Long)(wcharResults[i-2]), 0);
+      HSHandleError(retcode);
+    }
+
+  retcode = SQL_EXEC_Fetch(stmt_, outputDesc_, 0); 
+  HSHandleError(retcode); 
+
   return retcode;
 }
 

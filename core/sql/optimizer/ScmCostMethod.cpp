@@ -574,6 +574,14 @@ CostMethodDP2Scan::scmComputeOperatorCostInternal(RelExpr* op,
   const Context* myContext = pws->getContext();
   FileScan *fs = (FileScan *) op;
 
+  //
+  // The search key is computed for the clustered Hive tables. Here we check
+  // that fact and go with the old computeOperatorCostInternalx method, where
+  // FileScanOptimizer::optimize() will be called to select the subset scan.
+  //
+  if ( myContext->getPlan()->getPhysicalProperty()->getDP2CostThatDependsOnSPP() )
+     return computeOperatorCostInternal( op, myContext, countOfStreams );
+
   if (!fs->isHiveTable())
     // call old computeOperatorCostInternalx method.
     return computeOperatorCostInternal( op, myContext, countOfStreams );

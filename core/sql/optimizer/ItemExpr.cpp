@@ -49,7 +49,7 @@
 #include "exp_function.h" // for calling ExHDPHash::hash(data, len)
 #include "ItemFuncUDF.h"
 #include "CmpStatement.h"
-//#include "ItmFlowControlFunction.h"
+#include "exp_datetime.h"
 
 #include "OptRange.h"
 
@@ -1270,7 +1270,19 @@ ItemExpr * ItemExpr::copyTree(CollHeap* outHeap)
       result->child(i) = child(i)->copyTree(outHeap);
     }
   }
+  return result;
+}
 
+ItemExpr * ItemExpr::cloneTree(CollHeap* outHeap)
+{
+  ItemExpr * result = cloneTopNode(outHeap);
+  Int32 arity = getArity();
+
+  for (Int32 i = 0; i < arity; i++) {
+    if (child(i)) {
+      result->child(i) = child(i)->cloneTree(outHeap);
+    }
+  }
   return result;
 }
 
@@ -2615,6 +2627,15 @@ void ItemExpr::unparse(NAString &result,
     case 0:
       // simply print the text out for a leaf operator
       result += kwd;
+      
+      // A handy debug trick to append the value id after the 
+      // unparsed text. Good to figure out valueId business.
+      /*
+      char buf[20];
+      snprintf(buf, 20, "(%d)", getValueId().toUInt32());
+      result += buf;
+      */
+
       break;
 
     case 2:
@@ -4960,12 +4981,7 @@ ValueId VEG::getAConstantHostVarOrParameter() const
   {
     ItemExpr *ie = id.getItemExpr();
 
-    OperatorTypeEnum oper = ie->getOperatorType();
-
-    if ((oper == ITM_CONSTANT)  ||
-        (oper == ITM_HOSTVAR)   ||
-        (oper == ITM_DYN_PARAM) ||
-        (oper == ITM_CACHE_PARAM))
+    if ( ie->isAConstantHostVarParameterOrFunc() )
       return id;
   }
 
@@ -5387,6 +5403,13 @@ ItemExpr * VEGPredicate::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
 
   return ItemExpr::copyTopNode(result, outHeap);
 } // VEGPredicate::copyTopNode()
+
+ItemExpr * ItemExpr::cloneTopNodeAndValueId(CollHeap* outHeap)
+{
+  ItemExpr* result = copyTopNode(NULL, outHeap);
+  result->setValueId(getValueId());
+  return result;
+}
 
 // -----------------------------------------------------------------------
 // member functions for class VEGReference
@@ -8257,12 +8280,16 @@ DateFormat::~DateFormat() {}
 ItemExpr * DateFormat::copyTopNode(ItemExpr *derivedNode,
 				   CollHeap* outHeap)
 {
-  ItemExpr *result;
+  DateFormat *result;
 
   if (derivedNode == NULL)
-    result = new (outHeap) DateFormat(child(0), child(1), getDateFormat());
+    result = new (outHeap) DateFormat(child(0), 
+                                      formatStr_, formatType_, 
+                                      wasDateformat_);
   else
-    result = derivedNode;
+    result = (DateFormat*)derivedNode;
+
+  frmt_ = result->frmt_;
 
   return BuiltinFunction::copyTopNode(result,outHeap);
 
@@ -8281,6 +8308,46 @@ NABoolean DateFormat::hasEquivalentProperties(ItemExpr * other)
   return 
       (this->dateFormat_ == df->dateFormat_);
 }
+
+void DateFormat::unparse(NAString &result,
+		      PhaseEnum phase,
+                      UnparseFormatEnum form,
+		      TableDesc * tabId) const
+{
+  if (wasDateformat_)
+    result += "DATEFORMAT(";
+  else if (formatType_ == FORMAT_TO_DATE)
+    result += "TO_DATE(";
+  else if (formatType_ == FORMAT_TO_CHAR)
+    result += "TO_CHAR(";
+  else
+    result += "unknown(";
+
+  child(0)->unparse(result, phase, form, tabId);
+
+  result += ", ";
+
+  if (wasDateformat_)
+    {
+      if (frmt_ == ExpDatetime::DATETIME_FORMAT_DEFAULT)
+        result += "DEFAULT";
+      else if (frmt_ == ExpDatetime::DATETIME_FORMAT_USA)
+        result += "USA";
+      else if (frmt_ == ExpDatetime::DATETIME_FORMAT_EUROPEAN)
+        result += "EUROPEAN";
+      else
+        result += "unknown";
+    }
+  else
+    {
+      result += "'";
+      result += formatStr_;
+      result += "'";
+    }
+
+  result += ")";  
+}
+
 // -----------------------------------------------------------------------
 // member functions for class DayOfWeek
 // -----------------------------------------------------------------------
@@ -11186,6 +11253,16 @@ NABoolean ConstValue::valueHasTrailingBlanks()
       }
    }
    return hasATrailingBlanks;
+}
+
+NABoolean ConstValue::isMin()
+{
+   return *text_ == "<min>";
+}
+
+NABoolean ConstValue::isMax()
+{
+   return *text_ == "<max>";
 }
 
 QR::ExprElement ConstValue::getQRExprElem() const
@@ -14865,12 +14942,6 @@ ItemExpr * RangeSpecRef::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
   return ItemExpr::copyTopNode(result, outHeap);
 }
 
-short RangeSpecRef::codeGen(Generator* generator)
-{
-  child(1)->codeGen(generator);
-  return 0;
-}
-
 void RangeSpecRef::unparse(NAString &result,
                            PhaseEnum phase,
                            UnparseFormatEnum form,
@@ -15152,4 +15223,279 @@ NABoolean ItmLeadOlapFunction::hasEquivalentProperties(ItemExpr * other)
 ItemExpr *ItmLeadOlapFunction::transformOlapFunction(CollHeap *heap)
 {
    return this;
+}
+
+ItemExpr* ItemExpr::doBinaryRemoveNonPushablePredicatesForORC(NABoolean allowBranchTrimOff)
+{
+  Int32 nc = getArity();
+  
+  CMPASSERT(nc == 2);
+  
+  for (Lng32 i = 0; i < (Lng32)nc; i++) {
+    child(i) = child(i)->removeNonPushablePredicatesForORC();
+  }  
+  
+  if ( child(0) == NULL ) 
+     return ( allowBranchTrimOff ) ? child(1) : NULL;
+  
+  if ( child(1) == NULL )
+     return ( allowBranchTrimOff ) ? child(0) : NULL;
+  
+  // Unconditionally reset the valId_ so that we
+  // can re-synthesize a new one in case there is
+  // a change of the children expressions in the above
+  // two removeNonPushablePredicatesForORC() calls.
+  setValueId(NULL_VALUE_ID);
+  return this;
+}
+
+// ITM_AND and ITM_OR are acceptable
+ItemExpr* BiLogic::removeNonPushablePredicatesForORC()
+{
+  switch (getOperatorType()) {
+    case ITM_AND:
+       return doBinaryRemoveNonPushablePredicatesForORC(TRUE);
+    case ITM_OR:
+       return doBinaryRemoveNonPushablePredicatesForORC(FALSE);
+       break;
+    default:
+      break;
+  }
+  return NULL;
+}
+
+// ==, <, <=, IS NULL are acceptable
+ItemExpr* BiRelat::removeNonPushablePredicatesForORC()
+{
+  NABoolean reverseAndAddNotOperator = FALSE;
+  switch (getOperatorType()) {
+    case ITM_EQUAL:
+    case ITM_LESS:
+    case ITM_LESS_EQ:
+       break;
+
+    case ITM_GREATER:
+    case ITM_GREATER_EQ:
+       reverseAndAddNotOperator = TRUE;
+       break;
+
+    default:
+      return NULL;
+  }
+
+  ItemExpr* ie = NULL;
+  if ( isAPredicateBetweenColumnAndExpression() ) {
+
+    ie = this;
+    if ( reverseAndAddNotOperator ) {
+       ie = reverse();
+       ie = new (STMTHEAP) UnLogic(ITM_NOT, ie);
+    } 
+  }
+  
+  return ie;
+}
+
+ItemExpr* Function::removeNonPushablePredicatesForORC()
+{
+   switch ( getOperatorType() ) {
+     case ITM_SCALAR_MAX:
+     case ITM_SCALAR_MIN:
+       break;
+
+     default:
+       return NULL;
+   }
+
+   Int32 nc = getArity();
+
+   for (Lng32 i = 0; i < (Lng32)nc; i++) {
+      ItemExpr* ie = child(i)->removeNonPushablePredicatesForORC();
+      if (!ie || ie != (child(i)->getValueId()).getItemExpr())
+        return NULL;
+   }
+   return this;
+}
+
+NABoolean ItemExpr::isInvolvingAColumn()
+{
+  if (isAColumnReference())
+    return TRUE;
+
+  return (getOperatorType() == ITM_VEG_REFERENCE);
+}
+
+NABoolean ItemExpr::isAConstantHostVarParameterOrFunc() 
+{
+  OperatorTypeEnum oper = getOperatorType();
+
+  if (oper == ITM_CONSTANT  || oper == ITM_HOSTVAR   ||
+      oper == ITM_DYN_PARAM || oper == ITM_CACHE_PARAM)
+     return TRUE;
+
+  // check if it is an acceptable function
+  ItemExpr* ie = removeNonPushablePredicatesForORC();
+
+  return ( this == ie );
+}
+
+NABoolean BiRelat::isAPredicateBetweenColumnAndExpression()
+{
+  ItemExpr *leftC=child(0);
+  ItemExpr *rightC=child(1);
+
+  if ( !leftC || !rightC )
+    return FALSE;
+
+  if ( leftC->isInvolvingAColumn() && 
+       (rightC->isAConstantHostVarParameterOrFunc() || rightC->isInvolvingAColumn()))
+    return TRUE;
+
+  if ( rightC->isInvolvingAColumn() && 
+       ( leftC->isAConstantHostVarParameterOrFunc() ||  leftC->isInvolvingAColumn()))
+    return TRUE;
+
+  return FALSE;
+}
+
+// ITM_NOT and ITM_IS_NULL are acceptable
+ItemExpr* UnLogic::removeNonPushablePredicatesForORC()
+{
+  switch (getOperatorType()) {
+    case ITM_NOT:
+      { 
+        child(0) = child(0)->removeNonPushablePredicatesForORC();
+  
+        if ( child(0) == NULL ) 
+          return NULL;
+
+        // Unconditionally reset the valId_ so that we
+        // can re-synthesize a new one in case there is
+        // a change of the child expression in the above
+        // removeNonPushablePredicatesForORC() call.
+        setValueId(NULL_VALUE_ID);
+
+        return this;
+      }
+    case ITM_IS_NULL:
+       return this;
+      
+    case ITM_IS_NOT_NULL:
+      {
+       ItemExpr* ie = new (STMTHEAP) UnLogic(ITM_IS_NULL, child(0));
+       ie = new (STMTHEAP) UnLogic(ITM_NOT, ie);
+       return ie;
+      }
+    default:
+       return NULL;
+  }
+
+  return NULL;
+}
+
+ItemExpr* RangeSpecRef::removeNonPushablePredicatesForORC()
+{
+   OptNormRangeSpec* destObj = getRangeObject();
+
+   // need to revisit when in(1,2,3) can be push down natively
+   // to ORC. The current implementaion limit at two operands
+   // per push-down operator. As a result, A in(1,2,3) will be 
+   // pushed down as A=3 or A=2 or A=1.
+   ItemExpr* ie = const_cast<ItemExpr*>(destObj->getOriginalItemExpr());
+
+   ie=ie->removeNonPushablePredicatesForORC();
+
+   return ie;
+}
+
+ItemExpr* VEGPredicate::removeNonPushablePredicatesForORC() 
+{
+   return this;
+}
+
+ItemExpr* BiRelat::reverse()
+{
+   OperatorTypeEnum op;
+   switch (getOperatorType()) {
+
+      case ITM_LESS:
+         op = ITM_GREATER_EQ;
+         break;
+
+      case ITM_LESS_EQ:
+         op = ITM_GREATER;
+         break;
+    
+      case ITM_GREATER:
+         op = ITM_LESS_EQ;
+         break;
+
+      case ITM_GREATER_EQ:
+         op = ITM_LESS;
+         break;
+
+      default:
+         return this;
+         break;
+   }
+
+   ItemExpr* c0 = child(0);
+   ItemExpr* c1 = child(1);
+   ItemExpr* ie = new (STMTHEAP) BiRelat(op, c0, c1, specialNulls_, isaPartKeyPred_);
+
+   return ie;
+}
+
+void BiLogic::generatePushdownListForORC(OrcPushdownPredInfoList& result)
+{
+  switch (getOperatorType()) {
+    case ITM_AND:
+       result.insertStartAND();
+       break;
+
+    case ITM_OR:
+       result.insertStartOR();
+       break;
+
+    default:
+      CMPASSERT("Invalid biLogic operator to convert to OrcPushdownPredInfo");
+  }
+
+  child(0)->generatePushdownListForORC(result);
+  child(1)->generatePushdownListForORC(result);
+
+  result.insertEND();
+}
+
+void UnLogic::generatePushdownListForORC(OrcPushdownPredInfoList& result)
+{
+   if ( getOperatorType() == ITM_NOT ) {
+      result.insertStartNOT();
+      child(0)->generatePushdownListForORC(result);
+      result.insertEND();
+   } if ( getOperatorType() == ITM_IS_NULL ) {
+      result.insertIS_NULL(child(0)->getValueId());
+   } else
+      CMPASSERT("Invalid UnLogic operator to convert to OrcPushdownPredInfo");
+}
+
+void BiRelat::generatePushdownListForORC(OrcPushdownPredInfoList& result)
+{
+  switch (getOperatorType()) {
+    
+  case ITM_EQUAL:
+    result.insertEQ(child(0)->getValueId(), child(1)->getValueId());
+    break;
+    
+  case ITM_LESS:
+    result.insertLESS(child(0)->getValueId(), child(1)->getValueId());
+    break;
+    
+  case ITM_LESS_EQ:
+    result.insertLESS_EQ(child(0)->getValueId(), child(1)->getValueId());
+    break;
+    
+  default:
+    CMPASSERT("Invalid bi-relat operator to convert to OrcPushdownPredInfo");
+  }
 }

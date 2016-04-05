@@ -91,12 +91,21 @@ require.config({
 		flotcrosshair : {
 			deps : ['flot'],
 			exports: 'flotcrosshair'
+		},
+		flotaxislabels : {
+			deps : ['flot'],
+			exports: 'flotaxislabels'
+		},		
+		flotcategories : {
+			deps : ['flot'],
+			exports: 'flotcategories'
 		}
 	},
 	paths: {
 		sbadmin2:'../bower_components/startbootstrap-sb-admin-2/dist/js/sb-admin-2',
 		text: '../bower_components/text/text',
 		bootstrap:'../bower_components/bootstrap/dist/js/bootstrap.min',
+		bootstrapNotify:'../bower_components/remarkable-bootstrap-notify/dist/bootstrap-notify.min',
 		jquery: '../bower_components/jquery/dist/jquery.min',
 		jquerycookie: '../bower_components/jquery.cookie/jquery.cookie',
 		jquerylocalize: '../bower_components/jquery-localize-i18n/dist/jquery.localize.min',
@@ -126,6 +135,8 @@ require.config({
 		flottime: '../bower_components/flot/jquery.flot.time',
 		flotcanvas: '../bower_components/flot/jquery.flot.canvas',
 		flotcrosshair: '../bower_components/flot/jquery.flot.crosshair',
+		flotaxislabels: '../bower_components/flot-axislabels/jquery.flot.axislabels',
+		flotcategories: '../bower_components/flot/jquery.flot.categories'
 	}
 
 });

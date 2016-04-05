@@ -428,6 +428,12 @@ typedef enum {
 
     TM_MSG_TYPE_DDLREQUEST               = 341,
     TM_MSG_TYPE_DDLREQUEST_REPLY         = 342,
+    
+    TM_MSG_TYPE_UNLOCKTM                 = 343,
+    TM_MSG_TYPE_UNLOCKTM_REPLY           = 344,
+    
+    TM_MSG_TYPE_LOCKTM                   = 345,
+    TM_MSG_TYPE_LOCKTM_REPLY             = 346,
 
     TM_MSG_TYPE_QUIESCE                  = 9001, // Testing only!
     TM_MSG_TYPE_QUIESCE_REPLY            = 9002,
@@ -495,7 +501,7 @@ typedef enum {
     TM_STATE_TX_DISABLED_SHUTDOWN_PHASE1,  // In phase 1 of shutdown. Transactions disabled.
     TM_STATE_QUIESCE,                      // Received a NodeQuiesce from Monitor.
     TM_STATE_DRAIN,                        // Received a drain.
-    TM_STATE_WAITING_RM_OPEN,              // Waiting for RM opens to complete before declaring the TM up.
+    TM_STATE_WAITING_RM_OPEN               // Waiting for RM opens to complete before declaring the TM up.
 } TM_STATE;
 
 // TM system recovery state

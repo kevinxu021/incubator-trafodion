@@ -17,7 +17,8 @@ define([
         'datatables.net',
         'datatables.net-bs',
         'datetimepicker',
-        'jqueryvalidate'
+        'jqueryvalidate',
+        'bootstrapNotify'
         ], function (BaseView, WorkloadsT, $, wHandler, moment, common, CodeMirror) {
 	'use strict';
 	var LOADING_SELECTOR = "#loadingImg",
@@ -29,7 +30,7 @@ define([
 	ERROR_CONTAINER = '#error-container',
 	ERROR_TEXT = '#query-detail-error-text';
 
-	var _that = null;
+	var _this = null;
 	var queryID = null;
 	var connDataTable = null, compDataTable = null, runDataTable = null;
 	var queryTextEditor = null;
@@ -38,10 +39,12 @@ define([
 		template:  _.template(WorkloadsT),
 
 		doInit: function (args){
-			_that = this;
+			common.redirectFlag=false;
+			_this = this;
+			this.pageIdentifier="historical";
 			$('#query-id').val(args);
 			queryID = args;
-			
+			this.currentURL = window.location.hash;
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
 			}
@@ -67,8 +70,8 @@ define([
 			this.loadQueryText();
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
-			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			wHandler.on(wHandler.HISTORICAL_CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.HISTORICAL_CANCEL_QUERY_ERROR, this.cancelQueryError);
 			$(REFRESH_MENU).on('click', this.fetchRepositoryQueryDetail);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
@@ -77,6 +80,8 @@ define([
 
 		},
 		doResume: function(args){
+			this.currentURL = window.location.hash;
+			common.redirectFlag=false;
 			$('#query-id').val(args);
 			if(queryID != null && queryID != args){
 				queryID = args;
@@ -113,18 +118,19 @@ define([
 			}
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
-			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			/*wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
 			$(REFRESH_MENU).on('click', this.fetchRepositoryQueryDetail);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
 			this.fetchRepositoryQueryDetail();
 		},
 		doPause: function(){
+			common.redirectFlag=true;
 			wHandler.off(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.off(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
-			wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			/*wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
 			$(REFRESH_MENU).off('click', this.fetchRepositoryQueryDetail);
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
 			$(EXPLAIN_BUTTON).off('click', this.explainQuery);
@@ -148,18 +154,48 @@ define([
 		cancelQuery: function(){
 			var queryStatus = $('#query-status').val();
 			if(queryStatus == 'EXECUTING'){
-				wHandler.cancelQuery(queryID);
+				wHandler.cancelQuery(queryID,_this.pageIdentifier);
 			}else {
-				alert("The query is not in executing state. Cannot cancel the query.");
+				/*alert("The query is not in executing state. Cannot cancel the query.");*/
+				var msgObj={msg:'The query is not in executing state. Cannot cancel the query.',tag:"warning",url:_this.currentURL,shortMsg:"The query is not in executing state."};
+				if(common.redirectFlag==false){
+					_this.popupNotificationMessage(null,msgObj);
+				}else{
+					
+					common.fire(common.NOFITY_MESSAGE,msgObj);
+				}
 			}
 		},
-		cancelQuerySuccess:function(){
-			alert('The cancel query request has been submitted');
-			_that.fetchRepositoryQueryDetail();
+		cancelQuerySuccess:function(data){
+			/*alert('The cancel query request has been submitted');*/
+			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully."};
+			if(common.redirectFlag==false){
+				_this.popupNotificationMessage(null,msgObj);
+			}else{
+				
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
+			_this.fetchRepositoryQueryDetail();
 			
 		},
 		cancelQueryError:function(jqXHR){
-			alert(jqXHR.responseText);
+			/*alert(jqXHR.responseText);*/
+			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
+			if(jqXHR.responseText==undefined){
+				msgObj.msg="the response was null."
+				msgObj.shortMsg="the response was null."
+			}
+			if(jqXHR.statusText=="abort"){
+				msgObj.msg="the request was aborted."
+				msgObj.shortMsg="the request was aborted."
+			}
+			if(common.redirectFlag==false){
+				_this.popupNotificationMessage(null,msgObj);
+			}else{
+				
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
+			_this.fetchRepositoryQueryDetail();
 		},  
 		explainQuery: function(){
 			var queryText = queryTextEditor.getValue(); //$('#query-text').text();
@@ -167,13 +203,13 @@ define([
 			window.location.hash = '/workloads/queryplan/'+queryID;
 		},
 		fetchRepositoryQueryDetail: function(){
-			_that.showLoading();
+			_this.showLoading();
 			//$(ERROR_CONTAINER).hide();
 			wHandler.fetchRepositoryQueryDetail(queryID);
 		},
 
 		displayResults: function (result){
-			_that.hideLoading();
+			_this.hideLoading();
 			$(RESULT_CONTAINER).show();
 			$(DETAILS_CLASS).show();
 			$(ERROR_CONTAINER).hide();
@@ -350,7 +386,7 @@ define([
 
 		showErrorMessage: function (jqXHR) {
 			if(jqXHR.statusText != 'abort'){
-				_that.hideLoading();
+				_this.hideLoading();
 				$(RESULT_CONTAINER).hide();
 				$(DETAILS_CLASS).hide();
 				$(ERROR_CONTAINER).show();

@@ -53,6 +53,12 @@ void computeAndAddSelParamIfPossible(
     if ( hist == NULL )
        return;
 
+    // Predicates on Hive partition columns should not be
+    // parameterized, because this prevents us from eliminating
+    // partitions at compile time.
+    if (base->getNAColumn()->isHivePartColumn())
+      return;
+
     CostScalar sel;
     NABoolean canComputeSelectivity = hist -> computeSelectivityForEquality(
             val, cStatsPtr->getRowcount(), cStatsPtr->getTotalUec(),
@@ -714,7 +720,10 @@ void DateFormat::generateCacheKey(CacheWA& cwa) const
 {
   BuiltinFunction::generateCacheKey(cwa); 
   cwa += " fmt:";
-  char dFmt[20]; str_itoa(dateFormat_, dFmt); 
+  char dFmt[20]; 
+  str_itoa(dateFormat_, dFmt); 
+  cwa += dFmt;
+  str_itoa(frmt_, dFmt);
   cwa += dFmt;
 }
 
