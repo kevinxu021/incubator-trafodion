@@ -15590,7 +15590,7 @@ NABoolean GroupByAgg::decideFeasibleToTransformForAggrPushdown()
 {
   // if this is simple scalar aggregate on a seabase table
   //  (of the form:  select count(*) from t; )
-  // or aggrs count(*), min, max on orc table,
+  // or aggrs count(*), min, max, sum, orc_max_nv or orc_sum_nv on orc table,
   // then transform it so it could be evaluated by hbase coproc
   // or using ORC apis.
   NABoolean aggrPushdown = FALSE;
@@ -15653,6 +15653,8 @@ NABoolean GroupByAgg::decideFeasibleToTransformForAggrPushdown()
                      (ae->getOperatorType() == ITM_MIN) ||
                      (ae->getOperatorType() == ITM_MAX) ||
                      (ae->getOperatorType() == ITM_SUM) ||
+                     (ae->getOperatorType() == ITM_ORC_MAX_NV) ||
+                     (ae->getOperatorType() == ITM_ORC_SUM_NV) ||
                      (ae->getOperatorType() == ITM_COUNT_NONULL)))))
             {
               aggrPushdown = FALSE;
@@ -15686,5 +15688,5 @@ NABoolean GroupByAgg::decideFeasibleToTransformForAggrPushdown()
         }
     }
 
-   return aggrPushdown;
+  return aggrPushdown;
 }
