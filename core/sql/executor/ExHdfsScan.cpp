@@ -1479,6 +1479,11 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	    
 	    qparent_.down->removeHead();
 	    step_ = NOT_STARTED;
+
+// Code instrumentation
+	    //if (hdfsStats_)
+	    //  hdfsStats_->done();
+
 	    break;
 	  }
 	  

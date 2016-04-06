@@ -2260,7 +2260,8 @@ short OrcPushdownAggr::codeGen(Generator * generator)
                       hdfsFileInfoList, hdfsFileRangeBeginList, hdfsFileRangeNumList,
                       tdbListOfOrcPPI,
                       orcOperVIDlist,
-                      hdfsHostName, hdfsPort, NULL, 0 , getHiveSearchKey());
+                      hdfsHostName, hdfsPort, NULL, 0 , getHiveSearchKey(), 
+                      TRUE /*for fast aggre */ );
   
   ULng32 buffersize = 3 * getDefault(GEN_DPSO_BUFFER_SIZE);
   queue_index upqueuelength = (queue_index)getDefault(GEN_DPSO_SIZE_UP);

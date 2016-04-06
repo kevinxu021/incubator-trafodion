@@ -515,7 +515,8 @@ short FileScan::genForOrc(Generator * generator,
                           Int32 &hdfsPort,
                           ExpTupleDesc *partCols,
                           int partColValuesLen,
-                          const HivePartitionAndBucketKey *hiveSearchKey)
+                          const HivePartitionAndBucketKey *hiveSearchKey,
+                          Int32 isForFastAggr)
 {
   Space * space          = generator->getSpace();
 
@@ -547,6 +548,7 @@ short FileScan::genForOrc(Generator * generator,
   char * numRangeInList = NULL;
   Lng32 beginRangeNum = 0;
   Lng32 numRanges = 0;
+
 
   // If no scanInfo entries are specified, then scan all rows.
   if (emptyScan)
@@ -605,6 +607,10 @@ short FileScan::genForOrc(Generator * generator,
         (mypart)))
     {
       Lng32 entryNum = 0;
+
+      NASet<NAString> stripeUsageMap(generator->wHeap(), 101);
+      stripeUsageMap.clear();
+
       for (CollIndex i=0; i < nmap->getNumEntries(); i++ )
 	{
 	  HiveNodeMapEntry* hEntry = (HiveNodeMapEntry*)(nmap->getNodeMapEntry(i));
@@ -617,6 +623,14 @@ short FileScan::genForOrc(Generator * generator,
 	    {
 	      HHDFSFileStats* file = scanInfo[j].file_;
 	      const char * fname = file->getFileName();
+
+              if ( isForFastAggr ) {
+                if (stripeUsageMap.contains(file->getFileName()) ) 
+                   continue;
+                else 
+                  stripeUsageMap.insert(file->getFileName());
+              }
+
 	      Int64 startRowNum = scanInfo[j].offset_; // start row num
 	      Int64 numRows = scanInfo[j].span_;    // num rows
 
