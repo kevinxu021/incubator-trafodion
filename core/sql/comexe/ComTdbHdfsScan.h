@@ -549,7 +549,9 @@ public:
     COUNT_NONULL_  = 2,
     MIN_           = 3,
     MAX_           = 4,
-    SUM_           = 5
+    SUM_           = 5,
+    ORC_NV_LOWER_BOUND_ = 6,
+    ORC_NV_UPPER_BOUND_ = 7
   };
 
   // Constructor

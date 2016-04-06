@@ -1356,8 +1356,8 @@ $1~String1 --------------------------------
 4366 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Invalid Select list index.
 4367 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Using rank function and sequence functions together in the same query scope is not supported.
 4368 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Nesting rank functions is not supported.
-4369 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Paramaters and outer references are not supported with rank function.
-4370 ZZZZZ 99999 BEGINNER MAJOR DBADMIN -- Unused ----
+4369 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Parameters and outer references are not supported with rank function.
+4370 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The $0~String0 aggregate function is only supported on columns of ORC format Hive tables.
 4371 ZZZZZ 99999 BEGINNER MAJOR DBADMIN -- Unused ----
 4372 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Snapshot scan cannot be used with table $0~String0 because $1~String1.
 4373 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The base temporary location for snapshot scan cannot be an empty string and needs to end with the character /.
