@@ -848,85 +848,16 @@ Lng32 HSSqTableDef::collectFileStatistics() const
 NABoolean HSHiveTableDef::objExists(NABoolean createExternalTable)
 {
   setNATable();
-  if (!naTbl_)
+  if (!naTbl_ || !naTbl_->isHiveTable())
     return FALSE;
 
   if (!setObjectUID(createExternalTable))
     return FALSE;
-
-  tableStats_ = naTbl_->getClusteringIndex()->getHHDFSTableStats();
-
   *ansiName_ = *catalog_;
   ansiName_->append('.');
   ansiName_->append(*schema_);
   ansiName_->append('.');
   ansiName_->append(*object_);
-
-  HiveMetaData* hiveMetaDB;
-  if (CmpCommon::getDefault(HIVE_USE_FAKE_TABLE_DESC) != DF_ON)
-    {
-      hiveMetaDB = new(STMTHEAP) HiveMetaData();
-
-      if (!hiveMetaDB->init())
-        {
-          *CmpCommon::diags() << DgSqlCode(-1190)
-                              << DgString0(hiveMetaDB->getErrMethodName())
-                              << DgString1(hiveMetaDB->getErrCodeStr())
-                              << DgString2(hiveMetaDB->getErrDetail())
-                              << DgInt0(hiveMetaDB->getErrCode());
-          NADELETEBASIC(hiveMetaDB, STMTHEAP);  // HiveMetaData not 
-          //derived from NABasicObject
-          return FALSE;
-        }
-    }
-  else
-    hiveMetaDB = new(STMTHEAP) HiveMetaData(); // fake metadata
-
-  if (!HSGlobalsClass::isHiveCat(*catalog_))
-    {
-      *CmpCommon::diags()
-          << DgSqlCode(-1388)
-          << DgTableName(*object_);
-      return FALSE;
-    }
-
-  // The default schema name is what the Hive default schema is called in SeaHive.
-  NAString defSchema = ActiveSchemaDB()->getDefaults().getValue(HIVE_DEFAULT_SCHEMA);
-  defSchema.toUpper();
-  NAString obj = *object_;
-  NAString sch = *schema_;
-  if (sch == defSchema)
-    sch = hiveMetaDB->getDefaultSchemaName();
-
-  // Hive stores names in lower case.
-  sch.toLower();
-  obj.toLower();
-
-  if (CmpCommon::getDefault(HIVE_USE_FAKE_TABLE_DESC) == DF_ON)
-    hiveTblDesc_ = hiveMetaDB->getFakedTableDesc(obj.data());
-  else
-    hiveTblDesc_ = hiveMetaDB->getTableDesc(sch.data(), obj.data());
-
-  if (!hiveTblDesc_)
-  {
-    if ((hiveMetaDB->getErrCode() == 0)||(hiveMetaDB->getErrCode() == 100))
-    {
-      *CmpCommon::diags()
-        << DgSqlCode(-1388)
-        << DgTableName(*object_);
-    }
-    else
-    {
-      *CmpCommon::diags()
-        << DgSqlCode(-1192)
-        << DgString0(hiveMetaDB->getErrMethodName())
-        << DgString1(hiveMetaDB->getErrCodeStr())
-        << DgString2(hiveMetaDB->getErrDetail())
-        << DgInt0(hiveMetaDB->getErrCode());
-        hiveMetaDB->resetErrorInfo();
-    } 
-    return FALSE;
-  }
 
   objActualFormat_ = SQLMX;
 
@@ -947,10 +878,11 @@ Int64 HSHiveTableDef::getRowCount(NABoolean &isEstimate,
 {
   if (minPartitionRows_ == -1)
     {
+      const HHDFSTableStats *tableStats = getHHDFSTableStats();
       Int64 partitionEstRows;
-      for (CollIndex i=0; i<tableStats_->entries(); i++)
+      for (CollIndex i=0; i<tableStats->entries(); i++)
         {
-          partitionEstRows = (*tableStats_)[i]->getEstimatedRowCount();
+          partitionEstRows = (*tableStats)[i]->getEstimatedRowCount();
           if (minPartitionRows_ == -1 || partitionEstRows < minPartitionRows_)
             minPartitionRows_ = partitionEstRows;
         }
@@ -1176,10 +1108,11 @@ Int64 HSHbaseTableDef::getRowCount(NABoolean &isEstimate,
   // Comparable code for Hive tables:
   //if (minPartitionRows_ == -1)
   //  {
+  //    HHDFSTableStats *tableStats = getHHDFSTableStats();
   //    Int64 partitionEstRows;
-  //    for (CollIndex i=0; i<tableStats_->entries(); i++)
+  //    for (CollIndex i=0; i<tableStats->entries(); i++)
   //      {
-  //        partitionEstRows = (*tableStats_)[i]->getEstimatedRowCount();
+  //        partitionEstRows = (*tableStats)[i]->getEstimatedRowCount();
   //        if (minPartitionRows_ == -1 || partitionEstRows < minPartitionRows_)
   //          minPartitionRows_ = partitionEstRows;
   //      }
