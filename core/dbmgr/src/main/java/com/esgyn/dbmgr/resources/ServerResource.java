@@ -106,21 +106,6 @@ public class ServerResource {
 			String url = server.getJdbcUrl();
 			Class.forName(server.getJdbcDriverClass());
 			connection = DriverManager.getConnection(url, usr, pwd);
-
-
-			/*
-			 * Statement stmt = connection.createStatement(); ResultSet rs =
-			 * stmt.executeQuery("info system"); while (rs.next()) {
-			 * ConfigurationResource.setServerTimeZone(rs.getString("TM_ZONE"));
-			 * ConfigurationResource.setServerUTCOffset(rs.getLong(
-			 * "TM_GMTOFF_SEC")); break; } rs = stmt.executeQuery(
-			 * "get version of software"); if (rs.next()) { String version =
-			 * rs.getString(1); String[] versionparts = version.split(":");
-			 * ConfigurationResource .setSystemVersion(versionparts.length > 1 ?
-			 * versionparts[1].trim() : versionparts[0]); }
-			 */
-
-
 		} catch (Exception e) {
 			_LOG.error(e.getMessage());
 			resultMessage = e.getMessage();

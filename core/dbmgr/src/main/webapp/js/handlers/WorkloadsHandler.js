@@ -124,14 +124,14 @@ define(['handlers/EventDispatcher'],
 						}
 					});
 				};            
-				this.fetchActiveQueries = function(probeType, time){
+				this.fetchActiveQueries = function(){
 
 					var xhr = xhrs["active_list"];
 					if(xhr && xhr.readyState !=4){
 						xhr.abort();
 					}
 					xhrs["active_list"] = $.ajax({
-						url: 'resources/workloads/active/?probeType='+probeType+'&time='+time,
+						url: 'resources/workloads/active',
 						type:'GET',
 						dataType:"json",
 						contentType: "application/json;",
