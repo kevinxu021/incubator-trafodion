@@ -908,6 +908,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_ONLY
 %token <tokval> TOK_OPEN
 %token <tokval> TOK_OR
+%token <tokval> TOK_ORC_MAX_NV
+%token <tokval> TOK_ORC_SUM_NV
 %token <tokval> TOK_ORDER
 %token <tokval> TOK_ORDERED
 %token <tokval> TOK_OS_USERID
@@ -1292,6 +1294,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_HASH2               /* Tandem extension */
 %token <tokval> TOK_HASHPARTFUNC        /* Tandem extension */
 %token <tokval> TOK_HASH2PARTFUNC       /* Tandem extension */
+%token <tokval> TOK_HIVEPARTFUNC        /* Tandem extension */
 %token <tokval> TOK_HEADING             /* Tandem extension */
 %token <tokval> TOK_HEADINGS            /* Tandem extension */
 %token <tokval> TOK_ICOMPRESS           /* Tandem extension */
@@ -7342,6 +7345,12 @@ set_function_type :   TOK_AVG 		{ $$ = ITM_AVG; }
                     | TOK_COUNT 	{ $$ = ITM_COUNT; }
                     | TOK_VARIANCE 	{ $$ = ITM_VARIANCE; }
                     | TOK_STDDEV 	{ $$ = ITM_STDDEV; }
+                      // max of ColumnStatistics getNumberOfValues 
+                      // across all stripes of an ORC file
+                    | TOK_ORC_MAX_NV  { $$ = ITM_ORC_MAX_NV; }
+                      // sum of ColumnStatistics getNumberOfValues 
+                      // across all stripes of an ORC file
+                    | TOK_ORC_SUM_NV  { $$ = ITM_ORC_SUM_NV; }
 
 pivot_options : empty
                        {
@@ -9683,6 +9692,17 @@ misc_function :
                                                  Cast($5, new (PARSERHEAP())
                                                       SQLInt(FALSE, FALSE)));
                                 }
+
+     | TOK_HIVEPARTFUNC '(' value_expression_list TOK_FOR value_expression ')'
+                                {
+                                  $$ = new (PARSERHEAP())
+                                    Modulus(new (PARSERHEAP())
+                                                 HiveHash($3),
+                                                 new (PARSERHEAP())
+                                                 Cast($5, new (PARSERHEAP())
+                                                      SQLInt(FALSE, FALSE)));
+                                }
+
      | TOK_RRPARTFUNC '(' value_expression TOK_FOR value_expression ')'
                                 {
                              /*   $$ = new (PARSERHEAP())
@@ -33692,6 +33712,7 @@ nonreserved_func_word:  TOK_ABS
                       | TOK_FN
                       | TOK_GREATEST
                       | TOK_HASHPARTFUNC
+                      | TOK_HIVEPARTFUNC
                       | TOK_HASH2PARTFUNC
                       | TOK_HBASE_AUTHS
                       | TOK_HBASE_VISIBILITY

@@ -1362,6 +1362,8 @@ const NAType *Aggregate::synthesizeType()
   switch (getEffectiveOperatorType()) {
   case ITM_COUNT:
   case ITM_COUNT_NONULL:
+  case ITM_ORC_MAX_NV:
+  case ITM_ORC_SUM_NV:
     result = new HEAP
       SQLLargeInt(TRUE /* 'long long' on NSK can't be unsigned */,
 		  FALSE /*not null*/);
@@ -3048,8 +3050,8 @@ const NAType *HiveHashComb::synthesizeType()
   CMPASSERT(areChildrenExactNumeric(0, 1));
 
   // result of hashcomb function is always a non-nullable,
-  // unsigned 32 bit integer
-  return new HEAP SQLInt(FALSE, FALSE);
+  // signed 32 bit integer
+  return new HEAP SQLInt(TRUE, FALSE);
 }
 
 // -----------------------------------------------------------------------
@@ -3070,8 +3072,8 @@ const NAType *HashDistPartHash::synthesizeType()
 // -----------------------------------------------------------------------
 const NAType *HiveHash::synthesizeType()
 {
-  // result of hivehash function is always a non-nullable, unsigned 32 bit integer
-  return new HEAP SQLInt(FALSE, FALSE);
+  // result of hivehash function is always a non-nullable, signed 32 bit integer
+  return new HEAP SQLInt(TRUE, FALSE);
 }
 
 // -----------------------------------------------------------------------

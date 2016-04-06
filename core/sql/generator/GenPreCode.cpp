@@ -6093,6 +6093,8 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
                      (ae->getOperatorType() == ITM_MIN) ||
                      (ae->getOperatorType() == ITM_MAX) ||
                      (ae->getOperatorType() == ITM_SUM) ||
+                     (ae->getOperatorType() == ITM_ORC_MAX_NV) ||
+                     (ae->getOperatorType() == ITM_ORC_SUM_NV) ||
                      (ae->getOperatorType() == ITM_COUNT_NONULL)))
                ) ||
               (generator->preCodeGenParallelOperator())
@@ -6145,29 +6147,41 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
               const NAType *childType = 
                 &origAgg->child(0)->getValueId().getType();
               NAType * orcAggrType = NULL;
-              if (childType->getTypeQualifier() == NA_NUMERIC_TYPE)
+
+              // the ORC_MAX_NV and ORC_SUM_NV aggregates look at the
+              // ORC ColumnStatistics.getNumberOfValues() result, rather
+              // than the column values, so we don't take the type of
+              // the child from the child column type
+              NABoolean isOrcNumberOfValuesAggregate = 
+                origAgg->getOperatorType() == ITM_ORC_MAX_NV ||
+                origAgg->getOperatorType() == ITM_ORC_SUM_NV;
+
+              if (!isOrcNumberOfValuesAggregate)
                 {
-                  NumericType *nType = (NumericType*)childType;
-                  if (nType->binaryPrecision())
+                  if (childType->getTypeQualifier() == NA_NUMERIC_TYPE)
                     {
-                      if (nType->isExact())
+                      NumericType *nType = (NumericType*)childType;
+                      if (nType->binaryPrecision())
                         {
-                          orcAggrType = 
-                            new(generator->wHeap()) SQLLargeInt(TRUE, TRUE);
-                        }
-                      else
-                        {
-                          orcAggrType = 
-                            new(generator->wHeap()) SQLDoublePrecision(TRUE);
+                          if (nType->isExact())
+                            {
+                              orcAggrType = 
+                                new(generator->wHeap()) SQLLargeInt(TRUE, TRUE);
+                            }
+                          else
+                            {
+                              orcAggrType = 
+                                new(generator->wHeap()) SQLDoublePrecision(TRUE);
+                            }
                         }
                     }
-                }
-              else if (childType->getTypeQualifier() == NA_DATETIME_TYPE)
-                {
-                  DatetimeType *dType = (DatetimeType*)childType;
+                  else if (childType->getTypeQualifier() == NA_DATETIME_TYPE)
+                    {
+                      DatetimeType *dType = (DatetimeType*)childType;
 
-                  orcAggrType =
-                    new(generator->wHeap()) SQLChar(dType->getDisplayLength(), TRUE);
+                      orcAggrType =
+                        new(generator->wHeap()) SQLChar(dType->getDisplayLength(), TRUE);
+                    }
                 }
 
               if (! orcAggrType)
@@ -6184,7 +6198,8 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
               
               origAgg->setOriginalChild(origAgg->child(0));
 
-              if (childType->getTypeQualifier() == NA_DATETIME_TYPE)
+              if ((childType->getTypeQualifier() == NA_DATETIME_TYPE) &&
+                  (!isOrcNumberOfValuesAggregate))
                 {
                   DatetimeType *dType = (DatetimeType*)childType;
 

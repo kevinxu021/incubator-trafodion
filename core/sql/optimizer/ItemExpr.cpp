@@ -6199,6 +6199,12 @@ const NAString Aggregate::getText() const
       else
         result = "count_nonull";
       break;
+    case ITM_ORC_MAX_NV:
+      result = "orc_max_nv";
+      break;
+    case ITM_ORC_SUM_NV:
+      result = "orc_sum_nv";
+      break;
     case ITM_ONE_ROW:
       result = "one_Row";
       break;
@@ -6438,6 +6444,7 @@ ItemExpr * Aggregate::rewriteForStagedEvaluation(ValueIdList &initialAggrs,
   Aggregate *partial;
   Aggregate *sumOfCounts;
   Aggregate *sumOfSums;
+  Aggregate *minOfUECs;
 
   switch (getOperatorType())
     {
@@ -6505,6 +6512,7 @@ ItemExpr * Aggregate::rewriteForStagedEvaluation(ValueIdList &initialAggrs,
 
     case ITM_COUNT:
     case ITM_COUNT_NONULL:
+    case ITM_ORC_SUM_NV:
       // compute the sum of the counts
       partial = new (CmpCommon::statementHeap())
                   Aggregate(getOperatorType(),child(0));
@@ -6520,6 +6528,45 @@ ItemExpr * Aggregate::rewriteForStagedEvaluation(ValueIdList &initialAggrs,
       sumOfCounts->setTreatAsACount();
       sumOfCounts->setTopPartOfAggr();
       result = sumOfCounts;
+
+      result->synthTypeAndValueId();
+
+      // If we have to force the same type for the initial and final
+      // aggregate expressions, then force the type of the sum to
+      // be the same as the type of the count.
+      if (sameFormat)
+	result->getValueId().changeType(&(result->child(0)->
+					getValueId().getType()));
+
+      // execute the nested aggregate function in the initial set
+      initialAggrs.insert(result->child(0)->getValueId());
+      finalAggrs.insert(result->getValueId());
+      break;
+
+    case ITM_ORC_MAX_NV:
+      // in this case, take the min of the aggregates
+      partial = new (CmpCommon::statementHeap())
+                     Aggregate(getOperatorType(), child(0));
+
+      minOfUECs = new (CmpCommon::statementHeap())
+                    Aggregate(ITM_MIN, partial);
+
+      if (inScalarGroupBy())
+      {
+        partial->setInScalarGroupBy();
+        minOfUECs->setInScalarGroupBy();
+      }
+      if (treatAsACount())
+      {
+        partial->setTreatAsACount();
+        minOfUECs->setTreatAsACount();
+      }
+      if (topPartOfAggr())
+      {
+        partial->setTopPartOfAggr();
+      }
+      minOfUECs->setTopPartOfAggr();
+      result = minOfUECs;
 
       result->synthTypeAndValueId();
 

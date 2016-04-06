@@ -2670,6 +2670,32 @@ void ExHdfsScanStats::init()
   maxHdfsIOTime_ = 0;
 }
 
+// Instrumentation help code begins
+void ExOperStats::done()
+{
+   char fname[100];
+   snprintf(fname, sizeof(fname), "Tdb-%s-Inst-%d.data", getTdbName(), getInstNum());
+   ofstream fileout(fname, ios::app);
+   fileout<<"actualRowsReturned="<< getActualRowsReturned() <<endl;
+   fileout.close();
+}
+
+void ExOperStats::addMessage(const char* msg)
+{
+   addMessage(msg, strlen(msg));
+}
+
+void ExOperStats::addMessage(const char* msg, Lng32 len)
+{
+   char fname[100];
+   snprintf(fname, sizeof(fname), "Tdb-%s-Inst-%d.data", getTdbName(), getInstNum());
+   ofstream fileout(fname, ios::app);
+   for ( int i=0; i<len; i++ )
+      fileout<< msg[i];
+   fileout.close();
+}
+// Instrumentation help code ends
+
 ExHdfsScanStats::~ExHdfsScanStats()
 {
   if (tableName_ != NULL)
