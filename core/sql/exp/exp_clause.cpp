@@ -346,12 +346,6 @@ ex_clause::ex_clause(clause_type type,
 	case ITM_SESSION_USER:
 	  setClassID(FUNC_ANSI_USER_ID);
 	  break;
-	case ITM_VARIANCE:
-	  setClassID(FUNC_VARIANCE_ID);
-	  break;
-	case ITM_STDDEV:
-	  setClassID(FUNC_STDDEV_ID);
-	  break;
 	case ITM_STDDEV_SAMP:
 	  setClassID(FUNC_STDDEV_SAMP_ID);
 	  break;
@@ -824,18 +818,12 @@ NA_EIDPROC char *ex_clause::findVTblPtr(short classID)
     case ex_clause::FUNC_ANSI_USER_ID:
       GetVTblPtr(vtblPtr, ex_function_ansi_user);
       break;
-    case ex_clause::FUNC_VARIANCE_ID:
-      GetVTblPtr(vtblPtr, ExFunctionSVariance);
-      break;
 	case ex_clause::FUNC_VARIANCE_SAMP_ID:
       GetVTblPtr(vtblPtr, ExFunctionSVariance);
 	  break;
 	case ex_clause::FUNC_VARIANCE_POP_ID:
       GetVTblPtr(vtblPtr, ExFunctionSVariance);
 	  break;
-    case ex_clause::FUNC_STDDEV_ID:
-      GetVTblPtr(vtblPtr, ExFunctionSStddev);
-      break;
 	case ex_clause::FUNC_STDDEV_SAMP_ID:
       GetVTblPtr(vtblPtr, ExFunctionSStddev);
 	  break;
@@ -1152,8 +1140,6 @@ NA_EIDPROC const char * getOperTypeEnumAsString(Int16 /*OperatorTypeEnum*/ ote)
     case ITM_SUM: return "ITM_SUM";
     case ITM_COUNT: return "ITM_COUNT";
     case ITM_COUNT_NONULL: return "ITM_COUNT_NONULL";
-    case ITM_STDDEV: return "ITM_STDDEV";
-    case ITM_VARIANCE: return "ITM_VARIANCE";
 	case ITM_STDDEV_SAMP: return "ITM_STDDEV_SAMP";
 	case ITM_STDDEV_POP: return "ITM_STDDEV_POP";
 	case ITM_VARIANCE_SAMP: return "ITM_VARIANCE_SAMP";

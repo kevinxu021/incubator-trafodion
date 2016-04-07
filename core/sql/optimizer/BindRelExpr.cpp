@@ -3494,8 +3494,7 @@ static NABoolean checkUnresolvedAggregates(BindWA *bindWA)
   // This is to avoid printing the aggregate functions more than once.
 
     if((agg->origOpType() != ITM_AVG || agg->getOperatorType() == ITM_SUM) &&
-       (!(agg->origOpType() == ITM_STDDEV || agg->origOpType() == ITM_VARIANCE ||
-		  agg->origOpType() == ITM_STDDEV_SAMP || agg->origOpType() == ITM_VARIANCE_SAMP ||
+       (!(agg->origOpType() == ITM_STDDEV_SAMP || agg->origOpType() == ITM_VARIANCE_SAMP ||
 		  agg->origOpType() == ITM_STDDEV_POP || agg->origOpType() == ITM_VARIANCE_POP)
        || agg->getOperatorType() == ITM_COUNT_NONULL)){
 

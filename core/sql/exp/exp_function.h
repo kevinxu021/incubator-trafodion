@@ -2742,7 +2742,7 @@ public:
   NA_EIDPROC
   ExFunctionSVariance(Attributes **attr, Space *space);
   NA_EIDPROC
-  ExFunctionSVariance(OperatorTypeEnum type, Attributes **attr, Space *space);
+  ExFunctionSVariance(OperatorTypeEnum oper_type, Attributes **attr, Space *space);
 
   NA_EIDPROC
   ExFunctionSVariance();
@@ -2778,7 +2778,7 @@ public:
   NA_EIDPROC
   ExFunctionSStddev(Attributes **attr, Space *space);
   NA_EIDPROC
-  ExFunctionSStddev(OperatorTypeEnum type, Attributes **attr, Space *space);
+  ExFunctionSStddev(OperatorTypeEnum oper_type, Attributes **attr, Space *space);
 
   NA_EIDPROC
   ExFunctionSStddev();

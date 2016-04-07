@@ -169,8 +169,10 @@ ItemExpr* QRFunction::toItemExpr(const NAString& mvName, CollHeap* heap,
 
     // For StdDev and Variance, all args must be double precision. 
     // otherwise, ScalarVariance::preCodeGen will GenAssert.
-    NABoolean isScalarVariance = (getFunctionName() == "Scalar Variance"  ||
-                                getFunctionName() == "Scalar Stddev" );
+    NABoolean isScalarVariance = (getFunctionName() == "Scalar Variance Sample"  ||
+                                getFunctionName() == "Scalar Stddev Population" ||
+				   				getFunctionName() == "Scalar Variance Population" ||
+								getFunctionName() == "Scalar Stddev Sample"	);
     NAType *dbl = new(heap) SQLDoublePrecision(FALSE, heap);
 
     // Loop over the arguments and call recursively.

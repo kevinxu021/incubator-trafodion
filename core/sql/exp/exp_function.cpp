@@ -5183,13 +5183,15 @@ ex_expr::exp_return_type ExFunctionSVariance::eval(char *op_data[],
 
   avgOfVal = sumOfVal/countOfVal;
 
-  if(countOfVal == 1) {
+  if(countOfVal == 1 && getOperType() == ITM_VARIANCE_SAMP) {
+    result = 0.0;
+  }
+  else if(countOfVal == 0 && getOperType() == ITM_VARIANCE_POP){
     result = 0.0;
   }
   else {
     switch(getOperType())
 	 {
-	 case ITM_VARIANCE:
 	 case ITM_VARIANCE_SAMP:
 	  result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal - 1);
 	  break;
@@ -5235,14 +5237,16 @@ ex_expr::exp_return_type ExFunctionSStddev::eval(char *op_data[],
 
   avgOfVal = sumOfVal/countOfVal;
 
-  if(countOfVal == 1) {
+  if(countOfVal == 1 && getOperType() == ITM_STDDEV_SAMP) {
+    result = 0.0;
+  }
+  else if (countOfVal ==0 && getOperType() == ITM_STDDEV_POP){
     result = 0.0;
   }
   else {
     short err = 0;
     switch(getOperType())
 	 {
-	 case ITM_STDDEV:
 	 case ITM_STDDEV_SAMP:
 	  result = (sumOfValSquared - (sumOfVal * avgOfVal)) / (countOfVal - 1);
 	  break;

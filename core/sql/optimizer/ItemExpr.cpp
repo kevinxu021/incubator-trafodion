@@ -2326,13 +2326,11 @@ void ItemExpr::computeKwdAndFlags( NAString &kwd,
     case ITM_OFFSET:
     case ITM_POSITION:
     case ITM_POWER:
-    case ITM_STDDEV:
 	case ITM_STDDEV_SAMP:
 	case ITM_STDDEV_POP:
     case ITM_SUBSTR:
 	case ITM_VARIANCE_SAMP:
 	case ITM_VARIANCE_POP:
-    case ITM_VARIANCE:
       prefixFns = TRUE;
       break;
 
@@ -6192,12 +6190,18 @@ const NAString Aggregate::getText() const
     case ITM_ANY_TRUE_MAX:
       result = "anytruemax";
       break;
-    case ITM_STDDEV:
-      result = "stddev";
-      break;
-    case ITM_VARIANCE:
-      result = "variance";
-      break;
+	case ITM_STDDEV_SAMP:
+	  result = "stddev_samp";
+	  break;
+	case ITM_STDDEV_POP:
+	  result = "stddev_pop";
+	  break;
+	case ITM_VARIANCE_SAMP:
+	  result = "variance_samp";
+	  break;
+	case ITM_VARIANCE_POP:
+	  result = "variance_pop";
+	  break;
     case ITM_ONEROW:
       result = "oneRow";
       break;
@@ -6739,14 +6743,20 @@ OperatorTypeEnum Aggregate::mapOperTypeToRunning() const
   case ITM_MIN:
     return ITM_RUNNING_MIN;
     break;
-  case ITM_STDDEV:
-    return ITM_RUNNING_SDEV;
-    break;
+  case ITM_STDDEV_SAMP:
+	return ITM_RUNNING_SDEV_SAMP;
+	break;
+  case ITM_STDDEV_POP:
+	return ITM_RUNNING_SDEV_POP;
+	break;
+  case ITM_VARIANCE_SAMP:
+	return ITM_RUNNING_VARIANCE_SAMP;
+	break;
+  case ITM_VARIANCE_POP:
+	return ITM_RUNNING_VARIANCE_POP;
+	break;
   case ITM_SUM:
     return ITM_RUNNING_SUM;
-    break;
-  case ITM_VARIANCE:
-    return ITM_RUNNING_VARIANCE;
     break;
   case ITM_RUNNING_RANK:
     return ITM_RUNNING_RANK;
@@ -6776,9 +6786,6 @@ OperatorTypeEnum Aggregate::mapOperTypeToOlap() const
   case ITM_MIN:
     return ITM_OLAP_MIN;
     break;
-  case ITM_STDDEV:
-    return ITM_OLAP_SDEV;
-    break;
   case ITM_STDDEV_SAMP:
 	return ITM_OLAP_SDEV_SAMP;
 	break;
@@ -6787,9 +6794,6 @@ OperatorTypeEnum Aggregate::mapOperTypeToOlap() const
 	break;
   case ITM_SUM:
     return ITM_OLAP_SUM;
-    break;
-  case ITM_VARIANCE:
-    return ITM_OLAP_VARIANCE;
     break;
   case ITM_VARIANCE_SAMP:
 	return ITM_OLAP_VARIANCE_SAMP;
@@ -6829,14 +6833,20 @@ OperatorTypeEnum Aggregate::mapOperTypeToMoving() const
   case ITM_MIN:
     return ITM_MOVING_MIN;
     break;
-  case ITM_STDDEV:
-    return ITM_MOVING_SDEV;
-    break;
+  case ITM_STDDEV_SAMP:
+	return ITM_MOVING_SDEV_SAMP;
+	break;
+  case ITM_STDDEV_POP:
+	return ITM_MOVING_SDEV_POP;
+	break;
+  case ITM_VARIANCE_SAMP:
+	return ITM_MOVING_VARIANCE_SAMP;
+	break;
+  case ITM_VARIANCE_POP:
+	return ITM_MOVING_VARIANCE_POP;
+	break;
   case ITM_SUM:
     return ITM_MOVING_SUM;
-    break;
-  case ITM_VARIANCE:
-    return ITM_MOVING_VARIANCE;
     break;
   case ITM_RUNNING_RANK:
     return ITM_MOVING_RANK;
@@ -6863,15 +6873,21 @@ OperatorTypeEnum ItmSeqOlapFunction::mapOperTypeToRunning() const
   case ITM_OLAP_MIN:
     return ITM_RUNNING_MIN;
     break;
-  case ITM_OLAP_SDEV:
-    return ITM_RUNNING_SDEV;
+  case ITM_OLAP_SDEV_SAMP:
+    return ITM_RUNNING_SDEV_SAMP;
     break;
+  case ITM_OLAP_SDEV_POP:
+	return ITM_RUNNING_SDEV_POP;
+	break;
   case ITM_OLAP_SUM:
     return ITM_RUNNING_SUM;
     break;
-  case ITM_OLAP_VARIANCE:
-    return ITM_RUNNING_VARIANCE;
+  case ITM_OLAP_VARIANCE_SAMP:
+    return ITM_RUNNING_VARIANCE_SAMP;
     break;
+  case ITM_OLAP_VARIANCE_POP:
+	return ITM_RUNNING_VARIANCE_POP;
+	break;
   case ITM_OLAP_RANK:
     return ITM_RUNNING_RANK;
     break;
@@ -6900,15 +6916,21 @@ OperatorTypeEnum ItmSeqOlapFunction::mapOperTypeToMoving() const
   case ITM_OLAP_MIN:
     return ITM_MOVING_MIN;
     break;
-  case ITM_OLAP_SDEV:
-    return ITM_MOVING_SDEV;
+  case ITM_OLAP_SDEV_SAMP:
+    return ITM_MOVING_SDEV_SAMP;
     break;
+  case ITM_OLAP_SDEV_POP:
+	return ITM_MOVING_SDEV_POP;
+	break;
   case ITM_OLAP_SUM:
     return ITM_MOVING_SUM;
     break;
-  case ITM_OLAP_VARIANCE:
-    return ITM_MOVING_VARIANCE;
+  case ITM_OLAP_VARIANCE_SAMP:
+    return ITM_MOVING_VARIANCE_SAMP;
     break;
+  case ITM_OLAP_VARIANCE_POP:
+	return ITM_MOVING_VARIANCE_POP;
+	break;
   case ITM_OLAP_RANK:
     return ITM_MOVING_RANK;
     break;
@@ -13887,17 +13909,17 @@ const NAString ItmSequenceFunction::getText() const
     case ITM_OLAP_SDEV:
       return "olap sdev";
 	case ITM_OLAP_SDEV_SAMP:
-	  return "olap sdev samp";
+	  return "olap sdev sample";
 	case ITM_OLAP_SDEV_POP:
-	  return "olap sdev pop";
+	  return "olap sdev population";
     case ITM_OLAP_SUM:
       return "olap sum";
     case ITM_OLAP_VARIANCE:
       return "olap variance";
 	case ITM_OLAP_VARIANCE_SAMP:
-	  return "olap variance samp";
+	  return "olap variance sample";
 	case ITM_OLAP_VARIANCE_POP:
-	  return "olap variance pop";
+	  return "olap variance population";
 
     default:
       return "unknown sequence function";

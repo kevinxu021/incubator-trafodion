@@ -4920,8 +4920,10 @@ void ItmSeqRunningFunction::transformNode(NormWA & normWARef,
 
   OperatorTypeEnum op = getOperatorType();
 
-  if (op  == ITM_RUNNING_SDEV  ||
-       op == ITM_RUNNING_VARIANCE  ||
+  if (op  == ITM_RUNNING_SDEV_SAMP  ||
+	   op == ITM_RUNNING_SDEV_POP ||
+       op == ITM_RUNNING_VARIANCE_SAMP  ||
+	   op == ITM_RUNNING_VARIANCE_POP ||
        op == ITM_RUNNING_AVG ||
        op == ITM_RUNNING_RANK ||
        op == ITM_RUNNING_DRANK)
@@ -4930,8 +4932,10 @@ void ItmSeqRunningFunction::transformNode(NormWA & normWARef,
 
    switch (getOperatorType())
    {
-     case ITM_RUNNING_VARIANCE:
-     case ITM_RUNNING_SDEV:
+     case ITM_RUNNING_VARIANCE_SAMP:
+	 case ITM_RUNNING_VARIANCE_POP:
+	 case ITM_RUNNING_SDEV_POP:
+     case ITM_RUNNING_SDEV_SAMP:
        tfm = transformRunningVariance();
        break;
      case ITM_RUNNING_AVG:
@@ -5032,14 +5036,20 @@ ItemExpr * ItmSeqRunningFunction::transformRunningVariance()
 
   OperatorTypeEnum newOp;
 
-  if (getOperatorType() == ITM_RUNNING_VARIANCE)
+  if (getOperatorType() == ITM_RUNNING_VARIANCE_SAMP)
   {
-   newOp = ITM_VARIANCE;
+   newOp = ITM_VARIANCE_SAMP;
+  }else if (getOperatorType() == ITM_RUNNING_VARIANCE_POP)
+  {
+   newOp = ITM_VARIANCE_POP;
+  }else if (getOperatorType() == ITM_RUNNING_SDEV_POP)
+  {
+   newOp = ITM_SDEV_POP;
   }
   else
   {
-   CMPASSERT (getOperatorType() == ITM_RUNNING_SDEV);
-   newOp = ITM_STDDEV;
+   CMPASSERT (getOperatorType() == ITM_RUNNING_SDEV_SAMP);
+   newOp = ITM_STDDEV_SAMP;
   }
   ItemExpr *result = new HEAP
                         ScalarVariance(newOp,
@@ -5146,12 +5156,10 @@ void ItmSeqOlapFunction::transformNode(NormWA & normWARef,
 
   switch (getOperatorType())
   {
-    case ITM_OLAP_VARIANCE:
     case ITM_OLAP_VARIANCE_SAMP:
     case ITM_OLAP_VARIANCE_POP:
   	case ITM_OLAP_SDEV_SAMP:
 	case ITM_OLAP_SDEV_POP:
-    case ITM_OLAP_SDEV:
       tfm = transformOlapVariance(normWARef.wHeap());
       break;
 
@@ -5220,25 +5228,19 @@ ItemExpr * ItmSeqOlapFunction::transformOlapVariance(CollHeap *wHeap)
 
   OperatorTypeEnum newOp;
 
-  if (getOperatorType() == ITM_OLAP_VARIANCE)
+  if (getOperatorType() == ITM_OLAP_VARIANCE_SAMP)
   {
-   newOp = ITM_VARIANCE;
-  }
-  else if (getOperatorType() == ITM_OLAP_VARIANCE_SAMP){
    newOp = ITM_VARIANCE_SAMP;
   }
   else if (getOperatorType() == ITM_OLAP_VARIANCE_POP){
    newOp = ITM_VARIANCE_POP;
-  }
-  else if (getOperatorType() == ITM_OLAP_SDEV_SAMP){
-   newOp = ITM_STDDEV_SAMP;
   }
   else if (getOperatorType() == ITM_OLAP_SDEV_POP){
    newOp = ITM_STDDEV_POP;
   }
   else
   {
-   newOp = ITM_STDDEV;
+   newOp = ITM_STDDEV_SAMP;
   }
   ItemExpr *result = new (wHeap)
                         ScalarVariance(newOp,
@@ -5632,8 +5634,8 @@ void ItmSeqMovingFunction::transformNode(NormWA & normWARef,
   ItemExpr *tfm = 0;
 
   switch (op) {
-    case ITM_MOVING_VARIANCE:
-    case ITM_MOVING_SDEV:
+    case ITM_MOVING_VARIANCE_SAMP:
+    case ITM_MOVING_SDEV_SAMP:
       tfm = transformMovingVariance();
       break;
     case ITM_MOVING_AVG:

@@ -332,13 +332,11 @@ enum OperatorTypeEnum {
                         ITM_SUM = 2055,
                         ITM_COUNT = 2056,        // COUNT(*)
                         ITM_COUNT_NONULL = 2057, // COUNT(A) count non-null A's
-                        ITM_STDDEV = 2058,
-                        ITM_VARIANCE = 2059,
+                        ITM_STDDEV_SAMP = 2058,
+                        ITM_VARIANCE_SAMP = 2059,
                         ITM_BASECOL = 2060,  // no aggregate function
-						ITM_STDDEV_SAMP = 2061,
-						ITM_STDDEV_POP = 2062,
-						ITM_VARIANCE_SAMP = 2063,
-						ITM_VARIANCE_POP = 2064,
+						ITM_STDDEV_POP = 2061,
+						ITM_VARIANCE_POP = 2062,
 
                         ITM_ONE_ROW = 2070,
                         ITM_ONE_TRUE = 2071,

@@ -3920,18 +3920,14 @@ public:
   {
     switch(getOperatorType())
       {
-      case ITM_VARIANCE:
-	return "Scalar Variance";
-      case ITM_STDDEV:
-	return "Scalar Stddev";
       case ITM_VARIANCE_SAMP:
-	return "Scalar Variance Samp";
+	return "Scalar Variance Sample";
       case ITM_STDDEV_SAMP:
-	return "Scalar Stddev Samp";
+	return "Scalar Stddev Sample";
       case ITM_VARIANCE_POP:
-	return "Scalar Variance Pop";
+	return "Scalar Variance Population";
       case ITM_STDDEV_POP:
-	return "Scalar Stddev Pop";
+	return "Scalar Stddev Population";
       default:
 	return "Unknown Scalar Variance Function";
       }
