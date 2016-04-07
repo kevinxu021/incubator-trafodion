@@ -8,6 +8,16 @@
 <SystemQueries>
 	<queries>
 		<query>
+			<!-- Get system info -->
+			<name>GET_SYSTEM_INFO</name>
+			<text><![CDATA[info system]]></text>
+		</query>
+		<query>
+			<!-- Get system version -->
+			<name>GET_SYSTEM_VERSION</name>
+			<text><![CDATA[get version of software]]></text>
+		</query>
+		<query>
 			<!-- Get List of DCS servers and their status -->
 			<name>GET_DCS_SERVERS</name>
 			<text><![CDATA[{"url":"http://%1$s/v1/servers/dcs/connections", "method":"get"}]]></text>
@@ -348,7 +358,7 @@
 		<query>
 			<!-- Fetch procedures and udfs that use this library -->
 			<name>SELECT_LIBRARY_USAGE</name>
-			<text><![CDATA[SELECT T3.OBJECT_NAME AS "Routine Name", T3.SCHEMA_NAME as "Routine Schema" ,
+			<text><![CDATA[SELECT 'Used By' AS Usage_Type, T3.OBJECT_NAME AS "Routine Name", T3.SCHEMA_NAME as "Routine Schema" ,
 					CASE T4.UDR_TYPE
 					  WHEN 'P' THEN 'Procedure'
 					  WHEN 'T' THEN 'Table Mapping UDF'
@@ -470,7 +480,7 @@
 		<query>
 			<!-- Fetch the library used by the routine -->
 			<name>GET_ROUTINE_USAGE</name>
-			<text><![CDATA[SELECT object_name, schema_name, 'Library' as Object_Type
+			<text><![CDATA[SELECT 'Uses' AS Usage_Type, object_name, schema_name, 'Library' as Object_Type
 					FROM "_MD_".LIBRARIES_USAGE T1, 
 					"_MD_".OBJECTS T2 
 					WHERE T1.USED_UDR_UID = ?
@@ -580,7 +590,7 @@
 		<query>
 			<!-- Fetch active query detail from rms -->
 			<name>SELECT_ACTIVE_QUERY_DETAIL</name>
-			<text><![CDATA[get statistics for qid %1$s %2$s]]></text>
+			<text><![CDATA[get statistics for qid \"%1$s\" %2$s]]></text>
 		</query>
 		<query>
 			<!-- Fetch active query detail from rms -->
@@ -603,6 +613,23 @@
 				order by log_ts desc
 				]]></text>
 		</query>
+		<query>
+			<name>EXPLAIN_ACTIVE_QUERY</name>
+			<text><![CDATA[SELECT * FROM TABLE(explain(null, 'QID=%1$s'))]]></text>
+		</query>
+		<query>
+			<name>EXPLAIN_USING_QID</name>
+			<text><![CDATA[SELECT * FROM TABLE(explain(null, 'EXPLAIN_QID=%1$s'))]]></text>
+		</query>
+		<query>
+			<name>TEXT_EXPLAIN_USING_QID</name>
+			<text><![CDATA[explain qid %1$s from repository]]></text>
+		</query>
+		<query>
+			<name>EXPLAIN_USING_QTEXT</name>
+			<text><![CDATA[SELECT * FROM TABLE(explain(null, 'EXPLAIN_STMT=%1$s'))]]></text>
+		</query>
+		
 		<query>
 			<name>OPENTSDB_IOWAITS</name>
 			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:rate:proc.stat.cpu{type=iowait}", "method":"get"}]]></text>

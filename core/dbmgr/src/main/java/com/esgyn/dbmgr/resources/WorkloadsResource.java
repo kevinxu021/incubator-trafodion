@@ -547,8 +547,7 @@ public class WorkloadsResource {
 	@GET
 	@Path("/active/")
 	@Produces("application/json")
-	public TabularResult getActiveQueriesFromRMS(@QueryParam("probeType") String probeType,
-			@QueryParam("time") String time, @Context HttpServletRequest servletRequest,
+	public TabularResult getActiveQueriesFromRMS(@Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 		try {
 			Session soc = SessionModel.getSession(servletRequest, servletResponse);
@@ -573,13 +572,15 @@ public class WorkloadsResource {
 		Connection connection = null;
 		Statement stmt;
 		Session soc = SessionModel.getSession(servletRequest, servletResponse);
-		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.CANCEL_QUERY), queryID);
+		String sqlText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.CANCEL_QUERY),
+				JdbcHelper.EncloseInDoubleQuotes(queryID));
 
 		String url = ConfigurationResource.getInstance().getJdbcUrl();
 
 		try {
 			connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
 			stmt = connection.createStatement();
+			_LOG.debug(sqlText);
 			stmt.execute(sqlText);
 			stmt.close();
 		} catch (Exception e) {
