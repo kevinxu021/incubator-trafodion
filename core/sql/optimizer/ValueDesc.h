@@ -49,6 +49,7 @@
 #include "ExprNode.h"
 #include "CostScalar.h"
 #include "ClusteredBitmap.h"
+//#include "orcPushdownPredInfo.h"
 
 // -----------------------------------------------------------------------
 // contents of this file
@@ -82,6 +83,7 @@ class TableDesc;
 class IndexDesc;
 class ConstValue;
 class NATable;
+class OrcPushdownPredInfoList;
 
 ////////////////////
 class QueryAnalysis;
@@ -194,9 +196,9 @@ public:
   NABoolean isSaltColumn() const;
 
   // return TRUE if I am a ValueId associated with an Index Column, or
-  // a base column , and I am an added column with a default value that is not
-  // null.
-  NABoolean isAddedColumnWithNonNullDefault() const;
+  // a base column , and I am a column with a default value that is not
+  // null or not Current.
+  NABoolean isColumnWithNonNullNonCurrentDefault() const;
 
   // ---------------------------------------------------------------------
   // change the ValueId's type to the given type
@@ -1347,6 +1349,29 @@ public:
   NABoolean getReferencedPredicates (const ValueIdSet & outerReferences,
 				      ValueIdSet & nonLocalPreds ) const;
 
+  // Evaluate a predicate (in form of a ValueIdSet) at compile time. For
+  // this to work, the predicate needs to consist of constant expressions
+  // only. An optional ValueIdMap to rewrite (down) the predicate can
+  // be specified, for example to replace columns with constants. The
+  // method can also replace VEGPredicates of the form (col = const),
+  // if there is a rewrite for col in the specified ValueIdMap.
+  //
+  // Example:
+  //
+  // input predicate:  VEGPred(a = 2) and VEGRef(b) < 10
+  //
+  //    rewrite(top):     VEGRef(a = 2) ,   VEGRef(b)
+  //    rewrite(bottom):       1        ,      5
+  //
+  // evaluated predicate: 1 = 2 and 5 < 10
+  //
+  // Returns: outcome of the predicate evaluation, one of
+  //  EXPR_ERROR, EXPR_TRUE, EXPR_FALSE, EXPR_NULL
+  ex_expr::exp_return_type evalPredsAtCompileTime(
+       ComDiagsArea *da = NULL,
+       ValueIdMap *rewrite = NULL,
+       NABoolean replaceVEGPreds = FALSE) const;
+
   // ---------------------------------------------------------------------
   // Print
   // ---------------------------------------------------------------------
@@ -1401,6 +1426,12 @@ public:
   void findAllReferencedBaseCols(ValueIdSet & result) const;
 
   void findAllReferencedIndexCols(ValueIdSet & result) const;
+
+  // This method finds all constants referenced directly or indirectly
+  // via this ValueIdSet. This includes degging into VEGs and recursively
+  void findAllReferencingMinMaxConstants(ValueIdSet & result) const;
+
+  void findMinMaxConstants(ValueIdSet& result) const;
 
   // -----------------------------------------------------------------------
   // ValueIdSet::findAllEqualityCols()
@@ -1484,6 +1515,11 @@ public:
   // OLAP LEAD function for each element (as the child of LEAD) in input, 
   // and save the new function in result
   void addOlapLeadFuncs(const ValueIdSet& input, ValueIdSet& result);
+  // generate push down list for ORC, based on the veg-replaced push down 
+  // predicates contained in this ValueIdSet. This member function is called
+  // during preCodeGen for Hive scan.
+  void generatePushdownListForORC(OrcPushdownPredInfoList&);
+
 
 /////////////////////////////////////////////////////////////
 

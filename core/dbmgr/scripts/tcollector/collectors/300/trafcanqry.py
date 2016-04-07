@@ -69,9 +69,10 @@ def main():
             size = resultSet.getString("psize")
             dist = resultSet.getInt   ("solar_distance")
    
+    tend = int(round(time.time() * 1000))
+    stmt.executeUpdate(TABLE_DROPPER)
     stmt.close()
     dbConn.close()
-    tend = int(round(time.time() * 1000))
     print ("esgyndb.canary.sqlconnect.time %d %d" % (tend, connTime))
     print ("esgyndb.canary.sqlddl.time %d %d" % (tend, ddlTime))
     print ("esgyndb.canary.sqlwrite.time %d %d" % (tend, writeTime))

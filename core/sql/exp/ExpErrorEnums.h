@@ -473,6 +473,7 @@ enum ExeErrorCode
   EXE_EXTRACT_BACKUP_SWITCHED           = 8963,
   EXE_LOAD_NON_EMPTY_TABLE              = 8964,
   EXE_UNLOAD_FILE_EXISTS                = 8965,
+  EXE_HIVE_INSERT_PART_CREATE_ERR       = 8966,
   // ---------------------------------------------------------------------
   // SeaMonster
   // ---------------------------------------------------------------------

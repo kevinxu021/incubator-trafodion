@@ -113,8 +113,10 @@ void deleteVirtExplainTableDesc(desc_struct *);
 
 
 short GenericUtilExpr::processOutputRow(Generator * generator,
-                                        const Int32 work_atp, const Int32 output_row_atp_index,
-                                        ex_cri_desc * returnedDesc)
+                                        const Int32 work_atp, 
+                                        const Int32 output_row_atp_index,
+                                        ex_cri_desc * returnedDesc,
+                                        NABoolean noAtpOrIndexChange)
 {
   ExpGenerator * expGen = generator->getExpGenerator();
   Space * space = generator->getSpace();
@@ -155,11 +157,14 @@ short GenericUtilExpr::processOutputRow(Generator * generator,
   // it.
   NADELETEBASIC(attrs, generator->wHeap());
 
-  // The output row will be returned as the last entry of the returned atp.
-  // Change the atp and atpindex of the returned values to indicate that.
-  expGen->assignAtpAndAtpIndex(getVirtualTableDesc()->getColumnList(),
-			       0, returnedDesc->noTuples()-1);
-  
+  if (NOT noAtpOrIndexChange)
+    {
+      // The output row will be returned as the last entry of the returned atp.
+      // Change the atp and atpindex of the returned values to indicate that.
+      expGen->assignAtpAndAtpIndex(getVirtualTableDesc()->getColumnList(),
+                                   0, returnedDesc->noTuples()-1);
+    }
+
   return 0;
 }
                                     
@@ -243,7 +248,10 @@ short ExeUtilProcessVolatileTable::codeGen(Generator * generator)
   if (isHbase_)
     {
       pvt_tdb->setHbaseDDL(TRUE);
-      pvt_tdb->setHbaseDDLNoUserXn(TRUE);
+
+      if ((NOT getExprNode()->castToStmtDDLNode()->ddlXns()) &&
+          (NOT Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL)))
+        pvt_tdb->setHbaseDDLNoUserXn(TRUE);
     }
 
   // no tupps are returned
@@ -1513,7 +1521,7 @@ short ExeUtilGetMetadataInfo::codeGen(Generator * generator)
     }
 
   short rc = processOutputRow(generator, work_atp, exe_util_row_atp_index,
-                              returnedDesc);
+                              returnedDesc, TRUE);
   if (rc)
     {
       return -1;
@@ -1545,6 +1553,11 @@ short ExeUtilGetMetadataInfo::codeGen(Generator * generator)
       expGen->generateExpr(pred->getValueId(),ex_expr::exp_SCAN_PRED,&scanExpr);
     }
   
+  // The output row will be returned as the last entry of the returned atp.
+  // Change the atp and atpindex of the returned values to indicate that.
+  expGen->assignAtpAndAtpIndex(getVirtualTableDesc()->getColumnList(),
+			       0, returnedDesc->noTuples()-1);
+
   struct QueryInfoStruct
   {
     const char * ausStr;
@@ -4415,340 +4428,6 @@ short ExeUtilHbaseDDL::codeGen(Generator * generator)
   return 0;
 }
 
-short ExeUtilHbaseCoProcAggr::codeGen(Generator * generator)
-{
-  Space * space          = generator->getSpace();
-  ExpGenerator * expGen = generator->getExpGenerator();
-
-  // allocate a map table for the retrieved columns
-  //  generator->appendAtEnd();
-  MapTable * last_map_table = generator->getLastMapTable();
- 
-  ex_expr *projExpr = NULL;
-
-  ex_cri_desc * givenDesc 
-    = generator->getCriDesc(Generator::DOWN);
-
-  ex_cri_desc * returnedDesc = NULL;
-
-  const Int32 work_atp = 1;
-
-  ULng32 projRowLen = 0; 
-  ExpTupleDesc * projTupleDesc = NULL;
-
-  ex_cri_desc * work_cri_desc = NULL;
-  const Int32 projTuppIndex = 2;
-  work_cri_desc = new(space) ex_cri_desc(3, space);
-
-  returnedDesc = new(space) ex_cri_desc(givenDesc->noTuples() + 1, space);
-  const Int32 returnedTuppIndex = returnedDesc->noTuples() - 1;
-
-  if (aggregateExpr().isEmpty())
-    {
-      GenAssert(0, "aggregateExpr() cannot be empty.");
-    }
-
-  Queue * listOfAggrTypes = new(space) Queue(space);
-  Queue * listOfAggrColNames = new(space) Queue(space);
-
-  ValueIdList aggrVidList;
-  
-  for (ValueId valId = aggregateExpr().init();
-       aggregateExpr().next(valId);
-       aggregateExpr().advance(valId)) 
-    {
-      // this value will be populated at runtime by aggr returned by hbase coprocessor.
-      //  It will not be aggregated by the aggr expression.
-      // Mark it as codeGenerated.
-      generator->addMapInfo(valId, 0)->codeGenerated();
-      aggrVidList.insert(valId);
-
-      Aggregate *a = (Aggregate *) valId.getItemExpr();
-      short aggrType;
-      char * aggrTypeInList = NULL;
-      char * aggrColName = NULL;
-      if (a->getOperatorType() == ITM_COUNT)
-	{
-	  aggrType = (short)ComTdbHbaseCoProcAggr::COUNT;
-	  HbaseAccess::genColName(generator, NULL, aggrColName);
-	}
-      else
-	{
-	  GenAssert(0, "This aggregate not yet supported for coprocessor execution.");
-	}
-
-      aggrTypeInList = space->allocateAndCopyToAlignedSpace
-	((char*)&aggrType, sizeof(aggrType), 0);
-      listOfAggrTypes->insert(aggrTypeInList);
-
-      listOfAggrColNames->insert(aggrColName);
-    }
-  
-  expGen->generateContiguousMoveExpr(aggrVidList, 
-				     0 /*don't add conv nodes*/,
-				     0, projTuppIndex,
-				     ExpTupleDesc::SQLARK_EXPLODED_FORMAT,
-				     projRowLen, 
-				     &projExpr,
-				     &projTupleDesc, ExpTupleDesc::LONG_FORMAT);
-
-  work_cri_desc->setTupleDescriptor(projTuppIndex, projTupleDesc);
-  
-  Cardinality expectedRows = (Cardinality) getEstRowsUsed().getValue();
-  ULng32 buffersize = 3 * getDefault(GEN_DPSO_BUFFER_SIZE);
-  queue_index upqueuelength = (queue_index)getDefault(GEN_DPSO_SIZE_UP);
-  queue_index downqueuelength = (queue_index)getDefault(GEN_DPSO_SIZE_DOWN);
-  Int32 numBuffers = getDefault(GEN_DPUO_NUM_BUFFERS);
-
-  // Compute the buffer size based on upqueue size and row size.
-  // Try to get enough buffer space to hold twice as many records
-  // as the up queue.
-  //
-  // This should be more sophisticate than this, and should maybe be done
-  // within the buffer class, but for now this will do.
-  // 
-  ULng32 cbuffersize = 
-    SqlBufferNeededSize((upqueuelength * 2 / numBuffers),
-			1000); //returnedRowlen);
-  // But use at least the default buffer size.
-  //
-  buffersize = buffersize > cbuffersize ? buffersize : cbuffersize;
-  
-  // Always get the index name -- it will be the base tablename for
-  // primary access.
-  char * tablename = NULL;
-
-  tablename = 
-      space->AllocateAndCopyToAlignedSpace(
-					   GenGetQualifiedName(getTableName()), 0);
-  
-  NAString serverNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_SERVER);
-  NAString zkPortNAS = ActiveSchemaDB()->getDefaults().getValue(HBASE_ZOOKEEPER_PORT);
-  char * server = space->allocateAlignedSpace(serverNAS.length() + 1);
-  strcpy(server, serverNAS.data());
-  char * zkPort = space->allocateAlignedSpace(zkPortNAS.length() + 1);
-  strcpy(zkPort, zkPortNAS.data());
-
-  TableDesc *tableDesc = getUtilTableDesc();
-  ComTdbHbaseAccess::HbasePerfAttributes * hbpa =
-    new(space) ComTdbHbaseAccess::HbasePerfAttributes();
-
-  generator->setHBaseCacheBlocks(tableDesc->getNATable()->
-                                 computeHBaseRowSizeFromMetaData(),
-                                 (Int64) getEstRowsAccessed().getValue(),
-                                 hbpa);
-
-  // cache setting not relevant since rows are not returned to HBase client
-  hbpa->setNumCacheRows(CmpCommon::getDefaultNumeric(HBASE_NUM_CACHE_ROWS_MIN));
-
-  // create hdfsscan_tdb
-  ComTdbHbaseCoProcAggr *hbasescan_tdb = new(space) 
-    ComTdbHbaseCoProcAggr(
-		      tablename,
-
-		      projExpr,
-		      projRowLen,
-		      projTuppIndex,
-		      returnedTuppIndex,
-
-		      listOfAggrTypes,
-		      listOfAggrColNames,
-
-		      work_cri_desc,
-		      givenDesc,
-		      returnedDesc,
-		      downqueuelength,
-		      upqueuelength,
-                      expectedRows,
-		      numBuffers,
-		      buffersize,
-
-		      server,
-                      zkPort,
-		      hbpa
-		      );
-
-  generator->initTdbFields(hbasescan_tdb);
-
-  if (tableDesc->getNATable()->isSeabaseTable())
-  {
-    if (tableDesc->getNATable()->isEnabledForDDLQI())
-      generator->objectUids().insert(
-        tableDesc->getNATable()->objectUid().get_value());
-  }
-
-  hbasescan_tdb->setSQHbaseTable(TRUE);
-
-  if(!generator->explainDisabled()) {
-    generator->setExplainTuple(
-       addExplainInfo(hbasescan_tdb, 0, 0, generator));
-  }
-
-  if ((generator->computeStats()) && 
-      (generator->collectStatsType() == ComTdb::PERTABLE_STATS
-      || generator->collectStatsType() == ComTdb::OPERATOR_STATS))
-    {
-      hbasescan_tdb->setPertableStatsTdbId((UInt16)generator->
-					   getPertableStatsTdbId());
-    }
-
-  generator->setCriDesc(givenDesc, Generator::DOWN);
-  generator->setCriDesc(returnedDesc, Generator::UP);
-  generator->setGenObj(this, hbasescan_tdb);
-
-  return 0;
-}
-
-short ExeUtilOrcFastAggr::codeGen(Generator * generator)
-{
-  Space * space          = generator->getSpace();
-  ExpGenerator * expGen = generator->getExpGenerator();
-
-  // allocate a map table for the retrieved columns
-  //  generator->appendAtEnd();
-  MapTable * last_map_table = generator->getLastMapTable();
- 
-  ex_expr *projExpr = NULL;
-
-  ex_cri_desc * givenDesc 
-    = generator->getCriDesc(Generator::DOWN);
-
-  ex_cri_desc * returnedDesc = NULL;
-
-  const Int32 work_atp = 1;
-
-  ULng32 projRowLen = 0; 
-  ExpTupleDesc * projTupleDesc = NULL;
-
-  ex_cri_desc * work_cri_desc = NULL;
-  const Int32 projTuppIndex = 2;
-  work_cri_desc = new(space) ex_cri_desc(3, space);
-
-  returnedDesc = new(space) ex_cri_desc(givenDesc->noTuples() + 1, space);
-  const Int32 returnedTuppIndex = returnedDesc->noTuples() - 1;
-
-  if (aggregateExpr().isEmpty())
-    {
-      GenAssert(0, "aggregateExpr() cannot be empty.");
-    }
-
-  Queue * listOfAggrTypes = new(space) Queue(space);
-  Queue * listOfAggrColNames = new(space) Queue(space);
-
-  ValueIdList aggrVidList;
-  
-  for (ValueId valId = aggregateExpr().init();
-       aggregateExpr().next(valId);
-       aggregateExpr().advance(valId)) 
-    {
-      // this value will be populated at runtime by aggr returned by ORC.
-      // It will not be aggregated by the aggr expression.
-      // Mark it as codeGenerated.
-      generator->addMapInfo(valId, 0)->codeGenerated();
-      aggrVidList.insert(valId);
-
-      Aggregate *a = (Aggregate *) valId.getItemExpr();
-      short aggrType;
-      char * aggrTypeInList = NULL;
-      char * aggrColName = NULL;
-      if (a->getOperatorType() == ITM_COUNT)
-	{
-	  aggrType = (short)ComTdbHbaseCoProcAggr::COUNT;
-
-	  HbaseAccess::genColName(generator, NULL, aggrColName);
-	}
-      else
-	{
-	  GenAssert(0, "This aggregate not yet supported for fast ORC execution.");
-	}
-
-      aggrTypeInList = space->allocateAndCopyToAlignedSpace
-	((char*)&aggrType, sizeof(aggrType), 0);
-      listOfAggrTypes->insert(aggrTypeInList);
-
-      listOfAggrColNames->insert(aggrColName);
-    }
-  
-  expGen->generateContiguousMoveExpr(aggrVidList, 
-				     0 /*don't add conv nodes*/,
-				     0, projTuppIndex,
-				     ExpTupleDesc::SQLARK_EXPLODED_FORMAT,
-				     projRowLen, 
-				     &projExpr,
-				     &projTupleDesc, ExpTupleDesc::LONG_FORMAT);
-
-  work_cri_desc->setTupleDescriptor(projTuppIndex, projTupleDesc);
-
-  Queue * hdfsFileInfoList = NULL;
-  Queue * hdfsFileRangeBeginList = NULL;
-  Queue * hdfsFileRangeNumList = NULL;
-  char * hdfsHostName = NULL;
-  Int32 hdfsPort = 0;
-
-  const HHDFSTableStats* hTabStats = 
-    getUtilTableDesc()->getClusteringIndex()->getNAFileSet()->getHHDFSTableStats();
-
-  FileScan::genForOrc(generator, 
-                      hTabStats,
-                      getUtilTableDesc()->getClusteringIndex()->getNAFileSet()->getPartitioningFunction(),
-                      hdfsFileInfoList, hdfsFileRangeBeginList, hdfsFileRangeNumList,
-                      hdfsHostName, hdfsPort);
-  
-  ULng32 buffersize = 3 * getDefault(GEN_DPSO_BUFFER_SIZE);
-  queue_index upqueuelength = (queue_index)getDefault(GEN_DPSO_SIZE_UP);
-  queue_index downqueuelength = (queue_index)getDefault(GEN_DPSO_SIZE_DOWN);
-  Int32 numBuffers = getDefault(GEN_DPUO_NUM_BUFFERS);
-
-  char * tablename = 
-    space->AllocateAndCopyToAlignedSpace(
-                                         GenGetQualifiedName(
-                                                             getUtilTableDesc()->getClusteringIndex()->
-                                                             getNAFileSet()->getFileSetName()), 0);
-  
-  ComTdbOrcFastAggr *aggr_tdb = new(space) 
-    ComTdbOrcFastAggr(
-		      tablename,
-                      ComTdbOrcFastAggr::COUNT_,
-                      hdfsFileInfoList,
-                      hdfsFileRangeBeginList,
-                      hdfsFileRangeNumList,
-		      projExpr,
-		      projRowLen,
-		      projTuppIndex,
-                      returnedTuppIndex,
-		      work_cri_desc,
-		      givenDesc,
-		      returnedDesc,
-		      downqueuelength,
-		      upqueuelength,
-		      numBuffers,
-		      buffersize
-		      );
-
-  generator->initTdbFields(aggr_tdb);
-
-  if(!generator->explainDisabled()) {
-    generator->setExplainTuple(
-       addExplainInfo(aggr_tdb, 0, 0, generator));
-  }
-
-  if ((generator->computeStats()) && 
-      (generator->collectStatsType() == ComTdb::PERTABLE_STATS
-      || generator->collectStatsType() == ComTdb::OPERATOR_STATS))
-    {
-      aggr_tdb->setPertableStatsTdbId((UInt16)generator->
-					   getPertableStatsTdbId());
-    }
-
-  generator->setCriDesc(givenDesc, Generator::DOWN);
-  generator->setCriDesc(returnedDesc, Generator::UP);
-  generator->setGenObj(this, aggr_tdb);
-
-  return 0;
-}
-
-
-
 /////////////////////////////////////////////////////////
 //
 // ExeUtilHbaseLoad::codeGen()
@@ -5056,4 +4735,3 @@ short ExeUtilHBaseBulkUnLoad::codeGen(Generator * generator)
 
   return 0;
 }
-

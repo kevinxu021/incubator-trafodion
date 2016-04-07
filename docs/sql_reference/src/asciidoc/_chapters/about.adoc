@@ -87,9 +87,7 @@ Trafodion SQL statements.
 Management System (RMS) and describes the RMS counters that are returned.
 | <<OLAP_Functions,OLAP Functions>>                               | Describes specific on line analytical processing functions.
 | <<Reserved_Words,Appendix A: Reserved Words>>                   | Lists the words that are reserved in Trafodion SQL.
-| <<Control_Query_Default,Appendix B: Control Query Default (CQD) Attributes>> |
-Describes the Control Query Default (CQD) attributes that are supported in a Trafodion SQL environment.
-| <<Limits,Appendix C: Limits>>                                  | Describes limits in Trafodion SQL.
+| <<Limits,Appendix B: Limits>>                                  | Describes limits in Trafodion SQL.
 |===
 
 
@@ -155,6 +153,7 @@ INTERVAL { start-field TO end-field | single-field }
 * | Vertical Line 
 +
 A vertical line separates alternatives in a horizontal list that is enclosed in brackets or braces.
++
 ```
 {expression | NULL} 
 ```
@@ -170,6 +169,7 @@ ATTRIBUTE[S] attribute [, attribute] ...
 An ellipsis immediately following a single syntax item indicates that you can repeat that syntax item any number of times.
 +
 For example:
++
 ```
 expression-n ...
 ```
@@ -237,4 +237,5 @@ needs. Send any errors found, suggestions for improvement, or compliments to:
 issues@trafodion.incubator.apache.org
 
 Include the document title and any comment, error found, or suggestion for improvement you have concerning this document.
-
+Or, even better, join our community and help us improve our documentation. Please refer to 
+http://trafodion.incubator.apache.org/contributing_redirect.html[Trafodion Contributor Guide] for details.

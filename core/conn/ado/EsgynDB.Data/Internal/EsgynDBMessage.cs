@@ -11,6 +11,7 @@ namespace EsgynDB.Data
         //generic
         InternalError,   //used twice currently
         CommunicationFailure,
+        PoolExhuasted,
 
         //getobjref
         NoServerHandle,

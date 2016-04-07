@@ -169,6 +169,8 @@ public:
   const ValueId &getComputedColumnExpr() { return computedColumnExpr_; }
   void setComputedColumnExpr(const ValueId &x) { computedColumnExpr_ = x; }
 
+  ItemExpr * cloneTopNode(CollHeap* outHeap) { return cloneTopNodeAndValueId(outHeap); };
+
 private:
 
   // the TableId for the table to which this column belongs
@@ -244,6 +246,9 @@ public:
   { return TRUE; }
 
   const NAFileSet * getNAFileSet() { return index_; }
+
+  ItemExpr * cloneTopNode(CollHeap* outHeap) { return cloneTopNodeAndValueId(outHeap); };
+
 private:
 
   // a pointer back to the NAFileSet structure
@@ -273,7 +278,17 @@ public:
 
   ColReference(ColRefName *colRefName) :
     ItemExpr(ITM_REFERENCE), colRefName_(colRefName), starExpansion_(NULL),
-      parent_(NULL), targetColumnClass_(USER_COLUMN) {}
+      parent_(NULL), targetColumnClass_(USER_COLUMN) 
+{
+  if (colRefName && colRefName_->getColName() == "S_STORE_SK")
+    {
+      Lng32 ij = 0;
+      while (ij)
+        {
+          ij = 2 - ij;
+        }
+    }
+}
 
   // virtual destructor
   virtual ~ColReference() {}
@@ -496,6 +511,8 @@ public:
   virtual ItemExpr * copyTopNode(ItemExpr *derivedNode = NULL,
 				 CollHeap* outHeap = 0);
 
+  ItemExpr * cloneTopNode(CollHeap* outHeap) { return cloneTopNodeAndValueId(outHeap); };
+
   // can this base column be calculated from these values/group attributes
   virtual NABoolean isCovered(const ValueIdSet& newExternalInputs,
 			      const GroupAttributes& newRelExprAnchorGA,
@@ -576,7 +593,14 @@ public:
 
   // does the value of this constant (if char) has trailing blanks
   NABoolean valueHasTrailingBlanks();
+
+  // remove non-pushabe predicates for ORC.
+  virtual ItemExpr* removeNonPushablePredicatesForORC() { return this; }
   
+  //  whether this constant encodes a min or a max value
+  NABoolean isMin();
+  NABoolean isMax();
+
 private:
   void initCharConstValue(const NAString&,
             enum CharInfo::CharSet charSet,
@@ -886,6 +910,8 @@ public:
   virtual ItemExpr * copyTopNode(ItemExpr *derivedNode = NULL,
 				 CollHeap* outHeap = 0);
 
+  ItemExpr * cloneTopNode(CollHeap* outHeap) { return cloneTopNodeAndValueId(outHeap); };
+
   // get a printable string that identifies the operator
   const NAString getText() const;
 
@@ -981,6 +1007,8 @@ public:
     tablename_ = tablename; 
   }
   // LCOV_EXCL_STOP
+  //
+  ItemExpr* removeNonPushablePredicatesForORC() { return this; };
 
 private:
 

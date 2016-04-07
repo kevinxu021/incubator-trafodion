@@ -111,7 +111,8 @@ public:
     parentRootSelectList_(NULL),
     isMarkedForElimination_(FALSE),
     aggDistElimRuleCreates_(FALSE),
-    groupByOnJoinRuleCreates_(FALSE)
+    groupByOnJoinRuleCreates_(FALSE),
+    feasibleToPushdownAggr_(FALSE)
   {}
 
   // constructor
@@ -128,7 +129,8 @@ public:
     parentRootSelectList_(NULL),
     isMarkedForElimination_(FALSE),
     aggDistElimRuleCreates_(FALSE),
-    groupByOnJoinRuleCreates_(FALSE)
+    groupByOnJoinRuleCreates_(FALSE),
+    feasibleToPushdownAggr_(FALSE)
   {}
 
   // virtual destructor
@@ -516,6 +518,21 @@ public:
      ValueIdSet       &pulledPredicates,        // return the pulled-up preds
      ValueIdMap       *optionalMap);            // optional map to rewrite preds
 
+  RelExpr *transformForAggrPushdown(Generator * generator,
+                                    const ValueIdSet & externalInputs,
+                                    ValueIdSet &pulledNewInputs);
+
+  NABoolean isFeasibleToTransformForAggrPushdown() { return feasibleToPushdownAggr_; };
+
+  NABoolean decideFeasibleToTransformForAggrPushdown();
+
+  NABoolean okToAttemptESPParallelism (
+            const Context* myContext, /*IN*/
+            PlanWorkSpace* pws, /*IN*/
+            Lng32& numOfESPs, /*IN,OUT*/
+            float& allowedDeviation, /*OUT*/
+            NABoolean& numOfESPsForced /*OUT*/);
+
   /*ExpTupleDesc::TupleDataFormat determineInternalFormat( const ValueIdList & valIdList,
                                                            RelExpr * relExpr,
                                                            NABoolean & resizeCifRecord,
@@ -618,6 +635,8 @@ private:
   NABoolean isMarkedForElimination_;
 
   ValueIdSet aggrExprsToBeDeleted_;
+
+  NABoolean feasibleToPushdownAggr_;
 };
 
 class SortGroupBy : public GroupByAgg
@@ -808,6 +827,83 @@ public:
                                                            NABoolean bmo_affinity,
                                                            NABoolean & considerBufferDefrag);
 }; // class HashGroupBy
+
+
+class HbasePushdownAggr : public GroupByAgg
+{
+public:
+
+  // constructor
+  HbasePushdownAggr(const ValueIdSet & aggregateExpr,
+                  TableDesc * tableDesc)
+       : GroupByAgg(NULL, aggregateExpr),
+         tableDesc_(tableDesc)
+  {}
+
+  virtual ~HbasePushdownAggr();
+
+  virtual Int32 getArity() const { return 0; }
+
+  virtual NABoolean isLogical () const { return FALSE;};
+  virtual NABoolean isPhysical() const { return TRUE;};
+
+  // get a printable string that identifies the operator
+  virtual const NAString getText() const;
+
+  virtual RelExpr * copyTopNode(RelExpr *derivedNode = NULL,
+				CollHeap* outHeap = 0);
+
+  virtual RelExpr * preCodeGen(Generator *generator,
+                               const ValueIdSet &externalInputs,
+                               ValueIdSet &pulledNewInputs);
+
+
+  // method to do code generation
+  virtual short codeGen(Generator*);
+
+private:
+  TableDesc *tableDesc_;
+}; // class HbasePushdownAggr
+
+class OrcPushdownAggr : public GroupByAgg
+{
+public:
+
+  // constructor
+  OrcPushdownAggr(const ValueIdSet & aggregateExpr,
+                  TableDesc * tableDesc, HivePartitionAndBucketKey* key)
+       : GroupByAgg(NULL, aggregateExpr),
+         tableDesc_(tableDesc), 
+         hiveSearchKey_(key)
+  {}
+
+  virtual ~OrcPushdownAggr();
+
+  virtual Int32 getArity() const { return 0; }
+
+  virtual NABoolean isLogical () const { return FALSE;};
+  virtual NABoolean isPhysical() const { return TRUE;};
+
+  // get a printable string that identifies the operator
+  virtual const NAString getText() const;
+
+  virtual RelExpr * copyTopNode(RelExpr *derivedNode = NULL,
+				CollHeap* outHeap = 0);
+
+  virtual RelExpr * preCodeGen(Generator *generator,
+                               const ValueIdSet &externalInputs,
+                               ValueIdSet &pulledNewInputs);
+
+
+  // method to do code generation
+  virtual short codeGen(Generator*);
+
+  HivePartitionAndBucketKey* getHiveSearchKey() { return hiveSearchKey_; };
+
+private:
+  TableDesc *tableDesc_;
+  HivePartitionAndBucketKey* hiveSearchKey_;
+}; // class OrcPushdownAggr
 
 
 #endif /* RELGRBY_H */

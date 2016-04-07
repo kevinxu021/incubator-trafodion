@@ -55,3 +55,5 @@ create table orc_store
 )
 
 stored as orc;
+describe extended orc_store;
+describe formatted orc_store;

@@ -58,6 +58,9 @@ Options:
    --check              Check for show stoppers only and exit
    -h | --help          Display this help information
 
+   no options:          re-install with the default locations. 
+                        The old tpcds data is removed. 
+
 Set environment variable MY_LOCAL_SW_DIST to the directory of a local
 copy of the TPC-DS zip file, if possible.
 
@@ -66,6 +69,24 @@ EOF
 
 FORCE=""
 CHECKONLY=""
+
+if [ $# -eq 0 ]; then
+    MY_SW_PARENT=$MY_SQROOT/sql
+    MY_SW_ROOT=$MY_SW_PARENT/local_hadoop
+    MY_DATA_DIR=${MY_SW_ROOT}/data
+    MY_LOG_FILE=${MY_SW_ROOT}/log/install_local_hadoop_$(date +%F_%T).log
+    MY_SW_SCRIPTS_DIR=$MY_SW_PARENT/scripts
+
+    MY_TPCDS_UNPACK_DIR=$MY_SW_ROOT/tpcds
+    MY_TPCDS_DATA_DIR=$MY_DATA_DIR/tpcds
+    MY_LOG_FILE=$MY_LOG_FILE 
+    MY_HDFS_CMD=${MY_SW_SCRIPTS_DIR}/swhdfs
+    MY_HIVE_CMD=${MY_SW_SCRIPTS_DIR}/swhive
+    FORCE="true"
+
+    rm -fr $MY_SW_ROOT/tpcds
+    rm -fr $MY_SW_ROOT/data/tpcds
+fi
 
 while [ $# -gt 0 ];
 do
@@ -122,10 +143,10 @@ done
 # (or most recently added item)
 if [[ "$FORCE" != "true" ]]
 then
-  $MY_HIVE_CMD -e 'describe store_orc;' >/dev/null 2>&1
+  $MY_HIVE_CMD -e 'describe time_dim_orc;' >/dev/null 2>&1
   if (( $? == 0 ))
   then
-    echo "Hive table store_orc found. Skipping TPC-DS set-up."
+    echo "Hive table time_dim_orc found. Skipping TPC-DS set-up."
     exit 0
   fi
 fi
@@ -155,7 +176,7 @@ if [ -z "$MY_TPCDS_UNPACK_DIR" ]; then
   MY_TPCDS_UNPACK_DIR=.
   cd -P .
 else
-  mkdir $MY_TPCDS_UNPACK_DIR
+  mkdir -p $MY_TPCDS_UNPACK_DIR
   cd $MY_TPCDS_UNPACK_DIR
 fi
 
@@ -183,7 +204,7 @@ fi
   make >>${MY_LOG_FILE} 2>&1 
 
   echo "Generating the data..." | tee -a ${MY_LOG_FILE}
-  mkdir $MY_TPCDS_DATA_DIR
+  mkdir -p $MY_TPCDS_DATA_DIR
   SCALE=1
   FORCE=Y
 
@@ -235,10 +256,12 @@ fi
 
   $MY_HDFS_CMD dfs -ls -R /hive/tpcds/*/*.dat                >>${MY_LOG_FILE} 2>&1
 
-  echo "Creating tables in Hive..." | tee -a ${MY_LOG_FILE}
+  echo "Creating tables in Hive & ORC..." | tee -a ${MY_LOG_FILE}
+
   $MY_HIVE_CMD <<EOF >>${MY_LOG_FILE} 2>&1
 -- store_sales star only
 
+drop table store_sales;
 create external table store_sales
 (
     ss_sold_date_sk           int,
@@ -268,6 +291,7 @@ create external table store_sales
 row format delimited fields terminated by '|' 
 location '/hive/tpcds/store_sales';
 
+drop table customer_demographics;
 create external table customer_demographics
 (
     cd_demo_sk                int,
@@ -283,11 +307,12 @@ create external table customer_demographics
 row format delimited fields terminated by '|' 
 location '/hive/tpcds/customer_demographics';
 
+drop table date_dim;
 create external table date_dim
 (
     d_date_sk                 int,
     d_date_id                 string,
-    d_date                    timestamp,
+    d_date                    date,
     d_month_seq               int,
     d_week_seq                int,
     d_quarter_seq             int,
@@ -317,6 +342,7 @@ create external table date_dim
 row format delimited fields terminated by '|' 
 location '/hive/tpcds/date_dim';
 
+drop table time_dim;
 create external table time_dim
 (
     t_time_sk                 int,
@@ -333,12 +359,13 @@ create external table time_dim
 row format delimited fields terminated by '|' 
 location '/hive/tpcds/time_dim';
 
+drop table item;
 create external table item
 (
     i_item_sk                 int,
     i_item_id                 string,
-    i_rec_start_date          timestamp,
-    i_rec_end_date            timestamp,
+    i_rec_start_date          date,
+    i_rec_end_date            date,
     i_item_desc               string,
     i_current_price           float,
     i_wholesale_cost          float,
@@ -361,12 +388,13 @@ create external table item
 row format delimited fields terminated by '|' 
 location '/hive/tpcds/item';
 
+drop table store;
 create external table store
 (
     s_store_sk                int,
     s_store_id                string,
-    s_rec_start_date          timestamp,
-    s_rec_end_date            timestamp,
+    s_rec_start_date          date,
+    s_rec_end_date            date,
     s_closed_date_sk          int,
     s_store_name              string,
     s_number_employees        int,
@@ -396,6 +424,7 @@ create external table store
 row format delimited fields terminated by '|' 
 location '/hive/tpcds/store';
 
+drop table customer;
 create external table customer
 (
     c_customer_sk             int,
@@ -420,6 +449,7 @@ create external table customer
 row format delimited fields terminated by '|' 
 location '/hive/tpcds/customer';
 
+drop table promotion;
 create external table promotion
 (
     p_promo_sk                int,
@@ -445,6 +475,7 @@ create external table promotion
 row format delimited fields terminated by '|' 
 location '/hive/tpcds/promotion';
 
+drop table household_demographics;
 create external table household_demographics
 (
     hd_demo_sk                int,
@@ -456,6 +487,7 @@ create external table household_demographics
 row format delimited fields terminated by '|' 
 location '/hive/tpcds/household_demographics';
 
+drop table customer_address;
 create external table customer_address
 (
     ca_address_sk             int,
@@ -475,7 +507,159 @@ create external table customer_address
 row format delimited fields terminated by '|' 
 location '/hive/tpcds/customer_address';
 
+set hive.enforce.sorting=true;   
+
+drop table customer_orc;
+create table customer_orc stored as orc as select * from customer;
+
+drop table customer_address_orc;
+create table customer_address_orc stored as orc as select * from customer_address;
+
+drop table customer_demographics_orc;
+create table customer_demographics_orc stored as orc as select * from customer_demographics
+ sort by cd_gender, cd_marital_status, cd_education_status;
+
+drop table household_demographics_orc;
+create table household_demographics_orc stored as orc as select * from household_demographics;
+
+drop table promotion_orc;
+create table promotion_orc stored as orc as select * from promotion;
+
+drop table store_orc;
 create table store_orc stored as orc as select * from store;
+
+drop table store_sales_orc;
+create table store_sales_orc stored as orc tblproperties ("orc.stripe.size"="1048576")  as select * from store_sales
+  sort by ss_item_sk;
+
+
+drop table store2_orc;
+create table store2_orc stored as orc as select * from store 
+  sort by s_rec_start_date;
+
+drop table store2_sales_orc;
+create table store2_sales_orc stored as orc as select * from store_sales
+  sort by ss_item_sk;
+
+drop table date_dim_orc;
+create table date_dim_orc stored as orc as select * from date_dim 
+  sort by d_date;
+
+drop table item_orc;
+create table item_orc stored as orc as select * from item
+  sort by i_rec_start_date;
+
+drop table time_dim_orc;
+create table time_dim_orc stored as orc as select * from time_dim 
+  sort by t_time;
+
+drop table store_sales_sorted_orc;
+create table store_sales_sorted_orc
+(
+   ss_sold_date_sk           int,
+    ss_sold_time_sk           int,
+    ss_item_sk                int,
+    ss_customer_sk            int,
+    ss_cdemo_sk               int,
+    ss_hdemo_sk               int,
+    ss_addr_sk                int,
+    ss_store_sk               int,
+    ss_promo_sk               int,
+    ss_ticket_number          int,
+    ss_quantity               int,
+    ss_wholesale_cost         float,
+    ss_list_price             float,
+    ss_sales_price            float,
+    ss_ext_discount_amt       float,
+    ss_ext_sales_price        float,
+    ss_ext_wholesale_cost     float,
+    ss_ext_list_price         float,
+    ss_ext_tax                float,
+    ss_coupon_amt             float,
+    ss_net_paid               float,
+    ss_net_paid_inc_tax       float,
+    ss_net_profit             float
+)
+clustered by (ss_sold_date_sk)
+sorted by (ss_sold_date_sk, ss_sold_time_sk, ss_item_sk) into 8 buckets
+stored as ORC
+;
+
+set hive.enforce.bucketing = true;
+insert into table store_sales_sorted_orc 
+select * from store_sales sort by ss_sold_date_sk, ss_sold_time_sk, ss_item_sk;
+
+drop table date_dim_orc_bucketed;
+create external table date_dim_orc_bucketed
+(
+    d_date_sk                 int,
+    d_date_id                 string,
+    d_date                    date,
+    d_month_seq               int,
+    d_week_seq                int,
+    d_quarter_seq             int,
+    d_year                    int,
+    d_dow                     int,
+    d_moy                     int,
+    d_dom                     int,
+    d_qoy                     int,
+    d_fy_year                 int,
+    d_fy_quarter_seq          int,
+    d_fy_week_seq             int,
+    d_day_name                string,
+    d_quarter_name            string,
+    d_holiday                 string,
+    d_weekend                 string,
+    d_following_holiday       string,
+    d_first_dom               int,
+    d_last_dom                int,
+    d_same_day_ly             int,
+    d_same_day_lq             int,
+    d_current_day             string,
+    d_current_week            string,
+    d_current_month           string,
+    d_current_quarter         string,
+    d_current_year            string 
+)
+clustered by (d_date_sk) into 8 buckets
+stored as ORC
+location '/hive/tpcds/date_dim_orc_bucketed';
+
+set hive.enforce.bucketing = true;
+insert into table date_dim_orc_bucketed
+select * from date_dim;
+
+
+drop table customer_orc_bucketed;
+create table customer_orc_bucketed
+(
+    c_customer_sk             int,
+    c_customer_id             string,
+    c_current_cdemo_sk        int,
+    c_current_hdemo_sk        int,
+    c_current_addr_sk         int,
+    c_first_shipto_date_sk    int,
+    c_first_sales_date_sk     int,
+    c_salutation              string,
+    c_first_name              string,
+    c_last_name               string,
+    c_preferred_cust_flag     string,
+    c_birth_day               int,
+    c_birth_month             int,
+    c_birth_year              int,
+    c_birth_country           string,
+    c_login                   string,
+    c_email_address           string,
+    c_last_review_date        string
+)
+clustered by (c_customer_sk) into 8 buckets
+stored as ORC
+location '/hive/tpcds/customer_orc_bucketed';
+
+set hive.enforce.bucketing = true;
+insert into table customer_orc_bucketed
+select * from customer;
+
 
 quit;
 

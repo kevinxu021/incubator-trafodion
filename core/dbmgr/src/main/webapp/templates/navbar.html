@@ -8,15 +8,30 @@
 		</button>
 		<div style="display: inline-flex">
 			<!--<img id="title-img" src="img/DBMgr_Logo.png" alt="logo"/>-->
-			<a class="navbar-brand dbmgr-title"> EsgynDB Manager</a>
+			<a class="navbar-brand dbmgr-title" style="padding-right:8px;padding-left:7px"> EsgynDB Manager</a>
 		</div>
 	</div>
 	<!-- /.navbar-header -->
 
 	<ul class="nav navbar-top-links navbar-right">
+		<li class="dropdown active" id="notifyMenu">
+                    <a class="dropdown-toggle active" data-toggle="dropdown" href="#" style="padding-left:7px;padding-right:8px">
+                        <i class="fa fa-bell fa-fw"></i>  <i class="fa fa-caret-down"></i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-alerts in" style="padding-top:0px;width:450px">
+                        <li>
+                            <a class="text-center active">
+                             <i class="fa fa-angle-left"></i>
+                                <strong>empty </strong>
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                    <!-- /.dropdown-alerts -->
+                </li>
 		<!-- /.dropdown -->
 		<li class="dropdown"><a class="dropdown-toggle"
-			data-toggle="dropdown" href="#"> <i class="fa fa-user fa-fw"></i>
+			data-toggle="dropdown" href="#" style="padding-left:7px;padding-right:8px"> <i class="fa fa-user fa-fw"></i>
 				<i class="fa fa-caret-down"></i>
 		</a>
 			<ul class="dropdown-menu dropdown-user">
@@ -34,7 +49,7 @@
 
 	<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 		<ul class="nav navbar-nav nav-pills">
-			<li><a href="#/index"><i class="fa fa-dashboard fa-fw"></i> Dashboard</a></li>
+			<li><a href="#/index"><i class="fa fa-dashboard fa-fw" style="padding-left:0px"></i> Dashboard</a></li>
 			<li class="dropdown"><a href="#" class="dropdown-toggle"
 				data-toggle="dropdown" role="button" aria-haspopup="true"
 				aria-expanded="false">Workloads <span class="fa caret"></span></a>
@@ -58,6 +73,12 @@
 				<ul class="dropdown-menu">
 					<li><a href="#/tools/createlibrary">Create Library</a></li>
 				</ul></li>					
+<!--			<li class="dropdown"><a href="#" class="dropdown-toggle"
+				data-toggle="dropdown" role="button" aria-haspopup="true"
+				aria-expanded="false">Demos <span class="fa caret"></span></a>
+				<ul class="dropdown-menu">
+					<li><a href="#/demos/ampool">Ampool</a></li>
+				</ul></li>	-->
 			<li class="dropdown"><a href="#" class="dropdown-toggle"
 				data-toggle="dropdown" role="button" aria-haspopup="true"
 				aria-expanded="false">Help <span class="fa caret"></span></a>

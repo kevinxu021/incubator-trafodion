@@ -43,6 +43,7 @@ static const char* const balErrorEnumStr[] =
   "JNI NewStringUTF() in add() for writing."  // BAL_ERROR_ADD_PARAM
  ,"Java exception in add() for writing."      // BAL_ERROR_ADD_EXCEPTION
  ,"Java exception in get() for reading."      // BAL_ERROR_GET_EXCEPTION
+ ,"Target buffer too short on getEntry()."    // BAL_ERROR_TOO_SHORT
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -53,7 +54,7 @@ char* ByteArrayList::getErrorText(BAL_RetCode errEnum)
   if (errEnum < (BAL_RetCode)JOI_LAST)
     return JavaObjectInterface::getErrorText((JOI_RetCode)errEnum);
   else    
-    return (char*)balErrorEnumStr[errEnum-BAL_FIRST-1];
+    return (char*)balErrorEnumStr[errEnum-BAL_FIRST];
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -215,8 +216,10 @@ Int32 ByteArrayList::getEntrySize(Int32 i)
 }
 
 
-char* ByteArrayList::getEntry(Int32 i, char* buf, Int32 bufLen, Int32& datalen)
+BAL_RetCode ByteArrayList::getEntry(Int32 i, char* buf, Int32 bufLen, Int32& datalen)
 {
+  BAL_RetCode rc = BAL_OK;  // assume success
+
   datalen = 0;
 
   jint jidx = i;  
@@ -228,7 +231,7 @@ char* ByteArrayList::getEntry(Int32 i, char* buf, Int32 bufLen, Int32& datalen)
   {
     getExceptionDetails();
     logError(CAT_SQL_HBASE, __FILE__, __LINE__);
-    return NULL;
+    return BAL_ERROR_GET_EXCEPTION;
   }
 
   if (jBuffer != NULL) {
@@ -236,15 +239,14 @@ char* ByteArrayList::getEntry(Int32 i, char* buf, Int32 bufLen, Int32& datalen)
     datalen = jenv_->GetArrayLength(jBuffer);
 
     if (datalen > bufLen)
-      // call setJniErrorStr?
-      return NULL;
-
-    jenv_->GetByteArrayRegion(jBuffer, 0, datalen, (jbyte*)buf);
+      rc = BAL_ERROR_TOO_SHORT;  // data won't fit in the buffer provided; don't move it
+    else
+      jenv_->GetByteArrayRegion(jBuffer, 0, datalen, (jbyte*)buf);
 
     jenv_->DeleteLocalRef(jBuffer);
   }
 
-  return buf;
+  return rc;
 }
 // ===========================================================================
 // ===== Class HBaseClient_JNI
@@ -450,15 +452,15 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_DROP       ].jm_name      = "drop";
     JavaMethods_[JM_DROP       ].jm_signature = "(Ljava/lang/String;J)Z";
     JavaMethods_[JM_DROP_ALL       ].jm_name      = "dropAll";
-    JavaMethods_[JM_DROP_ALL       ].jm_signature = "(Ljava/lang/String;)Z";
+    JavaMethods_[JM_DROP_ALL       ].jm_signature = "(Ljava/lang/String;J)Z";
     JavaMethods_[JM_LIST_ALL       ].jm_name      = "listAll";
     JavaMethods_[JM_LIST_ALL       ].jm_signature = "(Ljava/lang/String;)Lorg/trafodion/sql/ByteArrayList;";
     JavaMethods_[JM_GET_REGION_STATS       ].jm_name      = "getRegionStats";
     JavaMethods_[JM_GET_REGION_STATS       ].jm_signature = "(Ljava/lang/String;)Lorg/trafodion/sql/ByteArrayList;";
     JavaMethods_[JM_COPY       ].jm_name      = "copy";
-    JavaMethods_[JM_COPY       ].jm_signature = "(Ljava/lang/String;Ljava/lang/String;)Z";
+    JavaMethods_[JM_COPY       ].jm_signature = "(Ljava/lang/String;Ljava/lang/String;Z)Z";
     JavaMethods_[JM_EXISTS     ].jm_name      = "exists";
-    JavaMethods_[JM_EXISTS     ].jm_signature = "(Ljava/lang/String;)Z";
+    JavaMethods_[JM_EXISTS     ].jm_signature = "(Ljava/lang/String;J)Z";
     JavaMethods_[JM_GRANT      ].jm_name      = "grant";
     JavaMethods_[JM_GRANT      ].jm_signature = "([B[B[Ljava/lang/Object;)Z";
     JavaMethods_[JM_REVOKE     ].jm_name      = "revoke";
@@ -1379,7 +1381,7 @@ HBC_RetCode HBaseClient_JNI::drop(const char* fileName, JNIEnv* jenv, Int64 tran
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-HBC_RetCode HBaseClient_JNI::dropAll(const char* pattern, bool async)
+HBC_RetCode HBaseClient_JNI::dropAll(const char* pattern, bool async, Int64 transID)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::dropAll(%s) called.", pattern);
 
@@ -1403,9 +1405,11 @@ HBC_RetCode HBaseClient_JNI::dropAll(const char* pattern, bool async)
     return HBC_ERROR_DROP_PARAM;
   }
 
+  jlong j_tid = transID;  
+
   // boolean drop(java.lang.String);
   tsRecentJMFromJNI = JavaMethods_[JM_DROP_ALL].jm_full_name;
-  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_DROP_ALL].methodID, js_pattern);
+  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_DROP_ALL].methodID, js_pattern, j_tid);
 
   jenv_->DeleteLocalRef(js_pattern);  
 
@@ -1543,9 +1547,11 @@ ByteArrayList* HBaseClient_JNI::getRegionStats(const char* tblName)
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-HBC_RetCode HBaseClient_JNI::copy(const char* currTblName, const char* oldTblName)
+HBC_RetCode HBaseClient_JNI::copy(const char* srcTblName, 
+                                  const char* tgtTblName,
+                                  NABoolean force)
 {
-  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::copy(%s,%s) called.", currTblName, oldTblName);
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::copy(%s,%s) called.", srcTblName, tgtTblName);
   if (jenv_ == NULL)
      if (initJVM() != JOI_OK)
          return HBC_ERROR_INIT_PARAM;
@@ -1554,28 +1560,31 @@ HBC_RetCode HBaseClient_JNI::copy(const char* currTblName, const char* oldTblNam
      getExceptionDetails();
      return HBC_ERROR_DROP_EXCEPTION;
   }
-  jstring js_currTblName = jenv_->NewStringUTF(currTblName);
-  if (js_currTblName == NULL) 
+  jstring js_srcTblName = jenv_->NewStringUTF(srcTblName);
+  if (js_srcTblName == NULL) 
   {
     GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_DROP_PARAM));
     jenv_->PopLocalFrame(NULL);
     return HBC_ERROR_DROP_PARAM;
   }
 
-  jstring js_oldTblName = jenv_->NewStringUTF(oldTblName);
-  if (js_oldTblName == NULL) 
+  jstring js_tgtTblName = jenv_->NewStringUTF(tgtTblName);
+  if (js_tgtTblName == NULL) 
   {
     GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_DROP_PARAM));
     jenv_->PopLocalFrame(NULL);
     return HBC_ERROR_DROP_PARAM;
   }
 
+  jboolean j_force = force;
   tsRecentJMFromJNI = JavaMethods_[JM_COPY].jm_full_name;
-  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_COPY].methodID, js_currTblName, js_oldTblName);
+  jboolean jresult = jenv_->CallBooleanMethod(
+       javaObj_, JavaMethods_[JM_COPY].methodID, 
+       js_srcTblName, js_tgtTblName, j_force);
 
-  jenv_->DeleteLocalRef(js_currTblName);  
+  jenv_->DeleteLocalRef(js_srcTblName);  
 
-  jenv_->DeleteLocalRef(js_oldTblName);  
+  jenv_->DeleteLocalRef(js_tgtTblName);  
 
   if (jenv_->ExceptionCheck())
   {
@@ -1599,7 +1608,7 @@ HBC_RetCode HBaseClient_JNI::copy(const char* currTblName, const char* oldTblNam
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-HBC_RetCode HBaseClient_JNI::exists(const char* fileName)
+HBC_RetCode HBaseClient_JNI::exists(const char* fileName, Int64 transID)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::exists(%s) called.", fileName);
   if (jenv_ == NULL)
@@ -1618,9 +1627,11 @@ HBC_RetCode HBaseClient_JNI::exists(const char* fileName)
     return HBC_ERROR_EXISTS_PARAM;
   }
 
+  jlong j_tid = transID;  
+
   // boolean exists(java.lang.String);
   tsRecentJMFromJNI = JavaMethods_[JM_EXISTS].jm_full_name;
-  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_EXISTS].methodID, js_fileName);
+  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_EXISTS].methodID, js_fileName, j_tid);
 
   jenv_->DeleteLocalRef(js_fileName);  
 
@@ -4448,7 +4459,8 @@ HTC_RetCode HTableClient_JNI::deleteRow(Int64 transID, HbaseStr &rowID, const LI
   tsRecentJMFromJNI = JavaMethods_[JM_DELETE].jm_full_name;
   jboolean j_asyncOperation = FALSE;
   jboolean jresult = jenv_->CallBooleanMethod(javaObj_, 
-          JavaMethods_[JM_DELETE].methodID, j_tid, jba_rowID, j_cols, j_ts, j_asyncOperation, js_hbaseAuths);
+                                              JavaMethods_[JM_DELETE].methodID, j_tid, jba_rowID, j_cols, j_ts, j_asyncOperation,
+                                              js_hbaseAuths);
   if (hbs_)
     {
       hbs_->incMaxHbaseIOTime(hbs_->getHbaseTimer().stop());
@@ -4816,6 +4828,7 @@ static const char* const hvcErrorEnumStr[] =
  ,"java exception in hdfsWrite()."
  ,"java exception in hdfsclose()."
  ,"java exception in executeHiveSQL()."
+ ,"java exception in createHiveTablePartition()."
 };
 
 
@@ -4915,8 +4928,10 @@ HVC_RetCode HiveClient_JNI::init()
     JavaMethods_[JM_HDFS_WRITE       ].jm_signature = "([BJ)Z";
     JavaMethods_[JM_HDFS_CLOSE       ].jm_name      = "hdfsClose";
     JavaMethods_[JM_HDFS_CLOSE       ].jm_signature = "()Z";
-    JavaMethods_[JM_EXEC_HIVE_SQL].jm_name = "executeHiveSQL";
-    JavaMethods_[JM_EXEC_HIVE_SQL].jm_signature = "(Ljava/lang/String;)V";
+    JavaMethods_[JM_EXEC_HIVE_SQL    ].jm_name      = "executeHiveSQL";
+    JavaMethods_[JM_EXEC_HIVE_SQL    ].jm_signature = "(Ljava/lang/String;)V";
+    JavaMethods_[JM_CREATE_HIVE_PART ].jm_name      = "createHiveTablePartition";
+    JavaMethods_[JM_CREATE_HIVE_PART ].jm_signature = "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V";
     rc = (HVC_RetCode)JavaObjectInterface::init(className, javaClass_, JavaMethods_, (Int32)JM_LAST, javaMethodsInitialized_);
     javaMethodsInitialized_ = TRUE;
     pthread_mutex_unlock(&javaMethodsInitMutex_);
@@ -5284,6 +5299,60 @@ HVC_RetCode HiveClient_JNI::executeHiveSQL(const char* hiveSQL)
   
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, 
        "Exit HiveClient_JNI::executeHiveSQL(%s) called.", hiveSQL);
+  jenv_->PopLocalFrame(NULL);
+  return HVC_OK;
+}
+
+HVC_RetCode HiveClient_JNI::createHiveTablePartition(const char *schemaName,
+                                                     const char *tableName,
+                                                     const char *partitionString)
+{
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG,
+                "Enter HiveClient_JNI::createHiveTablePartition(\"%s\",\"%s\",\"%s\") called.",
+                schemaName, tableName, partitionString);
+  if (jenv_ == NULL)
+     if (initJVM() != JOI_OK)
+         return HVC_ERROR_INIT_PARAM;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+    getExceptionDetails();
+    return HVC_ERROR_CREATEHIVEPART_EXCEPTION;
+  }
+
+  jstring js_schemaName = jenv_->NewStringUTF(schemaName);
+  jstring js_tableName = jenv_->NewStringUTF(tableName);
+  jstring js_partitionString = jenv_->NewStringUTF(partitionString);
+  if (js_schemaName == NULL ||
+      js_tableName == NULL ||
+      js_partitionString == NULL)
+  {
+    GetCliGlobals()->setJniErrorStr(getErrorText(HVC_ERROR_CREATEHIVEPART_EXCEPTION));
+    jenv_->PopLocalFrame(NULL);
+    return HVC_ERROR_CREATEHIVEPART_EXCEPTION;
+  }
+
+  tsRecentJMFromJNI = JavaMethods_[JM_CREATE_HIVE_PART].jm_full_name;
+  jenv_->CallVoidMethod(javaObj_,
+                        JavaMethods_[JM_CREATE_HIVE_PART].methodID,
+                        js_schemaName,
+                        js_tableName,
+                        js_partitionString);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "HiveClient_JNI::createHiveTablePartition()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return HVC_ERROR_CREATEHIVEPART_EXCEPTION;
+  }
+
+  jenv_->DeleteLocalRef(js_schemaName);
+  jenv_->DeleteLocalRef(js_tableName);
+  jenv_->DeleteLocalRef(js_partitionString);
+  
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, 
+       "Exit HiveClient_JNI::createHiveTablePartition() called.");
   jenv_->PopLocalFrame(NULL);
   return HVC_OK;
 }
@@ -6127,6 +6196,39 @@ jobjectArray convertToByteArrayObjectArray(const char **array,
    return j_objArray;
 }
 
+jobjectArray convertToByteArrayObjectArray(const TextVec &vec)
+{
+   int vecLen = vec.size();
+   int i = 0;
+   jobjectArray j_objArray = NULL;
+   for ( ; i < vec.size(); i++)
+   {
+       const Text &t = vec[i];
+     //       const HbaseStr *hbStr = &vec.at(i);
+       jbyteArray j_obj = jenv_->NewByteArray(t.size());
+       if (jenv_->ExceptionCheck())
+       {
+          if (j_objArray != NULL)
+             jenv_->DeleteLocalRef(j_objArray);
+          return NULL; 
+       }
+       jenv_->SetByteArrayRegion(j_obj, 0, t.size(), (const jbyte *)t.data());
+       if (j_objArray == NULL)
+       {
+          j_objArray = jenv_->NewObjectArray(vecLen,
+                 jenv_->GetObjectClass(j_obj), NULL);
+          if (jenv_->ExceptionCheck())
+          {
+             jenv_->DeleteLocalRef(j_obj);
+             return NULL;
+          }
+       }
+       jenv_->SetObjectArrayElement(j_objArray, i, (jobject)j_obj);
+       jenv_->DeleteLocalRef(j_obj);
+   }
+   return j_objArray;
+}
+
 jobjectArray convertToStringObjectArray(const TextVec &vec)
 {
    int vecLen = vec.size();
@@ -6235,6 +6337,27 @@ int convertStringObjectArrayToList(NAHeap *heap, jarray j_objArray,
         list.insert(new (heap) Text(str));
         jenv_->ReleaseStringUTFChars(j_str, str);        
     }
+    return arrayLen;
+}
+
+int convertLongObjectArrayToList(NAHeap *heap, jlongArray j_longArray, LIST(Int64)&list)
+{
+    if (j_longArray == NULL)
+        return 0;
+    int arrayLen = jenv_->GetArrayLength(j_longArray);
+    const char *str;
+    jboolean isCopy;
+
+    jlong *body = jenv_->GetLongArrayElements(j_longArray, NULL);
+
+    for (int i = 0; i < arrayLen; i++)
+    {
+        jlong x = body[i];
+        list.insert(Int64(body[i]));
+    }
+
+    jenv_->ReleaseLongArrayElements(j_longArray, body, NULL);
+
     return arrayLen;
 }
 

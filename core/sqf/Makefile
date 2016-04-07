@@ -175,34 +175,34 @@ setupdir:
 	mkdir -p $(EXPORTLIB_DIR)
 	mkdir -p $(EXPORTINCSQL_DIR)
 	mkdir -p $(EXPORTINCEVL_DIR)
+	@# side-effect directory creation in these targets
 	-cd monitor/linux; $(MAKE) setup
 	-cd src/win; $(MAKE) setup
 	-cd src/seabed; $(MAKE) setup
 	-cd src/tm; $(MAKE) setup
-	cd sql; $(MAKE) WROOT=$(SQL_W) setup
 	-cd sqevlog; $(MAKE) setup
-	-@./makelink ../../mondump $(EXPORTBIN_DIR)
-	-@./makelink ../../sqid $(EXPORTBIN_DIR)
-	-@./makelink ../../sqinfo $(EXPORTBIN_DIR)
-	-@./makelink ../../sqvers $(EXPORTBIN_DIR)
-	@# SQL .mdf files
-
+	@# builds/copies 3rd party dependencies as necessary
+	cd sql; $(MAKE) WROOT=$(SQL_W) setup
+	@# commands to export
+	-ln -sf ../../mondump $(EXPORTBIN_DIR)
+	-ln -sf ../../sqid $(EXPORTBIN_DIR)
+	-ln -sf ../../sqinfo $(EXPORTBIN_DIR)
+	-ln -sf ../../sqvers $(EXPORTBIN_DIR)
 	@# SQL Messages .txt file
-	-@./makelink $(SQL_W)/bin/SqlciErrors.txt $(EXPORTINCSQL_DIR)
-
+	-ln -sf $(SQL_W)/bin/SqlciErrors.txt $(EXPORTINCSQL_DIR)
 	@# copy some header files
 	-ln -sf $(SQL_W)/cli/sqlcli.h $(EXPORTINCSQL_DIR)
 	-ln -sf $(SQL_W)/sqludr/sqludr.h $(EXPORTINCSQL_DIR)
 	@#
-	-mkdir -p export/include/nsk
-	-cp -p inc/cextdecs/cextdecs.h export/include/nsk
+	mkdir -p export/include/nsk
+	-ln -sf $(MY_SQROOT)/inc/cextdecs/cextdecs.h export/include/nsk
 	@# USTAT
 	-mkdir -p export/lib/mx_ustat
-	-cp -f $(SQL_W)/ustat/USAS.sh export/lib/mx_ustat
-	-cp -f $(SQL_W)/ustat/FillAutoTbl.sh export/lib/mx_ustat
-	-cp -f $(SQL_W)/ustat/RunLogUstats.sh export/lib/mx_ustat
-	-cp -f $(SQL_W)/ustat/StopAutoStats.sh export/lib/mx_ustat
-	-cp -f $(SQL_W)/ustat/stats_profile export/lib/mx_ustat
+	-ln -sf $(SQL_W)/ustat/USAS.sh export/lib/mx_ustat
+	-ln -sf $(SQL_W)/ustat/FillAutoTbl.sh export/lib/mx_ustat
+	-ln -sf $(SQL_W)/ustat/RunLogUstats.sh export/lib/mx_ustat
+	-ln -sf $(SQL_W)/ustat/StopAutoStats.sh export/lib/mx_ustat
+	-ln -sf $(SQL_W)/ustat/stats_profile export/lib/mx_ustat
 
 # "setupdir" target clean up
 setupdir_clean:
@@ -283,6 +283,7 @@ PKG_BIN_OBJS ?= export/bin$(SQ_MBTYPE) export/include export/lib export/lib$(SQ_
 
 PKG_BIN_OBJS += trafci
 PKG_BIN_OBJS += export/limited-support-tools
+PKG_BIN_OBJS += LICENSE NOTICE LICENSE_Esgyn
 
 PKG_BIN_DIRS ?= sql export
 PKG_BIN_DIRS += trafci
@@ -333,6 +334,18 @@ actually_package : pkglist-files pkglist-symlinks tmp/sqenv.sh
 	gzip -c $(PKG_TAR_UN) > $(PKG_TAR)
 	rm -f $(PKG_TAR_UN) pkglist-files pkglist-symlinks tmp/sqenv.sh
 
+LICENSE: ../../licenses/LICENSE-server
+	cp -f $? $@
+
+LICENSE_Esgyn: ../../licenses/Esgyn
+	cp -f $? $@
+
+../../licenses/LICENSE-server:
+	cd $(@D) && $(MAKE) $(@F)
+
+NOTICE: ../../NOTICE
+	cp -f $? $@
+
 tmp/sqenv.sh:
 	@if [ ! -d tmp ]; then mkdir tmp; fi
 	echo "export SQ_BUILD_TYPE=$(SQ_BUILD_TYPE)" > tmp/sqenv.sh
@@ -345,7 +358,7 @@ pkglist-files: pkglist-symlinks
 	find -L $(PKG_BIN_OBJS) -type d -o -type f | grep -v -xf pkglist-symlinks > $@
 
 # simple symlinks that point to filename (does not start with . or /)
-pkglist-symlinks:
+pkglist-symlinks: LICENSE NOTICE LICENSE_Esgyn
 	find $(PKG_BIN_OBJS) -lname '[^./]*' > $@
 
 #	Targets to tar/gzip the self installer

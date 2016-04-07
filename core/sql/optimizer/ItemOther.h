@@ -80,6 +80,7 @@ public:
 	 NABoolean userSpecified = TRUE) :
 	 ItemExpr(ITM_ASSIGN, target, source),
 	 userSpecified_(userSpecified),
+         canBeSkipped_(FALSE),
 	 onRollback_(FALSE)
 	 {}
 
@@ -90,6 +91,10 @@ public:
   virtual Int32 getArity() const;
 
   NABoolean isUserSpecified() const	{ return userSpecified_; }
+  void setUserSpecified(NABoolean userSpecified) { userSpecified_ = userSpecified; }
+
+  NABoolean canBeSkipped() const	{ return canBeSkipped_; }
+  void setToBeSkipped(NABoolean canBeSkipped) { canBeSkipped_ = canBeSkipped; }
 
   ValueId getTarget() const { return child(0)->getValueId(); }
   ValueId getSource() const { return child(1)->getValueId(); }
@@ -164,6 +169,8 @@ private:
   // Do the actual type propagation, to be called by the public synthesizeType methods.
   const NAType *doSynthesizeType(ValueId & targetId, ValueId & sourceId);
 
+  // Assign with omitted default value columns other than COM_CURRENT_DEFAULT class types
+  NABoolean canBeSkipped_;
 
 }; // class Assign
 
@@ -978,6 +985,9 @@ public:
   virtual ItemExpr * copyTopNode(ItemExpr *derivedNode = NULL,
 				 CollHeap* outHeap = 0);
 
+  virtual ItemExpr * cloneTopNode(CollHeap* outHeap) 
+     { return cloneTopNodeAndValueId(outHeap); };
+
   // A method for replacing VEGReference and VEGPredicate objects
   // with another expression that belongs to the VEG as well as to the
   // set of availableValues.
@@ -1010,6 +1020,10 @@ public:
   // MDAM related methods
   // Performs the MDAM tree walk.  See ItemExpr.h for a detailed description.
   DisjunctArray * mdamTreeWalk();
+
+
+  // remove non-pushabe predicates for ORC.
+  virtual ItemExpr* removeNonPushablePredicatesForORC();
 
 private:
 
@@ -1122,6 +1136,9 @@ public:
 					       CostScalar & minUec,
 					       CostScalar & maxUec);
 
+  // remove non-pushabe predicates for ORC.
+  virtual ItemExpr* removeNonPushablePredicatesForORC() { return this; }
+
 private:
 
   // Methods used by the code generator for replacing a reference
@@ -1203,6 +1220,9 @@ public:
   
   // method to do code generation
   short codeGen(Generator*);
+
+  ItemExpr* removeNonPushablePredicatesForORC();
+
  private:
   OptNormRangeSpec* range_;
 

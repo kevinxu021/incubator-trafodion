@@ -111,8 +111,9 @@ public class AlertsResource {
 
 
 		} catch (Exception ex) {
-			_LOG.error("Failed to fetch list of alerts: " + ex.getMessage());
-			throw new EsgynDBMgrException(ex.getMessage());
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to fetch list of alerts", ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
 		}
 		return result;
 	}
@@ -143,9 +144,9 @@ public class AlertsResource {
 				return jsonOutputString;
 			}
 		} catch (Exception ex) {
-			_LOG.error("Failed to fetch details for alert : " + ex.getMessage());
-			throw new EsgynDBMgrException(ex.getMessage());
-
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to fetch alert details", ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
 		}
 		return "{\"status\":\"OK\"}";
 
@@ -191,9 +192,9 @@ public class AlertsResource {
 					return jsonOutputString;
 			}
 		} catch (Exception ex) {
-			_LOG.error("Failed to update alert : " + ex.getMessage());
-			throw new EsgynDBMgrException(ex.getMessage());
-
+			EsgynDBMgrException ee = Helper.createDBManagerException("Failed to update alert", ex);
+			_LOG.error(ee.getMessage());
+			throw ee;
 		}
 		return "{\"status\":\"OK\"}";
 	}

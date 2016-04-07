@@ -3,6 +3,10 @@
 export timestamp=$(date +%F-%H-%M-%S)
 export YUM_LOG=/var/log/trafodion/trafodion_yum_$timestamp.log
 export ZYPP_LOG=/var/log/trafodion/trafodion_zypp_$timestamp.log
+export hadoop_path=$HADOOP_PATH
+echo $hadoop_path
+export hadoop_bin_path=$HADOOP_BIN_PATH
+echo $hadoop_bin_path
 
 TRAF_CONFIG="/etc/trafodion/trafodion_config"
 source $TRAF_CONFIG
@@ -191,10 +195,7 @@ fi
 
 function getZookeeperNodes {
 
-lineNumber=$(grep -n "zookeeper\.quorum" $TRAF_WORKDIR/hbase-site.xml | sed 's/\:.*//')
-lineNumber=$((lineNumber+1))
-
-ZOOKEEPER_NODES=$(sed "$lineNumber!d" $TRAF_WORKDIR/hbase-site.xml | sed 's/\/value.*//' | sed 's/.*>//' | sed 's/.$//')
+source /etc/trafodion/trafodion_config
 
 ZOO_NODES=$(echo $ZOOKEEPER_NODES | tr "," "\n")
 
@@ -234,6 +235,13 @@ sudo su $TRAF_USER --command "chmod 777 $CREATE_TABLE"
 
 sudo su $TRAF_USER --command "$TRAF_PDSH $CREATE_TABLE"
 
+if [[ $? -ne "0" ]]; then
+   echo "***ERROR: Unable to create openTSDB Tables"
+   echo "***ERROR: Exiting..."
+   exit -1
+fi
+
+
 }
 
 function registerMetrics {
@@ -246,6 +254,13 @@ sudo su $TRAF_USER --command "echo 'source /etc/trafodion/trafodion_config' | ca
 sudo su $TRAF_USER --command "chmod 777 $CREATE_METRICS"
 
 sudo su $TRAF_USER --command "$CREATE_METRICS"
+
+
+if [[ $? -ne "0" ]]; then
+   echo "***ERROR: Register Metrics Failed"
+   echo "***ERROR: Exiting..."
+   exit -1
+fi
 
 }
 
@@ -385,6 +400,11 @@ function editStartStop {
 
 START_STOP="$SQ_ROOT/mgblty/tcollector/startstop"
 TRAF_CANARY="$SQ_ROOT/mgblty/tcollector/collectors/300/trafcanqry.py"
+HBASE_COLLECTOR="$SQ_ROOT/mgblty/tcollector/collectors/0/hbase_master.py"
+REGIONSERVER_COLLECTOR="$SQ_ROOT/mgblty/tcollector/collectors/0/hbase_regionserver.py"
+defaultHBaseInfoPort="60010"
+defaultRegionServerInfoPort="60030"
+
 
 echo "***INFO: Editing TCollector startstop script with TSD_HOST and TSD_PORT"
 
@@ -397,6 +417,11 @@ do
    ssh -q -n $node sudo sed -i -e "s/TSD_PORT=5242/$TSD_PORT_STR/g" $START_STOP
 
    ssh -q -n $node sudo sed -i -e "s@DCS_MASTER_HOST:DCS_PORT@$DCS_MASTER_HOST:$DCS_PORT@" $TRAF_CANARY
+  
+   ssh -q -n $node sudo sed -i -e "s#$defaultHBaseInfoPort#$HBASE_MASTER_INFO_PORT#g" $HBASE_COLLECTOR
+     
+   ssh -q -n $node sudo sed -i -e "s#$defaultRegionServerInfoPort#$REGIONSERVER_INFO_PORT#g" $REGIONSERVER_COLLECTOR
+
 
 done
 
@@ -439,7 +464,7 @@ sudo sed -i "s/$formerName/$newName/g" $logLocation
 }
 
 function configureDBM {
-
+source $TRAF_CONFIG
 export DM_HTTP_PORT="4205"
 export DM_HTTPS_PORT="4206"
 export REST_PORT="4200"
@@ -467,6 +492,17 @@ sudo su $TRAF_USER --command "$TRAF_PDCP $SQ_ROOT/sqenvcom.sh $SQ_ROOT/sqenvcom.
 
 $TRAF_PDSH sudo chmod -R 755 $MGBLTY_INSTALL_DIR
 $TRAF_PDSH sudo chmod -R 755 $DBMGR_INSTALL_DIR
+
+}
+
+function setHadoopPath {
+
+sudo chmod 777 $TRAF_CONFIG
+echo "export HADOOP_PATH=\"$hadoop_path\"" >> $TRAF_CONFIG
+echo "export HADOOP_BIN_PATH=\"$hadoop_bin_path\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+source $TRAF_CONFIG
+
 
 }
 
@@ -507,3 +543,5 @@ editLogBack
 configureDBM
 
 changePermissions
+
+setHadoopPath

@@ -633,12 +633,17 @@
 		</query>
 		<query>
 			<name>OPENTSDB_NETWORK_IO_DRILLDOWN</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:%4$s-avg:proc.net.bytes{direction=*,host=*}", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:rate:%4$s-avg:proc.net.bytes{direction=%5$s,host=*}", "method":"get"}]]></text>
 		</query>
 		
 		<query>
 			<name>OPENTSDB_CANARY_RESPONSE</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:esgyndb.canary.sqlconnect.time&m=avg:%4$s-avg:esgyndb.canary.sqlddl.time&m=avg:%4$s-avg:esgyndb.canary.sqlwrite.time&m=avg:%4$s-avg:esgyndb.canary.sqlread.time", "method":"get"}]]></text>		</query>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:esgyndb.canary.sqlconnect.time&m=avg:%4$s-avg:esgyndb.canary.sqlddl.time&m=avg:%4$s-avg:esgyndb.canary.sqlwrite.time&m=avg:%4$s-avg:esgyndb.canary.sqlread.time", "method":"get"}]]></text>
+		</query>
+		<query>
+			<name>OPENTSDB_CANARY_RESPONSE_DRILLDOWN</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:%5$s{host=*}", "method":"get"}]]></text>
+		</query>
 		<query>
 			<name>OPENTSDB_DISK_READS</name>
 			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:rate:%4$s-avg:iostat.disk.read_requests", "method":"get"}]]></text>
@@ -667,6 +672,10 @@
 			<name>OPENTSDB_TRANSACTION_STATS</name>
 			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:rate:%4$s-avg:esgyndb.dtm.txnaborts&m=sum:rate:%4$s-avg:esgyndb.dtm.txnbegins&m=sum:rate:%4$s-avg:esgyndb.dtm.txncommits", "method":"get"}]]></text>
 		</query>		
+		<query>
+			<name>OPENTSDB_TRANSACTION_STATS_DRILLDOWN</name>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=sum:rate:%4$s-avg:%5$s{host=*}", "method":"get"}]]></text>
+		</query>
 		<query>
 			<name>OPENTSDB_DISK_SPACE_USED</name>
 			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&ms=true&m=avg:%4$s-avg:df.bytes.percentused", "method":"get"}]]></text>
