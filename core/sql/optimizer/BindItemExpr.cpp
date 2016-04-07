@@ -5057,7 +5057,7 @@ ItemExpr *Aggregate::bindNode(BindWA *bindWA)
   if (getOperatorType() == ITM_ORC_MAX_NV ||
       getOperatorType() == ITM_ORC_SUM_NV)
   {
-    // restrict these aggregates to column references of Hive ORC tables for now
+    // restrict these aggregates to column references
     if (child(0)->getOperatorType() != ITM_BASECOLUMN)
     {
       *CmpCommon::diags() << DgSqlCode(-4370) << DgString0(getTextUpper());
@@ -5065,8 +5065,10 @@ ItemExpr *Aggregate::bindNode(BindWA *bindWA)
       return NULL;
     }
 
-    // TODO: Add logic to check for Hive ORC table
-
+    // We'd like to restrict these aggregates to ORC file columns and
+    // then only to when we can push them down, but we don't have the
+    // information yet to do so. Instead, that check is done later
+    // during preCodeGen. See GroupByAgg::transformForAggrPushdown.
   } 
 
   context->colRefInAgg() = FALSE;
