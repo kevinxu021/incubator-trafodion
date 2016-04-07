@@ -274,20 +274,20 @@ public class ConfigurationResource {
 		SystemQueryCache.setSystemQueryies(systemQueries);
 	}
 
-	private static void GetSystemProperties() {
+	public static void GetSystemProperties() {
 		Connection connection = null;
 
 		try {
 			connection = JdbcHelper.getInstance().getAdminConnection();
 
 			Statement stmt = connection.createStatement();
-			ResultSet rs = stmt.executeQuery("info system");
+			ResultSet rs = stmt.executeQuery(SystemQueryCache.getQueryText(SystemQueryCache.GET_SYSTEM_INFO));
 			while (rs.next()) {
 				ConfigurationResource.setServerTimeZone(rs.getString("TM_ZONE"));
 				ConfigurationResource.setServerUTCOffset(rs.getLong("TM_GMTOFF_SEC"));
 				break;
 			}
-			rs = stmt.executeQuery("get version of software");
+			rs = stmt.executeQuery(SystemQueryCache.getQueryText(SystemQueryCache.GET_SYSTEM_VERSION));
 			if (rs.next()) {
 				String version = rs.getString(1);
 				String[] versionparts = version.split(":");
@@ -298,8 +298,7 @@ public class ConfigurationResource {
 			stmt.close();
 
 		} catch (Exception e) {
-			_LOG.error(e.getMessage());
-			System.out.println("Cannot open an admin connection : " + e.getMessage());
+			_LOG.error("Error reading system information : " + e.getMessage());
 		} finally {
 
 			try {

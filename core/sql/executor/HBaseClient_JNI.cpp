@@ -459,6 +459,8 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_GET_REGION_STATS       ].jm_signature = "(Ljava/lang/String;)Lorg/trafodion/sql/ByteArrayList;";
     JavaMethods_[JM_COPY       ].jm_name      = "copy";
     JavaMethods_[JM_COPY       ].jm_signature = "(Ljava/lang/String;Ljava/lang/String;Z)Z";
+    JavaMethods_[JM_CREATE_SNAPSHOT       ].jm_name      = "createSnapshot";
+    JavaMethods_[JM_CREATE_SNAPSHOT       ].jm_signature = "(Ljava/lang/String;)Z";
     JavaMethods_[JM_EXISTS     ].jm_name      = "exists";
     JavaMethods_[JM_EXISTS     ].jm_signature = "(Ljava/lang/String;J)Z";
     JavaMethods_[JM_GRANT      ].jm_name      = "grant";
@@ -1603,6 +1605,54 @@ HBC_RetCode HBaseClient_JNI::copy(const char* srcTblName,
   }
   jenv_->PopLocalFrame(NULL);
   return HBC_OK;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////
+HBC_RetCode HBaseClient_JNI::createSnapshot(const char* tblName) 
+{
+	QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::createSnapshot(%s) called.", tblName);
+	if (jenv_ == NULL)
+		if (initJVM() != JOI_OK)
+			return HBC_ERROR_INIT_PARAM;
+
+	if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+		getExceptionDetails();
+		return HBC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
+	}
+	jstring js_tblName = jenv_->NewStringUTF(tblName);
+	if (js_tblName == NULL) 
+	{
+		GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_CREATE_SNAPSHOT_EXCEPTION));
+		jenv_->PopLocalFrame(NULL);
+		return HBC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
+	}
+
+	tsRecentJMFromJNI = JavaMethods_[JM_CREATE_SNAPSHOT].jm_full_name;
+	jboolean jresult = jenv_->CallBooleanMethod(
+			javaObj_, JavaMethods_[JM_CREATE_SNAPSHOT].methodID, js_tblName);
+
+	jenv_->DeleteLocalRef(js_tblName);  
+
+
+	if (jenv_->ExceptionCheck())
+	{
+		getExceptionDetails(jenv_);
+		logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+		logError(CAT_SQL_HBASE, "HBaseClient_JNI::createSnapshot()", getLastError());
+		jenv_->PopLocalFrame(NULL);
+		return HBC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
+	}
+
+	if (jresult == false) 
+	{
+		logError(CAT_SQL_HBASE, "HBaseClient_JNI::createSnapshot()", getLastError());
+		jenv_->PopLocalFrame(NULL);
+		return HBC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
+	}
+	jenv_->PopLocalFrame(NULL);
+	return HBC_OK;
 }
 
 //////////////////////////////////////////////////////////////////////////////

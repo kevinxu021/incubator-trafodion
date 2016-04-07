@@ -575,8 +575,6 @@ define(['moment',
 					//set distance between node and its children
 					levelDistance: 40,
 					siblingOffset: 100,
-				    width: this.calculateWidth(jsonData, container),						   
-				    height: this.calculateHeight(jsonData.treeDepth),
 					//set max levels to show. Useful when used with
 					//the request method for requesting trees of specific depth
 					levelsToShow: jsonData.treeDepth,

@@ -1,17 +1,19 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
 define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		'handlers/ToolsHandler', 'moment', 'common', 'views/RefreshTimerView',
-		'jqueryui', 'datatables.net', 'datatables.net-bs', ], function(BaseView,
+		'jqueryui', 'datatables.net', 'datatables.net-bs', 'jqueryvalidate'
+ ], function(BaseView,
 		CreateLibraryT, $, tHandler, moment, common, refreshTimer) {
 	'use strict';
 
 	var _this = null;
-	var SCHEMA_NAME = "#shcema_name";
+	var LIB_FORM = "#create-library-form";
+	var SCHEMA_NAME = "#schema_name";
 	var LIBRARY_NAME = "#library_name";
 	var LIBRARY_ERROR = "#library_name_error";
 	var FILE_NAME = "#file_name";
@@ -23,7 +25,8 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 	var CHUNKS = [];
 	var UPLOAD_INDEX = 0;
 	var UPLOAD_LENGTH = 0;
-
+	var validator = null;
+	
 	var CreateLibraryView = BaseView.extend({
 		template : _.template(CreateLibraryT),
 
@@ -37,12 +40,38 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			tHandler.on(tHandler.EXECUTE_UPLOAD_CHUNK, this.executeUploadChunk);
 			$(LOADING).css('visibility', 'hidden');
 			$(CREATE_BTN).prop('disabled', true);
+			
+			validator = $(LIB_FORM).validate({
+				rules: {
+					"library_name": { required: true },
+					"file_name": { required: true}
+				},
+				messages: {
+					"library_name": "Please enter a library name",
+					"file_name": "Please enter a code file name"
+		        },
+				highlight: function(element) {
+					$(element).closest('.form-group').addClass('has-error');
+				},
+				unhighlight: function(element) {
+					$(element).closest('.form-group').removeClass('has-error');
+				},
+				errorElement: 'span',
+				errorClass: 'help-block',
+				errorPlacement: function(error, element) {
+					if(element.parent('.input-group').length) {
+						error.insertAfter(element.parent());
+					} else {
+						error.insertAfter(element);
+					}
+				}
+			});
 		},
 		doResume : function(args) {
-
+			validator.resetForm();
 		},
 		doPause : function() {
-
+			validator.resetForm();
 		},
 		
 		cleanField:function(){
@@ -59,6 +88,12 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			UPLOAD_LENGTH = 0;
 		},
 		uploadFile : function() {
+			if($(LIB_FORM).valid()){
+
+			}else{
+				return;
+			}
+			
 			if($(LIBRARY_NAME).val()==""){
 				$(LIBRARY_ERROR).show();
 				return;

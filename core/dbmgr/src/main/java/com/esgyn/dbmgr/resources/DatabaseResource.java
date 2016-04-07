@@ -773,9 +773,7 @@ public class DatabaseResource {
 		}
 	}
 
-	public static String EncloseInSingleQuotes(String aLiteralString) {
-		return "'" + aLiteralString.replace("'", "''") + "'";
-	}
+
 
 	public static String ExternalForm(String internalName) {
 		String name = internalName.trim();

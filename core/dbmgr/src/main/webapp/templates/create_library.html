@@ -4,32 +4,52 @@
 			<h2 class="page-header">Create Library</h2>
 		</div>
 	</div>
-	<div class="dbmgr-tools-form" style="padding-left:30px;padding-top:30px">
-		<form>
-		    <label >Schema Name:</label>
-		    <input id="shcema_name" type="text" style="width:300px;">
-		    <div style="height:10px;"></div>
-		    <label >Library Name<span style="color:red">*</span>:</label>
-		    <input id="library_name" type="text" style="width:300px;">
-		    <labe id ="library_name_error" hidden><span style="color:red">Library name cannot be NULL</span></labe>
-		    <div style="height:10px;"></div>
-			<div>
-				<div style="float: left">
-					<label for="file_name">Code File Name<span style="color:red">*</span>:</label>
-					<input id="file_name"type="text" style="width:280px;" disabled>
+	<div class="dbmgr-tools-form col-lg-6"
+		style="border: 1px solid #dce4ec; border-width: 2px; border-radius: 2px; padding-left: 30px; padding-top: 30px">
+		<form id="create-library-form">
+			<div class="form-group">
+				<label class="control-label">Schema Name</label>
+				<div class="input-group" style="width: 600px;">
+					<input class="form-control" style="width: 500px;" id="schema_name"
+						name="schema_name" maxlength="25">
 				</div>
-				<div style="float: left;width:20px">
-					<a href="javascript:;" class="file">
-					<input type="file" name="" id="file"></a>
-				</div>     
-		    </div>	
-		    
-		    <div style="height:40px;"></div>
-		    <label></label><input id="create_btn" type="button" value="Create" class ="submit btn btn-primary" disabled>
-		    <img id="loading-spinner" src="img/ajax-loader.gif" style="padding-left:2px" />
-		    <label style="width: 130px;"></label><input id="clear_btn" type="button" value="Clear" class ="submit btn btn-primary" >
-		    <div style="height:10px;"></div>
-		    
+			</div>
+
+			<div class="form-group">
+				<label class="control-label">Library Name<span
+					style="color: red"> *</span>
+				</label>
+				<div class="input-group" style="width: 600px;">
+					<input class="form-control" style="width: 500px;" id="library_name"
+						name="library_name" maxlength="25">
+				</div>
+			</div>
+
+			<div class="form-group">
+				<label class="control-label">Code File Name<span
+					style="color: red"> *</span>
+				</label>
+				<div class="input-group" style="width: 600px;">
+					<input id="file_name" name="file_name" type="text"
+						class="form-control" placeholder="Browse for code file..." />
+					<div class="input-group-btn">
+						<a class='btn btn-primary glyphicon glyphicon-search' href='javascript:;' style="top:0;" tabindex="-1"> 
+							<input id="file" type="file" tabindex="-1"
+							style="width:50px;position: absolute;z-index: 2; top: 0; left: 0; opacity: 0; background-color: transparent; color: transparent;"
+							name="file_source">
+						</a>
+					</div>
+				</div>
+			</div>
+
+
+			<label></label><input id="create_btn" type="button" value="Create"
+				class="submit btn btn-primary" disabled> <img
+				id="loading-spinner" src="img/ajax-loader.gif"
+				style="padding-left: 2px" /><input id="clear_btn" type="button"
+				value="Clear" class="submit btn btn-default">
+			<div style="height: 10px;"></div>
+
 		</form>
 	</div>
 </div>
