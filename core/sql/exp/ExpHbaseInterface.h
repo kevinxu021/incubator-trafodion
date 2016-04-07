@@ -140,6 +140,8 @@ class ExpHbaseInterface : public NABasicObject
   virtual Lng32 copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
                      NABoolean force = FALSE);
 
+  virtual Lng32 createSnaphot(const HbaseStr &tblName);
+  
   virtual Lng32 exists(HbaseStr &tblName) = 0;
 
   // returns the next tablename. 100, at EOD.
@@ -413,7 +415,7 @@ class ExpHbaseInterface : public NABasicObject
   virtual Lng32 removeTablesFromHDFSCache(const std::vector<Text>& tables, const char* poolName) = 0;
   // get regions and size
   virtual ByteArrayList* getRegionStats(const HbaseStr& tblName) = 0;
-
+  
 protected:
   enum 
     {
@@ -482,7 +484,8 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
   // if force is true, remove target before copying.
   virtual Lng32 copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
                      NABoolean force = FALSE);
-
+  virtual Lng32 createSnaphot(const HbaseStr &tblName);
+  
   // -1, if table exists. 0, if doesn't. -ve num, error.
   virtual Lng32 exists(HbaseStr &tblName);
 
@@ -746,7 +749,7 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
   virtual Lng32 removeTablesFromHDFSCache(const std::vector<Text> & tables, const char* poolName);
 
   virtual ByteArrayList* getRegionStats(const HbaseStr& tblName);
-
+  
 private:
   bool  useTRex_;
   NABoolean replSync_;;

@@ -480,6 +480,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_AUTOMATIC			// MV
 %token <tokval> TOK_AVERAGE_STREAM_WAIT         /* Tandem extension non-reserved word */
 %token <tokval> TOK_AVG
+%token <tokval> TOK_BACKUP
 %token <tokval> TOK_BEFORE
 
 %token <tokval> TOK_BEGIN
@@ -1406,7 +1407,6 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_SOFTWARE
 %token <tokval> TOK_REINITIALIZE        /* Tandem extension non-reserved word */
 %token <tokval> TOK_SEPARATE            /* Tandem extension */
-%token <tokval> TOK_BACKUP
 
 // QSTUFF
 %token <tokval> TOK_STREAM              /* Tandem ext: table streams pub/sub */
@@ -2823,6 +2823,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <relx>                    load_statement
 %type <boolean>                 load_sample_option
 %type <relx>                    exe_util_init_hbase
+%type <relx>					backup_statement
 %type <hBaseBulkLoadOptionsList> optional_hbbload_options
 %type <hBaseBulkLoadOptionsList> hbbload_option_list
 %type <hBaseBulkLoadOption>      hbbload_option
@@ -14759,6 +14760,10 @@ interactive_query_expression:
                                 {
 				  $$ = finalize($1);
 				}
+			  | backup_statement
+			                  {
+				  $$ = finalize($1);
+				}
               | exe_util_get_region_access_stats
                                 {
 				  $$ = finalize($1);
@@ -16500,6 +16505,23 @@ exe_util_init_hbase : TOK_INITIALIZE TOK_TRAFODION
 
 		 $$ = de;
 	       }
+
+/* type relx */
+backup_statement : TOK_BACKUP TOK_TRAFODION
+		{
+		 CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+		 NAString * stmt = getSqlStmtStr ( stmtCharSet, PARSERHEAP());
+
+		 DDLExpr * de = new(PARSERHEAP()) DDLExpr(FALSE, FALSE, FALSE, FALSE,
+                                                          FALSE, FALSE,
+							  FALSE, FALSE, FALSE,
+							  (char*)stmt->data(),
+							  stmtCharSet,
+							  PARSERHEAP());
+		de->setBackup(TRUE);
+		
+		$$ = de;
+       }
 
 /* type relx */
 exe_util_get_region_access_stats : TOK_GET TOK_REGION stats_or_statistics TOK_FOR TOK_TABLE table_name

@@ -419,6 +419,7 @@ typedef enum {
  ,HBC_ERROR_REMOVEHDFSCACHE_EXCEPTION
  ,HBC_ERROR_SHOWHDFSCACHE_EXCEPTION
  ,HBC_ERROR_POOL_NOT_EXIST_EXCEPTION
+ ,HBC_ERROR_CREATE_SNAPSHOT_EXCEPTION
  ,HBC_LAST
 } HBC_RetCode;
 
@@ -457,6 +458,7 @@ public:
   HBC_RetCode dropAll(const char* pattern, bool async, Int64 transID);
   HBC_RetCode copy(const char* srcTblName, const char* tgtTblName,
                    NABoolean force);
+  HBC_RetCode createSnapshot(const char* tblName);          
   ByteArrayList* listAll(const char* pattern);
   ByteArrayList* getRegionStats(const char* tblName);
   static HBC_RetCode flushAllTablesStatic();
@@ -569,6 +571,7 @@ private:
    ,JM_LIST_ALL
    ,JM_GET_REGION_STATS
    ,JM_COPY
+   ,JM_CREATE_SNAPSHOT
    ,JM_EXISTS
    ,JM_FLUSHALL
    ,JM_GRANT

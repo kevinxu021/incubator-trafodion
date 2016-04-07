@@ -1433,7 +1433,9 @@ class CmpSeabaseDDL
                          NAList<HbaseCreateOption*>& hbaseCreateOptions, //out
                          NAString& hco); // out
   
-
+  short backup(DDLExpr * ddlExpr, ExeCliInterface * cliInterface);
+  
+  
 private:
   enum
   {
