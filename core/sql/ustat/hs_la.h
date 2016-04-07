@@ -37,6 +37,7 @@
  */
 #include "hs_const.h"
 #include "hs_util.h"
+#include "NATable.h"
 #include "hiveHook.h"
 #include "HDFSHook.h"
 
@@ -249,17 +250,21 @@ class HSHiveTableDef : public HSTableDef
       {
         return -1;
       }
+    const HHDFSTableStats *getHHDFSTableStats() const
+      {
+        return naTbl_->getClusteringIndex()->getHHDFSTableStats();
+      }
     Lng32 getNumPartitions() const
       {
-        return tableStats_->entries();
+        return getHHDFSTableStats()->entries();
       }
     Lng32 getRecordLength() const
       {
-        return tableStats_->getEstimatedRecordLength();
+        return getHHDFSTableStats()->getEstimatedRecordLength();
       }
     Int64 getModTime() const 
       {
-        return tableStats_->getValidationTimestamp();
+        return getHHDFSTableStats()->getValidationTimestamp();
       }
     Lng32 getIsFormat2Table() const
       {
@@ -280,12 +285,13 @@ class HSHiveTableDef : public HSTableDef
       {}
     Int64 getRowCount(NABoolean &isEstimate)
       {
-        if ( tableStats_->getTotalRows() >= 0 ) {
+        const HHDFSTableStats *tableStats = getHHDFSTableStats();
+        if ( tableStats->getTotalRows() >= 0 ) {
           isEstimate = FALSE; // ORC
-          return tableStats_->getTotalRows();
+          return tableStats->getTotalRows();
         } else { 
           isEstimate = TRUE; // non-ORC
-          return tableStats_->getEstimatedRowCount();
+          return tableStats->getEstimatedRowCount();
         }
       }
     Int64 getRowCount(NABoolean &isEstimate,
@@ -309,7 +315,7 @@ class HSHiveTableDef : public HSTableDef
       }
     Lng32 getBlockSize() const
       {
-        return tableStats_->getEstimatedBlockSize();
+        return getHHDFSTableStats()->getEstimatedBlockSize();
       }
     Lng32 setHasSyskeyFlag()
       {
@@ -326,8 +332,6 @@ class HSHiveTableDef : public HSTableDef
       {}
     Lng32 DescribeColumnNames();
 
-    const HHDFSTableStats* tableStats_;
-    hive_tbl_desc* hiveTblDesc_;
     Int64 minPartitionRows_;
 };
 

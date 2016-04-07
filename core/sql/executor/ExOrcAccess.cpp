@@ -821,6 +821,10 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
               step_ = ORC_AGGR_MAX;
             else if (aggrType_ == ComTdbOrcFastAggr::SUM_)
               step_ = ORC_AGGR_SUM;
+            else if (aggrType_ == ComTdbOrcFastAggr::ORC_NV_LOWER_BOUND_)
+              step_ = ORC_AGGR_NV_LOWER_BOUND;
+            else if (aggrType_ == ComTdbOrcFastAggr::ORC_NV_UPPER_BOUND_)
+              step_ = ORC_AGGR_NV_UPPER_BOUND;
             else
               step_ = HANDLE_ERROR;
           }
@@ -841,6 +845,8 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 	case ORC_AGGR_MIN:
 	case ORC_AGGR_MAX:
 	case ORC_AGGR_SUM:
+        case ORC_AGGR_NV_LOWER_BOUND:
+        case ORC_AGGR_NV_UPPER_BOUND:
 	  {
             retcode = orci_->getColStats(colNum_, bal_);
             if (retcode < 0)
@@ -874,9 +880,17 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 
             Int32 len = 0;
 
-             if (step_ == ORC_AGGR_COUNT)
+            if (step_ == ORC_AGGR_COUNT)
               {
                 bal_->getEntry(0, orcAggrLoc, attr->getLength(), len);
+                step_ = ORC_AGGR_NEXT;
+                break;
+              }
+
+            if (step_ == ORC_AGGR_NV_LOWER_BOUND || step_ == ORC_AGGR_NV_UPPER_BOUND)
+              {
+                // number of values (excluding dups and nulls)
+                bal_->getEntry(2, orcAggrLoc, attr->getLength(), len);
                 step_ = ORC_AGGR_NEXT;
                 break;
               }

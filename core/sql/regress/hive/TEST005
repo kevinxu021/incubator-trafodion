@@ -104,9 +104,15 @@ insert into hive.hive.hivepi  select id, col2, p1 from hive.hive.hivepis;
 insert overwrite table hive.hive.hivepi  select id, col2, p1 from hive.hive.hivepis;
 -- error, insert overwrite table not allowed for partitioned tables
 
+prepare display_rows_accessed from
+select val4_txt, val4
+from table(statistics(null,null))
+where tdb_name like '%_SCAN %';
+
 select * from hivepi;
 select count(*) from hivepis;
 select * from hivepts where p2 = 'two';
+execute display_rows_accessed;
 select * from hivepi join hivepis on hivepi.p1 = hivepis.p1;
 
 -- insert some data and add one more partition
@@ -334,7 +340,9 @@ from table(explain(null,'S'))
 where operator like '%SCAN%'
   and description like '%part_elim_runtime%';
 select * from hive.hive.hivepts where p1t > timestamp '2002-01-01 00:00:00.000000' and p2 <> 'four';
+execute display_rows_accessed;
 select * from hive.hive.hivepts where p1t < current_timestamp;
+execute display_rows_accessed;
 
 select *,
        block__offset__inside__file,
@@ -353,8 +361,11 @@ select * from hive.hive.hivepiso;
 
 -- partition elimination on ORC table
 select * from hive.hive.hivepio where p1=2;
+execute display_rows_accessed;
 select * from hive.hive.hivepio where p1 in (1,3);
+execute display_rows_accessed;
 select * from hive.hive.hivepdo where p1d >= date '2002-12-31';
+execute display_rows_accessed;
 
 -- this pred can neither be pushed to ORC nor used as
 -- a partition elimination predicate

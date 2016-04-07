@@ -3690,6 +3690,8 @@ CoprocessorService, Coprocessor {
                   "\nTrxRegionEndpoint coprocessor: get the reference from Region CoprocessorEnvironment ");
     
     this.configuredPITRecovery = tmp_env.getConfiguration().getBoolean("hbase.regionserver.region.transactional.pit", false);
+    // PIT test 
+    // this.configuredPITRecovery = true;
     if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: PIT Recovery setting is " + this.configuredPITRecovery +
 		  " PIT Recovery HA setting is " +  this.configuredPITRecoveryHA +
                   "\nTrxRegionEndpoint coprocessor: get the reference from Region CoprocessorEnvironment ");
@@ -6792,8 +6794,9 @@ CoprocessorService, Coprocessor {
 	      // use "region-name-toString + current time" to form the filename
 	      // put into /mnt/sstung/advent2/...
 	      
-	      writePath = new Path("mnt/sstung/tmp/" + 
-	              regionInfo.getRegionNameAsString() + Long.toString(EnvironmentEdgeManager.currentTime()));
+	      writePath = new Path("/hbase/PIT/mutation/" + 
+	              regionInfo.getTable().toString() + /* "-" + regionInfo.getEncodedName() + */
+	              "-" + Long.toString(EnvironmentEdgeManager.currentTime()));
 	      
 	      // 2.1) create writer (~ action 1) 
 	      mutationWriter = (HFileWriterV2) HFile.getWriterFactory(config,
@@ -6804,27 +6807,28 @@ CoprocessorService, Coprocessor {
 	      smallestCommitId = -1;
 	      mutationSet = 0;
 	  
-	      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: create " + action + " Path " + writePath);
+	      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: create " + action +
+		       " Table " + regionInfo.getTable().toString() + " Path " + writePath);
 	      break;
           }
 	  case 2: { // append and write output buffer out
 	      // for the key by a sequence incremental number (mutationSet), the number is reset when rollover
 	      if (mutationCount > 0) {
+		  mutationSet++;
 	          bSet = Bytes.toBytes (mutationSet);
 	          bKey = concat(Bytes.toBytes(COMMITTED_TXNS_KEY), bSet);
                   byte [] firstByte = mutationOutput.toByteArray();
                   mutationWriter.append(new KeyValue(bKey, Bytes.toBytes("cf"), Bytes.toBytes("qual"), firstByte));
-	          if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: action flush " + action +
-		         " mutationCount " + mutationCount + " mutationSet " + mutationSet + 
+	          if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: action flush " + action + " " +
+		         regionInfo.getTable().toString() + " mutationCount " + mutationCount + " mutationSet " + mutationSet + 
 		         " mutations size " + firstByte.length );
 	      
 	          mutationOutput = new ByteArrayOutputStream(); // reset the buffer for next KV (batch of TSBuilder cells)
 	          mutationCount = 0;
-	          mutationSet++;
-		  mutationTotalCount++;
 	      }
 	      else {
-		  if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: append, no mutation no flush & no close");
+		  if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: append, no mutation no flush & no close "
+		      + regionInfo.getTable().toString());
 	      }
 	      break;
           }
@@ -6834,7 +6838,9 @@ CoprocessorService, Coprocessor {
 	      // set currentFileKey = -1 (so next mutation append will have to create the next file and writer)
 	      mutationWriter.close();
 	      currentFileKey = -1;
-	      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: close " + action);
+	      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: close " + action + " " +
+		                        regionInfo.getTable().toString() + 
+		                        " with smallest commitId " + smallestCommitId);
               break;
 	  }
 	  case 4: { // append the mutation into output buffer with delimeter
@@ -6843,8 +6849,10 @@ CoprocessorService, Coprocessor {
 		             smallestCommitId = tmBuilder.getCommitId();
 	      mutationCount++;
 	      mutationTotalCount++;
-	      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: buffered " + action +
-		         " mutationCount " + mutationCount + " mutationSet " + mutationSet);
+	      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: buffered " + action + " " +
+		         regionInfo.getTable().toString() + 
+		         " mutationCount " + mutationCount + " mutationSet " + mutationSet +
+		         " smallest CommitId " + smallestCommitId);
               break;
 	  }
 	  default: { // bad parameter
@@ -6929,6 +6937,9 @@ CoprocessorService, Coprocessor {
 
                   int putIndex = 0;
                   int deleteIndex = 0;
+		  // Note. the put/del we get from mutation proto should contain correct time order (serialized when they are added
+		  //           into ts.writeOrdering, so we should be able to do a puts and then a dels
+		  //           this is somewhat equivalent to how the recovery plays
 		  for (Boolean put : putOrDel) {
                       if (put) {
                           Put writePut = ProtobufUtil.toPut(putProtos.get(putIndex++));

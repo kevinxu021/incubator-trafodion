@@ -747,6 +747,8 @@ ParKeyWord ParKeyWords::keyWords_[] = {
   ParKeyWord("OPTION",             TOK_OPTION,      ANS_|RESWORD_|MPWORD_),
   ParKeyWord("OPTIONS",            TOK_OPTIONS,     COMPAQ_|RESWORD_),
   ParKeyWord("OR",                 TOK_OR,          ANS_|RESWORD_|MPWORD_),
+  ParKeyWord("ORC_MAX_NV",         TOK_ORC_MAX_NV,  NONRESTOKEN_),
+  ParKeyWord("ORC_SUM_NV",         TOK_ORC_SUM_NV,  NONRESTOKEN_),
   ParKeyWord("ORDER",              TOK_ORDER,       ANS_|RESWORD_|MPWORD_),
   ParKeyWord("ORDERED",            TOK_ORDERED,     NONRESTOKEN_),
   ParKeyWord("ORDINALITY",         TOK_ORDINALITY,  COMPAQ_|RESWORD_),

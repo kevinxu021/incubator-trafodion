@@ -1362,6 +1362,8 @@ const NAType *Aggregate::synthesizeType()
   switch (getEffectiveOperatorType()) {
   case ITM_COUNT:
   case ITM_COUNT_NONULL:
+  case ITM_ORC_MAX_NV:
+  case ITM_ORC_SUM_NV:
     result = new HEAP
       SQLLargeInt(TRUE /* 'long long' on NSK can't be unsigned */,
 		  FALSE /*not null*/);

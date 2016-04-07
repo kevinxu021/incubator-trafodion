@@ -256,6 +256,11 @@ Lng32 ExpHbaseInterface::copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
   return -HBASE_COPY_ERROR;
 }
 
+Lng32 ExpHbaseInterface::createSnaphot(const HbaseStr &tblName)
+{
+	return HBASE_CREATE_SNAPSHOT_ERROR;
+}
+
 Lng32 ExpHbaseInterface::coProcAggr(
 				    HbaseStr &tblName,
 				    Lng32 aggrType, // 0:count, 1:min, 2:max, 3:sum, 4:avg
@@ -603,6 +608,23 @@ Lng32 ExpHbaseInterface_JNI::copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
   }
     
   retCode_ = client_->copy(srcTblName.val, tgtTblName.val, force);
+
+  if (retCode_ == HBC_OK)
+    return HBASE_ACCESS_SUCCESS;
+  else
+    return -HBASE_COPY_ERROR;
+}
+
+//-------------------------------------------------------------------------------
+Lng32 ExpHbaseInterface_JNI::createSnaphot(const HbaseStr &tblName)
+{
+  if (client_ == NULL)
+  {
+    if (init(hbs_) != HBASE_ACCESS_SUCCESS)
+      return -HBASE_ACCESS_ERROR;
+  }
+    
+  retCode_ = client_->createSnapshot(tblName.val);
 
   if (retCode_ == HBC_OK)
     return HBASE_ACCESS_SUCCESS;
@@ -1714,4 +1736,5 @@ ByteArrayList * ExpHbaseInterface_JNI::getRegionStats(const HbaseStr& tblName)
   
   return regionStats;
 }
+
 
