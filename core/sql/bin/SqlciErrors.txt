@@ -1437,6 +1437,9 @@ $1~String1 --------------------------------
 4491 42000 99999 BEGINNER MINOR LOGONLY The user does not have $0~string0 privilege on sequence $1~string1$2~string2.
 4492 ZZZZZ 99999 BEGINNER MINOR LOGONLY BULK LOAD option UPDATE STATISTICS cannot be used with UPSERT USING LOAD option.
 5000 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Internal error in the query normalizer.
+5050 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Backup in progress, try again later.
+5051 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Failed to lock Transaction Manager. Cause : FS error $0~Int0.
+5052 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Failed to Unlock Transaction Manager. Cause : FS error $0~Int0.
 6000 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Internal error in the query optimizer.
 6001 0A000 99999 BEGINNER MAJOR DBADMIN DISTINCT aggregates can be computed for only one column per table expression.
 6002 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The metadata table HISTOGRAMS or HISTOGRAM_INTERVALS contains invalid values.  If you have manually modified the metadata table, then you should undo your changes using the CLEAR option in UPDATE STATISTICS.
