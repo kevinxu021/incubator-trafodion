@@ -5203,13 +5203,15 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
       case 4:
       childIndex = 0;
 
-/*
-      if ( getGroupId() == 7 && myContext->getReqdPhysicalProperty() &&
+
+      /*
+      if ( getGroupId() == 7 &&  myContext->getReqdPhysicalProperty() &&
            myContext->getReqdPhysicalProperty()->getPlanExecutionLocation() != EXECUTE_IN_MASTER) {
          int x = 1;
          x++;
       }
-*/
+      */
+
 
     // -------------------------------------------------------------------
     // Case 4: Plan 2, child 0
@@ -14551,6 +14553,12 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   // limit the number of ESPs to HIVE_NUM_ESPS_PER_DATANODE * nodes
   maxESPs = MAXOF(MINOF(numSQNodes*numESPsPerDataNode, maxESPs),1);
 
+  // If the required count of partitions is more than the #max esps,
+  // set the maxESPs to that number. Otherwise, the requirement will
+  // never be satisfied. 
+  //if ( minESPs > maxESPs )
+  //  maxESPs = minESPs;
+
   // check for ATTEMPT_ESP_PARALLELISM CQD
   if (CURRSTMT_OPTDEFAULTS->attemptESPParallelism() == DF_OFF)
     maxESPs = 1;
@@ -14713,6 +14721,8 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
                                      partKeyList,
                                      numESPs,
                                      myNodeMap);
+
+
       }
 
       myPartFunc->createPartitioningKeyPredicates();
