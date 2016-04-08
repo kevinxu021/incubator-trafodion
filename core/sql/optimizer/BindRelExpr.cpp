@@ -11859,6 +11859,14 @@ RelExpr *GenericUpdate::bindNode(BindWA *bindWA)
       return this;
      }
 
+  if (naTable->isORC())
+    {
+      *CmpCommon::diags() << DgSqlCode(-4223)
+			  << DgString0("Upsert/Insert/Update/Delete on ORC table is");
+      bindWA->setErrStatus();
+      return this;
+    }
+
   if (naTable->isHiveTable() &&
       (getOperatorType() != REL_UNARY_INSERT) && 
       (getOperatorType() != REL_LEAF_INSERT))

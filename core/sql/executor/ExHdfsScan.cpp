@@ -429,6 +429,14 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 
 	    myInstNum_ = getGlobals()->getMyInstanceNumber();
 
+            // if my inst num is outside the range of entries, then nothing
+            // need to be retrieved. We are done.
+            if (myInstNum_ >= hdfsScanTdb().getHdfsFileRangeBeginList()->entries())
+              {
+                step_ = DONE;
+                break;
+              }
+
 	    beginRangeNum_ =  
 	      *(Lng32*)hdfsScanTdb().getHdfsFileRangeBeginList()->get(myInstNum_);
 
