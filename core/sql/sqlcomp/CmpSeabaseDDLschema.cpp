@@ -838,7 +838,8 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
    
    if (rowCount > 0)
    {
-     CmpCommon::diags()->clear();
+      //CmpCommon::diags()->clear();  don't clear diags out as that
+      // sometimes obscures issues, for example, failures in dropping tables
       
       *CmpCommon::diags() << DgSqlCode(-CAT_UNABLE_TO_DROP_SCHEMA)
                           << DgSchemaName(catName + "." + schName);
@@ -1445,7 +1446,12 @@ ULng32 savedParserFlags = Get_SqlParser_Flags(0xFFFFFFFF);
    Assign_SqlParser_Flags(savedParserFlags);
    
    if (cliRC < 0 && cliRC != -CAT_OBJECT_DOES_NOT_EXIST_IN_TRAFODION)
+   {
       someObjectsCouldNotBeDropped = true;
+      // report the error diagnostics so we can figure out why
+      // drop schema cascade failed
+      cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
+   }
    
 // remove NATable entry for this table
    CorrName cn(objectName,STMTHEAP,schemaName,catalogName);
