@@ -6043,12 +6043,10 @@ const NAType *ItmSeqOlapFunction::synthesizeType()
        result = operand.newCopy(HEAP);
        break;
 
-     case ITM_OLAP_SDEV:
 	 case ITM_OLAP_SDEV_SAMP:
 	 case ITM_OLAP_SDEV_POP:
 	 case ITM_OLAP_VARIANCE_SAMP:
 	 case ITM_OLAP_VARIANCE_POP:
-     case ITM_OLAP_VARIANCE:
        result = new HEAP SQLDoublePrecision(TRUE); 
        break;
 

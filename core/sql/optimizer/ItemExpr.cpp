@@ -6853,9 +6853,6 @@ OperatorTypeEnum Aggregate::mapOperTypeToMoving() const
   case ITM_STDDEV_SAMP:
 	return ITM_MOVING_SDEV;
 	break;
-  case ITM_STDDEV_POP:
-	return ITM_MOVING_SDEV;
-	break;
   case ITM_VARIANCE_SAMP:
 	return ITM_MOVING_VARIANCE;
 	break;
