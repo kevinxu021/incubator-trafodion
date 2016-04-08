@@ -3578,7 +3578,7 @@ static short replaceRenamedColInHavingWithSelIndex(
   if (((expr->getOperatorType() >= ITM_ROW_SUBQUERY) &&
        (expr->getOperatorType() <= ITM_GREATER_EQ_ANY)) ||
       ((expr->getOperatorType() >= ITM_AVG) &&
-       (expr->getOperatorType() <= ITM_VARIANCE)) ||
+       (expr->getOperatorType() <= ITM_VARIANCE_SAMP)) ||
       ((expr->getOperatorType() >= ITM_DIFF1) &&
        (expr->getOperatorType() <= ITM_NOT_THIS)))
     {
@@ -3613,7 +3613,7 @@ static short setValueIdForRenamedColsInHaving(BindWA * bindWA,
   if (((expr->getOperatorType() >= ITM_ROW_SUBQUERY) &&
        (expr->getOperatorType() <= ITM_GREATER_EQ_ANY)) ||
       ((expr->getOperatorType() >= ITM_AVG) &&
-       (expr->getOperatorType() <= ITM_VARIANCE)) ||
+       (expr->getOperatorType() <= ITM_VARIANCE_SAMP)) ||
       ((expr->getOperatorType() >= ITM_DIFF1) &&
        (expr->getOperatorType() <= ITM_NOT_THIS)))
     {

@@ -1773,7 +1773,7 @@ ItemExpr *MVColumnInfo::findMavColumnType(ItemExpr *colExpr, MVInfoForDDL& mvInf
   {
     ItemExpr *aggExpr = NULL; // used only for AGG_STDDEVW / AGG_VARIANCEW
 
-    if (operatorType_!=ITM_STDDEV && operatorType_!=ITM_VARIANCE)
+    if (operatorType_!=ITM_STDDEV_SAMP && operatorType_!=ITM_VARIANCE_SAMP)
     { // It's either COUNT, SUM, AVG, MIN or MAX
       // Skip the aggregate function to get to the operand.
       expr = expr->child(0);
@@ -1939,7 +1939,7 @@ MVAggFunc MVColumnInfo::findAggrEnum(ItemExpr *expr, MVInfoForDDL& mvInfoObj)
     case ITM_MIN	  : result = AGG_MIN;	    break;
     case ITM_MAX	  : result = AGG_MAX;	    break;
 
-    case ITM_VARIANCE	  : 
+    case ITM_VARIANCE_SAMP	  : 
       // For VARIANCE take the expression from the COUNT child.
       expr = expr->child(2);
       expr = SkipCast(expr);
@@ -1954,7 +1954,7 @@ MVAggFunc MVColumnInfo::findAggrEnum(ItemExpr *expr, MVInfoForDDL& mvInfoObj)
       }
       break;
 
-    case ITM_STDDEV :
+    case ITM_STDDEV_SAMP :
       // For STDDEV take the expression from the COUNT child.
       expr = expr->child(2);
       expr = SkipCast(expr);
@@ -2250,8 +2250,8 @@ void MVColumnInfo::print( FILE* ofd,          //  = stdout,
     case ITM_AVG          : opTypeText="ITM_AVG";          break;
     case ITM_MIN          : opTypeText="ITM_MIN";          break;
     case ITM_MAX          : opTypeText="ITM_MAX";          break;
-    case ITM_STDDEV       : opTypeText="ITM_STDDEV";       break;
-    case ITM_VARIANCE     : opTypeText="ITM_VARIANCE";     break;
+    case ITM_STDDEV_SAMP  : opTypeText="ITM_STDDEV_SAMP";  break;
+    case ITM_VARIANCE_SAMP: opTypeText="ITM_VARIANCE_SAMP";break;
     case ITM_BASECOLUMN   : opTypeText="ITM_BASECOLUMN";   break;
     default		  : opTypeText="Unknown";          break;
   }

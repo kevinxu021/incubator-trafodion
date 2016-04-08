@@ -6767,16 +6767,10 @@ OperatorTypeEnum Aggregate::mapOperTypeToRunning() const
     return ITM_RUNNING_MIN;
     break;
   case ITM_STDDEV_SAMP:
-	return ITM_RUNNING_SDEV_SAMP;
-	break;
-  case ITM_STDDEV_POP:
-	return ITM_RUNNING_SDEV_POP;
+	return ITM_RUNNING_SDEV;
 	break;
   case ITM_VARIANCE_SAMP:
-	return ITM_RUNNING_VARIANCE_SAMP;
-	break;
-  case ITM_VARIANCE_POP:
-	return ITM_RUNNING_VARIANCE_POP;
+	return ITM_RUNNING_VARIANCE;
 	break;
   case ITM_SUM:
     return ITM_RUNNING_SUM;
@@ -6857,16 +6851,13 @@ OperatorTypeEnum Aggregate::mapOperTypeToMoving() const
     return ITM_MOVING_MIN;
     break;
   case ITM_STDDEV_SAMP:
-	return ITM_MOVING_SDEV_SAMP;
+	return ITM_MOVING_SDEV;
 	break;
   case ITM_STDDEV_POP:
-	return ITM_MOVING_SDEV_POP;
+	return ITM_MOVING_SDEV;
 	break;
   case ITM_VARIANCE_SAMP:
-	return ITM_MOVING_VARIANCE_SAMP;
-	break;
-  case ITM_VARIANCE_POP:
-	return ITM_MOVING_VARIANCE_POP;
+	return ITM_MOVING_VARIANCE;
 	break;
   case ITM_SUM:
     return ITM_MOVING_SUM;
@@ -6897,20 +6888,14 @@ OperatorTypeEnum ItmSeqOlapFunction::mapOperTypeToRunning() const
     return ITM_RUNNING_MIN;
     break;
   case ITM_OLAP_SDEV_SAMP:
-    return ITM_RUNNING_SDEV_SAMP;
+    return ITM_RUNNING_SDEV;
     break;
-  case ITM_OLAP_SDEV_POP:
-	return ITM_RUNNING_SDEV_POP;
-	break;
   case ITM_OLAP_SUM:
     return ITM_RUNNING_SUM;
     break;
   case ITM_OLAP_VARIANCE_SAMP:
-    return ITM_RUNNING_VARIANCE_SAMP;
+    return ITM_RUNNING_VARIANCE;
     break;
-  case ITM_OLAP_VARIANCE_POP:
-	return ITM_RUNNING_VARIANCE_POP;
-	break;
   case ITM_OLAP_RANK:
     return ITM_RUNNING_RANK;
     break;
@@ -6940,20 +6925,14 @@ OperatorTypeEnum ItmSeqOlapFunction::mapOperTypeToMoving() const
     return ITM_MOVING_MIN;
     break;
   case ITM_OLAP_SDEV_SAMP:
-    return ITM_MOVING_SDEV_SAMP;
+    return ITM_MOVING_SDEV;
     break;
-  case ITM_OLAP_SDEV_POP:
-	return ITM_MOVING_SDEV_POP;
-	break;
   case ITM_OLAP_SUM:
     return ITM_MOVING_SUM;
     break;
   case ITM_OLAP_VARIANCE_SAMP:
-    return ITM_MOVING_VARIANCE_SAMP;
+    return ITM_MOVING_VARIANCE;
     break;
-  case ITM_OLAP_VARIANCE_POP:
-	return ITM_MOVING_VARIANCE_POP;
-	break;
   case ITM_OLAP_RANK:
     return ITM_MOVING_RANK;
     break;
