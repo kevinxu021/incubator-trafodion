@@ -101,7 +101,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			$(LOADING).css('visibility', 'visible');
 			$(CREATE_BTN).prop('disabled', true);
 			$(CLEAR_BTN).prop('disabled', true);
-			var schemaName = $(SCHEMA_NAME).val()==""?"DB__LIBMGR": $(SCHEMA_NAME).val();
+			var schemaName = $(SCHEMA_NAME).val()==""?"_LIBMGR_": $(SCHEMA_NAME).val();
 			var libraryName = $(LIBRARY_NAME).val();
 			var chunk_size = 10000  * 1024; //1mb = 1 * 1024 * 1024;
 			var file = FILE;

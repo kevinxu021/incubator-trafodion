@@ -51,6 +51,9 @@ public class ToolsResource {
 		Connection connection = null;
 		CallableStatement pc = null;
 		String stmt;
+		if(schemaName.startsWith("_")){
+			schemaName = "\""+ schemaName + "\"";
+		}
 		String schemaLibName = schemaName+"."+libraryName;
 		int flag = 1;
 		/*

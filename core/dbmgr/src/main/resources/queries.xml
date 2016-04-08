@@ -757,11 +757,11 @@
 		</query>
 		<query>
 			<name>SPJ_PUT</name>
-			<text><![CDATA[{call _LIBMGR_.put(?,?,?,?)]]></text>
+			<text><![CDATA[{call "_LIBMGR_".put(?,?,?,?)}]]></text>
 		</query>
 		<query>
 			<name>SPJ_ADDLIB</name>
-			<text><![CDATA[{call DB__LIBMGR.addlib(?,?,null,null)}]]></text>
+			<text><![CDATA[{call "_LIBMGR_".addlib(?,?,null,null)}]]></text>
 		</query>		
 	</queries>
 </SystemQueries>
