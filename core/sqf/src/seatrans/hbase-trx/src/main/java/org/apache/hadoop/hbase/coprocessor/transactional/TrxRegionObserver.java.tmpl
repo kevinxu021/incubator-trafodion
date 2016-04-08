@@ -114,6 +114,7 @@ public static final String trxkeyindoubtTransactionsCountByTmid = "indoubtTransa
 public static final String trxkeyCheckBlockAllVar = "checkBlockAllVar";
 public static final String trxkeyCheckBlockNonPhase2Var = "checkBlockNonPhase2Var";
 public static final String trxkeyCheckBlockNewTransVar = "checkBlockNewTransVar";
+public static final String trxkeyClosingVar = "checkClosingVariable";
 public static final String trxkeyScanners = "trxScanners";
 
 public static final String SPLIT_DELAY_NOFLUSH = "hbase.transaction.split.delay.noflush";
@@ -151,6 +152,7 @@ private Set<TrxTransactionState> commitPendingTransactions = Collections.synchro
 private AtomicBoolean blockAll = new AtomicBoolean(false);
 private AtomicBoolean blockNonPhase2 = new AtomicBoolean(false);
 private AtomicBoolean blockNewTrans = new AtomicBoolean(false);
+private AtomicBoolean closing = new AtomicBoolean(false);
 private boolean hasClosed = false;
 private boolean hasFlushed = false;
 private boolean m_isTrafodionMetadata = false;
@@ -310,6 +312,14 @@ public void start(CoprocessorEnvironment e) throws IOException {
     else {
        transactionsRefMap.put(lv_regionName+trxkeyCheckBlockAllVar, this.blockAll);
     }
+   AtomicBoolean closingCheck = (AtomicBoolean)transactionsRefMap
+                                               .get(lv_regionName+trxkeyClosingVar);
+   if(closingCheck != null) {
+       this.closing = closingCheck;
+   }
+   else {
+       transactionsRefMap.put(lv_regionName+trxkeyClosingVar, this.closing);
+   }
    AtomicBoolean blockNonPhase2Check = (AtomicBoolean)transactionsRefMap
                                                .get(lv_regionName+trxkeyCheckBlockNonPhase2Var);
    if(blockNonPhase2Check != null) {
@@ -596,7 +606,7 @@ public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
     }
   }
 
-   //        Trafodion Recovery : after Open, we should have alreday constructed all the indoubt transactions in
+   //        Trafodion Recovery : after Open, we should have already constructed all the indoubt transactions in
    //        pendingTransactionsById now process it and construct transaction list by TM id. These two data
    //        structures are put in the reference map which is shared with TrxRegionEndpoint coprocessor class per region 
 
@@ -639,6 +649,7 @@ public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
             LOG.error("An ERROR occurred while getting the STR Configuration");
     }
 
+    //build a list of TMs for in-doubt transactions, -2 is used for all peer's transactions
     for (Entry<Long, List<WALEdit>> entry : pendingTransactionsById.entrySet()) {
         synchronized (recoveryCheckLock) {
                       long transactionId = entry.getKey();
@@ -648,7 +659,7 @@ public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
 			  LOG.info("Trafodion Recovery Region Observer CP: Region " + regionInfo.getRegionNameAsString() + " process in-doubt transaction " + transactionId);
 
                       int clusterid = (int) TransactionState.getClusterId(transactionId);
-                      int tmid = (int) TransactionState.getNodeId(transactionId);
+                      int tmid = (int) (transactionId >> 32);
                       int count = 1;
 		      if ((m_isTrafodionMetadata) || 
 			  (LOG.isTraceEnabled())) 
@@ -873,10 +884,12 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
         if(splitDelayNoFlush) {
             if(!this.earlyDrain)
                sbHelper.activeWait(transactionsById, activeDelayLen, splitDelayLimit);
+             closing.set(true);
              sbHelper.pendingWait(commitPendingTransactions, pendingDelayLen);  
         }
         else {
             blockNonPhase2.set(true);
+            closing.set(true);
             sbHelper.pendingAndScannersWait(commitPendingTransactions, scanners, pendingDelayLen);
 
             sbHelper.setSplit();
@@ -892,7 +905,6 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
 #else
     public void	postSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) {
 #endif
-
         if(LOG.isTraceEnabled()) LOG.trace("postSplit -- ENTRY");
 
         if(splitDelayNoFlush)
@@ -910,6 +922,8 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
              // don't need to set NewTrans flag because blockNonPhase2 will catch up
              treL.setBlockAll(true);
              treR.setBlockAll(true);
+             treL.setClosing(true);
+             treR.setClosing(true);
              Thread readThread = new Thread(new TxnReadThread(treL, sbHelper.getPath(), true));
              readThread.start();
              //treL.readTxnInfo(sbHelper.getPath(), true);
@@ -921,6 +935,8 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
              treR.setBlockNonPhase2(false);
              treL.setNewTrans(false);
              treR.setNewTrans(false);
+             treL.setClosing(false);
+             treR.setClosing(false);
              sbHelper.clearSplit();
           } catch (IOException ioe) {
              if(LOG.isErrorEnabled()) LOG.error("Unable to read Transaction Info for transactional split coordination: " + ioe);
@@ -958,7 +974,8 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
 	          LOG.error("Encountered exception when calling pendingAndScannersWait(): " + ioe);
 	        }
 	        blockAll.set(true);
-	        hasClosed = true;
+	        closing.set(true);
+                hasClosed = true;
         }
 
         if (c.getEnvironment().getRegionServerServices().isStopping() ||
@@ -999,6 +1016,7 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
         transactionsRefMap.remove(regionName+trxkeyCheckBlockAllVar);
         transactionsRefMap.remove(regionName+trxkeyCheckBlockNonPhase2Var);
         transactionsRefMap.remove(regionName+trxkeyCheckBlockNewTransVar);
+        transactionsRefMap.remove(regionName+trxkeyClosingVar);
         transactionsRefMap.remove(regionName+trxkeyScanners);
     }
 

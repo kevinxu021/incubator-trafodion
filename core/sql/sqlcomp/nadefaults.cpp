@@ -3426,9 +3426,8 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDint__(TRAF_UNLOAD_HDFS_COMPRESS,                   "0"),
   DDkwd__(TRAF_UNLOAD_SKIP_WRITING_TO_FILES,           "OFF"),
   DDkwd__(TRAF_UPSERT_ADJUST_PARAMS,                   "OFF"),
-  DDkwd__(TRAF_UPSERT_AUTO_FLUSH,                      "OFF"),
+  DDkwd__(TRAF_UPSERT_MODE,                            "MERGE"),
   DDint__(TRAF_UPSERT_WB_SIZE,                         "2097152"),
-  DDkwd__(TRAF_UPSERT_WITH_INSERT_DEFAULT_SEMANTICS,   "OFF"),
   DDkwd__(TRAF_UPSERT_WRITE_TO_WAL,                    "OFF"),
 
   DDkwd__(TRAF_USE_RWRS_FOR_MD_INSERT,                   "ON"),
@@ -6342,6 +6341,7 @@ const char *NADefaults::keywords_[DF_lastToken] = {
   "MEASURE",
   "MEDIUM",
   "MEDIUM_LOW",
+  "MERGE",
   "MINIMUM",
   "MMAP",
   "MULTI_NODE",
@@ -6352,6 +6352,7 @@ const char *NADefaults::keywords_[DF_lastToken] = {
   "ON",
   "OPENS_FOR_WRITE",
   "OPERATOR",
+  "OPTIMAL",
   "ORDERED",
   "PERTABLE",
   "PRINT",
@@ -6363,6 +6364,7 @@ const char *NADefaults::keywords_[DF_lastToken] = {
   "RELEASE",
   "REMOTE",
   "REPEATABLE_READ",
+  "REPLACE",
   "REPSEL",
   "RESOURCES",
   "RETURN",
@@ -7031,6 +7033,11 @@ DefaultToken NADefaults::token(Int32 attrEnum,
       if (tok == DF_OFF || tok == DF_MINIMUM ||
           tok == DF_MEDIUM || tok == DF_MAXIMUM || tok == DF_ON)
         isValid = TRUE;
+      break;
+    case TRAF_UPSERT_MODE:
+      if (tok == DF_MERGE || tok == DF_REPLACE || tok == DF_OPTIMAL)
+	isValid = TRUE;
+      break;
 
     // Nothing needs to be added here for ON/OFF/SYSTEM keywords --
     // instead, add to DEFAULT_ALLOWS_SEPARATE_SYSTEM code in the ctor.

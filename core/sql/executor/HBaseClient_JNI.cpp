@@ -273,8 +273,6 @@ static const char* const hbcErrorEnumStr[] =
  ,"Java exception in drop()."
  ,"Preparing parameters for exists()."
  ,"Java exception in exists()."
- ,"Preparing parameters for flushAll()."
- ,"Java exception in flushAll()." 
  ,"Preparing parameters for grant()."
  ,"Java exception in grant()."
  ,"Preparing parameters for revoke()."
@@ -465,8 +463,6 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_GRANT      ].jm_signature = "([B[B[Ljava/lang/Object;)Z";
     JavaMethods_[JM_REVOKE     ].jm_name      = "revoke";
     JavaMethods_[JM_REVOKE     ].jm_signature = "([B[B[Ljava/lang/Object;)Z";
-    JavaMethods_[JM_FLUSHALL   ].jm_name      = "flushAllTables";
-    JavaMethods_[JM_FLUSHALL   ].jm_signature = "()Z";
     JavaMethods_[JM_GET_HBLC   ].jm_name      = "getHBulkLoadClient";
     JavaMethods_[JM_GET_HBLC   ].jm_signature = "()Lorg/trafodion/sql/HBulkLoadClient;";
     JavaMethods_[JM_EST_RC     ].jm_name      = "estimateRowCount";
@@ -498,7 +494,7 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROW].jm_name      = "insertRow";
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROW].jm_signature = "(JLjava/lang/String;ZZJ[BLjava/lang/Object;JZZ)Z";
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_name      = "insertRows";
-    JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;Ljava/lang/Object;JZZ)Z";
+    JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_signature = "(JLjava/lang/String;ZJSLjava/lang/Object;Ljava/lang/Object;JZ)Z";
     JavaMethods_[JM_HBC_DIRECT_UPDATE_TAGS].jm_name      = "updateVisibility";
     JavaMethods_[JM_HBC_DIRECT_UPDATE_TAGS].jm_signature = "(JLjava/lang/String;ZJ[BLjava/lang/Object;)Z";
     JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].jm_name      = "checkAndUpdateRow";
@@ -1246,47 +1242,6 @@ HBC_RetCode HBaseClient_JNI::drop(const char* fileName, bool async, long transID
     return drop(fileName, jenv_, transID); // not in worker thread
   }
 
-  return HBC_OK;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// 
-//////////////////////////////////////////////////////////////////////////////
-HBC_RetCode HBaseClient_JNI::flushAllTablesStatic()
-{
-  return GetCliGlobals()->currContext()->getHBaseClient()->flushAllTables();
-}
-
-HBC_RetCode HBaseClient_JNI::flushAllTables()
-{
-  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::flushAllTablescalled.");
-  if (jenv_ == NULL)
-     if (initJVM() != JOI_OK)
-         return HBC_ERROR_INIT_PARAM;
-
-  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
-     getExceptionDetails();
-     return HBC_ERROR_FLUSHALL_EXCEPTION;
-  }
-  tsRecentJMFromJNI = JavaMethods_[JM_FLUSHALL].jm_full_name;
-  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_FLUSHALL].methodID);
-
-  if (jenv_->ExceptionCheck())
-  {
-    getExceptionDetails();
-    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
-    logError(CAT_SQL_HBASE, "HBaseClient_JNI::flushAllTables()", getLastError());
-    jenv_->PopLocalFrame(NULL);
-    return HBC_ERROR_FLUSHALL_EXCEPTION;
-  }
-
-  if (jresult == false) 
-  {
-    logError(CAT_SQL_HBASE, "HBaseClient_JNI::flushAllTables()", getLastError());
-    jenv_->PopLocalFrame(NULL);
-    return HBC_ERROR_FLUSHALL_EXCEPTION;
-  }
-  jenv_->PopLocalFrame(NULL);
   return HBC_OK;
 }
 
@@ -3140,7 +3095,6 @@ HBC_RetCode HBaseClient_JNI::insertRows(NAHeap *heap, const char *tableName,
 					HbaseStr rowIDs,
 					HbaseStr rows,
 					Int64 timestamp,
-					bool autoFlush,
 					bool asyncOperation,
 					HTableClient_JNI **outHtc)
 {
@@ -3192,7 +3146,6 @@ HBC_RetCode HBaseClient_JNI::insertRows(NAHeap *heap, const char *tableName,
   jlong j_ts = timestamp;
   jlong j_htc = (long)htc;
   jshort j_rowIDLen = rowIDLen;
-  jboolean j_af = autoFlush;
   jboolean j_asyncOperation = asyncOperation;
  
   if (hbs)
@@ -3209,7 +3162,6 @@ HBC_RetCode HBaseClient_JNI::insertRows(NAHeap *heap, const char *tableName,
 					      jRowIDs,
 					      jRows,
 					      j_ts,
-					      j_af,
 					      j_asyncOperation);
   if (hbs) {
       hbs->incHbaseCalls();
@@ -4063,7 +4015,6 @@ static const char* const htcErrorEnumStr[] =
  ,"Java exception in revoke()."
  ,"Java exception in getendkeys()."
  ,"Java exception in getHTableName()."
- ,"Java exception in flush()."
  ,"Java exception in getColName()."
  ,"Java exception in getColValue()."
  ,"Java exception in getRowID()."
@@ -4150,8 +4101,6 @@ HTC_RetCode HTableClient_JNI::init()
     JavaMethods_[JM_GET_HTNAME ].jm_signature = "()Ljava/lang/String;";
     JavaMethods_[JM_GETENDKEYS ].jm_name      = "getEndKeys";
     JavaMethods_[JM_GETENDKEYS ].jm_signature = "()Lorg/trafodion/sql/ByteArrayList;";
-    JavaMethods_[JM_FLUSHT     ].jm_name      = "flush";
-    JavaMethods_[JM_FLUSHT     ].jm_signature = "()Z";
     JavaMethods_[JM_SET_WB_SIZE ].jm_name      = "setWriteBufferSize";
     JavaMethods_[JM_SET_WB_SIZE ].jm_signature = "(J)Z";
     JavaMethods_[JM_SET_WRITE_TO_WAL ].jm_name      = "setWriteToWAL";
@@ -4767,36 +4716,6 @@ ByteArrayList* HTableClient_JNI::getKeys(Int32 funcIndex)
   jenv_->PopLocalFrame(NULL);
   return keys;
 
-}
-
-HTC_RetCode HTableClient_JNI::flushTable()
-{
-  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HTableClient_JNI::flushTable() called.");
-
-  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
-    getExceptionDetails();
-    return HTC_ERROR_FLUSHTABLE_EXCEPTION;
-  }
-  tsRecentJMFromJNI = JavaMethods_[JM_FLUSHT].jm_full_name;
-  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_FLUSHT].methodID);
-
-  if (jenv_->ExceptionCheck())
-  {
-    getExceptionDetails();
-    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
-    logError(CAT_SQL_HBASE, "HTableClient_JNI::flushTable()", getLastError());
-    jenv_->PopLocalFrame(NULL);
-    return HTC_ERROR_FLUSHTABLE_EXCEPTION;
-  }
-
-  if (jresult == false) 
-  {
-    logError(CAT_SQL_HBASE, "HTableClient_JNI::flushTable()", getLastError());
-    jenv_->PopLocalFrame(NULL);
-    return HTC_ERROR_FLUSHTABLE_EXCEPTION;
-  }
-  jenv_->PopLocalFrame(NULL);
-  return HTC_OK;
 }
 
 // ===========================================================================

@@ -2072,7 +2072,9 @@ short HbaseUpdate::codeGen(Generator * generator)
               col = tgtValueId.getNAColumn( TRUE );
 
               if ((NOT isAlignedFormat) &&
-                 (((Assign*)assignExpr)->canBeSkipped()) &&
+                  ((CmpCommon::getDefault(TRAF_UPSERT_MODE) == DF_MERGE) ||
+                   (CmpCommon::getDefault(TRAF_UPSERT_MODE) == DF_OPTIMAL)) && 
+                  (((Assign*)assignExpr)->canBeSkipped()) &&
                  (NOT col->isSystemColumn()) &&
                  (NOT col->isClusteringKey()) &&
                  (NOT col->isIdentityColumn()))
@@ -2411,6 +2413,8 @@ short HbaseInsert::codeGen(Generator *generator)
 
       col = tgtValueId.getNAColumn( TRUE );
       if ((NOT isAlignedFormat) &&
+         ((CmpCommon::getDefault(TRAF_UPSERT_MODE) == DF_MERGE) ||
+          (CmpCommon::getDefault(TRAF_UPSERT_MODE) == DF_OPTIMAL)) && 
          (((Assign*)assignExpr)->canBeSkipped()) && 
          (NOT col->isSystemColumn()) &&
          (NOT col->isClusteringKey()) &&
@@ -3061,8 +3065,6 @@ short HbaseInsert::codeGen(Generator *generator)
       if (traf_upsert_adjust_params)
       {
         ULng32 wbSize = getDefault(TRAF_UPSERT_WB_SIZE);
-        NABoolean traf_auto_flush =
-           (CmpCommon::getDefault(TRAF_UPSERT_AUTO_FLUSH) == DF_ON);
         NABoolean traf_write_toWAL =
                    (CmpCommon::getDefault(TRAF_UPSERT_WRITE_TO_WAL) == DF_ON);
 
@@ -3071,7 +3073,7 @@ short HbaseInsert::codeGen(Generator *generator)
         hbasescan_tdb->setCanAdjustTrafParams(true);
 
         hbasescan_tdb->setWBSize(wbSize);
-        hbasescan_tdb->setIsTrafAutoFlush(traf_auto_flush);
+
       }
 
       if (getTableDesc()->getNATable()->isEnabledForDDLQI())
