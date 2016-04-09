@@ -1366,12 +1366,35 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
      return;
    }
 
-   orci->getStripeInfo(getFileName().data(), numOfRows_, offsets_, totalBytes_);
-   
-   totalRows_ = 0;
-   for (Int32 i=0; i<numOfRows_.entries(); i++) 
-   {
-      totalRows_ += numOfRows_[i];
+   Lng32 rc = orci->open((char*)(getFileName().data()));
+   if (rc) {
+     diags.recordError(NAString("ORC interface open() failed"));
+     return;
+   }
+
+   NABoolean readStripeInfo = (CmpCommon::getDefault(ORC_READ_STRIPE_INFO) == DF_ON);
+
+   if ( readStripeInfo ) {
+     orci->getStripeInfo(numOfRows_, offsets_, totalBytes_);
+   }
+
+   ByteArrayList* bal = NULL;
+   Lng32 colIndex = -1;
+   rc = orci->getColStats(colIndex, bal);
+
+   if (rc) {
+     diags.recordError(NAString("ORC interface getColStats() failed"));
+     return;
+   }
+
+   // read the total # of rows
+   Lng32 len = 0;
+   bal->getEntry(0, (char*)&totalRows_, sizeof(totalRows_), len);
+
+   rc = orci->close();
+   if (rc) {
+     diags.recordError(NAString("ORC interface close() failed"));
+     return;
    }
 
    delete orci;

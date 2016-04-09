@@ -848,7 +848,7 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
         case ORC_AGGR_NV_LOWER_BOUND:
         case ORC_AGGR_NV_UPPER_BOUND:
 	  {
-            retcode = orci_->getColStats(hdfsFileName_, colNum_, bal_);
+            retcode = orci_->getColStats(colNum_, bal_);
             if (retcode < 0)
               {
                 setupError(EXE_ERROR_FROM_LOB_INTERFACE, retcode, 
