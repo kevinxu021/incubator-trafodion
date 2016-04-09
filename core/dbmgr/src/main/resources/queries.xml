@@ -754,6 +754,14 @@
 		<query>
 			<name>UPDATE_ALERT</name>
 			<text><![CDATA[{"url":"http://%1$s/api/action", "method":"post", "jsonParameter":{"Keys":["%2$s"], "Message":"%3$s", "Notify":%4$s,  "Type":"%5$s", "User":"%6$s" }}]]></text>
+		</query>
+		<query>
+			<name>SPJ_PUT</name>
+			<text><![CDATA[{call "_LIBMGR_".put(?,?,?,?)}]]></text>
+		</query>
+		<query>
+			<name>SPJ_ADDLIB</name>
+			<text><![CDATA[{call "_LIBMGR_".addlib(?,?,null,null)}]]></text>
 		</query>		
 	</queries>
 </SystemQueries>

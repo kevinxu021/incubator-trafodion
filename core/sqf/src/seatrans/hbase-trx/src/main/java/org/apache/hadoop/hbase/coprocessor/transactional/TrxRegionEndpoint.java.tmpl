@@ -6891,7 +6891,7 @@ CoprocessorService, Coprocessor {
 					   currentSnapshotId, 
 	                                   0, 512, // for smallestCommitId & fileSize
 					   regionInfo.getRegionNameAsString(), // regionName as String
-					   "test", writePath.toString(), // mutation file path as String
+					   writePath.toString(), // mutation file path as String
 					   false, "test");  // archive mode and path
 		   if(LOG.isTraceEnabled()) LOG.trace("mutation meta record created successfully"); 
                    meta.putMutationRecord(mmr);
@@ -6964,7 +6964,7 @@ CoprocessorService, Coprocessor {
 					   currentSnapshotId, 
 	                                   smallestCommitId, mutationTotalSize, // for smallestCommitId & fileSize
 					   regionInfo.getRegionNameAsString(), // regionName as String
-					   "test", writePath.toString(), // mutation file path as String
+					   writePath.toString(), // mutation file path as String
 					   false, "test");  // archived mode and path
                        meta.putMutationRecord(mmr);
                        if(LOG.isTraceEnabled()) LOG.trace("PITMutation Record Put : key " + currentFileKey +

@@ -7568,6 +7568,11 @@ void Rename::transformNode(NormWA &   normWARef,
   descendant->getGroupAttr()->addCharacteristicInputs // child or grandchild
                                (getGroupAttr()->getCharacteristicInputs());
 
+  if (NOT getSelectionPred().isEmpty())
+    {
+      descendant->setUserSpecifiedPred(TRUE);
+    }
+
   // transform my child
   locationOfPointerToMe->transformNode(normWARef, locationOfPointerToMe);
 
