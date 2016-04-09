@@ -215,7 +215,6 @@ public class MutationMeta {
                         + String.valueOf(record.getSmallestCommitId()) + ","
                         + String.valueOf(record.getFileSize()) + ","
                         + record.getRegionName() + ","
-                        + record.getMutationName() + ","
                         + record.getMutationPath() + ","
                         + String.valueOf(record.getArchived()) + ","
                         + record.getArchivePath()));
@@ -262,7 +261,6 @@ public class MutationMeta {
             String smallestCommitIdString    = st.nextToken();
             String fileSizeString            = st.nextToken();
             String regionNameString          = st.nextToken();
-            String mutationNameString        = st.nextToken();
             String mutationPathString        = st.nextToken();
             String archivedString            = st.nextToken();
             String archivePathString         = st.nextToken();
@@ -273,15 +271,14 @@ public class MutationMeta {
             		+ " smallestCommitId: " + smallestCommitIdString
             		+ " fileSize: " + fileSizeString
             		+ " regionName: " + regionNameString
-            		+ " mutationName: " + mutationNameString
             		+ " mutationPath: " + mutationPathString
             		+ " archived: " + archivedString
             		+ " archivePath: " + archivePathString);
             
             record = new MutationMetaRecord(key, tableNameString, Long.parseLong(associatedSnapshotString),
             		                    Long.parseLong(smallestCommitIdString), Long.parseLong(fileSizeString),
-            		                    regionNameString, mutationNameString, mutationPathString,
-                                            archivedString.contains("true"), archivePathString);
+            		                    regionNameString, mutationPathString, archivedString.contains("true"),
+            		                    archivePathString);
          }
          catch (Exception e1){
              LOG.error("getMutationRecord Exception " + e1);
@@ -330,7 +327,6 @@ public class MutationMeta {
                   String smallestCommitIdString    = st.nextToken();
                   String fileSizeString            = st.nextToken();
                   String regionNameString          = st.nextToken();
-                  String mutationNameString        = st.nextToken();
                   String mutationPathString        = st.nextToken();
                   String archivedString            = st.nextToken();
                   String archivePathString         = st.nextToken();
@@ -342,15 +338,14 @@ public class MutationMeta {
                      		+ " smallestCommitId: " + smallestCommitIdString
                      		+ " fileSize: " + fileSizeString
                      		+ " regionName: " + regionNameString
-                     		+ " mutationName: " + mutationNameString
                      		+ " mutationPath: " + mutationPathString
                      		+ " archived: " + archivedString
                      		+ " archivePath: " + archivePathString);
                      
                   record = new MutationMetaRecord(Bytes.toLong(r.getRow()), tableNameString,
                                   Long.parseLong(associatedSnapshotString), Long.parseLong(smallestCommitIdString),
-                                  Long.parseLong(fileSizeString), regionNameString, mutationNameString,
-                                  mutationPathString, archivedString.contains("true"), archivePathString);
+                                  Long.parseLong(fileSizeString), regionNameString, mutationPathString,
+                                  archivedString.contains("true"), archivePathString);
 
                   returnList.add(record);
                }
@@ -408,13 +403,11 @@ public class MutationMeta {
                for (Cell cell : r.rawCells()) {
                   StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                   if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
-//                  System.out.println("string tokenizer success ");
                   String tableNameString           = st.nextToken();
                   String associatedSnapshotString  = st.nextToken();
                   String smallestCommitIdString    = st.nextToken();
                   String fileSizeString            = st.nextToken();
                   String regionNameString          = st.nextToken();
-                  String mutationNameString        = st.nextToken();
                   String mutationPathString        = st.nextToken();
                   String archivedString            = st.nextToken();
                   String archivePathString         = st.nextToken();
@@ -425,15 +418,14 @@ public class MutationMeta {
                      		+ " smallestCommitId: " + smallestCommitIdString
                      		+ " fileSize: " + fileSizeString
                      		+ " regionName: " + regionNameString
-                     		+ " mutationName: " + mutationNameString
                      		+ " mutationPath: " + mutationPathString
                      		+ " archived: " + archivedString
                      		+ " archivePath: " + archivePathString);
                      
                   record = new MutationMetaRecord(Bytes.toLong(r.getRow()), tableNameString,
                                       Long.parseLong(associatedSnapshotString), Long.parseLong(smallestCommitIdString),
-                                      Long.parseLong(fileSizeString), regionNameString, mutationNameString,
-                                      mutationPathString, archivedString.contains("true"), archivePathString);
+                                      Long.parseLong(fileSizeString), regionNameString, mutationPathString,
+                                      archivedString.contains("true"), archivePathString);
                   returnList.add(record);
                }
             } // for (Result r : ss)

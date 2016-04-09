@@ -108,126 +108,68 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 
-public class MutationMetaRecord {
+public class SnapshotMetaStartRecord {
 
-   static final Log LOG = LogFactory.getLog(MutationMetaRecord.class);
+   static final Log LOG = LogFactory.getLog(SnapshotMetaStartRecord.class);
 
-   // These are the components of a record entry into the MutationMeta table
+   // These are the components of a record entry into the SnapshotMeta table
    private long key;
-   private String tableName;
-   private long associatedSnapshot;
-   private long smallestCommitId;
-   private long fileSize;
-   private String regionName;
-   private String mutationPath;
-   private boolean archived;
-   private String archivePath;
-
-   public MutationMetaRecord (final long key, final String tableName, final long associatedSnapshot, final long smallestCommitId, 
-		   final long fileSize, final String regionName, final String mutationPath,
-           final boolean archived, final String archivePath) {
- 
-      if (LOG.isTraceEnabled()) LOG.trace("Enter MutationMetaRecord constructor for key: " + key
-    		  + " tableName: " + tableName + " associatedSnapshot: " + associatedSnapshot
-    		  + " smallestCommitId: " + smallestCommitId + " fileSize: " + fileSize
-    		  + " regionName: " + regionName + " mutationPath: " + mutationPath
-    		  + " archived: " + archived + " archivePath: " + archivePath);
-
-      this.key = key;
-      this.tableName = new String(tableName);
-      this.associatedSnapshot = associatedSnapshot;
-      this.smallestCommitId = smallestCommitId;
-      this.fileSize = fileSize;
-      this.regionName = new String(regionName);
-      this.mutationPath = new String(mutationPath);
-      this.archived = archived;
-      this.archivePath = new String(archivePath);
-      
-      if (LOG.isTraceEnabled()) LOG.trace("Exit MutationMetaRecord constructor() " + this.toString());
-      return;
+   private boolean startRecord;
+   private String userTag;
+   private boolean snapshotComplete;
+   
+   public SnapshotMetaStartRecord (final long key, final boolean startRecord, final String userTag) throws IOException{
+      this(key, startRecord, userTag, false);
    }
 
-   public MutationMetaRecord (final long key, final String tableName, final long associatedSnapshot, final long smallestCommitId, 
-		   final long fileSize, final String regionName, final String mutationPath) {
-      this(key, tableName, associatedSnapshot, smallestCommitId, fileSize, regionName, mutationPath, false, null);
+   public SnapshotMetaStartRecord (final long key, final boolean startRecord, final String userTag,
+		                             final boolean snapshotComplete) throws IOException{
+ 
+      if (LOG.isTraceEnabled()) LOG.trace("Enter SnapshotMetaStartRecord constructor for key: " + key
+    		  + " startRecord: " + startRecord + " userTag: " + userTag +
+    		  " snapshotComplete " + snapshotComplete);
+
+      this.key = key;
+      this.startRecord = startRecord;
+      this.userTag = new String(userTag);
+      this.snapshotComplete = snapshotComplete;
+      
+      if (LOG.isTraceEnabled()) LOG.trace("Exit SnapshotMetaStartRecord constructor() " + this.toString());
+      return;
    }
 
    public long getKey() {
        return this.key;
    }
 
-   public String getTableName() {
-       return this.tableName;
+   public boolean getStartRecord() {
+      return this.startRecord;
    }
 
-   public void setTableName(final String tableName) {
-       this.tableName = new String(tableName);
+   public void setStartRecord(final boolean startRecord) {
+       this.startRecord = startRecord;
    }
 
-   public long getAssociatedSnapshot() {
-      return this.associatedSnapshot;
+   public String getUserTag() {
+       return this.userTag;
    }
 
-   public void setAssociatedSnapshot(final long associatedSnapshot) {
-      this.associatedSnapshot = associatedSnapshot;
+   public void setUserTag(final String userTag) {
+       this.userTag = new String(userTag);
    }
 
-   public long getSmallestCommitId() {
-      return this.smallestCommitId;
+   public boolean getSnapshotComplete() {
+       return this.snapshotComplete;
    }
 
-   public void setSmallestCommitId(final long commitId) {
-      this.smallestCommitId = commitId;
-   }
-
-   public long getFileSize() {
-      return this.fileSize;
-   }
-
-   public void setFileSize(final long fileSize) {
-      this.fileSize = fileSize;
-   }
-
-   public String getRegionName() {
-      return this.regionName;
-   }
-
-   public void setRegionName(final String regionName) {
-      this.regionName = new String(regionName);
-   }
-
-   public String getMutationPath() {
-      return this.mutationPath;
-   }
-   
-   public void setMutationPath(final String mutationPath) {
-      this.mutationPath = new String(mutationPath);
-      return;
-   }
-
-   public boolean getArchived() {
-      return this.archived;
-   }
-
-   public void setArchived(final boolean archived) {
-      this.archived = archived;
-   }
-
-   public String getArchivePath() {
-      return this.archivePath;
-   }
-   
-   public void setArchivePath(final String archivePath) {
-      this.archivePath = new String(archivePath);
-      return;
+   public void setSnapshotComplete(final boolean snapshotComplete) {
+       this.snapshotComplete = snapshotComplete;
    }
 
    @Override
    public String toString() {
-      return "Mutationkey: " + key + " tableName: " + tableName + " associatedSnapshot: " + associatedSnapshot
-             + " smallestCommitId: " + smallestCommitId + " fileSize: " + fileSize + " regionName: " + regionName
-             + " mutationPath: " + mutationPath + " archived: " + archived
-             + " archivePath: " + archivePath;
+       return "SnaphotStartKey: " + key + ", startRecord: " + startRecord
+    		   + ", userTag: " + userTag + " snapshotComplete " + snapshotComplete;
    }
 
 }

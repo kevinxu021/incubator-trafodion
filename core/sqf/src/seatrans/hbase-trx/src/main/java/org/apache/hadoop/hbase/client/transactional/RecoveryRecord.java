@@ -116,62 +116,7 @@ public class RecoveryRecord {
    static String mutationMetaTableName = "TRAFODION.MUTATION.TABLE";
 
    // These are the components of a RecoveryRecord from which the database can be recovered.
-   private SnapshotMetaRecord startingSnapshot;
-   Map<String, TableRecoveryGroup> recoveryTableMap = new HashMap<String, TableRecoveryGroup>();
-
-   /**
-    * Simple wrapper for an optional partial SnapshotMetaRecord and a list of n MutationMetaRecords.
-    */
-/*   public class TableRecoveryGroup {
-
-     private static Log LOG = LogFactory.getLog(TableRecoveryGroup.class);
-
-     private SnapshotMetaRecord smr;
-     private List<MutationMetaRecord> mutationList;
-//     private ListIterator<MutationMetaRecord> mutationListIter = null;
-
-     public TableRecoveryGroup() {
-        this.smr = null;
-        this.mutationList = new ArrayList<MutationMetaRecord>();
-//        mutationListIter = getMutationList().listIterator();
-        System.out.println("  TableRecoveryGroup() ");    	
-     }
-
-     public TableRecoveryGroup(final ArrayList<MutationMetaRecord> mutationList) {
-        this.smr = null;
-        this.mutationList = mutationList;
-//        mutationListIter = getMutationList().listIterator();
-        System.out.println("  TableRecoveryGroup(mutationList) ");    	
-     }
-
-     public TableRecoveryGroup(final SnapshotMetaRecord smr, final ArrayList<MutationMetaRecord> mutationList) {
-        this.smr = smr;
-        this.mutationList = mutationList;
-//        mutationListIter = getMutationList().listIterator();
-        System.out.println("  TableRecoveryGroup(smr, mutationList) ");    	
-     }
-
-     public boolean snapshotRecordIsNull() {
-        System.out.println("  snapshotRecordIsNull ");    	
-        return (smr == null);
-     }
-
-     public SnapshotMetaRecord getSnapshotRecord() {
-        System.out.println("  getSnapshotRecord ");    	
-        return smr;
-     }
-
-     public List<MutationMetaRecord> getMutationList() {
-        System.out.println("  getMutationList list is null: " + ((mutationList == null)? "true " : "false ") );   
-        return mutationList;
-     }
-       
-     @Override
-     public String toString() {
-        return "Snapshot: " + smr + " MutationList: " + mutationList;
-     }
-   }  // Class TableRecoveryGroup
-*/
+   private Map<String, TableRecoveryGroup> recoveryTableMap = new HashMap<String, TableRecoveryGroup>();
    
    public RecoveryRecord (final long timeId) throws Exception {
 
@@ -230,20 +175,40 @@ public class RecoveryRecord {
        throw e;
      }
 
+     long startTime = 0;
+     try{
+        startTime = sm.getPriorStartRecord(timeId).getKey();
+     }
+     catch(Exception e){
+        if (LOG.isTraceEnabled()) LOG.trace("Exception getting the prior start record for time: "+ timeId + " " + e);
+        System.out.println("Exception getting the prior start record for time: "+ timeId + " " + e);
+        throw e; 
+     }
+
      ListIterator<SnapshotMetaRecord> snapshotIter;
      for (snapshotIter = snapshotList.listIterator(); snapshotIter.hasNext();) {
         SnapshotMetaRecord tmpRecord = snapshotIter.next();
-        if (tmpRecord.getFullSnapshot() == true) {
-           setStartingSnapshot(tmpRecord);
+        if (tmpRecord.getStartRecord() == true) {
+           // Somehow we retrieved a SnapshotMetaStartRecord
+           if (LOG.isTraceEnabled()) LOG.trace("Error:  SnapshotMetaStartRecord found in snapshotList "
+                              + String.valueOf(tmpRecord.getKey()));
+           System.out.println("Error:  SnapshotMetaStartRecord found in snapshotList "
+                              + String.valueOf(tmpRecord.getKey()));
+           throw new Exception("Error:  SnapshotMetaStartRecord found in snapshotList "
+                              + String.valueOf(tmpRecord.getKey()));
         }
         String tmpTable = tmpRecord.getTableName();
+        TableRecoveryGroup recGroup = recoveryTableMap.get(tmpTable);
+        if (recGroup != null){
+           System.out.println(" Deleting existing TableRecoveryGroup for tmpRecord: "+ tmpRecord);
+           recoveryTableMap.remove(tmpTable);
+        }
         System.out.println("Creating new TableRecoveryGroup for tmpRecord: "+ tmpRecord);
-        TableRecoveryGroup recGroup = new TableRecoveryGroup(tmpRecord, new ArrayList<MutationMetaRecord>());
-        System.out.println("Adding new entry into RecoveryTableMap for tmpTable: "+ tmpTable);
+        recGroup = new TableRecoveryGroup(tmpRecord, new ArrayList<MutationMetaRecord>());
+        System.out.println("Adding new entry into RecoveryTableMap from snapshot for tmpTable: "+ tmpTable);
         recoveryTableMap.put(tmpTable, recGroup);
      }
      System.out.println("TableRecoveryMap has : "+ recoveryTableMap.size() + " entries");
-     long startTime = getStartingSnapshot().getKey();
      try{
        mutationList = mm.getMutationsFromRange(startTime, timeId);
      }
@@ -258,22 +223,18 @@ public class RecoveryRecord {
         String tmpTable = tmpMutationRecord.getTableName();
         TableRecoveryGroup recGroup = recoveryTableMap.get(tmpTable);
         if (recGroup == null) {
-           // Add a new entry and a new mutation record.  This table has no partial 
-           // snapshot assotiated with it, so all mutations are applied to the full snapshot
-           recGroup = new TableRecoveryGroup(new ArrayList<MutationMetaRecord>());
-           List<MutationMetaRecord> tmpMutationList = recGroup.getMutationList();
-           ListIterator<MutationMetaRecord> tmpMutationIter = tmpMutationList.listIterator();
-           tmpMutationIter.add(tmpMutationRecord);
-           System.out.println("Adding new entry into RecoveryTableMap for tmpTable: "+ tmpTable);
-           recoveryTableMap.put(tmpTable, recGroup);
+           // We have a mutation record with no previous snapshot for this
+           // interval.  Recovery is not possible for this table.
+           System.out.println("  No prior snapshot found for table " + tmpTable);
+           throw new Exception("  No prior snapshot found for table " + tmpTable);
         }
         else{
         	// There is an existing TableRecoveryGroup entry in the recoveryTableMap
         	// for this table.  But we need to ensure that the new MutationMetaRecord
         	// is associated with the same snapshot.  If not, we must skip it.
+            System.out.println("Existing entry found in RecoveryTableMap from mutations for tmpTable: "+ tmpTable);
         	long tmpSnapshotTime = tmpMutationRecord.getAssociatedSnapshot();
-        	long existingSnapshotTime = recGroup.snapshotRecordIsNull()? 
-                           getStartingSnapshot().getKey() : recGroup.getSnapshotRecord().getKey();
+        	long existingSnapshotTime = recGroup.getSnapshotRecord().getKey();
         	if (tmpSnapshotTime < existingSnapshotTime){
                System.out.println(" new mutation time " + tmpSnapshotTime + " is less than existing " + existingSnapshotTime + "; skipping");
         	   continue;
@@ -297,20 +258,12 @@ public class RecoveryRecord {
      return;
    }
 
-   public SnapshotMetaRecord getStartingSnapshot() {
-     return this.startingSnapshot;
-   }
-
-   public void setStartingSnapshot(final SnapshotMetaRecord startingSnapshot) {
-     this.startingSnapshot = startingSnapshot;
-   }
-
    public Map<String, TableRecoveryGroup> getRecoveryTableMap() {
      return recoveryTableMap;
    }
 
    @Override
    public String toString() {
-     return "StartingSnapshot: " + startingSnapshot + " recoveryTableMap: " + recoveryTableMap;
+     return "RecoveryRecord: recoveryTableMap: " + recoveryTableMap;
    }
 }

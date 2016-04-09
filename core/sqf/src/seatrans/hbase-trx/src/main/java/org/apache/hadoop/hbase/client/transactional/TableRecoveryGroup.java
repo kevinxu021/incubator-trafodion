@@ -119,43 +119,43 @@ import java.util.concurrent.RejectedExecutionException;
      private SnapshotMetaRecord smr;
      private List<MutationMetaRecord> mutationList;
 //     private ListIterator<MutationMetaRecord> mutationListIter = null;
-
+/*
      public TableRecoveryGroup() {
         this.smr = null;
         this.mutationList = new ArrayList<MutationMetaRecord>();
 //        mutationListIter = getMutationList().listIterator();
-        System.out.println("  TableRecoveryGroup() ");    	
+        System.out.println("  TableRecoveryGroup() ");
      }
 
      public TableRecoveryGroup(final ArrayList<MutationMetaRecord> mutationList) {
         this.smr = null;
         this.mutationList = mutationList;
 //        mutationListIter = getMutationList().listIterator();
-        System.out.println("  TableRecoveryGroup(mutationList) ");    	
+        System.out.println("  TableRecoveryGroup(mutationList) ");
      }
-
+*/
      public TableRecoveryGroup(final SnapshotMetaRecord smr, final ArrayList<MutationMetaRecord> mutationList) {
         this.smr = smr;
         this.mutationList = mutationList;
 //        mutationListIter = getMutationList().listIterator();
-        System.out.println("  TableRecoveryGroup(smr, mutationList) ");    	
+        System.out.println("  TableRecoveryGroup(smr, mutationList) ");
      }
 
      public boolean snapshotRecordIsNull() {
-        System.out.println("  snapshotRecordIsNull ");    	
+        System.out.println("  snapshotRecordIsNull ");
         return (smr == null);
      }
 
      public SnapshotMetaRecord getSnapshotRecord() {
-        System.out.println("  getSnapshotRecord ");    	
+        System.out.println("  getSnapshotRecord ");
         return smr;
      }
 
      public List<MutationMetaRecord> getMutationList() {
-        System.out.println("  getMutationList list is null: " + ((mutationList == null)? "true " : "false ") );   
+        System.out.println("  getMutationList list is null: " + ((mutationList == null)? "true " : "false ") );
         return mutationList;
      }
-       
+
      @Override
      public String toString() {
         return "Snapshot: " + smr + " MutationList: " + mutationList;
