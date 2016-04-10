@@ -1020,6 +1020,9 @@ function cdc {
 function cdj {
     cd $MY_SQROOT/../sql/src/main/java/org/trafodion/sql
 }
+function cdh {
+    cd $MY_SQROOT/sql/local_hadoop
+}
 # ls variants
 function lst {
 ls -lsrt $*

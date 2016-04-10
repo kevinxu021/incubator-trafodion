@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Thu Apr  7 16:31:15 2016
+-- Definition current  Sun Apr 10 00:42:29 2016
 
   (
     S_STORE_SK                       INT
@@ -974,7 +974,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Thu Apr  7 16:31:47 2016
+-- Definition current  Sun Apr 10 00:43:02 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1025,7 +1025,7 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212326806708238985
+PLAN_ID .................. 212327008982781766
 ROWS_OUT ............. 1,698
 EST_TOTAL_COST ........... 1.21
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
@@ -1138,7 +1138,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212326806709155770
+PLAN_ID .................. 212327008983553455
 ROWS_OUT ......... 2,880,401
 EST_TOTAL_COST ........... 1.77
 STATEMENT ................ select *
@@ -1289,7 +1289,7 @@ DESCRIPTION
 >>cqd volatile_table_find_suitable_key 'SYSTEM';
 
 --- SQL operation complete.
->>create external table date_dim_orc 
+>>create external table if not exists date_dim_orc 
 +>  (d_date_sk int, d_date_id varchar(100 bytes) character set utf8, d_date date, 
 +>   d_month_seq int, d_week_seq int, d_quarter_seq int, d_year int, d_dow int,
 +>   d_moy int, d_dom int, d_qoy int, d_fy_year int, d_fy_quarter_seq int,
@@ -1306,7 +1306,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Thu Apr  7 16:31:50 2016
+-- Definition current  Sun Apr 10 00:43:05 2016
 
   (
     D_DATE_SK                        INT
@@ -1374,7 +1374,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212326806713581687
+PLAN_ID .................. 212327008987827392
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1478,7 +1478,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Thu Apr  7 16:31:55 2016
+-- Definition current  Sun Apr 10 00:43:10 2016
 
   (
     D_DATE_SK                        INT
@@ -1546,7 +1546,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212326806716884576
+PLAN_ID .................. 212327008992064131
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1773,7 +1773,7 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK <cast(cast
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-PLAN_ID .................. 212326806730272433
+PLAN_ID .................. 212327009004311545
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 4.66
 STATEMENT ................ select count(*)
@@ -1997,6 +1997,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 --- SQL operation complete.
 >>
 >>-- pushdown feasible
+>>cqd attempt_esp_parallelism 'OFF';
+
+--- SQL operation complete.
 >>prepare xx from
 +>select min(ss_sold_date_sk), max(ss_sold_date_sk)
 +>from hive.hive.store2_sales_orc;
@@ -2028,11 +2031,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ---- ---- ---- --------------------  --------  --------------------  ---------
 
-5    .    6    root                                                  9.60E+005
-4    .    5    esp_exchange                    1:4(hash2)            9.60E+005
-3    2    4    hybrid_hash_join                                      9.60E+005
-.    .    3    orc_scan                        STORE2_SALES_ORC      2.88E+006
-1    .    2    esp_exchange                    4(rep-b):1            1.00E+000
+3    .    4    root                                                  9.60E+005
+2    1    3    hybrid_hash_join                                      9.60E+005
+.    .    2    orc_scan                        STORE2_SALES_ORC      2.88E+006
 .    .    1    orc_aggr                                              1.00E+000
 
 --- SQL operation complete.
@@ -2051,13 +2052,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ---- ---- ---- --------------------  --------  --------------------  ---------
 
-7    .    8    root                                                  1.00E+000
-6    .    7    sort_partial_aggr_ro                                  1.00E+000
-5    .    6    esp_exchange                    1:4(hash2)            1.00E+000
-4    .    5    sort_partial_aggr_le                                  1.00E+000
-3    .    4    hash_partial_groupby                                  1.44E+005
-2    .    3    esp_exchange                    4(hash2):4(hash2)     1.44E+005
-1    .    2    hash_partial_groupby                                  1.44E+005
+3    .    4    root                                                  1.00E+000
+2    .    3    sort_scalar_aggr                                      1.00E+000
+1    .    2    hash_groupby                                          1.44E+005
 .    .    1    orc_scan                        STORE2_SALES_ORC      2.88E+006
 
 --- SQL operation complete.
