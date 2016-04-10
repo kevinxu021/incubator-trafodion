@@ -250,7 +250,7 @@ update statistics for table stest_empty remove sample;
 get tables; -- should be the same as previous "get tables"
 
 -- attempt to do incremental with an invalid where clause
-update statistics for table stest on existing columns incremental where boats float idly;
+update statistics for table stest on existing columns incremental where 1;
 
 get tables; -- should be the same as previous "get tables"
 

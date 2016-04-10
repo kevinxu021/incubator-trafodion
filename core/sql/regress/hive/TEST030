@@ -183,7 +183,7 @@ control query shape cut;
 set schema trafodion.sch;
 drop external table if exists date_dim_orc for hive.hive.date_dim_orc;
 cqd volatile_table_find_suitable_key 'SYSTEM';
-create external table date_dim_orc 
+create external table if not exists date_dim_orc 
   (d_date_sk int, d_date_id varchar(100 bytes) character set utf8, d_date date, 
    d_month_seq int, d_week_seq int, d_quarter_seq int, d_year int, d_dow int,
    d_moy int, d_dom int, d_qoy int, d_fy_year int, d_fy_quarter_seq int,
@@ -275,6 +275,7 @@ cqd orc_njs reset;
 cqd orc_aggr_pushdown 'ON';
 
 -- pushdown feasible
+cqd attempt_esp_parallelism 'OFF';
 prepare xx from
 select min(ss_sold_date_sk), max(ss_sold_date_sk)
 from hive.hive.store2_sales_orc;
