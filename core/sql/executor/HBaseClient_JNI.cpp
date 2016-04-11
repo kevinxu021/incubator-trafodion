@@ -494,7 +494,7 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROW].jm_name      = "insertRow";
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROW].jm_signature = "(JLjava/lang/String;ZZJ[BLjava/lang/Object;JZZ)Z";
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_name      = "insertRows";
-    JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_signature = "(JLjava/lang/String;ZJSLjava/lang/Object;Ljava/lang/Object;JZ)Z";
+    JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;Ljava/lang/Object;JZ)Z";
     JavaMethods_[JM_HBC_DIRECT_UPDATE_TAGS].jm_name      = "updateVisibility";
     JavaMethods_[JM_HBC_DIRECT_UPDATE_TAGS].jm_signature = "(JLjava/lang/String;ZJ[BLjava/lang/Object;)Z";
     JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].jm_name      = "checkAndUpdateRow";
