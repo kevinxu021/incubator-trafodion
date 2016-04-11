@@ -1606,7 +1606,9 @@ NATable *BindWA::getNATable(CorrName& corrName,
   
       // Compare column lists (user columns only)
       // TBD - return what mismatches
-      if ( nativeNATable && !(table->getNAColumnArray().compare(nativeNATable->getNAColumnArray(), FALSE)))
+      if ( nativeNATable && 
+           !(table->getNAColumnArray().compare(nativeNATable->getNAColumnArray(), FALSE)) &&
+           (NOT bindWA->externalTableDrop()))
          {
            *CmpCommon::diags() << DgSqlCode(-3078)
                                << DgString0(adjustedName)
