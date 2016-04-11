@@ -1575,8 +1575,8 @@ char * ExHdfsScanTcb::extractAndTransformAsciiSourceToSqlRow(int &err,
             else
                return sourceRowEnd+1;
          }
-         short len = 0;
-	 len = sourceColEnd - sourceData;
+         Int32 len = 0;
+	 len = (Int64)sourceColEnd - (Int64)sourceData;
          if (rdSeen) {
             sourceRowEnd = sourceColEnd; 
             hdfsLoggingRowEnd_  = sourceRowEnd;
@@ -1591,7 +1591,13 @@ char * ExHdfsScanTcb::extractAndTransformAsciiSourceToSqlRow(int &err,
 
          if (attr) // this is a needed column. We need to convert
          {
-            *(short*)&hdfsAsciiSourceData_[attr->getVCLenIndOffset()] = len;
+           if (attr->getVCIndicatorLength() == sizeof(short))
+             *(short*)&hdfsAsciiSourceData_[attr->getVCLenIndOffset()] 
+               = (short)len;
+           else
+             *(Int32*)&hdfsAsciiSourceData_[attr->getVCLenIndOffset()] 
+               = len;
+             
             if (attr->getNullFlag())
             {
               // for non-varchar, length of zero indicates a null value

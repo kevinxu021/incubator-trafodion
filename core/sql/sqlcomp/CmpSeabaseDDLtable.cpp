@@ -3104,7 +3104,9 @@ short CmpSeabaseDDL::dropSeabaseTable2(
               schemaNamePart,
               catalogNamePart);
 
+  bindWA.setExternalTableDrop(TRUE);
   NATable *naTable = bindWA.getNATable(cn); 
+  bindWA.setExternalTableDrop(FALSE);
  
   // Restore parser flags settings to what they originally were
   Set_SqlParser_Flags (savedParserFlags);

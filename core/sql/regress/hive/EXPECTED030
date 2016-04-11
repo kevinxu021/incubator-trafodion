@@ -1289,7 +1289,7 @@ DESCRIPTION
 >>cqd volatile_table_find_suitable_key 'SYSTEM';
 
 --- SQL operation complete.
->>create external table if not exists date_dim_orc 
+>>create external table date_dim_orc 
 +>  (d_date_sk int, d_date_id varchar(100 bytes) character set utf8, d_date date, 
 +>   d_month_seq int, d_week_seq int, d_quarter_seq int, d_year int, d_dow int,
 +>   d_moy int, d_dom int, d_qoy int, d_fy_year int, d_fy_quarter_seq int,
@@ -1472,9 +1472,7 @@ DESCRIPTION
 +>  (d_date_sk int, d_date_id varchar(100 bytes) character set utf8, d_date date)
 +>  for hive.hive.date_dim_orc primary key (d_date);
 
-*** ERROR[1390] Object TRAFODION."_HV_HIVE_".DATE_DIM_ORC already exists in Trafodion.
-
---- SQL operation failed with errors.
+--- SQL operation complete.
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
@@ -1648,7 +1646,7 @@ DESCRIPTION
 +>  (d_date_skk int)
 +>  for hive.hive.date_dim_orc;
 
-*** ERROR[1390] Object TRAFODION."_HV_HIVE_".DATE_DIM_ORC already exists in Trafodion.
+*** ERROR[1009] Column D_DATE_SKK does not exist in the specified table.
 
 --- SQL operation failed with errors.
 >>
@@ -1657,7 +1655,7 @@ DESCRIPTION
 +>  (d_date_sk date)
 +>  for hive.hive.date_dim_orc;
 
-*** ERROR[1390] Object TRAFODION."_HV_HIVE_".DATE_DIM_ORC already exists in Trafodion.
+*** ERROR[1186] Column D_DATE_SK is of type DATE which is not compatible with the default value's type, INTEGER SIGNED.
 
 --- SQL operation failed with errors.
 >>
