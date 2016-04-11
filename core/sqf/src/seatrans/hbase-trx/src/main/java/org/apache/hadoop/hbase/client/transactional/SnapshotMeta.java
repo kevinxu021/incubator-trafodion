@@ -209,7 +209,7 @@ public class SnapshotMeta {
             table.flushCommits();
             complete = true;
             if (retries > 1){
-               if (LOG.isTraceEnabled()) LOG.trace("initializeSnapshot Retry successful in putSnapshotRecord for key: " + keyString);                    	 
+               if (LOG.isTraceEnabled()) LOG.trace("initializeSnapshot Retry successful in putRecord for key: " + keyString);                    	 
             }
          }
          catch (Exception e2){
@@ -226,10 +226,52 @@ public class SnapshotMeta {
       if (LOG.isTraceEnabled()) LOG.trace("initializeSnapshot exit");
    }
 
-   public void putSnapshotRecord(final SnapshotMetaRecord record) throws Exception {
+   public void putRecord(final SnapshotMetaStartRecord record) throws Exception {
 
-      if (LOG.isTraceEnabled()) LOG.trace("putSnapshotRecord start for record " + record);
-      System.out.println("putSnapshotRecord start for record " + record);
+      if (LOG.isTraceEnabled()) LOG.trace("putRecord start for snapshot START record " + record);
+      System.out.println("putRecord start for record " + record);
+      long key = record.getKey();
+      String keyString = new String(String.valueOf(key));
+      boolean lvResult = true;
+
+      // Create the Put
+      Put p = new Put(Bytes.toBytes(key));
+      p.add(SNAPSHOT_FAMILY, SNAPSHOT_QUAL,
+    		  Bytes.toBytes(String.valueOf(record.getStartRecord()) + ","
+                       + record.getUserTag() + ","
+                       + record.getSnapshotComplete()));
+
+      int retries = 0;
+      boolean complete = false;
+      do {     
+         retries++;
+         try {
+            if (LOG.isTraceEnabled()) LOG.trace("try table.put, " + p );
+            table.put(p);
+            table.flushCommits();
+            complete = true;
+            if (retries > 1){
+               if (LOG.isTraceEnabled()) LOG.trace("Retry successful in putRecord (start record) for key: " + keyString);                    	 
+            }
+         }
+         catch (Exception e2){
+            LOG.error("Retry " + retries + " putRecord for key: " + keyString + " due to Exception " + e2);
+            table.getRegionLocation(p.getRow(), true);
+            Thread.sleep(SnapshotRetryDelay); // 3 second default
+            if (retries == SnapshotRetryCount){
+               LOG.error("putRecord (start record) aborting due to excessive retries for key: " + keyString + " due to Exception; aborting ");
+               System.exit(1);
+            }
+         }
+      } while (! complete && retries < SnapshotRetryDelay);  // default give up after 5 minutes
+
+      if (LOG.isTraceEnabled()) LOG.trace("putRecord (start record) exit");
+   }
+
+   public void putRecord(final SnapshotMetaRecord record) throws Exception {
+
+      if (LOG.isTraceEnabled()) LOG.trace("putRecord start for record " + record);
+      System.out.println("putRecord start for record " + record);
       long key = record.getKey();
       String keyString = new String(String.valueOf(key));
       boolean lvResult = true;
@@ -254,21 +296,21 @@ public class SnapshotMeta {
             table.flushCommits();
             complete = true;
             if (retries > 1){
-               if (LOG.isTraceEnabled()) LOG.trace("Retry successful in putSnapshotRecord for key: " + keyString);                    	 
+               if (LOG.isTraceEnabled()) LOG.trace("Retry successful in putRecord for key: " + keyString);                    	 
             }
          }
          catch (Exception e2){
-            LOG.error("Retry " + retries + " putSnapshotRecord for key: " + keyString + " due to Exception " + e2);
+            LOG.error("Retry " + retries + " putRecord for key: " + keyString + " due to Exception " + e2);
             table.getRegionLocation(p.getRow(), true);
             Thread.sleep(SnapshotRetryDelay); // 3 second default
             if (retries == SnapshotRetryCount){
-               LOG.error("putSnapshotRecord aborting due to excessive retries for key: " + keyString + " due to Exception; aborting ");
+               LOG.error("putRecord aborting due to excessive retries for key: " + keyString + " due to Exception; aborting ");
                System.exit(1);
             }
          }
       } while (! complete && retries < SnapshotRetryDelay);  // default give up after 5 minutes
       
-      if (LOG.isTraceEnabled()) LOG.trace("putSnapshotRecord exit");
+      if (LOG.isTraceEnabled()) LOG.trace("putRecord exit");
    }
 
    public SnapshotMetaRecord getSnapshotRecord(final long key) throws Exception {
@@ -509,8 +551,18 @@ public class SnapshotMeta {
                    if (st.hasMoreElements()) {
                       String startRecordString = st.nextToken();
                       if (startRecordString.contains("true")) {
-                         // We found a full snapshot, so anything already in the returnList is invalid
-                         // We need to empty the returnList and start building it from here.
+                         String userTagString           = st.nextToken();
+                         String snapshotCompleteString  = st.nextToken();
+                         if(snapshotCompleteString.contains("false")){
+                            // We found a start of a snapshot, but it never completed.  So we
+                            // continue as if this record didn't exist and add additional 
+                            // partial snapshots if there are any that fit in our time frame
+                            continue;
+                         }
+
+                         // We found a snapshot start that was completed, so anything already in the
+                         // returnList is invalid.  We need to empty the returnList and start
+                         // building it from here.
                      	 //
                          // Note that the current record we are reading is a SnapshotMetaStartRecord, not a SnapshotMetaRecord,
                          // so we skip it rather than add it into the list
