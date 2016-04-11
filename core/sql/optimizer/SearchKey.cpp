@@ -2888,25 +2888,27 @@ int HivePartitionAndBucketKey::computeActivePartitions()
               ComDiagsArea da;
 
               // evaluate this rewritten predicate at compile time
-              NABoolean predIsTrue =
+              ex_expr::exp_return_type predEvalResult =
                 compileTimePartColPreds_.evalPredsAtCompileTime(
-                   &da,
-                   &colsToConsts,
-                   TRUE);
+                     &da,
+                     &colsToConsts,
+                     TRUE);
 
-              if (da.getNumber() == 0)
+              if (da.getNumber() == 0 &&
+                  (predEvalResult == ex_expr::EXPR_FALSE ||
+                   predEvalResult == ex_expr::EXPR_NULL))
                 {
-                  if (!predIsTrue)
-                    // no errors or warnings, predicate is FALSE
-                    partitionIsEliminated = TRUE;
+                  // no errors or warnings, predicate is FALSE
+                  partitionIsEliminated = TRUE;
                 }
-              else
+              else if (da.getNumber() > 0 ||
+                       predEvalResult != ex_expr::EXPR_TRUE)
                 {
                   // we should not see errors or warnings, but if
                   // there are some then we assume the partition
                   // qualifies and also do partition elimination
                   // at runtime
-                  DCMPASSERT(da.getNumber() == 0);
+                  DCMPASSERT(0);
                   partAndVirtColPreds_ += compileTimePartColPreds_;
                 }
             }

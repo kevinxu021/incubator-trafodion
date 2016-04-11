@@ -28,6 +28,7 @@ import java.io.IOException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.ColumnInterpreter;
@@ -95,6 +96,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Get;
@@ -110,6 +112,10 @@ import org.apache.hadoop.hbase.client.transactional.UnknownTransactionException;
 import org.apache.hadoop.hbase.client.transactional.BatchException;
 import org.apache.hadoop.hbase.client.transactional.TransState;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
+import org.apache.hadoop.hbase.client.transactional.MutationMeta;
+import org.apache.hadoop.hbase.client.transactional.MutationMetaRecord;
+import org.apache.hadoop.hbase.client.transactional.SnapshotMeta;
+import org.apache.hadoop.hbase.client.transactional.SnapshotMetaRecord;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -233,6 +239,10 @@ import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProt
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CommitMultipleResponse;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CommitRequestMultipleRequest;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CommitRequestMultipleResponse;
+
+import org.apache.hadoop.hbase.regionserver.transactional.IdTm;
+import org.apache.hadoop.hbase.regionserver.transactional.IdTmException;
+import org.apache.hadoop.hbase.regionserver.transactional.IdTmId;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
@@ -431,13 +441,25 @@ CoprocessorService, Coprocessor {
   
   // PIT Mutation Capturer
   ByteArrayOutputStream mutationOutput;
-  HFileWriterV2 mutationWriter;
+  HFileWriterV2 mutationWriter = null;
   long mutationCount;
   long mutationTotalCount;
+  long mutationTotalSize;
   long mutationSet;
   long currentFileKey = -1;
   long smallestCommitId = -1;
   private Object mutationOpLock = new Object();
+  Path defaultPITPath;
+  long currentSnapshotId = 0;
+  
+  private static Object mutationMetaLock = new Object();
+  static IdTmId timeId = null;
+  static IdTm idServer = null;
+  static final int ID_TM_SERVER_TIMEOUT = 1000;
+  static MutationMeta meta = null;
+  static Configuration conf;
+  static String mutationMetaTableName = "TRAFODION.MUTATION.TABLE";
+
 
   // TrxRegionService methods
     
@@ -3673,6 +3695,8 @@ CoprocessorService, Coprocessor {
                   "\nTrxRegionEndpoint coprocessor: get the reference from Region CoprocessorEnvironment ");
     
     this.configuredPITRecovery = tmp_env.getConfiguration().getBoolean("hbase.regionserver.region.transactional.pit", false);
+    // PIT test 
+    // this.configuredPITRecovery = true;
     if (LOG.isTraceEnabled()) LOG.trace("TrxRegionEndpoint coprocessor: PIT Recovery setting is " + this.configuredPITRecovery +
 		  " PIT Recovery HA setting is " +  this.configuredPITRecoveryHA +
                   "\nTrxRegionEndpoint coprocessor: get the reference from Region CoprocessorEnvironment ");
@@ -6710,8 +6734,24 @@ CoprocessorService, Coprocessor {
                       mutationWriterAction(1 /* reset output stream */, null, null); // creat mutation file based on snapshot meta
                   } 
                   mutationWriterAction(4 /* append */, null, tmBuilder);
-		  // when certain criteria are hit, do action 2 to append local buffer into writer
-		  // if (...) mutationWriterAction(2 /* flush current mutation buffer */, null, null);
+		  
+		  // PIT test, let's say do write-to-KV every 10 txn
+		  if (mutationCount >= 10) {
+	             mutationWriterAction(2 /* mutation writer append to flush current buffer */, null, null );  
+		  }
+		  
+		  // We can close the mutation file when
+		  //	a) total mutation size is too large
+		  //    b) system event such as pre-flush by HBase (memory store is goint to flush)
+		  //    c) per request (e.g. during full snapshot)
+		  //    d) by timer (optional)
+		  // PIT test, let's say do close&rollover every 100 txn
+		  if (mutationTotalCount >= 100) { 
+	             mutationWriterAction(2 /* mutation writer append to flush current buffer */, null, null );  
+	             mutationWriterAction(3 /* close mutation file */, null, null );  
+	             mutationWriterAction(1 /* new mutation file and writer */, null, null );
+	          }
+		  
 		  break;
               }
 	      case 3: { // append local mutation buffer to writer      
@@ -6746,6 +6786,8 @@ CoprocessorService, Coprocessor {
    
       byte [] bSet;
       byte [] bKey;
+      long timeKey;
+      MutationMetaRecord mmr;
       
       // critical section for output mutation cache
       
@@ -6764,48 +6806,123 @@ CoprocessorService, Coprocessor {
       switch (action) {
 	  case 1: { // create next transactional mutation file and associated HBaseWriter
 
-	      // 1.1) reconstruct next filename (regionNameAsString + current timeMill + sequence number)
-	      // 1.2) delete possible file with the same name
-	      // 1.3) create next file
-	      // 1.4) log a record for next file creation, location, and related info into meta
-	      // 1.5) currentFileKey = ts returned from meta record creation (i.e. a commitId from idtmServer)
+	      // PIT: PART A - non meta testing path
+	      /*
+	      // use "region-name-toString + current time" to form the filename temporarily before meta integration	      
+	      timeKey = EnvironmentEdgeManager.currentTime();
+	      writePath = new Path("/hbase/PIT/mutation/" +
+	              //regionInfo.getTable().toString() + "-" + regionInfo.getEncodedName() +
+	              //"-" + Long.toString(timeKey));
+		      "mutation-reader"); // for reader to test a dpecial named mutation file
+	      defaultPITPath = writePath;
+		      
+	      // PIT: special code for reader test, will only read a fixed-named mutation file
+	      // reader will log all the txn to be replayed through LOG.trace
+	      mutationReaderFile(writePath, EnvironmentEdgeManager.currentTime());
+	      fs.delete(writePath, true);
+	      */
 	      
-	      // use "region-name-toString + current time" to form the filename
-	      // put into /mnt/sstung/advent2/...
+	      // PIT: PART B - meta path
+	      // 1.1) get Id (key in meta record) from idtmServer, 
 	      
-	      writePath = new Path("mnt/sstung/tmp/" + 
-	              regionInfo.getRegionNameAsString() + Long.toString(EnvironmentEdgeManager.currentTime()));
+	      synchronized (mutationMetaLock) {
+	      if (idServer == null) {
+		       try {
+                             idServer = new IdTm(false);
+                       } catch (Exception e){
+                             System.out.println("Exception creating new IdTm: " + e);
+                       }
+	      } // new idServer only when needed
 	      
+	      try {
+                   timeId = new IdTmId();
+                   System.out.println("getIdTmVal getting new Id");
+                   idServer.id(ID_TM_SERVER_TIMEOUT, timeId);
+                   System.out.println("getIdTmVal idServer.id returned: " + timeId.val);
+              } catch (IdTmException exc) {
+                       System.out.println("getIdTmVal : IdTm threw exception " + exc);
+                       throw new IOException("getIdTmVal : IdTm threw exception ");
+              }
+
+              timeKey = timeId.val;
+	      currentFileKey = timeKey;
+	     
+	      // 1.2) new mutation record     
+	      // currentSnapshotId = call meta API to get current (long) snapshot id
+	         
+              if (meta == null) {
+		   if(LOG.isTraceEnabled()) LOG.trace("to create mutation meta ..."); 
+		   conf = HBaseConfiguration.create();
+		   conf.set("MUTATION_TABLE_NAME", mutationMetaTableName);
+		   HBaseAdmin admin = new HBaseAdmin(conf);
+		   try {
+                         meta = new MutationMeta(conf);
+                   } catch (Exception e){
+                         System.out.println("Exception creating new mutation meta: " + e);
+                   }
+		   if(LOG.isTraceEnabled()) LOG.trace("mutation meta created successfully");                   
+	      }
+      
+	      writePath = new Path("/hbase/PIT/mutation/" +
+	              regionInfo.getTable().toString() + "-snapshot-" + Long.toString(currentSnapshotId) +
+	              //"-encode-" + regionInfo.getEncodedName() +
+	              "-" + Long.toString(currentFileKey));
+
+	      try {
+                   mmr = new MutationMetaRecord(currentFileKey, regionInfo.getTable().toString(), 
+					   currentSnapshotId, 
+	                                   0, 512, // for smallestCommitId & fileSize
+					   regionInfo.getRegionNameAsString(), // regionName as String
+					   writePath.toString(), // mutation file path as String
+					   false, "test");  // archive mode and path
+		   if(LOG.isTraceEnabled()) LOG.trace("mutation meta record created successfully"); 
+                   meta.putMutationRecord(mmr);
+                   if(LOG.isTraceEnabled()) LOG.trace("PITMutation Record Put : key " + timeKey +
+		               " snapshot id " + currentSnapshotId +
+		               " table " + regionInfo.getTable().toString() + 
+		               " region encoded name " + regionInfo.getRegionNameAsString() +
+		               " path " + writePath);
+		   
+              } catch (Exception exc) {
+		       if(LOG.isTraceEnabled()) LOG.trace("put mutation record exception during mutation file creation");
+                       System.out.println("put mutation record exception " + exc);
+                       //throw new IOException("put mutation record exception ");
+              }
+             
+	      } // synchronized on mutationMetaLock              
+					   
 	      // 2.1) create writer (~ action 1) 
 	      mutationWriter = (HFileWriterV2) HFile.getWriterFactory(config,
 			new CacheConfig(config)).withPath(fs, writePath).withFileContext(context).create();
               mutationOutput = new ByteArrayOutputStream(); // reset the buffering
 	      mutationCount = 0;
 	      mutationTotalCount = 0;
+	      mutationTotalSize = 0;
 	      smallestCommitId = -1;
 	      mutationSet = 0;
 	  
-	      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: create " + action + " Path " + writePath);
+	      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: create " + action +
+		       " Table " + regionInfo.getTable().toString() + " Path " + writePath);
 	      break;
           }
 	  case 2: { // append and write output buffer out
 	      // for the key by a sequence incremental number (mutationSet), the number is reset when rollover
 	      if (mutationCount > 0) {
+		  mutationSet++;
 	          bSet = Bytes.toBytes (mutationSet);
 	          bKey = concat(Bytes.toBytes(COMMITTED_TXNS_KEY), bSet);
                   byte [] firstByte = mutationOutput.toByteArray();
                   mutationWriter.append(new KeyValue(bKey, Bytes.toBytes("cf"), Bytes.toBytes("qual"), firstByte));
-	          if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: action flush " + action +
-		         " mutationCount " + mutationCount + " mutationSet " + mutationSet + 
+	          if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: action flush " + action + " " +
+		         regionInfo.getTable().toString() + " mutationCount " + mutationCount + " mutationSet " + mutationSet + 
 		         " mutations size " + firstByte.length );
-	      
+	          mutationTotalSize = mutationTotalSize + firstByte.length;
 	          mutationOutput = new ByteArrayOutputStream(); // reset the buffer for next KV (batch of TSBuilder cells)
 	          mutationCount = 0;
-	          mutationSet++;
-		  mutationTotalCount++;
 	      }
 	      else {
-		  if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: append, no mutation no flush & no close");
+		  if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: append, no mutation no flush & no close "
+		      + regionInfo.getTable().toString());
 	      }
 	      break;
           }
@@ -6813,9 +6930,46 @@ CoprocessorService, Coprocessor {
 	      // close transactional mutation file, driven by chore thread (timer), preClose, preFlush, snapshot req
 	      // close the writer to force content to be written to disk and make mutation immutable
 	      // set currentFileKey = -1 (so next mutation append will have to create the next file and writer)
-	      mutationWriter.close();
+	      
+	      //	writePath = new Path("/hbase/PIT/mutation/" +
+	      //        //regionInfo.getTable().toString() + /* "-" + regionInfo.getEncodedName() + */
+	      //        //"-" + Long.toString(timeKey));
+	      //        "mutation-reader"); // for reader to test a dpecial named mutation file
+		      
+	      if (mutationWriter != null) {
+		  mutationWriter.close();	      
+      
+	          // update meta after writer close
+	          synchronized (mutationMetaLock) {	      
+	          try {
+                       mmr = new MutationMetaRecord(currentFileKey, regionInfo.getTable().toString(), 
+					   currentSnapshotId, 
+	                                   smallestCommitId, mutationTotalSize, // for smallestCommitId & fileSize
+					   regionInfo.getRegionNameAsString(), // regionName as String
+					   writePath.toString(), // mutation file path as String
+					   false, "test");  // archived mode and path
+                       meta.putMutationRecord(mmr);
+                       if(LOG.isTraceEnabled()) LOG.trace("PITMutation Record Put : key " + currentFileKey +
+		               " snapshot id " + currentSnapshotId +
+		               " table " + regionInfo.getTable().toString() + 
+		               " region encoded name " + regionInfo.getRegionNameAsString() +
+		               " path " + writePath);
+		   
+                   } catch (Exception exc) {
+		       if(LOG.isTraceEnabled()) LOG.trace("put mutation record exception during mutation file close");
+                       System.out.println("put mutation record exception " + exc);
+                       //throw new IOException("put mutation record exception ");
+                    }
+	            } // synchronized on mutationMetaLock
+	            if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: close " + action + " " +
+		                        regionInfo.getTable().toString() + 
+		                        " PIT mutation file path " + defaultPITPath +
+		                        " with smallest commitId " + smallestCommitId +
+		                        " number of total Txn Protos " + mutationTotalCount + 
+		                        " total txn mutation size " + mutationTotalSize);
+	      } // writer is not null
+	         
 	      currentFileKey = -1;
-	      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: close " + action);
               break;
 	  }
 	  case 4: { // append the mutation into output buffer with delimeter
@@ -6824,8 +6978,10 @@ CoprocessorService, Coprocessor {
 		             smallestCommitId = tmBuilder.getCommitId();
 	      mutationCount++;
 	      mutationTotalCount++;
-	      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: buffered " + action +
-		         " mutationCount " + mutationCount + " mutationSet " + mutationSet);
+	      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: buffered " + action + " " +
+		         regionInfo.getTable().toString() + 
+		         " mutationCount " + mutationCount + " mutationSet " + mutationSet +
+		         " smallest CommitId " + smallestCommitId);
               break;
 	  }
 	  default: { // bad parameter
@@ -6843,6 +6999,17 @@ CoprocessorService, Coprocessor {
   public void addPut(TransactionMutationMsg.Builder tmBuilder, Put put) throws IOException {
       try {
          tmBuilder.addPut(ProtobufUtil.toMutation(MutationType.PUT, new Put(put)));
+      } catch(IOException e) {
+          StringWriter sw = new StringWriter();
+          PrintWriter pw = new PrintWriter(sw);
+          e.printStackTrace(pw);
+          LOG.error(sw.toString());
+      }
+  }
+  
+  public void addDelete(TransactionMutationMsg.Builder tmBuilder, Delete del) throws IOException {
+      try {
+         tmBuilder.addDelete(ProtobufUtil.toMutation(MutationType.DELETE, new Delete(del)));
       } catch(IOException e) {
           StringWriter sw = new StringWriter();
           PrintWriter pw = new PrintWriter(sw);
@@ -6871,15 +7038,17 @@ CoprocessorService, Coprocessor {
        return result;
   }
    
-  public void mutationReaderFile(Path readPath) throws IOException {
+  public void mutationReaderFile(Path readPath, long restoreTime) throws IOException {
  
   // this methid is invoked by the replay engine after a mutation file is included in the replay file set
-  
+
+      long sid;
+      long cid;
+      int iKV = 0;
+      long iTxnProto = 0;
+	  
       try { 
-	  
-	  long sid;
-	  long cid;
-	  
+	    
 	  if(LOG.isTraceEnabled()) LOG.trace("PIT mutationReaderFile " + readPath + " start ");
 	  
           HFile.Reader reader = HFile.createReader(fs, readPath, new CacheConfig(config), config);
@@ -6889,6 +7058,8 @@ CoprocessorService, Coprocessor {
 	  while (hasKVs) {
               //KeyValue firstVal = scanner.getKeyValue();
               Cell tmVal = scanner.getKeyValue();
+	      iKV++;
+	      if(LOG.isTraceEnabled()) LOG.trace("PIT mutationRead: read txn proto, path " + readPath + " KV " + iKV);
 
 	      ByteArrayInputStream input = new ByteArrayInputStream(CellUtil.cloneValue(tmVal));
               TransactionMutationMsg tmm  = TransactionMutationMsg.parseDelimitedFrom(input);
@@ -6899,6 +7070,9 @@ CoprocessorService, Coprocessor {
 		  if(LOG.isTraceEnabled()) LOG.trace("PIT mutationRead: transaction id " + tmm.getTxId());
 		  sid = tmm.getStartId();
 		  cid = tmm.getCommitId();
+		  iTxnProto++;
+		  
+		  // if (cid > restoreTime) skip this transaction mutation proto
 
                   List<Boolean> putOrDel = tmm.getPutOrDelList();
                   List<MutationProto> putProtos = tmm.getPutList();
@@ -6910,6 +7084,9 @@ CoprocessorService, Coprocessor {
 
                   int putIndex = 0;
                   int deleteIndex = 0;
+		  // Note. the put/del we get from mutation proto should contain correct time order (serialized when they are added
+		  //           into ts.writeOrdering, so we should be able to do a puts and then a dels
+		  //           this is somewhat equivalent to how the recovery plays
 		  for (Boolean put : putOrDel) {
                       if (put) {
                           Put writePut = ProtobufUtil.toPut(putProtos.get(putIndex++));
@@ -6925,8 +7102,16 @@ CoprocessorService, Coprocessor {
 		      // mutationReplay(puts, deletes); // here is replay transaction by transaction (may just use HBase client API)
       
                   }
-                  tmm  = TransactionMutationMsg.parseDelimitedFrom(input);
-      
+                  // print this txn's mutation context 
+                  if(LOG.isTraceEnabled()) LOG.trace("PIT mutationRead -- " + regionInfo.getTable().toString() + 
+		                    " Transaction Id " + tmm.getTxId() + 
+		                    " with startId " + sid + " and commitId " + cid + 
+		                    " has " + putIndex + " put " + deleteIndex + " delete ");
+		  
+                  // complete current txnMutationProto    
+		  // here use HBase client API to do HTable for lists puts and deletes 
+		  
+                  tmm  = TransactionMutationMsg.parseDelimitedFrom(input); 
 	      } // more than one tsm inside a KV
 	      
 	      // has processed on KV, can invoke client put/delete call to replay
@@ -6940,7 +7125,8 @@ CoprocessorService, Coprocessor {
           e.printStackTrace(pw);
           LOG.error(sw.toString());
       }	 
-      if(LOG.isTraceEnabled()) LOG.trace("mutationReaderFile " + readPath + " complete ");
+      if(LOG.isTraceEnabled()) LOG.trace("mutationReaderFile " + readPath + " complete " +
+	                    iTxnProto + " transaction mutation protos for " + regionInfo.getTable().toString());
        
   }
    

@@ -3827,6 +3827,10 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
       isHbase_ = TRUE;
       hbaseDDLNoUserXn_ = TRUE;
     }
+  else if(backup())
+  {
+	  isHbase_ = TRUE;
+  }
   else if (purgedataHbase_)
   {
     isHbase_ = TRUE;

@@ -2028,6 +2028,32 @@ public class HBaseClient {
 
     return Rows;
   }
+  
+  public boolean createSnapshot(String tblName)
+	throws MasterNotRunningException, IOException, SnapshotCreationException, InterruptedException {
+          if (logger.isDebugEnabled()) logger.debug("HBaseClient.createSnapshot(" + tblName + ") called.");
+          HBaseAdmin admin = new HBaseAdmin(config);
+	    
+	    String snapshotName = tblName + "_SNAPSHOT";
+	    
+	    List<SnapshotDescription> l = new ArrayList<SnapshotDescription>(); 
+	    	    l = admin.listSnapshots(snapshotName);
+	    l = admin.listSnapshots();
+	    if (! l.isEmpty())
+		{
+		    for (SnapshotDescription sd : l) {
+			if (sd.getName().compareTo(snapshotName) == 0)
+			    {
+				admin.deleteSnapshot(snapshotName);
+			    }
+		    }
+		}
+         
+	    //Note , do not disable table.
+	    admin.snapshot(snapshotName, tblName);
+	    admin.close();
+        return true;
+  }
 
 }
     

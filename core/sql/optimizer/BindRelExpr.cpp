@@ -1606,7 +1606,9 @@ NATable *BindWA::getNATable(CorrName& corrName,
   
       // Compare column lists (user columns only)
       // TBD - return what mismatches
-      if ( nativeNATable && !(table->getNAColumnArray().compare(nativeNATable->getNAColumnArray(), FALSE)))
+      if ( nativeNATable && 
+           !(table->getNAColumnArray().compare(nativeNATable->getNAColumnArray(), FALSE)) &&
+           (NOT bindWA->externalTableDrop()))
          {
            *CmpCommon::diags() << DgSqlCode(-3078)
                                << DgString0(adjustedName)
@@ -11879,6 +11881,14 @@ RelExpr *GenericUpdate::bindNode(BindWA *bindWA)
       bindWA->setErrStatus();
       return this;
      }
+
+  if (naTable->isORC())
+    {
+      *CmpCommon::diags() << DgSqlCode(-4223)
+			  << DgString0("Upsert/Insert/Update/Delete on ORC table is");
+      bindWA->setErrStatus();
+      return this;
+    }
 
   if (naTable->isHiveTable() &&
       (getOperatorType() != REL_UNARY_INSERT) && 

@@ -6027,6 +6027,9 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
   if ( childRelExpr && childRelExpr->getOperatorType() == REL_FIRST_N )
     childRelExpr = childRelExpr->child(0)->castToRelExpr();
 
+  NABoolean isSeabase = FALSE;
+  NABoolean isOrc = FALSE;
+  const NATable * naTable = NULL;
   if (childRelExpr && 
       ((childRelExpr->getOperatorType() == REL_FILE_SCAN) ||
        (childRelExpr->getOperatorType() == REL_HBASE_ACCESS)))
@@ -6046,16 +6049,15 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
         {
           aggrPushdown = TRUE;
         }
-    }
 
-  NABoolean isSeabase = FALSE;
-  NABoolean isOrc = FALSE;
-  if (aggrPushdown)
-    {
-      const NATable * naTable = scan->getTableDesc()->getNATable();
+      naTable = scan->getTableDesc()->getNATable();
       isSeabase = naTable->isSeabaseTable();
       isOrc = ((naTable->isHiveTable()) &&
-               (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile()));
+        (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile()));
+    }
+
+  if (aggrPushdown)
+    {      
       if (NOT (((naTable->getObjectType() == COM_BASE_TABLE_OBJECT) ||
                 (naTable->getObjectType() == COM_INDEX_OBJECT)) &&
                ((naTable->isSeabaseTable()) || (isOrc))))
@@ -6248,7 +6250,28 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
          pulledNewInputs);
 
     } // aggrPushdown
-  
+
+  if (!aggrPushdown || !isOrc)
+    {
+      // the ORC_MAX_NV and ORC_SUM_NV aggregates are only
+      // permitted on ORC files and only when they can be
+      // pushed down 
+      for (ValueId valId = aggregateExpr().init();
+           aggregateExpr().next(valId);
+           aggregateExpr().advance(valId)) 
+        {
+          ItemExpr * ae = valId.getItemExpr();
+          if ((ae->getOperatorType() == ITM_ORC_MAX_NV) ||
+              (ae->getOperatorType() == ITM_ORC_SUM_NV))
+            {
+              Lng32 sqlcode = isOrc ? -7006 : -4370;
+              *CmpCommon::diags() << DgSqlCode(sqlcode) << DgString0(ae->getTextUpper());
+              generator->getBindWA()->setErrStatus();
+              return NULL;
+            }
+        }
+    }
+
   return newNode;
 }
 

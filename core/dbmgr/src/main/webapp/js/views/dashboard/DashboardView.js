@@ -1098,7 +1098,7 @@ define([
 			var pos = drillDownChart.latestPosition;
 
 			var axes = drillDownChart.plot.getAxes();
-			if (pos.x < axes.xaxis.min || pos.x > axes.xaxis.max ||
+			if (pos == null || pos.x < axes.xaxis.min || pos.x > axes.xaxis.max ||
 					pos.y < axes.yaxis.min || pos.y > axes.yaxis.max) {
 				return;
 			}

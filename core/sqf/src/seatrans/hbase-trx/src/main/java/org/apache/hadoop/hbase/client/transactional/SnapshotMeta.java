@@ -184,10 +184,52 @@ public class SnapshotMeta {
       return;
    }
 
-   public void putSnapshotRecord(final SnapshotMetaRecord record) throws Exception {
+   public void initializeSnapshot(final long key, final String tag) throws Exception {
 
-      if (LOG.isTraceEnabled()) LOG.trace("putSnapshotRecord start for record " + record);
-      System.out.println("putSnapshotRecord start for record " + record);
+      if (LOG.isTraceEnabled()) LOG.trace("initializeSnapshot start for key " + key + " tag " + tag);
+      System.out.println("initializeSnapshot start for key " + key + " tag " + tag);
+      String keyString = new String(String.valueOf(key));
+      boolean lvResult = true;
+      boolean startRecord = true;
+      boolean snapshotComplete = false;
+
+      // Create the Put
+      Put p = new Put(Bytes.toBytes(key));
+
+      // This is the format of SnapshotMetaStartRecord 
+      p.add(SNAPSHOT_FAMILY, SNAPSHOT_QUAL, Bytes.toBytes(String.valueOf(startRecord) + "," + tag
+    		  + "," + String.valueOf(snapshotComplete)));
+      int retries = 0;
+      boolean complete = false;
+      do {     
+         retries++;
+         try {
+            if (LOG.isTraceEnabled()) LOG.trace("initializeSnapshot try table.put, " + p );
+            table.put(p);
+            table.flushCommits();
+            complete = true;
+            if (retries > 1){
+               if (LOG.isTraceEnabled()) LOG.trace("initializeSnapshot Retry successful in putRecord for key: " + keyString);                    	 
+            }
+         }
+         catch (Exception e2){
+            LOG.error("Retry " + retries + " initializeSnapshot for key: " + keyString + " due to Exception " + e2);
+            table.getRegionLocation(p.getRow(), true);
+            Thread.sleep(SnapshotRetryDelay); // 3 second default
+            if (retries == SnapshotRetryCount){
+               LOG.error("initializeSnapshot aborting due to excessive retries for key: " + keyString + " due to Exception; aborting ");
+               System.exit(1);
+            }
+         }
+      } while (! complete && retries < SnapshotRetryDelay);  // default give up after 5 minutes
+
+      if (LOG.isTraceEnabled()) LOG.trace("initializeSnapshot exit");
+   }
+
+   public void putRecord(final SnapshotMetaStartRecord record) throws Exception {
+
+      if (LOG.isTraceEnabled()) LOG.trace("putRecord start for snapshot START record " + record);
+      System.out.println("putRecord start for record " + record);
       long key = record.getKey();
       String keyString = new String(String.valueOf(key));
       boolean lvResult = true;
@@ -195,7 +237,49 @@ public class SnapshotMeta {
       // Create the Put
       Put p = new Put(Bytes.toBytes(key));
       p.add(SNAPSHOT_FAMILY, SNAPSHOT_QUAL,
-    		  Bytes.toBytes(String.valueOf(record.getFullSnapshot()) + ","
+    		  Bytes.toBytes(String.valueOf(record.getStartRecord()) + ","
+                       + record.getUserTag() + ","
+                       + record.getSnapshotComplete()));
+
+      int retries = 0;
+      boolean complete = false;
+      do {     
+         retries++;
+         try {
+            if (LOG.isTraceEnabled()) LOG.trace("try table.put, " + p );
+            table.put(p);
+            table.flushCommits();
+            complete = true;
+            if (retries > 1){
+               if (LOG.isTraceEnabled()) LOG.trace("Retry successful in putRecord (start record) for key: " + keyString);                    	 
+            }
+         }
+         catch (Exception e2){
+            LOG.error("Retry " + retries + " putRecord for key: " + keyString + " due to Exception " + e2);
+            table.getRegionLocation(p.getRow(), true);
+            Thread.sleep(SnapshotRetryDelay); // 3 second default
+            if (retries == SnapshotRetryCount){
+               LOG.error("putRecord (start record) aborting due to excessive retries for key: " + keyString + " due to Exception; aborting ");
+               System.exit(1);
+            }
+         }
+      } while (! complete && retries < SnapshotRetryDelay);  // default give up after 5 minutes
+
+      if (LOG.isTraceEnabled()) LOG.trace("putRecord (start record) exit");
+   }
+
+   public void putRecord(final SnapshotMetaRecord record) throws Exception {
+
+      if (LOG.isTraceEnabled()) LOG.trace("putRecord start for record " + record);
+      System.out.println("putRecord start for record " + record);
+      long key = record.getKey();
+      String keyString = new String(String.valueOf(key));
+      boolean lvResult = true;
+
+      // Create the Put
+      Put p = new Put(Bytes.toBytes(key));
+      p.add(SNAPSHOT_FAMILY, SNAPSHOT_QUAL,
+    		  Bytes.toBytes(String.valueOf(record.getStartRecord()) + ","
                        + record.getTableName() + ","
                        + record.getUserTag() + ","
                        + record.getSnapshotPath() + ","
@@ -212,21 +296,21 @@ public class SnapshotMeta {
             table.flushCommits();
             complete = true;
             if (retries > 1){
-               if (LOG.isTraceEnabled()) LOG.trace("Retry successful in putSnapshotRecord for key: " + keyString);                    	 
+               if (LOG.isTraceEnabled()) LOG.trace("Retry successful in putRecord for key: " + keyString);                    	 
             }
          }
          catch (Exception e2){
-            LOG.error("Retry " + retries + " putSnapshotRecord for key: " + keyString + " due to Exception " + e2);
+            LOG.error("Retry " + retries + " putRecord for key: " + keyString + " due to Exception " + e2);
             table.getRegionLocation(p.getRow(), true);
             Thread.sleep(SnapshotRetryDelay); // 3 second default
             if (retries == SnapshotRetryCount){
-               LOG.error("putSnapshotRecord aborting due to excessive retries for key: " + keyString + " due to Exception; aborting ");
+               LOG.error("putRecord aborting due to excessive retries for key: " + keyString + " due to Exception; aborting ");
                System.exit(1);
             }
          }
       } while (! complete && retries < SnapshotRetryDelay);  // default give up after 5 minutes
       
-      if (LOG.isTraceEnabled()) LOG.trace("putSnapshotRecord exit");
+      if (LOG.isTraceEnabled()) LOG.trace("putRecord exit");
    }
 
    public SnapshotMetaRecord getSnapshotRecord(final long key) throws Exception {
@@ -239,7 +323,7 @@ public class SnapshotMeta {
          try {
             Result r = table.get(g);
             StringTokenizer st = new StringTokenizer(Bytes.toString(r.getValue(SNAPSHOT_FAMILY, SNAPSHOT_QUAL)), ",");
-            String fullSnapshotString = st.nextToken();
+            String startRecordString  = st.nextToken();
             String tableNameString    = st.nextToken();
             String userTagString      = st.nextToken();
             String snapshotPathString = st.nextToken();
@@ -247,14 +331,14 @@ public class SnapshotMeta {
             String archivePathString  = st.nextToken();
             
             if (LOG.isTraceEnabled()) LOG.trace("snapshotKey: " + key
-            		+ "fullSnapshot: " + fullSnapshotString
+            		+ "startRecord: " + startRecordString
             		+ " tableName: " + tableNameString
             		+ " userTag: " + userTagString
             		+ " snapshotPath: " + snapshotPathString
             		+ " archived: " + archivedString
             		+ " archivePath: " + archivePathString);
             
-            record = new SnapshotMetaRecord(key, fullSnapshotString.contains("true"), tableNameString,
+            record = new SnapshotMetaRecord(key, startRecordString.contains("true"), tableNameString,
             		     userTagString, snapshotPathString, archivedString.contains("true"), archivePathString);
          }
          catch (Exception e1){
@@ -271,10 +355,10 @@ public class SnapshotMeta {
       return record;
    }
 
-   public SnapshotMetaRecord getPriorFullSnapshot(final long key) throws Exception {
-      if (LOG.isTraceEnabled()) LOG.trace("getPriorFullSnapshot start for key " + key);
-      System.out.println("getPriorFullSnapshot start for key " + key);
-      SnapshotMetaRecord record = null;
+   public SnapshotMetaStartRecord getPriorStartRecord(final long key) throws Exception {
+      if (LOG.isTraceEnabled()) LOG.trace("getPriorStartRecord start for key " + key);
+      System.out.println("getPriorStartRecord start for key " + key);
+      SnapshotMetaStartRecord record = null;
       
       try {
           Scan s = new Scan();
@@ -298,42 +382,145 @@ public class SnapshotMeta {
                    StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                    if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
                    if (st.hasMoreElements()) {
-                      String fullSnapshotString = st.nextToken();
-                      if (fullSnapshotString.contains("true")) {
+                      String startRecordString = st.nextToken();
+                      if (startRecordString.contains("true")) {
                          // We found a full snapshot
-                         String tableNameString    = st.nextToken();
-                         String userTagString      = st.nextToken();
-                         String snapshotPathString = st.nextToken();
-                         String archivedString     = st.nextToken();
-                         String archivePathString  = st.nextToken();
+                         String userTagString           = st.nextToken();
+                         String snapshotCompleteString  = st.nextToken();
 
-                         record = new SnapshotMetaRecord(currKey, fullSnapshotString.contains("true"),
-                                 tableNameString, userTagString, snapshotPathString, 
-                                 archivedString.contains("true"), archivePathString);
+                         record = new SnapshotMetaStartRecord(currKey, startRecordString.contains("true"),
+                        		 userTagString, snapshotCompleteString.contains("true"));
                       }
                    }
                 }
             }
          }
          catch(Exception e){
-            LOG.error("getPriorFullSnapshot Exception getting results " + e);
+            LOG.error("getPriorStartRecord Exception getting results " + e);
             throw new RuntimeException(e);
          }
          finally {
-            if (LOG.isTraceEnabled()) LOG.trace("getPriorFullSnapshot closing ResultScanner");
+            if (LOG.isTraceEnabled()) LOG.trace("getPriorStartRecord closing ResultScanner");
             ss.close();
          }
       }
       catch(Exception e){
-          LOG.error("getPriorFullSnapshot Exception setting up scanner " + e);
+          LOG.error("getPriorStartRecord Exception setting up scanner " + e);
           throw new RuntimeException(e);
       }
       if (record == null) {
     	  throw new Exception("Prior record not found");    	  
       }
+      System.out.println("getPriorStartRecord returning " + record);
       return record;	   
    }
 
+   public long getCurrentStartRecordId() throws Exception {
+      if (LOG.isTraceEnabled()) LOG.trace("getCurrentStartRecordId start");
+      System.out.println("getCurrentStartRecordId start");
+      SnapshotMetaStartRecord record = null;
+
+      try {
+         Scan s = new Scan();
+         s.setCaching(100);
+         s.setCacheBlocks(false);
+         ResultScanner ss = table.getScanner(s);
+
+         try {
+            for (Result r : ss) {
+               long currKey = Bytes.toLong(r.getRow());
+               for (Cell cell : r.rawCells()) {
+                  StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
+                  if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
+                  if (st.hasMoreElements()) {
+                     String startRecordString = st.nextToken();
+                     if (startRecordString.contains("true")) {
+                        // We found a full snapshot
+                        String userTagString          = st.nextToken();
+                        String snapshotCompleteString = st.nextToken();
+                        record = new SnapshotMetaStartRecord(currKey, startRecordString.contains("true"),
+                        		userTagString, snapshotCompleteString.contains("true"));
+                     }
+                  }
+               }
+            }
+         }
+         catch(Exception e){
+            LOG.error("getCurrentStartRecordId Exception getting results " + e);
+            throw new RuntimeException(e);
+         }
+         finally {
+            if (LOG.isTraceEnabled()) LOG.trace("getCurrentStartRecordId closing ResultScanner");
+            ss.close();
+         }
+      }
+      catch(Exception e){
+         LOG.error("getCurrentStartRecordId Exception setting up scanner " + e);
+         throw new RuntimeException(e);
+      }
+      if (record == null) {
+         throw new Exception("getCurrentStartRecordId current record not found");    	  
+      }
+      System.out.println("getCurrentStartRecordId returning " + record.getKey());
+      return record.getKey();	   
+   }
+
+   public long getCurrentSnapshotId(final String tableName) throws Exception {
+      if (LOG.isTraceEnabled()) LOG.trace("getCurrentSnapshotId start for tableName " + tableName);
+      System.out.println("getCurrentSnapshotId start for tableName " + tableName);
+      SnapshotMetaRecord record = null;
+      try {
+         Scan s = new Scan();
+         s.setCaching(100);
+         s.setCacheBlocks(false);
+         ResultScanner ss = table.getScanner(s);
+
+         try {
+            for (Result r : ss) {
+               long currKey = Bytes.toLong(r.getRow());
+               for (Cell cell : r.rawCells()) {
+                  StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
+                  if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
+                  if (st.hasMoreElements()) {
+                     String startRecordString = st.nextToken();
+                     if (! startRecordString.contains("true")) {
+                        // We found a partial snapshot
+                        String tableNameString    = st.nextToken();
+                        if (! tableNameString.equals(tableName)) {
+                           continue;
+                        }
+                        String userTagString      = st.nextToken();
+                        String snapshotPathString = st.nextToken();
+                        String archivedString     = st.nextToken();
+                        String archivePathString  = st.nextToken();
+                        record = new SnapshotMetaRecord(currKey, startRecordString.contains("true"),
+                                    tableNameString, userTagString, snapshotPathString,
+                                    archivedString.contains("true"), archivePathString);
+                     }
+                  }
+               }
+            }
+         }
+         catch(Exception e){
+            LOG.error("getCurrentStartRecordId Exception getting results " + e);
+            throw new RuntimeException(e);
+         }
+         finally {
+            if (LOG.isTraceEnabled()) LOG.trace("getCurrentStartRecordId closing ResultScanner");
+            ss.close();
+         }
+      }
+      catch(Exception e){
+         LOG.error("getCurrentStartRecordId Exception setting up scanner " + e);
+         throw new RuntimeException(e);
+      }
+      if (record == null) {
+         throw new Exception("getCurrentStartRecordId current record not found");    	  
+      }
+      System.out.println("getCurrentStartRecordId returning " + record.getKey());
+      return record.getKey();	   
+   }
+   
    public ArrayList<SnapshotMetaRecord> getPriorSnapshotSet(final long key) throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet start for key " + key);
       System.out.println("getPriorSnapshotSet start for key " + key);
@@ -362,21 +549,34 @@ public class SnapshotMeta {
                    StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                    if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
                    if (st.hasMoreElements()) {
-                      String fullSnapshotString = st.nextToken();
-                      if (fullSnapshotString.contains("true")) {
-                         // We found a full snapshot, so anything already in the returnList is invalid
-                         // We need to empty the returnList and start building it from here with
-                     	 // the current full snapshot as the first entry.
+                      String startRecordString = st.nextToken();
+                      if (startRecordString.contains("true")) {
+                         String userTagString           = st.nextToken();
+                         String snapshotCompleteString  = st.nextToken();
+                         if(snapshotCompleteString.contains("false")){
+                            // We found a start of a snapshot, but it never completed.  So we
+                            // continue as if this record didn't exist and add additional 
+                            // partial snapshots if there are any that fit in our time frame
+                            continue;
+                         }
+
+                         // We found a snapshot start that was completed, so anything already in the
+                         // returnList is invalid.  We need to empty the returnList and start
+                         // building it from here.
+                     	 //
+                         // Note that the current record we are reading is a SnapshotMetaStartRecord, not a SnapshotMetaRecord,
+                         // so we skip it rather than add it into the list
                          if (LOG.isTraceEnabled()) LOG.trace("Found a full snapshot for key " + currKey + "  Clearing the returnList");
                          System.out.println("Found a full snapshot for key " + currKey + "  Clearing the returnList");
                      	 returnList.clear();
+                         continue;
                       }
                       String tableNameString    = st.nextToken();
                       String userTagString      = st.nextToken();
                       String snapshotPathString = st.nextToken();
                       String archivedString     = st.nextToken();
                       String archivePathString  = st.nextToken();
-                      record = new SnapshotMetaRecord(currKey, fullSnapshotString.contains("true"),
+                      record = new SnapshotMetaRecord(currKey, startRecordString.contains("true"),
                                  tableNameString, userTagString, snapshotPathString,
                                  archivedString.contains("true"), archivePathString);
 
@@ -406,19 +606,19 @@ public class SnapshotMeta {
       return returnList;	   
    }
 
-   public static boolean deleteSnapshotRecord(final long key) throws IOException {
-      if (LOG.isTraceEnabled()) LOG.trace("deleteSnapshotRecord start for key: " + key);
+   public static boolean deleteRecord(final long key) throws IOException {
+      if (LOG.isTraceEnabled()) LOG.trace("deleteRecord start for key: " + key);
       try {
          Delete d;
          //create our own hashed key
          d = new Delete(Bytes.toBytes(key));
-         if (LOG.isTraceEnabled()) LOG.trace("deleteSnapshotRecord  (" + key + ") ");
+         if (LOG.isTraceEnabled()) LOG.trace("deleteRecord  (" + key + ") ");
          table.delete(d);
       }
       catch (Exception e) {
-         LOG.error("deleteSnapshotRecord Exception " + e );
+         LOG.error("deleteRecord Exception " + e );
       }
-      if (LOG.isTraceEnabled()) LOG.trace("deleteSnapshotRecord - exit");
+      if (LOG.isTraceEnabled()) LOG.trace("deleteRecord - exit");
       return true;
    }
 }

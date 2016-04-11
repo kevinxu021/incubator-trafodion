@@ -809,6 +809,7 @@ public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> ed
                 // PIT
 	        if (configuredPITRecoveryHA) {
                    tmBuilder.addPutOrDel(false);
+		   trxepcp.addDelete(tmBuilder, del);
                    //tmBuilder.addDelete(ProtobufUtil.toMutation(MutationType.DELETE, new Delete(del)));
 	           iDelete++;
 	        }

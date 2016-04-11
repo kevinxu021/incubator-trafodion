@@ -8664,7 +8664,8 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
        (ddlExpr->dropRepos()) ||
        (ddlExpr->upgradeRepos()) ||
        (ddlExpr->addSchemaObjects()) ||
-       (ddlExpr->updateVersion())))
+       (ddlExpr->updateVersion()) || 
+       (ddlExpr->backup())))
     {
       // transaction will be started and commited in called methods.
       startXn = FALSE;
@@ -8823,6 +8824,10 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
       processRepository(ddlExpr->createRepos(), 
                         ddlExpr->dropRepos(), 
                         ddlExpr->upgradeRepos());
+    }
+  else if (ddlExpr->backup())
+    {
+	    backup(ddlExpr, &cliInterface);
     }
   else
     {

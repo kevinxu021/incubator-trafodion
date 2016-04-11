@@ -223,6 +223,13 @@ create external table date_dim_orc
   (d_date_sk date)
   for hive.hive.date_dim_orc;
 
+-- upsert/insert/del/update not supported on orc
+prepare s from delete from hive.hive.store2_sales_orc;
+prepare s from upsert into hive.hive.store2_sales_orc values (1);
+prepare s from upsert using load into hive.hive.store2_sales_orc values (1);
+prepare s from insert into hive.hive.store2_sales_orc values (1);
+prepare s from update hive.hive.store2_sales_orc set ss_net_paid = 1;        
+
 -- test min-max optimization
 
 cqd ORC_PRED_PUSHDOWN 'ON';
@@ -268,6 +275,7 @@ cqd orc_njs reset;
 cqd orc_aggr_pushdown 'ON';
 
 -- pushdown feasible
+cqd attempt_esp_parallelism 'OFF';
 prepare xx from
 select min(ss_sold_date_sk), max(ss_sold_date_sk)
 from hive.hive.store2_sales_orc;

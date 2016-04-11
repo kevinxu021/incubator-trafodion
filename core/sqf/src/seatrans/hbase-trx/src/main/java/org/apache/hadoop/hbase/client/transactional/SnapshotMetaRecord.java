@@ -114,26 +114,26 @@ public class SnapshotMetaRecord {
 
    // These are the components of a record entry into the SnapshotMeta table
    private long key;
-   private boolean fullSnapshot;
+   private boolean startRecord;
    private String tableName;
    private String userTag;
    private String snapshotPath;
    private boolean archived;
    private String archivePath;
    
-   public SnapshotMetaRecord (final long key, final boolean fullSnapshot, final String tableName, final String userTag, 
+   public SnapshotMetaRecord (final long key, final boolean startRecord, final String tableName, final String userTag, 
                 final String snapshotPath, final boolean archived, final String archivePath) throws IOException{
  
       if (LOG.isTraceEnabled()) LOG.trace("Enter SnapshotMetaRecord constructor for key: " + key
-    		  + " fullSnapshot: " + fullSnapshot + " tableName: " + tableName + " userTag: " + userTag
+    		  + " startRecord: " + startRecord + " tableName: " + tableName + " userTag: " + userTag
     		  + " snapshotPath: " + snapshotPath + " archived: " + String.valueOf(archived)
     		  + " archivePath: " + archivePath);
 
       this.key = key;
-      this.fullSnapshot = fullSnapshot;
-      if(fullSnapshot && (tableName.equals("null") != true)) {
-         System.out.println("Warning: full snapshot should not have an associated tableName");
-         throw new IOException ("Warning: full snapshot should not have an associated tableName");
+      this.startRecord = startRecord;
+      if(startRecord) {
+         System.out.println("Warning: full snapshot should not be true for SnapshotMetaRecord");
+         throw new IOException ("Warning: full snapshot should not be true for SnapshotMetaRecord");
       }
       this.tableName = new String(tableName);
       this.userTag = new String(userTag);
@@ -145,21 +145,21 @@ public class SnapshotMetaRecord {
       return;
    }
 
-   public SnapshotMetaRecord (final long key, final boolean fullSnapshot, final String tableName, final String userTag, 
+   public SnapshotMetaRecord (final long key, final boolean startRecord, final String tableName, final String userTag, 
 		     final String snapshotPath) throws Exception  {
-      this(key, fullSnapshot, tableName, userTag, snapshotPath, false, null);
+      this(key, startRecord, tableName, userTag, snapshotPath, false, null);
    }
 
    public long getKey() {
        return this.key;
    }
 
-   public boolean getFullSnapshot() {
-      return this.fullSnapshot;
+   public boolean getStartRecord() {
+      return this.startRecord;
    }
 
-   public void setFullSnapshot(final boolean fullSnapshot) {
-       this.fullSnapshot = fullSnapshot;
+   public void setStartRecord(final boolean startRecord) {
+       this.startRecord = startRecord;
    }
 
    public String getTableName() {
@@ -206,7 +206,7 @@ public class SnapshotMetaRecord {
 
    @Override
    public String toString() {
-       return "SnaphotKey: " + key + ", fullSnapshot: " + fullSnapshot + ", tableName: " + tableName
+       return "SnaphotKey: " + key + ", startRecord: " + startRecord + ", tableName: " + tableName
                    + ", userTag: " + userTag + ", snapshotPath: " + snapshotPath
                    + ", archived: " + archived + ", archivePath: " + archivePath;
    }
