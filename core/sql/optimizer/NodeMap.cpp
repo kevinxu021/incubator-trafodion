@@ -2204,6 +2204,7 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
 
       // get the first entry.
       HiveNodeMapEntry* entry = (HiveNodeMapEntry*)nmi.getEntry();
+      Int64 filled = 0;
 
       while ( hiveSearchKey->getNextFile(i))
         {
@@ -2211,7 +2212,8 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
           b = (HHDFSBucketStats*)i.getBucketStats();
           f = (HHDFSFileStats*)i.getFileStats();
 
-          f->assignToESPs(&nmi, entry, totalBytesPerESP, numOfBytesToRead, p);
+          f->assignToESPs(&nmi, entry, totalBytesPerESP, numOfBytesToRead, p, 
+			  filled);
         } // while
 
         printToLog(DEFAULT_INDENT, "NodeMap for non-locality assignment");
