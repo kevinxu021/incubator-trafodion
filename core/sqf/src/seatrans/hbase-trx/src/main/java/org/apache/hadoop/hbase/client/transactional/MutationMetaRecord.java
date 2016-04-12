@@ -21,92 +21,13 @@
 
 package org.apache.hadoop.hbase.client.transactional;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.io.IOException;
 
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.Logger;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CellUtil;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HConnectionManager;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.RegionLocator;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.client.transactional.PeerInfo;
-import org.apache.hadoop.hbase.client.transactional.STRConfig;
-import org.apache.hadoop.hbase.client.transactional.TransactionRegionLocation;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HRegionLocation;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.LocalHBaseCluster;
-import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.TableExistsException;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-
-import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
-import org.apache.hadoop.hbase.ipc.FailedServerException;
-import org.apache.hadoop.hbase.ipc.ServerRpcController;
-import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
-import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto;
-import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.MutationType;
-
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-
-import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
-import org.apache.hadoop.hbase.ipc.ServerRpcController;
-
-import org.apache.hadoop.hbase.regionserver.RegionSplitPolicy;
-
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.ConcurrentModificationException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.StringTokenizer;
-
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
 
 public class MutationMetaRecord {
 
@@ -123,6 +44,18 @@ public class MutationMetaRecord {
    private boolean archived;
    private String archivePath;
 
+   /**
+    * MutationMetaRecord
+    * @param long key
+    * @param String tableName
+    * @param long associatedSnapshot
+    * @param long smallestCommitId
+    * @param long fileSize
+    * @param String regionName
+    * @param String mutationPath
+    * @param boolean archived
+    * @param String archivePath
+    */
    public MutationMetaRecord (final long key, final String tableName, final long associatedSnapshot, final long smallestCommitId, 
 		   final long fileSize, final String regionName, final String mutationPath,
            final boolean archived, final String archivePath) {
@@ -147,81 +80,200 @@ public class MutationMetaRecord {
       return;
    }
 
+   /**
+    * MutationMetaRecord
+    * @param long key
+    * @param String tableName
+    * @param long associatedSnapshot
+    * @param long smallestCommitId
+    * @param long fileSize
+    * @param String regionName
+    * @param String mutationPath
+    */
    public MutationMetaRecord (final long key, final String tableName, final long associatedSnapshot, final long smallestCommitId, 
 		   final long fileSize, final String regionName, final String mutationPath) {
       this(key, tableName, associatedSnapshot, smallestCommitId, fileSize, regionName, mutationPath, false, null);
    }
 
+   /**
+    * getKey
+    * @return long
+    * 
+    * This is the key retried from the IdTm server
+    */
    public long getKey() {
        return this.key;
    }
 
+   /**
+    * getTableName
+    * @return String
+    * 
+    * This method is called to retrieve the Table associated with this mutation file.
+    */
    public String getTableName() {
        return this.tableName;
    }
 
+   /**
+    * setTableName
+    * @param String
+    * 
+    * This method is called to set the table name associated with this mutation file.
+    */
    public void setTableName(final String tableName) {
        this.tableName = new String(tableName);
    }
 
+   /**
+    * getAssociatedSnapshot
+    * @return long
+    * 
+    * This method is called to get the associated snapshot record for this mutation file
+    */
    public long getAssociatedSnapshot() {
       return this.associatedSnapshot;
    }
 
+   /**
+    * getAssociatedSnapshot
+    * @param long
+    * 
+    * This method is called to set the association between this mutation file and a particular
+    * snapshot record.
+    */
    public void setAssociatedSnapshot(final long associatedSnapshot) {
       this.associatedSnapshot = associatedSnapshot;
    }
 
+   /**
+    * getSmallestCommitId
+    * @return long
+    * 
+    * This method is called to get the smallest commitId from the mutations contained in this file.
+    * This provides an optimization to the replay engine when determining which files need to
+    * be replayed in order to recover to a particular point-in-time.
+    */
    public long getSmallestCommitId() {
       return this.smallestCommitId;
    }
 
+   /**
+    * setSmallestCommitId
+    * @param long
+    * 
+    * This method is called to set the smallest commitId for the mutations contained in this file.
+    */
    public void setSmallestCommitId(final long commitId) {
       this.smallestCommitId = commitId;
    }
 
+   /**
+    * getFileSize
+    * @return long
+    * 
+    * This method is called to get the file size of the particular mutaion file.
+    */
    public long getFileSize() {
       return this.fileSize;
    }
 
+   /**
+    * setFileSize
+    * @param long
+    * 
+    * This method is called to set the file size for the mutation file.
+    */
    public void setFileSize(final long fileSize) {
       this.fileSize = fileSize;
    }
 
+   /**
+    * getRegionName
+    * @return String
+    * 
+    * This method is called to get the region name associated with this mutation file.
+    */
    public String getRegionName() {
       return this.regionName;
    }
 
+   /**
+    * setRegionName
+    * @param String
+    * 
+    * This method is called to set the region name associated with this mutation file.
+    */
    public void setRegionName(final String regionName) {
       this.regionName = new String(regionName);
    }
 
+   /**
+    * getMutationPath
+    * @return String
+    * 
+    * This method is called to get the path to this mutation file.
+    */
    public String getMutationPath() {
       return this.mutationPath;
    }
    
+   /**
+    * setMutationPath
+    * @param String
+    * 
+    * This method is called to set the path to this mutation file.
+    */
    public void setMutationPath(final String mutationPath) {
       this.mutationPath = new String(mutationPath);
       return;
    }
 
+   /**
+    * getArchived
+    * @return boolean
+    * 
+    * This method is called to determine whether this mutation file has been archived.
+    */
    public boolean getArchived() {
       return this.archived;
    }
 
+   /**
+    * setArchived
+    * @param boolean
+    * 
+    * This method is called to indicate whether this mutation file has been archived.
+    */
    public void setArchived(final boolean archived) {
       this.archived = archived;
    }
 
+   /**
+    * getArchivePath
+    * @return String
+    * 
+    * This method is called to get the path to this archived mutation file.
+    */
    public String getArchivePath() {
       return this.archivePath;
    }
    
+   /**
+    * getArchivePath
+    * @return String
+    * 
+    * This method is called to set the path to this archived mutation file.
+    */
    public void setArchivePath(final String archivePath) {
       this.archivePath = new String(archivePath);
       return;
    }
 
+   /**
+    * toString
+    * @return String
+    */
    @Override
    public String toString() {
       return "Mutationkey: " + key + " tableName: " + tableName + " associatedSnapshot: " + associatedSnapshot

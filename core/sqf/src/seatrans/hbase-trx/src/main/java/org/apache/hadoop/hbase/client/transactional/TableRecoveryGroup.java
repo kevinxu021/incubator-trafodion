@@ -109,9 +109,30 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 
-   /**
-    * Simple wrapper for an optional partial SnapshotMetaRecord and a list of n MutationMetaRecords.
-    */
+/**
+ * Simple wrapper for an partial SnapshotMetaRecord and an optional list of n MutationMetaRecords.
+ * This class represents the value portion of the recoveryTableMap in the RecoveryRecord class.
+ * 
+ * SEE ALSO:
+ * <ul>
+ * <li> SnapshotMetaRecord
+ * {@link SnapshotMetaRecord}
+ * </li>
+ * <li> SnapshotMeta
+ * {@link SnapshotMeta}
+ * </li>
+ * <li> MutationMetaRecord
+ * {@link MutationMetaRecord}
+ * </li>
+ * <li> MutationMeta
+ * {@link MutationMeta}
+ * </li>
+ * <li> RecoveryRecord
+ * {@link RecoveryRecord}
+ * </li>
+ * </ul>
+ * 
+ */
   public class TableRecoveryGroup {
 
      static final Log LOG = LogFactory.getLog(TableRecoveryGroup.class);

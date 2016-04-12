@@ -109,6 +109,29 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 
+/**
+ * This class is responsible for maintaing all metadata writes, puts or deletes, to the Trafodion mutation table.
+ *
+ * SEE ALSO:
+ * <ul>
+ * <li> SnapshotMetaRecord
+ * {@link SnapshotMetaRecord}
+ * </li>
+ * <li> SnapshotMeta
+ * {@link SnapshotMeta}
+ * </li>
+ * <li> MutationMetaRecord
+ * {@link MutationMetaRecord}
+ * </li>
+ * <li> TableRecoveryGroup
+ * {@link TableRecoveryGroup}
+ * </li>
+ * <li> RecoveryRecord
+ * {@link RecoveryRecord}
+ * </li>
+ * </ul>
+ * 
+ */
 public class MutationMeta {
 
    static final Log LOG = LogFactory.getLog(MutationMeta.class);
@@ -129,6 +152,11 @@ public class MutationMeta {
    private static STRConfig pSTRConfig = null;
    private static int myClusterId;
 
+   /**
+    * MutationMeta
+    * @param Configuration
+    * @throws Exception
+    */
    public MutationMeta (Configuration config) throws Exception  {
 
       this.config = config;
@@ -199,6 +227,12 @@ public class MutationMeta {
       return;
    }
 
+   /**
+    * putMutationRecord
+    * @param MutationMetaRecord record
+    * @throws Exception
+    * 
+    */
    public void putMutationRecord(final MutationMetaRecord record) throws Exception {
 
       if (LOG.isTraceEnabled()) LOG.trace("putMutationRecord start for record " + record);
@@ -246,6 +280,13 @@ public class MutationMeta {
       if (LOG.isTraceEnabled()) LOG.trace("putMutationRecord exit");
    }
 
+   /**
+    * getMutationRecord
+    * @param long key
+    * @return MutationMetaRecord
+    * @throws Exception
+    * 
+    */
    public MutationMetaRecord getMutationRecord(final long key) throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("getMutationRecord start for key " + key);
       MutationMetaRecord record;
@@ -294,9 +335,16 @@ public class MutationMeta {
       return record;
    }
    
-   public ArrayList<MutationMetaRecord> getPriorMutations(final long key) throws Exception {
-      if (LOG.isTraceEnabled()) LOG.trace("getPriorMutations start for key " + key);
-      System.out.println("getPriorMutations start for key " + key);
+   /**
+    * getPriorMutations
+    * @param long timeId
+    * @return ArrayList<MutationMetaRecord>
+    * @throws Exception
+    * 
+    */
+   public ArrayList<MutationMetaRecord> getPriorMutations(final long timeId) throws Exception {
+      if (LOG.isTraceEnabled()) LOG.trace("getPriorMutations start for timeId " + timeId);
+      System.out.println("getPriorMutations start for timeId " + timeId);
       ArrayList<MutationMetaRecord> returnList = new ArrayList<MutationMetaRecord>();
       MutationMetaRecord record = null;
 
@@ -309,11 +357,11 @@ public class MutationMeta {
          try {
             for (Result r : ss) {
                long currKey = Bytes.toLong(r.getRow());
-               if (currKey >= key){
+               if (currKey >= timeId){
                    if (LOG.isTraceEnabled()) LOG.trace("currKey " + currKey
-	                 		   + " is not less than key " + key + ".  Scan complete");
+	                 		   + " is not less than timeId " + timeId + ".  Scan complete");
                    System.out.println("currKey " + currKey
-	                  		   + " is not less than key " + key + ".  Scan complete");
+	                  		   + " is not less than timeId " + timeId + ".  Scan complete");
                    break;
                }
                if (LOG.isTraceEnabled()) LOG.trace("currKey is " + currKey);
@@ -372,6 +420,14 @@ public class MutationMeta {
       return returnList;	   
    }
 
+   /**
+    * getMutationsFromRange
+    * @param long startKey
+    * @param long endKey
+    * @return ArrayList<MutationMetaRecord>
+    * @throws Exception
+    * 
+    */
    public ArrayList<MutationMetaRecord> getMutationsFromRange(final long startKey,
 		                                                      final long endKey) throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("getMutationsFromRange start for startKey "
@@ -393,19 +449,19 @@ public class MutationMeta {
                if (currKey < startKey){
                    continue;
                }
-               if (currKey > endKey){
-                   if (LOG.isTraceEnabled()) LOG.trace("currKey " + currKey
-	                 		   + " is greater than endKey " + endKey + ".  Scan complete");
-                   System.out.println("currKey " + currKey
-    	                 		   + " is greater than endKey " + endKey + ".  Scan complete");
-                   break;
-               }
                for (Cell cell : r.rawCells()) {
                   StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                   if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
                   String tableNameString           = st.nextToken();
                   String associatedSnapshotString  = st.nextToken();
                   String smallestCommitIdString    = st.nextToken();
+                  if (Long.parseLong(smallestCommitIdString) > endKey){
+                     if (LOG.isTraceEnabled()) LOG.trace("smallestCommitId " + Long.parseLong(smallestCommitIdString)
+	                 		   + " is greater than endKey " + endKey + ".  Scan complete");
+                     System.out.println("smallestCommitId " + Long.parseLong(smallestCommitIdString)
+   	                 		   + " is greater than endKey " + endKey + ".  Scan complete");
+                     break;
+                  }
                   String fileSizeString            = st.nextToken();
                   String regionNameString          = st.nextToken();
                   String mutationPathString        = st.nextToken();
@@ -451,6 +507,13 @@ public class MutationMeta {
       return returnList;	   
    }
 
+   /**
+    * deleteMutationRecord
+    * @param long key
+    * @return boolean success
+    * @throws IOException
+    * 
+    */
    public static boolean deleteMutationRecord(final long key) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("deleteMutationRecord start for key: " + key);
       try {
