@@ -275,6 +275,7 @@ cqd orc_njs reset;
 cqd orc_aggr_pushdown 'ON';
 
 -- pushdown feasible
+cqd attempt_esp_parallelism 'OFF';
 prepare xx from
 select min(ss_sold_date_sk), max(ss_sold_date_sk)
 from hive.hive.store2_sales_orc;

@@ -3200,6 +3200,9 @@ short TMLIB::setupJNI()
    TMLibJavaMethods_[JM_TRYCOMMIT             ].jm_signature = "(J)S";
    TMLibJavaMethods_[JM_CLEARTRANSACTIONSTATES].jm_name      = "clearTransactionStates";
    TMLibJavaMethods_[JM_CLEARTRANSACTIONSTATES].jm_signature = "(J)V";
+   TMLibJavaMethods_[JM_REPLAYENGINE].jm_name                = "replayEngineStart";
+   TMLibJavaMethods_[JM_REPLAYENGINE].jm_signature           = "(J)V"; 
+   
    
    //sleep(30);
    short ret = JavaObjectInterfaceTM::init(hbasetxclient_classname, javaClass_, 
@@ -3213,6 +3216,11 @@ short TMLIB::setupJNI()
                      _tlp_jenv->GetStaticMethodID(iv_RMInterface_class,
                                                   TMLibJavaMethods_[JM_CLEARTRANSACTIONSTATES].jm_name.data(),
                                                   TMLibJavaMethods_[JM_CLEARTRANSACTIONSTATES].jm_signature.data());
+						  
+            TMLibJavaMethods_[JM_REPLAYENGINE].methodID =
+                     _tlp_jenv->GetStaticMethodID(iv_RMInterface_class,
+                                                  TMLibJavaMethods_[JM_REPLAYENGINE].jm_name.data(),
+                                                  TMLibJavaMethods_[JM_REPLAYENGINE].jm_signature.data());
          }
          else {
             fprintf(stderr,"FindClass for class name %s failed. Aborting.\n",rminterface_classname);
@@ -3220,7 +3228,8 @@ short TMLIB::setupJNI()
             abort();
          }
       }
-   }
+     
+    }
    else {
       fprintf(stderr,"JavaObjectInterfaceTM::init returned error %d. Aborting.\n",ret);
       fflush(stderr);
@@ -3249,11 +3258,36 @@ short TMLIB::initConnection(short pv_nid)
   return JOI_OK;
 }
 
+short TMLIB::replayEngine(long timestamp)
+{
+ 
+  TMlibTrace(("TMLIB_TRACE : replayEngine ENTRY"),1);
+  initJNI();
+  if (enableCleanupRMInterface() == false)
+  	 return JOI_OK;
+  jlong   jlv_timestamp = timestamp;
+  JOI_RetCode lv_joi_retcode = JOI_OK;
+  lv_joi_retcode = JavaObjectInterfaceTM::initJVM();
+  if (lv_joi_retcode != JOI_OK) {
+    fprintf(stderr, "replayEngine::initJVM returned: %d\n", lv_joi_retcode);
+    fflush(stderr);
+    abort();
+  }
+  _tlp_jenv->CallStaticVoidMethod(iv_RMInterface_class, TMLibJavaMethods_[JM_REPLAYENGINE].methodID, jlv_timestamp);
+
+ if(_tlp_jenv->ExceptionOccurred()){
+    _tlp_jenv->ExceptionDescribe();
+    _tlp_jenv->ExceptionClear();
+    fprintf(stderr,"replayEngine raised an exception!\n");
+    fflush(stderr);
+    abort();
+  }
+  return JOI_OK;
+}
 
 void TMLIB::cleanupTransactionLocal(long transactionID)
 {
   initJNI();
-
   if (enableCleanupRMInterface() == false)
   	 return;
   jlong   jlv_transid = transactionID;
@@ -3307,6 +3341,12 @@ short TMLIB::endTransactionLocal(long transactionID)
 } //endTransactionLocal
 
 
+
+
+short DTM_REPLAYENGINE(int64 timestamp)
+{
+    return gv_tmlib.replayEngine(timestamp);
+}
 short TMLIB::abortTransactionLocal(long transactionID)
 {
   jlong   jlv_transid = transactionID;

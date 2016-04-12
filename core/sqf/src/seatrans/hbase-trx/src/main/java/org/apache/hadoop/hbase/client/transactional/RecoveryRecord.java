@@ -109,6 +109,25 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 
+/**
+ * This is the main class utilized for point-in-time recovery.  When desiring to
+ * recover to timeId(x) one would instantiate a new RecoveryRecord(timeId x) and
+ * in the constructor a Map of tableNames and TableRecoveryGroups are created that
+ * is sufficient to restore each of the tableNames in the database to the specified time.
+ * 
+ * SEE ALSO:
+ * <ul>
+ * <li> TableRecoveryGroup
+ * {@link TableRecoveryGroup}
+ * </li>
+ * <li> SnapshotMetaRecord
+ * {@link SnapshotMetaRecord}
+ * </li>
+ * <li> MutationMetaRecord
+ * {@link MutationMetaRecord}
+ * </li>
+ * </ul>
+ */
 public class RecoveryRecord {
 
    static final Log LOG = LogFactory.getLog(RecoveryRecord.class);
@@ -118,6 +137,11 @@ public class RecoveryRecord {
    // These are the components of a RecoveryRecord from which the database can be recovered.
    private Map<String, TableRecoveryGroup> recoveryTableMap = new HashMap<String, TableRecoveryGroup>();
    
+   /**
+    * RecoveryRecord
+    * @param long timeId
+    * @throws Exception
+    */
    public RecoveryRecord (final long timeId) throws Exception {
 
      if (LOG.isTraceEnabled()) LOG.trace("Enter RecoveryRecord constructor for time: " + timeId);
@@ -258,10 +282,20 @@ public class RecoveryRecord {
      return;
    }
 
+   /**
+    * getRecoveryTableMap
+    * @return Map<String, TableRecoveryGroup> recoveryTableMap
+    *
+    */
    public Map<String, TableRecoveryGroup> getRecoveryTableMap() {
      return recoveryTableMap;
    }
 
+   /**
+    * toString
+    * @return String this
+    *
+    */
    @Override
    public String toString() {
      return "RecoveryRecord: recoveryTableMap: " + recoveryTableMap;

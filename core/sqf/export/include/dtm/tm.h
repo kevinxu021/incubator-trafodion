@@ -335,6 +335,7 @@ extern "C" short DTM_GETTRANSIDSTR(int64 pv_transid, char *pp_transidstr);
 extern "C" short DTM_GETTRANSIDSTR_EXT(TM_Transid_Type pv_transid, char *pp_transidstr);
 extern "C" short DTM_LOCKTM();
 extern "C" short DTM_UNLOCKTM();
+extern "C" short DTM_REPLAYENGINE(int64 timestamp);
 
 // Internal use only!!
 extern "C" short DTM_QUIESCE(int32 pv_node); //Use for testing only

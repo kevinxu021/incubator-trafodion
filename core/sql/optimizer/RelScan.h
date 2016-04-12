@@ -1375,7 +1375,8 @@ public:
 				       const NAType &givenType,
 				       ItemExpr *&asciiValue,
 				       ItemExpr *&castValue,
-                                       NABoolean isOrc = FALSE);
+                                       NABoolean isOrc = FALSE,
+                                       NABoolean srcIsInt32Varchar = FALSE);
   
   static int createAsciiColAndCastExpr2(Generator * generator,
 				       ItemExpr * colNode,

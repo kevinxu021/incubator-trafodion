@@ -1,0 +1,17 @@
+224c224,226
+< --- 3 row(s) deleted.
+---
+> *** ERROR[8443] Provided LOB handle is invalid.
+> 
+> --- 0 row(s) deleted.
+227c229,236
+< --- 0 row(s) selected.
+---
+> C1 C2
+> ----------
+> 
+>  1 @LOBHANDLE@"TRAFODION"."LOB130"
+>  2 @LOBHANDLE@"TRAFODION"."LOB130"
+>  3 @LOBHANDLE@"TRAFODION"."LOB130"
+> 
+> --- 3 row(s) selected.
