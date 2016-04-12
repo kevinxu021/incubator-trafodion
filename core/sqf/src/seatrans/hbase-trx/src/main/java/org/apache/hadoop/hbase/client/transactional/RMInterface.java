@@ -55,6 +55,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.client.transactional.ReplayEngine;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.CommitUnsuccessfulException;
@@ -496,6 +497,14 @@ public class RMInterface {
             throw new IOException("alter exception. Unable to create table.");
         }
     }   
+
+    static public void replayEngineStart(final long timestamp) throws Exception {
+      if (LOG.isTraceEnabled()) LOG.trace("replayEngineStart ENTRY with timestamp: " + timestamp);
+
+      ReplayEngine re = new ReplayEngine(timestamp);
+
+      if (LOG.isTraceEnabled()) LOG.trace("replayEngineStart EXIT");
+    }
 
     static public void clearTransactionStates(final long transactionID) {
       if (LOG.isTraceEnabled()) LOG.trace("cts1 Enter txid: " + transactionID);
