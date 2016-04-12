@@ -109,6 +109,29 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 
+/**
+ * This class is responsible for maintaing all metadata writes, puts or deletes, to the Trafodion snapshot table.
+ *
+ * @see
+ * <ul>
+ * <li> SnapshotMetaRecord
+ * {@link SnapshotMetaRecord}
+ * </li>
+ * <li> MutationMetaRecord
+ * {@link MutationMetaRecord}
+ * </li>
+ * <li> MutationMeta
+ * {@link MutationMeta}
+ * </li>
+ * <li> TableRecoveryGroup
+ * {@link TableRecoveryGroup}
+ * </li>
+ * <li> RecoveryRecord
+ * {@link RecoveryRecord}
+ * </li>
+ * </ul>
+ * 
+ */
 public class SnapshotMeta {
 
    static final Log LOG = LogFactory.getLog(SnapshotMeta.class);
@@ -117,11 +140,9 @@ public class SnapshotMeta {
    private static String SNAPSHOT_TABLE_NAME;
    private static final byte[] SNAPSHOT_FAMILY = Bytes.toBytes("sf");
    private static final byte[] SNAPSHOT_QUAL = Bytes.toBytes("sq");
-//   private static final byte[] SNAPSHOT_VALUE = Bytes.toBytes("sv");
    private static HTable table;
    private static HConnection connection;
 
-   private static int     versions;
    private boolean disableBlockCache;
 
    private int SnapshotRetryDelay;
@@ -129,6 +150,11 @@ public class SnapshotMeta {
    private static STRConfig pSTRConfig = null;
    private static int myClusterId;
 
+   /**
+    * SnapshotMeta
+    * @param Configuration config
+    * @throws Exception
+    */
    public SnapshotMeta (Configuration config) throws Exception  {
 
       this.config = config;
@@ -184,6 +210,12 @@ public class SnapshotMeta {
       return;
    }
 
+   /**
+    * initializeSnapshot
+    * @param long key
+    * @param String tag
+    * @throws Exception
+    */
    public void initializeSnapshot(final long key, final String tag) throws Exception {
 
       if (LOG.isTraceEnabled()) LOG.trace("initializeSnapshot start for key " + key + " tag " + tag);
@@ -226,6 +258,11 @@ public class SnapshotMeta {
       if (LOG.isTraceEnabled()) LOG.trace("initializeSnapshot exit");
    }
 
+   /**
+    * putRecord
+    * @param SnapshotMetaStartRecord record
+    * @throws Exception
+    */
    public void putRecord(final SnapshotMetaStartRecord record) throws Exception {
 
       if (LOG.isTraceEnabled()) LOG.trace("putRecord start for snapshot START record " + record);
@@ -268,6 +305,11 @@ public class SnapshotMeta {
       if (LOG.isTraceEnabled()) LOG.trace("putRecord (start record) exit");
    }
 
+   /**
+    * putRecord
+    * @param SnapshotMetaRecord record
+    * @throws Exception
+    */
    public void putRecord(final SnapshotMetaRecord record) throws Exception {
 
       if (LOG.isTraceEnabled()) LOG.trace("putRecord start for record " + record);
@@ -313,6 +355,11 @@ public class SnapshotMeta {
       if (LOG.isTraceEnabled()) LOG.trace("putRecord exit");
    }
 
+   /**
+    * getSnapshotRecord
+    * @param long key
+    * @throws Exception
+    */
    public SnapshotMetaRecord getSnapshotRecord(final long key) throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("getSnapshotRecord start for key " + key);
       SnapshotMetaRecord record;
@@ -355,6 +402,11 @@ public class SnapshotMeta {
       return record;
    }
 
+   /**
+    * getPriorStartRecord
+    * @param long key
+    * @throws Exception
+    */
    public SnapshotMetaStartRecord getPriorStartRecord(final long key) throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("getPriorStartRecord start for key " + key);
       System.out.println("getPriorStartRecord start for key " + key);
@@ -415,6 +467,11 @@ public class SnapshotMeta {
       return record;	   
    }
 
+   /**
+    * getCurrentStartRecordId
+    * @return long Id
+    * @throws Exception
+    */
    public long getCurrentStartRecordId() throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("getCurrentStartRecordId start");
       System.out.println("getCurrentStartRecordId start");
@@ -465,6 +522,12 @@ public class SnapshotMeta {
       return record.getKey();	   
    }
 
+   /**
+    * getCurrentSnapshotId
+    * @param String tableName
+    * @return long Id
+    * @throws Exception
+    */
    public long getCurrentSnapshotId(final String tableName) throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("getCurrentSnapshotId start for tableName " + tableName);
       System.out.println("getCurrentSnapshotId start for tableName " + tableName);
@@ -521,6 +584,12 @@ public class SnapshotMeta {
       return record.getKey();	   
    }
    
+   /**
+    * getPriorSnapshotSet
+    * @param long key
+    * @return ArrayList<SnapshotMetaRecord> set
+    * @throws Exception
+    */
    public ArrayList<SnapshotMetaRecord> getPriorSnapshotSet(final long key) throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet start for key " + key);
       System.out.println("getPriorSnapshotSet start for key " + key);
@@ -606,6 +675,12 @@ public class SnapshotMeta {
       return returnList;	   
    }
 
+   /**
+    * deleteRecord
+    * @param long key
+    * @return boolean success
+    * @throws Exception
+    */
    public static boolean deleteRecord(final long key) throws IOException {
       if (LOG.isTraceEnabled()) LOG.trace("deleteRecord start for key: " + key);
       try {
