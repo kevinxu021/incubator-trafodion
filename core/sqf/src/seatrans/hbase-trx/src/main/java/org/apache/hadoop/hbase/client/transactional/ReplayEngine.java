@@ -129,7 +129,7 @@ public class ReplayEngine {
     private FileSystem fileSystem = null;
     long timeStamp = 0;
 
-    Htable table;
+  //  Htable table;
   
     public ReplayEngine(long timestamp) throws Exception {
         if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine constructor:");
@@ -139,7 +139,7 @@ public class ReplayEngine {
         fileSystem = FileSystem.get(config);
         RecoveryRecord recoveryRecord = new RecoveryRecord(timestamp);
         
-        table = new HTable (config, tableName);
+      //  table = new HTable (config, tableName);
 
         Map<String, TableRecoveryGroup> recoveryTableMap = recoveryRecord.getRecoveryTableMap();
 
@@ -243,7 +243,7 @@ public void mutationReaderFile(Path readPath) throws IOException {
                 */  // complete current txnMutationProto    
 
 		  // here use HBase client API to do HTable for lists puts and deletes 
-		  mutationReplay(puts, deletes); // here is replay transaction by transaction (may just use HBase client API)
+		//  mutationReplay(puts, deletes); // here is replay transaction by transaction (may just use HBase client API)
                   tmm  = TransactionMutationMsg.parseDelimitedFrom(input); 
 	      } // more than one tsm inside a KV
 	      
@@ -277,8 +277,8 @@ public void mutationReaderFile(Path readPath) throws IOException {
       
       try {
         
-       table.put(puts);
-       table.delete(deletes);
+     //  table.put(puts);
+     //  table.delete(deletes);
 
       } catch(Exception e) {
           StringWriter sw = new StringWriter();
