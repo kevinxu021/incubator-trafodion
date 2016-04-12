@@ -283,7 +283,7 @@ void tm_start_lockThread()
    lp_tmLockThread = new CTmLockThread(lockThread_main, -2, (const char *) &lv_name);
    if (!lp_tmLockThread)
    {
-      tm_log_event(DTM_TMTIMER_FAILED, SQ_LOG_CRIT, "DTM_TMTIMER_FAILED");
+      tm_log_event(DTM_TMLOCKTHREAD_FAILED, SQ_LOG_CRIT, "DTM_TMLOCKTHREAD_FAILED");
       TMTrace(1, ("tm_start_lockThread - Failed to instantiate lock thread object\n"));
       abort();
    }
