@@ -349,7 +349,7 @@ define([
 						"mRender": function ( data, type, full ) {
 							if (type === 'display') {
 								var rowcontent = "<a href=\"#/workloads/history/querydetail/" +
-								data+"\">"+data+"</a>";
+								encodeURIComponent(data)+"\">"+data+"</a>";
 								return rowcontent;
 							}
 							else return data;

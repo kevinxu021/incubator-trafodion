@@ -200,7 +200,7 @@ define([
 		explainQuery: function(){
 			var queryText = queryTextEditor.getValue(); //$('#query-text').text();
 			sessionStorage.setItem(queryID, JSON.stringify({type: 'repo', text: queryText}));	
-			window.location.hash = '/workloads/queryplan/'+queryID;
+			window.location.hash = '/workloads/queryplan/'+encodeURIComponent(queryID);
 		},
 		fetchRepositoryQueryDetail: function(){
 			_this.showLoading();
@@ -242,19 +242,19 @@ define([
 			connDataSet.push(["Process Name", result.metrics.process_name]);
 			connDataSet.push(["Master Process ID", result.metrics.master_process_id]);
 			connDataSet.push(["Submit Time", common.toServerLocalDateFromUtcMilliSeconds(result.metrics.submit_utc_ts)]);
-			connDataSet.push(["Node Count", result.metrics.num_nodes]);
+			connDataSet.push(["Node Count", common.formatNumberWithCommas(result.metrics.num_nodes)]);
 
 			var compDataSet = [];
 			compDataSet.push(["Compile Start Time", common.toServerLocalDateFromUtcMilliSeconds(result.metrics.compile_start_utc_ts)]);
 			compDataSet.push(["Compile End Time", common.toServerLocalDateFromUtcMilliSeconds(result.metrics.compile_end_utc_ts)]);
-			compDataSet.push(["Compile Elapsed Time", common.millisecondsToString(result.metrics.compile_elapsed_time/1000)]);
+			compDataSet.push(["Compile Elapsed Time", common.microsecondsToStringExtend(result.metrics.compile_elapsed_time)]);
 			compDataSet.push(["Degree of Parallelism", result.metrics.cmp_dop]);
 			compDataSet.push(["Number of Joins", result.metrics.cmp_num_joins]);
 			compDataSet.push(["Full Scan", result.metrics.cmp_full_scan_on_table]);
-			compDataSet.push(["Est.Accessed Rows", result.metrics.est_accessed_rows]);
-			compDataSet.push(["Est.Used Rows", result.metrics.est_used_rows]);
+			compDataSet.push(["Est.Accessed Rows", common.formatNumberWithCommas(result.metrics.est_accessed_rows)]);
+			compDataSet.push(["Est.Used Rows", common.formatNumberWithCommas(result.metrics.est_used_rows)]);
 			compDataSet.push(["Est.Cost", result.metrics.est_cost]);
-			compDataSet.push(["Est.Cardinality", result.metrics.est_cardinality]);
+			compDataSet.push(["Est.Cardinality", common.formatNumberWithCommas(result.metrics.est_cardinality)]);
 			compDataSet.push(["Est.Memory Use", common.bytesToSize(result.metrics.est_total_mem*1024)]);
 			compDataSet.push(["Est.CPU Time", common.millisecondsToString(result.metrics.est_cpu_time*1000)]);
 			compDataSet.push(["Est.IO Time", common.millisecondsToString(result.metrics.est_io_time*1000)]);
@@ -265,12 +265,12 @@ define([
 			compDataSet.push(["Compile Overflow Size", common.bytesToSize(result.metrics.cmp_overflow_size*1024)]);
 
 			var runtimeDataSet = [];
-			runtimeDataSet.push(["Query Elapsed Time", common.millisecondsToString(result.metrics.query_elapsed_time/1000)]);
+			runtimeDataSet.push(["Query Elapsed Time", common.microsecondsToStringExtend(result.metrics.query_elapsed_time)]);
 			connDataSet.push(["Process Count", result.metrics.processes_created]);
-			runtimeDataSet.push(["Total SQL Process Busy Time", common.millisecondsToString(result.metrics.sql_process_busy_time/1000)]);
-			runtimeDataSet.push(["Disk Process Busy Time", common.millisecondsToString(result.metrics.disk_process_busy_time/1000)]);
-			runtimeDataSet.push(["Master Execution Time", common.millisecondsToString(result.metrics.master_execution_time/1000)]);
-			runtimeDataSet.push(["Disk IOs", result.metrics.disk_ios]);
+			runtimeDataSet.push(["Total SQL Process Busy Time", common.microsecondsToStringExtend(result.metrics.sql_process_busy_time)]);
+			runtimeDataSet.push(["Disk Process Busy Time", common.microsecondsToStringExtend(result.metrics.disk_process_busy_time)]);
+			runtimeDataSet.push(["Master Execution Time", common.microsecondsToStringExtend(result.metrics.master_execution_time)]);
+			runtimeDataSet.push(["Disk IOs", common.formatNumberWithCommas(result.metrics.disk_ios)]);
 			runtimeDataSet.push(["SQL Process Count", result.metrics.num_sql_processes]);
 			runtimeDataSet.push(["Total Memory Allocated", common.bytesToSize(result.metrics.total_mem_alloc*1024)]);
 			runtimeDataSet.push(["Max. Memory Used", common.bytesToSize(result.metrics.max_mem_used*1024)]);
@@ -279,7 +279,7 @@ define([
 			runtimeDataSet.push(["SQL Error Code", result.metrics.sql_error_code]);
 			runtimeDataSet.push(["Error Text", result.metrics.error_text]);
 			runtimeDataSet.push(["AQR Retry Count", result.metrics.total_num_aqr_retries]);
-			runtimeDataSet.push(["IUD Row Count", result.metrics.num_rows_iud]);
+			runtimeDataSet.push(["IUD Row Count", common.formatNumberWithCommas(result.metrics.num_rows_iud)]);
 			runtimeDataSet.push(["Messages To Disk", result.metrics.msgs_to_disk]);
 			runtimeDataSet.push(["Message Size to Disk", common.bytesToSize(result.metrics.msg_bytes_to_disk)]);
 			runtimeDataSet.push(["Overflow Size Written", common.bytesToSize(result.metrics.ovf_buffer_bytes_written*1024)]);
