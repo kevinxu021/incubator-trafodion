@@ -548,7 +548,7 @@ public class DatabaseResource {
 		try {
 			String queryText = String.format(
 					SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_HISTOGRAM_STATISTICS),
-					InternalForm(schemaName), objectID);
+					ExternalForm(schemaName), objectID);
 			_LOG.debug(queryText);
 			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
