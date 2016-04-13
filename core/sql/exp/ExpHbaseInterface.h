@@ -290,8 +290,7 @@ class ExpHbaseInterface : public NABasicObject
 		  NABoolean noXn,
 		  const NABoolean replSync,
 		  const int64_t timestamp,
-		  NABoolean autoFlush = TRUE,
-                  NABoolean asyncOperation = FALSE) = 0; // by default, flush rows after put
+                  NABoolean asyncOperation) = 0; 
 
  virtual Lng32 updateVisibility(
       HbaseStr tblName,
@@ -388,9 +387,6 @@ class ExpHbaseInterface : public NABasicObject
 
   virtual ByteArrayList* getRegionBeginKeys(const char*) = 0;
   virtual ByteArrayList* getRegionEndKeys(const char*) = 0;
-
-  virtual Lng32 flushTable() = 0;
-  static Lng32 flushAllTables();
 
   virtual Lng32 estimateRowCount(HbaseStr& tblName,
                                  Int32 partialRowSize,
@@ -626,8 +622,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 		  NABoolean noXn,
 		  const NABoolean replSync,
 		  const int64_t timestamp,
-		  NABoolean autoFlush = TRUE,
-                  NABoolean asyncOperation = FALSE); // by default, flush rows after put
+                  NABoolean asyncOperation); 
   
   virtual Lng32 updateVisibility(
        HbaseStr tblName,
@@ -725,7 +720,6 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
   virtual ByteArrayList* getRegionBeginKeys(const char*);
   virtual ByteArrayList* getRegionEndKeys(const char*);
 
-  virtual Lng32 flushTable();
   virtual Lng32 estimateRowCount(HbaseStr& tblName,
                                  Int32 partialRowSize,
                                  Int32 numCols,
