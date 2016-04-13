@@ -7149,6 +7149,20 @@ RelExpr *Scan::bindNode(BindWA *bindWA)
   if (bindWA->errStatus()) 
     return this;
 
+  if (naTable->isHiveTable())
+  {
+    if (naTable->getClusteringIndex()->numHivePartCols() > 0)
+    {
+      if ((NOT IsEnterpriseLevel()) || (NOT IsAdvancedLevel()))
+        {
+          *CmpCommon::diags() << DgSqlCode(-4222)
+                              << DgString0("Partitioned Hive");
+          bindWA->setErrStatus();
+          return this;
+        }
+    }
+  }
+
   // Set up stoi.  bindWA->viewCount is altered during expanding the view.
   setupStoi(stoi_, bindWA, this, naTable, getTableName(), noSecurityCheck());
 
@@ -8952,11 +8966,22 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
 
   if (getTableDesc()->getNATable()->isHiveTable())
   {
+    if (getTableDesc()->getNATable()->getClusteringIndex()->numHivePartCols() > 0)
+    {
+      if ((NOT IsEnterpriseLevel()) || (NOT IsAdvancedLevel()))
+        {
+          *CmpCommon::diags() << DgSqlCode(-4222)
+                              << DgString0("Partitioned Hive");
+          bindWA->setErrStatus();
+          return boundExpr;
+        }
+    }
+
     RelExpr * mychild = child(0);
 
     const HHDFSTableStats* hTabStats = 
       getTableDesc()->getNATable()->getClusteringIndex()->getHHDFSTableStats();
-				 
+
     const char * hiveTablePath;
     NAString hostName;
     Int32 hdfsPort;
