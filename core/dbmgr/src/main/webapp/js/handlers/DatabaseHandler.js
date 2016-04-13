@@ -51,6 +51,7 @@ define(['handlers/EventDispatcher'],
 					}
 					
 					xhrs["objectlist"] = $.ajax({
+						cache: false,
 						url: uri,
 						type:'GET',
 						dataType:"json",
@@ -90,6 +91,7 @@ define(['handlers/EventDispatcher'],
 					}
 					
 					xhrs["fetchAttributes"] = $.ajax({
+						cache: false,
 						url: uri,
 						type:'GET',
 						dataType:"json",
@@ -130,6 +132,7 @@ define(['handlers/EventDispatcher'],
 					}
 					
 					xhrs["fetchddl"] = $.ajax({
+						cache: false,
 						url: uri,
 						type:'GET',
 						dataType:"json",
@@ -163,6 +166,7 @@ define(['handlers/EventDispatcher'],
 					}
 					
 					xhrs["fetchColumns"] = $.ajax({
+						cache: false,
 						url: uri,
 						type:'GET',
 						dataType:"json",
@@ -195,6 +199,7 @@ define(['handlers/EventDispatcher'],
 					}
 					
 					xhrs["fetchRegions"] = $.ajax({
+						cache: false,
 						url: uri,
 						type:'GET',
 						dataType:"json",
@@ -230,6 +235,7 @@ define(['handlers/EventDispatcher'],
 					}
 					
 					xhrs["fetchPrivileges"] = $.ajax({
+						cache: false,
 						url: uri,
 						type:'GET',
 						dataType:"json",
@@ -265,6 +271,7 @@ define(['handlers/EventDispatcher'],
 					}
 					
 					xhrs["fetchUsages"] = $.ajax({
+						cache: false,
 						url: uri,
 						type:'GET',
 						dataType:"json",
@@ -300,6 +307,7 @@ define(['handlers/EventDispatcher'],
 					}
 					
 					xhrs["fetchStatistics"] = $.ajax({
+						cache: false,
 						url: uri,
 						type:'GET',
 						dataType:"json",

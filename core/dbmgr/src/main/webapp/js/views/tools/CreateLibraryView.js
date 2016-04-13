@@ -6,7 +6,8 @@
 
 define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		'handlers/ToolsHandler', 'moment', 'common', 'views/RefreshTimerView',
-		'jqueryui', 'datatables.net', 'datatables.net-bs', 'jqueryvalidate'
+		'jqueryui', 'datatables.net', 'datatables.net-bs', 'jqueryvalidate',
+        'bootstrapNotify'
  ], function(BaseView,
 		CreateLibraryT, $, tHandler, moment, common, refreshTimer) {
 	'use strict';
@@ -32,6 +33,8 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 
 		doInit : function(args) {
 			_this = this;
+			common.redirectFlag=false;
+			this.currentURL = window.location.hash;
 			$(CREATE_BTN).on('click', this.uploadFile);
 			$(CLEAR_BTN).on('click', this.cleanField);
 			$(FILE_SELECT).on('change', this.onFileSelected);
@@ -68,9 +71,12 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			});
 		},
 		doResume : function(args) {
+			this.currentURL = window.location.hash;
+			common.redirectFlag=false;
 			validator.resetForm();
 		},
 		doPause : function() {
+			common.redirectFlag=true;
 			validator.resetForm();
 		},
 		
@@ -161,7 +167,14 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				$(LOADING).css('visibility', 'hidden');
 				$(CREATE_BTN).prop('disabled', false);
 				$(CLEAR_BTN).prop('disabled', false);
-				alert("Create library Success!");
+				var msgObj={msg:'The library has been successfully created',tag:"success",url:_this.currentURL,shortMsg:"Library created successfully."};
+				if(common.redirectFlag==false){
+					_this.popupNotificationMessage(null,msgObj);
+				}else{
+					
+					common.fire(common.NOFITY_MESSAGE,msgObj);
+				}
+				//alert("Create library Success!");
 			}else if(UPLOAD_INDEX==UPLOAD_LENGTH-1){
 				_this.executeUploadChunk(false, true);
 			}else{
@@ -174,7 +187,14 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			$(CLEAR_BTN).prop('disabled', false);
 			var errorIndex = error.responseText.lastIndexOf("*** ERROR");
 			var errorString = error.responseText.substring(errorIndex);
-			alert(errorString);
+			//alert(errorString);
+			var msgObj={msg:errorString,tag:"danger",url:_this.currentURL,shortMsg:"Create library failed."};
+			if(common.redirectFlag==false){
+				_this.popupNotificationMessage(null,msgObj);
+			}else{
+				
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
 		}
 	});
 

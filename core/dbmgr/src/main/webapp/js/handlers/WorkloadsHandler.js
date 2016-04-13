@@ -63,6 +63,7 @@ define(['handlers/EventDispatcher'],
 						xhr.abort();
 					}
 					xhrs["repo_detail"] = $.ajax({
+						cache: false,
 						url: 'resources/workloads/repo/detail?queryID=' + queryID,
 						type:'GET',
 						dataType:"json",
@@ -87,6 +88,7 @@ define(['handlers/EventDispatcher'],
 						xhr.abort();
 					}
 					xhrs["cancel_query"] = $.ajax({
+						cache: false,
 						url: 'resources/workloads/cancel?queryID=' + queryID,
 						type:'DELETE',
 						dataType:"json",
@@ -131,6 +133,7 @@ define(['handlers/EventDispatcher'],
 						xhr.abort();
 					}
 					xhrs["active_list"] = $.ajax({
+						cache: false,
 						url: 'resources/workloads/active',
 						type:'GET',
 						dataType:"json",
@@ -155,6 +158,7 @@ define(['handlers/EventDispatcher'],
 						xhr.abort();
 					}
 					xhrs["active_detail"] = $.ajax({
+						cache: false,
 						url: 'resources/workloads/active/detailnew?queryID=' + queryID,
 						type:'GET',
 						dataType:"json",
