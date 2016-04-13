@@ -185,7 +185,10 @@ public:
                             HiveNodeMapEntry*& entry,
                             Int64 totalBytesPerESP,
                             Int32 numOfBytesToReadPerRow,
-                            HHDFSListPartitionStats *partition);
+                            HHDFSListPartitionStats *partition,
+			    Int64& filled);
+
+  virtual NABoolean splitsAllowed() const;
 
 protected:
   NAString fileName_;
@@ -235,7 +238,10 @@ protected:
                     HiveNodeMapEntry*& entry,
                     Int64 totalBytesPerESP,
                     Int32 numOfBytesToReadPerRow,
-                    HHDFSListPartitionStats *partition);
+                    HHDFSListPartitionStats *partition,
+		    Int64& filled);
+
+  NABoolean splitsAllowed() const {return TRUE;}
   
 protected:
   
