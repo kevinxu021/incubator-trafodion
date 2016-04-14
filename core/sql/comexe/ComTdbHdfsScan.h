@@ -140,7 +140,8 @@ class ComTdbHdfsScan : public ComTdb
   Int32 virtColsRowLength_;                                   // 204 - 207
   Int32 numPartCols_;                                         // 208 - 211
   ExExprPtr partElimExpr_;                                    // 212 - 219
-  char fillersComTdbHdfsScan1_[16];                           // 220 - 235
+  UInt32  hiveScanMode_;                                      // 220 - 223
+  char fillersComTdbHdfsScan1_[12];                           // 224 - 235
 
 public:
   enum HDFSFileType
@@ -235,6 +236,8 @@ public:
   void   setLoggingLocation(char * v ) { loggingLocation_ = v; }
   char * getErrCountRowId() { return errCountRowId_; }
   void   setErrCountRowId(char * v ) { errCountRowId_ = v; }
+  void   setHiveScanMode(UInt32 v ) { hiveScanMode_ = v; }
+  UInt32 getHiveScanMode() { return hiveScanMode_; }
 
   Queue* getHdfsFileInfoList() {return hdfsFileInfoList_;}
   Queue* getHdfsFileRangeBeginList() {return hdfsFileRangeBeginList_;}
