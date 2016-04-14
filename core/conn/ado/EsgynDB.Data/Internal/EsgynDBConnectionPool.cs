@@ -2,14 +2,15 @@
 {
     using System.Collections.Generic;
     using System.Collections;
+    using System;
 
     internal sealed class ConnectionPool
     {
-        private List<PooledConnection> _pool;
+        internal List<PooledConnection> _pool;
 
         private EsgynDBConnectionStringBuilder _builder;
 
-        private readonly List<string> poolAccessLock = new List<string>();
+        private static readonly List<string> poolAccessLock = new List<string>();
 
         public ConnectionPool(EsgynDBConnectionStringBuilder builder)
         {
@@ -20,9 +21,12 @@
 
         public bool ReturnConnection(EsgynDBConnection conn)
         {
-            lock (this.poolAccessLock)
+            lock (poolAccessLock)
             {
-                PooledConnection pooledConn = _pool.Find(x => x.Connection == conn || x.RefConnection == conn);
+                PooledConnection pooledConn = _pool.Find(x => x.Connection.RemoteAddress != null
+                    && x.Connection.RemotePort == conn.RemotePort
+                    && x.Connection.RemoteProcess.Equals(conn.RemoteProcess));
+
                 if (pooledConn != null)
                 {
                     //Handle connection timeout in the future
@@ -36,31 +40,45 @@
             }
         }
 
+        public void AddConnection(EsgynDBConnection conn)
+        {
+            lock (poolAccessLock)
+            {
+                if (_pool.Count >= this._builder.MaxPoolSize)
+                {
+                    EsgynDBException e = new EsgynDBException(EsgynDBMessage.PoolExhuasted, this._builder.MaxPoolSize);
+                    EsgynDBException.ThrowException(conn, e);
+                    //waiting for connecting, done in the future
+                }
+                if (conn != null)
+                {
+                    EsgynDBConnection newConn = new EsgynDBConnection(conn.ConnectionString);
+                    newConn.CopyProperties(conn);
+                    PooledConnection pc = new PooledConnection(newConn);
+                    pc.Status = PooledConnection.IN_USE;
+                    this._pool.Add(pc);
+                }
+            }
+        }
+
         public EsgynDBConnection GetConnection(EsgynDBConnection conn)
         {
-            lock (this.poolAccessLock)
+            lock (poolAccessLock)
             {
                 PooledConnection pooledConn = _pool.Find(x => x.Status == PooledConnection.AVAILABLE);
+
                 if (pooledConn != null)
                 {
                     pooledConn.Status = PooledConnection.IN_USE;
                     try
                     {
-                        pooledConn.RefConnection = conn;
                         pooledConn.Connection.ResetIdleTimeout();
                         return pooledConn.Connection;
                     }
                     catch
                     {
                         pooledConn.Connection.Close(true);
-                        _pool.Remove(pooledConn);
                     }
-                }
-                if (conn != null && _pool.Count < this._builder.MaxPoolSize)
-                {
-                    PooledConnection pc = new PooledConnection(conn);
-                    pc.Status = PooledConnection.IN_USE;
-                    this._pool.Add(pc);
                 }
                 else if (_pool.Count >= this._builder.MaxPoolSize)
                 {
@@ -74,11 +92,16 @@
 
         internal bool RemoveConnection(EsgynDBConnection conn)
         {
-            lock (this.poolAccessLock)
+            lock (poolAccessLock)
             {
-                PooledConnection pooledConn = _pool.Find(x => x.Connection == conn || x.RefConnection == conn);
+                PooledConnection pooledConn = _pool.Find(x => x.Connection.RemoteAddress != null
+                    && x.Connection.RemotePort == conn.RemotePort
+                    && x.Connection.RemoteProcess.Equals(conn.RemoteProcess));
                 if (pooledConn != null)
+                {
+                    pooledConn.Status = PooledConnection.DISABLE;
                     return _pool.Remove(pooledConn);
+                }
                 return true;
             }
         }

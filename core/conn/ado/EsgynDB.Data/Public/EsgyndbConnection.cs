@@ -1,15 +1,15 @@
 namespace EsgynDB.Data
 {
-    using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.Data;
     using System.Data.Common;
-    using System.Diagnostics;
     using System.Text;
-    using System.Threading;
     using System.Windows.Forms;
     using System.Net.Sockets;
+    using System;
+    using System.Diagnostics;
+    using System.Threading;
 
     /// <summary>
     /// Represents an open connection to a EsgynDB database. This class cannot be inherited.
@@ -383,23 +383,22 @@ namespace EsgynDB.Data
 
         internal void Close(bool forceClose)
         {
-            Close(forceClose, true);
+            Close(forceClose, false);
         }
 
         /// <summary>
         /// Disconnect will call doIO
         /// If doIO has any network issue, it can't continue to disconnect server throught IO.
         /// </summary>
-        internal void Close(bool forceClose, bool disconnectSrvrSide)
+        internal void Close(bool forceClose, bool networkErr)
         {
             if (EsgynDBTrace.IsPublicEnabled)
             {
                 EsgynDBTrace.Trace(this, TraceLevel.Public, forceClose);
             }
-
-            try
+            lock (asSrvrLock)
             {
-                lock (asSrvrLock)
+                try
                 {
                     // unless we need to force close the connection in the pool, ignore requests if the connection is already
                     // marked as closed
@@ -422,7 +421,10 @@ namespace EsgynDB.Data
                             {
                                 try
                                 {
-                                    this.RemoveCommand(this.Commands[0]);
+                                    if (!networkErr && !this.Network.isIdleTimeout)
+                                        this.RemoveCommand(this.Commands[0]);
+                                    else
+                                        this.Commands.RemoveAt(0);
                                 }
                                 catch
                                 {
@@ -430,11 +432,11 @@ namespace EsgynDB.Data
                                     //Doesn't matter if got any error
                                 }
                             }
-                            
+
                         }
-                        
+
                         // close the connection
-                        if ((forceClose || this.ConnectionStringBuilder.MaxPoolSize <= 0) && !this.Network.IsClosed && disconnectSrvrSide)
+                        if ((forceClose || this.ConnectionStringBuilder.MaxPoolSize <= 0) && !this.Network.IsClosed && !networkErr && !this.Network.isIdleTimeout)
                         {
                             lock (this.dataAccessLock)
                             {
@@ -445,13 +447,19 @@ namespace EsgynDB.Data
                         }
                     }
                 }
-            }
-            catch
-            { //close should never throw an exception
-            }
-            finally
-            {
-                this.SetState(ConnectionState.Closed);
+                catch(Exception xx)
+                { //close should never throw an exception
+                }
+                finally
+                {
+                    try
+                    {
+                        this.SetState(ConnectionState.Closed);
+                    }
+                    catch
+                    {//in case of idle timeout exception
+                    }
+                }
             }
         }
 
@@ -543,18 +551,16 @@ namespace EsgynDB.Data
             {
                 EsgynDBTrace.Trace(this, TraceLevel.Public, this.ConnectionStringBuilder.TraceableConnectionString);
             }
-
-            if (this._state != ConnectionState.Closed)
+            lock (asSrvrLock)
             {
-                throw new Exception("bad connection state");
-            }
-
-            bool initialized = false;
-            string connectionString = this.ConnectionStringBuilder.ConnectionString;
-            ConnectionPool pool;
-            Monitor.Enter(EsgynDBConnection._connPools);
-            try
-            {
+                if (this._state != ConnectionState.Closed)
+                {
+                    throw new Exception("bad connection state");
+                }
+                
+                bool initialized = false;
+                string connectionString = this.ConnectionStringBuilder.ConnectionString;
+                ConnectionPool pool = null;
                 if (this.ConnectionStringBuilder.MaxPoolSize > 0)
                 {
                     if (!EsgynDBConnection._connPools.ContainsKey(connectionString))
@@ -566,7 +572,6 @@ namespace EsgynDB.Data
                     {
                         pool = EsgynDBConnection._connPools[connectionString];
                     }
-
                     EsgynDBConnection conn = pool.GetConnection(this);
                     if (conn != null)
                     {
@@ -579,34 +584,34 @@ namespace EsgynDB.Data
 
                     }
                 }
-            }
-            finally
-            {
-                Monitor.Exit(EsgynDBConnection._connPools);
-            }
 
-            if (!initialized)
-            {
-                this.ParseServerString(this.ConnectionStringBuilder.Server);
-
-                this.CreateConnectionContext();
-                this.CreateUserDescription();
-
-                GetObjRefReply reply = this.GetObjRef();
-
-                this._cc.InContextOptions1 |= ConnectionContextOptions1.CertTimestamp;
-
-                if (reply.securityEnabled)
+                if (!initialized)
                 {
-                    this.SecureLogin(reply);
-                }
-                else
-                {
-                    this._ud.Password = this.EncodePassword(this.ConnectionStringBuilder.Password);
-                    this.InitDiag(false);
-                }
+                    this.ParseServerString(this.ConnectionStringBuilder.Server);
 
-                this.SetState(ConnectionState.Open);
+                    this.CreateConnectionContext();
+                    this.CreateUserDescription();
+
+                    GetObjRefReply reply = this.GetObjRef();
+
+                    this._cc.InContextOptions1 |= ConnectionContextOptions1.CertTimestamp;
+
+                    if (reply.securityEnabled)
+                    {
+                        this.SecureLogin(reply);
+                    }
+                    else
+                    {
+                        this._ud.Password = this.EncodePassword(this.ConnectionStringBuilder.Password);
+                        this.InitDiag(false);
+                    }
+
+                    this.SetState(ConnectionState.Open);
+                    if (pool != null)
+                    {
+                        pool.AddConnection(this);
+                    }
+                }
             }
         }
 
@@ -1155,7 +1160,7 @@ namespace EsgynDB.Data
             this._security.SwitchCertificate(reply.outConnectionContext.certificate);
         }
 
-        private void CopyProperties(EsgynDBConnection conn)
+        internal void CopyProperties(EsgynDBConnection conn)
         {
             this._asAddress = conn._asAddress;
             this._asPort = conn._asPort;

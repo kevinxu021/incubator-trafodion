@@ -93,7 +93,7 @@ namespace EsgynDB.Data
             _defaults.Add("RetryCount", "12");
             _defaults.Add("RetryTime", "5000");
             _defaults.Add("TcpKeepAlive", "True");
-            _defaults.Add("IdleTimeout", "-1");
+            _defaults.Add("IdleTimeout", "600");
             _defaults.Add("LoginTimeout", "300");
             _defaults.Add("CommandTimeout", "0");
             _defaults.Add("FetchBufferSize", "4096");

@@ -461,16 +461,6 @@ namespace EsgynDB.Data
             catch (Exception e)
             {
                 forceClose = true;
-                if (e.InnerException != null && typeof(SocketException) == e.InnerException.GetType())
-                {
-                    SocketException se = (SocketException)e.InnerException;
-                    if (se.ErrorCode == 10060)
-                    {
-                        this._connection.Cancel();
-                    }
-                    //Mark network as closed while has socket issue in case of disconnect -> doIO ->disconnect
-                    this._connection.Network.IsClosed = true;
-                }
                 EsgynDBException.ThrowException(this._connection, new CommunicationsFailureException(e));
             }
             finally
@@ -478,7 +468,7 @@ namespace EsgynDB.Data
                 Monitor.Exit(this._ds);
                 if (forceClose)
                 {
-                    this._connection.Close(true, false);
+                    this._connection.Close(true, true);
                 }
             }
         }
