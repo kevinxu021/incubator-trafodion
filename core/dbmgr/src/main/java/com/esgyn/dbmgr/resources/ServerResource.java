@@ -148,9 +148,12 @@ public class ServerResource {
 		objNode.put("dcsMasterInfoUri", server.getDcsMasterInfoUri());
 		objNode.put("enableAlerts", server.isAlertsEnabled());
 
-		if (ConfigurationResource.getSystemVersion() != null
-				&& ConfigurationResource.getSystemVersion().toLowerCase().contains("enterprise")) {
-			objNode.put("systemType", 1);
+		if (ConfigurationResource.getSystemVersion() != null) {
+			if (ConfigurationResource.getSystemVersion().toLowerCase().contains("enterprise")) {
+				objNode.put("systemType", 1);
+			} else if (ConfigurationResource.getSystemVersion().toLowerCase().contains("advanced")) {
+				objNode.put("systemType", 2);
+			}
 		}
 
 		objNode.put("systemVersion", ConfigurationResource.getSystemVersion());
