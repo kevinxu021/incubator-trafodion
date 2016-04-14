@@ -35,12 +35,8 @@ import org.apache.commons.logging.LogFactory;
  * of a full snapshot operation.  Such records are not written for partial
  * snapshots.
  * 
- * SEE ALSO:
- * <ul>
- * <li> SnapshotMetaRecord
- * {@link SnapshotMetaRecord}
- * </li>
- * </ul>
+ * @see org.apache.hadoop.hbase.client.transactional.SnapshotMetaRecord#SnapshotMetaRecord(final long key, final boolean startRecord, final String tableName, final String userTag, 
+		     final String snapshotPath)
  */
 public class SnapshotMetaStartRecord {
 
@@ -51,6 +47,7 @@ public class SnapshotMetaStartRecord {
    private boolean startRecord;
    private String userTag;
    private boolean snapshotComplete;
+   private long completionTime;
    
    /**
     * SnapshotMetaStartRecord
@@ -60,7 +57,7 @@ public class SnapshotMetaStartRecord {
     * @throws IOException 
     */
    public SnapshotMetaStartRecord (final long key, final boolean startRecord, final String userTag) throws IOException{
-      this(key, startRecord, userTag, false);
+      this(key, startRecord, userTag, false, 0);
    }
 
    /**
@@ -69,14 +66,15 @@ public class SnapshotMetaStartRecord {
     * @param boolean startRecord
     * @param String userTag
     * @param boolean snapshotComplete
+    * @param long completionTime
     * @throws IOException 
     */
    public SnapshotMetaStartRecord (final long key, final boolean startRecord, final String userTag,
-		                             final boolean snapshotComplete) throws IOException{
+		                             final boolean snapshotComplete, final long completionTime) throws IOException{
  
       if (LOG.isTraceEnabled()) LOG.trace("Enter SnapshotMetaStartRecord constructor for key: " + key
     		  + " startRecord: " + startRecord + " userTag: " + userTag +
-    		  " snapshotComplete " + snapshotComplete);
+    		  " snapshotComplete " + snapshotComplete + " completionTime " + completionTime);
 
       this.key = key;
       this.startRecord = startRecord;
@@ -85,6 +83,7 @@ public class SnapshotMetaStartRecord {
        }
       this.userTag = new String(userTag);
       this.snapshotComplete = snapshotComplete;
+      this.completionTime = completionTime;
       
       if (LOG.isTraceEnabled()) LOG.trace("Exit SnapshotMetaStartRecord constructor() " + this.toString());
       return;
@@ -165,13 +164,34 @@ public class SnapshotMetaStartRecord {
    }
 
    /**
+    * getCompletionTime
+    * @return long
+    * 
+    * This method is called to retrieve the snapshot completion time.
+    */
+   public long getCompletionTime() {
+       return this.completionTime;
+   }
+
+   /**
+    * setCompletionTime
+    * @param long completionTime
+    * 
+    * This method is called to set the snapshot completion time.
+    */
+   public void setCompletionTime(final long completionTime) {
+       this.completionTime = completionTime;
+   }
+
+   /**
     * toString
     * @return String this
     */
    @Override
    public String toString() {
        return "SnaphotStartKey: " + key + ", startRecord: " + startRecord
-    		   + ", userTag: " + userTag + " snapshotComplete " + snapshotComplete;
+    		   + ", userTag: " + userTag + " snapshotComplete " + snapshotComplete
+    		   + ", completionTime " + completionTime;
    }
 
 }
