@@ -277,8 +277,8 @@ public class SnapshotMeta {
       p.add(SNAPSHOT_FAMILY, SNAPSHOT_QUAL,
     		  Bytes.toBytes(String.valueOf(record.getStartRecord()) + ","
                        + record.getUserTag() + ","
-                       + record.getSnapshotComplete() + ","
-                       + record.getCompletionTime()));
+                       + String.valueOf(record.getSnapshotComplete()) + ","
+                       + String.valueOf(record.getCompletionTime())));
 
       int retries = 0;
       boolean complete = false;
@@ -614,6 +614,10 @@ public class SnapshotMeta {
 
           try {
              for (Result r : ss) {
+            	if(r.isEmpty()){
+                    System.out.println("Empty result found in getPriorSnapshotSet ");
+            	}
+            		
                 long currKey = Bytes.toLong(r.getRow());
                 if (LOG.isTraceEnabled()) LOG.trace("currKey is " + currKey);
                 System.out.println("currKey is " + currKey);
@@ -693,6 +697,110 @@ public class SnapshotMeta {
       }
       System.out.println("getPriorSnapshotSet(): returning " + returnList.size() + " records");
       if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet(): returning " + returnList.size() + " records");
+      return returnList;	   
+   }
+
+   /**
+    * getPriorSnapshotSet
+    * @param String tag
+    * @return ArrayList<SnapshotMetaRecord> set
+    * @throws Exception
+    * 
+    * This method takes a String parameter that is the tag associated with the desired snapshot set
+    * and retrieves the snapshot set as a list to be used as part of a restore operation
+    */
+   public ArrayList<SnapshotMetaRecord> getPriorSnapshotSet(String tag) throws Exception {
+      if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet for tag " + tag);
+      System.out.println("getPriorSnapshotSet for tag " + tag);
+      ArrayList<SnapshotMetaRecord> returnList = new ArrayList<SnapshotMetaRecord>();
+      SnapshotMetaRecord record = null;
+      long snapshotStartId = 0;
+      long snapshotStopId = 0;
+      boolean tagFound = true;
+
+      try {
+          Scan s = new Scan();
+          s.setCaching(100);
+          s.setCacheBlocks(false);
+          ResultScanner ss = table.getScanner(s);
+
+          try {
+             for (Result r : ss) {
+                long currKey = Bytes.toLong(r.getRow());
+                if (LOG.isTraceEnabled()) LOG.trace("currKey is " + currKey);
+                System.out.println("currKey is " + currKey);
+                for (Cell cell : r.rawCells()) {
+                   StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
+                   if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
+                   if (st.hasMoreElements()) {
+                      String startRecordString = st.nextToken();
+                      if (startRecordString.contains("true")) {
+                         String userTagString           = st.nextToken();
+                         String snapshotCompleteString  = st.nextToken();
+                         if(snapshotCompleteString.contains("false")){
+                            // We found a start of a snapshot, but it never completed.  So we
+                            // must ignore the following snapshsots until we find another
+                            // snapshot that completed successfully.
+                            if (LOG.isTraceEnabled()) LOG.trace("Found a full snapshot for key " + currKey + " but it never completed; ignoring");
+                            System.out.println("Found a full snapshot for key " + currKey + " but it never completed; ignoring");
+                            continue;
+                         }
+
+                         String completionTimeString  = st.nextToken();
+                         
+                         // We found a snapshot start that was completed.  Let's see if the tag is the one we want
+                         if (userTagString.equals(tag)) {
+                            snapshotStartId = currKey;
+                            snapshotStopId = Long.parseLong(completionTimeString, 10);
+                            tagFound = true;
+                            continue;
+                         }
+                      }
+                      else {
+                         // This is a SnapshotMetaRecord, but if we haven't found the tag we are
+                         // looking for in a start record we ignore it rather than include it in the returnList
+                         if (tagFound != true) {
+                        	 continue;
+                         }
+                         
+                         // We have found the tag we are looking for, but now we need to ensure the
+                         // current record is not beyond the stopId of the full snapshot
+                         if (currKey > snapshotStopId) {
+                            break;
+                         }
+                         String tableNameString    = st.nextToken();
+                         String userTagString      = st.nextToken();
+                         String snapshotPathString = st.nextToken();
+                         String archivedString     = st.nextToken();
+                         String archivePathString  = st.nextToken();
+                         record = new SnapshotMetaRecord(currKey, startRecordString.contains("true"),
+                                 tableNameString, userTagString, snapshotPathString,
+                                 archivedString.contains("true"), archivePathString);
+
+                         returnList.add(record);
+                      }
+                   }
+                }
+            }
+         }
+         catch(Exception e){
+            LOG.error("getPriorSnapshotSet(tag) Exception getting results " + e);
+            throw new RuntimeException(e);
+         }
+         finally {
+            if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet(tag) closing ResultScanner");
+            ss.close();
+         }
+      }
+      catch(Exception e){
+          LOG.error("getPriorSnapshotSet(tag) Exception setting up scanner " + e);
+          throw new RuntimeException(e);
+      }
+      if (returnList.isEmpty()) {
+    	  throw new Exception("Prior record not found");    	  
+      }
+      System.out.println("getPriorSnapshotSet(tag): returning " + returnList.size() + " records");
+      if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet(tag): returning " + returnList.size() + " records");
       return returnList;	   
    }
 
