@@ -1002,6 +1002,7 @@ NA_EIDPROC
   virtual void done();
 
 NA_EIDPROC
+  virtual void addMessage(Lng32 x);
   virtual void addMessage(const char*);
   virtual void addMessage(const char*, Lng32);
 

@@ -4315,8 +4315,12 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
         executorPredicates_ -= hiveSearchKey_->getCompileTimePartColPreds();
         executorPredicates_ -= hiveSearchKey_->getPartAndVirtColPreds();
 
-	// assign individual files and blocks or stripes to each ESPs
-	((NodeMap *) getPartFunc()->getNodeMap())->assignScanInfos(hiveSearchKey_);
+	// Assign individual files and blocks or stripes to each ESPs.
+	// For repN part func, assign every file to every ESP.
+	if ( getPartFunc()-> isAReplicateNoBroadcastPartitioningFunction() )
+	 ((NodeMap *) getPartFunc()->getNodeMap())->assignScanInfosRepN(hiveSearchKey_);
+        else
+	 ((NodeMap *) getPartFunc()->getNodeMap())->assignScanInfos(hiveSearchKey_);
       }
     }
 

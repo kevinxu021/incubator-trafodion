@@ -2680,6 +2680,13 @@ void ExOperStats::done()
    fileout.close();
 }
 
+void ExOperStats::addMessage(Lng32 len)
+{
+   char msg[100];
+   snprintf(msg, sizeof(msg), "%d", len);
+   addMessage(msg, strlen(msg));
+}
+
 void ExOperStats::addMessage(const char* msg)
 {
    addMessage(msg, strlen(msg));
