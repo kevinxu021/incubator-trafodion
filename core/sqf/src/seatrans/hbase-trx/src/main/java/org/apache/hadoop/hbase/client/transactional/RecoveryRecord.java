@@ -139,8 +139,82 @@ public class RecoveryRecord {
    
    /**
     * RecoveryRecord
+    * @throws Exception
+    * 
+    * No input parameters for this constructor indicates the returned RecoveryRecord
+    * is for a restore operation as part of a backup/restore useage
+    */
+   public RecoveryRecord () throws Exception {
+
+     if (LOG.isTraceEnabled()) LOG.trace("Enter RecoveryRecord constructor()");
+     System.out.println("Enter RecoveryRecord constructor()");
+
+     Configuration  config;
+
+     SnapshotMeta sm;
+     SnapshotMetaRecord smr = null;
+     List<SnapshotMetaRecord> snapshotList = null;
+     MutationMeta mm;
+     MutationMetaRecord mmr = null;
+     List<MutationMetaRecord> mutationList = null;
+
+     config = HBaseConfiguration.create();
+     try {
+       HBaseAdmin admin = new HBaseAdmin(config);
+     }
+     catch (Exception e) {
+       if (LOG.isTraceEnabled()) LOG.trace("  Exception creating HBaseAdmin " + e);
+       System.out.println("  Exception creating HBaseAdmin " + e);
+       throw e;
+     }
+	    	 
+     try {
+       config.set("SNAPSHOT_TABLE_NAME", snapshotMetaTableName);
+       if (LOG.isTraceEnabled()) LOG.trace("  Creating SnapshotMeta object ");
+       System.out.println ("  Creating SnapshotMeta object ");
+       sm = new SnapshotMeta(config);
+     }
+     catch (Exception e) {
+       if (LOG.isTraceEnabled()) LOG.trace("  Exception creating SnapshotMeta " + e);
+       System.out.println("  Exception creating SnapshotMeta " + e);
+       throw e;
+     }
+
+     try {
+       config.set("MUTATION_TABLE_NAME", mutationMetaTableName);
+       if (LOG.isTraceEnabled()) LOG.trace("  Creating MutationMeta object ");
+       System.out.println ("  Creating MutationMeta object ");
+       mm = new MutationMeta(config);
+     }
+     catch (Exception e) {
+       if (LOG.isTraceEnabled()) LOG.trace("  Exception creating MutationMeta " + e);
+       System.out.println("  Exception creating MutationMeta " + e);
+       throw e;
+     }
+
+     try{
+       // Calling getPriorSnapshotSet without a timeId gets the snapshot set
+       // associated with the latest full snapshot
+       snapshotList = sm.getPriorSnapshotSet();
+     }
+     catch (Exception e){
+       if (LOG.isTraceEnabled()) LOG.trace("Exception getting the previous snapshots for a full snapshot" + " " + e);
+       System.out.println("Exception getting the previous snapshots for a full snapshot" + " " + e);
+       throw e;
+     }
+
+     // This recovery record is for a restore operation, rather than a point-in-time recovery,
+     // so there are no mutation files to include.  We can just return
+     if (LOG.isTraceEnabled()) LOG.trace("Exit RecoveryRecord constructor() " + this.toString());
+     return;
+   }
+
+   /**
+    * RecoveryRecord
     * @param long timeId
     * @throws Exception
+    * 
+    * The timeId provided is the time a user has selected for a point-in-time recovery operation
     */
    public RecoveryRecord (final long timeId) throws Exception {
 
@@ -278,7 +352,7 @@ public class RecoveryRecord {
         }
      }
 
-     if (LOG.isTraceEnabled()) LOG.trace("Exit RecoveryRecord constructor() " + this.toString());
+     if (LOG.isTraceEnabled()) LOG.trace("Exit RecoveryRecord constructor for time " + timeId + " " + this.toString());
      return;
    }
 
