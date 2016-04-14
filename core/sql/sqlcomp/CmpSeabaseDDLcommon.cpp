@@ -7849,8 +7849,6 @@ void CmpSeabaseDDL::dropSeabaseMD(NABoolean ddlXns)
   // drop all objects that match the pattern "TRAFODION.*"
   dropSeabaseObjectsFromHbase("TRAFODION\\..*", ddlXns);
 
-  SQL_EXEC_DeleteHbaseJNI();
-  
   //drop all lob data and descriptor files
   dropLOBHdfsFiles();
 
@@ -7968,7 +7966,6 @@ short CmpSeabaseDDL::initSeabaseAuthorization(
                                     COM_LIBRARY_OBJECT, TRUE, FALSE);
      if (cliRC == 1) // library exists
        cliRC = grantLibmgrPrivs(cliInterface);
-
   }
   else
   {
@@ -8667,7 +8664,8 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
        (ddlExpr->dropRepos()) ||
        (ddlExpr->upgradeRepos()) ||
        (ddlExpr->addSchemaObjects()) ||
-       (ddlExpr->updateVersion())))
+       (ddlExpr->updateVersion()) || 
+       (ddlExpr->backup())))
     {
       // transaction will be started and commited in called methods.
       startXn = FALSE;
@@ -8826,6 +8824,10 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
       processRepository(ddlExpr->createRepos(), 
                         ddlExpr->dropRepos(), 
                         ddlExpr->upgradeRepos());
+    }
+  else if (ddlExpr->backup())
+    {
+	    backup(ddlExpr, &cliInterface);
     }
   else
     {

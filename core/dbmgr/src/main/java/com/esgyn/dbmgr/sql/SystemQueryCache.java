@@ -9,6 +9,8 @@ package com.esgyn.dbmgr.sql;
 public class SystemQueryCache {
 	private static SystemQueries systemQueries = new SystemQueries();
 
+	public static final String GET_SYSTEM_INFO = "GET_SYSTEM_INFO";
+	public static final String GET_SYSTEM_VERSION = "GET_SYSTEM_VERSION";
 	public static final String GET_DCS_SERVERS = "GET_DCS_SERVERS";
 	public static final String GET_SERVICE_STATUS = "GET_SERVICE_STATUS";
 	public static final String GET_NODE_STATUS = "GET_NODE_STATUS";
@@ -82,6 +84,14 @@ public class SystemQueryCache {
 	public static final String FETCH_ALERTS_LIST = "FETCH_ALERTS_LIST";
 	public static final String FETCH_ALERT_DETAIL = "FETCH_ALERT_DETAIL";
 	public static final String UPDATE_ALERT = "UPDATE_ALERT";
+
+	public static final String EXPLAIN_ACTIVE_QUERY = "EXPLAIN_ACTIVE_QUERY";
+	public static final String EXPLAIN_USING_QID = "EXPLAIN_USING_QID";
+	public static final String TEXT_EXPLAIN_USING_QID = "TEXT_EXPLAIN_USING_QID";
+	public static final String EXPLAIN_USING_QTEXT = "EXPLAIN_USING_QTEXT";
+	
+	public static final String SPJ_PUT = "SPJ_PUT";
+	public static final String SPJ_ADDLIB = "SPJ_ADDLIB";
 
 	public static void setSystemQueryies(SystemQueries sQueries) {
 		systemQueries = sQueries;

@@ -1323,7 +1323,7 @@ ItemExpr* HashPartitioningFunction::createPartitioningExpression()
 } // HashPartitioningFunction::createPartitioningExpression()
 
 ItemExpr *
-HashPartitioningFunction::buildHashingExpressionForExpr(ItemExpr* expr) const
+HashPartitioningFunction::buildHashingExpressionForExpr(ItemExpr* expr) 
 {
   return new (CmpCommon::statementHeap()) Hash(expr);
 }
@@ -1980,7 +1980,6 @@ TableHashPartitioningFunction::createSearchKey(const IndexDesc *indexDesc,
 
 ItemExpr *
 TableHashPartitioningFunction::buildHashingExpressionForExpr(ItemExpr* expr) 
-const
 {
    CollHeap *heap = CmpCommon::statementHeap();
    return new (heap) HashDistPartHash(expr);
@@ -6546,9 +6545,32 @@ void HivePartitioningFunction::createPartitioningKeyPredicates()
 
 
 ItemExpr *
-HivePartitioningFunction::buildHashingExpressionForExpr(ItemExpr* expr) const
+HivePartitioningFunction::buildHashingExpressionForExpr(ItemExpr* expr) 
 {
-  return new (CmpCommon::statementHeap()) HiveHash(expr);
+  CollHeap* heap = CmpCommon::statementHeap();
+  ItemExpr* hivehash = new (heap) HiveHash(expr);
+  //return hivehash;
+
+  ItemExpr* cond = new (heap) BiRelat(ITM_LESS, hivehash, new (heap) SystemLiteral(0));
+  ItemExpr* negatedHiveHash = new (heap) BiArith(ITM_TIMES, hivehash, new (heap) SystemLiteral(-1));
+
+  ItemExpr *dataConversionErrorFlag = getConvErrorExpr();
+  if (dataConversionErrorFlag == 0)
+       {
+          dataConversionErrorFlag =
+            new (CmpCommon::statementHeap()) HostVar(
+                 "_sys_repartConvErrorFlg",
+                 new (CmpCommon::statementHeap()) SQLInt(TRUE,FALSE),
+                 TRUE);
+          storeConvErrorExpr(dataConversionErrorFlag);
+       }
+
+  ItemExpr* narrowedNegatedHiveHash = 
+     new (heap) Narrow(negatedHiveHash, dataConversionErrorFlag, new (heap) SQLInt(TRUE, FALSE),
+                       ITM_NARROW, FALSE, TRUE /* nullability same as the child */ 
+                      );
+
+  return new (heap) IfThenElse(cond, narrowedNegatedHiveHash, hivehash);
 }
 
 UInt32 HivePartitioningFunction::computeHashValue(char* data, UInt32 flags, Int32 len) 

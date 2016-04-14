@@ -153,7 +153,8 @@ struct hive_sd_desc
                 const char *pColVals
                 )
 
-        : sdID_(sdID), buckets_(buckets), kind_(knd), column_(column),
+        : sdID_(sdID), creationTS_(creationTS),
+      buckets_(buckets), kind_(knd), column_(column),
       skey_(skey), bkey_(bkey), 
       fieldTerminator_(fieldTerminator),
       recordTerminator_(recordTerminator),
@@ -188,6 +189,8 @@ struct hive_tbl_desc
    char* tblName_;
    char* schName_;
    Int64 creationTS_;
+   // last time we validated the redefinition time
+   Int64 validationTS_;
    struct hive_sd_desc* sd_;
    struct hive_pkey_desc* pkey_;
 
@@ -195,11 +198,7 @@ struct hive_tbl_desc
 
   hive_tbl_desc(Int32 tblID, const char* name, const char* schName, 
                 Int64 creationTS, struct hive_sd_desc* sd,
-                 struct hive_pkey_desc* pk)
-    : tblID_(tblID), sd_(sd), creationTS_(creationTS), pkey_(pk), next_(NULL)
-  {  tblName_ = strduph(name, CmpCommon::contextHeap());
-    schName_ = strduph(schName, CmpCommon::contextHeap()); }
-  
+                struct hive_pkey_desc* pk);
   ~hive_tbl_desc();
 
    struct hive_sd_desc* getSDs() { return sd_; };
@@ -211,6 +210,8 @@ struct hive_tbl_desc
    Int32 getNumOfPartCols() const;
 
    Int64 redeftime();
+   Int64 getValidationTS() const { return validationTS_; }
+   void setValidationTS(Int64 ts) { validationTS_ = ts; }
 };
 
 class HiveMetaData
@@ -228,12 +229,13 @@ public:
    NABoolean disconnect();
 
    struct hive_tbl_desc* getTableDesc(const char* schemaName,
-                                      const char* tblName);
+                                      const char* tblName,
+                                      Int64 expirationTS = 0,
+                                      NABoolean validateOnly = FALSE);
    struct hive_tbl_desc* getFakedTableDesc(const char* tblName);
 
    // validate a cached hive table descriptor
-  NABoolean validate(Int32 tableId, Int64 redefTS, 
-                     const char* schName, const char* tblName);
+   NABoolean validate(hive_tbl_desc *hDesc, Int64 expirationTS);
 
    // iterator over all tables in a Hive schema (default)
    // or iterate over all schemas in the Hive metadata

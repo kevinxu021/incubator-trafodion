@@ -346,6 +346,9 @@ enum OperatorTypeEnum {
   
                         ITM_PIVOT_GROUP = 2077,
 
+                        ITM_ORC_MAX_NV = 2078,
+                        ITM_ORC_SUM_NV = 2079,
+
                         // custom functions
                         ITM_USER_DEF_FUNCTION = 2100,
                         ITM_BETWEEN = 2101,

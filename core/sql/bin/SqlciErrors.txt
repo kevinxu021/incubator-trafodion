@@ -1356,8 +1356,8 @@ $1~String1 --------------------------------
 4366 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Invalid Select list index.
 4367 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Using rank function and sequence functions together in the same query scope is not supported.
 4368 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Nesting rank functions is not supported.
-4369 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Paramaters and outer references are not supported with rank function.
-4370 ZZZZZ 99999 BEGINNER MAJOR DBADMIN -- Unused ----
+4369 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Parameters and outer references are not supported with rank function.
+4370 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The $0~String0 aggregate function is only supported on columns of ORC format Hive tables.
 4371 ZZZZZ 99999 BEGINNER MAJOR DBADMIN -- Unused ----
 4372 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Snapshot scan cannot be used with table $0~String0 because $1~String1.
 4373 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The base temporary location for snapshot scan cannot be an empty string and needs to end with the character /.
@@ -1437,6 +1437,9 @@ $1~String1 --------------------------------
 4491 42000 99999 BEGINNER MINOR LOGONLY The user does not have $0~string0 privilege on sequence $1~string1$2~string2.
 4492 ZZZZZ 99999 BEGINNER MINOR LOGONLY BULK LOAD option UPDATE STATISTICS cannot be used with UPSERT USING LOAD option.
 5000 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Internal error in the query normalizer.
+5050 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Backup in progress, try again later.
+5051 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Failed to lock Transaction Manager. Cause : FS error $0~Int0.
+5052 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Failed to Unlock Transaction Manager. Cause : FS error $0~Int0.
 6000 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Internal error in the query optimizer.
 6001 0A000 99999 BEGINNER MAJOR DBADMIN DISTINCT aggregates can be computed for only one column per table expression.
 6002 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The metadata table HISTOGRAMS or HISTOGRAM_INTERVALS contains invalid values.  If you have manually modified the metadata table, then you should undo your changes using the CLEAR option in UPDATE STATISTICS.
@@ -1459,6 +1462,7 @@ $1~String1 --------------------------------
 7003 42000 99999 BEGINNER MAJOR DBADMIN A plan using cluster sampling could not be produced for this query.
 7004 ZZZZZ 99999 BEGINNER MAJOR DBADMIN A parallel extract plan could not be produced. Possible causes include an incompatible Control Query Shape (CQS) specification, use of rowset expressions, or use of SQL features that cannot be parallelized such as [FIRST/LAST N], table-valued functions, stream access to tables, and embedded updates or deletes.
 7005 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Use of selection predicates in parallel extract consumer queries is not allowed.
+7006 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The $0~String0 aggregate function must be but cannot be pushed down to ORC in this query, possibly due to the presence of other aggregates that cannot be pushed down.
 7350 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Incompatible consistency level of $0~Int0 for Halloween protection
 7351 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Incompatible lock size of $0~Int0 for Halloween protection.
 7352 ZZZZZ 99999 BEGINNER MAJOR DBADMIN A Hash-Join that may overflow its memory to disk can not accept input rows longer than $0~Int0 bytes.

@@ -6027,6 +6027,9 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
   if ( childRelExpr && childRelExpr->getOperatorType() == REL_FIRST_N )
     childRelExpr = childRelExpr->child(0)->castToRelExpr();
 
+  NABoolean isSeabase = FALSE;
+  NABoolean isOrc = FALSE;
+  const NATable * naTable = NULL;
   if (childRelExpr && 
       ((childRelExpr->getOperatorType() == REL_FILE_SCAN) ||
        (childRelExpr->getOperatorType() == REL_HBASE_ACCESS)))
@@ -6046,16 +6049,15 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
         {
           aggrPushdown = TRUE;
         }
-    }
 
-  NABoolean isSeabase = FALSE;
-  NABoolean isOrc = FALSE;
-  if (aggrPushdown)
-    {
-      const NATable * naTable = scan->getTableDesc()->getNATable();
+      naTable = scan->getTableDesc()->getNATable();
       isSeabase = naTable->isSeabaseTable();
       isOrc = ((naTable->isHiveTable()) &&
-               (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile()));
+        (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile()));
+    }
+
+  if (aggrPushdown)
+    {      
       if (NOT (((naTable->getObjectType() == COM_BASE_TABLE_OBJECT) ||
                 (naTable->getObjectType() == COM_INDEX_OBJECT)) &&
                ((naTable->isSeabaseTable()) || (isOrc))))
@@ -6093,6 +6095,8 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
                      (ae->getOperatorType() == ITM_MIN) ||
                      (ae->getOperatorType() == ITM_MAX) ||
                      (ae->getOperatorType() == ITM_SUM) ||
+                     (ae->getOperatorType() == ITM_ORC_MAX_NV) ||
+                     (ae->getOperatorType() == ITM_ORC_SUM_NV) ||
                      (ae->getOperatorType() == ITM_COUNT_NONULL)))
                ) ||
               (generator->preCodeGenParallelOperator())
@@ -6145,29 +6149,41 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
               const NAType *childType = 
                 &origAgg->child(0)->getValueId().getType();
               NAType * orcAggrType = NULL;
-              if (childType->getTypeQualifier() == NA_NUMERIC_TYPE)
+
+              // the ORC_MAX_NV and ORC_SUM_NV aggregates look at the
+              // ORC ColumnStatistics.getNumberOfValues() result, rather
+              // than the column values, so we don't take the type of
+              // the child from the child column type
+              NABoolean isOrcNumberOfValuesAggregate = 
+                origAgg->getOperatorType() == ITM_ORC_MAX_NV ||
+                origAgg->getOperatorType() == ITM_ORC_SUM_NV;
+
+              if (!isOrcNumberOfValuesAggregate)
                 {
-                  NumericType *nType = (NumericType*)childType;
-                  if (nType->binaryPrecision())
+                  if (childType->getTypeQualifier() == NA_NUMERIC_TYPE)
                     {
-                      if (nType->isExact())
+                      NumericType *nType = (NumericType*)childType;
+                      if (nType->binaryPrecision())
                         {
-                          orcAggrType = 
-                            new(generator->wHeap()) SQLLargeInt(TRUE, TRUE);
-                        }
-                      else
-                        {
-                          orcAggrType = 
-                            new(generator->wHeap()) SQLDoublePrecision(TRUE);
+                          if (nType->isExact())
+                            {
+                              orcAggrType = 
+                                new(generator->wHeap()) SQLLargeInt(TRUE, TRUE);
+                            }
+                          else
+                            {
+                              orcAggrType = 
+                                new(generator->wHeap()) SQLDoublePrecision(TRUE);
+                            }
                         }
                     }
-                }
-              else if (childType->getTypeQualifier() == NA_DATETIME_TYPE)
-                {
-                  DatetimeType *dType = (DatetimeType*)childType;
+                  else if (childType->getTypeQualifier() == NA_DATETIME_TYPE)
+                    {
+                      DatetimeType *dType = (DatetimeType*)childType;
 
-                  orcAggrType =
-                    new(generator->wHeap()) SQLChar(dType->getDisplayLength(), TRUE);
+                      orcAggrType =
+                        new(generator->wHeap()) SQLChar(dType->getDisplayLength(), TRUE);
+                    }
                 }
 
               if (! orcAggrType)
@@ -6184,7 +6200,8 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
               
               origAgg->setOriginalChild(origAgg->child(0));
 
-              if (childType->getTypeQualifier() == NA_DATETIME_TYPE)
+              if ((childType->getTypeQualifier() == NA_DATETIME_TYPE) &&
+                  (!isOrcNumberOfValuesAggregate))
                 {
                   DatetimeType *dType = (DatetimeType*)childType;
 
@@ -6233,7 +6250,28 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
          pulledNewInputs);
 
     } // aggrPushdown
-  
+
+  if (!aggrPushdown || !isOrc)
+    {
+      // the ORC_MAX_NV and ORC_SUM_NV aggregates are only
+      // permitted on ORC files and only when they can be
+      // pushed down 
+      for (ValueId valId = aggregateExpr().init();
+           aggregateExpr().next(valId);
+           aggregateExpr().advance(valId)) 
+        {
+          ItemExpr * ae = valId.getItemExpr();
+          if ((ae->getOperatorType() == ITM_ORC_MAX_NV) ||
+              (ae->getOperatorType() == ITM_ORC_SUM_NV))
+            {
+              Lng32 sqlcode = isOrc ? -7006 : -4370;
+              *CmpCommon::diags() << DgSqlCode(sqlcode) << DgString0(ae->getTextUpper());
+              generator->getBindWA()->setErrStatus();
+              return NULL;
+            }
+        }
+    }
+
   return newNode;
 }
 

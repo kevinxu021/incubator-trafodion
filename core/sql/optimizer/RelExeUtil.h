@@ -432,6 +432,10 @@ public:
   void setCleanupAuth(NABoolean v)
   {(v ? flags_ |= CLEANUP_AUTH : flags_ &= ~CLEANUP_AUTH); }
   NABoolean cleanupAuth() { return (flags_ & CLEANUP_AUTH) != 0;}
+  
+  void setBackup(NABoolean v)
+  {(v ? flags_ |= BACKUP : flags_ &= ~BACKUP); }
+  NABoolean backup() { return (flags_ & BACKUP) != 0;}
 
   NABoolean ddlXns() { return ddlXns_; }
 
@@ -447,7 +451,8 @@ public:
     CLEANUP_AUTH            = 0X0040,
     CREATE_LIBMGR           = 0x0080,
     DROP_LIBMGR             = 0x0100,
-    UPGRADE_LIBMGR          = 0x0200
+    UPGRADE_LIBMGR          = 0x0200,
+    BACKUP		    		= 0x0400
   };
 
   // see method processSpecialDDL in sqlcomp/parser.cpp

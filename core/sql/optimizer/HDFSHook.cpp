@@ -1129,6 +1129,15 @@ void HHDFSTableStats::disconnectHDFS()
   fs_ = NULL;
 }
 
+
+NABoolean HHDFSFileStats::splitsAllowed() const 
+{
+  Int32 balanceLevel = CmpCommon::getDefaultLong(HIVE_LOCALITY_BALANCE_LEVEL);
+  if (balanceLevel == -1)
+    return FALSE ; // certain compressed files will also come through here later
+  else
+    return TRUE;
+}
 // Assign all blocks in this to ESPs, considering locality
 Int64 HHDFSFileStats::assignToESPs(Int64 *espDistribution,
                                    NodeMap* nodeMap,
@@ -1189,13 +1198,12 @@ Int64 HHDFSFileStats::assignToESPs(Int64 *espDistribution,
 void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi,
                                   HiveNodeMapEntry*& entry,
                                   Int64 totalBytesPerESP,
-                                  Int32 numOfBytesToReadPerRow,
-                                  HHDFSListPartitionStats *partition)
+                                  Int32 numOfBytesToReadPerRow, // unused
+                                  HHDFSListPartitionStats *partition,
+                                  Int64& filled) // # of bytes filled in the current split
 {
    Int64 available = getTotalSize(); // # of bytes available from the current file
    Int64 offset = 0;                 // offset in the current file
-   Int64 filled = 0;                 // # of bytes filled in the current split
-
    while ( available > 0 ) 
    {
       if ( filled + available <= totalBytesPerESP ) 
@@ -1207,9 +1215,10 @@ void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi,
           // in bucket stats
    
           entry->addScanInfo(HiveScanInfo(this, offset, available, FALSE, partition));
+	  filled += available;
           available = 0;
    
-          if ( filled + available == totalBytesPerESP ) 
+          if ( filled == totalBytesPerESP ) 
             {
               // The contribution is just right for the split. Need
               // to take all the and add it to the current node map entry, 
@@ -1218,15 +1227,25 @@ void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi,
    
               filled = 0;
             }
-          else
-            filled += available;
         }
+      else if (!splitsAllowed())
+	{
+	  // assign more bytes for this esp than what will give perfect balance
+	  // we are forced to do this since we don't want to split this file
+	  // with splits disallowed esps will be unbalanced, sometimes 
+	  // seriously so. To be used with certain compression types and
+	  // as a fall back option when split files produce incorrect results
+	  entry->addScanInfo(HiveScanInfo(this, offset, available, FALSE, partition));
+	  entry = (HiveNodeMapEntry*)(nmi->advanceAndGetEntry());
+	  filled = 0;
+	  available = 0; // go through while loop just once for such files
+	}
       else
         {
     
           // The contribution is more than what the current split can take.
           // Add a portion of the contribution to the current split.
-          // Start a new split. 
+          // Start a new split. Never get here when splits are not allowed.
    
           Int64 portion = totalBytesPerESP - filled;
    
@@ -1312,7 +1331,8 @@ void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi,
                                      HiveNodeMapEntry*& entry,
                                      Int64 totalBytesPerESP,
                                      Int32 numOfBytesToReadPerRow,
-                                     HHDFSListPartitionStats *partition)
+                                     HHDFSListPartitionStats *partition,
+				     Int64& filled) // unused
 {
   CMPASSERT(numOfBytesToReadPerRow > 0);
 
@@ -1366,12 +1386,35 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
      return;
    }
 
-   orci->getStripeInfo(getFileName().data(), numOfRows_, offsets_, totalBytes_);
-   
-   totalRows_ = 0;
-   for (Int32 i=0; i<numOfRows_.entries(); i++) 
-   {
-      totalRows_ += numOfRows_[i];
+   Lng32 rc = orci->open((char*)(getFileName().data()));
+   if (rc) {
+     diags.recordError(NAString("ORC interface open() failed"));
+     return;
+   }
+
+   NABoolean readStripeInfo = (CmpCommon::getDefault(ORC_READ_STRIPE_INFO) == DF_ON);
+
+   if ( readStripeInfo ) {
+     orci->getStripeInfo(numOfRows_, offsets_, totalBytes_);
+   }
+
+   ByteArrayList* bal = NULL;
+   Lng32 colIndex = -1;
+   rc = orci->getColStats(colIndex, bal);
+
+   if (rc) {
+     diags.recordError(NAString("ORC interface getColStats() failed"));
+     return;
+   }
+
+   // read the total # of rows
+   Lng32 len = 0;
+   bal->getEntry(0, (char*)&totalRows_, sizeof(totalRows_), len);
+
+   rc = orci->close();
+   if (rc) {
+     diags.recordError(NAString("ORC interface close() failed"));
+     return;
    }
 
    delete orci;

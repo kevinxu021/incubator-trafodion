@@ -229,7 +229,8 @@ int HbaseAccess::createAsciiColAndCastExpr(Generator * generator,
                                            const NAType &givenType,
                                            ItemExpr *&asciiValue,
                                            ItemExpr *&castValue,
-                                           NABoolean isOrc)
+                                           NABoolean isOrc,
+                                           NABoolean srcIsInt32Varchar)
 {
   if (isOrc)
     return createAsciiColAndCastExprNative
@@ -253,40 +254,55 @@ int HbaseAccess::createAsciiColAndCastExpr(Generator * generator,
     }
 
   if (newGivenType->getTypeQualifier() == NA_CHARACTER_TYPE &&
-      (CmpCommon::getDefaultString(HIVE_FILE_CHARSET) == "GBK" || CmpCommon::getDefaultString(HIVE_FILE_CHARSET) == "gbk") && CmpCommon::getDefaultString(HIVE_DEFAULT_CHARSET) == "UTF8" )
-        needTranslate = TRUE;
-
+      (CmpCommon::getDefaultString(HIVE_FILE_CHARSET) == "GBK" || 
+       CmpCommon::getDefaultString(HIVE_FILE_CHARSET) == "gbk") 
+      && CmpCommon::getDefaultString(HIVE_DEFAULT_CHARSET) == "UTF8" )
+    needTranslate = TRUE;
+  
   // source ascii row is a varchar where the data is a pointer to the source data
   // in the hdfs buffer.
   NAType *asciiType = NULL;
   
   if (DFS2REC::isDoubleCharacter(newGivenType->getFSDatatype()))
-  {
-      asciiType =  new (h) SQLVarChar(sizeof(Int64)/2, newGivenType->supportsSQLnull(),
-				    FALSE, FALSE, newGivenType->getCharSet());
-  }
+    {
+      asciiType =  
+        new (h) SQLVarChar(sizeof(Int64)/2, newGivenType->supportsSQLnull(),
+                           FALSE, FALSE, newGivenType->getCharSet(),
+                           CharInfo::DefaultCollation,
+                           CharInfo::COERCIBLE,
+                           CharInfo::UnknownCharSet,
+                           (srcIsInt32Varchar ? sizeof(Int32) : 0));
+    }
   // set the source charset to GBK if HIVE_FILE_CHARSET is set
   // HIVE_FILE_CHARSET can only be empty or GBK
   else if (  needTranslate == TRUE )
-  {
-      asciiType =  new (h) SQLVarChar(sizeof(Int64), newGivenType->supportsSQLnull(),
-                                      FALSE, FALSE, CharInfo::GBK);
-  }
-  else
-    asciiType = new (h) SQLVarChar(sizeof(Int64), newGivenType->supportsSQLnull());
-  if (asciiType)
     {
-      asciiValue = new (h) NATypeToItem(asciiType->newCopy(h));
-      castValue = new(h) Cast(asciiValue, newGivenType);
-      if (castValue)
-	{
-	  ((Cast*)castValue)->setSrcIsVarcharPtr(TRUE);
-
-	  if (newGivenType->getTypeQualifier() == NA_INTERVAL_TYPE)
-	    ((Cast*)castValue)->setAllowSignInInterval(TRUE);
-	}
-
+      asciiType =  
+        new (h) SQLVarChar(sizeof(Int64), newGivenType->supportsSQLnull(),
+                           FALSE, FALSE, CharInfo::GBK,
+                           CharInfo::DefaultCollation,
+                           CharInfo::COERCIBLE,
+                           CharInfo::UnknownCharSet,
+                           (srcIsInt32Varchar ? sizeof(Int32) : 0));
     }
+  else
+    {
+      asciiType = 
+        new (h) SQLVarChar(sizeof(Int64), newGivenType->supportsSQLnull(),
+                           FALSE, FALSE,
+                           CharInfo::DefaultCharSet,
+                           CharInfo::DefaultCollation,
+                           CharInfo::COERCIBLE,
+                           CharInfo::UnknownCharSet,
+                           (srcIsInt32Varchar ? sizeof(Int32) : 0));
+    }
+
+  asciiValue = new (h) NATypeToItem(asciiType->newCopy(h));
+  castValue = new(h) Cast(asciiValue, newGivenType);
+  ((Cast*)castValue)->setSrcIsVarcharPtr(TRUE);
+  
+  if (newGivenType->getTypeQualifier() == NA_INTERVAL_TYPE)
+    ((Cast*)castValue)->setAllowSignInInterval(TRUE);
 
   if (castValue && asciiValue)
     result = 1;
@@ -515,7 +531,8 @@ short FileScan::genForOrc(Generator * generator,
                           Int32 &hdfsPort,
                           ExpTupleDesc *partCols,
                           int partColValuesLen,
-                          const HivePartitionAndBucketKey *hiveSearchKey)
+                          const HivePartitionAndBucketKey *hiveSearchKey,
+                          Int32 isForFastAggr)
 {
   Space * space          = generator->getSpace();
 
@@ -547,6 +564,7 @@ short FileScan::genForOrc(Generator * generator,
   char * numRangeInList = NULL;
   Lng32 beginRangeNum = 0;
   Lng32 numRanges = 0;
+
 
   // If no scanInfo entries are specified, then scan all rows.
   if (emptyScan)
@@ -605,6 +623,10 @@ short FileScan::genForOrc(Generator * generator,
         (mypart)))
     {
       Lng32 entryNum = 0;
+
+      NASet<NAString> stripeUsageMap(generator->wHeap(), 101);
+      stripeUsageMap.clear();
+
       for (CollIndex i=0; i < nmap->getNumEntries(); i++ )
 	{
 	  HiveNodeMapEntry* hEntry = (HiveNodeMapEntry*)(nmap->getNodeMapEntry(i));
@@ -617,6 +639,14 @@ short FileScan::genForOrc(Generator * generator,
 	    {
 	      HHDFSFileStats* file = scanInfo[j].file_;
 	      const char * fname = file->getFileName();
+
+              if ( isForFastAggr ) {
+                if (stripeUsageMap.contains(file->getFileName()) ) 
+                   continue;
+                else 
+                  stripeUsageMap.insert(file->getFileName());
+              }
+
 	      Int64 startRowNum = scanInfo[j].offset_; // start row num
 	      Int64 numRows = scanInfo[j].span_;    // num rows
 
@@ -1062,7 +1092,8 @@ short FileScan::codeGenForHive(Generator * generator)
 				    givenType,         // [IN] Actual type of HDFS column
 				    asciiValue,         // [OUT] Returned expression for ascii rep.
 				    castValue,        // [OUT] Returned expression for binary rep.
-                                    isOrc
+                                    isOrc,
+                                    TRUE // max src data len is sizeof(Int32)
                                     );
      
     GenAssert(res == 1 && asciiValue != NULL && castValue != NULL,

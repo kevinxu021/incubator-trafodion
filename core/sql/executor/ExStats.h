@@ -996,6 +996,15 @@ NA_EIDPROC
 NA_EIDPROC
   virtual void init();
 
+// The following three are instrumentation help methods, called from
+// executor TCB work methods. See one example in ExHdfsScan.cpp.
+NA_EIDPROC
+  virtual void done();
+
+NA_EIDPROC
+  virtual void addMessage(const char*);
+  virtual void addMessage(const char*, Lng32);
+
 //////////////////////////////////////////////////////////////////
 // subTaskReturn is used by the scheduler to set the return code
 // of a tcb

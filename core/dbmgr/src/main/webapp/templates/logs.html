@@ -40,7 +40,7 @@
 					</div>
 				</div>
 			</div>
-			<h2 class="page-header">Logs</h2>
+			<h3 class="page-header">Logs</h3>
 		</div>
 	</div>
 	<div class="row">
@@ -73,7 +73,7 @@
 					<form id="filter-form">
 						<div class="form-group">
 							<label for="filter-time-range" class="control-label">Time
-								Range : </label> <select class="form-control" id="filter-time-range">
+								Range : </label> <select class="form-control input-sm" id="filter-time-range">
 								<option value="1">Last 1 hour</option>
 								<option value="6">Last 6 hours</option>
 								<option value="24">Last 1 day</option>
@@ -85,8 +85,8 @@
 							<label for="filter-start-time" class="control-label">Start
 								Time : </label>
 							<div class='input-group date' id='startdatetimepicker'>
-								<input type='text' class="form-control" id="filter-start-time"
-									name="filter-start-time" /> <span class="input-group-addon">
+								<input type='text' class="form-control input-sm" id="filter-start-time"
+									name="filter-start-time" /> <span class="input-group-addon input-sm">
 									<span class="glyphicon glyphicon-calendar"></span>
 								</span>
 							</div>
@@ -95,8 +95,8 @@
 							<label for="filter-end-time" class="control-label">End
 								Time : </label>
 							<div class='input-group date' id='enddatetimepicker'>
-								<input type='text' class="form-control" id="filter-end-time"
-									name="filter-end-time" /> <span class="input-group-addon">
+								<input type='text' class="form-control input-sm" id="filter-end-time"
+									name="filter-end-time" /> <span class="input-group-addon input-sm">
 									<span class="glyphicon glyphicon-calendar"></span>
 								</span>
 							</div>
@@ -168,26 +168,26 @@
 						</div>
 						<div class="form-group">
 							<label for="filter-process-names" class="control-label">Process
-								Name(s) : </label> <input type="text" class="form-control"
+								Name(s) : </label> <input type="text" class="form-control input-sm"
 								id="filter-process-names" name="filter-process-names"
 								style="text-transform: uppercase"
 								placeholder="Process names separated by comma">
 						</div>
 						<div class="form-group">
 							<label for="filter-error-codes" class="control-label">Error
-								Code(s) : </label> <input type="text" class="form-control"
+								Code(s) : </label> <input type="text" class="form-control input-sm"
 								id="filter-error-codes" name="filter-error-codes"
 								placeholder="Error codes separated by comma">
 						</div>
 						<div class="form-group">
 							<label for="filter-message-text" class="control-label">Message
-								: </label> <input type="text" class="form-control"
+								: </label> <input type="text" class="form-control input-sm"
 								id="filter-message-text" name="filter-message-text"
 								placeholder="Part of message text">
 						</div>
 						<div class="form-group">
 							<label for="max-fetch-rows" class="control-label">Max Fetch Rows : </label> 
-							<select class="form-control" id="max-fetch-rows">
+							<select class="form-control input-sm" id="max-fetch-rows">
 								<option value="5000">5,000</option>
 								<option value="10000">10,000</option>
 								<option value="100000">100,000</option>

@@ -258,6 +258,14 @@ ExWorkProcRetcode ExOrcScanTcb::work()
 
 	    myInstNum_ = getGlobals()->getMyInstanceNumber();
 
+            // if my inst num is outside the range of entries, then nothing
+            // need to be retrieved. We are done.
+            if (myInstNum_ >= hdfsScanTdb().getHdfsFileRangeBeginList()->entries())
+              {
+                step_ = DONE;
+                break;
+              }
+
 	    beginRangeNum_ =  
 	      *(Lng32*)orcScanTdb().getHdfsFileRangeBeginList()->get(myInstNum_);
 
@@ -349,10 +357,8 @@ ExWorkProcRetcode ExOrcScanTcb::work()
                 orcNumRows_ = hdfo_->getNumRows();
                 sprintf(cursorId_, "%d", currRangeNum_);
 
-                if (orcNumRows_ == -1) // select all rows
-                  orcStopRowNum_ = -1;
-                else
-                  orcStopRowNum_ = orcStartRowNum_ + orcNumRows_ - 1;
+                orcStopRowNum_ = orcNumRows_; // the length of the stripe to access.
+                                              // -1 to pick all rows
 
                 step_ = OPEN_ORC_CURSOR;
               }
@@ -751,10 +757,8 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 
             sprintf(cursorId_, "%d", currRangeNum_);
 
-            if (orcNumRows_ == -1) // select all rows
-              orcStopRowNum_ = -1;
-            else
-              orcStopRowNum_ = orcStartRowNum_ + orcNumRows_ - 1;
+            orcStopRowNum_ = orcNumRows_; // the length of the stripe to access.
+                                          // -1 to access all rows.
 
             orcAggrTdb().getAggrTypeList()->position();
             orcAggrTdb().getHdfsColInfoList()->position();
@@ -825,6 +829,10 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
               step_ = ORC_AGGR_MAX;
             else if (aggrType_ == ComTdbOrcFastAggr::SUM_)
               step_ = ORC_AGGR_SUM;
+            else if (aggrType_ == ComTdbOrcFastAggr::ORC_NV_LOWER_BOUND_)
+              step_ = ORC_AGGR_NV_LOWER_BOUND;
+            else if (aggrType_ == ComTdbOrcFastAggr::ORC_NV_UPPER_BOUND_)
+              step_ = ORC_AGGR_NV_UPPER_BOUND;
             else
               step_ = HANDLE_ERROR;
           }
@@ -845,8 +853,10 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 	case ORC_AGGR_MIN:
 	case ORC_AGGR_MAX:
 	case ORC_AGGR_SUM:
+        case ORC_AGGR_NV_LOWER_BOUND:
+        case ORC_AGGR_NV_UPPER_BOUND:
 	  {
-            retcode = orci_->getColStats(hdfsFileName_, colNum_, bal_);
+            retcode = orci_->getColStats(colNum_, bal_);
             if (retcode < 0)
               {
                 setupError(EXE_ERROR_FROM_LOB_INTERFACE, retcode, 
@@ -878,9 +888,17 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 
             Int32 len = 0;
 
-             if (step_ == ORC_AGGR_COUNT)
+            if (step_ == ORC_AGGR_COUNT)
               {
                 bal_->getEntry(0, orcAggrLoc, attr->getLength(), len);
+                step_ = ORC_AGGR_NEXT;
+                break;
+              }
+
+            if (step_ == ORC_AGGR_NV_LOWER_BOUND || step_ == ORC_AGGR_NV_UPPER_BOUND)
+              {
+                // number of values (excluding dups and nulls)
+                bal_->getEntry(2, orcAggrLoc, attr->getLength(), len);
                 step_ = ORC_AGGR_NEXT;
                 break;
               }

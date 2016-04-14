@@ -4749,6 +4749,13 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
           return TRUE;
         }
 
+        if ((NOT IsEnterpriseLevel()) || (NOT IsAdvancedLevel()))
+        {
+          *CmpCommon::diags() << DgSqlCode(-4222)
+                              << DgString0("ORC");
+          return TRUE;
+        }
+
         isORC = TRUE;
       }
 
@@ -5405,8 +5412,10 @@ NATable::NATable(BindWA *bindWA,
   objectType_ = table_desc->body.table_desc.objectType;
   partitioningScheme_ = table_desc->body.table_desc.partitioningScheme;
 
-  if (!(corrName.isSeabaseMD() || corrName.isSpecialTable()))
-    setupPrivInfo();
+  // Set up privs
+  if ((corrName.getSpecialType() == ExtendedQualName::SG_TABLE) ||
+      (!(corrName.isSeabaseMD() || corrName.isSpecialTable())))
+     setupPrivInfo();
 
   if ((table_desc->body.table_desc.tableFlags & SEABASE_OBJECT_IS_EXTERNAL_HIVE) != 0 ||
       (table_desc->body.table_desc.tableFlags & SEABASE_OBJECT_IS_EXTERNAL_HBASE) != 0)
@@ -7665,10 +7674,12 @@ NATable * NATableDB::get(const ExtendedQualName* key, BindWA* bindWA, NABoolean 
             if (objName.getUnqualifiedSchemaNameAsAnsiString() == defSchema)
               sName = hiveMetaDB_->getDefaultSchemaName();
 
-            // validate Hive table timestamps
-            if (!hiveMetaDB_->validate(cachedNATable->getHiveTableId(),
-                                       cachedNATable->getRedefTime(),
-                                       sName.data(), tName.data()))
+            // validate Hive table timestamps by performing a lookup in
+            // the cache - without reading anything from disk
+            if (hiveMetaDB_->getTableDesc(sName,
+                                          tName,
+                                          expirationTimestamp,
+                                          TRUE /*validate only*/) == NULL)
               removeEntry = TRUE;
 
             // validate HDFS stats and update them in-place, if needed
@@ -8455,20 +8466,16 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
        NAString defSchema = ActiveSchemaDB()->getDefaults().getValue(HIVE_DEFAULT_SCHEMA);
        defSchema.toUpper();
        struct hive_tbl_desc* htbl;
-       NAString tableNameInt = corrName.getQualifiedNameObj().getObjectName();
        NAString schemaNameInt = corrName.getQualifiedNameObj().getSchemaName();
        if (corrName.getQualifiedNameObj().getUnqualifiedSchemaNameAsAnsiString() == defSchema)
          schemaNameInt = hiveMetaDB_->getDefaultSchemaName();
-       // Hive stores names in lower case
-       // Right now, just downshift, could check for mixed case delimited
-       // identifiers at a later point, or wait until Hive supports delimited identifiers
-       schemaNameInt.toLower();
-       tableNameInt.toLower();
 
        if (CmpCommon::getDefault(HIVE_USE_FAKE_TABLE_DESC) == DF_ON)
-         htbl = hiveMetaDB_->getFakedTableDesc(tableNameInt);
+         htbl = hiveMetaDB_->getFakedTableDesc(corrName.getQualifiedNameObj().getObjectName());
        else
-         htbl = hiveMetaDB_->getTableDesc(schemaNameInt, tableNameInt);
+         htbl = hiveMetaDB_->getTableDesc(
+              schemaNameInt,
+              corrName.getQualifiedNameObj().getObjectName());
 
        if ( htbl )
 	 {

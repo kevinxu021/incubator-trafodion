@@ -256,6 +256,11 @@ Lng32 ExpHbaseInterface::copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
   return -HBASE_COPY_ERROR;
 }
 
+Lng32 ExpHbaseInterface::createSnaphot(const HbaseStr &tblName)
+{
+	return HBASE_CREATE_SNAPSHOT_ERROR;
+}
+
 Lng32 ExpHbaseInterface::coProcAggr(
 				    HbaseStr &tblName,
 				    Lng32 aggrType, // 0:count, 1:min, 2:max, 3:sum, 4:avg
@@ -269,28 +274,6 @@ Lng32 ExpHbaseInterface::coProcAggr(
 				    Text &aggrVal) // returned value
 {
   return -HBASE_OPEN_ERROR;
-}
-
-Lng32 ExpHbaseInterface_JNI::flushTable()
-{
-  HTC_RetCode retCode = HTC_OK;
-  if (htc_ != NULL)
-     retCode = htc_->flushTable();
-
-  if (retCode != HTC_OK)
-    return HBASE_ACCESS_ERROR;
-  
-  return HBASE_ACCESS_SUCCESS;
-}
-
-Lng32 ExpHbaseInterface::flushAllTables()
-{
-  HBC_RetCode retCode = HBaseClient_JNI::flushAllTablesStatic();
-
-  if (retCode != HBC_OK)
-    return HBASE_ACCESS_ERROR;
-  
-  return HBASE_ACCESS_SUCCESS;
 }
 
 char * getHbaseErrStr(Lng32 errEnum)
@@ -610,6 +593,23 @@ Lng32 ExpHbaseInterface_JNI::copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
     return -HBASE_COPY_ERROR;
 }
 
+//-------------------------------------------------------------------------------
+Lng32 ExpHbaseInterface_JNI::createSnaphot(const HbaseStr &tblName)
+{
+  if (client_ == NULL)
+  {
+    if (init(hbs_) != HBASE_ACCESS_SUCCESS)
+      return -HBASE_ACCESS_ERROR;
+  }
+    
+  retCode_ = client_->createSnapshot(tblName.val);
+
+  if (retCode_ == HBC_OK)
+    return HBASE_ACCESS_SUCCESS;
+  else
+    return -HBASE_COPY_ERROR;
+}
+
 //----------------------------------------------------------------------------
 Lng32 ExpHbaseInterface_JNI::exists(HbaseStr &tblName)
 {
@@ -908,7 +908,6 @@ Lng32 ExpHbaseInterface_JNI::insertRows(
 	  NABoolean noXn,
 	  const NABoolean replSync,
 	  const int64_t timestamp,
-	  NABoolean autoFlush,
           NABoolean asyncOperation)
 {
   HTableClient_JNI *htc;
@@ -920,7 +919,7 @@ Lng32 ExpHbaseInterface_JNI::insertRows(
     transID = getTransactionIDFromContext();
   retCode_ = client_->insertRows((NAHeap *)heap_, tblName.val, hbs_,
 				 useTRex_, replSync, 
-				 transID, rowIDLen, rowIDs, rows, timestamp, autoFlush, asyncOperation, &htc);
+				 transID, rowIDLen, rowIDs, rows, timestamp, asyncOperation, &htc);
   if (retCode_ != HBC_OK) {
     return -HBASE_ACCESS_ERROR;
   }
@@ -1714,4 +1713,5 @@ ByteArrayList * ExpHbaseInterface_JNI::getRegionStats(const HbaseStr& tblName)
   
   return regionStats;
 }
+
 
