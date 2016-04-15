@@ -64,6 +64,8 @@ BACKUP_DCS_NODES=""
 LDAP_SECURITY="N"
 SCANNER_MODE="N"
 DCS_PRIMARY_MASTER_NODE=`hostname -f`
+DCS_MASTER_PORT="23400"
+DCS_MASTER_HOST="$DCS_PRIMARY_MASTER_NODE"
 CLOUD_CONFIG="N"
 CLOUD_TYPE=""
 AWS_CLOUD=""
@@ -459,6 +461,69 @@ else
 fi
 
 #==============================================
+
+#echo -n "Is this a multi-cluster setup (Y/N), default is N: "
+#read answer
+
+#if [[ "${answer}" =~ ^[Yy]$ ]]; then
+#   echo "export MULTI_CLUSTER=\"Y\"" >> $LOCAL_TRAF_CONFIG
+   
+#   echo -n "Enter full Hadoop Cluster name, default is [$CLUSTER_NAME]: "
+#   read answer
+
+#   answer=${answer// /%20}
+
+#   if [ -z $answer ]; then
+#      if [[ -z $CLUSTER_NAME ]]; then
+#         echo "***ERROR: Must enter full Hadoop Cluster name"
+#         exit -1
+#      fi
+#   else
+#      CLUSTER_NAME=$answer
+#      echo "export CLUSTER_NAME=\"$CLUSTER_NAME\"" >> $LOCAL_TRAF_CONFIG
+#   fi
+ 
+#   echo -n "Enter list of all nodes in this cluster (blank separated), default [$HADOOP_NODES]: "
+#   read answer
+#   if [[ -z "$answer" ]]; then
+#      if [ -z "$HADOOP_NODES" ]; then
+#         echo "***ERROR: All nodes in this cluster must be specified."
+#         exit -1
+#      fi
+#   else
+#      HADOOP_NODES="$answer"
+#      echo "export HADOOP_NODES=\"$HADOOP_NODES\"" >> $LOCAL_TRAF_CONFIG
+#   fi
+   
+#   echo -n "Enter list of all HBase nodes in this cluster (blank separated), default [$HBASE_NODES]: "
+#   read answer
+#   if [[ -z "$answer" ]]; then
+#      if [ -z "$HBASE_NODES" ]; then
+#         echo "***ERROR: All nodes in this cluster must be specified."
+#         exit -1
+#      fi
+#   else
+#      HBASE_NODES="$answer"
+#      echo "export HBASE_NODES=\"$HBASE_NODES\"" >> $LOCAL_TRAF_CONFIG
+#   fi
+   
+#   echo -n "Enter list of all HDFS nodes in this cluster (blank separated), default [$HDFS_NODES]: "
+#   read answer
+#   if [[ -z "$answer" ]]; then
+#      if [ -z "$HDFS_NODES" ]; then
+#         echo "***ERROR: All nodes in this cluster must be specified."
+#         exit -1
+#      fi
+#   else
+#      HDFS_NODES="$answer"
+#      echo "export HDFS_NODES=\"$HDFS_NODES\"" >> $LOCAL_TRAF_CONFIG
+#   fi
+ 
+#else
+   echo "export MULTI_CLUSTER=\"N\"" >> $LOCAL_TRAF_CONFIG
+#fi
+
+#==============================================
 #HDFS Username
 
 echo -n "Enter HDFS username, default is [$HDFS_USER]: "
@@ -564,6 +629,8 @@ if [ ! -z $answer ]; then
 fi
 
 echo "export DCS_PRIMARY_MASTER_NODE=\"$DCS_PRIMARY_MASTER_NODE\"" >> $LOCAL_TRAF_CONFIG
+echo "export DCS_MASTER_HOST=\"$DCS_PRIMARY_MASTER_NODE\"" >> $LOCAL_TRAF_CONFIG
+echo "export DCS_MASTER_PORT=\"$DCS_MASTER_PORT\"" >> $LOCAL_TRAF_CONFIG
 
 #==============================================
 #Enable HA
@@ -598,6 +665,8 @@ if [[ "$ENABLE_HA" == "true" ]]; then
       FLOATING_IP="$answer1"
    fi
    echo "export FLOATING_IP=\"$FLOATING_IP\"" >> $LOCAL_TRAF_CONFIG
+   sed -i '/DCS_MASTER_HOST\=/d' $LOCAL_TRAF_CONFIG
+   echo "export DCS_MASTER_HOST=\"$FLOATING_IP\"" >> $LOCAL_TRAF_CONFIG
 
    ######Get the interface used by the floating IP address
    echo -n "Enter interface used for floating IP address: "

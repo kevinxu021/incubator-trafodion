@@ -545,7 +545,7 @@ else
 
    hadoopVersion=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters | grep version | grep -c CDH)
 
-   if [[ $hadoopVersion -ne "1" ]]; then
+   if [[ $hadoopVersion -lt "1" ]]; then
       hadoopVersion=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters | grep version | grep -c HDP)
       if [[ $hadoopVersion -ne "1" ]]; then
          errorFound=1
@@ -562,11 +562,14 @@ else
    sudo chmod 777 $TRAF_CONFIG
    sed -i '/HADOOP_TYPE\=/d' $TRAF_CONFIG
    echo "export HADOOP_TYPE=\"$HADOOP_TYPE\"" >> $TRAF_CONFIG
+   echo "export MULTI_CLUSTER=\"N\"" >> $TRAF_CONFIG
    sudo chmod 777 $TRAF_CONFIG
    source $TRAF_CONFIG
 
-   temp=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters |grep name | sed -e 's@[,]@@'g | sed 's/^[^\:]* ://')
-   CLUSTER_NAME=$(echo $temp | sed -e 's/^"//' -e 's/"$//')
+    if [[ $MULTI_CLUSTER == "N" ]]; then
+      temp=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters |grep name | sed -e 's@[,]@@'g | sed 's/^[^\:]* ://')
+      CLUSTER_NAME=$(echo $temp | sed -e 's/^"//' -e 's/"$//')
+   fi
    CLUSTER_NAME=${CLUSTER_NAME// /%20}
 
    if [ -z $CLUSTER_NAME ]; then
@@ -598,7 +601,12 @@ fi
 function getHadoopNodes {
 
 echo "***INFO: Getting list of all $HADOOP_TYPE nodes"
-$LOCAL_WORKDIR/traf_getHadoopNodes
+
+if [[ $MULTI_CLUSTER == "N" ]]; then
+   $LOCAL_WORKDIR/traf_getHadoopNodes
+else
+   $LOCAL_WORKDIR/traf_getMultiHadoopNodes
+fi
 
 if [ $? -ne "0" ]; then
    errorFound=1
@@ -830,6 +838,25 @@ else
    fi
 fi
 
+
+if [[ -z "$DCS_MASTER_PORT" ]]; then
+   sudo chmod 777 $TRAF_CONFIG
+   echo "export DCS_MASTER_PORT=\"23400\"" >> $TRAF_CONFIG
+   sudo chmod 777 $TRAF_CONFIG
+fi
+
+if [[ -z "$DCS_MASTER_HOST" ]]; then
+   if [[ "$ENABLE_HA" == "true" ]]; then
+      sudo chmod 777 $TRAF_CONFIG
+      echo "export DCS_MASTER_HOST=\"$FLOATING_IP\"" >> $TRAF_CONFIG
+      sudo chmod 777 $TRAF_CONFIG
+   else
+      sudo chmod 777 $TRAF_CONFIG
+      echo "export DCS_MASTER_HOST=\"$DCS_PRIMARY_MASTER_NODE\"" >> $TRAF_CONFIG
+      sudo chmod 777 $TRAF_CONFIG
+   fi
+fi
+
 }
 
 function checkLDAP {
@@ -914,7 +941,7 @@ fi
 #===========================================
 #Main 
 
-echo " ***INFO: Trafodion Configuration File Check"
+echo "***INFO: Trafodion Configuration File Check"
 
 setUpErrorLog
 
