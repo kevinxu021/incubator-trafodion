@@ -282,11 +282,13 @@ void ResStatisticsSession::end()
 
 	if ( srvrGlobal->m_bStatisticsEnabled )
 	{
-		//if( srvrGlobal->m_statisticsPubType == STATISTICS_AGGREGATED )
-		//{
-			std::tr1::shared_ptr<SESSION_AGGREGATION> pAggr_info = getAggrStats();
+                std::tr1::shared_ptr<SESSION_AGGREGATION> pAggr_info;
+		if( srvrGlobal->m_statisticsPubType == STATISTICS_AGGREGATED )
+		{
+		        pAggr_info = getAggrStats();
 			sendAggrStats(PUB_TYPE_SESSION_END_AGGREGATION, pAggr_info);
-		//}
+		}
+
 		sendSessionEnd(pSession_info);
                 if (srvrGlobal->m_bPublishStatsToTSDB)
                 {

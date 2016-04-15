@@ -9446,6 +9446,11 @@ void sendSessionEnd(std::tr1::shared_ptr<SESSION_END> pSession_info)
 	REPOS_STATS session_stats;
 	session_stats.m_pSessionStats = pSession_info;
 	session_stats.m_pub_type = PUB_TYPE_SESSION_END;
+	if (record_session_done)		
+	{		
+		pthread_t thrd;		
+		pthread_create(&thrd, NULL, SessionWatchDog, NULL);		
+	}
 	repos_queue.push_task(session_stats);
 }
 
@@ -9454,6 +9459,11 @@ void sendAggrStats(pub_struct_type pub_type, std::tr1::shared_ptr<SESSION_AGGREG
 	REPOS_STATS aggr_stats;
 	aggr_stats.m_pAggr_stats = pAggr_info;
 	aggr_stats.m_pub_type = pub_type;
+	if (record_session_done)		
+	{		
+		pthread_t thrd;		
+		pthread_create(&thrd, NULL, SessionWatchDog, NULL);		
+	}
 	repos_queue.push_task(aggr_stats);
 }
 
@@ -9462,6 +9472,11 @@ void sendQueryStats(pub_struct_type pub_type, std::tr1::shared_ptr<STATEMENT_QUE
 	REPOS_STATS query_stats;
 	query_stats.m_pQuery_stats = pQuery_info;
 	query_stats.m_pub_type = pub_type;
+	if (record_session_done)		
+	{		
+		pthread_t thrd;		
+		pthread_create(&thrd, NULL, SessionWatchDog, NULL);		
+	}
 	repos_queue.push_task(query_stats);
 }
 
