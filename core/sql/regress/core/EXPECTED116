@@ -560,8 +560,8 @@ A1           C1           B1
 --- SQL operation complete.
 >>
 >>sh sqlci -iTEST116\(concurrent_ddl\) >> LOG116;
-EsgynDB Enterprise Conversational Interface 2.1.0
-Copyright (c) 2015 Esgyn Corporation
+EsgynDB Advanced Conversational Interface 2.1.0
+Copyright (c) 2015-2016 Esgyn Corporation
 >>?section concurrent_ddl
 >>cqd ddl_transactions 'ON';
 
