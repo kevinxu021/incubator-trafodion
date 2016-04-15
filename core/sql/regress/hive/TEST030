@@ -234,6 +234,7 @@ prepare s from update hive.hive.store2_sales_orc set ss_net_paid = 1;
 
 cqd ORC_PRED_PUSHDOWN 'ON';
 cqd GEN_HSHJ_MIN_MAX_OPT 'on';
+cqd parallel_num_esps '4';
 
 prepare xx from select count(*) from
 hive.hive.store2_sales_orc, -- sorted on ss_sold_date_sk
@@ -253,6 +254,8 @@ select cast(substring(description,
 where position('orc_search_arguments' in description)  > 0 ;
 
 execute xx;
+
+cqd parallel_num_esps reset;
 
 -- test NJ into a sorted ORC table
 

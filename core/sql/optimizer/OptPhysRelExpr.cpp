@@ -4531,8 +4531,12 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
   const InputPhysicalProperty* ippForMyChild =
                                     myContext->getInputPhysicalProperty();
 
-                   
-  NABoolean noN2JForRead  = ((CmpCommon::getDefault(NESTED_JOINS_NO_NSQUARE_OPENS) == DF_ON) && 
+
+  NABoolean noN2JForRead  = (
+                             CmpCommon::getDefault(NESTED_JOINS_NO_NSQUARE_OPENS) == DF_ON ||
+                             (CmpCommon::getDefault(NESTED_JOINS_NO_NSQUARE_OPENS) == DF_SYSTEM &&
+                              !(child(1).getGroupAttr()->allHiveORCTablesSorted())
+                             ) && 
                              (updateTableDesc() == NULL));
 
   NABoolean noEquiN2J = 
@@ -6273,7 +6277,7 @@ NABoolean NestedJoin::OCRJoinIsFeasible(const Context* myContext)  const
 
   // IF N2Js, which demand opens, are not to be disabled, make sure 
   // OCR is allowed only if the threshold of #opens is reached.
-  if (CmpCommon::getDefault(NESTED_JOINS_NO_NSQUARE_OPENS) == DF_OFF) {
+  if (CmpCommon::getDefault(NESTED_JOINS_NO_NSQUARE_OPENS) != DF_ON) {
 
      Lng32 threshold = ActiveSchemaDB()->getDefaults().getAsLong(NESTED_JOINS_OCR_MAXOPEN_THRESHOLD);
 
@@ -14675,6 +14679,23 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   //
   NABoolean canUseSearchKey = indexDesc_->isSortedORCHive();
  
+  const RequireReplicateNoBroadcast* rpnb = NULL;
+  // If the requirement is repN, produce a repN partition func to satisfy it.
+  // The primary use of repN is to access the inner side of a NJ. Only NJ into
+  // ORC tables on sorted column(s) with equi-join predicate is allowed.
+  if ( partReq && (rpnb=partReq->castToRequireReplicateNoBroadcast()) ) 
+  {
+     Lng32 numPartitions = rpnb->getParentPartFunc()->getCountOfPartitions();
+
+     myNodeMap = new(CmpCommon::statementHeap())
+       NodeMap(CmpCommon::statementHeap(),
+               numPartitions,
+               NodeMapEntry::ACTIVE, NodeMap::HIVE);
+
+     myPartFunc = new(CmpCommon::statementHeap())
+         ReplicateNoBroadcastPartitioningFunction(numPartitions, myNodeMap);
+
+  } else
   if (numESPs > 1)
     {
       // create a HASH2 partitioning function with numESPs partitions

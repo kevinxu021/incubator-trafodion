@@ -2536,7 +2536,12 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDkwd__(NESTED_JOINS_FULL_INNER_KEY,     "OFF"),
   DDkwd__(NESTED_JOINS_KEYLESS_INNERJOINS,     "ON"),
   DDui1__(NESTED_JOINS_LEADING_KEY_SKEW_THRESHOLD,    "15"),
-  DDkwd__(NESTED_JOINS_NO_NSQUARE_OPENS,   "ON"),
+
+  // A setting of 'SYSTEM' implies the following:
+  //   for ORC tables: N2J is allowed
+  //   for any other tables: N2J is not allowed
+  // If set to 'ON', then N2J is not allowed at all.
+  DDkwd__(NESTED_JOINS_NO_NSQUARE_OPENS,   "SYSTEM"),
 
   DDkwd__(NESTED_JOINS_OCR_GROUPING,            "OFF"),
 
@@ -6900,6 +6905,7 @@ DefaultToken NADefaults::token(Int32 attrEnum,
 	isValid = TRUE;
       break;
 
+    case NESTED_JOINS_NO_NSQUARE_OPENS:
     case SHOWDDL_DISPLAY_PRIVILEGE_GRANTS:
       if (tok == DF_SYSTEM || tok == DF_ON || tok == DF_OFF)
 	isValid = TRUE;

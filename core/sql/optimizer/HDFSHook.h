@@ -190,6 +190,10 @@ public:
 
   virtual NABoolean splitsAllowed() const;
 
+  // Assign all blocks in this to the entry (ESP). The ESP will access
+  // all the blocks.
+  virtual void assignToESPsRepN(HiveNodeMapEntry*& entry);
+
 protected:
   NAString fileName_;
   Int32 replication_;
@@ -243,6 +247,10 @@ protected:
 
   NABoolean splitsAllowed() const {return TRUE;}
   
+  // Assign all blocks in this to the entry (ESP). The ESP will access
+  // all the blocks.
+  virtual void assignToESPsRepN(HiveNodeMapEntry*& entry);
+
 protected:
   
   // per stripe info

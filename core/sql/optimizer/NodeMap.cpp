@@ -2708,3 +2708,29 @@ void HiveNodeMapEntry::addOrUpdateScanInfo(HiveScanInfo info, Int64 filled)
         addScanInfo(info, filled);
    }
 }
+
+void NodeMap::assignScanInfosRepN(HivePartitionAndBucketKey *hiveSearchKey)
+{
+  CMPASSERT(type_ == HIVE);
+
+  // Let each ESP have all the data. 
+  HHDFSListPartitionStats * p = NULL;
+  HHDFSBucketStats        * b = NULL;
+  HHDFSFileStats          * f = NULL;
+
+  HiveNodeMapEntry *entry= NULL;
+
+  for (CollIndex j=0; j<getNumEntries(); j++ ) {
+    entry =(HiveNodeMapEntry*)getNodeMapEntry(j);
+
+    HiveFileIterator i; 
+    while (hiveSearchKey->getNextFile(i))
+      {
+          p = (HHDFSListPartitionStats*)i.getPartStats();
+          b = (HHDFSBucketStats*)i.getBucketStats();
+          f = (HHDFSFileStats*)i.getFileStats();
+
+          f->assignToESPsRepN(entry);
+      }
+    } 
+}
