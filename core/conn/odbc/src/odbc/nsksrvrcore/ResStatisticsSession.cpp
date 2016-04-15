@@ -84,7 +84,7 @@ void initialize_curl()
              curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
 
              // Only for debug purpose
-	     /*filep = fopen("/home/hegdean/dump.txt", "a");
+	     /*filep = fopen("/home/trafodion/dump.txt", "a");
              curl_easy_setopt(curl, CURLOPT_STDERR, filep);
              curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
               */
@@ -630,7 +630,7 @@ void publishAggrStatsToTSDB(std::tr1::shared_ptr<SESSION_AGGREGATION> pAggr_info
 		// Set data to post
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS,ccStr.c_str());
 		res = curl_easy_perform(curl);
-                //fflush(filep);
+                //fflush(filep); //for debug only
                 if (res != CURLE_OK) 
                 {
                       errMsg.str("");
