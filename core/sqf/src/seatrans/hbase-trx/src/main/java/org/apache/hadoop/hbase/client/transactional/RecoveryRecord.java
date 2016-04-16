@@ -152,10 +152,8 @@ public class RecoveryRecord {
      Configuration  config;
 
      SnapshotMeta sm;
-     SnapshotMetaRecord smr = null;
      List<SnapshotMetaRecord> snapshotList = null;
      MutationMeta mm;
-     MutationMetaRecord mmr = null;
      List<MutationMetaRecord> mutationList = null;
 
      config = HBaseConfiguration.create();
@@ -225,10 +223,8 @@ public class RecoveryRecord {
      Configuration  config;
 
      SnapshotMeta sm;
-     SnapshotMetaRecord smr = null;
      List<SnapshotMetaRecord> snapshotList = null;
      MutationMeta mm;
-     MutationMetaRecord mmr = null;
      List<MutationMetaRecord> mutationList = null;
 
      config = HBaseConfiguration.create();
@@ -296,10 +292,8 @@ public class RecoveryRecord {
      Configuration  config;
 
      SnapshotMeta sm;
-     SnapshotMetaRecord smr = null;
      List<SnapshotMetaRecord> snapshotList = null;
      MutationMeta mm;
-     MutationMetaRecord mmr = null;
      List<MutationMetaRecord> mutationList = null;
 
      config = HBaseConfiguration.create();

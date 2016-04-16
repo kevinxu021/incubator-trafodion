@@ -139,26 +139,10 @@ import java.util.concurrent.RejectedExecutionException;
 
      private SnapshotMetaRecord smr;
      private List<MutationMetaRecord> mutationList;
-//     private ListIterator<MutationMetaRecord> mutationListIter = null;
-/*
-     public TableRecoveryGroup() {
-        this.smr = null;
-        this.mutationList = new ArrayList<MutationMetaRecord>();
-//        mutationListIter = getMutationList().listIterator();
-        System.out.println("  TableRecoveryGroup() ");
-     }
 
-     public TableRecoveryGroup(final ArrayList<MutationMetaRecord> mutationList) {
-        this.smr = null;
-        this.mutationList = mutationList;
-//        mutationListIter = getMutationList().listIterator();
-        System.out.println("  TableRecoveryGroup(mutationList) ");
-     }
-*/
      public TableRecoveryGroup(final SnapshotMetaRecord smr, final ArrayList<MutationMetaRecord> mutationList) {
         this.smr = smr;
         this.mutationList = mutationList;
-//        mutationListIter = getMutationList().listIterator();
         System.out.println("  TableRecoveryGroup(smr, mutationList) ");
      }
 
