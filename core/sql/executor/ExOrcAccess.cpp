@@ -41,19 +41,7 @@
 #include "stringBuf.h"
 #include "NLSConversion.h"
 
-#include "ExpLOBinterface.h"
-
-#include "SQLTypeDefs.h"
-
-#include "ExpHbaseInterface.h"
-#include "QRLogger.h"
-
 #include  "cli_stdh.h"
-#include "exp_function.h"
-#include "jni.h"
-#include "hdfs.h"
-#include <random>
-//#include "hdfs.h"
 
 #include "ExpORCinterface.h"
 
