@@ -58,7 +58,6 @@ public class SnapshotMetaRecord {
    /**
     * SnapshotMetaRecord
     * @param long key
-    * @param boolean startRecord
     * @param String tableName
     * @param String userTag
     * @param String snapshotPath
@@ -66,19 +65,16 @@ public class SnapshotMetaRecord {
     * @param String archivePath
     * @throws IOException 
     */
-   public SnapshotMetaRecord (final long key, final boolean startRecord, final String tableName, final String userTag, 
+   public SnapshotMetaRecord (final long key, final String tableName, final String userTag, 
                 final String snapshotPath, final boolean archived, final String archivePath) throws IOException{
  
       if (LOG.isTraceEnabled()) LOG.trace("Enter SnapshotMetaRecord constructor for key: " + key
-    		  + " startRecord: " + startRecord + " tableName: " + tableName + " userTag: " + userTag
+    		  + " tableName: " + tableName + " userTag: " + userTag
     		  + " snapshotPath: " + snapshotPath + " archived: " + String.valueOf(archived)
     		  + " archivePath: " + archivePath);
 
       this.key = key;
-      this.startRecord = startRecord;
-      if(startRecord) {
-         throw new IOException ("Warning: full snapshot should not be true for SnapshotMetaRecord");
-      }
+      this.startRecord = false;
       this.tableName = new String(tableName);
       this.userTag = new String(userTag);
       this.snapshotPath = new String(snapshotPath);
@@ -92,14 +88,13 @@ public class SnapshotMetaRecord {
    /**
     * SnapshotMetaRecord
     * @param long key
-    * @param boolean startRecord
     * @param String tableName
     * @param String userTag
     * @param String snapshotPath
     */
-   public SnapshotMetaRecord (final long key, final boolean startRecord, final String tableName, final String userTag, 
+   public SnapshotMetaRecord (final long key, final String tableName, final String userTag, 
 		     final String snapshotPath) throws Exception  {
-      this(key, startRecord, tableName, userTag, snapshotPath, false, null);
+      this(key, tableName, userTag, snapshotPath, false, null);
    }
 
    /**
@@ -120,20 +115,6 @@ public class SnapshotMetaRecord {
     */
    public boolean getStartRecord() {
       return this.startRecord;
-   }
-
-   /**
-    * setStartRecord
-    * @param boolean
-    * 
-    * This method is called to indicate the row retrieved from the SnapshotMeta is a SnapshotMetaStartRecord.
-    * This should not be set to true within this class.  Instead us SnapshotMetaStartRecord
-    */
-   public void setStartRecord(final boolean startRecord) throws IOException{
-	   if (startRecord == true){
-		   throw new IOException("Can't set startRecord to true within the SnapshotMetaRecord class.  Use SnapshotMetaStartRecord");
-	   }
-       this.startRecord = startRecord;
    }
 
    /**
