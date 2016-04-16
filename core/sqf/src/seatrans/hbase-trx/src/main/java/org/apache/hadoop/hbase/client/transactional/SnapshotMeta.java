@@ -390,8 +390,8 @@ public class SnapshotMeta {
             		+ " archived: " + archivedString
             		+ " archivePath: " + archivePathString);
             
-            record = new SnapshotMetaRecord(key, startRecordString.contains("true"), tableNameString,
-            		     userTagString, snapshotPathString, archivedString.contains("true"), archivePathString);
+            record = new SnapshotMetaRecord(key, tableNameString, userTagString,
+            		snapshotPathString, archivedString.contains("true"), archivePathString);
          }
          catch (Exception e1){
              LOG.error("getSnapshotRecord Exception " + e1);
@@ -565,9 +565,8 @@ public class SnapshotMeta {
                         String snapshotPathString = st.nextToken();
                         String archivedString     = st.nextToken();
                         String archivePathString  = st.nextToken();
-                        record = new SnapshotMetaRecord(currKey, startRecordString.contains("true"),
-                                    tableNameString, userTagString, snapshotPathString,
-                                    archivedString.contains("true"), archivePathString);
+                        record = new SnapshotMetaRecord(currKey, tableNameString, userTagString,
+                        		snapshotPathString, archivedString.contains("true"), archivePathString);
                      }
                   }
                }
@@ -744,9 +743,8 @@ public class SnapshotMeta {
                          String snapshotPathString = st.nextToken();
                          String archivedString     = st.nextToken();
                          String archivePathString  = st.nextToken();
-                         record = new SnapshotMetaRecord(currKey, startRecordString.contains("true"),
-                                 tableNameString, userTagString, snapshotPathString,
-                                 archivedString.contains("true"), archivePathString);
+                         record = new SnapshotMetaRecord(currKey, tableNameString, userTagString,
+                        		 snapshotPathString, archivedString.contains("true"), archivePathString);
 
                          returnList.add(record);
                       }
@@ -847,9 +845,8 @@ public class SnapshotMeta {
                          String snapshotPathString = st.nextToken();
                          String archivedString     = st.nextToken();
                          String archivePathString  = st.nextToken();
-                         record = new SnapshotMetaRecord(currKey, startRecordString.contains("true"),
-                                 tableNameString, userTagString, snapshotPathString,
-                                 archivedString.contains("true"), archivePathString);
+                         record = new SnapshotMetaRecord(currKey, tableNameString, userTagString,
+                        		 snapshotPathString, archivedString.contains("true"), archivePathString);
 
                          returnList.add(record);
                       }
@@ -946,9 +943,8 @@ public class SnapshotMeta {
                       String snapshotPathString = st.nextToken();
                       String archivedString     = st.nextToken();
                       String archivePathString  = st.nextToken();
-                      record = new SnapshotMetaRecord(currKey, startRecordString.contains("true"),
-                                 tableNameString, userTagString, snapshotPathString,
-                                 archivedString.contains("true"), archivePathString);
+                      record = new SnapshotMetaRecord(currKey, tableNameString, userTagString,
+                    		  snapshotPathString, archivedString.contains("true"), archivePathString);
 
                       returnList.add(record);
                    }

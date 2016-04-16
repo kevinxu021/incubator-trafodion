@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Fri Apr 15 02:11:11 2016
+-- Definition current  Fri Apr 15 21:45:46 2016
 
   (
     S_STORE_SK                       INT
@@ -235,7 +235,7 @@ Suite 100             College
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 12448
+Fragment ID: 0, Length: 12304
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -368,7 +368,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 9968
+Fragment ID: 0, Length: 9824
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -974,7 +974,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Fri Apr 15 02:11:36 2016
+-- Definition current  Fri Apr 15 21:46:08 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1025,9 +1025,9 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212327446297017083
+PLAN_ID .................. 212327516768416510
 ROWS_OUT ............. 1,698
-EST_TOTAL_COST ........... 1.21
+EST_TOTAL_COST ........... 0.49
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
 
 
@@ -1036,7 +1036,7 @@ ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
 ROWS_OUT ............. 1,698
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 1.21
+EST_TOTAL_COST ........... 0.49
 DESCRIPTION
   max_card_est ........... 2.73638e+06
   fragment_id ............ 0
@@ -1090,8 +1090,8 @@ ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES_ORC
 REQUESTS_IN .............. 1
 ROWS_OUT ............. 1,698
-EST_OPER_COST ............ 1.21
-EST_TOTAL_COST ........... 1.21
+EST_OPER_COST ............ 0.49
+EST_TOTAL_COST ........... 0.49
 DESCRIPTION
   max_card_est ........... 2.73638e+06
   fragment_id ............ 0
@@ -1138,9 +1138,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212327446297681409
+PLAN_ID .................. 212327516768802137
 ROWS_OUT ......... 2,880,401
-EST_TOTAL_COST ........... 1.77
+EST_TOTAL_COST ........... 0.71
 STATEMENT ................ select *
                            from customer_orc, store_sales_orc
                            where store_sales_orc.ss_item_sk =
@@ -1153,7 +1153,7 @@ ROOT ======================================  SEQ_NO 4        ONLY CHILD 3
 REQUESTS_IN .............. 1
 ROWS_OUT ......... 2,880,401
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 1.77
+EST_TOTAL_COST ........... 0.71
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0
@@ -1224,8 +1224,8 @@ DESCRIPTION
 NESTED_JOIN ===============================  SEQ_NO 3        CHILDREN 1, 2
 REQUESTS_IN .............. 1
 ROWS_OUT ......... 2,880,401
-EST_OPER_COST ............ 0.5
-EST_TOTAL_COST ........... 1.77
+EST_OPER_COST ............ 0.2
+EST_TOTAL_COST ........... 0.71
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0
@@ -1239,8 +1239,8 @@ ORC_SCAN ==================================  SEQ_NO 2        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES_ORC
 REQUESTS_IN ......... 99,997
 ROWS/REQUEST ............ 28.8
-EST_OPER_COST ............ 1.24
-EST_TOTAL_COST ........... 1.24
+EST_OPER_COST ............ 0.5
+EST_TOTAL_COST ........... 0.5
 DESCRIPTION
   max_card_est ........... 2.8804e+06
   fragment_id ............ 0
@@ -1260,8 +1260,8 @@ ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.CUSTOMER_ORC
 REQUESTS_IN .............. 1
 ROWS_OUT ............ 99,997
-EST_OPER_COST ............ 0.03
-EST_TOTAL_COST ........... 0.03
+EST_OPER_COST ............ 0.01
+EST_TOTAL_COST ........... 0.01
 DESCRIPTION
   max_card_est ...... 99,997
   fragment_id ............ 0
@@ -1306,7 +1306,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Fri Apr 15 02:11:39 2016
+-- Definition current  Fri Apr 15 21:46:09 2016
 
   (
     D_DATE_SK                        INT
@@ -1374,7 +1374,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212327446300999346
+PLAN_ID .................. 212327516770116501
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1476,7 +1476,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Fri Apr 15 02:11:43 2016
+-- Definition current  Fri Apr 15 21:46:11 2016
 
   (
     D_DATE_SK                        INT
@@ -1544,7 +1544,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212327446304510211
+PLAN_ID .................. 212327516771956798
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1760,6 +1760,9 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK <cast(cast
 >>cqd orc_njs 'ON';
 
 --- SQL operation complete.
+>>cqd parallel_num_esps '4';
+
+--- SQL operation complete.
 >>
 >>prepare xx from select count(*) from hive.hive.customer_orc, hive.hive.store_sales_sorted_orc
 +>    where ss_sold_date_sk = c_customer_sk
@@ -1778,9 +1781,9 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK <cast(cast
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-PLAN_ID .................. 212327446316856373
+PLAN_ID .................. 212327516783104797
 ROWS_OUT ................. 1
-EST_TOTAL_COST ........... 1.12
+EST_TOTAL_COST ........... 1.1
 STATEMENT ................ select count(*)
                            from hive.hive.customer_orc,
                              hive.hive.store_sales_sorted_orc
@@ -1793,7 +1796,7 @@ ROOT ======================================  SEQ_NO 7        ONLY CHILD 6
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0
-EST_TOTAL_COST ........... 1.12
+EST_TOTAL_COST ........... 1.1
 DESCRIPTION
   max_card_est ........... 1
   fragment_id ............ 0
@@ -1822,6 +1825,7 @@ DESCRIPTION
   GEN_HSHJ_MIN_MAX_OPT ... ON
   ORC_PRED_PUSHDOWN ...... ON
   ORC_NJS ................ ON
+  PARALLEL_NUM_ESPS ...... 4
   select_list ............ cast(sum(count(1 )))
   input_variables ........ %(4)
 
@@ -1830,7 +1834,7 @@ SORT_PARTIAL_AGGR_ROOT ====================  SEQ_NO 6        ONLY CHILD 5
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 1.12
+EST_TOTAL_COST ........... 1.1
 DESCRIPTION
   max_card_est ........... 1
   fragment_id ............ 0
@@ -1843,7 +1847,7 @@ ESP_EXCHANGE ==============================  SEQ_NO 5        ONLY CHILD 4
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 1.12
+EST_TOTAL_COST ........... 1.1
 DESCRIPTION
   max_card_est ........... 1
   fragment_id ............ 2
@@ -1862,7 +1866,7 @@ SORT_PARTIAL_AGGR_LEAF ====================  SEQ_NO 4        ONLY CHILD 3
 REQUESTS_IN .............. 1
 ROWS_OUT ................. 1
 EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 1.12
+EST_TOTAL_COST ........... 1.1
 DESCRIPTION
   max_card_est ........... 1
   fragment_id ............ 2
@@ -1875,7 +1879,7 @@ NESTED_JOIN ===============================  SEQ_NO 3        CHILDREN 1, 2
 REQUESTS_IN .............. 1
 ROWS_OUT ......... 2,880,394
 EST_OPER_COST ............ 0.01
-EST_TOTAL_COST ........... 1.12
+EST_TOTAL_COST ........... 1.09
 DESCRIPTION
   max_card_est ........... 2.88039e+06
   fragment_id ............ 2
@@ -1983,8 +1987,8 @@ ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.CUSTOMER_ORC
 REQUESTS_IN .............. 1
 ROWS_OUT ............... 317
-EST_OPER_COST ............ 0.03
-EST_TOTAL_COST ........... 0.03
+EST_OPER_COST ............ 0.01
+EST_TOTAL_COST ........... 0.01
 DESCRIPTION
   max_card_est ...... 94,998.1
   fragment_id ............ 2
@@ -2027,6 +2031,9 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 --- 1 row(s) selected.
 >>
 >>cqd orc_njs reset;
+
+--- SQL operation complete.
+>>cqd parallel_num_esps reset;
 
 --- SQL operation complete.
 >>

@@ -261,6 +261,7 @@ cqd parallel_num_esps reset;
 
 cqd orc_pred_pushdown 'ON';
 cqd orc_njs 'ON';
+cqd parallel_num_esps '4';
 
 prepare xx from select count(*) from hive.hive.customer_orc, hive.hive.store_sales_sorted_orc
     where ss_sold_date_sk = c_customer_sk
@@ -271,6 +272,7 @@ explain options 'f' xx;
 execute xx;
 
 cqd orc_njs reset;
+cqd parallel_num_esps reset;
 
 -- test aggregates pushdown (orc)
 
