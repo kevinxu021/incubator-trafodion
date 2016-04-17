@@ -143,21 +143,17 @@ import java.util.concurrent.RejectedExecutionException;
      public TableRecoveryGroup(final SnapshotMetaRecord smr, final ArrayList<MutationMetaRecord> mutationList) {
         this.smr = smr;
         this.mutationList = mutationList;
-        System.out.println("  TableRecoveryGroup(smr, mutationList) ");
      }
 
      public boolean snapshotRecordIsNull() {
-        System.out.println("  snapshotRecordIsNull ");
         return (smr == null);
      }
 
      public SnapshotMetaRecord getSnapshotRecord() {
-        System.out.println("  getSnapshotRecord ");
         return smr;
      }
 
      public List<MutationMetaRecord> getMutationList() {
-        System.out.println("  getMutationList list is null: " + ((mutationList == null)? "true " : "false ") );
         return mutationList;
      }
 
