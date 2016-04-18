@@ -1171,6 +1171,17 @@ private:
 // ***********************************************************************
 class BindWA : public NABasicObject
 {
+ enum Flags {
+   // --------------------------------------------------------------------
+   // Flag to indicate we are accessing an object which is defined in an
+   // external (native) hive or hbase.
+   // --------------------------------------------------------------------
+    ALLOW_EXT_TABLES          = 0x00000001,
+
+    // external table being dropped.
+    EXT_TABLE_DROP            = 0x00000002
+ };
+
 public:
 
   // --------------------------------------------------------------------
@@ -1481,8 +1492,15 @@ public:
 
   short &viewCount()			   { return viewCount_; }
 
-  NABoolean allowExternalTables() const { return allowExternalTables_; }
-  void setAllowExternalTables(NABoolean t) { allowExternalTables_ = t; }
+  NABoolean allowExternalTables() const 
+  { return (flags_ & ALLOW_EXT_TABLES) != 0; }
+  void setAllowExternalTables(NABoolean v) 
+  { v ? flags_ |= ALLOW_EXT_TABLES : flags_ &= ~ALLOW_EXT_TABLES; }
+
+  NABoolean externalTableDrop() const 
+  { return (flags_ & EXT_TABLE_DROP) != 0; }
+  void setExternalTableDrop(NABoolean v) 
+  { v ? flags_ |= EXT_TABLE_DROP : flags_ &= ~EXT_TABLE_DROP; }
 
   LIST(OptSqlTableOpenInfo *) &getStoiList()  { return stoiList_; }
   LIST(OptUdrOpenInfo *) &getUdrStoiList()  { return udrStoiList_; }
@@ -1805,11 +1823,7 @@ private:
   // --------------------------------------------------------------------
   short viewCount_;
 
-  // --------------------------------------------------------------------
-  // Flag to indicate we are accessing an object which is defined in an
-  // external (native) hive or hbase.
-  // --------------------------------------------------------------------
-  NABoolean allowExternalTables_;
+  ULng32 flags_;
 
   // points to a class used by RowSets code.
   HostArraysWA *hostArraysArea_;

@@ -264,7 +264,18 @@ void cleanupSockets()
 
 void SqlciEnv::welcomeMessage()
 {
-  COPYRIGHT_BANNER_1(cout, COPYRIGHT_SQLCI_PRODNAME_H);
+  if (IsEnterpriseLevel())
+    {
+      cout
+        << (IsAdvancedLevel() ? "EsgynDB Advanced " : "EsgynDB Enterprise ")
+        << COPYRIGHT_SQLCI_PRODNAME_H " " 
+        << COPYRIGHT_VERSION_H << endl << "Copyright (c) " 
+        << COPYRIGHT_HEADER_H << endl;
+    }
+  else
+    {
+      COPYRIGHT_BANNER_1(cout, COPYRIGHT_SQLCI_PRODNAME_H);
+    }
 }
 
 

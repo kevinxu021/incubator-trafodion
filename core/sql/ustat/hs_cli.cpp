@@ -6181,6 +6181,27 @@ Lng32 HSCursor::fetch(Lng32 numResults,
   return retcode;
 }
 
+Lng32 HSCursor::fetchV(Lng32 numResults, Int64 * int64result, void * wcharResults[])
+{
+  Lng32 retcode = 0;
+
+  retcode = SQL_EXEC_SetDescItem(outputDesc_, 1, SQLDESC_VAR_PTR,
+                                    (Long)int64result, 0);
+  HSHandleError(retcode);
+
+  for (int i = 2; i <= numResults; i++)
+    {
+      retcode = SQL_EXEC_SetDescItem(outputDesc_, i, SQLDESC_VAR_PTR,
+                                    (Long)(wcharResults[i-2]), 0);
+      HSHandleError(retcode);
+    }
+
+  retcode = SQL_EXEC_Fetch(stmt_, outputDesc_, 0); 
+  HSHandleError(retcode); 
+
+  return retcode;
+}
+
 Lng32 HSCursor::close()
 {
   // This is done by the dtor ordinarily. However, if a cursor needs to

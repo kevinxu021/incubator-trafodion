@@ -74,15 +74,16 @@ public class ServerResource {
 			objNode.put("user", usr);
 			objNode.put("status", "OK");
 			objNode.put("sessionTimeoutMinutes", configResource.getSessionTimeoutMinutes());
-			objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
-			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
-			objNode.put("dcsMasterInfoUri", configResource.getDcsMasterInfoUri());
-			objNode.put("enableAlerts", configResource.isAlertsEnabled());
 			if (Helper.isEnterpriseEdition()) {
 				objNode.put("systemType", 1);
 			}
 
 			objNode.put("systemVersion", ConfigurationResource.getSystemVersion());
+
+			objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
+			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
+			objNode.put("dcsMasterInfoUri", configResource.getDcsMasterInfoUri());
+			objNode.put("enableAlerts", configResource.isAlertsEnabled());
 
 			Session content = new Session(usr, pwd, new DateTime(DateTimeZone.UTC));
 			SessionModel.putSessionObject(key, content);
@@ -105,21 +106,6 @@ public class ServerResource {
 			String url = server.getJdbcUrl();
 			Class.forName(server.getJdbcDriverClass());
 			connection = DriverManager.getConnection(url, usr, pwd);
-
-
-			/*
-			 * Statement stmt = connection.createStatement(); ResultSet rs =
-			 * stmt.executeQuery("info system"); while (rs.next()) {
-			 * ConfigurationResource.setServerTimeZone(rs.getString("TM_ZONE"));
-			 * ConfigurationResource.setServerUTCOffset(rs.getLong(
-			 * "TM_GMTOFF_SEC")); break; } rs = stmt.executeQuery(
-			 * "get version of software"); if (rs.next()) { String version =
-			 * rs.getString(1); String[] versionparts = version.split(":");
-			 * ConfigurationResource .setSystemVersion(versionparts.length > 1 ?
-			 * versionparts[1].trim() : versionparts[0]); }
-			 */
-
-
 		} catch (Exception e) {
 			_LOG.error(e.getMessage());
 			resultMessage = e.getMessage();
@@ -162,9 +148,12 @@ public class ServerResource {
 		objNode.put("dcsMasterInfoUri", server.getDcsMasterInfoUri());
 		objNode.put("enableAlerts", server.isAlertsEnabled());
 
-		if (ConfigurationResource.getSystemVersion() != null
-				&& ConfigurationResource.getSystemVersion().toLowerCase().contains("enterprise")) {
-			objNode.put("systemType", 1);
+		if (ConfigurationResource.getSystemVersion() != null) {
+			if (ConfigurationResource.getSystemVersion().toLowerCase().contains("enterprise")) {
+				objNode.put("systemType", 1);
+			} else if (ConfigurationResource.getSystemVersion().toLowerCase().contains("advanced")) {
+				objNode.put("systemType", 2);
+			}
 		}
 
 		objNode.put("systemVersion", ConfigurationResource.getSystemVersion());

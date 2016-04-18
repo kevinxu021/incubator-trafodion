@@ -447,6 +447,10 @@ public:
           { ssmpDumpedTimestamp_ = dumpTime; }
   inline Int64 getSsmpDumpTimestamp() 
           { return ssmpDumpedTimestamp_; }
+  void setSnapshotInProgress() { snapshotInProgress_ = TRUE;}
+  void resetSnapshotInProgress() { snapshotInProgress_ = FALSE;}
+  NABoolean isSnapshotInProgress(){ return snapshotInProgress_;}
+  
 #ifndef __EID
   Int64 getLastGCTime();
   void setLastGCTime(Int64 gcTime) ;
@@ -543,6 +547,7 @@ private:
   pid_t pidToCheck_;
   pid_t maxPid_;
   Int64 ssmpDumpedTimestamp_;
+  NABoolean snapshotInProgress_;
 };
 StatsGlobals * shareStatsSegment(Int32 &shmid, NABoolean checkForSSMP = TRUE);
 short getMasterCpu(char *uniqueStmtId, Lng32 uniqueStmtIdLen, char *nodeName, short maxLen, short &cpu);

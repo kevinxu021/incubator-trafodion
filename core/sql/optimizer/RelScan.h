@@ -497,6 +497,10 @@ public:
   void setForceIndexInfo() { forcedIndexInfo_ = TRUE; }
   void resetForceIndexInfo() { forcedIndexInfo_ = FALSE; }
   NABoolean isIndexInfoForced() const { return forcedIndexInfo_; }
+
+  // methods specific for Hive tables
+  void createUniquenessConstraintsForHiveTable();
+
   // ---------------------------------------------------------------------
   // Vertical Partitioning related methods
   // ---------------------------------------------------------------------
@@ -878,7 +882,8 @@ public:
                          Int32 &hdfsPort,
                          ExpTupleDesc *partCols,
                          int partColValuesLen,
-                         const HivePartitionAndBucketKey *hiveSearchKey);
+                         const HivePartitionAndBucketKey *hiveSearchKey,
+                         NABoolean isForFastAggr = FALSE);
   static char * genExplodedHivePartKeyVals(Generator *generator,
                                            ExpTupleDesc *partCols,
                                            const ValueIdList &valList);
@@ -1370,7 +1375,8 @@ public:
 				       const NAType &givenType,
 				       ItemExpr *&asciiValue,
 				       ItemExpr *&castValue,
-                                       NABoolean isOrc = FALSE);
+                                       NABoolean isOrc = FALSE,
+                                       NABoolean srcIsInt32Varchar = FALSE);
   
   static int createAsciiColAndCastExpr2(Generator * generator,
 				       ItemExpr * colNode,

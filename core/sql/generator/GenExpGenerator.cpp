@@ -740,7 +740,6 @@ void ExpGenerator::copyDefaultValues(
 				     ExpTupleDesc * srcTupleDesc)
 {
   Lng32 numAttrs = MINOF(srcTupleDesc->numAttrs(), tgtTupleDesc->numAttrs());
-  //  for (CollIndex i = 0; i < srcTupleDesc->numAttrs(); i++)
   for (CollIndex i = 0; i < numAttrs; i++)
     {
       Attributes * srcAttr = srcTupleDesc->getAttr(i);
@@ -753,12 +752,46 @@ void ExpGenerator::copyDefaultValues(
 
       if (srcAttr->getDefaultValue())
 	{
-	  char * tgtDefVal =
-	    new(generator->getSpace()) char[srcAttr->getDefaultValueStorageLength()];
-	  
-	  str_cpy_all(tgtDefVal, 
-		      srcAttr->getDefaultValue(), 
-		      srcAttr->getDefaultValueStorageLength());
+          Lng32 tgtDefLen = tgtAttr->getDefaultValueStorageLength();
+          Lng32 srcDefLen = srcAttr->getDefaultValueStorageLength();
+          char* srcDefVal = srcAttr->getDefaultValue();
+	  char * tgtDefVal = new(generator->getSpace()) char[tgtDefLen];
+
+          // if source and target def storage lengths dont match, then
+          // need to move each part (null, vclen, data) separately.
+          if ((tgtDefLen == srcDefLen) &&
+              (tgtAttr->getNullFlag() == srcAttr->getNullFlag()) &&
+              (tgtAttr->getVCIndicatorLength() == srcAttr->getVCIndicatorLength()) &&
+              (tgtAttr->getLength() == srcAttr->getLength()))
+            {
+              str_cpy_all(tgtDefVal, srcDefVal, srcDefLen);
+            }
+          else
+            {
+              char * tgtDefValCurr = tgtDefVal;
+
+              short nullVal = 0;
+              if (srcAttr->getNullFlag())
+                {
+                  str_cpy_all((char*)&nullVal, srcDefVal, 
+                              ExpTupleDesc::NULL_INDICATOR_LENGTH);
+                  srcDefVal += ExpTupleDesc::NULL_INDICATOR_LENGTH;
+                }
+              
+              if (tgtAttr->getNullFlag())
+                {
+                  str_cpy_all(tgtDefVal, (char*)&nullVal, 
+                              ExpTupleDesc::NULL_INDICATOR_LENGTH);
+                  tgtDefValCurr += ExpTupleDesc::NULL_INDICATOR_LENGTH;
+                }
+              
+              Lng32 srcDefLen    = srcAttr->getLength(srcDefVal);
+              tgtAttr->setVarLength(srcDefLen, tgtDefValCurr);
+              tgtDefValCurr += tgtAttr->getVCIndicatorLength();
+              srcDefVal += srcAttr->getVCIndicatorLength();
+
+              str_cpy_all(tgtDefValCurr, srcDefVal, srcDefLen);
+            }
 	  
 	  tgtAttr->setDefaultValue(srcAttr->getDefaultClass(), tgtDefVal);
 	}
@@ -1257,6 +1290,8 @@ short ExpGenerator::generateAggrExpr(const ValueIdSet &val_id_set,
 
 	case ITM_COUNT:
 	case ITM_COUNT_NONULL:
+	case ITM_ORC_MAX_NV:
+	case ITM_ORC_SUM_NV:
 	  {
 	    generator->getMapInfo(val_id)->codeGenerated();
             newExpr = new(wHeap())
@@ -1423,6 +1458,8 @@ short ExpGenerator::generateAggrExpr(const ValueIdSet &val_id_set,
 
 	    case ITM_COUNT:
 	    case ITM_COUNT_NONULL:
+	    case ITM_ORC_MAX_NV:
+	    case ITM_ORC_SUM_NV:
 	    case ITM_ONE_TRUE:
 	    case ITM_ANY_TRUE:
 	    case ITM_ANY_TRUE_MAX:
@@ -1503,6 +1540,7 @@ short ExpGenerator::generateAggrExpr(const ValueIdSet &val_id_set,
   	  break;
 
 	case ITM_MAX:
+	case ITM_ORC_MAX_NV:
 	  {
 	    if (case_ == 1)
 	      {
@@ -1576,6 +1614,7 @@ short ExpGenerator::generateAggrExpr(const ValueIdSet &val_id_set,
 	  //        else SUM = 1;
 	  //
 	case ITM_COUNT:
+	case ITM_ORC_SUM_NV:
 	  {
 	    NAType *sumType
 	      = item_expr->getValueId().getType().newCopy(wHeap());

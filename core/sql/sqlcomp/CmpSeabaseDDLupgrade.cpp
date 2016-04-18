@@ -557,6 +557,7 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
                   Int64 expSWUpdVersion = SOFTWARE_UPDATE_VERSION;
 
                   char expProdStr[100];
+#ifdef __ignore
                   const char * s = xstr(SOFTWARE_PROD_NAME);
                   if (strstr(s, "Apache"))
                     strcpy(expProdStr, "Apache ");
@@ -564,12 +565,13 @@ short CmpSeabaseMDupgrade::executeSeabaseMDupgrade(CmpDDLwithStatusInfo *mdui,
                     strcpy(expProdStr, "Enterprise ");
                   else
                     expProdStr[0] = 0;
-                  /*
-		  str_sprintf(msgBuf, "  System Version: %Ld.%Ld.%Ld. Expected Version: %s%Ld.%Ld.%Ld.",
-			      sysSWMajorVersion, sysSWMinorVersion, sysSWUpdVersion,
-                              expProdStr,
-			      expSWMajorVersion, expSWMinorVersion, expSWUpdVersion);
-                  */
+#endif
+                  if (IsEnterpriseLevel() && IsAdvancedLevel())
+                    strcpy(expProdStr, "Advanced ");
+                  else if (IsEnterpriseLevel())
+                    strcpy(expProdStr, "Enterprise ");
+                  else
+                    strcpy(expProdStr, "Apache ");
 		  str_sprintf(msgBuf, "  Software Version: %s%Ld.%Ld.%Ld",
                               expProdStr,
 			      expSWMajorVersion, expSWMinorVersion, expSWUpdVersion);

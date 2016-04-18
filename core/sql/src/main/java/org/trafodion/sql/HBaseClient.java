@@ -44,6 +44,7 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.transactional.RMInterface;
 import org.apache.hadoop.hbase.CellUtil;
@@ -906,7 +907,6 @@ public class HBaseClient {
        } else {
             if (logger.isDebugEnabled()) logger.debug("  ==> Returning existing object, removing from container.");
             hTableClientsInUse.put(htable.getTableName(), htable);
-            htable.resetAutoFlush();
            htable.setJniObject(jniObject);
 	   htable.setSynchronized(bSynchronized);
             return htable;
@@ -934,17 +934,6 @@ public class HBaseClient {
            else
               if (logger.isDebugEnabled()) logger.debug("Table not found in inUse Pool");
         }
-    }
-
-    public boolean flushAllTables() throws IOException {
-        if (logger.isDebugEnabled()) logger.debug("HBaseClient.flushAllTables() called.");
-       if (hTableClientsInUse.isEmpty()) {
-          return true;
-        }
-        for (HTableClient htable : hTableClientsInUse.values()) {
-		  htable.flush();
-        }
-	return true; 
     }
 
     public boolean grant(byte[] user, byte[] tblName,
@@ -1007,11 +996,8 @@ public class HBaseClient {
       int kvCount = 0;
       int nonPuts = 0;
       do {
-        //KeyValue kv = scanner.getKeyValue();
-          Cell kv = scanner.getKeyValue();
+        Cell kv = scanner.getKeyValue();
         //System.out.println(kv.toString());
-          System.out.println(kv);
-        //if (kv.getType() == KeyValue.Type.Put.getCode())
         if (kv.getTypeByte() == KeyValue.Type.Put.getCode())
           qualifiers = qualifiers + kv.getQualifier()[0] + " ";
         else
@@ -1704,10 +1690,9 @@ public class HBaseClient {
                          Object rowIDs,
                          Object rows,
                          long timestamp,
-                         boolean autoFlush,
                          boolean asyncOperation) throws IOException, InterruptedException, ExecutionException {
       HTableClient htc = getHTableClient(jniObject, tblName, useTRex, bSynchronize);
-      boolean ret = htc.putRows(transID, rowIDLen, rowIDs, rows, timestamp, autoFlush, asyncOperation);
+      boolean ret = htc.putRows(transID, rowIDLen, rowIDs, rows, timestamp, asyncOperation);
       if (asyncOperation == true)
          htc.setJavaObject(jniObject);
       else
@@ -2042,6 +2027,32 @@ public class HBaseClient {
     Rows.add(widthInfo.getBytes());
 
     return Rows;
+  }
+  
+  public boolean createSnapshot(String tblName)
+	throws MasterNotRunningException, IOException, SnapshotCreationException, InterruptedException {
+          if (logger.isDebugEnabled()) logger.debug("HBaseClient.createSnapshot(" + tblName + ") called.");
+          HBaseAdmin admin = new HBaseAdmin(config);
+	    
+	    String snapshotName = tblName + "_SNAPSHOT";
+	    
+	    List<SnapshotDescription> l = new ArrayList<SnapshotDescription>(); 
+	    	    l = admin.listSnapshots(snapshotName);
+	    l = admin.listSnapshots();
+	    if (! l.isEmpty())
+		{
+		    for (SnapshotDescription sd : l) {
+			if (sd.getName().compareTo(snapshotName) == 0)
+			    {
+				admin.deleteSnapshot(snapshotName);
+			    }
+		    }
+		}
+         
+	    //Note , do not disable table.
+	    admin.snapshot(snapshotName, tblName);
+	    admin.close();
+        return true;
   }
 
 }

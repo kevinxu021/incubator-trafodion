@@ -1,6 +1,6 @@
 //@@@ START COPYRIGHT @@@
 
-//(C) Copyright 2015 Esgyn Corporation
+//(C) Copyright 2016 Esgyn Corporation
 
 //@@@ END COPYRIGHT @@@
 
@@ -135,7 +135,7 @@ define([
 					                	 "mRender": function ( data, type, full ) {
 					                		 if (type === 'display') {
 					                			 var rowcontent = "<a href=\"#/workloads/active/querydetail/" +
-					                			 data+"\">"+data+"</a>";
+					                			 encodeURIComponent(data)+"\">"+data+"</a>";
 					                			 return rowcontent;
 					                		 }
 					                		 else return data;
@@ -144,7 +144,7 @@ define([
 					buttons: [
 	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
 	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                          // { extend : 'excel', exportOptions: { columns: ':visible' } },
 	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 	                        	   title: 'Active Workloads' } ,
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Active Workloads' }

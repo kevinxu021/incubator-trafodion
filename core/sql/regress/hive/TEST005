@@ -31,18 +31,24 @@ sh regrhadoop.ksh fs -mkdir  /user/hive/exttables/customer_temp;
 sh regrhadoop.ksh fs -mkdir  /user/hive/exttables/tbl_utf8;
 sh regrhadoop.ksh fs -mkdir  /user/hive/exttables/tbl_type;
 sh regrhadoop.ksh fs -mkdir  /user/hive/exttables/tbl_gbk;
+sh regrhadoop.ksh fs -mkdir  /user/hive/exttables/tbl_dos;
+sh regrhadoop.ksh fs -mkdir  /user/hive/exttables/tbl_dos_num;
 --empty folders
 sh regrhadoop.ksh fs -rm   /user/hive/exttables/customer_ddl/*;
 sh regrhadoop.ksh fs -rm   /user/hive/exttables/customer_temp/*;
 sh regrhadoop.ksh fs -rm   /user/hive/exttables/tbl_utf8/*;
 sh regrhadoop.ksh fs -rm   /user/hive/exttables/tbl_type/*;
 sh regrhadoop.ksh fs -rm   /user/hive/exttables/tbl_gbk/*;
+sh regrhadoop.ksh fs -rm   /user/hive/exttables/tbl_dos/*;
+sh regrhadoop.ksh fs -rm   /user/hive/exttables/tbl_dos_num/*;
 
 --- setup Hive tables
 sh regrhive.ksh -v -f $REGRTSTDIR/TEST005_a.hive.sql;
 sh regrhadoop.ksh fs -put $REGRTSTDIR/tbl_utf8.data /user/hive/exttables/tbl_utf8;
 sh regrhadoop.ksh fs -put $REGRTSTDIR/tbl_type.data /user/hive/exttables/tbl_type;
 sh regrhadoop.ksh fs -put $REGRTSTDIR/tbl_gbk.data /user/hive/exttables/tbl_gbk;
+sh regrhadoop.ksh fs -put $REGRTSTDIR/tbl_dos.data /user/hive/exttables/tbl_dos;
+sh regrhadoop.ksh fs -put $REGRTSTDIR/tbl_dos_numeric.data /user/hive/exttables/tbl_dos_num;
 
 -- cleanup any left-over Trafodion objects
 drop external table hivepi for hive.hive.hivepi;
@@ -104,9 +110,16 @@ insert into hive.hive.hivepi  select id, col2, p1 from hive.hive.hivepis;
 insert overwrite table hive.hive.hivepi  select id, col2, p1 from hive.hive.hivepis;
 -- error, insert overwrite table not allowed for partitioned tables
 
+prepare display_rows_accessed from
+select val4_txt, val4
+from table(statistics(null,null))
+where tdb_name like '%_SCAN %';
+
 select * from hivepi;
 select count(*) from hivepis;
 select * from hivepts where p2 = 'two';
+execute display_rows_accessed;
+select * from hivepi join hivepis on hivepi.p1 = hivepis.p1;
 
 -- insert some data and add one more partition
 sh regrhive.ksh -v -f $REGRTSTDIR/TEST005_b.hive.sql;
@@ -333,7 +346,9 @@ from table(explain(null,'S'))
 where operator like '%SCAN%'
   and description like '%part_elim_runtime%';
 select * from hive.hive.hivepts where p1t > timestamp '2002-01-01 00:00:00.000000' and p2 <> 'four';
+execute display_rows_accessed;
 select * from hive.hive.hivepts where p1t < current_timestamp;
+execute display_rows_accessed;
 
 select *,
        block__offset__inside__file,
@@ -352,8 +367,11 @@ select * from hive.hive.hivepiso;
 
 -- partition elimination on ORC table
 select * from hive.hive.hivepio where p1=2;
+execute display_rows_accessed;
 select * from hive.hive.hivepio where p1 in (1,3);
+execute display_rows_accessed;
 select * from hive.hive.hivepdo where p1d >= date '2002-12-31';
+execute display_rows_accessed;
 
 -- this pred can neither be pushed to ORC nor used as
 -- a partition elimination predicate
@@ -379,8 +397,19 @@ select cast(substring(o.object_name, 1, 20) as
 order by 1, 2;
 
 drop external table hivepi for hive.hive.hivepi;
+
 cqd HIVE_FILE_CHARSET 'GBK';
 select c1, CONVERTTOHEX(c2) from tbl_gbk;
 cqd HIVE_FILE_CHARSET reset;
 
+cqd HIVE_SCAN_SPECIAL_MODE '1';
+select * from tbl_dos;
+cqd HIVE_SCAN_SPECIAL_MODE reset;
+drop table if exists trafodion.seabase.tbl_dos_num;
+create table trafodion.seabase.tbl_dos_num (c1 int, c2 int);
+load with NO OUTPUT into trafodion.seabase.tbl_dos_num select * from tbl_dos_num;
+cqd HIVE_SCAN_SPECIAL_MODE '1';
+load with no output into trafodion.seabase.tbl_dos_num select * from tbl_dos_num;
+select * from trafodion.seabase.tbl_dos_num;
+cqd HIVE_SCAN_SPECIAL_MODE reset;
 log;

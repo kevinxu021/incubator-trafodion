@@ -55,6 +55,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.client.transactional.ReplayEngine;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.CommitUnsuccessfulException;
@@ -497,6 +498,14 @@ public class RMInterface {
         }
     }   
 
+    static public void replayEngineStart(final long timestamp) throws Exception {
+      if (LOG.isTraceEnabled()) LOG.trace("replayEngineStart ENTRY with timestamp: " + timestamp);
+
+      ReplayEngine re = new ReplayEngine(timestamp);
+
+      if (LOG.isTraceEnabled()) LOG.trace("replayEngineStart EXIT");
+    }
+
     static public void clearTransactionStates(final long transactionID) {
       if (LOG.isTraceEnabled()) LOG.trace("cts1 Enter txid: " + transactionID);
 
@@ -860,10 +869,7 @@ public class RMInterface {
     {
         return ttable.getConfiguration();
     }
-    public void flushCommits()
-                  throws InterruptedIOException,
-                RetriesExhaustedWithDetailsException,
-                IOException{
+    public void flushCommits() throws IOException {
          ttable.flushCommits();
     }
     public HConnection getConnection()
@@ -916,11 +922,11 @@ public class RMInterface {
     {
         return ttable.checkAndPut(row,family,qualifier,value,put);
     }
-    public void put(Put p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException, IOException
+    public void put(Put p) throws IOException
     {
         ttable.put(p);
     }
-    public void put(List<Put> p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException, IOException
+    public void put(List<Put> p) throws IOException
     {
         ttable.put(p);
     }

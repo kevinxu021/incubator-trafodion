@@ -4508,8 +4508,8 @@ Lng32 ex_function_hivehash::hashForCharType(char* data, Lng32 length)
 {
   // To compute: SUM (i from 0 to n-1) (s(i) * 31^(n-1-i)
 
-  ULng32 resultCopy = 0;
-  ULng32 result = (ULng32)data[0];
+  Lng32 resultCopy = 0;
+  Lng32 result = data[0];
   for (Lng32 i=1; i<length; i++ ) {
 
      // perform result * 31, optimized as (result <<5 - result)
@@ -4517,7 +4517,7 @@ Lng32 ex_function_hivehash::hashForCharType(char* data, Lng32 length)
      result <<= 5;
      result -= resultCopy;
 
-     result += (ULng32)(data[i]);
+     result += data[i];
   }
 
   return result;
@@ -4528,7 +4528,7 @@ ex_expr::exp_return_type ex_function_hivehash::eval(char *op_data[],
 						ComDiagsArea**)
 {
   Attributes *srcOp = getOperand(1);
-  ULng32 hashValue = 0;
+  Lng32 hashValue = 0;
   Lng32 length;
   
   if (srcOp->getNullFlag() && (! op_data[ -(2 * MAX_OPERANDS) + 1 ]))
@@ -4548,10 +4548,10 @@ ex_expr::exp_return_type ex_function_hivehash::eval(char *op_data[],
       hashValue = ex_function_hivehash::hashForCharType(op_data[1],length);
   } else
   if ( DFS2REC::isBinary(srcOp->getDatatype()) ) {
-      hashValue = *(ULng32*)(op_data[1]);
+      hashValue = *(Lng32*)(op_data[1]);
   } // TBD: other SQ types
 
-  *(ULng32 *)op_data[0] = hashValue;
+  *(Lng32 *)op_data[0] = hashValue;
   return ex_expr::EXPR_OK;
 }
 
@@ -4594,7 +4594,7 @@ ex_expr::exp_return_type ExHiveHashComb::eval(char *op_data[],
                                           ComDiagsArea** diagsArea)
 {
   // always assume that both operands and result are of the same
-  // (unsigned) type and length
+  // (signed) type and length
 
   // with built-in long long type we could also support 8 byte integers
   ULng32 op1, op2;
@@ -4602,11 +4602,11 @@ ex_expr::exp_return_type ExHiveHashComb::eval(char *op_data[],
   switch (getOperand(0)->getStorageLength())
     {
     case 4:
-      op1 = *((ULng32 *) op_data[1]);
-      op2 = *((ULng32 *) op_data[2]);
+      op1 = *((Lng32 *) op_data[1]);
+      op2 = *((Lng32 *) op_data[2]);
 
       // compute op1 * 31 + op2, optimized as op1 << 5 - op1 + op2
-      *((ULng32 *) op_data[0]) = op1 << 5 - op1 + op2;
+      *((Lng32 *) op_data[0]) = op1 << 5 - op1 + op2;
       break;
 
     default:

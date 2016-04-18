@@ -741,7 +741,7 @@ define([
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible', orthogonal: 'export'  } },
 					          { extend : 'csv', exportOptions: { columns: ':visible', orthogonal: 'export' } },
-					          { extend : 'excel', exportOptions: { columns: ':visible', orthogonal: 'export' } },
+					          //{ extend : 'excel', exportOptions: { columns: ':visible', orthogonal: 'export' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, title: "Columns in "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible', orthogonal: 'export' }, title: "Columns in "+routeArgs.type + " " + routeArgs.name }
 					          ],					             
@@ -802,7 +802,7 @@ define([
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
-					          { extend : 'excel', exportOptions: { columns: ':visible' } },
+					         // { extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Regions for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Regions for "+routeArgs.type + " " + routeArgs.name }
 					          ],					             
@@ -863,7 +863,7 @@ define([
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
-					          { extend : 'excel', exportOptions: { columns: ':visible' } },
+					          //{ extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Privileges for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Privileges for "+routeArgs.type + " " + routeArgs.name }
 					          ],					             
@@ -911,19 +911,19 @@ define([
 				var aoColumnDefs = [];
 				if(routeArgs.type == 'library' || routeArgs.type == 'procedure' || routeArgs.type == 'udf'){
 					aoColumnDefs.push({
-						"aTargets": [ 1 ],
-						"mData": 1,
+						"aTargets": [ 2 ],
+						"mData": 2,
 						"visible" : false,
 						"searchable" : false
 					});
 					aoColumnDefs.push({
-						"aTargets": [ 0 ],
-						"mData": 0,
+						"aTargets": [ 1 ],
+						"mData": 1,
 						"mRender": function ( data, type, full ) {
 							if(type == 'display') {
 								if(data != null && data.length > 0){
-									var udrSchema = full[1];
-									var udrType = full[2];
+									var udrSchema = full[2];
+									var udrType = full[3];
 									var linkType = '';
 									if(udrType == 'Procedure' || udrType == 'Library'){
 										linkType = udrType.toLowerCase();
@@ -989,7 +989,7 @@ define([
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
-					          { extend : 'excel', exportOptions: { columns: ':visible' } },
+					          //{ extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Objects using "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Objects using "+routeArgs.type + " " + routeArgs.name }
 					          ],					             
@@ -1103,7 +1103,7 @@ define([
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
-					          { extend : 'excel', exportOptions: { columns: ':visible' } },
+					         // { extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text() }
 					          ],					             
@@ -1199,7 +1199,7 @@ define([
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
-					          { extend : 'excel', exportOptions: { columns: ':visible' } },
+					          //{ extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Statistics for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Statistics for "+routeArgs.type + " " + routeArgs.name }
 					          ],					             

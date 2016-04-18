@@ -2802,6 +2802,20 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
       // removed preds for the next step
       partAndVirtColPreds_ = compileTimePartColPreds_;
       compileTimePartColPreds_.removeUnCoveredExprs(availableValues);
+
+      // a VEGPred(partcol, <other values>) will still be in
+      // compileTimePartColPreds_, but we can only evaluate it at
+      // compile time if it also contains a constant
+      for (ValueId q=compileTimePartColPreds_.init();
+           compileTimePartColPreds_.next(q);
+           compileTimePartColPreds_.advance(q))
+        {
+          if (q.getItemExpr()->getOperatorType() == ITM_VEG_PREDICATE)
+            // Remove the VEGPredicate if the VEG doesn't contain a constant
+            if (static_cast<VEGPredicate *>(q.getItemExpr())->
+                        getVEG()->getAConstant(FALSE) == NULL_VALUE_ID)
+              compileTimePartColPreds_ -= q;
+        }
       partAndVirtColPreds_ -= compileTimePartColPreds_;
 
       // now add characteristic inputs and virtual file columns
@@ -2874,25 +2888,27 @@ int HivePartitionAndBucketKey::computeActivePartitions()
               ComDiagsArea da;
 
               // evaluate this rewritten predicate at compile time
-              NABoolean predIsTrue =
+              ex_expr::exp_return_type predEvalResult =
                 compileTimePartColPreds_.evalPredsAtCompileTime(
-                   &da,
-                   &colsToConsts,
-                   TRUE);
+                     &da,
+                     &colsToConsts,
+                     TRUE);
 
-              if (da.getNumber() == 0)
+              if (da.getNumber() == 0 &&
+                  (predEvalResult == ex_expr::EXPR_FALSE ||
+                   predEvalResult == ex_expr::EXPR_NULL))
                 {
-                  if (!predIsTrue)
-                    // no errors or warnings, predicate is FALSE
-                    partitionIsEliminated = TRUE;
+                  // no errors or warnings, predicate is FALSE
+                  partitionIsEliminated = TRUE;
                 }
-              else
+              else if (da.getNumber() > 0 ||
+                       predEvalResult != ex_expr::EXPR_TRUE)
                 {
                   // we should not see errors or warnings, but if
                   // there are some then we assume the partition
                   // qualifies and also do partition elimination
                   // at runtime
-                  DCMPASSERT(da.getNumber() == 0);
+                  DCMPASSERT(0);
                   partAndVirtColPreds_ += compileTimePartColPreds_;
                 }
             }

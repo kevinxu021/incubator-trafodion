@@ -397,7 +397,8 @@ public class OpenTSDBResource {
 				metricValues = mapper.readValue(nodeValue, metricValues.getClass());
 				// Get the list of time keys once
 				if (timePoints == null) {
-					timePoints = metricValues.keySet().toArray(new String[0]);
+					if (metricValues.keySet().size() > 0)
+						timePoints = metricValues.keySet().toArray(new String[0]);
 				}
 				parsedMetrics.add(metricValues);
 			}

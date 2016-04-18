@@ -318,7 +318,6 @@ function run_util {
     fi
     echo "--------------------------------------"
 }
-
 # check the startup log and sort the interesting even chronologically
 function sqchksl {
     setup_sqpdsh
@@ -1020,6 +1019,9 @@ function cdc {
 }
 function cdj {
     cd $MY_SQROOT/../sql/src/main/java/org/trafodion/sql
+}
+function cdh {
+    cd $MY_SQROOT/sql/local_hadoop
 }
 # ls variants
 function lst {

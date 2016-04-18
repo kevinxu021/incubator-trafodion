@@ -46,6 +46,7 @@ static const char* const sfrErrorEnumStr[] =
  ,"Java exception in fetchNextRow()"
  ,"Java exception in close()"
  ,"Error from GetStripeInfo()"
+ ,"Java exception in GetColStats()"
  ,"Unknown error returned from ORC interface"
 };
 
@@ -190,7 +191,6 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
 		    pv_num_cols_in_projection,
 		    pv_which_cols);
       
-      jenv_->DeleteLocalRef(js_path);
       lv_retcode = OFR_ERROR_OPEN_PARAM;
       goto fn_exit;
     }
@@ -205,8 +205,8 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
     {
       jor_ppiVec = convertToByteArrayObjectArray(*ppiVec);
       if (jor_ppiVec == NULL) {
-        jenv_->DeleteLocalRef(js_path);
-        return OFR_ERROR_OPEN_PARAM;
+        lv_retcode = OFR_ERROR_OPEN_PARAM;
+	goto fn_exit;
       }
 
       if (ppiAllCols && (!ppiAllCols->empty()))
@@ -219,8 +219,8 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
               getExceptionDetails();
               logError(CAT_SQL_HBASE, __FILE__, __LINE__);
               logError(CAT_SQL_HBASE, "HBaseClient_JNI::open()", getLastError());
-              jenv_->DeleteLocalRef(js_path);  
-              return OFR_ERROR_OPEN_PARAM;
+              lv_retcode = OFR_ERROR_OPEN_PARAM;
+	      goto fn_exit;
             }
         }
     }
@@ -236,9 +236,13 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
 					     jia_which_cols,
                                              jor_ppiVec,
                                              jor_ppiAllCols);
-
-  jenv_->DeleteLocalRef(js_path);  
-  jenv_->DeleteLocalRef(jia_which_cols);  
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HDFS_ORC_FILE_READER, __FILE__, __LINE__);
+    lv_retcode = OFR_ERROR_OPEN_EXCEPTION;
+    goto fn_exit;
+  }
 
   if (jresult != NULL) {
     const char *my_string = jenv_->GetStringUTFChars(jresult, JNI_FALSE);
@@ -260,7 +264,6 @@ OFR_RetCode OrcFileReader::open(const char *pv_path,
  fn_exit:  
   jenv_->PopLocalFrame(NULL);
   return lv_retcode;
-  //  return OFR_OK;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -277,6 +280,13 @@ OFR_RetCode OrcFileReader::getPosition(Int64& pv_pos)
   tsRecentJMFromJNI = JavaMethods_[JM_GETPOS].jm_full_name;
   Int64 result = jenv_->CallLongMethod(javaObj_,
 				       JavaMethods_[JM_GETPOS].methodID);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HDFS_ORC_FILE_READER, __FILE__, __LINE__);
+    return OFR_ERROR_GETPOS_EXCEPTION;
+  }
 
   if (result == -1) {
     logError(CAT_SQL_HDFS_ORC_FILE_READER,
@@ -308,6 +318,13 @@ OFR_RetCode OrcFileReader::seeknSync(Int64 pv_pos)
 						     JavaMethods_[JM_SYNC].methodID,
 						     orcPos);
 
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HDFS_ORC_FILE_READER, __FILE__, __LINE__);
+    return OFR_ERROR_SYNC_EXCEPTION;
+  }
+
   if (jresult != NULL) {
     const char *my_string = jenv_->GetStringUTFChars(jresult,
 						     JNI_FALSE);
@@ -337,6 +354,13 @@ OFR_RetCode OrcFileReader::isEOF(bool& isEOF)
   bool result = jenv_->CallBooleanMethod(javaObj_,
 					 JavaMethods_[JM_ISEOF].methodID);
 
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HDFS_ORC_FILE_READER, __FILE__, __LINE__);
+    return OFR_ERROR_ISEOF_EXCEPTION;
+  }
+
   isEOF = result;
   return OFR_OK;
 }
@@ -354,6 +378,13 @@ OFR_RetCode OrcFileReader::fetchNextRow(char * pv_buffer,
   tsRecentJMFromJNI = JavaMethods_[JM_FETCHROW].jm_full_name;
   jbyteArray jba_val = (jbyteArray)jenv_->CallObjectMethod(javaObj_,
 							JavaMethods_[JM_FETCHROW].methodID);
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HDFS_ORC_FILE_READER, __FILE__, __LINE__);
+    return OFR_ERROR_FETCHROW_EXCEPTION;
+  }
+
   if (jba_val == NULL && getLastError()) {
     logError(CAT_SQL_HDFS_ORC_FILE_READER,
 	     "OrcFileReader::fetchNextRow()",
@@ -411,6 +442,12 @@ OFR_RetCode OrcFileReader::fetchNextRowNonDirect(char * pv_buffer,
     m_total_number_of_rows_in_block = 0;
     m_java_block = (jbyteArray)jenv_->CallObjectMethod(javaObj_,
 						    JavaMethods_[sv_java_fetch_next_row_method].methodID);
+    if (jenv_->ExceptionCheck()) {
+      getExceptionDetails();
+      logError(CAT_SQL_HDFS_ORC_FILE_READER, __FILE__, __LINE__);
+      return OFR_ERROR_FETCHROW_EXCEPTION;
+    }
+
     if (m_java_block == NULL && getLastError()) {
       logError(CAT_SQL_HDFS_ORC_FILE_READER,
 	       "OrcFileReader::fetchNextRow()",
@@ -487,6 +524,12 @@ OFR_RetCode OrcFileReader::fetchNextRow(char** pv_buffer,
     m_total_number_of_rows_in_block = 0;
     jobject lv_java_block = (jobject)jenv_->CallObjectMethod(javaObj_,
 						    JavaMethods_[sv_java_fetch_next_row_method].methodID);
+    if (jenv_->ExceptionCheck()) {
+      getExceptionDetails();
+      logError(CAT_SQL_HDFS_ORC_FILE_READER, __FILE__, __LINE__);
+      return OFR_ERROR_FETCHROW_EXCEPTION;
+    }
+
     if (lv_java_block == NULL && getLastError()) {
       logError(CAT_SQL_HDFS_ORC_FILE_READER,
 	       "OrcFileReader::fetchNextRow()",
@@ -573,6 +616,13 @@ OFR_RetCode OrcFileReader::close()
   jstring jresult = (jstring)jenv_->CallObjectMethod(javaObj_,
 						     JavaMethods_[JM_CLOSE].methodID);
 
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HDFS_ORC_FILE_READER, __FILE__, __LINE__);
+    return OFR_ERROR_CLOSE_EXCEPTION;
+  }
+
   if (jresult!=NULL) {
     logError(CAT_SQL_HDFS_ORC_FILE_READER,
 	     "OrcFileReader::close()",
@@ -610,6 +660,14 @@ ByteArrayList* OrcFileReader::getColStats(int colNum)
      JavaMethods_[JM_GETCOLSTATS].methodID,
      ji_colNum);
   
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HDFS_ORC_FILE_READER, __FILE__, __LINE__);
+    jenv_->PopLocalFrame(NULL);
+    return NULL;
+  }
+
   ByteArrayList* colStats = NULL;
 
   if (jByteArrayList != NULL)
@@ -636,6 +694,13 @@ jstring OrcFileReader::getLastError()
   // String getLastError();
   jstring jresult = (jstring)jenv_->CallObjectMethod(javaObj_,
 						     JavaMethods_[JM_GETERROR].methodID);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HDFS_ORC_FILE_READER, __FILE__, __LINE__);
+    return NULL;
+  }
 
   return jresult;
 }
@@ -694,6 +759,13 @@ OrcFileReader::getLongArray(OrcFileReader::JAVA_METHODS method, const char* msg,
   tsRecentJMFromJNI = JavaMethods_[method].jm_full_name;
 
   jlongArray jresult = (jlongArray)jenv_->CallObjectMethod(javaObj_, JavaMethods_[method].methodID);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HDFS_ORC_FILE_READER, __FILE__, __LINE__);
+    return OFR_ERROR_GETSTRIPEINFO_EXCEPTION;
+  }
 
   if (jresult == NULL) {
     logError(CAT_SQL_HDFS_ORC_FILE_READER,

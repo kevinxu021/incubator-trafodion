@@ -49,15 +49,28 @@ define(['moment',
 				_this.dcsMasterInfoUri = data.dcsMasterInfoUri;
 				_this.systemType = data.systemType;
 				_this.serverConfigLoaded = true;
-				if(data.enableAlerts != null && data.enableAlerts == false){
-					$('#alerts-feature').hide();
+				if(_this.isAdvanced()){
+					$('.dbmgr-adv').show();
+					if(data.enableAlerts != null && data.enableAlerts == false){
+						$('#alerts-feature').hide();
+					}else{
+						$('#alerts-feature').show();
+					}
 				}else{
-					$('#alerts-feature').show();
+					$('.dbmgr-adv').hide();
+					$('#alerts-feature').hide();
 				}
 			};
 
 			this.isEnterprise = function(){
 				if(_this.systemType != null && _this.systemType == 1){
+					return true;
+				}
+				return false;
+			};
+			
+			this.isAdvanced = function(){
+				if(_this.systemType != null && _this.systemType == 2){
 					return true;
 				}
 				return false;
@@ -575,8 +588,6 @@ define(['moment',
 					//set distance between node and its children
 					levelDistance: 40,
 					siblingOffset: 100,
-				    width: this.calculateWidth(jsonData, container),						   
-				    height: this.calculateHeight(jsonData.treeDepth),
 					//set max levels to show. Useful when used with
 					//the request method for requesting trees of specific depth
 					levelsToShow: jsonData.treeDepth,

@@ -7,3 +7,5 @@ docs/command_interface export-ignore
 docs/odb_manual export-ignore
 docs/sql_reference export-ignore
 docs/src/site export-ignore
+# ignore bitmap values for diff
+core/sql/regress/privs1/* diff

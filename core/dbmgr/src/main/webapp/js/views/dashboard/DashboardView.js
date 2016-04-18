@@ -171,10 +171,11 @@ define([
 
 		},
 		bindOtherInitialEvents:function(){
-			if(common.isEnterprise()){
+			if(common.isEnterprise() || common.isAdvanced()){
 				$(DRILLDOWN_DIALOG).on('shown.bs.modal', function(event, ab){
 					$(DRILLDOWN_CHART).empty();
 					var metricName = $(DRILLDOWN_METRICNAME).text();
+					$(DRILLDOWN_CHART_CONTAINER).hide();
 					if(metricName != "nodestatus"){
 						$(DRILLDOWN_SPINNER).show();
 						dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
@@ -207,7 +208,7 @@ define([
 			});	
 		},
 		unbindEnterpriseEvents:function(){
-			if(common.isEnterprise()){
+			if(common.isEnterprise() || common.isAdvanced()){
 				$(CANARY_DRILLDOWN_BTN).off('click', this.canaryDrillDown);
 				$(TRANSACTIONS_DRILLDOWN_BTN).off('click', this.transactionsDrillDown);
 				$(IOWAITS_DRILLDOWN_BTN).off('click',this.iowaitsDrillDown);
@@ -227,7 +228,7 @@ define([
 			}
 		},
 		bindEnterpriseEvents:function(){
-			if(common.isEnterprise()){
+			if(common.isEnterprise() || common.isAdvanced()){
 				$('.dbmgr-ent').show();
 				$(CANARY_DRILLDOWN_BTN).on('click', this.canaryDrillDown);
 				$(TRANSACTIONS_DRILLDOWN_BTN).on('click', this.transactionsDrillDown);
@@ -261,6 +262,7 @@ define([
 						spinner:"#canary-spinner",  //div element for spinner
 						graphcontainer:"canary-chart",  //element for graph container
 						errorcontainer:"#canary-error-text", //element for error text container
+						legendcontainer: "#canary-legend"
 					},
 					transactions:{
 						chartTitle: "Transaction Counts",
@@ -274,7 +276,8 @@ define([
 						yvalformatter: common.formatNumberWithComma,
 						spinner:"#transactions-spinner", 
 						graphcontainer:"transactions-chart", 
-						errorcontainer:"#transactions-error-text"						
+						errorcontainer:"#transactions-error-text",
+						legendcontainer: "#transactions-legend"
 					},
 					iowaits:{
 						chartTitle: "IO Waits",
@@ -361,7 +364,8 @@ define([
 						yvalformatter: common.convertToMB,
 						spinner:"#network-io-spinner",
 						graphcontainer:"network-io-chart",
-						errorcontainer:"#network-io-error-text"
+						errorcontainer:"#network-io-error-text",
+						legendcontainer: "#network-legend"
 					}
 
 			};
@@ -487,7 +491,7 @@ define([
 			_this.fetchServices();
 			_this.fetchNodes();
 
-			if(common.isEnterprise()){
+			if(common.isEnterprise() || common.isAdvanced()){
 				$.each(Object.getOwnPropertyNames(chartConfig), function(k, v){
 					$(chartConfig[v].spinner).show();
 					dashboardHandler.fetchSummaryMetric(_this.generateParams(v));
@@ -533,7 +537,7 @@ define([
 						status = 'ERROR';
 					}else{
 						if(configured != actuals)
-							status = 'Warning';
+							status = 'WARN';
 						var percentUp = (actuals/configured)*100; 
 						if( percentUp < 30){
 							status = 'ERROR';
@@ -600,7 +604,7 @@ define([
 					                 buttons: [
 					                           { extend : 'copy', exportOptions: { columns: [0, 1, 2, 3] } },
 					                           { extend : 'csv', exportOptions: { columns: [0, 1, 2, 3] } },
-					                           { extend : 'excel', exportOptions: {  columns: [0, 1, 2, 3] } },
+					                           //{ extend : 'excel', exportOptions: {  columns: [0, 1, 2, 3] } },
 					                           { extend : 'pdfHtml5', exportOptions: { columns: [0, 1, 2, 3] }, title: 'Service Status' },
 					                           { extend : 'print', exportOptions: { columns: [0, 1, 2, 3] }, title: 'Service Status' }
 					                           ],					                 
@@ -629,7 +633,11 @@ define([
 			$(SERVICES_ERROR_TEXT).show();
 			if (jqXHR.responseText) {
 				$(SERVICES_ERROR_TEXT).text(jqXHR.responseText);     
-			}       	
+			}else{
+        		if(jqXHR.status != null && jqXHR.status == 0) {
+        			$(SERVICES_ERROR_TEXT).text("Error : Unable to communicate with the server.");
+        		}
+        	}       	
 		},
 		fetchNodes: function () {
 			$(NODES_SPINNER).show();
@@ -705,7 +713,7 @@ define([
 							                 buttons: [
 							                           { extend : 'copy', exportOptions: { columns: [0, 1] } },
 							                           { extend : 'csv', exportOptions: { columns: [0, 1] } },
-							                           { extend : 'excel', exportOptions: { columns: [0, 1] } },
+							                           //{ extend : 'excel', exportOptions: { columns: [0, 1] } },
 							                           { extend : 'pdfHtml5', exportOptions: { columns: [0, 1] }, title: 'Node Status' },
 							                           { extend : 'print', exportOptions: { columns: [0, 1] }, title: 'Node Status' }
 							                           ],					                 
@@ -727,7 +735,11 @@ define([
 					$(NODES_ERROR_TEXT).text("Node information is not available.");
 				}else
 					$(NODES_ERROR_TEXT).text(jqXHR.responseText);     
-			}
+			}else{
+        		if(jqXHR.status != null && jqXHR.status == 0) {
+        			$(NODES_ERROR_TEXT).text("Error : Unable to communicate with the server.");
+        		}
+        	}
 		},
 		fetchSummaryMetricSuccess: function(result){
 			var keys = Object.keys(result.data);
@@ -769,6 +781,16 @@ define([
 					});
 					//metricConfig.toolTipTexts[xVal] = dataPoint;
 				});
+				
+				var finalPlotData = [];
+				
+				if(metricConfig.legendcontainer && $(metricConfig.legendcontainer).length > 0){
+					$.each(plotData, function(i, v){
+						finalPlotData.push({ label: metricConfig.ylabels[i], data: plotData[i]});
+					});
+				}else{
+					finalPlotData = plotData;
+				}
 
 				var flotOptions = {
 						colors : graphColors,
@@ -796,6 +818,11 @@ define([
 							lines:{
 								show:true
 							}
+						},
+						legend: {
+							show:true,
+							container:$(metricConfig.legendcontainer),  
+							noColumns: 0
 						},
 						/*crosshair: {
 							mode: "x"
@@ -833,7 +860,7 @@ define([
 						       }]
 				};
 
-				renderedFlotCharts[result.metricName] = $.plot($('#'+metricConfig.graphcontainer), plotData, flotOptions);
+				renderedFlotCharts[result.metricName] = $.plot($('#'+metricConfig.graphcontainer), finalPlotData, flotOptions);
 			}
 		},
 		fetchSummaryMetricError: function(jqXHR, res, error){
@@ -844,7 +871,11 @@ define([
 				$(metricConfig.errorcontainer).show();
 				if (jqXHR.responseText) {
 					$(metricConfig.errorcontainer).text(jqXHR.responseText);     
-				}				
+				}else{
+	        		if(jqXHR.status != null && jqXHR.status == 0) {
+	        			$(metricConfig.errorcontainer).text("Error : Unable to communicate with the server.");
+	        		}
+	        	}				
 			}
 		},
 		canaryDrillDown: function(){
@@ -891,7 +922,7 @@ define([
 			$(DRILLDOWN_DIALOG).modal('show');
 			$(DRILLDOWN_SERIES_CONTAINER).show();
 			$(DRILLDOWN_METRICNAME).text(metricName);
-			$(DRILLDOWN_TITLE).text(chartConfig[metricName]);
+			$(DRILLDOWN_TITLE).text(metricName);
 			var seriesSelector = $(SERIES_SELECTOR);
 			seriesSelector.empty();
 			var metricConfig = chartConfig[metricName];
@@ -1085,7 +1116,7 @@ define([
 			var pos = drillDownChart.latestPosition;
 
 			var axes = drillDownChart.plot.getAxes();
-			if (pos.x < axes.xaxis.min || pos.x > axes.xaxis.max ||
+			if (pos == null || pos.x < axes.xaxis.min || pos.x > axes.xaxis.max ||
 					pos.y < axes.yaxis.min || pos.y > axes.yaxis.max) {
 				return;
 			}
@@ -1146,7 +1177,11 @@ define([
 			if (jqXHR.responseText) {
 				$(DRILLDOWN_ERROR_CONTAINER).text(jqXHR.responseText);     
 				$(DRILLDOWN_ERROR_CONTAINER).show();
-			}				
+			}else{
+        		if(jqXHR.status != null && jqXHR.status == 0) {
+        			$(DRILLDOWN_ERROR_CONTAINER).text("Error : Unable to communicate with the server.");
+        		}
+        	}				
 		}
 	});
 

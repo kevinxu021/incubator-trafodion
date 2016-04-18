@@ -1209,6 +1209,7 @@ class CmpSeabaseDDL
   short createLibmgrProcs(ExeCliInterface * cliInterface);
   short grantLibmgrPrivs(ExeCliInterface *cliInterface);
 
+  short adjustHiveExternalSchemas(ExeCliInterface *cliInterface);
 
   void createSeabaseSequence(StmtDDLCreateSequence  * createSequenceNode,
 			     NAString &currCatName, NAString &currSchName);
@@ -1433,7 +1434,9 @@ class CmpSeabaseDDL
                          NAList<HbaseCreateOption*>& hbaseCreateOptions, //out
                          NAString& hco); // out
   
-
+  short backup(DDLExpr * ddlExpr, ExeCliInterface * cliInterface);
+  
+  
 private:
   enum
   {

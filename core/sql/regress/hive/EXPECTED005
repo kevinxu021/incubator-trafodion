@@ -98,6 +98,13 @@ ID           COL2         P1           P2                                P1T    
 
 >>-- error, insert overwrite table not allowed for partitioned tables
 >>
+>>prepare display_rows_accessed from
++>select val4_txt, val4
++>from table(statistics(null,null))
++>where tdb_name like '%_SCAN %';
+
+--- SQL command prepared.
+>>
 >>select * from hivepi;
 
 ID           COL2         P1         
@@ -130,6 +137,38 @@ ID           COL2         P1T                         P2
         222          222  2002-02-02 02:34:56.789012  two                             
 
 --- 3 row(s) selected.
+>>execute display_rows_accessed;
+
+VAL4_TXT          VAL4                
+----------------  --------------------
+
+AccessedRows                         3
+
+--- 1 row(s) selected.
+>>select * from hivepi join hivepis on hivepi.p1 = hivepis.p1;
+
+ID           COL2         P1           ID           COL2         P1           P2
+-----------  -----------  -----------  -----------  -----------  -----------  --------------------------------
+
+          1            1            1            1            1            1  one                             
+         11           11            1            1            1            1  one                             
+          1            1            1           11           11            1  one                             
+         11           11            1           11           11            1  one                             
+          2            2            2            2            2            2  two                             
+        222          222            2            2            2            2  two                             
+         22           22            2            2            2            2  two                             
+          2            2            2           22           22            2  two                             
+        222          222            2           22           22            2  two                             
+         22           22            2           22           22            2  two                             
+          2            2            2          222          222            2  two                             
+        222          222            2          222          222            2  two                             
+         22           22            2          222          222            2  two                             
+         34           34            3           34           34            3  four                            
+          3            3            3           34           34            3  four                            
+         34           34            3            3            3            3  three                           
+          3            3            3            3            3            3  three                           
+
+--- 17 row(s) selected.
 >>
 >>-- insert some data and add one more partition
 >>sh regrhive.ksh -v -f $REGRTSTDIR/TEST005_b.hive.sql;
@@ -760,6 +799,14 @@ ID           COL2         P1T                         P2
           3            3  2003-03-03 03:45:57.890123  three                           
 
 --- 4 row(s) selected.
+>>execute display_rows_accessed;
+
+VAL4_TXT          VAL4                
+----------------  --------------------
+
+AccessedRows                         4
+
+--- 1 row(s) selected.
 >>select * from hive.hive.hivepts where p1t < current_timestamp;
 
 ID           COL2         P1T                         P2
@@ -774,6 +821,14 @@ ID           COL2         P1T                         P2
          34           34  2004-04-04 04:56:18.000000  four                            
 
 --- 7 row(s) selected.
+>>execute display_rows_accessed;
+
+VAL4_TXT          VAL4                
+----------------  --------------------
+
+AccessedRows                         7
+
+--- 1 row(s) selected.
 >>
 >>select *,
 +>       block__offset__inside__file,
@@ -868,6 +923,14 @@ ID           COL2         P1
         222          222            2
 
 --- 3 row(s) selected.
+>>execute display_rows_accessed;
+
+VAL4_TXT          VAL4                
+----------------  --------------------
+
+AccessedRows                         3
+
+--- 1 row(s) selected.
 >>select * from hive.hive.hivepio where p1 in (1,3);
 
 ID           COL2         P1         
@@ -879,6 +942,14 @@ ID           COL2         P1
          34           34            3
 
 --- 4 row(s) selected.
+>>execute display_rows_accessed;
+
+VAL4_TXT          VAL4                
+----------------  --------------------
+
+AccessedRows                         4
+
+--- 1 row(s) selected.
 >>select * from hive.hive.hivepdo where p1d >= date '2002-12-31';
 
 ID           COL2         P1D       
@@ -891,6 +962,14 @@ ID           COL2         P1D
         222          222  2020-02-29
 
 --- 5 row(s) selected.
+>>execute display_rows_accessed;
+
+VAL4_TXT          VAL4                
+----------------  --------------------
+
+AccessedRows                         5
+
+--- 1 row(s) selected.
 >>
 >>-- this pred can neither be pushed to ORC nor used as
 >>-- a partition elimination predicate
@@ -957,6 +1036,7 @@ HIVEPISO              P2
 >>drop external table hivepi for hive.hive.hivepi;
 
 --- SQL operation complete.
+>>
 >>cqd HIVE_FILE_CHARSET 'GBK';
 
 --- SQL operation complete.
@@ -983,4 +1063,64 @@ C1           (EXPR)
 
 --- SQL operation complete.
 >>
+>>cqd HIVE_SCAN_SPECIAL_MODE '1';
+
+--- SQL operation complete.
+>>select * from tbl_dos;
+
+C1           C2           C3           C4                       
+-----------  -----------  -----------  -------------------------
+
+          0        39478         8147  2008-07-17               
+          1        21944         8327  2005-05-12               
+          2        32730         9999  2000-11-05               
+          3        19653         5727  2005-06-24               
+          4        67794         6012  2008-07-01               
+          5        93265         5823  2012-06-26               
+          6        28219          909  2009-04-26               
+          7        23967         8290  2006-02-21               
+          8        24265         8663  2006-10-06               
+          9        70273         3363  2001-03-17               
+
+--- 10 row(s) selected.
+>>cqd HIVE_SCAN_SPECIAL_MODE reset;
+
+--- SQL operation complete.
+>>drop table if exists trafodion.seabase.tbl_dos_num;
+
+--- SQL operation complete.
+>>create table trafodion.seabase.tbl_dos_num (c1 int, c2 int);
+
+--- SQL operation complete.
+>>load with NO OUTPUT into trafodion.seabase.tbl_dos_num select * from tbl_dos_num;
+
+*** ERROR[8413] The string argument contains characters that cannot be converted.
+
+--- 0 row(s) loaded.
+>>cqd HIVE_SCAN_SPECIAL_MODE '1';
+
+--- SQL operation complete.
+>>load with no output into trafodion.seabase.tbl_dos_num select * from tbl_dos_num;
+
+--- 10 row(s) loaded.
+>>select * from trafodion.seabase.tbl_dos_num;
+
+C1           C2
+-----------  -----------
+
+          0        39478
+          1        21944
+          2        32730
+          3        19653
+          4        67794
+          5        93265
+          6            ?
+          7            ?
+          8            ?
+          9           17
+
+--- 10 row(s) selected.
+>>cqd HIVE_SCAN_SPECIAL_MODE reset;
+
+--- SQL operation complete.
 >>log;

@@ -548,7 +548,7 @@ public class DatabaseResource {
 		try {
 			String queryText = String.format(
 					SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_HISTOGRAM_STATISTICS),
-					InternalForm(schemaName), objectID);
+					ExternalForm(schemaName), objectID);
 			_LOG.debug(queryText);
 			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
@@ -773,9 +773,7 @@ public class DatabaseResource {
 		}
 	}
 
-	public static String EncloseInSingleQuotes(String aLiteralString) {
-		return "'" + aLiteralString.replace("'", "''") + "'";
-	}
+
 
 	public static String ExternalForm(String internalName) {
 		String name = internalName.trim();

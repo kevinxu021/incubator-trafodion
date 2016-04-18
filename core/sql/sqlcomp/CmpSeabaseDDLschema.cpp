@@ -61,7 +61,7 @@ static bool dropOneTable(
    const char * schemaName, 
    const char * objectName,
    bool isVolatile,
-   bool ifExists,
+//   bool ifExists,
    bool ddlXns);
    
 static bool transferObjectPrivs(
@@ -553,7 +553,7 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
        dirtiedMetadata = TRUE;
        if (dropOneTable(cliInterface,(char*)catName.data(),
                         (char*)schName.data(),(char*)objName.data(),
-                        isVolatile, FALSE,dropSchemaNode->ddlXns()))
+                        isVolatile ,dropSchemaNode->ddlXns()))
           someObjectsCouldNotBeDropped = true;
      }
    }
@@ -679,7 +679,7 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
 	       dirtiedMetadata = TRUE;
 	       if (dropOneTable(cliInterface,(char*)catName.data(), 
 				(char*)schName.data(),(char*)objName.data(),
-				isVolatile, FALSE,dropSchemaNode->ddlXns()))
+				isVolatile, dropSchemaNode->ddlXns()))
 		 someObjectsCouldNotBeDropped = true;
 	     }
 	 } 
@@ -709,7 +709,7 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
 	       // happen to have the same name patterns.
 	       if (dropOneTable(cliInterface,(char*)catName.data(), 
 				(char*)schName.data(),(char*)objName.data(),
-				isVolatile,TRUE, dropSchemaNode->ddlXns()))
+				isVolatile, dropSchemaNode->ddlXns()))
 		 someObjectsCouldNotBeDropped = true;
 	     }
 	 } 
@@ -726,7 +726,6 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
                  getSystemCatalog(),SEABASE_MD_SCHEMA,SEABASE_OBJECTS,
                  (char*)catName.data(),(char*)schName.data(), 
                  COM_INDEX_OBJECT_LIT);
-   
    cliRC = cliInterface.fetchAllRows(otherObjectsQueue,query,0,FALSE,FALSE,TRUE);
    if (cliRC < 0)
    {
@@ -738,7 +737,6 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
    for (int idx = 0; idx < otherObjectsQueue->numEntries(); idx++)
    {
       OutputInfo * vi = (OutputInfo*)otherObjectsQueue->getNext(); 
-
       char * objName = vi->get(0);
       NAString objType = vi->get(1);
    
@@ -779,7 +777,6 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
    for (int idx = 0; idx < otherObjectsQueue->numEntries(); idx++)
    {
       OutputInfo * vi = (OutputInfo*)otherObjectsQueue->getNext(); 
-
       char * objName = vi->get(0);
       NAString objType = vi->get(1);
     
@@ -809,7 +806,7 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
        dirtiedMetadata = TRUE;
        if (dropOneTable(cliInterface,(char*)catName.data(),
                         (char*)schName.data(),(char*)objName.data(),
-                        isVolatile, FALSE, dropSchemaNode->ddlXns()))
+                        isVolatile, dropSchemaNode->ddlXns()))
           someObjectsCouldNotBeDropped = true;
      }
    }
@@ -838,7 +835,8 @@ void CmpSeabaseDDL::dropSeabaseSchema(StmtDDLDropSchema * dropSchemaNode)
    
    if (rowCount > 0)
    {
-     CmpCommon::diags()->clear();
+      //CmpCommon::diags()->clear();  don't clear diags out as that
+      // sometimes obscures issues, for example, failures in dropping tables
       
       *CmpCommon::diags() << DgSqlCode(-CAT_UNABLE_TO_DROP_SCHEMA)
                           << DgSchemaName(catName + "." + schName);
@@ -1267,6 +1265,99 @@ short CmpSeabaseDDL::createHistogramTables(
 
 // *****************************************************************************
 // *                                                                           *
+// * Function: adjustHiveExternalSchemas                                       *
+// *                                                                           *
+// *    Changes the ownership and privilege grants to DB__HIVEROLE             *
+// *                                                                           *
+// *****************************************************************************
+// *                                                                           *
+// *  Parameters:                                                              *
+// *                                                                           *
+// *  <cliInterface>                  ExeCliInterface *               In       *
+// *    is a reference to an Executor CLI interface handle.                    *
+// *****************************************************************************
+// *                                                                           *
+// * Returns: Int32                                                            *
+// *                                                                           *
+// *            0: Adjustment was successful                                   *
+// *           -1: Adjustment failed                                           *
+// *                                                                           *
+// *****************************************************************************
+short CmpSeabaseDDL::adjustHiveExternalSchemas(ExeCliInterface *cliInterface)
+{
+  char buf[sizeof(SEABASE_MD_SCHEMA) + 
+           sizeof(SEABASE_OBJECTS) + 
+           strlen(getSystemCatalog()) + 300];
+
+  // get all the objects in special hive schemas
+  sprintf(buf, "SELECT catalog_name, schema_name, object_name, object_uid, object_type, object_owner "
+               " from %s.\"%s\".%s WHERE schema_name like '_HV_%c_'",
+               getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS, '%');
+
+   Queue * objectsQueue = NULL;
+   Int32 cliRC = cliInterface->fetchAllRows(objectsQueue, buf, 0, FALSE, FALSE, TRUE);
+   if (cliRC < 0)
+   {
+      cliInterface->retrieveSQLDiagnostics(CmpCommon::diags());
+      return -1;
+   }
+
+   // adjust owner and privilege information for external hive objects
+   objectsQueue->position();
+   for (size_t i = 0; i < objectsQueue->numEntries(); i++)
+   {
+     OutputInfo * vi = (OutputInfo*)objectsQueue->getNext();
+     NAString catName = vi->get(0);
+     NAString schName = vi->get(1);
+     NAString objName = vi->get(2);
+     Int64 objUID     = *(Int64*)vi->get(3);
+     NAString objectTypeLit = vi->get(4);
+     Int32 objOwner   = *(Int32*)vi->get(5);
+     ComObjectType objType = PrivMgr::ObjectLitToEnum(objectTypeLit.data());
+
+     // If object owner is already the HIVE_ROLE_ID, then we are done.
+     if (objOwner == HIVE_ROLE_ID)
+       continue;
+     else
+     {
+       // only need to adjust privileges on securable items
+       if (PrivMgr::isSecurableObject(objType))
+       {
+         ComObjectName tblName(catName, schName, objName, COM_TABLE_NAME, 
+                               ComAnsiNamePart::INTERNAL_FORMAT, STMTHEAP);
+
+         NAString extTblName = tblName.getExternalName(TRUE);
+
+         // remove existing privs on object
+         if (!deletePrivMgrInfo(extTblName, objUID, objType))
+           return -1;
+
+         // add owner privs
+         if (!insertPrivMgrInfo(objUID, extTblName, objType, 
+                                HIVE_ROLE_ID, HIVE_ROLE_ID, ComUser::getCurrentUser()))
+           return -1;
+       }
+
+       // update schema_owner and objectOwner for object
+       sprintf(buf,"UPDATE %s.\"%s\".%s SET object_owner = %d "
+                   ", schema_owner = %d WHERE object_uid = %ld ",
+                   getSystemCatalog(),SEABASE_MD_SCHEMA,SEABASE_OBJECTS, 
+                   HIVE_ROLE_ID, HIVE_ROLE_ID, objUID);
+       cliRC = cliInterface->executeImmediate(buf);
+       if (cliRC < 0)
+       {
+         cliInterface->retrieveSQLDiagnostics(CmpCommon::diags());
+         return -1;
+       }
+     }
+  }
+
+  return 0;
+}
+//********************* End of adjustHiveExternalTables ************************
+
+// *****************************************************************************
+// *                                                                           *
 // * Function: dropOneTable                                                    *
 // *                                                                           *
 // *    Drops a table and all its dependent objects.                           *
@@ -1304,7 +1395,7 @@ static bool dropOneTable(
    const char * schemaName, 
    const char * objectName,
    bool isVolatile,
-   bool ifExists,
+//   bool ifExists,
    bool ddlXns)
    
 {
@@ -1322,8 +1413,8 @@ Lng32 cliRC = 0;
    if (isVolatile)
       strcpy(volatileString,"VOLATILE");
 
-   if (ifExists)
-     strcpy(ifExistsString,"IF EXISTS");
+//   if (ifExists)
+//     strcpy(ifExistsString,"IF EXISTS");
 
    if (ComIsTrafodionExternalSchemaName(schemaName))
      str_sprintf(buf,"DROP EXTERNAL TABLE \"%s\" FOR \"%s\".\"%s\".\"%s\" CASCADE",
@@ -1349,10 +1440,15 @@ ULng32 savedParserFlags = Get_SqlParser_Flags(0xFFFFFFFF);
    }
    
 // Restore parser flags settings to what they originally were
-   Assign_SqlParser_Flags(savedParserFlags);
-   
+   Assign_SqlParser_Flags(savedParserFlags); 
+
    if (cliRC < 0 && cliRC != -CAT_OBJECT_DOES_NOT_EXIST_IN_TRAFODION)
+   {
       someObjectsCouldNotBeDropped = true;
+      // report the error diagnostics so we can figure out why
+      // drop schema cascade failed
+      cliInterface.retrieveSQLDiagnostics(CmpCommon::diags());
+   }
    
 // remove NATable entry for this table
    CorrName cn(objectName,STMTHEAP,schemaName,catalogName);
@@ -1420,17 +1516,19 @@ NAString privMgrMDLoc;
 PrivMgrCommands privInterface(std::string(privMgrMDLoc.data()),CmpCommon::diags());
    
 std::vector<UIDAndOwner> objectRows;
-std::string whereClause(" WHERE catalogName = ");
+std::string whereClause(" WHERE catalog_name = '");
    
    whereClause += catalogName;
-   whereClause += " AND schema_name = ";
+   whereClause += "' AND schema_name = '";
    whereClause += schemaName;
+   whereClause += "'";
    
 std::string orderByClause(" ORDER BY OBJECT_OWNER");
 std::string metadataLocation(systemCatalogName);  
       
-   metadataLocation += ".";
+   metadataLocation += ".\"";
    metadataLocation += SEABASE_MD_SCHEMA;
+   metadataLocation += "\"";
       
 PrivMgrObjects objects(metadataLocation,CmpCommon::diags());
    

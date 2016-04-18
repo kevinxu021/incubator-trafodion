@@ -743,6 +743,13 @@ public:
   {  value ? flags_ |= HAS_HIVE_EXT_TABLE : flags_ &= ~HAS_HIVE_EXT_TABLE; }
   NABoolean hasHiveExtTable() const
   {  return (flags_ & HAS_HIVE_EXT_TABLE) != 0; }
+  static const char *getNameOfInputFileCol()   { return "INPUT__FILE__NAME"; }
+  static const char *getNameOfBlockOffsetCol()
+                                     { return "BLOCK__OFFSET__INSIDE__FILE"; }
+  static const char *getNameOfInputRangeCol()
+                                            { return "INPUT__RANGE__NUMBER"; }
+  static const char *getNameOfRowInRangeCol()
+                                          { return "ROW__NUMBER__IN__RANGE"; }
 
   const CheckConstraintList &getCheckConstraints() const
                                                 { return checkConstraints_; }

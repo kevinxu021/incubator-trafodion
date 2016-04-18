@@ -22,8 +22,8 @@
 # This Makefile is just a thin shell to Maven, which is used to do the real build
 
 BLD_HBASE_APACHE_TRX_JARNAME     =hbase-trx-apache1_0_2-$(TRAFODION_VER).jar
-BLD_HBASE_CDH_TRX_JARNAME        =hbase-trx-cdh5_4-$-$(TRAFODION_VER).jar
-BLD_HBASE_CDH55_TRX_JARNAME      =hbase-trx-cdh5_5-$-$(TRAFODION_VER).jar
+BLD_HBASE_CDH_TRX_JARNAME        =hbase-trx-cdh5_4-$(TRAFODION_VER).jar
+BLD_HBASE_CDH55_TRX_JARNAME      =hbase-trx-cdh5_5-$(TRAFODION_VER).jar
 BLD_HBASE_MAPR_TRX_JARNAME       =hbase-trx-mapr4_0-$(TRAFODION_VER).jar
 BLD_HBASE_HDP_TRX_JARNAME        =hbase-trx-hdp2_3-$(TRAFODION_VER).jar
 BLD_HBASE_SSCC_TRX_JARNAME       =hbase-trx-sscc-$(TRAFODION_VER).jar
@@ -39,7 +39,7 @@ all: build_all
 
 jdk_1_7_cdh: build_chk_cdh
 	$(REINSTATE_ORIG)
-	$(UNCOMMENT_STRING) CDH5.4 
+	$(UNCOMMENT_STRING) CDH1.0
 	set -o pipefail && $(MAVEN) -f pom.xml.cdh package install -DskipTests | tee -a build_trx.log
 	mkdir -p $(MY_SQROOT)/export/lib
 	cp -pf target/$(BLD_HBASE_CDH_TRX_JARNAME) $(MY_SQROOT)/export/lib
@@ -76,6 +76,7 @@ jdk_1_7_apache: build_chk_apache
 	mkdir -p $(MY_SQROOT)/export/lib
 	cp -pf target/$(BLD_HBASE_APACHE_TRX_JARNAME) $(MY_SQROOT)/export/lib
 	$(RM) $(VFILE)
+	$(REINSTATE_ORIG)
 
 #build_all: jdk_1_7_apache jdk_1_7_cdh jdk_1_7_hdp jdk_1_7_mapr
 #build_all:jdk_1_7_cdh

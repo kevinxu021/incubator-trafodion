@@ -164,6 +164,7 @@ public class OrcFileReader
                 builder.end();
                 break;
             case EQUALS:
+//System.out.println("=: " + Bytes.toString(oper));
                 builder.equals(Bytes.toString(colName), Bytes.toString(oper));
                 break;
             case LESSTHAN:

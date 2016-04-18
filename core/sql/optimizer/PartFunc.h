@@ -768,7 +768,7 @@ public:
 
   // A virtual method returning a compiler-time hashing expression that
   // hashes a skew value into a hash value. Called during codeGen phase.
-  virtual ItemExpr *buildHashingExpressionForExpr(ItemExpr*) const 
+  virtual ItemExpr *buildHashingExpressionForExpr(ItemExpr*) 
   { return NULL; }
 
   inline void hasNoPartitioningKeyPredicates()
@@ -1293,7 +1293,7 @@ public:
                       const char* indent = DEFAULT_INDENT,
                       const char* title = "PartitioningFunction") const;
 
-  ItemExpr * buildHashingExpressionForExpr(ItemExpr* expr) const;
+  ItemExpr * buildHashingExpressionForExpr(ItemExpr* expr) ;
   ItemExpr *getHashingExpression() const;
   UInt32 computeHashValue(char* data, UInt32 flags, Int32 len);
 
@@ -1467,7 +1467,7 @@ public:
   virtual const NAString getText() const = 0;
 
 
-  ItemExpr *buildHashingExpressionForExpr(ItemExpr*) const;
+  ItemExpr *buildHashingExpressionForExpr(ItemExpr*) ;
   ItemExpr *getHashingExpression() const;
   UInt32 computeHashValue(char* data, UInt32 flags, Int32 len);
 
@@ -1791,7 +1791,7 @@ public:
 
   // A virtual method returning a compiler-time hashing expression that
   // hashes a skew value into a hash value. Called during codeGen phase.
-  ItemExpr *buildHashingExpressionForExpr(ItemExpr* ie) const
+  ItemExpr *buildHashingExpressionForExpr(ItemExpr* ie) 
   { return partialPartFunc_-> buildHashingExpressionForExpr(ie); };
 
 
@@ -1876,7 +1876,7 @@ public:
                       const char* indent = DEFAULT_INDENT,
                       const char* title = "PartitioningFunction") const;
 
-  ItemExpr * buildHashingExpressionForExpr(ItemExpr* expr) const;
+  ItemExpr * buildHashingExpressionForExpr(ItemExpr* expr) ;
   ItemExpr *getHashingExpression() const;
   UInt32 computeHashValue(char* data, UInt32 flags, Int32 len);
 

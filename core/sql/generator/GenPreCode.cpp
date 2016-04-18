@@ -58,7 +58,7 @@
 #include "CostMethod.h"
 #include "ItmFlowControlFunction.h"
 #include "UdfDllInteraction.h"
-
+#include "StmtDDLNode.h"
 
 #include "NATable.h"
 #include "NumericType.h"
@@ -2785,6 +2785,90 @@ RelExpr * ExeUtilExpr::preCodeGen(Generator * generator,
   return this;
 }
 
+// returns true if the whole ddl operation can run in one transaction
+// and transaction can be started by caller(master executor or arkcmp)
+// before executing this ddl.
+short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
+{
+  ExprNode * ddlNode = getDDLNode();
+
+  xnCanBeStarted = TRUE;
+  // no DDL transactions.
+  if ((NOT ddlXns()) &&
+      ((dropHbase()) ||
+       (purgedataHbase()) ||
+       (initHbase()) ||
+       (createMDViews()) ||
+       (dropMDViews()) ||
+       (initAuthorization()) ||
+       (dropAuthorization()) ||
+       (addSeqTable()) ||
+       (createRepos()) ||
+       (dropRepos()) ||
+       (upgradeRepos()) ||
+       (addSchemaObjects()) ||
+       (updateVersion())))
+    {
+      // transaction will be started and commited in called methods.
+      xnCanBeStarted = FALSE;
+    }
+  
+  // no DDL transactions
+  if (((ddlNode) && (ddlNode->castToStmtDDLNode()) &&
+       (NOT ddlNode->castToStmtDDLNode()->ddlXns())) &&
+      ((ddlNode->getOperatorType() == DDL_DROP_SCHEMA) ||
+       (ddlNode->getOperatorType() == DDL_CLEANUP_OBJECTS) ||
+       (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ADD_CONSTRAINT_PRIMARY_KEY) ||
+       (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ALTER_COLUMN_SET_SG_OPTION) ||
+       (ddlNode->getOperatorType() == DDL_CREATE_INDEX) ||
+       (ddlNode->getOperatorType() == DDL_POPULATE_INDEX) ||
+       (ddlNode->getOperatorType() == DDL_CREATE_TABLE) ||
+       (ddlNode->getOperatorType() == DDL_ALTER_TABLE_DROP_COLUMN) ||
+       (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ALTER_COLUMN_DATATYPE) ||
+       (ddlNode->getOperatorType() == DDL_DROP_TABLE)))
+    {
+      // transaction will be started and commited in called methods.
+      xnCanBeStarted = FALSE;
+    }
+
+  isDDLxn = FALSE;
+  if ((ddlXns()) || 
+      ((ddlNode && ddlNode->castToStmtDDLNode() &&
+        ddlNode->castToStmtDDLNode()->ddlXns())))
+    isDDLxn = TRUE;
+
+  // ddl transactions are on.
+  // Following commands currently require transactions be started and
+  // committed in the called methods.
+  if ((ddlXns()) &&
+      (
+           (purgedataHbase()) ||
+           (initAuthorization()) ||
+           (dropAuthorization()) ||
+           (upgradeRepos())
+       )
+      )
+    {
+      // transaction will be started and commited in called methods.
+      xnCanBeStarted = FALSE;
+    }
+
+  // ddl transactions are on.
+  // Cleanup and alter commands requires transactions to be started and commited
+  // in the called method.
+  if ((ddlNode && ddlNode->castToStmtDDLNode() &&
+       ddlNode->castToStmtDDLNode()->ddlXns()) &&
+      ((ddlNode->getOperatorType() == DDL_CLEANUP_OBJECTS) ||
+       (ddlNode->getOperatorType() == DDL_ALTER_TABLE_DROP_COLUMN) ||
+       (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ALTER_COLUMN_DATATYPE)))
+    {
+      // transaction will be started and commited in called methods.
+      xnCanBeStarted = FALSE;
+    }
+
+  return 0;
+}
+
 RelExpr * DDLExpr::preCodeGen(Generator * generator,
 			      const ValueIdSet & externalInputs,
 			      ValueIdSet &pulledNewInputs)
@@ -2800,6 +2884,16 @@ RelExpr * DDLExpr::preCodeGen(Generator * generator,
       generator->setAqrEnabled(FALSE);
     }
   
+  NABoolean startXn = FALSE;
+  NABoolean ddlXns = FALSE;
+  if (ddlXnsInfo(ddlXns, startXn))
+    return NULL;
+
+  if (ddlXns && startXn)
+    xnNeeded() = TRUE;
+  else
+    xnNeeded() = FALSE;
+
   markAsPreCodeGenned();
   
   // Done.
@@ -4315,8 +4409,12 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
         executorPredicates_ -= hiveSearchKey_->getCompileTimePartColPreds();
         executorPredicates_ -= hiveSearchKey_->getPartAndVirtColPreds();
 
-	// assign individual files and blocks or stripes to each ESPs
-	((NodeMap *) getPartFunc()->getNodeMap())->assignScanInfos(hiveSearchKey_);
+	// Assign individual files and blocks or stripes to each ESPs.
+	// For repN part func, assign every file to every ESP.
+	if ( getPartFunc()-> isAReplicateNoBroadcastPartitioningFunction() )
+	 ((NodeMap *) getPartFunc()->getNodeMap())->assignScanInfosRepN(hiveSearchKey_);
+        else
+	 ((NodeMap *) getPartFunc()->getNodeMap())->assignScanInfos(hiveSearchKey_);
       }
     }
 
@@ -6027,6 +6125,9 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
   if ( childRelExpr && childRelExpr->getOperatorType() == REL_FIRST_N )
     childRelExpr = childRelExpr->child(0)->castToRelExpr();
 
+  NABoolean isSeabase = FALSE;
+  NABoolean isOrc = FALSE;
+  const NATable * naTable = NULL;
   if (childRelExpr && 
       ((childRelExpr->getOperatorType() == REL_FILE_SCAN) ||
        (childRelExpr->getOperatorType() == REL_HBASE_ACCESS)))
@@ -6046,16 +6147,15 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
         {
           aggrPushdown = TRUE;
         }
-    }
 
-  NABoolean isSeabase = FALSE;
-  NABoolean isOrc = FALSE;
-  if (aggrPushdown)
-    {
-      const NATable * naTable = scan->getTableDesc()->getNATable();
+      naTable = scan->getTableDesc()->getNATable();
       isSeabase = naTable->isSeabaseTable();
       isOrc = ((naTable->isHiveTable()) &&
-               (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile()));
+        (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile()));
+    }
+
+  if (aggrPushdown)
+    {      
       if (NOT (((naTable->getObjectType() == COM_BASE_TABLE_OBJECT) ||
                 (naTable->getObjectType() == COM_INDEX_OBJECT)) &&
                ((naTable->isSeabaseTable()) || (isOrc))))
@@ -6093,6 +6193,8 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
                      (ae->getOperatorType() == ITM_MIN) ||
                      (ae->getOperatorType() == ITM_MAX) ||
                      (ae->getOperatorType() == ITM_SUM) ||
+                     (ae->getOperatorType() == ITM_ORC_MAX_NV) ||
+                     (ae->getOperatorType() == ITM_ORC_SUM_NV) ||
                      (ae->getOperatorType() == ITM_COUNT_NONULL)))
                ) ||
               (generator->preCodeGenParallelOperator())
@@ -6145,29 +6247,41 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
               const NAType *childType = 
                 &origAgg->child(0)->getValueId().getType();
               NAType * orcAggrType = NULL;
-              if (childType->getTypeQualifier() == NA_NUMERIC_TYPE)
+
+              // the ORC_MAX_NV and ORC_SUM_NV aggregates look at the
+              // ORC ColumnStatistics.getNumberOfValues() result, rather
+              // than the column values, so we don't take the type of
+              // the child from the child column type
+              NABoolean isOrcNumberOfValuesAggregate = 
+                origAgg->getOperatorType() == ITM_ORC_MAX_NV ||
+                origAgg->getOperatorType() == ITM_ORC_SUM_NV;
+
+              if (!isOrcNumberOfValuesAggregate)
                 {
-                  NumericType *nType = (NumericType*)childType;
-                  if (nType->binaryPrecision())
+                  if (childType->getTypeQualifier() == NA_NUMERIC_TYPE)
                     {
-                      if (nType->isExact())
+                      NumericType *nType = (NumericType*)childType;
+                      if (nType->binaryPrecision())
                         {
-                          orcAggrType = 
-                            new(generator->wHeap()) SQLLargeInt(TRUE, TRUE);
-                        }
-                      else
-                        {
-                          orcAggrType = 
-                            new(generator->wHeap()) SQLDoublePrecision(TRUE);
+                          if (nType->isExact())
+                            {
+                              orcAggrType = 
+                                new(generator->wHeap()) SQLLargeInt(TRUE, TRUE);
+                            }
+                          else
+                            {
+                              orcAggrType = 
+                                new(generator->wHeap()) SQLDoublePrecision(TRUE);
+                            }
                         }
                     }
-                }
-              else if (childType->getTypeQualifier() == NA_DATETIME_TYPE)
-                {
-                  DatetimeType *dType = (DatetimeType*)childType;
+                  else if (childType->getTypeQualifier() == NA_DATETIME_TYPE)
+                    {
+                      DatetimeType *dType = (DatetimeType*)childType;
 
-                  orcAggrType =
-                    new(generator->wHeap()) SQLChar(dType->getDisplayLength(), TRUE);
+                      orcAggrType =
+                        new(generator->wHeap()) SQLChar(dType->getDisplayLength(), TRUE);
+                    }
                 }
 
               if (! orcAggrType)
@@ -6184,7 +6298,8 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
               
               origAgg->setOriginalChild(origAgg->child(0));
 
-              if (childType->getTypeQualifier() == NA_DATETIME_TYPE)
+              if ((childType->getTypeQualifier() == NA_DATETIME_TYPE) &&
+                  (!isOrcNumberOfValuesAggregate))
                 {
                   DatetimeType *dType = (DatetimeType*)childType;
 
@@ -6233,7 +6348,28 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
          pulledNewInputs);
 
     } // aggrPushdown
-  
+
+  if (!aggrPushdown || !isOrc)
+    {
+      // the ORC_MAX_NV and ORC_SUM_NV aggregates are only
+      // permitted on ORC files and only when they can be
+      // pushed down 
+      for (ValueId valId = aggregateExpr().init();
+           aggregateExpr().next(valId);
+           aggregateExpr().advance(valId)) 
+        {
+          ItemExpr * ae = valId.getItemExpr();
+          if ((ae->getOperatorType() == ITM_ORC_MAX_NV) ||
+              (ae->getOperatorType() == ITM_ORC_SUM_NV))
+            {
+              Lng32 sqlcode = isOrc ? -7006 : -4370;
+              *CmpCommon::diags() << DgSqlCode(sqlcode) << DgString0(ae->getTextUpper());
+              generator->getBindWA()->setErrStatus();
+              return NULL;
+            }
+        }
+    }
+
   return newNode;
 }
 

@@ -47,7 +47,7 @@ build_chk:
 clean:
 	-$(MAVEN) clean |grep ERROR
 	$(RM) build_rest.log
-	$(RM) $(VFILE)
+	$(RM) $(VFILE) LICENSE NOTICE
 	$(RM) ../../${DISTRIBUTION_DIR}/$(BLD_TRAFODION_REST_TARNAME)
 
 LICENSE: ../../licenses/LICENSE-rest
@@ -61,4 +61,5 @@ LICENSE_Esgyn: ../../licenses/Esgyn
 
 NOTICE: ../../NOTICE
 	cp -f $? $@
-
+	# Add notice file from jython 2.5.3
+	cat ../../licenses/not-rest-bin >> $@

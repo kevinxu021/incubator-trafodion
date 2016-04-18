@@ -54,6 +54,7 @@ typedef enum {
  ,OFR_ERROR_FETCHROW_EXCEPTION  // Java exception in fetchNextRow()
  ,OFR_ERROR_CLOSE_EXCEPTION     // Java exception in close()
  ,OFR_ERROR_GETSTRIPEINFO_EXCEPTION 
+ ,OFR_ERROR_GETCOLSTATS_EXCEPTION 
  ,OFR_UNKNOWN_ERROR
  ,OFR_LAST
 } OFR_RetCode;

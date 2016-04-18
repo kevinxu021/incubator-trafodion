@@ -488,6 +488,11 @@ enum CatErrorCode { CAT_FIRST_ERROR = 1000
 
                   // Binder like error
                   , CAT_DUPLICATE_COLUMN                          = 4022
+                  
+                  //Backup, Restore, Utility errors
+                  , CAT_BACKUP_IN_PROGRESS                        = 5050
+                  , CAT_BACKUP_LOCK_ERROR	                      = 5051
+                  , CAT_BACKUP_UNLOCK_ERROR                       = 5052
 
 
                   //

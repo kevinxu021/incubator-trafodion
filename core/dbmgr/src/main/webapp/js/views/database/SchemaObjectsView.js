@@ -353,7 +353,7 @@ define([
 		                 buttons: [
 		                           { extend : 'copy', exportOptions: { columns: ':visible' } },
 		                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-		                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+		                           //{ extend : 'excel', exportOptions: { columns: ':visible' } },
 		                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
 		                           { extend : 'print', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text() }
 		                           ],					             

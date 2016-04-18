@@ -185,7 +185,14 @@ public:
                             HiveNodeMapEntry*& entry,
                             Int64 totalBytesPerESP,
                             Int32 numOfBytesToReadPerRow,
-                            HHDFSListPartitionStats *partition);
+                            HHDFSListPartitionStats *partition,
+			    Int64& filled);
+
+  virtual NABoolean splitsAllowed() const;
+
+  // Assign all blocks in this to the entry (ESP). The ESP will access
+  // all the blocks.
+  virtual void assignToESPsRepN(HiveNodeMapEntry*& entry);
 
 protected:
   NAString fileName_;
@@ -235,8 +242,15 @@ protected:
                     HiveNodeMapEntry*& entry,
                     Int64 totalBytesPerESP,
                     Int32 numOfBytesToReadPerRow,
-                    HHDFSListPartitionStats *partition);
+                    HHDFSListPartitionStats *partition,
+		    Int64& filled);
+
+  NABoolean splitsAllowed() const {return TRUE;}
   
+  // Assign all blocks in this to the entry (ESP). The ESP will access
+  // all the blocks.
+  virtual void assignToESPsRepN(HiveNodeMapEntry*& entry);
+
 protected:
   
   // per stripe info

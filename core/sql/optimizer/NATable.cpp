@@ -3759,8 +3759,8 @@ static NABoolean createNAColumns(struct hive_column_desc* hcolumn /*IN*/,
        // ------------------------------------------------
        switch (v)
          {
-         case 0:
-           virtColName = "INPUT__FILE__NAME";
+         case 0: // INPUT__FILE__NAME
+           virtColName = NATable::getNameOfInputFileCol();
            // VARCHAR(1024 BYTES) CHARACTER SET UTF8
            virtType = new(heap) SQLVarChar(CharLenInfo(4096, 4096),
                                            FALSE, // not NULL
@@ -3768,17 +3768,17 @@ static NABoolean createNAColumns(struct hive_column_desc* hcolumn /*IN*/,
                                            FALSE, // case sensitive
                                            CharInfo::UTF8);
            break;
-         case 1:
-           virtColName = "BLOCK__OFFSET__INSIDE__FILE";
+         case 1: // BLOCK__OFFSET__INSIDE__FILE
+           virtColName = NATable::getNameOfBlockOffsetCol();
            virtType = new(heap) SQLLargeInt(TRUE, FALSE);
            virtColType = NAColumn::HIVE_VIRT_ROW_COL;
            break;
-         case 2:
-           virtColName = "INPUT__RANGE__NUMBER";
+         case 2: // INPUT__RANGE__NUMBER
+           virtColName = NATable::getNameOfInputRangeCol();
            virtType = new(heap) SQLInt(TRUE, FALSE);
            break;
-         case 3:
-           virtColName = "ROW__NUMBER__IN__RANGE";
+         case 3: // ROW__NUMBER__IN__RANGE
+           virtColName = NATable::getNameOfRowInRangeCol();
            virtType = new(heap) SQLLargeInt(TRUE, FALSE);
            virtColType = NAColumn::HIVE_VIRT_ROW_COL;
            break;
@@ -3830,6 +3830,75 @@ NABoolean createNAKeyColumns(desc_struct *keys_desc_list	/*IN*/,
     } // end while (keys_desc)
 
   return FALSE;
+}
+
+static void createHiveKeyColumns(const NAColumnArray &colArray  /*IN*/,
+                                 const hive_skey_desc *hsk_desc /*IN*/,
+                                 NAColumnArray &keyColArray     /*OUT*/,
+                                 CollHeap *heap	                /*IN*/)
+{
+  // There are two candidate keys in the virtual columns, the real
+  // columns do not have a unique key. Pick one of them, based on
+  // CQD HIVE_USE_PERSISTENT_KEY:
+  //
+  // ON:  (INPUT__FILE__NAME, BLOCK__OFFSET__INSIDE__FILE)
+  // OFF: (INPUT__RANGE__NUMBER, ROW__NUMBER__IN__RANGE)
+  //
+  // The persistent key is much longer, but persists across different
+  // scans. The non-persistent key is shorter, but can't be used for
+  // a self join.
+
+  // If CQD HIVE_USE_SORT_COLS_IN_KEY is ON, and if the table is a
+  // sorted bucketed table, then add these sort columns to the key.
+  // They are not needed for uniqueness, but they could define a
+  // sort order, if a few conditions are met (we currently don't
+  // check those, so this function is not yet enabled).
+
+  NAColumn *indexColumn;
+  const char *colName;
+  NABoolean persistentKey =
+    (CmpCommon::getDefault(HIVE_USE_PERSISTENT_KEY) != DF_OFF);
+
+  if (CmpCommon::getDefault(HIVE_USE_SORT_COLS_IN_KEY) == DF_ON)
+    {
+      // To use a sort order, we have to ensure that we have one ESP per
+      // (sorted) file to read. This would have to be done in the
+      // FileScanRule.
+
+      while (hsk_desc)
+        {
+          NAString colName(hsk_desc->name_);
+          colName.toUpper();
+
+          NAColumn* sortKeyColumn = colArray.getColumn(colName);
+
+          if (sortKeyColumn)
+            {
+              keyColArray.insert(sortKeyColumn);
+              sortKeyColumn->setClusteringKey(ASCENDING);
+            }
+
+          hsk_desc = hsk_desc->next_;
+        }
+    }
+
+  for (int i=0; i<2; i++)
+    {
+      if (persistentKey)
+        if (i == 0)
+          colName = NATable::getNameOfInputFileCol();
+        else
+          colName = NATable::getNameOfBlockOffsetCol();
+      else
+        if (i == 0)
+          colName = NATable::getNameOfInputRangeCol();
+        else
+          colName = NATable::getNameOfRowInRangeCol();
+
+      indexColumn = colArray.getColumn(colName);
+      keyColArray.insert(indexColumn);
+      indexColumn->setClusteringKey(ASCENDING);
+    }
 }
 
 // ************************************************************************
@@ -4622,29 +4691,14 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
 	} // end while (hvk_desc)
 
       const hive_skey_desc *hsk_desc = hvt_desc->getSortKeys();
-      if ( hsk_desc == NULL ) {
-         // assume all columns are index key columns
-          for (CollIndex i=0; i<colArray.entries(); i++ )
-	     indexKeyColumns.insert(colArray[i]);
-      } else {
-        while (hsk_desc)
-        {
-          NAString colName(hsk_desc->name_);
-          colName.toUpper();
 
-          NAColumn* sortKeyColumn = colArray.getColumn(colName);
-
-          if ( sortKeyColumn ) {
-
-               indexKeyColumns.insert(sortKeyColumn);
-               indexKeyColumns.setAscending(indexKeyColumns.entries() - 1,
-                                            hsk_desc->orderInt_);
-          }
-
-          hsk_desc = hsk_desc->next_;
-        } // end while (hsk_desc)
-      }
-
+      // Hive tables don't enforce a unique key, but we can pick virtual
+      // columns to form a unique key (this can also be used internally,
+      // e.g. for subquery unnesting).
+      createHiveKeyColumns(colArray,
+                           hsk_desc,
+                           indexKeyColumns,
+                           CmpCommon::statementHeap());
 
       // ---------------------------------------------------------------------
       // Loop over the non key columns. 
@@ -4695,6 +4749,13 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
           return TRUE;
         }
 
+        if ((NOT IsEnterpriseLevel()) || (NOT IsAdvancedLevel()))
+        {
+          *CmpCommon::diags() << DgSqlCode(-4222)
+                              << DgString0("ORC");
+          return TRUE;
+        }
+
         isORC = TRUE;
       }
 
@@ -4714,6 +4775,21 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       // files, e.g. to a fixed log directory
 #endif
 
+      // temporary kludge until virtual columns for ORC are supported
+      // NOTE: This can procuce incorrect results, see Mantis-230!!!
+      // See Mantis-269.
+      if (isORC)
+        {
+          indexKeyColumns.clear();
+
+          // assume all non-virtual columns are index key columns
+          // (but no guarantee for uniqueness)
+          for (CollIndex i=0; i<colArray.entries(); i++)
+            if (!colArray[i]->isHiveVirtualColumn())
+	     indexKeyColumns.insert(colArray[i]);
+        }
+
+      // end of temporary kludge
 
       // Create a node map for partitioning function.
       NodeMap* nodeMap = new (heap) NodeMap(heap, NodeMap::HIVE);
@@ -5336,8 +5412,10 @@ NATable::NATable(BindWA *bindWA,
   objectType_ = table_desc->body.table_desc.objectType;
   partitioningScheme_ = table_desc->body.table_desc.partitioningScheme;
 
-  if (!(corrName.isSeabaseMD() || corrName.isSpecialTable()))
-    setupPrivInfo();
+  // Set up privs
+  if ((corrName.getSpecialType() == ExtendedQualName::SG_TABLE) ||
+      (!(corrName.isSeabaseMD() || corrName.isSpecialTable())))
+     setupPrivInfo();
 
   if ((table_desc->body.table_desc.tableFlags & SEABASE_OBJECT_IS_EXTERNAL_HIVE) != 0 ||
       (table_desc->body.table_desc.tableFlags & SEABASE_OBJECT_IS_EXTERNAL_HBASE) != 0)
@@ -7596,10 +7674,12 @@ NATable * NATableDB::get(const ExtendedQualName* key, BindWA* bindWA, NABoolean 
             if (objName.getUnqualifiedSchemaNameAsAnsiString() == defSchema)
               sName = hiveMetaDB_->getDefaultSchemaName();
 
-            // validate Hive table timestamps
-            if (!hiveMetaDB_->validate(cachedNATable->getHiveTableId(),
-                                       cachedNATable->getRedefTime(),
-                                       sName.data(), tName.data()))
+            // validate Hive table timestamps by performing a lookup in
+            // the cache - without reading anything from disk
+            if (hiveMetaDB_->getTableDesc(sName,
+                                          tName,
+                                          expirationTimestamp,
+                                          TRUE /*validate only*/) == NULL)
               removeEntry = TRUE;
 
             // validate HDFS stats and update them in-place, if needed
@@ -8386,20 +8466,16 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
        NAString defSchema = ActiveSchemaDB()->getDefaults().getValue(HIVE_DEFAULT_SCHEMA);
        defSchema.toUpper();
        struct hive_tbl_desc* htbl;
-       NAString tableNameInt = corrName.getQualifiedNameObj().getObjectName();
        NAString schemaNameInt = corrName.getQualifiedNameObj().getSchemaName();
        if (corrName.getQualifiedNameObj().getUnqualifiedSchemaNameAsAnsiString() == defSchema)
          schemaNameInt = hiveMetaDB_->getDefaultSchemaName();
-       // Hive stores names in lower case
-       // Right now, just downshift, could check for mixed case delimited
-       // identifiers at a later point, or wait until Hive supports delimited identifiers
-       schemaNameInt.toLower();
-       tableNameInt.toLower();
 
        if (CmpCommon::getDefault(HIVE_USE_FAKE_TABLE_DESC) == DF_ON)
-         htbl = hiveMetaDB_->getFakedTableDesc(tableNameInt);
+         htbl = hiveMetaDB_->getFakedTableDesc(corrName.getQualifiedNameObj().getObjectName());
        else
-         htbl = hiveMetaDB_->getTableDesc(schemaNameInt, tableNameInt);
+         htbl = hiveMetaDB_->getTableDesc(
+              schemaNameInt,
+              corrName.getQualifiedNameObj().getObjectName());
 
        if ( htbl )
 	 {
@@ -8693,6 +8769,7 @@ void NATableDB::removeNATable(CorrName &corrName, ComQiScope qiScope,
       ddlObj.ddlObjName = corrName.getQualifiedNameAsString();
       ddlObj.qiScope = qiScope;
       ddlObj.ot = ot;
+      ddlObj.objUID = -1;
 
       NABoolean found = FALSE;
       for (Lng32 i = 0;
@@ -9020,8 +9097,8 @@ NATableDB::free_entries_with_QI_key(Int32 numKeys, SQL_QIKEY* qiKeyArray)
   {
     NATable * currTable = cachedTableList_[currIndx];
 
-    // Only need to remove seabase tables
-    if (!currTable->isSeabaseTable())
+    // Only need to remove seabase tables and external Hive/hbase tables
+    if (!currTable->isSeabaseTable() && !currTable->hasExternalTable())
     {
       currIndx++;
       continue;

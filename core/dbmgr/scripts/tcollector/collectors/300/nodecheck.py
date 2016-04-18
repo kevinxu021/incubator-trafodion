@@ -8,7 +8,7 @@ import os
 #from collectors.lib import utils
 
 interval = 60  # seconds
-cmd = "sqnodecheck"
+cmd = "tradnodestatus"
 
 def main():
     """sqnodecheck main loop"""
