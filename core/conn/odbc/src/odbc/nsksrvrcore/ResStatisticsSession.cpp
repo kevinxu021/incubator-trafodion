@@ -20,17 +20,96 @@
 //
 // @@@ END COPYRIGHT @@@
  ********************************************************************/
-/**************************************************************************
- **************************************************************************/
 
 /* MODULE: ResStatisticsSession.cpp
  PURPOSE: Implements the member functions of ResAccountingSession class
  */
 #include "ResStatisticsSession.h" 
 #include "ResStatisticsStatement.h"
+#include <curl/curl.h>
+#include <sys/syscall.h>
+
+         CURL *curl;
+	 CURLcode res;
+	 struct curl_slist *headers = NULL;
+	 long http_code = 0;
+	 stringstream cc;
+	 string ccStr;
+	 stringstream errMsg;
+	 string errStr;
+	 char tmpString[1024];
+         char tsdUrl[50];
+         FILE *filep;
 
 void sendAggrStats(pub_struct_type pub_type, std::tr1::shared_ptr<SESSION_AGGREGATION> pAggr_info);
 void sendSessionEnd(std::tr1::shared_ptr<SESSION_END> pSession_info);
+void publishAggrStatsToTSDB(std::tr1::shared_ptr<SESSION_AGGREGATION> pAggr_info);
+void initialize_curl();
+void cleanup_curl();
+
+//convert julian timestamp to milliseconds
+int64 julian_to_millis(const int64 lctTimestamp)
+{
+	short error;
+	int64 jct = CONVERTTIMESTAMP(lctTimestamp , 2, -1, &error);
+	return ( jct/1000 - 210866760000009 );
+}
+
+void initialize_curl()
+{
+          curl_global_init(CURL_GLOBAL_ALL);
+          curl = curl_easy_init();
+          if (curl)
+          {
+             tmpString[0]='\0';
+             tsdUrl[0]='\0';
+
+             // Set header values
+             headers = curl_slist_append(headers,"Accept: application/json");
+             headers = curl_slist_append(headers,"Content-Type: application/json");
+             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+             // Set endpoint url
+             sprintf(tsdUrl,"%s/api/put",srvrGlobal->tsdURL);
+             SendEventMsg(MSG_SERVER_TRACE_INFO,
+                 EVENTLOG_INFORMATION_TYPE,
+                 0,
+                 ODBCMX_SERVER,
+                 srvrGlobal->srvrObjRef,
+                 1,
+                 tsdUrl
+             ); 
+             curl_easy_setopt(curl, CURLOPT_URL, tsdUrl);
+             // Set verb
+             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
+
+             // Only for debug purpose
+	     /*filep = fopen("/home/trafodion/dump.txt", "a");
+             curl_easy_setopt(curl, CURLOPT_STDERR, filep);
+             curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+              */
+          }
+	  else
+             {
+	         errMsg << "opentsdb enabled: Failed to initialize curl";
+		 errStr = errMsg.str();
+		 SendEventMsg(MSG_ODBC_NSK_ERROR, 
+                              EVENTLOG_ERROR_TYPE,
+			      0,
+                              ODBCMX_SERVER, 
+                              srvrGlobal->srvrObjRef,
+			      1,
+                              errStr.c_str()
+                              );
+             }
+}
+void cleanup_curl()
+{
+        if (curl) 
+        {
+	   curl_easy_cleanup(curl);
+        }
+}
 
 using namespace SRVR;
 void ResStatisticsSession::start(struct collect_info *setinit)
@@ -104,6 +183,10 @@ void ResStatisticsSession::start(struct collect_info *setinit)
 		{
 			std::tr1::shared_ptr<SESSION_AGGREGATION> pAggr_info = getAggrStats();
 			sendAggrStats(PUB_TYPE_SESSION_START_AGGREGATION, pAggr_info);
+                        if (srvrGlobal->m_bPublishStatsToTSDB)
+                        {
+                            publishAggrStatsToTSDB(pAggr_info);
+                        }
 		}
 	}
 }
@@ -199,12 +282,18 @@ void ResStatisticsSession::end()
 
 	if ( srvrGlobal->m_bStatisticsEnabled )
 	{
+                std::tr1::shared_ptr<SESSION_AGGREGATION> pAggr_info;
 		if( srvrGlobal->m_statisticsPubType == STATISTICS_AGGREGATED )
 		{
-			std::tr1::shared_ptr<SESSION_AGGREGATION> pAggr_info = getAggrStats();
+		        pAggr_info = getAggrStats();
 			sendAggrStats(PUB_TYPE_SESSION_END_AGGREGATION, pAggr_info);
 		}
+
 		sendSessionEnd(pSession_info);
+                if (srvrGlobal->m_bPublishStatsToTSDB)
+                {
+		    publishAggrStatsToTSDB(pAggr_info);
+                }  
 	}
 }
 
@@ -283,8 +372,6 @@ void ResStatisticsSession::accumulateStatistics(passSession *ps)
 	}
 	totalOdbcElapseTime = totalOdbcElapseTime + ps->odbcElapseTime;
 	totalOdbcExecutionTime = totalOdbcExecutionTime + ps->odbcExecutionTime;
-	//totalSqlExecutionTime = totalSqlExecutionTime + ps->SqlExecutionTime;
-	//totalSqlElapseTime = totalSqlElapsedTime + ps->SqlElapsedTime;
 	totalErrors = totalErrors + ps->errorStatement;
 	totalWarnings = totalWarnings + ps->warningStatement;
 }
@@ -332,14 +419,14 @@ void ResStatisticsSession::accumulateStatistics(const ResStatistics * const pRes
 	sessWlStats.aggrStats.LockWaits				+= pResStatsStmt->LockWaits;					//AGGREG
 	sessWlStats.aggrStats.LockEscalation		+= pResStatsStmt->Escalations;					//AGGREG
 	sessWlStats.aggrStats.TotalExecutes++;
-	sessWlStats.aggrStats.totalSelects			= totalSelectStatements;
-	sessWlStats.aggrStats.totalInserts			= totalInsertStatements;
-	sessWlStats.aggrStats.totalUpdates			= totalUpdateStatements;
-	sessWlStats.aggrStats.totalDeletes			= totalDeleteStatements;
-	sessWlStats.aggrStats.totalDDLs				= totalDDLStatements;
-	sessWlStats.aggrStats.totalUtils			= totalUtilStatements;
-	sessWlStats.aggrStats.totalCatalogs			= totalCatalogStatements;
-	sessWlStats.aggrStats.totalOthers			= totalOtherStatements;
+	sessWlStats.aggrStats.totalSelects		= totalSelectStatements;
+	sessWlStats.aggrStats.totalInserts		= totalInsertStatements;
+	sessWlStats.aggrStats.totalUpdates		= totalUpdateStatements;
+	sessWlStats.aggrStats.totalDeletes		= totalDeleteStatements;
+	sessWlStats.aggrStats.totalDDLs			= totalDDLStatements;
+	sessWlStats.aggrStats.totalUtils		= totalUtilStatements;
+	sessWlStats.aggrStats.totalCatalogs		= totalCatalogStatements;
+	sessWlStats.aggrStats.totalOthers		= totalOtherStatements;
 	sessWlStats.aggrStats.totalSelectErrors		= totalSelectErrors;
 	sessWlStats.aggrStats.totalInsertErrors		= totalInsertErrors;
 	sessWlStats.aggrStats.totalUpdateErrors		= totalUpdateErrors;
@@ -348,7 +435,7 @@ void ResStatisticsSession::accumulateStatistics(const ResStatistics * const pRes
 	sessWlStats.aggrStats.totalUtilErrors		= totalUtilErrors;
 	sessWlStats.aggrStats.totalCatalogErrors	= totalCatalogErrors;
 	sessWlStats.aggrStats.totalOtherErrors		= totalOtherErrors;
-	sessWlStats.aggrStats.NumRowsIUD			= (totalInsertStatements+totalUpdateStatements+totalDeleteStatements);
+	sessWlStats.aggrStats.NumRowsIUD		= (totalInsertStatements+totalUpdateStatements+totalDeleteStatements);
 
 }
 
@@ -359,6 +446,10 @@ void ResStatisticsSession::update()
 		sessWlStats.computeDeltaStats();
 		std::tr1::shared_ptr<SESSION_AGGREGATION> pAggr_info = getAggrStats();
 		sendAggrStats(PUB_TYPE_SESSION_UPDATE_AGGREGATION, pAggr_info);
+                if (srvrGlobal->m_bPublishStatsToTSDB)
+                {
+		    publishAggrStatsToTSDB(pAggr_info);
+                }
 	}
 }
 
@@ -421,7 +512,7 @@ std::tr1::shared_ptr<SESSION_AGGREGATION> ResStatisticsSession::getAggrStats()
 	pAggr_info->m_role_name = srvrGlobal->QSRoleName;
 	pAggr_info->m_client_name = srvrGlobal->ClientComputerName;
 	pAggr_info->m_application_name = srvrGlobal->ApplicationName;
-    UpdateStringText(pAggr_info->m_application_name);
+        UpdateStringText(pAggr_info->m_application_name);
 	pAggr_info->m_client_user_name = resCollectinfo.clientUserName;
 	pAggr_info->m_total_est_rows_accessed = sessWlStats.aggrStats.EstimatedRowsAccessed;
 	pAggr_info->m_total_est_rows_used = sessWlStats.aggrStats.EstimatedRowsUsed;
@@ -466,6 +557,97 @@ std::tr1::shared_ptr<SESSION_AGGREGATION> ResStatisticsSession::getAggrStats()
 	pAggr_info->m_delta_other_errors = max(int64(0),sessWlStats.deltaStats.totalOtherErrors);
 
 	return pAggr_info;
+}
+
+void publishAggrStatsToTSDB(std::tr1::shared_ptr<SESSION_AGGREGATION> pAggr_info)
+{
+        if (srvrGlobal->m_bPublishStatsToTSDB) 
+        {
+	     for (int ic = 0; ic < 10; ic++)
+             {
+	         cc.str("");
+	         cc.clear();
+		 cc << "[{";
+		 cc << "\"timestamp\":" << julian_to_millis(pAggr_info->m_session_start_utc_ts) << ",";
+		 switch (ic)
+		 {
+		     case 0:
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_rows_retrieved\"" << ",";
+	                cc << "\"value\":" << pAggr_info->m_total_rows_retrieved << ",";
+		        break;
+		     case 1:
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_num_rows_iud\"" << ",";
+		        cc << "\"value\":" << pAggr_info->m_total_num_rows_iud << ",";
+		        break;
+		     case 2:
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_selects\"" << ",";
+		        cc << "\"value\":" << pAggr_info->m_total_selects << ",";
+		        break;
+		     case 3:
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_inserts\"" << ",";
+		        cc <<  "\"value\":" << pAggr_info->m_total_inserts << ",";
+		        break;
+		     case 4:
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_updates\"" << ",";
+		        cc <<  "\"value\":" << pAggr_info->m_total_updates << ",";
+		        break;
+		    case 5:
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_deletes\"" << ",";
+		        cc << "\"value\":" << pAggr_info->m_total_deletes << ",";
+		        break;
+		     case 6:
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_ddl_stmts\"" << ",";
+		        cc << "\"value\":" << pAggr_info->m_total_ddl_stmts << ",";
+		        break;
+		     case 7:
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_util_stmts\"" << ",";
+		        cc << "\"value\":" << pAggr_info->m_total_util_stmts << ",";
+		        break;
+		     case 8:
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_catalog_stmts\"" << ",";
+		        cc << "\"value\":" << pAggr_info->m_total_catalog_stmts << ",";
+		        break;
+		     case 9:
+		        cc << "\"metric\":\"esgyndb.mxosrvr.aggrstat.total_other_stmts\"" << ",";
+		        cc << "\"value\":" << pAggr_info->m_total_other_stmts << ",";
+		        break;
+		     default:
+		        break;
+		} //end of switch
+		cc << "\"tags\":{\"host\":\"localhost"  << "\",\"SessionID\":\"" << pAggr_info->m_sessionId.c_str() << "\"}";
+		cc << "}]";
+		ccStr = cc.str();
+                tmpString[0]='\0';
+                sprintf(tmpString, "Publication data::ThreadId::%lu::%s",syscall(SYS_gettid),ccStr.c_str());
+		SendEventMsg(MSG_SERVER_TRACE_INFO,
+                    EVENTLOG_INFORMATION_TYPE,
+		    0,
+		    ODBCMX_SERVER,
+		    srvrGlobal->srvrObjRef,
+		    1,
+		    tmpString
+                ); 
+		// Set data to post
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS,ccStr.c_str());
+		res = curl_easy_perform(curl);
+                //fflush(filep); //for debug only
+                if (res != CURLE_OK) 
+                {
+                      errMsg.str("");
+		      errMsg << "curl_easy_perform() failed with error code: "<< res << " with message: " << curl_easy_strerror(res);
+	              errStr = errMsg.str();
+		      SendEventMsg(MSG_ODBC_NSK_ERROR, 
+                           EVENTLOG_ERROR_TYPE,
+			   0,
+                           ODBCMX_SERVER,
+                           srvrGlobal->srvrObjRef,
+			   1,
+                           errStr.c_str()
+                      );
+		}
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+           } //end of for loop
+         } //end of if stmt for opentsdb enabled
 }
 
 ResStatisticsSession::ResStatisticsSession()
