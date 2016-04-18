@@ -2363,6 +2363,20 @@ short CmpDescribeHiveTable (
        }
        bktStr[bktStr.length()-1] = ')';
        outputShortLine(space, bktStr);
+
+       hive_skey_desc* sortkeyHeader = htd->getSortKeys();
+       if(sortkeyHeader)
+       {
+           NAString skStr = "  SORTED BY (";
+           for(hive_skey_desc* hsd = sortkeyHeader; hsd; hsd = hsd->next_)
+           {
+               skStr += hsd->name_;
+               skStr += ",";
+           }
+           skStr[skStr.length()-1] = ')';
+           outputShortLine(space, skStr);
+       }
+
        bktStr = "  INTO ";
        bktStr += std::to_string((long long)(htd->sd_->buckets_)).c_str();
        bktStr += " BUCKETS ";

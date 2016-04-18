@@ -378,6 +378,8 @@ public:
   NABoolean     contains(const NAString& pat, caseCompare cmp = exact) const;
 
   NAString      copy() const;
+  //copy part of this string to another
+  int copy(int begin, int end, NAString & target) const;
   inline const char*   toCharStar() const {return fbstring_.data();} ;
   const char*   data() const {return fbstring_.data();}
   size_t        first(char c) const { return fbstring_.find_first_of(c);}
@@ -463,7 +465,7 @@ public:
   void          toUpper();                              // Change self to upper-case
   void          toUpper8859_1();              // ISO 8859_1 alphabet upper-case
   
-  NABoolean format(const char* formatTemplate...);
+  NABoolean format(const char* formatTemplate, ...);
   
   // useful for supplying hash functions to template hash collection ctors:
   static UInt32       hash(const NAString&);
@@ -479,7 +481,7 @@ protected:
   void                  cow(size_t nc);                 // Do copy on write as needed
   
   void                  initChar(char, NAMemory *h);    // Initialize from char
-
+public:
   static char* buildBuffer(const char* formatTemplate, va_list args);
   
 private:

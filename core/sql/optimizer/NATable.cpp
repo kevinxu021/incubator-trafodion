@@ -4715,9 +4715,8 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
       const hive_sd_desc *sd_desc = hvt_desc->getSDs();
 
       HHDFSTableStats * hiveHDFSTableStats = NULL;
-      if(OSIM_runningSimulation()){
+      if(OSIM_runningSimulation())
               hiveHDFSTableStats = OSIM_restoreHiveTableStats(table->getTableName(), heap, hvt_desc);
-      }
       else
       {
               hiveHDFSTableStats = new(heap) HHDFSTableStats(heap);
@@ -4736,7 +4735,8 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
           return TRUE;
         }
 
-      OSIM_captureHiveTableStats(hiveHDFSTableStats, table);
+      if(OSIM_runningInCaptureMode())
+              OSIM_captureHiveTableStats(hiveHDFSTableStats, table);
 
       // for partitioned Hive tables, create a RangePartitioningFunction with
       // start key values that represent the Hive partition values (note that

@@ -1309,20 +1309,19 @@ void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi,
    }
 }
 
-<<<<<<< HEAD
 void HHDFSFileStats::assignToESPsRepN(HiveNodeMapEntry*& entry)
 {
    if ( totalSize_ > 0 ) {
       HiveScanInfo info(this, 0, totalSize_);
       entry->addScanInfo(info, totalSize_);
    }
-=======
+}
+
 OsimHHDFSStatsBase* HHDFSFileStats::osimSnapShot()
 {
     OsimHHDFSFileStats* stats = new(STMTHEAP) OsimHHDFSFileStats(NULL, this, STMTHEAP);
 
     return stats;
->>>>>>> 51f7996... osim for hive orc table
 }
 
 Int64 HHDFSORCFileStats::findBlockForStripe(Int64 offset)

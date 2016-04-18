@@ -131,6 +131,7 @@ const char* OptimizerSimulator::logFileNames_[NUM_OF_LOGS]= {
   "HISTOGRAM_PATHS.xml",
   "HIVE_HISTOGRAM_PATHS.xml",
   "HIVE_CREATE_TABLE.sql",
+  "HIVE_CREATE_EXTERNAL_TABLE.sql",
   "HIVE_TABLE_LIST.txt"
 };
 
@@ -158,7 +159,7 @@ void OsimAllHistograms::startElement(void * parser, const char * elementName, co
         list_.insert(entry);
     }
     else
-       OsimLogException("Errors Parsing hitograms file.", __FILE__, __LINE__).throwException();
+       raiseOsimException("Errors Parsing hitograms file.");
 }
 
 void OsimAllHistograms::serializeBody(XMLString& xml)
@@ -341,7 +342,6 @@ void OSIM_warningMessage(const char *errMsg)
 
 void OptimizerSimulator::warningMessage(const char *errMsg)
 {
-  // WARNING message
   *CmpCommon::diags() << DgSqlCode(OSIM_ERRORORWARNING)
                       << DgString0(errMsg);
 }
@@ -367,19 +367,30 @@ void OptimizerSimulator::dumpVersions()
     system(cmd.data()); //dump versions
 }
 
+void raiseOsimException(const char* fmt, ...)
+{
+    char * buffer;
+    va_list args ;
+    va_start(args, fmt);
+    buffer = NAString::buildBuffer(fmt, args);
+    va_end(args);
+    //throw anyway null buffer will be handled inside constructor of
+    //OsimLogException, empty string will be issued.
+    OsimLogException(buffer, __FILE__, __LINE__).throwException();
+}
+
 NABoolean OptimizerSimulator::setOsimModeAndLogDir(osimMode targetMode, const char * localDir)
 {
   try{
-  
       if(targetMode == UNLOAD)
       {
-        setOsimMode(targetMode);
-        setOsimLogdir(localDir);
-        initLogFilePaths();
-        setOsimMode(OFF);
-        dropObjects();
-        cleanup();
-        return TRUE;
+         setOsimMode(targetMode);
+         setOsimLogdir(localDir);
+         initLogFilePaths();
+         setOsimMode(OFF);
+         dropObjects();
+         cleanup();
+         return TRUE;
       }
 
       switch(osimMode_)
@@ -394,10 +405,6 @@ NABoolean OptimizerSimulator::setOsimModeAndLogDir(osimMode targetMode, const ch
                       createLogDir();
                       initHashDictionaries();
                       initLogFilePaths();
-                      //record all qualified table names before running query,
-                      //except meta tables and histogram tables in any schema
-                      //saveTablesBeforeStart();
-                      //saveViewsBeforeStart();
                       setClusterInfoInitialized(TRUE);
                       break;
                   case LOAD: //OFF --> LOAD
@@ -405,8 +412,6 @@ NABoolean OptimizerSimulator::setOsimModeAndLogDir(osimMode targetMode, const ch
                       setOsimLogdir(localDir);
                       initHashDictionaries();
                       initLogFilePaths();
-                      //saveTablesBeforeStart();
-                      //saveViewsBeforeStart();
                       loadDDLs();
                       loadHistograms(logFilePaths_[HISTOGRAM_PATHS], FALSE);
                       loadHiveDDLs();
@@ -437,7 +442,7 @@ NABoolean OptimizerSimulator::setOsimModeAndLogDir(osimMode targetMode, const ch
                 cleanup();//NOTE: osimMode_ is set OFF in cleanup()
             }
             else
-                errorMessage("Mode transition is not allowed.");
+                warningMessage("Mode transition is not allowed.");
             break;
         case LOAD:
             if(targetMode == SIMULATE)//LOAD --> SIMU only
@@ -450,16 +455,17 @@ NABoolean OptimizerSimulator::setOsimModeAndLogDir(osimMode targetMode, const ch
                 setClusterInfoInitialized(TRUE);
             }
             else
-                errorMessage("Mode transition rather than LOAD to SIMULATE is not allowed.");
+                warningMessage("Mode transition other than LOAD to SIMULATE is not allowed.");
             break;
         default :
-            errorMessage("Mode transition is not allowed.");
+            warningMessage("Mode transition is not allowed.");
             break;
       }
   }
   catch(OsimLogException & e)
   {
       cleanup();
+      //move err string from exception object to diagnostic area
       errorMessage(e.getErrMessage());
       return FALSE;
   }
@@ -484,39 +490,42 @@ void OptimizerSimulator::dumpDDLs(const QualifiedName & qualifiedName)
     retcode = fetchAllRowsFromMetaContext(outQueue, query.data());
     if (retcode < 0 || retcode == 100/*rows not found*/) {
            CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-           OsimLogException("Errors Dumping Table DDL.", __FILE__, __LINE__).throwException();
+           raiseOsimException("Errors Dumping Table DDL.");
     }
-    outQueue->position();
 
-    ofstream * createSchema = writeLogStreams_[CREATE_SCHEMA_DDLS];
-
-    ofstream * createTable = writeLogStreams_[CREATE_TABLE_DDLS];
-        
-    //Dump a "create schema ..." to schema ddl file for every table.
+    if(outQueue)
+    {
+        ofstream * createSchema = writeLogStreams_[CREATE_SCHEMA_DDLS];
     
-    //This comment line will be printed during loading, ';' must be omitted
-    (*createSchema) << "--" <<"CREATE SCHEMA IF NOT EXISTS " 
-                                            << qualifiedName.getCatalogName() 
-                                            << "." << qualifiedName.getSchemaName() <<endl;
-
-    (*createSchema) << "CREATE SCHEMA IF NOT EXISTS " 
-                               << qualifiedName.getCatalogName() 
-                               <<"."<< qualifiedName.getSchemaName() 
-                               << ";" << endl;
-
-    for (int i = 0; i < outQueue->numEntries(); i++) {
-        OutputInfo * vi = (OutputInfo*)outQueue->getNext();
-        char * ptr = vi->get(0);
-        //skip heading newline, and add a comment line
-        Int32 ix = 0;
-        for(; ptr[ix]=='\n'; ix++);
-        if( strstr(ptr, "CREATE TABLE") ||
-            strstr(ptr, "CREATE INDEX") ||
-            strstr(ptr, "CREATE UNIQUE INDEX") ||
-            strstr(ptr, "ALTER TABLE")  )
-            (*createTable) << "--" << ptr+ix << endl;
-        //output ddl    
-        (*createTable) << ptr << endl;
+        ofstream * createTable = writeLogStreams_[CREATE_TABLE_DDLS];
+            
+        //Dump a "create schema ..." to schema ddl file for every table.
+        
+        //This comment line will be printed during loading, ';' must be omitted
+        (*createSchema) << "--" <<"CREATE SCHEMA IF NOT EXISTS " 
+                                                << qualifiedName.getCatalogName() 
+                                                << "." << qualifiedName.getSchemaName() <<endl;
+    
+        (*createSchema) << "CREATE SCHEMA IF NOT EXISTS " 
+                                   << qualifiedName.getCatalogName() 
+                                   <<"."<< qualifiedName.getSchemaName() 
+                                   << ";" << endl;
+        
+        outQueue->position();//rewind
+        for (int i = 0; i < outQueue->numEntries(); i++) {
+            OutputInfo * vi = (OutputInfo*)outQueue->getNext();
+            char * ptr = vi->get(0);
+            //skip heading newline, and add a comment line
+            Int32 ix = 0;
+            for(; ptr[ix]=='\n'; ix++);
+            if( strstr(ptr, "CREATE TABLE") ||
+                strstr(ptr, "CREATE INDEX") ||
+                strstr(ptr, "CREATE UNIQUE INDEX") ||
+                strstr(ptr, "ALTER TABLE")  )
+                (*createTable) << "--" << ptr+ix << endl;
+            //output ddl    
+            (*createTable) << ptr << endl;
+        }
     }
 }
 
@@ -534,9 +543,7 @@ void OptimizerSimulator::dumpHistograms()
     //enumerate captured table names and tableUIDs in hash table
     for(iterator.getNext(name, tableUID); name && tableUID; iterator.getNext(name, tableUID))
     {
-        
         debugMessage("Dumping histograms for %s\n", name->getQualifiedNameAsAnsiString().data());
-        
         //dump histograms data to hdfs
         query =   "UNLOAD WITH NULL_STRING '\\N' INTO ";
         query +=  "'"UNLOAD_HDFS_DIR"/";
@@ -598,10 +605,7 @@ void OptimizerSimulator::dumpHistograms()
         else if(retcode < 0 && -4082 != retcode)
         {
            CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-           NAString errMsg;
-           errMsg = "Unload histogram data error: ";
-           errMsg += std::to_string((long long)(retcode)).c_str();
-           OsimLogException(errMsg.data(),  __FILE__, __LINE__).throwException();
+           raiseOsimException("Unload histogram data error: %d", retcode);
         }
         
         query =  "UNLOAD WITH NULL_STRING '\\N' INTO ";
@@ -655,10 +659,7 @@ void OptimizerSimulator::dumpHistograms()
         else if(retcode < 0 && -4082 != retcode)
         {
            CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-           NAString errMsg;
-           errMsg = "Unload histogram data error: ";
-           errMsg += std::to_string((long long)(retcode)).c_str();
-           OsimLogException(errMsg.data(),  __FILE__, __LINE__).throwException();
+           raiseOsimException("Unload histogram data error: %d", retcode);
         }
     
     }
@@ -747,10 +748,7 @@ void OptimizerSimulator::dumpHiveHistograms()
         else if(retcode < 0 && -4082 != retcode)
         {
            CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-           NAString errMsg;
-           errMsg = "Unload histogram data error: ";
-           errMsg += std::to_string((long long)(retcode)).c_str();
-           OsimLogException(errMsg.data(),  __FILE__, __LINE__).throwException();
+           raiseOsimException("Unload histogram data error: %d", retcode);
         }
         
         query =  "UNLOAD WITH NULL_STRING '\\N' INTO ";
@@ -800,10 +798,7 @@ void OptimizerSimulator::dumpHiveHistograms()
         else if(retcode < 0 && -4082 != retcode)
         {
            CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-           NAString errMsg;
-           errMsg = "Unload histogram data error: ";
-           errMsg += std::to_string((long long)(retcode)).c_str();
-           OsimLogException(errMsg.data(),  __FILE__, __LINE__).throwException();
+           raiseOsimException("Unload histogram data error: %d", retcode);
         }
     
     }
@@ -822,11 +817,7 @@ void OptimizerSimulator::dropObjects()
    short retcode;
    ifstream tables(logFilePaths_[TABLESFILE]);
    if(!tables.good())
-   {
-       NAString errMsg = "Error open ";
-       errMsg += logFilePaths_[CREATE_TABLE_DDLS];
-       OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
-   }
+       raiseOsimException("Error open %s", logFilePaths_[CREATE_TABLE_DDLS]);
    //ignore first 2 lines
    //tables.ignore(OSIM_LINEMAX, '\n');
    //tables.ignore(OSIM_LINEMAX, '\n');
@@ -849,11 +840,7 @@ void OptimizerSimulator::dropObjects()
       if(retcode < 0)
       {
           CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-          NAString errMsg = "Drop Table " ;
-          errMsg += stdQualTblNm.c_str();
-          errMsg += " Error: ";
-          errMsg += std::to_string((long long)(retcode)).c_str();
-          OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+          raiseOsimException("Drop Table %s error: %d", stdQualTblNm.c_str(), retcode);
       }
    }
 }
@@ -864,11 +851,7 @@ void OptimizerSimulator::checkDuplicateNames()
    //and compare each with the names in hash dictionary.
    ifstream tables(logFilePaths_[TABLESFILE]);
    if(!tables.good())
-   {
-       NAString errMsg = "Error open ";
-       errMsg += logFilePaths_[CREATE_TABLE_DDLS];
-       OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
-   }
+       raiseOsimException("Error open %s", logFilePaths_[CREATE_TABLE_DDLS]);
    //ignore first 2 lines
    //tables.ignore(OSIM_LINEMAX, '\n');
    //tables.ignore(OSIM_LINEMAX, '\n');
@@ -887,157 +870,8 @@ void OptimizerSimulator::checkDuplicateNames()
       //Check if table name is in existance
       naQualTblNm = stdQualTblNm.c_str();
       if(hashDict_TablesBeforeAction_->contains(&naQualTblNm))
-      {
-          NAString errMsg = "Object " + naQualTblNm + " already exists.";
-          OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
-      }
+          raiseOsimException("Object %s already exists.", stdQualTblNm.c_str());
    }
-}
-
-void OptimizerSimulator::saveViewsBeforeStart()
-{
-   if(viewsBeforeActionInitilized_)
-       return;
-   //Ask _MD_.OBJECTS for a list of all qualified view names.
-   initializeCLI();
-   
-   short retcode;
-   if (cmpSBD_->switchCompiler(CmpContextInfo::CMPCONTEXT_TYPE_META)) {
-       OsimLogException("Errors Switch Context.", __FILE__, __LINE__).throwException();
-   }
-   
-   char * ptr = NULL;
-   Lng32 len = 0;
-                                                           
-   retcode = cliInterface_->fetchRowsPrologue("select catalog_name, schema_name, object_name "
-                              " from TRAFODION.\""SEABASE_MD_SCHEMA"\"."SEABASE_OBJECTS
-                              " where object_type = 'VI' "
-                                           "and schema_name <> '_MD_' " 
-                                           "and schema_name <> '_REPOS_' "
-                                           "and schema_name <> '_PRIVMGR_MD_' "
-                                           "and object_name <> 'SB_HISTOGRAMS' "
-                                           "and object_name <> 'SB_HISTOGRAM_INTERVALS'; ");
-   if (retcode < 0)
-   {
-      cliInterface_->retrieveSQLDiagnostics(CmpCommon::diags());
-      NAString errMsg = "Get existing views, error ";
-      errMsg += std::to_string((long long)(retcode)).c_str();
-      OsimLogException(errMsg.data(),  __FILE__, __LINE__).throwException();
-   }
-   
-   while(1)
-   {
-       retcode = cliInterface_->fetch();
-       
-       if (retcode < 0)
-       {
-          cliInterface_->retrieveSQLDiagnostics(CmpCommon::diags());
-          NAString errMsg = "Get existing views, error ";
-          errMsg += std::to_string((long long)(retcode)).c_str();
-          OsimLogException(errMsg.data(),  __FILE__, __LINE__).throwException();
-       }
-       if (retcode == 100) //no more data
-           break;
-           
-       NAString * qualifiedName = new (heap_) NAString(heap_);
-       Int32 * dummy = new Int32(0);
-       //append catalog name
-       cliInterface_->getPtrAndLen(1,ptr,len);
-       qualifiedName->append(ptr, len);
-       qualifiedName->append('.');
-       
-       //append schema name
-       cliInterface_->getPtrAndLen(2,ptr,len);
-       qualifiedName->append(ptr, len);
-       qualifiedName->append('.');
-       
-       //append table name
-       cliInterface_->getPtrAndLen(3,ptr,len);
-       qualifiedName->append(ptr, len);
-
-       hashDict_ViewsBeforeAction_->insert(qualifiedName, dummy);
-
-   }
-
-   //end fetch
-   retcode = cliInterface_->fetchRowsEpilogue(NULL);
-   
-   cmpSBD_->switchBackCompiler();
-
-   viewsBeforeActionInitilized_ = TRUE;
-}
-
-void OptimizerSimulator::saveTablesBeforeStart()
-{
-   if(tablesBeforeActionInitilized_)
-       return;
-   //Ask _MD_.OBJECTS for a list of all qualified table names.
-   initializeCLI();
-   
-   short retcode;
-   if (cmpSBD_->switchCompiler(CmpContextInfo::CMPCONTEXT_TYPE_META)) {
-       OsimLogException("Errors Switch Context.", __FILE__, __LINE__).throwException();
-   }
-   
-   char * ptr = NULL;
-   Lng32 len = 0;
-                                                           
-   retcode = cliInterface_->fetchRowsPrologue("select catalog_name, schema_name, object_name "
-                              " from TRAFODION.\""SEABASE_MD_SCHEMA"\"."SEABASE_OBJECTS
-                              " where object_type = 'BT' "
-                                           "and schema_name <> '_MD_' " 
-                                           "and schema_name <> '_REPOS_' "
-                                           "and schema_name <> '_PRIVMGR_MD_' "
-                                           "and object_name <> 'SB_HISTOGRAMS' "
-                                           "and object_name <> 'SB_HISTOGRAM_INTERVALS'; ");
-   if (retcode < 0)
-   {
-      cliInterface_->retrieveSQLDiagnostics(CmpCommon::diags());
-      NAString errMsg = "Get existing tables, error ";
-      errMsg += std::to_string((long long)(retcode)).c_str();
-      OsimLogException(errMsg.data(),  __FILE__, __LINE__).throwException();
-   }
-   
-   while(1)
-   {
-       retcode = cliInterface_->fetch();
-       
-       if (retcode < 0)
-       {
-          cliInterface_->retrieveSQLDiagnostics(CmpCommon::diags());
-          NAString errMsg = "Get existing tables, error ";
-          errMsg += std::to_string((long long)(retcode)).c_str();
-          OsimLogException(errMsg.data(),  __FILE__, __LINE__).throwException();
-       }
-       if (retcode == 100) //no more data
-           break;
-           
-       NAString * qualifiedName = new (heap_) NAString(heap_);
-       Int32 * dummy = new Int32(0);
-       //append catalog name
-       cliInterface_->getPtrAndLen(1,ptr,len);
-       qualifiedName->append(ptr, len);
-       qualifiedName->append('.');
-       
-       //append schema name
-       cliInterface_->getPtrAndLen(2,ptr,len);
-       qualifiedName->append(ptr, len);
-       qualifiedName->append('.');
-       
-       //append table name
-       cliInterface_->getPtrAndLen(3,ptr,len);
-       qualifiedName->append(ptr, len);
-
-       hashDict_TablesBeforeAction_->insert(qualifiedName, dummy);
-
-   }
-
-   //end fetch
-   retcode = cliInterface_->fetchRowsEpilogue(NULL);
-   
-   cmpSBD_->switchBackCompiler();
-
-   tablesBeforeActionInitilized_ = TRUE;
 }
 
 void OptimizerSimulator::loadDDLs()
@@ -1064,9 +898,7 @@ void OptimizerSimulator::loadDDLs()
     ifstream createSchemas(logFilePaths_[CREATE_SCHEMA_DDLS]);
     if(!createSchemas.good())
     {
-        NAString errMsg = "Error open ";
-        errMsg += logFilePaths_[CREATE_SCHEMA_DDLS];
-        OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+        raiseOsimException("Error open %s", logFilePaths_[CREATE_SCHEMA_DDLS]);
     }    
     //ignore first 2 lines
     //createSchemas.ignore(OSIM_LINEMAX, '\n');
@@ -1086,9 +918,7 @@ void OptimizerSimulator::loadDDLs()
     ifstream createTables(logFilePaths_[CREATE_TABLE_DDLS]);
     if(!createTables.good())
     {
-        NAString errMsg = "Error open ";
-        errMsg += logFilePaths_[CREATE_TABLE_DDLS];
-        OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+        raiseOsimException("Error open %s", logFilePaths_[CREATE_TABLE_DDLS]);
     }    
     //ignore first 2 lines
     //createTables.ignore(OSIM_LINEMAX, '\n');
@@ -1102,9 +932,7 @@ void OptimizerSimulator::loadDDLs()
             if(retcode < 0)
             {
                 CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-                NAString errMsg = "Create Table Error: " ;
-                errMsg += std::to_string((long long)(retcode)).c_str();
-                OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+                raiseOsimException("Create Table Error: %d", retcode);
             }
         }
     }
@@ -1115,9 +943,7 @@ void OptimizerSimulator::loadDDLs()
     ifstream createViews(logFilePaths_[VIEWDDLS]);
     if(!createViews.good())
     {
-        NAString errMsg = "Error open ";
-        errMsg += logFilePaths_[VIEWDDLS];
-        OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+        raiseOsimException("Error open %s", logFilePaths_[VIEWDDLS]);
     }  
     //ignore first 2 lines
     //createViews.ignore(OSIM_LINEMAX, '\n');
@@ -1131,13 +957,26 @@ void OptimizerSimulator::loadDDLs()
             if(retcode < 0)
             {
                 CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-                NAString errMsg = "Create View Error: " ;
-                errMsg += std::to_string((long long)(retcode)).c_str();
-                errMsg += statement;
-                OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+                raiseOsimException("Create View Error: %d %s", retcode, statement.data());
             }
         }
     }
+}
+
+static const char* extractAsComment(const char* header, const NAString & stmt)
+{
+    NAString tmp;
+    int begin = stmt.index(header);
+    if(begin > -1)
+    {
+        int end = stmt.index('\n', begin);
+        if(end > begin)
+        {
+            stmt.copy(begin, end-1, tmp);
+            return tmp.data();
+        }
+    }
+    return NULL;
 }
 
 void OptimizerSimulator::loadHiveDDLs()
@@ -1150,6 +989,7 @@ void OptimizerSimulator::loadHiveDDLs()
     comment.capacity(4096);
     std::ifstream hiveCreateTableSql(logFilePaths_[HIVE_CREATE_TABLE]);
     std::ifstream hiveTableListFile(logFilePaths_[HIVE_TABLE_LIST]);
+    std::ifstream hiveCreateExternalTableSql(logFilePaths_[HIVE_CREATE_EXTERNAL_TABLE]);
     if(!hiveTableListFile.good() || !hiveCreateTableSql.good())
        return;
     //create hive external schema
@@ -1159,10 +999,7 @@ void OptimizerSimulator::loadHiveDDLs()
     if(retcode < 0)
     {
          CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-         NAString errMsg = "create external table: " ;
-         errMsg += std::to_string((long long)(retcode)).c_str();
-         errMsg += statement;
-         OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+         raiseOsimException("create external table: %d %s", retcode, statement.data());
     }
     //set default schema to hive external schema
     executeFromMetaContext("SET SCHEMA TRAFODION.\"_HV_HIVE_\"");
@@ -1190,56 +1027,41 @@ void OptimizerSimulator::loadHiveDDLs()
     }
 
     NAHashDictionaryIterator<const QualifiedName, Int64> iterator(*hashDict_HiveTables_);
+    //drop external tables and hive tables 
     for(iterator.getNext(qualName, tableUID); qualName && tableUID; iterator.getNext(qualName, tableUID))
     {
         trafName = ComConvertNativeNameToTrafName(
                                                                         qualName->getCatalogName(),
                                                                         qualName->getSchemaName(),
                                                                         qualName->getObjectName());
-       int count = 0;
-       //read twice, one for hive table, one for external table
-        while(readHiveStmt(hiveCreateTableSql, statement, comment) && count++ < 2)
-        {
-             if(comment.length() > 0)
-                 debugMessage("%s\n", comment.data());
-             if(statement.length() > 0){
-                 if(((int)statement.index("CREATE EXTERNAL TABLE")) >= 0)
-                 {     
-                       //drop external table and hive table with the same name;
-                       NAString dropStmt = "DROP TABLE IF EXISTS ";
-                       dropStmt += trafName;
-                       retcode = executeFromMetaContext(dropStmt.data());
-                       if(retcode < 0)
-                       {
-                              CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-                              NAString errMsg = "drop external table: " ;
-                              errMsg += std::to_string((long long)(retcode)).c_str();
-                              OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
-                        }
-                       //create trafodion external table
-                       retcode = executeFromMetaContext(statement.data());
-                       if(retcode < 0)
-                       {
-                              CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-                              NAString errMsg = "create external table: " ;
-                              errMsg += std::to_string((long long)(retcode)).c_str();
-                              errMsg += statement;
-                              OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
-                        }
-                 }
-                 else
-                 {
-                         NAString dropStmt = "DROP TABLE ";
-                         dropStmt += qualName->getObjectName();
-                         try{
-                             execHiveSQL(dropStmt.data());//drop hive table
-                         }
-                         catch(...) {}
-                         execHiveSQL(statement.data());//create hive table
-                  }
-             }
-        }//while
-    }//for
+         //drop external table
+         NAString dropStmt = "DROP TABLE IF EXISTS ";
+         dropStmt += trafName;
+         retcode = executeFromMetaContext(dropStmt.data());
+         if(retcode < 0)
+         {
+             CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
+             raiseOsimException("drop external table: %d", retcode);
+         }
+         //drop hive table
+         dropStmt = "DROP TABLE ";
+         dropStmt += qualName->getObjectName();
+         execHiveSQL(dropStmt.data());//drop hive table
+    }
+    //create hive table
+    while(readHiveStmt(hiveCreateTableSql, statement, comment))
+    {   
+        if(statement.length() > 0)
+            debugMessage("%s\n", extractAsComment("CREATE TABLE", statement));
+            execHiveSQL(statement.data());//create hive table
+    }
+    //create external table
+    while(readHiveStmt(hiveCreateExternalTableSql, statement, comment))
+   {
+        if(statement.length() > 0)
+             debugMessage("%s\n", extractAsComment("CREATE EXTERNAL TABLE", statement));
+            execHiveSQL(statement.data()); //create hive external table
+   }
 }
 
 //============================================================================
@@ -1321,9 +1143,7 @@ void NAClusterInfo::simulateNAClusterInfo()
 
   if(!naclfile.good())
   {
-    char errMsg[38+OSIM_PATHMAX+1]; // Error msg below + filename + '\0'
-    snprintf(errMsg, sizeof(errMsg), "Unable to open %s file for reading data.", filepath);
-    OsimLogException(errMsg, __FILE__, __LINE__).throwException();
+    raiseOsimException("Unable to open %s file for reading data.", filepath);
   }
   
   while(naclfile.good())
@@ -1427,11 +1247,7 @@ void NAClusterInfoLinux::simulateNAClusterInfoLinux()
 
   if(!nacllinuxfile.good())
   {
-    char errMsg[38+OSIM_PATHMAX+1]; // Error msg below + filename + '\0'
-   // LCOV_EXCL_START
-    snprintf(errMsg, sizeof(errMsg), "Unable to open %s file for reading data.", filepath);
-    OsimLogException(errMsg, __FILE__, __LINE__).throwException();
-   // LCOV_EXCL_STOP
+        raiseOsimException("Unable to open %s file for reading data.", filepath);
   }
 
   while(nacllinuxfile.good())
@@ -1517,18 +1333,14 @@ NABoolean OptimizerSimulator::massageTableUID(OsimHistogramEntry* entry, NAHashD
 
   if(tableUID < 0)
   {
-        NAString errMsg = "Get Table UID Error: " ;
-        errMsg += std::to_string((long long)(tableUID)).c_str();
-        OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+        raiseOsimException("Get Table UID Error: %d", tableUID);
   }
   NAString dataPath(STMTHEAP);
   //get text file path within the dir
   DIR * histogramDir = opendir(fullPath);
   if(!histogramDir)
   {
-        NAString errMsg = "Error open ";
-        errMsg += fullPath;
-        OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+        raiseOsimException("Error open %s", fullPath);
   } 
   struct dirent * dataPathInfo = readdir(histogramDir);
   while(dataPathInfo != NULL)
@@ -1564,9 +1376,7 @@ NABoolean OptimizerSimulator::massageTableUID(OsimHistogramEntry* entry, NAHashD
   std::ifstream infile (dataPath.data(), std::ifstream::binary);
   if(!infile.good())
   {
-        NAString errMsg = "Error open ";
-        errMsg += dataPath;
-        OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+        raiseOsimException("Error open %s", dataPath.data());
   } 
   std::ofstream outfile (UIDModifiedPath->data(), std::ofstream::binary|std::ofstream::app);
   //update table UID between files
@@ -1603,7 +1413,7 @@ NABoolean OptimizerSimulator::massageTableUID(OsimHistogramEntry* entry, NAHashD
         outfile << V6 << endl;
     }
     else
-        OsimLogException("Invalid format of histogram data.", __FILE__, __LINE__).throwException();
+        raiseOsimException("Invalid format of histogram data.");
   }
 
   return TRUE;
@@ -1620,9 +1430,7 @@ void OptimizerSimulator::execHiveSQL(const char* hiveSQL)
             HVC_RetCode retCode = hiveClient_->init();
             if (retCode != HVC_OK)
             {
-                NAString errMsg;
-                errMsg = "Error initialize hive client.";
-                OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+                raiseOsimException("Error initialize hive client.");
             }
         }  
     }
@@ -1630,9 +1438,7 @@ void OptimizerSimulator::execHiveSQL(const char* hiveSQL)
     HVC_RetCode retCode = hiveClient_->executeHiveSQL(hiveSQL);
     if (retCode != HVC_OK)
     {
-        NAString errMsg;
-        errMsg = "Error running hive SQL.";
-        OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+        raiseOsimException("Error running hive SQL.");
     }
     
 }
@@ -1717,9 +1523,7 @@ short OptimizerSimulator::loadHistogramsTable(NAString* modifiedPath, QualifiedN
     if(retcode < 0)
     {
         CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-        NAString errMsg = "Load histogram data error:  " ;
-        errMsg += std::to_string((long long)(retcode)).c_str();
-        OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+        raiseOsimException("Load histogram data error:  %d", retcode);
     }
     
     cmd = "upsert using load into ";
@@ -1740,9 +1544,7 @@ short OptimizerSimulator::loadHistogramsTable(NAString* modifiedPath, QualifiedN
     if(retcode < 0)
     {
         CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-        NAString errMsg = "Load histogram data error:  " ;
-        errMsg += std::to_string((long long)(retcode)).c_str();
-        OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+        raiseOsimException("Load histogram data error:  %d", retcode);
     }
     
     return retcode;
@@ -1807,9 +1609,7 @@ short OptimizerSimulator::loadHistogramIntervalsTable(NAString* modifiedPath, Qu
     if(retcode < 0)
     {
         CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-        NAString errMsg = "Load histogram data error:  " ;
-        errMsg += std::to_string((long long)(retcode)).c_str();
-        OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+        raiseOsimException("Load histogram data error:  %d", retcode);
     }
     //from hive table to trafodion table.
     cmd = "upsert using load into ";
@@ -1824,9 +1624,7 @@ short OptimizerSimulator::loadHistogramIntervalsTable(NAString* modifiedPath, Qu
     if(retcode < 0)
     {
         CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-        NAString errMsg = "Load histogram data error:  " ;
-        errMsg += std::to_string((long long)(retcode)).c_str();
-        OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+        raiseOsimException("Load histogram data error:  %d", retcode);
     }
     return retcode;
 }
@@ -1841,9 +1639,7 @@ void OptimizerSimulator::loadHistograms(const char* histogramPath, NABoolean isH
     std::ifstream s (histogramPath, std::ifstream::binary);
     if(!s.good())
     {
-        NAString errMsg = "Error open ";
-        errMsg += histogramPath;
-        OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+        raiseOsimException("Error open %s", histogramPath);
     }   
     char * txt = new (STMTHEAP) char[1024];
     //s.ignore(OSIM_LINEMAX, '\n');
@@ -1862,9 +1658,7 @@ void OptimizerSimulator::loadHistograms(const char* histogramPath, NABoolean isH
    }
    if(!allHistograms)
    {
-        NAString errMsg = "Error parsing ";
-        errMsg += histogramPath;
-        OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+        raiseOsimException("Error parsing %s", histogramPath);
    } 
    NAHashDictionary<NAString, QualifiedName> * modifiedPathDict = 
                                         new(STMTHEAP) NAHashDictionary<NAString, QualifiedName>
@@ -1888,9 +1682,7 @@ void OptimizerSimulator::loadHistograms(const char* histogramPath, NABoolean isH
        if(retcode < 0)
        {
             CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-            NAString errMsg = "create hive stats schema: " ;
-            errMsg += std::to_string((long long)(retcode)).c_str();
-            OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+            raiseOsimException("create hive stats schema: return code %d", retcode);
        }
    }
    NAString* modifiedPath = NULL;
@@ -1929,18 +1721,13 @@ void OptimizerSimulator::readAndSetCQDs()
    NABoolean isDir;
    if(!isFileExists(logFilePaths_[CQD_DEFAULTSFILE], isDir))
    {
-     char errMsg[38+OSIM_PATHMAX+1]; // Error errMsg below + filename + '\0'
-     snprintf(errMsg, sizeof(errMsg), "Unable to open %s file for reading data.",
-                       logFilePaths_[CQD_DEFAULTSFILE]);
-     OsimLogException(errMsg, __FILE__, __LINE__).throwException();
+         raiseOsimException("Unable to open %s file for reading data.", logFilePaths_[CQD_DEFAULTSFILE]);
    }
 
    ifstream inLogfile(logFilePaths_[CQD_DEFAULTSFILE]);
    if(!inLogfile.good())
    {
-        NAString errMsg = "Error open ";
-        errMsg += logFilePaths_[CQD_DEFAULTSFILE];
-        OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+        raiseOsimException("Error open %s", logFilePaths_[CQD_DEFAULTSFILE]);
    } 
    // Read and ignore the top 2 header lines.
    //inLogfile.ignore(OSIM_LINEMAX, '\n');
@@ -1959,9 +1746,7 @@ void OptimizerSimulator::readAndSetCQDs()
        if(retcode < 0)
        {
            cliInterface_->retrieveSQLDiagnostics(CmpCommon::diags());
-           NAString errMsg = "Error Setting CQD: ";
-           errMsg += cqd.c_str();
-           OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
+           raiseOsimException("Error Setting CQD: %s", cqd.c_str());
        }
    }
 }
@@ -1972,7 +1757,7 @@ Int64 OptimizerSimulator::getTableUID(const char * catName, const char * schName
    
    Int64 retcode;
    if (cmpSBD_->switchCompiler(CmpContextInfo::CMPCONTEXT_TYPE_META)) {
-       OsimLogException("Errors Switch Context.", __FILE__, __LINE__).throwException();
+       raiseOsimException("Errors Switch Context.");
    }
    
    retcode = cmpSBD_->getObjectUID(cliInterface_, catName, schName, objName, "BT");
@@ -1988,7 +1773,7 @@ short OptimizerSimulator::fetchAllRowsFromMetaContext(Queue * &q, const char* qu
    
    short retcode;
    if (cmpSBD_->switchCompiler(CmpContextInfo::CMPCONTEXT_TYPE_META)) {
-       OsimLogException("Errors Switch Context.", __FILE__, __LINE__).throwException();
+       raiseOsimException("Errors Switch Context.");
    }
 
    retcode = cliInterface_->fetchAllRows(queue_, query, 0, FALSE, FALSE, TRUE);
@@ -2188,19 +1973,14 @@ void OptimizerSimulator::histogramHDFSToLocal()
         status = hdfsCopy(hdfs, src.data(), locfs, dst.data());
         if(status != 0)
         {
-            NAString errMsg;
-            errMsg = "Error getting histogram data from ";
-            errMsg += src + " to " + dst;
-            OsimLogException(errMsg, __FILE__, __LINE__).throwException();
+            raiseOsimException("Error getting histogram data from %s to %s", src.data(), dst.data());
         }
     }
         
     if( hdfsDisconnect(locfs) != 0 ||
          hdfsDisconnect(hdfs) != 0)
     {
-            NAString errMsg;
-            errMsg = "Error getting histogram data, disconneting";
-            OsimLogException(errMsg, __FILE__, __LINE__).throwException();
+            raiseOsimException("Error getting histogram data, disconneting");
     }
 }
 
@@ -2231,48 +2011,27 @@ void OptimizerSimulator::createLogDir()
     {
       case EACCES:
         {
-          char errMsg[37+OSIM_PATHMAX+1];
-          snprintf (errMsg, sizeof(errMsg), 
-                    "Could not create directory %s, permission denied.", 
-                    osimLogLocalDir_.data());
-          OsimLogException(errMsg, __FILE__, __LINE__).throwException();
+               raiseOsimException("Could not create directory %s, permission denied.", osimLogLocalDir_.data());
         }
         break;
       case ENOENT:
         {
-          char errMsg[58+OSIM_PATHMAX+1];
-          snprintf (errMsg, sizeof(errMsg), 
-                   "Could not create directory %s, a component of the path does not exist.",
-                   osimLogLocalDir_.data());
- 
-          OsimLogException(errMsg, __FILE__, __LINE__).throwException();
+              raiseOsimException("Could not create directory %s, a component of the path does not exist.", osimLogLocalDir_.data());
         }
         break;
       case EROFS:
         {
-          char errMsg[40+OSIM_PATHMAX+1];
-          snprintf (errMsg, sizeof(errMsg), 
-                    "Could not create directory %s, read-only filesystem.", 
-                    osimLogLocalDir_.data());
-          OsimLogException(errMsg, __FILE__, __LINE__).throwException();
+              raiseOsimException("Could not create directory %s, read-only filesystem.", osimLogLocalDir_.data());
         }
         break;
       case ENOTDIR:
         {
-          char errMsg[62+OSIM_PATHMAX+1];
-          snprintf (errMsg, sizeof(errMsg),
-                   "Could not create directory %s, a component of the path is not a directory.",
-                   osimLogLocalDir_.data());
-          OsimLogException(errMsg, __FILE__, __LINE__).throwException();
+             raiseOsimException("Could not create directory %s, a component of the path is not a directory.", osimLogLocalDir_.data());
         }
         break;
       default:
         {
-          char errMsg[58+OSIM_PATHMAX+1];
-          snprintf (errMsg, sizeof(errMsg),
-                   "Could not create %s, errno is %d",
-                   osimLogLocalDir_.data(), error);
-          OsimLogException(errMsg, __FILE__, __LINE__).throwException();
+             raiseOsimException("Could not create %s, errno is %d", osimLogLocalDir_.data(), error);
         }
         break;
     }
@@ -2343,11 +2102,9 @@ void OptimizerSimulator::openWriteLogStreams(OsimLog sc)
         NABoolean isDir;
         if(isFileExists(logFilePaths_[sc],isDir))
         {
-          char errMsg1[118+OSIM_PATHMAX+1]; // Error errMsg below + filename + '\0'
-          sprintf(errMsg1, "The target log file %s already exists. "
+           raiseOsimException("The target log file %s already exists. "
                             "Delete this and other existing log files before "
                             "running the OSIM in CAPTURE mode.", logFilePaths_[sc]);
-          OsimLogException(errMsg1, __FILE__, __LINE__).throwException();
         }
         // Create the file and write header lines to it.
         writeLogStreams_[sc] = new (heap_) ofstream(logFilePaths_[sc],ios::app);
@@ -2404,12 +2161,7 @@ void OptimizerSimulator::readLogfile_MYSYSTEMNUMBER()
   NABoolean isDir;
 
   if(!isFileExists(logFilePaths_[MYSYSTEMNUMBER],isDir))
-  {
-    char errMsg[38+OSIM_PATHMAX+1]; // Error errMsg below + filename + '\0'
-    snprintf(errMsg, sizeof(errMsg), "Unable to open %s file for reading data.",
-                       logFilePaths_[MYSYSTEMNUMBER]);
-    OsimLogException(errMsg, __FILE__, __LINE__).throwException();
-  }
+    raiseOsimException("Unable to open %s file for reading data.", logFilePaths_[MYSYSTEMNUMBER]);
 
   ifstream inLogfile(logFilePaths_[MYSYSTEMNUMBER]);
 
@@ -2521,12 +2273,7 @@ void OptimizerSimulator::readLogfile_getEstimatedRows()
   NABoolean isDir;
 
   if(!isFileExists(logFilePaths_[ESTIMATED_ROWS],isDir))
-  {
-    char errMsg[38+OSIM_PATHMAX+1]; // Error errMsg below + filename + '\0'
-    snprintf(errMsg, sizeof(errMsg), "Unable to open %s file for reading data.",
-                       logFilePaths_[ESTIMATED_ROWS]);
-    OsimLogException(errMsg, __FILE__, __LINE__).throwException();
-  }
+    raiseOsimException("Unable to open %s file for reading data.", logFilePaths_[ESTIMATED_ROWS]);
 
   ifstream inLogfile(logFilePaths_[ESTIMATED_ROWS]);
 
@@ -2594,12 +2341,7 @@ void OptimizerSimulator::readLogFile_getNodeAndClusterNumbers()
   NABoolean isDir;
 
   if(!isFileExists(logFilePaths_[NODE_AND_CLUSTER_NUMBERS],isDir))
-  {
-    char errMsg[38+OSIM_PATHMAX+1]; // Error errMsg below + filename + '\0'
-    snprintf(errMsg, sizeof(errMsg), "Unable to open %s file for reading data.",
-                       logFilePaths_[NODE_AND_CLUSTER_NUMBERS]);
-    OsimLogException(errMsg, __FILE__, __LINE__).throwException();
-  }
+    raiseOsimException("Unable to open %s file for reading data.", logFilePaths_[NODE_AND_CLUSTER_NUMBERS]);
 
   ifstream inLogfile(logFilePaths_[NODE_AND_CLUSTER_NUMBERS]);
 
@@ -2806,9 +2548,7 @@ void OptimizerSimulator::capture_TableOrView(NATable * naTab)
               CorrName otherCN(uniqueConstraintReferencedByMe.getTableName());
               otherNaTable = bindWA.getNATable(otherCN);
               if (otherNaTable == NULL || bindWA.errStatus())
-              {
-                   OsimLogException("Errors Dumping Table DDL.", __FILE__, __LINE__).throwException();
-              }
+                   raiseOsimException("Errors Dumping Table DDL.");
               capture_TableOrView(otherNaTable);
         }
         //end capture referred tables
@@ -2928,8 +2668,7 @@ void OptimizerSimulator::cleanup()
       NADELETE(writeLogStreams_[sc], ofstream, heap_); 
       writeLogStreams_[sc]=NULL;
     }
-    
-  }
+  }//for
 
   if(hashDict_getEstimatedRows_)
       hashDict_getEstimatedRows_->clear(TRUE);
@@ -2954,10 +2693,6 @@ void OptimizerSimulator::cleanupSimulator()
   //clear out HistogramCache
   if(CURRCONTEXT_HISTCACHE)
     CURRCONTEXT_HISTCACHE->invalidateCache();
-  //nodeNum_ = -1;
-  //clusterNum_ = -1;
-  //capturedNodeAndClusterNum_ = FALSE;
-  //hdfsDisconnect(fs_);
 }
 
 void OptimizerSimulator::cleanupAfterStatement()
@@ -2991,7 +2726,6 @@ OptimizerSimulator::sysType OptimizerSimulator::getCaptureSysType()
   return captureSysType_;
 }
 
-
 void OptimizerSimulator::readLogFile_captureSysType()
 {
   // This is not an error.  If the file doesn't exist, assume that
@@ -3000,10 +2734,7 @@ void OptimizerSimulator::readLogFile_captureSysType()
   if(!isFileExists(logFilePaths_[CAPTURE_SYS_TYPE],isDir))
   {
     captureSysType_ = OSIM_UNKNOWN_SYSTYPE;
-    char errMsg[38+OSIM_PATHMAX+1]; // Error errMsg below + filename + '\0'
-    snprintf(errMsg, sizeof(errMsg), "Unable to open %s file for reading data.",
-                       logFilePaths_[CAPTURE_SYS_TYPE]);
-    OsimLogException(errMsg, __FILE__, __LINE__).throwException();
+    raiseOsimException("Unable to open %s file for reading data.", logFilePaths_[CAPTURE_SYS_TYPE]);
   }
 
   ifstream inLogfile(logFilePaths_[CAPTURE_SYS_TYPE]);
@@ -3063,7 +2794,10 @@ void OptimizerSimulator::captureHiveTableStats(HHDFSTableStats* tablestats, cons
          XMLFormattedString * xmltext = new (STMTHEAP) XMLFormattedString(STMTHEAP);
          
          OsimHHDFSStatsBase* root = tablestats->osimSnapShot();
-         
+
+          if(!root)
+              raiseOsimException("Save capture hive table stasts error");
+
          root->toXML(*xmltext);
          
          NAString ofile = hiveTableStatsDir_ + '/' +qualName.getQualifiedNameAsAnsiString();
@@ -3110,13 +2844,27 @@ void OptimizerSimulator::dumpHiveTableDDLs()
         retcode = fetchAllRowsFromMetaContext(outQueue, query.data());
         if (retcode < 0 || retcode == 100/*rows not found*/) {
                CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-               OsimLogException("Errors Dumping Table DDL.", __FILE__, __LINE__).throwException();
+               raiseOsimException("Errors Dumping Table DDL.");
         }
-        outQueue->position();
-        for (int i = 0; i < outQueue->numEntries(); i++) {
-            OutputInfo * vi = (OutputInfo*)outQueue->getNext();
-            char * ptr = vi->get(0);
-            (*writeLogStreams_[HIVE_CREATE_TABLE])<< ptr << endl;
+
+        if(outQueue)
+        {
+            outQueue->position();//rewind
+            NABoolean inExtDDL = FALSE;
+            for (int i = 0; i < outQueue->numEntries(); i++) {
+                OutputInfo * vi = (OutputInfo*)outQueue->getNext();
+                char * ptr = vi->get(0);
+                //write "CREATE EXTERNAL TABLE" DDL to another file.
+                if(strstr(ptr, "CREATE EXTERNAL TABLE"))
+                    inExtDDL = TRUE;
+                if(inExtDDL){
+                    (*writeLogStreams_[HIVE_CREATE_EXTERNAL_TABLE]) << ptr << endl;
+                    if(strstr(ptr, ";"))
+                        inExtDDL = FALSE;
+                }
+                else
+                    (*writeLogStreams_[HIVE_CREATE_TABLE])<< ptr << endl;
+            }
         }
     }
 }
@@ -3152,11 +2900,7 @@ HHDFSTableStats * OptimizerSimulator::restoreHiveTableStats(const QualifiedName 
      NAString path = hiveTableStatsDir_ + '/' + qualName.getQualifiedNameAsAnsiString();
      std::ifstream s (path, std::ifstream::binary);
      if(!s.good())
-     {
-         NAString errMsg = "Error open ";
-         errMsg += path;
-         OsimLogException(errMsg.data(), __FILE__, __LINE__).throwException();
-     }
+         raiseOsimException("Errors open %s", path.data());
      char * txt = new (STMTHEAP) char[bufSize];
      s.read(txt, bufSize);
      while(s.gcount() > 0)
@@ -3194,7 +2938,6 @@ HHDFSTableStats * OptimizerSimulator::restoreHiveTableStats(const QualifiedName 
 
 NABoolean OsimHHDFSStatsBase::restoreHHDFSStats(HHDFSStatsBase* hhstats, const char ** atts)
 {
-
     if(!hhstats)
         return FALSE;
     else
@@ -3590,7 +3333,7 @@ void OsimHHDFSTableStats::startElement(void *parser, const char *elementName, co
         XMLDocument::setCurrentElement(parser, entry);
     }
     else
-       OsimLogException("Errors Parsing stats file.", __FILE__, __LINE__).throwException();
+       raiseOsimException("Errors Parsing stats file.");
 }
 
 void OsimHHDFSListPartitionStats::startElement(void *parser, const char *elementName, const char **atts)
@@ -3604,7 +3347,7 @@ void OsimHHDFSListPartitionStats::startElement(void *parser, const char *element
         XMLDocument::setCurrentElement(parser, entry);
     }
     else
-       OsimLogException("Errors Parsing stats file.", __FILE__, __LINE__).throwException();
+       raiseOsimException("Errors Parsing stats file.");
 }
 
 void OsimHHDFSBucketStats::startElement(void *parser, const char *elementName, const char **atts)
@@ -3626,7 +3369,7 @@ void OsimHHDFSBucketStats::startElement(void *parser, const char *elementName, c
         XMLDocument::setCurrentElement(parser, entry);
     }
     else
-       OsimLogException("Errors Parsing stats file.", __FILE__, __LINE__).throwException();
+       raiseOsimException("Errors Parsing stats file.");
 }
 
 void OsimHHDFSStatsBase::endElement(void *parser, const char *elementName)

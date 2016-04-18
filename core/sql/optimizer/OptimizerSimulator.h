@@ -309,6 +309,7 @@ class OptimizerSimulator : public NABasicObject
       HISTOGRAM_PATHS,
       HIVE_HISTOGRAM_PATHS,
       HIVE_CREATE_TABLE,
+      HIVE_CREATE_EXTERNAL_TABLE,
       HIVE_TABLE_LIST,
       NUM_OF_LOGS
     };
@@ -420,8 +421,6 @@ class OptimizerSimulator : public NABasicObject
     void checkDuplicateNames();
     void dropObjects();
     void dumpVersions();
-    void saveTablesBeforeStart();
-    void saveViewsBeforeStart();
     void execHiveSQL(const char* hiveSQL);
     
     // This is the directory OSIM uses to read/write log files.
@@ -492,4 +491,5 @@ class OptimizerSimulator : public NABasicObject
   NABoolean OSIM_runningInCaptureMode();
   NABoolean OSIM_ustatIsDisabled();
   NABoolean OSIM_ClusterInfoInitialized();
+  void raiseOsimException(const char* fmt, ...);
 #endif
