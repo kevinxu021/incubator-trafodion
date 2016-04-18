@@ -20,12 +20,6 @@ else
     TRAF_PDCP="pdcp -R ssh $MY_NODES"
 fi
 
-if [[ "$ENABLE_HA" == "true" ]]; then
-   DCS_HOSTNAME="$FLOATING_IP"
-else
-   DCS_HOSTNAME="$(hostname -f)"
-fi
-
 function shutDownMgblty  {
 
 echo "***INFO: Shutting down DBManager if running."
@@ -313,7 +307,7 @@ if [[ ! -z $openPort ]]; then
       sudo su $TRAF_USER --command "$TRAF_PDCP $OPENTSDB_CONFIG $OPENTSDB_CONFIG"
    fi
 
-   newPort="tsdbHost = $DCS_HOSTNAME:$port"
+   newPort="tsdbHost = $DCS_MASTER_HOST:$port"
    sudo sed -i -e "s/tsdbHost = localhost:5242/$newPort/g" $BOSUN_CONFIG
    if [[ $node_count -ne "1" ]]; then
       sudo su $TRAF_USER --command "$TRAF_PDCP $BOSUN_CONFIG $BOSUN_CONFIG" 
@@ -400,6 +394,7 @@ function editStartStop {
 
 START_STOP="$SQ_ROOT/mgblty/tcollector/startstop"
 TRAF_CANARY="$SQ_ROOT/mgblty/tcollector/collectors/300/trafcanqry.py"
+UPD_ORPHAN_QRY="$SQ_ROOT/mgblty/tcollector/collectors/1800/upd_orphan_qry.py"
 HBASE_COLLECTOR="$SQ_ROOT/mgblty/tcollector/collectors/0/hbase_master.py"
 REGIONSERVER_COLLECTOR="$SQ_ROOT/mgblty/tcollector/collectors/0/hbase_regionserver.py"
 defaultHBaseInfoPort="60010"
@@ -409,7 +404,6 @@ defaultRegionServerInfoPort="60030"
 echo "***INFO: Editing TCollector startstop script with TSD_HOST and TSD_PORT"
 
 TSD_PORT_STR="TSD_PORT=$TSD_PORT"
-DCS_MASTER_HOST="$DCS_HOSTNAME"
 
 for node in $NODE_LIST
 do
@@ -418,6 +412,8 @@ do
 
    ssh -q -n $node sudo sed -i -e "s@DCS_MASTER_HOST:DCS_PORT@$DCS_MASTER_HOST:$DCS_PORT@" $TRAF_CANARY
   
+   ssh -q -n $node sudo sed -i -e "s@DCS_MASTER_HOST:DCS_PORT@$DCS_MASTER_HOST:$DCS_PORT@" $UPD_ORPHAN_QRY
+
    ssh -q -n $node sudo sed -i -e "s#$defaultHBaseInfoPort#$HBASE_MASTER_INFO_PORT#g" $HBASE_COLLECTOR
      
    ssh -q -n $node sudo sed -i -e "s#$defaultRegionServerInfoPort#$REGIONSERVER_INFO_PORT#g" $REGIONSERVER_COLLECTOR
@@ -473,7 +469,7 @@ DBMGR_KEYSTORE="$DBMGR_INSTALL_DIR/etc/dbmgr.keystore"
 
 echo "***INFO: Configuring DB Manager"
 
-sudo su $TRAF_USER --login --command "$DBMGR_INSTALL_DIR/bin/configure.py --httpport $DM_HTTP_PORT --httpsport $DM_HTTPS_PORT --dcshost $DCS_HOSTNAME --dcsport $DCS_PORT --password dbmgr23400 --dcsinfoport $DCS_INFO_PORT --resthost $DCS_HOSTNAME --restport $REST_PORT --tsdhost $DCS_HOSTNAME --tsdport $TSD_PORT --bosunhost $DCS_HOSTNAME --bosunport $HTTP_PORT --timezone $TIME_ZONE --adminuser $DB_ADMIN_USER --adminpassword $DB_ADMIN_PASSWORD"
+sudo su $TRAF_USER --login --command "$DBMGR_INSTALL_DIR/bin/configure.py --httpport $DM_HTTP_PORT --httpsport $DM_HTTPS_PORT --dcshost $DCS_MASTER_HOST --dcsport $DCS_PORT --password dbmgr23400 --dcsinfoport $DCS_INFO_PORT --resthost $DCS_MASTER_HOST --restport $REST_PORT --tsdhost $DCS_MASTER_HOST --tsdport $TSD_PORT --bosunhost $DCS_MASTER_HOST --bosunport $HTTP_PORT --timezone $TIME_ZONE --adminuser $DB_ADMIN_USER --adminpassword $DB_ADMIN_PASSWORD"
 
 if [[ $node_count -ne "1" ]]; then
    sudo su $TRAF_USER --command "$TRAF_PDCP $DBMGR_CONFIG $DBMGR_CONFIG"

@@ -577,6 +577,7 @@ else
       sed -e "s@5242@$MY_OPEN_TSDB_PORT@" startstop-orig > startstop | tee -a ${MY_LOG_FILE}
       chmod +x startstop
       sed -i -e "s@DCS_MASTER_HOST:DCS_PORT@localhost:$MY_DCS_MASTER_PORT@" collectors/300/trafcanqry.py
+      sed -i -e "s@DCS_MASTER_HOST:DCS_PORT@localhost:$MY_DCS_MASTER_PORT@" collectors/1800/upd_orphan_qry.py
  
       #Customize Bosun scripts
       cd $MGBLTY_HOME/bosun/conf

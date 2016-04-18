@@ -74,6 +74,9 @@ public class ServerResource {
 			objNode.put("user", usr);
 			objNode.put("status", "OK");
 			objNode.put("sessionTimeoutMinutes", configResource.getSessionTimeoutMinutes());
+			if (Helper.isAdvancedEdition()) {
+				objNode.put("systemType", 2);
+			} else
 			if (Helper.isEnterpriseEdition()) {
 				objNode.put("systemType", 1);
 			}
