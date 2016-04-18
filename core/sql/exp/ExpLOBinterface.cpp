@@ -57,7 +57,7 @@ Lng32 ExpLOBinterfaceInit(void *& lobGlob, void * lobHeap,NABoolean isHive, Int6
                    1, // waited op
 		   lobGlob,
 		   0,
-		   NULL, 0,
+		   NULL, 0, NULL, 0,
 		   lobMaxSize);
   if (lobGlob)
     {
@@ -215,7 +215,7 @@ Lng32 ExpLOBinterfaceCreate(
 		   Lob_None,
                    1, // waited op
 		   lobGlob,
-		   0, NULL, 0,
+		   0, NULL, 0, NULL, 0,
 		   lobMaxSize,
                    bufferSize ,
                    replication,
@@ -259,7 +259,7 @@ Lng32 ExpLOBinterfaceEmptyDirectory(
                    Lob_None,
                    1, // waited op
                    lobGlob,
-                   0, NULL, 0,
+                   0, NULL, 0, NULL, 0,
                    bufferSize ,
                    replication,
                    blockSize
@@ -444,6 +444,7 @@ Lng32 ExpLOBInterfaceInsert(void * lobGlob,
 		   lobGlob,
 		   xnId, 
 		   blackBox, blackBoxLen,
+		   NULL, 0, // compression
 		   lobMaxSize,
 		   lobMaxChunkMemSize,
                    lobGCLimit,
@@ -572,7 +573,7 @@ Lng32 ExpLOBInterfaceUpdateAppend(void * lobGlob,
                    so,
                    1, 
                    lobGlob,
-                   xnId, NULL, 0,
+                   xnId, NULL, 0, NULL, 0, 
 		   lobMaxSize,
 		   lobMaxChunkMemSize,
                    lobGCLimit
@@ -644,7 +645,7 @@ Lng32 ExpLOBInterfaceUpdate(void * lobGlob,
                    1, 
                    lobGlob,
                    xnId, 
-		   NULL, 0,
+		   NULL, 0, NULL, 0, 
 		   lobMaxSize,
 		   lobMaxChunkMemSize,
                    lobGCLimit
@@ -818,7 +819,8 @@ Lng32 ExpLOBInterfaceSelectCursor(void * lobGlob,
 
                                   Int64 srcOffset, Int64 inLen, 
 			          Int64 &outLen, char * lobData,
-				  
+				  char * compressionWA, Lng32 compressionWASize,
+
 				  Lng32 oper, // 1: open. 2: fetch. 3: close
                                   Lng32 openType // 0: not applicable. 1: preOpen. 2: mustOpen.
 				  )
@@ -878,7 +880,9 @@ Lng32 ExpLOBInterfaceSelectCursor(void * lobGlob,
                    waitedOp,
 		   lobGlob,
 		   0,
-		   NULL, 0,0,0,0,0,0,0,
+		   NULL, 0,
+		   compressionWA, compressionWASize,
+		   0,0,0,0,0,0,
                    openType
 		   );
 

@@ -3070,6 +3070,7 @@ short ExExeUtilLobExtractTcb::work()
 	       1, // waited op
 	       0, lobDataSpecifiedExtractLen_, 
 	       lobDataOutputLen, lobData_, 
+	       NULL, 0, // compression
 	       1, // open
 	       2); // must open
 
@@ -3115,6 +3116,7 @@ short ExExeUtilLobExtractTcb::work()
 	       //lobDataLen_, lobData_, 
 	       lobDataOutputLen,
 	       lobData_,
+	       NULL,0, // compression
 	       2, // read
 	       0); // open type not applicable
 
@@ -3186,6 +3188,7 @@ short ExExeUtilLobExtractTcb::work()
 
 	       0, lobDataSpecifiedExtractLen_, 
 	       lobDataLen_, lobData_, 
+	       NULL,0, // compression
 	       3, // close
                0); // open type not applicable
 
@@ -3392,6 +3395,7 @@ short ExExeUtilFileExtractTcb::work()
 
 	       0, lobDataSpecifiedExtractLen_, 
 	       lobDataLen_, lobData_, 
+	       NULL, 0, // compression
 	       1, // open
 	       2); // must open
 
@@ -3439,6 +3443,7 @@ short ExExeUtilFileExtractTcb::work()
 
 	       0, lobDataSpecifiedExtractLen_, 
 	       lobDataLen_, lobData_, 
+	       NULL, 0, // compression
 	       2, // read
 	       0); // open type not applicable
 
@@ -3496,6 +3501,7 @@ short ExExeUtilFileExtractTcb::work()
 	       1, // waited op
 	       0, lobDataSpecifiedExtractLen_, 
 	       lobDataLen_, lobData_, 
+	       NULL, 0, // compression
 	       3, // close
                0); // open type not applicable
 	    if (retcode < 0)

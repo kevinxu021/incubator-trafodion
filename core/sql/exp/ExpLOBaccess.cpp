@@ -46,6 +46,8 @@
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <lzo/lzoconf.h>
+#include <lzo/lzo1x.h>
 
 
 
@@ -1904,6 +1906,8 @@ Ex_Lob_Error ExLobsOper (
 			 Int64       transId,
 			 void        *blackBox,         // black box to be sent to cli
 			 Int32       blackBoxLen,       // length of black box
+			 char *      compressionWA,     //compression work area 
+			 Lng32       compressionWASize, // max size of compWA
 			 Int64       lobMaxSize,
 			 Int64       lobMaxChunkMemSize,
                          Int64       lobGCLimit,
@@ -2054,7 +2058,7 @@ Ex_Lob_Error ExLobsOper (
     case Lob_ReadDataCursorSimple:
       sprintf(fn,"%s:%Lx:%s",lobPtr->getDataFileName(), (long long unsigned int)lobName, cursorId);
       fileName = fn;       
-      err = lobPtr->readDataCursorSimple(fileName, source, sourceLen, retOperLen, lobGlobals);
+      err = lobPtr->readDataCursorSimple(fileName, source, sourceLen, retOperLen, compressionWA, compressionWASize, lobGlobals);
       break;
 
     case Lob_CloseFile:
@@ -2197,6 +2201,22 @@ void cleanupLOBDataDescFiles(const char *lobHdfsServer,int lobHdfsPort,const cha
     }
 }
 
+static UInt32 read32(char * buf)
+{
+    UInt32 v;
+    unsigned char * b = (unsigned char *) buf;
+    v  = (UInt32) b[3] <<  0;
+    v |= (UInt32) b[2] <<  8;
+    v |= (UInt32) b[1] << 16;
+    v |= (UInt32) b[0] << 24;
+    return v;
+}
+
+static NABoolean isCompressed(char* file)
+{
+  char * ret = strstr(file, ".lzo_deflate");
+  return (ret ? TRUE : FALSE) ;
+}
 
 // The following methods are used for hive access
 /* 
@@ -2218,7 +2238,10 @@ buffer limit (128MB) has been reached.
 */
 
 Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize, 
-                                         Int64 &operLen, ExLobGlobals *lobGlobals)
+                                         Int64 &operLen, 
+					 char * compressionWA,
+					 Lng32 compressionWASize,
+					 ExLobGlobals *lobGlobals)
 {
     int dataOffset;
     Ex_Lob_Error result = LOB_OPER_OK;
@@ -2230,7 +2253,14 @@ Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize,
     Int64 len;
     char *target = tgt;
     bool done = false;
-
+    NABoolean mustUncompress = isCompressed(file);
+    UInt32 uncompressedLen = 0;
+    UInt32 compressedLen = 0;
+    UInt32 compressionBlocksize = 256 *1024;
+    lzo_uint newUncompressedLen = 0;
+    Lng32 compressionWAUsed = 0;
+    NABoolean mustExit = FALSE;
+    
     struct timespec startTime;
     struct timespec endTime;
 
@@ -2250,7 +2280,12 @@ Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize,
 
     lobCursorLock_.unlock();
 
-    while ((operLen < tgtSize) && !done && !cursor->eol_)
+    if (isCompressed && lzo_init() != LZO_E_OK)
+    {
+      return LOB_MAX_ERROR_NUM;
+    }
+
+    while ((operLen < tgtSize) && !mustExit && !done && !cursor->eol_)
     {
       lobGlobals->traceMessage("locking cursor",cursor,__LINE__);
       cursor->lock_.lock();
@@ -2275,10 +2310,146 @@ Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize,
       buf = *c_it;
       lobGlobals->traceMessage("unlocking cursor",cursor,__LINE__);
       cursor->lock_.unlock();
-
-      bytesToCopy = min(buf->bytesRemaining_, tgtSize - operLen);
-      memcpy(target, buf->data_ + buf->bytesUsed_, bytesToCopy);
-      target += bytesToCopy;
+      /***** START ****/
+      if (mustUncompress)
+      {
+	uncompressedLen = 0;
+	compressedLen = 0;
+	if (compressionWAUsed > 0)
+	{
+	  bytesToCopy = 0;
+	  // remnant from previous buf present
+	  // copy one compressed block from current buf and process it
+	  if (compressionWAUsed < 8)
+	  {
+	    memcpy(compressionWA+compressionWAUsed, 
+		   buf->data_ + buf->bytesUsed_, // buf->bytesUsed_ == 0
+		   8-compressionWAUsed);
+	    buf->bytesUsed_ += 8-compressionWAUsed;
+	    buf->bytesRemaining_ -= 8-compressionWAUsed;
+	    stats_.bytesPrefetched += 8-compressionWAUsed;
+	    compressionWAUsed = 8;
+	  }
+	  uncompressedLen = read32(compressionWA);
+	  compressedLen = read32(compressionWA + 4);
+	  if (uncompressedLen > compressionBlocksize || 
+	      compressedLen > compressionBlocksize ||
+	      compressedLen == 0 )
+	  {
+	    return LOB_MAX_ERROR_NUM;
+	  }
+	  if (compressedLen > (compressionWAUsed-8)+buf->bytesRemaining_)
+	  {
+	    // less than compressedLen bytes in current buf, 
+	    // save remnant in compressionWA
+	    // append data from next buf, then uncompress
+	    memcpy(compressionWA+compressionWAUsed, 
+		   buf->data_ + buf->bytesUsed_, 
+		   buf->bytesRemaining_);
+	    compressionWAUsed += buf->bytesRemaining_;
+	    bytesToCopy = buf->bytesRemaining_ ;
+	  }
+	  else // we have next compression block in compressionWA+buf
+	  {
+	    if (uncompressedLen < (tgtSize - operLen))
+	    {
+	      bytesToCopy = compressedLen-(compressionWAUsed-8);
+	      memcpy(compressionWA+compressionWAUsed, 
+		     buf->data_ + buf->bytesUsed_, 
+		     bytesToCopy);
+	      compressionWAUsed = compressedLen+8;
+	      newUncompressedLen = uncompressedLen; 
+	      int r = lzo1x_decompress_safe((unsigned char *)compressionWA+8, 
+					    compressedLen, 
+					    (unsigned char *)target, 
+					    &newUncompressedLen, 
+					    NULL);
+	      if (r != LZO_E_OK || newUncompressedLen != uncompressedLen)
+	      {
+		return LOB_MAX_ERROR_NUM;
+	      }
+	      target += uncompressedLen;
+	      operLen+= uncompressedLen;
+	      compressionWAUsed = 0;
+	    }
+	    else
+	    {
+	      // not enough room in target to place uncompressed data
+	      // keep compressed data in buf and return from this method 
+	      // to get next hdfsScanBuf
+	      bytesToCopy = 0;
+	      mustExit = TRUE;
+	      return LOB_MAX_ERROR_NUM; // need to pass compressionWAUsed back
+	    }
+	  }
+	}
+	else if (buf->bytesRemaining_ >= 8)
+	{
+	  uncompressedLen = read32(buf->data_ + buf->bytesUsed_);
+	  compressedLen = read32(buf->data_ + buf->bytesUsed_ + 4);
+	  if (uncompressedLen > compressionBlocksize || 
+	      compressedLen > compressionBlocksize ||
+	      compressedLen == 0 )
+	  {
+	    return LOB_MAX_ERROR_NUM;
+	  }
+	  if (compressedLen > buf->bytesRemaining_ - 8)
+	  {
+	    // less than compressedLen bytes in current buf, 
+	    // save remnant in compressionWA
+	    // append data from next buf, then uncompress
+	    memcpy(compressionWA, buf->data_ + buf->bytesUsed_, 
+		   buf->bytesRemaining_);
+	    compressionWAUsed = buf->bytesRemaining_;
+	    bytesToCopy = buf->bytesRemaining_ ;
+	  }
+	  else
+	  {
+	    if (uncompressedLen < (tgtSize - operLen))
+	    {
+	      newUncompressedLen = uncompressedLen; 
+	      int r = lzo1x_decompress_safe((unsigned char *)
+					    buf->data_+buf->bytesUsed_+8, 
+					    compressedLen, 
+					    (unsigned char *)target, 
+					    &newUncompressedLen, 
+					    NULL);
+	      if (r != LZO_E_OK || newUncompressedLen != uncompressedLen)
+	      {
+		return LOB_MAX_ERROR_NUM;
+	      }
+	      bytesToCopy = compressedLen+8;
+	      target += uncompressedLen;
+	      operLen += uncompressedLen;
+	    }
+	    else
+	    {
+	      // not enough room in target to place uncompressed data
+	      // keep compressed data in buf and return from this method 
+	      // to get next hdfsScanBuf
+	      bytesToCopy = 0;
+	      mustExit = TRUE;
+	    }
+	  }
+	}
+	else
+	{
+	  // less than 8 bytes in current buf, save remnant in compressionWA
+	  // append data from next buf, then uncompress
+	  memcpy(compressionWA, buf->data_ + buf->bytesUsed_, 
+		 buf->bytesRemaining_);
+	  compressionWAUsed = buf->bytesRemaining_;
+	  bytesToCopy = buf->bytesRemaining_ ;
+	}
+      }
+      else
+      {
+	bytesToCopy = min(buf->bytesRemaining_, tgtSize - operLen);
+	memcpy(target, buf->data_ + buf->bytesUsed_, bytesToCopy);
+	target += bytesToCopy;
+	operLen += bytesToCopy;
+      }
+      /*** END ***/
       if (bytesToCopy == buf->bytesRemaining_) { // buffer is now empty
         buf->bytesRemaining_ = -1;
         buf->bytesUsed_ = -1;
@@ -2297,7 +2468,6 @@ Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize,
         buf->bytesRemaining_ -= bytesToCopy;
       }
       stats_.bytesPrefetched += bytesToCopy;
-      operLen += bytesToCopy;
     } 
 
     // update stats

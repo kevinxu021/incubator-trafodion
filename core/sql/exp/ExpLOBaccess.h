@@ -185,6 +185,8 @@ Ex_Lob_Error ExLobsOper (
     Int64       transId,
     void        *blackBox,         // black box to be sent to cli
     Int32       blackBoxLen,        // length of black box
+    char* compressionWA = NULL,         // compression work area
+    Lng32 compressionWASize = 0,        // max size of compression work area
     Int64       lobMaxSize = 0,        // max size of lob.
     Int64       lobMaxChunkMemSize = 0 ,//max length of intermediate mem buffer used to do i/o.
     Int64 lobGCLimit = 0, // size at which GC must be triggered
@@ -426,7 +428,7 @@ class ExLob
   Ex_Lob_Error readCursor(char *tgt, Int64 tgtSize, char *handleIn, Int32 handleInLen, Int64 &operLen,Int64 transId);
   Ex_Lob_Error readCursorData(char *tgt, Int64 tgtSize, cursor_t &cursor, Int64 &operLen,char *handleIn, Int32 handeLenIn,Int64 transId);
     Ex_Lob_Error readCursorDataSimple(char *tgt, Int64 tgtSize, cursor_t &cursor, Int64 &operLen);
-    Ex_Lob_Error readDataCursorSimple(char *fileName, char *tgt, Int64 tgtSize, Int64 &operLen, ExLobGlobals *lobGlobals);
+    Ex_Lob_Error readDataCursorSimple(char *fileName, char *tgt, Int64 tgtSize, Int64 &operLen, char * compressionWA, Lng32 compressionWASize, ExLobGlobals *lobGlobals);
     bool hasNoOpenCursors() { return lobCursors_.empty(); }
   Ex_Lob_Error openCursor(char *handleIn, Int32 handleInLen,Int64 transId);
     Ex_Lob_Error openDataCursor(char *fileName, LobsCursorType type, Int64 range, 

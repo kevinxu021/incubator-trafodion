@@ -229,11 +229,15 @@ protected:
   Int64 bytesLeft_;
   hdfsFile hfdsFileHandle_;
   char * hdfsScanBuffer_;
-  char * hdfsBufNextRow_;
+  char * hdfsBufNextRow_;           // Pointer to next row
 
   char * debugPrevRow_;             // Pointer to help with debugging.
   Int64 debugtrailingPrevRead_;
   char *debugPenultimatePrevRow_;
+
+  char * compressionScratchBuffer_;
+  Lng32 compressionScratchMaxSize_;
+  Lng32 compressionScratchUsedSize_;
   
   ExSimpleSQLBuffer *hdfsSqlBuffer_;  // this buffer for one row, converted
                                       // from ascii to SQL for select pred.

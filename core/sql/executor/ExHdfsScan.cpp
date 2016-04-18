@@ -79,6 +79,9 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   , bytesLeft_(0)
   , hdfsScanBuffer_(NULL)
   , hdfsBufNextRow_(NULL)
+  , compressionScratchBuffer_(NULL)
+  , compressionScratchMaxSize_(0)
+  , compressionScratchUsedSize_(0)
   , hdfsLoggingRow_(NULL)
   , hdfsLoggingRowEnd_(NULL)
   , debugPrevRow_(NULL)
@@ -106,6 +109,11 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   hdfsScanBuffer_ = new(space) char[ readBufSize + 1 ]; 
   hdfsScanBuffer_[readBufSize] = '\0';
 
+  if (1) // tdb indicates compression 
+  {
+    compressionScratchMaxSize_ = 256*1024;
+    compressionScratchBuffer_ = new (space) char[compressionScratchMaxSize_];
+  }
   moveExprColsBuffer_ = new(space) ExSimpleSQLBuffer( 1, // one row 
 						      (Int32)hdfsScanTdb.moveExprColsRowLength_,
 						      space);
@@ -534,6 +542,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                    hdfsScanBufMaxSize_,
                    bytesRead_,
                    NULL,
+		   compressionScratchBuffer_, compressionScratchMaxSize_,
                    1, // open
                    openType //
                    );
@@ -569,6 +578,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                            hdfsScanBufMaxSize_,
                            bytesRead_,
                            NULL,
+			   NULL, 0, // compression
                            1,// open
                            openType
                            );
@@ -677,6 +687,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                    bytesToRead,
                    bytesRead_,
                    hdfsScanBuffer_  + trailingPrevRead_,
+		   compressionScratchBuffer_, compressionScratchMaxSize_,
                    2, // read
                    0 // openType, not applicable for read
                    );
@@ -1225,6 +1236,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                        0,
                        bytesRead_, // dummy
                        NULL,
+		       NULL, 0, // compression
                        3, // close
                        0); // openType, not applicable for close
 
