@@ -35,32 +35,24 @@
  *****************************************************************************
  */
 #include "CmpSeabaseDDLincludes.h"
+#include "RelExeUtil.h"
 #include "Globals.h"
 #include "SqlStats.h"
 #include "fs/feerrors.h"
 #include "dtm/tm.h"
 
-short CmpSeabaseDDL::backup(DDLExpr * ddlExpr, 
-							ExeCliInterface * cliInterface)
+short CmpSeabaseDDL::lockSQL()
 {
-	short error;
-	short rc;
-	
-	//Set snapshot flag in shared memory.
 	StatsGlobals *statsGlobals = GetCliGlobals()->getStatsGlobals();
 	if(statsGlobals == NULL)
 	{
 		*CmpCommon::diags() << DgSqlCode(-CAT_INTERNAL_EXCEPTION_ERROR);
 		return -1;
 	}
-	if(statsGlobals->isSnapshotInProgress())
-	{
-		*CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_IN_PROGRESS);
-        return -1;
-	}
-	
+
+	//Set snapshot flag in shared memory.
 	short savedPriority, savedStopMode;
-	error = statsGlobals->getStatsSemaphore(GetCliGlobals()->getSemId(),
+	short error = statsGlobals->getStatsSemaphore(GetCliGlobals()->getSemId(),
 			GetCliGlobals()->myPin(), savedPriority, savedStopMode, FALSE);
 
 	CMPASSERT(error == 0);
@@ -70,18 +62,93 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	statsGlobals->releaseStatsSemaphore(GetCliGlobals()->getSemId(),GetCliGlobals()->myPin(),
             savedPriority, savedStopMode);
 	
-	
+
 	//propagate the snapshot flag to all nodes
 	//TODO
 	
-	//lockTM
+	return 0;
+}
+
+short CmpSeabaseDDL::unlockSQL()
+{
+	StatsGlobals *statsGlobals = GetCliGlobals()->getStatsGlobals();
+	CMPASSERT(statsGlobals != NULL);
+	
+	short savedPriority, savedStopMode;
+	//reset snapshotFlag
+	short error = statsGlobals->getStatsSemaphore(GetCliGlobals()->getSemId(),
+			GetCliGlobals()->myPin(), savedPriority, savedStopMode, FALSE);
+
+	CMPASSERT(error == 0);
+	
+	statsGlobals->resetSnapshotInProgress();
+	
+	statsGlobals->releaseStatsSemaphore(GetCliGlobals()->getSemId(),GetCliGlobals()->myPin(),
+            savedPriority, savedStopMode);
+	
+	return 0;
+}
+
+NABoolean CmpSeabaseDDL::isSQLLocked()
+{
+	StatsGlobals *statsGlobals = GetCliGlobals()->getStatsGlobals();
+	CMPASSERT(statsGlobals != NULL);
+	
+	return (statsGlobals->isSnapshotInProgress());
+}
+
+short CmpSeabaseDDL::lockAll()
+{
+	CMPASSERT(isSQLLocked() == false);
+	
+	short rc;
+	
+	rc = lockSQL();
+	if(rc)
+	{
+		*CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_LOCK_ERROR)
+        << DgInt0(rc);
+		
+		return -1;
+	}
+	
 	rc = DTM_LOCKTM();
 	if(rc != FEOK)
 	{
 		*CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_LOCK_ERROR)
         << DgInt0(rc);
         
+		//make sure sql unlock succeeds
+		rc = unlockSQL();
+		CMPASSERT(rc == 0);
 		return -1;
+	}
+	
+	return 0;
+	
+}
+void  CmpSeabaseDDL::unlockAll()
+{
+	short rc = DTM_UNLOCKTM();
+	CMPASSERT(rc == 0);
+	
+	rc = unlockSQL();
+	CMPASSERT(rc == 0);
+	
+}
+
+short CmpSeabaseDDL::backup(DDLExpr * ddlExpr, 
+							ExeCliInterface * cliInterface)
+{
+	short error;
+	short rc;
+	Lng32 retcode;
+	
+	
+	if(isSQLLocked())
+	{
+		*CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_IN_PROGRESS);
+        return -1;
 	}
 	
 	//snapshot all trafodion tables
@@ -90,7 +157,7 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	
 	char query[1000];
 	Lng32 cliRC;
-	str_sprintf(query, "select catalog_name,schema_name,object_name from %s.\"%s\".%s where object_type='BT'",
+	str_sprintf(query, "select catalog_name,schema_name,object_name from %s.\"%s\".%s where object_type in ('BT', 'IX' , 'MV') ",
 				getSystemCatalog(), SEABASE_MD_SCHEMA, SEABASE_OBJECTS);
 	  
 	Queue * tableQueue = NULL;
@@ -101,7 +168,8 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 		return -1;
     }
 	
-	ExpHbaseInterface * ehi = allocEHI();
+    
+	ExpHbaseInterface * ehi = allocBRCEHI();
 	if (ehi == NULL)
     {
 		//Diagnostic already populated.
@@ -116,8 +184,19 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
     Lng32 tbllen = 0;
     char qtableName[1000];//TODO
     HbaseStr hbaseTable;
+    TextVec tableList;
     
-    
+    rc = lockAll();
+	if(rc != FEOK)
+	{
+		*CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_LOCK_ERROR)
+        << DgInt0(rc);
+        
+		ehi->close();
+		return -1;
+	}
+	
+	
 	for (Lng32 idx = 0; idx < tableQueue->numEntries(); idx++)
     {
 		OutputInfo * vi = (OutputInfo*)tableQueue->getNext();
@@ -128,57 +207,94 @@ short CmpSeabaseDDL::backup(DDLExpr * ddlExpr,
 	    vi->get(2, tbl, tbllen);
 	    str_sprintf(qtableName,"%s.%s.%s", cat,sch,tbl);
 	    
-	    cout<<qtableName<<endl;
+	    tableList.push_back(qtableName);
+	    //cout<<qtableName<<endl;
 	    
-	    hbaseTable.val = qtableName;
-	    hbaseTable.len = str_len(qtableName);
-	    
-	    Lng32 retcode = ehi->createSnaphot(hbaseTable);
-	    if (retcode < 0)
-		{
-		  *CmpCommon::diags() << DgSqlCode(-8448)
-		                      << DgString0((char*)"ExpHbaseInterface::createSnapshot()")
-		                      << DgString1(getHbaseErrStr(-retcode))
-		                      << DgInt0(-retcode)
-		                      << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
-		  
-		  deallocEHI(ehi); 
-		  return -1;
-		}
-	    
-	    //Register snapshot in snapshot meta.
-	    //TODO
+	    //hbaseTable.val = qtableName;
+	    //hbaseTable.len = str_len(qtableName);
+    }
+	    //retcode = ehi->createSnaphot(hbaseTable);
+	//retcode = ehi->createSnaphot(hbaseTable);
+	retcode = ehi->createSnaphot(tableList, ddlExpr->getBackupTag());
+    if (retcode < 0)
+	{
+	  *CmpCommon::diags() << DgSqlCode(-8448)
+	                      << DgString0((char*)"ExpHbaseInterface::createSnapshot()")
+	                      << DgString1(getHbaseErrStr(-retcode))
+	                      << DgInt0(-retcode)
+	                      << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
+	  
+	 // break;
 	}
+	    
+	//Register snapshot in snapshot meta.
+	//TODO
+	
 	
 	//deallocate, not needed anymore.
-	deallocEHI(ehi); 
+	ehi->close();
+	ehi = NULL;
 	
-	
-	//unlock TM
-	rc = DTM_UNLOCKTM();
-	if(rc != FEOK)
-	{
-		*CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_UNLOCK_ERROR)
-        << DgInt0(rc);
-        
-		return -1;
-	}
-
-	//reset snapshotFlag
-	error = statsGlobals->getStatsSemaphore(GetCliGlobals()->getSemId(),
-			GetCliGlobals()->myPin(), savedPriority, savedStopMode, FALSE);
-
-	CMPASSERT(error == 0);
-	
-	statsGlobals->resetSnapshotInProgress();
-	
-	statsGlobals->releaseStatsSemaphore(GetCliGlobals()->getSemId(),GetCliGlobals()->myPin(),
-            savedPriority, savedStopMode);
+	//unlockAll 
+	unlockAll();
 	
 	//done phase 1 backup
 
 	return 0;
 	
+}
+
+short CmpSeabaseDDL::restore(DDLExpr * ddlExpr, 
+        ExeCliInterface * cliInterface)
+{
+    short error;
+    short rc;
+    Lng32 retcode;
+
+    if(isSQLLocked())
+    {
+        *CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_IN_PROGRESS);
+        return -1;
+    }
+
+    //Restore snapshots from an earlier backup
+
+    ExpHbaseInterface * ehi = allocBRCEHI();
+    if (ehi == NULL)
+    {
+        //  Diagnostic already populated.
+        return -1;
+    }
+
+    rc = lockAll();
+    if(rc != FEOK)
+    {
+        *CmpCommon::diags() << DgSqlCode(-CAT_BACKUP_LOCK_ERROR)
+        << DgInt0(rc);
+        
+        ehi->close();
+        return -1;
+    }
+
+    retcode = ehi->restoreSnapshots(ddlExpr->getBackupTag());
+    if (retcode < 0)
+    {
+        *CmpCommon::diags() << DgSqlCode(-8448)
+        << DgString0((char*)"ExpHbaseInterface::restoreSnapshots()")
+        << DgString1(getHbaseErrStr(-retcode))
+        << DgInt0(-retcode)
+        << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
+    }
+
+    //deallocate, not needed anymore.
+    ehi->close();
+    ehi = NULL;
+
+    //unlockAll 
+    unlockAll();
+
+    return 0;
+
 }
 
 
