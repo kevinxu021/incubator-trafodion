@@ -1530,6 +1530,35 @@ public class HBaseClient {
       hblc.release();
    }
   
+  public  BackupRestoreClient getBackupRestoreClient() throws IOException 
+  {
+    if (logger.isDebugEnabled()) logger.debug("HBaseClient.getBackupRestoreClient() called.");
+    BackupRestoreClient brc = null;
+    try 
+    {
+       brc = new BackupRestoreClient( config);
+    
+    if (brc == null)
+      throw new IOException ("brc is null");
+    }
+    catch (Exception e)
+    {
+      return null;
+    }
+    
+    return brc;
+    
+  }
+  public void releaseBackupRestoreClient(BackupRestoreClient brc) 
+      throws IOException 
+  {
+     if (brc == null)
+       return;
+          
+      if (logger.isDebugEnabled()) logger.debug("HBaseClient.releaseBackupRestoreClient().");
+      brc.release();
+   }
+  
   //returns the latest snapshot name for a table. returns null if table has no snapshots
   //associated with it
   public String getLatestSnapshot(String tabName) throws IOException
@@ -2028,33 +2057,6 @@ public class HBaseClient {
 
     return Rows;
   }
-  
-  public boolean createSnapshot(String tblName)
-	throws MasterNotRunningException, IOException, SnapshotCreationException, InterruptedException {
-          if (logger.isDebugEnabled()) logger.debug("HBaseClient.createSnapshot(" + tblName + ") called.");
-          HBaseAdmin admin = new HBaseAdmin(config);
-	    
-	    String snapshotName = tblName + "_SNAPSHOT";
-	    
-	    List<SnapshotDescription> l = new ArrayList<SnapshotDescription>(); 
-	    	    l = admin.listSnapshots(snapshotName);
-	    l = admin.listSnapshots();
-	    if (! l.isEmpty())
-		{
-		    for (SnapshotDescription sd : l) {
-			if (sd.getName().compareTo(snapshotName) == 0)
-			    {
-				admin.deleteSnapshot(snapshotName);
-			    }
-		    }
-		}
-         
-	    //Note , do not disable table.
-	    admin.snapshot(snapshotName, tblName);
-	    admin.close();
-        return true;
-  }
-
 }
     
 

@@ -140,7 +140,8 @@ class ExpHbaseInterface : public NABasicObject
   virtual Lng32 copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
                      NABoolean force = FALSE);
 
-  virtual Lng32 createSnaphot(const HbaseStr &tblName);
+  virtual Lng32 createSnaphot(const std::vector<Text>& tables, const char* backuptag);
+  virtual Lng32 restoreSnapshots(const char* backuptag);
   
   virtual Lng32 exists(HbaseStr &tblName) = 0;
 
@@ -307,6 +308,7 @@ class ExpHbaseInterface : public NABasicObject
                  NABoolean v)=0;
  
  virtual  Lng32 initHBLC(ExHbaseAccessStats* hbs = NULL)=0;
+ virtual  Lng32 initBRC(ExHbaseAccessStats* hbs = NULL)=0;
  virtual  Lng32 initHive() = 0;
 
  virtual Lng32 initHFileParams(HbaseStr &tblName,
@@ -480,7 +482,9 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
   // if force is true, remove target before copying.
   virtual Lng32 copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
                      NABoolean force = FALSE);
-  virtual Lng32 createSnaphot(const HbaseStr &tblName);
+
+  virtual Lng32 createSnaphot(const std::vector<Text>& tables, const char* backuptag);
+  virtual Lng32 restoreSnapshots(const char* backuptag);
   
   // -1, if table exists. 0, if doesn't. -ve num, error.
   virtual Lng32 exists(HbaseStr &tblName);
@@ -639,6 +643,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
                   NABoolean v);
 
 virtual  Lng32 initHBLC(ExHbaseAccessStats* hbs = NULL);
+virtual  Lng32 initBRC(ExHbaseAccessStats* hbs = NULL);
 virtual  Lng32 initHive();
 
 virtual Lng32 initHFileParams(HbaseStr &tblName,
@@ -750,6 +755,7 @@ private:
   HBaseClient_JNI* client_;
   HTableClient_JNI* htc_;
   HBulkLoadClient_JNI* hblc_;
+  BackupRestoreClient_JNI* brc_;
   HiveClient_JNI* hive_;
   HTableClient_JNI *asyncHtc_;
   Int32  retCode_;

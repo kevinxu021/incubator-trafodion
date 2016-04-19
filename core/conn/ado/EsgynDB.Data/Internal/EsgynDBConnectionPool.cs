@@ -2,12 +2,15 @@
 {
     using System.Collections.Generic;
     using System.Collections;
+    using System;
 
     internal sealed class ConnectionPool
     {
-        private List<PooledConnection> _pool;
+        internal List<PooledConnection> _pool;
 
         private EsgynDBConnectionStringBuilder _builder;
+
+        private static readonly List<string> poolAccessLock = new List<string>();
 
         public ConnectionPool(EsgynDBConnectionStringBuilder builder)
         {
@@ -18,50 +21,89 @@
 
         public bool ReturnConnection(EsgynDBConnection conn)
         {
-            PooledConnection pooledConn = _pool.Find(x => x.Connection == conn || x.RefConnection == conn);
-            if (pooledConn != null)
+            lock (poolAccessLock)
             {
-                //Handle connection timeout in the future
-                pooledConn.Status = PooledConnection.AVAILABLE;
-                return true;
+                PooledConnection pooledConn = _pool.Find(x => x.Connection.RemoteAddress != null
+                    && x.Connection.RemotePort == conn.RemotePort
+                    && x.Connection.RemoteProcess.Equals(conn.RemoteProcess));
+
+                if (pooledConn != null)
+                {
+                    //Handle connection timeout in the future
+                    pooledConn.Status = PooledConnection.AVAILABLE;
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
+        }
+
+        public void AddConnection(EsgynDBConnection conn)
+        {
+            lock (poolAccessLock)
             {
-                return false;
+                if (_pool.Count >= this._builder.MaxPoolSize)
+                {
+                    EsgynDBException e = new EsgynDBException(EsgynDBMessage.PoolExhuasted, this._builder.MaxPoolSize);
+                    EsgynDBException.ThrowException(conn, e);
+                    //waiting for connecting, done in the future
+                }
+                if (conn != null)
+                {
+                    EsgynDBConnection newConn = new EsgynDBConnection(conn.ConnectionString);
+                    newConn.CopyProperties(conn);
+                    PooledConnection pc = new PooledConnection(newConn);
+                    pc.Status = PooledConnection.IN_USE;
+                    this._pool.Add(pc);
+                }
             }
         }
 
         public EsgynDBConnection GetConnection(EsgynDBConnection conn)
         {
-            PooledConnection pooledConn = _pool.Find(x => x.Status == PooledConnection.AVAILABLE);
-            if (pooledConn != null)
+            lock (poolAccessLock)
             {
-                pooledConn.Status = PooledConnection.IN_USE;
-                try
+                PooledConnection pooledConn = _pool.Find(x => x.Status == PooledConnection.AVAILABLE);
+
+                if (pooledConn != null)
                 {
-                    pooledConn.RefConnection = conn;
-                    pooledConn.Connection.ResetIdleTimeout();
-                    return pooledConn.Connection;
+                    pooledConn.Status = PooledConnection.IN_USE;
+                    try
+                    {
+                        pooledConn.Connection.ResetIdleTimeout();
+                        return pooledConn.Connection;
+                    }
+                    catch
+                    {
+                        pooledConn.Connection.Close(true);
+                    }
                 }
-                catch
+                else if (_pool.Count >= this._builder.MaxPoolSize)
                 {
-                    pooledConn.Connection.Close(true);
-                    _pool.Remove(pooledConn);
+                    EsgynDBException e = new EsgynDBException(EsgynDBMessage.PoolExhuasted, this._builder.MaxPoolSize);
+                    EsgynDBException.ThrowException(conn, e);
+                    //waiting for connecting, done in the future
                 }
+                return null;
             }
-            if(conn != null && _pool.Count < this._builder.MaxPoolSize)
+        }
+
+        internal bool RemoveConnection(EsgynDBConnection conn)
+        {
+            lock (poolAccessLock)
             {
-                 PooledConnection pc = new PooledConnection(conn);
-                 pc.Status = PooledConnection.IN_USE;
-                 this._pool.Add(pc);
+                PooledConnection pooledConn = _pool.Find(x => x.Connection.RemoteAddress != null
+                    && x.Connection.RemotePort == conn.RemotePort
+                    && x.Connection.RemoteProcess.Equals(conn.RemoteProcess));
+                if (pooledConn != null)
+                {
+                    pooledConn.Status = PooledConnection.DISABLE;
+                    return _pool.Remove(pooledConn);
+                }
+                return true;
             }
-            else if (_pool.Count >= this._builder.MaxPoolSize)
-            {
-                EsgynDBException e = new EsgynDBException(EsgynDBMessage.PoolExhuasted, this._builder.MaxPoolSize);
-                EsgynDBException.ThrowException(conn, e); 
-                //waiting for connecting, done in the future
-            }
-            return null;
         }
     }
 

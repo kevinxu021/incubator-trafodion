@@ -438,7 +438,12 @@ public:
   void setBackup(NABoolean v)
   {(v ? flags_ |= BACKUP : flags_ &= ~BACKUP); }
   NABoolean backup() { return (flags_ & BACKUP) != 0;}
-
+  void setBackupTag(NAString v) { backupTag_ = v; }
+  NAString getBackupTag() { return backupTag_; }
+  void setRestore(NABoolean v)
+  {(v ? flags_ |= RESTORE : flags_ &= ~RESTORE); }
+  NABoolean restore() { return (flags_ & RESTORE) != 0;}
+  
   NABoolean ddlXns() { return ddlXns_; }
 
  protected:
@@ -454,7 +459,8 @@ public:
     CREATE_LIBMGR           = 0x0080,
     DROP_LIBMGR             = 0x0100,
     UPGRADE_LIBMGR          = 0x0200,
-    BACKUP		    		= 0x0400
+    BACKUP		    		= 0x0400,
+    RESTORE                 = 0x0800
   };
 
   // see method processSpecialDDL in sqlcomp/parser.cpp
@@ -509,6 +515,9 @@ public:
 
   CorrName purgedataTableName_;
   QualifiedName qualObjName_;
+  
+  //Specific to backup /restore
+  NAString backupTag_;
 
   // if TRUE, then status is returned during ddl operation.
   // Executor communicates with arkcmp and returns status rows.

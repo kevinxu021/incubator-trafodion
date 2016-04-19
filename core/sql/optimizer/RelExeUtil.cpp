@@ -3831,6 +3831,10 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
   {
 	  isHbase_ = TRUE;
   }
+  else if(restore())
+  {
+      isHbase_ = TRUE;
+  }
   else if (purgedataHbase_)
   {
     isHbase_ = TRUE;
