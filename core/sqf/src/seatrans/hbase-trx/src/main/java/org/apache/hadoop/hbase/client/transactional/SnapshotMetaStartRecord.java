@@ -48,43 +48,54 @@ public class SnapshotMetaStartRecord {
    private String userTag;
    private boolean snapshotComplete;
    private long completionTime;
+   private boolean markedForDeletion;
    
    /**
     * SnapshotMetaStartRecord
     * @param long key
-    * @param boolean startRecord
     * @param String userTag
     * @throws IOException 
     */
-   public SnapshotMetaStartRecord (final long key, final boolean startRecord, final String userTag) throws IOException{
-      this(key, startRecord, userTag, false, 0);
+   public SnapshotMetaStartRecord (final long key, final String userTag) throws IOException{
+      this(key, userTag, false, 0, false);
    }
 
    /**
     * SnapshotMetaStartRecord
     * @param long key
-    * @param boolean startRecord
     * @param String userTag
     * @param boolean snapshotComplete
     * @param long completionTime
     * @throws IOException 
     */
-   public SnapshotMetaStartRecord (final long key, final boolean startRecord, final String userTag,
-		                             final boolean snapshotComplete, final long completionTime) throws IOException{
+   public SnapshotMetaStartRecord (final long key, final String userTag, final boolean snapshotComplete,
+		                           final long completionTime) throws IOException{
+      this(key, userTag, snapshotComplete, completionTime, false);
+   }
+
+   /**
+    * SnapshotMetaStartRecord
+    * @param long key
+    * @param String userTag
+    * @param boolean snapshotComplete
+    * @param boolean markedForDeletion
+    * @param long completionTime
+    * @throws IOException 
+    */
+   public SnapshotMetaStartRecord (final long key, final String userTag, final boolean snapshotComplete,
+		              final long completionTime, final boolean markedForDeletion) throws IOException{
  
       if (LOG.isTraceEnabled()) LOG.trace("Enter SnapshotMetaStartRecord constructor for key: " + key
-    		  + " startRecord: " + startRecord + " userTag: " + userTag +
-    		  " snapshotComplete " + snapshotComplete + " completionTime " + completionTime);
+    		  + " userTag: " + userTag + " snapshotComplete " + snapshotComplete
+    		  + " completionTime " + completionTime + " markedForDeletion " + markedForDeletion);
 
       this.key = key;
-      this.startRecord = startRecord;
-      if(startRecord == false) {
-          throw new IOException ("Warning: full snapshot MUST be true for SnapshotMetaStartRecord");
-       }
+      this.startRecord = true;
       this.userTag = new String(userTag);
       this.snapshotComplete = snapshotComplete;
       this.completionTime = completionTime;
-      
+      this.markedForDeletion = markedForDeletion;
+
       if (LOG.isTraceEnabled()) LOG.trace("Exit SnapshotMetaStartRecord constructor() " + this.toString());
       return;
    }
@@ -107,20 +118,6 @@ public class SnapshotMetaStartRecord {
     */
    public boolean getStartRecord() {
       return this.startRecord;
-   }
-
-   /**
-    * setStartRecord
-    * @param boolean
-    * 
-    * This method is called to indicate the row retrieved from the SnapshotMeta is a SnapshotMetaStartRecord.
-    * This is normally set in the constructor, so may not have value as an independent method
-    */
-   public void setStartRecord(final boolean startRecord) throws IOException{
-	   if(startRecord == false) {
-          throw new IOException ("Warning: full snapshot MUST be true for SnapshotMetaStartRecord");
-       }
-       this.startRecord = startRecord;
    }
 
    /**
@@ -184,6 +181,26 @@ public class SnapshotMetaStartRecord {
    }
 
    /**
+    * getMarkedForDeletion
+    * @return boolean
+    * 
+    * This method is called to determine whether this full snapshot is intended to be deleted.
+    */
+   public boolean getMarkedForDeletion() {
+       return this.markedForDeletion;
+   }
+
+   /**
+    * setMarkedForDeletion
+    * @param boolean
+    * 
+    * This method is called to set whether this full snapshot should be deleted.
+    */
+   public void setMarkedForDeletion(final boolean markedForDeletion) {
+       this.markedForDeletion = markedForDeletion;
+   }
+
+   /**
     * toString
     * @return String this
     */
@@ -191,7 +208,7 @@ public class SnapshotMetaStartRecord {
    public String toString() {
        return "SnaphotStartKey: " + key + ", startRecord: " + startRecord
     		   + ", userTag: " + userTag + " snapshotComplete " + snapshotComplete
-    		   + ", completionTime " + completionTime;
+    		   + ", completionTime " + completionTime + " markedForDeletion " + markedForDeletion;
    }
 
 }

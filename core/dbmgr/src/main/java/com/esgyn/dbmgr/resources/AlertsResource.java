@@ -43,8 +43,8 @@ public class AlertsResource {
 	public TabularResult getAlertsList(ObjectNode obj, @Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 
-		if (!Helper.isEnterpriseEdition()) {
-			throw new EsgynDBMgrException("This feature is only supported in EsgynDB Enterprise Edition");
+		if (!Helper.isAdvancedEdition()) {
+			throw new EsgynDBMgrException("This feature is only supported in EsgynDB Advanced Edition");
 		}
 
 		TabularResult result = new TabularResult();
@@ -127,6 +127,10 @@ public class AlertsResource {
 
 		String alertID = "";
 
+		if (!Helper.isAdvancedEdition()) {
+			throw new EsgynDBMgrException("This feature is only supported in EsgynDB Advanced Edition");
+		}
+
 		try {
 			if (obj != null) {
 				if (obj.get("alertID") != null) {
@@ -158,6 +162,10 @@ public class AlertsResource {
 	@Produces("application/json")
 	public String updateAlert(ObjectNode obj, @Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
+
+		if (!Helper.isAdvancedEdition()) {
+			throw new EsgynDBMgrException("This feature is only supported in EsgynDB Advanced Edition");
+		}
 
 		String alertID = "ggg";
 		boolean notify = false;

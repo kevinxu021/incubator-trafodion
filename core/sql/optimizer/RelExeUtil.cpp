@@ -3831,6 +3831,10 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
   {
 	  isHbase_ = TRUE;
   }
+  else if(restore())
+  {
+      isHbase_ = TRUE;
+  }
   else if (purgedataHbase_)
   {
     isHbase_ = TRUE;
@@ -4229,12 +4233,16 @@ RelExpr * DDLExpr::bindNode(BindWA *bindWA)
     else if (getExprNode()->castToStmtDDLNode()->castToStmtDDLCleanupObjects())
     {
       isCleanup_ = TRUE;
-      if (NOT Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL))
-        hbaseDDLNoUserXn_ = TRUE;
 
       returnStatus_ = 
         getExprNode()->castToStmtDDLNode()->castToStmtDDLCleanupObjects()->getStatus();
     }
+
+    if (isCleanup_)
+      {
+        if (NOT Get_SqlParser_Flags(INTERNAL_QUERY_FROM_EXEUTIL))
+          hbaseDDLNoUserXn_ = TRUE;
+      }
 
     if ((isCreateSchema || isDropSchema||isAlterSchemaHDFSCache) ||
         ((isTable_ || isIndex_ || isView_ || isRoutine_ || isLibrary_ || isSeq) &&

@@ -196,7 +196,6 @@ public class SnapshotMeta {
 
       if (snapshotTableExists == false) {
          try {
-            System.out.println("  Table " + SNAPSHOT_TABLE_NAME + " was not found");
             if (LOG.isTraceEnabled()) LOG.trace("try new HTable: " + SNAPSHOT_TABLE_NAME);
             admin.createTable(desc);
          }
@@ -219,11 +218,11 @@ public class SnapshotMeta {
    public void initializeSnapshot(final long key, final String tag) throws Exception {
 
       if (LOG.isTraceEnabled()) LOG.trace("initializeSnapshot start for key " + key + " tag " + tag);
-      System.out.println("initializeSnapshot start for key " + key + " tag " + tag);
       String keyString = new String(String.valueOf(key));
       boolean lvResult = true;
       boolean startRecord = true;
       boolean snapshotComplete = false;
+      boolean markedForDeletion = false;
       long completionTime = 0;
 
       // Create the Put
@@ -231,7 +230,8 @@ public class SnapshotMeta {
 
       // This is the format of SnapshotMetaStartRecord 
       p.add(SNAPSHOT_FAMILY, SNAPSHOT_QUAL, Bytes.toBytes(String.valueOf(startRecord) + "," + tag
-    		  + "," + String.valueOf(snapshotComplete) + "," + String.valueOf(completionTime)));
+    		  + "," + String.valueOf(snapshotComplete) + "," + String.valueOf(completionTime)
+    		  + "," + String.valueOf(markedForDeletion)));
       int retries = 0;
       boolean complete = false;
       do {     
@@ -267,7 +267,6 @@ public class SnapshotMeta {
    public void putRecord(final SnapshotMetaStartRecord record) throws Exception {
 
       if (LOG.isTraceEnabled()) LOG.trace("putRecord start for snapshot START record " + record);
-      System.out.println("putRecord start for record " + record);
       long key = record.getKey();
       String keyString = new String(String.valueOf(key));
       boolean lvResult = true;
@@ -277,8 +276,9 @@ public class SnapshotMeta {
       p.add(SNAPSHOT_FAMILY, SNAPSHOT_QUAL,
     		  Bytes.toBytes(String.valueOf(record.getStartRecord()) + ","
                        + record.getUserTag() + ","
-                       + record.getSnapshotComplete() + ","
-                       + record.getCompletionTime()));
+                       + String.valueOf(record.getSnapshotComplete()) + ","
+                       + String.valueOf(record.getCompletionTime()) + ","
+                       + String.valueOf(record.getMarkedForDeletion())));
 
       int retries = 0;
       boolean complete = false;
@@ -315,7 +315,6 @@ public class SnapshotMeta {
    public void putRecord(final SnapshotMetaRecord record) throws Exception {
 
       if (LOG.isTraceEnabled()) LOG.trace("putRecord start for record " + record);
-      System.out.println("putRecord start for record " + record);
       long key = record.getKey();
       String keyString = new String(String.valueOf(key));
       boolean lvResult = true;
@@ -387,8 +386,8 @@ public class SnapshotMeta {
             		+ " archived: " + archivedString
             		+ " archivePath: " + archivePathString);
             
-            record = new SnapshotMetaRecord(key, startRecordString.contains("true"), tableNameString,
-            		     userTagString, snapshotPathString, archivedString.contains("true"), archivePathString);
+            record = new SnapshotMetaRecord(key, tableNameString, userTagString,
+            		snapshotPathString, archivedString.contains("true"), archivePathString);
          }
          catch (Exception e1){
              LOG.error("getSnapshotRecord Exception " + e1);
@@ -411,7 +410,6 @@ public class SnapshotMeta {
     */
    public SnapshotMetaStartRecord getPriorStartRecord(final long key) throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("getPriorStartRecord start for key " + key);
-      System.out.println("getPriorStartRecord start for key " + key);
       SnapshotMetaStartRecord record = null;
       
       try {
@@ -426,12 +424,9 @@ public class SnapshotMeta {
                 if (currKey >= key){
                    if (LOG.isTraceEnabled()) LOG.trace("currKey " + currKey
                   		   + " is not less than key " + key + ".  Scan complete");
-                   System.out.println("currKey " + currKey
-                   		   + " is not less than key " + key + ".  Scan complete");
                    break;
                 }
                 if (LOG.isTraceEnabled()) LOG.trace("currKey is " + currKey);
-                System.out.println("currKey is " + currKey);
                 for (Cell cell : r.rawCells()) {
                    StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                    if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
@@ -442,9 +437,10 @@ public class SnapshotMeta {
                          String userTagString           = st.nextToken();
                          String snapshotCompleteString  = st.nextToken();
                          String completionTimeString    = st.nextToken();
+                         String markedForDeletionString = st.nextToken();
 
-                         record = new SnapshotMetaStartRecord(currKey, startRecordString.contains("true"),
-                        		 userTagString, snapshotCompleteString.contains("true"), Long.parseLong(completionTimeString, 10));
+                         record = new SnapshotMetaStartRecord(currKey, userTagString, snapshotCompleteString.contains("true"),
+                        		 Long.parseLong(completionTimeString, 10), markedForDeletionString.contains("true"));
                       }
                    }
                 }
@@ -466,7 +462,6 @@ public class SnapshotMeta {
       if (record == null) {
     	  throw new Exception("Prior record not found");    	  
       }
-      System.out.println("getPriorStartRecord returning " + record);
       return record;	   
    }
 
@@ -477,7 +472,6 @@ public class SnapshotMeta {
     */
    public long getCurrentStartRecordId() throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("getCurrentStartRecordId start");
-      System.out.println("getCurrentStartRecordId start");
       SnapshotMetaStartRecord record = null;
 
       try {
@@ -496,12 +490,12 @@ public class SnapshotMeta {
                      String startRecordString = st.nextToken();
                      if (startRecordString.contains("true")) {
                         // We found a full snapshot
-                        String userTagString          = st.nextToken();
-                        String snapshotCompleteString = st.nextToken();
-                        String completionTimeString   = st.nextToken();
-                        record = new SnapshotMetaStartRecord(currKey, startRecordString.contains("true"),
-                        		          userTagString, snapshotCompleteString.contains("true"),
-                        		          Long.parseLong(completionTimeString, 10));
+                        String userTagString           = st.nextToken();
+                        String snapshotCompleteString  = st.nextToken();
+                        String completionTimeString    = st.nextToken();
+                        String markedForDeletionString = st.nextToken();
+                        record = new SnapshotMetaStartRecord(currKey, userTagString, snapshotCompleteString.contains("true"),
+                        		          Long.parseLong(completionTimeString, 10), markedForDeletionString.contains("true"));
                      }
                   }
                }
@@ -523,7 +517,6 @@ public class SnapshotMeta {
       if (record == null) {
          throw new Exception("getCurrentStartRecordId current record not found");    	  
       }
-      System.out.println("getCurrentStartRecordId returning " + record.getKey());
       return record.getKey();	   
    }
 
@@ -535,7 +528,6 @@ public class SnapshotMeta {
     */
    public long getCurrentSnapshotId(final String tableName) throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("getCurrentSnapshotId start for tableName " + tableName);
-      System.out.println("getCurrentSnapshotId start for tableName " + tableName);
       SnapshotMetaRecord record = null;
       try {
          Scan s = new Scan();
@@ -561,9 +553,8 @@ public class SnapshotMeta {
                         String snapshotPathString = st.nextToken();
                         String archivedString     = st.nextToken();
                         String archivePathString  = st.nextToken();
-                        record = new SnapshotMetaRecord(currKey, startRecordString.contains("true"),
-                                    tableNameString, userTagString, snapshotPathString,
-                                    archivedString.contains("true"), archivePathString);
+                        record = new SnapshotMetaRecord(currKey, tableNameString, userTagString,
+                        		snapshotPathString, archivedString.contains("true"), archivePathString);
                      }
                   }
                }
@@ -585,10 +576,77 @@ public class SnapshotMeta {
       if (record == null) {
          throw new Exception("getCurrentStartRecordId current record not found");    	  
       }
-      System.out.println("getCurrentStartRecordId returning " + record.getKey());
       return record.getKey();	   
    }
-   
+
+   /**
+    * listSnapshotStartRecords
+    * @return ArrayList<SnapshotMetaStartRecord> set
+    * @throws Exception
+    * 
+    * This method takes no parameters and retrieves a set of all SnapshotMetaStartRecords
+    * possibly as part of a 'sqlci list backups' command
+    */
+   public ArrayList<SnapshotMetaStartRecord> listSnapshotStartRecords() throws Exception {
+      if (LOG.isTraceEnabled()) LOG.trace("listSnapshotStartRecords()");
+      ArrayList<SnapshotMetaStartRecord> returnList = new ArrayList<SnapshotMetaStartRecord>();
+      SnapshotMetaStartRecord record = null;
+      long snapshotStopId = 0;
+
+      try {
+          Scan s = new Scan();
+          s.setCaching(100);
+          s.setCacheBlocks(false);
+          ResultScanner ss = table.getScanner(s);
+
+          try {
+             for (Result r : ss) {
+                long currKey = Bytes.toLong(r.getRow());
+                if (LOG.isTraceEnabled()) LOG.trace("currKey is " + currKey);
+                for (Cell cell : r.rawCells()) {
+                   StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
+                   if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
+                   if (st.hasMoreElements()) {
+                      String startRecordString = st.nextToken();
+                      if (startRecordString.contains("true")) {
+                         // We found a snapshot start 
+                         String userTagString            = st.nextToken();
+                         String snapshotCompleteString   = st.nextToken();
+                         String completionTimeString     = st.nextToken();
+                         String markedForDeletionString  = st.nextToken();
+                         snapshotStopId = Long.parseLong(completionTimeString, 10);
+                         record = new SnapshotMetaStartRecord(currKey, userTagString, snapshotCompleteString.contains("true"),
+                        		 snapshotStopId, markedForDeletionString.contains("true"));
+                         returnList.add(record);
+                      }
+                      else {
+                         // This is a SnapshotMetaRecord, so ignore it
+                         continue;
+                      }
+                   }
+                }
+            }
+         }
+         catch(Exception e){
+            LOG.error("listSnapshotStartRecords() Exception getting results " + e);
+            throw new RuntimeException(e);
+         }
+         finally {
+            if (LOG.isTraceEnabled()) LOG.trace("listSnapshotStartRecords() closing ResultScanner");
+            ss.close();
+         }
+      }
+      catch(Exception e){
+          LOG.error("listSnapshotStartRecords() Exception setting up scanner " + e);
+          throw new RuntimeException(e);
+      }
+      if (returnList.isEmpty()) {
+    	  throw new Exception("Prior record not found");    	  
+      }
+      if (LOG.isTraceEnabled()) LOG.trace("listSnapshotStartRecords(): returning " + returnList.size() + " records");
+      return returnList;	   
+   }
+
    /**
     * getPriorSnapshotSet
     * @return ArrayList<SnapshotMetaRecord> set
@@ -599,7 +657,6 @@ public class SnapshotMeta {
     */
    public ArrayList<SnapshotMetaRecord> getPriorSnapshotSet() throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet()");
-      System.out.println("getPriorSnapshotSet()");
       ArrayList<SnapshotMetaRecord> returnList = new ArrayList<SnapshotMetaRecord>();
       SnapshotMetaRecord record = null;
       long snapshotStartId = 0;
@@ -616,7 +673,6 @@ public class SnapshotMeta {
              for (Result r : ss) {
                 long currKey = Bytes.toLong(r.getRow());
                 if (LOG.isTraceEnabled()) LOG.trace("currKey is " + currKey);
-                System.out.println("currKey is " + currKey);
                 for (Cell cell : r.rawCells()) {
                    StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                    if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
@@ -630,7 +686,6 @@ public class SnapshotMeta {
                             // must ignore the following snapshsots until we find another
                             // snapshot that completed successfully.
                             if (LOG.isTraceEnabled()) LOG.trace("Found a full snapshot for key " + currKey + " but it never completed; ignoring");
-                            System.out.println("Found a full snapshot for key " + currKey + " but it never completed; ignoring");
                             ignoreCurrRecord = true;
                             continue;
                          }
@@ -639,7 +694,6 @@ public class SnapshotMeta {
                          // returnList is invalid.  We need to empty the returnList and start
                          // building it from here.
                          if (LOG.isTraceEnabled()) LOG.trace("Found a full snapshot for key " + currKey + "  Clearing the returnList");
-                         System.out.println("Found a full snapshot for key " + currKey + "  Clearing the returnList");
                      	 returnList.clear();
 
                      	 // Note that the current record we are reading is a SnapshotMetaStartRecord, not a SnapshotMetaRecord,
@@ -665,9 +719,8 @@ public class SnapshotMeta {
                          String snapshotPathString = st.nextToken();
                          String archivedString     = st.nextToken();
                          String archivePathString  = st.nextToken();
-                         record = new SnapshotMetaRecord(currKey, startRecordString.contains("true"),
-                                 tableNameString, userTagString, snapshotPathString,
-                                 archivedString.contains("true"), archivePathString);
+                         record = new SnapshotMetaRecord(currKey, tableNameString, userTagString,
+                        		 snapshotPathString, archivedString.contains("true"), archivePathString);
 
                          returnList.add(record);
                       }
@@ -691,8 +744,105 @@ public class SnapshotMeta {
       if (returnList.isEmpty()) {
     	  throw new Exception("Prior record not found");    	  
       }
-      System.out.println("getPriorSnapshotSet(): returning " + returnList.size() + " records");
       if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet(): returning " + returnList.size() + " records");
+      return returnList;	   
+   }
+
+   /**
+    * getPriorSnapshotSet
+    * @param String tag
+    * @return ArrayList<SnapshotMetaRecord> set
+    * @throws Exception
+    * 
+    * This method takes a String parameter that is the tag associated with the desired snapshot set
+    * and retrieves the snapshot set as a list to be used as part of a restore operation
+    */
+   public ArrayList<SnapshotMetaRecord> getPriorSnapshotSet(String tag) throws Exception {
+      if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet for tag " + tag);
+      ArrayList<SnapshotMetaRecord> returnList = new ArrayList<SnapshotMetaRecord>();
+      SnapshotMetaRecord record = null;
+      long snapshotStartId = 0;
+      long snapshotStopId = 0;
+      boolean tagFound = true;
+
+      try {
+          Scan s = new Scan();
+          s.setCaching(100);
+          s.setCacheBlocks(false);
+          ResultScanner ss = table.getScanner(s);
+
+          try {
+             for (Result r : ss) {
+                long currKey = Bytes.toLong(r.getRow());
+                if (LOG.isTraceEnabled()) LOG.trace("currKey is " + currKey);
+                for (Cell cell : r.rawCells()) {
+                   StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
+                   if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
+                   if (st.hasMoreElements()) {
+                      String startRecordString = st.nextToken();
+                      if (startRecordString.contains("true")) {
+                         String userTagString           = st.nextToken();
+                         String snapshotCompleteString  = st.nextToken();
+                         if(snapshotCompleteString.contains("false")){
+                            // We found a start of a snapshot, but it never completed.  So we
+                            // must ignore the following snapshsots until we find another
+                            // snapshot that completed successfully.
+                            if (LOG.isTraceEnabled()) LOG.trace("Found a full snapshot for key " + currKey + " but it never completed; ignoring");
+                            continue;
+                         }
+
+                         // We found a snapshot start that was completed.  Let's see if the tag is the one we want
+                         if (userTagString.equals(tag)) {
+                            snapshotStartId = currKey;
+                            String completionTimeString  = st.nextToken();
+                            snapshotStopId = Long.parseLong(completionTimeString, 10);
+                            tagFound = true;
+                            continue;
+                         }
+                      }
+                      else {
+                         // This is a SnapshotMetaRecord, but if we haven't found the tag we are
+                         // looking for in a start record we ignore it rather than include it in the returnList
+                         if (tagFound != true) {
+                        	 continue;
+                         }
+                         
+                         // We have found the tag we are looking for, but now we need to ensure the
+                         // current record is not beyond the stopId of the full snapshot
+                         if (currKey > snapshotStopId) {
+                            break;
+                         }
+                         String tableNameString    = st.nextToken();
+                         String userTagString      = st.nextToken();
+                         String snapshotPathString = st.nextToken();
+                         String archivedString     = st.nextToken();
+                         String archivePathString  = st.nextToken();
+                         record = new SnapshotMetaRecord(currKey, tableNameString, userTagString,
+                        		 snapshotPathString, archivedString.contains("true"), archivePathString);
+
+                         returnList.add(record);
+                      }
+                   }
+                }
+            }
+         }
+         catch(Exception e){
+            LOG.error("getPriorSnapshotSet(tag) Exception getting results " + e);
+            throw new RuntimeException(e);
+         }
+         finally {
+            if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet(tag) closing ResultScanner");
+            ss.close();
+         }
+      }
+      catch(Exception e){
+          LOG.error("getPriorSnapshotSet(tag) Exception setting up scanner " + e);
+          throw new RuntimeException(e);
+      }
+      if (returnList.isEmpty()) {
+    	  throw new Exception("Prior record not found");    	  
+      }
+      if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet(tag): returning " + returnList.size() + " records");
       return returnList;	   
    }
 
@@ -709,7 +859,6 @@ public class SnapshotMeta {
     */
    public ArrayList<SnapshotMetaRecord> getPriorSnapshotSet(final long key) throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet start for key " + key);
-      System.out.println("getPriorSnapshotSet start for key " + key);
       ArrayList<SnapshotMetaRecord> returnList = new ArrayList<SnapshotMetaRecord>();
       SnapshotMetaRecord record = null;
 
@@ -725,12 +874,9 @@ public class SnapshotMeta {
                 if (currKey >= key){
                     if (LOG.isTraceEnabled()) LOG.trace("currKey " + currKey
                  		   + " is not less than key " + key + ".  Scan complete");
-                    System.out.println("currKey " + currKey
-                  		   + " is not less than key " + key + ".  Scan complete");
                     break;
                 }
                 if (LOG.isTraceEnabled()) LOG.trace("currKey is " + currKey);
-                System.out.println("currKey is " + currKey);
                 for (Cell cell : r.rawCells()) {
                    StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                    if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
@@ -744,7 +890,6 @@ public class SnapshotMeta {
                             // continue as if this record didn't exist and add additional 
                             // partial snapshots if there are any that fit in our time frame
                             if (LOG.isTraceEnabled()) LOG.trace("Found a full snapshot for key " + currKey + " but it never completed; ignoring");
-                            System.out.println("Found a full snapshot for key " + currKey + " but it never completed; ignoring");
                             continue;
                          }
 
@@ -755,7 +900,6 @@ public class SnapshotMeta {
                          // Note that the current record we are reading is a SnapshotMetaStartRecord, not a SnapshotMetaRecord,
                          // so we skip it rather than add it into the list
                          if (LOG.isTraceEnabled()) LOG.trace("Found a full snapshot for key " + currKey + "  Clearing the returnList");
-                         System.out.println("Found a full snapshot for key " + currKey + "  Clearing the returnList");
                      	 returnList.clear();
                          continue;
                       }
@@ -764,9 +908,8 @@ public class SnapshotMeta {
                       String snapshotPathString = st.nextToken();
                       String archivedString     = st.nextToken();
                       String archivePathString  = st.nextToken();
-                      record = new SnapshotMetaRecord(currKey, startRecordString.contains("true"),
-                                 tableNameString, userTagString, snapshotPathString,
-                                 archivedString.contains("true"), archivePathString);
+                      record = new SnapshotMetaRecord(currKey, tableNameString, userTagString,
+                    		  snapshotPathString, archivedString.contains("true"), archivePathString);
 
                       returnList.add(record);
                    }
@@ -789,7 +932,6 @@ public class SnapshotMeta {
       if (returnList.isEmpty()) {
     	  throw new Exception("Prior record not found");    	  
       }
-      System.out.println("getPriorSnapshotSet: returning " + returnList.size() + " records");
       if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet: returning " + returnList.size() + " records");
       return returnList;	   
    }

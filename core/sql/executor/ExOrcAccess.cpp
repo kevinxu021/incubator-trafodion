@@ -40,7 +40,8 @@
 #include "Hbase_types.h"
 #include "stringBuf.h"
 #include "NLSConversion.h"
-//#include "hdfs.h"
+
+#include  "cli_stdh.h"
 
 #include "ExpORCinterface.h"
 
@@ -389,8 +390,12 @@ ExWorkProcRetcode ExOrcScanTcb::work()
                                       (orcScanTdb().orcAllColInfoList() ? &tv : NULL));
             if (retcode < 0)
               {
-                setupError(EXE_ERROR_FROM_LOB_INTERFACE, retcode, "ORC", "scanOpen", 
-                           orci_->getErrorText(-retcode));
+		ContextCli *currContext = GetCliGlobals()->currContext();
+                setupError(EXE_ERROR_FROM_LOB_INTERFACE, 
+			   retcode,
+			   "ORC scanOpen",
+			   orci_->getErrorText(-retcode),
+			   (char *)currContext->getJniErrorStr().data());
 
                 step_ = HANDLE_ERROR;
                 break;
@@ -409,8 +414,13 @@ ExWorkProcRetcode ExOrcScanTcb::work()
                                        numOrcCols_);
             if (retcode < 0)
               {
-                setupError(EXE_ERROR_FROM_LOB_INTERFACE, retcode, "ORC", "scanFetch", 
-                          orci_->getErrorText(-retcode));
+		ContextCli *currContext = GetCliGlobals()->currContext();
+                setupError(EXE_ERROR_FROM_LOB_INTERFACE, 
+			   retcode, 
+			   "ORC scanFetch", 
+			   orci_->getErrorText(-retcode),
+			   (char *)currContext->getJniErrorStr().data());
+			   
 
                 step_ = HANDLE_ERROR;
                 break;
@@ -592,8 +602,12 @@ ExWorkProcRetcode ExOrcScanTcb::work()
             retcode = orci_->scanClose();
             if (retcode < 0)
               {
-                setupError(EXE_ERROR_FROM_LOB_INTERFACE, retcode, "ORC", "scanClose", 
-                           orci_->getErrorText(-retcode));
+		ContextCli *currContext = GetCliGlobals()->currContext();
+                setupError(EXE_ERROR_FROM_LOB_INTERFACE,
+			   retcode, 
+			   "ORC scanClose", 
+                           orci_->getErrorText(-retcode),
+			   (char *)currContext->getJniErrorStr().data());
                 
                 step_ = HANDLE_ERROR;
                 break;
@@ -783,9 +797,12 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 
             if (retcode < 0)
               {
-                setupError(EXE_ERROR_FROM_LOB_INTERFACE, retcode, 
-                           "ORC", "open", 
-                           orci_->getErrorText(-retcode));
+		ContextCli *currContext = GetCliGlobals()->currContext();
+                setupError(EXE_ERROR_FROM_LOB_INTERFACE, 
+			   retcode, 
+                           "ORC open", 
+                           orci_->getErrorText(-retcode),
+			   (char *)currContext->getJniErrorStr().data());
 
                 step_ = HANDLE_ERROR;
                 break;
@@ -859,9 +876,12 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
             retcode = orci_->getColStats(colNum_, bal_);
             if (retcode < 0)
               {
-                setupError(EXE_ERROR_FROM_LOB_INTERFACE, retcode, 
-                           "ORC", "getColStats", 
-                           orci_->getErrorText(-retcode));
+		ContextCli *currContext = GetCliGlobals()->currContext();
+                setupError(EXE_ERROR_FROM_LOB_INTERFACE,
+			   retcode, 
+                           "ORC getColStats", 
+                           orci_->getErrorText(-retcode),
+			   (char *)currContext->getJniErrorStr().data());
 
                 step_ = HANDLE_ERROR;
                 break;
@@ -936,7 +956,10 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
 
                 if (brc != BAL_OK)
                   {
-                    setupError(EXE_ERROR_FROM_LOB_INTERFACE, brc, "ByteArray", "getEntry", 
+                    setupError(EXE_ERROR_FROM_LOB_INTERFACE, 
+			       brc, 
+			       "ByteArray", 
+			       "getEntry", 
                                bal_->getErrorText(brc));
                     step_ = HANDLE_ERROR;
                     break;
@@ -965,9 +988,12 @@ ExWorkProcRetcode ExOrcFastAggrTcb::work()
             retcode = orci_->close();
             if (retcode < 0)
               {
-                setupError(EXE_ERROR_FROM_LOB_INTERFACE, retcode, 
-                           "ORC", "close", 
-                           orci_->getErrorText(-retcode));
+		ContextCli *currContext = GetCliGlobals()->currContext();
+                setupError(EXE_ERROR_FROM_LOB_INTERFACE,
+			   retcode, 
+                           "ORC close", 
+                           orci_->getErrorText(-retcode),
+			   (char *)currContext->getJniErrorStr().data());
 
                 step_ = HANDLE_ERROR;
                 break;

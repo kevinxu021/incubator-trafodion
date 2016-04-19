@@ -3850,6 +3850,10 @@ enum DefaultConstants
 
   ORC_READ_STRIPE_INFO,
 
+  // bitmap to control various special behavior of HIVE_SCAN
+  //   // 1 : DOS FORMAT conversion on
+  //     // 2 : todo
+  HIVE_SCAN_SPECIAL_MODE,
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES

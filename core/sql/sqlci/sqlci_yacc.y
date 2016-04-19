@@ -552,6 +552,7 @@ static char * FCString (const char *idString, int isFC)
 %token SIGNAL
 %token UIDtoken
 %token BACKUP
+%token RESTORE
 // QSTUFF
 %token CURSORWITH
 %token WITHOUT
@@ -2218,6 +2219,7 @@ dml_type :
         |       REGISTER                {$$ = DML_DDL_TYPE;}
         |       UNREGISTER              {$$ = DML_DDL_TYPE;}
         |       BACKUP                {$$ = DML_DESCRIBE_TYPE;}
+        |       RESTORE                {$$ = DML_DESCRIBE_TYPE;}
 	|       SHOWCONTROL 		{$$ = DML_DESCRIBE_TYPE;}
 	|       SHOWDDL 		{$$ = DML_DESCRIBE_TYPE;}
 	|       SHOWLABEL		{$$ = DML_DESCRIBE_TYPE;}

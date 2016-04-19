@@ -238,3 +238,21 @@ create table hivepiso
 )
 partitioned by (p1 int, p2 string)
 stored as orc;
+
+drop table tbl_dos;
+CREATE  external TABLE  tbl_dos(
+   c1  int,
+   c2  int,
+   c3  int,
+   c4  string)
+row format delimited fields terminated by '|' 
+location '/user/hive/exttables/tbl_dos'
+;
+
+drop table tbl_dos_num;
+CREATE  external TABLE  tbl_dos_num(
+   c1  int,
+   c2  int)
+row format delimited fields terminated by '|' 
+location '/user/hive/exttables/tbl_dos_num'
+;
