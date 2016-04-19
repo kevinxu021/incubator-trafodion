@@ -4244,6 +4244,30 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
                 getGroupAttr()->getGroupAnalysis()->getNodeAnalysis()->getTableAnalysis();
 
            ValueIdSet locals(tableAnalysis->getLocalPreds());
+
+           // Conditionally include any VEG predicates that may not 
+           // be defined on key columns. getVegPreds() call below 
+           // returns these VEG predicates that reference some columns 
+           // in my table. See TableAnalysis::finishAnalysis().
+           const ValueIdSet& vegPreds = tableAnalysis->getVegPreds();
+
+           // But we need to make sure any such preds refer to either 
+           // the index columns of the scan or the inputs to the scan.
+           GroupAttributes scanGA;
+           scanGA.addCharacteristicOutputs(getTableDesc()->getColumnList());
+
+           ValueIdSet availableInputs(
+                        getGroupAttr()->getCharacteristicInputs());
+
+           ValueIdSet dummyRefI;
+           ValueIdSet dummyCovered;
+           ValueIdSet dummyUncovered;
+           if ( vegPreds.isCovered(availableInputs,
+                                   scanGA, 
+                                   dummyRefI, dummyCovered, dummyUncovered) )
+           {
+             locals += vegPreds;
+           }
    
            ValueIdSet externalInputs; // not used yet
            ValueIdSet orcPushdownPreds;
