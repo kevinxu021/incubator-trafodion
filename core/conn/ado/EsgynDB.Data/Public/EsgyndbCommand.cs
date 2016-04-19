@@ -4,7 +4,6 @@ namespace EsgynDB.Data
     using System.Data;
     using System.Data.Common;
     using System.Text;
-    using System.Threading;
     using System.Collections.Generic;
 
     /// <summary>
@@ -768,7 +767,6 @@ namespace EsgynDB.Data
             OperationId id;
             byte[] buf;
             int rowCount;
-            Timer timer = null;
 
             // compatibilty for Visual Studio that sometimes uses [ ] as delimiters without checking the DataSourceInformation
             // this is apparently a bug in VS and other vendors have had to work around this
