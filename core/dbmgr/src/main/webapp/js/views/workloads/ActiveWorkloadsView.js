@@ -40,11 +40,16 @@ define([
 			wHandler.on(wHandler.FETCH_ACTIVE_ERROR, this.showErrorMessage);
 			$(REFRESH_ACTION).on('click', this.fetchActiveQueries);
 			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
-			refreshTimer.setRefreshInterval(0.5);
+			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
+				refreshTimer.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
+			}
 
 			this.fetchActiveQueries();
 		},
 		doResume: function(){
+			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
+				refreshTimer.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
+			}
 			refreshTimer.resume();
 			wHandler.on(wHandler.FETCH_ACTIVE_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_ERROR, this.showErrorMessage);			
@@ -53,6 +58,7 @@ define([
 			this.fetchActiveQueries();
 		},
 		doPause: function(){
+			common.commonTimeRange.isAutoRefresh=$(REFRESH_INTERVAL).val();
 			refreshTimer.pause();
 			wHandler.off(wHandler.FETCH_ACTIVE_SUCCESS, this.displayResults);
 			wHandler.off(wHandler.FETCH_ACTIVE_ERROR, this.showErrorMessage);			

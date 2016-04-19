@@ -82,7 +82,9 @@ define([
 			refreshTimerView.init();
 			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
-			refreshTimerView.setRefreshInterval('1');
+			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
+				refreshTimerView.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
+			}
 
 			this.fetchLogs();
 		},
@@ -95,6 +97,10 @@ define([
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
+			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
+				refreshTimerView.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
+			}
+			refreshTimerView.resume();
 			this.fetchLogs();
 		},
 		doPause: function(){
