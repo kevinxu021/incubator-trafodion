@@ -1493,7 +1493,7 @@ int main(int argc, char *argv[])
         get_cmd(lp_inputstr, lp_nextcmd);
 
         // Process commands:
-     /*    if (!strcmp(lp_nextcmd, "replay"))
+        /*if (!strcmp(lp_nextcmd, "replay"))
 	{
 	  short lv_error = DTM_REPLAYENGINE(12345);
 	  cout<<"DTM_REPLAYENGINE returned error "<<lv_error<<endl; 
