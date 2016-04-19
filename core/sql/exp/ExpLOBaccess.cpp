@@ -1889,6 +1889,7 @@ Ex_Lob_Error ExLobsOper (
 			 Int64       descNumIn,         // input desc Num (for flat files only)
 			 Int64       &descNumOut,       // output desc Num (for flat files only)
 			 Int64       &retOperLen,       // length of data involved in this operation
+			 Int64       &uncompressedRetOperLen,  // length of uncomp. data involved
 			 Int64       requestTagIn,      // only for checking status
 			 Int64       &requestTagOut,    // returned with every request other than check status
 			 Ex_Lob_Error  &requestStatus,  // returned req status
@@ -2058,7 +2059,7 @@ Ex_Lob_Error ExLobsOper (
     case Lob_ReadDataCursorSimple:
       sprintf(fn,"%s:%Lx:%s",lobPtr->getDataFileName(), (long long unsigned int)lobName, cursorId);
       fileName = fn;       
-      err = lobPtr->readDataCursorSimple(fileName, source, sourceLen, retOperLen, compressionWA, compressionWASize, lobGlobals);
+      err = lobPtr->readDataCursorSimple(fileName, source, sourceLen, retOperLen, uncompressedRetOperLen, compressionWA, compressionWASize, lobGlobals);
       break;
 
     case Lob_CloseFile:
@@ -2239,6 +2240,7 @@ buffer limit (128MB) has been reached.
 
 Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize, 
                                          Int64 &operLen, 
+					 Int64 &uncompressedOperLen,
 					 char * compressionWA,
 					 Lng32 compressionWASize,
 					 ExLobGlobals *lobGlobals)
@@ -2250,6 +2252,7 @@ Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize,
     ExLobCursorBuffer *buf = NULL;
     Int64 bytesToCopy = 0;
     operLen = 0;
+    uncompressedOperLen = 0;
     Int64 len;
     char *target = tgt;
     bool done = false;
@@ -2280,12 +2283,20 @@ Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize,
 
     lobCursorLock_.unlock();
 
-    if (isCompressed && lzo_init() != LZO_E_OK)
+    if ( isCompressed )
     {
-      return LOB_MAX_ERROR_NUM;
+      if( lzo_init() != LZO_E_OK )
+	return LOB_MAX_ERROR_NUM;
+      tgtSize = compressionWASize;  // temp code
+      // we need bytesToRead and tgtSize. With no compression
+      // bytesToRead = tgtSize. With compression we need to keep
+      // both numbers separate and use them to break out of while
+      // loop. With no splits bytesToRead is not relevant so ignore for now
+      // Also compressionWASize is not 64bit
     }
 
-    while ((operLen < tgtSize) && !mustExit && !done && !cursor->eol_)
+    while ((uncompressedOperLen < tgtSize) && !mustExit && 
+	   !done && !cursor->eol_)
     {
       lobGlobals->traceMessage("locking cursor",cursor,__LINE__);
       cursor->lock_.lock();
@@ -2328,6 +2339,7 @@ Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize,
 	    buf->bytesUsed_ += 8-compressionWAUsed;
 	    buf->bytesRemaining_ -= 8-compressionWAUsed;
 	    stats_.bytesPrefetched += 8-compressionWAUsed;
+	    operLen += 8-compressionWAUsed;
 	    compressionWAUsed = 8;
 	  }
 	  uncompressedLen = read32(compressionWA);
@@ -2348,10 +2360,11 @@ Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize,
 		   buf->bytesRemaining_);
 	    compressionWAUsed += buf->bytesRemaining_;
 	    bytesToCopy = buf->bytesRemaining_ ;
+	    operLen += buf->bytesRemaining_ ;
 	  }
 	  else // we have next compression block in compressionWA+buf
 	  {
-	    if (uncompressedLen < (tgtSize - operLen))
+	    if (uncompressedLen < (tgtSize - uncompressedOperLen))
 	    {
 	      bytesToCopy = compressedLen-(compressionWAUsed-8);
 	      memcpy(compressionWA+compressionWAUsed, 
@@ -2369,7 +2382,8 @@ Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize,
 		return LOB_MAX_ERROR_NUM;
 	      }
 	      target += uncompressedLen;
-	      operLen+= uncompressedLen;
+	      uncompressedOperLen+= uncompressedLen;
+	      operLen += bytesToCopy;
 	      compressionWAUsed = 0;
 	    }
 	    else
@@ -2402,10 +2416,11 @@ Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize,
 		   buf->bytesRemaining_);
 	    compressionWAUsed = buf->bytesRemaining_;
 	    bytesToCopy = buf->bytesRemaining_ ;
+	    operLen += buf->bytesRemaining_ ;
 	  }
 	  else
 	  {
-	    if (uncompressedLen < (tgtSize - operLen))
+	    if (uncompressedLen < (tgtSize - uncompressedOperLen))
 	    {
 	      newUncompressedLen = uncompressedLen; 
 	      int r = lzo1x_decompress_safe((unsigned char *)
@@ -2420,7 +2435,8 @@ Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize,
 	      }
 	      bytesToCopy = compressedLen+8;
 	      target += uncompressedLen;
-	      operLen += uncompressedLen;
+	      uncompressedOperLen += uncompressedLen;
+	      operLen += bytesToCopy;
 	    }
 	    else
 	    {
@@ -2440,6 +2456,7 @@ Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize,
 		 buf->bytesRemaining_);
 	  compressionWAUsed = buf->bytesRemaining_;
 	  bytesToCopy = buf->bytesRemaining_ ;
+	  operLen += buf->bytesRemaining_;
 	}
       }
       else
@@ -2448,6 +2465,7 @@ Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize,
 	memcpy(target, buf->data_ + buf->bytesUsed_, bytesToCopy);
 	target += bytesToCopy;
 	operLen += bytesToCopy;
+	uncompressedOperLen += bytesToCopy; // no compression, so = operLen
       }
       /*** END ***/
       if (bytesToCopy == buf->bytesRemaining_) { // buffer is now empty

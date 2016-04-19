@@ -274,6 +274,7 @@ protected:
   Int64 requestTag_;
   Int64 hdfsScanBufMaxSize_;
   Int64 bytesRead_;
+  Int64 uncompressedBytesRead_;
   Int64 trailingPrevRead_;     // for trailing bytes at end of buffer.
   Int64 numBytesProcessedInRange_;  // count bytes of complete records.
   bool  firstBufOfFile_;
@@ -305,6 +306,7 @@ protected:
   NABoolean exception_;
   ComCondition * lastErrorCnd_;
   NABoolean checkRangeDelimiter_;
+  NABoolean isCompressed_;
 };
 
 // -----------------------------------------------------------------------

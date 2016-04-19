@@ -292,7 +292,8 @@ Lng32 ExpLOBInterfaceSelectCursor(void * lobGlob,
 				  Lng32 waitedOp,
 
                                   Int64 offset, Int64 inLen, 
-			          Int64 &outLen, char * lobData,
+			          Int64 &outLen, Int64 &uncompressedOutLen,
+				  char * lobData,
 				  char * compressionWA, Lng32 compressionWASize,
 				  
 				  Lng32 oper, // 1: open. 2: fetch. 3: close
