@@ -1139,6 +1139,34 @@ ExpHbaseInterface* CmpSeabaseDDL::allocEHI(NADefaults * defs)
   return ehi;
 }
 
+ExpHbaseInterface* CmpSeabaseDDL::allocBRCEHI(NADefaults * defs)
+{
+  ExpHbaseInterface * ehi =  NULL;
+
+  NADefaults *defsL = defs;
+  if (!defsL)
+    defsL = &ActiveSchemaDB()->getDefaults();
+  
+  const char * server = defsL->getValue(HBASE_SERVER);
+  const char* zkPort = defsL->getValue(HBASE_ZOOKEEPER_PORT);
+
+  ehi = ExpHbaseInterface::newInstance
+  (heap_, server, zkPort);
+  
+  Lng32 retcode = ehi->initBRC(NULL);
+  if (retcode < 0)
+  {
+      *CmpCommon::diags() << DgSqlCode(-8448)
+                        << DgString0((char*)"ExpHbaseInterface::initBRC()")
+                        << DgString1(getHbaseErrStr(-retcode))
+                        << DgInt0(-retcode)
+                        << DgString2((char*)GetCliGlobals()->getJniErrorStr().data());
+    deallocEHI(ehi); 
+    return NULL;
+  }
+  return ehi;
+}
+
 void CmpSeabaseDDL::deallocEHI(ExpHbaseInterface* &ehi)
 {
   if (ehi)
@@ -8616,6 +8644,7 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
        (ddlExpr->upgradeRepos()) ||
        (ddlExpr->addSchemaObjects()) ||
        (ddlExpr->createLibmgr()) ||
+       (ddlExpr->restore()) ||
        (ddlExpr->updateVersion())))
     ignoreUninitTrafErr = TRUE;
 
@@ -8762,6 +8791,10 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
     {
 	    backup(ddlExpr, &cliInterface);
     }
+  else if (ddlExpr->restore())
+  {
+      restore(ddlExpr, &cliInterface);
+  }
   else
     {
       CMPASSERT(ddlNode);

@@ -457,8 +457,6 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_GET_REGION_STATS       ].jm_signature = "(Ljava/lang/String;)Lorg/trafodion/sql/ByteArrayList;";
     JavaMethods_[JM_COPY       ].jm_name      = "copy";
     JavaMethods_[JM_COPY       ].jm_signature = "(Ljava/lang/String;Ljava/lang/String;Z)Z";
-    JavaMethods_[JM_CREATE_SNAPSHOT       ].jm_name      = "createSnapshot";
-    JavaMethods_[JM_CREATE_SNAPSHOT       ].jm_signature = "(Ljava/lang/String;)Z";
     JavaMethods_[JM_EXISTS     ].jm_name      = "exists";
     JavaMethods_[JM_EXISTS     ].jm_signature = "(Ljava/lang/String;J)Z";
     JavaMethods_[JM_GRANT      ].jm_name      = "grant";
@@ -467,10 +465,14 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_REVOKE     ].jm_signature = "([B[B[Ljava/lang/Object;)Z";
     JavaMethods_[JM_GET_HBLC   ].jm_name      = "getHBulkLoadClient";
     JavaMethods_[JM_GET_HBLC   ].jm_signature = "()Lorg/trafodion/sql/HBulkLoadClient;";
+    JavaMethods_[JM_GET_BRC    ].jm_name      = "getBackupRestoreClient";
+    JavaMethods_[JM_GET_BRC    ].jm_signature = "()Lorg/trafodion/sql/BackupRestoreClient;";
     JavaMethods_[JM_EST_RC     ].jm_name      = "estimateRowCount";
     JavaMethods_[JM_EST_RC     ].jm_signature = "(Ljava/lang/String;II[J)Z";
     JavaMethods_[JM_REL_HBLC   ].jm_name      = "releaseHBulkLoadClient";
     JavaMethods_[JM_REL_HBLC   ].jm_signature = "(Lorg/trafodion/sql/HBulkLoadClient;)V";
+    JavaMethods_[JM_REL_BRC    ].jm_name      = "releaseBackupRestoreClient";
+    JavaMethods_[JM_REL_BRC    ].jm_signature = "(Lorg/trafodion/sql/BackupRestoreClient;)V";
     JavaMethods_[JM_GET_CAC_FRC].jm_name      = "getBlockCacheFraction";
     JavaMethods_[JM_GET_CAC_FRC].jm_signature = "()F";
     JavaMethods_[JM_GET_LATEST_SNP].jm_name      = "getLatestSnapshot";
@@ -819,6 +821,88 @@ HBC_RetCode HBaseClient_JNI::releaseHBulkLoadClient(HBulkLoadClient_JNI* hblc)
     return HBC_ERROR_REL_HBLC_EXCEPTION;
   }
   NADELETE(hblc, HBulkLoadClient_JNI, hblc->getHeap());
+  jenv_->PopLocalFrame(NULL);
+  return HBC_OK;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////
+BackupRestoreClient_JNI* HBaseClient_JNI::getBackupRestoreClient(NAHeap *heap)
+{
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::getBackupRestoreClient() called.");
+  if (javaObj_ == NULL || (!isInitialized()))
+  {
+    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_GET_BRC_EXCEPTION));
+    return NULL;
+  }
+
+  if (jenv_ == NULL)
+     if (initJVM() != JOI_OK)
+         return NULL;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+     getExceptionDetails();
+     return NULL;
+  }
+  tsRecentJMFromJNI = JavaMethods_[JM_GET_BRC].jm_full_name;
+  jobject j_brc = jenv_->CallObjectMethod(javaObj_, JavaMethods_[JM_GET_BRC].methodID);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "HBaseClient_JNI::getBackupRestoreClient()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return NULL;
+  }
+  if (j_brc == NULL)
+  {
+    logError(CAT_SQL_HBASE, "HBaseClient_JNI::getBackupRestoreClient()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return NULL;
+  }
+  BackupRestoreClient_JNI *brc = new (heap) BackupRestoreClient_JNI(heap, j_brc);
+  jenv_->DeleteLocalRef(j_brc);
+  if ( brc->init()!= BRC_OK)
+  {
+     NADELETE(brc, BackupRestoreClient_JNI, heap);
+     jenv_->PopLocalFrame(NULL);
+     return NULL; 
+  }
+  jenv_->PopLocalFrame(NULL);
+  return brc;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// 
+//////////////////////////////////////////////////////////////////////////////
+HBC_RetCode HBaseClient_JNI::releaseBackupRestoreClient(BackupRestoreClient_JNI* brc)
+{
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::releaseBackupRestoreClient() called.");
+
+  jobject j_brc = brc->getJavaObject();
+
+  if (jenv_ == NULL)
+     if (initJVM() != JOI_OK)
+         return HBC_ERROR_INIT_PARAM;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+     getExceptionDetails();
+     return HBC_ERROR_REL_BRC_EXCEPTION;
+  }
+  tsRecentJMFromJNI = JavaMethods_[JM_REL_BRC].jm_full_name;
+  jenv_->CallVoidMethod(javaObj_, JavaMethods_[JM_REL_BRC].methodID, j_brc);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "HBaseClient_JNI::releaseBackupRestoreClient()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return HBC_ERROR_REL_BRC_EXCEPTION;
+  }
+  NADELETE(brc, BackupRestoreClient_JNI, brc->getHeap());
   jenv_->PopLocalFrame(NULL);
   return HBC_OK;
 }
@@ -1538,7 +1622,7 @@ HBC_RetCode HBaseClient_JNI::copy(const char* srcTblName,
   jboolean jresult = jenv_->CallBooleanMethod(
        javaObj_, JavaMethods_[JM_COPY].methodID, 
        js_srcTblName, js_tgtTblName, j_force);
-
+  
   jenv_->DeleteLocalRef(js_srcTblName);  
 
   jenv_->DeleteLocalRef(js_tgtTblName);  
@@ -1562,53 +1646,6 @@ HBC_RetCode HBaseClient_JNI::copy(const char* srcTblName,
   return HBC_OK;
 }
 
-//////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////
-HBC_RetCode HBaseClient_JNI::createSnapshot(const char* tblName) 
-{
-	QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::createSnapshot(%s) called.", tblName);
-	if (jenv_ == NULL)
-		if (initJVM() != JOI_OK)
-			return HBC_ERROR_INIT_PARAM;
-
-	if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
-		getExceptionDetails();
-		return HBC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
-	}
-	jstring js_tblName = jenv_->NewStringUTF(tblName);
-	if (js_tblName == NULL) 
-	{
-		GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_CREATE_SNAPSHOT_EXCEPTION));
-		jenv_->PopLocalFrame(NULL);
-		return HBC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
-	}
-
-	tsRecentJMFromJNI = JavaMethods_[JM_CREATE_SNAPSHOT].jm_full_name;
-	jboolean jresult = jenv_->CallBooleanMethod(
-			javaObj_, JavaMethods_[JM_CREATE_SNAPSHOT].methodID, js_tblName);
-
-	jenv_->DeleteLocalRef(js_tblName);  
-
-
-	if (jenv_->ExceptionCheck())
-	{
-		getExceptionDetails(jenv_);
-		logError(CAT_SQL_HBASE, __FILE__, __LINE__);
-		logError(CAT_SQL_HBASE, "HBaseClient_JNI::createSnapshot()", getLastError());
-		jenv_->PopLocalFrame(NULL);
-		return HBC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
-	}
-
-	if (jresult == false) 
-	{
-		logError(CAT_SQL_HBASE, "HBaseClient_JNI::createSnapshot()", getLastError());
-		jenv_->PopLocalFrame(NULL);
-		return HBC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
-	}
-	jenv_->PopLocalFrame(NULL);
-	return HBC_OK;
-}
 
 //////////////////////////////////////////////////////////////////////////////
 // 
@@ -2323,6 +2360,190 @@ HBLC_RetCode HBulkLoadClient_JNI::bulkLoadCleanup(
   return HBLC_OK;
 }
 
+//////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////
+JavaMethodInit* BackupRestoreClient_JNI::JavaMethods_ = NULL;
+jclass BackupRestoreClient_JNI::javaClass_ = 0;
+bool BackupRestoreClient_JNI::javaMethodsInitialized_ = false;
+pthread_mutex_t BackupRestoreClient_JNI::javaMethodsInitMutex_ = PTHREAD_MUTEX_INITIALIZER;
+
+
+static const char* const brcErrorEnumStr[] = ///need to update content
+{
+    "preparing parameters for init."
+   ,"java exception in init."
+   ,"java exception in cleanup."
+   ,"preparing parameters for init_brc()."
+   ,"java exception in init_brc()."
+};
+BRC_RetCode BackupRestoreClient_JNI::init()
+{
+  static char className[]="org/trafodion/sql/BackupRestoreClient";
+  BRC_RetCode rc;
+
+  if (isInitialized())
+    return BRC_OK;
+
+  if (javaMethodsInitialized_)
+    return (BRC_RetCode)JavaObjectInterface::init(className, javaClass_, JavaMethods_, (Int32)JM_LAST, javaMethodsInitialized_);
+  else
+  {
+    pthread_mutex_lock(&javaMethodsInitMutex_);
+    if (javaMethodsInitialized_)
+    {
+      pthread_mutex_unlock(&javaMethodsInitMutex_);
+      return (BRC_RetCode)JavaObjectInterface::init(className, javaClass_, JavaMethods_, (Int32)JM_LAST, javaMethodsInitialized_);
+    }
+    JavaMethods_ = new JavaMethodInit[JM_LAST];
+    
+    JavaMethods_[JM_CTOR       ].jm_name      = "<init>";
+    JavaMethods_[JM_CTOR       ].jm_signature = "()V";
+    JavaMethods_[JM_GET_ERROR  ].jm_name      = "getLastError";
+    JavaMethods_[JM_GET_ERROR  ].jm_signature = "()Ljava/lang/String;";
+    JavaMethods_[JM_CREATE_SNAPSHOT].jm_name = "createSnapshot";
+    JavaMethods_[JM_CREATE_SNAPSHOT].jm_signature = "([Ljava/lang/Object;Ljava/lang/String;)Z";
+    JavaMethods_[JM_RESTORE_SNAPSHOTS].jm_name = "restoreSnapshots";
+    JavaMethods_[JM_RESTORE_SNAPSHOTS].jm_signature = "(Ljava/lang/String;)Z";
+    
+    rc = (BRC_RetCode)JavaObjectInterface::init(className, javaClass_, JavaMethods_, (Int32)JM_LAST, javaMethodsInitialized_);
+    javaMethodsInitialized_ = TRUE;
+    pthread_mutex_unlock(&javaMethodsInitMutex_);
+  }
+  return rc;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////
+BRC_RetCode BackupRestoreClient_JNI::createSnapshot(const TextVec& tables, const char* backuptag) 
+{
+	QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "BackupRestoreClient_JNI::createSnapshot(%s) called.");
+	if (jenv_ == NULL)
+		if (initJVM() != JOI_OK)
+			return BRC_ERROR_INIT_PARAM;
+
+	if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+		getExceptionDetails();
+		return BRC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
+	}
+	
+	jobjectArray j_tables = NULL;
+	if(!tables.empty())
+	{
+		QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "BackupRestoreClient_JNI adding %d tables.", tables.size());
+		j_tables = convertToStringObjectArray(tables);
+		if (j_tables == NULL)
+	    {
+	       getExceptionDetails();
+	       logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+	       logError(CAT_SQL_HBASE, "HBaseClient_JNI::createSnapshot()", getLastError());
+	       jenv_->PopLocalFrame(NULL);
+	       return BRC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
+	    }
+	}
+		
+	jstring js_backuptag = jenv_->NewStringUTF(backuptag);
+	if (js_backuptag == NULL) 
+	{
+		GetCliGlobals()->setJniErrorStr(getErrorText(BRC_ERROR_CREATE_SNAPSHOT_EXCEPTION));
+		jenv_->PopLocalFrame(NULL);
+		return BRC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
+	}
+
+	tsRecentJMFromJNI = JavaMethods_[JM_CREATE_SNAPSHOT].jm_full_name;
+	jboolean jresult = jenv_->CallBooleanMethod(
+			javaObj_, JavaMethods_[JM_CREATE_SNAPSHOT].methodID, j_tables, js_backuptag);
+
+	jenv_->DeleteLocalRef(js_backuptag);
+	if(j_tables != NULL)
+		jenv_->DeleteLocalRef(j_tables);
+
+
+	if (jenv_->ExceptionCheck())
+	{
+		getExceptionDetails(jenv_);
+		logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+		logError(CAT_SQL_HBASE, "BackupRestoreClient_JNI::createSnapshot()", getLastError());
+		jenv_->PopLocalFrame(NULL);
+		return BRC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
+	}
+
+	if (jresult == false) 
+	{
+		logError(CAT_SQL_HBASE, "BackupRestoreClient_JNI::createSnapshot()", getLastError());
+		jenv_->PopLocalFrame(NULL);
+		return BRC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
+	}
+	jenv_->PopLocalFrame(NULL);
+	return BRC_OK;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////
+BRC_RetCode BackupRestoreClient_JNI::restoreSnapshots(const char* backuptag) 
+{
+    QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "BackupRestoreClient_JNI::restoreSnapshots(%s) called.");
+    if (jenv_ == NULL)
+        if (initJVM() != JOI_OK)
+            return BRC_ERROR_INIT_PARAM;
+
+    if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+        getExceptionDetails();
+        return BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION;
+    }
+    
+    jstring js_backuptag = jenv_->NewStringUTF(backuptag);
+    if (js_backuptag == NULL) 
+    {
+        GetCliGlobals()->setJniErrorStr(getErrorText(BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION));
+        jenv_->PopLocalFrame(NULL);
+        return BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION;
+    }
+
+    tsRecentJMFromJNI = JavaMethods_[JM_RESTORE_SNAPSHOTS].jm_full_name;
+    jboolean jresult = jenv_->CallBooleanMethod(
+            javaObj_, JavaMethods_[JM_RESTORE_SNAPSHOTS].methodID, js_backuptag);
+
+    jenv_->DeleteLocalRef(js_backuptag);
+
+    if (jenv_->ExceptionCheck())
+    {
+        getExceptionDetails(jenv_);
+        logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+        logError(CAT_SQL_HBASE, "BackupRestoreClient_JNI::restoreSnapshots()", getLastError());
+        jenv_->PopLocalFrame(NULL);
+        return BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION;
+    }
+
+    if (jresult == false) 
+    {
+        logError(CAT_SQL_HBASE, "BackupRestoreClient_JNI::restoreSnapshots()", getLastError());
+        jenv_->PopLocalFrame(NULL);
+        return BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION;
+    }
+    jenv_->PopLocalFrame(NULL);
+    return BRC_OK;
+}
+
+NAString BackupRestoreClient_JNI::getLastJavaError()
+{
+  return JavaObjectInterface::getLastJavaError(JavaMethods_[JM_GET_ERROR].methodID);
+}
+
+char* BackupRestoreClient_JNI::getErrorText(BRC_RetCode errEnum)
+{
+  if (errEnum < (BRC_RetCode)JOI_LAST)
+    return JavaObjectInterface::getErrorText((JOI_RetCode)errEnum);
+  else
+    return (char*)brcErrorEnumStr[errEnum-BRC_FIRST-1];
+}
+
+BackupRestoreClient_JNI::~BackupRestoreClient_JNI()
+{
+	
+}
 
 //////////////////////////////////////////////////////////////////////////////
  //

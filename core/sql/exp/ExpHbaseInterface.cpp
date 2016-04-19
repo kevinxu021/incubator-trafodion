@@ -256,9 +256,14 @@ Lng32 ExpHbaseInterface::copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
   return -HBASE_COPY_ERROR;
 }
 
-Lng32 ExpHbaseInterface::createSnaphot(const HbaseStr &tblName)
+Lng32 ExpHbaseInterface::createSnaphot(const std::vector<Text>& tables, const char* backuptag)
 {
 	return HBASE_CREATE_SNAPSHOT_ERROR;
+}
+
+Lng32 ExpHbaseInterface::restoreSnapshots(const char* backuptag)
+{
+    return HBASE_RESTORE_SNAPSHOT_ERROR;
 }
 
 Lng32 ExpHbaseInterface::coProcAggr(
@@ -294,6 +299,7 @@ ExpHbaseInterface_JNI::ExpHbaseInterface_JNI(CollHeap* heap, const char* server,
    ,client_(NULL)
    ,htc_(NULL)
    ,hblc_(NULL)
+   ,brc_(NULL)
    ,hive_(NULL)
    ,asyncHtc_(NULL)
    ,retCode_(HBC_OK)
@@ -316,6 +322,9 @@ ExpHbaseInterface_JNI::~ExpHbaseInterface_JNI()
     
     if (hblc_ !=NULL)
       hblc_ = NULL;
+    
+    if (brc_ !=NULL)
+        brc_ = NULL;
 
     client_ = NULL;
   }
@@ -389,6 +398,11 @@ Lng32 ExpHbaseInterface_JNI::cleanup()
     {
       client_->releaseHBulkLoadClient(hblc_);
       hblc_ = NULL;
+    }
+    if (brc_)
+    {
+      client_->releaseBackupRestoreClient(brc_);
+      brc_ = NULL;
     }
 
   }
@@ -594,20 +608,35 @@ Lng32 ExpHbaseInterface_JNI::copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
 }
 
 //-------------------------------------------------------------------------------
-Lng32 ExpHbaseInterface_JNI::createSnaphot(const HbaseStr &tblName)
+Lng32 ExpHbaseInterface_JNI::createSnaphot(const std::vector<Text>& tables, const char* backuptag)
 {
-  if (client_ == NULL)
+  if (brc_ == NULL || client_ == NULL)
   {
-    if (init(hbs_) != HBASE_ACCESS_SUCCESS)
-      return -HBASE_ACCESS_ERROR;
+    return -HBASE_ACCESS_ERROR;
   }
     
-  retCode_ = client_->createSnapshot(tblName.val);
+  retCode_ = brc_->createSnapshot(tables, backuptag);
 
-  if (retCode_ == HBC_OK)
+  if (retCode_ == BRC_OK)
     return HBASE_ACCESS_SUCCESS;
   else
-    return -HBASE_COPY_ERROR;
+    return -HBASE_CREATE_SNAPSHOT_ERROR;
+}
+
+//-------------------------------------------------------------------------------
+Lng32 ExpHbaseInterface_JNI::restoreSnapshots(const char* backuptag)
+{
+  if (brc_ == NULL || client_ == NULL)
+  {
+    return -HBASE_ACCESS_ERROR;
+  }
+    
+  retCode_ = brc_->restoreSnapshots(backuptag);
+
+  if (retCode_ == BRC_OK)
+    return HBASE_ACCESS_SUCCESS;
+  else
+    return -HBASE_RESTORE_SNAPSHOT_ERROR;
 }
 
 //----------------------------------------------------------------------------
@@ -1040,6 +1069,28 @@ Lng32 ExpHbaseInterface_JNI::initHBLC(ExHbaseAccessStats* hbs)
 
   return HBLC_OK;
 }
+
+//init and get backup restore client
+Lng32 ExpHbaseInterface_JNI::initBRC(ExHbaseAccessStats* hbs)
+{
+
+  Lng32  rc = init(hbs);
+  if (rc != HBASE_ACCESS_SUCCESS)
+    return rc;
+
+  if (brc_ == NULL)
+  {
+    brc_ = client_->getBackupRestoreClient((NAHeap *)heap_);
+    if (brc_ == NULL)
+    {
+      retCode_ = BRC_ERROR_INIT_BRC_EXCEPTION;
+      return HBASE_INIT_BRC_ERROR;
+    }
+  }
+
+  return BRC_OK;
+}
+
 Lng32 ExpHbaseInterface_JNI::initHFileParams(HbaseStr &tblName,
                            Text& hFileLoc,
                            Text& hfileName,

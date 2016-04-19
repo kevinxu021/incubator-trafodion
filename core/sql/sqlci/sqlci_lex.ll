@@ -294,6 +294,7 @@ B			[ \t\n]+
 [Rr][Ee][Oo][Rr][Gg]   		       return_IDENT_or_TOKEN(REORGtoken, 0);
 [Rr][Ee][Oo][Rr][Gg][Aa][Nn][Ii][Zz][Ee] return_IDENT_or_TOKEN(REORGtoken, 0);
 [Rr][Ee][Pp][Ll][Ii][Cc][Aa][Tt][Ee]    return_IDENT_or_TOKEN(REPLICATEtoken, 0);
+[Rr][Ee][Ss][Tt][Oo][Rr][Ee]            return_IDENT_or_TOKEN(RESTORE, 0);
 [[Cc][Pp][Uu]                           return_IDENT_or_TOKEN(CPU, 0);
 [Pp][Ii][Dd]                           return_IDENT_or_TOKEN(PID, 0);
 [Qq][Ii][Dd]			       return_IDENT_or_TOKEN(QID, 0);
