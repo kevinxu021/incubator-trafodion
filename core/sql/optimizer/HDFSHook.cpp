@@ -533,7 +533,7 @@ void HHDFSBucketStats::print(FILE *ofd)
   HHDFSStatsBase::print(ofd, "bucket");
 }
 
-void HHDFSBucketStats::addToList(HHDFSFileStats* st)
+void HHDFSBucketStats::append(HHDFSFileStats* st)
 {
    fileStatsList_.insert(st);
 }
@@ -827,7 +827,7 @@ void HHDFSListPartitionStats::print(FILE *ofd)
   HHDFSStatsBase::print(ofd, "partition");
 }
 
-void HHDFSListPartitionStats::addToList(HHDFSBucketStats* st)
+void HHDFSListPartitionStats::append(HHDFSBucketStats* st)
 {
     bucketStatsList_.insertAt(bucketStatsList_.entries(), st);
 }
@@ -1170,7 +1170,7 @@ NABoolean HHDFSFileStats::splitsAllowed() const
     return TRUE;
 }
 
-void HHDFSTableStats::addToList(HHDFSListPartitionStats* st)
+void HHDFSTableStats::append(HHDFSListPartitionStats* st)
 {
     listPartitionStatsList_.insertAt(listPartitionStatsList_.entries(), st);
 }

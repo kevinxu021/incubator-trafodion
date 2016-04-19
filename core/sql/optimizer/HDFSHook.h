@@ -291,7 +291,7 @@ public:
   void removeAt(CollIndex i);
   void print(FILE *ofd);
 
-  void addToList(HHDFSFileStats* st);
+  void append(HHDFSFileStats* st);
   
   virtual OsimHHDFSStatsBase* osimSnapShot();
 
@@ -340,7 +340,7 @@ public:
   Int32 determineBucketNum(const char *fileName);
   void print(FILE *ofd);
 
-  void addToList(HHDFSBucketStats* st);
+  void append(HHDFSBucketStats* st);
   
   virtual OsimHHDFSStatsBase* osimSnapShot();
 
@@ -448,7 +448,7 @@ public:
 
   const NAString &tableDir() const { return tableDir_; }
 
-  void addToList(HHDFSListPartitionStats * st);
+  void append(HHDFSListPartitionStats * st);
   virtual OsimHHDFSStatsBase* osimSnapShot();
   
 private:

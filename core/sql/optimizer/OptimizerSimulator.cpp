@@ -972,7 +972,7 @@ static const char* extractAsComment(const char* header, const NAString & stmt)
         int end = stmt.index('\n', begin);
         if(end > begin)
         {
-            stmt.copy(begin, end-1, tmp);
+            stmt.extract(begin, end-1, tmp);
             return tmp.data();
         }
     }
@@ -3329,7 +3329,7 @@ void OsimHHDFSTableStats::startElement(void *parser, const char *elementName, co
         HHDFSListPartitionStats* hhstats = new (heap_) HHDFSListPartitionStats(heap_);
         entry->restoreHHDFSStats(hhstats, atts);
         addEntry(entry);
-        ((HHDFSTableStats*)mirror_)->addToList(hhstats);
+        ((HHDFSTableStats*)mirror_)->append(hhstats);
         XMLDocument::setCurrentElement(parser, entry);
     }
     else
@@ -3343,7 +3343,7 @@ void OsimHHDFSListPartitionStats::startElement(void *parser, const char *element
         HHDFSBucketStats* hhstats = new (heap_) HHDFSBucketStats(heap_);
         entry->restoreHHDFSStats(hhstats, atts);
         addEntry(entry);
-        ((HHDFSListPartitionStats*)mirror_)->addToList(hhstats);
+        ((HHDFSListPartitionStats*)mirror_)->append(hhstats);
         XMLDocument::setCurrentElement(parser, entry);
     }
     else
@@ -3357,7 +3357,7 @@ void OsimHHDFSBucketStats::startElement(void *parser, const char *elementName, c
         HHDFSFileStats* hhstats = new (heap_) HHDFSFileStats(heap_);
         entry->restoreHHDFSStats(hhstats, atts);
         addEntry(entry);
-        ((HHDFSBucketStats*)mirror_)->addToList(hhstats);
+        ((HHDFSBucketStats*)mirror_)->append(hhstats);
         XMLDocument::setCurrentElement(parser, entry);
     }
     else if(!strcmp(elementName, TAG_HHDFSORCFILESTATS)){
@@ -3365,7 +3365,7 @@ void OsimHHDFSBucketStats::startElement(void *parser, const char *elementName, c
         HHDFSORCFileStats* hhstats = new (heap_) HHDFSORCFileStats(heap_);
         entry->restoreHHDFSStats(hhstats, atts);
         addEntry(entry);
-        ((HHDFSBucketStats*)mirror_)->addToList(hhstats);
+        ((HHDFSBucketStats*)mirror_)->append(hhstats);
         XMLDocument::setCurrentElement(parser, entry);
     }
     else

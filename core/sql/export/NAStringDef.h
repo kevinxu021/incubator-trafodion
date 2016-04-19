@@ -378,8 +378,8 @@ public:
   NABoolean     contains(const NAString& pat, caseCompare cmp = exact) const;
 
   NAString      copy() const;
-  //copy part of this string to another
-  int copy(int begin, int end, NAString & target) const;
+  //Extract part of this string and append it to target
+  int extract(int begin, int end, NAString & target) const;
   inline const char*   toCharStar() const {return fbstring_.data();} ;
   const char*   data() const {return fbstring_.data();}
   size_t        first(char c) const { return fbstring_.find_first_of(c);}
