@@ -8618,7 +8618,7 @@ bool isInfoSystem(char*& sqlString, const IDL_char *stmtLabel, short& error)
    time_t tim     = time(NULL);
    struct tm *now = localtime(&tim);
 
-   string databaseEdition =  (IsAdvancedLevel() ? "EsgynDB Advanced " : "EsgynDB Enterprise ");
+   string databaseEdition =  (IsAdvancedLevel() ? "EsgynDB Advanced" : "EsgynDB Enterprise");
 
    bool authenticationEnabled = false;
    bool authorizationEnabled = false;
@@ -8649,14 +8649,6 @@ bool isInfoSystem(char*& sqlString, const IDL_char *stmtLabel, short& error)
             databaseEdition.c_str(),
             authenticationEnabled ? "true" : "false",
             authorizationEnabled ? "true" : "false");
-
-// other comments:
-// the repository view does not exist - maybe a M6 item
-// platform version: SCM have anything to return just the platform version.
-// its tagged on at the end of the version string for each component (the bits after 'Release'
-// ex: mxosrvr Version 1.0.1 Release 5.0.0 (Build release [5939], date 03Apr11)
-
-
 
 	if (stmtLabel != NULL && stmtLabel[0] != 0)
 		pSrvrStmt = SRVR::getSrvrStmt(stmtLabel, TRUE);
