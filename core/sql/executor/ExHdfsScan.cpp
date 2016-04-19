@@ -45,6 +45,11 @@
 
 #include "ExpORCinterface.h"
 
+static NABoolean isCompressed(char* file)
+{
+  char * ret = strstr(file, ".lzo_deflate");
+  return (ret ? TRUE : FALSE) ;
+}
 
 ex_tcb * ExHdfsScanTdb::build(ex_globals * glob)
 {
@@ -79,6 +84,9 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   , bytesLeft_(0)
   , hdfsScanBuffer_(NULL)
   , hdfsBufNextRow_(NULL)
+  , compressionScratchBuffer_(NULL)
+  , compressionScratchMaxSize_(0)
+  , compressionScratchUsedSize_(0)
   , hdfsLoggingRow_(NULL)
   , hdfsLoggingRowEnd_(NULL)
   , debugPrevRow_(NULL)
@@ -98,6 +106,7 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   , nextDelimRangeNum_(-1)
   , preOpenedRangeNum_(-1)
   , leftOpenRangeNum_(-1)
+  , isCompressed_(FALSE)
 {
   Space * space = (glob ? glob->getSpace() : 0);
   CollHeap * heap = (glob ? glob->getDefaultHeap() : 0);
@@ -106,6 +115,11 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   hdfsScanBuffer_ = new(space) char[ readBufSize + 1 ]; 
   hdfsScanBuffer_[readBufSize] = '\0';
 
+  if (1) // tdb indicates compression 
+  {
+    compressionScratchMaxSize_ = 256*1024;
+    compressionScratchBuffer_ = new (space) char[compressionScratchMaxSize_];
+  }
   moveExprColsBuffer_ = new(space) ExSimpleSQLBuffer( 1, // one row 
 						      (Int32)hdfsScanTdb.moveExprColsRowLength_,
 						      space);
@@ -455,6 +469,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
               {
                 sprintf(cursorId_, "%d", currRangeNum_);
                 stopOffset_ = hdfsOffset_ + hdfo_->getBytesToRead();
+		isCompressed_ = isCompressed(hdfo_->fileName());
 
                 step_ = OPEN_HDFS_CURSOR;
               }
@@ -533,7 +548,9 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                    hdfsOffset_, 
                    hdfsScanBufMaxSize_,
                    bytesRead_,
+		   uncompressedBytesRead_,
                    NULL,
+		   compressionScratchBuffer_, compressionScratchMaxSize_,
                    1, // open
                    openType //
                    );
@@ -567,8 +584,9 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 
                            hdfo->getStartOffset(),
                            hdfsScanBufMaxSize_,
-                           bytesRead_,
+                           bytesRead_, uncompressedBytesRead_,
                            NULL,
+			   NULL, 0, // compression
                            1,// open
                            openType
                            );
@@ -654,6 +672,11 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	        else
 	          {
                     seqScanAgain_ = (sfrRetCode != SFR_NOMORE);
+		    uncompressedBytesRead_ = bytesRead_ ; // for sequence files
+		    // we do not keep track of uncompressed bytes since
+		    // uncompression is done in Java layer. Behave like a 
+		    // text uncompressed file where these two variables
+		    // are always equal
 	          }
 	      }
 	    else
@@ -675,8 +698,10 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 		       
                    hdfsOffset_,
                    bytesToRead,
-                   bytesRead_,
+                   bytesRead_, uncompressedBytesRead_,
                    hdfsScanBuffer_  + trailingPrevRead_,
+		   compressionScratchBuffer_, 
+		   hdfsScanBufMaxSize_ - trailingPrevRead_,
                    2, // read
                    0 // openType, not applicable for read
                    );
@@ -713,14 +738,16 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	    else
               {
                 char * lastByteRead = hdfsScanBuffer_  +
-                  trailingPrevRead_ + bytesRead_ - 1;
+                  trailingPrevRead_ + uncompressedBytesRead_ - 1;
                 if ((bytesRead_ < bytesToRead) &&
                     (*lastByteRead != hdfsScanTdb().recordDelimiter_))
                 {
                   // Some files end without a record delimiter but
                   // hive treats the end-of-file as a record delimiter.
                   lastByteRead[1] = hdfsScanTdb().recordDelimiter_;
-                  bytesRead_++;
+                  uncompressedBytesRead_++;
+		  if (!isCompressed_)
+		    bytesRead_++; // no compression, bytesRead = uncompBytesRead
                 }
                 if (bytesRead_ > bytesLeft_)
                 { 
@@ -729,6 +756,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                   else
                     endOfRequestedRange_ = hdfsScanBuffer_ +
                                    trailingPrevRead_ + bytesLeft_;
+		  // should not get in here for compressed files
                 }
                 else
                    endOfRequestedRange_ = NULL;
@@ -751,8 +779,11 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	      {
 		// Position in the hdfsScanBuffer_ to the
 		// first record delimiter.  
-		hdfsBufNextRow_ = hdfs_strchr(hdfsScanBuffer_,
-                                         hdfsScanTdb().recordDelimiter_, hdfsScanBuffer_+trailingPrevRead_+ bytesRead_, checkRangeDelimiter_);
+		hdfsBufNextRow_ = 
+		  hdfs_strchr(hdfsScanBuffer_, hdfsScanTdb().recordDelimiter_, 
+			      hdfsScanBuffer_+trailingPrevRead_+
+			      uncompressedBytesRead_, 
+			      checkRangeDelimiter_);
 		// May be that the record is too long? Or data isn't ascii?
 		// Or delimiter is incorrect.
 		if (! hdfsBufNextRow_)
@@ -1127,7 +1158,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
             {
               // Get ready for another gulp of hdfs data.  
               debugtrailingPrevRead_ = trailingPrevRead_;
-              trailingPrevRead_ = bytesRead_ - 
+              trailingPrevRead_ = uncompressedBytesRead_ - 
                           (hdfsBufNextRow_ - 
                            (hdfsScanBuffer_ + trailingPrevRead_));
 
@@ -1223,8 +1254,9 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                        (NOT hdfsScanTdb().hdfsPrefetch()),  //1, // waited op
                        0, 
                        0,
-                       bytesRead_, // dummy
+                       bytesRead_, uncompressedBytesRead_, // dummy
                        NULL,
+		       NULL, 0, // compression
                        3, // close
                        0); // openType, not applicable for close
 
@@ -1514,7 +1546,8 @@ char * ExHdfsScanTcb::extractAndTransformAsciiSourceToSqlRow(int &err,
 
   const char cd = hdfsScanTdb().columnDelimiter_;
   const char rd = hdfsScanTdb().recordDelimiter_;
-  const char *sourceDataEnd = hdfsScanBuffer_+trailingPrevRead_+ bytesRead_;
+  const char *sourceDataEnd = hdfsScanBuffer_+trailingPrevRead_
+    +uncompressedBytesRead_;
 
   hdfsLoggingRow_ = hdfsBufNextRow_;
   if (asciiSourceTD->numAttrs() == 0)

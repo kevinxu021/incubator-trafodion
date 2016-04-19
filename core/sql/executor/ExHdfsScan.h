@@ -229,11 +229,15 @@ protected:
   Int64 bytesLeft_;
   hdfsFile hfdsFileHandle_;
   char * hdfsScanBuffer_;
-  char * hdfsBufNextRow_;
+  char * hdfsBufNextRow_;           // Pointer to next row
 
   char * debugPrevRow_;             // Pointer to help with debugging.
   Int64 debugtrailingPrevRead_;
   char *debugPenultimatePrevRow_;
+
+  char * compressionScratchBuffer_;
+  Lng32 compressionScratchMaxSize_;
+  Lng32 compressionScratchUsedSize_;
   
   ExSimpleSQLBuffer *hdfsSqlBuffer_;  // this buffer for one row, converted
                                       // from ascii to SQL for select pred.
@@ -270,6 +274,7 @@ protected:
   Int64 requestTag_;
   Int64 hdfsScanBufMaxSize_;
   Int64 bytesRead_;
+  Int64 uncompressedBytesRead_;
   Int64 trailingPrevRead_;     // for trailing bytes at end of buffer.
   Int64 numBytesProcessedInRange_;  // count bytes of complete records.
   bool  firstBufOfFile_;
@@ -301,6 +306,7 @@ protected:
   NABoolean exception_;
   ComCondition * lastErrorCnd_;
   NABoolean checkRangeDelimiter_;
+  NABoolean isCompressed_;
 };
 
 // -----------------------------------------------------------------------
