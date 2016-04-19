@@ -543,7 +543,9 @@ source $TRAF_CONFIG
 #============================================
 #Check to make sure HBase Version is the correct version
 
-checkHBaseVersion
+if [[ $HADOOP_TYPE != "apache" ]]; then
+   checkHBaseVersion
+fi
 #==============================================
 # Determine Trafodion version by parsing it
 # from the trafodion_server tar file.
@@ -748,6 +750,17 @@ if [[ $MODS_COMPLETE != "Y" ]]; then
       $LOCAL_WORKDIR/traf_hortonworks_mods98 2>&1 | tee -a $INSTALL_LOG
       if [ ${PIPESTATUS[0]}  != "0" ]; then
          echo "***ERROR: traf_hortonworks_mods98 exited with error." | tee -a $INSTALL_LOG
+         echo "***ERROR: Please check log files." | tee -a $INSTALL_LOG
+         echo "***ERROR: Exiting...." | tee -a $INSTALL_LOG
+         exit -1
+      fi
+   fi
+   
+    if [[ $HADOOP_TYPE == "apache" ]]; then
+      echo "***INFO: Will run traf_apache_mods" 2>&1 | tee -a $INSTALL_LOG
+      $LOCAL_WORKDIR/traf_apache_mods 2>&1 | tee -a $INSTALL_LOG
+      if [ ${PIPESTATUS[0]}  != "0" ]; then
+         echo "***ERROR: traf_apache_mods exited with error." | tee -a $INSTALL_LOG
          echo "***ERROR: Please check log files." | tee -a $INSTALL_LOG
          echo "***ERROR: Exiting...." | tee -a $INSTALL_LOG
          exit -1
