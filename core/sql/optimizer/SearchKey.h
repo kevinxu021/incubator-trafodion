@@ -967,6 +967,11 @@ public:
        const GroupAttributes *ga,
        const ValueIdSet &selectionPredicates);
 
+  // add more runtime partition elimination predicates, those
+  // must be validated by the caller
+  void addRuntimePartColPreds(const ValueIdSet &newPreds)
+                                          { partAndVirtColPreds_ += newPreds; }
+
   // evaluate some predicates on partition columns at compile time
   // to eliminate unneeded partitions and compute the partition
   // column values for the active partitions
