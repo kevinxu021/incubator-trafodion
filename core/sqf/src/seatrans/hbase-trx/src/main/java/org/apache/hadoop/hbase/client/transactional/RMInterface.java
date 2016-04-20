@@ -501,8 +501,12 @@ public class RMInterface {
     static public void replayEngineStart(final long timestamp) throws Exception {
       if (LOG.isTraceEnabled()) LOG.trace("replayEngineStart ENTRY with timestamp: " + timestamp);
 
-      ReplayEngine re = new ReplayEngine(timestamp);
-
+      try {
+          ReplayEngine re = new ReplayEngine(timestamp);
+      } catch (Exception e) {
+          if (LOG.isTraceEnabled()) LOG.trace("Exception caught creating the ReplayEnding : exception: " + e);
+          throw e;
+      }
       if (LOG.isTraceEnabled()) LOG.trace("replayEngineStart EXIT");
     }
 

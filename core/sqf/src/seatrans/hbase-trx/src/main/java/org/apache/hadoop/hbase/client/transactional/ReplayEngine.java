@@ -110,7 +110,7 @@ import org.apache.hadoop.fs.Path;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
-
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg;
 
 import java.util.List;
@@ -125,53 +125,71 @@ import java.io.*;
 public class ReplayEngine {
     static final Log LOG = LogFactory.getLog(ReplayEngine.class);
 
-    private Configuration config;
+    private static Configuration config;
     private FileSystem fileSystem = null;
-    long timeStamp = 0;
+  //  private int       my_cluster_id     = 0; 
+    private long timeStamp = 0;
 
-  //  Htable table;
-  
+    // These are here to not have to pass them around
+    private HTable table;
+    private HBaseAdmin admin;
+
     public ReplayEngine(long timestamp) throws Exception {
-        if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine constructor:");
+        if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine constructor ENTRY");
 
         timeStamp = timestamp;
+      //  pSTRConfig = STRConfig.getInstance(config);
+	//if (pSTRConfig != null) {
+	//    my_cluster_id = pSTRConfig.getMyClusterIdInt();
+
         config = HBaseConfiguration.create();
         fileSystem = FileSystem.get(config);
-        RecoveryRecord recoveryRecord = new RecoveryRecord(timestamp);
+        admin = new HBaseAdmin(config);
+
+        try {
+            RecoveryRecord recoveryRecord = new RecoveryRecord(timeStamp);
         
-      //  table = new HTable (config, tableName);
+            Map<String, TableRecoveryGroup> recoveryTableMap = recoveryRecord.getRecoveryTableMap();
+ 
+            for (Map.Entry<String, TableRecoveryGroup> tableEntry :  recoveryTableMap.entrySet())
+            {            
+                String tableName = tableEntry.getKey();
+                if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine working on table " + tableName);
 
-        Map<String, TableRecoveryGroup> recoveryTableMap = recoveryRecord.getRecoveryTableMap();
+                TableRecoveryGroup tableRecoveryGroup = tableEntry.getValue();
 
-        for (Map.Entry<String, TableRecoveryGroup> tableEntry :  recoveryTableMap.entrySet())
-        {
-            String tableName = tableEntry.getKey();
-            TableRecoveryGroup tableRecoveryGroup = tableEntry.getValue();
+                SnapshotMetaRecord tableMeta = tableRecoveryGroup.getSnapshotRecord();
+                String snapshotPath = tableMeta.getSnapshotPath();
+    
+                admin.restoreSnapshot(snapshotPath);
 
-            SnapshotMetaRecord tableMeta = tableRecoveryGroup.getSnapshotRecord();
-            String snapshotPath = tableMeta.getSnapshotPath();
-           
+                table = new HTable (config, tableName);   
+          
+                // Now go through mutations files one by one for now
+                List<MutationMetaRecord> mutationList = tableRecoveryGroup.getMutationList();
 
-            // RESTORE SNAPSHOT HERE
+                if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine : " + mutationList.size() + " multation files for " + tableName);
 
-            // Now go through mutations files one by one for now
-            List<MutationMetaRecord> mutationList = tableRecoveryGroup.getMutationList();
+                for (int i = 0; i < mutationList.size(); i++) {
+	    	    MutationMetaRecord mutationRecord = mutationList.get(i);
+                    String mutationPathString = mutationRecord.getMutationPath();
+                    Path mutationPath = new Path (mutationPathString);
 
-            for (int i = 0; i < mutationList.size(); i++) {
-		MutationMetaRecord mutationRecord = mutationList.get(i);
-                String mutationPathString = mutationRecord.getMutationPath();
-                Path mutationPath = new Path (mutationPathString);
-                mutationReaderFile(mutationPath);
-           }
+                    // read in mutation file, parse it and replay operations
+                    mutationReaderFile(mutationPath, config);
+               }
+            }
         }
-
-
-        if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine constructor exit");
+        catch (Exception e) {
+            if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine Exception occurred during Replay");
+            throw e;
+       }
+        if (LOG.isTraceEnabled()) LOG.trace("ReplayEngine constructor EXIT");
     }
 
-public void mutationReaderFile(Path readPath) throws IOException {
+    public void mutationReaderFile(Path readPath, Configuration config) throws IOException {
  
-  // this methid is invoked by the replay engine after a mutation file is included in the replay file set
+    // this method is invoked by the replay engine after a mutation file is included in the replay file set
 
       long sid;
       long cid;
@@ -203,7 +221,7 @@ public void mutationReaderFile(Path readPath) throws IOException {
 		  cid = tmm.getCommitId();
 		  iTxnProto++;
 
-                  if ( cid < timeStamp)
+                  if ( cid < timeStamp )
                   {
                     List<Boolean> putOrDel = tmm.getPutOrDelList();
                     List<MutationProto> putProtos = tmm.getPutList();
@@ -233,18 +251,18 @@ public void mutationReaderFile(Path readPath) throws IOException {
 		        // TRK-Not here mutationReplay(puts, deletes); // here is replay transaction by transaction (may just use HBase client API)
       
                     }
-                  }
-                  // print this txn's mutation context 
-              /*    if(LOG.isTraceEnabled()) LOG.trace("PIT mutationRead -- " + 
+  		    mutationReplay(puts, deletes); // here is replay transaction by transaction (may just use HBase client API)
+                    // print this txn's mutation context 
+                    if(LOG.isTraceEnabled()) LOG.trace("PIT mutationRead -- " + 
 		                    " Transaction Id " + tmm.getTxId() + 
 		                    " with startId " + sid + " and commitId " + cid + 
-		                    " has " + putIndex + " put " + deleteIndex + " delete ");
-		  
-                */  // complete current txnMutationProto    
+		                    " has " + putIndex + " put " + deleteIndex + " delete ");   
+                }
 
-		  // here use HBase client API to do HTable for lists puts and deletes 
-		//  mutationReplay(puts, deletes); // here is replay transaction by transaction (may just use HBase client API)
-                  tmm  = TransactionMutationMsg.parseDelimitedFrom(input); 
+		  
+                  // complete current txnMutationProto    
+
+                 tmm  = TransactionMutationMsg.parseDelimitedFrom(input); 
 	      } // more than one tsm inside a KV
 	      
 	      // has processed on KV, can invoke client put/delete call to replay
@@ -277,8 +295,8 @@ public void mutationReaderFile(Path readPath) throws IOException {
       
       try {
         
-     //  table.put(puts);
-     //  table.delete(deletes);
+       table.put(puts);
+       table.delete(deletes);
 
       } catch(Exception e) {
           StringWriter sw = new StringWriter();
