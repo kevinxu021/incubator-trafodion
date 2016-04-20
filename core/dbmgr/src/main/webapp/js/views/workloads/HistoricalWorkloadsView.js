@@ -244,6 +244,7 @@ define([
 			$('#state-completed').prop('checked',false);
 			$('#state-executing').prop('checked', false);
 			$('#state-init').prop('checked', false)
+			$('#state-unknown').prop('checked', false)
 
 			if(lastAppliedFilters != null){
 				$(FILTER_TIME_RANGE).val(lastAppliedFilters.timeRange);
@@ -305,6 +306,8 @@ define([
 				states.push($('#state-executing').val());
 			if($('#state-init').is(':checked'))
 				states.push($('#state-init').val());
+			if($('#state-unknown').is(':checked'))
+				states.push($('#state-unknown').val());
 
 			var param = {};
 
