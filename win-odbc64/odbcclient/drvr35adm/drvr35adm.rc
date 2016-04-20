@@ -82,7 +82,7 @@ BEGIN
             VALUE "FileDescription", "TRAF ODBC Client Adminstration DLL"
             VALUE "FileVersion", "2.1.0.0"
             VALUE "InternalName", "TRAF ODBC Client Adminstration DLL"
-            VALUE "LegalCopyright", "?Copyright 2015 Esgyn Corporation"
+            VALUE "LegalCopyright", "?Copyright 2015-2016 Esgyn Corporation"
             VALUE "OriginalFilename", "trfoadm1.dll"
             VALUE "ProductName", "TRAF ODBC"
             VALUE "ProductVersion", "2.1.0.0"
