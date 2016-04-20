@@ -101,9 +101,12 @@ public final class Constants {
 
   /** Parameter name for the root wms dir in ZK for this cluster */
   public static final String DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT = "/wms";
-  public static final String DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS = DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT + "/slas";
-  public static final String DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES = DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT + "/profiles";
-  public static final String DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS = DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT + "/mappings";
+  public static final String DEFAULT_SLAS = "slas";
+  public static final String DEFAULT_PROFILES = "profiles";
+  public static final String DEFAULT_MAPPINGS = "mappings";
+  public static final String DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS = DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT + "/" + DEFAULT_SLAS;
+  public static final String DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES = DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT + "/" + DEFAULT_PROFILES;
+  public static final String DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS = DEFAULT_ZOOKEEPER_ZNODE_WMS_PARENT + "/" + DEFAULT_MAPPINGS;
 
   /**
    * Parameter name for the limit on concurrent client-side zookeeper
@@ -249,20 +252,26 @@ public final class Constants {
   public static final String DEFAULT_WMS_MAPPING_NAME = "defaultMapping";
   /** WMS key names for properties SLA, Profile and Mapping*/
   public static final String IS_DEFAULT = "isDefault";
+  /** WMS key names for properties Profile */
+  public static final String CQD = "cqd";
+  public static final String HOST_LIST = "hostList";
+  /** WMS key names for MAPPING */
   public static final String IS_ACTIVE = "isActive";
-  public static final String PRIORITY = "priority";
-  public static final String LIMIT = "limit";
-  public static final String THROUGHPUT = "throughput";
   public static final String USER_NAME = "userName";
   public static final String APPLICATION_NAME = "applicationName";
   public static final String SESSION_NAME = "sessionName"; 
   public static final String ROLE_NAME = "roleName";
+  public static final String CLIENT_IP_ADDRESS = "clientIpAddress";
+  public static final String CLIENT_HOST_NAME = "clientHostName";
+  public static final String SLA = "sla"; 
+  public static final String ORDER_NUMBER = "orderNumber"; 
+  /** WMS key names for SLA */
+  public static final String PRIORITY = "priority";
+  public static final String LIMIT = "limit";
+  public static final String THROUGHPUT = "throughput";
   public static final String ON_CONNECT_PROFILE = "onConnectProfile";
   public static final String ON_DISCONNECT_PROFILE = "onDisconnectProfile"; 
   public static final String LAST_UPDATE = "lastUpdate"; 
-  public static final String SLA = "sla"; 
-  public static final String ORDER_NUMBER = "orderNumber"; 
-  public static final String CQD = "cqd"; 
   
   public static final String DEFAULT_ORDER_NUMBER = "99"; 
 

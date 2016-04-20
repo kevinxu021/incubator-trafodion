@@ -34,8 +34,8 @@ import org.trafodion.dcs.util.Bytes;
 /**
  * Constants holds a bunch of dcs-related constants
  */
-public final class Constants {
-
+public final class Constants { 
+    
     /** long constant for zero */
     public static final Long ZERO_L = Long.valueOf(0L);
     public static final String NINES = "99999999999999";
@@ -576,20 +576,26 @@ public final class Constants {
     public static final String DEFAULT_WMS_MAPPING_NAME = "defaultMapping";
     /** WMS key names for properties SLA, Profile and Mapping*/
     public static final String IS_DEFAULT = "isDefault";
+    /** WMS key names for properties Profile */
+    public static final String CQD = "cqd";
+    public static final String HOST_LIST = "hostList";
+    /** WMS key names for MAPPING */
     public static final String IS_ACTIVE = "isActive";
-    public static final String PRIORITY = "priority";
-    public static final String LIMIT = "limit";
-    public static final String THROUGHPUT = "throughput";
     public static final String USER_NAME = "userName";
     public static final String APPLICATION_NAME = "applicationName";
     public static final String SESSION_NAME = "sessionName"; 
     public static final String ROLE_NAME = "roleName";
+    public static final String CLIENT_IP_ADDRESS = "clientIpAddress";
+    public static final String CLIENT_HOST_NAME = "clientHostName";
+    public static final String SLA = "sla"; 
+    public static final String ORDER_NUMBER = "orderNumber"; 
+    /** WMS key names for SLA */
+    public static final String PRIORITY = "priority";
+    public static final String LIMIT = "limit";
+    public static final String THROUGHPUT = "throughput";
     public static final String ON_CONNECT_PROFILE = "onConnectProfile";
     public static final String ON_DISCONNECT_PROFILE = "onDisconnectProfile"; 
     public static final String LAST_UPDATE = "lastUpdate"; 
-    public static final String SLA = "sla"; 
-    public static final String ORDER_NUMBER = "orderNumber"; 
-    public static final String CQD = "cqd"; 
     
     public static final String DEFAULT_ORDER_NUMBER = "99"; 
     
