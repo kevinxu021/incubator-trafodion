@@ -3770,16 +3770,6 @@ ReqdPhysicalProperty* NestedJoin::genRightChildReqs(
 {
   ReqdPhysicalProperty* rppForChild = NULL;
 
-  // Nested join into non sorted ORC hive tables is not allowed.
-  /*
-  if (child(1).getGroupAttr()->allHiveTables() )
-   {
-      if ( !((child(1)).getGroupAttr()->allHiveORCTablesSorted()) ) {
-         return NULL;
-      }
-   }
-  */
-
   // ---------------------------------------------------------------
   // spp should have been synthesized for child's optimal plan.
   // ---------------------------------------------------------------
@@ -4535,7 +4525,7 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
   NABoolean noN2JForRead  = (
                              CmpCommon::getDefault(NESTED_JOINS_NO_NSQUARE_OPENS) == DF_ON ||
                              (CmpCommon::getDefault(NESTED_JOINS_NO_NSQUARE_OPENS) == DF_SYSTEM &&
-                              !(child(1).getGroupAttr()->allHiveORCTablesSorted())
+                              !(child(1).getGroupAttr()->allHiveORCTables())
                              ) && 
                              (updateTableDesc() == NULL));
 

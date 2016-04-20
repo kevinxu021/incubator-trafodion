@@ -3053,6 +3053,7 @@ short ExExeUtilLobExtractTcb::work()
 
 	case OPEN_CURSOR_:
 	  {
+	    Int64 dummyParam;
 	    retcode = ExpLOBInterfaceSelectCursor
 	      (lobGlobs,
 	       lobName_, 
@@ -3069,7 +3070,8 @@ short ExExeUtilLobExtractTcb::work()
 	       0, // not check status
 	       1, // waited op
 	       0, lobDataSpecifiedExtractLen_, 
-	       lobDataOutputLen, lobData_, 
+	       lobDataOutputLen, dummyParam, lobData_, 
+	       NULL, 0, // compression
 	       1, // open
 	       2); // must open
 
@@ -3093,6 +3095,7 @@ short ExExeUtilLobExtractTcb::work()
 
 	case READ_CURSOR_:
 	  {
+	    Int64 dummyParam;
 	    if (lobTdb().getToType() == ComTdbExeUtilLobExtract::TO_BUFFER_)
 	      so = Lob_Buffer;
 	    lobDataSpecifiedExtractLen_ = *((Int64 *)(lobTdb().dataExtractSizeIOAddr()));
@@ -3113,8 +3116,9 @@ short ExExeUtilLobExtractTcb::work()
 	       0, 
 	       lobDataSpecifiedExtractLen_, 
 	       //lobDataLen_, lobData_, 
-	       lobDataOutputLen,
+	       lobDataOutputLen, dummyParam, 
 	       lobData_,
+	       NULL,0, // compression
 	       2, // read
 	       0); // open type not applicable
 
@@ -3168,6 +3172,7 @@ short ExExeUtilLobExtractTcb::work()
 
 	case CLOSE_CURSOR_:
 	  {
+	    Int64 dummyParam;
 	    retcode = ExpLOBInterfaceSelectCursor
 	      (lobGlobs,
 	       lobName_, 
@@ -3185,7 +3190,8 @@ short ExExeUtilLobExtractTcb::work()
 	       1, // waited op
 
 	       0, lobDataSpecifiedExtractLen_, 
-	       lobDataLen_, lobData_, 
+	       lobDataLen_, dummyParam, lobData_, 
+	       NULL,0, // compression
 	       3, // close
                0); // open type not applicable
 
@@ -3374,7 +3380,7 @@ short ExExeUtilFileExtractTcb::work()
 	case OPEN_CURSOR_:
 	  {
 	    eodReturned_ = FALSE;
-
+	    Int64 dummyParam;
 	    retcode = ExpLOBInterfaceSelectCursor
 	      (lobGlobs,
 	       lobName_, 
@@ -3391,7 +3397,8 @@ short ExExeUtilFileExtractTcb::work()
 	       1, // waited op
 
 	       0, lobDataSpecifiedExtractLen_, 
-	       lobDataLen_, lobData_, 
+	       lobDataLen_, dummyParam, lobData_, 
+	       NULL, 0, // compression
 	       1, // open
 	       2); // must open
 
@@ -3421,7 +3428,7 @@ short ExExeUtilFileExtractTcb::work()
 		step_ = CLOSE_CURSOR_;
 		break;
 	      }
-
+	    Int64 dummyParam;
 	    retcode = ExpLOBInterfaceSelectCursor
 	      (lobGlobs,
 	       lobName_, 
@@ -3438,7 +3445,8 @@ short ExExeUtilFileExtractTcb::work()
 	       1, // waited op
 
 	       0, lobDataSpecifiedExtractLen_, 
-	       lobDataLen_, lobData_, 
+	       lobDataLen_, dummyParam, lobData_, 
+	       NULL, 0, // compression
 	       2, // read
 	       0); // open type not applicable
 
@@ -3480,6 +3488,7 @@ short ExExeUtilFileExtractTcb::work()
 
 	case CLOSE_CURSOR_:
 	  {
+	    Int64 dummyParam;
 	    retcode = ExpLOBInterfaceSelectCursor
 	      (lobGlobs,
 	       lobName_, 
@@ -3495,7 +3504,8 @@ short ExExeUtilFileExtractTcb::work()
 	       0, // not check status
 	       1, // waited op
 	       0, lobDataSpecifiedExtractLen_, 
-	       lobDataLen_, lobData_, 
+	       lobDataLen_, dummyParam, lobData_, 
+	       NULL, 0, // compression
 	       3, // close
                0); // open type not applicable
 	    if (retcode < 0)
