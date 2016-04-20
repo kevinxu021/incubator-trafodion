@@ -449,7 +449,7 @@ CoprocessorService, Coprocessor {
   long currentFileKey = -1;
   long smallestCommitId = -1;
   private Object mutationOpLock = new Object();
-  Path defaultPITPath;
+  Path currentPITPath;
   long currentSnapshotId = 0;
   
   private static Object mutationMetaLock = new Object();
@@ -6735,8 +6735,8 @@ CoprocessorService, Coprocessor {
                   } 
                   mutationWriterAction(4 /* append */, null, tmBuilder);
 		  
-		  // PIT test, let's say do write-to-KV every 10 txn
-		  if (mutationCount >= 10) {
+		  // PIT test, let's say do write-to-KV every 5 txn
+		  if (mutationCount >= 5) {
 	             mutationWriterAction(2 /* mutation writer append to flush current buffer */, null, null );  
 		  }
 		  
@@ -6745,8 +6745,8 @@ CoprocessorService, Coprocessor {
 		  //    b) system event such as pre-flush by HBase (memory store is goint to flush)
 		  //    c) per request (e.g. during full snapshot)
 		  //    d) by timer (optional)
-		  // PIT test, let's say do close&rollover every 100 txn
-		  if (mutationTotalCount >= 100) { 
+		  // PIT test, let's say do close&rollover every 20 txn
+		  if (mutationTotalCount >= 20) { 
 	             mutationWriterAction(2 /* mutation writer append to flush current buffer */, null, null );  
 	             mutationWriterAction(3 /* close mutation file */, null, null );  
 	             mutationWriterAction(1 /* new mutation file and writer */, null, null );
@@ -6814,7 +6814,7 @@ CoprocessorService, Coprocessor {
 	              //regionInfo.getTable().toString() + "-" + regionInfo.getEncodedName() +
 	              //"-" + Long.toString(timeKey));
 		      "mutation-reader"); // for reader to test a dpecial named mutation file
-	      defaultPITPath = writePath;
+	      currentPITPath = writePath;
 		      
 	      // PIT: special code for reader test, will only read a fixed-named mutation file
 	      // reader will log all the txn to be replayed through LOG.trace
@@ -6863,7 +6863,7 @@ CoprocessorService, Coprocessor {
 		   if(LOG.isTraceEnabled()) LOG.trace("mutation meta created successfully");                   
 	      }
       
-	      writePath = new Path("/hbase/PIT/mutation/" +
+	      currentPITPath = writePath = new Path("/hbase/PIT/mutation/" +
 	              regionInfo.getTable().toString() + "-snapshot-" + Long.toString(currentSnapshotId) +
 	              //"-encode-" + regionInfo.getEncodedName() +
 	              "-" + Long.toString(currentFileKey));
@@ -6877,14 +6877,14 @@ CoprocessorService, Coprocessor {
 					   false, "test");  // archive mode and path
 		   if(LOG.isTraceEnabled()) LOG.trace("mutation meta record created successfully"); 
                    meta.putMutationRecord(mmr);
-                   if(LOG.isTraceEnabled()) LOG.trace("PITMutation Record Put : key " + timeKey +
+                   if(LOG.isTraceEnabled()) LOG.trace("PITMutation Record Put Create : key " + timeKey +
 		               " snapshot id " + currentSnapshotId +
 		               " table " + regionInfo.getTable().toString() + 
 		               " region encoded name " + regionInfo.getRegionNameAsString() +
 		               " path " + writePath);
 		   
               } catch (Exception exc) {
-		       if(LOG.isTraceEnabled()) LOG.trace("put mutation record exception during mutation file creation");
+		       if(LOG.isTraceEnabled()) LOG.trace("PIT put mutation record exception during mutation file creation");
                        System.out.println("put mutation record exception " + exc);
                        //throw new IOException("put mutation record exception ");
               }
@@ -6946,24 +6946,25 @@ CoprocessorService, Coprocessor {
 					   currentSnapshotId, 
 	                                   smallestCommitId, mutationTotalSize, // for smallestCommitId & fileSize
 					   regionInfo.getRegionNameAsString(), // regionName as String
-					   writePath.toString(), // mutation file path as String
+					   currentPITPath.toString(), // mutation file path as String
 					   false, "test");  // archived mode and path
+		       if(LOG.isTraceEnabled()) LOG.trace("mutation meta record created successfully"); 
                        meta.putMutationRecord(mmr);
-                       if(LOG.isTraceEnabled()) LOG.trace("PITMutation Record Put : key " + currentFileKey +
+                       if(LOG.isTraceEnabled()) LOG.trace("PITMutation Record Put Close : key " + currentFileKey +
 		               " snapshot id " + currentSnapshotId +
 		               " table " + regionInfo.getTable().toString() + 
 		               " region encoded name " + regionInfo.getRegionNameAsString() +
-		               " path " + writePath);
+		               " path " + currentPITPath);
 		   
                    } catch (Exception exc) {
-		       if(LOG.isTraceEnabled()) LOG.trace("put mutation record exception during mutation file close");
+		       if(LOG.isTraceEnabled()) LOG.trace("PIT put mutation record exception during mutation file close");
                        System.out.println("put mutation record exception " + exc);
                        //throw new IOException("put mutation record exception ");
                     }
 	            } // synchronized on mutationMetaLock
 	            if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: close " + action + " " +
 		                        regionInfo.getTable().toString() + 
-		                        " PIT mutation file path " + defaultPITPath +
+		                        " PIT mutation file path " + currentPITPath +
 		                        " with smallest commitId " + smallestCommitId +
 		                        " number of total Txn Protos " + mutationTotalCount + 
 		                        " total txn mutation size " + mutationTotalSize);
