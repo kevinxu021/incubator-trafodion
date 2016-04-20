@@ -212,6 +212,12 @@ typedef struct _REPOS_STATS
 void SQL_EXEC_SetParserFlagsForExSqlComp_Internal( /*IN*/ unsigned int flagbits);
 void SQL_EXEC_ResetParserFlagsForExSqlComp_Internal( /*IN*/ unsigned int flagbits);
 
+Int32 SQL_EXEC_GetAuthState(
+   /*OUT*/  bool &authenticationEnabled,
+   /*OUT*/  bool &authorizationEnabled,
+   /*OUT*/  bool &authorizationReady,
+   /*OUT*/  bool &auditingEnabled);
+
 #define SKIP_COMPRIV_CHECK 0x100000
 
 #define MAX_EVAR_VALUE_LENGTH 3900 + 1
@@ -8604,32 +8610,45 @@ bool isInfoSystem(char*& sqlString, const IDL_char *stmtLabel, short& error)
    static char buffer[4000];
    char* in = sqlString;
    SRVR_STMT_HDL *pSrvrStmt = NULL;
-
+   char *databaseVersion;
+ 
+   databaseVersion = getenv("TRAFODION_VER");
 
    // get Timezone and GMT offset
    time_t tim     = time(NULL);
    struct tm *now = localtime(&tim);
 
+   string databaseEdition =  (IsAdvancedLevel() ? "EsgynDB Advanced" : "EsgynDB Enterprise");
+
+   bool authenticationEnabled = false;
+   bool authorizationEnabled = false;
+   bool authorizationReady = false;
+   bool auditingEnabled = false;
+
+   Int32 rc = SQL_EXEC_GetAuthState(authenticationEnabled,
+                           authorizationEnabled,
+                           authorizationReady,
+                           auditingEnabled);
+    
    char pattern[] = "SELECT [first 1]"
                     "current_timestamp as \"CURRENT_TIME\","
                     "'%s' as \"NDCS_VERSION\","
                     "'%s' as \"TM_ZONE\","
-                    "'%d' as \"TM_GMTOFF_SEC\""
-//                    "FROM hp_system_catalog.mxcs_schema.datasources FOR READ UNCOMMITTED ACCESS;";
-			"FROM (values(1)) X(A);";
+                    "'%d' as \"TM_GMTOFF_SEC\","
+                    "'%s' as \"DATABASE_VERSION\","
+                    "'%s' as \"DATABASE_EDITION\","
+                    "'%s' as \"AUTHENTICATION_ENABLED\","
+                    "'%s' as \"AUTHORIZATION_ENABLED\""
+		    "FROM (values(1)) X(A);";
 
    sprintf (buffer, pattern,
 	    ndcs_vers_str(),
             now->tm_zone,
-            now->tm_gmtoff);
-
-// other comments:
-// the repository view does not exist - maybe a M6 item
-// platform version: SCM have anything to return just the platform version.
-// its tagged on at the end of the version string for each component (the bits after 'Release'
-// ex: mxosrvr Version 1.0.1 Release 5.0.0 (Build release [5939], date 03Apr11)
-
-
+            now->tm_gmtoff,
+            databaseVersion,
+            databaseEdition.c_str(),
+            authenticationEnabled ? "true" : "false",
+            authorizationEnabled ? "true" : "false");
 
 	if (stmtLabel != NULL && stmtLabel[0] != 0)
 		pSrvrStmt = SRVR::getSrvrStmt(stmtLabel, TRUE);
