@@ -326,6 +326,7 @@ define([
 			$('#component-sql-udr').prop('checked', false);
 			$('#component-wdg').prop('checked', false);
 			$('#component-dcs').prop('checked', false);
+			$('#component-rest').prop('checked', false);
 
 			if(lastAppliedFilters != null){
 				$(FILTER_TIME_RANGE).val(lastAppliedFilters.timeRange);
@@ -353,6 +354,7 @@ define([
 				});
 
 				$('#component-dcs').prop('checked',(lastAppliedFilters.dcs && lastAppliedFilters.dcs == true));
+				$('#component-rest').prop('checked',(lastAppliedFilters.rest && lastAppliedFilters.rest == true));
 			}
 		},
 
@@ -451,6 +453,8 @@ define([
 			param.message = $(FILTER_MESSAGE_TEXT).val();
 			if($('#component-dcs').is(':checked'))
 				param.dcs = true;
+			if($('#component-rest').is(':checked'))
+				param.rest= true;
 
 			return param;
 		},

@@ -260,7 +260,7 @@ define([
 			compDataSet.push(["Est.IO Time", common.millisecondsToString(result.metrics.est_io_time*1000)]);
 			compDataSet.push(["Est.Message Time", common.millisecondsToString(result.metrics.est_msg_time*1000)]);
 			compDataSet.push(["Est.Idle Time", common.millisecondsToString(result.metrics.est_idle_time*1000)]);
-			compDataSet.push(["CPU Path Length", result.metrics.cmp_cpu_path_length]);
+			compDataSet.push(["CPU Path Length", common.microsecondsToStringExtend(result.metrics.cmp_cpu_path_length)]);
 			compDataSet.push(["Number of BMOs", result.metrics.cmp_number_of_bmos]);
 			compDataSet.push(["Compile Overflow Size", common.bytesToSize(result.metrics.cmp_overflow_size*1024)]);
 
