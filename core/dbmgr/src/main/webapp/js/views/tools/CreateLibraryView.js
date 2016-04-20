@@ -27,6 +27,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 	var UPLOAD_INDEX = 0;
 	var UPLOAD_LENGTH = 0;
 	var validator = null;
+	var isAjaxCompleted=true;
 	
 	var CreateLibraryView = BaseView.extend({
 		template : _.template(CreateLibraryT),
@@ -73,6 +74,11 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		doResume : function(args) {
 			this.currentURL = window.location.hash;
 			common.redirectFlag=false;
+			if(this.isAjaxCompleted=true){
+				$(LOADING).css('visibility', 'hidden');
+				$(CREATE_BTN).prop('disabled', false);
+				$(CLEAR_BTN).prop('disabled', false);
+			}
 			validator.resetForm();
 		},
 		doPause : function() {
@@ -118,7 +124,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			var end = chunk_size;
 			var totalChunks = Math.ceil(fileSize / chunk_size);
 			UPLOAD_INDEX = 0;
-			
+			UPLOAD_LENGTH=0;
 			while(start < fileSize){
 				var slice_method = "";
 				if ('mozSlice' in file) {
@@ -152,6 +158,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		},
 		
 		executeUploadChunk : function(sflag, eflag){
+			_this.isAjaxCompleted=false;
 			var data = CHUNKS[UPLOAD_INDEX];
 			tHandler.createLibrary(data.chunk, data.fileName, data.filePart, data.fileSize, data.schemaName, data.libraryName, sflag, eflag);
 			UPLOAD_INDEX++;
@@ -163,6 +170,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			$(FILE_NAME).val(FILE.name);
 		},
 		createLibrarySuccess : function(){
+			_this.isAjaxCompleted=true;
 			if(UPLOAD_INDEX==UPLOAD_LENGTH){
 				$(LOADING).css('visibility', 'hidden');
 				$(CREATE_BTN).prop('disabled', false);
@@ -182,6 +190,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			}
 		},
 		createLibraryError : function(error){
+			_this.isAjaxCompleted=true;
 			$(LOADING).css('visibility', 'hidden');
 			$(CREATE_BTN).prop('disabled', false);
 			$(CLEAR_BTN).prop('disabled', false);
