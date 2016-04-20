@@ -3,10 +3,6 @@
 export timestamp=$(date +%F-%H-%M-%S)
 export YUM_LOG=/var/log/trafodion/trafodion_yum_$timestamp.log
 export ZYPP_LOG=/var/log/trafodion/trafodion_zypp_$timestamp.log
-export hadoop_path=$HADOOP_PATH
-echo $hadoop_path
-export hadoop_bin_path=$HADOOP_BIN_PATH
-echo $hadoop_bin_path
 
 TRAF_CONFIG="/etc/trafodion/trafodion_config"
 source $TRAF_CONFIG
@@ -18,6 +14,12 @@ if [ $node_count -eq 1 ]; then
 else
     TRAF_PDSH="pdsh -R exec $MY_NODES ssh -q -n %h"
     TRAF_PDCP="pdcp -R ssh $MY_NODES"
+fi
+
+if [[ "$ENABLE_HA" == "true" ]]; then
+   DCS_HOSTNAME="$FLOATING_IP"
+else
+   DCS_HOSTNAME="$(hostname -f)"
 fi
 
 function shutDownMgblty  {
@@ -191,6 +193,12 @@ function getZookeeperNodes {
 
 source /etc/trafodion/trafodion_config
 
+lineNumber=$(grep -n "zookeeper\.quorum" $TRAF_WORKDIR/hbase-site.xml | sed 's/\:.*//')
+lineNumber=$((lineNumber+1))
+
+ZOOKEEPER_NODES=$(sed "$lineNumber!d" $TRAF_WORKDIR/hbase-site.xml | sed 's/\/value.*//' | sed 's/.*>//' | sed 's/.$//')
+
+
 ZOO_NODES=$(echo $ZOOKEEPER_NODES | tr "," "\n")
 
 newNodes=""
@@ -210,8 +218,8 @@ done
 zookeeperNodes="${tempNodes%?}"
 
 sudo chmod 777 $TRAF_CONFIG
-sed -i '/ZOO_PORT_NODES\=/d' $TRAF_CONFIG
-echo "export ZOO_PORT_NODES=\"$zookeeperNodes\"" >> $TRAF_CONFIG
+sed -i '/ZOOKEEPER_NODES\=/d' $TRAF_CONFIG
+echo "export ZOOKEEPER_NODES=\"$zookeeperNodes\"" >> $TRAF_CONFIG
 sudo chmod 777 $TRAF_CONFIG
 source $TRAF_CONFIG
 
@@ -229,32 +237,19 @@ sudo su $TRAF_USER --command "chmod 777 $CREATE_TABLE"
 
 sudo su $TRAF_USER --command "$TRAF_PDSH $CREATE_TABLE"
 
-if [[ $? -ne "0" ]]; then
-   echo "***ERROR: Unable to create openTSDB Tables"
-   echo "***ERROR: Exiting..."
-   exit -1
-fi
-
-
 }
 
 function registerMetrics {
 CREATE_METRICS="$SQ_ROOT/mgblty/opentsdb/tools/register_metrics.sh"
 
 echo "***INFO: Registering Metrics"
+echo "***INFO: Can take a LONG time"
 echo
-sudo su $TRAF_USER --command "echo 'source /etc/trafodion/trafodion_config' | cat - $CREATE_METRICS > temp && mv temp $CREATE_METRICS"
+sudo su $TRAF_USER --login --command "echo 'source /etc/trafodion/trafodion_config' | cat - $CREATE_METRICS > temp && mv temp $CREATE_METRICS"
 
-sudo su $TRAF_USER --command "chmod 777 $CREATE_METRICS"
+sudo su $TRAF_USER --login --command "chmod 777 $CREATE_METRICS"
 
-sudo su $TRAF_USER --command "$CREATE_METRICS"
-
-
-if [[ $? -ne "0" ]]; then
-   echo "***ERROR: Register Metrics Failed"
-   echo "***ERROR: Exiting..."
-   exit -1
-fi
+sudo su $TRAF_USER --login --command "$CREATE_METRICS"
 
 }
 
@@ -307,7 +302,7 @@ if [[ ! -z $openPort ]]; then
       sudo su $TRAF_USER --command "$TRAF_PDCP $OPENTSDB_CONFIG $OPENTSDB_CONFIG"
    fi
 
-   newPort="tsdbHost = $DCS_MASTER_HOST:$port"
+   newPort="tsdbHost = $DCS_HOSTNAME:$port"
    sudo sed -i -e "s/tsdbHost = localhost:5242/$newPort/g" $BOSUN_CONFIG
    if [[ $node_count -ne "1" ]]; then
       sudo su $TRAF_USER --command "$TRAF_PDCP $BOSUN_CONFIG $BOSUN_CONFIG" 
@@ -373,7 +368,7 @@ echo "***INFO: Editing opentsdb.conf file with Zookeeper Nodes"
 
 OPENTSDB_CONFIG="$SQ_ROOT/mgblty/opentsdb/etc/opentsdb/opentsdb.conf"
 
-zooKeeperNodes="tsd.storage.hbase.zk_quorum = $ZOO_PORT_NODES"
+zooKeeperNodes="tsd.storage.hbase.zk_quorum = $ZOOKEEPER_NODES"
 sudo sed -i -e "s/tsd.storage.hbase.zk.quorum = localhost:2181/$zooKeeperNodes/g" $OPENTSDB_CONFIG
 sudo sed -i -e "s@TIMEZONE_NAME@$TIME_ZONE@g" $OPENTSDB_CONFIG
 
@@ -394,7 +389,6 @@ function editStartStop {
 
 START_STOP="$SQ_ROOT/mgblty/tcollector/startstop"
 TRAF_CANARY="$SQ_ROOT/mgblty/tcollector/collectors/300/trafcanqry.py"
-UPD_ORPHAN_QRY="$SQ_ROOT/mgblty/tcollector/collectors/1800/upd_orphan_qry.py"
 HBASE_COLLECTOR="$SQ_ROOT/mgblty/tcollector/collectors/0/hbase_master.py"
 REGIONSERVER_COLLECTOR="$SQ_ROOT/mgblty/tcollector/collectors/0/hbase_regionserver.py"
 defaultHBaseInfoPort="60010"
@@ -404,6 +398,7 @@ defaultRegionServerInfoPort="60030"
 echo "***INFO: Editing TCollector startstop script with TSD_HOST and TSD_PORT"
 
 TSD_PORT_STR="TSD_PORT=$TSD_PORT"
+DCS_MASTER_HOST="$DCS_HOSTNAME"
 
 for node in $NODE_LIST
 do
@@ -412,8 +407,6 @@ do
 
    ssh -q -n $node sudo sed -i -e "s@DCS_MASTER_HOST:DCS_PORT@$DCS_MASTER_HOST:$DCS_PORT@" $TRAF_CANARY
   
-   ssh -q -n $node sudo sed -i -e "s@DCS_MASTER_HOST:DCS_PORT@$DCS_MASTER_HOST:$DCS_PORT@" $UPD_ORPHAN_QRY
-
    ssh -q -n $node sudo sed -i -e "s#$defaultHBaseInfoPort#$HBASE_MASTER_INFO_PORT#g" $HBASE_COLLECTOR
      
    ssh -q -n $node sudo sed -i -e "s#$defaultRegionServerInfoPort#$REGIONSERVER_INFO_PORT#g" $REGIONSERVER_COLLECTOR
@@ -469,7 +462,7 @@ DBMGR_KEYSTORE="$DBMGR_INSTALL_DIR/etc/dbmgr.keystore"
 
 echo "***INFO: Configuring DB Manager"
 
-sudo su $TRAF_USER --login --command "$DBMGR_INSTALL_DIR/bin/configure.py --httpport $DM_HTTP_PORT --httpsport $DM_HTTPS_PORT --dcshost $DCS_MASTER_HOST --dcsport $DCS_PORT --password dbmgr23400 --dcsinfoport $DCS_INFO_PORT --resthost $DCS_MASTER_HOST --restport $REST_PORT --tsdhost $DCS_MASTER_HOST --tsdport $TSD_PORT --bosunhost $DCS_MASTER_HOST --bosunport $HTTP_PORT --timezone $TIME_ZONE --adminuser $DB_ADMIN_USER --adminpassword $DB_ADMIN_PASSWORD"
+sudo su $TRAF_USER --login --command "$DBMGR_INSTALL_DIR/bin/configure.py --httpport $DM_HTTP_PORT --httpsport $DM_HTTPS_PORT --dcshost $DCS_HOSTNAME --dcsport $DCS_PORT --password dbmgr23400 --dcsinfoport $DCS_INFO_PORT --resthost $DCS_HOSTNAME --restport $REST_PORT --tsdhost $DCS_HOSTNAME --tsdport $TSD_PORT --bosunhost $DCS_HOSTNAME --bosunport $HTTP_PORT --timezone $TIME_ZONE --adminuser $DB_ADMIN_USER --adminpassword $DB_ADMIN_PASSWORD"
 
 if [[ $node_count -ne "1" ]]; then
    sudo su $TRAF_USER --command "$TRAF_PDCP $DBMGR_CONFIG $DBMGR_CONFIG"
@@ -491,17 +484,6 @@ $TRAF_PDSH sudo chmod -R 755 $DBMGR_INSTALL_DIR
 
 }
 
-function setHadoopPath {
-
-sudo chmod 777 $TRAF_CONFIG
-echo "export HADOOP_PATH=\"$hadoop_path\"" >> $TRAF_CONFIG
-echo "export HADOOP_BIN_PATH=\"$hadoop_bin_path\"" >> $TRAF_CONFIG
-sudo chmod 777 $TRAF_CONFIG
-source $TRAF_CONFIG
-
-
-}
-
 #================================================
 
 #Main
@@ -510,7 +492,7 @@ shutDownMgblty
 
 setPackageNames
 
-installPackages
+#installPackages
 
 unTarPackage
 
@@ -539,5 +521,3 @@ editLogBack
 configureDBM
 
 changePermissions
-
-setHadoopPath
