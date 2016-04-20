@@ -121,6 +121,45 @@ select * from hivepts where p2 = 'two';
 execute display_rows_accessed;
 select * from hivepi join hivepis on hivepi.p1 = hivepis.p1;
 
+-- min/max optimization, leading to partition elimination
+cqd GEN_HSHJ_MIN_MAX_OPT 'on';
+control query shape hash_join(scan('P'), scan('N'));
+
+prepare s from
+select p.id, n.id, p.p1, n.p1
+from hive.hive.hivepi p join hive.hive.hivenonp n
+  on p.p1 = n.p1
+where n.id in (2, 22);
+
+-- validate that the min/max values are actually used
+select operator, tname
+from table(explain(null, 'S'))
+where description like '%:_sys_MinVal0%'
+  and description like '%:_sys_MaxVal0%';
+
+execute s;
+
+-- allow VEG between varchars
+cqd comp_bool_158 'on';
+
+prepare s from
+select p.id, n.id, p.p1, n.p1, p.p2
+from hive.hive.hivepis p join hive.hive.hivenonp n
+  on p.p1 = n.p1 and p.p2 = n.p2
+where n.id in (2, 22) and p.p2 like '%w%';
+
+-- validate that the min/max values are actually used
+select operator, tname
+from table(explain(null, 'S'))
+where description like '%:_sys_MinVal0%'
+  and description like '%:_sys_MaxVal0%'
+  and description like '%:_sys_MinVal1%'
+  and description like '%:_sys_MaxVal1%';
+
+execute s;
+
+control query shape cut;
+
 -- insert some data and add one more partition
 sh regrhive.ksh -v -f $REGRTSTDIR/TEST005_b.hive.sql;
 

@@ -2805,7 +2805,7 @@ NABoolean NestedJoinRule::topMatch(RelExpr * relExpr,
   // Nested join into non sorted ORC hive tables is not allowed.
   if (joinExpr->child(1).getGroupAttr()->allHiveTables() )
      {
-          if ( !(joinExpr->child(1).getGroupAttr()->allHiveORCTablesSorted()) ) {
+          if ( !(joinExpr->child(1).getGroupAttr()->allHiveORCTables()) ) {
                return FALSE;
           } else {
              if ( CmpCommon::getDefault(ORC_NJS) != DF_ON ) 

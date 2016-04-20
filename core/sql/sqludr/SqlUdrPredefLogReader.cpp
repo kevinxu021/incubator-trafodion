@@ -474,7 +474,7 @@ void ReadCppEventsUDFInterface::processData(UDRInvocationInfo &info,
   char *ok = NULL;                        // status of fgets
   int haveRowToEmit = 0;
   int appendPos = 0;
-  int numLogLocations = 2 ;
+  int numLogLocations = 3 ;
 
   for(int logLocationIndex = 0; logLocationIndex < numLogLocations; logLocationIndex++) 
   {
@@ -492,6 +492,13 @@ void ReadCppEventsUDFInterface::processData(UDRInvocationInfo &info,
 	throw UDRException(38001, "DCS_INSTALL_DIR not set");
       else if (strlen(logrootdir) > 1000)
 	throw UDRException(38001, "DCS_INSTALL_DIR is longer than 1000 characters");
+      break ;
+    case 2:
+      logrootdir = getenv("REST_INSTALL_DIR");
+      if (!logrootdir)
+	throw UDRException(38001, "REST_INSTALL_DIR not set");
+      else if (strlen(logrootdir) > 1000)
+	throw UDRException(38001, "REST_INSTALL_DIR is longer than 1000 characters");
       break ;
     default:
       throw UDRException(38001, "Internal error in determining logroot directory");
@@ -628,7 +635,8 @@ void ReadCppEventsUDFInterface::processData(UDRInvocationInfo &info,
 	   strstr(fileName, "pstartd")               == fileName ||
 	   strstr(fileName, "wdg")                   == fileName || 
 	   strstr(fileName, "udr_")                  == fileName ||
-	   strstr(fileName, "dcs-")                  == fileName 
+	   strstr(fileName, "dcs-")                  == fileName ||
+	   strstr(fileName, "rest-")                  == fileName 
 	   ))
       {
         if (infile_ != NULL)

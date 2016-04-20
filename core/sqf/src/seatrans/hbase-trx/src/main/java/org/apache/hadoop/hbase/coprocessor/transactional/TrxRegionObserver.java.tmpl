@@ -231,6 +231,8 @@ public void start(CoprocessorEnvironment e) throws IOException {
     }
     
     this.configuredPITRecovery = re.getConfiguration().getBoolean("hbase.regionserver.region.transactional.pit", false);
+    // PIT test 
+    // this.configuredPITRecovery = true;
     if (LOG.isTraceEnabled()) LOG.trace("TrxRegionObserver coprocessor: PIT Recovery setting is " + this.configuredPITRecovery +
 	          " PIT Recovery HA setting is " +  this.configuredPITRecoveryHA +
                   "\nTrxRegionObserver coprocessor: get the reference from Region CoprocessorEnvironment ");
@@ -551,7 +553,8 @@ static ConcurrentHashMap<String, Object> getRefMap() {
 public void preFlush(ObserverContext<RegionCoprocessorEnvironment> e) {
 
     // PIT: close mutation file if any
-    if (configuredPITRecoveryHA) {
+    //if (configuredPITRecoveryHA) {
+    if (configuredPITRecovery) {
 	  try {
              if(trxepcp == null) {
                 //@SuppressWarnings("rawtypes")
