@@ -48,6 +48,7 @@ import org.trafodion.dcs.util.DcsConfiguration;
 import org.trafodion.dcs.util.DcsNetworkConfiguration;
 import org.trafodion.dcs.master.Metrics;
 import org.trafodion.dcs.master.mapping.DefinedMapping;
+import org.trafodion.dcs.master.registeredServers.RegisteredServers;
 
 public class ListenerService extends Thread{
     private static  final Log LOG = LogFactory.getLog(ListenerService.class);
@@ -67,12 +68,14 @@ public class ListenerService extends Thread{
     private List<PendingRequest> pendingChanges = new LinkedList<PendingRequest>();	//list of PendingRequests instances
     private HashMap<SelectionKey, Long> timeouts = new HashMap<SelectionKey, Long>(); // hash map of timeouts
     private DefinedMapping mapping = null;
+    private RegisteredServers registeredServers = null;
     
     private void init(){
         try {
-            mapping = new DefinedMapping(zkc,parentZnode);
+            mapping = new DefinedMapping(this);
+            registeredServers = new RegisteredServers(this);
             if(metrics != null)metrics.initListenerMetrics(System.nanoTime());
-            worker = new ListenerWorker(zkc,parentZnode,mapping);
+            worker = new ListenerWorker(this);
             worker.start();
             this.start();
         } catch (Exception e){
@@ -439,6 +442,18 @@ public class ListenerService extends Thread{
             key.cancel();
             if(metrics != null)metrics.listenerRequestRejected();
         }
+    }
+    public ZkClient getZkc(){
+        return zkc;
+    }
+    public String getParentZnode(){
+        return parentZnode;
+    }
+    public DefinedMapping getMapping(){
+        return mapping;
+    }
+    public RegisteredServers getRegisteredServers(){
+        return registeredServers;
     }
 
     public static void main(String [] args) {

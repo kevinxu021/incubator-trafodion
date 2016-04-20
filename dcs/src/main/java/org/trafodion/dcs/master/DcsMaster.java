@@ -43,13 +43,12 @@ import org.apache.zookeeper.data.Stat;
 import org.trafodion.dcs.Constants;
 import org.trafodion.dcs.master.listener.ListenerService;
 import org.trafodion.dcs.util.Bytes;
-
-import org.trafodion.dcs.util.DcsConfiguration;
 import org.trafodion.dcs.util.DcsNetworkConfiguration;
 import org.trafodion.dcs.util.InfoServer;
 import org.trafodion.dcs.util.VersionInfo;
 import org.trafodion.dcs.zookeeper.ZKConfig;
-import org.trafodion.dcs.zookeeper.ZkClient; 
+import org.trafodion.dcs.zookeeper.ZkClient;
+import org.trafodion.dcs.util.DcsConfiguration;
 
 public class DcsMaster implements Runnable {
     private static final Log LOG = LogFactory.getLog(DcsMaster.class);
@@ -375,13 +374,15 @@ public class DcsMaster implements Runnable {
     }
     private void createDefaultMapping(String path) throws KeeperException, InterruptedException{
         
-        byte data[] = Bytes.toBytes(String.format("%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%d:%s=%s",
+        byte data[] = Bytes.toBytes(String.format("%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%s:%s=%d:%s=%s",
                 Constants.IS_ACTIVE,"yes",
                 Constants.SLA,Constants.DEFAULT_WMS_SLA_NAME,
                 Constants.USER_NAME, "",
                 Constants.APPLICATION_NAME, "",
                 Constants.SESSION_NAME, "",
-                Constants.ROLE_NAME, "", 
+                Constants.ROLE_NAME, "",
+                Constants.CLIENT_IP_ADDRESS, "",
+                Constants.CLIENT_HOST_NAME, "",
                 Constants.LAST_UPDATE, startTime,
                 Constants.ORDER_NUMBER, Constants.DEFAULT_ORDER_NUMBER
                 ));

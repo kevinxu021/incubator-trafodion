@@ -45,7 +45,7 @@ public class ListenerWorker extends Thread {
     private ZkClient zkc=null;
     ConnectReply connectReplay = null;
     private String parentZnode;
-    private DefinedMapping mapping = null;
+    private ListenerService listener = null;
     
     private RequestGetObjectRef requestGetObjectRef = null;
     private RequestCancelQuery requestCancelQuery = null;
@@ -62,15 +62,15 @@ public class ListenerWorker extends Thread {
             System.exit(-1);
         }
     }
-    ListenerWorker(ZkClient zkc,String parentZnode, DefinedMapping mapping){	
-        this.zkc=zkc;
-        this.parentZnode=parentZnode;
-        this.mapping = mapping;
-        connectReplay = new ConnectReply(zkc,parentZnode, mapping);
+    ListenerWorker(ListenerService listener){	
+        this.zkc=listener.getZkc();
+        this.parentZnode=listener.getParentZnode();
+        this.listener = listener;
+        connectReplay = new ConnectReply(listener);
         
-        requestGetObjectRef = new RequestGetObjectRef(zkc,parentZnode, mapping);
-        requestCancelQuery = new RequestCancelQuery(zkc,parentZnode);
-        requestUnknown = new RequestUnknown(zkc,parentZnode);
+        requestGetObjectRef = new RequestGetObjectRef(listener);
+        requestCancelQuery = new RequestCancelQuery(listener);
+        requestUnknown = new RequestUnknown(listener);
         
         System.setProperty("hbaseclient.log4j.properties",System.getProperty("dcs.conf.dir") + "/log4j.properties");
         System.setProperty("dcs.root.logger",System.getProperty("dcs.root.logger"));

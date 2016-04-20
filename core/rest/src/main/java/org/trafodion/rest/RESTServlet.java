@@ -35,6 +35,7 @@ import org.trafodion.rest.script.ScriptManager;
 import org.trafodion.rest.script.ScriptContext;
 import org.trafodion.rest.util.RestConfiguration;
 import org.apache.zookeeper.*;
+import org.apache.zookeeper.Watcher.Event;
 import org.apache.zookeeper.data.Stat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.commons.logging.Log;
@@ -102,9 +103,9 @@ public class RESTServlet implements RestConstants {
 		    LOG.info("Connected to ZooKeeper");
 		    getZkRunning();
 		    getZkRegistered();
-		    getZkSlas(new SlaWatcher());
-		    getZkProfiles(new ProfileWatcher());
-		    getZkMappings(new MappingWatcher());
+		    initZkSlas();
+		    initZkProfiles();
+		    initZkMappings();
 		} catch (Exception e) {
 		    LOG.error(e);
 		    System.exit(1);
@@ -157,9 +158,66 @@ public class RESTServlet implements RestConstants {
         public void process(WatchedEvent event) {
             if(event.getType() == Event.EventType.NodeChildrenChanged) {
                 if(LOG.isDebugEnabled())
-                    LOG.debug("SLA children changed [" + event.getPath() + "]");
+                    LOG.debug("Sla children changed [" + event.getPath() + "]");
                 try {
-                    getZkSlas(new SlaWatcher());
+                    Stat stat = null;
+                    byte[] data = null;
+                    String znode = event.getPath();
+                    
+                    Set<String> keyset = new HashSet<String>(slasMap.keySet());
+                    
+                    List<String> children = zkc.getChildren(znode,new SlaWatcher());
+                    if( ! children.isEmpty()){ 
+                        for(String child : children) {
+                            
+                            stat = zkc.exists(znode + "/" + child,false);
+                            if(stat != null) {
+                                if (keyset.contains(child)){
+                                    keyset.remove(child);
+                                    continue;
+                                }
+                                //add new record
+                                LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                                data = zkc.getData(znode + "/" + child, new SlaDataWatcher(), stat);
+                                String delims = "[=:]";
+                                String[] tokens = (new String(data)).split(delims);
+                                for (int i = 0; i < tokens.length; i=i+2){
+                                    attributes.put(tokens[i], tokens[i + 1]);
+                                }
+                                slasMap.put(child, attributes);
+                            }
+                        }
+                        for (String child : keyset) {
+                            slasMap.remove(child);
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    if(LOG.isErrorEnabled())
+                        LOG.error(e);
+                }
+            }
+        }
+    }
+    class SlaDataWatcher implements Watcher {
+        public void process(WatchedEvent event) {
+
+            if(event.getType() == Event.EventType.NodeDataChanged){
+                if(LOG.isDebugEnabled())
+                    LOG.debug("Data Watcher [" + event.getPath() + "]");
+                try {
+                    Stat stat = null;
+                    byte[] data = null;
+                    String znode = event.getPath();
+                    String child = znode.substring(znode.lastIndexOf('/') + 1);
+                    LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                    data = zkc.getData(znode, new SlaDataWatcher(), stat);
+                    String delims = "[=:]";
+                    String[] tokens = (new String(data)).split(delims);
+                    for (int i = 0; i < tokens.length; i=i+2){
+                        attributes.put(tokens[i], tokens[i + 1]);
+                    }
+                    slasMap.put(child,attributes);;
                 } catch (Exception e) {
                     e.printStackTrace();
                     if(LOG.isErrorEnabled())
@@ -174,7 +232,64 @@ public class RESTServlet implements RestConstants {
                 if(LOG.isDebugEnabled())
                     LOG.debug("Profile children changed [" + event.getPath() + "]");
                 try {
-                    getZkProfiles(new ProfileWatcher());
+                    Stat stat = null;
+                    byte[] data = null;
+                    String znode = event.getPath();
+                    
+                    Set<String> keyset = new HashSet<String>(profilesMap.keySet());
+                    
+                    List<String> children = zkc.getChildren(znode,new ProfileWatcher());
+                    if( ! children.isEmpty()){ 
+                        for(String child : children) {
+                            
+                            stat = zkc.exists(znode + "/" + child,false);
+                            if(stat != null) {
+                                if (keyset.contains(child)){
+                                    keyset.remove(child);
+                                    continue;
+                                }
+                                //add new record
+                                LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                                data = zkc.getData(znode + "/" + child, new ProfileDataWatcher(), stat);
+                                String delims = "[=:]";
+                                String[] tokens = (new String(data)).split(delims);
+                                for (int i = 0; i < tokens.length; i=i+2){
+                                    attributes.put(tokens[i], tokens[i + 1]);
+                                }
+                                profilesMap.put(child, attributes);
+                            }
+                        }
+                        for (String child : keyset) {
+                            profilesMap.remove(child);
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    if(LOG.isErrorEnabled())
+                        LOG.error(e);
+                }
+            }
+        }
+    }
+   class ProfileDataWatcher implements Watcher {
+        public void process(WatchedEvent event) {
+
+            if(event.getType() == Event.EventType.NodeDataChanged){
+                if(LOG.isDebugEnabled())
+                    LOG.debug("Data Watcher [" + event.getPath() + "]");
+                try {
+                    Stat stat = null;
+                    byte[] data = null;
+                    String znode = event.getPath();
+                    String child = znode.substring(znode.lastIndexOf('/') + 1);
+                    LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                    data = zkc.getData(znode, new ProfileDataWatcher(), stat);
+                    String delims = "[=:]";
+                    String[] tokens = (new String(data)).split(delims);
+                    for (int i = 0; i < tokens.length; i=i+2){
+                        attributes.put(tokens[i], tokens[i + 1]);
+                    }
+                    profilesMap.put(child,attributes);;
                 } catch (Exception e) {
                     e.printStackTrace();
                     if(LOG.isErrorEnabled())
@@ -189,7 +304,64 @@ public class RESTServlet implements RestConstants {
                 if(LOG.isDebugEnabled())
                     LOG.debug("Mapping children changed [" + event.getPath() + "]");
                 try {
-                    getZkMappings(new MappingWatcher());
+                    Stat stat = null;
+                    byte[] data = null;
+                    String znode = event.getPath();
+                    
+                    Set<String> keyset = new HashSet<String>(mappingsMap.keySet());
+                    
+                    List<String> children = zkc.getChildren(znode,new MappingWatcher());
+                    if( ! children.isEmpty()){ 
+                        for(String child : children) {
+                            
+                            stat = zkc.exists(znode + "/" + child,false);
+                            if(stat != null) {
+                                if (keyset.contains(child)){
+                                    keyset.remove(child);
+                                    continue;
+                                }
+                                //add new record
+                                LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                                data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
+                                String delims = "[=:]";
+                                String[] tokens = (new String(data)).split(delims);
+                                for (int i = 0; i < tokens.length; i=i+2){
+                                    attributes.put(tokens[i], tokens[i + 1]);
+                                }
+                                mappingsMap.put(child, attributes);
+                            }
+                        }
+                        for (String child : keyset) {
+                            mappingsMap.remove(child);
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    if(LOG.isErrorEnabled())
+                        LOG.error(e);
+                }
+            }
+        }
+    }
+    class MappingDataWatcher implements Watcher {
+        public void process(WatchedEvent event) {
+
+            if(event.getType() == Event.EventType.NodeDataChanged){
+                if(LOG.isDebugEnabled())
+                    LOG.debug("Data Watcher [" + event.getPath() + "]");
+                try {
+                    Stat stat = null;
+                    byte[] data = null;
+                    String znode = event.getPath();
+                    String child = znode.substring(znode.lastIndexOf('/') + 1);
+                    LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                    data = zkc.getData(znode, new MappingDataWatcher(), stat);
+                    String delims = "[=:]";
+                    String[] tokens = (new String(data)).split(delims);
+                    for (int i = 0; i < tokens.length; i=i+2){
+                        attributes.put(tokens[i], tokens[i + 1]);
+                    }
+                    mappingsMap.put(child,attributes);;
                 } catch (Exception e) {
                     e.printStackTrace();
                     if(LOG.isErrorEnabled())
@@ -205,47 +377,6 @@ public class RESTServlet implements RestConstants {
 	        Collections.sort(children);
 	    return children;
 	}
-    private  void getAttributesMap(Map<String, LinkedHashMap<String,String>> attrMap, String znode, Watcher watcher) throws Exception {
-        Stat stat = null;
-        
-        List<String> children = null;
-        attrMap.clear();
-        
-         children = zkc.getChildren(znode,watcher);
-        if( ! children.isEmpty()){ 
-            for(String child : children) {
-                if(LOG.isDebugEnabled())
-                    LOG.debug("child [" + child + "]");
-
-                stat = zkc.exists(znode + "/" + child,false);
-                if(stat != null) {
-                    String parent = znode.substring(znode.lastIndexOf("/")+1, znode.length());
-                    getDataMap(parent, child, znode + "/" + child);
-                 }
-            }
-        }
-    }
-    private void getDataMap(String parent, String child, String znode) throws Exception {
-        Stat stat = null;
-        byte[] data = null;
-
-        LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
-        data = zkc.getData(znode, false, stat);
-        String delims = "[=:]";
-        String[] tokens = (new String(data)).split(delims);
-        for (int i = 0; i < tokens.length; i=i+2){
-            attributes.put(tokens[i], tokens[i + 1]);
-        }
-        if(parent.equals( Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS)){
-            slasMap.put(child,attributes);;
-        }
-        else if(parent.equals(Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES)){
-            profilesMap.put(child,attributes);;
-        }
-        else {
-            mappingsMap.put(child,attributes);;
-        }
-    }
 	private synchronized void getZkRunning() throws Exception {
 	    if(LOG.isDebugEnabled())
 	        LOG.debug("Reading " + parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_RUNNING);
@@ -306,43 +437,97 @@ public class RESTServlet implements RestConstants {
 	        //metrics.setTotalRegistered(0);
 	    }
 	}
-	private synchronized void getZkSlas(Watcher watcher) throws Exception {
+    private synchronized void initZkSlas() throws Exception {
         if(LOG.isDebugEnabled())
-            LOG.debug("Reading " + parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS);
-
-        getAttributesMap(slasMap, parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS, watcher);
+            LOG.debug("initZkSlas " + parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS);
         
-        if( ! slasMap.isEmpty()){
-            //metrics.setTotalSlas(implementedSlas.size());
-        } else {
-            //metrics.setTotalSlas(0);
-        }
-	}
-	private synchronized void getZkProfiles(Watcher watcher) throws Exception {
-        if(LOG.isDebugEnabled())
-            LOG.debug("Reading " + parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES);
+        Stat stat = null;
+        byte[] data = null;
+        String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS;
         
-        getAttributesMap(profilesMap, parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES, watcher);
-	    
-        if( ! profilesMap.isEmpty()) {
-            //metrics.setTotalProfiles(implementedProfiles.size());
-        } else {
-            //metrics.setTotalProfiles(0);
-        }
-	}
-    private synchronized void getZkMappings(Watcher watcher) throws Exception {
-        if(LOG.isDebugEnabled())
-            LOG.debug("Reading " + parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS);
-        
-        getAttributesMap(mappingsMap, parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS, watcher);
-            
-        if( ! mappingsMap.isEmpty()){
-            sortByValues(mappingsMap);
-            //metrics.setTotalProfiles(implementedProfiles.size());
-        } else {
-            //metrics.setTotalProfiles(0);
+        List<String> children = null;
+        slasMap.clear();
+             
+        children = zkc.getChildren(znode,new SlaWatcher());
+        if( ! children.isEmpty()){ 
+            for(String child : children) {
+                if(LOG.isDebugEnabled())
+                    LOG.debug("child [" + child + "]");
+                stat = zkc.exists(znode + "/" + child,false);
+                if(stat != null) {
+                    LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                    data = zkc.getData(znode + "/" + child, new SlaDataWatcher(), stat);
+                    String delims = "[=:]";
+                    String[] tokens = (new String(data)).split(delims);
+                    for (int i = 0; i < tokens.length; i=i+2){
+                        attributes.put(tokens[i], tokens[i + 1]);
+                    }
+                    slasMap.put(child,attributes);;
+                }
+            }
         }
     }
+    private synchronized void initZkProfiles() throws Exception {
+        if(LOG.isDebugEnabled())
+            LOG.debug("initZkProfiles " + parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES);
+        
+        Stat stat = null;
+        byte[] data = null;
+        String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES;
+        
+        List<String> children = null;
+        profilesMap.clear();
+             
+        children = zkc.getChildren(znode,new ProfileWatcher());
+        if( ! children.isEmpty()){ 
+            for(String child : children) {
+                if(LOG.isDebugEnabled())
+                    LOG.debug("child [" + child + "]");
+                stat = zkc.exists(znode + "/" + child,false);
+                if(stat != null) {
+                    LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                    data = zkc.getData(znode + "/" + child, new ProfileDataWatcher(), stat);
+                    String delims = "[=:]";
+                    String[] tokens = (new String(data)).split(delims);
+                    for (int i = 0; i < tokens.length; i=i+2){
+                        attributes.put(tokens[i], tokens[i + 1]);
+                    }
+                    profilesMap.put(child,attributes);;
+                }
+            }
+        }
+    }
+    private synchronized void initZkMappings() throws Exception {
+        if(LOG.isDebugEnabled())
+            LOG.debug("initZkProfiles " + parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS);
+        
+        Stat stat = null;
+        byte[] data = null;
+        String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS;
+        
+        List<String> children = null;
+        mappingsMap.clear();
+             
+        children = zkc.getChildren(znode,new MappingWatcher());
+        if( ! children.isEmpty()){ 
+            for(String child : children) {
+                if(LOG.isDebugEnabled())
+                    LOG.debug("child [" + child + "]");
+                stat = zkc.exists(znode + "/" + child,false);
+                if(stat != null) {
+                    LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                    data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
+                    String delims = "[=:]";
+                    String[] tokens = (new String(data)).split(delims);
+                    for (int i = 0; i < tokens.length; i=i+2){
+                        attributes.put(tokens[i], tokens[i + 1]);
+                    }
+                    mappingsMap.put(child,attributes);;
+                }
+            }
+        }
+    }
+
     private static void sortByValues(Map<String, LinkedHashMap<String,String>> map) { 
         List list = new LinkedList(map.entrySet());
         Collections.sort(list, new Comparator() {
@@ -466,10 +651,10 @@ public class RESTServlet implements RestConstants {
         
         if(LOG.isDebugEnabled())
             LOG.debug("getWmsMappingsMap()");
-        
+        if( ! mappingsMap.isEmpty())
+            sortByValues(mappingsMap);
         return mappingsMap;
     }
-    
     public synchronized Response.Status postWmsSla(String name, String sdata) throws Exception {
         Response.Status status = Response.Status.OK;
         Stat stat = null;
@@ -479,7 +664,6 @@ public class RESTServlet implements RestConstants {
             LOG.debug("sdata :" + sdata);
         
         stat = zkc.exists(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,false);
-
         if (stat == null) {
             status = Response.Status.CREATED;
             zkc.create(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name,
@@ -487,7 +671,6 @@ public class RESTServlet implements RestConstants {
                     CreateMode.PERSISTENT);
         } else {
             zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + name, data, -1);
-            getZkSlas(null);
         }
         return status;
     }
@@ -507,7 +690,6 @@ public class RESTServlet implements RestConstants {
                     CreateMode.PERSISTENT);
         } else {
             zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + name, data, -1);
-            getZkProfiles(null);
         }
         return status;
     }
@@ -527,7 +709,6 @@ public class RESTServlet implements RestConstants {
                     CreateMode.PERSISTENT);
         } else {
             zkc.setData(parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS + "/" + name, data, -1);
-            getZkMappings(null);
         }
         return status;
     }
@@ -597,4 +778,5 @@ public class RESTServlet implements RestConstants {
             }
         }
     }
+
 }

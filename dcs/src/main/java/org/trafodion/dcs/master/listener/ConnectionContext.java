@@ -19,7 +19,7 @@ specific language governing permissions and limitations
 under the License.
 
 * @@@ END COPYRIGHT @@@
- */
+*/
 package org.trafodion.dcs.master.listener;
 
 import java.sql.SQLException;
@@ -31,6 +31,11 @@ import java.net.*;
 import java.util.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONObject;
+import org.codehaus.jettison.json.JSONTokener;
+import org.codehaus.jettison.json.JSONException;
 
 public class ConnectionContext {
 	private static  final Log LOG = LogFactory.getLog(ConnectionContext.class);
@@ -73,13 +78,20 @@ public class ConnectionContext {
 	int optionFlags2;
 	String vproc;
 	String client;
+	String ccExtention;
+	HashMap<String, String> attributes;
+	String sla;
+	String profile;
+	String profileLastUpdate;
 
 	ConnectionContext(){
 		clientVersionList = new VersionList();
 		user = new UserDesc();
+		attributes = new HashMap<String, String>();
 	}
 
 	void extractFromByteBuffer(ByteBuffer buf) throws java.io.UnsupportedEncodingException {
+
 		datasource = Util.extractString(buf);
 		catalog= Util.extractString(buf);
 		schema= Util.extractString(buf);
@@ -119,6 +131,49 @@ public class ConnectionContext {
 		optionFlags2 = buf.getInt();
 		vproc= Util.extractString(buf);
 		client= Util.extractString(buf);
+		if (buf.limit() > buf.position())
+            ccExtention = Util.extractString(buf);
+        else
+            ccExtention = "{}";
+        if(LOG.isDebugEnabled())
+            LOG.debug("ccExtention :" + ccExtention);
+        attributes.clear();
+		
+		try {
+    		JSONObject jsonObj = new JSONObject(ccExtention);
+    		Iterator<?> it = jsonObj.keys();
+    
+    		while(it.hasNext())
+    		{
+    		    String key = it.next().toString();
+    		    String value = jsonObj.get(key).toString();
+    		    attributes.put(key,  value);
+    	        if(LOG.isDebugEnabled())
+    	            LOG.debug("key=value :" + key + "=" + value);
+    		}
+		} catch(JSONException e){
+            LOG.error("JSONException :" + e);
+		}
 	}
-
+	public HashMap<String, String> getAttributes(){
+	    return attributes;
+	}
+    public void setProfile(String profile){
+        this.profile = profile;
+    }
+    public void setSla(String sla){
+        this.sla = sla;
+    }
+    public void setProfileLastUpdate(String profileLastUpdate){
+        this.profileLastUpdate = profileLastUpdate;
+    }
+    public String getProfile(){
+        return profile;
+    }
+    public String getSla(){
+        return sla;
+    }
+    public String getProfileLastUpdate(){
+        return profileLastUpdate;
+    }
 }

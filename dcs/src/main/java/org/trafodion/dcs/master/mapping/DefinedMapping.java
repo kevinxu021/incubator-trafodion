@@ -24,6 +24,7 @@ package org.trafodion.dcs.master.mapping;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Iterator;
@@ -36,31 +37,64 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event;
 import org.apache.zookeeper.data.Stat;
 import org.trafodion.dcs.Constants;
 import org.trafodion.dcs.master.listener.ConnectionContext;
 import org.trafodion.dcs.zookeeper.ZkClient;
+import org.trafodion.dcs.master.listener.ListenerService;
 
 public class DefinedMapping  {
     private static  final Log LOG = LogFactory.getLog(DefinedMapping.class);
     private final Map<String, LinkedHashMap<String,String>> mappingsMap = new LinkedHashMap<String, LinkedHashMap<String,String>>();
 
+    private ListenerService listener = null;
     private ZkClient zkc = null;
     private String parentZnode = "";
     
-    public DefinedMapping(ZkClient zkc, String parentZnode) throws Exception{
-        this.zkc = zkc;
-        this.parentZnode = parentZnode;
-        getZkMappings(new ChildrenWatcher(), "all");
+    public DefinedMapping(ListenerService listener) throws Exception{
+        zkc = listener.getZkc();
+        parentZnode = listener.getParentZnode();
+        this.listener = listener;
+        initZkMappings();
     }
-    class ChildrenWatcher implements Watcher {
+    class MappingWatcher implements Watcher {
         public void process(WatchedEvent event) {
             if(event.getType() == Event.EventType.NodeChildrenChanged) {
-                System.out.println("ChildrenWatcher [" + event.getPath() + "]");
                 if(LOG.isDebugEnabled())
-                    LOG.debug("ChildrenWatcher changed [" + event.getPath() + "]");
+                    LOG.debug("Mapping children changed [" + event.getPath() + "]");
                 try {
-                    getZkMappings(new ChildrenWatcher(), null);
+                    Stat stat = null;
+                    byte[] data = null;
+                    String znode = event.getPath();
+                    
+                    Set<String> keyset = new HashSet<String>(mappingsMap.keySet());
+                    
+                    List<String> children = zkc.getChildren(znode,new MappingWatcher());
+                    if( ! children.isEmpty()){ 
+                        for(String child : children) {
+                            
+                            stat = zkc.exists(znode + "/" + child,false);
+                            if(stat != null) {
+                                if (keyset.contains(child)){
+                                    keyset.remove(child);
+                                    continue;
+                                }
+                                //add new record
+                                LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                                data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
+                                String delims = "[=:]";
+                                String[] tokens = (new String(data)).split(delims);
+                                for (int i = 0; i < tokens.length; i=i+2){
+                                    attributes.put(tokens[i], tokens[i + 1]);
+                                }
+                                mappingsMap.put(child, attributes);
+                            }
+                        }
+                        for (String child : keyset) {
+                            mappingsMap.remove(child);
+                        }
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                     if(LOG.isErrorEnabled())
@@ -69,16 +103,25 @@ public class DefinedMapping  {
             }
         }
     }
-    class DataWatcher implements Watcher {
+    class MappingDataWatcher implements Watcher {
         public void process(WatchedEvent event) {
-            if(event.getType() == Event.EventType.NodeDataChanged){
-                String znode = event.getPath();
-                System.out.println("Data Watcher [" + znode + "]");
 
+            if(event.getType() == Event.EventType.NodeDataChanged){
                 if(LOG.isDebugEnabled())
-                    LOG.debug("Data Watcher [" + znode + "]");
+                    LOG.debug("Data Watcher [" + event.getPath() + "]");
                 try {
-                    getZkMappings(null, znode);
+                    Stat stat = null;
+                    byte[] data = null;
+                    String znode = event.getPath();
+                    String child = znode.substring(znode.lastIndexOf('/') + 1);
+                    LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                    data = zkc.getData(znode, new MappingDataWatcher(), stat);
+                    String delims = "[=:]";
+                    String[] tokens = (new String(data)).split(delims);
+                    for (int i = 0; i < tokens.length; i=i+2){
+                        attributes.put(tokens[i], tokens[i + 1]);
+                    }
+                    mappingsMap.put(child,attributes);;
                 } catch (Exception e) {
                     e.printStackTrace();
                     if(LOG.isErrorEnabled())
@@ -87,74 +130,39 @@ public class DefinedMapping  {
             }
         }
     }
-    private synchronized void getZkMappings(ChildrenWatcher childrenWatcher, String dataZnode) throws Exception {
-        
+    private synchronized void initZkMappings() throws Exception {
         if(LOG.isDebugEnabled())
-            LOG.debug("getZkMappings " + parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS);
+            LOG.debug("initZkProfiles " + parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS);
         
         Stat stat = null;
         byte[] data = null;
         String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS;
         
         List<String> children = null;
-        LinkedHashMap<String,String> attributes = null;
-        Set<String> keyset = new HashSet<String>(mappingsMap.keySet());
-/*
-        for (String key : mappingsMap.keySet()) {
-            keyset.add(key);
-        }
-*/
-        System.out.println("--------entry getZkMappings keyset :" + keyset);
         mappingsMap.clear();
-        System.out.println("--------getZkMappings keyset :" + keyset);
-        if (childrenWatcher != null)
-            System.out.println("--------getZkMappings with childrenWatcher");
-        else
-            System.out.println("--------getZkMappings with NULL childrenWatcher");
-            
-        children = zkc.getChildren(znode,childrenWatcher);
+             
+        children = zkc.getChildren(znode,new MappingWatcher());
         if( ! children.isEmpty()){ 
             for(String child : children) {
                 if(LOG.isDebugEnabled())
                     LOG.debug("child [" + child + "]");
-                
                 stat = zkc.exists(znode + "/" + child,false);
                 if(stat != null) {
-                    attributes = new LinkedHashMap<String,String>();
-                    if(keyset.contains(child)){
-                        if (dataZnode != null && (dataZnode.equals(znode + "/" + child) || dataZnode.equals("all"))){
-                            System.out.println("--------getZkMappings : getData with watcher for dataZnode :" + dataZnode + "child :" + child);
-                            data = zkc.getData(znode + "/" + child, new DataWatcher(), stat);
-                        }
-                        else {
-                            System.out.println("--------getZkMappings : getData with NULL watcher for dataZnode :" + dataZnode+ "child :" + child);
-                            data = zkc.getData(znode + "/" + child, false, stat);
-                        }
-                    }
-                    else {
-                        System.out.println("--------getZkMappings : child added dataZnode :" + dataZnode + "child :" + child);
-                        data = zkc.getData(znode + "/" + child, new DataWatcher(), stat);
-                    }
+                    LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                    data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
                     String delims = "[=:]";
                     String[] tokens = (new String(data)).split(delims);
                     for (int i = 0; i < tokens.length; i=i+2){
                         attributes.put(tokens[i], tokens[i + 1]);
                     }
-                    mappingsMap.put(child,attributes);
+                    mappingsMap.put(child,attributes);;
                 }
             }
         }
-        if( ! mappingsMap.isEmpty()){
-            sortByValues(mappingsMap);
-            //metrics.setTotalProfiles(implementedProfiles.size());
-        } else {
-            //metrics.setTotalProfiles(0);
-        }
-        System.out.println("--------exit getZkMappings : mappingsMap :" + mappingsMap);
     }
     private static void sortByValues(Map<String, LinkedHashMap<String,String>> map) { 
-        List list = new LinkedList(map.entrySet());
-        Collections.sort(list, new Comparator() {
+        List<Set<Map.Entry<String,String>>> list = new LinkedList(map.entrySet());
+        Collections.sort(list, new Comparator<Object>() {
             public int compare(Object o1, Object o2) {
                  Map<String,String> m1 = ((LinkedHashMap<String,String>)((Map.Entry)(o1)).getValue());
                  String orderNumber1 = m1.get(Constants.ORDER_NUMBER);
@@ -170,12 +178,97 @@ public class DefinedMapping  {
         } 
     }
     private synchronized Map<String, LinkedHashMap<String,String>> getMappingsMap(){
+        if( ! mappingsMap.isEmpty())
+            sortByValues(mappingsMap);
         return mappingsMap;
     }
-    public String findSla(ConnectionContext cc){
-        Map<String, LinkedHashMap<String,String>> mMap = getMappingsMap();
-        
+    public synchronized void findProfile(ConnectionContext cc){
         String sla = "";
-        return sla;
+        String profile = "";
+        String profileLastUpdate = "";
+        String attribute;
+        
+        if( ! mappingsMap.isEmpty())
+            sortByValues(mappingsMap);
+        
+        HashMap<String, String> attributes = cc.getAttributes();
+        Set<String> mappingsKeys = mappingsMap.keySet();
+        boolean bFound = false;
+        for(String mappingsKey : mappingsKeys){
+            boolean bNotEqual = false;
+            LinkedHashMap<String,String> mapp = mappingsMap.get(mappingsKey);
+            Set<String> mappKeys = mapp.keySet();
+            for(String mappKey : mappKeys){
+                String value = mapp.get(mappKey);
+                if (value == null || value.length()==0)continue;
+                if (mappKey.equals(Constants.IS_ACTIVE) && value.equals("no")) break;
+                attribute = "";
+                bNotEqual = false;
+                if(mappKey.equals(Constants.USER_NAME) || 
+                   mappKey.equals(Constants.APPLICATION_NAME) ||
+                   mappKey.equals(Constants.SESSION_NAME) || 
+                   mappKey.equals(Constants.ROLE_NAME) ||
+                   mappKey.equals(Constants.CLIENT_IP_ADDRESS) ||
+                   mappKey.equals(Constants.CLIENT_HOST_NAME)){
+                        attribute = attributes.get(mappKey);
+                        if (attribute == null || attribute.length()==0)break;
+                        if (!attribute.equals(value))
+                            bNotEqual = true;
+                }
+                else if(mappKey.equals(Constants.SLA))
+                    sla = value;
+                if (bNotEqual == true)break;
+            }
+            if (bNotEqual == false){
+                bFound = true;
+                break;
+            }
+        }
+        if (bFound == false)
+            sla = Constants.DEFAULT_WMS_SLA_NAME;
+        String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS + "/" + sla;
+        byte data[];
+        try {
+            Stat stat = zkc.exists(znode,false);
+            if(stat != null) {
+                data = zkc.getData(znode, false, stat);
+                attributes = new LinkedHashMap<String,String>();
+                String delims = "[=:]";
+                String[] tokens = (new String(data)).split(delims);
+                for (int i = 0; i < tokens.length; i=i+2){
+                    if(tokens[i].equals(Constants.ON_CONNECT_PROFILE)){
+                         profile = tokens[i + 1];
+                    }
+                    else if(tokens[i].equals(Constants.LAST_UPDATE)){
+                        profileLastUpdate = tokens[i + 2];
+                    }
+                }
+            }
+        } catch(Exception e){
+            LOG.error("Exception while reading sla znodes: [" + znode + "] " + e.getMessage());
+            profile = Constants.DEFAULT_WMS_PROFILE_NAME;
+        }
+        znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + profile;
+        try {
+            Stat stat = zkc.exists(znode,false);
+            if(stat != null) {
+                data = zkc.getData(znode, false, stat);
+                attributes = new LinkedHashMap<String,String>();
+                String delims = "[=:]";
+                String[] tokens = (new String(data)).split(delims);
+                for (int i = 0; i < tokens.length; i=i+2){
+                    if(tokens[i].equals(Constants.LAST_UPDATE)){
+                        profileLastUpdate = tokens[i + 2];
+                    }
+                }
+            }
+        } catch(Exception e){
+            LOG.error("Exception while reading profile znodes: [" + znode + "] " + e.getMessage());
+            profile = Constants.DEFAULT_WMS_PROFILE_NAME;
+            profileLastUpdate = "999";
+        }
+        cc.setSla(sla);
+        cc.setProfile(profile);
+        cc.setProfileLastUpdate(profileLastUpdate);
     }
 }
