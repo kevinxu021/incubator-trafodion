@@ -15507,7 +15507,16 @@ void BiRelat::generatePushdownListForORC(OrcPushdownPredInfoList& result)
   switch (getOperatorType()) {
     
   case ITM_EQUAL:
-    result.insertEQ(child(0)->getValueId(), child(1)->getValueId());
+    {
+      if ( child(0)->isNullConstant() )
+         result.insertIS_NULL(child(1)->getValueId());
+      else {
+         if ( child(1)->isNullConstant() )
+            result.insertIS_NULL(child(0)->getValueId());
+         else
+            result.insertEQ(child(0)->getValueId(), child(1)->getValueId());
+      } 
+    } 
     break;
     
   case ITM_LESS:
