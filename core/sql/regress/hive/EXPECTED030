@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Tue Apr 19 10:55:02 2016
+-- Definition current  Thu Apr 21 03:17:16 2016
 
   (
     S_STORE_SK                       INT
@@ -974,7 +974,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Tue Apr 19 10:55:30 2016
+-- Definition current  Thu Apr 21 03:17:42 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1025,7 +1025,7 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212327823330226869
+PLAN_ID .................. 212327968662633724
 ROWS_OUT ............. 1,698
 EST_TOTAL_COST ........... 1.21
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
@@ -1138,7 +1138,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212327823330922601
+PLAN_ID .................. 212327968663297853
 ROWS_OUT ......... 2,880,401
 EST_TOTAL_COST ........... 1.77
 STATEMENT ................ select *
@@ -1312,7 +1312,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Tue Apr 19 10:55:32 2016
+-- Definition current  Thu Apr 21 03:17:44 2016
 
   (
     D_DATE_SK                        INT
@@ -1380,7 +1380,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212327823334447404
+PLAN_ID .................. 212327968666597463
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1482,7 +1482,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Tue Apr 19 10:55:40 2016
+-- Definition current  Thu Apr 21 03:17:52 2016
 
   (
     D_DATE_SK                        INT
@@ -1550,7 +1550,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212327823340891181
+PLAN_ID .................. 212327968673116993
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1708,6 +1708,9 @@ DESCRIPTION
 >>cqd parallel_num_esps '4';
 
 --- SQL operation complete.
+>>cqd nested_joins 'off';
+
+--- SQL operation complete.
 >>
 >>prepare xx from select count(*) from
 +>hive.hive.store2_sales_orc, -- sorted on ss_sold_date_sk
@@ -1759,6 +1762,9 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) 
 >>cqd parallel_num_esps reset;
 
 --- SQL operation complete.
+>>cqd nested_joins reset;
+
+--- SQL operation complete.
 >>
 >>-- test NJ into a sorted ORC table
 >>
@@ -1789,7 +1795,7 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) 
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-PLAN_ID .................. 212327823354570943
+PLAN_ID .................. 212327968683603204
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 1.12
 STATEMENT ................ select count(*)
@@ -2091,8 +2097,8 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ---- ---- ---- --------------------  --------  --------------------  ---------
 
 3    .    4    root                                                  9.60E+005
-2    1    3    hybrid_hash_join                                      9.60E+005
-.    .    2    orc_scan                        STORE2_SALES_ORC      2.88E+006
+1    2    3    nested_join                                           9.60E+005
+.    .    2    orc_scan                        STORE2_SALES_ORC      9.60E+005
 .    .    1    orc_aggr                                              1.00E+000
 
 --- SQL operation complete.
