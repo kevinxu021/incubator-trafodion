@@ -24,6 +24,7 @@
 #include "QueryData.h"
 #include "TDBDlgMdamNet.h"
 #include "TDBDlgExprList.h"
+#include <typeinfo>
 
 extern MainWindow *mainWindow_;
 
@@ -237,6 +238,9 @@ void TDBTreeView::DisplayTDBTree(const class ComTdb* curr,
     QTreeWidgetItem *treeItem = new QTreeWidgetItem(rowValues);
     treeItem->setTextAlignment (1, Qt::AlignRight|Qt::AlignVCenter);
     treeItem->setIcon(0, QIcon(":/file/Resource/Main/Tdbnodes.bmp"));
+    QString tip = QString("%1@0x%2").arg(typeid(*curr).name()).arg((ulong)curr, 0, 16);
+    treeItem->setToolTip(0, tip);
+
     QVariant itemData = qVariantFromValue((void*)curr);
     treeItem->setData(0, Qt::UserRole, itemData);
 

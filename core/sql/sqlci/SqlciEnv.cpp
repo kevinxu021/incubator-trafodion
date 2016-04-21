@@ -1382,10 +1382,10 @@ Int32 SqlciEnv::getAuthState(bool &authenticationEnabled,
   HandleCLIErrorInit();
 
   Int32 localUID = 0;
-  Int32 rc = SQL_EXEC_GetAuthState_Internal(authenticationEnabled,
-                                            authorizationEnabled,
-                                            authorizationReady,
-                                            auditingEnabled);
+  Int32 rc = SQL_EXEC_GetAuthState(authenticationEnabled,
+                                   authorizationEnabled,
+                                   authorizationReady,
+                                   auditingEnabled);
   HandleCLIError(rc, this);
 
   return rc;

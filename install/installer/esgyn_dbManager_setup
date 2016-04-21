@@ -210,8 +210,8 @@ done
 zookeeperNodes="${tempNodes%?}"
 
 sudo chmod 777 $TRAF_CONFIG
-sed -i '/ZOOKEEPER_NODES\=/d' $TRAF_CONFIG
-echo "export ZOOKEEPER_NODES=\"$zookeeperNodes\"" >> $TRAF_CONFIG
+sed -i '/ZOO_PORT_NODES\=/d' $TRAF_CONFIG
+echo "export ZOO_PORT_NODES=\"$zookeeperNodes\"" >> $TRAF_CONFIG
 sudo chmod 777 $TRAF_CONFIG
 source $TRAF_CONFIG
 
@@ -373,7 +373,7 @@ echo "***INFO: Editing opentsdb.conf file with Zookeeper Nodes"
 
 OPENTSDB_CONFIG="$SQ_ROOT/mgblty/opentsdb/etc/opentsdb/opentsdb.conf"
 
-zooKeeperNodes="tsd.storage.hbase.zk_quorum = $ZOOKEEPER_NODES"
+zooKeeperNodes="tsd.storage.hbase.zk_quorum = $ZOO_PORT_NODES"
 sudo sed -i -e "s/tsd.storage.hbase.zk.quorum = localhost:2181/$zooKeeperNodes/g" $OPENTSDB_CONFIG
 sudo sed -i -e "s@TIMEZONE_NAME@$TIME_ZONE@g" $OPENTSDB_CONFIG
 

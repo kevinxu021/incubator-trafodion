@@ -301,10 +301,14 @@ SEAMONSTER_TAR ?= "seamonster_${SQ_BUILD_TYPE}-src.tar.gz"
 
 setup_adv: seabed
 	cd src/seabed/src; $(MAKE) setup_adv
+	< ${MY_SQROOT}/sqenvcom.sh sed -e "s/TRAFODION_VER_PROD=.*/TRAFODION_VER_PROD=\"EsgynDB Advanced\"/" > ${MY_SQROOT}/sqenvcom.adv
+	mv ${MY_SQROOT}/sqenvcom.adv ${MY_SQROOT}/sqenvcom.sh
 	@echo "In setup_adv, PKG_TAR=$(PKG_TAR)"
 
 setup_ent: seabed
 	cd src/seabed/src; $(MAKE) setup_ent
+	< ${MY_SQROOT}/sqenvcom.sh sed -e "s/TRAFODION_VER_PROD=.*/TRAFODION_VER_PROD=\"EsgynDB Enterprise\"/" > ${MY_SQROOT}/sqenvcom.ent
+	mv ${MY_SQROOT}/sqenvcom.ent ${MY_SQROOT}/sqenvcom.sh
 	@echo "In setup_ent, PKG_TAR=$(PKG_TAR)"
 
 package_adv : PKG_FEATURE = adv
