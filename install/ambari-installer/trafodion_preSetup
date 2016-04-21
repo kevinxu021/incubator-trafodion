@@ -1,0 +1,480 @@
+#!/bin/bash
+
+# @@@ START COPYRIGHT @@@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+# @@@ END COPYRIGHT @@@
+
+
+# This script adds a userid and configures it for Trafodion
+
+#=========================================
+# Default values
+typeset TRAF_GROUP="trafodion"
+export PDSH="pdsh -R exec"
+export PDSH_SSH_CMD="ssh -q -n %h"
+export PDCP="pdcp -R ssh"
+export HOME_DIR="/home"
+export TRAF_USER="trafodion"
+export YUM_LOG="trafodion_yum.log"
+export TRAF_USER_PASSWORD="traf123"
+export TRAF_WORKDIR="/usr/lib/trafodion"
+export TRAF_CONFIG="/etc/trafodion/trafodion_config"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --nodes)
+            NODES="$2"
+            shift
+            ;;
+        --help)
+          echo "***HELP: Must include --nodes"
+          exit -1
+          shift
+          ;;
+        *)
+            echo "***ERROR: unknown parameter '$1'"
+            exit -1
+    esac
+    shift
+done
+
+function printInfo {
+echo 
+echo "**********************************************"
+echo "This script does the following: "
+echo "   0. Install pdsh"
+echo "   1. Creates Trafodion config file"
+echo "   2. Creates Trafodion userid" 
+echo "   3. Setups passwordless ssh for Trafodion"
+echo "   4. Moves over files for Ambari intergration"
+echo "   5. Restarts Ambari!"
+echo "Things to do before: "
+echo "   1. HDP 2.3 installed"
+echo "   2. Passwordless ssh setup for root and $(whoami)"
+echo "   3. Add dfs.namenode.acls.enabled=true to custom hdfs-site"
+echo "   4. Restart HDFS"
+echo "   5. Run this script with sudo"
+echo "**********************************************"
+echo 
+echo -n "Press enter to continue"
+read answer
+
+}
+
+function copyApp {
+
+sudo cp app.js.gz /usr/lib/ambari-server/web/javascripts/
+
+}
+
+function installPDSH {
+
+for node in $NODES
+do
+   ssh -q -n $node sudo yum install -y pdsh  2>&1 > /dev/null
+done
+
+}
+
+function acceptAllKeys {
+
+NODES_SHORT=""
+for node in $NODES
+do
+   newNode=$(ssh -q -n $node hostname -s)
+
+   NODES_SHORT="$NODES_SHORT $newNode"
+done
+
+NODES_LONG=""
+for node in $NODES
+do
+   newNode=$(ssh -q -n $node hostname -f)
+
+   NODES_LONG="$NODES_LONG $newNode"
+done
+
+./acceptKeys --nodes "$NODE_LIST" --user "$(whoami)"
+./acceptKeys --nodes "$NODES_SHORT" --user "$(whoami)"
+./acceptKeys --nodes "$NODES_LONG" --user "$(whoami)"
+
+sudo ./acceptKeys --nodes "$NODE_LIST" --user "root"
+sudo ./acceptKeys --nodes "$NODES_SHORT" --user "root"
+sudo ./acceptKeys --nodes "$NODES_LONG" --user "root"
+
+
+}
+
+function startConfig {
+
+sudo mkdir -p /etc/trafodion
+
+export TRAF_WORKDIR="/usr/lib/trafodion"
+export TRAF_CONFIG="/etc/trafodion/trafodion_config"
+export LOCAL_WORKDIR="/tmp/trafscripts"
+export DB_ADMIN_USER="DB__ADMINUSER"
+export DB_ADMIN_PASSWORD="traf123"
+
+suseLinux=$(grep -cr SUSE /proc/version)
+if [[ "$suseLinux" -ge "1" ]]; then
+   SUSE_LINUX="true"
+else
+   SUSE_LINUX="false"
+fi
+
+echo "#!/bin/bash" > temp_config
+echo "export SUSE_LINUX=\"$SUSE_LINUX\"" >> temp_config
+echo "export TRAF_USER=\"trafodion\"" >> temp_config
+echo "export TRAF_USER_PASSWORD=\"traf123\"" >> temp_config
+echo "export TRAF_WORKDIR=\"$TRAF_WORKDIR\"" >> temp_config
+echo "export JAVA_HOME=\"/usr/jdk64/jdk1.8.0_40\"" >> temp_config
+echo "export SQCONFIG=\"\"" >> temp_config
+echo "export TRAF_CONFIG=\"$TRAF_CONFIG\"" >> temp_config
+echo "export LOCAL_WORKDIR=\"$LOCAL_WORKDIR"\" >> temp_config 
+echo "export URL=\"localhost:8080\"" >> temp_config
+echo "export ADMIN=\"admin\"" >> temp_config
+echo "export PASSWORD=\"admin\"" >> temp_config
+echo "export HDFS_USER=\"hdfs\"" >> temp_config
+echo "export HBASE_USER=\"hbase\"" >> temp_config
+echo "export HBASE_GROUP=\"hbase\"" >> temp_config
+echo "export HBASE=\"hbase\"" >> temp_config
+echo "export SQ_ROOT=\"/home/trafodion/esgyn\"" >> temp_config
+echo "export SQ_CONFIG=\"\"" >> temp_config
+echo "export CONFIG_COMPLETE=\"true\"" >> temp_config
+echo "export UPGRADE_TRAF=\"false\"" >> temp_config
+echo "export LDAP_SECURITY=\"N\"" >> temp_config
+echo "export LDAP_AUTH_FILE=\"traf_authentication_config_${HOSTNAME}\"" >> temp_config
+echo "export ENABLE_HA=\"false\"" >> temp_config
+echo "export TRAF_PACKAGE=\"/tmp/esgynDB.tar.gz\"" >> temp_config
+echo "export CLOUD_CONFIG=\"N\"" >> temp_config
+echo "export DCS_PRIMARY_MASTER_NODE=\"`hostname -f`\"" >> temp_config
+echo "export DB_ADMIN_USER=\"$DB_ADMIN_USER\"" >> temp_config
+echo "export DB_ADMIN_PASSWORD=\"$DB_ADMIN_PASSWORD\"" >> temp_config
+
+sudo cp -r temp_config $TRAF_CONFIG 
+source $TRAF_CONFIG
+
+} 
+
+function getNodes {
+
+TRAF_CONFIG="/etc/trafodion/trafodion_config"
+
+NODE_LIST="$NODES"
+ALL_NODE_LIST="$NODE_LIST"
+node_count=$(echo $NODE_LIST | wc -w)
+
+MY_NODES=""
+
+for node in $NODES
+do
+   MY_NODES="$MY_NODES -w $node"
+done
+
+ALL_NODES="$MY_NODES"
+
+all_node_count=$(echo $NODES | wc -w)
+
+if [ $all_node_count -eq 1 ]; then
+    TRAF_PDSH=""
+    TRAF_PDCP=""
+else
+    TRAF_PDSH="pdsh -R exec $MY_NODES $PDSH_SSH_CMD"
+    TRAF_PDCP="pdcp -R ssh $MY_NODES"
+fi
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/NODE_LIST\=/d' $TRAF_CONFIG
+echo "export NODE_LIST=\"$NODE_LIST\"" >> $TRAF_CONFIG
+sed -i '/node_count\=/d' $TRAF_CONFIG
+echo "export node_count=\"$node_count\"" >> $TRAF_CONFIG
+sed -i '/MY_NODES\=/d' $TRAF_CONFIG
+echo "export MY_NODES=\"$MY_NODES\"" >> $TRAF_CONFIG
+sed -i '/ALL_NODE_LIST\=/d' $TRAF_CONFIG
+echo "export ALL_NODE_LIST=\"$ALL_NODE_LIST\"" >> $TRAF_CONFIG
+sed -i '/all_node_count\=/d' $TRAF_CONFIG
+echo "export all_node_count=\"$all_node_count\"" >> $TRAF_CONFIG
+sed -i '/ALL_NODES\=/d' $TRAF_CONFIG
+echo "export ALL_NODES=\"$ALL_NODES\"" >> $TRAF_CONFIG
+sed -i '/TRAF_PDSH\=/d' $TRAF_CONFIG
+echo "export TRAF_PDSH=\"$TRAF_PDSH\"" >> $TRAF_CONFIG
+sed -i '/TRAF_PDCP\=/d' $TRAF_CONFIG
+echo "export TRAF_PDCP=\"$TRAF_PDCP\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+
+source $TRAF_CONFIG
+
+if [[ $all_node_count -gt "1" ]]; then
+   $TRAF_PDSH sudo mkdir -p /etc/trafodion
+   $TRAF_PDCP $TRAF_CONFIG $HOME
+   $TRAF_PDSH sudo cp $HOME/trafodion_config $TRAF_CONFIG
+fi 
+
+}
+
+function makeTrafWorkDir {
+
+export TRAF_CONFIG="/etc/trafodion/trafodion_config"
+source $TRAF_CONFIG
+
+$TRAF_PDSH sudo mkdir -p $TRAF_WORKDIR
+
+}
+
+
+function addTrafodionUser {
+
+export TRAF_CONFIG="/etc/trafodion/trafodion_config"
+source $TRAF_CONFIG
+#=========================================
+# get the default $HOME directory for this system
+if [[ $HOME_DIR == "" ]]; then
+   default_home=$(sudo cat /etc/default/useradd | grep -E "^HOME=" | sed -e "s@HOME=@@" )
+   HOME_DIR=$default_home
+else
+   default_home="$HOME_DIR"
+fi
+
+typeset TRAF_USER_DIR="$default_home/$TRAF_USER"
+
+sudo chmod 777 $TRAF_CONFIG
+sed -i '/TRAF_USER_DIR\=/d' $TRAF_CONFIG
+echo "export TRAF_USER_DIR=\"$TRAF_USER_DIR\"" >> $TRAF_CONFIG
+sed -i '/default_home\=/d' $TRAF_CONFIG
+echo "export default_home=\"$default_home\"" >> $TRAF_CONFIG
+sed -i '/HOME_DIR\=/d' $TRAF_CONFIG
+echo "export HOME_DIR=\"$default_home\"" >> $TRAF_CONFIG
+sudo chmod 777 $TRAF_CONFIG
+
+if [[ $all_node_count -gt "1" ]]; then
+
+   $TRAF_PDCP $TRAF_CONFIG $HOME
+   $TRAF_PDSH sudo cp -r $HOME/trafodion_config $TRAF_CONFIG
+fi
+
+echo "***INFO: Trafodion userid's ($TRAF_USER) home directory: $TRAF_USER_DIR"
+
+#============================
+# check that we are running from a userid with sudo access
+sudo echo "***INFO: testing sudo access"
+if [ $? -ne 0 ]; then
+    echo "***ERROR: This script must be run from userid with sudo access."
+    exit -1
+fi
+
+#==============================
+# Find an unused uid and gid on all nodes for the Trafodion userid.
+# Need to make sure the uid and gid are free on all nodes in the cluster,
+# just because they are unused on one node doesn’t mean they will be
+# unused on another node.
+
+# Create Trafodion group if there is not one already
+if [[ "$SUSE_LINUX" == "true" ]]; then
+   traf_gid=$(cat /etc/group | grep $TRAF_GROUP | sed -e 's@^.*:!:\([0-9]*\):.*@\1@'| grep --max-count=1 -E "[0-9]")
+else
+   traf_gid=$(cat /etc/group | grep $TRAF_GROUP | sed -e 's@^.*:x:\([0-9]*\):.*@\1@'| grep --max-count=1 -E "[0-9]")
+fi
+
+if [ -z "$traf_gid" ]; then
+
+    # Trafodion group does not exist need to find an unused gid and create it
+    found=1
+    traf_gid=500    # start at gid 500 (just a randomly chosen start)
+    while [ $found -ne 0 ]
+    do
+        ((traf_gid++))
+        if [ $all_node_count -eq 1 ]; then
+            found=$(cat /etc/group | sed -e 's@^.*:x:\([0-9]*\):.*@\1@' | grep ^$traf_gid$ 2>/dev/null | wc -l)
+        else
+            found=$($TRAF_PDSH "cat /etc/group | sed -e 's@^.*:x:\([0-9]*\):.*@\1@' | grep ^$traf_gid$ " 2>/dev/null | wc -l)
+        fi
+    done
+    $TRAF_PDSH sudo /usr/sbin/groupadd --gid $traf_gid $TRAF_GROUP
+    if [ $? -ne 0 ]; then
+       if [ $? -ne 9]; then
+          echo "***ERROR: unable to create Trafodion group: $TRAF_GROUP"
+          exit -1
+       fi
+    fi
+else
+    # Make sure Trafodion group exists on all nodes and create it if it is not
+    $TRAF_PDSH sudo /usr/sbin/groupadd --gid $traf_gid $TRAF_GROUP
+    return_code=$?
+    if [ $return_code -ne 0 ]; then
+        # if it is not a duplicate group error then we have a problem
+        if [ $return_code -ne 9 ]; then
+            echo "***ERROR: unable to create Trafodion group: $TRAF_GROUP"
+            exit -1
+        fi
+    fi
+fi
+#=================================================
+# Create Trafodion user, if not already created
+found=1
+traf_uid=500    # start at uid 500 (just a randomly chosen start)
+while [ $found -ne 0 ]
+do
+    ((traf_uid++))
+    if [ $all_node_count -eq 1 ]; then
+        found=$(cat /etc/passwd | sed -e 's@^.*:x:\([0-9]*\):\([0-9]*\):.*:.*$@\1@' | grep ^$traf_uid$ 2>/dev/null | wc -l)
+    else
+        found=$($TRAF_PDSH "cat /etc/passwd | sed -e 's@^.*:x:\([0-9]*\):\([0-9]*\):.*:.*\$@\1@' | grep ^$traf_uid$ " 2>/dev/null | wc -l)
+    fi
+done
+
+# Make sure all prefix directories of TRAF_USER_DIR exist or
+# useradd command will fail
+$TRAF_PDSH sudo mkdir -p $default_home
+
+$TRAF_PDSH sudo /usr/sbin/useradd \
+    --shell /bin/bash \
+    --home $TRAF_USER_DIR -m \
+    --gid $traf_gid \
+    --password "$(openssl passwd $TRAF_USER_PASSWORD)" \
+    --uid $traf_uid \
+    $TRAF_USER
+return_code=$?
+if [ $return_code -ne 0 ]; then
+    if [ $return_code -eq 9 ]; then
+        echo "***WARNING: username already exists, will use existing userid, $TRAF_USER..."
+    else
+        echo "***ERROR: unable to create Trafodion userid: $TRAF_USER.$TRAF_GROUP, RC=$return_code"
+        exit -1
+    fi
+fi
+
+}
+
+function trafPasswordless {
+
+export TRAF_CONFIG="/etc/trafodion/trafodion_config"
+source $TRAF_CONFIG
+
+# Setup passwordless ssh for this Trafodion userid
+
+sudo su $TRAF_USER --command "echo -e 'y\n' | ssh-keygen -t rsa -N \"\" -f $TRAF_USER_DIR/.ssh/id_rsa"
+if [[ "$SUSE_LINUX" == "true" ]]; then
+   sudo su $TRAF_USER --command "cp $TRAF_USER_DIR/.ssh/id_rsa.pub $TRAF_USER_DIR/.ssh/authorized_keys"
+else
+   sudo su $TRAF_USER --command "cp $TRAF_USER_DIR/.ssh/id_rsa.pub $TRAF_USER_DIR/.ssh/authorized_keys"
+fi
+
+sudo su $TRAF_USER --command "echo localhost $(cat /etc/ssh/ssh_host_rsa_key.pub) > $TRAF_USER_DIR/.ssh/known_hosts"
+sudo su $TRAF_USER --command "echo \"NoHostAuthenticationForLocalhost=yes\" >> $TRAF_USER_DIR/.ssh/config"
+sudo chmod 600 $TRAF_USER_DIR/.ssh/config
+
+#=================================================
+# copy TRAF_USER_DIR to all other nodes if more than one
+if [ "$all_node_count" -ne 1 ]; then
+    # Have to copy in a round-about way since passwordless
+    # ssh is not setup yet for the Trafodion userid and pdcp
+    # may not work with sudo.
+    echo "***INFO: Setting up userid $TRAF_USER on all other nodes in cluster"
+    sudo rm -rf $TRAF_WORKDIR/$TRAF_USER 2>/dev/null
+    sudo cp -r $TRAF_USER_DIR $TRAF_WORKDIR
+    sudo rm -rf $TRAF_WORKDIR/$TRAF_USER/.pulse 2>/dev/null
+    sudo chown -R $USER.$(id -ng) $TRAF_WORKDIR/$TRAF_USER
+    $PDCP -r $MY_NODES -x $HOSTNAME $TRAF_WORKDIR/$TRAF_USER $TRAF_WORKDIR
+    $PDSH $MY_NODES -x $HOSTNAME $PDSH_SSH_CMD sudo cp -r $TRAF_WORKDIR/$TRAF_USER /home
+    $PDSH $MY_NODES -x $HOSTNAME $PDSH_SSH_CMD sudo chown -R $TRAF_USER.$TRAF_GROUP $TRAF_USER_DIR
+fi
+
+#=================================================
+# Cycle through all nodes to create known_hosts file, even if only one node
+echo "***INFO: Creating known_hosts file for all nodes"
+NODES_SHORT=""
+for node in $NODE_LIST
+do 
+   newNode=$(ssh -q -n $node hostname -s) 
+
+   NODES_SHORT="$NODES_SHORT $newNode"
+done
+
+NODES_LONG=""
+for node in $NODE_LIST
+do 
+   newNode=$(ssh -q -n $node hostname -f) 
+
+   NODES_LONG="$NODES_LONG $newNode"
+done
+./traf_createPasswordLessSSH --nodes "$NODE_LIST"
+./traf_createPasswordLessSSH --nodes "$NODES_SHORT"
+./traf_createPasswordLessSSH --nodes "$NODES_LONG"
+
+if [ "$all_node_count" -ne 1 ]; then
+    # Copy known_hosts file to all other nodes
+    sudo su $TRAF_USER --command "$PDCP $MY_NODES -x $HOSTNAME $TRAF_USER_DIR/.ssh/known_hosts $TRAF_USER_DIR/.ssh"
+fi
+}
+
+function copyTrafodionStack {
+
+source /etc/trafodion/trafodion_config
+
+sudo cp -r $PWD/TRAFODION /var/lib/ambari-server/resources/stacks/HDP/2.3/services
+
+}
+
+function moveInstallScripts {
+
+source /etc/trafodion/trafodion_config
+if [[ "$all_node_count" -gt "1" ]]; then
+   $TRAF_PDSH sudo mkdir -p /tmp/trafscripts
+   $TRAF_PDCP -r $PWD/trafscripts/* /tmp/trafscripts
+else
+   sudo cp -r $PWD/trafscripts /tmp
+fi
+
+}
+
+
+function moveEsgynTar {
+
+source /etc/trafodion/trafodion_config
+if [[ "$all_node_count" -gt "1" ]]; then
+   $TRAF_PDCP -r $PWD/esgyn*.tar.gz /tmp
+else
+   sudo cp -r $PWD/esgyn*.tar.gz /tmp
+fi
+
+}
+
+function restartAmbari {
+
+sudo service ambari-server restart
+
+}
+
+
+#Main
+
+printInfo
+#copyApp
+startConfig
+acceptAllKeys
+installPDSH
+getNodes
+makeTrafWorkDir
+addTrafodionUser
+trafPasswordless
+copyTrafodionStack
+moveInstallScripts
+moveEsgynTar
+restartAmbari

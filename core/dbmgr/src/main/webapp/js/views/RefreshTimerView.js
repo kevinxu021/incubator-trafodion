@@ -55,13 +55,13 @@ define([
 					}else{
 						_interval = newInterval * 60 * 1000;
 					}
-					$(REFRESH_INTERVAL).val(newInterval);
 					if(_interval != 0){
 						_refreshTimer.start();
 					}
 				}else{
 					_interval = null;
 				}
+				$(REFRESH_INTERVAL).val(newInterval);
 			};
 
 			_refreshTimer.get = function() {

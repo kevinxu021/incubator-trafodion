@@ -29,20 +29,33 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <hadoop.version>2.7.1</hadoop.version>
-    <hbase.version>1.1.2</hbase.version>
+    <hbase.version>${env.HBASE_DEP_VER_HDP}</hbase.version>
+    <hbase-trx.id>${env.HBASE_TRX_ID_HDP}</hbase-trx.id>
+    <hive.version>${env.HIVE_DEP_VER_HDP}</hive.version>
     <hbase-flavor-id>hdp2_3</hbase-flavor-id>
-    <hbase-trx.id>hbase-trx-${hbase-flavor-id}</hbase-trx.id>
-    <hive.version>1.2.1</hive.version>
     <thrift.version>0.9.0</thrift.version>
     <java.version>1.7</java.version>
   </properties>
   
   <build>
     <defaultGoal>package</defaultGoal>
-      <outputDirectory>${project.build.directory}/classes_${hbase-flavor-id}</outputDirectory>
-      <finalName>${project.artifactId}-${project.version}</finalName>
+    <outputDirectory>${project.build.directory}/classes_${hbase-flavor-id}</outputDirectory>
+    <finalName>${project.artifactId}-${project.version}</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestFile>
+              src/main/resources/trafodion-sql.jar.mf
+            </manifestFile>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
   </build>
-  
+ 
   <dependencies>
     <dependency>
       <groupId>org.apache.hbase</groupId>
@@ -95,5 +108,4 @@
   <name>trafodion-sql</name>
   <description>Java code for SQL engine in Trafodion</description>
 
-  
 </project>

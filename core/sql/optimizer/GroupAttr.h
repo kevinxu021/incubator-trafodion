@@ -763,6 +763,7 @@ ValueIdList recommendedOrderForNJProbing(
   NABoolean isSeabaseMDTable() const  { return isSeabaseMD_; }
 
   NABoolean allHiveTables();
+  NABoolean allHiveORCTables();
   NABoolean allHiveORCTablesSorted();
 
 private:

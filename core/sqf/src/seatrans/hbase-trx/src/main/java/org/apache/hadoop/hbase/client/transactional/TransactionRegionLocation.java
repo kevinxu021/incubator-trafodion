@@ -37,6 +37,7 @@ public class TransactionRegionLocation extends HRegionLocation {
 
   static final Log LOG = LogFactory.getLog(TransactionRegionLocation.class);
 
+  public boolean tableRecordedDropped;
   /*
    public TransactionRegionLocation(HRegionInfo regionInfo, final String hostname, final int port) {
      //ServerName
@@ -44,20 +45,19 @@ public class TransactionRegionLocation extends HRegionLocation {
      //regionInfo, hostname, port);
    }
    */
+    public TransactionRegionLocation(HRegionInfo regionInfo, ServerName servName)
+    {
+       this(regionInfo, servName,0);
+    }
 
     public int peerId;
-    public boolean tableRecordedDropped;
-
-    public TransactionRegionLocation(HRegionInfo regionInfo, ServerName servName) 
-    {
-	this(regionInfo, servName,0);
-    }
 
     public TransactionRegionLocation(HRegionInfo regionInfo, ServerName servName, int pv_peerId) {
 	super(regionInfo, servName);
 	peerId = pv_peerId;
 	tableRecordedDropped = false;
-  }
+    }
+
     
     public void setTableRecordedDropped()
     {

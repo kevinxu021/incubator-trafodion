@@ -572,13 +572,15 @@ public class TransactionManager {
                retry = false;
              }
           }
-          catch (UnknownTransactionException ute) {
-              LOG.error("Got unknown exception in doCommitX by participant " + participantNum
-            		  + " for transaction: " + transactionId + " " + ute);
-              transactionState.requestPendingCountDec(true);
-              throw new UnknownTransactionException();
-          }
           catch (Exception e) {
+             if(e.toString().contains("UnknownTransactionException")) {
+                String errMsg = new String("Got unknown exception in doCommitX by participant " + participantNum
+              		  + " for transaction: " + transactionId + " " + e);
+                LOG.error(errMsg);
+                transactionState.requestPendingCountDec(true);
+                throw new UnknownTransactionException(errMsg);
+             }
+
              LOG.error("doCommitX participant " + participantNum + " retrying transaction "
                       + transactionId + " due to Exception: " + e);
              refresh = true;
@@ -671,6 +673,7 @@ public class TransactionManager {
                    builder.setTransactionId(transactionId);
                    builder.setRegionName(ByteString.copyFromUtf8(Bytes.toString(regionName)));
                    builder.setParticipantNum(participantNum);
+
                    builder.setDropTableRecorded(location.isTableRecodedDropped());
                    instance.commitRequest(controller, builder.build(), rpcCallback);
                    return rpcCallback.get();
@@ -765,12 +768,15 @@ public class TransactionManager {
                retry = false;
              }
           }
-          catch(UnknownTransactionException ute) {
-             LOG.warn("doPrepareX participant " + participantNum + " transaction "
-                     + transactionId + " unknown transaction : " + ute);
-             throw new UnknownTransactionException();
-          }
           catch(Exception e) {
+             String exceptionString = e.toString();
+             if(exceptionString.contains("UnknownTransactionException")) {
+            	String errMsg = new String("doPrepareX participant " + participantNum + " transaction "
+                        + transactionId + " unknown transaction : " + e);
+                LOG.warn(errMsg);
+                transactionState.requestPendingCountDec(true);
+                throw new UnknownTransactionException(errMsg);
+             }
              LOG.error("doPrepareX participant " + participantNum + " retrying transaction "
                           + transactionId + " due to Exception: " + e);
              refresh = true;
@@ -866,12 +872,15 @@ public class TransactionManager {
                 retry = false;
              }
           }
-          catch(UnknownTransactionException ute) {
-             LOG.warn("doPrepareX participant " + participantNum + " transaction "
-                      + transactionId + " unknown transaction: " + ute);
-             throw new UnknownTransactionException();
-          }
           catch(Exception e) {
+             String exceptionString = e.toString();
+             if(exceptionString.contains("UnknownTransactionException")) {
+            	String errMsg = new String("doPrepareX participant " + participantNum + " transaction "
+                         + transactionId + " unknown transaction : " + e);
+                LOG.warn(errMsg);
+                transactionState.requestPendingCountDec(true);
+                throw new UnknownTransactionException(errMsg);
+             }
              LOG.error("doPrepareX participant " + participantNum + " retrying transaction "
                       + transactionId + " due to Exception: " + e);
              refresh = true;
@@ -919,7 +928,7 @@ public class TransactionManager {
 
        } while (retryCount < RETRY_ATTEMPTS && retry == true);
        }
-       if (LOG.isTraceEnabled()) LOG.trace("commitStatus for transId(" + transactionId + "): " + commitStatus 
+       if (LOG.isTraceEnabled()) LOG.trace("commitStatus for transId(" + transactionId + "): " + commitStatus
                                                                        + " TableName " + table.toString()
                                                                        + " Region Name " + Bytes.toString(regionName));
        boolean canCommit = true;
@@ -1246,14 +1255,17 @@ public class TransactionManager {
               }
            }
         }
-        catch (UnknownTransactionException ute) {
-            String errMsg = "Got unknown exception in doCommitX for transaction: " + transactionId + " " + ute;
-            LOG.error(errMsg);
-            transactionState.requestPendingCountDec(true);
-            throw new UnknownTransactionException(errMsg);
-        }
         catch (Exception e) {
-           LOG.error("doCommitX retrying transaction " + transactionId + " due to Exception: " + e);
+           String exceptionString = e.toString();
+           if(exceptionString.contains("UnknownTransactionException")) {
+              String errMsg = new String("Got unknown exception in doCommitX for transaction: " + transactionId
+              		+ " participant " + participantNum + " " + e);
+              LOG.error(errMsg);
+              transactionState.requestPendingCountDec(true);
+              throw new UnknownTransactionException(errMsg);
+           }
+           LOG.error("doCommitX retrying transaction " + transactionId
+        		   + " participant " + participantNum + " due to Exception: " + e);
            refresh = true;
            retry = true;
         }
@@ -1329,13 +1341,15 @@ public class TransactionManager {
 
           }
        }
-       catch(UnknownTransactionException ute) {
-          String warnMsg = new String("UnknownTransaction in doPrepareX - Batch - by participant "
-                    + participantNum + " for transaction " + transactionId + " " + ute);
-          LOG.warn(warnMsg);
-          throw new UnknownTransactionException(warnMsg);
-       }
        catch(Exception e) {
+          String exceptionString = e.toString();
+          if(exceptionString.contains("UnknownTransactionException")) {
+             String errMsg = new String("UnknownTransaction in doPrepareX - Batch - by participant "
+                     + participantNum + " for transaction " + transactionId + " " + e);
+             LOG.error(errMsg);
+             transactionState.requestPendingCountDec(true);
+             throw new UnknownTransactionException(errMsg);
+          }
           LOG.error("doPrepareX - Batch - retrying for participant "
                    + participantNum + " transaction " + transactionId + " due to Exception: " + e);
           refresh = true;
@@ -2387,31 +2401,31 @@ public class TransactionManager {
           if (transactionState.getRegionsToIgnore().contains(location)) {
               continue;
           }
-            try {
-               loopCount++;
-               final int participantNum = loopCount;
-               final byte[] regionName = location.getRegionInfo().getRegionName();
-               if(LOG.isTraceEnabled()) LOG.trace("Submitting abort for transaction: "
-                       + transactionState.getTransactionId() + ", participant: "
-               		+ participantNum + ", region: " + location.getRegionInfo().getRegionNameAsString());
+          try {
+            loopCount++;
+            final int participantNum = loopCount;
+            final byte[] regionName = location.getRegionInfo().getRegionName();
 
-               threadPool.submit(new TransactionManagerCallable(transactionState, location, pSTRConfig.getPeerConnections().get(location.peerId)) {
-                 public Integer call() throws IOException {
-                    return doAbortX(regionName, transactionState.getTransactionId(), participantNum, location.isTableRecodedDropped());
-                 }
-               });
-            } catch (IllegalArgumentException iae) {
+            if(LOG.isTraceEnabled()) LOG.trace("Submitting abort for transaction: "
+                    + transactionState.getTransactionId() + ", participant: "
+            		+ participantNum + ", region: " + location.getRegionInfo().getRegionNameAsString());
+            threadPool.submit(new TransactionManagerCallable(transactionState, location, pSTRConfig.getPeerConnections().get(location.peerId)) {
+              public Integer call() throws IOException {
+                return doAbortX(regionName, transactionState.getTransactionId(), participantNum, location.isTableRecodedDropped());
+              }
+            });
+          } catch (IllegalArgumentException iae) {
                loopCount--;
                LOG.error("exception in abort: " + iae + " Reducing loopCount to: " + loopCount + " Trans: "
                    + transactionState + "  Region: " + location.getRegionInfo().getRegionName());
-            } catch (Exception e) {
+          } catch (Exception e) {
                 loopCount--;
                 LOG.error("Got Exception during abort. Reducing loopCount to: "
                             + loopCount + "Transaction: ["
                             + transactionState.getTransactionId() + "], region: ["
                             + location.getRegionInfo().getRegionNameAsString() + "]. Ignoring. " + e);
-            }
-         }
+          }
+        }
 
         // all requests sent at this point, can record the count
         transactionState.completeSendInvoke(loopCount);
@@ -3044,9 +3058,8 @@ public class TransactionManager {
             for(TransactionRegionLocation trl : transactionState.getParticipatingRegions())
             {
                 if(trl.getRegionInfo().getTable().toString().compareTo(tblName) == 0)
-                	trl.setTableRecordedDropped();
+                    trl.setTableRecordedDropped();
             }
-
         }
         catch (Exception e) {
             LOG.error("dropTable Exception TxId: " + transactionState.getTransactionId() + "TableName:" + tblName + "Exception: " + e);
@@ -3057,17 +3070,17 @@ public class TransactionManager {
     //Called only by Abort or Commit processing.
     public void deleteTable(final TransactionState transactionState, final String tblName)
             throws Exception{
-        if (LOG.isTraceEnabled()) LOG.trace("deleteTable ENTRY, TxId: " + transactionState.getTransactionId() + "tableName" + tblName);
+        if (LOG.isTraceEnabled()) LOG.trace("deleteTable ENTRY, TxId: " + transactionState.getTransactionId() + " tableName " + tblName);
         try{
             disableTable(transactionState, tblName);
         }
         catch (TableNotEnabledException e) {
             //If table is not enabled, no need to throw exception. Continue.
             //if (LOG.isTraceEnabled()) LOG.trace("deleteTable , TableNotEnabledException. This is a expected exception.  Step: disableTable, TxId: " +
-            //    transactionState.getTransactionId() + "TableName" + tblName + "Exception: " + e);
+            //    transactionState.getTransactionId() + " TableName " + tblName + "Exception: " + e);
         }
         catch (Exception e) {
-            LOG.error("deleteTable Exception TxId: " + transactionState.getTransactionId() + "TableName" + tblName + "Exception: " + e);
+            LOG.error("deleteTable Exception TxId: " + transactionState.getTransactionId() + " TableName " + tblName + "Exception: " + e);
             throw e;
         }
 
@@ -3075,7 +3088,7 @@ public class TransactionManager {
             hbadmin.deleteTable(tblName);
         }
         catch (Exception e) {
-            LOG.error("deleteTable Exception TxId: " + transactionState.getTransactionId() + "TableName" + tblName  + "Exception: " + e);
+            LOG.error("deleteTable Exception TxId: " + transactionState.getTransactionId() + " TableName " + tblName  + "Exception: " + e);
             throw e;
         }
     }
@@ -3089,7 +3102,7 @@ public class TransactionManager {
         }
         catch (Exception e) {
             //LOG.error("enableTable Exception TxId: " + transactionState.getTransactionId() + " TableName " + tblName + "Exception: " + e);
-        	//Let the caller log this and handle exception. Some scenarios this exception is expected.
+            //Let the caller log this and handle exception. Some scenarios this exception is expected.
             throw e;
         }
     }
@@ -3130,7 +3143,6 @@ public class TransactionManager {
             throw e;
         }
         if (LOG.isTraceEnabled()) LOG.trace("disableTable EXIT, TxID: " + transactionState.getTransactionId() + " tableName " + tblName);
-
     }
 
     /**

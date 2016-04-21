@@ -1437,6 +1437,9 @@ $1~String1 --------------------------------
 4491 42000 99999 BEGINNER MINOR LOGONLY The user does not have $0~string0 privilege on sequence $1~string1$2~string2.
 4492 ZZZZZ 99999 BEGINNER MINOR LOGONLY BULK LOAD option UPDATE STATISTICS cannot be used with UPSERT USING LOAD option.
 5000 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Internal error in the query normalizer.
+5050 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Backup in progress, try again later.
+5051 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Failed to lock Transaction Manager. Cause : FS error $0~Int0.
+5052 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Failed to Unlock Transaction Manager. Cause : FS error $0~Int0.
 6000 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Internal error in the query optimizer.
 6001 0A000 99999 BEGINNER MAJOR DBADMIN DISTINCT aggregates can be computed for only one column per table expression.
 6002 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The metadata table HISTOGRAMS or HISTOGRAM_INTERVALS contains invalid values.  If you have manually modified the metadata table, then you should undo your changes using the CLEAR option in UPDATE STATISTICS.
@@ -2993,7 +2996,7 @@ $3~String1.
 20122 ZZZZZ 99999 BEGINNER MINOR LOGONLY Table has indexes. Cannot purge data from partition.
 20123 ZZZZZ 99999 BEGINNER MINOR LOGONLY A user-defined transaction has been started. $0~string0 cannot be performed.
 20124 ZZZZZ 99999 BEGINNER MINOR LOGONLY $0~string0 operation cannot be performed if AUTOCOMMIT is OFF.
-20125 ZZZZZ 99999 BEGINNER MINOR LOGONLY $0~string0 is a metadata table. PURGEDATA cannot be performed on metadata tables.
+20125 ZZZZZ 99999 BEGINNER MINOR LOGONLY $0~string0 operation cannot be performed if a user-defined transaction has been started or AUTOCOMMIT is OFF.
 20126 ZZZZZ 99999 ADVANCED INFRM LOGONLY Vertical partitions exist for the source table. Cannot perform DUP.
 20127 ZZZZZ 99999 BEGINNER MINOR LOGONLY Target option was specified as NEW but $0~string0 exists. DUP operation failed.
 20128 ZZZZZ 99999 BEGINNER MINOR LOGONLY $0~string0 is a metadata table. DUP cannot be performed on metadata tables.

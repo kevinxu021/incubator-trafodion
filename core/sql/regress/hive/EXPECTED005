@@ -170,6 +170,97 @@ ID           COL2         P1           ID           COL2         P1           P2
 
 --- 17 row(s) selected.
 >>
+>>-- min/max optimization, leading to partition elimination
+>>cqd GEN_HSHJ_MIN_MAX_OPT 'on';
+
+--- SQL operation complete.
+>>control query shape hash_join(scan('P'), scan('N'));
+
+--- SQL operation complete.
+>>
+>>prepare s from
++>select p.id, n.id, p.p1, n.p1
++>from hive.hive.hivepi p join hive.hive.hivenonp n
++>  on p.p1 = n.p1
++>where n.id in (2, 22);
+
+--- SQL command prepared.
+>>
+>>-- validate that the min/max values are actually used
+>>select operator, tname
++>from table(explain(null, 'S'))
++>where description like '%:_sys_MinVal0%'
++>  and description like '%:_sys_MaxVal0%';
+
+OPERATOR                        TNAME
+------------------------------  ------------------------------------------------------------
+
+HIVE_SCAN                       P (HIVE.HIVE.HIVEPI)                                        
+HYBRID_HASH_JOIN                                                                            
+
+--- 2 row(s) selected.
+>>
+>>execute s;
+
+ID           ID           P1           P1         
+-----------  -----------  -----------  -----------
+
+          2            2            2            2
+          2           22            2            2
+         22            2            2            2
+         22           22            2            2
+        222            2            2            2
+        222           22            2            2
+
+--- 6 row(s) selected.
+>>
+>>-- allow VEG between varchars
+>>cqd comp_bool_158 'on';
+
+--- SQL operation complete.
+>>
+>>prepare s from
++>select p.id, n.id, p.p1, n.p1, p.p2
++>from hive.hive.hivepis p join hive.hive.hivenonp n
++>  on p.p1 = n.p1 and p.p2 = n.p2
++>where n.id in (2, 22) and p.p2 like '%w%';
+
+--- SQL command prepared.
+>>
+>>-- validate that the min/max values are actually used
+>>select operator, tname
++>from table(explain(null, 'S'))
++>where description like '%:_sys_MinVal0%'
++>  and description like '%:_sys_MaxVal0%'
++>  and description like '%:_sys_MinVal1%'
++>  and description like '%:_sys_MaxVal1%';
+
+OPERATOR                        TNAME
+------------------------------  ------------------------------------------------------------
+
+HIVE_SCAN                       P (HIVE.HIVE.HIVEPIS)                                       
+HYBRID_HASH_JOIN                                                                            
+
+--- 2 row(s) selected.
+>>
+>>execute s;
+
+ID           ID           P1           P1           P2
+-----------  -----------  -----------  -----------  --------------------------------
+
+          2            2            2            2  two                             
+          2           22            2            2  two                             
+         22            2            2            2  two                             
+         22           22            2            2  two                             
+        222            2            2            2  two                             
+        222           22            2            2  two                             
+
+--- 6 row(s) selected.
+>>
+>>control query shape cut;
+
+--- SQL operation complete.
+>>
 >>-- insert some data and add one more partition
 >>sh regrhive.ksh -v -f $REGRTSTDIR/TEST005_b.hive.sql;
 >>
@@ -1036,6 +1127,7 @@ HIVEPISO              P2
 >>drop external table hivepi for hive.hive.hivepi;
 
 --- SQL operation complete.
+>>
 >>cqd HIVE_FILE_CHARSET 'GBK';
 
 --- SQL operation complete.
@@ -1062,4 +1154,64 @@ C1           (EXPR)
 
 --- SQL operation complete.
 >>
+>>cqd HIVE_SCAN_SPECIAL_MODE '1';
+
+--- SQL operation complete.
+>>select * from tbl_dos;
+
+C1           C2           C3           C4                       
+-----------  -----------  -----------  -------------------------
+
+          0        39478         8147  2008-07-17               
+          1        21944         8327  2005-05-12               
+          2        32730         9999  2000-11-05               
+          3        19653         5727  2005-06-24               
+          4        67794         6012  2008-07-01               
+          5        93265         5823  2012-06-26               
+          6        28219          909  2009-04-26               
+          7        23967         8290  2006-02-21               
+          8        24265         8663  2006-10-06               
+          9        70273         3363  2001-03-17               
+
+--- 10 row(s) selected.
+>>cqd HIVE_SCAN_SPECIAL_MODE reset;
+
+--- SQL operation complete.
+>>drop table if exists trafodion.seabase.tbl_dos_num;
+
+--- SQL operation complete.
+>>create table trafodion.seabase.tbl_dos_num (c1 int, c2 int);
+
+--- SQL operation complete.
+>>load with NO OUTPUT into trafodion.seabase.tbl_dos_num select * from tbl_dos_num;
+
+*** ERROR[8413] The string argument contains characters that cannot be converted.
+
+--- 0 row(s) loaded.
+>>cqd HIVE_SCAN_SPECIAL_MODE '1';
+
+--- SQL operation complete.
+>>load with no output into trafodion.seabase.tbl_dos_num select * from tbl_dos_num;
+
+--- 10 row(s) loaded.
+>>select * from trafodion.seabase.tbl_dos_num;
+
+C1           C2
+-----------  -----------
+
+          0        39478
+          1        21944
+          2        32730
+          3        19653
+          4        67794
+          5        93265
+          6            ?
+          7            ?
+          8            ?
+          9           17
+
+--- 10 row(s) selected.
+>>cqd HIVE_SCAN_SPECIAL_MODE reset;
+
+--- SQL operation complete.
 >>log;

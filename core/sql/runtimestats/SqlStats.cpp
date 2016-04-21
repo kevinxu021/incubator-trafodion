@@ -100,6 +100,7 @@ StatsGlobals::StatsGlobals(void *baseAddr, short envType, Lng32 maxSegSize)
   releasingSemPid_ = -1;
   seabedError_ = 0;
   seabedPidRecycle_ = false;
+  snapshotInProgress_ = false;
 }
 
 void StatsGlobals::init()

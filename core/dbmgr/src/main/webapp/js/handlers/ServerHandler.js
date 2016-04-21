@@ -50,6 +50,7 @@ define(['handlers/EventDispatcher', 'common'],
 						xhr.abort();
 					}
 					xhrs["fetchDcsServers"] = $.ajax({
+						cache: false,
 						url: 'resources/server/dcs/servers',
 						type:'GET',
 						dataType:"json",
@@ -73,6 +74,7 @@ define(['handlers/EventDispatcher', 'common'],
 						xhr.abort();
 					}
 					xhrs["fetchDcsSummary"] = $.ajax({
+						cache: false,
 						url: 'resources/server/dcs/summary',
 						type:'GET',
 						dataType:"json",
@@ -96,6 +98,7 @@ define(['handlers/EventDispatcher', 'common'],
 						xhr.abort();
 					}
 					xhrs["getPStack"] = $.ajax({
+						cache: false,
 						url: 'resources/server/pstack/'+processID,
 						type:'GET',
 						dataType:"json",
@@ -127,6 +130,7 @@ define(['handlers/EventDispatcher', 'common'],
 						xhr.abort();
 					}
 					xhrs["fetchServices"] = $.ajax({
+						cache: false,
 						url: 'resources/server/services',
 						type:'GET',
 						dataType:"json",
@@ -151,6 +155,7 @@ define(['handlers/EventDispatcher', 'common'],
 					}
 					
 					xhrs["fetchNodes"] = $.ajax({
+						cache: false,
 						url: 'resources/server/nodes',
 						type:'GET',
 						dataType:"json",
@@ -174,6 +179,7 @@ define(['handlers/EventDispatcher', 'common'],
 						xhr.abort();
 					}
 					xhrs["server_config"] = $.ajax({
+						cache: false,
 						url: 'resources/server/config',
 						type:'GET',
 						dataType:"json",

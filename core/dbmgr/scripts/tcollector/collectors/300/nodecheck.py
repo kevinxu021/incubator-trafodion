@@ -8,7 +8,7 @@ import os
 #from collectors.lib import utils
 
 interval = 60  # seconds
-cmd = "tradnodestatus"
+cmd = "trafnodestatus"
 
 def main():
     """sqnodecheck main loop"""
@@ -32,10 +32,14 @@ def main():
             elif "DOWN" in line:
                 downNodes = downNodes + 1
                 downNodesStr.append(line.split(None, 1)[0])
-        
+        if downNodes == 0:
+            downNodesTag = 'None'
+        else:
+            downNodesTag = ', '.join(downNodesStr)
+ 
+
         print("esgyn.nodes.up %d %d" % (ts, upNodes))
-        if downNodes > 1:
-            print("esgyn.nodes.down %d %d nodes=%s" % (ts, downNodes, ', '.join(downNodesStr)))
+        print("esgyn.nodes.down %d %d nodes=%s" % (ts, downNodes, downNodesTag))
             
         sys.stdout.flush()
     except:

@@ -38,6 +38,7 @@
 #include "NABoolean.h"
 #include "NABasicObject.h"
 #include "ExceptionCallBack.h"
+#include "NAStringDef.h"
 
 // BaseException should not be instantiated directly
 class BaseException : public NABasicObject
@@ -115,10 +116,10 @@ public:
   OsimLogException(const char * errMsg,
                    const char * srcFileName,
                    UInt32 srcLineNum);
-  const char * getErrMessage(){return errMsg_;}
+  const char * getErrMessage(){return errMsg_.data();}
   virtual void throwException();
 private:
-  char errMsg_[512];
+  NAString errMsg_;
 };
 
 class PassOneAssertFatalException : public FatalException{

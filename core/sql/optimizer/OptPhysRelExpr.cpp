@@ -3770,16 +3770,6 @@ ReqdPhysicalProperty* NestedJoin::genRightChildReqs(
 {
   ReqdPhysicalProperty* rppForChild = NULL;
 
-  // Nested join into non sorted ORC hive tables is not allowed.
-  /*
-  if (child(1).getGroupAttr()->allHiveTables() )
-   {
-      if ( !((child(1)).getGroupAttr()->allHiveORCTablesSorted()) ) {
-         return NULL;
-      }
-   }
-  */
-
   // ---------------------------------------------------------------
   // spp should have been synthesized for child's optimal plan.
   // ---------------------------------------------------------------
@@ -4531,8 +4521,12 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
   const InputPhysicalProperty* ippForMyChild =
                                     myContext->getInputPhysicalProperty();
 
-                   
-  NABoolean noN2JForRead  = ((CmpCommon::getDefault(NESTED_JOINS_NO_NSQUARE_OPENS) == DF_ON) && 
+
+  NABoolean noN2JForRead  = (
+                             CmpCommon::getDefault(NESTED_JOINS_NO_NSQUARE_OPENS) == DF_ON ||
+                             (CmpCommon::getDefault(NESTED_JOINS_NO_NSQUARE_OPENS) == DF_SYSTEM &&
+                              !(child(1).getGroupAttr()->allHiveORCTables())
+                             ) && 
                              (updateTableDesc() == NULL));
 
   NABoolean noEquiN2J = 
@@ -5203,13 +5197,15 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
       case 4:
       childIndex = 0;
 
-/*
-      if ( getGroupId() == 7 && myContext->getReqdPhysicalProperty() &&
+
+      /*
+      if ( getGroupId() == 7 &&  myContext->getReqdPhysicalProperty() &&
            myContext->getReqdPhysicalProperty()->getPlanExecutionLocation() != EXECUTE_IN_MASTER) {
          int x = 1;
          x++;
       }
-*/
+      */
+
 
     // -------------------------------------------------------------------
     // Case 4: Plan 2, child 0
@@ -6271,7 +6267,7 @@ NABoolean NestedJoin::OCRJoinIsFeasible(const Context* myContext)  const
 
   // IF N2Js, which demand opens, are not to be disabled, make sure 
   // OCR is allowed only if the threshold of #opens is reached.
-  if (CmpCommon::getDefault(NESTED_JOINS_NO_NSQUARE_OPENS) == DF_OFF) {
+  if (CmpCommon::getDefault(NESTED_JOINS_NO_NSQUARE_OPENS) != DF_ON) {
 
      Lng32 threshold = ActiveSchemaDB()->getDefaults().getAsLong(NESTED_JOINS_OCR_MAXOPEN_THRESHOLD);
 
@@ -14551,6 +14547,12 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   // limit the number of ESPs to HIVE_NUM_ESPS_PER_DATANODE * nodes
   maxESPs = MAXOF(MINOF(numSQNodes*numESPsPerDataNode, maxESPs),1);
 
+  // If the required count of partitions is more than the #max esps,
+  // set the maxESPs to that number. Otherwise, the requirement will
+  // never be satisfied. 
+  //if ( minESPs > maxESPs )
+  //  maxESPs = minESPs;
+
   // check for ATTEMPT_ESP_PARALLELISM CQD
   if (CURRSTMT_OPTDEFAULTS->attemptESPParallelism() == DF_OFF)
     maxESPs = 1;
@@ -14667,6 +14669,23 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   //
   NABoolean canUseSearchKey = indexDesc_->isSortedORCHive();
  
+  const RequireReplicateNoBroadcast* rpnb = NULL;
+  // If the requirement is repN, produce a repN partition func to satisfy it.
+  // The primary use of repN is to access the inner side of a NJ. Only NJ into
+  // ORC tables on sorted column(s) with equi-join predicate is allowed.
+  if ( partReq && (rpnb=partReq->castToRequireReplicateNoBroadcast()) ) 
+  {
+     Lng32 numPartitions = rpnb->getParentPartFunc()->getCountOfPartitions();
+
+     myNodeMap = new(CmpCommon::statementHeap())
+       NodeMap(CmpCommon::statementHeap(),
+               numPartitions,
+               NodeMapEntry::ACTIVE, NodeMap::HIVE);
+
+     myPartFunc = new(CmpCommon::statementHeap())
+         ReplicateNoBroadcastPartitioningFunction(numPartitions, myNodeMap);
+
+  } else
   if (numESPs > 1)
     {
       // create a HASH2 partitioning function with numESPs partitions
@@ -14713,6 +14732,8 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
                                      partKeyList,
                                      numESPs,
                                      myNodeMap);
+
+
       }
 
       myPartFunc->createPartitioningKeyPredicates();

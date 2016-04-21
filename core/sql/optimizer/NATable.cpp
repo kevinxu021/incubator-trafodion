@@ -4713,12 +4713,20 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
 
       // collect file stats from HDFS for the table
       const hive_sd_desc *sd_desc = hvt_desc->getSDs();
-      HHDFSTableStats * hiveHDFSTableStats = new(heap) HHDFSTableStats(heap);
-      hiveHDFSTableStats->
-        setPortOverride(CmpCommon::getDefaultLong(HIVE_LIB_HDFS_PORT_OVERRIDE));
 
-      // create file-level statistics and estimate total row count and record length
-      hiveHDFSTableStats->populate(hvt_desc);
+      HHDFSTableStats * hiveHDFSTableStats = NULL;
+      if(OSIM_runningSimulation())
+              hiveHDFSTableStats = OSIM_restoreHiveTableStats(table->getTableName(), heap, hvt_desc);
+      else
+      {
+              hiveHDFSTableStats = new(heap) HHDFSTableStats(heap);
+              hiveHDFSTableStats->
+                setPortOverride(CmpCommon::getDefaultLong(HIVE_LIB_HDFS_PORT_OVERRIDE));
+        
+              // create file-level statistics and estimate total row count and record length
+              hiveHDFSTableStats->populate(hvt_desc);
+      }
+
       if (hiveHDFSTableStats->hasError())
         {
           *CmpCommon::diags() << DgSqlCode(-1200)
@@ -4726,6 +4734,9 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
                               << DgTableName(table->getTableName().getQualifiedNameAsAnsiString());
           return TRUE;
         }
+
+      if(OSIM_runningInCaptureMode())
+              OSIM_captureHiveTableStats(hiveHDFSTableStats, table);
 
       // for partitioned Hive tables, create a RangePartitioningFunction with
       // start key values that represent the Hive partition values (note that
@@ -4746,6 +4757,14 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
         {
           *CmpCommon::diags() << DgSqlCode(-3069)
                               << DgTableName(table->getTableName().getQualifiedNameAsAnsiString());
+          return TRUE;
+
+        }
+
+        if ((NOT IsEnterpriseLevel()) || (NOT IsAdvancedLevel()))
+        {
+          *CmpCommon::diags() << DgSqlCode(-4222)
+                              << DgString0("ORC");
           return TRUE;
         }
 
@@ -5405,8 +5424,10 @@ NATable::NATable(BindWA *bindWA,
   objectType_ = table_desc->body.table_desc.objectType;
   partitioningScheme_ = table_desc->body.table_desc.partitioningScheme;
 
-  if (!(corrName.isSeabaseMD() || corrName.isSpecialTable()))
-    setupPrivInfo();
+  // Set up privs
+  if ((corrName.getSpecialType() == ExtendedQualName::SG_TABLE) ||
+      (!(corrName.isSeabaseMD() || corrName.isSpecialTable())))
+     setupPrivInfo();
 
   if ((table_desc->body.table_desc.tableFlags & SEABASE_OBJECT_IS_EXTERNAL_HIVE) != 0 ||
       (table_desc->body.table_desc.tableFlags & SEABASE_OBJECT_IS_EXTERNAL_HBASE) != 0)
@@ -8760,6 +8781,7 @@ void NATableDB::removeNATable(CorrName &corrName, ComQiScope qiScope,
       ddlObj.ddlObjName = corrName.getQualifiedNameAsString();
       ddlObj.qiScope = qiScope;
       ddlObj.ot = ot;
+      ddlObj.objUID = -1;
 
       NABoolean found = FALSE;
       for (Lng32 i = 0;

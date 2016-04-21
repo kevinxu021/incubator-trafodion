@@ -6,7 +6,8 @@
 
 define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		'handlers/ToolsHandler', 'moment', 'common', 'views/RefreshTimerView',
-		'jqueryui', 'datatables.net', 'datatables.net-bs', 'jqueryvalidate'
+		'jqueryui', 'datatables.net', 'datatables.net-bs', 'jqueryvalidate',
+        'bootstrapNotify'
  ], function(BaseView,
 		CreateLibraryT, $, tHandler, moment, common, refreshTimer) {
 	'use strict';
@@ -26,12 +27,15 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 	var UPLOAD_INDEX = 0;
 	var UPLOAD_LENGTH = 0;
 	var validator = null;
+	var isAjaxCompleted=true;
 	
 	var CreateLibraryView = BaseView.extend({
 		template : _.template(CreateLibraryT),
 
 		doInit : function(args) {
 			_this = this;
+			common.redirectFlag=false;
+			this.currentURL = window.location.hash;
 			$(CREATE_BTN).on('click', this.uploadFile);
 			$(CLEAR_BTN).on('click', this.cleanField);
 			$(FILE_SELECT).on('change', this.onFileSelected);
@@ -68,9 +72,17 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			});
 		},
 		doResume : function(args) {
+			this.currentURL = window.location.hash;
+			common.redirectFlag=false;
+			if(this.isAjaxCompleted=true){
+				$(LOADING).css('visibility', 'hidden');
+				$(CREATE_BTN).prop('disabled', false);
+				$(CLEAR_BTN).prop('disabled', false);
+			}
 			validator.resetForm();
 		},
 		doPause : function() {
+			common.redirectFlag=true;
 			validator.resetForm();
 		},
 		
@@ -112,7 +124,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			var end = chunk_size;
 			var totalChunks = Math.ceil(fileSize / chunk_size);
 			UPLOAD_INDEX = 0;
-			
+			UPLOAD_LENGTH=0;
 			while(start < fileSize){
 				var slice_method = "";
 				if ('mozSlice' in file) {
@@ -146,6 +158,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		},
 		
 		executeUploadChunk : function(sflag, eflag){
+			_this.isAjaxCompleted=false;
 			var data = CHUNKS[UPLOAD_INDEX];
 			tHandler.createLibrary(data.chunk, data.fileName, data.filePart, data.fileSize, data.schemaName, data.libraryName, sflag, eflag);
 			UPLOAD_INDEX++;
@@ -157,11 +170,19 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			$(FILE_NAME).val(FILE.name);
 		},
 		createLibrarySuccess : function(){
+			_this.isAjaxCompleted=true;
 			if(UPLOAD_INDEX==UPLOAD_LENGTH){
 				$(LOADING).css('visibility', 'hidden');
 				$(CREATE_BTN).prop('disabled', false);
 				$(CLEAR_BTN).prop('disabled', false);
-				alert("Create library Success!");
+				var msgObj={msg:'The library has been successfully created',tag:"success",url:_this.currentURL,shortMsg:"Library created successfully."};
+				if(common.redirectFlag==false){
+					_this.popupNotificationMessage(null,msgObj);
+				}else{
+					
+					common.fire(common.NOFITY_MESSAGE,msgObj);
+				}
+				//alert("Create library Success!");
 			}else if(UPLOAD_INDEX==UPLOAD_LENGTH-1){
 				_this.executeUploadChunk(false, true);
 			}else{
@@ -169,12 +190,20 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			}
 		},
 		createLibraryError : function(error){
+			_this.isAjaxCompleted=true;
 			$(LOADING).css('visibility', 'hidden');
 			$(CREATE_BTN).prop('disabled', false);
 			$(CLEAR_BTN).prop('disabled', false);
 			var errorIndex = error.responseText.lastIndexOf("*** ERROR");
 			var errorString = error.responseText.substring(errorIndex);
-			alert(errorString);
+			//alert(errorString);
+			var msgObj={msg:errorString,tag:"danger",url:_this.currentURL,shortMsg:"Create library failed."};
+			if(common.redirectFlag==false){
+				_this.popupNotificationMessage(null,msgObj);
+			}else{
+				
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
 		}
 	});
 

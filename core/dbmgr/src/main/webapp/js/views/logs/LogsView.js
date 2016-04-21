@@ -82,7 +82,9 @@ define([
 			refreshTimerView.init();
 			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
-			refreshTimerView.setRefreshInterval('1');
+			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
+				refreshTimerView.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
+			}
 
 			this.fetchLogs();
 		},
@@ -95,6 +97,10 @@ define([
 			$(OPEN_FILTER).on('click', this.filterButtonClicked);
 			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
+			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
+				refreshTimerView.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
+			}
+			refreshTimerView.resume();
 			this.fetchLogs();
 		},
 		doPause: function(){
@@ -320,6 +326,7 @@ define([
 			$('#component-sql-udr').prop('checked', false);
 			$('#component-wdg').prop('checked', false);
 			$('#component-dcs').prop('checked', false);
+			$('#component-rest').prop('checked', false);
 
 			if(lastAppliedFilters != null){
 				$(FILTER_TIME_RANGE).val(lastAppliedFilters.timeRange);
@@ -347,6 +354,7 @@ define([
 				});
 
 				$('#component-dcs').prop('checked',(lastAppliedFilters.dcs && lastAppliedFilters.dcs == true));
+				$('#component-rest').prop('checked',(lastAppliedFilters.rest && lastAppliedFilters.rest == true));
 			}
 		},
 
@@ -445,6 +453,8 @@ define([
 			param.message = $(FILTER_MESSAGE_TEXT).val();
 			if($('#component-dcs').is(':checked'))
 				param.dcs = true;
+			if($('#component-rest').is(':checked'))
+				param.rest= true;
 
 			return param;
 		},
