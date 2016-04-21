@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#All rights reserved by Esgyn Corporation 2015 
+#All rights reserved by Esgyn Corporation 2016
 #this script will check if current installation has a valid license or not
 silent=0
 if [[ $1 = "-s" ]];then
@@ -23,7 +23,7 @@ if [[ $encstring = "" ]]; then
   #no license file
   #print warning and continue
   echo "***  WARNING  *** "
-  echo "***Your license to use the EsgynDB Enterprise Edition is either unavailable or the file is corrupt."
+  echo "***Your license to use the ${TRAFODION_VER_PROD} Edition is either unavailable or the file is corrupt."
   if [[ silent -eq 0 ]];then
     echo -n " Do you want to continue [y/N]:"
     read answer
@@ -54,7 +54,7 @@ node_count=$(echo $NODE_LIST | wc -w)
 
 if [[ $node_count -gt $nodenumber ]]; then
   echo "***  WARNING  *** "
-  echo "***Your license for use of EsgynDB Enterprise Edition only supports " $nodenumber " hosts."
+  echo "***Your license for use of ${TRAFODION_VER_PROD} Edition only supports " $nodenumber " hosts."
   echo -n " Do you want to continue [y/N]:"
   read answer
   if [ "$answer" != "y" ] && [ "$answer" != "Y" ] && [ "$answer" != "yes" ]  && [ "$answer" != "YES" ]; then
