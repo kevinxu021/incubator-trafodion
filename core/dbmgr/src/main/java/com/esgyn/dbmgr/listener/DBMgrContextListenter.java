@@ -14,7 +14,7 @@ public class DBMgrContextListenter implements ServletContextListener {
 
 	@Override
 	public void contextInitialized(ServletContextEvent sce) {
-		ConfigurationResource.GetSystemProperties();
+		ConfigurationResource.loadEsgynDBSystemProperties();
 	}
 
 	@Override
