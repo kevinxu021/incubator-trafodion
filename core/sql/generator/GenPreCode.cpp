@@ -116,6 +116,7 @@ static void generateKeyExpr(const ValueIdSet & externalInputs,
 			    const ValueIdList & listOfKeyValues,
                             ValueIdList & listOfKeyExpr,
 			    Generator* generator,
+                            NABoolean forBeginKey,
                             NABoolean replicatePredicates = FALSE)
   {
   ItemExpr * keyExpr;
@@ -130,9 +131,20 @@ static void generateKeyExpr(const ValueIdSet & externalInputs,
       ItemExpr *ieKeyCol = listOfKeyColumns[keyNum].getItemExpr();
       ValueId KeyColId = ieKeyCol->getValueId();
 
-      keyExpr = new(generator->wHeap()) BiRelat(ITM_EQUAL,
-						ieKeyCol,
-						ieKeyVal);
+      if ( ieKeyVal->isNullConstant() ) {
+         keyExpr = new(generator->wHeap()) BiRelat(ITM_EQUAL,
+                                                   ieKeyCol,
+                                                   ieKeyVal);
+      }
+      else if ( forBeginKey ) {
+         keyExpr = new(generator->wHeap()) BiRelat(ITM_GREATER_EQ,
+                                                   ieKeyCol,
+                                                   ieKeyVal);
+      } else {
+         keyExpr = new(generator->wHeap()) BiRelat(ITM_LESS_EQ,
+                                                   ieKeyCol,
+                                                   ieKeyVal);
+      }
 
       // Synthesize its type for and assign a ValueId to it.
       keyExpr->synthTypeAndValueId();
@@ -4280,12 +4292,14 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 		      getSearchKey()->getBeginKeyValues(),
 		      beginKeyPred_,
 		      generator,
+		      TRUE, // begin key
                       replicatePredicates);
       generateKeyExpr(getGroupAttr()->getCharacteristicInputs(),
 		      getIndexDesc()->getIndexKey(),
 		      getSearchKey()->getEndKeyValues(),
 		      endKeyPred_,
 		      generator,
+		      FALSE, // end key
                       replicatePredicates);
       }
 
@@ -4308,12 +4322,14 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
                              getSearchKey()->getBeginKeyValues(),
                              beginKeyPred_,
                              generator,
+		             TRUE, // begin key
                              replicatePredicates);
           generateKeyExpr(getGroupAttr()->getCharacteristicInputs(),
                              getIndexDesc()->getIndexKey(),
                              getSearchKey()->getEndKeyValues(),
                              endKeyPred_,
                              generator,
+		             FALSE, // end key
                              replicatePredicates);
         }
 
@@ -4639,12 +4655,16 @@ RelExpr * GenericUpdate::preCodeGen(Generator * generator,
 		      getIndexDesc()->getIndexKey(),
 		      getSearchKey()->getBeginKeyValues(),
 		      beginKeyPred_,
-		      generator);
+		      generator,
+		      TRUE // begin key
+                     );
       generateKeyExpr(getGroupAttr()->getCharacteristicInputs(),
 		      getIndexDesc()->getIndexKey(),
 		      getSearchKey()->getEndKeyValues(),
 		      endKeyPred_,
-		      generator);
+		      generator,
+		      FALSE // end key
+                     );
     }
 
   // ---------------------------------------------------------------------
