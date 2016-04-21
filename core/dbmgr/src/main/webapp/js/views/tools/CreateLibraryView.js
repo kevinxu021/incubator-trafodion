@@ -124,7 +124,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			var end = chunk_size;
 			var totalChunks = Math.ceil(fileSize / chunk_size);
 			UPLOAD_INDEX = 0;
-			UPLOAD_LENGTH=0;
+			CHUNKS=[];
 			while(start < fileSize){
 				var slice_method = "";
 				if ('mozSlice' in file) {
