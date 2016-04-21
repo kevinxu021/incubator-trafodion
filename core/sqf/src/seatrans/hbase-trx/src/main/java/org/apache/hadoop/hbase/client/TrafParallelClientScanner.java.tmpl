@@ -189,7 +189,7 @@ public class TrafParallelClientScanner extends AbstractClientScanner implements 
     // interrupt all running threads, don't wait for completion
     pool.shutdownNow();
   }
-#ifndef CDH1.0
+#ifdefined APACHE || HDP2.3
   @Override
   public boolean renewLease() {return false;}//fake, never needed.
 #endif
