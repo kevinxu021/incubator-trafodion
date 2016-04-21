@@ -28,7 +28,7 @@
 #include "ComCextdecs.h"
 #include "ExpORCinterface.h"
 #include "NodeMap.h"
-
+#include "OptimizerSimulator.h"
 // for DNS name resolution
 #include <netdb.h>
 
@@ -533,6 +533,22 @@ void HHDFSBucketStats::print(FILE *ofd)
   HHDFSStatsBase::print(ofd, "bucket");
 }
 
+void HHDFSBucketStats::append(HHDFSFileStats* st)
+{
+   fileStatsList_.insert(st);
+}
+
+OsimHHDFSStatsBase* HHDFSBucketStats::osimSnapShot()
+{
+    OsimHHDFSBucketStats* stats = new(STMTHEAP) OsimHHDFSBucketStats(NULL, this, STMTHEAP);
+
+    for(Int32 i = 0; i < fileStatsList_.entries(); i++)
+        stats->addEntry(fileStatsList_[i]->osimSnapShot());
+
+    return stats;
+}
+
+
 HHDFSListPartitionStats::~HHDFSListPartitionStats()
 {
   for (CollIndex b=0; b<=defaultBucketIdx_; b++)
@@ -809,6 +825,21 @@ void HHDFSListPartitionStats::print(FILE *ofd)
         bucketStatsList_[b]->print(ofd);
       }
   HHDFSStatsBase::print(ofd, "partition");
+}
+
+void HHDFSListPartitionStats::append(HHDFSBucketStats* st)
+{
+    bucketStatsList_.insertAt(bucketStatsList_.entries(), st);
+}
+
+OsimHHDFSStatsBase* HHDFSListPartitionStats::osimSnapShot()
+{
+    OsimHHDFSListPartitionStats* stats = new(STMTHEAP) OsimHHDFSListPartitionStats(NULL, this, STMTHEAP);
+
+    for(Int32 i = 0; i < bucketStatsList_.entries(); i++)
+        stats->addEntry(bucketStatsList_[i]->osimSnapShot());
+
+    return stats;
 }
 
 HHDFSTableStats::~HHDFSTableStats()
@@ -1129,6 +1160,31 @@ void HHDFSTableStats::disconnectHDFS()
   fs_ = NULL;
 }
 
+
+NABoolean HHDFSFileStats::splitsAllowed() const 
+{
+  Int32 balanceLevel = CmpCommon::getDefaultLong(HIVE_LOCALITY_BALANCE_LEVEL);
+  if (balanceLevel == -1)
+    return FALSE ; // certain compressed files will also come through here later
+  else
+    return TRUE;
+}
+
+void HHDFSTableStats::append(HHDFSListPartitionStats* st)
+{
+    listPartitionStatsList_.insertAt(listPartitionStatsList_.entries(), st);
+}
+
+OsimHHDFSStatsBase* HHDFSTableStats::osimSnapShot()
+{
+    OsimHHDFSTableStats* stats = new(STMTHEAP) OsimHHDFSTableStats(NULL, this, STMTHEAP);
+
+    for(Int32 i = 0; i < listPartitionStatsList_.entries(); i++)
+        stats->addEntry(listPartitionStatsList_[i]->osimSnapShot());
+
+    return stats;
+}
+
 // Assign all blocks in this to ESPs, considering locality
 Int64 HHDFSFileStats::assignToESPs(Int64 *espDistribution,
                                    NodeMap* nodeMap,
@@ -1189,13 +1245,12 @@ Int64 HHDFSFileStats::assignToESPs(Int64 *espDistribution,
 void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi,
                                   HiveNodeMapEntry*& entry,
                                   Int64 totalBytesPerESP,
-                                  Int32 numOfBytesToReadPerRow,
-                                  HHDFSListPartitionStats *partition)
+                                  Int32 numOfBytesToReadPerRow, // unused
+                                  HHDFSListPartitionStats *partition,
+                                  Int64& filled) // # of bytes filled in the current split
 {
    Int64 available = getTotalSize(); // # of bytes available from the current file
    Int64 offset = 0;                 // offset in the current file
-   Int64 filled = 0;                 // # of bytes filled in the current split
-
    while ( available > 0 ) 
    {
       if ( filled + available <= totalBytesPerESP ) 
@@ -1207,9 +1262,10 @@ void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi,
           // in bucket stats
    
           entry->addScanInfo(HiveScanInfo(this, offset, available, FALSE, partition));
+	  filled += available;
           available = 0;
    
-          if ( filled + available == totalBytesPerESP ) 
+          if ( filled == totalBytesPerESP ) 
             {
               // The contribution is just right for the split. Need
               // to take all the and add it to the current node map entry, 
@@ -1218,15 +1274,25 @@ void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi,
    
               filled = 0;
             }
-          else
-            filled += available;
         }
+      else if (!splitsAllowed())
+	{
+	  // assign more bytes for this esp than what will give perfect balance
+	  // we are forced to do this since we don't want to split this file
+	  // with splits disallowed esps will be unbalanced, sometimes 
+	  // seriously so. To be used with certain compression types and
+	  // as a fall back option when split files produce incorrect results
+	  entry->addScanInfo(HiveScanInfo(this, offset, available, FALSE, partition));
+	  entry = (HiveNodeMapEntry*)(nmi->advanceAndGetEntry());
+	  filled = 0;
+	  available = 0; // go through while loop just once for such files
+	}
       else
         {
     
           // The contribution is more than what the current split can take.
           // Add a portion of the contribution to the current split.
-          // Start a new split. 
+          // Start a new split. Never get here when splits are not allowed.
    
           Int64 portion = totalBytesPerESP - filled;
    
@@ -1241,6 +1307,21 @@ void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi,
        
         }
    }
+}
+
+void HHDFSFileStats::assignToESPsRepN(HiveNodeMapEntry*& entry)
+{
+   if ( totalSize_ > 0 ) {
+      HiveScanInfo info(this, 0, totalSize_);
+      entry->addScanInfo(info, totalSize_);
+   }
+}
+
+OsimHHDFSStatsBase* HHDFSFileStats::osimSnapShot()
+{
+    OsimHHDFSFileStats* stats = new(STMTHEAP) OsimHHDFSFileStats(NULL, this, STMTHEAP);
+
+    return stats;
 }
 
 Int64 HHDFSORCFileStats::findBlockForStripe(Int64 offset)
@@ -1312,7 +1393,8 @@ void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi,
                                      HiveNodeMapEntry*& entry,
                                      Int64 totalBytesPerESP,
                                      Int32 numOfBytesToReadPerRow,
-                                     HHDFSListPartitionStats *partition)
+                                     HHDFSListPartitionStats *partition,
+				     Int64& filled) // unused
 {
   CMPASSERT(numOfBytesToReadPerRow > 0);
 
@@ -1350,6 +1432,17 @@ void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi,
    }
 } 
 
+// assign the entire file to the entry, if it is not empty.
+void HHDFSORCFileStats::assignToESPsRepN(HiveNodeMapEntry*& entry)
+{
+   Int32 n = offsets_.entries();
+   if ( n > 0 ) {
+      Int64 filled = offsets_[n-1] + totalBytes_[n-1];
+      HiveScanInfo info(this, offsets_[0], filled);
+      entry->addScanInfo(info, filled);
+   }
+}
+
 void HHDFSORCFileStats::populate(hdfsFS fs,
                 hdfsFileInfo *fileInfo,
                 Int32& samples,
@@ -1366,16 +1459,45 @@ void HHDFSORCFileStats::populate(hdfsFS fs,
      return;
    }
 
-   orci->getStripeInfo(getFileName().data(), numOfRows_, offsets_, totalBytes_);
-   
-   totalRows_ = 0;
-   for (Int32 i=0; i<numOfRows_.entries(); i++) 
-   {
-      totalRows_ += numOfRows_[i];
+   Lng32 rc = orci->open((char*)(getFileName().data()));
+   if (rc) {
+     diags.recordError(NAString("ORC interface open() failed"));
+     return;
+   }
+
+   NABoolean readStripeInfo = (CmpCommon::getDefault(ORC_READ_STRIPE_INFO) == DF_ON);
+
+   if ( readStripeInfo ) {
+     orci->getStripeInfo(numOfRows_, offsets_, totalBytes_);
+   }
+
+   ByteArrayList* bal = NULL;
+   Lng32 colIndex = -1;
+   rc = orci->getColStats(colIndex, bal);
+
+   if (rc) {
+     diags.recordError(NAString("ORC interface getColStats() failed"));
+     return;
+   }
+
+   // read the total # of rows
+   Lng32 len = 0;
+   bal->getEntry(0, (char*)&totalRows_, sizeof(totalRows_), len);
+
+   rc = orci->close();
+   if (rc) {
+     diags.recordError(NAString("ORC interface close() failed"));
+     return;
    }
 
    delete orci;
 
 }
 
+OsimHHDFSStatsBase* HHDFSORCFileStats::osimSnapShot()
+{
+    OsimHHDFSORCFileStats* stats = new(STMTHEAP) OsimHHDFSORCFileStats(NULL, this, STMTHEAP);
+
+    return stats;
+}
 

@@ -214,10 +214,8 @@ bool CNSKListenerSrvr::ListenToPort(int port)
 	}
 	else
 	{
-//LCOV_EXCL_START
-		SET_ERROR((long)0, NSK, TCPIP, UNKNOWN_API, E_LISTENER, "ListenToPort", O_INIT_PROCESS, F_ACCEPT, errno, 0);
+		SET_WARNING((long)0, NSK, TCPIP, UNKNOWN_API, E_LISTENER, "ListenToPort ", O_INIT_PROCESS, F_ACCEPT, errno, 0);
 		goto bailout;
-//LCOV_EXCL_STOP
 	}
 
     // If tracing is enabled, display trace info indicating new "listen"
@@ -229,8 +227,8 @@ bailout:
 		GTransport.m_TCPIPSystemSrvr_list->del_node(m_nListenSocketFnum);
 //        closeTCPIPSession(m_nListenSocketFnum);
 	m_nListenSocketFnum = -2;
-	sprintf(tmp,"bailout ListenToPort[%d][%d]", port, m_nListenSocketFnum );
-	SET_ERROR((long)0, NSK, TCPIP, UNKNOWN_API, errorType_, tmp, O_INIT_PROCESS, F_SOCKET, 0, 0);
+	sprintf(tmp,"bailout ListenToPort[%d][%d] ", port, m_nListenSocketFnum );
+	SET_WARNING((long)0, NSK, TCPIP, UNKNOWN_API, errorType_, tmp, O_INIT_PROCESS, F_SOCKET, 0, 0);
 	return false;
 }
 

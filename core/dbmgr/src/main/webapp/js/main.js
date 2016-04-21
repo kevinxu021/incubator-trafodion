@@ -27,13 +27,13 @@ require.config({
 	}
 	],
 	shim: {
-		bootstrap: {
-			deps: ['jquery'],
-			exports: 'bootstrap'
-		},
 		jqueryui: {
 			deps: ['jquery'],
 			exports: 'jqueryui'
+		},
+		bootstrap: {
+			deps: ['jquery', 'jqueryui'],
+			exports: 'bootstrap'
 		},
 		backbone: {
 			// Depends on underscore and jQuery

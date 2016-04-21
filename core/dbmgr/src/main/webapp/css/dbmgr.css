@@ -88,6 +88,7 @@
 	display: table-cell;
 	padding-right: 10px;
 	margin-bottom: 10px;
+	font-size:13px;
 }
 
 .dbmgr-button, .dbmgr-link-button {
@@ -100,6 +101,7 @@
 	width: 200px;
 	margin-bottom: 0px;
 	font-weight: 55;
+	font-size:13px;
 }
 
 .nav>li {

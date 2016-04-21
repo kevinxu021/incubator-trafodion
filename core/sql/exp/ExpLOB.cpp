@@ -1070,6 +1070,13 @@ ex_expr::exp_return_type ExpLOBdelete::eval(char *op_data[],
 		       op_data[1]);
   
   Lng32 handleLen = getOperand(1)->getLength(op_data[-MAX_OPERANDS+1]);
+  if (handleLen == 0)
+   {
+     ExRaiseSqlError(h, diagsArea, 
+                     (ExeErrorCode)(8443), NULL, NULL);
+     
+     return ex_expr::EXPR_ERROR;
+   }
 
   // get the lob name where data need to be deleted
   char lobNameBuf[100];
@@ -1222,6 +1229,14 @@ ex_expr::exp_return_type ExpLOBupdate::eval(char *op_data[],
      
       char * handle = op_data[0];
       handleLen = getOperand(0)->getLength();
+      if (handleLen == 0)
+        {
+          ExRaiseSqlError(h, diagsArea, 
+                          (ExeErrorCode)(8443), NULL, NULL);
+          
+          return ex_expr::EXPR_ERROR;
+        }
+
       err = insertData(handleLen, handle, op_data, h, diagsArea);
      
       return err;
@@ -1415,6 +1430,14 @@ ex_expr::exp_return_type ExpLOBselect::eval(char *op_data[],
   if (lobOperStatus == DO_NOTHING_)
     return ex_expr::EXPR_OK;
   Int32 handleLen = getOperand(1)->getLength(op_data[-MAX_OPERANDS+1]);
+  if (handleLen == 0)
+   {
+     ExRaiseSqlError(h, diagsArea, 
+                     (ExeErrorCode)(8443), NULL, NULL);
+     
+     return ex_expr::EXPR_ERROR;
+   }
+
   char * lobHandle = op_data[1];
   extractFromLOBhandle(&flags, &lobType, &lobNum, &uid,
 		       &descKey, &descTS, 
@@ -1462,6 +1485,13 @@ ex_expr::exp_return_type ExpLOBconvert::eval(char *op_data[],
   char * lobHandle = op_data[1];
   char *tgtFileName = NULL;
   Int32 handleLen = getOperand(1)->getLength(op_data[-MAX_OPERANDS+1]);
+  if (handleLen == 0)
+   {
+     ExRaiseSqlError(h, diagsArea, 
+                     (ExeErrorCode)(8443), NULL, NULL);
+     
+     return ex_expr::EXPR_ERROR;
+   }
 
   Int64 uid;
   Lng32 lobType;

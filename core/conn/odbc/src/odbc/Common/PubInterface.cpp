@@ -109,8 +109,7 @@ void send_to_eventlog (short evt_num, short EventLogType, char *ComponentName, c
       if (eventDataMap[i].eventId == evt_num)
       {
          found = TRUE;
-         //sprintf(tmpBuf, "%.30s (%d,%d): %ld ",process_name, nid, pid, getLongEventId(1, SQEVL_NDCS, evt_num, 9));
-         sprintf(tmpBuf, "Node Number: %d, CPU: %d, PIN:%ld, Process Name:%.30s , , ,", nid, nid, pid, process_name);
+         sprintf(tmpBuf, "Node Number: %d, CPU: %d, PID:%ld, Process Name:%.30s , , ,", nid, nid, pid, process_name);
          logMsg.append(tmpBuf);
          for (j=0;eventDataMap[i].msgPtr[j] !=NULL || j>6 ;j++ )
          {
@@ -126,13 +125,6 @@ void send_to_eventlog (short evt_num, short EventLogType, char *ComponentName, c
    }
 
    _itoa(EventLogType, tmpBuf, 10);
-
-//   if (findString("<1>",&idx, logMsg))
-//      logMsg.replace( logMsg.find("<1>"), 3, tmpBuf );
-//   if (findString("<2>",&idx, logMsg))
-//      logMsg.replace( logMsg.find("<2>"), 3, ComponentName );
-//   if (findString("<3>",&idx, logMsg))
-//      logMsg.replace( logMsg.find("<3>"), 3, ObjectRef );
 
    for ( i=0,j=4; i<nToken; i++,j++ )
    {

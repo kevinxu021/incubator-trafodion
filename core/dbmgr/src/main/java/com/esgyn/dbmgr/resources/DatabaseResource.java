@@ -548,7 +548,7 @@ public class DatabaseResource {
 		try {
 			String queryText = String.format(
 					SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_HISTOGRAM_STATISTICS),
-					InternalForm(schemaName), objectID);
+					ExternalForm(schemaName), objectID);
 			_LOG.debug(queryText);
 			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
@@ -571,14 +571,16 @@ public class DatabaseResource {
 		Connection connection = null;
 		try {
 			connection = JdbcHelper.getInstance().getAdminConnection();
-			long objectIDLong = Long.parseLong(objectID.trim());
+			// long objectIDLong = Long.parseLong(objectID.trim());
 
 			String queryText = SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_PRIVILEGES);
 			if (objectType.toLowerCase().equals("schema")) {
 				queryText = SystemQueryCache.getQueryText(SystemQueryCache.SELECT_SCHEMA_PRIVILEGES);
 			}
 			pstmt = connection.prepareStatement(queryText);
-			pstmt.setLong(1, objectIDLong);
+			// pstmt.setLong(1, objectIDLong);
+			pstmt.setString(1, InternalForm(schemaName));
+			pstmt.setString(2, objectName);
 
 			_LOG.debug(queryText);
 			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
@@ -742,12 +744,13 @@ public class DatabaseResource {
 		PreparedStatement pstmt = null;
 		Connection connection = null;
 		try {
-			long objectIDLong = Long.parseLong(objectID.trim());
+			// long objectIDLong = Long.parseLong(objectID.trim());
 			connection = JdbcHelper.getInstance().getAdminConnection();
 			String queryText = String.format(SystemQueryCache.getQueryText(SystemQueryCache.GET_ROUTINE_USAGE),
 					objectID);
 			pstmt = connection.prepareStatement(SystemQueryCache.getQueryText(SystemQueryCache.GET_ROUTINE_USAGE));
-			pstmt.setLong(1, objectIDLong);
+			pstmt.setString(1, schemaName);
+			pstmt.setString(2, objectName);
 
 			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);

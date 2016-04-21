@@ -143,10 +143,10 @@ done
 # (or most recently added item)
 if [[ "$FORCE" != "true" ]]
 then
-  $MY_HIVE_CMD -e 'describe time_dim_orc;' >/dev/null 2>&1
+  $MY_HIVE_CMD -e 'describe customer_orc_bucketed;' >/dev/null 2>&1
   if (( $? == 0 ))
   then
-    echo "Hive table time_dim_orc found. Skipping TPC-DS set-up."
+    echo "Hive table customer_orc_bucketed found. Skipping TPC-DS set-up."
     exit 0
   fi
 fi

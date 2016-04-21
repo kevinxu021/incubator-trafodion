@@ -29,4 +29,7 @@ fi
 
 sed "
 s/^\([ ]*PLAN_ID[ ]*[\.]*\) .*/\1 removed/g
+s/Fragment ID: 0, Length: [0-9]*/Fragment ID: 0, Length: AnyLength/g
+s/^\([ ]*EST_TOTAL_COST[ ]*[\.]*\) .*/\1 removed/g
+s/^\([ ]*EST_OPER_COST[ ]*[\.]*\) .*/\1 removed/g
 " $fil

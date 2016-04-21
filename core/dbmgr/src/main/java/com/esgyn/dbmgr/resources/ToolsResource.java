@@ -30,6 +30,7 @@ import com.esgyn.dbmgr.common.EsgynDBMgrException;
 import com.esgyn.dbmgr.common.JdbcHelper;
 import com.esgyn.dbmgr.model.Session;
 import com.esgyn.dbmgr.model.SessionModel;
+import com.esgyn.dbmgr.sql.SystemQueryCache;
 import com.sun.jersey.multipart.FormDataParam;
 
 @Path("/tools")
@@ -50,6 +51,9 @@ public class ToolsResource {
 		Connection connection = null;
 		CallableStatement pc = null;
 		String stmt;
+		if(schemaName.startsWith("_")){
+			schemaName = "\""+ schemaName + "\"";
+		}
 		String schemaLibName = schemaName+"."+libraryName;
 		int flag = 1;
 		/*
@@ -84,7 +88,8 @@ public class ToolsResource {
 		try {
 			connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
 			//save file
-			stmt = "{call DB__LIBMGR.put(?,?,?,?)}";
+			stmt = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SPJ_PUT));
+			_LOG.debug(stmt);
 			pc = connection.prepareCall(stmt);
 			byte[] b = new byte[25600];
 			int len = -1;
@@ -111,7 +116,8 @@ public class ToolsResource {
 			}
 			//create library
 			if(endFlag){
-				stmt = "{call DB__LIBMGR.addlib(?,?,null,null)}";
+				stmt = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SPJ_ADDLIB));
+				_LOG.debug(stmt);
 				pc = connection.prepareCall(stmt);
 				pc.setString(1, new String(schemaLibName.getBytes(),"UTF-8"));
 				pc.setString(2, new String(fileName.getBytes(),"UTF-8"));

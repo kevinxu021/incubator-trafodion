@@ -22,6 +22,7 @@
 #include "ui_QueryTreeView.h"
 #include "MainWindow.h"
 #include "QueryData.h"
+#include <typeinfo>
 
 extern MainWindow *mainWindow_;
 
@@ -104,7 +105,8 @@ void QueryTreeView::DisplayQueryTree(void *tree, void *plan,
         QTreeWidgetItem *treeItem;
         treeItem = new QTreeWidgetItem(rowValues);
         treeItem->setIcon(0, QIcon(":/file/Resource/Main/Tdbnodes.bmp"));
-
+        QString tip = QString("%1@0x%2").arg(typeid(*qTree).name()).arg((ulong)qTree, 0, 16);
+        treeItem->setToolTip(0, tip);
         if (parentTreeItem == NULL)
         {
             ui->m_tree->addTopLevelItem(treeItem);

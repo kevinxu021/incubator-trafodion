@@ -431,15 +431,25 @@ function sqsavelogs {
     
     sqcollectmonmemlog 2>/dev/null
 
+    cp -p $MY_SQROOT/logs/check_peers.log ${lv_copy_to_dir}
+    cp -p $MY_SQROOT/logs/hbcheck.log ${lv_copy_to_dir}
     cp -p $MY_SQROOT/logs/master_exec*.log ${lv_copy_to_dir}
     cp -p $MY_SQROOT/logs/mon.*.log ${lv_copy_to_dir}
     cp -p $MY_SQROOT/logs/monmem.*.log ${lv_copy_to_dir}
+    cp -p $MY_SQROOT/logs/mgblty_err.log ${lv_copy_to_dir}
+    cp -p $MY_SQROOT/logs/mxlobsrvr*.log ${lv_copy_to_dir}
     cp -p $MY_SQROOT/logs/pstart*.log ${lv_copy_to_dir}
     cp -p $MY_SQROOT/logs/smstats.*.log ${lv_copy_to_dir}
+    cp -p $MY_SQROOT/logs/sqcheckmon.log ${lv_copy_to_dir}
     cp -p $MY_SQROOT/logs/sqmo*.log ${lv_copy_to_dir}
-    cp -p $MY_SQROOT/logs/trafodion.*.log* ${lv_copy_to_dir}
+    cp -p $MY_SQROOT/logs/sscp*.log ${lv_copy_to_dir}
+    cp -p $MY_SQROOT/logs/ssmp*.log ${lv_copy_to_dir}
+    cp -p $MY_SQROOT/logs/startup.log ${lv_copy_to_dir}
     cp -p $MY_SQROOT/logs/tm*.log ${lv_copy_to_dir}
-    cp -p $MY_SQROOT/logs/wdt.*.log ${lv_copy_to_dir}
+    cp -p $MY_SQROOT/logs/trafodion.*.log* ${lv_copy_to_dir}
+    cp -p $MY_SQROOT/logs/udr*.log ${lv_copy_to_dir}
+    cp -p $MY_SQROOT/logs/wdg.*.log ${lv_copy_to_dir}
+    cp -p $MY_SQROOT/logs/xdc.log ${lv_copy_to_dir}
 
     cp -p $MY_SQROOT/tmp/monitor.map.[0-9]*.* ${lv_copy_to_dir}
     cp -p $MY_SQROOT/tmp/monitor.trace* ${lv_copy_to_dir}
@@ -926,6 +936,7 @@ export -f nprocpn_us
 export -f nesp
 export -f ncmp
 export -f nsqlci
+export -f nmxos
 export -f ndbm
 
 export -f sqchkmpi
@@ -951,7 +962,9 @@ export -f LogHeader
 export -f LogPstack
 export -f collect_cstat
 export -f collect_cmapt
+export -f collect_cmaph
 export -f collect_sqchkvm
+export -f collect_cfindcore
 export -f collect_xdc
 export -f sqsavelogs
 export -f sqsavelogs_compress
@@ -1019,6 +1032,9 @@ function cdc {
 }
 function cdj {
     cd $MY_SQROOT/../sql/src/main/java/org/trafodion/sql
+}
+function cdh {
+    cd $MY_SQROOT/sql/local_hadoop
 }
 # ls variants
 function lst {

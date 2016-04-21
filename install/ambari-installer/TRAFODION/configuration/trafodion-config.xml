@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+ 
+<configuration>
+
+  <!-- Define configuration paramaters for service: property name, default value and description (shown as help text) -->
+  
+  <!-- service log file -->
+  <property>
+    <name>dcs.servers</name>
+    <value>16</value>
+    <description># The maximum number of dcs servers, i.e. client connections </description>
+  </property>
+</configuration>
+

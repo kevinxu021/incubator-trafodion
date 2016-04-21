@@ -89,6 +89,9 @@ public class SystemQueryCache {
 	public static final String EXPLAIN_USING_QID = "EXPLAIN_USING_QID";
 	public static final String TEXT_EXPLAIN_USING_QID = "TEXT_EXPLAIN_USING_QID";
 	public static final String EXPLAIN_USING_QTEXT = "EXPLAIN_USING_QTEXT";
+	
+	public static final String SPJ_PUT = "SPJ_PUT";
+	public static final String SPJ_ADDLIB = "SPJ_ADDLIB";
 
 	public static void setSystemQueryies(SystemQueries sQueries) {
 		systemQueries = sQueries;

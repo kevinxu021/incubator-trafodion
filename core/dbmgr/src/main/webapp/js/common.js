@@ -49,15 +49,28 @@ define(['moment',
 				_this.dcsMasterInfoUri = data.dcsMasterInfoUri;
 				_this.systemType = data.systemType;
 				_this.serverConfigLoaded = true;
-				if(data.enableAlerts != null && data.enableAlerts == false){
-					$('#alerts-feature').hide();
+				if(_this.isAdvanced()){
+					$('.dbmgr-adv').show();
+					if(data.enableAlerts != null && data.enableAlerts == false){
+						$('#alerts-feature').hide();
+					}else{
+						$('#alerts-feature').show();
+					}
 				}else{
-					$('#alerts-feature').show();
+					$('.dbmgr-adv').hide();
+					$('#alerts-feature').hide();
 				}
 			};
 
 			this.isEnterprise = function(){
 				if(_this.systemType != null && _this.systemType == 1){
+					return true;
+				}
+				return false;
+			};
+			
+			this.isAdvanced = function(){
+				if(_this.systemType != null && _this.systemType == 2){
 					return true;
 				}
 				return false;
@@ -281,16 +294,23 @@ define(['moment',
 				return moment().zone() * 60 * 1000;
 			},
 			this.getCommonTimeRange=function(selection){
-				var isAutoRefresh=$(REFRESH_INTERVAL).val();
+				var isAutoRefresh;
+				if($(REFRESH_INTERVAL).val()!=null){
+					isAutoRefresh=$(REFRESH_INTERVAL).val();
+				}else{
+					if(_this.commonTimeRange.isAutoRefresh!=null){
+						isAutoRefresh=_this.commonTimeRange.isAutoRefresh;
+					}
+				}
 				switch (selection) {
 				case "0":
-					_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0"};
+					_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0",isAutoRefresh:isAutoRefresh };
 					break;
 				default:
 					if(isAutoRefresh==""){
-						_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0"};	
+						_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0",isAutoRefresh:isAutoRefresh};	
 					}else{
-						_this.commonTimeRange={startTime:null,endTime:null,timeRangeTag:selection};
+						_this.commonTimeRange={startTime:null,endTime:null,timeRangeTag:selection,isAutoRefresh:isAutoRefresh};
 					}
 					break;
 				}

@@ -2204,6 +2204,7 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
 
       // get the first entry.
       HiveNodeMapEntry* entry = (HiveNodeMapEntry*)nmi.getEntry();
+      Int64 filled = 0;
 
       while ( hiveSearchKey->getNextFile(i))
         {
@@ -2211,7 +2212,8 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
           b = (HHDFSBucketStats*)i.getBucketStats();
           f = (HHDFSFileStats*)i.getFileStats();
 
-          f->assignToESPs(&nmi, entry, totalBytesPerESP, numOfBytesToRead, p);
+          f->assignToESPs(&nmi, entry, totalBytesPerESP, numOfBytesToRead, p, 
+			  filled);
         } // while
 
         printToLog(DEFAULT_INDENT, "NodeMap for non-locality assignment");
@@ -2705,4 +2707,30 @@ void HiveNodeMapEntry::addOrUpdateScanInfo(HiveScanInfo info, Int64 filled)
       } else
         addScanInfo(info, filled);
    }
+}
+
+void NodeMap::assignScanInfosRepN(HivePartitionAndBucketKey *hiveSearchKey)
+{
+  CMPASSERT(type_ == HIVE);
+
+  // Let each ESP have all the data. 
+  HHDFSListPartitionStats * p = NULL;
+  HHDFSBucketStats        * b = NULL;
+  HHDFSFileStats          * f = NULL;
+
+  HiveNodeMapEntry *entry= NULL;
+
+  for (CollIndex j=0; j<getNumEntries(); j++ ) {
+    entry =(HiveNodeMapEntry*)getNodeMapEntry(j);
+
+    HiveFileIterator i; 
+    while (hiveSearchKey->getNextFile(i))
+      {
+          p = (HHDFSListPartitionStats*)i.getPartStats();
+          b = (HHDFSBucketStats*)i.getBucketStats();
+          f = (HHDFSFileStats*)i.getFileStats();
+
+          f->assignToESPsRepN(entry);
+      }
+    } 
 }

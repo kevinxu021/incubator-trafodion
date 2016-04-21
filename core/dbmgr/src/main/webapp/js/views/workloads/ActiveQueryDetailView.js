@@ -64,7 +64,7 @@ define([
 					queryTextEditor.setSize($(this).width(), $(this).height());
 				}
 			});
-			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
+			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "width":"800px", "height":"150px"});
 
 			this.loadQueryText();
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
@@ -172,7 +172,7 @@ define([
 		explainQuery: function(){
 			var queryText = queryTextEditor.getValue();
 			sessionStorage.setItem(queryID, JSON.stringify({type: 'active', text: queryText}));	
-			window.location.hash = '/workloads/queryplan/'+queryID;
+			window.location.hash = '/workloads/queryplan/'+encodeURIComponent(queryID);
 		},
 		fetchActiveQueryDetail: function(){
 			_this.showLoading();

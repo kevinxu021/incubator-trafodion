@@ -256,6 +256,16 @@ Lng32 ExpHbaseInterface::copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
   return -HBASE_COPY_ERROR;
 }
 
+Lng32 ExpHbaseInterface::createSnaphot(const std::vector<Text>& tables, const char* backuptag)
+{
+	return HBASE_CREATE_SNAPSHOT_ERROR;
+}
+
+Lng32 ExpHbaseInterface::restoreSnapshots(const char* backuptag)
+{
+    return HBASE_RESTORE_SNAPSHOT_ERROR;
+}
+
 Lng32 ExpHbaseInterface::coProcAggr(
 				    HbaseStr &tblName,
 				    Lng32 aggrType, // 0:count, 1:min, 2:max, 3:sum, 4:avg
@@ -269,28 +279,6 @@ Lng32 ExpHbaseInterface::coProcAggr(
 				    Text &aggrVal) // returned value
 {
   return -HBASE_OPEN_ERROR;
-}
-
-Lng32 ExpHbaseInterface_JNI::flushTable()
-{
-  HTC_RetCode retCode = HTC_OK;
-  if (htc_ != NULL)
-     retCode = htc_->flushTable();
-
-  if (retCode != HTC_OK)
-    return HBASE_ACCESS_ERROR;
-  
-  return HBASE_ACCESS_SUCCESS;
-}
-
-Lng32 ExpHbaseInterface::flushAllTables()
-{
-  HBC_RetCode retCode = HBaseClient_JNI::flushAllTablesStatic();
-
-  if (retCode != HBC_OK)
-    return HBASE_ACCESS_ERROR;
-  
-  return HBASE_ACCESS_SUCCESS;
 }
 
 char * getHbaseErrStr(Lng32 errEnum)
@@ -311,6 +299,7 @@ ExpHbaseInterface_JNI::ExpHbaseInterface_JNI(CollHeap* heap, const char* server,
    ,client_(NULL)
    ,htc_(NULL)
    ,hblc_(NULL)
+   ,brc_(NULL)
    ,hive_(NULL)
    ,asyncHtc_(NULL)
    ,retCode_(HBC_OK)
@@ -333,6 +322,9 @@ ExpHbaseInterface_JNI::~ExpHbaseInterface_JNI()
     
     if (hblc_ !=NULL)
       hblc_ = NULL;
+    
+    if (brc_ !=NULL)
+        brc_ = NULL;
 
     client_ = NULL;
   }
@@ -406,6 +398,11 @@ Lng32 ExpHbaseInterface_JNI::cleanup()
     {
       client_->releaseHBulkLoadClient(hblc_);
       hblc_ = NULL;
+    }
+    if (brc_)
+    {
+      client_->releaseBackupRestoreClient(brc_);
+      brc_ = NULL;
     }
 
   }
@@ -608,6 +605,38 @@ Lng32 ExpHbaseInterface_JNI::copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
     return HBASE_ACCESS_SUCCESS;
   else
     return -HBASE_COPY_ERROR;
+}
+
+//-------------------------------------------------------------------------------
+Lng32 ExpHbaseInterface_JNI::createSnaphot(const std::vector<Text>& tables, const char* backuptag)
+{
+  if (brc_ == NULL || client_ == NULL)
+  {
+    return -HBASE_ACCESS_ERROR;
+  }
+    
+  retCode_ = brc_->createSnapshot(tables, backuptag);
+
+  if (retCode_ == BRC_OK)
+    return HBASE_ACCESS_SUCCESS;
+  else
+    return -HBASE_CREATE_SNAPSHOT_ERROR;
+}
+
+//-------------------------------------------------------------------------------
+Lng32 ExpHbaseInterface_JNI::restoreSnapshots(const char* backuptag)
+{
+  if (brc_ == NULL || client_ == NULL)
+  {
+    return -HBASE_ACCESS_ERROR;
+  }
+    
+  retCode_ = brc_->restoreSnapshots(backuptag);
+
+  if (retCode_ == BRC_OK)
+    return HBASE_ACCESS_SUCCESS;
+  else
+    return -HBASE_RESTORE_SNAPSHOT_ERROR;
 }
 
 //----------------------------------------------------------------------------
@@ -908,7 +937,6 @@ Lng32 ExpHbaseInterface_JNI::insertRows(
 	  NABoolean noXn,
 	  const NABoolean replSync,
 	  const int64_t timestamp,
-	  NABoolean autoFlush,
           NABoolean asyncOperation)
 {
   HTableClient_JNI *htc;
@@ -920,7 +948,7 @@ Lng32 ExpHbaseInterface_JNI::insertRows(
     transID = getTransactionIDFromContext();
   retCode_ = client_->insertRows((NAHeap *)heap_, tblName.val, hbs_,
 				 useTRex_, replSync, 
-				 transID, rowIDLen, rowIDs, rows, timestamp, autoFlush, asyncOperation, &htc);
+				 transID, rowIDLen, rowIDs, rows, timestamp, asyncOperation, &htc);
   if (retCode_ != HBC_OK) {
     return -HBASE_ACCESS_ERROR;
   }
@@ -1041,6 +1069,28 @@ Lng32 ExpHbaseInterface_JNI::initHBLC(ExHbaseAccessStats* hbs)
 
   return HBLC_OK;
 }
+
+//init and get backup restore client
+Lng32 ExpHbaseInterface_JNI::initBRC(ExHbaseAccessStats* hbs)
+{
+
+  Lng32  rc = init(hbs);
+  if (rc != HBASE_ACCESS_SUCCESS)
+    return rc;
+
+  if (brc_ == NULL)
+  {
+    brc_ = client_->getBackupRestoreClient((NAHeap *)heap_);
+    if (brc_ == NULL)
+    {
+      retCode_ = BRC_ERROR_INIT_BRC_EXCEPTION;
+      return HBASE_INIT_BRC_ERROR;
+    }
+  }
+
+  return BRC_OK;
+}
+
 Lng32 ExpHbaseInterface_JNI::initHFileParams(HbaseStr &tblName,
                            Text& hFileLoc,
                            Text& hfileName,
@@ -1714,4 +1764,5 @@ ByteArrayList * ExpHbaseInterface_JNI::getRegionStats(const HbaseStr& tblName)
   
   return regionStats;
 }
+
 

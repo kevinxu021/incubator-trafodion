@@ -62,8 +62,8 @@ import org.apache.hadoop.hbase.regionserver.ScanInfo;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
-import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.hbase.wal.WAL;
+import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.hbase.client.SsccConst;
 import java.util.concurrent.atomic.AtomicLong;
 

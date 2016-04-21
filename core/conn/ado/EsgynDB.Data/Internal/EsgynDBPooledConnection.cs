@@ -7,13 +7,20 @@
         private EsgynDBConnection _conn;
         public const int AVAILABLE= 0;
         public const int IN_USE = 1;
-        private int _status = AVAILABLE;
+        public const int DISABLE = -1;
+
+        private int _status = DISABLE;
         //The connection copied to from connection pool. Take a look connection.open()
-        public EsgynDBConnection RefConnection;
 
         public PooledConnection(EsgynDBConnection conn)
         {
             this._conn = conn;
+        }
+
+        public PooledConnection(EsgynDBConnection conn, int status)
+        {
+            this._conn = conn;
+            this.Status = status;
         }
 
         public EsgynDBConnection Connection
@@ -41,6 +48,7 @@
                 this._status = value;
             }
         }
+
     }
 
 }

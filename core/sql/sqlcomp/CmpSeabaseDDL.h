@@ -1434,7 +1434,16 @@ class CmpSeabaseDDL
                          NAList<HbaseCreateOption*>& hbaseCreateOptions, //out
                          NAString& hco); // out
   
-
+  //All backup restore methods.
+  ExpHbaseInterface* allocBRCEHI(NADefaults * defs = NULL);
+  short backup(DDLExpr * ddlExpr, ExeCliInterface * cliInterface);
+  short restore(DDLExpr * ddlExpr, ExeCliInterface * cliInterface);
+  short lockSQL();
+  short unlockSQL();
+  NABoolean isSQLLocked();
+  short lockAll();
+  void unlockAll();
+  
 private:
   enum
   {
