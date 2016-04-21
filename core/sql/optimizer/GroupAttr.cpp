@@ -2925,6 +2925,20 @@ NABoolean GroupAttributes::allHiveTables()
   return TRUE;
 }
 
+NABoolean GroupAttributes::allHiveORCTables()
+{
+   if ( !allHiveTables() )
+     return FALSE;
+
+  for (CollIndex i = 0; i < availableBtreeIndexes_.entries(); i++)
+  {
+    IndexDesc* iDesc = availableBtreeIndexes_[i];
+    if ( !(iDesc->getPrimaryTableDesc()->getNATable()->isORC()))
+      return FALSE;
+  }
+  return TRUE;
+}
+
 NABoolean GroupAttributes::allHiveORCTablesSorted()
 {
    if ( !allHiveTables() )

@@ -856,6 +856,10 @@ public:
                                  NABoolean updateSearchKeyOnly,
                                  NABoolean filterOutMinMax 
                                 );
+  void processMinMaxKeysForPartitionCols(
+       Generator* generator, 
+       ValueIdSet& pulledNewInputs,
+       ValueIdSet& availableValues);
 
   short codeGenForHive(Generator*);
   short genForTextAndSeq(Generator * generator,

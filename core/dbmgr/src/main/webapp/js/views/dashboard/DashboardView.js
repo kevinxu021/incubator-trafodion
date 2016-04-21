@@ -135,6 +135,9 @@ define([
 			$(REFRESH_ACTION).on('click', this.refreshPage);
 			$(SERVICES_ERROR_TEXT).hide();
 			$('#nodes-error-text').hide();
+			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
+				refreshTimer.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
+			}
 			$(window).on('resize', this.onResize);
 			refreshTimer.resume();
 			timeRangeView.resume();

@@ -294,16 +294,23 @@ define(['moment',
 				return moment().zone() * 60 * 1000;
 			},
 			this.getCommonTimeRange=function(selection){
-				var isAutoRefresh=$(REFRESH_INTERVAL).val();
+				var isAutoRefresh;
+				if($(REFRESH_INTERVAL).val()!=null){
+					isAutoRefresh=$(REFRESH_INTERVAL).val();
+				}else{
+					if(_this.commonTimeRange.isAutoRefresh!=null){
+						isAutoRefresh=_this.commonTimeRange.isAutoRefresh;
+					}
+				}
 				switch (selection) {
 				case "0":
-					_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0"};
+					_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0",isAutoRefresh:isAutoRefresh };
 					break;
 				default:
 					if(isAutoRefresh==""){
-						_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0"};	
+						_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0",isAutoRefresh:isAutoRefresh};	
 					}else{
-						_this.commonTimeRange={startTime:null,endTime:null,timeRangeTag:selection};
+						_this.commonTimeRange={startTime:null,endTime:null,timeRangeTag:selection,isAutoRefresh:isAutoRefresh};
 					}
 					break;
 				}

@@ -6,6 +6,8 @@
 
 package com.esgyn.dbmgr.resources;
 
+import java.util.ArrayList;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
@@ -14,6 +16,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
@@ -47,6 +50,7 @@ public class LogsResource {
 			String message = "";
 			String maxRows = "5000";
 			boolean dcsFilter = false;
+			boolean restFilter = false;
 
 			StringBuilder sb = new StringBuilder();
 
@@ -83,6 +87,9 @@ public class LogsResource {
 				if (obj.get("dcs") != null) {
 					dcsFilter = obj.get("dcs").booleanValue();
 				}
+				if (obj.get("rest") != null) {
+					restFilter = obj.get("rest").booleanValue();
+				}
 			}
 
 			if (Helper.IsNullOrEmpty(startTime)) {
@@ -99,18 +106,20 @@ public class LogsResource {
 
 			values = componentNames.split(",");
 			String componentFilter = Helper.generateSQLInClause("", "component", values);
-			if (dcsFilter) {
-				if(componentFilter != null && componentFilter.length() >0){
-					componentFilter = String.format(" and ( %1$s or %2$s ) ", componentFilter,
-							"component like '%org.trafodion.dcs%'");
-				} else {
-					componentFilter = String.format(" and %1$s  ", "component like '%org.trafodion.dcs%'");
-				}
-			} else {
-				if (componentFilter != null && componentFilter.length() > 0) {
-					componentFilter = " and " + componentFilter;
-				}
+			ArrayList<String> compPredicate = new ArrayList<String>();
+			if (componentFilter != null && componentFilter.length() > 0) {
+				compPredicate.add(componentFilter);
 			}
+			if (dcsFilter) {
+				compPredicate.add("component like '%org.trafodion.dcs%'");
+			}
+			if (restFilter) {
+				compPredicate.add("component like '%org.trafodion.rest%'");
+			}
+			if (compPredicate.size() > 0) {
+				componentFilter = String.format(" and ( %1$s ) ", StringUtils.join(compPredicate.toArray(), " or "));
+			}
+
 			sb.append(componentFilter);
 
 			values = processNames.split(",");

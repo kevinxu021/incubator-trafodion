@@ -2874,8 +2874,7 @@ void tm_process_msg(BMS_SRE *pp_sre)
 {
     short                  lv_ret;
     char                   la_send_buffer[4096];
-        char                   la_recv_buffer[sizeof(Tm_Req_Msg_Type)];
-    char                  *la_recv_buffer_ddl = NULL;
+    char                   la_recv_buffer[MAX_RECEIVE_BUFFER];
     Tm_Broadcast_Req_Type *lp_br_req;
     Tm_Broadcast_Rsp_Type *lp_br_rsp; 
     Tm_Perf_Stats_Req_Type *lp_ps_req;
@@ -2890,19 +2889,9 @@ void tm_process_msg(BMS_SRE *pp_sre)
 
     TMTrace(2, ("tm_process_msg ENTRY\n"));
 
-
-    if((unsigned)(pp_sre->sre_reqDataSize) > (sizeof(Tm_Req_Msg_Type))){
-       la_recv_buffer_ddl = new char[pp_sre->sre_reqDataSize];
-
-    lv_ret = BMSG_READDATA_(pp_sre->sre_msgId,           // msgid
-                            la_recv_buffer_ddl,          // reqdata
-                            pp_sre->sre_reqDataSize);    // bytecount
-
-    }else{
     lv_ret = BMSG_READDATA_(pp_sre->sre_msgId,           // msgid
                             la_recv_buffer,              // reqdata
                             pp_sre->sre_reqDataSize);    // bytecount
-    }
     if (lv_ret != 0)
     {
        // a return value of 1 means the message has been abandoned by the sender.
@@ -3157,11 +3146,14 @@ void tm_process_msg(BMS_SRE *pp_sre)
     // Allocate a message object.  It will be deleted by the
     // TM_TX_Info::process_eventQ method once the request
     // has been processed.
-
-    if( la_recv_buffer_ddl!=NULL)
-       lp_msg = new CTmTxMessage((Tm_Req_Msg_Type *) la_recv_buffer_ddl, pp_sre->sre_msgId, la_recv_buffer_ddl);
-    else
-       lp_msg = new CTmTxMessage((Tm_Req_Msg_Type *) &la_recv_buffer, pp_sre->sre_msgId, NULL);
+    char *la_recv_buffer_ddl = 0;
+    if((unsigned)(pp_sre->sre_reqDataSize) > (sizeof(Tm_Req_Msg_Type))){
+      // la_recv_buffer_ddl will be deleted in CTmTxMessage::~CTmTxMessage
+      la_recv_buffer_ddl = new char[pp_sre->sre_reqDataSize];
+      memcpy(la_recv_buffer_ddl, la_recv_buffer, pp_sre->sre_reqDataSize);
+    }
+      
+    lp_msg = new CTmTxMessage((Tm_Req_Msg_Type *) &la_recv_buffer, pp_sre->sre_msgId, la_recv_buffer_ddl);
 
     if (lp_msg_hdr->dialect_type == DIALECT_TM_DP2_SQ)
     {

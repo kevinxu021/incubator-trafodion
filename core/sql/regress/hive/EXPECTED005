@@ -170,6 +170,97 @@ ID           COL2         P1           ID           COL2         P1           P2
 
 --- 17 row(s) selected.
 >>
+>>-- min/max optimization, leading to partition elimination
+>>cqd GEN_HSHJ_MIN_MAX_OPT 'on';
+
+--- SQL operation complete.
+>>control query shape hash_join(scan('P'), scan('N'));
+
+--- SQL operation complete.
+>>
+>>prepare s from
++>select p.id, n.id, p.p1, n.p1
++>from hive.hive.hivepi p join hive.hive.hivenonp n
++>  on p.p1 = n.p1
++>where n.id in (2, 22);
+
+--- SQL command prepared.
+>>
+>>-- validate that the min/max values are actually used
+>>select operator, tname
++>from table(explain(null, 'S'))
++>where description like '%:_sys_MinVal0%'
++>  and description like '%:_sys_MaxVal0%';
+
+OPERATOR                        TNAME
+------------------------------  ------------------------------------------------------------
+
+HIVE_SCAN                       P (HIVE.HIVE.HIVEPI)                                        
+HYBRID_HASH_JOIN                                                                            
+
+--- 2 row(s) selected.
+>>
+>>execute s;
+
+ID           ID           P1           P1         
+-----------  -----------  -----------  -----------
+
+          2            2            2            2
+          2           22            2            2
+         22            2            2            2
+         22           22            2            2
+        222            2            2            2
+        222           22            2            2
+
+--- 6 row(s) selected.
+>>
+>>-- allow VEG between varchars
+>>cqd comp_bool_158 'on';
+
+--- SQL operation complete.
+>>
+>>prepare s from
++>select p.id, n.id, p.p1, n.p1, p.p2
++>from hive.hive.hivepis p join hive.hive.hivenonp n
++>  on p.p1 = n.p1 and p.p2 = n.p2
++>where n.id in (2, 22) and p.p2 like '%w%';
+
+--- SQL command prepared.
+>>
+>>-- validate that the min/max values are actually used
+>>select operator, tname
++>from table(explain(null, 'S'))
++>where description like '%:_sys_MinVal0%'
++>  and description like '%:_sys_MaxVal0%'
++>  and description like '%:_sys_MinVal1%'
++>  and description like '%:_sys_MaxVal1%';
+
+OPERATOR                        TNAME
+------------------------------  ------------------------------------------------------------
+
+HIVE_SCAN                       P (HIVE.HIVE.HIVEPIS)                                       
+HYBRID_HASH_JOIN                                                                            
+
+--- 2 row(s) selected.
+>>
+>>execute s;
+
+ID           ID           P1           P1           P2
+-----------  -----------  -----------  -----------  --------------------------------
+
+          2            2            2            2  two                             
+          2           22            2            2  two                             
+         22            2            2            2  two                             
+         22           22            2            2  two                             
+        222            2            2            2  two                             
+        222           22            2            2  two                             
+
+--- 6 row(s) selected.
+>>
+>>control query shape cut;
+
+--- SQL operation complete.
+>>
 >>-- insert some data and add one more partition
 >>sh regrhive.ksh -v -f $REGRTSTDIR/TEST005_b.hive.sql;
 >>

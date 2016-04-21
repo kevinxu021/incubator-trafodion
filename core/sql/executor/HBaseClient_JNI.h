@@ -44,6 +44,7 @@ class ExHbaseAccessStats;
 class ContextCli;
 
 class HBulkLoadClient_JNI;
+class BackupRestoreClient_JNI;
 
 #define NUM_HBASE_WORKER_THREADS 4
 
@@ -375,9 +376,11 @@ typedef enum {
  ,HBC_ERROR_THREAD_SIGMASK
  ,HBC_ERROR_ATTACH_JVM
  ,HBC_ERROR_GET_HBLC_EXCEPTION
+ ,HBC_ERROR_GET_BRC_EXCEPTION
  ,HBC_ERROR_ROWCOUNT_EST_PARAM
  ,HBC_ERROR_ROWCOUNT_EST_EXCEPTION
  ,HBC_ERROR_REL_HBLC_EXCEPTION
+ ,HBC_ERROR_REL_BRC_EXCEPTION
  ,HBC_ERROR_GET_CACHE_FRAC_EXCEPTION
  ,HBC_ERROR_GET_LATEST_SNP_PARAM
  ,HBC_ERROR_GET_LATEST_SNP_EXCEPTION
@@ -414,7 +417,6 @@ typedef enum {
  ,HBC_ERROR_REMOVEHDFSCACHE_EXCEPTION
  ,HBC_ERROR_SHOWHDFSCACHE_EXCEPTION
  ,HBC_ERROR_POOL_NOT_EXIST_EXCEPTION
- ,HBC_ERROR_CREATE_SNAPSHOT_EXCEPTION
  ,HBC_LAST
 } HBC_RetCode;
 
@@ -442,6 +444,8 @@ public:
 				    bool useTRex, NABoolean replSync, ExHbaseAccessStats *hbs);
   HBulkLoadClient_JNI* getHBulkLoadClient(NAHeap *heap);
   HBC_RetCode releaseHBulkLoadClient(HBulkLoadClient_JNI* hblc);
+  BackupRestoreClient_JNI* getBackupRestoreClient(NAHeap *heap);
+  HBC_RetCode releaseBackupRestoreClient(BackupRestoreClient_JNI* brc);
   HBC_RetCode releaseHTableClient(HTableClient_JNI* htc);
   HBC_RetCode create(const char* fileName, HBASE_NAMELIST& colFamilies, NABoolean isMVCC);
   HBC_RetCode create(const char* fileName, NAText*  hbaseOptions, 
@@ -453,7 +457,6 @@ public:
   HBC_RetCode dropAll(const char* pattern, bool async, Int64 transID);
   HBC_RetCode copy(const char* srcTblName, const char* tgtTblName,
                    NABoolean force);
-  HBC_RetCode createSnapshot(const char* tblName);          
   ByteArrayList* listAll(const char* pattern);
   ByteArrayList* getRegionStats(const char* tblName);
   HBC_RetCode exists(const char* fileName, Int64 transID);
@@ -564,13 +567,14 @@ private:
    ,JM_LIST_ALL
    ,JM_GET_REGION_STATS
    ,JM_COPY
-   ,JM_CREATE_SNAPSHOT
    ,JM_EXISTS
    ,JM_GRANT
    ,JM_REVOKE
    ,JM_GET_HBLC
+   ,JM_GET_BRC
    ,JM_EST_RC
    ,JM_REL_HBLC
+   ,JM_REL_BRC
    ,JM_GET_CAC_FRC
    ,JM_GET_LATEST_SNP
    ,JM_CLEAN_SNP_TMP_LOC
@@ -622,13 +626,14 @@ typedef enum {
  ,HVC_ERROR_CLOSE_EXCEPTION
  ,HVC_ERROR_EXISTS_PARAM
  ,HVC_ERROR_EXISTS_EXCEPTION
- ,HVC_ERROR_GET_HVT_PARAM
+ ,HVC_ERROR_GET_HVT_HBulkLoadClient_JNIPARAM
  ,HVC_ERROR_GET_HVT_EXCEPTION
  ,HVC_ERROR_GET_REDEFTIME_PARAM
  ,HVC_ERROR_GET_REDEFTIME_EXCEPTION
  ,HVC_ERROR_GET_ALLSCH_EXCEPTION
  ,HVC_ERROR_GET_ALLTBL_PARAM
  ,HVC_ERROR_GET_ALLTBL_EXCEPTION
+ ,HVC_ERROR_GET_HVT_PARAM
  ,HVC_ERROR_HDFS_CREATE_PARAM
  ,HVC_ERROR_HDFS_CREATE_EXCEPTION
  ,HVC_ERROR_HDFS_WRITE_PARAM
@@ -708,6 +713,7 @@ private:
    ,JM_CREATE_HIVE_PART
    ,JM_LAST
   };
+  
   static jclass          javaClass_; 
   static JavaMethodInit* JavaMethods_;
   static bool javaMethodsInitialized_;
@@ -770,6 +776,7 @@ public:
 
   HBLC_RetCode doBulkLoad(const HbaseStr &tblName, const Text& location, const Text& tableName, NABoolean quasiSecure, NABoolean snapshot);
 
+  
   HBLC_RetCode  bulkLoadCleanup(const HbaseStr &tblName, const Text& location);
   // Get the error description.
   virtual char* getErrorText(HBLC_RetCode errEnum);
@@ -794,6 +801,62 @@ private:
   static bool javaMethodsInitialized_;
   // this mutex protects both JaveMethods_ and javaClass_ initialization
   static pthread_mutex_t javaMethodsInitMutex_;
+
+};
+
+//===========================================================================
+//===== The HBulkLoadClient_JNI class implements access to the Java
+//===== HBulkLoadClient class.
+//===========================================================================
+
+typedef enum {
+	 BRC_OK     = JOI_OK
+	,BRC_FIRST  = HBLC_LAST
+	,BRC_DONE   = BRC_FIRST
+	,BRC_ERROR_INIT_PARAM
+	,BRC_ERROR_CREATE_SNAPSHOT_EXCEPTION
+	,BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION
+	,BRC_ERROR_INIT_BRC_EXCEPTION
+	,BRC_LAST
+} BRC_RetCode;
+
+
+class BackupRestoreClient_JNI : public JavaObjectInterface
+{
+public:
+
+	BackupRestoreClient_JNI(NAHeap *heap,jobject jObj = NULL)
+	:  JavaObjectInterface(heap, jObj)
+	{
+		heap_= heap;
+	}
+	// Destructor
+	virtual ~BackupRestoreClient_JNI();
+
+	// Initialize JVM and all the JNI configuration.
+	// Must be called.
+	BRC_RetCode init();
+	BRC_RetCode createSnapshot(const TextVec& tables, const char* backuptag);
+	BRC_RetCode restoreSnapshots(const char* backuptag);
+	virtual char* getErrorText(BRC_RetCode errEnum);
+
+
+private:
+	NAString getLastJavaError();
+
+
+	enum JAVA_METHODS {
+		 JM_CTOR = 0
+		,JM_CREATE_SNAPSHOT
+		,JM_RESTORE_SNAPSHOTS
+		,JM_GET_ERROR
+		,JM_LAST
+	};
+	static jclass          javaClass_;
+	static JavaMethodInit* JavaMethods_;
+	static bool javaMethodsInitialized_;
+	// 	this mutex protects both JaveMethods_ and javaClass_ initialization
+	static pthread_mutex_t javaMethodsInitMutex_;
 
 };
 
