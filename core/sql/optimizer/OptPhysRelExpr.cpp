@@ -14673,7 +14673,9 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   // If the requirement is repN, produce a repN partition func to satisfy it.
   // The primary use of repN is to access the inner side of a NJ. Only NJ into
   // ORC tables on sorted column(s) with equi-join predicate is allowed.
-  if ( partReq && (rpnb=partReq->castToRequireReplicateNoBroadcast()) ) 
+  if ( partReq && 
+       (rpnb=partReq->castToRequireReplicateNoBroadcast()) &&
+       rpnb->getParentPartFunc() ) 
   {
      Lng32 numPartitions = rpnb->getParentPartFunc()->getCountOfPartitions();
 
