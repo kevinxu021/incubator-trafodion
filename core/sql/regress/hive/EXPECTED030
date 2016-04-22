@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Thu Apr 21 03:17:16 2016
+-- Definition current  Fri Apr 22 07:11:35 2016
 
   (
     S_STORE_SK                       INT
@@ -974,7 +974,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Thu Apr 21 03:17:42 2016
+-- Definition current  Fri Apr 22 07:12:00 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1025,7 +1025,7 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212327968662633724
+PLAN_ID .................. 212328069120887471
 ROWS_OUT ............. 1,698
 EST_TOTAL_COST ........... 1.21
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
@@ -1138,7 +1138,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212327968663297853
+PLAN_ID .................. 212328069121551218
 ROWS_OUT ......... 2,880,401
 EST_TOTAL_COST ........... 1.77
 STATEMENT ................ select *
@@ -1312,7 +1312,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Thu Apr 21 03:17:44 2016
+-- Definition current  Fri Apr 22 07:12:02 2016
 
   (
     D_DATE_SK                        INT
@@ -1380,7 +1380,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212327968666597463
+PLAN_ID .................. 212328069124897712
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1482,7 +1482,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Thu Apr 21 03:17:52 2016
+-- Definition current  Fri Apr 22 07:12:10 2016
 
   (
     D_DATE_SK                        INT
@@ -1550,7 +1550,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212327968673116993
+PLAN_ID .................. 212328069131511985
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1795,7 +1795,7 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) 
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-PLAN_ID .................. 212327968683603204
+PLAN_ID .................. 212328069142047613
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 1.12
 STATEMENT ................ select count(*)
@@ -1928,16 +1928,16 @@ DESCRIPTION
   rows_accessed ...... 6,340
   orc_pred_pushdown ...... yes
   orc_search_arguments ... and( HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK =
-                             cast(HIVE.CUSTOMER_ORC.C_CUSTOMER_SK)
-                             HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK =
-                             cast(HIVE.CUSTOMER_ORC.C_CUSTOMER_SK)
-                             HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK =
+                             cast(HIVE.CUSTOMER_ORC.C_CUSTOMER_SK) not(
+                             HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK
+                             <cast(HIVE.CUSTOMER_ORC.C_CUSTOMER_SK) )
+                             HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK <=
                              cast(HIVE.CUSTOMER_ORC.C_CUSTOMER_SK) )
   executor_predicates .... (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK =
                              HIVE.CUSTOMER_ORC.C_CUSTOMER_SK) and
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK =
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK >=
                              HIVE.CUSTOMER_ORC.C_CUSTOMER_SK) and
-                             (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK =
+                             (HIVE.STORE_SALES_SORTED_ORC.SS_SOLD_DATE_SK <=
                              HIVE.CUSTOMER_ORC.C_CUSTOMER_SK)
   part_key_predicates .... (HIVE.HIVE.CUSTOMER_ORC.C_CUSTOMER_SK =
                              SS_SOLD_DATE_SK)
