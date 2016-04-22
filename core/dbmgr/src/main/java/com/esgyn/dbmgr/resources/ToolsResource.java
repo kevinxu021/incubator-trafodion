@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
 import com.esgyn.dbmgr.common.JdbcHelper;
+import com.esgyn.dbmgr.common.Helper;
 import com.esgyn.dbmgr.model.Session;
 import com.esgyn.dbmgr.model.SessionModel;
 import com.esgyn.dbmgr.sql.SystemQueryCache;
@@ -43,88 +44,84 @@ public class ToolsResource {
 	@Produces("application/json")
 	public boolean createlibrary(@FormDataParam("file") InputStream in, @FormDataParam("fileName") String fileName,
 			@FormDataParam("schemaName") String schemaName, @FormDataParam("filePart") String filePart,
-			@FormDataParam("libraryName") String libraryName, @FormDataParam("startFlag") boolean startFlag,
-			@FormDataParam("endFlag") boolean endFlag, @Context HttpServletRequest servletRequest,
-			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {	
+			@FormDataParam("libraryName") String libraryName, @FormDataParam("overwriteFlag") boolean overwriteFlag,
+			@FormDataParam("startFlag") boolean startFlag, @FormDataParam("endFlag") boolean endFlag,
+			@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
+					throws EsgynDBMgrException {
 		Session soc = SessionModel.getSession(servletRequest, servletResponse);
 		String url = ConfigurationResource.getInstance().getJdbcUrl();
 		Connection connection = null;
 		CallableStatement pc = null;
-		String stmt;
-		if(schemaName.startsWith("_")){
-			schemaName = "\""+ schemaName + "\"";
-		}
-		String schemaLibName = schemaName+"."+libraryName;
+		String query_text;
+		Statement stmt;
+		ResultSet rs = null;
+
+		String schemaLibName = schemaName + "." + libraryName;
 		int flag = 1;
-		/*
-		boolean libFlag = true;
-		if(startFlag){
-			//check library name whether exist at first chunk
-			try{
-				connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
-				//connection = JdbcHelper.getInstance().getAdminConnection();
-				Statement st = connection.createStatement();
-			    ResultSet rs = st.executeQuery("showddl library "+ schemaLibName+";");
-			    while(rs.next()){
-			    	rs.getObject(1);
-			    }
-			}catch(Exception e){
-				libFlag = false;
-			}
-			
-		}else{
-			flag = 0;
-		}
-		if(libFlag && startFlag){
-			throw  new EsgynDBMgrException("library already exist");
-		}
-		*/
-		if(startFlag){
+		if (startFlag) {
 			flag = 1;
-		}else{
+		} else {
 			flag = 0;
 		}
-		
+
 		try {
+			System.out.println("**************");
 			connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
-			//save file
-			stmt = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SPJ_PUT));
-			_LOG.debug(stmt);
-			pc = connection.prepareCall(stmt);
+			// pre-check phase
+			query_text = String.format(SystemQueryCache.getQueryText(SystemQueryCache.CHECK_SCHEMA), schemaName.replace("\"", ""));
+			System.out.println("Schema check:" + query_text);
+			stmt = connection.createStatement();
+			rs = stmt.executeQuery(query_text);
+			if (!rs.next()) {
+				System.out.println("Schema does not exist");
+				throw new EsgynDBMgrException("Schema does not exist");
+			}
+			query_text = String.format(SystemQueryCache.getQueryText(SystemQueryCache.CHECK_LIBRARY), libraryName.replace("\"", ""));
+			System.out.println("library check:" + query_text);
+			rs = stmt.executeQuery(query_text);
+			if (rs.next()) {
+				System.out.println("Library already exist");
+				throw new EsgynDBMgrException("Library already exist");
+			} // else library does not exist, check overwrite option
+
+			// save file
+			query_text = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SPJ_PUT));
+			_LOG.debug(query_text);
+			pc = connection.prepareCall(query_text);
 			byte[] b = new byte[25600];
 			int len = -1;
 			int clen = 0;
 			int length = 0;
-			System.out.println("**************");
 			while ((len = in.read(b)) != -1) {
 				_LOG.info("file length: " + len);
 				String s = new String(b, 0, len, "ISO-8859-1");
 				clen = s.getBytes("ISO-8859-1").length;
 				pc.setString(1, new String(s.getBytes("ISO-8859-1"), "ISO-8859-1"));
-				pc.setString(2, new String(fileName.getBytes(),"UTF-8"));
+				pc.setString(2, new String(fileName.getBytes(), "UTF-8"));
 				pc.setInt(3, flag);
-				pc.setInt(4, 0); //0 overwrite, 1 throw exception when exist
+				pc.setInt(4, (overwriteFlag ? 0 : 1));
+				// 0 overwrite, 1 throw exception
 				long start = System.currentTimeMillis();
 				pc.execute();
 				long end = System.currentTimeMillis();
-				System.out.println("time:"+(end-start));
+				System.out.println("time:" + (end - start));
 				length += len;
-				System.out.println(length+";"+len+";"+flag);
+				System.out.println(length + ";" + len + ";" + flag);
 				if (flag == 1) {
 					flag = 0;
 				}
 			}
-			//create library
-			if(endFlag){
-				stmt = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SPJ_ADDLIB));
-				_LOG.debug(stmt);
-				pc = connection.prepareCall(stmt);
-				pc.setString(1, new String(schemaLibName.getBytes(),"UTF-8"));
-				pc.setString(2, new String(fileName.getBytes(),"UTF-8"));
+			// create library
+			if (endFlag) {
+				query_text = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SPJ_ADDLIB));
+				_LOG.debug(query_text);
+				pc = connection.prepareCall(query_text);
+				pc.setString(1, new String(schemaLibName.getBytes(), "UTF-8"));
+				pc.setString(2, new String(fileName.getBytes(), "UTF-8"));
 				pc.execute();
-				System.out.println("create lib success");
+				System.out.println("create library success");
 			}
-			
+
 		} catch (SQLException e) {
 			e.printStackTrace();
 			throw new EsgynDBMgrException(e.getMessage());
@@ -137,18 +134,18 @@ public class ToolsResource {
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new EsgynDBMgrException(e.getMessage());
-		}finally{
-			try{
-				if(in != null){
+		} finally {
+			try {
+				if (in != null) {
 					in.close();
 				}
-				if(pc != null){
+				if (pc != null) {
 					pc.close();
 				}
-				if(connection != null){
+				if (connection != null) {
 					connection.close();
 				}
-			}catch(Exception e){
+			} catch (Exception e) {
 			}
 		}
 		return true;
