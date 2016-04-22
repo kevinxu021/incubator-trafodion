@@ -64,6 +64,7 @@ import org.apache.hadoop.hbase.client.PatchClientScanner;//for PatchClientScanne
 import org.apache.hadoop.hbase.client.RpcRetryingCallerFactory;//for PatchClientScanner
 import org.apache.hadoop.hbase.client.ClientScanner;
 import org.apache.hadoop.hbase.client.ClusterConnection;//for PatchClientScanner
+import org.apache.hadoop.hbase.client.TrafParallelClientScanner;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CheckAndDeleteRequest;
@@ -931,18 +932,21 @@ public HRegionLocation getRegionLocation(byte[] row, boolean f)
     {
         return super.getTableName();
     }
-    public ResultScanner getScanner(Scan scan) throws IOException
+    public ResultScanner getScanner(Scan scan, float DOPparallelScanner) throws IOException
     {
-        if (usePatchScanner){
+        if (scan.isSmall() || DOPparallelScanner == 0){
+           if (usePatchScanner){
                if (scan.isSmall())
                      return super.getScanner(scan);//the current patch is for lease timeout, does not affect small scanner
                else
                      return new PatchClientScanner(getConfiguration(), scan, getName(), (ClusterConnection)this.connection,
                                                    this.rpcCallerFactory, this.rpcControllerFactory,
                                                    threadPool, replicaCallTimeoutMicroSecondScan);
-        }
-        else
+           }
+           else
                return super.getScanner(scan);
+        } else
+            return new TrafParallelClientScanner(this.connection, scan, getName(), DOPparallelScanner);       
     }
     public Result get(Get g) throws IOException
     {
