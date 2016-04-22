@@ -27,7 +27,8 @@ define(['moment',
 			this.serverTimeZone = null;
 			this.serverUtcOffset = 0;
 			this.dcsMasterInfoUri = "";
-			this.systemType = 0;
+			this.databaseVersion = "";
+			this.databaseEdition = "";
 			this.serverConfigLoaded = false;
 			this.NOFITY_MESSAGE = 'nofigyMessage';
 			this.MESSAGE_LIST=new Array();
@@ -47,8 +48,10 @@ define(['moment',
 				_this.serverTimeZone = data.serverTimeZone;
 				_this.serverUtcOffset = data.serverUTCOffset;
 				_this.dcsMasterInfoUri = data.dcsMasterInfoUri;
-				_this.systemType = data.systemType;
 				_this.serverConfigLoaded = true;
+				_this.databaseEdition = data.databaseEdition;
+				_this.databaseVersion = data.databaseVersion;
+				
 				if(_this.isAdvanced()){
 					$('.dbmgr-adv').show();
 					if(data.enableAlerts != null && data.enableAlerts == false){
@@ -63,14 +66,14 @@ define(['moment',
 			};
 
 			this.isEnterprise = function(){
-				if(_this.systemType != null && _this.systemType == 1){
+				if(_this.databaseEdition != null && _this.databaseEdition.toLowerCase().indexOf("enterprise") > -1){
 					return true;
 				}
 				return false;
 			};
 			
 			this.isAdvanced = function(){
-				if(_this.systemType != null && _this.systemType == 2){
+				if(_this.databaseEdition != null && _this.databaseEdition.toLowerCase().indexOf("advanced") > -1){
 					return true;
 				}
 				return false;
@@ -80,7 +83,8 @@ define(['moment',
 				_this.serverTimeZone = null;
 				_this.serverUtcOffset = 0;
 				_this.dcsMasterInfoUri = "";
-				_this.systemType = 0;
+				_this.databaseVersion = "";
+				_this.databaseEdition = "";
 				_this.serverConfigLoaded = false;
 			};
 
