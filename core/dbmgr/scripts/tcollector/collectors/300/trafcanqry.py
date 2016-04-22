@@ -57,7 +57,7 @@ def main():
         tend = int(round(time.time() * 1000))
         ddlTime = (tend-tstart)
     except SQLException, msg:
-        print ("Drop or Create %s" % msg)
+        print >> sys.stderr, ("Drop or Create %s" % msg)
         sys.exit(0)
     result, writeTime = populateTable(dbConn, PLANET_DATA)
     tstart = int(round(time.time() * 1000))
@@ -85,13 +85,13 @@ def getConnection(jdbc_url, usr, pwd, driverName):
     try:
         Class.forName(driverName).newInstance()
     except Exception, msg:
-        print msg
+        print >> sys.stderr, msg
         sys.exit(-1)
 
     try:
         dbConn = DriverManager.getConnection(jdbc_url, usr, pwd)
     except SQLException, msg:
-        print msg
+        print >> sys.stderr, msg
         sys.exit(0)
 
     return dbConn
@@ -113,7 +113,7 @@ def populateTable(dbConn, feedstock):
         tend = int(round(time.time() * 1000))
         return True, (tend-tstart)
     except SQLException, msg:
-        print msg
+        print >> sys.stderr, msg
         return False,0
 
     return True,0
