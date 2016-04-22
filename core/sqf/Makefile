@@ -324,7 +324,7 @@ FEATURE_SPECIFIC_PACKAGES = package_adv package_ent
 .PHONY: $(FEATURE_SPECIFIC_PACKAGES) actually_package
 package : 
 	for mk_specific_package in $(FEATURE_SPECIFIC_PACKAGES); do \
-		$(MAKE) $$mk_specific_package; \
+		$(MAKE) -j1 $$mk_specific_package; \
 	done
 
 #	Targets to tar/gzip the tree
@@ -332,6 +332,7 @@ actually_package : pkglist-files pkglist-symlinks tmp/sqenv.sh
 	mkdir -p ../../${DISTRIBUTION_DIR}
 	chmod o-rwx $(PKG_BIN_DIRS)
 	chmod -R o-rwx $(PKG_BIN_OBJS)
+	md5sum export/lib64*/libfeature*.so
 	tar --mode o-rwx --no-recursion -chf $(PKG_TAR_UN) -X build-scripts/package.exclude -X build-scripts/package.exclude.$(SQ_MBTYPE) -T pkglist-files
 	tar --mode o-rwx -rf $(PKG_TAR_UN) -X build-scripts/package.exclude -X build-scripts/package.exclude.$(SQ_MBTYPE) -T pkglist-symlinks
 	cd tmp; tar --mode o-rwx -rf ../$(PKG_TAR_UN) sqenv.sh
