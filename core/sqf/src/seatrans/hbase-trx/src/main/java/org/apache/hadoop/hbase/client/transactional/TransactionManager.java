@@ -306,6 +306,7 @@ public class TransactionManager {
           try {
 
             if (LOG.isDebugEnabled()) LOG.debug("doCommitX -- ENTRY txid: " + transactionId
+                    + " commitId " + commitId
                     + " participantNum " + participantNum
                     + " ignoreUnknownTransaction: " + ignoreUnknownTransaction);
             Batch.Call<TrxRegionService, CommitResponse> callable =
@@ -512,8 +513,11 @@ public class TransactionManager {
         do {
           try {
 
-            if (LOG.isTraceEnabled()) LOG.trace("doCommitX -- ENTRY txid: " + transactionId +
-                                                  " ignoreUnknownTransaction: " + ignoreUnknownTransaction);
+            if (LOG.isTraceEnabled()) LOG.trace("doCommitX -- ENTRY txid: " + transactionId
+                    + " participantNum " + participantNum
+                    + " commitId " + commitId
+                    + " ignoreUnknownTransaction: " + ignoreUnknownTransaction);
+            
             Batch.Call<SsccRegionService, SsccCommitResponse> callable =
                new Batch.Call<SsccRegionService, SsccCommitResponse>() {
                  ServerRpcController controller = new ServerRpcController();
@@ -650,8 +654,8 @@ public class TransactionManager {
     public Integer doPrepareX(final byte[] regionName, final long transactionId, final int participantNum, final TransactionRegionLocation location)
           throws IOException, CommitUnsuccessfulException {
        if (LOG.isTraceEnabled()) LOG.trace("doPrepareX -- ENTRY txid: " + transactionId
-                                                                        + " RegionName " + Bytes.toString(regionName)
-                                                                        + " TableName " + table.toString() );
+    		                                           + " participantNum " + participantNum + " RegionName " + Bytes.toString(regionName)
+                                                       + " TableName " + table.toString() + " location " + location );
        int commitStatus = 0;
        boolean refresh = false;
        boolean retry = false;
@@ -982,7 +986,7 @@ public class TransactionManager {
      */
     public Integer doAbortX(final byte[] regionName, final long transactionId, final int participantNum, final boolean dropTableRecorded) throws IOException{
         if(LOG.isDebugEnabled()) LOG.debug("doAbortX -- ENTRY txID: " + transactionId + " participantNum "
-                        + participantNum + " region " + regionName.toString());
+                        + participantNum + " region " + regionName.toString() + " dropTableRecorded " + dropTableRecorded);
         boolean retry = false;
         boolean refresh = false;
         int retryCount = 0;
@@ -1681,7 +1685,8 @@ public class TransactionManager {
      * @throws CommitUnsuccessfulException
      */
     public int prepareCommit(final TransactionState transactionState) throws CommitUnsuccessfulException, IOException {
-       if (LOG.isTraceEnabled()) LOG.trace("Enter prepareCommit, txid: " + transactionState.getTransactionId());
+       if (LOG.isTraceEnabled()) LOG.trace("Enter prepareCommit, txid: " + transactionState.getTransactionId()
+                          + " with " + transactionState.getParticipatingRegions().size() + " participants");
 
        if (batchRegionServer && (TRANSACTION_ALGORITHM == AlgorithmType.MVCC)) {
          boolean allReadOnly = true;
@@ -2693,22 +2698,21 @@ public class TransactionManager {
 
     public void registerRegion(final TransactionState transactionState, TransactionRegionLocation location)throws IOException{
 
-        if (LOG.isTraceEnabled()) LOG.trace("registerRegion ENTRY, transactioState:" + transactionState);
+        if (LOG.isTraceEnabled()) LOG.trace("registerRegion ENTRY, transactioState:" + transactionState
+        		+ " location: " + location);
 
         if(transactionState.addRegion(location)){
-	    if ((location.peerId != 0) && (location.peerId != this.my_cluster_id)) {
-           transactionState.setHasRemotePeers(true);
-           if (LOG.isTraceEnabled()) LOG.trace("registerRegion: txn has RemotePeer" 
+           if ((location.peerId != 0) && (location.peerId != this.my_cluster_id)) {
+              transactionState.setHasRemotePeers(true);
+              if (LOG.isTraceEnabled()) LOG.trace("registerRegion: txn has RemotePeer" 
                             + ", this cluster ID: " + this.my_cluster_id
                             + ", participant cluster ID: " + location.peerId);
-        }
-        if (LOG.isTraceEnabled()) LOG.trace("registerRegion -- added region: " + location.getRegionInfo().getRegionNameAsString() + " with endKey: "
-                  + Hex.encodeHexString(location.getRegionInfo().getEndKey()) + " to tx " + transactionState.getTransactionId()
-                  + "[peer id: " + location.peerId + "]");
+           }
+           if (LOG.isTraceEnabled()) LOG.trace("registerRegion -- added region: " + location + " to tx " + transactionState.getTransactionId()
+                  + " [peer id: " + location.peerId + "]");
         }
         else {
-           if (LOG.isTraceEnabled()) LOG.trace("registerRegion -- region previously added: " + location.getRegionInfo().getRegionNameAsString() + " with endKey: "
-                      + Hex.encodeHexString(location.getRegionInfo().getEndKey()));
+           if (LOG.isTraceEnabled()) LOG.trace("registerRegion -- region previously added: " + location);
         }
         if (LOG.isTraceEnabled()) LOG.trace("registerRegion EXIT");
     }

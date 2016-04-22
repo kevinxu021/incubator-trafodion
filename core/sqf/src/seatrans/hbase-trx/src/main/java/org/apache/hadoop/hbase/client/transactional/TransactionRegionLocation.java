@@ -108,14 +108,22 @@ public class TransactionRegionLocation extends HRegionLocation {
       }
       result = super.getRegionInfo().compareTo(o.getRegionInfo());
       if (result != 0) {
-         if (super.getRegionInfo().getEncodedName().compareTo(o.getRegionInfo().getEncodedName()) == 0){
-            if (LOG.isTraceEnabled()) LOG.trace("compareTo regionInfo RegionNames match " + o.getRegionInfo().getEncodedName());
-            if (super.getRegionInfo().containsRange(o.getRegionInfo().getStartKey(), o.getRegionInfo().getEndKey())) {
-               if (LOG.isTraceEnabled()) LOG.trace("This region contains object's start and end keys.  Regions match " + o.getRegionInfo().getEncodedName());
-               result = 0;
-               return result;
+    	  if (super.getRegionInfo().getEncodedName().compareTo(o.getRegionInfo().getEncodedName()) == 0){
+            if (LOG.isTraceEnabled()) LOG.trace("compareTo regionInfo Tables match " + o.getRegionInfo().getTable());
+            try{
+               if (super.getRegionInfo().containsRange(o.getRegionInfo().getStartKey(), o.getRegionInfo().getEndKey())) {
+                  if (LOG.isTraceEnabled()) LOG.trace("This region contains object's start and end keys.  Regions match " + o.getRegionInfo().getEncodedName());
+                  result = 0;
+                  return result;
+               }
             }
-            if (LOG.isTraceEnabled()) LOG.trace("compareTo TransactionRegionLocation regionInfo RegionNames match, but object end keys differ:\n  this hex name: "
+            catch (IllegalArgumentException iae){
+                LOG.warn("compareTo TransactionRegionLocation caught IllegalArgumentException for region: "
+                		+ o.getRegionInfo().getEncodedName());
+                result = 1;
+                return result;
+            }
+            LOG.warn("compareTo TransactionRegionLocation regionInfo encoded names match, but object end keys differ:\n  this hex name: "
                         + Hex.encodeHexString(super.getRegionInfo().getRegionName()) + "\n   obj hex name: "
                         + Hex.encodeHexString(o.getRegionInfo().getRegionName())
                         + "\n This end key    : " + Hex.encodeHexString(super.getRegionInfo().getEndKey())
@@ -149,5 +157,17 @@ public class TransactionRegionLocation extends HRegionLocation {
     }
     return this.compareTo((TransactionRegionLocation)o) == 0;
   }
-
+  
+  /**
+   * toString
+   * @return String this
+   *
+   */
+  @Override
+  public String toString() {
+    return super.toString() + "encodedName " + super.getRegionInfo().getEncodedName()
+    		+ " start key: " + super.getRegionInfo().getStartKey()
+    		+ " end key: " + super.getRegionInfo().getStartKey()
+              + " peerId " + this.peerId + " tableRecodedDropped " + isTableRecodedDropped();
+  }
 }
