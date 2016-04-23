@@ -53,9 +53,9 @@ public class DefinedMapping  {
     private String parentZnode = "";
     
     public DefinedMapping(ListenerService listener) throws Exception{
+        this.listener = listener;
         zkc = listener.getZkc();
         parentZnode = listener.getParentZnode();
-        this.listener = listener;
         initZkMappings();
     }
     class MappingWatcher implements Watcher {
@@ -172,20 +172,23 @@ public class DefinedMapping  {
              }
         });
         map.clear();
-        for (Iterator it = list.iterator(); it.hasNext();) {
-               Map.Entry entry = (Map.Entry)it.next();
-               map.put((String)entry.getKey(), (LinkedHashMap<String,String>)entry.getValue());
+        for (Iterator<?> it = list.iterator(); it.hasNext();) {
+               Map.Entry<String, LinkedHashMap<String,String>> entry = (Map.Entry<String, LinkedHashMap<String,String>>)it.next();
+               map.put(entry.getKey(), entry.getValue());
         } 
     }
-    private synchronized Map<String, LinkedHashMap<String,String>> getMappingsMap(){
-        if( ! mappingsMap.isEmpty())
-            sortByValues(mappingsMap);
-        return mappingsMap;
-    }
     public synchronized void findProfile(ConnectionContext cc){
+        // Mapping
         String sla = "";
+        // Sla
         String profile = "";
-        String profileLastUpdate = "";
+        String priority = "";
+        String limit = "";
+        String throughput = "";
+        // Profile
+        String hostList = "";
+        String lastUpdate = "";
+        // searching attributes
         String attribute;
         
         if( ! mappingsMap.isEmpty())
@@ -204,19 +207,22 @@ public class DefinedMapping  {
                 if (mappKey.equals(Constants.IS_ACTIVE) && value.equals("no")) break;
                 attribute = "";
                 bNotEqual = false;
-                if(mappKey.equals(Constants.USER_NAME) || 
-                   mappKey.equals(Constants.APPLICATION_NAME) ||
-                   mappKey.equals(Constants.SESSION_NAME) || 
-                   mappKey.equals(Constants.ROLE_NAME) ||
-                   mappKey.equals(Constants.CLIENT_IP_ADDRESS) ||
-                   mappKey.equals(Constants.CLIENT_HOST_NAME)){
+                switch(mappKey){
+                    case Constants.USER_NAME:
+                    case Constants.APPLICATION_NAME:
+                    case Constants.SESSION_NAME:
+                    case Constants.ROLE_NAME:
+                    case Constants.CLIENT_IP_ADDRESS:
+                    case Constants.CLIENT_HOST_NAME:
                         attribute = attributes.get(mappKey);
                         if (attribute == null || attribute.length()==0)break;
                         if (!attribute.equals(value))
                             bNotEqual = true;
+                        break;
+                    case Constants.SLA:
+                        sla = value;
+                        break;
                 }
-                else if(mappKey.equals(Constants.SLA))
-                    sla = value;
                 if (bNotEqual == true)break;
             }
             if (bNotEqual == false){
@@ -236,17 +242,28 @@ public class DefinedMapping  {
                 String delims = "[=:]";
                 String[] tokens = (new String(data)).split(delims);
                 for (int i = 0; i < tokens.length; i=i+2){
-                    if(tokens[i].equals(Constants.ON_CONNECT_PROFILE)){
-                         profile = tokens[i + 1];
-                    }
-                    else if(tokens[i].equals(Constants.LAST_UPDATE)){
-                        profileLastUpdate = tokens[i + 2];
+                    switch(tokens[i]){
+                        case Constants.ON_CONNECT_PROFILE:
+                            profile = tokens[i + 1];
+                            break;
+                        case Constants.PRIORITY:
+                            priority = tokens[i + 1];
+                            break;
+                        case Constants.LIMIT:
+                            limit = tokens[i + 1];
+                            break;
+                        case Constants.THROUGHPUT:
+                            throughput = tokens[i + 1];
+                            break;
                     }
                 }
             }
         } catch(Exception e){
             LOG.error("Exception while reading sla znodes: [" + znode + "] " + e.getMessage());
             profile = Constants.DEFAULT_WMS_PROFILE_NAME;
+            priority = "";
+            limit = "";
+            throughput = "";
         }
         znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES + "/" + profile;
         try {
@@ -257,18 +274,26 @@ public class DefinedMapping  {
                 String delims = "[=:]";
                 String[] tokens = (new String(data)).split(delims);
                 for (int i = 0; i < tokens.length; i=i+2){
-                    if(tokens[i].equals(Constants.LAST_UPDATE)){
-                        profileLastUpdate = tokens[i + 2];
+                    switch(tokens[i]){
+                    case Constants.LAST_UPDATE:
+                        lastUpdate = tokens[i + 1];
+                        break;
+                    case Constants.HOST_LIST:
+                        hostList = tokens[i + 1];
+                        break;
                     }
                 }
             }
         } catch(Exception e){
             LOG.error("Exception while reading profile znodes: [" + znode + "] " + e.getMessage());
             profile = Constants.DEFAULT_WMS_PROFILE_NAME;
-            profileLastUpdate = "999";
+            lastUpdate = "1";
         }
         cc.setSla(sla);
+        cc.setPriority(priority);
+        cc.setLimit(limit);
+        cc.setThroughput(throughput);
         cc.setProfile(profile);
-        cc.setProfileLastUpdate(profileLastUpdate);
+        cc.setLastUpdate(lastUpdate);
     }
 }

@@ -22,14 +22,10 @@ under the License.
  */
 package org.trafodion.dcs.master.registeredServers;
 
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.Set;
 import java.util.HashSet;
 
@@ -37,7 +33,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.Watcher.Event;
 import org.apache.zookeeper.data.Stat;
 import org.trafodion.dcs.Constants;
 import org.trafodion.dcs.master.listener.ConnectionContext;
@@ -53,9 +48,9 @@ public class RegisteredServers  {
     private ListenerService listener = null;
     
     public RegisteredServers(ListenerService listener) throws Exception{
+        this.listener = listener;
         zkc = listener.getZkc();
         parentZnode = listener.getParentZnode();
-        this.listener = listener;
         initZkServers();
     }
     class ChildrenWatcher implements Watcher {
@@ -108,7 +103,7 @@ public class RegisteredServers  {
                     String znode = event.getPath();
                     String child = znode.substring(znode.lastIndexOf('/') + 1);
                     data = zkc.getData(znode, new DataWatcher(), stat);
-                    servers.put(child,new String(data));;
+                    servers.put(child,new String(data));
                 } catch (Exception e) {
                     e.printStackTrace();
                     if(LOG.isErrorEnabled())
@@ -133,12 +128,24 @@ public class RegisteredServers  {
                 stat = zkc.exists(znode + "/" + child,false);
                 if(stat != null) {
                     data = zkc.getData(znode + "/" + child, new DataWatcher(), stat);
-                    servers.put(child,new String(data));;
+                    servers.put(child,new String(data));
                 }
             }
         }
     }
-    public synchronized Map<String, String> getServers(){
-        return servers;
+    public synchronized void getServers(ConnectionContext cc){
+        HashMap<String, String>availableServers = new HashMap<String, String>(servers);
+        HashMap<String, String>connectedServers = new HashMap<String, String>(servers);
+        Set<String> keys = new HashSet<String>(servers.keySet());
+        for(String key : keys) {
+            if(!servers.get(key).startsWith(Constants.AVAILABLE)){
+                availableServers.remove(key);
+            }
+            if(!servers.get(key).startsWith(Constants.CONNECTED)){
+                connectedServers.remove(key);
+            }
+        }
+        cc.setAvailableServers(availableServers);
+        cc.setConnectedServers(connectedServers);
     }
 }

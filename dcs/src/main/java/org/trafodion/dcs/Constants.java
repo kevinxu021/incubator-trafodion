@@ -640,7 +640,25 @@ public static final String DEFAULT_DCS_SERVER_USER_PROGRAM_STATISTICS_OPENTSDB_E
     public static final String ON_DISCONNECT_PROFILE = "onDisconnectProfile"; 
     public static final String LAST_UPDATE = "lastUpdate"; 
     
-    public static final String DEFAULT_ORDER_NUMBER = "99"; 
+    public static final String DEFAULT_ORDER_NUMBER = "99";
+    /** Constant Names for Registered Servers */
+    public static final String AVAILABLE = "AVAILABLE:";
+    public static final String CONNECTED = "CONNECTED:";
+    public static final String TIMESTAMP = "timestamp";
+    public static final String HOST_NAME = "hostName";
+    public static final String INSTANCE = "instance";
+    public static final String NODE_ID = "nodeId";
+    public static final String PROCESS_ID = "processId";
+    public static final String PROCESS_NAME = "processName";
+    public static final String IP_ADDRESS = "ipAddress";
+    public static final String PORT = "port";
+    public static final String COMPUTER_NAME = "computerName";
+    public static final String CLIENT_SOCKET = "clientSocket";
+    public static final String WINDOW_TEXT = "windowText";
+    public static final String MAPPED_SLA = "sla";
+    public static final String MAPPED_PROFILE = "profile";
+    public static final String MAPPED_PROFILE_TIMESTAMP = "profileTimestamp";
+
     
     private Constants() {
         // Can't be instantiated with this ctor.
