@@ -137,14 +137,14 @@ public class MutationMeta {
    static final Log LOG = LogFactory.getLog(MutationMeta.class);
    private static HBaseAdmin admin;
    private Configuration config;
-   private static String MUTATION_TABLE_NAME;
+   private static String MUTATION_TABLE_NAME = "TRAFODION._DTM_.MUTATION";
    private static final byte[] MUTATION_FAMILY = Bytes.toBytes("mf");
    private static final byte[] MUTATION_QUAL = Bytes.toBytes("mq");
-//   private static final byte[] MUTATION_VALUE = Bytes.toBytes("mv");
+
    private static HTable table;
    private static HConnection connection;
 
-   private static int     versions;
+   private static int versions;
    private boolean disableBlockCache;
 
    private int MutationRetryDelay;
@@ -154,14 +154,19 @@ public class MutationMeta {
 
    /**
     * MutationMeta
-    * @param Configuration
     * @throws Exception
     */
-   public MutationMeta (Configuration config) throws Exception  {
+   public MutationMeta () throws Exception  {
 
-      this.config = config;
       if (LOG.isTraceEnabled()) LOG.trace("Enter MutationMeta constructor");
-      MUTATION_TABLE_NAME = config.get("MUTATION_TABLE_NAME");
+      this.config = HBaseConfiguration.create();
+      try {
+         admin = new HBaseAdmin(config);
+      }
+      catch (Exception e) {
+         if (LOG.isTraceEnabled()) LOG.trace("  Exception creating HBaseAdmin " + e);
+         throw e;
+      }
       disableBlockCache = true;
 
       connection = HConnectionManager.createConnection(config);
@@ -185,8 +190,6 @@ public class MutationMeta {
          hcol.setBlockCacheEnabled(false);
       }
       hcol.setMaxVersions(versions);
-
-      admin = new HBaseAdmin(config);
 
       try {
          pSTRConfig = STRConfig.getInstance(config);
@@ -311,7 +314,7 @@ public class MutationMeta {
             		+ " mutationPath: " + mutationPathString
             		+ " archived: " + archivedString
             		+ " archivePath: " + archivePathString);
-            
+
             record = new MutationMetaRecord(key, tableNameString, Long.parseLong(associatedSnapshotString),
             		                    Long.parseLong(smallestCommitIdString), Long.parseLong(fileSizeString),
             		                    regionNameString, mutationPathString, archivedString.contains("true"),
@@ -402,10 +405,10 @@ public class MutationMeta {
          throw new RuntimeException(e);
       }
       if (record == null) {
-         throw new Exception("Prior record not found");    	  
+         throw new Exception("getPriorMutations record not found");
       }
       if (LOG.isTraceEnabled()) LOG.trace("getPriorMutations: returning " + returnList.size() + " records");
-      return returnList;	   
+      return returnList;
    }
 
    /**
@@ -483,10 +486,10 @@ public class MutationMeta {
          throw new RuntimeException(e);
       }
       if (record == null) {
-         throw new Exception("records not found in range");    	  
+         throw new Exception("getMutationsFromRange not found in range");
       }
       if (LOG.isTraceEnabled()) LOG.trace("getMutationsFromRange: returning " + returnList.size() + " records");
-      return returnList;	   
+      return returnList;
    }
 
    /**

@@ -131,8 +131,6 @@ import java.util.concurrent.RejectedExecutionException;
 public class RecoveryRecord {
 
    static final Log LOG = LogFactory.getLog(RecoveryRecord.class);
-   static String snapshotMetaTableName = "TRAFODION.SNAPSHOT.TABLE";
-   static String mutationMetaTableName = "TRAFODION.MUTATION.TABLE";
 
    // These are the components of a RecoveryRecord from which the database can be recovered.
    private Map<String, TableRecoveryGroup> recoveryTableMap = new HashMap<String, TableRecoveryGroup>();
@@ -148,26 +146,14 @@ public class RecoveryRecord {
 
      if (LOG.isTraceEnabled()) LOG.trace("Enter RecoveryRecord constructor()");
 
-     Configuration  config;
-
      SnapshotMeta sm;
      List<SnapshotMetaRecord> snapshotList = null;
      MutationMeta mm;
      List<MutationMetaRecord> mutationList = null;
 
-     config = HBaseConfiguration.create();
      try {
-       HBaseAdmin admin = new HBaseAdmin(config);
-     }
-     catch (Exception e) {
-       if (LOG.isTraceEnabled()) LOG.trace("  Exception creating HBaseAdmin " + e);
-       throw e;
-     }
-	    	 
-     try {
-       config.set("SNAPSHOT_TABLE_NAME", snapshotMetaTableName);
        if (LOG.isTraceEnabled()) LOG.trace("  Creating SnapshotMeta object ");
-       sm = new SnapshotMeta(config);
+       sm = new SnapshotMeta();
      }
      catch (Exception e) {
        if (LOG.isTraceEnabled()) LOG.trace("  Exception creating SnapshotMeta " + e);
@@ -175,9 +161,8 @@ public class RecoveryRecord {
      }
 
      try {
-       config.set("MUTATION_TABLE_NAME", mutationMetaTableName);
        if (LOG.isTraceEnabled()) LOG.trace("  Creating MutationMeta object ");
-       mm = new MutationMeta(config);
+       mm = new MutationMeta();
      }
      catch (Exception e) {
        if (LOG.isTraceEnabled()) LOG.trace("  Exception creating MutationMeta " + e);
@@ -212,26 +197,14 @@ public class RecoveryRecord {
 
      if (LOG.isTraceEnabled()) LOG.trace("Enter RecoveryRecord constructor for tag " + tag);
 
-     Configuration  config;
-
      SnapshotMeta sm;
      List<SnapshotMetaRecord> snapshotList = null;
      MutationMeta mm;
      List<MutationMetaRecord> mutationList = null;
 
-     config = HBaseConfiguration.create();
      try {
-       HBaseAdmin admin = new HBaseAdmin(config);
-     }
-     catch (Exception e) {
-       if (LOG.isTraceEnabled()) LOG.trace("  Exception creating HBaseAdmin " + e);
-       throw e;
-     }
-	    	 
-     try {
-       config.set("SNAPSHOT_TABLE_NAME", snapshotMetaTableName);
        if (LOG.isTraceEnabled()) LOG.trace("  Creating SnapshotMeta object ");
-       sm = new SnapshotMeta(config);
+       sm = new SnapshotMeta();
      }
      catch (Exception e) {
        if (LOG.isTraceEnabled()) LOG.trace("  Exception creating SnapshotMeta " + e);
@@ -239,9 +212,8 @@ public class RecoveryRecord {
      }
 
      try {
-       config.set("MUTATION_TABLE_NAME", mutationMetaTableName);
        if (LOG.isTraceEnabled()) LOG.trace("  Creating MutationMeta object ");
-       mm = new MutationMeta(config);
+       mm = new MutationMeta();
      }
      catch (Exception e) {
        if (LOG.isTraceEnabled()) LOG.trace("  Exception creating MutationMeta " + e);
@@ -274,26 +246,14 @@ public class RecoveryRecord {
 
      if (LOG.isTraceEnabled()) LOG.trace("Enter RecoveryRecord constructor for time: " + timeId);
 
-     Configuration  config;
-
      SnapshotMeta sm;
      List<SnapshotMetaRecord> snapshotList = null;
      MutationMeta mm;
      List<MutationMetaRecord> mutationList = null;
 
-     config = HBaseConfiguration.create();
      try {
-       HBaseAdmin admin = new HBaseAdmin(config);
-     }
-     catch (Exception e) {
-       if (LOG.isTraceEnabled()) LOG.trace("  Exception creating HBaseAdmin " + e);
-       throw e;
-     }
-	    	 
-     try {
-       config.set("SNAPSHOT_TABLE_NAME", snapshotMetaTableName);
        if (LOG.isTraceEnabled()) LOG.trace("  Creating SnapshotMeta object ");
-       sm = new SnapshotMeta(config);
+       sm = new SnapshotMeta();
      }
      catch (Exception e) {
        if (LOG.isTraceEnabled()) LOG.trace("  Exception creating SnapshotMeta " + e);
@@ -301,9 +261,8 @@ public class RecoveryRecord {
      }
 
      try {
-       config.set("MUTATION_TABLE_NAME", mutationMetaTableName);
        if (LOG.isTraceEnabled()) LOG.trace("  Creating MutationMeta object ");
-       mm = new MutationMeta(config);
+       mm = new MutationMeta();
      }
      catch (Exception e) {
        if (LOG.isTraceEnabled()) LOG.trace("  Exception creating MutationMeta " + e);

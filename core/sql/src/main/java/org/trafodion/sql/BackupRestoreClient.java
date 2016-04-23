@@ -51,8 +51,7 @@ public class BackupRestoreClient
     private static final int ID_TM_SERVER_TIMEOUT = 1000;
     private static SnapshotMeta sm;
     private static SnapshotMetaRecord smr;
-    private static SnapshotMetaStartRecord smir;
-    static String snapshotMetaTableName = "TRAFODION._DTM_.SNAPSHOT.TABLE";
+    private static SnapshotMetaStartRecord smsr;
 
     static Logger logger = Logger
             .getLogger(BackupRestoreClient.class.getName());
@@ -68,8 +67,7 @@ public class BackupRestoreClient
         config = conf;
 
         try {
-            config.set("SNAPSHOT_TABLE_NAME", snapshotMetaTableName);
-            sm = new SnapshotMeta(config);
+            sm = new SnapshotMeta();
             idServer = new IdTm(false);
             timeId = new IdTmId();
             idServer.id(ID_TM_SERVER_TIMEOUT, timeId);
@@ -219,7 +217,7 @@ public class BackupRestoreClient
     public void initializeSnapshotMeta(long timeIdVal, String backuptag)
             throws Exception {
         try {
-            smir = new SnapshotMetaStartRecord(timeIdVal, backuptag );
+            smsr = new SnapshotMetaStartRecord(timeIdVal, backuptag );
             sm.initializeSnapshot(timeIdVal,backuptag);
         } catch (Exception e) {
             throw e;
@@ -241,10 +239,10 @@ public class BackupRestoreClient
 
     public void completeSnapshotMeta() throws Exception {
         timeIdVal = getIdTmVal();
-        smir.setCompletionTime(timeIdVal);
-        smir.setSnapshotComplete(true);
+        smsr.setCompletionTime(timeIdVal);
+        smsr.setSnapshotComplete(true);
         try {
-            sm.putRecord(smir);
+            sm.putRecord(smsr);
       } catch (Exception e) {
             throw e;
         }
