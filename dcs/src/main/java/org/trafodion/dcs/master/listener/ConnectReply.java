@@ -22,25 +22,16 @@
 //
 package org.trafodion.dcs.master.listener;
 
-import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.io.*;
 import java.nio.*;
-import java.nio.channels.*;
-import java.nio.channels.spi.*;
 import java.net.*;
 import java.util.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.data.Stat;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.ZooKeeper;
 
 import org.trafodion.dcs.util.*;
 import org.trafodion.dcs.Constants;
-import org.trafodion.dcs.master.mapping.DefinedMapping;
 import org.trafodion.dcs.zookeeper.ZkClient;
 
 class ConnectReply {
@@ -69,9 +60,9 @@ class ConnectReply {
     private  Random random = null;
     
     ConnectReply(ListenerService listener){
-        this.zkc=listener.getZkc();
-        this.parentZnode=listener.getParentZnode();
         this.listener = listener;
+        zkc=listener.getZkc();
+        parentZnode=listener.getParentZnode();
         exception = new GetObjRefException();
         versionList = new VersionList();
         random = new Random();
@@ -99,7 +90,6 @@ class ConnectReply {
     
         boolean replyException = false;
         Integer serverInstance=0;
-        String serverTimestamp="";
     
         versionList = new VersionList();
     
@@ -117,97 +107,84 @@ class ConnectReply {
         exception.exception_detail=0;
         exception.ErrorText=null;
     
-        Stat stat = null;
         byte[] data = null;
-        boolean found = false;
         boolean exceptionThrown = false;
         
-        int length = 0;
-        int index = 0;
-        int maxIndex = -1;
-        int randomPicks = 0;
         String server = "";
-        String serverData = "";
-        String sla;
-        String profile;
-        String profileLastUpdate;
-        Map<String, String> servers = null;
-        
+        LinkedHashMap<String,Object> attributes;
+         
         listener.getMapping().findProfile( cc);
-        sla = cc.getSla();
-        profile = cc.getProfile();
-        profileLastUpdate = cc.getProfileLastUpdate();
         
         try {
-/*
-            String registeredPath = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED;
+
             String nodeRegisteredPath = "";
             
-            if (false == registeredPath.startsWith("/"))
-                registeredPath = "/" + registeredPath;
-
-            zkc.sync(registeredPath,null,null);
-            List<String> servers = zkc.getChildren(registeredPath, null);
-*/
-            String nodeRegisteredPath = "";
-            servers = listener.getRegisteredServers().getServers();
-            length = servers.size();
-            if (length == 0){
-                throw new IOException("No Available Servers - length is 0");
+            if (!cc.isAvailable()){
+                throw new IOException("No Available Servers - idle and reused size is 0");
             }
-            Iterator it = servers.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<String,String> pair = (Map.Entry)it.next();
-                server = pair.getKey();
-                serverData = pair.getValue();
-                if(serverData.startsWith("AVAILABLE:")){
-                    found = true;
-                    break;
-                 }else continue;
+            if (cc.isLimit()){
+                throw new IOException("Reached Max Limit of Connected Servers - SLA :" + cc.getSla() + " Limit :" + cc.getLimit() + " Current Limit :" + cc.getCurrentLimit());
             }
-            if (found == true){
-                String[] stNode = server.split(":");
-                serverHostName=stNode[0];
-                serverInstance=Integer.parseInt(stNode[1]);
-                
-                String[] stData = serverData.split(":");
-                timestamp=Long.parseLong(stData[1]);
-                serverNodeId=Integer.parseInt(stData[3]);
-                serverProcessId=Integer.parseInt(stData[4]);
-                serverProcessName=stData[5];
-                serverIpAddress=stData[6];
-                serverPort=Integer.parseInt(stData[7]);
-                
-                if(LOG.isDebugEnabled()){
-                    LOG.debug(clientSocketAddress + ": " + "serverHostName " + serverHostName );
-                    LOG.debug(clientSocketAddress + ": " + "serverInstance " + serverInstance );
-                    LOG.debug(clientSocketAddress + ": " + "serverNodeId " + serverNodeId );
-                    LOG.debug(clientSocketAddress + ": " + "serverProcessId " + serverProcessId);
-                    LOG.debug(clientSocketAddress + ": " + "serverProcessName " + serverProcessName );
-                    LOG.debug(clientSocketAddress + ": " + "serverIpAddress " + serverIpAddress );
-                    LOG.debug(clientSocketAddress + ": " + "serverPort " + serverPort );
-                    LOG.debug(clientSocketAddress + ": " + "timestamp " + timestamp );
-                }
-                
-                dialogueId = random.nextInt();
-                dialogueId = (dialogueId < 0 )? -dialogueId : dialogueId;
-                if(LOG.isDebugEnabled())
-                    LOG.debug(clientSocketAddress + ": " + "dialogueId: " + dialogueId);
-                data = Bytes.toBytes(String.format("CONNECTING:%d:%d:%d:%d:%s:%s:%d:%s:%s:%s:",
-                        timestamp,
-                        dialogueId, 
-                        serverNodeId,
-                        serverProcessId,
-                        serverProcessName,
-                        serverIpAddress,
-                        serverPort,
-                        cc.computerName, 
-                        clientSocketAddress, 
-                        cc.windowText ));
-                nodeRegisteredPath = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED + "/" + server;
-                zkc.setData(nodeRegisteredPath, data, -1);
+            if (cc.isThroughput()){
+                throw new IOException("Reached Max Throughput of Connected Servers - SLA :" + cc.getSla() + " Throughput :" + cc.getThroughput() + " Current Throughput :" + cc.getCurrentThroughput());
             }
-        } catch (KeeperException.NodeExistsException e) {
+            
+            LinkedHashMap<String, LinkedHashMap<String,Object>> reusedServers = cc.getReusedAvailableServers();
+            LinkedHashMap<String, LinkedHashMap<String,Object>> idleServers = cc.getIdleAvailableServers();
+            if(reusedServers.size() > 0){
+                server = reusedServers.keySet().iterator().next();
+                attributes = reusedServers.get(server);
+                
+            } else if(idleServers.size() > 0){
+                server = idleServers.keySet().iterator().next();
+                attributes = idleServers.get(server);
+            } else {
+                throw new IOException("No Available Servers - idle and reused size is 0");
+            }
+            
+            serverHostName=(String)attributes.get(Constants.HOST_NAME);
+            serverInstance=(Integer)attributes.get(Constants.INSTANCE);
+            
+            timestamp=(Long)attributes.get(Constants.TIMESTAMP);
+            serverNodeId=(Integer)attributes.get(Constants.NODE_ID);
+            serverProcessId=(Integer)attributes.get(Constants.PROCESS_ID);
+            serverProcessName=(String)attributes.get(Constants.PROCESS_NAME);
+            serverIpAddress=(String)attributes.get(Constants.IP_ADDRESS);
+            serverPort=(Integer)attributes.get(Constants.PORT);
+            
+            if(LOG.isDebugEnabled()){
+                LOG.debug(clientSocketAddress + ": " + "serverHostName " + serverHostName );
+                LOG.debug(clientSocketAddress + ": " + "serverInstance " + serverInstance );
+                LOG.debug(clientSocketAddress + ": " + "serverNodeId " + serverNodeId );
+                LOG.debug(clientSocketAddress + ": " + "serverProcessId " + serverProcessId);
+                LOG.debug(clientSocketAddress + ": " + "serverProcessName " + serverProcessName );
+                LOG.debug(clientSocketAddress + ": " + "serverIpAddress " + serverIpAddress );
+                LOG.debug(clientSocketAddress + ": " + "serverPort " + serverPort );
+                LOG.debug(clientSocketAddress + ": " + "timestamp " + timestamp );
+            }
+            
+            dialogueId = random.nextInt();
+            dialogueId = (dialogueId < 0 )? -dialogueId : dialogueId;
+            if(LOG.isDebugEnabled())
+                LOG.debug(clientSocketAddress + ": " + "dialogueId: " + dialogueId);
+            data = Bytes.toBytes(String.format("CONNECTING:%d:%d:%d:%d:%s:%s:%d:%s:%s:%s:%s:%s:%d:",
+                    timestamp,
+                    dialogueId, 
+                    serverNodeId,
+                    serverProcessId,
+                    serverProcessName,
+                    serverIpAddress,
+                    serverPort,
+                    cc.computerName, 
+                    clientSocketAddress, 
+                    cc.windowText,
+                    cc.getSla(),
+                    cc.getProfile(),
+                    cc.getLastUpdate()
+                    ));
+            nodeRegisteredPath = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED + "/" + server;
+            zkc.setData(nodeRegisteredPath, data, -1);
+         } catch (KeeperException.NodeExistsException e) {
             LOG.error(clientSocketAddress + ": " + "do nothing...some other server has created znodes: " + e.getMessage());
             exceptionThrown = true;
         } catch (KeeperException e) {
@@ -220,10 +197,10 @@ class ConnectReply {
             LOG.error(clientSocketAddress + ": " + ie.getMessage());
             exceptionThrown = true;
         }
-        if (found == false || exceptionThrown == true){
+        if (exceptionThrown == true){
             exception.exception_nr = ListenerConstants.DcsMasterNoSrvrHdl_exn; //no available servers
             replyException = true;
-            if (found == false)
+            if (cc.isAvailable()|| cc.isLimit()|| cc.isThroughput())
                 LOG.error(clientSocketAddress + ": " + "No Available Servers");
             else
                 LOG.error(clientSocketAddress + ": " + "No Available Servers - exception thrown");
@@ -242,18 +219,13 @@ class ConnectReply {
                 LOG.debug(clientSocketAddress + ": " + "windowText: " + cc.windowText);
                 LOG.debug(clientSocketAddress + ": " + "dataSource: " + dataSource);
                 LOG.debug(clientSocketAddress + ": " + "client computer name:ipaddress:port " + cc.computerName+ ":" + clientSocketAddress);
+                LOG.debug(clientSocketAddress + ": " + "sla :" + cc.getSla());
+                LOG.debug(clientSocketAddress + ": " + "profile :" + cc.getProfile());
+                LOG.debug(clientSocketAddress + ": " + "profile Last Update :" + cc.getLastUpdate());
             }
-
             userSid = new String(cc.user.userName).getBytes("UTF-8");
-
             isoMapping = 0;
-            StringTokenizer st = new StringTokenizer(serverHostName, ".");
-            if(st.hasMoreTokens()) {
-                clusterName = String.format("%s_%s", st.nextToken(), cc.client);
-            }
-            else {
-                clusterName = String.format("%s_%s", serverHostName, cc.client);
-            }
+            clusterName = serverHostName + "-" + cc.client;
             if(LOG.isDebugEnabled())
                 LOG.debug(clientSocketAddress + ": " + "clusterName " + clusterName );
         }

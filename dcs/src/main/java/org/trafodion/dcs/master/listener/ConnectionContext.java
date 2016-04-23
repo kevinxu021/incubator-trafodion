@@ -35,6 +35,8 @@ import org.apache.commons.logging.LogFactory;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.codehaus.jettison.json.JSONTokener;
+import org.trafodion.dcs.Constants;
+import org.trafodion.dcs.util.Bytes;
 import org.codehaus.jettison.json.JSONException;
 
 public class ConnectionContext {
@@ -79,15 +81,34 @@ public class ConnectionContext {
 	String vproc;
 	String client;
 	String ccExtention;
+	
+    private final LinkedHashMap<String, LinkedHashMap<String,Object>> idleServers = new LinkedHashMap<String, LinkedHashMap<String,Object>>();
+    private final LinkedHashMap<String, LinkedHashMap<String,Object>> reusedServers = new LinkedHashMap<String, LinkedHashMap<String,Object>>();
+    
+    HashMap<String, HashMap<String,String>> closedServers;
+	
 	HashMap<String, String> attributes;
 	String sla;
+	int priority;
+	int limit;
+	int throughput;
+    int curLimit;
+	int curThroughput;
+	boolean isLimit=false;
+	boolean isThroughput=false;
+/*
+*/
 	String profile;
-	String profileLastUpdate;
+	long lastUpdate;
+	Set<String> hostList;
+/*
+*/
 
 	ConnectionContext(){
 		clientVersionList = new VersionList();
 		user = new UserDesc();
 		attributes = new HashMap<String, String>();
+		hostList = new HashSet<String>();
 	}
 
 	void extractFromByteBuffer(ByteBuffer buf) throws java.io.UnsupportedEncodingException {
@@ -155,25 +176,170 @@ public class ConnectionContext {
             LOG.error("JSONException :" + e);
 		}
 	}
-	public HashMap<String, String> getAttributes(){
-	    return attributes;
-	}
-    public void setProfile(String profile){
-        this.profile = profile;
+	/*
+	 * value =  AVAILABLE:      0
+	 *          timestamp       1
+	 *          dialofueId      2       empty place
+	 *          nodeId          3
+	 *          processId       4
+	 *          processName     5
+	 *          ipAddress       6
+	 *          port            7
+	 *          computerName    8
+	 *          clientSocket    9
+	 *          windowText      10
+	 *          ====================================
+	 *          sla             11
+	 *          profile         12
+	 *          profileTimestamp 13
+	 */
+
+    public  void setAvailableServers(HashMap<String, String> availableServers){
+        reusedServers.clear();
+        idleServers .clear();
+        Set<String> keys = availableServers.keySet();
+
+        for( String key : keys){
+            String[] stNode = key.split(":");
+            String hostName=stNode[0];
+            int instance=Integer.parseInt(stNode[1]);
+            
+            if (hostList.isEmpty() || hostList.contains(hostName)){
+                String value = availableServers.get(key);
+                String[] sValue = value.split(":");
+                if(sValue.length == 8 || sValue[11].equals(sla)){
+                    LinkedHashMap<String,Object> attr = new LinkedHashMap<String,Object>();
+                    attr.put(Constants.HOST_NAME, hostName);
+                    attr.put(Constants.INSTANCE, instance);
+                    attr.put(Constants.TIMESTAMP, Long.parseLong(sValue[1]));
+                    attr.put(Constants.NODE_ID, Integer.parseInt(sValue[3]));
+                    attr.put(Constants.PROCESS_ID, Integer.parseInt(sValue[4]));
+                    attr.put(Constants.PROCESS_NAME, sValue[5]);
+                    attr.put(Constants.IP_ADDRESS, sValue[6]);
+                    attr.put(Constants.PORT, Integer.parseInt(sValue[7]));
+//
+                    if(sValue.length > 8){
+                        attr.put(Constants.COMPUTER_NAME, sValue[8]);
+                        attr.put(Constants.CLIENT_SOCKET, sValue[9]);
+                        attr.put(Constants.WINDOW_TEXT, sValue[10]);
+                        attr.put(Constants.MAPPED_SLA, sValue[11]);
+                        attr.put(Constants.MAPPED_PROFILE, sValue[12]);
+                        attr.put(Constants.MAPPED_PROFILE_TIMESTAMP, Long.parseLong(sValue[13]));
+                        reusedServers.put(key, attr);
+                    }
+                    else {
+                        idleServers.put(key, attr);
+                    }
+                }
+            }
+        }
+        if( ! reusedServers.isEmpty())
+            sortByTimestamp(reusedServers);
     }
-    public void setSla(String sla){
+    private static void sortByTimestamp(Map<String, LinkedHashMap<String,Object>> map) { 
+        List<Set<Map.Entry<String,Object>>> list = new LinkedList(map.entrySet());
+        Collections.sort(list, new Comparator<Object>() {
+            public int compare(Object o1, Object o2) {
+                 Map<String,Object> m1 = ((LinkedHashMap<String,Object>)((Map.Entry)(o1)).getValue());
+                 long orderNumber1 = (long)m1.get(Constants.TIMESTAMP);
+                 Map<String,Object> m2 = ((LinkedHashMap<String,Object>)((Map.Entry)(o2)).getValue());
+                 long orderNumber2 = (long)m2.get(Constants.TIMESTAMP);
+                 return orderNumber1 > orderNumber2 ? 1 : (orderNumber1 < orderNumber2 ? -1 : 0);
+             }
+        });
+        map.clear();
+        for (Iterator<?> it = list.iterator(); it.hasNext();) {
+               Map.Entry<String, LinkedHashMap<String,Object>> entry = (Map.Entry)it.next();
+               map.put(entry.getKey(), entry.getValue());
+        } 
+    }
+    public  void setConnectedServers(HashMap<String, String> connectedServers){
+        curLimit = connectedServers.size();
+        curThroughput = 0;
+        Set<String> keys = connectedServers.keySet();
+        for( String key : keys){
+            String value = connectedServers.get(key);
+            String[] sValue = value.split(":");
+            if(sValue.length > 8 && sValue[11].equals(sla))
+                curThroughput++;
+        }
+    }
+    public void setHostList(String s){
+        hostList.clear();
+        String delims = "[,]";
+        String[] tokens = s.split(delims);
+        for (int i = 0; i < tokens.length; i++){
+            hostList.add(tokens[i]);
+        }
+    }
+    public void setLastUpdate(String s){
+        if (s == null || s.length()== 0) s = "0";
+        lastUpdate = new Long(s);
+    }
+   public void setSla(String sla){
         this.sla = sla;
     }
-    public void setProfileLastUpdate(String profileLastUpdate){
-        this.profileLastUpdate = profileLastUpdate;
+    public void setPriority(String s){
+        if (s == null || s.length()== 0) s = "0";
+        priority = new Integer(s);
+    }
+    public void setLimit(String s){
+        if (s == null || s.length()== 0) s = "0";
+        limit = new Integer(s);
+    }
+    public void setThroughput(String s){
+        if (s == null || s.length()== 0) s = "0";
+        throughput = new Integer(s);;
     }
     public String getProfile(){
         return profile;
     }
+    public long getLastUpdate(){
+       return lastUpdate;
+    }
+    public Set<String> getHostList(){
+       return hostList;
+    }
     public String getSla(){
         return sla;
     }
-    public String getProfileLastUpdate(){
-        return profileLastUpdate;
+    public int getPriority(){
+        return priority;
+    }
+    public int getLimit(){
+        return limit;
+    }
+    public int getThroughput(){
+        return throughput;
+    }
+    public int getCurrentLimit(){
+        return curLimit;
+    }
+    public int getCurrentThroughput(){
+        return curThroughput;
+    }
+    public boolean isLimit(){
+        if(limit == 0)return false;
+        return curLimit > limit;
+    }
+    public LinkedHashMap<String, LinkedHashMap<String,Object>> getReusedAvailableServers(){
+        return reusedServers;
+    }
+    public LinkedHashMap<String, LinkedHashMap<String,Object>> getIdleAvailableServers(){
+        return idleServers;
+    }
+    public HashMap<String, String> getAttributes(){
+        return attributes;
+    }
+    public void setProfile(String profile){
+        this.profile = profile;
+    }
+    public boolean isThroughput(){
+        if(throughput == 0)return false; 
+        return curThroughput > throughput;
+    }
+    public boolean isAvailable(){
+        if(idleServers.size() == 0 && reusedServers.size() == 0)return false; 
+        return true;
     }
 }
