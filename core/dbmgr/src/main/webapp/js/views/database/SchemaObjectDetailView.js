@@ -73,6 +73,8 @@ define([
 	COLUMNS_BTN = '#columns-btn',
 	REGIONS_BTN = '#regions-btn',
 	USAGES_BTN = '#usages-btn',
+	UPDATE_LIBRARY_CONTAINER = '#update-library-div',
+	UPDATE_LIBRARY_BUTTON = '#update-library-btn',
 	STATISTICS_BTN = '#statistics-btn',
 	REFRESH_ACTION = '#refreshAction';
 
@@ -127,6 +129,8 @@ define([
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 
 			$(REFRESH_ACTION).on('click', this.doRefresh);
+			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
+
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.on(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
@@ -153,6 +157,7 @@ define([
 			$(COLUMNS_CONTAINER).hide();
 
 			$(REFRESH_ACTION).on('click', this.doRefresh);
+			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
@@ -189,6 +194,8 @@ define([
 		},
 		doPause: function(){
 			$(REFRESH_ACTION).off('click', this.doRefresh);
+			$(UPDATE_LIBRARY_BUTTON).off('click', this.updateLibrary);
+
 			dbHandler.off(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.off(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.off(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
@@ -282,34 +289,30 @@ define([
 		},
 
 		getUsageSchemaName: function(){
-
-			var usageSchemaName = null;
-			if(objectAttributes != null){
-				$.each(objectAttributes, function(k, v){
-					for (var property in v) {
-						if(property == 'UsageSchemaName'){
-							usageSchemaName = v[property];
-							return;
-						}
-					}
-				});
-			}
-			return usageSchemaName;		
+			_this.getObjectAttribute('UsageSchemaName');
 		},
 
 		getObjectID: function(){
-			var objectID = null;
+			_this.getObjectAttribute('Object ID');
+		},
+		getObjectAttribute: function(attributeName){
+			var attributeVal = null;
 			if(objectAttributes != null){
 				$.each(objectAttributes, function(index, v){
 					for (var property in v) {
-						if(property == 'Object ID'){
-							objectID = v[property];
+						if(property == attributeName){
+							attributeVal = v[property];
 							return;
 						}
 					}
 				});
 			}
-			return objectID;
+			return attributeVal;
+		},		
+		updateLibrary: function(){
+			var codeFileName = _this.getObjectAttribute('Code File Name');
+			sessionStorage.setItem(routeArgs.name, JSON.stringify({file: codeFileName}));	
+			window.location.hash = '/tools/createlibrary?schema='+routeArgs.schema+'&library='+routeArgs.name;
 		},
 		selectFeature: function(e){
 			$(OBJECT_DETAILS_CONTAINER).show();
@@ -552,6 +555,11 @@ define([
 					$(INDEXES_BTN).hide();				
 					break;							
 				}
+			}
+			if(routeArgs.type == 'library'){
+				$(UPDATE_LIBRARY_CONTAINER).show();
+			}else{
+				$(UPDATE_LIBRARY_CONTAINER).hide();
 			}
 			var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
 			var activeButton = null;
