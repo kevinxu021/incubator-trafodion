@@ -457,8 +457,6 @@ CoprocessorService, Coprocessor {
   static IdTm idServer = null;
   static final int ID_TM_SERVER_TIMEOUT = 1000;
   static MutationMeta meta = null;
-  static Configuration conf;
-  static String mutationMetaTableName = "TRAFODION._DTM_.MUTATION";
   
   public static final int PIT_MUTATION_CREATE = 1;
   public static final int PIT_MUTATION_APPEND = 2;
@@ -6870,14 +6868,11 @@ CoprocessorService, Coprocessor {
 	         
               if (meta == null) {
 		   if(LOG.isTraceEnabled()) LOG.trace("to create mutation meta ..."); 
-		   conf = HBaseConfiguration.create();
-		   conf.set("MUTATION_TABLE_NAME", mutationMetaTableName);
-		   HBaseAdmin admin = new HBaseAdmin(conf);
 		   try {
-                         meta = new MutationMeta(conf);
-                   } catch (Exception e){
-                         System.out.println("Exception creating new mutation meta: " + e);
-                   }
+               meta = new MutationMeta();
+           } catch (Exception e){
+               System.out.println("Exception creating new mutation meta: " + e);
+           }
 		   if(LOG.isTraceEnabled()) LOG.trace("mutation meta created successfully");                   
 	      }
       
