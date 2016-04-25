@@ -1293,28 +1293,18 @@ HSPersSamples* HSPersSamples::Instance(const NAString &catalog,
         instance_->setCatalogSchema(catalog,schema);
       }
 
-    // TODO: Consider whether the choice of catalog and schema is
-    // correct for non-Trafodion tables. We want our behavior to be
-    // the same as for SB_HISTOGRAMS. For example:
-
-    /* if (HSGlobalsClass::isHiveCat(catalog))
+    if (HSGlobalsClass::isHiveCat(catalog))
       {
-        *catalog_ = HIVE_STATS_CATALOG;
-        *schema_  = HIVE_STATS_SCHEMA;
+        NAString hiveStatsCatalog(HIVE_STATS_CATALOG);
+        NAString hiveStatsSchema(HIVE_STATS_SCHEMA_NO_QUOTES);
+        instance_->setCatalogSchema(hiveStatsCatalog,hiveStatsSchema);
       }
     else if (HSGlobalsClass::isHbaseCat(catalog))
       {
-	NAString sbCat = ActiveSchemaDB()->getDefaults().getValue(SEABASE_CATALOG);
-
-	//        *catalog_ = SEABASE_SYSTEM_CATALOG;
-        *catalog_ = sbCat;
-        *schema_  = SEABASE_SYSTEM_SCHEMA;
+        NAString hbaseStatsCatalog(HBASE_STATS_CATALOG);
+        NAString hbaseStatsSchema(HBASE_STATS_SCHEMA_NO_QUOTES);
+        instance_->setCatalogSchema(hbaseStatsCatalog,hbaseStatsSchema);
       }
-    else
-      {
-        *catalog_ = catalog;
-        *schema_  = schema;
-      } */
 
     // Create the SB_PERSISTENT_SAMPLES table if it does not already exist
     // Do this at most once
