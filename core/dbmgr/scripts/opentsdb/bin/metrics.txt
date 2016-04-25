@@ -21,6 +21,12 @@ esgyndb.dtm.txncommits
 esgyndb.mxosrvr.configure 
 esgyndb.mxosrvr.down 
 esgyndb.mxosrvr.running 
+esgyndb.dcsmaster.configure 
+esgyndb.dcsmaster.down 
+esgyndb.dcsmaster.running
+esgyndb.dcsserver.configure 
+esgyndb.dcsserver.down 
+esgyndb.dcsserver.running 
 esgyndb.rms.configure 
 esgyndb.rms.down 
 esgyndb.rms.running 

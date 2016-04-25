@@ -32,7 +32,10 @@ public class ConfigurationResource {
 	private static Properties xmlConfig = new Properties();
 	private static String serverTimeZone = "UTC";
 	private static long serverUTCOffset = 0;
-	private static String systemVersion = null;
+	private static String databaseEdition = null;
+	private static String databaseVersion = null;
+	private static boolean authorizationEnabled = false;
+	private static boolean authenticationEnabled = false;
 
 	public static int getMaxPoolSize() {
 		String maxSize = xmlConfig.getProperty("maxPoolSize", "2");
@@ -131,8 +134,8 @@ public class ConfigurationResource {
 		ConfigurationResource.serverUTCOffset = serverUTCOffset;
 	}
 
-	public static void setSystemVersion(String systemVersion) {
-		ConfigurationResource.systemVersion = systemVersion;
+	public static void setDatabaseVersion(String databaseVersion) {
+		ConfigurationResource.databaseVersion = databaseVersion;
 	};
 
 	public boolean isAlertsEnabled() {
@@ -144,11 +147,11 @@ public class ConfigurationResource {
 		}
 		return alertsEnabled;
 	}
-	public static String getSystemVersion() {
-		if(ConfigurationResource.systemVersion == null){
-			GetSystemProperties();
+	public static String getDatabaseVersion() {
+		if (ConfigurationResource.databaseVersion == null) {
+			loadEsgynDBSystemProperties();
 		}
-		return ConfigurationResource.systemVersion;
+		return ConfigurationResource.databaseVersion;
 	}
 
 	public String getJdbcUrl() {
@@ -192,6 +195,30 @@ public class ConfigurationResource {
 
 		}
 		return timeOutVal;
+	}
+
+	public static boolean isAuthorizationEnabled() {
+		return authorizationEnabled;
+	}
+
+	public static void setAuthorizationEnabled(boolean authorizationEnabled) {
+		ConfigurationResource.authorizationEnabled = authorizationEnabled;
+	}
+
+	public static boolean isAuthenticationEnabled() {
+		return authenticationEnabled;
+	}
+
+	public static void setAuthenticationEnabled(boolean authenticationEnabled) {
+		ConfigurationResource.authenticationEnabled = authenticationEnabled;
+	}
+
+	public static String getDatabaseEdition() {
+		return databaseEdition;
+	}
+
+	public static void setDatabaseEdition(String databaseEdition) {
+		ConfigurationResource.databaseEdition = databaseEdition;
 	}
 
 	private static DBMgrConfig readDBMgrConfig() {
@@ -274,7 +301,7 @@ public class ConfigurationResource {
 		SystemQueryCache.setSystemQueryies(systemQueries);
 	}
 
-	public static void GetSystemProperties() {
+	public static void loadEsgynDBSystemProperties() {
 		Connection connection = null;
 
 		try {
@@ -285,15 +312,20 @@ public class ConfigurationResource {
 			while (rs.next()) {
 				ConfigurationResource.setServerTimeZone(rs.getString("TM_ZONE"));
 				ConfigurationResource.setServerUTCOffset(rs.getLong("TM_GMTOFF_SEC"));
+				ConfigurationResource.setDatabaseVersion(rs.getString("DATABASE_VERSION"));
+				ConfigurationResource.setDatabaseEdition(rs.getString("DATABASE_EDITION"));
+				ConfigurationResource.setAuthenticationEnabled(rs.getBoolean("AUTHENTICATION_ENABLED"));
+				ConfigurationResource.setAuthorizationEnabled(rs.getBoolean("AUTHORIZATION_ENABLED"));
 				break;
 			}
-			rs = stmt.executeQuery(SystemQueryCache.getQueryText(SystemQueryCache.GET_SYSTEM_VERSION));
-			if (rs.next()) {
-				String version = rs.getString(1);
-				String[] versionparts = version.split(":");
-				ConfigurationResource
-						.setSystemVersion(versionparts.length > 1 ? versionparts[1].trim() : versionparts[0]);
-			}
+			/*
+			 * rs =
+			 * stmt.executeQuery(SystemQueryCache.getQueryText(SystemQueryCache.
+			 * GET_SYSTEM_VERSION)); if (rs.next()) { String version =
+			 * rs.getString(1); String[] versionparts = version.split(":");
+			 * ConfigurationResource .setDatabaseVersion(versionparts.length > 1
+			 * ? versionparts[1].trim() : versionparts[0]); }
+			 */
 			rs.close();
 			stmt.close();
 
@@ -310,6 +342,4 @@ public class ConfigurationResource {
 			}
 		}
 	}
-
-
 }

@@ -25,17 +25,18 @@ source /etc/trafodion/trafodion_config
 TRAF_CONFIG=/etc/trafodion/trafodion_config
 
 
+if [[ $HADOOP_TYPE == "cloudera" ]]; then
+   if [ -d /opt/cloudera/parcels/CDH ]; then
+      export HADOOP_PATH="/opt/cloudera/parcels/CDH/lib/hbase/lib"
+      export HADOOP_BIN_PATH="/opt/cloudera/parcels/CDH/bin"
+   else
+      export HADOOP_PATH="/usr/lib/hbase/lib"
+      export HADOOP_BIN_PATH="/usr/bin"
+   fi
 
-if [ -d /opt/cloudera/parcels/CDH ]; then
-   export HADOOP_PATH="/opt/cloudera/parcels/CDH/lib/hbase/lib"
-   export HADOOP_BIN_PATH="/opt/cloudera/parcels/CDH/bin"
-else
-   export HADOOP_PATH="/usr/lib/hbase/lib"
-   export HADOOP_BIN_PATH="/usr/bin"
+   echo "***INFO: HADOOP_PATH=$HADOOP_PATH"
+   echo "***INFO: HADOOP_BIN_PATH=$HADOOP_BIN_PATH"
 fi
-
-echo "***INFO: HADOOP_PATH=$HADOOP_PATH"
-echo "***INFO: HADOOP_BIN_PATH=$HADOOP_BIN_PATH"
 
 MY_HBASE_NODES=""
 MY_HDFS_NODES=""

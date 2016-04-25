@@ -4713,12 +4713,20 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
 
       // collect file stats from HDFS for the table
       const hive_sd_desc *sd_desc = hvt_desc->getSDs();
-      HHDFSTableStats * hiveHDFSTableStats = new(heap) HHDFSTableStats(heap);
-      hiveHDFSTableStats->
-        setPortOverride(CmpCommon::getDefaultLong(HIVE_LIB_HDFS_PORT_OVERRIDE));
 
-      // create file-level statistics and estimate total row count and record length
-      hiveHDFSTableStats->populate(hvt_desc);
+      HHDFSTableStats * hiveHDFSTableStats = NULL;
+      if(OSIM_runningSimulation())
+              hiveHDFSTableStats = OSIM_restoreHiveTableStats(table->getTableName(), heap, hvt_desc);
+      else
+      {
+              hiveHDFSTableStats = new(heap) HHDFSTableStats(heap);
+              hiveHDFSTableStats->
+                setPortOverride(CmpCommon::getDefaultLong(HIVE_LIB_HDFS_PORT_OVERRIDE));
+        
+              // create file-level statistics and estimate total row count and record length
+              hiveHDFSTableStats->populate(hvt_desc);
+      }
+
       if (hiveHDFSTableStats->hasError())
         {
           *CmpCommon::diags() << DgSqlCode(-1200)
@@ -4726,6 +4734,9 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
                               << DgTableName(table->getTableName().getQualifiedNameAsAnsiString());
           return TRUE;
         }
+
+      if(OSIM_runningInCaptureMode())
+              OSIM_captureHiveTableStats(hiveHDFSTableStats, table);
 
       // for partitioned Hive tables, create a RangePartitioningFunction with
       // start key values that represent the Hive partition values (note that
@@ -4747,6 +4758,7 @@ NABoolean createNAFileSets(hive_tbl_desc* hvt_desc        /*IN*/,
           *CmpCommon::diags() << DgSqlCode(-3069)
                               << DgTableName(table->getTableName().getQualifiedNameAsAnsiString());
           return TRUE;
+
         }
 
         if ((NOT IsEnterpriseLevel()) || (NOT IsAdvancedLevel()))
@@ -5209,6 +5221,8 @@ NATable::NATable(BindWA *bindWA,
     resetAfterStatement_(FALSE),
     hitCount_(0),
     replacementCounter_(2),
+    sizeInCache_(0),
+    recentlyUsed_(TRUE),
     tableConstructionHadWarnings_(FALSE),
     isAnMPTableWithAnsiName_(FALSE),
     isUMDTable_(FALSE),
@@ -5945,6 +5959,8 @@ NATable::NATable(BindWA *bindWA,
     resetAfterStatement_(FALSE),
     hitCount_(0),
     replacementCounter_(2),
+    sizeInCache_(0),
+    recentlyUsed_(TRUE),
     tableConstructionHadWarnings_(FALSE),
     isAnMPTableWithAnsiName_(FALSE),
     isUMDTable_(FALSE),
@@ -8145,6 +8161,8 @@ void NATableDB::getEntryDetails(
     partLen = QNO.getObjectName().length();
     strncpy(details.object, (char *)(QNO.getObjectName().data()), partLen );
     details.object[partLen] = '\0';
+
+    details.size = object->sizeInCache_;
   }
 }
 
@@ -8278,6 +8296,7 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
 
     //Heap used by the NATable object
     NAMemory * naTableHeap = CmpCommon::statementHeap();
+    size_t allocSizeBefore = 0;
 
     //if NATable caching is on check if this table is not already
     //in the NATable cache. If it is in the cache create this NATable
@@ -8291,6 +8310,7 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
     if (((NOT table) && cacheMetaData_ && useCache_) &&
         corrName.isCacheable()){
       naTableHeap = getHeap();
+      allocSizeBefore = naTableHeap->getAllocSize();
     }
 
     //if table is in cache tableInCache will be non-NULL
@@ -8303,6 +8323,9 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
 	(!isSQUtiDisplayExplain(corrName)) &&
 	(!isSQInternalStoredProcedure(corrName))
 	) {
+      // ------------------------------------------------------------------
+      // Create an NATable object for a Trafodion/HBase table
+      // ------------------------------------------------------------------
       desc_struct *tableDesc = NULL;
 
       NABoolean isSeabase = FALSE;
@@ -8438,6 +8461,9 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
 	(!corrName.isSpecialTable()) &&
 	(!isSQInternalStoredProcedure(corrName))
 	) {
+      // ------------------------------------------------------------------
+      // Create an NATable object for a Hive table
+      // ------------------------------------------------------------------
       if ( hiveMetaDB_ == NULL ) {
 	if (CmpCommon::getDefault(HIVE_USE_FAKE_TABLE_DESC) != DF_ON)
 	  {
@@ -8537,6 +8563,9 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
        }
 
     } else
+      // ------------------------------------------------------------------
+      // Neither Trafodion nor Hive (probably dead code below)
+      // ------------------------------------------------------------------
        table = new (naTableHeap)
          NATable(bindWA, corrName, naTableHeap, inTableDescStruct);
     
@@ -8593,7 +8622,10 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
         //if metadata caching is ON then adjust the size of the cache
         //since we are adding an entry to the cache
         if(cacheMetaData_)
-          currentCacheSize_ = heap_->getAllocSize();
+          {
+            currentCacheSize_ = heap_->getAllocSize();
+            table->sizeInCache_ = currentCacheSize_ - allocSizeBefore;
+          }
 
 	//update the high watermark for caching statistics
 	if (currentCacheSize_ > highWatermarkCache_)        
@@ -9189,6 +9221,7 @@ NATableDB::unmark_entries_marked_for_removal()
 
 void NATableDB::getCacheStats(NATableCacheStats & stats)
 {
+  memset(stats.contextType, ' ', sizeof(stats.contextType));
   stats.numLookups = totalLookupsCount_;
   stats.numCacheHits = totalCacheHits_;
   stats.currentCacheSize = currentCacheSize_;

@@ -2125,7 +2125,10 @@ NABoolean HbaseDeleteRule::topMatch(RelExpr * relExpr, Context *context)
   Delete * del = (Delete *) relExpr;
   if (del->getTableDesc()->getNATable()->isHbaseTable() == FALSE)
     return FALSE;
-  
+
+   if (del->getTableDesc()->getNATable()->hasLobColumn())
+    return FALSE;
+
   // HbaseDelete can only execute above DP2
   if (context->getReqdPhysicalProperty()->executeInDP2())
     return FALSE;
@@ -2805,7 +2808,7 @@ NABoolean NestedJoinRule::topMatch(RelExpr * relExpr,
   // Nested join into non sorted ORC hive tables is not allowed.
   if (joinExpr->child(1).getGroupAttr()->allHiveTables() )
      {
-          if ( !(joinExpr->child(1).getGroupAttr()->allHiveORCTablesSorted()) ) {
+          if ( !(joinExpr->child(1).getGroupAttr()->allHiveORCTables()) ) {
                return FALSE;
           } else {
              if ( CmpCommon::getDefault(ORC_NJS) != DF_ON ) 

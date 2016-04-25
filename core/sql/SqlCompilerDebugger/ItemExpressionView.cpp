@@ -20,6 +20,7 @@
 // @@@ END COPYRIGHT @@@
 #include "ItemExpressionView.h"
 #include "ui_ItemExpressionView.h"
+#include <typeinfo>
 #define MARGIN 30
 #define ICON_H 32
 #define ICON_W 32
@@ -122,6 +123,8 @@ void ItemExpressionView::DisplayItemExprChild(void *tree,
       rowValues.append(QString(QLatin1String(nodeType.data())));
       QTreeWidgetItem *treeItem = new QTreeWidgetItem(rowValues);
       treeItem->setIcon(0,QIcon(":/file/Resource/Main/Ienodes.bmp"));
+      QString tip = QString("%1@0x%2").arg(typeid(*qTree).name()).arg((ulong)qTree, 0, 16);
+      treeItem->setToolTip(0, tip);
       parentTreeItem->addChild(treeItem);
       //set column alignment for each row
       treeItem->setTextAlignment (1, Qt::AlignRight|Qt::AlignVCenter);

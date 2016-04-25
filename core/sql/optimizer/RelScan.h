@@ -856,6 +856,10 @@ public:
                                  NABoolean updateSearchKeyOnly,
                                  NABoolean filterOutMinMax 
                                 );
+  void processMinMaxKeysForPartitionCols(
+       Generator* generator, 
+       ValueIdSet& pulledNewInputs,
+       ValueIdSet& availableValues);
 
   short codeGenForHive(Generator*);
   short genForTextAndSeq(Generator * generator,
@@ -1040,6 +1044,13 @@ public:
   Int32 getComputedNumOfActivePartiions()  const { return computedNumOfActivePartitions_; }
 
   OrcPushdownPredInfoList &orcListOfPPI() { return orcListOfPPI_;}
+
+  void convertKeyPredsToRangePreds(const ValueIdSet& beginKeyAsEQ,
+                                   const ValueIdSet& endKeyAsEQ,  
+                                   CollHeap* heap,
+                                   ValueIdSet& beginKeyAsRange, 
+                                   ValueIdSet& endKeyAsRange);
+
 private:
 
 

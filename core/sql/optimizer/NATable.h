@@ -345,6 +345,7 @@ struct NATableEntryDetails {
       char catalog[ComMAX_1_PART_INTERNAL_UTF8_NAME_LEN_IN_BYTES + 1]; // +1 for NULL byte
       char schema[ComMAX_1_PART_INTERNAL_UTF8_NAME_LEN_IN_BYTES + 1];
       char object[ComMAX_1_PART_INTERNAL_UTF8_NAME_LEN_IN_BYTES + 1];
+      int size;
 };
 
 // ***********************************************************************
@@ -1138,6 +1139,8 @@ private:
   // Caching stats
   UInt32 hitCount_;
   UInt32 replacementCounter_;
+  Int64  sizeInCache_;
+  NABoolean recentlyUsed_;
 
   COM_VERSION osv_;
   COM_VERSION ofv_;
@@ -1202,6 +1205,7 @@ private:
 #pragma warn(1506)  // warning elimination 
 
 struct NATableCacheStats {
+  char   contextType[8];
   ULng32 numLookups;  
   ULng32 numCacheHits;     
   ULng32 currentCacheSize;

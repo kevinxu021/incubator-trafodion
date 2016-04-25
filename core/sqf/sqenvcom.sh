@@ -582,8 +582,10 @@ EOF
     export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
   else
     # print usage information, not enough information about Hadoop/HBase
-    vanilla_apache_usage
-    NEEDS_HADOOP_INSTALL=1
+    if [[ -z $HADOOP_TYPE ]]; then
+       vanilla_apache_usage
+       NEEDS_HADOOP_INSTALL=1
+    fi
   fi
 
 fi

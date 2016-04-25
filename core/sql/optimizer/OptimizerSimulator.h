@@ -48,37 +48,12 @@ class HiveClient_JNI;
 class ExeCliInterface; 
 class CmpSeabaseDDL;
 class Queue;
-// Define PATH_MAX, FILENAME_MAX, LINE_MAX for both NT and NSK.
-  // _MAX_PATH and _MAX_FNAME are defined in stdlib.h that is
-  // included above.
-  #define OSIM_PATHMAX PATH_MAX
-  #define OSIM_FNAMEMAX FILENAME_MAX
-  #define OSIM_LINEMAX 4096
-  
+
 class OsimAllHistograms;
 class OsimHistogramEntry;
-
-#define TAG_ALL_HISTOGRAMS "all_histograms"
-#define TAG_HISTOGRAM_ENTRY "histogram_entry"
-#define TAG_FULL_PATH "fullpath"
-#define TAG_USER_NAME "username"
-#define TAG_PID "pid"
-#define TAG_CATALOG "catalog"
-#define TAG_SCHEMA "schema"
-#define TAG_TABLE "table"
-#define TAG_HISTOGRAM "histogram"
-//<TAG_ALL_HISTOGRAMS> 
-//  <TAG_HISTOGRAM_ENTRY>
-//    <TAG_FULL_PATH>/opt/home/xx/xxx </TAG_FULL_PATH>
-//    <TAG_USER_NAME>root</TAG_USER_NAME>
-//    <TAG_PID>12345</TAG_PID>
-//    <TAG_CATALOG>trafodion</TAG_CATALOG>
-//    <TAG_SCHEMA>seabase</TAG_SCHEMA>
-//    <TAG_TABLE>order042</TAG_TABLE>
-//    <TAG_HISTOGRAM>sb_histogram_interval</TAG_HISTOGRAM>
-//  </TAG_HISTOGRAM_ENTRY>
-// ...
-//</TAG_ALL_HISTOGRAMS>
+class HHDFSStatsBase;
+class HHDFSTableStats;
+struct hive_tbl_desc;
 
 class OsimAllHistograms : public XMLElement
 {
@@ -87,9 +62,7 @@ public:
     OsimAllHistograms(NAMemory * heap = 0)
       : XMLElement(NULL, heap)
       , list_(heap)
-    {
-        setParent(this);
-    }
+    { setParent(this); }
 
     virtual const char *getElementName() const
     { return elemName; }
@@ -97,7 +70,7 @@ public:
     virtual ElementType getElementType() const 
     { return ElementType::ET_List;    }
     
-    NAList<OsimHistogramEntry*> & getEntries() { return list_; }
+    NAList<OsimHistogramEntry*> & getHistograms() { return list_; }
 
     void addEntry( const char* fullpath,
                             const char* username,
@@ -110,15 +83,15 @@ public:
 protected:
     virtual void serializeBody(XMLString& xml);
     virtual void startElement(void *parser, const char *elementName, const char **atts);
-
-    NAList<OsimHistogramEntry*> list_;
-
 private:
-    // Copy construction/assignment not defined.
+    //disable copy constructor
     OsimAllHistograms(const OsimAllHistograms&);
+   //disable assign operator
     OsimAllHistograms& operator=(const OsimAllHistograms&);
+    NAList<OsimHistogramEntry*> list_;
 };
 
+//represent one histogram file xxx.histograms or xxx.sb_histogram_interval
 class OsimHistogramEntry : public XMLElement
 {
     friend class OsimAllHistograms;
@@ -144,7 +117,7 @@ public:
     NAString & getFullPath() {  return fullPath_;  }
     NAString & getUserName() {  return userName_;  }
     NAString & getPID() {  return pid_;  }
-    NAString &  getCatalog() {  return catalog_;  }
+    NAString & getCatalog() {  return catalog_;  }
     NAString & getSchema() {  return schema_;  }
     NAString &  getTable() {  return table_;  }
     NAString & getHistogram() {  return histogram_;  }
@@ -162,17 +135,143 @@ private:
     NAString schema_;
     NAString table_;
     NAString histogram_;
-    // Copy construction/assignment not defined.
+    //disable copy constructor and assignment.
     OsimHistogramEntry(const OsimHistogramEntry&);
     OsimHistogramEntry& operator=(const OsimHistogramEntry&);
 };
-
+//for reading histogram files path
 class OsimElementMapper : public XMLElementMapper
 {
   public:
-    virtual XMLElementPtr operator()(void *parser,
-                                     char *elementName,
-                                     AttributeList atts);
+    virtual XMLElementPtr operator()(void *parser, char *elementName, AttributeList atts);
+};
+//for reading hive table stats file path
+class OsimHHDFSStatsMapper : public XMLElementMapper
+{
+  public:
+    OsimHHDFSStatsMapper(NAMemory* h) : heap_(h){}
+    virtual XMLElementPtr operator()(void *parser, char *elementName, AttributeList atts);
+    NAMemory* heap_;
+};
+
+class OsimHHDFSStatsBase : public XMLElement
+{
+public:
+        OsimHHDFSStatsBase(XMLElement* parent, HHDFSStatsBase* mirror, NAMemory * heap = 0)
+        : XMLElement(parent, heap)
+        , statsList_(heap)
+        , mirror_(mirror)
+        , heap_(heap)
+        {}
+
+        virtual ElementType getElementType() const 
+	{ return ElementType::ET_List;	  }
+		
+        virtual void addEntry(OsimHHDFSStatsBase* statsBase){ statsList_.insert(statsBase); }
+        void setHHStats(HHDFSStatsBase* st) { mirror_ = st; }
+	HHDFSStatsBase * getHHStats() { return mirror_; }
+	virtual NABoolean restoreHHDFSStats(HHDFSStatsBase* hhstats, const char ** atts);
+	virtual NABoolean setValue(HHDFSStatsBase* hhstats, const char *attrName, const char *attrValue);
+protected:
+	virtual void serializeBody(XMLString& xml);
+	virtual void serializeAttrs(XMLString & xml);
+	virtual void startElement(void *parser, const char *elementName, const char **atts){}
+	virtual void endElement(void * parser, const char * elementName);
+
+        LIST(OsimHHDFSStatsBase*)  statsList_;
+	HHDFSStatsBase* mirror_;
+	NAMemory* heap_;
+};
+
+class  OsimHHDFSFileStats : public OsimHHDFSStatsBase
+{
+public:
+	static const char elemName[];
+	OsimHHDFSFileStats(XMLElement* parent, HHDFSStatsBase* mirror, NAMemory * heap = 0)
+         : OsimHHDFSStatsBase(parent, mirror, heap)
+	{}
+
+	virtual const char *getElementName() const
+	{ return elemName; }
+
+        virtual NABoolean setValue(HHDFSStatsBase* stats, const char *attrName, const char *attrValue);
+
+protected:
+	virtual void serializeAttrs(XMLString & xml);
+};
+
+class  OsimHHDFSORCFileStats : public OsimHHDFSFileStats
+{
+public:
+	static const char elemName[];
+	OsimHHDFSORCFileStats(XMLElement* parent, HHDFSStatsBase* mirror, NAMemory * heap = 0)
+          : OsimHHDFSFileStats(parent, mirror, heap)
+          {}
+	
+	virtual const char *getElementName() const
+	{ return elemName; }
+
+        virtual NABoolean setValue(HHDFSStatsBase* stats, const char *attrName, const char *attrValue);
+
+
+protected:
+	virtual void serializeAttrs(XMLString & xml);
+};
+
+class  OsimHHDFSBucketStats : public OsimHHDFSStatsBase
+{
+public:
+	static const char elemName[];
+	OsimHHDFSBucketStats(XMLElement* parent, HHDFSStatsBase* mirror, NAMemory * heap = 0)
+         : OsimHHDFSStatsBase(parent, mirror, heap)
+	  {}
+
+	virtual const char *getElementName() const
+	{ return elemName; }
+	
+	virtual NABoolean setValue(HHDFSStatsBase* stats, const char *attrName, const char *attrValue);
+	
+protected:
+	virtual void serializeAttrs(XMLString & xml);
+	virtual void startElement(void *parser, const char *elementName, const char **atts);
+};
+
+class  OsimHHDFSListPartitionStats : public OsimHHDFSStatsBase
+{
+public:
+	static const char elemName[];
+	OsimHHDFSListPartitionStats(XMLElement* parent, HHDFSStatsBase* mirror, NAMemory * heap = 0)
+          : OsimHHDFSStatsBase(parent, mirror, heap)
+         {}
+
+	virtual const char *getElementName() const
+	{ return elemName; }
+	
+        virtual NABoolean setValue(HHDFSStatsBase* stats, const char *attrName, const char *attrValue);
+
+protected:
+       virtual void serializeAttrs(XMLString & xml);
+	virtual void startElement(void *parser, const char *elementName, const char **atts);
+
+};
+
+class  OsimHHDFSTableStats : public OsimHHDFSStatsBase
+{
+public:
+        static const char elemName[];
+        OsimHHDFSTableStats(XMLElement* parent, HHDFSStatsBase * mirror, NAMemory * heap = 0)
+          : OsimHHDFSStatsBase(parent, mirror, heap)
+	{setParent(this);}
+	
+        virtual const char *getElementName() const
+        { return elemName; }
+
+	virtual NABoolean setValue(HHDFSStatsBase* hhstats, const char *attrName, const char *attrValue);
+	
+protected:
+    virtual void serializeAttrs(XMLString & xml);
+    virtual void startElement(void *parser, const char *elementName, const char **atts);
+	
 };
 
 // This class initializes OSIM and implements capture and simulation
@@ -190,9 +289,9 @@ class OptimizerSimulator : public NABasicObject
       UNLOAD
     };
 
-    enum sysCall {
-      FIRST_SYSCALL,
-      ESTIMATED_ROWS = FIRST_SYSCALL,
+    enum OsimLog {
+      FIRST_LOG,
+      ESTIMATED_ROWS = FIRST_LOG,
       NODE_AND_CLUSTER_NUMBERS,
       NACLUSTERINFO,
       MYSYSTEMNUMBER,
@@ -208,7 +307,11 @@ class OptimizerSimulator : public NABasicObject
       VERSIONSFILE,
       CAPTURE_SYS_TYPE,
       HISTOGRAM_PATHS,
-      NUM_OF_SYSCALLS
+      HIVE_HISTOGRAM_PATHS,
+      HIVE_CREATE_TABLE,
+      HIVE_CREATE_EXTERNAL_TABLE,
+      HIVE_TABLE_LIST,
+      NUM_OF_LOGS
     };
 
     // sysType indicates the type of system that captured the queries
@@ -225,15 +328,11 @@ class OptimizerSimulator : public NABasicObject
     osimMode getOsimMode() { return osimMode_; }
 
     // Accessor methods to get and set osimLogHDFSDir_.
-    void setOsimLogdir(const char *localdir) {
-      if (localdir) {
-          osimLogLocalDir_ = localdir;
-      }
-    }
+    void setOsimLogdir(const char *localdir);
     const char* getOsimLogdir() const { return osimLogLocalDir_.isNull()? NULL : osimLogLocalDir_.data(); }
     void initHashDictionaries();
-    void setLogFilepath(sysCall sc);
-    void openAndAddHeaderToLogfile(sysCall sc);
+    void createLogFilepath(OsimLog sc);
+    void openWriteLogStreams(OsimLog sc);
     void initLogFilePaths();
 
     void capture_CQDs();
@@ -252,9 +351,9 @@ class OptimizerSimulator : public NABasicObject
     void debugMessage(const char* format, ...);
     
     NABoolean setOsimModeAndLogDir(osimMode mode, const char * localdir);
-
+    NABoolean readHiveStmt(ifstream & DDLFile, NAString & stmt, NAString & comment);
     NABoolean readStmt(ifstream & DDLFile,  NAString & stmt, NAString & comment);
-    NABoolean massageTableUID(OsimHistogramEntry* entry, NAHashDictionary<NAString, QualifiedName> * modifiedPathList);
+    NABoolean massageTableUID(OsimHistogramEntry* entry, NAHashDictionary<NAString, QualifiedName> * modifiedPathList, NABoolean isHive);
     NABoolean isCallDisabled(ULng32 callBitPosition);
 
     NABoolean runningSimulation();
@@ -266,6 +365,9 @@ class OptimizerSimulator : public NABasicObject
     NAHashDictionary<const QualifiedName, Int64> *getHashDictViews() 
       {  return hashDict_Views_; }
 
+    NAHashDictionary<const QualifiedName, Int64> *getHashDictHiveTables() 
+      {  return hashDict_HiveTables_; }
+	
     void readSysCallLogfiles();
     
     void capture_getEstimatedRows(const char *tableName, double estRows);
@@ -290,54 +392,56 @@ class OptimizerSimulator : public NABasicObject
     void setClusterInfoInitialized(NABoolean b) { clusterInfoInitialized_ = b; }
 
     // File pathnames for log files that contain system call data.
-    const char * getLogFilePath (sysCall index) const
-    {  return sysCallLogFilePath_[index]; }
+    const char * getLogFilePath (OsimLog index) const
+    {  return logFilePaths_[index]; }
 
     void setForceLoad(NABoolean b) { forceLoad_ = b; }
     NABoolean isForceLoad() const { return forceLoad_; }
-    
+    HHDFSTableStats * restoreHiveTableStats(const QualifiedName & qualName, NAMemory* heap, hive_tbl_desc* hvt_desc);
+    void captureHiveTableStats(HHDFSTableStats* tablestats, const NATable* naTab);
   private:
     
     void readAndSetCQDs();
     void dumpHistograms();
     void dumpDDLs(const QualifiedName & qualifiedName);
+    void dumpHiveTableDDLs();
+    void dumpHiveHistograms();
     void initializeCLI();
-    void loadHistograms();
-    short loadHistogramsTable(NAString* modifiedPath, QualifiedName * qualifiedName, unsigned int bufLen);
-    short loadHistogramIntervalsTable(NAString* modifiedPath, QualifiedName * qualifiedName, unsigned int bufLen);
+    void loadHistograms(const char* histogramPath, NABoolean isHive);
+    short loadHistogramsTable(NAString* modifiedPath, QualifiedName * qualifiedName, unsigned int bufLen, NABoolean isHive);
+    short loadHistogramIntervalsTable(NAString* modifiedPath, QualifiedName * qualifiedName, unsigned int bufLen, NABoolean isHive);
     Int64 getTableUID(const char * catName, const char * schName, const char * objName);
     short fetchAllRowsFromMetaContext(Queue * &q, const char* query);
     short executeFromMetaContext(const char* query);
     void loadDDLs();
+    void loadHiveDDLs();
     void histogramHDFSToLocal();
     void removeHDFSCacheDirectory();
     void createLogDir();
     void checkDuplicateNames();
     void dropObjects();
     void dumpVersions();
-    void saveTablesBeforeStart();
-    void saveViewsBeforeStart();
     void execHiveSQL(const char* hiveSQL);
     
     // This is the directory OSIM uses to read/write log files.
     NAString osimLogLocalDir_;    //OSIM dir in local disk, used during capture and simu mode.
-    
+    NAString hiveTableStatsDir_;
     // This is the mode under which OSIM is running (default is OFF).
     // It is set by an environment variable OSIM_MODE.
     osimMode osimMode_;
     
     // System call names.
-    static const char *sysCallLogFileName_[NUM_OF_SYSCALLS];
+    static const char *logFileNames_[NUM_OF_LOGS];
     
-    char *sysCallLogFilePath_[NUM_OF_SYSCALLS];
+    char *logFilePaths_[NUM_OF_LOGS];
 
-    ofstream* writeSysCallStream_[NUM_OF_SYSCALLS];
+    ofstream* writeLogStreams_[NUM_OF_LOGS];
     
     NAHashDictionary<NAString, double> *hashDict_getEstimatedRows_;
-
     NAHashDictionary<const QualifiedName, Int64> *hashDict_Views_;
     NAHashDictionary<const QualifiedName, Int64> *hashDict_Tables_;
     NAHashDictionary<const QualifiedName, Int32> *hashDict_Synonyms_;
+    NAHashDictionary<const QualifiedName, Int64> *hashDict_HiveTables_;
     NAHashDictionary<NAString, Int32> * hashDict_TablesBeforeAction_;
     NAHashDictionary<NAString, Int32> * hashDict_ViewsBeforeAction_;
     
@@ -372,6 +476,7 @@ class OptimizerSimulator : public NABasicObject
   short OSIM_MYSYSTEMNUMBER();
   void  OSIM_getNodeAndClusterNumbers(short& nodeNum, Int32& clusterNum);
   void  OSIM_captureTableOrView(NATable * naTab);
+  void OSIM_captureHiveTableStats(HHDFSTableStats* tablestats, const NATable * naTab);
   void  OSIM_capturePrologue();
   void  OSIM_captureQueryText(const char * query);
   void  OSIM_captureQueryShape(const char * shape);
@@ -380,9 +485,11 @@ class OptimizerSimulator : public NABasicObject
   // errorMessage and warningMessage wrappers.
   void OSIM_errorMessage(const char *msg);
   void OSIM_warningMessage(const char *msg);
+  HHDFSTableStats * OSIM_restoreHiveTableStats(const QualifiedName & qualName, NAMemory* heap, hive_tbl_desc* hvt_desc);
 
   NABoolean OSIM_runningSimulation();
   NABoolean OSIM_runningInCaptureMode();
   NABoolean OSIM_ustatIsDisabled();
   NABoolean OSIM_ClusterInfoInitialized();
+  void raiseOsimException(const char* fmt, ...);
 #endif

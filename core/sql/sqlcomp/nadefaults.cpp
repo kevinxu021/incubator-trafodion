@@ -1759,7 +1759,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
  // We can remove this once the delete costing code has broader
  // exposure.
  DDkwd__(HBASE_DELETE_COSTING,		             "OFF"),
-
+ DDflt0_(HBASE_DOP_PARALLEL_SCANNER,             "0."),
  DDkwd__(HBASE_FILTER_PREDS,		             "OFF"),
  DDkwd__(HBASE_HASH2_PARTITIONING,                   "ON"),
  DDui___(HBASE_INDEX_LEVEL,                          "0"),
@@ -1981,6 +1981,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDui___(HIVE_NUM_ESPS_PER_DATANODE,           "2"),
   DDpct__(HIVE_NUM_ESPS_ROUND_DEVIATION,        "34"),
   DDkwd__(HIVE_PARTITION_ELIMINATION_CT,        "ON"),
+  DDkwd__(HIVE_PARTITION_ELIMINATION_MM,        "ON"),
   DDkwd__(HIVE_PARTITION_ELIMINATION_RT,        "ON"),
   DDint__(HIVE_SCAN_SPECIAL_MODE,                "0"),
   DDkwd__(HIVE_SORT_HDFS_HOSTS,                 "ON"),
@@ -2758,7 +2759,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
 
   DDkwd__(ORC_AGGR_PUSHDOWN,                    "ON"),
   DDkwd__(ORC_COLUMNS_PUSHDOWN,                 "ON"),
-  DDkwd__(ORC_NJS,                              "OFF"),
+  DDkwd__(ORC_NJS,                              "ON"),
   DDkwd__(ORC_PRED_PUSHDOWN,                    "ON"),
   DDkwd__(ORC_READ_STRIPE_INFO,                 "ON"),
   DDkwd__(ORC_USE_EXT_TABLE_ATTRS,              "OFF"),
@@ -4242,9 +4243,9 @@ void NADefaults::updateSystemParameters(NABoolean reInit)
       "DEF_NUM_BM_CHUNKS",
       "DEF_PHYSICAL_MEMORY_AVAILABLE", //returned in KB not bytes
       "DEF_TOTAL_MEMORY_AVAILABLE",		 //returned in KB not bytes
-      "DEF_VIRTUAL_MEMORY_AVAILABLE"
-      , "GEN_MAX_NUM_PART_DISK_ENTRIES"
-      , "USTAT_IUS_PERSISTENT_CBF_PATH"
+      "DEF_VIRTUAL_MEMORY_AVAILABLE",
+      "GEN_MAX_NUM_PART_DISK_ENTRIES",
+      "USTAT_IUS_PERSISTENT_CBF_PATH"
    }; //returned in KB not bytes
 
   char valuestr[WIDEST_CPUARCH_VALUE];

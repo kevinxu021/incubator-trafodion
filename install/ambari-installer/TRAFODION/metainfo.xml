@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<metainfo>
+    <schemaVersion>2.0</schemaVersion>
+    <services>
+        <service>
+        	<!-- Internal name for service (must be unique) -->
+            <name>TRAFODION</name>
+            <!-- display name in Ambari UI -->
+            <displayName>Trafodion</displayName>
+            <!-- Description of service - will be displayed when user clicks add service -->
+            <comment>Transactional SQL-on-Hadoop Database</comment>
+            <!-- Version of component-->
+            <version>2.0</version>
+            <components>
+            	<!-- In this case, there is only one master component -->
+                <component>
+                  <name>TRAFODION_MASTER</name>
+                  <displayName>Trafodion Master</displayName>
+                  <category>MASTER</category>
+                  <!-- how many of these components are allowed in a cluster -->
+                  <cardinality>1</cardinality>
+                  <!-- reference to (and details of) what script is to be used to install/stop/start/config the service -->
+                  <commandScript>
+                    <script>scripts/trafodionmaster.py</script>
+                    <scriptType>PYTHON</scriptType>
+                    <timeout>5000</timeout>
+                  </commandScript>
+                  <customCommands>
+                    <customCommand>
+                      <name>Initialize</name>
+                      <commandScript>
+                        <script>scripts/trafodionmaster.py</script>
+                        <scriptType>PYTHON</scriptType>
+                        <timeout>5000</timeout>
+                      </commandScript>
+                    </customCommand>
+                  </customCommands>
+                </component>
+                 <component>
+                  <name>TRAFODION_NODE</name>
+                  <displayName>Trafodion Node</displayName>
+                  <category>SLAVE</category>
+                  <!-- how many of these components are allowed in a cluster -->
+                  <cardinality>0-100</cardinality>
+                  <!-- reference to (and details of) what script is to be used to install/stop/start/config the service -->
+                  <commandScript>
+                    <script>scripts/trafodionnode.py</script>
+                    <scriptType>PYTHON</scriptType>
+                    <timeout>5000</timeout>
+                  </commandScript>
+                </component>
+            </components>
+            <!-- what yum packages need to be installed -->
+            <osSpecifics>
+              <osSpecific>
+                <osFamily>redhat6</osFamily>
+                <packages>
+                   <package><name>sqlite</name></package> 
+                   <package><name>expect</name></package>
+                   <package><name>perl-DBD-SQLite*</name></package>
+                   <package><name>protobuf</name></package>
+                   <package><name>xerces-c</name></package>
+                   <package><name>perl-Params-Validate</name></package>
+                   <package><name>perl-Time-HiRes</name></package>
+                   <package><name>gzip</name></package>
+                   <package><name>gnuplot</name></package>
+                   <package><name>lsof</name></package>
+                   <package><name>apr-devel</name></package>
+                   <package><name>apr-util-devel</name></package>
+                </packages>
+              </osSpecific>
+            </osSpecifics>
+            <requiredServices>
+                <service>HDFS</service>
+                <service>HBASE</service>
+                <service>ZOOKEEPER</service>
+            </requiredServices>
+            <!-- names for config files (under configuration dir) -->
+      	    <configuration-dependencies>
+        	<config-type>trafodion-config</config-type>
+      	    </configuration-dependencies>
+            <restartRequiredAfterChange>true</restartRequiredAfterChange>
+        </service>
+    </services>
+</metainfo>

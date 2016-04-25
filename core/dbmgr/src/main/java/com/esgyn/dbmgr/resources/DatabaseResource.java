@@ -567,6 +567,12 @@ public class DatabaseResource {
 			@QueryParam("schemaName") String schemaName,
 			@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
 					throws EsgynDBMgrException {
+
+		ConfigurationResource.loadEsgynDBSystemProperties();
+		if (!ConfigurationResource.getInstance().isAuthorizationEnabled()) {
+			throw new EsgynDBMgrException(
+					"Warning: Authorization feature is not enabled. There are no privileges to display.");
+		}
 		PreparedStatement pstmt = null;
 		Connection connection = null;
 		try {

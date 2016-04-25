@@ -3770,16 +3770,6 @@ ReqdPhysicalProperty* NestedJoin::genRightChildReqs(
 {
   ReqdPhysicalProperty* rppForChild = NULL;
 
-  // Nested join into non sorted ORC hive tables is not allowed.
-  /*
-  if (child(1).getGroupAttr()->allHiveTables() )
-   {
-      if ( !((child(1)).getGroupAttr()->allHiveORCTablesSorted()) ) {
-         return NULL;
-      }
-   }
-  */
-
   // ---------------------------------------------------------------
   // spp should have been synthesized for child's optimal plan.
   // ---------------------------------------------------------------
@@ -4535,7 +4525,7 @@ Context* NestedJoin::createContextForAChild(Context* myContext,
   NABoolean noN2JForRead  = (
                              CmpCommon::getDefault(NESTED_JOINS_NO_NSQUARE_OPENS) == DF_ON ||
                              (CmpCommon::getDefault(NESTED_JOINS_NO_NSQUARE_OPENS) == DF_SYSTEM &&
-                              !(child(1).getGroupAttr()->allHiveORCTablesSorted())
+                              !(child(1).getGroupAttr()->allHiveORCTables())
                              ) && 
                              (updateTableDesc() == NULL));
 
@@ -14683,7 +14673,9 @@ PhysicalProperty * FileScan::synthHiveScanPhysicalProperty(
   // If the requirement is repN, produce a repN partition func to satisfy it.
   // The primary use of repN is to access the inner side of a NJ. Only NJ into
   // ORC tables on sorted column(s) with equi-join predicate is allowed.
-  if ( partReq && (rpnb=partReq->castToRequireReplicateNoBroadcast()) ) 
+  if ( partReq && 
+       (rpnb=partReq->castToRequireReplicateNoBroadcast()) &&
+       rpnb->getParentPartFunc() ) 
   {
      Lng32 numPartitions = rpnb->getParentPartFunc()->getCountOfPartitions();
 
