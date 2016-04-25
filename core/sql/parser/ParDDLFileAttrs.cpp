@@ -1143,6 +1143,12 @@ ParDDLFileAttrsAlterTable::setFileAttr(ElemDDLFileAttr * pFileAttr)
     
     
   case ELM_FILE_ATTR_XN_REPL_ELEM :
+    if ((NOT IsEnterpriseLevel()) || (NOT IsAdvancedLevel()))
+      {
+        *SqlParser_Diags << DgSqlCode(-4222)
+                         << DgString0("Replication");
+      }
+
     if (isXnReplSpec_)
       {
         // Duplicate sync xn phrases.
@@ -2156,6 +2162,12 @@ ParDDLFileAttrsCreateTable::setFileAttr(ElemDDLFileAttr * pFileAttr)
     break;
 
   case ELM_FILE_ATTR_XN_REPL_ELEM :
+    if ((NOT IsEnterpriseLevel()) || (NOT IsAdvancedLevel()))
+      {
+        *SqlParser_Diags << DgSqlCode(-4222)
+                         << DgString0("Replication");
+      }
+
     if (isXnReplSpec_)
     {
       // Duplicate sync xn phrases.

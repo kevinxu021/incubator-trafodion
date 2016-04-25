@@ -301,10 +301,14 @@ SEAMONSTER_TAR ?= "seamonster_${SQ_BUILD_TYPE}-src.tar.gz"
 
 setup_adv: seabed
 	cd src/seabed/src; $(MAKE) setup_adv
+	< ${MY_SQROOT}/sqenvcom.sh sed -e "s/TRAFODION_VER_PROD=.*/TRAFODION_VER_PROD=\"EsgynDB Advanced\"/" > ${MY_SQROOT}/sqenvcom.adv
+	mv ${MY_SQROOT}/sqenvcom.adv ${MY_SQROOT}/sqenvcom.sh
 	@echo "In setup_adv, PKG_TAR=$(PKG_TAR)"
 
 setup_ent: seabed
 	cd src/seabed/src; $(MAKE) setup_ent
+	< ${MY_SQROOT}/sqenvcom.sh sed -e "s/TRAFODION_VER_PROD=.*/TRAFODION_VER_PROD=\"EsgynDB Enterprise\"/" > ${MY_SQROOT}/sqenvcom.ent
+	mv ${MY_SQROOT}/sqenvcom.ent ${MY_SQROOT}/sqenvcom.sh
 	@echo "In setup_ent, PKG_TAR=$(PKG_TAR)"
 
 package_adv : PKG_FEATURE = adv
@@ -320,7 +324,7 @@ FEATURE_SPECIFIC_PACKAGES = package_adv package_ent
 .PHONY: $(FEATURE_SPECIFIC_PACKAGES) actually_package
 package : 
 	for mk_specific_package in $(FEATURE_SPECIFIC_PACKAGES); do \
-		$(MAKE) $$mk_specific_package; \
+		$(MAKE) -j1 $$mk_specific_package; \
 	done
 
 #	Targets to tar/gzip the tree
@@ -328,6 +332,7 @@ actually_package : pkglist-files pkglist-symlinks tmp/sqenv.sh
 	mkdir -p ../../${DISTRIBUTION_DIR}
 	chmod o-rwx $(PKG_BIN_DIRS)
 	chmod -R o-rwx $(PKG_BIN_OBJS)
+	md5sum export/lib64*/libfeature*.so
 	tar --mode o-rwx --no-recursion -chf $(PKG_TAR_UN) -X build-scripts/package.exclude -X build-scripts/package.exclude.$(SQ_MBTYPE) -T pkglist-files
 	tar --mode o-rwx -rf $(PKG_TAR_UN) -X build-scripts/package.exclude -X build-scripts/package.exclude.$(SQ_MBTYPE) -T pkglist-symlinks
 	cd tmp; tar --mode o-rwx -rf ../$(PKG_TAR_UN) sqenv.sh

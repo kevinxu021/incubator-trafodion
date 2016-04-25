@@ -1362,6 +1362,8 @@ const NAType *Aggregate::synthesizeType()
   switch (getEffectiveOperatorType()) {
   case ITM_COUNT:
   case ITM_COUNT_NONULL:
+  case ITM_ORC_MAX_NV:
+  case ITM_ORC_SUM_NV:
     result = new HEAP
       SQLLargeInt(TRUE /* 'long long' on NSK can't be unsigned */,
 		  FALSE /*not null*/);
@@ -2834,8 +2836,9 @@ const NAType *DateFormat::synthesizeType()
       if (wasDateformat_)
         {
 	  length = operand.getDisplayLength();
-	  if(operand.containsField(REC_DATE_HOUR) && 
-             (frmt == ExpDatetime::DATETIME_FORMAT_USA))
+          if(operand.containsField(REC_DATE_HOUR) && 
+             ((frmt == ExpDatetime::DATETIME_FORMAT_USA) ||
+              (frmt == ExpDatetime::DATETIME_FORMAT_TS7)))
 	    length += 3; // add 3 for a blank and "am" or "pm"
         }
       else
@@ -3048,8 +3051,8 @@ const NAType *HiveHashComb::synthesizeType()
   CMPASSERT(areChildrenExactNumeric(0, 1));
 
   // result of hashcomb function is always a non-nullable,
-  // unsigned 32 bit integer
-  return new HEAP SQLInt(FALSE, FALSE);
+  // signed 32 bit integer
+  return new HEAP SQLInt(TRUE, FALSE);
 }
 
 // -----------------------------------------------------------------------
@@ -3070,8 +3073,8 @@ const NAType *HashDistPartHash::synthesizeType()
 // -----------------------------------------------------------------------
 const NAType *HiveHash::synthesizeType()
 {
-  // result of hivehash function is always a non-nullable, unsigned 32 bit integer
-  return new HEAP SQLInt(FALSE, FALSE);
+  // result of hivehash function is always a non-nullable, signed 32 bit integer
+  return new HEAP SQLInt(TRUE, FALSE);
 }
 
 // -----------------------------------------------------------------------

@@ -140,6 +140,9 @@ class ExpHbaseInterface : public NABasicObject
   virtual Lng32 copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
                      NABoolean force = FALSE);
 
+  virtual Lng32 createSnaphot(const std::vector<Text>& tables, const char* backuptag);
+  virtual Lng32 restoreSnapshots(const char* backuptag);
+  
   virtual Lng32 exists(HbaseStr &tblName) = 0;
 
   // returns the next tablename. 100, at EOD.
@@ -160,6 +163,7 @@ class ExpHbaseInterface : public NABasicObject
 			 const LIST(NAString) *inColNamesToFilter, 
 			 const LIST(NAString) *inCompareOpList,
 			 const LIST(NAString) *inColValuesToCompare,
+	         Float32 dopParallelScanner = 0.0f,
 			 Float32 samplePercent = -1.0f,
 			 NABoolean useSnapshotScan = FALSE,
 			 Lng32 snapTimeout = 0,
@@ -288,8 +292,7 @@ class ExpHbaseInterface : public NABasicObject
 		  NABoolean noXn,
 		  const NABoolean replSync,
 		  const int64_t timestamp,
-		  NABoolean autoFlush = TRUE,
-                  NABoolean asyncOperation = FALSE) = 0; // by default, flush rows after put
+                  NABoolean asyncOperation) = 0; 
 
  virtual Lng32 updateVisibility(
       HbaseStr tblName,
@@ -306,6 +309,7 @@ class ExpHbaseInterface : public NABasicObject
                  NABoolean v)=0;
  
  virtual  Lng32 initHBLC(ExHbaseAccessStats* hbs = NULL)=0;
+ virtual  Lng32 initBRC(ExHbaseAccessStats* hbs = NULL)=0;
  virtual  Lng32 initHive() = 0;
 
  virtual Lng32 initHFileParams(HbaseStr &tblName,
@@ -387,9 +391,6 @@ class ExpHbaseInterface : public NABasicObject
   virtual ByteArrayList* getRegionBeginKeys(const char*) = 0;
   virtual ByteArrayList* getRegionEndKeys(const char*) = 0;
 
-  virtual Lng32 flushTable() = 0;
-  static Lng32 flushAllTables();
-
   virtual Lng32 estimateRowCount(HbaseStr& tblName,
                                  Int32 partialRowSize,
                                  Int32 numCols,
@@ -413,7 +414,7 @@ class ExpHbaseInterface : public NABasicObject
   virtual Lng32 removeTablesFromHDFSCache(const std::vector<Text>& tables, const char* poolName) = 0;
   // get regions and size
   virtual ByteArrayList* getRegionStats(const HbaseStr& tblName) = 0;
-
+  
 protected:
   enum 
     {
@@ -483,6 +484,9 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
   virtual Lng32 copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
                      NABoolean force = FALSE);
 
+  virtual Lng32 createSnaphot(const std::vector<Text>& tables, const char* backuptag);
+  virtual Lng32 restoreSnapshots(const char* backuptag);
+  
   // -1, if table exists. 0, if doesn't. -ve num, error.
   virtual Lng32 exists(HbaseStr &tblName);
 
@@ -504,6 +508,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 			 const LIST(NAString) *inColNamesToFilter, 
 			 const LIST(NAString) *inCompareOpList,
 			 const LIST(NAString) *inColValuesToCompare,
+	         Float32 DOPparallelScanner = 0.0f,
 			 Float32 samplePercent = -1.0f,
 			 NABoolean useSnapshotScan = FALSE,
 			 Lng32 snapTimeout = 0,
@@ -623,8 +628,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 		  NABoolean noXn,
 		  const NABoolean replSync,
 		  const int64_t timestamp,
-		  NABoolean autoFlush = TRUE,
-                  NABoolean asyncOperation = FALSE); // by default, flush rows after put
+                  NABoolean asyncOperation); 
   
   virtual Lng32 updateVisibility(
        HbaseStr tblName,
@@ -641,6 +645,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
                   NABoolean v);
 
 virtual  Lng32 initHBLC(ExHbaseAccessStats* hbs = NULL);
+virtual  Lng32 initBRC(ExHbaseAccessStats* hbs = NULL);
 virtual  Lng32 initHive();
 
 virtual Lng32 initHFileParams(HbaseStr &tblName,
@@ -722,7 +727,6 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
   virtual ByteArrayList* getRegionBeginKeys(const char*);
   virtual ByteArrayList* getRegionEndKeys(const char*);
 
-  virtual Lng32 flushTable();
   virtual Lng32 estimateRowCount(HbaseStr& tblName,
                                  Int32 partialRowSize,
                                  Int32 numCols,
@@ -746,13 +750,14 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
   virtual Lng32 removeTablesFromHDFSCache(const std::vector<Text> & tables, const char* poolName);
 
   virtual ByteArrayList* getRegionStats(const HbaseStr& tblName);
-
+  
 private:
   bool  useTRex_;
   NABoolean replSync_;;
   HBaseClient_JNI* client_;
   HTableClient_JNI* htc_;
   HBulkLoadClient_JNI* hblc_;
+  BackupRestoreClient_JNI* brc_;
   HiveClient_JNI* hive_;
   HTableClient_JNI *asyncHtc_;
   Int32  retCode_;

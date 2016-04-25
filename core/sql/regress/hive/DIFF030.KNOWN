@@ -1,0 +1,9 @@
+1732,1737c1732
+< (EXPR)
+< ----------
+< 
+< orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK <cast(cast(case(if_then_else((\:_sys_MinVal0 is null or (\:_sys_MinVal1 > \:_sys_MinVal0)), \:_sys_MinVal1, \:_sys_MinVal0)))) ) HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK <= cast(cast(case(if_then_else((\:_sys_MaxVal0 is null or (\:_sys_MaxVal1 < \:_sys_MaxVal0)), \:_sys_MaxVal1, \:_sys_MaxVal0)))) )
+< 
+< --- 1 row(s) selected.
+---
+> --- 0 row(s) selected.

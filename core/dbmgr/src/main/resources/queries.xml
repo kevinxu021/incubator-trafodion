@@ -8,6 +8,16 @@
 <SystemQueries>
 	<queries>
 		<query>
+			<!-- Get system info -->
+			<name>GET_SYSTEM_INFO</name>
+			<text><![CDATA[info system]]></text>
+		</query>
+		<query>
+			<!-- Get system version -->
+			<name>GET_SYSTEM_VERSION</name>
+			<text><![CDATA[get version of software]]></text>
+		</query>
+		<query>
 			<!-- Get List of DCS servers and their status -->
 			<name>GET_DCS_SERVERS</name>
 			<text><![CDATA[{"url":"http://%1$s/v1/servers/dcs/connections", "method":"get"}]]></text>
@@ -315,8 +325,9 @@
 			<name>SELECT_OBJECT_PRIVILEGES</name>
 			<text><![CDATA[SELECT GRANTEE_NAME as "Grantee Name", GRANTOR_NAME as "Grantor Name", 
 				PRIVILEGES_BITMAP as "Granted Privileges", GRANTABLE_BITMAP as "Privileges with Grant Option"
-				FROM "_PRIVMGR_MD_".OBJECT_PRIVILEGES
-				WHERE OBJECT_UID = ?
+				FROM "_MD_".OBJECTS AS T1, "_PRIVMGR_MD_".OBJECT_PRIVILEGES OBJECT_PRIVILEGES
+				WHERE T1.SCHEMA_NAME = ? AND T1.OBJECT_NAME = ?
+				AND T1.OBJECT_UID = OBJECT_PRIVILEGES.OBJECT_UID
 			]]></text>
 		</query>
 		<query>
@@ -348,7 +359,7 @@
 		<query>
 			<!-- Fetch procedures and udfs that use this library -->
 			<name>SELECT_LIBRARY_USAGE</name>
-			<text><![CDATA[SELECT T3.OBJECT_NAME AS "Routine Name", T3.SCHEMA_NAME as "Routine Schema" ,
+			<text><![CDATA[SELECT 'Used By' AS Usage_Type, T3.OBJECT_NAME AS "Routine Name", T3.SCHEMA_NAME as "Routine Schema" ,
 					CASE T4.UDR_TYPE
 					  WHEN 'P' THEN 'Procedure'
 					  WHEN 'T' THEN 'Table Mapping UDF'
@@ -470,10 +481,13 @@
 		<query>
 			<!-- Fetch the library used by the routine -->
 			<name>GET_ROUTINE_USAGE</name>
-			<text><![CDATA[SELECT object_name, schema_name, 'Library' as Object_Type
+			<text><![CDATA[
+					SELECT 'Uses' AS Usage_Type, t2.object_name, t2.schema_name, 'Library' as Object_Type
 					FROM "_MD_".LIBRARIES_USAGE T1, 
-					"_MD_".OBJECTS T2 
-					WHERE T1.USED_UDR_UID = ?
+					"_MD_".OBJECTS T2,
+					"_MD_".OBJECTS T3 
+					WHERE T3.SCHEMA_NAME = ? AND T3.OBJECT_NAME = ?
+					AND T1.USED_UDR_UID = T3.OBJECT_UID
 					AND T1.USING_LIBRARY_UID= T2.OBJECT_UID 
 					FOR READ UNCOMMITTED ACCESS 
 			]]></text>
@@ -580,7 +594,7 @@
 		<query>
 			<!-- Fetch active query detail from rms -->
 			<name>SELECT_ACTIVE_QUERY_DETAIL</name>
-			<text><![CDATA[get statistics for qid %1$s %2$s]]></text>
+			<text><![CDATA[get statistics for qid \"%1$s\" %2$s]]></text>
 		</query>
 		<query>
 			<!-- Fetch active query detail from rms -->
@@ -603,6 +617,23 @@
 				order by log_ts desc
 				]]></text>
 		</query>
+		<query>
+			<name>EXPLAIN_ACTIVE_QUERY</name>
+			<text><![CDATA[SELECT * FROM TABLE(explain(null, 'QID=%1$s'))]]></text>
+		</query>
+		<query>
+			<name>EXPLAIN_USING_QID</name>
+			<text><![CDATA[SELECT * FROM TABLE(explain(null, 'EXPLAIN_QID=%1$s'))]]></text>
+		</query>
+		<query>
+			<name>TEXT_EXPLAIN_USING_QID</name>
+			<text><![CDATA[explain qid %1$s from repository]]></text>
+		</query>
+		<query>
+			<name>EXPLAIN_USING_QTEXT</name>
+			<text><![CDATA[SELECT * FROM TABLE(explain(null, 'EXPLAIN_STMT=%1$s'))]]></text>
+		</query>
+		
 		<query>
 			<name>OPENTSDB_IOWAITS</name>
 			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:rate:proc.stat.cpu{type=iowait}", "method":"get"}]]></text>
@@ -727,6 +758,22 @@
 		<query>
 			<name>UPDATE_ALERT</name>
 			<text><![CDATA[{"url":"http://%1$s/api/action", "method":"post", "jsonParameter":{"Keys":["%2$s"], "Message":"%3$s", "Notify":%4$s,  "Type":"%5$s", "User":"%6$s" }}]]></text>
+		</query>
+		<query>
+			<name>SPJ_PUT</name>
+			<text><![CDATA[{call "_LIBMGR_".put(?,?,?,?)}]]></text>
+		</query>
+		<query>
+			<name>SPJ_ADDLIB</name>
+			<text><![CDATA[{call "_LIBMGR_".addlib(?,?,null,null)}]]></text>
+		</query>
+		<query>
+			<name>CHECK_SCHEMA</name>
+			<text><![CDATA[select distinct schema_name from "_MD_".objects where object_name ='__SCHEMA__' and schema_name='%1$s';]]></text>
+		</query>
+		<query>
+			<name>CHECK_LIBRARY</name>
+			<text><![CDATA[select object_name, object_type from "_MD_".objects where object_type='LB' and object_name='%1$s';]]></text>
 		</query>		
 	</queries>
 </SystemQueries>

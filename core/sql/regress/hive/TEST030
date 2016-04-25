@@ -223,10 +223,19 @@ create external table date_dim_orc
   (d_date_sk date)
   for hive.hive.date_dim_orc;
 
+-- upsert/insert/del/update not supported on orc
+prepare s from delete from hive.hive.store2_sales_orc;
+prepare s from upsert into hive.hive.store2_sales_orc values (1);
+prepare s from upsert using load into hive.hive.store2_sales_orc values (1);
+prepare s from insert into hive.hive.store2_sales_orc values (1);
+prepare s from update hive.hive.store2_sales_orc set ss_net_paid = 1;        
+
 -- test min-max optimization
 
 cqd ORC_PRED_PUSHDOWN 'ON';
 cqd GEN_HSHJ_MIN_MAX_OPT 'on';
+cqd parallel_num_esps '4';
+cqd nested_joins 'off';
 
 prepare xx from select count(*) from
 hive.hive.store2_sales_orc, -- sorted on ss_sold_date_sk
@@ -247,10 +256,14 @@ where position('orc_search_arguments' in description)  > 0 ;
 
 execute xx;
 
+cqd parallel_num_esps reset;
+cqd nested_joins reset;
+
 -- test NJ into a sorted ORC table
 
 cqd orc_pred_pushdown 'ON';
 cqd orc_njs 'ON';
+cqd parallel_num_esps '4';
 
 prepare xx from select count(*) from hive.hive.customer_orc, hive.hive.store_sales_sorted_orc
     where ss_sold_date_sk = c_customer_sk
@@ -261,6 +274,7 @@ explain options 'f' xx;
 execute xx;
 
 cqd orc_njs reset;
+cqd parallel_num_esps reset;
 
 -- test aggregates pushdown (orc)
 
@@ -268,6 +282,7 @@ cqd orc_njs reset;
 cqd orc_aggr_pushdown 'ON';
 
 -- pushdown feasible
+cqd attempt_esp_parallelism 'OFF';
 prepare xx from
 select min(ss_sold_date_sk), max(ss_sold_date_sk)
 from hive.hive.store2_sales_orc;

@@ -192,10 +192,8 @@ OsimLogException::OsimLogException(const char * errMsg,
                                    UInt32 srcLineNum)
   : BaseException (srcFileName, srcLineNum)
 {
-  errMsg_[0] = 0;
-  if(errMsg){
-    strcpy(errMsg_,errMsg);
-  }
+  if(errMsg)
+    errMsg_ = errMsg;
 }
 
 void OsimLogException::throwException()

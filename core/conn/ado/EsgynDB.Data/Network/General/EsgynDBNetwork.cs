@@ -56,6 +56,7 @@ namespace EsgynDB.Data
         internal bool IsClosed
         {
             get { return this._isClosed; }
+            set { this._isClosed = value; }
         }
 
         internal EsgynDBNetwork(EsgynDBConnection conn)
@@ -346,6 +347,7 @@ namespace EsgynDB.Data
                 EsgynDBException.ThrowException(this._connection, new InvalidOperationException(msg));
             }
 
+            bool forceClose = false;
             try
             {
                 length = message.PrepareMessageParams(this._encoder);
@@ -448,30 +450,26 @@ namespace EsgynDB.Data
             }
             catch (EsgynDBException)
             {
-                this._connection.SetState(ConnectionState.Closed);
+                forceClose = true;
                 throw;
             }
             catch (CommunicationsFailureException)
             {
+                forceClose = true;
                 throw;
             }
             catch (Exception e)
             {
-
-                if (e.InnerException != null && typeof(SocketException) == e.InnerException.GetType())
-                {
-                    SocketException se = (SocketException)e.InnerException;
-                    if (se.ErrorCode == 10060)
-                    {
-                        this._connection.Cancel();
-                    }
-                }
-                this._connection.SetState(ConnectionState.Closed);
+                forceClose = true;
                 EsgynDBException.ThrowException(this._connection, new CommunicationsFailureException(e));
             }
             finally
             {
                 Monitor.Exit(this._ds);
+                if (forceClose)
+                {
+                    this._connection.Close(true, true);
+                }
             }
         }
 
@@ -605,8 +603,14 @@ namespace EsgynDB.Data
         {
             EsgynDBConnection connection = (EsgynDBConnection)source;
             Monitor.Enter(connection);
-            connection.Close();
-            Monitor.Exit(connection);
+            try
+            {
+                connection.Close(true);
+            }
+            finally
+            {
+                Monitor.Exit(connection);
+            }
             this.isIdleTimeout = true;
         }
     }

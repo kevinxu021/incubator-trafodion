@@ -1080,30 +1080,6 @@ short HbaseDelete::codeGen(Generator * generator)
                                ex_expr::exp_ARITH_EXPR, &lobDelExpr);
     }
 
-#ifdef __ignore
-  ex_expr * lobDelExpr = NULL;
-  if (getTableDesc()->getNATable()->hasLobColumn())
-    {
-      // generate code to delete rows from LOB desc table
-
-      ValueIdList lobDelVIDlist;
-      for (Lng32 i = 0; i < getIndexDesc()->getIndexColumns().entries(); i++)
-        {
-	  const ValueId vid = getIndexDesc()->getIndexColumns()[i];
-          if (vid.getType().isLob())
-            {
-              ItemExpr * ld = new(generator->wHeap())
-                LOBdelete(vid.getItemExpr());
-              ld->bindNode(generator->getBindWA());
-              lobDelVIDlist.insert(ld->getValueId());
-            }
-        }
-
-      expGen->generateListExpr(lobDelVIDlist, 
-                               ex_expr::exp_ARITH_EXPR, &lobDelExpr);
-    }
-#endif
-
   ULng32 rowIdAsciiRowLen = 0; 
   ExpTupleDesc * rowIdAsciiTupleDesc = 0;
   ex_expr * rowIdExpr = NULL;
@@ -2072,7 +2048,9 @@ short HbaseUpdate::codeGen(Generator * generator)
               col = tgtValueId.getNAColumn( TRUE );
 
               if ((NOT isAlignedFormat) &&
-                 (((Assign*)assignExpr)->canBeSkipped()) &&
+                  ((CmpCommon::getDefault(TRAF_UPSERT_MODE) == DF_MERGE) ||
+                   (CmpCommon::getDefault(TRAF_UPSERT_MODE) == DF_OPTIMAL)) && 
+                  (((Assign*)assignExpr)->canBeSkipped()) &&
                  (NOT col->isSystemColumn()) &&
                  (NOT col->isClusteringKey()) &&
                  (NOT col->isIdentityColumn()))
@@ -2411,6 +2389,8 @@ short HbaseInsert::codeGen(Generator *generator)
 
       col = tgtValueId.getNAColumn( TRUE );
       if ((NOT isAlignedFormat) &&
+         ((CmpCommon::getDefault(TRAF_UPSERT_MODE) == DF_MERGE) ||
+          (CmpCommon::getDefault(TRAF_UPSERT_MODE) == DF_OPTIMAL)) && 
          (((Assign*)assignExpr)->canBeSkipped()) && 
          (NOT col->isSystemColumn()) &&
          (NOT col->isClusteringKey()) &&
@@ -2996,9 +2976,7 @@ short HbaseInsert::codeGen(Generator *generator)
         hbasescan_tdb->setNoDuplicates(CmpCommon::getDefault(TRAF_LOAD_PREP_SKIP_DUPLICATES) == DF_OFF);
         hbasescan_tdb->setMaxHFileSize(CmpCommon::getDefaultLong(TRAF_LOAD_MAX_HFILE_SIZE));
 
-	ULng32 loadFlushSizeinKB = getDefault(TRAF_LOAD_FLUSH_SIZE_IN_KB);
-	ULng32 loadFlushSizeinRows = 0;
-	loadFlushSizeinRows = (loadFlushSizeinKB*1024)/hbasescan_tdb->getRowLen() ;
+	ULng32 loadFlushSizeinRows = getDefault(TRAF_LOAD_ROWSET_SIZE);
 	// largest flush size, runtime cannot handle higher values 
 	// without code change
 	if (loadFlushSizeinRows >= USHRT_MAX/2)
@@ -3061,8 +3039,6 @@ short HbaseInsert::codeGen(Generator *generator)
       if (traf_upsert_adjust_params)
       {
         ULng32 wbSize = getDefault(TRAF_UPSERT_WB_SIZE);
-        NABoolean traf_auto_flush =
-           (CmpCommon::getDefault(TRAF_UPSERT_AUTO_FLUSH) == DF_ON);
         NABoolean traf_write_toWAL =
                    (CmpCommon::getDefault(TRAF_UPSERT_WRITE_TO_WAL) == DF_ON);
 
@@ -3071,7 +3047,7 @@ short HbaseInsert::codeGen(Generator *generator)
         hbasescan_tdb->setCanAdjustTrafParams(true);
 
         hbasescan_tdb->setWBSize(wbSize);
-        hbasescan_tdb->setIsTrafAutoFlush(traf_auto_flush);
+
       }
 
       if (getTableDesc()->getNATable()->isEnabledForDDLQI())

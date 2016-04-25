@@ -33,6 +33,7 @@
 #include "NAStringDef.h"
 #include "HBaseClient_JNI.h"
 #include "Globals.h"
+#include "cextdecs/cextdecs.h"
 
 struct hive_sd_desc* populateSDs(HiveMetaData *md, Int32 mainSdID, 
                                  Int32 tblID, NAText* tblStr, size_t& pos,
@@ -105,7 +106,7 @@ NABoolean HiveMetaData::init(NABoolean readEntireSchema,
   
   while (i < tblNames.entries())
     {
-      getTableDesc(hiveSchemaName, tblNames[i]->c_str());
+      getTableDesc(hiveSchemaName, tblNames[i]->c_str(), 0);
       delete tblNames[i];
     }
 
@@ -259,6 +260,7 @@ struct hive_sd_desc* populateSDs(HiveMetaData *md, Int32 mainSdID,
   char fieldTerminator, recordTerminator;
   const char *startStringForSD = "sd:StorageDescriptor(";
   NABoolean isAPartition = FALSE;
+  Int64 createTS = 0;
 
   size_t foundB;
 
@@ -274,6 +276,13 @@ struct hive_sd_desc* populateSDs(HiveMetaData *md, Int32 mainSdID,
           if (!extractValueStr(md, tblStr, pos, "values:[", "]", 
                                partColValues, "populateSD::values:[###"))
             return NULL;
+
+          NAText createTSStr;
+          if(!extractValueStr(md, tblStr, pos, "createTime:", ",", 
+                              createTSStr, "populateSD:createTime:###"))
+            return NULL;
+          createTS = atol(createTSStr.c_str());
+
           if (!findAToken(md, tblStr, pos, "sd:StorageDescriptor(",
                           "populateSD::sd:StorageDescriptor(###"))
             return NULL;
@@ -324,7 +333,7 @@ struct hive_sd_desc* populateSDs(HiveMetaData *md, Int32 mainSdID,
       struct hive_sd_desc* newSD = new (CmpCommon::contextHeap()) 
         struct hive_sd_desc(0, //SdID
                             locationStr.c_str(),
-                            0, // creation time
+                            createTS,
                             numBuckets,
                             inputStr.c_str(),
                             outputStr.c_str(),
@@ -613,27 +622,30 @@ NABoolean populateSerDeParams(HiveMetaData *md, Int32 serdeID,
   fieldTerminator  = '\001';  // this the Hive default ^A or ascii code 1
   recordTerminator = '\n';    // this is the Hive default
 
-  std::size_t foundB ;
   if (!findAToken(md, tblStr, pos, "serdeInfo:",
                   "populateSerDeParams::serdeInfo:###"))
     return NULL;
 
-  std::size_t foundE = pos ;
+  std::size_t foundB = pos;
+  std::size_t foundE = pos;
+
   if (!findAToken(md, tblStr, foundE, "}),",
                   "populateSerDeParams::serDeInfo:)},###"))
     return NULL;
   
-  
-  const char * fieldStr = "field.delim" ;
-  const char * lineStr = "line.delim" ;
+  NAText serdeStr = tblStr->substr(foundB, foundE-foundB);
 
-  foundB = tblStr->find(fieldStr,pos);
-  if ((foundB != std::string::npos) && (foundB < foundE))
-    fieldTerminator = tblStr->at(foundB+strlen(fieldStr)+1);
+  const char * fieldStr = "field.delim=" ;
+  const char * lineStr = "line.delim=" ;
+
+  std::size_t foundDelim = serdeStr.find(fieldStr);
+
+  if ((foundDelim != std::string::npos))
+    fieldTerminator = serdeStr.at(foundDelim+strlen(fieldStr));
   
-  foundB = tblStr->find("line.delim=",pos);
-  if ((foundB != std::string::npos) && (foundB < foundE))
-    recordTerminator = tblStr->at(foundB+strlen(lineStr)+1);
+  foundDelim = serdeStr.find(lineStr);
+  if ((foundDelim != std::string::npos))
+    recordTerminator = serdeStr.at(foundDelim+strlen(lineStr));
   
   pos = foundE;
   
@@ -752,15 +764,26 @@ struct hive_tbl_desc* HiveMetaData::getFakedTableDesc(const char* tblName)
 }
 
 struct hive_tbl_desc* HiveMetaData::getTableDesc(const char* schemaName,
-                                                 const char* tblName)
+                                                 const char* tblName,
+                                                 Int64 expirationTS,
+                                                 NABoolean validateOnly)
 {
     struct hive_tbl_desc *ptr = tbl_;
 
+    NAString schemaNameInt(schemaName);
+    NAString tableNameInt(tblName);
+
+    // Hive stores names in lower case Right now, just downshift,
+    // could check for mixed case delimited identifiers at a later
+    // point, or wait until Hive supports delimited identifiers
+    schemaNameInt.toLower();
+    tableNameInt.toLower();
+
     while (ptr) {
 
-      if ( !(strcmp(ptr->tblName_, tblName)
-             ||strcmp(ptr->schName_, schemaName))) {
-        if (validate(ptr->tblID_, ptr->redeftime(), schemaName, tblName))
+      if ( !(strcmp(ptr->tblName_, tableNameInt.data())
+             ||strcmp(ptr->schName_, schemaNameInt.data()))) {
+        if (validate(ptr, expirationTS))
           return ptr;
         else {
           // table changed, delete it and re-read below
@@ -784,6 +807,9 @@ struct hive_tbl_desc* HiveMetaData::getTableDesc(const char* schemaName,
       ptr = ptr->next_;
 
    }
+
+   if (validateOnly)
+     return NULL;
 
    // table not found in cache, try to read it from metadata
    hive_tbl_desc * result = NULL;
@@ -851,10 +877,13 @@ struct hive_tbl_desc* HiveMetaData::getTableDesc(const char* schemaName,
    return result;
 }
 
-NABoolean HiveMetaData::validate(Int32 tableId, Int64 redefTS, 
-                                 const char* schName, const char* tblName)
+NABoolean HiveMetaData::validate(hive_tbl_desc *hDesc, Int64 expirationTS)
 {
-   NABoolean result = FALSE;
+   if (expirationTS < 0 ||
+       hDesc->getValidationTS() < expirationTS)
+     return TRUE; // suppress any checks
+
+   Int64 currTime = JULIANTIMESTAMP();
 
    // validate creation timestamp
 
@@ -862,17 +891,29 @@ NABoolean HiveMetaData::validate(Int32 tableId, Int64 redefTS,
      return FALSE;
 
    Int64 currentRedefTime = 0;
-   HVC_RetCode retCode = client_->getRedefTime(schName, tblName, 
-                                                 currentRedefTime);
+   HVC_RetCode retCode = client_->getRedefTime(hDesc->schName_, hDesc->tblName_, 
+                                               currentRedefTime);
    if ((retCode != HVC_OK) && (retCode != HVC_DONE)) {
      return recordError((Int32)retCode, "HiveClient_JNI::getRedefTime()");
    }
-   if ((retCode == HVC_DONE) || (currentRedefTime != redefTS))
-     return result;
-   else
-     return TRUE;
+   if ((retCode == HVC_DONE) || (currentRedefTime != hDesc->redeftime()))
+     return FALSE;
 
-  return result;
+   // object has been validated a short time ago
+   hDesc->setValidationTS(currTime);
+
+   return TRUE;
+}
+
+hive_tbl_desc::hive_tbl_desc(Int32 tblID, const char* name, const char* schName, 
+                             Int64 creationTS, struct hive_sd_desc* sd,
+                             struct hive_pkey_desc* pk)
+     : tblID_(tblID), sd_(sd), creationTS_(creationTS),
+       pkey_(pk), next_(NULL)
+{
+  tblName_ = strduph(name, CmpCommon::contextHeap());
+  schName_ = strduph(schName, CmpCommon::contextHeap());
+  validationTS_ = JULIANTIMESTAMP();
 }
 
 struct hive_column_desc* hive_tbl_desc::getColumns()

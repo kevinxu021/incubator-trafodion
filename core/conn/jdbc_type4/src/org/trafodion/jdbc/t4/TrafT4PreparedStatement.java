@@ -1196,6 +1196,8 @@ public class TrafT4PreparedStatement extends TrafT4Statement implements java.sql
 			case Types.CHAR:
 			case Types.VARCHAR:
 			case Types.LONGVARCHAR:
+                        case Types.BLOB:
+                        case Types.CLOB:
 				setString(parameterIndex, x.toString());
 				break;
 			case Types.VARBINARY:
@@ -1293,36 +1295,6 @@ public class TrafT4PreparedStatement extends TrafT4Statement implements java.sql
 			case Types.REAL:
 				tmpbd = Utility.getBigDecimalValue(locale, x);
 				setFloat(parameterIndex, tmpbd.floatValue());
-				break;
-			case Types.CLOB:
-				if (x instanceof Clob) {
-					setClob(parameterIndex, (Clob) x);
-				}
-				/*
-				 * else if (dataObj instanceof DataWrapper) {
-				 * addParamValue(parameterIndex, (DataWrapper) dataObj); }
-				 */
-				else if (x instanceof Long) {
-					addParamValue(parameterIndex, (Long) x);
-				} else {
-					throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(),
-							"conversion_not_allowed", null);
-				}
-				break;
-			case Types.BLOB:
-				if (x instanceof Blob) {
-					setBlob(parameterIndex, (Blob) x);
-				}
-				/*
-				 * else if (dataObj instanceof DataWrapper) {
-				 * addParamValue(parameterIndex, (DataWrapper) dataObj); }
-				 */
-				else if (x instanceof Long) {
-					addParamValue(parameterIndex, (Long) x);
-				} else {
-					throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(),
-							"conversion_not_allowed", null);
-				}
 				break;
 			case Types.OTHER:
 				if (inputDesc_[parameterIndex].fsDataType_ == InterfaceResultSet.SQLTYPECODE_INTERVAL) {
@@ -1952,7 +1924,7 @@ public class TrafT4PreparedStatement extends TrafT4Statement implements java.sql
 	 * rowsAffected) throws SQLException { batchRowCount_ = new int[1];
 	 * batchRowCount_[0] = rowsAffected; if (outputDesc_ != null) { resultSet_ =
 	 * new TrafT4ResultSet(this, outputDesc_); } else { resultSet_ = null; } if
-	 * (rowsAffected == 0) { resultSet_.setFetchOutputs(new Row[0], 0, true, 0); }
+	 * (rowsAffected == 0) { resultSet_.setFetchOutputs(new ObjectRow[0], 0, true, 0); }
 	 * else { resultSet_.irs_.setSingletonFetchOutputs(resultSet_, rowsAffected,
 	 * true, 0, sqlValue_def_array); } }
 	 */

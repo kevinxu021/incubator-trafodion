@@ -27,7 +27,8 @@ define(['moment',
 			this.serverTimeZone = null;
 			this.serverUtcOffset = 0;
 			this.dcsMasterInfoUri = "";
-			this.systemType = 0;
+			this.databaseVersion = "";
+			this.databaseEdition = "";
 			this.serverConfigLoaded = false;
 			this.NOFITY_MESSAGE = 'nofigyMessage';
 			this.MESSAGE_LIST=new Array();
@@ -47,17 +48,32 @@ define(['moment',
 				_this.serverTimeZone = data.serverTimeZone;
 				_this.serverUtcOffset = data.serverUTCOffset;
 				_this.dcsMasterInfoUri = data.dcsMasterInfoUri;
-				_this.systemType = data.systemType;
 				_this.serverConfigLoaded = true;
-				if(data.enableAlerts != null && data.enableAlerts == false){
-					$('#alerts-feature').hide();
+				_this.databaseEdition = data.databaseEdition;
+				_this.databaseVersion = data.databaseVersion;
+				
+				if(_this.isAdvanced()){
+					$('.dbmgr-adv').show();
+					if(data.enableAlerts != null && data.enableAlerts == false){
+						$('#alerts-feature').hide();
+					}else{
+						$('#alerts-feature').show();
+					}
 				}else{
-					$('#alerts-feature').show();
+					$('.dbmgr-adv').hide();
+					$('#alerts-feature').hide();
 				}
 			};
 
 			this.isEnterprise = function(){
-				if(_this.systemType != null && _this.systemType == 1){
+				if(_this.databaseEdition != null && _this.databaseEdition.toLowerCase().indexOf("enterprise") > -1){
+					return true;
+				}
+				return false;
+			};
+			
+			this.isAdvanced = function(){
+				if(_this.databaseEdition != null && _this.databaseEdition.toLowerCase().indexOf("advanced") > -1){
 					return true;
 				}
 				return false;
@@ -67,7 +83,8 @@ define(['moment',
 				_this.serverTimeZone = null;
 				_this.serverUtcOffset = 0;
 				_this.dcsMasterInfoUri = "";
-				_this.systemType = 0;
+				_this.databaseVersion = "";
+				_this.databaseEdition = "";
 				_this.serverConfigLoaded = false;
 			};
 
@@ -281,16 +298,23 @@ define(['moment',
 				return moment().zone() * 60 * 1000;
 			},
 			this.getCommonTimeRange=function(selection){
-				var isAutoRefresh=$(REFRESH_INTERVAL).val();
+				var isAutoRefresh;
+				if($(REFRESH_INTERVAL).val()!=null){
+					isAutoRefresh=$(REFRESH_INTERVAL).val();
+				}else{
+					if(_this.commonTimeRange.isAutoRefresh!=null){
+						isAutoRefresh=_this.commonTimeRange.isAutoRefresh;
+					}
+				}
 				switch (selection) {
 				case "0":
-					_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0"};
+					_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0",isAutoRefresh:isAutoRefresh };
 					break;
 				default:
 					if(isAutoRefresh==""){
-						_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0"};	
+						_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0",isAutoRefresh:isAutoRefresh};	
 					}else{
-						_this.commonTimeRange={startTime:null,endTime:null,timeRangeTag:selection};
+						_this.commonTimeRange={startTime:null,endTime:null,timeRangeTag:selection,isAutoRefresh:isAutoRefresh};
 					}
 					break;
 				}
@@ -575,8 +599,6 @@ define(['moment',
 					//set distance between node and its children
 					levelDistance: 40,
 					siblingOffset: 100,
-				    width: this.calculateWidth(jsonData, container),						   
-				    height: this.calculateHeight(jsonData.treeDepth),
 					//set max levels to show. Useful when used with
 					//the request method for requesting trees of specific depth
 					levelsToShow: jsonData.treeDepth,

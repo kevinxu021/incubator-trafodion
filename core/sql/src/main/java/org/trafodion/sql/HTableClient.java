@@ -372,10 +372,6 @@ public class HTableClient {
 			return new String(table.getTableName());
 	}
 
-	void resetAutoFlush() {
-		table.setAutoFlush(true, true);
-	}
-
     private enum Op {
         EQUAL, EQUAL_NULL, NOT_EQUAL, NOT_EQUAL_NULL, LESS, LESS_NULL, LESS_OR_EQUAL, LESS_OR_EQUAL_NULL, GREATER, GREATER_NULL, 
         GREATER_OR_EQUAL, GREATER_OR_EQUAL_NULL, NO_OP, NO_OP_NULL,IS_NULL, IS_NULL_NULL, IS_NOT_NULL, IS_NOT_NULL_NULL, AND, OR};
@@ -793,6 +789,7 @@ public class HTableClient {
                                  Object[] colNamesToFilter, 
                                  Object[] compareOpList, 
                                  Object[] colValuesToCompare,
+                                 float dopParallelScanner,
                                  float samplePercent,
                                  boolean inPreFetch,
                                  boolean useSnapshotScan,
@@ -1016,9 +1013,9 @@ public class HTableClient {
 	    if (useTRexScanner && (transID != 0)) {
 	      scanner = table.getScanner(transID, scan);
 	    } else {
-	      scanner = table.getScanner(scan);
-	    }
-	    if (logger.isTraceEnabled()) logger.trace("startScan(). After getScanner. Scanner: " + scanner);
+          scanner = table.getScanner(scan,dopParallelScanner);
+        }
+        if (logger.isTraceEnabled()) logger.trace("startScan(). After getScanner. Scanner: " + scanner+" dop:"+dopParallelScanner);
 	  }
 	  else
 	  {
@@ -1762,7 +1759,7 @@ public class HTableClient {
 
 	public boolean putRows(final long transID, short rowIDLen, Object rowIDs, 
                        Object rows,
-                       long timestamp, boolean autoFlush, boolean asyncOperation)
+                       long timestamp, boolean asyncOperation)
 			throws IOException, InterruptedException, ExecutionException  {
 
 		if (logger.isTraceEnabled()) logger.trace("Enter putRows() " + tableName +
@@ -1807,8 +1804,6 @@ public class HTableClient {
 				put.setWriteToWAL(writeToWAL);
 			listOfPuts.add(put);
 		}
-		if (autoFlush == false)
-			table.setAutoFlush(false, true);
 		if (asyncOperation) {
 			future = executorService.submit(new Callable() {
 				public Object call() throws Exception {
@@ -2004,11 +1999,6 @@ public class HTableClient {
                     return rcBytes; 
 	}
 
-	public boolean flush() throws IOException {
-		if (table != null)
-			table.flushCommits();
-		return true;
-	}
 
 	public boolean release(boolean cleanJniObject) throws IOException {
 
@@ -2030,8 +2020,6 @@ public class HTableClient {
               }
               future = null;
           }
-	  if (table != null)
-	    table.flushCommits();
 	  if (scanner != null) {
 	    scanner.close();
 	    scanner = null;

@@ -1759,7 +1759,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
  // We can remove this once the delete costing code has broader
  // exposure.
  DDkwd__(HBASE_DELETE_COSTING,		             "OFF"),
-
+ DDflt0_(HBASE_DOP_PARALLEL_SCANNER,             "0."),
  DDkwd__(HBASE_FILTER_PREDS,		             "OFF"),
  DDkwd__(HBASE_HASH2_PARTITIONING,                   "ON"),
  DDui___(HBASE_INDEX_LEVEL,                          "0"),
@@ -1981,7 +1981,9 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDui___(HIVE_NUM_ESPS_PER_DATANODE,           "2"),
   DDpct__(HIVE_NUM_ESPS_ROUND_DEVIATION,        "34"),
   DDkwd__(HIVE_PARTITION_ELIMINATION_CT,        "ON"),
+  DDkwd__(HIVE_PARTITION_ELIMINATION_MM,        "ON"),
   DDkwd__(HIVE_PARTITION_ELIMINATION_RT,        "ON"),
+  DDint__(HIVE_SCAN_SPECIAL_MODE,                "0"),
   DDkwd__(HIVE_SORT_HDFS_HOSTS,                 "ON"),
   DD_____(HIVE_USE_FAKE_SQ_NODE_NAMES,          "" ),
   DDkwd__(HIVE_USE_FAKE_TABLE_DESC,             "OFF"),
@@ -2535,7 +2537,12 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDkwd__(NESTED_JOINS_FULL_INNER_KEY,     "OFF"),
   DDkwd__(NESTED_JOINS_KEYLESS_INNERJOINS,     "ON"),
   DDui1__(NESTED_JOINS_LEADING_KEY_SKEW_THRESHOLD,    "15"),
-  DDkwd__(NESTED_JOINS_NO_NSQUARE_OPENS,   "ON"),
+
+  // A setting of 'SYSTEM' implies the following:
+  //   for ORC tables: N2J is allowed
+  //   for any other tables: N2J is not allowed
+  // If set to 'ON', then N2J is not allowed at all.
+  DDkwd__(NESTED_JOINS_NO_NSQUARE_OPENS,   "SYSTEM"),
 
   DDkwd__(NESTED_JOINS_OCR_GROUPING,            "OFF"),
 
@@ -2752,8 +2759,9 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
 
   DDkwd__(ORC_AGGR_PUSHDOWN,                    "ON"),
   DDkwd__(ORC_COLUMNS_PUSHDOWN,                 "ON"),
-  DDkwd__(ORC_NJS,                              "OFF"),
+  DDkwd__(ORC_NJS,                              "ON"),
   DDkwd__(ORC_PRED_PUSHDOWN,                    "ON"),
+  DDkwd__(ORC_READ_STRIPE_INFO,                 "ON"),
   DDkwd__(ORC_USE_EXT_TABLE_ATTRS,              "OFF"),
   DDkwd__(ORC_VECTORIZED_SCAN,                  "ON"),
 
@@ -3360,7 +3368,6 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DD_____(TRAF_LOAD_ERROR_COUNT_ID,             "" ),
   DD_____(TRAF_LOAD_ERROR_COUNT_TABLE,          "ERRORCOUNTER" ),
   DD_____(TRAF_LOAD_ERROR_LOGGING_LOCATION,     "/bulkload/logs/" ),
-  DDint__(TRAF_LOAD_FLUSH_SIZE_IN_KB,           "1024"),
   DDkwd__(TRAF_LOAD_FORCE_CIF,                  "ON"),
   DDkwd__(TRAF_LOAD_LOG_ERROR_ROWS,             "OFF"),
   DDint__(TRAF_LOAD_MAX_ERROR_ROWS,             "0"),
@@ -3375,6 +3382,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   //need add code to check if folder exists or not. if not issue an error and ask
   //user to create it
   DD_____(TRAF_LOAD_PREP_TMP_LOCATION,                 "/bulkload/" ),
+  DDint__(TRAF_LOAD_ROWSET_SIZE,           "10240"),
   DDkwd__(TRAF_LOAD_TAKE_SNAPSHOT ,                    "OFF"),
   DDkwd__(TRAF_LOAD_USE_FOR_INDEXES,   "ON"),
   DDkwd__(TRAF_LOAD_USE_FOR_STATS,     "OFF"),
@@ -3426,9 +3434,8 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDint__(TRAF_UNLOAD_HDFS_COMPRESS,                   "0"),
   DDkwd__(TRAF_UNLOAD_SKIP_WRITING_TO_FILES,           "OFF"),
   DDkwd__(TRAF_UPSERT_ADJUST_PARAMS,                   "OFF"),
-  DDkwd__(TRAF_UPSERT_AUTO_FLUSH,                      "OFF"),
+  DDkwd__(TRAF_UPSERT_MODE,                            "MERGE"),
   DDint__(TRAF_UPSERT_WB_SIZE,                         "2097152"),
-  DDkwd__(TRAF_UPSERT_WITH_INSERT_DEFAULT_SEMANTICS,   "OFF"),
   DDkwd__(TRAF_UPSERT_WRITE_TO_WAL,                    "OFF"),
 
   DDkwd__(TRAF_USE_RWRS_FOR_MD_INSERT,                   "ON"),
@@ -4236,9 +4243,9 @@ void NADefaults::updateSystemParameters(NABoolean reInit)
       "DEF_NUM_BM_CHUNKS",
       "DEF_PHYSICAL_MEMORY_AVAILABLE", //returned in KB not bytes
       "DEF_TOTAL_MEMORY_AVAILABLE",		 //returned in KB not bytes
-      "DEF_VIRTUAL_MEMORY_AVAILABLE"
-      , "GEN_MAX_NUM_PART_DISK_ENTRIES"
-      , "USTAT_IUS_PERSISTENT_CBF_PATH"
+      "DEF_VIRTUAL_MEMORY_AVAILABLE",
+      "GEN_MAX_NUM_PART_DISK_ENTRIES",
+      "USTAT_IUS_PERSISTENT_CBF_PATH"
    }; //returned in KB not bytes
 
   char valuestr[WIDEST_CPUARCH_VALUE];
@@ -6342,6 +6349,7 @@ const char *NADefaults::keywords_[DF_lastToken] = {
   "MEASURE",
   "MEDIUM",
   "MEDIUM_LOW",
+  "MERGE",
   "MINIMUM",
   "MMAP",
   "MULTI_NODE",
@@ -6352,6 +6360,7 @@ const char *NADefaults::keywords_[DF_lastToken] = {
   "ON",
   "OPENS_FOR_WRITE",
   "OPERATOR",
+  "OPTIMAL",
   "ORDERED",
   "PERTABLE",
   "PRINT",
@@ -6363,6 +6372,7 @@ const char *NADefaults::keywords_[DF_lastToken] = {
   "RELEASE",
   "REMOTE",
   "REPEATABLE_READ",
+  "REPLACE",
   "REPSEL",
   "RESOURCES",
   "RETURN",
@@ -6686,6 +6696,10 @@ DefaultToken NADefaults::token(Int32 attrEnum,
 	isValid = TRUE;
       break;
 
+    case HIVE_SCAN_SPECIAL_MODE:
+	isValid = TRUE;
+	break;
+
     case IS_SQLCI:
       // for primary mxcmp that is invoked for user queries, the only valid
       // value for mxci_process cqd is TRUE. This cqd is set once by mxci
@@ -6892,6 +6906,7 @@ DefaultToken NADefaults::token(Int32 attrEnum,
 	isValid = TRUE;
       break;
 
+    case NESTED_JOINS_NO_NSQUARE_OPENS:
     case SHOWDDL_DISPLAY_PRIVILEGE_GRANTS:
       if (tok == DF_SYSTEM || tok == DF_ON || tok == DF_OFF)
 	isValid = TRUE;
@@ -7031,6 +7046,11 @@ DefaultToken NADefaults::token(Int32 attrEnum,
       if (tok == DF_OFF || tok == DF_MINIMUM ||
           tok == DF_MEDIUM || tok == DF_MAXIMUM || tok == DF_ON)
         isValid = TRUE;
+      break;
+    case TRAF_UPSERT_MODE:
+      if (tok == DF_MERGE || tok == DF_REPLACE || tok == DF_OPTIMAL)
+	isValid = TRUE;
+      break;
 
     // Nothing needs to be added here for ON/OFF/SYSTEM keywords --
     // instead, add to DEFAULT_ALLOWS_SEPARATE_SYSTEM code in the ctor.

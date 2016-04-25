@@ -383,6 +383,10 @@ public:
   // For Hive tables, assign scan ranges to each partition
   void assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey);
 
+  // For Hive tables, assign every file to each partition 
+  // (repartition without broadcast) 
+  void assignScanInfosRepN(HivePartitionAndBucketKey *hiveSearchKey);
+
   // balance out the assigned scan ranges to distribute work more evenly
   void balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
                         Int64 totalBytesToRead,

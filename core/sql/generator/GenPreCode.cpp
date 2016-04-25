@@ -58,7 +58,7 @@
 #include "CostMethod.h"
 #include "ItmFlowControlFunction.h"
 #include "UdfDllInteraction.h"
-
+#include "StmtDDLNode.h"
 
 #include "NATable.h"
 #include "NumericType.h"
@@ -131,8 +131,8 @@ static void generateKeyExpr(const ValueIdSet & externalInputs,
       ValueId KeyColId = ieKeyCol->getValueId();
 
       keyExpr = new(generator->wHeap()) BiRelat(ITM_EQUAL,
-						ieKeyCol,
-						ieKeyVal);
+                                                   ieKeyCol,
+                                                   ieKeyVal);
 
       // Synthesize its type for and assign a ValueId to it.
       keyExpr->synthTypeAndValueId();
@@ -142,6 +142,52 @@ static void generateKeyExpr(const ValueIdSet & externalInputs,
     } // end For Loop
 
 } // static generateKeyExpr()
+
+void
+FileScan::convertKeyPredsToRangePreds(const ValueIdSet& beginKeyAsEQ,
+                                      const ValueIdSet& endKeyAsEQ, 
+                                      CollHeap* heap, 
+                                      ValueIdSet& beginKeyAsRange, 
+                                      ValueIdSet& endKeyAsRange)
+{
+  for (ValueId vid = beginKeyAsEQ.init(); beginKeyAsEQ.next(vid); beginKeyAsEQ.advance(vid))
+    {
+       ItemExpr* expr = vid.getItemExpr();
+       ItemExpr* keyVal = expr->child(1);
+
+       ItemExpr* beginKey = NULL;
+       if ( keyVal->isNullConstant() ) {
+         beginKey = expr;
+       } else {
+         beginKey = new(heap)BiRelat(ITM_GREATER_EQ,
+                                     expr->child(0),
+                                     expr->child(1));
+          // Synthesize its type for and assign a ValueId to it.
+          beginKey->synthTypeAndValueId();
+       }
+
+       beginKeyAsRange.insert(beginKey->getValueId());
+    }
+
+  for (ValueId vid = endKeyAsEQ.init(); endKeyAsEQ.next(vid); endKeyAsEQ.advance(vid))
+    {
+       ItemExpr* expr = vid.getItemExpr();
+       ItemExpr* keyVal = expr->child(1);
+
+       ItemExpr* endKey = NULL;
+       if ( keyVal->isNullConstant() ) {
+         endKey = expr;
+       } else {
+         endKey = new(heap)BiRelat(ITM_LESS_EQ,
+                                   expr->child(0),
+                                  expr->child(1));
+         // Synthesize its type for and assign a ValueId to it.
+         endKey->synthTypeAndValueId();
+       }
+
+       endKeyAsRange.insert(endKey->getValueId());
+    }
+}
 
 static NABoolean processConstHBaseKeys(Generator * generator,
                                        RelExpr *relExpr,
@@ -2785,6 +2831,90 @@ RelExpr * ExeUtilExpr::preCodeGen(Generator * generator,
   return this;
 }
 
+// returns true if the whole ddl operation can run in one transaction
+// and transaction can be started by caller(master executor or arkcmp)
+// before executing this ddl.
+short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
+{
+  ExprNode * ddlNode = getDDLNode();
+
+  xnCanBeStarted = TRUE;
+  // no DDL transactions.
+  if ((NOT ddlXns()) &&
+      ((dropHbase()) ||
+       (purgedataHbase()) ||
+       (initHbase()) ||
+       (createMDViews()) ||
+       (dropMDViews()) ||
+       (initAuthorization()) ||
+       (dropAuthorization()) ||
+       (addSeqTable()) ||
+       (createRepos()) ||
+       (dropRepos()) ||
+       (upgradeRepos()) ||
+       (addSchemaObjects()) ||
+       (updateVersion())))
+    {
+      // transaction will be started and commited in called methods.
+      xnCanBeStarted = FALSE;
+    }
+  
+  // no DDL transactions
+  if (((ddlNode) && (ddlNode->castToStmtDDLNode()) &&
+       (NOT ddlNode->castToStmtDDLNode()->ddlXns())) &&
+      ((ddlNode->getOperatorType() == DDL_DROP_SCHEMA) ||
+       (ddlNode->getOperatorType() == DDL_CLEANUP_OBJECTS) ||
+       (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ADD_CONSTRAINT_PRIMARY_KEY) ||
+       (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ALTER_COLUMN_SET_SG_OPTION) ||
+       (ddlNode->getOperatorType() == DDL_CREATE_INDEX) ||
+       (ddlNode->getOperatorType() == DDL_POPULATE_INDEX) ||
+       (ddlNode->getOperatorType() == DDL_CREATE_TABLE) ||
+       (ddlNode->getOperatorType() == DDL_ALTER_TABLE_DROP_COLUMN) ||
+       (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ALTER_COLUMN_DATATYPE) ||
+       (ddlNode->getOperatorType() == DDL_DROP_TABLE)))
+    {
+      // transaction will be started and commited in called methods.
+      xnCanBeStarted = FALSE;
+    }
+
+  isDDLxn = FALSE;
+  if ((ddlXns()) || 
+      ((ddlNode && ddlNode->castToStmtDDLNode() &&
+        ddlNode->castToStmtDDLNode()->ddlXns())))
+    isDDLxn = TRUE;
+
+  // ddl transactions are on.
+  // Following commands currently require transactions be started and
+  // committed in the called methods.
+  if ((ddlXns()) &&
+      (
+           (purgedataHbase()) ||
+           (initAuthorization()) ||
+           (dropAuthorization()) ||
+           (upgradeRepos())
+       )
+      )
+    {
+      // transaction will be started and commited in called methods.
+      xnCanBeStarted = FALSE;
+    }
+
+  // ddl transactions are on.
+  // Cleanup and alter commands requires transactions to be started and commited
+  // in the called method.
+  if ((ddlNode && ddlNode->castToStmtDDLNode() &&
+       ddlNode->castToStmtDDLNode()->ddlXns()) &&
+      ((ddlNode->getOperatorType() == DDL_CLEANUP_OBJECTS) ||
+       (ddlNode->getOperatorType() == DDL_ALTER_TABLE_DROP_COLUMN) ||
+       (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ALTER_COLUMN_DATATYPE)))
+    {
+      // transaction will be started and commited in called methods.
+      xnCanBeStarted = FALSE;
+    }
+
+  return 0;
+}
+
 RelExpr * DDLExpr::preCodeGen(Generator * generator,
 			      const ValueIdSet & externalInputs,
 			      ValueIdSet &pulledNewInputs)
@@ -2800,6 +2930,16 @@ RelExpr * DDLExpr::preCodeGen(Generator * generator,
       generator->setAqrEnabled(FALSE);
     }
   
+  NABoolean startXn = FALSE;
+  NABoolean ddlXns = FALSE;
+  if (ddlXnsInfo(ddlXns, startXn))
+    return NULL;
+
+  if (ddlXns && startXn)
+    xnNeeded() = TRUE;
+  else
+    xnNeeded() = FALSE;
+
   markAsPreCodeGenned();
   
   // Done.
@@ -3977,6 +4117,100 @@ void FileScan::processMinMaxKeys(Generator* generator,
       }
 }
 
+// A simpler version of FileScan::processMinMaxKeys() to use
+// for partition keys. For those, all we need to produce is
+// a set of predicates, no need to update a SearchKey and its
+// begin/end predicates. Overlap with existing predicates is ok.
+void FileScan::processMinMaxKeysForPartitionCols(
+     Generator* generator, 
+     ValueIdSet& pulledNewInputs,
+     ValueIdSet& availableValues)
+{
+  // The candidate values for min and max.
+  const ValueIdList &minMaxKeys = generator->getMinMaxKeys();
+
+  // quick return for non-partitioned tables or if there are no
+  // min/max values
+  if (getHiveSearchKey() == NULL ||
+      getHiveSearchKey()->getPartCols().entries() == 0 ||
+      minMaxKeys.entries() == 0 ||
+      CmpCommon::getDefault(HIVE_PARTITION_ELIMINATION_MM) == DF_OFF)
+    return;
+
+  ValueIdSet partitionColumns = getHiveSearchKey()->getPartCols();
+  // predicates on partitioning columns generated by this method
+  ValueIdSet newPredicates;
+
+  // Check all the candidate values.  If any one of them matches
+  // a partition column of this scan, then select it and
+  // generate a predicate to be used in the runtime partition
+  // elimination predicates.
+
+  CollHeap* gheap = generator->wHeap();
+
+  for(CollIndex i = 0; i < minMaxKeys.entries(); i++) {
+    ValueId mmKeyId = minMaxKeys[i];
+    if(mmKeyId != NULL_VALUE_ID) {
+      ItemExpr *mmItem = mmKeyId.getItemExpr();
+
+      if (mmItem->getOperatorType() == ITM_VEG_PREDICATE) {
+        VEGPredicate *vPred = (VEGPredicate *)mmItem;
+        ValueIdSet members = vPred->getVEG()->getAllValues();
+
+        members += vPred->getVEG()->getVEGReference()->getValueId();
+        members.intersectSet(partitionColumns);
+
+        for (ValueId pc = members.init(); members.next(pc); members.advance(pc)) {
+          // Some other operator is producing min/max values
+          // :min, :max for one of our partitioning columns pc.
+          // Make use of that opportunity and generate partition
+          // elimination predicates pc >= :min and pc <= :max.
+
+          ItemExpr *partCol = pc.getItemExpr();
+
+          // Indicate in the 'will use' list that we will use these
+          // min/max values.  This will indicate to the HashJoin that
+          // it should produce these values.
+          generator->getWillUseMinMaxKeys()[i] =
+            generator->getMinMaxKeys()[i];
+          addMinMaxHJColumn(partCol->getValueId());
+
+          // generate the predicates
+          ItemExpr *minPred = new (gheap) BiRelat(
+               ITM_GREATER_EQ,
+               partCol,
+               generator->getMinVals()[i].getItemExpr());
+          ItemExpr *maxPred = new (gheap) BiRelat(
+               ITM_LESS_EQ,
+               partCol,
+               generator->getMaxVals()[i].getItemExpr());
+
+          minPred->synthTypeAndValueId();
+          maxPred->synthTypeAndValueId();
+
+          newPredicates += minPred->getValueId();
+          newPredicates += maxPred->getValueId();
+
+          ValueIdSet minMaxValues;
+
+          minMaxValues += generator->getMinVals()[i];
+          minMaxValues += generator->getMaxVals()[i];
+
+          // The value coming from the HashJoin must be in out inputs.
+          getGroupAttr()->addCharacteristicInputs(minMaxValues);
+
+          // And we must pull those values from the HashJoin.
+          pulledNewInputs += minMaxValues;
+          availableValues += minMaxValues;
+        } // overlap with part cols
+      } // VEGPredicate
+    } // mmKeyId != NULL_VALUE_ID
+  } // for
+
+  if (newPredicates.entries() > 0)
+    hiveSearchKey_->addRuntimePartColPreds(newPredicates);
+}
+
 RelExpr * FileScan::preCodeGen(Generator * generator,
 			       const ValueIdSet & externalInputs,
 			       ValueIdSet &pulledNewInputs)
@@ -4205,7 +4439,6 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
         const HHDFSTableStats* hTabStats = getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
 
-
         if ( getSearchKey() && getDoUseSearchKey() ) {
        
           NABoolean replicatePredicates = TRUE;
@@ -4222,6 +4455,11 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
                              generator,
                              replicatePredicates);
         }
+
+        processMinMaxKeysForPartitionCols(
+             generator,
+             pulledNewInputs,
+             availableValues);
 
         hiveSearchKey_->replaceVEGExpressions(
              availableValues,
@@ -4244,6 +4482,30 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
                 getGroupAttr()->getGroupAnalysis()->getNodeAnalysis()->getTableAnalysis();
 
            ValueIdSet locals(tableAnalysis->getLocalPreds());
+
+           // Conditionally include any VEG predicates that may not 
+           // be defined on key columns. getVegPreds() call below 
+           // returns these VEG predicates that reference some columns 
+           // in my table. See TableAnalysis::finishAnalysis().
+           const ValueIdSet& vegPreds = tableAnalysis->getVegPreds();
+
+           // But we need to make sure any such preds refer to either 
+           // the index columns of the scan or the inputs to the scan.
+           GroupAttributes scanGA;
+           scanGA.addCharacteristicOutputs(getTableDesc()->getColumnList());
+
+           ValueIdSet availableInputs(
+                        getGroupAttr()->getCharacteristicInputs());
+
+           ValueIdSet dummyRefI;
+           ValueIdSet dummyCovered;
+           ValueIdSet dummyUncovered;
+           if ( vegPreds.isCovered(availableInputs,
+                                   scanGA, 
+                                   dummyRefI, dummyCovered, dummyUncovered) )
+           {
+             locals += vegPreds;
+           }
    
            ValueIdSet externalInputs; // not used yet
            ValueIdSet orcPushdownPreds;
@@ -4261,9 +4523,8 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
            // rmove any predicates involving the min and max constants
            beginKeyPredCopy -= minMaxPreds;
+           // end of processing beginKeyPred_
      
-           // add the remaining to the ORC push-down set
-           locals += beginKeyPredCopy;
 
            // do it next for the endKeyPred_
            minMaxPreds.clear();
@@ -4272,8 +4533,20 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
            endKeyPredCopy.findAllReferencingMinMaxConstants(minMaxPreds);
 
            endKeyPredCopy -= minMaxPreds;
+           // end of processing endKeyPred_
+
+
+           ValueIdSet beginKeyPredAsRange;
+           ValueIdSet endKeyPredAsRange;
+           convertKeyPredsToRangePreds(beginKeyPredCopy,
+                                       endKeyPredCopy, 
+                                       generator->wHeap(), 
+                                       beginKeyPredAsRange, 
+                                       endKeyPredAsRange);
      
-           locals += endKeyPredCopy;
+           // add the remaining to the ORC push-down set
+           locals += beginKeyPredAsRange;
+           locals += endKeyPredAsRange;
 
            locals.replaceVEGExpressions (
    	                 availableValues,
@@ -4294,8 +4567,10 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
            // include begin/end key predicates in executor predicates
            ValueIdSet execPred(selectionPred());
-           execPred += beginKeyPredCopy;
-           execPred += endKeyPredCopy;
+
+           execPred += beginKeyPredAsRange;
+           execPred += endKeyPredAsRange;
+
            setExecutorPredicates(execPred);
 
         } else
@@ -4315,8 +4590,12 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
         executorPredicates_ -= hiveSearchKey_->getCompileTimePartColPreds();
         executorPredicates_ -= hiveSearchKey_->getPartAndVirtColPreds();
 
-	// assign individual files and blocks or stripes to each ESPs
-	((NodeMap *) getPartFunc()->getNodeMap())->assignScanInfos(hiveSearchKey_);
+	// Assign individual files and blocks or stripes to each ESPs.
+	// For repN part func, assign every file to every ESP.
+	if ( getPartFunc()-> isAReplicateNoBroadcastPartitioningFunction() )
+	 ((NodeMap *) getPartFunc()->getNodeMap())->assignScanInfosRepN(hiveSearchKey_);
+        else
+	 ((NodeMap *) getPartFunc()->getNodeMap())->assignScanInfos(hiveSearchKey_);
       }
     }
 
@@ -4517,12 +4796,14 @@ RelExpr * GenericUpdate::preCodeGen(Generator * generator,
 		      getIndexDesc()->getIndexKey(),
 		      getSearchKey()->getBeginKeyValues(),
 		      beginKeyPred_,
-		      generator);
+		      generator
+                     );
       generateKeyExpr(getGroupAttr()->getCharacteristicInputs(),
 		      getIndexDesc()->getIndexKey(),
 		      getSearchKey()->getEndKeyValues(),
 		      endKeyPred_,
-		      generator);
+		      generator
+                     );
     }
 
   // ---------------------------------------------------------------------
@@ -6027,6 +6308,9 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
   if ( childRelExpr && childRelExpr->getOperatorType() == REL_FIRST_N )
     childRelExpr = childRelExpr->child(0)->castToRelExpr();
 
+  NABoolean isSeabase = FALSE;
+  NABoolean isOrc = FALSE;
+  const NATable * naTable = NULL;
   if (childRelExpr && 
       ((childRelExpr->getOperatorType() == REL_FILE_SCAN) ||
        (childRelExpr->getOperatorType() == REL_HBASE_ACCESS)))
@@ -6046,16 +6330,15 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
         {
           aggrPushdown = TRUE;
         }
-    }
 
-  NABoolean isSeabase = FALSE;
-  NABoolean isOrc = FALSE;
-  if (aggrPushdown)
-    {
-      const NATable * naTable = scan->getTableDesc()->getNATable();
+      naTable = scan->getTableDesc()->getNATable();
       isSeabase = naTable->isSeabaseTable();
       isOrc = ((naTable->isHiveTable()) &&
-               (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile()));
+        (naTable->getClusteringIndex()->getHHDFSTableStats()->isOrcFile()));
+    }
+
+  if (aggrPushdown)
+    {      
       if (NOT (((naTable->getObjectType() == COM_BASE_TABLE_OBJECT) ||
                 (naTable->getObjectType() == COM_INDEX_OBJECT)) &&
                ((naTable->isSeabaseTable()) || (isOrc))))
@@ -6093,6 +6376,8 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
                      (ae->getOperatorType() == ITM_MIN) ||
                      (ae->getOperatorType() == ITM_MAX) ||
                      (ae->getOperatorType() == ITM_SUM) ||
+                     (ae->getOperatorType() == ITM_ORC_MAX_NV) ||
+                     (ae->getOperatorType() == ITM_ORC_SUM_NV) ||
                      (ae->getOperatorType() == ITM_COUNT_NONULL)))
                ) ||
               (generator->preCodeGenParallelOperator())
@@ -6145,29 +6430,41 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
               const NAType *childType = 
                 &origAgg->child(0)->getValueId().getType();
               NAType * orcAggrType = NULL;
-              if (childType->getTypeQualifier() == NA_NUMERIC_TYPE)
+
+              // the ORC_MAX_NV and ORC_SUM_NV aggregates look at the
+              // ORC ColumnStatistics.getNumberOfValues() result, rather
+              // than the column values, so we don't take the type of
+              // the child from the child column type
+              NABoolean isOrcNumberOfValuesAggregate = 
+                origAgg->getOperatorType() == ITM_ORC_MAX_NV ||
+                origAgg->getOperatorType() == ITM_ORC_SUM_NV;
+
+              if (!isOrcNumberOfValuesAggregate)
                 {
-                  NumericType *nType = (NumericType*)childType;
-                  if (nType->binaryPrecision())
+                  if (childType->getTypeQualifier() == NA_NUMERIC_TYPE)
                     {
-                      if (nType->isExact())
+                      NumericType *nType = (NumericType*)childType;
+                      if (nType->binaryPrecision())
                         {
-                          orcAggrType = 
-                            new(generator->wHeap()) SQLLargeInt(TRUE, TRUE);
-                        }
-                      else
-                        {
-                          orcAggrType = 
-                            new(generator->wHeap()) SQLDoublePrecision(TRUE);
+                          if (nType->isExact())
+                            {
+                              orcAggrType = 
+                                new(generator->wHeap()) SQLLargeInt(TRUE, TRUE);
+                            }
+                          else
+                            {
+                              orcAggrType = 
+                                new(generator->wHeap()) SQLDoublePrecision(TRUE);
+                            }
                         }
                     }
-                }
-              else if (childType->getTypeQualifier() == NA_DATETIME_TYPE)
-                {
-                  DatetimeType *dType = (DatetimeType*)childType;
+                  else if (childType->getTypeQualifier() == NA_DATETIME_TYPE)
+                    {
+                      DatetimeType *dType = (DatetimeType*)childType;
 
-                  orcAggrType =
-                    new(generator->wHeap()) SQLChar(dType->getDisplayLength(), TRUE);
+                      orcAggrType =
+                        new(generator->wHeap()) SQLChar(dType->getDisplayLength(), TRUE);
+                    }
                 }
 
               if (! orcAggrType)
@@ -6184,7 +6481,8 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
               
               origAgg->setOriginalChild(origAgg->child(0));
 
-              if (childType->getTypeQualifier() == NA_DATETIME_TYPE)
+              if ((childType->getTypeQualifier() == NA_DATETIME_TYPE) &&
+                  (!isOrcNumberOfValuesAggregate))
                 {
                   DatetimeType *dType = (DatetimeType*)childType;
 
@@ -6233,7 +6531,28 @@ RelExpr *GroupByAgg::transformForAggrPushdown(Generator * generator,
          pulledNewInputs);
 
     } // aggrPushdown
-  
+
+  if (!aggrPushdown || !isOrc)
+    {
+      // the ORC_MAX_NV and ORC_SUM_NV aggregates are only
+      // permitted on ORC files and only when they can be
+      // pushed down 
+      for (ValueId valId = aggregateExpr().init();
+           aggregateExpr().next(valId);
+           aggregateExpr().advance(valId)) 
+        {
+          ItemExpr * ae = valId.getItemExpr();
+          if ((ae->getOperatorType() == ITM_ORC_MAX_NV) ||
+              (ae->getOperatorType() == ITM_ORC_SUM_NV))
+            {
+              Lng32 sqlcode = isOrc ? -7006 : -4370;
+              *CmpCommon::diags() << DgSqlCode(sqlcode) << DgString0(ae->getTextUpper());
+              generator->getBindWA()->setErrStatus();
+              return NULL;
+            }
+        }
+    }
+
   return newNode;
 }
 

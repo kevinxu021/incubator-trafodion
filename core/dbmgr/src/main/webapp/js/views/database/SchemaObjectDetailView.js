@@ -911,19 +911,19 @@ define([
 				var aoColumnDefs = [];
 				if(routeArgs.type == 'library' || routeArgs.type == 'procedure' || routeArgs.type == 'udf'){
 					aoColumnDefs.push({
-						"aTargets": [ 1 ],
-						"mData": 1,
+						"aTargets": [ 2 ],
+						"mData": 2,
 						"visible" : false,
 						"searchable" : false
 					});
 					aoColumnDefs.push({
-						"aTargets": [ 0 ],
-						"mData": 0,
+						"aTargets": [ 1 ],
+						"mData": 1,
 						"mRender": function ( data, type, full ) {
 							if(type == 'display') {
 								if(data != null && data.length > 0){
-									var udrSchema = full[1];
-									var udrType = full[2];
+									var udrSchema = full[2];
+									var udrType = full[3];
 									var linkType = '';
 									if(udrType == 'Procedure' || udrType == 'Library'){
 										linkType = udrType.toLowerCase();

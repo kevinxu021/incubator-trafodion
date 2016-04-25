@@ -480,6 +480,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_AUTOMATIC			// MV
 %token <tokval> TOK_AVERAGE_STREAM_WAIT         /* Tandem extension non-reserved word */
 %token <tokval> TOK_AVG
+%token <tokval> TOK_BACKUP
 %token <tokval> TOK_BEFORE
 
 %token <tokval> TOK_BEGIN
@@ -908,6 +909,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_ONLY
 %token <tokval> TOK_OPEN
 %token <tokval> TOK_OR
+%token <tokval> TOK_ORC_MAX_NV
+%token <tokval> TOK_ORC_SUM_NV
 %token <tokval> TOK_ORDER
 %token <tokval> TOK_ORDERED
 %token <tokval> TOK_OS_USERID
@@ -1296,6 +1299,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_HASH2               /* Tandem extension */
 %token <tokval> TOK_HASHPARTFUNC        /* Tandem extension */
 %token <tokval> TOK_HASH2PARTFUNC       /* Tandem extension */
+%token <tokval> TOK_HIVEPARTFUNC        /* Tandem extension */
 %token <tokval> TOK_HEADING             /* Tandem extension */
 %token <tokval> TOK_HEADINGS            /* Tandem extension */
 %token <tokval> TOK_ICOMPRESS           /* Tandem extension */
@@ -1410,7 +1414,6 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_SOFTWARE
 %token <tokval> TOK_REINITIALIZE        /* Tandem extension non-reserved word */
 %token <tokval> TOK_SEPARATE            /* Tandem extension */
-%token <tokval> TOK_BACKUP
 
 // QSTUFF
 %token <tokval> TOK_STREAM              /* Tandem ext: table streams pub/sub */
@@ -2827,6 +2830,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <relx>                    load_statement
 %type <boolean>                 load_sample_option
 %type <relx>                    exe_util_init_hbase
+%type <relx>                    backup_statement
+%type <relx>                    restore_statement     
 %type <hBaseBulkLoadOptionsList> optional_hbbload_options
 %type <hBaseBulkLoadOptionsList> hbbload_option_list
 %type <hBaseBulkLoadOption>      hbbload_option
@@ -7346,10 +7351,16 @@ set_function_type :   TOK_AVG 		{ $$ = ITM_AVG; }
                     | TOK_COUNT 	{ $$ = ITM_COUNT; }
                     | TOK_VARIANCE 	{ $$ = ITM_VARIANCE_SAMP; }
                     | TOK_STDDEV 	{ $$ = ITM_STDDEV_SAMP; }
-					| TOK_STDDEV_SAMP { $$ = ITM_STDDEV_SAMP;}
-					| TOK_STDDEV_POP  { $$ = ITM_STDDEV_POP;}
-					| TOK_VARIANCE_SAMP { $$ = ITM_VARIANCE_SAMP;}
-					| TOK_VARIANCE_POP  { $$ = ITM_VARIANCE_POP;}
+  		    | TOK_STDDEV_SAMP { $$ = ITM_STDDEV_SAMP;}
+		    | TOK_STDDEV_POP  { $$ = ITM_STDDEV_POP;}
+		    | TOK_VARIANCE_SAMP { $$ = ITM_VARIANCE_SAMP;}
+		    | TOK_VARIANCE_POP  { $$ = ITM_VARIANCE_POP;}
+                      // max of ColumnStatistics getNumberOfValues 
+                      // across all stripes of an ORC file
+                    | TOK_ORC_MAX_NV  { $$ = ITM_ORC_MAX_NV; }
+                      // sum of ColumnStatistics getNumberOfValues 
+                      // across all stripes of an ORC file
+                    | TOK_ORC_SUM_NV  { $$ = ITM_ORC_SUM_NV; }
 
 pivot_options : empty
                        {
@@ -9691,6 +9702,17 @@ misc_function :
                                                  Cast($5, new (PARSERHEAP())
                                                       SQLInt(FALSE, FALSE)));
                                 }
+
+     | TOK_HIVEPARTFUNC '(' value_expression_list TOK_FOR value_expression ')'
+                                {
+                                  $$ = new (PARSERHEAP())
+                                    Modulus(new (PARSERHEAP())
+                                                 HiveHash($3),
+                                                 new (PARSERHEAP())
+                                                 Cast($5, new (PARSERHEAP())
+                                                      SQLInt(FALSE, FALSE)));
+                                }
+
      | TOK_RRPARTFUNC '(' value_expression TOK_FOR value_expression ')'
                                 {
                              /*   $$ = new (PARSERHEAP())
@@ -14767,6 +14789,14 @@ interactive_query_expression:
                                 {
 				  $$ = finalize($1);
 				}
+			  | backup_statement
+			                  {
+				  $$ = finalize($1);
+				}
+				| restore_statement
+                        {
+          $$ = finalize($1);
+        }
               | exe_util_get_region_access_stats
                                 {
 				  $$ = finalize($1);
@@ -16509,6 +16539,41 @@ exe_util_init_hbase : TOK_INITIALIZE TOK_TRAFODION
 		 $$ = de;
 	       }
 
+/* type relx */
+backup_statement : TOK_BACKUP TOK_TRAFODION QUOTED_STRING
+		{
+		 CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+		 NAString * stmt = getSqlStmtStr ( stmtCharSet, PARSERHEAP());
+
+		 DDLExpr * de = new(PARSERHEAP()) DDLExpr(FALSE, FALSE, FALSE, FALSE,
+                                                          FALSE, FALSE,
+							  FALSE, FALSE, FALSE,
+							  (char*)stmt->data(),
+							  stmtCharSet,
+							  PARSERHEAP());
+		de->setBackup(TRUE);
+		de->setBackupTag((char*)$3->data());
+		
+		$$ = de;
+       }
+
+restore_statement : TOK_RESTORE TOK_TRAFODION QUOTED_STRING
+    {
+     CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+     NAString * stmt = getSqlStmtStr ( stmtCharSet, PARSERHEAP());
+
+     DDLExpr * de = new(PARSERHEAP()) DDLExpr(FALSE, FALSE, FALSE, FALSE,
+                                                          FALSE, FALSE,
+                FALSE, FALSE, FALSE,
+                (char*)stmt->data(),
+                stmtCharSet,
+                PARSERHEAP());
+    de->setRestore(TRUE);
+    de->setBackupTag((char*)$3->data());
+    
+    $$ = de;
+       }
+       
 /* type relx */
 exe_util_get_region_access_stats : TOK_GET TOK_REGION stats_or_statistics TOK_FOR TOK_TABLE table_name
                {
@@ -33700,6 +33765,7 @@ nonreserved_func_word:  TOK_ABS
                       | TOK_FN
                       | TOK_GREATEST
                       | TOK_HASHPARTFUNC
+                      | TOK_HIVEPARTFUNC
                       | TOK_HASH2PARTFUNC
                       | TOK_HBASE_AUTHS
                       | TOK_HBASE_VISIBILITY

@@ -465,13 +465,13 @@ TRAF_SAMPLE_88_1456279440_120688
 >> -- should be the same as previous "get tables"
 >>
 >>-- attempt to do incremental with an invalid where clause
->>update statistics for table stest on existing columns incremental where boats float idly;
+>>update statistics for table stest on existing columns incremental where 1;
 
 *** ERROR[9200] UPDATE STATISTICS for table TRAFODION.COMPGENERAL_TEST023.STEST encountered an error (15001) from statement HSCursor::prepareRowsetInternal().
 
 *** ERROR[15001] A syntax error occurred at or before: 
 SELECT "C1", "C2", "C3", "_SALT_" FROM TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPL
-E_88_1456279440_120688 WHERE  boats float idly FOR READ UNCOMMITTED ACCESS;
+E_88_1456279440_120688 WHERE  1 FOR READ UNCOMMITTED ACCESS;
                                         ^ (120 characters from start of SQL statement)
 
 *** ERROR[8822] The statement was not prepared.
@@ -480,7 +480,7 @@ E_88_1456279440_120688 WHERE  boats float idly FOR READ UNCOMMITTED ACCESS;
 
 *** ERROR[15001] A syntax error occurred at or before: 
 SELECT "C1", "C2", "C3", "_SALT_" FROM TRAFODION.COMPGENERAL_TEST023.TRAF_SAMPL
-E_88_1456279440_120688 WHERE  boats float idly FOR READ UNCOMMITTED ACCESS;
+E_88_1456279440_120688 WHERE  1 FOR READ UNCOMMITTED ACCESS;
                                         ^ (120 characters from start of SQL statement)
 
 *** ERROR[8822] The statement was not prepared.

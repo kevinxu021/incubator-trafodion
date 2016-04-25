@@ -38,7 +38,7 @@ export TRAFODION_VER_UPDATE=0
 export TRAFODION_VER="${TRAFODION_VER_MAJOR}.${TRAFODION_VER_MINOR}.${TRAFODION_VER_UPDATE}"
 
 # Product copyright header
-export PRODUCT_COPYRIGHT_HEADER="2015 Esgyn Corporation"
+export PRODUCT_COPYRIGHT_HEADER="2015-2016 Esgyn Corporation"
 ##############################################################
 # Trafodion authentication:
 #    Set TRAFODION_ENABLE_AUTHENTICATION to YES to enable
@@ -139,29 +139,16 @@ fi
 export MY_SQROOT=$PWD
 export SQ_HOME=$PWD
 
-# general Hadoop & TRX dependencies - not distro specific, choose one to build against
-export HBASE_TRXDIR=$MY_SQROOT/export/lib
-export HBASE_TRX_ID=hbase-trx-cdh5_4
-export HBASE_DEP_VER=1.0.0-cdh5.4.4
-HBVER=""
-if [[ "$HBASE_DISTRO" = "CDH5.5" ]]; then
-    export HBASE_TRX_ID=hbase-trx-cdh5_5
-# dtm common and sql jars built with CDH5.4 is compatible.
-# no additional version specific jar needed.
-fi
-if [[ "$HBASE_DISTRO" = "HDP" ]]; then
-    export HBASE_TRX_ID=hbase-trx-hdp2_3
-    HBVER="hdp2_3-"
-fi
-if [[ "$HBASE_DISTRO" = "APACHE" ]]; then
-    export HBASE_TRX_ID=hbase-trx-apache1_0_2
-    HBVER="apache1_0_2-"
-fi
-export HBASE_TRX_JAR=${HBASE_TRX_ID}-${TRAFODION_VER}.jar
-export DTM_COMMON_JAR=trafodion-dtm-${HBVER}${TRAFODION_VER}.jar
-export SQL_JAR=trafodion-sql-${HBVER}${TRAFODION_VER}.jar
-export UTIL_JAR=trafodion-utility-${TRAFODION_VER}.jar
 # set common version to be consistent between shared lib and maven dependencies
+export HBASE_DEP_VER_CDH=1.0.0-cdh5.4.4
+export HIVE_DEP_VER_CDH=1.1.0-cdh5.4.4
+export HBASE_DEP_VER_HDP=1.1.2
+export HIVE_DEP_VER_HDP=1.2.1
+export HBASE_DEP_VER_APACHE=1.0.2
+export HIVE_DEP_VER_APACHE=1.1.0
+export HBASE_TRX_ID_CDH=hbase-trx-cdh5_4
+export HBASE_TRX_ID_APACHE=hbase-trx-apache1_0_2
+export HBASE_TRX_ID_HDP=hbase-trx-hdp2_3
 export THRIFT_DEP_VER=0.9.0
 export HIVE_DEP_VER=1.1.0
 export HADOOP_DEP_VER=2.6.0
@@ -169,6 +156,27 @@ export HADOOP_DEP_VER=2.6.0
 # staged build-time dependencies
 export HADOOP_BLD_LIB=${TOOLSDIR}/hadoop-${HADOOP_DEP_VER}/lib/native
 export HADOOP_BLD_INC=${TOOLSDIR}/hadoop-${HADOOP_DEP_VER}/include
+
+# general Hadoop & TRX dependencies - not distro specific, choose one to build against
+export HBASE_TRXDIR=$MY_SQROOT/export/lib
+export HBASE_TRX_JAR=${HBASE_TRX_ID_CDH}-${TRAFODION_VER}.jar
+export DTM_COMMON_JAR=trafodion-dtm-${TRAFODION_VER}.jar
+export SQL_JAR=trafodion-sql-${TRAFODION_VER}.jar
+export UTIL_JAR=trafodion-utility-${TRAFODION_VER}.jar
+
+HBVER=""
+if [[ "$HBASE_DISTRO" = "HDP" ]]; then
+    export HBASE_TRX_JAR=${HBASE_TRX_ID_HDP}-${TRAFODION_VER}.jar
+    HBVER="hdp2_3"
+    export DTM_COMMON_JAR=trafodion-dtm-${HBVER}-${TRAFODION_VER}.jar
+    export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
+fi
+if [[ "$HBASE_DISTRO" = "APACHE" ]]; then
+    export HBASE_TRX_JAR=${HBASE_TRX_ID_APACHE}-${TRAFODION_VER}.jar
+    HBVER="apache1_0_2"
+    export DTM_COMMON_JAR=trafodion-dtm-${HBVER}-${TRAFODION_VER}.jar
+    export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
+fi
 
 # check for workstation env
 # want to make sure SQ_VIRTUAL_NODES is set in the shell running sqstart
@@ -344,7 +352,8 @@ elif [[ -n "$(ls /usr/lib/hadoop/hadoop-*cdh*.jar 2>/dev/null)" ]]; then
                           /usr/lib/hadoop/lib"
   export HADOOP_JAR_FILES="/usr/lib/hadoop/client/hadoop-hdfs-*.jar"
   export HIVE_JAR_DIRS="/usr/lib/hive/lib"
-  export HIVE_JAR_FILES="/usr/lib/hadoop-mapreduce/hadoop-mapreduce-client-*.jar"
+  export HIVE_JAR_FILES="/usr/lib/hadoop-mapreduce/hadoop-mapreduce-client-core.jar
+                         /usr/lib/hadoop-mapreduce/hadoop-mapreduce-client-common.jar"
 
   # suffixes to suppress in the classpath (set this to ---none--- to add all files)
   export SUFFIXES_TO_SUPPRESS="-sources.jar -tests.jar"
@@ -375,15 +384,14 @@ elif [[ -n "$(ls /etc/init.d/ambari* 2>/dev/null)" ]]; then
   export HADOOP_JAR_DIRS="/usr/hdp/current/hadoop-client
                           /usr/hdp/current/hadoop-client/lib"
   export HADOOP_JAR_FILES="/usr/hdp/current/hadoop-client/client/hadoop-hdfs-*.jar"
-
   export HIVE_JAR_DIRS="/usr/hdp/current/hive-client/lib"
   export HIVE_JAR_FILES="/usr/hdp/current/hadoop-mapreduce-client/hadoop-mapreduce-client-core*.jar"
 
-  HBVER=hdp2_3-
-  export HBASE_TRX_JAR=hbase-trx-${HBVER}${TRAFODION_VER}.jar
-  export DTM_COMMON_JAR=trafodion-dtm-${HBVER}${TRAFODION_VER}.jar
-  export SQL_JAR=trafodion-sql-${HBVER}${TRAFODION_VER}.jar
-
+  export HBASE_TRX_JAR=${HBASE_TRX_ID_HDP}-${TRAFODION_VER}.jar
+  HBVER="hdp2_3"
+  export DTM_COMMON_JAR=trafodion-dtm-${HBVER}-${TRAFODION_VER}.jar
+  export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
+  
   # Configuration directories
 
   export HADOOP_CNF_DIR=/etc/hadoop/conf
@@ -484,9 +492,9 @@ EOF
 
   # Hadoop/HBase/Hive install directories, as determined by this script,
   # when using an Apache installation without one of the distros
-  APACHE_HADOOP_HOME=
-  APACHE_HBASE_HOME=
-  APACHE_HIVE_HOME=
+  APACHE_HADOOP_HOME=None
+  APACHE_HBASE_HOME=None
+  APACHE_HIVE_HOME=None
 
   for cp in `echo $CLASSPATH | sed 's/:/ /g'`
   do
@@ -531,14 +539,6 @@ EOF
     APACHE_HIVE_HOME=/usr/lib/hive
   fi
 
-  if [ ! -d $APACHE_HADOOP_HOME/lib ]; then
-    echo "**** ERROR: Unable to determine location of Hadoop lib directory"
-  fi
-
-  if [ ! -d $APACHE_HBASE_HOME/lib ]; then
-    echo "**** ERROR: Unable to determine location of HBase lib directory"
-  fi
-
   if [ -n "$HBASE_CNF_DIR" -a -n "$HADOOP_CNF_DIR" -a \
        -d $APACHE_HADOOP_HOME/lib -a -d $APACHE_HBASE_HOME/lib ]; then
     # We are on a system with Apache HBase, probably without a distro
@@ -568,19 +568,24 @@ EOF
                             $APACHE_HADOOP_HOME/share/hadoop/mapreduce
                             $APACHE_HADOOP_HOME/share/hadoop/hdfs"
     export HADOOP_JAR_FILES=
-
     export HIVE_JAR_DIRS="$APACHE_HIVE_HOME/lib"
 
     #hbase classpath captures all the right set of jars hbase is using.
     #this also includes the trx jar that gets installed as part of install.
     #Additional testing needed.Including it here for future validation.
-    lv_hbase_cp=`${HBASE_HOME}/bin/hbase classpath`
+    lv_hbase_cp=`hbase classpath`
 
     # end of code for Apache Hadoop/HBase installation w/o distro
+    export HBASE_TRX_JAR=${HBASE_TRX_ID_APACHE}-${TRAFODION_VER}.jar
+    HBVER="apache1_0_2"
+    export DTM_COMMON_JAR=trafodion-dtm-${HBVER}-${TRAFODION_VER}.jar
+    export SQL_JAR=trafodion-sql-${HBVER}-${TRAFODION_VER}.jar
   else
     # print usage information, not enough information about Hadoop/HBase
-    vanilla_apache_usage
-    NEEDS_HADOOP_INSTALL=1
+    if [[ -z $HADOOP_TYPE ]]; then
+       vanilla_apache_usage
+       NEEDS_HADOOP_INSTALL=1
+    fi
   fi
 
 fi
@@ -671,7 +676,6 @@ export SQ_MON_KEEPCNT=5
 # The wait timeout is in seconds
 export SQ_MON_EPOLL_WAIT_TIMEOUT=12
 export SQ_MON_EPOLL_RETRY_COUNT=15
-
 
 # set to 0 to disable phandle verifier
 export SQ_PHANDLE_VERIFIER=1
@@ -867,6 +871,7 @@ $MY_SQROOT/export/lib/${SQL_JAR}:\
 $MY_SQROOT/export/lib/${UTIL_JAR}:\
 $MY_SQROOT/export/lib/jdbcT4.jar:\
 $MY_SQROOT/export/lib/jdbcT2.jar
+
 
 # Check whether the current shell environment changed from a previous execution of this
 # script.

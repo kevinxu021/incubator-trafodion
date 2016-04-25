@@ -601,6 +601,9 @@ public:
   NABoolean isMin();
   NABoolean isMax();
 
+  //  whether this is a NULL constant 
+  NABoolean isNullConstant() { return isNull(); };
+
 private:
   void initCharConstValue(const NAString&,
             enum CharInfo::CharSet charSet,

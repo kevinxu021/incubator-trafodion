@@ -98,7 +98,8 @@ class RoutineDesc;
 class Aggregate : public ItemExpr
 {
   // ITM_AVG, ITM_MAX, ITM_MIN, ITM_SUM, ITM_COUNT,
-  // ITM_ONE_ROW, ITM_ONEROW, ITM_ONE_TRUE, ITM_ANY_TRUE
+  // ITM_ONE_ROW, ITM_ONEROW, ITM_ONE_TRUE, ITM_ANY_TRUE,
+  // ITM_ORC_MAX_NV, ITM_ORC_SUM_NV
 public:
   Aggregate(OperatorTypeEnum otype,
 	    ItemExpr *child0,

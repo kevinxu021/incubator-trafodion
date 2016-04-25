@@ -67,6 +67,7 @@ class TMLIB : public JavaObjectInterfaceTM
         // JNI interface
         char rminterface_classname[1024];
         char hbasetxclient_classname[1024];
+	char replayengine_classname[1024];
 
         enum JAVA_METHODS {
                //
@@ -77,6 +78,7 @@ class TMLIB : public JavaObjectInterfaceTM
                JM_LAST_HBASETXCLIENT,
                //RMInterface
                JM_CLEARTRANSACTIONSTATES,
+               JM_REPLAYENGINE,
                JM_LAST
         };
 
@@ -140,6 +142,7 @@ class TMLIB : public JavaObjectInterfaceTM
         // Local transaction methods
         short initConnection(short pv_nid);
         short abortTransactionLocal(long transactionID);
+	short replayEngine(long timestamp);
         short endTransactionLocal(long transactionID);
         void cleanupTransactionLocal(long transactionID);
 };

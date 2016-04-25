@@ -152,7 +152,7 @@ public class Helper {
 					if (columnType == java.sql.Types.ARRAY) {
 						data = rs.getArray(i);
 					} else if (columnType == java.sql.Types.BIGINT) {
-						data = rs.getLong(i);
+							data = rs.getString(i);
 					} else if (columnType == java.sql.Types.BOOLEAN) {
 						data = rs.getBoolean(i);
 					} else if (columnType == java.sql.Types.BLOB) {
@@ -349,8 +349,16 @@ public class Helper {
 	}
 
 	public static boolean isEnterpriseEdition() {
-		if (ConfigurationResource.getSystemVersion() != null
-				&& ConfigurationResource.getSystemVersion().toLowerCase().contains("enterprise"))
+		if (ConfigurationResource.getDatabaseEdition() != null
+				&& ConfigurationResource.getDatabaseEdition().toLowerCase().contains("enterprise"))
+			return true;
+
+		return false;
+	}
+
+	public static boolean isAdvancedEdition() {
+		if (ConfigurationResource.getDatabaseEdition() != null
+				&& ConfigurationResource.getDatabaseEdition().toLowerCase().contains("advanced"))
 			return true;
 
 		return false;

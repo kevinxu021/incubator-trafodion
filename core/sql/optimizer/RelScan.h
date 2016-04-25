@@ -856,6 +856,10 @@ public:
                                  NABoolean updateSearchKeyOnly,
                                  NABoolean filterOutMinMax 
                                 );
+  void processMinMaxKeysForPartitionCols(
+       Generator* generator, 
+       ValueIdSet& pulledNewInputs,
+       ValueIdSet& availableValues);
 
   short codeGenForHive(Generator*);
   short genForTextAndSeq(Generator * generator,
@@ -882,7 +886,8 @@ public:
                          Int32 &hdfsPort,
                          ExpTupleDesc *partCols,
                          int partColValuesLen,
-                         const HivePartitionAndBucketKey *hiveSearchKey);
+                         const HivePartitionAndBucketKey *hiveSearchKey,
+                         NABoolean isForFastAggr = FALSE);
   static char * genExplodedHivePartKeyVals(Generator *generator,
                                            ExpTupleDesc *partCols,
                                            const ValueIdList &valList);
@@ -1039,6 +1044,13 @@ public:
   Int32 getComputedNumOfActivePartiions()  const { return computedNumOfActivePartitions_; }
 
   OrcPushdownPredInfoList &orcListOfPPI() { return orcListOfPPI_;}
+
+  void convertKeyPredsToRangePreds(const ValueIdSet& beginKeyAsEQ,
+                                   const ValueIdSet& endKeyAsEQ,  
+                                   CollHeap* heap,
+                                   ValueIdSet& beginKeyAsRange, 
+                                   ValueIdSet& endKeyAsRange);
+
 private:
 
 
@@ -1374,7 +1386,8 @@ public:
 				       const NAType &givenType,
 				       ItemExpr *&asciiValue,
 				       ItemExpr *&castValue,
-                                       NABoolean isOrc = FALSE);
+                                       NABoolean isOrc = FALSE,
+                                       NABoolean srcIsInt32Varchar = FALSE);
   
   static int createAsciiColAndCastExpr2(Generator * generator,
 				       ItemExpr * colNode,

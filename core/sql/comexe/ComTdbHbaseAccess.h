@@ -289,6 +289,9 @@ public:
     void setMaxNumRowsPerHbaseBlock(UInt32 n) { maxNumRowsPerHBaseBlock_ = n;}
     UInt32 maxNumRowsPerHbaseBlock() { return maxNumRowsPerHBaseBlock_; }
 
+    void setDopParallelScanner(Float32 f) { dopParallelScanner_ = f;}
+    Float32 dopParallelScanner() { return dopParallelScanner_; }
+
   private:
     enum
     {
@@ -302,6 +305,7 @@ public:
     UInt32 flags_;
     UInt32 numCacheRows_;
     UInt32 maxNumRowsPerHBaseBlock_;
+    Float32 dopParallelScanner_;
   };
 
   // ---------------------------------------------------------------------
@@ -760,13 +764,9 @@ public:
     {wbSize_ = v; };
     UInt32 getWBSize() { return wbSize_; };
 
-    void setIsTrafAutoFlush(NABoolean v)
-     {(v ? flags2_ |= TRAF_UPSERT_AUTO_FLUSH : flags2_ &= ~TRAF_UPSERT_AUTO_FLUSH); };
-     NABoolean getIsTrafLoadAutoFlush() { return (flags2_ & TRAF_UPSERT_AUTO_FLUSH) != 0; };
-
-     void setTrafWriteToWAL(NABoolean v)
-      {(v ? flags2_ |= TRAF_UPSERT_WRITE_TO_WAL : flags2_ &= ~TRAF_UPSERT_WRITE_TO_WAL); };
-      NABoolean getTrafWriteToWAL() { return (flags2_ & TRAF_UPSERT_WRITE_TO_WAL) != 0; };
+   void setTrafWriteToWAL(NABoolean v)
+     {(v ? flags2_ |= TRAF_UPSERT_WRITE_TO_WAL : flags2_ &= ~TRAF_UPSERT_WRITE_TO_WAL); };
+   NABoolean getTrafWriteToWAL() { return (flags2_ & TRAF_UPSERT_WRITE_TO_WAL) != 0; };
 
   const char * getLoadPrepLocation() const { return LoadPrepLocation_; }
   void setLoadPrepLocation(char * loadPrepLocation) { LoadPrepLocation_ = loadPrepLocation;  }
@@ -928,7 +928,7 @@ public:
   enum
   {
     TRAF_UPSERT_ADJUST_PARAMS        = 0x0001,
-    TRAF_UPSERT_AUTO_FLUSH           = 0x0002,
+    TRAF_UPSERT_UNUSED               = 0x0002,
     TRAF_UPSERT_WRITE_TO_WAL         = 0x0004,
     TRAF_LOAD_PREP                   = 0x0008,
     TRAF_LOAD_COMPLETION             = 0x0010,
