@@ -457,7 +457,20 @@ CoprocessorService, Coprocessor {
   static IdTm idServer = null;
   static final int ID_TM_SERVER_TIMEOUT = 1000;
   static MutationMeta meta = null;
-  static Configuration conf;
+  
+  public static final int PIT_MUTATION_CREATE = 1;
+  public static final int PIT_MUTATION_APPEND = 2;
+  public static final int PIT_MUTATION_FLUSH = 3;
+  public static final int PIT_MUTATION_CLOSE = 4;
+  public static final int PIT_MUTATION_ROLLOVER = 5;
+
+  public static final int PIT_MUTATION_WRITER_CREATE = 1;
+  public static final int PIT_MUTATION_WRITER_FLUSH = 2;
+  public static final int PIT_MUTATION_WRITER_CLOSE = 3;
+  public static final int PIT_MUTATION_WRITER_APPEND = 4;
+  
+  public static final int PIT_MAX_TXN_MUTATION_PER_KV = 2;
+  public static final int PIT_MAX_TXN_MUTATION_PER_FILE = 5;
 
   // TrxRegionService methods
     
@@ -3813,7 +3826,7 @@ CoprocessorService, Coprocessor {
     
     if (configuredPITRecovery) {
 	  if (LOG.isTraceEnabled()) LOG.trace("stop and close mutation file if any in PIT mode");
-          mutationBufferOp(4, null, null);
+          mutationBufferOp(PIT_MUTATION_CLOSE, null, null);
     }
 
     transactionsEPCPMap.remove(this.m_Region.getRegionInfo().getRegionNameAsString()+trxkeyEPCPinstance);
@@ -4246,7 +4259,7 @@ CoprocessorService, Coprocessor {
       } // for ediList
       // PIT for non-ts reinstated txn, here we don't have a ts re-created as configuredConflictReinstate is FALSE
       //       just directly construct the mutation buffer and append (~ replayCommittedTxn in Observer)
-      if (configuredPITRecoveryHA) mutationBufferOp(2, null, tmBuilder);
+      if (configuredPITRecoveryHA) mutationBufferOp(PIT_MUTATION_APPEND, null, tmBuilder);
       } catch(IOException e) {
           StringWriter sw = new StringWriter();
           PrintWriter pw = new PrintWriter(sw);
@@ -6709,7 +6722,7 @@ CoprocessorService, Coprocessor {
 	                       " has " + iPut + " put " + iDelete + " delete ");
       
       // now just append the mutation into the output buffer
-      mutationBufferOp(2, null, tmBuilder);
+      mutationBufferOp(PIT_MUTATION_APPEND, null, tmBuilder);
       
       } catch(IOException e) {
           StringWriter sw = new StringWriter();
@@ -6728,19 +6741,19 @@ CoprocessorService, Coprocessor {
           try {
       
           switch (op) {
-	      case 1: { // create the mutation file based on passed writePath
-	          mutationWriterAction(1 /* reset output stream */, writePath, null);
+	      case PIT_MUTATION_CREATE: { // create the mutation file based on passed writePath
+	          mutationWriterAction(PIT_MUTATION_WRITER_CREATE /* reset output stream */, writePath, null);
 		  break;
               }
-	      case 2: { // append mutation into local buffer
+	      case PIT_MUTATION_APPEND: { // append mutation into local buffer
                   if (currentFileKey == -1) { // need to new mutation file 
-                      mutationWriterAction(1 /* reset output stream */, null, null); // creat mutation file based on snapshot meta
+                      mutationWriterAction(PIT_MUTATION_WRITER_CREATE /* reset output stream */, null, null); // creat mutation file based on snapshot meta
                   } 
-                  mutationWriterAction(4 /* append */, null, tmBuilder);
+                  mutationWriterAction(PIT_MUTATION_WRITER_APPEND /* append */, null, tmBuilder);
 		  
 		  // PIT test, let's say do write-to-KV every 5 txn
-		  if (mutationCount >= 5) {
-	             mutationWriterAction(2 /* mutation writer append to flush current buffer */, null, null );  
+		  if (mutationCount >= PIT_MAX_TXN_MUTATION_PER_KV) {
+	             mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null );  
 		  }
 		  
 		  // We can close the mutation file when
@@ -6749,27 +6762,27 @@ CoprocessorService, Coprocessor {
 		  //    c) per request (e.g. during full snapshot)
 		  //    d) by timer (optional)
 		  // PIT test, let's say do close&rollover every 20 txn
-		  if (mutationTotalCount >= 20) { 
-	             mutationWriterAction(2 /* mutation writer append to flush current buffer */, null, null );  
-	             mutationWriterAction(3 /* close mutation file */, null, null );  
-	             mutationWriterAction(1 /* new mutation file and writer */, null, null );
+		  if (mutationTotalCount >= PIT_MAX_TXN_MUTATION_PER_FILE) { 
+	             mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null );  
+	             mutationWriterAction(PIT_MUTATION_WRITER_CLOSE /* close mutation file */, null, null );  
+	             mutationWriterAction(PIT_MUTATION_WRITER_CREATE /* new mutation file and writer */, null, null );
 	          }
 		  
 		  break;
               }
-	      case 3: { // append local mutation buffer to writer      
-                  mutationWriterAction(2 /* flush current mutation buffer */, null, null);
+	      case PIT_MUTATION_FLUSH: { // append local mutation buffer to writer      
+                  mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* flush current mutation buffer */, null, null);
 		  break;
               }
-	      case 4: { // append local buffer to writer and close current mutation file
-	          mutationWriterAction(2 /* mutation writer append to flush current buffer */, null, null );  
-	          mutationWriterAction(3 /* close mutation file */, null, null );
+	      case PIT_MUTATION_CLOSE: { // append local buffer to writer and close current mutation file
+	          mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null );  
+	          mutationWriterAction(PIT_MUTATION_WRITER_CLOSE /* close mutation file */, null, null );
 		  break;
               }
-	      case 5: { // op 4 + new next mutation file immediately
-	          mutationWriterAction(2 /* mutation writer append to flush current buffer */, null, null );  
-	          mutationWriterAction(3 /* close mutation file */, null, null );  
-	          mutationWriterAction(1 /* new mutation file and writer */, null, null );
+	      case PIT_MUTATION_ROLLOVER: { // op 4 + new next mutation file immediately
+	          mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null );  
+	          mutationWriterAction(PIT_MUTATION_WRITER_CLOSE /* close mutation file */, null, null );  
+	          mutationWriterAction(PIT_MUTATION_WRITER_CREATE /* new mutation file and writer */, null, null );
 		  break;
 	      }   
 	      default: {
@@ -6807,7 +6820,7 @@ CoprocessorService, Coprocessor {
       try {
       
       switch (action) {
-	  case 1: { // create next transactional mutation file and associated HBaseWriter
+	  case PIT_MUTATION_WRITER_CREATE: { // create next transactional mutation file and associated HBaseWriter
 
 	      // PIT: PART A - non meta testing path
 	      /*
@@ -6905,7 +6918,7 @@ CoprocessorService, Coprocessor {
 		       " Table " + regionInfo.getTable().toString() + " Path " + writePath);
 	      break;
           }
-	  case 2: { // append and write output buffer out
+	  case PIT_MUTATION_WRITER_FLUSH: { // append and write output buffer out
 	      // for the key by a sequence incremental number (mutationSet), the number is reset when rollover
 	      if (mutationCount > 0) {
 		  mutationSet++;
@@ -6926,7 +6939,7 @@ CoprocessorService, Coprocessor {
 	      }
 	      break;
           }
-	  case 3: { // close  transactional mutation file, driven by chore thread (timer), preClose, preFlush, snapshot req      
+	  case PIT_MUTATION_WRITER_CLOSE: { // close  transactional mutation file, driven by chore thread (timer), preClose, preFlush, snapshot req      
 	      // close transactional mutation file, driven by chore thread (timer), preClose, preFlush, snapshot req
 	      // close the writer to force content to be written to disk and make mutation immutable
 	      // set currentFileKey = -1 (so next mutation append will have to create the next file and writer)
@@ -6973,7 +6986,7 @@ CoprocessorService, Coprocessor {
 	      currentFileKey = -1;
               break;
 	  }
-	  case 4: { // append the mutation into output buffer with delimeter
+	  case PIT_MUTATION_WRITER_APPEND: { // append the mutation into output buffer with delimeter
               tmBuilder.build().writeDelimitedTo(mutationOutput);
 	      if ((smallestCommitId == -1) || (smallestCommitId > tmBuilder.getCommitId()))
 		             smallestCommitId = tmBuilder.getCommitId();
