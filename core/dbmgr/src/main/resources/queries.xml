@@ -766,6 +766,14 @@
 		<query>
 			<name>SPJ_ADDLIB</name>
 			<text><![CDATA[{call "_LIBMGR_".addlib(?,?,null,null)}]]></text>
+		</query>
+		<query>
+			<name>CHECK_SCHEMA</name>
+			<text><![CDATA[select distinct schema_name from "_MD_".objects where object_name ='__SCHEMA__' and schema_name='%1$s';]]></text>
+		</query>
+		<query>
+			<name>CHECK_LIBRARY</name>
+			<text><![CDATA[select object_name, object_type from "_MD_".objects where object_type='LB' and object_name='%1$s';]]></text>
 		</query>		
 	</queries>
 </SystemQueries>

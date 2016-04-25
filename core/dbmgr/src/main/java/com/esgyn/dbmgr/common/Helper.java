@@ -349,16 +349,16 @@ public class Helper {
 	}
 
 	public static boolean isEnterpriseEdition() {
-		if (ConfigurationResource.getSystemVersion() != null
-				&& ConfigurationResource.getSystemVersion().toLowerCase().contains("enterprise"))
+		if (ConfigurationResource.getDatabaseEdition() != null
+				&& ConfigurationResource.getDatabaseEdition().toLowerCase().contains("enterprise"))
 			return true;
 
 		return false;
 	}
 
 	public static boolean isAdvancedEdition() {
-		if (ConfigurationResource.getSystemVersion() != null
-				&& ConfigurationResource.getSystemVersion().toLowerCase().contains("advanced"))
+		if (ConfigurationResource.getDatabaseEdition() != null
+				&& ConfigurationResource.getDatabaseEdition().toLowerCase().contains("advanced"))
 			return true;
 
 		return false;

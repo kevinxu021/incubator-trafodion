@@ -74,14 +74,9 @@ public class ServerResource {
 			objNode.put("user", usr);
 			objNode.put("status", "OK");
 			objNode.put("sessionTimeoutMinutes", configResource.getSessionTimeoutMinutes());
-			if (Helper.isAdvancedEdition()) {
-				objNode.put("systemType", 2);
-			} else
-			if (Helper.isEnterpriseEdition()) {
-				objNode.put("systemType", 1);
-			}
 
-			objNode.put("systemVersion", ConfigurationResource.getSystemVersion());
+			objNode.put("databaseVersion", ConfigurationResource.getDatabaseVersion());
+			objNode.put("databaseEdition", ConfigurationResource.getDatabaseEdition());
 
 			objNode.put("serverTimeZone", ConfigurationResource.getServerTimeZone());
 			objNode.put("serverUTCOffset", ConfigurationResource.getServerUTCOffset());
@@ -151,15 +146,15 @@ public class ServerResource {
 		objNode.put("dcsMasterInfoUri", server.getDcsMasterInfoUri());
 		objNode.put("enableAlerts", server.isAlertsEnabled());
 
-		if (ConfigurationResource.getSystemVersion() != null) {
-			if (ConfigurationResource.getSystemVersion().toLowerCase().contains("enterprise")) {
+		if (ConfigurationResource.getDatabaseVersion() != null) {
+			if (ConfigurationResource.getDatabaseVersion().toLowerCase().contains("enterprise")) {
 				objNode.put("systemType", 1);
-			} else if (ConfigurationResource.getSystemVersion().toLowerCase().contains("advanced")) {
+			} else if (ConfigurationResource.getDatabaseVersion().toLowerCase().contains("advanced")) {
 				objNode.put("systemType", 2);
 			}
 		}
 
-		objNode.put("systemVersion", ConfigurationResource.getSystemVersion());
+		objNode.put("systemVersion", ConfigurationResource.getDatabaseVersion());
 		return objNode;
 	}
 
@@ -172,7 +167,8 @@ public class ServerResource {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode objNode = mapper.createObjectNode();
 
-		objNode.put("SYSTEM_VERSION", ConfigurationResource.getSystemVersion());
+		objNode.put("DB_VERSION", ConfigurationResource.getDatabaseVersion());
+		objNode.put("DB_EDITION", ConfigurationResource.getDatabaseEdition());
 
 		StringBuilder sb = new StringBuilder();
 		try {
@@ -194,9 +190,9 @@ public class ServerResource {
 				if (mainAttr.containsKey(buildDateKey)) {
 					sb.append(mainAttr.getValue(buildDateKey) + ")");
 				}
-				objNode.put("DBMGR_VERSION", sb.toString());
+				objNode.put("DBMGR_VERSION", sb.toString().replace("Release ", ""));
 			} else {
-				objNode.put("DBMGR_VERSION", "Release 2.0.0");
+				objNode.put("DBMGR_VERSION", "2.1.0");
 			}
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch server version : " + ex.getMessage());

@@ -92,6 +92,8 @@ public class SystemQueryCache {
 	
 	public static final String SPJ_PUT = "SPJ_PUT";
 	public static final String SPJ_ADDLIB = "SPJ_ADDLIB";
+	public static final String CHECK_SCHEMA = "CHECK_SCHEMA";
+	public static final String CHECK_LIBRARY = "CHECK_LIBRARY";
 
 	public static void setSystemQueryies(SystemQueries sQueries) {
 		systemQueries = sQueries;

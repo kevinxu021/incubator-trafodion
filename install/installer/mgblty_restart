@@ -30,9 +30,10 @@ source $TRAF_CONFIG
 
 $SQ_ROOT/sql/scripts/mgblty_stop
 
-sleep 10
+sleep 60
 
-$SQ_ROOT/sql/scripts/mgblty_start
+#No need to do this. CMON/NMON will auto-restart mgblty components
+#$SQ_ROOT/sql/scripts/mgblty_start
 
 }
 

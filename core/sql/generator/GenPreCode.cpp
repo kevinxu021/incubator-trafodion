@@ -131,8 +131,8 @@ static void generateKeyExpr(const ValueIdSet & externalInputs,
       ValueId KeyColId = ieKeyCol->getValueId();
 
       keyExpr = new(generator->wHeap()) BiRelat(ITM_EQUAL,
-						ieKeyCol,
-						ieKeyVal);
+                                                   ieKeyCol,
+                                                   ieKeyVal);
 
       // Synthesize its type for and assign a ValueId to it.
       keyExpr->synthTypeAndValueId();
@@ -142,6 +142,52 @@ static void generateKeyExpr(const ValueIdSet & externalInputs,
     } // end For Loop
 
 } // static generateKeyExpr()
+
+void
+FileScan::convertKeyPredsToRangePreds(const ValueIdSet& beginKeyAsEQ,
+                                      const ValueIdSet& endKeyAsEQ, 
+                                      CollHeap* heap, 
+                                      ValueIdSet& beginKeyAsRange, 
+                                      ValueIdSet& endKeyAsRange)
+{
+  for (ValueId vid = beginKeyAsEQ.init(); beginKeyAsEQ.next(vid); beginKeyAsEQ.advance(vid))
+    {
+       ItemExpr* expr = vid.getItemExpr();
+       ItemExpr* keyVal = expr->child(1);
+
+       ItemExpr* beginKey = NULL;
+       if ( keyVal->isNullConstant() ) {
+         beginKey = expr;
+       } else {
+         beginKey = new(heap)BiRelat(ITM_GREATER_EQ,
+                                     expr->child(0),
+                                     expr->child(1));
+          // Synthesize its type for and assign a ValueId to it.
+          beginKey->synthTypeAndValueId();
+       }
+
+       beginKeyAsRange.insert(beginKey->getValueId());
+    }
+
+  for (ValueId vid = endKeyAsEQ.init(); endKeyAsEQ.next(vid); endKeyAsEQ.advance(vid))
+    {
+       ItemExpr* expr = vid.getItemExpr();
+       ItemExpr* keyVal = expr->child(1);
+
+       ItemExpr* endKey = NULL;
+       if ( keyVal->isNullConstant() ) {
+         endKey = expr;
+       } else {
+         endKey = new(heap)BiRelat(ITM_LESS_EQ,
+                                   expr->child(0),
+                                  expr->child(1));
+         // Synthesize its type for and assign a ValueId to it.
+         endKey->synthTypeAndValueId();
+       }
+
+       endKeyAsRange.insert(endKey->getValueId());
+    }
+}
 
 static NABoolean processConstHBaseKeys(Generator * generator,
                                        RelExpr *relExpr,
@@ -4477,9 +4523,8 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
            // rmove any predicates involving the min and max constants
            beginKeyPredCopy -= minMaxPreds;
+           // end of processing beginKeyPred_
      
-           // add the remaining to the ORC push-down set
-           locals += beginKeyPredCopy;
 
            // do it next for the endKeyPred_
            minMaxPreds.clear();
@@ -4488,8 +4533,20 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
            endKeyPredCopy.findAllReferencingMinMaxConstants(minMaxPreds);
 
            endKeyPredCopy -= minMaxPreds;
+           // end of processing endKeyPred_
+
+
+           ValueIdSet beginKeyPredAsRange;
+           ValueIdSet endKeyPredAsRange;
+           convertKeyPredsToRangePreds(beginKeyPredCopy,
+                                       endKeyPredCopy, 
+                                       generator->wHeap(), 
+                                       beginKeyPredAsRange, 
+                                       endKeyPredAsRange);
      
-           locals += endKeyPredCopy;
+           // add the remaining to the ORC push-down set
+           locals += beginKeyPredAsRange;
+           locals += endKeyPredAsRange;
 
            locals.replaceVEGExpressions (
    	                 availableValues,
@@ -4510,8 +4567,10 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
            // include begin/end key predicates in executor predicates
            ValueIdSet execPred(selectionPred());
-           execPred += beginKeyPredCopy;
-           execPred += endKeyPredCopy;
+
+           execPred += beginKeyPredAsRange;
+           execPred += endKeyPredAsRange;
+
            setExecutorPredicates(execPred);
 
         } else
@@ -4737,12 +4796,14 @@ RelExpr * GenericUpdate::preCodeGen(Generator * generator,
 		      getIndexDesc()->getIndexKey(),
 		      getSearchKey()->getBeginKeyValues(),
 		      beginKeyPred_,
-		      generator);
+		      generator
+                     );
       generateKeyExpr(getGroupAttr()->getCharacteristicInputs(),
 		      getIndexDesc()->getIndexKey(),
 		      getSearchKey()->getEndKeyValues(),
 		      endKeyPred_,
-		      generator);
+		      generator
+                     );
     }
 
   // ---------------------------------------------------------------------
