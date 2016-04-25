@@ -117,7 +117,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				$(FILE_NAME).val("");
 				$(SCHEMA_NAME).prop('disabled', false);
 				$(LIBRARY_NAME).prop('disabled', false);
-				$(PAGE_HEADER).val("Create Library");
+				$(PAGE_HEADER).text("Create Library");
 				$(CREATE_BTN).prop('value','Create');
 			}
 		},
