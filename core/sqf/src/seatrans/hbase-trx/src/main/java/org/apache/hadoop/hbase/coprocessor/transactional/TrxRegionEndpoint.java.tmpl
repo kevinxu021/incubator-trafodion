@@ -6843,7 +6843,7 @@ CoprocessorService, Coprocessor {
 	      // 1.1) get Id (key in meta record) from idtmServer, 
 	      
 	      synchronized (mutationMetaLock) {
-	      if (idServer == null) {
+/*	      if (idServer == null) {
 		       try {
                              idServer = new IdTm(false);
                        } catch (Exception e){
@@ -6863,7 +6863,8 @@ CoprocessorService, Coprocessor {
 
               timeKey = timeId.val;
 	      currentFileKey = timeKey;
-	     
+*/
+	     timeKey = currentFileKey = EnvironmentEdgeManager.currentTime();
 	      // 1.2) new mutation record     
 
 	      if (snapMeta == null) {

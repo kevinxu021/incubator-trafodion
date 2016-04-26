@@ -31,7 +31,6 @@ import org.apache.commons.logging.LogFactory;
 
 public class MutationMetaRecord {
 
-   static Logger logger = Logger.getLogger(MutationMetaRecord.class.getName());
    static final Log LOG = LogFactory.getLog(MutationMetaRecord.class);
 
    // These are the components of a record entry into the MutationMeta table
@@ -61,7 +60,7 @@ public class MutationMetaRecord {
 		   final long fileSize, final String regionName, final String mutationPath,
            final boolean archived, final String archivePath) {
  
-      if (logger.isTraceEnabled()) logger.trace("Enter MutationMetaRecord constructor for key: " + key
+      if (LOG.isTraceEnabled()) LOG.trace("Enter MutationMetaRecord constructor for key: " + key
     		  + " tableName: " + tableName + " associatedSnapshot: " + associatedSnapshot
     		  + " smallestCommitId: " + smallestCommitId + " fileSize: " + fileSize
     		  + " regionName: " + regionName + " mutationPath: " + mutationPath
@@ -77,7 +76,7 @@ public class MutationMetaRecord {
       this.archived = archived;
       this.archivePath = new String(archivePath);
       
-      if (logger.isTraceEnabled()) logger.trace("Exit MutationMetaRecord constructor() " + this.toString());
+      if (LOG.isTraceEnabled()) LOG.trace("Exit MutationMetaRecord constructor() " + this.toString());
       return;
    }
 

@@ -44,7 +44,6 @@ import org.apache.commons.logging.LogFactory;
  */
 public class SnapshotMetaRecord {
 
-   static Logger logger = Logger.getLogger(SnapshotMetaRecord.class.getName());
    static final Log LOG = LogFactory.getLog(SnapshotMetaRecord.class);
 
    // These are the components of a record entry into the SnapshotMeta table
@@ -69,7 +68,7 @@ public class SnapshotMetaRecord {
    public SnapshotMetaRecord (final long key, final String tableName, final String userTag, 
                 final String snapshotPath, final boolean archived, final String archivePath) throws IOException{
  
-      if (logger.isTraceEnabled()) logger.trace("Enter SnapshotMetaRecord constructor for key: " + key
+      if (LOG.isTraceEnabled()) LOG.trace("Enter SnapshotMetaRecord constructor for key: " + key
     		  + " tableName: " + tableName + " userTag: " + userTag
     		  + " snapshotPath: " + snapshotPath + " archived: " + String.valueOf(archived)
     		  + " archivePath: " + archivePath);
@@ -82,7 +81,7 @@ public class SnapshotMetaRecord {
       this.archived = archived;
       this.archivePath = new String(archivePath);
       
-      if (logger.isTraceEnabled()) logger.trace("Exit SnapshotMetaRecord constructor() " + this.toString());
+      if (LOG.isTraceEnabled()) LOG.trace("Exit SnapshotMetaRecord constructor() " + this.toString());
       return;
    }
 
