@@ -29,7 +29,8 @@ define([
 		pageIdentifier:null,
 		
 		currentURL:null,
-
+		
+		redirectFlag:null,
 		/*initialize: function () {
 
 		},*/

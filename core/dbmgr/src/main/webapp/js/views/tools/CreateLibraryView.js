@@ -39,7 +39,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			_this = this;
 			_args = args;
 			_this.processArgs();
-			common.redirectFlag=false;
+			this.redirectFlag=false;
 			this.currentURL = window.location.hash;
 			$(CREATE_BTN).on('click', this.uploadFile);
 			$(CLEAR_BTN).on('click', this.cleanField);
@@ -80,7 +80,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			this.currentURL = window.location.hash;
 			_args = args;
 			_this.processArgs();
-			common.redirectFlag=false;
+			this.redirectFlag=false;
 			if(this.isAjaxCompleted=true){
 				$(LOADING).css('visibility', 'hidden');
 				$(CREATE_BTN).prop('disabled', false);
@@ -89,7 +89,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			validator.resetForm();
 		},
 		doPause : function() {
-			common.redirectFlag=true;
+			this.redirectFlag=true;
 			validator.resetForm();
 		},
 		processArgs: function(){
@@ -215,7 +215,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				$(CREATE_BTN).prop('disabled', false);
 				$(CLEAR_BTN).prop('disabled', false);
 				var msgObj={msg:'The library has been successfully created',tag:"success",url:_this.currentURL,shortMsg:"Library created successfully."};
-				if(common.redirectFlag==false){
+				if(_this.redirectFlag==false){
 					_this.popupNotificationMessage(null,msgObj);
 				}else{
 					
@@ -236,8 +236,8 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			var errorIndex = error.responseText.lastIndexOf("*** ERROR");
 			var errorString = error.responseText.substring(errorIndex);
 			//alert(errorString);
-			var msgObj={msg:errorString,tag:"error",url:_this.currentURL,shortMsg:"Create library failed."};
-			if(common.redirectFlag==false){
+			var msgObj={msg:errorString,tag:"danger",url:_this.currentURL,shortMsg:"Create library failed."};
+			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{
 				

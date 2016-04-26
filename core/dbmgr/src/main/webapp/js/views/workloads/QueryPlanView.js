@@ -47,7 +47,7 @@ define([
 
 		doInit: function (args){
 			this.currentURL = window.location.hash;
-			common.redirectFlag=false;
+			this.redirectFlag=false;
 			_this = this;
 			this.pageIdentifier="queryPlan";
 			$('.panel-heading span.dbmgr-collapsible').on("click", function (e) {
@@ -109,7 +109,7 @@ define([
 
 		},
 		doResume: function(args){
-			common.redirectFlag=false;
+			this.redirectFlag=false;
 			$(REFRESH_MENU).on('click', this.fetchExplainPlan);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			/*wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
@@ -122,7 +122,7 @@ define([
 			}
 		},
 		doPause: function(){
-			common.redirectFlag=true;
+			this.redirectFlag=true;
 			$(REFRESH_MENU).off('click', this.fetchExplainPlan);
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
 			/*wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
@@ -248,7 +248,7 @@ define([
 		},
 		cancelQuerySuccess:function(){
 			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully."};
-			if(common.redirectFlag==false){
+			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{
 				
@@ -258,7 +258,7 @@ define([
 			_this.fetchExplainPlan();
 		},
 		cancelQueryError:function(jqXHR){
-			var msgObj={msg:jqXHR.responseText,tag:"error",url:_this.currentURL,shortMsg:"Cancel query failed."};
+			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
 			if(jqXHR.responseText==undefined){
 				msgObj.msg="the response was null."
 				msgObj.shortMsg="the response was null."
@@ -267,7 +267,7 @@ define([
 				msgObj.msg="the request was aborted."
 				msgObj.shortMsg="the request was aborted."
 			}
-			if(common.redirectFlag==false){
+			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{
 				

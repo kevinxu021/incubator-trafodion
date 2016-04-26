@@ -259,7 +259,7 @@ define([
 		},
 		doResume: function(){
 			this.currentURL = window.location.hash;
-			common.redirectFlag=false;
+			this.redirectFlag=false;
 			isPaused = false;
 			if(resultsAfterPause == true){
 				if(lastExecuteResult != null){
@@ -502,7 +502,7 @@ define([
 			if(isPaused){
 				resultsAfterPause = true;
 				lastRawError = jqXHR;
-				var msgObj={msg:'The workbench operation failed.',tag:"error",url:_this.currentURL,shortMsg:"Workbench operation failed."};
+				var msgObj={msg:'The workbench operation failed.',tag:"danger",url:_this.currentURL,shortMsg:"Workbench operation failed."};
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 				return;
 			}
