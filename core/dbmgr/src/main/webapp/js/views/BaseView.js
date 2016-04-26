@@ -177,7 +177,7 @@ define([
 				obj.shortMsg="there is no response.";
 			}
 			var alertClass = "alert-success fa-check-circle";
-			if(obj.tag == "error"){
+			if(obj.tag == "danger"){
 				alertClass = "alert-danger fa-times-circle";
 			}else if(obj.tag == "warning"){
 				alertClass = "alert-warning fa-warning";
