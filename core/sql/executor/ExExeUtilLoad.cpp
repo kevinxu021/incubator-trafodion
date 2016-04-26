@@ -2925,7 +2925,7 @@ short ExExeUtilLobExtractTcb::work()
 	   
 		//Retrieve the total length of this lob using the handle info and return to the caller
 		Int64 dummy = 0;
-		cliRC = SQL_EXEC_LOBcliInterface(lobHandle_, lobHandleLen_,NULL,NULL,NULL,NULL,LOB_CLI_SELECT_LOBLENGTH,LOB_CLI_ExecImmed, 0,&lobDataLen_, &dummy, &dummy,0,0);
+		cliRC = SQL_EXEC_LOBcliInterface(lobHandle_, lobHandleLen_,NULL,NULL,NULL,NULL,LOB_CLI_SELECT_LOBLENGTH,LOB_CLI_ExecImmed, 0,&lobDataLen_, &dummy, &dummy,0,0,FALSE);
 		if (cliRC < 0)
 		   {
 		     getDiagsArea()->mergeAfter(diags);
@@ -2981,7 +2981,7 @@ short ExExeUtilLobExtractTcb::work()
 	       lobNumList,
 	       lobTypList,
 	       lobLocList,lobTdb().getLobHdfsServer(),
-               lobTdb().getLobHdfsPort(),0);
+               lobTdb().getLobHdfsPort(),0,FALSE);
 	    if (cliRC < 0)
 	      {
 		getDiagsArea()->mergeAfter(diags);
@@ -3071,7 +3071,7 @@ short ExExeUtilLobExtractTcb::work()
 	       1, // waited op
 	       0, lobDataSpecifiedExtractLen_, 
 	       lobDataOutputLen, dummyParam, lobData_, 
-	       NULL, 0, // compression
+	       NULL, // compression
 	       1, // open
 	       2); // must open
 
@@ -3118,7 +3118,7 @@ short ExExeUtilLobExtractTcb::work()
 	       //lobDataLen_, lobData_, 
 	       lobDataOutputLen, dummyParam, 
 	       lobData_,
-	       NULL,0, // compression
+	       NULL, // compression
 	       2, // read
 	       0); // open type not applicable
 
@@ -3191,7 +3191,7 @@ short ExExeUtilLobExtractTcb::work()
 
 	       0, lobDataSpecifiedExtractLen_, 
 	       lobDataLen_, dummyParam, lobData_, 
-	       NULL,0, // compression
+	       NULL, // compression
 	       3, // close
                0); // open type not applicable
 
@@ -3398,7 +3398,7 @@ short ExExeUtilFileExtractTcb::work()
 
 	       0, lobDataSpecifiedExtractLen_, 
 	       lobDataLen_, dummyParam, lobData_, 
-	       NULL, 0, // compression
+	       NULL, // compression
 	       1, // open
 	       2); // must open
 
@@ -3446,7 +3446,7 @@ short ExExeUtilFileExtractTcb::work()
 
 	       0, lobDataSpecifiedExtractLen_, 
 	       lobDataLen_, dummyParam, lobData_, 
-	       NULL, 0, // compression
+	       NULL, // compression
 	       2, // read
 	       0); // open type not applicable
 
@@ -3505,7 +3505,7 @@ short ExExeUtilFileExtractTcb::work()
 	       1, // waited op
 	       0, lobDataSpecifiedExtractLen_, 
 	       lobDataLen_, dummyParam, lobData_, 
-	       NULL, 0, // compression
+	       NULL, // compression
 	       3, // close
                0); // open type not applicable
 	    if (retcode < 0)

@@ -33,7 +33,6 @@ define(['moment',
 			this.NOFITY_MESSAGE = 'nofigyMessage';
 			this.MESSAGE_LIST=new Array();
 			this.popupIndex;
-			this.redirectFlag=false;
 			this.isAllNotificationInserted=false;
 			this.hideNotifications=null;
 			this.commonTimeRange=null;

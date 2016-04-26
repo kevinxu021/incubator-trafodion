@@ -25,6 +25,8 @@ define([
 	var ERROR_CONTAINER = '#db-objects-error-text',
 		OBJECT_LIST_CONTAINER = '#db-objects-list-container',
 		OBJECT_NAME_CONTAINER = '#db-objects-name',
+		CREATE_LIBRARY_CONTAINER = '#create-library-div',
+		CREATE_LIBRARY_BUTTON = '#create-library-btn',
 		REFRESH_ACTION = '#refreshAction';
 	
 	
@@ -50,6 +52,7 @@ define([
 			$(OBJECT_LIST_CONTAINER).hide();
 			
 			$(REFRESH_ACTION).on('click', this.doRefresh);
+			$(CREATE_LIBRARY_BUTTON).on('click', this.createLibrary);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayObjectList);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
 			_this.processRequest();
@@ -67,12 +70,14 @@ define([
 			}
 			prevRouteArgs = args;
 			$(REFRESH_ACTION).on('click', this.doRefresh);
+			$(CREATE_LIBRARY_BUTTON).on('click', this.createLibrary);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayObjectList);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
 			_this.processRequest();
 		},
 		doPause: function(){
 			$(REFRESH_ACTION).off('click', this.doRefresh);
+			$(CREATE_LIBRARY_BUTTON).off('click', this.createLibrary);
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayObjectList);
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
 		},
@@ -91,6 +96,9 @@ define([
 			pageStatus[routeArgs.type] =  false;
 			_this.processRequest();
 			$(ERROR_CONTAINER).hide();
+		},
+		createLibrary: function(){
+			window.location.hash = '/tools/createlibrary?schema='+schemaName;
 		},
 		fetchObjects: function(objectType, schemaName){
 			if(!pageStatus[objectType] || pageStatus[objectType] == false){
@@ -159,6 +167,11 @@ define([
 						$(OBJECT_NAME_CONTAINER).text(displayName);
 						_this.fetchObjects(routeArgs.type, routeArgs.schema);
 						break;
+				}
+				if(routeArgs.type == 'libraries'){
+					$(CREATE_LIBRARY_CONTAINER).show();
+				}else{
+					$(CREATE_LIBRARY_CONTAINER).hide();
 				}
 			}
 		},

@@ -134,6 +134,9 @@ import java.util.concurrent.RejectedExecutionException;
  */
 public class MutationMeta {
 
+   static Logger logger = Logger
+            .getLogger(MutationMeta.class.getName());
+
    static final Log LOG = LogFactory.getLog(MutationMeta.class);
    private static HBaseAdmin admin;
    private Configuration config;
@@ -158,13 +161,13 @@ public class MutationMeta {
     */
    public MutationMeta () throws Exception  {
 
-      if (LOG.isTraceEnabled()) LOG.trace("Enter MutationMeta constructor");
+      if (logger.isTraceEnabled()) logger.trace("Enter MutationMeta constructor");
       this.config = HBaseConfiguration.create();
       try {
          admin = new HBaseAdmin(config);
       }
       catch (Exception e) {
-         if (LOG.isTraceEnabled()) LOG.trace("  Exception creating HBaseAdmin " + e);
+         if (logger.isTraceEnabled()) logger.trace("  Exception creating HBaseAdmin " + e);
          throw e;
       }
       disableBlockCache = true;
@@ -182,7 +185,7 @@ public class MutationMeta {
          }
       }
       catch (Exception e) {
-         if (LOG.isDebugEnabled()) LOG.debug("TM_MAX_SNAPSHOT_VERSIONS is not in ms.env");
+         if (logger.isDebugEnabled()) logger.debug("TM_MAX_SNAPSHOT_VERSIONS is not in ms.env");
       }
 
       HColumnDescriptor hcol = new HColumnDescriptor(MUTATION_FAMILY);
@@ -195,10 +198,10 @@ public class MutationMeta {
          pSTRConfig = STRConfig.getInstance(config);
       }
       catch (ZooKeeperConnectionException zke) {
-         LOG.error("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
+         logger.error("Zookeeper Connection Exception trying to get STRConfig instance: " + zke);
       }
       catch (IOException ioe) {
-         LOG.error("IO Exception trying to get STRConfig instance: " + ioe);
+         logger.error("IO Exception trying to get STRConfig instance: " + ioe);
       }
 
       myClusterId = 0;
@@ -207,23 +210,23 @@ public class MutationMeta {
       }
       
       boolean snapshotTableExists = admin.tableExists(MUTATION_TABLE_NAME);
-      if (LOG.isTraceEnabled()) LOG.trace("Mutation Table " + MUTATION_TABLE_NAME + (snapshotTableExists? " exists" : " does not exist" ));
+      if (logger.isTraceEnabled()) logger.trace("Mutation Table " + MUTATION_TABLE_NAME + (snapshotTableExists? " exists" : " does not exist" ));
       HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(MUTATION_TABLE_NAME));
       desc.addFamily(hcol);
       table = new HTable(config, desc.getName());
 
       if (snapshotTableExists == false) {
          try {
-            if (LOG.isTraceEnabled()) LOG.trace("try new HTable: " + MUTATION_TABLE_NAME);
+            if (logger.isTraceEnabled()) logger.trace("try new HTable: " + MUTATION_TABLE_NAME);
             admin.createTable(desc);
          }
          catch(Exception e){
-            LOG.error("MutationMeta Exception while creating " + MUTATION_TABLE_NAME + ": " + e);
+            logger.error("MutationMeta Exception while creating " + MUTATION_TABLE_NAME + ": " + e);
             throw new RuntimeException(e);
          }
       }
 
-      if (LOG.isTraceEnabled()) LOG.trace("Exit MutationMeta constructor()");
+      if (logger.isTraceEnabled()) logger.trace("Exit MutationMeta constructor()");
       return;
    }
 
@@ -235,7 +238,7 @@ public class MutationMeta {
     */
    public void putMutationRecord(final MutationMetaRecord record) throws Exception {
 
-      if (LOG.isTraceEnabled()) LOG.trace("putMutationRecord start for record " + record);
+      if (logger.isTraceEnabled()) logger.trace("putMutationRecord start for record " + record);
       boolean lvResult = true;
       long key = record.getKey();
       String keyString = new String(String.valueOf(key));
@@ -257,26 +260,26 @@ public class MutationMeta {
       do {     
          retries++;
          try {
-            if (LOG.isTraceEnabled()) LOG.trace("try table.put, " + p );
+            if (logger.isTraceEnabled()) logger.trace("try table.put, " + p );
             table.put(p);
             table.flushCommits();
             complete = true;
             if (retries > 1){
-               if (LOG.isTraceEnabled()) LOG.trace("Retry successful in putMutationRecord for key: " + keyString);                    	 
+               if (logger.isTraceEnabled()) logger.trace("Retry successful in putMutationRecord for key: " + keyString);                    	 
             }
          }
          catch (Exception e2){
-            LOG.error("Retry " + retries + " putMutationRecord for key: " + keyString + " due to Exception " + e2);
+            logger.error("Retry " + retries + " putMutationRecord for key: " + keyString + " due to Exception " + e2);
             table.getRegionLocation(p.getRow(), true);
             Thread.sleep(MutationRetryDelay); // 3 second default
             if (retries == MutationRetryCount){
-               LOG.error("putMutationRecord aborting due to excessive retries for key: " + keyString + " due to Exception; aborting ");
+               logger.error("putMutationRecord aborting due to excessive retries for key: " + keyString + " due to Exception; aborting ");
                System.exit(1);
             }
          }
       } while (! complete && retries < MutationRetryDelay);  // default give up after 5 minutes
       
-      if (LOG.isTraceEnabled()) LOG.trace("putMutationRecord exit");
+      if (logger.isTraceEnabled()) logger.trace("putMutationRecord exit");
    }
 
    /**
@@ -287,7 +290,7 @@ public class MutationMeta {
     * 
     */
    public MutationMetaRecord getMutationRecord(final long key) throws Exception {
-      if (LOG.isTraceEnabled()) LOG.trace("getMutationRecord start for key " + key);
+      if (logger.isTraceEnabled()) logger.trace("getMutationRecord start for key " + key);
       MutationMetaRecord record;
       
       try {
@@ -305,7 +308,7 @@ public class MutationMeta {
             String archivedString            = st.nextToken();
             String archivePathString         = st.nextToken();
 
-            if (LOG.isTraceEnabled()) LOG.trace("MutationKey: " + Bytes.toLong(r.getRow())
+            if (logger.isTraceEnabled()) logger.trace("MutationKey: " + Bytes.toLong(r.getRow())
                     + "tableName: " + tableNameString
             		+ " associatedSnapshot: " + associatedSnapshotString
             		+ " smallestCommitId: " + smallestCommitIdString
@@ -321,16 +324,16 @@ public class MutationMeta {
             		                    archivePathString);
          }
          catch (Exception e1){
-             LOG.error("getMutationRecord Exception " + e1);
+             logger.error("getMutationRecord Exception " + e1);
              throw e1;
          }
       }
       catch (Exception e2) {
-            LOG.error("getMutationRecord Exception2 " + e2);
+            logger.error("getMutationRecord Exception2 " + e2);
             throw e2;
       }
 
-      if (LOG.isTraceEnabled()) LOG.trace("getMutationRecord end; returning " + record);
+      if (logger.isTraceEnabled()) logger.trace("getMutationRecord end; returning " + record);
       return record;
    }
    
@@ -342,7 +345,7 @@ public class MutationMeta {
     * 
     */
    public ArrayList<MutationMetaRecord> getPriorMutations(final long timeId) throws Exception {
-      if (LOG.isTraceEnabled()) LOG.trace("getPriorMutations start for timeId " + timeId);
+      if (logger.isTraceEnabled()) logger.trace("getPriorMutations start for timeId " + timeId);
       ArrayList<MutationMetaRecord> returnList = new ArrayList<MutationMetaRecord>();
       MutationMetaRecord record = null;
 
@@ -356,11 +359,11 @@ public class MutationMeta {
             for (Result r : ss) {
                long currKey = Bytes.toLong(r.getRow());
                if (currKey >= timeId){
-                   if (LOG.isTraceEnabled()) LOG.trace("currKey " + currKey
+                   if (logger.isTraceEnabled()) logger.trace("currKey " + currKey
 	                 		   + " is not less than timeId " + timeId + ".  Scan complete");
                    break;
                }
-               if (LOG.isTraceEnabled()) LOG.trace("currKey is " + currKey);
+               if (logger.isTraceEnabled()) logger.trace("currKey is " + currKey);
                for (Cell cell : r.rawCells()) {
                   StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                   String tableNameString           = st.nextToken();
@@ -372,7 +375,7 @@ public class MutationMeta {
                   String archivedString            = st.nextToken();
                   String archivePathString         = st.nextToken();
 
-                  if (LOG.isTraceEnabled()) LOG.trace("MutationKey: " + Bytes.toLong(r.getRow())
+                  if (logger.isTraceEnabled()) logger.trace("MutationKey: " + Bytes.toLong(r.getRow())
                             + " tableName: " + tableNameString
                      		+ " associatedSnapshot: " + associatedSnapshotString
                      		+ " smallestCommitId: " + smallestCommitIdString
@@ -392,22 +395,22 @@ public class MutationMeta {
             } // for (Result r : ss)
          } // try
          catch(Exception e){
-            LOG.error("getPriorMutations Exception getting results " + e);
+            logger.error("getPriorMutations Exception getting results " + e);
             throw new RuntimeException(e);
          }
          finally {
-            if (LOG.isTraceEnabled()) LOG.trace("getPriorMutations closing ResultScanner");
+            if (logger.isTraceEnabled()) logger.trace("getPriorMutations closing ResultScanner");
             ss.close();
          }
       }
       catch(Exception e){
-         LOG.error("getPriorMutations Exception setting up scanner " + e);
+         logger.error("getPriorMutations Exception setting up scanner " + e);
          throw new RuntimeException(e);
       }
       if (record == null) {
          throw new Exception("getPriorMutations record not found");
       }
-      if (LOG.isTraceEnabled()) LOG.trace("getPriorMutations: returning " + returnList.size() + " records");
+      if (logger.isTraceEnabled()) logger.trace("getPriorMutations: returning " + returnList.size() + " records");
       return returnList;
    }
 
@@ -421,7 +424,7 @@ public class MutationMeta {
     */
    public ArrayList<MutationMetaRecord> getMutationsFromRange(final long startKey,
 		                                                      final long endKey) throws Exception {
-      if (LOG.isTraceEnabled()) LOG.trace("getMutationsFromRange start for startKey "
+      if (logger.isTraceEnabled()) logger.trace("getMutationsFromRange start for startKey "
                                   + startKey + " endkey " + endKey);
       ArrayList<MutationMetaRecord> returnList = new ArrayList<MutationMetaRecord>();
       MutationMetaRecord record = null;
@@ -440,12 +443,12 @@ public class MutationMeta {
                }
                for (Cell cell : r.rawCells()) {
                   StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
-                  if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
+                  if (logger.isTraceEnabled()) logger.trace("string tokenizer success ");
                   String tableNameString           = st.nextToken();
                   String associatedSnapshotString  = st.nextToken();
                   String smallestCommitIdString    = st.nextToken();
                   if (Long.parseLong(smallestCommitIdString) > endKey){
-                     if (LOG.isTraceEnabled()) LOG.trace("smallestCommitId " + Long.parseLong(smallestCommitIdString)
+                     if (logger.isTraceEnabled()) logger.trace("smallestCommitId " + Long.parseLong(smallestCommitIdString)
 	                 		   + " is greater than endKey " + endKey + ".  Scan complete");
                      break;
                   }
@@ -454,7 +457,7 @@ public class MutationMeta {
                   String mutationPathString        = st.nextToken();
                   String archivedString            = st.nextToken();
                   String archivePathString         = st.nextToken();
-                  if (LOG.isTraceEnabled()) LOG.trace("MutationKey: " + Bytes.toLong(r.getRow())
+                  if (logger.isTraceEnabled()) logger.trace("MutationKey: " + Bytes.toLong(r.getRow())
                             + " tableName: " + tableNameString
                      		+ " associatedSnapshot: " + associatedSnapshotString
                      		+ " smallestCommitId: " + smallestCommitIdString
@@ -473,22 +476,22 @@ public class MutationMeta {
             } // for (Result r : ss)
          } // try
          catch(Exception e){
-            LOG.error("getMutationsFromRange Exception getting results " + e);
+            logger.error("getMutationsFromRange Exception getting results " + e);
             throw new RuntimeException(e);
          }
          finally {
-            if (LOG.isTraceEnabled()) LOG.trace("getMutationsFromRange closing ResultScanner");
+            if (logger.isTraceEnabled()) logger.trace("getMutationsFromRange closing ResultScanner");
             ss.close();
          }
       }
       catch(Exception e){
-         LOG.error("getMutationsFromRange Exception setting up scanner " + e);
+         logger.error("getMutationsFromRange Exception setting up scanner " + e);
          throw new RuntimeException(e);
       }
       if (record == null) {
          throw new Exception("getMutationsFromRange not found in range");
       }
-      if (LOG.isTraceEnabled()) LOG.trace("getMutationsFromRange: returning " + returnList.size() + " records");
+      if (logger.isTraceEnabled()) logger.trace("getMutationsFromRange: returning " + returnList.size() + " records");
       return returnList;
    }
 
@@ -500,18 +503,18 @@ public class MutationMeta {
     * 
     */
    public static boolean deleteMutationRecord(final long key) throws IOException {
-      if (LOG.isTraceEnabled()) LOG.trace("deleteMutationRecord start for key: " + key);
+      if (logger.isTraceEnabled()) logger.trace("deleteMutationRecord start for key: " + key);
       try {
          Delete d;
          //create our own hashed key
          d = new Delete(Bytes.toBytes(key));
-         if (LOG.isTraceEnabled()) LOG.trace("deleteMutationRecord  (" + key + ") ");
+         if (logger.isTraceEnabled()) logger.trace("deleteMutationRecord  (" + key + ") ");
          table.delete(d);
       }
       catch (Exception e) {
-         LOG.error("deleteMutationRecord Exception " + e );
+         logger.error("deleteMutationRecord Exception " + e );
       }
-      if (LOG.isTraceEnabled()) LOG.trace("deleteMutationRecord - exit");
+      if (logger.isTraceEnabled()) logger.trace("deleteMutationRecord - exit");
       return true;
    }
 }

@@ -298,6 +298,7 @@ define([
 						xtimemultiplier: 1,
 						ylabels: ["Avg. Disk Usage"],
 						yunit: "%",
+						ymin:0,
 						ymax: 100,
 						spinner:"#useddiskspace-spinner",
 						graphcontainer:"useddiskspace-chart",
@@ -807,7 +808,8 @@ define([
 							},
 						},
 						yaxis :{
-							min: 0,
+							min: metricConfig.ymin ? metricConfig.ymin : null,
+							max: metricConfig.ymax ? metricConfig.ymax : null,
 							show:true,
 							tickFormatter: function(val, axis){
 								if(metricConfig.yLabelFormat){
@@ -1020,7 +1022,8 @@ define([
 							},
 						},
 						yaxis :{
-							min: 0,
+							min: metricConfig.ymin ? metricConfig.ymin : null,
+							max: metricConfig.ymax ? metricConfig.ymax : null,
 							show:true,
 							tickFormatter: function(val, axis){
 								if(metricConfig.yLabelFormat){

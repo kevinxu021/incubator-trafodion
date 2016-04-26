@@ -11,7 +11,7 @@ interval = 60  # seconds
 cmd = "trafnodestatus"
 
 def main():
-    """sqnodecheck main loop"""
+    """trafnodestatus main loop"""
     
     #We only collect these metrics from one node in the cluster
     #If CMON is running, then collect and report metrics, else exit
