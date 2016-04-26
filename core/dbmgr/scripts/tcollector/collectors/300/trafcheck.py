@@ -14,7 +14,7 @@ FIELDS = ("configure", "running", "down")
 cmd = "trafcheck"
 
 def main():
-	"""sqcheck main loop"""
+	"""trafcheck main loop"""
 	
 	#We only collect these metrics from one node in the cluster
 	#If CMON is running, then collect and report metrics, else exit

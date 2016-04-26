@@ -258,7 +258,7 @@ define([
 			_this.fetchExplainPlan();
 		},
 		cancelQueryError:function(jqXHR){
-			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
+			var msgObj={msg:jqXHR.responseText,tag:"error",url:_this.currentURL,shortMsg:"Cancel query failed."};
 			if(jqXHR.responseText==undefined){
 				msgObj.msg="the response was null."
 				msgObj.shortMsg="the response was null."
