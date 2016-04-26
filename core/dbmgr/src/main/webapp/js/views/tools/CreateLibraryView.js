@@ -22,6 +22,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 	var CREATE_BTN = "#create_btn";
 	var CLEAR_BTN = "#clear_btn";
 	var LOADING = "#loading-spinner";
+	var PAGE_HEADER = "#create-library-page-header";
 	var FILE = null;
 	var CHUNKS = [];
 	var UPLOAD_INDEX = 0;
@@ -29,13 +30,16 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 	var OVERWRITE_FLAG = false;
 	var validator = null;
 	var isAjaxCompleted=true;
+	var _args = null;
 	
 	var CreateLibraryView = BaseView.extend({
 		template : _.template(CreateLibraryT),
 
 		doInit : function(args) {
 			_this = this;
-			common.redirectFlag=false;
+			_args = args;
+			_this.processArgs();
+			this.redirectFlag=false;
 			this.currentURL = window.location.hash;
 			$(CREATE_BTN).on('click', this.uploadFile);
 			$(CLEAR_BTN).on('click', this.cleanField);
@@ -74,7 +78,9 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		},
 		doResume : function(args) {
 			this.currentURL = window.location.hash;
-			common.redirectFlag=false;
+			_args = args;
+			_this.processArgs();
+			this.redirectFlag=false;
 			if(this.isAjaxCompleted=true){
 				$(LOADING).css('visibility', 'hidden');
 				$(CREATE_BTN).prop('disabled', false);
@@ -83,8 +89,37 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			validator.resetForm();
 		},
 		doPause : function() {
-			common.redirectFlag=true;
+			this.redirectFlag=true;
 			validator.resetForm();
+		},
+		processArgs: function(){
+			if( _args.schema != undefined){
+				$(SCHEMA_NAME).val( _args.schema);
+			}else{
+				$(SCHEMA_NAME).val("");
+			}
+			if(_args.library != undefined){
+				$(LIBRARY_NAME).val(_args.library);
+				$(LIBRARY_NAME).prop('disabled', true);
+				$(SCHEMA_NAME).prop('disabled', true);
+				$(PAGE_HEADER).text("Update Library");
+				$(CREATE_BTN).prop('value','Update');
+				var libParams = sessionStorage.getItem(_args.library);
+				sessionStorage.removeItem(_args.library);
+				if(libParams != undefined){
+					libParams = JSON.parse(libParams);
+					if(libParams.file){
+						$(FILE_NAME).val(libParams.file);
+					}
+				}
+			}else{
+				$(LIBRARY_NAME).val("");
+				$(FILE_NAME).val("");
+				$(SCHEMA_NAME).prop('disabled', false);
+				$(LIBRARY_NAME).prop('disabled', false);
+				$(PAGE_HEADER).text("Create Library");
+				$(CREATE_BTN).prop('value','Create');
+			}
 		},
 		
 		cleanField:function(){
@@ -99,6 +134,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			CHUNKS=[];
 			UPLOAD_INDEX = 0;
 			UPLOAD_LENGTH = 0;
+			_this.processArgs();
 		},
 		uploadFile : function() {
 			if($(LIB_FORM).valid()){
@@ -179,7 +215,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				$(CREATE_BTN).prop('disabled', false);
 				$(CLEAR_BTN).prop('disabled', false);
 				var msgObj={msg:'The library has been successfully created',tag:"success",url:_this.currentURL,shortMsg:"Library created successfully."};
-				if(common.redirectFlag==false){
+				if(_this.redirectFlag==false){
 					_this.popupNotificationMessage(null,msgObj);
 				}else{
 					
@@ -201,7 +237,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			var errorString = error.responseText.substring(errorIndex);
 			//alert(errorString);
 			var msgObj={msg:errorString,tag:"danger",url:_this.currentURL,shortMsg:"Create library failed."};
-			if(common.redirectFlag==false){
+			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{
 				

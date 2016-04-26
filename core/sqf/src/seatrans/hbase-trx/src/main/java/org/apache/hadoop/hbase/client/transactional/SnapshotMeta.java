@@ -137,7 +137,7 @@ public class SnapshotMeta {
    static final Log LOG = LogFactory.getLog(SnapshotMeta.class);
    private static HBaseAdmin admin;
    private Configuration config;
-   private static String SNAPSHOT_TABLE_NAME;
+   private static String SNAPSHOT_TABLE_NAME = "TRAFODION._DTM_.SNAPSHOT";
    private static final byte[] SNAPSHOT_FAMILY = Bytes.toBytes("sf");
    private static final byte[] SNAPSHOT_QUAL = Bytes.toBytes("sq");
    private static HTable table;
@@ -152,14 +152,19 @@ public class SnapshotMeta {
 
    /**
     * SnapshotMeta
-    * @param Configuration config
     * @throws Exception
     */
-   public SnapshotMeta (Configuration config) throws Exception  {
+   public SnapshotMeta () throws Exception  {
 
-      this.config = config;
       if (LOG.isTraceEnabled()) LOG.trace("Enter SnapshotMeta constructor");
-      SNAPSHOT_TABLE_NAME = config.get("SNAPSHOT_TABLE_NAME");
+      this.config = HBaseConfiguration.create();
+      try {
+         admin = new HBaseAdmin(config);
+      }
+      catch (Exception e) {
+         if (LOG.isTraceEnabled()) LOG.trace("  Exception creating HBaseAdmin " + e);
+         throw e;
+      }
       disableBlockCache = true;
 
       connection = HConnectionManager.createConnection(config);
@@ -171,7 +176,6 @@ public class SnapshotMeta {
       if (disableBlockCache) {
          hcol.setBlockCacheEnabled(false);
       }
-      admin = new HBaseAdmin(config);
 
       try {
          pSTRConfig = STRConfig.getInstance(config);
@@ -438,7 +442,9 @@ public class SnapshotMeta {
                          String snapshotCompleteString  = st.nextToken();
                          String completionTimeString    = st.nextToken();
                          String markedForDeletionString = st.nextToken();
-
+                         if (snapshotCompleteString.contains("false")) {
+                            continue;
+                         }
                          record = new SnapshotMetaStartRecord(currKey, userTagString, snapshotCompleteString.contains("true"),
                         		 Long.parseLong(completionTimeString, 10), markedForDeletionString.contains("true"));
                       }
@@ -460,9 +466,9 @@ public class SnapshotMeta {
           throw new RuntimeException(e);
       }
       if (record == null) {
-    	  throw new Exception("Prior record not found");    	  
+         throw new Exception("Exception in getPriorStartRecord.  Record not found");
       }
-      return record;	   
+      return record;
    }
 
    /**
@@ -515,9 +521,9 @@ public class SnapshotMeta {
          throw new RuntimeException(e);
       }
       if (record == null) {
-         throw new Exception("getCurrentStartRecordId current record not found");    	  
+         throw new Exception("getCurrentStartRecordId current record not found");
       }
-      return record.getKey();	   
+      return record.getKey();
    }
 
    /**
@@ -574,9 +580,9 @@ public class SnapshotMeta {
          throw new RuntimeException(e);
       }
       if (record == null) {
-         throw new Exception("getCurrentStartRecordId current record not found");    	  
+         throw new Exception("getCurrentStartRecordId current record not found");
       }
-      return record.getKey();	   
+      return record.getKey();
    }
 
    /**
@@ -641,10 +647,10 @@ public class SnapshotMeta {
           throw new RuntimeException(e);
       }
       if (returnList.isEmpty()) {
-    	  throw new Exception("Prior record not found");    	  
+         throw new Exception("Prior record not found");
       }
       if (LOG.isTraceEnabled()) LOG.trace("listSnapshotStartRecords(): returning " + returnList.size() + " records");
-      return returnList;	   
+      return returnList;
    }
 
    /**
@@ -742,10 +748,10 @@ public class SnapshotMeta {
           throw new RuntimeException(e);
       }
       if (returnList.isEmpty()) {
-    	  throw new Exception("Prior record not found");    	  
+         throw new Exception("Exception in getPriorSnapshotSet().  Record not found");
       }
       if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet(): returning " + returnList.size() + " records");
-      return returnList;	   
+      return returnList;
    }
 
    /**
@@ -797,6 +803,7 @@ public class SnapshotMeta {
                             String completionTimeString  = st.nextToken();
                             snapshotStopId = Long.parseLong(completionTimeString, 10);
                             tagFound = true;
+                            if (LOG.isTraceEnabled()) LOG.trace("Found a full snapshot for tag " + userTagString);
                             continue;
                          }
                       }
@@ -804,12 +811,15 @@ public class SnapshotMeta {
                          // This is a SnapshotMetaRecord, but if we haven't found the tag we are
                          // looking for in a start record we ignore it rather than include it in the returnList
                          if (tagFound != true) {
-                        	 continue;
+                            if (LOG.isTraceEnabled()) LOG.trace("Ignoring snapshot record for key "  + currKey);
+                            continue;
                          }
                          
                          // We have found the tag we are looking for, but now we need to ensure the
                          // current record is not beyond the stopId of the full snapshot
                          if (currKey > snapshotStopId) {
+                            if (LOG.isTraceEnabled()) LOG.trace("Snapshot record key "  + currKey + " is greater than the stopId "
+                                                           + snapshotStopId + " set is complete");
                             break;
                          }
                          String tableNameString    = st.nextToken();
@@ -840,10 +850,10 @@ public class SnapshotMeta {
           throw new RuntimeException(e);
       }
       if (returnList.isEmpty()) {
-    	  throw new Exception("Prior record not found");    	  
+         throw new Exception("Exception in getPriorSnapshotSet(key).  Record not found");
       }
       if (LOG.isTraceEnabled()) LOG.trace("getPriorSnapshotSet(tag): returning " + returnList.size() + " records");
-      return returnList;	   
+      return returnList;
    }
 
    /**

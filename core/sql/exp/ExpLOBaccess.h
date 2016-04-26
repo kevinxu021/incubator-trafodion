@@ -47,6 +47,7 @@
 #include "ExpLOBinterface.h"
 #include "ComSmallDefs.h"
 #include "Globals.h"
+#include "ExpCompressionWA.h"
 #include <seabed/ms.h>
 #include <seabed/fs.h>
 
@@ -186,8 +187,7 @@ Ex_Lob_Error ExLobsOper (
     Int64       transId,
     void        *blackBox,         // black box to be sent to cli
     Int32       blackBoxLen,        // length of black box
-    char* compressionWA = NULL,         // compression work area
-    Lng32 compressionWASize = 0,        // max size of compression work area
+    ExpCompressionWA* compressionWA = NULL,         // compression work area
     Int64       lobMaxSize = 0,        // max size of lob.
     Int64       lobMaxChunkMemSize = 0 ,//max length of intermediate mem buffer used to do i/o.
     Int64 lobGCLimit = 0, // size at which GC must be triggered
@@ -429,7 +429,7 @@ class ExLob
   Ex_Lob_Error readCursor(char *tgt, Int64 tgtSize, char *handleIn, Int32 handleInLen, Int64 &operLen,Int64 transId);
   Ex_Lob_Error readCursorData(char *tgt, Int64 tgtSize, cursor_t &cursor, Int64 &operLen,char *handleIn, Int32 handeLenIn,Int64 transId);
     Ex_Lob_Error readCursorDataSimple(char *tgt, Int64 tgtSize, cursor_t &cursor, Int64 &operLen);
-    Ex_Lob_Error readDataCursorSimple(char *fileName, char *tgt, Int64 tgtSize, Int64 &operLen, Int64 &uncompressedOperLen, char * compressionWA, Lng32 compressionWASize, ExLobGlobals *lobGlobals);
+    Ex_Lob_Error readDataCursorSimple(char *fileName, char *tgt, Int64 tgtSize, Int64 &operLen, Int64 &uncompressedOperLen, ExpCompressionWA * compressionWA, ExLobGlobals *lobGlobals);
     bool hasNoOpenCursors() { return lobCursors_.empty(); }
   Ex_Lob_Error openCursor(char *handleIn, Int32 handleInLen,Int64 transId);
     Ex_Lob_Error openDataCursor(char *fileName, LobsCursorType type, Int64 range, 
@@ -486,7 +486,7 @@ class ExLob
     ExLobStats *getStats() { return &stats_; }
     NAHeap *getLobGlobalHeap() { return lobGlobalHeap_;}
   ExLobRequest *getRequest() { return &request_; }
-
+  
   //The next 2 functions are not active at this point. They serve as an example
   //on how to send requests across to the mxlobsrvr process from the master 
   //process
@@ -509,6 +509,7 @@ class ExLob
     bool prefetchQueued_;
     NAHeap *lobGlobalHeap_;
     ExLobRequest request_;
+    NABoolean lobTrace_;
 };
 
 typedef map<string, ExLob *> lobMap_t;
@@ -566,7 +567,8 @@ class ExLobPreOpen
     Int64 maxBytes_;
     Int64 waited_;
 };
-
+void lobDebugInfo(const char *logMessage,Int32 errorcode,
+                         Int32 line, NABoolean lobTrace);
 typedef list<ExLobPreOpen *> preOpenList_t;
 typedef list<ExLobPreOpen *>::iterator preOpenList_it;
 
@@ -618,7 +620,8 @@ class ExLobGlobals
     {
       return heap_;
     }
-    void traceMessage(const char *logMessage, ExLobCursor *c, int line);
+  void traceMessage(const char *logMessage, ExLobCursor *c, int line);
+  
   public :
     lobMap_t *lobMap_;
     hdfsFS fs_;
@@ -635,6 +638,7 @@ class ExLobGlobals
     NABoolean isHive_;
     FILE *threadTraceFile_;
     NAHeap *heap_;
+    NABoolean lobTrace_;
 };
 
 
