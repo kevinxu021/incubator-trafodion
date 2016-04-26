@@ -3316,6 +3316,7 @@ short HbaseAccess::codeGen(Generator * generator)
                                 hbaseBlockSize,
                                 hbpa);
 
+  generator->setHBaseParallelScanner(hbpa);
 
   ComTdbHbaseAccess::ComHbaseAccessOptions * hbo = NULL;
   if (getOptHbaseAccessOptions())

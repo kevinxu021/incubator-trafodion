@@ -45,7 +45,7 @@ BEGIN
             VALUE "FileDescription", "TRAF ODBC Translation DLL"
             VALUE "FileVersion", "2.1.0.0"
             VALUE "InternalName", "TRAF ODBC Translation DLL"
-            VALUE "LegalCopyright", "?Copyright 2015 Esgyn Corporation"
+            VALUE "LegalCopyright", "?Copyright 2015-2016 Esgyn Corporation"
             VALUE "OriginalFilename", "traf_translation01.dll"
             VALUE "ProductName", "TRAF ODBC"
             VALUE "ProductVersion", "2.1.0.0"

@@ -171,13 +171,19 @@ define([
 					$("#notifyMenu>ul").append('<li id="allNotification"><a class="text-center active"><strong>See All Notifications</strong><i class="fa fa-angle-right"></i></a></li>');
 				}
 			}
-			if(obj.msg!=undefined){
-					$("#notifyMenu>ul").prepend('<li><a class="active"><div class="notifyDetail"><i class="fa fa-tasks fa-fw"></i><i">'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">×</button></div></a></li><li class="divider"></li>');
-			}else{
-					obj.msg="there is no response for current request.";
-					obj.shortMsg="there is no response.";
-					$("#notifyMenu>ul").prepend('<li><a class="active"><div class="notifyDetail"><i class="fa fa-tasks fa-fw"></i><i">'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">×</button></div></a></li><li class="divider"></li>');
+			if(obj.msg == undefined){
+				obj.msg="there is no response for current request.";
+				obj.shortMsg="there is no response.";
 			}
+			var alertClass = "alert-success fa-check-circle";
+			if(obj.tag == "error"){
+				alertClass = "alert-danger fa-times-circle";
+			}else if(obj.tag == "warning"){
+				alertClass = "alert-warning fa-warning";
+
+			}
+			$("#notifyMenu>ul").prepend('<li><a class="active"><div class="notifyDetail"><i class="fa '+ alertClass + ' fa-fw"></i><i style="padding-left:2px">'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">×</button></div></a></li><li class="divider"></li>');
+
 			common.MESSAGE_LIST.splice(0,0,{msg:obj.msg,tag:obj.tag,url:obj.url,time:currentTime});
 			common.hideNotifications=$("#notifyMenu>ul>li[id!='allNotification']:gt(7)");
 			$(".notifyDetail").unbind().on("click",__this.popupNotificationMessage);
@@ -261,7 +267,7 @@ define([
 			}
 			//this is for no redirect
 			if(obj.msg==undefined){
-				obj.msg="Cancel query failed.";
+				obj.msg="Operation failed.";
 			}
 			$.notify({message: obj.msg,
 				url:obj.url,

@@ -192,6 +192,12 @@ SplitBalanceHelper sbHelper;
 STRConfig pSTRConfig;
 TrxRegionEndpoint trxepcp = null;
 
+public static final int PIT_MUTATION_CREATE = 1;
+public static final int PIT_MUTATION_APPEND = 2;
+public static final int PIT_MUTATION_FLUSH = 3;
+public static final int PIT_MUTATION_CLOSE = 4;
+public static final int PIT_MUTATION_ROLLOVER = 5;
+
 // Region Observer Coprocessor START
 @Override
 public void start(CoprocessorEnvironment e) throws IOException {
@@ -567,7 +573,7 @@ public void preFlush(ObserverContext<RegionCoprocessorEnvironment> e) {
              if (LOG.isInfoEnabled()) { LOG.info("TrxRegionObserver coprocessor: close PIT mutation file if any in flush"); }
 	     if(trxepcp != null) {
 	         if (LOG.isInfoEnabled()) LOG.info("TrxRegionObserver coprocessor: invoke EPCP PIT mutation close action");
-                 trxepcp.mutationBufferOp(4, null, null);
+                 trxepcp.mutationBufferOp(PIT_MUTATION_CLOSE, null, null);
 	     }
 	     else {
 	         if (LOG.isInfoEnabled()) LOG.info("TrxRegionObserver coprocessor: Can't invoke EPCP PIT mutation close action");
@@ -823,7 +829,7 @@ public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> ed
    
    // PIT for non-ts reinstated txn, here we don't have a ts re-created as configuredConflictReinstate is FALSE
    //       just directly construct the mutation buffer and append (~ replayCommittedTxn in Observer)
-   if (configuredPITRecoveryHA) trxepcp.mutationBufferOp(2, null, tmBuilder);
+   if (configuredPITRecoveryHA) trxepcp.mutationBufferOp(PIT_MUTATION_APPEND, null, tmBuilder);
    } catch(IOException e) {
           StringWriter sw = new StringWriter();
           PrintWriter pw = new PrintWriter(sw);

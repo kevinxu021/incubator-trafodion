@@ -45,7 +45,7 @@ BEGIN
             VALUE "FileDescription", "TRAF ODBC Driver DLL"
             VALUE "FileVersion", "2.1.0.0"
             VALUE "InternalName", "TRAF ODBC Driver DLL"
-            VALUE "LegalCopyright", "?Copyright 2015 Esgyn Corporation"
+            VALUE "LegalCopyright", "?Copyright 2015-2016 Esgyn Corporation"
             VALUE "OriginalFilename", "trfodbc1.dll"
             VALUE "ProductName", "TRAF ODBC"
             VALUE "ProductVersion", "2.1.0.0"

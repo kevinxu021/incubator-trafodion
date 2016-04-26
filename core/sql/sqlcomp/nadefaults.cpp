@@ -1759,7 +1759,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
  // We can remove this once the delete costing code has broader
  // exposure.
  DDkwd__(HBASE_DELETE_COSTING,		             "OFF"),
-
+ DDflt0_(HBASE_DOP_PARALLEL_SCANNER,             "0."),
  DDkwd__(HBASE_FILTER_PREDS,		             "OFF"),
  DDkwd__(HBASE_HASH2_PARTITIONING,                   "ON"),
  DDui___(HBASE_INDEX_LEVEL,                          "0"),
@@ -2759,7 +2759,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
 
   DDkwd__(ORC_AGGR_PUSHDOWN,                    "ON"),
   DDkwd__(ORC_COLUMNS_PUSHDOWN,                 "ON"),
-  DDkwd__(ORC_NJS,                              "OFF"),
+  DDkwd__(ORC_NJS,                              "ON"),
   DDkwd__(ORC_PRED_PUSHDOWN,                    "ON"),
   DDkwd__(ORC_READ_STRIPE_INFO,                 "ON"),
   DDkwd__(ORC_USE_EXT_TABLE_ATTRS,              "OFF"),

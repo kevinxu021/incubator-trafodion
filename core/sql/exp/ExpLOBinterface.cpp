@@ -781,7 +781,7 @@ Lng32 ExpLOBInterfaceSelect(void * lobGlob,
                    waitedOp, 
 		   lobGlob,
 		   xnId, 
-		   NULL, 0,
+		   NULL, 0,NULL, 0,
 		   0,
 		   lobMaxMemChunkLen,
 		   0,0,0,0,inputFlags

@@ -364,6 +364,8 @@ public:
   // test if this is a constant, a host var, a dynamic or a cache parameter.
   NABoolean isAConstantHostVarParameterOrFunc() ;
   
+  // test if this is a NULL constant.
+  virtual NABoolean isNullConstant() { return FALSE; };
 
  private:
   // This method has the code that is common to
