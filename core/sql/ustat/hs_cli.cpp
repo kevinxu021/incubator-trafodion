@@ -1299,7 +1299,7 @@ HSPersSamples* HSPersSamples::Instance(const NAString &catalog,
         NAString hiveStatsSchema(HIVE_STATS_SCHEMA_NO_QUOTES);
         instance_->setCatalogSchema(hiveStatsCatalog,hiveStatsSchema);
       }
-    else if (HSGlobalsClass::isHbaseCat(catalog))
+    else if (HSGlobalsClass::isNativeHbaseCat(catalog))
       {
         NAString hbaseStatsCatalog(HBASE_STATS_CATALOG);
         NAString hbaseStatsSchema(HBASE_STATS_SCHEMA_NO_QUOTES);
