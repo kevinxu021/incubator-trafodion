@@ -1039,6 +1039,16 @@ public:
 
   HiveFileIterator() { reset(); }
 
+  HiveFileIterator(const HiveFileIterator& i) :
+   l1PartStats_(i.l1PartStats_),
+   l2BucketStats_(i.l2BucketStats_),
+   l3FileStats_(i.l3FileStats_),
+   p_(i.p_),
+   b_(i.b_),
+   f_(i.f_),
+   l_(i.l_)
+  {}
+
   void reset() { p_ = b_ = f_ = 0; l_= 1;
             l1PartStats_ = NULL; l2BucketStats_ = NULL; l3FileStats_ = NULL; }
 
@@ -1059,6 +1069,15 @@ private:
   CollIndex b_; // index of bucket within partn
   CollIndex f_; // index of file within bucket
   CollIndex l_; // level at which to try to advance next
+};
+
+class CompareHiveFileIterator {
+
+public:
+    // return TRUE iff t1's total size is less than t2's. Good to use 
+    // with C++ STL priority_queue to pick an HDFSFileStats object
+    // with the largest total size in O(1). 
+    bool operator()(HiveFileIterator& t1, HiveFileIterator& t2);
 };
 
 class orcPushdownPredicate
