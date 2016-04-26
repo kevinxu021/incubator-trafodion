@@ -45,12 +45,6 @@
 
 #include "ExpORCinterface.h"
 
-static NABoolean isCompressed(char* file)
-{
-  char * ret = strstr(file, ".lzo_deflate");
-  return (ret ? TRUE : FALSE) ;
-}
-
 ex_tcb * ExHdfsScanTdb::build(ex_globals * glob)
 {
   ExExeStmtGlobals * exe_glob = glob->castToExExeStmtGlobals();
@@ -84,9 +78,7 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   , bytesLeft_(0)
   , hdfsScanBuffer_(NULL)
   , hdfsBufNextRow_(NULL)
-  , compressionScratchBuffer_(NULL)
-  , compressionScratchMaxSize_(0)
-  , compressionScratchUsedSize_(0)
+  , compressionWA_(NULL)
   , hdfsLoggingRow_(NULL)
   , hdfsLoggingRowEnd_(NULL)
   , debugPrevRow_(NULL)
@@ -106,7 +98,6 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   , nextDelimRangeNum_(-1)
   , preOpenedRangeNum_(-1)
   , leftOpenRangeNum_(-1)
-  , isCompressed_(FALSE)
 {
   Space * space = (glob ? glob->getSpace() : 0);
   CollHeap * heap = (glob ? glob->getDefaultHeap() : 0);
@@ -115,11 +106,7 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   hdfsScanBuffer_ = new(space) char[ readBufSize + 1 ]; 
   hdfsScanBuffer_[readBufSize] = '\0';
 
-  if (1) // tdb indicates compression 
-  {
-    compressionScratchMaxSize_ = 256*1024;
-    compressionScratchBuffer_ = new (space) char[compressionScratchMaxSize_];
-  }
+  // when TDB indicates compression, compressionWA_ can be initialized here
   moveExprColsBuffer_ = new(space) ExSimpleSQLBuffer( 1, // one row 
 						      (Int32)hdfsScanTdb.moveExprColsRowLength_,
 						      space);
@@ -261,6 +248,11 @@ void ExHdfsScanTcb::freeResources()
   {
     delete hdfsSqlBuffer_;
     hdfsSqlBuffer_ = NULL;
+  }
+  if (compressionWA_)
+  {
+    NADELETEBASIC(compressionWA_, getGlobals()->getDefaultHeap());
+    compressionWA_ = NULL;
   }
   if (moveExprColsBuffer_)
   {
@@ -478,7 +470,29 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
               {
                 sprintf(cursorId_, "%d", currRangeNum_);
                 stopOffset_ = hdfsOffset_ + hdfo_->getBytesToRead();
-		isCompressed_ = isCompressed(hdfo_->fileName());
+		if (!compressionWA_)
+		{
+		  compressionWA_ = 
+		    ExpCompressionWA::createCompressionWA
+		    (hdfo_->fileName(), 256*1024, 
+		     getGlobals()->getDefaultHeap());
+		  if (compressionWA_)
+		  {
+		    ExpCompressionWA::CompressionReturnCode r = 
+		      compressionWA_->initCompressionLib();
+		    if (r != ExpCompressionWA::COMPRESS_SUCCESS)
+		    {
+		      ComDiagsArea * diagsArea = NULL;
+		      ExRaiseSqlError(getHeap(), &diagsArea, 
+				      (ExeErrorCode)8434, 
+				      NULL, NULL, NULL, NULL, 
+				      compressionWA_->getText(), NULL);
+    		      pentry_down->setDiagsArea(diagsArea);
+    		      step_ = HANDLE_ERROR;
+    		      break;
+		    }
+		  }
+		}
 
                 step_ = OPEN_HDFS_CURSOR;
               }
@@ -559,7 +573,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                    bytesRead_,
 		   uncompressedBytesRead_,
                    NULL,
-		   compressionScratchBuffer_, compressionScratchMaxSize_,
+		   compressionWA_,
                    1, // open
                    openType //
                    );
@@ -595,7 +609,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                            hdfsScanBufMaxSize_,
                            bytesRead_, uncompressedBytesRead_,
                            NULL,
-			   NULL, 0, // compression
+			   NULL, // compression
                            1,// open
                            openType
                            );
@@ -706,11 +720,10 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                    (NOT hdfsScanTdb().hdfsPrefetch()),  //1, // waited op
 		       
                    hdfsOffset_,
-                   bytesToRead,
+                   hdfsScanBufMaxSize_ - trailingPrevRead_,
                    bytesRead_, uncompressedBytesRead_,
                    hdfsScanBuffer_  + trailingPrevRead_,
-		   compressionScratchBuffer_, 
-		   hdfsScanBufMaxSize_ - trailingPrevRead_,
+		   compressionWA_,
                    2, // read
                    0 // openType, not applicable for read
                    );
@@ -755,7 +768,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                   // hive treats the end-of-file as a record delimiter.
                   lastByteRead[1] = hdfsScanTdb().recordDelimiter_;
                   uncompressedBytesRead_++;
-		  if (!isCompressed_)
+		  if (!compressionWA_) // revisit when mixed files are allowed
 		    bytesRead_++; // no compression, bytesRead = uncompBytesRead
                 }
                 if (bytesRead_ > bytesLeft_)
@@ -1266,7 +1279,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
                        0,
                        bytesRead_, uncompressedBytesRead_, // dummy
                        NULL,
-		       NULL, 0, // compression
+		       NULL, // compression
                        3, // close
                        0); // openType, not applicable for close
 

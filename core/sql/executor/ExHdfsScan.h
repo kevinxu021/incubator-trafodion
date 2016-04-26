@@ -37,6 +37,7 @@
 #include <time.h>
 #include "ExHbaseAccess.h"
 #include "ExpHbaseInterface.h"
+#include "ExpCompressionWA.h"
 
 #define HIVE_MODE_DOSFORMAT    1
 
@@ -238,9 +239,12 @@ protected:
   Int64 debugtrailingPrevRead_;
   char *debugPenultimatePrevRow_;
 
-  char * compressionScratchBuffer_;
-  Lng32 compressionScratchMaxSize_;
-  Lng32 compressionScratchUsedSize_;
+  ExpCompressionWA * compressionWA_; // compression work area. Has information
+                                     // about compression type, buffer for
+                                     // compression scratch space and virtual
+                                     // methods to initialize and decompress
+                                     // each of the supported compression types.
+                                     // is NULL for uncompressed files
   
   ExSimpleSQLBuffer *hdfsSqlBuffer_;  // this buffer for one row, converted
                                       // from ascii to SQL for select pred.
@@ -309,7 +313,6 @@ protected:
   NABoolean exception_;
   ComCondition * lastErrorCnd_;
   NABoolean checkRangeDelimiter_;
-  NABoolean isCompressed_;
 };
 
 // -----------------------------------------------------------------------
