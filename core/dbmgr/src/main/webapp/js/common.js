@@ -201,6 +201,16 @@ define(['moment',
 				return "";
 			},
 
+			this.hashString = function(stringVal){
+			  var hash = 0, i, chr, len;
+			  if (stringVal.length === 0) return hash;
+			  for (i = 0, len = stringVal.length; i < len; i++) {
+			    chr   = stringVal.charCodeAt(i);
+			    hash  = ((hash << 5) - hash) + chr;
+			    hash |= 0; // Convert to 32bit integer
+			  }
+			  return hash;
+			},
 			this.toServerLocalFromUTCMilliSeconds = function(utcMsec){
 				return utcMsec + _this.serverUtcOffset;
 			},
