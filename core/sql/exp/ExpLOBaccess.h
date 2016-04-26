@@ -486,7 +486,7 @@ class ExLob
     ExLobStats *getStats() { return &stats_; }
     NAHeap *getLobGlobalHeap() { return lobGlobalHeap_;}
   ExLobRequest *getRequest() { return &request_; }
-
+  
   //The next 2 functions are not active at this point. They serve as an example
   //on how to send requests across to the mxlobsrvr process from the master 
   //process
@@ -509,6 +509,7 @@ class ExLob
     bool prefetchQueued_;
     NAHeap *lobGlobalHeap_;
     ExLobRequest request_;
+    NABoolean lobTrace_;
 };
 
 typedef map<string, ExLob *> lobMap_t;
@@ -566,7 +567,8 @@ class ExLobPreOpen
     Int64 maxBytes_;
     Int64 waited_;
 };
-
+void lobDebugInfo(const char *logMessage,Int32 errorcode,
+                         Int32 line, NABoolean lobTrace);
 typedef list<ExLobPreOpen *> preOpenList_t;
 typedef list<ExLobPreOpen *>::iterator preOpenList_it;
 
@@ -618,7 +620,8 @@ class ExLobGlobals
     {
       return heap_;
     }
-    void traceMessage(const char *logMessage, ExLobCursor *c, int line);
+  void traceMessage(const char *logMessage, ExLobCursor *c, int line);
+  
   public :
     lobMap_t *lobMap_;
     hdfsFS fs_;
@@ -635,6 +638,7 @@ class ExLobGlobals
     NABoolean isHive_;
     FILE *threadTraceFile_;
     NAHeap *heap_;
+    NABoolean lobTrace_;
 };
 
 
