@@ -39,7 +39,7 @@ define([
 
 		doInit: function (args){
 			this.currentURL = window.location.hash;
-			common.redirectFlag=false;
+			this.redirectFlag=false;
 			_this = this;
 			$('#query-id').val(args);
 			queryID = args;
@@ -84,7 +84,7 @@ define([
 
 		},
 		doResume: function(args){
-			common.redirectFlag=false;
+			this.redirectFlag=false;
 			$('#query-id').val(args);
 			if(queryID != null && queryID != args){
 				queryID = args;
@@ -104,7 +104,7 @@ define([
 			this.fetchActiveQueryDetail();
 		},
 		doPause: function(){
-			common.redirectFlag=true;
+			this.redirectFlag=true;
 			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimer.pause();
 			wHandler.off(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
@@ -139,7 +139,7 @@ define([
 		cancelQuerySuccess:function(){
 			/*alert('The cancel query request has been submitted');*/
 			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully."};
-			if(common.redirectFlag==false){
+			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{
 				
@@ -149,7 +149,7 @@ define([
 		},
 		cancelQueryError:function(jqXHR){
 			/*alert(jqXHR.responseText);*/
-			var msgObj={msg:jqXHR.responseText,tag:"error",url:_this.currentURL,shortMsg:"Cancel query failed."};
+			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
 			if(jqXHR.responseText==undefined){
 				msgObj.msg="the response was null."
 				msgObj.shortMsg="the response was null."
@@ -158,7 +158,7 @@ define([
 				msgObj.msg="the request was aborted."
 				msgObj.shortMsg="the request was aborted."
 			}
-			if(common.redirectFlag==false){
+			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{
 				
@@ -374,7 +374,7 @@ define([
 					if (!patt.test(jqXHR.responseText)){
 						/*alert(jqXHR.responseText);*/
 						var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Fetch active query failed."};
-						if(common.redirectFlag==false){
+						if(_this.redirectFlag==false){
 							_this.popupNotificationMessage(null,msgObj);
 						}else{
 							

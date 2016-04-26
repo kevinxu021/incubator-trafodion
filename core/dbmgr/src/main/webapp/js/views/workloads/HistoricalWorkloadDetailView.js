@@ -39,7 +39,7 @@ define([
 		template:  _.template(WorkloadsT),
 
 		doInit: function (args){
-			common.redirectFlag=false;
+			this.redirectFlag=false;
 			_this = this;
 			this.pageIdentifier="historical";
 			$('#query-id').val(args);
@@ -81,7 +81,7 @@ define([
 		},
 		doResume: function(args){
 			this.currentURL = window.location.hash;
-			common.redirectFlag=false;
+			this.redirectFlag=false;
 			$('#query-id').val(args);
 			if(queryID != null && queryID != args){
 				queryID = args;
@@ -126,7 +126,7 @@ define([
 			this.fetchRepositoryQueryDetail();
 		},
 		doPause: function(){
-			common.redirectFlag=true;
+			this.redirectFlag=true;
 			wHandler.off(wHandler.FETCH_REPO_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.off(wHandler.FETCH_REPO_QUERY_DETAIL_ERROR, this.showErrorMessage);
 			/*wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
@@ -158,7 +158,7 @@ define([
 			}else {
 				/*alert("The query is not in executing state. Cannot cancel the query.");*/
 				var msgObj={msg:'The query is not in executing state. Cannot cancel the query.',tag:"warning",url:_this.currentURL,shortMsg:"The query is not in executing state."};
-				if(common.redirectFlag==false){
+				if(_this.redirectFlag==false){
 					_this.popupNotificationMessage(null,msgObj);
 				}else{
 					
@@ -169,7 +169,7 @@ define([
 		cancelQuerySuccess:function(data){
 			/*alert('The cancel query request has been submitted');*/
 			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully."};
-			if(common.redirectFlag==false){
+			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{
 				
@@ -180,7 +180,7 @@ define([
 		},
 		cancelQueryError:function(jqXHR){
 			/*alert(jqXHR.responseText);*/
-			var msgObj={msg:jqXHR.responseText,tag:"error",url:_this.currentURL,shortMsg:"Cancel query failed."};
+			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
 			if(jqXHR.responseText==undefined){
 				msgObj.msg="the response was null."
 				msgObj.shortMsg="the response was null."
@@ -189,7 +189,7 @@ define([
 				msgObj.msg="the request was aborted."
 				msgObj.shortMsg="the request was aborted."
 			}
-			if(common.redirectFlag==false){
+			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{
 				
