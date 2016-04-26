@@ -457,6 +457,7 @@ CoprocessorService, Coprocessor {
   static IdTm idServer = null;
   static final int ID_TM_SERVER_TIMEOUT = 1000;
   static MutationMeta meta = null;
+  static SnapshotMeta snapMeta = null;
   
   public static final int PIT_MUTATION_CREATE = 1;
   public static final int PIT_MUTATION_APPEND = 2;
@@ -6864,17 +6865,34 @@ CoprocessorService, Coprocessor {
 	      currentFileKey = timeKey;
 	     
 	      // 1.2) new mutation record     
-	      // currentSnapshotId = call meta API to get current (long) snapshot id
+
+	      if (snapMeta == null) {
+		   if(LOG.isTraceEnabled()) LOG.trace("to create snapshot meta ..."); 
+		   try {
+                         snapMeta = new SnapshotMeta();
+                   } catch (Exception e){
+                   System.out.println("Exception creating new snapshot meta: " + e);
+                   }
+		   if(LOG.isTraceEnabled()) LOG.trace("snapshot meta created successfully");                   
+	      }
+
 	         
               if (meta == null) {
 		   if(LOG.isTraceEnabled()) LOG.trace("to create mutation meta ..."); 
 		   try {
-               meta = new MutationMeta();
-           } catch (Exception e){
-               System.out.println("Exception creating new mutation meta: " + e);
-           }
+                         meta = new MutationMeta();
+                   } catch (Exception e){
+                   System.out.println("Exception creating new mutation meta: " + e);
+                   }
 		   if(LOG.isTraceEnabled()) LOG.trace("mutation meta created successfully");                   
 	      }
+	      
+	      try {
+	           currentSnapshotId = snapMeta.getCurrentSnapshotId(regionInfo.getTable().toString());
+		   if(LOG.isTraceEnabled()) LOG.trace("PIT get current snapshot id " + currentSnapshotId);  
+                   } catch (Exception e){
+                   System.out.println("Exception getcurrent snapshot id: " + e);
+                   }
       
 	      currentPITPath = writePath = new Path("/hbase/PIT/mutation/" +
 	              regionInfo.getTable().toString() + "-snapshot-" + Long.toString(currentSnapshotId) +
