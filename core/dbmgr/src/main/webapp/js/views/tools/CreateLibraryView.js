@@ -214,7 +214,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				$(LOADING).css('visibility', 'hidden');
 				$(CREATE_BTN).prop('disabled', false);
 				$(CLEAR_BTN).prop('disabled', false);
-				var msgObj={msg:'The library has been successfully created',tag:"success",url:null_this.currentURL,shortMsg:"Library created successfully."};
+				var msgObj={msg:'The library has been successfully created',tag:"success",url:null,shortMsg:"Library created successfully."};
 				if(_this.redirectFlag==false){
 					_this.popupNotificationMessage(null,msgObj);
 				}else{
