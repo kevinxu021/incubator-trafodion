@@ -243,7 +243,8 @@ public class MutationMeta {
       // Create the Put
       Put p = new Put(Bytes.toBytes(key));
       p.add(MUTATION_FAMILY, MUTATION_QUAL,
-                Bytes.toBytes(record.getTableName() + ","
+                Bytes.toBytes(String.valueOf(key) + ","
+                		+ record.getTableName() + ","
                         + String.valueOf(record.getAssociatedSnapshot()) + ","
                         + String.valueOf(record.getSmallestCommitId()) + ","
                         + String.valueOf(record.getFileSize()) + ","
@@ -363,6 +364,7 @@ public class MutationMeta {
                if (LOG.isTraceEnabled()) LOG.trace("currKey is " + currKey);
                for (Cell cell : r.rawCells()) {
                   StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
+                  String keyString                 = st.nextToken();
                   String tableNameString           = st.nextToken();
                   String associatedSnapshotString  = st.nextToken();
                   String smallestCommitIdString    = st.nextToken();
@@ -441,6 +443,7 @@ public class MutationMeta {
                for (Cell cell : r.rawCells()) {
                   StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                   if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
+                  String keyString                 = st.nextToken();
                   String tableNameString           = st.nextToken();
                   String associatedSnapshotString  = st.nextToken();
                   String smallestCommitIdString    = st.nextToken();

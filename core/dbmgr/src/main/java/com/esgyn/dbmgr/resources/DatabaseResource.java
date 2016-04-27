@@ -811,7 +811,7 @@ public class DatabaseResource {
 		if ((nameLength > 1) && (externalName.startsWith("\"")) && (externalName.endsWith("\""))) {
 			return externalName.substring(1, nameLength - 2);
 		}
-		return externalName.toUpperCase();
+		return externalName;
 	}
 
 	public static String FindChildDDL(String parentDDLText, String childName, String[] patterns) {

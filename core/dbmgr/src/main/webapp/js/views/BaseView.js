@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -129,7 +129,11 @@ define([
 				this.doInit(args);
 				this.currentURL=window.location.hash;
 			}
+			$('#notifyMenu').on('shown.bs.dropdown', function(){
+				$('#notification-btn').find('.dbmgr-notify-icon').remove();
+			});
 		},
+		
 		resume: function(args){
 			if(this.doResume){
 				this.doResume(args);
@@ -156,13 +160,18 @@ define([
 		},
 		collectNewNotifyMessage:function(obj){
 			$("#notifyMenu>ul>div").remove();
+			var notifyIndicator = $('#notification-btn').find('.dbmgr-notify-icon');
+			if(notifyIndicator.length == 0){
+				$('#notification-btn').append('<i class="dbmgr-notify-icon fa fa-exclamation-circle fa-stack-1x" style="color:yellow"></i>');
+			}
+			
 			common.MESSAGE_COUNT++;
 			var currentTime=new Date();
 			var interval=setInterval(__this.flashBackground,1000);
 			setInterval(__this.refreshTimeDiff,60000);
 			setTimeout(function(){clearInterval(interval)},5000);
 			//remove the empty li.
-			if($("#notifyMenu>ul>li>a>strong").text().trim()=='empty'){
+			if($("#notifyMenu>ul>li>a>strong").text().trim()=='No available notifications'){
 				$("#notifyMenu>ul>li").remove();
 			}
 			//sometimes the response will be undefined.
@@ -183,7 +192,36 @@ define([
 				alertClass = "alert-warning fa-warning";
 
 			}
-			$("#notifyMenu>ul").prepend('<li><a class="active"><div class="notifyDetail"><i class="fa '+ alertClass + ' fa-fw"></i><i style="padding-left:2px">'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">×</button></div></a></li><li class="divider"></li>');
+
+			//Compute the hash string on the url.
+			var hs = common.hashString(obj.url ? obj.url : "");
+			
+			if(obj.lastMessageOnly && obj.lastMessageOnly == true){
+				
+				//delete all other earlier messages that match obj.url
+				$.each(common.MESSAGE_LIST, function (index , value){
+					if(obj.url == value.url){
+						common.MESSAGE_LIST.splice(index, 1);
+						common.MESSAGE_COUNT --;
+					}
+				});
+				
+				//Delete the older messages from the UI, by matching the hash string
+				var itemList = $('#notifyMenu>ul>li');
+				if(itemList.length > 0){
+					for(var i=0;i<itemList.length;i++){
+						if($(itemList[i]).attr("hashstr") && $(itemList[i]).attr("hashstr") == hs){
+							$(itemList[i]).remove();
+							if($(itemList[i+1]).hasClass("divider")){
+								$(itemList[i+1]).remove();
+								i++;								
+							}
+						}
+					}
+				}
+			}
+			
+			$("#notifyMenu>ul").prepend('<li hashstr="'+hs+'"><a class="active"><div class="notifyDetail"><i class="fa '+ alertClass + ' fa-fw"></i><i style="padding-left:2px">'+ obj.shortMsg.substr(0,35)+'</i> <span class="text-muted small timeAgo" style="margin-left: 5px;"> 0 minutes ago </span><button type="button" aria-hidden="true" class="pull-right close" data-notify="dismiss" style="color: black;">×</button></div></a></li><li class="divider"></li>');
 
 			common.MESSAGE_LIST.splice(0,0,{msg:obj.msg,tag:obj.tag,url:obj.url,time:currentTime});
 			common.hideNotifications=$("#notifyMenu>ul>li[id!='allNotification']:gt(7)");
@@ -244,7 +282,7 @@ define([
 			//while all the notifications are removed.
 			if($("#notifyMenu>ul>li [class!='divider']").length==0){
 				$("#notifyMenu>ul>div").remove();
-				$("#notifyMenu>ul").prepend('<li><a class="text-center active"><i class="fa fa-angle-left"></i><strong>empty </strong><i class="fa fa-angle-right"></i></a></li>');
+				$("#notifyMenu>ul").prepend('<li><a class="text-center active"><i class="fa fa-angle-left"></i><strong>No available notifications</strong><i class="fa fa-angle-right"></i></a></li>');
 			}
 			event.stopPropagation();
 		},
