@@ -189,7 +189,6 @@ private:
 }; // NodeMapEntry
 //<pb>
 
-
 class HHDFSFileStats;
 
 struct HiveScanInfo
@@ -197,7 +196,7 @@ struct HiveScanInfo
    void print(FILE* ofd, const char* indent, const char* title) const;
 
   HiveScanInfo(HHDFSFileStats* file=NULL, Int64 off=0, Int64 span=0, NABoolean loc=FALSE,
-               HHDFSListPartitionStats* partition=NULL,
+               const HHDFSListPartitionStats* partition=NULL,
                const char *partColExplodedValues=NULL)
        : file_(file), offset_(off), span_(span), isLocal_(loc),
          partition_(partition), partColExplodedValues_(partColExplodedValues) {}
@@ -206,7 +205,7 @@ struct HiveScanInfo
    Int64 offset_;
    Int64 span_;
    NABoolean isLocal_;
-   HHDFSListPartitionStats* partition_;
+   const HHDFSListPartitionStats* partition_;
    const char *partColExplodedValues_;
 };
    
@@ -239,6 +238,18 @@ protected:
    LIST(HiveScanInfo) scanInfo_;
 
    Int64 filled_; // number of bytes filled in scanInfo_
+};
+
+
+typedef HiveNodeMapEntry* HiveNMEntryPtr;
+
+class CompareHiveNMEntryPtr {
+    
+public:
+    // return TRUE iff t1's total filled is greater than t2's. Good to use 
+    // with C++ STL priority_queue to pick an HiveNodeMapEntry object
+    // with the least filled size in O(1). 
+    bool operator()(HiveNMEntryPtr& t1, HiveNMEntryPtr& t2);
 };
 
 class HBaseNodeMapEntry : public NodeMapEntry {
@@ -386,6 +397,9 @@ public:
   // For Hive tables, assign every file to each partition 
   // (repartition without broadcast) 
   void assignScanInfosRepN(HivePartitionAndBucketKey *hiveSearchKey);
+
+  // For Hive tables, assign each HDFS file to one ESP.
+  void assignScanInfosNoSplit(HivePartitionAndBucketKey *hiveSearchKey);
 
   // balance out the assigned scan ranges to distribute work more evenly
   void balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,

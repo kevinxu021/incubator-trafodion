@@ -139,9 +139,11 @@ public class OrcFileReader
             if (operLen > 0) {
                 oper = new byte[operLen];
                 bb.get(oper, 0, operLen);
-
-            if (logger.isDebugEnabled()) logger.debug("operLen = " + operLen + " oper " + Bytes.toString(oper));
+            } else {
+                oper = new byte[0];
             }
+            if (logger.isDebugEnabled()) 
+               logger.debug("operLen = " + operLen + " oper " + Bytes.toString(oper));
 
             if (type == EQUALS) {
 		if (logger.isDebugEnabled()) logger.debug("colNameLen = " + colNameLen + " colName = " + Bytes.toString(colName));
