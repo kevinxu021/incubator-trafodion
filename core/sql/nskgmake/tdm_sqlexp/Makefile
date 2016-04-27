@@ -71,6 +71,7 @@ CPPSRC := BigNumHelper.cpp \
 	ExpSeqGen.cpp \
 	ExpSequenceFunction.cpp \
 	ExpSqlTupp.cpp \
+	ExpCompressionWA.cpp \
 	Hbase_types.cpp
 
 CPPSRC += exp_ieee.cpp

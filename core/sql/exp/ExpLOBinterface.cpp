@@ -57,7 +57,7 @@ Lng32 ExpLOBinterfaceInit(void *& lobGlob, void * lobHeap,NABoolean isHive, Int6
                    1, // waited op
 		   lobGlob,
 		   0,
-		   NULL, 0, NULL, 0,
+		   NULL, 0, NULL,
 		   lobMaxSize);
   if (lobGlob)
     {
@@ -215,7 +215,7 @@ Lng32 ExpLOBinterfaceCreate(
 		   Lob_None,
                    1, // waited op
 		   lobGlob,
-		   0, NULL, 0, NULL, 0,
+		   0, NULL, 0, NULL,
 		   lobMaxSize,
                    bufferSize ,
                    replication,
@@ -445,7 +445,7 @@ Lng32 ExpLOBInterfaceInsert(void * lobGlob,
 		   lobGlob,
 		   xnId, 
 		   blackBox, blackBoxLen,
-		   NULL, 0, // compression
+		   NULL, // compression
 		   lobMaxSize,
 		   lobMaxChunkMemSize,
                    lobGCLimit,
@@ -574,7 +574,7 @@ Lng32 ExpLOBInterfaceUpdateAppend(void * lobGlob,
                    so,
                    1, 
                    lobGlob,
-                   xnId, NULL, 0, NULL, 0, 
+                   xnId, NULL, 0, NULL, 
 		   lobMaxSize,
 		   lobMaxChunkMemSize,
                    lobGCLimit
@@ -646,7 +646,7 @@ Lng32 ExpLOBInterfaceUpdate(void * lobGlob,
                    1, 
                    lobGlob,
                    xnId, 
-		   NULL, 0, NULL, 0, 
+		   NULL, 0, NULL,
 		   lobMaxSize,
 		   lobMaxChunkMemSize,
                    lobGCLimit
@@ -781,7 +781,7 @@ Lng32 ExpLOBInterfaceSelect(void * lobGlob,
                    waitedOp, 
 		   lobGlob,
 		   xnId, 
-		   NULL, 0,NULL, 0,
+		   NULL, 0, NULL,
 		   0,
 		   lobMaxMemChunkLen,
 		   0,0,0,0,inputFlags
@@ -821,8 +821,7 @@ Lng32 ExpLOBInterfaceSelectCursor(void * lobGlob,
                                   Int64 srcOffset, Int64 inLen, 
 			          Int64 &outLen, Int64 &uncompressedOutLen,
 				  char * lobData,
-				  char * compressionWA, Lng32 compressionWASize,
-
+				  ExpCompressionWA * compressionWA,
 				  Lng32 oper, // 1: open. 2: fetch. 3: close
                                   Lng32 openType // 0: not applicable. 1: preOpen. 2: mustOpen.
 				  )
@@ -883,7 +882,7 @@ Lng32 ExpLOBInterfaceSelectCursor(void * lobGlob,
 		   lobGlob,
 		   0,
 		   NULL, 0,
-		   compressionWA, compressionWASize,
+		   compressionWA,
 		   0,0,0,0,0,0,
                    openType
 		   );
