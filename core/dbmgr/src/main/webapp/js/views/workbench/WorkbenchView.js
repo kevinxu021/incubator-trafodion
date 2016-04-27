@@ -102,7 +102,7 @@ define([
 			if(isPaused){
 				resultsAfterPause = true;
 				lastExplainResult = jsonData;
-				var msgObj={msg:'The workbench query explain completed successfully.',tag:"success",url:_this.currentURL,shortMsg:"Workbench explain succeeded."};
+				var msgObj={msg:'The workbench query explain completed successfully.',tag:"success",url:_this.currentURL,shortMsg:"Workbench explain succeeded.",lastMessageOnly:true};
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 				return;
 			}
@@ -437,7 +437,7 @@ define([
 			if(isPaused){
 				resultsAfterPause = true;
 				lastExecuteResult = result;
-				var msgObj={msg:'The workbench query execution completed successfully.',tag:"success",url:_this.currentURL,shortMsg:"Workbench execute succeeded."};
+				var msgObj={msg:'The workbench query execution completed successfully.',tag:"success",url:_this.currentURL,shortMsg:"Workbench execute succeeded.",lastMessageOnly:true};
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 				return;
 			}
@@ -502,7 +502,7 @@ define([
 			if(isPaused){
 				resultsAfterPause = true;
 				lastRawError = jqXHR;
-				var msgObj={msg:'The workbench operation failed.',tag:"danger",url:_this.currentURL,shortMsg:"Workbench operation failed."};
+				var msgObj={msg:'The workbench operation failed.',tag:"danger",url:_this.currentURL,shortMsg:"Workbench operation failed.",lastMessageOnly:true};
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 				return;
 			}
