@@ -214,7 +214,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				$(LOADING).css('visibility', 'hidden');
 				$(CREATE_BTN).prop('disabled', false);
 				$(CLEAR_BTN).prop('disabled', false);
-				var msgObj={msg:'The library has been successfully created',tag:"success",url:_this.currentURL,shortMsg:"Library created successfully."};
+				var msgObj={msg:'The library has been successfully created',tag:"success",url:null_this.currentURL,shortMsg:"Library created successfully."};
 				if(_this.redirectFlag==false){
 					_this.popupNotificationMessage(null,msgObj);
 				}else{
@@ -236,7 +236,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			var errorIndex = error.responseText.lastIndexOf("*** ERROR");
 			var errorString = error.responseText.substring(errorIndex);
 			//alert(errorString);
-			var msgObj={msg:errorString,tag:"danger",url:_this.currentURL,shortMsg:"Create library failed."};
+			var msgObj={msg:errorString,tag:"danger",url:null,shortMsg:"Create library failed."};
 			if(_this.redirectFlag==false){
 				_this.popupNotificationMessage(null,msgObj);
 			}else{
