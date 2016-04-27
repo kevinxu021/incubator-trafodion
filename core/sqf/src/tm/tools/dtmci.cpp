@@ -1542,7 +1542,13 @@ int main(int argc, char *argv[])
                cout << "Missing qualifier [rm]"<<endl; 
 
         }
-
+        else if (!strcmp(lp_nextcmd, "replay"))
+        {
+          get_cmd(lp_inputstr, lp_nextcmd);
+          long ts = atol(lp_nextcmd);
+          short lv_error = DTM_REPLAYENGINE(ts);
+          cout<<"DTM_REPLAYENGINE returned error "<<lv_error<<endl;
+        }
         else if (!strcmp(lp_nextcmd, "b") || !strcmp(lp_nextcmd, "begin"))
         {
             int lv_tag = 0;

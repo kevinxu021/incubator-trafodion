@@ -134,7 +134,7 @@ import java.util.concurrent.RejectedExecutionException;
  * 
  */
   public class TableRecoveryGroup {
-
+	  
      static final Log LOG = LogFactory.getLog(TableRecoveryGroup.class);
 
      private SnapshotMetaRecord smr;

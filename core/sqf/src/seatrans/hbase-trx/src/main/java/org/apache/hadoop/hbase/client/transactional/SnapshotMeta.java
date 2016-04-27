@@ -233,9 +233,12 @@ public class SnapshotMeta {
       Put p = new Put(Bytes.toBytes(key));
 
       // This is the format of SnapshotMetaStartRecord 
-      p.add(SNAPSHOT_FAMILY, SNAPSHOT_QUAL, Bytes.toBytes(String.valueOf(startRecord) + "," + tag
-    		  + "," + String.valueOf(snapshotComplete) + "," + String.valueOf(completionTime)
-    		  + "," + String.valueOf(markedForDeletion)));
+      p.add(SNAPSHOT_FAMILY, SNAPSHOT_QUAL, Bytes.toBytes(String.valueOf(key) + ","
+                                + String.valueOf(startRecord) + ","
+                                + tag + ","
+                                + String.valueOf(snapshotComplete) + ","
+                                + String.valueOf(completionTime) + ","
+                                + String.valueOf(markedForDeletion)));
       int retries = 0;
       boolean complete = false;
       do {     
@@ -278,7 +281,8 @@ public class SnapshotMeta {
       // Create the Put
       Put p = new Put(Bytes.toBytes(key));
       p.add(SNAPSHOT_FAMILY, SNAPSHOT_QUAL,
-    		  Bytes.toBytes(String.valueOf(record.getStartRecord()) + ","
+    		  Bytes.toBytes(String.valueOf(String.valueOf(key) + ","
+    				   + record.getStartRecord()) + ","
                        + record.getUserTag() + ","
                        + String.valueOf(record.getSnapshotComplete()) + ","
                        + String.valueOf(record.getCompletionTime()) + ","
@@ -326,7 +330,8 @@ public class SnapshotMeta {
       // Create the Put
       Put p = new Put(Bytes.toBytes(key));
       p.add(SNAPSHOT_FAMILY, SNAPSHOT_QUAL,
-    		  Bytes.toBytes(String.valueOf(record.getStartRecord()) + ","
+    		  Bytes.toBytes(String.valueOf(key) + ","
+    				   + String.valueOf(record.getStartRecord()) + ","
                        + record.getTableName() + ","
                        + record.getUserTag() + ","
                        + record.getSnapshotPath() + ","
@@ -435,6 +440,7 @@ public class SnapshotMeta {
                    StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                    if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
                    if (st.hasMoreElements()) {
+                      String keyString         = st.nextToken();
                       String startRecordString = st.nextToken();
                       if (startRecordString.contains("true")) {
                          // We found a full snapshot
@@ -493,6 +499,7 @@ public class SnapshotMeta {
                   StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                   if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
                   if (st.hasMoreElements()) {
+                     String keyString         = st.nextToken();
                      String startRecordString = st.nextToken();
                      if (startRecordString.contains("true")) {
                         // We found a full snapshot
@@ -548,6 +555,7 @@ public class SnapshotMeta {
                   StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                   if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
                   if (st.hasMoreElements()) {
+                     String keyString         = st.nextToken();
                      String startRecordString = st.nextToken();
                      if (! startRecordString.contains("true")) {
                         // We found a partial snapshot
@@ -613,6 +621,7 @@ public class SnapshotMeta {
                    StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                    if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
                    if (st.hasMoreElements()) {
+                      String keyString         = st.nextToken();
                       String startRecordString = st.nextToken();
                       if (startRecordString.contains("true")) {
                          // We found a snapshot start 
@@ -683,6 +692,7 @@ public class SnapshotMeta {
                    StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                    if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
                    if (st.hasMoreElements()) {
+                      String keyString         = st.nextToken();
                       String startRecordString = st.nextToken();
                       if (startRecordString.contains("true")) {
                          String userTagString           = st.nextToken();
@@ -785,6 +795,7 @@ public class SnapshotMeta {
                    StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                    if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
                    if (st.hasMoreElements()) {
+                      String keyString         = st.nextToken();
                       String startRecordString = st.nextToken();
                       if (startRecordString.contains("true")) {
                          String userTagString           = st.nextToken();
@@ -891,6 +902,7 @@ public class SnapshotMeta {
                    StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
                    if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
                    if (st.hasMoreElements()) {
+                      String keyString         = st.nextToken();
                       String startRecordString = st.nextToken();
                       if (startRecordString.contains("true")) {
                          String userTagString           = st.nextToken();
