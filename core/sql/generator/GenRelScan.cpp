@@ -1089,8 +1089,8 @@ short FileScan::codeGenForHive(Generator * generator)
 
     res = HbaseAccess::createAsciiColAndCastExpr(
 				    generator,        // for heap
-				    givenType,         // [IN] Actual type of HDFS column
-				    asciiValue,         // [OUT] Returned expression for ascii rep.
+				    givenType,        // [IN] Actual type of HDFS column
+				    asciiValue,       // [OUT] Returned expression for ascii rep.
 				    castValue,        // [OUT] Returned expression for binary rep.
                                     isOrc,
                                     TRUE // max src data len is sizeof(Int32)
