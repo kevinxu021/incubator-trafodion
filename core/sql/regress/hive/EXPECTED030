@@ -38,7 +38,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Fri Apr 22 07:11:35 2016
+-- Definition current  Wed Apr 27 02:45:01 2016
 
   (
     S_STORE_SK                       INT
@@ -295,11 +295,11 @@ Number of esps to scan:    1
   Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
-     0      0            3         2853  store_orc/000000_0
+     0      0            0         4288  store_orc/000000_0
 
-Summary of bytes read per ESP (2853 = 100 percent):
+Summary of bytes read per ESP (4288 = 100 percent):
 
-ESP    0 reads               2853 bytes ( 100 percent of avg)
+ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 29
 ColNumber: 1, ColName: S_STORE_SK
@@ -428,11 +428,11 @@ Number of esps to scan:    1
   Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
-     0      0            3         2853  store_orc/000000_0
+     0      0            0         4288  store_orc/000000_0
 
-Summary of bytes read per ESP (2853 = 100 percent):
+Summary of bytes read per ESP (4288 = 100 percent):
 
-ESP    0 reads               2853 bytes ( 100 percent of avg)
+ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
@@ -579,11 +579,11 @@ Number of esps to scan:    1
   Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
-     0      0            3         2853  store_orc/000000_0
+     0      0            0         4288  store_orc/000000_0
 
-Summary of bytes read per ESP (2853 = 100 percent):
+Summary of bytes read per ESP (4288 = 100 percent):
 
-ESP    0 reads               2853 bytes ( 100 percent of avg)
+ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
@@ -710,11 +710,11 @@ Number of esps to scan:    1
   Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
-     0      0            3         2853  store_orc/000000_0
+     0      0            0         4288  store_orc/000000_0
 
-Summary of bytes read per ESP (2853 = 100 percent):
+Summary of bytes read per ESP (4288 = 100 percent):
 
-ESP    0 reads               2853 bytes ( 100 percent of avg)
+ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
@@ -974,7 +974,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Fri Apr 22 07:12:00 2016
+-- Definition current  Wed Apr 27 02:45:27 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1025,7 +1025,7 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212328069120887471
+PLAN_ID .................. 212328485127242247
 ROWS_OUT ............. 1,698
 EST_TOTAL_COST ........... 1.21
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
@@ -1138,7 +1138,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212328069121551218
+PLAN_ID .................. 212328485127908119
 ROWS_OUT ......... 2,880,401
 EST_TOTAL_COST ........... 1.77
 STATEMENT ................ select *
@@ -1312,7 +1312,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Fri Apr 22 07:12:02 2016
+-- Definition current  Wed Apr 27 02:45:29 2016
 
   (
     D_DATE_SK                        INT
@@ -1380,7 +1380,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212328069124897712
+PLAN_ID .................. 212328485131173471
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1482,7 +1482,7 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Fri Apr 22 07:12:10 2016
+-- Definition current  Wed Apr 27 02:45:36 2016
 
   (
     D_DATE_SK                        INT
@@ -1550,7 +1550,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212328069131511985
+PLAN_ID .................. 212328485137674831
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1795,7 +1795,7 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) 
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-PLAN_ID .................. 212328069142047613
+PLAN_ID .................. 212328485148035000
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 1.12
 STATEMENT ................ select count(*)

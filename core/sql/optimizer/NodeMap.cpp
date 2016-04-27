@@ -35,6 +35,7 @@
 #include "opt.h"
 #include <string.h>
 #include <stdio.h>
+#include <queue>
 #include "cextdecs/cextdecs.h"
 
 #include "OptimizerSimulator.h"
@@ -2734,3 +2735,71 @@ void NodeMap::assignScanInfosRepN(HivePartitionAndBucketKey *hiveSearchKey)
       }
     } 
 }
+
+// Assign each HDFS file to one ESP
+void NodeMap::assignScanInfosNoSplit(HivePartitionAndBucketKey *hiveSearchKey)
+{
+  CMPASSERT(type_ == HIVE);
+
+  // Let each ESP have all the data. 
+  HHDFSListPartitionStats * p = NULL;
+  HHDFSBucketStats        * b = NULL;
+  HHDFSFileStats          * f = NULL;
+
+  HiveNodeMapEntry *entry= NULL;
+
+
+  // Use a priorty queue to sort the filestats in decending
+  // order of total size.
+  std::priority_queue<HiveFileIterator, 
+                      vector<HiveFileIterator>, 
+                      CompareHiveFileIterator> fileStatsQueue;
+  HiveFileIterator i; 
+  while (hiveSearchKey->getNextFile(i))
+  {
+/*
+     p = (HHDFSListPartitionStats*)i.getPartStats();
+     b = (HHDFSBucketStats*)i.getBucketStats();
+     f = (HHDFSFileStats*)i.getFileStats();
+*/
+     fileStatsQueue.push(i);
+  }
+
+
+  // Add all nodeMap into another priority queue. We always pick the
+  // entry with least total number of filled bytes to fill.
+  std::priority_queue<HiveNMEntryPtr, 
+                      vector<HiveNMEntryPtr>, 
+                      CompareHiveNMEntryPtr> hiveNodeMapEntryQueue;
+
+  for (CollIndex j=0; j<getNumEntries(); j++ ) {
+    entry =(HiveNodeMapEntry*)getNodeMapEntry(j);
+    hiveNodeMapEntryQueue.push(entry);
+  } 
+
+  // dequeue from fileStatsQueue
+  while (!fileStatsQueue.empty() )
+  {
+     // pop off the iterator of the file stats with the largest total size.
+     i = fileStatsQueue.top();
+     fileStatsQueue.pop();
+
+     // pop off the top node map entry of the least # of bytes filled.
+     entry = (HiveNodeMapEntry*)hiveNodeMapEntryQueue.top();
+     hiveNodeMapEntryQueue.pop();
+
+     f = (HHDFSFileStats*)i.getFileStats();
+     f->assignToESPsNoSplit(entry, i.getPartStats());
+
+     // push the entry with updated total # of filled bytes back 
+     // to the queue.
+     hiveNodeMapEntryQueue.push(entry);
+  }
+}
+
+bool 
+CompareHiveNMEntryPtr::operator()(HiveNMEntryPtr& t1, HiveNMEntryPtr& t2)
+{
+   return (t1->getFilled() > t2->getFilled());
+}
+

@@ -1311,10 +1311,17 @@ void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi,
 
 void HHDFSFileStats::assignToESPsRepN(HiveNodeMapEntry*& entry)
 {
-   if ( totalSize_ > 0 ) {
-      HiveScanInfo info(this, 0, totalSize_);
-      entry->addScanInfo(info, totalSize_);
-   }
+   Int64 filled = getTotalSize();
+   HiveScanInfo info(this, 0, (filled > 0) ? filled-1 : 0);
+   entry->addScanInfo(info, filled);
+}
+
+void HHDFSFileStats::assignToESPsNoSplit(HiveNodeMapEntry*& entry,
+                                         const HHDFSListPartitionStats* p)
+{
+   Int64 filled = getTotalSize();
+   HiveScanInfo info(this, 0, (filled > 0) ? filled-1 : 0, FALSE, p);
+   entry->addScanInfo(info, filled);
 }
 
 OsimHHDFSStatsBase* HHDFSFileStats::osimSnapShot()
@@ -1431,17 +1438,6 @@ void HHDFSORCFileStats::assignToESPs(NodeMapIterator* nmi,
         }
    }
 } 
-
-// assign the entire file to the entry, if it is not empty.
-void HHDFSORCFileStats::assignToESPsRepN(HiveNodeMapEntry*& entry)
-{
-   Int32 n = offsets_.entries();
-   if ( n > 0 ) {
-      Int64 filled = offsets_[n-1] + totalBytes_[n-1];
-      HiveScanInfo info(this, offsets_[0], filled);
-      entry->addScanInfo(info, filled);
-   }
-}
 
 void HHDFSORCFileStats::populate(hdfsFS fs,
                 hdfsFileInfo *fileInfo,
