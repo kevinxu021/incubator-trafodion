@@ -496,23 +496,6 @@ EOF
   APACHE_HBASE_HOME=None
   APACHE_HIVE_HOME=None
 
-  for cp in `echo $CLASSPATH | sed 's/:/ /g'`
-  do
-    if [ -f $cp/core-site.xml ]; then
-      export HADOOP_CNF_DIR=$cp
-      APACHE_HADOOP_HOME=$(dirname $(dirname $cp))
-    fi
-    if [ -f $cp/hbase-site.xml ]; then
-      [[ $SQ_VERBOSE == 1 ]] && echo "Found $cp/hbase-site.xml in CLASSPATH, this is vanilla Apache"
-      export HBASE_CNF_DIR=$cp
-      APACHE_HBASE_HOME=`dirname $cp`
-    fi
-    if [ -f $cp/hive-site.xml ]; then
-      export HIVE_CNF_DIR=$cp
-      APACHE_HIVE_HOME=`dirname $cp`
-    fi
-  done
-  
   if [ -f $HADOOP_PREFIX/etc/hadoop/core-site.xml ]; then
     APACHE_HADOOP_HOME=$HADOOP_PREFIX
     export HADOOP_CNF_DIR=$HADOOP_PREFIX/etc/hadoop
@@ -520,12 +503,11 @@ EOF
   if [ -f $HBASE_HOME/conf/hbase-site.xml ]; then
     [[ $SQ_VERBOSE == 1 ]] && echo "HBASE_HOME is set to $HBASE_HOME, this is vanilla Apache"
     APACHE_HBASE_HOME=$HBASE_HOME
-    export HBASE_CNF_DIR=$
+    export HBASE_CNF_DIR=$HBASE_HOME/conf
   fi
 
   APACHE_HIVE_HOME=$HIVE_HOME
   export HIVE_CNF_DIR=$HIVE_HOME/conf
-
 
   # sometimes, conf file and lib files don't have the same parent,
   # try to handle some common cases, where the libs are under /usr/lib
