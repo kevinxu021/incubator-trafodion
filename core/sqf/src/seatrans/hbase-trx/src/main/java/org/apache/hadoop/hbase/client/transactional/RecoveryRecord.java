@@ -249,7 +249,7 @@ public class RecoveryRecord {
      SnapshotMeta sm;
      List<SnapshotMetaRecord> snapshotList = null;
      MutationMeta mm;
-     List<MutationMetaRecord> mutationList = null;
+     ArrayList<MutationMetaRecord> mutationList = null;
 
      try {
        if (LOG.isTraceEnabled()) LOG.trace("  Creating SnapshotMeta object ");
@@ -270,6 +270,9 @@ public class RecoveryRecord {
      }
 
      try{
+       //  Get a snapshot for every table in the database.  These may not all be associated
+       //  with a full snapshot.  A partial snapshot completed after the last full snapshot
+       //  but prior to the timeId will also be returned in the list.
        snapshotList = sm.getPriorSnapshotSet(timeId);
      }
      catch (Exception e){
@@ -279,6 +282,7 @@ public class RecoveryRecord {
 
      long startTime = 0;
      try{
+        // This is the start time of the full snapshot record
         startTime = sm.getPriorStartRecord(timeId).getKey();
      }
      catch(Exception e){
@@ -296,62 +300,31 @@ public class RecoveryRecord {
            throw new Exception("Error:  SnapshotMetaStartRecord found in snapshotList "
                               + String.valueOf(tmpRecord.getKey()));
         }
+        long tmpSnapshotKey = tmpRecord.getKey();
         String tmpTable = tmpRecord.getTableName();
         TableRecoveryGroup recGroup = recoveryTableMap.get(tmpTable);
         if (recGroup != null){
+           // We found an existing TableRecoveryGroup for the table associated with the current snapshot.
+           // This can happen if there was a DDL operation and a partial snapshot of the table
+           // after the last full snapshot was completed.  We can throw away the prior TableRecoveryGroup
+           // and create a new one associated with this snapshot.
            if (LOG.isTraceEnabled()) LOG.trace(" Deleting existing TableRecoveryGroup for tmpRecord: "+ tmpRecord);
            recoveryTableMap.remove(tmpTable);
         }
-        if (LOG.isTraceEnabled()) LOG.trace("Creating new TableRecoveryGroup for tmpRecord: "+ tmpRecord);
-        recGroup = new TableRecoveryGroup(tmpRecord, new ArrayList<MutationMetaRecord>());
+        try{
+            mutationList = mm.getMutationsFromSnapshot(tmpSnapshotKey);
+        }
+        catch (Exception e){
+          if (LOG.isTraceEnabled()) LOG.trace("Exception getting the range of mutations for snapshot " + tmpSnapshotKey + " " + e);
+          throw e;
+        }
+        if (LOG.isTraceEnabled()) LOG.trace("Creating new TableRecoveryGroup for tmpRecord: "+ tmpRecord
+        		                             + " with " + mutationList.size() + " mutations");
+        recGroup = new TableRecoveryGroup(tmpRecord, mutationList);
         if (LOG.isTraceEnabled()) LOG.trace("Adding new entry into RecoveryTableMap from snapshot for tmpTable: "+ tmpTable);
         recoveryTableMap.put(tmpTable, recGroup);
      }
      if (LOG.isTraceEnabled()) LOG.trace("TableRecoveryMap has : "+ recoveryTableMap.size() + " entries");
-     try{
-       mutationList = mm.getMutationsFromRange(startTime, timeId);
-     }
-     catch (Exception e){
-       if (LOG.isTraceEnabled()) LOG.trace("Exception getting the range of mutations " + e);
-       throw e;
-     }
-     if (LOG.isTraceEnabled()) LOG.trace("  Mutations in the range are " + mutationList);    	
-     ListIterator<MutationMetaRecord> mutationIter;
-     for (mutationIter = mutationList.listIterator(); mutationIter.hasNext();) {
-        MutationMetaRecord tmpMutationRecord = mutationIter.next();
-        String tmpTable = tmpMutationRecord.getTableName();
-        TableRecoveryGroup recGroup = recoveryTableMap.get(tmpTable);
-        if (recGroup == null) {
-           // We have a mutation record with no previous snapshot for this
-           // interval.  Recovery is not possible for this table.
-           if (LOG.isTraceEnabled()) LOG.trace("  No prior snapshot found for table " + tmpTable);
-           throw new Exception("  No prior snapshot found for table " + tmpTable);
-        }
-        else{
-        	// There is an existing TableRecoveryGroup entry in the recoveryTableMap
-        	// for this table.  But we need to ensure that the new MutationMetaRecord
-        	// is associated with the same snapshot.  If not, we must skip it.
-        	if (LOG.isTraceEnabled()) LOG.trace("Existing entry found in RecoveryTableMap from mutations for tmpTable: "+ tmpTable);
-        	long tmpSnapshotTime = tmpMutationRecord.getAssociatedSnapshot();
-        	long existingSnapshotTime = recGroup.getSnapshotRecord().getKey();
-        	if (tmpSnapshotTime < existingSnapshotTime){
-               if (LOG.isTraceEnabled()) LOG.trace(" new mutation time " + tmpSnapshotTime + " is less than existing " + existingSnapshotTime + "; skipping");
-        	   continue;
-        	}
-        	else if (tmpSnapshotTime > existingSnapshotTime){
-        	   // This implies we are missing the associated snapshot since the snapshots are added first
-        	   // and an existing entry should be here for the associated time
-               if (LOG.isTraceEnabled()) LOG.trace("\n new mutation time " + tmpSnapshotTime + " is greater than existing " + existingSnapshotTime + " MISSING ASSOCIATED SNAPSHOT\n\n");
-               throw new Exception ("new mutation time " + tmpSnapshotTime + " is greater than existing " + existingSnapshotTime + "MISSING ASSOCIATED SNAPSHOT");
-        	}
-        	
-            // Add a new mutation record to the existing list of mutations associated with the snapshot
-            List<MutationMetaRecord> tmpMutationList = recGroup.getMutationList();
-            if (LOG.isTraceEnabled()) LOG.trace("Adding new mutation into existing entry in RecoveryTableMap for tmpTable: "+ tmpTable);
-            ListIterator<MutationMetaRecord> tmpMutationIter = tmpMutationList.listIterator();
-            tmpMutationIter.add(tmpMutationRecord);
-        }
-     }
 
      if (LOG.isTraceEnabled()) LOG.trace("Exit RecoveryRecord constructor for time " + timeId + " " + this.toString());
      return;
