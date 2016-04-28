@@ -237,6 +237,7 @@ public void start(CoprocessorEnvironment e) throws IOException {
     }
     
     this.configuredPITRecovery = re.getConfiguration().getBoolean("hbase.regionserver.region.transactional.pit", false);
+    this.configuredPITRecoveryHA = re.getConfiguration().getBoolean("hbase.regionserver.region.transactional.pit.ha", false);
     // PIT test 
     // this.configuredPITRecovery = true;
     if (LOG.isTraceEnabled()) LOG.trace("TrxRegionObserver coprocessor: PIT Recovery setting is " + this.configuredPITRecovery +
