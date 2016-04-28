@@ -344,6 +344,9 @@ CoprocessorService, Coprocessor {
   private long   maxWriteToLogTime    =    0;
   private double avgWriteToLogTime    =    0;
 
+  public static final int PIT_MAX_TXN_MUTATION_PER_KV = 2;
+  public static final int PIT_MAX_TXN_MUTATION_PER_FILE = 5;
+  
   private HRegionInfo regionInfo = null;
   private HRegion m_Region = null;
   private String m_regionName = null;
@@ -360,6 +363,9 @@ CoprocessorService, Coprocessor {
   private boolean configuredConflictReinstate = false;
   private boolean configuredPITRecovery = false;
   private boolean configuredPITRecoveryHA = false;
+  private int PIT_max_txn_mutation_per_KV = 10;
+  private int PIT_max_txn_mutation_per_FILE = 100;
+  private long PIT_max_size_mutation_per_FILE = 10000000; // 10 MB
   private static Object zkRecoveryCheckLock = new Object();
   private static ZooKeeperWatcher zkw1 = null;
   String lv_hostName;
@@ -471,10 +477,7 @@ CoprocessorService, Coprocessor {
   public static final int PIT_MUTATION_WRITER_CLOSE = 3;
   public static final int PIT_MUTATION_WRITER_APPEND = 4;
   public static final int PIT_MUTATION_WRITER_CLOSE_STOP = 5;
-  
-  public static final int PIT_MAX_TXN_MUTATION_PER_KV = 2;
-  public static final int PIT_MAX_TXN_MUTATION_PER_FILE = 5;
-
+ 
   // TrxRegionService methods
     
   @Override
@@ -3709,11 +3712,21 @@ CoprocessorService, Coprocessor {
                   "\nget the reference from Region CoprocessorEnvironment ");
     
     this.configuredPITRecovery = tmp_env.getConfiguration().getBoolean("hbase.regionserver.region.transactional.pit", false);
+    
+    this.PIT_max_txn_mutation_per_KV = tmp_env.getConfiguration().getInt("hbase.regionserver.region.transactional.pit_max_txn_per_kv", 10);
+    this.PIT_max_txn_mutation_per_FILE = tmp_env.getConfiguration().getInt("hbase.regionserver.region.transactional.pit_max_txn_per_file", 100);
+    this.PIT_max_size_mutation_per_FILE = tmp_env.getConfiguration().getLong("hbase.regionserver.region.transactional.pit_max_size_per_file", 10000000);
+	
     // PIT test 
     // this.configuredPITRecovery = true;
     if (LOG.isTraceEnabled()) LOG.trace("PIT Recovery setting is " + this.configuredPITRecovery +
 		  " PIT Recovery HA setting is " +  this.configuredPITRecoveryHA +
                   "\nget the reference from Region CoprocessorEnvironment ");
+    
+     if (LOG.isTraceEnabled()) LOG.trace("PIT Recovery attributes are" + 
+		   " Max Txn per KV " + this.PIT_max_txn_mutation_per_KV +
+		   " Max Txn per FILE " + this.PIT_max_txn_mutation_per_FILE +
+     		   " Max Size per FILE " + this.PIT_max_size_mutation_per_FILE );
 
     if (tmp_env.getSharedData().isEmpty())
        if (LOG.isTraceEnabled()) LOG.trace("shared map is empty ");
@@ -6755,7 +6768,7 @@ CoprocessorService, Coprocessor {
                   mutationWriterAction(PIT_MUTATION_WRITER_APPEND /* append */, null, tmBuilder);
 		  
 		  // PIT test, let's say do write-to-KV every 5 txn
-		  if (mutationCount >= PIT_MAX_TXN_MUTATION_PER_KV) {
+		  if (mutationCount >= this.PIT_max_txn_mutation_per_KV) {
 	             mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null );  
 		  }
 		  
@@ -6763,9 +6776,11 @@ CoprocessorService, Coprocessor {
 		  //	a) total mutation size is too large
 		  //    b) system event such as pre-flush by HBase (memory store is goint to flush)
 		  //    c) per request (e.g. during full snapshot)
-		  //    d) by timer (optional)
+		  //    d) number of txn branches 
+		  //    e) by timer through lease (optional)
 		  // PIT test, let's say do close&rollover every 20 txn
-		  if (mutationTotalCount >= PIT_MAX_TXN_MUTATION_PER_FILE) { 
+		  if ((mutationTotalCount >= this.PIT_max_txn_mutation_per_FILE) || 
+		       (mutationTotalSize >= this.PIT_max_size_mutation_per_FILE)) { 
 	             mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null );  
 	             mutationWriterAction(PIT_MUTATION_WRITER_CLOSE /* close mutation file */, null, null );  
 	             mutationWriterAction(PIT_MUTATION_WRITER_CREATE /* new mutation file and writer */, null, null );
@@ -6911,7 +6926,7 @@ CoprocessorService, Coprocessor {
                    mmr = new MutationMetaRecord(currentFileKey, regionInfo.getTable().toString(), 
 					   currentSnapshotId, 
 	                                   0, 512, // for smallestCommitId & fileSize
-					   regionInfo.getRegionNameAsString(), // regionName as String
+					   regionInfo.getEncodedName(), // region encoded Name as String
 					   writePath.toString(), // mutation file path as String
 					   false, "test");  // archive mode and path
 		   if(LOG.isTraceEnabled()) LOG.trace("mutation meta record created successfully"); 
@@ -6984,7 +6999,7 @@ CoprocessorService, Coprocessor {
                        mmr = new MutationMetaRecord(currentFileKey, regionInfo.getTable().toString(), 
 					   currentSnapshotId, 
 	                                   smallestCommitId, mutationTotalSize, // for smallestCommitId & fileSize
-					   regionInfo.getRegionNameAsString(), // regionName as String
+					   regionInfo.getEncodedName(), // region encoded Name as String
 					   currentPITPath.toString(), // mutation file path as String
 					   false, "test");  // archived mode and path
 		       if(LOG.isTraceEnabled()) LOG.trace("mutation meta record created successfully"); 
