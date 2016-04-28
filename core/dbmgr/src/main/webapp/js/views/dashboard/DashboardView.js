@@ -259,7 +259,7 @@ define([
 						chartTitle: "Canary Response Time",
 						chartType: "Line",
 						xtimemultiplier: 1000, //sometimes time don't comeback as msecs. so we need a multiplier
-						ylabels: ["Connect Time","DDL Time","Write Time", "Read Time"], //Used in tooltip
+						ylabels: ["Connect Time","Read Time"], //Used in tooltip
 						yunit: "msec", //Units displayed in tooltip
 						yvalformatter: common.formatNumberWithComma, //callback to format Y value
 						spinner:"#canary-spinner",  //div element for spinner
@@ -764,6 +764,8 @@ define([
 					plotData.push([]);
 				});
 
+				var yMinVal = -1;
+				
 				$.each(keys, function(index, value){
 					var xVal = metricConfig.xtimemultiplier? value*metricConfig.xtimemultiplier: value;
 					//var dataPoint = [];
@@ -780,12 +782,18 @@ define([
 						if(metricConfig.yvalround == true){
 							yVal = Math.round(yVal);
 						}
+						if(yVal < yMinVal) {
+							yMinVal = yVal;
+						}
 						//dataPoint.push(yVal);
 						plotData[i].push([xVal, yVal]);
 					});
 					//metricConfig.toolTipTexts[xVal] = dataPoint;
 				});
 				
+				if(yMinVal == -1){
+					yMinVal = 0;
+				}
 				var finalPlotData = [];
 				
 				if(metricConfig.legendcontainer && $(metricConfig.legendcontainer).length > 0){
@@ -808,7 +816,7 @@ define([
 							},
 						},
 						yaxis :{
-							min: metricConfig.ymin ? metricConfig.ymin : null,
+							min: metricConfig.ymin ? metricConfig.ymin : yMinVal,
 							max: metricConfig.ymax ? metricConfig.ymax : null,
 							show:true,
 							tickFormatter: function(val, axis){
@@ -822,6 +830,9 @@ define([
 							shadowSize: 0,
 							lines:{
 								show:true
+							},
+							points: {
+								show: plotData.length > 0 && plotData[0].length < 2 ? true : false,
 							}
 						},
 						legend: {
@@ -835,6 +846,9 @@ define([
 						lines: {
 							lineWidth: 2.5,
 							fill: false,
+						},
+						points: {
+							radius: 1.5
 						},
 						grid : {
 							hoverable: true,
