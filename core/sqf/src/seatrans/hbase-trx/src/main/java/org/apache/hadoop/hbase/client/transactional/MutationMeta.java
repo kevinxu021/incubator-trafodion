@@ -243,14 +243,14 @@ public class MutationMeta {
       // Create the Put
       Put p = new Put(Bytes.toBytes(key));
       p.add(MUTATION_FAMILY, MUTATION_QUAL,
-                Bytes.toBytes(String.valueOf(key) + ","
-                		+ record.getTableName() + ","
-                        + String.valueOf(record.getAssociatedSnapshot()) + ","
-                        + String.valueOf(record.getSmallestCommitId()) + ","
-                        + String.valueOf(record.getFileSize()) + ","
-                        + record.getRegionName() + ","
-                        + record.getMutationPath() + ","
-                        + String.valueOf(record.getArchived()) + ","
+                Bytes.toBytes(String.valueOf(key) + "$"
+                		+ record.getTableName() + "$"
+                        + String.valueOf(record.getAssociatedSnapshot()) + "$"
+                        + String.valueOf(record.getSmallestCommitId()) + "$"
+                        + String.valueOf(record.getFileSize()) + "$"
+                        + record.getRegionName() + "$"
+                        + record.getMutationPath() + "$"
+                        + String.valueOf(record.getArchived()) + "$"
                         + record.getArchivePath()));
 
       int retries = 0;
@@ -296,7 +296,7 @@ public class MutationMeta {
          Get g = new Get(Bytes.toBytes(key));
          try {
             Result r = table.get(g);
-            StringTokenizer st = new StringTokenizer(Bytes.toString(r.getValue(MUTATION_FAMILY, MUTATION_QUAL)), ",");
+            StringTokenizer st = new StringTokenizer(Bytes.toString(r.getValue(MUTATION_FAMILY, MUTATION_QUAL)), "$");
             String tableNameString           = st.nextToken();
             String associatedSnapshotString  = st.nextToken();
             String smallestCommitIdString    = st.nextToken();
@@ -307,7 +307,7 @@ public class MutationMeta {
             String archivePathString         = st.nextToken();
 
             if (LOG.isTraceEnabled()) LOG.trace("MutationKey: " + Bytes.toLong(r.getRow())
-                    + "tableName: " + tableNameString
+                    + " tableName: " + tableNameString
             		+ " associatedSnapshot: " + associatedSnapshotString
             		+ " smallestCommitId: " + smallestCommitIdString
             		+ " fileSize: " + fileSizeString
@@ -363,7 +363,7 @@ public class MutationMeta {
                }
                if (LOG.isTraceEnabled()) LOG.trace("currKey is " + currKey);
                for (Cell cell : r.rawCells()) {
-                  StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
+                  StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), "$");
                   String keyString                 = st.nextToken();
                   String tableNameString           = st.nextToken();
                   String associatedSnapshotString  = st.nextToken();
@@ -438,10 +438,11 @@ public class MutationMeta {
             for (Result r : ss) {
                long currKey = Bytes.toLong(r.getRow());
                if (currKey < startKey){
+                   if (LOG.isTraceEnabled()) LOG.trace("currKey (" + currKey + ") is less than startKey(" + startKey + ") ignoring record");
                    continue;
                }
                for (Cell cell : r.rawCells()) {
-                  StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), ",");
+                  StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), "$");
                   if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
                   String keyString                 = st.nextToken();
                   String tableNameString           = st.nextToken();
@@ -489,9 +490,85 @@ public class MutationMeta {
          throw new RuntimeException(e);
       }
       if (record == null) {
-         throw new Exception("getMutationsFromRange not found in range");
+    	  if (LOG.isTraceEnabled()) LOG.trace("getMutationsFromRange found no mutation records in range");
       }
       if (LOG.isTraceEnabled()) LOG.trace("getMutationsFromRange: returning " + returnList.size() + " records");
+      return returnList;
+   }
+
+   /**
+    * getMutationsFromSnapshot
+    * @param long startKey
+    * @return ArrayList<MutationMetaRecord>
+    * @throws Exception
+    * 
+    */
+   public ArrayList<MutationMetaRecord> getMutationsFromSnapshot(final long snapshotKey) throws Exception {
+      if (LOG.isTraceEnabled()) LOG.trace("getMutationsFromSnapshot start for snapshotKey " + snapshotKey);
+      ArrayList<MutationMetaRecord> returnList = new ArrayList<MutationMetaRecord>();
+      MutationMetaRecord record = null;
+
+      try {
+         Scan s = new Scan();
+         s.setCaching(100);
+         s.setCacheBlocks(false);
+         ResultScanner ss = table.getScanner(s);
+
+         try {
+            for (Result r : ss) {
+               long currKey = Bytes.toLong(r.getRow());
+               for (Cell cell : r.rawCells()) {
+                  StringTokenizer st = new StringTokenizer(Bytes.toString(CellUtil.cloneValue(cell)), "$");
+                  if (LOG.isTraceEnabled()) LOG.trace("string tokenizer success ");
+                  String keyString                 = st.nextToken();
+                  String tableNameString           = st.nextToken();
+                  String associatedSnapshotString  = st.nextToken();
+                  if (Long.parseLong(associatedSnapshotString) != snapshotKey){
+                      if (LOG.isTraceEnabled()) LOG.trace("Mutation snapshot " + associatedSnapshotString
+ 	                 		   + " not the target " + snapshotKey + ".  ignoring");
+                      continue;
+                  }
+                  String smallestCommitIdString    = st.nextToken();
+                  String fileSizeString            = st.nextToken();
+                  String regionNameString          = st.nextToken();
+                  String mutationPathString        = st.nextToken();
+                  String archivedString            = st.nextToken();
+                  String archivePathString         = st.nextToken();
+                  if (LOG.isTraceEnabled()) LOG.trace("MutationKey: " + Bytes.toLong(r.getRow())
+                            + " tableName: " + tableNameString
+                     		+ " associatedSnapshot: " + associatedSnapshotString
+                     		+ " smallestCommitId: " + smallestCommitIdString
+                     		+ " fileSize: " + fileSizeString
+                     		+ " regionName: " + regionNameString
+                     		+ " mutationPath: " + mutationPathString
+                     		+ " archived: " + archivedString
+                     		+ " archivePath: " + archivePathString);
+                     
+                  record = new MutationMetaRecord(Bytes.toLong(r.getRow()), tableNameString,
+                                      Long.parseLong(associatedSnapshotString), Long.parseLong(smallestCommitIdString),
+                                      Long.parseLong(fileSizeString), regionNameString, mutationPathString,
+                                      archivedString.contains("true"), archivePathString);
+                  returnList.add(record);
+               }
+            } // for (Result r : ss)
+         } // try
+         catch(Exception e){
+            LOG.error("getMutationsFromSnapshot Exception getting results " + e);
+            throw new RuntimeException(e);
+         }
+         finally {
+            if (LOG.isTraceEnabled()) LOG.trace("getMutationsFromSnapshot closing ResultScanner");
+            ss.close();
+         }
+      }
+      catch(Exception e){
+         LOG.error("getMutationsFromSnapshot Exception setting up scanner " + e);
+         throw new RuntimeException(e);
+      }
+      if (record == null) {
+    	  if (LOG.isTraceEnabled()) LOG.trace("getMutationsFromSnapshot found no mutation records for snapshot " + snapshotKey);
+      }
+      if (LOG.isTraceEnabled()) LOG.trace("getMutationsFromSnapshot: returning " + returnList.size() + " records");
       return returnList;
    }
 

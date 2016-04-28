@@ -4949,8 +4949,8 @@ short CmpSeabaseDDL::updateSeabaseMDTable(
       if (!insertPrivMgrInfo(objUID,
                              fullName,
                              objectType,
-                             tableInfo->objOwnerID,
-                             tableInfo->schemaOwnerID,
+                             objOwnerID,
+                             schemaOwnerID,
                              ComUser::getCurrentUser()))
         {
           *CmpCommon::diags()

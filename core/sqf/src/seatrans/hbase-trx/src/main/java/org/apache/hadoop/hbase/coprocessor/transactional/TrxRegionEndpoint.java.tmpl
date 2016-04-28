@@ -464,11 +464,13 @@ CoprocessorService, Coprocessor {
   public static final int PIT_MUTATION_FLUSH = 3;
   public static final int PIT_MUTATION_CLOSE = 4;
   public static final int PIT_MUTATION_ROLLOVER = 5;
+  public static final int PIT_MUTATION_CLOSE_STOP = 6;
 
   public static final int PIT_MUTATION_WRITER_CREATE = 1;
   public static final int PIT_MUTATION_WRITER_FLUSH = 2;
   public static final int PIT_MUTATION_WRITER_CLOSE = 3;
   public static final int PIT_MUTATION_WRITER_APPEND = 4;
+  public static final int PIT_MUTATION_WRITER_CLOSE_STOP = 5;
   
   public static final int PIT_MAX_TXN_MUTATION_PER_KV = 2;
   public static final int PIT_MAX_TXN_MUTATION_PER_FILE = 5;
@@ -3827,7 +3829,7 @@ CoprocessorService, Coprocessor {
     
     if (configuredPITRecovery) {
 	  if (LOG.isTraceEnabled()) LOG.trace("stop and close mutation file if any in PIT mode");
-          mutationBufferOp(PIT_MUTATION_CLOSE, null, null);
+          mutationBufferOp(PIT_MUTATION_CLOSE_STOP, null, null);
     }
 
     transactionsEPCPMap.remove(this.m_Region.getRegionInfo().getRegionNameAsString()+trxkeyEPCPinstance);
@@ -6785,7 +6787,12 @@ CoprocessorService, Coprocessor {
 	          mutationWriterAction(PIT_MUTATION_WRITER_CLOSE /* close mutation file */, null, null );  
 	          mutationWriterAction(PIT_MUTATION_WRITER_CREATE /* new mutation file and writer */, null, null );
 		  break;
-	      }   
+	      }
+	      case PIT_MUTATION_CLOSE_STOP: { // append local buffer to writer and close current mutation file
+	          mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null );  
+	          mutationWriterAction(PIT_MUTATION_WRITER_CLOSE_STOP /* close mutation file */, null, null );
+		  break;
+              }
 	      default: {
 	          if(LOG.isTraceEnabled()) LOG.trace("PIT mutationBufferOp: invalid operation " + op);
               }
@@ -7005,6 +7012,22 @@ CoprocessorService, Coprocessor {
 	      currentFileKey = -1;
               break;
 	  }
+	  case PIT_MUTATION_WRITER_CLOSE_STOP: { // close  transactional mutation file, driven by chore thread (timer), preClose, preFlush, snapshot req      
+		      
+	      if (mutationWriter != null) {
+		  mutationWriter.close();	      
+      
+	          if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: close stop " + action + " " +
+		                        regionInfo.getTable().toString() + 
+		                        " PIT mutation file path " + currentPITPath +
+		                        " with smallest commitId " + smallestCommitId +
+		                        " number of total Txn Protos " + mutationTotalCount + 
+		                        " total txn mutation size " + mutationTotalSize);
+	      } // writer is not null
+	         
+	      currentFileKey = -1;
+              break;
+	  }	  
 	  case PIT_MUTATION_WRITER_APPEND: { // append the mutation into output buffer with delimeter
               tmBuilder.build().writeDelimitedTo(mutationOutput);
 	      if ((smallestCommitId == -1) || (smallestCommitId > tmBuilder.getCommitId()))
