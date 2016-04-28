@@ -533,18 +533,15 @@ void HHDFSBucketStats::print(FILE *ofd)
   HHDFSStatsBase::print(ofd, "bucket");
 }
 
-void HHDFSBucketStats::append(HHDFSFileStats* st)
-{
-   fileStatsList_.insert(st);
-}
-
 OsimHHDFSStatsBase* HHDFSBucketStats::osimSnapShot()
 {
     OsimHHDFSBucketStats* stats = new(STMTHEAP) OsimHHDFSBucketStats(NULL, this, STMTHEAP);
-
-    for(Int32 i = 0; i < fileStatsList_.entries(); i++)
-        stats->addEntry(fileStatsList_[i]->osimSnapShot());
-
+    
+    for(Int32 i = 0; i < fileStatsList_.getUsedLength(); i++){
+            //"gaps" are not added, but record the position
+            if(fileStatsList_.getUsage(i) != UNUSED_COLL_ENTRY)
+                stats->addEntry(fileStatsList_[i]->osimSnapShot(), i);
+    }
     return stats;
 }
 
@@ -827,18 +824,16 @@ void HHDFSListPartitionStats::print(FILE *ofd)
   HHDFSStatsBase::print(ofd, "partition");
 }
 
-void HHDFSListPartitionStats::append(HHDFSBucketStats* st)
-{
-    bucketStatsList_.insertAt(bucketStatsList_.entries(), st);
-}
-
 OsimHHDFSStatsBase* HHDFSListPartitionStats::osimSnapShot()
 {
     OsimHHDFSListPartitionStats* stats = new(STMTHEAP) OsimHHDFSListPartitionStats(NULL, this, STMTHEAP);
 
-    for(Int32 i = 0; i < bucketStatsList_.entries(); i++)
-        stats->addEntry(bucketStatsList_[i]->osimSnapShot());
-
+    for(Int32 i = 0; i < bucketStatsList_.getUsedLength(); i++)
+    {
+        //"gaps" are not added, but record the position
+        if(bucketStatsList_.getUsage(i) != UNUSED_COLL_ENTRY)
+            stats->addEntry(bucketStatsList_[i]->osimSnapShot(), i);
+    }
     return stats;
 }
 
@@ -1170,18 +1165,16 @@ NABoolean HHDFSFileStats::splitsAllowed() const
     return TRUE;
 }
 
-void HHDFSTableStats::append(HHDFSListPartitionStats* st)
-{
-    listPartitionStatsList_.insertAt(listPartitionStatsList_.entries(), st);
-}
-
 OsimHHDFSStatsBase* HHDFSTableStats::osimSnapShot()
 {
     OsimHHDFSTableStats* stats = new(STMTHEAP) OsimHHDFSTableStats(NULL, this, STMTHEAP);
 
-    for(Int32 i = 0; i < listPartitionStatsList_.entries(); i++)
-        stats->addEntry(listPartitionStatsList_[i]->osimSnapShot());
-
+    for(Int32 i = 0; i < listPartitionStatsList_.getUsedLength(); i++)
+    {
+        //"gaps" are not added, but record the position
+        if(listPartitionStatsList_.getUsage(i) != UNUSED_COLL_ENTRY)
+            stats->addEntry(listPartitionStatsList_[i]->osimSnapShot(), i);
+    }
     return stats;
 }
 
