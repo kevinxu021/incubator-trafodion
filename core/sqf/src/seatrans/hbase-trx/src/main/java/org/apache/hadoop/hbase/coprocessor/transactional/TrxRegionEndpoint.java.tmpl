@@ -3712,6 +3712,7 @@ CoprocessorService, Coprocessor {
                   "\nget the reference from Region CoprocessorEnvironment ");
     
     this.configuredPITRecovery = tmp_env.getConfiguration().getBoolean("hbase.regionserver.region.transactional.pit", false);
+    this.configuredPITRecoveryHA = tmp_env.getConfiguration().getBoolean("hbase.regionserver.region.transactional.pit.ha", false);    
     
     this.PIT_max_txn_mutation_per_KV = tmp_env.getConfiguration().getInt("hbase.regionserver.region.transactional.pit_max_txn_per_kv", 10);
     this.PIT_max_txn_mutation_per_FILE = tmp_env.getConfiguration().getInt("hbase.regionserver.region.transactional.pit_max_txn_per_file", 100);
