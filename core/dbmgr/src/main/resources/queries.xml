@@ -669,7 +669,7 @@
 		
 		<query>
 			<name>OPENTSDB_CANARY_RESPONSE</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:esgyndb.canary.sqlconnect.time&m=avg:%4$s-avg:esgyndb.canary.sqlddl.time&m=avg:%4$s-avg:esgyndb.canary.sqlwrite.time&m=avg:%4$s-avg:esgyndb.canary.sqlread.time", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:esgyndb.canary.sqlconnect.time&m=avg:%4$s-avg:esgyndb.canary.sqlread.time", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_CANARY_RESPONSE_DRILLDOWN</name>
