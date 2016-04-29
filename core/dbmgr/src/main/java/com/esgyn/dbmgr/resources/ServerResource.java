@@ -146,15 +146,9 @@ public class ServerResource {
 		objNode.put("dcsMasterInfoUri", server.getDcsMasterInfoUri());
 		objNode.put("enableAlerts", server.isAlertsEnabled());
 
-		if (ConfigurationResource.getDatabaseVersion() != null) {
-			if (ConfigurationResource.getDatabaseVersion().toLowerCase().contains("enterprise")) {
-				objNode.put("systemType", 1);
-			} else if (ConfigurationResource.getDatabaseVersion().toLowerCase().contains("advanced")) {
-				objNode.put("systemType", 2);
-			}
-		}
+		objNode.put("databaseVersion", ConfigurationResource.getDatabaseVersion());
+		objNode.put("databaseEdition", ConfigurationResource.getDatabaseEdition());
 
-		objNode.put("systemVersion", ConfigurationResource.getDatabaseVersion());
 		return objNode;
 	}
 
