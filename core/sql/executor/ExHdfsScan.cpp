@@ -761,7 +761,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
               {
                 char * lastByteRead = hdfsScanBuffer_  +
                   trailingPrevRead_ + uncompressedBytesRead_ - 1;
-                if ((bytesRead_ < bytesToRead) &&
+                if ((bytesRead_== bytesToRead -1) && 
                     (*lastByteRead != hdfsScanTdb().recordDelimiter_))
                 {
                   // Some files end without a record delimiter but
