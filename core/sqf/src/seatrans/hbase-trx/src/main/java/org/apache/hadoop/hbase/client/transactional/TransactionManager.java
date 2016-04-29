@@ -394,7 +394,7 @@ public class TransactionManager {
                   // size is 1
                   for (CommitResponse cresponse : result.values()){
                     if(cresponse.getHasException()) {
-                      String exceptionString = new String (cresponse.getException().toString());
+                      String exceptionString = new String (cresponse.getException());
                       LOG.error("doCommitX - exceptionString: " + exceptionString);
                       if (exceptionString.contains("UnknownTransactionException")) {
                         if (ignoreUnknownTransaction == true) {
@@ -419,7 +419,7 @@ public class TransactionManager {
                else {
                   for (CommitResponse cresponse : result.values()){
                     if(cresponse.getHasException()) {
-                      String exceptionString = new String (cresponse.getException().toString());
+                      String exceptionString = new String (cresponse.getException());
                       LOG.error("doCommitX - exceptionString: " + exceptionString);
                       if (exceptionString.contains("UnknownTransactionException")) {
                         if (ignoreUnknownTransaction == true) {
@@ -557,7 +557,7 @@ public class TransactionManager {
                   // size is 1
                   for (SsccCommitResponse cresponse : result.values()){
                     if(cresponse.getHasException()) {
-                      String exceptionString = new String (cresponse.getException().toString());
+                      String exceptionString = new String (cresponse.getException());
                       if (exceptionString.contains("UnknownTransactionException")) {
                         if (ignoreUnknownTransaction == true) {
                           if (LOG.isTraceEnabled()) LOG.trace("doCommitX, ignoring UnknownTransactionException in cresponse");
@@ -577,7 +577,7 @@ public class TransactionManager {
              }
           }
           catch (Exception e) {
-             if(e.toString().contains("UnknownTransactionException")) {
+             if(e instanceof UnknownTransactionException) {
                 String errMsg = new String("Got unknown exception in doCommitX by participant " + participantNum
               		  + " for transaction: " + transactionId + " " + e);
                 LOG.error(errMsg);
@@ -774,7 +774,7 @@ public class TransactionManager {
           }
           catch(Exception e) {
              String exceptionString = e.toString();
-             if(exceptionString.contains("UnknownTransactionException")) {
+             if(e instanceof UnknownTransactionException) {
             	String errMsg = new String("doPrepareX participant " + participantNum + " transaction "
                         + transactionId + " unknown transaction : " + e);
                 LOG.warn(errMsg);
@@ -878,7 +878,7 @@ public class TransactionManager {
           }
           catch(Exception e) {
              String exceptionString = e.toString();
-             if(exceptionString.contains("UnknownTransactionException")) {
+             if(e instanceof UnknownTransactionException) {
             	String errMsg = new String("doPrepareX participant " + participantNum + " transaction "
                          + transactionId + " unknown transaction : " + e);
                 LOG.warn(errMsg);
@@ -1035,10 +1035,10 @@ public class TransactionManager {
               else {
                  for (AbortTransactionResponse cresponse : result.values()) {
                    if(cresponse.getHasException()) {
-                     String exceptionString = cresponse.getException().toString();
+                     String exceptionString = new String (cresponse.getException());
                      LOG.error("Abort of transaction: " + transactionId
-                    		 + " participantNum: " + participantNum + " region: " + Bytes.toString(regionName)
-                    		 + " threw Exception: " + exceptionString);
+                          + " participantNum: " + participantNum + " region: " + Bytes.toString(regionName)
+                          + " threw Exception: " + exceptionString);
                      if(exceptionString.contains("UnknownTransactionException")) {
                        throw new UnknownTransactionException();
                      }
@@ -1145,7 +1145,7 @@ public class TransactionManager {
                   else {
                      for (SsccAbortTransactionResponse cresponse : result.values()) {
                 if(cresponse.getHasException()) {
-                  String exceptionString = cresponse.getException().toString();
+                  String exceptionString = cresponse.getException();
                   LOG.error("Abort of transaction: " + transactionId + " threw Exception: " + exceptionString);
                   if(exceptionString.contains("UnknownTransactionException")) {
                          throw new UnknownTransactionException();
@@ -1260,8 +1260,7 @@ public class TransactionManager {
            }
         }
         catch (Exception e) {
-           String exceptionString = e.toString();
-           if(exceptionString.contains("UnknownTransactionException")) {
+           if(e instanceof UnknownTransactionException) {
               String errMsg = new String("Got unknown exception in doCommitX for transaction: " + transactionId
               		+ " participant " + participantNum + " " + e);
               LOG.error(errMsg);
@@ -1346,8 +1345,7 @@ public class TransactionManager {
           }
        }
        catch(Exception e) {
-          String exceptionString = e.toString();
-          if(exceptionString.contains("UnknownTransactionException")) {
+          if(e instanceof UnknownTransactionException) {
              String errMsg = new String("UnknownTransaction in doPrepareX - Batch - by participant "
                      + participantNum + " for transaction " + transactionId + " " + e);
              LOG.error(errMsg);

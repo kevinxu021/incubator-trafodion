@@ -1646,7 +1646,7 @@ char * ExHdfsScanTcb::extractAndTransformAsciiSourceToSqlRow(int &err,
            else
              *(Int32*)&hdfsAsciiSourceData_[attr->getVCLenIndOffset()] 
                = len;
-             
+
             if (attr->getNullFlag())
             {
               // for non-varchar, length of zero indicates a null value
