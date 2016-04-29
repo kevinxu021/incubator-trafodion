@@ -54,6 +54,10 @@ import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.Tag;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.io.hfile.CacheConfig;
+import org.apache.hadoop.hbase.io.hfile.HFile;
+import org.apache.hadoop.hbase.io.hfile.HFileContext;
+import org.apache.hadoop.hbase.io.hfile.HFileContextBuilder;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.ResponseConverter;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto;
@@ -72,6 +76,7 @@ import org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegionSca
 import org.apache.hadoop.hbase.regionserver.transactional.TrxTransactionState;
 import org.apache.hadoop.hbase.regionserver.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
+import org.apache.hadoop.hbase.coprocessor.transactional.MutationCapture;
 import org.apache.hadoop.hbase.wal.WAL;
 //import org.apache.hadoop.hbase.regionserver.wal.HLog;
 import org.apache.hadoop.hbase.regionserver.wal.HLogKey;
@@ -116,6 +121,7 @@ public static final String trxkeyCheckBlockNonPhase2Var = "checkBlockNonPhase2Va
 public static final String trxkeyCheckBlockNewTransVar = "checkBlockNewTransVar";
 public static final String trxkeyClosingVar = "checkClosingVariable";
 public static final String trxkeyScanners = "trxScanners";
+public static final String trxkeyMutationCapture = "mutationCapture";
 
 public static final String SPLIT_DELAY_NOFLUSH = "hbase.transaction.split.delay.noflush";
 public static final String SPLIT_DELAY_LIMIT = "hbase.transaction.split.delay.limit";
@@ -187,10 +193,16 @@ public static String zTrafPath = "/hbase/Trafodion/";
 private static String zNodePath = zTrafPath + "recovery/";
 private static ZooKeeperWatcher zkw1 = null;
 private static Object zkRecoveryCheckLock = new Object();
+private HFileContext context = new HFileContextBuilder().withIncludesTags(false).build();
 
 SplitBalanceHelper sbHelper;
 STRConfig pSTRConfig;
 TrxRegionEndpoint trxepcp = null;
+MutationCapture mutationCapture;
+
+private int PIT_max_txn_mutation_per_KV = 10;
+private int PIT_max_txn_mutation_per_FILE = 100;
+private long PIT_max_size_mutation_per_FILE = 10000000; // 10 MB
 
 public static final int PIT_MUTATION_CREATE = 1;
 public static final int PIT_MUTATION_APPEND = 2;
@@ -237,13 +249,23 @@ public void start(CoprocessorEnvironment e) throws IOException {
     }
     
     this.configuredPITRecovery = re.getConfiguration().getBoolean("hbase.regionserver.region.transactional.pit", false);
-    this.configuredPITRecoveryHA = re.getConfiguration().getBoolean("hbase.regionserver.region.transactional.pit.ha", false);
+    this.configuredPITRecoveryHA = re.getConfiguration().getBoolean("hbase.regionserver.region.transactional.pit.ha", false);    
+    
+    this.PIT_max_txn_mutation_per_KV = re.getConfiguration().getInt("hbase.regionserver.region.transactional.pit_max_txn_per_kv", 10);
+    this.PIT_max_txn_mutation_per_FILE = re.getConfiguration().getInt("hbase.regionserver.region.transactional.pit_max_txn_per_file", 100);
+    this.PIT_max_size_mutation_per_FILE = re.getConfiguration().getLong("hbase.regionserver.region.transactional.pit_max_size_per_file", 10000000);
+	
     // PIT test 
     // this.configuredPITRecovery = true;
-    if (LOG.isTraceEnabled()) LOG.trace("TrxRegionObserver coprocessor: PIT Recovery setting is " + this.configuredPITRecovery +
-	          " PIT Recovery HA setting is " +  this.configuredPITRecoveryHA +
-                  "\nTrxRegionObserver coprocessor: get the reference from Region CoprocessorEnvironment ");
+    if (LOG.isTraceEnabled()) LOG.trace("PIT Recovery setting is " + this.configuredPITRecovery +
+		  " PIT Recovery HA setting is " +  this.configuredPITRecoveryHA +
+                  "\nget the reference from Region CoprocessorEnvironment ");
     
+     if (LOG.isTraceEnabled()) LOG.trace("PIT Recovery attributes are" + 
+		   " Max Txn per KV " + this.PIT_max_txn_mutation_per_KV +
+		   " Max Txn per FILE " + this.PIT_max_txn_mutation_per_FILE +
+     		   " Max Size per FILE " + this.PIT_max_size_mutation_per_FILE );
+        
     if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP: trxRegionObserver load start ");
 
     if (!re.getSharedData().containsKey(trxkey)) {
@@ -312,6 +334,23 @@ public void start(CoprocessorEnvironment e) throws IOException {
        transactionsRefMap.put(lv_regionName+trxkeycommitPendingTransactions,
                               this.commitPendingTransactions);
    }
+   
+   MutationCapture mutationCap = (MutationCapture)transactionsRefMap
+                                               .get(lv_regionName+trxkeyMutationCapture);
+   if(mutationCap != null) {
+       this.mutationCapture = mutationCap;
+       if (LOG.isTraceEnabled()) LOG.trace("PIT MutationCapture has been created in EPCP during Observer start ");
+    }
+    else {
+       this.mutationCapture = new MutationCapture(this.my_config, 
+						  this.my_Region.getFilesystem(),
+						  context,
+						  regionInfo, 
+						  this.PIT_max_txn_mutation_per_KV,
+						  this.PIT_max_txn_mutation_per_FILE,
+						  this.PIT_max_size_mutation_per_FILE);
+       transactionsRefMap.put(lv_regionName+trxkeyMutationCapture, this.mutationCapture);
+    }
 
    AtomicBoolean blockAllCheck = (AtomicBoolean)transactionsRefMap
                                                .get(lv_regionName+trxkeyCheckBlockAllVar);
@@ -563,22 +602,7 @@ public void preFlush(ObserverContext<RegionCoprocessorEnvironment> e) {
     //if (configuredPITRecoveryHA) {
     if (configuredPITRecovery) {
 	  try {
-             if(trxepcp == null) {
-                //@SuppressWarnings("rawtypes")
-                trxepcp = (TrxRegionEndpoint)trxRegionMap.get(regionInfo.getRegionNameAsString()+TrxRegionEndpoint.trxkeyEPCPinstance);
-                if(trxepcp == null) {
-                   LOG.error("Unable to obtain TrxRegionEndpoint object from shared map for " + regionInfo.getRegionNameAsString() + " in PIT pre-flush ");
-	           return;
-                }
-             }
-             if (LOG.isInfoEnabled()) { LOG.info("TrxRegionObserver coprocessor: close PIT mutation file if any in flush"); }
-	     if(trxepcp != null) {
-	         if (LOG.isInfoEnabled()) LOG.info("TrxRegionObserver coprocessor: invoke EPCP PIT mutation close action");
-                 trxepcp.mutationBufferOp(PIT_MUTATION_CLOSE, null, null);
-	     }
-	     else {
-	         if (LOG.isInfoEnabled()) LOG.info("TrxRegionObserver coprocessor: Can't invoke EPCP PIT mutation close action");
-	     }
+                 mutationCapture.mutationBufferOp(PIT_MUTATION_CLOSE, null, null);
           } catch(IOException ioe) {
               StringWriter sw = new StringWriter();
               PrintWriter pw = new PrintWriter(sw);
@@ -748,18 +772,7 @@ public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
 
 public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> editList, long commitId) throws IOException {
 
-    if (configuredPITRecoveryHA) {
-       if(trxepcp == null) {
-       //@SuppressWarnings("rawtypes")
-       trxepcp = (TrxRegionEndpoint)trxRegionMap.get(regionInfo.getRegionNameAsString()+TrxRegionEndpoint.trxkeyEPCPinstance);
-       if(trxepcp == null) {
-          LOG.error("Unable to obtain TrxRegionEndpoint object from shared map for " + regionInfo.getRegionNameAsString() + " in PIT replay commit ");
-	  return;
-       }
-       }
-    }
-    
-    if ((m_isTrafodionMetadata) || 
+   if ((m_isTrafodionMetadata) || 
 	(LOG.isTraceEnabled())) 
 	LOG.info("Trafodion Recovery Region Observer CP: " 
 		 + regionInfo.getRegionNameAsString() + " replay commit for transaction: " + transactionId);
@@ -799,7 +812,7 @@ public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> ed
 		// PIT
 	        if (configuredPITRecoveryHA) {
                   tmBuilder.addPutOrDel(true);
-		  trxepcp.addPut(tmBuilder, put);
+		  mutationCapture.addPut(tmBuilder, put);
                   //tmBuilder.addPut(ProtobufUtil.toMutation(MutationType.PUT, new Put(put)));
 	          iPut++;
 	        }
@@ -819,7 +832,7 @@ public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> ed
                 // PIT
 	        if (configuredPITRecoveryHA) {
                    tmBuilder.addPutOrDel(false);
-		   trxepcp.addDelete(tmBuilder, del);
+		   mutationCapture.addDelete(tmBuilder, del);
                    //tmBuilder.addDelete(ProtobufUtil.toMutation(MutationType.DELETE, new Delete(del)));
 	           iDelete++;
 	        }
@@ -830,7 +843,7 @@ public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> ed
    
    // PIT for non-ts reinstated txn, here we don't have a ts re-created as configuredConflictReinstate is FALSE
    //       just directly construct the mutation buffer and append (~ replayCommittedTxn in Observer)
-   if (configuredPITRecoveryHA) trxepcp.mutationBufferOp(PIT_MUTATION_APPEND, null, tmBuilder);
+   if (configuredPITRecoveryHA) mutationCapture.mutationBufferOp(PIT_MUTATION_APPEND, null, tmBuilder);
    } catch(IOException e) {
           StringWriter sw = new StringWriter();
           PrintWriter pw = new PrintWriter(sw);
