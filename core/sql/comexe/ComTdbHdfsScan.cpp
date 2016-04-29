@@ -275,7 +275,8 @@ void ComTdbHdfsScan::displayContentsBase(Space * space,ULng32 flag)
       space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
 
       Queue *hdfsFileInfoList = hdfsFileInfoList_;
-      if (hdfsFileInfoList)
+      if ((hdfsFileInfoList) &&
+          (flag & 0x00000020))
         {
           UInt32 dataElems = hdfsFileInfoList->numEntries();
           str_sprintf(buf, "\nNumber of ranges to scan: %d",

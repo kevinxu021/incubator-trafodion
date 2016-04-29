@@ -970,11 +970,7 @@ private:
     IS_EXTERNAL_TABLE         = 0x00080000,
     HAS_EXTERNAL_TABLE        = 0x00100000,
     IS_HISTOGRAM_TABLE        = 0x00200000,
-    
-    // synchronize transactions across multiple clusters for this table
-    SYNC_XN                   = 0x00080000,
-
-    HAS_HIVE_EXT_TABLE        = 0x00100000
+    HAS_HIVE_EXT_TABLE        = 0x00400000
   };
     
   UInt32 flags_;
