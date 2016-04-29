@@ -22,12 +22,14 @@ under the License.
  */
 package org.trafodion.dcs.master.registeredServers;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.concurrent.*;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -41,8 +43,9 @@ import org.trafodion.dcs.master.listener.ListenerService;
 
 public class RegisteredServers  {
     private static  final Log LOG = LogFactory.getLog(RegisteredServers.class);
-    private final Map<String, String> servers = new LinkedHashMap<String, String>();
-
+    private final Map<String, String> servers = Collections.synchronizedMap(new LinkedHashMap<String, String>());
+//  private final ConcurrentHashMap<String, String> servers = new ConcurrentHashMap<String, String>();
+     
     private ZkClient zkc = null;
     private String parentZnode = "";
     private ListenerService listener = null;
@@ -76,11 +79,15 @@ public class RegisteredServers  {
                                 }
                                 //add new record
                                 data = zkc.getData(znode + "/" + child, new DataWatcher(), stat);
-                                servers.put(child, new String(data));
+                                synchronized (servers){
+                                    servers.put(child, new String(data));
+                                }
                             }
                         }
                         for (String child : keyset) {
-                            servers.remove(child);
+                            synchronized (servers){
+                                servers.remove(child);
+                            }
                         }
                     }
                 } catch (Exception e) {
@@ -103,7 +110,9 @@ public class RegisteredServers  {
                     String znode = event.getPath();
                     String child = znode.substring(znode.lastIndexOf('/') + 1);
                     data = zkc.getData(znode, new DataWatcher(), stat);
-                    servers.put(child,new String(data));
+                    synchronized(servers){
+                        servers.put(child,new String(data));
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                     if(LOG.isErrorEnabled())
@@ -120,15 +129,18 @@ public class RegisteredServers  {
         
         String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_SERVERS_REGISTERED;
         List<String> children = null;
-        servers.clear();
-             
+        synchronized(servers){
+            servers.clear();
+        }
         children = zkc.getChildren(znode,new ChildrenWatcher());
         if( ! children.isEmpty()){ 
             for(String child : children) {
                 stat = zkc.exists(znode + "/" + child,false);
                 if(stat != null) {
                     data = zkc.getData(znode + "/" + child, new DataWatcher(), stat);
-                    servers.put(child,new String(data));
+                    synchronized(servers){
+                        servers.put(child,new String(data));
+                    }
                 }
             }
         }
@@ -136,13 +148,15 @@ public class RegisteredServers  {
     public synchronized void getServers(ConnectionContext cc){
         HashMap<String, String>availableServers = new HashMap<String, String>(servers);
         HashMap<String, String>connectedServers = new HashMap<String, String>(servers);
-        Set<String> keys = new HashSet<String>(servers.keySet());
-        for(String key : keys) {
-            if(!servers.get(key).startsWith(Constants.AVAILABLE)){
-                availableServers.remove(key);
-            }
-            if(!servers.get(key).startsWith(Constants.CONNECTED)){
-                connectedServers.remove(key);
+        synchronized(servers){
+            Set<String> keys = new HashSet<String>(servers.keySet());
+            for(String key : keys) {
+                if(!servers.get(key).startsWith(Constants.AVAILABLE)){
+                    availableServers.remove(key);
+                }
+                if(!servers.get(key).startsWith(Constants.CONNECTED)){
+                    connectedServers.remove(key);
+                }
             }
         }
         cc.setAvailableServers(availableServers);

@@ -53,10 +53,9 @@ public class RESTServlet implements RestConstants {
 	private final ArrayList<String> runningServers = new ArrayList<String>();
 	private final ArrayList<String> registeredServers = new ArrayList<String>();
 	
-    private final Map<String, LinkedHashMap<String,String>> slasMap = new LinkedHashMap<String, LinkedHashMap<String,String>>();
-    private final Map<String, LinkedHashMap<String,String>> profilesMap = new LinkedHashMap<String, LinkedHashMap<String,String>>();
-    private final Map<String, LinkedHashMap<String,String>> mappingsMap = new LinkedHashMap<String, LinkedHashMap<String,String>>();
-
+    private final Map<String, LinkedHashMap<String,String>> slasMap = Collections.synchronizedMap(new LinkedHashMap<String, LinkedHashMap<String,String>>());
+    private final Map<String, LinkedHashMap<String,String>> profilesMap = Collections.synchronizedMap(new LinkedHashMap<String, LinkedHashMap<String,String>>());
+    private final Map<String, LinkedHashMap<String,String>> mappingsMap = Collections.synchronizedMap(new LinkedHashMap<String, LinkedHashMap<String,String>>());
 	/**
 	 * @return the RESTServlet singleton instance
 	 * @throws IOException
@@ -169,7 +168,6 @@ public class RESTServlet implements RestConstants {
                     List<String> children = zkc.getChildren(znode,new SlaWatcher());
                     if( ! children.isEmpty()){ 
                         for(String child : children) {
-                            
                             stat = zkc.exists(znode + "/" + child,false);
                             if(stat != null) {
                                 if (keyset.contains(child)){
@@ -184,11 +182,15 @@ public class RESTServlet implements RestConstants {
                                 for (int i = 0; i < tokens.length; i=i+2){
                                     attributes.put(tokens[i], tokens[i + 1]);
                                 }
-                                slasMap.put(child, attributes);
+                                synchronized(slasMap){
+                                    slasMap.put(child, attributes);
+                                }
                             }
                         }
                         for (String child : keyset) {
-                            slasMap.remove(child);
+                            synchronized(slasMap){
+                                slasMap.remove(child);
+                            }
                         }
                     }
                 } catch (Exception e) {
@@ -217,7 +219,9 @@ public class RESTServlet implements RestConstants {
                     for (int i = 0; i < tokens.length; i=i+2){
                         attributes.put(tokens[i], tokens[i + 1]);
                     }
-                    slasMap.put(child,attributes);;
+                    synchronized (slasMap){
+                        slasMap.put(child,attributes);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                     if(LOG.isErrorEnabled())
@@ -256,11 +260,15 @@ public class RESTServlet implements RestConstants {
                                 for (int i = 0; i < tokens.length; i=i+2){
                                     attributes.put(tokens[i], tokens[i + 1]);
                                 }
-                                profilesMap.put(child, attributes);
+                                synchronized (profilesMap){
+                                    profilesMap.put(child, attributes);
+                                }
                             }
                         }
                         for (String child : keyset) {
-                            profilesMap.remove(child);
+                           synchronized (profilesMap){
+                               profilesMap.remove(child);
+                           }
                         }
                     }
                 } catch (Exception e) {
@@ -289,7 +297,9 @@ public class RESTServlet implements RestConstants {
                     for (int i = 0; i < tokens.length; i=i+2){
                         attributes.put(tokens[i], tokens[i + 1]);
                     }
-                    profilesMap.put(child,attributes);;
+                    synchronized (profilesMap){
+                        profilesMap.put(child,attributes);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                     if(LOG.isErrorEnabled())
@@ -309,7 +319,6 @@ public class RESTServlet implements RestConstants {
                     String znode = event.getPath();
                     
                     Set<String> keyset = new HashSet<String>(mappingsMap.keySet());
-                    
                     List<String> children = zkc.getChildren(znode,new MappingWatcher());
                     if( ! children.isEmpty()){ 
                         for(String child : children) {
@@ -328,11 +337,15 @@ public class RESTServlet implements RestConstants {
                                 for (int i = 0; i < tokens.length; i=i+2){
                                     attributes.put(tokens[i], tokens[i + 1]);
                                 }
-                                mappingsMap.put(child, attributes);
+                                synchronized (mappingsMap){
+                                    mappingsMap.put(child, attributes);
+                                }
                             }
                         }
                         for (String child : keyset) {
-                            mappingsMap.remove(child);
+                            synchronized (mappingsMap){
+                                mappingsMap.remove(child);
+                            }
                         }
                     }
                 } catch (Exception e) {
@@ -361,7 +374,9 @@ public class RESTServlet implements RestConstants {
                     for (int i = 0; i < tokens.length; i=i+2){
                         attributes.put(tokens[i], tokens[i + 1]);
                     }
-                    mappingsMap.put(child,attributes);;
+                    synchronized (mappingsMap){
+                        mappingsMap.put(child,attributes);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                     if(LOG.isErrorEnabled())
@@ -446,23 +461,24 @@ public class RESTServlet implements RestConstants {
         String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_SLAS;
         
         List<String> children = null;
-        slasMap.clear();
-             
-        children = zkc.getChildren(znode,new SlaWatcher());
-        if( ! children.isEmpty()){ 
-            for(String child : children) {
-                if(LOG.isDebugEnabled())
-                    LOG.debug("child [" + child + "]");
-                stat = zkc.exists(znode + "/" + child,false);
-                if(stat != null) {
-                    LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
-                    data = zkc.getData(znode + "/" + child, new SlaDataWatcher(), stat);
-                    String delims = "[=:]";
-                    String[] tokens = (new String(data)).split(delims);
-                    for (int i = 0; i < tokens.length; i=i+2){
-                        attributes.put(tokens[i], tokens[i + 1]);
+        synchronized(slasMap){
+            slasMap.clear();
+            children = zkc.getChildren(znode,new SlaWatcher());
+            if( ! children.isEmpty()){ 
+                for(String child : children) {
+                    if(LOG.isDebugEnabled())
+                        LOG.debug("child [" + child + "]");
+                    stat = zkc.exists(znode + "/" + child,false);
+                    if(stat != null) {
+                        LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                        data = zkc.getData(znode + "/" + child, new SlaDataWatcher(), stat);
+                        String delims = "[=:]";
+                        String[] tokens = (new String(data)).split(delims);
+                        for (int i = 0; i < tokens.length; i=i+2){
+                            attributes.put(tokens[i], tokens[i + 1]);
+                        }
+                        slasMap.put(child,attributes);;
                     }
-                    slasMap.put(child,attributes);;
                 }
             }
         }
@@ -476,23 +492,24 @@ public class RESTServlet implements RestConstants {
         String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_PROFILES;
         
         List<String> children = null;
-        profilesMap.clear();
-             
-        children = zkc.getChildren(znode,new ProfileWatcher());
-        if( ! children.isEmpty()){ 
-            for(String child : children) {
-                if(LOG.isDebugEnabled())
-                    LOG.debug("child [" + child + "]");
-                stat = zkc.exists(znode + "/" + child,false);
-                if(stat != null) {
-                    LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
-                    data = zkc.getData(znode + "/" + child, new ProfileDataWatcher(), stat);
-                    String delims = "[=:]";
-                    String[] tokens = (new String(data)).split(delims);
-                    for (int i = 0; i < tokens.length; i=i+2){
-                        attributes.put(tokens[i], tokens[i + 1]);
+        synchronized(profilesMap){
+            profilesMap.clear();
+            children = zkc.getChildren(znode,new ProfileWatcher());
+            if( ! children.isEmpty()){ 
+                for(String child : children) {
+                    if(LOG.isDebugEnabled())
+                        LOG.debug("child [" + child + "]");
+                    stat = zkc.exists(znode + "/" + child,false);
+                    if(stat != null) {
+                        LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                        data = zkc.getData(znode + "/" + child, new ProfileDataWatcher(), stat);
+                        String delims = "[=:]";
+                        String[] tokens = (new String(data)).split(delims);
+                        for (int i = 0; i < tokens.length; i=i+2){
+                            attributes.put(tokens[i], tokens[i + 1]);
+                        }
+                        profilesMap.put(child,attributes);;
                     }
-                    profilesMap.put(child,attributes);;
                 }
             }
         }
@@ -506,30 +523,31 @@ public class RESTServlet implements RestConstants {
         String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS;
         
         List<String> children = null;
-        mappingsMap.clear();
-             
-        children = zkc.getChildren(znode,new MappingWatcher());
-        if( ! children.isEmpty()){ 
-            for(String child : children) {
-                if(LOG.isDebugEnabled())
-                    LOG.debug("child [" + child + "]");
-                stat = zkc.exists(znode + "/" + child,false);
-                if(stat != null) {
-                    LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
-                    data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
-                    String delims = "[=:]";
-                    String[] tokens = (new String(data)).split(delims);
-                    for (int i = 0; i < tokens.length; i=i+2){
-                        attributes.put(tokens[i], tokens[i + 1]);
+        synchronized(mappingsMap){
+            mappingsMap.clear();
+            children = zkc.getChildren(znode,new MappingWatcher());
+            if( ! children.isEmpty()){ 
+                for(String child : children) {
+                    if(LOG.isDebugEnabled())
+                        LOG.debug("child [" + child + "]");
+                    stat = zkc.exists(znode + "/" + child,false);
+                    if(stat != null) {
+                        LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                        data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
+                        String delims = "[=:]";
+                        String[] tokens = (new String(data)).split(delims);
+                        for (int i = 0; i < tokens.length; i=i+2){
+                            attributes.put(tokens[i], tokens[i + 1]);
+                        }
+                        mappingsMap.put(child,attributes);;
                     }
-                    mappingsMap.put(child,attributes);;
                 }
             }
         }
     }
 
     private static void sortByValues(Map<String, LinkedHashMap<String,String>> map) { 
-        List list = new LinkedList(map.entrySet());
+        List<Map.Entry> list = new LinkedList(map.entrySet());
         Collections.sort(list, new Comparator() {
             public int compare(Object o1, Object o2) {
                  Map<String,String> m1 = ((LinkedHashMap<String,String>)((Map.Entry)(o1)).getValue());
@@ -540,7 +558,7 @@ public class RESTServlet implements RestConstants {
              }
         });
         map.clear();
-        for (Iterator it = list.iterator(); it.hasNext();) {
+        for (Iterator<Map.Entry> it = list.iterator(); it.hasNext();) {
                Map.Entry entry = (Map.Entry)it.next();
                map.put((String)entry.getKey(), (LinkedHashMap<String,String>)entry.getValue());
         } 
@@ -638,22 +656,27 @@ public class RESTServlet implements RestConstants {
         if(LOG.isDebugEnabled())
             LOG.debug("getWmsSlasMap()");
  
-        return slasMap;
+        synchronized(slasMap){
+            return slasMap;
+        }
     }
     public synchronized Map<String, LinkedHashMap<String,String>> getWmsProfilesMap() throws Exception {
         
         if(LOG.isDebugEnabled())
             LOG.debug("getWmsProfilesMap()");
-
-        return profilesMap;
+        synchronized(profilesMap){
+            return profilesMap;
+        }
     }
     public synchronized Map<String, LinkedHashMap<String,String>> getWmsMappingsMap() throws Exception {
         
         if(LOG.isDebugEnabled())
             LOG.debug("getWmsMappingsMap()");
-        if( ! mappingsMap.isEmpty())
-            sortByValues(mappingsMap);
-        return mappingsMap;
+        synchronized(mappingsMap){
+            if( ! mappingsMap.isEmpty())
+                sortByValues(mappingsMap);
+            return mappingsMap;
+        }
     }
     public synchronized Response.Status postWmsSla(String name, String sdata) throws Exception {
         Response.Status status = Response.Status.OK;
