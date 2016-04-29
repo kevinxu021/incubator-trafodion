@@ -587,7 +587,7 @@ short CmpSeabaseDDL::createSeabaseTableExternal(
 
           // if external table column attrs are explicitly specified, then
           // they must match source table column attrs.
-          if (NOT type->isCompatible(*edcdType))
+          if (0) //NOT type->isCompatible(*edcdType))
             {
               *CmpCommon::diags()
                 << DgSqlCode(-1186)
