@@ -1,6 +1,6 @@
 ////
 /**
-  *(C) Copyright 2015 Esgyn Corporation
+  *(C) Copyright 2015-2016 Esgyn Corporation
   *
   * Confidential computer software. Valid license from Esgyn required for
   * possession, use or copying. Consistent with FAR 12.211 and 12.212,
@@ -26,12 +26,12 @@ Use these common tips to troubleshoot any display issues with EsgynDB Manager.
 ** Verify that the DB Manager ports (4205/4206) are not blocked by any firewall.
 ** Check if DB Manager is running. Use the *mgblty_check* or *dbmgr.sh status* to confirm EsgynDB Manager is running.
 ** If DB Manager is up, verify that DCS, REST and EsgynDB is up and running.
-*** sqcheck
+*** trafcheck
 *** dcscheck
 *** jps  (to check if TrafodionRest server is running)
 
 * Page is blank or partially loaded
-** It could be a transient error like browser load timeouts. Refresh your page and try again.
+** It could be a transient error like browser load timeouts. Log out and log back in.
 ** Sometimes refreshing the browser cache also helps.
 ** Check the browser console for errors.
 
@@ -46,7 +46,7 @@ Use these common tips to troubleshoot any display issues with EsgynDB Manager.
 When contacting Esgyn Support, the following information will be handy and requested:
 
 * Latest logs in *$MY_SQROOT/dbmgr-{projectVersion}/logs/*
-* $MY_SQROOT/dbmgr-{projectVersion}/config.xml
+* $MY_SQROOT/dbmgr-{projectVersion}/conf/config.xml
 * EsgynDB Manager version information from the About page
 
 For UI issues:
