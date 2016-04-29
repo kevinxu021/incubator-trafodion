@@ -37,7 +37,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.Watcher.Event;
 import org.apache.zookeeper.data.Stat;
 import org.trafodion.dcs.Constants;
 import org.trafodion.dcs.master.listener.ConnectionContext;
@@ -46,7 +45,7 @@ import org.trafodion.dcs.master.listener.ListenerService;
 
 public class DefinedMapping  {
     private static  final Log LOG = LogFactory.getLog(DefinedMapping.class);
-    private final Map<String, LinkedHashMap<String,String>> mappingsMap = new LinkedHashMap<String, LinkedHashMap<String,String>>();
+    private final Map<String, LinkedHashMap<String,String>> mappingsMap = Collections.synchronizedMap( new LinkedHashMap<String, LinkedHashMap<String,String>>());
 
     private ListenerService listener = null;
     private ZkClient zkc = null;
@@ -67,9 +66,8 @@ public class DefinedMapping  {
                     Stat stat = null;
                     byte[] data = null;
                     String znode = event.getPath();
-                    
-                    Set<String> keyset = new HashSet<String>(mappingsMap.keySet());
-                    
+                        Set<String> keyset = new HashSet<String>(mappingsMap.keySet());
+                        
                     List<String> children = zkc.getChildren(znode,new MappingWatcher());
                     if( ! children.isEmpty()){ 
                         for(String child : children) {
@@ -88,11 +86,15 @@ public class DefinedMapping  {
                                 for (int i = 0; i < tokens.length; i=i+2){
                                     attributes.put(tokens[i], tokens[i + 1]);
                                 }
-                                mappingsMap.put(child, attributes);
+                                synchronized(mappingsMap){
+                                    mappingsMap.put(child, attributes);
+                                }
                             }
                         }
                         for (String child : keyset) {
-                            mappingsMap.remove(child);
+                            synchronized(mappingsMap){
+                                mappingsMap.remove(child);
+                            }
                         }
                     }
                 } catch (Exception e) {
@@ -121,7 +123,9 @@ public class DefinedMapping  {
                     for (int i = 0; i < tokens.length; i=i+2){
                         attributes.put(tokens[i], tokens[i + 1]);
                     }
-                    mappingsMap.put(child,attributes);;
+                    synchronized(mappingsMap){
+                        mappingsMap.put(child,attributes);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                     if(LOG.isErrorEnabled())
@@ -137,45 +141,49 @@ public class DefinedMapping  {
         Stat stat = null;
         byte[] data = null;
         String znode = parentZnode + Constants.DEFAULT_ZOOKEEPER_ZNODE_WMS_MAPPINGS;
-        
         List<String> children = null;
-        mappingsMap.clear();
+        
+        synchronized(mappingsMap){
+            mappingsMap.clear();
              
-        children = zkc.getChildren(znode,new MappingWatcher());
-        if( ! children.isEmpty()){ 
-            for(String child : children) {
-                if(LOG.isDebugEnabled())
-                    LOG.debug("child [" + child + "]");
-                stat = zkc.exists(znode + "/" + child,false);
-                if(stat != null) {
-                    LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
-                    data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
-                    String delims = "[=:]";
-                    String[] tokens = (new String(data)).split(delims);
-                    for (int i = 0; i < tokens.length; i=i+2){
-                        attributes.put(tokens[i], tokens[i + 1]);
+            children = zkc.getChildren(znode,new MappingWatcher());
+            if( ! children.isEmpty()){ 
+                for(String child : children) {
+                    if(LOG.isDebugEnabled())
+                        LOG.debug("child [" + child + "]");
+                    stat = zkc.exists(znode + "/" + child,false);
+                    if(stat != null) {
+                        LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                        data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
+                        String delims = "[=:]";
+                        String[] tokens = (new String(data)).split(delims);
+                        for (int i = 0; i < tokens.length; i=i+2){
+                            attributes.put(tokens[i], tokens[i + 1]);
+                        }
+                        mappingsMap.put(child,attributes);;
                     }
-                    mappingsMap.put(child,attributes);;
                 }
             }
         }
     }
     private static void sortByValues(Map<String, LinkedHashMap<String,String>> map) { 
-        List<Set<Map.Entry<String,String>>> list = new LinkedList(map.entrySet());
-        Collections.sort(list, new Comparator<Object>() {
-            public int compare(Object o1, Object o2) {
-                 Map<String,String> m1 = ((LinkedHashMap<String,String>)((Map.Entry)(o1)).getValue());
-                 String orderNumber1 = m1.get(Constants.ORDER_NUMBER);
-                 Map<String,String> m2 = ((LinkedHashMap<String,String>)((Map.Entry)(o2)).getValue());
-                 String orderNumber2 = m2.get(Constants.ORDER_NUMBER);
-                 return Integer.valueOf(orderNumber1) -Integer.valueOf(orderNumber2);
-             }
-        });
-        map.clear();
-        for (Iterator<?> it = list.iterator(); it.hasNext();) {
-               Map.Entry<String, LinkedHashMap<String,String>> entry = (Map.Entry<String, LinkedHashMap<String,String>>)it.next();
-               map.put(entry.getKey(), entry.getValue());
-        } 
+        synchronized(map){
+            List<Map.Entry> list = new LinkedList(map.entrySet());
+            Collections.sort(list, new Comparator() {
+                public int compare(Object o1, Object o2) {
+                     Map<String,String> m1 = ((LinkedHashMap<String,String>)((Map.Entry)(o1)).getValue());
+                     String orderNumber1 = m1.get(Constants.ORDER_NUMBER);
+                     Map<String,String> m2 = ((LinkedHashMap<String,String>)((Map.Entry)(o2)).getValue());
+                     String orderNumber2 = m2.get(Constants.ORDER_NUMBER);
+                     return Integer.valueOf(orderNumber1) -Integer.valueOf(orderNumber2);
+                 }
+            });
+            map.clear();
+            for (Iterator<Map.Entry> it = list.iterator(); it.hasNext();) {
+                   Map.Entry entry = (Map.Entry)it.next();
+                   map.put((String)entry.getKey(), (LinkedHashMap<String,String>)entry.getValue());
+            } 
+        }
     }
     public synchronized void findProfile(ConnectionContext cc){
         // Mapping
