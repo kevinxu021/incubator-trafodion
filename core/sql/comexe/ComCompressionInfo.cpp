@@ -27,10 +27,12 @@ ComCompressionInfo::~ComCompressionInfo()
 ComCompressionInfo::CompressionMethod ComCompressionInfo::getCompressionMethodFromFileName(
      const char *f)
 {
-  const char * ret = strstr(f, ".lzo_deflate");
-
+  const char * ret = strcasestr(f, ".lzo_deflate");
   if (ret)
     return LZO_DEFLATE;
+  ret = strcasestr(f, ".deflate");
+  if (ret)
+    return DEFLATE;
 
   return UNCOMPRESSED;
 }

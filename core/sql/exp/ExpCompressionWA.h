@@ -80,7 +80,7 @@ public:
   void addToScratchBufUsedSize(UInt32 val) 
     { compScratchBufferUsedSize_ += val; }
 
-private:
+protected:
 
   ComCompressionInfo* compInfo_;
   char*  compScratchBuffer_;
@@ -109,7 +109,9 @@ class ExpLzoCompressionWA : public ExpCompressionWA
 class ExpDeflateCompressionWA : public ExpCompressionWA
 {
   public:
-  ExpDeflateCompressionWA(const UInt32 bufSize, CollHeap* heap);
+  ExpDeflateCompressionWA(CollHeap* heap);
+  virtual ~ExpDeflateCompressionWA();
+
   virtual CompressionReturnCode 
     decompress(char* src, Int64 srcLength, 
 	       char* target, Int64 targetMaxLen, 
