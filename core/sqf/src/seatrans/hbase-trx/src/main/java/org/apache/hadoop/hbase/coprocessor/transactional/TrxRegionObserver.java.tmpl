@@ -257,11 +257,11 @@ public void start(CoprocessorEnvironment e) throws IOException {
 	
     // PIT test 
     // this.configuredPITRecovery = true;
-    if (LOG.isTraceEnabled()) LOG.trace("PIT Recovery setting is " + this.configuredPITRecovery +
+    if (LOG.isTraceEnabled()) LOG.trace("PIT Recovery Observer setting is " + this.configuredPITRecovery +
 		  " PIT Recovery HA setting is " +  this.configuredPITRecoveryHA +
                   "\nget the reference from Region CoprocessorEnvironment ");
     
-     if (LOG.isTraceEnabled()) LOG.trace("PIT Recovery attributes are" + 
+     if (LOG.isTraceEnabled()) LOG.trace("PIT Recovery Observer mutation rollover attributes are" + 
 		   " Max Txn per KV " + this.PIT_max_txn_mutation_per_KV +
 		   " Max Txn per FILE " + this.PIT_max_txn_mutation_per_FILE +
      		   " Max Size per FILE " + this.PIT_max_size_mutation_per_FILE );

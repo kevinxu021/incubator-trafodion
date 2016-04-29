@@ -211,7 +211,7 @@ public class MutationCapture {
           this.fs = f;
           this.context = cont;
 
-     if (LOG.isTraceEnabled()) LOG.trace("PIT MutationCapture attributes for region " + regionInfo.getEncodedName() + " are " + 
+     if (LOG.isTraceEnabled()) LOG.trace("PIT MutationCapture rollover attributes for region " + regionInfo.getEncodedName() + " are " + 
 		   " Max Txn per KV " + this.PIT_max_txn_mutation_per_KV +
 		   " Max Txn per FILE " + this.PIT_max_txn_mutation_per_FILE +
      		   " Max Size per FILE " + this.PIT_max_size_mutation_per_FILE );
