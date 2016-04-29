@@ -96,8 +96,6 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		processArgs: function(){
 			if( _args.schema != undefined){
 				$(SCHEMA_NAME).val( _args.schema);
-			}else{
-				$(SCHEMA_NAME).val("");
 			}
 			if(_args.library != undefined){
 				$(LIBRARY_NAME).val(_args.library);
@@ -114,8 +112,6 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 					}
 				}
 			}else{
-				$(LIBRARY_NAME).val("");
-				$(FILE_NAME).val("");
 				$(SCHEMA_NAME).prop('disabled', false);
 				$(LIBRARY_NAME).prop('disabled', false);
 				$(PAGE_HEADER).text("Create Library");
