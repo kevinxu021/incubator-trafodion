@@ -15,8 +15,8 @@ USER_NAME       = "usr"
 PASS_WORD       = "pwd"
 TABLE_NAME      = "\"_MD_\".OBJECTS"
 CANARY_QUERY = """
-select object_name from %s where CATALOG_NAME = 'dummy' and SCHEMA_NAME = 'dummy'
- and OBJECT_NAME = 'dummy_canary_table' and OBJECT_TYPE = 'dummy' for browse access
+select object_name from %s where CATALOG_NAME = 'TRAFODION' and SCHEMA_NAME = '_MD_'
+ and OBJECT_NAME = 'OBJECTS' and OBJECT_TYPE = 'BT' for browse access
 """ % TABLE_NAME
 
 ################################################################################
