@@ -8007,7 +8007,7 @@ short CmpSeabaseDDL::initSeabaseAuthorization(
     
     // If any tables were created, go drop them now.
     // Ignore any returned errors
-    if (NOT ddlXns)
+    if (NOT ddlXns && tablesCreated.size() > 0)
     {
       bool doCleanup = true;
       retcode = privInterface.dropAuthorizationMetadata(doCleanup);
