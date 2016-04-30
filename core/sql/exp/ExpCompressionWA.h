@@ -109,7 +109,8 @@ class ExpLzoCompressionWA : public ExpCompressionWA
 class ExpDeflateCompressionWA : public ExpCompressionWA
 {
   public:
-  ExpDeflateCompressionWA(CollHeap* heap);
+  ExpDeflateCompressionWA(ComCompressionInfo::CompressionMethod typ, 
+                          CollHeap* heap); // to be used by derived classes too
   virtual ~ExpDeflateCompressionWA();
 
   virtual CompressionReturnCode 
@@ -122,7 +123,19 @@ class ExpDeflateCompressionWA : public ExpCompressionWA
 
   virtual const char * getText() {return (const char *)"DEFLATE";}
 };
-                                                                
+
+class ExpGzipCompressionWA : public ExpDeflateCompressionWA
+{
+  public:
+  ExpGzipCompressionWA(CollHeap* heap);
+  // use destructor of ExpDeflateCompressionWA
+  // use decompress method from ExpDeflateCompressionWA
+
+  virtual CompressionReturnCode initCompressionLib() ;
+
+  virtual const char * getText() {return (const char *)"GZIP";}
+};
+                                                               
 #endif /* EXP_COMPRESSIONWA_H */
 
 

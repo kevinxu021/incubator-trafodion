@@ -33,6 +33,9 @@ ComCompressionInfo::CompressionMethod ComCompressionInfo::getCompressionMethodFr
   ret = strcasestr(f, ".deflate");
   if (ret)
     return DEFLATE;
+  ret = strcasestr(f, ".gz");
+  if (ret)
+    return GZIP;
 
   return UNCOMPRESSED;
 }

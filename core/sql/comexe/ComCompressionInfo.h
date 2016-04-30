@@ -45,6 +45,7 @@ public:
     { UNCOMPRESSED,           // file is not compressed
       LZO_DEFLATE,            // using LZO deflate compression
       DEFLATE,                // using DEFLATE compression
+      GZIP,                   // using Gzip compression
       UNKNOWN_COMPRESSION };  // unable to determine compression method
 
   ComCompressionInfo(CompressionMethod cm = UNKNOWN_COMPRESSION) :

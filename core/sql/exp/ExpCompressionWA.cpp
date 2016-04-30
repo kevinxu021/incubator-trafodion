@@ -93,7 +93,10 @@ ExpCompressionWA* ExpCompressionWA::createCompressionWA(const char *f,
   case ComCompressionInfo::LZO_DEFLATE :
     return new (heap) ExpLzoCompressionWA(bufSize, heap);
   case ComCompressionInfo::DEFLATE :
-    return new (heap) ExpDeflateCompressionWA(heap);
+    return new (heap) ExpDeflateCompressionWA(ComCompressionInfo::DEFLATE, 
+                                              heap);
+  case ComCompressionInfo::GZIP :
+    return new (heap) ExpGzipCompressionWA(heap);
   default :
     return NULL;
   }
@@ -263,8 +266,9 @@ ExpLzoCompressionWA::initCompressionLib()
   return COMPRESS_SUCCESS;
 }
 
-ExpDeflateCompressionWA::ExpDeflateCompressionWA(CollHeap* heap)
-: ExpCompressionWA(ComCompressionInfo::DEFLATE, 0, heap)
+ExpDeflateCompressionWA::ExpDeflateCompressionWA(ComCompressionInfo::CompressionMethod typ,
+                                                 CollHeap* heap)
+: ExpCompressionWA(typ, 0, heap)
 { 
   // scratch space for Deflate is maintained internally by the library
   // in a z_stream object. We create a z_stream object on heap_ and point to
@@ -334,8 +338,11 @@ ExpDeflateCompressionWA::decompress(char* src, Int64 srcLength,
   {
     // reinitialize internal state for potential next file.
     // If there are no more files destructor will clean up internal state.
-    (void)inflateEnd(strm);
-    return initCompressionLib();
+    //(void)inflateEnd(strm);
+    //return initCompressionLib();
+    ret = inflateReset(strm);
+    return (ret == Z_OK) ? COMPRESS_SUCCESS : COMPRESS_FAILURE ;
+    
   }
   else if ((strm->avail_out == 0) || (strm->avail_in == 0))
   {
@@ -365,4 +372,27 @@ ExpCompressionWA::CompressionReturnCode
   return COMPRESS_SUCCESS;
 }
 
+ExpGzipCompressionWA::ExpGzipCompressionWA(CollHeap* heap)
+  : ExpDeflateCompressionWA(ComCompressionInfo::GZIP, heap)
+{}
+
+ExpCompressionWA::CompressionReturnCode
+ ExpGzipCompressionWA::initCompressionLib() 
+{
+  z_stream *strm = (z_stream *) compScratchBuffer_;
+  int ret ;
+
+  /* allocate inflate state */
+  strm->zalloc = Z_NULL;
+  strm->zfree = Z_NULL;
+  strm->opaque = Z_NULL;
+  strm->avail_in = 0;
+  strm->next_in = Z_NULL;
+  /*  max_wbits = 15, see zconf.h. For an explanation of the number 16 please
+      see comment in /usr/include/zlib.h for inflateInit2. */
+  ret = inflateInit2(strm,MAX_WBITS+16);
+  if (ret != Z_OK)
+    return COMPRESS_NOT_INITIALIZED;
+  return COMPRESS_SUCCESS;
+}
 
