@@ -235,7 +235,7 @@ Suite 100             College
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 12448
+Fragment ID: 0, Length: 12472
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -270,7 +270,7 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 400
+Class Version = 1, Class Size = 416
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 41032
@@ -368,7 +368,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 9968
+Fragment ID: 0, Length: 9992
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -403,7 +403,7 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 400
+Class Version = 1, Class Size = 416
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 41032
@@ -519,7 +519,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 10144
+Fragment ID: 0, Length: 10168
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -554,7 +554,7 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 400
+Class Version = 1, Class Size = 416
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 32840
@@ -650,7 +650,7 @@ S_STORE_SK
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 15144
+Fragment ID: 0, Length: 15168
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -685,7 +685,7 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 400
+Class Version = 1, Class Size = 416
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 32840

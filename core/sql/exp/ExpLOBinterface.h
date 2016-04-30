@@ -42,6 +42,7 @@ class HdfsFileInfo
 
   // used for partitioned Hive tables
   const char *getPartColValues() const { return partColValues_; }
+  Int16 getCompressionTypeIx() const { return compressionTypeIx_; }
 
   Lng32 getFlags() { return flags_; }
 
@@ -69,6 +70,7 @@ class HdfsFileInfo
   Int64 startOffset_;
   Int64 bytesToRead_;
   NABasicPtr partColValues_;
+  Int16 compressionTypeIx_;
 };
 
 class HdfsColInfo
