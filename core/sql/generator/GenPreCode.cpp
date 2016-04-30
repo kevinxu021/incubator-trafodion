@@ -12737,7 +12737,6 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
       // first add all columns referenced in the executor pred.
       HbaseAccess::addReferenceFromVIDset(executorPred(), TRUE, TRUE, colRefSet);
 
-
       HbaseAccess::addReferenceFromVIDset
         (getGroupAttr()->getCharacteristicOutputs(), TRUE, TRUE, colRefSet);
 
