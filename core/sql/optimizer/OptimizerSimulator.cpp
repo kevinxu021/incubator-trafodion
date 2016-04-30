@@ -3324,7 +3324,7 @@ void OsimHHDFSTableStats::startElement(void *parser, const char *elementName, co
 {
     if(!strcmp(elementName, TAG_HHDFSLISTPARTSTATS)){
         OsimHHDFSListPartitionStats* entry = new (heap_) OsimHHDFSListPartitionStats(this, NULL, heap_);
-        HHDFSListPartitionStats* hhstats = new (heap_) HHDFSListPartitionStats(heap_);
+        HHDFSListPartitionStats* hhstats = new (heap_) HHDFSListPartitionStats(heap_, mirror_->getTable());
         entry->restoreHHDFSStats(hhstats, atts);
         Int32 pos = entry->getPosition();
         addEntry(entry, pos);
@@ -3343,7 +3343,7 @@ void OsimHHDFSListPartitionStats::startElement(void *parser, const char *element
 {
     if(!strcmp(elementName, TAG_HHDFSBUCKETSTATS)){
         OsimHHDFSBucketStats* entry = new (heap_) OsimHHDFSBucketStats(this, NULL, heap_);
-        HHDFSBucketStats* hhstats = new (heap_) HHDFSBucketStats(heap_);
+        HHDFSBucketStats* hhstats = new (heap_) HHDFSBucketStats(heap_, mirror_->getTable());
         entry->restoreHHDFSStats(hhstats, atts);
         Int32 pos = entry->getPosition();
         addEntry(entry, pos);
@@ -3359,7 +3359,7 @@ void OsimHHDFSBucketStats::startElement(void *parser, const char *elementName, c
 {
     if(!strcmp(elementName, TAG_HHDFSFILESTATS)){
         OsimHHDFSFileStats* entry = new (heap_) OsimHHDFSFileStats(this, NULL, heap_);
-        HHDFSFileStats* hhstats = new (heap_) HHDFSFileStats(heap_);
+        HHDFSFileStats* hhstats = new (heap_) HHDFSFileStats(heap_, mirror_->getTable());
         entry->restoreHHDFSStats(hhstats, atts);
         Int32 pos = entry->getPosition();
         addEntry(entry, pos);
@@ -3369,7 +3369,7 @@ void OsimHHDFSBucketStats::startElement(void *parser, const char *elementName, c
     }
     else if(!strcmp(elementName, TAG_HHDFSORCFILESTATS)){
         OsimHHDFSORCFileStats* entry = new (heap_) OsimHHDFSORCFileStats(this, NULL, heap_);
-        HHDFSORCFileStats* hhstats = new (heap_) HHDFSORCFileStats(heap_);
+        HHDFSORCFileStats* hhstats = new (heap_) HHDFSORCFileStats(heap_, mirror_->getTable());
         entry->restoreHHDFSStats(hhstats, atts);
         Int32 pos = entry->getPosition();
         addEntry(entry, pos);

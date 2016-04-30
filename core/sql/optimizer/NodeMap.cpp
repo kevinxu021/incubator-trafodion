@@ -2297,9 +2297,14 @@ void NodeMap::balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
                           // don't support ScanInfos for multiple blocks
                           CMPASSERT(span <= fs->getBlockSize());
 
+                          // can we split this block (could later make this
+                          // dependent on offsets for splittable compressed files)
+                          NABoolean canSplitThisBlock =
+                            (splitBlocks && fs->splitsAllowed());
+
                           // check whether moving this block to the
                           // target ESP would keep the recipient at or below average
-                          if (splitBlocks ||
+                          if (canSplitThisBlock ||
                               espDistribution[recipient] + span <= targetBytes)
                             {
                               // yes, whole or partial block move
@@ -2329,7 +2334,7 @@ void NodeMap::balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
                                       // all or part of the ScanInfo over.
 
                                       Int64 numBytesToMove = span;
-                                      if (splitBlocks)
+                                      if (canSplitThisBlock)
                                         numBytesToMove =
                                           MINOF(
                                                MINOF(espDistribution[e]-targetBytes,

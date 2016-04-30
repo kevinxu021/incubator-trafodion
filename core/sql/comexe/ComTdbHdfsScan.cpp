@@ -47,6 +47,8 @@ ComTdbHdfsScan::ComTdbHdfsScan(
                                Queue * hdfsFileRangeBeginList,
                                Queue * hdfsFileRangeNumList,
                                Queue * hdfsColInfoList,
+                               ComCompressionInfo * compressionInfos,
+                               Int16 numCompressionInfos,
                                char recordDelimiter,
                                char columnDelimiter,
                                Int64 hdfsBufSize,
@@ -100,6 +102,8 @@ ComTdbHdfsScan::ComTdbHdfsScan(
   hdfsFileRangeBeginList_(hdfsFileRangeBeginList),
   hdfsFileRangeNumList_(hdfsFileRangeNumList),
   hdfsColInfoList_(hdfsColInfoList),
+  compressionInfos_(compressionInfos),
+  numCompressionInfos_(numCompressionInfos),
   recordDelimiter_(recordDelimiter),
   columnDelimiter_(columnDelimiter),
   hdfsBufSize_(hdfsBufSize),
@@ -170,6 +174,7 @@ Long ComTdbHdfsScan::pack(void * space)
       hdfsColInfoList_.pack(space);
     }
 
+  compressionInfos_.packArray(space, numCompressionInfos_);
   errCountTable_.pack(space);
   loggingLocation_.pack(space);
   errCountRowId_.pack(space);
@@ -213,6 +218,8 @@ Lng32 ComTdbHdfsScan::unpack(void * base, void * reallocator)
         }
     }
 
+  if (compressionInfos_.unpackArray(base, numCompressionInfos_, reallocator))
+    return -1;
   if (hdfsFileRangeBeginList_.unpack(base, reallocator)) return -1;
   if (hdfsFileRangeNumList_.unpack(base, reallocator)) return -1;
 
@@ -584,6 +591,7 @@ ComTdbOrcScan::ComTdbOrcScan(
                    hdfsFileRangeBeginList,
                    hdfsFileRangeNumList,
                    hdfsColInfoList,
+                   NULL, 0,
                    recordDelimiter, columnDelimiter, hdfsBufSize, 
                    rangeTailIOSize,
                    numPartCols,

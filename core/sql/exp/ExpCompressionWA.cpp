@@ -52,23 +52,17 @@ static UInt32 read32(char * buf)
     return v;
 }
 
-ExpCompressionWA::ExpCompressionWA(ComCompressionInfo::CompressionMethod typ, 
-				   const UInt32 bufSize, CollHeap* heap)
- :compScratchBufferMaxSize_(bufSize),
-  compScratchBufferUsedSize_(0),
-  heap_(heap)
+ExpCompressionWA::ExpCompressionWA(const ComCompressionInfo *ci,
+                                   CollHeap* heap) : compInfo_(ci),
+                                                     heap_(heap),
+                                                     compScratchBufferUsedSize_(0)
 {
-  compInfo_ = new (heap) ComCompressionInfo(typ);
-  compScratchBuffer_ = new (heap) char[bufSize];
+  compScratchBufferMaxSize_ = ci->getMinScratchBufferSize();
+  compScratchBuffer_ = new (heap) char[compScratchBufferMaxSize_];
 }
 
 ExpCompressionWA::~ExpCompressionWA()
 {
-  if (compInfo_)
-  {
-    NADELETEBASIC(compInfo_, heap_);
-    compInfo_ = NULL;
-  }
   if (compScratchBuffer_)
   {
     NADELETEBASIC(compScratchBuffer_, heap_);
@@ -76,27 +70,25 @@ ExpCompressionWA::~ExpCompressionWA()
   }
 }
 
-ExpCompressionWA* ExpCompressionWA::createCompressionWA(const char *f, 
-							const UInt32 bufSize, 
-							CollHeap* heap)
+ExpCompressionWA* ExpCompressionWA::createCompressionWA(const ComCompressionInfo *ci,
+                                                        CollHeap* heap)
 {
-  ComCompressionInfo::CompressionMethod typ = 
-    ComCompressionInfo::getCompressionMethodFromFileName(f);
+  Int64 bufSize = ci->getMinScratchBufferSize();
 
-  switch (typ)
+  switch (ci->getCompressionMethod())
   {
   case ComCompressionInfo::LZO_DEFLATE :
-    return new (heap) ExpLzoCompressionWA(bufSize, heap);
+    return new (heap) ExpLzoCompressionWA(ci, heap);
   case ComCompressionInfo::DEFLATE :
-    return new (heap) ExpDeflateCompressionWA(bufSize, heap);
+    return new (heap) ExpDeflateCompressionWA(ci, heap);
   default :
     return NULL;
   }
 }
 
-ExpLzoCompressionWA::ExpLzoCompressionWA(const UInt32 bufSize, CollHeap* heap)
- : ExpCompressionWA(ComCompressionInfo::LZO_DEFLATE, bufSize, heap)
-{ }
+ExpLzoCompressionWA::ExpLzoCompressionWA(const ComCompressionInfo *ci, CollHeap* heap) :
+     ExpCompressionWA(ci, heap)
+{}
 
 ExpCompressionWA::CompressionReturnCode 
 ExpLzoCompressionWA::decompress(char* src, Int64 srcLength, 
@@ -258,10 +250,10 @@ ExpLzoCompressionWA::initCompressionLib()
   return COMPRESS_SUCCESS;
 }
 
-ExpDeflateCompressionWA::ExpDeflateCompressionWA(const UInt32 bufSize, 
-						 CollHeap* heap)
-: ExpCompressionWA(ComCompressionInfo::DEFLATE, bufSize, heap)
-{ }
+ExpDeflateCompressionWA::ExpDeflateCompressionWA(const ComCompressionInfo *ci,
+                                                 CollHeap* heap) :
+     ExpCompressionWA(ci, heap)
+{}
 
 ExpCompressionWA::CompressionReturnCode 
 ExpDeflateCompressionWA::decompress(char* src, Int64 srcLength, 

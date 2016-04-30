@@ -141,7 +141,10 @@ class ComTdbHdfsScan : public ComTdb
   Int32 numPartCols_;                                         // 208 - 211
   ExExprPtr partElimExpr_;                                    // 212 - 219
   UInt32  hiveScanMode_;                                      // 220 - 223
-  char fillersComTdbHdfsScan1_[12];                           // 224 - 235
+  UInt32 numCompressionInfos_;                                // 224 - 227
+  NAVersionedObjectPtrTempl<ComCompressionInfo>
+                                      compressionInfos_;      // 228 - 235
+  char fillersComTdbHdfsScan1_[12];                           // 236 - 247
 
 public:
   enum HDFSFileType
@@ -171,6 +174,8 @@ public:
 		 Queue * hdfsFileRangeBeginList,
 		 Queue * hdfsFileRangeNumList,
                  Queue * hdfsColInfoList,
+                 ComCompressionInfo *compressionInfos,
+                 Int16 numCompressionInfos,
                  char recordDelimiter,
                  char columnDelimiter,
 		 Int64 hdfsBufSize,
@@ -243,6 +248,9 @@ public:
   Queue* getHdfsFileRangeBeginList() {return hdfsFileRangeBeginList_;}
   Queue* getHdfsFileRangeNumList() {return hdfsFileRangeNumList_;}
   Queue* getHdfsColInfoList() {return hdfsColInfoList_;}
+
+  const ComCompressionInfo * getCompressionInfo(int c) const
+  { return ((c >= 0 && c < numCompressionInfos_) ? &compressionInfos_[c] : NULL); }
 
   const NABoolean isTextFile() const { return (type_ == TEXT_);}
   const NABoolean isSequenceFile() const { return (type_ == SEQUENCE_);}  

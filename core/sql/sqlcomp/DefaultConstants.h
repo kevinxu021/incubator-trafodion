@@ -3858,7 +3858,8 @@ enum DefaultConstants
   //   // 1 : DOS FORMAT conversion on
   //     // 2 : todo
   HIVE_SCAN_SPECIAL_MODE,
-
+  HIVE_HDFS_STATS_MAX_SAMPLE_FILES,
+  HIVE_HDFS_STATS_SAMPLE_LOB_INTFC,
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES
