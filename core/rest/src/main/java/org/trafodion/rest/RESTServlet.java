@@ -163,7 +163,7 @@ public class RESTServlet implements RestConstants {
                     byte[] data = null;
                     String znode = event.getPath();
                     
-                    Set<String> keyset = new HashSet<String>(slasMap.keySet());
+                    Set<String> keyset = new HashSet<>(slasMap.keySet());
                     
                     List<String> children = zkc.getChildren(znode,new SlaWatcher());
                     if( ! children.isEmpty()){ 
@@ -175,7 +175,7 @@ public class RESTServlet implements RestConstants {
                                     continue;
                                 }
                                 //add new record
-                                LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                                LinkedHashMap<String,String> attributes = new LinkedHashMap<>();
                                 data = zkc.getData(znode + "/" + child, new SlaDataWatcher(), stat);
                                 String delims = "[=:]";
                                 String[] tokens = (new String(data)).split(delims);
@@ -212,7 +212,7 @@ public class RESTServlet implements RestConstants {
                     byte[] data = null;
                     String znode = event.getPath();
                     String child = znode.substring(znode.lastIndexOf('/') + 1);
-                    LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                    LinkedHashMap<String,String> attributes = new LinkedHashMap<>();
                     data = zkc.getData(znode, new SlaDataWatcher(), stat);
                     String delims = "[=:]";
                     String[] tokens = (new String(data)).split(delims);
@@ -240,7 +240,7 @@ public class RESTServlet implements RestConstants {
                     byte[] data = null;
                     String znode = event.getPath();
                     
-                    Set<String> keyset = new HashSet<String>(profilesMap.keySet());
+                    Set<String> keyset = new HashSet<>(profilesMap.keySet());
                     
                     List<String> children = zkc.getChildren(znode,new ProfileWatcher());
                     if( ! children.isEmpty()){ 
@@ -253,7 +253,7 @@ public class RESTServlet implements RestConstants {
                                     continue;
                                 }
                                 //add new record
-                                LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                                LinkedHashMap<String,String> attributes = new LinkedHashMap<>();
                                 data = zkc.getData(znode + "/" + child, new ProfileDataWatcher(), stat);
                                 String delims = "[=:]";
                                 String[] tokens = (new String(data)).split(delims);
@@ -290,7 +290,7 @@ public class RESTServlet implements RestConstants {
                     byte[] data = null;
                     String znode = event.getPath();
                     String child = znode.substring(znode.lastIndexOf('/') + 1);
-                    LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                    LinkedHashMap<String,String> attributes = new LinkedHashMap<>();
                     data = zkc.getData(znode, new ProfileDataWatcher(), stat);
                     String delims = "[=:]";
                     String[] tokens = (new String(data)).split(delims);
@@ -318,7 +318,7 @@ public class RESTServlet implements RestConstants {
                     byte[] data = null;
                     String znode = event.getPath();
                     
-                    Set<String> keyset = new HashSet<String>(mappingsMap.keySet());
+                    Set<String> keyset = new HashSet<>(mappingsMap.keySet());
                     List<String> children = zkc.getChildren(znode,new MappingWatcher());
                     if( ! children.isEmpty()){ 
                         for(String child : children) {
@@ -330,7 +330,7 @@ public class RESTServlet implements RestConstants {
                                     continue;
                                 }
                                 //add new record
-                                LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                                LinkedHashMap<String,String> attributes = new LinkedHashMap<>();
                                 data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
                                 String delims = "[=:]";
                                 String[] tokens = (new String(data)).split(delims);
@@ -367,7 +367,7 @@ public class RESTServlet implements RestConstants {
                     byte[] data = null;
                     String znode = event.getPath();
                     String child = znode.substring(znode.lastIndexOf('/') + 1);
-                    LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                    LinkedHashMap<String,String> attributes = new LinkedHashMap<>();
                     data = zkc.getData(znode, new MappingDataWatcher(), stat);
                     String delims = "[=:]";
                     String[] tokens = (new String(data)).split(delims);
@@ -470,7 +470,7 @@ public class RESTServlet implements RestConstants {
                         LOG.debug("child [" + child + "]");
                     stat = zkc.exists(znode + "/" + child,false);
                     if(stat != null) {
-                        LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                        LinkedHashMap<String,String> attributes = new LinkedHashMap<>();
                         data = zkc.getData(znode + "/" + child, new SlaDataWatcher(), stat);
                         String delims = "[=:]";
                         String[] tokens = (new String(data)).split(delims);
@@ -501,7 +501,7 @@ public class RESTServlet implements RestConstants {
                         LOG.debug("child [" + child + "]");
                     stat = zkc.exists(znode + "/" + child,false);
                     if(stat != null) {
-                        LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                        LinkedHashMap<String,String> attributes = new LinkedHashMap<>();
                         data = zkc.getData(znode + "/" + child, new ProfileDataWatcher(), stat);
                         String delims = "[=:]";
                         String[] tokens = (new String(data)).split(delims);
@@ -532,7 +532,7 @@ public class RESTServlet implements RestConstants {
                         LOG.debug("child [" + child + "]");
                     stat = zkc.exists(znode + "/" + child,false);
                     if(stat != null) {
-                        LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                        LinkedHashMap<String,String> attributes = new LinkedHashMap<>();
                         data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
                         String delims = "[=:]";
                         String[] tokens = (new String(data)).split(delims);

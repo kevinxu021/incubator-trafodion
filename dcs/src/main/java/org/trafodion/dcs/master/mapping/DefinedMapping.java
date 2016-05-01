@@ -66,7 +66,7 @@ public class DefinedMapping  {
                     Stat stat = null;
                     byte[] data = null;
                     String znode = event.getPath();
-                        Set<String> keyset = new HashSet<String>(mappingsMap.keySet());
+                    Set<String> keyset = new HashSet<>(mappingsMap.keySet());
                         
                     List<String> children = zkc.getChildren(znode,new MappingWatcher());
                     if( ! children.isEmpty()){ 
@@ -79,7 +79,7 @@ public class DefinedMapping  {
                                     continue;
                                 }
                                 //add new record
-                                LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                                LinkedHashMap<String,String> attributes = new LinkedHashMap<>();
                                 data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
                                 String delims = "[=:]";
                                 String[] tokens = (new String(data)).split(delims);
@@ -116,7 +116,7 @@ public class DefinedMapping  {
                     byte[] data = null;
                     String znode = event.getPath();
                     String child = znode.substring(znode.lastIndexOf('/') + 1);
-                    LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                    LinkedHashMap<String,String> attributes = new LinkedHashMap<>();
                     data = zkc.getData(znode, new MappingDataWatcher(), stat);
                     String delims = "[=:]";
                     String[] tokens = (new String(data)).split(delims);
@@ -153,7 +153,7 @@ public class DefinedMapping  {
                         LOG.debug("child [" + child + "]");
                     stat = zkc.exists(znode + "/" + child,false);
                     if(stat != null) {
-                        LinkedHashMap<String,String> attributes = new LinkedHashMap<String,String>();
+                        LinkedHashMap<String,String> attributes = new LinkedHashMap<>();
                         data = zkc.getData(znode + "/" + child, new MappingDataWatcher(), stat);
                         String delims = "[=:]";
                         String[] tokens = (new String(data)).split(delims);
@@ -168,7 +168,7 @@ public class DefinedMapping  {
     }
     private static void sortByValues(Map<String, LinkedHashMap<String,String>> map) { 
         synchronized(map){
-            List<Map.Entry> list = new LinkedList(map.entrySet());
+            List<Map.Entry> list = new LinkedList<Map.Entry>(map.entrySet());
             Collections.sort(list, new Comparator() {
                 public int compare(Object o1, Object o2) {
                      Map<String,String> m1 = ((LinkedHashMap<String,String>)((Map.Entry)(o1)).getValue());
@@ -246,7 +246,7 @@ public class DefinedMapping  {
             Stat stat = zkc.exists(znode,false);
             if(stat != null) {
                 data = zkc.getData(znode, false, stat);
-                attributes = new LinkedHashMap<String,String>();
+                attributes = new LinkedHashMap<>();
                 String delims = "[=:]";
                 String[] tokens = (new String(data)).split(delims);
                 for (int i = 0; i < tokens.length; i=i+2){
@@ -278,7 +278,7 @@ public class DefinedMapping  {
             Stat stat = zkc.exists(znode,false);
             if(stat != null) {
                 data = zkc.getData(znode, false, stat);
-                attributes = new LinkedHashMap<String,String>();
+                attributes = new LinkedHashMap<>();
                 String delims = "[=:]";
                 String[] tokens = (new String(data)).split(delims);
                 for (int i = 0; i < tokens.length; i=i+2){

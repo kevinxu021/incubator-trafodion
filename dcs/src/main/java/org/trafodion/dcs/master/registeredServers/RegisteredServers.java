@@ -44,7 +44,6 @@ import org.trafodion.dcs.master.listener.ListenerService;
 public class RegisteredServers  {
     private static  final Log LOG = LogFactory.getLog(RegisteredServers.class);
     private final Map<String, String> servers = Collections.synchronizedMap(new LinkedHashMap<String, String>());
-//  private final ConcurrentHashMap<String, String> servers = new ConcurrentHashMap<String, String>();
      
     private ZkClient zkc = null;
     private String parentZnode = "";
@@ -67,7 +66,7 @@ public class RegisteredServers  {
                     byte[] data = null;
                     String znode = event.getPath();
                     
-                    Set<String> keyset = new HashSet<String>(servers.keySet());
+                    Set<String> keyset = new HashSet<>(servers.keySet());
                     List<String> children = zkc.getChildren(znode,new ChildrenWatcher());
                     if( ! children.isEmpty()){ 
                         for(String child : children) {
@@ -146,10 +145,10 @@ public class RegisteredServers  {
         }
     }
     public synchronized void getServers(ConnectionContext cc){
-        HashMap<String, String>availableServers = new HashMap<String, String>(servers);
-        HashMap<String, String>connectedServers = new HashMap<String, String>(servers);
+        HashMap<String, String>availableServers = new HashMap<>(servers);
+        HashMap<String, String>connectedServers = new HashMap<>(servers);
         synchronized(servers){
-            Set<String> keys = new HashSet<String>(servers.keySet());
+            Set<String> keys = new HashSet<>(servers.keySet());
             for(String key : keys) {
                 if(!servers.get(key).startsWith(Constants.AVAILABLE)){
                     availableServers.remove(key);
