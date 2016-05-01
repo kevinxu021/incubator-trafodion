@@ -3492,7 +3492,7 @@ Int64 HivePartitionAndBucketKey::getTotalSize(HHDFSStatsBase& selectedStats)
 
 Int64 HivePartitionAndBucketKey::getTotalSize()
 {
-  HHDFSStatsBase selectedStats;
+  HHDFSStatsBase selectedStats(NULL);
   accumulateSelectedStats(selectedStats);
 
   return getTotalSize(selectedStats);
@@ -3572,4 +3572,11 @@ void HivePartitionAndBucketKey::replaceVEGExpressions(const ValueIdSet & availab
              FALSE, // no need for key predicate generation here
              lookup, // to be side-affected
              TRUE);
+}
+
+bool
+CompareHiveFileIterator::operator()(HiveFileIterator& t1, HiveFileIterator& t2)
+{
+   // return TRUE iff t1's total size is less than t2's. 
+   return (t1.getFileStats()->getTotalSize() < t2.getFileStats()->getTotalSize());
 }

@@ -24,6 +24,25 @@
 ComCompressionInfo::~ComCompressionInfo()
 {}
 
+void ComCompressionInfo::setCompressionMethod(const char *fileName)
+{
+  compressionMethod_ = getCompressionMethodFromFileName(fileName);
+}
+
+Int64 ComCompressionInfo::getMinScratchBufferSize() const
+{
+  switch (compressionMethod_)
+    {
+    case LZO_DEFLATE:
+      return 256*1024;
+    case DEFLATE:
+    case GZIP:
+      return 0; // scratch is handled by zlib library
+    default:
+      return 0;
+    }
+}
+
 ComCompressionInfo::CompressionMethod ComCompressionInfo::getCompressionMethodFromFileName(
      const char *f)
 {
@@ -63,4 +82,14 @@ void ComCompressionInfo::populateImageVersionIDArray()
 short ComCompressionInfo::getClassSize()
 {
   return (short) sizeof(ComCompressionInfo);
+}
+
+Long ComCompressionInfo::pack(void * space)
+{
+  return NAVersionedObject::pack(space);
+}
+
+Lng32 ComCompressionInfo::unpack(void * base, void * reallocator)
+{
+  return NAVersionedObject::unpack(base, reallocator);
 }

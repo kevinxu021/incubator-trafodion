@@ -287,18 +287,20 @@
 		<query>
 			<!-- Get histogram stats for a table -->
 			<name>SELECT_OBJECT_HISTOGRAM_STATISTICS</name>
-			<text><![CDATA[SELECT T1.COLUMN_NUMBER, C.COLUMN_NAME, C.SQL_DATA_TYPE, ISNULL(T2.INTERVAL_ROWCOUNT,0) as NULL_COUNT, 
+			<text><![CDATA[SELECT T1.COLUMN_NUMBER, C.COLUMN_NAME, C.SQL_DATA_TYPE, ISNULL(SB_HISTOGRAM_INTERVALS.INTERVAL_ROWCOUNT,0) as NULL_COUNT, 
 				T1.LOW_VALUE, T1.HIGH_VALUE, T1.CV, 
 				T1.TOTAL_UEC, T1.ROWCOUNT, T1.STATS_TIME
 				FROM (
 				    SELECT TABLE_UID, HISTOGRAM_ID, COLUMN_NUMBER, LOW_VALUE, HIGH_VALUE, CV, TOTAL_UEC, ROWCOUNT,
 				    STATS_TIME
-				    FROM %1$s.SB_HISTOGRAMS 
-				    WHERE TABLE_UID = %2$s AND COLCOUNT = 1
+				    FROM %1$s.SB_HISTOGRAMS SB_HISTOGRAMS, "_MD_".OBJECTS AS O
+				    WHERE O.SCHEMA_NAME = ? AND O.OBJECT_NAME = ?
+                    AND O.OBJECT_UID = SB_HISTOGRAMS.TABLE_UID 
+                    AND COLCOUNT = 1
 				) AS T1 
-				LEFT JOIN %1$s.SB_HISTOGRAM_INTERVALS T2 
-				ON (T1.TABLE_UID = T2.TABLE_UID AND T1.HISTOGRAM_ID = T2.HISTOGRAM_ID 
-				AND T2.INTERVAL_BOUNDARY = '(NULL)') 
+				LEFT JOIN %1$s.SB_HISTOGRAM_INTERVALS SB_HISTOGRAM_INTERVALS 
+				ON (T1.TABLE_UID = SB_HISTOGRAM_INTERVALS.TABLE_UID AND T1.HISTOGRAM_ID = SB_HISTOGRAM_INTERVALS.HISTOGRAM_ID 
+				AND SB_HISTOGRAM_INTERVALS.INTERVAL_BOUNDARY = '(NULL)') 
 				, "_MD_".COLUMNS C
 				WHERE T1.COLUMN_NUMBER = C.COLUMN_NUMBER
 				AND T1.TABLE_UID = C.OBJECT_UID
@@ -669,7 +671,7 @@
 		
 		<query>
 			<name>OPENTSDB_CANARY_RESPONSE</name>
-			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:esgyndb.canary.sqlconnect.time&m=avg:%4$s-avg:esgyndb.canary.sqlddl.time&m=avg:%4$s-avg:esgyndb.canary.sqlwrite.time&m=avg:%4$s-avg:esgyndb.canary.sqlread.time", "method":"get"}]]></text>
+			<text><![CDATA[{"url":"http://%1$s/api/query?start=%2$s&end=%3$s&m=avg:%4$s-avg:esgyndb.canary.sqlconnect.time&m=avg:%4$s-avg:esgyndb.canary.sqlread.time", "method":"get"}]]></text>
 		</query>
 		<query>
 			<name>OPENTSDB_CANARY_RESPONSE_DRILLDOWN</name>

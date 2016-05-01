@@ -688,6 +688,10 @@ create table store_deflate as select * from store       ;
 create table promotion_deflate as select * from promotion   ;
 create table customer_deflate as select * from customer    ;
 
+set mapreduce.output.fileoutputformat.compress.codec = org.apache.hadoop.io.compress.GzipCodec ;
+drop table store_gz ;
+create table store_gz as select * from store ;
+
 quit;
 
 EOF

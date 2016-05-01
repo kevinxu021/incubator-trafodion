@@ -422,22 +422,22 @@ define([
 				components.push($('#component-mxosrvr').val());
 			if($('#component-sql').is(':checked'))
 				components.push($('#component-sql').val());
-			if($('#component-sql.comp').is(':checked'))
-				components.push($('#component-sql.comp').val());
-			if($('#component-sql.descgen').is(':checked'))
-				components.push($('#component-sql.descgen').val());
-			if($('#component-sql.esp').is(':checked'))
-				components.push($('#component-sql.esp').val());
-			if($('#component-sql.exe').is(':checked'))
-				components.push($('#component-sql.exe').val());
-			if($('#component-sql.lob').is(':checked'))
-				components.push($('#component-sql.lob').val());
-			if($('#component-sql.sscp').is(':checked'))
-				components.push($('#component-sql.sscp').val());
-			if($('#component-sql.ssmp').is(':checked'))
-				components.push($('#component-sql.ssmp').val());
-			if($('#component-sql.udr').is(':checked'))
-				components.push($('#component-sql.udr').val());
+			if($('#component-sql-comp').is(':checked'))
+				components.push($('#component-sql-comp').val());
+			if($('#component-sql-descgen').is(':checked'))
+				components.push($('#component-sql-descgen').val());
+			if($('#component-sql-esp').is(':checked'))
+				components.push($('#component-sql-esp').val());
+			if($('#component-sql-exe').is(':checked'))
+				components.push($('#component-sql-exe').val());
+			if($('#component-sql-lob').is(':checked'))
+				components.push($('#component-sql-lob').val());
+			if($('#component-sql-sscp').is(':checked'))
+				components.push($('#component-sql-sscp').val());
+			if($('#component-sql-ssmp').is(':checked'))
+				components.push($('#component-sql-ssmp').val());
+			if($('#component-sql-udr').is(':checked'))
+				components.push($('#component-sql-udr').val());
 			if($('#component-wdg').is(':checked'))
 				components.push($('#component-wdg').val());
 

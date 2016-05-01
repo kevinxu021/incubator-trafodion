@@ -262,9 +262,6 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>cqd HDFS_IO_BUFFERSIZE reset;
 
 --- SQL operation complete.
->>cqd HIVE_LOCALITY_BALANCE_LEVEL '-1' ;
-
---- SQL operation complete.
 >>obey TEST002(compress_tests);
 >>--------------------------------------------------------------------------
 >>

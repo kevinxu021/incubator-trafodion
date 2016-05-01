@@ -296,6 +296,7 @@ define([
 			}
 		},
 		popupNotificationMessage:function(event,obj){
+			var message=null;
 			if(event!=null){
 				//this for redirect case
 				var i=$(this).closest("li").index();
@@ -308,8 +309,12 @@ define([
 			if(obj.msg==undefined){
 				obj.msg="Operation failed.";
 			}
-			$.notify({message: obj.msg,
-				url:obj.url,
+			if(obj.url!=null){
+				message='<a  href='+ obj.url +' style="color:#ffffff">'+obj.msg+'</a>';
+			}else{
+				message=obj.msg;
+			}
+			$.notify({message: message,
 				target:'_self'},
 				{
 					// settings

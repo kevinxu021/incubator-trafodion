@@ -2888,6 +2888,8 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
   // committed in the called methods.
   if ((ddlXns()) &&
       (
+           (initHbase()) ||
+           (dropHbase()) ||
            (purgedataHbase()) ||
            (initAuthorization()) ||
            (dropAuthorization()) ||
@@ -2905,6 +2907,7 @@ short DDLExpr::ddlXnsInfo(NABoolean &isDDLxn, NABoolean &xnCanBeStarted)
   if ((ddlNode && ddlNode->castToStmtDDLNode() &&
        ddlNode->castToStmtDDLNode()->ddlXns()) &&
       ((ddlNode->getOperatorType() == DDL_CLEANUP_OBJECTS) ||
+       (ddlNode->getOperatorType() == DDL_DROP_SCHEMA) ||
        (ddlNode->getOperatorType() == DDL_ALTER_TABLE_DROP_COLUMN) ||
        (ddlNode->getOperatorType() == DDL_ALTER_TABLE_ALTER_COLUMN_DATATYPE)))
     {
@@ -4575,6 +4578,21 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
         } else
            setExecutorPredicates(selectionPred());
+
+        // Assign individual files and blocks or stripes to each ESPs.
+	// For repN part func, assign every file to every ESP
+	if ( getPartFunc()-> isAReplicateNoBroadcastPartitioningFunction() )
+	  ((NodeMap *) getPartFunc()->getNodeMap()) ->
+            assignScanInfosRepN(hiveSearchKey_);
+        else {
+          if ( !(hTabStats->isOrcFile()) || 
+               CmpCommon::getDefault(ORC_READ_STRIPE_INFO) == DF_ON)
+            ((NodeMap *) getPartFunc()->getNodeMap()) ->
+              assignScanInfos(hiveSearchKey_);
+          else 
+            ((NodeMap*) getPartFunc()->getNodeMap()) -> 
+              assignScanInfosNoSplit(hiveSearchKey_);
+        }
       }
 
       // Rebuild the executor  predicate tree
@@ -4589,13 +4607,6 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
         // subtract predicates that are handled by hiveSearchKey_
         executorPredicates_ -= hiveSearchKey_->getCompileTimePartColPreds();
         executorPredicates_ -= hiveSearchKey_->getPartAndVirtColPreds();
-
-	// Assign individual files and blocks or stripes to each ESPs.
-	// For repN part func, assign every file to every ESP.
-	if ( getPartFunc()-> isAReplicateNoBroadcastPartitioningFunction() )
-	 ((NodeMap *) getPartFunc()->getNodeMap())->assignScanInfosRepN(hiveSearchKey_);
-        else
-	 ((NodeMap *) getPartFunc()->getNodeMap())->assignScanInfos(hiveSearchKey_);
       }
     }
 
@@ -12724,7 +12735,6 @@ RelExpr * HbaseAccess::preCodeGen(Generator * generator,
       // create the list of columns that need to be retrieved from hbase .
       // first add all columns referenced in the executor pred.
       HbaseAccess::addReferenceFromVIDset(executorPred(), TRUE, TRUE, colRefSet);
-
 
       HbaseAccess::addReferenceFromVIDset
         (getGroupAttr()->getCharacteristicOutputs(), TRUE, TRUE, colRefSet);

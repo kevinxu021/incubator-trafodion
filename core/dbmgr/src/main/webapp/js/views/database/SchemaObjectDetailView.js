@@ -257,19 +257,18 @@ define([
 				}
 			}
 			pageStatus = {};
-
+			$(ATTRIBUTES_CONTAINER).empty();
 			$(COLUMNS_CONTAINER).empty();
 			$(REGIONS_CONTAINER).empty();
 			$(STATISTICS_CONTAINER).empty();
 			$(PRIVILEGES_CONTAINER).empty();
 			$(STATISTICS_CONTAINER).empty();
 			$(INDEXES_CONTAINER).empty();
-
+			pageStatus.ddlFetched == false
 			if(ddlTextEditor){
 				ddlTextEditor.setValue("");
-				setTimeout(function() {
-					ddlTextEditor.refresh();
-				},1);
+				ddlTextEditor.clearHistory("");
+				ddlTextEditor.refresh();
 			}			
 		},
 
@@ -388,6 +387,14 @@ define([
 				break;
 			case DDL_SELECTOR:
 				$(DDL_CONTAINER).show();
+				if(ddlTextEditor){
+					var txt  = ddlTextEditor.getTextArea();
+					ddlTextEditor.setCursor(0,0);
+					if(txt){
+						$(txt).focus();
+						$(txt).click();
+					}
+				}
 				_this.fetchDDLText();
 				break;
 			case PRIVILEGES_SELECTOR:
@@ -585,6 +592,10 @@ define([
 		},
 		fetchDDLText: function(){
 			if(!pageStatus.ddlFetched || pageStatus.ddlFetched == false ){
+				if(ddlTextEditor){
+					ddlTextEditor.setValue("");
+					ddlTextEditor.refresh();
+				}
 				$(DDL_SPINNER).show();
 				var parentObjectName = null;
 				if(routeArgs.type == 'index'){
@@ -601,7 +612,7 @@ define([
 		},
 		fetchRegions: function(){
 			if(!pageStatus.regionsFetched || pageStatus.regionsFetched == false){
-				$(COLUMNS_SPINNER).show();
+				$(REGIONS_SPINNER).show();
 				dbHandler.fetchRegions(routeArgs.type, routeArgs.name, routeArgs.schema);
 			}			
 		},
@@ -676,6 +687,7 @@ define([
 			$(DDL_SPINNER).hide();
 			$(DDL_ERROR_CONTAINER).hide();
 			pageStatus.ddlFetched = true;
+			ddlTextEditor.focus();
 			ddlTextEditor.setValue(data);
 			ddlTextEditor.refresh();
 		},

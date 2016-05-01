@@ -2923,11 +2923,6 @@ HHDFSTableStats * OptimizerSimulator::restoreHiveTableStats(const QualifiedName 
     //hiveHDFSTableStats->numOfPartCols_ = hvt_desc->getNumOfPartCols();
     //hiveHDFSTableStats->recordTerminator_ = hsd->getRecordTerminator();
     //hiveHDFSTableStats->fieldTerminator_ = hsd->getFieldTerminator() ;
-    //NAString hdfsHost;
-    //Int32 hdfsPort = -1;
-    //NAString tableDir;
-    //if (! hiveHDFSTableStats->splitLocation(hsd->location_, hdfsHost, hdfsPort, tableDir))
-    //  return NULL;
     //hiveHDFSTableStats->currHdfsHost_ = hdfsHost;
     //hiveHDFSTableStats->currHdfsPort_ = hdfsPort;
     struct hive_sd_desc *hsd = hvt_desc->getSDs();
@@ -2974,6 +2969,7 @@ void OsimHHDFSStatsBase::serializeAttrs(XMLString & xml)
     if(NULL == mirror_) 
         return;
     HHDFSStatsBase* hhstats = (HHDFSStatsBase*)mirror_;
+    xml.append("position='").append(std::to_string((long long)(getPosition())).c_str()).append("' ");
     xml.append("numBlocks='").append(std::to_string((long long)(hhstats->numBlocks_)).c_str()).append("' ");
     xml.append("numFiles='").append(std::to_string((long long)(hhstats->numFiles_)).c_str()).append("' ");
     xml.append("totalRows='").append(std::to_string((long long)(hhstats->totalRows_)).c_str()).append("' ");
@@ -3133,7 +3129,9 @@ NABoolean OsimHHDFSStatsBase::setValue(HHDFSStatsBase* hhstats, const char *attr
       if(NULL == hhstats)
           return FALSE;
 
-      if (!strcmp(attrName, "numBlocks"))
+      if (!strcmp(attrName, "position"))
+        setPosition(std::atol(attrValue));
+      else if (!strcmp(attrName, "numBlocks"))
         hhstats->numBlocks_= std::atol(attrValue);
       else if (!strcmp(attrName, "numFiles"))
         hhstats->numFiles_ = std::atol(attrValue);
@@ -3177,7 +3175,7 @@ NABoolean OsimHHDFSFileStats::setValue(HHDFSStatsBase* stats, const char *attrNa
               NAString values = attrValue;
               LIST(NAString) valueList;
               values.split('|', valueList);
-              hhstats->blockHosts_ = new (STMTHEAP) HostId[valueList.entries()];
+              hhstats->blockHosts_ = new (hhstats->heap_) HostId[valueList.entries()];
               for(Int32 i = 0; i < valueList.entries(); i++)
                   hhstats->blockHosts_[i] = std::atoi(valueList[i].data());
           }
@@ -3326,10 +3324,15 @@ void OsimHHDFSTableStats::startElement(void *parser, const char *elementName, co
 {
     if(!strcmp(elementName, TAG_HHDFSLISTPARTSTATS)){
         OsimHHDFSListPartitionStats* entry = new (heap_) OsimHHDFSListPartitionStats(this, NULL, heap_);
-        HHDFSListPartitionStats* hhstats = new (heap_) HHDFSListPartitionStats(heap_);
+        HHDFSListPartitionStats* hhstats = new (heap_) HHDFSListPartitionStats(heap_, mirror_->getTable());
         entry->restoreHHDFSStats(hhstats, atts);
-        addEntry(entry);
-        ((HHDFSTableStats*)mirror_)->append(hhstats);
+        Int32 pos = entry->getPosition();
+        addEntry(entry, pos);
+        //put hhstats into the same position as capture time,
+        //positions are ascendant, because they are capture this way,
+        //"gaps" are filled with "un-used" entries
+        ((HHDFSTableStats*)mirror_)->insertAt(pos, hhstats);
+
         XMLDocument::setCurrentElement(parser, entry);
     }
     else
@@ -3340,10 +3343,12 @@ void OsimHHDFSListPartitionStats::startElement(void *parser, const char *element
 {
     if(!strcmp(elementName, TAG_HHDFSBUCKETSTATS)){
         OsimHHDFSBucketStats* entry = new (heap_) OsimHHDFSBucketStats(this, NULL, heap_);
-        HHDFSBucketStats* hhstats = new (heap_) HHDFSBucketStats(heap_);
+        HHDFSBucketStats* hhstats = new (heap_) HHDFSBucketStats(heap_, mirror_->getTable());
         entry->restoreHHDFSStats(hhstats, atts);
-        addEntry(entry);
-        ((HHDFSListPartitionStats*)mirror_)->append(hhstats);
+        Int32 pos = entry->getPosition();
+        addEntry(entry, pos);
+        ((HHDFSListPartitionStats*)mirror_)->insertAt(pos, hhstats);
+
         XMLDocument::setCurrentElement(parser, entry);
     }
     else
@@ -3354,18 +3359,22 @@ void OsimHHDFSBucketStats::startElement(void *parser, const char *elementName, c
 {
     if(!strcmp(elementName, TAG_HHDFSFILESTATS)){
         OsimHHDFSFileStats* entry = new (heap_) OsimHHDFSFileStats(this, NULL, heap_);
-        HHDFSFileStats* hhstats = new (heap_) HHDFSFileStats(heap_);
+        HHDFSFileStats* hhstats = new (heap_) HHDFSFileStats(heap_, mirror_->getTable());
         entry->restoreHHDFSStats(hhstats, atts);
-        addEntry(entry);
-        ((HHDFSBucketStats*)mirror_)->append(hhstats);
+        Int32 pos = entry->getPosition();
+        addEntry(entry, pos);
+        ((HHDFSBucketStats*)mirror_)->insertAt(pos, hhstats);
+
         XMLDocument::setCurrentElement(parser, entry);
     }
     else if(!strcmp(elementName, TAG_HHDFSORCFILESTATS)){
         OsimHHDFSORCFileStats* entry = new (heap_) OsimHHDFSORCFileStats(this, NULL, heap_);
-        HHDFSORCFileStats* hhstats = new (heap_) HHDFSORCFileStats(heap_);
+        HHDFSORCFileStats* hhstats = new (heap_) HHDFSORCFileStats(heap_, mirror_->getTable());
         entry->restoreHHDFSStats(hhstats, atts);
-        addEntry(entry);
-        ((HHDFSBucketStats*)mirror_)->append(hhstats);
+        Int32 pos = entry->getPosition();
+        addEntry(entry, pos);
+        ((HHDFSBucketStats*)mirror_)->insertAt(pos, hhstats);
+
         XMLDocument::setCurrentElement(parser, entry);
     }
     else

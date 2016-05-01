@@ -2242,12 +2242,38 @@ short CmpDescribeHiveTable (
   const NAString& tableName =
     dtName.getQualifiedNameObj().getObjectName();
  
+  NABoolean hiveExtTabAttrDefTurnedOff = FALSE;
+  NABoolean isHiveExtTable = FALSE;
   BindWA bindWA(ActiveSchemaDB(), CmpCommon::context(), FALSE/*inDDL*/);
   NATable *naTable = bindWA.getNATable((CorrName&)dtName); 
   if (naTable == NULL || bindWA.errStatus())
     return -1;
   else
     {
+      if (naTable->isHiveTable() && naTable->hasHiveExtTable())
+        isHiveExtTable = TRUE;
+
+      // if showddl and this hive table has an associated external table,
+      // show the ddl of source hive table first.
+      if ((type == 2) &&
+          (naTable->isHiveTable()) &&
+          (naTable->hasHiveExtTable()) &&
+          (CmpCommon::getDefault(HIVE_USE_EXT_TABLE_ATTRS) == DF_ON))
+        {
+          // remove current cache key and turn off ext table attr cqd.
+          // This will return the underlying hive natable.
+          bindWA.getSchemaDB()->getNATableDB()->remove(naTable->getKey());
+          NAString op("OFF");
+          ActiveSchemaDB()->getDefaults().validateAndInsert
+            ("HIVE_USE_EXT_TABLE_ATTRS", op, FALSE);
+
+          hiveExtTabAttrDefTurnedOff = TRUE;
+
+          naTable = bindWA.getNATable((CorrName&)dtName); 
+          if (naTable == NULL || bindWA.errStatus())
+            return -1;
+        }
+
       bindWA.createTableDesc(naTable, (CorrName&)dtName);
       if (bindWA.errStatus())
         return -1;
@@ -2259,6 +2285,16 @@ short CmpDescribeHiveTable (
   if (NOT ((type == 1) || (type == 2)))
     return -1;
 
+  if (hiveExtTabAttrDefTurnedOff)
+    {
+      // remove table key from natable cache. Next call to get natable
+      // will get the external table defn, if one exists
+      bindWA.getSchemaDB()->getNATableDB()->remove(naTable->getKey());
+      NAString op("ON");
+      ActiveSchemaDB()->getDefaults().validateAndInsert
+        ("HIVE_USE_EXT_TABLE_ATTRS", op, FALSE);
+    }      
+   
   char * buf = new (heap) char[15000];
   CMPASSERT(buf);
 
@@ -2384,8 +2420,8 @@ short CmpDescribeHiveTable (
   }
 
   if ((naTable->getClusteringIndex()) &&
+      (isHiveExtTable) &&
       (naTable->isORC()) &&
-      (naTable->hasHiveExtTable()) &&
       (type == 1))
     {
       NAFileSet * naf = naTable->getClusteringIndex();
@@ -2410,7 +2446,7 @@ short CmpDescribeHiveTable (
   else if (hTabStats->isTextFile())
     {
       if (type == 1)
-        outputShortLine(space, "  /* stored as text */");
+        outputShortLine(space, "  /* stored as textfile */");
       else
         outputShortLine(space, "  stored as textfile ");
     }
@@ -2427,8 +2463,7 @@ short CmpDescribeHiveTable (
 
   // if this hive table has an associated external table, show ddl
   // for that external table.
-  if ((naTable->hasHiveExtTable()) &&
-      (type == 2))
+if ((isHiveExtTable) && (type == 2))
     {
       char * dummyBuf;
       ULng32 dummyLen;
@@ -2451,9 +2486,6 @@ short CmpDescribeHiveTable (
                                          TRUE, FALSE, FALSE, TRUE, TRUE,
                                          NULL, FALSE, NULL, NULL, &space);
 
-      //      sprintf(buf, "  FOR %s", dtName.getQualifiedNameAsString().data());
-      //      outputShortLine(space, buf);
-      
       outputShortLine(space, ";");
     }
 

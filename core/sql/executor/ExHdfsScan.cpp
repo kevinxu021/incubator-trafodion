@@ -79,6 +79,7 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   , hdfsScanBuffer_(NULL)
   , hdfsBufNextRow_(NULL)
   , compressionWA_(NULL)
+  , currCompressionTypeIx_(-1)
   , hdfsLoggingRow_(NULL)
   , hdfsLoggingRowEnd_(NULL)
   , debugPrevRow_(NULL)
@@ -106,7 +107,6 @@ ExHdfsScanTcb::ExHdfsScanTcb(
   hdfsScanBuffer_ = new(space) char[ readBufSize + 1 ]; 
   hdfsScanBuffer_[readBufSize] = '\0';
 
-  // when TDB indicates compression, compressionWA_ can be initialized here
   moveExprColsBuffer_ = new(space) ExSimpleSQLBuffer( 1, // one row 
 						      (Int32)hdfsScanTdb.moveExprColsRowLength_,
 						      space);
@@ -251,8 +251,9 @@ void ExHdfsScanTcb::freeResources()
   }
   if (compressionWA_)
   {
-    NADELETEBASIC(compressionWA_, getGlobals()->getDefaultHeap());
+    delete compressionWA_;
     compressionWA_ = NULL;
+    currCompressionTypeIx_ = -1;
   }
   if (moveExprColsBuffer_)
   {
@@ -470,12 +471,17 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
               {
                 sprintf(cursorId_, "%d", currRangeNum_);
                 stopOffset_ = hdfsOffset_ + hdfo_->getBytesToRead();
-		if (!compressionWA_)
+                Int16 compressionTypeIx = hdfo_->getCompressionTypeIx();
+
+		if (compressionTypeIx != currCompressionTypeIx_)
 		{
+                  if (compressionWA_)
+                    delete compressionWA_;
+
 		  compressionWA_ = 
-		    ExpCompressionWA::createCompressionWA
-		    (hdfo_->fileName(), 256*1024, 
-		     getGlobals()->getDefaultHeap());
+		    ExpCompressionWA::createCompressionWA(
+                         hdfsScanTdb().getCompressionInfo(compressionTypeIx),
+                         getGlobals()->getDefaultHeap());
 		  if (compressionWA_)
 		  {
 		    ExpCompressionWA::CompressionReturnCode r = 
@@ -492,6 +498,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
     		      break;
 		    }
 		  }
+                  currCompressionTypeIx_ = compressionTypeIx;
 		}
 
                 step_ = OPEN_HDFS_CURSOR;
@@ -751,7 +758,7 @@ ExWorkProcRetcode ExHdfsScanTcb::work()
 	          }
               }
               
-            if (bytesRead_ <= 0)
+            if (bytesRead_ <= 0 && uncompressedBytesRead_ <= 0)
 	      {
 		// Finished with this file. Unexpected? Warning/event?
 	        step_ = CLOSE_HDFS_CURSOR;
