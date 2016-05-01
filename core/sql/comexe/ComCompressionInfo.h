@@ -45,7 +45,8 @@ public:
     { UNKNOWN_COMPRESSION = 0, // unable to determine compression method
       UNCOMPRESSED,            // file is not compressed
       LZO_DEFLATE,             // using LZO deflate compression
-      DEFLATE };               // using DEFLATE compression
+      DEFLATE,                 // using DEFLATE compression
+      GZIP };                  // using GZIP compression
 
   ComCompressionInfo(CompressionMethod cm = UNKNOWN_COMPRESSION) :
        NAVersionedObject(-1),

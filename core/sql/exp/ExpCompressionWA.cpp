@@ -39,6 +39,8 @@
 
 #include <lzo/lzoconf.h>
 #include <lzo/lzo1x.h>
+#include "zlib.h" // moving this include to a different file could cause
+// collisions in the definition for ULng32 between zconf.h and Platform.h
 #include "ExpCompressionWA.h"
 
 static UInt32 read32(char * buf)
@@ -58,7 +60,10 @@ ExpCompressionWA::ExpCompressionWA(const ComCompressionInfo *ci,
                                                      compScratchBufferUsedSize_(0)
 {
   compScratchBufferMaxSize_ = ci->getMinScratchBufferSize();
-  compScratchBuffer_ = new (heap) char[compScratchBufferMaxSize_];
+  if (compScratchBufferMaxSize_ > 0)
+    compScratchBuffer_ = new (heap) char[compScratchBufferMaxSize_];
+  else
+    compScratchBuffer_ = NULL;
 }
 
 ExpCompressionWA::~ExpCompressionWA()
@@ -81,6 +86,8 @@ ExpCompressionWA* ExpCompressionWA::createCompressionWA(const ComCompressionInfo
     return new (heap) ExpLzoCompressionWA(ci, heap);
   case ComCompressionInfo::DEFLATE :
     return new (heap) ExpDeflateCompressionWA(ci, heap);
+  case ComCompressionInfo::GZIP :
+    return new (heap) ExpGzipCompressionWA(ci, heap);
   default :
     return NULL;
   }
@@ -251,9 +258,34 @@ ExpLzoCompressionWA::initCompressionLib()
 }
 
 ExpDeflateCompressionWA::ExpDeflateCompressionWA(const ComCompressionInfo *ci,
-                                                 CollHeap* heap) :
-     ExpCompressionWA(ci, heap)
-{}
+                                                 CollHeap* heap)
+  : ExpCompressionWA(ci, heap)
+{ 
+  // scratch space for Deflate is maintained internally by the library
+  // in a z_stream object. We create a z_stream object on heap_ and point to
+  // it from compSctachBuffer_. However te zlib library will allocate more
+  // memory and place a pointer to it in one of the data members of z_stream.
+  // Currently this will be on global heap and not NAHeap. This memory will
+  // be returned by zlib as long as we call inflateEnd in the exit path. 
+  // We could look into passing alloc/dealloc routines to zlib so that 
+  // internal memory used by zlib also comes from NAHeap. Thsi is not done yet.
+  // Comments in zlib manual indicate that about 256KB of memory could be 
+  // allocated internally by zlib and pointed to by members of z_stream.
+  // scratchBufferUsedSize_, scaratchBufferMaxSize_ do not include this memory.
+  // Descrtuctor will call InflateEnd to handle cancel.x
+  compScratchBuffer_ = (char *) new (heap_) z_stream; 
+  compScratchBufferUsedSize_ = sizeof(z_stream);
+  compScratchBufferMaxSize_  = sizeof(z_stream);
+}
+
+ExpDeflateCompressionWA::~ExpDeflateCompressionWA()
+{
+  if (compScratchBuffer_)
+  {
+    z_stream *strm = (z_stream *) compScratchBuffer_;
+    (void)inflateEnd(strm);
+  }
+}
 
 ExpCompressionWA::CompressionReturnCode 
 ExpDeflateCompressionWA::decompress(char* src, Int64 srcLength, 
@@ -261,13 +293,98 @@ ExpDeflateCompressionWA::decompress(char* src, Int64 srcLength,
 				Int64& compressedBytesRead, 
 				Int64& uncompressedBytesProduced)
 {
-  return COMPRESS_SUCCESS;
+  int ret;
+  UInt32 compressionBlockSize = 256*1024 ;
+  z_stream *strm = (z_stream *) compScratchBuffer_;
+  unsigned char *in = (unsigned char *) src;
+  unsigned char *out = (unsigned char *) target;
+  compressedBytesRead = 0;
+  uncompressedBytesProduced = 0;
+  
+  if (strm->avail_in == 0) 
+  {
+    strm->avail_in = (UInt32) srcLength;
+    if (strm->avail_in == 0)
+      return COMPRESS_SUCCESS;
+    strm->next_in = in;
+  }
+  strm->avail_out = (UInt32) targetMaxLen;
+  if (strm->avail_out == 0)
+    return COMPRESS_FAILURE;
+  strm->next_out = out;
+  
+  ret = inflate(strm, Z_NO_FLUSH);
+  switch (ret) {
+  case Z_NEED_DICT:
+  case Z_DATA_ERROR:
+  case Z_MEM_ERROR:
+  case Z_STREAM_ERROR:
+    (void)inflateEnd(strm);
+    return COMPRESS_FAILURE;
+  }
+  uncompressedBytesProduced = targetMaxLen - strm->avail_out;
+  compressedBytesRead = srcLength - strm->avail_in;
+  
+  if (ret == Z_STREAM_END)
+  {
+    // reinitialize internal state for potential next file.
+    // If there are no more files destructor will clean up internal state.
+    //(void)inflateEnd(strm);
+    //return initCompressionLib();
+    ret = inflateReset(strm);
+    return (ret == Z_OK) ? COMPRESS_SUCCESS : COMPRESS_FAILURE ;
+    
+  }
+  else if ((strm->avail_out == 0) || (strm->avail_in == 0))
+  {
+    strm->avail_in = 0; 
+    strm->avail_out = 0;
+    return COMPRESS_SUCCESS ;
+  }
+  else
+    return COMPRESS_FAILURE ;
 }
 
 ExpCompressionWA::CompressionReturnCode
  ExpDeflateCompressionWA::initCompressionLib() 
 {
+  z_stream *strm = (z_stream *) compScratchBuffer_;
+  int ret ;
+
+  /* allocate inflate state */
+  strm->zalloc = Z_NULL;
+  strm->zfree = Z_NULL;
+  strm->opaque = Z_NULL;
+  strm->avail_in = 0;
+  strm->next_in = Z_NULL;
+  ret = inflateInit(strm);
+  if (ret != Z_OK)
+    return COMPRESS_NOT_INITIALIZED;
   return COMPRESS_SUCCESS;
 }
 
+ExpGzipCompressionWA::ExpGzipCompressionWA(const ComCompressionInfo *ci,
+                                           CollHeap* heap)
+  : ExpDeflateCompressionWA(ci, heap)
+{}
+
+ExpCompressionWA::CompressionReturnCode
+ ExpGzipCompressionWA::initCompressionLib() 
+{
+  z_stream *strm = (z_stream *) compScratchBuffer_;
+  int ret ;
+
+  /* allocate inflate state */
+  strm->zalloc = Z_NULL;
+  strm->zfree = Z_NULL;
+  strm->opaque = Z_NULL;
+  strm->avail_in = 0;
+  strm->next_in = Z_NULL;
+  /*  max_wbits = 15, see zconf.h. For an explanation of the number 16 please
+      see comment in /usr/include/zlib.h for inflateInit2. */
+  ret = inflateInit2(strm,MAX_WBITS+16);
+  if (ret != Z_OK)
+    return COMPRESS_NOT_INITIALIZED;
+  return COMPRESS_SUCCESS;
+}
 

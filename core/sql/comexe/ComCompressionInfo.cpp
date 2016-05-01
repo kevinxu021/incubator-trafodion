@@ -35,8 +35,9 @@ Int64 ComCompressionInfo::getMinScratchBufferSize() const
     {
     case LZO_DEFLATE:
       return 256*1024;
-    // case DEFLATE:
-    // TBD
+    case DEFLATE:
+    case GZIP:
+      return 0; // scratch is handled by zlib library
     default:
       return 0;
     }
@@ -45,10 +46,15 @@ Int64 ComCompressionInfo::getMinScratchBufferSize() const
 ComCompressionInfo::CompressionMethod ComCompressionInfo::getCompressionMethodFromFileName(
      const char *f)
 {
-  const char * ret = strstr(f, ".lzo_deflate");
-
+  const char * ret = strcasestr(f, ".lzo_deflate");
   if (ret)
     return LZO_DEFLATE;
+  ret = strcasestr(f, ".deflate");
+  if (ret)
+    return DEFLATE;
+  ret = strcasestr(f, ".gz");
+  if (ret)
+    return GZIP;
 
   return UNCOMPRESSED;
 }

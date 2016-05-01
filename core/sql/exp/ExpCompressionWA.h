@@ -79,7 +79,7 @@ public:
   void addToScratchBufUsedSize(UInt32 val) 
     { compScratchBufferUsedSize_ += val; }
 
-private:
+protected:
 
   const ComCompressionInfo* compInfo_;
   char*  compScratchBuffer_;
@@ -110,6 +110,7 @@ class ExpDeflateCompressionWA : public ExpCompressionWA
 {
   public:
   ExpDeflateCompressionWA(const ComCompressionInfo *ci, CollHeap* heap);
+  virtual ~ExpDeflateCompressionWA();
 
   virtual CompressionReturnCode 
     decompress(char* src, Int64 srcLength, 
@@ -121,7 +122,19 @@ class ExpDeflateCompressionWA : public ExpCompressionWA
 
   virtual const char * getText() {return (const char *)"DEFLATE";}
 };
-                                                                
+
+class ExpGzipCompressionWA : public ExpDeflateCompressionWA
+{
+  public:
+  ExpGzipCompressionWA(const ComCompressionInfo *ci, CollHeap* heap);
+  // use destructor of ExpDeflateCompressionWA
+  // use decompress method from ExpDeflateCompressionWA
+
+  virtual CompressionReturnCode initCompressionLib() ;
+
+  virtual const char * getText() {return (const char *)"GZIP";}
+};
+                                                               
 #endif /* EXP_COMPRESSIONWA_H */
 
 

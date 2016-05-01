@@ -1076,6 +1076,10 @@ echo "$MY_LOCAL_SW_DIST/${HADOOP_TAR}"
          <name>hadoop.tmp.dir</name>
          <value>${MY_HADOOP_DATA_DIR}/tmp</value>
      </property>
+     <property>
+         <name>io.compression.codecs</name>
+         <value>org.apache.hadoop.io.compress.GzipCodec,org.apache.hadoop.io.compress.DefaultCodec,org.apache.hadoop.io.compress.BZip2Codec</value>
+     </property>
 </configuration>
 EOF
 

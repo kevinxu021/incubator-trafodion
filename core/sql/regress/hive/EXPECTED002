@@ -134,6 +134,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>cqd DETAILED_STATISTICS 'RESET';
 
 --- SQL operation complete.
+>>
 >>cqd HDFS_IO_BUFFERSIZE '32';
 
 --- SQL operation complete.
@@ -257,4 +258,92 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 >>cqd DETAILED_STATISTICS 'RESET';
 
 --- SQL operation complete.
+>>
+>>cqd HDFS_IO_BUFFERSIZE reset;
+
+--- SQL operation complete.
+>>obey TEST002(compress_tests);
+>>--------------------------------------------------------------------------
+>>
+>>log LOG002;
+>>select count(*) from customer_deflate ;
+
+(EXPR)              
+--------------------
+
+              100000
+
+--- 1 row(s) selected.
+>>select count(*) from customer_address_deflate ;
+
+(EXPR)              
+--------------------
+
+               50000
+
+--- 1 row(s) selected.
+>>select count(*) from date_dim_deflate ;
+
+(EXPR)              
+--------------------
+
+               73049
+
+--- 1 row(s) selected.
+>>select count(*) from household_demographics_deflate ;
+
+(EXPR)              
+--------------------
+
+                7200
+
+--- 1 row(s) selected.
+>>select count(*) from item_deflate ;
+
+(EXPR)              
+--------------------
+
+               18000
+
+--- 1 row(s) selected.
+>>select count(*) from promotion_deflate ;
+
+(EXPR)              
+--------------------
+
+                 300
+
+--- 1 row(s) selected.
+>>select count(*) from store_deflate ;
+
+(EXPR)              
+--------------------
+
+                  12
+
+--- 1 row(s) selected.
+>>select count(*) from time_dim_deflate ;
+
+(EXPR)              
+--------------------
+
+               86400
+
+--- 1 row(s) selected.
+>>select count(*) from store_sales_deflate ;
+
+(EXPR)              
+--------------------
+
+             2880404
+
+--- 1 row(s) selected.
+>>select count(*) from customer_demographics_deflate ;
+
+(EXPR)              
+--------------------
+
+             1920800
+
+--- 1 row(s) selected.
 >>log;
