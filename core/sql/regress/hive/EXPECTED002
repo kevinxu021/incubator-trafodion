@@ -346,4 +346,12 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
              1920800
 
 --- 1 row(s) selected.
+>>select count(*) from store_gz ;
+
+(EXPR)              
+--------------------
+
+                  12
+
+--- 1 row(s) selected.
 >>log;
