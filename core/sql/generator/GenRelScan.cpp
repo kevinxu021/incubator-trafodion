@@ -581,10 +581,15 @@ short FileScan::genForOrc(Generator * generator,
     emptyScan = TRUE;
   else 
     {
-      HiveNodeMapEntry* hEntry = (HiveNodeMapEntry*)(nmap->getNodeMapEntry(0));
-      LIST(HiveScanInfo)&  scanInfo = hEntry->getScanInfo();
+      int zeroCt = 0;
+      for (CollIndex i=0; i < nmap->getNumEntries(); i++ ) {
+        HiveNodeMapEntry* hEntry = (HiveNodeMapEntry*)(nmap->getNodeMapEntry(i));
+        LIST(HiveScanInfo)& scanInfo = hEntry->getScanInfo();
+        if (scanInfo.entries() == 0 )
+          zeroCt++;
+      }
       
-      if (scanInfo.entries() == 0)
+      if ( zeroCt && zeroCt == nmap->getNumEntries() )
         emptyScan = TRUE;
     }
 
@@ -613,8 +618,8 @@ short FileScan::genForOrc(Generator * generator,
           hfi.flags_ = 0;
           hfi.entryNum_ = 0;
 
-          hfi.startOffset_ = 1; // start at rownum 1.
-          hfi.bytesToRead_ = -1; // stop at last row.
+          hfi.startOffset_ = 0;         // start at offset 0.
+          hfi.bytesToRead_ = LLONG_MAX; // stop at maximal possible length.
           hfi.fileName_ = fnameInList;
 
           if (partColValuesLen > 0)
