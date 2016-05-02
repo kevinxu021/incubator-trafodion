@@ -146,7 +146,7 @@ then
   $MY_HIVE_CMD -e 'describe store_gz;' >/dev/null 2>&1
   if (( $? == 0 ))
   then
-    echo "Hive table customer_orc_bucketed found. Skipping TPC-DS set-up."
+    echo "Hive table store_gz found. Skipping TPC-DS set-up."
     exit 0
   fi
 fi
