@@ -79,13 +79,14 @@ public:
       const std::string & componentName,
       const std::string & operationName);
       
-   int64_t getCount();
+   int64_t getCount( const int32_t componentUID = INVALID_COMPONENT_UID );
      
    void getSQLDMLPrivileges(
       const int32_t                granteeID,
       const std::vector<int32_t> & roleIDs,
       PrivObjectBitmap           & DMLBitmap,
-      bool                       & hasManagePrivileges);
+      bool                       & hasManagePrivileges,
+      bool                       & hasSelectMetadata);
       
    PrivStatus grantPrivilege(
       const std::string & componentName,
