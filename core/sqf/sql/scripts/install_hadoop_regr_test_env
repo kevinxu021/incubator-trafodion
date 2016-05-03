@@ -143,10 +143,10 @@ done
 # (or most recently added item)
 if [[ "$FORCE" != "true" ]]
 then
-  $MY_HIVE_CMD -e 'describe customer_orc_bucketed;' >/dev/null 2>&1
+  $MY_HIVE_CMD -e 'describe store_gz;' >/dev/null 2>&1
   if (( $? == 0 ))
   then
-    echo "Hive table customer_orc_bucketed found. Skipping TPC-DS set-up."
+    echo "Hive table  store_gz found. Skipping TPC-DS set-up."
     exit 0
   fi
 fi
@@ -660,6 +660,37 @@ set hive.enforce.bucketing = true;
 insert into table customer_orc_bucketed
 select * from customer;
 
+reset hive.enforce.bucketing;
+reset hive.enforce.sorting;
+set mapreduce.output.fileoutputformat.compress.codec = org.apache.hadoop.io.compress.DefaultCodec ;
+set hive.exec.compress.output = true ;
+set mapreduce.output.fileoutputformat.compress = true ;
+
+drop table store_sales_deflate ;
+drop table date_dim_deflate ;
+drop table time_dim_deflate  ;
+drop table item_deflate ;
+drop table customer_demographics_deflate ;
+drop table household_demographics_deflate;
+drop table customer_address_deflate  ;
+drop table store_deflate  ;
+drop table promotion_deflate;
+drop table customer_deflate ;
+
+create table store_sales_deflate as select * from store_sales ;
+create table date_dim_deflate as select * from date_dim ;
+create table time_dim_deflate as select * from time_dim  ;
+create table item_deflate as select * from item      ;
+create table customer_demographics_deflate as select * from customer_demographics  ;
+create table household_demographics_deflate as select * from household_demographics ;
+create table customer_address_deflate as select * from customer_address      ;
+create table store_deflate as select * from store       ;
+create table promotion_deflate as select * from promotion   ;
+create table customer_deflate as select * from customer    ;
+
+set mapreduce.output.fileoutputformat.compress.codec = org.apache.hadoop.io.compress.GzipCodec ;
+drop table store_gz ;
+create table store_gz as select * from store ;
 
 quit;
 

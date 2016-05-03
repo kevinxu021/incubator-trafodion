@@ -3492,7 +3492,7 @@ Int64 HivePartitionAndBucketKey::getTotalSize(HHDFSStatsBase& selectedStats)
 
 Int64 HivePartitionAndBucketKey::getTotalSize()
 {
-  HHDFSStatsBase selectedStats;
+  HHDFSStatsBase selectedStats(NULL);
   accumulateSelectedStats(selectedStats);
 
   return getTotalSize(selectedStats);

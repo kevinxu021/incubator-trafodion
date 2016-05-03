@@ -384,6 +384,8 @@ short FileScan::genForTextAndSeq(Generator * generator,
                                  Int32 &hdfsPort,
                                  NABoolean &useCursorMulti,
                                  NABoolean &doSplitFileOpt,
+                                 ComCompressionInfo *&genCompressionTypes,
+                                 Int16 &numCompressionTypes,
                                  ExpTupleDesc *partCols,
                                  int partColValuesLen,
                                  const HivePartitionAndBucketKey *hiveSearchKey)
@@ -392,6 +394,7 @@ short FileScan::genForTextAndSeq(Generator * generator,
 
   const HHDFSTableStats* hTabStats = 
     getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
+  LIST(ComCompressionInfo) compressionTypes;
 
   const NABoolean isSequenceFile = hTabStats->isSequenceFile();
 
@@ -489,7 +492,21 @@ short FileScan::genForTextAndSeq(Generator * generator,
                               scanInfo[j].partition_->getPartIndex()),
                          partColValuesLen);
                 }
-	      
+
+              CollIndex compressionTypeIx = 
+                compressionTypes.index(file->getCompressionInfo());
+
+              if (compressionTypeIx == NULL_COLL_INDEX)
+                {
+                  compressionTypes.insert(file->getCompressionInfo());
+                  compressionTypeIx = 
+                    compressionTypes.index(file->getCompressionInfo());
+                }
+              GenAssert(compressionTypeIx != NULL_COLL_INDEX &&
+                        compressionTypeIx < 1000,
+                        "Wrong compression type or too many compression types");
+              hfi.compressionTypeIx_ = (Int16) compressionTypeIx;
+
 	      char * hfiInList = space->allocateAndCopyToAlignedSpace
 		((char*)&hfi, sizeof(HdfsFileInfo));
 
@@ -506,6 +523,17 @@ short FileScan::genForTextAndSeq(Generator * generator,
 
 	  hdfsFileRangeBeginList->insert(beginRangeInList);
 	  hdfsFileRangeNumList->insert(numRangeInList);
+
+          // generate a list of compression info objects
+          numCompressionTypes = compressionTypes.entries();
+          genCompressionTypes = reinterpret_cast<ComCompressionInfo *>(
+               space->allocateAlignedSpace(
+                    numCompressionTypes * sizeof(ComCompressionInfo)));
+
+          for (int i=0; i<numCompressionTypes; i++)
+            // use memcpy, not the assignment operator, since the target is uninitialized
+            // (e.g. missing the virtual table pointer)
+            memcpy(&genCompressionTypes[i], &compressionTypes[i], sizeof(ComCompressionInfo));
 	} // for nodemap
     } // if hive
   else
@@ -553,10 +581,15 @@ short FileScan::genForOrc(Generator * generator,
     emptyScan = TRUE;
   else 
     {
-      HiveNodeMapEntry* hEntry = (HiveNodeMapEntry*)(nmap->getNodeMapEntry(0));
-      LIST(HiveScanInfo)&  scanInfo = hEntry->getScanInfo();
+      int zeroCt = 0;
+      for (CollIndex i=0; i < nmap->getNumEntries(); i++ ) {
+        HiveNodeMapEntry* hEntry = (HiveNodeMapEntry*)(nmap->getNodeMapEntry(i));
+        LIST(HiveScanInfo)& scanInfo = hEntry->getScanInfo();
+        if (scanInfo.entries() == 0 )
+          zeroCt++;
+      }
       
-      if (scanInfo.entries() == 0)
+      if ( zeroCt && zeroCt == nmap->getNumEntries() )
         emptyScan = TRUE;
     }
 
@@ -585,8 +618,8 @@ short FileScan::genForOrc(Generator * generator,
           hfi.flags_ = 0;
           hfi.entryNum_ = 0;
 
-          hfi.startOffset_ = 1; // start at rownum 1.
-          hfi.bytesToRead_ = -1; // stop at last row.
+          hfi.startOffset_ = 0;         // start at offset 0.
+          hfi.bytesToRead_ = LLONG_MAX; // stop at maximal possible length.
           hfi.fileName_ = fnameInList;
 
           if (partColValuesLen > 0)
@@ -596,6 +629,8 @@ short FileScan::genForOrc(Generator * generator,
                      hiveSearchKey->getExplodedPartColValues(ps->getPartIndex()),
                      partColValuesLen);
             }
+
+          hfi.compressionTypeIx_ = -1; // not used for ORC
 
           char * hfiInList = space->allocateAndCopyToAlignedSpace
             ((char*)&hfi, sizeof(HdfsFileInfo));
@@ -674,6 +709,8 @@ short FileScan::genForOrc(Generator * generator,
                          partColValuesLen);
                 }
 	      
+              hfi.compressionTypeIx_ = -1; // not used for ORC
+
 	      char * hfiInList = space->allocateAndCopyToAlignedSpace
 		((char*)&hfi, sizeof(HdfsFileInfo));
 	      
@@ -1363,6 +1400,9 @@ short FileScan::codeGenForHive(Generator * generator)
   }
   NABoolean useCursorMulti = FALSE;
   NABoolean doSplitFileOpt = FALSE;
+  ComCompressionInfo *genCompressionTypes = NULL;
+  Int16 numCompressionTypes = 0;
+
 
   Queue * tdbListOfOrcPPI = NULL;
   if ((hTabStats->isTextFile()) || (hTabStats->isSequenceFile()))
@@ -1371,6 +1411,7 @@ short FileScan::codeGenForHive(Generator * generator)
                        hdfsFileInfoList, hdfsFileRangeBeginList, hdfsFileRangeNumList,
                        hdfsHostName, hdfsPort,
                        useCursorMulti, doSplitFileOpt,
+                       genCompressionTypes, numCompressionTypes,
                        part_cols_desc, partColRowLen, hiveSearchKey_);
     }
   else if (isOrc)
@@ -1607,6 +1648,8 @@ if (hTabStats->isOrcFile())
            hdfsFileRangeBeginList,
            hdfsFileRangeNumList,
            hdfsColInfoList,
+           genCompressionTypes,
+           numCompressionTypes,
            hTabStats->getRecordTerminator(),  // recordDelimiter
            hTabStats->getFieldTerminator(),   // columnDelimiter,
            hdfsBufSize,

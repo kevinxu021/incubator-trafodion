@@ -234,7 +234,7 @@ public class ReplayEngine {
 		  cid = tmm.getCommitId();
 		  iTxnProto++;
 
-                  if ( cid < timeStamp )
+                  if ( cid <= timeStamp )
                   {
                     List<Boolean> putOrDel = tmm.getPutOrDelList();
                     List<MutationProto> putProtos = tmm.getPutList();

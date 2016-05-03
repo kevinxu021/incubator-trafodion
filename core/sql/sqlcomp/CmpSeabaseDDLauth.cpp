@@ -1052,19 +1052,6 @@ void CmpSeabaseDDLuser::alterUser (StmtDDLAlterUser * pNode)
     StmtDDLAlterUser::AlterUserCmdSubType cmdSubType = pNode->getAlterUserCmdSubType();
     verifyAuthority(cmdSubType == StmtDDLAlterUser::SET_EXTERNAL_NAME);
 
-    // Verify that that user name being altered is not a reserved name.
-    // Altering of external name for DB__ROOT is the exception.
-    if (isAuthNameReserved(pNode->getDatabaseUsername()))
-    {
-      if (cmdSubType != StmtDDLAlterUser::SET_EXTERNAL_NAME ||
-          !(pNode->getDatabaseUsername() == ComUser::getRootUserName()))
-      {
-        *CmpCommon::diags() << DgSqlCode(-CAT_AUTH_NAME_RESERVED)
-                            << DgString0(pNode->getDatabaseUsername().data());
-        return;
-      }
-    }
-
     // read user details from the AUTHS table
     const NAString dbUserName(pNode->getDatabaseUsername());
     CmpSeabaseDDLauth::AuthStatus retcode = getUserDetails(dbUserName);

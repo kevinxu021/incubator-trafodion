@@ -4580,6 +4580,21 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
 
         } else
            setExecutorPredicates(selectionPred());
+
+        // Assign individual files and blocks or stripes to each ESPs.
+	// For repN part func, assign every file to every ESP
+	if ( getPartFunc()-> isAReplicateNoBroadcastPartitioningFunction() )
+	  ((NodeMap *) getPartFunc()->getNodeMap()) ->
+            assignScanInfosRepN(hiveSearchKey_);
+        else {
+          if ( !(hTabStats->isOrcFile()) || 
+               CmpCommon::getDefault(ORC_READ_STRIPE_INFO) == DF_ON)
+            ((NodeMap *) getPartFunc()->getNodeMap()) ->
+              assignScanInfos(hiveSearchKey_);
+          else 
+            ((NodeMap*) getPartFunc()->getNodeMap()) -> 
+              assignScanInfosNoSplit(hiveSearchKey_);
+        }
       }
 
       // Rebuild the executor  predicate tree
@@ -4594,21 +4609,7 @@ RelExpr * FileScan::preCodeGen(Generator * generator,
         // subtract predicates that are handled by hiveSearchKey_
         executorPredicates_ -= hiveSearchKey_->getCompileTimePartColPreds();
         executorPredicates_ -= hiveSearchKey_->getPartAndVirtColPreds();
-
-	// Assign individual files and blocks or stripes to each ESPs.
-	// For repN part func, assign every file to every ESP
-	if ( getPartFunc()-> isAReplicateNoBroadcastPartitioningFunction() )
-	  ((NodeMap *) getPartFunc()->getNodeMap()) ->
-                   assignScanInfosRepN(hiveSearchKey_);
-        else {
-           if (CmpCommon::getDefault(ORC_READ_STRIPE_INFO) == DF_ON)
-	      ((NodeMap *) getPartFunc()->getNodeMap()) ->
-                    assignScanInfos(hiveSearchKey_);
-           else 
-	      ((NodeMap*) getPartFunc()->getNodeMap()) -> 
-                    assignScanInfosNoSplit(hiveSearchKey_);
-         }
-       }
+      }
     }
 
   // Selection predicates are not needed anymore:

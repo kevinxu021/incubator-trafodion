@@ -3095,7 +3095,7 @@ short ExExeUtilLobExtractTcb::work()
 
 	case READ_CURSOR_:
 	  {
-	    Int64 dummyParam;
+	    Int64 dummyUncompressedLen;
 	    if (lobTdb().getToType() == ComTdbExeUtilLobExtract::TO_BUFFER_)
 	      so = Lob_Buffer;
 	    lobDataSpecifiedExtractLen_ = *((Int64 *)(lobTdb().dataExtractSizeIOAddr()));
@@ -3116,7 +3116,7 @@ short ExExeUtilLobExtractTcb::work()
 	       0, 
 	       lobDataSpecifiedExtractLen_, 
 	       //lobDataLen_, lobData_, 
-	       lobDataOutputLen, dummyParam, 
+	       lobDataOutputLen, dummyUncompressedLen, 
 	       lobData_,
 	       NULL, // compression
 	       2, // read
@@ -3136,7 +3136,7 @@ short ExExeUtilLobExtractTcb::work()
 		break;
 	      }
 
-	    if (lobDataOutputLen == 0)
+	    if (lobDataOutputLen == 0 && dummyUncompressedLen == 0)
 	      {
 		step_ = CLOSE_CURSOR_;
 		break;
@@ -3428,7 +3428,7 @@ short ExExeUtilFileExtractTcb::work()
 		step_ = CLOSE_CURSOR_;
 		break;
 	      }
-	    Int64 dummyParam;
+	    Int64 dummyUncompressedLen;
 	    retcode = ExpLOBInterfaceSelectCursor
 	      (lobGlobs,
 	       lobName_, 
@@ -3445,7 +3445,8 @@ short ExExeUtilFileExtractTcb::work()
 	       1, // waited op
 
 	       0, lobDataSpecifiedExtractLen_, 
-	       lobDataLen_, dummyParam, lobData_, 
+	       lobDataLen_, dummyUncompressedLen,
+               lobData_, 
 	       NULL, // compression
 	       2, // read
 	       0); // open type not applicable
@@ -3464,7 +3465,7 @@ short ExExeUtilFileExtractTcb::work()
 		break;
 	      }
 
-	    if (lobDataLen_ == 0)
+	    if (lobDataLen_ == 0 && dummyUncompressedLen == 0)
 	      {
 		// EOD with no data: close cursor
 		eodReturned_ = TRUE;

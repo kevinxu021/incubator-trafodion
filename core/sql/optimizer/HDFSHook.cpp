@@ -28,6 +28,7 @@
 #include "ComCextdecs.h"
 #include "ExpORCinterface.h"
 #include "NodeMap.h"
+#include "ExpLOBinterface.h"
 #include "OptimizerSimulator.h"
 // for DNS name resolution
 #include <netdb.h>
@@ -304,101 +305,31 @@ void HHDFSFileStats::populate(hdfsFS fs, hdfsFileInfo *fileInfo,
   modificationTS_ = fileInfo->mLastMod;
   numFiles_       = 1;
 
-  Int64 sampleBufferSize = MINOF(blockSize_, 65536);
   NABoolean sortHosts = (CmpCommon::getDefault(HIVE_SORT_HDFS_HOSTS) == DF_ON);
 
-  sampleBufferSize = MINOF(sampleBufferSize,totalSize_/10);
+  compressionInfo_.setCompressionMethod(fileName_);
 
-  if (doEstimation && sampleBufferSize > 100) {
+  if (doEstimation) {
 
-     // 
-     // Open the hdfs file to estimate record length. Read one block at
-     // a time searching for <s> instances of record separators. Stop reading 
-     // when either <s> instances have been found or a partial number of
-     // instances have and we have exhausted all data content in the block.
-     // We will keep reading if the current block does not contain 
-     // any instance of the record separator.
-     // 
-     hdfsFile file = 
-                 hdfsOpenFile(fs, fileInfo->mName, 
-                              O_RDONLY, 
-                              sampleBufferSize, // buffer size
-                              0, // replication, take the default size 
-                              fileInfo->mBlockSize // blocksize 
-                              ); 
-      
-     if ( file != NULL ) {
-        tOffset offset = 0;
-        tSize bufLen = sampleBufferSize;
-        char* buffer = new (heap_) char[bufLen+1];
-
-        buffer[bufLen] = 0; // extra null at the end to protect strchr()
-                            // to run over the buffer.
-   
-        NABoolean sampleDone = FALSE;
-   
-        Int32 totalSamples = 10;
-        Int32 totalLen = 0;
-        Int32 recordPrefixLen = 0;
-   
-        while (!sampleDone) {
-   
-           tSize szRead = hdfsPread(fs, file, offset, buffer, bufLen);
-
-           if ( szRead <= 0 )
-              break;
-
-           CMPASSERT(szRead <= bufLen);
-      
-           char* pos = NULL;
-   
-             //if (isSequenceFile && offset==0 && memcmp(buffer, "SEQ6", 4) == 0)
-             //   isSequenceFile_ = TRUE;
-   
-           char* start = buffer;
-   
-
-           for (Int32 i=0; i<totalSamples; i++ ) {
-   
-                if ( (pos=strchr(start, recordTerminator)) ) {
-   
-                  totalLen += pos - start + 1 + recordPrefixLen;
-                  samples++;
-   
-                  start = pos+1;
-   
-                  if ( start > buffer + szRead ) {
-                     sampleDone = TRUE;
-                     break;
-                  }
-
-                  recordPrefixLen = 0;
-
-                } else {
-                  recordPrefixLen += szRead - (start - buffer + 1);
-                  break;
-                }
-           }
-
-   
-           if ( samples > 0 )
-             break;
-           else
-             offset += szRead;
-       }
-   
-       NADELETEBASIC(buffer, heap_);
-   
-       if ( samples > 0 ) {
-         sampledBytes_ += totalLen;
-         sampledRows_  += samples;
-       }
-   
-       hdfsCloseFile(fs, file);
-     } else {
-       diags.recordError(NAString("Unable to open HDFS file ") + fileInfo->mName,
-                         "HHDFSFileStats::populate");
-     }
+    // 
+    // Open the hdfs file to estimate record length. Read one block at
+    // a time searching for <s> instances of record separators. Stop reading 
+    // when either <s> instances have been found or a partial number of
+    // instances have and we have exhausted all data content in the block.
+    // We will keep reading if the current block does not contain 
+    // any instance of the record separator.
+    // 
+    if (CmpCommon::getDefault(HIVE_HDFS_STATS_SAMPLE_LOB_INTFC) == DF_ON)
+      sampleFileWithLOBInterface(fileInfo, samples, diags, recordTerminator);
+    else if (!compressionInfo_.isCompressed())
+      sampleFileWithLibhdfs(fs, fileInfo, samples, diags, recordTerminator);
+    else
+      {
+        // without the LOB interface for compressed tables, fake the numbers
+        // (200 bytes/row)
+        sampledBytes_ = 2000;
+        sampledRows_ = 10;
+      }
   }
 
   if (blockSize_)
@@ -459,6 +390,307 @@ void HHDFSFileStats::populate(hdfsFS fs, hdfsFileInfo *fileInfo,
     }
 }
 
+void HHDFSFileStats::sampleFileWithLOBInterface(hdfsFileInfo *fileInfo,
+                                                Int32& samples,
+                                                HHDFSDiags &diags,
+                                                char recordTerminator)
+{
+  Int64 sampleBufferSize = MINOF(blockSize_, 65536);
+  sampleBufferSize = MAXOF(MINOF(sampleBufferSize,totalSize_/10), 10000);
+  // for now, we need a buffer at least the size of the compression scratch block size
+  sampleBufferSize = MAXOF(sampleBufferSize, compressionInfo_.getMinScratchBufferSize());
+  int retcode = 0;
+  ExpCompressionWA *compressionWA =
+    ExpCompressionWA::createCompressionWA(&compressionInfo_, heap_);
+  char cursorId[10];
+  Int64 dummyRequestTag;
+  Int64 totalCompressedBytesToRead = sampleBufferSize;
+  Int64 offset = 0;
+  Int64 compressedBytesRead = 0;
+  Int64 uncompressedBytesRead = 0;
+
+  snprintf(cursorId, sizeof(cursorId), "sampling");
+
+  // open cursor
+  retcode = ExpLOBInterfaceSelectCursor(
+       getTable()->getLOBGlobals(),
+       fileInfo->mName,
+       NULL,
+       (Lng32) Lob_External_HDFS_File,
+       const_cast<char *>(getTable()->getCurrHdfsHost().data()),
+       getTable()->getCurrHdfsPort(),
+       0,
+       NULL, // handle not valid for non lob access
+       totalCompressedBytesToRead,
+       cursorId, 
+
+       dummyRequestTag,
+       Lob_Memory,
+       0, // not check status
+       1, // waited op
+
+       offset, 
+       sampleBufferSize,
+       compressedBytesRead,
+       uncompressedBytesRead,
+       NULL, // no buffer pointer yet
+       compressionWA,
+       1,  // open
+       2); // must open
+
+  if (retcode >= 0)
+    {
+      Int64 bufLen = sampleBufferSize;
+      char* buffer = new (heap_) char[bufLen+1];
+
+      NABoolean sampleDone = FALSE;
+
+      Int32 totalSamples = 10;
+      Int32 totalLen = 0;
+      Int32 recordPrefixLen = 0;
+
+      while (!sampleDone)
+        {
+          // read
+          retcode = ExpLOBInterfaceSelectCursor(
+               getTable()->getLOBGlobals(),
+               fileInfo->mName,
+               NULL, 
+               (Lng32) Lob_External_HDFS_File,
+               const_cast<char *>(getTable()->getCurrHdfsHost().data()),
+               getTable()->getCurrHdfsPort(),
+               0, NULL,		       
+               0,
+               cursorId,
+
+               dummyRequestTag,
+               Lob_Memory,
+               0, // not check status
+               1, // waited op
+
+               offset,
+               bufLen,
+               compressedBytesRead,
+               uncompressedBytesRead,
+               buffer,
+               compressionWA, 
+               2,  // read
+               0); // openType, not applicable for read
+
+          if (retcode < 0)
+            {
+              diags.recordError(
+                   NAString("Unable to read from HDFS file ") + fileInfo->mName,
+                   "HHDFSFileStats::sampleFileWithLOBInterface");
+              break;
+            }
+
+          if ( compressedBytesRead <= 0 && uncompressedBytesRead <= 0)
+            // reached end of data
+            break;
+
+          CMPASSERT(uncompressedBytesRead <= bufLen);
+
+          // extra null at the end to protect strchr()
+          // to run over the buffer.
+          buffer[uncompressedBytesRead] = '\0';
+
+          char* pos = NULL;
+
+          char* start = buffer;
+
+          // we read one buffer, count the record terminators
+          // and the number of bytes we read to find them
+          for (Int32 i=0; i<totalSamples; i++ )
+            {
+              if ( (pos=strchr(start, recordTerminator)) )
+                {
+                  totalLen += pos - start + 1 + recordPrefixLen;
+                  samples++;
+
+                  start = pos+1;
+
+                  if ( start > buffer + uncompressedBytesRead )
+                    {
+                      sampleDone = TRUE;
+                      break;
+                    }
+
+                  recordPrefixLen = 0;
+                }
+              else
+                {
+                  // found a partial record, remember its length and
+                  // add it to the length of remainder that will be
+                  // in the next block
+                  recordPrefixLen += uncompressedBytesRead - (start - buffer);
+                  break;
+                }
+            }
+
+          if ( samples > 0 )
+            break;
+          else
+            offset += compressedBytesRead;
+        }
+
+      NADELETEBASIC(buffer, heap_);
+
+      if ( samples > 0 )
+        {
+          sampledBytes_ += totalLen;
+          sampledRows_  += samples;
+        }
+
+      // close cursor
+      retcode = ExpLOBInterfaceSelectCursor(
+           getTable()->getLOBGlobals(),
+           fileInfo->mName, 
+           NULL,
+           (Lng32) Lob_External_HDFS_File,
+           const_cast<char *>(getTable()->getCurrHdfsHost().data()),
+           getTable()->getCurrHdfsPort(),
+           0,
+           NULL, // handle not relevant for non lob access
+           0,
+           cursorId,
+
+           dummyRequestTag,
+           Lob_Memory,
+           0, // not check status
+           1, // waited op
+
+           0, 
+           0,
+           compressedBytesRead,
+           uncompressedBytesRead, // dummy
+           NULL,
+           compressionWA,
+           3, // close
+           0); // openType, not applicable for close
+      if (retcode < 0)
+        diags.recordError(
+             NAString("Unable to close HDFS cursor ") + fileInfo->mName,
+             "HHDFSFileStats::sampleFileWithLOBInterface");
+
+      // close file
+      retcode = ExpLOBinterfaceCloseFile(
+           getTable()->getLOBGlobals(),
+           fileInfo->mName, 
+           NULL, 
+           (Lng32) Lob_External_HDFS_File,
+           const_cast<char *>(getTable()->getCurrHdfsHost().data()),
+           getTable()->getCurrHdfsPort());
+      if (retcode < 0)
+        diags.recordError(
+             NAString("Unable to close HDFS file ") + fileInfo->mName,
+             "HHDFSFileStats::sampleFileWithLOBInterface");
+    }
+  else
+    {
+      diags.recordError(NAString("Unable to open HDFS file ") + fileInfo->mName,
+                        "HHDFSFileStats::sampleFileWithLOBInterface");
+    }
+
+  if (compressionWA)
+    delete compressionWA;
+}
+
+void HHDFSFileStats::sampleFileWithLibhdfs(hdfsFS fs,
+                                           hdfsFileInfo *fileInfo,
+                                           Int32& samples,
+                                           HHDFSDiags &diags,
+                                           char recordTerminator)
+{
+  // Read file directly, using libhdfs interface.
+  // Note that this doesn't handle compressed files.
+  // This code should probably be removed once the LOB
+  // interface code is stable.
+
+  Int64 sampleBufferSize = MINOF(blockSize_, 65536);
+  sampleBufferSize = MINOF(sampleBufferSize,totalSize_/10);
+
+  if (sampleBufferSize <= 100)
+    return;
+
+  hdfsFile file = 
+    hdfsOpenFile(fs, fileInfo->mName, 
+                 O_RDONLY, 
+                 sampleBufferSize, // buffer size
+                 0, // replication, take the default size 
+                 fileInfo->mBlockSize // blocksize 
+                 ); 
+
+  if ( file != NULL ) {
+    tOffset offset = 0;
+    tSize bufLen = sampleBufferSize;
+    char* buffer = new (heap_) char[bufLen+1];
+
+    buffer[bufLen] = 0; // extra null at the end to protect strchr()
+    // to run over the buffer.
+
+    NABoolean sampleDone = FALSE;
+
+    Int32 totalSamples = 10;
+    Int32 totalLen = 0;
+    Int32 recordPrefixLen = 0;
+   
+    while (!sampleDone) {
+   
+      tSize szRead = hdfsPread(fs, file, offset, buffer, bufLen);
+
+      if ( szRead <= 0 )
+        break;
+
+      CMPASSERT(szRead <= bufLen);
+
+      char* pos = NULL;
+
+      char* start = buffer;
+
+      for (Int32 i=0; i<totalSamples; i++ ) {
+   
+        if ( (pos=strchr(start, recordTerminator)) ) {
+   
+          totalLen += pos - start + 1 + recordPrefixLen;
+          samples++;
+
+          start = pos+1;
+
+          if ( start > buffer + szRead ) {
+            sampleDone = TRUE;
+            break;
+          }
+
+          recordPrefixLen = 0;
+
+        } else {
+          recordPrefixLen += szRead - (start - buffer + 1);
+          break;
+        }
+      }
+
+      if ( samples > 0 )
+        break;
+      else
+        offset += szRead;
+    }
+
+    NADELETEBASIC(buffer, heap_);
+
+    if ( samples > 0 ) {
+      sampledBytes_ += totalLen;
+      sampledRows_  += samples;
+    }
+
+    hdfsCloseFile(fs, file);
+  } else {
+    diags.recordError(NAString("Unable to open HDFS file ") + fileInfo->mName,
+                      "HHDFSFileStats::sampleFileWithLibhdfs");
+  }
+
+}
+
 void HHDFSFileStats::print(FILE *ofd)
 {
   fprintf(ofd,"-----------------------------------\n");
@@ -494,10 +726,10 @@ void HHDFSBucketStats::addFile(hdfsFS fs, hdfsFileInfo *fileInfo,
                                NABoolean isORC)
 {
   HHDFSFileStats *fileStats = (isORC) ? 
-                                 new(heap_) HHDFSORCFileStats(heap_) :
-                                 new(heap_) HHDFSFileStats(heap_);
+    new(heap_) HHDFSORCFileStats(heap_, getTable()) :
+    new(heap_) HHDFSFileStats(heap_, getTable());
 
-  if ( scount_ > 10 )
+  if ( scount_ > CmpCommon::getDefaultLong(HIVE_HDFS_STATS_MAX_SAMPLE_FILES))
     doEstimate = FALSE;
 
   Int32 sampledRecords = 0;
@@ -603,7 +835,7 @@ void HHDFSListPartitionStats::populate(hdfsFS fs,
 
             if (! bucketStatsList_.used(bucketNum))
               {
-                bucketStats = new(heap_) HHDFSBucketStats(heap_);
+                bucketStats = new(heap_) HHDFSBucketStats(heap_, getTable());
                 bucketStatsList_.insertAt(bucketNum, bucketStats);
               }
             else
@@ -662,7 +894,7 @@ NABoolean HHDFSListPartitionStats::validateAndRefresh(hdfsFS fs, HHDFSDiags &dia
                 // first file for a new bucket got added
                 if (!refresh)
                   return FALSE;
-                bucketStats = new(heap_) HHDFSBucketStats(heap_);
+                bucketStats = new(heap_) HHDFSBucketStats(heap_, getTable());
                 bucketStatsList_.insertAt(bucketNum, bucketStats);
               }
             else
@@ -884,6 +1116,8 @@ NABoolean HHDFSTableStats::populate(struct hive_tbl_desc *htd)
         type_ = UNKNOWN_;
     }
 
+  initLOBInterface();
+
   while (hsd && diags_.isSuccess())
     {
       // split table URL into host, port and filename
@@ -896,11 +1130,17 @@ NABoolean HHDFSTableStats::populate(struct hive_tbl_desc *htd)
       // put back fully qualified URI
       tableDir = hsd->location_;
 
+      NABoolean doEstimate = hsd->isTrulyText();
+
+      // sample only a limited number of files
+      if (getNumFiles() > CmpCommon::getDefaultLong(HIVE_HDFS_STATS_MAX_SAMPLE_FILES))
+        doEstimate = FALSE;
+
       // visit the directory
       processDirectory(tableDir,
                        hsd->partitionColValues_,
                        hsd->buckets_, 
-                       hsd->isTrulyText(), 
+                       doEstimate, 
                        hsd->getRecordTerminator(), 
                        type_==ORC_);
 
@@ -908,6 +1148,7 @@ NABoolean HHDFSTableStats::populate(struct hive_tbl_desc *htd)
     }
 
   disconnectHDFS();
+  releaseLOBInterface();
   validationJTimestamp_ = JULIANTIMESTAMP();
 
   return diags_.isSuccess();
@@ -1049,7 +1290,8 @@ void HHDFSTableStats::processDirectory(const NAString &dir,
                                        char recordTerminator,
                                        NABoolean isORC)
 {
-  HHDFSListPartitionStats *partStats = new(heap_) HHDFSListPartitionStats(heap_);
+  HHDFSListPartitionStats *partStats = new(heap_)
+    HHDFSListPartitionStats(heap_, this);
   partStats->populate(fs_, dir, listPartitionStatsList_.entries(),
                       partColValues, numOfBuckets,
                       diags_, doEstimate, recordTerminator, isORC);
@@ -1116,6 +1358,20 @@ void HHDFSTableStats::print(FILE *ofd)
   fprintf(ofd,"====================================================================\n");
 }
 
+void HHDFSTableStats::initLOBInterface()
+{
+  lobGlob_ = NULL;
+
+  ExpLOBinterfaceInit
+    (lobGlob_, heap_, TRUE);
+}
+
+void HHDFSTableStats::releaseLOBInterface()
+{
+  ExpLOBinterfaceCleanup
+    (lobGlob_, heap_);
+}
+
 NABoolean HHDFSTableStats::connectHDFS(const NAString &host, Int32 port)
 {
   NABoolean result = TRUE;
@@ -1159,8 +1415,8 @@ void HHDFSTableStats::disconnectHDFS()
 NABoolean HHDFSFileStats::splitsAllowed() const 
 {
   Int32 balanceLevel = CmpCommon::getDefaultLong(HIVE_LOCALITY_BALANCE_LEVEL);
-  if (balanceLevel == -1)
-    return FALSE ; // certain compressed files will also come through here later
+  if (balanceLevel == -1 || !compressionInfo_.splitsAllowed())
+    return FALSE ;
   else
     return TRUE;
 }
