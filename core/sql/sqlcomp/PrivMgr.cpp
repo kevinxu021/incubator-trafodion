@@ -49,6 +49,8 @@
 #include "logmxevent_traf.h"
 #include "ComUser.h"
 #include "NAUserId.h"
+#include "str.h"
+#include "ComSmallDefs.h"
 
 
 // ==========================================================================
@@ -627,6 +629,47 @@ bool PrivMgr::isSQLManageOperation(SQLOperation operation)
 
 }
 //******************* End of PrivMgr::isSQLManageOperation *********************
+
+bool PrivMgr::isMetadataObject (const std::string objectName)
+{
+  char catName [MAX_SQL_IDENTIFIER_NAME_LEN];
+  char schName [MAX_SQL_IDENTIFIER_NAME_LEN];
+  char objName [MAX_SQL_IDENTIFIER_NAME_LEN];
+
+  // extract the name parts (from str.h)
+  char *src = (char *)objectName.c_str();
+  int_32 offset = extractDelimitedName(catName, src);
+
+  // advance to the start of the schema name and get schema name
+  src =  src + offset + ((src[0]=='\"')?2:1);
+  offset = extractDelimitedName(schName, src);
+
+  // advance to the start of the object name and get object name
+  src =  src + offset + ((src[0]=='\"')?2:1);
+  offset = extractDelimitedName(objName, src);
+
+  // Metadata schemas begin and end with "_", external form of the name
+  // is delimited, internal form is not.  Handle both cases 
+  int32_t len = strlen(schName); 
+  if (schName[0]=='\"')
+  {
+    if ((schName[1] == '_') && (schName[len-2] == '_'))
+      return true;
+  }
+  else 
+  {
+    if ((schName[0] == '_') && (schName[len-1] == '_'))
+      return true;
+  }
+
+  if ((strcmp(objName, HBASE_HIST_NAME) == 0) ||
+      (strcmp(objName, HBASE_HISTINT_NAME) == 0) ||
+      (strcmp(objName, HBASE_PERS_SAMP_NAME) == 0))
+    return true;
+
+  return false;
+}
+   
 
 
 // *****************************************************************************

@@ -43,7 +43,7 @@
 #include "ComCompressionInfo.h"
 #include "NAHeap.h"
 
-class ExpCompressionWA 
+class ExpCompressionWA : public NABasicObject
 {
 public:
 
@@ -53,13 +53,12 @@ public:
       COMPRESS_CONTINUE,
       COMPRESS_NOT_INITIALIZED }; 
 
-   ExpCompressionWA(ComCompressionInfo::CompressionMethod typ, 
-		    const UInt32 bufSize, CollHeap* heap);
+   ExpCompressionWA(const ComCompressionInfo *ci,
+                    CollHeap* heap);
    virtual ~ExpCompressionWA();
 
-   static ExpCompressionWA* createCompressionWA(const char *f, 
-						const UInt32 bufSize, 
-						CollHeap* heap);
+   static ExpCompressionWA* createCompressionWA(const ComCompressionInfo *ci,
+                                                CollHeap* heap);
   
   virtual CompressionReturnCode 
     decompress(char* src, Int64 srcLength, 
@@ -80,9 +79,9 @@ public:
   void addToScratchBufUsedSize(UInt32 val) 
     { compScratchBufferUsedSize_ += val; }
 
-private:
+protected:
 
-  ComCompressionInfo* compInfo_;
+  const ComCompressionInfo* compInfo_;
   char*  compScratchBuffer_;
   UInt32 compScratchBufferMaxSize_;
   UInt32 compScratchBufferUsedSize_;
@@ -93,6 +92,7 @@ private:
 class ExpLzoCompressionWA : public ExpCompressionWA
 {
   public:
+  ExpLzoCompressionWA(const ComCompressionInfo *ci, CollHeap* heap);
   ExpLzoCompressionWA(const UInt32 bufSize, CollHeap* heap);
 
   virtual CompressionReturnCode 
@@ -109,7 +109,9 @@ class ExpLzoCompressionWA : public ExpCompressionWA
 class ExpDeflateCompressionWA : public ExpCompressionWA
 {
   public:
-  ExpDeflateCompressionWA(const UInt32 bufSize, CollHeap* heap);
+  ExpDeflateCompressionWA(const ComCompressionInfo *ci, CollHeap* heap);
+  virtual ~ExpDeflateCompressionWA();
+
   virtual CompressionReturnCode 
     decompress(char* src, Int64 srcLength, 
 	       char* target, Int64 targetMaxLen, 
@@ -120,7 +122,19 @@ class ExpDeflateCompressionWA : public ExpCompressionWA
 
   virtual const char * getText() {return (const char *)"DEFLATE";}
 };
-                                                                
+
+class ExpGzipCompressionWA : public ExpDeflateCompressionWA
+{
+  public:
+  ExpGzipCompressionWA(const ComCompressionInfo *ci, CollHeap* heap);
+  // use destructor of ExpDeflateCompressionWA
+  // use decompress method from ExpDeflateCompressionWA
+
+  virtual CompressionReturnCode initCompressionLib() ;
+
+  virtual const char * getText() {return (const char *)"GZIP";}
+};
+                                                               
 #endif /* EXP_COMPRESSIONWA_H */
 
 

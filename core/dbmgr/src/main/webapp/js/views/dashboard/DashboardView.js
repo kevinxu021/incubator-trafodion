@@ -50,7 +50,7 @@ define([
 	FREEMEM_DRILLDOWN_BTN = '#freememory-drilldown-btn',
 	NETWORKIO_DRILLDOWN_BTN = '#network-io-drilldown-btn',
 	NODES_DRILLDOWN_BTN = '#nodes-drilldown-btn',
-
+	SERVICES_DRILLDOWN_BTN = '#services-drilldown-btn',
 	DRILLDOWN_DIALOG = '#metricsDialog',
 	DRILLDOWN_TITLE = '#metricsDialogLabel',
 	DRILLDOWN_SPINNER = '#metrics-drilldown-spinner',
@@ -179,7 +179,7 @@ define([
 					$(DRILLDOWN_CHART).empty();
 					var metricName = $(DRILLDOWN_METRICNAME).text();
 					$(DRILLDOWN_CHART_CONTAINER).hide();
-					if(metricName != "nodestatus"){
+					if(metricName != "nodestatus" && metricName != 'servicestatus'){
 						$(DRILLDOWN_SPINNER).show();
 						dashboardHandler.fetchMetricDrilldown(_this.generateParams(metricName, true));
 					}else{
@@ -223,7 +223,7 @@ define([
 				$(FREEMEM_DRILLDOWN_BTN).off('click',this.freeMemoryDrillDown);
 				$(NETWORKIO_DRILLDOWN_BTN).off('click',this.networkIODrillDown);
 				$(NODES_DRILLDOWN_BTN).off('click',this.nodeStatusDrillDown);
-
+				$(SERVICES_DRILLDOWN_BTN).off('click', this.serviceStatusDrillDown);
 				dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
 				dashboardHandler.off(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
 				dashboardHandler.off(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
@@ -244,7 +244,7 @@ define([
 				$(FREEMEM_DRILLDOWN_BTN).on('click',this.freeMemoryDrillDown);
 				$(NETWORKIO_DRILLDOWN_BTN).on('click',this.networkIODrillDown);
 				$(NODES_DRILLDOWN_BTN).on('click',this.nodeStatusDrillDown);
-
+				$(SERVICES_DRILLDOWN_BTN).on('click', this.serviceStatusDrillDown);
 				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_SUCCESS, this.fetchSummaryMetricSuccess); 
 				dashboardHandler.on(dashboardHandler.SUMMARY_METRIC_ERROR, this.fetchSummaryMetricError);
 				dashboardHandler.on(dashboardHandler.DRILLDOWN_METRIC_SUCCESS, this.fetchDrilldownMetricSuccess); 
@@ -551,85 +551,99 @@ define([
 					data.push(status);
 					aaData.push(data);
 				});
+				
+				_this.serviceStatusData = { aoColumns: aoColumns, aaData: aaData};
 
-				servicesTable = $('#services-results').DataTable({
-					dom: 'tB',
-					processing: true,
-					"autoWidth": true,
-					"scrollCollapse": true,
-					"ordering": false,
-					"aaData": aaData, 
-					"aoColumns" : aoColumns,
-					"aoColumnDefs": [ 
-					                 { "aTargets": [ 0 ],
-					                	 "mRender": function ( data, type, full ) {
-					                		 if (type === 'display') {
-					                			 if(data == 'DTM'){
-					                				 return 'Transaction Manager';
-					                			 }
-					                			 if(data == 'RMS'){
-					                				 return 'Runtime Manageability Service';
-					                			 }
-					                			 if(data == 'DCSMASTER'){
-					                				 return 'DCS Master';
-					                			 }
-					                			 if(data == 'MXOSRVR'){
-					                				 return 'Master Executor';
-					                			 }
-					                			 return data;
-					                		 }
-					                		 else return data;
-					                	 }
-					                 },
-					                 {"aTargets": [ 1 ], "sClass":"never", "bVisible":false},
-					                 {"aTargets": [ 2 ], "sClass":"never", "bVisible":false},
-					                 {"aTargets": [ 3 ], "sClass":"never", "bVisible":false},
-					                 {
-					                	 "aTargets": [ 4 ],
-					                	 "mData": 4,
-					                	 "sWidth":"20px",
-					                	 "mRender": function ( data, type, full ) {
-					                		 if (type === 'display') {
-					                			 if(data == 'ERROR'){
-					                				 return '<button type="button" class="btn btn-danger btn-circle btn-small dbmgr-status-btn" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
-					                				 'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0")+'"><i class="fa fa-times"></i></button>';
-					                			 }
-					                			 if(data == 'WARN'){
-					                				 return '<button type="button" class="btn btn-warning btn-circle btn-small dbmgr-status-btn" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
-					                				 'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0")+'"><i class="fa fa-warning"></i></button>';
-					                			 }
-					                			 return '<button type="button" class="btn btn-success btn-circle btn-small dbmgr-status-btn" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
-					                			 'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0") +'"><i class="fa fa-check" ></i></button>';
-					                		 }
-					                		 else return data;
-					                	 }
-					                 }],
-					                 "order": [],
-					                 buttons: [
-					                           { extend : 'copy', exportOptions: { columns: [0, 1, 2, 3] } },
-					                           { extend : 'csv', exportOptions: { columns: [0, 1, 2, 3] } },
-					                           //{ extend : 'excel', exportOptions: {  columns: [0, 1, 2, 3] } },
-					                           { extend : 'pdfHtml5', exportOptions: { columns: [0, 1, 2, 3] }, title: 'Service Status' },
-					                           { extend : 'print', exportOptions: { columns: [0, 1, 2, 3] }, title: 'Service Status' }
-					                           ],					                 
-					                           paging: true,
-					                           fnDrawCallback: function(){
-					                        	   //$('#query-results td').css("white-space","nowrap");
-					                           },
-					                           initComplete: function ( settings, json ) {
-					                        	   //activate the bootstrap toggle js
-					                        	   //must be done within initcomplete (ie after table data is loaded)
-					                        	   $('[data-toggle="tooltip"]').tooltip({
-					                        		   trigger: 'hover',
-					                        		   container: "body",
-					                        		   html: true
-					                        	   }).css('overflow','auto');
+				_this.populateServiceStatus('services-results', SERVICES_RESULT_CONTAINER, false);
 
-					                           }// end of initcomplete*/
-				});
-				$('#services-results td').css("white-space","nowrap");
 			}
 
+		},
+		populateServiceStatus: function(containerID, parent, isDrilldown){
+			if(_this.serviceStatusData && _this.serviceStatusData.aaData){
+				var sb = '<table class="table table-striped table-bordered table-hover dbmgr-table dt-responsive" style="width:100%;" id="'+containerID +'"></table>';
+				$(parent).html( sb );
+
+				var bPaging = _this.serviceStatusData.aaData.length > 10;
+
+				servicesTable = $('#'+containerID).DataTable({
+					dom: isDrilldown ? '<"top"l<"clear">Bf>t<"bottom"rip>' : 'tB',
+							paging: bPaging,
+							"iDisplayLength" : 10, 
+							"sPaginationType": "simple_numbers",
+							"scrollCollapse": true,
+							"aaData": _this.serviceStatusData.aaData, 
+							"aoColumns" : _this.serviceStatusData.aoColumns,
+							"aoColumnDefs": [
+							                 {"aTargets": [0],
+							                	 "mRender": function ( data, type, full ) {
+						                             if (type === 'display') {
+						                                 if(data == 'DTM'){
+						                                     return 'Transaction Manager';
+						                                 }
+						                                 if(data == 'RMS'){
+						                                     return 'Runtime Manageability Service';
+						                                 }
+						                                 if(data == 'DCSMASTER'){
+						                                     return 'DCS Master';
+						                                 }
+						                                 if(data == 'MXOSRVR'){
+						                                     return 'Master Executor';
+						                                 }
+						                                 return data;
+						                             }
+						                             else return data;
+						                         }
+							                 },
+						                     {"aTargets": [ 1 ], "bVisible":isDrilldown},
+						                     {"aTargets": [ 2 ], "bVisible":isDrilldown},
+						                     {"aTargets": [ 3 ], "bVisible":isDrilldown},
+							                 {
+							                	 "aTargets": [ 4 ],
+							                	 "mData": 4,
+							                	 "sWidth":"50px",
+							                	 "mRender": function ( data, type, full ) {
+							                         if (type === 'display') {
+						                                 if(data == 'ERROR'){
+						                                     return '<button type="button" class="btn btn-danger btn-circle btn-small dbmgr-status-btn" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
+						                                     'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0")+'"><i class="fa fa-times"></i></button>';
+						                                 }
+						                                 if(data == 'WARN'){
+						                                     return '<button type="button" class="btn btn-warning btn-circle btn-small dbmgr-status-btn" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
+						                                     'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0")+'"><i class="fa fa-warning"></i></button>';
+						                                 }
+						                                 return '<button type="button" class="btn btn-success btn-circle btn-small dbmgr-status-btn" data-trigger="focus" data-toggle="tooltip" data-placement="left" title="'+
+						                                 'Configured : '+full[1] + '<br/>Actual : '+full[2]+'<br/>Down : '+(full[3]&&full[3].length>0?full[3]:"0") +'"><i class="fa fa-check" ></i></button>';
+						                             }
+						                             else return data;
+						                         }
+							                 }],
+							                 buttons: [
+							                           { extend : 'copy', exportOptions: { columns: [0, 1, 2, 3] } },
+							                           { extend : 'csv', exportOptions: { columns: [0, 1, 2, 3] } },
+							                           //{ extend : 'excel', exportOptions: { columns: [0, 1] } },
+							                           { extend : 'pdfHtml5', exportOptions: { columns: [0, 1, 2, 3] }, title: 'Service Status' },
+							                           { extend : 'print', exportOptions: { columns: [0, 1, 2 , 3] }, title: 'Service Status' }
+							                           ],					                 
+							                           fnDrawCallback: function(){
+							                        	   //$('#query-results td').css("white-space","nowrap");
+							                           },
+
+						                               initComplete: function ( settings, json ) {
+						                                   //activate the bootstrap toggle js
+						                                   //must be done within initcomplete (ie after table data is loaded)
+						                                   $('[data-toggle="tooltip"]').tooltip({
+						                                       trigger: 'hover',
+						                                       container: "body",
+						                                       html: true
+						                                   }).css('overflow','auto');
+
+						                               }// end of initcomplete*/
+
+				});
+				//nodesTable.buttons().container().appendTo($('#nodes-export-buttons') );
+				$('#'+containerID+' td').css("white-space","nowrap");			
+			}
 		},
 		fetchServicesError: function(jqXHR, res, error) {
 			$(SERVICES_SPINNER).hide();
@@ -936,6 +950,16 @@ define([
 			$(DRILLDOWN_CHART_CONTAINER).hide();
 			$(GRID_DRILLDOWN_CONTAINER).show();
 			_this.populateNodeStatus('nodes-results-drilldown', GRID_DRILLDOWN_CONTAINER, true);
+		},
+		serviceStatusDrillDown: function(){
+			$(DRILLDOWN_DIALOG).modal('show');
+			$(DRILLDOWN_TITLE).text("Service Status");
+			$(DRILLDOWN_METRICNAME).text("servicestatus");
+			$(DRILLDOWN_SERIES_CONTAINER).hide();
+			$(DRILLDOWN_SPINNER).hide();
+			$(DRILLDOWN_CHART_CONTAINER).hide();
+			$(GRID_DRILLDOWN_CONTAINER).show();
+			_this.populateServiceStatus('services-results-drilldown', GRID_DRILLDOWN_CONTAINER, true);
 		},
 		displayDetails: function(metricName){
 			$(DRILLDOWN_DIALOG).modal('show');

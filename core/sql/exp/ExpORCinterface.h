@@ -112,7 +112,7 @@ class ExpORCinterface : public NABasicObject
 
   Lng32 open(char * orcFileName,
              const Int64 startRowNum = 0, 
-             const Int64 stopRowNum = ULLONG_MAX,
+             const Int64 stopRowNum = LLONG_MAX,
              Lng32 numCols = 0,
              Lng32 * whichCols = NULL,
              TextVec *ppiVec = NULL,

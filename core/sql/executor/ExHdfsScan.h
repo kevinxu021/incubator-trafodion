@@ -245,6 +245,8 @@ protected:
                                      // methods to initialize and decompress
                                      // each of the supported compression types.
                                      // is NULL for uncompressed files
+  Int16 currCompressionTypeIx_;      // current index into table of compression
+                                     // methods in the TDB or -1
   
   ExSimpleSQLBuffer *hdfsSqlBuffer_;  // this buffer for one row, converted
                                       // from ascii to SQL for select pred.

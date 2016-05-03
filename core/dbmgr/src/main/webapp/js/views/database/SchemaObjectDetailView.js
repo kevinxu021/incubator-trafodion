@@ -387,6 +387,14 @@ define([
 				break;
 			case DDL_SELECTOR:
 				$(DDL_CONTAINER).show();
+				if(ddlTextEditor){
+					var txt  = ddlTextEditor.getTextArea();
+					ddlTextEditor.setCursor(0,0);
+					if(txt){
+						$(txt).focus();
+						$(txt).click();
+					}
+				}
 				_this.fetchDDLText();
 				break;
 			case PRIVILEGES_SELECTOR:
@@ -586,7 +594,6 @@ define([
 			if(!pageStatus.ddlFetched || pageStatus.ddlFetched == false ){
 				if(ddlTextEditor){
 					ddlTextEditor.setValue("");
-					ddlTextEditor.clearHistory("");
 					ddlTextEditor.refresh();
 				}
 				$(DDL_SPINNER).show();
@@ -680,6 +687,7 @@ define([
 			$(DDL_SPINNER).hide();
 			$(DDL_ERROR_CONTAINER).hide();
 			pageStatus.ddlFetched = true;
+			ddlTextEditor.focus();
 			ddlTextEditor.setValue(data);
 			ddlTextEditor.refresh();
 		},

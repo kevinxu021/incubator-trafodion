@@ -2503,7 +2503,7 @@ Ex_Lob_Error ExLob::readDataCursorSimple(char *file, char *tgt, Int64 tgtSize,
       buf = *c_it;
       lobGlobals->traceMessage("unlocking cursor",cursor,__LINE__);
       cursor->lock_.unlock();
-      /***** START ****/
+
       if (compressionWA)
       {
 	Int64 bytesRead = 0;
