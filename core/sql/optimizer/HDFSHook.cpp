@@ -395,21 +395,38 @@ void HHDFSFileStats::sampleFileWithLOBInterface(hdfsFileInfo *fileInfo,
                                                 HHDFSDiags &diags,
                                                 char recordTerminator)
 {
-  Int64 sampleBufferSize = MINOF(blockSize_, 65536);
-  sampleBufferSize = MAXOF(MINOF(sampleBufferSize,totalSize_/10), 10000);
-  // for now, we need a buffer at least the size of the compression scratch block size
-  sampleBufferSize = MAXOF(sampleBufferSize, compressionInfo_.getMinScratchBufferSize());
+  Int64 totalCompressedBytesToRead = MINOF(blockSize_, 65536);
+  totalCompressedBytesToRead =
+    MAXOF(MINOF(totalCompressedBytesToRead,totalSize_/10), 10000);
+
+  // make this constant (important for LOB interface - we share the
+  // same LOB globals for all files to be sampled!!) and reasonably
+  // big
+  Int64 sampleBufferSize = 100000;
   int retcode = 0;
   ExpCompressionWA *compressionWA =
     ExpCompressionWA::createCompressionWA(&compressionInfo_, heap_);
   char cursorId[10];
   Int64 dummyRequestTag;
-  Int64 totalCompressedBytesToRead = sampleBufferSize;
   Int64 offset = 0;
   Int64 compressedBytesRead = 0;
   Int64 uncompressedBytesRead = 0;
 
   snprintf(cursorId, sizeof(cursorId), "sampling");
+
+  if (compressionWA)
+    {
+      ExpCompressionWA::CompressionReturnCode r = 
+        compressionWA->initCompressionLib();
+
+      if (r != ExpCompressionWA::COMPRESS_SUCCESS)
+        {
+          diags.recordError(
+               NAString("Unable to initialize compression library for ") + compressionWA->getText(),
+               "HHDFSFileStats::sampleFileWithLOBInterface");
+          return;
+        }
+    }
 
   // open cursor
   retcode = ExpLOBInterfaceSelectCursor(

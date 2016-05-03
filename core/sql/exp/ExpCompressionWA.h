@@ -93,7 +93,6 @@ class ExpLzoCompressionWA : public ExpCompressionWA
 {
   public:
   ExpLzoCompressionWA(const ComCompressionInfo *ci, CollHeap* heap);
-  ExpLzoCompressionWA(const UInt32 bufSize, CollHeap* heap);
 
   virtual CompressionReturnCode 
     decompress(char* src, Int64 srcLength, 
