@@ -999,7 +999,7 @@ void OptimizerSimulator::loadHiveDDLs()
     if(retcode < 0)
     {
          CmpCommon::diags()->mergeAfter(*(cliInterface_->getDiagsArea()));
-         raiseOsimException("create external table: %d %s", retcode, statement.data());
+         raiseOsimException("create hive external schema: %d %s", retcode, statement.data());
     }
     //set default schema to hive external schema
     executeFromMetaContext("SET SCHEMA TRAFODION.\"_HV_HIVE_\"");
@@ -1027,7 +1027,7 @@ void OptimizerSimulator::loadHiveDDLs()
     }
 
     NAHashDictionaryIterator<const QualifiedName, Int64> iterator(*hashDict_HiveTables_);
-    //drop external tables and hive tables 
+    //drop external tables and hive tables with same names 
     for(iterator.getNext(qualName, tableUID); qualName && tableUID; iterator.getNext(qualName, tableUID))
     {
         trafName = ComConvertNativeNameToTrafName(
@@ -1059,8 +1059,8 @@ void OptimizerSimulator::loadHiveDDLs()
     while(readHiveStmt(hiveCreateExternalTableSql, statement, comment))
    {
         if(statement.length() > 0)
-             debugMessage("%s\n", extractAsComment("CREATE EXTERNAL TABLE", statement));
-            execHiveSQL(statement.data()); //create hive external table
+            debugMessage("%s\n", extractAsComment("CREATE EXTERNAL TABLE", statement));
+            executeFromMetaContext(statement.data()); //create hive external table
    }
 }
 
@@ -2832,8 +2832,10 @@ void OptimizerSimulator::dumpHiveTableDDLs()
     const QualifiedName* qualifiedName = NULL;
     NAHashDictionaryIterator<const QualifiedName, Int64> iterator(*hashDict_HiveTables_);
     NAString query(STMTHEAP);
-    //NAString hivesql = osimLogLocalDir_ + HIVE_CRAETE_TABLE_SQL;
-    //ofstream hiveCreateTableSql(hivesql.data());
+    //turn on HIVE_USE_EXT_TABLE_ATTRS, 
+    //if the hive table has corresponding trafodion external table,
+    //the external table will also be exported.
+    executeFromMetaContext("CQD HIVE_USE_EXT_TABLE_ATTRS 'ON';");
     for(iterator.getNext(qualifiedName, tableUID); qualifiedName && tableUID; iterator.getNext(qualifiedName, tableUID))
     {
         short retcode;
