@@ -420,6 +420,13 @@ for i in $prettyfiles; do
       expfile="${expfile}-P"
     fi
   fi
+  
+  # TEST034 will generate expected file
+  # in $REGRRUNDIR
+  if [ "$tnum" = "034" ]; then
+      expfile=$REGRRUNDIR/$exp
+      echo $expfile
+  fi
 
   if [ "$expfile" = "" ]; then
     echo "Missing expected file for $tnum"
