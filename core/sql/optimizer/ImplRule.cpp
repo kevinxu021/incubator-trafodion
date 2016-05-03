@@ -2805,17 +2805,6 @@ NABoolean NestedJoinRule::topMatch(RelExpr * relExpr,
       (rppForMe->getMustMatch()->getOperatorType() == REL_FORCE_NESTED_JOIN))
     return TRUE;
 
-  // Nested join into non sorted ORC hive tables is not allowed.
-  if (joinExpr->child(1).getGroupAttr()->allHiveTables() )
-     {
-          if ( !(joinExpr->child(1).getGroupAttr()->allHiveORCTables()) ) {
-               return FALSE;
-          } else {
-             if ( CmpCommon::getDefault(ORC_NJS) != DF_ON ) 
-                 return FALSE;
-          }
-     }
-
   // Fix genesis case 10-040524-2077 "NE:RG:mxcmp internal error when stream
   // used with rowset in WHERE clause" by commenting out the following code on
   // This code was intended to provide partial
