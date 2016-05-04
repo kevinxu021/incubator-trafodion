@@ -152,9 +152,9 @@ do
 
 done
 
-HBASE=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters/$CLUSTER_NAME/services | grep name | grep hbase | sed -e 's@[,]@@'g | awk '{print $3}' | sed "s/\"//g")
-HDFS=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters/$CLUSTER_NAME/services | grep name | grep hdfs | sed -e 's@[,]@@'g | awk '{print $3}' | sed "s/\"//g")
-ZOOKEEPER=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters/$CLUSTER_NAME/services | grep name | grep zookeeper | sed -e 's@[,]@@'g | awk '{print $3}' | sed "s/\"//g")
+HBASE=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters/$CLUSTER_NAME/services | grep \"name\" | grep hbase | sed -e 's@[,]@@'g | awk '{print $3}' | sed "s/\"//g")
+HDFS=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters/$CLUSTER_NAME/services | grep \"name\" | grep hdfs | sed -e 's@[,]@@'g | awk '{print $3}' | sed "s/\"//g")
+ZOOKEEPER=$(curl -k -su $ADMIN:$PASSWORD $URL/api/v1/clusters/$CLUSTER_NAME/services | grep \"name\" | grep zookeeper | sed -e 's@[,]@@'g | awk '{print $3}' | sed "s/\"//g")
 
 sudo chmod 777 $TRAF_CONFIG
 sed -i '/hbaseVersion\=/d' $TRAF_CONFIG

@@ -287,6 +287,12 @@ while [ $completed -eq 0 ]; do
     echo "***INFO: ...polling every $poll_time seconds until HBase stop is completed."
     # if stop command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/hbase_restart_status_temp | grep '"request_status" : "COMPLETED"' | wc -l)
+    failed=$(cat $LOCAL_WORKDIR/hbase_restart_status_temp | grep '"request_status" : "FAILED"' | wc -l)
+    if [[ "$failed" -ge "1" ]]; then
+       echo "***ERROR: Unable to stop HBase"
+       echo "***ERROR: Please manually restart HBase through the Ambari web GUI"
+       exit -1
+    fi
 done
 
 echo "***INFO: HBase stop completed"
@@ -329,6 +335,13 @@ while [ $completed -eq 0 ]; do
     echo "***INFO: ...polling every $poll_time seconds until Zookeeper stop is completed."
     # if stop command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/traf_zoo_restart_temp | grep '"request_status" : "COMPLETED"' | wc -l)
+    failed=$(cat $LOCAL_WORKDIR/traf_zoo_restart_temp | grep '"request_status" : "FAILED"' | wc -l)
+    if [[ "$failed" -ge "1" ]]; then
+       echo "***ERROR: Unable to stop Zookeeper"
+       echo "***ERROR: Please manually restart Zookeeper through the Ambari web GUI"
+       exit -1
+    fi
+
 done
 
 #=====================================
@@ -370,6 +383,13 @@ while [ $completed -eq 0 ]; do
     echo "***INFO: ...polling every $poll_time seconds until HDFS stop is completed."
     # if stop command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/traf_hdfs_restart_temp | grep '"request_status" : "COMPLETED"' | wc -l)
+    failed=$(cat $LOCAL_WORKDIR/traf_hdfs_restart_temp | grep '"request_status" : "FAILED"' | wc -l)
+     if [[ "$failed" -ge "1" ]]; then
+       echo "***ERROR: Unable to stop HDFS"
+       echo "***ERROR: Please manually restart HDFS through the Ambari web GUI"
+       exit -1
+    fi
+
 done
 
 echo "***INFO: Starting HDFS..."
@@ -406,6 +426,13 @@ while [ $completed -eq 0 ]; do
     echo "***INFO: ...polling every $poll_time seconds until HDFS start is completed."
     # if start command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/traf_hdfs_restart_temp | grep '"request_status" : "COMPLETED"' | wc -l)
+    failed=$(cat $LOCAL_WORKDIR/traf_hdfs_restart_temp | grep '"request_status" : "FAILED"' | wc -l)
+    if [[ "$failed" -ge "1" ]]; then
+       echo "***ERROR: Unable to start HDFS"
+       echo "***ERROR: Please manually restart HDFS through the Ambari web GUI"
+       exit -1
+    fi
+
 done
 
 echo "***INFO: HDFS restart completed"
@@ -451,6 +478,13 @@ while [ $completed -eq 0 ]; do
     echo "***INFO: ...polling every $poll_time seconds until Zookeeper start is completed."
     # if start command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/traf_zoo_restart_temp | grep '"request_status" : "COMPLETED"' | wc -l)
+    failed=$(cat $LOCAL_WORKDIR/traf_zoo_restart_temp | grep '"request_status" : "FAILED"' | wc -l)
+     if [[ "$failed" -ge "1" ]]; then
+       echo "***ERROR: Unable to start Zookeeper"
+       echo "***ERROR: Please manually restart Zookeeper through the Ambari web GUI"
+       exit -1
+    fi
+
 done
 
 echo "***INFO: Zookeeper start completed"
@@ -493,6 +527,13 @@ while [ $completed -eq 0 ]; do
     echo "***INFO: ...polling every $poll_time seconds until HBase start is completed."
     # if start command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/hbase_restart_status_temp | grep '"request_status" : "COMPLETED"' | wc -l)
+    failed=$(cat $LOCAL_WORKDIR/hbase_restart_status_temp | grep '"request_status" : "FAILED"' | wc -l)
+     if [[ "$failed" -ge "1" ]]; then
+       echo "***ERROR: Unable to start HBase"
+       echo "***ERROR: Please manually restart HBase through the Ambari web GUI"
+       exit -1
+    fi
+
 done
 
 echo "***INFO: HBase restart completed"
