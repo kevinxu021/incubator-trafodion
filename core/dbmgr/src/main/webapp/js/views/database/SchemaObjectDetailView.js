@@ -129,7 +129,7 @@ define([
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 
 			$(REFRESH_ACTION).on('click', this.doRefresh);
-			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
+			//$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary); //Disable for R2.1 release
 
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
@@ -157,7 +157,7 @@ define([
 			$(COLUMNS_CONTAINER).hide();
 
 			$(REFRESH_ACTION).on('click', this.doRefresh);
-			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
+			//$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary); --Disable for R2.1 release
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
@@ -194,7 +194,7 @@ define([
 		},
 		doPause: function(){
 			$(REFRESH_ACTION).off('click', this.doRefresh);
-			$(UPDATE_LIBRARY_BUTTON).off('click', this.updateLibrary);
+			//$(UPDATE_LIBRARY_BUTTON).off('click', this.updateLibrary); //Disable for R2.1 release
 
 			dbHandler.off(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.off(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
@@ -309,9 +309,10 @@ define([
 			return attributeVal;
 		},		
 		updateLibrary: function(){
-			var codeFileName = _this.getObjectAttribute('Code File Name');
-			sessionStorage.setItem(routeArgs.name, JSON.stringify({file: codeFileName}));	
-			window.location.hash = '/tools/createlibrary?schema='+routeArgs.schema+'&library='+routeArgs.name;
+			//Disabled for R2.1 release. Engine does not support alter library yet.
+			//var codeFileName = _this.getObjectAttribute('Code File Name');
+			//sessionStorage.setItem(routeArgs.name, JSON.stringify({file: codeFileName}));	
+			//window.location.hash = '/tools/createlibrary?schema='+routeArgs.schema+'&library='+routeArgs.name;
 		},
 		selectFeature: function(e){
 			$(OBJECT_DETAILS_CONTAINER).show();
@@ -563,11 +564,14 @@ define([
 					break;							
 				}
 			}
+			
+			/* Disable for R2.1 release 
 			if(routeArgs.type == 'library'){
 				$(UPDATE_LIBRARY_CONTAINER).show();
 			}else{
 				$(UPDATE_LIBRARY_CONTAINER).hide();
-			}
+			} */
+			
 			var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
 			var activeButton = null;
 			if(ACTIVE_BTN){

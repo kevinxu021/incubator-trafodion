@@ -766,12 +766,16 @@
 			<text><![CDATA[{call "_LIBMGR_".addlib(?,?,null,null)}]]></text>
 		</query>
 		<query>
+			<name>SPJ_ALTERLIB</name>
+			<text><![CDATA[{call "_LIBMGR_".alterlib(?,?,null,null)}]]></text>
+		</query>
+		<query>
 			<name>CHECK_SCHEMA</name>
-			<text><![CDATA[select distinct schema_name from "_MD_".objects where object_name ='__SCHEMA__' and schema_name='%1$s';]]></text>
+			<text><![CDATA[select distinct schema_name from "_MD_".objects where object_name = '__SCHEMA__' and schema_name = '%1$s';]]></text>
 		</query>
 		<query>
 			<name>CHECK_LIBRARY</name>
-			<text><![CDATA[select object_name, object_type from "_MD_".objects where object_type='LB' and object_name='%1$s' and schema_name='%2$s';]]></text>
-		</query>		
+			<text><![CDATA[select object_name, object_type from "_MD_".objects where schema_name = '%1$s' and object_name = '%2$s' and object_type = 'LB']]></text>
+		</query>
 	</queries>
 </SystemQueries>
