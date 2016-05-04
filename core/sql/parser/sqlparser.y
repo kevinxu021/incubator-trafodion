@@ -33020,19 +33020,24 @@ options : /* empty */
 		     else
 		       flag = flag | 0x00000010;
 		     break;
+		     case 'r' :  if (flag & 0x00000020)
+		       YYERROR;
+		     else
+		       flag = flag | 0x00000020;
+		     break;
 		     default  :  YYERROR;
 		     }
 		   i++;
-		 }
+		 } // while
+
 	       // if only 'n' option is specified(no regenerate pcode),
 	       // then display everything.
 	       if (flag == 0x10)
 		 {
 		   flag |= 0x0E;
 		 }
-#pragma nowarn(1506)   // warning elimination 
+
 	       $$ = flag;
-#pragma warn(1506)   // warning elimination 
 	     }
 cpu_identifier : SYSTEM_CPU_IDENTIFIER
                 {

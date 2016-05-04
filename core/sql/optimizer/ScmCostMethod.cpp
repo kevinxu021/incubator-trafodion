@@ -624,7 +624,7 @@ CostMethodDP2Scan::scmComputeOperatorCostInternal(RelExpr* op,
   } else {
 
      // Hive table case
-     HHDFSStatsBase hdfsStats;
+     HHDFSStatsBase hdfsStats(NULL);
    
      fs->getHiveSearchKey()->accumulateSelectedStats(hdfsStats);
     

@@ -559,7 +559,7 @@ LIBRARY_USERS         LIB_VIEW_USERS        SQL_USER3                           
 >>-- error: unknown privilege
 >>grant component privilege lib_view_xxx on library_books to sql_user9;
 
-*** ERROR[1004] Object LIB_VIEW_XXX does not exist or object type is invalid for the current operation.
+*** ERROR[1194] Component operation LIB_VIEW_XXX does not exist for component LIBRARY_BOOKS
 
 --- SQL operation failed with errors.
 >>grant component privilege lib_view_checkouts,
@@ -567,7 +567,7 @@ LIBRARY_USERS         LIB_VIEW_USERS        SQL_USER3                           
 +>                          lib_view_xxx
 +>  on library_books to sql_user9;
 
-*** ERROR[1004] Object LIB_VIEW_XXX does not exist or object type is invalid for the current operation.
+*** ERROR[1194] Component operation LIB_VIEW_XXX does not exist for component LIBRARY_BOOKS
 
 --- SQL operation failed with errors.
 >>
@@ -727,7 +727,7 @@ CREATE ROLE "DB__ROOTROLE";
 >>-- these tests should fail
 >>grant component privilege lib_view_repository on library_books to sql_user7;
 
-*** ERROR[1004] Object LIB_VIEW_REPOSITORY does not exist or object type is invalid for the current operation.
+*** ERROR[1194] Component operation LIB_VIEW_REPOSITORY does not exist for component LIBRARY_BOOKS
 
 --- SQL operation failed with errors.
 >>log;
@@ -1109,6 +1109,17 @@ CREATE COMPONENT PRIVILEGE DML_INSERT AS 'PI' ON SQL_OPERATIONS SYSTEM DETAIL
   'Allow grantee to perform DML_INSERT operation';
 
 -- GRANT COMPONENT PRIVILEGE "DML_INSERT" ON "SQL_OPERATIONS" TO "DB__ROOT" WITH GRANT OPTION;
+
+CREATE COMPONENT PRIVILEGE DML_SELECT_METADATA AS 'PM' ON SQL_OPERATIONS SYSTEM
+  DETAIL 'Allow grantee to perform DML_SELECT_METADATA operation';
+
+-- GRANT COMPONENT PRIVILEGE "DML_SELECT_METADATA" ON "SQL_OPERATIONS" TO "DB__ROOT" WITH GRANT OPTION;
+GRANT COMPONENT PRIVILEGE "DML_SELECT_METADATA" ON "SQL_OPERATIONS" TO
+  "DB__ADMIN";
+GRANT COMPONENT PRIVILEGE "DML_SELECT_METADATA" ON "SQL_OPERATIONS" TO
+  "DB__ROOTROLE" WITH GRANT OPTION;
+GRANT COMPONENT PRIVILEGE "DML_SELECT_METADATA" ON "SQL_OPERATIONS" TO
+  "DB__ADMINROLE";
 
 CREATE COMPONENT PRIVILEGE DML_REFERENCES AS 'PR' ON SQL_OPERATIONS SYSTEM
   DETAIL 'Allow grantee to perform DML_REFERENCES operation';
@@ -1662,6 +1673,17 @@ CREATE COMPONENT PRIVILEGE DML_INSERT AS 'PI' ON SQL_OPERATIONS SYSTEM DETAIL
   'Allow grantee to perform DML_INSERT operation';
 
 -- GRANT COMPONENT PRIVILEGE "DML_INSERT" ON "SQL_OPERATIONS" TO "DB__ROOT" WITH GRANT OPTION;
+
+CREATE COMPONENT PRIVILEGE DML_SELECT_METADATA AS 'PM' ON SQL_OPERATIONS SYSTEM
+  DETAIL 'Allow grantee to perform DML_SELECT_METADATA operation';
+
+-- GRANT COMPONENT PRIVILEGE "DML_SELECT_METADATA" ON "SQL_OPERATIONS" TO "DB__ROOT" WITH GRANT OPTION;
+GRANT COMPONENT PRIVILEGE "DML_SELECT_METADATA" ON "SQL_OPERATIONS" TO
+  "DB__ADMIN";
+GRANT COMPONENT PRIVILEGE "DML_SELECT_METADATA" ON "SQL_OPERATIONS" TO
+  "DB__ROOTROLE" WITH GRANT OPTION;
+GRANT COMPONENT PRIVILEGE "DML_SELECT_METADATA" ON "SQL_OPERATIONS" TO
+  "DB__ADMINROLE";
 
 CREATE COMPONENT PRIVILEGE DML_REFERENCES AS 'PR' ON SQL_OPERATIONS SYSTEM
   DETAIL 'Allow grantee to perform DML_REFERENCES operation';

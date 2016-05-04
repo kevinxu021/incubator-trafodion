@@ -16,6 +16,9 @@
 >>cqd HIST_ROWCOUNT_REQUIRING_STATS '50000';
 
 --- SQL operation complete.
+>>cqd hive_use_ext_table_attrs 'ON';
+
+--- SQL operation complete.
 >>
 >>prepare explainIt from
 +>  select substring(cast(SEQ_NUM+100 as char(3)),2,2) s,
@@ -38,7 +41,7 @@
 >>invoke hive.hive.store_orc;
 
 -- Definition of hive table STORE_ORC
--- Definition current  Fri Apr 22 07:11:35 2016
+-- Definition current  Wed Apr 27 02:45:01 2016
 
   (
     S_STORE_SK                       INT
@@ -231,11 +234,11 @@ Suite 100             College
 >>cqd orc_columns_pushdown 'OFF';
 
 --- SQL operation complete.
->>showplan option 't' select s_store_sk from store_orc;
+>>showplan option 'tr' select s_store_sk from store_orc;
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 12448
+Fragment ID: 0, Length: 12472
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -258,7 +261,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 2600
+explain_plan_size = 2632
 
 # of Expressions = 4
 
@@ -270,7 +273,7 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 400
+Class Version = 1, Class Size = 416
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 41032
@@ -295,11 +298,11 @@ Number of esps to scan:    1
   Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
-     0      0            3         2853  store_orc/000000_0
+     0      0            0         4288  store_orc/000000_0
 
-Summary of bytes read per ESP (2853 = 100 percent):
+Summary of bytes read per ESP (4288 = 100 percent):
 
-ESP    0 reads               2853 bytes ( 100 percent of avg)
+ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 29
 ColNumber: 1, ColName: S_STORE_SK
@@ -364,11 +367,11 @@ S_STORE_SK
 >>cqd orc_columns_pushdown 'ON';
 
 --- SQL operation complete.
->>showplan option 't' select s_store_sk from store_orc;
+>>showplan option 'tr' select s_store_sk from store_orc;
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 9968
+Fragment ID: 0, Length: 9992
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -391,7 +394,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 2600
+explain_plan_size = 2632
 
 # of Expressions = 4
 
@@ -403,7 +406,7 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 400
+Class Version = 1, Class Size = 416
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 41032
@@ -428,11 +431,11 @@ Number of esps to scan:    1
   Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
-     0      0            3         2853  store_orc/000000_0
+     0      0            0         4288  store_orc/000000_0
 
-Summary of bytes read per ESP (2853 = 100 percent):
+Summary of bytes read per ESP (4288 = 100 percent):
 
-ESP    0 reads               2853 bytes ( 100 percent of avg)
+ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
@@ -515,11 +518,11 @@ S_STORE_SK
           9
 
 --- 3 row(s) selected.
->>showplan option 't' select s_store_sk from store_orc where s_store_sk = 3;
+>>showplan option 'tr' select s_store_sk from store_orc where s_store_sk = 3;
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 10144
+Fragment ID: 0, Length: 10168
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -542,7 +545,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 2696
+explain_plan_size = 2728
 
 # of Expressions = 4
 
@@ -554,7 +557,7 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 400
+Class Version = 1, Class Size = 416
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 32840
@@ -579,11 +582,11 @@ Number of esps to scan:    1
   Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
-     0      0            3         2853  store_orc/000000_0
+     0      0            0         4288  store_orc/000000_0
 
-Summary of bytes read per ESP (2853 = 100 percent):
+Summary of bytes read per ESP (4288 = 100 percent):
 
-ESP    0 reads               2853 bytes ( 100 percent of avg)
+ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
@@ -646,11 +649,11 @@ S_STORE_SK
           9
 
 --- 3 row(s) selected.
->>showplan option 't' select s_store_sk from store_orc where s_store_sk = 3;
+>>showplan option 'tr' select s_store_sk from store_orc where s_store_sk = 3;
 MASTER Executor fragment
 ========================
 
-Fragment ID: 0, Length: 15144
+Fragment ID: 0, Length: 15168
 
 Contents of EX_ROOT [2]:
 ------------------------
@@ -673,7 +676,7 @@ rtFlags4_ = 00000000000000000010000000000000
 rtFlags5_ = 00000000000000000000000000000000
 queryType_ = 2
 inputVarsSize_ = 0
-explain_plan_size = 2784
+explain_plan_size = 2816
 
 # of Expressions = 4
 
@@ -685,7 +688,7 @@ Contents of EX_ORC_SCAN [1]:
 ----------------------------
 
 For ComTdb :
-Class Version = 1, Class Size = 400
+Class Version = 1, Class Size = 416
 InitialQueueSizeDown = 4, InitialQueueSizeUp = 4
 queueResizeLimit = 9, queueResizeFactor = 4
 queueSizeDown = 2048, queueSizeUp = 2048, numBuffers = 4, bufferSize = 32840
@@ -710,11 +713,11 @@ Number of esps to scan:    1
   Esp# Range# StripeOffset       Length      FileName
 ====== ====== ============ ============  ==============================
 
-     0      0            3         2853  store_orc/000000_0
+     0      0            0         4288  store_orc/000000_0
 
-Summary of bytes read per ESP (2853 = 100 percent):
+Summary of bytes read per ESP (4288 = 100 percent):
 
-ESP    0 reads               2853 bytes ( 100 percent of avg)
+ESP    0 reads               4288 bytes ( 100 percent of avg)
 
 Number of columns to retrieve: 1
 ColNumber: 1, ColName: S_STORE_SK
@@ -974,7 +977,7 @@ NUM_HITS    NUM_PARAMS
 >>invoke hive.hive.store_sales_orc;
 
 -- Definition of hive table STORE_SALES_ORC
--- Definition current  Fri Apr 22 07:12:00 2016
+-- Definition current  Wed Apr 27 02:45:27 2016
 
   (
     SS_SOLD_DATE_SK                  INT
@@ -1001,13 +1004,7 @@ NUM_HITS    NUM_PARAMS
   , SS_NET_PAID_INC_TAX              REAL
   , SS_NET_PROFIT                    REAL
   )
-  PRIMARY KEY (SS_SOLD_DATE_SK ASC, SS_SOLD_TIME_SK ASC, SS_ITEM_SK ASC,
-    SS_CUSTOMER_SK ASC, SS_CDEMO_SK ASC, SS_HDEMO_SK ASC, SS_ADDR_SK ASC,
-    SS_STORE_SK ASC, SS_PROMO_SK ASC, SS_TICKET_NUMBER ASC, SS_QUANTITY ASC,
-    SS_WHOLESALE_COST ASC, SS_LIST_PRICE ASC, SS_SALES_PRICE ASC,
-    SS_EXT_DISCOUNT_AMT ASC, SS_EXT_SALES_PRICE ASC, SS_EXT_WHOLESALE_COST ASC,
-    SS_EXT_LIST_PRICE ASC, SS_EXT_TAX ASC, SS_COUPON_AMT ASC, SS_NET_PAID ASC,
-    SS_NET_PAID_INC_TAX ASC, SS_NET_PROFIT ASC)
+  PRIMARY KEY (SS_ITEM_SK ASC)
   /* stored as orc */
 
 --- SQL operation complete.
@@ -1025,7 +1022,7 @@ NUM_HITS    NUM_PARAMS
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212328069120887471
+PLAN_ID .................. 212328485127242247
 ROWS_OUT ............. 1,698
 EST_TOTAL_COST ........... 1.21
 STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
@@ -1034,17 +1031,17 @@ STATEMENT ................ select * from store_sales_orc where ss_item_sk = 1;
 ------------------------------------------------------------------ NODE LISTING
 ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
-ROWS_OUT ............. 1,698
+ROWS_OUT ................ 20
 EST_OPER_COST ............ 0
 EST_TOTAL_COST ........... 1.21
 DESCRIPTION
-  max_card_est ........... 2.73638e+06
+  max_card_est .......... 20
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
   statement_index ........ 0
   affinity_value ......... 0
-  max_max_cardinality  1,698
+  max_max_cardinality ... 20
   total_overflow_size .... 0.00 KB
   xn_access_mode ......... read_only
   xn_autoabort_interval    0
@@ -1057,6 +1054,7 @@ DESCRIPTION
   MODE_SEAHIVE ........... ON
   TRAF_ENABLE_ORC_FORMAT   ON
   HIST_ROWCOUNT_REQU  50,000
+  HIVE_USE_EXT_TABLE_ATTR  ON
   ORC_COLUMNS_PUSHDOWN ... ON
   ORC_PRED_PUSHDOWN ...... ON
   ORC_AGGR_PUSHDOWN ...... OFF
@@ -1089,11 +1087,11 @@ DESCRIPTION
 ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.STORE_SALES_ORC
 REQUESTS_IN .............. 1
-ROWS_OUT ............. 1,698
+ROWS_OUT ................ 20
 EST_OPER_COST ............ 1.21
 EST_TOTAL_COST ........... 1.21
 DESCRIPTION
-  max_card_est ........... 2.73638e+06
+  max_card_est .......... 20
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
@@ -1138,7 +1136,7 @@ LC   RC   OP   OPERATOR              OPT       DESCRIPTION           CARD
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212328069121551218
+PLAN_ID .................. 212328485127908119
 ROWS_OUT ......... 2,880,401
 EST_TOTAL_COST ........... 1.77
 STATEMENT ................ select *
@@ -1174,6 +1172,7 @@ DESCRIPTION
   MODE_SEAHIVE ........... ON
   TRAF_ENABLE_ORC_FORMAT   ON
   HIST_ROWCOUNT_REQU  50,000
+  HIVE_USE_EXT_TABLE_ATTR  ON
   ORC_COLUMNS_PUSHDOWN ... ON
   ORC_PRED_PUSHDOWN ...... ON
   ORC_AGGR_PUSHDOWN ...... OFF
@@ -1312,11 +1311,11 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Fri Apr 22 07:12:02 2016
+-- Definition current  Wed Apr 27 02:45:29 2016
 
   (
     D_DATE_SK                        INT
-  , D_DATE_ID                        VARCHAR(20 BYTES) CHARACTER SET UTF8
+  , D_DATE_ID                        VARCHAR(100 BYTES) CHARACTER SET UTF8
       COLLATE DEFAULT
   , D_DATE                           DATE
   , D_MONTH_SEQ                      INT
@@ -1330,46 +1329,121 @@ DESCRIPTION
   , D_FY_YEAR                        INT
   , D_FY_QUARTER_SEQ                 INT
   , D_FY_WEEK_SEQ                    INT
-  , D_DAY_NAME                       VARCHAR(20 BYTES) CHARACTER SET UTF8
+  , D_DAY_NAME                       VARCHAR(120 BYTES) CHARACTER SET UTF8
       COLLATE DEFAULT
-  , D_QUARTER_NAME                   VARCHAR(20 BYTES) CHARACTER SET UTF8
+  , D_QUARTER_NAME                   VARCHAR(200 BYTES) CHARACTER SET UTF8
       COLLATE DEFAULT
-  , D_HOLIDAY                        VARCHAR(20 BYTES) CHARACTER SET UTF8
+  , D_HOLIDAY                        VARCHAR(100 BYTES) CHARACTER SET UTF8
       COLLATE DEFAULT
-  , D_WEEKEND                        VARCHAR(20 BYTES) CHARACTER SET UTF8
+  , D_WEEKEND                        VARCHAR(100 BYTES) CHARACTER SET UTF8
       COLLATE DEFAULT
-  , D_FOLLOWING_HOLIDAY              VARCHAR(20 BYTES) CHARACTER SET UTF8
+  , D_FOLLOWING_HOLIDAY              VARCHAR(100 BYTES) CHARACTER SET UTF8
       COLLATE DEFAULT
   , D_FIRST_DOM                      INT
   , D_LAST_DOM                       INT
   , D_SAME_DAY_LY                    INT
   , D_SAME_DAY_LQ                    INT
-  , D_CURRENT_DAY                    VARCHAR(20 BYTES) CHARACTER SET UTF8
+  , D_CURRENT_DAY                    VARCHAR(100 BYTES) CHARACTER SET UTF8
       COLLATE DEFAULT
-  , D_CURRENT_WEEK                   VARCHAR(20 BYTES) CHARACTER SET UTF8
+  , D_CURRENT_WEEK                   VARCHAR(111 BYTES) CHARACTER SET UTF8
       COLLATE DEFAULT
-  , D_CURRENT_MONTH                  VARCHAR(20 BYTES) CHARACTER SET UTF8
+  , D_CURRENT_MONTH                  VARCHAR(200 BYTES) CHARACTER SET UTF8
       COLLATE DEFAULT
-  , D_CURRENT_QUARTER                VARCHAR(20 BYTES) CHARACTER SET UTF8
+  , D_CURRENT_QUARTER                VARCHAR(100 BYTES) CHARACTER SET UTF8
       COLLATE DEFAULT
-  , D_CURRENT_YEAR                   VARCHAR(20 BYTES) CHARACTER SET UTF8
+  , D_CURRENT_YEAR                   VARCHAR(100 BYTES) CHARACTER SET UTF8
       COLLATE DEFAULT
   )
-  PRIMARY KEY (D_DATE_SK ASC, D_DATE_ID ASC, D_DATE ASC, D_MONTH_SEQ ASC,
-    D_WEEK_SEQ ASC, D_QUARTER_SEQ ASC, D_YEAR ASC, D_DOW ASC, D_MOY ASC, D_DOM
-    ASC, D_QOY ASC, D_FY_YEAR ASC, D_FY_QUARTER_SEQ ASC, D_FY_WEEK_SEQ ASC,
-    D_DAY_NAME ASC, D_QUARTER_NAME ASC, D_HOLIDAY ASC, D_WEEKEND ASC,
-    D_FOLLOWING_HOLIDAY ASC, D_FIRST_DOM ASC, D_LAST_DOM ASC, D_SAME_DAY_LY
-    ASC, D_SAME_DAY_LQ ASC, D_CURRENT_DAY ASC, D_CURRENT_WEEK ASC,
-    D_CURRENT_MONTH ASC, D_CURRENT_QUARTER ASC, D_CURRENT_YEAR ASC)
+  PRIMARY KEY (D_DATE ASC)
   /* stored as orc */
 
 --- SQL operation complete.
 >>showddl hive.hive.date_dim_orc;
 
-*** ERROR[3078] The column list for TRAFODION."_HV_HIVE_".DATE_DIM_ORC does not match its external table representation defined as HIVE.HIVE.DATE_DIM_ORC.
+/* Hive DDL */
+CREATE TABLE DATE_DIM_ORC
+  (
+    D_DATE_SK                        int
+  , D_DATE_ID                        string
+  , D_DATE                           date
+  , D_MONTH_SEQ                      int
+  , D_WEEK_SEQ                       int
+  , D_QUARTER_SEQ                    int
+  , D_YEAR                           int
+  , D_DOW                            int
+  , D_MOY                            int
+  , D_DOM                            int
+  , D_QOY                            int
+  , D_FY_YEAR                        int
+  , D_FY_QUARTER_SEQ                 int
+  , D_FY_WEEK_SEQ                    int
+  , D_DAY_NAME                       string
+  , D_QUARTER_NAME                   string
+  , D_HOLIDAY                        string
+  , D_WEEKEND                        string
+  , D_FOLLOWING_HOLIDAY              string
+  , D_FIRST_DOM                      int
+  , D_LAST_DOM                       int
+  , D_SAME_DAY_LY                    int
+  , D_SAME_DAY_LQ                    int
+  , D_CURRENT_DAY                    string
+  , D_CURRENT_WEEK                   string
+  , D_CURRENT_MONTH                  string
+  , D_CURRENT_QUARTER                string
+  , D_CURRENT_YEAR                   string
+  )
+  stored as orc
+;
 
---- SQL operation failed with errors.
+/* Trafodion DDL */
+
+CREATE EXTERNAL TABLE DATE_DIM_ORC
+  (
+    D_DATE_SK                        INT DEFAULT NULL
+  , D_DATE_ID                        VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_DATE                           DATE DEFAULT NULL
+  , D_MONTH_SEQ                      INT DEFAULT NULL
+  , D_WEEK_SEQ                       INT DEFAULT NULL
+  , D_QUARTER_SEQ                    INT DEFAULT NULL
+  , D_YEAR                           INT DEFAULT NULL
+  , D_DOW                            INT DEFAULT NULL
+  , D_MOY                            INT DEFAULT NULL
+  , D_DOM                            INT DEFAULT NULL
+  , D_QOY                            INT DEFAULT NULL
+  , D_FY_YEAR                        INT DEFAULT NULL
+  , D_FY_QUARTER_SEQ                 INT DEFAULT NULL
+  , D_FY_WEEK_SEQ                    INT DEFAULT NULL
+  , D_DAY_NAME                       VARCHAR(120 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_QUARTER_NAME                   VARCHAR(200 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_HOLIDAY                        VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_WEEKEND                        VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_FOLLOWING_HOLIDAY              VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_FIRST_DOM                      INT DEFAULT NULL
+  , D_LAST_DOM                       INT DEFAULT NULL
+  , D_SAME_DAY_LY                    INT DEFAULT NULL
+  , D_SAME_DAY_LQ                    INT DEFAULT NULL
+  , D_CURRENT_DAY                    VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_CURRENT_WEEK                   VARCHAR(111 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_CURRENT_MONTH                  VARCHAR(200 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_CURRENT_QUARTER                VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_CURRENT_YEAR                   VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , PRIMARY KEY (D_DATE ASC)
+  )
+  FOR HIVE.HIVE.DATE_DIM_ORC
+;
+
+--- SQL operation complete.
 >>prepare s from select * from hive.hive.date_dim_orc where d_date = date '2016-01-27';
 
 *** WARNING[6008] Statistics for column (D_DATE) from table HIVE.HIVE.DATE_DIM_ORC were not available. As a result, the access path chosen might not be the best possible.
@@ -1380,7 +1454,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212328069124897712
+PLAN_ID .................. 212328485131173471
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1391,17 +1465,17 @@ STATEMENT ................ select *
 ------------------------------------------------------------------ NODE LISTING
 ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
-ROWS_OUT ............... 271
+ROWS_OUT ................ 20
 EST_OPER_COST ............ 0
 EST_TOTAL_COST ........... 0.01
 DESCRIPTION
-  max_card_est ...... 69,394.7
+  max_card_est .......... 20
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
   statement_index ........ 0
   affinity_value ......... 0
-  max_max_cardinality    271
+  max_max_cardinality ... 20
   total_overflow_size .... 0.00 KB
   xn_access_mode ......... read_only
   xn_autoabort_interval    0
@@ -1414,6 +1488,7 @@ DESCRIPTION
   MODE_SEAHIVE ........... ON
   TRAF_ENABLE_ORC_FORMAT   ON
   HIST_ROWCOUNT_REQU  50,000
+  HIVE_USE_EXT_TABLE_ATTR  ON
   ORC_COLUMNS_PUSHDOWN ... ON
   ORC_PRED_PUSHDOWN ...... ON
   ORC_AGGR_PUSHDOWN ...... OFF
@@ -1450,11 +1525,11 @@ DESCRIPTION
 ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.DATE_DIM_ORC
 REQUESTS_IN .............. 1
-ROWS_OUT ............... 271
+ROWS_OUT ................ 20
 EST_OPER_COST ............ 0.01
 EST_TOTAL_COST ........... 0.01
 DESCRIPTION
-  max_card_est ...... 69,394.7
+  max_card_est .......... 20
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
@@ -1482,11 +1557,11 @@ DESCRIPTION
 >>invoke hive.hive.date_dim_orc;
 
 -- Definition of hive table DATE_DIM_ORC
--- Definition current  Fri Apr 22 07:12:10 2016
+-- Definition current  Wed Apr 27 02:45:36 2016
 
   (
     D_DATE_SK                        INT
-  , D_DATE_ID                        VARCHAR(20 BYTES) CHARACTER SET UTF8
+  , D_DATE_ID                        VARCHAR(100 BYTES) CHARACTER SET UTF8
       COLLATE DEFAULT
   , D_DATE                           DATE
   , D_MONTH_SEQ                      INT
@@ -1525,21 +1600,96 @@ DESCRIPTION
   , D_CURRENT_YEAR                   VARCHAR(20 BYTES) CHARACTER SET UTF8
       COLLATE DEFAULT
   )
-  PRIMARY KEY (D_DATE_SK ASC, D_DATE_ID ASC, D_DATE ASC, D_MONTH_SEQ ASC,
-    D_WEEK_SEQ ASC, D_QUARTER_SEQ ASC, D_YEAR ASC, D_DOW ASC, D_MOY ASC, D_DOM
-    ASC, D_QOY ASC, D_FY_YEAR ASC, D_FY_QUARTER_SEQ ASC, D_FY_WEEK_SEQ ASC,
-    D_DAY_NAME ASC, D_QUARTER_NAME ASC, D_HOLIDAY ASC, D_WEEKEND ASC,
-    D_FOLLOWING_HOLIDAY ASC, D_FIRST_DOM ASC, D_LAST_DOM ASC, D_SAME_DAY_LY
-    ASC, D_SAME_DAY_LQ ASC, D_CURRENT_DAY ASC, D_CURRENT_WEEK ASC,
-    D_CURRENT_MONTH ASC, D_CURRENT_QUARTER ASC, D_CURRENT_YEAR ASC)
+  PRIMARY KEY (D_DATE ASC)
   /* stored as orc */
 
 --- SQL operation complete.
 >>showddl hive.hive.date_dim_orc;
 
-*** ERROR[3078] The column list for TRAFODION."_HV_HIVE_".DATE_DIM_ORC does not match its external table representation defined as HIVE.HIVE.DATE_DIM_ORC.
+/* Hive DDL */
+CREATE TABLE DATE_DIM_ORC
+  (
+    D_DATE_SK                        int
+  , D_DATE_ID                        string
+  , D_DATE                           date
+  , D_MONTH_SEQ                      int
+  , D_WEEK_SEQ                       int
+  , D_QUARTER_SEQ                    int
+  , D_YEAR                           int
+  , D_DOW                            int
+  , D_MOY                            int
+  , D_DOM                            int
+  , D_QOY                            int
+  , D_FY_YEAR                        int
+  , D_FY_QUARTER_SEQ                 int
+  , D_FY_WEEK_SEQ                    int
+  , D_DAY_NAME                       string
+  , D_QUARTER_NAME                   string
+  , D_HOLIDAY                        string
+  , D_WEEKEND                        string
+  , D_FOLLOWING_HOLIDAY              string
+  , D_FIRST_DOM                      int
+  , D_LAST_DOM                       int
+  , D_SAME_DAY_LY                    int
+  , D_SAME_DAY_LQ                    int
+  , D_CURRENT_DAY                    string
+  , D_CURRENT_WEEK                   string
+  , D_CURRENT_MONTH                  string
+  , D_CURRENT_QUARTER                string
+  , D_CURRENT_YEAR                   string
+  )
+  stored as orc
+;
 
---- SQL operation failed with errors.
+/* Trafodion DDL */
+
+CREATE EXTERNAL TABLE DATE_DIM_ORC
+  (
+    D_DATE_SK                        INT DEFAULT NULL
+  , D_DATE_ID                        VARCHAR(100 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_DATE                           DATE DEFAULT NULL
+  , D_MONTH_SEQ                      INT DEFAULT NULL
+  , D_WEEK_SEQ                       INT DEFAULT NULL
+  , D_QUARTER_SEQ                    INT DEFAULT NULL
+  , D_YEAR                           INT DEFAULT NULL
+  , D_DOW                            INT DEFAULT NULL
+  , D_MOY                            INT DEFAULT NULL
+  , D_DOM                            INT DEFAULT NULL
+  , D_QOY                            INT DEFAULT NULL
+  , D_FY_YEAR                        INT DEFAULT NULL
+  , D_FY_QUARTER_SEQ                 INT DEFAULT NULL
+  , D_FY_WEEK_SEQ                    INT DEFAULT NULL
+  , D_DAY_NAME                       VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_QUARTER_NAME                   VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_HOLIDAY                        VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_WEEKEND                        VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_FOLLOWING_HOLIDAY              VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_FIRST_DOM                      INT DEFAULT NULL
+  , D_LAST_DOM                       INT DEFAULT NULL
+  , D_SAME_DAY_LY                    INT DEFAULT NULL
+  , D_SAME_DAY_LQ                    INT DEFAULT NULL
+  , D_CURRENT_DAY                    VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_CURRENT_WEEK                   VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_CURRENT_MONTH                  VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_CURRENT_QUARTER                VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , D_CURRENT_YEAR                   VARCHAR(20 BYTES) CHARACTER SET UTF8
+      COLLATE DEFAULT DEFAULT NULL
+  , PRIMARY KEY (D_DATE ASC)
+  )
+  FOR HIVE.HIVE.DATE_DIM_ORC
+;
+
+--- SQL operation complete.
 >>prepare s from select * from hive.hive.date_dim_orc where d_date = date '2016-01-27';
 
 *** WARNING[6008] Statistics for column (D_DATE) from table HIVE.HIVE.DATE_DIM_ORC were not available. As a result, the access path chosen might not be the best possible.
@@ -1550,7 +1700,7 @@ DESCRIPTION
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... S
-PLAN_ID .................. 212328069131511985
+PLAN_ID .................. 212328485137674831
 ROWS_OUT ............... 271
 EST_TOTAL_COST ........... 0.01
 STATEMENT ................ select *
@@ -1561,17 +1711,17 @@ STATEMENT ................ select *
 ------------------------------------------------------------------ NODE LISTING
 ROOT ======================================  SEQ_NO 2        ONLY CHILD 1
 REQUESTS_IN .............. 1
-ROWS_OUT ............... 271
+ROWS_OUT ................ 20
 EST_OPER_COST ............ 0
 EST_TOTAL_COST ........... 0.01
 DESCRIPTION
-  max_card_est ...... 69,394.7
+  max_card_est .......... 20
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
   statement_index ........ 0
   affinity_value ......... 0
-  max_max_cardinality    271
+  max_max_cardinality ... 20
   total_overflow_size .... 0.00 KB
   xn_access_mode ......... read_only
   xn_autoabort_interval    0
@@ -1584,6 +1734,7 @@ DESCRIPTION
   MODE_SEAHIVE ........... ON
   TRAF_ENABLE_ORC_FORMAT   ON
   HIST_ROWCOUNT_REQU  50,000
+  HIVE_USE_EXT_TABLE_ATTR  ON
   ORC_COLUMNS_PUSHDOWN ... ON
   ORC_PRED_PUSHDOWN ...... ON
   ORC_AGGR_PUSHDOWN ...... OFF
@@ -1620,11 +1771,11 @@ DESCRIPTION
 ORC_SCAN ==================================  SEQ_NO 1        NO CHILDREN
 TABLE_NAME ............... HIVE.HIVE.DATE_DIM_ORC
 REQUESTS_IN .............. 1
-ROWS_OUT ............... 271
+ROWS_OUT ................ 20
 EST_OPER_COST ............ 0.01
 EST_TOTAL_COST ........... 0.01
 DESCRIPTION
-  max_card_est ...... 69,394.7
+  max_card_est .......... 20
   fragment_id ............ 0
   parent_frag ............ (none)
   fragment_type .......... master
@@ -1661,9 +1812,7 @@ DESCRIPTION
 +>  (d_date_sk date)
 +>  for hive.hive.date_dim_orc;
 
-*** ERROR[1186] Column D_DATE_SK is of type DATE which is not compatible with the default value's type, INTEGER SIGNED.
-
---- SQL operation failed with errors.
+--- SQL operation complete.
 >>
 >>-- upsert/insert/del/update not supported on orc
 >>prepare s from delete from hive.hive.store2_sales_orc;
@@ -1795,7 +1944,7 @@ orc_search_arguments: and( not( HIVE.STORE2_SALES_ORC.SS_SOLD_DATE_SK is null ) 
 ------------------------------------------------------------------ PLAN SUMMARY
 MODULE_NAME .............. DYNAMICALLY COMPILED
 STATEMENT_NAME ........... XX
-PLAN_ID .................. 212328069142047613
+PLAN_ID .................. 212328485148035000
 ROWS_OUT ................. 1
 EST_TOTAL_COST ........... 1.12
 STATEMENT ................ select count(*)
@@ -1832,6 +1981,7 @@ DESCRIPTION
   MODE_SEAHIVE ........... ON
   TRAF_ENABLE_ORC_FORMAT   ON
   HIST_ROWCOUNT_REQU  50,000
+  HIVE_USE_EXT_TABLE_ATTR  ON
   ORC_COLUMNS_PUSHDOWN ... ON
   ORC_AGGR_PUSHDOWN ...... OFF
   SCHEMA ................. TRAFODION.SCH

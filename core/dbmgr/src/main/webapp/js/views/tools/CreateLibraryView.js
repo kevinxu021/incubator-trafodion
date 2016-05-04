@@ -37,6 +37,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 	var CreateLibraryView = BaseView.extend({
 		template : _.template(CreateLibraryT),
 		currentLibraryName:null,
+		currentSchemaName:null,
 
 		doInit : function(args) {
 			_this = this;
@@ -98,8 +99,6 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		processArgs: function(){
 			if( _args.schema != undefined){
 				$(SCHEMA_NAME).val( _args.schema);
-			}else{
-				$(SCHEMA_NAME).val("");
 			}
 			if(_args.library != undefined){
 				$(LIBRARY_NAME).val(_args.library);
@@ -119,8 +118,6 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				}
 				PAGE_MODE = "UPDATE";
 			}else{
-				$(LIBRARY_NAME).val("");
-				$(FILE_NAME).val("");
 				$(SCHEMA_NAME).prop('disabled', false);
 				$(LIBRARY_NAME).prop('disabled', false);
 				$(PAGE_HEADER).text("Create Library");
@@ -164,6 +161,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			var schemaName = $(SCHEMA_NAME).val()==""?"_LIBMGR_": $(SCHEMA_NAME).val();
 			var libraryName = $(LIBRARY_NAME).val();
 			_this.currentLibraryName=$(LIBRARY_NAME).val();
+			_this.currentSchemaName=schemaName;
 			var chunk_size = 10000  * 1024; //1mb = 1 * 1024 * 1024;
 			var file = FILE;
 			var fileName = file.name;
@@ -222,7 +220,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		},
 		createLibrarySuccess : function(){
 			_this.isAjaxCompleted=true;
-			var msg='Created library '+_this.currentLibraryName+' successfully';
+			var msg='Created library ' + _this.currentSchemaName + "." + _this.currentLibraryName + ' successfully';
 			if(UPLOAD_INDEX==UPLOAD_LENGTH){
 				$(LOADING).css('visibility', 'hidden');
 				$(CREATE_BTN).prop('disabled', false);
@@ -248,7 +246,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			$(CLEAR_BTN).prop('disabled', false);
 			var errorIndex = error.responseText.lastIndexOf("*** ERROR");
 			var errorString = error.responseText.substring(errorIndex);
-			var msg="Failed to create library "+ _this.currentLibraryName+" :" + errorString;
+			var msg="Failed to create library " + _this.currentSchemaName + "." + _this.currentLibraryName + " :" + errorString;
 			//alert(errorString);
 			var msgObj={msg:msg,tag:"danger",url:null,shortMsg:"Failed to create library."};
 			if(_this.redirectFlag==false){

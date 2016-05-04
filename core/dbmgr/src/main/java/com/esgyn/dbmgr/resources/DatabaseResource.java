@@ -546,17 +546,40 @@ public class DatabaseResource {
 			@QueryParam("schemaName") String schemaName,
 			@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
 					throws EsgynDBMgrException {
+		PreparedStatement pstmt = null;
+		Connection connection = null;
 		try {
+			connection = JdbcHelper.getInstance().getAdminConnection();
 			String queryText = String.format(
 					SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_HISTOGRAM_STATISTICS),
 					Helper.ExternalForm(schemaName), objectID);
 			_LOG.debug(queryText);
-			TabularResult result = QueryResource.executeAdminSQLQuery(queryText);
+			pstmt = connection.prepareStatement(
+					String.format(SystemQueryCache.getQueryText(SystemQueryCache.SELECT_OBJECT_HISTOGRAM_STATISTICS),
+							Helper.ExternalForm(schemaName)));
+			pstmt.setString(1, Helper.InternalForm(schemaName));
+			pstmt.setString(2, Helper.InternalForm(objectName));
+			TabularResult result = QueryResource.executeQuery(pstmt, queryText);
 			SqlObjectListResult sqlResult = new SqlObjectListResult(objectType, "", result);
 			return sqlResult;
 		} catch (Exception ex) {
 			_LOG.error("Failed to fetch histogram statistics for " + objectName + " : " + ex.getMessage());
 			throw new EsgynDBMgrException(ex.getMessage());
+		} finally {
+			if (pstmt != null) {
+				try {
+					pstmt.close();
+				} catch (SQLException e) {
+
+				}
+			}
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (Exception ex) {
+
+				}
+			}
 		}
 	}
 
@@ -587,7 +610,7 @@ public class DatabaseResource {
 			pstmt = connection.prepareStatement(queryText);
 			// pstmt.setLong(1, objectIDLong);
 			pstmt.setString(1, Helper.InternalForm(schemaName));
-			pstmt.setString(2, objectName);
+			pstmt.setString(2, Helper.InternalForm(objectName));
 
 			_LOG.debug(queryText);
 			TabularResult result = QueryResource.executeQuery(pstmt, queryText);

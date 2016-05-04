@@ -313,7 +313,7 @@ PrivStatus PrivMgrMDAdmin::initializeComponentPrivileges()
   int64_t expectedPrivCount = numOps + rootRoleList.size() + 
                              (adminList.size()*2) + publicList.size();
 
-  if (componentPrivileges.getCount() != expectedPrivCount)
+  if (componentPrivileges.getCount(SQL_OPERATIONS_COMPONENT_UID) != expectedPrivCount)
   {
     std::string message ("Expecting ");
     message += to_string((long long int)expectedPrivCount);
