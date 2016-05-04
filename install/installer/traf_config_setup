@@ -80,6 +80,7 @@ OTHER_CLOUD=""
 MANAGEMENT_ENABLED="N"
 MANAGEMENT_NODES=""
 LDAP_LEVEL="0"
+DB_ROOT_NAME="trafodion"
 #==============================================
 
 function print_usage {
@@ -1009,6 +1010,14 @@ if [[ $SCANNER_MODE == "N" ]]; then
       sed -i -e "s/LDAPSearchDN:/$user/g" $LDAP_AUTH_FILE
       password="LDAPSearchPwd: $LDAP_PASSWORD"
       sed -i -e "s/LDAPSearchPwd:/$password/g" $LDAP_AUTH_FILE
+
+      #LDAP uid/cn assigned to DB__ROOT
+      echo -n "Enter LDAP uid or cn to be assigned DB root privileges (DB__ROOT), default [$DB_ROOT_NAME]: "
+      read answer8
+      if [[ ! -z "$answer8" ]]; then
+         DB_ROOT_NAME=$answer8
+      fi
+      echo "export DB_ROOT_NAME=\"$DB_ROOT_NAME\"" >> $LOCAL_TRAF_CONFIG
    fi
 
 fi
@@ -1029,7 +1038,16 @@ sudo chmod 777 $TRAF_CONFIG
 #==============================================
 #Call user defined prompting script
 
-$LOCAL_WORKDIR/traf_user_prompt | tee -a $INSTALL_LOG
+if [[ -e $LOCAL_WORKDIR/traf_user_prompt ]]; then
+  $LOCAL_WORKDIR/traf_user_prompt | tee -a $INSTALL_LOG
+  $LOCAL_WORKDIR/traf_user_prompt_check | tee -a $INSTALL_LOG
+
+  if [ ${PIPESTATUS[0]} != "0" ]; then
+     echo "***ERROR: Error found while checking config file."
+     echo "***ERROR: Exiting..."
+     exit -1
+  fi
+fi
 
 #==============================================
 
