@@ -70,7 +70,26 @@ define(['moment',
 				}
 				return false;
 			};
-			
+			this.ExternalForm=function(internalName){
+				var name = internalName.trim();
+				var patern = new RegExp('\"',"g");
+				var length=name.length;
+				// May be empty?
+				if (length == 0) {
+					return "";
+				}
+				// If it contains specials, it needs to be delimited.
+				if ((length > 1) && (name.startsWith("\"")) && (name.endsWith("\""))) {
+					name=name.substring(1, length - 1);
+					name = name.replace(patern, "\"\"");
+					return name;
+				}else if(!name.startsWith("_") && (name.match("^[a-zA-Z0-9_]+$")!=null)) {
+					// No specials, it's itself
+					return name.toUpperCase();
+				}
+				// It has specials; delimit it.
+				return "\"" + name + "\"";
+			};
 			this.isAdvanced = function(){
 				if(_this.databaseEdition != null && _this.databaseEdition.toLowerCase().indexOf("advanced") > -1){
 					return true;
