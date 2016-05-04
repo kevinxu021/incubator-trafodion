@@ -13,6 +13,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 	'use strict';
 
 	var _this = null;
+	var PAGE_MODE = "NORMAL"; 
 	var LIB_FORM = "#create-library-form";
 	var SCHEMA_NAME = "#schema_name";
 	var LIBRARY_NAME = "#library_name";
@@ -21,6 +22,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 	var FILE_SELECT = "#file";
 	var CREATE_BTN = "#create_btn";
 	var CLEAR_BTN = "#clear_btn";
+	var OVERWRITE_CHECKBOX = "#overwrite";
 	var LOADING = "#loading-spinner";
 	var PAGE_HEADER = "#create-library-page-header";
 	var FILE = null;
@@ -105,6 +107,8 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				$(SCHEMA_NAME).prop('disabled', true);
 				$(PAGE_HEADER).text("Update Library");
 				$(CREATE_BTN).prop('value','Update');
+				$(OVERWRITE_CHECKBOX).prop('disabled', true);
+				$(OVERWRITE_CHECKBOX).prop('checked' ,true);
 				var libParams = sessionStorage.getItem(_args.library);
 				sessionStorage.removeItem(_args.library);
 				if(libParams != undefined){
@@ -113,6 +117,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 						$(FILE_NAME).val(libParams.file);
 					}
 				}
+				PAGE_MODE = "UPDATE";
 			}else{
 				$(LIBRARY_NAME).val("");
 				$(FILE_NAME).val("");
@@ -120,12 +125,17 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				$(LIBRARY_NAME).prop('disabled', false);
 				$(PAGE_HEADER).text("Create Library");
 				$(CREATE_BTN).prop('value','Create');
+				$(OVERWRITE_CHECKBOX).prop('disabled', false);
+				$(OVERWRITE_CHECKBOX).prop('checked', false);
+				PAGE_MODE = "CREATE";
 			}
 		},
 		
 		cleanField:function(){
-			$(SCHEMA_NAME).val("");
-			$(LIBRARY_NAME).val("");
+			if(PAGE_MODE != "UPDATE"){
+				$(SCHEMA_NAME).val("");
+				$(LIBRARY_NAME).val("");
+			}
 			$(FILE_NAME).val("");
 			$(FILE_SELECT).val("");
 			$(LIBRARY_ERROR).hide();
@@ -189,7 +199,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 				end = start + chunk_size;
 			}
 			UPLOAD_LENGTH = CHUNKS.length;
-			OVERWRITE_FLAG = $("#overwrite").prop('checked');
+			OVERWRITE_FLAG = $(OVERWRITE_CHECKBOX).prop('checked');
 			if(UPLOAD_LENGTH==1){
 				_this.executeUploadChunk(OVERWRITE_FLAG, true, true);	
 			}else{
