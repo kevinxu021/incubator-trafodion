@@ -210,7 +210,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 		},
 		createLibrarySuccess : function(){
 			_this.isAjaxCompleted=true;
-			var msg='Created library ' + _this.currentSchemaName + "." + _this.currentLibraryName + ' successfully';
+			var msg='Created library ' + common.ExternalForm(_this.currentSchemaName) + "." + common.ExternalForm(_this.currentLibraryName) + ' successfully';
 			if(UPLOAD_INDEX==UPLOAD_LENGTH){
 				$(LOADING).css('visibility', 'hidden');
 				$(CREATE_BTN).prop('disabled', false);
@@ -236,7 +236,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			$(CLEAR_BTN).prop('disabled', false);
 			var errorIndex = error.responseText.lastIndexOf("*** ERROR");
 			var errorString = error.responseText.substring(errorIndex);
-			var msg="Failed to create library " + _this.currentSchemaName + "." + _this.currentLibraryName + " :" + errorString;
+			var msg="Failed to create library " + common.ExternalForm(_this.currentSchemaName) + "." + common.ExternalForm(_this.currentLibraryName)+ " :" + errorString;
 			//alert(errorString);
 			var msgObj={msg:msg,tag:"danger",url:null,shortMsg:"Failed to create library."};
 			if(_this.redirectFlag==false){
