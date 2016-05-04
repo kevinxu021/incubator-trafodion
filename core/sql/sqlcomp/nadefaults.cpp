@@ -2762,7 +2762,7 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
 
   DDkwd__(ORC_AGGR_PUSHDOWN,                    "ON"),
   DDkwd__(ORC_COLUMNS_PUSHDOWN,                 "ON"),
-  DDkwd__(ORC_NJS,                              "ON"),
+  DDkwd__(ORC_NJS,                              "OFF"),
   DDkwd__(ORC_PRED_PUSHDOWN,                    "ON"),
   DDkwd__(ORC_READ_STRIPE_INFO,                 "OFF"),
   DDkwd__(ORC_VECTORIZED_SCAN,                  "ON"),
