@@ -995,7 +995,9 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
             c.getEnvironment().getRegionServerServices().isStopped())
             return;
 
-        if(LOG.isTraceEnabled()) LOG.trace("preClose -- commitPendingTransactions (" + commitPendingTransactions.size() +")");
+	if (commitPendingTransactions.size() > 0) {
+	    LOG.warn("preClose -- commitPendingTransactions (" + commitPendingTransactions.size() +")");
+	}
 
         if (!hasClosed) {
                 blockNonPhase2.set(true);
