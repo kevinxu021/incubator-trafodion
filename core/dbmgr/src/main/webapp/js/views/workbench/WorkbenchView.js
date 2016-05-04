@@ -99,6 +99,9 @@ define([
 		},
 
 		drawExplain: function (jsonData) {
+			if(jsonData.requestor !=null && jsonData.requestor != _this) //error message is probably for different page
+				return;
+			
 			if(isPaused){
 				resultsAfterPause = true;
 				lastExplainResult = jsonData;
@@ -395,7 +398,7 @@ define([
 			var param = {sQuery : queryText, sControlStmts: controlStmts};
 
 			_this.showLoading();
-			serverHandler.explainQuery(param);
+			serverHandler.explainQuery(param, _this);
 		},
 
 		executeQuery: function () {
@@ -499,6 +502,9 @@ define([
 		},
 
 		showErrorMessage: function (jqXHR) {
+			if(jqXHR.requestor !=null && jqXHR.requestor != _this) //error message is probably for different page
+				return;
+			
 			if(isPaused){
 				resultsAfterPause = true;
 				lastRawError = jqXHR;

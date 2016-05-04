@@ -225,7 +225,7 @@ enum CatErrorCode { CAT_FIRST_ERROR = 1000
                   , CAT_RI_CIRCULAR_DEPENDENCY                    = 1188
                   , CAT_VIEW_NAME_VALID                           = 1189
 
-                  , CAT_DROP_LABEL_ERROR_FELABELBAD               = 1194
+                  , CAT_INVALID_COMPONENT_PRIVILEGE               = 1194
                   , CAT_INVALID_SYSTEM_NAME                       = 1196
                   , CAT_INVALID_SALTED_UNIQUE_IDX                 = 1201
                   , CAT_INVALID_SALT_LIKE_CLAUSE                  = 1202

@@ -4734,7 +4734,7 @@ short ExeUtilHBaseBulkLoadTask::codeGen(Generator * generator)
         IndexDesc *index = indList[i];
         indexName = 
           space->AllocateAndCopyToAlignedSpace
-          (index->getIndexName().getQualifiedNameAsAnsiString(), 0);
+          (index->getIndexName().getQualifiedNameAsString(), 0);
 
         indexList->insert(indexName);
       }

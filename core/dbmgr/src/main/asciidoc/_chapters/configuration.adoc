@@ -1,7 +1,7 @@
 ////
 <!--
 /**
-  *(C) Copyright 2015 Esgyn Corporation
+  *(C) Copyright 2015-2016 Esgyn Corporation
   *
   * Confidential computer software. Valid license from Esgyn required for
   * possession, use or copying. Consistent with FAR 12.211 and 12.212,
@@ -24,7 +24,7 @@ This chapter describes how to install EsgynDB Manager and configure its runtime 
 The instructions vary depending on the version of EsgynDB you are running.
 
 === Installation
-*  If you are using EsgynDB Enterprise Edition, DB Manager is already installed along with the core EsgynDB components. No additional install steps are required.
+*  If you are using EsgynDB Enterprise or Advanced Editions, DB Manager is already installed along with the core EsgynDB components. No additional install steps are required.
 +
 EsgynDB Manager is installed in *$MY_SQROOT/dbmgr-{projectVersion}* folder.
 
@@ -44,14 +44,14 @@ And if you are using the Enterprise Advanced Edition, DB Manager uses OpenTSDB f
 
 DB Manager uses a configuration file *dbgmr-{projectVersion}./conf/config.xml* that contains the following configuration information to connect to these manageability components.
 
-- In the Enterprise editions, the EsgynDB Installer will generate this config.xml at install time. No additional configuration is required.
+- In the Enterprise and Advanced editions, the EsgynDB Installer will generate this config.xml at install time. No additional configuration is required.
 
 +
 If you need to change any of the configuration properties, you can edit the configuration file and restart DB Manager.
 +
 - If you are doing a stand-alone install of DB Manager, you will need to explicitly configure DB Manager using the following steps:
 
-** Find the canonical timezone name of the EsgynDB instance. DB Manager displays all date time values in the EsgynDB server local time. You can use the handy script *gettimezone.sh* that is provided in the *dbmgr-{projectVersion}/bin* directory to find the canonical timezone name like *Etc/UTC* or *America/Los_Angeles*. This script is also available in the *$MY_SQROOT/tools* directory on the EsgynDB nodes.
+** Find the canonical timezone name of the EsgynDB instance. DB Manager displays all date time values in the EsgynDB server local time. You can use the handy script *gettimezone.sh* that is provided in the *dbmgr-{projectVersion}/bin* directory to find the canonical timezone name like *Etc/UTC* or *America/Los_Angeles*.
 +
 [source,bash,subs="attributes"]
 ----
@@ -72,18 +72,18 @@ $ ./configure.py
 
 *HTTP Port*::
 This is the port the EsgynDB Manager embedded Jetty server binds to waiting for client HTTP connections.
-The value may need to be changed if this port number conflicts with other ports in use on your cluster.
-The default value is 4205. This port needs to be open through the firewall since the external clients use this port to connect to DB Manager.
+The default value is 4205. The value may need to be changed if this port number conflicts with other ports in use on your cluster.
+ This port needs to be open through the firewall since the external clients use this port to connect to DB Manager.
 *HTTPS Port*::
 This is the port the EsgynDB Manager embedded Jetty server binds to waiting for client HTTPS connections.
-The value may need to be changed if this port number conflicts with other ports in use on your cluster.
-The default value is 4206. This port needs to be open through the firewall since the external clients use this port to connect to DB Manager.
+The default value is 4206. The value may need to be changed if this port number conflicts with other ports in use on your cluster.
+This port needs to be open through the firewall since the external clients use this port to connect to DB Manager.
 *EsgynDB Admin User ID*::
-This is the EsgynDB Admin User ID. Default is DB__ADMINUSER.
+This is the EsgynDB Admin User ID. Use the LDAP user id that is mapped to the DB__ADMIN database user ID.
 DB Manager uses this admin user id for its internal queries to EsgynDB.
 *EsgynDB Admin Password*::
 This is the password for EsgynDB Admin User. The password is obfuscated.
-DB Manager uses this admin password for its internal jdbc connections.
+DB Manager uses this admin password for its jdbc connections for the admin queries.
 *SSL Keystore Password*::
 A self-signed certificate will be generated and stored in a SSL keystore using the provided password.
 The password is obfuscated and the SSL keystore is saved as *dbmgr-{projectVersion}/etc/dbmgr.keystore*.
@@ -92,23 +92,20 @@ The hostname or IP address for the node on which DCS Master is listening. DB Man
 *DCS Master Listen Port*::
 The listen port number for DCS Master.  DB Manager uses this property to make a JDBC connection.
 The default value is 23400.
-*DCS Master Info Port*::
-The info port number for DCS Master. This DCS Web UI is accessible using this port and we use the DCS Web UI for viewing the DCS logs.
-The default value is 24400.
 *REST Server Host*::
 The hostname or IP address for the node on which EsgynDB REST server is listening.
 *REST Server Port*::
 The listen port number for EsgynDB REST Server.
 The default value is 4200.
 *TSD Host*::
-*Only enabled and used in Enterprise Advanced Edition*. The hostname or IP address for the node on which TSD is listening. DB Manager uses this property to make a HTTP connection to OpenTSDB to query the time series metrics.
+The hostname or IP address for the node on which TSD is listening. DB Manager uses this property to make a HTTP connection to OpenTSDB to query the time series metrics.
 *TSD Port*::
-*Only enabled and used in Enterprise Advanced Edition*. The listen port number for TSD. DB Manager uses this property to make a HTTP connection to OpenTSDB to query the time series metrics.
+The listen port number for TSD. DB Manager uses this property to make a HTTP connection to OpenTSDB to query the time series metrics.
 The default value is 5242.
 *Bosun Host*::
-*Only enabled and used in Enterprise Advanced Edition*. The hostname or IP address for the node on which Bosun notification engine is listening. DB Manager uses this property to make a HTTP connection to Bosun to query and update alert notifications.
+*Only used in Advanced Edition*. The hostname or IP address for the node on which Bosun notification engine is listening. DB Manager uses this property to make a HTTP connection to Bosun to query and update alert notifications.
 *Bosun Port*::
-*Only enabled and used in Enterprise Advanced Edition*. The listen port number for Bosun.
+*Only used in Advanced Edition*. The listen port number for Bosun.
 The default value is 8070.
 *Server TimeZone Name*::
 The canonical timezone name of the EsgynDB instance. DB Manager displays all date time values in the EsgynDB server local time.
@@ -129,7 +126,16 @@ The timezone name has to be in the canonical format like *Etc/UTC* or *America/L
 	<!-- The JDBC driver class name for the Trafodion/EsgynDB JDBC driver -->
 	<entry key="jdbcDriverClass">org.trafodion.jdbc.t4.T4Driver</entry>
 
-	<!-- The Trafodion REST Server URI -->
+	<!--  Minimum number of connections for jdbc connection pool -->
+	<entry key="minPoolSize">2</entry>
+
+	<!--  Max number of connections for jdbc connection pool -->
+	<entry key="maxPoolSize">8</entry>
+
+	<!--  Max number of statements for jdbc statemt caching -->
+	<entry key="maxStatementsCache">100</entry>
+
+		<!-- The Trafodion REST Server URI -->
 	<entry key="trafodionRestServerUri">my.esgyndb.server:4200</entry>
 
 	<!-- The EsgynDB DCS Master Info URI -->
@@ -140,10 +146,10 @@ The timezone name has to be in the canonical format like *Etc/UTC* or *America/L
 	<entry key="sessionTimeoutMinutes">120</entry>
 
 	<!-- The Admin User ID used by DBManager for its internal queries-->
-  <entry key="adminUserID">DB__ADMINUSER</entry>
+	<entry key="adminUserID">DB__ADMIN</entry>
 
   <!-- The Admin User's password-->
-  <entry key="adminPassword">OBF:1sov1sov</entry>
+	<entry key="adminPassword">OBF:1sov1sov</entry>
 
 	<!-- The following properties are only required and used by the embedded jetty server -->
 
@@ -159,8 +165,7 @@ The timezone name has to be in the canonical format like *Etc/UTC* or *America/L
 	<!-- The HTTP request header size for the EsgynDB Manager embedded jetty server -->
 	<entry key="requestHeaderSize">98304</entry>
 
-	<!-- The TimeZone name of the EsgynDB server. Enter in java time zone format
-		like Etc/UTC or America/New_York -->
+	<!-- The TimeZone name of the EsgynDB server. Enter in java time zone format like Etc/UTC or America/New_York -->
 	<entry key="timeZoneName">America/New_York</entry>
 
 	<!-- The openTSDB HTTP URI-->
@@ -177,7 +182,7 @@ The timezone name has to be in the canonical format like *Etc/UTC* or *America/L
 
 === Start EsgynDB Manager
 
-- In EsgynDB Enterprise Editions, sqstart script will automatically start DB Manager.
+- In EsgynDB Enterprise and Advanced Editions, sqstart script will automatically start DB Manager.
 
 - For a stand-alone install of DB Manager, you will need to start EsgynDB Manager as an embedded jetty server using the dbmgr.sh script.
 +
@@ -200,7 +205,7 @@ EsgynDB Manager is NOT running. Check dbmgr.log.
 ----
 
 === Stop EsgynDB Manager
-- In EsgynDB Enterprise Edition, sqstop script will automatically stop DB Manager.
+- In EsgynDB Enterprise and Advanced Edition, sqstop script will automatically stop DB Manager.
 
 - In a stand-alone install of DB Manager, you can stop EsgynDB Manager with the following command from the bin directory.
 +
@@ -211,18 +216,18 @@ EsgynDB Manager has been stopped.
 
 === Persistence and Fault-tolerance
 
-In the Enterprise Editions, the DB Manager and the manageability tools (OpenTSDB, TCollector and Bosun) are integrated with the EsgynDB runtime. DB Manager and the manageability components are persistent and fault-tolerant.
+In the Enterprise and Advanced Editions, DB Manager and the manageability tools (OpenTSDB, TCollector and Bosun) are integrated with the EsgynDB runtime. DB Manager and the manageability components are persistent and fault-tolerant.
 
-- Persistence : If the process were to die for some reason it would be started right back up.
+- Persistence : If the process were to exit for some reason it would be started right back up.
 - Fault-tolerant: If the primary node on which DB Manager is running was to fail, DB Manager would be automatically started on a secondary node.
 
-- DB Manager runs only on the primary node in the cluster. If the node fails, DB Manager is started on a secondary node which then becomes the primary node.
+- By default, DB Manager ONLY runs on the primary node in the cluster. If the node fails, DB Manager is started on a secondary node which then becomes the primary node.
 
 - TSD runs on every node
 
 - TCollector runs on every node and collects metrics for that node, and the collected metrics are sent to the TSD running on that local node.
 
-- Bosun runs only on the primary node in the cluster. If the node fails, Bosun is started on a secondary node which then becomes the primary node.
+- Bosun ONLY runs on the primary node in the cluster. If the node fails, Bosun is started on a secondary node which then becomes the primary node.
 
 The fault-tolerance and persistence is provided by CMON (Cluster Monitor) and NMON (Node Monitor) processes.
 
@@ -236,7 +241,7 @@ CMON reads a list of commands from *$MY_SQROOT/sql/scripts/cluster_monitor.cmd* 
 $DBMGR_INSTALL_DIR/bin/dbmgr.sh watch
 ----
 +
-With the *watch* option, the dbmgr.sh script first checks if DB Manager is running. If DB Manager is running then the script exits, otherwise it starts DB Manager. So by calling this watch command every 1 minute, we are able to keep DB Manager persistent.
+With the *watch* option, the dbmgr.sh script first checks if DB Manager is running. If DB Manager is running then the script exits normally, otherwise it starts DB Manager.
 
 ** Similarly the cluster_monitor.cmd file has a command to check and start Bosun.
 +
@@ -259,7 +264,7 @@ NMON reads a list of commands from *$MY_SQROOT/sql/scripts/node_monitor.cmd* fil
 $MGBLTY_INSTALL_DIR/opentsdb/bin/tsd.sh watch
 ----
 +
-With the *watch* option, the tsd.sh script first checks if TSD is running. If TSD is running then the script exits, otherwise it starts TSD. So by calling this watch command every 1 minute, we are able to keep TSD persistent.
+With the *watch* option, the tsd.sh script first checks if TSD is running. If TSD is running then the script exits, otherwise it starts TSD.
 
 ** Similarly the node_monitor.cmd file has a command to check and start TCollector.
 +
@@ -267,7 +272,7 @@ With the *watch* option, the tsd.sh script first checks if TSD is running. If TS
 $MGBLTY_INSTALL_DIR/tcollector/startstop watch
 ----
 +
-With the *watch* option, the startstop script first checks if TCollector is running. If TCollector is running then the script exits, otherwise it starts TCollector. So by calling this watch command every 1 minute, we are able to keep TCollector persistent.
+With the *watch* option, the startstop script first checks if TCollector is running. If TCollector is running then the script exits, otherwise it starts TCollector.
 
 
 === Log settings
@@ -285,7 +290,7 @@ EsgynDB Manager is running. PID is 3391.
 ----
 
 === Display EsgynDB Manager Version
-To display the version of EsgynDB Manager, run the following command from the bin directory.
+To display the version of EsgynDB Manager, run the following command from the bin directory. (You can also view the version using the DB Manager GUI)
 [source,bash,subs="attributes"]
 ----
 $ ./dbmgr.sh version

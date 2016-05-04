@@ -43,6 +43,7 @@
 #include "Collections.h"
 #include "NAString.h"
 #include "CmpContext.h"
+#include "ComCompressionInfo.h"
 #include "hdfs.h"
 #include <stdio.h>
 
@@ -52,6 +53,7 @@ class HivePartitionAndBucketKey;
 class NodeMap;
 class HiveNodeMapEntry;
 class NodeMapIterator;
+class HHDFSTableStats;
 class HHDFSListPartitionStats;
 class OsimHHDFSStatsBase;
 
@@ -119,13 +121,14 @@ class HHDFSStatsBase : public NABasicObject
 {
   friend class OsimHHDFSStatsBase;
 public:
-  HHDFSStatsBase() : numBlocks_(0),
-                     numFiles_(0),
-                     totalRows_(-1),
-                     totalSize_(0),
-                     modificationTS_(0),
-                     sampledBytes_(0),
-                     sampledRows_(0) {}
+  HHDFSStatsBase(HHDFSTableStats *table) : numBlocks_(0),
+                                           numFiles_(0),
+                                           totalRows_(-1),
+                                           totalSize_(0),
+                                           modificationTS_(0),
+                                           sampledBytes_(0),
+                                           sampledRows_(0),
+                                           table_(table) {}
 
   void add(const HHDFSStatsBase *o);
   void subtract(const HHDFSStatsBase *o);
@@ -141,6 +144,8 @@ public:
   Int64 getEstimatedRowCount() const;
   Int64 getEstimatedRecordLength() const;
   void print(FILE *ofd, const char *msg);
+  const HHDFSTableStats *getTable() const { return table_; }
+  HHDFSTableStats *getTable() { return table_; }
   
   virtual OsimHHDFSStatsBase* osimSnapShot(){ return NULL; }
   
@@ -152,16 +157,19 @@ protected:
   time_t modificationTS_; // last modification time of this object (file, partition/directory, bucket or table)
   Int64 sampledBytes_;
   Int64 sampledRows_;
-
+  HHDFSTableStats *table_;
 };
 
 class HHDFSFileStats : public HHDFSStatsBase
 {
   friend class OsimHHDFSFileStats;
 public:
-  HHDFSFileStats(NAMemory *heap) : heap_(heap),
-                                   fileName_(heap),
-                                   blockHosts_(NULL) {}
+  HHDFSFileStats(NAMemory *heap,
+                 HHDFSTableStats *table) :
+       HHDFSStatsBase(table),
+       heap_(heap),
+       fileName_(heap),
+       blockHosts_(NULL) {}
   ~HHDFSFileStats();
   virtual void populate(hdfsFS fs,
                 hdfsFileInfo *fileInfo,
@@ -175,6 +183,8 @@ public:
   Int64 getBlockSize() const                            { return blockSize_; }
   HostId getHostId(Int32 replicate, Int64 blockNum) const
                         { return blockHosts_[replicate*numBlocks_+blockNum]; }
+  const ComCompressionInfo &getCompressionInfo() const
+                                                  { return compressionInfo_; }
   void print(FILE *ofd);
 
   // Assign all blocks in this to ESPs, considering locality
@@ -202,7 +212,25 @@ public:
   
   virtual OsimHHDFSStatsBase* osimSnapShot();
 
+  // Assign all content in this to the entry (ESP). The difference 
+  // of this method and assignToESPsRepN() or assignToESPs() is that
+  // this method does not require the row/block/stripe info be available.
+  virtual void assignToESPsNoSplit(HiveNodeMapEntry*& entry,
+                                   const HHDFSListPartitionStats* p);
+
 protected:
+
+  void sampleFileWithLOBInterface(hdfsFileInfo *fileInfo,
+                                  Int32& samples,
+                                  HHDFSDiags &diags,
+                                  char recordTerminator);
+
+  void sampleFileWithLibhdfs(hdfsFS fs,
+                             hdfsFileInfo *fileInfo,
+                             Int32& samples,
+                             HHDFSDiags &diags,
+                             char recordTerminator);
+
   NAString fileName_;
   Int32 replication_;
   Int64 blockSize_;
@@ -210,18 +238,21 @@ protected:
   // list of blocks for this file
   HostId *blockHosts_;
   NAMemory *heap_;
+
+  ComCompressionInfo compressionInfo_;
 };
 
 class HHDFSORCFileStats : public HHDFSFileStats
 {
   friend class OsimHHDFSORCFileStats;
 public:
-  HHDFSORCFileStats(NAMemory *heap) : 
-      HHDFSFileStats(heap),
-      numOfRows_(heap), 
-      offsets_(heap), 
-      totalBytes_(heap)
-      {};
+  HHDFSORCFileStats(NAMemory *heap,
+                    HHDFSTableStats *table) : 
+       HHDFSFileStats(heap, table),
+       numOfRows_(heap), 
+       offsets_(heap), 
+       totalBytes_(heap)
+  {}
 
   ~HHDFSORCFileStats() {};
 
@@ -257,10 +288,6 @@ protected:
 
   NABoolean splitsAllowed() const {return TRUE;}
   
-  // Assign all blocks in this to the entry (ESP). The ESP will access
-  // all the blocks.
-  virtual void assignToESPsRepN(HiveNodeMapEntry*& entry);
-
 protected:
   
   // per stripe info
@@ -273,7 +300,10 @@ class HHDFSBucketStats : public HHDFSStatsBase
 {
   friend class OsimHHDFSBucketStats;
 public:
-  HHDFSBucketStats(NAMemory *heap) : heap_(heap), fileStatsList_(heap), scount_(0) {}
+  HHDFSBucketStats(NAMemory *heap,
+                   HHDFSTableStats *table) :
+       HHDFSStatsBase(table),
+       heap_(heap), fileStatsList_(heap), scount_(0) {}
   ~HHDFSBucketStats();
 
   const CollIndex entries() const         { return fileStatsList_.entries(); }
@@ -291,7 +321,7 @@ public:
   void removeAt(CollIndex i);
   void print(FILE *ofd);
 
-  void append(HHDFSFileStats* st);
+  void insertAt(Int32 pos, HHDFSFileStats* st){  fileStatsList_.insertAt(pos, st);  }
   
   virtual OsimHHDFSStatsBase* osimSnapShot();
 
@@ -308,7 +338,10 @@ class HHDFSListPartitionStats : public HHDFSStatsBase
 {
     friend class OsimHHDFSListPartitionStats;
 public:
-  HHDFSListPartitionStats(NAMemory *heap) : heap_(heap), partitionDir_(heap),
+  HHDFSListPartitionStats(NAMemory *heap,
+                          HHDFSTableStats *table) :
+       HHDFSStatsBase(table),
+       heap_(heap), partitionDir_(heap),
     bucketStatsList_(heap),
     partIndex_(-1),
     defaultBucketIdx_(-1),
@@ -340,7 +373,7 @@ public:
   Int32 determineBucketNum(const char *fileName);
   void print(FILE *ofd);
 
-  void append(HHDFSBucketStats* st);
+  void insertAt(Int32 pos, HHDFSBucketStats* st){  bucketStatsList_.insertAt(pos, st);  }
   
   virtual OsimHHDFSStatsBase* osimSnapShot();
 
@@ -373,7 +406,8 @@ class HHDFSTableStats : public HHDFSStatsBase
   friend class OsimHHDFSTableStats;
   friend class OptimizerSimulator;
 public:
-  HHDFSTableStats(NAMemory *heap) : currHdfsPort_(-1),
+  HHDFSTableStats(NAMemory *heap) : HHDFSStatsBase(this),
+                                    currHdfsPort_(-1),
                                     fs_(NULL),
                                     hdfsPortOverride_(-1),
                                     tableDir_(heap),
@@ -384,7 +418,9 @@ public:
                                     validationJTimestamp_(-1),
                                     listPartitionStatsList_(heap),
                                     hiveStatsSize_(0),
-                                    heap_(heap) {}
+                                    heap_(heap),
+                                    type_(UNKNOWN_),
+                                    lobGlob_(NULL){}
   ~HHDFSTableStats();
 
   const CollIndex entries() const          { return listPartitionStatsList_.entries(); }
@@ -448,8 +484,15 @@ public:
 
   const NAString &tableDir() const { return tableDir_; }
 
-  void append(HHDFSListPartitionStats * st);
+  void insertAt(Int32 pos, HHDFSListPartitionStats * st) {  listPartitionStatsList_.insertAt(pos, st);  }
   virtual OsimHHDFSStatsBase* osimSnapShot();
+
+  void initLOBInterface();
+  void releaseLOBInterface();
+
+  const NAString &getCurrHdfsHost() const { return currHdfsHost_; }
+  Int32 getCurrHdfsPort() const { return currHdfsPort_; }
+  void *getLOBGlobals() const { return lobGlob_; }
   
 private:
   enum FileType
@@ -501,6 +544,9 @@ private:
   NAMemory *heap_;
 
   FileType type_;
+
+  // LOB interface for reading HDFS files
+  void *lobGlob_;
 };
 
 #endif

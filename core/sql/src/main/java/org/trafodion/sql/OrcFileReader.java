@@ -139,9 +139,11 @@ public class OrcFileReader
             if (operLen > 0) {
                 oper = new byte[operLen];
                 bb.get(oper, 0, operLen);
-
-            if (logger.isDebugEnabled()) logger.debug("operLen = " + operLen + " oper " + Bytes.toString(oper));
+            } else {
+                oper = new byte[0];
             }
+            if (logger.isDebugEnabled()) 
+               logger.debug("operLen = " + operLen + " oper " + Bytes.toString(oper));
 
             if (type == EQUALS) {
 		if (logger.isDebugEnabled()) logger.debug("colNameLen = " + colNameLen + " colName = " + Bytes.toString(colName));
@@ -248,7 +250,7 @@ public class OrcFileReader
 	if (logger.isTraceEnabled()) logger.trace("open() got MD types, file name: " + pv_file_name);
 
 	int lv_num_cols_in_table = m_types.size();
-	m_include_cols = new boolean[lv_num_cols_in_table];
+	m_include_cols = new boolean[lv_num_cols_in_table+1];
 
 	boolean lv_include_col = false;
 	m_col_count = pv_num_cols_to_project;
