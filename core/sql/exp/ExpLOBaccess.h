@@ -336,6 +336,7 @@ class ExLobCursorBuffer
   public:
     ExLobCursorBuffer() :
       data_(NULL),
+      size_(-1),
       bytesRemaining_(-1),
       bytesUsed_(-1)
     { 
@@ -348,6 +349,7 @@ class ExLobCursorBuffer
 
   public:
     char *data_;
+    Int64 size_;
     Int64 bytesRemaining_;
     Int64 bytesUsed_; 
 };
@@ -620,7 +622,9 @@ class ExLobGlobals
     {
       return heap_;
     }
-  void traceMessage(const char *logMessage, ExLobCursor *c, int line);
+  void traceMessage(const char *logMessage, void *c, int line, long num = 0)
+  { if ( threadTraceFile_ && logMessage) realTraceMessage(logMessage, c, line, num); }
+  void realTraceMessage(const char *logMessage, void *c, int line, long num = 0);
   
   public :
     lobMap_t *lobMap_;

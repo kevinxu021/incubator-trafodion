@@ -178,6 +178,8 @@ public class MutationCapture {
   private Object mutationOpLock = new Object();
   Path currentPITPath;
   long currentSnapshotId = 0;
+  static String hbaseRoot;
+  static String PITRoot;
   
   private static Object mutationMetaLock = new Object();
   static IdTmId timeId = null;
@@ -210,7 +212,10 @@ public class MutationCapture {
           this.regionInfo = rInfo;
           this.fs = f;
           this.context = cont;
+          this.hbaseRoot = conf.get("hbase.rootdir");
+          this.PITRoot = this.hbaseRoot + "/PIT/mutation/";
 
+     if (LOG.isTraceEnabled()) LOG.trace("PIT MutationCapture HBase root dir " + this.hbaseRoot + " PIT " + this.PITRoot); 
      if (LOG.isTraceEnabled()) LOG.trace("PIT MutationCapture rollover attributes for region " + regionInfo.getEncodedName() + " are " + 
 		   " Max Txn per KV " + this.PIT_max_txn_mutation_per_KV +
 		   " Max Txn per FILE " + this.PIT_max_txn_mutation_per_FILE +
@@ -459,9 +464,9 @@ public class MutationCapture {
 
 //*/
 	      if(LOG.isTraceEnabled()) LOG.trace("PIT intend to create mutation meta file ... ");    
-	      currentPITPath = writePath = new Path("/hbase/PIT/mutation/" +
+	      currentPITPath = writePath = new Path(this.PITRoot +
 	              regionInfo.getTable().toString() + "-snapshot-" + Long.toString(currentSnapshotId) +
-	              "-encode-" + regionInfo.getEncodedName() +
+	              //"-encode-" + regionInfo.getEncodedName() +
 	              "-" + Long.toString(currentFileKey));
 //*
               if (!ha) {
