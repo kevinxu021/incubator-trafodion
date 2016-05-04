@@ -3644,6 +3644,71 @@ NAType* getSQColTypeForHive(const char* hiveType, NAMemory* heap)
   return NULL;
 }
 
+static NABoolean addVirtualHiveColumns(NAColumnArray &colArray,
+                                       NATable *table,
+                                       int maxColIx,
+                                       NAMemory *heap)
+{
+  // Add virtual Hive columns:
+  
+  // INPUT__FILE__NAME            char(1024 bytes) character set utf8
+  // BLOCK__OFFSET__INSIDE__FILE  largeint
+  // INPUT__RANGE__NUMBER         integer
+  // ROW__NUMBER__IN__RANGE       largeint
+  
+  for (int v=0; v<4; v++)
+    {
+      const char *virtColName = NULL;
+      NAType* virtType = NULL;
+      NAColumn::VirtColType virtColType = NAColumn::HIVE_VIRT_FILE_COL;
+
+      // ------------------------------------------------
+      // NOTE: The data types of these columns must match
+      //       the layout of struct ComTdbHdfsVirtCols in
+      //       file ../comexe/ComTdbHdfsScan.h
+      // ------------------------------------------------
+      switch (v)
+        {
+        case 0: // INPUT__FILE__NAME
+           virtColName = NATable::getNameOfInputFileCol();
+           // VARCHAR(1024 BYTES) CHARACTER SET UTF8
+           virtType = new(heap) SQLVarChar(CharLenInfo(4096, 4096),
+                                           FALSE, // not NULL
+                                           FALSE, // not upshifted
+                                           FALSE, // case sensitive
+                                           CharInfo::UTF8);
+           break;
+        case 1: // BLOCK__OFFSET__INSIDE__FILE
+          virtColName = NATable::getNameOfBlockOffsetCol();
+          virtType = new(heap) SQLLargeInt(TRUE, FALSE);
+          virtColType = NAColumn::HIVE_VIRT_ROW_COL;
+          break;
+        case 2: // INPUT__RANGE__NUMBER
+          virtColName = NATable::getNameOfInputRangeCol();
+          virtType = new(heap) SQLInt(TRUE, FALSE);
+          break;
+        case 3: // ROW__NUMBER__IN__RANGE
+          virtColName = NATable::getNameOfRowInRangeCol();
+          virtType = new(heap) SQLLargeInt(TRUE, FALSE);
+          virtColType = NAColumn::HIVE_VIRT_ROW_COL;
+          break;
+        }
+      
+      NAColumn* newVirtColumn = new (heap)
+        NAColumn(virtColName,
+                 ++maxColIx,
+                 virtType,
+                 heap,
+                 table,
+                 SYSTEM_COLUMN);
+      
+      newVirtColumn->setVirtualColumnType(virtColType);
+      colArray.insert(newVirtColumn);
+    }
+
+  return FALSE;
+}
+
 static NABoolean createNAColumns(struct hive_column_desc* hcolumn /*IN*/,
                                  struct hive_pkey_desc* pcolumn /*IN*/,
                                  NATable *table		/*IN*/,
@@ -3739,62 +3804,8 @@ static NABoolean createNAColumns(struct hive_column_desc* hcolumn /*IN*/,
 
     }
 
-   // Add virtual Hive columns:
-
-   // INPUT__FILE__NAME            char(1024 bytes) character set utf8
-   // BLOCK__OFFSET__INSIDE__FILE  largeint
-   // INPUT__RANGE__NUMBER         integer
-   // ROW__NUMBER__IN__RANGE       largeint
-
-   for (int v=0; v<4; v++)
-     {
-       const char *virtColName = NULL;
-       NAType* virtType = NULL;
-       NAColumn::VirtColType virtColType = NAColumn::HIVE_VIRT_FILE_COL;
-
-       // ------------------------------------------------
-       // NOTE: The data types of these columns must match
-       //       the layout of struct ComTdbHdfsVirtCols in
-       //       file ../comexe/ComTdbHdfsScan.h
-       // ------------------------------------------------
-       switch (v)
-         {
-         case 0: // INPUT__FILE__NAME
-           virtColName = NATable::getNameOfInputFileCol();
-           // VARCHAR(1024 BYTES) CHARACTER SET UTF8
-           virtType = new(heap) SQLVarChar(CharLenInfo(4096, 4096),
-                                           FALSE, // not NULL
-                                           FALSE, // not upshifted
-                                           FALSE, // case sensitive
-                                           CharInfo::UTF8);
-           break;
-         case 1: // BLOCK__OFFSET__INSIDE__FILE
-           virtColName = NATable::getNameOfBlockOffsetCol();
-           virtType = new(heap) SQLLargeInt(TRUE, FALSE);
-           virtColType = NAColumn::HIVE_VIRT_ROW_COL;
-           break;
-         case 2: // INPUT__RANGE__NUMBER
-           virtColName = NATable::getNameOfInputRangeCol();
-           virtType = new(heap) SQLInt(TRUE, FALSE);
-           break;
-         case 3: // ROW__NUMBER__IN__RANGE
-           virtColName = NATable::getNameOfRowInRangeCol();
-           virtType = new(heap) SQLLargeInt(TRUE, FALSE);
-           virtColType = NAColumn::HIVE_VIRT_ROW_COL;
-           break;
-         }
-
-       NAColumn* newVirtColumn = new (heap)
-         NAColumn(virtColName,
-                  ++maxColIx,
-                  virtType,
-                  heap,
-                  table,
-                  SYSTEM_COLUMN);
-
-       newVirtColumn->setVirtualColumnType(virtColType);
-       colArray.insert(newVirtColumn);
-     }
+   if (addVirtualHiveColumns(colArray, table, maxColIx, heap))
+     return TRUE;
 
   return FALSE;							// no error
 
@@ -8116,21 +8127,35 @@ NABoolean  NATable::getHbaseTableInfo(Int32& hbtIndexLevels, Int32& hbtBlockSize
 // Currently, column and clustering key info is moved.
 short NATable::updateExtTableAttrs(NATable *etTable)
 {
-  colcount_ = etTable->getColumnCount();
-  colArray_ = etTable->getNAColumnArray();
-  keyLength_ = etTable->getKeyLength();
-  recordLength_ = etTable->getRecordLength();
-  
   NAFileSet *fileset = this->getClusteringIndex();
   NAFileSet *etFileset = etTable->getClusteringIndex();
+
+  colcount_ = etTable->getColumnCount();
+  colArray_ = etTable->getNAColumnArray();
+
+  addVirtualHiveColumns(colArray_, this, colcount_-1, heap_);
+  colcount_ += 4;
+
   fileset->allColumns_ = etFileset->getAllColumns();
-  fileset->keysDesc_ = etFileset->getKeysDesc();
-  fileset->indexKeyColumns_ = etFileset->getIndexKeyColumns();
-  fileset->keyLength_ = etFileset->getKeyLength();
-  fileset->encodedKeyLength_ = etFileset->getEncodedKeyLength();
+  addVirtualHiveColumns(fileset->allColumns_, this, 
+                        fileset->allColumns_.entries()-1, heap_);
+
+  if (NOT etFileset->hasOnlySyskey()) // explicit key was specified
+    {
+      keyLength_ = etTable->getKeyLength();
+      recordLength_ = etTable->getRecordLength();
+      
+      fileset->keysDesc_ = etFileset->getKeysDesc();
+      fileset->indexKeyColumns_ = etFileset->getIndexKeyColumns();
+      fileset->keyLength_ = etFileset->getKeyLength();
+      fileset->encodedKeyLength_ = etFileset->getEncodedKeyLength();
+    }
+
+  /*
   fileset->partitioningKeyColumns_ = etFileset->getPartitioningKeyColumns();
   fileset->partFunc_ = etFileset->getPartitioningFunction();
   fileset->countOfFiles_ = etFileset->getCountOfFiles();
+  */
 
   return 0;
 }
@@ -8508,8 +8533,7 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
            table = new (naTableHeap) NATable
              (bindWA, corrName, naTableHeap, htbl);
 
-           if ((table->isORC()) &&
-               (CmpCommon::getDefault(ORC_USE_EXT_TABLE_ATTRS) == DF_ON))
+           if  (CmpCommon::getDefault(HIVE_USE_EXT_TABLE_ATTRS) == DF_ON)
              {
                // if this hive/orc table has an associated external table, 
                // get table desc for it.
@@ -8519,7 +8543,7 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
                     corrName.getQualifiedNameObj().getObjectName());
                
                QualifiedName qn(extName, 3);
-               desc_struct *etDesc = etDesc = cmpSBD.getSeabaseTableDesc(
+               desc_struct *etDesc = cmpSBD.getSeabaseTableDesc(
                     qn.getCatalogName(),
                     qn.getSchemaName(),
                     qn.getObjectName(),
@@ -8535,7 +8559,7 @@ NATable * NATableDB::get(CorrName& corrName, BindWA * bindWA,
 
                    table->setHasHiveExtTable(TRUE);
                  }
-             } // ORC table
+             } // use  hive ext attrs
 	 }
        else 
          {

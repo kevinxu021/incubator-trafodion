@@ -161,17 +161,21 @@ public:
         : XMLElement(parent, heap)
         , statsList_(heap)
         , mirror_(mirror)
+        , pos_(-1)
         , heap_(heap)
         {}
 
         virtual ElementType getElementType() const 
 	{ return ElementType::ET_List;	  }
 		
-        virtual void addEntry(OsimHHDFSStatsBase* statsBase){ statsList_.insert(statsBase); }
+        virtual void addEntry(OsimHHDFSStatsBase* statsBase, Int32 pos){ statsBase->setPosition(pos); statsList_.insert(statsBase); }
         void setHHStats(HHDFSStatsBase* st) { mirror_ = st; }
 	HHDFSStatsBase * getHHStats() { return mirror_; }
+	void setPosition(Int32 p) { pos_ = p; }
+	Int32 getPosition() const {  return pos_; }	
 	virtual NABoolean restoreHHDFSStats(HHDFSStatsBase* hhstats, const char ** atts);
 	virtual NABoolean setValue(HHDFSStatsBase* hhstats, const char *attrName, const char *attrValue);
+	
 protected:
 	virtual void serializeBody(XMLString& xml);
 	virtual void serializeAttrs(XMLString & xml);
@@ -180,6 +184,7 @@ protected:
 
         LIST(OsimHHDFSStatsBase*)  statsList_;
 	HHDFSStatsBase* mirror_;
+        Int32 pos_;//position of this object in partition/bucket/file list
 	NAMemory* heap_;
 };
 

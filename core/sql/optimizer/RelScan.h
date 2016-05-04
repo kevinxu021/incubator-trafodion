@@ -88,6 +88,7 @@ class RangeSpecRef;
 
 class MVMatch;
 class ByteArrayList;
+class ComCompressionInfo;
 
 
 /*************************
@@ -870,6 +871,8 @@ public:
                          Int32 &hdfsPort,
                          NABoolean &doMultiCursor,
                          NABoolean &doSplitFileOpt,
+                         ComCompressionInfo *&genCompressionTypes,
+                         Int16 &numCompressionTypes,
                          ExpTupleDesc *partCols,
                          int partColValuesLen,
                          const HivePartitionAndBucketKey *hiveSearchKey);

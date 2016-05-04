@@ -4031,8 +4031,9 @@ PrivStatus PrivMgrPrivileges::getPrivsFromAllGrantors(
   PrivObjectBitmap systemPrivs;
   PrivMgrComponentPrivileges componentPrivileges(metadataLocation_,pDiags_);
   
+  bool hasSelectMetadata = false;
   componentPrivileges.getSQLDMLPrivileges(granteeID,roleIDs,systemPrivs,
-                                          hasManagePrivileges);
+                                          hasManagePrivileges, hasSelectMetadata);
 
   if (hasManagePrivileges && hasAllDMLPrivs(objectType,systemPrivs))
   {
@@ -4064,6 +4065,20 @@ PrivStatus PrivMgrPrivileges::getPrivsFromAllGrantors(
     coreTablePrivs.unionOfPrivs(temp);
   }
   
+  // If authID has SELECT_METADATA component privilege and is a metadata
+  // object, set SELECT_PRIV to true
+  if (hasSelectMetadata) 
+  {
+    PrivMgrObjects objects(trafMetadataLocation_,pDiags_);
+    std::string objectName;
+    retcode = objects.fetchQualifiedName(objectUID, objectName);
+    if (retcode == STATUS_GOOD)
+    {
+      if (isMetadataObject(objectName))
+        coreTablePrivs.setPriv(SELECT_PRIV, true);
+    }
+  }
+
   PrivObjectBitmap grantableBitmap;
   
   if (hasManagePrivileges)

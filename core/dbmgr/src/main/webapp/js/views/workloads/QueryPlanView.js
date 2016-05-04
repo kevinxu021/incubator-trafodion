@@ -174,11 +174,14 @@ define([
 			var param = {sQuery : queryText, sControlStmts: "", sQueryID: queryID, sQueryType: queryType};
 
 			_this.showLoading();
-			serverHandler.explainQuery(param);
+			serverHandler.explainQuery(param, _this);
 			$(ERROR_CONTAINER).hide();
 		},
 
 		drawExplain: function (jsonData){
+			if(jsonData.requestor !=null && jsonData.requestor != _this) //error message is probably for different page
+				return;
+			
 			_this.hideLoading();
 			$('#text-result-container').show();
 			$('#text-result').text(jsonData.planText);
@@ -217,6 +220,9 @@ define([
 			}
 		},
 		showErrorMessage: function (jqXHR) {
+			if(jqXHR.requestor !=null && jqXHR.requestor != _this) //error message is probably for different page
+				return;
+			
 			if(jqXHR.statusText != 'abort'){
 				_this.hideLoading();
 				$(ERROR_CONTAINER).show();
@@ -254,8 +260,6 @@ define([
 				
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 			}
-			/*alert('The cancel query request has been submitted');*/
-			_this.fetchExplainPlan();
 		},
 		cancelQueryError:function(jqXHR){
 			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
@@ -273,8 +277,6 @@ define([
 				
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 			}
-			/*alert(jqXHR.responseText);*/
-			_this.fetchExplainPlan();
 		},        
 
 	});
