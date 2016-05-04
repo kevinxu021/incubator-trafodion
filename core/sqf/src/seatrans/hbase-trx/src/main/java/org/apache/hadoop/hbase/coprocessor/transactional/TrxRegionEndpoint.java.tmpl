@@ -466,6 +466,7 @@ CoprocessorService, Coprocessor {
   static MutationMeta meta = null;
   static SnapshotMeta snapMeta = null;
   MutationCapture mutationCapture;
+  int mutationFlushed = 0;
   
   public static final int PIT_MUTATION_CREATE = 1;
   public static final int PIT_MUTATION_APPEND = 2;
@@ -4295,7 +4296,7 @@ CoprocessorService, Coprocessor {
       } // for ediList
       // PIT for non-ts reinstated txn, here we don't have a ts re-created as configuredConflictReinstate is FALSE
       //       just directly construct the mutation buffer and append (~ replayCommittedTxn in Observer)
-      if (configuredPITRecoveryHA) mutationCapture.mutationBufferOp(PIT_MUTATION_APPEND, null, tmBuilder);
+      if (configuredPITRecoveryHA) mutationCapture.mutationBufferOp(PIT_MUTATION_APPEND, null, tmBuilder, true); // HA
       } catch(IOException e) {
           StringWriter sw = new StringWriter();
           PrintWriter pw = new PrintWriter(sw);
@@ -5280,6 +5281,20 @@ CoprocessorService, Coprocessor {
     if (reconstructIndoubts == 0) {
        if (LOG.isTraceEnabled()) LOG.trace("RECOV beginTransaction -- ENTRY txId: " + transactionId);
        constructIndoubtTransactions();
+    }
+    
+    
+    if ((regionState == REGION_STATE_START) && (configuredPITRecovery) && (mutationFlushed == 0)) {
+	  try {
+	         if (LOG.isTraceEnabled()) LOG.trace("PIT Flush " + regionInfo.getTable().toString());
+                 mutationCapture.mutationBufferOp(PIT_MUTATION_CLOSE, null, null);
+		 mutationFlushed = 1;
+          } catch(IOException ioe) {
+              StringWriter sw = new StringWriter();
+              PrintWriter pw = new PrintWriter(sw);
+              ioe.printStackTrace(pw);
+              LOG.error(sw.toString());
+          }
     }
 
     if (regionState != REGION_STATE_START) {
