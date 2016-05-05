@@ -39,6 +39,8 @@ define(['handlers/EventDispatcher', 'common'],
 				this.WRKBNCH_EXECUTE_ERROR = 'WRKBNCH_EXECUTE_ERROR';
 				this.WRKBNCH_EXPLAIN_SUCCESS = 'WRKBNCH_EXPLAIN_SUCCESS';
 				this.WRKBNCH_EXPLAIN_ERROR = 'WRKBNCH_EXPLAIN_ERROR';
+				this.WORKLOAD_EXPLAIN_SUCCESS = 'WORKLOAD_EXPLAIN_SUCCESS';
+				this.WORKLOAD_EXPLAIN_ERROR = 'WORKLOAD_EXPLAIN_ERROR';
 								
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
@@ -193,7 +195,7 @@ define(['handlers/EventDispatcher', 'common'],
 					});
 				}; 
 				
-				this.explainQuery = function(param){
+				this.explainQuery = function(param, requestor){
 					var xhr = xhrs["explain_query"];
 					if(xhr && xhr.readyState !=4){
 						xhr.abort();
@@ -209,9 +211,11 @@ define(['handlers/EventDispatcher', 'common'],
 							403 : _this.sessionTimeout
 						},
 						success:  function(data){
+							data.requestor = requestor;
 							dispatcher.fire(_this.WRKBNCH_EXPLAIN_SUCCESS, data);
 						},
 		        	    error:function(jqXHR, res, error){
+		        	    	jqXHR.requestor = requestor;
 		        	    	dispatcher.fire(_this.WRKBNCH_EXPLAIN_ERROR, jqXHR, res, error);
 		        	    }
 		        	});

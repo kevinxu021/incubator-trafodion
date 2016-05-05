@@ -79,7 +79,9 @@ if [[ $? == '0' ]]; then
    sqshell -c node info | awk -v jason_output=${lv_jason_output} -f $MY_SQROOT/sql/scripts/trafnodestatus.awk
    traf_exit $?
 else
-   traf_echo "Trafodion is not running on the current node: `hostname`"
+   if [[ ${lv_jason_output} != "1" ]]; then
+      traf_echo "Trafodion is not running on the current node: `hostname`"
+   fi
    lv_monitor_not_running_on_curr_node=1
 fi
 

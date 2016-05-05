@@ -178,6 +178,8 @@ public class MutationCapture {
   private Object mutationOpLock = new Object();
   Path currentPITPath;
   long currentSnapshotId = 0;
+  static String hbaseRoot;
+  static String PITRoot;
   
   private static Object mutationMetaLock = new Object();
   static IdTmId timeId = null;
@@ -210,7 +212,10 @@ public class MutationCapture {
           this.regionInfo = rInfo;
           this.fs = f;
           this.context = cont;
+          this.hbaseRoot = conf.get("hbase.rootdir");
+          this.PITRoot = this.hbaseRoot + "/PIT/mutation/";
 
+     if (LOG.isTraceEnabled()) LOG.trace("PIT MutationCapture HBase root dir " + this.hbaseRoot + " PIT " + this.PITRoot); 
      if (LOG.isTraceEnabled()) LOG.trace("PIT MutationCapture rollover attributes for region " + regionInfo.getEncodedName() + " are " + 
 		   " Max Txn per KV " + this.PIT_max_txn_mutation_per_KV +
 		   " Max Txn per FILE " + this.PIT_max_txn_mutation_per_FILE +
@@ -270,8 +275,14 @@ public class MutationCapture {
       }
 
   }
-  
+
   public void mutationBufferOp(int op, Path writePath, TransactionMutationMsg.Builder tmBuilder)  throws IOException {
+
+     mutationBufferOp(op, writePath, tmBuilder, false) ;
+
+  }
+
+  public void mutationBufferOp(int op, Path writePath, TransactionMutationMsg.Builder tmBuilder, boolean ha)  throws IOException {
       
       if(LOG.isTraceEnabled()) LOG.trace("PIT mutationBufferOp: operation " + op);
       
@@ -280,18 +291,18 @@ public class MutationCapture {
       
           switch (op) {
 	      case PIT_MUTATION_CREATE: { // create the mutation file based on passed writePath
-	          mutationWriterAction(PIT_MUTATION_WRITER_CREATE /* reset output stream */, writePath, null);
+	          mutationWriterAction(PIT_MUTATION_WRITER_CREATE /* reset output stream */, writePath, null, ha);
 		  break;
               }
 	      case PIT_MUTATION_APPEND: { // append mutation into local buffer
                   if (currentFileKey == -1) { // need to new mutation file 
-                      mutationWriterAction(PIT_MUTATION_WRITER_CREATE /* reset output stream */, null, null); // creat mutation file based on snapshot meta
+                      mutationWriterAction(PIT_MUTATION_WRITER_CREATE /* reset output stream */, null, null, ha); // creat mutation file based on snapshot meta
                   } 
-                  mutationWriterAction(PIT_MUTATION_WRITER_APPEND /* append */, null, tmBuilder);
+                  mutationWriterAction(PIT_MUTATION_WRITER_APPEND /* append */, null, tmBuilder, ha);
 		  
 		  // PIT test, let's say do write-to-KV every 5 txn
 		  if (mutationCount >= this.PIT_max_txn_mutation_per_KV) {
-	             mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null );  
+	             mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null, ha );  
 		  }
 		  
 		  // We can close the mutation file when
@@ -301,33 +312,33 @@ public class MutationCapture {
 		  //    d) number of txn branches 
 		  //    e) by timer through lease (optional)
 		  // PIT test, let's say do close&rollover every 20 txn
-		  if ((mutationTotalCount >= this.PIT_max_txn_mutation_per_FILE) || 
+		  if ((!ha) && (mutationTotalCount >= this.PIT_max_txn_mutation_per_FILE) || 
 		       (mutationTotalSize >= this.PIT_max_size_mutation_per_FILE)) { 
-	             mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null );  
-	             mutationWriterAction(PIT_MUTATION_WRITER_CLOSE /* close mutation file */, null, null );  
-	             mutationWriterAction(PIT_MUTATION_WRITER_CREATE /* new mutation file and writer */, null, null );
+	             mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null, ha );  
+	             mutationWriterAction(PIT_MUTATION_WRITER_CLOSE /* close mutation file */, null, null, ha );  
+	             mutationWriterAction(PIT_MUTATION_WRITER_CREATE /* new mutation file and writer */, null, null, ha);
 	          }
 		  
 		  break;
               }
 	      case PIT_MUTATION_FLUSH: { // append local mutation buffer to writer      
-                  mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* flush current mutation buffer */, null, null);
+                  mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* flush current mutation buffer */, null, null, ha);
 		  break;
               }
 	      case PIT_MUTATION_CLOSE: { // append local buffer to writer and close current mutation file
-	          mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null );  
-	          mutationWriterAction(PIT_MUTATION_WRITER_CLOSE /* close mutation file */, null, null );
+	          mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null, ha );  
+	          mutationWriterAction(PIT_MUTATION_WRITER_CLOSE /* close mutation file */, null, null, ha );
 		  break;
               }
 	      case PIT_MUTATION_ROLLOVER: { // op 4 + new next mutation file immediately
-	          mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null );  
-	          mutationWriterAction(PIT_MUTATION_WRITER_CLOSE /* close mutation file */, null, null );  
-	          mutationWriterAction(PIT_MUTATION_WRITER_CREATE /* new mutation file and writer */, null, null );
+	          mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null, ha );  
+	          mutationWriterAction(PIT_MUTATION_WRITER_CLOSE /* close mutation file */, null, null, ha);  
+	          mutationWriterAction(PIT_MUTATION_WRITER_CREATE /* new mutation file and writer */, null, null, ha );
 		  break;
 	      }
 	      case PIT_MUTATION_CLOSE_STOP: { // append local buffer to writer and close current mutation file
-	          mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null );  
-	          mutationWriterAction(PIT_MUTATION_WRITER_CLOSE_STOP /* close mutation file */, null, null );
+	          mutationWriterAction(PIT_MUTATION_WRITER_FLUSH /* mutation writer append to flush current buffer */, null, null, ha );  
+	          mutationWriterAction(PIT_MUTATION_WRITER_CLOSE_STOP /* close mutation file */, null, null, ha );
 		  break;
               }
 	      default: {
@@ -342,8 +353,14 @@ public class MutationCapture {
           } 
       } // synchronized   
   }
+
+ public void mutationWriterAction(int action, Path writePath, TransactionMutationMsg.Builder tmBuilder) throws IOException {
+
+     mutationWriterAction(action, writePath, tmBuilder, false);
+
+  }
   
-  public void mutationWriterAction(int action, Path writePath, TransactionMutationMsg.Builder tmBuilder) throws IOException {
+  public void mutationWriterAction(int action, Path writePath, TransactionMutationMsg.Builder tmBuilder, boolean ha) throws IOException {
    
       byte [] bSet;
       byte [] bKey;
@@ -410,40 +427,49 @@ public class MutationCapture {
 */
 	     timeKey = currentFileKey = EnvironmentEdgeManager.currentTime();
 	      // 1.2) new mutation record     
-
-	      if (snapMeta == null) {
-		   if(LOG.isTraceEnabled()) LOG.trace("to create snapshot meta ..."); 
-		   try {
-                         snapMeta = new SnapshotMeta();
-                   } catch (Exception e){
-                   System.out.println("Exception creating new snapshot meta: " + e);
-                   }
-		   if(LOG.isTraceEnabled()) LOG.trace("snapshot meta created successfully");                   
-	      }
+//*
+              if (!ha) { // not callled by Observer HA recovery
+	          if (snapMeta == null) {
+		       if(LOG.isTraceEnabled()) LOG.trace("to create snapshot meta ..."); 
+		       try {
+                             snapMeta = new SnapshotMeta();
+                       } catch (Exception e){
+                           System.out.println("Exception creating new snapshot meta: " + e);
+                       }
+		       if(LOG.isTraceEnabled()) LOG.trace("snapshot meta created successfully");                   
+	           }
 
 	         
-              if (meta == null) {
-		   if(LOG.isTraceEnabled()) LOG.trace("to create mutation meta ..."); 
-		   try {
-                         meta = new MutationMeta();
-                   } catch (Exception e){
-                   System.out.println("Exception creating new mutation meta: " + e);
-                   }
-		   if(LOG.isTraceEnabled()) LOG.trace("mutation meta created successfully");                   
-	      }
+                  if (meta == null) {
+		       if(LOG.isTraceEnabled()) LOG.trace("to create mutation meta ..."); 
+		       try {
+                             meta = new MutationMeta();
+                       } catch (Exception e){
+                       System.out.println("Exception creating new mutation meta: " + e);
+                       }
+		       if(LOG.isTraceEnabled()) LOG.trace("mutation meta created successfully");                   
+	          }
 	      
-	      try {
-	           currentSnapshotId = snapMeta.getCurrentSnapshotId(regionInfo.getTable().toString());
-		   if(LOG.isTraceEnabled()) LOG.trace("PIT get current snapshot id " + currentSnapshotId);  
-                   } catch (Exception e){
-                   System.out.println("Exception getcurrent snapshot id: " + e);
-                   }
-      
-	      currentPITPath = writePath = new Path("/hbase/PIT/mutation/" +
+	          try {
+	               currentSnapshotId = snapMeta.getCurrentSnapshotId(regionInfo.getTable().toString());
+		       if(LOG.isTraceEnabled()) LOG.trace("PIT get current snapshot id " + currentSnapshotId + " " + regionInfo.getTable().toString());  
+                       } catch (Exception e){
+		       LOG.error("PIT get current snapshot id failed " + regionInfo.getTable().toString());  
+                           System.out.println("Exception getcurrent snapshot id: " + e);
+                       }
+              } // called by HA
+              else {
+                   currentSnapshotId = 999; //special snapshotId
+              }
+
+//*/
+	      if(LOG.isTraceEnabled()) LOG.trace("PIT intend to create mutation meta file ... ");    
+	      currentPITPath = writePath = new Path(this.PITRoot +
 	              regionInfo.getTable().toString() + "-snapshot-" + Long.toString(currentSnapshotId) +
 	              //"-encode-" + regionInfo.getEncodedName() +
 	              "-" + Long.toString(currentFileKey));
-
+//*
+              if (!ha) {
 	      try {
                    mmr = new MutationMetaRecord(currentFileKey, regionInfo.getTable().toString(), 
 					   currentSnapshotId, 
@@ -464,7 +490,11 @@ public class MutationCapture {
                        System.out.println("put mutation record exception " + exc);
                        //throw new IOException("put mutation record exception ");
               }
-             
+              }
+              else {
+		      if(LOG.isTraceEnabled()) LOG.trace("PIT skip put mutation record during HA mutation generation");
+              }
+//*/          
 	      } // synchronized on mutationMetaLock              
 					   
 	      // 2.1) create writer (~ action 1) 
@@ -513,8 +543,23 @@ public class MutationCapture {
 	      //        "mutation-reader"); // for reader to test a dpecial named mutation file
 		      
 	      if (mutationWriter != null) {
-		  mutationWriter.close();	      
-      
+		  mutationWriter.close(); 
+                  mutationWriter = null;
+//*      
+
+                  if (currentSnapshotId == 999) {
+	              try {
+	                   currentSnapshotId = snapMeta.getCurrentSnapshotId(regionInfo.getTable().toString());
+		           if(LOG.isTraceEnabled()) LOG.trace("PIT get current snapshot id " + currentSnapshotId +
+                                                               " Table " + regionInfo.getTable().toString());  
+                           } catch (Exception e){
+		               LOG.error("PIT get current snapshot id failed during PIT Mutation Writer Close when sid == 999 "
+                                                     + regionInfo.getTable().toString());  
+                               currentSnapshotId = 999;
+                               System.out.println("Exception getcurrent snapshot id: " + e);
+                           }
+                   }
+
 	          // update meta after writer close
 	          synchronized (mutationMetaLock) {	      
 	          try {
@@ -538,6 +583,7 @@ public class MutationCapture {
                        //throw new IOException("put mutation record exception ");
                     }
 	            } // synchronized on mutationMetaLock
+//*/
 	            if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: close " + action + " " +
 		                        regionInfo.getTable().toString() + 
 		                        " PIT mutation file path " + currentPITPath +
@@ -552,7 +598,8 @@ public class MutationCapture {
 	  case PIT_MUTATION_WRITER_CLOSE_STOP: { // close  transactional mutation file, driven by chore thread (timer), preClose, preFlush, snapshot req      
 		      
 	      if (mutationWriter != null) {
-		  mutationWriter.close();	      
+		  mutationWriter.close();
+                  mutationWriter = null;
       
 	          if(LOG.isTraceEnabled()) LOG.trace("PIT mutationWriterAction: close stop " + action + " " +
 		                        regionInfo.getTable().toString() + 

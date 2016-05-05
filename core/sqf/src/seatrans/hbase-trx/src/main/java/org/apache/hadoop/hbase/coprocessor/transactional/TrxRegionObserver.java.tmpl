@@ -813,7 +813,7 @@ public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> ed
 	        if (configuredPITRecoveryHA) {
                   tmBuilder.addPutOrDel(true);
 		  mutationCapture.addPut(tmBuilder, put);
-                  //tmBuilder.addPut(ProtobufUtil.toMutation(MutationType.PUT, new Put(put)));
+                  // tmBuilder.addPut(ProtobufUtil.toMutation(MutationType.PUT, new Put(put)));
 	          iPut++;
 	        }
 	    } 
@@ -833,7 +833,7 @@ public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> ed
 	        if (configuredPITRecoveryHA) {
                    tmBuilder.addPutOrDel(false);
 		   mutationCapture.addDelete(tmBuilder, del);
-                   //tmBuilder.addDelete(ProtobufUtil.toMutation(MutationType.DELETE, new Delete(del)));
+                   // tmBuilder.addDelete(ProtobufUtil.toMutation(MutationType.DELETE, new Delete(del)));
 	           iDelete++;
 	        }
 	    }
@@ -843,7 +843,12 @@ public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> ed
    
    // PIT for non-ts reinstated txn, here we don't have a ts re-created as configuredConflictReinstate is FALSE
    //       just directly construct the mutation buffer and append (~ replayCommittedTxn in Observer)
-   if (configuredPITRecoveryHA) mutationCapture.mutationBufferOp(PIT_MUTATION_APPEND, null, tmBuilder);
+   if (configuredPITRecoveryHA) {
+       mutationCapture.mutationBufferOp(PIT_MUTATION_APPEND, null, tmBuilder, true); // HA mode
+       LOG.info("Trafodion Recovery Region Observer CP: " 
+		  + regionInfo.getRegionNameAsString() + " replay PIT committed for transaction: "
+		  + transactionId + " for mutation file");
+   } // if    
    } catch(IOException e) {
           StringWriter sw = new StringWriter();
           PrintWriter pw = new PrintWriter(sw);
@@ -859,7 +864,18 @@ public void startRegionAfterRecovery() throws IOException {
          // if we have indoubt transaction, do we need to rewrite back to HLOG, otherwise, if the system crash in the middle of recovery
          // we could lose the memory  and HLOG, but the split-log may already be removed after region open
          // if flush succeeds, then it is not necessary
-
+/*
+    if (configuredPITRecovery) {
+	  try {
+                 mutationCapture.mutationBufferOp(PIT_MUTATION_CLOSE, null, null);
+          } catch(IOException ioe) {
+              StringWriter sw = new StringWriter();
+              PrintWriter pw = new PrintWriter(sw);
+              ioe.printStackTrace(pw);
+              LOG.error(sw.toString());
+          }
+    }
+*/
          // regionState = 2; // region started, Endpoint coprocessor can set region state STARTED if it detects there is no indoubt txn
    if ((m_isTrafodionMetadata) || 
        (LOG.isTraceEnabled())) 
@@ -979,7 +995,9 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
             c.getEnvironment().getRegionServerServices().isStopped())
             return;
 
-        if(LOG.isTraceEnabled()) LOG.trace("preClose -- commitPendingTransactions (" + commitPendingTransactions.size() +")");
+	if (commitPendingTransactions.size() > 0) {
+	    LOG.warn("preClose -- commitPendingTransactions (" + commitPendingTransactions.size() +")");
+	}
 
         if (!hasClosed) {
                 blockNonPhase2.set(true);
