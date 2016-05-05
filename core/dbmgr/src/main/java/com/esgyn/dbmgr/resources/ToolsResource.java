@@ -12,6 +12,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Date;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -56,7 +57,7 @@ public class ToolsResource {
 		Statement stmt;
 		ResultSet rs = null;
 
-		String schemaLibName = schemaName + "." + libraryName;
+		String schemaLibName = Helper.ExternalForm(schemaName) + "." + Helper.ExternalForm(libraryName);
 		int flag = 1;
 		if (startFlag) {
 			flag = 1;
@@ -65,23 +66,37 @@ public class ToolsResource {
 		}
 
 		try {
-			System.out.println("**************");
+			_LOG.info("**************");
 			connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
 			// pre-check phase
-			query_text = String.format(SystemQueryCache.getQueryText(SystemQueryCache.CHECK_SCHEMA), schemaName.replace("\"", ""));
-			System.out.println("Schema check:" + query_text);
+			String checkSchemaName = Helper.InternalForm(schemaName);
+			if(schemaName.startsWith("\"")){
+				checkSchemaName = checkSchemaName.toUpperCase();
+			}
+			String checkLibraryName = Helper.InternalForm(libraryName);
+			if(schemaName.startsWith("\"")){
+				checkLibraryName = checkLibraryName.toUpperCase();
+			}
+			query_text = String.format(SystemQueryCache.getQueryText(SystemQueryCache.CHECK_SCHEMA), checkSchemaName);
+			_LOG.info("Schema check:" + query_text);
 			stmt = connection.createStatement();
 			rs = stmt.executeQuery(query_text);
-			if (!rs.next()) {
-				System.out.println("Schema does not exist");
-				throw new EsgynDBMgrException("Schema does not exist");
+			if (!rs.next()) {//Schema does not exist
+				throw new EsgynDBMgrException("*** ERROR[] A Java method completed with an uncaught Exception. "
+						+ "Details: java.sql.SQLException: Schema " + schemaName
+						+ "does not exists! ["
+						+ new Date()
+						+ "]");
 			}
-			query_text = String.format(SystemQueryCache.getQueryText(SystemQueryCache.CHECK_LIBRARY), libraryName.replace("\"", ""));
-			System.out.println("library check:" + query_text);
+			query_text = String.format(SystemQueryCache.getQueryText(SystemQueryCache.CHECK_LIBRARY), checkLibraryName , checkSchemaName);
+			_LOG.info("library check:" + query_text);
 			rs = stmt.executeQuery(query_text);
-			if (rs.next()) {
-				System.out.println("Library already exist");
-				throw new EsgynDBMgrException("Library already exist");
+			if (rs.next()) {//Library already exist
+				throw new EsgynDBMgrException("*** ERROR[] A Java method completed with an uncaught Exception. "
+						+ "Details: java.sql.SQLException: Library " + libraryName
+						+ "already exists! ["
+						+ new Date()
+						+ "]");
 			} // else library does not exist, check overwrite option
 
 			// save file
@@ -104,9 +119,7 @@ public class ToolsResource {
 				long start = System.currentTimeMillis();
 				pc.execute();
 				long end = System.currentTimeMillis();
-				System.out.println("time:" + (end - start));
 				length += len;
-				System.out.println(length + ";" + len + ";" + flag);
 				if (flag == 1) {
 					flag = 0;
 				}
@@ -119,7 +132,7 @@ public class ToolsResource {
 				pc.setString(1, new String(schemaLibName.getBytes(), "UTF-8"));
 				pc.setString(2, new String(fileName.getBytes(), "UTF-8"));
 				pc.execute();
-				System.out.println("create library success");
+				_LOG.info("Create Library Success");
 			}
 
 		} catch (SQLException e) {
