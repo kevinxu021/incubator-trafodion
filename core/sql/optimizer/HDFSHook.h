@@ -208,7 +208,8 @@ public:
 
   // Assign all blocks in this to the entry (ESP). The ESP will access
   // all the blocks.
-  virtual void assignToESPsRepN(HiveNodeMapEntry*& entry);
+  virtual void assignToESPsRepN(HiveNodeMapEntry*& entry,
+                                const HHDFSListPartitionStats* p);
   
   virtual OsimHHDFSStatsBase* osimSnapShot();
 

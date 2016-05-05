@@ -84,6 +84,8 @@ define([
 			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
 			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
 				refreshTimerView.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
+			}else{
+				refreshTimerView.setRefreshInterval(1);
 			}
 
 			this.fetchLogs();
@@ -99,6 +101,8 @@ define([
 			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
 			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
 				refreshTimerView.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
+			}else{
+				refreshTimerView.setRefreshInterval(1);
 			}
 			refreshTimerView.resume();
 			this.fetchLogs();

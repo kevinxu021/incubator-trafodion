@@ -69,6 +69,29 @@ else
            exit -1;
         fi
     fi
+    
+   # alter users if LDAP_SECURITY is 'Y'
+   if [ "$LDAP_SECURITY" == "Y" ]; then
+      if [ -z "$DB_ADMIN_NAME" ]; then
+         echo "***INFO:  Associating LDAP user $DB_ROOT_NAME with DB user DB__ROOT" | tee -a $INSTALL_LOG
+         ssh $STARTING_NODE "cd $SQ_ROOT/sql/scripts; sqlci <<eof
+            alter user DB__ROOT set external name \"$DB_ROOT_NAME\";
+            exit;
+eof" | tee -a $SQ_ROOT/initializeErrors.txt
+      else
+         echo "***INFO:  Associating LDAP users $DB_ROOT_NAME and $DB_ADMIN_NAME to DB users DB__ROOT and DB__ADMIN" | tee -a $INSTALL_LOG
+         ssh $STARTING_NODE "cd $SQ_ROOT/sql/scripts; sqlci <<eof
+            alter user DB__ROOT set external name \"$DB_ROOT_NAME\";
+            alter user DB__ADMIN set external name \"$DB_ADMIN_NAME\";
+            exit;
+eof" | tee -a $SQ_ROOT/initializeErrors.txt
+      fi
+      # if this script is run multiple times, then the mapping may already be completed,
+      # if the mapping has already been completed, then an error is returned.
+      # for now, continue with the installation
+      echo "***INFO: Please check the install log ($INSTALL_LOG) for any issues" | tee -a $INSTALL_LOG
+    fi
 fi
+
 #==========================================
 echo "***INFO: Installation setup completed successfully." | tee -a $INSTALL_LOG
