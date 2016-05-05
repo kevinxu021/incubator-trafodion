@@ -102,8 +102,8 @@ define([
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			wHandler.on(wHandler.PLAN_CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.on(wHandler.PLAN_CANCEL_QUERY_ERROR, this.cancelQueryError);
-			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
-			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
+			serverHandler.on(serverHandler.WORKLOAD_EXPLAIN_SUCCESS, this.drawExplain);
+			serverHandler.on(serverHandler.WORKLOAD_EXPLAIN_ERROR, this.showErrorMessage);
 
 			this.fetchExplainPlan();
 
@@ -114,8 +114,8 @@ define([
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			/*wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
-			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
-			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
+			serverHandler.on(serverHandler.WORKLOAD_EXPLAIN_SUCCESS, this.drawExplain);
+			serverHandler.on(serverHandler.WORKLOAD_EXPLAIN_ERROR, this.showErrorMessage);
 			if(queryID == null || queryID != args){
 				this.processArgs(args);
 				this.fetchExplainPlan();
@@ -127,8 +127,8 @@ define([
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
 			/*wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
 			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
-			serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
-			serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
+			serverHandler.off(serverHandler.WORKLOAD_EXPLAIN_SUCCESS, this.drawExplain);
+			serverHandler.off(serverHandler.WORKLOAD_EXPLAIN_ERROR, this.showErrorMessage);
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
@@ -174,11 +174,14 @@ define([
 			var param = {sQuery : queryText, sControlStmts: "", sQueryID: queryID, sQueryType: queryType};
 
 			_this.showLoading();
-			serverHandler.explainQuery(param);
+			serverHandler.explainQuery(param, _this);
 			$(ERROR_CONTAINER).hide();
 		},
 
 		drawExplain: function (jsonData){
+			if(jsonData.requestor !=null && jsonData.requestor != _this) //error message is probably for different page
+				return;
+			
 			_this.hideLoading();
 			$('#text-result-container').show();
 			$('#text-result').text(jsonData.planText);
@@ -217,6 +220,9 @@ define([
 			}
 		},
 		showErrorMessage: function (jqXHR) {
+			if(jqXHR.requestor !=null && jqXHR.requestor != _this) //error message is probably for different page
+				return;
+			
 			if(jqXHR.statusText != 'abort'){
 				_this.hideLoading();
 				$(ERROR_CONTAINER).show();
@@ -254,8 +260,6 @@ define([
 				
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 			}
-			/*alert('The cancel query request has been submitted');*/
-			_this.fetchExplainPlan();
 		},
 		cancelQueryError:function(jqXHR){
 			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
@@ -273,8 +277,6 @@ define([
 				
 				common.fire(common.NOFITY_MESSAGE,msgObj);
 			}
-			/*alert(jqXHR.responseText);*/
-			_this.fetchExplainPlan();
 		},        
 
 	});

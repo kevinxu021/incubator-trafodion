@@ -71,6 +71,47 @@ define(['moment',
 				return false;
 			};
 			
+			this.ExternalDisplayName = function (objName) {
+				var name = objName.trim();
+				var length=name.length;
+				// May be empty?
+				if (length == 0) {
+					return "";
+				}
+				// If it contains specials, it needs to be delimited.
+				if ((length > 1) && (name.startsWith("\"")) && (name.endsWith("\""))) {
+					return name;
+				}else if(!name.startsWith("_") && (name.match("^[A-Z0-9_]+$")!=null)) {
+					// No specials, it's itself
+					return name;
+				}
+				// It has specials; delimit it.
+				return "\"" + name + "\"";			
+			};
+			
+			this.ExternalAnsiName = function (schemaName, objectName) {
+				return _this.ExternalDisplayName(schemaName) + "." + _this.ExternalDisplayName(objectName);
+			};
+			
+			this.ExternalForm=function(internalName){
+				var name = internalName.trim();
+				var patern = new RegExp('\"',"g");
+				var length=name.length;
+				// May be empty?
+				if (length == 0) {
+					return "";
+				}
+				// If it contains specials, it needs to be delimited.
+				if ((length > 1) && (name.startsWith("\"")) && (name.endsWith("\""))) {
+					return name;
+				}else if(!name.startsWith("_") && (name.match("^[a-zA-Z0-9_]+$")!=null)) {
+					// No specials, it's itself
+					return name.toUpperCase();
+				}
+				// It has specials; delimit it.
+				return "\"" + name + "\"";
+			};
+			
 			this.isAdvanced = function(){
 				if(_this.databaseEdition != null && _this.databaseEdition.toLowerCase().indexOf("advanced") > -1){
 					return true;

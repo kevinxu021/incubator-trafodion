@@ -1052,8 +1052,10 @@ void OptimizerSimulator::loadHiveDDLs()
     while(readHiveStmt(hiveCreateTableSql, statement, comment))
     {   
         if(statement.length() > 0)
+        {
             debugMessage("%s\n", extractAsComment("CREATE TABLE", statement));
             execHiveSQL(statement.data());//create hive table
+        }
     }
     //create external table
     while(readHiveStmt(hiveCreateExternalTableSql, statement, comment))
