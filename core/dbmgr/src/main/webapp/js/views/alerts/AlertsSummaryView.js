@@ -62,8 +62,6 @@ define([
 			this.initialTimeRangePicker();
 			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
 			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
-			$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
-			$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 
 			serverHandler.on(serverHandler.FETCH_ALERTS_LIST_SUCCESS, this.displayResults);
 			serverHandler.on(serverHandler.FETCH_ALERTS_LIST_ERROR, this.showErrorMessage);
@@ -221,6 +219,12 @@ define([
 					break;
 				case "24":
 					$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'day'));
+					$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
+					$('#filter-start-time').prop("disabled", true);
+					$('#filter-end-time').prop("disabled", true);
+					break;
+				case "128":
+					$('#startdatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'week'));
 					$('#enddatetimepicker').data("DateTimePicker").date(moment().tz(common.serverTimeZone));
 					$('#filter-start-time').prop("disabled", true);
 					$('#filter-end-time').prop("disabled", true);
