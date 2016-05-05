@@ -552,6 +552,7 @@ static char * FCString (const char *idString, int isFC)
 %token SIGNAL
 %token UIDtoken
 %token BACKUP
+%token BACKUPS
 %token RESTORE
 // QSTUFF
 %token CURSORWITH

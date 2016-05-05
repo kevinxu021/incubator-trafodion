@@ -8795,6 +8795,10 @@ short CmpSeabaseDDL::executeSeabaseDDL(DDLExpr * ddlExpr, ExprNode * ddlNode,
   {
       restore(ddlExpr, &cliInterface);
   }
+  else if (ddlExpr->unlockTraf())
+  {
+    unlockAll();
+  }
   else
     {
       CMPASSERT(ddlNode);
