@@ -45,10 +45,43 @@ HHDFSMasterHostList::~HHDFSMasterHostList()
 HostId HHDFSMasterHostList::getHostNum(const char *hostName)
 {
   if (getHosts()->entries() == 0)
-    initializeWithSeaQuestNodes();
+     CMPASSERT(initializeWithSeaQuestNodes());
 
   return getHostNumInternal(hostName);
 }
+
+CollIndex HHDFSMasterHostList::getNumSQNodes()
+{ 
+  if (getHosts()->entries() == 0)
+    CMPASSERT(initializeWithSeaQuestNodes());
+
+   return numSQNodes_; 
+}
+
+CollIndex HHDFSMasterHostList::getNumNonSQNodes()
+{
+  if (getHosts()->entries() == 0)
+    CMPASSERT(initializeWithSeaQuestNodes());
+
+  return getHosts()->entries()-numSQNodes_;
+}
+
+NABoolean HHDFSMasterHostList::hasVirtualSQNodes()          
+{ 
+  if (getHosts()->entries() == 0)
+    CMPASSERT(initializeWithSeaQuestNodes());
+
+   return hasVirtualSQNodes_; 
+}
+
+CollIndex HHDFSMasterHostList::entries()                 
+{ 
+  if (getHosts()->entries() == 0)
+    CMPASSERT(initializeWithSeaQuestNodes());
+
+  return getHosts()->entries(); 
+}
+
 
 // translate a host name to a number (add host if needed)
 HostId HHDFSMasterHostList::getHostNumInternal(const char *hostName)
