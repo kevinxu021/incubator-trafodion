@@ -312,7 +312,7 @@ define([
 			//Disabled for R2.1 release. Engine does not support alter library yet.
 			//var codeFileName = _this.getObjectAttribute('Code File Name');
 			//sessionStorage.setItem(routeArgs.name, JSON.stringify({file: codeFileName}));	
-			//window.location.hash = '/tools/createlibrary?schema='+routeArgs.schema+'&library='+routeArgs.name;
+			//window.location.hash = '/tools/createlibrary?schema='+common.ExternalDisplayName(routeArgs.schema)+'&library='+common.ExternalDisplayName(routeArgs.name);
 		},
 		selectFeature: function(e){
 			$(OBJECT_DETAILS_CONTAINER).show();
@@ -453,34 +453,34 @@ define([
 			if(routeArgs.type != null && routeArgs.type.length > 0) {
 				switch(routeArgs.type){
 				case 'table': 
-					bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 					bCrumbsArray.push({name: 'Tables', link: '#/database/objects?type=tables&schema='+routeArgs.schema});
-					bCrumbsArray.push({name: routeArgs.name, link: ''});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 					break;
 				case 'view': 
-					bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 					bCrumbsArray.push({name: 'Views', link: '#/database/objects?type=views&schema='+routeArgs.schema});
-					bCrumbsArray.push({name: routeArgs.name, link: ''});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 					break;
 				case 'index': 
-					bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 					bCrumbsArray.push({name: 'Indexes', link: '#/database/objects?type=indexes&schema='+routeArgs.schema});
-					bCrumbsArray.push({name: routeArgs.name, link: ''});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 					break;
 				case 'library': 
-					bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 					bCrumbsArray.push({name: 'Libraries', link: '#/database/objects?type=libraries&schema='+routeArgs.schema});
-					bCrumbsArray.push({name: routeArgs.name, link: ''});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 					break;
 				case 'procedure': 
-					bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 					bCrumbsArray.push({name: 'Procedures', link: '#/database/objects?type=procedures&schema='+routeArgs.schema});
-					bCrumbsArray.push({name: routeArgs.name, link: ''});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 					break;
 				case 'udf': 
-					bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 					bCrumbsArray.push({name: 'User Defined Functions', link: '#/database/objects?type=udfs&schema='+routeArgs.schema});
-					bCrumbsArray.push({name: routeArgs.name, link: ''});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 					break;
 
 				}
@@ -495,7 +495,7 @@ define([
 		},
 		processRequest: function(){
 			_this.updateBreadCrumbs(routeArgs);
-			var displayName = common.toProperCase(routeArgs.type) + ' '+routeArgs.name;
+			var displayName = common.toProperCase(routeArgs.type) + ' '+common.ExternalAnsiName(routeArgs.schema, routeArgs.name);
 			$(OBJECT_NAME_CONTAINER).text(displayName);
 
 			$(BREAD_CRUMB).show();
@@ -667,7 +667,7 @@ define([
 							var link =	'<a href="#/database/objdetail?type=table' 
 								+ '&name=' + value 
 								+ '&schema='+ routeArgs.schema            				 
-								+ '">' + value + '</a>';
+								+ '">' + common.ExternalDisplayName(value) + '</a>';
 							$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + link +  '</td>');
 
 						}else {
@@ -679,7 +679,7 @@ define([
 						var libSch = _this.getUsageSchemaName();
 						libSch = (libSch != null && libSch.length > 0) ? libSch : routeArgs.schema;
 						var link =	'<a href="#/database/objdetail?type=library&name=' + value + '&schema=' +  libSch           				 
-						+ '">' + libSch+'.'+value + '</a>';
+						+ '">' + common.ExternalAnsiName(libSch, value) + '</a>';
 						$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + link +  '</td>');
 					}else{
 						$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
@@ -957,9 +957,9 @@ define([
 									var rowcontent = '<a href="#/database/objdetail?type='+linkType+'&name=' + data ;
 									if(udrSchema != null && udrSchema.length > 0){
 										rowcontent += '&schema='+ udrSchema;
-										rowcontent += '">' + udrSchema+'.'+data + '</a>';		            				 
+										rowcontent += '">' + common.ExternalAnsiName(udrSchema,data) + '</a>';		            				 
 									}else{
-										rowcontent += '">' + udrSchema+'.'+data + '</a>';	
+										rowcontent += '">' + common.ExternalAnsiName(udrSchema,data)+ '</a>';	
 									}
 									return rowcontent; 
 								}else{
@@ -984,7 +984,7 @@ define([
 										return '<tr><td><a href="#/database/objdetail?type='+objectType 
 										+ '&name=' + tableParts[tableParts.length -1] 
 										+ '&schema='+ tableParts[tableParts.length -2]	            				 
-										+ '">' + data + '</a></td><tr>';
+										+ '">' + common.ExternalAnsiName(tableParts[tableParts.length -2], tableParts[tableParts.length -1]) + '</a></td><tr>';
 									}
 								}
 								return data; 
@@ -1069,7 +1069,7 @@ define([
 							if(schemaName != null)
 								rowcontent += '&schema='+ schemaName;	            				 
 
-							rowcontent += "\">" + data + "</a>";
+							rowcontent += "\">" + common.ExternalDisplayName(data) + "</a>";
 							return rowcontent;                         
 						}else { 
 							return data;

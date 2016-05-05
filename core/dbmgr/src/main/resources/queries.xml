@@ -331,7 +331,7 @@
 		<query>
 			<!-- Fetch list of libraries in a schema -->
 			<name>SELECT_LIBRARIES_IN_SCHEMA</name>
-			<text><![CDATA[select distinct object_name as "Name", user(object_owner) as "Owner", 
+			<text><![CDATA[select distinct object_name as "Library Name", user(object_owner) as "Owner", 
 					converttimestamp(create_time) as "CreateTime", converttimestamp(redef_time) as "ModifiedTime",
 					CAST(object_uid  AS CHAR(26))  as "Object ID" , L.LIBRARY_FILENAME as "Code File Name"
 					from "_MD_".objects O, "_MD_".LIBRARIES L
