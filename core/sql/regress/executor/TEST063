@@ -905,6 +905,16 @@ SELECT  num, workgroupnum, annualsalary,
 FROM olap_emp ;
 
 
+SELECT  num, workgroupnum, annualsalary, 
+    SUM(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
+    AVG(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
+    MIN(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
+    MAX(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
+    VARIANCE_SAMP(AnnualSalary  )  OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
+    STDDEV_SAMP(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) ,
+    COUNT(*)          OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS UNBOUNDED PRECEDING  ) 
+FROM olap_emp ;
+
 --**************************************ALL OLAP FUNCTIONS/ROWS N PRECEDING *****************************
 
 
@@ -915,6 +925,16 @@ SELECT  num, workgroupnum, annualsalary,
     MAX(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS 5 PRECEDING  ) ,
     VARIANCE(AnnualSalary  )  OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS 5 PRECEDING  ) ,
     STDDEV(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS 5 PRECEDING  ) ,
+    COUNT(*)          OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS 5 PRECEDING  ) 
+FROM olap_emp ;
+
+SELECT  num, workgroupnum, annualsalary, 
+    SUM(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS 5 PRECEDING  ) ,
+    AVG(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS 5 PRECEDING  ) ,
+    MIN(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS 5 PRECEDING  ) ,
+    MAX(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS 5 PRECEDING  ) ,
+    VARIANCE_SAMP(AnnualSalary  )  OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS 5 PRECEDING  ) ,
+    STDDEV_SAMP(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS 5 PRECEDING  ) ,
     COUNT(*)          OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS 5 PRECEDING  ) 
 FROM olap_emp ;
 
@@ -930,6 +950,15 @@ SELECT  num, workgroupnum, annualsalary,
     COUNT(*)          OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS CURRENT ROW  ) 
 FROM olap_emp ;
 
+SELECT  num, workgroupnum, annualsalary, 
+    SUM(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS CURRENT ROW  ) ,
+    AVG(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS CURRENT ROW  ) ,
+    MIN(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS CURRENT ROW  ) ,
+    MAX(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS CURRENT ROW  ) ,
+    VARIANCE_SAMP(AnnualSalary  )  OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS CURRENT ROW  ) ,
+    STDDEV_SAMP(AnnualSalary  )      OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS CURRENT ROW  ) ,
+    COUNT(*)          OVER ( PARTITION BY workgroupnum ORDER BY num       ROWS CURRENT ROW  ) 
+FROM olap_emp ;
 
 
 
