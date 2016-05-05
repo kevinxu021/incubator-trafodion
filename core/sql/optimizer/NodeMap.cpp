@@ -2736,7 +2736,7 @@ void NodeMap::assignScanInfosRepN(HivePartitionAndBucketKey *hiveSearchKey)
           b = (HHDFSBucketStats*)i.getBucketStats();
           f = (HHDFSFileStats*)i.getFileStats();
 
-          f->assignToESPsRepN(entry);
+          f->assignToESPsRepN(entry,p);
       }
     } 
 }

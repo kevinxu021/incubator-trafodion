@@ -1575,10 +1575,11 @@ void HHDFSFileStats::assignToESPs(NodeMapIterator* nmi,
    }
 }
 
-void HHDFSFileStats::assignToESPsRepN(HiveNodeMapEntry*& entry)
+void HHDFSFileStats::assignToESPsRepN(HiveNodeMapEntry*& entry,
+                                      const HHDFSListPartitionStats* p)
 {
    Int64 filled = getTotalSize();
-   HiveScanInfo info(this, 0, (filled > 0) ? filled-1 : 0);
+   HiveScanInfo info(this, 0, (filled > 0) ? filled-1 : 0, FALSE, p);
    entry->addScanInfo(info, filled);
 }
 
