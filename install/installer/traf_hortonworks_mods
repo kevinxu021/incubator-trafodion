@@ -186,16 +186,6 @@ ssh -q -n $HDFS_NODE 'rm -rf $HOME/traf_temp_output'
 AMBARI_DIR=/var/lib/ambari-server/resources/scripts
 cd $LOCAL_WORKDIR
 
-ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD"  '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.master.distributed.log.splitting false'
-if [ $? != 0 ]; then
-    echo "***ERROR: unable to modify hbase.master.distributed.log.splitting through Ambari's configs.sh script."
-    echo "***ERROR: Check if Ambari URL is correct, may need to enter external IP address."
-    echo "***ERROR: Check if iptables/firewall is configured correctly and ports a
-    re enabled."
-    echo "***ERROR: Check that HBase is running without error."
-    exit -1
-fi
-sleep 2
 ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.coprocessor.region.classes "org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionObserver,org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionEndpoint,org.apache.hadoop.hbase.coprocessor.AggregateImplementation"'
 if [ $? != 0 ]; then
     echo "***ERROR: unable to modify hbase.coprocessor.region.classes through Ambari's configs.sh script."
@@ -217,18 +207,6 @@ sleep 2
 ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh  -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.snapshot.enabled true'
 if [ $? != 0 ]; then
     echo "***ERROR: unable to modify hbase.snapshot.enabled through Ambari's configs.sh script."
-    exit -1
-fi
-sleep 2
-ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.bulkload.staging.dir /hbase-staging'
-if [ $? != 0 ]; then
-    echo "***ERROR: unable to modify hbase.bulkload.staging.dir through Ambari's configs.sh script."
-    exit -1
-fi
-sleep 2
-ssh -q -n $AMBARI_HOST "$AMBARI_DIR"'/configs.sh -u' "$ADMIN" '-p' "$PASSWORD" '-port' "$PORT" 'set' "$AMBARI_HOST" "$CLUSTER_NAME" 'hbase-site hbase.regionserver.region.transactional.tlog true'
-if [ $? != 0 ]; then
-    echo "***ERROR: unable to modify hbase.regionserver.region.transactional.tlog through Ambari's configs.sh script."
     exit -1
 fi
 sleep 2
@@ -309,6 +287,12 @@ while [ $completed -eq 0 ]; do
     echo "***INFO: ...polling every $poll_time seconds until HBase stop is completed."
     # if stop command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/hbase_restart_status_temp | grep '"request_status" : "COMPLETED"' | wc -l)
+    failed=$(cat $LOCAL_WORKDIR/hbase_restart_status_temp | grep '"request_status" : "FAILED"' | wc -l)
+    if [[ "$failed" -ge "1" ]]; then
+       echo "***ERROR: Unable to stop HBase"
+       echo "***ERROR: Please manually restart HBase through the Ambari web GUI"
+       exit -1
+    fi
 done
 
 echo "***INFO: HBase stop completed"
@@ -351,6 +335,13 @@ while [ $completed -eq 0 ]; do
     echo "***INFO: ...polling every $poll_time seconds until Zookeeper stop is completed."
     # if stop command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/traf_zoo_restart_temp | grep '"request_status" : "COMPLETED"' | wc -l)
+    failed=$(cat $LOCAL_WORKDIR/traf_zoo_restart_temp | grep '"request_status" : "FAILED"' | wc -l)
+    if [[ "$failed" -ge "1" ]]; then
+       echo "***ERROR: Unable to stop Zookeeper"
+       echo "***ERROR: Please manually restart Zookeeper through the Ambari web GUI"
+       exit -1
+    fi
+
 done
 
 #=====================================
@@ -392,6 +383,13 @@ while [ $completed -eq 0 ]; do
     echo "***INFO: ...polling every $poll_time seconds until HDFS stop is completed."
     # if stop command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/traf_hdfs_restart_temp | grep '"request_status" : "COMPLETED"' | wc -l)
+    failed=$(cat $LOCAL_WORKDIR/traf_hdfs_restart_temp | grep '"request_status" : "FAILED"' | wc -l)
+     if [[ "$failed" -ge "1" ]]; then
+       echo "***ERROR: Unable to stop HDFS"
+       echo "***ERROR: Please manually restart HDFS through the Ambari web GUI"
+       exit -1
+    fi
+
 done
 
 echo "***INFO: Starting HDFS..."
@@ -428,6 +426,13 @@ while [ $completed -eq 0 ]; do
     echo "***INFO: ...polling every $poll_time seconds until HDFS start is completed."
     # if start command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/traf_hdfs_restart_temp | grep '"request_status" : "COMPLETED"' | wc -l)
+    failed=$(cat $LOCAL_WORKDIR/traf_hdfs_restart_temp | grep '"request_status" : "FAILED"' | wc -l)
+    if [[ "$failed" -ge "1" ]]; then
+       echo "***ERROR: Unable to start HDFS"
+       echo "***ERROR: Please manually restart HDFS through the Ambari web GUI"
+       exit -1
+    fi
+
 done
 
 echo "***INFO: HDFS restart completed"
@@ -473,6 +478,13 @@ while [ $completed -eq 0 ]; do
     echo "***INFO: ...polling every $poll_time seconds until Zookeeper start is completed."
     # if start command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/traf_zoo_restart_temp | grep '"request_status" : "COMPLETED"' | wc -l)
+    failed=$(cat $LOCAL_WORKDIR/traf_zoo_restart_temp | grep '"request_status" : "FAILED"' | wc -l)
+     if [[ "$failed" -ge "1" ]]; then
+       echo "***ERROR: Unable to start Zookeeper"
+       echo "***ERROR: Please manually restart Zookeeper through the Ambari web GUI"
+       exit -1
+    fi
+
 done
 
 echo "***INFO: Zookeeper start completed"
@@ -515,6 +527,13 @@ while [ $completed -eq 0 ]; do
     echo "***INFO: ...polling every $poll_time seconds until HBase start is completed."
     # if start command is completed then completed will not equal 0
     completed=$(cat $LOCAL_WORKDIR/hbase_restart_status_temp | grep '"request_status" : "COMPLETED"' | wc -l)
+    failed=$(cat $LOCAL_WORKDIR/hbase_restart_status_temp | grep '"request_status" : "FAILED"' | wc -l)
+     if [[ "$failed" -ge "1" ]]; then
+       echo "***ERROR: Unable to start HBase"
+       echo "***ERROR: Please manually restart HBase through the Ambari web GUI"
+       exit -1
+    fi
+
 done
 
 echo "***INFO: HBase restart completed"
