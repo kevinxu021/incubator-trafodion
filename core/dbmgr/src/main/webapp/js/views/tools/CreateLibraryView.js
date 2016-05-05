@@ -206,10 +206,11 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			
 		},
 		
-		executeUploadChunk : function(oflag, sflag, eflag){
+		executeUploadChunk : function(oflag, sflag, eflag, uflag){
 			_this.isAjaxCompleted=false;
 			var data = CHUNKS[UPLOAD_INDEX];
-			tHandler.createLibrary(data.chunk, data.fileName, data.filePart, data.fileSize, data.schemaName, data.libraryName, oflag, sflag, eflag);
+			var uflag = (PAGE_MODE == 'UPDATE');
+			tHandler.createLibrary(data.chunk, data.fileName, data.filePart, data.fileSize, common.ExternalForm(data.schemaName), common.ExternalForm(data.libraryName), oflag, sflag, eflag, uflag);
 			UPLOAD_INDEX++;
 		}, 
 		onFileSelected : function(e) {
@@ -246,7 +247,7 @@ define([ 'views/BaseView', 'text!templates/create_library.html', 'jquery',
 			$(CLEAR_BTN).prop('disabled', false);
 			var errorIndex = error.responseText.lastIndexOf("*** ERROR");
 			var errorString = error.responseText.substring(errorIndex);
-			var msg="Failed to create library " + common.ExternalForm(_this.currentSchemaName) + "." + common.ExternalForm(_this.currentLibraryName)+ " :" + errorString;
+			var msg="Failed to create library " + common.ExternalForm(_this.currentSchemaName) + "." + common.ExternalForm(_this.currentLibraryName)+ " : " + errorString;
 			//alert(errorString);
 			var msgObj={msg:msg,tag:"danger",url:null,shortMsg:"Failed to create library."};
 			if(_this.redirectFlag==false){

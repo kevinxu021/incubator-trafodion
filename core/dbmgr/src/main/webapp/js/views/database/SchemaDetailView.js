@@ -300,7 +300,7 @@ define([
 			$(BREAD_CRUMB).empty();
 			bCrumbsArray = [];
 			bCrumbsArray.push({name: 'Schemas', link: '#/database'});
-			bCrumbsArray.push({name: routeArgs.name, link: ''});
+			bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 
 			$.each(bCrumbsArray, function(key, crumb){
 				if(crumb.link && crumb.link.length >0){
@@ -314,7 +314,7 @@ define([
 			_this.updateBreadCrumbs(routeArgs);
 			$(BREAD_CRUMB).show();
 			schemaName = routeArgs.name;
-			var displayName = 'Schema ' + routeArgs.name;
+			var displayName = 'Schema ' + common.ExternalDisplayName(routeArgs.name);
 			$(OBJECT_NAME_CONTAINER).text(displayName);
 			$(ATTRIBUTES_BTN).show();
 			$(ATTRIBUTES_SELECTOR).tab('show');
