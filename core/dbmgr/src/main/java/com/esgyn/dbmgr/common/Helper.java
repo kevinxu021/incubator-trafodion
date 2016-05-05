@@ -373,7 +373,8 @@ public class Helper {
 			return "";
 		}
 
-		if(name.startsWith("\"")){
+		// IF name is already delimited return as is
+		if (name.startsWith("\"") && name.endsWith("\"")) {
 			return name;
 		}
 		
@@ -394,7 +395,7 @@ public class Helper {
 		int nameLength = externalName.length();
 
 		if ((nameLength > 1) && (externalName.startsWith("\"")) && (externalName.endsWith("\""))) {
-			return externalName.substring(1, nameLength - 2);
+			return externalName.substring(1, nameLength - 1);
 		}
 		return externalName;
 	}

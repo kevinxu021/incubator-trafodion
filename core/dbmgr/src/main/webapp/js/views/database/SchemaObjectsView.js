@@ -98,7 +98,7 @@ define([
 			$(ERROR_CONTAINER).hide();
 		},
 		createLibrary: function(){
-			window.location.hash = '/tools/createlibrary?schema='+schemaName;
+			window.location.hash = '/tools/createlibrary?schema='+common.ExternalDisplayName(schemaName);
 		},
 		fetchObjects: function(objectType, schemaName){
 			if(!pageStatus[objectType] || pageStatus[objectType] == false){
@@ -113,27 +113,27 @@ define([
 			if(routeArgs.type != null && routeArgs.type.length > 0) {
 				switch(routeArgs.type){
 					case 'tables': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Tables', link: ''});
 						break;
 					case 'views': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Views', link: ''});
 						break;
 					case 'indexes': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Indexes', link: ''});
 						break;
 					case 'libraries': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Libraries',  link: ''});
 						break;
 					case 'procedures': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Procedures', link:  ''});
 						break;
 					case 'udfs': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'UDFs', link:  ''});
 						break;
 				}
@@ -158,12 +158,12 @@ define([
 					case 'indexes' :
 					case 'libraries' :
 					case 'procedures' :
-						var displayName = common.toProperCase(routeArgs.type) + ' in schema ' + routeArgs.schema;
+						var displayName = common.toProperCase(routeArgs.type) + ' in schema ' + common.ExternalDisplayName(routeArgs.schema);
 						$(OBJECT_NAME_CONTAINER).text(displayName);
 						_this.fetchObjects(routeArgs.type, routeArgs.schema);
 						break;
 					case 'udfs' :
-						var displayName = 'UDFs in schema ' + routeArgs.schema;
+						var displayName = 'UDFs in schema ' + common.ExternalDisplayName(routeArgs.schema);
 						$(OBJECT_NAME_CONTAINER).text(displayName);
 						_this.fetchObjects(routeArgs.type, routeArgs.schema);
 						break;
@@ -233,7 +233,7 @@ define([
 			            			 if(schemaName != null)
 			            				 rowcontent += '&schema='+ schemaName;	            				 
 	
-			            			 rowcontent += "\">" + data + "</a>";
+			            			 rowcontent += "\">" + common.ExternalDisplayName(data) + "</a>";
 			            			 return rowcontent;                         
 			            		 }else { 
 			            			 return data;
