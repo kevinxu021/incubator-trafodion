@@ -727,7 +727,7 @@
 >>-- Error 4078
 >>prepare xx from select variance(a, b) over (order by a) from t006t2;
 
-*** ERROR[4078] Function VARIANCE does not accept a weight operand.
+*** ERROR[4078] Function VARIANCE_SAMP does not accept a weight operand.
 
 *** ERROR[8822] The statement was not prepared.
 

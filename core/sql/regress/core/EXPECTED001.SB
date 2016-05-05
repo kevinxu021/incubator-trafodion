@@ -149,7 +149,7 @@ A
 
 >>select stddev(null) from t001t1;
 
-*** ERROR[4097] A NULL operand is not allowed in function (STDDEV(NULL)).
+*** ERROR[4097] A NULL operand is not allowed in function (STDDEV_SAMP(NULL)).
 
 *** ERROR[8822] The statement was not prepared.
 
