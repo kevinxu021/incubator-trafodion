@@ -390,6 +390,7 @@ public:
 	     const char * prefix = DEFAULT_INDENT,
              const char * suffix = "") const;
 
+  void display();
  
   void setPushDownProperty(const PushDownProperty* pdp) 
  	{ pushDownProperty_ = pdp; };

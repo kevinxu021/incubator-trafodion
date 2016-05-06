@@ -1171,7 +1171,7 @@ SDDui___(CYCLIC_ESP_PLACEMENT,                  "1"),
  DDdskNS(DDL_DEFAULT_LOCATIONS,                ""),
 
   DDkwd__(DDL_EXPLAIN,                           "OFF"),
-  DDkwd__(DDL_TRANSACTIONS,         "OFF"),
+  DDkwd__(DDL_TRANSACTIONS,         "ON"),
 
     // We ignore this setting for the first (SYSTEM_DEFAULTS) table open+read.
   DDkwd__(DEFAULTS_TABLE_ACCESS_WARNINGS,	"OFF"),
@@ -1293,7 +1293,7 @@ SDDui___(CYCLIC_ESP_PLACEMENT,                  "1"),
   DDSint__(ESP_ASSIGN_DEPTH,                    "0"),
 
   DDSint__(ESP_FIXUP_PRIORITY_DELTA,            "0"),
-  DDSint__(ESP_IDLE_TIMEOUT,                    "0"),
+  DDint__(ESP_IDLE_TIMEOUT,                    "1800"), // To match with set session defaults value
   DDkwd__(ESP_MULTI_FRAGMENTS,			"ON"),
   DDkwd__(ESP_MULTI_FRAGMENT_QUOTAS,		"ON"),
   DDui1500_4000(ESP_MULTI_FRAGMENT_QUOTA_VM,	"4000"),
@@ -1415,8 +1415,9 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
  // upper and lower limit (2,10) must be in sync with error values in 
  //ExFastTransport.cpp
   DDkwd__(FAST_EXTRACT_DIAGS,			"OFF"),
-  DDui2_10(FAST_EXTRACT_IO_BUFFERS,             "6"),
+  DDui2_10(FAST_EXTRACT_IO_BUFFERS,             "1"),
   DDui___(FAST_EXTRACT_IO_TIMEOUT_SEC,          "60"),
+  DDui___(FAST_EXTRACT_MAX_PARTITIONS,          "64"),
   DDkwd__(FAST_REPLYDATA_MOVE,			"ON"),
  SDDkwd__(FFDC_DIALOUTS_FOR_MXCMP,		"OFF"),
   DDkwd__(FIND_COMMON_SUBEXPRS_IN_OR,		"ON"),
@@ -1758,7 +1759,7 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
  // We can remove this once the delete costing code has broader
  // exposure.
  DDkwd__(HBASE_DELETE_COSTING,		             "OFF"),
-
+ DDflt0_(HBASE_DOP_PARALLEL_SCANNER,             "0."),
  DDkwd__(HBASE_FILTER_PREDS,		             "OFF"),
  DDkwd__(HBASE_HASH2_PARTITIONING,                   "ON"),
  DDui___(HBASE_INDEX_LEVEL,                          "0"),
@@ -1968,8 +1969,10 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DD_____(HIVE_FILE_CHARSET,                    ""),
   DD_____(HIVE_FILE_NAME,     "/hive/tpcds/customer/customer.dat" ),
   DD_____(HIVE_HDFS_STATS_LOG_FILE,             ""),
+  DDint__(HIVE_HDFS_STATS_MAX_SAMPLE_FILES,     "10"),
+  DDkwd__(HIVE_HDFS_STATS_SAMPLE_LOB_INTFC,     "ON"),
   DDint__(HIVE_LIB_HDFS_PORT_OVERRIDE,          "-1"),
-  DDint__(HIVE_LOCALITY_BALANCE_LEVEL,          "0"),
+  DDint__(HIVE_LOCALITY_BALANCE_LEVEL,          "3"),
   DDui___(HIVE_MAX_ESPS,                        "9999"),
   // Set to one byte less than QUERY_CACHE_MAX_CHAR_LEN so that hive queries with
   // string literals can be cached.
@@ -1979,12 +1982,17 @@ SDDkwd__(EXE_DIAGNOSTIC_EVENTS,		"OFF"),
   DDflt0_(HIVE_MIN_BYTES_PER_ESP_PARTITION,     "67108864"),
   DDui___(HIVE_NUM_ESPS_PER_DATANODE,           "2"),
   DDpct__(HIVE_NUM_ESPS_ROUND_DEVIATION,        "34"),
-  DDkwd__(HIVE_PARTITION_ELIMINATION_CT,        "OFF"),
+  DDkwd__(HIVE_PARTITION_ELIMINATION_CT,        "ON"),
+  DDkwd__(HIVE_PARTITION_ELIMINATION_MM,        "ON"),
   DDkwd__(HIVE_PARTITION_ELIMINATION_RT,        "ON"),
+  DDint__(HIVE_SCAN_SPECIAL_MODE,                "0"),
   DDkwd__(HIVE_SORT_HDFS_HOSTS,                 "ON"),
+  DDkwd__(HIVE_USE_EXT_TABLE_ATTRS,             "OFF"),
   DD_____(HIVE_USE_FAKE_SQ_NODE_NAMES,          "" ),
   DDkwd__(HIVE_USE_FAKE_TABLE_DESC,             "OFF"),
-  DDkwd__(HIVE_USE_HASH2_AS_PARTFUNCION,        "SYSTEM"),
+  DDkwd__(HIVE_USE_HASH2_AS_PARTFUNCTION,       "ON"),
+  DDkwd__(HIVE_USE_PERSISTENT_KEY,              "OFF"),
+  DDkwd__(HIVE_USE_SORT_COLS_IN_KEY,            "OFF"),
   DDkwd__(HIVE_VIEWS,                           "OFF"),
 
  // -------------------------------------------------------------------------
@@ -2084,12 +2092,16 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   // precision but degraded performance.
   SDDkwd__(LIMIT_MAX_NUMERIC_PRECISION,		"SYSTEM"),
 
+ // Size in bytes  used to perform garbage collection  to lob data file 
+  // default size is 5GB   . Change to adjust disk usage. 
+  DDint__(LOB_GC_LIMIT_SIZE,            "5000"),
+  
   DDint__(LOB_HDFS_PORT,                       "0"),
   DD_____(LOB_HDFS_SERVER,                 "default"), 
-   
+ 
    // Size of memoryin bytes  used to perform I/O to lob data file 
   // default size is 512MB   . Change to adjust memory usage. 
-  DDint__(LOB_MAX_CHUNK_MEM_SIZE,            "536870912"), 
+  DDint__(LOB_MAX_CHUNK_MEM_SIZE,            "512"), 
   // default size is 10 G  (10000 M)
   DDint__(LOB_MAX_SIZE,                         "10000"),
   // default size is 32000. Change this to extract more data into memory.
@@ -2528,7 +2540,12 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
   DDkwd__(NESTED_JOINS_FULL_INNER_KEY,     "OFF"),
   DDkwd__(NESTED_JOINS_KEYLESS_INNERJOINS,     "ON"),
   DDui1__(NESTED_JOINS_LEADING_KEY_SKEW_THRESHOLD,    "15"),
-  DDkwd__(NESTED_JOINS_NO_NSQUARE_OPENS,   "ON"),
+
+  // A setting of 'SYSTEM' implies the following:
+  //   for ORC tables: N2J is allowed
+  //   for any other tables: N2J is not allowed
+  // If set to 'ON', then N2J is not allowed at all.
+  DDkwd__(NESTED_JOINS_NO_NSQUARE_OPENS,   "SYSTEM"),
 
   DDkwd__(NESTED_JOINS_OCR_GROUPING,            "OFF"),
 
@@ -2745,8 +2762,9 @@ SDDkwd__(ISO_MAPPING,           (char *)SQLCHARSETSTRING_ISO88591),
 
   DDkwd__(ORC_AGGR_PUSHDOWN,                    "ON"),
   DDkwd__(ORC_COLUMNS_PUSHDOWN,                 "ON"),
+  DDkwd__(ORC_NJS,                              "OFF"),
   DDkwd__(ORC_PRED_PUSHDOWN,                    "ON"),
-  DDkwd__(ORC_USE_EXT_TABLE_ATTRS,              "OFF"),
+  DDkwd__(ORC_READ_STRIPE_INFO,                 "OFF"),
   DDkwd__(ORC_VECTORIZED_SCAN,                  "ON"),
 
   DDkwd__(ORDERED_HASH_JOIN_CONTROL,            "ON"),
@@ -3312,28 +3330,30 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDint__(TEST_PASS_ONE_ASSERT_TASK_NUMBER,	"-1"),
   DDint__(TEST_PASS_TWO_ASSERT_TASK_NUMBER,	"-1"),
 
- XDDintN2(TIMEOUT,				"6000"),
+  XDDintN2(TIMEOUT,				"6000"),
  
- DDflt0_(TMUDF_CARDINALITY_FACTOR, "1"),
- DDflt0_(TMUDF_LEAF_CARDINALITY, "1"),
+  DDflt0_(TMUDF_CARDINALITY_FACTOR, "1"),
+  DDflt0_(TMUDF_LEAF_CARDINALITY, "1"),
 
   DDkwd__(TOTAL_RESOURCE_COSTING,               "ON"),
-
+ 
   DDint__(TRAF_ALIGNED_FORMAT_ADD_COL_METHOD,	"2"),
-
- DDkwd__(TRAF_ALIGNED_ROW_FORMAT,                 "OFF"),   
-
+ 
+  DDkwd__(TRAF_ALIGNED_ROW_FORMAT,                 "OFF"),   
+ 
   DDkwd__(TRAF_ALLOW_ESP_COLOCATION,             "OFF"),   
+ 
+  DDkwd__(TRAF_ALLOW_RESERVED_COLNAMES,          "OFF"),   
+ 
+  DDkwd__(TRAF_ALLOW_SELF_REF_CONSTR,                 "ON"),   
 
- DDkwd__(TRAF_ALLOW_SELF_REF_CONSTR,                 "ON"),   
+  DDkwd__(TRAF_ALTER_COL_ATTRS,                 "ON"),   
 
- DDkwd__(TRAF_ALTER_COL_ATTRS,                 "ON"),   
+  DDkwd__(TRAF_BLOB_AS_VARCHAR,                 "ON"), //set to OFF to enable Lobs support  
 
- DDkwd__(TRAF_BLOB_AS_VARCHAR,                 "ON"), //set to OFF to enable Lobs support  
+  DDkwd__(TRAF_BOOTSTRAP_MD_MODE,                            "OFF"),   
 
- DDkwd__(TRAF_BOOTSTRAP_MD_MODE,                            "OFF"),   
-
- DDkwd__(TRAF_CLOB_AS_VARCHAR,                 "ON"), //set to OFF to enable Lobs support  
+  DDkwd__(TRAF_CLOB_AS_VARCHAR,                 "ON"), //set to OFF to enable Lobs support  
 
   DDkwd__(TRAF_COL_LENGTH_IS_CHAR,                 "ON"),   
 
@@ -3350,7 +3370,6 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DD_____(TRAF_LOAD_ERROR_COUNT_ID,             "" ),
   DD_____(TRAF_LOAD_ERROR_COUNT_TABLE,          "ERRORCOUNTER" ),
   DD_____(TRAF_LOAD_ERROR_LOGGING_LOCATION,     "/bulkload/logs/" ),
-  DDint__(TRAF_LOAD_FLUSH_SIZE_IN_KB,           "1024"),
   DDkwd__(TRAF_LOAD_FORCE_CIF,                  "ON"),
   DDkwd__(TRAF_LOAD_LOG_ERROR_ROWS,             "OFF"),
   DDint__(TRAF_LOAD_MAX_ERROR_ROWS,             "0"),
@@ -3365,6 +3384,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   //need add code to check if folder exists or not. if not issue an error and ask
   //user to create it
   DD_____(TRAF_LOAD_PREP_TMP_LOCATION,                 "/bulkload/" ),
+  DDint__(TRAF_LOAD_ROWSET_SIZE,           "10240"),
   DDkwd__(TRAF_LOAD_TAKE_SNAPSHOT ,                    "OFF"),
   DDkwd__(TRAF_LOAD_USE_FOR_INDEXES,   "ON"),
   DDkwd__(TRAF_LOAD_USE_FOR_STATS,     "OFF"),
@@ -3416,7 +3436,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDint__(TRAF_UNLOAD_HDFS_COMPRESS,                   "0"),
   DDkwd__(TRAF_UNLOAD_SKIP_WRITING_TO_FILES,           "OFF"),
   DDkwd__(TRAF_UPSERT_ADJUST_PARAMS,                   "OFF"),
-  DDkwd__(TRAF_UPSERT_AUTO_FLUSH,                      "OFF"),
+  DDkwd__(TRAF_UPSERT_MODE,                            "MERGE"),
   DDint__(TRAF_UPSERT_WB_SIZE,                         "2097152"),
   DDkwd__(TRAF_UPSERT_WRITE_TO_WAL,                    "OFF"),
 
@@ -3531,6 +3551,7 @@ XDDkwd__(SUBQUERY_UNNESTING,			"ON"),
   DDflt0_(USTAT_FREQ_SIZE_PERCENT,              "0.5"),  // >100 effectively disables
   DDflt0_(USTAT_GAP_PERCENT,                    "10.0"),
   DDflt0_(USTAT_GAP_SIZE_MULTIPLIER,            "1.5"),
+  DDkwd__(USTAT_GENERATE_ORC_HISTOGRAM,         "OFF"),
   DDui___(USTAT_HBASE_SAMPLE_RETURN_INTERVAL,   "10000000"), // Avoid scanner timeout by including on average at
                                                              //   least one row per this many when sampling within HBase.
   DDflt0_(USTAT_INCREMENTAL_FALSE_PROBABILITY,   "0.01"),
@@ -4072,6 +4093,7 @@ NADefaults::NADefaults(NAMemory * h)
   setFlagOn(COMPRESSED_INTERNAL_FORMAT, DEFAULT_ALLOWS_SEPARATE_SYSTEM);
   setFlagOn(COMPRESSED_INTERNAL_FORMAT_BMO, DEFAULT_ALLOWS_SEPARATE_SYSTEM);
   setFlagOn(HBASE_SMALL_SCANNER, DEFAULT_ALLOWS_SEPARATE_SYSTEM);
+  setFlagOn(HIVE_USE_HASH2_AS_PARTFUNCTION, DEFAULT_ALLOWS_SEPARATE_SYSTEM);
 }
 
 NADefaults::~NADefaults()
@@ -4223,9 +4245,9 @@ void NADefaults::updateSystemParameters(NABoolean reInit)
       "DEF_NUM_BM_CHUNKS",
       "DEF_PHYSICAL_MEMORY_AVAILABLE", //returned in KB not bytes
       "DEF_TOTAL_MEMORY_AVAILABLE",		 //returned in KB not bytes
-      "DEF_VIRTUAL_MEMORY_AVAILABLE"
-      , "GEN_MAX_NUM_PART_DISK_ENTRIES"
-      , "USTAT_IUS_PERSISTENT_CBF_PATH"
+      "DEF_VIRTUAL_MEMORY_AVAILABLE",
+      "GEN_MAX_NUM_PART_DISK_ENTRIES",
+      "USTAT_IUS_PERSISTENT_CBF_PATH"
    }; //returned in KB not bytes
 
   char valuestr[WIDEST_CPUARCH_VALUE];
@@ -6329,6 +6351,7 @@ const char *NADefaults::keywords_[DF_lastToken] = {
   "MEASURE",
   "MEDIUM",
   "MEDIUM_LOW",
+  "MERGE",
   "MINIMUM",
   "MMAP",
   "MULTI_NODE",
@@ -6339,6 +6362,7 @@ const char *NADefaults::keywords_[DF_lastToken] = {
   "ON",
   "OPENS_FOR_WRITE",
   "OPERATOR",
+  "OPTIMAL",
   "ORDERED",
   "PERTABLE",
   "PRINT",
@@ -6350,6 +6374,7 @@ const char *NADefaults::keywords_[DF_lastToken] = {
   "RELEASE",
   "REMOTE",
   "REPEATABLE_READ",
+  "REPLACE",
   "REPSEL",
   "RESOURCES",
   "RETURN",
@@ -6673,6 +6698,10 @@ DefaultToken NADefaults::token(Int32 attrEnum,
 	isValid = TRUE;
       break;
 
+    case HIVE_SCAN_SPECIAL_MODE:
+	isValid = TRUE;
+	break;
+
     case IS_SQLCI:
       // for primary mxcmp that is invoked for user queries, the only valid
       // value for mxci_process cqd is TRUE. This cqd is set once by mxci
@@ -6789,7 +6818,7 @@ DefaultToken NADefaults::token(Int32 attrEnum,
 	isValid = TRUE;
       break;
 
-    case HIVE_USE_HASH2_AS_PARTFUNCION:
+    case HIVE_USE_HASH2_AS_PARTFUNCTION:
       if (tok == DF_ON ||
 	  tok == DF_SYSTEM)
 	isValid = TRUE;
@@ -6879,6 +6908,7 @@ DefaultToken NADefaults::token(Int32 attrEnum,
 	isValid = TRUE;
       break;
 
+    case NESTED_JOINS_NO_NSQUARE_OPENS:
     case SHOWDDL_DISPLAY_PRIVILEGE_GRANTS:
       if (tok == DF_SYSTEM || tok == DF_ON || tok == DF_OFF)
 	isValid = TRUE;
@@ -7005,6 +7035,10 @@ DefaultToken NADefaults::token(Int32 attrEnum,
 	isValid = TRUE;
       break;
 
+    case LOB_GC_LIMIT_SIZE:
+      if (tok >= 0 )
+        isValid=TRUE;
+
     case TRAF_TRANS_TYPE:
       if (tok  == DF_MVCC || tok == DF_SSCC)
         isValid = TRUE;
@@ -7014,6 +7048,11 @@ DefaultToken NADefaults::token(Int32 attrEnum,
       if (tok == DF_OFF || tok == DF_MINIMUM ||
           tok == DF_MEDIUM || tok == DF_MAXIMUM || tok == DF_ON)
         isValid = TRUE;
+      break;
+    case TRAF_UPSERT_MODE:
+      if (tok == DF_MERGE || tok == DF_REPLACE || tok == DF_OPTIMAL)
+	isValid = TRUE;
+      break;
 
     // Nothing needs to be added here for ON/OFF/SYSTEM keywords --
     // instead, add to DEFAULT_ALLOWS_SEPARATE_SYSTEM code in the ctor.

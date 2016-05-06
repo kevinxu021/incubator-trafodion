@@ -114,7 +114,8 @@ public :
     nullString_(*nullString, oHeap),
     recordSeparator_(*recordSep, oHeap),
     overwriteHiveTable_(FALSE),
-    isSequenceFile_(FALSE)
+    isSequenceFile_(FALSE),
+    hiveNATable_(NULL)
   { };
 
   FastExtract(RelExpr* child,
@@ -135,7 +136,8 @@ public :
     nullString_(oHeap),
     recordSeparator_(oHeap),
     overwriteHiveTable_(FALSE),
-    isSequenceFile_(FALSE)
+    isSequenceFile_(FALSE),
+    hiveNATable_(NULL)
   { };
 
 
@@ -155,7 +157,8 @@ public :
     nullString_(oHeap),
     recordSeparator_(oHeap),
     overwriteHiveTable_(FALSE),
-    isSequenceFile_(FALSE)
+    isSequenceFile_(FALSE),
+    hiveNATable_(NULL)
   { };
 
   FastExtract(RelExpr* child,
@@ -181,7 +184,8 @@ public :
     nullString_(oHeap),
     recordSeparator_(oHeap),
     overwriteHiveTable_(FALSE),
-    isSequenceFile_(FALSE)
+    isSequenceFile_(FALSE),
+    hiveNATable_(NULL)
   { };
   //! FastExtract Copy Constructor
   FastExtract(const FastExtract &other);
@@ -270,6 +274,7 @@ public :
   Int32 getHdfsPort() const {return hdfsPort_;}
   const NAString& getHiveTableName() const {return hiveTableName_;}
   NABoolean isHiveInsert() const {return isHiveInsert_;}
+  const NATable *getHiveNATable() const {return hiveNATable_;}
   const NAString& getDelimiter() const {return delimiter_;}
   NABoolean isAppend() const {return isAppend_;}
   NABoolean includeHeader() const {return includeHeader_ ;}
@@ -306,6 +311,16 @@ public :
    isSequenceFile_ = sf;
   }
 
+  void setHiveNATable(const NATable *nat)
+  {
+    hiveNATable_ = nat;
+  }
+
+  void addPartStringExpr(const ValueId vid)
+  {
+    partStringExpr_ += vid;
+  }
+
 private:
   
   
@@ -325,6 +340,8 @@ private:
   NAString hiveTableName_;
   NABoolean overwriteHiveTable_;
   NABoolean isSequenceFile_;
+  const NATable *hiveNATable_;
+  ValueIdSet partStringExpr_; // set in codeGen()
 
 }; // class FastExtract
 

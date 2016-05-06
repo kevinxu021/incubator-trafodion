@@ -14,18 +14,18 @@
 					</ul>
 				</div>
 			</div>
-			<h2 class="page-header">Database</h2>
+			<h3 class="page-header">Database</h3>
 		</div>
 	</div>
 	<div class="row">
 		<div class="col-lg-12">
 			<div class="panel panel-default">
-				<ol id="database-crumb" class="breadcrumb">
+				<ol id="database-crumb" class="breadcrumb" style="margin-bottom:2px">
 					<li><a href="#/database">Schemas</a></li>
 				</ol>
 
-				<div class="panel-body" style="padding-bottom:15px;padding-top:0px">
-                    <label id="db-object-name" style='padding: 10px 0px;font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;font-size:18px;font-weight:500'></label>
+				<div class="panel-body" style="padding-bottom:15px;padding-top:2px">
+                    <label id="db-object-name" style='padding: 2px 0px;font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;font-size:18px;font-weight:500'></label>
 					<ul id="db-object-feature-selector" class="nav dbmgr-nav nav-pills" style="padding-bottom:15px;">
 					  <li id="attributes-btn" role="presentation" class="active"><a href="#db-attributes-link" class="dbmgr-link-button" data-toggle="pill">Attributes</a></li>
 					  <li id="ddl-btn" role="presentation" style="padding-left: 5px;" ><a href="#db-ddl-link" class="dbmgr-link-button" data-toggle="pill">DDL</a></li>
@@ -49,8 +49,8 @@
 					    	<div id="ddl-spinner">Fetching DDL... <img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>
 							<div id ="db-object-ddl-container">
 								<textarea id="schema-ddl-text" readonly name="schema-ddl-text" spellcheck="false" rows="100" readonly class="textarea" style="width: 800px; margin-bottom: 10px"></textarea>
-								<textarea id="db-object-ddl-error-text" readonly name="db-object-ddl-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 							</div>
+							<textarea id="db-object-ddl-error-text" readonly name="db-object-ddl-error-text" spellcheck="false" rows="10" readonly class="textarea" style="color:red;font-family: Courier New, Courier, monospace;font-weight:600;width: 95%; margin-bottom: 10px"></textarea>
 					    </div>
 					    <div class="tab-pane fade" id="db-privileges-link">
 					    	<div id="privileges-spinner">Fetching privileges... <img style="padding-top: 10px; padding-left: 5px;" src="img/ajax-loader.gif" /></div>

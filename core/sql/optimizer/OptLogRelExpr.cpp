@@ -4960,6 +4960,19 @@ Scan::synthLogProp(NormWA * normWAPtr)
            getOptHbaseAccessOptions()->tsSpecified()))
         continue;
 
+      if (idesc->isClusteringIndex() &&
+          getTableDesc()->getNATable()->isHiveTable())
+        {
+          if (getTableDesc()->getNATable()->isORC())
+            // temporary kludge, see Mantis-269, use
+            // methods for Hive tables below once we have virtual columns
+            continue;
+          else
+            createUniquenessConstraintsForHiveTable();
+
+          continue;
+        }
+          
       // Determining uniqueness constraints from indexes is not quite
       // straightforward, since no information is available whether
       // this index was created as a "unique" index. The method used
@@ -5084,6 +5097,56 @@ Scan::synthLogProp(NormWA * normWAPtr)
     getGroupAttr()->setSeabaseMDTable(TRUE);
 
 } // Scan::synthLogProp()
+
+void Scan::createUniquenessConstraintsForHiveTable()
+{
+  const NATable *nat = getTableDesc()->getNATable();
+  const IndexDesc *clusteringIndex = getTableDesc()->getClusteringIndex();
+  const NAColumnArray &colArray =
+    clusteringIndex->getNAFileSet()->getAllColumns();
+  NABoolean addCardConstraint = TRUE;
+
+  for (int i=0; i<2; i++)
+    {
+      ValueIdSet uniqueCols;
+
+      if (i == 0)
+        {
+          // uniqueness constraint #1: (short, non-persistent key)
+          uniqueCols +=
+            tabId_->getColumnVEGList()[
+                 colArray.getColumn(NATable::getNameOfInputRangeCol())->getPosition()];
+          uniqueCols +=
+            tabId_->getColumnVEGList()[
+                 colArray.getColumn(NATable::getNameOfRowInRangeCol())->getPosition()];
+        }
+      else
+        {
+          // uniqueness constraint #2: (long, persistent key)
+          uniqueCols +=
+            tabId_->getColumnVEGList()[
+                 colArray.getColumn(NATable::getNameOfInputFileCol())->getPosition()];
+          uniqueCols +=
+            tabId_->getColumnVEGList()[
+                 colArray.getColumn(NATable::getNameOfBlockOffsetCol())->getPosition()];
+        }
+
+      // Remove from the unique key any values that are covered
+      // by the inputs. If the key ends up empty then add a
+      // cardinality constraint.
+      uniqueCols.removeCoveredExprs(getGroupAttr()->getCharacteristicInputs());
+      if (uniqueCols.isEmpty())
+        {
+          if (addCardConstraint)
+            getGroupAttr()->addConstraint(new(CmpCommon::statementHeap())
+                                          CardConstraint((Cardinality)0,(Cardinality)1));
+          addCardConstraint = FALSE; // do it once
+        }
+      else
+        getGroupAttr()->addConstraint(new(CmpCommon::statementHeap())
+                                      UniqueOptConstraint(uniqueCols));
+    }
+}
 
 void Scan::processCompRefOptConstraints(NormWA * normWAPtr)
 {

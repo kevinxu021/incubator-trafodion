@@ -234,7 +234,6 @@ short CmpSeabaseDDL::buildViewColInfo(StmtDDLCreateView * createViewParseNode,
       colDefArray->insert(new (STMTHEAP) ElemDDLColDef
 			  ( NULL, &viewColDefArray[i]->getColumnName()
 			    , (NAType *)&valIdList[i].getType()
-			    , NULL    // default value (n/a for view def)
 			    , NULL    // col attr list (not needed)
 
 			    , STMTHEAP));
@@ -299,8 +298,7 @@ short CmpSeabaseDDL::updateViewUsage(StmtDDLCreateView * createViewParseNode,
 
       // do not put hive objects in view usage list.
       if ((CmpCommon::getDefault(HIVE_VIEWS) == DF_ON) &&
-          (catalogNamePart == HIVE_SYSTEM_CATALOG) &&
-          (schemaNamePart == HIVE_SYSTEM_SCHEMA))
+          (catalogNamePart == HIVE_SYSTEM_CATALOG))
         continue;
 
       char objType[10];
@@ -949,8 +947,10 @@ void CmpSeabaseDDL::createSeabaseView(
     }
 
   CorrName cn(objectNamePart, STMTHEAP, schemaNamePart, catalogNamePart);
-  ActiveSchemaDB()->getNATableDB()->removeNATable(cn,
-    NATableDB::REMOVE_MINE_ONLY, COM_VIEW_OBJECT);
+  ActiveSchemaDB()->getNATableDB()->removeNATable
+    (cn,
+     ComQiScope::REMOVE_MINE_ONLY, COM_VIEW_OBJECT,
+     createViewNode->ddlXns(), FALSE);
 
   deallocEHI(ehi); 
   processReturn();
@@ -1104,7 +1104,8 @@ void CmpSeabaseDDL::dropSeabaseView(
 	  char * viewName = vi->get(0);
 	  
 	  if (dropSeabaseObject(ehi, viewName,
-				 currCatName, currSchName, COM_VIEW_OBJECT))
+                                currCatName, currSchName, COM_VIEW_OBJECT,
+                                dropViewNode->ddlXns()))
 	    {
 	      deallocEHI(ehi); 
 
@@ -1116,7 +1117,8 @@ void CmpSeabaseDDL::dropSeabaseView(
     }
 
   if (dropSeabaseObject(ehi, tabName,
-			 currCatName, currSchName, COM_VIEW_OBJECT))
+                        currCatName, currSchName, COM_VIEW_OBJECT,
+                        dropViewNode->ddlXns()))
     {
       deallocEHI(ehi); 
 
@@ -1127,8 +1129,10 @@ void CmpSeabaseDDL::dropSeabaseView(
 
   // clear view definition from my cache only. 
   CorrName cn(objectNamePart, STMTHEAP, schemaNamePart, catalogNamePart);
-  ActiveSchemaDB()->getNATableDB()->removeNATable(cn,
-    NATableDB::REMOVE_MINE_ONLY, COM_VIEW_OBJECT);
+  ActiveSchemaDB()->getNATableDB()->removeNATable
+    (cn,
+     ComQiScope::REMOVE_MINE_ONLY, COM_VIEW_OBJECT,
+     dropViewNode->ddlXns(), FALSE);
 
   // clear view from all other caches here. This compensates for a 
   // scenario where the object UID is not available in removeNATable, 
@@ -1154,8 +1158,10 @@ void CmpSeabaseDDL::dropSeabaseView(
                   STMTHEAP,
                   tablesRefdList[i].schemaName,
                   tablesRefdList[i].catalogName);
-      ActiveSchemaDB()->getNATableDB()->removeNATable(cn,
-        NATableDB::REMOVE_FROM_ALL_USERS, COM_BASE_TABLE_OBJECT);
+      ActiveSchemaDB()->getNATableDB()->removeNATable
+        (cn,
+         ComQiScope::REMOVE_FROM_ALL_USERS, COM_BASE_TABLE_OBJECT,
+         dropViewNode->ddlXns(), FALSE);
     }
 
   deallocEHI(ehi); 
@@ -1405,7 +1411,11 @@ short CmpSeabaseDDL::dropMetadataViews(ExeCliInterface * cliInterface)
         return -1;
 
       cliRC = cliInterface->executeImmediate(queryBuf);
-      if (cliRC < 0)
+      if (cliRC == -1389) // does not exist, ignore
+        {
+          cliRC = 0;
+        }
+      else if (cliRC < 0)
 	{
 	  cliInterface->retrieveSQLDiagnostics(CmpCommon::diags());
 	}
@@ -1480,9 +1490,6 @@ static bool checkAccessPrivileges(
   // a side effect is to return an error if basic privileges are not granted
    for (CollIndex i = 0; i < vtul.entries(); i++)
    {
-      if (vtul[i].getSpecialType() == ExtendedQualName::SG_TABLE)
-         continue;
-         
       ComObjectName usedObjName(vtul[i].getQualifiedNameObj().getQualifiedNameAsAnsiString(),
                                 vtul[i].getAnsiNameSpace());
       
@@ -1492,19 +1499,28 @@ static bool checkAccessPrivileges(
       NAString extUsedObjName = usedObjName.getExternalName(TRUE);
       CorrName cn(objectNamePart,STMTHEAP, schemaNamePart,catalogNamePart);
  
+      // If a sequence, set correct type to get a valid NATable entry
+      bool isSeq = (vtul[i].getSpecialType() == ExtendedQualName::SG_TABLE)? true : false;
+      if (isSeq)
+        cn.setSpecialType(ExtendedQualName::SG_TABLE);
+
       NATable *naTable = bindWA.getNATable(cn);
       if (naTable == NULL)
       {
           SEABASEDDL_INTERNAL_ERROR("Bad NATable pointer in checkAccessPrivileges");
          return false; 
       }
+
       PrivMgrUserPrivs privs;
       PrivMgrUserPrivs *pPrivInfo = NULL;
 
       // If gathering privileges for the view creator, the NATable structure
       // contains the privileges we want to use to create bitmaps
       if (viewCreator)
+      {
         pPrivInfo = naTable->getPrivInfo();
+        CMPASSERT(pPrivInfo != NULL);
+      }
       
       // If the view owner is not the view creator, then we need to get schema
       // owner privileges from PrivMgr.
@@ -1524,8 +1540,11 @@ static bool checkAccessPrivileges(
       }
 
       // Requester must have at least select privilege
-      if ( !pPrivInfo->hasSelectPriv() )
-         missingPrivilege = true;
+      // For sequence generators USAGE is needed instead of SELECT
+      if  (isSeq)
+        missingPrivilege = !pPrivInfo->hasUsagePriv() ? true : false;
+      else  
+        missingPrivilege = !pPrivInfo->hasSelectPriv() ? true : false; 
 
       // Summarize privileges
       privilegesBitmap &= pPrivInfo->getObjectBitmap();
@@ -1620,7 +1639,7 @@ static bool checkAccessPrivileges(
       colGrantableBitmap &= pPrivInfo->getColumnGrantableBitmap(usedColNumber);
    }
   
-   if ((noObjPriv && missingPrivilege) || vctcul.entries() == 0)
+   if (noObjPriv && missingPrivilege)
      {
         *CmpCommon::diags() << DgSqlCode(-4481)
                             << DgString0("SELECT")

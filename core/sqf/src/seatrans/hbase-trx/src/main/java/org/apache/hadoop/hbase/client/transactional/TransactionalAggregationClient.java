@@ -95,6 +95,7 @@ public class TransactionalAggregationClient {
    * given range. In case qualifier is null, a max of all values for the given
    * family is returned.
    * @param transactionId
+   * @param startId
    * @param tableName
    * @param ci
    * @param scan
@@ -104,12 +105,12 @@ public class TransactionalAggregationClient {
    *           & propagated to it.
    */
   public <R, S, P extends Message, Q extends Message, T extends Message> R max(
-       final long transactionId, final TableName tableName, final ColumnInterpreter<R, S, P, Q, T> ci, final Scan scan)
+       final long transactionId, final long startId, final TableName tableName, final ColumnInterpreter<R, S, P, Q, T> ci, final Scan scan)
       throws Throwable {
     TransactionalTable table = null;
     try {
       table = new TransactionalTable(tableName.getName());
-      return max(transactionId, table, ci, scan);
+      return max(transactionId, startId, table, ci, scan);
     } finally {
       if (table != null) {
         table.close();
@@ -130,12 +131,12 @@ public class TransactionalAggregationClient {
    *           & propagated to it.
    */
   public <R, S, P extends Message, Q extends Message, T extends Message> 
-  R max(final long transactionId, final TransactionalTable table, final ColumnInterpreter<R, S, P, Q, T> ci,
+  R max(final long transactionId, final long startId, final TransactionalTable table, final ColumnInterpreter<R, S, P, Q, T> ci,
       final Scan scan) throws Throwable {
       byte [] currentBeginKey = scan.getStartRow();	
       HRegionInfo currentRegion = table.getRegionLocation(currentBeginKey).getRegionInfo();
       com.google.protobuf.ByteString regionName = ByteString.copyFromUtf8(currentRegion.getRegionNameAsString());
-    final TransactionalAggregateRequest requestArg = validateArgAndGetPB(regionName, transactionId, scan, ci, false);
+    final TransactionalAggregateRequest requestArg = validateArgAndGetPB(regionName, transactionId, startId, scan, ci, false);
     class MaxCallBack implements Batch.Callback<R> {
       R max = null;
 
@@ -196,6 +197,7 @@ public class TransactionalAggregationClient {
    * given range. In case qualifier is null, a min of all values for the given
    * family is returned.
    * @param transactionId
+   * @param startId
    * @param tableName
    * @param ci
    * @param scan
@@ -203,12 +205,12 @@ public class TransactionalAggregationClient {
    * @throws Throwable
    */
   public <R, S, P extends Message, Q extends Message, T extends Message> R min(
-       final long transactionId, final TableName tableName, final ColumnInterpreter<R, S, P, Q, T> ci, final Scan scan)
+       final long transactionId, final long startId, final TableName tableName, final ColumnInterpreter<R, S, P, Q, T> ci, final Scan scan)
       throws Throwable {
     TransactionalTable table = null;
     try {
       table = new TransactionalTable(tableName.getName());
-      return min(transactionId, table, ci, scan);
+      return min(transactionId, startId, table, ci, scan);
     } finally {
       if (table != null) {
         table.close();
@@ -227,12 +229,12 @@ public class TransactionalAggregationClient {
    * @throws Throwable
    */
   public <R, S, P extends Message, Q extends Message, T extends Message> 
-  R min(final long transactionId, final TransactionalTable table, final ColumnInterpreter<R, S, P, Q, T> ci,
+  R min(final long transactionId, final long startId, final TransactionalTable table, final ColumnInterpreter<R, S, P, Q, T> ci,
       final Scan scan) throws Throwable {
       byte [] currentBeginKey = scan.getStartRow();	
       HRegionInfo currentRegion = table.getRegionLocation(currentBeginKey).getRegionInfo();
       com.google.protobuf.ByteString regionName = ByteString.copyFromUtf8(currentRegion.getRegionNameAsString());
-    final TransactionalAggregateRequest requestArg = validateArgAndGetPB(regionName, transactionId, scan, ci, false);
+    final TransactionalAggregateRequest requestArg = validateArgAndGetPB(regionName, transactionId, startId, scan, ci, false);
     class MinCallBack implements Batch.Callback<R> {
 
       private R min = null;
@@ -280,6 +282,7 @@ public class TransactionalAggregationClient {
    * not of the given filter: in this case, this particular row will not be
    * counted ==> an error.
    * @param transactionId
+   * @param startId
    * @param tableName
    * @param ci
    * @param scan
@@ -288,6 +291,7 @@ public class TransactionalAggregationClient {
    */
   public <R, S, P extends Message, Q extends Message, T extends Message> long rowCount(
       final long transactionId,
+      final long startId,
       final TableName tableName, 
       final ColumnInterpreter<R, S, P, Q, T> ci, 
       final Scan scan)
@@ -295,7 +299,7 @@ public class TransactionalAggregationClient {
     TransactionalTable table = null;
     try {
       table = new TransactionalTable(tableName.getName());
-      return rowCount(transactionId, table, ci, scan);
+      return rowCount(transactionId, startId, table, ci, scan);
     } finally {
       if (table != null) {
         table.close();
@@ -317,12 +321,12 @@ public class TransactionalAggregationClient {
    * @throws Throwable
    */
   public <R, S, P extends Message, Q extends Message, T extends Message> 
-  long rowCount(final long transactionId, final TransactionalTable table,
+  long rowCount(final long transactionId, final long startId, final TransactionalTable table,
       final ColumnInterpreter<R, S, P, Q, T> ci, final Scan scan) throws Throwable {
       byte [] currentBeginKey = scan.getStartRow();	
       HRegionInfo currentRegion = table.getRegionLocation(currentBeginKey).getRegionInfo();
       com.google.protobuf.ByteString regionName = ByteString.copyFromUtf8(currentRegion.getRegionNameAsString());
-    final TransactionalAggregateRequest requestArg = validateArgAndGetPB(regionName, transactionId, scan, ci, true);
+    final TransactionalAggregateRequest requestArg = validateArgAndGetPB(regionName, transactionId, startId, scan, ci, true);
     class RowNumCallback implements Batch.Callback<Long> {
       private final AtomicLong rowCountL = new AtomicLong(0);
 
@@ -361,6 +365,7 @@ public class TransactionalAggregationClient {
    * It sums up the value returned from various regions. In case qualifier is
    * null, summation of all the column qualifiers in the given family is done.
    * @param transactionId
+   * @param startId
    * @param tableName
    * @param ci
    * @param scan
@@ -368,12 +373,12 @@ public class TransactionalAggregationClient {
    * @throws Throwable
    */
   public <R, S, P extends Message, Q extends Message, T extends Message> S sum(
-       final long transactionId, final TableName tableName, final ColumnInterpreter<R, S, P, Q, T> ci, final Scan scan)
+       final long transactionId, final long startId, final TableName tableName, final ColumnInterpreter<R, S, P, Q, T> ci, final Scan scan)
       throws Throwable {
     TransactionalTable table = null;
     try {
       table = new TransactionalTable(tableName.getName());
-      return sum(transactionId, table, ci, scan);
+      return sum(transactionId, startId, table, ci, scan);
     } finally {
       if (table != null) {
         table.close();
@@ -391,12 +396,12 @@ public class TransactionalAggregationClient {
    * @throws Throwable
    */
   public <R, S, P extends Message, Q extends Message, T extends Message> 
-  S sum(final long transactionId, final TransactionalTable table, final ColumnInterpreter<R, S, P, Q, T> ci,
+  S sum(final long transactionId, final long startId, final TransactionalTable table, final ColumnInterpreter<R, S, P, Q, T> ci,
       final Scan scan) throws Throwable {
       byte [] currentBeginKey = scan.getStartRow();	
       HRegionInfo currentRegion = table.getRegionLocation(currentBeginKey).getRegionInfo();
       com.google.protobuf.ByteString regionName = ByteString.copyFromUtf8(currentRegion.getRegionNameAsString());
-    final TransactionalAggregateRequest requestArg = validateArgAndGetPB(regionName, transactionId, scan, ci, false);
+    final TransactionalAggregateRequest requestArg = validateArgAndGetPB(regionName, transactionId, startId, scan, ci, false);
     
     class SumCallBack implements Batch.Callback<S> {
       S sumVal = null;
@@ -440,17 +445,18 @@ public class TransactionalAggregationClient {
    * corresponding regions. Approach is to compute a global sum of region level
    * sum and rowcount and then compute the average.
    * @param transactionId
+   * @param startId
    * @param tableName
    * @param scan
    * @throws Throwable
    */
   private <R, S, P extends Message, Q extends Message, T extends Message> Pair<S, Long> getAvgArgs(
-       final long transactionId, final TableName tableName, final ColumnInterpreter<R, S, P, Q, T> ci, final Scan scan)
+       final long transactionId, final long startId, final TableName tableName, final ColumnInterpreter<R, S, P, Q, T> ci, final Scan scan)
       throws Throwable {
     TransactionalTable table = null;
     try {
       table = new TransactionalTable(tableName.getName());
-      return getAvgArgs(transactionId, table, ci, scan);
+      return getAvgArgs(transactionId, startId, table, ci, scan);
     } finally {
       if (table != null) {
         table.close();
@@ -467,12 +473,12 @@ public class TransactionalAggregationClient {
    * @throws Throwable
    */
   private <R, S, P extends Message, Q extends Message, T extends Message>
-  Pair<S, Long> getAvgArgs(final long transactionId, final TransactionalTable table,
+  Pair<S, Long> getAvgArgs(final long transactionId, final long startId, final TransactionalTable table,
       final ColumnInterpreter<R, S, P, Q, T> ci, final Scan scan) throws Throwable {
       byte [] currentBeginKey = scan.getStartRow();	
       HRegionInfo currentRegion = table.getRegionLocation(currentBeginKey).getRegionInfo();
       com.google.protobuf.ByteString regionName = ByteString.copyFromUtf8(currentRegion.getRegionNameAsString());
-    final TransactionalAggregateRequest requestArg = validateArgAndGetPB(regionName, transactionId, scan, ci, false);
+    final TransactionalAggregateRequest requestArg = validateArgAndGetPB(regionName, transactionId, startId, scan, ci, false);
     class AvgCallBack implements Batch.Callback<Pair<S, Long>> {
       S sum = null;
       Long rowCount = 0l;
@@ -525,6 +531,7 @@ public class TransactionalAggregationClient {
    * columninterpreter says. So, this methods collects the necessary parameters
    * to compute the average and returs the double value.
    * @param transactionId
+   * @param startId
    * @param tableName
    * @param ci
    * @param scan
@@ -532,9 +539,9 @@ public class TransactionalAggregationClient {
    * @throws Throwable
    */
   public <R, S, P extends Message, Q extends Message, T extends Message>
-  double avg( final long transactionId, final TableName tableName,
+  double avg( final long transactionId, final long startId, final TableName tableName,
       final ColumnInterpreter<R, S, P, Q, T> ci, Scan scan) throws Throwable {
-    Pair<S, Long> p = getAvgArgs(transactionId, tableName, ci, scan);
+    Pair<S, Long> p = getAvgArgs(transactionId, startId, tableName, ci, scan);
     return ci.divideForAvg(p.getFirst(), p.getSecond());
   }
 
@@ -551,8 +558,8 @@ public class TransactionalAggregationClient {
    * @throws Throwable
    */
   public <R, S, P extends Message, Q extends Message, T extends Message> double avg(
-      final long transactionId, final TransactionalTable table, final ColumnInterpreter<R, S, P, Q, T> ci, Scan scan) throws Throwable {
-    Pair<S, Long> p = getAvgArgs(transactionId, table, ci, scan);
+      final long transactionId, final long startId, final TransactionalTable table, final ColumnInterpreter<R, S, P, Q, T> ci, Scan scan) throws Throwable {
+    Pair<S, Long> p = getAvgArgs(transactionId, startId, table, ci, scan);
     return ci.divideForAvg(p.getFirst(), p.getSecond());
   }
 
@@ -568,12 +575,12 @@ public class TransactionalAggregationClient {
    * @throws Throwable
    */
   private <R, S, P extends Message, Q extends Message, T extends Message>
-  Pair<List<S>, Long> getStdArgs(final long transactionId, final TransactionalTable table,
+  Pair<List<S>, Long> getStdArgs(final long transactionId,  final long startId, final TransactionalTable table,
       final ColumnInterpreter<R, S, P, Q, T> ci, final Scan scan) throws Throwable {
       byte [] currentBeginKey = scan.getStartRow();	
       HRegionInfo currentRegion = table.getRegionLocation(currentBeginKey).getRegionInfo();
       com.google.protobuf.ByteString regionName = ByteString.copyFromUtf8(currentRegion.getRegionNameAsString());
-    final TransactionalAggregateRequest requestArg = validateArgAndGetPB(regionName, transactionId, scan, ci, false);
+    final TransactionalAggregateRequest requestArg = validateArgAndGetPB(regionName, transactionId, startId, scan, ci, false);
     class StdCallback implements Batch.Callback<Pair<List<S>, Long>> {
       long rowCountVal = 0l;
       S sumVal = null, sumSqVal = null;
@@ -637,6 +644,7 @@ public class TransactionalAggregationClient {
    * columninterpreter says. So, this methods collects the necessary parameters
    * to compute the std and returns the double value.
    * @param transactionId
+   * @param startId
    * @param tableName
    * @param ci
    * @param scan
@@ -644,12 +652,12 @@ public class TransactionalAggregationClient {
    * @throws Throwable
    */
   public <R, S, P extends Message, Q extends Message, T extends Message>
-  double std( final long transactionId, final TableName tableName, ColumnInterpreter<R, S, P, Q, T> ci,
+  double std( final long transactionId, final long startId, final TableName tableName, ColumnInterpreter<R, S, P, Q, T> ci,
       Scan scan) throws Throwable {
     TransactionalTable table = null;
     try {
       table = new TransactionalTable(tableName.getName());
-      return std(transactionId, table, ci, scan);
+      return std(transactionId, startId, table, ci, scan);
     } finally {
       if (table != null) {
         table.close();
@@ -670,8 +678,8 @@ public class TransactionalAggregationClient {
    * @throws Throwable
    */
   public <R, S, P extends Message, Q extends Message, T extends Message> double std(
-      final long transactionId, final TransactionalTable table, ColumnInterpreter<R, S, P, Q, T> ci, Scan scan) throws Throwable {
-    Pair<List<S>, Long> p = getStdArgs(transactionId, table, ci, scan);
+      final long transactionId, final long startId, final TransactionalTable table, ColumnInterpreter<R, S, P, Q, T> ci, Scan scan) throws Throwable {
+    Pair<List<S>, Long> p = getStdArgs(transactionId, startId, table, ci, scan);
     double res = 0d;
     double avg = ci.divideForAvg(p.getFirst().get(0), p.getSecond());
     double avgOfSumSq = ci.divideForAvg(p.getFirst().get(1), p.getSecond());
@@ -694,12 +702,12 @@ public class TransactionalAggregationClient {
    */
   private <R, S, P extends Message, Q extends Message, T extends Message>
   Pair<NavigableMap<byte[], List<S>>, List<S>>
-  getMedianArgs(final long transactionId, final TransactionalTable table,
+  getMedianArgs(final long transactionId, final long startId, final TransactionalTable table,
       final ColumnInterpreter<R, S, P, Q, T> ci, final Scan scan) throws Throwable {
       byte [] currentBeginKey = scan.getStartRow();	
       HRegionInfo currentRegion = table.getRegionLocation(currentBeginKey).getRegionInfo();
       com.google.protobuf.ByteString regionName = ByteString.copyFromUtf8(currentRegion.getRegionNameAsString());
-    final TransactionalAggregateRequest requestArg = validateArgAndGetPB(regionName, transactionId, scan, ci, false);
+    final TransactionalAggregateRequest requestArg = validateArgAndGetPB(regionName, transactionId, startId, scan, ci, false);
     final NavigableMap<byte[], List<S>> map =
       new TreeMap<byte[], List<S>>(Bytes.BYTES_COMPARATOR);
     class StdCallback implements Batch.Callback<List<S>> {
@@ -754,6 +762,7 @@ public class TransactionalAggregationClient {
    * given cf-cq combination. This method collects the necessary parameters
    * to compute the median and returns the median.
    * @param transactionId
+   * @param startId
    * @param tableName
    * @param ci
    * @param scan
@@ -761,12 +770,12 @@ public class TransactionalAggregationClient {
    * @throws Throwable
    */
   public <R, S, P extends Message, Q extends Message, T extends Message>
-  R median( final long transactionId, final TableName tableName, ColumnInterpreter<R, S, P, Q, T> ci,
+  R median( final long transactionId, final long startId, final TableName tableName, ColumnInterpreter<R, S, P, Q, T> ci,
       Scan scan) throws Throwable {
     TransactionalTable table = null;
     try {
       table = new TransactionalTable(tableName.getName());
-      return median(transactionId, table, ci, scan);
+      return median(transactionId, startId, table, ci, scan);
     } finally {
       if (table != null) {
         table.close();
@@ -785,9 +794,9 @@ public class TransactionalAggregationClient {
    * @throws Throwable
    */
   public <R, S, P extends Message, Q extends Message, T extends Message>
-  R median(final long transactionId, final TransactionalTable table, ColumnInterpreter<R, S, P, Q, T> ci,
+  R median(final long transactionId, final long startId, final TransactionalTable table, ColumnInterpreter<R, S, P, Q, T> ci,
       Scan scan) throws Throwable {
-    Pair<NavigableMap<byte[], List<S>>, List<S>> p = getMedianArgs(transactionId, table, ci, scan);
+    Pair<NavigableMap<byte[], List<S>>, List<S>> p = getMedianArgs(transactionId, startId, table, ci, scan);
     byte[] startRow = null;
     byte[] colFamily = scan.getFamilies()[0];
     NavigableSet<byte[]> quals = scan.getFamilyMap().get(colFamily);
@@ -856,19 +865,21 @@ public class TransactionalAggregationClient {
   }
 
   <R, S, P extends Message, Q extends Message, T extends Message> TransactionalAggregateRequest 
-  validateArgAndGetPB(com.google.protobuf.ByteString regionName, long transactionId, Scan scan, ColumnInterpreter<R,S,P,Q,T> ci, boolean canFamilyBeAbsent)
+  validateArgAndGetPB(com.google.protobuf.ByteString regionName, long transactionId, final long startId, Scan scan, ColumnInterpreter<R,S,P,Q,T> ci, boolean canFamilyBeAbsent)
       throws IOException {
     validateParameters(scan, canFamilyBeAbsent);
     final TransactionalAggregateRequest.Builder requestBuilder = 
         TransactionalAggregateRequest.newBuilder();
     requestBuilder.setInterpreterClassName(ci.getClass().getCanonicalName());
     P columnInterpreterSpecificData = null;
+    TransactionState ts = null;
     if ((columnInterpreterSpecificData = ci.getRequestData()) 
        != null) {
       requestBuilder.setInterpreterSpecificBytes(columnInterpreterSpecificData.toByteString());
     }
     requestBuilder.setScan(ProtobufUtil.toScan(scan));
     requestBuilder.setTransactionId(transactionId);
+    requestBuilder.setStartId(startId);
     requestBuilder.setRegionName(regionName);    
     return requestBuilder.build();
   }

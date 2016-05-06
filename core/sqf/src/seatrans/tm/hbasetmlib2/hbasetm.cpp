@@ -273,6 +273,8 @@ short CHbaseTM::initConnection(short pv_nid)
   jboolean jresult = _tlp_jenv->CallBooleanMethod(javaObj_, JavaMethods_[JM_INIT1].methodID, jdtmid);
   exc = _tlp_jenv->ExceptionOccurred();
   if(exc) {
+    printf("JavaObjectInterfaceTM::initConnection returned exception: \n");
+    fflush(stdout);
     _tlp_jenv->ExceptionDescribe();
     _tlp_jenv->ExceptionClear();
     return RET_EXCEPTION;

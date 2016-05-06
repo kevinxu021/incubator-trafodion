@@ -1546,7 +1546,7 @@ RETCODE Statement::prepare2(char *source, ComDiagsArea &diagsArea,
       
       SQLMXLoggingArea::logSQLMXAbortEvent("Statement.cpp",888, "testing abort event");
       SQLMXLoggingArea::logSQLMXAssertionFailureEvent("Statement.cpp",777,"testing assertion failure");
-      SQLMXLoggingArea::logSQLMXDebugEvent("debug event" ,69);
+      SQLMXLoggingArea::logSQLMXDebugEvent("debug event" ,69,__LINE__);
       
       SQLMXLoggingArea::logMVRefreshInfoEvent("mv refresh info");
       SQLMXLoggingArea::logMVRefreshErrorEvent("mv refresh error");
@@ -6275,7 +6275,11 @@ short Statement::beginTransaction(ComDiagsArea &diagsArea)
   // will be updated for BEGIN WORK statements.
   updateTModeValues();
 
-  if (root_tdb->transactionReqd())
+  // implicit xns for ddl stmts will be started and committed/aborted
+  // in arkcmp if auto commit is on. Otherwise, it will be started here.
+  if ((root_tdb->transactionReqd()) &&
+      ((NOT root_tdb->ddlQuery()) ||
+       (NOT context_->getTransaction()->autoCommit())))
     {
       // the trans mode at compile time of this query must be the
       // same as the transaction mode at execution time.
@@ -6412,30 +6416,29 @@ short Statement::commitTransaction(ComDiagsArea &diagsArea)
 	  //	    waited = TRUE;
 	  short taRetcode = context_->commitTransaction(waited);
 	  
-      StmtDebug1("  Return code is %d", (Lng32) taRetcode);
+          StmtDebug1("  Return code is %d", (Lng32) taRetcode);
       
 	  setAutocommitXn(FALSE);
 
 	  if (taRetcode != 0)
 	    {
-        // If there are diagnostics in the statement globals then add
-        // them to the caller's diags area first. They may contain
-        // information about something that went wrong before the
-        // COMMIT was attempted. Then add information about the COMMIT
-        // failure that just occurred.
-        statementGlobals_->takeGlobalDiagsArea(diagsArea);
-        diagsArea.mergeAfter(*context_->getTransaction()->getDiagsArea());
-        return ERROR;
-      }
-      
-      StmtDebug0("  COMMIT was successful");
+              // If there are diagnostics in the statement globals then add
+              // them to the caller's diags area first. They may contain
+              // information about something that went wrong before the
+              // COMMIT was attempted. Then add information about the COMMIT
+              // failure that just occurred.
+              statementGlobals_->takeGlobalDiagsArea(diagsArea);
+              diagsArea.mergeAfter(*context_->getTransaction()->getDiagsArea());
+              return ERROR;
+            }
+          StmtDebug0("  COMMIT was successful");
+        }
     }
-  }
   else
-  {
-    StmtDebug0("  No AUTOCOMMIT transaction for this stmt");
+    {
+      StmtDebug0("  No AUTOCOMMIT transaction for this stmt");
     }
-
+  
   return 0;
 }
 

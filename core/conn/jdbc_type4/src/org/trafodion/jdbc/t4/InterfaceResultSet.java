@@ -90,6 +90,8 @@ class InterfaceResultSet {
 	/* SQL/MP stype VARCHAR with length prefix:
 	 * */
 	static final int SQLTYPECODE_VARCHAR_WITH_LENGTH = -601;
+	static final int SQLTYPECODE_BLOB = -602;
+	static final int SQLTYPECODE_CLOB = -603;
 
 	/* LONG VARCHAR/ODBC CHARACTER VARYING */
 	static final int SQLTYPECODE_VARCHAR_LONG = -1; /* ## NEGATIVE??? */
@@ -144,6 +146,8 @@ class InterfaceResultSet {
 		case SQLTYPECODE_VARCHAR_LONG:
 		case SQLTYPECODE_VARCHAR_DBLBYTE:
 		case SQLTYPECODE_BITVAR:
+                case SQLTYPECODE_BLOB:
+                case SQLTYPECODE_CLOB:
 			allocLength = bufferLen + 2;
 			break;
 		case SQLTYPECODE_CHAR:
@@ -226,6 +230,8 @@ class InterfaceResultSet {
 			break;
 		case SQLTYPECODE_VARCHAR_WITH_LENGTH:
 		case SQLTYPECODE_VARCHAR_LONG:
+		case SQLTYPECODE_BLOB:
+		case SQLTYPECODE_CLOB:
 			tbuffer = new byte[byteLen - 2];
 			System.arraycopy(ibuffer, byteIndex + 2, tbuffer, 0, byteLen - 2);
 
@@ -374,6 +380,8 @@ class InterfaceResultSet {
 		case SQLTYPECODE_VARCHAR:
 		case SQLTYPECODE_VARCHAR_WITH_LENGTH:
 		case SQLTYPECODE_VARCHAR_LONG:
+		case SQLTYPECODE_BLOB:
+		case SQLTYPECODE_CLOB:
 			boolean shortLength = desc.precision_ < Math.pow(2, 15);
 			int dataOffset = noNullValue + ((shortLength) ? 2 : 4);
 
@@ -575,8 +583,8 @@ class InterfaceResultSet {
 			throws SQLException
 
 	{
-		Row[] rowArray;
-		Object[] objectArray;
+		ObjectArray[] rowArray;
+		Object[] columnArray;
 		Object columnValue;
 
 		int columnCount;
@@ -587,7 +595,7 @@ class InterfaceResultSet {
 		int byteLen = 0;
 		int maxRowLen = rs.connection_.ic_.getTransportBufferSize(); // maxRowLen
 
-		rowArray = new Row[rowsAffected];
+		rowArray = new ObjectArray[rowsAffected];
 
 		// get the number of colums
 		columnCount = rs.getNoOfColumns();
@@ -599,7 +607,7 @@ class InterfaceResultSet {
 				String temp = "Reading row = " + rowIndex;
 				rs.connection_.props_.t4Logger_.logp(Level.FINEST, "InterfaceResultSet", "setFetchOutputs", temp, p);
 			}
-			objectArray = new Object[columnCount];
+			columnArray = new Object[columnCount];
 
 			for (columnIndex = 0; columnIndex < columnCount; columnIndex++) {
 				if (rs.connection_.props_.t4Logger_.isLoggable(Level.FINEST) == true) {
@@ -646,6 +654,8 @@ class InterfaceResultSet {
 					case SQLTYPECODE_CHAR:
 					case SQLTYPECODE_CHAR_DBLBYTE:
 					case SQLTYPECODE_VARCHAR:
+					case SQLTYPECODE_BLOB:
+					case SQLTYPECODE_CLOB:
 						byteIndex++;
 						break;
 					}
@@ -658,9 +668,9 @@ class InterfaceResultSet {
 					columnValue = null;
 
 				}
-				objectArray[columnIndex] = columnValue;
+				columnArray[columnIndex] = columnValue;
 			}
-			rowArray[rowIndex] = new Row(columnCount, objectArray);
+			rowArray[rowIndex] = new ObjectArray(columnCount, columnArray);
 		}
 		rs.setFetchOutputs(rowArray, rowsAffected, endOfData);
 	}
@@ -672,9 +682,9 @@ class InterfaceResultSet {
 			setFetchOutputs(rs, rowsAffected, endOfData, values);
 			return;
 		}
-		Object[] objectArray;
+		Object[] columnArray;
 		Object columnValue;
-		Row[] rowArray = new Row[rowsAffected];
+		ObjectArray[] rowArray = new ObjectArray[rowsAffected];
 
 		int columnCount = rs.getNoOfColumns();
 		int rowIndex;
@@ -684,7 +694,7 @@ class InterfaceResultSet {
 		int byteLen = 0;
 		int maxRowLen = rs.connection_.ic_.getTransportBufferSize(); // maxRowLen
 
-		objectArray = new Object[columnCount];
+		columnArray = new Object[columnCount];
 
 		int dataLength = 0;
 
@@ -724,10 +734,10 @@ class InterfaceResultSet {
 					}
 				} // end if else
 
-				objectArray[columnIndex] = columnValue;
+				columnArray[columnIndex] = columnValue;
 			} // end for
 
-			rowArray[rowIndex] = new Row(columnCount, objectArray);
+			rowArray[rowIndex] = new ObjectArray(columnCount, columnArray);
 		}
 		rs.setFetchOutputs(rowArray, rowsAffected, endOfData);
 
@@ -878,12 +888,12 @@ class InterfaceResultSet {
 	static Object[] getExecute2Outputs(TrafT4Connection conn, HPT4Desc[] desc, byte[] values, boolean swap) throws SQLException
 
 	{
-		Object[] objectArray;
+		Object[] columnArray;
 		Object columnValue;
 		int columnIndex;
 		int columnCount = (desc == null) ? 0 : desc.length;
 
-		objectArray = new Object[columnCount];
+		columnArray = new Object[columnCount];
 
 		for (columnIndex = 0; columnIndex < columnCount; columnIndex++) {
 			int noNullValueOffset = desc[columnIndex].noNullValue_;
@@ -907,10 +917,10 @@ class InterfaceResultSet {
 				}
 			} // end if else
 
-			objectArray[columnIndex] = columnValue;
+			columnArray[columnIndex] = columnValue;
 		} // end for
 
-		return objectArray;
+		return columnArray;
 
 	} // end getExectue2Outputs
 

@@ -2908,10 +2908,16 @@ NABoolean JoinToTSJRule::topMatch (RelExpr * expr,
   if (NOT CURRSTMT_OPTDEFAULTS->isHashJoinConsidered() AND
       joinExpr->getEquiJoinPredicates().isEmpty())
      return TRUE;
-  else
+  else {
     // If nested joins are not allowed then say no.
     if (NOT CURRSTMT_OPTDEFAULTS->isNestedJoinConsidered())
       return FALSE;
+
+     // Nested join into ORC hive tables is not allowed unless ORC_NJS is on.
+     if ( joinExpr->child(1).getGroupAttr()->allHiveORCTables() &&
+          CmpCommon::getDefault(ORC_NJS) != DF_ON )
+        return FALSE;
+  }
 
   // nested Join is only used for cross products if the default
   // NESTED_JOIN_FOR_CROSS_PRODUCTS is ON

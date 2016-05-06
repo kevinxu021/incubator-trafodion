@@ -20,7 +20,7 @@ define(['handlers/EventDispatcher'],
 					window.location.hash = '/stimeout';
 				};
 
-				this.createLibrary = function(file, fileName, filePart, fileSize, schemaName, libraryName, sflag, eflag){
+				this.createLibrary = function(file, fileName, filePart, fileSize, schemaName, libraryName,oflag, sflag, eflag, uflag){
 					_this.fileSize=fileSize;
 					var fd = new FormData();
 					fd.append("file", file);
@@ -28,8 +28,10 @@ define(['handlers/EventDispatcher'],
 					fd.append("filePart", filePart);
 					fd.append("schemaName", schemaName);
 					fd.append("libraryName", libraryName);
+					fd.append("overwriteFlag", oflag);
 					fd.append("startFlag", sflag);
 					fd.append("endFlag", eflag);
+					fd.append("updateFlag", uflag);
 					
 					var xhr = xhrs["create_library"];
 					if(xhr && xhr.readyState !=4){

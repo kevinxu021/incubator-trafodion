@@ -75,7 +75,7 @@ extern void setUpClusterInfo(CollHeap* heap);
 #define MAX_NUM_SMPS_NSK  16     // number of SMPs in the cluster for NSK
 #define MAX_NUM_SMPS_SQ   512    // number of CPUs in the cluster for SQ
 //<pb>
-
+ULng32 clusterNumHashFunc(const CollIndex& num);
 
 //used to encapsulate dp2 names
 class DP2name : public NABasicObject

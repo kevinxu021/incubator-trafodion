@@ -545,7 +545,7 @@ EVENTDATA_TABLE eventDataMap[] =
    NULL, NULL, NULL, NULL, NULL, NULL },
 
 {ZMXO_EVT_NSK_ERR,
-   "A NonStop Process Service error <4> has occurred. \n",
+   "A process service error <4> has occurred. \n",
 
 
 
@@ -1246,7 +1246,7 @@ EVENTDATA_TABLE eventDataMap[] =
    NULL, NULL, NULL, NULL, NULL, NULL },
 
 {ZMXO_EVT_CS_NSK_ERR,
-   "A NonStop Process Service error <4> has occurred. \n",
+   "A process service error <4> has occurred. \n",
 
 
 

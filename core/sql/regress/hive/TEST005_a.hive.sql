@@ -69,8 +69,8 @@ create external table customer_temp
 row format delimited fields terminated by '|'
 location '/user/hive/exttables/customer_temp';
 
-drop table customer_bp;
-create table customer_bp
+drop table customer_p;
+create table customer_p
 (
     c_customer_sk             int,
     c_customer_id             string,
@@ -92,7 +92,6 @@ create table customer_bp
     c_last_review_date        string
 )
 partitioned by (c_preferred_cust_flag string)
-clustered by (c_customer_sk) sorted by (c_customer_sk) into 4 buckets
 row format delimited fields terminated by '|';
 
 drop table tbl_utf8;
@@ -239,3 +238,21 @@ create table hivepiso
 )
 partitioned by (p1 int, p2 string)
 stored as orc;
+
+drop table tbl_dos;
+CREATE  external TABLE  tbl_dos(
+   c1  int,
+   c2  int,
+   c3  int,
+   c4  string)
+row format delimited fields terminated by '|' 
+location '/user/hive/exttables/tbl_dos'
+;
+
+drop table tbl_dos_num;
+CREATE  external TABLE  tbl_dos_num(
+   c1  int,
+   c2  int)
+row format delimited fields terminated by '|' 
+location '/user/hive/exttables/tbl_dos_num'
+;

@@ -229,7 +229,8 @@ int HbaseAccess::createAsciiColAndCastExpr(Generator * generator,
                                            const NAType &givenType,
                                            ItemExpr *&asciiValue,
                                            ItemExpr *&castValue,
-                                           NABoolean isOrc)
+                                           NABoolean isOrc,
+                                           NABoolean srcIsInt32Varchar)
 {
   if (isOrc)
     return createAsciiColAndCastExprNative
@@ -253,40 +254,55 @@ int HbaseAccess::createAsciiColAndCastExpr(Generator * generator,
     }
 
   if (newGivenType->getTypeQualifier() == NA_CHARACTER_TYPE &&
-      (CmpCommon::getDefaultString(HIVE_FILE_CHARSET) == "GBK" || CmpCommon::getDefaultString(HIVE_FILE_CHARSET) == "gbk") && CmpCommon::getDefaultString(HIVE_DEFAULT_CHARSET) == "UTF8" )
-        needTranslate = TRUE;
-
+      (CmpCommon::getDefaultString(HIVE_FILE_CHARSET) == "GBK" || 
+       CmpCommon::getDefaultString(HIVE_FILE_CHARSET) == "gbk") 
+      && CmpCommon::getDefaultString(HIVE_DEFAULT_CHARSET) == "UTF8" )
+    needTranslate = TRUE;
+  
   // source ascii row is a varchar where the data is a pointer to the source data
   // in the hdfs buffer.
   NAType *asciiType = NULL;
   
   if (DFS2REC::isDoubleCharacter(newGivenType->getFSDatatype()))
-  {
-      asciiType =  new (h) SQLVarChar(sizeof(Int64)/2, newGivenType->supportsSQLnull(),
-				    FALSE, FALSE, newGivenType->getCharSet());
-  }
+    {
+      asciiType =  
+        new (h) SQLVarChar(sizeof(Int64)/2, newGivenType->supportsSQLnull(),
+                           FALSE, FALSE, newGivenType->getCharSet(),
+                           CharInfo::DefaultCollation,
+                           CharInfo::COERCIBLE,
+                           CharInfo::UnknownCharSet,
+                           (srcIsInt32Varchar ? sizeof(Int32) : 0));
+    }
   // set the source charset to GBK if HIVE_FILE_CHARSET is set
   // HIVE_FILE_CHARSET can only be empty or GBK
   else if (  needTranslate == TRUE )
-  {
-      asciiType =  new (h) SQLVarChar(sizeof(Int64)/2, newGivenType->supportsSQLnull(),
-                                      FALSE, FALSE, CharInfo::GBK);
-  }
-  else
-    asciiType = new (h) SQLVarChar(sizeof(Int64), newGivenType->supportsSQLnull());
-  if (asciiType)
     {
-      asciiValue = new (h) NATypeToItem(asciiType->newCopy(h));
-      castValue = new(h) Cast(asciiValue, newGivenType);
-      if (castValue)
-	{
-	  ((Cast*)castValue)->setSrcIsVarcharPtr(TRUE);
-
-	  if (newGivenType->getTypeQualifier() == NA_INTERVAL_TYPE)
-	    ((Cast*)castValue)->setAllowSignInInterval(TRUE);
-	}
-
+      asciiType =  
+        new (h) SQLVarChar(sizeof(Int64), newGivenType->supportsSQLnull(),
+                           FALSE, FALSE, CharInfo::GBK,
+                           CharInfo::DefaultCollation,
+                           CharInfo::COERCIBLE,
+                           CharInfo::UnknownCharSet,
+                           (srcIsInt32Varchar ? sizeof(Int32) : 0));
     }
+  else
+    {
+      asciiType = 
+        new (h) SQLVarChar(sizeof(Int64), newGivenType->supportsSQLnull(),
+                           FALSE, FALSE,
+                           CharInfo::DefaultCharSet,
+                           CharInfo::DefaultCollation,
+                           CharInfo::COERCIBLE,
+                           CharInfo::UnknownCharSet,
+                           (srcIsInt32Varchar ? sizeof(Int32) : 0));
+    }
+
+  asciiValue = new (h) NATypeToItem(asciiType->newCopy(h));
+  castValue = new(h) Cast(asciiValue, newGivenType);
+  ((Cast*)castValue)->setSrcIsVarcharPtr(TRUE);
+  
+  if (newGivenType->getTypeQualifier() == NA_INTERVAL_TYPE)
+    ((Cast*)castValue)->setAllowSignInInterval(TRUE);
 
   if (castValue && asciiValue)
     result = 1;
@@ -368,6 +384,8 @@ short FileScan::genForTextAndSeq(Generator * generator,
                                  Int32 &hdfsPort,
                                  NABoolean &useCursorMulti,
                                  NABoolean &doSplitFileOpt,
+                                 ComCompressionInfo *&genCompressionTypes,
+                                 Int16 &numCompressionTypes,
                                  ExpTupleDesc *partCols,
                                  int partColValuesLen,
                                  const HivePartitionAndBucketKey *hiveSearchKey)
@@ -376,6 +394,7 @@ short FileScan::genForTextAndSeq(Generator * generator,
 
   const HHDFSTableStats* hTabStats = 
     getIndexDesc()->getNAFileSet()->getHHDFSTableStats();
+  LIST(ComCompressionInfo) compressionTypes;
 
   const NABoolean isSequenceFile = hTabStats->isSequenceFile();
 
@@ -473,7 +492,21 @@ short FileScan::genForTextAndSeq(Generator * generator,
                               scanInfo[j].partition_->getPartIndex()),
                          partColValuesLen);
                 }
-	      
+
+              CollIndex compressionTypeIx = 
+                compressionTypes.index(file->getCompressionInfo());
+
+              if (compressionTypeIx == NULL_COLL_INDEX)
+                {
+                  compressionTypes.insert(file->getCompressionInfo());
+                  compressionTypeIx = 
+                    compressionTypes.index(file->getCompressionInfo());
+                }
+              GenAssert(compressionTypeIx != NULL_COLL_INDEX &&
+                        compressionTypeIx < 1000,
+                        "Wrong compression type or too many compression types");
+              hfi.compressionTypeIx_ = (Int16) compressionTypeIx;
+
 	      char * hfiInList = space->allocateAndCopyToAlignedSpace
 		((char*)&hfi, sizeof(HdfsFileInfo));
 
@@ -490,6 +523,17 @@ short FileScan::genForTextAndSeq(Generator * generator,
 
 	  hdfsFileRangeBeginList->insert(beginRangeInList);
 	  hdfsFileRangeNumList->insert(numRangeInList);
+
+          // generate a list of compression info objects
+          numCompressionTypes = compressionTypes.entries();
+          genCompressionTypes = reinterpret_cast<ComCompressionInfo *>(
+               space->allocateAlignedSpace(
+                    numCompressionTypes * sizeof(ComCompressionInfo)));
+
+          for (int i=0; i<numCompressionTypes; i++)
+            // use memcpy, not the assignment operator, since the target is uninitialized
+            // (e.g. missing the virtual table pointer)
+            memcpy(&genCompressionTypes[i], &compressionTypes[i], sizeof(ComCompressionInfo));
 	} // for nodemap
     } // if hive
   else
@@ -515,7 +559,8 @@ short FileScan::genForOrc(Generator * generator,
                           Int32 &hdfsPort,
                           ExpTupleDesc *partCols,
                           int partColValuesLen,
-                          const HivePartitionAndBucketKey *hiveSearchKey)
+                          const HivePartitionAndBucketKey *hiveSearchKey,
+                          Int32 isForFastAggr)
 {
   Space * space          = generator->getSpace();
 
@@ -536,10 +581,15 @@ short FileScan::genForOrc(Generator * generator,
     emptyScan = TRUE;
   else 
     {
-      HiveNodeMapEntry* hEntry = (HiveNodeMapEntry*)(nmap->getNodeMapEntry(0));
-      LIST(HiveScanInfo)&  scanInfo = hEntry->getScanInfo();
+      int zeroCt = 0;
+      for (CollIndex i=0; i < nmap->getNumEntries(); i++ ) {
+        HiveNodeMapEntry* hEntry = (HiveNodeMapEntry*)(nmap->getNodeMapEntry(i));
+        LIST(HiveScanInfo)& scanInfo = hEntry->getScanInfo();
+        if (scanInfo.entries() == 0 )
+          zeroCt++;
+      }
       
-      if (scanInfo.entries() == 0)
+      if ( zeroCt && zeroCt == nmap->getNumEntries() )
         emptyScan = TRUE;
     }
 
@@ -547,6 +597,7 @@ short FileScan::genForOrc(Generator * generator,
   char * numRangeInList = NULL;
   Lng32 beginRangeNum = 0;
   Lng32 numRanges = 0;
+
 
   // If no scanInfo entries are specified, then scan all rows.
   if (emptyScan)
@@ -567,8 +618,8 @@ short FileScan::genForOrc(Generator * generator,
           hfi.flags_ = 0;
           hfi.entryNum_ = 0;
 
-          hfi.startOffset_ = 1; // start at rownum 1.
-          hfi.bytesToRead_ = -1; // stop at last row.
+          hfi.startOffset_ = 0;         // start at offset 0.
+          hfi.bytesToRead_ = LLONG_MAX; // stop at maximal possible length.
           hfi.fileName_ = fnameInList;
 
           if (partColValuesLen > 0)
@@ -578,6 +629,8 @@ short FileScan::genForOrc(Generator * generator,
                      hiveSearchKey->getExplodedPartColValues(ps->getPartIndex()),
                      partColValuesLen);
             }
+
+          hfi.compressionTypeIx_ = -1; // not used for ORC
 
           char * hfiInList = space->allocateAndCopyToAlignedSpace
             ((char*)&hfi, sizeof(HdfsFileInfo));
@@ -605,6 +658,10 @@ short FileScan::genForOrc(Generator * generator,
         (mypart)))
     {
       Lng32 entryNum = 0;
+
+      NASet<NAString> stripeUsageMap(generator->wHeap(), 101);
+      stripeUsageMap.clear();
+
       for (CollIndex i=0; i < nmap->getNumEntries(); i++ )
 	{
 	  HiveNodeMapEntry* hEntry = (HiveNodeMapEntry*)(nmap->getNodeMapEntry(i));
@@ -617,6 +674,14 @@ short FileScan::genForOrc(Generator * generator,
 	    {
 	      HHDFSFileStats* file = scanInfo[j].file_;
 	      const char * fname = file->getFileName();
+
+              if ( isForFastAggr ) {
+                if (stripeUsageMap.contains(file->getFileName()) ) 
+                   continue;
+                else 
+                  stripeUsageMap.insert(file->getFileName());
+              }
+
 	      Int64 startRowNum = scanInfo[j].offset_; // start row num
 	      Int64 numRows = scanInfo[j].span_;    // num rows
 
@@ -644,6 +709,8 @@ short FileScan::genForOrc(Generator * generator,
                          partColValuesLen);
                 }
 	      
+              hfi.compressionTypeIx_ = -1; // not used for ORC
+
 	      char * hfiInList = space->allocateAndCopyToAlignedSpace
 		((char*)&hfi, sizeof(HdfsFileInfo));
 	      
@@ -1047,6 +1114,7 @@ short FileScan::codeGenForHive(Generator * generator)
   //   by making sure that the output ValueIds created during
   //   binding refer to the outputs of the move expression
   ValueIdList origExprVids;
+  NABoolean longVC = FALSE;
   for (int ii = 0; ii < (int)allHdfsVals.entries();ii++)
   {
     if (convertSkipList[ii] == 0)
@@ -1062,7 +1130,8 @@ short FileScan::codeGenForHive(Generator * generator)
 				    givenType,         // [IN] Actual type of HDFS column
 				    asciiValue,         // [OUT] Returned expression for ascii rep.
 				    castValue,        // [OUT] Returned expression for binary rep.
-                                    isOrc
+                                    isOrc,
+                                    TRUE // max src data len is sizeof(Int32)
                                     );
      
     GenAssert(res == 1 && asciiValue != NULL && castValue != NULL,
@@ -1083,8 +1152,15 @@ short FileScan::codeGenForHive(Generator * generator)
     orcRowLen += sizeof(Lng32);
     orcRowLen += givenType.getDisplayLength();
 
+    if ((DFS2REC::isAnyVarChar(givenType.getFSDatatype())) &&
+        (givenType.getTotalSize() > 1024))
+      longVC = TRUE;
   } // for (ii = 0; ii < allHdfsVals; ii++)
     
+  // use CIF if there are long varchars (> 1K length) and CIF has not
+  // been explicitly turned off.
+  if (longVC && (CmpCommon::getDefault(COMPRESSED_INTERNAL_FORMAT) != DF_OFF))
+    generator->setCompressedInternalFormat();
 
   // Add ascii columns to the MapTable. After this call the MapTable
   // has ascii values in the work ATP at index asciiTuppIndex.
@@ -1324,6 +1400,9 @@ short FileScan::codeGenForHive(Generator * generator)
   }
   NABoolean useCursorMulti = FALSE;
   NABoolean doSplitFileOpt = FALSE;
+  ComCompressionInfo *genCompressionTypes = NULL;
+  Int16 numCompressionTypes = 0;
+
 
   Queue * tdbListOfOrcPPI = NULL;
   if ((hTabStats->isTextFile()) || (hTabStats->isSequenceFile()))
@@ -1332,6 +1411,7 @@ short FileScan::codeGenForHive(Generator * generator)
                        hdfsFileInfoList, hdfsFileRangeBeginList, hdfsFileRangeNumList,
                        hdfsHostName, hdfsPort,
                        useCursorMulti, doSplitFileOpt,
+                       genCompressionTypes, numCompressionTypes,
                        part_cols_desc, partColRowLen, hiveSearchKey_);
     }
   else if (isOrc)
@@ -1447,15 +1527,28 @@ short FileScan::codeGenForHive(Generator * generator)
   // Try to get enough buffer space to hold twice as many records
   // as the up queue.
   //
-  // This should be more sophisticate than this, and should maybe be done
-  // within the buffer class, but for now this will do.
-  // 
+  
+  UInt32 FiveM = 5*1024*1024;
+
+  // If returnedrowlen > 5M, then set upqueue entries to 2.
+  if (returnedRowlen > FiveM)
+    upqueuelength = 2;
+
   ULng32 cbuffersize = 
     SqlBufferNeededSize((upqueuelength * 2 / numBuffers),
 			returnedRowlen);
   // But use at least the default buffer size.
   //
   buffersize = buffersize > cbuffersize ? buffersize : cbuffersize;
+
+  // Cap the buffer size at 5M and adjust upqueue entries.
+  // Do this only if returnrowlen is not > 5M
+  if ((returnedRowlen <= FiveM) && (buffersize > FiveM))
+    {
+      buffersize = FiveM;
+
+      upqueuelength = ((buffersize / returnedRowlen) * numBuffers)/2;
+    }
 
   // default value is in K bytes
   Int64 hdfsBufSize = 0;
@@ -1480,7 +1573,7 @@ if (hTabStats->isOrcFile())
 
   char * tablename = 
     space->AllocateAndCopyToAlignedSpace(GenGetQualifiedName(getIndexDesc()->getNAFileSet()->getFileSetName()), 0);
-
+  UInt32 hiveScanMode = CmpCommon::getDefaultLong(HIVE_SCAN_SPECIAL_MODE);
   // create hdfsscan_tdb
   ComTdbHdfsScan *hdfsscan_tdb = NULL;
   if (hTabStats->isOrcFile())
@@ -1508,6 +1601,7 @@ if (hTabStats->isOrcFile())
            hTabStats->getFieldTerminator(),   // columnDelimiter,
            hdfsBufSize,
            rangeTailIOSize,
+           partCols.entries(),
            tdbListOfOrcPPI,
            executorPredColsRecLength,
            returnedRowlen,
@@ -1554,10 +1648,13 @@ if (hTabStats->isOrcFile())
            hdfsFileRangeBeginList,
            hdfsFileRangeNumList,
            hdfsColInfoList,
+           genCompressionTypes,
+           numCompressionTypes,
            hTabStats->getRecordTerminator(),  // recordDelimiter
            hTabStats->getFieldTerminator(),   // columnDelimiter,
            hdfsBufSize,
            rangeTailIOSize,
+           partCols.entries(),
            executorPredColsRecLength,
            returnedRowlen,
            asciiRowLen,
@@ -1595,6 +1692,8 @@ if (hTabStats->isOrcFile())
   hdfsscan_tdb->setUseCursorMulti(useCursorMulti);
 
   hdfsscan_tdb->setDoSplitFileOpt(doSplitFileOpt);
+
+  hdfsscan_tdb->setHiveScanMode(hiveScanMode);
 
   NABoolean hdfsPrefetch = FALSE;
   if (CmpCommon::getDefault(HDFS_PREFETCH) == DF_ON)
@@ -2779,6 +2878,7 @@ short HbaseAccess::codeGen(Generator * generator)
   ValueIdArray encodedKeyExprVidArr(getIndexDesc()->getIndexKey().entries());
   const CollIndex numColumns = columnList.entries();
 
+  NABoolean longVC = FALSE;
   for (CollIndex ii = 0; ii < numColumns; ii++)
     {
      ItemExpr * col_node = ((columnList[ii]).getValueDesc())->getItemExpr();
@@ -2836,7 +2936,16 @@ short HbaseAccess::codeGen(Generator * generator)
      HbaseAccess_updateHbaseInfoNode(hbTsVIDlist, nac->getColName(), ii);
      HbaseAccess_updateHbaseInfoNode(hbVersVIDlist, nac->getColName(), ii);
 
+     if ((DFS2REC::isAnyVarChar(givenType.getFSDatatype())) &&
+          (givenType.getTotalSize() > 1024))
+        longVC = TRUE;
+
     } // for (ii = 0; ii < numCols; ii++)
+
+  // use CIF if there are long varchars (> 1K length) and CIF has not
+  // been explicitly turned off.
+  if (longVC && (CmpCommon::getDefault(COMPRESSED_INTERNAL_FORMAT) != DF_OFF))
+    generator->setCompressedInternalFormat();
 
   ValueIdList encodedKeyExprVids(encodedKeyExprVidArr);
 
@@ -3194,12 +3303,28 @@ short HbaseAccess::codeGen(Generator * generator)
   // This should be more sophisticate than this, and should maybe be done
   // within the buffer class, but for now this will do.
   // 
+  UInt32 FiveM = 5*1024*1024;
+
+  // If returnedrowlen > 5M, then set upqueue entries to 2.
+  UInt32 bufRowlen = MAXOF(convertRowLen, 1000);
+  if (bufRowlen > FiveM)
+    upqueuelength = 2;
+
   ULng32 cbuffersize = 
     SqlBufferNeededSize((upqueuelength * 2 / numBuffers),
-			1000); //returnedRowlen);
+			bufRowlen); //returnedRowlen);
   // But use at least the default buffer size.
   //
   buffersize = buffersize > cbuffersize ? buffersize : cbuffersize;
+
+  // Cap the buffer size at 5M and adjust upqueue entries.
+  // Do this only if returnrowlen is not > 5M
+  if ((bufRowlen <= FiveM) && (buffersize > FiveM))
+    {
+      buffersize = FiveM;
+
+      upqueuelength = ((buffersize / bufRowlen) * numBuffers)/2;
+    }
 
   Int32 computedHBaseRowSizeFromMetaData = getTableDesc()->getNATable()->computeHBaseRowSizeFromMetaData();
   if (computedHBaseRowSizeFromMetaData * getEstRowsAccessed().getValue()  <
@@ -3281,6 +3406,7 @@ short HbaseAccess::codeGen(Generator * generator)
                                 hbaseBlockSize,
                                 hbpa);
 
+  generator->setHBaseParallelScanner(hbpa);
 
   ComTdbHbaseAccess::ComHbaseAccessOptions * hbo = NULL;
   if (getOptHbaseAccessOptions())

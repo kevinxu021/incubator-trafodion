@@ -4905,7 +4905,7 @@ u1u1      u1u1
 >>create TRIGGER TRG1_cs310t90   before UPDATE on cs310t90   REFERENCING NEW as TRG  FOR EACH ROW
 +>       set TRG.UCS2_col2 = _ISO88591'abc' ;
 
-*** ERROR[4222] The DDL feature is not supported in this software version.
+*** ERROR[3131] The statement just entered is currently not supported.
 
 *** ERROR[8822] The statement was not prepared.
 
@@ -5011,14 +5011,14 @@ test333                                                                   test33
 >>--
 >>DROP TRIGGER TRG1_cs310t90;
 
-*** ERROR[4222] The DDL feature is not supported in this software version.
+*** ERROR[3131] The statement just entered is currently not supported.
 
 *** ERROR[8822] The statement was not prepared.
 
 >>create TRIGGER TRG1_cs310t90   before UPDATE on cs310t90   REFERENCING NEW as TRG  FOR EACH ROW
 +>       set TRG.ISO_col2 = _ucs2'abc' ;
 
-*** ERROR[4222] The DDL feature is not supported in this software version.
+*** ERROR[3131] The statement just entered is currently not supported.
 
 *** ERROR[8822] The statement was not prepared.
 
@@ -5174,7 +5174,7 @@ test666                                                                   test66
 >>create TRIGGER TRG1_cs310t91   before UPDATE on cs310t91   REFERENCING NEW as TRG  FOR EACH ROW
 +>       set TRG.UCS2_col2 = _ISO88591'abc' ;
 
-*** ERROR[4222] The DDL feature is not supported in this software version.
+*** ERROR[3131] The statement just entered is currently not supported.
 
 *** ERROR[8822] The statement was not prepared.
 
@@ -5280,14 +5280,14 @@ PRKY         UCS2_COL1                                                          
 >>--
 >>DROP TRIGGER TRG1_cs310t91;
 
-*** ERROR[4222] The DDL feature is not supported in this software version.
+*** ERROR[3131] The statement just entered is currently not supported.
 
 *** ERROR[8822] The statement was not prepared.
 
 >>create TRIGGER TRG1_cs310t91   before UPDATE on cs310t91   REFERENCING NEW as TRG  FOR EACH ROW
 +>       set TRG.ISO_col2 = _ucs2'abc' ;
 
-*** ERROR[4222] The DDL feature is not supported in this software version.
+*** ERROR[3131] The statement just entered is currently not supported.
 
 *** ERROR[8822] The statement was not prepared.
 

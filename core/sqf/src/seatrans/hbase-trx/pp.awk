@@ -1,4 +1,25 @@
-#  The following example has been tested to work.
+#
+# @@@ START COPYRIGHT @@@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+# @@@ END COPYRIGHT @@@
+##  The following example has been tested to work.
 #  If the file f1 contains the following, run this script
 #  as follows:    
 #   awk -f pp.awk -v distro=HDP2.3 f1 > f2
@@ -21,6 +42,12 @@
 #  #ifdef CDH1.0
 #  this is CDH specific code
 #  #endif
+#
+#   #ifdefined CDH5.5 || HDP2.3
+#   this is common CDH5.5 or HDP2.3
+#   #else
+#   this is anything other than CDH5.5 or HDP2.3 code
+#   #endif
 
 BEGIN{
 printline=1      #print current line or not.
@@ -30,6 +57,7 @@ ifdefpattern = "#ifdef"
 endifpattern = "#endif"
 elsepattern = "#else"
 ifndefpattern = "#ifndef"
+ifdefinedpattern = "#ifdefined"
 #distro passed in as argument
 }
 {
@@ -82,11 +110,13 @@ ifndefpattern = "#ifndef"
      {
        printline = 0
        matchBegun = 1
+       unmatchBegun = 0
      }
      else
      {
       printline = 0
       unmatchBegun = 1
+      matchBegun = 0
      }
    }
  if($0 ~ ifndefpattern)
@@ -95,13 +125,31 @@ ifndefpattern = "#ifndef"
     {
       printline = 0
       unmatchBegun = 1
+      matchBegun = 0
     }
     else
     {
      printline = 0
      matchBegun = 1
+     unmatchBegun = 0
     }
   }
+  if($0 ~ ifdefinedpattern)
+  {
+    if(($2 ~ distro) || ($4 ~ distro))
+    {
+      printline = 0
+      matchBegun = 1
+      unmatchBegun = 0
+    }
+    else
+    {
+      printline = 0
+      unmatchBegun = 1
+      matchBegun = 0
+    }
+  }
+
 ######################
 # This section is final printing based on flags
 ######################

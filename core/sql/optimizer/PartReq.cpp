@@ -1233,7 +1233,7 @@ PartitioningFunction * RequireApproximatelyNPartitions::realize(
        case 2:
 
 /*
-         if (CmpCommon::getDefault(HIVE_USE_HASH2_AS_PARTFUNCION) == DF_OFF )
+         if (CmpCommon::getDefault(HIVE_USE_HASH2_AS_PARTFUNCTION) == DF_OFF )
             newPartFunc = new(CmpCommon::statementHeap())
               HivePartitioningFunction(partKey, partKey, numOfParts);
          else

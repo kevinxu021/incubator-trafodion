@@ -728,7 +728,7 @@ static const QueryString getAllVolatileTablesQuery[] =
   {" TRAFODION.\"_MD_\".OBJECTS O "},
   {" where O.schema_name like 'VOLATILE_SCHEMA_%%' "},
   {"           and (O.object_type = 'BT' or O.object_type = 'IX') "},
-  {"          order by 1,2 "},
+  {"          order by 1,2,3 "},
   {" for read uncommitted access "}
 };
 

@@ -345,6 +345,7 @@ struct NATableEntryDetails {
       char catalog[ComMAX_1_PART_INTERNAL_UTF8_NAME_LEN_IN_BYTES + 1]; // +1 for NULL byte
       char schema[ComMAX_1_PART_INTERNAL_UTF8_NAME_LEN_IN_BYTES + 1];
       char object[ComMAX_1_PART_INTERNAL_UTF8_NAME_LEN_IN_BYTES + 1];
+      int size;
 };
 
 // ***********************************************************************
@@ -568,7 +569,8 @@ public:
 
   const char *getViewCheck() const              { return viewCheck_; }
 
-  NABoolean hasSaltedColumn() const;
+  NABoolean hasSaltedColumn(Lng32 * saltColPos = NULL) const;
+  NABoolean hasDivisioningColumn(Lng32 * divColPos = NULL);
 
   void setUpdatable( NABoolean value )
   {  value ? flags_ |= IS_UPDATABLE : flags_ &= ~IS_UPDATABLE; }
@@ -742,6 +744,13 @@ public:
   {  value ? flags_ |= HAS_HIVE_EXT_TABLE : flags_ &= ~HAS_HIVE_EXT_TABLE; }
   NABoolean hasHiveExtTable() const
   {  return (flags_ & HAS_HIVE_EXT_TABLE) != 0; }
+  static const char *getNameOfInputFileCol()   { return "INPUT__FILE__NAME"; }
+  static const char *getNameOfBlockOffsetCol()
+                                     { return "BLOCK__OFFSET__INSIDE__FILE"; }
+  static const char *getNameOfInputRangeCol()
+                                            { return "INPUT__RANGE__NUMBER"; }
+  static const char *getNameOfRowInRangeCol()
+                                          { return "ROW__NUMBER__IN__RANGE"; }
 
   const CheckConstraintList &getCheckConstraints() const
                                                 { return checkConstraints_; }
@@ -961,11 +970,7 @@ private:
     IS_EXTERNAL_TABLE         = 0x00080000,
     HAS_EXTERNAL_TABLE        = 0x00100000,
     IS_HISTOGRAM_TABLE        = 0x00200000,
-    
-    // synchronize transactions across multiple clusters for this table
-    SYNC_XN                   = 0x00080000,
-
-    HAS_HIVE_EXT_TABLE        = 0x00100000
+    HAS_HIVE_EXT_TABLE        = 0x00400000
   };
     
   UInt32 flags_;
@@ -1130,6 +1135,8 @@ private:
   // Caching stats
   UInt32 hitCount_;
   UInt32 replacementCounter_;
+  Int64  sizeInCache_;
+  NABoolean recentlyUsed_;
 
   COM_VERSION osv_;
   COM_VERSION ofv_;
@@ -1194,6 +1201,7 @@ private:
 #pragma warn(1506)  // warning elimination 
 
 struct NATableCacheStats {
+  char   contextType[8];
   ULng32 numLookups;  
   ULng32 numCacheHits;     
   ULng32 currentCacheSize;
@@ -1257,10 +1265,12 @@ public:
   NATable * get(CorrName& corrName, BindWA * bindWA,
                 desc_struct *inTableDescStruct);
 
-  enum QiScope { REMOVE_FROM_ALL_USERS = 100, REMOVE_MINE_ONLY };
-  void removeNATable(CorrName &corrName, QiScope qiScope, 
-                     ComObjectType ot);
-  
+  void removeNATable2(CorrName &corrName, ComQiScope qiScope, 
+                      ComObjectType ot);
+  void removeNATable(CorrName &corrName, ComQiScope qiScope, 
+                     ComObjectType ot, 
+                     NABoolean ddlXns, NABoolean atCommit);
+   
   void RemoveFromNATableCache( NATable * NATablep , UInt32 currIndx );
   static void remove_entries_marked_for_removal();
   static void unmark_entries_marked_for_removal();

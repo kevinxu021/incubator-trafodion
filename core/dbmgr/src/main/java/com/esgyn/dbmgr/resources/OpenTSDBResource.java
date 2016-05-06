@@ -48,8 +48,8 @@ public class OpenTSDBResource {
 	public String getGroupedByMetrics(ObjectNode obj, @Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 
-		if (!Helper.isEnterpriseEdition()) {
-			throw new EsgynDBMgrException("This feature is only supported in EsgynDB Enterprise Edition");
+		if (!Helper.isEnterpriseEdition() && !Helper.isAdvancedEdition()) {
+			throw new EsgynDBMgrException("This feature is only supported in EsgynDB Enterprise or Advanced Edition");
 		}
 
 		String metricName = "";
@@ -185,8 +185,8 @@ public class OpenTSDBResource {
 	public TreeMap<String, Object> getSummaryMetrics(ObjectNode obj, @Context HttpServletRequest servletRequest,
 			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {
 
-		if (!Helper.isEnterpriseEdition()) {
-			throw new EsgynDBMgrException("This feature is only supported in EsgynDB Enterprise Edition");
+		if (!Helper.isEnterpriseEdition() && !Helper.isAdvancedEdition()) {
+			throw new EsgynDBMgrException("This feature is only supported in EsgynDB Enterprise or Advanced Edition");
 		}
 
 		String metricName = "";
@@ -397,7 +397,8 @@ public class OpenTSDBResource {
 				metricValues = mapper.readValue(nodeValue, metricValues.getClass());
 				// Get the list of time keys once
 				if (timePoints == null) {
-					timePoints = metricValues.keySet().toArray(new String[0]);
+					if (metricValues.keySet().size() > 0)
+						timePoints = metricValues.keySet().toArray(new String[0]);
 				}
 				parsedMetrics.add(metricValues);
 			}

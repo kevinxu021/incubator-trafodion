@@ -2670,6 +2670,39 @@ void ExHdfsScanStats::init()
   maxHdfsIOTime_ = 0;
 }
 
+// Instrumentation help code begins
+void ExOperStats::done()
+{
+   char fname[100];
+   snprintf(fname, sizeof(fname), "Tdb-%s-Inst-%d.data", getTdbName(), getInstNum());
+   ofstream fileout(fname, ios::app);
+   fileout<<"actualRowsReturned="<< getActualRowsReturned() <<endl;
+   fileout.close();
+}
+
+void ExOperStats::addMessage(Lng32 len)
+{
+   char msg[100];
+   snprintf(msg, sizeof(msg), "%d", len);
+   addMessage(msg, strlen(msg));
+}
+
+void ExOperStats::addMessage(const char* msg)
+{
+   addMessage(msg, strlen(msg));
+}
+
+void ExOperStats::addMessage(const char* msg, Lng32 len)
+{
+   char fname[100];
+   snprintf(fname, sizeof(fname), "Tdb-%s-Inst-%d.data", getTdbName(), getInstNum());
+   ofstream fileout(fname, ios::app);
+   for ( int i=0; i<len; i++ )
+      fileout<< msg[i];
+   fileout.close();
+}
+// Instrumentation help code ends
+
 ExHdfsScanStats::~ExHdfsScanStats()
 {
   if (tableName_ != NULL)
@@ -10000,7 +10033,6 @@ void ExMasterStats::getVariableStatsInfo(char * dataBuffer,
           		  Lng32 maxLen)
 {
   char *buf = dataBuffer;
-  char transIdText[129];
   
   Int64 exeElapsedTime;
   Int64 compElapsedTime;
@@ -10027,10 +10059,6 @@ void ExMasterStats::getVariableStatsInfo(char * dataBuffer,
   }
   else
     exeElapsedTime = exeEndTime_ - exeStartTime_;
-  {
-    str_cpy_all(transIdText, "-1", 2);
-    transIdText[2] = '\0';
-  }
   short stmtState = stmtState_;
 
 #ifndef __EID
@@ -10045,7 +10073,7 @@ void ExMasterStats::getVariableStatsInfo(char * dataBuffer,
     "subqueryType: %s EstRowsAccessed: %f EstRowsUsed: %f compElapsedTime: %Ld "
     "exeElapsedTime: %Ld parentQid: %s parentQidSystem: %s childQid: %s "
     "rowsReturned: %Ld firstRowReturnTime: %Ld numSqlProcs: %d  numCpus: %d "
-    "exePriority: %d transId: %s suspended: %s lastSuspendTime: %Ld "
+    "exePriority: %d transId: %Ld suspended: %s lastSuspendTime: %Ld "
     "LastErrorBeforeAQR: %d AQRNumRetries: %d DelayBeforeAQR: %d "
     "reclaimSpaceCnt: %d "
     "blockedInSQL: %d blockedInClient: %d  lastActivity: %d "
@@ -10077,7 +10105,7 @@ void ExMasterStats::getVariableStatsInfo(char * dataBuffer,
               numSqlProcs_,
               numCpus_,
               exePriority_,
-              transIdText,
+              transId_,
               (isQuerySuspended_ ? "yes" : "no" ),
               querySuspendedTime_,
               aqrLastErrorCode_,
@@ -10100,7 +10128,7 @@ void ExMasterStats::getVariableStatsInfo(char * dataBuffer,
     "subqueryType: %d EstRowsAccessed: %f EstRowsUsed: %f compElapsedTime: %Ld "
     "exeElapsedTime: %Ld parentQid: %s parentQidSystem: %s childQid: %s "
     "rowsReturned: %Ld firstRowReturnTime: %Ld numSqlProcs: %d  numCpus: %d "
-    "exePriority: %d transId: %s suspended: %s lastSuspendTime: %Ld "
+    "exePriority: %d transId: %Ld suspended: %s lastSuspendTime: %Ld "
     "LastErrorBeforeAQR: %d AQRNumRetries: %d DelayBeforeAQR: %d reclaimSpaceCnt: %d "
     "blockedInSQL: %d blockedInClient: %d  lastActivity: %d "
                   "sqlSrcLen: %d sqlSrc: \"%s\"",
@@ -10131,7 +10159,7 @@ void ExMasterStats::getVariableStatsInfo(char * dataBuffer,
               numSqlProcs_,
               numCpus_,
               exePriority_,
-              transIdText,
+              transId_,
               (isQuerySuspended_ ? "yes" : "no" ),
               querySuspendedTime_,
               aqrLastErrorCode_,

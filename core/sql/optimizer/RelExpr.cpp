@@ -8131,12 +8131,14 @@ const NAString OrcPushdownAggr::getText() const
 
 RelExpr * OrcPushdownAggr::copyTopNode(RelExpr *derivedNode, CollHeap* outHeap)
 {
-  RelExpr *result;
+  OrcPushdownAggr *result;
 
   if (derivedNode == NULL)
-    result = new (outHeap) OrcPushdownAggr(aggregateExpr(), tableDesc_);
-  else
-    result = derivedNode;
+    result = new (outHeap) OrcPushdownAggr(aggregateExpr(), tableDesc_, hiveSearchKey_);
+  else  {
+    result = (OrcPushdownAggr*)derivedNode;
+    result->hiveSearchKey_ = hiveSearchKey_;
+  }
 
   return GroupByAgg::copyTopNode(result, outHeap);
 }
@@ -12802,7 +12804,7 @@ MergeUpdate::MergeUpdate(const CorrName &name,
 			 ItemExpr *where)
      : Update(name,tabId,otype,child,setExpr,NULL,oHeap),
        insertCols_(insertCols), insertValues_(insertValues),
-       where_(where),xformedUpsert_(FALSE)
+       where_(where), xformedUpsert_(FALSE)
 {
   setCacheableNode(CmpMain::BIND);
   
@@ -15588,7 +15590,7 @@ NABoolean GroupByAgg::decideFeasibleToTransformForAggrPushdown()
 {
   // if this is simple scalar aggregate on a seabase table
   //  (of the form:  select count(*) from t; )
-  // or aggrs count(*), min, max on orc table,
+  // or aggrs count(*), min, max, sum, orc_max_nv or orc_sum_nv on orc table,
   // then transform it so it could be evaluated by hbase coproc
   // or using ORC apis.
   NABoolean aggrPushdown = FALSE;
@@ -15651,6 +15653,8 @@ NABoolean GroupByAgg::decideFeasibleToTransformForAggrPushdown()
                      (ae->getOperatorType() == ITM_MIN) ||
                      (ae->getOperatorType() == ITM_MAX) ||
                      (ae->getOperatorType() == ITM_SUM) ||
+                     (ae->getOperatorType() == ITM_ORC_MAX_NV) ||
+                     (ae->getOperatorType() == ITM_ORC_SUM_NV) ||
                      (ae->getOperatorType() == ITM_COUNT_NONULL)))))
             {
               aggrPushdown = FALSE;
@@ -15684,5 +15688,5 @@ NABoolean GroupByAgg::decideFeasibleToTransformForAggrPushdown()
         }
     }
 
-   return aggrPushdown;
+  return aggrPushdown;
 }

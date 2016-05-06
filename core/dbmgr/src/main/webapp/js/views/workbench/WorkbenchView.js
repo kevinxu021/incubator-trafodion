@@ -53,12 +53,17 @@ define([
 	CONTROL_STMTS_TEXT = '#query-control-stmts',
 	QUERY_TEXT = '#query-text';
 
-	var _that = null;
+	var _this = null;
 	var queryTextEditor = null,
 	controlStmtEditor = null,
 	scalarResultEditor = null,
-	resultsDataTable = null;
-
+	resultsDataTable = null,
+	isPaused = false,
+	resultsAfterPause = false,
+	lastExecuteResult = null,
+	lastExplainResult = null,
+	lastRawError = null;
+	
 	$jit.ST.Plot.NodeTypes.implement({
 		'nodeline': {
 			'render': function(node, canvas, animating) {
@@ -94,14 +99,24 @@ define([
 		},
 
 		drawExplain: function (jsonData) {
-			_that.hideLoading();
+			if(jsonData.requestor !=null && jsonData.requestor != _this) //error message is probably for different page
+				return;
+			
+			if(isPaused){
+				resultsAfterPause = true;
+				lastExplainResult = jsonData;
+				var msgObj={msg:'The workbench query explain completed successfully.',tag:"success",url:_this.currentURL,shortMsg:"Workbench explain succeeded.",lastMessageOnly:true};
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+				return;
+			}
+			_this.hideLoading();
 			$(TEXT_RESULT_CONTAINER).show();
 			$(TEXT_RESULT).text(jsonData.planText);
 			$(EXPLAIN_TREE).empty();
 
 			//init Spacetree
 			//Create a new ST instance
-			st = common.generateExplainTree(jsonData, setRootNode, _that.showExplainTooltip, $(PRIMARY_RESULT_CONTAINER));
+			st = common.generateExplainTree(jsonData, setRootNode, _this.showExplainTooltip, $(PRIMARY_RESULT_CONTAINER));
 
 			//load json data
 			st.loadJSON(jsonData);
@@ -110,7 +125,7 @@ define([
 			$(EXPLAIN_TREE).show();
 			//emulate a click on the root node.
 			st.onClick(st.root);
-			_that.doResize();
+			_this.doResize();
 			//end
 		},
 		showExplainTooltip: function(nodeName, data){
@@ -127,7 +142,8 @@ define([
 			});
 		},
 		doInit: function () {
-			_that = this;
+			_this = this;
+			this.currentURL = window.location.hash;
 			$(TEXT_RESULT_CONTAINER).hide();
 			$(SCALAR_RESULT_CONTAINER).hide();
 			this.hideLoading();
@@ -174,6 +190,7 @@ define([
 				lineWrapping: true,
 				matchBrackets : true,
 				autofocus: true,
+				styleSelectedText: true,
 				extraKeys: {"Ctrl-Space": "autocomplete"}
 			});
 			$(queryTextEditor.getWrapperElement()).resizable({
@@ -187,7 +204,7 @@ define([
 				mode: 'text/x-esgyndb',
 				indentWithTabs: true,
 				smartIndent: true,
-				lineNumbers: true,
+				lineNumbers: false,
 				lineWrapping: true,
 				matchBrackets : true,
 				autofocus: true,
@@ -207,7 +224,7 @@ define([
 				mode: 'text/x-esgyndb',
 				indentWithTabs: true,
 				smartIndent: true,
-				lineNumbers: true,
+				lineNumbers: false,
 				lineWrapping: true,
 				matchBrackets : true,
 				autofocus: true,
@@ -244,17 +261,30 @@ define([
 			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 		},
 		doResume: function(){
-			serverHandler.on(serverHandler.WRKBNCH_EXECUTE_SUCCESS, this.displayResults);
-			serverHandler.on(serverHandler.WRKBNCH_EXECUTE_ERROR, this.showErrorMessage);
-			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
-			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
+			this.currentURL = window.location.hash;
+			this.redirectFlag=false;
+			isPaused = false;
+			if(resultsAfterPause == true){
+				if(lastExecuteResult != null){
+					_this.displayResults(lastExecuteResult);
+				}else if (lastExplainResult != null){
+					_this.drawExplain(lastExplainResult);
+				}else if (lastRawError != null){
+					_this.showErrorMessage(lastRawError);
+				}
+			}
+			//serverHandler.on(serverHandler.WRKBNCH_EXECUTE_SUCCESS, this.displayResults);
+			//serverHandler.on(serverHandler.WRKBNCH_EXECUTE_ERROR, this.showErrorMessage);
+			//serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
+			//serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 		},
 		doPause:  function(){
-			this.hideLoading();
-			serverHandler.off(serverHandler.WRKBNCH_EXECUTE_SUCCESS, this.displayResults);
-			serverHandler.off(serverHandler.WRKBNCH_EXECUTE_ERROR, this.showErrorMessage);
-			serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
-			serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
+			isPaused = true;
+			//this.hideLoading();
+			//serverHandler.off(serverHandler.WRKBNCH_EXECUTE_SUCCESS, this.displayResults);
+			//serverHandler.off(serverHandler.WRKBNCH_EXECUTE_ERROR, this.showErrorMessage);
+			//serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
+			//serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
 		},
 		onRelayout: function () {
 			this.onResize();
@@ -304,6 +334,11 @@ define([
 			}
 		},
 		clearAll: function(){
+			resultsAfterPause = false;
+			lastExecuteResult = null;
+			lastExplainResult = null;
+			lastRawError = null;	
+			
 			$(EXPLAIN_TREE).hide();
 			$(ERROR_TEXT).hide();
 			$(QUERY_RESULT_CONTAINER).hide();
@@ -335,16 +370,25 @@ define([
 			}
 		},
 		explainQuery: function () {
+			resultsAfterPause = false;
+			lastExecuteResult = null;
+			lastExplainResult = null;
+			lastRawError = null;
+			
 			var queryText = $(QUERY_TEXT).val();
-			if(queryTextEditor)
-				queryText = queryTextEditor.getValue();
+			if(queryTextEditor){
+				queryText = queryTextEditor.getSelection();
+				if(queryText.length == 0){
+					queryText = queryTextEditor.getValue();
+				}
+			}
 
 			if(queryText == null || queryText.length == 0){
 				alert('Query text cannot be empty.');
 				return;
 			}
 
-			_that.parseControlStmts();
+			_this.parseControlStmts();
 
 			$(EXPLAIN_TREE).hide();
 			$(ERROR_TEXT).hide();
@@ -353,22 +397,31 @@ define([
 			$(SCALAR_RESULT_CONTAINER).hide();        	
 			var param = {sQuery : queryText, sControlStmts: controlStmts};
 
-			_that.showLoading();
-			serverHandler.explainQuery(param);
+			_this.showLoading();
+			serverHandler.explainQuery(param, _this);
 		},
 
 		executeQuery: function () {
+			lastExecuteResult = null;
+			lastExplainResult = null;
+			resultsAfterPause = false;
+			lastRawError = null;
+			
 			var queryText = $(QUERY_TEXT).val();
-			if(queryTextEditor)
-				queryText = queryTextEditor.getValue();
+			if(queryTextEditor){
+				queryText = queryTextEditor.getSelection();
+				if(queryText.length == 0){
+					queryText = queryTextEditor.getValue();
+				}
+			}
 
 			if(queryText == null || queryText.length == 0){
 				alert('Query text cannot be empty.');
 				return;
 			}
-			_that.parseControlStmts();
+			_this.parseControlStmts();
 
-			_that.showLoading();
+			_this.showLoading();
 			$(EXPLAIN_TREE).hide();
 			$(ERROR_TEXT).hide();
 			$(TEXT_RESULT_CONTAINER).hide();
@@ -383,7 +436,16 @@ define([
 		},
 
 		displayResults: function (result){
-			_that.hideLoading();
+			
+			if(isPaused){
+				resultsAfterPause = true;
+				lastExecuteResult = result;
+				var msgObj={msg:'The workbench query execution completed successfully.',tag:"success",url:_this.currentURL,shortMsg:"Workbench execute succeeded.",lastMessageOnly:true};
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+				return;
+			}
+			_this.hideLoading();
+			
 			var keys = result.columnNames;
 			if(result.isScalarResult != null && result.isScalarResult == true){
 				$(SCALAR_RESULT_CONTAINER).show();
@@ -428,7 +490,7 @@ define([
 						buttons: [
 		                           { extend : 'copy', exportOptions: { columns: ':visible' } },
 		                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-		                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+		                           //{ extend : 'excel', exportOptions: { columns: ':visible' } },
 		                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 		                        	   title: 'Query Workbench' } ,
 		                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Query Workbench' }
@@ -440,7 +502,17 @@ define([
 		},
 
 		showErrorMessage: function (jqXHR) {
-			_that.hideLoading();
+			if(jqXHR.requestor !=null && jqXHR.requestor != _this) //error message is probably for different page
+				return;
+			
+			if(isPaused){
+				resultsAfterPause = true;
+				lastRawError = jqXHR;
+				var msgObj={msg:'The workbench operation failed.',tag:"danger",url:_this.currentURL,shortMsg:"Workbench operation failed.",lastMessageOnly:true};
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+				return;
+			}
+			_this.hideLoading();
 			$(EXPLAIN_TREE).hide();
 			$(QUERY_RESULT_CONTAINER).hide();
 			$(TEXT_RESULT_CONTAINER).hide();

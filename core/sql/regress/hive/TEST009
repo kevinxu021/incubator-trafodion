@@ -46,6 +46,7 @@ exit;
 
 -- remove messed up table
 cleanup table "_HV_SCH_T009_".t009t1;
+
 -- remove schemas from Trafodion
 drop schema if exists "_HV_HIVE_" cascade;
 drop schema if exists "_HV_SCH_T009_" cascade;
@@ -54,6 +55,11 @@ drop schema if exists hive_t009 cascade;
 -- remove data from hdfs
 sh regrhadoop.ksh fs -rm   /user/hive/exttables/t009t1/*;
 sh regrhadoop.ksh fs -rm   /user/hive/exttables/t009t2/*;
+
+-- Remove external hive tables used by this test
+drop external table if exists customer for hive.hive.customer;
+drop external table if exists item for hive.hive.item;
+drop external table if exists promotion for hive.hive.promotion;
 
 -- drop hbase tables
 drop schema if exists "_HB__ROW__" cascade;
@@ -69,6 +75,8 @@ drop schema "_HIVESTATS_" cascade;
 cleanup table "_HB__CELL__".t028tbl1;
 drop schema "_HB__CELL__" cascade;
 reset parserflags 131072;
+
+cqd hive_use_ext_table_attrs 'ON';
  
 ?section create_db
 
@@ -78,14 +86,10 @@ reset parserflags 131072;
 sh regrhive.ksh -v -f $REGRTSTDIR/TEST009_a.hive.sql &> $REGRRUNDIR/LOG009_a.hive.log;
 sh regrhbase.ksh $REGRTSTDIR/TEST009_create_hbase_objects.hbase &> $REGRRUNDIR/LOG009_create_hbase_tables.log ;
 
--- make sure external schemas exist in Trafodion
-execute get_hv_schemas;
-execute get_hb_schemas;
-
 ?section set_up
 prepare get_hv_schemas from
 select schema_name from "_MD_".objects
-where schema_name like '_HV_%' and object_type = 'PS';
+where schema_name in ('_HV_HIVE_', '_HV_SCH_T009_') and object_type = 'PS';
 
 prepare get_hb_schemas from
 select schema_name from "_MD_".objects
@@ -97,7 +101,7 @@ create external table customer for hive.hive.customer;
 create external table item for hive.hive.item;
 create external table promotion for hive.hive.promotion;
 
--- should create an schema called "_HV_HIVE_"
+-- should see a schema called "_HV_HIVE_"
 execute get_hv_schemas;
 
 -- Verify tables were created
@@ -130,7 +134,6 @@ create table hive_customer like hive.hive.customer;
 create table newtable1 like hive.hive.customer;
 create table newtable2 like customer;
 create table newtable3 (a int);
-get tables;
 
 -- test creates with a different default schema
 create schema hive_t009;
@@ -141,10 +144,11 @@ create table hive_customer like hive.hive.customer;
 create table newtable1 like hive.hive.customer;
 create external table seabase.customer like hive.hive.customer;
 create external table customer1 like hive.hive.customer;
-create table t009t1 like "_HV_SCH_T009_".t009t1;
 create table t009t2 as select * from "_HV_SCH_T009_".t009t2;
 
 -- this create succeeds
+create table t009t1 like "_HV_SCH_T009_".t009t1;
+drop table t009t1;
 create table t009t1 as select * from hive.sch_t009.t009t1;
 
 get tables;
@@ -170,12 +174,14 @@ sh sqlci -i "TEST009(select_stmts)";
 select catalog_name, schema_name, object_name from table(natablecacheentries('user','local')) order by 1,2,3;
 drop external table t009t1 for hive.sch_t009.t009t1;
 get tables in schema "_HV_SCH_T009_";
-select * from table(natablecacheentries('user','local')) order by 2,3,4;
+select row_id, catalog_name, schema_name, object_name from table(natablecacheentries('user','local')) order by 2,3,4;
 create external table t009t1 for hive.sch_t009.t009t1;
+invoke hive.sch_t009.t009t1;
+showddl trafodion."_HV_SCH_T009_".t009t1;
 
 -- select should now succeed
 select count(*) from hive.sch_t009.t009t1;
-
+select * from hive.sch_t009.t009t1;
 ?section select_stmts
 log LOG009;
 select * from hive.sch_t009.t009t1;

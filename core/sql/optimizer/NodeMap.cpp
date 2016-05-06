@@ -35,6 +35,7 @@
 #include "opt.h"
 #include <string.h>
 #include <stdio.h>
+#include <queue>
 #include "cextdecs/cextdecs.h"
 
 #include "OptimizerSimulator.h"
@@ -2156,6 +2157,13 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
       Int64 *espDistribution = new(CmpCommon::statementHeap()) Int64[numESPs];
       Int32 numSQNodes = HHDFSMasterHostList::getNumSQNodes();
 
+      if (numSQNodes == 0)
+        {
+          HHDFSMasterHostList::initializeWithSeaQuestNodes();
+          numSQNodes = HHDFSMasterHostList::getNumSQNodes();
+          CMPASSERT(numSQNodes > 0);
+        }
+
       for (Int32 k=0; k < numESPs; k++)
         {
           espDistribution[k] = 0;
@@ -2197,6 +2205,7 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
 
       // get the first entry.
       HiveNodeMapEntry* entry = (HiveNodeMapEntry*)nmi.getEntry();
+      Int64 filled = 0;
 
       while ( hiveSearchKey->getNextFile(i))
         {
@@ -2204,7 +2213,8 @@ void NodeMap::assignScanInfos(HivePartitionAndBucketKey *hiveSearchKey)
           b = (HHDFSBucketStats*)i.getBucketStats();
           f = (HHDFSFileStats*)i.getFileStats();
 
-          f->assignToESPs(&nmi, entry, totalBytesPerESP, numOfBytesToRead, p);
+          f->assignToESPs(&nmi, entry, totalBytesPerESP, numOfBytesToRead, p, 
+			  filled);
         } // while
 
         printToLog(DEFAULT_INDENT, "NodeMap for non-locality assignment");
@@ -2287,9 +2297,14 @@ void NodeMap::balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
                           // don't support ScanInfos for multiple blocks
                           CMPASSERT(span <= fs->getBlockSize());
 
+                          // can we split this block (could later make this
+                          // dependent on offsets for splittable compressed files)
+                          NABoolean canSplitThisBlock =
+                            (splitBlocks && fs->splitsAllowed());
+
                           // check whether moving this block to the
                           // target ESP would keep the recipient at or below average
-                          if (splitBlocks ||
+                          if (canSplitThisBlock ||
                               espDistribution[recipient] + span <= targetBytes)
                             {
                               // yes, whole or partial block move
@@ -2319,7 +2334,7 @@ void NodeMap::balanceScanInfos(HivePartitionAndBucketKey *hiveSearchKey,
                                       // all or part of the ScanInfo over.
 
                                       Int64 numBytesToMove = span;
-                                      if (splitBlocks)
+                                      if (canSplitThisBlock)
                                         numBytesToMove =
                                           MINOF(
                                                MINOF(espDistribution[e]-targetBytes,
@@ -2699,3 +2714,97 @@ void HiveNodeMapEntry::addOrUpdateScanInfo(HiveScanInfo info, Int64 filled)
         addScanInfo(info, filled);
    }
 }
+
+void NodeMap::assignScanInfosRepN(HivePartitionAndBucketKey *hiveSearchKey)
+{
+  CMPASSERT(type_ == HIVE);
+
+  // Let each ESP have all the data. 
+  HHDFSListPartitionStats * p = NULL;
+  HHDFSBucketStats        * b = NULL;
+  HHDFSFileStats          * f = NULL;
+
+  HiveNodeMapEntry *entry= NULL;
+
+  for (CollIndex j=0; j<getNumEntries(); j++ ) {
+    entry =(HiveNodeMapEntry*)getNodeMapEntry(j);
+
+    HiveFileIterator i; 
+    while (hiveSearchKey->getNextFile(i))
+      {
+          p = (HHDFSListPartitionStats*)i.getPartStats();
+          b = (HHDFSBucketStats*)i.getBucketStats();
+          f = (HHDFSFileStats*)i.getFileStats();
+
+          f->assignToESPsRepN(entry, p);
+      }
+    } 
+}
+
+// Assign each HDFS file to one ESP
+void NodeMap::assignScanInfosNoSplit(HivePartitionAndBucketKey *hiveSearchKey)
+{
+  CMPASSERT(type_ == HIVE);
+
+  // Let each ESP have all the data. 
+  HHDFSListPartitionStats * p = NULL;
+  HHDFSBucketStats        * b = NULL;
+  HHDFSFileStats          * f = NULL;
+
+  HiveNodeMapEntry *entry= NULL;
+
+
+  // Use a priorty queue to sort the filestats in decending
+  // order of total size.
+  std::priority_queue<HiveFileIterator, 
+                      vector<HiveFileIterator>, 
+                      CompareHiveFileIterator> fileStatsQueue;
+  HiveFileIterator i; 
+  while (hiveSearchKey->getNextFile(i))
+  {
+/*
+     p = (HHDFSListPartitionStats*)i.getPartStats();
+     b = (HHDFSBucketStats*)i.getBucketStats();
+     f = (HHDFSFileStats*)i.getFileStats();
+*/
+     fileStatsQueue.push(i);
+  }
+
+
+  // Add all nodeMap into another priority queue. We always pick the
+  // entry with least total number of filled bytes to fill.
+  std::priority_queue<HiveNMEntryPtr, 
+                      vector<HiveNMEntryPtr>, 
+                      CompareHiveNMEntryPtr> hiveNodeMapEntryQueue;
+
+  for (CollIndex j=0; j<getNumEntries(); j++ ) {
+    entry =(HiveNodeMapEntry*)getNodeMapEntry(j);
+    hiveNodeMapEntryQueue.push(entry);
+  } 
+
+  // dequeue from fileStatsQueue
+  while (!fileStatsQueue.empty() )
+  {
+     // pop off the iterator of the file stats with the largest total size.
+     i = fileStatsQueue.top();
+     fileStatsQueue.pop();
+
+     // pop off the top node map entry of the least # of bytes filled.
+     entry = (HiveNodeMapEntry*)hiveNodeMapEntryQueue.top();
+     hiveNodeMapEntryQueue.pop();
+
+     f = (HHDFSFileStats*)i.getFileStats();
+     f->assignToESPsNoSplit(entry, i.getPartStats());
+
+     // push the entry with updated total # of filled bytes back 
+     // to the queue.
+     hiveNodeMapEntryQueue.push(entry);
+  }
+}
+
+bool 
+CompareHiveNMEntryPtr::operator()(HiveNMEntryPtr& t1, HiveNMEntryPtr& t2)
+{
+   return (t1->getFilled() > t2->getFilled());
+}
+

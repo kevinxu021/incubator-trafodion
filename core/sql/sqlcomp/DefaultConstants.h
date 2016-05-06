@@ -2335,6 +2335,11 @@ enum DefaultConstants
   // Percentage of intervals to be used for representing gaps.
   USTAT_GAP_PERCENT,
 
+  // Controls whether to query Hive ORC column statistics whe constructing
+  // fake histograms for ORC files (and therefore creating a less fake
+  // histogram)
+  USTAT_GENERATE_ORC_HISTOGRAM,
+
   // Create a separate interval in a column's histogram for any distinct value
   // that has a frequency exceeding this percentage of the total row count for
   // the table.
@@ -3297,6 +3302,7 @@ enum DefaultConstants
 
   LOB_HDFS_SERVER,
   LOB_HDFS_PORT,
+  LOB_GC_LIMIT_SIZE,
 
   // Should the DISK POOL be turned on when replicating the DDL using COPY DDL
   REPLICATE_DISK_POOL,
@@ -3375,7 +3381,7 @@ enum DefaultConstants
   HDFS_IO_RANGE_TAIL,
   HIVE_METADATA_REFRESH_INTERVAL,
 
-  HIVE_USE_HASH2_AS_PARTFUNCION,
+  HIVE_USE_HASH2_AS_PARTFUNCTION,
 
   MODE_SEAHIVE,
   HIVE_CATALOG,
@@ -3551,7 +3557,6 @@ enum DefaultConstants
   
   TRAF_UPSERT_ADJUST_PARAMS,
   TRAF_UPSERT_WB_SIZE,
-  TRAF_UPSERT_AUTO_FLUSH,
   TRAF_UPSERT_WRITE_TO_WAL,
   TRAF_LOAD_PREP_ADJUST_PART_FUNC,
   TRAF_LOAD_PREP_TMP_LOCATION,
@@ -3765,7 +3770,7 @@ enum DefaultConstants
   // costing code has broader exposure.
   HBASE_DELETE_COSTING,
   HBASE_UPDATE_COSTING,
-  TRAF_LOAD_FLUSH_SIZE_IN_KB,
+  TRAF_LOAD_ROWSET_SIZE,
 
   // turn hbase visibility feature on or off.
   HBASE_VISIBILITY,
@@ -3811,13 +3816,14 @@ enum DefaultConstants
   // vectorized rows batch scan
   ORC_VECTORIZED_SCAN,
 
-  // use info from external table created on this orc table
-  ORC_USE_EXT_TABLE_ATTRS,
+  // use info from external table created on this hive table
+  HIVE_USE_EXT_TABLE_ATTRS,
 
   // include Hive virtual cols in DESCRIBE
   HIVE_DESCRIBE_VIRT_COLS,
   // Hive partition elimination at compile/run time
   HIVE_PARTITION_ELIMINATION_CT,
+  HIVE_PARTITION_ELIMINATION_MM,
   HIVE_PARTITION_ELIMINATION_RT,
   USTAT_COLLECT_VIRT_COL_STATS,
   HIVE_EXT_TABLE_INCLUDE_VIRT_COLS,
@@ -3826,6 +3832,34 @@ enum DefaultConstants
   // If this cqd is on, then other alters (name, datatype) are also supported.
   TRAF_ALTER_COL_ATTRS,
 
+  // Controls the behavior of upsert - MERGE, REPLACE, OPTIMAL
+  TRAF_UPSERT_MODE,
+  // if set, let users create system reserved names. Default is OFF.
+  // This cqd should only be used to debug or if system column names are
+  // REALLY needed by users.
+  // Currently syskey, _salt_, _division_.
+  TRAF_ALLOW_RESERVED_COLNAMES,
+
+  // enable/disable NJs into ORC tables
+  ORC_NJS,
+
+  // max # of open partitions/TCB for a partitioned Hive insert
+  FAST_EXTRACT_MAX_PARTITIONS,
+
+  HIVE_USE_PERSISTENT_KEY,
+  HIVE_USE_SORT_COLS_IN_KEY,
+
+  ORC_READ_STRIPE_INFO,
+  //if 0, regular scanner is used. From 0.x to 1.0, percentage of regions that need to be scanned that will be done in parallel.
+  //if >= 2, set a fixed number of thread, real DOP. 2.0 2 thread, 3.0 3 thread etc.
+  HBASE_DOP_PARALLEL_SCANNER,
+
+  // bitmap to control various special behavior of HIVE_SCAN
+  //   // 1 : DOS FORMAT conversion on
+  //     // 2 : todo
+  HIVE_SCAN_SPECIAL_MODE,
+  HIVE_HDFS_STATS_MAX_SAMPLE_FILES,
+  HIVE_HDFS_STATS_SAMPLE_LOB_INTFC,
   // This enum constant must be the LAST one in the list; it's a count,
   // not an Attribute (it's not IN DefaultDefaults; it's the SIZE of it)!
   __NUM_DEFAULT_ATTRIBUTES
@@ -3916,6 +3950,7 @@ enum DefaultToken {
  DF_MEASURE,
  DF_MEDIUM,
  DF_MEDIUM_LOW,
+ DF_MERGE,
  DF_MINIMUM,
  DF_MMAP,
  DF_MULTI_NODE,
@@ -3926,6 +3961,7 @@ enum DefaultToken {
  DF_ON,
  DF_OPENS_FOR_WRITE,
  DF_OPERATOR,
+ DF_OPTIMAL,
  DF_ORDERED,
  DF_PERTABLE,
  DF_PRINT,
@@ -3937,6 +3973,7 @@ enum DefaultToken {
  DF_RELEASE,
  DF_REMOTE,
  DF_REPEATABLE_READ,
+ DF_REPLACE,
  DF_REPSEL,
  DF_RESOURCES,
  DF_RETURN,

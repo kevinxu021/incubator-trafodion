@@ -115,7 +115,7 @@ class CmpSeabaseDDLauth
      void setAuthValid       (bool isValid)
        {authValid_ = isValid;}
 
-     void createStandardAuth (
+     bool createStandardAuth (
         const std::string authName,
         const int32_t authID);
 
@@ -200,7 +200,7 @@ class CmpSeabaseDDLrole : public CmpSeabaseDDLauth
 
      void createRole(StmtDDLCreateRole * pNode);
         
-     void createStandardRole(
+     bool createStandardRole(
         const std::string authName,
         const int32_t authID);
         

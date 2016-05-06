@@ -1,11 +1,6 @@
 package com.esgyn.dbmgr.resources;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -21,15 +16,16 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
+import com.esgyn.dbmgr.common.Helper;
 import com.esgyn.dbmgr.common.JdbcHelper;
 import com.esgyn.dbmgr.model.Session;
 import com.esgyn.dbmgr.model.SessionModel;
+import com.esgyn.dbmgr.sql.SystemQueryCache;
 import com.sun.jersey.multipart.FormDataParam;
 
 @Path("/tools")
@@ -40,109 +36,143 @@ public class ToolsResource {
 	@Path("/createlibrary")
 	@Consumes(MediaType.MULTIPART_FORM_DATA)
 	@Produces("application/json")
-	public boolean createlibrary(@FormDataParam("file") InputStream in, @FormDataParam("fileName") String fileName,
+	public boolean createOrUpdatelibrary(@FormDataParam("file") InputStream in, @FormDataParam("fileName") String fileName,
 			@FormDataParam("schemaName") String schemaName, @FormDataParam("filePart") String filePart,
-			@FormDataParam("libraryName") String libraryName, @FormDataParam("startFlag") boolean startFlag,
-			@FormDataParam("endFlag") boolean endFlag, @Context HttpServletRequest servletRequest,
-			@Context HttpServletResponse servletResponse) throws EsgynDBMgrException {	
+			@FormDataParam("libraryName") String libraryName, @FormDataParam("overwriteFlag") boolean overwriteFlag,
+			@FormDataParam("startFlag") boolean startFlag, @FormDataParam("endFlag") boolean endFlag,
+			@FormDataParam("updateFlag") boolean updateFlag,
+			@Context HttpServletRequest servletRequest, @Context HttpServletResponse servletResponse)
+					throws EsgynDBMgrException {
 		Session soc = SessionModel.getSession(servletRequest, servletResponse);
 		String url = ConfigurationResource.getInstance().getJdbcUrl();
+		Connection adminConnection = null;
 		Connection connection = null;
 		CallableStatement pc = null;
-		String stmt;
-		String schemaLibName = schemaName+"."+libraryName;
+		String query_text;
+		Statement stmt;
+		ResultSet rs = null;
+
+		String ansiLibName = schemaName + "." + libraryName;
 		int flag = 1;
-		/*
-		boolean libFlag = true;
-		if(startFlag){
-			//check library name whether exist at first chunk
-			try{
-				connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
-				//connection = JdbcHelper.getInstance().getAdminConnection();
-				Statement st = connection.createStatement();
-			    ResultSet rs = st.executeQuery("showddl library "+ schemaLibName+";");
-			    while(rs.next()){
-			    	rs.getObject(1);
-			    }
-			}catch(Exception e){
-				libFlag = false;
-			}
-			
-		}else{
-			flag = 0;
-		}
-		if(libFlag && startFlag){
-			throw  new EsgynDBMgrException("library already exist");
-		}
-		*/
-		if(startFlag){
+		if (startFlag) {
 			flag = 1;
-		}else{
+		} else {
 			flag = 0;
 		}
-		
+
 		try {
+			_LOG.info("**************");
+			adminConnection = connection = JdbcHelper.getInstance().getAdminConnection();
 			connection = DriverManager.getConnection(url, soc.getUsername(), soc.getPassword());
-			//save file
-			stmt = "{call DB__LIBMGR.put(?,?,?,?)}";
-			pc = connection.prepareCall(stmt);
+
+			// pre-check phase
+			String checkSchemaName = Helper.InternalForm(schemaName);
+			String checkLibraryName = Helper.InternalForm(libraryName);
+
+			query_text = String.format(SystemQueryCache.getQueryText(SystemQueryCache.CHECK_SCHEMA), checkSchemaName);
+			_LOG.info("Schema check:" + query_text);
+			stmt = adminConnection.createStatement();
+			rs = stmt.executeQuery(query_text);
+			if (!rs.next()) {//Schema does not exist
+				throw new EsgynDBMgrException("Schema " + schemaName + " does not exist");
+			}
+			query_text = String.format(SystemQueryCache.getQueryText(SystemQueryCache.CHECK_LIBRARY), checkSchemaName,
+					checkLibraryName);
+			_LOG.info("library check:" + query_text);
+			rs = stmt.executeQuery(query_text);
+
+			boolean libFound = false;
+			if (rs.next()) {
+				libFound = true;
+			}
+
+			// If library already exits, but we are not in update mode or
+			// overwrite mode, then error
+			if (libFound && !updateFlag) {
+				throw new EsgynDBMgrException("Library " + libraryName + " already exists");
+			}
+
+			// If library not found but we are trying to update it, then error
+			if (!libFound && updateFlag) {
+				throw new EsgynDBMgrException("Library " + libraryName + " does not exist");
+			}
+
+			// save file
+			query_text = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SPJ_PUT));
+			_LOG.debug(query_text);
+			pc = connection.prepareCall(query_text);
 			byte[] b = new byte[25600];
 			int len = -1;
 			int clen = 0;
 			int length = 0;
-			System.out.println("**************");
 			while ((len = in.read(b)) != -1) {
 				_LOG.info("file length: " + len);
 				String s = new String(b, 0, len, "ISO-8859-1");
 				clen = s.getBytes("ISO-8859-1").length;
 				pc.setString(1, new String(s.getBytes("ISO-8859-1"), "ISO-8859-1"));
-				pc.setString(2, new String(fileName.getBytes(),"UTF-8"));
+				pc.setString(2, new String(fileName.getBytes(), "UTF-8"));
 				pc.setInt(3, flag);
-				pc.setInt(4, 0); //0 overwrite, 1 throw exception when exist
+				pc.setInt(4, (overwriteFlag ? 0 : 1));
+				// 0 overwrite, 1 throw exception
 				long start = System.currentTimeMillis();
 				pc.execute();
 				long end = System.currentTimeMillis();
-				System.out.println("time:"+(end-start));
 				length += len;
-				System.out.println(length+";"+len+";"+flag);
 				if (flag == 1) {
 					flag = 0;
 				}
 			}
-			//create library
-			if(endFlag){
-				stmt = "{call DB__LIBMGR.addlib(?,?,null,null)}";
-				pc = connection.prepareCall(stmt);
-				pc.setString(1, new String(schemaLibName.getBytes(),"UTF-8"));
-				pc.setString(2, new String(fileName.getBytes(),"UTF-8"));
-				pc.execute();
-				System.out.println("create lib success");
+			// create library
+			if (endFlag) {
+				if (!updateFlag) {
+					query_text = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SPJ_ADDLIB));
+					_LOG.debug(query_text);
+					pc = connection.prepareCall(query_text);
+					pc.setString(1, new String(ansiLibName.getBytes(), "UTF-8"));
+					pc.setString(2, new String(fileName.getBytes(), "UTF-8"));
+					pc.execute();
+					_LOG.info("Create Library Success");
+				} else {
+					query_text = String.format(SystemQueryCache.getQueryText(SystemQueryCache.SPJ_ALTERLIB));
+					_LOG.debug(query_text);
+					pc = connection.prepareCall(query_text);
+					pc.setString(1, new String(ansiLibName.getBytes(), "UTF-8"));
+					pc.setString(2, new String(fileName.getBytes(), "UTF-8"));
+					pc.execute();
+					_LOG.info("Alter Library Success");
+				}
 			}
-			
+
 		} catch (SQLException e) {
-			e.printStackTrace();
-			throw new EsgynDBMgrException(e.getMessage());
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-			throw new EsgynDBMgrException(e.getMessage());
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new EsgynDBMgrException(e.getMessage());
+			_LOG.error(e.getMessage());
+			String message = e.getMessage();
+			int eIndex = message.lastIndexOf("*** ERROR[");
+			if (eIndex > -1) {
+				message = message.substring(eIndex);
+			}
+			eIndex = message.lastIndexOf("java.sql.SQLException:");
+			if (eIndex > -1) {
+				message = message.substring(eIndex + "java.sql.SQLException:".length());
+			}
+			throw new EsgynDBMgrException(message);
 		} catch (Exception e) {
-			e.printStackTrace();
+			_LOG.error(e.getMessage());
 			throw new EsgynDBMgrException(e.getMessage());
-		}finally{
-			try{
-				if(in != null){
+		} finally {
+			try {
+				if (in != null) {
 					in.close();
 				}
-				if(pc != null){
+				if (pc != null) {
 					pc.close();
 				}
-				if(connection != null){
+				if (adminConnection != null) {
+					adminConnection.close();
+				}
+				if (connection != null) {
 					connection.close();
 				}
-			}catch(Exception e){
+			} catch (Exception e) {
 			}
 		}
 		return true;

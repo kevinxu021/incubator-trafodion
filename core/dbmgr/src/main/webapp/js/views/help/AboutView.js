@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2015 Esgyn Corporation
+// (C) Copyright 2016 Esgyn Corporation
 //
 // @@@ END COPYRIGHT @@@
 
@@ -8,8 +8,9 @@ define([
         'views/BaseView',
         'text!templates/about.html',
         'jquery',
-        'handlers/ServerHandler'
-          ], function (BaseView, aboutT, $, serverHandler) {
+        'handlers/ServerHandler',
+        'common'
+          ], function (BaseView, aboutT, $, serverHandler, common) {
 	'use strict';
 
 	var SYSTEM_VERSION = '#system-version',
@@ -33,7 +34,7 @@ define([
 			$(SPINNER).hide();
 			$(ERROR_CONTAINER).hide();
 			$(RESULT_CONTAINER).show();
-			$(SYSTEM_VERSION).val(data.SYSTEM_VERSION);
+			$(SYSTEM_VERSION).val(common.databaseEdition + " " + common.databaseVersion);
 			$(DBMGR_VERSION).val(data.DBMGR_VERSION);
 		},
 		showErrorMessage: function (jqXHR) {

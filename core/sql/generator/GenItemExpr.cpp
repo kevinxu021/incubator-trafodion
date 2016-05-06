@@ -561,6 +561,27 @@ short BiRelat::codeGen(Generator * generator)
 }
 
 
+short RangeSpecRef::codeGen(Generator* generator)
+{
+  Attributes ** attr;
+
+  child(1)->codeGen(generator);
+
+  if (generator->getExpGenerator()->genItemExpr(this, &attr, 1, 0) == 1)
+    return 0;
+
+  // the RangeSpecRef has the same location attributes as its
+  // replacement expression
+  attr[0]->copyLocationAttrs(
+       generator->getMapInfo(child(1)->getValueId())->getAttr());
+
+  MapInfo * map_info = generator->addMapInfo(getValueId(), attr[0]);
+  map_info->codeGenerated();
+
+  return 0;
+}
+
+
 short ConstValue::codeGen(Generator * generator)
 {
   MapInfo * map_info = generator->getMapInfoAsIs(getValueId());

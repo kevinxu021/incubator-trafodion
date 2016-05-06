@@ -56,6 +56,10 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
+// ----------------------------------------------------------------------------
+// This class partially implements the result set class as defined in 
+// java.sql.ResultSet.  
+// ----------------------------------------------------------------------------
 public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 
 	// java.sql.ResultSet interface methods
@@ -185,38 +189,10 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 		onInsertRow_ = false;
 	}
 
+        // Method not implemented
 	public void cancelRowUpdates() throws SQLException {
-		if (connection_.props_.t4Logger_.isLoggable(Level.FINE) == true) {
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			connection_.props_.t4Logger_.logp(Level.FINE, "TrafT4ResultSet", "cancelRowUpdates", "", p);
-		}
-		if (connection_.props_.getLogWriter() != null) {
-			LogRecord lr = new LogRecord(Level.FINE, "");
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			lr.setParameters(p);
-			lr.setSourceClassName("TrafT4ResultSet");
-			lr.setSourceMethodName("cancelRowUpdates");
-			T4LogFormatter lf = new T4LogFormatter();
-			String temp = lf.format(lr);
-			connection_.props_.getLogWriter().println(temp);
-		}
-		clearWarnings();
-		if (isClosed_) {
-			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), "invalid_cursor_state",
-					null);
-		}
-		if (getConcurrency() == ResultSet.CONCUR_READ_ONLY) {
-			throw HPT4Messages
-					.createSQLException(connection_.props_, connection_.getLocale(), "read_only_concur", null);
-		}
-		if (onInsertRow_) {
-			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(),
-					"invalid_cursor_position", null);
-		}
-		Row row = (Row) getCurrentRow();
-		if (!row.getUpdated()) {
-			row.clearUpdated();
-		}
+             throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(),
+                  "cancelRowUpdates - not supported", null);
 	}
 
 	/**
@@ -257,68 +233,13 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 		}
 	}
 
+        // Method not implemented
 	public void deleteRow() throws SQLException {
-		if (connection_.props_.t4Logger_.isLoggable(Level.FINE) == true) {
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			connection_.props_.t4Logger_.logp(Level.FINE, "TrafT4ResultSet", "deleteRow", "", p);
-		}
-		if (connection_.props_.getLogWriter() != null) {
-			LogRecord lr = new LogRecord(Level.FINE, "");
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			lr.setParameters(p);
-			lr.setSourceClassName("TrafT4ResultSet");
-			lr.setSourceMethodName("deleteRow");
-			T4LogFormatter lf = new T4LogFormatter();
-			String temp = lf.format(lr);
-			connection_.props_.getLogWriter().println(temp);
-		}
-		clearWarnings();
-
-		if (isClosed_) {
-			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), "invalid_cursor_state",
-					null);
-		}
-		if (getConcurrency() == ResultSet.CONCUR_READ_ONLY) {
-			throw HPT4Messages
-					.createSQLException(connection_.props_, connection_.getLocale(), "read_only_concur", null);
-		}
-		if (onInsertRow_) {
-			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(),
-					"invalid_cursor_position", null);
-		}
-
-
-		try {
-			prepareDeleteStmt();
-			Row row = (Row) getCurrentRow();
-			// Remove the row from database
-			row.deleteRow(connection_.getLocale(), deleteStmt_, paramCols_);
-			// Remove the row from the resultSet
-			cachedRows_.remove(--currentRow_);
-			--numRows_;
-
-			if ((getType() == ResultSet.TYPE_FORWARD_ONLY) && (getConcurrency() == ResultSet.CONCUR_UPDATABLE)) {
-				int temp;
-				temp = currentRowCount_;
-
-				if (!next()) {
-					if (temp == 1) {
-						isBeforeFirst_ = true;
-					}
-					currentRowCount_ = 0;
-				} else {
-					--currentRowCount_;
-				}
-			} else {
-				if (currentRow_ == 0) {
-					isBeforeFirst_ = true;
-				}
-			}
-		} catch (SQLException e) {
-			performConnectionErrorChecks(e);
-			throw e;
-		}
-	}
+            throw HPT4Messages.createSQLException(connection_.props_, 
+                                                  connection_.getLocale(),
+                                                  "deleteRow - not supported", 
+                                                  null);
+        }
 
 	public int findColumn(String columnName) throws SQLException {
 		if (connection_.props_.t4Logger_.isLoggable(Level.FINE) == true) {
@@ -460,6 +381,8 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 		case Types.BINARY:
 		case Types.VARBINARY:
 		case Types.LONGVARBINARY:
+		case Types.BLOB:
+		case Types.CLOB:
 			data = getLocalString(columnIndex);
 			if (data != null) {
 				try {
@@ -640,6 +563,8 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 		case Types.BINARY:
 		case Types.VARBINARY:
 		case Types.LONGVARBINARY:
+		case Types.BLOB:
+		case Types.CLOB:
 			data = getBytes(columnIndex);
 			if (data != null) {
 				return new java.io.ByteArrayInputStream(data);
@@ -838,8 +763,10 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 		case Types.CHAR:
 		case Types.VARCHAR: // Extension allows varchar and
 		case Types.LONGVARCHAR: // longvarchar data types
+		case Types.BLOB:
+		case Types.CLOB:
 
-			Object x = getCurrentRow().getColumnObject(columnIndex);
+			Object x = getCurrentRow().getUpdatedArrayElement(columnIndex);
 			if (x == null) {
 				wasNull_ = true;
 				return null;
@@ -911,6 +838,8 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 		case Types.BINARY:
 		case Types.VARBINARY:
 		case Types.LONGVARBINARY:
+		case Types.BLOB:
+		case Types.CLOB:
 			data = getString(columnIndex);
 			if (data != null) {
 				return new java.io.StringReader(data);
@@ -1598,6 +1527,8 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 		case Types.CHAR:
 		case Types.VARCHAR:
 		case Types.LONGVARCHAR:
+		case Types.BLOB:
+		case Types.CLOB:
 			return getString(columnIndex);
 		case Types.BINARY:
 		case Types.VARBINARY:
@@ -1870,11 +1801,11 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 		int targetSqlType;
 		int precision;
 		Object x;
-		BaseRow currentRow;
+		ObjectArray currentRow;
 
 		validateGetInvocation(columnIndex);
 		currentRow = getCurrentRow();
-		x = currentRow.getColumnObject(columnIndex);
+		x = currentRow.getUpdatedArrayElement(columnIndex);
 
 		if (x == null) {
 			wasNull_ = true;
@@ -1890,6 +1821,8 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 		case Types.CHAR:
 		case Types.VARCHAR:
 		case Types.LONGVARCHAR:
+		case Types.BLOB:
+		case Types.CLOB:
 			data = getLocalString(columnIndex);
 			if (stmt_ != null && stmt_.maxFieldSize_ != 0) {
 				if (data.length() > stmt_.maxFieldSize_) {
@@ -2033,7 +1966,6 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 		case Types.ARRAY:
 		case Types.BIT:
 		case Types.REF:
-		case Types.BLOB:
 		case Types.DATALINK:
 		case Types.DISTINCT:
 		case Types.JAVA_OBJECT:
@@ -2106,6 +2038,8 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			case Types.CHAR:
 			case Types.VARCHAR:
 			case Types.LONGVARCHAR:
+		        case Types.BLOB:
+		        case Types.CLOB:
 				data = data.trim(); // Fall Thru
 			case Types.TIME:
 				try {
@@ -2242,6 +2176,8 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			case Types.CHAR:
 			case Types.VARCHAR:
 			case Types.LONGVARCHAR:
+		        case Types.BLOB:
+		        case Types.CLOB:
 				data = data.trim();
 			case Types.TIMESTAMP:
 			case Types.TIME:
@@ -2494,7 +2430,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 		} else {
                        boolean shortLength = desc.maxLen_ < Math.pow(2, 15);
                        int dataOffset = ((shortLength) ? 2 : 4);
-		       int maxLen = desc.sqlDataType_ != InterfaceResultSet.SQLTYPECODE_VARCHAR_WITH_LENGTH ? desc.maxLen_ : desc.maxLen_ + dataOffset;
+		       int maxLen = (desc.sqlDataType_ != InterfaceResultSet.SQLTYPECODE_VARCHAR_WITH_LENGTH && desc.sqlDataType_ != InterfaceResultSet.SQLTYPECODE_BLOB && desc.sqlDataType_ != InterfaceResultSet.SQLTYPECODE_CLOB) ? desc.maxLen_ : desc.maxLen_ + dataOffset;
 	               ret = new byte[maxLen];
 	               System.arraycopy(rawBuffer_, desc.noNullValue_ + rowOffset, ret, 0, maxLen);
 		}
@@ -2533,54 +2469,13 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 	}
 
 	// ------------------------------------------------------------------
+        // Method not implemented
 	public void insertRow() throws SQLException {
-		if (connection_.props_.t4Logger_.isLoggable(Level.FINE) == true) {
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			connection_.props_.t4Logger_.logp(Level.FINE, "TrafT4ResultSet", "insertRow", "", p);
-		}
-		if (connection_.props_.getLogWriter() != null) {
-			LogRecord lr = new LogRecord(Level.FINE, "");
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			lr.setParameters(p);
-			lr.setSourceClassName("TrafT4ResultSet");
-			lr.setSourceMethodName("insertRow");
-			T4LogFormatter lf = new T4LogFormatter();
-			String temp = lf.format(lr);
-			connection_.props_.getLogWriter().println(temp);
-		}
-		int i;
-
-		clearWarnings();
-		if (isClosed_) {
-			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), "invalid_cursor_state",
-					null);
-		}
-		if (getConcurrency() == ResultSet.CONCUR_READ_ONLY) {
-			throw HPT4Messages
-					.createSQLException(connection_.props_, connection_.getLocale(), "read_only_concur", null);
-		}
-		if (!onInsertRow_) {
-			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(),
-					"invalid_cursor_position", null);
-		}
-
-		prepareInsertStmt();
-		InsertRow insertRow = (InsertRow) getCurrentRow();
-		// Insert the row into database
-		insertRow.insertRow(insertStmt_, paramCols_);
-		// Add the row to the resultSet
-		Row row = new Row(outputDesc_.length, insertRow.getOrigRow());
-		row.setInserted();
-		if (isBeforeFirst_ || isAfterLast_) {
-			i = currentRow_;
-		} else {
-			i = currentRow_ - 1;
-		}
-		cachedRows_.add(i, row);
-		numRows_++;
-
-
-	}
+           throw HPT4Messages.createSQLException(connection_.props_, 
+                                                 connection_.getLocale(),
+                                                 "insertRow - not supported", 
+                                                 null);
+        }
 
 	public boolean isAfterLast() throws SQLException {
 		if (connection_.props_.t4Logger_.isLoggable(Level.FINE) == true) {
@@ -2776,43 +2671,12 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 		}
 	}
 
+        // Method not implemented
 	public void moveToInsertRow() throws SQLException {
-		if (connection_.props_.t4Logger_.isLoggable(Level.FINE) == true) {
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			connection_.props_.t4Logger_.logp(Level.FINE, "TrafT4ResultSet", "moveToInsertRow", "", p);
-		}
-		if (connection_.props_.getLogWriter() != null) {
-			LogRecord lr = new LogRecord(Level.FINE, "");
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			lr.setParameters(p);
-			lr.setSourceClassName("TrafT4ResultSet");
-			lr.setSourceMethodName("moveToInsertRow");
-			T4LogFormatter lf = new T4LogFormatter();
-			String temp = lf.format(lr);
-			connection_.props_.getLogWriter().println(temp);
-		}
-		clearWarnings();
-		if (isClosed_) {
-			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), "invalid_cursor_state",
-					null);
-		}
-		if (getConcurrency() == ResultSet.CONCUR_READ_ONLY) {
-			throw HPT4Messages
-					.createSQLException(connection_.props_, connection_.getLocale(), "read_only_concur", null);
-		}
-
-
-		if (insertRow_ == null) {
-			if (outputDesc_.length > 0) {
-				insertRow_ = new InsertRow(outputDesc_.length);
-			}
-		}
-		if (insertRow_ != null) {
-			onInsertRow_ = true;
-			savedCurrentRow_ = currentRow_;
-			insertRow_.initInsertRow();
-		}
-
+           throw HPT4Messages.createSQLException(connection_.props_, 
+                                                 connection_.getLocale(),
+                                                 "moveToInsertRow - not supported", 
+                                                 null);
 	}
 
 	public boolean next() throws SQLException {
@@ -2941,41 +2805,14 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			isAfterLast_ = false;
 		}
 		return validRow;
-	}
+        }
 
+        // Method not implemented
 	public void refreshRow() throws SQLException {
-		if (connection_.props_.t4Logger_.isLoggable(Level.FINE) == true) {
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			connection_.props_.t4Logger_.logp(Level.FINE, "TrafT4ResultSet", "refreshRow", "", p);
-		}
-		if (connection_.props_.getLogWriter() != null) {
-			LogRecord lr = new LogRecord(Level.FINE, "");
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			lr.setParameters(p);
-			lr.setSourceClassName("TrafT4ResultSet");
-			lr.setSourceMethodName("refreshRow");
-			T4LogFormatter lf = new T4LogFormatter();
-			String temp = lf.format(lr);
-			connection_.props_.getLogWriter().println(temp);
-		}
-
-		clearWarnings();
-		if (isClosed_) {
-			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), "invalid_cursor_state",
-					null);
-		}
-		if (onInsertRow_) {
-			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), "invalid_operation",
-					null);
-		}
-		prepareSelectStmt();
-		Row row = (Row) getCurrentRow();
-		try {
-			row.refreshRow(connection_.getLocale(), selectStmt_, paramCols_, keyCols_);
-		} catch (SQLException e) {
-			performConnectionErrorChecks(e);
-			throw e;
-		}
+           throw HPT4Messages.createSQLException(connection_.props_, 
+                                                 connection_.getLocale(),
+                                                 "refreshRow - not supported", 
+                                                 null);
 	}
 
 	public boolean relative(int row) throws SQLException {
@@ -3032,103 +2869,28 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 		return flag;
 	}
 
+        // Method not implemented
 	public boolean rowDeleted() throws SQLException {
-		if (connection_.props_.t4Logger_.isLoggable(Level.FINE) == true) {
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			connection_.props_.t4Logger_.logp(Level.FINE, "TrafT4ResultSet", "rowDeleted", "", p);
-		}
-		if (connection_.props_.getLogWriter() != null) {
-			LogRecord lr = new LogRecord(Level.FINE, "");
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			lr.setParameters(p);
-			lr.setSourceClassName("TrafT4ResultSet");
-			lr.setSourceMethodName("rowDeleted");
-			T4LogFormatter lf = new T4LogFormatter();
-			String temp = lf.format(lr);
-			connection_.props_.getLogWriter().println(temp);
-		}
-		BaseRow row;
-
-		if (isClosed_) {
-			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), "invalid_cursor_state",
-					null);
-		}
-		if (onInsertRow_) {
-			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), "invalid_operation",
-					null);
-		}
-		row = getCurrentRow();
-		if (row instanceof Row) {
-			return ((Row) row).getDeleted();
-		} else {
-			return false;
-		}
+           throw HPT4Messages.createSQLException(connection_.props_, 
+                                                 connection_.getLocale(),
+                                                 "rowDeleted - not supported", 
+                                                  null);
 	}
 
+        // Method not implemented
 	public boolean rowInserted() throws SQLException {
-		if (connection_.props_.t4Logger_.isLoggable(Level.FINE) == true) {
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			connection_.props_.t4Logger_.logp(Level.FINE, "TrafT4ResultSet", "rowInserted", "", p);
-		}
-		if (connection_.props_.getLogWriter() != null) {
-			LogRecord lr = new LogRecord(Level.FINE, "");
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			lr.setParameters(p);
-			lr.setSourceClassName("TrafT4ResultSet");
-			lr.setSourceMethodName("rowInserted");
-			T4LogFormatter lf = new T4LogFormatter();
-			String temp = lf.format(lr);
-			connection_.props_.getLogWriter().println(temp);
-		}
-		BaseRow row;
-
-		if (isClosed_) {
-			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), "invalid_cursor_state",
-					null);
-		}
-		if (onInsertRow_) {
-			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), "invalid_operation",
-					null);
-		}
-		row = getCurrentRow();
-		if (row instanceof Row) {
-			return ((Row) row).getInserted();
-		} else {
-			return false;
-		}
+           throw HPT4Messages.createSQLException(connection_.props_, 
+                                                 connection_.getLocale(),
+                                                 "rowInserted - not supported", 
+                                                  null);
 	}
 
+        // Method not implemented
 	public boolean rowUpdated() throws SQLException {
-		if (connection_.props_.t4Logger_.isLoggable(Level.FINE) == true) {
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			connection_.props_.t4Logger_.logp(Level.FINE, "TrafT4ResultSet", "rowUpdated", "", p);
-		}
-		if (connection_.props_.getLogWriter() != null) {
-			LogRecord lr = new LogRecord(Level.FINE, "");
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			lr.setParameters(p);
-			lr.setSourceClassName("TrafT4ResultSet");
-			lr.setSourceMethodName("rowUpdated");
-			T4LogFormatter lf = new T4LogFormatter();
-			String temp = lf.format(lr);
-			connection_.props_.getLogWriter().println(temp);
-		}
-		BaseRow row;
-
-		if (isClosed_) {
-			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), "invalid_cursor_state",
-					null);
-		}
-		if (onInsertRow_) {
-			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), "invalid_operation",
-					null);
-		}
-		row = getCurrentRow();
-		if (row instanceof Row) {
-			return ((Row) row).getUpdated();
-		} else {
-			return false;
-		}
+           throw HPT4Messages.createSQLException(connection_.props_, 
+                                                 connection_.getLocale(),
+                                                 "rowUpdated - not supported", 
+                                                  null);
 	}
 
 	public void setFetchDirection(int direction) throws SQLException {
@@ -3264,7 +3026,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 					messageArguments);
 		}
 		try {
-			getCurrentRow().setColumnObject(columnIndex, new String(value, "ASCII"));
+			getCurrentRow().updateArrayElement(columnIndex, new String(value, "ASCII"));
 		} catch (java.io.UnsupportedEncodingException e) {
 			Object[] messageArguments = new Object[1];
 			messageArguments[0] = e.getMessage();
@@ -3308,7 +3070,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			connection_.props_.getLogWriter().println(temp);
 		}
 		validateUpdInvocation(columnIndex);
-		getCurrentRow().setColumnObject(columnIndex, x);
+		getCurrentRow().updateArrayElement(columnIndex, x);
 	}
 
 	public void updateBigDecimal(String columnName, BigDecimal x) throws SQLException {
@@ -3362,7 +3124,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), "io_exception",
 					messageArguments);
 		}
-		getCurrentRow().setColumnObject(columnIndex, value);
+		getCurrentRow().updateArrayElement(columnIndex, value);
 	}
 
 	public void updateBinaryStream(String columnName, InputStream x, int length) throws SQLException {
@@ -3401,7 +3163,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			connection_.props_.getLogWriter().println(temp);
 		}
 		validateUpdInvocation(columnIndex);
-		getCurrentRow().setColumnObject(columnIndex, new Boolean(x));
+		getCurrentRow().updateArrayElement(columnIndex, new Boolean(x));
 	}
 
 	public void updateBoolean(String columnName, boolean x) throws SQLException {
@@ -3439,7 +3201,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			connection_.props_.getLogWriter().println(temp);
 		}
 		validateUpdInvocation(columnIndex);
-		getCurrentRow().setColumnObject(columnIndex, new Byte(x));
+		getCurrentRow().updateArrayElement(columnIndex, new Byte(x));
 	}
 
 	public void updateByte(String columnName, byte x) throws SQLException {
@@ -3477,7 +3239,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			connection_.props_.getLogWriter().println(temp);
 		}
 		validateUpdInvocation(columnIndex);
-		getCurrentRow().setColumnObject(columnIndex, x);
+		getCurrentRow().updateArrayElement(columnIndex, x);
 	}
 
 	public void updateBytes(String columnName, byte[] x) throws SQLException {
@@ -3539,7 +3301,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), "io_exception",
 					messageArguments);
 		}
-		getCurrentRow().setColumnObject(columnIndex, new String(value));
+		getCurrentRow().updateArrayElement(columnIndex, new String(value));
 	}
 
 	public void updateCharacterStream(String columnName, Reader x, int length) throws SQLException {
@@ -3577,7 +3339,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			connection_.props_.getLogWriter().println(temp);
 		}
 		validateUpdInvocation(columnIndex);
-		getCurrentRow().setColumnObject(columnIndex, x);
+		getCurrentRow().updateArrayElement(columnIndex, x);
 	}
 
 	public void updateDate(String columnName, Date x) throws SQLException {
@@ -3615,7 +3377,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			connection_.props_.getLogWriter().println(temp);
 		}
 		validateUpdInvocation(columnIndex);
-		getCurrentRow().setColumnObject(columnIndex, new Double(x));
+		getCurrentRow().updateArrayElement(columnIndex, new Double(x));
 	}
 
 	public void updateDouble(String columnName, double x) throws SQLException {
@@ -3653,7 +3415,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			connection_.props_.getLogWriter().println(temp);
 		}
 		validateUpdInvocation(columnIndex);
-		getCurrentRow().setColumnObject(columnIndex, new Float(x));
+		getCurrentRow().updateArrayElement(columnIndex, new Float(x));
 	}
 
 	public void updateFloat(String columnName, float x) throws SQLException {
@@ -3691,7 +3453,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			connection_.props_.getLogWriter().println(temp);
 		}
 		validateUpdInvocation(columnIndex);
-		getCurrentRow().setColumnObject(columnIndex, new Integer(x));
+		getCurrentRow().updateArrayElement(columnIndex, new Integer(x));
 	}
 
 	public void updateInt(String columnName, int x) throws SQLException {
@@ -3729,7 +3491,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			connection_.props_.getLogWriter().println(temp);
 		}
 		validateUpdInvocation(columnIndex);
-		getCurrentRow().setColumnObject(columnIndex, new Long(x));
+		getCurrentRow().updateArrayElement(columnIndex, new Long(x));
 	}
 
 	public void updateLong(String columnName, long x) throws SQLException {
@@ -3767,7 +3529,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			connection_.props_.getLogWriter().println(temp);
 		}
 		validateUpdInvocation(columnIndex);
-		getCurrentRow().setColumnObject(columnIndex, null);
+		getCurrentRow().updateArrayElement(columnIndex, null);
 	}
 
 	public void updateNull(String columnName) throws SQLException {
@@ -3823,7 +3585,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			connection_.props_.getLogWriter().println(temp);
 		}
 		validateUpdInvocation(columnIndex);
-		getCurrentRow().setColumnObject(columnIndex, x);
+		getCurrentRow().updateArrayElement(columnIndex, x);
 	}
 
 	public void updateObject(String columnName, Object x) throws SQLException {
@@ -3902,41 +3664,11 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 		updateRef(columnIndex, x);
 	}
 
+        // Method not implemented
 	public void updateRow() throws SQLException {
-		if (connection_.props_.t4Logger_.isLoggable(Level.FINE) == true) {
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			connection_.props_.t4Logger_.logp(Level.FINE, "TrafT4ResultSet", "updateRow", "", p);
-		}
-		if (connection_.props_.getLogWriter() != null) {
-			LogRecord lr = new LogRecord(Level.FINE, "");
-			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
-			lr.setParameters(p);
-			lr.setSourceClassName("TrafT4ResultSet");
-			lr.setSourceMethodName("updateRow");
-			T4LogFormatter lf = new T4LogFormatter();
-			String temp = lf.format(lr);
-			connection_.props_.getLogWriter().println(temp);
-		}
-		clearWarnings();
-		if (getConcurrency() == ResultSet.CONCUR_READ_ONLY) {
-			throw HPT4Messages
-					.createSQLException(connection_.props_, connection_.getLocale(), "read_only_concur", null);
-		}
-		if (onInsertRow_) {
-			throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(),
-					"invalid_cursor_position", null);
-		}
-
-		if (connection_.getAutoCommit()) {
-			// should set a warning for the user
-			setSQLWarning(connection_.props_, "resultSet_updateRow_with_autocommit", null);
-		}
-		prepareUpdateStmt();
-		Row row = (Row) getCurrentRow();
-		// Update the row in database
-		row.updateRow(connection_.getLocale(), updateStmt_, paramCols_, keyCols_);
-
-
+           throw HPT4Messages.createSQLException(connection_.props_, 
+                                                 connection_.getLocale(),
+                                                 "updateRow - not supported", null);
 	}
 
 	public void updateShort(int columnIndex, short x) throws SQLException {
@@ -3955,7 +3687,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			connection_.props_.getLogWriter().println(temp);
 		}
 		validateUpdInvocation(columnIndex);
-		getCurrentRow().setColumnObject(columnIndex, new Short(x));
+		getCurrentRow().updateArrayElement(columnIndex, new Short(x));
 	}
 
 	public void updateShort(String columnName, short x) throws SQLException {
@@ -3993,7 +3725,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			connection_.props_.getLogWriter().println(temp);
 		}
 		validateUpdInvocation(columnIndex);
-		getCurrentRow().setColumnObject(columnIndex, x);
+		getCurrentRow().updateArrayElement(columnIndex, x);
 	}
 
 	public void updateString(String columnName, String x) throws SQLException {
@@ -4031,7 +3763,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			connection_.props_.getLogWriter().println(temp);
 		}
 		validateUpdInvocation(columnIndex);
-		getCurrentRow().setColumnObject(columnIndex, x);
+		getCurrentRow().updateArrayElement(columnIndex, x);
 	}
 
 	public void updateTime(String columnName, Time x) throws SQLException {
@@ -4069,7 +3801,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			connection_.props_.getLogWriter().println(temp);
 		}
 		validateUpdInvocation(columnIndex);
-		getCurrentRow().setColumnObject(columnIndex, x);
+		getCurrentRow().updateArrayElement(columnIndex, x);
 	}
 
 	public void updateTimestamp(String columnName, Timestamp x) throws SQLException {
@@ -4280,7 +4012,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 		}
 	}
 
-	private BaseRow getCurrentRow() throws SQLException {
+	private ObjectArray getCurrentRow() throws SQLException {
 		if (connection_.props_.t4Logger_.isLoggable(Level.FINE) == true) {
 			Object p[] = T4LoggingUtilities.makeParams(connection_.props_);
 			connection_.props_.t4Logger_.logp(Level.FINE, "TrafT4ResultSet", "getCurrentRow", "", p);
@@ -4304,7 +4036,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 			if (isAfterLast_) {
 				throw HPT4Messages.createSQLException(connection_.props_, connection_.getLocale(), "cursor_after_last_row", null);
 			}
-			return (BaseRow) cachedRows_.get(currentRow_ - 1);
+			return (ObjectArray) cachedRows_.get(currentRow_ - 1);
 		}
 	}
 
@@ -4582,7 +4314,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 	// DatabaseMetaData catalog APIs also call this method to update the rows
 	// fetched
 	//
-	void setFetchOutputs(Row[] row, int rowsFetched, boolean endOfData) throws SQLException {
+	void setFetchOutputs(ObjectArray[] row, int rowsFetched, boolean endOfData) throws SQLException {
 		if (connection_.props_.t4Logger_.isLoggable(Level.FINE) == true) {
 			Object p[] = T4LoggingUtilities.makeParams(connection_.props_, row, rowsFetched, endOfData, 0);
 			connection_.props_.t4Logger_.logp(Level.FINE, "TrafT4ResultSet", "setFetchOutputs", "", p);
@@ -4813,9 +4545,9 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 		int sqlCharset = outputDesc_[columnIndex - 1].sqlCharset_;
 
 		wasNull_ = true;
-		BaseRow row = getCurrentRow();
+		ObjectArray row = getCurrentRow();
 		if (row != null) {
-			obj = row.getColumnObject(columnIndex);
+			obj = row.getUpdatedArrayElement(columnIndex);
 			if (obj != null) {
 				if (obj instanceof byte[]) {
 					try {
@@ -5009,7 +4741,7 @@ public class TrafT4ResultSet extends HPT4Handle implements java.sql.ResultSet {
 
 	ArrayList cachedRows_;
 	boolean onInsertRow_;
-	InsertRow insertRow_;
+	ObjectArray insertRow_;
 	int savedCurrentRow_;
 	boolean showInserted_;
 	int numRows_;

@@ -44,6 +44,9 @@ endif
 DTMOBJS		= -DTMOBJS
 
 
+#gcc 4.8 need explicit set this flag to allow auto search of dependent shared object during link
+LNK_FLGS       += -Xlinker --copy-dt-needed-entries
+
 LIBSTMOBJS = $(OUTDIR)/tmtransid.o \
 			 $(OUTDIR)/tmtransaction.o \
 			 $(OUTDIR)/tmlibtxn.o \
@@ -117,6 +120,7 @@ TMOBJS		= $(OUTDIR)/tmregistry.o \
 		      $(OUTDIR)/tmtxstats.o \
 		      $(OUTDIR)/tmstats.o \
 		      $(OUTDIR)/tmthreadeg.o \
+                      $(OUTDIR)/tmlockthread.o \
 		      $(OUTDIR)/verstm.o   \
 	    	  $(OUTDIR)/xaglob.o \
 		      $(OUTDIR)/tmxidmap.o \

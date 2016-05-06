@@ -1041,6 +1041,7 @@
 #define DTM_BEGINTX_PROC_NOTEXIST 103005308
 #define DTM_ROLLOVER_CP_ERROR 103005309
 #define DTM_TMRESTARTED 103005310
+#define DTM_TMLOCKTHREAD_FAILED 103005311
 
 /**********************************************/
 /**********************************************/

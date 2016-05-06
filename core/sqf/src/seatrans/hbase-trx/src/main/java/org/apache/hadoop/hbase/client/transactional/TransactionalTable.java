@@ -64,6 +64,7 @@ import org.apache.hadoop.hbase.client.PatchClientScanner;//for PatchClientScanne
 import org.apache.hadoop.hbase.client.RpcRetryingCallerFactory;//for PatchClientScanner
 import org.apache.hadoop.hbase.client.ClientScanner;
 import org.apache.hadoop.hbase.client.ClusterConnection;//for PatchClientScanner
+import org.apache.hadoop.hbase.client.TrafParallelClientScanner;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos;
 import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CheckAndDeleteRequest;
@@ -230,6 +231,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.GetTransactionalRequest.Builder builder = GetTransactionalRequest.newBuilder();            
         builder.setGet(ProtobufUtil.toGet(get));
         builder.setTransactionId(transactionState.getTransactionId());
+        builder.setStartId(transactionState.getStartId());
         builder.setRegionName(ByteString.copyFromUtf8(regionName));
    
         instance.get(controller, builder.build(), rpcCallback);
@@ -314,6 +316,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
           public DeleteTransactionalResponse call(TrxRegionService instance) throws IOException {
             org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.DeleteTransactionalRequest.Builder builder = DeleteTransactionalRequest.newBuilder();      
             builder.setTransactionId(transactionState.getTransactionId());
+            builder.setStartId(transactionState.getStartId());
             builder.setRegionName(ByteString.copyFromUtf8(regionName));
             
             MutationProto m1 = ProtobufUtil.toMutation(MutationType.DELETE, delete);
@@ -401,6 +404,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
       public PutTransactionalResponse call(TrxRegionService instance) throws IOException {
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PutTransactionalRequest.Builder builder = PutTransactionalRequest.newBuilder();
         builder.setTransactionId(transactionState.getTransactionId());
+        builder.setStartId(transactionState.getStartId());
         builder.setRegionName(ByteString.copyFromUtf8(regionName));
   
         
@@ -488,6 +492,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
       public CheckAndDeleteResponse call(TrxRegionService instance) throws IOException {
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CheckAndDeleteRequest.Builder builder = CheckAndDeleteRequest.newBuilder();
         builder.setTransactionId(transactionState.getTransactionId());
+        builder.setStartId(transactionState.getStartId());
         builder.setRegionName(ByteString.copyFromUtf8(regionName));
         builder.setRow(HBaseZeroCopyByteString.wrap(row));
         if(family != null)
@@ -580,6 +585,8 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
       public CheckAndPutResponse call(TrxRegionService instance) throws IOException {
         org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.CheckAndPutRequest.Builder builder = CheckAndPutRequest.newBuilder();
         builder.setTransactionId(transactionState.getTransactionId());
+        if (LOG.isTraceEnabled()) LOG.trace("checkAndPut, seting request startid: " + transactionState.getStartId());
+        builder.setStartId(transactionState.getStartId());
         builder.setRegionName(ByteString.copyFromUtf8(regionName));
         builder.setRow(HBaseZeroCopyByteString.wrap(row));
         if (family != null)
@@ -700,6 +707,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
    	      public DeleteMultipleTransactionalResponse call(TrxRegionService instance) throws IOException {
    	        org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.DeleteMultipleTransactionalRequest.Builder builder = DeleteMultipleTransactionalRequest.newBuilder();
    	        builder.setTransactionId(transactionState.getTransactionId());
+            builder.setStartId(transactionState.getStartId());
    	        builder.setRegionName(ByteString.copyFromUtf8(regionName));
 
    	        for(Delete delete : rowsInSameRegion) {
@@ -808,6 +816,7 @@ public class TransactionalTable extends HTable implements TransactionalTableClie
 	      public PutMultipleTransactionalResponse call(TrxRegionService instance) throws IOException {
 	        org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.PutMultipleTransactionalRequest.Builder builder = PutMultipleTransactionalRequest.newBuilder();
 	        builder.setTransactionId(transactionState.getTransactionId());
+            builder.setStartId(transactionState.getStartId());
 	        builder.setRegionName(ByteString.copyFromUtf8(regionName));
 
 	        for (Put put : rowsInSameRegion){
@@ -895,9 +904,7 @@ public HRegionLocation getRegionLocation(byte[] row, boolean f)
         return super.getConfiguration();
     }
     public void flushCommits()
-                  throws InterruptedIOException,
-                  IOException,
-                  RetriesExhaustedWithDetailsException {
+                  throws IOException {
          super.flushCommits();
     }
     public HConnection getConnection()
@@ -925,18 +932,21 @@ public HRegionLocation getRegionLocation(byte[] row, boolean f)
     {
         return super.getTableName();
     }
-    public ResultScanner getScanner(Scan scan) throws IOException
+    public ResultScanner getScanner(Scan scan, float DOPparallelScanner) throws IOException
     {
-        if (usePatchScanner){
+        if (scan.isSmall() || DOPparallelScanner == 0){
+           if (usePatchScanner){
                if (scan.isSmall())
                      return super.getScanner(scan);//the current patch is for lease timeout, does not affect small scanner
                else
                      return new PatchClientScanner(getConfiguration(), scan, getName(), (ClusterConnection)this.connection,
                                                    this.rpcCallerFactory, this.rpcControllerFactory,
                                                    threadPool, replicaCallTimeoutMicroSecondScan);
-        }
-        else
+           }
+           else
                return super.getScanner(scan);
+        } else
+            return new TrafParallelClientScanner(this.connection, scan, getName(), DOPparallelScanner);       
     }
     public Result get(Get g) throws IOException
     {
@@ -959,15 +969,11 @@ public HRegionLocation getRegionLocation(byte[] row, boolean f)
     {
         return super.checkAndPut(row,family,qualifier,value,put);
     }
-    public void put(Put p) throws  InterruptedIOException,
-                                   RetriesExhaustedWithDetailsException,
-                                   IOException
+    public void put(Put p) throws IOException
     {
         super.put(p);
     }
-    public void put(List<Put> p) throws  InterruptedIOException,
-                                         RetriesExhaustedWithDetailsException,
-                                         IOException
+    public void put(List<Put> p) throws IOException
     {
         super.put(p);
     }

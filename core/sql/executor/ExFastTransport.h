@@ -257,7 +257,11 @@ public:
     EXTRACT_NOT_STARTED = 0,
     EXTRACT_INITIALIZE,
     EXTRACT_PASS_REQUEST_TO_CHILD,
-    EXTRACT_RETURN_ROWS_FROM_CHILD,
+    EXTRACT_READ_ROWS_FROM_CHILD,
+    EXTRACT_DETERMINE_PARTITION,
+    EXTRACT_SETUP_PARTITION,
+    EXTRACT_EVICT_PARTITION,
+    EXTRACT_CONVERT_DATA,
     EXTRACT_DATA_READY_TO_SEND,
     EXTRACT_SYNC_WITH_IO_THREAD,
     EXTRACT_ERROR,
@@ -314,7 +318,7 @@ public:
 
   void updateWorkATPDiagsArea(ex_queue_entry * centry);
   void updateWorkATPDiagsArea(ComDiagsArea *da);
-  void updateWorkATPDiagsArea(ExeErrorCode rc, const char* msg = NULL);
+  void updateWorkATPDiagsArea(ExeErrorCode rc, const char* msg0 = NULL, const char* msg1 = NULL);
   void updateWorkATPDiagsArea(const char *file, int line, const char *msg);
 
 
@@ -330,6 +334,7 @@ public:
         return NULL;
     }
 
+  Int32 getBaseWorkBufSize();
 
 
 protected:
@@ -350,9 +355,6 @@ protected:
   atp_struct         *workAtp_;
   sql_buffer_pool    *outputPool_;
   sql_buffer_pool    *inputPool_;
-  IOBuffer           *bufferPool_[10];
-  Int32              numBuffers_;
-  IOBuffer           *currBuffer_;
   const ex_tcb       *childTcb_;
   ex_queue_pair      qChild_;
   int                *sourceFieldsConvIndex_;
@@ -362,11 +364,61 @@ protected:
   NABoolean          endOfData_;
   CollHeap           *heap_;
   ExFastExtractStats *feStats_;
+  NABoolean          singlePartitionSetUp_;
 
   time_t              tstart_;
 
   UInt32             bufferAllocFailuresCount_;
+  Int32              totalNumBuffers_;
+  Int32              totalNumOpens_;
+  Int32              lastEvicted_;
 }; // class ExFastExtractTcb
+/////////////////////////////////////////////////////
+
+// a class representing one HDFS directory, this could
+// be the directory of a non-partitioned table or a partition directory
+class ExHdfsFastExtractPartition : public NABasicObject
+{
+  friend class ExHdfsFastExtractTcb;
+
+public:
+
+  ExHdfsFastExtractPartition(CollHeap *h);
+  ~ExHdfsFastExtractPartition();
+
+  const NAString *getKey() const                       { return &partString_; }
+  NABoolean operator==(const ExHdfsFastExtractPartition &other)
+                                   { return partString_ == other.partString_; }
+
+  NABoolean isOpen() const                   { return (sequenceFileWriter_ ||
+                                                       lobInterfaceCreated_); }
+
+private:
+
+  // name of a Hive partition, empty otherwise, this is the key
+  NAString partString_;
+  // HDFS directory, including partition, if applicable
+  NAString targetLocationAndPart_;
+  // name of the HDFS file (without directory)
+  NAString fileName_;
+
+  SequenceFileWriter *sequenceFileWriter_;
+
+  // remember whether we created a LOB interface object
+  // for this file
+  NABoolean lobInterfaceCreated_;
+
+  // buffer or buffers to write data
+  IOBuffer           *bufferPool_[10];
+  IOBuffer           *currBuffer_;
+  Int32               numBuffers_;
+
+  // used for a "second chance" algorithm to evict
+  // less used entries
+  NABoolean recentlyUsed_;
+};
+
+
 /////////////////////////////////////////////////////
 
 class ExHdfsFastExtractTcb : public ExFastExtractTcb
@@ -388,6 +440,8 @@ public:
            ex_globals *glob);
   ~ExHdfsFastExtractTcb();
 
+  virtual void freeResources();
+
   // ---------------------------------------------------------------------
   // Standard TCB methods
   // ---------------------------------------------------------------------
@@ -395,12 +449,15 @@ public:
   virtual Int32 fixup();
   virtual ExWorkProcRetcode work();
 
+  static void encodeHivePartitionString(NAString &partString);
+  Int32 getHdfsWorkBufSize();
+
 protected:
 
 
   Lng32 lobInterfaceInsert(ssize_t bytesToWrite);
-  Lng32 lobInterfaceCreate();
-  Lng32 lobInterfaceClose();
+  Lng32 lobInterfaceCreate(const char *fileName);
+  Lng32 lobInterfaceClose(const char *fileName);
 
   virtual void insertUpQueueEntry(ex_queue::up_status status,
                           ComDiagsArea *diags,
@@ -416,14 +473,24 @@ protected:
     return strlen(myTdb().getNullString()) == 0;
   }
 
+  int sendPartition(ExHdfsFastExtractPartition *part,
+                    ExFastExtractStats *feStats);
+  int closePartition(ExHdfsFastExtractPartition *part);
+
   void * lobGlob_;
 
   char hdfsHost_[500];
   int  hdfsPort_;
-  char fileName_[1000];
-  char targetLocation_[1000];
+
+  NAKeyLookup<NAString, ExHdfsFastExtractPartition> partitions_;
+  ExHdfsFastExtractPartition *currPartn_;
+  tupp_descriptor *partStringTD_;
+  NAString newPartitionString_;
+  short *partStringValueFromExprNullInd_;
+  short *partStringValueFromExprLen_;
+  char  *partStringValueFromExpr_;
+
   NABoolean errorOccurred_;
-  SequenceFileWriter* sequenceFileWriter_;
 }; // class ExHdfsFastExtractTcb
 
 //----------------------------------------------------------------------

@@ -59,6 +59,7 @@ public:
    std::vector<int32_t>   roleIDs_;
    PrivObjectBitmap       DMLBitmap_;
    bool                   managePrivileges_;
+   bool                   selectMetadata_;
 };
 
 // *****************************************************************************
@@ -133,7 +134,8 @@ public:
       const int32_t                granteeID,
       const std::vector<int32_t> & roleIDs,
       PrivObjectBitmap           & DMLBitmap,
-      bool                       & hasManagePrivileges);
+      bool                       & hasManagePrivileges,
+      bool                       & hasSelectMetadata);
       
    PrivStatus fetchOwner(
       const int64_t componentUID,
@@ -455,11 +457,15 @@ std::string whereClause("WHERE ");
 // *    Returns the number of grants of component privileges.                  *
 // *                                                                           *
 // *****************************************************************************
-int64_t PrivMgrComponentPrivileges::getCount()
-   
+int64_t PrivMgrComponentPrivileges::getCount(int_32 componentUID)
 {
                                    
 std::string whereClause(" ");   
+if (componentUID != INVALID_COMPONENT_UID)
+{
+  whereClause = "where component_uid = ";
+  whereClause += to_string((long long int)componentUID);
+}
 
 int64_t rowCount = 0;   
 MyTable &myTable = static_cast<MyTable &>(myTable_);
@@ -507,7 +513,8 @@ void PrivMgrComponentPrivileges::getSQLDMLPrivileges(
    const int32_t                granteeID,
    const std::vector<int32_t> & roleIDs,
    PrivObjectBitmap           & DMLBitmap,
-   bool                       & hasManagePrivileges)
+   bool                       & hasManagePrivileges,
+   bool                       & hasSelectMetadata)
 
 {
                                    
@@ -517,7 +524,7 @@ MyTable &myTable = static_cast<MyTable &>(myTable_);
 int32_t diagsMark = pDiags_->mark();
 
 PrivStatus privStatus = myTable.fetchDMLPrivInfo(granteeID,roleIDs,DMLBitmap,
-                                                 hasManagePrivileges);
+                                                 hasManagePrivileges, hasSelectMetadata);
 
    if (privStatus != STATUS_GOOD)
       pDiags_->rewind(diagsMark);
@@ -700,8 +707,9 @@ int32_t grantorID = grantorIDIn;
       // more items in the list fail and in cases of "ALL".                                             
       if (!componentOperations.nameExists(componentUID,operationName))
       {
-         *pDiags_ << DgSqlCode(-CAT_TABLE_DOES_NOT_EXIST_ERROR)
-                  << DgTableName(operationName.c_str());
+         *pDiags_ << DgSqlCode(-CAT_INVALID_COMPONENT_PRIVILEGE)
+                  << DgString0(operationName.c_str())
+                  << DgString1(componentName.c_str());
          return STATUS_ERROR;
       }
       
@@ -875,7 +883,7 @@ PrivStatus PrivMgrComponentPrivileges::grantPrivilegeInternal(
    {
       row.operationCode_ = operationCodes[oc];
 
-      if (checkExistence && 
+      if (checkExistence &&
           grantExists(componentUIDString, row.operationCode_, row.grantorID_,
                       row.granteeID_, row.grantDepth_))
          continue;
@@ -1889,7 +1897,8 @@ PrivStatus MyTable::fetchDMLPrivInfo(
    const int32_t                granteeID,
    const std::vector<int32_t> & roleIDs,
    PrivObjectBitmap           & DMLBitmap,
-   bool                       & hasManagePrivileges)
+   bool                       & hasManagePrivileges,
+   bool                       & hasSelectMetadata)
    
 {
 
@@ -1900,6 +1909,7 @@ PrivStatus MyTable::fetchDMLPrivInfo(
    {
       DMLBitmap = userDMLPrivs_.DMLBitmap_;
       hasManagePrivileges = userDMLPrivs_.managePrivileges_;
+      hasSelectMetadata = userDMLPrivs_.selectMetadata_;
       return STATUS_GOOD;
    } 
       
@@ -1940,6 +1950,7 @@ PrivStatus privStatus = selectAllWhere(whereClause,orderByClause,rows);
    userDMLPrivs_.granteeID_ = granteeID;
    userDMLPrivs_.roleIDs_ = roleIDs;
    userDMLPrivs_.managePrivileges_ = false;
+   userDMLPrivs_.selectMetadata_ = false;
    userDMLPrivs_.DMLBitmap_.reset();  
     
    for (size_t r = 0; r < rows.size(); r++)
@@ -1976,6 +1987,12 @@ PrivStatus privStatus = selectAllWhere(whereClause,orderByClause,rows);
          continue;
       }   
       
+      if (row.operationCode_ == PrivMgr::getSQLOperationCode(SQLOperation::DML_SELECT_METADATA))
+      {
+         userDMLPrivs_.selectMetadata_ = true;
+         continue;
+      }   
+      
       if (row.operationCode_ == PrivMgr::getSQLOperationCode(SQLOperation::DML_UPDATE))
       {
          userDMLPrivs_.DMLBitmap_.set(UPDATE_PRIV);
@@ -1990,6 +2007,7 @@ PrivStatus privStatus = selectAllWhere(whereClause,orderByClause,rows);
    }
    
    hasManagePrivileges = userDMLPrivs_.managePrivileges_;
+   hasSelectMetadata = userDMLPrivs_.selectMetadata_; 
    DMLBitmap = userDMLPrivs_.DMLBitmap_;   
    
    return STATUS_GOOD;

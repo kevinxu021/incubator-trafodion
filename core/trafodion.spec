@@ -43,6 +43,8 @@ URL:        http://www.esgyn.com
 %define _source_payload w9.gzdio
 
 Requires: audit-libs
+Requires: apr
+Requires: apr-util
 Requires: coreutils
 Requires: cracklib
 Requires: expect
@@ -56,7 +58,6 @@ Requires: keyutils-libs
 Requires: libcom_err
 Requires: libgcc
 Requires: libxml2
-Requires: log4cxx
 Requires: ncurses
 Requires: openssl
 Requires: pam
@@ -74,8 +75,6 @@ Requires: perl-version
 Requires: python
 Requires: readline
 Requires: sqlite
-Requires: tcl
-Requires: unixODBC
 Requires: zlib
 
 %description

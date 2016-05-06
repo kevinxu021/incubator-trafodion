@@ -92,6 +92,7 @@ typedef enum {
   LOB_INVALID_ERROR_VAL,
   LOB_MAX_LIMIT_ERROR = 560,
   LOB_TARGET_FILE_EXISTS_ERROR,
+  LOB_COMPRESS_FAILURE,
   LOB_MAX_ERROR_NUM     // keep this as the last element in enum list.
 } Ex_Lob_Error;
 
@@ -159,6 +160,7 @@ static const char * const lobErrorEnumStr[] =
   "LOB_INVALID_ERROR_VAL", 
   "LOB_MAX_LIMIT_ERROR", //560
   "LOB_TGT_FILE_EXISTS_ERROR",
+  "LOB_COMPRESS_FAILURE",
   "LOB_MAX_ERROR_NUM"     // keep this as the last element in enum list.
 };
 
@@ -237,7 +239,10 @@ typedef enum {
 
    Lob_Empty_Directory,
 
-   Lob_Cleanup // destroy everything under globals
+   Lob_Cleanup, // destroy everything under globals
+   Lob_PerformGC,
+   Lob_RestoreLobDataFile,
+   Lob_PurgeBackupLobDataFile
 } LobsOper;
 
 typedef enum {

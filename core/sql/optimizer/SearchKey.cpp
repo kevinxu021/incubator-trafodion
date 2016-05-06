@@ -2802,6 +2802,20 @@ NABoolean HivePartitionAndBucketKey::computePartitionPredicates(
       // removed preds for the next step
       partAndVirtColPreds_ = compileTimePartColPreds_;
       compileTimePartColPreds_.removeUnCoveredExprs(availableValues);
+
+      // a VEGPred(partcol, <other values>) will still be in
+      // compileTimePartColPreds_, but we can only evaluate it at
+      // compile time if it also contains a constant
+      for (ValueId q=compileTimePartColPreds_.init();
+           compileTimePartColPreds_.next(q);
+           compileTimePartColPreds_.advance(q))
+        {
+          if (q.getItemExpr()->getOperatorType() == ITM_VEG_PREDICATE)
+            // Remove the VEGPredicate if the VEG doesn't contain a constant
+            if (static_cast<VEGPredicate *>(q.getItemExpr())->
+                        getVEG()->getAConstant(FALSE) == NULL_VALUE_ID)
+              compileTimePartColPreds_ -= q;
+        }
       partAndVirtColPreds_ -= compileTimePartColPreds_;
 
       // now add characteristic inputs and virtual file columns
@@ -2868,7 +2882,35 @@ int HivePartitionAndBucketKey::computeActivePartitions()
 
           if (!compileTimePartColPreds_.isEmpty())
             {
-              // TBD: try to eliminate the partition at compile time
+              // make a map that maps partition columns to the values
+              // of these partition columns for this partition
+              ValueIdMap colsToConsts(hivePartColList_, colValuesList);
+              ComDiagsArea da;
+
+              // evaluate this rewritten predicate at compile time
+              ex_expr::exp_return_type predEvalResult =
+                compileTimePartColPreds_.evalPredsAtCompileTime(
+                     &da,
+                     &colsToConsts,
+                     TRUE);
+
+              if (da.getNumber() == 0 &&
+                  (predEvalResult == ex_expr::EXPR_FALSE ||
+                   predEvalResult == ex_expr::EXPR_NULL))
+                {
+                  // no errors or warnings, predicate is FALSE
+                  partitionIsEliminated = TRUE;
+                }
+              else if (da.getNumber() > 0 ||
+                       predEvalResult != ex_expr::EXPR_TRUE)
+                {
+                  // we should not see errors or warnings, but if
+                  // there are some then we assume the partition
+                  // qualifies and also do partition elimination
+                  // at runtime
+                  DCMPASSERT(0);
+                  partAndVirtColPreds_ += compileTimePartColPreds_;
+                }
             }
 
           if (!partitionIsEliminated)
@@ -2896,6 +2938,7 @@ int HivePartitionAndBucketKey::computeActivePartitions()
               result--;
             }
         } // loop over list partitions
+
       return result;
     } // table is partitioned
 }
@@ -3449,7 +3492,7 @@ Int64 HivePartitionAndBucketKey::getTotalSize(HHDFSStatsBase& selectedStats)
 
 Int64 HivePartitionAndBucketKey::getTotalSize()
 {
-  HHDFSStatsBase selectedStats;
+  HHDFSStatsBase selectedStats(NULL);
   accumulateSelectedStats(selectedStats);
 
   return getTotalSize(selectedStats);
@@ -3529,4 +3572,11 @@ void HivePartitionAndBucketKey::replaceVEGExpressions(const ValueIdSet & availab
              FALSE, // no need for key predicate generation here
              lookup, // to be side-affected
              TRUE);
+}
+
+bool
+CompareHiveFileIterator::operator()(HiveFileIterator& t1, HiveFileIterator& t2)
+{
+   // return TRUE iff t1's total size is less than t2's. 
+   return (t1.getFileStats()->getTotalSize() < t2.getFileStats()->getTotalSize());
 }

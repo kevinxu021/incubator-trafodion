@@ -871,9 +871,10 @@ public:
 
   // constructor
   OrcPushdownAggr(const ValueIdSet & aggregateExpr,
-                  TableDesc * tableDesc)
+                  TableDesc * tableDesc, HivePartitionAndBucketKey* key)
        : GroupByAgg(NULL, aggregateExpr),
-         tableDesc_(tableDesc)
+         tableDesc_(tableDesc), 
+         hiveSearchKey_(key)
   {}
 
   virtual ~OrcPushdownAggr();
@@ -897,8 +898,11 @@ public:
   // method to do code generation
   virtual short codeGen(Generator*);
 
+  HivePartitionAndBucketKey* getHiveSearchKey() { return hiveSearchKey_; };
+
 private:
   TableDesc *tableDesc_;
+  HivePartitionAndBucketKey* hiveSearchKey_;
 }; // class OrcPushdownAggr
 
 

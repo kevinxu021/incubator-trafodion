@@ -37,6 +37,10 @@
 #include <time.h>
 #include "ExHbaseAccess.h"
 #include "ExpHbaseInterface.h"
+#include "ExpCompressionWA.h"
+
+#define HIVE_MODE_DOSFORMAT    1
+
 // -----------------------------------------------------------------------
 // Classes defined in this file
 // -----------------------------------------------------------------------
@@ -160,10 +164,12 @@ protected:
   , OPEN_HDFS_CURSOR
   , GET_HDFS_DATA
   , CLOSE_HDFS_CURSOR
+  , CLOSE_ALL_HDFS_CURSORS
   , PROCESS_HDFS_ROW
   , RETURN_ROW
   , REPOS_HDFS_DATA
   ,CLOSE_FILE
+  ,CLOSE_ALL_FILES
   ,ERROR_CLOSE_FILE
   ,COLLECT_STATS
   , HANDLE_ERROR
@@ -203,7 +209,7 @@ protected:
   // hdfsRead. Or it could be the eof (in which case there is a good
   // row still waiting to be processed).
   char * extractAndTransformAsciiSourceToSqlRow(int &err,
-						ComDiagsArea * &diagsArea);
+						ComDiagsArea * &diagsArea, int mode);
 
   short moveRowToUpQueue(const char * row, Lng32 len, 
                          short * rc, NABoolean isVarchar);
@@ -227,11 +233,20 @@ protected:
   Int64 bytesLeft_;
   hdfsFile hfdsFileHandle_;
   char * hdfsScanBuffer_;
-  char * hdfsBufNextRow_;
+  char * hdfsBufNextRow_;           // Pointer to next row
 
   char * debugPrevRow_;             // Pointer to help with debugging.
   Int64 debugtrailingPrevRead_;
   char *debugPenultimatePrevRow_;
+
+  ExpCompressionWA * compressionWA_; // compression work area. Has information
+                                     // about compression type, buffer for
+                                     // compression scratch space and virtual
+                                     // methods to initialize and decompress
+                                     // each of the supported compression types.
+                                     // is NULL for uncompressed files
+  Int16 currCompressionTypeIx_;      // current index into table of compression
+                                     // methods in the TDB or -1
   
   ExSimpleSQLBuffer *hdfsSqlBuffer_;  // this buffer for one row, converted
                                       // from ascii to SQL for select pred.
@@ -268,6 +283,7 @@ protected:
   Int64 requestTag_;
   Int64 hdfsScanBufMaxSize_;
   Int64 bytesRead_;
+  Int64 uncompressedBytesRead_;
   Int64 trailingPrevRead_;     // for trailing bytes at end of buffer.
   Int64 numBytesProcessedInRange_;  // count bytes of complete records.
   bool  firstBufOfFile_;
@@ -279,6 +295,8 @@ protected:
   Lng32 numRanges_;
   Lng32 currRangeNum_;
   Lng32 nextDelimRangeNum_;
+  Lng32 preOpenedRangeNum_;    // pre-opened range
+  Lng32 leftOpenRangeNum_;     // file left open, next range has same file
   char *endOfRequestedRange_ ; // helps rows span ranges.
   char * hdfsFileName_;
   SequenceFileReader* sequenceFileReader_;
@@ -506,6 +524,8 @@ protected:
     , ORC_AGGR_MIN
     , ORC_AGGR_MAX
     , ORC_AGGR_SUM
+    , ORC_AGGR_NV_LOWER_BOUND
+    , ORC_AGGR_NV_UPPER_BOUND
     , ORC_AGGR_HAVING_PRED
     , ORC_AGGR_PROJECT
     , ORC_AGGR_RETURN
@@ -540,41 +560,97 @@ protected:
 
 #define RANGE_DELIMITER '\002'
 
-inline char *hdfs_strchr(const char *s, int c, const char *end, NABoolean checkRangeDelimiter)
+inline char *hdfs_strchr(char *s, int c, const char *end, NABoolean checkRangeDelimiter, int mode , int *changedLen)
 {
   char *curr = (char *)s;
-
-  while (curr < end) {
+  int count=0;
+  //changedLen is lenght of \r which removed by this function
+  *changedLen = 0;
+  if( (mode & HIVE_MODE_DOSFORMAT ) == 0)
+  {
+   while (curr < end) {
     if (*curr == c)
+    {
        return curr;
+    }
     if (checkRangeDelimiter &&*curr == RANGE_DELIMITER)
        return NULL;
     curr++;
+   }
+  }
+  else
+  {
+   while (curr < end) {
+     if (*curr == c)
+     {
+         if(count>0 && c == '\n')
+         {
+           if(s[count-1] == '\r') 
+             *changedLen = 1;
+         }
+         return curr - *changedLen;
+      }
+      if (checkRangeDelimiter &&*curr == RANGE_DELIMITER)
+         return NULL;
+    curr++;
+    count++;
+   }
   }
   return NULL;
 }
 
 
-inline char *hdfs_strchr(const char *s, int rd, int cd, const char *end, NABoolean checkRangeDelimiter, NABoolean *rdSeen)
+inline char *hdfs_strchr(char *s, int rd, int cd, const char *end, NABoolean checkRangeDelimiter, NABoolean *rdSeen, int mode, int* changedLen)
 {
   char *curr = (char *)s;
-
-  while (curr < end) {
-    if (*curr == rd) {
-       *rdSeen = TRUE;
-       return curr;
+  int count = 0;
+  //changedLen is lenght of \r which removed by this function
+  *changedLen = 0;
+  if( (mode & HIVE_MODE_DOSFORMAT)>0 )  //check outside the while loop to make it faster
+  {
+    while (curr < end) {
+      if (*curr == rd) {
+         if(count>0 && rd == '\n')
+         {
+             if(s[count-1] == '\r') 
+               *changedLen = 1;
+         }
+         *rdSeen = TRUE;
+         return curr - *changedLen;
+      }
+      else
+      if (*curr == cd) {
+         *rdSeen = FALSE;
+         return curr;
+      }
+      else
+      if (checkRangeDelimiter && *curr == RANGE_DELIMITER) {
+         *rdSeen = TRUE;
+         return NULL;
+      }
+      curr++;
+      count++;
     }
-    else
-    if (*curr == cd) {
-       *rdSeen = FALSE;
-       return curr;
+  }
+  else
+  {
+    while (curr < end) {
+      if (*curr == rd) {
+         *rdSeen = TRUE;
+         return curr;
+      }
+      else
+      if (*curr == cd) {
+         *rdSeen = FALSE;
+         return curr;
+      }
+      else
+      if (checkRangeDelimiter && *curr == RANGE_DELIMITER) {
+         *rdSeen = TRUE;
+         return NULL;
+      }
+      curr++;
     }
-    else
-    if (checkRangeDelimiter && *curr == RANGE_DELIMITER) {
-       *rdSeen = TRUE;
-       return NULL;
-    }
-    curr++;
   }
   *rdSeen = FALSE;
   return NULL;

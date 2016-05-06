@@ -55,6 +55,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.client.coprocessor.AggregationClient;
 import org.apache.hadoop.hbase.client.transactional.RMInterface;
 import org.apache.hadoop.hbase.client.transactional.TransactionalAggregationClient;
+import org.apache.hadoop.hbase.client.transactional.TransactionalTable;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
 
 import org.apache.log4j.Logger;
@@ -369,10 +370,6 @@ public class HTableClient {
 			return null;
 		else
 			return new String(table.getTableName());
-	}
-
-	void resetAutoFlush() {
-		table.setAutoFlush(true, true);
 	}
 
     private enum Op {
@@ -792,6 +789,7 @@ public class HTableClient {
                                  Object[] colNamesToFilter, 
                                  Object[] compareOpList, 
                                  Object[] colValuesToCompare,
+                                 float dopParallelScanner,
                                  float samplePercent,
                                  boolean inPreFetch,
                                  boolean useSnapshotScan,
@@ -1015,9 +1013,9 @@ public class HTableClient {
 	    if (useTRexScanner && (transID != 0)) {
 	      scanner = table.getScanner(transID, scan);
 	    } else {
-	      scanner = table.getScanner(scan);
-	    }
-	    if (logger.isTraceEnabled()) logger.trace("startScan(). After getScanner. Scanner: " + scanner);
+          scanner = table.getScanner(scan,dopParallelScanner);
+        }
+        if (logger.isTraceEnabled()) logger.trace("startScan(). After getScanner. Scanner: " + scanner+" dop:"+dopParallelScanner);
 	  }
 	  else
 	  {
@@ -1761,7 +1759,7 @@ public class HTableClient {
 
 	public boolean putRows(final long transID, short rowIDLen, Object rowIDs, 
                        Object rows,
-                       long timestamp, boolean autoFlush, boolean asyncOperation)
+                       long timestamp, boolean asyncOperation)
 			throws IOException, InterruptedException, ExecutionException  {
 
 		if (logger.isTraceEnabled()) logger.trace("Enter putRows() " + tableName +
@@ -1806,8 +1804,6 @@ public class HTableClient {
 				put.setWriteToWAL(writeToWAL);
 			listOfPuts.add(put);
 		}
-		if (autoFlush == false)
-			table.setAutoFlush(false, true);
 		if (asyncOperation) {
 			future = executorService.submit(new Callable() {
 				public Object call() throws Exception {
@@ -1961,18 +1957,22 @@ public class HTableClient {
                           throws IOException, Throwable {
 
 		    Configuration customConf = table.getConfiguration();
-                    long rowCount = 0;
+            long rowCount = 0;
 
-                    if (transID > 0) {
+            if (transID > 0) {
 		      TransactionalAggregationClient aggregationClient = 
-                          new TransactionalAggregationClient(customConf);
+              new TransactionalAggregationClient(customConf);
 		      Scan scan = new Scan();
 		      scan.addFamily(colFamily);
 		      scan.setCacheBlocks(false);
 		      final ColumnInterpreter<Long, Long, EmptyMsg, LongMsg, LongMsg> ci =
-			new LongColumnInterpreter();
+              new LongColumnInterpreter();
 		      byte[] tname = getTableName().getBytes();
-		      rowCount = aggregationClient.rowCount(transID, 
+              TransactionalTable lv_ttable = new TransactionalTable(getTableName());
+              TransactionState ts = table.registerTransaction(lv_ttable, transID, startRowID, 0);
+
+//              TransactionState ts = table.getTransactionState(transID);
+		      rowCount = aggregationClient.rowCount(transID, ts.getStartId(),
                         org.apache.hadoop.hbase.TableName.valueOf(getTableName()),
                         ci,
                         scan);
@@ -1999,11 +1999,6 @@ public class HTableClient {
                     return rcBytes; 
 	}
 
-	public boolean flush() throws IOException {
-		if (table != null)
-			table.flushCommits();
-		return true;
-	}
 
 	public boolean release(boolean cleanJniObject) throws IOException {
 
@@ -2025,8 +2020,6 @@ public class HTableClient {
               }
               future = null;
           }
-	  if (table != null)
-	    table.flushCommits();
 	  if (scanner != null) {
 	    scanner.close();
 	    scanner = null;

@@ -1606,7 +1606,9 @@ NATable *BindWA::getNATable(CorrName& corrName,
   
       // Compare column lists (user columns only)
       // TBD - return what mismatches
-      if ( nativeNATable && !(table->getNAColumnArray().compare(nativeNATable->getNAColumnArray(), FALSE)))
+      if ( nativeNATable && 
+           !(table->getNAColumnArray().compare(nativeNATable->getNAColumnArray(), FALSE)) &&
+           (NOT bindWA->externalTableDrop()))
          {
            *CmpCommon::diags() << DgSqlCode(-3078)
                                << DgString0(adjustedName)
@@ -6464,35 +6466,46 @@ NABoolean RelRoot::checkPrivileges(BindWA* bindWA)
   // ==> Check privs on any sequence generators used in the query.
   for (Int32 i=0; i<(Int32)bindWA->getSeqValList().entries(); i++)
   {
+    RemoveNATableEntryFromCache = FALSE ;  // Initialize each time through loop
     SequenceValue *seqVal = (bindWA->getSeqValList())[i];
     NATable* tab = const_cast<NATable*>(seqVal->getNATable());
+    CMPASSERT(tab);
 
-    // No need to save priv info in NATable object representing a sequence;
-    // these NATables are not cached.
+    // get privilege information from the NATable structure
+    PrivMgrUserPrivs *pPrivInfo = tab->getPrivInfo();
     PrivMgrUserPrivs privInfo;
-    CmpSeabaseDDL cmpSBD(STMTHEAP);
-    if (cmpSBD.switchCompiler(CmpContextInfo::CMPCONTEXT_TYPE_META))
+    if (!pPrivInfo)
     {
-      if (CmpCommon::diags()->getNumber(DgSqlCode::ERROR_) == 0)
-        *CmpCommon::diags() << DgSqlCode( -4400 );
-      return FALSE;
-    }
-    retcode = privInterface.getPrivileges(tab->objectUid().get_value(), 
-                                          COM_SEQUENCE_GENERATOR_OBJECT, 
-                                          thisUserID, privInfo);
-    cmpSBD.switchBackCompiler();
-    if (retcode != STATUS_GOOD)
-    {
-      bindWA->setFailedForPrivileges(TRUE);
-      RemoveNATableEntryFromCache = TRUE;
-      *CmpCommon::diags() << DgSqlCode( -1034 );
-      return FALSE;
+      CmpSeabaseDDL cmpSBD(STMTHEAP);
+      if (cmpSBD.switchCompiler(CmpContextInfo::CMPCONTEXT_TYPE_META))
+      {
+        if (CmpCommon::diags()->getNumber(DgSqlCode::ERROR_) == 0)
+          *CmpCommon::diags() << DgSqlCode( -4400 );
+        return FALSE;
+      }
+      retcode = privInterface.getPrivileges(tab->objectUid().get_value(), 
+                                            COM_SEQUENCE_GENERATOR_OBJECT, 
+                                            thisUserID, privInfo);
+      cmpSBD.switchBackCompiler();
+      if (retcode != STATUS_GOOD)
+      {
+        bindWA->setFailedForPrivileges(TRUE);
+        RemoveNATableEntryFromCache = TRUE;
+        *CmpCommon::diags() << DgSqlCode( -1034 );
+        return FALSE;
+      }
+      pPrivInfo = &privInfo;
     }
 
     // Verify that the user has usage priv
-    if (privInfo.hasPriv(USAGE_PRIV))
+    NABoolean insertQIKeys = FALSE; 
+    if (QI_enabled && (tab->getSecKeySet().entries()) > 0)
+      insertQIKeys = TRUE;
+    if (pPrivInfo->hasPriv(USAGE_PRIV))
     {
-      // Do we need to add any QI keys to the plan?
+      // do this only if QI is enabled and object has security keys defined
+      if ( insertQIKeys )
+        findKeyAndInsertInOutputList(tab->getSecKeySet(), userHashValue, USAGE_PRIV );
     }
 
     // plan requires privilege but user has none, report an error
@@ -7146,6 +7159,20 @@ RelExpr *Scan::bindNode(BindWA *bindWA)
   NATable *naTable = bindWA->getNATable(getTableName());
   if (bindWA->errStatus()) 
     return this;
+
+  if (naTable->isHiveTable())
+  {
+    if (naTable->getClusteringIndex()->numHivePartCols() > 0)
+    {
+      if ((NOT IsEnterpriseLevel()) || (NOT IsAdvancedLevel()))
+        {
+          *CmpCommon::diags() << DgSqlCode(-4222)
+                              << DgString0("Partitioned Hive");
+          bindWA->setErrStatus();
+          return this;
+        }
+    }
+  }
 
   // Set up stoi.  bindWA->viewCount is altered during expanding the view.
   setupStoi(stoi_, bindWA, this, naTable, getTableName(), noSecurityCheck());
@@ -8950,22 +8977,22 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
 
   if (getTableDesc()->getNATable()->isHiveTable())
   {
-    for (int c=0; c<fileset->getAllColumns().entries(); c++)
-      if (fileset->getAllColumns()[c]->isHivePartColumn())
+    if (getTableDesc()->getNATable()->getClusteringIndex()->numHivePartCols() > 0)
+    {
+      if ((NOT IsEnterpriseLevel()) || (NOT IsAdvancedLevel()))
         {
-          // Insert into partitioned tables would require computing the target
-          // partition directory name, something we don't support yet.
           *CmpCommon::diags() << DgSqlCode(-4222)
-                              << DgString0("Insert into partitioned Hive tables");
+                              << DgString0("Partitioned Hive");
           bindWA->setErrStatus();
-          return this;
+          return boundExpr;
         }
+    }
 
     RelExpr * mychild = child(0);
 
     const HHDFSTableStats* hTabStats = 
       getTableDesc()->getNATable()->getClusteringIndex()->getHHDFSTableStats();
-				 
+
     const char * hiveTablePath;
     NAString hostName;
     Int32 hdfsPort;
@@ -8984,8 +9011,6 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
     // at least for this process
     ((NATable*)(getTableDesc()->getNATable()))->setClearHDFSStatsAfterStmt(TRUE);
 
-    // inserting into tables with multiple partitions is not yet supported
-    CMPASSERT(hTabStats->entries() == 1);
     hiveTablePath = (*hTabStats)[0]->getDirName();
     result = ((HHDFSTableStats* )hTabStats)->splitLocation
       (hiveTablePath, hostName, hdfsPort, tableDir) ;       
@@ -8996,7 +9021,6 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
         return this;
     }
      
-    //    NABoolean isSequenceFile = (*hTabStats)[0]->isSequenceFile();
     const NABoolean isSequenceFile = hTabStats->isSequenceFile();
     
     RelExpr * unloadRelExpr =
@@ -9017,8 +9041,24 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
     ((FastExtract*)boundUnloadRelExpr)->setDelimiter(fldSep);
     ((FastExtract*)boundUnloadRelExpr)->setOverwriteHiveTable(getOverwriteHiveTable());
     ((FastExtract*)boundUnloadRelExpr)->setSequenceFile(isSequenceFile);
+    ((FastExtract*)boundUnloadRelExpr)->setHiveNATable(getTableDesc()->getNATable());
     if (getOverwriteHiveTable())
     {
+      if (getTableDesc()->getNATable()->getClusteringIndex()->numHivePartCols() > 0)
+      {
+        // INSERT OVERWRITE TABLE is not supported for partitioned Hive tables.
+        // Hive selectively overwrites partitions that are touched by this statement
+        // (when using dynamic partition insert, which is the equivalent of
+        // a Trafodion insert into a partition table). Our design of making a
+        // UNION node to clear the table at compile time won't work with the need
+        // to empty partitions dynamically. Note: We could potentially allow this
+        // if we had compile time constants for all partitioning columns...
+        *CmpCommon::diags() << DgSqlCode(-4223)
+                            << DgString0("INSERT OVERWRITE TABLE into partitioned Hive tables is");
+        bindWA->setErrStatus();
+        return NULL;
+      }
+
       RelExpr * newRelExpr =  new (bindWA->wHeap())
         ExeUtilFastDelete(getTableName(),
                           NULL,
@@ -9654,6 +9694,10 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
   if (identityColumnGeneratedAlways)
     defaultColCount = totalColCount;
 
+  NABoolean isAlignedRowFormat = getTableDesc()->getNATable()->isSQLMXAlignedTable();
+  NABoolean omittedDefaultCols = FALSE;
+  NABoolean omittedCurrentDefaultClassCols = FALSE;
+
   if (defaultColCount) {
     NAWchar zero_w_Str[2]; zero_w_Str[0] = L'0'; zero_w_Str[1] = L'\0';  // wide version
     CollIndex sysColIx = 0, usrColIx = 0;
@@ -9733,11 +9777,15 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
           //
           if (nacol->getDefaultClass() == COM_CURRENT_DEFAULT) {
             castType = nacol->getType()->newCopy(bindWA->wHeap());
+            omittedCurrentDefaultClassCols = TRUE;
+            omittedDefaultCols = TRUE;
           }
           else if ((nacol->getDefaultClass() == COM_IDENTITY_GENERATED_ALWAYS) ||
                    (nacol->getDefaultClass() == COM_IDENTITY_GENERATED_BY_DEFAULT)) {
             setSystemGeneratesIdentityValue(TRUE);
           }
+          else if (nacol->getDefaultClass() != COM_NO_DEFAULT)
+            omittedDefaultCols = TRUE;
 
           // Bind the default value, make an Assign, etc, as above
           Parser parser(bindWA->currentCmpContext());
@@ -9798,10 +9846,11 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
 
 	      return boundExpr;
 	    }
-
           assign = new (bindWA->wHeap())
             Assign(target.getItemExpr(), defaultValueExpr,
-                   FALSE /*not user-specified*/);
+                    FALSE /*Not user Specified */);
+          if (nacol->getDefaultClass() != COM_CURRENT_DEFAULT)
+             assign->setToBeSkipped(TRUE);
           assign->bindNode(bindWA);
         }
 
@@ -9958,9 +10007,9 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
          // 4490 - BULK LOAD into a salted table is not supported if ESP parallelism is turned off
          *CmpCommon::diags() << DgSqlCode(-4490);
     }
-
   }
-  if (isUpsertThatNeedsMerge()) {
+
+  if (isUpsertThatNeedsMerge(isAlignedRowFormat, omittedDefaultCols, omittedCurrentDefaultClassCols)) {
     boundExpr = xformUpsertToMerge(bindWA);
     return boundExpr;
   }
@@ -10004,28 +10053,50 @@ RelExpr *Insert::bindNode(BindWA *bindWA)
 } // Insert::bindNode()
 
 /* Upsert into a table with an index is converted into a Merge to avoid
-the problem described in LP 1460771. An upsert may overwrite an existing row
+the problem described in Trafodion-14. An upsert may overwrite an existing row
 in the base table (identical to the update when matched clause of Merge) or
 it may insert a new row into the base table (identical to insert when not
 matched clause of merge). If the upsert caused a row to be updated in the 
 base table then the old version of the row will have to be deleted from 
 indexes, and a new version inserted. Upsert is being transformed to merge
 so that we can delete the old version of an updated row from the index.
-*/
-NABoolean Insert::isUpsertThatNeedsMerge() const
-{
-  if (!isUpsert() || getIsTrafLoadPrep() || 
-      (getTableDesc()->isIdentityColumnGeneratedAlways() && 
-       getTableDesc()->hasIdentityColumnInClusteringKey()) ||
-      getTableDesc()->getClusteringIndex()->getNAFileSet()->hasSyskey() || 
-      !(getTableDesc()->hasSecondaryIndexes()))
-    return FALSE;
 
-  return TRUE;
+Upsert is also converted into merge when TRAF_UPSERT_MODE is set to MERGE and 
+there are omitted cols with default values in case of aligned format table or 
+omitted current timestamp cols in case of non-aligned row format
+*/
+NABoolean Insert::isUpsertThatNeedsMerge(NABoolean isAlignedRowFormat, NABoolean omittedDefaultCols,
+                                   NABoolean omittedCurrentDefaultClassCols) const
+{
+  // The necessary conditions to convert upsert to merge and
+  if (isUpsert() && 
+      (NOT getIsTrafLoadPrep()) && 
+      (NOT (getTableDesc()->isIdentityColumnGeneratedAlways() && getTableDesc()->hasIdentityColumnInClusteringKey())) && 
+      (NOT (getTableDesc()->getClusteringIndex()->getNAFileSet()->hasSyskey())) && 
+        // table has secondary indexes or
+        (getTableDesc()->hasSecondaryIndexes() ||
+          // CQD is set to MERGE  
+          ((CmpCommon::getDefault(TRAF_UPSERT_MODE) == DF_MERGE) &&
+            // omitted current default columns with non-aligned row format tables
+            // or omitted default columns with aligned row format tables 
+            (((NOT isAlignedRowFormat) && omittedCurrentDefaultClassCols) ||
+            (isAlignedRowFormat && omittedDefaultCols))) ||
+          // CQD is set to Optimal, for non-aligned row format with omitted 
+          // current columns, it is converted into merge though it is not
+          // optimal for performance - This is done to ensure that when the 
+          // CQD is set to optimal, non-aligned format would behave like 
+          // merge when any column is  omitted 
+          ((CmpCommon::getDefault(TRAF_UPSERT_MODE) == DF_OPTIMAL) &&
+            ((NOT isAlignedRowFormat) && omittedCurrentDefaultClassCols))
+        ) 
+     )
+     return TRUE;
+  else
+     return FALSE;
 }
+
 RelExpr* Insert::xformUpsertToMerge(BindWA *bindWA) 
 {
-
   NATable *naTable = bindWA->getNATable(getTableName());
   if (bindWA->errStatus())
     return NULL;
@@ -10039,6 +10110,8 @@ RelExpr* Insert::xformUpsertToMerge(BindWA *bindWA)
 
   const ValueIdList &tableCols = updateToSelectMap().getTopValues();
   const ValueIdList &sourceVals = updateToSelectMap().getBottomValues();
+
+  NABoolean isAlignedRowFormat = getTableDesc()->getNATable()->isSQLMXAlignedTable();
 		    
   Scan * inputScan =
     new (bindWA->wHeap())
@@ -10081,17 +10154,6 @@ RelExpr* Insert::xformUpsertToMerge(BindWA *bindWA)
                                                 keyPred);  
       }
     }
-    else
-    {
-      setAssignPrev = setAssign;
-      setAssign = new (bindWA->wHeap())
-        Assign(targetColRef, sourceVals[i].getItemExpr());
-      setCount++;
-      if (setCount > 1) 
-      {
-        setAssign = new(bindWA->wHeap()) ItemList(setAssign,setAssignPrev);
-      }
-    }
     if (sourceVals[i].getItemExpr()->getOperatorType() != ITM_CONSTANT)
       myOuterRefs += sourceVals[i];
 
@@ -10106,8 +10168,40 @@ RelExpr* Insert::xformUpsertToMerge(BindWA *bindWA)
       insertVal = new(bindWA->wHeap()) ItemList(insertVal,insertValPrev);
       insertCol = new(bindWA->wHeap()) ItemList(insertCol,insertColPrev);
     }
-  }   
+  }
   inputScan->addSelPredTree(keyPred);
+  for (CollIndex i = 0 ; i < newRecExprArray().entries(); i++) 
+  {
+      const Assign *assignExpr = (Assign *)newRecExprArray()[i].getItemExpr();
+      ValueId tgtValueId = assignExpr->child(0)->castToItemExpr()->getValueId();
+      NAColumn *col = tgtValueId.getNAColumn( TRUE );
+      NABoolean copySetAssign = FALSE;
+      if (col->isSystemColumn())
+         continue;
+      else
+      if (! col->isClusteringKey()) 
+      {
+         // We need to bind in the new = old values
+         // in GenericUpdate::bindNode. So skip the columns that are not user
+         // specified and 
+         //
+         if (assignExpr->isUserSpecified())
+             copySetAssign = TRUE;
+         // If copy the Default values in case of replace mode or optiomal mode with
+         // aligned row tables
+         else if ((CmpCommon::getDefault(TRAF_UPSERT_MODE) == DF_REPLACE) ||
+                (isAlignedRowFormat && CmpCommon::getDefault(TRAF_UPSERT_MODE) == DF_OPTIMAL))
+             copySetAssign = TRUE;
+         if (copySetAssign)
+         { 
+            setAssignPrev = setAssign;
+            setAssign = (ItemExpr *)assignExpr;
+            setCount++;
+            if (setCount > 1) 
+               setAssign = new(bindWA->wHeap()) ItemList(setAssignPrev, setAssign);
+         }
+     }
+  }
   RelExpr * re = NULL;
 
   re = new (bindWA->wHeap())
@@ -10144,7 +10238,15 @@ RelExpr* Insert::xformUpsertToMerge(BindWA *bindWA)
   re = re->bindNode(bindWA);
   if (bindWA->errStatus())
     return NULL;
-
+  // Copy the userSecified and canBeSkipped attribute to mergeUpdateInsertExprArray
+  ValueIdList mergeInsertExprArray = ((MergeUpdate *)mu)->mergeInsertRecExprArray();
+  for (CollIndex i = 0 ; i < newRecExprArray().entries(); i++) 
+  {
+      const Assign *assignExpr = (Assign *)newRecExprArray()[i].getItemExpr();
+      ((Assign *)mergeInsertExprArray[i].getItemExpr())->setToBeSkipped(assignExpr->canBeSkipped());
+      ((Assign *)mergeInsertExprArray[i].getItemExpr())->setUserSpecified(assignExpr->isUserSpecified());
+  }
+ 
   return re;
 }
 
@@ -11805,6 +11907,14 @@ RelExpr *GenericUpdate::bindNode(BindWA *bindWA)
       return this;
      }
 
+  if (naTable->isORC())
+    {
+      *CmpCommon::diags() << DgSqlCode(-4223)
+			  << DgString0("Upsert/Insert/Update/Delete on ORC table is");
+      bindWA->setErrStatus();
+      return this;
+    }
+
   if (naTable->isHiveTable() &&
       (getOperatorType() != REL_UNARY_INSERT) && 
       (getOperatorType() != REL_LEAF_INSERT))
@@ -12592,6 +12702,7 @@ RelExpr *GenericUpdate::bindNode(BindWA *bindWA)
     }
   } // REL_UNARY_UPDATE or REL_UNARY_DELETE
 
+
   // QSTUFF
   // we need to check whether this code is executed as part of a create view
   // ddl operation using bindWA->inDDL() and prevent indices, contraints and
@@ -12727,7 +12838,6 @@ RelExpr *LeafInsert::bindNode(BindWA *bindWA)
     Assign *assign;
     assign = new (bindWA->wHeap())
       Assign(tgtcols[i].getItemExpr(), baseColRefs()[i], FALSE);
-
     assign->bindNode(bindWA);
     if (bindWA->errStatus()) return NULL;
     newRecExprArray().insertAt(i, assign->getValueId());

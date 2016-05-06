@@ -134,6 +134,11 @@ ItemExpr *getItemExprTree(const char * str,
 			  ItemExpr * p6 = NULL,
 			  ItemExprList * paramItemList = NULL);
 
+ItemExpr *getItemExprTree(const char * str,
+                          UInt32 len,
+                          CharInfo::CharSet strCharSet,
+                          const ItemExprList &params);
+
   // wide versions of the above functions; used by catman to 
   // process unicode-encoded column default value strings.
 ExprNode *get_w_ExprTree(const NAWchar * str,

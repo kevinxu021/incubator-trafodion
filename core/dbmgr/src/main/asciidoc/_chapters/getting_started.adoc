@@ -1,7 +1,7 @@
 ////
 <!--
 /**
-  *(C) Copyright 2015 Esgyn Corporation
+  *(C) Copyright 2015-2016 Esgyn Corporation
   *
   * Confidential computer software. Valid license from Esgyn required for
   * possession, use or copying. Consistent with FAR 12.211 and 12.212,
@@ -29,7 +29,7 @@ DB Manager allows the user to monitor the health and status of EsgynDB services 
 * Dashboard
 ** Monitor runtime status of EsgynDB services
 ** Monitor runtime status of EsgynDB Nodes
-** Time-series charts for monitoring key system and HBase metrics. ( * only in EsgynDB Enterprise Advanced Edition)
+** Time-series charts for monitoring key system and EsgynDB metrics
 * Workloads
 ** Monitor Active queries
 ** Drill-down into runtime statistics for a specific active query
@@ -37,6 +37,11 @@ DB Manager allows the user to monitor the health and status of EsgynDB services 
 ** Drill-down into detailed query metrics
 ** View visual explain plan for historical queries
 ** Cancel queries that are impacting the system
+* Database
+** Browse Schemas, Tables, Views, Indexes, Libraries, Procedures and UDFs
+** View Object attributes, columns, privileges, DDL text, object dependencies
+** View Table histogram statistics and region statistics
+** Create Library tool to easily deploy code files and create library
 * Logs
 ** View EsgynDB logs via logs TMUDF
 * DCS Servers
@@ -44,7 +49,7 @@ DB Manager allows the user to monitor the health and status of EsgynDB services 
 * Query Workbench
 ** Execute ad-hoc queries
 ** Generate visual and textual explain plans
-** Support for CQDs
+** Apply CQDs to change execute plans
 * Alerts ( * only in EsgynDB Enterprise Advanced Edition)
 ** View Alert notifications
 ** Acknowledge and update alerts

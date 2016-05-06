@@ -112,7 +112,7 @@ class ExpORCinterface : public NABasicObject
 
   Lng32 open(char * orcFileName,
              const Int64 startRowNum = 0, 
-             const Int64 stopRowNum = ULLONG_MAX,
+             const Int64 stopRowNum = LLONG_MAX,
              Lng32 numCols = 0,
              Lng32 * whichCols = NULL,
              TextVec *ppiVec = NULL,
@@ -120,13 +120,11 @@ class ExpORCinterface : public NABasicObject
 
   Lng32 close();
 
-  Lng32 getColStats(char * orcFileName, Lng32 colNum,
-                    ByteArrayList* &bal);
+  Lng32 getColStats(Lng32 colNum, ByteArrayList* &bal);
 
   char * getErrorText(Lng32 errEnum);
 
-  Lng32 getStripeInfo(const char* orcFileName,
-                      LIST(Int64)& numOfRowsInStripe,
+  Lng32 getStripeInfo(LIST(Int64)& numOfRowsInStripe,
                       LIST(Int64)& offsetOfStripe,
                       LIST(Int64)& totalBytesOfStripe);
 

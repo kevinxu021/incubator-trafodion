@@ -5573,16 +5573,6 @@ Lng32 HSGlobalsClass::CollectStatistics()
     //The result will always be a VARCHAR(len) CHARACTER SET UCS2
     //In most cases, this will reduce the number of fetches.
 
-    //10-040618-7112: temporary workaround for compiler issue
-    //make sure no parallel plans get generated for single partitioned tables
-    //The sample table for SQLMP tables are always single partition. Whereas for
-    //SQLMX, the table may be partitioned based on the HIST_SCRATCH_VOL cqd.
-    if ((sampleTableUsed && tableFormat == SQLMP) ||
-        (NOT sampleTableUsed && objDef->getNumPartitions() == 1))
-      {
-        HSFuncExecQuery("CONTROL QUERY DEFAULT ATTEMPT_ESP_PARALLELISM 'OFF'");
-      }
-
     if (CmpCommon::getDefault(USTAT_ATTEMPT_ESP_PARALLELISM) == DF_OFF)
       HSFuncExecQuery("CONTROL QUERY DEFAULT ATTEMPT_ESP_PARALLELISM 'OFF'");
 
@@ -5686,7 +5676,7 @@ Lng32 HSGlobalsClass::CollectStatistics()
                                           /* sampled UEC -> est UEC          */
                                           /* sampled ROWCOUNT -> est ROWCOUNT*/
                                           /*=================================*/
-        if (sampleRowCount > 0 && actualRowCount > sampleRowCount)
+        if (samplingUsed && sampleRowCount > 0 && actualRowCount > sampleRowCount)
           {
             LM->StartTimer("fix sample row counts");
             retcode = FixSamplingCounts(group);
@@ -5696,6 +5686,24 @@ Lng32 HSGlobalsClass::CollectStatistics()
           }
         group = group->next;
       }
+
+    // If we used cqd USTAT_ESTIMATE_HBASE_ROW_COUNT 'ON', then actualRowCount
+    // is the estimate of the row count given by HBase. If we also did not do
+    // sampling, we know the true row count; this is in sampleRowCount. We
+    // take the opportunity here to correct the actualRowCount in this case.
+    if (!samplingUsed && isHbaseTable &&
+        CmpCommon::getDefault(USTAT_ESTIMATE_HBASE_ROW_COUNT) == DF_ON)
+      {
+        if (LM->LogNeeded())
+          {
+            sprintf(LM->msg, "Correcting actualRowCount (was " PF64 ") from sampleRowCount (" PF64 ")",
+                             actualRowCount,sampleRowCount);
+            LM->Log(LM->msg);
+          }
+        actualRowCount = sampleRowCount;
+      }
+         
+
     if (singleGroup && LM->LogNeeded())
       LM->StopTimer();
 
@@ -5727,7 +5735,7 @@ Lng32 HSGlobalsClass::CollectStatistics()
 
         LM->StartTimer("MC: fix MC stats");
 
-        if (sampleRowCount > 0 && actualRowCount > sampleRowCount)
+        if (samplingUsed && sampleRowCount > 0 && actualRowCount > sampleRowCount)
           {
             group = multiGroup;
             while (group != NULL)
@@ -5739,16 +5747,6 @@ Lng32 HSGlobalsClass::CollectStatistics()
             }
           }
         LM->StopTimer();
-      }
-
-    //10-040618-7112: temporary workaround for compiler issue
-    //make sure no parallel plans get generated for single partitioned tables
-    //The sample table for SQLMP tables are always single partition. Whereas for
-    //SQLMX, the table may be partitioned based on the HIST_SCRATCH_VOL cqd.
-    if ((sampleTableUsed && tableFormat == SQLMP) ||
-        (NOT sampleTableUsed && objDef->getNumPartitions() == 1))
-      {
-        HSFuncExecQuery("CONTROL QUERY DEFAULT ATTEMPT_ESP_PARALLELISM RESET");
       }
 
     if (CmpCommon::getDefault(USTAT_ATTEMPT_ESP_PARALLELISM) == DF_OFF)
@@ -7825,7 +7823,7 @@ Lng32 HSGlobalsClass::groupListFromTable(HSColGroupStruct*& groupList,
 #else // NA_USTAT_USE_STATIC not defined, use dynamic query
     char sbuf[25];
     NAString qry = "SELECT HISTOGRAM_ID, COL_POSITION, COLUMN_NUMBER, COLCOUNT, "
-                          "cast(READ_TIME as char(19)), REASON "
+                          "cast(READ_TIME as char(19) character set iso88591), REASON "
                    "FROM ";
     qry.append(hstogram_table->data());
     qry.append(    " WHERE TABLE_UID = ");
@@ -11497,7 +11495,7 @@ Lng32 HSGlobalsClass::createStatsForColumn(HSColGroupStruct *group, Int64 rowsAl
     }
 
     // Upscale rowcounts and estimate UECs when sampling.
-    if (sampleRowCount > 0 && actualRowCount > sampleRowCount)
+    if (samplingUsed && sampleRowCount > 0 && actualRowCount > sampleRowCount)
     {
       retcode = FixSamplingCounts(group);
       HSHandleError(retcode);

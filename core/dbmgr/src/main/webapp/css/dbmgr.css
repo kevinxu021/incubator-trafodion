@@ -88,6 +88,7 @@
 	display: table-cell;
 	padding-right: 10px;
 	margin-bottom: 10px;
+	font-size:13px;
 }
 
 .dbmgr-button, .dbmgr-link-button {
@@ -100,6 +101,7 @@
 	width: 200px;
 	margin-bottom: 0px;
 	font-weight: 55;
+	font-size:13px;
 }
 
 .nav>li {
@@ -127,7 +129,7 @@
 	}*/
 	.CodeMirror pre {
 		padding: 0 4px; /* Horizontal padding of content */
-		padding-left: 30px;
+		/*padding-left: 30px;*/
 		/*font-family: Courier New, Courier, monospace;*/
 	}
 	.navbar-default .dbmgr-title {
@@ -161,7 +163,7 @@
 	.dbmgr-drilldown-graph {
 		min-height: 400px;
 		height: 500px;
-		width: 900px;
+		width: 75%;
 		float: left;
 	}
 	.drilldown-legend-selector {

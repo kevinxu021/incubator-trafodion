@@ -138,9 +138,13 @@ class ComTdbHdfsScan : public ComTdb
   UInt16 filler2_;                                            // 198 - 199
   Int32 partColsRowLength_;                                   // 200 - 203
   Int32 virtColsRowLength_;                                   // 204 - 207
-  UInt32 filler0_;                                            // 208 - 211
+  Int32 numPartCols_;                                         // 208 - 211
   ExExprPtr partElimExpr_;                                    // 212 - 219
-  char fillersComTdbHdfsScan1_[16];                           // 220 - 235
+  UInt32  hiveScanMode_;                                      // 220 - 223
+  UInt32 numCompressionInfos_;                                // 224 - 227
+  NAVersionedObjectPtrTempl<ComCompressionInfo>
+                                      compressionInfos_;      // 228 - 235
+  char fillersComTdbHdfsScan1_[12];                           // 236 - 247
 
 public:
   enum HDFSFileType
@@ -170,10 +174,13 @@ public:
 		 Queue * hdfsFileRangeBeginList,
 		 Queue * hdfsFileRangeNumList,
                  Queue * hdfsColInfoList,
+                 ComCompressionInfo *compressionInfos,
+                 Int16 numCompressionInfos,
                  char recordDelimiter,
                  char columnDelimiter,
 		 Int64 hdfsBufSize,
                  UInt32 rangeTailIOSize,
+                 Int32 numPartCols,
 		 Int64 hdfsSqlMaxRecLen,
                  Int64 outputRowLength,
 		 Int64 asciiRowLen,
@@ -234,11 +241,16 @@ public:
   void   setLoggingLocation(char * v ) { loggingLocation_ = v; }
   char * getErrCountRowId() { return errCountRowId_; }
   void   setErrCountRowId(char * v ) { errCountRowId_ = v; }
+  void   setHiveScanMode(UInt32 v ) { hiveScanMode_ = v; }
+  UInt32 getHiveScanMode() { return hiveScanMode_; }
 
   Queue* getHdfsFileInfoList() {return hdfsFileInfoList_;}
   Queue* getHdfsFileRangeBeginList() {return hdfsFileRangeBeginList_;}
   Queue* getHdfsFileRangeNumList() {return hdfsFileRangeNumList_;}
   Queue* getHdfsColInfoList() {return hdfsColInfoList_;}
+
+  const ComCompressionInfo * getCompressionInfo(int c) const
+  { return ((c >= 0 && c < numCompressionInfos_) ? &compressionInfos_[c] : NULL); }
 
   const NABoolean isTextFile() const { return (type_ == TEXT_);}
   const NABoolean isSequenceFile() const { return (type_ == SEQUENCE_);}  
@@ -452,6 +464,7 @@ public:
        char columnDelimiter,
        Int64 hdfsBufSize,
        UInt32 rangeTailIOSize,
+       Int32 numPartCols,
        Queue * tdbListOfOrcPPI,
        Int64 hdfsSqlMaxRecLen,
        Int64 outputRowLength,
@@ -547,7 +560,9 @@ public:
     COUNT_NONULL_  = 2,
     MIN_           = 3,
     MAX_           = 4,
-    SUM_           = 5
+    SUM_           = 5,
+    ORC_NV_LOWER_BOUND_ = 6,
+    ORC_NV_UPPER_BOUND_ = 7
   };
 
   // Constructor
@@ -576,7 +591,8 @@ public:
                 queue_index down,
                 queue_index up,
                 Int32  numBuffers,
-                UInt32  bufferSize
+                UInt32  bufferSize,
+                Int32 numPartCols
                 );
   
   ~ComTdbOrcFastAggr();

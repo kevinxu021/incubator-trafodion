@@ -70,7 +70,8 @@ inline const char * privStatusEnumToLit(PrivStatus privStatus)
 }
   
 
-enum {SQL_OPERATIONS_COMPONENT_UID = 1};
+enum { INVALID_COMPONENT_UID = 0,
+       SQL_OPERATIONS_COMPONENT_UID = 1};
 #define SQL_OPERATION_NAME "SQL_OPERATIONS"
 
 #define PRIVMGR_INTERNAL_ERROR(text)                                      \
@@ -188,6 +189,7 @@ enum class SQLOperation {
    DML_INSERT,
    DML_REFERENCES,
    DML_SELECT,
+   DML_SELECT_METADATA,
    DML_UPDATE,
    DML_USAGE,
    DROP,
@@ -284,6 +286,7 @@ static const ComponentOpStruct componentOpList[] =
  {SQLOperation::DML_INSERT,     "PI","DML_INSERT",false,false,true,false},
  {SQLOperation::DML_REFERENCES, "PR","DML_REFERENCES",false,false,true,false},
  {SQLOperation::DML_SELECT,     "PS","DML_SELECT",false,false,true,false},
+ {SQLOperation::DML_SELECT_METADATA,"PM","DML_SELECT_METADATA",true,true,true,false},
  {SQLOperation::DML_UPDATE,     "PU","DML_UPDATE",false,false,true,false},
  {SQLOperation::DML_USAGE,      "PG","DML_USAGE",false,false,true,false},
 
@@ -362,10 +365,10 @@ const static int32_t NBR_OF_PRIVS = NBR_DML_PRIVS+NBR_DDL_PRIVS;
 //using PrivMgrBitmap = std::bitset<NBR_OF_PRIVS>;
 #define PrivMgrBitmap std::bitset<NBR_OF_PRIVS>
 typedef std::bitset<NBR_OF_PRIVS> PrivObjectBitmap;
-typedef std::bitset<NBR_DML_COL_PRIVS> PrivColumnBitmap;
+typedef std::bitset<NBR_OF_PRIVS> PrivColumnBitmap;
 typedef std::bitset<NBR_OF_PRIVS> PrivSchemaBitmap;
 typedef std::map<size_t,PrivColumnBitmap> PrivColList;
-typedef std::map<size_t,std::bitset<NBR_DML_COL_PRIVS> >::const_iterator PrivColIterator;
+typedef std::map<size_t,std::bitset<NBR_OF_PRIVS> >::const_iterator PrivColIterator;
 
 inline bool isDMLPrivType(PrivType privType)
 {

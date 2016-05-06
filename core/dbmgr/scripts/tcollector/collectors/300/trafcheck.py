@@ -11,10 +11,10 @@ import os
 
 interval = 30  # seconds
 FIELDS = ("configure", "running", "down")
-cmd = "sqcheck"
+cmd = "trafcheck"
 
 def main():
-	"""sqcheck main loop"""
+	"""trafcheck main loop"""
 	
 	#We only collect these metrics from one node in the cluster
 	#If CMON is running, then collect and report metrics, else exit
@@ -26,7 +26,7 @@ def main():
 		p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		ts = int(time.time())
 		for line in p.stdout.readlines():
-			m = re.match("(DTM|RMS|MXOSRVR)(.*)", line)
+			m = re.match("(DTM|RMS|DCSMASTER|DCSSERVER|MXOSRVR)(.*)", line,flags=re.IGNORECASE)
 			if not m:
 				continue
 			component = m.group(1).lower()

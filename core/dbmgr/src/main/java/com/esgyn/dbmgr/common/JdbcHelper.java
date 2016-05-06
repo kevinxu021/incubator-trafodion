@@ -48,4 +48,12 @@ public class JdbcHelper {
 		return DriverManager.getConnection(url, user, password);
 	}
 
+	public static String EncloseInSingleQuotes(String aLiteralString) {
+		return "'" + aLiteralString.replace("'", "''") + "'";
+	}
+
+	public static String EncloseInDoubleQuotes(String aLiteralString) {
+		return "\"" + aLiteralString + "\"";
+	}
+
 }

@@ -46,8 +46,10 @@ define([
 		template:  _.template(QueryPlanT),
 
 		doInit: function (args){
+			this.currentURL = window.location.hash;
+			this.redirectFlag=false;
 			_this = this;
-
+			this.pageIdentifier="queryPlan";
 			$('.panel-heading span.dbmgr-collapsible').on("click", function (e) {
 		        if ($(this).hasClass('panel-collapsed')) {
 		                // expand the panel
@@ -98,33 +100,35 @@ define([
 	        	});
 			$(REFRESH_MENU).on('click', this.fetchExplainPlan);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
-			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
-			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
-			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
+			wHandler.on(wHandler.PLAN_CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.PLAN_CANCEL_QUERY_ERROR, this.cancelQueryError);
+			serverHandler.on(serverHandler.WORKLOAD_EXPLAIN_SUCCESS, this.drawExplain);
+			serverHandler.on(serverHandler.WORKLOAD_EXPLAIN_ERROR, this.showErrorMessage);
 
 			this.fetchExplainPlan();
 
 		},
 		doResume: function(args){
+			this.redirectFlag=false;
 			$(REFRESH_MENU).on('click', this.fetchExplainPlan);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
-			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
-			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
-			serverHandler.on(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
+			/*wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
+			serverHandler.on(serverHandler.WORKLOAD_EXPLAIN_SUCCESS, this.drawExplain);
+			serverHandler.on(serverHandler.WORKLOAD_EXPLAIN_ERROR, this.showErrorMessage);
 			if(queryID == null || queryID != args){
 				this.processArgs(args);
 				this.fetchExplainPlan();
 			}
 		},
 		doPause: function(){
+			this.redirectFlag=true;
 			$(REFRESH_MENU).off('click', this.fetchExplainPlan);
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
-			wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
-			serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_SUCCESS, this.drawExplain);
-			serverHandler.off(serverHandler.WRKBNCH_EXPLAIN_ERROR, this.showErrorMessage);
+			/*wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
+			serverHandler.off(serverHandler.WORKLOAD_EXPLAIN_SUCCESS, this.drawExplain);
+			serverHandler.off(serverHandler.WORKLOAD_EXPLAIN_ERROR, this.showErrorMessage);
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
@@ -170,11 +174,14 @@ define([
 			var param = {sQuery : queryText, sControlStmts: "", sQueryID: queryID, sQueryType: queryType};
 
 			_this.showLoading();
-			serverHandler.explainQuery(param);
+			serverHandler.explainQuery(param, _this);
 			$(ERROR_CONTAINER).hide();
 		},
 
 		drawExplain: function (jsonData){
+			if(jsonData.requestor !=null && jsonData.requestor != _this) //error message is probably for different page
+				return;
+			
 			_this.hideLoading();
 			$('#text-result-container').show();
 			$('#text-result').text(jsonData.planText);
@@ -213,6 +220,9 @@ define([
 			}
 		},
 		showErrorMessage: function (jqXHR) {
+			if(jqXHR.requestor !=null && jqXHR.requestor != _this) //error message is probably for different page
+				return;
+			
 			if(jqXHR.statusText != 'abort'){
 				_this.hideLoading();
 				$(ERROR_CONTAINER).show();
@@ -240,13 +250,33 @@ define([
         	});
         },
 		cancelQuery: function(){
-			wHandler.cancelQuery(queryID);
+			wHandler.cancelQuery(queryID,_this.pageIdentifier);
 		},
 		cancelQuerySuccess:function(){
-			alert('The cancel query request has been submitted');
+			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully."};
+			if(_this.redirectFlag==false){
+				_this.popupNotificationMessage(null,msgObj);
+			}else{
+				
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
 		},
 		cancelQueryError:function(jqXHR){
-			alert(jqXHR.responseText);
+			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
+			if(jqXHR.responseText==undefined){
+				msgObj.msg="the response was null."
+				msgObj.shortMsg="the response was null."
+			}
+			if(jqXHR.statusText=="abort"){
+				msgObj.msg="the request was aborted."
+				msgObj.shortMsg="the request was aborted."
+			}
+			if(_this.redirectFlag==false){
+				_this.popupNotificationMessage(null,msgObj);
+			}else{
+				
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
 		},        
 
 	});

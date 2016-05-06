@@ -40,32 +40,7 @@ select
     c_email_address,
     c_last_review_date
 from customer 
-where c_customer_sk < 20000;
-
-set hive.enforce.bucketing = true;  
-insert overwrite table customer_bp partition (c_preferred_cust_flag='N') 
-select 
-    c_customer_sk,
-    c_customer_id,
-    c_current_cdemo_sk,
-    c_current_hdemo_sk,
-    c_current_addr_sk,
-    c_first_shipto_date_sk,
-    c_first_sales_date_sk,
-    c_salutation,
-    c_first_name,
-    c_last_name,
-    --c_preferred_cust_flag,
-    c_birth_day,
-    c_birth_month,
-    c_birth_year,
-    c_birth_country,
-    c_login,
-    c_email_address,
-    c_last_review_date
-from customer_ddl
-where c_preferred_cust_flag='N'
-      and c_customer_sk < 20000;
+where c_customer_sk < 25000;
 
 drop table newtable;
 create table newtable(a string);
@@ -77,10 +52,7 @@ create table hiveregr5.newtable2(a string);
 
 set hive.exec.dynamic.partition=true;
 set hive.exec.dynamic.partition.mode=nonstrict;
-insert into table hivepi partition (p1) select id, col2, p1 from hivenonp;
 insert into table hiveps partition (p2) select id, col2, p2 from hivenonp;
-insert into table hivepis partition (p1, p2) select id, col2, p1, p2 from hivenonp;
-insert into table hivepts partition (p1t, p2) select id, col2, p1t, p2 from hivenonp;
 insert into table hivepio partition (p1) select id, col2, p1 from hivenonp;
 insert into table hivepdo partition (p1d) select id, col2, p1d from hivenonp;
 insert into table hivepiso partition (p1, p2) select id, col2, p1, p2 from hivenonp;

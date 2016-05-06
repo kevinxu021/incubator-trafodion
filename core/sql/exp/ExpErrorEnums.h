@@ -223,6 +223,7 @@ enum ExeErrorCode
   EXE_CANT_COMMIT_OR_ROLLBACK           = 8613,
   EXE_CANT_BEGIN_WITH_MULTIPLE_CONTEXTS = 8614,
   EXE_CANT_BEGIN_USER_TRANS_WITH_LRU    = 8615,
+  EXE_COMMIT_CONFLICT_FROM_TRANS_SUBSYS	= 8616,
   EXE_LAST_CONCURRENCY_CONTROL_ERROR	= 8629,
 
   //-------------------------------------------------------------
@@ -473,6 +474,7 @@ enum ExeErrorCode
   EXE_EXTRACT_BACKUP_SWITCHED           = 8963,
   EXE_LOAD_NON_EMPTY_TABLE              = 8964,
   EXE_UNLOAD_FILE_EXISTS                = 8965,
+  EXE_HIVE_INSERT_PART_CREATE_ERR       = 8966,
   // ---------------------------------------------------------------------
   // SeaMonster
   // ---------------------------------------------------------------------

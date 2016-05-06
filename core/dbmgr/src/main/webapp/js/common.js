@@ -7,9 +7,11 @@
 define(['moment',
         'momenttimezone',
         'jquery',
+        'handlers/EventDispatcher',
+        'bootstrapNotify',
         'jit'
         ],
-        function(moment, momenttimezone, $) {
+        function(moment, momenttimezone, $,EventDispatcher) {
 	"use strict";
 
 	return (function() {
@@ -17,13 +19,27 @@ define(['moment',
 		function Common() {
 
 			// var _isoDateFormat='yyyy-MM-dd HH:mm:ss'
+			var REFRESH_INTERVAL = '#refreshInterval';
+			this.MESSAGE_COUNT=0;
+			var dispatcher = new EventDispatcher();
 			this.ISODateFormat = 'YYYY-MM-DD HH:mm:ss';
 			var _this = this;
 			this.serverTimeZone = null;
 			this.serverUtcOffset = 0;
 			this.dcsMasterInfoUri = "";
-			this.systemType = 0;
+			this.databaseVersion = "";
+			this.databaseEdition = "";
 			this.serverConfigLoaded = false;
+			this.NOFITY_MESSAGE = 'nofigyMessage';
+			this.MESSAGE_LIST=new Array();
+			this.popupIndex;
+			this.isAllNotificationInserted=false;
+			this.hideNotifications=null;
+			this.commonTimeRange=null;
+			this.START_TIME_PICKER = '#startdatetimepicker';
+			this.END_TIME_PICKER = '#enddatetimepicker';
+			this.DATE_FORMAT = 'YYYY-MM-DD HH:mm:ss';
+			this.DATE_FORMAT_ZONE = this.DATE_FORMAT + ' z';
 
 			this.sqlKeywords = "alter and as asc between by count create cqd delete desc distinct drop from group having in insert into is join like not on or order select set table union update values where ";
 
@@ -31,17 +47,73 @@ define(['moment',
 				_this.serverTimeZone = data.serverTimeZone;
 				_this.serverUtcOffset = data.serverUTCOffset;
 				_this.dcsMasterInfoUri = data.dcsMasterInfoUri;
-				_this.systemType = data.systemType;
 				_this.serverConfigLoaded = true;
-				if(data.enableAlerts != null && data.enableAlerts == false){
-					$('#alerts-feature').hide();
+				_this.databaseEdition = data.databaseEdition;
+				_this.databaseVersion = data.databaseVersion;
+				
+				if(_this.isAdvanced()){
+					$('.dbmgr-adv').show();
+					if(data.enableAlerts != null && data.enableAlerts == false){
+						$('#alerts-feature').hide();
+					}else{
+						$('#alerts-feature').show();
+					}
 				}else{
-					$('#alerts-feature').show();
+					$('.dbmgr-adv').hide();
+					$('#alerts-feature').hide();
 				}
 			};
 
 			this.isEnterprise = function(){
-				if(_this.systemType != null && _this.systemType == 1){
+				if(_this.databaseEdition != null && _this.databaseEdition.toLowerCase().indexOf("enterprise") > -1){
+					return true;
+				}
+				return false;
+			};
+			
+			this.ExternalDisplayName = function (objName) {
+				var name = objName.trim();
+				var length=name.length;
+				// May be empty?
+				if (length == 0) {
+					return "";
+				}
+				// If it contains specials, it needs to be delimited.
+				if ((length > 1) && (name.startsWith("\"")) && (name.endsWith("\""))) {
+					return name;
+				}else if(!name.startsWith("_") && (name.match("^[A-Z0-9_]+$")!=null)) {
+					// No specials, it's itself
+					return name;
+				}
+				// It has specials; delimit it.
+				return "\"" + name + "\"";			
+			};
+			
+			this.ExternalAnsiName = function (schemaName, objectName) {
+				return _this.ExternalDisplayName(schemaName) + "." + _this.ExternalDisplayName(objectName);
+			};
+			
+			this.ExternalForm=function(internalName){
+				var name = internalName.trim();
+				var patern = new RegExp('\"',"g");
+				var length=name.length;
+				// May be empty?
+				if (length == 0) {
+					return "";
+				}
+				// If it contains specials, it needs to be delimited.
+				if ((length > 1) && (name.startsWith("\"")) && (name.endsWith("\""))) {
+					return name;
+				}else if(!name.startsWith("_") && (name.match("^[a-zA-Z0-9_]+$")!=null)) {
+					// No specials, it's itself
+					return name.toUpperCase();
+				}
+				// It has specials; delimit it.
+				return "\"" + name + "\"";
+			};
+			
+			this.isAdvanced = function(){
+				if(_this.databaseEdition != null && _this.databaseEdition.toLowerCase().indexOf("advanced") > -1){
 					return true;
 				}
 				return false;
@@ -51,7 +123,8 @@ define(['moment',
 				_this.serverTimeZone = null;
 				_this.serverUtcOffset = 0;
 				_this.dcsMasterInfoUri = "";
-				_this.systemType = 0;
+				_this.databaseVersion = "";
+				_this.databaseEdition = "";
 				_this.serverConfigLoaded = false;
 			};
 
@@ -169,6 +242,16 @@ define(['moment',
 				return "";
 			},
 
+			this.hashString = function(stringVal){
+			  var hash = 0, i, chr, len;
+			  if (stringVal.length === 0) return hash;
+			  for (i = 0, len = stringVal.length; i < len; i++) {
+			    chr   = stringVal.charCodeAt(i);
+			    hash  = ((hash << 5) - hash) + chr;
+			    hash |= 0; // Convert to 32bit integer
+			  }
+			  return hash;
+			},
 			this.toServerLocalFromUTCMilliSeconds = function(utcMsec){
 				return utcMsec + _this.serverUtcOffset;
 			},
@@ -192,21 +275,50 @@ define(['moment',
 				} else if (interval <= (3 * 24 * 60 * 60 * 1000)) {
 					offSetString = 'HH:mm'; // For 3 days, use every 1 hour
 				} else if (interval <= (1 * 7 * 24 * 60 * 60 * 1000)) {
-					offSetString = 'ddd HH:mm'; // For 1 week, use every 2 hours
+					offSetString = 'MM-DD'; // For 1 week, use every 2 hours
 				} else if (interval <= (2 * 7 * 24 * 60 * 60 * 1000)) {
-					offSetString = 'ddd HH:mm'; // For 2 weeks, use every 4 hours
+					offSetString = 'MM-DD'; // For 2 weeks, use every 4 hours
 				} else if (interval <= 1 * 31 * 24 * 60 * 60 * 1000) {
-					offSetString = 'ddd HH:mm'; // For 1 month use every 12 hours
+					offSetString = 'MM-DD'; // For 1 month use every 12 hours
 				} else if (interval <=  3 * 31 * 24 * 60 * 60 * 1000) {
-					offSetString = 'MM-DD HH:mm'; // For 3 months use every 1 day
+					offSetString = 'MM-DD'; // For 3 months use every 1 day
 				} else {
-					offSetString =  'MM-DD HH:mm'; // For longer than 3 months, use every 1 week
+					offSetString =  'MM-DD'; // For longer than 3 months, use every 1 week
 				}
 				if(isUtc !=null && isUtc == true)
 					return _this.toServerLocalDateFromUtcMilliSeconds(milliSeconds, offSetString);
 				return _this.toServerLocalDateFromMilliSeconds(milliSeconds, offSetString);
 			},
-
+			this.toTimeDifferenceFromLocalDate=function(start,end){
+				var minute = 1000 * 60;
+				var hour = minute * 60;
+				var day = hour * 24;
+				var week=day * 7;
+				var month = day * 30;
+				var year=month * 12;
+				var now = new Date();
+				var diff = end - start;
+				var timeAgo;
+				if(diff < 0){
+				 alert("end date could not be earlier than start date ！");
+				 }
+				if(diff<minute){
+					timeAgo=(diff/minute).toFixed(0) +' minutes ago';
+				}else if(diff<60*minute){
+					timeAgo=(diff/minute).toFixed(0) +' minutes ago';
+				}else if(diff<day){
+					timeAgo=(diff/hour).toFixed(0) +' hours ago';
+				}else if(diff<week){
+					timeAgo=(diff/day).toFixed(0) +' days ago';
+				}else if(diff<month){
+					timeAgo=(diff/(week)).toFixed(0) +' weeks ago';
+				}else if(diff<year){
+					timeAgo=(diff/(month)).toFixed(0) +' months ago';
+				}else{
+					timeAgo=(diff/(year)).toFixed(0) +' years ago';
+				}
+				return timeAgo;
+			},
 			this.toServerLocalDateFromMilliSeconds = function(milliSeconds, formatString) {
 				if (milliSeconds != null) {
 					//return moment(utcMilliSeconds + (_this.serverUtcOffset)).local().format('YYYY-MM-DD HH:mm:ss');
@@ -235,7 +347,28 @@ define(['moment',
 			this.getBrowserTimeZoneOffset = function() {
 				return moment().zone() * 60 * 1000;
 			},
-
+			this.getCommonTimeRange=function(selection){
+				var isAutoRefresh;
+				if($(REFRESH_INTERVAL).val()!=null){
+					isAutoRefresh=$(REFRESH_INTERVAL).val();
+				}else{
+					if(_this.commonTimeRange.isAutoRefresh!=null){
+						isAutoRefresh=_this.commonTimeRange.isAutoRefresh;
+					}
+				}
+				switch (selection) {
+				case "0":
+					_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0",isAutoRefresh:isAutoRefresh };
+					break;
+				default:
+					if(isAutoRefresh==""){
+						_this.commonTimeRange={startTime:$(_this.START_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),endTime:$(_this.END_TIME_PICKER).data("DateTimePicker").date().format(_this.DATE_FORMAT_ZONE),timeRangeTag:"0",isAutoRefresh:isAutoRefresh};	
+					}else{
+						_this.commonTimeRange={startTime:null,endTime:null,timeRangeTag:selection,isAutoRefresh:isAutoRefresh};
+					}
+					break;
+				}
+			},
 			this.bytesToSize = function(bytes) {
 				var units = [ 'bytes', 'KB', 'MB', 'GB', 'TB' ];
 				if (bytes <= 0)
@@ -467,7 +600,17 @@ define(['moment',
 			this.calculateHeight = function(depth){
 				return Math.max(310,70*depth);
 			};
+			
+			this.on = function(eventName, callback) {
+				dispatcher.on(eventName, callback);
+			};
+			this.off = function (eventName, callback) {
+				dispatcher.off(eventName, callback);
+			};
 
+			this.fire = function(eventName, eventInfo) {
+				dispatcher.fire(eventName, eventInfo);
+			};
 
 			this.calculateWidth = function(tree, container){
 				var a=[];
@@ -506,8 +649,6 @@ define(['moment',
 					//set distance between node and its children
 					levelDistance: 40,
 					siblingOffset: 100,
-				    width: this.calculateWidth(jsonData, container),						   
-				    height: this.calculateHeight(jsonData.treeDepth),
 					//set max levels to show. Useful when used with
 					//the request method for requesting trees of specific depth
 					levelsToShow: jsonData.treeDepth,

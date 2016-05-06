@@ -166,6 +166,12 @@ define([
 
 				}
 			}
+			pageStatus.ddlFetched == false;
+			if(ddlTextEditor){
+				ddlTextEditor.setValue("");
+				ddlTextEditor.clearHistory("");
+				ddlTextEditor.refresh();
+			}	
 		},
 		selectFeature: function(e){
 			$(SCHEMA_DETAILS_CONTAINER).show();
@@ -222,6 +228,9 @@ define([
 				break;
 			case DDL_SELECTOR:
 				$(DDL_CONTAINER).show();
+				if(ddlTextEditor){
+					ddlTextEditor.focus();
+				}
 				_this.fetchDDLText();
 				break;
 			case PRIVILEGES_SELECTOR:
@@ -249,7 +258,7 @@ define([
 			}
 		},
 		doRefresh: function(){
-			pageStatus.ddl = false;
+			pageStatus.ddlFetched = false;
 			_this.processRequest();
 		},
 		getObjectID: function(){
@@ -267,7 +276,11 @@ define([
 			return objectID;
 		},
 		fetchDDLText: function(){
-			if(!pageStatus.ddl || pageStatus.ddl == false){
+			if(!pageStatus.ddlFetched || pageStatus.ddlFetched == false){
+				if(ddlTextEditor){
+					ddlTextEditor.setValue("");
+					ddlTextEditor.refresh();
+				}
 				$(DDL_SPINNER).show();
 				$(DDL_ERROR_CONTAINER).hide();
 				$(DDL_CONTAINER).show();
@@ -287,7 +300,7 @@ define([
 			$(BREAD_CRUMB).empty();
 			bCrumbsArray = [];
 			bCrumbsArray.push({name: 'Schemas', link: '#/database'});
-			bCrumbsArray.push({name: routeArgs.name, link: ''});
+			bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 
 			$.each(bCrumbsArray, function(key, crumb){
 				if(crumb.link && crumb.link.length >0){
@@ -301,7 +314,7 @@ define([
 			_this.updateBreadCrumbs(routeArgs);
 			$(BREAD_CRUMB).show();
 			schemaName = routeArgs.name;
-			var displayName = 'Schema ' + routeArgs.name;
+			var displayName = 'Schema ' + common.ExternalDisplayName(routeArgs.name);
 			$(OBJECT_NAME_CONTAINER).text(displayName);
 			$(ATTRIBUTES_BTN).show();
 			$(ATTRIBUTES_SELECTOR).tab('show');
@@ -359,7 +372,7 @@ define([
 			}			
 		},
 		displayDDL: function(data){
-			pageStatus.ddl = true;
+			pageStatus.ddlFetched = true;
 			$(DDL_ERROR_CONTAINER).hide();
 			$(DDL_CONTAINER).show();
 			$(DDL_SPINNER).hide();
@@ -429,7 +442,7 @@ define([
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
-					          { extend : 'excel', exportOptions: { columns: ':visible' } },
+					         // { extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Schema level privilges for " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Schema level privilges for " + routeArgs.name }
 					          ],					             

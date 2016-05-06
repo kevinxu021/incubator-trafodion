@@ -59,6 +59,7 @@ license*.txt*
 LICENSE.rtf*
 lic-.*-src
 lic-.*-bin
+not-.*-bin
 # win generated
 SetCertificateDirReg_os.vcxproj*
 SetCertificateDirReg_os.vcxproj.*
@@ -108,6 +109,8 @@ TCPIPV6_os.*
 .ism*
 resource.h*
 resource.hm*
+odb.sln
+odb.vcxproj.*
 # BSD licensed files
 swscanf.cpp
 swsprintf.cpp

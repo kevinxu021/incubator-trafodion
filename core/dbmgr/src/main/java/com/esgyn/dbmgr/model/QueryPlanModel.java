@@ -22,7 +22,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.esgyn.dbmgr.common.EsgynDBMgrException;
+import com.esgyn.dbmgr.common.JdbcHelper;
 import com.esgyn.dbmgr.resources.ConfigurationResource;
+import com.esgyn.dbmgr.sql.SystemQueryCache;
 
 
 public class QueryPlanModel {
@@ -190,7 +192,8 @@ public class QueryPlanModel {
 			if (queryID != null && queryID.length() > 0) {
 				if (queryType != null && queryType.equalsIgnoreCase("active")) {
 					try {
-						String explainQryText = String.format("SELECT * FROM TABLE(explain(null, 'QID=%1$s'))",
+						String explainQryText = String.format(
+								SystemQueryCache.getQueryText(SystemQueryCache.EXPLAIN_ACTIVE_QUERY),
 								queryID);
 						_LOG.debug(explainQryText);
 						pStmt = connection.prepareStatement(explainQryText);
@@ -233,7 +236,8 @@ public class QueryPlanModel {
 				try {
 					// System.out.println("Using EXPLAIN_QID first");
 					if (!explainSuccess) {
-						String explainQryText = String.format("SELECT * FROM TABLE(explain(null, 'EXPLAIN_QID=%1$s'))",
+						String explainQryText = String
+								.format(SystemQueryCache.getQueryText(SystemQueryCache.EXPLAIN_USING_QID), 
 								queryID);
 						_LOG.debug(explainQryText);
 						pStmt = connection.prepareStatement(explainQryText);
@@ -270,7 +274,9 @@ public class QueryPlanModel {
 					}
 
 					if (explainSuccess) {
-						String explainQryText = "explain qid " + queryID + " from repository";
+						String explainQryText = String.format(
+								SystemQueryCache.getQueryText(SystemQueryCache.TEXT_EXPLAIN_USING_QID),
+								JdbcHelper.EncloseInDoubleQuotes(queryID));
 						_LOG.debug(explainQryText);
 						pStmt = connection.prepareStatement(explainQryText);
 						rs = pStmt.executeQuery();
@@ -302,7 +308,8 @@ public class QueryPlanModel {
 				delimitedQueryText = delimitedQueryText.trim();
 				// System.out.println(delimitedQueryText);
 
-				String exQuery = "SELECT * FROM TABLE(explain(null, 'EXPLAIN_STMT=" + delimitedQueryText + " '))";
+				String exQuery = String.format(SystemQueryCache.getQueryText(SystemQueryCache.EXPLAIN_USING_QTEXT),
+						delimitedQueryText);
 				// System.out.println(exQuery);
 				_LOG.debug(exQuery);
 				pStmt = connection.prepareStatement(exQuery);

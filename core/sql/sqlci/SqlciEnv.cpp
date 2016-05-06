@@ -264,7 +264,18 @@ void cleanupSockets()
 
 void SqlciEnv::welcomeMessage()
 {
-  COPYRIGHT_BANNER_1(cout, COPYRIGHT_SQLCI_PRODNAME_H);
+  if (IsEnterpriseLevel())
+    {
+      cout
+        << (IsAdvancedLevel() ? "EsgynDB Advanced " : "EsgynDB Enterprise ")
+        << COPYRIGHT_SQLCI_PRODNAME_H " " 
+        << COPYRIGHT_VERSION_H << endl << "Copyright (c) " 
+        << COPYRIGHT_HEADER_H << endl;
+    }
+  else
+    {
+      COPYRIGHT_BANNER_1(cout, COPYRIGHT_SQLCI_PRODNAME_H);
+    }
 }
 
 
@@ -1371,10 +1382,10 @@ Int32 SqlciEnv::getAuthState(bool &authenticationEnabled,
   HandleCLIErrorInit();
 
   Int32 localUID = 0;
-  Int32 rc = SQL_EXEC_GetAuthState_Internal(authenticationEnabled,
-                                            authorizationEnabled,
-                                            authorizationReady,
-                                            auditingEnabled);
+  Int32 rc = SQL_EXEC_GetAuthState(authenticationEnabled,
+                                   authorizationEnabled,
+                                   authorizationReady,
+                                   auditingEnabled);
   HandleCLIError(rc, this);
 
   return rc;

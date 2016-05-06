@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
 import java.util.TimeZone;
+import java.util.regex.Pattern;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
@@ -152,7 +153,7 @@ public class Helper {
 					if (columnType == java.sql.Types.ARRAY) {
 						data = rs.getArray(i);
 					} else if (columnType == java.sql.Types.BIGINT) {
-						data = rs.getLong(i);
+							data = rs.getString(i);
 					} else if (columnType == java.sql.Types.BOOLEAN) {
 						data = rs.getBoolean(i);
 					} else if (columnType == java.sql.Types.BLOB) {
@@ -349,13 +350,56 @@ public class Helper {
 	}
 
 	public static boolean isEnterpriseEdition() {
-		if (ConfigurationResource.getSystemVersion() != null
-				&& ConfigurationResource.getSystemVersion().toLowerCase().contains("enterprise"))
+		if (ConfigurationResource.getDatabaseEdition() != null
+				&& ConfigurationResource.getDatabaseEdition().toLowerCase().contains("enterprise"))
 			return true;
 
 		return false;
 	}
 
+	public static boolean isAdvancedEdition() {
+		if (ConfigurationResource.getDatabaseEdition() != null
+				&& ConfigurationResource.getDatabaseEdition().toLowerCase().contains("advanced"))
+			return true;
+
+		return false;
+	}
+
+	public static String ExternalForm(String internalName) {
+		String name = internalName.trim();
+
+		// May be empty?
+		if (name.length() == 0) {
+			return "";
+		}
+
+		// IF name is already delimited return as is
+		if (name.startsWith("\"") && name.endsWith("\"")) {
+			return name;
+		}
+		
+		// If it contains specials, it needs to be delimited.
+		if (!name.startsWith("_") && Pattern.matches("^[A-Z0-9_]+$", name)) {
+			// No specials, it's itself
+			return name;
+		}
+
+		name = name.replace("\"", "\"\"");
+
+		// It has specials; delimit it.
+		return "\"" + name + "\"";
+
+	}
+
+	public static String InternalForm(String externalName) {
+		int nameLength = externalName.length();
+
+		if ((nameLength > 1) && (externalName.startsWith("\"")) && (externalName.endsWith("\""))) {
+			return externalName.substring(1, nameLength - 1);
+		}
+		return externalName;
+	}
+	
 	public static String julianTimestampToString(long juliantimestamp) {
 		DateTimeZone serverTimeZone = DateTimeZone.forID(ConfigurationResource.getServerTimeZone());
 		if (juliantimestamp < 0)

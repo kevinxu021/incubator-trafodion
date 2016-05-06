@@ -1276,7 +1276,7 @@ void CRedirectStderr::handleOutput(ssize_t count, char *buffer)
                                 "STDERR redirected from %s.%s.%d.%d: %s",
                                 nodeName(), processName(), nid(), pid(), buffer );
         if ( size > 0 && buf[size-1] != '\n') buf[size-1] = '\n';
-        mon_log_write(MON_REDIR_STDERR, SQ_LOG_INFO, buf);
+        mon_log_write(MON_REDIR_STDERR, SQ_LOG_DEBUG, buf);
 
         delete [] buf;
     }

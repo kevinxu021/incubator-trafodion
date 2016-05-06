@@ -49,7 +49,7 @@
 #include "exp_function.h" // for calling ExHDPHash::hash(data, len)
 #include "ItemFuncUDF.h"
 #include "CmpStatement.h"
-//#include "ItmFlowControlFunction.h"
+#include "exp_datetime.h"
 
 #include "OptRange.h"
 
@@ -6199,6 +6199,12 @@ const NAString Aggregate::getText() const
       else
         result = "count_nonull";
       break;
+    case ITM_ORC_MAX_NV:
+      result = "orc_max_nv";
+      break;
+    case ITM_ORC_SUM_NV:
+      result = "orc_sum_nv";
+      break;
     case ITM_ONE_ROW:
       result = "one_Row";
       break;
@@ -6438,6 +6444,7 @@ ItemExpr * Aggregate::rewriteForStagedEvaluation(ValueIdList &initialAggrs,
   Aggregate *partial;
   Aggregate *sumOfCounts;
   Aggregate *sumOfSums;
+  Aggregate *minOfUECs;
 
   switch (getOperatorType())
     {
@@ -6505,6 +6512,7 @@ ItemExpr * Aggregate::rewriteForStagedEvaluation(ValueIdList &initialAggrs,
 
     case ITM_COUNT:
     case ITM_COUNT_NONULL:
+    case ITM_ORC_SUM_NV:
       // compute the sum of the counts
       partial = new (CmpCommon::statementHeap())
                   Aggregate(getOperatorType(),child(0));
@@ -6520,6 +6528,45 @@ ItemExpr * Aggregate::rewriteForStagedEvaluation(ValueIdList &initialAggrs,
       sumOfCounts->setTreatAsACount();
       sumOfCounts->setTopPartOfAggr();
       result = sumOfCounts;
+
+      result->synthTypeAndValueId();
+
+      // If we have to force the same type for the initial and final
+      // aggregate expressions, then force the type of the sum to
+      // be the same as the type of the count.
+      if (sameFormat)
+	result->getValueId().changeType(&(result->child(0)->
+					getValueId().getType()));
+
+      // execute the nested aggregate function in the initial set
+      initialAggrs.insert(result->child(0)->getValueId());
+      finalAggrs.insert(result->getValueId());
+      break;
+
+    case ITM_ORC_MAX_NV:
+      // in this case, take the min of the aggregates
+      partial = new (CmpCommon::statementHeap())
+                     Aggregate(getOperatorType(), child(0));
+
+      minOfUECs = new (CmpCommon::statementHeap())
+                    Aggregate(ITM_MIN, partial);
+
+      if (inScalarGroupBy())
+      {
+        partial->setInScalarGroupBy();
+        minOfUECs->setInScalarGroupBy();
+      }
+      if (treatAsACount())
+      {
+        partial->setTreatAsACount();
+        minOfUECs->setTreatAsACount();
+      }
+      if (topPartOfAggr())
+      {
+        partial->setTopPartOfAggr();
+      }
+      minOfUECs->setTopPartOfAggr();
+      result = minOfUECs;
 
       result->synthTypeAndValueId();
 
@@ -8264,12 +8311,16 @@ DateFormat::~DateFormat() {}
 ItemExpr * DateFormat::copyTopNode(ItemExpr *derivedNode,
 				   CollHeap* outHeap)
 {
-  ItemExpr *result;
+  DateFormat *result;
 
   if (derivedNode == NULL)
-    result = new (outHeap) DateFormat(child(0), child(1), getDateFormat());
+    result = new (outHeap) DateFormat(child(0), 
+                                      formatStr_, formatType_, 
+                                      wasDateformat_);
   else
-    result = derivedNode;
+    result = (DateFormat*)derivedNode;
+
+  frmt_ = result->frmt_;
 
   return BuiltinFunction::copyTopNode(result,outHeap);
 
@@ -8288,6 +8339,46 @@ NABoolean DateFormat::hasEquivalentProperties(ItemExpr * other)
   return 
       (this->dateFormat_ == df->dateFormat_);
 }
+
+void DateFormat::unparse(NAString &result,
+		      PhaseEnum phase,
+                      UnparseFormatEnum form,
+		      TableDesc * tabId) const
+{
+  if (wasDateformat_)
+    result += "DATEFORMAT(";
+  else if (formatType_ == FORMAT_TO_DATE)
+    result += "TO_DATE(";
+  else if (formatType_ == FORMAT_TO_CHAR)
+    result += "TO_CHAR(";
+  else
+    result += "unknown(";
+
+  child(0)->unparse(result, phase, form, tabId);
+
+  result += ", ";
+
+  if (wasDateformat_)
+    {
+      if (frmt_ == ExpDatetime::DATETIME_FORMAT_DEFAULT)
+        result += "DEFAULT";
+      else if (frmt_ == ExpDatetime::DATETIME_FORMAT_USA)
+        result += "USA";
+      else if (frmt_ == ExpDatetime::DATETIME_FORMAT_EUROPEAN)
+        result += "EUROPEAN";
+      else
+        result += "unknown";
+    }
+  else
+    {
+      result += "'";
+      result += formatStr_;
+      result += "'";
+    }
+
+  result += ")";  
+}
+
 // -----------------------------------------------------------------------
 // member functions for class DayOfWeek
 // -----------------------------------------------------------------------
@@ -14874,12 +14965,6 @@ ItemExpr * RangeSpecRef::copyTopNode(ItemExpr *derivedNode, CollHeap* outHeap)
   return ItemExpr::copyTopNode(result, outHeap);
 }
 
-short RangeSpecRef::codeGen(Generator* generator)
-{
-  child(1)->codeGen(generator);
-  return 0;
-}
-
 void RangeSpecRef::unparse(NAString &result,
                            PhaseEnum phase,
                            UnparseFormatEnum form,
@@ -15422,7 +15507,16 @@ void BiRelat::generatePushdownListForORC(OrcPushdownPredInfoList& result)
   switch (getOperatorType()) {
     
   case ITM_EQUAL:
-    result.insertEQ(child(0)->getValueId(), child(1)->getValueId());
+    {
+      if ( child(0)->isNullConstant() )
+         result.insertIS_NULL(child(1)->getValueId());
+      else {
+         if ( child(1)->isNullConstant() )
+            result.insertIS_NULL(child(0)->getValueId());
+         else
+            result.insertEQ(child(0)->getValueId(), child(1)->getValueId());
+      } 
+    } 
     break;
     
   case ITM_LESS:

@@ -17,6 +17,7 @@ define([
         'jqueryui',
         'datatables.net',
         'datatables.net-bs',
+        'bootstrapNotify'
         ], function (BaseView, WorkloadsT, $, wHandler, moment, common, refreshTimer, CodeMirror) {
 	'use strict';
 	var LOADING_SELECTOR = "#loadingImg",
@@ -37,10 +38,12 @@ define([
 		template:  _.template(WorkloadsT),
 
 		doInit: function (args){
+			this.currentURL = window.location.hash;
+			this.redirectFlag=false;
 			_this = this;
 			$('#query-id').val(args);
 			queryID = args;
-			
+			this.pageIdentifier="active";
 			if(CodeMirror.mimeModes["text/x-esgyndb"] == null){
 				common.defineEsgynSQLMime(CodeMirror);
 			}
@@ -61,13 +64,13 @@ define([
 					queryTextEditor.setSize($(this).width(), $(this).height());
 				}
 			});
-			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "height":"150px"});
+			$(queryTextEditor.getWrapperElement()).css({"border" : "1px solid #eee", "width":"800px", "height":"150px"});
 
 			this.loadQueryText();
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
-			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			wHandler.on(wHandler.ACTIVE_CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.ACTIVE_CANCEL_QUERY_ERROR, this.cancelQueryError);
 			refreshTimer.init();
 			
 			refreshTimer.eventAgg.on(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
@@ -81,6 +84,7 @@ define([
 
 		},
 		doResume: function(args){
+			this.redirectFlag=false;
 			$('#query-id').val(args);
 			if(queryID != null && queryID != args){
 				queryID = args;
@@ -89,8 +93,8 @@ define([
 			}
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
-			wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			/*wHandler.on(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.on(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
 			$(REFRESH_MENU).on('click', this.fetchActiveQueryDetail);
 			$(QCANCEL_MENU).on('click', this.cancelQuery);
 			$(EXPLAIN_BUTTON).on('click', this.explainQuery);
@@ -100,12 +104,13 @@ define([
 			this.fetchActiveQueryDetail();
 		},
 		doPause: function(){
+			this.redirectFlag=true;
 			refreshTimer.eventAgg.off(refreshTimer.events.TIMER_BEEPED, this.timerBeeped);
 			refreshTimer.pause();
 			wHandler.off(wHandler.FETCH_ACTIVE_QUERY_DETAIL_SUCCESS, this.displayResults);
 			wHandler.off(wHandler.FETCH_ACTIVE_QUERY_DETAIL_ERROR, this.showErrorMessage);
-			wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
-			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);
+			/*wHandler.off(wHandler.CANCEL_QUERY_SUCCESS, this.cancelQuerySuccess);
+			wHandler.off(wHandler.CANCEL_QUERY_ERROR, this.cancelQueryError);*/
 			$(REFRESH_MENU).off('click', this.fetchActiveQueryDetail);
 			$(QCANCEL_MENU).off('click', this.cancelQuery);
 			$(EXPLAIN_BUTTON).off('click', this.explainQuery);
@@ -129,14 +134,37 @@ define([
 			$(LOADING_SELECTOR).hide();
 		},
 		cancelQuery: function(){
-			wHandler.cancelQuery(queryID);
+			wHandler.cancelQuery(queryID,_this.pageIdentifier);
 		},
 		cancelQuerySuccess:function(){
-			alert('The cancel query request has been submitted');
+			/*alert('The cancel query request has been submitted');*/
+			var msgObj={msg:'The cancel query request has been submitted',tag:"success",url:_this.currentURL,shortMsg:"Cancel query successfully."};
+			if(_this.redirectFlag==false){
+				_this.popupNotificationMessage(null,msgObj);
+			}else{
+				
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
 			_this.fetchActiveQueryDetail();
 		},
 		cancelQueryError:function(jqXHR){
-			alert(jqXHR.responseText);
+			/*alert(jqXHR.responseText);*/
+			var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Cancel query failed."};
+			if(jqXHR.responseText==undefined){
+				msgObj.msg="the response was null."
+				msgObj.shortMsg="the response was null."
+			}
+			if(jqXHR.statusText=="abort"){
+				msgObj.msg="the request was aborted."
+				msgObj.shortMsg="the request was aborted."
+			}
+			if(_this.redirectFlag==false){
+				_this.popupNotificationMessage(null,msgObj);
+			}else{
+				
+				common.fire(common.NOFITY_MESSAGE,msgObj);
+			}
+			_this.fetchActiveQueryDetail();
 		},
 		timerBeeped: function(){
 			_this.fetchActiveQueryDetail();
@@ -144,7 +172,7 @@ define([
 		explainQuery: function(){
 			var queryText = queryTextEditor.getValue();
 			sessionStorage.setItem(queryID, JSON.stringify({type: 'active', text: queryText}));	
-			window.location.hash = '/workloads/queryplan/'+queryID;
+			window.location.hash = '/workloads/queryplan/'+encodeURIComponent(queryID);
 		},
 		fetchActiveQueryDetail: function(){
 			_this.showLoading();
@@ -344,7 +372,14 @@ define([
 					$(ERROR_TEXT).text(jqXHR.responseText);
 					var patt = new RegExp('ERROR\[8923\]'); 
 					if (!patt.test(jqXHR.responseText)){
-						alert(jqXHR.responseText);
+						/*alert(jqXHR.responseText);*/
+						var msgObj={msg:jqXHR.responseText,tag:"danger",url:_this.currentURL,shortMsg:"Fetch active query failed."};
+						if(_this.redirectFlag==false){
+							_this.popupNotificationMessage(null,msgObj);
+						}else{
+							
+							common.fire(common.NOFITY_MESSAGE,msgObj);
+						}
 						$(ERROR_CONTAINER).hide();
 						$(ERROR_TEXT).text("");
 					}else{

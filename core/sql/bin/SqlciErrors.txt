@@ -145,7 +145,7 @@
 1143 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Validation of constraint $0~ConstraintName failed; incompatible data exists in referencing base table $1~TableName and referenced base table $2~String0.  To display the data that violates the constraint, please use the following DML statement: $3~String1
 1144 ZZZZZ 99999 BEGINNER MAJOR DBADMIN A quoted string was expected in first key clause for column $0~ColumnName on table $1~TableName, but the value detected is ($2~String0).
 1145 3D000 99999 BEGINNER MAJOR DBADMIN The catalog name $0~CatalogName is reserved for SQL metadata.
-1146 ZZZZZ 99999 BEGINNER MINOR DBADMIN Object $0~TableName could not be altered because it is not a $1~String0.
+1146 ZZZZZ 99999 BEGINNER MINOR DBADMIN Object $0~String0 could not be altered because it either does not exist or is not a table.
 1147 ZZZZZ 99999 BEGINNER MINOR DBADMIN System-generated column $0~ColumnName of base table $1~TableName cannot appear in a unique or primary key constraint definition.
 1148 23000 99999 BEGINNER MINOR DBADMIN System-generated column $0~ColumnName of base table $1~TableName cannot appear in a referential integrity constraint definition.
 1149 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Column $0~ColumnName does not exist in table $1~TableName.
@@ -193,7 +193,7 @@
 1191 ZZZZZ 99999 BEGINNER MAJOR DBADMIN SERIALIZE option is not yet supported for $0~string0 datatype.
 1192 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Failed to retrieve data from Hive metastore.  Call to $0~string0 returned error $1~string1($0~int0). Cause: $2~string2.
 1193 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU The $0~string0 specified in the $1~string1 clause must be identical to the primary key for a Trafodion table.
-1194 ZZZZZ 99999 ADVANCED MAJOR DIALOUT Label $0~String0 could not be dropped (file error $1~NSKCode). 
+1194 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU Component operation $0~string0 does not exist for component $1~string1
 1195 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU Column $0~ColumnName is not allowed as a salt column. Only primary key columns or STORE BY columns are allowed.
 1196 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU The number of salt partitions must be between $0~int0 and $1~int1
 1197 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU The location $0~string0 for $1~string1 does not match with another location $2~string2 specified. All location specifications must be identical.
@@ -249,8 +249,8 @@
 1252 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The existing index $0~TableName to be used by a unique or primary constraint has not been populated.  Please populate the index and then try to add the constraint again.
 1253 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU ---- Msg text will be merged in.  ------   
 1254 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Duplicate unique constraints are not allowed with same set of columns.
-1255 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU ---- Msg text will be merged in ------  
-1256 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU ---- Msg text will be merged in ------  
+1255 ZZZZZ 99999 BEGINNER MINOR DBADMIN Constraint $0~String0 is the clustering key constraint for table $1~String1 and cannot be dropped.
+1256 ZZZZZ 99999 BEGINNER MINOR DBADMIN PRIMARY KEY constraint cannot be added since table $0~String0 already has a user specified clustering key. 
 1257 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU ---- Msg text will be merged in ------  
 1258 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU ---- Msg text will be merged in ------  
 1259 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU ---- Msg text will be merged in ------  
@@ -263,6 +263,7 @@
 1266 ZZZZZ 99999 BEGINNER MINOR DBADMIN Only EXECUTE privilege is supported for a procedure or routine.
 1267 ZZZZZ 99999 BEGINNER MINOR DBADMIN $0~string0 privilege is incompatible with this object type.
 1268 ZZZZZ 99999 BEGINNER MINOR DBADMIN Duplicate columns are not allowed in a GRANT or REVOKE statement.
+1269 ZZZZZ 99999 BEGINNER MINOR DBADMIN Column name $0~String0 is reserved for internal system usage. It cannot be specified as a user column.
 1270 ZZZZZ 99999 BEGINNER MAJOR DBADMIN ALLOCATE or DEALLOCATE failed for object $0~TableName due to file error $1~Int0 on $2~String0.
 1271 ZZZZZ 99999 BEGINNER MAJOR DBADMIN ALLOCATE failed for object $0~TableName because the number of extents to be allocated ($1~Int0) is greater than the MAXEXTENTS for a partition of the object.
 1272 ZZZZZ 99999 BEGINNER CRTCL DIALOUT The system is not licensed for use of SQL format tables.
@@ -409,6 +410,7 @@
 1428 ZZZZZ 99999 BEGINNER MINOR DBADMIN Metadata definitions could not be created and preloaded in global MDdescInfo struct. Make sure that metadata table definition syntax is correct.
 1429 ZZZZZ 99999 BEGINNER MINOR DBADMIN Inserts into _ROW_ format external hbase tables can only use the VALUES clause and must use the column_create function to create values.
 1430 3F000 99999 BEGINNER MAJOR DBADMIN A schema name that starts and ends with an "_"(underscore) is reserved for internal usage. It cannot be used to create a user schema.
+1431 ZZZZZ 99999 BEGINNER MINOR DBADMIN Object $0~String0 exists in HBase. This could be due to a concurrent transactional ddl operation in progress on this table.
 1500 ZZZZZ 99999 ADVANCED CRTCL DIALOUT The CATSYS - CAT_REFERENCES system schema relationship for catalog $0~CatalogName might be corrupt.
 1501 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU --- unused as of 5/7/12 ---
 1502 ZZZZZ 99999 ADVANCED CRTCL DIALOUT The OBJECTS - REPLICAS definition schema relationship for $0~String0 $1~TableName might be corrupt.
@@ -801,7 +803,7 @@ $1~String1 --------------------------------
 3049 42000 99999 BEGINNER MAJOR DBADMIN Host variables, such as $0~string0, are not allowed in a dynamic compilation.
 3050 42000 99999 BEGINNER MAJOR DBADMIN The constraint must have the same catalog and schema as the specified table.
 3051 42000 99999 BEGINNER MAJOR DBADMIN Duplicate HEADING clauses were specified in column definition $0~ColumnName.
-3052 42000 99999 BEGINNER MAJOR DBADMIN Duplicate NOT NULL clauses were specified in column definition $0~ColumnName.
+3052 42000 99999 BEGINNER MAJOR DBADMIN Duplicate $0~String0 clauses were specified in column definition $0~ColumnName.
 3053 42000 99999 BEGINNER MAJOR DBADMIN Duplicate PRIMARY KEY clauses were specified in column definition $0~ColumnName.
 3054 42000 99999 BEGINNER MAJOR DBADMIN The NOT DROPPABLE clause is allowed only in PRIMARY KEY and NOT NULL constraint definitions.
 3055 42000 99999 BEGINNER MAJOR DBADMIN Duplicate DELETE rules were specified.
@@ -1354,8 +1356,8 @@ $1~String1 --------------------------------
 4366 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Invalid Select list index.
 4367 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Using rank function and sequence functions together in the same query scope is not supported.
 4368 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Nesting rank functions is not supported.
-4369 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Paramaters and outer references are not supported with rank function.
-4370 ZZZZZ 99999 BEGINNER MAJOR DBADMIN -- Unused ----
+4369 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Parameters and outer references are not supported with rank function.
+4370 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The $0~String0 aggregate function is only supported on columns of ORC format Hive tables.
 4371 ZZZZZ 99999 BEGINNER MAJOR DBADMIN -- Unused ----
 4372 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Snapshot scan cannot be used with table $0~String0 because $1~String1.
 4373 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The base temporary location for snapshot scan cannot be an empty string and needs to end with the character /.
@@ -1435,6 +1437,9 @@ $1~String1 --------------------------------
 4491 42000 99999 BEGINNER MINOR LOGONLY The user does not have $0~string0 privilege on sequence $1~string1$2~string2.
 4492 ZZZZZ 99999 BEGINNER MINOR LOGONLY BULK LOAD option UPDATE STATISTICS cannot be used with UPSERT USING LOAD option.
 5000 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Internal error in the query normalizer.
+5050 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Backup in progress, try again later.
+5051 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Failed to lock Transaction Manager. Cause : FS error $0~Int0.
+5052 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Failed to Unlock Transaction Manager. Cause : FS error $0~Int0.
 6000 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Internal error in the query optimizer.
 6001 0A000 99999 BEGINNER MAJOR DBADMIN DISTINCT aggregates can be computed for only one column per table expression.
 6002 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The metadata table HISTOGRAMS or HISTOGRAM_INTERVALS contains invalid values.  If you have manually modified the metadata table, then you should undo your changes using the CLEAR option in UPDATE STATISTICS.
@@ -1457,6 +1462,7 @@ $1~String1 --------------------------------
 7003 42000 99999 BEGINNER MAJOR DBADMIN A plan using cluster sampling could not be produced for this query.
 7004 ZZZZZ 99999 BEGINNER MAJOR DBADMIN A parallel extract plan could not be produced. Possible causes include an incompatible Control Query Shape (CQS) specification, use of rowset expressions, or use of SQL features that cannot be parallelized such as [FIRST/LAST N], table-valued functions, stream access to tables, and embedded updates or deletes.
 7005 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Use of selection predicates in parallel extract consumer queries is not allowed.
+7006 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The $0~String0 aggregate function must be but cannot be pushed down to ORC in this query, possibly due to the presence of other aggregates that cannot be pushed down.
 7350 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Incompatible consistency level of $0~Int0 for Halloween protection
 7351 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Incompatible lock size of $0~Int0 for Halloween protection.
 7352 ZZZZZ 99999 BEGINNER MAJOR DBADMIN A Hash-Join that may overflow its memory to disk can not accept input rows longer than $0~Int0 bytes.
@@ -1553,6 +1559,7 @@ $1~String1 --------------------------------
 8431 22026 99999 BEGINNER MINOR LOGONLY The string parameters have different length, they must be equal (IsBitwiseAndTrue function).
 8432 22003 99999 BEGINNER MINOR LOGONLY A negative value cannot be converted to an unsigned numeric datatype.$0~string0
 8433 22003 99999 BEGINNER MINOR LOGONLY Invalid $0~string0 character encountered in $1~string1.
+8434 ZZZZZ 99999 BEGINNER MAJOR DBADMIN An error occurred while initializing $0~string0 compression library.
 8440 ZZZZZ 99999 BEGINNER MAJOR DBADMIN The size of the history buffer is too small to execute one or more of the OLAP Windowed Functions in the query. 
 8441 ZZZZZ 99999 BEGINNER MAJOR DBADMIN one or more of the OLAP Windowed Functions in the query may require overflow which is not supported yet.
 8442 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Unable to access $0~string0 interface. Call to $1~string1 returned error $2~string2($0~int0). Error detail $1~int1.
@@ -1613,6 +1620,7 @@ $1~String1 --------------------------------
 8613 25000 99999 BEGINNER MAJOR DBADMIN SQL cannot commit or rollback a transaction that was started by application.
 8614 25000 99999 ADVANCED CRTCL DIALOUT SQL cannot begin a transaction when multiple contexts exist.
 8615 ZZZZZ 99999 BEGINNER MAJOR DBADMIN A user-defined transaction has been started. Long Running Update operation cannot be performed.
+8616 ZZZZZ 99999 BEGINNER MAJOR DBADMIN A conflict was detected during commit processing. Transaction has been aborted.
 8640 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU ---- unused ----
 8641 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU ---- unused ----
 8642 ZZZZZ 99999 UUUUUUUU UUUUU UUUUUUU ---- unused ----
@@ -1835,6 +1843,7 @@ drop the default context
 8963 ZZZZZ 99999 BEGINNER MAJOR DBADMIN UNLOAD encountered a backup TSE switch.
 8964 ZZZZZ 99999 BEGINNER MAJOR DBADMIN LOAD is not currently supported with non empty tables.
 8965 ZZZZZ 99999 BEGINNER MAJOR DBADMIN File $0~String0 already exists.
+8966 ZZZZZ 99999 BEGINNER MAJOR DBADMIN Unable to create partition $0~String0 for partitioned Hive table. Details: $1~String1.
 9200 ZZZZZ 99999 ADVANCED MAJOR DIALOUT UPDATE STATISTICS for table $0~CatalogName.$1~SchemaName.$2~TableName encountered an error$3~string2 from statement $4~string0.
 9201 ZZZZZ 99999 ADVANCED MAJOR DBADMIN Unable to DROP object $0~string0.
 9202 ZZZZZ 99999 BEGINNER INFRM DBADMIN UPDATE STATISTICS has located previously generated histograms that are not being regenerated. This may affect the plans that will be generated. Missing columns lists are $0~string0.
@@ -2989,7 +2998,7 @@ $3~String1.
 20122 ZZZZZ 99999 BEGINNER MINOR LOGONLY Table has indexes. Cannot purge data from partition.
 20123 ZZZZZ 99999 BEGINNER MINOR LOGONLY A user-defined transaction has been started. $0~string0 cannot be performed.
 20124 ZZZZZ 99999 BEGINNER MINOR LOGONLY $0~string0 operation cannot be performed if AUTOCOMMIT is OFF.
-20125 ZZZZZ 99999 BEGINNER MINOR LOGONLY $0~string0 is a metadata table. PURGEDATA cannot be performed on metadata tables.
+20125 ZZZZZ 99999 BEGINNER MINOR LOGONLY $0~string0 operation cannot be performed if a user-defined transaction has been started or AUTOCOMMIT is OFF.
 20126 ZZZZZ 99999 ADVANCED INFRM LOGONLY Vertical partitions exist for the source table. Cannot perform DUP.
 20127 ZZZZZ 99999 BEGINNER MINOR LOGONLY Target option was specified as NEW but $0~string0 exists. DUP operation failed.
 20128 ZZZZZ 99999 BEGINNER MINOR LOGONLY $0~string0 is a metadata table. DUP cannot be performed on metadata tables.

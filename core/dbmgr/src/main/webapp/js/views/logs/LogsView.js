@@ -67,7 +67,84 @@ define([
 
 		doInit: function (){
 			_this = this;
+			this.bindAllInitialEvents();
+			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
+			this.initialTimeRangePicker();
+			this.initialDcsLogsLink();
+			logsHandler.on(logsHandler.FETCHLOGS_SUCCESS, this.displayResults);
+			logsHandler.on(logsHandler.FETCHLOGS_ERROR, this.showErrorMessage);		
+			$(REFRESH_MENU).on('click', this.fetchLogs);
+			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
+			$(OPEN_FILTER).on('click', this.filterButtonClicked);
+			$(FILTER_RESET_BUTTON).on('click', this.filterDialogReset);
 
+			refreshTimerView.init();
+			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
+			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
+				refreshTimerView.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
+			}else{
+				refreshTimerView.setRefreshInterval(1);
+			}
+
+			this.fetchLogs();
+		},
+		doResume: function(){
+			this.initialTimeRangePicker();
+			logsHandler.on(logsHandler.FETCHLOGS_SUCCESS, this.displayResults);
+			logsHandler.on(logsHandler.FETCHLOGS_ERROR, this.showErrorMessage);			
+			$(REFRESH_MENU).on('click', this.fetchLogs);
+			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
+			$(OPEN_FILTER).on('click', this.filterButtonClicked);
+			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
+			if(common.commonTimeRange!=null&&common.commonTimeRange.isAutoRefresh!=null){
+				refreshTimerView.setRefreshInterval(common.commonTimeRange.isAutoRefresh);
+			}else{
+				refreshTimerView.setRefreshInterval(1);
+			}
+			refreshTimerView.resume();
+			this.fetchLogs();
+		},
+		doPause: function(){
+			this.storeCommonTimeRange();
+			refreshTimerView.pause();
+			logsHandler.off(logsHandler.FETCHLOGS_SUCCESS, this.displayResults);
+			logsHandler.off(logsHandler.FETCHLOGS_ERROR, this.showErrorMessage);			
+			$(REFRESH_MENU).off('click', this.fetchLogs);
+			$(FILTER_APPLY_BUTTON).off('click', this.filterApplyClicked);
+			$(OPEN_FILTER).off('click', this.filterButtonClicked);
+			refreshTimerView.eventAgg.off(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
+			refreshTimerView.eventAgg.off(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
+		},
+		dcsLogsClicked: function(){
+
+		},
+		initialTimeRangePicker:function(){
+			if(common.commonTimeRange==null){
+				$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
+				$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
+				$(FILTER_TIME_RANGE).val("1");
+			}else{
+				if(common.commonTimeRange.timeRangeTag=="0"){
+					$(START_TIME_PICKER).data("DateTimePicker").date(common.commonTimeRange.startTime);
+					$(END_TIME_PICKER).data("DateTimePicker").date(common.commonTimeRange.endTime);
+				}else{
+					_this.updateFilter(common.commonTimeRange.timeRangeTag);
+				}
+				$(FILTER_TIME_RANGE).val(common.commonTimeRange.timeRangeTag);
+			}
+			lastAppliedFilters =  _this.getFilterParams();
+		},
+		initialDcsLogsLink:function(){
+			if(common.dcsMasterInfoUri != null && common.dcsMasterInfoUri.length > 0)
+				$(DCS_LOGS).html('<a href="' + common.dcsMasterInfoUri+'" target="_blank">DCS Logs</a>');
+			else{
+				$(DCS_LOGS).html('');
+			}
+		},
+		bindAllInitialEvents:function(){
 			$.validator.addMethod("validateStartAndEndTimes", function(value, element) {
 				var startTime = new Date($(START_TIME_PICKER).data("DateTimePicker").date()).getTime();
 				var endTime = new Date($(END_TIME_PICKER).data("DateTimePicker").date()).getTime();
@@ -99,8 +176,6 @@ define([
 				}
 				return isValid;
 			}, "* Error codes have to non-zero numbers");
-
-
 			validator = $(FILTER_FORM).validate({
 				rules: {
 					"filter-start-time": { required: true, validateStartAndEndTimes: true },
@@ -131,13 +206,6 @@ define([
 					$(FILTER_APPLY_BUTTON).attr('disabled', true);
 				}
 			});
-
-			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
-			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
-
-			$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
-			$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
-
 			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
 				_this.updateFilter();
 				if(lastAppliedFilters == null){
@@ -189,53 +257,20 @@ define([
 					$(FILTER_END_TIME).prop("disabled", false);
 				}
 			});
-			if(common.dcsMasterInfoUri != null && common.dcsMasterInfoUri.length > 0)
-				$(DCS_LOGS).html('<a href="' + common.dcsMasterInfoUri+'" target="_blank">DCS Logs</a>');
-			else{
-				$(DCS_LOGS).html('');
-			}
-			logsHandler.on(logsHandler.FETCHLOGS_SUCCESS, this.displayResults);
-			logsHandler.on(logsHandler.FETCHLOGS_ERROR, this.showErrorMessage);		
-			$(REFRESH_MENU).on('click', this.fetchLogs);
-			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
-			$(OPEN_FILTER).on('click', this.filterButtonClicked);
-			$(FILTER_RESET_BUTTON).on('click', this.filterDialogReset);
-
-			refreshTimerView.init();
-			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
-			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
-			refreshTimerView.setRefreshInterval('1');
-
-			this.fetchLogs();
 		},
-		doResume: function(){
-			logsHandler.on(logsHandler.FETCHLOGS_SUCCESS, this.displayResults);
-			logsHandler.on(logsHandler.FETCHLOGS_ERROR, this.showErrorMessage);			
-			$(REFRESH_MENU).on('click', this.fetchLogs);
-			$(FILTER_APPLY_BUTTON).on('click', this.filterApplyClicked);
-			$(OPEN_FILTER).on('click', this.filterButtonClicked);
-			refreshTimerView.eventAgg.on(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
-			refreshTimerView.eventAgg.on(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
-			this.fetchLogs();
-		},
-		doPause: function(){
-			refreshTimerView.pause();
-			logsHandler.off(logsHandler.FETCHLOGS_SUCCESS, this.displayResults);
-			logsHandler.off(logsHandler.FETCHLOGS_ERROR, this.showErrorMessage);			
-			$(REFRESH_MENU).off('click', this.fetchLogs);
-			$(FILTER_APPLY_BUTTON).off('click', this.filterApplyClicked);
-			$(OPEN_FILTER).off('click', this.filterButtonClicked);
-			refreshTimerView.eventAgg.off(refreshTimerView.events.TIMER_BEEPED, this.timerBeeped);
-			refreshTimerView.eventAgg.off(refreshTimerView.events.INTERVAL_CHANGED, this.timerBeeped);
-		},
-		dcsLogsClicked: function(){
-
+		storeCommonTimeRange:function(){
+			var selection = $(FILTER_TIME_RANGE).val();
+			common.getCommonTimeRange(selection);
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
 		},
-		updateFilter: function(){
-			var selection = $(FILTER_TIME_RANGE).val();
+		updateFilter: function(selection){
+			if(selection==null){
+				selection = $(FILTER_TIME_RANGE).val();
+			}else{
+				$(FILTER_TIME_RANGE).val(selection);
+			}
 			switch(selection){
 			case "1":
 				$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
@@ -255,6 +290,10 @@ define([
 				$('#filter-start-time').prop("disabled", true);
 				$('#filter-end-time').prop("disabled", true);
 				break;
+			case "128":
+				$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'week'));
+				$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
+				break;		
 			case "0":
 				$('#filter-start-time').prop("disabled", false);
 				$('#filter-end-time').prop("disabled", false);
@@ -291,6 +330,7 @@ define([
 			$('#component-sql-udr').prop('checked', false);
 			$('#component-wdg').prop('checked', false);
 			$('#component-dcs').prop('checked', false);
+			$('#component-rest').prop('checked', false);
 
 			if(lastAppliedFilters != null){
 				$(FILTER_TIME_RANGE).val(lastAppliedFilters.timeRange);
@@ -318,6 +358,7 @@ define([
 				});
 
 				$('#component-dcs').prop('checked',(lastAppliedFilters.dcs && lastAppliedFilters.dcs == true));
+				$('#component-rest').prop('checked',(lastAppliedFilters.rest && lastAppliedFilters.rest == true));
 			}
 		},
 
@@ -385,22 +426,22 @@ define([
 				components.push($('#component-mxosrvr').val());
 			if($('#component-sql').is(':checked'))
 				components.push($('#component-sql').val());
-			if($('#component-sql.comp').is(':checked'))
-				components.push($('#component-sql.comp').val());
-			if($('#component-sql.descgen').is(':checked'))
-				components.push($('#component-sql.descgen').val());
-			if($('#component-sql.esp').is(':checked'))
-				components.push($('#component-sql.esp').val());
-			if($('#component-sql.exe').is(':checked'))
-				components.push($('#component-sql.exe').val());
-			if($('#component-sql.lob').is(':checked'))
-				components.push($('#component-sql.lob').val());
-			if($('#component-sql.sscp').is(':checked'))
-				components.push($('#component-sql.sscp').val());
-			if($('#component-sql.ssmp').is(':checked'))
-				components.push($('#component-sql.ssmp').val());
-			if($('#component-sql.udr').is(':checked'))
-				components.push($('#component-sql.udr').val());
+			if($('#component-sql-comp').is(':checked'))
+				components.push($('#component-sql-comp').val());
+			if($('#component-sql-descgen').is(':checked'))
+				components.push($('#component-sql-descgen').val());
+			if($('#component-sql-esp').is(':checked'))
+				components.push($('#component-sql-esp').val());
+			if($('#component-sql-exe').is(':checked'))
+				components.push($('#component-sql-exe').val());
+			if($('#component-sql-lob').is(':checked'))
+				components.push($('#component-sql-lob').val());
+			if($('#component-sql-sscp').is(':checked'))
+				components.push($('#component-sql-sscp').val());
+			if($('#component-sql-ssmp').is(':checked'))
+				components.push($('#component-sql-ssmp').val());
+			if($('#component-sql-udr').is(':checked'))
+				components.push($('#component-sql-udr').val());
 			if($('#component-wdg').is(':checked'))
 				components.push($('#component-wdg').val());
 
@@ -416,6 +457,8 @@ define([
 			param.message = $(FILTER_MESSAGE_TEXT).val();
 			if($('#component-dcs').is(':checked'))
 				param.dcs = true;
+			if($('#component-rest').is(':checked'))
+				param.rest= true;
 
 			return param;
 		},
@@ -428,7 +471,7 @@ define([
 		fetchLogs: function () {
 			_this.showLoading();
 			$(ERROR_CONTAINER).hide();
-			_this.updateFilter();
+			/*_this.updateFilter();*/
 			_this.filterApplyClicked();
 		},
 
@@ -495,7 +538,7 @@ define([
 					buttons: [
 	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
 	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                          // { extend : 'excel', exportOptions: { columns: ':visible' } },
 	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 	                        	   title: 'Logs' } ,
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Logs' }

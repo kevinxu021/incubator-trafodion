@@ -203,6 +203,8 @@ B			[ \t\n]+
 [Rr][Ee][Ss][Ee][Tt][Cc][[Oo][Nn][Tt][Ee][Xx][Tt]	return_IDENT_or_TOKEN(RESETCONTEXT, 0);
 [Aa][Dd][Dd]                           return_IDENT_or_TOKEN( ADDtoken, 0);
 [Aa][Ll][Ll]                           return_IDENT_or_TOKEN(ALLtoken, 0);
+[Bb][Aa][Cc][Kk][Uu][Pp]               return_IDENT_or_TOKEN(BACKUP, 0);
+[Bb][Aa][Cc][Kk][Uu][Pp][Ss]           return_IDENT_or_TOKEN(BACKUPS, 0);
 [Bb][Ee][Gg][Ii][Nn]                   return_IDENT_or_TOKEN(TOK_BEGIN, 0);
 [Bb][Rr][Ii][Ee][Ff]                   return_IDENT_or_TOKEN(BRIEF, 0);
 [Bb][Tt]                               return_IDENT_or_TOKEN(TOK_BEGIN, 0);
@@ -293,6 +295,7 @@ B			[ \t\n]+
 [Rr][Ee][Oo][Rr][Gg]   		       return_IDENT_or_TOKEN(REORGtoken, 0);
 [Rr][Ee][Oo][Rr][Gg][Aa][Nn][Ii][Zz][Ee] return_IDENT_or_TOKEN(REORGtoken, 0);
 [Rr][Ee][Pp][Ll][Ii][Cc][Aa][Tt][Ee]    return_IDENT_or_TOKEN(REPLICATEtoken, 0);
+[Rr][Ee][Ss][Tt][Oo][Rr][Ee]            return_IDENT_or_TOKEN(RESTORE, 0);
 [[Cc][Pp][Uu]                           return_IDENT_or_TOKEN(CPU, 0);
 [Pp][Ii][Dd]                           return_IDENT_or_TOKEN(PID, 0);
 [Qq][Ii][Dd]			       return_IDENT_or_TOKEN(QID, 0);

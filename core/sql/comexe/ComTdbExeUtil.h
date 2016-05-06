@@ -74,6 +74,7 @@ public:
     GET_METADATA_INFO_       = 14,
     GET_VERSION_INFO_        = 15,
     SUSPEND_ACTIVATE_        = 16,
+    LOB_INFO_                = 17,
     SHOW_SET_                = 19,
     AQR_                     = 20,
     DISPLAY_EXPLAIN_COMPLEX_ = 21,
@@ -88,7 +89,8 @@ public:
     HBASE_LOAD_              = 32,
     HBASE_UNLOAD_            = 33,
     HBASE_UNLOAD_TASK_       = 34,
-    GET_QID_                            = 35
+    GET_QID_                 = 35,
+    BACKUP_RESTORE_          = 36
   };
 
   ComTdbExeUtil()
@@ -1746,6 +1748,52 @@ protected:
   short activeQueryNum_;                                       // 20-21
 
   char fillersComTdbExeUtilGetStatistics_[106];                // 22-127
+};
+
+class ComTdbExeUtilBackupRestore : public ComTdbExeUtil
+{
+  
+public:
+  ComTdbExeUtilBackupRestore()
+  : ComTdbExeUtil()
+  {}
+  
+  ComTdbExeUtilBackupRestore(
+      ex_cri_desc * work_cri_desc,
+      const unsigned short work_atp_index,
+      ex_cri_desc * given_cri_desc,
+       ex_cri_desc * returned_cri_desc,
+       queue_index down,
+       queue_index up,
+       Lng32 num_buffers,
+       ULng32 buffer_size,
+       char * server,
+       char * zkPort);
+  
+  Long pack(void *);
+  Lng32 unpack(void *, void * reallocator);
+
+  // ---------------------------------------------------------------------
+  // Redefine virtual functions required for Versioning.
+  //----------------------------------------------------------------------
+  virtual short getClassSize() {return (short)sizeof(ComTdbExeUtilBackupRestore);}
+
+  virtual const char *getNodeName() const
+  {
+    return "BACKUP_RESTORE";
+  };
+
+  // ---------------------------------------------------------------------
+  // Used by the internal SHOWPLAN command to get attributes of a TDB.
+  // ---------------------------------------------------------------------
+  NA_EIDPROC void displayContents(Space *space, ULng32 flag);
+  const char * server() const { return server_; }
+  const char * zkPort() const { return zkPort_;}
+  
+protected:
+  NABasicPtr server_;
+  NABasicPtr zkPort_;
+  char fillersComTdbExeUtilBackupRestore_[110];                // 22-127
 };
 
 class ComTdbExeUtilGetProcessStatistics : public ComTdbExeUtilGetStatistics
@@ -3580,6 +3628,127 @@ private:
   char fillersComTdbExeUtilRegionStats_[76];      // 04-79
 };
 
+
+
+// Lob info virtual table info
+static const ComTdbVirtTableColumnInfo comTdbLobInfoVirtTableColumnInfo[] =
+  {
+    { "CATALOG_NAME",                   0, COM_USER_COLUMN, REC_BYTE_F_ASCII,  256, FALSE, SQLCHARSETCODE_UTF8 , 0, 0, 0, 0, 0, 0, 0, COM_NO_DEFAULT, "",NULL,NULL, COM_UNKNOWN_DIRECTION_LIT, 0  },
+    { "SCHEMA_NAME",                    1, COM_USER_COLUMN, REC_BYTE_F_ASCII,  256, FALSE, SQLCHARSETCODE_UTF8 , 0, 0, 0, 0, 0, 0, 0, COM_NO_DEFAULT, "",NULL,NULL, COM_UNKNOWN_DIRECTION_LIT, 0  },
+    { "OBJECT_NAME",                    2, COM_USER_COLUMN, REC_BYTE_F_ASCII,  256, FALSE, SQLCHARSETCODE_UTF8 , 0, 0, 0, 0, 0, 0, 0, COM_NO_DEFAULT, "",NULL,NULL, COM_UNKNOWN_DIRECTION_LIT, 0  },
+    { "COLUMN_NAME",                     3, COM_USER_COLUMN, REC_BYTE_F_ASCII,  256, FALSE, SQLCHARSETCODE_UTF8 , 0, 0, 0, 0, 0, 0, 0, COM_NO_DEFAULT, "",NULL,NULL, COM_UNKNOWN_DIRECTION_LIT, 0  },
+    { "LOB_LOCATION",                    4, COM_USER_COLUMN, REC_BYTE_F_ASCII,  256, FALSE, SQLCHARSETCODE_UTF8 , 0, 0, 0, 0, 0, 0, 0, COM_NO_DEFAULT, "",NULL,NULL, COM_UNKNOWN_DIRECTION_LIT, 0  },
+    { "LOB_DATA_FILE",                     5, COM_USER_COLUMN, REC_BYTE_F_ASCII,    256, FALSE, SQLCHARSETCODE_UTF8 , 0, 0, 0, 0, 0, 0, 0, COM_NO_DEFAULT, "",NULL,NULL, COM_UNKNOWN_DIRECTION_LIT, 0  },
+    { "LOB_DATA_FILE_SIZE_EOD",         6, COM_USER_COLUMN, REC_BIN64_SIGNED,    8, FALSE, SQLCHARSETCODE_UTF8 , 0, 0, 0, 0, 0, 0, 0, COM_NO_DEFAULT, "",NULL,NULL, COM_UNKNOWN_DIRECTION_LIT, 0  },
+    { "LOB_DATA_FILE_SIZE_USED",                7, COM_USER_COLUMN, REC_BIN64_SIGNED,    8, FALSE, SQLCHARSETCODE_UTF8 , 0, 0, 0, 0, 0, 0, 0, COM_NO_DEFAULT, "",NULL,NULL, COM_UNKNOWN_DIRECTION_LIT, 0  }
+    
+  };
+
+#define LOBINFO_MAX_FILE_LEN 256
+struct ComTdbLobInfoVirtTableColumnStruct
+{
+  char   catalogName[LOBINFO_MAX_FILE_LEN];
+  char   schemaName[LOBINFO_MAX_FILE_LEN];
+  char   objectName[LOBINFO_MAX_FILE_LEN];
+  char   columnName[LOBINFO_MAX_FILE_LEN];
+  char   lobLocation[LOBINFO_MAX_FILE_LEN];
+  char   lobDataFile[LOBINFO_MAX_FILE_LEN];
+  Int64  lobDataFileSizeEod;
+  Int64  lobDataFileSizeUsed;
+};
+
+
+class ComTdbExeUtilLobInfo : public ComTdbExeUtil
+{
+  friend class ExExeUtilLobInfoTcb;
+  friend class ExExeUtilLobInfoTableTcb;
+  friend class ExExeUtilLobInfoPrivateState;
+
+public:
+  ComTdbExeUtilLobInfo()
+       : ComTdbExeUtil()
+  {}
+  Lng32 getNumLobs() { return numLOBs_;}
+  char *getLobColList(){return lobColArray_;}
+  char *getLobNumList() {return lobNumArray_;}
+  char *getLobLocList() {return lobLocArray_;}
+  Int64 getObjectUID() { return objectUID_;}
+  Int32 getHdfsPort() { return hdfsPort_;}
+  char *getHdfsServer() {return hdfsServer_;}
+  NABoolean isTableFormat() { return tableFormat_;}
+  ComTdbExeUtilLobInfo(
+       char * tableName,
+       Int64 objectUID,
+       Lng32 numLOBs,
+       char* lobColArray,
+       char* lobNumArray,
+       char* lobLocArray,
+       Int32 hdfsPort,
+       char *hdfsServer,
+       NABoolean tableFormat,
+       ex_cri_desc * work_cri_desc,
+       const unsigned short work_atp_index,
+       ex_cri_desc * given_cri_desc,
+       ex_cri_desc * returned_cri_desc,
+       queue_index down,
+       queue_index up,
+       Lng32 num_buffers,
+       ULng32 buffer_size
+       );
+  
+  
+
+  // ---------------------------------------------------------------------
+  // Redefine virtual functions required for Versioning.
+  //----------------------------------------------------------------------
+  virtual short getClassSize() {return (short)sizeof(ComTdbExeUtilRegionStats);}
+
+  virtual const char *getNodeName() const 
+  { 
+    return "GET_LOB_INFO";
+  };
+
+  static int getVirtTableNumCols()
+  {
+    return sizeof(comTdbLobInfoVirtTableColumnInfo)/sizeof(ComTdbVirtTableColumnInfo);
+  }
+
+  static ComTdbVirtTableColumnInfo * getVirtTableColumnInfo()
+  {
+    return (ComTdbVirtTableColumnInfo*)comTdbLobInfoVirtTableColumnInfo;
+  }
+
+  static int getVirtTableNumKeys()
+  {
+    return 0;
+  }
+
+  static ComTdbVirtTableKeyInfo * getVirtTableKeyInfo()
+  {
+    return NULL;
+  }
+  Long pack(void *);
+  Lng32 unpack(void *, void * reallocator);
+private:
+  UInt32 flags_;   
+  UInt16 numLOBs_;                                   
+  
+  //array fo strings - column names 
+  NABasicPtr lobColArray_;
+  // array of shorts. numLOBs entries. 
+  // Each entry is the lobNum.
+  NABasicPtr lobNumArray_;                           
+
+  // array of string, null terminated. numLOBs entries. 
+  // Each entry is the storage location of lob data file.
+  NABasicPtr lobLocArray_;                           
+  Int32 hdfsPort_;
+  NABasicPtr hdfsServer_;
+  Int64 objectUID_;                                                      
+
+  NABoolean tableFormat_;
+  
+};
 #endif
 
 

@@ -98,8 +98,9 @@ define([
 
 			$(START_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
 			$(END_TIME_PICKER).datetimepicker({format: DATE_FORMAT_ZONE, sideBySide:true, showTodayButton: true, parseInputDate: _this.parseInputDate});
-			$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
-			$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
+			/*$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
+			$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));*/
+			this.initialTimeRangePicker();
 
 			$(FILTER_DIALOG).on('show.bs.modal', function (e) {
 				_this.updateFilter();
@@ -133,6 +134,12 @@ define([
 					$(FILTER_START_TIME).prop("disabled", true);
 					$(FILTER_END_TIME).prop("disabled", true);
 					break;
+				case "128":
+					$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'week'));
+					$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
+					$(FILTER_START_TIME).prop("disabled", true);
+					$(FILTER_END_TIME).prop("disabled", true);
+					break;	
 				case "0":
 					$(FILTER_START_TIME).prop("disabled", false);
 					$(FILTER_END_TIME).prop("disabled", false);
@@ -148,6 +155,7 @@ define([
 			this.fetchQueriesInRepository();
 		},
 		doResume: function(){
+			this.initialTimeRangePicker();
 			wHandler.on(wHandler.FETCH_REPO_SUCCESS, this.displayResults);
 			wHandler.on(wHandler.FETCH_REPO_ERROR, this.showErrorMessage);			
 			$(REFRESH_MENU).on('click', this.fetchQueriesInRepository);
@@ -157,12 +165,34 @@ define([
 			//this.fetchQueriesInRepository();
 		},
 		doPause: function(){
+			this.storeCommonTimeRange();
 			wHandler.off(wHandler.FETCH_REPO_SUCCESS, this.displayResults);
 			wHandler.off(wHandler.FETCH_REPO_ERROR, this.showErrorMessage);			
 			$(REFRESH_MENU).off('click', this.fetchLogs);
 			$(FILTER_APPLY_BUTTON).off('click', this.filterApplyClicked);
 			$(OPEN_FILTER).off('click', this.filterButtonClicked);
 			$(window).off('resize', this.onResize);
+		},
+		initialTimeRangePicker:function(){
+			if(common.commonTimeRange==null){
+				$(START_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone).subtract(1, 'hour'));
+				$(END_TIME_PICKER).data("DateTimePicker").date(moment().tz(common.serverTimeZone));
+				$(FILTER_TIME_RANGE).val("1");
+			}else{
+				if(common.commonTimeRange.timeRangeTag=="0"){
+					$(START_TIME_PICKER).data("DateTimePicker").date(common.commonTimeRange.startTime);
+					$(END_TIME_PICKER).data("DateTimePicker").date(common.commonTimeRange.endTime);
+				}else{
+					_this.updateFilter(common.commonTimeRange.timeRangeTag);
+				}
+				_this.updateTimeRangeLabel();
+				$(FILTER_TIME_RANGE).val(common.commonTimeRange.timeRangeTag);
+			}
+			lastAppliedFilters =  _this.getFilterParams();
+		},
+		storeCommonTimeRange:function(){
+			var selection = $(FILTER_TIME_RANGE).val();
+			common.getCommonTimeRange(selection);
 		},
 		showLoading: function(){
 			$(LOADING_SELECTOR).show();
@@ -214,6 +244,7 @@ define([
 			$('#state-completed').prop('checked',false);
 			$('#state-executing').prop('checked', false);
 			$('#state-init').prop('checked', false)
+			$('#state-unknown').prop('checked', false)
 
 			if(lastAppliedFilters != null){
 				$(FILTER_TIME_RANGE).val(lastAppliedFilters.timeRange);
@@ -275,6 +306,8 @@ define([
 				states.push($('#state-executing').val());
 			if($('#state-init').is(':checked'))
 				states.push($('#state-init').val());
+			if($('#state-unknown').is(':checked'))
+				states.push($('#state-unknown').val());
 
 			var param = {};
 
@@ -343,7 +376,7 @@ define([
 						"mRender": function ( data, type, full ) {
 							if (type === 'display') {
 								var rowcontent = "<a href=\"#/workloads/history/querydetail/" +
-								data+"\">"+data+"</a>";
+								encodeURIComponent(data)+"\">"+data+"</a>";
 								return rowcontent;
 							}
 							else return data;
@@ -405,7 +438,7 @@ define([
 					buttons: [
 	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
 	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                          // { extend : 'excel', exportOptions: { columns: ':visible' } },
 	                           { extend : 'pdfHtml5', orientation: 'landscape', exportOptions: { columns: ':visible' }, 
 	                        	   title: 'Historical Workloads' } ,
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Historical Workloads' }

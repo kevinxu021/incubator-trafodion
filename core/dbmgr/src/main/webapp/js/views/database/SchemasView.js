@@ -130,8 +130,8 @@ define([
 						"mData": 0,
 						"mRender": function ( data, type, full ) {
 		            		 if(type == 'display') {
-		            			 var rowcontent = "<a href=\"#" + link + '?name=' + data ;
-		            			 rowcontent += "\">" + data + "</a>";
+		            			 var rowcontent = "<a href=\"#" + link + '?name=' + data; 
+		            			 rowcontent += "\">" + common.ExternalDisplayName(data) + "</a>";
 		            			 return rowcontent;                         
 		            		 }else { 
 		            			 return data;
@@ -169,7 +169,7 @@ define([
 	                 buttons: [
 	                           { extend : 'copy', exportOptions: { columns: ':visible' } },
 	                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-	                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+	                          // { extend : 'excel', exportOptions: { columns: ':visible' } },
 	                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: 'Schemas' },
 	                           { extend : 'print', exportOptions: { columns: ':visible' }, title: 'Schemas' }
 	                           ],					             

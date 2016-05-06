@@ -489,6 +489,14 @@ NA_EIDPROC char *ComTdb::findVTblPtrExe(short classID)
 
       break;
     }
+case ex_LOB_INFO:
+    {
+#pragma nowarn(1506)   // warning elimination 
+      GetVTblPtr(vtblptr,ExExeUtilLobInfoTdb);
+#pragma warn(1506)  // warning elimination 
+
+      break;
+    }
   case ex_GET_METADATA_INFO:
     {
 #pragma nowarn(1506)   // warning elimination 
@@ -523,6 +531,13 @@ NA_EIDPROC char *ComTdb::findVTblPtrExe(short classID)
       break;
     }
 
+   case ex_BACKUP_RESTORE:
+   {
+     GetVTblPtr(vtblptr,ExExeUtilBackupRestoreTdb);
+
+     break;
+   }
+   
     case ex_POP_IN_MEM_STATS:
     {
 #pragma nowarn(1506)   // warning elimination 

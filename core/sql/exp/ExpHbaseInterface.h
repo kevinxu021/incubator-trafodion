@@ -42,7 +42,6 @@
 
 #include <iostream>
 
-#include <boost/lexical_cast.hpp>
 #include <protocol/TBinaryProtocol.h>
 #include <transport/TSocket.h>
 #include <transport/TTransportUtils.h>
@@ -84,7 +83,7 @@ namespace {
 class ExpHbaseInterface : public NABasicObject
 {
  public:
-
+  NAHeap *getHeap() { return (NAHeap*)heap_; }
   static ExpHbaseInterface* newInstance(CollHeap* heap, 
                                         const char* server = NULL, 
                                         const char *zkPort = NULL, 
@@ -131,7 +130,7 @@ class ExpHbaseInterface : public NABasicObject
   virtual Lng32 drop(HbaseStr &tblName, NABoolean async, NABoolean noXn) = 0;
 
   // drops all objects from hbase that match the pattern
-  virtual Lng32 dropAll(const char * pattern, NABoolean async) = 0;
+  virtual Lng32 dropAll(const char * pattern, NABoolean async, NABoolean noXn) = 0;
 
   // retrieve all objects from hbase that match the pattern
   virtual ByteArrayList* listAll(const char * pattern) = 0;
@@ -141,6 +140,10 @@ class ExpHbaseInterface : public NABasicObject
   virtual Lng32 copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
                      NABoolean force = FALSE);
 
+  virtual Lng32 createSnaphot(const std::vector<Text>& tables, const char* backuptag);
+  virtual Lng32 restoreSnapshots(const char* backuptag, NABoolean timestamp = FALSE);
+  virtual NAArray<HbaseStr> *listAllBackups();
+  
   virtual Lng32 exists(HbaseStr &tblName) = 0;
 
   // returns the next tablename. 100, at EOD.
@@ -161,6 +164,7 @@ class ExpHbaseInterface : public NABasicObject
 			 const LIST(NAString) *inColNamesToFilter, 
 			 const LIST(NAString) *inCompareOpList,
 			 const LIST(NAString) *inColValuesToCompare,
+	         Float32 dopParallelScanner = 0.0f,
 			 Float32 samplePercent = -1.0f,
 			 NABoolean useSnapshotScan = FALSE,
 			 Lng32 snapTimeout = 0,
@@ -289,8 +293,7 @@ class ExpHbaseInterface : public NABasicObject
 		  NABoolean noXn,
 		  const NABoolean replSync,
 		  const int64_t timestamp,
-		  NABoolean autoFlush = TRUE,
-                  NABoolean asyncOperation = FALSE) = 0; // by default, flush rows after put
+                  NABoolean asyncOperation) = 0; 
 
  virtual Lng32 updateVisibility(
       HbaseStr tblName,
@@ -307,6 +310,7 @@ class ExpHbaseInterface : public NABasicObject
                  NABoolean v)=0;
  
  virtual  Lng32 initHBLC(ExHbaseAccessStats* hbs = NULL)=0;
+ virtual  Lng32 initBRC(ExHbaseAccessStats* hbs = NULL)=0;
  virtual  Lng32 initHive() = 0;
 
  virtual Lng32 initHFileParams(HbaseStr &tblName,
@@ -388,9 +392,6 @@ class ExpHbaseInterface : public NABasicObject
   virtual ByteArrayList* getRegionBeginKeys(const char*) = 0;
   virtual ByteArrayList* getRegionEndKeys(const char*) = 0;
 
-  virtual Lng32 flushTable() = 0;
-  static Lng32 flushAllTables();
-
   virtual Lng32 estimateRowCount(HbaseStr& tblName,
                                  Int32 partialRowSize,
                                  Int32 numCols,
@@ -414,7 +415,7 @@ class ExpHbaseInterface : public NABasicObject
   virtual Lng32 removeTablesFromHDFSCache(const std::vector<Text>& tables, const char* poolName) = 0;
   // get regions and size
   virtual ByteArrayList* getRegionStats(const HbaseStr& tblName) = 0;
-
+  
 protected:
   enum 
     {
@@ -475,7 +476,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
   virtual Lng32 registerTruncateOnAbort(HbaseStr &tblName, NABoolean noXn);
 
   virtual Lng32 drop(HbaseStr &tblName, NABoolean async, NABoolean noXn);
-  virtual Lng32 dropAll(const char * pattern, NABoolean async);
+  virtual Lng32 dropAll(const char * pattern, NABoolean async, NABoolean noXn);
 
   virtual ByteArrayList* listAll(const char * pattern);
 
@@ -484,6 +485,10 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
   virtual Lng32 copy(HbaseStr &srcTblName, HbaseStr &tgtTblName,
                      NABoolean force = FALSE);
 
+  virtual Lng32 createSnaphot(const std::vector<Text>& tables, const char* backuptag);
+  virtual Lng32 restoreSnapshots(const char* backuptag, NABoolean timestamp = FALSE);
+  virtual NAArray<HbaseStr> *listAllBackups();
+  
   // -1, if table exists. 0, if doesn't. -ve num, error.
   virtual Lng32 exists(HbaseStr &tblName);
 
@@ -505,6 +510,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 			 const LIST(NAString) *inColNamesToFilter, 
 			 const LIST(NAString) *inCompareOpList,
 			 const LIST(NAString) *inColValuesToCompare,
+	         Float32 DOPparallelScanner = 0.0f,
 			 Float32 samplePercent = -1.0f,
 			 NABoolean useSnapshotScan = FALSE,
 			 Lng32 snapTimeout = 0,
@@ -624,8 +630,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
 		  NABoolean noXn,
 		  const NABoolean replSync,
 		  const int64_t timestamp,
-		  NABoolean autoFlush = TRUE,
-                  NABoolean asyncOperation = FALSE); // by default, flush rows after put
+                  NABoolean asyncOperation); 
   
   virtual Lng32 updateVisibility(
        HbaseStr tblName,
@@ -642,6 +647,7 @@ class ExpHbaseInterface_JNI : public ExpHbaseInterface
                   NABoolean v);
 
 virtual  Lng32 initHBLC(ExHbaseAccessStats* hbs = NULL);
+virtual  Lng32 initBRC(ExHbaseAccessStats* hbs = NULL);
 virtual  Lng32 initHive();
 
 virtual Lng32 initHFileParams(HbaseStr &tblName,
@@ -723,7 +729,6 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
   virtual ByteArrayList* getRegionBeginKeys(const char*);
   virtual ByteArrayList* getRegionEndKeys(const char*);
 
-  virtual Lng32 flushTable();
   virtual Lng32 estimateRowCount(HbaseStr& tblName,
                                  Int32 partialRowSize,
                                  Int32 numCols,
@@ -747,13 +752,14 @@ virtual Lng32 initHFileParams(HbaseStr &tblName,
   virtual Lng32 removeTablesFromHDFSCache(const std::vector<Text> & tables, const char* poolName);
 
   virtual ByteArrayList* getRegionStats(const HbaseStr& tblName);
-
+  
 private:
   bool  useTRex_;
   NABoolean replSync_;;
   HBaseClient_JNI* client_;
   HTableClient_JNI* htc_;
   HBulkLoadClient_JNI* hblc_;
+  BackupRestoreClient_JNI* brc_;
   HiveClient_JNI* hive_;
   HTableClient_JNI *asyncHtc_;
   Int32  retCode_;

@@ -165,14 +165,14 @@ ExplainTuple *PhysicalFastExtract::addSpecificExplainInfo(ExplainTupleMaster *ex
   if (getTargetType() == FILE)
   {
     if (isHiveInsert())
-      description += "hive table";
+      description += "hive table ";
     else
-      description += "file";
+      description += "file ";
   }
   else if (getTargetType() == SOCKET)
-    description += "socket";
+    description += "socket ";
   else
-    description += "none";
+    description += "none ";
   if (isHiveInsert())
   {
 
@@ -186,44 +186,70 @@ ExplainTuple *PhysicalFastExtract::addSpecificExplainInfo(ExplainTupleMaster *ex
 
     description += " location: ";
     description += str;
+    description += " ";
   }
 
 
   if (isHiveInsert())
   {
-    description += " table_name: ";
+    description += "table_name: ";
     description += getHiveTableName();
+    description += " ";
   }
   else
   {
-    description += " target_name: ";
+    description += "target_name: ";
     description += getTargetName();
+    description += " ";
   }
-  description += " delimiter: ";
-  description += getDelimiter();
-
+  if (! getDelimiter().isNull())
+  {
+    description += "delimiter: ";
+    if (getDelimiter().data()[0] >= ' ')
+      description += getDelimiter();
+    else
+    {
+      description += "^";
+      description += (getDelimiter().data()[0] + '@');
+    }
+    description += " ";
+  }
   if (isAppend())
-    description += " append: yes";
+    description += "append: yes ";
   if ( !isHiveInsert() && includeHeader())
   {
-    description += " header: ";
+    description += "header: ";
     description += getHeader();
+    description += " ";
   }
   if (getCompressionType() != NONE)
   {
-    description += " compression_type: ";
+    description += "compression_type: ";
     if (getCompressionType() == LZO)
-      description += "LZO";
+      description += "LZO ";
     else
-      description += "error";
+      description += "error ";
   }
 
-  description += " null_string: ";
-  description += getNullString();
+  if (!getNullString().isNull())
+  {
+    description += "null_string: ";
+    description += getNullString();
+    description += " ";
+  }
 
-  description += " record_separator: ";
-  description += getRecordSeparator();
-
+  if (!getRecordSeparator().isNull())
+  {
+    description += "record_separator: ";
+    if (getRecordSeparator().data()[0] >= ' ')
+      description += getRecordSeparator();
+    else
+    {
+      description += "^";
+      description += (getRecordSeparator().data()[0] + '@');
+    }
+    description += " ";
+  }
 
   explainTuple->setDescription(description);
   if (isHiveInsert())
@@ -239,6 +265,7 @@ static short ft_codegen(Generator *generator,
                         char * targetName,
                         char * hdfsHost,
                         Int32 hdfsPort,
+                        char * hiveSchemaName,
                         char * hiveTableName,
                         char * delimiter,
                         char * header,
@@ -250,6 +277,7 @@ static short ft_codegen(Generator *generator,
                         ULng32 requestBufferSize,
                         ULng32 replyBufferSize,
                         ULng32 numOutputBuffers,
+                        UInt32 maxOpenPartitions,
                         ComTdb * childTdb,
                         NABoolean isSequenceFile)
 {
@@ -260,11 +288,13 @@ static short ft_codegen(Generator *generator,
   MapTable *last_map_table = generator->getLastMapTable();
   ex_expr *input_expr = NULL;
   ex_expr *output_expr = NULL;
+  ex_expr *part_string_expr = NULL;
   ex_expr * childData_expr = NULL ;
   ex_expr * cnvChildData_expr = NULL ;
   ULng32 i;
   ULng32 requestRowLen = 0;
   ULng32 outputRowLen = 0;
+  UInt32 partStringRowLen = 0;
   ULng32 childDataRowLen = 0;
   ULng32 cnvChildDataRowLen = 0;
   ExpTupleDesc *requestTupleDesc = NULL;
@@ -272,6 +302,7 @@ static short ft_codegen(Generator *generator,
   ExpTupleDesc *outputTupleDesc = NULL;
   ExpTupleDesc *childDataTupleDesc = NULL;
   ExpTupleDesc *cnvChildDataTupleDesc = NULL;
+  ExpTupleDesc *partStringTupleDesc = NULL;
   newTdb = NULL;
 
   OperatorTypeEnum relExprType = relExpr.getOperatorType();
@@ -289,18 +320,32 @@ static short ft_codegen(Generator *generator,
   unsigned short numWorkTupps = 0;
   unsigned short childDataTuppIndex = 0;
   unsigned short cnvChildDataTuppIndex = 0;
+  unsigned short partStringTuppIndex = 0;
 
   numWorkTupps = 3;
   childDataTuppIndex = numWorkTupps - 1 ;
   numWorkTupps ++;
   cnvChildDataTuppIndex = numWorkTupps - 1;
+  numWorkTupps++;
+  partStringTuppIndex = numWorkTupps - 1;
+
   work_cri_desc = new (space) ex_cri_desc(numWorkTupps, space);
 
   ExpTupleDesc::TupleDataFormat childReqFormat = ExpTupleDesc::SQLMX_ALIGNED_FORMAT;
+  ExpTupleDesc::TupleDataFormat partStringFormat = ExpTupleDesc::SQLARK_EXPLODED_FORMAT;
 
   ValueIdList childDataVids;
   ValueIdList cnvChildDataVids;
+  ValueIdList partColValsVids;
+  NAString partColValsSQLExpr;
   const ValueIdList& childVals = fastExtract->getSelectList();
+  const NAColumnArray *naColArray = NULL;
+  CollIndex hiveColIx = 0;
+
+  if (fastExtract->getHiveNATable())
+  {
+    naColArray = &(fastExtract->getHiveNATable()->getNAColumnArray());
+  }
 
   for (i = 0; i < childVals.entries(); i++)
   {
@@ -318,17 +363,67 @@ static short ft_codegen(Generator *generator,
         lmExpr2 // [OUT] Returned expression
         );
 
-    GenAssert(res == 0 && lmExpr != NULL,
+    GenAssert(res == 0 && lmExpr2 != NULL,
         "Error building expression tree for LM child Input value");
 
     lmExpr->bindNode(generator->getBindWA());
-    childDataVids.insert(lmExpr->getValueId());
-    if (lmExpr2)
-    {
-      lmExpr2->bindNode(generator->getBindWA());
-      cnvChildDataVids.insert(lmExpr2->getValueId());
-    }
+    lmExpr2->bindNode(generator->getBindWA());
 
+    if (naColArray)
+      // find next Hive column (skip virtual (non-partition) columns)
+      while ((*naColArray)[hiveColIx]->isHiveVirtualColumn())
+        hiveColIx++;
+
+    if (!naColArray ||
+        !(*naColArray)[hiveColIx]->isHivePartColumn())
+      {
+        // regular column
+        childDataVids.insert(lmExpr->getValueId());
+        cnvChildDataVids.insert(lmExpr2->getValueId());
+      }
+    else
+      {
+        // a Hive partitioning column, those go into a separate expression
+        NAString partString((*naColArray)[i]->getColName());
+        NAString colExpr;
+
+        // get the first part of the part string ready, 'partcolname=', plus a
+        // concatenation operator for what comes next
+        partString.toLower();
+        partString.prepend("'");
+        partString += "=' || ";
+
+        // now get the value to use ready, start with an @An, a symbol for
+        // the parser to replace with lmExpr2 later (note the n is 1-based)
+        partColValsVids.insert(lmExpr2->getValueId());
+        colExpr.format("@A%d", partColValsVids.entries());
+
+        // some special handling for certain data types
+        switch (lmExpr->getValueId().getType().getTypeQualifier())
+          {
+          case NA_DATETIME_TYPE:
+            // Hive removes the fraction when it's zero, so we do that, too
+            colExpr.prepend("replace(");
+            colExpr.append(",'.000000','')");
+            break;
+
+          default:
+            break;
+          }
+        
+        // put the whole partition string together
+        partString += colExpr;
+
+        if (partColValsVids.entries() > 1)
+          // put an interior slash between partition directories
+          partColValsSQLExpr += " || '/' || ";
+
+        // the entire expression string for all part cols so far
+        partColValsSQLExpr += partString;
+      }
+
+    if (naColArray)
+      hiveColIx++;
 
   } // for (i = 0; i < childVals.entries(); i++)
 
@@ -357,11 +452,46 @@ static short ft_codegen(Generator *generator,
        ExpTupleDesc::LONG_FORMAT              // [optional IN] tuple desc format
        );
   }
+
+  if (partColValsVids.entries() > 0)
+    {
+      Parser parser(generator->currentCmpContext());
+      ItemExprList partColVals(CmpCommon::statementHeap());
+      ValueIdList partStringValId;
+
+      for (CollIndex i=0; i<partColValsVids.entries(); i++)
+        partColVals.insert(partColValsVids[i].getItemExpr());
+
+      ItemExpr *parseTree = parser.getItemExprTree(partColValsSQLExpr.data(),
+                                                   partColValsSQLExpr.length(),
+                                                   CharInfo::UTF8,
+                                                   partColVals);
+      GenAssert(parseTree, "Internal error generating partition column values");
+      parseTree->bindNode(generator->getBindWA());
+      partStringValId.insert(parseTree->getValueId());
+      // for EXPLAIN
+      fastExtract->addPartStringExpr(parseTree->getValueId());
+
+      exp_gen->generateContiguousMoveExpr (
+           partStringValId,                 // [IN] single operator to generate the string
+           TRUE,                            // [IN] add convert nodes?
+           workAtpNumber,                   // [IN] target atp number (0 or 1)
+           partStringTuppIndex,             // [IN] target tupp index
+           partStringFormat,                // [IN] target tuple data format
+           partStringRowLen,                // [OUT] target tuple length
+           &part_string_expr,               // [OUT] part string expression
+           &partStringTupleDesc,            // [optional OUT] target tuple desc
+           ExpTupleDesc::LONG_FORMAT);      // [optional IN] target desc format
+    }
+  else
+    maxOpenPartitions = 1;
+
   //
   // Add the tuple descriptor for request values to the work ATP
   //
   work_cri_desc->setTupleDescriptor(childDataTuppIndex, childDataTupleDesc);
   work_cri_desc->setTupleDescriptor(cnvChildDataTuppIndex, cnvChildDataTupleDesc);
+  work_cri_desc->setTupleDescriptor(partStringTuppIndex, partStringTupleDesc);
 
   // We can now remove all appended map tables
   generator->removeAll(last_map_table);
@@ -385,6 +515,7 @@ static short ft_codegen(Generator *generator,
     targetName,
     hdfsHost,
     hdfsPort,
+    hiveSchemaName,
     hiveTableName,
     delimiter,
     header,
@@ -399,15 +530,19 @@ static short ft_codegen(Generator *generator,
     outputBufferSize,
     numIoBuffers,
     ioTimeout,
+    maxOpenPartitions,
     input_expr,
     output_expr,
+    part_string_expr,
     requestRowLen,
     outputRowLen,
+    partStringRowLen,
     childData_expr,
     childTdb,
     space,
     childDataTuppIndex,
     cnvChildDataTuppIndex,
+    partStringTuppIndex,
     childDataRowLen,
     hdfsBufSize,
     replication
@@ -541,6 +676,7 @@ PhysicalFastExtract::codeGen(Generator *generator)
   char * nullString = NULL;
   char * recordSeparator = NULL;
   char * hdfsHostName = NULL;
+  char * hiveSchemaName = NULL;
   Int32 hdfsPortNum = getHdfsPort();
 
   char * newDelimiter = (char *)getDelimiter().data();
@@ -561,8 +697,15 @@ PhysicalFastExtract::codeGen(Generator *generator)
     newRecordSep[1] = '\0';
   }
 
+  NAString hiveSchemaNameNAString;
+  UInt32 maxOpenPartitions = 
+    ActiveSchemaDB()->getDefaults().getAsLong(FAST_EXTRACT_MAX_PARTITIONS);
+
+  if (isHiveInsert())
+    getHiveNATable()->getTableName().getHiveSchemaName(hiveSchemaNameNAString);
   targetName = AllocStringInSpace(*space, (char *)getTargetName().data());
   hdfsHostName = AllocStringInSpace(*space, (char *)getHdfsHostName().data());
+  hiveSchemaName = AllocStringInSpace(*space, (char *)hiveSchemaNameNAString.data());
   hiveTableName = AllocStringInSpace(*space, (char *)getHiveTableName().data());
   delimiter = AllocStringInSpace(*space,  newDelimiter);
   header = AllocStringInSpace(*space, (char *)getHeader().data());
@@ -576,6 +719,7 @@ PhysicalFastExtract::codeGen(Generator *generator)
                        targetName,
                        hdfsHostName,
                        hdfsPortNum,
+                       hiveSchemaName,
                        hiveTableName,
                        delimiter,
                        header,
@@ -587,6 +731,7 @@ PhysicalFastExtract::codeGen(Generator *generator)
                        requestBufferSize,
                        replyBufferSize,
                        numOutputBuffers,
+                       maxOpenPartitions,
                        childTdb,
                        isSequenceFile());
 

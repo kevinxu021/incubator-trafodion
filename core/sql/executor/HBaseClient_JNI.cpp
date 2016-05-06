@@ -43,6 +43,7 @@ static const char* const balErrorEnumStr[] =
   "JNI NewStringUTF() in add() for writing."  // BAL_ERROR_ADD_PARAM
  ,"Java exception in add() for writing."      // BAL_ERROR_ADD_EXCEPTION
  ,"Java exception in get() for reading."      // BAL_ERROR_GET_EXCEPTION
+ ,"Target buffer too short on getEntry()."    // BAL_ERROR_TOO_SHORT
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -53,7 +54,7 @@ char* ByteArrayList::getErrorText(BAL_RetCode errEnum)
   if (errEnum < (BAL_RetCode)JOI_LAST)
     return JavaObjectInterface::getErrorText((JOI_RetCode)errEnum);
   else    
-    return (char*)balErrorEnumStr[errEnum-BAL_FIRST-1];
+    return (char*)balErrorEnumStr[errEnum-BAL_FIRST];
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -215,8 +216,10 @@ Int32 ByteArrayList::getEntrySize(Int32 i)
 }
 
 
-char* ByteArrayList::getEntry(Int32 i, char* buf, Int32 bufLen, Int32& datalen)
+BAL_RetCode ByteArrayList::getEntry(Int32 i, char* buf, Int32 bufLen, Int32& datalen)
 {
+  BAL_RetCode rc = BAL_OK;  // assume success
+
   datalen = 0;
 
   jint jidx = i;  
@@ -228,7 +231,7 @@ char* ByteArrayList::getEntry(Int32 i, char* buf, Int32 bufLen, Int32& datalen)
   {
     getExceptionDetails();
     logError(CAT_SQL_HBASE, __FILE__, __LINE__);
-    return NULL;
+    return BAL_ERROR_GET_EXCEPTION;
   }
 
   if (jBuffer != NULL) {
@@ -236,15 +239,14 @@ char* ByteArrayList::getEntry(Int32 i, char* buf, Int32 bufLen, Int32& datalen)
     datalen = jenv_->GetArrayLength(jBuffer);
 
     if (datalen > bufLen)
-      // call setJniErrorStr?
-      return NULL;
-
-    jenv_->GetByteArrayRegion(jBuffer, 0, datalen, (jbyte*)buf);
+      rc = BAL_ERROR_TOO_SHORT;  // data won't fit in the buffer provided; don't move it
+    else
+      jenv_->GetByteArrayRegion(jBuffer, 0, datalen, (jbyte*)buf);
 
     jenv_->DeleteLocalRef(jBuffer);
   }
 
-  return buf;
+  return rc;
 }
 // ===========================================================================
 // ===== Class HBaseClient_JNI
@@ -271,8 +273,6 @@ static const char* const hbcErrorEnumStr[] =
  ,"Java exception in drop()."
  ,"Preparing parameters for exists()."
  ,"Java exception in exists()."
- ,"Preparing parameters for flushAll()."
- ,"Java exception in flushAll()." 
  ,"Preparing parameters for grant()."
  ,"Java exception in grant()."
  ,"Preparing parameters for revoke()."
@@ -450,7 +450,7 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_DROP       ].jm_name      = "drop";
     JavaMethods_[JM_DROP       ].jm_signature = "(Ljava/lang/String;J)Z";
     JavaMethods_[JM_DROP_ALL       ].jm_name      = "dropAll";
-    JavaMethods_[JM_DROP_ALL       ].jm_signature = "(Ljava/lang/String;)Z";
+    JavaMethods_[JM_DROP_ALL       ].jm_signature = "(Ljava/lang/String;J)Z";
     JavaMethods_[JM_LIST_ALL       ].jm_name      = "listAll";
     JavaMethods_[JM_LIST_ALL       ].jm_signature = "(Ljava/lang/String;)Lorg/trafodion/sql/ByteArrayList;";
     JavaMethods_[JM_GET_REGION_STATS       ].jm_name      = "getRegionStats";
@@ -458,19 +458,21 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_COPY       ].jm_name      = "copy";
     JavaMethods_[JM_COPY       ].jm_signature = "(Ljava/lang/String;Ljava/lang/String;Z)Z";
     JavaMethods_[JM_EXISTS     ].jm_name      = "exists";
-    JavaMethods_[JM_EXISTS     ].jm_signature = "(Ljava/lang/String;)Z";
+    JavaMethods_[JM_EXISTS     ].jm_signature = "(Ljava/lang/String;J)Z";
     JavaMethods_[JM_GRANT      ].jm_name      = "grant";
     JavaMethods_[JM_GRANT      ].jm_signature = "([B[B[Ljava/lang/Object;)Z";
     JavaMethods_[JM_REVOKE     ].jm_name      = "revoke";
     JavaMethods_[JM_REVOKE     ].jm_signature = "([B[B[Ljava/lang/Object;)Z";
-    JavaMethods_[JM_FLUSHALL   ].jm_name      = "flushAllTables";
-    JavaMethods_[JM_FLUSHALL   ].jm_signature = "()Z";
     JavaMethods_[JM_GET_HBLC   ].jm_name      = "getHBulkLoadClient";
     JavaMethods_[JM_GET_HBLC   ].jm_signature = "()Lorg/trafodion/sql/HBulkLoadClient;";
+    JavaMethods_[JM_GET_BRC    ].jm_name      = "getBackupRestoreClient";
+    JavaMethods_[JM_GET_BRC    ].jm_signature = "()Lorg/trafodion/sql/BackupRestoreClient;";
     JavaMethods_[JM_EST_RC     ].jm_name      = "estimateRowCount";
     JavaMethods_[JM_EST_RC     ].jm_signature = "(Ljava/lang/String;II[J)Z";
     JavaMethods_[JM_REL_HBLC   ].jm_name      = "releaseHBulkLoadClient";
     JavaMethods_[JM_REL_HBLC   ].jm_signature = "(Lorg/trafodion/sql/HBulkLoadClient;)V";
+    JavaMethods_[JM_REL_BRC    ].jm_name      = "releaseBackupRestoreClient";
+    JavaMethods_[JM_REL_BRC    ].jm_signature = "(Lorg/trafodion/sql/BackupRestoreClient;)V";
     JavaMethods_[JM_GET_CAC_FRC].jm_name      = "getBlockCacheFraction";
     JavaMethods_[JM_GET_CAC_FRC].jm_signature = "()F";
     JavaMethods_[JM_GET_LATEST_SNP].jm_name      = "getLatestSnapshot";
@@ -496,7 +498,7 @@ HBC_RetCode HBaseClient_JNI::init()
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROW].jm_name      = "insertRow";
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROW].jm_signature = "(JLjava/lang/String;ZZJ[BLjava/lang/Object;JZZ)Z";
     JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_name      = "insertRows";
-    JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;Ljava/lang/Object;JZZ)Z";
+    JavaMethods_[JM_HBC_DIRECT_INSERT_ROWS].jm_signature = "(JLjava/lang/String;ZZJSLjava/lang/Object;Ljava/lang/Object;JZ)Z";
     JavaMethods_[JM_HBC_DIRECT_UPDATE_TAGS].jm_name      = "updateVisibility";
     JavaMethods_[JM_HBC_DIRECT_UPDATE_TAGS].jm_signature = "(JLjava/lang/String;ZJ[BLjava/lang/Object;)Z";
     JavaMethods_[JM_HBC_DIRECT_CHECKANDUPDATE_ROW].jm_name      = "checkAndUpdateRow";
@@ -819,6 +821,88 @@ HBC_RetCode HBaseClient_JNI::releaseHBulkLoadClient(HBulkLoadClient_JNI* hblc)
     return HBC_ERROR_REL_HBLC_EXCEPTION;
   }
   NADELETE(hblc, HBulkLoadClient_JNI, hblc->getHeap());
+  jenv_->PopLocalFrame(NULL);
+  return HBC_OK;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////
+BackupRestoreClient_JNI* HBaseClient_JNI::getBackupRestoreClient(NAHeap *heap)
+{
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::getBackupRestoreClient() called.");
+  if (javaObj_ == NULL || (!isInitialized()))
+  {
+    GetCliGlobals()->setJniErrorStr(getErrorText(HBC_ERROR_GET_BRC_EXCEPTION));
+    return NULL;
+  }
+
+  if (jenv_ == NULL)
+     if (initJVM() != JOI_OK)
+         return NULL;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+     getExceptionDetails();
+     return NULL;
+  }
+  tsRecentJMFromJNI = JavaMethods_[JM_GET_BRC].jm_full_name;
+  jobject j_brc = jenv_->CallObjectMethod(javaObj_, JavaMethods_[JM_GET_BRC].methodID);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "HBaseClient_JNI::getBackupRestoreClient()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return NULL;
+  }
+  if (j_brc == NULL)
+  {
+    logError(CAT_SQL_HBASE, "HBaseClient_JNI::getBackupRestoreClient()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return NULL;
+  }
+  BackupRestoreClient_JNI *brc = new (heap) BackupRestoreClient_JNI(heap, j_brc);
+  jenv_->DeleteLocalRef(j_brc);
+  if ( brc->init()!= BRC_OK)
+  {
+     NADELETE(brc, BackupRestoreClient_JNI, heap);
+     jenv_->PopLocalFrame(NULL);
+     return NULL; 
+  }
+  jenv_->PopLocalFrame(NULL);
+  return brc;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// 
+//////////////////////////////////////////////////////////////////////////////
+HBC_RetCode HBaseClient_JNI::releaseBackupRestoreClient(BackupRestoreClient_JNI* brc)
+{
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::releaseBackupRestoreClient() called.");
+
+  jobject j_brc = brc->getJavaObject();
+
+  if (jenv_ == NULL)
+     if (initJVM() != JOI_OK)
+         return HBC_ERROR_INIT_PARAM;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+     getExceptionDetails();
+     return HBC_ERROR_REL_BRC_EXCEPTION;
+  }
+  tsRecentJMFromJNI = JavaMethods_[JM_REL_BRC].jm_full_name;
+  jenv_->CallVoidMethod(javaObj_, JavaMethods_[JM_REL_BRC].methodID, j_brc);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "HBaseClient_JNI::releaseBackupRestoreClient()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return HBC_ERROR_REL_BRC_EXCEPTION;
+  }
+  NADELETE(brc, BackupRestoreClient_JNI, brc->getHeap());
   jenv_->PopLocalFrame(NULL);
   return HBC_OK;
 }
@@ -1248,47 +1332,6 @@ HBC_RetCode HBaseClient_JNI::drop(const char* fileName, bool async, long transID
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// 
-//////////////////////////////////////////////////////////////////////////////
-HBC_RetCode HBaseClient_JNI::flushAllTablesStatic()
-{
-  return GetCliGlobals()->currContext()->getHBaseClient()->flushAllTables();
-}
-
-HBC_RetCode HBaseClient_JNI::flushAllTables()
-{
-  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::flushAllTablescalled.");
-  if (jenv_ == NULL)
-     if (initJVM() != JOI_OK)
-         return HBC_ERROR_INIT_PARAM;
-
-  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
-     getExceptionDetails();
-     return HBC_ERROR_FLUSHALL_EXCEPTION;
-  }
-  tsRecentJMFromJNI = JavaMethods_[JM_FLUSHALL].jm_full_name;
-  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_FLUSHALL].methodID);
-
-  if (jenv_->ExceptionCheck())
-  {
-    getExceptionDetails();
-    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
-    logError(CAT_SQL_HBASE, "HBaseClient_JNI::flushAllTables()", getLastError());
-    jenv_->PopLocalFrame(NULL);
-    return HBC_ERROR_FLUSHALL_EXCEPTION;
-  }
-
-  if (jresult == false) 
-  {
-    logError(CAT_SQL_HBASE, "HBaseClient_JNI::flushAllTables()", getLastError());
-    jenv_->PopLocalFrame(NULL);
-    return HBC_ERROR_FLUSHALL_EXCEPTION;
-  }
-  jenv_->PopLocalFrame(NULL);
-  return HBC_OK;
-}
-
-//////////////////////////////////////////////////////////////////////////////
 //
 //////////////////////////////////////////////////////////////////////////////
 HBC_RetCode HBaseClient_JNI::registerTruncateOnAbort(const char* fileName, Int64 transID)
@@ -1379,7 +1422,7 @@ HBC_RetCode HBaseClient_JNI::drop(const char* fileName, JNIEnv* jenv, Int64 tran
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-HBC_RetCode HBaseClient_JNI::dropAll(const char* pattern, bool async)
+HBC_RetCode HBaseClient_JNI::dropAll(const char* pattern, bool async, Int64 transID)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::dropAll(%s) called.", pattern);
 
@@ -1403,9 +1446,11 @@ HBC_RetCode HBaseClient_JNI::dropAll(const char* pattern, bool async)
     return HBC_ERROR_DROP_PARAM;
   }
 
+  jlong j_tid = transID;  
+
   // boolean drop(java.lang.String);
   tsRecentJMFromJNI = JavaMethods_[JM_DROP_ALL].jm_full_name;
-  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_DROP_ALL].methodID, js_pattern);
+  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_DROP_ALL].methodID, js_pattern, j_tid);
 
   jenv_->DeleteLocalRef(js_pattern);  
 
@@ -1577,7 +1622,7 @@ HBC_RetCode HBaseClient_JNI::copy(const char* srcTblName,
   jboolean jresult = jenv_->CallBooleanMethod(
        javaObj_, JavaMethods_[JM_COPY].methodID, 
        js_srcTblName, js_tgtTblName, j_force);
-
+  
   jenv_->DeleteLocalRef(js_srcTblName);  
 
   jenv_->DeleteLocalRef(js_tgtTblName);  
@@ -1601,10 +1646,11 @@ HBC_RetCode HBaseClient_JNI::copy(const char* srcTblName,
   return HBC_OK;
 }
 
+
 //////////////////////////////////////////////////////////////////////////////
 // 
 //////////////////////////////////////////////////////////////////////////////
-HBC_RetCode HBaseClient_JNI::exists(const char* fileName)
+HBC_RetCode HBaseClient_JNI::exists(const char* fileName, Int64 transID)
 {
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HBaseClient_JNI::exists(%s) called.", fileName);
   if (jenv_ == NULL)
@@ -1623,9 +1669,11 @@ HBC_RetCode HBaseClient_JNI::exists(const char* fileName)
     return HBC_ERROR_EXISTS_PARAM;
   }
 
+  jlong j_tid = transID;  
+
   // boolean exists(java.lang.String);
   tsRecentJMFromJNI = JavaMethods_[JM_EXISTS].jm_full_name;
-  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_EXISTS].methodID, js_fileName);
+  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_EXISTS].methodID, js_fileName, j_tid);
 
   jenv_->DeleteLocalRef(js_fileName);  
 
@@ -2312,6 +2360,236 @@ HBLC_RetCode HBulkLoadClient_JNI::bulkLoadCleanup(
   return HBLC_OK;
 }
 
+//////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////
+JavaMethodInit* BackupRestoreClient_JNI::JavaMethods_ = NULL;
+jclass BackupRestoreClient_JNI::javaClass_ = 0;
+bool BackupRestoreClient_JNI::javaMethodsInitialized_ = false;
+pthread_mutex_t BackupRestoreClient_JNI::javaMethodsInitMutex_ = PTHREAD_MUTEX_INITIALIZER;
+
+
+static const char* const brcErrorEnumStr[] = ///need to update content
+{
+    "preparing parameters for init."
+   ,"java exception in init."
+   ,"java exception in cleanup."
+   ,"preparing parameters for init_brc()."
+   ,"java exception in init_brc()."
+};
+BRC_RetCode BackupRestoreClient_JNI::init()
+{
+  static char className[]="org/trafodion/sql/BackupRestoreClient";
+  BRC_RetCode rc;
+
+  if (isInitialized())
+    return BRC_OK;
+
+  if (javaMethodsInitialized_)
+    return (BRC_RetCode)JavaObjectInterface::init(className, javaClass_, JavaMethods_, (Int32)JM_LAST, javaMethodsInitialized_);
+  else
+  {
+    pthread_mutex_lock(&javaMethodsInitMutex_);
+    if (javaMethodsInitialized_)
+    {
+      pthread_mutex_unlock(&javaMethodsInitMutex_);
+      return (BRC_RetCode)JavaObjectInterface::init(className, javaClass_, JavaMethods_, (Int32)JM_LAST, javaMethodsInitialized_);
+    }
+    JavaMethods_ = new JavaMethodInit[JM_LAST];
+    
+    JavaMethods_[JM_CTOR       ].jm_name      = "<init>";
+    JavaMethods_[JM_CTOR       ].jm_signature = "()V";
+    JavaMethods_[JM_GET_ERROR  ].jm_name      = "getLastError";
+    JavaMethods_[JM_GET_ERROR  ].jm_signature = "()Ljava/lang/String;";
+    JavaMethods_[JM_CREATE_SNAPSHOT].jm_name = "createSnapshot";
+    JavaMethods_[JM_CREATE_SNAPSHOT].jm_signature = "([Ljava/lang/Object;Ljava/lang/String;)Z";
+    JavaMethods_[JM_RESTORE_SNAPSHOTS].jm_name = "restoreSnapshots";
+    JavaMethods_[JM_RESTORE_SNAPSHOTS].jm_signature = "(Ljava/lang/String;Z)Z";
+    JavaMethods_[JM_LIST_ALL_BACKUPS].jm_name = "listAllBackups";
+    JavaMethods_[JM_LIST_ALL_BACKUPS].jm_signature = "()[[B";
+    
+    rc = (BRC_RetCode)JavaObjectInterface::init(className, javaClass_, JavaMethods_, (Int32)JM_LAST, javaMethodsInitialized_);
+    javaMethodsInitialized_ = TRUE;
+    pthread_mutex_unlock(&javaMethodsInitMutex_);
+  }
+  return rc;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////
+BRC_RetCode BackupRestoreClient_JNI::createSnapshot(const TextVec& tables, const char* backuptag) 
+{
+	QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "BackupRestoreClient_JNI::createSnapshot(%s) called.");
+	if (jenv_ == NULL)
+		if (initJVM() != JOI_OK)
+			return BRC_ERROR_INIT_PARAM;
+
+	if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+		getExceptionDetails();
+		return BRC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
+	}
+	
+	jobjectArray j_tables = NULL;
+	if(!tables.empty())
+	{
+		QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "BackupRestoreClient_JNI adding %d tables.", tables.size());
+		j_tables = convertToStringObjectArray(tables);
+		if (j_tables == NULL)
+	    {
+	       getExceptionDetails();
+	       logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+	       logError(CAT_SQL_HBASE, "HBaseClient_JNI::createSnapshot()", getLastError());
+	       jenv_->PopLocalFrame(NULL);
+	       return BRC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
+	    }
+	}
+		
+	jstring js_backuptag = jenv_->NewStringUTF(backuptag);
+	if (js_backuptag == NULL) 
+	{
+		GetCliGlobals()->setJniErrorStr(getErrorText(BRC_ERROR_CREATE_SNAPSHOT_EXCEPTION));
+		jenv_->PopLocalFrame(NULL);
+		return BRC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
+	}
+
+	tsRecentJMFromJNI = JavaMethods_[JM_CREATE_SNAPSHOT].jm_full_name;
+	jboolean jresult = jenv_->CallBooleanMethod(
+			javaObj_, JavaMethods_[JM_CREATE_SNAPSHOT].methodID, j_tables, js_backuptag);
+
+	jenv_->DeleteLocalRef(js_backuptag);
+	if(j_tables != NULL)
+		jenv_->DeleteLocalRef(j_tables);
+
+
+	if (jenv_->ExceptionCheck())
+	{
+		getExceptionDetails(jenv_);
+		logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+		logError(CAT_SQL_HBASE, "BackupRestoreClient_JNI::createSnapshot()", getLastError());
+		jenv_->PopLocalFrame(NULL);
+		return BRC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
+	}
+
+	if (jresult == false) 
+	{
+		logError(CAT_SQL_HBASE, "BackupRestoreClient_JNI::createSnapshot()", getLastError());
+		jenv_->PopLocalFrame(NULL);
+		return BRC_ERROR_CREATE_SNAPSHOT_EXCEPTION;
+	}
+	jenv_->PopLocalFrame(NULL);
+	return BRC_OK;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////
+BRC_RetCode BackupRestoreClient_JNI::restoreSnapshots(const char* backuptag,
+                                                      NABoolean timestamp) 
+{
+    QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "BackupRestoreClient_JNI::restoreSnapshots(%s) called.");
+    if (jenv_ == NULL)
+        if (initJVM() != JOI_OK)
+            return BRC_ERROR_INIT_PARAM;
+
+    if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+        getExceptionDetails();
+        return BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION;
+    }
+    
+    jstring js_backuptag = jenv_->NewStringUTF(backuptag);
+    if (js_backuptag == NULL) 
+    {
+        GetCliGlobals()->setJniErrorStr(getErrorText(BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION));
+        jenv_->PopLocalFrame(NULL);
+        return BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION;
+    }
+
+    jboolean j_timestamp = timestamp;
+    
+    tsRecentJMFromJNI = JavaMethods_[JM_RESTORE_SNAPSHOTS].jm_full_name;
+    jboolean jresult = jenv_->CallBooleanMethod(
+            javaObj_, JavaMethods_[JM_RESTORE_SNAPSHOTS].methodID, js_backuptag, j_timestamp);
+
+    jenv_->DeleteLocalRef(js_backuptag);
+
+    if (jenv_->ExceptionCheck())
+    {
+        getExceptionDetails(jenv_);
+        logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+        logError(CAT_SQL_HBASE, "BackupRestoreClient_JNI::restoreSnapshots()", getLastError());
+        jenv_->PopLocalFrame(NULL);
+        return BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION;
+    }
+
+    if (jresult == false) 
+    {
+        logError(CAT_SQL_HBASE, "BackupRestoreClient_JNI::restoreSnapshots()", getLastError());
+        jenv_->PopLocalFrame(NULL);
+        return BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION;
+    }
+    jenv_->PopLocalFrame(NULL);
+    return BRC_OK;
+}
+
+NAArray<HbaseStr>* BackupRestoreClient_JNI::listAllBackups(NAHeap *heap)
+{
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "BackupRestoreClient_JNI::listAllBackups called.");
+
+  if (jenv_ == NULL)
+     if (initJVM() != JOI_OK)
+       return NULL;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+     getExceptionDetails();
+     return NULL;
+  }
+  
+  tsRecentJMFromJNI = JavaMethods_[JM_LIST_ALL_BACKUPS].jm_full_name;
+  jarray j_backupList = 
+    (jarray)jenv_->CallObjectMethod(javaObj_, JavaMethods_[JM_LIST_ALL_BACKUPS].methodID);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails(jenv_);
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "BackupRestoreClient_JNI::listAllBackups()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return NULL;
+  }
+
+  if (j_backupList == NULL) {
+    jenv_->PopLocalFrame(NULL);
+    return NULL;
+  }
+
+  NAArray<HbaseStr> *backupList;
+  jint retcode = convertByteArrayObjectArrayToNAArray(heap, j_backupList, &backupList);
+  jenv_->PopLocalFrame(NULL);
+  if(retcode == 0)
+    return NULL;
+  else
+    return backupList;
+}
+
+
+NAString BackupRestoreClient_JNI::getLastJavaError()
+{
+  return JavaObjectInterface::getLastJavaError(JavaMethods_[JM_GET_ERROR].methodID);
+}
+
+char* BackupRestoreClient_JNI::getErrorText(BRC_RetCode errEnum)
+{
+  if (errEnum < (BRC_RetCode)JOI_LAST)
+    return JavaObjectInterface::getErrorText((JOI_RetCode)errEnum);
+  else
+    return (char*)brcErrorEnumStr[errEnum-BRC_FIRST-1];
+}
+
+BackupRestoreClient_JNI::~BackupRestoreClient_JNI()
+{
+	
+}
 
 //////////////////////////////////////////////////////////////////////////////
  //
@@ -3134,7 +3412,6 @@ HBC_RetCode HBaseClient_JNI::insertRows(NAHeap *heap, const char *tableName,
 					HbaseStr rowIDs,
 					HbaseStr rows,
 					Int64 timestamp,
-					bool autoFlush,
 					bool asyncOperation,
 					HTableClient_JNI **outHtc)
 {
@@ -3186,7 +3463,6 @@ HBC_RetCode HBaseClient_JNI::insertRows(NAHeap *heap, const char *tableName,
   jlong j_ts = timestamp;
   jlong j_htc = (long)htc;
   jshort j_rowIDLen = rowIDLen;
-  jboolean j_af = autoFlush;
   jboolean j_asyncOperation = asyncOperation;
  
   if (hbs)
@@ -3203,7 +3479,6 @@ HBC_RetCode HBaseClient_JNI::insertRows(NAHeap *heap, const char *tableName,
 					      jRowIDs,
 					      jRows,
 					      j_ts,
-					      j_af,
 					      j_asyncOperation);
   if (hbs) {
       hbs->incHbaseCalls();
@@ -4057,7 +4332,6 @@ static const char* const htcErrorEnumStr[] =
  ,"Java exception in revoke()."
  ,"Java exception in getendkeys()."
  ,"Java exception in getHTableName()."
- ,"Java exception in flush()."
  ,"Java exception in getColName()."
  ,"Java exception in getColValue()."
  ,"Java exception in getRowID()."
@@ -4133,7 +4407,7 @@ HTC_RetCode HTableClient_JNI::init()
     JavaMethods_[JM_GET_ERROR  ].jm_name      = "getLastError";
     JavaMethods_[JM_GET_ERROR  ].jm_signature = "()Ljava/lang/String;";
     JavaMethods_[JM_SCAN_OPEN  ].jm_name      = "startScan";
-    JavaMethods_[JM_SCAN_OPEN  ].jm_signature = "(J[B[B[Ljava/lang/Object;JZZI[Ljava/lang/Object;[Ljava/lang/Object;[Ljava/lang/Object;FZZILjava/lang/String;Ljava/lang/String;IIJJLjava/lang/String;)Z";
+    JavaMethods_[JM_SCAN_OPEN  ].jm_signature = "(J[B[B[Ljava/lang/Object;JZZI[Ljava/lang/Object;[Ljava/lang/Object;[Ljava/lang/Object;FFZZILjava/lang/String;Ljava/lang/String;IIJJLjava/lang/String;)Z";
     JavaMethods_[JM_DELETE     ].jm_name      = "deleteRow";
     JavaMethods_[JM_DELETE     ].jm_signature = "(J[B[Ljava/lang/Object;JZLjava/lang/String;)Z";
     JavaMethods_[JM_COPROC_AGGR     ].jm_name      = "coProcAggr";
@@ -4144,8 +4418,6 @@ HTC_RetCode HTableClient_JNI::init()
     JavaMethods_[JM_GET_HTNAME ].jm_signature = "()Ljava/lang/String;";
     JavaMethods_[JM_GETENDKEYS ].jm_name      = "getEndKeys";
     JavaMethods_[JM_GETENDKEYS ].jm_signature = "()Lorg/trafodion/sql/ByteArrayList;";
-    JavaMethods_[JM_FLUSHT     ].jm_name      = "flush";
-    JavaMethods_[JM_FLUSHT     ].jm_signature = "()Z";
     JavaMethods_[JM_SET_WB_SIZE ].jm_name      = "setWriteBufferSize";
     JavaMethods_[JM_SET_WB_SIZE ].jm_signature = "(J)Z";
     JavaMethods_[JM_SET_WRITE_TO_WAL ].jm_name      = "setWriteToWAL";
@@ -4181,6 +4453,7 @@ HTC_RetCode HTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
 					const LIST(NAString) *inColNamesToFilter, 
 					const LIST(NAString) *inCompareOpList,
 					const LIST(NAString) *inColValuesToCompare,
+                    Float32 dopParallelScanner,
 					Float32 samplePercent,
 					NABoolean useSnapshotScan,
 					Lng32 snapTimeout,
@@ -4307,6 +4580,7 @@ HTC_RetCode HTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
         return HTC_ERROR_SCANOPEN_PARAM;
      }
   }
+  jfloat j_dopParallelScanner = dopParallelScanner;
   jfloat j_smplPct = samplePercent;
   jboolean j_useSnapshotScan = useSnapshotScan;
   jint j_snapTimeout = snapTimeout;
@@ -4354,6 +4628,7 @@ HTC_RetCode HTableClient_JNI::startScan(Int64 transID, const Text& startRowID,
                                               JavaMethods_[JM_SCAN_OPEN].methodID, 
                                               j_tid, jba_startRowID, jba_stopRowID, j_cols, j_ts, j_cb, j_smallScanner, j_ncr,
                                               j_colnamestofilter, j_compareoplist, j_colvaluestocompare, 
+                                              j_dopParallelScanner,
                                               j_smplPct, j_preFetch, j_useSnapshotScan,
                                               j_snapTimeout, js_snapName, js_tmp_loc, j_espNum,
                                               j_versions, j_minTS, j_maxTS,
@@ -4763,36 +5038,6 @@ ByteArrayList* HTableClient_JNI::getKeys(Int32 funcIndex)
 
 }
 
-HTC_RetCode HTableClient_JNI::flushTable()
-{
-  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, "HTableClient_JNI::flushTable() called.");
-
-  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
-    getExceptionDetails();
-    return HTC_ERROR_FLUSHTABLE_EXCEPTION;
-  }
-  tsRecentJMFromJNI = JavaMethods_[JM_FLUSHT].jm_full_name;
-  jboolean jresult = jenv_->CallBooleanMethod(javaObj_, JavaMethods_[JM_FLUSHT].methodID);
-
-  if (jenv_->ExceptionCheck())
-  {
-    getExceptionDetails();
-    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
-    logError(CAT_SQL_HBASE, "HTableClient_JNI::flushTable()", getLastError());
-    jenv_->PopLocalFrame(NULL);
-    return HTC_ERROR_FLUSHTABLE_EXCEPTION;
-  }
-
-  if (jresult == false) 
-  {
-    logError(CAT_SQL_HBASE, "HTableClient_JNI::flushTable()", getLastError());
-    jenv_->PopLocalFrame(NULL);
-    return HTC_ERROR_FLUSHTABLE_EXCEPTION;
-  }
-  jenv_->PopLocalFrame(NULL);
-  return HTC_OK;
-}
-
 // ===========================================================================
 // ===== Class HiveClient_JNI
 // ===========================================================================
@@ -4822,6 +5067,7 @@ static const char* const hvcErrorEnumStr[] =
  ,"java exception in hdfsWrite()."
  ,"java exception in hdfsclose()."
  ,"java exception in executeHiveSQL()."
+ ,"java exception in createHiveTablePartition()."
 };
 
 
@@ -4921,8 +5167,10 @@ HVC_RetCode HiveClient_JNI::init()
     JavaMethods_[JM_HDFS_WRITE       ].jm_signature = "([BJ)Z";
     JavaMethods_[JM_HDFS_CLOSE       ].jm_name      = "hdfsClose";
     JavaMethods_[JM_HDFS_CLOSE       ].jm_signature = "()Z";
-    JavaMethods_[JM_EXEC_HIVE_SQL].jm_name = "executeHiveSQL";
-    JavaMethods_[JM_EXEC_HIVE_SQL].jm_signature = "(Ljava/lang/String;)V";
+    JavaMethods_[JM_EXEC_HIVE_SQL    ].jm_name      = "executeHiveSQL";
+    JavaMethods_[JM_EXEC_HIVE_SQL    ].jm_signature = "(Ljava/lang/String;)V";
+    JavaMethods_[JM_CREATE_HIVE_PART ].jm_name      = "createHiveTablePartition";
+    JavaMethods_[JM_CREATE_HIVE_PART ].jm_signature = "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V";
     rc = (HVC_RetCode)JavaObjectInterface::init(className, javaClass_, JavaMethods_, (Int32)JM_LAST, javaMethodsInitialized_);
     javaMethodsInitialized_ = TRUE;
     pthread_mutex_unlock(&javaMethodsInitMutex_);
@@ -5290,6 +5538,60 @@ HVC_RetCode HiveClient_JNI::executeHiveSQL(const char* hiveSQL)
   
   QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, 
        "Exit HiveClient_JNI::executeHiveSQL(%s) called.", hiveSQL);
+  jenv_->PopLocalFrame(NULL);
+  return HVC_OK;
+}
+
+HVC_RetCode HiveClient_JNI::createHiveTablePartition(const char *schemaName,
+                                                     const char *tableName,
+                                                     const char *partitionString)
+{
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG,
+                "Enter HiveClient_JNI::createHiveTablePartition(\"%s\",\"%s\",\"%s\") called.",
+                schemaName, tableName, partitionString);
+  if (jenv_ == NULL)
+     if (initJVM() != JOI_OK)
+         return HVC_ERROR_INIT_PARAM;
+
+  if (jenv_->PushLocalFrame(jniHandleCapacity_) != 0) {
+    getExceptionDetails();
+    return HVC_ERROR_CREATEHIVEPART_EXCEPTION;
+  }
+
+  jstring js_schemaName = jenv_->NewStringUTF(schemaName);
+  jstring js_tableName = jenv_->NewStringUTF(tableName);
+  jstring js_partitionString = jenv_->NewStringUTF(partitionString);
+  if (js_schemaName == NULL ||
+      js_tableName == NULL ||
+      js_partitionString == NULL)
+  {
+    GetCliGlobals()->setJniErrorStr(getErrorText(HVC_ERROR_CREATEHIVEPART_EXCEPTION));
+    jenv_->PopLocalFrame(NULL);
+    return HVC_ERROR_CREATEHIVEPART_EXCEPTION;
+  }
+
+  tsRecentJMFromJNI = JavaMethods_[JM_CREATE_HIVE_PART].jm_full_name;
+  jenv_->CallVoidMethod(javaObj_,
+                        JavaMethods_[JM_CREATE_HIVE_PART].methodID,
+                        js_schemaName,
+                        js_tableName,
+                        js_partitionString);
+
+  if (jenv_->ExceptionCheck())
+  {
+    getExceptionDetails();
+    logError(CAT_SQL_HBASE, __FILE__, __LINE__);
+    logError(CAT_SQL_HBASE, "HiveClient_JNI::createHiveTablePartition()", getLastError());
+    jenv_->PopLocalFrame(NULL);
+    return HVC_ERROR_CREATEHIVEPART_EXCEPTION;
+  }
+
+  jenv_->DeleteLocalRef(js_schemaName);
+  jenv_->DeleteLocalRef(js_tableName);
+  jenv_->DeleteLocalRef(js_partitionString);
+  
+  QRLogger::log(CAT_SQL_HBASE, LL_DEBUG, 
+       "Exit HiveClient_JNI::createHiveTablePartition() called.");
   jenv_->PopLocalFrame(NULL);
   return HVC_OK;
 }
@@ -6298,3 +6600,39 @@ int convertLongObjectArrayToList(NAHeap *heap, jlongArray j_longArray, LIST(Int6
     return arrayLen;
 }
 
+int convertByteArrayObjectArrayToNAArray(NAHeap *heap, jarray j_objArray, NAArray<HbaseStr> **retArray)
+{
+    if (j_objArray == NULL)
+       return 0;
+    int arrayLen = jenv_->GetArrayLength(j_objArray);
+    jbyteArray j_ba;
+    jint j_baLen;
+    BYTE *ba;
+    jboolean isCopy;
+    HbaseStr element; 
+    NAArray<HbaseStr> *tmpArray = new (heap) NAArray<HbaseStr> (heap, arrayLen); 
+    for (int i = 0; i < arrayLen; i++)
+    {
+        j_ba = (jbyteArray)jenv_->GetObjectArrayElement((jobjectArray)j_objArray, i);
+        j_baLen = jenv_->GetArrayLength(j_ba);
+        ba = new (heap) BYTE[j_baLen];
+        jenv_->GetByteArrayRegion(j_ba, 0, j_baLen, (jbyte *)ba); 
+        element.len = j_baLen;
+        element.val = (char *)ba;
+        tmpArray->insert(i,element);
+    }
+    *retArray = tmpArray;
+    return arrayLen;
+}
+
+void deleteNAArray(CollHeap *heap, NAArray<HbaseStr> *array)
+{
+  
+  if (array == NULL)
+     return;
+  CollIndex entryCount = array->entries();
+  for (CollIndex i = 0 ; i < entryCount; i++) {
+      NADELETEBASIC(array->at(i).val, heap);
+  }
+  NADELETE(array, NAArray, heap);
+}

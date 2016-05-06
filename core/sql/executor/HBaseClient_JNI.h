@@ -44,6 +44,7 @@ class ExHbaseAccessStats;
 class ContextCli;
 
 class HBulkLoadClient_JNI;
+class BackupRestoreClient_JNI;
 
 #define NUM_HBASE_WORKER_THREADS 4
 
@@ -106,7 +107,6 @@ typedef enum {
  ,HTC_ERROR_REVOKE_EXCEPTION
  ,HTC_GETENDKEYS
  ,HTC_ERROR_GETHTABLENAME_EXCEPTION
- ,HTC_ERROR_FLUSHTABLE_EXCEPTION
  ,HTC_GET_COLNAME_EXCEPTION
  ,HTC_GET_COLVAL_EXCEPTION
  ,HTC_GET_ROWID_EXCEPTION
@@ -182,6 +182,7 @@ public:
 			const LIST(NAString) *inColNamesToFilter, 
 			const LIST(NAString) *inCompareOpList,
 			const LIST(NAString) *inColValuesToCompare,
+            Float32 dopParallelScanner = 0.0f,
 			Float32 samplePercent = -1.0f,
 			NABoolean useSnapshotScan = FALSE,
 			Lng32 snapTimeout = 0,
@@ -249,7 +250,6 @@ public:
   ByteArrayList* getBeginKeys();
   ByteArrayList* getEndKeys();
 
-  HTC_RetCode flushTable(); 
   void setTableName(const char *tableName)
   {
     Int32 len = strlen(tableName);
@@ -291,7 +291,6 @@ private:
    ,JM_GET_NAME
    ,JM_GET_HTNAME
    ,JM_GETENDKEYS
-   ,JM_FLUSHT
    ,JM_SET_WB_SIZE
    ,JM_SET_WRITE_TO_WAL
    ,JM_FETCH_ROWS
@@ -369,8 +368,6 @@ typedef enum {
  ,HBC_ERROR_LIST_EXCEPTION
  ,HBC_ERROR_EXISTS_PARAM
  ,HBC_ERROR_EXISTS_EXCEPTION
- ,HBC_ERROR_FLUSHALL_PARAM
- ,HBC_ERROR_FLUSHALL_EXCEPTION
  ,HBC_ERROR_GRANT_PARAM
  ,HBC_ERROR_GRANT_EXCEPTION
  ,HBC_ERROR_REVOKE_PARAM
@@ -380,9 +377,11 @@ typedef enum {
  ,HBC_ERROR_THREAD_SIGMASK
  ,HBC_ERROR_ATTACH_JVM
  ,HBC_ERROR_GET_HBLC_EXCEPTION
+ ,HBC_ERROR_GET_BRC_EXCEPTION
  ,HBC_ERROR_ROWCOUNT_EST_PARAM
  ,HBC_ERROR_ROWCOUNT_EST_EXCEPTION
  ,HBC_ERROR_REL_HBLC_EXCEPTION
+ ,HBC_ERROR_REL_BRC_EXCEPTION
  ,HBC_ERROR_GET_CACHE_FRAC_EXCEPTION
  ,HBC_ERROR_GET_LATEST_SNP_PARAM
  ,HBC_ERROR_GET_LATEST_SNP_EXCEPTION
@@ -446,6 +445,8 @@ public:
 				    bool useTRex, NABoolean replSync, ExHbaseAccessStats *hbs);
   HBulkLoadClient_JNI* getHBulkLoadClient(NAHeap *heap);
   HBC_RetCode releaseHBulkLoadClient(HBulkLoadClient_JNI* hblc);
+  BackupRestoreClient_JNI* getBackupRestoreClient(NAHeap *heap);
+  HBC_RetCode releaseBackupRestoreClient(BackupRestoreClient_JNI* brc);
   HBC_RetCode releaseHTableClient(HTableClient_JNI* htc);
   HBC_RetCode create(const char* fileName, HBASE_NAMELIST& colFamilies, NABoolean isMVCC);
   HBC_RetCode create(const char* fileName, NAText*  hbaseOptions, 
@@ -454,14 +455,12 @@ public:
   HBC_RetCode registerTruncateOnAbort(const char* fileName, Int64 transID);
   HBC_RetCode drop(const char* fileName, bool async, Int64 transID);
   HBC_RetCode drop(const char* fileName, JNIEnv* jenv, Int64 transID); // thread specific
-  HBC_RetCode dropAll(const char* pattern, bool async);
+  HBC_RetCode dropAll(const char* pattern, bool async, Int64 transID);
   HBC_RetCode copy(const char* srcTblName, const char* tgtTblName,
                    NABoolean force);
   ByteArrayList* listAll(const char* pattern);
   ByteArrayList* getRegionStats(const char* tblName);
-  static HBC_RetCode flushAllTablesStatic();
-  HBC_RetCode flushAllTables();
-  HBC_RetCode exists(const char* fileName);
+  HBC_RetCode exists(const char* fileName, Int64 transID);
   HBC_RetCode grant(const Text& user, const Text& tableName, const TextVec& actionCodes); 
   HBC_RetCode revoke(const Text& user, const Text& tableName, const TextVec& actionCodes);
   HBC_RetCode estimateRowCount(const char* tblName, Int32 partialRowSize,
@@ -504,9 +503,9 @@ public:
       HbaseStr row, Int64 timestamp,bool checkAndPut, bool asyncOperation,
       HTableClient_JNI **outHtc);
   HBC_RetCode insertRows(NAHeap *heap, const char *tableName,
-			 ExHbaseAccessStats *hbs, bool useTRex, NABoolean replSync, Int64 transID, short rowIDLen, HbaseStr rowIDs,
-			 HbaseStr rows, Int64 timestamp, bool autoFlush, bool asyncOperation,
-			 HTableClient_JNI **outHtc);
+      ExHbaseAccessStats *hbs, bool useTRex, NABoolean replSync, Int64 transID, short rowIDLen, HbaseStr rowIDs,
+      HbaseStr rows, Int64 timestamp,  bool asyncOperation,
+      HTableClient_JNI **outHtc);
   HBC_RetCode updateVisibility(NAHeap *heap, const char *tableName,
                          ExHbaseAccessStats *hbs, bool useTRex, Int64 transID, 
                          HbaseStr rowID,
@@ -570,12 +569,13 @@ private:
    ,JM_GET_REGION_STATS
    ,JM_COPY
    ,JM_EXISTS
-   ,JM_FLUSHALL
    ,JM_GRANT
    ,JM_REVOKE
    ,JM_GET_HBLC
+   ,JM_GET_BRC
    ,JM_EST_RC
    ,JM_REL_HBLC
+   ,JM_REL_BRC
    ,JM_GET_CAC_FRC
    ,JM_GET_LATEST_SNP
    ,JM_CLEAN_SNP_TMP_LOC
@@ -627,19 +627,21 @@ typedef enum {
  ,HVC_ERROR_CLOSE_EXCEPTION
  ,HVC_ERROR_EXISTS_PARAM
  ,HVC_ERROR_EXISTS_EXCEPTION
- ,HVC_ERROR_GET_HVT_PARAM
+ ,HVC_ERROR_GET_HVT_HBulkLoadClient_JNIPARAM
  ,HVC_ERROR_GET_HVT_EXCEPTION
  ,HVC_ERROR_GET_REDEFTIME_PARAM
  ,HVC_ERROR_GET_REDEFTIME_EXCEPTION
  ,HVC_ERROR_GET_ALLSCH_EXCEPTION
  ,HVC_ERROR_GET_ALLTBL_PARAM
  ,HVC_ERROR_GET_ALLTBL_EXCEPTION
+ ,HVC_ERROR_GET_HVT_PARAM
  ,HVC_ERROR_HDFS_CREATE_PARAM
  ,HVC_ERROR_HDFS_CREATE_EXCEPTION
  ,HVC_ERROR_HDFS_WRITE_PARAM
  ,HVC_ERROR_HDFS_WRITE_EXCEPTION
  ,HVC_ERROR_HDFS_CLOSE_EXCEPTION
  ,HVC_ERROR_EXECHIVESQL_EXCEPTION
+ ,HVC_ERROR_CREATEHIVEPART_EXCEPTION
  ,HVC_LAST
 } HVC_RetCode;
 
@@ -676,6 +678,9 @@ public:
   HVC_RetCode hdfsWrite(const char* data, Int64 len);
   HVC_RetCode hdfsClose();
   HVC_RetCode executeHiveSQL(const char* hiveSQL);
+  HVC_RetCode createHiveTablePartition(const char *schemaName,
+                                       const char *tableName,
+                                       const char *partitionString);
   // Get the error description.
   virtual char* getErrorText(HVC_RetCode errEnum);
   
@@ -706,8 +711,10 @@ private:
    ,JM_HDFS_WRITE
    ,JM_HDFS_CLOSE
    ,JM_EXEC_HIVE_SQL
+   ,JM_CREATE_HIVE_PART
    ,JM_LAST
   };
+  
   static jclass          javaClass_; 
   static JavaMethodInit* JavaMethods_;
   static bool javaMethodsInitialized_;
@@ -770,6 +777,7 @@ public:
 
   HBLC_RetCode doBulkLoad(const HbaseStr &tblName, const Text& location, const Text& tableName, NABoolean quasiSecure, NABoolean snapshot);
 
+  
   HBLC_RetCode  bulkLoadCleanup(const HbaseStr &tblName, const Text& location);
   // Get the error description.
   virtual char* getErrorText(HBLC_RetCode errEnum);
@@ -797,6 +805,64 @@ private:
 
 };
 
+//===========================================================================
+//===== The HBulkLoadClient_JNI class implements access to the Java
+//===== HBulkLoadClient class.
+//===========================================================================
+
+typedef enum {
+	 BRC_OK     = JOI_OK
+	,BRC_FIRST  = HBLC_LAST
+	,BRC_DONE   = BRC_FIRST
+	,BRC_ERROR_INIT_PARAM
+	,BRC_ERROR_CREATE_SNAPSHOT_EXCEPTION
+	,BRC_ERROR_RESTORE_SNAPSHOT_EXCEPTION
+	,BRC_ERROR_INIT_BRC_EXCEPTION
+	,BRC_LAST
+} BRC_RetCode;
+
+
+class BackupRestoreClient_JNI : public JavaObjectInterface
+{
+public:
+
+	BackupRestoreClient_JNI(NAHeap *heap,jobject jObj = NULL)
+	:  JavaObjectInterface(heap, jObj)
+	{
+		heap_= heap;
+	}
+	// Destructor
+	virtual ~BackupRestoreClient_JNI();
+
+	// Initialize JVM and all the JNI configuration.
+	// Must be called.
+	BRC_RetCode init();
+	BRC_RetCode createSnapshot(const TextVec& tables, const char* backuptag);
+	BRC_RetCode restoreSnapshots(const char* backuptag, NABoolean timestamp = FALSE);
+	NAArray<HbaseStr>* listAllBackups(NAHeap *heap);
+	virtual char* getErrorText(BRC_RetCode errEnum);
+
+
+private:
+	NAString getLastJavaError();
+
+
+	enum JAVA_METHODS {
+		 JM_CTOR = 0
+		,JM_CREATE_SNAPSHOT
+		,JM_RESTORE_SNAPSHOTS
+		,JM_LIST_ALL_BACKUPS
+		,JM_GET_ERROR
+		,JM_LAST
+	};
+	static jclass          javaClass_;
+	static JavaMethodInit* JavaMethods_;
+	static bool javaMethodsInitialized_;
+	// 	this mutex protects both JaveMethods_ and javaClass_ initialization
+	static pthread_mutex_t javaMethodsInitMutex_;
+
+};
+
 jobjectArray convertToByteArrayObjectArray(const LIST(NAString) &vec);
 jobjectArray convertToByteArrayObjectArray(const LIST(HbaseStr) &vec);
 jobjectArray convertToByteArrayObjectArray(const char **array,
@@ -807,6 +873,8 @@ jobjectArray convertToStringObjectArray(const HBASE_NAMELIST& nameList);
 jobjectArray convertToStringObjectArray(const NAText *text, int arrayLen);
 int convertStringObjectArrayToList(NAHeap *heap, jarray j_objArray, LIST(Text *)&list);
 int convertLongObjectArrayToList(NAHeap *heap, jlongArray j_longArray, LIST(Int64)&list);
+int convertByteArrayObjectArrayToNAArray(NAHeap *heap, jarray j_objArray, NAArray<HbaseStr> **retArray);
+void deleteNAArray(CollHeap *heap, NAArray<HbaseStr> *array);
 
 #endif
 

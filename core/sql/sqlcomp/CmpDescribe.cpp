@@ -471,29 +471,6 @@ static size_t indexLastNewline(const NAString & text,
   return newlinePos;
 }
 
-NAString &replaceAll(NAString &source, NAString &searchFor,
-                     NAString &replaceWith)
-{
-  size_t indexOfReplace = NA_NPOS;
-  indexOfReplace = source.index(searchFor);
-  if (indexOfReplace != NA_NPOS)
-    {
-      // Replace all occurences of searchFor with replaceWith. When no
-      // more occurences are found or end of string is reached, index()
-      // will return NA_NPOS.
-      while (indexOfReplace != NA_NPOS)
-        {
-          source.replace(indexOfReplace, searchFor.length(), 
-                         replaceWith);
-          // Find index of next occurence to replace.
-          indexOfReplace = 
-            source.index(searchFor, indexOfReplace + replaceWith.length()); 
-        }
-    }
-
-  return source;
-}
-
 static Int32 displayDefaultValue(const char * defVal, const char * colName,
                                  NAString &displayableDefVal)
 {
@@ -2265,12 +2242,38 @@ short CmpDescribeHiveTable (
   const NAString& tableName =
     dtName.getQualifiedNameObj().getObjectName();
  
+  NABoolean hiveExtTabAttrDefTurnedOff = FALSE;
+  NABoolean isHiveExtTable = FALSE;
   BindWA bindWA(ActiveSchemaDB(), CmpCommon::context(), FALSE/*inDDL*/);
   NATable *naTable = bindWA.getNATable((CorrName&)dtName); 
   if (naTable == NULL || bindWA.errStatus())
     return -1;
   else
     {
+      if (naTable->isHiveTable() && naTable->hasHiveExtTable())
+        isHiveExtTable = TRUE;
+
+      // if showddl and this hive table has an associated external table,
+      // show the ddl of source hive table first.
+      if ((type == 2) &&
+          (naTable->isHiveTable()) &&
+          (naTable->hasHiveExtTable()) &&
+          (CmpCommon::getDefault(HIVE_USE_EXT_TABLE_ATTRS) == DF_ON))
+        {
+          // remove current cache key and turn off ext table attr cqd.
+          // This will return the underlying hive natable.
+          bindWA.getSchemaDB()->getNATableDB()->remove(naTable->getKey());
+          NAString op("OFF");
+          ActiveSchemaDB()->getDefaults().validateAndInsert
+            ("HIVE_USE_EXT_TABLE_ATTRS", op, FALSE);
+
+          hiveExtTabAttrDefTurnedOff = TRUE;
+
+          naTable = bindWA.getNATable((CorrName&)dtName); 
+          if (naTable == NULL || bindWA.errStatus())
+            return -1;
+        }
+
       bindWA.createTableDesc(naTable, (CorrName&)dtName);
       if (bindWA.errStatus())
         return -1;
@@ -2282,6 +2285,16 @@ short CmpDescribeHiveTable (
   if (NOT ((type == 1) || (type == 2)))
     return -1;
 
+  if (hiveExtTabAttrDefTurnedOff)
+    {
+      // remove table key from natable cache. Next call to get natable
+      // will get the external table defn, if one exists
+      bindWA.getSchemaDB()->getNATableDB()->remove(naTable->getKey());
+      NAString op("ON");
+      ActiveSchemaDB()->getDefaults().validateAndInsert
+        ("HIVE_USE_EXT_TABLE_ATTRS", op, FALSE);
+    }      
+   
   char * buf = new (heap) char[15000];
   CMPASSERT(buf);
 
@@ -2318,6 +2331,9 @@ short CmpDescribeHiveTable (
     {
       NAColumn * nac = naTable->getNAColumnArray()[i];
 
+      if(nac->isHivePartColumn())
+          continue;
+
       if (!nac->isHiveVirtualColumn() || describeVirtCols)
         {
           const NAString &colName = nac->getColName();
@@ -2341,9 +2357,71 @@ short CmpDescribeHiveTable (
 
   outputShortLine(space, "  )");
 
+  //show hive table partitions and buckets defination.
+  // this default schema name is what the Hive default schema is called in SeaHive
+   HiveMetaData* md = bindWA.getSchemaDB()->getNATableDB()->getHiveMetaDB();
+   NAString defSchema = ActiveSchemaDB()->getDefaults().getValue(HIVE_DEFAULT_SCHEMA);
+   defSchema.toUpper();
+   struct hive_tbl_desc* htbl;
+   NAString tableNameInt = dtName.getQualifiedNameObj().getObjectName();
+   NAString schemaNameInt = dtName.getQualifiedNameObj().getSchemaName();
+   if (dtName.getQualifiedNameObj().getUnqualifiedSchemaNameAsAnsiString() == defSchema)
+     schemaNameInt = md->getDefaultSchemaName();
+   // Hive stores names in lower case
+   // Right now, just downshift, could check for mixed case delimited
+   // identifiers at a later point, or wait until Hive supports delimited identifiers
+  schemaNameInt.toLower();
+  tableNameInt.toLower();
+  hive_tbl_desc* htd = md->getTableDesc(schemaNameInt, tableNameInt);
+  if( htd && htd->getPartKey() && type == 2)
+  {
+       NAString partStr = "  PARTITIONED BY (";
+       NAString colNameUpper;
+       for(hive_pkey_desc* hpd = htd->getPartKey(); hpd; hpd = hpd->next_)
+       {
+           colNameUpper = hpd->name_;
+           colNameUpper.toUpper();
+           partStr += colNameUpper;
+           partStr += ' ';
+           partStr += hpd->type_;
+           partStr += ",";
+       }
+       partStr[partStr.length()-1] = ')';
+       outputShortLine(space, partStr);
+  }
+  if(htd && htd->getBucketingKeys() && type == 2)
+  {
+       NAString bktStr = "  CLUSTERED BY (";
+       for(hive_bkey_desc* hbd = htd->getBucketingKeys(); hbd; hbd = hbd->next_)
+       {
+           bktStr += hbd->name_;
+           bktStr += ",";
+       }
+       bktStr[bktStr.length()-1] = ')';
+       outputShortLine(space, bktStr);
+
+       hive_skey_desc* sortkeyHeader = htd->getSortKeys();
+       if(sortkeyHeader)
+       {
+           NAString skStr = "  SORTED BY (";
+           for(hive_skey_desc* hsd = sortkeyHeader; hsd; hsd = hsd->next_)
+           {
+               skStr += hsd->name_;
+               skStr += ",";
+           }
+           skStr[skStr.length()-1] = ')';
+           outputShortLine(space, skStr);
+       }
+
+       bktStr = "  INTO ";
+       bktStr += std::to_string((long long)(htd->sd_->buckets_)).c_str();
+       bktStr += " BUCKETS ";
+       outputShortLine(space, bktStr);
+  }
+
   if ((naTable->getClusteringIndex()) &&
+      (isHiveExtTable) &&
       (naTable->isORC()) &&
-      (naTable->hasHiveExtTable()) &&
       (type == 1))
     {
       NAFileSet * naf = naTable->getClusteringIndex();
@@ -2368,7 +2446,7 @@ short CmpDescribeHiveTable (
   else if (hTabStats->isTextFile())
     {
       if (type == 1)
-        outputShortLine(space, "  /* stored as text */");
+        outputShortLine(space, "  /* stored as textfile */");
       else
         outputShortLine(space, "  stored as textfile ");
     }
@@ -2385,8 +2463,7 @@ short CmpDescribeHiveTable (
 
   // if this hive table has an associated external table, show ddl
   // for that external table.
-  if ((naTable->hasHiveExtTable()) &&
-      (type == 2))
+if ((isHiveExtTable) && (type == 2))
     {
       char * dummyBuf;
       ULng32 dummyLen;
@@ -2409,9 +2486,6 @@ short CmpDescribeHiveTable (
                                          TRUE, FALSE, FALSE, TRUE, TRUE,
                                          NULL, FALSE, NULL, NULL, &space);
 
-      //      sprintf(buf, "  FOR %s", dtName.getQualifiedNameAsString().data());
-      //      outputShortLine(space, buf);
-      
       outputShortLine(space, ";");
     }
 
@@ -2840,7 +2914,7 @@ short CmpDescribeSeabaseTable (
 
   // display syscols for invoke if not running regrs
   //
-  NABoolean displaySystemCols = ((!sqlmxRegr) && (type == 1));
+  NABoolean displaySystemCols = (type == 1);
 
   NABoolean isView = (naTable->getViewText() ? TRUE : FALSE);
 
@@ -3052,8 +3126,7 @@ short CmpDescribeSeabaseTable (
     {
       if ((naTable->getClusteringIndex()) &&
           (nonSystemKeyCols > 0) &&
-          (NOT isStoreBy) &&
-          (((type == 1) && (! sqlmxRegr)) || (type != 1)))
+          (NOT isStoreBy))
         {
           numBTpkeys = naf->getIndexKeyColumns().entries();
           
@@ -3214,7 +3287,7 @@ short CmpDescribeSeabaseTable (
 
       NABoolean attributesSet = FALSE;
       char attrs[2000];
-      if (((NOT sqlmxRegr) && ((NOT isAudited) || (isAligned))) ||
+      if ((((NOT isAudited) || (isAligned))) ||
           ((sqlmxRegr) && (type == 3) && ((NOT isAudited) || (isAligned))) ||
           ((NOT naTable->defaultColFam().isNull()) && 
            (naTable->defaultColFam() != SEABASE_DEFAULT_COL_FAMILY)))
@@ -3609,8 +3682,10 @@ short CmpDescribeSequence(
   cn.setSpecialType(ExtendedQualName::SG_TABLE);
 
   // remove NATable for this table so latest values in the seq table could be read.
-  ActiveSchemaDB()->getNATableDB()->removeNATable(cn, 
-    NATableDB::REMOVE_MINE_ONLY, COM_SEQUENCE_GENERATOR_OBJECT);
+  ActiveSchemaDB()->getNATableDB()->removeNATable
+    (cn, 
+     ComQiScope::REMOVE_MINE_ONLY, COM_SEQUENCE_GENERATOR_OBJECT,
+     FALSE, FALSE);
 
   ULng32 savedParserFlags = Get_SqlParser_Flags (0xFFFFFFFF);
   Set_SqlParser_Flags(ALLOW_VOLATILE_SCHEMA_IN_TABLE_NAME);

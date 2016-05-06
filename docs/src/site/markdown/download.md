@@ -26,7 +26,7 @@ The Trafodion end-user environment is installed using the Trafodion Installer, w
 * [log4c++ RPM](http://traf-builds.esgyn.com/downloads/trafodion/publish/release/1.3.0/log4cxx-0.10.0-13.el6.x86_64.rpm)
 * [Trafodion Installer](http://traf-builds.esgyn.com/downloads/trafodion/publish/release/1.3.0/apache-trafodion-installer-1.3.0-incubating-bin.tar.gz)
 * [Trafodion Server](http://traf-builds.esgyn.com/downloads/trafodion/publish/release/1.3.0/apache-trafodion-1.3.0-incubating-bin.tar.gz)
-* [Trafodion Clients](http://traf-builds.esgyn.com/downloads/trafodion/publish/release/1.3.0/apache-trafodion-clients-1.3.0-incubating-bin.tar.gz)
+* [Trafodion Clients](http://traf-builds.esgyn.com/downloads/trafodion/publish/release/1.3.0/apache-trafodion-clients-1.3.0-incubating-bin.tar.gz) (JDBC, odb, ODBC, trafci)
 
 # Install
 
@@ -121,22 +121,8 @@ cd $HOME/trafodion/installer
 ./trafodion_install --accept_license --config_file my_config
 ```
 
-The Trafodion Installer performs all the operations required to install and start Trafodion. Type **`initialize trafodion;`** 
-when the **`trafci`** prompt (**`>>`**) appears.
-
-**Example**
-
-```
-Apache Trafodion Conversational Interface 1.3.0
-Copyright (c) 2015 Apache Software Foundation
->> initialize trafodion;
---- SQL operation complete.
->>
-
-End of MXCI Session
-
-***INFO: Installation completed successfully.
-```
+The Trafodion Installer performs all the operations required to install and start Trafodion. Wait for it to complete before
+continuing to the next step.
 
 ## Verify Installation
 

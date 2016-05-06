@@ -55,6 +55,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.client.transactional.ReplayEngine;
 import org.apache.hadoop.hbase.client.transactional.TransactionManager;
 import org.apache.hadoop.hbase.client.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.CommitUnsuccessfulException;
@@ -105,6 +106,7 @@ public class RMInterface {
     private TransactionalTableClient ttable = null;
     private boolean bSynchronized=false;
     private boolean asyncCalls = false;
+    private boolean recoveryToPitMode = false;
     private ExecutorService threadPool;
     private CompletionService<Integer> compPool;
     private int intThreads = 16;
@@ -154,6 +156,13 @@ public class RMInterface {
 					    + " tableName: " + tableName
 					    + " synchronized: " + pb_synchronized);
         bSynchronized = pb_synchronized;
+
+        String usePIT = System.getenv("TM_USE_PIT_RECOVERY");
+        if( usePIT != null)
+        {
+            recoveryToPitMode = (Integer.parseInt(usePIT) == 1) ? true : false;
+        }
+
         transactionAlgorithm = AlgorithmType.MVCC;
         String envset = System.getenv("TM_USE_SSCC");
         if( envset != null)
@@ -335,7 +344,7 @@ public class RMInterface {
            long startIdVal = -1;
 
            // Set the startid
-           if (transactionAlgorithm == AlgorithmType.SSCC) {
+           if ((recoveryToPitMode)  || (transactionAlgorithm == AlgorithmType.SSCC)) {
               IdTmId startId;
               try {
                  startId = new IdTmId();
@@ -489,6 +498,18 @@ public class RMInterface {
         }
     }   
 
+    static public void replayEngineStart(final long timestamp) throws Exception {
+      if (LOG.isTraceEnabled()) LOG.trace("replayEngineStart ENTRY with timestamp: " + timestamp);
+
+      try {
+          ReplayEngine re = new ReplayEngine(timestamp);
+      } catch (Exception e) {
+          if (LOG.isTraceEnabled()) LOG.trace("Exception caught creating the ReplayEnding : exception: " + e);
+          throw e;
+      }
+      if (LOG.isTraceEnabled()) LOG.trace("replayEngineStart EXIT");
+    }
+
     static public void clearTransactionStates(final long transactionID) {
       if (LOG.isTraceEnabled()) LOG.trace("cts1 Enter txid: " + transactionID);
 
@@ -515,6 +536,17 @@ public class RMInterface {
     // Not used?
     static public synchronized void unregisterTransaction(TransactionState ts) {
         mapTransactionStates.remove(ts.getTransactionId());
+    }
+
+    public synchronized TransactionState getTransactionState(final long transactionID) throws IOException {
+        if (LOG.isTraceEnabled()) LOG.trace("getTransactionState txid: " + transactionID);
+        TransactionState ts = mapTransactionStates.get(transactionID);
+        if (ts == null) {
+            if (LOG.isTraceEnabled()) LOG.trace("TransactionState for txid: " + transactionID + " not found; throwing IOException");
+        	throw new IOException("TransactionState for txid: " + transactionID + " not found" );
+        }
+        if (LOG.isTraceEnabled()) LOG.trace("EXIT getTransactionState");
+        return ts;
     }
 
     public synchronized Result get(final long transactionID, final Get get) throws IOException {
@@ -841,10 +873,7 @@ public class RMInterface {
     {
         return ttable.getConfiguration();
     }
-    public void flushCommits()
-                  throws InterruptedIOException,
-                RetriesExhaustedWithDetailsException,
-                IOException{
+    public void flushCommits() throws IOException {
          ttable.flushCommits();
     }
     public HConnection getConnection()
@@ -872,9 +901,9 @@ public class RMInterface {
     {
         return ttable.getTableName();
     }
-    public ResultScanner getScanner(Scan scan) throws IOException
+    public ResultScanner getScanner(Scan scan, float dopParallelScanner) throws IOException
     {
-        return ttable.getScanner(scan);
+        return ttable.getScanner(scan, dopParallelScanner);
     }
     public Result get(Get g) throws IOException
     {
@@ -897,11 +926,11 @@ public class RMInterface {
     {
         return ttable.checkAndPut(row,family,qualifier,value,put);
     }
-    public void put(Put p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException, IOException
+    public void put(Put p) throws IOException
     {
         ttable.put(p);
     }
-    public void put(List<Put> p) throws  InterruptedIOException,RetriesExhaustedWithDetailsException, IOException
+    public void put(List<Put> p) throws IOException
     {
         ttable.put(p);
     }

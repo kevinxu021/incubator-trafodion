@@ -1139,23 +1139,6 @@ NABoolean FileScanRule::topMatch(RelExpr * relExpr, Context *context)
       // Hive table scan executes in master or ESP
       if (rppForMe->executeInDP2())
         return FALSE;
-
-      // The following two if tests were commented out to support NJs into Hive 
-      // tables.
-      //
-      // The Hive scan can handle only fuzzy and single partition requests for now
-      //if (partReq &&
-      //    ! partReq->isRequirementExactlyOne() &&
-      //    ! partReq->isRequirementFuzzy())
-      //  return FALSE;
-
-      //// A hive scan doesn't have a partitioning key for now (change that later)
-      ////
-      //if (partReq &&
-      //    partReq->partitioningKeyIsSpecified() &&
-      //    ! partReq->isRequirementExactlyOne())
-      //  return FALSE;
-
     }
   else
     {
@@ -2142,7 +2125,10 @@ NABoolean HbaseDeleteRule::topMatch(RelExpr * relExpr, Context *context)
   Delete * del = (Delete *) relExpr;
   if (del->getTableDesc()->getNATable()->isHbaseTable() == FALSE)
     return FALSE;
-  
+
+   if (del->getTableDesc()->getNATable()->hasLobColumn())
+    return FALSE;
+
   // HbaseDelete can only execute above DP2
   if (context->getReqdPhysicalProperty()->executeInDP2())
     return FALSE;
@@ -2818,14 +2804,6 @@ NABoolean NestedJoinRule::topMatch(RelExpr * relExpr,
   if ((rppForMe->getMustMatch() != NULL) AND
       (rppForMe->getMustMatch()->getOperatorType() == REL_FORCE_NESTED_JOIN))
     return TRUE;
-
-  // Nested join into non sorted ORC hive tables is not allowed.
-  if (joinExpr->child(1).getGroupAttr()->allHiveTables() )
-     {
-          if ( !(joinExpr->child(1).getGroupAttr()->allHiveORCTablesSorted()) ) {
-                return FALSE;
-          }
-     }
 
   // Fix genesis case 10-040524-2077 "NE:RG:mxcmp internal error when stream
   // used with rowset in WHERE clause" by commenting out the following code on

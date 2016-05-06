@@ -25,6 +25,8 @@ define([
 	var ERROR_CONTAINER = '#db-objects-error-text',
 		OBJECT_LIST_CONTAINER = '#db-objects-list-container',
 		OBJECT_NAME_CONTAINER = '#db-objects-name',
+		CREATE_LIBRARY_CONTAINER = '#create-library-div',
+		CREATE_LIBRARY_BUTTON = '#create-library-btn',
 		REFRESH_ACTION = '#refreshAction';
 	
 	
@@ -50,6 +52,7 @@ define([
 			$(OBJECT_LIST_CONTAINER).hide();
 			
 			$(REFRESH_ACTION).on('click', this.doRefresh);
+			$(CREATE_LIBRARY_BUTTON).on('click', this.createLibrary);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayObjectList);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
 			_this.processRequest();
@@ -67,12 +70,14 @@ define([
 			}
 			prevRouteArgs = args;
 			$(REFRESH_ACTION).on('click', this.doRefresh);
+			$(CREATE_LIBRARY_BUTTON).on('click', this.createLibrary);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayObjectList);
 			dbHandler.on(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
 			_this.processRequest();
 		},
 		doPause: function(){
 			$(REFRESH_ACTION).off('click', this.doRefresh);
+			$(CREATE_LIBRARY_BUTTON).off('click', this.createLibrary);
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_SUCCESS, this.displayObjectList);
 			dbHandler.off(dbHandler.FETCH_OBJECT_LIST_ERROR, this.showErrorMessage);
 		},
@@ -92,6 +97,9 @@ define([
 			_this.processRequest();
 			$(ERROR_CONTAINER).hide();
 		},
+		createLibrary: function(){
+			window.location.hash = '/tools/createlibrary?schema='+common.ExternalDisplayName(schemaName);
+		},
 		fetchObjects: function(objectType, schemaName){
 			if(!pageStatus[objectType] || pageStatus[objectType] == false){
 				_this.showLoading();
@@ -105,27 +113,27 @@ define([
 			if(routeArgs.type != null && routeArgs.type.length > 0) {
 				switch(routeArgs.type){
 					case 'tables': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Tables', link: ''});
 						break;
 					case 'views': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Views', link: ''});
 						break;
 					case 'indexes': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Indexes', link: ''});
 						break;
 					case 'libraries': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Libraries',  link: ''});
 						break;
 					case 'procedures': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'Procedures', link:  ''});
 						break;
 					case 'udfs': 
-						bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+						bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 						bCrumbsArray.push({name: 'UDFs', link:  ''});
 						break;
 				}
@@ -150,15 +158,20 @@ define([
 					case 'indexes' :
 					case 'libraries' :
 					case 'procedures' :
-						var displayName = common.toProperCase(routeArgs.type) + ' in schema ' + routeArgs.schema;
+						var displayName = common.toProperCase(routeArgs.type) + ' in schema ' + common.ExternalDisplayName(routeArgs.schema);
 						$(OBJECT_NAME_CONTAINER).text(displayName);
 						_this.fetchObjects(routeArgs.type, routeArgs.schema);
 						break;
 					case 'udfs' :
-						var displayName = 'UDFs in schema ' + routeArgs.schema;
+						var displayName = 'UDFs in schema ' + common.ExternalDisplayName(routeArgs.schema);
 						$(OBJECT_NAME_CONTAINER).text(displayName);
 						_this.fetchObjects(routeArgs.type, routeArgs.schema);
 						break;
+				}
+				if(routeArgs.type == 'libraries'){
+					$(CREATE_LIBRARY_CONTAINER).show();
+				}else{
+					$(CREATE_LIBRARY_CONTAINER).hide();
 				}
 			}
 		},
@@ -220,7 +233,7 @@ define([
 			            			 if(schemaName != null)
 			            				 rowcontent += '&schema='+ schemaName;	            				 
 	
-			            			 rowcontent += "\">" + data + "</a>";
+			            			 rowcontent += "\">" + common.ExternalDisplayName(data) + "</a>";
 			            			 return rowcontent;                         
 			            		 }else { 
 			            			 return data;
@@ -353,7 +366,7 @@ define([
 		                 buttons: [
 		                           { extend : 'copy', exportOptions: { columns: ':visible' } },
 		                           { extend : 'csv', exportOptions: { columns: ':visible' } },
-		                           { extend : 'excel', exportOptions: { columns: ':visible' } },
+		                           //{ extend : 'excel', exportOptions: { columns: ':visible' } },
 		                           { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
 		                           { extend : 'print', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text() }
 		                           ],					             

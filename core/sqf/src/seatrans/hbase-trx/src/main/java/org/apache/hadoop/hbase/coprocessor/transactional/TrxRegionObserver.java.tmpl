@@ -24,6 +24,8 @@
 package org.apache.hadoop.hbase.coprocessor.transactional;
 
 import java.io.IOException;
+import java.io.StringWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -36,6 +38,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import com.google.protobuf.CodedInputStream;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
@@ -51,9 +54,18 @@ import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.Tag;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.io.hfile.CacheConfig;
+import org.apache.hadoop.hbase.io.hfile.HFile;
+import org.apache.hadoop.hbase.io.hfile.HFileContext;
+import org.apache.hadoop.hbase.io.hfile.HFileContextBuilder;
+import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.protobuf.ResponseConverter;
+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto;
+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.MutationProto.MutationType;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.transactional.generated.TrxRegionProtos.TransactionMutationMsg;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
@@ -64,6 +76,7 @@ import org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegionSca
 import org.apache.hadoop.hbase.regionserver.transactional.TrxTransactionState;
 import org.apache.hadoop.hbase.regionserver.transactional.TransactionState;
 import org.apache.hadoop.hbase.client.transactional.STRConfig;
+import org.apache.hadoop.hbase.coprocessor.transactional.MutationCapture;
 import org.apache.hadoop.hbase.wal.WAL;
 //import org.apache.hadoop.hbase.regionserver.wal.HLog;
 import org.apache.hadoop.hbase.regionserver.wal.HLogKey;
@@ -86,8 +99,10 @@ import org.apache.hadoop.hbase.client.Mutation;
 import java.util.ListIterator;
 import org.apache.hadoop.hbase.Cell;
 
-#ifdef HDP2.3
+#ifdefined HDP2.3 || CDH5.5
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
+#endif
+#ifdef HDP2.3
 import org.apache.hadoop.hbase.regionserver.Region;
 #endif
 
@@ -104,7 +119,9 @@ public static final String trxkeyindoubtTransactionsCountByTmid = "indoubtTransa
 public static final String trxkeyCheckBlockAllVar = "checkBlockAllVar";
 public static final String trxkeyCheckBlockNonPhase2Var = "checkBlockNonPhase2Var";
 public static final String trxkeyCheckBlockNewTransVar = "checkBlockNewTransVar";
+public static final String trxkeyClosingVar = "checkClosingVariable";
 public static final String trxkeyScanners = "trxScanners";
+public static final String trxkeyMutationCapture = "mutationCapture";
 
 public static final String SPLIT_DELAY_NOFLUSH = "hbase.transaction.split.delay.noflush";
 public static final String SPLIT_DELAY_LIMIT = "hbase.transaction.split.delay.limit";
@@ -141,9 +158,12 @@ private Set<TrxTransactionState> commitPendingTransactions = Collections.synchro
 private AtomicBoolean blockAll = new AtomicBoolean(false);
 private AtomicBoolean blockNonPhase2 = new AtomicBoolean(false);
 private AtomicBoolean blockNewTrans = new AtomicBoolean(false);
+private AtomicBoolean closing = new AtomicBoolean(false);
 private boolean hasClosed = false;
 private boolean hasFlushed = false;
 private boolean m_isTrafodionMetadata = false;
+private boolean configuredPITRecovery = false;
+private boolean configuredPITRecoveryHA = false;
 
 Configuration my_config;
 HRegion my_Region;
@@ -173,9 +193,22 @@ public static String zTrafPath = "/hbase/Trafodion/";
 private static String zNodePath = zTrafPath + "recovery/";
 private static ZooKeeperWatcher zkw1 = null;
 private static Object zkRecoveryCheckLock = new Object();
+private HFileContext context = new HFileContextBuilder().withIncludesTags(false).build();
 
 SplitBalanceHelper sbHelper;
 STRConfig pSTRConfig;
+TrxRegionEndpoint trxepcp = null;
+MutationCapture mutationCapture;
+
+private int PIT_max_txn_mutation_per_KV = 10;
+private int PIT_max_txn_mutation_per_FILE = 100;
+private long PIT_max_size_mutation_per_FILE = 10000000; // 10 MB
+
+public static final int PIT_MUTATION_CREATE = 1;
+public static final int PIT_MUTATION_APPEND = 2;
+public static final int PIT_MUTATION_FLUSH = 3;
+public static final int PIT_MUTATION_CLOSE = 4;
+public static final int PIT_MUTATION_ROLLOVER = 5;
 
 // Region Observer Coprocessor START
 @Override
@@ -215,6 +248,24 @@ public void start(CoprocessorEnvironment e) throws IOException {
         LOG.trace("Property: splitDelayNoFlush = " + this.splitDelayNoFlush);
     }
     
+    this.configuredPITRecovery = re.getConfiguration().getBoolean("hbase.regionserver.region.transactional.pit", false);
+    this.configuredPITRecoveryHA = re.getConfiguration().getBoolean("hbase.regionserver.region.transactional.pit.ha", false);    
+    
+    this.PIT_max_txn_mutation_per_KV = re.getConfiguration().getInt("hbase.regionserver.region.transactional.pit_max_txn_per_kv", 10);
+    this.PIT_max_txn_mutation_per_FILE = re.getConfiguration().getInt("hbase.regionserver.region.transactional.pit_max_txn_per_file", 100);
+    this.PIT_max_size_mutation_per_FILE = re.getConfiguration().getLong("hbase.regionserver.region.transactional.pit_max_size_per_file", 10000000);
+	
+    // PIT test 
+    // this.configuredPITRecovery = true;
+    if (LOG.isTraceEnabled()) LOG.trace("PIT Recovery Observer setting is " + this.configuredPITRecovery +
+		  " PIT Recovery HA setting is " +  this.configuredPITRecoveryHA +
+                  "\nget the reference from Region CoprocessorEnvironment ");
+    
+     if (LOG.isTraceEnabled()) LOG.trace("PIT Recovery Observer mutation rollover attributes are" + 
+		   " Max Txn per KV " + this.PIT_max_txn_mutation_per_KV +
+		   " Max Txn per FILE " + this.PIT_max_txn_mutation_per_FILE +
+     		   " Max Size per FILE " + this.PIT_max_size_mutation_per_FILE );
+        
     if (LOG.isTraceEnabled()) LOG.trace("Trafodion Recovery Region Observer CP: trxRegionObserver load start ");
 
     if (!re.getSharedData().containsKey(trxkey)) {
@@ -283,6 +334,23 @@ public void start(CoprocessorEnvironment e) throws IOException {
        transactionsRefMap.put(lv_regionName+trxkeycommitPendingTransactions,
                               this.commitPendingTransactions);
    }
+   
+   MutationCapture mutationCap = (MutationCapture)transactionsRefMap
+                                               .get(lv_regionName+trxkeyMutationCapture);
+   if(mutationCap != null) {
+       this.mutationCapture = mutationCap;
+       if (LOG.isTraceEnabled()) LOG.trace("PIT MutationCapture has been created in EPCP during Observer start ");
+    }
+    else {
+       this.mutationCapture = new MutationCapture(this.my_config, 
+						  this.my_Region.getFilesystem(),
+						  context,
+						  regionInfo, 
+						  this.PIT_max_txn_mutation_per_KV,
+						  this.PIT_max_txn_mutation_per_FILE,
+						  this.PIT_max_size_mutation_per_FILE);
+       transactionsRefMap.put(lv_regionName+trxkeyMutationCapture, this.mutationCapture);
+    }
 
    AtomicBoolean blockAllCheck = (AtomicBoolean)transactionsRefMap
                                                .get(lv_regionName+trxkeyCheckBlockAllVar);
@@ -292,6 +360,14 @@ public void start(CoprocessorEnvironment e) throws IOException {
     else {
        transactionsRefMap.put(lv_regionName+trxkeyCheckBlockAllVar, this.blockAll);
     }
+   AtomicBoolean closingCheck = (AtomicBoolean)transactionsRefMap
+                                               .get(lv_regionName+trxkeyClosingVar);
+   if(closingCheck != null) {
+       this.closing = closingCheck;
+   }
+   else {
+       transactionsRefMap.put(lv_regionName+trxkeyClosingVar, this.closing);
+   }
    AtomicBoolean blockNonPhase2Check = (AtomicBoolean)transactionsRefMap
                                                .get(lv_regionName+trxkeyCheckBlockNonPhase2Var);
    if(blockNonPhase2Check != null) {
@@ -389,6 +465,7 @@ static ConcurrentHashMap<String, Object> getRefMap() {
 	int op = Bytes.toInt(b,Bytes.SIZEOF_INT+offset);
 	long tid = Bytes.toLong(b,Bytes.SIZEOF_INT+Bytes.SIZEOF_INT+offset);
 	long logSeqId = Bytes.toLong(b,Bytes.SIZEOF_INT+Bytes.SIZEOF_INT+Bytes.SIZEOF_LONG+offset);
+	long tsId = Bytes.toLong(b,Bytes.SIZEOF_INT+Bytes.SIZEOF_INT+Bytes.SIZEOF_LONG+Bytes.SIZEOF_LONG+offset);
 	if ((m_isTrafodionMetadata) || 
 	    (LOG.isTraceEnabled())) 
 	    LOG.info("Trafodion Recovery Region Observer CP:PWR01 Find transactional tag within Edits for "
@@ -397,6 +474,7 @@ static ConcurrentHashMap<String, Object> getRefMap() {
 		     + " op " + op 
 		     + " log seq " + logSeqId 
 		     + " version " + version
+		     + " timestamp " + tsId
 		     );
 
 	//Trafodion Recovery : process each edit according to its nature (prepare, commit, abort)
@@ -481,7 +559,7 @@ static ConcurrentHashMap<String, Object> getRefMap() {
 		LOG.info("TRAF RCOV Region Observer CP:  " 
 			 + regionInfo.getRegionNameAsString() 
 			 + " find in-doubt transaction " + tid + " to commit");
-	    replayCommittedTransaction(tid, editList);
+	    replayCommittedTransaction(tid, editList, tsId);
 	    pendingTransactionsById.remove(tid);
 	    commitCount++;
 	    break;
@@ -494,7 +572,7 @@ static ConcurrentHashMap<String, Object> getRefMap() {
 			 + " region " + regionInfo.getRegionNameAsString());
 	    ArrayList<WALEdit> tempEditList = new ArrayList<WALEdit>();
 	    tempEditList.add(logEdit);
-	    replayCommittedTransaction(tid, tempEditList);  
+	    replayCommittedTransaction(tid, tempEditList, tsId);  
 	    if (pendingTransactionsById.containsKey(tid)) pendingTransactionsById.remove(tid);  
 	    commitCount++;
 	    break;
@@ -517,6 +595,23 @@ static ConcurrentHashMap<String, Object> getRefMap() {
 
     } // end of preWALRestore
 
+@Override
+public void preFlush(ObserverContext<RegionCoprocessorEnvironment> e) {
+
+    // PIT: close mutation file if any
+    //if (configuredPITRecoveryHA) {
+    if (configuredPITRecovery) {
+	  try {
+                 mutationCapture.mutationBufferOp(PIT_MUTATION_CLOSE, null, null);
+          } catch(IOException ioe) {
+              StringWriter sw = new StringWriter();
+              PrintWriter pw = new PrintWriter(sw);
+              ioe.printStackTrace(pw);
+              LOG.error(sw.toString());
+          }
+    }
+
+}
 
 @Override
 public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
@@ -525,7 +620,7 @@ public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
     @SuppressWarnings("rawtypes")
     TrxRegionEndpoint tre = (TrxRegionEndpoint)trxRegionMap.get(regionInfo.getRegionNameAsString()+TrxRegionEndpoint.trxkeyEPCPinstance);
     if(tre == null) {
-        LOG.error("Unable to obtain TrxRegionEndpoint object from shared map for " + regionInfo.getRegionNameAsString());
+        LOG.error("Unable to obtain TrxRegionEndpoint object from shared map for " + regionInfo.getRegionNameAsString() + " in post-open ");
     }
     else {
   	  Path readPath = null;
@@ -545,7 +640,7 @@ public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
     }
   }
 
-   //        Trafodion Recovery : after Open, we should have alreday constructed all the indoubt transactions in
+   //        Trafodion Recovery : after Open, we should have already constructed all the indoubt transactions in
    //        pendingTransactionsById now process it and construct transaction list by TM id. These two data
    //        structures are put in the reference map which is shared with TrxRegionEndpoint coprocessor class per region 
 
@@ -588,6 +683,7 @@ public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
             LOG.error("An ERROR occurred while getting the STR Configuration");
     }
 
+    //build a list of TMs for in-doubt transactions, -2 is used for all peer's transactions
     for (Entry<Long, List<WALEdit>> entry : pendingTransactionsById.entrySet()) {
         synchronized (recoveryCheckLock) {
                       long transactionId = entry.getKey();
@@ -597,7 +693,7 @@ public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
 			  LOG.info("Trafodion Recovery Region Observer CP: Region " + regionInfo.getRegionNameAsString() + " process in-doubt transaction " + transactionId);
 
                       int clusterid = (int) TransactionState.getClusterId(transactionId);
-                      int tmid = (int) TransactionState.getNodeId(transactionId);
+                      int tmid = (int) (transactionId >> 32);
                       int count = 1;
 		      if ((m_isTrafodionMetadata) || 
 			  (LOG.isTraceEnabled())) 
@@ -674,9 +770,9 @@ public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
 } // end of postOpen
 
 
-public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> editList) throws IOException {
+public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> editList, long commitId) throws IOException {
 
-    if ((m_isTrafodionMetadata) || 
+   if ((m_isTrafodionMetadata) || 
 	(LOG.isTraceEnabled())) 
 	LOG.info("Trafodion Recovery Region Observer CP: " 
 		 + regionInfo.getRegionNameAsString() + " replay commit for transaction: " + transactionId);
@@ -685,6 +781,15 @@ public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> ed
    if (LOG.isInfoEnabled()) LOG.info("TRAF RCOV Region Observer CP: " 
 				     + regionInfo.getRegionNameAsString() + " replay commit for transaction: "
                                      + transactionId + " with editList size is " + num);
+   // PIT, for this txn
+   try {
+   int iPut = 0;
+   int iDelete = 0;
+   TransactionMutationMsg.Builder tmBuilder =  TransactionMutationMsg.newBuilder();
+   tmBuilder.setTxId(transactionId);
+   tmBuilder.setStartId(commitId); // temporarily set startId as commitId during replay committed txn in Observer
+   tmBuilder.setCommitId(commitId);
+   
    for ( int i = 0; i < num; i++){
    WALEdit val = editList.get(i);
    // for (KeyValue kv : val.getKeyValues()) {
@@ -704,6 +809,13 @@ public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> ed
 			CellUtil.cloneValue(kv));
 		//TransactionState.updateLatestTimestamp(put.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTime());
 	        my_Region.put(put); // let it generate new edits at this moment
+		// PIT
+	        if (configuredPITRecoveryHA) {
+                  tmBuilder.addPutOrDel(true);
+		  mutationCapture.addPut(tmBuilder, put);
+                  // tmBuilder.addPut(ProtobufUtil.toMutation(MutationType.PUT, new Put(put)));
+	          iPut++;
+	        }
 	    } 
 	    else if (CellUtil.isDelete(kv)) {
 		Delete del = new Delete(CellUtil.cloneRow(kv), kv.getTimestamp());
@@ -717,10 +829,32 @@ public void replayCommittedTransaction(long transactionId, ArrayList<WALEdit> ed
                 //del.setTimestamp(kv.getTimestamp());
 		//TransactionState.updateLatestTimestamp(del.getFamilyCellMap().values(), EnvironmentEdgeManager.currentTime());
                 my_Region.delete(del);
+                // PIT
+	        if (configuredPITRecoveryHA) {
+                   tmBuilder.addPutOrDel(false);
+		   mutationCapture.addDelete(tmBuilder, del);
+                   // tmBuilder.addDelete(ProtobufUtil.toMutation(MutationType.DELETE, new Delete(del)));
+	           iDelete++;
+	        }
 	    }
         } // synchronized of editReplay
    } // for-loop (KeyValues)
    } // for-loop (edits)
+   
+   // PIT for non-ts reinstated txn, here we don't have a ts re-created as configuredConflictReinstate is FALSE
+   //       just directly construct the mutation buffer and append (~ replayCommittedTxn in Observer)
+   if (configuredPITRecoveryHA) {
+       mutationCapture.mutationBufferOp(PIT_MUTATION_APPEND, null, tmBuilder, true); // HA mode
+       LOG.info("Trafodion Recovery Region Observer CP: " 
+		  + regionInfo.getRegionNameAsString() + " replay PIT committed for transaction: "
+		  + transactionId + " for mutation file");
+   } // if    
+   } catch(IOException e) {
+          StringWriter sw = new StringWriter();
+          PrintWriter pw = new PrintWriter(sw);
+          e.printStackTrace(pw);
+          LOG.error(sw.toString());
+   }
 
 } // end of replayCommittedTransaction
 
@@ -730,7 +864,18 @@ public void startRegionAfterRecovery() throws IOException {
          // if we have indoubt transaction, do we need to rewrite back to HLOG, otherwise, if the system crash in the middle of recovery
          // we could lose the memory  and HLOG, but the split-log may already be removed after region open
          // if flush succeeds, then it is not necessary
-
+/*
+    if (configuredPITRecovery) {
+	  try {
+                 mutationCapture.mutationBufferOp(PIT_MUTATION_CLOSE, null, null);
+          } catch(IOException ioe) {
+              StringWriter sw = new StringWriter();
+              PrintWriter pw = new PrintWriter(sw);
+              ioe.printStackTrace(pw);
+              LOG.error(sw.toString());
+          }
+    }
+*/
          // regionState = 2; // region started, Endpoint coprocessor can set region state STARTED if it detects there is no indoubt txn
    if ((m_isTrafodionMetadata) || 
        (LOG.isTraceEnabled())) 
@@ -779,10 +924,12 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
         if(splitDelayNoFlush) {
             if(!this.earlyDrain)
                sbHelper.activeWait(transactionsById, activeDelayLen, splitDelayLimit);
+             closing.set(true);
              sbHelper.pendingWait(commitPendingTransactions, pendingDelayLen);  
         }
         else {
             blockNonPhase2.set(true);
+            closing.set(true);
             sbHelper.pendingAndScannersWait(commitPendingTransactions, scanners, pendingDelayLen);
 
             sbHelper.setSplit();
@@ -798,7 +945,6 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
 #else
     public void	postSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) {
 #endif
-
         if(LOG.isTraceEnabled()) LOG.trace("postSplit -- ENTRY");
 
         if(splitDelayNoFlush)
@@ -816,6 +962,8 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
              // don't need to set NewTrans flag because blockNonPhase2 will catch up
              treL.setBlockAll(true);
              treR.setBlockAll(true);
+             treL.setClosing(true);
+             treR.setClosing(true);
              Thread readThread = new Thread(new TxnReadThread(treL, sbHelper.getPath(), true));
              readThread.start();
              //treL.readTxnInfo(sbHelper.getPath(), true);
@@ -827,6 +975,8 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
              treR.setBlockNonPhase2(false);
              treL.setNewTrans(false);
              treR.setNewTrans(false);
+             treL.setClosing(false);
+             treR.setClosing(false);
              sbHelper.clearSplit();
           } catch (IOException ioe) {
              if(LOG.isErrorEnabled()) LOG.error("Unable to read Transaction Info for transactional split coordination: " + ioe);
@@ -845,7 +995,9 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
             c.getEnvironment().getRegionServerServices().isStopped())
             return;
 
-        if(LOG.isTraceEnabled()) LOG.trace("preClose -- commitPendingTransactions (" + commitPendingTransactions.size() +")");
+	if (commitPendingTransactions.size() > 0) {
+	    LOG.warn("preClose -- commitPendingTransactions (" + commitPendingTransactions.size() +")");
+	}
 
         if (!hasClosed) {
                 blockNonPhase2.set(true);
@@ -864,7 +1016,8 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
 	          LOG.error("Encountered exception when calling pendingAndScannersWait(): " + ioe);
 	        }
 	        blockAll.set(true);
-	        hasClosed = true;
+	        closing.set(true);
+                hasClosed = true;
         }
 
         if (c.getEnvironment().getRegionServerServices().isStopping() ||
@@ -905,6 +1058,7 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
         transactionsRefMap.remove(regionName+trxkeyCheckBlockAllVar);
         transactionsRefMap.remove(regionName+trxkeyCheckBlockNonPhase2Var);
         transactionsRefMap.remove(regionName+trxkeyCheckBlockNewTransVar);
+        transactionsRefMap.remove(regionName+trxkeyClosingVar);
         transactionsRefMap.remove(regionName+trxkeyScanners);
     }
 
@@ -959,7 +1113,7 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
             }
 
             @Override
-#ifdef HDP2.3
+#ifdefined HDP2.3 || CDH5.5
             public boolean next(List<Cell> result, ScannerContext scannerContext) throws IOException {
               if (LOG.isTraceEnabled()) LOG.trace("preCompact: call next with scannerContext limit " + scannerContext);
 #else
@@ -970,7 +1124,7 @@ public void createRecoveryzNode(int node, String encodedName, byte [] data) thro
                 boolean skip=false;
                 ConcurrentHashMap<String, Integer>  verCountByCol = new ConcurrentHashMap<String,Integer>();
                 try {
-#ifdef HDP2.3
+#ifdefined HDP2.3 || CDH5.5
   		    ret = s.next(result,scannerContext);
 #else
                     ret = s.next(result,limit);

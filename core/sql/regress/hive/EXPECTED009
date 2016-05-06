@@ -1,7 +1,7 @@
 >>obey TEST009(set_up);
 >>prepare get_hv_schemas from
 +>select schema_name from "_MD_".objects
-+>where schema_name like '_HV_%' and object_type = 'PS';
++>where schema_name in ('_HV_HIVE_', '_HV_SCH_T009_') and object_type = 'PS';
 
 --- SQL command prepared.
 >>
@@ -19,14 +19,6 @@
 >>sh regrhive.ksh -v -f $REGRTSTDIR/TEST009_a.hive.sql &> $REGRRUNDIR/LOG009_a.hive.log;
 >>sh regrhbase.ksh $REGRTSTDIR/TEST009_create_hbase_objects.hbase &> $REGRRUNDIR/LOG009_create_hbase_tables.log ;
 >>
->>-- make sure external schemas exist in Trafodion
->>execute get_hv_schemas;
-
---- 0 row(s) selected.
->>execute get_hb_schemas;
-
---- 0 row(s) selected.
->>
 >>obey TEST009(test_hive1);
 >>-- create external tables for precreated tables
 >>create external table customer for hive.hive.customer;
@@ -39,7 +31,7 @@
 
 --- SQL operation complete.
 >>
->>-- should create an schema called "_HV_HIVE_"
+>>-- should see a schema called "_HV_HIVE_"
 >>execute get_hv_schemas;
 
 SCHEMA_NAME
@@ -306,16 +298,6 @@ A            B            C
 *** ERROR[1118] Creating object TRAFODION."_HV_HIVE_".NEWTABLE3 is not allowed in a reserved system schema.
 
 --- SQL operation failed with errors.
->>get tables;
-
-Tables in Schema TRAFODION._HV_HIVE_
-====================================
-
-CUSTOMER
-ITEM
-PROMOTION
-
---- SQL operation complete.
 >>
 >>-- test creates with a different default schema
 >>create schema hive_t009;
@@ -346,9 +328,6 @@ PROMOTION
 *** ERROR[1180] Trying to create an external HIVE table with a different schema or table name (CUSTOMER1) than the source table (CUSTOMER).  The external schema and table name must be the same as the source.
 
 --- SQL operation failed with errors.
->>create table t009t1 like "_HV_SCH_T009_".t009t1;
-
---- SQL operation complete.
 >>create table t009t2 as select * from "_HV_SCH_T009_".t009t2;
 
 *** ERROR[4258] Trying to access external table TRAFODION."_HV_SCH_T009_".T009T2 through its external name format. Please use the native table name.
@@ -357,11 +336,15 @@ PROMOTION
 
 >>
 >>-- this create succeeds
+>>create table t009t1 like "_HV_SCH_T009_".t009t1;
+
+--- SQL operation complete.
+>>drop table t009t1;
+
+--- SQL operation complete.
 >>create table t009t1 as select * from hive.sch_t009.t009t1;
 
-*** ERROR[1390] Object TRAFODION.HIVE_T009.T009T1 already exists in Trafodion.
-
---- 0 row(s) inserted.
+--- 10 row(s) inserted.
 >>
 >>get tables;
 
@@ -370,6 +353,7 @@ Tables in Schema TRAFODION.HIVE_T009
 
 SB_HISTOGRAMS
 SB_HISTOGRAM_INTERVALS
+SB_PERSISTENT_SAMPLES
 T009T1
 
 --- SQL operation complete.
@@ -468,7 +452,7 @@ Tables in Schema TRAFODION._HV_SCH_T009_
 T009T2
 
 --- SQL operation complete.
->>select * from table(natablecacheentries('user','local')) order by 2,3,4;
+>>select row_id, catalog_name, schema_name, object_name from table(natablecacheentries('user','local')) order by 2,3,4;
 
 ROW_ID      CATALOG_NAME                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      SCHEMA_NAME                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       OBJECT_NAME
 ----------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -483,6 +467,33 @@ ROW_ID      CATALOG_NAME                                                        
 >>create external table t009t1 for hive.sch_t009.t009t1;
 
 --- SQL operation complete.
+>>invoke hive.sch_t009.t009t1;
+
+-- Definition of hive table T009T1
+-- Definition current  Sun Apr 24 22:23:44 2016
+
+  (
+    A                                INT
+  , B                                INT
+  , C                                INT
+  , D                                INT
+  )
+  /* stored as textfile */
+
+--- SQL operation complete.
+>>showddl trafodion."_HV_SCH_T009_".t009t1;
+
+CREATE EXTERNAL TABLE T009T1
+  (
+    A                                INT DEFAULT NULL
+  , B                                INT DEFAULT NULL
+  , C                                INT DEFAULT NULL
+  , D                                INT DEFAULT NULL
+  )
+  FOR HIVE.SCH_T009.T009T1
+;
+
+--- SQL operation complete.
 >>
 >>-- select should now succeed
 >>select count(*) from hive.sch_t009.t009t1;
@@ -493,7 +504,23 @@ ROW_ID      CATALOG_NAME                                                        
                   10
 
 --- 1 row(s) selected.
->>
+>>select * from hive.sch_t009.t009t1;
+
+A            B            C            D          
+-----------  -----------  -----------  -----------
+
+         10           15           10         1973
+          9           26           10         1966
+          8           26           12         1938
+          7           24            4         1985
+          6            4           12         1925
+          5            8            5         1956
+          4            7            6         1983
+          3           18            9         1979
+          2            9            4         1966
+          1            9           12         1936
+
+--- 10 row(s) selected.
 >>obey TEST009(test_hbase);
 >>-- create external tables for precreated tables
 >>create external table "baseball" for hbase."_ROW_"."baseball";
@@ -518,7 +545,7 @@ _HB__CELL__
 >>invoke trafodion."_HB__ROW__"."baseball";
 
 -- Definition of Trafodion external table TRAFODION."_HB__ROW__"."baseball"
--- Definition current  Sat Feb 20 08:37:38 2016
+-- Definition current  Sun Apr 24 22:23:48 2016
 
   (
     ROW_ID                           VARCHAR(100) CHARACTER SET ISO88591
@@ -531,7 +558,7 @@ _HB__CELL__
 >>invoke trafodion."_HB__CELL__"."baseball";
 
 -- Definition of Trafodion external table TRAFODION."_HB__CELL__"."baseball"
--- Definition current  Sat Feb 20 08:37:39 2016
+-- Definition current  Sun Apr 24 22:23:49 2016
 
   (
     ROW_ID                           VARCHAR(100) CHARACTER SET ISO88591

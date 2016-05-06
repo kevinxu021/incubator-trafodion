@@ -182,6 +182,7 @@ using namespace std;
 
 #include "exp_expr.h"
 #include "exp_clause_derived.h"
+#include "exp_datetime.h"
 #include "Analyzer.h"
 
 
@@ -479,6 +480,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_AUTOMATIC			// MV
 %token <tokval> TOK_AVERAGE_STREAM_WAIT         /* Tandem extension non-reserved word */
 %token <tokval> TOK_AVG
+%token <tokval> TOK_BACKUP
+%token <tokval> TOK_BACKUPS
 %token <tokval> TOK_BEFORE
 
 %token <tokval> TOK_BEGIN
@@ -592,7 +595,6 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_DATE_TRUNC
 %token <tokval> TOK_DATEDIFF
 %token <tokval> TOK_DATEFORMAT          /* Tandem extension */
-%token <tokval> TOK_DATEFMT_INTN        /* Tandem extension */
 %token <tokval> TOK_DATETIME            /* Tandem extension non-reserved word */
 %token <tokval> TOK_DAY
 %token <tokval> TOK_DAYNAME
@@ -824,6 +826,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_LSDECIMAL
 %token <tokval> TOK_LTRIM               /*  ODBC extension  */
 %token <tokval> TOK_MAINTAIN
+%token <tokval> TOK_MANAGEMENT
 %token <tokval> TOK_MANUAL				// MV
 %token <tokval> TOK_MASTER
 %token <tokval> TOK_MATCH
@@ -907,6 +910,8 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_ONLY
 %token <tokval> TOK_OPEN
 %token <tokval> TOK_OR
+%token <tokval> TOK_ORC_MAX_NV
+%token <tokval> TOK_ORC_SUM_NV
 %token <tokval> TOK_ORDER
 %token <tokval> TOK_ORDERED
 %token <tokval> TOK_OS_USERID
@@ -1121,6 +1126,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_TO_CHAR
 %token <tokval> TOK_TO_DATE
 %token <tokval> TOK_TO_NUMBER
+%token <tokval> TOK_TO_TIME
 %token <tokval> TOK_TO_TIMESTAMP
 %token <tokval> TOK_TOKENSTR
 %token <tokval> TOK_TRAILING
@@ -1290,6 +1296,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_HASH2               /* Tandem extension */
 %token <tokval> TOK_HASHPARTFUNC        /* Tandem extension */
 %token <tokval> TOK_HASH2PARTFUNC       /* Tandem extension */
+%token <tokval> TOK_HIVEPARTFUNC        /* Tandem extension */
 %token <tokval> TOK_HEADING             /* Tandem extension */
 %token <tokval> TOK_HEADINGS            /* Tandem extension */
 %token <tokval> TOK_ICOMPRESS           /* Tandem extension */
@@ -1404,7 +1411,6 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %token <tokval> TOK_SOFTWARE
 %token <tokval> TOK_REINITIALIZE        /* Tandem extension non-reserved word */
 %token <tokval> TOK_SEPARATE            /* Tandem extension */
-%token <tokval> TOK_BACKUP
 
 // QSTUFF
 %token <tokval> TOK_STREAM              /* Tandem ext: table streams pub/sub */
@@ -2020,7 +2026,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <item>                    insert_obj_to_lob_function
 %type <item>                    update_obj_to_lob_function
 %type <item>                    select_lob_to_obj_function
-%type <tokval>    		date_format
+%type <stringval>    		date_format
 %type <tokval>    		trim_spec
 %type <na_type>   		proc_arg_data_type
 %type <na_type>   		data_type
@@ -2506,6 +2512,7 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <pStmtDDL>  		alter_table_alter_column_default_value 
 %type <pStmtDDL>  		alter_table_alter_column_datatype
 %type <pStmtDDL>  		alter_table_alter_column_set_sg_option
+%type <pStmtDDL>  		alter_table_alter_column_rename
 %type <pStmtDDL>                alter_table_hdfs_cache
 %type <boolean>   		alter_column_type //++ MV
 %type <pStmtDDL>  		alter_table_set_constraint_clause
@@ -2566,7 +2573,6 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <pElemDDL>  		column_attributes
 %type <pElemDDL>  		column_attribute
 %type <tokval>    		constraints_keyword
-%type <pElemDDL>  		optional_col_def_default_clause
 %type <pElemDDL>  		col_def_default_clause
 %type <pElemDDL>  		col_def_default_clause_argument
 %type <pElemDDL>                alter_col_default_clause_arg
@@ -2815,12 +2821,17 @@ static void enableMakeQuotedStringISO88591Mechanism()
 %type <relx>                    exe_util_get_statistics
 %type <relx>                    exe_util_get_uid
 %type <relx>                    exe_util_get_qid
+%type <relx>                    exe_util_backup_restore
+%type <relx>                    exe_util_get_lob_info
 %type <relx>                    exe_util_populate_in_memory_statistics
 %type <relx>                    exe_util_lob_extract
 %type <relx>                    unload_statement
 %type <relx>                    load_statement
 %type <boolean>                 load_sample_option
 %type <relx>                    exe_util_init_hbase
+%type <relx>                    backup_statement
+%type <relx>                    restore_statement
+%type <relx>                    unlock_trafodion     
 %type <hBaseBulkLoadOptionsList> optional_hbbload_options
 %type <hBaseBulkLoadOptionsList> hbbload_option_list
 %type <hBaseBulkLoadOption>      hbbload_option
@@ -3237,7 +3248,7 @@ literal :       numeric_literal
                       $$ = new (PARSERHEAP()) ConstValue
                         (*$1, getStringCharSet(&$1));
                       SqlParser_CurrentParser->collectItem4HQC($$);	
-		      $$ = new (PARSERHEAP()) Format($$, *$6, TRUE);
+                      $$ = new (PARSERHEAP()) DateFormat($$, *$6, DateFormat::FORMAT_TO_DATE);
 		    }
 		  else
 		    {
@@ -3245,7 +3256,7 @@ literal :       numeric_literal
 		      if (! $$) YYERROR;
                       SqlParser_CurrentParser->collectItem4HQC($$);
 		      restoreInferCharsetState();
-		      $$ = new (PARSERHEAP()) Format($$, *$6, FALSE);
+                      $$ = new (PARSERHEAP()) DateFormat($$, *$6, DateFormat::FORMAT_TO_CHAR);
 		    }
 
                 }
@@ -6046,6 +6057,16 @@ TOK_TABLE '(' TOK_INTERNALSP '(' character_string_literal ')' ')'
     $$ = new (PARSERHEAP()) 
       ExeUtilRegionStats(*$7, FALSE, TRUE, FALSE, NULL, PARSERHEAP());
   }
+| TOK_TABLE '(' TOK_LOB stats_or_statistics '(' ')' ')'
+  {
+    $$ = new (PARSERHEAP()) 
+      ExeUtilLobInfo(CorrName(""), TRUE,  NULL, PARSERHEAP());
+  }
+| TOK_TABLE '(' TOK_LOB stats_or_statistics '(' table_name ')' ')'
+  {
+    $$ = new (PARSERHEAP()) 
+      ExeUtilLobInfo(*$6, TRUE,  NULL, PARSERHEAP());
+  }
 | TOK_TABLE '(' TOK_REGION stats_or_statistics '(' TOK_USING rel_subquery ')' ')'
   {
     $$ = new (PARSERHEAP()) 
@@ -7340,6 +7361,12 @@ set_function_type :   TOK_AVG 		{ $$ = ITM_AVG; }
                     | TOK_COUNT 	{ $$ = ITM_COUNT; }
                     | TOK_VARIANCE 	{ $$ = ITM_VARIANCE; }
                     | TOK_STDDEV 	{ $$ = ITM_STDDEV; }
+                      // max of ColumnStatistics getNumberOfValues 
+                      // across all stripes of an ORC file
+                    | TOK_ORC_MAX_NV  { $$ = ITM_ORC_MAX_NV; }
+                      // sum of ColumnStatistics getNumberOfValues 
+                      // across all stripes of an ORC file
+                    | TOK_ORC_SUM_NV  { $$ = ITM_ORC_SUM_NV; }
 
 pivot_options : empty
                        {
@@ -8093,7 +8120,7 @@ primary :     '(' value_expression ')'
 	      | dml_column_reference TOK_LPAREN_BEFORE_DATE_COMMA_AND_FORMAT TOK_DATE ',' TOK_FORMAT character_string_literal ')'
                 {
                   // DEFAULT_CHARSET has no effect on character_string_literal in this context
-		  $$ = new (PARSERHEAP()) Format($1, *$6, FALSE);
+                  $$ = new (PARSERHEAP()) DateFormat($1, *$6, DateFormat::FORMAT_TO_CHAR);
 		}
 
               | hostvar_expression
@@ -8641,23 +8668,11 @@ datetime_misc_function : TOK_CONVERTTIMESTAMP '(' value_expression ')'
 				}
      | TOK_DATEFORMAT '(' value_expression ',' date_format  ')'
                                 {
-                                  if ( (SqlParser_DEFAULT_CHARSET == CharInfo::ISO88591) ||
-                                       (CmpCommon::getDefault(ALLOW_IMPLICIT_CHAR_CASTING) == DF_ON) )
-                                  {
-                                    $$ = new (PARSERHEAP())
-                                      DateFormat($3, NULL, $5);
-                                  }
-                                  else
-                                  {
-                                      $$ = new (PARSERHEAP()) ZZZBinderFunction( ITM_DATEFMT,
-                                           $3, new (PARSERHEAP()) ConstValue($5) );
-                                  }
+                                  $$ = new (PARSERHEAP()) 
+                                    DateFormat($3, *$5, 
+                                               DateFormat::FORMAT_TO_CHAR,
+                                               TRUE);
                                 }
-     | TOK_DATEFMT_INTN '(' value_expression ',' date_format  ')'
-				{
-				  $$ = new (PARSERHEAP())
-				    DateFormat($3, NULL, $5);
-				}
 				    
      | TOK_DAYOFWEEK '(' value_expression ')'
 				{
@@ -8764,29 +8779,24 @@ datetime_misc_function : TOK_CONVERTTIMESTAMP '(' value_expression ')'
                                 }
     | TOK_TO_CHAR '(' value_expression ',' character_string_literal ')'
                                {
-				 CheckModeSpecial3;
-
 				 $$ = new (PARSERHEAP()) 
-				   Format($3, *$5, FALSE, Format::FORMAT_TO_CHAR);
+                                   DateFormat($3, *$5, DateFormat::FORMAT_TO_CHAR);
 			       }
     | TOK_TO_CHAR '(' value_expression ')'
                                {
-				 CheckModeSpecial4;
-                                 $$ = $3;
+                                 $$ = new (PARSERHEAP()) DateFormat
+                                   ($3, "YYYY-MM-DD", DateFormat::FORMAT_TO_CHAR);
+
 			       }
     | TOK_TO_DATE '(' value_expression ',' character_string_literal ')'
                                {
-				 CheckModeSpecial3;
-
-				 $$ = new (PARSERHEAP()) 
-				   Format($3, *$5, TRUE, Format::FORMAT_TO_DATE);
+                                 $$ = new (PARSERHEAP()) 
+                                   DateFormat($3, *$5, DateFormat::FORMAT_TO_DATE);
 			       }
    | TOK_TO_DATE '(' value_expression  ')'
                                {
-				 CheckModeSpecial4;
-
 				 $$ = new (PARSERHEAP()) 
-				   Format($3, "YYYY-MM-DD", TRUE, Format::FORMAT_TO_DATE);
+				   DateFormat($3, "YYYY-MM-DD", DateFormat::FORMAT_TO_DATE);
 			       }
     | TOK_TO_NUMBER '(' value_expression ')'
                                {
@@ -8794,6 +8804,11 @@ datetime_misc_function : TOK_CONVERTTIMESTAMP '(' value_expression ')'
 
 				 $$ = new (PARSERHEAP()) 
 				   ZZZBinderFunction(ITM_TO_NUMBER, $3);
+			       }
+    | TOK_TO_TIME '(' value_expression ',' character_string_literal ')'
+                               {
+                                 $$ = new (PARSERHEAP()) 
+                                   DateFormat($3, *$5, DateFormat::FORMAT_TO_DATE);
 			       }
     | TOK_TO_TIMESTAMP '(' value_expression ')'
                                {
@@ -9693,6 +9708,17 @@ misc_function :
                                                  Cast($5, new (PARSERHEAP())
                                                       SQLInt(FALSE, FALSE)));
                                 }
+
+     | TOK_HIVEPARTFUNC '(' value_expression_list TOK_FOR value_expression ')'
+                                {
+                                  $$ = new (PARSERHEAP())
+                                    Modulus(new (PARSERHEAP())
+                                                 HiveHash($3),
+                                                 new (PARSERHEAP())
+                                                 Cast($5, new (PARSERHEAP())
+                                                      SQLInt(FALSE, FALSE)));
+                                }
+
      | TOK_RRPARTFUNC '(' value_expression TOK_FOR value_expression ')'
                                 {
                              /*   $$ = new (PARSERHEAP())
@@ -10519,10 +10545,19 @@ trim_spec : TOK_LEADING     {  $$ = (Int32) Trim::LEADING;  }
 
 
 
-/* type uint */
-date_format : TOK_DEFAULT   {  $$ = (Int32) DateFormat::DEFAULT;  }
-	| TOK_EUROPEAN      {  $$ = (Int32) DateFormat::EUROPEAN; }
-	| TOK_USA           {  $$ = (Int32) DateFormat::USA;      }
+/* type stringval */
+date_format : TOK_DEFAULT   
+    {  
+      $$ = new (PARSERHEAP()) NAString(ExpDatetime::getDatetimeFormatStr(ExpDatetime::DATETIME_FORMAT_DEFAULT));
+    }
+	| TOK_EUROPEAN      
+    {  
+      $$ = new (PARSERHEAP()) NAString(ExpDatetime::getDatetimeFormatStr(ExpDatetime::DATETIME_FORMAT_EUROPEAN));
+    }
+	| TOK_USA           
+    {  
+      $$ = new (PARSERHEAP()) NAString(ExpDatetime::getDatetimeFormatStr(ExpDatetime::DATETIME_FORMAT_USA));
+    }
 
 
 /* type item */
@@ -13581,8 +13616,18 @@ query_specification : exe_util_get_qid
 				  RelRoot *root = new (PARSERHEAP())
 				    RelRoot($1, REL_ROOT);
                                 }
+                                
+query_specification : exe_util_backup_restore
+                                {
+          RelRoot *root = new (PARSERHEAP())
+            RelRoot($1, REL_ROOT);
+                                }
 
-
+query_specification : exe_util_get_lob_info
+                                {
+				  RelRoot *root = new (PARSERHEAP())
+				    RelRoot($1, REL_ROOT);
+                                }
 /* type relx */
 query_specification : select_token '[' firstn_sorted NUMERIC_LITERAL_EXACT_NO_SCALE ']' set_quantifier query_spec_body
 	{
@@ -14760,7 +14805,19 @@ interactive_query_expression:
                                 {
 				  $$ = finalize($1);
 				}
-              | exe_util_get_region_access_stats
+			  | backup_statement
+			                  {
+				  $$ = finalize($1);
+				}
+				| restore_statement
+                        {
+          $$ = finalize($1);
+        }
+        | unlock_trafodion
+        {
+          $$ = finalize($1);
+        }
+           | exe_util_get_region_access_stats
                                 {
 				  $$ = finalize($1);
 				}
@@ -15839,6 +15896,12 @@ exe_util_get_qid : TOK_GET TOK_QID TOK_FOR TOK_STATEMENT IDENTIFIER
 	       }
 
 /* type relx */
+exe_util_backup_restore : TOK_GET TOK_TRAFODION TOK_BACKUPS
+               {
+                 $$ = new(PARSERHEAP()) ExeUtilBackupRestore(PARSERHEAP());
+         }
+         
+/* type relx */
 exe_util_populate_in_memory_statistics : TOK_GENERATE TOK_STATISTICS TOK_FOR TOK_TABLE table_name TOK_LIKE table_name optional_from_schema
                {
 		 YYERROR;
@@ -16336,6 +16399,57 @@ exe_util_init_hbase : TOK_INITIALIZE TOK_TRAFODION
 
                }
 
+             | TOK_INITIALIZE TOK_TRAFODION ',' TOK_CREATE TOK_LIBRARY TOK_MANAGEMENT
+               {
+		 CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+		 NAString * stmt = getSqlStmtStr ( stmtCharSet  // out - CharInfo::CharSet &
+					         , PARSERHEAP() 
+	                                         );
+
+		 DDLExpr * de = new(PARSERHEAP()) DDLExpr(NULL,
+                                                          (char*)stmt->data(),
+                                                           stmtCharSet);
+
+                 de->setCreateLibmgr(TRUE);
+
+                 $$ = de;
+
+               }
+
+             | TOK_INITIALIZE TOK_TRAFODION ',' TOK_DROP TOK_LIBRARY TOK_MANAGEMENT
+               {
+                 CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+                 NAString * stmt = getSqlStmtStr ( stmtCharSet  // out - CharInfo::CharSet &
+                                                 , PARSERHEAP()
+                                                 );
+
+                 DDLExpr * de = new(PARSERHEAP()) DDLExpr(NULL,
+                                                          (char*)stmt->data(),
+                                                          stmtCharSet);
+
+                 de->setDropLibmgr(TRUE);
+
+                 $$ = de;
+
+               }
+
+             | TOK_INITIALIZE TOK_TRAFODION ',' TOK_UPGRADE TOK_LIBRARY TOK_MANAGEMENT
+               {
+                 CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+                 NAString * stmt = getSqlStmtStr ( stmtCharSet  // out - CharInfo::CharSet &
+                                                 , PARSERHEAP()
+                                                 );
+
+                 DDLExpr * de = new(PARSERHEAP()) DDLExpr(NULL,
+                                                          (char*)stmt->data(),
+                                                          stmtCharSet);
+
+                 de->setUpgradeLibmgr(TRUE);
+
+                 $$ = de;
+
+               }
+
             | TOK_INITIALIZE TOK_TRAFODION ',' TOK_CREATE TOK_REPOSITORY
                {
 		 CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
@@ -16452,6 +16566,77 @@ exe_util_init_hbase : TOK_INITIALIZE TOK_TRAFODION
 	       }
 
 /* type relx */
+backup_statement : TOK_BACKUP TOK_TRAFODION QUOTED_STRING
+		{
+		 CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+		 NAString * stmt = getSqlStmtStr ( stmtCharSet, PARSERHEAP());
+
+		 DDLExpr * de = new(PARSERHEAP()) DDLExpr(FALSE, FALSE, FALSE, FALSE,
+                                                          FALSE, FALSE,
+							  FALSE, FALSE, FALSE,
+							  (char*)stmt->data(),
+							  stmtCharSet,
+							  PARSERHEAP());
+		de->setBackup(TRUE);
+		de->setBackupTag((char*)$3->data());
+		
+		$$ = de;
+       }
+
+restore_statement : TOK_RESTORE TOK_TRAFODION QUOTED_STRING
+    {
+     CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+     NAString * stmt = getSqlStmtStr ( stmtCharSet, PARSERHEAP());
+
+     DDLExpr * de = new(PARSERHEAP()) DDLExpr(FALSE, FALSE, FALSE, FALSE,
+                                                          FALSE, FALSE,
+                FALSE, FALSE, FALSE,
+                (char*)stmt->data(),
+                stmtCharSet,
+                PARSERHEAP());
+    de->setRestore(TRUE);
+    de->setBackupTag((char*)$3->data());
+    
+    $$ = de;
+       }
+       
+       | TOK_RESTORE TOK_TRAFODION TOK_TO QUOTED_STRING
+     {
+       CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+       NAString * stmt = getSqlStmtStr ( stmtCharSet, PARSERHEAP());
+  
+       DDLExpr * de = new(PARSERHEAP()) DDLExpr(FALSE, FALSE, FALSE, FALSE,
+                                                            FALSE, FALSE,
+                  FALSE, FALSE, FALSE,
+                  (char*)stmt->data(),
+                  stmtCharSet,
+                  PARSERHEAP());
+      de->setRestore(TRUE);
+      de->setBackupTag((char*)$4->data());
+      de->setBackupTagTimeStamp(TRUE);
+      
+      $$ = de;
+       }
+
+/* type relx */
+unlock_trafodion : TOK_UNLOCK TOK_TRAFODION
+     {
+      CharInfo::CharSet stmtCharSet = CharInfo::UnknownCharSet;
+      NAString * stmt = getSqlStmtStr ( stmtCharSet, PARSERHEAP());
+
+      DDLExpr * de = new(PARSERHEAP()) DDLExpr(FALSE, FALSE, FALSE, FALSE,
+                                                          FALSE, FALSE,
+                FALSE, FALSE, FALSE,
+                (char*)stmt->data(),
+                stmtCharSet,
+                PARSERHEAP());
+      de->setUnlockTraf(TRUE);
+      
+     $$ = de;
+    }
+         
+                
+/* type relx */
 exe_util_get_region_access_stats : TOK_GET TOK_REGION stats_or_statistics TOK_FOR TOK_TABLE table_name
                {
                  $$ = new (PARSERHEAP()) 
@@ -16498,6 +16683,12 @@ stats_or_statistics : TOK_STATS
                         $$ = TRUE;
                       }
  
+exe_util_get_lob_info : TOK_GET TOK_LOB stats_or_statistics TOK_FOR TOK_TABLE table_name
+               {
+                 $$ = new (PARSERHEAP()) 
+                   ExeUtilLobInfo(*$6, FALSE,NULL,  PARSERHEAP());
+	       } 
+     
 /*
  * The purpose of dummy_token_lookahead is to force the lexer to look
  * one token ahead.  This may be necessary in cases where the parser
@@ -25160,8 +25351,7 @@ reset_in_column_defn :
                   }
 
 /* type pElemDDL */
-column_definition : qualified_name data_type optional_col_def_default_clause
-                                optional_column_attributes
+column_definition : qualified_name data_type optional_column_attributes
                                 {
                                   NAType * type = $2;
 
@@ -25225,8 +25415,7 @@ column_definition : qualified_name data_type optional_col_def_default_clause
                                          colFam /* column family */,
                                          colNam /*column_name*/,
                                          type /*data_type*/,
-                                         $3 /*optional_col_def_default_clause*/,
-                                         $4 /*optional_column_attributes*/);
+                                         $3 /*optional_column_attributes*/);
                                   delete $1 /*column_name*/;
                                 }
 
@@ -25260,7 +25449,6 @@ column_definition : qualified_name
 				    ElemDDLColDef(
                                          colFam /* column family */,
                                          colNam /*column_name*/,
-                                          NULL,
                                          NULL,
                                          NULL);
                                   delete $1 /*column_name*/;
@@ -25268,14 +25456,6 @@ column_definition : qualified_name
 
 /* type stringval */
 column_name : identifier
-
-/* type pElemDDL */
-optional_col_def_default_clause : empty
-                                {
-                                  $$ = NULL;
-                                }
-
-                      | col_def_default_clause
 
 /* type pElemDDL */
 col_def_default_clause : TOK_DEFAULT enableCharsetInferenceInColDefaultVal col_def_default_clause_argument
@@ -25394,6 +25574,7 @@ column_attribute : column_constraint_definition
                     | optional_lobattrs
                     | heading
                     | serialized
+                    | col_def_default_clause
 
 /* type pElemDDL */
 column_constraint_definition :  constraint_name_definition
@@ -29021,6 +29202,8 @@ before_trigger_prefix: create_trigger_keywords ddl_qualified_name
              TOK_BEFORE iud_event optional_update_column_list TOK_ON
              ddl_qualified_name referencing_clause before_action_orientation
              {
+               *SqlParser_Diags << DgSqlCode(-3131);
+               YYERROR;
 
 		InsideTriggerDefinition = TRUE;
 
@@ -29095,6 +29278,9 @@ after_trigger_prefix: create_trigger_keywords ddl_qualified_name
              TOK_AFTER iud_event optional_update_column_list TOK_ON
              ddl_qualified_name referencing_clause after_action_orientation
              {
+               *SqlParser_Diags << DgSqlCode(-3131);
+               YYERROR;
+
 		InsideTriggerDefinition = TRUE;
 
 	     //  if (NonISO88591LiteralEncountered) {
@@ -29375,6 +29561,9 @@ mv_definition: create_mv_keywords ddl_qualified_name
                 optional_in_memory_clause
                 as_token query_expression
     {
+      *SqlParser_Diags << DgSqlCode(-3131);
+      YYERROR;
+
       RelRoot *top = finalize($11);
       ForUpdateSpec spec(FALSE);
       spec.finalizeUpdatability(top);
@@ -29504,6 +29693,9 @@ create_mv_keywords: TOK_CREATE optional_ghost mv_token
 // type pStmtDDL 
 create_mvrgroup_statement : TOK_CREATE TOK_MVGROUP ddl_qualified_name
 {
+  *SqlParser_Diags << DgSqlCode(-3131);
+  YYERROR;
+
   $$ = new (PARSERHEAP())StmtDDLCreateMvRGroup(*$3);
   delete $3;
 }
@@ -30919,10 +31111,13 @@ alter_view_statement : TOK_ALTER TOK_VIEW ddl_qualified_name
 // type pStmtDDL
 alter_mv_statement : TOK_ALTER optional_ghost mv_token alter_mv_body
 					 {
-						 $4->castToStmtDDLAlterMV()->synthesize();
-						 $$ = $4 /*alter_mv_body*/;
-                                                 if ($2) /*optional_ghost*/
-                                                   $$->setIsGhostObject(TRUE);
+                                           *SqlParser_Diags << DgSqlCode(-3131);
+                                           YYERROR;
+                                           
+                                           $4->castToStmtDDLAlterMV()->synthesize();
+                                           $$ = $4 /*alter_mv_body*/;
+                                           if ($2) /*optional_ghost*/
+                                             $$->setIsGhostObject(TRUE);
 					 }
 
 
@@ -31511,9 +31706,11 @@ alter_table_action : add_table_constraint_definition
 		      | alter_table_alter_column_datatype
 			{
       				$$ = $1;
-
 			}
-			
+		      | alter_table_alter_column_rename
+			{
+      				$$ = $1;
+			}
 		      | alter_table_alter_column_default_value 
 			{
       				$$ = $1;
@@ -31608,6 +31805,18 @@ alter_table_alter_column_default_value : TOK_ALTER TOK_COLUMN column_name TOK_DE
 						 $6 /*alter_col_default_clause_arg*/);
                 		       delete $3;
 			       	       restoreInferCharsetState();
+				}
+
+// type pStmtDDL
+alter_table_alter_column_rename : TOK_ALTER TOK_COLUMN column_name TOK_RENAME TOK_TO column_name
+				{
+				  $$ = new (PARSERHEAP())
+                                    StmtDDLAlterTableAlterColumnRename(
+                                         *$3,  // column name
+                                         *$6); // renamed column name
+                                  delete $3;
+                                  delete $6;
+                                  restoreInferCharsetState();
 				}
 				
 // type pStmtDDL
@@ -32156,6 +32365,9 @@ drop_table_start_tokens : TOK_DROP TOK_TABLE
 // MV - RG
 drop_mvrgroup_statement : TOK_DROP TOK_MVGROUP ddl_qualified_name
 {
+  *SqlParser_Diags << DgSqlCode(-3131);
+  YYERROR;
+
   $$ = new (PARSERHEAP())StmtDDLDropMvRGroup(*$3);
   delete $3;
 }
@@ -32164,6 +32376,9 @@ drop_mvrgroup_statement : TOK_DROP TOK_MVGROUP ddl_qualified_name
 drop_trigger_statement : TOK_DROP TOK_TRIGGER ddl_qualified_name 
                          optional_cleanup optional_validate optional_logfile
                 {
+                  *SqlParser_Diags << DgSqlCode(-3131);
+                  YYERROR;
+
                   /* If VALIDATE, or LOG option specified, */
                   /* ALLOW_SPECIALTABLETYPE must also be specified  */
                   if (($5 || $6) &&
@@ -32192,6 +32407,9 @@ drop_trigger_statement : TOK_DROP TOK_TRIGGER ddl_qualified_name
 drop_mv_statement : TOK_DROP optional_ghost mv_token ddl_qualified_name optional_cleanup
                     optional_drop_behavior optional_validate optional_logfile
                 {
+                  *SqlParser_Diags << DgSqlCode(-3131);
+                  YYERROR;
+
                   /* If VALIDATE, or LOG option specified, */
                   /* ALLOW_SPECIALTABLETYPE must also be specified  */
                   if (($7 || $8) &&
@@ -32857,19 +33075,24 @@ options : /* empty */
 		     else
 		       flag = flag | 0x00000010;
 		     break;
+		     case 'r' :  if (flag & 0x00000020)
+		       YYERROR;
+		     else
+		       flag = flag | 0x00000020;
+		     break;
 		     default  :  YYERROR;
 		     }
 		   i++;
-		 }
+		 } // while
+
 	       // if only 'n' option is specified(no regenerate pcode),
 	       // then display everything.
 	       if (flag == 0x10)
 		 {
 		   flag |= 0x0E;
 		 }
-#pragma nowarn(1506)   // warning elimination 
+
 	       $$ = flag;
-#pragma warn(1506)   // warning elimination 
 	     }
 cpu_identifier : SYSTEM_CPU_IDENTIFIER
                 {
@@ -33536,6 +33759,7 @@ nonreserved_word :      TOK_ABORT
                       | TOK_SEQUENCES
                       | TOK_SINCE
 //		      | TOK_MAINTAIN
+                      | TOK_MANAGEMENT
 		      | TOK_MANUAL
 		      | TOK_MIXED
 		      | TOK_MVS  // MV
@@ -33598,7 +33822,6 @@ nonreserved_func_word:  TOK_ABS
                       | TOK_D_RANK 
                       | TOK_DATABASE
                       | TOK_DATEFORMAT
-                      | TOK_DATEFMT_INTN
                       | TOK_DAYNAME
                       | TOK_DAYOFMONTH
                       | TOK_DAYOFWEEK
@@ -33615,6 +33838,7 @@ nonreserved_func_word:  TOK_ABS
                       | TOK_FN
                       | TOK_GREATEST
                       | TOK_HASHPARTFUNC
+                      | TOK_HIVEPARTFUNC
                       | TOK_HASH2PARTFUNC
                       | TOK_HBASE_AUTHS
                       | TOK_HBASE_VISIBILITY
@@ -33696,6 +33920,7 @@ nonreserved_func_word:  TOK_ABS
                       | TOK_TO_CHAR
                       | TOK_TO_DATE
                       | TOK_TO_NUMBER
+                      | TOK_TO_TIME
                       | TOK_TO_TIMESTAMP
                       | TOK_TRUNC
                       | TOK_TRUNCATE

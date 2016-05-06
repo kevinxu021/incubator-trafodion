@@ -27,33 +27,40 @@
 
 
 export TRAF_CONFIG="/etc/trafodion/trafodion_config"
-export DB_ADMIN_USER="DB__ADMINUSER"
+export DB_ADMIN_NAME="admin"
 export DB_ADMIN_PASSWORD="traf123"
 
 function getDBAdminUser {
 
 #Hadoop user name
 sudo chmod 777 $TRAF_CONFIG  
-echo -n "Enter DB Admin username, default is [$DB_ADMIN_USER]: "
-read answer
-
-if [ -z $answer ]; then 
-   echo "export DB_ADMIN_USER=\"$DB_ADMIN_USER\"" >> $TRAF_CONFIG
-else
-    
-   echo "export DB_ADMIN_USER=\"$answer\"" >> $TRAF_CONFIG
-fi
 
 #==============================================
-#Hadoop Password
-sudo chmod 777 $TRAF_CONFIG
-echo -n "Enter DB Admin password, default is [$DB_ADMIN_PASSWORD]: "
-read answer
+#LDAP uid/cn assigned to DB__ADMIN
+if [[ "$LDAP_SECURITY" == "Y" ]]; then
+  echo -n "Enter LDAP user uid or cn to be assigned DB Admin privileges, default is [$DB_ADMIN_NAME]: "
+  read answer
+  
+  if [ -z $answer ]; then
+     echo "export DB_ADMIN_NAME=\"$DB_ADMIN_NAME\"" >> $TRAF_CONFIG
+  else
+     echo "export DB_ADMIN_NAME=\"$answer\"" >> $TRAF_CONFIG
+  fi
 
-if [ -z $answer ]; then
-   echo "export DB_ADMIN_PASSWORD=\"$DB_ADMIN_PASSWORD\"" >> $TRAF_CONFIG
+  #==============================================
+  #Hadoop Password
+  sudo chmod 777 $TRAF_CONFIG
+  echo -n "Enter DB Admin password, default is [$DB_ADMIN_PASSWORD]: "
+  read answer
+
+  if [ -z $answer ]; then
+     echo "export DB_ADMIN_PASSWORD=\"$DB_ADMIN_PASSWORD\"" >> $TRAF_CONFIG
+  else
+     echo "export DB_ADMIN_PASSWORD=\"$answer\"" >> $TRAF_CONFIG
+  fi
 else
-   echo "export DB_ADMIN_PASSWORD=\"$answer\"" >> $TRAF_CONFIG
+  echo "export DB_ADMIN_NAME=\"$DB_ADMIN_NAME\"" >> $TRAF_CONFIG
+  echo "export DB_ADMIN_PASSWORD=\"$DB_ADMIN_PASSWORD\"" >> $TRAF_CONFIG
 fi
 
 }

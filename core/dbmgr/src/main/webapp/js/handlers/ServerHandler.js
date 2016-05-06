@@ -39,6 +39,8 @@ define(['handlers/EventDispatcher', 'common'],
 				this.WRKBNCH_EXECUTE_ERROR = 'WRKBNCH_EXECUTE_ERROR';
 				this.WRKBNCH_EXPLAIN_SUCCESS = 'WRKBNCH_EXPLAIN_SUCCESS';
 				this.WRKBNCH_EXPLAIN_ERROR = 'WRKBNCH_EXPLAIN_ERROR';
+				this.WORKLOAD_EXPLAIN_SUCCESS = 'WORKLOAD_EXPLAIN_SUCCESS';
+				this.WORKLOAD_EXPLAIN_ERROR = 'WORKLOAD_EXPLAIN_ERROR';
 								
 				this.sessionTimeout = function() {
 					window.location.hash = '/stimeout';
@@ -50,6 +52,7 @@ define(['handlers/EventDispatcher', 'common'],
 						xhr.abort();
 					}
 					xhrs["fetchDcsServers"] = $.ajax({
+						cache: false,
 						url: 'resources/server/dcs/servers',
 						type:'GET',
 						dataType:"json",
@@ -73,6 +76,7 @@ define(['handlers/EventDispatcher', 'common'],
 						xhr.abort();
 					}
 					xhrs["fetchDcsSummary"] = $.ajax({
+						cache: false,
 						url: 'resources/server/dcs/summary',
 						type:'GET',
 						dataType:"json",
@@ -96,6 +100,7 @@ define(['handlers/EventDispatcher', 'common'],
 						xhr.abort();
 					}
 					xhrs["getPStack"] = $.ajax({
+						cache: false,
 						url: 'resources/server/pstack/'+processID,
 						type:'GET',
 						dataType:"json",
@@ -127,6 +132,7 @@ define(['handlers/EventDispatcher', 'common'],
 						xhr.abort();
 					}
 					xhrs["fetchServices"] = $.ajax({
+						cache: false,
 						url: 'resources/server/services',
 						type:'GET',
 						dataType:"json",
@@ -151,6 +157,7 @@ define(['handlers/EventDispatcher', 'common'],
 					}
 					
 					xhrs["fetchNodes"] = $.ajax({
+						cache: false,
 						url: 'resources/server/nodes',
 						type:'GET',
 						dataType:"json",
@@ -174,6 +181,7 @@ define(['handlers/EventDispatcher', 'common'],
 						xhr.abort();
 					}
 					xhrs["server_config"] = $.ajax({
+						cache: false,
 						url: 'resources/server/config',
 						type:'GET',
 						dataType:"json",
@@ -187,7 +195,7 @@ define(['handlers/EventDispatcher', 'common'],
 					});
 				}; 
 				
-				this.explainQuery = function(param){
+				this.explainQuery = function(param, requestor){
 					var xhr = xhrs["explain_query"];
 					if(xhr && xhr.readyState !=4){
 						xhr.abort();
@@ -203,9 +211,11 @@ define(['handlers/EventDispatcher', 'common'],
 							403 : _this.sessionTimeout
 						},
 						success:  function(data){
+							data.requestor = requestor;
 							dispatcher.fire(_this.WRKBNCH_EXPLAIN_SUCCESS, data);
 						},
 		        	    error:function(jqXHR, res, error){
+		        	    	jqXHR.requestor = requestor;
 		        	    	dispatcher.fire(_this.WRKBNCH_EXPLAIN_ERROR, jqXHR, res, error);
 		        	    }
 		        	});

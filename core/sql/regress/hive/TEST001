@@ -77,3 +77,10 @@ cqd DETAILED_STATISTICS 'ALL';
 select count(C_CUSTOMER_SK) from hive.customer$$ORC$$;
 select count(*) from table(statistics(NULL,NULL));
 cqd DETAILED_STATISTICS 'RESET';
+
+create schema if not exists trafodion.hivesch;
+cqd hive_views 'ON';
+create or replace view trafodion.hivesch.view_customer$$ORC$$ as
+  select * from hive.hive.customer$$ORC$$;
+invoke trafodion.hivesch.view_customer$$ORC$$;
+

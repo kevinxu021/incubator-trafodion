@@ -139,9 +139,11 @@ public class OrcFileReader
             if (operLen > 0) {
                 oper = new byte[operLen];
                 bb.get(oper, 0, operLen);
-
-            if (logger.isDebugEnabled()) logger.debug("operLen = " + operLen + " oper " + Bytes.toString(oper));
+            } else {
+                oper = new byte[0];
             }
+            if (logger.isDebugEnabled()) 
+               logger.debug("operLen = " + operLen + " oper " + Bytes.toString(oper));
 
             if (type == EQUALS) {
 		if (logger.isDebugEnabled()) logger.debug("colNameLen = " + colNameLen + " colName = " + Bytes.toString(colName));
@@ -164,6 +166,7 @@ public class OrcFileReader
                 builder.end();
                 break;
             case EQUALS:
+//System.out.println("=: " + Bytes.toString(oper));
                 builder.equals(Bytes.toString(colName), Bytes.toString(oper));
                 break;
             case LESSTHAN:
@@ -247,7 +250,7 @@ public class OrcFileReader
 	if (logger.isTraceEnabled()) logger.trace("open() got MD types, file name: " + pv_file_name);
 
 	int lv_num_cols_in_table = m_types.size();
-	m_include_cols = new boolean[lv_num_cols_in_table];
+	m_include_cols = new boolean[lv_num_cols_in_table+1];
 
 	boolean lv_include_col = false;
 	m_col_count = pv_num_cols_to_project;
@@ -752,6 +755,7 @@ public class OrcFileReader
     }
 
     // Dumps the contents of the file as ByteBuffer.
+    // For testing only
     public void readFile_ByteBuffer() throws Exception 
     {
 
@@ -763,7 +767,7 @@ public class OrcFileReader
 
 	seeknSync(0);
 	while (m_rr.hasNext()) {
-	    byte[] lv_row_ba = new byte[4096];
+	    byte[] lv_row_ba = new byte[32768];
 	    lv_row_buffer = ByteBuffer.wrap(lv_row_ba);
 	    lv_row = (OrcStruct) m_rr.next(lv_row);
 	    for (int i = 0; i < m_fields.size(); i++) {
@@ -783,6 +787,7 @@ public class OrcFileReader
     }
 
     // returns the next row as a byte array
+    // For testing only
     public byte[] fetchNextRow() throws Exception 
     {
 
@@ -793,7 +798,7 @@ public class OrcFileReader
 	}
 
 	OrcStruct lv_row = (OrcStruct) m_rr.next(null);
-	byte[] lv_row_ba = new byte[4096];
+	byte[] lv_row_ba = new byte[32768];
 
 	int lv_filled_bytes = fillNextRow(lv_row_ba,
 					  0,
@@ -805,6 +810,7 @@ public class OrcFileReader
     }
 
     // returns the next row as a byte array from the Vectorized buffer
+    // For testing only
     public byte[] fetchNextRowFromVector() throws Exception 
     {
 
@@ -816,7 +822,7 @@ public class OrcFileReader
 	    return null;
 	}
 
-	byte[] lv_row_ba = new byte[4096];
+	byte[] lv_row_ba = new byte[32768];
 
 	int lv_filled_bytes = fillNextRowFromVector(lv_row_ba,
 						    0);

@@ -47,10 +47,13 @@ ComTdbHdfsScan::ComTdbHdfsScan(
                                Queue * hdfsFileRangeBeginList,
                                Queue * hdfsFileRangeNumList,
                                Queue * hdfsColInfoList,
+                               ComCompressionInfo * compressionInfos,
+                               Int16 numCompressionInfos,
                                char recordDelimiter,
                                char columnDelimiter,
                                Int64 hdfsBufSize,
                                UInt32 rangeTailIOSize,
+                               Int32 numPartCols,
                                Int64 hdfsSqlMaxRecLen,
                                Int64 outputRowLength,
                                Int64 asciiRowLen,
@@ -99,10 +102,13 @@ ComTdbHdfsScan::ComTdbHdfsScan(
   hdfsFileRangeBeginList_(hdfsFileRangeBeginList),
   hdfsFileRangeNumList_(hdfsFileRangeNumList),
   hdfsColInfoList_(hdfsColInfoList),
+  compressionInfos_(compressionInfos),
+  numCompressionInfos_(numCompressionInfos),
   recordDelimiter_(recordDelimiter),
   columnDelimiter_(columnDelimiter),
   hdfsBufSize_(hdfsBufSize),
   rangeTailIOSize_(rangeTailIOSize),
+  numPartCols_(numPartCols),
   hdfsSqlMaxRecLen_(hdfsSqlMaxRecLen),
   outputRowLength_(outputRowLength),
   asciiRowLen_(asciiRowLen),
@@ -168,6 +174,7 @@ Long ComTdbHdfsScan::pack(void * space)
       hdfsColInfoList_.pack(space);
     }
 
+  compressionInfos_.packArray(space, numCompressionInfos_);
   errCountTable_.pack(space);
   loggingLocation_.pack(space);
   errCountRowId_.pack(space);
@@ -211,6 +218,8 @@ Lng32 ComTdbHdfsScan::unpack(void * base, void * reallocator)
         }
     }
 
+  if (compressionInfos_.unpackArray(base, numCompressionInfos_, reallocator))
+    return -1;
   if (hdfsFileRangeBeginList_.unpack(base, reallocator)) return -1;
   if (hdfsFileRangeNumList_.unpack(base, reallocator)) return -1;
 
@@ -273,7 +282,8 @@ void ComTdbHdfsScan::displayContentsBase(Space * space,ULng32 flag)
       space->allocateAndCopyToAlignedSpace(buf, str_len(buf), sizeof(short));
 
       Queue *hdfsFileInfoList = hdfsFileInfoList_;
-      if (hdfsFileInfoList)
+      if ((hdfsFileInfoList) &&
+          (flag & 0x00000020))
         {
           UInt32 dataElems = hdfsFileInfoList->numEntries();
           str_sprintf(buf, "\nNumber of ranges to scan: %d",
@@ -392,12 +402,13 @@ void ComTdbHdfsScan::displayContentsBase(Space * space,ULng32 flag)
 	      // filename is fully qualified addr and looks like this:
 	      // hdfs://....com/hive/warehouse/so_dtl_f_test/000030_0
 	      // To make it little easier to read, if it starts with "hdfs://", then pick
-	      // the last 2 parts, or maybe 3 parts at some point.
+	      // the last 2 parts, or maybe 3 parts at some point, plus one for every
+              // partition column, make sure we include the partition directories.
 	      Lng32 i = 0;
 	      if (str_cmp(hdfo->fileName(), "hdfs://", strlen("hdfs://")) == 0)
 		{
 		  i = strlen(hdfo->fileName()) - 1;
-		  Lng32 numParts = 2;
+		  Lng32 numParts = numPartCols_ + 2;
 		  NABoolean done = FALSE;
 		  while (NOT done)
 		    {
@@ -539,6 +550,7 @@ ComTdbOrcScan::ComTdbOrcScan(
                                char columnDelimiter,
                                Int64 hdfsBufSize,
                                UInt32 rangeTailIOSize,
+                               Int32 numPartCols,
                                Queue * tdbListOfOrcPPI,
                                Int64 hdfsSqlMaxRecLen,
                                Int64 outputRowLength,
@@ -579,8 +591,11 @@ ComTdbOrcScan::ComTdbOrcScan(
                    hdfsFileRangeBeginList,
                    hdfsFileRangeNumList,
                    hdfsColInfoList,
+                   NULL, 0,
                    recordDelimiter, columnDelimiter, hdfsBufSize, 
-                   rangeTailIOSize, hdfsSqlMaxRecLen,
+                   rangeTailIOSize,
+                   numPartCols,
+                   hdfsSqlMaxRecLen,
                    outputRowLength, asciiRowLen, moveColsRowLen,
                    partColsRowLength,
                    virtColsRowLength,
@@ -767,7 +782,8 @@ ComTdbOrcFastAggr::ComTdbOrcFastAggr(
                                      queue_index down,
                                      queue_index up,
                                      Int32  numBuffers,
-                                     UInt32  bufferSize
+                                     UInt32  bufferSize,
+                                     Int32 numPartCols
                                      )
   : ComTdbOrcScan( 
                    tableName,
@@ -782,7 +798,7 @@ ComTdbOrcFastAggr::ComTdbOrcFastAggr(
                    hdfsFileRangeNumList,
                    listOfAggrColInfo,
                    NULL,
-                   0, 0, 0, 0, NULL, 0,
+                   0, 0, 0, 0, numPartCols, NULL, 0,
                    projRowLen, 
                    0, 0, 0, 0, 0,
                    returnedTuppIndex,

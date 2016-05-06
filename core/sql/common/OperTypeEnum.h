@@ -346,6 +346,9 @@ enum OperatorTypeEnum {
   
                         ITM_PIVOT_GROUP = 2077,
 
+                        ITM_ORC_MAX_NV = 2078,
+                        ITM_ORC_SUM_NV = 2079,
+
                         // custom functions
                         ITM_USER_DEF_FUNCTION = 2100,
                         ITM_BETWEEN = 2101,
@@ -865,6 +868,7 @@ enum OperatorTypeEnum {
                         DDL_ALTER_TABLE_TOGGLE_ONLINE,
                         DDL_ALTER_TABLE_NAMESPACE,
                         DDL_ALTER_TABLE_ALTER_COLUMN_DATATYPE,
+                        DDL_ALTER_TABLE_ALTER_COLUMN_RENAME,
                         DDL_ALTER_TABLE_ALTER_COLUMN_DEFAULT_VALUE,
                         DDL_ALTER_TABLE_ALTER_COLUMN_SET_SG_OPTION,
                         DDL_ALTER_TABLE_ALTER_HBASE_OPTIONS,

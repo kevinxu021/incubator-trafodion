@@ -142,10 +142,9 @@ void print_transid_str(int32 pv_clusterid, int32 pv_node, int32 pv_seqnum) {
 
 long now()
 {  
-   struct timezone lv_tz =  {0, NULL};
    timeval lv_now;
 
-   int lv_success = gettimeofday(&lv_now, &lv_tz);
+   int lv_success = gettimeofday(&lv_now, NULL);
    if (lv_success != 0)
    {
       printf("\n** gettimeofday returned error %d.", lv_success);
@@ -502,7 +501,6 @@ void process_tmstats_node(bool pv_reset, int32 pv_nid, bool json)
 
 void process_tmstats(bool pv_reset, int32 pv_node, bool json)
 {
-    int lv_error = 0;
     int lv_dtm_count = 0;
     bool del = false;
 
@@ -513,7 +511,7 @@ void process_tmstats(bool pv_reset, int32 pv_node, bool json)
         process_tmstats_node(pv_reset, pv_node, json);
     else
     {
-        lv_error = msg_mon_get_node_info        ( &lv_dtm_count,
+        msg_mon_get_node_info        ( &lv_dtm_count,
                                                   MAX_NODES,
                                                   NULL);
         
@@ -597,14 +595,13 @@ void process_statusalltransactions_node(int32 pv_node)
 
 void process_statusalltransactions(int32 pv_node)
 {
-  int lv_error = 0;
   int lv_dtm_count = 0;
 
   if(pv_node !=-1)
      cout << "Info specific node: " << pv_node << "\n";
   else
   {
-     lv_error = msg_mon_get_node_info(&lv_dtm_count,
+     msg_mon_get_node_info(&lv_dtm_count,
                                       MAX_NODES,
                                       NULL);
 
@@ -663,14 +660,13 @@ void process_list_node(int32 pv_node)
 
 void process_list(int32 pv_node)
 {
-    int lv_error = 0;
     int lv_dtm_count = 0;
 
     if (pv_node != -1)
         process_list_node(pv_node);
     else
     {
-        lv_error = msg_mon_get_node_info (&lv_dtm_count,
+        msg_mon_get_node_info (&lv_dtm_count,
                                           MAX_NODES,
                                           NULL);
 
@@ -1497,7 +1493,22 @@ int main(int argc, char *argv[])
         get_cmd(lp_inputstr, lp_nextcmd);
 
         // Process commands:
-        if (!strcmp(lp_nextcmd, "l") || !strcmp(lp_nextcmd, "list"))
+        /*if (!strcmp(lp_nextcmd, "replay"))
+	{
+	  short lv_error = DTM_REPLAYENGINE(12345);
+	  cout<<"DTM_REPLAYENGINE returned error "<<lv_error<<endl; 
+	}
+	else*/ if (!strcmp(lp_nextcmd, "lock"))
+	{
+	  short lv_error = DTM_LOCKTM();
+	  cout<<"LOCKTM returned error "<<lv_error<<endl; 
+	}
+	else if (!strcmp(lp_nextcmd, "unlock"))
+	{
+	   short lv_error = DTM_UNLOCKTM();
+	   cout<<"UNLOCKTM returned error "<<lv_error<<endl;
+	}
+        else if (!strcmp(lp_nextcmd, "l") || !strcmp(lp_nextcmd, "list"))
         {
             get_cmd(lp_inputstr, lp_nextcmd);
             if (lp_nextcmd[0] == '\0')
@@ -1531,7 +1542,13 @@ int main(int argc, char *argv[])
                cout << "Missing qualifier [rm]"<<endl; 
 
         }
-
+        else if (!strcmp(lp_nextcmd, "replay"))
+        {
+          get_cmd(lp_inputstr, lp_nextcmd);
+          long ts = atol(lp_nextcmd);
+          short lv_error = DTM_REPLAYENGINE(ts);
+          cout<<"DTM_REPLAYENGINE returned error "<<lv_error<<endl;
+        }
         else if (!strcmp(lp_nextcmd, "b") || !strcmp(lp_nextcmd, "begin"))
         {
             int lv_tag = 0;
@@ -1698,7 +1715,7 @@ int main(int argc, char *argv[])
                 lv_param1 = atoi(lp_nextcmd);
             }
             if (lv_param1 == 0)
-                lv_resume_error= RESUMETRANSACTION(NULL);
+                lv_resume_error= RESUMETRANSACTION(0);
             else
                 lv_resume_error= RESUMETRANSACTION(lv_param1);
                 cout << "RESUMETRANSACTION(" << lv_param1 << ") returned error " << lv_resume_error << endl;

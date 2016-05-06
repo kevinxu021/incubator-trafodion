@@ -73,6 +73,8 @@ define([
 	COLUMNS_BTN = '#columns-btn',
 	REGIONS_BTN = '#regions-btn',
 	USAGES_BTN = '#usages-btn',
+	UPDATE_LIBRARY_CONTAINER = '#update-library-div',
+	UPDATE_LIBRARY_BUTTON = '#update-library-btn',
 	STATISTICS_BTN = '#statistics-btn',
 	REFRESH_ACTION = '#refreshAction';
 
@@ -127,6 +129,8 @@ define([
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 
 			$(REFRESH_ACTION).on('click', this.doRefresh);
+			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
+
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.on(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
@@ -153,6 +157,7 @@ define([
 			$(COLUMNS_CONTAINER).hide();
 
 			$(REFRESH_ACTION).on('click', this.doRefresh);
+			$(UPDATE_LIBRARY_BUTTON).on('click', this.updateLibrary);
 			$('a[data-toggle="pill"]').on('shown.bs.tab', this.selectFeature);
 			dbHandler.on(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.on(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
@@ -189,6 +194,8 @@ define([
 		},
 		doPause: function(){
 			$(REFRESH_ACTION).off('click', this.doRefresh);
+			$(UPDATE_LIBRARY_BUTTON).off('click', this.updateLibrary);
+
 			dbHandler.off(dbHandler.FETCH_DDL_SUCCESS, this.displayDDL);
 			dbHandler.off(dbHandler.FETCH_DDL_ERROR, this.fetchDDLError);
 			dbHandler.off(dbHandler.FETCH_COLUMNS_SUCCESS, this.displayColumns);
@@ -250,19 +257,26 @@ define([
 				}
 			}
 			pageStatus = {};
-
+			$(ATTRIBUTES_CONTAINER).empty();
+			$(ATTRIBUTES_ERROR_CONTAINER).text("");
 			$(COLUMNS_CONTAINER).empty();
+			$(COLUMNS_ERROR_CONTAINER).text("");
 			$(REGIONS_CONTAINER).empty();
+			$(REGIONS_ERROR_CONTAINER).text("");
 			$(STATISTICS_CONTAINER).empty();
+			$(STATISTICS_ERROR_CONTAINER).text("");
 			$(PRIVILEGES_CONTAINER).empty();
-			$(STATISTICS_CONTAINER).empty();
+			$(PRIVILEGES_ERROR_CONTAINER).text("");
+			$(USAGES_CONTAINER).empty();
+			$(USAGES_ERROR_CONTAINER).text("");
 			$(INDEXES_CONTAINER).empty();
-
+			$(INDEXES_ERROR_CONTAINER).text("");
+			
+			pageStatus.ddlFetched == false
 			if(ddlTextEditor){
 				ddlTextEditor.setValue("");
-				setTimeout(function() {
-					ddlTextEditor.refresh();
-				},1);
+				ddlTextEditor.clearHistory("");
+				ddlTextEditor.refresh();
 			}			
 		},
 
@@ -282,34 +296,30 @@ define([
 		},
 
 		getUsageSchemaName: function(){
-
-			var usageSchemaName = null;
-			if(objectAttributes != null){
-				$.each(objectAttributes, function(k, v){
-					for (var property in v) {
-						if(property == 'UsageSchemaName'){
-							usageSchemaName = v[property];
-							return;
-						}
-					}
-				});
-			}
-			return usageSchemaName;		
+			_this.getObjectAttribute('UsageSchemaName');
 		},
 
 		getObjectID: function(){
-			var objectID = null;
+			_this.getObjectAttribute('Object ID');
+		},
+		getObjectAttribute: function(attributeName){
+			var attributeVal = null;
 			if(objectAttributes != null){
 				$.each(objectAttributes, function(index, v){
 					for (var property in v) {
-						if(property == 'Object ID'){
-							objectID = v[property];
+						if(property == attributeName){
+							attributeVal = v[property];
 							return;
 						}
 					}
 				});
 			}
-			return objectID;
+			return attributeVal;
+		},		
+		updateLibrary: function(){
+			var codeFileName = _this.getObjectAttribute('Code File Name');
+			sessionStorage.setItem(routeArgs.name, JSON.stringify({file: codeFileName}));	
+			window.location.hash = '/tools/createlibrary?schema='+common.ExternalDisplayName(routeArgs.schema)+'&library='+common.ExternalDisplayName(routeArgs.name);
 		},
 		selectFeature: function(e){
 			$(OBJECT_DETAILS_CONTAINER).show();
@@ -385,6 +395,14 @@ define([
 				break;
 			case DDL_SELECTOR:
 				$(DDL_CONTAINER).show();
+				if(ddlTextEditor){
+					var txt  = ddlTextEditor.getTextArea();
+					ddlTextEditor.setCursor(0,0);
+					if(txt){
+						$(txt).focus();
+						$(txt).click();
+					}
+				}
 				_this.fetchDDLText();
 				break;
 			case PRIVILEGES_SELECTOR:
@@ -410,6 +428,9 @@ define([
 			}
 			if(activeButton != null){
 				switch(activeButton){
+				case ATTRIBUTES_BTN:
+					objectAttributes = null;
+					break;
 				case DDL_BTN:
 					pageStatus.ddlFetched = false;
 					break;
@@ -442,34 +463,34 @@ define([
 			if(routeArgs.type != null && routeArgs.type.length > 0) {
 				switch(routeArgs.type){
 				case 'table': 
-					bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 					bCrumbsArray.push({name: 'Tables', link: '#/database/objects?type=tables&schema='+routeArgs.schema});
-					bCrumbsArray.push({name: routeArgs.name, link: ''});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 					break;
 				case 'view': 
-					bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 					bCrumbsArray.push({name: 'Views', link: '#/database/objects?type=views&schema='+routeArgs.schema});
-					bCrumbsArray.push({name: routeArgs.name, link: ''});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 					break;
 				case 'index': 
-					bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 					bCrumbsArray.push({name: 'Indexes', link: '#/database/objects?type=indexes&schema='+routeArgs.schema});
-					bCrumbsArray.push({name: routeArgs.name, link: ''});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 					break;
 				case 'library': 
-					bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 					bCrumbsArray.push({name: 'Libraries', link: '#/database/objects?type=libraries&schema='+routeArgs.schema});
-					bCrumbsArray.push({name: routeArgs.name, link: ''});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 					break;
 				case 'procedure': 
-					bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 					bCrumbsArray.push({name: 'Procedures', link: '#/database/objects?type=procedures&schema='+routeArgs.schema});
-					bCrumbsArray.push({name: routeArgs.name, link: ''});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 					break;
 				case 'udf': 
-					bCrumbsArray.push({name: routeArgs.schema, link: '#/database/schema?name='+routeArgs.schema});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.schema), link: '#/database/schema?name='+routeArgs.schema});
 					bCrumbsArray.push({name: 'User Defined Functions', link: '#/database/objects?type=udfs&schema='+routeArgs.schema});
-					bCrumbsArray.push({name: routeArgs.name, link: ''});
+					bCrumbsArray.push({name: common.ExternalDisplayName(routeArgs.name), link: ''});
 					break;
 
 				}
@@ -484,7 +505,7 @@ define([
 		},
 		processRequest: function(){
 			_this.updateBreadCrumbs(routeArgs);
-			var displayName = common.toProperCase(routeArgs.type) + ' '+routeArgs.name;
+			var displayName = common.toProperCase(routeArgs.type) + ' '+common.ExternalAnsiName(routeArgs.schema, routeArgs.name);
 			$(OBJECT_NAME_CONTAINER).text(displayName);
 
 			$(BREAD_CRUMB).show();
@@ -553,6 +574,13 @@ define([
 					break;							
 				}
 			}
+			
+			if(routeArgs.type == 'library'){
+				$(UPDATE_LIBRARY_CONTAINER).show();
+			}else{
+				$(UPDATE_LIBRARY_CONTAINER).hide();
+			}
+			
 			var ACTIVE_BTN = $(FEATURE_SELECTOR + ' .active');
 			var activeButton = null;
 			if(ACTIVE_BTN){
@@ -569,6 +597,7 @@ define([
 		fetchAttributes: function () {
 			$(ATTRIBUTES_ERROR_CONTAINER).hide();
 			if(objectAttributes == null){
+				$(ATTRIBUTES_CONTAINER).empty();
 				$(ATTRIBUTES_SPINNER).show();
 				dbHandler.fetchAttributes(routeArgs.type, routeArgs.name, routeArgs.schema);
 			}else{
@@ -577,6 +606,10 @@ define([
 		},
 		fetchDDLText: function(){
 			if(!pageStatus.ddlFetched || pageStatus.ddlFetched == false ){
+				if(ddlTextEditor){
+					ddlTextEditor.setValue("");
+					ddlTextEditor.refresh();
+				}
 				$(DDL_SPINNER).show();
 				var parentObjectName = null;
 				if(routeArgs.type == 'index'){
@@ -593,7 +626,7 @@ define([
 		},
 		fetchRegions: function(){
 			if(!pageStatus.regionsFetched || pageStatus.regionsFetched == false){
-				$(COLUMNS_SPINNER).show();
+				$(REGIONS_SPINNER).show();
 				dbHandler.fetchRegions(routeArgs.type, routeArgs.name, routeArgs.schema);
 			}			
 		},
@@ -644,7 +677,7 @@ define([
 							var link =	'<a href="#/database/objdetail?type=table' 
 								+ '&name=' + value 
 								+ '&schema='+ routeArgs.schema            				 
-								+ '">' + value + '</a>';
+								+ '">' + common.ExternalDisplayName(value) + '</a>';
 							$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + link +  '</td>');
 
 						}else {
@@ -656,7 +689,7 @@ define([
 						var libSch = _this.getUsageSchemaName();
 						libSch = (libSch != null && libSch.length > 0) ? libSch : routeArgs.schema;
 						var link =	'<a href="#/database/objdetail?type=library&name=' + value + '&schema=' +  libSch           				 
-						+ '">' + libSch+'.'+value + '</a>';
+						+ '">' + common.ExternalAnsiName(libSch, value) + '</a>';
 						$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + link +  '</td>');
 					}else{
 						$(ATTRIBUTES_CONTAINER).append('<tr><td style="padding:3px 0px">' + property + '</td><td>' + value +  '</td>');
@@ -668,6 +701,7 @@ define([
 			$(DDL_SPINNER).hide();
 			$(DDL_ERROR_CONTAINER).hide();
 			pageStatus.ddlFetched = true;
+			ddlTextEditor.focus();
 			ddlTextEditor.setValue(data);
 			ddlTextEditor.refresh();
 		},
@@ -741,7 +775,7 @@ define([
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible', orthogonal: 'export'  } },
 					          { extend : 'csv', exportOptions: { columns: ':visible', orthogonal: 'export' } },
-					          { extend : 'excel', exportOptions: { columns: ':visible', orthogonal: 'export' } },
+					          //{ extend : 'excel', exportOptions: { columns: ':visible', orthogonal: 'export' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible', orthogonal: 'export'  }, title: "Columns in "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible', orthogonal: 'export' }, title: "Columns in "+routeArgs.type + " " + routeArgs.name }
 					          ],					             
@@ -802,7 +836,7 @@ define([
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
-					          { extend : 'excel', exportOptions: { columns: ':visible' } },
+					         // { extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Regions for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Regions for "+routeArgs.type + " " + routeArgs.name }
 					          ],					             
@@ -863,7 +897,7 @@ define([
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
-					          { extend : 'excel', exportOptions: { columns: ':visible' } },
+					          //{ extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Privileges for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Privileges for "+routeArgs.type + " " + routeArgs.name }
 					          ],					             
@@ -911,19 +945,19 @@ define([
 				var aoColumnDefs = [];
 				if(routeArgs.type == 'library' || routeArgs.type == 'procedure' || routeArgs.type == 'udf'){
 					aoColumnDefs.push({
-						"aTargets": [ 1 ],
-						"mData": 1,
+						"aTargets": [ 2 ],
+						"mData": 2,
 						"visible" : false,
 						"searchable" : false
 					});
 					aoColumnDefs.push({
-						"aTargets": [ 0 ],
-						"mData": 0,
+						"aTargets": [ 1 ],
+						"mData": 1,
 						"mRender": function ( data, type, full ) {
 							if(type == 'display') {
 								if(data != null && data.length > 0){
-									var udrSchema = full[1];
-									var udrType = full[2];
+									var udrSchema = full[2];
+									var udrType = full[3];
 									var linkType = '';
 									if(udrType == 'Procedure' || udrType == 'Library'){
 										linkType = udrType.toLowerCase();
@@ -933,9 +967,9 @@ define([
 									var rowcontent = '<a href="#/database/objdetail?type='+linkType+'&name=' + data ;
 									if(udrSchema != null && udrSchema.length > 0){
 										rowcontent += '&schema='+ udrSchema;
-										rowcontent += '">' + udrSchema+'.'+data + '</a>';		            				 
+										rowcontent += '">' + common.ExternalAnsiName(udrSchema,data) + '</a>';		            				 
 									}else{
-										rowcontent += '">' + udrSchema+'.'+data + '</a>';	
+										rowcontent += '">' + common.ExternalAnsiName(udrSchema,data)+ '</a>';	
 									}
 									return rowcontent; 
 								}else{
@@ -960,7 +994,7 @@ define([
 										return '<tr><td><a href="#/database/objdetail?type='+objectType 
 										+ '&name=' + tableParts[tableParts.length -1] 
 										+ '&schema='+ tableParts[tableParts.length -2]	            				 
-										+ '">' + data + '</a></td><tr>';
+										+ '">' + common.ExternalAnsiName(tableParts[tableParts.length -2], tableParts[tableParts.length -1]) + '</a></td><tr>';
 									}
 								}
 								return data; 
@@ -989,7 +1023,7 @@ define([
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
-					          { extend : 'excel', exportOptions: { columns: ':visible' } },
+					          //{ extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Objects using "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Objects using "+routeArgs.type + " " + routeArgs.name }
 					          ],					             
@@ -1045,7 +1079,7 @@ define([
 							if(schemaName != null)
 								rowcontent += '&schema='+ schemaName;	            				 
 
-							rowcontent += "\">" + data + "</a>";
+							rowcontent += "\">" + common.ExternalDisplayName(data) + "</a>";
 							return rowcontent;                         
 						}else { 
 							return data;
@@ -1103,7 +1137,7 @@ define([
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
-					          { extend : 'excel', exportOptions: { columns: ':visible' } },
+					         // { extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text(), orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: $(OBJECT_NAME_CONTAINER).text() }
 					          ],					             
@@ -1199,7 +1233,7 @@ define([
 					buttons: [
 					          { extend : 'copy', exportOptions: { columns: ':visible' } },
 					          { extend : 'csv', exportOptions: { columns: ':visible' } },
-					          { extend : 'excel', exportOptions: { columns: ':visible' } },
+					          //{ extend : 'excel', exportOptions: { columns: ':visible' } },
 					          { extend : 'pdfHtml5', exportOptions: { columns: ':visible' }, title: "Statistics for "+routeArgs.type + " " + routeArgs.name, orientation: 'landscape' },
 					          { extend : 'print', exportOptions: { columns: ':visible' }, title: "Statistics for "+routeArgs.type + " " + routeArgs.name }
 					          ],					             

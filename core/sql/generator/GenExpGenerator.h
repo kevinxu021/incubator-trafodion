@@ -684,6 +684,10 @@ public:
 				 ValueIdList *tgtValues = NULL,    // OUT(O)
 				 ULng32 start_offset = 0);  // IN(O)
 
+  // static method to evaluate a predicate at compile time
+  static ex_expr::exp_return_type genEvalPredicate(ItemExpr * rootPtr,
+                                                   ComDiagsArea *diagsArea);
+
   ///////////////////////////////////////////////////////////////////////
   // Take an array of Attributes and assign offsets to them. Also make an
   // (optional) tuple descriptor (either in long or in short format).

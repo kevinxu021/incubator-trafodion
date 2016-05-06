@@ -92,7 +92,7 @@ define([
 			'workloads/history/querydetail(/*args)':'showHistoricalWorkloadDetail',
 			'workloads/active/querydetail(/*args)':'showActiveQueryDetail',
 			'workloads/queryplan(/*args)':'showQueryPlan',
-			'tools/createlibrary':'createLibrary',
+			'tools/createlibrary(?*:params)':'createLibrary',
 			'alerts': 'showAlertsSummary',
 			'alert/detail(/*args)': 'showAlertDetail',
 			'help/about': 'showAbout',
@@ -315,7 +315,9 @@ define([
 			switchView(alertDetailView, args);
 		});
 		
-		app_router.on('route:createLibrary', function (args) {
+		app_router.on('route:createLibrary', function (args, params) {
+			var args = deparam();
+
 			if(createLibraryView == null){
 				createLibraryView = new CreateLibraryView();
 				viewCollection.push(createLibraryView);

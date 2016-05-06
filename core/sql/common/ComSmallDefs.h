@@ -104,6 +104,7 @@ typedef NABoolean               ComBoolean;
 #define HIVE_SYSTEM_SCHEMA           "HIVE"
 #define HIVE_STATS_CATALOG           "TRAFODION"
 #define HIVE_STATS_SCHEMA            "\"_HIVESTATS_\""
+#define HIVE_STATS_SCHEMA_NO_QUOTES  "_HIVESTATS_"
 #define HIVE_EXT_SCHEMA_PREFIX       "_HV_"
 
 #define HBASE_SYSTEM_CATALOG          "HBASE"
@@ -118,13 +119,16 @@ typedef NABoolean               ComBoolean;
 
 #define HBASE_STATS_CATALOG          "TRAFODION"
 #define HBASE_STATS_SCHEMA           "\"_HBASESTATS_\""
+#define HBASE_STATS_SCHEMA_NO_QUOTES "_HBASESTATS_"
 
 #define TRAFODION_SYSCAT_LIT              "TRAFODION"
 #define SEABASE_SYSTEM_SCHEMA           "SEABASE"
 #define SEABASE_OLD_PRIVMGR_SCHEMA         "PRIVMGR_MD"
 #define SEABASE_PRIVMGR_SCHEMA         "_PRIVMGR_MD_"
 #define SEABASE_UDF_SCHEMA             "_UDF_"
-
+#define LOB_MD_PREFIX                  "LOBMD_"
+#define LOB_DESC_CHUNK_PREFIX          "LOBDescChunks_"
+#define LOB_DESC_HANDLE_PREFIX         "LOBDescHandle_"
 #define SEABASE_DEFAULT_COL_FAMILY "#1"
 
 // reserved names for seabase metadata where SQL table information is kept
@@ -170,6 +174,16 @@ typedef NABoolean               ComBoolean;
 #define REPOS_METRIC_TEXT_TABLE  "METRIC_TEXT_TABLE"
 
 #define SEABASE_REGRESS_DEFAULT_SCHEMA "SCH"
+
+// Trafodion system library and procedures reserved schema
+// Procedures are defined in CmpSeabaseDDLroutine.h
+#define SEABASE_LIBMGR_SCHEMA "_LIBMGR_"
+#define SEABASE_LIBMGR_LIBRARY "DB__LIBMGRNAME"
+
+// reserved column names for traf internal system usage
+#define TRAF_SALT_COLNAME "_SALT_"
+#define TRAF_DIVISION_COLNAME_PREFIX "_DIVISION_"
+#define TRAF_SYSKEY_COLNAME "SYSKEY"
 
 // length of explain_plan column in metric_query_table.
 // explain_plan greater than this length are chunked and store in multiple
@@ -1858,6 +1872,15 @@ enum ComAuthenticationType{
 #define COM_DBS_FAIL_LIT       "F"
 #define COM_DBS_YES_LIT        "Y"
 #define COM_DBS_NO_LIT         "N"
+
+// used with removeNATable for QI support
+enum ComQiScope 
+  {
+    REMOVE_FROM_ALL_USERS = 100,
+    REMOVE_MINE_ONLY
+  };
+
+
 //
 // (Maximum) size of TEXT.TEXT metadata column in bytes (for NSK) or NAWchars (for SeaQuest)
 //
