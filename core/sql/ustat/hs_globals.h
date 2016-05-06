@@ -1157,6 +1157,7 @@ struct HSColGroupStruct : public NABasicObject
                                                    /* are used by its neighbors. Used to compute group weight */
 
     NABoolean allKeysInsertedIntoCBF;
+    Int32            backwardWarningCount;          // for UERR_UNEXPECTED_BACKWARDS_DATA warnings
 
     #ifdef _TEST_ALLOC_FAILURE
     // Stuff used to test memory allocation failures.

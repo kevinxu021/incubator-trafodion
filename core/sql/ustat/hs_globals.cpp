@@ -1330,7 +1330,8 @@ HSColGroupStruct::HSColGroupStruct()
         mcis_colsMissingMap(NULL), mcis_memFreed(FALSE),
         mcis_totalMCmemNeeded(0), mcis_groupHead(TRUE), mcis_next(NULL), mcis_readAsIs (FALSE),
         delayedRead(FALSE), cbf(NULL),
-        boundaryValues(NULL), MFVValues(NULL), allKeysInsertedIntoCBF(FALSE)
+        boundaryValues(NULL), MFVValues(NULL), allKeysInsertedIntoCBF(FALSE),
+        backwardWarningCount(0)
   {
     strcpy(readTime, "0001-01-01 00:00:00");  // default if new
 #ifdef _TEST_ALLOC_FAILURE
@@ -11210,6 +11211,31 @@ Int64 placeWidePivot(T* sortArr, Int64 lowInx, Int64 highInx, Int64 pivotInx,
   return (pivotWidth >= highInx - lowInx ? -1 : storePtr - sortArr);
 }
 
+
+template <class T>
+void checkForBackwardness(HSGlobalsClass * hsGlobals, HSColGroupStruct *group, T * listitem1, T * listitem2)
+{
+  if (*listitem1 > *listitem2)
+    {
+      group->backwardWarningCount++;
+      if (group->backwardWarningCount < 5)  // report this warning at most 5 times per column
+        {
+          // raise a warning that we found data in backwards order, which means
+          // we might get out-of-order histograms, which is bad
+          hsGlobals->diagsArea << DgSqlCode(UERR_UNEXPECTED_BACKWARDS_DATA)
+               << DgString0(group->colSet[0].colname->data()); 
+        }    
+    }
+}
+
+template < >
+void checkForBackwardness(HSGlobalsClass * hsGlobals, HSColGroupStruct *group, 
+MCWrapper * listitem1, MCWrapper * listitem2)
+{
+  // TODO: write this method when necessary; it's a no-op for now
+}
+
+
 // The data in the column's data array has been sorted but not grouped.
 // Iterate over the values, counting duplicates. When a new value is
 // encountered, create a new group, consisting of a distinct value and
@@ -11269,6 +11295,7 @@ do
           valueCountIndex++;
           numRows=0;
         }
+      checkForBackwardness(hsGlobals,group,listitem1,listitem2);
       listitem1++;
       listitem2++;
       valueIndex++;
